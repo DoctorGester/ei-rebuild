@@ -96,9 +96,8 @@ void UiScrollbar::SetRect(const Rect* newRect) {
 
 // --- A-H20: dragging, the wheel, the slider's position --------------------------------------------
 
-void UiScrollbar::MouseMove(int, int x, int y) {
+void UiScrollbar::MouseMove(int, Point point) {
     if (state == kDragging) {
-        Point point{x, y};
         ui->ScalePointFromScreen(&point);
         int along = point.y - grabY;
         SetPosition(lib::Truncate(static_cast<float>(along - track.top) * maxPosition / (track.bottom - track.top)));
@@ -106,8 +105,8 @@ void UiScrollbar::MouseMove(int, int x, int y) {
     handled = true;
 }
 
-void UiScrollbar::Wheel(int, int delta, int x, int y) {
-    if (RegionAt(x, y) == kTrackRegion) {
+void UiScrollbar::Wheel(int, int delta, Point point) {
+    if (RegionAt(point) == kTrackRegion) {
         float step = static_cast<short>(delta) * speed * kWheelStep;
         accumulated = accumulated - step;
         handled = true;
@@ -132,9 +131,8 @@ void UiSlider::SetPosition(int newPosition) {
     thumb.right = centre + kSliderThumbHalfWidth;
 }
 
-void UiSlider::MouseMove(int, int x, int y) {
+void UiSlider::MouseMove(int, Point point) {
     if (state == kDragging) {
-        Point point{x, y};
         ui->ScalePointFromScreen(&point);
         int along = point.x - grabX;
         SetPosition(lib::Truncate(static_cast<float>(along - track.left) * maxPosition / (track.right - track.left)));

@@ -1271,7 +1271,7 @@ std::string CursorCheck(const std::string& argument) {
     const image::CursorState game = HarnessCursor();
     harnessplatform::ShownCursor shown;
     const bool isShown = harnessplatform::CursorShown(&shown);
-    platform::Point heldAt{};
+    Point heldAt{};
     const bool isHeld = harnessplatform::CursorHeld(&heldAt);
     Log("harness: cursorcheck %s: since cursormark %u presents showed the cursor, %u held it, %u hid it; %u frame "
         "steps, %u shapes made in all (%u failed); shown %s %dx%d (hot spot %d, %d)%s; the game's image %dx%d (%d "
@@ -3509,7 +3509,7 @@ namespace harnessplatform {
 bool BeforeEvents() { return ei::verify::BeforeEvents(); }
 bool CollectCursors() { return ei::verify::g_cursorCollecting && ei::verify::RampIsIdentity(); }
 int TypedCharacter(int key) { return ei::verify::TypedCharacter(key); }
-bool MousePosition(platform::Point* at) {
+bool MousePosition(Point* at) {
     POINT p{};
     HWND window = GameWindow();
     RECT client{};
@@ -3520,7 +3520,7 @@ bool MousePosition(platform::Point* at) {
                          : POINT{g_mouseX, g_mouseY};
         ClientToScreen(window, &p);
     }
-    *at = platform::Point{static_cast<int>(p.x), static_cast<int>(p.y)};
+    *at = Point{static_cast<int>(p.x), static_cast<int>(p.y)};
     return true;
 }
 

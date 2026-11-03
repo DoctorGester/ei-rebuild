@@ -531,10 +531,10 @@ bool Layout(TextFont& font, std::u32string_view text, const Rect& rect, unsigned
     return true;
 }
 
-Extent TextExtent(TextFont& font, std::u32string_view text) {
-    Extent extent;
-    for (char32_t ch : text) extent.cx += font.Advance(ch);
-    extent.cy = font.Metrics().height;
+Size TextExtent(TextFont& font, std::u32string_view text) {
+    Size extent;
+    for (char32_t ch : text) extent.w += font.Advance(ch);
+    extent.h = font.Metrics().height;
     return extent;
 }
 

@@ -3,13 +3,11 @@
 // The performance overlay: drawn into the window's back buffer after the frame, never into the frame target.
 // See docs/notes/renderer.md, section 15 and "The renderer's source files".
 
+#include "lib/rect.h"
+
 #include <cstdint>
 #include <string>
 #include <vector>
-
-namespace render {
-struct Rect;
-}
 
 namespace render::perf {
 

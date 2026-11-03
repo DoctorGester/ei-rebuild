@@ -104,7 +104,7 @@ void MainMenu::CreateScreen() {
     for (int i = 0; i < 6; ++i) {
         UiRegion* region = AddRegion();
         Rect area;
-        rects::Copy(&area, &g_menuRects[i]);
+        area = g_menuRects[i];
         region->SetRectFrom(area);
     }
     GamePlayMusic(nullptr);
@@ -183,9 +183,9 @@ void MainMenu::MessageResult(int result) {
 
 // --- The mouse move and the keys -------------------------------------------
 
-void MainMenu::MouseMove(int buttons, int x, int y) {
+void MainMenu::MouseMove(int buttons, Point point) {
     if (auto* stones = g_clientWorld.objectManager->FindObjectAs<Object3D>(kStonesObject)) {
-        int region = RegionAt(x, y);
+        int region = RegionAt(point);
         std::string name(stones->name);
         if (region != hovered) {
             FigureAnimation* animation;
@@ -198,7 +198,7 @@ void MainMenu::MouseMove(int buttons, int x, int y) {
         }
         hovered = region;
     }
-    UiContainer::MouseMove(buttons, x, y);
+    UiContainer::MouseMove(buttons, point);
 }
 
 void MainMenu::KeyDown(int key, int repeat, int modifiers) {

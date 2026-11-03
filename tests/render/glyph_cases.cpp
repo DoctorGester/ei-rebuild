@@ -9,7 +9,6 @@
 
 namespace glyph_cases {
 
-using render::Rect;
 namespace ui = render::ui;
 namespace text = render::text;
 

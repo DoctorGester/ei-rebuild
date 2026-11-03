@@ -516,8 +516,8 @@ void HudMap::UpdateView() {
 
 // --- The zoom factor ----------------------------------------------------------------------------------
 
-void HudMap::Wheel(int, int delta, int x, int y) {
-    int region = RegionAt(x, y);
+void HudMap::Wheel(int, int delta, Point point) {
+    int region = RegionAt(point);
     if (region < 0) return;
     if (region == 0) {
         float newZoom = pc24::Mul(WheelZoomFactor(static_cast<short>(delta)), zoom);

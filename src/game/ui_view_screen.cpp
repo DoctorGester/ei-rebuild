@@ -55,9 +55,8 @@ void ViewScreen::CloseScreen() { g_camera.flags |= Camera::kFree; }
 
 // --- UnitPickInput ------------------------------------------------------------------------------
 
-void UnitPickInput::LeftDown(int, int x, int y) {
+void UnitPickInput::LeftDown(int, Point point) {
     WorldClient* world = &g_clientWorld;
-    const Point point = {x, y};
     Unit* unit = world->UnitAt2(&point);
     if (!ui->ctrlDown) {
         if (unit) {
@@ -67,7 +66,7 @@ void UnitPickInput::LeftDown(int, int x, int y) {
             world->Select(unit);
             return;
         }
-        Vector3 ground = world->PickGround(x, y);
+        Vector3 ground = world->PickGround(point.x, point.y);
         for (int i = 0; i < std::ssize(picked); ++i) {
             auto* member = g_clientWorld.FindUnit(picked[i]);
             if (!member) continue;
@@ -84,7 +83,7 @@ void UnitPickInput::LeftDown(int, int x, int y) {
     }
 }
 
-void UnitPickInput::RightDown(int, int, int) {
+void UnitPickInput::RightDown(int, Point) {
     lib::FreeStorage(picked);
     g_clientWorld.Deselect();
 }

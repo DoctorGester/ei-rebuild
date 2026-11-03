@@ -169,7 +169,7 @@ void SaveLoadWindow::Char(int key, int repeat, int modifiers) {
                 std::string head = str::Left(currentName, cursor);
                 typed = text::Typed(head, key) + tail;   // the character's UTF-8 bytes
             }
-            if (ui->TextExtent(typed, 1).cx < kMaxNameWidth) {
+            if (ui->TextExtent(typed, 1).w < kMaxNameWidth) {
                 currentName = typed;
                 cursor += text::TypedLength(key);
             }

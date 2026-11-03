@@ -61,12 +61,12 @@ UiTooltip::UiTooltip(Interface3D* ownerUi, UiRegion* newRegion, std::string_view
             textWidth = 0;
         } else {
             size = ui->TextExtent(lines[i], kFont);
-            textWidth = size.cx;
+            textWidth = size.w;
         }
         if (textWidth > width) width = textWidth;
-        if (size.cy > 0) {
-            lineHeight = size.cy;
-            height += size.cy;
+        if (size.h > 0) {
+            lineHeight = size.h;
+            height += size.h;
         }
     }
     width += kPaddingX;
@@ -99,11 +99,11 @@ void UiTooltip::DrawLines() {
         } else {
             surface->DrawTextIn(lines[i], &row, kFont, colour, 0, 0);
         }
-        rects::Offset(&row, 0, step);
+        row.Offset(0, step);
     }
 }
 
-void UiTooltip::OnMouseMove(int x, int y) {
+void UiTooltip::OnMouseMove(Point point) {
     switch (state) {
     case State::Hovered: {
         const float delay = options::g_options.toolTipTime;
@@ -120,7 +120,7 @@ void UiTooltip::OnMouseMove(int x, int y) {
         if (extra) {
             keyName = static_cast<const char*>(FindCommandByKey(extra));
             if (keyName) {
-                keyWidth = ui->TextExtent(lines[0] + KeyOpen() + keyName + KeyClose(), kFont).cx + kPaddingX;
+                keyWidth = ui->TextExtent(lines[0] + KeyOpen() + keyName + KeyClose(), kFont).w + kPaddingX;
             }
         }
         state = State::Appearing;
@@ -130,16 +130,16 @@ void UiTooltip::OnMouseMove(int x, int y) {
         // WideScreen: without the margin; the layout's right edge 800 + extra (addon's operands).
         ui->ScalePointFromScreenNoMargin(&offset);
         const int layoutRight = screen_layout::LayoutRight();
-        rects::Offset(&area, offset.x, offset.y);
-        rects::Offset(&area, x, y);
+        area.Offset(offset.x, offset.y);
+        area.Offset(point.x, point.y);
         // Kept on the layout: pushed left from the right edge, and above the mouse at the bottom.
         if (area.right > layoutRight) {
-            rects::Offset(&area, -(area.right - layoutRight), 0);
-            if (area.left < 0) rects::Offset(&area, -area.left, 0);
+            area.Offset(-(area.right - layoutRight), 0);
+            if (area.left < 0) area.Offset(-area.left, 0);
         }
         if (area.bottom > kLayoutHeight) {
-            rects::Offset(&area, 0, -(area.bottom - y));
-            if (area.top < 0) rects::Offset(&area, 0, -area.top);
+            area.Offset(0, -(area.bottom - point.y));
+            if (area.top < 0) area.Offset(0, -area.top);
         }
         UiSurface* surface = new UiSurface(ui, &area, SurfaceBlend::Keyed);
         AddSurface(surface);

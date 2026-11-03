@@ -51,9 +51,9 @@ constexpr std::uint32_t kAnswerYes = 0x10001;
 
 } // namespace
 
-void CampPages::LeftDown(int buttons, int x, int y) {
-    UiContainer::LeftDown(buttons, x, y);
-    int region = RegionAt(x, y);
+void CampPages::LeftDown(int buttons, Point point) {
+    UiContainer::LeftDown(buttons, point);
+    int region = RegionAt(point);
     switch (region) {
     case kRegionAction:
         UpdateAction();
@@ -78,8 +78,8 @@ void CampPages::LeftDown(int buttons, int x, int y) {
     }
 }
 
-void CampPages::LeftUp(int buttons, int x, int y) {
-    UiContainer::LeftUp(buttons, x, y);
+void CampPages::LeftUp(int buttons, Point point) {
+    UiContainer::LeftUp(buttons, point);
     ReleaseMouse();
     turning = 0;
 }
@@ -254,7 +254,7 @@ ItemHoverInfo TradePanel::HoverInfo(int x, int y) {
     if (!enabled) return info;
     // The region is tested with unsigned compares, so -1 (no region) falls through
     // every range and ends on a held-perk index far past the list.
-    unsigned region = static_cast<unsigned>(RegionAt(x, y));
+    unsigned region = static_cast<unsigned>(RegionAt(Point{x, y}));
     if (region >= 4 && region < 10) {
         info.kind = HoverKind::Skill;
         info.index = static_cast<int>(region - 4);
@@ -293,7 +293,7 @@ ItemHoverInfo HeroStatsPanel::HoverInfo(int x, int y) {
     PartyUnitRecord* hero = owner->HeroRecord();
     ItemHoverInfo info;
     info.stats = &hero->stats;
-    int row = RegionAt(x, y);
+    int row = RegionAt(Point{x, y});
     if (((page == 1 || page == 11) && row >= 2) || (page == 10 && row >= 2 && row < 5)) {
         info.kind = HoverKind::Attribute;
         info.index = row - 2;

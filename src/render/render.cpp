@@ -946,7 +946,7 @@ bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr) {
     platform::FloatingPointGuard fpu;
     platform::graphics::Readback copy;
     const int w = g_width, h = g_height;
-    const bool read = copy.Read(g_colour, platform::Rect{0, 0, w, h});
+    const bool read = copy.Read(g_colour, Rect{0, 0, w, h});
     if (read) {
         *width = w;
         *height = h;

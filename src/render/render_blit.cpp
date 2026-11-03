@@ -122,7 +122,7 @@ void CheckUpload(sg_image image, const std::uint8_t* rgba, int w, int h) {
 #if defined(EI_RENDER_VALIDATION)
     if (!ReadBackDue(g_uploads++)) return;
     platform::graphics::Readback copy;
-    if (copy.Read(image, platform::Rect{0, 0, w, h})) {
+    if (copy.Read(image, Rect{0, 0, w, h})) {
         bool same = true;
         for (int y = 0; y < h && same; ++y)
             same = std::memcmp(copy.Row(y), rgba + static_cast<std::size_t>(y) * w * 4,

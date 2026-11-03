@@ -72,7 +72,7 @@ void DrawEllipsis(UiSurface* surface, std::string_view text, Rect* rect, int for
     text::CopyFitting(buffer, kExtendedTextSize, text);
     DrawLabel(surface, buffer, rect, format | kFormatEllipsis);
 }
-void Down(Rect* rect, int dy = kRowHeight) { rects::Offset(rect, 0, dy); }
+void Down(Rect* rect, int dy = kRowHeight) { rect->Offset(0, dy); }
 
 } // namespace
 

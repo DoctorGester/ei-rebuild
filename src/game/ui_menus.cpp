@@ -69,9 +69,9 @@ void SaveLoadWindow::TakeSelectedTitle() {
     cursor = lib::Count(name);
 }
 
-void SaveLoadWindow::LeftDown(int buttons, int x, int y) {
+void SaveLoadWindow::LeftDown(int buttons, Point point) {
     if (sliding) return;
-    int region = RegionAt(x, y);
+    int region = RegionAt(point);
     switch (region) {
     case 0:
         Confirm();
@@ -98,12 +98,12 @@ void SaveLoadWindow::LeftDown(int buttons, int x, int y) {
         }
         break;
     }
-    UiContainer::LeftDown(buttons, x, y);
+    UiContainer::LeftDown(buttons, point);
 }
 
-void SaveLoadWindow::LeftDouble(int buttons, int x, int y) {
+void SaveLoadWindow::LeftDouble(int buttons, Point point) {
     if (sliding) return;
-    int region = RegionAt(x, y);
+    int region = RegionAt(point);
     if (region >= 3) {
         unsigned index = static_cast<unsigned>(firstVisible + region - 3);
         if (index < static_cast<unsigned>(EntryCount())) {
@@ -114,7 +114,7 @@ void SaveLoadWindow::LeftDouble(int buttons, int x, int y) {
             Confirm();
         }
     }
-    UiContainer::LeftDouble(buttons, x, y);
+    UiContainer::LeftDouble(buttons, point);
 }
 
 void SaveLoadWindow::Draw(SceneRenderer* pass) {
@@ -175,9 +175,9 @@ void OptionsWindow::RestoreSettings() {
                               options::g_options.gamma);
 }
 
-void OptionsWindow::LeftDown(int buttons, int x, int y) {
+void OptionsWindow::LeftDown(int buttons, Point point) {
     if (sliding) return;
-    int region = RegionAt(x, y);
+    int region = RegionAt(point);
     if (region == 0 || region == 1) {
         const char* sound;
         if (region == 0) {
@@ -205,12 +205,12 @@ void OptionsWindow::LeftDown(int buttons, int x, int y) {
             }
         }
     }
-    UiContainer::LeftDown(buttons, x, y);
+    UiContainer::LeftDown(buttons, point);
 }
 
-void OptionsWindow::LeftDouble(int buttons, int x, int y) {
+void OptionsWindow::LeftDouble(int buttons, Point point) {
     if (sliding) return;
-    int region = RegionAt(x, y);
+    int region = RegionAt(point);
     if (region >= 13) {
         OptionRow& row = RegionRow(region);
         if (row.binding) {
@@ -225,7 +225,7 @@ void OptionsWindow::LeftDouble(int buttons, int x, int y) {
             RefreshRows();
         }
     }
-    UiContainer::LeftDouble(buttons, x, y);
+    UiContainer::LeftDouble(buttons, point);
 }
 
 void OptionsWindow::Draw(SceneRenderer* pass) {
@@ -346,10 +346,9 @@ void UiScrollbar::Update() {
     if (steps != 0) SetPosition(position + steps);
 }
 
-void UiScrollbar::LeftDown(int, int x, int y) {
-    Point point{x, y};
+void UiScrollbar::LeftDown(int, Point point) {
     ui->ScalePointFromScreen(&point);
-    if (rects::Contains(&thumb, point)) {
+    if (thumb.Contains(point)) {
         CaptureMouse();
         state = 1;
         grabX = point.x - (thumb.left + thumb.right) / 2;
@@ -357,7 +356,7 @@ void UiScrollbar::LeftDown(int, int x, int y) {
         handled = true;
         return;
     }
-    int region = RegionAt(x, y);
+    int region = RegionAt(point);
     if (region != 0 && region != 1) return;
     CaptureMouse();
     state = region == 0 ? 2 : 3;
@@ -365,7 +364,7 @@ void UiScrollbar::LeftDown(int, int x, int y) {
     handled = true;
 }
 
-void UiScrollbar::LeftUp(int, int, int) {
+void UiScrollbar::LeftUp(int, Point) {
     state = 0;
     ui->mouseCapture = nullptr;
     accumulated = 0.0f;

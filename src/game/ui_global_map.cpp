@@ -363,9 +363,9 @@ void GlobalMap::CreateScreen() {
 void GlobalMap::Update() {
     UiContainer::Update();
     if (dragging && turning == 0) {
-        platform::Point cursor{};
+        Point cursor{};
         platform::CursorPosition(&cursor);
-        Input()->MouseMove(0, cursor.x, cursor.y);
+        Input()->MouseMove(0, cursor);
     }
     MapBuilder builder(this);
     if (turning != 0 || dragging) {

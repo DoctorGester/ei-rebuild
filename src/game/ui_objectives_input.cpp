@@ -52,9 +52,9 @@ constexpr float kAlphaScale = 255.0f;
 
 } // namespace
 
-void ObjectivesWindow::LeftDown(int buttons, int x, int y) {
-    UiContainer::LeftDown(buttons, x, y);
-    int region = RegionAt(x, y);
+void ObjectivesWindow::LeftDown(int buttons, Point point) {
+    UiContainer::LeftDown(buttons, point);
+    int region = RegionAt(point);
     std::uint32_t zoneCount = static_cast<std::uint32_t>(zones.end() - zones.begin());
     switch (region) {
     case kRegionOk:

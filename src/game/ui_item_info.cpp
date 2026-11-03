@@ -69,11 +69,11 @@ public:
     const std::string& T(int index) const { return panel->itemTexts[index]; }
     const std::string& Skill(int index) const { return panel->skillTexts[index]; }
 
-    void Down() { rects::Offset(&rect, 0, 15); }
+    void Down() { rect.Offset(0, 15); }
     void Text(std::string_view text) { draw->DrawTextIn(text, &rect, 0, kText, 0, 1); }
     void Value(std::string_view text) {
         Rect shifted = rect;
-        rects::Offset(&shifted, -10, 0);
+        shifted.Offset(-10, 0);
         draw->DrawTextIn(text, &shifted, 0, kText, 2, 1);
     }
     void Title(std::string_view text) { draw->DrawWrappedText(text, &rect, 2, 0, kWhite, 0x11, 1); }

@@ -29,7 +29,7 @@ bool CursorShown(ShownCursor* cursor);
 // The shapes SetCursor was given while the harness asked for them (CollectCursors), each once; ForgetSeenCursors starts anew.
 const std::vector<ShownCursor>& SeenCursors();
 void ForgetSeenCursors();
-bool CursorHeld(platform::Point* at);
+bool CursorHeld(Point* at);
 
 // What the backend asks of the harness (harness.cpp): before the game looks for events (EventWaits, TakeEvent), the
 // frame count and the steps, false while the harness holds the events for a pass (the close-all); the character a key
@@ -41,6 +41,6 @@ bool CollectCursors();
 int TypedCharacter(int key);
 platform::MessageAnswer AnswerMessageBox(const char* text, const char* caption, platform::MessageButtons buttons);
 // The harness's mouse's position on the screen (false: none).
-bool MousePosition(platform::Point* at);
+bool MousePosition(Point* at);
 
 } // namespace ei::verify::harnessplatform

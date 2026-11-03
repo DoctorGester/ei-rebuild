@@ -85,9 +85,9 @@ void ExchangeScreen::Update() {
 
 // --- the left button -------------------------------------------------------------------------------
 
-void ExchangeScreen::LeftDown(int buttons, int x, int y) {
-    UiContainer::LeftDown(buttons, x, y);
-    switch (RegionAt(x, y)) {
+void ExchangeScreen::LeftDown(int buttons, Point point) {
+    UiContainer::LeftDown(buttons, point);
+    switch (RegionAt(point)) {
     case kAcceptRegion: {
         net::PartyMessage* offer = LiveOffer();
         if (offer && !offer->accepted && ownOffer->money <= LocalPlayerData()->money) {
@@ -202,9 +202,9 @@ void ExchangeScreen::Draw(SceneRenderer* pass) {
     // What is under the mouse: an item of the strip or else of the grid, or a help topic.
     hoveredItem = nullptr;
     int topic = 0;
-    hoveredItem = strip->ItemAt(g_cursor.position.x, g_cursor.position.y, &topic);
+    hoveredItem = strip->ItemAt(g_cursor.position, &topic);
     if (!hoveredItem && !topic)
-        hoveredItem = grid->ItemAt(g_cursor.position.x, g_cursor.position.y, &topic);
+        hoveredItem = grid->ItemAt(g_cursor.position, &topic);
     if (hoveredItem) {
         if (descPanel) descPanel->Describe(hoveredItem);
     } else if (topic) {

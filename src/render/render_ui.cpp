@@ -78,11 +78,6 @@ unsigned g_nextId = 1;
 // Images given up, destroyed at the next RunCanvasCommands (DropCanvas comes from game code at any time).
 std::vector<CanvasImage> g_retired;
 
-Rect Intersect(const Rect& a, const Rect& b) {
-    return Rect{std::max(a.left, b.left), std::max(a.top, b.top), std::min(a.right, b.right), std::min(a.bottom, b.bottom)};
-}
-bool Empty(const Rect& r) { return r.right <= r.left || r.bottom <= r.top; }
-
 // The canvas of `holder` for a new command: a blit of it the frame has not drawn yet is drawn first.
 CanvasState* Target(const void* holder) {
     auto it = g_canvases.find(holder);
@@ -97,8 +92,8 @@ CanvasState* Target(const void* holder) {
 void Push(Op&& op) { g_queue.push_back(std::move(op)); }
 
 void PushSolid(const void* holder, CanvasState& canvas, const Rect& rect, std::uint32_t rgb) {
-    Rect r = Intersect(rect, Rect{0, 0, canvas.width, canvas.height});
-    if (Empty(r)) return;
+    Rect r = rect.Intersection(Rect{0, 0, canvas.width, canvas.height});
+    if (r.IsEmpty()) return;
     Op op;
     op.kind = Op::Solid;
     op.holder = holder;
@@ -470,7 +465,7 @@ bool JoinsRuns(const Op& op, std::size_t from, std::size_t to) {
     if (op.kind != Op::Glyphs || op.holder != g_queue[from].holder || op.canvas != g_queue[from].canvas) return false;
     int height = op.rect.bottom - op.rect.top;
     for (std::size_t k = from; k < to; ++k) {
-        if (!Empty(Intersect(op.rect, g_queue[k].rect))) return false;
+        if (!op.rect.Intersection(g_queue[k].rect).IsEmpty()) return false;
         height += g_queue[k].rect.bottom - g_queue[k].rect.top;
     }
     return height <= kMaxCanvas;
@@ -480,8 +475,8 @@ void DrawCopy(const CanvasState& canvas, const Op& op) {
     sg_view frame = FrameTexture();
     int fw = 0, fh = 0;
     if (!frame.id || !FrameSize(&fw, &fh)) return;
-    Rect r = Intersect(op.rect, Rect{0, 0, fw, fh});
-    if (Empty(r)) return;
+    Rect r = op.rect.Intersection(Rect{0, 0, fw, fh});
+    if (r.IsEmpty()) return;
     BeginCanvasPass(canvas.gpu.attachment, false, "ei-canvas-copy");
     sg_apply_pipeline(g_copy);
     sg_bindings b{};
@@ -683,7 +678,7 @@ void Fill(const void* holder, const Rect& rect, std::uint32_t colour) {
 
 void FrameRect(const void* holder, const Rect& rect, std::uint32_t colour) {
     CanvasState* canvas = Target(holder);
-    if (!canvas || Empty(rect)) return;
+    if (!canvas || rect.IsEmpty()) return;
     std::uint32_t rgb = CanvasColour(colour, *canvas);
     PushSolid(holder, *canvas, Rect{rect.left, rect.top, rect.right, rect.top + 1}, rgb);
     PushSolid(holder, *canvas, Rect{rect.left, rect.bottom - 1, rect.right, rect.bottom}, rgb);
@@ -754,8 +749,8 @@ void GlyphRun(const void* holder, text::TextFont& font, const text::TextLayout& 
     CanvasState* canvas = Target(holder);
     if (!canvas || (layout.quads.empty() && layout.underlines.empty())) return;
     Rect scissor{0, 0, canvas->width, canvas->height};
-    if (layout.clipped) scissor = Intersect(scissor, Rect{layout.clip.left, layout.clip.top, layout.clip.right, layout.clip.bottom});
-    if (Empty(scissor)) return;
+    if (layout.clipped) scissor = scissor.Intersection(layout.clip);
+    if (scissor.IsEmpty()) return;
     Op op;
     op.kind = Op::Glyphs;
     op.holder = holder;
@@ -777,14 +772,14 @@ void GlyphRun(const void* holder, text::TextFont& font, const text::TextLayout& 
     for (const text::GlyphQuad& q : layout.quads)
         quad(q.x, q.y, q.width, q.height, static_cast<float>(q.atlasX), static_cast<float>(q.atlasY));
     for (const Rect& u : layout.underlines) quad(u.left, u.top, u.right - u.left, u.bottom - u.top, -1.0f, -1.0f);
-    op.rect = Intersect(bounds, scissor);
-    if (Empty(op.rect)) return;
+    op.rect = bounds.Intersection(scissor);
+    if (op.rect.IsEmpty()) return;
     Push(std::move(op));
 }
 
 void CopyFrame(const void* holder, const Rect& source) {
     CanvasState* canvas = Target(holder);
-    if (!canvas || Empty(source)) return;
+    if (!canvas || source.IsEmpty()) return;
     // The frame as drawn up to now: its commands recorded so far drawn before the copy is.
     SplitFrame();
     Op op;
@@ -813,7 +808,7 @@ bool ReadPixels(const void* holder, std::vector<std::uint32_t>* rgb, int* width,
     const CanvasState& canvas = it->second;
     platform::FloatingPointGuard fpu;
     const int w = canvas.width, h = canvas.height;
-    if (!g_staging.Read(canvas.gpu.image, platform::Rect{0, 0, w, h})) return false;
+    if (!g_staging.Read(canvas.gpu.image, Rect{0, 0, w, h})) return false;
     rgb->resize(static_cast<std::size_t>(w) * h);
     for (int y = 0; y < h; ++y) {
         const std::uint8_t* row = g_staging.Row(y);
@@ -835,7 +830,7 @@ bool ReadPixel(const void* holder, int x, int y, std::uint32_t* rgb) {
     const CanvasState& canvas = it->second;
     if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return false;
     platform::FloatingPointGuard fpu;
-    if (!g_staging.Read(canvas.gpu.image, platform::Rect{x, y, x + 1, y + 1})) return false;
+    if (!g_staging.Read(canvas.gpu.image, Rect{x, y, x + 1, y + 1})) return false;
     const std::uint8_t* p = g_staging.Row(0);   // RGBA8
     *rgb = (static_cast<std::uint32_t>(p[0]) << 16) | (static_cast<std::uint32_t>(p[1]) << 8) | p[2];
     g_staging.Unmap();
@@ -866,7 +861,7 @@ bool ReadRgb565(const void* holder, int width, int height, std::uint16_t* out) {
     ApplyFs(fs);
     sg_draw(0, 6, 1);
     sg_end_pass();
-    if (!g_pictureStaging.Read(g_picture.image, platform::Rect{0, 0, width, height})) return false;
+    if (!g_pictureStaging.Read(g_picture.image, Rect{0, 0, width, height})) return false;
     for (int y = 0; y < height; ++y)
         std::memcpy(out + static_cast<std::size_t>(y) * static_cast<std::size_t>(width), g_pictureStaging.Row(y),
                     static_cast<std::size_t>(width) * sizeof(std::uint16_t));
@@ -889,8 +884,8 @@ void DrawCanvas(const void* holder, const Rect& destination, const Rect* source,
 void Image(const void* holder, const Rect& destination, const std::uint32_t* rgb, int pitch) {
     CanvasState* canvas = Target(holder);
     if (!canvas || !rgb) return;
-    Rect r = Intersect(destination, Rect{0, 0, canvas->width, canvas->height});
-    if (Empty(r)) return;
+    Rect r = destination.Intersection(Rect{0, 0, canvas->width, canvas->height});
+    if (r.IsEmpty()) return;
     Op op;
     op.kind = Op::Pixels;
     op.holder = holder;

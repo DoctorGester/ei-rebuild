@@ -215,7 +215,7 @@ bool Present(const Plan& plan, Scene& s, SDL_Window* window, bool vsync) {
 }
 
 void ReadFrame(const Plan& plan, Scene& s, platform::graphics::Readback& rb, std::vector<std::uint8_t>* rgba) {
-    if (!rb.Read(s.images[plan.colour->id], platform::Rect{0, 0, plan.width, plan.height})) return;
+    if (!rb.Read(s.images[plan.colour->id], Rect{0, 0, plan.width, plan.height})) return;
     rgba->resize(static_cast<std::size_t>(plan.width) * plan.height * 4);
     for (int y = 0; y < plan.height; ++y)
         std::memcpy(&(*rgba)[static_cast<std::size_t>(y) * plan.width * 4], rb.Row(y),

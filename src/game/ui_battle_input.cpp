@@ -55,15 +55,15 @@ void BattleScreen::Deactivate() {
 
 // --- a double click on the battle screen ---------------------------------------------------------
 
-void BattleScreen::LeftDouble(int buttons, int x, int y) {
+void BattleScreen::LeftDouble(int buttons, Point point) {
     if (portraitMode != 0) return;
     if (!viewPressed) {
-        UiContainer::LeftDouble(buttons, x, y);
+        UiContainer::LeftDouble(buttons, point);
         if (handled) return;
     }
     viewPressed = true;
-    pressX = x;
-    pressY = y;
+    pressX = point.x;
+    pressY = point.y;
     boxSelecting = false;
 }
 
@@ -78,16 +78,16 @@ void BattleScreen::KeyUp(int key, int repeat, int modifiers) {
 
 // --- the wheel on the battle screen --------------------------------------------------------------
 
-void BattleScreen::Wheel(int modifiers, int delta, int x, int y) {
+void BattleScreen::Wheel(int modifiers, int delta, Point point) {
     if (portraitMode != 0) return;
     UiWindow* const panels[4] = {map, unitPanel, messageLog, topPanel};
     for (UiWindow* panel : panels) {
         panel->handled = false;
-        panel->Input()->Wheel(modifiers, delta, x, y);
+        panel->Input()->Wheel(modifiers, delta, point);
         if (panel->handled) return;
     }
     for (UiWindow* panel : panels) panel->SetEnabled(false, false);
-    UiContainer::Wheel(modifiers, delta, x, y);
+    UiContainer::Wheel(modifiers, delta, point);
     for (UiWindow* panel : panels) panel->SetEnabled(true, false);
 }
 
@@ -373,49 +373,48 @@ int Distance(int a, int b) { return a < b ? b - a : a - b; }
 
 // --- the mouse moved over the battle screen ------------------------------------------------------
 
-void BattleScreen::MouseMove(int buttons, int x, int y) {
+void BattleScreen::MouseMove(int buttons, Point point) {
     if (portraitMode != 0) {
         g_cursor.SetShape(kCursorPickPlayer);
-        if (portraits) portraits->Input()->MouseMove(buttons, x, y);
+        if (portraits) portraits->Input()->MouseMove(buttons, point);
         return;
     }
     g_cursor.SetShape(kCursorArrow);
     if (viewPressed && options::g_options.cameraFrameSelectionArea > 0 && !IsMultiplayerClient()) {
         int threshold = options::g_options.cameraFrameSelectionArea;
-        if (Distance(x, pressX) > threshold || Distance(y, pressY) > threshold) boxSelecting = true;
+        if (Distance(point.x, pressX) > threshold || Distance(point.y, pressY) > threshold) boxSelecting = true;
         if (boxSelecting) {
             HudUnitPanel* panel = unitPanel;
             if (panel->hoverUnit) panel->hoverUnit = nullptr;
-            selectionBox.left = x < pressX ? x : pressX;
-            selectionBox.top = y < pressY ? y : pressY;
-            selectionBox.right = x > pressX ? x : pressX;
-            selectionBox.bottom = y > pressY ? y : pressY;
+            selectionBox.left = point.x < pressX ? point.x : pressX;
+            selectionBox.top = point.y < pressY ? point.y : pressY;
+            selectionBox.right = point.x > pressX ? point.x : pressX;
+            selectionBox.bottom = point.y > pressY ? point.y : pressY;
             return;
         }
     } else {
-        UiContainer::MouseMove(buttons, x, y);
+        UiContainer::MouseMove(buttons, point);
         if (handled) return;
     }
     // The (x, y) pair is read back through its address.
-    Point point = {x, y};
     Unit* unit = g_clientWorld.UnitAt(&point);
     HoverUnit(unit, point.x, point.y);
 }
 
 // --- the left button went down on the battle screen ----------------------------------------------
 
-void BattleScreen::LeftDown(int buttons, int x, int y) {
+void BattleScreen::LeftDown(int buttons, Point point) {
     if (portraitMode != 0) {
-        if (portraits) portraits->Input()->LeftDown(buttons, x, y);
+        if (portraits) portraits->Input()->LeftDown(buttons, point);
         return;
     }
     if (!viewPressed) {
-        UiContainer::LeftDown(buttons, x, y);
+        UiContainer::LeftDown(buttons, point);
         if (handled) return;
     }
     viewPressed = true;
-    pressX = x;
-    pressY = y;
+    pressX = point.x;
+    pressY = point.y;
     boxSelecting = false;
 }
 

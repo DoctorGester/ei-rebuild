@@ -134,7 +134,7 @@ void UiEditField::Char(int key, int, int) {
     std::string tail = str::Mid(currentText, caret);
     std::string head = str::Left(currentText, caret);
     std::string typed = text::Typed(head, key) + tail;
-    if (text::CharacterCount(currentText) < maxLength && ui->TextExtent(typed, font).cx < area.right - area.left) {
+    if (text::CharacterCount(currentText) < maxLength && ui->TextExtent(typed, font).w < area.right - area.left) {
         currentText = typed;
         changed = true;
         caret += text::TypedLength(key);
@@ -181,8 +181,8 @@ void UiEditField::DrawContentsVanilla() {
     surface->DrawTextIn(currentText, &box, font, colour, centred ? render::text::kNoPrefix | render::text::kCenter : render::text::kNoPrefix, 1);
     // The caret stands after the first caret characters; a centred text starts half its width left
     // of the middle.
-    int caretX = ui->TextExtent(str::Left(currentText, caret), font).cx;
-    if (centred) caretX += width / 2 - ui->TextExtent(currentText, font).cx / 2;
+    int caretX = ui->TextExtent(str::Left(currentText, caret), font).w;
+    if (centred) caretX += width / 2 - ui->TextExtent(currentText, font).w / 2;
     if (caretX >= 0 && caretX < width) {
         Point top{caretX, 0};
         Point bottom{caretX, height};

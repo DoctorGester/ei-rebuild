@@ -182,28 +182,28 @@ std::intptr_t DispatchInput(const platform::Event& received) {
         input->OnKeyUp(event.key, event.repeat, event.keyFlags);
         return Handled();
     case EventType::MouseMove:
-        input->OnMouseMove(event.buttons, x, y);
+        input->OnMouseMove(event.buttons, Point{x, y});
         return Handled();
     case EventType::LeftDown:
-        input->OnLeftDown(event.buttons, x, y);
+        input->OnLeftDown(event.buttons, Point{x, y});
         return Handled();
     case EventType::LeftUp:
-        input->OnLeftUp(event.buttons, x, y);
+        input->OnLeftUp(event.buttons, Point{x, y});
         return Handled();
     case EventType::LeftDouble:
-        input->OnLeftDouble(event.buttons, x, y);
+        input->OnLeftDouble(event.buttons, Point{x, y});
         return Handled();
     case EventType::RightDown:
-        input->OnRightDown(event.buttons, x, y);
+        input->OnRightDown(event.buttons, Point{x, y});
         return Handled();
     case EventType::RightUp:
-        input->OnRightUp(event.buttons, x, y);
+        input->OnRightUp(event.buttons, Point{x, y});
         return Handled();
     case EventType::RightDouble:
-        input->OnRightDouble(event.buttons, x, y);
+        input->OnRightDouble(event.buttons, Point{x, y});
         return Handled();
     case EventType::Wheel:
-        input->OnWheel(event.buttons, Unsigned16(event.wheelDelta), x, y);
+        input->OnWheel(event.buttons, Unsigned16(event.wheelDelta), Point{x, y});
         return Handled();
     default:
         return HandleWindowEvent(event);

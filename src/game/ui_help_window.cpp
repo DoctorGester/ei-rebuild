@@ -103,9 +103,9 @@ void HelpWindow::Finish() {
     ui->SetPendingValue(0);
 }
 
-void HelpWindow::LeftDown(int buttons, int x, int y) {
-    UiContainer::LeftDown(buttons, x, y);
-    switch (RegionAt(x, y)) {
+void HelpWindow::LeftDown(int buttons, Point point) {
+    UiContainer::LeftDown(buttons, point);
+    switch (RegionAt(point)) {
     case 0:
         if (page > 0) {
             ui->PlayInterfaceSound(kNextSound);

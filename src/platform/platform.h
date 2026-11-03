@@ -8,6 +8,7 @@
 // src/platform/posix/platform_posix.cpp).
 
 #include "lib/bytes.h"
+#include "lib/rect.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -228,17 +229,6 @@ void MakeThreadTimeCritical();
 // A native window (an HWND on Windows), or a program instance (an HINSTANCE).
 using NativeWindow = void*;
 using NativeInstance = void*;
-
-struct Point {
-    int x;
-    int y;
-};
-struct Rect {
-    int left;
-    int top;
-    int right;
-    int bottom;
-};
 
 enum class EventType : std::uint8_t {
     KeyDown,         // a key pressed (key, repeat, keyFlags)

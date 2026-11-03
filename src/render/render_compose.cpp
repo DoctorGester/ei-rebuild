@@ -449,7 +449,7 @@ bool ReadImageLevel(sg_image image, int level, int width, int height, std::vecto
         sg_destroy_view(attachment);
         sg_destroy_view(source);
         platform::graphics::Readback copy;
-        if (copy.Read(target, platform::Rect{0, 0, width, height})) {
+        if (copy.Read(target, Rect{0, 0, width, height})) {
             rgba->resize(static_cast<std::size_t>(width) * height * 4);
             for (int y = 0; y < height; ++y)
                 std::memcpy(rgba->data() + static_cast<std::size_t>(y) * width * 4, copy.Row(y),

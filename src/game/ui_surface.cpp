@@ -42,7 +42,7 @@ UiSurface::~UiSurface() {
     Surface* currentHolder = holder;
     holder = nullptr;
     if (currentHolder) currentHolder->Release();
-    rects::SetEmpty(&rect);
+    rect = {};
 }
 
 UiSurface::UiSurface(Interface3D* ownerUi, int left, int top, int right, int bottom, SurfaceBlend newBlend, bool scale)
@@ -136,13 +136,10 @@ void UiSurface::Hide(bool release) {
 
 void UiSurface::Blit() {
     if (!holder || !shown) return;
-    Rect clipped{0, 0, ui->width, ui->height};
-    rects::Intersect(&clipped, &clipped, &rect);
-    if (rects::IsEmpty(&clipped)) return;
-    const render::Rect destination{clipped.left, clipped.top, clipped.right, clipped.bottom};
-    const int left = clipped.left - rect.left, top = clipped.top - rect.top;
-    const render::Rect part{left, top, left + (clipped.right - clipped.left), top + (clipped.bottom - clipped.top)};
-    render::ui::DrawCanvas(holder, destination, &part, blend == SurfaceBlend::Keyed, background);
+    const Rect clipped = Rect{0, 0, ui->width, ui->height}.Intersection(rect);
+    if (clipped.IsEmpty()) return;
+    const Rect part = clipped.Offsetted(-rect.TopLeft());
+    render::ui::DrawCanvas(holder, clipped, &part, blend == SurfaceBlend::Keyed, background);
 }
 
 // --- Frame -------------------------------------------------------------------------------------------
@@ -152,33 +149,27 @@ void UiSurface::Blit() {
 // pixel (the console, the carets and lines of the edit fields, chat, connection and save lists, the HUD map's dot).
 // See docs/notes/ui.md, section 3.
 
-namespace {
-render::Rect ToRect(const Rect& rect) { return render::Rect{rect.left, rect.top, rect.right, rect.bottom}; }
-} // namespace
-
 void UiSurface::FrameRect(const Rect* area, std::uint32_t colour) {
     if (!holder) return;
     Rect frame;
-    if (rects::IsEmpty(area)) {
-        frame = {0, 0, rect.right - rect.left, rect.bottom - rect.top};
+    if (area->IsEmpty()) {
+        frame = {0, 0, rect.Width(), rect.Height()};
     } else {
         frame = *area;
         ui->ScaleRectToScreenNoMargin(&frame);   // the surface's own pixels: no window margin
     }
-    render::ui::FrameRect(holder, ToRect(frame), colour);
+    render::ui::FrameRect(holder, frame, colour);
 }
 
 void UiSurface::Fill(std::uint32_t colour) {
     if (!holder) return;
-    Rect whole = rect;
-    rects::Offset(&whole, -whole.left, -whole.top);
-    FillRect(whole, colour);
+    FillRect(rect.Offsetted(-rect.TopLeft()), colour);
 }
 
 void UiSurface::Clear() { Fill(background); }
 
 void UiSurface::FillRect(const Rect& area, std::uint32_t colour) {
-    if (holder) render::ui::Fill(holder, ToRect(area), colour);
+    if (holder) render::ui::Fill(holder, area, colour);
 }
 
 void UiSurface::Line(int x0, int y0, int x1, int y1, int lineWidth, std::uint32_t colour) {
@@ -197,7 +188,7 @@ void UiSurface::Dot(int x, int y, std::uint32_t colour) {
 // docs/notes/ui.md, "Surface pixel work".
 
 void UiSurface::CaptureScreen() {
-    if (holder) render::ui::CopyFrame(holder, render::Rect{rect.left, rect.top, rect.right, rect.bottom});
+    if (holder) render::ui::CopyFrame(holder, rect);
 }
 
 // The original stretched the surface into a new surface of the wanted size, then packed it pixel by pixel;

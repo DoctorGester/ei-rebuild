@@ -3,7 +3,7 @@
 // Interface text without GDI: TrueType fonts (stb_truetype) laid out by DrawTextA's rules. See
 // docs/notes/ui-native.md, section 2 and "Source file overviews".
 
-#include "render_rect.h"
+#include "lib/rect.h"
 #include "text_format.h"
 
 #include <cstdint>
@@ -150,11 +150,8 @@ struct TextLayout {
 // False (and nothing written) for format bits outside kSupportedFormats.
 bool Layout(TextFont& font, std::u32string_view text, const Rect& rect, unsigned format, TextLayout& out);
 
-struct Extent {
-    int cx = 0, cy = 0;
-};
 // GetTextExtentPoint32: the advances summed (no kerning, prefix or tab handling) and the font's height.
-Extent TextExtent(TextFont& font, std::u32string_view text);
+Size TextExtent(TextFont& font, std::u32string_view text);
 
 // ---- CPU composition ----------------------------------------------------------------------------------
 

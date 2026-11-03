@@ -26,7 +26,7 @@ std::vector<std::string> Interface3D::WrapText(std::string_view text, int maxWid
         const char c = *p;
         ch.assign(1, c);
         if (c == '\n') {
-            if (TextExtent(line + word, font).cx > maxWidth) {
+            if (TextExtent(line + word, font).w > maxWidth) {
                 lines.push_back(line);
                 lines.push_back(word);
             } else {
@@ -36,7 +36,7 @@ std::vector<std::string> Interface3D::WrapText(std::string_view text, int maxWid
             line.clear();
             word.clear();
         } else if (c == ' ') {
-            if (TextExtent(line + word, font).cx > maxWidth) {
+            if (TextExtent(line + word, font).w > maxWidth) {
                 lines.push_back(line);
                 line = word + game::SpaceText();
             } else {
@@ -60,7 +60,7 @@ int UiSurface::DrawWrappedText(std::string_view text, const Rect* area, int maxL
     const int count = static_cast<int>(lines.size());
     for (int i = 0; i < maxLines && i < count; ++i) {
         DrawTextIn(lines[i], &at, font, colour, format, shadow);
-        rects::Offset(&at, 0, boxHeight);
+        at.Offset(0, boxHeight);
     }
     return count;
 }
@@ -85,7 +85,7 @@ constexpr std::uint32_t kModifyString = 0x10000;
 int DrawRun(const Surface* holder, render::text::TextFont& font, std::u32string_view text, const Rect& rect, std::uint32_t format,
             std::uint32_t colour) {
     render::text::TextLayout layout;
-    if (!render::text::Layout(font, text, render::Rect{rect.left, rect.top, rect.right, rect.bottom}, format, layout))
+    if (!render::text::Layout(font, text, rect, format, layout))
         return 0;
     if (!(format & render::text::kCalcRect)) render::ui::GlyphRun(holder, font, layout, colour);
     return layout.result;
@@ -97,7 +97,7 @@ int DrawRun(const Surface* holder, render::text::TextFont& font, std::u32string_
 int UiSurface::DrawTextIn(std::string_view text, const Rect* area, int font, std::uint32_t colour, std::uint32_t format, bool shadow) {
     if (!holder) return 0;
     Rect frame;
-    if (rects::IsEmpty(area)) {
+    if (area->IsEmpty()) {
         frame = {0, 0, rect.right - rect.left, rect.bottom - rect.top};
     } else {
         frame = *area;
@@ -126,7 +126,7 @@ int UiSurface::DrawTextPixels(const UiFont& font, std::string_view text, const R
     const std::u32string points = ::text::CodePoints(text);
     if (shadow) {
         Rect shifted = area;
-        rects::Offset(&shifted, 1, 1);
+        shifted.Offset(1, 1);
         DrawRun(holder, *drawn, points, shifted, format, kShadowColour);
     }
     return DrawRun(holder, *drawn, points, area, format, colour);

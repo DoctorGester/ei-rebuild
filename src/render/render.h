@@ -7,7 +7,7 @@
 // EI_RENDER (or the harness step "render <spec>") is a comma-separated list of the harness build's words: "checkall"
 // (the harness's own "removable" never reaches it).
 
-#include "render_rect.h"
+#include "lib/rect.h"
 #include "lib/vecmath.h"
 
 #include <cstdint>

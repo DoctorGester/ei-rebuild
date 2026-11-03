@@ -59,11 +59,11 @@ Material* NewGlowMaterial(float value) {
 
 // --- UiRegion -------------------------------------------------------------------------------
 
-bool UiRegion::HitTest(int x, int y) const {
-    x -= offsetX;
-    y -= offsetY;
+bool UiRegion::HitTest(Point point) const {
+    point.x -= offsetX;
+    point.y -= offsetY;
     if (!enabled) return false;
-    if (!rects::Contains(&bounds, Point{x, y})) return false;
+    if (!bounds.Contains(Point{point.x, point.y})) return false;
     if (rectOnly) return true;
     // Convex polygon: the point must not lie on the outer side of any edge a -> b. The products wrap at 32
     // bits like the original's.
@@ -72,8 +72,8 @@ bool UiRegion::HitTest(int x, int y) const {
         const UiPoint& a = points[i];
         ++i;
         const UiPoint& b = points[i % count];
-        int lhs = Mul(y, b.x) + Mul(b.y, a.x) + Mul(a.y, x);
-        int rhs = Mul(a.y, b.x) + Mul(y, a.x) + Mul(b.y, x);
+        int lhs = Mul(point.y, b.x) + Mul(b.y, a.x) + Mul(a.y, point.x);
+        int rhs = Mul(a.y, b.x) + Mul(point.y, a.x) + Mul(b.y, point.x);
         if (lhs < rhs) return false;
     }
     return true;
@@ -117,32 +117,30 @@ void UiRegion::AddPoint(int x, int y) {
     if (std::ssize(points) > 2) enabled = true;
 }
 
-void UiRegion::OnMouseMove(int x, int y) {
+void UiRegion::OnMouseMove(Point point) {
     if (!tip) return;
-    const bool inside = HitTest(x, y);
+    const bool inside = HitTest(point);
     if (inside) {
         if (!tip->Shown()) tip->state = UiTooltip::State::Hovered;
     } else if (tip->Shown()) {
         tip->state = UiTooltip::State::Disappearing;
     }
-    tip->OnMouseMove(x, y);
+    tip->OnMouseMove(point);
 }
 
 // --- UiWindow -------------------------------------------------------------------------------
 
-int UiWindow::RegionAt(int x, int y) const {
-    Point point{x, y};
+int UiWindow::RegionAt(Point point) const {
     ui->ScalePointFromScreen(&point);
     for (int i = 0; i < std::ssize(regions); ++i) {
-        if (regions[i]->HitTest(point.x, point.y)) return i;
+        if (regions[i]->HitTest(point)) return i;
     }
     return -1;
 }
 
-bool UiWindow::ContainsPoint(int x, int y) const {
-    Point point{x, y};
+bool UiWindow::ContainsPoint(Point point) const {
     ui->ScalePointFromScreen(&point);
-    return rects::Contains(&rect, point);
+    return rect.Contains(point);
 }
 
 void UiWindow::UpdateRegionTips() {
@@ -151,7 +149,7 @@ void UiWindow::UpdateRegionTips() {
     // Inlines UiRegion::OnMouseMove for every region with a tooltip.
     for (int i = 0; i < std::ssize(regions); ++i) {
         UiRegion* region = regions[i];
-        if (region->tip) region->OnMouseMove(mouse.x, mouse.y);
+        if (region->tip) region->OnMouseMove(mouse);
     }
 }
 
@@ -161,7 +159,7 @@ void UiWindow::RedrawTips() {
     ui->ScalePointFromScreen(&mouse);
     for (int i = 0; i < std::ssize(regions); ++i) {
         UiRegion* region = regions[i];
-        if (region->tip) region->OnMouseMove(mouse.x, mouse.y);
+        if (region->tip) region->OnMouseMove(mouse);
         if (UiTooltip* tip = regions[i]->tip) tip->Redraw();
     }
 }

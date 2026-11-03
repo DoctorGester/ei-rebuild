@@ -1,82 +1,88 @@
 #pragma once
 
-// The game's integer rectangle, point and size, and rectangle arithmetic over them with USER32's rules (SetRect ...
-// UnionRect), as plain integer code: the UI layout, hit tests and dirty rectangles. A rectangle is empty when
-// right <= left or bottom <= top; nothing here normalises a rectangle, and the right and bottom edges are outside it.
-// The three have the layout of Windows' RECT, POINT and SIZE (four, two and two 32-bit integers), which the win32
-// side static_asserts where it hands one to the system.
+// The 2D integer types of the interface, the screen and the platform layer: a point, a size and a rectangle, with the
+// arithmetic of USER32's rectangles (SetRect ... UnionRect) as plain integer code for the UI layout, hit tests and
+// dirty rectangles. A rectangle is empty when right <= left or bottom <= top; nothing here normalises a rectangle, and
+// the right and bottom edges are outside it. All three are aggregates (`Rect{l, t, r, b}`). The float pair is
+// Vector2 (vecmath.h).
 
 #include <algorithm>
 #include <cstdint>
 
-struct Rect {
-    std::int32_t left, top, right, bottom;
-};
-
 struct Point {
-    std::int32_t x, y;
+    std::int32_t x = 0, y = 0;
 };
 
+inline Point operator+(Point a, Point b) { return {a.x + b.x, a.y + b.y}; }
+inline Point operator-(Point a, Point b) { return {a.x - b.x, a.y - b.y}; }
+inline Point operator-(Point a) { return {-a.x, -a.y}; }
+inline Point operator*(Point a, int s) { return {a.x * s, a.y * s}; }
+inline Point operator/(Point a, int s) { return {a.x / s, a.y / s}; }
+inline Point& operator+=(Point& a, Point b) { a = a + b; return a; }
+inline Point& operator-=(Point& a, Point b) { a = a - b; return a; }
+inline bool operator==(Point a, Point b) { return a.x == b.x && a.y == b.y; }
+inline bool operator!=(Point a, Point b) { return !(a == b); }
+
+// A width and a height.
 struct Size {
-    std::int32_t cx, cy;
+    std::int32_t w = 0, h = 0;
 };
 
-namespace rects {
+inline bool operator==(Size a, Size b) { return a.w == b.w && a.h == b.h; }
+inline bool operator!=(Size a, Size b) { return !(a == b); }
 
-inline void Set(Rect* rect, int left, int top, int right, int bottom) {
-    rect->left = left;
-    rect->top = top;
-    rect->right = right;
-    rect->bottom = bottom;
-}
+struct Rect {
+    std::int32_t left = 0, top = 0, right = 0, bottom = 0;
 
-inline void SetEmpty(Rect* rect) { Set(rect, 0, 0, 0, 0); }
-
-inline void Copy(Rect* to, const Rect* from) { *to = *from; }
-
-inline bool IsEmpty(const Rect* rect) { return rect->right <= rect->left || rect->bottom <= rect->top; }
-
-// The right and bottom edges are outside.
-inline bool Contains(const Rect* rect, Point point) {
-    return point.x >= rect->left && point.x < rect->right && point.y >= rect->top && point.y < rect->bottom;
-}
-
-inline void Offset(Rect* rect, int dx, int dy) {
-    rect->left += dx;
-    rect->right += dx;
-    rect->top += dy;
-    rect->bottom += dy;
-}
-
-// `to` (may be a or b) becomes the common part, or the all-zero rectangle when it is empty (returns false then).
-inline bool Intersect(Rect* to, const Rect* a, const Rect* b) {
-    if (IsEmpty(a) || IsEmpty(b) || a->left >= b->right || b->left >= a->right || a->top >= b->bottom ||
-        b->top >= a->bottom) {
-        SetEmpty(to);
-        return false;
+    static Rect FromCorners(Point topLeft, Point bottomRight) {
+        return {topLeft.x, topLeft.y, bottomRight.x, bottomRight.y};
     }
-    Set(to, (std::max)(a->left, b->left), (std::max)(a->top, b->top), (std::min)(a->right, b->right),
-        (std::min)(a->bottom, b->bottom));
-    return true;
-}
 
-// `to` (may be a or b) becomes the bounding rectangle of the non-empty operands (an empty operand is ignored); the
-// all-zero rectangle and false when both are empty.
-inline bool Union(Rect* to, const Rect* a, const Rect* b) {
-    const bool emptyA = IsEmpty(a), emptyB = IsEmpty(b);
-    if (emptyA && emptyB) {
-        SetEmpty(to);
-        return false;
-    }
-    if (emptyA) {
-        *to = *b;
-    } else if (emptyB) {
-        *to = *a;
-    } else {
-        Set(to, (std::min)(a->left, b->left), (std::min)(a->top, b->top), (std::max)(a->right, b->right),
-            (std::max)(a->bottom, b->bottom));
-    }
-    return true;
-}
+    int Width() const { return right - left; }
+    int Height() const { return bottom - top; }
+    Size Extent() const { return {Width(), Height()}; }
+    Point TopLeft() const { return {left, top}; }
+    Point BottomRight() const { return {right, bottom}; }
 
-}  // namespace rects
+    bool IsEmpty() const { return right <= left || bottom <= top; }
+
+    // The right and bottom edges are outside.
+    bool Contains(Point point) const {
+        return point.x >= left && point.x < right && point.y >= top && point.y < bottom;
+    }
+
+    // Moved by `by` (the rectangle itself, or a copy).
+    Rect& Offset(Point by) {
+        left += by.x;
+        right += by.x;
+        top += by.y;
+        bottom += by.y;
+        return *this;
+    }
+    Rect& Offset(int dx, int dy) { return Offset(Point{dx, dy}); }
+    Rect Offsetted(Point by) const { Rect copy = *this; return copy.Offset(by); }
+    Rect Offsetted(int dx, int dy) const { return Offsetted(Point{dx, dy}); }
+
+    // The common part, or the all-zero rectangle when there is none.
+    Rect Intersection(const Rect& other) const {
+        if (IsEmpty() || other.IsEmpty() || left >= other.right || other.left >= right || top >= other.bottom ||
+            other.top >= bottom) {
+            return {};
+        }
+        return {(std::max)(left, other.left), (std::max)(top, other.top), (std::min)(right, other.right),
+                (std::min)(bottom, other.bottom)};
+    }
+
+    // The bounding rectangle of the non-empty operands (an empty operand is ignored); all zero when both are empty.
+    Rect Union(const Rect& other) const {
+        if (IsEmpty()) return other.IsEmpty() ? Rect{} : other;
+        if (other.IsEmpty()) return *this;
+        return {(std::min)(left, other.left), (std::min)(top, other.top), (std::max)(right, other.right),
+                (std::max)(bottom, other.bottom)};
+    }
+};
+
+inline bool operator==(const Rect& a, const Rect& b) {
+    return a.left == b.left && a.top == b.top && a.right == b.right && a.bottom == b.bottom;
+}
+inline bool operator!=(const Rect& a, const Rect& b) { return !(a == b); }

@@ -34,7 +34,6 @@
 #include <vector>
 
 using namespace render::text;
-using render::Rect;
 
 namespace {
 
@@ -808,7 +807,7 @@ void Work(const std::vector<TestString>& strings, const std::vector<FontSpec>& s
                 ++fontStrings;
                 if (breaksDiffer) ++fontDiffering;
                 if (test.bytes.find_first_of("\r\n") == std::string::npos) {
-                    const int gdiWidth = TextExtent(gdiFont, text).cx, stbWidth = TextExtent(*stbFont, text).cx;
+                    const int gdiWidth = TextExtent(gdiFont, text).w, stbWidth = TextExtent(*stbFont, text).w;
                     ++stats.extentCases;
                     if (gdiWidth != stbWidth) ++stats.extentDifferent;
                     const long long difference = std::abs(gdiWidth - stbWidth);

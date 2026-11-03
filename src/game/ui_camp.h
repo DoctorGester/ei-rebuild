@@ -99,25 +99,25 @@ public:
     // The ways from the local player's zone to `target`, the earlier results dropped.
     void SearchWays(const std::string& target);
     // The right button drags the map round; letting it go ends the drag as a deactivation does.
-    void RightDown(int buttons, int x, int y) override;
-    void RightUp(int, int, int) override { Deactivate(); }
+    void RightDown(int buttons, Point point) override;
+    void RightUp(int, Point) override { Deactivate(); }
     // The drag ends, the cursor goes back to where it began; the selection is refreshed.
     void Deactivate() override;
     // Rebirth-patched (WideScreen: the drag and the pick picture's point without the margins).
     // Dragging turns the map by dx / 300 layout units; otherwise the zone or link under the mouse is
     // selected. Details: docs/notes/ui.md, "Behaviour moved out of header comments".
-    void MouseMove(int buttons, int x, int y) override;
+    void MouseMove(int buttons, Point point) override;
     // Rebirth's WideScreen patch reproduced (the pick picture's point without the margins). Nothing while
     // dragging; a zone also opens the objectives window. Details: docs/notes/ui.md, "Behaviour moved out of
     // header comments".
-    void LeftDown(int buttons, int x, int y) override;
+    void LeftDown(int buttons, Point point) override;
     // Esc opens the escape menu; an unused key whose action is '5' quick-saves ("saveq"), '6' quick-loads.
     void KeyDown(int key, int repeat, int flags) override;
     // A window above closed.
     void MessageResult(int result) override;
     const char* HelpTopic() override { return noCamp ? "global_map_nocamp" : "global_map"; }
     // Ends a turn by a turn button.
-    void LeftUp(int buttons, int x, int y) override;
+    void LeftUp(int buttons, Point point) override;
     // Zones, then quests, then links, then the three layers.
     UiMesh* Marker(int index) const { return SceneMesh(3 + index); }
     // Scene objects 0..2 and those after the zone markers.
@@ -219,9 +219,9 @@ public:
     void ClampScroll();
     // Regions 0-3 scroll; from 4 a purchase the experience covers (a school or science row is then held),
     // the record marked bought.
-    void LeftDown(int buttons, int x, int y) override;
+    void LeftDown(int buttons, Point point) override;
     // Releases the mouse unconditionally and ends a hold.
-    void LeftUp(int buttons, int x, int y) override;
+    void LeftUp(int buttons, Point point) override;
     // From 250 ms of a hold on (750 ms after the press), every frame buys the row's next level again (the
     // record is not marked bought) until it cannot. The hold time is not reset after a purchase.
     void Update() override;
@@ -310,8 +310,8 @@ public:
     // The unit's own name, else the text of "pers <record name>".
     void ShowHero();
     // Regions 0 / 1 the deals, 2 / 3 turn the hero on the equipment page, 4-11 show page region - 4.
-    void LeftDown(int buttons, int x, int y) override;
-    void LeftUp(int buttons, int x, int y) override;
+    void LeftDown(int buttons, Point point) override;
+    void LeftUp(int buttons, Point point) override;
     // Esc shows page 7 (leaves); on a network client Backspace and Enter go to the chat line.
     void KeyDown(int key, int repeat, int flags) override;
     const char* HelpTopic() override;
@@ -391,12 +391,12 @@ public:
     void SetHero(int heroIndex, std::optional<std::string_view> title);
     // On page 10 a -/+ button (regions 6-13) steps a point and is held; elsewhere region 0 / 1 show the
     // owner's previous / next hero.
-    void LeftDown(int buttons, int x, int y) override;
+    void LeftDown(int buttons, Point point) override;
     // A held -/+ button repeats every frame from 750 ms after the press until it can step no more; the owner
     // is refreshed on every attempt.
     void Update() override;
     // Lets the mouse go unconditionally and ends the hold.
-    void LeftUp(int buttons, int x, int y) override;
+    void LeftUp(int buttons, Point point) override;
     // Regions 6-8 take a point from strength, dexterity, intelligence (above 15), 9 the height down
     // (points >= 1), 10-12 give one (below 35, while the three add up to under 75), 13 the height up
     // (points <= 99; height = points * 0.01). True when it changed something.
@@ -431,10 +431,10 @@ public:
     void ShowQuickItem(Item* item);
     // On the camp's body: a right click on a filled weapon slot (of the first four) shows that weapon. The
     // event is not marked used.
-    void RightDown(int buttons, int x, int y) override;
+    void RightDown(int buttons, Point point) override;
     // Regions 0-3 the weapons (topic 2), 4-7 the quick items from the right (3), body regions 8-14 the armour
     // worn at body part region - 8 (topic region - 4).
-    Item* ItemAt(int x, int y, int* topic) override;
+    Item* ItemAt(Point point, int* topic) override;
 
     bool body = false;
     int selected = -1;
@@ -450,7 +450,7 @@ public:
     void Build(std::vector<Item*>* bought, std::vector<Item*>* sold, bool spells, bool exchange);
     // Regions 0-7 the bought list (topic 0x1C on the exchange window, else 0x0B for the item constructor,
     // 0x11 for the spell one), 8-15 the sold list (0x1D / 0x0C / 0x12).
-    Item* ItemAt(int x, int y, int* topic) override;
+    Item* ItemAt(Point point, int* topic) override;
 
     std::vector<Item*>* bought = nullptr;
     std::vector<Item*>* sold = nullptr;
@@ -467,7 +467,7 @@ public:
     // Each item's model in its cell (depth 2^(3 - row) * 6), its count and its repair price.
     void Draw(SceneRenderer* pass) override;
     // Topic 0x19 on the 16 cells.
-    Item* ItemAt(int x, int y, int* topic) override;
+    Item* ItemAt(Point point, int* topic) override;
 
     std::vector<Item*>* items = nullptr;
 };
@@ -481,7 +481,7 @@ public:
     // The place in the hero's spell list, or -1.
     void ShowEntry(Item* item);
     // The hero's spell list entry (topic 1).
-    Item* ItemAt(int x, int y, int* topic) override;
+    Item* ItemAt(Point point, int* topic) override;
     void Draw(SceneRenderer* pass) override;
 
     int y = 0;
@@ -498,7 +498,7 @@ public:
     void Draw(SceneRenderer* pass) override;
     // Region 0 the first item that can be taken apart (0xD), 1 the first part (0xE), 2 the first spell
     // container (0x10), from 3 material region - 3 (0xF).
-    Item* ItemAt(int x, int y, int* topic) override;
+    Item* ItemAt(Point point, int* topic) override;
 
     Party* slots = nullptr;
     float pulse = 0.0f;              // the highlight's time
@@ -508,7 +508,7 @@ public:
     using ConstructorPage::ConstructorPage;
     // Region 0 the first spell container (topic 0x13), 1 the first spell (0x14), 2-9 modifier region - 2
     // (0x15), 10 / 11 the cost lines (0x1A / 0x1B, no item).
-    Item* ItemAt(int x, int y, int* topic) override;
+    Item* ItemAt(Point point, int* topic) override;
     void BuildSpellMaker(Party* slots);
     // The cost lines: "<text 0> <best skill> (<needed>)" and "<text 1> <most mana> (<the larger of the summed
     // and the last spell's mana>)" with a spell. Without a container, a pulsing highlight shows where the

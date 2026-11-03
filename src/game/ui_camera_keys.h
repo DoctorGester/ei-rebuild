@@ -25,10 +25,10 @@ public:
     void KeyUp(int key, int repeat, int flags) override;
     // The right button went down: the point kept in screen and layout coordinates, turning set, the mouse
     // motion cleared, the cursor held; the button used.
-    void RightDown(int buttons, int x, int y) override;
+    void RightDown(int buttons, Point point) override;
     // Released: turning cleared, the camera stops turning, tilting and panning, the motion cleared, the
     // cursor let go and put back at the mouse position; used.
-    void RightUp(int buttons, int x, int y) override;
+    void RightUp(int buttons, Point point) override;
     // Rebirth-patched (WideScreen: the drag scaled without the margin). While turning: the drag motion (in
     // layout units) turns the camera at the turn speed * (dx / 400) * 10 and tilts it at the tilt speed *
     // (dy / 300) * 500 (not tilting when it is at rest and |dy| <= |dx|), or with Ctrl / Alt pans it along
@@ -36,12 +36,12 @@ public:
     // used and the layout point kept. Otherwise, when the edge margin is positive: the cursor within the
     // margin of an edge of the picture (Interface3D::PictureRect) pans that way (with the keys' pan added unless
     // Ctrl / Alt is held) under the edge's arrow cursor, the event used when at an edge; the point is kept.
-    void MouseMove(int buttons, int x, int y) override;
+    void MouseMove(int buttons, Point point) override;
     // The input loses the screen: no turning, the axes cleared, the cursor let go, the motion cleared and the
     // camera stopped.
     void Deactivate() override;
     // The wheel zooms the camera by the zoom speed * (the delta's low word) * the step size.
-    void Wheel(int flags, int delta, int x, int y) override;
+    void Wheel(int flags, int delta, Point point) override;
 
     Point pressScreen;               // where the right button went down (screen)
     Point pressLayout;               // the same in layout coordinates

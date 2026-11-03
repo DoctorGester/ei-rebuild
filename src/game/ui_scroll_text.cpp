@@ -125,7 +125,7 @@ void UiScrollText::Tokenize(const std::string& text) {
         if (word) {
             auto* w = new UiWordToken();
             Size size = ui->TextExtent(token, font);
-            w->width = size.cx;
+            w->width = size.w;
             w->text = token;
             Append(tokens, w);
         }
@@ -153,7 +153,7 @@ void UiScrollText::DrawLines(int scroll) {
     int heights[kMeasuredFonts];
     for (int font = 0; font < kMeasuredFonts; ++font) {
         std::string sample = FontSampleText();
-        heights[font] = ui->TextExtent(sample, font).cy;
+        heights[font] = ui->TextExtent(sample, font).h;
     }
 
     // The format in effect at the line: the last format token before it (the first token
@@ -300,7 +300,7 @@ void UiScrollText::Layout() {
     int heights[kFontSlots] = {};
     for (int f = 0; f < kMeasuredFonts; ++f) {
         std::string sample = FontSampleText();
-        heights[f] = ui->TextExtent(sample, f).cy;
+        heights[f] = ui->TextExtent(sample, f).h;
     }
     for (int i = 0; i < std::ssize(lines); ++i) delete lines[i];
     lines.clear();

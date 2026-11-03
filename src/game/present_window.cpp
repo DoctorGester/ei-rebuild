@@ -24,7 +24,7 @@ platform::NativeWindow Window() {
 }
 
 // The cursor's screen position as a point of the frame (the game's screen).
-void ScreenToGame(platform::Point* point) {
+void ScreenToGame(Point* point) {
     platform::NativeWindow window = Window();
     if (!window) return;
     platform::ScreenToClient(window, point);
@@ -32,7 +32,7 @@ void ScreenToGame(platform::Point* point) {
 }
 
 // A point of the frame as the screen's.
-void GameToScreen(platform::Point* point) {
+void GameToScreen(Point* point) {
     platform::NativeWindow window = Window();
     if (!window) return;
     render::FrameToWindow(&point->x, &point->y);
@@ -44,7 +44,7 @@ void GameToScreen(platform::Point* point) {
 void Update(TextureDevice* device) {
     if (!device) return;
     platform::MapCursorPoints(ScreenToGame, GameToScreen);
-    platform::Rect was{}, monitor{};
+    Rect was{}, monitor{};
     if (device->fullScreen && device->window && platform::CoverMonitor(device->window, &was, &monitor)) {
         ei::Log("present: full screen without a display mode change: the window (%d,%d)-(%d,%d) covers the monitor "
                 "(%d,%d)-(%d,%d)",
@@ -64,7 +64,7 @@ bool MouseToGame(platform::Event* event) {
     using platform::EventType;
     const bool client = event->type >= EventType::MouseMove && event->type <= EventType::RightDouble;
     if (!client && event->type != EventType::Wheel) return true;
-    platform::Point p{event->x, event->y};
+    Point p{event->x, event->y};
     if (event->type == EventType::Wheel) {
         platform::NativeWindow window = Window();
         if (!window) return true;
@@ -76,7 +76,7 @@ bool MouseToGame(platform::Event* event) {
         const Rect& screen = device->screen;
         const int x = std::clamp(p.x, 0, screen.right - 1), y = std::clamp(p.y, 0, screen.bottom - 1);
         onFrame = x == p.x && y == p.y;
-        p = platform::Point{x, y};
+        p = Point{x, y};
     }
     event->x = p.x;
     event->y = p.y;

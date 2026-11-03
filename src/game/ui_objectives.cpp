@@ -196,16 +196,16 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
         if (AbsBits(sideY) >= AbsBits(sideX)) {
             if (sideY > 0.0f) {
                 Turn(marker, kExitTurnDown);
-                rects::Offset(&area, 0, -10);
+                area.Offset(0, -10);
             } else {
-                rects::Offset(&area, 0, 10);
+                area.Offset(0, 10);
             }
         } else if (sideX > 0.0f) {
             Turn(marker, -kExitTurn);
-            rects::Offset(&area, 10, 0);
+            area.Offset(10, 0);
         } else {
             Turn(marker, kExitTurn);
-            rects::Offset(&area, -10, 0);
+            area.Offset(-10, 0);
         }
         region->SetRect(area.left, area.top, area.right, area.bottom);
     }

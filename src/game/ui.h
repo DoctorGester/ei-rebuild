@@ -165,14 +165,14 @@ public:
     // Mouse messages from the input dispatcher (ui_interface_input.cpp): each goes to the input side that
     // took the mouse, else the top window's, else nowhere. Button downs and double clicks set or clear
     // the button flags around the call.
-    void OnLeftDown(int buttons, int x, int y);
-    void OnLeftUp(int buttons, int x, int y);
-    void OnMouseMove(int buttons, int x, int y);
-    void OnRightDown(int buttons, int x, int y);
-    void OnRightUp(int buttons, int x, int y);
-    void OnLeftDouble(int buttons, int x, int y);
-    void OnRightDouble(int buttons, int x, int y);
-    void OnWheel(int flags, int delta, int x, int y);
+    void OnLeftDown(int buttons, Point point);
+    void OnLeftUp(int buttons, Point point);
+    void OnMouseMove(int buttons, Point point);
+    void OnRightDown(int buttons, Point point);
+    void OnRightUp(int buttons, Point point);
+    void OnLeftDouble(int buttons, Point point);
+    void OnRightDouble(int buttons, Point point);
+    void OnWheel(int flags, int delta, Point point);
     UiInputSide* MouseTarget() const;
     // A typed character (WM_CHAR): nothing for the key under Esc; the shown console's OnChar, else a
     // multiplayer client's open chat line, else the top window.
@@ -282,13 +282,13 @@ struct UiPoint {
 // convex polygon, and an optional tooltip.
 class UiRegion {
 public:
-    bool HitTest(int x, int y) const;
+    bool HitTest(Point point) const;
     bool HasActiveTip() const;
     // Also enables the region.
     void SetRect(int left, int top, int right, int bottom);
     // Adds a polygon vertex, growing the bounds; three vertices enable the region.
     void AddPoint(int x, int y);
-    void OnMouseMove(int x, int y);
+    void OnMouseMove(Point point);
     // Enabled when its rectangle is set; the bounds are left uninitialised, as in the original.
     explicit UiRegion(Interface3D* ownerUi)
         : ui(ownerUi), rectOnly(false), enabled(false), offsetX(0), offsetY(0), tip(nullptr) {}
@@ -450,17 +450,17 @@ struct UiInputSide {
     explicit UiInputSide(Interface3D* ownerUi) : ui(ownerUi) {}
     virtual ~UiInputSide() = default;
     virtual void Deactivate() {}
-    virtual void LeftDown(int, int, int) {}
-    virtual void LeftUp(int, int, int) {}
-    virtual void MouseMove(int, int, int) {}
-    virtual void RightDown(int, int, int) {}
-    virtual void RightUp(int, int, int) {}
-    virtual void LeftDouble(int buttons, int x, int y);
-    virtual void RightDouble(int buttons, int x, int y);
+    virtual void LeftDown(int, Point) {}
+    virtual void LeftUp(int, Point) {}
+    virtual void MouseMove(int, Point) {}
+    virtual void RightDown(int, Point) {}
+    virtual void RightUp(int, Point) {}
+    virtual void LeftDouble(int buttons, Point point);
+    virtual void RightDouble(int buttons, Point point);
     virtual void KeyDown(int, int, int) {}
     virtual void Char(int, int, int) {}
     virtual void KeyUp(int, int, int) {}
-    virtual void Wheel(int flags, int delta, int x, int y);
+    virtual void Wheel(int flags, int delta, Point point);
     // Events 2-11 by number (the containers' dispatch).
     void Event(int slot, int first, int second, int third);
 
@@ -502,8 +502,8 @@ public:
     virtual void Update() {}
 
     // The first region containing the screen point, or -1.
-    int RegionAt(int x, int y) const;
-    bool ContainsPoint(int x, int y) const;
+    int RegionAt(Point point) const;
+    bool ContainsPoint(Point point) const;
     void UpdateRegionTips();
 
     // `notify`: Show(enabled) as well.
@@ -592,7 +592,7 @@ struct UiTooltip : UiWindow {
     // Hovered waits for the delay (setting 20; 0: never shown), then makes the surface at the mouse
     // (Appearing); Appearing draws and becomes Shown; Disappearing draws while the timer is positive, then drops
     // the surface (Idle).
-    void OnMouseMove(int x, int y);
+    void OnMouseMove(Point point);
     void Draw(SceneRenderer* pass) override;
     void Redraw() override;
     bool Shown() const { return state != State::Idle && state != State::Hovered; }
@@ -618,11 +618,11 @@ public:
     UiItemPanel(Interface3D* ui, ItemScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
     // The item under the screen point (x, y), or null; a panel may set a help topic instead. The panels
     // without items of their own (description panel, statistics column, trade panel): nothing, `topic` 0.
-    virtual Item* ItemAt(int x, int y, int* topic);
+    virtual Item* ItemAt(Point point, int* topic);
 
     // The item under (x, y) goes to the owner with mode; without one, a help topic the panel named goes to
     // the owner's help handler. The event is not marked used.
-    void LeftDown(int buttons, int x, int y) override;
+    void LeftDown(int buttons, Point point) override;
 
     int mode;                        // the action mode handed to the owner (ItemCell::mode)
     ItemScreen* owner;
@@ -651,9 +651,9 @@ void ClearUiDepth(float z, const Rect* rects = nullptr, int count = 0);
 // Weapon bar (four 40x80 slots at (80..240, 520..600)).
 class HudWeaponBar : public UiWindow {
 public:
-    void LeftDown(int buttons, int x, int y) override;
-    void LeftUp(int buttons, int x, int y) override;     // selects a weapon
-    void MouseMove(int buttons, int x, int y) override;
+    void LeftDown(int buttons, Point point) override;
+    void LeftUp(int buttons, Point point) override;     // selects a weapon
+    void MouseMove(int buttons, Point point) override;
     // Every frame: the highlight follows the unit's weapon.
     void Update() override;
     void Draw(SceneRenderer* pass) override;
@@ -678,12 +678,12 @@ public:
 // Quick items (2 rows of four 50x50 slots at (520..720, 500..600)).
 class HudQuickItems : public UiWindow {
 public:
-    void LeftDown(int buttons, int x, int y) override;
-    void LeftDouble(int buttons, int x, int y) override;
-    void MouseMove(int buttons, int x, int y) override;
+    void LeftDown(int buttons, Point point) override;
+    void LeftDouble(int buttons, Point point) override;
+    void MouseMove(int buttons, Point point) override;
     // A unit's quick item (bottom row) is picked or, with a double click, used at once; a player's item
     // (top row) starts mode 6, or cancels when it is the highlighted one.
-    void LeftUp(int buttons, int x, int y) override;
+    void LeftUp(int buttons, Point point) override;
     void Draw(SceneRenderer* pass) override;
     // Every frame: the tooltips of the slots that show an item.
     void Update() override;
@@ -733,9 +733,9 @@ public:
 // Spell column on the right (760..800 x 190..510).
 class HudSpellColumn : public UiWindow {
 public:
-    void LeftDown(int buttons, int x, int y) override;
-    void LeftUp(int buttons, int x, int y) override;
-    void MouseMove(int buttons, int x, int y) override;
+    void LeftDown(int buttons, Point point) override;
+    void LeftUp(int buttons, Point point) override;
+    void MouseMove(int buttons, Point point) override;
     void Draw(SceneRenderer* pass) override;
     // Spell `index` (its button or key) becomes the pending action: 1 on a unit for a spell with flag
     // 0x10000000, else 2 at a point; the highlighted one again drops it.
@@ -764,9 +764,9 @@ public:
 // Action column on the left (six 40x40 buttons at 0..40 x 270..510).
 class HudActionColumn : public UiWindow {
 public:
-    void LeftDown(int buttons, int x, int y) override;
-    void LeftUp(int buttons, int x, int y) override;
-    void MouseMove(int buttons, int x, int y) override;
+    void LeftDown(int buttons, Point point) override;
+    void LeftUp(int buttons, Point point) override;
+    void MouseMove(int buttons, Point point) override;
     void Draw(SceneRenderer* pass) override;
     // Action button `index` (a click or its key) becomes the pending action: 8 (an order on an object) for
     // action 0 (science), else 7 (follow); the highlighted one again drops it.
@@ -814,9 +814,9 @@ struct HudPortraitSlot {
 // Party portraits (250..550 x 440..600).
 class HudPortraits : public UiWindow {
 public:
-    void LeftDown(int buttons, int x, int y) override;
-    void LeftUp(int buttons, int x, int y) override;     // selects the unit
-    void MouseMove(int buttons, int x, int y) override;   // shows the unit / sets the cursor
+    void LeftDown(int buttons, Point point) override;
+    void LeftUp(int buttons, Point point) override;     // selects the unit
+    void MouseMove(int buttons, Point point) override;   // shows the unit / sets the cursor
     // Every frame: the bars, the hit flash, the face picture and model, the wobble and the selection marker.
     void Update() override;
     // Face picture `state` (the face name plus "a" 1, "c" 2, "b" 3; the plain name without such an image)
@@ -931,14 +931,14 @@ struct UiPointF {
 class HudMap : public UiWindow {
 public:
     HudMap(Interface3D* ui, BattleScreen* owner);
-    void LeftDown(int buttons, int x, int y) override;   // the view buttons
+    void LeftDown(int buttons, Point point) override;   // the view buttons
     // Rebirth-patched (WideScreen: the map's centre at 700 + shift). A held view button is
     // let go; otherwise region 0 starts the slide, 1 / 2 focus the camera on the map point (inside the
     // world), 5 is "camera north".
-    void LeftUp(int buttons, int x, int y) override;
-    void MouseMove(int buttons, int x, int y) override;
+    void LeftUp(int buttons, Point point) override;
+    void MouseMove(int buttons, Point point) override;
     // Over region 0 the wheel zooms the map by 2.5^(delta / 1200).
-    void Wheel(int buttons, int delta, int x, int y) override;
+    void Wheel(int buttons, int delta, Point point) override;
     // Every frame: the marker mesh (scene object 2) of the units, marked objects, zone exits and players.
     void BuildMarkers();
     // Every frame, before BuildMarkers: follows the camera and builds the visible-area mesh (scene object 1)
@@ -989,10 +989,10 @@ public:
     void ShowHealth(Unit* unit);
     // The name of each present part and, for state 3, its durability bar.
     void ShowParts(Unit* unit);
-    void LeftDown(int buttons, int x, int y) override;
-    void LeftUp(int buttons, int x, int y) override;
-    void MouseMove(int buttons, int x, int y) override;
-    void Wheel(int buttons, int delta, int x, int y) override;
+    void LeftDown(int buttons, Point point) override;
+    void LeftUp(int buttons, Point point) override;
+    void MouseMove(int buttons, Point point) override;
+    void Wheel(int buttons, int delta, Point point) override;
     // The battle screen's keys call it after setting bodyPart.
     void ShowBodyPart();
     // The first six effects on `unit` (text, time left and picture); scene object 9 shows when there are more.
@@ -1033,11 +1033,11 @@ public:
 class HudClock : public UiWindow {
 public:
     HudClock(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
-    void LeftDown(int buttons, int x, int y) override;
+    void LeftDown(int buttons, Point point) override;
     // Rebirth's MPSpeedControl behind its flag. Region 0 toggles the pause; 1 and 2 set the normal / fast
     // speed (not on a network client: update period 55 / 27 ms); 3 opens the objectives.
-    void LeftUp(int buttons, int x, int y) override;
-    void MouseMove(int buttons, int x, int y) override;
+    void LeftUp(int buttons, Point point) override;
+    void MouseMove(int buttons, Point point) override;
     // Every frame: the face turns with the time of day, the hand and dial; blinks while paused.
     void Update() override;
     // The objectives window of the current zone (one button, no exits, no zone list).
@@ -1061,9 +1061,9 @@ public:
 class HudMovePanel : public UiWindow {
 public:
     HudMovePanel(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
-    void LeftDown(int buttons, int x, int y) override;
-    void LeftUp(int buttons, int x, int y) override;
-    void MouseMove(int buttons, int x, int y) override;
+    void LeftDown(int buttons, Point point) override;
+    void LeftUp(int buttons, Point point) override;
+    void MouseMove(int buttons, Point point) override;
     // Every frame: the selected units' common mode and flag.
     void Update() override;
     // Region 0 (and its key): the selected party units' flag becomes 0 when all have 1, else 1.
@@ -1085,10 +1085,10 @@ public:
 class HudTopPanel : public UiWindow {
 public:
     HudTopPanel(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
-    void LeftDown(int buttons, int x, int y) override;
-    void LeftUp(int buttons, int x, int y) override;
-    void MouseMove(int buttons, int x, int y) override;
-    void Wheel(int buttons, int delta, int x, int y) override;
+    void LeftDown(int buttons, Point point) override;
+    void LeftUp(int buttons, Point point) override;
+    void MouseMove(int buttons, Point point) override;
+    void Wheel(int buttons, int delta, Point point) override;
     // Page `page` into the message log (page 0 scrolled to the end).
     void ShowPage();
     // Every frame: the slide.
@@ -1160,17 +1160,17 @@ public:
     virtual void LayoutChanged() {}
 
     void Deactivate() override;                                        // every side and child, no flags
-    void LeftDown(int buttons, int x, int y) override;
-    void LeftUp(int buttons, int x, int y) override;
-    void MouseMove(int buttons, int x, int y) override;
-    void RightDown(int buttons, int x, int y) override;
-    void RightUp(int buttons, int x, int y) override;
-    void LeftDouble(int buttons, int x, int y) override;
-    void RightDouble(int buttons, int x, int y) override;
+    void LeftDown(int buttons, Point point) override;
+    void LeftUp(int buttons, Point point) override;
+    void MouseMove(int buttons, Point point) override;
+    void RightDown(int buttons, Point point) override;
+    void RightUp(int buttons, Point point) override;
+    void LeftDouble(int buttons, Point point) override;
+    void RightDouble(int buttons, Point point) override;
     void KeyDown(int key, int repeat, int flags) override;
     void Char(int key, int repeat, int flags) override;
     void KeyUp(int key, int repeat, int flags) override;
-    void Wheel(int flags, int delta, int x, int y) override;
+    void Wheel(int flags, int delta, Point point) override;
 
     // Seconds since the last frame (milliseconds * 0.001f).
     static float FrameTime();
@@ -1240,13 +1240,13 @@ public:
     void Update() override;
     // A click on the unit under the point, or a drag selecting the party units inside the box. Details:
     // docs/notes/ui.md, "Behaviour moved out of header comments".
-    void LeftUp(int buttons, int x, int y) override;
+    void LeftUp(int buttons, Point point) override;
     // Also every frame from Draw. Details: docs/notes/ui.md, "Behaviour moved out of header comments".
-    void MouseMove(int buttons, int x, int y) override;
+    void MouseMove(int buttons, Point point) override;
     // While a portrait click picks a player the portraits get it; else, when no panel took it, a press on
     // the view starts.
-    void LeftDown(int buttons, int x, int y) override;
-    void LeftDouble(int buttons, int x, int y) override;
+    void LeftDown(int buttons, Point point) override;
+    void LeftDouble(int buttons, Point point) override;
     void Deactivate() override;
     // Rebirth's MPSpeedControl behind its flag. While a portrait click picks a player, Esc ends that; on a
     // network client Enter / Backspace go to the chat line. Otherwise Esc drops the pending action, else
@@ -1257,7 +1257,7 @@ public:
     void KeyUp(int key, int repeat, int flags) override;
     // Offered to the map, the unit panel, the message log and the top panel in that order; when none takes
     // it, the container passes it on with those four disabled.
-    void Wheel(int flags, int delta, int x, int y) override;
+    void Wheel(int flags, int delta, Point point) override;
     // Its GetName when not empty; for a unit whose id is a text key, its "pers" text; otherwise the first
     // line of the text "unit " + the prototype's name with spaces as '_'.
     std::string UnitName(Unit* unit);
@@ -1377,12 +1377,12 @@ public:
     ~UiScrollbar() override;
     // Scrolls while an arrow is held: whole steps of the accumulated amount move the position.
     void Update() override;
-    void LeftDown(int buttons, int x, int y) override;   // thumb drag or an arrow
-    void LeftUp(int buttons, int x, int y) override;
+    void LeftDown(int buttons, Point point) override;   // thumb drag or an arrow
+    void LeftUp(int buttons, Point point) override;
     // Drags the thumb (state 1). The event is used either way.
-    void MouseMove(int buttons, int x, int y) override;
+    void MouseMove(int buttons, Point point) override;
     // Over the track (region 2): delta (low 16 bits) * speed / 120 into the accumulated amount.
-    void Wheel(int flags, int delta, int x, int y) override;
+    void Wheel(int flags, int delta, Point point) override;
     // Clamped to 0..maximum, moved set.
     virtual void SetPosition(int position);
     // The track is the right 10 pixels less 26 at either end. The position is set again (one below first,
@@ -1413,7 +1413,7 @@ public:
     // Along the track's width; the thumb 28 wide and 10 high.
     void SetPosition(int position) override;
     // The scroll bar's drag along x.
-    void MouseMove(int buttons, int x, int y) override;
+    void MouseMove(int buttons, Point point) override;
     void SetRect(const Rect* rect) override;
 };
 
@@ -1508,8 +1508,8 @@ public:
     // 0 when not below the text count (a negative one is kept).
     void SetValue(int value);
     // The next value, wrapping.
-    void LeftDown(int flags, int x, int y) override;
-    void LeftDouble(int, int, int) override {}
+    void LeftDown(int flags, Point point) override;
+    void LeftDouble(int, Point) override {}
 
     std::vector<std::string> texts;
     int value;
@@ -1550,8 +1550,8 @@ public:
     void Update() override;
     // The new save's picture released.
     void CloseScreen() override;
-    void LeftDown(int buttons, int x, int y) override;
-    void LeftDouble(int buttons, int x, int y) override;
+    void LeftDown(int buttons, Point point) override;
+    void LeftDouble(int buttons, Point point) override;
     void MessageResult(int result) override;
 
     // A save window saves into the new save (row 0) or asks "overwrite" (message box 0x20000); a load
@@ -1724,7 +1724,7 @@ public:
     void DrawQuestList();
     // Region 0 OK (with two buttons the time to the nearest exit passes and that zone is requested), 1
     // cancel, 2 / 3 the previous / next listed zone, 4-8 a quest row, from 9 an exit.
-    void LeftDown(int buttons, int x, int y) override;
+    void LeftDown(int buttons, Point point) override;
     // Enter as the OK region, Esc closes, PgUp / PgDn / Up / Down move the selected quest by 5 / 1. A key
     // left unused that is bound to the objectives action closes a window with one button.
     void KeyDown(int key, int repeat, int flags) override;
@@ -1788,8 +1788,8 @@ public:
     void Redraw() override;                            // not while sliding
     void CloseScreen() override {}
     const char* HelpTopic() override;
-    void LeftDown(int buttons, int x, int y) override;
-    void LeftDouble(int buttons, int x, int y) override;
+    void LeftDown(int buttons, Point point) override;
+    void LeftDouble(int buttons, Point point) override;
     void MessageResult(int result) override;
     // Applies the settings whose bar or spin control changed (volumes, the display's gamma at once).
     void Update() override;
@@ -1879,7 +1879,7 @@ public:
     void CreateScreen() override;
     // Region 0 OK: for the exit question (result 0xFFFF0000) the exit movie and the game quits; otherwise
     // the edit field's text into editText. Any region n then leaves result | (n + 1) pending.
-    void LeftDown(int buttons, int x, int y) override;
+    void LeftDown(int buttons, Point point) override;
     // Unless a child used the key, Enter answers as region 0 and Esc as region 1.
     void KeyDown(int key, int repeat, int flags) override;
     // Into the caller's buffer.
@@ -1910,7 +1910,7 @@ public:
     // The pulse: v = (cos(5 t) + 1) / 2 gives alpha 255 * v and the colour 80 * (1 - v).
     void Update() override;
     // Region 0 the previous page, 1 OK (Finish), 2 the next page.
-    void LeftDown(int buttons, int x, int y) override;
+    void LeftDown(int buttons, Point point) override;
     // Enter the next page (Finish on the last), Esc or the help key Finish.
     void KeyDown(int key, int repeat, int flags) override;
     // Rebirth-patched (WideScreen). Builds the page from its "#screen" line: the rectangle
@@ -1977,7 +1977,7 @@ class DifficultyBox : public MessageWindow {
 public:
     explicit DifficultyBox(Interface3D* ui) : MessageWindow(ui, "option_difficulty", game::kEmptyText, 0x20000, 3, 1) {}
     // No container handler. Region 0 OK (easy to options::g_options.difficulty), 1 cancel, 2 / 3 check easy / hard.
-    void LeftDown(int buttons, int x, int y) override;
+    void LeftDown(int buttons, Point point) override;
     // Unless a child used the key, Enter answers as OK and Esc as cancel.
     void KeyDown(int key, int repeat, int flags) override;
     // CreateScreen adds them first.

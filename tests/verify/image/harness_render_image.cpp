@@ -50,12 +50,12 @@ WindowPresents WindowPresentCounts() {
 }
 
 bool FrameInWindow(int* width, int* height) {
-    render::Rect placed{};
+    Rect placed{};
     return render::FrameInWindow(width, height, &placed);
 }
 bool FramePlaced(int* width, int* height) {
     int fw = 0, fh = 0;
-    render::Rect placed{};
+    Rect placed{};
     if (!render::FrameInWindow(&fw, &fh, &placed)) return false;
     *width = placed.right - placed.left;
     *height = placed.bottom - placed.top;

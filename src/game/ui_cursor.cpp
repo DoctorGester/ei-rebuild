@@ -86,7 +86,7 @@ void CursorDrawFrame(Cursor* self) {
     render::FrameCursor frame;
     frame.imageHolder = image->holder;
     frame.mask = image->saved.data();
-    frame.from = render::Rect{image->frame * image->width, 0, (image->frame + 1) * image->width, image->height};
+    frame.from = Rect{image->frame * image->width, 0, (image->frame + 1) * image->width, image->height};
     frame.hotX = image->hotX;
     frame.hotY = image->hotY;
     frame.held = self->held;
@@ -234,7 +234,7 @@ bool Cursor::UpdatePosition() {
     if (held) {
         point = heldPosition;
     } else {
-        platform::Point at{};
+        Point at{};
         platform::CursorPosition(&at);
         point = Point{at.x, at.y};
         heldPosition = point;

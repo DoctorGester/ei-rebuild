@@ -39,7 +39,7 @@ int Clamp(int value, int high) {
 
 // Width in pixels of the prompt and the first `count` characters of the input in `font`.
 int PromptWidth(const UiFont& font, const std::string& input, int count) {
-    return TextExtent(font, std::string(game::consoletexts::Prompt()) + str::Left(input, count)).cx;
+    return TextExtent(font, std::string(game::consoletexts::Prompt()) + str::Left(input, count)).w;
 }
 
 constexpr int kHistoryDepth = 30;

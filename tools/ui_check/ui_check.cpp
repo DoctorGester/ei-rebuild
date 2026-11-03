@@ -36,7 +36,6 @@
 #include <vector>
 #include <windows.h>
 
-using render::Rect;
 namespace ui = render::ui;
 namespace text = render::text;
 namespace detail = render::detail;
@@ -556,7 +555,7 @@ void CheckResize() {
 bool ReadTarget(std::vector<std::uint32_t>* rgb) {
     platform::graphics::Readback copy;
     const int w = g_targetWidth, h = g_targetHeight;
-    const bool read = copy.Read(g_target, platform::Rect{0, 0, w, h});
+    const bool read = copy.Read(g_target, Rect{0, 0, w, h});
     if (read) {
         rgb->resize(static_cast<std::size_t>(w) * h);
         for (int y = 0; y < h; ++y) {

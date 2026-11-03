@@ -17,10 +17,7 @@
 #include <cstdint>
 
 void ClearUiDepth(float z, const Rect* rects, int count) {
-    render::Rect cleared[8];
-    const int n = !rects ? 0 : count < 8 ? count : 8;
-    for (int i = 0; i < n; ++i) cleared[i] = render::Rect{rects[i].left, rects[i].top, rects[i].right, rects[i].bottom};
-    render::ClearDepth(z, n ? cleared : nullptr, n);
+    render::ClearDepth(z, rects, !rects ? 0 : count < 8 ? count : 8);
 }
 
 namespace {
@@ -28,7 +25,7 @@ namespace {
 // The screens' draws share this: the depth buffer cleared to 1, then the container draw.
 void ScreenDraw(UiContainer* self, SceneRenderer* pass, bool mouseMove) {
     g_clientWorld.Render();
-    if (mouseMove) self->Input()->MouseMove(0, g_cursor.position.x, g_cursor.position.y);
+    if (mouseMove) self->Input()->MouseMove(0, g_cursor.position);
     ClearUiDepth(1.0f);
     self->UiContainer::Draw(pass);
 }

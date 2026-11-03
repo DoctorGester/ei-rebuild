@@ -533,7 +533,7 @@ void CampPages::Draw(SceneRenderer* pass) {
     hoveredItem = nullptr;
     int topic = 0;
     // The page buttons' help topics.
-    switch (RegionAt(x, y)) {
+    switch (RegionAt(Point{x, y})) {
     case 4: topic = 0x69; break;
     case 5: topic = 0x6A; break;
     case 6: if (spellConstructor) topic = 0x65; break;
@@ -546,7 +546,7 @@ void CampPages::Draw(SceneRenderer* pass) {
     }
     // Panel by panel until an item is found or a topic is set.
     auto probe = [&](UiItemPanel* panel) {
-        if (!hoveredItem && topic == 0) hoveredItem = panel->ItemAt(x, y, &topic);
+        if (!hoveredItem && topic == 0) hoveredItem = panel->ItemAt(Point{x, y}, &topic);
     };
     probe(equipment);
     probe(equipment2);

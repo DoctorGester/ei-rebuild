@@ -36,7 +36,7 @@ struct Cursor {
 Cursor* g_cursor = nullptr;   // shown
 std::vector<ShownCursor> g_seen;
 bool g_holding = false;
-platform::Point g_held{};
+Point g_held{};
 platform::PointMap g_toGame = nullptr;
 std::string g_clipboard;
 
@@ -108,7 +108,7 @@ bool CursorShown(ShownCursor* cursor) {
 const std::vector<ShownCursor>& SeenCursors() { return g_seen; }
 void ForgetSeenCursors() { g_seen.clear(); }
 
-bool CursorHeld(platform::Point* at) {
+bool CursorHeld(Point* at) {
     if (!g_holding) return false;
     *at = g_held;
     return true;

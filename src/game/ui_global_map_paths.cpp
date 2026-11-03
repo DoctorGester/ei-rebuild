@@ -104,9 +104,9 @@ void GlobalMap::FindPaths(MapRecord* from) {
     }
 }
 
-void GlobalMap::LeftDown(int, int x, int y) {
+void GlobalMap::LeftDown(int, Point point) {
     if (dragging) return;
-    const int region = RegionAt(x, y);
+    const int region = RegionAt(point);
     if (region == kRegionTurnLeft || region == kRegionTurnRight) {
         turning = region == kRegionTurnLeft ? -1 : 1;
         ui->PlayInterfaceSound(kMoveSound);
@@ -127,7 +127,7 @@ void GlobalMap::LeftDown(int, int x, int y) {
         // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i; the window's 4:3
         // part's margins come off (Rebirth's WideScreen took the margin off x).
         const Point shift = screen_layout::PickShift();
-        const std::uint32_t pixel = backdrop->PixelAt(x / 2 - shift.x, y / 2 - shift.y);
+        const std::uint32_t pixel = backdrop->PixelAt(point.x / 2 - shift.x, point.y / 2 - shift.y);
         const int index = static_cast<int>((pixel >> 4) & 0xF) - 1;
         if (index < 0 || index >= std::ssize(zones) || zones[index].state == 0) return;
         ui->PlayInterfaceSound(kOkSound);

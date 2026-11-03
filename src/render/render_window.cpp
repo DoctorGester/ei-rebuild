@@ -107,7 +107,7 @@ void CheckRamp(int width, int height) {
     g_checkRamp = false;
     int fw = 0, fh = 0;
     if (!FrameSize(&fw, &fh) || fw != width || fh != height) return;
-    const platform::Rect whole{0, 0, width, height};
+    const Rect whole{0, 0, width, height};
     if (!g_backCopy.ReadDrawable(whole) || !g_frameCopy.Read(FrameImage(), whole)) return;
     int points = 0, differing = 0;
     for (int y = height / 34; y < height; y += height / 17 + 1) {

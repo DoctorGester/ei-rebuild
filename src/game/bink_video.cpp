@@ -51,7 +51,6 @@ void CopyFrame(const video::Movie* movie, std::vector<std::uint8_t>* frame) {
     video::CopyFrame(movie, frame->data(), width * 4);
 }
 
-render::Rect ToRender(const Rect& r) { return render::Rect{r.left, r.top, r.right, r.bottom}; }
 
 
 // A movie frame drawn outside the game's frame becomes a frame of the new renderer, shown by the present.
@@ -95,7 +94,7 @@ unsigned BinkVideo::Frame() {
         render::MovieFrame(this, frame.data(), video::Width(movie), video::Height(movie));
         video::Advance(movie);
     }
-    render::MovieBlit(this, ToRender(MovieRect(video::Width(movie), video::Height(movie), centred)));
+    render::MovieBlit(this, MovieRect(video::Width(movie), video::Height(movie), centred));
     return Ended(movie) ? 0u : 1u;
 }
 
@@ -153,8 +152,8 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
         video::DecodeFrame(movie);
         CopyFrame(movie, &frame);
         render::MovieFrame(&g_movieKey, frame.data(), width, height);
-        if (clearScreen) render::Fill(ToRender(g_sceneRenderer.device->screen), 0);
-        render::MovieBlit(&g_movieKey, ToRender(MovieRect(width, height, centred)));
+        if (clearScreen) render::Fill(g_sceneRenderer.device->screen, 0);
+        render::MovieBlit(&g_movieKey, MovieRect(width, height, centred));
         PresentMovieFrame();
         if (!Ended(movie)) video::Advance(movie);
         start = now;
@@ -199,7 +198,7 @@ void ShowLoadingMovie(int progress) {
     }
     const void* key = &g_loadingScreen;   // the loading movie in the new renderer
     if (decoded) render::MovieFrame(key, frame.data(), video::Width(movie), video::Height(movie));
-    render::MovieBlit(key, ToRender(g_loadingScreen));
+    render::MovieBlit(key, g_loadingScreen);
     PresentMovieFrame();
 }
 

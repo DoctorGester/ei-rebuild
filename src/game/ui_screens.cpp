@@ -243,15 +243,14 @@ void UiItemStrip::ScrollToItem(Item* item) {
     velocity = 0.0f;
 }
 
-Item* ForwardingStrip::ItemAt(int x, int y, int* cursor) {
+Item* ForwardingStrip::ItemAt(Point point, int* cursor) {
     if (!enabled) return nullptr;
-    if (RegionAt(x, y) != 8) return nullptr;
+    if (RegionAt(point) != 8) return nullptr;
     switch (mode) {
     case 1: *cursor = 0x16; break;
     case 2: *cursor = 0x18; break;
     case 3: *cursor = 0x17; break;
     }
-    Point point{x, y};
     ui->ScalePointFromScreen(&point);
     int index = SlotAt(point.x);
     RebuildList();
@@ -278,9 +277,9 @@ void UiItemStrip::SettleScroll() {
     ui->mouseCapture = nullptr;
 }
 
-void UiItemStrip::LeftDown(int, int x, int y) {
+void UiItemStrip::LeftDown(int, Point point) {
     Interface3D* currentUi = ui;
-    int region = RegionAt(x, y);
+    int region = RegionAt(point);
     if (region == 0 || region == 1) {
         if (!currentUi->shiftDown) {
             currentUi->PlayInterfaceSound(kSoundCampScroll);
@@ -300,27 +299,27 @@ void UiItemStrip::LeftDown(int, int x, int y) {
     if (region >= 0) handled = true;
 }
 
-void UiItemStrip::LeftUp(int, int, int) {
+void UiItemStrip::LeftUp(int, Point) {
     if (scrollDirection != 0) SettleScroll();
 }
 
-void UiItemStrip::MouseMove(int, int x, int y) {
-    int region = RegionAt(x, y);
+void UiItemStrip::MouseMove(int, Point point) {
+    int region = RegionAt(point);
     // Leaving the held arrow stops scrolling.
     if ((scrollDirection == 1 && region != 0) || (scrollDirection == 2 && region != 1)) SettleScroll();
 }
 
-void UiItemStrip::Wheel(int, int delta, int x, int y) {
-    if (RegionAt(x, y) == 8) {
+void UiItemStrip::Wheel(int, int delta, Point point) {
+    if (RegionAt(point) == 8) {
         pending = (static_cast<short>(delta) / 120) + pending;
         ui->PlayInterfaceSound(kSoundCampScroll);
     }
 }
 
-void ForwardingStrip::LeftDown(int modifiers, int x, int y) {
-    UiItemStrip::LeftDown(modifiers, x, y);
+void ForwardingStrip::LeftDown(int modifiers, Point point) {
+    UiItemStrip::LeftDown(modifiers, point);
     // The original passes its own first argument's stack memory as the cursor output.
-    Item* item = ItemAt(x, y, &modifiers);
+    Item* item = ItemAt(point, &modifiers);
     if (item) owner->TakeItem(item, mode);
 }
 
@@ -468,8 +467,8 @@ bool MpHeroScreen::CanEquip(Item* item, int) {
 
 PartyUnitRecord* MpHeroScreen::HeroRecord() { return LocalPlayerData()->members.data(); }
 
-void MpHeroScreen::LeftUp(int modifiers, int x, int y) {
-    UiContainer::LeftUp(modifiers, x, y);
+void MpHeroScreen::LeftUp(int modifiers, Point point) {
+    UiContainer::LeftUp(modifiers, point);
     // Releasing a rotate arrow.
     if (ui->mouseCapture == Input()) ui->mouseCapture = nullptr;
     rotating = 0;
@@ -477,9 +476,9 @@ void MpHeroScreen::LeftUp(int modifiers, int x, int y) {
 
 // --- EscMenu ---------------------------------------------------------------------------------
 
-void EscMenu::MouseMove(int modifiers, int x, int y) {
+void EscMenu::MouseMove(int modifiers, Point point) {
     UiModel* model = models[0];
-    int region = RegionAt(x, y);
+    int region = RegionAt(point);
     // Hovering a stone plays its animation (the first two only in single player).
     switch (region) {
     case 0:
@@ -514,7 +513,7 @@ void EscMenu::MouseMove(int modifiers, int x, int y) {
         hovered = -1;
         break;
     }
-    UiContainer::MouseMove(modifiers, x, y);
+    UiContainer::MouseMove(modifiers, point);
 }
 
 void EscMenu::KeyDown(int key, int repeat, int modifiers) {
@@ -544,7 +543,7 @@ void CreditsScreen::Close() {
     else g_gameFlow.CloseSessions();
 }
 
-void CreditsScreen::LeftDown(int, int, int) { Close(); }
+void CreditsScreen::LeftDown(int, Point) { Close(); }
 
 void CreditsScreen::KeyDown(int key, int, int) {
     if (key == platform::kKeyReturn || key == platform::kKeyEscape || key == platform::kKeySpace) Close();

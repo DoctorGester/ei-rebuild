@@ -204,8 +204,8 @@ void ChatWindow::Update() {
 
 // --- the input side's left button and mouse move -------------------------------------------------
 
-void ChatWindow::LeftDown(int, int x, int y) {
-    int index = RegionAt(x, y);
+void ChatWindow::LeftDown(int, Point point) {
+    int index = RegionAt(point);
     if (index < 0 || static_cast<unsigned>(index) >= players.size()) return;
     handled = true;
     // The active screen is the briefing, whose chat window this is (its chatActive is the pick mode).
@@ -234,8 +234,8 @@ void ChatWindow::LeftDown(int, int x, int y) {
     client->StartParty(player);
 }
 
-void ChatWindow::MouseMove(int, int x, int y) {
-    int index = RegionAt(x, y);
+void ChatWindow::MouseMove(int, Point point) {
+    int index = RegionAt(point);
     int pick = ui->ActiveWindowAs<BriefingScreen>()->chatActive;
     if (pick != 0 && index >= 0 && static_cast<unsigned>(index) < players.size()) g_cursor.SetShape(0);
 }

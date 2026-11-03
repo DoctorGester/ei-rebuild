@@ -171,7 +171,7 @@ void BeginTargetPass(const Target& t) {
 
 bool ReadTarget(const Target& t, std::vector<std::uint8_t>* bgra) {
     platform::graphics::Readback copy;
-    const bool read = copy.Read(t.image, platform::Rect{0, 0, t.width, t.height});
+    const bool read = copy.Read(t.image, Rect{0, 0, t.width, t.height});
     if (read) {
         bgra->resize(static_cast<std::size_t>(t.width) * static_cast<std::size_t>(t.height) * 4);
         for (int y = 0; y < t.height; ++y)
@@ -184,7 +184,7 @@ bool ReadTarget(const Target& t, std::vector<std::uint8_t>* bgra) {
 
 void CheckDraw(int width, int height) {
     Target t = MakeTarget(width, height);
-    render::Rect placed{0, 0, width, height};
+    Rect placed{0, 0, width, height};
     BeginTargetPass(t);
     perf::Draw(width, height, placed);
     sg_end_pass();
@@ -238,7 +238,7 @@ void CheckTime() {
     using perf::Pass;
     auto slot = [](Pass p) { return static_cast<int>(p); };
     Target t = MakeTarget(640, 360);
-    render::Rect placed{0, 0, 640, 360};
+    Rect placed{0, 0, 640, 360};
     for (int frame = 0; frame < 40; ++frame) {
         g_frameDraws = 0;
         perf::BeginGpuFrame();

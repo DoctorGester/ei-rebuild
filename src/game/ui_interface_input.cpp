@@ -50,40 +50,40 @@ constexpr int kCursorWait = 3;
 
 } // namespace
 
-void Interface3D::OnLeftDown(int buttons, int x, int y) {
+void Interface3D::OnLeftDown(int buttons, Point point) {
     doubleClick = false;
-    Send(this, UiInputSide::kEventLeftDown, buttons, x, y);
+    Send(this, UiInputSide::kEventLeftDown, buttons, point.x, point.y);
 }
 
-void Interface3D::OnLeftUp(int buttons, int x, int y) {
-    Send(this, UiInputSide::kEventLeftUp, buttons, x, y);
+void Interface3D::OnLeftUp(int buttons, Point point) {
+    Send(this, UiInputSide::kEventLeftUp, buttons, point.x, point.y);
     doubleClick = false;
 }
 
-void Interface3D::OnMouseMove(int buttons, int x, int y) { Send(this, UiInputSide::kEventMouseMove, buttons, x, y); }
+void Interface3D::OnMouseMove(int buttons, Point point) { Send(this, UiInputSide::kEventMouseMove, buttons, point.x, point.y); }
 
-void Interface3D::OnRightDown(int buttons, int x, int y) {
+void Interface3D::OnRightDown(int buttons, Point point) {
     rightDown = true;
-    Send(this, UiInputSide::kEventRightDown, buttons, x, y);
+    Send(this, UiInputSide::kEventRightDown, buttons, point.x, point.y);
 }
 
-void Interface3D::OnRightUp(int buttons, int x, int y) {
+void Interface3D::OnRightUp(int buttons, Point point) {
     rightDown = false;
-    Send(this, UiInputSide::kEventRightUp, buttons, x, y);
+    Send(this, UiInputSide::kEventRightUp, buttons, point.x, point.y);
 }
 
-void Interface3D::OnLeftDouble(int buttons, int x, int y) {
+void Interface3D::OnLeftDouble(int buttons, Point point) {
     doubleClick = true;
-    Send(this, UiInputSide::kEventLeftDouble, buttons, x, y);
+    Send(this, UiInputSide::kEventLeftDouble, buttons, point.x, point.y);
 }
 
-void Interface3D::OnRightDouble(int buttons, int x, int y) {
+void Interface3D::OnRightDouble(int buttons, Point point) {
     rightDown = true;
-    Send(this, UiInputSide::kEventRightDouble, buttons, x, y);
+    Send(this, UiInputSide::kEventRightDouble, buttons, point.x, point.y);
 }
 
-void Interface3D::OnWheel(int flags, int delta, int x, int y) {
-    if (UiInputSide* target = MouseTarget()) target->Wheel(flags, delta, x, y);
+void Interface3D::OnWheel(int flags, int delta, Point point) {
+    if (UiInputSide* target = MouseTarget()) target->Wheel(flags, delta, point);
 }
 
 // --- Keys ------------------------------------------------------------------
@@ -418,7 +418,7 @@ constexpr float kOpaque = 255.0f;
 
 Rect ScreenOf(const SceneRenderer* renderer) {
     Rect screen;
-    rects::Copy(&screen, &renderer->device->screen);
+    screen = renderer->device->screen;
     return screen;
 }
 

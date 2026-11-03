@@ -254,7 +254,7 @@ struct ScreenBounds {
         const int right = lib::RoundEven(maxX);
         const int top = lib::RoundEven(minY);
         const int left = lib::RoundEven(minX);
-        rects::Set(&device->drawnRect, left, top, right, bottom);
+        device->drawnRect = {left, top, right, bottom};
     }
 };
 

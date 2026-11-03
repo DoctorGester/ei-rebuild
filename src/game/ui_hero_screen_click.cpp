@@ -191,12 +191,12 @@ void MpHeroScreen::KeyDown(int key, int repeat, int modifiers) {
     handled = true;
 }
 
-void MpHeroScreen::LeftDown(int modifiers, int x, int y) {
+void MpHeroScreen::LeftDown(int modifiers, Point point) {
     if (renameEdit->focused) return;
-    UiContainer::LeftDown(modifiers, x, y);
+    UiContainer::LeftDown(modifiers, point);
     if (handled) return;
     Interface3D* currentUi = ui;
-    int region = RegionAt(x, y);
+    int region = RegionAt(point);
     auto rotate = [&](int direction) {
         currentUi->PlayInterfaceSound(game::RotateSoundText());
         rotating = direction;

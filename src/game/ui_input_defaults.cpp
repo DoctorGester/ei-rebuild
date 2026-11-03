@@ -2,20 +2,20 @@
 // See ui.h (UiInputSide) and docs/notes/ui.md, section 1.
 #include "ui.h"
 
-void UiInputSide::LeftDouble(int buttons, int x, int y) { LeftDown(buttons, x, y); }
+void UiInputSide::LeftDouble(int buttons, Point point) { LeftDown(buttons, point); }
 
-void UiInputSide::RightDouble(int buttons, int x, int y) { RightDown(buttons, x, y); }
+void UiInputSide::RightDouble(int buttons, Point point) { RightDown(buttons, point); }
 
 void UiInputSide::Event(int slot, int first, int second, int third) {
     switch (slot) {
     case kEventDeactivate: Deactivate(); break;
-    case kEventLeftDown: LeftDown(first, second, third); break;
-    case kEventLeftUp: LeftUp(first, second, third); break;
-    case kEventMouseMove: MouseMove(first, second, third); break;
-    case kEventRightDown: RightDown(first, second, third); break;
-    case kEventRightUp: RightUp(first, second, third); break;
-    case kEventLeftDouble: LeftDouble(first, second, third); break;
-    case kEventRightDouble: RightDouble(first, second, third); break;
+    case kEventLeftDown: LeftDown(first, Point{second, third}); break;
+    case kEventLeftUp: LeftUp(first, Point{second, third}); break;
+    case kEventMouseMove: MouseMove(first, Point{second, third}); break;
+    case kEventRightDown: RightDown(first, Point{second, third}); break;
+    case kEventRightUp: RightUp(first, Point{second, third}); break;
+    case kEventLeftDouble: LeftDouble(first, Point{second, third}); break;
+    case kEventRightDouble: RightDouble(first, Point{second, third}); break;
     case kEventKeyDown: KeyDown(first, second, third); break;
     case kEventChar: Char(first, second, third); break;
     case kEventKeyUp: KeyUp(first, second, third); break;
@@ -23,4 +23,4 @@ void UiInputSide::Event(int slot, int first, int second, int third) {
     }
 }
 
-void UiInputSide::Wheel(int, int, int, int) {}
+void UiInputSide::Wheel(int, int, Point) {}

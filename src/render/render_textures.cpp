@@ -37,9 +37,6 @@ Texture g_white;
 sg_sampler g_linear{};
 int g_failures = 0;
 
-bool Empty(const Rect& r) { return r.right <= r.left || r.bottom <= r.top; }
-
-
 // An image of `format` from `levels` (level 0 first): the levels given only, as the .mmp file has them and the
 // original's texture had them (RGBA8 or the file's DXT blocks).
 sg_image MakeImage(sg_pixel_format format, int width, int height, std::vector<std::vector<std::uint8_t>> levels,
@@ -256,7 +253,7 @@ void DrawStep(const void* holder, ComposeStep step) {
     if (to.top < 0) to.top = 0;
     if (to.right > t.shape.width) to.right = t.shape.width;
     if (to.bottom > t.shape.height) to.bottom = t.shape.height;
-    if (Empty(to)) return;
+    if (to.IsEmpty()) return;
     step.fromX = to.left - wanted.left;
     step.fromY = to.top - wanted.top;
     step.to = to;
