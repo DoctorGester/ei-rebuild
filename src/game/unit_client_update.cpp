@@ -440,7 +440,7 @@ void UnitClientSpecific::BlinkOpen(bool force) {
 // --- Attack figures ----------------------------------------------------------------------------------
 
 // The client's attack figures of a party unit (UnitClientSpecific::GetAttackParams) and the copy of the
-// damage scale it uses. See unit_client_models.h and docs/notes/units.md ("Rewritten").
+// damage scale it uses. See unit_client_models.h and docs/notes/units.md ("Client controller").
 
 namespace {
 constexpr int kTypeNoWeapon = 8;    // AttackParams::weaponType without a weapon in hand

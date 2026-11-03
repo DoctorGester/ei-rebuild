@@ -8,7 +8,7 @@
 // every MappedResource::GetFile and ListFiles goes through addon (its virtual and all their calls). -
 // MoviesPatch (the BinkOpen import), CameraPatch (the camera path's file open), StreamPatch (the stream
 // file's path): the mod's Movies\, Camera\ and Stream\ copy of the file when there is one.
-// More: docs/notes/comments-c22i.md, "mod_folders.h".
+// More: docs/notes/rebirth.md, "Resources and paths".
 
 #include "ei/rebirth.h"
 

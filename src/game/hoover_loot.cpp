@@ -3,7 +3,7 @@
 // the prototype: an amount between a minimum and a maximum, kept when a percent roll is within the chance),
 // the quick items and carried items, and for units with a text key also the armour and weapons, all taken off
 // the unit and put on the drop list. A unit is looted once (flag 0x100000). Plain float maths for the amounts
-// (rule 7). See docs/notes/objects.md ("Rewritten").
+// (rule 7).
 #include "item.h"
 
 #include "figure_mesh.h"

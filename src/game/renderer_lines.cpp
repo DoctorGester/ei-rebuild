@@ -1,6 +1,6 @@
 // The old renderer's line-strip draw: stage 0 off around it (src/render/render_state.h), the lines to the new
 // renderer (render::TlDraw).
-// More: docs/notes/comments-c22i.md, "renderer_lines.cpp".
+// More: docs/notes/models.md, "Renderer".
 #include "renderer_lines.h"
 
 #include "figure_mesh.h"   // VertexPacket

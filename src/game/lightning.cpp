@@ -427,7 +427,7 @@ ClassId LightningManager::GetClassId() { return ClassId::LightningManager; }
 
 // --- Start -------------------------------------------------------------------------------------------
 
-// Lightning's initialiser (called by the lightning client object's setter). Plain float maths (rule 7). See docs/notes/objects.md ("Rewritten").
+// Lightning's initialiser (called by the lightning client object's setter). Plain float maths (rule 7). See docs/notes/objects.md, "Lightning".
 
 namespace {
 
@@ -577,7 +577,7 @@ int LoadLightningNoise() {
 // Drawing a lightning bolt (Lightning's renderer virtual; called by DrawAll) and its
 // glow: the segments as textured strips through the render device, then a
 // glow: the segments as textured strips through the render device, then a
-// the world's frame counter. Plain float maths (rule 7). See docs/notes/objects.md ("Rewritten").
+// the world's frame counter. Plain float maths (rule 7). See docs/notes/objects.md, "Lightning".
 
 namespace {
 

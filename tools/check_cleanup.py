@@ -1,4 +1,4 @@
-"""Ratchet on cleanup-plan patterns (docs/cleanup-plan.md, "What is left and what removes it").
+"""Ratchet on the clean-code patterns (docs/rewrite-guide.md, "Clean code").
 
 New code is written the clean way: members instead of raw offsets, virtual calls instead of VCall,
 named globals and plain C++ floats. This counts, per file under src/, the patterns the cleanup
@@ -9,7 +9,7 @@ usage: python tools/check_cleanup.py [--update]
 """
 import csv, glob, os, re, sys
 
-# Hand-written vector maths (docs/notes/vector-math.md; the helpers are in src/lib/vecmath.h).
+# Hand-written vector maths (docs/notes/float-maths.md, "Vector helpers"; the helpers are in src/lib/vecmath.h).
 # 1. A two-product sum `P * Q + R * S` whose operand pairs are the same expression on another axis:
 #    a.x * b.x + a.y * b.y, dx * dx + dy * dy, v[0] * w[0] + v[1] * w[1], m[8] * nx + m[4] * ny,
 #    D(dz) * dz + D(dy) * dy (one wrapper call or static_cast<T>(...) is looked through). "Another

@@ -79,7 +79,7 @@ else()
 endif()
 
 # The game code, with its sound (src/audio: our mixer on SDL3's audio device, the dr_wav / dr_mp3 decoders;
-# docs/notes/audio.md) and its movies (src/video: our Bink 1 decoder): a library linked whole (every object, as if
+# docs/notes/sound.md) and its movies (src/video: our Bink 1 decoder): a library linked whole (every object, as if
 # listed: the static objects' initialisers too), ahead of the renderer and the platform it calls.
 file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp src/audio/*.cpp src/video/*.cpp)
 add_library(ei_game STATIC ${EI_GAME_SOURCES})

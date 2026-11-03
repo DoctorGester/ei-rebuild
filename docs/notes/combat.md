@@ -1,272 +1,148 @@
-# Combat and the server unit controller (00540000-00560000)
+# Combat and the server unit controller
 
 Code (layouts and per-function comments are in `combat.h` and `combat_plan.h`): `combat*.cpp` (queries and the hit in
 combat.cpp; actions, orders, order setters, save, sight, steps, step lists, tick, update, motion, planning, taming, stat
-slots, object / server slots, lifetime, spell sight), `unit_motion_tick.cpp`, `world_create.cpp`, `world_create.cpp`.
-Verify: `tests/verify/verify_combat*.cpp`, `verify_unit_motion_tick.cpp`, `verify_world_create.cpp`. Scenarios:
-`combat.txt`, `combat_more.txt` (kill, archer, heal), `movement.txt`, `unit_ai.txt`; every creature runs the update and
-animation code each tick, so any scenario with units reaches it.
+slots, lifetime, spell sight), `unit_motion_tick.cpp`, `world_create.cpp`. Scenarios: `combat.txt`, `combat_more.txt`
+(kill, archer, heal), `movement.txt`, `unit_ai.txt`; every creature runs the update and animation code each tick.
 
-## Address map
+`UnitServer` (class 0x3E) is the server-side unit controller; the AI brain (unit_ai.md) and the path (ai.md) hang off
+it.
 
-Most of the range is **CUnitServer** (class id 0x3E, vtable 0073EF38, 54 slots, ClassName 005460C0; abstract base vtable
-0073EDBC; constructor 00545580, 0xB20 bytes), the server-side unit controller at Unit + 0x240.
+## Controller fields
 
-| Range | Contents |
-|---|---|
-| 00546480-0054B220 | orders and movement: animation queue 00546B40, path following 00547890 / 0054A150 |
-| 0054A900, 0054B390 | the per-tick order machine |
-| 0054B220-0054CA40 | weapon / spell queries, action distance, sight checks |
-| 0054CA40-0054F000 | order execution: attack, cast (0054E600), use, target selection |
-| 0054F000-0054F8E0 | skill use; attack execution (missiles 0054F450, hit 0054F580, item spells) |
-| 00550050-005518F0 | animation choice by weapon and movement, steps |
-| 00551AE0-00552D00 | taming, side changes, hostility claims 00552D00 |
-| 00552E00-005543B0 | hostility propagation, stats / state slots (19-29, 44-49), death 00553AC0, TakeHit, heal |
-| 00554450-00556760 | order setters; attack parameters and roll; Load 00555D10 / Save 005561C0 |
-| 0055C000-00560000 | world managers ("PlayerManager", "EffectManager", "ItemManager", maps), World::FindUnit 0055FB00 |
+Those `combat.h` does not explain: `queue` (AnimationSteps: a `std::vector<AnimationStep>` and `extra`; the time the
+first step started, -1 until started); `motion` (AIPath; its `failed` byte is compared with 1); a pending step list; the
+plan (OrderPlan); a hit reaction flag and `savedQueue`; the state (0 idle, 1 moving, 2 turning, 3 rest of an action's
+animation, 4 as 2 for hit reactions, 5 acting, 6 what an order leaves, "chasing"); two {mode, onGuard, wasMode3} move
+records (the second's onGuard: attacking or an AI suspicion / aggression / fear mode; also "cannot be backstabbed"); the
+next attack's time; death reported; the current / queued UnitAction (kinds 1 move, 2 turn, 3 attack, 4 / 5 cast spell /
+quick item, 6 use or skill (source 0x18A95 talk, 0 science, 1 stealing, 2 taming), 7 play animation, 8 emote, 9 none,
+10 use quick item, 11 stop; source = spell slot or quick item slot | 0x80000000); the "waiting for" link
+(followsLeader / followedLeader); a UnitStats copy (stats.loadFactor is the hero's "stamina" for walk / run animations:
+below two thresholds the movement animation gets the limp bits 0x800000 / 0x400000); sinking speed; movement factors
+and speed class; taming stage, own side, tamer's side; the AI-events presence record; `armourSpells` (a vector);
+boredom counter; movement and idle animation keys / lists (idle 0x666DEAD: no key yet); `actionDone`, the callback run
+when state 3 ends; `voice`. A step is {animation, 0xFF, 0, 0, duration, kind}; duration = entry frames over the unit's
+speed factor for it, truncated (a default step: 0xFF, 0xFF, 0, 0, -1, 0).
 
-## Facts
+## Animation keys
 
-### Controller fields (those `combat.h` does not name or explain)
+The layout and AnimationKind / BlowSide / SkillAnimation are in map_object_figures.h (names from database.res's *.adb):
+weapon bit (1 << type, natural below 7) | movement bits (0x30000 / 0x20000 / 0x10000 / 0x8000) | action bits (0x90000
+attack with height band 0x1000000 / 0x2000000 / 0x3000000 | 0x800000, 0x40000 skill, 0xC0000 cast, 0x240000 mode
+transition, 0x6000000 death, 0x80580000 idle ...); movement | 0x40000000 once or 0x80000000 looped. An entry's frame
+count and the action's moment come from the figure's animation database.
 
-+0x20 frozen this update, +0x21 held by a hit reaction (AdvanceAnimation shifts motion, queue and plan times by one while
-set); +0x24 `queue` (AnimationSteps: steps +0x28, count +0x2C, +0x38 time the first step started, -1 until started); +0x3C
-`motion` (AIPath, the original's constructor 006706A0 = the inlined 00545750 x2 / 00557230 / 005B23A0; its `failed` byte is
-compared with 1 by MotionOver, Replan and PathTo, so the rewrites read it as a byte); +0x78 pending step list; +0x9C /
-+0xA4 point to path to and its range; +0xA9 / +0xAA path flags (+0x6D, +0x6E no player); +0xC4 plan (OrderPlan; +0xF0
-location, +0xF4 notSkill); +0x144 a hit reaction plays, +0x148 `savedQueue` (time +0x15C); +0x145 last path blocked, +0x146
-pending path, +0x147 moving; +0x164 state (0 idle, 1 moving, 2 turning, 3 rest of an action's animation, 4 as 2 for hit
-reactions, 5 acting, 6 what an order leaves, "chasing"); +0x168 / +0x170 {mode, onGuard, wasMode3} move records (+0x174 =
-the second's onGuard: attacking or an AI suspicion / aggression / fear mode; also "cannot be backstabbed"); +0x178 updates in mode 3 without a cheap cell; +0x180 update at which
-the size class is refreshed while acting; +0x184 next attack's time; +0x18D death reported; +0x190 / +0x1B4 current /
-queued UnitAction (kinds 1 move, 2 turn, 3 attack, 4 / 5 cast spell / quick item, 6 use or skill (source 0x18A95 talk, 0
-science, 1 stealing, 2 taming), 7 play animation, 8 emote, 9 none, 10 use quick item, 11 stop; source = spell slot or quick
-item slot | 0x80000000); +0x1D8 / +0x1DC "waiting for" link (followsLeader / followedLeader); +0x1E0 UnitStats copy (0x704;
-00552F40 in, 00553360 out; start = the CombatStats overlay; stats.loadFactor (UnitStats +0x58, unit +0x238) is the hero's
-"stamina" for walk / run animations: below 007C5448 / 007C5440 the movement animation gets the limp bits 0x800000 /
-0x400000); +0x8F4 sinking speed; +0x8F8..+0x904 movement factors, +0x914 speed class (005536B0); +0x908 taming stage,
-+0x90C own side, +0x910 tamer's side; +0x918 AI-events presence record (`AIEventPresence*`, x, y at +8 / +0xC); +0x91C
-`armourSpells` (CList, vtable 0073F010); +0x938 boredom counter; +0x940 / +0x944 movement animation key / list; +0x95C /
-+0x960 / +0x974 idle key / list / time (0x666DEAD: no key yet); +0x978 `actionDone`, the callback run when state 3 ends;
-+0x984 brain's mode (6: no path reports); +0xB10 `voice` (005AEA50 zeroes it). The brain's +0xD0 and +0xD8 are both sight
-caches {0, -1.0}. Animation keys (005301B0; the layout and AnimationKind / BlowSide / SkillAnimation in
-map_object_figures.h, names from database.res's *.adb): weapon bit (1 << type, natural below 7) | movement bits (0x30000 / 0x20000 /
-0x10000 / 0x8000) | action bits (0x90000 attack with height band 0x1000000 / 0x2000000 / 0x3000000 | 0x800000, 0x40000
-skill, 0xC0000 cast, 0x240000 mode transition, 0x6000000 death, 0x80580000 idle ...); movement | 0x40000000 once or
-0x80000000 looped. A step is {animation, 0xFF, 0, uninitialised, duration, +8}; duration = entry frames (+0x20; +0x40 the
-action's moment) over the unit's speed factor for it (005327D0), truncated. Unit +0x350 (the last damage source) is
-UnitParams::unknown_20.
+## The hit
 
-### The hit
-
-PrepareAttack (0054F580) decides backstab (00530A60: attacker behind; not ranged, not against +0x174) and calls
-BuildAttackHit (0054F630) into +0x108: damage weights; +0x20 attack roll (text-key units with a weapon use the CRT
-`rand()`: 2 * ((rand * 5 / 32767) % 5) + 2 - 6, others the stats' attack times the difficulty factor 007C54AC[0079BEC0]);
-+0x24 damage (the weapon's RollDamage, or damage + random % (spread * 100 + 1) * 0.01, scaled by 00523D30); +0x2C hit
-location (0 head, 1 body, 2 / 3 hands, 4 / 5 legs, 6 all); +0x34 backstab multiplier (00525D60); +0x38 called shot. The
-target's TakeHit (00553F40, slot 20) resolves it unless +0x20 is already +-FLT_MAX: ResolveHit (00553DF0) turns it into
-FLT_MAX (hit) or -FLT_MAX (miss): elemental hits always hit, else AttackRoll (00555BD0) = max(0, 2r - (spread + 1) + attack
+PrepareAttack decides backstab (attacker behind; not ranged, not against "cannot be backstabbed") and calls
+BuildAttackHit: damage weights; the attack roll (text-key units with a weapon use the CRT `rand()`: 2 * ((rand * 5 /
+32767) % 5) + 2 - 6, others the stats' attack times the difficulty factor); damage (the weapon's RollDamage, or damage +
+random % (spread * 100 + 1) * 0.01, scaled); the hit location (0 head, 1 body, 2 / 3 hands, 4 / 5 legs, 6 all); the
+backstab multiplier; called shot. The target's TakeHit resolves it unless the roll is already +-FLT_MAX: ResolveHit turns
+it into FLT_MAX (hit) or -FLT_MAX (miss): elemental hits always hit, else AttackRoll = max(0, 2r - (spread + 1) + attack
 - distance penalty + speed ratio (not for a backstab)), r uniform in 0..round(spread), minus 25 for a called shot at the
-head or 10 at a limb; the hit lands unless the defender's defence (0 against a backstab) is greater. TakeHit logs ("Unit 12
-was attacked by 34 skill=... damage=... destHL=Body", plus " backstab with power=" / " called shot"; combat.txt `expect`s
-parts of it), refuses it for protected players, applies it (UnitStats::ApplyHit 005254B0), records the source at Unit
-+0x350, recomputes stats and calls OnDamaged (00553AC0). A miss makes the victim hostile (Diplomacy::OnAttack) and
-remembered. AttackParams (slot 50, 00555A00): text-key units use the weapon's stats plus the weapon skill bonus (00526C70),
-others their stats scaled by difficulty (0052E0D0); no defence with a bow or crossbow.
+head or 10 at a limb; the hit lands unless the defender's defence (0 against a backstab) is greater. TakeHit logs ("Unit
+12 was attacked by 34 skill=... damage=... destHL=Body", plus " backstab with power=" / " called shot"; combat.txt
+`expect`s parts of it, through the console stream, character for character), refuses it for protected players, applies
+it (UnitStats::ApplyHit, units.md), records the source, recomputes stats and calls OnDamaged. A miss makes the victim
+hostile (Diplomacy::OnAttack) and remembered. AttackParams: text-key units use the weapon's stats plus the weapon skill
+bonus, others their stats scaled by difficulty; no defence with a bow or crossbow.
 
-### Order lifecycle
+## Order lifecycle
 
-- Setters replace the queued order after resetting it (kind 9, target released): attack 00554B30 (reach test =
-  CanReachTarget inlined, message 0x0C when out of reach, then the planner 0054E600), cast 00554D00 / 00554F50 (a scroll is
-  cast at once and used up via 00595020; a party unit's own spell needs the spell's +0x50 against UnitStats 00527EB0,
-  message 0x13 otherwise).
-- Every tick UpdateOrders: StartQueuedOrder takes the queued order over by kind (0 stand, 1 move with a path planned around
-  lifted nearby units, 2 turn, 3-6 ExecuteOrder, 7 / 8 animation, 10 use, 11 stop); else action orders go ContinueAction
-  (target alive and seen) -> ExecuteOrder -> PlanAction (plan into +0xC4: steps through the ticks of a half turn plus 3 for
-  the first moment the target (predicted for moving targets and missile spells) is in reach, the unit can turn in time and
-  CanActFrom holds: AI units only within 1.05 times sight range, melee / skill orders not with a living unit in the way, line
-  of sight from the eye height). When it plans: attack interval (+0x184) advanced, hit built and resolved, 005494D0 starts
-  the action; else ApproachTarget closes in (wait when in reach, else a path to where the target will be in 2..64 ticks).
-- The animation code (00549160) calls FinishAction(location) at the order's moment (00549EC0): kind 3 DeliverAttack (bows /
-  crossbows: the world's object factory creates missile 0x5B with the 0x3C-byte hit at +0x160, registered with
-  AddTimedObject; otherwise the target's Unit slot 31 forwards the hit to its TakeHit at once; then the weapon's spell and
-  a noise of 2 x CombatStats +0xFC when the backstab multiplier is exactly 1.0), 4 / 5 FinishCast (a charged carrier pays
-  from its charge, a party unit pays mana Period20 x cost), 6 UseSkill, 10 the quick item of category 2 is applied by the
-  world (0058ECE0). Item spells fire when the item's charge covers the cost (NaN fires); UseItemCharge 00552C60 copies the
-  charge to the party's item copy (player + 0x70).
-- Planning a route (0054E600): a use order goes to the reachable spot its target offers (slot 44 / 60) within 0073EF28;
-  otherwise the path is searched with the target lifted off the sector map (path flag 007B00D2 cleared, Unit +0x43C = 1),
-  turned into a motion order (005B22C0), and TimeUntilAction (motion simulated in steps of 5 ticks) goes to the player's
-  path message (0066D490). Shouts `NoWayToAttack` (attacks) / `NoPath` on failure.
+- Setters replace the queued order after resetting it (kind 9, target released): attack (reach test, message 0x0C when
+  out of reach, then the planner), cast (a scroll is cast at once and used up; a party unit's own spell needs its school
+  skill, message 0x13 otherwise).
+- Every tick UpdateOrders: StartQueuedOrder takes the queued order over by kind (0 stand, 1 move with a path planned
+  around lifted nearby units, 2 turn, 3-6 ExecuteOrder, 7 / 8 animation, 10 use, 11 stop); else action orders go
+  ContinueAction (target alive and seen) -> ExecuteOrder -> PlanAction (steps through the ticks of a half turn plus 3 for
+  the first moment the target (predicted for moving targets and missile spells) is in reach, the unit can turn in time
+  and CanActFrom holds: AI units only within 1.05 times sight range, melee / skill orders not with a living unit in the
+  way, line of sight from the eye height). When it plans: the attack interval advanced, the hit built and resolved, the
+  action started; else ApproachTarget closes in (wait when in reach, else a path to where the target will be in 2..64
+  ticks).
+- The animation code calls FinishAction(location) at the order's moment: kind 3 DeliverAttack (bows / crossbows: a
+  missile 0x5B carrying the hit, a timed object; otherwise the target's ReceiveHit forwards the hit to its TakeHit at once;
+  then the weapon's spell and a noise when the backstab multiplier is exactly 1.0), 4 / 5 FinishCast (a charged carrier
+  pays from its charge, a party unit pays mana Period20 x cost), 6 UseSkill, 10 the quick item is applied by the world.
+  Item spells fire when the item's charge covers the cost (NaN fires); UseItemCharge copies the charge to the party's
+  item copy.
+- Planning a route: a use order goes to the reachable spot its target offers; otherwise the path is searched with the
+  target lifted off the sector map, turned into a motion order, and TimeUntilAction (motion simulated in steps of 5 ticks)
+  goes to the player's path message. Shouts `NoWayToAttack` (attacks) / `NoPath` on failure.
+- Save: SaveServer / LoadServer; the armour spells and the step lists (AnimationSteps::Save / Load and the extra dword
+  after them) in `combat_save.cpp`.
 
-### Update (slot 6, 00552300), movement tick (00547890), damage and death
+## Update, movement tick, damage and death
 
-- Update: UnitVitals::Regenerate, AI events (world + 0x2838, 005C9770) every (+0x914 + 1)-th frame, armour periodic spells
-  (00552B90), a party unit's perception memory (+0xA50, 005CB850), boredom (+0x938; past 500 one ISAAC draw in 1001 sends
-  remark 0x29 and sets 400, or 0 when the player's +0x5120 is set), alarm, AIBrain::Think, PropagateHostility, then
-  UpdateOrders unless frozen (flags 0x1000000) or reacting to a hit, UpdateState (005499F0) and AdvanceAnimation. A dead
-  unit's body sinks (z -= +0x8F4, growing by 0073C548 per update) and once the queue is empty death is reported once
-  (+0x18D: 00593AF0, 005300D0, brain / alarm resets).
-- Movement tick (`UpdateMotion`, called twice by 005499F0; the AI-side chain is in `ai.md` "How a unit moves"): samples the
-  motion order (+0x3C) at the world time, starts the next animation, plays a pending fall / death animation; a blocked step
-  (BlockingUnitAt) waits (a party member leading this unit, or the unit already waited for), waits behind a unit attacking /
-  casting at the same target, or replans with nearby units lifted (links leading back clear both; a slower blocker with
-  reason 2, water, also replans); else SectorMap::Move. Running party units drain "stamina": the server object's
-  vitals.mana (+0x14) -= vitals.maxMana (+0x18) * 0073F088; below 0: message 0x1D, walk.
+- Update: UnitVitals::Regenerate, AI events every (speed class + 1)-th frame, armour periodic spells, a party unit's
+  perception memory, boredom (past 500 one ISAAC draw in 1001 sends remark 0x29 and sets 400, or 0 when the player's flag
+  is set), alarm, AIBrain::Think, PropagateHostility, then UpdateOrders unless frozen (flags 0x1000000) or reacting to a
+  hit, UpdateState and AdvanceAnimation. A dead unit's body sinks (z -= speed, growing each update) and once the queue is
+  empty death is reported once.
+- **Movement tick** (`UpdateMotion`, called twice by UpdateState; the AI side in ai.md, "How a unit moves"): samples the
+  motion order at the world time, starts the next animation, plays a pending fall / death animation; a blocked step
+  (BlockingUnitAt) waits (a party member leading this unit, or the unit already waited for), waits behind a unit
+  attacking / casting at the same target, or replans with nearby units lifted (links leading back clear both; a slower
+  blocker with reason 2, water, also replans); else SectorMap::Move. Running party units drain "stamina" (the server
+  object's mana by a fraction of its maximum; below 0: message 0x1D, walk). The "blocked" reason starts at 0 when no cell
+  was reached (the original read stack garbage there; no golden reaches it).
 - OnDamaged(attacker, hitKind): types outside 0x32..0x36 only get flags bit 1. Living: armour spells, attacker hostile and
-  remembered (005D7E90), flags 0x80000, PropagateHostility (allied units within the brain's +0x38 radius exchange claims
-  through 00552D00), hit direction to +0x160 unless +0x144. Dead: the killer's party gets message 0x30, WitnessMurder on both
-  nearby lists (brain + 0xF4), effects cleared, SetDead(1), "Unit 12 damaged to death", death animation (00550A80,
-  00548DE0), AI death notice (005C97B0), party memory (005CBE90). HitDirection: |side| < |front| (or NaN) gives 0x800000
-  front / 0x400000 behind, else 0xC00000 / 0x1000000.
-- UseSkill (0054F000, kind 6; no script command reaches it): talk (0x18A95) starts the dialog (005935C0, Rebirth-patched,
-  called through its address); stealing (1) fails unless the thief's skill is greater, else takes a random item (00531400)
-  (message 0x22 on failure); science (0) raises the item record's third int. Taming (`TryTame` 00551AE0, `UndoTaming`
-  00552280): +0x908 stage; a roll succeeds when above 10 x slot 39 plus the taming skill or NaN; the tamed mode is a player
-  mode (005D3760, vtable 0073F0C4).
-- World::CreateManagers (0055EE40, from the client init 00561E50 and the server's 0058AE10) makes and references the world's
-  managers at +0x38 (0xB0), +0x40 (0xBC, 005125E0), +0x3C (0xD0, 005AA070), +0x48, +0x50 (00683FF0), +0x4C (00688840),
-  +0x58 (006A5AB0), +0x54 (ResourceManager 00674D90), copies the command-line paths (0079BC90..98) to 007AF460 / 45C / 458,
-  then IsaacRandom::Init and 006D43E0 on +0x70. World::Destroy (0055F8E0, base slot 3): spell objects get slot 5
-  (ClearState), managers deleted whatever their counts.
+  remembered, flags 0x80000, PropagateHostility (allied units within the brain's radius exchange claims), the hit
+  direction. Dead: the killer's party gets message 0x30, WitnessMurder on both nearby lists, effects cleared, SetDead(1),
+  "Unit 12 damaged to death", death animation, AI death notice, party memory. HitDirection: |side| < |front| (or NaN)
+  gives 0x800000 front / 0x400000 behind, else 0xC00000 / 0x1000000.
+- UseSkill (kind 6): talk (0x18A95) starts the dialog; stealing (1) fails unless the thief's skill is greater, else takes
+  a random item (message 0x22 on failure); science (0) raises the item record's third int. Taming (`TryTame`,
+  `UndoTaming`): a roll succeeds when above 10 x the taming stage plus the taming skill or NaN; the tamed mode is a
+  player mode.
 
-### Floating point and verification patterns
+## World managers
 
-The original's branch-free `max(0, v)` picks v when 0 < v or NaN (`MaxZero`; also the melee reach floor in ActionDistance);
-`TEST AH,0x40` skips on equal or unordered (`x < 0 || x > 0`); random draws `random % (n + 1)` with n = FISTP, then FILD of
-the zero-extended remainder (`Unsigned`). Random-number wrappers keep their snapshots on the stack so nested wrappers
-(AttackRoll in ResolveHit, BuildAttackHit in PrepareAttack, RollDamage) each leave the generator as one original run would.
-005536B0 starts with PUSH / MOV and a relative CALL, so its wrapper (`stolenBytes` 0) calls `OriginalUpdateMoveFactors`, a
-naked stub in verify_combat.cpp.
+`World::CreateManagers` (client and server) makes and references the world's managers (players, map objects, figures,
+effects, spells, items, resources), takes the command-line paths, then initialises ISAAC and the water levels.
+`World::Destroy`: spell objects get ClearState, managers deleted whatever their counts. Player sources
+(`player_source.h`): `WorldHandle` (a counted pending link), `netlink::DriverSession` (World::OpenSession).
 
-### Declarations (C6 cleanup)
+## Floating point
 
-combat_*, magic_trap, unit_skins, unit_lever, unit_client_update, unit_points, unit_client_models, unit_motion_tick and
-net_state have no offsets / VCalls left (the __asm / float_control blocks, magic_trap's vtable constants and unit_skins'
-Text(0x...) strings stay; next by count: unit_create_stats.cpp). map_object.h slot 44 `UseSpots(void* out, float
-userRadius)`, 55 IsDead (units return +0x274), 59 `double MoveSpeed()` (ST0); UnitController slots 21-50 (ShowWeapon
-25, TamingStage 39, GetAttackParams 50, 48 empty); `SpellRecord::unknown_10` (+0x10: 1 casts without noise / slowing the
-caster); `ArmorRecord::layer` (+0xB8); tick globals 007AFFC4 / 007B00D2 / 007B01F4 / 007B2798 = WorldServer()->tick,
-aiMap.refreshUnits, Sectors(), aiMap.events; unit_skins' zone records DressedUnitRecord 0x24 / FiguredUnitRecord 0x3C, its
-figure maker call LinkFigureLoader::LoadFigure (morph floats as floats).
+The original's branch-free `max(0, v)` picks v when 0 < v or NaN (`MaxZero`; also the melee reach floor in
+ActionDistance); `TEST AH,0x40` skips on equal or unordered (`x < 0 || x > 0`); random draws `random % (n + 1)` with n =
+FISTP, then the zero-extended remainder (`Unsigned`). Values the original kept on the FPU stack were 24-bit results, so
+they are float locals; an int or a double operand goes through lib/pc24.h (float-maths.md).
 
-## Rewritten
+## Original bugs kept
 
-Every rewritten function carries its address in its source comment (grep the address); the per-function table that used to be
-here is gone. What it covered, by file:
-- `combat.cpp` queries and the hit (AttackRange, WeaponType, CanCast, ActionDistance, CanReachTarget, GetDamageByType,
-  GetSpellDamage, GetMovePoint, GetAttackParams (slot 50), FindSightTarget, AttackRoll, ResolveHit, BuildAttackHit,
-  PrepareAttack, TakeHit (slot 20)); stat slots (EffectsChanged 49, UpdateSizeClasses 23, UpdateMoveFactors 45, RefreshVitals
-  19, RepackStats 22, armour layers 26-28, CopyStats, RefreshEquipment 29, HostileMaskChanged 38, ClaimHostility, TakeUpWeapon 25,
-  OnObjectDeleted 42, Resettle 44, Create 2, ClearState 5, TamingStage 39); `SpellHasLineOfSight` 0054BBC0 (ECX world, EDX spell,
-  prototype +0x40 needsSight; from 0058E850's multi-target loop); IsFighting 0054B580 is Rebirth-patched
-  (FixPlaingBattleMusicFromAntimagic behind the flag).
-- Actions, orders and steps: FinishAction, DeliverAttack, TriggerWeaponSpell / TriggerItemSpells, UseItemCharge, Heal, OnDamaged,
-  WitnessMurder, PropagateHostility, UseSkill, SetDead, FinishCast; the per-tick order machine (UnitAction Reset / Assign,
-  TakeQueuedOrder, StartQueuedOrder, UpdateOrders, ContinueAction, ExecuteOrder, ApproachTarget, RunTick slot 6 which returns 1; a
-  living unit ends with hitDirection -1); state and animation (UpdateState, AdvanceAnimation, PlaySteps, SetState, StandStill,
-  PlayHitReaction, EndOrder, TickAction, TickItemSpells, RefreshItemSpells, PopFinishedSteps; `combat_motion.cpp`: PlayAnimationOrder
-  state 3, PlayEmoteOrder 4, IdleAnimation, NextAnimation, StartAction, UpdateSneak, ChangeMoveMode, PathTo, LiftNearby, ReportPath,
-  ResetController, ResyncWithUnit); planning (FindUseSpot, TimeUntilAction (ST0), PlanOrderRoute, PlanMove, TryTame, UndoTaming,
-  UpdateMotion); order setters (`combat_order_setters.cpp`: SetMoveStyle, SetWantedWeapon, OrderSteal / Tame / Use / SearchBody,
-  PlayAnimation, StopAction = state 6, orders 9 / 0, empty plan; FindFigureAnimation 00512F60).
-- Steps and plans: BuildTransition, BuildOrderSteps, BuildCastSteps, BuildAttackSteps, BuildDeathAnimation, BuildIdle,
-  BuildMoveSteps; `AnimationSteps::AddStep / AddEmote / SetStepFlags / Duration / SameAs / Save / Load` 00544CE0-00545110;
-  `OrderPlan::TakeSteps` serves only a queued order of kind 10, whose one setter 005557E0 is dead (unreachable).
-- Save: SaveServer 005561C0 (slot 10) / LoadServer 00555D10 (9); `combat_save.cpp` SaveArmourSpell 00545430, LoadArmourSpells
-  005585F0; the step lists go through AnimationSteps::Save / Load (SaveStepList 00558420 / LoadStepList 005582A0 and the extra
-  dword after them).
-- AnimationSteps holds a `std::vector<AnimationStep>` (`steps`) and `extra`; a default step is the blank step (0xFF, 0xFF, 0,
-  padding 0, duration -1, kind 0). The original's by-value lists, copy-construct-then-free locals and queues assigned twice
-  are plain copies and assignments.
-- `armourSpells` is a vector: TickItemSpells keeps its entry across CastSpell, which never reaches RefreshItemSpells
-  (the only change to it while units run). CastSpell runs the missile's Start: hits, TakeHit, the struck unit's item
-  spells; RefreshItemSpells comes from TakeUpWeapon (ShowWeapon: the order system in RunTick, ResyncWithUnit) and
-  RefreshEquipment (network, scripts, interface).- Lifetime (`combat.cpp`, every spawn): the constructors UnitServer 00545580, AIBrain 00545990 and the destructors
-  AIMemory 00545CB0 (the brain's memory, + 0xD0), AIBrain 005457E0 (only from unwind funclets), AIPath 00546100 (from
-  PlayerServer::OnUseOrder) are ours: default member initialisers (the values AIBrain::Init and AIMemory::Reset set) and
-  the members' own destructors; the controller's constructor and destructor run ResetController, which empties the
-  brain (Init) and drops every reference. Destructors through 00546230 run at zone changes. `combat.cpp`: UnitServer class name /
-  id 005460C0 / 005460D0, DeletingDestruct 005460E0, MotionSlot, slot 16 / 17, slot 53 = UpdateMoveFactors 00552F30, the UnitAction /
-  AnimationStep constructors. Player / tamed AI mode slots 00551E10-00552180 (`unit_ai.h`: priorities 10 /
-  100000000, types 6 / 8).
-- World managers: World::Create 0055EE40, World::Destroy 0055F8E0, UnitSetEntryHead::Write 00558FA0
-  (`world_unit_set.cpp`, SendZone's unit set entry head); `world_create.cpp` PlayerManager / EffectManager (0073F2C4) /
-  ItemManager class names, ids and destructors 0055F310-0055F400 (0055F3B0, ItemManager slot 25 "items", left because
-  ResourceManager does not declare slot 25). Player sources (`player_source.h`, `world_create.cpp`): PlayerSource base
-  destructor (vtable 0073F38C), WorldHandle (+0x5C; +8 a counted pending link) Clone / OnShutdown / destructors, netlink::DriverSession
-  (+0x60, 0073F3A8; was "the game result object"), World::OpenSession 0055F410 (new session ShareAssigned into +0x60).
-- Patterns: functions that start with PUSH / MOV and a relative CALL (005536B0) are reached through the naked stub
-  `OriginalUpdateMoveFactors`; slot-implementation bodies are `<Slot>Impl`.
-
-## Original bugs and oddities kept on purpose
-
-- Hit: melee reach floor for two party units is 0x3E4CCCCE (0.20000002); GetAttackParams keeps the damage type when the
-  natural attack has no non-zero weight; BuildAttackHit's weapon branch rolls with `rand()`, the rest with ISAAC; TakeHit
-  logs " skill=" with the resolved +0x20 (always +-FLT_MAX by then); ResolveHit penalises every called-shot location except
-  the body (1) by 10 (including 6 and invalid); CanCast compares mana only for units with a player; IsScrollSource calls
-  GetCategory up to three times.
-- Planning and steps: LoadServer writes +0x93C for version 0x73+ instead of reading it, Save writes constant 2 after +0x180;
-  BuildOrderSteps uses the step list's address as the source of an unknown skill, BuildAttackSteps reads the plan's address
-  as a float for an invalid location; steps carry an uninitialised byte 3 (ours 0); CanActFrom's "in the way" test divides
-  by the squared distance; PlanAction's duration local is uninitialised; StartMove passes the goal's z as the path range;
-  ApproachTarget returns with path flag 007B00D2 cleared when the goal is under 0.1 away; ExecuteOrder passes 005494D0
-  dwords with garbage upper bytes.
+- Hit: the melee reach floor for two party units is 0x3E4CCCCE (0.20000002); GetAttackParams keeps the damage type when
+  the natural attack has no non-zero weight; BuildAttackHit's weapon branch rolls with `rand()`, the rest with ISAAC;
+  TakeHit logs " skill=" with the resolved roll (always +-FLT_MAX by then); ResolveHit penalises every called-shot location
+  except the body by 10 (including 6 and invalid); CanCast compares mana only for units with a player.
+- Planning and steps: LoadServer writes a field for version 0x73+ instead of reading it, Save writes constant 2 after
+  another; BuildOrderSteps uses the step list's address as the source of an unknown skill, BuildAttackSteps reads the
+  plan's address as a float for an invalid location; CanActFrom's "in the way" test divides by the squared distance;
+  StartMove passes the goal's z as the path range; ApproachTarget returns with the path flag cleared when the goal is
+  under 0.1 away.
 - Orders and skills: FinishAction's kind 10 and Idle reset the queued order to 9 and then 0; UseSkill returns for skill 2
-  before its switch (taming there is dead), dereferences the target without a null check outside talk, calls OnAttack with a
-  null victim for a non-unit, logs "Unit" without a space; OrderMove stores its fourth argument over the point's z;
-  OrderCast ignores the aim point it asks for; OrderCastAt checks category 5 or 8 then 8; WitnessMurder takes the diplomacy
-  table from the unit's manager and the one it changes from the controller's; PropagateHostility compares squared distance
-  and radius as ints; OnDamaged's death branch asks for ManagerContext and ignores it; SetMoveStyle sends message 9 when the
-  style fits (even the current one); OrderTame compares the target's +0x18 (not type) with 0x32; OrderSearchBody wants a
-  dead target; PlayAnimation reads the entry's index byte as a dword; StopAction always ends with the queued order of kind 0.
-- Update and animation: UpdateState / PlayHitReaction copy the saved / new animation into the queue twice, PlaySteps resizes
-  and copies twice, EndOrder / TickAction assign the new queue twice; ActionInReach: a cast whose target is gone but whose
-  spell has flag 0x20000000 reads the null target's position (access violation in both); ReportPath / PlanOrder pass the
-  path message a stack motion order whose order part is uninitialised when no path was copied (ours zeroes); PlanOrder looks
-  up the spell of `action` (+0x194), not of the planned order; FindUseSpot writes z = -1 into every order's point;
-  ResyncWithUnit tests "current order not 0" right after setting 9 and "state not 2" after setting 6; RefreshItemSpells
-  keeps the previous item's spell for a node without an item (ours none); 005483C0 copies the extra dword too, 00556950
-  only the steps; PathTo saves and restores Unit +0x43C around FindPath; NextAnimation passes a pause step's emote as the
-  misaligned dword at step + 1; LiftNearby's first loop does nothing; boredom draws ISAAC only past 500.
-- Movement tick: the "blocked" local is uninitialised when no cell was reached or the cell is outside the AI map
-  (CanStandAtFromHere returns before writing the reason), the original decides on stack garbage (the dword at its entry
-  ESP - 0x98, left by earlier calls; only 1 replan and 2 wait mean anything, every other value acts as none). Ours starts
-  at 0. The standalone has no original frame to read (its callers are ours), and no golden reaches the read: an
-  instrumented suite (C12b, 2026-10-21) logged no tick that consumed the value. The animation key passed to 00530240 keeps the queue count's upper 24 bits; the fall animation is assigned to the
-  queue twice. Taming, CreateManagers and the mode Clones write reference counts / the new mode's +4 before testing the
-  allocations (ours have no mode counts or clones).
-- Lifetime: TakeSteps clears isCast twice; LoadArmourSpells' new entries carry a stack byte in `worn` (ours 0) and its
-  second loop reads an id and countdown for every entry of the list, old ones included; an unread step-list count is stack
-  garbage (ours 0); the controller constructor sizes the movement list with SetSize(0) out of line and the idle list inline. The player
-  sources' Clones and OpenSession write the new object's count before testing the allocation (ours test first);
-  their OnShutdowns return a leftover EAX (ours 0; RefPtr::Destroy ignores it).
-
-## Skipped and left
-
-- 0055E990 (the maps folder) is Rebirth-patched (`world_map.cpp`, world.md). 0054C8B0 / 0054C960 return the FPU status word in AX
-  on one path (callers test AL; always called through the address; CanReachAndPlan / CanReachAndPlanFrom, combat_tick.cpp).
-  00536670 / 00535CB0 / 005381B0 are the client's (units.md). AI forwarders: 005CEED0 AttentionRebuild, 005CCBF0 CallsDropClaims,
-  005CBBC0 MemoryAddCall (originals_ai.h).
-- Library (config/library.csv): containers, CArchive lists (00556E10-00558700), the AnimationSteps copies 0054B260 / 005483C0 /
-  00556870 / 00556950, list constructors / destructors, MFC template functions in 0x5576C0-0x559000, and the EH-only helpers 005461E0 /
-  00545FD0 (an order's target release), 00546200, 00556AA0, 00545B80, 005576B0 (an STLport count decrement). 0054B220 (WorldTick, 4 bytes,
-  not hookable) is called only by the rewritten 0054A900. The small records (`combat.cpp`) cover MotionSegmentInit
-  0054E5D0, PathConstructSteps 0054EAC0 (PlanOrderRoute, the AI's test paths), ArmourSpell::Assign 00558840 (a plain entry copy here) and the counted
-  reference / call record deleting destructors 00558CA0 / 00558CC0. Nothing else in 0x00540000-0x00560000 is unported except
-  0055E1B0-0055FF90's small slots (world.md).
+  before its switch (taming there is dead), dereferences the target without a null check outside talk, calls OnAttack
+  with a null victim for a non-unit, logs "Unit" without a space; OrderMove stores its fourth argument over the point's z;
+  OrderCast ignores the aim point it asks for; OrderCastAt checks category 5 or 8 then 8; WitnessMurder takes the
+  diplomacy table from the unit's manager and the one it changes from the controller's; PropagateHostility compares
+  squared distance and radius as ints; SetMoveStyle sends message 9 when the style fits (even the current one);
+  OrderTame compares the target's prototype field (not type) with 0x32; OrderSearchBody wants a dead target;
+  PlayAnimation reads the entry's index byte as a dword; StopAction always ends with the queued order of kind 0.
+- Update and animation: ActionInReach: a cast whose target is gone but whose spell has flag 0x20000000 reads the null
+  target's position (access violation in both); PlanOrder looks up the spell of the current action, not of the planned
+  order; FindUseSpot writes z = -1 into every order's point; ResyncWithUnit tests "current order not 0" right after
+  setting 9 and "state not 2" after setting 6; RefreshItemSpells drops the spell for a node without an item (the
+  original kept the previous item's); PathTo saves and restores a unit flag around FindPath; NextAnimation passes a pause
+  step's emote as the misaligned dword at step + 1; LiftNearby's first loop does nothing; boredom draws ISAAC only past
+  500.
+- LoadArmourSpells' second loop reads an id and countdown for every entry of the list, old ones included.
 
 ## Risks
 
-- Almost everything was checked for consistency only, so a wrong branch that leaves a consistent state is invisible to the
-  wrappers; the scenarios are the behavioural check. TakeHit's log line goes through console::Stream (the log stream
-  pointer 007AF3E8 = the ai stream at 007C5810) and must match character for character.
-- The CombatStats overlay names bytes of UnitStats that unit.h leaves unnamed; merge if the units area names them.
-  `+0x174`'s naming is a guess (behaviour copied). SSE2 since C30e7: values the original kept on the FPU stack were PC24
-  results, so they are float locals; an int or a double operand goes through lib/pc24.h (cleanup-tooling.md, C30e7);
-  FinishCast's clamps select through float loads where the original selects dwords with masks (only an sNaN mana could
-  differ); OnDamaged keeps the death animation in a local AnimationList the original frees from an EH frame.
-- Scenario hazards: spawn units come from database.res without every variant run (GoblinF1 may beat the starting hero; the
-  archer "Human Gipath Brigand A1" may walk up instead of shooting; a wrong prototype name fails `waitfor IsAlive`). An order
-  given ~50 ms after AddUnitToServer / SetPlayer is sometimes dropped (about 1 run in 30 with 16 games in parallel):
-  scenarios wait 1 s after the spawn, give the order, wait 1 s and give it again (`hp0` is read before the first order).
+- Scenario hazards: spawn units come from database.res without every variant run (GoblinF1 may beat the starting hero;
+  the archer "Human Gipath Brigand A1" may walk up instead of shooting; a wrong prototype name fails `waitfor IsAlive`).
+  An order given ~50 ms after AddUnitToServer / SetPlayer is sometimes dropped (about 1 run in 30 with 16 games in
+  parallel): scenarios wait 1 s after the spawn, give the order, wait 1 s and give it again.

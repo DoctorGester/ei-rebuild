@@ -17,7 +17,7 @@
 //   x times the double constant 0.001                ->  pc24::Mul(x, 0.001)
 //   VC6's inline exp of t                            ->  pc24::Exp(t)
 //
-// Exactness (the equivalence tests in docs/notes/cleanup-tooling.md, "The x87 files to SSE2"): an operation on floats and
+// Exactness (docs/notes/float-maths.md, "Wider operands"): an operation on floats and
 // doubles is exact by construction (two-sum / two-product, then one rounding); Exp is VC6's sequence step by step;
 // Sin, Cos, Log, Log10 and Exp give the FPU's float for every float argument; a following operation differs only where
 // the FPU's own 64-bit result is off by an ulp next to a rounding boundary (9 of 200 M atan2 products tested).

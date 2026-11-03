@@ -1,5 +1,5 @@
 # Interface gallery, the camp's deals and the global map's zone click (ticket N4a; docs/notes/ui-native.md,
-# "N4: the gallery"): what ui_gallery_camp leaves out, held still (freeze) and captured. Frames:
+# "The gallery"): what ui_gallery_camp leaves out, held still (freeze) and captured. Frames:
 # heroes_tip (the multiplayer hero list's region 0 tooltip, tip 0x9CA5: it needs a mouse move inside the
 # region after the hover starts, then the delay), camp_bought (page 1: a school level bought with the
 # trade panel's click, CTradePanel::OnLButtonDown; the experience from the console's "give 0 exp", given

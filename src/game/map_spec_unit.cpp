@@ -1,6 +1,6 @@
 // The zone file's unit records (kind 5; map_spec.h) with their five behaviour records (0x4C bytes: patrols of
 // waypoints and the guard settings), the small chunk classes that read and write those (waypoint, patrol,
-// behaviour) and the patrol array's copy. See docs/notes/objects.md ("Rewritten").
+// behaviour) and the patrol array's copy. See docs/notes/objects.md, "Zone files and unit records".
 #include "ai_map.h"
 #include "map_object.h"
 #include "combat.h"

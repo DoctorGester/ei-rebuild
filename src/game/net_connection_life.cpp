@@ -156,8 +156,7 @@ ReplicaEntry::~ReplicaEntry() {}
 
 // A connection's tick: clocks, lost-packet detection, sending, delayed id reuse and the
 // timeout. See net_connection.h and docs/notes/network.md. Float maths: the original's sums round at the main
-// thread's 24-bit precision, so its double clocks hold float values (docs/notes/cleanup-tooling.md, "The x87 files
-// to SSE2").
+// thread's 24-bit precision, so its double clocks hold float values (docs/notes/float-maths.md).
 
 namespace net {
 

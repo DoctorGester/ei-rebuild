@@ -1,7 +1,7 @@
 #pragma once
 
 // The game options object (a global), its loader from the settings file (settings.h; called once by WinMain) and
-// the matching writer. Names are provisional; see docs/notes/objects.md ("Options").
+// the matching writer. See docs/notes/app.md, "Options".
 
 #include <cstddef>
 #include <cstdint>

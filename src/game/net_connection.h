@@ -2,7 +2,7 @@
 
 // A connection of a network session to one peer (constructor created by SessionBase::AddClient)
 // and the object replication it runs.
-// More: docs/notes/comments-c22i.md, "net_connection.h".
+// More: docs/notes/network.md, "Replication".
 #include "core_refcount.h"
 #include "net_classes.h"
 #include "net_coder.h"

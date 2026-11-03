@@ -1,6 +1,6 @@
 #pragma once
 
-// The sound (docs/notes/audio.md): the output device, voices playing RIFF WAVE files from memory, the music's
+// The sound (docs/notes/sound.md): the output device, voices playing RIFF WAVE files from memory, the music's
 // double-buffered stream, and the MP3 decoders the music and the briefing voices go through; our mixer on SDL3's
 // audio device with the dr_wav / dr_mp3 decoders (audio.cpp). Game logic reads back only when a voice has ended (its
 // end callback), so that end is timed by the wave's length (WaveMilliseconds) on the game's clock

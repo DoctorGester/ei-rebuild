@@ -1,4 +1,4 @@
-// UnitServer's Load and Save virtuals. See combat.h and docs/notes/combat.md ("Rewritten").
+// UnitServer's Load and Save virtuals. See combat.h and docs/notes/combat.md ("Order lifecycle").
 #include "ai_alarm.h"
 #include "ai_map.h"
 #include "base_manager.h"

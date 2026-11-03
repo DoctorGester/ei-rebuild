@@ -1,6 +1,6 @@
 #pragma once
 
-// The movies (docs/notes/audio.md): Bink 1 files (.bik) decoded a frame at a time into a CPU buffer,
+// The movies (docs/notes/sound.md, "Movies"): Bink 1 files (.bik) decoded a frame at a time into a CPU buffer,
 // which the renderer takes (render::MovieFrame). The game reads back the frame numbers (the movie ends when the last
 // frame was decoded; the loading screen's movie stops at its last frame) and asks whether the next frame is due,
 // which the movie's own rate decides on a real-time clock (not the game's: the blocking player's loop does not move

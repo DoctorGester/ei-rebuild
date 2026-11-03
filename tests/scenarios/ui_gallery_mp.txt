@@ -1,4 +1,4 @@
-# Interface gallery, multiplayer (ticket N4; docs/notes/ui-native.md, "N4: the gallery"): the
+# Interface gallery, multiplayer (ticket N4; docs/notes/ui-native.md, "The gallery"): the
 # steps of ui_mp_host, held still (freeze) and captured. Frames: hero_stats (a new hero's statistics
 # page), connect (the connection screen's game list, its row selected; CMpConnectScreen 00741CD0),
 # briefing (the base screen of the hosted game with

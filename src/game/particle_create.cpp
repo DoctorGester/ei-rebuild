@@ -1,5 +1,5 @@
 // ParticleSource set-up: Create, Reset and Clear.
-// More: docs/notes/comments-c22i.md, "particle_create.cpp".
+// More: docs/notes/effects.md, "Particle sources".
 #include "core_transform.h"
 #include "effects.h"
 #include "map_object_figures.h"

@@ -1,7 +1,7 @@
 // The network message classes (net_messages.h) and the message base: for each class its factory, constructor,
 // copy (Clone's), OnShutdown, Clone, Write, Read and destructor; the same for the lobby's server entry
 // (net_classes.h; no factory).
-// More: docs/notes/comments-c22i.md, "net_messages.cpp".
+// More: docs/notes/network.md, "Sessions and messages".
 #include "net_messages.h"
 #include "asset_text.h"
 #include "net_connection.h"

@@ -20,7 +20,7 @@
 #include <cstring>
 
 // The formulas keep the original's order of operations: float maths at the main thread's 24-bit precision
-// (docs/notes/cleanup-tooling.md, "The x87 files to SSE2").
+// (docs/notes/float-maths.md).
 
 namespace {
 constexpr float kPercent = 0.01f;

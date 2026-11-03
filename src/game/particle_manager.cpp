@@ -1,5 +1,5 @@
 // The particle manager's own members: create / destroy, making sources it holds, ticking every source and
-// letting go of the held ones. See effects.h (ParticleManager) and docs/notes/particles.md.
+// letting go of the held ones. See effects.h (ParticleManager) and docs/notes/effects.md, "Particle sources".
 #include "effects.h"
 
 #include "camera.h"

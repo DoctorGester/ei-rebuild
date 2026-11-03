@@ -1,7 +1,7 @@
 // The camera (Camera, camera.h): the per-frame update and view placement, focus and terrain sampling,
 // panning / zoom / saved views, shakes and recorded camera paths. Floating point: float maths in the original's
 // order (its x87 registers held floats at the main thread's 24-bit precision); a transcendental, the CRT's double
-// results and the wide constants through lib/pc24.h (docs/notes/cleanup-tooling.md, "The x87 files to SSE2").
+// results and the wide constants through lib/pc24.h (docs/notes/float-maths.md).
 #include "camera.h"
 
 #include "base_manager.h"

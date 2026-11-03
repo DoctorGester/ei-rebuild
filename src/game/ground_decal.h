@@ -2,7 +2,7 @@
 
 // Ground decals: the mesh builder the decal projector lays a ground print on the ground with. Every ground
 // triangle under the projected quad is clipped to the decal (a plane facing along the projection, then u, v in
-// [0, 1]) and appended to the caller's arrays. See docs/notes/script.md ("Ground decals").
+// [0, 1]) and appended to the caller's arrays. See docs/notes/models.md ("Ground decals").
 
 #include "figure_mesh.h"
 #include "maths.h"

@@ -1,7 +1,7 @@
 #pragma once
 
 // The game's binary registry files (*.reg: quests, item databases, settings), read through FileRegistry.
-// More: docs/notes/comments-c22i.md, "registry.h".
+// More: docs/notes/items_spells.md, "Registry files".
 
 #include <cstdint>
 #include <string>

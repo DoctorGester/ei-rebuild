@@ -1,5 +1,5 @@
 // The world's managers created (the server's and the client's world both call it, and it is a virtual
-// of their base). See docs/notes/combat.md ("Rewritten"), the managers.
+// of their base). See docs/notes/combat.md ("World managers").
 // The world's paths are taken from the command line globals; every manager is made, referenced and
 // attached to the world (ThisWorld with the world, or the base); a 0x0C-byte helper goes into a
 // counted pointer (worldHandle); then the ISAAC generator is seeded and countdowns set up.

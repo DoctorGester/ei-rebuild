@@ -1,4 +1,4 @@
-# Interface gallery, in a game (ticket N4; docs/notes/ui-native.md, "N4: the gallery"): the battle
+# Interface gallery, in a game (ticket N4; docs/notes/ui-native.md, "The gallery"): the battle
 # screen's windows, each held still (freeze) and captured. Frames: hud (unit panel, the map with its
 # marker pixels, the top, movement and weapon panels, the frame rate surface of "fps on"),
 # quest_notice (a quest line in the message log), top_page2 (the top panel's second page), hud_tip

@@ -1,6 +1,6 @@
 // The battle camera's input side: key release, right-button turning, deactivation and the wheel
 // (CameraInput, ui_camera_keys.h; the key press is in ui_camera_input.cpp). See docs/notes/ui.md,
-// section 2 ("").
+// section 3.
 #include "ui_camera_keys.h"
 
 #include "camera.h"
@@ -212,8 +212,8 @@ void CameraInput::Wheel(int, int delta, int, int) {
 
 // --- Ui camera keys ----------------------------------------------------------------------------------
 
-// The battle camera's key input (an input side, constructed; its slot
-// 9 is). See docs/notes/ui.md ("Camera keys").
+// The battle camera's key input (an input side, constructed; its key
+// press is here). See docs/notes/ui.md, section 3.
 // Keys are mapped to characters through the scan-code: characters 5-10 set a
 // direction (+0x20 x, +0x24 y, +0x28 z to +-1) and 13-16 restore camera views 0-3 (saved with Ctrl
 // or Alt held: interface +0x7C / +0x7E). While a direction is held, the camera pans (or with

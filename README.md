@@ -117,7 +117,7 @@ game.exe's file (the generators, `find_*`) need `tools\setup_vanilla_run.cmd` on
 - `src/standalone/` the exe's start-up and the generated parts of the image.
 - `tests/verify/` the harness; `tests/unit/` checks of our code without the game; `tests/scenarios/`.
 - `tools/` the launcher, build checks, test runner, ticket and progress tools.
-- `docs/` how to work on the code (`worker-brief.md`, `rewrite-guide.md`, `cleanup-plan.md`), the tickets, and one
+- `docs/` how to work on the code (`worker-brief.md`, `rewrite-guide.md`, `comment-guide.md`), the tickets, and one
   note per area in `docs/notes/` (index: `docs/notes/README.md`).
 
 ## License

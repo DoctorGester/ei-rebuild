@@ -2,7 +2,7 @@
 
 // The interface's fonts: a face at an em height in pixels, laid out, measured and drawn with our own fonts built
 // into the executable (render_text.h: Liberation Serif for Times New Roman, Liberation Mono for Courier New). See
-// docs/notes/ui-native.md, "P8 done".
+// docs/notes/ui-native.md, "Fonts and metrics".
 
 #include "lib/rect.h"
 

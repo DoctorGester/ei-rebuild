@@ -54,7 +54,7 @@ note = "Scenarios, run_all and the tools around them; X tickets are problems see
 [[group]]
 key = "cleanup"
 name = "Cleanup"
-doc = "docs/cleanup-plan.md"
+doc = "docs/rewrite-guide.md"
 note = "After the port and before the standalone exe. Mechanical tickets go to Sonnet (spelling only, never a signature or grouping change); type recovery and tricky debugging to Opus."
 
 [[group]]

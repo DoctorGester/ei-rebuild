@@ -3,7 +3,7 @@
 // float> of its own compiler (MSVC 2010: FNV-1 over every (len / 10 + 1)-th character, 8 buckets growing by 8
 // at a load factor above 1, nodes kept in one list with each bucket's range in it), lets the game clear the
 // table, then sets the entries again in the order of that list.
-// More: docs/notes/comments-c22i.md, "persistent_globals.cpp".
+// More: docs/notes/rebirth.md, "PersistentGlobalVars".
 #include "object_tables.h"
 
 

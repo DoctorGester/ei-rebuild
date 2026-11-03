@@ -1,8 +1,7 @@
 #pragma once
 
 // WinMain and the application helpers around it: the window procedure,
-// the input message dispatcher, the message pump and the start of the first map.
-// Names are provisional; see docs/notes/objects.md ("Rewritten").
+// the input message dispatcher, the message pump and the start of the first map (docs/notes/app.md).
 
 #include "platform/platform.h"
 

@@ -1,520 +1,264 @@
-# Verifying the standalone image
+# Verifying changes
 
-The image has no original code to compare with at run time, so every check was recorded beforehand: whole-run
-goldens (from the original game until H40, our own since, all the same as the original's then) and frame references
-for Rebirth's WideScreen (from the original game); unit checks (tests/unit) cover what needs no game. This file says how that works, what the harness does to make runs repeat, and the rules that came from
-real differences. Per-ticket history: `git log --grep=<ID>`.
+There is no original code to compare with at run time, so every check is recorded beforehand: whole-run goldens of our
+own build, frame references for Rebirth's WideScreen, and unit checks (tests/unit) for what needs no game. This note says
+how that works, what the harness does to make runs repeat and keep them apart from the machine, and the rules that came
+from real differences. Running scenarios and the steps: harness.md.
 
-## 1. How verification works now
+## 1. How verification works
 
-- **A rewrite is checked** by a golden scenario that reaches it, or by a unit check (tests/unit) where no game is
-  needed (rewrite guide, "Verification").
-- **The suite** is the image's: `python tools/work.py test <ID> --golden [run_all args]` plays install `standalone`
-  (vanilla data, Rebirth's bug fixes on: the defaults) and compares every run that has a golden. Rebirth's data
-  (`standalone-rebirth`, `config/rebirth_profile.ini`'s patches) is a smoke set run on demand (`--rebirth`; SV9).
-  GOLDENS THE SAME / GOLDENS DIFFER sets the exit code.
-- **Goldens are our own** (H40): two runs of the image that agree (section 2), recorded on the
-  runner by the Suites workflow's `record` input. Until H40 they were game.exe's `--no-hooks` runs (with the harness's
-  canonicalising patches, section 5; on the vanilla data with addon.dll's bug fixes only), and every vanilla golden
-  the image could run and 24 Rebirth ones were the same as game.exe's when the switch was made. The git tag
-  `original-oracle` (main's b06141b) marks the last commit whose `golden.py record` took game.exe's runs: check a
-  question about the original's behaviour there.
-- **Heap layout**: the image's malloc is the host CRT's since C26, whose low-fragmentation heap moves its blocks in
-  every run, so a golden that held across runs holds under any layout. The harness's heap jitter and fill
-  (`EI_HEAP_JITTER`, `EI_HEAP_FILL`, `heaptrace`; SV7a, SV7c) acted on game.exe's heap only and went with H40.
-- **Function vectors**: gone with the 32-bit build (section 3).
-- **WideScreen references**: addon's frames, recorded from game.exe until H40 (`<main checkout>\build\
-  widescreen\<scenario>\<steps key>\`); `run_all --widescreen` compares the image's frames on the Rebirth install with
-  them (docs/notes/rebirth.md; S21b in git for the tolerance study). Rebirth install only.
-- **Out of sight and on loopback** (section 6): harness games never take the foreground, the image's windows are
-  cloaked, every game binds and sends on 127.0.0.1 only. The report's `WINDOW:` and `NET:` lines and run_all's
-  summary lines check it.
+- **A change is checked** by a golden scenario that reaches it, or by a unit check where no game is needed.
+- **The suite**: `python tools/work.py test <ID> --golden [run_all args]` plays install `standalone` (vanilla data,
+  Rebirth's bug fixes on: the defaults) and compares every run that has a golden. Rebirth's data (`standalone-rebirth`,
+  `config/rebirth_profile.ini`'s patches) is a smoke set run on demand (`--rebirth`). GOLDENS THE SAME / GOLDENS DIFFER
+  sets the exit code.
+- **Goldens are our own**: two runs of the build that agree (section 2). Until the switch every golden was the original
+  game.exe's and the build matched all of them; the git tag `original-oracle` marks the last commit that recorded from
+  game.exe: check a question about the original's behaviour there.
+- **Heap layout**: malloc is the host CRT's, whose low-fragmentation heap moves its blocks in every run, so a golden
+  that held across runs holds under any layout.
+- **WideScreen references** (section 2): frames of Rebirth's own WideScreen, compared on the Rebirth install.
+- **Out of sight and on loopback** (section 6): harness games never take the foreground, their windows are cloaked,
+  every game binds and sends on 127.0.0.1 only.
 
 ## 2. Goldens
 
 **What a golden holds** (tests/golden/<scenario>/<install>/, tools/golden.py): golden.json (date, commit, digest period,
-fields left out, how many runs agreed, the reason, `"source": "image"` for goldens recorded from the image), console.txt,
-digest.txt and dump_*.txt in compact form, and saves.txt. A difference names the record, the object and the group; for
-the fields behind a hash, run the scenario at the golden's commit again (it repeats) and `golden.py diff` the two full
-digests.
+fields left out, how many runs agreed, the reason, `"source": "image"`), console.txt, digest.txt and dump_*.txt in
+compact form, and saves.txt. A difference names the record, the object and the group; for the fields behind a hash, run
+the scenario at the golden's commit again (it repeats) and `golden.py diff` the two full digests.
 
-**The digest** (SV2; tests/verify/harness_digest.{h,cpp}; `digest <N>` step or `EI_DIGEST=<N>`, the suite uses 20,
+**The digest** (tests/verify/harness_digest.{h,cpp}; `digest <N>` step or `EI_DIGEST=<N>`, the suite uses 20,
 `run_all.GOLDEN_PERIOD`): one record every N world updates, taken after the server update; each record a header (record,
 world update, frame, tick, zone, hashes) and the fields that changed. `dump <name>` writes the whole state once. Groups:
 - `world` (tick, clock, weather, alarms, zone flags, id map counts, diplomacy), `random` (ISAAC count / a / b / c and
   hashes; the main thread's rand() state), `player<id>` (money, items, members, variables), `obj<id>` (every server
   object: class, flags, place, effects, vitals; units also owner, relations, animation, movement, motion, controller and
   AI brain with modes by name). No pointer is written: objects by id, AI modes by name.
-- digest 2 (SV2a): `timed<id>` (effects by class), `missile<n>` (SpellEffect), `aievents` (the AI event table: always
-  empty so far; nothing calls its creator 005C9630), `script` (instances, waiting runs, globals by name, FX sources,
-  particles, lights, lightning; a randomized FX source's countdown is left out: stack leftovers), `client` and
-  `cunit<id>` (client units: place, orientation, animation, packed vitals, flags).
+- digest 2: `timed<id>` (effects by class), `missile<n>`, `aievents` (the AI event table: always empty so far),
+  `script` (instances, waiting runs, globals by name, FX sources, particles, lights, lightning; a randomized FX source's
+  countdown is left out), `client` and `cunit<id>` (client units: place, orientation, animation, packed vitals, flags).
 - Compact form: world, generators and players field by field; each unit as `#place`, `#vitals`, `#ai`, `#unit`; other
   objects one `#`; script one hash per kind (`#run`, `#inst`, `#global`, `#gobject`, `#fx`, ...). A golden compares only
   the groups it has, so an older digest still compares.
 - Left out on purpose: a unit's motion floats before its first path (never written).
-- Scenarios that load a save take `dump loaded<save>` once the load is done, so the loaded world is compared field
-  by field (SV3).
+- Scenarios that load a save take `dump loaded<save>` once the load is done, so the loaded world is compared field by
+  field.
 
-**Saves** (SV7d; tools/savefile.py with savefile_objects / _unit / _items / _players / _scenario.py; `show`, `diff`,
-`raw`, `rules`): saves\<slot>\scenario.sav (magic 0xDEAD: party manager, interface, bottom window, camera),
-mission.sav (0x102: WorldServer::SaveWorld 00597BD0), info.sav; shot.sav left out. SaveFileWrite 00579B80 frames
-magic, version 0x74, checksum, a compressed flag and the LZ coder's output. Every reader names the function it follows;
-a decode that does not end exactly at the data's end is an error. Entities by id, fields by name in file order. A
-golden's saves.txt lists each save's path and the hash of its decoded text; the texts are in the shared store
-tests/golden/saves/<hash>.txt.gz. No leave-out rule is in use any more (SV7b2a): every former leftover is canonical
-(section 5). A save made over the briefing or global map has a 4-byte bottom window block (SV7d6). Not covered by the
-suite's saves (decoded from the ported writers, unchecked against data): fake units, Tamed / Follow modes, armour
-spells, carried items, plan steps, most timed effects, items 0x3006 / 0x3007, time-wheel events, script lights /
-particles / FX sources / areas, party manager parties, saves\current\<zone>.sav.
+**Saves** (tools/savefile.py with savefile_objects / _unit / _items / _players / _scenario.py; `show`, `diff`, `raw`,
+`rules`): saves\<slot>\scenario.sav (magic 0xDEAD: party manager, interface, bottom window, camera), mission.sav (0x102:
+WorldServer::SaveWorld), info.sav; shot.sav left out. A save file frames magic, version 0x74, checksum, a compressed flag
+and the LZ coder's output. Every reader names the function it follows; a decode that does not end exactly at the data's
+end is an error. Entities by id, fields by name in file order. A golden's saves.txt lists each save's path and the hash
+of its decoded text; the texts are in the shared store tests/golden/saves/<hash>.txt.gz. No leave-out rule is in use:
+every former leftover is canonical (section 5). A save made over the briefing or global map has a 4-byte bottom window
+block. Not covered by the suite's saves: fake units, Tamed / Follow modes, armour spells, carried items, plan steps, most
+timed effects, items 0x3006 / 0x3007, time-wheel events, script lights / particles / FX sources / areas, party manager
+parties, saves\current\<zone>.sav.
 
-**Recording** (H40): from the image's runs (`<scenario>-standalone`, `<scenario>-standalone-rebirth`), two passes
-that must agree (`IMAGE_RUNS`). The Suites workflow does it
-on the runner: Actions > Suites > Run workflow on a branch (not main) with `record` = both / vanilla / rebirth,
-optionally `scenarios` (space-separated) and `reason`. Its `record` job builds verify, plays the passes (the vanilla
-suite and the Rebirth smoke set, or the named scenarios), records and pushes the goldens to the branch as a commit of
-its own; the run's summary lists the new and changed goldens and `git diff --stat` of what changed but golden.json.
-That push starts no run: check the branch with a Suites run after it. By hand on the machine:
+### Recording goldens
+
+Two passes of the build that must agree (`IMAGE_RUNS`). The Suites workflow does it on the runner (harness.md, "The
+Suites workflow"): Run workflow on a branch (not main) with `record` = both / vanilla / rebirth, optionally `scenarios`
+(space-separated) and `reason`; it pushes the goldens to the branch as a commit of its own and lists the new and changed
+ones. That push starts no run: check the branch with a Suites run after it. By hand on the machine:
 ```
 python tools\work.py test <ID> --golden --jobs 4 [scenarios]       (each pass)
 python tools\golden.py snapshot <scratch>\passN [--install rebirth]  (after each pass)
 python tools\golden.py record --install vanilla --runs <scratch>\pass1 <scratch>\pass2 --reason "..."
 python tools\golden.py saves --runs <dirs>         (only the saves of existing goldens, digests kept)
 ```
-`record` keeps a scenario only when every run agrees with the first in console, every digest record, every dump and
-the decoded saves; one that does not keeps its old golden. It names each golden it wrote new, the same as before (only
-golden.json changed) or changed. An intended change (a fix, the UTF-8 switch, W12's layout) re-records the affected
-goldens and says why in the commit; anything else that differs is a regression.
+`record` keeps a scenario only when every run agrees with the first in console, every digest record, every dump and the
+decoded saves; one that does not keeps its old golden. It names each golden it wrote new, the same as before (only
+golden.json changed) or changed. An intended change re-records the affected goldens and says why in the commit; anything
+else that differs is a regression.
 
-**Image goldens before H40** (S20a): the scenarios game.exe could not run (`# no original:`, renderer-only checks:
-render_cursor_present, render_present_shot, render_device_lost and render_device_removed (both gone in R41), render_present_window,
-render_present_fullscreen) already had the image's goldens. Their digests do not follow the renderer: the world moves
-only with frames on the virtual clock, presents are counted on the main thread, a stall is one long frame.
+Renderer-only scenarios (render_cursor_present, render_present_shot,
+render_present_window, render_present_fullscreen) have goldens too, but their digests do not follow the renderer: the
+world moves only with frames on the virtual clock, presents are counted on the main thread, a stall is one long frame.
 
-**WideScreen references** (S21b; tools/run_all.py `compare_widescreen`): until H40 `run_all --widescreen --record
-[names]` played each scenario on game.exe with addon.dll (dgVoodoo at the desktop's mode, alone) and kept its frames in
-`<main checkout>\build\widescreen\<scenario>\<steps key>\` (shared by the worktrees; the key hashes the scenario's
-lines without comments, so a comment edit keeps the references): `frames\<frame>.bmp.z`, `skip\<frame>.bmp.z` (what moved in addon's run between the frame and its `_later` /
-`_moving` twins, grown by 8) and `recorded.json`. Not in git (4K frames). `run_all --widescreen [names]` runs
-`<scenario>-standalone-rebirth` and compares each frame with `WIDESCREEN_COMPARE` (`--tolerance 8 --shift 1
---max-fraction 0.006 --block 64 --max-block 0.25`: `--shift 1` absorbs the renderers' sub-texel sampling and edges,
-`--max-block` catches a moved element), leaving out the skip mask, what moved between the image's own twins and
-`WIDESCREEN_AREAS` (the Save window's picture). Through
-`work.py test` the comparison runs after the batch, like `--golden`. A missing recording (other steps) or another frame
-size fails the comparison; no new recording can be made since H40. Vanilla data cannot be compared (its textures differ from
-Rebirth's); `--widescreen --vanilla-only` is refused. A one-layout-unit shift of the right panels (2.7 pixels) fails.
+**No golden by rule**: the three watchdogs (meant to time out). `golden.py KNOWN` / `SAVES_KNOWN` (fields kept in clear but
+left out of comparisons until a ticket lands; `compare --strict` keeps them) are empty.
 
-**No golden by rule**: the three watchdogs (meant to time out). The first recording from the image (H40, 2026-10-30)
-gave a golden to 36 scenario / install pairs that had none: the ones game.exe could not run or match (renderer checks, the
-`rebirthflags` scenarios on vanilla, SV7b8a), the drop-in scenarios, harness_disk_full. Every golden that existed
-recorded the same but `console` (vanilla), whose help screen no longer lists DEBUGINFO (C55). `golden.py KNOWN` / `SAVES_KNOWN` (fields kept in clear but left out of comparisons until a ticket
-lands; `compare --strict` keeps them) are empty.
+### WideScreen references
 
-## 3. Function vectors (removed)
+tools/run_all.py `compare_widescreen`. The references are Rebirth's own WideScreen frames (game.exe with addon.dll),
+recorded once and kept in `<main checkout>\build\widescreen\<scenario>\<steps key>\` (shared by the worktrees; the key
+hashes the scenario's lines without comments, so a comment edit keeps them): `frames\<frame>.bmp.z`, `skip\<frame>.bmp.z`
+(what moved in addon's run between the frame and its `_later` / `_moving` twins, grown by 8) and `recorded.json`. Not in
+git (4K frames); no new recording can be made, as nothing runs game.exe any more. `run_all --widescreen [names]` runs
+`<scenario>-standalone-rebirth` and compares each frame with `WIDESCREEN_COMPARE` (`--tolerance 8 --shift 1 --max-fraction
+0.006 --block 64 --max-block 0.25`: `--shift 1` absorbs the renderers' sub-texel sampling and edges, `--max-block` catches a
+moved element), leaving out the skip mask, what moved between our own twins and `WIDESCREEN_AREAS` (the Save window's
+picture). Through `work.py test` the comparison runs after the batch, like `--golden`. A missing recording (other steps) or
+another frame size fails; vanilla data cannot be compared (its textures differ from Rebirth's). A one-layout-unit shift of
+the right panels (2.7 pixels) fails.
 
-Until the 32-bit build went (C70), build.cmd replayed calls of the original game.exe against our code
-(`ei_vectors.exe`, tests/vectors): recorded until H40 by runs of the original with recorders as its only hooks, each
-record a 32-bit payload (the arguments, the state read, the x87 control word, the result and the state after),
-replayed under its control word and compared bitwise. The tag original-oracle has the recorders; git history before
-C70 has the data and the replay. Families: `maths` (vectors, quaternions, matrices, CubicSegment::Evaluate,
-TransformPipeline::PushMatrix), `random` (IsaacRandom), `stats` (unit statistics, damage, skill and school prices,
-protection, hit location, LockKey::Opens), `crt` (vsprintf, atof, the locale's point and classes), `coder` (CoderState
-Compress / Decompress, the code tables), `script` (the lexer and the loader), `path` (AIMap::FindPath, PlanLongPath,
-PathSmoother::Smooth).
+## 3. Coverage
 
-What they checked that the goldens do not, when they went:
-- The coder's bytes against the original's: the goldens' pairs are our build on both sides, and no digest holds a
-  message's bytes, so a change to Compress that both sides share would pass. The format still meets vanilla peers'
-  and saves': a stream the original wrote must decompress (old saves load: the save scenarios), and ours must be one
-  the original reads.
-- Calls the scenarios do not make: the script loader's error paths (no game script is malformed), vsprintf's and
-  atof's rarer formats, PickLocation's draw, BackstabFactor, GetFactors.
-- Bitwise results of single calls, where a golden sees only what reaches the digest.
-None was kept as a unit test: the payloads are game.exe's 32-bit layouts and its control word, and the functions are
-the goldens' ever since. The two checks of ei_vectors that never needed the original are tests/unit
-(`ei_unit_check.exe`, build.cmd; the settings file's format, lib::HashMap's walk order).
+None is measured now: the game.exe-address coverage (tools/coverage.py, tests/coverage) went with the original's runs;
+H43 measures our source's coverage.
+- Not reachable from a scenario: WinMain's second-instance exit, the low-disk-space box, Dib's error handlers (a failing
+  disk). Dib::Read runs only for a loose `textures\<name>.bmp`.
+- Dead: the fake unit (class 0x39): no shipped data makes one; the map object factory makes nothing for class 0x39
+  (CreateObject returns null, as for an unknown class).
+- Multiplayer pairs (section 6): `net_pair_join` (a second game finds the first's hosted game in the lobby list, joins
+  it, both say a chat line, the second leaves); `net_pair_zone` (an exchange on the base, the host's map choice through
+  the sheriff's topic, both games through bz1mpg's gate into the game zone); `net_pair_kick` (kick by serial, ban by name,
+  a refused join); `net_pair_leave` (shared files to a peer that lacks one, the peer lost in the game zone, the host back
+  to the base: LeaveZone and its award); `net_pair_quest` (a prepared strong hero, `make_mp_hero.py`, finishes z9q2 and
+  the sheriff's "_3" topic: CompleteZone and its awards; a public game whose `fakemaster` answers); `net_pair_master`
+  (vanilla: the lobby without broadcasts asks the fake master three times, a bad size, a short record, the list it joins
+  from; then `badupdate` gets it dropped as a bad client). Walks use `clickground` (the console's `#` / `@` commands do
+  nothing on the multiplayer base), in the zone after a `lookat`.
+- Still unreached: TryTame, SuspectionMode Enter / Execute, patrol points, TrapObject::UpdateTrap, PickEnvironmentSpeech
+  (the bored remark, 1 in 1001 per update after 500 bored ticks).
 
-## 4. Coverage
+## 4. Run time
 
-None measured since C71: the game.exe-address coverage (tools/coverage.py, tests/coverage, from runs of the
-original) went with the original's runs; H43 measures our source's coverage.
-- Start-up (A-I23): `app_record` (the frame recorder's pass length and files), `app_disc_prompt` (the disc check's
-  second-disc boxes, harness_startup.h; app.md). Not reachable from a scenario: WinMain's second-instance exit (the run
-  would end in WinMain before any step, with no state for a golden), the DirectX 7 check, the low-disk-space box
-  (GetDiskFreeSpaceExA through GetProcAddress); Dib's catch handlers (a CFileException from the MFC file's Read / Write:
-  a failing disk) and the message boxes they end in. Dib::Read and its helpers run only for a loose
-  `textures\<name>.bmp` (A-I23a).
-- Shared files (A-I23): the vanilla offer in net_pair_leave has z3q2 and z7q1 (R34c), so its vanilla
-  peer hides z7q1.mq (Rebirth's z6q2.mq); the received file is written (0041ECC0 -> 005813A0) and `samefile`
-  requires it to be the install's.
-- Dead (SV5c): the fake unit (class 0x39) and its scene loader: no shipped data makes one, no code reaches slot 62, no
-  .amf exists (class ids come from the units database, 0x32-0x34 in every install, and a .mob record's field 0xB003:
-  the .mob files hold 0x32-0x37 and 0x3A-0x3C; game.exe passes no immediate 0x39 to a factory and has no
-  `call [reg+0xF8]`). Deleted in C35l (about 2,500 lines of ours); the original's functions are rows of
-  config/dead_code.csv, and the map object factory makes nothing for class 0x39 (CreateObject returns null, as for
-  an unknown class). CubicSegment::Evaluate 0040E440 and SetBSpline are dead (the game uses the copy at 004E5660).
-- Scenarios added for gaps: unit_ai_heal, ui_base_topic, world_loot, unit_ai_cast, zone_gz15h_tornado (EffectTornado
-  launches only on Rebirth and only in about half the runs: a strike needs open ground at a random point), ui_camp_make,
-  magic_traps_victims (`make_trap_mob.py --interval 0`), unit_cast_at, unit_ai_corpse, levers_key (SV5b: a quest item on a locked lever, `clickunit #<id>`),
-  ui_options_remap / ui_options_remap_load (SV8: keys remapped in the options and used, the saved keyboard.ini loaded
-  at start through `make_keyboard_ini.py`, which writes it into the run's overlay; the user's report of remapping not
-  working did not reproduce on a clean build).
-- Multiplayer (SV5d): `net_pair_join` is a pair of games (section 6): a second game finds the first's hosted game in the
-  lobby list, joins it (join request, admit, login, the client's BeginMultiplayerGame into bz1mpg), both say a chat
-  line, and the second leaves; goldens for both games. SV5d1: `net_pair_zone` (an exchange on the base, the host's
-  map choice through the sheriff's topic, both games out through bz1mpg's gate into the game zone: the joiner as a
-  remote player of the host's world) and `net_pair_kick` (kick by serial, ban by name, a refused join); goldens for
-  both installs and both games. Walks use `clickground` (the console's `#` / `@` commands do nothing on the
-  multiplayer base). SV5d2: `net_pair_leave` (shared files to a peer that lacks one, the peer lost in the game zone,
-  the host back to the base and the map's reject topic: LeaveZone and its award). SV5d3: `net_pair_quest` (a
-  prepared strong hero, `make_mp_hero.py`, finishes z9q2 and the sheriff's "_3" topic: CompleteZone and its awards
-  to both games; a public game whose `fakemaster` answers: OnMaster). Walks in the zone: `lookat` (a minimap click
-  under the target) before each `clickground`. SV5d4: `net_pair_master` (vanilla; the peer's lobby without
-  broadcasts, `nolan`, asks the fake master three times: a bad size, a short record, the list with the host's
-  game, which it joins: ReadServerListImpl, GameInfoRecord::Read; then its `badupdate`: the host's server drops
-  it as a bad client, 2 -> 1 connections, its later updates from an unknown host). Vanilla only: on Rebirth's
-  original EI_Plugin's NewMaster probes the master with its own real TCP connect and may fall back to
-  hat.gipath.org.
-- Still unreached: TryTame (SV5a1), SuspectionMode
-  Enter / Execute, patrol points, TrapObject::UpdateTrap, PickEnvironmentSpeech (T2c: the bored remark, 1 in 1001 per
-  update after 500 bored ticks).
+From the report's `TIMING:` lines (tests/verify/harness_timing.h: per frame the main thread's wall time and CPU in the
+server's updates, the digest, the client's ticks, the steps, a pair's wait, the window checks and the rest; start-up to
+the first frame; frames of 200 ms or more) and EI_PROFILE samples (`tools/profile_report.py`).
+- The suite's wall is net_pair_quest's (it starts first; the other runs fill the free slots). Median run 6-7 s; start-up
+  about a second.
+- A slot is for a game on the GPU: run_all gives it back when ei_launch returns and takes it again before a retry's game
+  (work_sched.GameSlots; work-board.md). Frames are packed by a Python process of its own (frame_store.pack_run), outside
+  the slot: packing in the runner's process held the GIL and slowed every other run's set-up.
+- A frame on the virtual clock does not wait for vsync (Present(0, 0) on a flip-discard chain); most of it is the game's
+  own drawing on the CPU.
 
 ## 5. What makes runs repeat
 
-The harness makes the image deterministic and layout-independent. User decision 2026-10-15: no golden may depend on
-heap layout, timing or leftover memory; where the game reads never-set or address-ordered data, ours does the canonical
-thing (kept in the image as a determinism fix). Until H40 the harness patched the original the same way (the table
-below; the tag original-oracle has the patches).
+The harness makes the game deterministic and layout-independent. User decision: no golden may depend on heap layout,
+timing or leftover memory; where the original read never-set or address-ordered data, ours does the canonical thing in
+every build.
 
-**Virtual clock** (tests/verify/harness_clock.h; default, `realtime` or `EI_HARNESS_CLOCK=real` to leave it): only the
-main loop moves it, five world updates a frame; the main thread's sleeps and timed waits take no real time; sample ends
-fire on virtual time; date and seeds fixed; steps run once a frame. Other threads read an anchor that each main-thread
-advance moves to max(their time, the new virtual time), never back and never standing still (SV1h: after a long load
-they stood still and the cursor / music waits took seconds). `speed` speeds nothing up on it (each frame just gets less
-virtual time) and no scenario uses it (SV1i). While the interface's close-all flag is set the main loop's peeks report
-no message (HoldMessagesForCloseAll, SV1j), so the next pass always does the close instead of whichever real message
-came first.
+**Virtual clock** (tests/verify/harness_clock.h; default, `realtime` or `EI_HARNESS_CLOCK=real` to leave it): only the main
+loop moves it, five world updates a frame; the main thread's sleeps and timed waits take no real time; sample ends fire on
+virtual time; date and seeds fixed; steps run once a frame. Other threads read an anchor that each main-thread advance
+moves to max(their time, the new virtual time), never back and never standing still (after a long load they stood still
+and the cursor / music waits took seconds). `speed` speeds nothing up on it and no scenario uses it. While the
+interface's close-all flag is set the main loop's peeks report no message (HoldMessagesForCloseAll), so the next pass
+always does the close instead of whichever real message came first.
 
-**Heap**: the image's malloc is the host CRT's (C26), so nothing in a golden may follow heap addresses. Until H40 the
-harness made game.exe's CRT heap repeatable (tests/verify/harness_heap.cpp: no low-fragmentation front end, one fixed
-reservation; SV1b, SV2b).
-
-**Canonical values in the original** (until H40; each patch at a CALL or byte site, checked before patching):
-
-| What | Original sites | Switch | Ticket |
-| --- | --- | --- | --- |
-| Units' update countdown from `id_ & 0xF`, not address bits | eight `SAR r,5 / AND r,0xF` sites (0058D4FA ... 00596BB1); ours `UpdateCountdownFor` | | SV1b |
-| UnitStats / UnitVitals stack copies zeroed | GiveDefaults, ApplyPrototype, BuildFromPrototype, Unit / MapObject::TakePrototype, Party::AddMember (harness_leftovers) | `EI_LEFTOVERS=<hex family mask>` | SV7b3 |
-| Server objects, map objects, Suspection / Fear modes, class templates allocated zeroed | NewObjectImpl 004D6970, CreateObject 00512730, AddSuspectionMode / AddFearMode and their constructors' callers, ClassTemplate::Construct's callers | same | SV7b2, SV7d3, SV7d4 |
-| View position zeroed (draw sort NaN) | MapObject::Construct's CALL 0050E2F2 (bit 6) | same | S17a |
-| Particle source zeroed (emission point read before Attach) | NewParticleSource's operator new 004981CD (bit 7) | same | SV7b7 |
-| Lights zeroed (the sun's never-set position under water) | LightFactory::NewObjectImpl's operator new 0068DA7C (bit 8) | same | SV7b6a |
-| Path cells' speed word 0x200, terrain bits 0 | CALLs of SearchPathTo, BuildCells, Smooth (harness_path_cells) | | SV7d2 |
-| Save padding, a sound's name tail, the stock's codes, archive keys numbered by first save | harness_save_leftovers | `EI_SAVE_LEFTOVERS=0` | SV7b2a |
-| A heard claim's point 0,0,0 | AIHeardCalls::AddClaim's three loads (005CCF04..) | | S20d |
-| Script groups ordered by object id | comparator 004B2D80, inline compares in Union / Difference / Intersection / Insert (harness_script_order) | | SV7b1 |
-| Object sets by id | 0047ADF0, 0047B4C0 (harness_address_order) | | T2f |
-| Draw lists by texture / figure name, then depth | 005740D0 and 00574390 jump to ours (both: mixed orders ran off the array) | | SV7b6 |
-| A client's player list refreshed by its binding too (an update's objects come in the server's ReplicaEntry address order; players before the binding were listed as nobody: the base screen's faces) | 0041E430 jumps to a stub (harness_address_order); scenario step `checkplayers` | | UB1 |
-| The shadow's turn undone exactly (no ulp drift per re-render) | CALLs 0051D479 / 0051D4E0 (harness_shadow_turn) | `EI_SHADOW_TURN=0` | SV7b4a |
-| The client effects draw from their own generator (`g_clientRandom`, seeded from the game's at World::Create), not from ISAAC 007A9D40 or rand(): terrain tiles and ambience, particles, lightning shapes, sound and speech picks, decals, the interface's flourishes | the generator operands of 91 client functions point at the harness's client generator, the rand() CALLs of 15 at a draw of it, Init's CALL 0055F165 seeds it (harness_client_effects; deterministic runs) | | R34a |
-| The terrain's sectors lit once, when built (ours: the edge fade at Build; no relight countdowns, no tick without tile animation) | SetSun's relighting 006C908F jumps to its epilogue; SectorAt's Ensure CALLs 006C8234 / 006C84BC light a built sector at once (harness_client_effects) | | R34a |
-| The client's idle animation picks (StartIdleAnimation's FindAnimation, as often as draw time restarts the idle) and the hero previews' start frames (CMpHeroScreen::MakePreview, CCampPages::Create) draw from the client generator; the server's animation picks keep rand(); DelayedProtectionCheck's unused rand() per new object (message 0x40) is gone | StartIdleAnimation's CALL 00535539 of FindAnimation raises a flag under which RandomAnimation's / RandomAnimationOfKind's rand() CALLs 005191E9 / 0051921A / 00519281 / 00519488 draw from the client generator; the generator operands of 0060C870 and 00616E20 point at it; 00455B50 returns at once (harness_client_effects; deterministic runs) | | R34c |
-
-Script groups order by id because the script engine saves groups by id and ids are unique while referenced; ties cannot
-happen (the harness logs "share id" if one does). 
+**Canonical values in our code** (each was a difference between runs of the original):
+- Units' update countdown from `id & 0xF` (`UpdateCountdownFor`), not address bits.
+- Unit statistics and vitals copies, server objects, map objects, Suspection / Fear modes, class templates, the view
+  position, particle sources and lights start zeroed or set; path cells' speed word 0x200 and terrain bits 0.
+- Saves write no padding or leftover bytes (a sound's name tail, the stock's codes, archive keys numbered by first save).
+- A heard claim's point starts at 0,0,0.
+- Script groups and object sets are ordered by object id (the script engine saves groups by id, and ids are unique while
+  referenced; ties cannot happen); draw lists by texture / figure name, then depth (src/game/address_order.h).
+- A client's player list is refreshed by its binding too (an update's objects come in the server's order; players before
+  the binding were listed as nobody: the base screen's faces; the `checkplayers` step).
+- The shadow's turn is undone exactly (no ulp drift per re-render).
+- Client-only effects draw from their own generator (`g_clientRandom`, seeded from the game's at World::Create), not from
+  ISAAC or rand(): terrain tiles and ambience, particles, lightning shapes, sound and speech picks, decals, the
+  interface's flourishes, the client's idle animation picks and the hero previews' start frames. The server's animation
+  picks keep rand().
+- The terrain's sectors are lit once, when built.
 
 **Behaviour that only looks random**:
-- Any change in frame count reshuffles the ISAAC draws (the server's AI, weather and combat share the generator;
-  the client effects have their own since R34a), so functions driven by them (zone1's storm, wolf pathing, the bored
-  remark) come and go when a wait is cut. Cut waits only where coverage stays.
-- The game reads the heap's address order in more places than the table: a test that allocates around a load can still
-  flip a script group's last member if the order patch is off.
-- rebirth_flags' `DistancePointPoint(3,4)` reads four floats past an 8-byte argument block (any value, 1.#INF or NaN):
-  the scenario checks `Or(DistancePointPoint(3,4),1)`, true for every value (T2e). The image reads 0 for the two
-  missing floats (AddressSanitizer reported the read past the block).
+- Any change in frame count reshuffles the ISAAC draws (the server's AI, weather and combat share the generator), so
+  functions driven by them (zone1's storm, wolf pathing, the bored remark) come and go when a wait is cut. Cut waits only
+  where coverage stays.
+- rebirth_flags' `DistancePointPoint(3,4)` reads four floats past an 8-byte argument block in the original; ours reads 0
+  for the two missing floats, and the scenario checks `Or(DistancePointPoint(3,4),1)`, true for every value.
 
 ## 6. Harness isolation
 
-- **No foreground** (SV1c, harness.cpp `noforeground::`): user32's activating calls are patched for every caller
-  (SetForegroundWindow, BringWindowToTop, SetActiveWindow, SetFocus, SwitchToThisWindow do nothing; ShowWindow /
-  SetWindowPos never activate; top-level windows get WS_EX_NOACTIVATE); the harness sends the game its WM_ACTIVATE. A
-  game that lost the foreground used to be minimised and its device restores drew ISAAC numbers.
-- **Out of sight** (WB12; `EI_HARNESS_SHOW_WINDOW=1` to watch): top-level windows are
-  cloaked (DWMWA_CLOAK) and made tool windows; frames, posted input and window size stay the same. Message-only windows
-  are skipped. `noforeground::Watch` checks every 200 ms; the report's `WINDOW:` line, run_all's `game windows:`
-  summary.
-- **The harness's mouse is the only one** (S21c1, tests/verify/harness_input.cpp): the
-  game window's subclass answers WM_NCHITTEST with HTNOWHERE, so the user's real cursor over a window makes no
-  WM_MOUSEMOVE, and the DirectInput mouse's GetDeviceState is zeroed after each read (game.exe: DirectInputCreateEx's
-  slot 0073B044, routed at the game's CreateWindowExA; the image: the seam `g_directInputObserver`, S22b). The report's `MOUSE:` line. The real cursor resting over the
-  original's uncloaked, desktop-sized window had moved the camera and made originals not repeat (standalone.md, S21c1).
-- **Loopback** (WB14, tests/verify/harness_net.cpp `netlocal::`): WSOCK32's bind (slot 0073B6DC) and sendto
-  (0073B70C) are routed: a bind on every address binds 127.0.0.1, an unbound socket's datagram binds 127.0.0.1:0 first,
-  a datagram outside loopback goes to 127.0.0.1 on the same port (the lobby's broadcast ping reaches the same game's
-  server). Every game also gets a UDP port of its own instead of 8888. The watchdog checks the process's endpoints every
-  second; the report's `NET:` line, run_all's `network:` summary. Harness runs start their build's own host (no shared
-  copy, so the firewall never asks); a launch without a scenario keeps the shared copy and binds every address.
-- **Pairs** (SV5d, tests/verify/harness_pair.{h,cpp}): a scenario's `peer <name>` line makes ei_launch start a second
-  game on tests/scenarios/peer/<name>.txt (both the image or both the original, one job object, either side's hang
-  ends both; the peer's report in the run folder's peer\, merged into the host's as `FAILED: peer: ...`). The two run
-  in lockstep (turns a frame at a time through a shared mapping, so a datagram always arrives in the same frame; each
-  game's frame step runs beside the other's turn, SV10a: section 10) and
-  their UDP sockets talk through a mailbox of virtual ports, not the loopback adapter (the real sockets are still
-  bound on 127.0.0.1; the `NET:` check is unchanged); `peersignal` / `peerwait` order the two scenarios. `netcut`
-  pulls one side's cable (its datagrams and those sent to it are lost; SV5d2), `hidefile <path>` makes an install
-  file read as missing in one game until it writes it (a peer without the host's quest file). The report's
-  `PAIR:` line. A pair takes two machine slots (run_all's machine_slot(count=2), work_sched's games_of; ei_launch takes
-  the second itself when its caller held only one). Goldens keep both games (golden.py: the golden's peer\).
-  `fakemaster <port> [list|badsize|short]` (SV5d3, SV5d4): datagrams to that virtual port are the master's: each
-  announcement is answered with a master packet (kind -1, the announcement's key, a new token) and kept in the
-  shared state (listed from its segment on, from the next when sent in the frame step); a TCP connect to the port
-  (the master request's link) is the harness's (connect, select, send and recv routed for its socket only) and gets
-  the list: size, then the coder's all-literal stream of {127.0.0.1:<announcer's port>, its last announcement}
-  (badsize / short: the bad replies). The report's `MASTER:` line. `nolan`: the game's broadcasts are lost (only
-  the master's list finds a server); `badupdate`: its next update to the other game has its records replaced by
-  one of type 0xFF (unregistered), so the receiver drops it as a bad client. `netstate` (any game) writes the
-  server's connection count and the lobby client's join state and listed servers as console lines, so the golden
-  checks what ReadServerListImpl listed and that the bad client was dropped (the world digest shows neither).
-- **Typed text** (SV5d2): the game's TranslateMessage (slot 0073B450) is the harness's: the US layout with no key
-  held, and letters and digits make no WM_CHAR (the `key` step posts theirs). Windows' own translation followed the
-  user's keyboard layout and held keys, so typed hero names came out doubled ("hhoosstt"), with capitals or with
-  letters missing, differently per run.
-- **Install files and registry** (harness.cpp, harness_settings.h; WB16): writes under the game folder
-  (config\keyboard.ini on exit, the skin cache, mp\) go to the run's harness_saves overlay, read back from there.
-  mp\ (multiplayer heroes) is the overlay's only (SV5d3): before, its listing fell back to the install and showed the
-  user's own heroes; a run starts with none, or a prepare tool's (`make_mp_hero.py`).
-  No run reads the user's settings: every registry call on HKCU / HKLM `Software\Nival Interactive` and
-  `Software\Gipat.Ru` (the original's settings, Rebirth's game settings and starter switches) from any module
-  (game, image, the harness, addon.dll) is answered from the committed snapshot `config/harness/registry.reg`
-  (advapi32's exports are stubs jumping through its own import slots, which the harness takes); such keys are never
-  opened, created or written for real (game.exe's RegCreateKeyExA slot 0073B010 and RegSetValueExA slot 0073B018 too).
-  A value or key a run reads that the snapshot lacks fails the run ("settings: registry value not in the snapshot");
-  `"name"=-` marks one read but absent on purpose. config\keyboard.ini and config\addrbook.ini are read from
-  `config/harness/<vanilla|rebirth>/` unless the run's overlay has its own (a prepare tool's, or the game's write).
-  Why (2026-10-20): the user's play of 2026-10-16 set the original's General Settings\AudioStreaming (music volume) to
-  0, and 13 vanilla goldens (ground_prints, hero_death, levers, magic_traps, net_pair_*, script_fx, world_load, ...)
-  differed in random draw counts in the original and the image alike; the snapshot keeps 0x1c, which reproduces them
-  (AudioSFX / AudioSpeech / ShowTutorial made no difference). To change a setting for every run, edit the snapshot and
-  re-record what it moves; `EI_HARNESS_SETTINGS=<folder>` runs with another snapshot folder (tryouts).
-- **No run writes into an install** (harness_install.h; WB17). Other modules' writes go to the overlay too: kernel32's
-  exports are stubs jumping through its own import slots (CreateFileA/W, CreateFile2, DeleteFile, CreateDirectory,
-  RemoveDirectory, SetFileAttributes, CopyFileW, MoveFileExW) or call kernelbase through them (CopyFileA:
-  CopyFileExW; MoveFileW: MoveFileWithProgressW; MoveFileA / MoveFileExA: MoveFileWithProgressTransactedW), and the
-  harness takes those slots, so addon.dll (statically linked CRT), EI_Plugin.asi, Miles and Bink are covered. Under
-  them, ntdll's NtCreateFile / NtOpenFile / NtSetInformationFile (rename, link, delete) / NtDeleteFile stubs jump to
-  a guard: anything under an install root (the working directory at start, EI_GAME_ROOT, EI_INSTALL_ROOTS, which
-  ei_launch sets to both installs) opened for writing (write access or any disposition but FILE_OPEN), created,
-  renamed, linked or deleted is refused and fails the run (`install: write refused: <call> <path> (<module>+<offset>)`).
-  The report's stack lists return addresses (words just after a call) from the refused call up, e.g.
-  `ei-rebuild.exe+B8AA5, addon.dll+7BD60, ...`; `ei-rebuild.map` names ours. The game's root itself is written to the
-  overlay's root (emptying mp\ the game deletes every entry FindFirstFile lists, `mp\..` too: a directory, the delete
-  fails in both). A log (*.log) or a file over 16 MB is not copied into the overlay before a keeping write (the write
-  starts empty). Checked (2026-10-20) by adding the run's own `harness_saves\Starter` as a root for one Rebirth
-  world_load: addon's log, errors.log and Dumps opens were refused and the run failed with their lines.
-  What wrote into the installs before (2026-10-20): addon.dll's DllMain (addon+1000FFDE, AddonInit) opens
-  `starter\addon.log` and appends ~60 KB per launch (1.3 GB by then; the user removed it) and its crash handler wrote
-  minidumps to `starter\Dumps\` (58 from runs of 2026-10-02..15). addon.dll is loaded at game.exe's entry point (the
-  dinput.dll proxy's DllMain makes the entry jump to its loader), after ei_launch injected ei_harness.dll (until H40), so
-  the harness saw all its writes; in the image no addon.dll loads.
-- **Starter answers** (harness_starter.cpp): resolution, widescreen, and CtfMon answered 0 (addon.dll otherwise closes
-  the user's ctfmon at start and restarts it from DLL_PROCESS_DETACH, which hung every Rebirth exit; S3e). A game hung
-  after quit is ended after 3 s with `exit_hang.txt` (each thread's EIP and return addresses).
+- **No foreground** (harness.cpp `noforeground::`, the harness's platform backend harness_platform.h): a harness game's
+  window is never activated; the harness tells the game about activation itself.
+- **Out of sight** (`EI_HARNESS_SHOW_WINDOW=1` to watch): top-level windows are cloaked (DWMWA_CLOAK) and made tool
+  windows; frames, posted input and window size stay the same. The report's `WINDOW:` line, run_all's `game windows:`
+  summary; the check walks the game's own threads' windows every 2 s.
+- **The harness's input is the only input** (tests/verify/harness_input.h): the game reads keys, characters, the mouse and
+  its motion from the harness's platform backend, which drops every system event; the steps post window messages, each
+  made into the event the window procedure's translation made of it. Typed text follows the US layout with no key held
+  (Windows' own translation followed the user's layout and held keys: typed names came out doubled). The report's
+  `MOUSE:` line. The real cursor over the window once moved the camera and made runs not repeat.
+- **Loopback** (tests/verify/harness_net.h `netlocal::`): a bind on every address binds 127.0.0.1, an unbound socket's
+  datagram binds 127.0.0.1:0 first, a datagram outside loopback goes to 127.0.0.1 on the same port (the lobby's broadcast
+  ping reaches the same game's server). Every game also gets a UDP port of its own instead of 8888 (games side by side
+  otherwise joined each other's servers). The watchdog checks the process's endpoints every second; the report's `NET:`
+  line, run_all's `network:` summary.
+- **Pairs** (tests/verify/harness_pair.{h,cpp}): a scenario's `peer <name>` line makes ei_launch start a second game on
+  tests/scenarios/peer/<name>.txt (one job object, either side's hang ends both; the peer's report in the run folder's
+  peer\, merged into the host's as `FAILED: peer: ...`). The two run in lockstep, a turn at a time through a shared
+  mapping, and their UDP sockets talk through a mailbox of virtual ports. A game's turn runs from its after-frame peek
+  (steps, messages, the next pass's worlds and net::Pump, the interface's update) to just before the pass's frame step;
+  the frame step (drawing and present) runs while the other game takes its turn. The frame step pumps the network too,
+  so every datagram carries its sender's segment (a turn and the frame step after it); a receive takes datagrams of
+  earlier segments or its own, oldest segment first; the frame step may send only to its own ports, to nobody (netcut)
+  or to the fake master, and anything else there fails the run. `peersignal` / `peerwait` order the two scenarios;
+  `netcut` pulls one side's cable; `hidefile <path>` makes an install file read as missing in one game until it writes it.
+  `fakemaster <port> [list|badsize|short]`: datagrams to that virtual port are the master's (each announcement answered
+  and kept), and a TCP connect to it gets the server list (or the bad replies); the report's `MASTER:` line. `nolan`: the
+  game's broadcasts are lost; `badupdate`: its next update has its records replaced by an unregistered type, so the
+  receiver drops it as a bad client. `netstate` writes the server's connection count and the lobby's join state and
+  servers as console lines. A pair takes two machine slots; goldens keep both games (the golden's peer\).
+- **Settings** (tests/verify/harness_settings.h): no run reads the user's settings. Each run gets its own
+  `<run folder>\ei_settings.ini`, written at the settings' first use from the committed snapshot
+  `config/harness/registry.reg` (the option tree on the run's install, Rebirth's switches as [rebirth]), with the
+  scenario's starter lines (harness_starter.h: resolution, widescreen, fullscreen, music, addonpath) in place; read only,
+  and a value the file lacks fails the run (`"name"=-` marks one read but absent on purpose). config\keyboard.ini and
+  config\addrbook.ini are read from `config/harness/<vanilla|rebirth>/` unless the run's overlay has its own. Why: the
+  user's own play once set the music volume to 0, and 13 goldens differed in random draw counts. To change a setting for
+  every run, edit the snapshot and re-record what it moves; `EI_HARNESS_SETTINGS=<folder>` runs with another snapshot
+  folder. `settingsfile writable | defaults` check the product's own file paths instead.
+- **Music**: the stream thread plays in real time and the music system's random draws follow the track it reports (a
+  fight's combat track is picked only when the playing one is not it), so a scenario whose fights must draw the same
+  everywhere plays with `music 0` (net_pair_quest).
+
+### No run writes into an install
+
+tests/verify/harness_install.h. The redirect: every module's file calls that write (CreateFile, CreateFile2, DeleteFile,
+MoveFile*, CopyFile*, CreateDirectory, RemoveDirectory, SetFileAttributes, ANSI and wide) come through kernel32's own
+import slots, which the harness takes: a write of an install file goes to the run's overlay (harness_saves\<relative
+path>; reads prefer the overlay copy), so another DLL's writes (the graphics driver's caches, SDL's) land in the run
+folder like the game's. The guard, below every other layer: ntdll's NtCreateFile, NtOpenFile, NtSetInformationFile
+(rename, link, delete) and NtDeleteFile. Anything under an install root (the game folder, EI_INSTALL_ROOTS: ei_launch's
+two installs) opened for writing, created, renamed, linked or deleted is refused and fails the run (`install: write
+refused: <call> <path> (<module>+<offset>)`, with the return addresses from the refused call up; `ei-rebuild.map` names
+ours). A run that reports it found a write the redirect does not cover. A log (*.log) or a file over 16 MB is not copied
+into the overlay before a keeping write (the write starts empty). mp\ (multiplayer heroes) is the overlay's only: a run
+starts with none, or a prepare tool's (`make_mp_hero.py`).
 
 ## 7. Diagnostic tools
 
 - `EI_HARNESS_CLOCK=virtual,randtrace`: every random draw with its frame, caller and generator position (`#<n>`) in
   randtrace.txt, plus clock moves and sound ends; `tools/randtrace.py A B` reports the first draw B makes in no frame or
   another. `clocktrace`: every clock read and wait in ei-rebuild.log. Through `work.py test`, set it in the environment.
-- `golden.py diff A B [--ulps N] [--ignore F] [--records K]`, `golden.py state A --record N`: where two runs' digests
-  part, field by field; with `digest 1` and `randtrace` on the scenario this finds the first update and draw.
+- `golden.py diff A B [--ulps N] [--ignore F] [--records K]`, `golden.py state A --record N`: where two runs' digests part,
+  field by field; with `digest 1` and `randtrace` on the scenario this finds the first update and draw.
 - `EI_WATCH_CUNIT=<id>[,flags]` (a client unit's orientation or flags writes, by debug registers), `EI_WATCH_ADDR=<hex>
   [,from,to]` (one dword's reads and writes), `EI_STACK_SCRUB`, `EI_SPIN_US` (tests/verify/harness_watch.h).
-- `EI_SAVETRACE=1` (every memory stream write up to each saved file, savetrace.txt) with `tools/save_trace.py plain |
-  diff A B` (the writers of differing save bytes).
+- `EI_SAVETRACE=1` (every memory stream write up to each saved file, savetrace.txt) with `tools/save_trace.py plain | diff
+  A B` (the writers of differing save bytes).
+- The Suites workflow's `diff_base` (harness.md) shows where two builds part.
 
 ## 8. Rules from real differences
 
-- **Float grouping** (SV7d1, SV7d1a): `/fp:fast` regrouped `(30x + 10) / 31` into `x * (30/31) + 10/31`, which settles
-  on another fixed point (9.99999714 against 10.0). The project builds `/arch:SSE2 /fp:precise`; the original's
-  FSIN / FCOS / FPATAN / FYL2X and VC6's inline exp are `lib/pc24.h`'s (their 64-bit results, then the 24-bit
-  rounding of the operation that used them), plain float maths the rest (rewrite guide rule 7).
-- **Constant products** the original computes at run time (FLD; FMUL / FDIV) round to 24 bits there; the compiler folds
-  them to doubles. `tools/check_fp_fold.py` (removed in C25d) failed on x87 constants the original never loaded (terrain::Sine's
-  256 / pi, the briefing's and the lighting's pi / 180 are floats now; the double pi / 180 moved three menu units by
-  1-2 ulps).
-- **Never-set memory** is made canonical, never emulated (section 5): our objects start zeroed or set. To find a
-  field read before its set, poison it (next rule).
-- **Whether anything reads a field before a set**: poison it in ours right after its constructor (a temporary
-  env-gated write, one bit per construction site; a quiet NaN and a finite 1e5), then run the `--golden` suite and
-  hash the capture scenarios' frames against a plain pass. A positive control must move something (the light's
-  positions, SV7b6a's field, moved 12 frames of frames_basic / ui_saveload).
-- **Transform positions** (SV7b6b): TransformObject's constructor (00453400) and its inlined copies leave
-  localPosition / worldPosition (+0x1C..+0x34). Only the light reads them unset (SV7b6a, zeroed). Poisoned at the
-  camera (0040C8B0), terrain (in 00561E50), figure meshes and parts (005AABC0), sky (004D9110), scene meshes,
-  every effect (Effect base), Object3D (00515C21) and particle sources: 175 goldens and 174 frames the same.
-  Why: every effect's Reset zeroes the position in its constructor (ClearBase; EffectShowVisibility sets it from
-  the seer before use), the terrain's reset sets it, the sky sets it before its matrix, the camera reads its own
-  only when placed (else the focus), scene meshes and figure parts are zero-filled arrays, map objects and figures
-  get theirs on placement / load. The 3DS readers' stack figure (004A0350) is unported dead code.
-- **Address order**: a sort or hash walk by pointer that reaches behaviour, a save or a frame gets an id or name order
-  in ours and a harness patch in the original. Pointer-keyed containers that reach no output
-  (MappedResource::filesByData, mod_folders' sets, ChunkArchive::numbers, text_sources' converted texts, ui_native's
-  surfaces, the renderer's caches) need nothing. Net replication (SV7b5) sends by entry serial in ours (network.md,
-  "Original bugs kept (rest)"); the original's runs keep the address order unpatched, as no golden reads it.
-- **Allocation order** (SV2f, SV2h1b): the game reads the heap's address order in places, and before the
-  canonical orders a twin block allocated early moved a script group's last member. Those reads are canonical now,
-  so a golden that changes with the allocation order is a missing canonicalisation.
-- **Comparators over floats** must stay irreflexive: a NaN key sent STLport's unguarded scans off the list (S17a).
-- **The reference cache** (H30, H30b; gone with H40, as game.exe's runs): it kept game.exe's runs by scenario commit,
-  install and the harness's sources, and so the harness's game.exe side called only game.exe's code
-  (tests/verify/harness_original.h) and read game.exe's objects through its own views (tests/verify/exe_objects.h),
-  reaching our classes only in the image through tests/verify/image. That side went in H40's step 3b.
+- **Float grouping**: `/fp:fast` regrouped `(30x + 10) / 31` into `x * (30/31) + 10/31`, which settles on another fixed
+  point (9.99999714 against 10.0). The project builds `/fp:precise`; float-maths.md has the rest.
+- **Never-set memory** is made canonical, never emulated (section 5): our objects start zeroed or set. To find whether
+  anything reads a field before its set, poison it right after its constructor (a temporary env-gated write; a quiet NaN
+  and a finite 1e5), then run the `--golden` suite and hash the capture scenarios' frames against a plain pass. A
+  positive control must move something.
+- **Transform positions**: TransformObject's constructor leaves localPosition / worldPosition unset. Only the light read
+  them unset (zeroed now); poisoned at every other owner, 175 goldens and 174 frames stayed the same: every effect's
+  Reset zeroes the position, the terrain's reset and the sky set it, the camera reads its own only when placed, scene
+  meshes and figure parts are zero-filled arrays, map objects and figures get theirs on placement / load.
+- **Address order**: a sort or hash walk by pointer that reaches behaviour, a save or a frame gets an id or name order.
+  Pointer-keyed containers that reach no output (MappedResource::filesByData, mod_folders' sets,
+  ChunkArchive::numbers, text_sources' converted texts, the renderer's caches) need nothing. Net replication sends by
+  entry serial (network.md, "Replication"). A golden that changes with the allocation order is a missing
+  canonicalisation.
+- **Comparators over floats** must stay irreflexive: a NaN key once sent an unguarded scan off the list.
 
 ## 9. Open
 
-- SV6c (watch): a startup crash inside AIL_waveOutOpen (harness MutedWaveOutOpen <- SoundManager::Open), seen twice in
-  thousands of runs (once in the image); a retry passes.
-- SV7c1 (later): vanilla menu unit cunit2's flags 0x100004A2 against 0x100004AA once under jitter seed 3.
-- SV2c (watch): unit_create parted once in crt.rand only.
-- I13: a read-before-write detector for never-written heap bytes.
-- SV5d3 / SV5d5: net_pair_quest parted on both installs, the original and the image alike, at the zone's fights
-  (an extra block of random draws): the music's combat-track draw follows the real-time stream thread
-  (sound.md, "Non-determinism"). The scenario plays without streamed music (`music 0`) since SV5d5. Other
-  scenarios with fights and music keep the exposure (a virtual-time stream thread would remove it).
-- WB12a: the original's runs are not cloaked.
-
-## 10. Run time (SV10)
-
-Where a run's wall time goes, from the report's `TIMING:` lines (tests/verify/harness_timing.h: per frame the
-main thread's wall time and CPU in the server's updates, the digest, the client's ticks, the steps, a pair's
-wait, the window checks and the rest; start-up to the first frame; frames of 200 ms or more) and EI_PROFILE
-samples (`tools/profile_report.py`). 2026-10-21, Ryzen 9 7950X (16 cores), RTX 4070 Ti SUPER, 4K back buffer.
-- **The suite's wall is net_pair_quest's.** 124 runs of `--golden --jobs 4` (the scheduler fills all 16
-  slots): 178-215 s; net_pair_quest starts first and takes 171-186 s of it, the golden comparison ~7 s; the
-  other 119 runs sum to 725-860 s (about 55 s spread over the free slots). Median run 6-7 s.
-- **Start-up** (process start to the first frame): image 1.5-2.3 s before SV10b, original 2.3-3.2 s; exit and
-  ei_launch ~0.3 s. About a third of all the suite's game time. Image start-up by profile then: d3dcompiler
-  compiling the renderer's shaders 0.35 s, GetDxVersion's DirectDraw probing 0.45 s, the sound device open 0.3 s,
-  the rest loading.
-- **Start-up cuts (SV10b)**, none in the game's code (the user: the sound open, the DirectX probe and the exe
-  check stay): the shaders are compiled at build time (fxc then, sokol-shdc since MAC3e: docs/notes/renderer.md,
-  "Shader authoring"); the
-  harness found the main thread (harness_clock.cpp FindMainThread) in a toolhelp snapshot, which lists every thread
-  of the machine (16,000 with the suite's games: 70-130 ms a run), now ntdll's NtGetNextThread over the process's
-  own (under 1 ms); InstallHooks' 9,350 "hooked" lines go to ei-rebuild.log in one write (each Log line is flushed:
-  15-25 ms); the renderer's Direct3D 11 device is made on a thread of its own from the image's start
-  (render::PrepareDevice, standalone.cpp) while the game's own start-up runs: its first use waits 4-10 ms instead
-  of 70-190 ms (boot alternately with and without it, 6 each: the probe no slower beside it). Suites with the
-  scheduler's 16 slots full, the image's 121 runs: start-up median 3.0 s, mean 2.9 s, 10-90% 1.9-3.9 s before (main,
-  2026-10-21 03:05); median 1.9 s, mean 2.0 s, 10-90% 1.0-2.8 s after (124 runs in 134 s, goldens the same):
-  ~0.9 s a run, ~110 s of slot time a suite. Boot alone, few games on the machine: first frame 0.9-1.7 s.
-- **A clean run folder (SV10f, user 2026-10-21: the image has no dgVoodoo dependency).** The image ran from
-  run\vanilla / run\rebirth, the copies the original game.exe runs from, with dgVoodoo's DDraw.dll, D3D8.dll,
-  D3D9.dll and D3DImm.dll beside game.exe; the host loads game.exe's imports from its folder first, so
-  GetDxVersion's probe (0045E310) went through dgVoodoo: 0.45-1.3 s, the most of the image's start-up then, and the
-  most sensitive to load. Now run_all runs the image from run\vanilla-clean / run\rebirth-clean
-  (run_all.clean_run_dir, before each image run: hard links of run\<install>'s files but dgVoodoo's, a link made again
-  when the source changes), as a player's clean folder: DirectDraw is the system's, PF3's native path takes DirectX 7
-  as given (ei-rebuild.log: "app: native run"), in every image run. run\<install> is untouched (the original's runs,
-  dgVoodoo). The install's other files load as before: mss32, binkw32, mp3dec.asi (the clean folder or the install
-  root, the working directory); Rebirth's dinput.dll stays in the clean folder and the host never loads it. How it
-  was checked before the merge: `work.py test` games run main's run_all (the scheduler's code), so the worktree's
-  run\ was a folder of its own whose vanilla and rebirth were junctions to run\vanilla-clean / run\rebirth-clean for
-  the image suite, and the usual junction to the main checkout's run\ for the original's suite. Since S18k1 the
-  clean folders and clean_run_dir are gone: the image loads nothing from beside any game.exe (S18k), so it runs with
-  no game.exe argument. Goldens the same (248 runs, --all-rebirth). Start-up, suites with the scheduler's 16 slots full: vanilla
-  median 2.2 s, mean 2.35 s, 10-90% 1.6-3.4 s before (main, 106 runs, 2026-10-21); median 1.1 s, mean 1.47 s, 10-90%
-  0.7-2.2 s after (121 runs); Rebirth after median 1.5 s, mean 1.74 s (no TIMING lines on main's Rebirth runs to
-  compare). For a scenario: boot 1.9 -> 0.7 s, world_load 1.9 -> 1.1, ui_widescreen 2.9 -> 1.1, net_pair_quest
-  4.2 -> 0.9.
-- **What start-up is now** (boot): ~25 ms to the hook DLL, ~35 ms hook set-up, the DirectX check skipped (native
-  run), the Direct3D 11 device (made on its own thread from the image's start; with four games starting at once
-  its first use still waited ~350 ms), the sound open 0.15-0.3 s (kept), the swap chain and loading. The exe check
-  through imagehlp did not show in boot's profile (the FUN_00640060 named for it is HudPortraits::AddPortrait).
-- **A frame** (four games, machine otherwise idle): median 6-8 ms (image), 7-9 ms (original); with 16 games
-  1.3-1.6x that (the main thread's own CPU per frame grows too: shared cores and memory). Per frame: server
-  0.2-0.4 ms (render_stats' fights 2.5-3), client 1-4, digest 0.3-0.8 (every 20 updates, about every 4th
-  frame), steps ~0.1, window checks 0.01-0.07, the rest 6-10 ms. The rest is CPU (its wall time is its
-  main-thread CPU within 10%): no vsync wait (Present(0, 0) on a flip-discard chain), the GPU does 0.6-1.0 ms a
-  frame at 4K (renderstats). By profile (render_stats): the game's own drawing code about half the main thread
-  (terrain projection, mesh lighting, the classic shadow textures rasterised on the CPU, GDI text on the
-  interface surfaces), our renderer's submission ~6%, the camera ~5%, the harness build's upload read-backs
-  (CheckUpload) ~3%.
-- **Pairs overlap** (SV10a, harness_pair.h): a game's turn runs from its after-frame peek (steps, messages, the
-  next pass's worlds and net::Pump, the interface's update) to just before the pass's frame step (CALL 00458010 at
-  004575FD, the rewritten loop's `frameStep` hook point); the frame step (the drawing and the present, most of a
-  frame) runs while the other game takes its turn. The frame step pumps the network too: WorldClient::Render
-  00569E40 calls net::Pump between its drawing stages (four times), and the server answers the lobby's pings from
-  there. So the mailbox keeps the order it had when the frame step was inside the turn: every datagram carries its
-  sender's segment (a turn and the frame step after it, stamp 2 * turn + side), a receive takes datagrams of
-  earlier segments or its own, oldest segment first, then oldest sent; the frame step may send only to its own
-  ports (the host's client and server), to nobody (netcut) or to the fake master. A frame-step send to the other
-  game, a bind, a close or a signal there fails the run (the guard; none in the suites). Goldens unchanged by
-  construction (all 5 pairs, 4 installs, plain and EI_HEAP_JITTER 1 / `2,fill`, several at once).
-  - Measured (net_pair_quest, 2,819 frames, image; overlap off with `EI_PAIR_OVERLAP=0`, runs alternated so the
-    load is the same): machine otherwise quiet, median frame 9.9-10.6 ms against 18.4-22.2 ms, the run's frames
-    40.6-44.2 s against 58.3-72.0 s, pair wait 1.6-2.9 ms a frame against 10-13.5; the original 8.7 ms against
-    16.9 ms median. In a full image suite (16 slots): net_pair_quest 76 s -> 61 s, median frame 24.7 -> 17.4 ms,
-    the suite 80 s -> 65 s. Under load the two games' drawing now competes for the cores (the frame step's own
-    time grows ~25%), so the gain is smaller than the ~45% of a quiet machine.
-  - The report's second `PAIR:` line: the mean time in the turn (4-5 ms) and of the frame step after the hand-off
-    (8-15 ms). A first try that ended the turn after Render's last net::Pump left only 1-2 ms a frame outside the
-    turn (the world's drawing sits between the pumps): 15-25%.
-  - Before SV10a: only one game of a pair ran at a time, a frame of net_pair_quest cost both games' frames (19.3 ms
-    median: 8-10 ms each game's own work, 11-12 ms waiting).
-- Cut (no golden changes): the window checks (WB12's out-of-sight check asked DWM about every window five
-  times a second: 0.4-2 ms of wall time a frame in the original's runs, ~6% of net_pair_quest's main thread in
-  the image's under load) walk the game's own threads' windows and sweep / ask DWM every 2 s; the digest reuses
-  the last-but-one record's map nodes (~20% of its time). Suites after: image 124 runs in 173 s (sum 1,033 s,
-  net_pair_quest 153 s); original 114 runs in 227 s (sum 1,192 s, net_pair_quest 176 s), with other workers'
-  games on the machine. Suite times move with that load by ±15%, so the per-frame numbers are the measure.
-- **The scheduler's slots (SV10h, user 2026-10-21: fewer than 16 games within a batch).** A slot is for a game on
-  the GPU; it was held through the run's whole runner call. From build/live/scheduler.log (2026-10-21 03:00-04:15,
-  2,790 runs): log time minus start minus game seconds 5.5 s a run on average, median 2, p90 18, worst 107; a
-  124-run suite held 1,500-2,300 slot-seconds for 780-1,320 game-seconds (5-9 s a run beyond its game), games running
-  on average 5.5-7.7 a second of its wall while 9-13 slots were taken. Where it went (four runs at once, each phase
-  timed): frame packing, frame_store.pack_folder in the runner thread: 25-30 s for runs of 5-15 4K frames (1.2 s a
-  frame alone: 0.1 s XOR delta and 0.3 s zlib, then 0.5-0.9 s undoing the XOR to check it, big-number arithmetic that
-  holds the GIL); with it running, another run's set-up (clean_run_dir, prepare_scenario, otherwise 0.0-0.1 s) took
-  4-10 s, all in the one Python process's GIL. The rest (report parse, reference key, retries) was small. Now:
-  run_all.run(slots=) gives the slots back when ei_launch returns and takes
-  them again before a retry's game (work_sched.GameSlots; docs/notes/work-board.md, "Runs"); frames are packed by a
-  python process of its own (frame_store.pack_run: at most 4 at once per Python process, two frames each, below
-  normal priority), the check compares the compressed bytes read back (0.34 s a frame; the packed files are the same
-  bytes). A run is still reported after its packing. Driving the Scheduler class directly, 24 frame-heavy image
-  runs, 4 slots, machine shared with other suites: batch 104 / 196 s before, 27 / 32 s after; slot beyond the game
-  8.4 / 11.7 s a run before, 0.03 s after; games running 0.8 / 0.5 of 4 before, 3.7 / 3.1 after; report after the
-  game 8.5 / 12.1 s before, 1.9 / 2.1 s after (packing, outside the slot). For a 124-run suite that is ~900 instead
-  of ~1,750 slot-seconds; a lone suite's wall stays net_pair_quest's, the freed slots go to other batches.
-- **The x87 control word around the libcrt maths (SV10i).** R16h's town profile: the UCRT's `ctrlfp` 9% of the main
-  thread's samples, nearly all under `frexp` (Hypot from Vector3::Length, the camera's ClampAboveObjects over every
-  object near it): std::frexp / std::ldexp save, set and restore the control word on every call, and Hypot made four
-  of them plus its own three __control87_2 calls. Now (docs/notes/standalone.md, "x87 entries") frexp / ldexp of
-  normal doubles go by the bits and MathControlWord / FpuGuard / _controlfp use FNSTCW and load a word only when it
-  differs; results and words the same (an old-against-new check over every control word, goldens). By profile
-  (EI_PROFILE=1, render_stats' town): Hypot 13.5% of the samples (ctrlfp 9.0, frexp 9.7 total, set_exp 1.6) before,
-  1.6% after (ctrlfp gone); the fight had ctrlfp + control87_2 at 1.2%, now neither. Main-thread CPU / wall ms per
-  frame (renderstats): town 15.46 / 18.68, fight 21.98 / 24.30 in main's last run (a loaded machine: its menu 6.91)
-  against town 8.19 / 8.40, fight 19.36 / 19.22 after (menu 3.76); the load moves these more than the change, which by
-  the profile takes ~12% of the town's main thread (about 1 ms of R16h's quiet 8.8 ms) and ~1% of the fight's. Left:
-  the UCRT's `acrt_fenv_get_control` 1.6% of the town (std::lrint reads the FP environment on every call: the AI's
-  and the scripts' roundings; SV10j, next).
-- **std::lrint as FISTP (SV10j).** The 25 std::lrint calls are x87::RoundToInt (FLD; FISTP dword, as the original;
-  docs/notes/standalone.md, "FISTP for std::lrint": old against new over every float, goldens the same). By profile
-  (EI_PROFILE=1, render_stats): acrt_fenv_get_control 1.6% of the town before, no sample in the town after; one
-  sample in the whole run (15.4 s, 7,792 samples) remains, under printf's %f (fegetround). Main-thread CPU / wall ms
-  per frame (renderstats): main's last run (05:56, a loaded machine: menu 4.51) town 13.49 / 23.65, fight 24.37 /
-  42.89; after, three runs with no other batch queued but other workers building: town 12.62 / 27.03, 6.59 / 6.69,
-  7.41 / 7.58 (the profiled run), fight 28.44 / 29.60, 19.07 / 19.27, 18.72 / 19.09 (menu 2.56, 3.29, 2.35); SV10i's
-  quiet run had town 8.19 / 8.40, fight 19.36 / 19.22. The load moves these by 2x between runs, more than the change
-  (by the profile ~1.6% of the town, ~0.1 ms).
-- **_controlfp (SV10k, C20r).** No port: the terrain's chop rounding went with the CPU lighting
-  (docs/notes/standalone.md, "_controlfp").
-- **The profiler and the sealed .bss (SV10j).** EI_PROFILE's stack scan took any word inside game.exe's image as a
-  possible return address and read the bytes before it; a word pointing into .bss tripped the image's data-seam
-  guard ("read of game.exe's .bss ... a use that missed the data seam", the run failed at once). It now takes words
-  in game.exe's code sections only (src/hook/profile.cpp, from the section headers).
-- Proposals (tickets SV10a-SV10e): the pair overlap (SV10a, above) and start-up (SV10b) done; more world updates per
-  drawn frame and drawing only frames a step reads dropped (user: frames get faster, not fewer); the harness
-  build's renderer checks (SV10e) open.
+- unit_create parted once in crt.rand only (watch).
+- A read-before-write detector for never-written heap bytes.
+- Scenarios with fights and streamed music keep the music's real-time exposure (section 6); a virtual-time stream thread
+  would remove it.

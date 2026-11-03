@@ -1,6 +1,6 @@
 # Suites: builds and plays the goldens on the self-hosted runner (Kirill's machine, label ei-game), which has the game
 # installs (F:\games\EvilIslands, the Rebirth one) and a GPU. Runs on pushes to main and claude/** branches (cloud
-# sessions; docs/cloud-handoff.md) and by hand (Actions > Suites > Run workflow). Never on pull_request: a fork's workflow must not reach this machine.
+# sessions; docs/notes/harness.md, "The Suites workflow") and by hand (Actions > Suites > Run workflow). Never on pull_request: a fork's workflow must not reach this machine.
 # Games go through the machine's one scheduler (WORK_DB is the main checkout's), so they share its 16 game slots with
 # local work; EI_RUN_DIR names the main checkout's run folder (game.exe copies for the tools that read its file), so no
 # junction sits in this checkout.
