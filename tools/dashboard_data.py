@@ -1,33 +1,41 @@
 """Collects the numbers behind the progress dashboard, for the working tree and for past commits.
 
-For each sampled first-parent commit of main (and the working tree last) it computes, from that
-commit's own files:
-  - lines of code under src/ (game, lib, render, hook) and tests/;
-  - cleanup artefacts: At<>/Field<> uses, VCall uses, __asm blocks, float_control pragmas, x87 remains, scenarios;
-  - standalone readiness (docs/notes/standalone.md): what still ties the code to the original exe
-    (game data addresses, uses of the exe's MFC / STLport / CRT / imports)
-    and the single-byte text sites a UTF-8 switch has to visit;
-  - the cleanup track (tools/progress.py's counts over all of src/, so both tools agree): casts,
-    __fastcall shims, game data addresses, struct names defined twice, the files that call Windows outside the
-    platform layer (tools/check_platform.py); and from the
-    generated tables, game.exe's code cells by group, its pointer cells, the named data ranges (C18)
-    and the retired vtables (C19).
+For each sampled first-parent commit of main (and the working tree last) it computes, from that commit's own
+files, in groups (GROUP_VERSION below):
+  - loc: lines of code per directory of src/ and tests/ (tests/golden holds recorded data, not code, and is left out);
+  - cleanup: the live counts of the clean-code ratchet: precision-pinning casts, Ftol calls, per-file container
+    structs, scenarios;
+  - standalone: the single-byte text sites a UTF-8 switch has to visit (docs/notes/standalone.md);
+  - track: tools/progress.py's counts over all of src/ (casts, anonymous namespaces, struct names defined twice);
+  - goals: the counts of what the code is moving to: pc24 uses, ordered-sum vector helpers, render::ui canvas calls.
+The series that reached 0 for good (the hook era: offset access, VCall, __asm, MFC / STLport / CRT uses, raw and data
+addresses, code cells, shims, retired vtables ...) are not measured any more; the build checks hold them at 0.
 
-usage: python tools/dashboard_data.py [--every N] [--out build/dashboard/data.json] [--no-cache]
-Reads history through `git cat-file --batch`; nothing is checked out. A rerun takes the numbers of
-commits it already measured from the previous data.json (history points carry their full commit hash),
-so only new commits and the working tree are measured. The old file is not reused when this script or
-tools/check_cleanup.py changed since it was written (their hash is stored in it as `version`).
+usage: python tools/dashboard_data.py [--every N] [--out build/dashboard/data.json] [--no-cache] [--refresh GROUP,...]
+Reads history through `git cat-file --batch`; nothing is checked out. A rerun keeps every history point it already
+measured (a point carries its full commit hash and the version of each group's rule it was measured with), so only
+new commits and the working tree are measured: editing a tool does not cost a re-measure. When a group's rule
+changes, bump its GROUP_VERSION: the next run measures that group again for every point (the other groups stay);
+`--refresh GROUP,...` does the same by hand and `--no-cache` measures everything again.
 """
-import argparse, csv, hashlib, io, json, os, re, subprocess, sys, tokenize
+import argparse, json, os, re, subprocess, sys
 from collections import defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'tools'))
 import check_cleanup  # noqa: E402  (the cleanup ratchet's patterns, so both count the same things)
-import check_platform  # noqa: E402  (the platform layer's rule, so the dashboard and the build check agree)
 import progress  # noqa: E402  (the cleanup track's counts, so the dashboard and progress.py agree)
 import srcscan  # noqa: E402
+
+# The rule version of each group of numbers. A history point keeps the versions it was measured with (`mv`); a group
+# whose version differs from the one here is measured again for every point on the next run. Bump a group's version when
+# its rule changes (a pattern, a path that is counted or left out), not for an edit that leaves the numbers alone.
+# A point from before this table has no `mv`: its four old groups count as version 1.
+GROUP_VERSION = {'loc': 2,        # 2: tests/golden (recorded data, 1.15M lines) is not code
+                 'cleanup': 1, 'standalone': 1, 'track': 1,
+                 'goals': 1}      # new with this table
+GROUPS = tuple(GROUP_VERSION)
+OLD_GROUPS = ('loc', 'cleanup', 'standalone', 'track')
 
 # progress.py's plain counts that the cleanup track shows, by data.json key.
 TRACK = {
@@ -37,73 +45,20 @@ TRACK = {
 }
 TRACK_PATTERNS = {key: re.compile(pattern, re.M) for label, pattern in progress.HOOK_ERA_COUNTS
                   for key, name in TRACK.items() if label == name}
-CELL = re.compile(r'^\{DataId\(', re.M)
 
-# check_cleanup's columns that the CLEANUP dict below does not already cover, by data.json key.
-RATCHET = {
-    'raw_addresses': 'raw game address (0x004..0x007 literal)',
-    'at_views': '*At view struct',
-    'slot_placeholders': 'placeholder virtual (SlotNN)',
-    'byte_arithmetic': 'byte offset arithmetic',
-    'container_structs': 'per-file container struct',
-    'vector_map_set_structs': 'per-file vector/map/set struct',
-    'vector_maths': 'hand-written vector maths',
-    'unknown_fields': 'unknown field',
-    'unused_fields_accessed': 'unused field accessed',
-}
-
-
-# A literal address directly inside a registration or a function-to-original map line of an old commit (gone since
-# C20l) is not counted as a raw address, as check_cleanup did not count it then.
-OLD_REGISTRATION = re.compile(r'(?:EI_(?:REWRITTEN|REWRITTEN_SPECIAL|REPLACE|REPLACE_METHOD|REPLACE_SHORT|'
-                              r'REPLACE_DISPATCH|REPLACE_STANDALONE)|UI_(?:INPUT|WHEEL)_HANDLER)\s*\(\s*$')
-
-
-def ratchet_counts(path, text):
-    """check_cleanup's counts for one file (its comment stripping and exemptions; old commits' registrations)."""
-    code = check_cleanup.strip_comments(text)
-    out = {}
-    for key, name in RATCHET.items():
-        rx = check_cleanup.PATTERNS.get(name)
-        if rx is None or (name in check_cleanup.EXEMPT and path.startswith(check_cleanup.EXEMPT[name])):
-            continue
-        if callable(rx):
-            out[key] = rx(code)
-            continue
-        n = 0
-        for m in rx.finditer(code):
-            if name.startswith('raw game address') and OLD_REGISTRATION.search(code[max(0, m.start() - 40):m.start()]):
-                continue
-            n += 1
-        out[key] = n
-    return out
+# check_cleanup's columns that the dashboard still charts (the others are at 0 and held there by the build check).
+RATCHET = {'vector_map_set_structs': 'per-file vector/map/set struct'}
 
 COMMENT = re.compile(r'//[^\n]*|/\*.*?\*/', re.S)
+# The x87 remains (C30): casts that pin a precision and the CRT's _ftol.
 CLEANUP = {
-    'offset_access': re.compile(r'\b(?:At|Field)\s*<'),
-    'vcall': re.compile(r'\bVCall\b'),
-    'asm_blocks': re.compile(r'\b__asm\b'),
-    'float_control': re.compile(r'#\s*pragma\s+float_control'),
-    # x87 remains (C30, user 2026-10-29): casts that pin a precision, the x87 emulation helpers, the CRT's _ftol.
     'float_casts': re.compile(r'\bstatic_cast<float>'),
     'double_casts': re.compile(r'\bstatic_cast<double>'),
-    'x87_helpers': re.compile(r'\bx87::\w+'),
     'ftol_calls': re.compile(r'\bFtol\s*\('),
 }
 
-# Standalone readiness: qualified uses of the exe's runtime through src/lib, and text sites that
-# assume one byte per character (docs/notes/standalone.md).
+# Single-byte text sites that a UTF-8 switch has to visit (docs/notes/standalone.md).
 STANDALONE = {
-    'mfc_strings': re.compile(r'\bmfc::CString\b'),
-    'mfc_arrays': re.compile(r'\bmfc::(?:CArray|CStringArray|CPtrArray|CDWordArray|CUIntArray|CByteArray)\b'),
-    'mfc_lists': re.compile(r'\bmfc::(?:CTypedPtrList|CList|CPtrList|CObList|CStringList)\b'),
-    'mfc_maps': re.compile(r'\bmfc::CMap\w*'),
-    'mfc_files': re.compile(r'\bmfc::(?:CFile\w*|CArchive|CMemFile)\b'),
-    'stlp_uses': re.compile(r'\bstlp::'),
-    'stlp_hash_maps': re.compile(r'\bstlp::hash_(?:map|set)\b'),
-    'crt_allocations': re.compile(r'\bgamecrt::operator_(?:new|delete)\b'),
-    'crt_other': re.compile(r'\bgamecrt::(?!operator_(?:new|delete)\b)'),
-    'import_uses': re.compile(r'\bgameapi::'),
     'text_case_compares': re.compile(r'\bgamecrt::mbsicmp\b|\b_?strn?icmp\b|\bMakeUpper\b|\bMakeLower\b|\bCompareNoCase\b'
                                      r'|\bCharUpper\w*|\bCharLower\w*'),
     'text_fixed_buffers': re.compile(r'\bchar\s+\w+\[[0-9A-Za-z_]+\]'),
@@ -111,14 +66,29 @@ STANDALONE = {
                                   r'|RegQueryValueExA|RegSetValueExA|GetModuleFileNameA|SetWindowTextA|MessageBoxA'
                                   r'|TextOutA|DrawTextA|ExtTextOutA|GetTextExtentPoint32A|GetKeyNameTextA)\b'),
 }
-# Standalone readiness: what ties the image to game.exe at run time (S18k): game.exe's range in the host's
-# image, and reads of game.exe's file by the image.
-IMAGE_TIES = [
-    ('src/standalone/host.cpp', re.compile(r'\bReadWholeFile\b')),                # the host reads game.exe
-    ('src/standalone/image_imports.cpp', re.compile(r'\bEiStandaloneExe\b')),    # imports from game.exe's folder
+
+# What the code is moving to, as uses to move on or to see grow: (key, pattern, files left out: their definitions).
+GOALS = [
+    # lib/pc24.h: 24-bit-rounded operations on wider operands (docs/notes/float-maths.md, "Wider operands").
+    ('pc24_uses', re.compile(r'\bpc24::\w+'), ('src/lib/pc24.',)),
+    # The ordered-sum vector helpers of lib/vecmath.h: DotZYX, LengthSquaredXYZ, Sum3::ZXY, DotUnrounded ...
+    ('ordered_sums', re.compile(r'\b\w+(?:XYZ|ZYX|ZXY|Unrounded)\b|\bSum3::\w+'), ('src/lib/vecmath.h',)),
+    # The game's calls into the native interface canvases (render_ui.h).
+    ('ui_canvas_calls', re.compile(r'\brender::ui::\w+'), ('src/render/',)),
 ]
-DATA_RANGE = range(0x730000, 0x900000)
-DATA_LITERAL = re.compile(r'(?<![0-9A-Za-z_])0[xX]00([0-9A-Fa-f]{6})(?![0-9A-Fa-f])')
+
+# The keys each group keeps in data.json; a history point's other keys (the retired series) are dropped.
+KEYS = {'cleanup': {'scenarios', *CLEANUP, *RATCHET}, 'standalone': set(STANDALONE),
+        'track': {*TRACK_PATTERNS, 'structs_defined_twice'}, 'goals': {key for key, _, _ in GOALS}}
+
+
+def counted(path):
+    """Code of src/ and tests/ and the scenario scripts; tests/golden and tests/saves hold recorded data."""
+    if path.startswith(('tests/golden/', 'tests/saves/')) or not path.startswith(('src/', 'tests/')):
+        return False
+    if path.endswith('.txt'):
+        return path.startswith('tests/scenarios/')
+    return path.endswith(('.cpp', '.h', '.inc', '.py'))
 
 
 class Tree:
@@ -138,6 +108,9 @@ class Tree:
             self.paths = []
             for top in ('src', 'tests', 'config'):
                 for d, _, names in os.walk(os.path.join(ROOT, top)):
+                    d = d.replace(os.sep, '/')
+                    if '/golden' in d or d.endswith('/saves'):
+                        continue
                     for n in names:
                         self.paths.append(os.path.relpath(os.path.join(d, n), ROOT).replace(os.sep, '/'))
 
@@ -163,134 +136,110 @@ class Batch:
         return data.decode('utf-8', errors='replace')
 
 
-# Per-file numbers keyed by (blob id, path): consecutive commits share most files, so each version
-# of a file is scanned once per run instead of once per commit (~3 s per late commit before).
-FILE_CACHE = {}
-
-
-def file_stats(path, text):
-    """One file's share of measure(): its loc part and lines, cleanup counts, standalone counts and data
-    addresses."""
-    cleanup, standalone, data = defaultdict(int), defaultdict(int), set()
-    track, data_all, structs = {}, set(), set()
-    part =('tests/scenarios' if path.startswith('tests/scenarios') else 'tests/verify'
-            if path.startswith('tests/') else '/'.join(path.split('/')[:2]))
-    if path.startswith('tests/scenarios') and path.endswith('.txt'):
-        cleanup['scenarios'] += 1
-    if path.endswith(('.cpp', '.h')):
-        code = COMMENT.sub('', text)
-        if path.startswith('src/'):
-            source = srcscan.Source(path, text)
-            track = {key: len(rx.findall(source.code)) for key, rx in TRACK_PATTERNS.items()}
-            track['fastcall_shims'] = progress.fastcall_shims([source])[0]
-            data_all = {a for a in (int(m, 16) for m in DATA_LITERAL.findall(source.code)) if a in DATA_RANGE}
-            structs = progress.defined_struct_names(source.code)
-            track['platform_files'] = int(check_platform.counted(path) and check_platform.calls_windows(text))
-            if not path.startswith(('src/hook/', 'src/standalone/')):
-                for k, rx in CLEANUP.items():
-                    cleanup[k] += len(rx.findall(code))
-                for k, n in ratchet_counts(path, text).items():
-                    cleanup[k] += n
-                data |= {a for a in (int(m, 16) for m in DATA_LITERAL.findall(code)) if 0x730000 <= a <= 0x8FFFFF}
-                if not path.startswith('src/lib/'):
-                    for k, rx in STANDALONE.items():
-                        standalone[k] += len(rx.findall(code))
-    return part, text.count('\n'), dict(cleanup), dict(standalone), data, track, data_all, structs
-
-
-def measure(tree):
-    if not tree.read('config/functions.csv'):   # the early history
-        return None
-    loc, cleanup = defaultdict(int), defaultdict(int)
-    standalone, data = defaultdict(int), set()
-    track, data_all, struct_files = defaultdict(int), set(), defaultdict(int)
-    for path in tree.paths:
-        if not path.endswith(('.cpp', '.h', '.inc', '.txt', '.py')):
-            continue
-        if not (path.startswith('src/') or path.startswith('tests/')):
-            continue
-        key = (tree.blobs.get(path), path)
-        f = FILE_CACHE.get(key) if key[0] else None
-        if f is None:
-            text = tree.read(path)
-            if text is None:
-                continue
-            f = file_stats(path, text)
-            if key[0]:
-                FILE_CACHE[key] = f
-        part, lines, counts, stand, data_here, track_here, data_all_here, structs_here = f
-        for k, n in track_here.items():
-            track[k] += n
-        data_all |= data_all_here
-        for name in structs_here:
-            struct_files[name] += 1
-        loc[part] += lines
-        for k, n in counts.items():
-            cleanup[k] += n
-        for k, n in stand.items():
-            standalone[k] += n
-        data |= data_here
-
-    standalone['data_addresses'] = len(data)
-    standalone['image_ties'] = sum(1 for path, rx in IMAGE_TIES if rx.search(COMMENT.sub('', tree.read(path) or '')))
-    track.update(data_addresses=len(data_all), structs_defined_twice=sum(1 for n in struct_files.values() if n > 1))
-    track.update(generated_tables(tree))
-    return {'loc': dict(loc), 'cleanup': dict(cleanup), 'standalone': dict(standalone), 'track': dict(track)}
-
-
-def generated_tables(tree):
-    """The image's tables of game.exe's data (S18b / S18i, C18, C19): code cells by group (none since C20), pointer
-    cells, named ranges and retired vtables; a commit without a table leaves its keys out."""
+def ratchet_counts(path, text):
+    """check_cleanup's counts for one file (its comment stripping and exemptions)."""
+    code = check_cleanup.strip_comments(text)
     out = {}
-    code_cells = tree.read('src/standalone/image_code_cells.inc')
-    if code_cells:
-        groups, group = defaultdict(int), ''
-        for line in code_cells.splitlines():
-            if line.startswith('// '):
-                group = line
-            elif line.startswith('{DataId('):
-                kind = ('code_cells_eh' if 'C++ EH' in group else 'code_cells_vtable' if 'vtable' in group
-                        else 'code_cells_static_init' if 'initialiser list' in group else 'code_cells_other')
-                groups[kind] += 1
-        out.update(groups, code_cells=sum(groups.values()))
-    pointer_cells = tree.read('src/standalone/image_cells.inc')
-    if pointer_cells:
-        out['pointer_cells'] = len(CELL.findall(pointer_cells))
-        out.setdefault('code_cells', 0)   # retired in C20: game.exe's data keeps no code pointer in the image
-    elif 'tools/retired_vtables.py' in tree.paths:   # retired in C20t with image_cells.inc: none left
-        out.update(pointer_cells=0, code_cells=0)
-    # The retired vtables: their own csv until C20 batch 6 folded it into config/vtables.csv (the rows with a class).
-    retired = tree.read('config/retired_vtables.csv')
-    if retired is None and 'class' in (tree.read('config/vtables.csv') or '').partition('\n')[0].split(','):
-        retired = tree.read('config/vtables.csv')
-    if retired is not None:
-        out['retired_vtables'] = sum(1 for r in csv.DictReader(io.StringIO(retired)) if r.get('class', '-') != '')
-    for key, path in (('named_ranges', 'config/named_data.csv'),):
-        text = tree.read(path)
-        if text is not None:
-            out[key] = sum(1 for _ in csv.DictReader(io.StringIO(text)))
+    for key, name in RATCHET.items():
+        rx = check_cleanup.PATTERNS.get(name)
+        if rx is None or (name in check_cleanup.EXEMPT and path.startswith(check_cleanup.EXEMPT[name])):
+            continue
+        out[key] = rx(code) if callable(rx) else len(rx.findall(code))
     return out
 
 
-def metrics_version():
-    """Hash of the code that decides the numbers; a cache made by other code is not reused. Comments,
-    blank lines and indentation-only changes do not count, so editing an explanation keeps the cache."""
-    h = hashlib.sha1()
-    for name in ('dashboard_data.py', 'check_cleanup.py', 'check_platform.py', 'progress.py', 'srcscan.py'):
-        with open(os.path.join(ROOT, 'tools', name), 'rb') as f:
-            for tok in tokenize.tokenize(f.readline):
-                if tok.type not in (tokenize.COMMENT, tokenize.NL, tokenize.NEWLINE, tokenize.INDENT,
-                                    tokenize.DEDENT, tokenize.ENCODING):
-                    h.update(tok.string.encode() + b'\0')
-    return h.hexdigest()
+def file_group(group, path, text):
+    """One file's share of one group: (directory, lines) for loc, (counts, struct names defined) for track, else the
+    counts."""
+    if group == 'loc':
+        return '/'.join(path.split('/')[:2]), text.count('\n')
+    counts, names = {}, set()
+    if group == 'cleanup' and path.startswith('tests/scenarios') and path.endswith('.txt'):
+        counts['scenarios'] = 1
+    if path.startswith('src/') and path.endswith(('.cpp', '.h')):
+        if group == 'track':
+            source = srcscan.Source(path, text)
+            counts = {key: len(rx.findall(source.code)) for key, rx in TRACK_PATTERNS.items()}
+            names = progress.defined_struct_names(source.code)
+        elif group == 'goals':
+            code = COMMENT.sub('', text)
+            counts = {key: len(rx.findall(code)) for key, rx, left_out in GOALS if not path.startswith(left_out)}
+        elif not path.startswith(('src/hook/', 'src/standalone/')):
+            code = COMMENT.sub('', text)
+            if group == 'cleanup':
+                counts = {key: len(rx.findall(code)) for key, rx in CLEANUP.items()}
+                counts.update(ratchet_counts(path, text))
+            elif group == 'standalone' and not path.startswith('src/lib/'):
+                counts = {key: len(rx.findall(code)) for key, rx in STANDALONE.items()}
+    return (counts, names) if group == 'track' else counts
+
+
+# Per-file numbers keyed by (blob id, path, group): consecutive commits share most files, so each version of a file is
+# scanned once per run instead of once per commit.
+FILE_CACHE = {}
+
+
+def measure(tree, groups=GROUPS):
+    """{group: numbers} of one tree for the given groups, or None for the early history without the inputs."""
+    if not tree.read('config/functions.csv'):
+        return None
+    loc, sums, struct_files = defaultdict(int), {g: defaultdict(int) for g in groups}, defaultdict(int)
+    for path in tree.paths:
+        if not counted(path):
+            continue
+        text = None
+        for group in groups:
+            key = (tree.blobs.get(path), path, group)
+            f = FILE_CACHE.get(key) if key[0] else None
+            if f is None:
+                if text is None:
+                    text = tree.read(path)
+                    if text is None:
+                        break
+                f = file_group(group, path, text)
+                if key[0]:
+                    FILE_CACHE[key] = f
+            if group == 'loc':
+                loc[f[0]] += f[1]
+                continue
+            if group == 'track':
+                f, names = f
+                for name in names:
+                    struct_files[name] += 1
+            for k, n in f.items():
+                sums[group][k] += n
+    out = {g: dict(sums[g]) for g in groups if g != 'loc'}
+    if 'loc' in groups:
+        out['loc'] = dict(loc)
+    if 'track' in groups:
+        out['track']['structs_defined_twice'] = sum(1 for n in struct_files.values() if n > 1)
+    return out
+
+
+def versions_of(point):
+    return point.get('mv') or {g: 1 for g in OLD_GROUPS if g in point}
+
+
+def prune(point):
+    """The point without the keys no group measures any more (the retired series and the hook directory)."""
+    for group, keys in KEYS.items():
+        if group in point:
+            point[group] = {k: v for k, v in point[group].items() if k in keys}
+    if 'loc' in point:
+        point['loc'] = {k: v for k, v in point['loc'].items() if not k.startswith('src/hook')}
+    return point
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--every', type=int, default=8, help='sample every Nth first-parent commit')
     ap.add_argument('--out', default=os.path.join(ROOT, 'build', 'dashboard', 'data.json'))
-    ap.add_argument('--no-cache', action='store_true', help='measure every sampled commit again instead of reusing the previous data.json')
+    ap.add_argument('--no-cache', action='store_true', help='measure every sampled commit again instead of keeping the previous data.json')
+    ap.add_argument('--refresh', default='', help='groups (' + ', '.join(GROUPS) + '; comma separated) to measure again for every point')
     args = ap.parse_args()
+    refresh = set(GROUPS) if args.no_cache else {g for g in args.refresh.split(',') if g}
+    if refresh - set(GROUPS):
+        ap.error('unknown group: ' + ', '.join(sorted(refresh - set(GROUPS))))
     log = subprocess.run(['git', 'log', '--first-parent', '--reverse', '--format=%H %cI %s', 'main'], cwd=ROOT,
                          capture_output=True, text=True).stdout.strip().split('\n')
     commits = [l.split(' ', 2) for l in log]
@@ -298,39 +247,44 @@ def main():
     if sample[-1] != commits[-1]:
         sample.append(commits[-1])
     batch = Batch()
-    version = metrics_version()
     known, skipped = {}, set()
-    if not args.no_cache and os.path.exists(args.out):
+    if os.path.exists(args.out):
         try:
             previous = json.load(open(args.out))
-            if previous.get('version') == version:
-                known = {p['sha']: p for p in previous.get('history', []) if 'sha' in p}
-                skipped = set(previous.get('skipped', []))
+            known = {p['sha']: p for p in previous.get('history', []) if 'sha' in p}
+            skipped = set(previous.get('skipped', []))
         except (OSError, ValueError):
             pass
-    history, measured, unmeasured = [], 0, []
+    history, new, again, unmeasured = [], 0, defaultdict(int), []
     for sha, when, subject in sample:
-        if sha in known:
-            m = known[sha]
-        elif sha in skipped:
-            m = None
-        else:
-            m = measure(Tree(sha, batch))
-            measured += 1
-            if m:
-                print(f'{sha[:7]} {when[:16]}', file=sys.stderr)
-        if m:
-            m = dict(m, sha=sha, commit=sha[:7], date=when, subject=subject[:80])
-            history.append(m)
-        else:
+        point = known.get(sha)
+        if point is None and sha in skipped and not args.no_cache:
             unmeasured.append(sha)   # a commit without the inputs (early history): not measured again
-    print(f'{measured} commits measured, {len(sample) - measured} reused from {os.path.basename(args.out)}', file=sys.stderr)
+            continue
+        if point is None:
+            point, todo = {}, list(GROUPS)
+            new += 1
+        else:
+            have = versions_of(point)
+            todo = [g for g in GROUPS if g in refresh or g not in point or have.get(g) != GROUP_VERSION[g]]
+            for g in todo:
+                again[g] += 1
+        if todo:
+            got = measure(Tree(sha, batch), todo)
+            if got is None:
+                unmeasured.append(sha)
+                continue
+            point = dict(point, **got, mv=dict(versions_of(point), **{g: GROUP_VERSION[g] for g in todo}))
+            print(f'{sha[:7]} {when[:16]}  {",".join(todo)}', file=sys.stderr)
+        history.append(prune(dict(point, sha=sha, commit=sha[:7], date=when, subject=subject[:80])))
+    print(f'{len(sample)} commits: {new} new, {len(history) - new} kept' + ''.join(f'; {g} again for {n}' for g, n in again.items()),
+          file=sys.stderr)
     current = measure(Tree(None, batch))
-    current.update(commit='working tree', date=subprocess.run(['git', 'log', '-1', '--format=%cI'], cwd=ROOT,
-                   capture_output=True, text=True).stdout.strip(), subject='')
+    current.update(commit='working tree', mv=dict(GROUP_VERSION), subject='',
+                   date=subprocess.run(['git', 'log', '-1', '--format=%cI'], cwd=ROOT,
+                                       capture_output=True, text=True).stdout.strip())
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
-    json.dump({'version': version, 'current': current, 'history': history, 'skipped': unmeasured},
-              open(args.out, 'w'), indent=1)
+    json.dump({'current': prune(current), 'history': history, 'skipped': unmeasured}, open(args.out, 'w'), indent=1)
     print(f'wrote {args.out}: {len(history)} history points', file=sys.stderr)
 
 
