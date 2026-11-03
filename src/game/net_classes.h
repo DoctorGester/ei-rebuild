@@ -1,7 +1,7 @@
 #pragma once
 
-// The multiplayer session classes and the message base; see docs/notes/network.md and
-// docs/notes/cleanup-network.md. SessionBase holds the UDP socket, the connections, the message type
+// The multiplayer session classes and the message base; see docs/notes/network.md.
+// SessionBase holds the UDP socket, the connections, the message type
 // registry and the handler tables; ServerBase / ClientBase add the lobby side (pending joins, finding
 // servers) under ServerSession / ClientSession, the game server and client (g_gameServer, g_gameClient).
 // Message (below) is the replicated object base, ServerEntry a server as the lobby lists it.

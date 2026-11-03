@@ -1,5 +1,5 @@
 // Message links over streams (net_link.h): the file stream, the link base, the loopback link, the framed
-// link and the per-player driver. See docs/notes/network.md and docs/notes/cleanup-network.md.
+// link and the per-player driver. See docs/notes/network.md.
 #include "net_link.h"
 
 #include "core_streams.h"

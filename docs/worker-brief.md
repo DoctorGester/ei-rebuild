@@ -1,79 +1,78 @@
-# Worker brief (common part)
+# Worker brief
 
-You are working on a C++ rebuild of Evil Islands' game.exe (1.06, MSVC6) in the repo at your
-current working directory (a git worktree of E:\workspace\ei). The product is the standalone image:
-ei-rebuild.exe runs our code (all of it linked in) with no game.exe code, on the part of game.exe's data not
-yet named in our source. The harness no longer runs game.exe (H40): the goldens are the image's own. Classes are
-normal C++ (rewrite guide, "Where code goes"). Your task is ONE ticket, given in your prompt;
-do it, commit, report, and stop. Don't start other work.
+This repo is a readable C++ rebuild of Evil Islands' `game.exe` 1.06 that behaves like the original (the same world,
+saves and network play), not one that matches it byte for byte. The product is `ei-rebuild.exe`: one 64-bit exe,
+dropped into a GOG or Rebirth install. Nothing runs or reads the original `game.exe`; the goldens are our own runs.
 
-First commands: merge main into your worktree, then `python tools/work.py start <ID>` (registers you
-on the work board; `python tools/work.py status` shows it). Then read: README.md (harness section), docs/rewrite-guide.md (all rules come from real bugs),
-your ticket with `python tools/tickets.py show <ID>` (status, note, files, what it waits on, its
-group's note and doc), and the notes file it names. For renderer work also docs/notes/renderer.md.
-Don't read docs/tickets.md whole (it is generated; `tickets.py show` / `list` cover it).
+A worker does ONE ticket, given in its prompt: do it, commit, report, stop.
 
-Tickets (text in docs/tickets.toml, status in the shared work database; both only through tools/tickets.py,
-never by hand). `work.py start` set yours running.
-- When your branch is ready: `python tools/tickets.py set <ID> review` (shows on the board at once; commit
-  the rewritten docs/tickets.md with your work).
-- Follow-up work you found but did not do: `python tools/tickets.py add <NEW-ID> --group <key>
-  --title "..." --note "..." [--depends <ID>]` (ids: your ticket's prefix plus a letter or number;
-  `tickets.py list` shows what exists). Mention them in your report.
+## Start
+
+1. Merge main into your worktree (once, now; never again before handing back), then `python tools/work.py start <ID>`.
+2. Read `README.md`, `docs/rewrite-guide.md` (every rule comes from a real bug), `docs/comment-guide.md`, your
+   ticket (`python tools/tickets.py show <ID>`: note, files, dependencies, its group's note and doc) and the notes
+   of your area (`docs/notes/README.md` lists them). Don't read `docs/tickets.md` whole.
+3. Work in few turns: read whole sections at once, send independent reads and edits together.
+
+## Tickets
+
+The text is in `docs/tickets.toml`, the status in the shared work database (`docs/notes/work-board.md`); both
+only through `tools/tickets.py`, never by hand.
+- Branch ready: `python tools/tickets.py set <ID> review`; commit the rewritten `docs/tickets.md` with your work.
+- Follow-up work you found: `python tools/tickets.py add <NEW-ID> --group <key> --title "..." --note "..."
+  [--depends <ID>]` (your ticket's prefix plus a letter or digit); name them in your report.
 - Leave other tickets' status alone; the coordinator sets done at merge.
-- Merge main once, at the start. Don't merge it again before handing back, even when main moves while
-  you test: hand the branch back as tested; the coordinator merges it into current main, builds, runs the
-  main suites and sends it back to you if anything breaks.
-- If docs/tickets.toml or docs/tickets.md conflicts when you merge main: take main's toml, re-apply
-  your few changes with tickets.py, and let it rewrite tickets.md (`python tools/tickets.py`; it also
-  drops any status line that came back: the database's status wins).
+- A `docs/tickets.toml` / `docs/tickets.md` conflict: take main's toml, re-apply your changes with tickets.py and
+  let it rewrite tickets.md (`python tools/tickets.py`).
+- Board notes at milestones: `python tools/work.py note <ID> "<text>"` (what changed, what runs, what blocks).
 
-Rules:
-- Deleting code deletes its comment in the same edit: a function, member, constant or declaration
-  goes with the comment above it (docs/comment-guide.md, "Comments of deleted code"). Scripts that delete
-  definitions must take the comment block too.
-- Never modify anything under F:\games or the registry. Don't install anything. Don't call any
-  mcp__hearthbot__ tools.
-- Games only through `python tools/work.py test <ID> [run_all args]` (same arguments as run_all:
-  scenario names for a subset, `--vanilla-only`, ...; same summary and exit code), at most `--jobs 4`.
-  It queues behind other workers' batches on the machine's 16 game slots and runs to completion, also
-  for one scenario (the board shows it); don't call tools/run_all.py directly, it skips the queue.
-  The runs are the standalone image's (installs standalone / standalone-rebirth, checked with `--golden`).
-  A change that should not alter behaviour keeps every golden the same; an intended change re-records the affected
-  goldens (docs/notes/standalone-verification.md, section 2) and says why in the commit. Never leave a game running. The games read the installs under F:\games; your worktree needs
-  no run\ folder (the tools that read game.exe's file find the main checkout's run\).
-- Plain C++ float maths (rule 7).
-- Say how each rewrite is checked (rewrite guide, "Verification"): which scenario with a golden
-  reaches it, or which unit check (tests/unit) covers it.
-- No `EI_ORIGINAL` forwarders: call functions by name (rewrite guide rule 5).
-- Write clean code (rewrite guide, "Clean code"): members not offsets, real virtual functions (no
-  hand-built tables), named globals; build.cmd's check_cleanup fails when a file's counts go up.
-- Shared headers: small additive changes only (adding members a port needs is fine).
-- Build `build.cmd verify` (the harness build: the image plus the harness, what the runs use) and `build.cmd release` (the product) (your worktree's, by full path) with no errors
-  or warnings; `python tools/check_x87.py` and the checks build.cmd runs at
-  0 problems.
-- Notes: update the ticket's notes file in place: current facts, how-tos, rules from real bugs and open questions,
-  no log (the commit history keeps that; docs/notes/README.md).
-- Board notes: `python tools/work.py note <ID> "<text>"` at milestones (short: what changed, what is
-  running, what blocks), e.g. after a green build, before a suite, when stuck. The coordinator ends
-  your assignment (`work.py done`) at merge; you only start and note.
-- Work in few turns (each tool call costs a model turn; that is most of a worker's time): start
-  from the notes, functions and files the ticket names; read with Read / Grep, whole sections at
-  once, and send independent reads, searches and edits together in one message.
-- Long commands (both builds, a suite) go in the background (`run_in_background`); then end your
-  turn and wait for the completion notice. Never poll: no `until` / `while sleep` loops, no
-  Wait-Process, no repeated tail of an output file. Build `verify` while iterating, `release`
-  before each commit (debug and asan are the coordinator's, at merge).
-- Every background command runs under a time limit: `python tools/limit.py SECONDS -- COMMAND...` kills
-  its whole process tree at the limit, prints TIMED OUT, posts a board note and exits 124. Limits: a
-  build 900, `work.py test` 5400 (it may queue behind other batches), anything else 600. A timeout is
-  a result: find out why (a hung game, a tool waiting on input, a loop), don't just raise the limit.
-  A command you expect to finish in seconds runs in the foreground.
-- Scratch files go under the scratchpad's folder for your ticket (the scratchpad is shared). So do one-off
-  migration scripts (retypes, deletions): never commit them to tools/; give the script's full path in your report
-  so the coordinator can re-run it after a merge conflict.
-- Commit messages end with: Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>
+## Build and test
 
-Report (short): what you changed (addresses, files), how each is verified, risks, branch/commit.
+- `build.cmd verify` (the image with the harness: what the runs use) and `build.cmd release` (the product), by full
+  path, with no errors or warnings; both run the build checks (`tools/build_checks.py`), which must pass. Also
+  `python tools/check_x87.py`. Debug and asan builds are the coordinator's, at merge. `play.cmd` (the user plays with
+  it) must keep working: change it with `build.cmd`'s arguments or outputs.
+- Games only through `python tools/work.py test <ID> [run_all args]` (scenario names for a subset,
+  `--rebirth-only`, `--golden`, at most `--jobs 4`): it queues on the machine's 16 game slots. Never call
+  `tools/run_all.py` directly, never leave a game running. Equivalence sweeps stay under about 5 minutes per run.
+- A change that should not alter behaviour keeps every golden the same. An intended change re-records the affected
+  goldens and says why in the commit (`docs/notes/standalone-verification.md`, "Recording goldens").
+- Say how each change is checked: the scenario with a golden that reaches it, or the unit check (`tests/unit`).
+- Long commands (builds, suites) run in the background under `python tools/limit.py SECONDS -- COMMAND...` (build
+  900, `work.py test` 5400, else 600); wait for the completion notice, never poll. A timeout is a result: find out
+  why.
+- Cloud sessions (no compiler, no game data) build and test through the Suites workflow on the self-hosted runner
+  (`docs/notes/harness.md`, "The Suites workflow").
 
-play.cmd (the user plays with it) builds `build.cmd play` into build\play and starts the standalone. If you change build.cmd's arguments or outputs, keep play.cmd working.
+## Rules
+
+The user's standing decisions:
+- Same behaviour, checked by the goldens; heap layout is never preserved; goldens hold no frames.
+- Normal C++ classes: no hand-built vtables, no layout rules, no needless forwarders, no trailing `_` on members.
+- Zero MFC and STLport in game code, a minimal CRT of our own; hunt dead code.
+- One uniform code path over branches that run only in edge cases.
+- Renderer upgrades replace the old look (no render flags). The interface is drawn natively (no GDI).
+- Text is UTF-8 everywhere; saves stay cp1251 on disk, converted at load and save.
+- Client-only effects use their own random generator, so client draws never move game state.
+- Floating point is plain C++ on SSE; fix rounding issues by judgement, no tests that hang on rounding.
+- Rebirth's fixes are always on; widescreen is one layout for any aspect ratio.
+- Every build is x64; the platform layer (`src/platform`, SDL3) is the direction; Linux builds and runs its checks.
+
+Safety on the machine:
+- Never write under `F:\games` (the installs) or the registry; scratch runs set `Work path` and `CD-ROM Path` to
+  `.\` in their own `ei_settings.ini`. Don't install anything.
+- Never recursive-delete a folder that holds junctions: remove each link with `cmd /c rmdir <link>` first.
+- Never switch the display mode or use exclusive full screen. A game lasts at most 60 s.
+- The repo is public: never commit game data.
+- Scratch files and one-off scripts go to your scratchpad folder, not `tools/`; name the scripts in your report.
+
+Code:
+- Deleting code deletes its comment in the same edit (`docs/comment-guide.md`).
+- Shared headers: small additive changes only.
+- Notes: update your area's notes file in place: current facts, how-tos, rules from real bugs, open questions; no
+  log (git keeps the history; `docs/notes/README.md`).
+- Commit small green groups; messages end with the co-author line given in your prompt.
+
+## Report
+
+Short: what changed (files), how each part is checked, risks, branch and commit, follow-up tickets.

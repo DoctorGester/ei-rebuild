@@ -236,7 +236,7 @@ while stack:
 
 # write config/dead_code.csv: game functions not reached, minus library.csv and Rebirth-patched ones
 lib = {int(r['address'], 16) for r in csv.DictReader(open(os.path.join(R, 'config/library.csv')))}
-patched = {int(l[:8], 16) for l in open(os.path.join(R, 'docs/rebirth-patched-functions.txt'))
+patched = {int(l[:8], 16) for l in open(os.path.join(R, 'config/rebirth_patched_functions.txt'))
            if re.match(r'[0-9A-F]{8} ', l)}
 rev = {}
 for src, ds in edges.items():

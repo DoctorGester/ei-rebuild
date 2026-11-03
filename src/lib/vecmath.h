@@ -1,7 +1,7 @@
 #pragma once
 
-// Vector, quaternion and matrix types and their inline maths (the catalog, the orders the game uses and the
-// migration plan are in docs/notes/vector-math.md). Types: the game's own layouts, aggregates without
+// Vector, quaternion and matrix types and their inline maths (the orders the game uses:
+// docs/notes/float-maths.md, "Vector helpers"). Types: the game's own layouts, aggregates without
 // constructors (`{x, y, z}` initialisation keeps working). The out-of-line members (Vector3::Length,
 // Quaternion::PreMultiply, ...) are declared here and defined in src/game; the free ones (Dot, CrossProduct,
 // ...) stay declared in maths.h / object_maths.h / core_maths.h. Inline helpers never reuse those names.
@@ -15,7 +15,7 @@
 // grouping written here is kept. Each helper's float results are rounded to float when
 // returned. The original's main thread ran its x87 at 24-bit precision, where every operation rounds to a float
 // significand: float maths gives the game's bits (code of its 53-bit threads stays written out,
-// docs/notes/vector-math.md). Square roots use std::sqrt (of a float: sqrtf). The game CRT's arc cosine and sine
+// docs/notes/float-maths.md). Square roots use std::sqrt (of a float: sqrtf). The game CRT's arc cosine and sine
 // (libcrt::CiAcos / CiAsin) return a double; where the game stores the result to a float, round it with
 // static_cast<float> (an unrounded angle flipped a quaternion's sign).
 

@@ -1,4 +1,4 @@
-"""Prints the "cleanup artefacts" block: the hook-era leftovers that docs/cleanup-plan.md wants to see fall (naked
+"""Prints the "cleanup artefacts" block: the hook-era leftovers that docs/rewrite-guide.md ("Clean code") wants to see fall (naked
 functions, offset access, raw data addresses, duplicate layouts). tools/dashboard_data.py charts the same counts.
 
 (The rewrite progress it reported first, functions rewritten against config/functions.csv, came from the
@@ -9,7 +9,7 @@ from collections import defaultdict
 
 import srcscan
 
-# ---- cleanup artefacts (docs/cleanup-plan.md, "What is left and what removes it") -------------------------------------
+# ---- cleanup artefacts (docs/rewrite-guide.md, "Clean code") -------------------------------------------------------
 # Every count runs over src/ (*.cpp, *.h) with comments blanked; `sources` is srcscan.load_sources().
 
 def count_matches(sources, pattern):

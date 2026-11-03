@@ -1,7 +1,6 @@
 """The game code is SSE2 code and writes plain float maths: no x87 helpers (`x87::`), no `libcrt::Ftol` and no D()
 double registers (C30c) in src/game, src/lib and src/render; the original's x87 maths at its 24-bit precision is
-float maths in its order, and src/lib/pc24.h where an operand was wider (docs/notes/cleanup-tooling.md, "The x87 files
-to SSE2"). Checked in the sources.
+float maths in its order, and src/lib/pc24.h where an operand was wider (docs/notes/float-maths.md). Checked in the sources.
 
 usage: python tools/check_x87.py   (exit 1 when a reference is found)
 """

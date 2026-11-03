@@ -35,7 +35,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SOURCE = os.path.join(ROOT, 'docs', 'tickets.toml')
 MARKDOWN = os.path.join(ROOT, 'docs', 'tickets.md')
 # The statuses as a committed file, for checkouts without the machine's work database (cloud sessions,
-# docs/cloud-handoff.md): every generate writes it from the database, and loaded() takes from it each row that is
+# docs/notes/work-board.md): every generate writes it from the database, and loaded() takes from it each row that is
 # newer than the database's (or that the database lacks), so a status set on either side reaches the other by git.
 STATUS_FILE = os.path.join(ROOT, 'docs', 'ticket_status.tsv')
 STATUS_COLUMNS = ('ticket', 'status', 'started', 'done', 'changed', 'author')

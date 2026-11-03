@@ -1,4 +1,4 @@
-# Hosting a multiplayer game from the menus (docs/notes/ui-census.md): main menu region 5 (the hero
+# Hosting a multiplayer game from the menus: main menu region 5 (the hero
 # screen), a new hero (region 5; the defaults first, region 4, as they clear the name; then the name
 # typed, create, region 1, and the statistics page's next, region 1, which writes 1.mp into the
 # run's overlay and selects it), Enter continues to the connection screen (CMpConnectScreen
