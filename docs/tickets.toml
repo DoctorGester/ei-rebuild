@@ -6884,6 +6884,13 @@ depends = ["C70"]
 note = "User 2026-11-03: do we need src/hook? It holds log.{h,cpp} (the program's log, live) and rebirth_hook.{h,cpp} (picks the Rebirth or vanilla profile, live): move them where they belong (src/platform or src/game; rename rebirth_hook to what it does) and fix the includes, CMake and docs. function_sizes.inc (12k lines, game.exe's function sizes from Ghidra) is read only by tools/coverage.py, tools/find_dead_code.py and tools/gen_function_sizes.py, which measure coverage of game.exe's addresses: delete all four unless something still uses them (say what). Batch with C70's worker if it has room."
 
 [[ticket]]
+id = "C72"
+title = "Docs and notes trimmed hard: what the code is now, not how it got here"
+group = "cleanup"
+model = "opus"
+note = "User 2026-11-03: trim the docs and notes massively; much is no longer needed (e.g. the cloud handoff). Today docs/ is ~18k lines besides the tickets (renderer.md 2.1k, standalone.md 1.6k, ui.md 1.1k, cleanup-tooling.md 0.9k, ui-native.md 0.8k, 11 cleanup-*.md, comments-c22i.md, ui-census.md, standalone-verification.md, x64.md, cleanup-plan.md, standalone-cleanup.md, open-questions.md, rewrite-guide.md, comment-guide.md, ghidra_functions_initial.txt, rebirth-patched-functions.txt). Rules: keep what a programmer needs to work on the code as it is now: how a system works, non-obvious decisions and why, formats (saves, network, data files), how to build/test/run, the harness and goldens, the ticket and work tools. Delete: history and per-ticket logs ('R9c1 did X, then Y'), migration scaffolding (hooks, game.exe addresses and layouts, the 32-bit build, function vectors, Ghidra lists, cleanup progress counts, census tables), finished plans, anything the code or git log already says, and duplication across files. Merge the small leftovers of a topic into one note; fold cleanup-*.md into the topic notes or drop them. Delete docs/cloud-handoff.md; CLAUDE.md becomes a few lines pointing at docs/worker-brief.md (itself trimmed), and the references in .github/workflows/suites.yml and tools/tickets.py follow. Ticket notes in docs/tickets.toml stay (the board reads them). Fix links to deleted sections (grep the repo, including src comments that cite notes sections; a src comment citing a deleted section loses the citation, not its meaning). Aim for a third of today's size or less; report before/after per file. R41 (renderer.md R9c) and PL14 (platform/standalone notes) edit some of these files at the same time: keep their sections' meaning and expect merges."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
