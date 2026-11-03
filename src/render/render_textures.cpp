@@ -267,7 +267,6 @@ sg_wrap Wrap(std::uint8_t address) {
     switch (address) {
     case 2: return SG_WRAP_MIRRORED_REPEAT;
     case 3: return SG_WRAP_CLAMP_TO_EDGE;
-    case 4: return SG_WRAP_CLAMP_TO_BORDER;
     default: return SG_WRAP_REPEAT;
     }
 }
@@ -424,7 +423,6 @@ sg_sampler StageSampler(const StageState& s) {
     if (s.mipFilter <= 1) d.max_lod = 0.0f;   // D3DTFP_NONE: level 0 only
     d.wrap_u = Wrap(s.addressU);
     d.wrap_v = Wrap(s.addressV);
-    d.border_color = SG_BORDERCOLOR_TRANSPARENT_BLACK;
     d.label = "ei-stage-sampler";
     sg_sampler sampler = sg_make_sampler(&d);
     g_samplers.emplace(key, sampler);
@@ -449,7 +447,6 @@ sg_sampler AnisotropicSampler(const StageState& s, std::uint32_t level) {
     if (s.mipFilter <= 1) d.max_lod = 0.0f;   // D3DTFP_NONE (the options' Mipmapping 0): level 0 only
     d.wrap_u = Wrap(s.addressU);
     d.wrap_v = Wrap(s.addressV);
-    d.border_color = SG_BORDERCOLOR_TRANSPARENT_BLACK;
     d.label = "ei-anisotropic-sampler";
     sg_sampler sampler = sg_make_sampler(&d);
     ei::Log("render: anisotropic sampler: %u with linear mips%s (the stage's filters %u / %u / %u)", level,

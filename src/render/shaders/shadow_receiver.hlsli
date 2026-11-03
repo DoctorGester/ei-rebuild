@@ -14,12 +14,29 @@ ConstantBuffer<ShadowParams> shadow : FS_BLOCK(SHADOW_BLOCK_SLOT);
 Texture2D<float> shadow_map : FS_TEXTURE(SHADOW_MAP_SLOT);
 SamplerComparisonState shadow_smp : FS_SAMPLER(SHADOW_MAP_SLOT);
 Texture2D<float4> shadow_range : FS_TEXTURE(SHADOW_RANGE_SLOT);
-SamplerState shadow_linear : FS_SAMPLER(SHADOW_RANGE_SLOT);   // the range, filtered
+SamplerState range_smp : FS_SAMPLER(SHADOW_RANGE_SLOT);   // unused: the range is read with Load
 
 static const int kSearchTaps = 8;
 static const int kFilterTaps = 16;
 static const int kFewTaps = 8;
 static const float kShadowCell = 16.0;   // kRangeCell
+
+// The range at `uv`, bilinear between the four cells around it and clamped at the map's edges, done by hand: a
+// filtered read of RGBA32F is optional on some devices.
+float4 range_at(float2 uv) {
+    uint w, h;
+    shadow_range.GetDimensions(w, h);
+    int2 size = int2(w, h);
+    float2 p = uv * float2(size) - 0.5;
+    float2 base = floor(p);
+    float2 f = p - base;
+    int2 lo = clamp(int2(base), 0, size - 1), hi = clamp(int2(base) + 1, 0, size - 1);
+    float4 a = shadow_range.Load(int3(lo, 0));
+    float4 b = shadow_range.Load(int3(hi.x, lo.y, 0));
+    float4 c = shadow_range.Load(int3(lo.x, hi.y, 0));
+    float4 d = shadow_range.Load(int3(hi, 0));
+    return lerp(lerp(a, b, f.x), lerp(c, d, f.x), f.y);
+}
 
 // `v` turned by `turn` (cosine, sine).
 float2 turned(float2 turn, float2 v) { return float2(turn.x * v.x - turn.y * v.y, turn.y * v.x + turn.x * v.y); }
@@ -68,7 +85,7 @@ float shadow_amount(float3 s, float3 dsx, float3 dsy, float2 pixel, float front)
         slope = 0.0;
     }
     float4 soft = shadow.soft;
-    float4 around = shadow_range.SampleLevel(shadow_linear, uv, 0.0);
+    float4 around = range_at(uv);
     float reach = (abs(slope.x) + abs(slope.y)) * soft.y;   // the receiver's plane across the search
     if (around.x >= z + reach) return 0.0;
     float widest = clamp((z + reach - around.x) * soft.x, soft.z, soft.y);
@@ -85,7 +102,7 @@ float shadow_amount(float3 s, float3 dsx, float3 dsy, float2 pixel, float front)
         for (int k = 0; k < kSearchTaps; ++k) {
             float2 o = shadow_disc(k, kSearchTaps, turn) * widest;
             float zo = z + dot(slope, o);
-            float d = shadow_range.SampleLevel(shadow_linear, uv + o, 0.0).z;
+            float d = range_at(uv + o).z;
             if (d < zo) {
                 apart += zo - d;
                 hidden += 1.0;

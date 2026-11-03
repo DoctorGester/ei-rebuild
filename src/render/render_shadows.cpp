@@ -167,10 +167,11 @@ float g_nearestCaster = 1e30f;
 
 // --- GPU side ---------------------------------------------------------------------------------------
 
-// The casters' pipelines (CasterDraws): MeshLayout's position and texture coordinates in vertex buffers 0 and 1,
-// the draw's CasterInstance in kInstanceBuffer as kInstanceAttrs float4s (shaders/shadow_caster.glsl's in_row0 ..
-// in_cut).
-constexpr int kInstanceBuffer = 2;
+// The casters' pipelines (CasterDraws): MeshLayout's position and texture coordinates in vertex buffer 0, the
+// draw's CasterInstance in kInstanceBuffer as kInstanceAttrs float4s (shaders/shadow_caster.glsl's in_row0 ..
+// in_cut). A pipeline's buffer slots run from 0 without gaps (SDL_GPU's Direct3D 12 backend reads them by number),
+// so the instances take slot 1, where a kept mesh's colours would be.
+constexpr int kInstanceBuffer = 1;
 constexpr int kInstanceAttrs = 5;
 static_assert(sizeof(CasterInstance) == 16 * kInstanceAttrs);
 CasterDraws g_casterDraws("ei-shadow-casters");   // the sun map's
@@ -187,8 +188,7 @@ sg_pipeline g_reducePipeline{}, g_dilatePipeline{};
 sg_image g_cells{}, g_range{};
 sg_view g_cellsAttachment{}, g_cellsTexture{}, g_rangeAttachment{}, g_rangeTexture{};
 sg_sampler g_point{};
-sg_sampler g_rangeLinear{};   // the receivers read the range filtered
-sg_image g_rangeDummy{};      // the range's 1 x 1 stand-in without a map (an image the filtered read accepts)
+sg_image g_rangeDummy{};      // the range's 1 x 1 stand-in without a map (the receivers' read of the range needs an image bound)
 sg_view g_rangeDummyAttachment{}, g_rangeDummyTexture{};
 int g_cellsAround = 1;   // the dilation of this frame's map (PrepareShadows)
 
@@ -292,21 +292,6 @@ sg_sampler PointSampler() {
     d.label = "ei-shadow-point";
     g_point = sg_make_sampler(&d);
     return g_point;
-}
-
-// The receivers' read of the range: bilinear between the four cells around the point, clamped at
-// the map's edges (shaders/shadow_receiver.glsl).
-sg_sampler RangeSampler() {
-    if (g_rangeLinear.id) return g_rangeLinear;
-    sg_sampler_desc d{};
-    d.min_filter = SG_FILTER_LINEAR;
-    d.mag_filter = SG_FILTER_LINEAR;
-    d.mipmap_filter = SG_FILTER_NEAREST;
-    d.wrap_u = SG_WRAP_CLAMP_TO_EDGE;
-    d.wrap_v = SG_WRAP_CLAMP_TO_EDGE;
-    d.label = "ei-shadow-range-linear";
-    g_rangeLinear = sg_make_sampler(&d);
-    return g_rangeLinear;
 }
 
 // A full-screen pass's shader (of `desc`: it reads view 0 with the point sampler) and pipeline into an RGBA32F image.
@@ -831,10 +816,8 @@ void NoteCasterPart(const void* part) {
 void CasterDraws::Add(const sg_bindings& geometry, bool kept, sg_view texture, sg_sampler sampler, int firstIndex,
                       int indexCount, const CasterInstance& instance) {
     Entry e{};
-    for (int k = 0; k < 2; ++k) {
-        e.vertices[k] = geometry.vertex_buffers[k];
-        e.vertexOffsets[k] = geometry.vertex_buffer_offsets[k];
-    }
+    e.vertices = geometry.vertex_buffers[0];
+    e.vertexOffset = geometry.vertex_buffer_offsets[0];
     e.indices = geometry.index_buffer;
     e.indexOffset = geometry.index_buffer_offset;
     e.texture = texture;
@@ -875,10 +858,8 @@ void CasterDraws::Draw(std::size_t from, std::size_t to) {
         }
         if (!applied || BindingKey(*applied) != BindingKey(e)) {
             sg_bindings b{};
-            for (int v = 0; v < 2; ++v) {
-                b.vertex_buffers[v] = e.vertices[v];
-                b.vertex_buffer_offsets[v] = e.vertexOffsets[v];
-            }
+            b.vertex_buffers[0] = e.vertices;
+            b.vertex_buffer_offsets[0] = e.vertexOffset;
             b.vertex_buffers[kInstanceBuffer] = instances.Buffer();
             b.vertex_buffer_offsets[kInstanceBuffer] = instanceOffset;
             b.index_buffer = e.indices;
@@ -1143,7 +1124,7 @@ void BindShadowMap(sg_bindings& b) {
     b.samplers[SMP_shadow_smp] = ShadowCompareSampler();
     // The range, read filtered: with no map its 1 x 1 stand-in (the shaders read neither then).
     b.views[VIEW_shadow_range] = on ? g_rangeTexture : g_rangeDummyTexture;
-    b.samplers[SMP_shadow_linear] = RangeSampler();
+    b.samplers[SMP_range_smp] = PointSampler();
 }
 
 } // namespace detail
