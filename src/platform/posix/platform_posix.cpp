@@ -4,6 +4,7 @@
 
 #include "lib/text_case.h"
 #include "platform/paths.h"
+#include "platform/posix/platform_posix.h"
 
 #include <SDL3/SDL.h>
 #include <algorithm>
@@ -123,8 +124,6 @@ bool SetCurrentFolder(const std::string& path, std::uint32_t* error) {
     return false;
 }
 
-bool FontSmoothing() { return true; }
-
 void PrimaryDesktopSize(int* width, int* height) {
     SDL_InitSubSystem(SDL_INIT_VIDEO);
     if (const SDL_DisplayMode* mode = SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay())) {
@@ -140,10 +139,10 @@ std::string EnvironmentVariable(const char* name) {
 
 void EndProcess(std::uint32_t code) { std::_Exit(static_cast<int>(code)); }
 
-std::string VolumeLabel(const char*) { return {}; }
-
+// As Windows' text (platform_win32.cpp), the system's own words added.
 FileError::FileError(unsigned long code, std::string_view path)
-    : std::runtime_error(std::string(path) + ": " + std::strerror(static_cast<int>(code))) {}
+    : std::runtime_error("file error: OS error " + std::to_string(code) + " (" + std::strerror(static_cast<int>(code)) +
+                         "), file '" + std::string(path) + "'") {}
 File::~File() { Close(); }
 
 bool File::Open(std::string_view filePath, FileMode mode) {
@@ -169,20 +168,6 @@ unsigned File::Read(void* buffer, unsigned count) {
     } while (n < 0 && errno == EINTR);
     if (n < 0) FileFailure(path);
     return static_cast<unsigned>(n);
-}
-
-void File::Write(const void* buffer, unsigned count) {
-    const auto* bytes = static_cast<const char*>(buffer);
-    while (count) {
-        const ssize_t n = write(Descriptor(handle), bytes, count);
-        if (n < 0 && errno == EINTR) continue;
-        if (n <= 0) {
-            if (!n) errno = ENOSPC;
-            FileFailure(path);
-        }
-        bytes += n;
-        count -= static_cast<unsigned>(n);
-    }
 }
 
 void File::WriteLine(std::string_view line) {
@@ -333,7 +318,7 @@ NativeWindow const kOtherInstance = reinterpret_cast<NativeWindow>(-1);
 }
 
 // SDL cannot enumerate another process's windows. Hold an advisory lock for the same class/title instead.
-NativeWindow FindClassWindow(const char* className, const char* title) {
+NativeWindow posix::OtherInstance(const char* className, const char* title) {
     if (g_instanceOwner == getpid() && g_instanceLock >= 0) return nullptr;
     if (g_instanceLock >= 0) close(g_instanceLock);   // a forked child must acquire its own lock
     g_instanceLock = -1;
@@ -443,30 +428,16 @@ bool KeyName(int scan, char* name, int size) {
 namespace platform::net {
 namespace {
 int Fd(Socket s) { return s == kNoSocket ? -1 : static_cast<int>(s); }
-
-sockaddr_in Native(const Address& a) {
-    sockaddr_in n{};
-    n.sin_family = AF_INET;
-    n.sin_port = a.port;
-    n.sin_addr.s_addr = a.ip;
-    return n;
 }
 
-Address Public(const sockaddr_in& n) { return {kIpv4, n.sin_port, n.sin_addr.s_addr, {}}; }
-}
+// Closing, binding, connecting, sending, receiving and the wait (select) are game_calls.cpp's (the harness keeps binds
+// and datagrams on 127.0.0.1, a pair's network: tests/verify/harness_net.h).
 
 Socket Open(Kind kind) {
     const int fd = socket(AF_INET, kind == Kind::Udp ? SOCK_DGRAM : SOCK_STREAM, 0);
     if (fd < 0) return kNoSocket;
     fcntl(fd, F_SETFD, FD_CLOEXEC);
     return static_cast<Socket>(fd);
-}
-
-void Close(Socket s) { close(Fd(s)); }
-
-bool Bind(Socket s, const Address& a) {
-    const auto n = Native(a);
-    return a.family == kIpv4 && bind(Fd(s), reinterpret_cast<const sockaddr*>(&n), sizeof(n)) == 0;
 }
 
 void SetNonBlocking(Socket s, bool on) {
@@ -477,48 +448,6 @@ void SetNonBlocking(Socket s, bool on) {
 void AllowBroadcast(Socket s) {
     const int yes = 1;
     setsockopt(Fd(s), SOL_SOCKET, SO_BROADCAST, &yes, sizeof(yes));
-}
-
-bool Connect(Socket s, const Address& a) {
-    const auto n = Native(a);
-    return a.family == kIpv4 && connect(Fd(s), reinterpret_cast<const sockaddr*>(&n), sizeof(n)) == 0;
-}
-
-int SendTo(Socket s, const void* p, int n, const Address& a) {
-    if (n < 0 || a.family != kIpv4) {
-        errno = EINVAL;
-        return -1;
-    }
-    const auto to = Native(a);
-    return static_cast<int>(sendto(Fd(s), p, n, 0, reinterpret_cast<const sockaddr*>(&to), sizeof(to)));
-}
-
-int ReceiveFrom(Socket s, void* p, int n, Address* from) {
-    if (n < 0) {
-        errno = EINVAL;
-        return -1;
-    }
-    sockaddr_in a{};
-    socklen_t len = sizeof(a);
-    const int got = static_cast<int>(recvfrom(Fd(s), p, n, 0, reinterpret_cast<sockaddr*>(&a), &len));
-    if (got >= 0 && from) *from = Public(a);
-    return got;
-}
-
-int Send(Socket s, const void* p, int n) {
-    if (n < 0) {
-        errno = EINVAL;
-        return -1;
-    }
-    return static_cast<int>(send(Fd(s), p, n, MSG_NOSIGNAL));
-}
-
-int Receive(Socket s, void* p, int n) {
-    if (n < 0) {
-        errno = EINVAL;
-        return -1;
-    }
-    return static_cast<int>(recv(Fd(s), p, n, 0));
 }
 
 Error LastError() {
@@ -536,41 +465,6 @@ Error LastError() {
     default:
         return Error::Other;
     }
-}
-
-int Select(SocketGroup* read, SocketGroup* write, SocketGroup* failed, std::int32_t microseconds) {
-    SocketGroup* groups[] = {read, write, failed};
-    fd_set sets[3];
-    int highest = -1;
-    for (int i = 0; i < 3; ++i) {
-        FD_ZERO(&sets[i]);
-        if (!groups[i]) continue;
-        for (int j = 0; j < groups[i]->count; ++j) {
-            const int fd = Fd(groups[i]->sockets[j]);
-            if (fd < 0 || fd >= FD_SETSIZE) {
-                errno = EBADF;
-                return -1;
-            }
-            FD_SET(fd, &sets[i]);
-            highest = (std::max)(highest, fd);
-        }
-    }
-    if (highest < 0 || microseconds < 0) {
-        errno = EINVAL;
-        return -1;
-    }
-    timeval timeout{microseconds / 1000000, microseconds % 1000000};
-    const int ready = select(highest + 1, read ? &sets[0] : nullptr, write ? &sets[1] : nullptr,
-                             failed ? &sets[2] : nullptr, &timeout);
-    if (ready < 0) return ready;
-    for (int i = 0; i < 3; ++i)
-        if (groups[i]) {
-            int count = 0;
-            for (int j = 0; j < groups[i]->count; ++j)
-                if (FD_ISSET(Fd(groups[i]->sockets[j]), &sets[i])) groups[i]->sockets[count++] = groups[i]->sockets[j];
-            groups[i]->count = count;
-        }
-    return ready;
 }
 
 bool HostName(char* name, int size) { return size > 0 && gethostname(name, size) == 0; }

@@ -2,13 +2,14 @@
 #include "harness_savetrace.h"
 #include "image/image_side.h"
 
-#include "../../src/platform/log.h"
-
-#include <windows.h>
-#include <intrin.h>
+#include "lib/text_case.h"
+#include "platform/log.h"
+#include "platform/platform.h"
+#include "system/harness_system.h"
 
 #include <cstdio>
 #include <cstring>
+#include <mutex>
 #include <unordered_map>
 #include <vector>
 
@@ -16,13 +17,15 @@ namespace ei::verify::savetrace {
 
 namespace {
 
+namespace sys = ei::verify::sys;
+
 // The slot the trace reads: 5 Position(). The image's memory stream tables are compiled (C19) and tell
 // g_memoryStreamWriteObserver of each Write (slot 2).
 constexpr int kPositionSlot = 5;
 constexpr int kCallers = 4;
 constexpr std::uint32_t kDumpAbove = 2048;
 
-using PositionFn = std::uint32_t(__fastcall*)(void* stream, void* edx);
+using PositionFn = std::uint32_t (*)(void* stream, void* unused);
 
 struct Entry {
     std::uint32_t position, size;
@@ -35,7 +38,7 @@ struct Trace {
 
 std::uintptr_t g_selfBase;
 std::uintptr_t g_selfEnd;
-CRITICAL_SECTION g_lock;
+std::mutex g_lock;
 std::unordered_map<void*, Trace>* g_streams;
 
 bool ReturnAddress(std::uintptr_t v) {
@@ -52,12 +55,12 @@ void Note(void* stream, std::uint32_t size, void* const* frame) {
     const auto position = reinterpret_cast<PositionFn>((*static_cast<void***>(stream))[kPositionSlot])(stream, nullptr);
     Entry e{position, size, {}};
     int found = 0;
-    const auto* top = static_cast<void* const*>(reinterpret_cast<NT_TIB*>(NtCurrentTeb())->StackBase);
+    const auto* top = reinterpret_cast<void* const*>(sys::StackTop());
     for (int i = 0; i < 64 && found < kCallers && frame + i < top; ++i) {
         const auto v = reinterpret_cast<std::uintptr_t>(frame[i]);
         if (ReturnAddress(v)) e.callers[found++] = Shown(v);
     }
-    EnterCriticalSection(&g_lock);
+    std::lock_guard<std::mutex> lock(g_lock);
     Trace& trace = (*g_streams)[stream];
     if (position == 0) {
         trace.entries.clear();
@@ -65,20 +68,18 @@ void Note(void* stream, std::uint32_t size, void* const* frame) {
     }
     trace.entries.push_back(e);
     if (position + size > trace.end) trace.end = position + size;
-    LeaveCriticalSection(&g_lock);
 }
 
 } // namespace
 
 bool Enabled() {
-    char value[8] = "";
-    return GetEnvironmentVariableA("EI_SAVETRACE", value, sizeof(value)) && value[0] && value[0] != '0';
+    const std::string value = platform::EnvironmentVariable("EI_SAVETRACE");
+    return !value.empty() && value[0] != '0';
 }
 
 void Install(std::uintptr_t selfBase, std::uintptr_t selfEnd) {
     g_selfBase = selfBase;
     g_selfEnd = selfEnd;
-    InitializeCriticalSection(&g_lock);
     g_streams = new std::unordered_map<void*, Trace>;
     image::ObserveStreamWrites(&Note);
     Log(
@@ -88,11 +89,11 @@ void Install(std::uintptr_t selfBase, std::uintptr_t selfEnd) {
 void OnFileWrite(const char* path) {
     if (!g_streams || !path) return;
     const std::size_t length = std::strlen(path);
-    if (length < 4 || _stricmp(path + length - 4, ".sav") != 0) return;
+    if (length < 4 || text::CompareIgnoringCase(path + length - 4, ".sav") != 0) return;
     const std::string out = ei::OutputPath("savetrace.txt");
-    FILE* f = nullptr;
-    if (fopen_s(&f, out.c_str(), "a") != 0 || !f) return;
-    EnterCriticalSection(&g_lock);
+    FILE* f = sys::OpenFile(out, "a");
+    if (!f) return;
+    std::unique_lock<std::mutex> lock(g_lock);
     for (const auto& [stream, trace] : *g_streams) {
         if (trace.end <= kDumpAbove) continue;
         std::fprintf(f, "# save %s stream %p %u\n", path, stream, trace.end);
@@ -100,7 +101,7 @@ void OnFileWrite(const char* path) {
             std::fprintf(f, "%u %u %08X %08X %08X %08X\n", e.position, e.size, e.callers[0], e.callers[1], e.callers[2],
                          e.callers[3]);
     }
-    LeaveCriticalSection(&g_lock);
+    lock.unlock();
     std::fclose(f);
 }
 

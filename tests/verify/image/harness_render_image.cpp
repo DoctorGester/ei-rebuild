@@ -4,12 +4,13 @@
 
 #include "../harness_capture.h"
 
-#include "../../../src/platform/log.h"
+#include "platform/log.h"
+#include "system/harness_system.h"
 
 #include "render/render.h"
 
-#include <windows.h>
-
+#include <chrono>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
@@ -78,7 +79,7 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
     } else if (verb == "levelsteps") {
         char frame[64] = "";
         double least = 0, most = 1;
-        if (sscanf_s(argument.c_str(), "%63s %lf %lf", frame, unsigned(sizeof(frame)), &least, &most) < 3) {
+        if (std::sscanf(argument.c_str(), "%63s %lf %lf", frame, &least, &most) < 3) {
             failures->push_back("levelsteps needs a frame name, a least and a most fraction");
             return true;
         }
@@ -98,7 +99,7 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
     } else if (verb == "hues") {
         char frame[64] = "";
         double least = 0, most = 1;
-        if (sscanf_s(argument.c_str(), "%63s %lf %lf", frame, unsigned(sizeof(frame)), &least, &most) < 3) {
+        if (std::sscanf(argument.c_str(), "%63s %lf %lf", frame, &least, &most) < 3) {
             failures->push_back("hues needs a frame name, a least and a most fraction");
             return true;
         }
@@ -122,7 +123,7 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             }
     } else if (verb == "mmplevels") {
         double most = 0;
-        if (sscanf_s(argument.c_str(), "%lf", &most) < 1) {
+        if (std::sscanf(argument.c_str(), "%lf", &most) < 1) {
             failures->push_back("mmplevels needs the largest mean difference allowed");
             return true;
         }
@@ -138,13 +139,13 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         if (check.levels == 0 || check.worst > most) failures->push_back(text);
     } else if (verb == "msaa" || verb == "anisotropy") {
         int level = 0;
-        if (sscanf_s(argument.c_str(), "%d", &level) < 1) failures->push_back(verb + " needs a level");
+        if (std::sscanf(argument.c_str(), "%d", &level) < 1) failures->push_back(verb + " needs a level");
         else if (verb == "msaa") render::SetMsaa(level);
         else render::SetAnisotropy(level);
     } else if (verb == "smoothcheck") {
         char plain[64] = "", smooth[64] = "";
         double least = 0, most = 1;
-        if (sscanf_s(argument.c_str(), "%63s %63s %lf %lf", plain, unsigned(sizeof(plain)), smooth, unsigned(sizeof(smooth)),
+        if (std::sscanf(argument.c_str(), "%63s %63s %lf %lf", plain, smooth,
                      &least, &most) < 4) {
             failures->push_back("smoothcheck needs two frame names, a least and a most fraction");
             return true;
@@ -241,7 +242,7 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
     } else if (verb == "shadowcheck") {
         // shadowcheck <least casters> [<least casters outside the view> (R20)]
         int least = 1, leastOutside = 0;
-        if (sscanf_s(argument.c_str(), "%d %d", &least, &leastOutside) < 1) {
+        if (std::sscanf(argument.c_str(), "%d %d", &least, &leastOutside) < 1) {
             failures->push_back("shadowcheck needs the least number of casters");
             return true;
         }
@@ -268,26 +269,16 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         // computes at the game's 24-bit precision.
         static unsigned long long lastCycles = 0;
         static long long lastTicks = 0;
-        unsigned long long cycles = 0;
-        double msPerCycle = 0.0, msPerTick = 0.0;
-        LARGE_INTEGER now{}, frequency{};
-        {
-            FILETIME created{}, exited{}, kernel{}, user{};
-            QueryThreadCycleTime(GetCurrentThread(), &cycles);
-            if (cycles && GetThreadTimes(GetCurrentThread(), &created, &exited, &kernel, &user)) {
-                auto ms = [](const FILETIME& f) {
-                    return static_cast<double>((static_cast<unsigned long long>(f.dwHighDateTime) << 32) | f.dwLowDateTime) / 1e4;
-                };
-                msPerCycle = (ms(kernel) + ms(user)) / static_cast<double>(cycles);
-            }
-            QueryPerformanceCounter(&now);
-            QueryPerformanceFrequency(&frequency);
-            if (frequency.QuadPart) msPerTick = 1000.0 / static_cast<double>(frequency.QuadPart);
-        }
+        std::uint64_t cycles = 0;
+        double cpuMs = 0.0;
+        sys::ThisThreadCpu(&cpuMs, &cycles);
+        const double msPerCycle = cycles ? cpuMs / static_cast<double>(cycles) : 0.0;
+        const long long now =
+            std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
         const double frameCpuMs = static_cast<double>(cycles - lastCycles) * msPerCycle;
-        const double frameWallMs = static_cast<double>(now.QuadPart - lastTicks) * msPerTick;
+        const double frameWallMs = lastTicks ? static_cast<double>(now - lastTicks) / 1e6 : static_cast<double>(now) / 1e6;
         lastCycles = cycles;
-        lastTicks = now.QuadPart;
+        lastTicks = now;
         if (argument == "-" || t.frames == 0) return true;   // a new count begins
         double n = static_cast<double>(t.frames);
         auto kb = [n](std::uint64_t bytes) { return static_cast<double>(bytes) / 1024.0 / n; };

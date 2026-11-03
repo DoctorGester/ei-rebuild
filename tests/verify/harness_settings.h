@@ -2,24 +2,18 @@
 
 // The game settings a harness run reads (verify build only; harness_settings.cpp, WB16): never the user's.
 //
-// Registry: every key under HKEY_CURRENT_USER or HKEY_LOCAL_MACHINE \Software\Nival Interactive and
-// \Software\Gipat.Ru (the original's settings, Rebirth's game settings and starter switches) is answered from
-// config\harness\registry.reg, the committed snapshot, through advapi32's own import slots (its exports are
-// stubs that jump through them), so the game, the image, the harness's own reads and addon.dll all see it.
-// Such keys are never opened, created or written in the real registry: opens and creates get handles of
-// this module's, and writes and deletes on them are dropped. A value or key
-
-// the snapshot lacks fails the run (an entry "name"=- / [-key] marks one read but absent on purpose), as
-// does a call on these keys the module does not answer (enumeration, RegGetValue). The scenario's starter
-// lines (harness_starter.h) are answered first.
+// The snapshot: config\harness\registry.reg (the .reg format reg export writes) holds the original's settings, Rebirth's
+// game settings and starter switches (HKEY_CURRENT_USER \Software\Nival Interactive and \Software\Gipat.Ru) as
+// game.exe read them; an entry "name"=- / [-key] marks one read but absent on purpose. Nothing in the program reads
+// the registry: the snapshot is the source of the run's settings file below.
 //
-// The standalone image keeps its settings in a file of its own format instead (game/settings.h): its runs get their
+// The program keeps its settings in a file of its own format (game/settings.h): harness runs get their
 // own, <run folder>\ei_settings.ini, pinned at start and written at the settings' first use (once the start-up has
 // set the Rebirth flags) from the snapshot: the option tree game.exe reads on the run's install (the original's, or
 // Rebirth's on its data: starter::RebirthInstall), each key as its section (General Settings as [video] and
 // [sound]), and Rebirth's switches (EI_Starter\Settings as [rebirth]), with the starter lines' answers in place (any
-// key with that value name); read only, and a read of a value the file lacks fails the run as above (unless marked
-// absent). The game paths' redirects (src/main.cpp, harness_startup.cpp's discprompt) change its reads as they
+// key with that value name); read only, and a read of a value the file lacks fails the run (unless the snapshot
+// marks it absent). The game paths' redirects (src/main.cpp, harness_startup.cpp's discprompt) change its reads as they
 // did the registry's.
 //
 // Two scenario lines check the product's file paths instead, in the image only:
@@ -43,8 +37,8 @@
 
 namespace ei::verify::settings {
 
-// Loads the snapshot and answers the registry (once, at harness start, before the game reads its settings);
-// in the standalone image also pins the run's settings file (written at its first use).
+// Loads the snapshot and pins the run's settings file (written at its first use); once, at harness start, before the
+// game reads its settings.
 void Install();
 
 // Consumes a "settingsfile writable|defaults" scenario line (read when the scenario loads); false for any other verb.
@@ -54,7 +48,7 @@ bool ParseStep(const std::string& verb, const std::string& argument);
 // install, written to `out`; false when the file is not pinned.
 bool PinnedFile(const char* relative, char (&out)[260]);
 
-// The run's settings problems (values or keys missing from the snapshot, unanswered calls), "; "-separated;
+// The run's settings problems (values missing from the snapshot, lines not understood), "; "-separated;
 // empty when there were none.
 std::string Failure();
 

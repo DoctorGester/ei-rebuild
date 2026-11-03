@@ -17,12 +17,12 @@ system). Windows (`src/platform/win32/`) has the rest; it is the only place of t
 | `src/platform/platform.h` | the layer: every area below, in that order |
 | `src/platform/sdl/platform_sdl.cpp` | SDL3's areas (builds without the harness): the clocks, the message box, the threads, the window and its events, the cursor, the mouse, the clipboard |
 | `src/platform/sdl/sdl_threads.cpp`, `sdl_keys.cpp` | the threads' priority, and the keys' codes, of every build on SDL (the harness's too) |
-| `tests/verify/harness_platform.cpp` | the harness's builds' window, events, clocks, cursor, mouse and clipboard on SDL, in place of platform_sdl.cpp |
+| `tests/verify/platform/` | the harness's platform backend: harness_platform.cpp (the window, events, clocks, cursor, mouse and clipboard on SDL, in place of platform_sdl.cpp) and game_answers.cpp (the calls a harness run answers itself, in place of game_calls.cpp and system_path.cpp) |
 | `src/platform/files.cpp` | the folder calls (create, remove, rename, copy, exists, free space) on std::filesystem, every system, each path through `paths.h` |
 | `src/platform/paths.h`, `system_path.cpp` | the file calls' path seam: `SystemPath(path, use)` (system_path.cpp: the path itself; the harness's builds: its overlay, below) and each backend's `NativePath` |
 | `src/platform/win32/platform_win32.cpp` | the Windows remainder, in every build: UTF-8 to the wide calls (`text::Wide` / `Narrow`), paths, the machine, the file objects, whole files and folder searches, the other game window (the one-instance check), the keyboard's names and layouts, sockets |
-| `src/platform/win32/game_calls.cpp` | the calls a harness run answers itself (below, "The harness's answers"); the harness's builds leave it out and take tests/verify's definitions |
-| `src/platform/win32/platform_win32.h` | the Windows backend's own declarations: `text::Wide` / `Narrow` and game_calls.cpp's system calls (`platform::win32::WriteFile`, `Select`), for the backend's files and the harness |
+| `src/platform/win32/game_calls.cpp`, `src/platform/posix/game_calls.cpp` | the calls a harness run answers itself (below, "The harness's answers"), each system's; the harness's builds leave them out and take tests/verify/platform's |
+| `src/platform/win32/platform_win32.h`, `src/platform/posix/platform_posix.h` | each backend's own declarations for its files: Windows' `text::Wide` / `Narrow`; POSIX's one-instance look-up (`posix::OtherInstance`, game_calls.cpp's FindClassWindow) |
 | `src/platform/posix/platform_posix.cpp` | the remainder on Linux: paths, files, mappings and folder searches with Windows' case rules, the one-instance lock, key names, sockets |
 | `src/platform/graphics.h` | the renderer's device, the window's drawable, read-backs and GPU timestamps ("Graphics" below) |
 | `src/platform/gl/graphics_gl.cpp` | its OpenGL 4.5 backend on Linux (built into ei_render with sokol_gfx's implementation) |
@@ -135,8 +135,8 @@ FileExists, the open and the folder search); now it answers one question, where 
 look-ups (IsFile, FolderEntries) and the settings file (ReadWholeFile / WriteWholeFile next to the exe or in the
 user's data folder) pass the seam too, though addon.dll's and the settings' calls never reached the harness's answers
 before: their paths are outside the saves and the install's overlaid files, so ReadPath and WritePath leave them as
-they are. The harness's kernel32 / ntdll install guard (harness_install.h) stays below the seam: it catches what the
-overlay misses.
+they are. Nothing of the harness sits below the seam: a write still under an install after the mapping is refused
+there (standalone-verification.md, "No run writes into an install").
 
 No file outside src/platform calls Windows.
 
@@ -145,21 +145,22 @@ No file outside src/platform calls Windows.
 game.exe's import slots (a table of ours, generated from its import directory until PL14: gameapi.h, import_table.h,
 image_imports.cpp, tools/gen_iat.py) existed only so that the harness could patch them. Now the harness answers the
 game's calls in its own builds, as harness_platform.cpp does for SDL's areas: CMakeLists.txt leaves
-src/platform/win32/game_calls.cpp and src/platform/system_path.cpp out of them, and tests/verify defines the same
-functions:
+src/platform/<system>/game_calls.cpp and src/platform/system_path.cpp out of them (EI_GAME_CALLS), and
+tests/verify/platform/game_answers.cpp defines the same functions, one file for both systems:
 
-- harness.cpp: `SystemPath` (above), `FontSmoothing` (off), `FindClassWindow` (none; the disc check's answers start
-  there).
-- harness_crash.cpp: `win32::WriteFile` (the file objects' writes, with the file's path: a failed write fails the
-  run; a path holding "diskfull" fails as a full disk).
-- harness_startup.cpp: `VolumeLabel` (the "discprompt" labels).
-- harness_net.cpp: `net::Bind`, `SendTo`, `ReceiveFrom`, `Close`, `Connect`, `Send`, `Receive` and `win32::Select`
-  (binds and datagrams on 127.0.0.1, a pair's network).
-- The clocks, sleeps and date are harness_clock.h's (harness_platform.cpp asks them).
+- `SystemPath` (above: harness.cpp's MapPath), `FontSmoothing` (off), `FindClassWindow` (none; the disc check's
+  answers start there), `VolumeLabel` (the "discprompt" labels, harness_startup.h).
+- `File::Write` (the file objects' writes, with the file's path: a failed write fails the run; "diskfull" fails a
+  file's writes as on a full disk; harness_crash.h).
+- `net::Bind`, `SendTo`, `ReceiveFrom`, `Close`, `Connect`, `Send`, `Receive` and `Select` (binds and datagrams on
+  127.0.0.1, a pair's network; harness_net.h, harness_pair.h).
+- The clocks, sleeps and date are harness_clock.h's (harness_platform.cpp asks them); the message box is the
+  harness's answer (harness_platform.cpp's ShowMessageBox).
 
-A game function whose body is one system call is the seam itself; where platform_win32.cpp's function does more (the
-file objects' writes, the socket groups) the seam is the call (platform_win32.h). Each answer is the
-system's call while the harness is not running (a verify build started without EI_HARNESS). The redirects the game no
+Each answer is the system's call while the harness is not running (a verify build started without EI_HARNESS), through
+tests/verify/system/harness_system.h: the harness's own system calls (threads, clocks, files, faults, stacks, a pair's
+shared memory, the window's concealment), system_win32.cpp and system_posix.cpp. The harness hooks nothing of the
+system: no import slot, hot patch or module patch is left. The redirects the game no
 longer reached went with the slots: the window's creation and showing (SDL's window), the cursor's position (the
 harness's backend), WaitForSingleObject and GetMessageA (the threads and events are SDL's), GetSystemTime.
 
@@ -183,9 +184,9 @@ window's HWND (`SDL_PROP_WINDOW_WIN32_HWND_POINTER`: the NativeWindow the game h
   TakeEvent look (where its runs took posted input; false holds the events for the close-all pass), a key's character
   queued by NextEvent as the harness's TranslateMessage posted it, the activation changes only the harness's focus
   steps make, its message box answers, and the harness's clocks, date and mouse position (harness_clock.h's virtual
-  and held clocks and fixed date, harness.cpp's own mouse). The backend file
-  itself is SDL only; the harness's answers are its Windows part. Its steps still speak
-  window messages; harness_input.cpp makes each into the event the window procedure's translation made, so the games
+  and held clocks and fixed date, harness.cpp's own mouse). The backend is SDL and
+  the harness's own system layer (tests/verify/system), the same on both systems. Its steps still speak
+  window messages (harness_input.h's own numbers); harness_input.cpp makes each into the event the window procedure's translation made, so the games
   see what they saw on the window-procedure path (platform_win32_window.cpp, gone with DirectInput, `Event::native`
   and `DefaultHandling`: PL12). SDL's translation of real input is checked by tools/input_check against Windows'
   layouts.

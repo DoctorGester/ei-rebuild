@@ -2,7 +2,7 @@
 
 // The game's clocks in harness runs (verify build only; harness_clock.cpp): the virtual clock that
 // makes runs repeat, the held clocks of "freeze", the fixed date and the clock trace. The harness's platform
-// backend (harness_platform.cpp) gives the game these clocks, sleeps and date.
+// backend (tests/verify/platform/harness_platform.cpp) gives the game these clocks, sleeps and date.
 //
 // Virtual clock ("deterministic"): the game's two clocks (platform::Milliseconds, timeGetTime's, and TickCount,
 // GetTickCount's) return a counter that only the main thread moves: the main loop's frame-time read (the rewritten
@@ -11,16 +11,19 @@
 // it; their own sleeps stay real. The date is a fixed one, and the ISAAC seeding (0049F660) a fixed sequence
 // (harness.cpp).
 //
-// Clock trace ("clocktrace"): every clock read, sleep and date the game asks for, and the clock reads and waits of
-// the DLLs in the game's folders (their import tables), counted by function, caller and thread; new combinations are
-// logged as they appear and the busiest ones every second (ei-rebuild.log, "clocktrace:").
+// Clock trace ("clocktrace"): every clock read, sleep and date the game asks for, counted by function, caller and
+// thread; new combinations are logged as they appear and the busiest ones every second (ei-rebuild.log,
+// "clocktrace:").
 
-#include <windows.h>
+#include "system/harness_system.h"
+
+#include <cstdint>
 
 namespace ei::verify::clock {
 
-// The game's main thread (the process's first thread; WinMain runs on it). Valid after Install*.
-DWORD MainThread();
+// The game's main thread (the one the harness starts on, before main; the game's loop runs on it).
+sys::ThreadId MainThread();
+bool OnMainThread();
 
 // Virtual clock. `tickLength` is the game's world update length in ms (0078FF34).
 void InstallVirtual(const unsigned* tickLength);
@@ -36,29 +39,26 @@ void InstallHeld();
 // The game's date from now on: 2001-03-26 12:00 (game.exe's build date; the main menu's time of day, save dates).
 void FixDate();
 
-// What the game reads and waits on: the virtual or held clocks, else the system's (timeGetTime, GetTickCount, Sleep,
-// GetLocalTime).
-DWORD Milliseconds();
-DWORD Ticks();
-void Sleep(DWORD ms);
-SYSTEMTIME LocalTime();
+// What the game reads and waits on: the virtual or held clocks, else the system's (sys::Milliseconds, TickCount,
+// SleepMs, LocalDate).
+std::uint32_t Milliseconds();
+std::uint32_t Ticks();
+void Sleep(std::uint32_t ms);
+sys::Date LocalTime();
 
 // While frozen, no game clock moves (virtual or held).
 void Freeze(bool on);
 bool Frozen();
 
-// The clock the harness's waits use: virtual time in deterministic mode, else GetTickCount.
-DWORD Now();
+// The clock the harness's waits use: virtual time in deterministic mode, else the system's tick count.
+std::uint32_t Now();
 
-// The trace. DLLs loaded later are picked up by the trace's own thread, which logs the busiest call sites every
-// second.
+// The trace; its own thread logs the busiest call sites every second.
 void InstallTrace();
-void DumpTrace(const char* why);
 
 // Random trace ("randtrace", for finding where two runs part): every draw from the game's ISAAC
 // generators (004667F0, the original's or ours) to randtrace.txt in the output folder, one line
-// each: the frame (`*frames`), the caller and the value. Install after the hooks (it replaces
-// 004667F0's first bytes).
+// each: the frame (`*frames`), the caller and the value.
 void InstallRandomTrace(const unsigned* frames);
 void FlushRandomTrace();
 // A line in the random trace ("<frame> note: ..."), when it is on.

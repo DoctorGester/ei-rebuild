@@ -6,9 +6,9 @@
 #include "harness_clock.h"
 #include "harness_starter.h"
 
-#include "../../src/platform/log.h"
-
-#include <windows.h>
+#include "platform/log.h"
+#include "platform/platform.h"
+#include "system/harness_system.h"
 
 #include <cctype>
 #include <cstdlib>
@@ -149,7 +149,7 @@ std::string FieldValue(const Field& f) {
             std::snprintf(text, sizeof(text), "nan:0x%08X", f.value);   // which NaN, too
         } else {
             std::snprintf(text, sizeof(text), "%.9g", v);
-            if (!std::strpbrk(text, ".eni")) strcat_s(text, ".0");   // a float always shows it is one
+            if (!std::strpbrk(text, ".eni")) ei::verify::sys::AppendText(text, ".0");   // a float always shows it is one
         }
         break;
     }
@@ -216,9 +216,7 @@ State g_previous;
 
 FILE* OpenOutput(const char* name, const char* mode) {
     const std::string path = ei::OutputPath(name);
-    FILE* f = nullptr;
-    if (fopen_s(&f, path.c_str(), mode) != 0) return nullptr;
-    return f;
+    return ei::verify::sys::OpenFile(path, mode);
 }
 
 bool OpenDigest() {
@@ -226,8 +224,7 @@ bool OpenDigest() {
     g_file = OpenOutput("digest.txt", "w");
     if (!g_file) return false;
     std::setvbuf(g_file, nullptr, _IOFBF, 1 << 20);
-    char hooks[8] = "";
-    GetEnvironmentVariableA("EI_NO_HOOKS", hooks, sizeof(hooks));
+    const std::string hooks = platform::EnvironmentVariable("EI_NO_HOOKS");
     std::fprintf(g_file, "# ei state digest 2; groups %s; hooks %s; install %s; every %u world updates\n", NewGroups().c_str(),
                  hooks[0] == '1' ? "off" : "on", starter::RebirthInstall() ? "rebirth" : "vanilla", g_period);
     return true;
@@ -251,9 +248,9 @@ void TakeRecord() {
 
 void Init(const unsigned* frames) {
     g_frames = frames;
-    char value[32] = "";
-    if (GetEnvironmentVariableA("EI_DIGEST", value, sizeof(value))) {
-        g_period = std::strtoul(value, nullptr, 10);
+    const std::string value = platform::EnvironmentVariable("EI_DIGEST");
+    if (!value.empty()) {
+        g_period = std::strtoul(value.c_str(), nullptr, 10);
         g_nextAt = g_period;
         if (g_period) Log("harness: state digest every %u world updates (EI_DIGEST)", g_period);
     }

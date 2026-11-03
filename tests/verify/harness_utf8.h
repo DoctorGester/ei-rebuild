@@ -3,7 +3,6 @@
 // The image's UTF-8 checks (docs/notes/standalone.md section 4; tests/scenarios/utf8_typing.txt; game.exe's text was
 // in the ANSI code page). The checks are the image's (image/harness_utf8_image.cpp).
 
-#include <windows.h>
 
 #include <string>
 
@@ -23,7 +22,7 @@ namespace ei::verify::utf8typing {
 
 // "typeunicode <text>": each UTF-16 unit of <text> (UTF-8 in the scenario; a character past U+FFFF is two)
 // handed to the game as a Character event, as a Unicode window's WM_CHAR became one. Empty, or what failed.
-std::string Type(HWND window, const std::string& typed);
+std::string Type(void* window, const std::string& typed);
 
 // "consoleline <n> <text>": the console's input line holds <text> in UTF-8 (<text> may be empty) and its caret
 // stands at the start of character <n> (from 0). Empty, or what differs.

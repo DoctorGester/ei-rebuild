@@ -3,18 +3,20 @@
 #include "harness_starter.h"
 
 #include "image/image_side.h"
-#include "../../src/platform/log.h"
+#include "lib/text_case.h"
+#include "platform/log.h"
+#include "platform/platform.h"
+#include "system/harness_system.h"
 #include "../../src/game/rebirth_profile.h"
-
-#include <windows.h>
 
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <cwchar>
 
 namespace ei::verify::starter {
 namespace {
+
+namespace sys = ei::verify::sys;
 
 using ei::Log;
 
@@ -23,7 +25,7 @@ int g_wideScreen = -1;      // 0 / 1, -1: the snapshot's
 int g_fullScreen = -1;      // 0 / 1, -1: the snapshot's
 int g_music = -1;           // AudioStreaming (the streamed music's volume), -1: the snapshot's
 std::string g_addonFolder;  // "addonpath": the mod's folder under harness_saves, empty: the snapshot's
-char g_addonPath[MAX_PATH]; // its full path (Install)
+char g_addonPath[sys::kMaxPath]; // its full path (Install)
 
 // Rebirth's starter switch CtfMon (Settings\CtfMon, read by addon.dll) is always off in a harness run (S3e).
 // On, addon closes the text input service's window (class CicLoaderWndClass: ctfmon) when it applies its
@@ -31,7 +33,7 @@ char g_addonPath[MAX_PATH]; // its full path (Install)
 // run ended the user's input service (the new one dies with the run's job object), and the exit stood in
 // that CreateProcess, under the loader lock, until the launcher ended the game 3 s after the scenario quit.
 // Nothing in the game or in the patches reads the switch.
-constexpr DWORD kCtfMon = 0;
+constexpr unsigned long kCtfMon = 0;
 
 // The image's runs without a resolution of their own (H31): small captures and less GPU work per game, in a window
 // (FullScreen 0 unless the scenario says "fullscreen"). Our renderer changes no display mode either way. The window's
@@ -45,60 +47,61 @@ constexpr const char* kImageResolutionRebirth = "1280x720";
 
 
 bool SetResolution(const char* text) {
-    if (_stricmp(text, "desktop") == 0) {
-        DEVMODEA mode{};
-        mode.dmSize = sizeof(mode);
-        if (!EnumDisplaySettingsA(nullptr, ENUM_CURRENT_SETTINGS, &mode)) return false;
-        std::snprintf(g_resolution, sizeof(g_resolution), "%lux%lu", mode.dmPelsWidth, mode.dmPelsHeight);
+    if (text::CompareIgnoringCase(text, "desktop") == 0) {
+        int width = 0, height = 0;
+        platform::PrimaryDesktopSize(&width, &height);
+        if (width <= 0 || height <= 0) return false;
+        std::snprintf(g_resolution, sizeof(g_resolution), "%dx%d", width, height);
         return true;
     }
     int w = 0, h = 0;
-    if (sscanf_s(text, "%dx%d", &w, &h) != 2 || w <= 0 || h <= 0) return false;
+    if (std::sscanf(text, "%dx%d", &w, &h) != 2 || w <= 0 || h <= 0) return false;
     std::snprintf(g_resolution, sizeof(g_resolution), "%dx%d", w, h);
     return true;
 }
 
 } // namespace
 
-bool Answer(const char* name, DWORD* type, const BYTE** data, DWORD* size, DWORD* dword) {
+bool Answer(const char* name, unsigned long* type, const unsigned char** data, unsigned long* size,
+            unsigned long* dword) {
     if (!name) return false;
-    if (_stricmp(name, "CtfMon") == 0) {
+    if (text::CompareIgnoringCase(name, "CtfMon") == 0) {
         *dword = kCtfMon;
-        *type = REG_DWORD;
-        *data = reinterpret_cast<const BYTE*>(dword);
+        *type = kDword;
+        *data = reinterpret_cast<const unsigned char*>(dword);
         *size = 4;
         return true;
     }
-    if (g_resolution[0] && _stricmp(name, "VideoResolution") == 0) {
-        *type = REG_SZ;
-        *data = reinterpret_cast<const BYTE*>(g_resolution);
-        *size = static_cast<DWORD>(std::strlen(g_resolution) + 1);
+    if (g_resolution[0] && text::CompareIgnoringCase(name, "VideoResolution") == 0) {
+        *type = kString;
+        *data = reinterpret_cast<const unsigned char*>(g_resolution);
+        *size = static_cast<unsigned long>(std::strlen(g_resolution) + 1);
         return true;
     }
-    if (g_fullScreen >= 0 && _stricmp(name, "FullScreen") == 0) {
-        *dword = static_cast<DWORD>(g_fullScreen);
-        *type = REG_DWORD;
-        *data = reinterpret_cast<const BYTE*>(dword);
+    if (g_fullScreen >= 0 && text::CompareIgnoringCase(name, "FullScreen") == 0) {
+        *dword = static_cast<unsigned long>(g_fullScreen);
+        *type = kDword;
+        *data = reinterpret_cast<const unsigned char*>(dword);
         *size = 4;
         return true;
     }
-    if (g_music >= 0 && _stricmp(name, "AudioStreaming") == 0) {
-        *dword = static_cast<DWORD>(g_music);
-        *type = REG_DWORD;
-        *data = reinterpret_cast<const BYTE*>(dword);
+    if (g_music >= 0 && text::CompareIgnoringCase(name, "AudioStreaming") == 0) {
+        *dword = static_cast<unsigned long>(g_music);
+        *type = kDword;
+        *data = reinterpret_cast<const unsigned char*>(dword);
         *size = 4;
         return true;
     }
-    if (g_addonPath[0] && _stricmp(name, "AddonPath") == 0) {
-        *type = REG_SZ;
-        *data = reinterpret_cast<const BYTE*>(g_addonPath);
-        *size = static_cast<DWORD>(std::strlen(g_addonPath) + 1);
+    if (g_addonPath[0] && text::CompareIgnoringCase(name, "AddonPath") == 0) {
+        *type = kString;
+        *data = reinterpret_cast<const unsigned char*>(g_addonPath);
+        *size = static_cast<unsigned long>(std::strlen(g_addonPath) + 1);
         return true;
     }
-    if (g_wideScreen >= 0 && _stricmp(name, "WideScreen") == 0) {
-        *dword = static_cast<DWORD>(g_wideScreen);
-        *type = REG_DWORD;
-        *data = reinterpret_cast<const BYTE*>(dword);
+    if (g_wideScreen >= 0 && text::CompareIgnoringCase(name, "WideScreen") == 0) {
+        *dword = static_cast<unsigned long>(g_wideScreen);
+        *type = kDword;
+        *data = reinterpret_cast<const unsigned char*>(dword);
         *size = 4;
         return true;
     }
@@ -132,10 +135,9 @@ bool ParseStep(const std::string& verb, const std::string& argument) {
 
 void Install(const char* savesDir) {
     if (!g_addonFolder.empty()) std::snprintf(g_addonPath, sizeof(g_addonPath), "%s\\%s", savesDir, g_addonFolder.c_str());
-    char value[32];
-    DWORD n = GetEnvironmentVariableA("EI_RESOLUTION", value, sizeof(value));
-    if (!g_resolution[0] && n && n < sizeof(value)) {
-        if (!SetResolution(value)) Log("harness: EI_RESOLUTION %s: not WxH or desktop", value);
+    const std::string resolution = platform::EnvironmentVariable("EI_RESOLUTION");
+    if (!g_resolution[0] && !resolution.empty()) {
+        if (!SetResolution(resolution.c_str())) Log("harness: EI_RESOLUTION %s: not WxH or desktop", resolution.c_str());
         // The window of that size, as the default resolution's: the snapshot's FullScreen 1 would make the window
         // cover the desktop with the frame scaled up (H42: the cursor thread's one-to-one frame check never ran).
         else if (g_fullScreen < 0) g_fullScreen = 0;
@@ -144,8 +146,8 @@ void Install(const char* savesDir) {
         std::snprintf(g_resolution, sizeof(g_resolution), "%s", RebirthData() ? kImageResolutionRebirth : kImageResolution);
         if (g_fullScreen < 0) g_fullScreen = 0;
     }
-    n = GetEnvironmentVariableA("EI_WIDESCREEN", value, sizeof(value));
-    if (g_wideScreen < 0 && n && n < sizeof(value)) g_wideScreen = std::atoi(value) != 0 ? 1 : 0;
+    const std::string wideScreen = platform::EnvironmentVariable("EI_WIDESCREEN");
+    if (g_wideScreen < 0 && !wideScreen.empty()) g_wideScreen = std::atoi(wideScreen.c_str()) != 0 ? 1 : 0;
     if (g_resolution[0] || g_wideScreen >= 0 || g_fullScreen >= 0 || g_music >= 0 || g_addonPath[0]) {
         char music[16] = "(snapshot)";
         if (g_music >= 0) std::snprintf(music, sizeof(music), "%d", g_music);
@@ -156,36 +158,39 @@ void Install(const char* savesDir) {
     }
 }
 std::string ModFileStep(const std::string& argument) {
-    char archive[MAX_PATH] = {}, name[MAX_PATH] = {};
+    char archive[sys::kMaxPath] = {}, name[sys::kMaxPath] = {};
     long expected = -1;
-    if (sscanf_s(argument.c_str(), "%259s %259s %ld", archive, static_cast<unsigned>(sizeof(archive)), name,
-                 static_cast<unsigned>(sizeof(name)), &expected) != 3)
+    if (std::sscanf(argument.c_str(), "%259s %259s %ld", archive, name, &expected) != 3)
         return "modfile " + argument + ": not <archive> <file> <bytes>";
     // The archive as the game opens its own: the text resources' folder and the name.
     const std::string path = std::string(image::TextFolder()) + archive;   // host strings only (H30)
     const long got = image::ModFile(path.c_str(), name);
     Log("harness: modfile %s %s: %ld bytes (expected %ld)", path.c_str(), name, got, expected);
     if (got == expected) return std::string();
-    char error[2 * MAX_PATH + 64];
+    char error[2 * sys::kMaxPath + 64];
     std::snprintf(error, sizeof(error), "modfile %s %s: %ld bytes, expected %ld", archive, name, got, expected);
     return error;
 }
 
 bool RebirthInstall() { return rebirth_profile::RebirthLaunch(); }
 
-bool RebirthData() {
-    char folder[MAX_PATH];
-    DWORD n = GetEnvironmentVariableA("EI_GAME_ROOT", folder, sizeof(folder));
-    if (!n || n >= sizeof(folder)) {
-        n = GetModuleFileNameA(nullptr, folder, sizeof(folder));
-        if (!n || n >= sizeof(folder)) return false;
-        if (char* slash = std::strrchr(folder, '\\')) *slash = 0;
+std::string GameFolder() {
+    std::string folder = platform::EnvironmentVariable("EI_GAME_ROOT");
+    if (folder.empty()) {
+        folder = platform::ProgramPath();
+        const std::size_t slash = folder.find_last_of("\\/");
+        if (slash == std::string::npos) return {};
+        folder.resize(slash);
     }
-    char path[MAX_PATH + 32];
-    std::snprintf(path, sizeof(path), "%s\\starter\\addon.dll", folder);
-    if (GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES) return true;
-    std::snprintf(path, sizeof(path), "%s\\EI_Plugin.asi", folder);
-    return GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES;
+    folder = sys::FullPath(folder);
+    while (folder.size() > 3 && folder.back() == '\\') folder.pop_back();
+    return folder;
+}
+
+bool RebirthData() {
+    const std::string folder = GameFolder();
+    if (folder.empty()) return false;
+    return sys::Exists(folder + "\\starter\\addon.dll") || sys::Exists(folder + "\\EI_Plugin.asi");
 }
 
 } // namespace ei::verify::starter

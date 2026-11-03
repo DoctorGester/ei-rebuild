@@ -1,4 +1,4 @@
-// The orientation watch's unit in the image (image_side.h; harness_watch.cpp).
+// The orientation watch's unit in the image (image_side.h; system/watch_win32.cpp).
 #include "image_side.h"
 
 #include "game/game_singletons.h"

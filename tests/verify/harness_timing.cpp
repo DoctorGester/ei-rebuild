@@ -2,11 +2,11 @@
 #include "harness_timing.h"
 
 #include "harness_clock.h"
+#include "system/harness_system.h"
 #include "../../src/platform/log.h"
 
-#include <windows.h>
-
 #include <algorithm>
+#include <chrono>
 #include <vector>
 
 namespace ei::verify::timing {
@@ -16,8 +16,7 @@ namespace {
 constexpr const char* kPartNames[Parts] = {"server", "digest", "client", "steps", "pair wait", "window checks"};
 constexpr double kLongFrameMs = 200.0;   // a frame this long loads something (a zone, a save, a screen)
 
-long long g_frequency = 0;
-long long g_wall[Parts] = {};               // the run's sum per part (QPC ticks)
+long long g_wall[Parts] = {};               // the run's sum per part (steady clock nanoseconds)
 unsigned long long g_cycles[Parts] = {};    // the main thread's cycles per part
 long long g_frameWall = 0;                  // this frame's parts so far
 unsigned long long g_frameCycles = 0;
@@ -37,27 +36,19 @@ long long g_currentStart = 0;
 unsigned long long g_currentCycles = 0;
 
 long long Ticks() {
-    LARGE_INTEGER t;
-    QueryPerformanceCounter(&t);
-    return t.QuadPart;
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
 unsigned long long ThreadCycles() {
-    ULONG64 c = 0;
-    QueryThreadCycleTime(GetCurrentThread(), &c);
-    return c;
+    double ms = 0;
+    std::uint64_t cycles = 0;
+    sys::ThisThreadCpu(&ms, &cycles);
+    return cycles;
 }
 
-double Ms(long long ticks) {
-    if (!g_frequency) {
-        LARGE_INTEGER f;
-        QueryPerformanceFrequency(&f);
-        g_frequency = f.QuadPart;
-    }
-    return static_cast<double>(ticks) * 1000.0 / static_cast<double>(g_frequency);
-}
+double Ms(long long ticks) { return static_cast<double>(ticks) / 1e6; }
 
-bool OnMainThread() { return GetCurrentThreadId() == clock::MainThread(); }
+bool OnMainThread() { return clock::OnMainThread(); }
 
 void Credit(int part, long long now, unsigned long long cycles) {
     const long long wall = now - g_currentStart;
@@ -66,16 +57,6 @@ void Credit(int part, long long now, unsigned long long cycles) {
     g_cycles[part] += used;
     g_frameWall += wall;
     g_frameCycles += used;
-}
-
-// In 100 ns units. Differences are taken in integers: the game runs the FPU at 24 bits (control word
-// 007F), where a date in milliseconds as a double has no precision left.
-unsigned long long FileTimeUnits(const FILETIME& t) {
-    return (static_cast<unsigned long long>(t.dwHighDateTime) << 32) | t.dwLowDateTime;
-}
-double FileTimeMs(const FILETIME& t) { return static_cast<double>(FileTimeUnits(t)) / 10000.0; }
-double SinceMs(const FILETIME& from, const FILETIME& to) {
-    return static_cast<double>(static_cast<long long>(FileTimeUnits(to) - FileTimeUnits(from))) / 10000.0;
 }
 
 float Median(std::vector<float> values) {
@@ -116,10 +97,8 @@ void FrameEnd() {
     const long long now = Ticks();
     const unsigned long long cycles = ThreadCycles();
     if (g_frames == 0) {
-        FILETIME created, exited, kernel, user, nowTime;
-        GetSystemTimePreciseAsFileTime(&nowTime);
-        if (GetProcessTimes(GetCurrentProcess(), &created, &exited, &kernel, &user))
-            g_startupMs = SinceMs(created, nowTime);
+        double kernelMs = 0, userMs = 0;
+        sys::ProcessTimes(&kernelMs, &userMs, &g_startupMs);
         g_firstEnd = now;
         ei::Log("harness: timing: the first frame ended %.0f ms after the process started", g_startupMs);
     } else {
@@ -147,23 +126,9 @@ void Report(FILE* f) {
     const unsigned frames = g_frames - 1;   // frames timed: from the first frame's end on
     // Cycles to milliseconds by the main thread's own CPU time.
     double mainCpuMs = 0.0, processUserMs = 0.0, processKernelMs = 0.0, lifeMs = 0.0;
-    unsigned long long mainCycles = 0;
-    if (HANDLE thread = OpenThread(THREAD_QUERY_LIMITED_INFORMATION, FALSE, clock::MainThread())) {
-        FILETIME created, exited, kernel, user;
-        if (GetThreadTimes(thread, &created, &exited, &kernel, &user)) mainCpuMs = FileTimeMs(kernel) + FileTimeMs(user);
-        ULONG64 c = 0;
-        if (QueryThreadCycleTime(thread, &c)) mainCycles = c;
-        CloseHandle(thread);
-    }
-    {
-        FILETIME created, exited, kernel, user, nowTime;
-        GetSystemTimePreciseAsFileTime(&nowTime);
-        if (GetProcessTimes(GetCurrentProcess(), &created, &exited, &kernel, &user)) {
-            processUserMs = FileTimeMs(user);
-            processKernelMs = FileTimeMs(kernel);
-            lifeMs = SinceMs(created, nowTime);
-        }
-    }
+    std::uint64_t mainCycles = 0;
+    sys::MainThreadCpu(&mainCpuMs, &mainCycles);
+    sys::ProcessTimes(&processKernelMs, &processUserMs, &lifeMs);
     const double msPerCycle = mainCycles ? mainCpuMs / static_cast<double>(mainCycles) : 0.0;
     const double totalMs = Ms(g_lastEnd - g_firstEnd);
     std::fprintf(f, "\nTIMING: %u frames in %.1f s after the first (start-up to it %.1f s, the process %.1f s so far); "

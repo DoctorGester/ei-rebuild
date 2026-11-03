@@ -148,9 +148,21 @@ startup movies are skipped, the tutorial option is off, saves and `config\tutori
 run_all's `network:` summary). The user's real mouse never reaches the game (`tests/verify/harness_input.h`, the
 report's `MOUSE:` line; the harness's posted input and its GetCursorPos are the game's only mouse). For parallel runs the
 harness ignores other game windows, keeps the game active when it loses focus, and opens data files for shared reading.
-Harness games never take the foreground (`noforeground::`), and every window stays out of sight (cloaked tool windows;
-`EI_HARNESS_SHOW_WINDOW=1` shows them to watch a run); the report's `WINDOW:` line and run_all's `game windows:` summary
-check it. Harness runs open no sound device (sound.md).
+On Windows harness games never take the foreground and every window stays out of sight (the game window concealed before
+it is first shown, any other window of the process concealed when the watch finds it; `EI_HARNESS_SHOW_WINDOW=1` shows
+them to watch a run); the report's `WINDOW:` line and run_all's `game windows:` summary check it. On Linux the window is
+shown. Harness runs open no sound device (sound.md).
+
+## The harness's code
+
+tests/verify: harness.cpp (the steps, the overlay, the report) and its parts; image/ (what reads the game's objects);
+platform/ (the platform backend: platform.h's functions the harness's builds take in place of the game's,
+harness_platform.cpp on SDL and game_answers.cpp for the calls a run answers; platform.md, "The harness's answers"); and
+system/ (the harness's own system calls, harness_system.h with system_win32.cpp and system_posix.cpp, the sockets'
+helpers, and Windows' sampling profiler and debug-register watch). CMakeLists.txt builds the `_win32` or `_posix` files
+for its system. The harness patches nothing of the system: no import slot, hot patch or registry answer (nothing in the
+program reads the registry; the settings are a file, harness_settings.h). The harness builds on Linux
+(`-DEI_HARNESS=ON`; linux.md).
 
 ## Hangs, crashes and timeouts
 

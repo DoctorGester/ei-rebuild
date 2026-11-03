@@ -36,7 +36,7 @@ void Report(FILE* f);
 
 namespace ei {
 
-// The sampling profiler (EI_PROFILE=1; harness_profile.cpp): started from the main thread at the harness's start.
+// The sampling profiler (EI_PROFILE=1; system/profile_win32.cpp): started from the main thread at the harness's start.
 void InstallProfiler();
 
 } // namespace ei

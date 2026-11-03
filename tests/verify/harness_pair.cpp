@@ -1,12 +1,17 @@
 // Two harness games played together: lockstep, the pair's own network, signals (harness_pair.h).
-#include <winsock2.h>
-#include <windows.h>
-
 #include "harness_pair.h"
+#include "system/harness_sockets.h"
+#include "system/harness_system.h"
 
 #include "../../src/platform/log.h"
+#include "platform/platform.h"
 
+#include <atomic>
+#include <chrono>
 #include <cstring>
+#include <mutex>
+#include <shared_mutex>
+#include <thread>
 #include <vector>
 
 namespace ei::verify::pair {
@@ -19,12 +24,12 @@ constexpr int kClaims = 64;
 constexpr int kSignals = 32;
 constexpr int kTagBytes = 56;
 constexpr std::uint16_t kOwnPorts = 30000;   // + 1000 * side + n: a socket that sends before any bind
-constexpr DWORD kSilentMs = 90000;           // the other game gives no turn for this long: go on alone (a failure)
+constexpr std::uint32_t kSilentMs = 90000;           // the other game gives no turn for this long: go on alone (a failure)
 constexpr int kRecords = 16;                 // the fake master's announcements (one every ~75 frames per server)
 constexpr int kRecordBytes = 0x240;          // an announcement: 18 bytes and two strings of at most 0x100
 
 struct Datagram {
-    LONG full;
+    std::int32_t full;
     std::uint32_t seq;
     std::int32_t stamp;   // the sender's segment (Stamp): datagrams are taken in (stamp, seq) order
     std::uint16_t to, from;
@@ -38,14 +43,14 @@ struct Claim {
 };
 
 struct SignalTag {
-    LONG used;
+    std::int32_t used;
     std::int32_t side;
     char tag[kTagBytes];
 };
 
 // An announcement the fake master keeps (SV5d4): listed from segment `stamp` on.
 struct MasterRecord {
-    LONG used;
+    std::int32_t used;
     std::uint32_t seq;
     std::int32_t stamp;
     std::uint16_t master, from;   // the master's port, the announcer's
@@ -53,14 +58,15 @@ struct MasterRecord {
     char data[kRecordBytes];
 };
 
-// The pair's shared memory (a named mapping, zeroed by Windows when the first side creates it: the
-// zero state is the start).
+// The pair's shared memory (zeroed by the system when the first side creates it: the zero state is the start).
+// The atomics are lock-free, so they work between the two processes.
 struct Shared {
-    volatile LONG lock;
-    volatile LONG done[2];      // main loop passes so far, each side
-    volatile LONG pid[2];
+    std::atomic<std::int32_t> lock;
+    std::atomic<std::int32_t> done[2];   // main loop passes so far, each side
+    std::atomic<std::int32_t> pid[2];
+    std::uint32_t turnWord[2];           // each side's turn signal (sys::Signal)
     std::uint32_t nextSeq;
-    LONG overflows;
+    std::int32_t overflows;
     Claim claims[kClaims];
     SignalTag signals[kSignals];
     Datagram slots[kSlots];
@@ -70,13 +76,12 @@ struct Shared {
 
 Shared* g_shared;
 int g_side = -1;
-HANDLE g_turn[2];          // auto-reset events: "your turn may have come"
-HANDLE g_peerProcess;
+sys::Signal g_turn[2];      // "your turn may have come"
 bool g_alone = false;      // the other game has ended (or never came): no more waiting
-volatile LONG g_handedOff = 0;   // this game's turn has ended (HandOff) and the next has not begun
+std::atomic<std::int32_t> g_handedOff{0};   // this game's turn has ended (HandOff) and the next has not begun
 std::int32_t g_stamp = 0;        // this game's segment: 2 * turn + side (a turn and the frame step after it)
 unsigned g_frame = 0;            // the last FrameDone's frame (for the guard's message)
-LONG g_outOfTurn = 0;            // mailbox calls and signals outside the turn (the guard)
+std::atomic<std::int32_t> g_outOfTurn{0};   // mailbox calls and signals outside the turn (the guard)
 bool g_cut = false;        // "netcut": nothing sent arrives, nothing sent here is received
 std::uint16_t g_fakeMaster = 0;   // "fakemaster": the virtual port this game's master answers on
 unsigned g_masterAnswers = 0;
@@ -98,20 +103,20 @@ struct MasterLinkState {
     std::vector<std::uint8_t> reply;
     std::size_t taken;
 };
-SRWLOCK g_linksLock = SRWLOCK_INIT;
+std::shared_mutex g_linksLock;
 std::vector<MasterLinkState> g_links;
 
 // This process's sockets and their virtual ports, and the next port of its own.
-SRWLOCK g_socketsLock = SRWLOCK_INIT;
+std::shared_mutex g_socketsLock;
 std::vector<std::pair<std::uintptr_t, std::uint16_t>> g_sockets;
 std::uint16_t g_nextOwn = 0;
 
 // For the report.
 unsigned g_turns = 0;
 unsigned long long g_waitedMs = 0;
-// Where a frame's time goes (QueryPerformanceCounter ticks): in the turn (from the end of the wait to the
+// Where a frame's time goes (steady clock nanoseconds; 0: none): in the turn (from the end of the wait to the
 // hand-off) and, for a turn handed off in the frame step, the rest of the frame step after it (outside).
-LARGE_INTEGER g_turnStart{}, g_endedAt{};
+long long g_turnStart = 0, g_endedAt = 0;
 long long g_inTurnTicks = 0, g_outsideTicks = 0;
 unsigned g_turnsTimed = 0, g_handedOffEarly = 0;
 unsigned g_sent = 0, g_unheard = 0, g_received = 0, g_lost = 0;
@@ -122,22 +127,20 @@ std::vector<std::string> g_failures;
 // for ever: after 5 s it is taken anyway.
 struct Locked {
     Locked() {
-        const DWORD start = GetTickCount();
-        while (InterlockedCompareExchange(&g_shared->lock, 1, 0) != 0) {
-            if (GetTickCount() - start > 5000) {
+        const std::uint32_t start = sys::TickCount();
+        for (std::int32_t free = 0; !g_shared->lock.compare_exchange_strong(free, 1); free = 0) {
+            if (sys::TickCount() - start > 5000) {
                 Log("harness: pair: the shared lock was held for 5 s; taken");
                 break;
             }
-            SwitchToThread();
+            std::this_thread::yield();
         }
     }
-    ~Locked() { InterlockedExchange(&g_shared->lock, 0); }
+    ~Locked() { g_shared->lock.store(0); }
 };
 
-HANDLE PeerProcess() {
-    if (!g_peerProcess && g_shared->pid[1 - g_side])
-        g_peerProcess = OpenProcess(SYNCHRONIZE, FALSE, static_cast<DWORD>(g_shared->pid[1 - g_side]));
-    return g_peerProcess;
+long long Now() {
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
 bool Claimed(std::uint16_t port) {
@@ -147,11 +150,10 @@ bool Claimed(std::uint16_t port) {
 }
 
 std::uint16_t PortOf(std::uintptr_t s) {
-    AcquireSRWLockShared(&g_socketsLock);
+    std::shared_lock<std::shared_mutex> lock(g_socketsLock);
     std::uint16_t port = 0;
     for (const auto& entry : g_sockets)
         if (entry.first == s) port = entry.second;
-    ReleaseSRWLockShared(&g_socketsLock);
     return port;
 }
 
@@ -166,12 +168,12 @@ std::uint16_t PortOf(std::uintptr_t s) {
 // A call that breaks a rule fails the run (the first is logged). The pair's network is the main
 // thread's only.
 void OutOfTurn(const char* call) {
-    if (InterlockedIncrement(&g_outOfTurn) != 1) return;
+    if (++g_outOfTurn != 1) return;
     char what[240];
     std::snprintf(what, sizeof(what),
-                  "pair: %s outside this game's turn (in frame %u's frame step after the hand-off, thread %lu): "
+                  "pair: %s outside this game's turn (in frame %u's frame step after the hand-off, thread %llu): "
                   "the frame step runs beside the other game's turn",
-                  call, g_frame + 1, GetCurrentThreadId());
+                  call, g_frame + 1, static_cast<unsigned long long>(sys::CurrentThread()));
     Log("harness: %s", what);
     g_failures.push_back(what);
 }
@@ -189,29 +191,27 @@ bool ClaimedHere(std::uint16_t port) {
 }
 
 void EndTurn() {
-    if (InterlockedExchange(&g_handedOff, 1)) return;
-    QueryPerformanceCounter(&g_endedAt);
-    if (g_turnStart.QuadPart) {
-        g_inTurnTicks += g_endedAt.QuadPart - g_turnStart.QuadPart;
+    if (g_handedOff.exchange(1)) return;
+    g_endedAt = Now();
+    if (g_turnStart) {
+        g_inTurnTicks += g_endedAt - g_turnStart;
         ++g_turnsTimed;
     }
-    InterlockedIncrement(&g_shared->done[g_side]);
-    SetEvent(g_turn[1 - g_side]);
+    ++g_shared->done[g_side];
+    g_turn[1 - g_side].Raise();
 }
 
 } // namespace
 
 bool Active() { return g_shared != nullptr; }
 
-bool Overlap() {
-    char value[8] = "";
-    return !(GetEnvironmentVariableA("EI_PAIR_OVERLAP", value, sizeof(value)) && value[0] == '0');
-}
+bool Overlap() { return platform::EnvironmentVariable("EI_PAIR_OVERLAP").substr(0, 1) != "0"; }
 
 bool Install() {
     char value[128] = "";
-    const DWORD n = GetEnvironmentVariableA("EI_PAIR", value, sizeof(value));
-    if (n == 0 || n >= sizeof(value)) return false;
+    const std::string pair = platform::EnvironmentVariable("EI_PAIR");
+    if (pair.empty() || pair.size() >= sizeof(value)) return false;
+    sys::CopyText(value, pair.c_str());
     char* comma = std::strrchr(value, ',');
     if (!comma || (comma[1] != '0' && comma[1] != '1')) {
         Log("harness: pair: EI_PAIR '%s' is not <name>,<side>", value);
@@ -221,24 +221,15 @@ bool Install() {
     g_side = comma[1] - '0';
     g_stamp = 2 + g_side;
     std::snprintf(g_name, sizeof(g_name), "%s", value);
-    char name[160];
-    std::snprintf(name, sizeof(name), "Local\\%s", g_name);
-    HANDLE mapping = CreateFileMappingA(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, sizeof(Shared), name);
-    if (!mapping) {
-        Log("harness: pair: the shared state %s could not be made (error %lu)", name, GetLastError());
+    g_shared = static_cast<Shared*>(sys::OpenSharedMemory(g_name, sizeof(Shared)));
+    if (!g_shared) {
+        Log("harness: pair: the shared state %s could not be made", g_name);
         g_failures.push_back("pair: the shared state could not be made");
         return false;
     }
-    g_shared = static_cast<Shared*>(MapViewOfFile(mapping, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(Shared)));
-    if (!g_shared) {
-        g_failures.push_back("pair: the shared state could not be mapped");
-        return false;
-    }
-    for (int side = 0; side < 2; ++side) {
-        std::snprintf(name, sizeof(name), "Local\\%s.turn%d", g_name, side);
-        g_turn[side] = CreateEventA(nullptr, FALSE, FALSE, name);
-    }
-    InterlockedExchange(&g_shared->pid[g_side], static_cast<LONG>(GetCurrentProcessId()));
+    for (int side = 0; side < 2; ++side)
+        g_turn[side].Open(std::string(g_name) + ".turn" + std::to_string(side), &g_shared->turnWord[side]);
+    g_shared->pid[g_side].store(static_cast<std::int32_t>(sys::ProcessId()));
     Log("harness: pair: side %d of %s (%s): lockstep with the other game, UDP on the pair's own network", g_side,
         g_name, g_side == 0 ? "the scenario's game" : "the peer");
     return true;
@@ -252,39 +243,42 @@ void FrameDone(unsigned frame) {
     if (!g_shared) return;
     const int other = 1 - g_side;
     g_frame = frame;
-    if (g_handedOff && g_turnStart.QuadPart) {   // handed off in the frame step
-        LARGE_INTEGER now;
-        QueryPerformanceCounter(&now);
-        g_outsideTicks += now.QuadPart - g_endedAt.QuadPart;
+    if (g_handedOff && g_turnStart) {   // handed off in the frame step
+        g_outsideTicks += Now() - g_endedAt;
         ++g_handedOffEarly;
     }
     EndTurn();
-    const LONG n = g_shared->done[g_side];
+    const std::int32_t n = g_shared->done[g_side];
     if (g_alone) {
-        g_turnStart.QuadPart = 0;   // no more turns to time
-        InterlockedExchange(&g_handedOff, 0);
+        g_turnStart = 0;   // no more turns to time
+        g_handedOff.store(0);
         return;
     }
     ++g_turns;
+    static bool released = false;   // the other game has opened the shared state too: its name is no longer needed
+    if (!released && g_side == 0 && g_shared->pid[other].load()) {
+        released = true;
+        sys::ReleaseSharedName(g_name);
+    }
     auto ready = [&] {
-        const LONG theirs = g_shared->done[other];
+        const std::int32_t theirs = g_shared->done[other];
         return g_side == 0 ? theirs >= n : theirs >= n + 1;
     };
-    const DWORD start = GetTickCount();
+    const std::uint32_t start = sys::TickCount();
     while (!ready()) {
-        HANDLE peer = PeerProcess();
-        HANDLE handles[2] = {g_turn[g_side], peer};
-        const DWORD r = WaitForMultipleObjects(peer ? 2 : 1, handles, FALSE, 500);
-        if (peer && r == WAIT_OBJECT_0 + 1 && !ready()) {
-            Log("harness: pair: the other game has ended (after %ld frames); this one goes on alone from frame %u",
-                g_shared->done[other], frame);
+        // Woken by the other game's hand-off; every 500 ms whether it still runs.
+        const auto peer = static_cast<std::uint32_t>(g_shared->pid[other].load());
+        const bool raised = g_turn[g_side].Wait(500);
+        if (peer && !raised && !ready() && !sys::ProcessAlive(peer)) {
+            Log("harness: pair: the other game has ended (after %d frames); this one goes on alone from frame %u",
+                g_shared->done[other].load(), frame);
             g_peerEndedAt = static_cast<long>(frame);
             g_alone = true;
             break;
         }
-        if (GetTickCount() - start > kSilentMs) {
+        if (sys::TickCount() - start > kSilentMs) {
             char what[160];
-            std::snprintf(what, sizeof(what), "pair: the other game %s for %lu s (frame %u); going on alone",
+            std::snprintf(what, sizeof(what), "pair: the other game %s for %u s (frame %u); going on alone",
                           peer ? "gave no turn" : "did not start", kSilentMs / 1000, frame);
             Log("harness: %s", what);
             g_failures.push_back(what);
@@ -292,11 +286,10 @@ void FrameDone(unsigned frame) {
             break;
         }
     }
-    g_waitedMs += GetTickCount() - start;
-    if (g_alone) g_turnStart.QuadPart = 0;
-    else QueryPerformanceCounter(&g_turnStart);
+    g_waitedMs += sys::TickCount() - start;
+    g_turnStart = g_alone ? 0 : Now();
     g_stamp = 2 * (n + 1) + g_side;
-    InterlockedExchange(&g_handedOff, 0);   // this game's next turn
+    g_handedOff.store(0);   // this game's next turn
 }
 
 void Signal(const std::string& tag) {
@@ -344,9 +337,10 @@ bool Bind(std::uintptr_t s, std::uint16_t port) {
         free->side = static_cast<std::uint8_t>(g_side);
         free->used = 1;
     }
-    AcquireSRWLockExclusive(&g_socketsLock);
-    g_sockets.push_back({s, port});
-    ReleaseSRWLockExclusive(&g_socketsLock);
+    {
+        std::unique_lock<std::shared_mutex> lock(g_socketsLock);
+        g_sockets.push_back({s, port});
+    }
     Log("harness: pair: socket %u has virtual port %u", static_cast<unsigned>(s), port);
     return true;
 }
@@ -435,14 +429,14 @@ int MakeBad(const char* data, int length, char* out) {
 
 int SendTo(std::uintptr_t s, const char* data, int length, std::uint16_t port, bool broadcast) {
     if (length < 0 || length > kDatagramBytes) {
-        WSASetLastError(WSAEMSGSIZE);
-        return SOCKET_ERROR;
+        sockets::SetError(sockets::Error::MessageSize);
+        return -1;
     }
     std::uint16_t from = PortOf(s);
     if (!from) {
         if (!Bind(s, 0)) {
-            WSASetLastError(WSAEADDRINUSE);
-            return SOCKET_ERROR;
+            sockets::SetError(sockets::Error::AddressInUse);
+            return -1;
         }
         from = PortOf(s);
     }
@@ -518,7 +512,7 @@ int SendTo(std::uintptr_t s, const char* data, int length, std::uint16_t port, b
     return length;
 }
 
-int RecvFrom(std::uintptr_t s, char* data, int length, sockaddr* from, int* fromLength) {
+int RecvFrom(std::uintptr_t s, char* data, int length, sockaddr_in* from) {
     const std::uint16_t port = PortOf(s);
     Datagram* oldest = nullptr;
     Locked lock;
@@ -539,47 +533,47 @@ int RecvFrom(std::uintptr_t s, char* data, int length, sockaddr* from, int* from
         }
     }
     if (!oldest) {
-        WSASetLastError(WSAEWOULDBLOCK);
-        return SOCKET_ERROR;
+        sockets::SetError(sockets::Error::WouldBlock);
+        return -1;
     }
     ++g_received;
     const int n = oldest->length < length ? oldest->length : length;
     std::memcpy(data, oldest->data, static_cast<std::size_t>(n));
-    if (from && fromLength && *fromLength >= static_cast<int>(sizeof(sockaddr_in))) {
-        sockaddr_in address{};
-        address.sin_family = AF_INET;
-        address.sin_port = htons(oldest->from);
-        address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-        std::memcpy(from, &address, sizeof(address));
-        *fromLength = sizeof(address);
+    if (from) {
+        *from = sockaddr_in{};
+        from->sin_family = AF_INET;
+        from->sin_port = htons(oldest->from);
+        from->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     }
     const bool truncated = oldest->length > length;
     oldest->full = 0;
     if (truncated) {
-        WSASetLastError(WSAEMSGSIZE);
-        return SOCKET_ERROR;
+        sockets::SetError(sockets::Error::MessageSize);
+        return -1;
     }
     return n;
 }
 
 void Close(std::uintptr_t s) {
     InTurn("Close");
-    AcquireSRWLockExclusive(&g_linksLock);
-    for (std::size_t i = 0; i < g_links.size(); ++i)
-        if (g_links[i].socket == s) {
-            g_links.erase(g_links.begin() + static_cast<std::ptrdiff_t>(i));
-            break;
-        }
-    ReleaseSRWLockExclusive(&g_linksLock);
+    {
+        std::unique_lock<std::shared_mutex> lock(g_linksLock);
+        for (std::size_t i = 0; i < g_links.size(); ++i)
+            if (g_links[i].socket == s) {
+                g_links.erase(g_links.begin() + static_cast<std::ptrdiff_t>(i));
+                break;
+            }
+    }
     const std::uint16_t port = PortOf(s);
     if (!port) return;
-    AcquireSRWLockExclusive(&g_socketsLock);
-    for (std::size_t i = 0; i < g_sockets.size(); ++i)
-        if (g_sockets[i].first == s) {
-            g_sockets.erase(g_sockets.begin() + static_cast<std::ptrdiff_t>(i));
-            break;
-        }
-    ReleaseSRWLockExclusive(&g_socketsLock);
+    {
+        std::unique_lock<std::shared_mutex> lock(g_socketsLock);
+        for (std::size_t i = 0; i < g_sockets.size(); ++i)
+            if (g_sockets[i].first == s) {
+                g_sockets.erase(g_sockets.begin() + static_cast<std::ptrdiff_t>(i));
+                break;
+            }
+    }
     Locked lock;
     for (Claim& c : g_shared->claims)
         if (c.used && c.port == port && c.side == g_side) c.used = 0;
@@ -605,49 +599,50 @@ bool FakeMaster(std::uint16_t port, const char* reply) {
 
 bool MasterConnect(std::uintptr_t s, std::uint16_t port) {
     if (!g_shared || !g_fakeMaster || port != g_fakeMaster) return false;
-    AcquireSRWLockExclusive(&g_linksLock);
-    g_links.push_back({s, false, {}, 0});
-    ReleaseSRWLockExclusive(&g_linksLock);
+    {
+        std::unique_lock<std::shared_mutex> lock(g_linksLock);
+        g_links.push_back({s, false, {}, 0});
+    }
     Log("harness: pair: socket %u links to the fake master %u", static_cast<unsigned>(s), port);
     return true;
 }
 
-bool MasterSelect(fd_set* read, fd_set* write, fd_set* except, int* ready) {
+bool MasterSelect(platform::net::SocketGroup* read, platform::net::SocketGroup* write,
+                  platform::net::SocketGroup* except, int* ready) {
     if (!g_shared) return false;
-    AcquireSRWLockShared(&g_linksLock);
-    auto link = [](SOCKET s) -> const MasterLinkState* {
+    std::shared_lock<std::shared_mutex> lock(g_linksLock);
+    auto link = [](std::uintptr_t s) -> const MasterLinkState* {
         for (const MasterLinkState& l : g_links)
             if (l.socket == s) return &l;
         return nullptr;
     };
     bool any = false;
-    for (fd_set* set : {read, write, except})
+    for (platform::net::SocketGroup* set : {read, write, except})
         if (set)
-            for (u_int i = 0; i < set->fd_count; ++i) any = any || link(set->fd_array[i]);
+            for (int i = 0; i < set->count; ++i) any = any || link(set->sockets[i]);
     if (any) {
         *ready = 0;
         int which = 0;
-        for (fd_set* set : {read, write, except}) {
+        for (platform::net::SocketGroup* set : {read, write, except}) {
             ++which;
             if (!set) continue;
-            u_int kept = 0;
-            for (u_int i = 0; i < set->fd_count; ++i) {
-                const MasterLinkState* l = link(set->fd_array[i]);
-                if (!l) Log("harness: pair: select of a master link with socket %u beside it: left out", static_cast<unsigned>(set->fd_array[i]));
+            int kept = 0;
+            for (int i = 0; i < set->count; ++i) {
+                const MasterLinkState* l = link(set->sockets[i]);
+                if (!l) Log("harness: pair: select of a master link with socket %u beside it: left out", static_cast<unsigned>(set->sockets[i]));
                 const bool on = l && (which == 1 ? l->asked : which == 2);
-                if (on) set->fd_array[kept++] = set->fd_array[i];
+                if (on) set->sockets[kept++] = set->sockets[i];
             }
-            set->fd_count = kept;
-            *ready += static_cast<int>(kept);
+            set->count = kept;
+            *ready += kept;
         }
     }
-    ReleaseSRWLockShared(&g_linksLock);
     return any;
 }
 
 bool MasterSend(std::uintptr_t s, const char* data, int length) {
     if (!g_shared) return false;
-    AcquireSRWLockExclusive(&g_linksLock);
+    std::unique_lock<std::shared_mutex> lock(g_linksLock);
     MasterLinkState* found = nullptr;
     for (MasterLinkState& l : g_links)
         if (l.socket == s) found = &l;
@@ -663,13 +658,12 @@ bool MasterSend(std::uintptr_t s, const char* data, int length) {
             g_fakeMaster, length, extra, kReplyNames[static_cast<int>(g_reply)], servers,
             static_cast<unsigned>(found->reply.size()));
     }
-    ReleaseSRWLockExclusive(&g_linksLock);
     return found != nullptr;
 }
 
 bool MasterRecv(std::uintptr_t s, char* data, int length, int* received) {
     if (!g_shared) return false;
-    AcquireSRWLockExclusive(&g_linksLock);
+    std::unique_lock<std::shared_mutex> lock(g_linksLock);
     MasterLinkState* found = nullptr;
     for (MasterLinkState& l : g_links)
         if (l.socket == s) found = &l;
@@ -680,7 +674,6 @@ bool MasterRecv(std::uintptr_t s, char* data, int length, int* received) {
         found->taken += n;
         *received = static_cast<int>(n);   // 0 once all is taken: the master closed the link
     }
-    ReleaseSRWLockExclusive(&g_linksLock);
     return found != nullptr;
 }
 
@@ -710,9 +703,7 @@ void Report(FILE* f) {
                  "(%u to no one), %u received; the other game %s\n",
                  g_side, g_side == 0 ? "the scenario's game" : "the peer", g_turns, g_waitedMs, g_sent, g_unheard,
                  g_received, ended);
-    LARGE_INTEGER frequency;
-    QueryPerformanceFrequency(&frequency);
-    const double ms = 1000.0 / static_cast<double>(frequency.QuadPart);
+    const double ms = 1e-6;   // a nanosecond's
     std::fprintf(f, "PAIR: per turn %.2f ms in the turn (from its start to the hand-off); %u of %u turns handed off in "
                  "the frame step (%s), the frame step's rest after it %.2f ms on average, beside the other game's turn\n",
                  g_turnsTimed ? static_cast<double>(g_inTurnTicks) * ms / g_turnsTimed : 0.0, g_handedOffEarly, g_turnsTimed,

@@ -182,11 +182,14 @@ always does the close instead of whichever real message came first.
 
 ## 6. Harness isolation
 
-- **No foreground** (harness.cpp `noforeground::`, the harness's platform backend harness_platform.h): a harness game's
-  window is never activated; the harness tells the game about activation itself.
-- **Out of sight** (`EI_HARNESS_SHOW_WINDOW=1` to watch): top-level windows are cloaked (DWMWA_CLOAK) and made tool
-  windows; frames, posted input and window size stay the same. The report's `WINDOW:` line, run_all's `game windows:`
-  summary; the check walks the game's own threads' windows every 2 s.
+- **No foreground** (the harness's platform backend, tests/verify/platform/harness_platform.h): a harness game's
+  window is never activated (shown without activation, minimised and restored by the focus steps without it); the
+  harness tells the game about activation itself.
+- **Out of sight** (Windows; `EI_HARNESS_SHOW_WINDOW=1` to watch): the game window is cloaked (DWMWA_CLOAK) and made a
+  tool window before it is first shown (sys::ConcealWindow); frames, posted input and window size stay the same. The
+  watch (sys::WatchWindows, from the frame loop at most every 200 ms) conceals any other top-level window of the process
+  it finds in sight (a runtime box, a driver's window) and logs it. The report's `WINDOW:` line, run_all's
+  `game windows:` summary. On Linux the window is shown (WSLg draws it).
 - **The harness's input is the only input** (tests/verify/harness_input.h): the game reads keys, characters, the mouse and
   its motion from the harness's platform backend, which drops every system event; the steps post window messages, each
   made into the event the window procedure's translation made of it. Typed text follows the US layout with no key held
@@ -227,17 +230,19 @@ always does the close instead of whichever real message came first.
 
 ### No run writes into an install
 
-tests/verify/harness_install.h. The redirect: every module's file calls that write (CreateFile, CreateFile2, DeleteFile,
-MoveFile*, CopyFile*, CreateDirectory, RemoveDirectory, SetFileAttributes, ANSI and wide) come through kernel32's own
-import slots, which the harness takes: a write of an install file goes to the run's overlay (harness_saves\<relative
-path>; reads prefer the overlay copy), so another DLL's writes (the graphics driver's caches, SDL's) land in the run
-folder like the game's. The guard, below every other layer: ntdll's NtCreateFile, NtOpenFile, NtSetInformationFile
-(rename, link, delete) and NtDeleteFile. Anything under an install root (the game folder, EI_INSTALL_ROOTS: run_all's
-two installs) opened for writing, created, renamed, linked or deleted is refused and fails the run (`install: write
-refused: <call> <path> (<module>+<offset>)`, with the return addresses from the refused call up; `ei-rebuild.map` names
-ours). A run that reports it found a write the redirect does not cover. A log (*.log) or a file over 16 MB is not copied
-into the overlay before a keeping write (the write starts empty). mp\ (multiplayer heroes) is the overlay's only: a run
-starts with none, or a prepare tool's (`make_mp_hero.py`).
+The game's file calls all pass one seam (platform.md, "One path seam"): the harness's SystemPath (harness.cpp's
+MapPath) sends a write of an install file to the run's overlay (harness_saves\<relative path>; reads prefer the
+overlay copy) and a save to the run's folder. A write whose path is still under an install root after that (the game
+folder, EI_INSTALL_ROOTS: run_all's installs, `;`-separated on Windows and `:` elsewhere) is refused there: the path
+maps to "", the call fails as on a missing file, and the run fails (`install: write refused: <path>`, with the caller's
+address). A log (*.log) or a file over 16 MB is not copied into the overlay before a keeping write (the write starts
+empty). mp\ (multiplayer heroes) is the overlay's only: a run starts with none, or a prepare tool's
+(`make_mp_hero.py`).
+
+What the seam does not see: another library's own file calls (the graphics driver's shader caches, SDL's), which go to
+the system directly. Their paths are not the install's in practice (a driver's cache folder, the user's data folder),
+and the runs' working directory is the install, so a library writing a relative path would write into it unseen; no
+check after the run looks for that yet (the harness's kernel32 and ntdll hooks did, on Windows only).
 
 ## 7. Diagnostic tools
 

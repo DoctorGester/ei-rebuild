@@ -8,7 +8,7 @@
 namespace ei::mainloop {
 
 // The call of the loop that is being made, for the harness's platform seam: the loop's message peek and clock read go
-// through platform::EventWaits and platform::Milliseconds, which the harness answers (tests/verify/harness_platform.h),
+// through platform::EventWaits and platform::Milliseconds, which the harness answers (tests/verify/platform/harness_platform.h),
 // and it must tell the loop's calls from any other caller of them (the movie player's, a window switch's wait).
 enum class Site {
     None,

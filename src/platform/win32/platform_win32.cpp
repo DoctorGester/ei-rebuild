@@ -282,13 +282,6 @@ unsigned File::Read(void* buffer, unsigned count) {
     return read;
 }
 
-void File::Write(const void* buffer, unsigned count) {
-    if (count == 0) return;
-    DWORD written;
-    if (!win32::WriteFile(Win32(handle), buffer, count, &written, path)) ThrowLastError(path);
-    if (written != count) throw FileError(ERROR_DISK_FULL, path);
-}
-
 void File::WriteLine(std::string_view line) {
     std::string text(line);
     text += "\r\n";
@@ -445,8 +438,8 @@ void ActivateKeyboardLayout(std::uint32_t language, std::uint32_t fallback) {
 
 // ==== Sockets ========================================================================================================
 
-// Winsock (ws2_32). Closing, binding, connecting, sending and receiving are game_calls.cpp's (the harness keeps binds
-// and datagrams on 127.0.0.1, a pair's network: tests/verify/harness_net.h), and so is select's call.
+// Winsock (ws2_32). Closing, binding, connecting, sending, receiving and the wait (select) are game_calls.cpp's (the
+// harness keeps binds and datagrams on 127.0.0.1, a pair's network: tests/verify/harness_net.h).
 
 namespace platform::net {
 
@@ -454,21 +447,6 @@ namespace {
 
 static_assert(sizeof(Address) == sizeof(sockaddr_in) && sizeof(Socket) == sizeof(SOCKET));
 static_assert(SocketGroup::kCapacity == FD_SETSIZE);
-
-// `set`'s sockets as an fd_set (or null for none).
-fd_set* ToNative(const SocketGroup* set, fd_set* native) {
-    if (!set) return nullptr;
-    native->fd_count = static_cast<u_int>(set->count);
-    for (int i = 0; i < set->count; ++i) native->fd_array[i] = set->sockets[i];
-    return native;
-}
-
-// The sockets select left in `native` back into `set`.
-void FromNative(const fd_set& native, SocketGroup* set) {
-    if (!set) return;
-    set->count = static_cast<int>(native.fd_count);
-    for (int i = 0; i < set->count; ++i) set->sockets[i] = native.fd_array[i];
-}
 
 // Winsock 1.1, started by the first call that needs it and up until the process ends.
 void Start() {
@@ -505,17 +483,6 @@ Error LastError() {
     case WSAECONNREFUSED: return Error::Refused;
     default: return Error::Other;
     }
-}
-
-int Select(SocketGroup* read, SocketGroup* write, SocketGroup* failed, std::int32_t microseconds) {
-    fd_set sets[3];
-    const timeval timeout = {microseconds / 1000000, microseconds % 1000000};
-    const int ready = win32::Select(ToNative(read, &sets[0]), ToNative(write, &sets[1]), ToNative(failed, &sets[2]),
-                                    &timeout);
-    FromNative(sets[0], read);
-    FromNative(sets[1], write);
-    FromNative(sets[2], failed);
-    return ready;
 }
 
 bool HostName(char* name, int size) {

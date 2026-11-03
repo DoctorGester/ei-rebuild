@@ -349,9 +349,10 @@
 // Harness runs are hands-off and leave the install alone: no startup movies, the tutorial option
 // off, saves and config\tutorial.ini kept in harness_saves in the run folder, every other write under
 // the game's root (the composed-skin cache textures\*.mmp, config\keyboard.ini, ...)
-// going to a copy-on-write overlay there too (any other write into an install is refused and fails the
-// run: harness_install.h), no registry writes, and a UDP port of its own for the multiplayer
-// sessions instead of 8888, every socket on 127.0.0.1 only (harness_net.h).
+// going to a copy-on-write overlay there too (any other write of the game's into an install is refused and fails
+// the run: MapPath below), and a UDP port of its own for the multiplayer sessions instead of 8888, every socket on
+// 127.0.0.1 only (harness_net.h). The harness answers the game's platform calls through its own backend
+// (platform/: docs/notes/harness.md) and asks the system for its own needs through system/harness_system.h.
 // A watchdog fails and ends a run that stops making progress (e.g. a message box), and run_all
 // ends a game that hangs after "quit".
 #include "harness_camera.h"
@@ -373,42 +374,41 @@
 #include "harness_starter.h"
 #include "harness_windows.h"
 #include "harness_input.h"
-#include "harness_platform.h"
-#include "harness_install.h"
+#include "platform/harness_platform.h"
 #include "harness_net.h"
 #include "harness_pair.h"
 #include "harness_timing.h"
 #include "harness_utf8.h"
 
-#include "../../src/platform/log.h"
+#include "platform/log.h"
 #include "platform/paths.h"
 #include "platform/platform.h"
-#include "platform/win32/platform_win32.h"
-#include "platform/win32/thread_context.h"
 #include "game/main_loop.h"
 #include "lib/rebirth.h"
+#include "lib/text_case.h"
 #include "harness_objects.h"
 #include "image/image_side.h"
+#include "system/harness_system.h"
 #include "../../src/game/game_data.h"
 
-#include <share.h>
-#include <windows.h>
-#include <ddraw.h>
-#include <dwmapi.h>
-#include <psapi.h>
-#include <tlhelp32.h>
-#include <intrin.h>
-
+#include <algorithm>
+#include <atomic>
+#include <bit>
 #include <cctype>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <mutex>
 #include <string>
 #include <vector>
 
 namespace ei::verify {
 
 namespace {
+
+// The harness's fixed path buffers.
+constexpr int kPath = sys::kMaxPath;
 
 
 // The console's command executor (console::Execute).
@@ -476,33 +476,33 @@ std::size_t g_next = 0;
 // still) still fails the wait instead of the whole run's time limit: four times the wait plus 10 s
 // (a busy machine draws slowly, and the virtual clock is then slower than real time).
 struct Deadline {
-    DWORD start = 0, at = 0;           // harness clock
-    DWORD realStart = 0, realAt = 0;   // GetTickCount
-    void Set(DWORD ms) {
+    std::uint32_t start = 0, at = 0;           // harness clock
+    std::uint32_t realStart = 0, realAt = 0;   // the system's tick count
+    void Set(std::uint32_t ms) {
         start = clock::Now();
         at = start + ms;
-        realStart = GetTickCount();
+        realStart = sys::TickCount();
         realAt = realStart + (clock::Virtual() ? 4 * ms + 10000 : ms);
     }
     bool Passed() const {
-        return static_cast<LONG>(clock::Now() - at) >= 0 || static_cast<LONG>(GetTickCount() - realAt) >= 0;
+        return static_cast<std::int32_t>(clock::Now() - at) >= 0 || static_cast<std::int32_t>(sys::TickCount() - realAt) >= 0;
     }
     // For a failure message: "" when the wait's own time passed, else what the clock did meanwhile.
     std::string Why() const {
-        if (static_cast<LONG>(clock::Now() - at) >= 0) return "";
+        if (static_cast<std::int32_t>(clock::Now() - at) >= 0) return "";
         char text[120];
-        std::snprintf(text, sizeof(text), " (real-time limit: the game's clock moved %lu ms in %lu ms)",
-                      clock::Now() - start, GetTickCount() - realStart);
+        std::snprintf(text, sizeof(text), " (real-time limit: the game's clock moved %u ms in %u ms)",
+                      clock::Now() - start, sys::TickCount() - realStart);
         return text;
     }
 };
 Deadline g_waitUntil;   // "wait"
-volatile bool g_quitting = false;
-volatile bool g_watchdogStopped = false;   // "hang all": the in-game watchdog does nothing
-volatile bool g_stackDumpHangs = false;    // "hang dump": the thread that logs the main thread's stack never returns
+std::atomic<bool> g_quitting{false};
+std::atomic<bool> g_watchdogStopped{false};   // "hang all": the in-game watchdog does nothing
+std::atomic<bool> g_stackDumpHangs{false};    // "hang dump": the thread that logs the main thread's stack never returns
 bool g_running = false;
 bool g_inStep = false;
-char g_reportPath[MAX_PATH];
+char g_reportPath[kPath];
 // Whether the PeekMessageA call running the steps is one that hands input to the game (see
 // BeforeEvents): "key", mouse and region steps wait for one.
 bool g_inputLoop = false;
@@ -534,7 +534,7 @@ bool g_waitingFor = false;
 bool g_waitForPending = false;
 std::string g_waitForExpr;
 std::size_t g_waitForFrom = 0;
-DWORD g_waitForNext = 0;
+std::uint32_t g_waitForNext = 0;
 Deadline g_waitForDeadline;
 // Frames drawn so far: passes of WinMain's loop through its after-frame PeekMessageA (see
 // BeforeEvents). A pending "frames": the count it waits for.
@@ -582,7 +582,7 @@ Deadline g_waitPeerDeadline;
 // A pending "capture": its name and when to give up (real time); the frames written so far.
 bool g_capturing = false;
 std::string g_captureName;
-DWORD g_captureDeadline = 0;
+std::uint32_t g_captureDeadline = 0;
 std::vector<std::string> g_capturedFrames;
 
 void OnConsoleLine(const char* text) {
@@ -597,57 +597,46 @@ void OnConsoleLine(const char* text) {
 }
 
 
-// Crash diagnostics: logs access violations and other fatal exceptions with the faulting address
-// and the code addresses found on the stack (ours as ei-rebuild+offset, others as they are).
-// First-chance, so exceptions the game handles itself show up too; only the first few are logged.
-std::uintptr_t g_selfBase, g_selfEnd;
+// Crash diagnostics: logs access violations and other fatal faults with the faulting address and the code addresses
+// found on the stack (ours as ei-rebuild+offset, the graphics driver's as module+offset). First-chance where the
+// system has it (Windows), so faults the game handles itself show up too; only the first few are logged.
+sys::Image g_self;
 
 void LogCodeAddress(const char* label, std::uintptr_t a) {
-    if (a >= 0x00401000 && a < 0x00730000) Log("  %s %08X (game.exe)", label, unsigned(a));
-    else if (a >= g_selfBase && a < g_selfEnd) Log("  %s ei-rebuild+%X", label, unsigned(a - g_selfBase));
-    else {   // Direct3D and DXGI frames too (crashes inside their threads and the driver's)
-        HMODULE m = nullptr;
-        char name[MAX_PATH] = "";
-        if (a > 0x10000 && GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                                              reinterpret_cast<LPCSTR>(a), &m) &&
-            GetModuleFileNameA(m, name, MAX_PATH) && (std::strstr(name, "d3d") || std::strstr(name, "dxgi")))
-            Log("  %s %s+%X", label, std::strrchr(name, '\\') + 1, unsigned(a - reinterpret_cast<std::uintptr_t>(m)));
+    if (a >= g_self.base && a < g_self.end) {
+        Log("  %s ei-rebuild+%X", label, unsigned(a - g_self.base));
+        return;
     }
+    // Direct3D's, DXGI's and OpenGL's frames too (crashes inside their threads and the driver's).
+    std::uintptr_t base = 0;
+    const std::string module = sys::ModuleOf(a, &base);
+    if (module.find("d3d") != std::string::npos || module.find("dxgi") != std::string::npos ||
+        module.find("GL") != std::string::npos)
+        Log("  %s %s+%X", label, module.c_str(), unsigned(a - base));
 }
 
 void LogModuleOf(std::uintptr_t a) {
-    HMODULE m = nullptr;
-    char name[MAX_PATH] = "?";
-    if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                           reinterpret_cast<LPCSTR>(a), &m))
-        GetModuleFileNameA(m, name, MAX_PATH);
-    Log("  in %s+%X (thread %lu)", name, unsigned(a - reinterpret_cast<std::uintptr_t>(m)), GetCurrentThreadId());
+    std::uintptr_t base = 0;
+    std::string module = sys::ModuleOf(a, &base);
+    if (module.empty()) module = "?";
+    Log("  in %s+%X (thread %llu)", module.c_str(), unsigned(a - base), static_cast<unsigned long long>(sys::CurrentThread()));
 }
 
-LONG CALLBACK CrashLogger(EXCEPTION_POINTERS* e) {
-    static int logged = 0;
-    DWORD code = e->ExceptionRecord->ExceptionCode;
-    if (code != EXCEPTION_ACCESS_VIOLATION && code != EXCEPTION_ILLEGAL_INSTRUCTION &&
-        code != EXCEPTION_STACK_OVERFLOW && code != EXCEPTION_INT_DIVIDE_BY_ZERO &&
-        code != EXCEPTION_PRIV_INSTRUCTION)
-        return EXCEPTION_CONTINUE_SEARCH;
-    if (logged++ >= 5) return EXCEPTION_CONTINUE_SEARCH;
-    const CONTEXT* c = e->ContextRecord;
-    const std::uintptr_t pc = c->Rip, sp = c->Rsp;
-    Log("harness: exception %08lX at %p (address %p); rax=%p rbx=%p rcx=%p rdx=%p rsi=%p rdi=%p rbp=%p rsp=%p",
-        code, reinterpret_cast<void*>(pc),
-        reinterpret_cast<void*>(e->ExceptionRecord->NumberParameters > 1 ? e->ExceptionRecord->ExceptionInformation[1] : 0),
-        reinterpret_cast<void*>(c->Rax), reinterpret_cast<void*>(c->Rbx), reinterpret_cast<void*>(c->Rcx),
-        reinterpret_cast<void*>(c->Rdx), reinterpret_cast<void*>(c->Rsi), reinterpret_cast<void*>(c->Rdi),
-        reinterpret_cast<void*>(c->Rbp), reinterpret_cast<void*>(sp));
-    LogModuleOf(pc);
-    LogCodeAddress("at", pc);
+// The code addresses among the first `words` words of the stack from `sp`.
+void LogStack(std::uintptr_t sp, int words) {
+    const std::uintptr_t end = sys::StackEnd(sp);
     const auto* stack = reinterpret_cast<const std::uintptr_t*>(sp);
-    MEMORY_BASIC_INFORMATION mbi{};
-    VirtualQuery(stack, &mbi, sizeof(mbi));
-    const auto* stackEnd = reinterpret_cast<const std::uintptr_t*>(static_cast<char*>(mbi.BaseAddress) + mbi.RegionSize);
-    for (int i = 0; i < 256 && stack + i < stackEnd; ++i) LogCodeAddress("stack", stack[i]);
-    return EXCEPTION_CONTINUE_SEARCH;
+    for (int i = 0; i < words && sp + (i + 1) * sizeof(std::uintptr_t) <= end; ++i) LogCodeAddress("stack", stack[i]);
+}
+
+void FirstChance(const sys::Fault& fault) {
+    static std::atomic<int> logged{0};
+    if (logged++ >= 5) return;
+    Log("harness: %s at %p (address %p); %s", fault.what.c_str(), reinterpret_cast<void*>(fault.pc),
+        reinterpret_cast<void*>(fault.address), fault.registers.c_str());
+    LogModuleOf(fault.pc);
+    LogCodeAddress("at", fault.pc);
+    LogStack(fault.sp, 256);
 }
 
 // Harness runs stay out of the user's way: the game window never takes focus or comes to the front, and it
@@ -657,37 +646,35 @@ LONG CALLBACK CrashLogger(EXCEPTION_POINTERS* e) {
 // second screen to the right, which the game took as panning right and which moved the camera under the scenario's
 // clicks. The game sees the harness's own mouse instead (harness_platform.h, MousePosition): the last position a
 // move/click step posted (client coordinates), the window's centre until then.
-volatile LONG g_mouseX = -1, g_mouseY = -1;
+std::atomic<int> g_mouseX{-1}, g_mouseY{-1};
 // The "mousedrag" step's motion a frame (DirectInput counts; 0, 0: none).
 int g_dragX = 0, g_dragY = 0;
-HWND GameWindow();
+void* GameWindow();
 
 // Saves. The game keeps them under <game root>saves\ and rewrites saves\current\ whenever it
 // starts or loads a game, so a harness run would overwrite the player's own progress. In harness
 // runs every path whose directory is "saves" goes to harness_saves\ in the run folder instead.
 
-char g_savesDir[MAX_PATH];
-// Whether the harness answers the game's file, .ini and desktop calls (the end of this file): set once the overlay's
-// folders are known at the harness's start; a game started without the harness gets the system's answers.
+char g_savesDir[kPath];
+// Whether the harness answers the game's file and desktop calls (its platform backend's game calls,
+// platform/game_answers.cpp): set once the overlay's folders are known at the harness's start; a game started without
+// the harness gets the system's answers.
 bool g_answering = false;
-
-// The system's attributes of a game's path (UTF-8, platform_win32.h).
-DWORD Attributes(const char* path) { return GetFileAttributesW(text::Wide(path).c_str()); }
 
 // Returns `path` with everything up to its "\saves" directory replaced by g_savesDir, or `path`
 // itself when it has no such directory. `buffer` holds the rewritten path.
-const char* SavesPath(const char* path, char (&buffer)[MAX_PATH]) {
+const char* SavesPath(const char* path, char (&buffer)[kPath]) {
     if (!path) return path;
     // config\tutorial.ini (which tutorial windows were shown) is rewritten on every exit; harness
     // runs keep theirs in harness_saves too.
     std::size_t length = std::strlen(path);
-    if (length >= 20 && _stricmp(path + length - 20, "\\config\\tutorial.ini") == 0) {
-        if (std::snprintf(buffer, MAX_PATH, "%s\\tutorial.ini", g_savesDir) >= MAX_PATH) return path;
+    if (length >= 20 && text::CompareIgnoringCase(path + length - 20, "\\config\\tutorial.ini") == 0) {
+        if (std::snprintf(buffer, kPath, "%s\\tutorial.ini", g_savesDir) >= kPath) return path;
         return buffer;
     }
     for (const char* p = path; (p = std::strchr(p, '\\')) != nullptr; ++p) {
-        if (_strnicmp(p, "\\saves", 6) == 0 && (p[6] == '\\' || p[6] == '/' || p[6] == '\0')) {
-            if (std::snprintf(buffer, MAX_PATH, "%s%s", g_savesDir, p + 6) >= MAX_PATH) return path;
+        if (text::CompareIgnoringCase(p, "\\saves", 6) == 0 && (p[6] == '\\' || p[6] == '/' || p[6] == '\0')) {
+            if (std::snprintf(buffer, kPath, "%s%s", g_savesDir, p + 6) >= kPath) return path;
             return buffer;
         }
     }
@@ -700,11 +687,11 @@ const char* SavesPath(const char* path, char (&buffer)[MAX_PATH]) {
 // of is copied there first), and a read takes that copy when there is one, else the install's file.
 // Nothing under the install is ever modified. Deleting or moving an install file only affects the
 // overlay copy (a move of an install file becomes a copy).
-char g_rootDirs[2][MAX_PATH];   // the game folder (install::GameFolder) and the settings' one
+char g_rootDirs[2][kPath];   // the game folder (starter::GameFolder) and the settings' one
 
 bool UnderRoot(const char* full, const char* root, const char** relative) {
     std::size_t n = std::strlen(root);
-    if (n == 0 || _strnicmp(full, root, n) != 0) return false;
+    if (n == 0 || text::CompareIgnoringCase(full, root, n) != 0) return false;
     if (root[n - 1] != '\\') {
         if (full[n] != '\\') return false;
         ++n;
@@ -715,50 +702,46 @@ bool UnderRoot(const char* full, const char* root, const char** relative) {
 }
 
 // The overlay path of `path`, or null when `path` is not under the game's root.
-const char* ShadowOf(const char* path, char (&buffer)[MAX_PATH]) {
+const char* ShadowOf(const char* path, char (&buffer)[kPath]) {
     if (!path || !*path) return nullptr;
     // The game folder, may be empty.
     const char* folder = image::DataFolder();
-    if (folder && *folder && !g_rootDirs[1][0]) {
-        if (!GetFullPathNameA(folder, MAX_PATH, g_rootDirs[1], nullptr)) g_rootDirs[1][0] = '\0';
-    }
-    char full[MAX_PATH];
-    DWORD n = GetFullPathNameA(path, MAX_PATH, full, nullptr);
-    if (n == 0 || n >= MAX_PATH) return nullptr;
+    if (folder && *folder && !g_rootDirs[1][0]) sys::CopyText(g_rootDirs[1], sys::FullPath(folder).c_str());
+    const std::string fullPath = sys::FullPath(path);
+    if (fullPath.empty() || fullPath.size() >= kPath) return nullptr;
+    const char* full = fullPath.c_str();
     std::size_t saves = std::strlen(g_savesDir);
-    if (_strnicmp(full, g_savesDir, saves) == 0) return nullptr;   // already ours
+    if (text::CompareIgnoringCase(full, g_savesDir, saves) == 0) return nullptr;   // already ours
     for (const char* root : g_rootDirs) {
         const char* relative = nullptr;
         if (!UnderRoot(full, root, &relative)) continue;
-        if (std::snprintf(buffer, MAX_PATH, "%s\\%s", g_savesDir, relative) >= MAX_PATH) return nullptr;
+        if (std::snprintf(buffer, kPath, "%s\\%s", g_savesDir, relative) >= kPath) return nullptr;
         return buffer;
     }
     return nullptr;
-
 }
 
 // Whether `path` is the game's root folder itself (when the game empties mp\ it deletes every entry
 // FindFirstFile lists, "mp\.." too).
 bool IsGameRoot(const char* path) {
-    char full[MAX_PATH];
-    DWORD n = GetFullPathNameA(path, MAX_PATH, full, nullptr);
-    if (n == 0 || n >= MAX_PATH) return false;
-    while (n > 3 && full[n - 1] == '\\') full[--n] = '\0';
+    std::string full = sys::FullPath(path);
+    if (full.empty() || full.size() >= kPath) return false;
+    while (full.size() > 3 && full.back() == '\\') full.pop_back();
     for (const char* root : g_rootDirs) {
         std::size_t length = std::strlen(root);
         while (length > 3 && root[length - 1] == '\\') --length;
-        if (length && length == n && _strnicmp(full, root, length) == 0) return true;
+        if (length && length == full.size() && text::CompareIgnoringCase(full.c_str(), root, length) == 0) return true;
     }
     return false;
 }
 
 void MakeParentDirs(const char* file) {
-    char dir[MAX_PATH];
-    strcpy_s(dir, file);
+    char dir[kPath];
+    sys::CopyText(dir, file);
     for (char* p = dir + std::strlen(g_savesDir) + 1; *p; ++p) {
         if (*p != '\\') continue;
         *p = '\0';
-        CreateDirectoryW(text::Wide(dir).c_str(), nullptr);
+        sys::MakeFolder(dir);
         *p = '\\';
     }
 }
@@ -773,12 +756,12 @@ void LogInstallWrite(const char* path, const char* shadow) {
 // another has (SV5d2: the multiplayer quest files the server shares). Set by steps on the main
 // thread before the game looks for the files; read by the file hooks.
 constexpr int kHiddenFiles = 8;
-char g_hiddenFiles[kHiddenFiles][MAX_PATH];
-volatile LONG g_hiddenCount = 0;
+char g_hiddenFiles[kHiddenFiles][kPath];
+std::atomic<int> g_hiddenCount{0};
 
 bool Hidden(const char* relative) {
-    for (LONG i = 0; i < g_hiddenCount; ++i)
-        if (_stricmp(relative, g_hiddenFiles[i]) == 0) return true;
+    for (int i = 0; i < g_hiddenCount; ++i)
+        if (text::CompareIgnoringCase(relative, g_hiddenFiles[i]) == 0) return true;
     return false;
 }
 
@@ -786,8 +769,8 @@ bool Hidden(const char* relative) {
 // the overlay), byte for byte the install's (A-I23: the shared quest file a hidefile peer receives).
 std::string SameFileStep(const std::string& relative) {
     auto read = [](const std::string& path, std::string& out) {
-        FILE* f = nullptr;
-        if (fopen_s(&f, path.c_str(), "rb") != 0 || !f) return false;
+        FILE* f = sys::OpenFile(path, "rb");
+        if (!f) return false;
         char block[4096];
         for (std::size_t n; (n = std::fread(block, 1, sizeof(block), f)) > 0;) out.append(block, n);
         std::fclose(f);
@@ -810,27 +793,27 @@ std::string SameFileStep(const std::string& relative) {
 // followed the user's play). A scenario's hero comes from tools/make_mp_hero.py or the game's hero screen.
 // `relative` is the path below the game folder.
 bool OverlayOnly(const char* relative) {
-    return _strnicmp(relative, "mp", 2) == 0 && (relative[2] == '\\' || relative[2] == '/' || relative[2] == '\0');
+    return text::CompareIgnoringCase(relative, "mp", 2) == 0 && (relative[2] == '\\' || relative[2] == '/' || relative[2] == '\0');
 }
 
 // For a read: the overlay copy when it exists, else `path` (saves always redirect); a hidden file
 // without an overlay copy reads as the missing overlay path.
-const char* ReadPath(const char* path, char (&buffer)[MAX_PATH]) {
+const char* ReadPath(const char* path, char (&buffer)[kPath]) {
     if (!g_answering) return path;
     const char* saves = SavesPath(path, buffer);
     if (saves != path) return saves;
     const char* shadow = ShadowOf(path, buffer);
     if (shadow && OverlayOnly(shadow + std::strlen(g_savesDir) + 1)) return shadow;
-    if (shadow && Attributes(shadow) != INVALID_FILE_ATTRIBUTES) return shadow;
+    if (shadow && sys::Exists(shadow)) return shadow;
     if (shadow && g_hiddenCount && Hidden(shadow + std::strlen(g_savesDir) + 1)) {
         static int logged = 0;
         if (logged++ < 20) Log("harness: hidden file read as missing: %s", path);
         return shadow;
     }
     // The user's key bindings and the like: the committed copy (harness_settings.h).
-    char pinned[MAX_PATH];
+    char pinned[kPath];
     if (shadow && settings::PinnedFile(shadow + std::strlen(g_savesDir) + 1, pinned)) {
-        strcpy_s(buffer, pinned);
+        sys::CopyText(buffer, pinned);
         return buffer;
     }
     return path;
@@ -841,17 +824,16 @@ const char* ReadPath(const char* path, char (&buffer)[MAX_PATH]) {
 // not a file over 16 MB.
 bool CopiedForWrite(const char* original) {
     const std::size_t length = std::strlen(original);
-    if (length >= 4 && _stricmp(original + length - 4, ".log") == 0) return false;
-    WIN32_FILE_ATTRIBUTE_DATA data;
-    if (!GetFileAttributesExA(original, GetFileExInfoStandard, &data)) return true;
-    if (data.nFileSizeHigh == 0 && data.nFileSizeLow <= 16u << 20) return true;
+    if (length >= 4 && text::CompareIgnoringCase(original + length - 4, ".log") == 0) return false;
+    const long long size = sys::FileSize(original);
+    if (size <= 16ll << 20) return true;   // also when it is not there
     Log("harness: %s not copied into the overlay for a write (over 16 MB); the write starts from an empty file", original);
     return false;
 }
 
 // For a write: the overlay path (its directories created; with `keep` an install file not yet in
 // the overlay is copied first).
-const char* WritePath(const char* path, char (&buffer)[MAX_PATH], bool keep) {
+const char* WritePath(const char* path, char (&buffer)[kPath], bool keep) {
     if (!g_answering) return path;
     const char* saves = SavesPath(path, buffer);
     if (saves != path) return saves;
@@ -863,19 +845,70 @@ const char* WritePath(const char* path, char (&buffer)[MAX_PATH], bool keep) {
     }
     if (!shadow) return path;
     MakeParentDirs(shadow);
-    char pinned[MAX_PATH];
+    char pinned[kPath];
     const char* original = settings::PinnedFile(shadow + std::strlen(g_savesDir) + 1, pinned) ? pinned : path;
-    if (keep && !OverlayOnly(shadow + std::strlen(g_savesDir) + 1) && Attributes(shadow) == INVALID_FILE_ATTRIBUTES &&
-        Attributes(original) != INVALID_FILE_ATTRIBUTES && CopiedForWrite(original))
-        CopyFileW(text::Wide(original).c_str(), text::Wide(shadow).c_str(), TRUE);
+    if (keep && !OverlayOnly(shadow + std::strlen(g_savesDir) + 1) && !sys::Exists(shadow) && sys::Exists(original) &&
+        CopiedForWrite(original))
+        sys::CopyNewFile(original, shadow);
     LogInstallWrite(path, shadow);
     return shadow;
 }
 
-// Whether `path` is an install file (harness_install.h: other modules' writes go to the overlay too).
-bool InInstall(const char* path) {
-    char b[MAX_PATH];
-    return ShadowOf(path, b) != nullptr || (path && IsGameRoot(path));
+// No run writes into an install (WB17). The game's writes of install files go to the overlay (WritePath), so what is
+// left under an install root (the game folder; EI_INSTALL_ROOTS: run_all's installs, the other one among them) is
+// refused (MapPath gives an empty path, so the call fails as on a missing file) and fails the run: "install: write
+// refused: <path>". The harness answers the game's own file calls only (they all take their paths from MapPath); what
+// a library writes by itself is not seen here.
+std::vector<std::string> g_installRoots;   // in full, no backslash at the end
+std::mutex g_refusedLock;
+std::vector<std::string> g_refused;
+
+void FindInstallRoots() {
+    std::vector<std::string> named = {starter::GameFolder()};
+    const std::string listed = platform::EnvironmentVariable("EI_INSTALL_ROOTS");
+#if defined(_WIN32)
+    constexpr char kSeparator = ';';   // os.pathsep
+#else
+    constexpr char kSeparator = ':';
+#endif
+    for (std::size_t at = 0; at <= listed.size();) {
+        const std::size_t end = std::min(listed.find(kSeparator, at), listed.size());
+        if (end > at) named.push_back(listed.substr(at, end - at));
+        at = end + 1;
+    }
+    std::string list;
+    for (const std::string& name : named) {
+        std::string full = sys::FullPath(name);
+        while (full.size() > 3 && full.back() == '\\') full.pop_back();
+        if (full.empty() || std::find(g_installRoots.begin(), g_installRoots.end(), full) != g_installRoots.end()) continue;
+        g_installRoots.push_back(full);
+        list += (list.empty() ? "" : "; ") + full;
+    }
+    Log("harness: install roots no run writes in: %s", list.c_str());
+}
+
+bool InInstall(const std::string& path) {
+    const std::string full = sys::FullPath(path);
+    for (const std::string& root : g_installRoots) {
+        const char* relative = nullptr;
+        if (full.size() > root.size() && UnderRoot(full.c_str(), root.c_str(), &relative)) return true;
+    }
+    return false;
+}
+
+void RefuseInstallWrite(const std::string& path, const std::string& mapped) {
+    std::lock_guard<std::mutex> lock(g_refusedLock);
+    if (std::find(g_refused.begin(), g_refused.end(), mapped) != g_refused.end()) return;
+    g_refused.push_back(mapped);
+    Log("harness: install: write refused: %s%s%s", path.c_str(), path == mapped ? "" : " -> ", path == mapped ? "" : mapped.c_str());
+}
+
+// The report's failure for the refused writes, "" without any.
+std::string InstallFailure() {
+    std::lock_guard<std::mutex> lock(g_refusedLock);
+    std::string text;
+    for (const std::string& path : g_refused) text += (text.empty() ? "install: write refused: " : "; ") + path;
+    return text;
 }
 
 // Game speed. The main loop runs one world update per UpdatePeriod milliseconds of real time (55 by
@@ -917,19 +950,15 @@ int HeldClientSegment(void* client) {
     return result;
 }
 
-namespace noforeground {
-void Report(FILE* f);
-}
-
 void WriteReport() {
     clock::FlushRandomTrace();
     digest::Flush();
-    FILE* f = nullptr;
-    if (fopen_s(&f, g_reportPath, "w") != 0 || !f) return;
+    FILE* f = sys::OpenFile(g_reportPath, "w");
+    if (!f) return;
     if (!g_capturedFrames.empty()) std::fprintf(f, "\nframes captured:\n");
     for (const std::string& frame : g_capturedFrames) std::fprintf(f, "  %s\n", frame.c_str());
     if (std::string digest = digest::Summary(); !digest.empty()) std::fprintf(f, "\nstate digest: %s\n", digest.c_str());
-    noforeground::Report(f);
+    sys::WindowReport(f);
     netlocal::Report(f);
     pair::Report(f);
     input::Report(f);
@@ -940,7 +969,7 @@ void WriteReport() {
     if (std::string write = crash::FailedWrite(); !write.empty()) failures.push_back(write);   // harness_crash.h
     if (std::string paired = pair::Failure(); !paired.empty()) failures.push_back(paired);    // harness_pair.h
     if (std::string pinned = settings::Failure(); !pinned.empty()) failures.push_back(pinned);   // harness_settings.h
-    if (std::string written = install::Failure(); !written.empty()) failures.push_back(written);   // harness_install.h
+    if (std::string written = InstallFailure(); !written.empty()) failures.push_back(written);   // MapPath
 
     for (const std::string& failure : failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());
     std::fprintf(f, "RESULT: %s\n", !failures.empty() ? "FAIL" : "PASS");
@@ -1006,11 +1035,11 @@ void FillFixedSeed(std::uint32_t* results) {
 }
 
 // The clock the harness's waits and timeouts use.
-DWORD Now() { return clock::Now(); }
+std::uint32_t Now() { return clock::Now(); }
 
 // Input for the interface screens: window messages to the game window (its window procedure 00457970 handles the
 // mouse and key messages).
-HWND GameWindow() { return HarnessMainWindow(); }
+void* GameWindow() { return HarnessMainWindow(); }
 
 // Modifier keys held around an input step ("hold", "release" and the <mods> words of the mouse and key
 // steps). The game reads them from the key messages (Interface3D::OnKeyDown sets +0x7C / +0x7D / +0x7E
@@ -1046,13 +1075,15 @@ unsigned ParseModifiers(const std::string& text, std::string* bad) {
 }
 
 void PostModifiers(unsigned mods, bool down) {
-    struct Key { unsigned mod; UINT vk, scan; bool system; };
-    static const Key keys[] = {{kModCtrl, VK_CONTROL, 0x1D, false}, {kModShift, VK_SHIFT, 0x2A, false}, {kModAlt, VK_MENU, 0x38, true}};
+    struct Key { unsigned mod, vk, scan; bool system; };
+    static const Key keys[] = {{kModCtrl, input::kKeyControl, 0x1D, false},
+                               {kModShift, input::kKeyShift, 0x2A, false},
+                               {kModAlt, input::kKeyMenu, 0x38, true}};
     for (const Key& key : keys) {
         if (!(mods & key.mod)) continue;
-        LPARAM lparam = 1 | (key.scan << 16) | (key.system ? 0x20000000 : 0);
-        if (down) input::Post(key.system ? WM_SYSKEYDOWN : WM_KEYDOWN, key.vk, lparam);
-        else input::Post(key.system ? WM_SYSKEYUP : WM_KEYUP, key.vk, lparam | 0xC0000000u);
+        const std::intptr_t data = 1 | (key.scan << 16) | (key.system ? 0x20000000 : 0);
+        if (down) input::Post(key.system ? input::SystemKeyDown : input::KeyDown, key.vk, data);
+        else input::Post(key.system ? input::SystemKeyUp : input::KeyUp, key.vk, data | 0xC0000000u);
     }
 }
 
@@ -1086,81 +1117,84 @@ struct HeldModifiers {
 // translate as the US layout with no key held: letters and digits make no WM_CHAR here (the "key" step posts
 // theirs, so a name comes out as typed), the other keys their fixed character (Enter 0x0D, Esc 0x1B, ...).
 
-char FixedKeyChar(WPARAM vk) {
+char FixedKeyChar(unsigned vk) {
     switch (vk) {
-    case VK_BACK: return 0x08;
-    case VK_TAB: return 0x09;
-    case VK_RETURN: return 0x0D;
-    case VK_ESCAPE: return 0x1B;
-    case VK_SPACE: return ' ';
-    case VK_MULTIPLY: return '*';
-    case VK_ADD: return '+';
-    case VK_SUBTRACT: return '-';
-    case VK_DIVIDE: return '/';
-    case VK_OEM_1: return ';';
-    case VK_OEM_PLUS: return '=';
-    case VK_OEM_COMMA: return ',';
-    case VK_OEM_MINUS: return '-';
-    case VK_OEM_PERIOD: return '.';
-    case VK_OEM_2: return '/';
-    case VK_OEM_3: return '`';
-    case VK_OEM_4: return '[';
-    case VK_OEM_5: return '\\';
-    case VK_OEM_6: return ']';
-    case VK_OEM_7: return '\'';
+    case input::kKeyBack: return 0x08;
+    case input::kKeyTab: return 0x09;
+    case input::kKeyReturn: return 0x0D;
+    case input::kKeyEscape: return 0x1B;
+    case input::kKeySpace: return ' ';
+    case input::kKeyMultiply: return '*';
+    case input::kKeyAdd: return '+';
+    case input::kKeySubtract: return '-';
+    case input::kKeyDivide: return '/';
+    case input::kKeyOem1: return ';';
+    case input::kKeyOemPlus: return '=';
+    case input::kKeyOemComma: return ',';
+    case input::kKeyOemMinus: return '-';
+    case input::kKeyOemPeriod: return '.';
+    case input::kKeyOem2: return '/';
+    case input::kKeyOem3: return '`';
+    case input::kKeyOem4: return '[';
+    case input::kKeyOem5: return '\\';
+    case input::kKeyOem6: return ']';
+    case input::kKeyOem7: return '\'';
     default: return 0;
     }
 }
 
-// The character a key press types (harness_platform.h): the US layout's, with no key held.
-int TypedCharacter(int key) { return static_cast<unsigned char>(FixedKeyChar(static_cast<WPARAM>(key))); }
+// The character a key press types (platform/harness_platform.h): the US layout's, with no key held.
+int TypedCharacter(int key) { return static_cast<unsigned char>(FixedKeyChar(static_cast<unsigned>(key))); }
 
 // Which messages PostKey posts: the press and release ("key"), or only one of them ("keydown" / "keyup").
 enum class KeyPart { Both, Down, Up };
 
 void PostKey(const std::string& name, KeyPart part = KeyPart::Both) {
-    UINT vk = 0;
+    unsigned vk = 0;
     if (name.size() == 1 && std::isalnum(static_cast<unsigned char>(name[0]))) vk = std::toupper(static_cast<unsigned char>(name[0]));
-    else if (name == "esc") vk = VK_ESCAPE;
-    else if (name == "enter" || name == "enterchar") vk = VK_RETURN;
-    else if (name == "space") vk = VK_SPACE;
-    else if (name == "tab") vk = VK_TAB;
-    else if (name == "up") vk = VK_UP;
-    else if (name == "down") vk = VK_DOWN;
-    else if (name == "left") vk = VK_LEFT;
-    else if (name == "right") vk = VK_RIGHT;
-    else if (name == "plus") vk = VK_ADD;
-    else if (name == "minus") vk = VK_SUBTRACT;
-    else if (name == "grave") vk = VK_OEM_3;   // the console key (scan code 0x29)
-    else if (name == "backspace") vk = VK_BACK;
-    else if (name == "delete") vk = VK_DELETE;
-    else if (name == "home") vk = VK_HOME;
-    else if (name == "end") vk = VK_END;
-    else if (name == "pgup") vk = VK_PRIOR;
-    else if (name == "pgdn") vk = VK_NEXT;
-    else if (name == "scrolllock") vk = VK_SCROLL;   // scan 0x46: the screenshot key (005F78C0)
-    else if (name == "ctrl") vk = VK_CONTROL;   // scan 0x1D: sets Interface3D +0x7C while down
-    else if (name == "shift") vk = VK_SHIFT;    // scan 0x2A: +0x7D
-    else if (name.size() >= 2 && name[0] == 'f') vk = VK_F1 + std::atoi(name.c_str() + 1) - 1;
+    else if (name == "esc") vk = input::kKeyEscape;
+    else if (name == "enter" || name == "enterchar") vk = input::kKeyReturn;
+    else if (name == "space") vk = input::kKeySpace;
+    else if (name == "tab") vk = input::kKeyTab;
+    else if (name == "up") vk = input::kKeyUp;
+    else if (name == "down") vk = input::kKeyDown;
+    else if (name == "left") vk = input::kKeyLeft;
+    else if (name == "right") vk = input::kKeyRight;
+    else if (name == "plus") vk = input::kKeyAdd;
+    else if (name == "minus") vk = input::kKeySubtract;
+    else if (name == "grave") vk = input::kKeyOem3;   // the console key (scan code 0x29)
+    else if (name == "backspace") vk = input::kKeyBack;
+    else if (name == "delete") vk = input::kKeyDelete;
+    else if (name == "home") vk = input::kKeyHome;
+    else if (name == "end") vk = input::kKeyEnd;
+    else if (name == "pgup") vk = input::kKeyPageUp;
+    else if (name == "pgdn") vk = input::kKeyPageDown;
+    else if (name == "scrolllock") vk = input::kKeyScroll;   // scan 0x46: the screenshot key (005F78C0)
+    else if (name == "ctrl") vk = input::kKeyControl;   // scan 0x1D: sets Interface3D +0x7C while down
+    else if (name == "shift") vk = input::kKeyShift;    // scan 0x2A: +0x7D
+    else if (name.size() >= 2 && name[0] == 'f') vk = input::kKeyF1 + std::atoi(name.c_str() + 1) - 1;
     if (!vk) {
         Log("harness: unknown key '%s'", name.c_str());
         return;
     }
-    UINT scan = vk == VK_OEM_3 ? 0x29 : MapVirtualKeyA(vk, MAPVK_VK_TO_VSC);
+    // The scan code a US keyboard gives (input::ScanCode, as Windows' MapVirtualKey on that layout).
+    unsigned scan = input::ScanCode(vk);
     // keydown / keyup mark the navigation keys extended (lParam bit 24) as Windows does: the game's key
     // table (0079BF70) is indexed by the scan code with that bit, and the camera keys of keyboard.ini
     // (arrows, Page Up / Down, Home) are the extended ones. "key" posts them without it, as it always
     // has (its scenarios' goldens; the arrows then read as the numeric keypad's).
-    const bool extended = vk == VK_UP || vk == VK_DOWN || vk == VK_LEFT || vk == VK_RIGHT || vk == VK_PRIOR ||
-                          vk == VK_NEXT || vk == VK_HOME || vk == VK_END || vk == VK_DELETE;
+    const bool extended = vk == input::kKeyUp || vk == input::kKeyDown || vk == input::kKeyLeft || vk == input::kKeyRight ||
+                          vk == input::kKeyPageUp || vk == input::kKeyPageDown || vk == input::kKeyHome ||
+                          vk == input::kKeyEnd || vk == input::kKeyDelete;
     if (part != KeyPart::Both && extended) scan |= 0x100;
+    const std::intptr_t data = 1 | (static_cast<std::intptr_t>(scan) << 16);
     if (part != KeyPart::Up) {
-        input::Post(WM_KEYDOWN, vk, 1 | (scan << 16));
+        input::Post(input::KeyDown, vk, data);
         if (part == KeyPart::Both && vk >= '0' && vk <= 'Z')
-            input::Post(WM_CHAR, std::tolower(static_cast<int>(vk)), 1 | (scan << 16));
-        if (part == KeyPart::Both && name == "enterchar") input::Post(WM_CHAR, 0x0D, 1 | (scan << 16));
+            input::Post(input::Character, std::tolower(static_cast<int>(vk)), data);
+        if (part == KeyPart::Both && name == "enterchar") input::Post(input::Character, 0x0D, data);
     }
-    if (part != KeyPart::Down) input::Post(WM_KEYUP, vk, 1 | (scan << 16) | 0xC0000000u);
+    if (part != KeyPart::Down) input::Post(input::KeyUp, vk, data | 0xC0000000u);
 }
 
 // The image's renderer's present counts.
@@ -1169,16 +1203,15 @@ image::WindowPresents HarnessWindowPresents() { return image::WindowPresentCount
 // The client area mouse steps aim at: the game window's, or in the switch-over the frame's
 // (render::FrameInWindow: the frame may be scaled into a larger window, R9c); a point of it reaches
 // the window through ToWindow.
-RECT GameClient() {
-    RECT client{};
+platform::Rect GameClient() {
     int width = 0, height = 0;
-    if (image::FrameInWindow(&width, &height)) return RECT{0, 0, width, height};
-    GetClientRect(GameWindow(), &client);
-    return client;
+    if (image::FrameInWindow(&width, &height) || harnessplatform::ClientSize(&width, &height))
+        return platform::Rect{0, 0, width, height};
+    return platform::Rect{0, 0, 0, 0};
 }
-POINT ToWindow(int x, int y) {
+platform::Point ToWindow(int x, int y) {
     image::FrameToWindow(&x, &y);
-    return POINT{x, y};
+    return platform::Point{x, y};
 }
 
 // "cursormark" / "cursorcheck": the presents' system cursor (R40).
@@ -1264,7 +1297,7 @@ std::string WriteCursorFrame(const char* name, const image::CursorState& game) {
 std::string CursorCheck(const std::string& argument) {
     char name[64] = "", what[16] = "";
     unsigned least = 1;
-    if (sscanf_s(argument.c_str(), "%63s %15s %u", name, unsigned(sizeof(name)), what, unsigned(sizeof(what)), &least) < 2)
+    if (std::sscanf(argument.c_str(), "%63s %15s %u", name, what, &least) < 2)
         return "cursorcheck needs <name>|- shown|hidden|held|animated|gamma [min]";
     const image::CursorPresents now = image::CursorPresentCounts();
     const image::CursorPresents& mark = g_cursorMark;
@@ -1333,14 +1366,11 @@ std::string CursorCheck(const std::string& argument) {
 // "windowtitle": the game window's title is "Evil Islands" and its class "EIGAME" (the strings game.exe's table held,
 // literals in app_main.cpp since C23). The window class has no icon (C24 adds one).
 std::string WindowTitleStep() {
-    HWND window = GameWindow();
-    char title[256] = {}, cls[256] = {};
-    GetWindowTextA(window, title, sizeof(title));
-    GetClassNameA(window, cls, sizeof(cls));
-    Log("harness: windowtitle: title \"%s\", class \"%s\"", title, cls);
+    const std::string title = harnessplatform::WindowTitle(), cls = harnessplatform::WindowClass();
+    Log("harness: windowtitle: title \"%s\", class \"%s\"", title.c_str(), cls.c_str());
     // The harness adds " (harness)" to the title of the window it creates (harness_platform.cpp's CreateGameWindow).
-    if (std::strcmp(title, "Evil Islands") != 0 && std::strcmp(title, "Evil Islands (harness)") != 0) return std::string("windowtitle: the window's title is \"") + title + "\"";
-    if (std::strcmp(cls, "EIGAME") != 0) return std::string("windowtitle: the window's class is \"") + cls + "\"";
+    if (title != "Evil Islands" && title != "Evil Islands (harness)") return "windowtitle: the window's title is \"" + title + "\"";
+    if (cls != "EIGAME") return "windowtitle: the window's class is \"" + cls + "\"";
     return {};
 }
 
@@ -1356,47 +1386,47 @@ void LayoutToWindowShare(int width, int height, int* x, int* y) {
 }
 
 void PostMouse(const std::string& verb, int x, int y) {
-    RECT client = GameClient();
-    POINT window = ToWindow(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
-    LPARAM at = MAKELPARAM(window.x, window.y);
+    platform::Rect client = GameClient();
+    platform::Point window = ToWindow(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
+    const std::intptr_t at = input::Point(window.x, window.y);
     g_mouseX = window.x;
     g_mouseY = window.y;
-    input::Post(WM_MOUSEMOVE, 0, at);
+    input::Post(input::MouseMove, 0, at);
     if (verb == "click") {
-        input::Post(WM_LBUTTONDOWN, MK_LBUTTON, at);
-        input::Post(WM_LBUTTONUP, 0, at);
+        input::Post(input::LeftDown, input::kLeftButton, at);
+        input::Post(input::LeftUp, 0, at);
     } else if (verb == "rclick") {
-        input::Post(WM_RBUTTONDOWN, MK_RBUTTON, at);
-        input::Post(WM_RBUTTONUP, 0, at);
+        input::Post(input::RightDown, input::kRightButton, at);
+        input::Post(input::RightUp, 0, at);
     } else if (verb == "dblclick") {
         // What Windows sends for a double click: down, up, double click, up.
-        input::Post(WM_LBUTTONDOWN, MK_LBUTTON, at);
-        input::Post(WM_LBUTTONUP, 0, at);
-        input::Post(WM_LBUTTONDBLCLK, MK_LBUTTON, at);
-        input::Post(WM_LBUTTONUP, 0, at);
+        input::Post(input::LeftDown, input::kLeftButton, at);
+        input::Post(input::LeftUp, 0, at);
+        input::Post(input::LeftDouble, input::kLeftButton, at);
+        input::Post(input::LeftUp, 0, at);
     } else if (verb == "ldown") {
-        input::Post(WM_LBUTTONDOWN, MK_LBUTTON, at);
+        input::Post(input::LeftDown, input::kLeftButton, at);
     } else if (verb == "lup") {
-        input::Post(WM_LBUTTONUP, 0, at);
+        input::Post(input::LeftUp, 0, at);
     } else if (verb == "rdown") {
-        input::Post(WM_RBUTTONDOWN, MK_RBUTTON, at);
+        input::Post(input::RightDown, input::kRightButton, at);
     } else if (verb == "rup") {
-        input::Post(WM_RBUTTONUP, 0, at);
+        input::Post(input::RightUp, 0, at);
     } else if (verb == "rdblclick") {
-        input::Post(WM_RBUTTONDOWN, MK_RBUTTON, at);
-        input::Post(WM_RBUTTONUP, 0, at);
-        input::Post(WM_RBUTTONDBLCLK, MK_RBUTTON, at);
-        input::Post(WM_RBUTTONUP, 0, at);
+        input::Post(input::RightDown, input::kRightButton, at);
+        input::Post(input::RightUp, 0, at);
+        input::Post(input::RightDouble, input::kRightButton, at);
+        input::Post(input::RightUp, 0, at);
     }
 }
 
-// A wheel turn at (x, y) in the 800x600 layout. WM_MOUSEWHEEL carries screen coordinates.
+// A wheel turn at (x, y) in the 800x600 layout. The wheel message carries screen coordinates.
 void PostWheel(int x, int y, int delta) {
-    RECT client = GameClient();
-    POINT point = ToWindow(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
-    input::Post(WM_MOUSEMOVE, 0, MAKELPARAM(point.x, point.y));
-    ClientToScreen(GameWindow(), &point);
-    input::Post(WM_MOUSEWHEEL, MAKEWPARAM(0, static_cast<short>(delta)), MAKELPARAM(point.x, point.y));
+    platform::Rect client = GameClient();
+    platform::Point point = ToWindow(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
+    input::Post(input::MouseMove, 0, input::Point(point.x, point.y));
+    platform::ClientToScreen(GameWindow(), &point);
+    input::Post(input::Wheel, input::WheelWord(0, delta), input::Point(point.x, point.y));
 }
 
 // The centre of region `index` of the top interface window, posted as a mouse event. The region's
@@ -1410,32 +1440,32 @@ void PostRegionMouse(const std::string& verb, int index) {
         Log("harness: %s %d: no such region (window %p, %d regions)", verb.c_str(), index, window, regions);
         return;
     }
-    POINT point{(region.left + region.right) / 2 + region.offsetX, (region.top + region.bottom) / 2 + region.offsetY};
+    platform::Point point{(region.left + region.right) / 2 + region.offsetX, (region.top + region.bottom) / 2 + region.offsetY};
     Log("harness: %s %d: window %p region (%d,%d)-(%d,%d) enabled %d", verb.c_str(), index, window, region.left, region.top,
         region.right, region.bottom, region.enabled);
     int width = 0, height = 0;
     image::ScaleToScreen(&point.x, &point.y);
     image::InterfaceSize(&width, &height);
-    RECT client = GameClient();
+    platform::Rect client = GameClient();
     if (width > 0 && height > 0) {
         point.x = point.x * (client.right - client.left) / width;
         point.y = point.y * (client.bottom - client.top) / height;
     }
     point = ToWindow(point.x, point.y);
-    LPARAM at = MAKELPARAM(point.x, point.y);
-    input::Post(WM_MOUSEMOVE, 0, at);
+    const std::intptr_t at = input::Point(point.x, point.y);
+    input::Post(input::MouseMove, 0, at);
     if (verb == "clickregion") {
-        input::Post(WM_LBUTTONDOWN, MK_LBUTTON, at);
-        input::Post(WM_LBUTTONUP, 0, at);
+        input::Post(input::LeftDown, input::kLeftButton, at);
+        input::Post(input::LeftUp, 0, at);
     } else if (verb == "rclickregion") {
-        input::Post(WM_RBUTTONDOWN, MK_RBUTTON, at);
-        input::Post(WM_RBUTTONUP, 0, at);
+        input::Post(input::RightDown, input::kRightButton, at);
+        input::Post(input::RightUp, 0, at);
     } else if (verb == "dblclickregion") {
         // As "dblclick": down, up, double click, up.
-        input::Post(WM_LBUTTONDOWN, MK_LBUTTON, at);
-        input::Post(WM_LBUTTONUP, 0, at);
-        input::Post(WM_LBUTTONDBLCLK, MK_LBUTTON, at);
-        input::Post(WM_LBUTTONUP, 0, at);
+        input::Post(input::LeftDown, input::kLeftButton, at);
+        input::Post(input::LeftUp, 0, at);
+        input::Post(input::LeftDouble, input::kLeftButton, at);
+        input::Post(input::LeftUp, 0, at);
     }
 }
 
@@ -1456,45 +1486,45 @@ constexpr std::uint32_t kPickableUnit = 0x400000;   // the flag 00638B30 require
 // unit the game's pick returns there; "" or why there is no such point. `what` names the step in
 // the log and the error (null: nothing logged).
 // WorldClient::PickAt2 and UnitAt.
-void* HarnessPickAt2(void* world, const POINT* p) { return image::PickAt2(world, p->x, p->y); }
-void* HarnessUnitAt(void* world, const POINT* p) { return image::UnitAt(world, p->x, p->y); }
+void* HarnessPickAt2(void* world, const platform::Point* p) { return image::PickAt2(world, p->x, p->y); }
+void* HarnessUnitAt(void* world, const platform::Point* p) { return image::UnitAt(world, p->x, p->y); }
 // The client world's rectangle of object `id` in this frame's screen list (the last entry for it): 1, 0 when it is
 // not drawn, -1 without a list.
-int ScreenRect(void* world, int id, RECT* rect) { return image::ScreenRect(world, id, rect); }
+int ScreenRect(void* world, int id, platform::Rect* rect) { return image::ScreenRect(world, id, rect); }
 // A picked object's id and flags (the EngineObject's id and flags).
 int PickedId(const void* object) { return image::ObjectId(object); }
 std::uint32_t PickedFlags(const void* object) { return image::ObjectFlags(object); }
-std::string FindUnitPoint(const char* name, const char* what, POINT* point, void** unit) {
+std::string FindUnitPoint(const char* name, const char* what, platform::Point* point, void** unit) {
     std::string label = std::string(what ? what : "waitunit") + " " + name;
     const bool byId = name[0] == '#';   // a map object: the battle screen's object pick
     int id = byId ? std::atoi(name + 1) : image::TextKey(name);
 
     void* world = HarnessClientWorld();
     // The unit's rectangle in this frame's list (the last entry for the id).
-    RECT bounds{};
-    const RECT* rect = &bounds;
+    platform::Rect bounds{};
+    const platform::Rect* rect = &bounds;
     int listed = ScreenRect(world, id, &bounds);
     if (listed < 0) return label + ": no pick list (not in a game)";
     if (listed == 0) return label + " (id " + std::to_string(id) + "): not drawn this frame (off screen?)";
     if (what)
-        Log("harness: %s: id %d, rectangle (%ld,%ld)-(%ld,%ld)", label.c_str(), id, rect->left, rect->top, rect->right,
+        Log("harness: %s: id %d, rectangle (%d,%d)-(%d,%d)", label.c_str(), id, rect->left, rect->top, rect->right,
             rect->bottom);
     // Candidates: the centre, then a 9x9 grid inside the rectangle from the middle outwards.
-    std::vector<POINT> candidates;
-    long cx = (rect->left + rect->right) / 2, cy = (rect->top + rect->bottom) / 2;
+    std::vector<platform::Point> candidates;
+    int cx = (rect->left + rect->right) / 2, cy = (rect->top + rect->bottom) / 2;
     candidates.push_back({cx, cy});
     constexpr int kSteps = 9;
     for (int ring = 1; ring <= kSteps / 2; ++ring) {
         for (int j = -ring; j <= ring; ++j) {
             for (int i = -ring; i <= ring; ++i) {
                 if (i != -ring && i != ring && j != -ring && j != ring) continue;
-                long x = cx + i * (rect->right - rect->left) / (kSteps + 1);
-                long y = cy + j * (rect->bottom - rect->top) / (kSteps + 1);
+                int x = cx + i * (rect->right - rect->left) / (kSteps + 1);
+                int y = cy + j * (rect->bottom - rect->top) / (kSteps + 1);
                 candidates.push_back({x, y});
             }
         }
     }
-    for (const POINT& p : candidates) {
+    for (const platform::Point& p : candidates) {
         void* hit = byId ? HarnessPickAt2(world, &p) : HarnessUnitAt(world, &p);
         if (hit && PickedId(hit) == id) {
             *point = p;
@@ -1507,36 +1537,35 @@ std::string FindUnitPoint(const char* name, const char* what, POINT* point, void
 
 std::string PostUnitMouse(const std::string& argument) {
     char name[64] = "", button[8] = "l";
-    if (sscanf_s(argument.c_str(), "%63s %7s", name, unsigned(sizeof(name)), button, unsigned(sizeof(button))) < 1)
+    if (std::sscanf(argument.c_str(), "%63s %7s", name, button) < 1)
         return "clickunit needs <name> [l|r|move|dbl] [ctrl|shift|alt]";
-    POINT at{};
+    platform::Point at{};
     void* hit = nullptr;
     std::string error = FindUnitPoint(name, "clickunit", &at, &hit);
     if (!error.empty()) return error;
     std::uint32_t flags = PickedFlags(hit);
-    RECT client{};
-    GetClientRect(GameWindow(), &client);
-    Log("harness: clickunit %s: at (%ld,%ld) (client %ldx%ld), flags %08X%s", name, at.x, at.y,
-        client.right - client.left, client.bottom - client.top, flags,
+    int clientWidth = 0, clientHeight = 0;
+    harnessplatform::ClientSize(&clientWidth, &clientHeight);
+    Log("harness: clickunit %s: at (%d,%d) (client %dx%d), flags %08X%s", name, at.x, at.y, clientWidth, clientHeight, flags,
         (flags & kPickableUnit) ? "" : " (no 0x400000: the battle screen ignores it)");
     // The battle screen reads the message's coordinates as they are (the pick space is the client
     // area); the harness's cursor follows them.
     at = ToWindow(at.x, at.y);   // the frame's pixel in the window (R9c)
     g_mouseX = at.x;
     g_mouseY = at.y;
-    LPARAM where = MAKELPARAM(at.x, at.y);
-    input::Post(WM_MOUSEMOVE, 0, where);
+    const std::intptr_t where = input::Point(at.x, at.y);
+    input::Post(input::MouseMove, 0, where);
     if (std::strcmp(button, "l") == 0) {
-        input::Post(WM_LBUTTONDOWN, MK_LBUTTON, where);
-        input::Post(WM_LBUTTONUP, 0, where);
+        input::Post(input::LeftDown, input::kLeftButton, where);
+        input::Post(input::LeftUp, 0, where);
     } else if (std::strcmp(button, "r") == 0) {
-        input::Post(WM_RBUTTONDOWN, MK_RBUTTON, where);
-        input::Post(WM_RBUTTONUP, 0, where);
+        input::Post(input::RightDown, input::kRightButton, where);
+        input::Post(input::RightUp, 0, where);
     } else if (std::strcmp(button, "dbl") == 0) {
         // The second half of a double click only: the release after it carries the interface's
         // double-click flag (+0x7F) into the battle screen's SelectUnit (rebirth_fixes_ui).
-        input::Post(WM_LBUTTONDBLCLK, MK_LBUTTON, where);
-        input::Post(WM_LBUTTONUP, 0, where);
+        input::Post(input::LeftDouble, input::kLeftButton, where);
+        input::Post(input::LeftUp, 0, where);
     }
     return "";
 }
@@ -1579,12 +1608,12 @@ std::string BlinkStep(const std::string& argument) {
 std::string PostGroundMouse(const std::string& argument) {
     float wx = 0.0f, wy = 0.0f;
     char verb[16] = "click";
-    if (sscanf_s(argument.c_str(), "%f %f %15s", &wx, &wy, verb, unsigned(sizeof(verb))) < 2)
+    if (std::sscanf(argument.c_str(), "%f %f %15s", &wx, &wy, verb) < 2)
         return "clickground needs <x> <y> [click|dblclick|rclick|move]";
     const std::string kind = verb;
     if (kind != "click" && kind != "dblclick" && kind != "rclick" && kind != "move")
         return "clickground: '" + kind + "' is no mouse step (click, dblclick, rclick, move)";
-    const RECT client = GameClient();
+    const platform::Rect client = GameClient();
     const int cw = client.right - client.left, ch = client.bottom - client.top;
     auto distance = [&](int lx, int ly) {
         float out[3] = {};
@@ -1617,7 +1646,7 @@ std::string PostGroundMouse(const std::string& argument) {
 // Logs the map points the ground pick finds at the layout's centre and corners (where the camera looks;
 // for writing a scenario's clickground steps).
 void LogGroundView() {
-    const RECT client = GameClient();
+    const platform::Rect client = GameClient();
     const int cw = client.right - client.left, ch = client.bottom - client.top;
     char text[400] = "groundview:";
     for (const auto& at : {std::pair{400, 300}, std::pair{0, 0}, std::pair{799, 0}, std::pair{0, 599}, std::pair{799, 599}}) {
@@ -1640,9 +1669,9 @@ struct MinimapLayout { float cx = 0, cy = 0, sx = 0, sy = 0; } g_minimap;
 
 std::string LookAt(const std::string& argument) {
     float wx = 0.0f, wy = 0.0f;
-    if (sscanf_s(argument.c_str(), "%f %f", &wx, &wy) != 2) return "lookat needs <x> <y>";
+    if (std::sscanf(argument.c_str(), "%f %f", &wx, &wy) != 2) return "lookat needs <x> <y>";
     if (!(g_minimap.sx > 0.0f && g_minimap.sy > 0.0f)) return "lookat: no minimap step before it";
-    const RECT client = GameClient();
+    const platform::Rect client = GameClient();
     const int cw = client.right - client.left, ch = client.bottom - client.top;
     float out[3] = {};
     HarnessPickSurface(HarnessClientWorld(), out, 400 * cw / 800, 300 * ch / 600);
@@ -1681,7 +1710,7 @@ std::string HudState(const std::string& argument) {
 std::string CampPutOn(const std::string& argument) {
     unsigned type = 0;
     int count = 0;
-    if (sscanf_s(argument.c_str(), "%x %d", &type, &count) != 2) return "campputon needs <type hex> <count>";
+    if (std::sscanf(argument.c_str(), "%x %d", &type, &count) != 2) return "campputon needs <type hex> <count>";
     void* camp = TopWindow();
     if (!camp || WindowKind(camp) != "camp")
         return "campputon: the camp is not on top";
@@ -1746,459 +1775,65 @@ bool IsInputStep(const std::string& verb) {
 // "expectcrash <text>": the crash the scenario is about (its failure line contains <text>).
 std::string g_expectedCrash;
 // The crash's failure line gives the free space for a C++ throw (a write failing on a full disk throws
-// a CFileException) or when it is below kLowDiskMb.
+// a platform::FileError) or when it is below kLowDiskMb.
 constexpr long long kLowDiskMb = 1024;
-constexpr DWORD kMsvcThrow = 0xE06D7363;
 
-// Unhandled exceptions end the run with a failure. Installed at start and re-asserted every step:
-// the game (and Rebirth) install their own filters, which can leave a crashed game hanging. The
-// failure names a C++ throw's type and contents and, when it is low, the run disk's free space
-// (harness_crash.h); ei-rebuild.log gets the code addresses on the stack.
-LONG WINAPI HarnessUnhandled(EXCEPTION_POINTERS* e) {
-    char head[64];
-    std::snprintf(head, sizeof(head), "the game crashed: exception %08lX at %08llX", e->ExceptionRecord->ExceptionCode,
-                  static_cast<unsigned long long>(InstructionPointer(*e->ContextRecord)));
+// A fault nothing handled ends the run with a failure (sys::InstallFaultHandlers: an unhandled exception or a fatal
+// signal, an abort, a pure virtual call, an uncaught C++ exception; re-asserted every step on Windows, where a library
+// may install its own filter). The failure names a C++ throw's type and contents and, when it is low, the run disk's
+// free space (harness_crash.h); ei-rebuild.log gets the code addresses on the stack.
+void Fatal(const sys::Fault& fault) {
+    char head[96];
+    std::snprintf(head, sizeof(head), "the game crashed: %s at %08llX", fault.what.c_str(),
+                  static_cast<unsigned long long>(fault.pc));
     std::string what = head;
-    if (std::string thrown = crash::DescribeThrow(e->ExceptionRecord); !thrown.empty()) what += ": " + thrown;
-    const long long freeMb = crash::FreeMegabytes(g_savesDir);
-    if (freeMb >= 0 && (freeMb < kLowDiskMb || e->ExceptionRecord->ExceptionCode == kMsvcThrow))
+    if (!fault.thrown.empty()) what += ": " + fault.thrown;
+    const long long freeMb = sys::FreeMegabytes(g_savesDir);
+    if (freeMb >= 0 && (freeMb < kLowDiskMb || fault.cppThrow))
         what += "; " + std::to_string(freeMb) + " MB free on the run folder's disk";
     what += " (stack in ei-rebuild.log)";
     Log("harness: %s", what.c_str());
     Log("harness: %lld MB free on the run folder's disk", freeMb);
-    LogModuleOf(InstructionPointer(*e->ContextRecord));
-    const auto* stack = reinterpret_cast<const std::uintptr_t*>(StackPointer(*e->ContextRecord));
-    MEMORY_BASIC_INFORMATION mbi{};
-    VirtualQuery(stack, &mbi, sizeof(mbi));
-    const auto* stackEnd = reinterpret_cast<const std::uintptr_t*>(static_cast<char*>(mbi.BaseAddress) + mbi.RegionSize);
-    for (int i = 0; i < 1024 && stack + i < stackEnd; ++i) LogCodeAddress("stack", stack[i]);
+    LogModuleOf(fault.pc);
+    LogStack(fault.sp, 1024);
     if (!g_expectedCrash.empty() && what.find(g_expectedCrash) != std::string::npos) {
         Log("harness: the crash the scenario expects (expectcrash %s)", g_expectedCrash.c_str());
         g_expectedCrash.clear();
     } else {
         g_failures.push_back(what);
     }
-    if (HANDLE writer = CreateThread(nullptr, 0, [](void*) -> DWORD { WriteReport(); return 0; }, nullptr, 0, nullptr)) {
-        WaitForSingleObject(writer, 3000);
-        CloseHandle(writer);
-    }
-    TerminateProcess(GetCurrentProcess(), 3);
-    return EXCEPTION_EXECUTE_HANDLER;
+    sys::RunBounded([] { WriteReport(); }, 3000);
+    sys::Terminate(3);
 }
 
-// A message box in a harness run is a failure nobody is there to close: the CRT's abort() ("abnormal
-// program termination", from game.exe's own CRT or Rebirth's), a pure virtual call, the game's error
-// box. user32's MessageBoxA / MessageBoxW are hot-patched (the CRT finds MessageBoxA through
-// GetProcAddress, so an import slot would miss it): the text and the stack go to ei-rebuild.log and
-// the run ends at once. During the run that is a failure; after "quit" the report is already
+// A message box in a harness run is a failure nobody is there to close: the game's own boxes come to the harness's
+// backend (platform::ShowMessageBox: AnswerMessageBox below), and the runtime's (abort's "abnormal program
+// termination", a pure virtual call's) never show (sys::InstallFaultHandlers makes them faults). The text and the stack
+// go to ei-rebuild.log and the run ends at once. During the run that is a failure; after "quit" the report is already
 // written, so an "EXIT:" line is added to it (run_all.py lists those runs).
 void EndRunOnMessageBox(const std::string& caption, const std::string& text) {
     std::string what = "message box '" + caption + "': " + text;
     for (char& ch : what) if (ch == '\r' || ch == '\n') ch = ' ';
     Log("harness: %s", what.c_str());
-    LogModuleOf(reinterpret_cast<std::uintptr_t>(_ReturnAddress()));
-    const auto* stack = reinterpret_cast<const std::uintptr_t*>(_AddressOfReturnAddress());
-    MEMORY_BASIC_INFORMATION mbi{};
-    VirtualQuery(stack, &mbi, sizeof(mbi));
-    const auto* stackEnd = reinterpret_cast<const std::uintptr_t*>(static_cast<char*>(mbi.BaseAddress) + mbi.RegionSize);
-    for (int i = 0; i < 256 && stack + i < stackEnd; ++i) LogCodeAddress("stack", stack[i]);
+    LogModuleOf(reinterpret_cast<std::uintptr_t>(EI_HARNESS_CALLER()));
+    LogStack(sys::StackHere(), 256);
     if (g_quitting) {
-        if (FILE* f = nullptr; fopen_s(&f, g_reportPath, "a") == 0 && f) {
+        if (FILE* f = sys::OpenFile(g_reportPath, "a")) {
             std::fprintf(f, "EXIT: %s (stack in ei-rebuild.log)\n", what.c_str());
             std::fclose(f);
         }
-        TerminateProcess(GetCurrentProcess(), 0);
+        sys::Terminate(0);
     }
     g_failures.push_back(what + " (stack in ei-rebuild.log)");
     WriteReport();
-    TerminateProcess(GetCurrentProcess(), 4);
+    sys::Terminate(4);
 }
-
-int WINAPI HarnessMessageBoxA(HWND, LPCSTR text, LPCSTR caption, UINT) {
-    if (int answer = ei::verify::startup::AnswerMessageBox(caption)) return answer;   // "discprompt"
-    EndRunOnMessageBox(caption ? caption : "", text ? text : "");
-    return IDABORT;
-}
-
-// UTF-16 as UTF-8.
-std::string Narrow(LPCWSTR s) {
-    if (!s || !*s) return {};
-    const int count = WideCharToMultiByte(CP_UTF8, 0, s, -1, nullptr, 0, nullptr, nullptr);
-    std::string out(static_cast<std::size_t>(count > 0 ? count : 1), '\0');
-    if (count > 0) WideCharToMultiByte(CP_UTF8, 0, s, -1, out.data(), count, nullptr, nullptr);
-    out.resize(std::strlen(out.c_str()));
-    return out;
-}
-
-// The image's MessageBoxA is the wide call (its text is UTF-8: platform/win32/system_text.h), so its boxes come here.
-int WINAPI HarnessMessageBoxW(HWND, LPCWSTR text, LPCWSTR caption, UINT) {
-    if (int answer = ei::verify::startup::AnswerMessageBox(Narrow(caption).c_str())) return answer;   // "discprompt"
-    EndRunOnMessageBox(Narrow(caption), Narrow(text));
-    return IDABORT;
-}
-
-// user32's x64 exports have no hot-patch padding. An export that is only "jmp qword ptr
-// [rip+disp32]" into win32u has that slot swapped. Any other starts with a 12-byte jump to the replacement ("mov rax,
-// replacement / jmp rax": RAX holds no argument at a call); when the original is wanted, its first instructions go to a
-// trampoline that then jumps back past them, which only works for the instructions PrologueLength knows (the prologues
-// of the exports the harness patches with an original: CreateWindowEx, SetWindowLong).
-constexpr std::size_t kPatchBytes = 12;
-constexpr std::size_t kJumpBackBytes = 14;   // jmp qword ptr [rip+0] and the address: no register
-
-// The length of the instruction at p when it is one of the few those prologues use and can be moved as it is (no RIP-
-// relative operand), else 0.
-std::size_t PrologueLength(const unsigned char* p) {
-    if (p[0] == 0x4C && p[1] == 0x8B && p[2] == 0xDC) return 3;                   // mov r11, rsp
-    if (p[0] == 0x45 && p[1] == 0x33 && (p[2] == 0xC0 || p[2] == 0xC9)) return 3;  // xor r8d, r8d / xor r9d, r9d
-    if (p[0] == 0x33 && p[1] == 0xC0) return 2;                                   // xor eax, eax
-    if (p[0] == 0x48 && p[1] == 0x81 && p[2] == 0xEC) return 7;                   // sub rsp, imm32
-    if (p[0] == 0x48 && p[1] == 0x83 && p[2] == 0xEC) return 4;                   // sub rsp, imm8
-    if (p[0] == 0x41 && p[1] >= 0xB8 && p[1] <= 0xBF) return 6;                   // mov r8d-r15d, imm32
-    return 0;
-}
-
-void WriteJumpBack(unsigned char* at, std::uintptr_t to) {
-    at[0] = 0xFF;
-    at[1] = 0x25;
-    std::memset(at + 2, 0, 4);
-    std::memcpy(at + 6, &to, 8);
-}
-
-// A trampoline running the original's first instructions (at least kPatchBytes of them, or up to its tail jump) and
-// jumping back after them; nullptr when one is not known or the patch would reach past a tail jump into code.
-void* Trampoline(unsigned char* p) {
-    static unsigned char* pool = nullptr;
-    static std::size_t used = 0;
-    constexpr std::size_t kPool = 4096;
-    unsigned char code[kPatchBytes + kJumpBackBytes * 2];
-    std::size_t at = 0, out = 0;
-    while (at < kPatchBytes) {
-        if (p[at] == 0xE9) {   // jmp rel32: the function's end; what the patch covers after it must be padding
-            for (std::size_t i = at + 5; i < kPatchBytes; ++i)
-                if (p[i] != 0xCC) return nullptr;
-            std::int32_t rel;
-            std::memcpy(&rel, p + at + 1, 4);
-            WriteJumpBack(code + out, reinterpret_cast<std::uintptr_t>(p + at + 5) + rel);
-            out += kJumpBackBytes;
-            at = kPatchBytes;
-            break;
-        }
-        const std::size_t length = PrologueLength(p + at);
-        if (!length) return nullptr;
-        std::memcpy(code + out, p + at, length);
-        at += length;
-        out += length;
-    }
-    if (out == at) {   // no tail jump copied: back to the instruction after the moved ones
-        WriteJumpBack(code + out, reinterpret_cast<std::uintptr_t>(p + at));
-        out += kJumpBackBytes;
-    }
-    if (!pool) pool = static_cast<unsigned char*>(VirtualAlloc(nullptr, kPool, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE));
-    if (!pool || used + out > kPool) return nullptr;
-    unsigned char* trampoline = pool + used;
-    std::memcpy(trampoline, code, out);
-    used += out;
-    FlushInstructionCache(GetCurrentProcess(), trampoline, out);
-    return trampoline;
-}
-
-void* HotPatch(const char* name, void* replacement, bool wantOriginal) {
-    auto* p = reinterpret_cast<unsigned char*>(GetProcAddress(GetModuleHandleA("user32.dll"), name));
-    if (!p) {
-        Log("harness: cannot hot-patch %s (no such export)", name);
-        return nullptr;
-    }
-    if (p[0] == 0xFF && p[1] == 0x25) {
-        std::int32_t rel;
-        std::memcpy(&rel, p + 2, 4);
-        auto** slot = reinterpret_cast<void**>(p + 6 + rel);
-        DWORD old;
-        VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
-        void* original = *slot;
-        *slot = replacement;
-        VirtualProtect(slot, sizeof(*slot), old, &old);
-        return original;
-    }
-    void* original = nullptr;
-    if (wantOriginal && !(original = Trampoline(p))) {
-        Log("harness: cannot hot-patch %s (unexpected prologue)", name);
-        return nullptr;
-    }
-    DWORD old;
-    VirtualProtect(p, kPatchBytes, PAGE_EXECUTE_READWRITE, &old);
-    p[0] = 0x48;   // mov rax, replacement
-    p[1] = 0xB8;
-    std::memcpy(p + 2, &replacement, 8);
-    p[10] = 0xFF;   // jmp rax
-    p[11] = 0xE0;
-    VirtualProtect(p, kPatchBytes, old, &old);
-    FlushInstructionCache(GetCurrentProcess(), p, kPatchBytes);
-    return original;
-}
-
-// No window of a harness game takes the foreground (SV1c). The game's own calls are kept from it
-// by its import table (NoForeground, ShowWithoutActivating, CreateWithoutActivating above), but a DLL
-// loaded into the process makes its own calls (dgVoodoo's ddraw.dll in the original's runs until H40
-// activated the game window at SetCooperativeLevel and minimised a game that lost the foreground,
-// RestoreAfterMinimise, whose device restores drew random numbers and shifted a golden). So the user32
-// functions themselves are patched, for every caller in the process: the activating calls do nothing, and windows are made and shown without being activated.
-// A window that cannot be activated is not given the foreground when the one in front closes.
-namespace noforeground {
-BOOL WINAPI SetForeground(HWND) { return TRUE; }
-BOOL WINAPI BringToTop(HWND) { return TRUE; }
-HWND WINAPI SetActive(HWND window) { return window; }
-HWND WINAPI SetFocusTo(HWND window) { return window; }
-void WINAPI SwitchTo(HWND, BOOL) {}
-
-using ShowWindowFn = decltype(&::ShowWindow);
-using SetWindowPosFn = decltype(&::SetWindowPos);
-using SetWindowLongFn = LONG(WINAPI*)(HWND, int, LONG);
-using CreateWindowExAFn = decltype(&::CreateWindowExA);
-using CreateWindowExWFn = decltype(&::CreateWindowExW);
-ShowWindowFn g_show;
-SetWindowPosFn g_setWindowPos;
-SetWindowLongFn g_setWindowLongA, g_setWindowLongW;
-CreateWindowExAFn g_createA;
-CreateWindowExWFn g_createW;
-
-void Conceal(HWND window);
-void NoteWindowThread(DWORD thread);
-bool TopLevel(DWORD style, HWND parent);
-
-BOOL WINAPI Show(HWND window, int command) {
-    switch (command) {
-    case SW_SHOWNORMAL: case SW_SHOW: case SW_RESTORE: case SW_SHOWDEFAULT: command = SW_SHOWNOACTIVATE; break;
-    case SW_SHOWMAXIMIZED: command = SW_SHOWNA; break;
-    case SW_MINIMIZE: case SW_SHOWMINIMIZED: return TRUE;   // a harness game is never minimised, except by its focus step
-    default: break;
-    }
-    if (command != SW_HIDE) Conceal(window);   // also a window not made through CreateWindowEx
-    if (window && TopLevel(static_cast<DWORD>(GetWindowLongA(window, GWL_STYLE)), GetParent(window)))
-        NoteWindowThread(GetWindowThreadProcessId(window, nullptr));
-    return g_show(window, command);
-}
-BOOL WINAPI SetPos(HWND window, HWND after, int x, int y, int w, int h, UINT flags) {
-    return g_setWindowPos(window, after, x, y, w, h, flags | SWP_NOACTIVATE);
-}
-bool TopLevel(DWORD style, HWND parent) { return !parent && !(style & WS_CHILD); }
-
-// WB12, WB12a: in every harness run the game's windows are out of sight as well. Each top-level window is cloaked (DWMWA_CLOAK: Windows still composes it, so its swap chains present as before,
-// but nothing of it reaches the screen) and made a tool window (no taskbar button, not in Alt+Tab).
-// Its position, size, visibility and messages stay as they were, so the game, the harness's posted
-// input and the frames (read from the renderer's target, harness_capture.cpp) do not change.
-// EI_HARNESS_SHOW_WINDOW=1 leaves the windows in sight (to watch a run).
-bool g_conceal = false;
-decltype(&::DwmSetWindowAttribute) g_dwmSet;
-decltype(&::DwmGetWindowAttribute) g_dwmGet;
-DWORD ConcealedExStyle(DWORD exStyle) {
-    exStyle |= WS_EX_NOACTIVATE;
-    if (g_conceal) exStyle = (exStyle | WS_EX_TOOLWINDOW) & ~DWORD(WS_EX_APPWINDOW);
-    return exStyle;
-}
-// (Message-only windows are never seen and cannot be cloaked: their parent is HWND_MESSAGE, which GetParent does
-// not report.)
-void Conceal(HWND window) {
-    if (!g_conceal || !window || GetAncestor(window, GA_PARENT) != GetDesktopWindow() ||
-        !TopLevel(static_cast<DWORD>(GetWindowLongA(window, GWL_STYLE)), nullptr))
-        return;
-    DWORD cloaked = 0;
-    if (g_dwmGet && SUCCEEDED(g_dwmGet(window, DWMWA_CLOAKED, &cloaked, sizeof(cloaked))) && cloaked) return;
-    BOOL cloak = TRUE;
-    const HRESULT result = g_dwmSet ? g_dwmSet(window, DWMWA_CLOAK, &cloak, sizeof(cloak)) : E_NOTIMPL;
-    char cls[64] = "";
-    GetClassNameA(window, cls, sizeof(cls));
-    if (FAILED(result))
-        Log("harness: window %p (class %s) not cloaked (%08X): it may be seen", static_cast<void*>(window), cls, unsigned(result));
-    else
-        Log("harness: window %p (class %s) cloaked", static_cast<void*>(window), cls);
-}
-LONG KeepNoActivate(HWND window, int index, LONG value) {
-    if (index == GWL_EXSTYLE && TopLevel(static_cast<DWORD>(GetWindowLongA(window, GWL_STYLE)), GetParent(window)))
-        value = static_cast<LONG>(ConcealedExStyle(static_cast<DWORD>(value)));
-    return value;
-}
-LONG WINAPI SetLongA(HWND window, int index, LONG value) {
-    return g_setWindowLongA(window, index, KeepNoActivate(window, index, value));
-}
-LONG WINAPI SetLongW(HWND window, int index, LONG value) {
-    return g_setWindowLongW(window, index, KeepNoActivate(window, index, value));
-}
-HWND WINAPI CreateA(DWORD exStyle, LPCSTR cls, LPCSTR name, DWORD style, int x, int y, int w, int h, HWND parent,
-                    HMENU menu, HINSTANCE instance, LPVOID param) {
-    if (TopLevel(style, parent)) exStyle = ConcealedExStyle(exStyle);
-    HWND window = g_createA(exStyle, cls, name, style, x, y, w, h, parent, menu, instance, param);
-    Conceal(window);
-    if (window && TopLevel(style, parent)) NoteWindowThread(GetCurrentThreadId());
-    return window;
-}
-HWND WINAPI CreateW(DWORD exStyle, LPCWSTR cls, LPCWSTR name, DWORD style, int x, int y, int w, int h, HWND parent,
-                    HMENU menu, HINSTANCE instance, LPVOID param) {
-    if (TopLevel(style, parent)) exStyle = ConcealedExStyle(exStyle);
-    HWND window = g_createW(exStyle, cls, name, style, x, y, w, h, parent, menu, instance, param);
-    Conceal(window);
-    if (window && TopLevel(style, parent)) NoteWindowThread(GetCurrentThreadId());
-    return window;
-}
-
-template <typename T>
-void Patch(const char* name, T replacement, T* original = nullptr) {
-    void* trampoline = HotPatch(name, reinterpret_cast<void*>(replacement), original != nullptr);
-    if (original) *original = reinterpret_cast<T>(trampoline);
-}
-
-void Install() {
-    char show[8] = "";
-    g_conceal = !(GetEnvironmentVariableA("EI_HARNESS_SHOW_WINDOW", show, sizeof(show)) && show[0] == '1');
-    if (HMODULE dwm = LoadLibraryA("dwmapi.dll")) {
-        g_dwmSet = reinterpret_cast<decltype(&::DwmSetWindowAttribute)>(GetProcAddress(dwm, "DwmSetWindowAttribute"));
-        g_dwmGet = reinterpret_cast<decltype(&::DwmGetWindowAttribute)>(GetProcAddress(dwm, "DwmGetWindowAttribute"));
-    }
-    if (g_conceal)
-        Log("harness: the game's windows are kept out of sight (cloaked tool windows; EI_HARNESS_SHOW_WINDOW=1 shows them)");
-    Patch("SetForegroundWindow", &SetForeground);
-    Patch("BringWindowToTop", &BringToTop);
-    Patch("SetActiveWindow", &SetActive);
-    Patch("SetFocus", &SetFocusTo);
-    Patch("SwitchToThisWindow", &SwitchTo);
-    Patch("ShowWindow", &Show, &g_show);
-    Patch("SetWindowPos", &SetPos, &g_setWindowPos);
-    Patch("SetWindowLongA", &SetLongA, &g_setWindowLongA);
-    Patch("SetWindowLongW", &SetLongW, &g_setWindowLongW);
-    Patch("CreateWindowExA", &CreateA, &g_createA);
-    Patch("CreateWindowExW", &CreateW, &g_createW);
-}
-
-// The windows' cloak states as DWM last reported them. The query is a call into DWM, which waits
-// while DWM is busy (SV10: in net_pair_quest some 6 s of the main thread's 150 s, five queries a
-// second): it is made on the sweeps (Watch) and for a window not asked about yet.
-std::vector<std::pair<HWND, DWORD>> g_cloakStates;
-DWORD CloakState(HWND window, bool ask) {
-    auto it = std::find_if(g_cloakStates.begin(), g_cloakStates.end(), [&](const auto& s) { return s.first == window; });
-    if (it != g_cloakStates.end() && !ask) return it->second;
-    DWORD cloaked = 0;
-    if (g_dwmGet) g_dwmGet(window, DWMWA_CLOAKED, &cloaked, sizeof(cloaked));
-    if (it != g_cloakStates.end()) it->second = cloaked;
-    else g_cloakStates.emplace_back(window, cloaked);
-    return cloaked;
-}
-
-// What of a top-level window of the game the user could see, empty when nothing: shown (visible,
-// not cloaked or minimised, on a monitor), a taskbar button, the foreground window. `ask`: DWM is
-// asked for the cloak state, else its last answer for the window counts.
-std::string Seen(HWND window, bool ask) {
-    std::string seen;
-    if (!IsWindowVisible(window)) return seen;
-    const DWORD exStyle = static_cast<DWORD>(GetWindowLongA(window, GWL_EXSTYLE));
-    const DWORD cloaked = CloakState(window, ask);
-    RECT rect{}, both{};
-    const RECT screen{GetSystemMetrics(SM_XVIRTUALSCREEN), GetSystemMetrics(SM_YVIRTUALSCREEN),
-                      GetSystemMetrics(SM_XVIRTUALSCREEN) + GetSystemMetrics(SM_CXVIRTUALSCREEN),
-                      GetSystemMetrics(SM_YVIRTUALSCREEN) + GetSystemMetrics(SM_CYVIRTUALSCREEN)};
-    const bool onScreen = GetWindowRect(window, &rect) && IntersectRect(&both, &rect, &screen);
-    if (!cloaked && !IsIconic(window) && onScreen) seen += " shown";
-    if ((exStyle & WS_EX_APPWINDOW) || (!(exStyle & WS_EX_TOOLWINDOW) && !GetWindow(window, GW_OWNER)))
-        seen += " on the taskbar";
-    if (GetForegroundWindow() == window) seen += " in front";
-    if (seen.empty()) return seen;
-    char text[200];
-    char cls[64] = "";
-    GetClassNameA(window, cls, sizeof(cls));
-    std::snprintf(text, sizeof(text), "window %p (class %s, (%ld,%ld)-(%ld,%ld), ex style %08X, cloaked %lu):",
-                  static_cast<void*>(window), cls, rect.left, rect.top, rect.right, rect.bottom, unsigned(exStyle),
-                  static_cast<unsigned long>(cloaked));
-    return text + seen;
-}
-
-unsigned g_checks;          // checks of the game's windows so far
-std::string g_firstSeen;    // the first thing seen, for the report
-std::string g_lastSeen;     // logged when it changes
-
-// The threads that own top-level windows of the game: each that made or showed one (CreateA, CreateW,
-// Show) and each a sweep of the desktop found one of. (A thread id can be reused by another process's
-// thread once its thread ends: the windows' process is checked too.)
-constexpr int kMaxWindowThreads = 64;
-SRWLOCK g_windowThreadsLock = SRWLOCK_INIT;
-DWORD g_windowThreads[kMaxWindowThreads];
-int g_windowThreadCount = 0;
-void NoteWindowThread(DWORD thread) {
-    AcquireSRWLockExclusive(&g_windowThreadsLock);
-    bool known = false;
-    for (int i = 0; i < g_windowThreadCount && !known; ++i) known = g_windowThreads[i] == thread;
-    if (!known && g_windowThreadCount < kMaxWindowThreads) g_windowThreads[g_windowThreadCount++] = thread;
-    ReleaseSRWLockExclusive(&g_windowThreadsLock);
-}
-
-// One check: the first thing seen, and whether it is a sweep (DWM asked again).
-struct Check {
-    std::string seen;
-    bool sweep = false;
-};
-
-BOOL CALLBACK CheckWindow(HWND window, LPARAM parameter) {
-    DWORD process = 0;
-    const DWORD thread = GetWindowThreadProcessId(window, &process);
-    if (process != GetCurrentProcessId()) return TRUE;
-    NoteWindowThread(thread);
-    Check& check = *reinterpret_cast<Check*>(parameter);
-    if (check.seen.empty()) check.seen = Seen(window, check.sweep);
-    return TRUE;
-}
-
-// Every top-level window of the process checked (at most every 200 ms of real time, from the main
-// loop's peeks; logged when what is seen changes). Without concealment only the foreground matters,
-// as before WB12: a harness game never takes it (SV1c). A check walks the windows of the threads
-// that own the game's windows with the cloak states last reported; every tenth (every 2 s) is a sweep:
-// every top-level window of the desktop (for a window of a thread not known yet) and DWM asked again
-// (SV10: a sweep at every check cost 0.4-2 ms of wall time a frame in the original's runs and some 6%
-// of net_pair_quest's main thread in the image's, mostly waiting for DWM's answers).
-constexpr unsigned kSweepEvery = 10;
-void Watch(HWND game) {
-    static ULONGLONG next = 0;
-    const ULONGLONG now = GetTickCount64();
-    if (now < next) return;
-    next = now + 200;
-    Check check;
-    check.sweep = g_checks % kSweepEvery == 0;
-    if (g_conceal && check.sweep) {
-        EnumWindows(&CheckWindow, reinterpret_cast<LPARAM>(&check));
-    } else if (g_conceal) {
-        DWORD threads[kMaxWindowThreads];
-        AcquireSRWLockShared(&g_windowThreadsLock);
-        const int count = g_windowThreadCount;
-        std::copy(g_windowThreads, g_windowThreads + count, threads);
-        ReleaseSRWLockShared(&g_windowThreadsLock);
-        for (int i = 0; i < count; ++i) EnumThreadWindows(threads[i], &CheckWindow, reinterpret_cast<LPARAM>(&check));
-    } else if (GetForegroundWindow() == game) {
-        check.seen = "the game window is the foreground window";
-    }
-    const std::string seen = check.seen;
-    ++g_checks;
-    if (seen == g_lastSeen) return;
-    g_lastSeen = seen;
-    if (seen.empty()) {
-        Log("harness: no window of the game is in sight any more");
-        return;
-    }
-    if (g_firstSeen.empty()) g_firstSeen = seen;
-    Log("harness: in sight: %s", seen.c_str());
-}
-
-// The report's line (concealed runs only; run_all lists the runs that had a window in sight).
-void Report(FILE* f) {
-    if (!g_conceal) return;
-    if (g_firstSeen.empty())
-        std::fprintf(f, "\nWINDOW: out of sight (%u checks: no window of the game shown, on the taskbar or in front)\n",
-                     g_checks);
-    else
-        std::fprintf(f, "\nWINDOW: in sight: %s\n", g_firstSeen.c_str());
-}
-}  // namespace noforeground
 
 std::string FocusStep(const std::string& argument);
 std::string WindowSizeStep(const std::string& argument);
 
 void RunSteps() {
-    SetUnhandledExceptionFilter(&HarnessUnhandled);
+    sys::ReassertFaultHandler();
     // The "show tutorial" option (registry value ShowTutorial). With it off, tutorial windows open only where the game
     // forces them (005F86F0, 005F8A80). Cleared every frame, since the options are reloaded when a game starts.
     HarnessClearShowTutorial();
@@ -2222,14 +1857,14 @@ void RunSteps() {
         }
     }
     if (g_waitingFor) {
-        DWORD now = Now();
+        std::uint32_t now = Now();
         if (g_waitForPending && g_console.size() > g_waitForFrom) {
             const std::string& out = g_console[g_waitForFrom];
             char* end = nullptr;
             double value = std::strtod(out.c_str(), &end);
             g_waitForPending = false;
             if (end != out.c_str() && value != 0) {
-                Log("harness: waitfor %s done after %lu ms", g_waitForExpr.c_str(), now - g_waitForDeadline.start);
+                Log("harness: waitfor %s done after %u ms", g_waitForExpr.c_str(), now - g_waitForDeadline.start);
                 g_waitingFor = false;
             } else {
                 g_waitForNext = now + 250;
@@ -2252,7 +1887,7 @@ void RunSteps() {
     if (g_capturing) {
         const char* detail = "";
         capture::State state = capture::Poll(&detail);
-        if (state == capture::State::Pending && GetTickCount() < g_captureDeadline) return;
+        if (state == capture::State::Pending && sys::TickCount() < g_captureDeadline) return;
         if (state == capture::State::Done) {
             Log("harness: capture %s: %s", g_captureName.c_str(), detail);
             g_capturedFrames.push_back(g_captureName + ": " + detail);
@@ -2289,12 +1924,12 @@ void RunSteps() {
         // and the local player is back in the world (state 1; LeaveToZone left it at 3).
         bool ready = false;
         if (g_inputLoop && HarnessFlowState() == 0 && HarnessCampaignMode() != 2 &&
-            _stricmp(ServerZoneName(), g_waitZoneName.c_str()) == 0) {
+            text::CompareIgnoringCase(ServerZoneName(), g_waitZoneName.c_str()) == 0) {
             void* connection = LocalConnection();
             ready = connection && ConnectionState(connection) == 1;
         }
         if (ready) {
-            Log("harness: waitzone %s done after %lu ms (campaign mode %d)", g_waitZoneName.c_str(),
+            Log("harness: waitzone %s done after %u ms (campaign mode %d)", g_waitZoneName.c_str(),
                 Now() - g_waitZoneDeadline.start, HarnessCampaignMode());
             g_waitingZone = false;
         } else if (g_waitZoneDeadline.Passed()) {
@@ -2310,10 +1945,10 @@ void RunSteps() {
         }
     }
     if (g_waitingFrames) {
-        if (g_frames < g_waitFramesUntil && static_cast<LONG>(GetTickCount() - g_waitFramesDeadline.realAt) < 0) return;
+        if (g_frames < g_waitFramesUntil && static_cast<std::int32_t>(sys::TickCount() - g_waitFramesDeadline.realAt) < 0) return;
         if (g_frames < g_waitFramesUntil) {
             std::string what = "frames: " + std::to_string(g_waitFramesUntil - g_frames) + " frames still to go after " +
-                   std::to_string(GetTickCount() - g_waitFramesDeadline.realStart) + " ms";
+                   std::to_string(sys::TickCount() - g_waitFramesDeadline.realStart) + " ms";
             Log("harness: %s", what.c_str());
             g_failures.push_back(what);
         }
@@ -2357,7 +1992,7 @@ void RunSteps() {
             bool fadeRunning = false;
             float fadeAlpha = 0.0f;
             const bool fade = HarnessScreenFade(&fadeRunning, &fadeAlpha);
-            Log("harness: waitwindow %s done after %lu ms (frame %u; screen fade %s, alpha %.0f)", g_waitWindowName.c_str(),
+            Log("harness: waitwindow %s done after %u ms (frame %u; screen fade %s, alpha %.0f)", g_waitWindowName.c_str(),
                 Now() - g_waitWindowDeadline.start, g_frames, fade && fadeRunning ? "running" : "off", fade ? fadeAlpha : 0.0f);
             g_waitingWindow = false;
         } else if (g_waitWindowDeadline.Passed()) {
@@ -2372,7 +2007,7 @@ void RunSteps() {
     }
     if (g_waitingPeer) {
         if (pair::Signaled(g_waitPeerTag)) {
-            Log("harness: peerwait %s done after %lu ms (frame %u)", g_waitPeerTag.c_str(), Now() - g_waitPeerDeadline.start,
+            Log("harness: peerwait %s done after %u ms (frame %u)", g_waitPeerTag.c_str(), Now() - g_waitPeerDeadline.start,
                 g_frames);
             g_waitingPeer = false;
         } else if (g_waitPeerDeadline.Passed()) {
@@ -2386,11 +2021,11 @@ void RunSteps() {
     }
     if (g_waitingUnit) {
         // Checked in input loop passes: the pick list is the last frame's, and clickunit follows.
-        POINT at{};
+        platform::Point at{};
         void* unit = nullptr;
         std::string why = g_inputLoop ? FindUnitPoint(g_waitUnitName.c_str(), nullptr, &at, &unit) : "not checked";
         if (why.empty()) {
-            Log("harness: waitunit %s done after %lu ms (at %ld,%ld)", g_waitUnitName.c_str(), Now() - g_waitUnitDeadline.start,
+            Log("harness: waitunit %s done after %u ms (at %d,%d)", g_waitUnitName.c_str(), Now() - g_waitUnitDeadline.start,
                 at.x, at.y);
             g_waitingUnit = false;
         } else if (g_waitUnitDeadline.Passed()) {
@@ -2433,7 +2068,7 @@ void RunSteps() {
             what = text;
         }
         if (done) {
-            Log("harness: %s done after %lu ms (frame %u)", what.c_str(), Now() - g_worldWaitDeadline.start, g_frames);
+            Log("harness: %s done after %u ms (frame %u)", what.c_str(), Now() - g_worldWaitDeadline.start, g_frames);
             g_worldWait = WorldWait::None;
         } else if (g_worldWaitDeadline.Passed()) {
             what += " timed out" + g_worldWaitDeadline.Why();
@@ -2470,8 +2105,8 @@ void RunSteps() {
             const std::string verb = s.argument.substr(0, space);
             int x = 0, y = 0, used = 0;
             if (space != std::string::npos && IsInputStep(verb) &&
-                sscanf_s(s.argument.c_str() + space + 1, "%d %d%n", &x, &y, &used) >= 2) {
-                const RECT client = GameClient();
+                std::sscanf(s.argument.c_str() + space + 1, "%d %d%n", &x, &y, &used) >= 2) {
+                const platform::Rect client = GameClient();
                 LayoutToWindowShare(client.right - client.left, client.bottom - client.top, &x, &y);
                 s.argument = std::to_string(x) + " " + std::to_string(y) + s.argument.substr(space + 1 + used);
                 s.verb = verb;
@@ -2586,14 +2221,14 @@ void RunSteps() {
                    s.verb == "rdblclick" || s.verb == "ldown" || s.verb == "lup" || s.verb == "rdown" || s.verb == "rup") {
             int x = 0, y = 0;
             HeldModifiers held(&s.argument);
-            if (sscanf_s(s.argument.c_str(), "%d %d", &x, &y) == 2) PostMouse(s.verb, x, y);
+            if (std::sscanf(s.argument.c_str(), "%d %d", &x, &y) == 2) PostMouse(s.verb, x, y);
             else Log("harness: %s needs <x> <y>", s.verb.c_str());
         } else if (s.verb == "mousedrag") {
-            if (sscanf_s(s.argument.c_str(), "%d %d", &g_dragX, &g_dragY) != 2) g_failures.push_back("mousedrag needs <dx> <dy>");
+            if (std::sscanf(s.argument.c_str(), "%d %d", &g_dragX, &g_dragY) != 2) g_failures.push_back("mousedrag needs <dx> <dy>");
         } else if (s.verb == "wheel") {
             int x = 0, y = 0, delta = 0;
             HeldModifiers held(&s.argument);
-            if (sscanf_s(s.argument.c_str(), "%d %d %d", &x, &y, &delta) == 3) PostWheel(x, y, delta);
+            if (std::sscanf(s.argument.c_str(), "%d %d %d", &x, &y, &delta) == 3) PostWheel(x, y, delta);
             else Log("harness: wheel needs <x> <y> <delta>");
         } else if (s.verb == "clickregion" || s.verb == "rclickregion" || s.verb == "dblclickregion" ||
                    s.verb == "moveregion") {
@@ -2613,7 +2248,7 @@ void RunSteps() {
             LogGroundView();
         } else if (s.verb == "minimap") {
             MinimapLayout m;
-            if (sscanf_s(s.argument.c_str(), "%f %f %f %f", &m.cx, &m.cy, &m.sx, &m.sy) != 4) {
+            if (std::sscanf(s.argument.c_str(), "%f %f %f %f", &m.cx, &m.cy, &m.sx, &m.sy) != 4) {
                 g_failures.push_back("minimap needs <cx> <cy> <sx> <sy>");
                 Log("harness: %s", g_failures.back().c_str());
             } else {
@@ -2637,7 +2272,7 @@ void RunSteps() {
             // For the camp (5) the map's button first sets "constr_current" to 0; a base dialogue's
             // "constrN" answer (006064E0) sets N instead, when the class template exists.
             int id = 0, constr = 0;
-            sscanf_s(s.argument.c_str(), "%d %d", &id, &constr);
+            std::sscanf(s.argument.c_str(), "%d %d", &id, &constr);
             if (id == 5 && constr > 0 && !image::HasClassTemplate(constr)) {
                 std::string error = "screen: no class template " + std::to_string(constr);
                 Log("harness: %s", error.c_str());
@@ -2688,13 +2323,13 @@ void RunSteps() {
             if (!pair::Active()) g_failures.push_back("netcut: not a pair's game (a \"peer\" line starts the other)");
             pair::Cut();
         } else if (s.verb == "hidefile") {
-            if (g_hiddenCount >= kHiddenFiles || s.argument.empty() || s.argument.size() >= MAX_PATH) {
+            if (g_hiddenCount >= kHiddenFiles || s.argument.empty() || s.argument.size() >= kPath) {
                 g_failures.push_back("hidefile: no room for " + s.argument);
             } else {
-                strcpy_s(g_hiddenFiles[g_hiddenCount], s.argument.c_str());
+                sys::CopyText(g_hiddenFiles[g_hiddenCount], s.argument.c_str());
                 for (char* p = g_hiddenFiles[g_hiddenCount]; *p; ++p)
                     if (*p == '/') *p = '\\';
-                InterlockedIncrement(&g_hiddenCount);
+                ++g_hiddenCount;
                 Log("harness: %s reads as missing until this game writes it", s.argument.c_str());
             }
         } else if (s.verb == "samefile") {
@@ -2708,7 +2343,7 @@ void RunSteps() {
         } else if (s.verb == "fakemaster") {
             int port = 0;
             char reply[16] = "list";
-            sscanf_s(s.argument.c_str(), "%d %15s", &port, reply, unsigned(sizeof(reply)));
+            std::sscanf(s.argument.c_str(), "%d %15s", &port, reply);
             if (!pair::Active()) g_failures.push_back("fakemaster: not a pair's game (a \"peer\" line starts the other)");
             else if (port <= 0 || port > 0xFFFF) g_failures.push_back("fakemaster needs <port>");
             else if (!pair::FakeMaster(static_cast<std::uint16_t>(port), reply))
@@ -2726,7 +2361,7 @@ void RunSteps() {
             // What a zone exit does (00670C20): the server's LeaveToZone for the local player.
             char name[64] = "";
             int exitIndex = 0;
-            if (sscanf_s(s.argument.c_str(), "%63s %d", name, unsigned(sizeof(name)), &exitIndex) < 1) {
+            if (std::sscanf(s.argument.c_str(), "%63s %d", name, &exitIndex) < 1) {
                 g_failures.push_back("zone needs <name> [exit]");
                 continue;
             }
@@ -2807,8 +2442,7 @@ void RunSteps() {
         } else if (s.verb == "expectlog") {
             const std::string logPath = ei::OutputPath("ei-rebuild.log");
             std::string text;   // the log without the harness's own echoes of its steps
-            FILE* log = nullptr;
-            if ((log = _fsopen(logPath.c_str(), "rb", _SH_DENYNO)) != nullptr) {   // the log is open for writing
+            if (FILE* log = sys::OpenShared(logPath)) {   // the log is open for writing
                 char line[4096];
                 while (std::fgets(line, sizeof(line), log))
                     if (!std::strstr(line, "harness: ")) text += line;
@@ -2831,13 +2465,13 @@ void RunSteps() {
             capture::Request(s.argument.c_str(), 2);
             g_capturing = true;
             g_captureName = s.argument;
-            g_captureDeadline = GetTickCount() + 10000;
+            g_captureDeadline = sys::TickCount() + 10000;
             return;
         } else if (s.verb == "samecapture") {
             char a[64] = "", b[64] = "";
             int tolerance = 8;
             double limit = 0.001;
-            if (sscanf_s(s.argument.c_str(), "%63s %63s %d %lf", a, unsigned(sizeof(a)), b, unsigned(sizeof(b)),
+            if (std::sscanf(s.argument.c_str(), "%63s %63s %d %lf", a, b,
                          &tolerance, &limit) < 2) {
                 g_failures.push_back("samecapture needs two frame names");
                 continue;
@@ -2860,7 +2494,7 @@ void RunSteps() {
             char a[64] = "", b[64] = "";
             double least = 0, most = 1;
             int tolerance = 8;
-            if (sscanf_s(s.argument.c_str(), "%63s %63s %lf %lf %d", a, unsigned(sizeof(a)), b, unsigned(sizeof(b)), &least,
+            if (std::sscanf(s.argument.c_str(), "%63s %63s %lf %lf %d", a, b, &least,
                          &most, &tolerance) < 4) {
                 g_failures.push_back("diffcapture needs two frame names, a least and a most fraction");
                 continue;
@@ -2894,13 +2528,13 @@ void RunSteps() {
             double limit = 0.001;
             // "recorder" first: the frame recorder's file (the movie folder ".\capture\"), not Scroll Lock's.
             bool recorder = s.argument.compare(0, 9, "recorder ") == 0;
-            if (sscanf_s(s.argument.c_str() + (recorder ? 9 : 0), "%d %63s %d %lf", &index, frame, unsigned(sizeof(frame)),
+            if (std::sscanf(s.argument.c_str() + (recorder ? 9 : 0), "%d %63s %d %lf", &index, frame,
                          &tolerance, &limit) < 2 ||
                 index < 0) {
                 g_failures.push_back("checkshot needs [recorder] <n> <frame>");
                 continue;
             }
-            char path[MAX_PATH];
+            char path[kPath];
             std::snprintf(path, sizeof(path), "%s\\%sshot%.4d.bmp", g_savesDir, recorder ? "capture\\" : "", index);
             double differing = 0;
             int largest = 0;
@@ -2923,7 +2557,7 @@ void RunSteps() {
             char slot[64] = "", frame[64] = "";
             double limit = 0.001;
             int used = 0;
-            if (sscanf_s(s.argument.c_str(), "%63s %63s%n", slot, unsigned(sizeof(slot)), frame, unsigned(sizeof(frame)),
+            if (std::sscanf(s.argument.c_str(), "%63s %63s%n", slot, frame,
                          &used) < 2) {
                 g_failures.push_back("checksave needs <slot> <frame>");
                 continue;
@@ -2932,8 +2566,8 @@ void RunSteps() {
             while (*rest == ' ') ++rest;
             bool centre = std::strncmp(rest, "centre", 6) == 0;
             if (centre) rest += 6;
-            sscanf_s(rest, "%d %lf", &tolerance, &limit);
-            char path[MAX_PATH];
+            std::sscanf(rest, "%d %lf", &tolerance, &limit);
+            char path[kPath];
             std::snprintf(path, sizeof(path), "%s\\%s\\shot.sav", g_savesDir, slot);
             double differing = 0;
             int largest = 0;
@@ -2954,10 +2588,10 @@ void RunSteps() {
         } else if (s.verb == "waitpresent") {
             int seconds = 10;
             char what[16] = "";
-            sscanf_s(s.argument.c_str(), "%d %15s", &seconds, what, unsigned(sizeof(what)));
+            std::sscanf(s.argument.c_str(), "%d %15s", &seconds, what);
             g_waitPresentFrom = HarnessWindowPresents().presents;
             g_waitPresentGamma = std::strcmp(what, "gamma") == 0;
-            g_waitPresentDeadline.Set(static_cast<DWORD>(seconds) * 1000);
+            g_waitPresentDeadline.Set(static_cast<std::uint32_t>(seconds) * 1000);
             g_waitingPresent = true;
             return;
         } else if (s.verb == "cursormark") {
@@ -2984,7 +2618,7 @@ void RunSteps() {
             g_stackDumpHangs = s.argument == "dump" || s.argument == "all";
             g_watchdogStopped = s.argument == "all";
             Log("harness: hang %s (a test of the time limit): the main thread blocks for good", s.argument.c_str());
-            Sleep(INFINITE);
+            sys::SleepForever();
         } else if (s.verb == "freeze" || s.verb == "unfreeze") {
             clock::Freeze(s.verb == "freeze");
         } else if (s.verb == "digest" || s.verb == "dump") {
@@ -3007,10 +2641,7 @@ void RunSteps() {
             // The game can hang on the way out (Rebirth did: harness_starter.cpp). The quit console command calls exit(),
             // which stops our watchdog thread too, so run_all ends the process when it sees
             // harness_quit and the game is still running 3 s later.
-            char marker[MAX_PATH];
-            strcpy_s(marker, g_reportPath);
-            if (char* slash = std::strrchr(marker, '\\')) strcpy_s(slash + 1, marker + MAX_PATH - (slash + 1), "harness_quit");
-            if (FILE* f = nullptr; fopen_s(&f, marker, "w") == 0 && f) std::fclose(f);
+            if (FILE* f = sys::OpenFile(ei::OutputPath("harness_quit"), "w")) std::fclose(f);
             g_quitting = true;
             ConsoleExecute("quit");
             return;
@@ -3024,146 +2655,54 @@ void RunSteps() {
 // gets 5 s to exit by itself. A scenario that has not
 // finished within its time limit (60 s from game start unless it says "timeout <seconds>") fails:
 // the report is written with the failure and the game is closed. Keep scenarios well inside it.
-constexpr DWORD kDefaultTimeLimitMs = 60000;
-DWORD g_budget = kDefaultTimeLimitMs;
+constexpr std::uint32_t kDefaultTimeLimitMs = 60000;
+std::uint32_t g_budget = kDefaultTimeLimitMs;
 
-// A timed-out run: where the main thread (the process's oldest thread) is, for ei-rebuild.log: its
-// instruction pointer and the return addresses on its stack (words after a CALL, in any loaded
-// module), as module+offset.
-bool DescribeAddress(std::uintptr_t a, char* out, std::size_t size) {
-    HMODULE m = nullptr;
-    if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                            reinterpret_cast<LPCSTR>(a), &m))
-        return false;
-    char name[MAX_PATH] = "";
-    GetModuleFileNameA(m, name, MAX_PATH);
-    const char* file = std::strrchr(name, '\\');
-    std::snprintf(out, size, "%s+%X", file ? file + 1 : name, unsigned(a - reinterpret_cast<std::uintptr_t>(m)));
-    return true;
-}
-
-bool AfterCallInstruction(std::uintptr_t a) {
-    MEMORY_BASIC_INFORMATION mbi{};
-    constexpr DWORD kExecutable = PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
-    if (!VirtualQuery(reinterpret_cast<const void*>(a - 7), &mbi, sizeof(mbi)) || !(mbi.Protect & kExecutable)) return false;
-    const auto* p = reinterpret_cast<const unsigned char*>(a);
-    if (p[-5] == 0xE8) return true;   // CALL rel32
-    for (int n = 2; n <= 7; ++n)
-        if (p[-n] == 0xFF && ((p[-n + 1] >> 3) & 7) == 2) return true;   // CALL r/m32
-    return false;
-}
-
-void LogMainThreadStack() {
-    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
-    if (snapshot == INVALID_HANDLE_VALUE) return;
-    DWORD mainId = 0;
-    ULONGLONG oldest = ~0ull;
-    THREADENTRY32 entry{};
-    entry.dwSize = sizeof(entry);
-    for (BOOL more = Thread32First(snapshot, &entry); more; more = Thread32Next(snapshot, &entry)) {
-        if (entry.th32OwnerProcessID != GetCurrentProcessId()) continue;
-        HANDLE t = OpenThread(THREAD_QUERY_LIMITED_INFORMATION, FALSE, entry.th32ThreadID);
-        if (!t) continue;
-        FILETIME created, exited, kernel, user;
-        if (GetThreadTimes(t, &created, &exited, &kernel, &user)) {
-            const ULONGLONG when = (ULONGLONG(created.dwHighDateTime) << 32) | created.dwLowDateTime;
-            if (when < oldest) {
-                oldest = when;
-                mainId = entry.th32ThreadID;
-            }
-        }
-        CloseHandle(t);
-    }
-    CloseHandle(snapshot);
-    HANDLE thread = mainId ? OpenThread(THREAD_SUSPEND_RESUME | THREAD_GET_CONTEXT, FALSE, mainId) : nullptr;
-    if (!thread) return;
-    std::vector<std::uintptr_t> stack(4096);
-    std::size_t words = 0;
-    CONTEXT context{};
-    context.ContextFlags = CONTEXT_CONTROL;
-    if (SuspendThread(thread) != DWORD(-1)) {
-        MEMORY_BASIC_INFORMATION mbi{};
-        if (GetThreadContext(thread, &context) && VirtualQuery(reinterpret_cast<const void*>(StackPointer(context)), &mbi, sizeof(mbi))) {
-            const std::uintptr_t end = reinterpret_cast<std::uintptr_t>(mbi.BaseAddress) + mbi.RegionSize;
-            words = (end - StackPointer(context)) / sizeof(std::uintptr_t);
-            if (words > stack.size()) words = stack.size();
-            // Through the kernel, not memcpy: the AddressSanitizer build would report the other thread's
-            // poisoned stack slots.
-            SIZE_T read = 0;
-            ReadProcessMemory(GetCurrentProcess(), reinterpret_cast<const void*>(StackPointer(context)), stack.data(),
-                              words * sizeof(std::uintptr_t), &read);
-            words = read / sizeof(std::uintptr_t);
-        }
-        ResumeThread(thread);
-    }
-    CloseHandle(thread);
-    char where[MAX_PATH + 16] = "?";
-    DescribeAddress(InstructionPointer(context), where, sizeof(where));
-    Log("harness: main thread %lu at %08llX %s; return addresses on its stack:", mainId,
-        static_cast<unsigned long long>(InstructionPointer(context)), where);
-    int logged = 0;
-    for (std::size_t i = 0; i < words && logged < 48; ++i) {
-        const std::uintptr_t a = stack[i];
-        if (a < 0x10000 || !DescribeAddress(a, where, sizeof(where)) || !AfterCallInstruction(a)) continue;
-        Log("  %08llX %s", static_cast<unsigned long long>(a), where);
-        ++logged;
-    }
-}
-
-// The stack dump runs on a thread of its own and the watchdog waits 2 s for it: suspending the main
-// thread and reading its context waits until the thread is actually suspended, which a thread stuck
-// in a driver call (an audio device's open under load) never is. The
-// watchdog itself must reach TerminateProcess whatever the main thread is doing (SV1d).
+// A timed-out run: where the main thread is (sys::LogMainThreadStack, ei-rebuild.log). The stack dump runs on a thread
+// of its own and the watchdog waits 2 s for it: suspending the main thread and reading its context waits until the
+// thread is actually suspended, which a thread stuck in a driver call (an audio device's open under load) never is.
+// The watchdog itself must reach the process's end whatever the main thread is doing (SV1d).
 void LogMainThreadStackBounded() {
-    HANDLE dump = CreateThread(nullptr, 0, [](void*) -> DWORD {
-        if (g_stackDumpHangs) Sleep(INFINITE);
-        LogMainThreadStack();
-        return 0;
-    }, nullptr, 0, nullptr);
-    if (!dump) return;
-    if (WaitForSingleObject(dump, 2000) == WAIT_TIMEOUT)
-        Log("harness: the main thread's stack could not be read in 2 s (it cannot be suspended)");
-    CloseHandle(dump);
+    const bool done = sys::RunBounded([] {
+        if (g_stackDumpHangs) sys::SleepForever();
+        sys::LogMainThreadStack();
+    }, 2000);
+    if (!done) Log("harness: the main thread's stack could not be read in 2 s (it cannot be suspended)");
 }
 
-DWORD WINAPI Watchdog(void*) {
-    const DWORD start = GetTickCount();
+void Watchdog() {
+    const std::uint32_t start = sys::TickCount();
     for (unsigned beat = 1;; ++beat) {
-        Sleep(250);
-        if (g_watchdogStopped) Sleep(INFINITE);
+        sys::SleepMs(250);
+        if (g_watchdogStopped) sys::SleepForever();
         if (beat % 4 == 0) netlocal::Scan();   // binds outside loopback, whoever made them (harness_net.h)
         if (g_quitting) {
-            Sleep(5000);
+            sys::SleepMs(5000);
             Log("harness: the game did not exit 5 s after quit; terminating it");
-            TerminateProcess(GetCurrentProcess(), 0);
+            sys::Terminate(0);
         }
-        if (GetTickCount() - start >= g_budget) {
-            Log("harness: scenario timed out after %lu s (step %u of %u); terminating the game",
-                (GetTickCount() - start) / 1000, unsigned(g_next), unsigned(g_steps.size()));
+        if (sys::TickCount() - start >= g_budget) {
+            Log("harness: scenario timed out after %u s (step %u of %u); terminating the game",
+                (sys::TickCount() - start) / 1000, unsigned(g_next), unsigned(g_steps.size()));
             char what[160];
-            std::snprintf(what, sizeof(what), "scenario exceeded its %lu s time limit at step %u of %u",
+            std::snprintf(what, sizeof(what), "scenario exceeded its %u s time limit at step %u of %u",
                           g_budget / 1000, unsigned(g_next), unsigned(g_steps.size()));
             g_failures.push_back(what);
             LogMainThreadStackBounded();
             // Write the report from another thread and end the game whether or not that finishes:
             // a crashed or deadlocked main thread may hold a lock the report needs.
-            if (HANDLE writer = CreateThread(nullptr, 0, [](void*) -> DWORD { WriteReport(); return 0; }, nullptr, 0, nullptr)) {
-                WaitForSingleObject(writer, 3000);
-                CloseHandle(writer);
-            }
-            TerminateProcess(GetCurrentProcess(), 1);
+            sys::RunBounded([] { WriteReport(); }, 3000);
+            sys::Terminate(1);
         }
     }
 }
 
 // The game pauses itself when its window loses focus (it stops the cursor, the mouse and the sound). Parallel harness
 // runs leave only one game in front, so the harness keeps every game active: its platform backend tells the game no
-// activation change of the system's (harness_platform.h); the focus steps tell it their own.
-// The window is shown and made without activating it, and nothing in the process brings it to the
-// front (harness_platform.cpp, noforeground::), so Windows never sends it the WM_ACTIVATE that
-// sets the game's active flag 0079BC5C and starts its frames. (Under dgVoodoo its exclusive
-// cooperative level used to activate the window; without DirectDraw, the switch-over in device.h,
-// nothing did.) Once the device object exists and the game is not active, the harness sends the
+// activation change of the system's (platform/harness_platform.h); the focus steps tell it their own.
+// The window is made without activation and shown without it (the backend's CreateGameWindow: a window that is never
+// activated, out of sight), so the system never tells the game it was activated, which sets the game's active flag
+// 0079BC5C and starts its frames. Once the device object exists and the game is not active, the harness sends the
 // activation a foreground start would have given (tickets R9a2, SV1c).
 void ActivateWithoutForeground() {
     static bool sent = false;
@@ -3179,17 +2718,16 @@ void ActivateWithoutForeground() {
 // window as the user's switch would (activating nothing). focus on: the window restored (not activated) and the
 // activation the user's return gives. Ticket R9c.
 std::string FocusStep(const std::string& argument) {
-    HWND window = GameWindow();
-    if (!window) return "focus: no game window yet";
+    if (!GameWindow()) return "focus: no game window yet";
     if (argument == "off") {
         Log("harness: focus off (deactivated, the window minimised)");
         harnessplatform::Activate(false);
-        ShowWindow(window, SW_SHOWMINNOACTIVE);
+        harnessplatform::ShowMinimized(true);
         return "";
     }
     if (argument == "on") {
         Log("harness: focus on (the window restored, activated)");
-        ShowWindow(window, SW_SHOWNOACTIVATE);
+        harnessplatform::ShowMinimized(false);
         harnessplatform::Activate(true);
         return "";
     }
@@ -3200,35 +2738,27 @@ std::string FocusStep(const std::string& argument) {
 // renderer scales the frame into it.
 std::string WindowSizeStep(const std::string& argument) {
     int width = 0, height = 0;
-    if (sscanf_s(argument.c_str(), "%d %d", &width, &height) != 2 || width <= 0 || height <= 0)
+    if (std::sscanf(argument.c_str(), "%d %d", &width, &height) != 2 || width <= 0 || height <= 0)
         return "windowsize needs <width> <height>";
-    HWND window = GameWindow();
-    if (!window) return "windowsize: no game window yet";
+    if (!GameWindow()) return "windowsize: no game window yet";
     Log("harness: windowsize %dx%d", width, height);
-    RECT outer{}, client{};
-    GetWindowRect(window, &outer);
-    GetClientRect(window, &client);
-    width += outer.right - outer.left - client.right;   // the borders and the title bar, if any
-    height += outer.bottom - outer.top - client.bottom;
-    SetWindowPos(window, nullptr, 0, 0, width, height, SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
+    harnessplatform::ResizeClient(width, height);
     return "";
 }
 
 void KeepGameWindowActive() {
-    HWND window = GameWindow();
+    void* window = GameWindow();
     if (!window) return;
     {
         timing::Scope scope(timing::WindowChecks);
-        noforeground::Watch(window);
+        sys::WatchWindows(window);
     }
     static bool logged = false;
     if (!logged) {
         logged = true;
-        RECT outer{}, client{};
-        GetWindowRect(window, &outer);
-        GetClientRect(window, &client);
-        Log("harness: the game window stays active when it loses focus; window (%ld,%ld)-(%ld,%ld), client %ldx%ld",
-            outer.left, outer.top, outer.right, outer.bottom, client.right, client.bottom);
+        int width = 0, height = 0;
+        harnessplatform::ClientSize(&width, &height);
+        Log("harness: the game window stays active when it loses focus; client %dx%d", width, height);
     }
     ActivateWithoutForeground();
 }
@@ -3284,7 +2814,7 @@ bool BeforeEvents() {
         pair::FrameDone(g_frames);   // a pair's games take turns a frame at a time (harness_pair.h)
         if (g_dragX || g_dragY) {
             input::AddMotion(g_dragX, g_dragY);
-            input::Post(WM_MOUSEMOVE, 0, MAKELPARAM(g_mouseX, g_mouseY));
+            input::Post(input::MouseMove, 0, input::Point(g_mouseX, g_mouseY));
         }
     }
     // On the virtual clock the steps run once a frame, after it: how often the game peeks besides
@@ -3304,11 +2834,7 @@ bool BeforeEvents() {
 // EI_RENDER_EXTRA: words added to the renderer's settings of every run (the scenario's "render" step, or
 // EI_RENDER), e.g. a debugging word of docs/notes/renderer.md. Set it in the environment of `work.py test` (a batch
 // keeps its EI_* variables).
-std::string ExtraRenderWords() {
-    char extra[128];
-    DWORD n = GetEnvironmentVariableA("EI_RENDER_EXTRA", extra, sizeof(extra));
-    return n > 0 && n < sizeof(extra) ? std::string(extra) : std::string();
-}
+std::string ExtraRenderWords() { return platform::EnvironmentVariable("EI_RENDER_EXTRA"); }
 
 std::string WithExtraRenderWords(const std::string& spec) {
     const std::string extra = ExtraRenderWords();
@@ -3317,8 +2843,8 @@ std::string WithExtraRenderWords(const std::string& spec) {
 
 bool LoadScenario(const char* path) {
     bool rendered = false;   // a "render" step configured the renderer
-    FILE* f = nullptr;
-    if (fopen_s(&f, path, "r") != 0 || !f) return false;
+    FILE* f = sys::OpenFile(path, "r");
+    if (!f) return false;
     char line[1024];
     while (std::fgets(line, sizeof(line), f)) {
         std::string text(line);
@@ -3392,69 +2918,52 @@ bool LoadScenario(const char* path) {
     }
     std::fclose(f);
     // EI_RENDER_EXTRA's words also reach a scenario without a "render" step (on top of EI_RENDER).
-    if (!rendered && !ExtraRenderWords().empty()) {
-
-        char spec[256] = "";
-        DWORD n = GetEnvironmentVariableA("EI_RENDER", spec, sizeof(spec));
-        image::ConfigureRenderer(WithExtraRenderWords(n < sizeof(spec) ? spec : "").c_str());
-    }
+    if (!rendered && !ExtraRenderWords().empty())
+        image::ConfigureRenderer(WithExtraRenderWords(platform::EnvironmentVariable("EI_RENDER")).c_str());
     return true;
 }
 
 struct Harness {
     Harness() {
-        char path[MAX_PATH];
-        DWORD n = GetEnvironmentVariableA("EI_HARNESS", path, MAX_PATH);
-        if (n == 0 || n >= MAX_PATH) return;
+        const std::string scenario = platform::EnvironmentVariable("EI_HARNESS");
+        if (scenario.empty() || scenario.size() >= kPath) return;
+        const char* path = scenario.c_str();
+        sys::RememberMainThread();   // the harness starts on the game's main thread, before main
         // Report next to ei-rebuild.log. It exists from the start ("RESULT: RUNNING"), so run_all can
         // tell a run whose harness never started from one that is still going.
-        strcpy_s(g_reportPath, ei::OutputPath("harness_report.txt").c_str());
-        FILE* report = nullptr;
-        fopen_s(&report, g_reportPath, "w");
+        sys::CopyText(g_reportPath, ei::OutputPath("harness_report.txt").c_str());
+        FILE* report = sys::OpenFile(g_reportPath, "w");
         if (!LoadScenario(path)) {
             Log("harness: cannot read scenario %s", path);
             if (report) {
                 std::fprintf(report, "FAILED: cannot read scenario %s\nRESULT: FAIL\n", path);
                 std::fclose(report);
             }
-            TerminateProcess(GetCurrentProcess(), 2);   // never leave a game waiting in the menu
+            sys::Terminate(2);   // never leave a game waiting in the menu
         }
         // EI_HARNESS_CLOCK (run_all.py / compare.py --clock): "virtual" or "real" overrides the
         // scenario's clock, "trace" adds the clock trace.
-        char clockMode[32] = "";
-        GetEnvironmentVariableA("EI_HARNESS_CLOCK", clockMode, sizeof(clockMode));
-        if (std::strstr(clockMode, "virtual")) g_deterministic = true;
-        if (std::strstr(clockMode, "real")) g_deterministic = false;
-        if (std::strstr(clockMode, "clocktrace")) g_clockTrace = true;
-        if (std::strstr(clockMode, "randtrace")) g_randomTrace = true;
+        const std::string clockMode = platform::EnvironmentVariable("EI_HARNESS_CLOCK");
+        if (clockMode.find("virtual") != std::string::npos) g_deterministic = true;
+        if (clockMode.find("real") != std::string::npos) g_deterministic = false;
+        if (clockMode.find("clocktrace") != std::string::npos) g_clockTrace = true;
+        if (clockMode.find("randtrace") != std::string::npos) g_randomTrace = true;
 
         if (report) {
             std::fputs("RESULT: RUNNING\n", report);
             std::fclose(report);
         }
 
-        HMODULE self = nullptr;
-        GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                           reinterpret_cast<LPCSTR>(&LoadScenario), &self);
-        MODULEINFO selfInfo{};
-        GetModuleInformation(GetCurrentProcess(), self, &selfInfo, sizeof(selfInfo));
-        g_selfBase = reinterpret_cast<std::uintptr_t>(selfInfo.lpBaseOfDll);
-        g_selfEnd = g_selfBase + selfInfo.SizeOfImage;
-        AddVectoredExceptionHandler(1, &CrashLogger);
+        g_self = sys::SelfImage();
+        // Faults end the run with the report written; no system or runtime box waits for a user (harness_system.h).
+        sys::InstallFaultHandlers(&FirstChance, &Fatal);
         ei::InstallProfiler();   // EI_PROFILE=1: samples this thread from here on
-        HotPatch("MessageBoxA", reinterpret_cast<void*>(&HarnessMessageBoxA), false);
-        HotPatch("MessageBoxW", reinterpret_cast<void*>(&HarnessMessageBoxW), false);
-        noforeground::Install();
-        // A crash must end the run: no Windows Error Reporting dialog, which freezes every thread
-        // (the watchdog included) until someone closes it.
-        SetErrorMode(GetErrorMode() | SEM_NOGPFAULTERRORBOX | SEM_FAILCRITICALERRORS);
 
-        strcpy_s(g_savesDir, g_reportPath);
-        if (char* slash = std::strrchr(g_savesDir, '\\')) strcpy_s(slash + 1, g_savesDir + MAX_PATH - (slash + 1), "harness_saves");
-        CreateDirectoryA(g_savesDir, nullptr);
-        Log("harness: %lld MB free on the run folder's disk", crash::FreeMegabytes(g_savesDir));
-        if (!WideCharToMultiByte(CP_ACP, 0, install::GameFolder().c_str(), -1, g_rootDirs[0], MAX_PATH, nullptr, nullptr))
-            g_rootDirs[0][0] = '\0';
+        sys::CopyText(g_savesDir, sys::FullPath(ei::OutputPath("harness_saves")).c_str());
+        sys::MakeFolder(g_savesDir);
+        Log("harness: %lld MB free on the run folder's disk", sys::FreeMegabytes(g_savesDir));
+        sys::CopyText(g_rootDirs[0], sys::FullPath(starter::GameFolder()).c_str());
+        FindInstallRoots();
 
         // A scenario's "resolution" / "widescreen" (or EI_RESOLUTION / EI_WIDESCREEN), the image's small
         // window otherwise: harness_starter.cpp.
@@ -3462,15 +2971,12 @@ struct Harness {
         settings::Install();   // the registry snapshot and the pinned install files, never the user's (harness_settings.h)
         netlocal::Install();   // a UDP port of its own, sockets on 127.0.0.1 only (harness_net.h)
         digest::Init(&g_frames);   // EI_DIGEST
-        if (savetrace::Enabled()) savetrace::Install(g_selfBase, g_selfEnd);   // EI_SAVETRACE (harness_savetrace.h)
+        if (savetrace::Enabled()) savetrace::Install(g_self.base, g_self.end);   // EI_SAVETRACE (harness_savetrace.h)
 
         if (watch::Enabled()) watch::Install();   // EI_WATCH_CUNIT (harness_watch.h)
 
         image::ObserveConsoleLines(&OnConsoleLine);
-        g_answering = true;   // the overlay, the font smoothing, the other game window (the end of this file)
-        // Every other module's writes into the install go to the overlay too, and what still reaches an install
-        // is refused and fails the run (harness_install.h).
-        install::Install({&WritePath, &ReadPath, &InInstall});
+        g_answering = true;   // the overlay, the font smoothing, the other game window (platform/game_answers.cpp)
         if (g_deterministic) {
             clock::InstallVirtual(&TickLength());
             image::SetWaitForVsync(false);   // frames need not wait for the display
@@ -3497,7 +3003,7 @@ struct Harness {
                 break;
             }
         Log("harness: saves and install writes redirected to %s (root %s)", g_savesDir, g_rootDirs[0]);
-        if (HANDLE watchdog = CreateThread(nullptr, 0, &Watchdog, nullptr, 0, nullptr)) CloseHandle(watchdog);
+        sys::StartThread(&Watchdog);
         g_running = true;
         Log("harness: %u steps from %s", unsigned(g_steps.size()), path);
     }
@@ -3509,77 +3015,45 @@ namespace harnessplatform {
 bool BeforeEvents() { return ei::verify::BeforeEvents(); }
 bool CollectCursors() { return ei::verify::g_cursorCollecting && ei::verify::RampIsIdentity(); }
 int TypedCharacter(int key) { return ei::verify::TypedCharacter(key); }
+
+// The harness's mouse (the last position a step put it at, the client area's centre before), on the screen.
 bool MousePosition(platform::Point* at) {
-    POINT p{};
-    HWND window = GameWindow();
-    RECT client{};
-    if (!window || !GetClientRect(window, &client)) {
-        if (!GetCursorPos(&p)) return false;
-    } else {
-        p = g_mouseX < 0 ? POINT{(client.right - client.left) / 2, (client.bottom - client.top) / 2}
-                         : POINT{g_mouseX, g_mouseY};
-        ClientToScreen(window, &p);
-    }
-    *at = platform::Point{static_cast<int>(p.x), static_cast<int>(p.y)};
+    void* window = GameWindow();
+    int width = 0, height = 0;
+    if (!window || !ClientSize(&width, &height)) return false;
+    platform::Point p = g_mouseX < 0 ? platform::Point{width / 2, height / 2} : platform::Point{g_mouseX, g_mouseY};
+    platform::ClientToScreen(window, &p);
+    *at = p;
     return true;
 }
 
-platform::MessageAnswer AnswerMessageBox(const char* text, const char* caption, platform::MessageButtons buttons) {
-    const int answer = HarnessMessageBoxA(nullptr, text, caption, buttons == platform::MessageButtons::OkCancel ? MB_OKCANCEL : MB_OK);
-    return answer == IDCANCEL ? platform::MessageAnswer::Cancel : platform::MessageAnswer::Ok;
+platform::MessageAnswer AnswerMessageBox(const char* text, const char* caption, platform::MessageButtons) {
+    if (ei::verify::startup::AnswerMessageBox(caption)) return platform::MessageAnswer::Ok;   // "discprompt"
+    EndRunOnMessageBox(caption ? caption : "", text ? text : "");
+    return platform::MessageAnswer::Cancel;
+}
+
+bool Answering() { return g_answering; }
+
+// The game's paths mapped onto the run's overlay (ReadPath / WritePath above): config\movie.ini (the startup movies:
+// "Start" lists 1C.bik and Nival.bik) is missing, so nothing plays; a write still in an install is refused. The saves
+// trace sees every write (EI_SAVETRACE).
+std::string MapPath(std::string_view path, platform::PathUse use) {
+    const std::string name(path);
+    char b[kPath];
+    if (use == platform::PathUse::Read) {
+        if (name.size() >= 9 && text::CompareIgnoringCase(name.c_str() + name.size() - 9, "movie.ini") == 0) return {};
+        return ReadPath(name.c_str(), b);
+    }
+    savetrace::OnFileWrite(name.c_str());   // harness_savetrace.h
+    const std::string mapped = WritePath(name.c_str(), b, use == platform::PathUse::Update);
+    if (InInstall(mapped)) {
+        RefuseInstallWrite(name, mapped);
+        return {};
+    }
+    return mapped;
 }
 
 } // namespace harnessplatform
 
 } // namespace ei::verify
-
-// ==== The game's calls the harness answers ===========================================================================
-
-// The harness's builds leave src/platform/win32/game_calls.cpp and src/platform/system_path.cpp out and take these: the
-// game's paths mapped onto the run's overlay (ReadPath / WritePath above), the startup movies left out, the font
-// smoothing off, no other game window. Without the harness (g_answering false) each is the system's call, as theirs.
-
-namespace platform {
-
-// The one seam of the overlay (src/platform/paths.h): every file and folder call of the game asks for its path here.
-// A read takes the overlay's copy when there is one; a write goes to the overlay (its folders made), Update copying the
-// install's file there first, so an install file renamed is copied, never moved away. config\movie.ini (the startup
-// movies: "Start" lists 1C.bik and Nival.bik) is missing, so nothing plays. The saves trace sees every write
-// (EI_SAVETRACE).
-std::string SystemPath(std::string_view path, PathUse use) {
-    using namespace ei::verify;
-    if (!g_answering) return std::string(path);
-    const std::string name(path);
-    char b[MAX_PATH];
-    if (use == PathUse::Read) {
-        if (name.size() >= 9 && _stricmp(name.c_str() + name.size() - 9, "movie.ini") == 0) return {};
-        return ReadPath(name.c_str(), b);
-    }
-    savetrace::OnFileWrite(name.c_str());   // harness_savetrace.h
-    return WritePath(name.c_str(), b, use == PathUse::Update);
-}
-
-// Font smoothing is a setting of the whole desktop: the credits screen (0062B7D0 / 0062BD00) switched it off and
-// "restored" a value it never read (off), so a harness game left it off for every program on the machine, and text in
-// runs before and after differed (GDI's grey edges or none: the widescreen comparison of two runs). The game's text is
-// drawn without smoothing in harness runs, as it looks once the titles have switched it off, whatever the desktop's
-// setting and other programs do to it during the run: the interface text asks the setting (ui_font.cpp) and reads it
-// as off.
-bool FontSmoothing() {
-    if (ei::verify::g_answering) return false;
-    BOOL smoothing = FALSE;
-    if (!SystemParametersInfoW(SPI_GETFONTSMOOTHING, 0, &smoothing, 0)) return true;
-    return smoothing != FALSE;
-}
-
-// WinMain looks for another game window and, when it finds one, brings it to the front and exits. Harness runs go in
-// parallel (run_all.py --jobs), each game in its own output folder, so in harness runs no other window counts. The
-// other way (ST1b): a game the user starts without the harness runs the real check, so a harness game's window has a
-// title of its own (harness_platform.cpp's CreateGameWindow) and a play launch never finds it.
-NativeWindow FindClassWindow(const char* className, const char* title) {
-    if (!ei::verify::g_answering) return FindWindowW(text::Wide(className).c_str(), text::Wide(title).c_str());
-    ei::verify::startup::AtWindowClass();   // before the registry is read (harness_startup.h)
-    return nullptr;
-}
-
-} // namespace platform

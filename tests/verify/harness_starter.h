@@ -23,16 +23,18 @@
 // of the goldens' interface layout). Rebirth's CtfMon switch is answered 0 in every run (S3e: addon.dll closed
 // ctfmon at start and restarted it from its DLL_PROCESS_DETACH, which hung the exit).
 //
-// The answers are given by harness_settings.cpp, which answers every read of the game's and the starter's
-// keys (the game's, the image's and addon.dll's), these by value name before its snapshot. Our renderer changes no
-// display mode.
+// The answers go into the run's settings file (harness_settings.cpp), by value name over the snapshot's. Our renderer
+// changes no display mode.
 
 #include <string>
 
 namespace ei::verify::starter {
 
-// The run's answer for the registry value `name` (any key): its type, data and size (`dword` holds a
-// DWORD answer); false when the run leaves it to the snapshot.
+// The snapshot's value types (the registry's REG_SZ, REG_BINARY, REG_DWORD).
+inline constexpr unsigned long kString = 1, kBinary = 3, kDword = 4;
+
+// The run's answer for the snapshot's value `name` (any key): its type, data and size (`dword` holds a
+// 4-byte answer); false when the run leaves it to the snapshot.
 bool Answer(const char* name, unsigned long* type, const unsigned char** data, unsigned long* size, unsigned long* dword);
 
 // Consumes a "resolution", "widescreen", "fullscreen", "music" or "addonpath" scenario line; false for any
@@ -58,5 +60,9 @@ bool RebirthInstall();
 // the image's window size (960x720 on the vanilla data, 1280x720 on Rebirth's) and the scenario lines "vanilla
 // resolution ..." / "rebirth resolution ..." follow it.
 bool RebirthData();
+
+// The run's game folder in full (EI_GAME_ROOT, else the exe's own folder) in the game's form (backslashes), "" when
+// unknown: the install the run reads and never writes.
+std::string GameFolder();
 
 } // namespace ei::verify::starter

@@ -3,9 +3,7 @@
 // Set at the exe's static initialisation, before the game starts. Nothing in the other builds.
 #if defined(__SANITIZE_ADDRESS__)
 
-#include "../../../src/platform/log.h"
-
-#include <windows.h>
+#include "platform/log.h"
 
 extern "C" void __sanitizer_set_report_path(const char* path);   // the ASan runtime's
 

@@ -4,17 +4,13 @@
 #include "audio/audio.h"
 #include "platform/platform.h"
 
-#include <windows.h>
-
 namespace ei::verify::image {
 
 namespace {
 
 struct NoSoundDevice {
     NoSoundDevice() {
-        char path[MAX_PATH];
-        const DWORD n = GetEnvironmentVariableA("EI_HARNESS", path, MAX_PATH);
-        if (n != 0 && n < MAX_PATH) audio::UseNoDevice();
+        if (!platform::EnvironmentVariable("EI_HARNESS").empty()) audio::UseNoDevice();
     }
 } g_noSoundDevice;
 

@@ -312,7 +312,7 @@ def asan_failure(out):
 #
 # launch() starts the image as a player's game starts (working directory and EI_GAME_ROOT the install), with the
 # harness's variables: EI_HARNESS (the scenario), EI_OUT_DIR (the run folder: log, report, saves), EI_INSTALL_ROOTS (the
-# installs no run may write in, tests/verify/harness_install.h) and for a pair EI_PAIR. The games print into launch.txt
+# installs no run may write in: tests/verify/harness.cpp's MapPath refuses those writes) and for a pair EI_PAIR. The games print into launch.txt
 # in their run folders, followed by launch()'s own lines. A run ends whatever state the game is in: the game's watchdog
 # ends it at the scenario's limit; if it cannot, launch() ends it LIMIT_MARGIN_S later. The games are in a
 # game_process.Group, so none outlives this process.

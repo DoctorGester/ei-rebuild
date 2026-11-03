@@ -1,8 +1,8 @@
 // The platform calls a harness run answers itself (its disc check, its window and desktop answers, its file write
-// watch, its sockets on 127.0.0.1): the harness's builds leave this file out and take tests/verify's definitions of the
-// same functions (CMakeLists.txt; docs/notes/platform.md, "The harness's answers"). Each is a platform function whose
-// body is the system call, or the call itself (platform_win32.h) where platform_win32.cpp's function does more around
-// it. The paths of the file calls go through one mapping of their own (src/platform/paths.h, system_path.cpp).
+// watch, its sockets on 127.0.0.1): the harness's builds leave this file out and take its platform backend's
+// definitions of the same functions (tests/verify/platform; CMakeLists.txt; docs/notes/platform.md, "The harness's
+// answers"). Each is the system's call. The paths of the file calls go through one mapping of their own
+// (src/platform/paths.h, system_path.cpp).
 #include <winsock2.h>   // before anything includes windows.h (and with it winsock.h)
 
 #include "platform/platform.h"
@@ -26,13 +26,13 @@ std::string VolumeLabel(const char* root) {
     return text::Narrow(label);
 }
 
-namespace win32 {
-
-BOOL WriteFile(HANDLE file, const void* data, DWORD size, DWORD* written, std::string_view) {
-    return ::WriteFile(file, data, size, written, nullptr);
+void File::Write(const void* buffer, unsigned count) {
+    if (count == 0) return;
+    DWORD written;
+    if (!::WriteFile(handle ? handle : INVALID_HANDLE_VALUE, buffer, count, &written, nullptr))
+        throw FileError(::GetLastError(), path);
+    if (written != count) throw FileError(ERROR_DISK_FULL, path);
 }
-
-} // namespace win32
 
 } // namespace platform
 
@@ -62,6 +62,21 @@ constexpr int kAddressLength = sizeof(sockaddr_in);
 
 const sockaddr* Native(const Address& address) { return reinterpret_cast<const sockaddr*>(&address); }
 
+// `set`'s sockets as an fd_set (or null for none).
+fd_set* ToNative(const SocketGroup* set, fd_set* native) {
+    if (!set) return nullptr;
+    native->fd_count = static_cast<u_int>(set->count);
+    for (int i = 0; i < set->count; ++i) native->fd_array[i] = set->sockets[i];
+    return native;
+}
+
+// The sockets select left in `native` back into `set`.
+void FromNative(const fd_set& native, SocketGroup* set) {
+    if (!set) return;
+    set->count = static_cast<int>(native.fd_count);
+    for (int i = 0; i < set->count; ++i) set->sockets[i] = native.fd_array[i];
+}
+
 } // namespace
 
 void Close(Socket socket) { closesocket(socket); }
@@ -85,12 +100,15 @@ int Send(Socket socket, const void* data, int length) { return send(socket, stat
 
 int Receive(Socket socket, void* data, int length) { return recv(socket, static_cast<char*>(data), length, 0); }
 
-} // namespace platform::net
-
-namespace platform::win32 {
-
-int Select(fd_set* read, fd_set* write, fd_set* failed, const timeval* timeout) {
-    return select(0, read, write, failed, timeout);
+// The count is ignored by Winsock.
+int Select(SocketGroup* read, SocketGroup* write, SocketGroup* failed, std::int32_t microseconds) {
+    fd_set sets[3];
+    const timeval timeout = {microseconds / 1000000, microseconds % 1000000};
+    const int ready = select(0, ToNative(read, &sets[0]), ToNative(write, &sets[1]), ToNative(failed, &sets[2]), &timeout);
+    FromNative(sets[0], read);
+    FromNative(sets[1], write);
+    FromNative(sets[2], failed);
+    return ready;
 }
 
-} // namespace platform::win32
+} // namespace platform::net

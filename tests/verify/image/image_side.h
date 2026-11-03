@@ -3,7 +3,7 @@
 // The harness's image side (tests/verify/image): what it reads and calls of our code, behind functions that name no
 // class of ours. Only the files in this folder include our game headers (ticket H30b).
 
-#include <windows.h>
+#include "platform/platform.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -41,7 +41,7 @@ struct PlayerList {
 // The base screen `briefing`'s list against its network client's players; false without a client or a chat window.
 bool BriefingPlayerList(void* briefing, PlayerList* list);
 
-// ---- the orientation watch (harness_watch.cpp; image/harness_watch_image.cpp)
+// ---- the orientation watch (system/watch_win32.cpp; image/harness_watch_image.cpp)
 
 // The client world's unit `id` (null without one), with the addresses of its flags and its localRotation.
 void* ClientUnit(unsigned id, std::uint32_t** flags, std::uint32_t** rotation);
@@ -53,7 +53,7 @@ std::vector<std::string> NetState();
 
 // ---- the game's global objects (harness_objects.h; image/harness_objects_image.cpp)
 
-void* MainWindow();                    // app::g_mainWindow (an HWND)
+void* MainWindow();                    // app::g_mainWindow (the native window)
 std::uint8_t& InterfaceHasScreen();    // app::g_interfaceHasScreen
 std::uint8_t& RecordingFrames();       // app::g_recordingFrames
 bool AppActive();                      // app::g_active
@@ -79,7 +79,6 @@ bool ScreenFade(bool* running, float* alpha);   // false without one
 int CampaignMode();                             // the server world's session kind
 void* ClientWorldObject();                      // the client world
 void* SceneDevice();                            // the scene renderer's device, null before it is made
-void* DeviceLock();                             // null: our renderer has no device lock
 
 // ---- the steps' calls of the game (harness.cpp; image/harness_objects_image.cpp)
 
@@ -99,7 +98,7 @@ void* PickAt2(void* world, int x, int y);       // WorldClient::PickAt2, as its 
 void* UnitAt(void* world, int x, int y);        // WorldClient::UnitAt, as its EngineObject
 // The client world's rectangle of object `id` in this frame's screen list (screenEntries; the last entry for it):
 // 1, 0 when it is not drawn, -1 without a list.
-int ScreenRect(void* world, int id, RECT* rect);
+int ScreenRect(void* world, int id, platform::Rect* rect);
 int ObjectId(const void* object);               // a EngineObject's id (what PickAt2 and UnitAt give)
 std::uint32_t ObjectFlags(const void* object);  // its flags
 void* PlayerConnection(void* player);           // a Player's connection (PlayerServer / PlayerClient)
@@ -122,7 +121,7 @@ struct RegionInfo {
 };
 int RegionCount(void* window);
 bool Region(void* window, int index, RegionInfo* region);
-void ScaleToScreen(long* x, long* y);           // Interface3D::ScalePointToScreen
+void ScaleToScreen(int* x, int* y);             // Interface3D::ScalePointToScreen
 void InterfaceSize(int* width, int* height);
 bool SaveLoadSliding(void* window);
 bool OptionsSliding(void* window);
@@ -239,7 +238,7 @@ namespace utf8files {
 std::string Check(const char* savesDir);
 } // namespace utf8files
 namespace utf8typing {
-std::string Type(HWND window, const std::string& typed);
+std::string Type(void* window, const std::string& typed);
 std::string CheckConsoleLine(const std::string& argument);
 } // namespace utf8typing
 namespace utf8text {
