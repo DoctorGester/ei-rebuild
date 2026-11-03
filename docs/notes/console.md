@@ -39,9 +39,12 @@ takes its trail byte. The first token is the command.
 
 ## Original bugs kept
 
-The map's lookup inserts: every unknown word adds a null-handler entry. The cheat-word test XORs the command in place
-(a command containing 'f' gets a NUL inside). Arguments are lower-cased too (file and player names). exec trims the
-quotes for opening but prints them in "Cannot open file". `fps` with neither 1 / on nor 0 / off does nothing. `days`:
-the help's example (25011978 to 01072000 = 8192 days) is really 8193; dates before 1970 go through mktime's -1; the
-digit test is signed. `give exp` divides by the party size before checking it. `net client` and `fadeout` use their
-objects unchecked; kick / ban with a lone `"` strip it to an empty name.
+Visible behaviour of the original kept until the user decides (rewrite-guide rule 9; C84 triaged the list, with a
+recommendation per entry). Crashes, undefined behaviour and invisible bookkeeping are fixed, not listed.
+
+The cheat-word test XORs the command in place (a command containing 'f' gets a NUL inside; the stored word is cut the
+same way). Arguments are lower-cased too (file and player names). exec trims the quotes for opening but prints them in
+"Cannot open file". `fps` with neither 1 / on nor 0 / off does nothing. `days`: the help's example (25011978 to 01072000
+= 8192 days) is really 8193; dates before 1970 go through mktime's -1. Kick / ban with a lone `"` strip it to an empty
+name.
+

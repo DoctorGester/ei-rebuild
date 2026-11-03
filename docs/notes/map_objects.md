@@ -74,20 +74,19 @@ then places the skeleton at AnimationFactor(scale.z) * defaultScale, one float f
 
 ## Original bugs kept
 
+Visible behaviour of the original kept until the user decides (rewrite-guide rule 9; C84 triaged the list, with a
+recommendation per entry). Crashes, undefined behaviour and invisible bookkeeping are fixed, not listed.
+
 - The client's stench sound tests the record's kind a second time after drawing the random number (always true); the
   timer runs 0x10 .. -1, so the period is 17 ticks.
 - RecomputeScale adds the net enlarge / shrink level to the strengthen level when enlarge or shrink is present
   (strengthened + enlarged grows by 0.8) and leaves y alone for strengthen / weaken; heroes keep their height.
 - TakeHit always returns 1.
-- The scale effects' rings (0x11 / 0x1D / 0x1E) are made, attached and scaled but never kept by the record; a source of
-  an unknown type logs and uses 0x2013; feeble mind's start plays the bare "\start.wav" (its folder is empty) even
-  when `first` is set.
-- Create3D drops the side half without releasing it; Destroy3D only decrements the placed parts' counts while it
-  releases the pending ones; AttachMeshes overwrites a held mesh without releasing it.
-- Load reads the effect / string counts into the argument's slot (a failed read leaves the stream pointer as the
-  count).
-- Values the original left as stack garbage (MapObjectServer::Update's flag to the speed slot, Draw's light flag, the
-  shadow rasteriser's work area, the flags read's start) are 0 or the current value in ours.
+- A source of an unknown type logs and uses 0x2013; feeble mind's start plays the bare "\start.wav" (its folder is
+  empty) even when `first` is set.
+
+Left for C84a (bookkeeping): Destroy3D only decrements the placed parts' counts while it releases the pending ones
+(CopyFigure's parts are uncounted copies; the ownership wants one rule).
 
 ## Virtual slot names with low confidence
 

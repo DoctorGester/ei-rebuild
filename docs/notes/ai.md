@@ -64,19 +64,13 @@ region (1, 2, ...) flooded from a queue of blocks.
 
 ## Original bugs kept
 
-- Local search: `Requeue` leaves a node that is its bucket's head in place even when its cost changes. `PathTo` fills the
-  cells' second dword with the forward search's address (what the original's unwritten slot held). `Recenter` that fails
-  on a move of 31 cells or more has already moved the window and row table.
-- Path smoother: the cells it rebuilds get the old tail's second dwords (the original's came from unwritten stack
-  slots); the first-cell climb test is `<= 0`, the later ones `< 0`.
-- FindPath computes the fractional part of the snapped target twice from `targetX` (the second was presumably meant to be
-  `targetY`), stores odd values in the second dword of single-cell path entries before overwriting the low half with
-  0x200, and re-checks whether the unit is in the target cell in its local-search branch. SnapTarget divides 0/0 (NaN
-  steps) when the unit already stands in the target cell with sameRegion; the NaN propagates.
-- MarkFootprint resets the scratch sets' buckets only when `hashed` is set, and nothing clears it. CanStandAtFromHere reads
-  the unit's own cell without a bounds check.
-- LimitSteepCells clears the neighbour that broke the scan, or entry 4 of the table when none did, four times over.
-  LargestStepAlong returns 1.0 for a NaN length like for zero.
-- Sample kind 3 and SamplePath normalise angles with `while` loops that never end on NaN; UnitMotion::Build reads the
-  first trajectory point even for a path with no steps; small / large layer Set / Merge check only the block's first cell
-  against the map size and write all 16.
+Visible behaviour of the original kept until the user decides (rewrite-guide rule 9; C84 triaged the list, with a
+recommendation per entry). Crashes, undefined behaviour and invisible bookkeeping are fixed, not listed.
+
+- Path smoother: the first-cell climb test is `<= 0`, the later ones `< 0`.
+- FindPath computes the fractional part of the snapped target twice from `targetX` (the second was presumably meant to
+  be `targetY`).
+- SnapTarget gives no cell when the unit already stands on the target cell with sameRegion (the original's step was 0 /
+  0 and every candidate failed; ours returns false at once). The target cell itself is never tried then.
+- LimitSteepCells clears the neighbour that broke the scan, or entry 4 of the offset table when none did.
+

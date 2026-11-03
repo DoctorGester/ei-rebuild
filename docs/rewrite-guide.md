@@ -53,8 +53,11 @@ compare function pointers for identity.
    original's orders; don't swap a container without checking who walks it.
 8. **Rebirth's changes** are our code's own (`docs/notes/rebirth.md`); the few left behind flags are
    `ei::rebirth::Enabled(Patch::<name>)` (`src/lib/rebirth.h`). With a flag off the code behaves as the original.
-9. **Keep the original's bugs** (leaks, odd messages, kept quirks) unless a ticket decides otherwise, and note them
-   in the area's notes under "Original bugs kept".
+9. **Fix the original's bugs** where they are found: crashes, undefined behaviour (null or out-of-range access, NaN
+   loops, unchecked divisions, uninitialised fields, addresses used as values), leaks and bookkeeping nobody sees. A
+   fix that moves a golden re-records it and names the reason. A bug that shapes gameplay (balance, AI, movement,
+   sounds, messages the player sees) needs the user: leave it, and list it in the area's notes under "Original bugs
+   kept" with what a fix would change.
 
 ## Clean code
 

@@ -136,36 +136,29 @@ ids collide with zone1's). AddMob's name is relative to the maps folder.
 
 ## Original bugs kept
 
-- PlayStepSounds: a step frame of 1 ends the step list, so an entry 0 never matches; FootstepSound divides by a missing
-  ground kind's count of 0 when a platform turns the kind into 2.
-- AddWeapon / AddQuickItem / AddSpell return 1 when the item is already in any slot; AddSpell has no null check;
-  GiveStartingEquipment adds a weapon that could not be made (its slot becomes 0); GetQuickItem returns null for a party
-  item whose count is not positive but the non-party path returns the slot as is; SkillWithBonus reads the record name
-  without a range check.
+Visible behaviour of the original kept until the user decides (rewrite-guide rule 9; C84 triaged the list, with a
+recommendation per entry). Crashes, undefined behaviour and invisible bookkeeping are fixed, not listed.
+
+- PlayStepSounds: a step frame of 1 ends the step list, so an entry 0 never matches.
+- GetQuickItem returns null for a party item whose count is not positive but the non-party path returns the slot as is.
 - RaiseSkill / RaiseAttribute store the level as a byte (wraps) but book the worth of the unwrapped sum; RaiseStrength
-  computes the maximum from the current strength; UnitStats::Reset leaves some fields alone.
+  computes the maximum from the current strength.
 - DamageSlot logs "termical" (sic) and one line per damage type; ApplyHit wears the weapon by the part each damage type
   the protection absorbed; IsBehind is never true without a player.
-- Save writes the active weapon twice (the second read wins); name lookups insert unknown names (null record);
-  BuildNpcStats reads the prototype's model index before testing the prototype for null.
-- ApplyPrototype's vitals and statistics start from zero (the original's from uninitialised stack copies, in fields
-  nothing reads before they are recomputed).
-- CollectArmourPartNames pushes the five empty names of the helmet row; WearArmourModel stores the id even for armour
-  slots 3-6; RemoveArmourModel empties the slot before looking up the figure; DropBrokenEquipment gives broken pieces to
-  the player and releases the unit's reference after; Unit::Reset clears item slots without releasing; packed
-  WeaponSkillBonus reads the level byte for any type below 5, negative ones too.
-- CollectUseSpots trusts the record's spot count; CastAtUnits returns without restarting the countdown when it finds no
-  unit and changes the caller's list; ChangeWeaponModel leaves the arrow flag when the new slot holds no weapon;
-  UpdateVictims tests only x and y against the circles while FindTrapVictims uses the sector map (a unit in two circles
-  is found twice); a periodic trap whose countdown reached 0 and found nobody searches again every tick; PickLocation
-  reads a slot kind before its range check; FindAnimation's last fallback gets the kind without the movement
-  substitution.
-- LoadTrap reads the spell id and counts into its argument's slot and appends to the list instead of replacing it.
-- `HitEffect`: heroes index the armour table by the hit location without a range check. `Object3D::LoadPart` returns
-  null for a part the figure has no piece of without releasing the new part object.
-- TrapObject's first field is saved and loaded but never initialised; a trap's 0x100000 flag changes nothing but is
-  cleared when nobody is near; the torch's Load, Save, attach and network writer use the spec without a null test; the
-  lever's ApplyKey disables the lever it has just switched.
+- CastAtUnits returns without restarting the countdown when it finds no unit and changes the caller's list;
+  ChangeWeaponModel leaves the arrow flag when the new slot holds no weapon; UpdateVictims tests only x and y against the
+  circles while FindTrapVictims uses the sector map (a unit in two circles is found twice); a periodic trap whose
+  countdown reached 0 and found nobody searches again every tick; FindAnimation's last fallback gets the kind without the
+  movement substitution.
+- The lever's ApplyKey disables the lever it has just switched.
+
+Left for C84a (bookkeeping): AddWeapon / AddQuickItem / AddSpell return 1 when the item is already in any slot (1 is
+also slot 1) and AddSpell has no null check; UnitStats::Reset leaves some fields alone; name lookups insert unknown
+names (null record); CollectArmourPartNames pushes the five empty names of the helmet row; WearArmourModel stores the
+id even for armour slots 3-6; RemoveArmourModel empties the slot before looking up the figure; DropBrokenEquipment gives
+broken pieces to the player and releases the unit's reference after; Unit::Reset clears item slots without releasing;
+LoadTrap appends the loaded victims to the list instead of replacing it; a trap's 0x100000 flag changes nothing but is
+cleared when nobody is near.
 
 ## Ack kinds
 

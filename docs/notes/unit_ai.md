@@ -47,17 +47,15 @@ every spawn.
 
 ## Original bugs kept
 
+Visible behaviour of the original kept until the user decides (rewrite-guide rule 9; C84 triaged the list, with a
+recommendation per entry). Crashes, undefined behaviour and invisible bookkeeping are fixed, not listed.
+
 - Moves: PlanLooks' wait of the seventh (untested) draw is kept when all six line-of-sight tests fail; UpdateFollow
-  ignores the result of its side-step path search and only reads the path's target; PathClear ignores its `this`.
-- A new Suspection mode's point and level and a new Fear mode's fields are zero (uninitialised in the original).
-  CallAllies formats its message only for the console filter but always builds it.
+  ignores the result of its side-step path search and only reads the path's target.
 - `CanTrack` answers true for the same side, the same player, or an object in a list, so UpdateAttack gives up only on a
   unit of another side and player that is not listed. AIMemory::Update adds the noticed decay to the noticed level every
-  tick.
-- Notice measures the distance with the new point's own z (the memory keeps no z); Forget compares the report entries
-  with its argument and the list elements with its own counted copy (the same pointer).
-- Think's "new motivation" message prints an empty name for mode type 9 or above 10. `IsNearPath` keeps NaN in the clamp
-  of the segment parameter.
+  tick. Notice measures the distance with the new point's own z (the memory keeps no z).
+- Think's "new motivation" message prints an empty name for mode type 9 or above 10.
 - Guard's Execute counts failed searches near its point; after 100 it also searches around the unit, on every tick until
   one succeeds (only success resets the count). Patrol with no points calls FatalError "Unit %i has no patrol points,
   switching to guard" and adds a point at the unit (it does not switch). Suspection's Execute computes the "near the
@@ -69,10 +67,9 @@ every spawn.
   beyond either of the observer's ranges, or when the object attacks the unit. AIViewer::Update lists an allied corpse
   twice; See skips a dead hostile unit unless the unit sees all; "using sense life " is printed without a line end before
   the "sees unit" line.
-- StaysWithParty skips a party unit without a Player mode (the original crashed); UpdateCombat attacks the chosen target
-  with the weapon even when the choice was a spell. A target removed mid-attack leaves the brain at action 3 with its
-  target cleared; UpdateCombat (finding nobody) leaves it so (`unit_ai_attack_removed`).
-- Noise tests the console filter's byte, builds an empty text otherwise and takes the hearer's controller unchecked.
+- UpdateCombat attacks the chosen target with the weapon even when the choice was a spell. A target removed mid-attack
+  leaves the brain at action 3 with its target cleared; UpdateCombat (finding nobody) leaves it so
+  (`unit_ai_attack_removed`).
 
 ## FearMode::Evaluate
 

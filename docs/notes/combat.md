@@ -113,31 +113,23 @@ FISTP, then the zero-extended remainder (`Unsigned`).
 
 ## Original bugs kept
 
+Visible behaviour of the original kept until the user decides (rewrite-guide rule 9; C84 triaged the list, with a
+recommendation per entry). Crashes, undefined behaviour and invisible bookkeeping are fixed, not listed.
+
 - Hit: the melee reach floor for two party units is 0x3E4CCCCE (0.20000002); GetAttackParams keeps the damage type when
   the natural attack has no non-zero weight; BuildAttackHit's weapon branch rolls with `rand()`, the rest with ISAAC;
-  TakeHit logs " skill=" with the resolved roll (always +-FLT_MAX by then); ResolveHit penalises every called-shot location
-  except the body by 10 (including 6 and invalid); CanCast compares mana only for units with a player.
-- Planning and steps: LoadServer writes a field for version 0x73+ instead of reading it, Save writes constant 2 after
-  another; BuildOrderSteps uses the step list's address as the source of an unknown skill, BuildAttackSteps reads the
-  plan's address as a float for an invalid location; CanActFrom's "in the way" test divides by the squared distance;
-  StartMove passes the goal's z as the path range; ApproachTarget returns with the path flag cleared when the goal is
-  under 0.1 away.
-- Orders and skills: FinishAction's kind 10 and Idle reset the queued order to 9 and then 0; UseSkill returns for skill 2
-  before its switch (taming there is dead), dereferences the target without a null check outside talk, calls OnAttack
-  with a null victim for a non-unit, logs "Unit" without a space; OrderMove stores its fourth argument over the point's z;
-  OrderCast ignores the aim point it asks for; OrderCastAt checks category 5 or 8 then 8; WitnessMurder takes the
-  diplomacy table from the unit's manager and the one it changes from the controller's; PropagateHostility compares
-  squared distance and radius as ints; SetMoveStyle sends message 9 when the style fits (even the current one);
-  OrderTame compares the target's prototype field (not type) with 0x32; OrderSearchBody wants a dead target;
-  PlayAnimation reads the entry's index byte as a dword; StopAction always ends with the queued order of kind 0.
-- Update and animation: ActionInReach: a cast whose target is gone but whose spell has flag 0x20000000 reads the null
-  target's position (access violation in both); PlanOrder looks up the spell of the current action, not of the planned
-  order; FindUseSpot writes z = -1 into every order's point; ResyncWithUnit tests "current order not 0" right after
-  setting 9 and "state not 2" after setting 6; RefreshItemSpells drops the spell for a node without an item (the
-  original kept the previous item's); PathTo saves and restores a unit flag around FindPath; NextAnimation passes a pause
-  step's emote as the misaligned dword at step + 1; LiftNearby's first loop does nothing; boredom draws ISAAC only past
-  500.
-- LoadArmourSpells' second loop reads an id and countdown for every entry of the list, old ones included.
+  ResolveHit penalises every called-shot location except the body by 10 (including 6 and invalid); CanCast compares mana
+  only for units with a player.
+- Planning and steps: CanActFrom's "in the way" test divides by the squared distance; StartMove passes the goal's z as
+  the path range; ApproachTarget returns with the path flag cleared when the goal is under 0.1 away; PlanOrderRoute looks
+  up the spell of the current action, not of the planned order; FindUseSpot writes z = -1 into every order's point.
+- Orders and skills: UseSkill returns for skill 2 (tame) before its switch, so the tame order does nothing (TryTame is
+  reached nowhere else) and OrderTame compares the target's prototype field (not type) with 0x32; OrderMove stores its
+  fourth argument over the point's z; OrderCast ignores the aim point it asks for; OrderCastAt's at-once test names
+  wands but only lets potions through; WitnessMurder takes the diplomacy table from the unit's manager and the one it
+  changes from the controller's; PropagateHostility compares squared distance and radius as ints; SetMoveStyle sends
+  message 9 when the style fits (even the current one); StopAction always ends with the queued order of kind 0; boredom
+  draws ISAAC only past 500.
 
 ## Risks
 
