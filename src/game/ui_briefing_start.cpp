@@ -21,7 +21,6 @@
 #include "world.h"
 #include "world_glue.h"
 
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 

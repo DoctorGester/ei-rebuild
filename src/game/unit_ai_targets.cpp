@@ -6,7 +6,6 @@
 #include "game_singletons.h"
 #include "lib/containers.h"
 #include "lib/float_select.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "map_object.h"
 #include "object_diplomacy.h"
@@ -52,7 +51,6 @@ std::uint32_t GroupExcess(const AIAttackOption* option, UnitList* group, Unit* c
     for (auto node = group->begin(); node != group->end(); ++node) {
         auto* member = *node;
         float distance2 = DistanceSquaredXY(member->localPosition, candidate->localPosition);
-        EI_NAN_AUDIT(distance2, radius2);
         if (distance2 <= radius2) sum += option->damage.ExcessOver(&member->ServerController()->protection);
     }
     return sum;
@@ -171,14 +169,12 @@ bool AIBrain::IsUsable(const AITargetChoice* choice) {
     const AIAttackOption* option = attention.FindOption(choice->part);
     if (!option) return false;
     if (option->kind != AIOptionKind::AreaAttack && option->kind != AIOptionKind::LastingArea) return true;
-    EI_NAN_AUDIT(self->GetPrototype()->height);
     if (self->sizeClass == 0 && self->GetPrototype()->height >= kSmallHeight) return true;
     Vector3 at = object->localPosition;
     for (auto& node : memory.nearby) {
         Unit* other = node;
         float dy = at.y - other->localPosition.y;
         float dx = at.x - other->localPosition.x;
-        EI_NAN_AUDIT(dx, dy, other->GetPrototype()->height);
         if (LengthSquared2D(dx, dy) < kAllyNear2 && g_serverWorld.diplomacy.IsAllied(other->side, self->side)) {
             if (other->sizeClass != 0) return false;
             if (other->GetPrototype()->height < kSmallHeight) return false;
@@ -187,7 +183,6 @@ bool AIBrain::IsUsable(const AITargetChoice* choice) {
     float dy = self->localPosition.y - at.y;
     float dx = self->localPosition.x - at.x;
     float radius = option->radius;
-    EI_NAN_AUDIT(radius, dx, dy);
     return radius * radius < LengthSquared2D(dx, dy);
 }
 
@@ -255,7 +250,6 @@ float Score(const Vector3& from, Unit* self, UnitList* group, EngineObject* curr
     default:
         break;
     }
-    EI_NAN_AUDIT(score, threshold);
     if (score < threshold) return score;
     float reach = 0.0f;
     float scale = 1.0f;
@@ -266,7 +260,6 @@ float Score(const Vector3& from, Unit* self, UnitList* group, EngineObject* curr
     float beyond = std::sqrt(DistanceSquaredXY(candidate->localPosition, from)) - reach;
     float penalty = MaxKeepB(0.0f, beyond);
     float result = score - penalty * kDistanceWeight * scale;
-    EI_NAN_AUDIT(result);
     if (result < threshold) return result;
     if (option->kind >= AIOptionKind::Weapon && option->kind <= AIOptionKind::LastingArea) {
         int hits = words == 0 ? kNoHitsKnown : candidate->packedVitals.hitPoints / words;
@@ -293,7 +286,6 @@ AITargetChoice AIBrain::Choose(UnitList* candidates, const Vector3& from, bool a
             attack.object = nullptr;
         } else {
             best = Score(from, self, candidates, held, held, kFloorScore, option);
-            EI_NAN_AUDIT(best);
             if (best < kFloorScore) {
                 attack.object = nullptr;
                 best = kFloorScore;
@@ -334,7 +326,6 @@ AITargetChoice AIBrain::Choose(UnitList* candidates, const Vector3& from, bool a
         int chosen = -1;
         float top = kNoScore;
         for (int i = 0; i < static_cast<int>(scored.size()); ++i) {
-            EI_NAN_AUDIT(top, scored[i].score);
             if (top < scored[i].score) {
                 choice = {scored[i].part, scored[i].object};
                 chosen = i;

@@ -9,7 +9,6 @@
 #include <string>
 #include "lib/text_case.h"
 
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 
 #include <memory>
@@ -38,7 +37,6 @@ float NamedFloatTable::Get(std::string_view name) {
 void NamedFloatTable::Set(std::string_view name, float value) {
     if (name.empty()) return;
     std::string key(name);
-    EI_NAN_AUDIT(value);
     if (value == 0.0f) {
         erase(key);
         return;

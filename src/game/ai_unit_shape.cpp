@@ -8,7 +8,6 @@
 #include "core_refcount.h"
 #include "world_data.h"
 #include "lib/containers.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 
 #include <cstring>
@@ -161,7 +160,6 @@ void FootprintCellSet::AlongDirection(AIMap* map, const Vector3& position, const
         for (int x = b.x0; x <= b.x1; ++x) {
             float fy = cy - static_cast<float>(y);
             float fx = cx - static_cast<float>(x);
-            EI_NAN_AUDIT(fy, fx, r2, ny, nx);
             if (LengthSquared2D(fy, fx) >= r2) continue;
             if (Dot2D(fy, fx, ny, nx) >= 1.0f) continue;
             AddCell(this, x, y);
@@ -184,7 +182,6 @@ void FootprintCellSet::DiscAt(AIMap* map, const Vector3& position, float radius)
             float fy = cy - static_cast<float>(y);
             float fy2 = fy * fy;
             float fx = cx - static_cast<float>(x);
-            EI_NAN_AUDIT(fx, fy2, r2);
             if (fx * fx + fy2 >= r2) continue;
             AddCell(this, x, y);
         }

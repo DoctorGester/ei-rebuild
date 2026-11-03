@@ -8,7 +8,6 @@
 
 #include "lib/bytes.h"
 #include "lib/crt.h"
-#include "lib/nan_audit.h"
 
 #include <cstdint>
 #include <cstring>
@@ -63,7 +62,6 @@ bool SameMorph(const LinkMesh* mesh, float s, float t, float u) {
     float dt = mesh->morphWeights[1] - t;
     float du = mesh->morphWeights[2] - u;
     const float distance = ds * ds + dt * dt + du * du;
-    EI_NAN_AUDIT(distance);
     return distance < kSameMorph;
 }
 

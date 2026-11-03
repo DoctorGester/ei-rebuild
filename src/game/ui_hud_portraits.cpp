@@ -20,7 +20,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
-#include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
 #include <bit>
@@ -164,7 +163,6 @@ void HudPortraits::Update() {
 
         // The face model follows the unit's build (its scale's y): thin, medium or fat.
         float build = unit->scale.y;
-        EI_NAN_AUDIT(slot.build, build);
         if (slot.build != build) {
             slot.build = build;
             std::string name("me");
@@ -235,7 +233,6 @@ void HudPortraits::Update() {
         Quaternion rest = slot.restA * slot.restB;
         Quaternion previous = slot.current;
         Quaternion face;
-        EI_NAN_AUDIT(dt);
         if (dt < 0.5f)
             face.Slerp(dt + dt, previous, rest);
         else
@@ -407,7 +404,6 @@ void HudPortraits::Rebuild(bool wide) {
         SexOf(unit->name, sex);
         const float figureBuild = unit->scale.y;
         build = "me";
-        EI_NAN_AUDIT(figureBuild);
         if (figureBuild < kThin)
             build = "th";
         else if (figureBuild > kFat)

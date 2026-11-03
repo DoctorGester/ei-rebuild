@@ -20,7 +20,6 @@
 
 #include "lib/float_select.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/vecmath.h"
 
@@ -61,7 +60,6 @@ inline float ClampPow(float ratio) {
 // The spell's power factor(repeated inline about twenty times in the game): 1 when the prototype's effect
 // compares equal to 0, else ClampPow of damage / effect.
 inline float PowerFactor(const float* damage, const float* effect) {
-    EI_NAN_AUDIT(*effect);
     if (*effect == 0.0f) return 1.0f;
     return ClampPow(*damage / *effect);
 }

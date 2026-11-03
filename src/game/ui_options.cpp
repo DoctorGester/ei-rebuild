@@ -6,7 +6,6 @@
 #include "lib/vecmath.h"
 #include "world.h"
 
-#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/rect.h"
 #include <cstddef>
@@ -305,7 +304,6 @@ void OptionsWindow::LoadSettings() {
     // Equal gives 0.
     float sign22 = options::g_options.cameraFlipX;
     float sign23 = options::g_options.cameraFlipY;
-    EI_NAN_AUDIT(sign22, sign23);
     s[17].value = sign22 == one ? 0 : 1;
     s[18].value = sign23 == one ? 0 : 1;
     s[5].value = options::g_options.cameraBorderScrollArea;

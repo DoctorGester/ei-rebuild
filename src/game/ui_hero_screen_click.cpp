@@ -20,7 +20,6 @@
 
 #include "lib/containers.h"
 #include "platform/platform.h"
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 
 #include <cstdint>
@@ -425,7 +424,6 @@ void MpHeroScreen::CreateHero() {
     auto* stats = &hero->stats;
     float sum = stats->intelligenceBase + stats->dexterityBase + stats->strengthBase;
     float points = kAttributePoints;
-    EI_NAN_AUDIT(sum, points);
     if (sum != points || static_cast<int>(name.size()) == 0) {
         ui->PlayInterfaceSound(game::CancelSoundText());
         return;

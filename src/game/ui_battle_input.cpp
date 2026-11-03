@@ -26,7 +26,6 @@
 #include "world_glue.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "platform/platform.h"
@@ -451,7 +450,6 @@ constexpr int kCursorOrder = 0x18;
 
 // fcomp with 0.0 and: true for zero (either sign).
 bool IsZero(float value) {
-    EI_NAN_AUDIT(value);
     return value == 0.0f;
 }
 
@@ -548,7 +546,6 @@ void BattleScreen::HoverUnit(Unit* unit, Point mouse) {
                 float value = LocalPlayerVariable(name);
                 const float one = 1.0f;
                 // equal skips.
-                EI_NAN_AUDIT(value);
                 if (value != one) g_cursor.SetShape(kCursorExit);
             }
             return;

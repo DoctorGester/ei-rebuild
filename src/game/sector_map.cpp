@@ -3,7 +3,6 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 
 #include <algorithm>
@@ -151,7 +150,6 @@ std::vector<Unit*> SectorMap::FindUnitsInRadius(const Vector3& position, float r
         for (Unit* unit : sector.units) {
             float dx = unit->localPosition.x - px, dy = unit->localPosition.y - py;
             const auto distance = LengthSquared2D(dy, dx);
-            EI_NAN_AUDIT(distance);
             if (distance < radiusSquared) result.push_back(unit);
         }
     }

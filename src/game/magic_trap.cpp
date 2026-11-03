@@ -16,7 +16,6 @@
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 
 #include <algorithm>
@@ -111,7 +110,6 @@ void MagicTrap::CastAtUnits(std::vector<Unit*>* units) {
             Unit* closest = nullptr;
             for (Unit* unit : *units) {
                 Vector3 d = unit->localPosition - origin;
-                EI_NAN_AUDIT(d.x, d.y, d.z);
                 if (LengthSquared(d) < kFar) closest = unit;
             }
             if (!closest) return;

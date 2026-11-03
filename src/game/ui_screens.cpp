@@ -17,7 +17,6 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/nan_audit.h"
 #include "game_singletons.h"
 #include "lib/text_case.h"
 #include "platform/platform.h"
@@ -229,7 +228,6 @@ void UiItemStrip::ScrollToItem(Item* item) {
         for (int i = 0; i < std::ssize(*source); ++i)
             if (TabOf((*source)[i]) == tab) append((*source)[i]);
     }
-    EI_NAN_AUDIT(found);
     if (found >= 0.0f) {
         float& scrollPosition = position[tab];
         float lowest = found - 8.0f + 2.0f;
@@ -262,7 +260,6 @@ void UiItemStrip::SettleScroll() {
     // Releasing an arrow completes the step under way: the pending scroll keeps its fraction of a
     // slot and gains a whole slot when that fraction is under half.
     float currentPending = pending;
-    EI_NAN_AUDIT(currentPending);
     if (currentPending < 0.0f) {
         float fraction = currentPending - static_cast<int>(currentPending);
         pending = fraction;

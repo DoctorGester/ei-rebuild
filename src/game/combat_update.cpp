@@ -22,7 +22,6 @@
 #include "world_effect.h"
 
 #include "lib/float_select.h"
-#include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
 #include <bit>
@@ -501,7 +500,6 @@ bool UnitServer::ActionInReach() {
     // A cast at a point whose target is gone measures to the order's point.
     Vector3 at = target ? target->PositionAt(currentPlan.endTime) : action.AimPoint();
     float distanceSq = DistanceSquaredXY(at, unit->localPosition);
-    EI_NAN_AUDIT(distanceSq, currentPlan.rangeSq);
     return distanceSq < currentPlan.rangeSq;   // closer
 }
 

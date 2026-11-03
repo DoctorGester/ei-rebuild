@@ -23,7 +23,6 @@
 #include "lib/rebirth.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 
 #include <cstddef>
@@ -78,7 +77,6 @@ EngineObject* BowArrow(UnitClientSpecific* self) {
 // Whether `frame` was passed between the last update and now.
 bool Passed(std::uint32_t frame, float last, float now) {
     float at = static_cast<float>(frame);
-    EI_NAN_AUDIT(now);
     return at > last && at <= now;
 }
 
@@ -294,7 +292,6 @@ void UnitClientSpecific::UpdateArrow() {
     const FigureAnimation* current = state->current;
     if (current && (current->flags & 1)) {
         float now = state->time;
-        EI_NAN_AUDIT(now, lastAnimationTime);
         if (now == lastAnimationTime) return;   // the same time
         if (Passed(current->arrowFrom, lastAnimationTime, now)) {
             if (!arrowHidden) return;
@@ -610,7 +607,6 @@ std::uint8_t PartLevel(const UnitParamsSlot& part) {
     if (part.kind == 0 || part.maximum == 0) return 0;
     float maximum = static_cast<float>(part.maximum);
     float ratio = static_cast<float>(part.current) / maximum;
-    EI_NAN_AUDIT(ratio, maximum);
     if (ratio == kFull) return 0;   // unhurt
     float stored = static_cast<float>(ratio);
     if (stored <= kFull / maximum) return 3;

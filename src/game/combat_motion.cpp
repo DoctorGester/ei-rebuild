@@ -21,7 +21,6 @@
 #include "unit_ai.h"
 #include "world.h"
 
-#include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
 #include <bit>
@@ -201,7 +200,6 @@ void UnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
         key |= AnimationKeyFlag::Looped;
         if (self->MapType() == MapObjectType::Hero) {
             float stamina = stats.loadFactor;
-            EI_NAN_AUDIT(stamina, g_logicSettings.damageLevel2Value, g_logicSettings.damageLevel1Value);
             if (stamina <= g_logicSettings.damageLevel2Value) key |= AnimationKeyFlag::DamageLevel2;
             else if (stamina <= g_logicSettings.damageLevel1Value) key |= AnimationKeyFlag::DamageLevel1;
         }
@@ -229,7 +227,6 @@ AnimationSteps* UnitServer::NextAnimation() {
         key |= AnimationKeyOf(AnimationKind::Walk);
         if (self->MapType() == MapObjectType::Hero) {
             float stamina = stats.loadFactor;
-            EI_NAN_AUDIT(stamina, g_logicSettings.damageLevel2Value, g_logicSettings.damageLevel1Value);
             if (stamina <= g_logicSettings.damageLevel2Value) key |= AnimationKeyFlag::DamageLevel2;
             else if (stamina <= g_logicSettings.damageLevel1Value) key |= AnimationKeyFlag::DamageLevel1;
         }
@@ -333,7 +330,6 @@ void UnitServer::UpdateSneak() {
     }
     int allowed = unit->player ? unit->player->godMode : 1;
     if (moveMode.mode != kModeRun || moveMode2.wasMode3 == 0) return;
-    EI_NAN_AUDIT(ServerVitals(unit).mana);
     if (allowed == 0 && ServerVitals(unit).mana <= 0.0f) return;   // the breath
     if (!world->aiMap.StandsOnCheapCell(unit)) return;
     if (running != 0) return;

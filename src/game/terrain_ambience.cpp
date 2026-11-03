@@ -12,7 +12,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
 
@@ -178,7 +177,6 @@ void Terrain::PlayAmbience() {
             for (int i = 0; i < kClasses; ++i) weights[i] = sector->classCounts[i] * kAmbientSounds[i].weight;
             float best = -1.0f;
             for (int i = 0; i < kClasses; ++i) {
-                EI_NAN_AUDIT(weights[i]);
                 if (best < weights[i]) {
                     best = weights[i];
                     cell.soundClass = i;

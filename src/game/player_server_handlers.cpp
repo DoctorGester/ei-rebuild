@@ -33,7 +33,6 @@
 
 #include "lib/rounding.h"
 #include "game_singletons.h"
-#include "lib/nan_audit.h"
 #include "logic_settings.h"
 
 #include <cmath>
@@ -212,7 +211,6 @@ int PlayerServer::OnUseOrder() {
             int nearestIndex = 0;
             for (int i = 0; i < std::ssize(units); ++i) {
                 const float distance = DistanceSquared(aim, units[i]->localPosition);
-                EI_NAN_AUDIT(distance, best);
                 if (distance < best) {
                     best = distance;
                     nearest = units[i];

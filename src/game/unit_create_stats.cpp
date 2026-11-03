@@ -19,7 +19,6 @@
 
 #include "lib/crt.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 
@@ -92,7 +91,6 @@ void SetSlots(UnitStats* stats, const UnitModelRecord* model) {
         const UnitModelSlot& entry = model->slots[i];
         UnitStatSlot& slot = stats->slots[i];
         float share = entry.share;
-        EI_NAN_AUDIT(share);
         if (share == 0.0f) {
             slot.kind = 0;
             continue;
@@ -428,7 +426,6 @@ void UnitStats::ResetToBase(float newLoad) {
     float bonus = 0.0f;
     if (const ::SkillLevelRecord* record = SkillLevelRecord(kSkillBodyB0)) {
         float level = record->Value();
-        EI_NAN_AUDIT(level);
         if (level != 0.0f) bonus = level * perception[1].current * kPercent;
     }
     perception[1].current = bonus + perception[1].current;
@@ -470,7 +467,6 @@ void UnitStats::LearnSkill(const SkillDatabase* database, const ::SkillLevelReco
     if (known != 0 && level <= known - 1) return;
     known = static_cast<std::uint8_t>(level + 1);
     float newMaximum = CurveHitPoints(this);
-    EI_NAN_AUDIT(oldMaximum, newMaximum);
     if (oldMaximum <= kOneF) return;
     if (newMaximum <= kOneF) return;
     float newHitPoints = Reduce(newMaximum);
@@ -504,7 +500,6 @@ float UnitStats::WeaponSkillBonus(int type, Unit* unit) {
 
 bool UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord* record) {
     if (!record->learnable) return false;
-    EI_NAN_AUDIT(strength, dexterity, intelligence);
     if (strength < record->RequiredStat(0)) return false;
     if (dexterity < record->RequiredStat(1)) return false;
     if (intelligence < record->RequiredStat(2)) return false;

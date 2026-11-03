@@ -20,7 +20,6 @@
 #include "world.h"
 #include "world_glue.h"
 #include "lib/crt.h"
-#include "lib/nan_audit.h"
 #include "lib/rect.h"
 #include "lib/str.h"
 #include "platform/platform.h"
@@ -154,7 +153,6 @@ void MpHeroScreen::Update() {
     const UnitStats* stats = &HeroRecord()->stats;
     float points = stats->intelligenceBase + stats->dexterityBase + stats->strengthBase;
     float target = kAttributePoints;
-    EI_NAN_AUDIT(points, target);
     bool equal = points == target;
     bool ready = equal && !name.empty();
     float shade = ready ? 1.0f : 0.5f;

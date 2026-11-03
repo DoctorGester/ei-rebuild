@@ -15,7 +15,6 @@
 #include "lib/rebirth.h"
 #include "../platform/log.h"
 #include "platform/platform.h"
-#include "lib/nan_audit.h"
 
 #include <bit>
 #include <algorithm>
@@ -425,7 +424,6 @@ void ClientBase::Tick(double dt) {
         if (e->timeout > 0.0f) {
             e->timeout -= static_cast<float>(dt);
             e = node->Get();
-            EI_NAN_AUDIT(e->timeout);
             if (e->timeout <= 0.0f) {
                 ClientQueries& v = queries;
                 if (v.list.begin() == v.list.end() || FindQuery(v, &e->address) == v.list.end()) {

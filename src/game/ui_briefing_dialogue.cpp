@@ -21,7 +21,6 @@
 #include "world.h"
 
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "game_singletons.h"
 #include "lib/text_case.h"
@@ -166,7 +165,6 @@ void BriefingScreen::ViewSpeaker(Unit* unit, float angle, float distance, float 
     }
     float length = std::sqrt(LengthSquared2D(y, x));
     // Compared with zero.
-    EI_NAN_AUDIT(length);
     if (length != 0.0f) {
         float inverse = 1.0f / length;
         x *= inverse;

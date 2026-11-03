@@ -3,7 +3,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
 #include <cmath>
@@ -66,7 +65,6 @@ Quaternion* Quaternion::SetAxisAngle(const Vector3& axis, float angle) {
 void Quaternion::Slerp(float t, const Quaternion& from, const Quaternion& to) {
     float cosine = Dot(from, to);
     Quaternion c = to;
-    EI_NAN_AUDIT(cosine);
     if (cosine < 0.0f) {
         cosine = -cosine;
         c.x = -to.x;

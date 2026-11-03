@@ -11,7 +11,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
 
@@ -61,13 +60,11 @@ void FaceAngle(float angle, MotionSample* sample) {
 // when the turn takes no longer than that. Used by the order kinds 1 and 4.
 float TurnAngle(const UnitMotion* m, float elapsed, bool* final) {
     float ratio = AbsBits(m->turn / m->turnRate);
-    EI_NAN_AUDIT(ratio, elapsed);
     if (ratio < elapsed) {
         *final = true;
         return m->startAngle + m->turn;
     }
     *final = false;
-    EI_NAN_AUDIT(m->turn);
     float sign = m->turn < 0.0f ? kMinusOne : (m->turn > 0.0f ? kOne : kZero);
     return sign * elapsed * m->turnRate + m->startAngle;
 }
@@ -89,7 +86,6 @@ void NormalizeTurn(UnitMotion* m, float turn) {
         do {
             v = twoPi + m->turn;
             m->turn = v;
-            EI_NAN_AUDIT(v);
         } while (v < negPi);   // ends on a NaN (the original's did not)
     }
 }
@@ -122,7 +118,6 @@ bool PathOrder::Start(const Vector3& position, const Vector3& direction, int tim
     float angle = length > 0.0f ? lib::Atan2(dy / length, dx / length) : 0.0f;
     float x = kHalfCellScale * position.x;
     float y = kHalfCellScale * position.y;
-    EI_NAN_AUDIT(order->angle, angle, x, order->x, order->y, y);
     bool same = order->kind == 0 && order->angle == angle && x == order->x && order->y == y;
     order->x = x;
     order->angle = angle;
@@ -273,7 +268,6 @@ MotionSample UnitMotion::Sample(World* world, MotionOrder* order, float time) {
             const float twoPi = kPi + kPi;
             while (angleTo > kPi) angleTo = angleTo - twoPi;
             const float negPi = -kPi;
-            EI_NAN_AUDIT(angleTo);
             while (angleTo < negPi) angleTo = angleTo + twoPi;   // ends on a NaN (the original's did not)
             // Over the turn's tick count, an int.
             float angle = ((time - start) * angleTo / static_cast<float>(to - order->startTime)) +
@@ -286,7 +280,6 @@ MotionSample UnitMotion::Sample(World* world, MotionOrder* order, float time) {
         float dy = ty - order->y;
         sample.direction.y = dy;
         float norm = std::sqrt(dy * dy + sample.direction.x * sample.direction.x);
-        EI_NAN_AUDIT(norm);
         if (norm == 0.0f) return sample;
         float inverse = 1.0f / norm;
         sample.direction *= inverse;
@@ -312,7 +305,6 @@ MotionSample UnitMotion::SamplePath(float time, float startX, float startY) {
     float end = 0.0f;
     int index = 0;
     bool found = false;
-    EI_NAN_AUDIT(time, segmentStart, segmentEnd);
     if (segment != -1 && time >= segmentStart && time <= segmentEnd) {
         found = true;   // still in the cached segment
         index = segment;
@@ -323,15 +315,12 @@ MotionSample UnitMotion::SamplePath(float time, float startX, float startY) {
         sample.turning = true;
         turnRate = baseTurnRate;
         float turnTime = AbsBits(turn / baseTurnRate);
-        EI_NAN_AUDIT(time, turnTime);
         if (time <= turnTime) {
             float ratio = AbsBits(turn / turnRate);
             float angle;
-            EI_NAN_AUDIT(ratio);
             if (ratio < time) {
                 angle = startAngle + turn;
             } else {
-                EI_NAN_AUDIT(turn);
                 float sign = turn < 0.0f ? kMinusOne : (turn > 0.0f ? kOne : kZero);
                 angle = sign * turnRate * time + startAngle;
             }
@@ -358,7 +347,6 @@ MotionSample UnitMotion::SamplePath(float time, float startX, float startY) {
             length = distance;
             speed = from.speed;
             end += distance / speed;
-            EI_NAN_AUDIT(end);
             if (time <= end) {
                 found = true;
                 break;
@@ -411,12 +399,10 @@ void UnitMotion::Build(PathOrder* path) {
         float angle = AsFloat(order->arg5);
         float s = lib::Sin(angle);
         float c = lib::Cos(angle);
-        EI_NAN_AUDIT(c, s);
         if (c == 0.0f && s == 0.0f) {
             turn = 0.0f;
             return;
         }
-        EI_NAN_AUDIT(rate);
         if (rate != 0.0f) turnRate = rate;
         else turnRate = baseTurnRate;
         NormalizeTurn(this, lib::Atan2(s, c) - startAngle);
@@ -426,7 +412,6 @@ void UnitMotion::Build(PathOrder* path) {
         float angle = AsFloat(order->arg5);
         float s = lib::Sin(angle);
         float c = lib::Cos(angle);
-        EI_NAN_AUDIT(c, s);
         if (c == 0.0f && s == 0.0f) {
             turn = 0.0f;
             return;
@@ -529,7 +514,6 @@ void UnitMotion::Build(PathOrder* path) {
         AssignCells(path);
         return;
     }
-    EI_NAN_AUDIT(p->dirX, p->dirY);
     if (p->dirX == 0.0f && p->dirY == 0.0f) {
         turn = 0.0f;
         AssignCells(path);
@@ -572,7 +556,6 @@ void UnitMotion::SubdivideSegment(const MotionWaypoint* from, const MotionWaypoi
     float dx = from->x - to->x;
     float dy = from->y - to->y;
     float distance = std::sqrt(LengthSquared2D(dy, dx));
-    EI_NAN_AUDIT(distance);
     if (distance == 0.0f) distance = kMinLength;
     MotionPoint p;
     p.cellX = -1;
@@ -580,7 +563,6 @@ void UnitMotion::SubdivideSegment(const MotionWaypoint* from, const MotionWaypoi
     p.dirX = (to->x - from->x) / distance;
     p.dirY = (to->y - from->y) / distance;
 
-    EI_NAN_AUDIT(startOffset, endOffset);
     if (startOffset != 0.0f && endOffset != 0.0f && cells == 1) {
         p.x = from->x;
         p.y = from->y;

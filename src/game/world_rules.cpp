@@ -14,7 +14,6 @@
 #include "texture.h"
 
 #include "game_singletons.h"
-#include "lib/nan_audit.h"
 
 #include <memory>
 #include <new>
@@ -44,7 +43,6 @@ bool DepthLess::Less(const ScreenEntry* a, const ScreenEntry* b) const {
     // every step, so the calls are repeated here in the same order.
     if ((first->IsDead() == 0 && second->IsDead() == 0) ||
         (first->IsDead() != 0 && second->IsDead() != 0)) {
-        EI_NAN_AUDIT(da, db);
         return da < db;
     }
     return first->IsDead() == 0;

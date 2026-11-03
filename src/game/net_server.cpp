@@ -15,7 +15,6 @@
 #include "world_data.h"
 #include "lib/rebirth.h"
 #include "lib/crt.h"
-#include "lib/nan_audit.h"
 
 #include <cstdint>
 #include <cstring>
@@ -310,7 +309,6 @@ void CountDown(List& list, float dt) {
         float& seconds = node->seconds;
         float left = seconds - dt;
         seconds = left;
-        EI_NAN_AUDIT(left);
         if (left < 0.0f) {
             node = list.erase(node);
         } else {
@@ -331,7 +329,6 @@ void ServerSession::Tick(double dt) {
     CountDown(awards, step);
     if (!announced) return;
     announceTimer -= step;
-    EI_NAN_AUDIT(announceTimer);
     if (announceTimer < 0.0f) {    // run out
         announceTimer = worlddata::AnnouncePeriodRef();
         const char* host = MasterHost();

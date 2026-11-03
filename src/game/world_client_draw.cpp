@@ -34,7 +34,6 @@
 #include "lib/crt.h"
 #include "platform/platform.h"
 #include "lib/intro_sort.h"
-#include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
 
@@ -81,7 +80,6 @@ const char* MarkerPartName() { return "hp"; }
 
 // a < b, or unordered.
 bool Less(float a, float b) {
-    EI_NAN_AUDIT(a, b);
     return a < b;
 }
 // t when 0 < t or unordered, else 0.

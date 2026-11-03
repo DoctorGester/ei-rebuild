@@ -13,7 +13,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
@@ -55,7 +54,6 @@ StockMaterial* DrawMaterial(const itemdb::ItemRecordHead* prototype, const std::
     for (StockMaterial* candidate : candidates) {
         int chance = 10;
         float quality = candidate->record->unitPrice;
-        EI_NAN_AUDIT(fifth);
         if (quality >= low && quality <= fifth) {
             float t = ((quality - seventh) / (seventh - fifth)) * 100.0f;
             chance = static_cast<int>(110.0f - AbsBits(t));
@@ -87,7 +85,6 @@ RolledSpell RollItemSpell(ItemStock* stock, ItemKind kind, const itemdb::ItemRec
     if (count == 0) return roll;
     unsigned index = count > 1 ? g_random.Next() % count : 0;
     Spell* spell = roll.generated[index];
-    EI_NAN_AUDIT(spell->manaCost, capacity->power);
     if (spell->manaCost <= capacity->power) roll.chosen = spell;
     return roll;
 }
@@ -309,7 +306,6 @@ void ItemStock::FillSpellMaps(const std::vector<itemdb::SpellListRecord>& recipe
         case 'a': case 'd': case 'e': case 'm': case 'r': case 't': {
             itemdb::SpellModifierRecord*& held = modifierMap[std::string(m->code, 1)];
             // Replaced when the held one's strength is less.
-            if (held) EI_NAN_AUDIT(held->strength, m->strength);
             if (!held || held->strength < m->strength) held = m;
             break;
         }
@@ -364,7 +360,6 @@ std::vector<HeldRef<Spell>> ItemStock::GenerateSpells(const float* levels, unsig
                     reached += repeated->skill;
                     if (repeated->code[0] == 'm') {
                         cost = repeated->strength * prototype->mana + cost + repeated->mana;
-                        EI_NAN_AUDIT(cost, prototype->mana);
                         if (cost <= prototype->mana) break;
                     } else {
                         cost += repeated->mana;

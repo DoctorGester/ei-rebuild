@@ -15,7 +15,6 @@
 
 #include "lib/crt.h"
 #include "platform/platform.h"
-#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstdint>

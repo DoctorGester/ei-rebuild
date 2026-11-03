@@ -5,7 +5,6 @@
 #include "ground_decal.h"
 
 #include "lib/float_select.h"
-#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cmath>
@@ -148,7 +147,6 @@ bool DecalBuilder::Touches(const Vector3& center, float radius) const {
     float v = Dot(vAxis, center) + vOffset;
     float vReach = radius * vLength;
     if (v - vReach > 1.0f) return false;
-    EI_NAN_AUDIT(v, vReach);
     if (v + vReach < 0.0f) return false;
     float u = Dot(uAxis, center) + uOffset;
     float uReach = radius * uLength;

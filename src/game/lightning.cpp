@@ -14,7 +14,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cmath>
@@ -169,7 +168,6 @@ void LightningSegment::Init(const Vector3& from, const Vector3& to) {
     // Point count and the length the displacement axes are scaled to.
     int count;
     float scale = length;
-    EI_NAN_AUDIT(length);
     if (length < 10.0f) {
         count = 48;             // 50.0 rounded, & ~3
     } else if (length > 15.0f) {
@@ -238,7 +236,6 @@ void Lightning::Animate() {
     float sway = amplitude;
     float time = (g_clientWorld.tick + g_clientWorld.tickFraction) / 4.0f;
     main.Animate(time, NoiseAmplitude(power));
-    EI_NAN_AUDIT(power);
     if (power != 0.0f) {
         // The branches follow the main segment: each starts at its point of the bolt and ends near
         // the bolt's end, swaying on two sines.
@@ -265,7 +262,6 @@ void Lightning::Animate() {
 
 void Lightning::SetEndpoints(const Vector3& from, const Vector3& to) {
     main.Init(from, to);
-    EI_NAN_AUDIT(power);
     if (power != 0.0f) {
         // Each branch runs from its point of the bolt to the end.
         for (int i = 0; i < 6; ++i) {
@@ -288,7 +284,6 @@ void Lightning::SetEndpoints(const Vector3& from, const Vector3& to) {
             branches[i].Init(offset + from, offset + to);
         }
     }
-    EI_NAN_AUDIT(power);
     if (power < 0.0f) Animate();
     UpdateBounds();
 }
@@ -363,16 +358,13 @@ void Lightning::Start(const Vector3& from, const Vector3& to, float newPower, bo
     const float strength = AbsBits(newPower);
     amplitude = power > 0.0f ? 0.05f : 0.3f;     // 0.05 : 0.3
     // A bolt about 30 units high sways less.
-    EI_NAN_AUDIT(to.z, from.z);
     if (AbsBits(AbsBits(to.z - from.z) - 30.0f) < 0.01f) amplitude = 0.05f;
 
     main.Init(from, to);
     FreshKeys(main, time, KeyAmplitude(power));
     main.width = strength;
-    EI_NAN_AUDIT(power);
     if (power < 0.0f) main.width = strength * 1.5f;
 
-    EI_NAN_AUDIT(strength);
     if (strength != 0.0f) {
         const float positions[6] = {0.2f, 0.3f, 0.5f, 0.8f, 0.9f, 0.9f};
         std::memcpy(branchPos, positions, sizeof(positions));
@@ -520,7 +512,6 @@ void Lightning::DrawGlow(SceneRenderer* device, const Vector3& position, float s
     const Vector3& eye = camera::FrameView().position;
     Vector3 towards = eye - position;
     float length = Length(towards);
-    EI_NAN_AUDIT(length);
     if (length != 0.0f) towards /= length;
     float scaled = position.x * 15.0f;
     int shift = std::lround(scaled);
@@ -547,7 +538,6 @@ int Lightning::Draw(SceneRenderer* device) {
     const float zero = 0.0f;
     if (power >= zero) Animate();
     const float slant = 0.25f;
-    EI_NAN_AUDIT(power);
     if (power < zero) {    // negative: untextured lengthwise
         renderer->DrawStrip(&main.points, main.width, visibility, 0.0f, 0.0f, slant);
         for (LightningSegment& b : branches) renderer->DrawStrip(&b.points, b.width, visibility, 0.0f, 0.0f, slant);

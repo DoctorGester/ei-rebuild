@@ -48,7 +48,6 @@
 #include "lib/float_select.h"
 #include "lib/intro_sort.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/rect.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
@@ -328,7 +327,6 @@ void WorldClient::MarkFootprintsInSight(const float* point, float range) {
         float dy = print.position.y - point[1];
         float distance = lib::Hypot(dx, dy);
         float limit = print.scale * range;
-        EI_NAN_AUDIT(distance, limit);
         if (distance <= limit) print.visible = 1;
     }
 }
@@ -570,7 +568,6 @@ std::vector<Object3D*> WorldClient::ObjectsInRange(const Vector3& point, float r
 
 int PlatformSet::AddFace(const Vector3& a, const Vector3& b, const Vector3& c, const Vector3& normal, Platform** out) {
     *out = nullptr;
-    EI_NAN_AUDIT(normal.z);
     if (normal.z < kSteepest) return 0;
     // (Every field is written below or by the caller; the record stays in place until the next face.)
     Platform* record = &*list.emplace(list.begin());

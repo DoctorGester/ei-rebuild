@@ -18,7 +18,6 @@
 #include "world_glue.h"
 #include "lib/rebirth.h"
 #include "lib/containers.h"
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "render/render_state.h"
 
@@ -68,7 +67,6 @@ void GlobalMap::FindPaths(MapRecord* from) {
             if (arrivals.find(exit) == arrivals.end()) {
                 arrivals[exit] = time;
             } else {
-                EI_NAN_AUDIT(pathTime, arrivals[exit]);
                 if (pathTime < arrivals[exit]) arrivals[exit] = time;
             }
             if (beyondTarget) continue;

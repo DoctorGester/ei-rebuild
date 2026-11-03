@@ -18,7 +18,6 @@
 
 #include "lib/containers.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
 #include <cmath>
@@ -117,7 +116,6 @@ int GroundPrint::Tick() {
     halfWidth += growth;
     halfLength += growth;
     float t = static_cast<float>(lifetime - life) / lifetime;
-    EI_NAN_AUDIT(t);
     float spent = t > 0.0f ? t : 0.0f;
     alpha = (1.0f - spent) * alphaScale;
     return life;
@@ -314,7 +312,6 @@ void WorldClient::AddBloodPrint(float x, float y, float halfSize, float fullSize
     const PrintRecord* entry = EntryAt(g_printsDatabase.blood, this, x, y);
     if (!entry) return;
     const PrintLook& look = LookOf(*entry, rainSnow.mode != 0);
-    EI_NAN_AUDIT(look.alpha);
     if (look.alpha <= 0.0f || look.life <= 0 || look.lifetime <= 0) return;
     std::uint32_t colour = ((Channel(frameSun.r) | 0x100) << 8 | Channel(frameSun.g)) << 8 | Channel(frameSun.b);
     bloodPrints.emplace_back(x, y, halfSize, fullSize, look.alpha, look.life, look.lifetime, tile, colour,
@@ -353,7 +350,6 @@ void WorldClient::AddScorchMark(float x, float y, float halfWidth, float halfLen
     const PrintRecord* entry = EntryAt(g_printsDatabase.scorch, this, x, y);
     if (!entry) return;
     const PrintLook& look = LookOf(*entry, rainSnow.mode != 0);
-    EI_NAN_AUDIT(alpha);
     if (alpha <= 0.0f || look.life <= 0 || look.lifetime <= 0) return;
     scorchMarks.emplace_back(x, y, halfWidth, halfLength, angle, alpha, look.life, look.lifetime);
 }

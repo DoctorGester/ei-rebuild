@@ -43,7 +43,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "platform/platform.h"
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
@@ -89,7 +88,6 @@ void CopyVisitedZones(const std::string& slotFolder, const std::string& currentF
             std::string prefix = kVisitedPrefix;
             std::string variable = prefix + name;
             float value = variables->Get(variable);
-            EI_NAN_AUDIT(value);
             visited = value != 0.0f;
         }
         bool keep = false;
@@ -386,7 +384,6 @@ int EnterZone(Party* records) {
                             kFrozenZone) == 0) {
             float frozen = variables->Get(kFrozenVariable);
             mapOverride = kFrozenMap;
-            EI_NAN_AUDIT(frozen);
             if (frozen == 0.0f) mapOverride = kThawedMap;
         }
         bool visited;
@@ -394,7 +391,6 @@ int EnterZone(Party* records) {
             std::string prefix = kVisitedPrefix;
             std::string variable = prefix + zone;
             float value = variables->Get(variable);
-            EI_NAN_AUDIT(value);
             visited = value != 0.0f;
         }
         if (visited) {
@@ -1123,7 +1119,6 @@ int GameFlow::LoadGame(const std::string& slot) {
             std::string prefix = kVisitedPrefix;
             std::string variable = prefix + record->name;
             float value = variables->Get(variable);
-            EI_NAN_AUDIT(value);
             visited = value != 0.0f;
         }
         bool restored = false;

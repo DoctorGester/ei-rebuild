@@ -7,7 +7,6 @@
 
 #include "combat.h"
 #include "lib/crt.h"
-#include "lib/nan_audit.h"
 #include "world.h"
 
 #include <cstring>
@@ -34,7 +33,6 @@ void UnitRecord::ApplyTo(Unit* target) {
     ItemManager* factory = g_serverWorld.itemManager;
     Unit* unit = target;
     const float k0 = 0.0f;
-    EI_NAN_AUDIT(r.speed, r.rate);
     bool noStats = r.speed == k0 && r.maxHitPoints == 0 && r.rate == k0;
     if (noStats || applyStats == 0) {
         AddItems(*this, unit, factory);

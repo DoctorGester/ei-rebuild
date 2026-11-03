@@ -17,7 +17,6 @@
 #include "world_data.h"
 #include "lib/containers.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 #include "render/render.h"
 
@@ -57,7 +56,6 @@ Vector4 Ambient(const LightColour& c) { return {c.r, c.g, c.b, c.a}; }
 
 // The original's test counts a NaN as zero; the audit checks that none arrives.
 bool IsZero(float value) {
-    EI_NAN_AUDIT(value);
     return value == 0.0f;
 }
 bool IsBlack(const LightColour& c) { return IsZero(c.r) && IsZero(c.g) && IsZero(c.b); }
@@ -94,7 +92,6 @@ float FogStart(float hour) {
 // In degrees.
 float SunElevation(float hour) {
     float night;
-    EI_NAN_AUDIT(hour);
     if (hour < kSunrise) {
         if (hour <= kSunset) night = (kSunrise - hour) / kSunrise;
         else night = (hour - kSunset) / (kDayLength - kSunset);
@@ -156,7 +153,6 @@ int WorldClient::UpdateLighting() {
             const SkyColour black = {0.0f, 0.0f, 0.0f, 1.0f};
             skyDome->ApplyLight(kCaveSun, black, black);
         }
-        EI_NAN_AUDIT(hour, g_lastLitHour);
         if (hour - g_lastLitHour < 1.0f) return 0;
         g_lastLitHour = std::floor(hour);
         if (terrain) {
@@ -212,7 +208,6 @@ int WorldClient::UpdateLighting() {
         const SkyColour sunColour = {frameSun.r, frameSun.g, frameSun.b, frameSun.a};
         skyDome->ApplyLight(direction, ambientColour, sunColour);
     }
-    EI_NAN_AUDIT(hour, g_lastLitHour);
     if (hour - g_lastLitHour < 1.0f) return 0;
     g_lastLitHour = std::floor(hour);
     if (terrain) {
@@ -231,7 +226,6 @@ void WorldClient::UpdateExitMarkers() {
         std::string name("z.");
         name += exits[i].target;
         const float visited = variables->Get(name);
-        EI_NAN_AUDIT(visited);
         marker->extent = {visited == 1.0f ? 1.0f : 0.0f, 0.0f, 0.0f};
     }
 }

@@ -4,7 +4,6 @@
 #include "map_object.h"
 #include "unit.h"
 #include "lib/bytes.h"
-#include "lib/nan_audit.h"
 #include "lib/text_case.h"
 
 #include <bit>

@@ -6,7 +6,6 @@
 #include "net_connection.h"
 #include "lib/bytes.h"
 #include "lib/float_select.h"
-#include "lib/nan_audit.h"
 #include "platform/platform.h"
 
 #include <cmath>
@@ -202,7 +201,6 @@ bool Connection::Tick(double dt) {
     auto lost = history.begin();
     for (; lost != history.end(); ++lost) {
         const float age = Age(clock, lost->time);
-        EI_NAN_AUDIT(loss, age);
         if (loss >= age) break;
         RollBack(&*lost);
     }

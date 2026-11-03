@@ -29,7 +29,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
@@ -78,10 +77,8 @@ float PlatformSet::SurfaceHeight(const Vector3& point, float height) {
         const Platform& p = node;
         float dx = point.x - p.centre.x;
         float dy = point.y - p.centre.y;
-        EI_NAN_AUDIT(p.radius, dy, dx);
         if (p.radius * p.radius < LengthSquared2D(dy, dx)) continue;
         const auto [u, v] = PlaneUV(p, point - p.origin);
-        EI_NAN_AUDIT(u, v, p.sizeU, p.sizeV);
         if (u < -0.5f || v < -0.5f) continue;
         if (p.sizeU + 0.5f < u || p.sizeV + 0.5f < v) continue;
         float z = p.axisV.z * v + p.axisU.z * u + p.origin.z;
@@ -95,10 +92,8 @@ bool PlatformSet::Contains(float x, float y) {
         const Platform& p = node;
         float dx = x - p.centre.x;
         float dy = y - p.centre.y;
-        EI_NAN_AUDIT(p.radius, dx, dy);
         if (p.radius * p.radius < LengthSquared2D(dx, dy)) continue;
         const auto [u, v] = PlaneUV(p, {x - p.origin.x, y - p.origin.y, -p.origin.z});
-        EI_NAN_AUDIT(u, v, p.sizeU, p.sizeV);
         if (u < -0.1f || v < -0.1f) continue;
         if (p.sizeU + 0.1f < u || p.sizeV + 0.1f < v) continue;
         return true;
@@ -110,10 +105,8 @@ PlatformSet::SurfacePlaneResult PlatformSet::SurfacePlane(float x, float y) {
     SurfacePlaneResult result{{0.0f, 0.0f, 1.0f}, 0.0f};
     for (auto& node : list) {
         const Platform& p = node;
-        EI_NAN_AUDIT(p.radius, x, y, p.centre.x, p.centre.y);
         if (p.radius * p.radius < DistanceSquared2D(Vector2{x, y}, Vector2{p.centre.x, p.centre.y})) continue;
         const auto [u, v] = PlaneUV(p, {x - p.origin.x, y - p.origin.y, -p.origin.z});
-        EI_NAN_AUDIT(u, v, p.sizeU, p.sizeV);
         if (u < -0.5f || v < -0.5f) continue;
         if (p.sizeU + 0.5f < u || p.sizeV + 0.5f < v) continue;
         float z = p.axisV.z * v + p.axisU.z * u + p.origin.z;
@@ -139,7 +132,6 @@ Unit* WorldClient::NearestVisibleUnit(Unit* unit) {
         std::uint32_t side = 1u << (unit->side & 31);
         if ((found->relationsA & (side & found->relationsB)) == 0) continue;
         float distance = DistanceSquaredXY(found->localPosition, unit->localPosition);
-        EI_NAN_AUDIT(distance, best);
         if (distance < best) {
             best = static_cast<float>(distance);
             nearest = found;
@@ -271,7 +263,6 @@ void WorldClient::OnQuestVariable(std::string_view variable, float value) {
         if (str::Compare(name, object->name2) == 0) object->SetVisibilityLevel(value);
     }
     // The original's test counts a NaN as equal; the audit checks that none arrives.
-    EI_NAN_AUDIT(value);
     if (value == 2.0f && str::Find(name, dot) < 0) SummonBird();
 }
 

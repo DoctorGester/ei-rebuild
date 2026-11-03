@@ -24,7 +24,6 @@
 
 #include "lib/containers.h"
 #include "lib/float_select.h"
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
@@ -56,7 +55,6 @@ Item* CreateNamedItem(std::string_view name) { return g_serverWorld.itemManager-
 
 void GiveBriefingRewards(WorldServer* world, Player* player, QuestBriefingRecord* record) {
     float experience = record->exp;
-    EI_NAN_AUDIT(experience);
     if (experience != 0.0f) {
         world->AwardExperience(player, experience);
     }
@@ -321,7 +319,6 @@ void WorldServer::UpdateMercBriefings() {
             }
             NamedFloatTable* variables = &player->GetParty()->variables;
             float left = variables->Get(b.n10);
-            EI_NAN_AUDIT(left);
             if (inParty) {
                 if (left != 0.0f) {
                     set(b.n8, 0.0f);
@@ -349,7 +346,6 @@ void WorldServer::UpdateMercBriefings() {
                 float hired = hiredValue;
                 float hiredStored = hired;
                 float briefed = variables->Get(b.n8);
-                EI_NAN_AUDIT(hiredValue, briefed);
                 if (hiredValue != 0.0f) {
                     if (briefed != 1.0f) {
                         if (otherMercs < 2) {
@@ -460,7 +456,6 @@ void WorldServer::ApplyMercBriefing(Player* player, std::string_view name) {
 }
 
 void WorldServer::AwardExperience(Player* player, float amount) {
-    EI_NAN_AUDIT(amount);
     if (amount == 0.0f) return;
     if (!player) ShareAmongSoloPlayers(this, amount);
     else ShareAmongHeroes(this, player, amount);

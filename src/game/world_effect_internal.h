@@ -12,7 +12,6 @@
 #include "game_singletons.h"
 
 #include "lib/float_select.h"
-#include "lib/nan_audit.h"
 
 #include <bit>
 #include <concepts>
@@ -46,7 +45,6 @@ inline float FromBits(std::uint32_t u) {
 template <std::floating_point T> inline float FromBits(T) = delete;
 // The inline test after every velocity change: moving unless all three components are 0.
 inline bool IsMoving(const Vector3& v) {
-    EI_NAN_AUDIT(v.x, v.y, v.z);
     return !(v.x == 0.0f && v.y == 0.0f && v.z == 0.0f);
 }
 

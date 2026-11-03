@@ -22,7 +22,6 @@
 #include <string>
 #include "world_glue.h"
 #include "bink_video.h"
-#include "lib/nan_audit.h"
 #include "game_singletons.h"
 #include "model.h"
 #include "figure_manager.h"
@@ -108,7 +107,6 @@ void MainMenu::CreateScreen() {
     options::g_options.borderFogDistance = kMenuEdgeFade;
     rain = (g_clientRandom.Next() & 1) == 1;
     // The hour is read three times.
-    EI_NAN_AUDIT(GameServerTimeOfDay());
     daylight = GameServerTimeOfDay() > kDawn && GameServerTimeOfDay() < kDusk;
     if (GameServerTimeOfDay() < kDawn && rain)
         g_serverWorld.SetWeather(kWeatherRain, kWeatherStrength);

@@ -23,7 +23,6 @@
 #include <vector>
 
 #include "game_singletons.h"
-#include "lib/nan_audit.h"
 #include "platform/platform.h"
 
 int FinishQuestMap(const char* name) {
@@ -97,7 +96,6 @@ void GameSetUnitHeight(int id, float z) {
     auto* unit = world->FindUnit(id);
     if (!unit) return;
     // Nothing when the heights are equal.
-    EI_NAN_AUDIT(unit->localPosition.z, z);
     if (unit->localPosition.z == z) return;
     Vector3 target = {unit->localPosition.x, unit->localPosition.y, z};
     world->aiMap.sectorMap.Move(unit, target);

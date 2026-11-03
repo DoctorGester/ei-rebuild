@@ -8,7 +8,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
-#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cmath>
@@ -68,7 +67,6 @@ void SkyObject::ApplyLight(const Vector3& direction, SkyColour ambient, SkyColou
         const float y = Row(normals, i, 1);
         const float z = Row(normals, i, 2);
         const float distance = distances[i];
-        EI_NAN_AUDIT(distance);
         if (distance == 0.0f) {
             colorsB[i] = 0;
             colorsA[i] = (r << 8 | g) << 8 | b;

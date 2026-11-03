@@ -8,7 +8,6 @@
 
 #include "game_singletons.h"
 #include "world.h"
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 
 #include <cstring>
@@ -88,7 +87,6 @@ int EffectSoundSeq::Unpack(int update, DeltaField* field) {
     radius = field->ReadFloat16();
     velocity = field->ReadFloat16x3();
     field->ReadDelta(&noFade, 1);
-    EI_NAN_AUDIT(velocity.x, velocity.y, velocity.z);
     moving = velocity.x == 0.0f && velocity.y == 0.0f && velocity.z == 0.0f ? 0 : 1;
     if (!SnapshotReadToEnd()) return 0;
     localPosition = position;

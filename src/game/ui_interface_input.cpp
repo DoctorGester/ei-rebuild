@@ -21,7 +21,6 @@
 #include "world_glue.h"
 #include "../platform/log.h"
 #include "lib/crt.h"
-#include "lib/nan_audit.h"
 #include "lib/rect.h"
 #include "lib/str.h"
 #include "platform/platform.h"
@@ -334,7 +333,6 @@ void Interface3D::ShowFps(bool on) {
 void Interface3D::OnQuestVariable(std::string_view name, float value) {
     if (!stack.empty()) ScreenOf(stack.back())->QuestVariable(name, value);
     std::vector<std::string> parts;
-    EI_NAN_AUDIT(value);
     if (value != 1.0f) return;
     parts = text::SplitWords(name, '.');
     if (parts.size() > kQuestPart) savedText = parts[kQuestPart];
@@ -451,13 +449,11 @@ void ScreenFade::Draw(SceneRenderer* renderer) {
     }
     if (!active) return;
     // A step towards 255 (rate > 0) or 0 (rate < 0), by the milliseconds since the last one.
-    EI_NAN_AUDIT(alpha, rate);
     if ((alpha < kOpaque && rate > 0.0f) || (alpha > 0.0f && rate < 0.0f)) {
         const std::uint32_t now = platform::Milliseconds();
         alpha = (now - lastTime) * rate + alpha;
         lastTime = platform::Milliseconds();
     }
-    EI_NAN_AUDIT(alpha);
     if (alpha > kOpaque) {
         alpha = kOpaque;
     } else if (alpha < 0.0f) {

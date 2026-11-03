@@ -9,7 +9,6 @@
 #include "effects.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 
 #include <cstddef>
@@ -44,7 +43,6 @@ Unit* AIMap::BlockingUnitAt(Unit* unit, const Vector3& position) {
         float otherHeight = other->standingHeight;
         ShapeCacheHandle handle;
         const UnitShape* shape = nullptr;
-        EI_NAN_AUDIT(otherHeight);
         if (otherHeight <= kShapeMinHeight) {
             handle.ref.Reset();
         } else {
@@ -161,7 +159,6 @@ void AIMap::MarkVisibleCells(const Vector3& eye, float radius, const Vector3& lo
     const int eyeX = eyeCell.x, eyeY = eyeCell.y;
     int reach = WorldToCell(radius) + 1;
     grid->Grow(eyeX, eyeY, reach);
-    EI_NAN_AUDIT(cosLimit, targetHeight);
     bool anyDirection = cosLimit <= -1.0f;
     bool noLineOfSight = targetHeight < -100.0f;
 
@@ -179,7 +176,6 @@ void AIMap::MarkVisibleCells(const Vector3& eye, float radius, const Vector3& lo
             float dy = cell.y - eye.y;
             float dz = -eye.z;
             float distance = std::sqrt(LengthSquared2D(dy, dx));
-            EI_NAN_AUDIT(radius, distance);
             if (radius < distance) continue;
             if (!anyDirection) {
                 float dot = Dot(Vector3{dx, dy, dz}, Vector3{look.x, look.y, look.z});
@@ -188,7 +184,6 @@ void AIMap::MarkVisibleCells(const Vector3& eye, float radius, const Vector3& lo
             if (!noLineOfSight) {
                 cell.z = static_cast<float>(cells[y][x].groundLevel) / heightScale + targetHeight;
                 float seen = LineOfSight(eye, cell) * radius;
-                EI_NAN_AUDIT(seen, distance);
                 if (seen < distance) continue;
             }
             grid->cells[gy][gx] = 1;
@@ -198,7 +193,6 @@ void AIMap::MarkVisibleCells(const Vector3& eye, float radius, const Vector3& lo
 
 void* AIMap::ShapeForHeight(float standingHeight) {
     ShapeCacheHandle handle;
-    EI_NAN_AUDIT(standingHeight);
     if (standingHeight <= kShapeMinHeight) return nullptr;
     int tenths = lib::RoundEven(standingHeight * 10.0f + 1.0f);
     handle.height = static_cast<float>(tenths) * 0.1f;

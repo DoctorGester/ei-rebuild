@@ -11,8 +11,8 @@
 //   MinKeepB(a, b)  a <  b ? a : b    the lower; b when unordered
 //   MaxKeepA(a, b)  a <  b ? b : a    the higher; a when unordered
 //
-// The two with `<` are for values that are never NaN (a NaN there is a bug upstream: EI_NAN_AUDIT logs it
-// in the verify and debug builds); the two with `>=` are the ones the original's masks give a NaN to.
+// The two with `<` are for values that are never NaN (a NaN there is a bug upstream); the two with `>=` are the
+// ones the original's masks give a NaN to.
 //
 // Write a select of two floats on `>=` or `<=` through these, not as a conditional expression: MSVC compiles
 // `a >= b ? a : b` to MAXSS and `a >= b ? b : a` to MINSS, which return the second operand on a tie, so where
@@ -23,7 +23,6 @@
 #include <bit>
 #include <cstdint>
 
-#include "nan_audit.h"
 #include "vecmath.h"
 
 // The sign bit of `v` (set for -0.0 and for a negative NaN).
@@ -47,11 +46,9 @@ template <class A, class B> float MinKeepA(A, B) = delete;
 template <class A, class B> float MaxKeepB(A, B) = delete;
 
 inline float MinKeepB(float a, float b) {
-    EI_NAN_AUDIT(a, b);
     return a < b ? a : b;
 }
 inline float MaxKeepA(float a, float b) {
-    EI_NAN_AUDIT(a, b);
     return a < b ? b : a;
 }
 

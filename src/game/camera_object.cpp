@@ -13,7 +13,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "platform/platform.h"
 
@@ -229,20 +228,17 @@ void Camera::Save(ByteStream* stream) {
 // degrees + elevation) about its own X axis. False (and nothing done) for a direction shorter than 1e-9.
 bool Camera::LookDirection(float dx, float dy, float dz) {
     float lengthSquare = LengthSquared(Vector3{dx, dy, dz});
-    EI_NAN_AUDIT(lengthSquare);
     if (lengthSquare <= CAM_LOOK_EPSILON) return false;
     float inv = 1.0f / std::sqrt(lengthSquare);
     float nx = inv * dx;
     float ny = inv * dy;
     float elevation = lib::Asin(-(inv * dz));
     float heading = lib::Acos(ny / lib::Hypot(nx, ny));
-    EI_NAN_AUDIT(nx, heading);
     if (nx == CAM_ZERO || heading == CAM_ZERO) {
         viewRotation = camera::kIdentityRotation;
     } else {
         float side = -nx;
         float z;
-        EI_NAN_AUDIT(side);
         if (side < CAM_ZERO) z = CAM_MINUS_ONE;
         else if (side > CAM_ZERO) z = CAM_ONE;
         else z = CAM_ZERO;
@@ -269,7 +265,6 @@ void Camera::AlignToTarget() {
     Vector3 h = {inv * zAxis.y, hy * inv, 0.0f};
     float dot = Dot(xAxis, h);
     float cosine = dot;
-    EI_NAN_AUDIT(dot);
     if (dot > CAM_ONE) cosine = 1.0f;
     else if (cosine < CAM_MINUS_ONE) cosine = -1.0f;
     float angle = lib::Acos(cosine);
@@ -310,7 +305,6 @@ void Camera::ClampAboveObjects() {
         float dz = cz - p->z;
         float outside = std::sqrt(LengthSquared(Vector3{dx, dy, dz})) - radius;
         float factor = CAM_ZERO;
-        EI_NAN_AUDIT(outside);
         if (outside <= CAM_ZERO) factor = CAM_ONE;
         else if (outside <= CAM_OBJECT_FADE) factor = CAM_ONE - outside * CAM_TENTH;
         float height = ((object->localPosition.z + object->bounds.boxMax.z) + object->bounds.center.z) * factor;
@@ -369,7 +363,6 @@ int Camera::LoadPath(const char* name, int settle) {
         // The first key (of the first `settle`) more than the gap after its predecessor: every key
         // before it takes its position and rotation (the times stay).
         for (int first = 1; first < settle; ++first) {
-            EI_NAN_AUDIT(keys[first].time, keys[first - 1].time);
             if (keys[first].time - keys[first - 1].time <= kLeadInGap) continue;
             for (int i = 0; i < first; ++i) {
                 keys[i].position = keys[first].position;

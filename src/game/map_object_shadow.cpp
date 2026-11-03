@@ -17,7 +17,6 @@
 
 #include "lib/float_select.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
 #include <algorithm>
@@ -61,7 +60,6 @@ bool PointLightShare(const Object3D* object, Light* light, Vector3* out) {
     float falloff = 1.0f - light->inverseRangeSquared * distanceSquared;
     float intensity = Brightness(light) * falloff;
     Vector3 towards = at - from;
-    EI_NAN_AUDIT(distanceSquared);
     if (distanceSquared == 0.0f) {
         towards = kDefaultLight;
     } else {
@@ -83,7 +81,6 @@ void DirectionalShare(Light* light, Vector3* out) {
 void LightDirection(const Vector3& sum, Vector3* direction) {
     float lengthSquared = LengthSquared(sum);   // (x + z) + y
     *direction = sum;
-    EI_NAN_AUDIT(lengthSquared);
     if (lengthSquared != 0.0f) *direction = sum * (1.0f / std::sqrt(lengthSquared));
     float horizontal = std::sqrt(LengthSquared2D(direction->y, direction->x));
     float height = AbsBits(direction->z);

@@ -8,7 +8,6 @@
 #include "lib/vecmath.h"
 #include "world.h"
 #include "lib/bytes.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 
 #include <cmath>
@@ -192,7 +191,6 @@ void FigureAnimationState::Play(FigureAnimation* animation) {
 void FigureAnimationState::Queue(FigureAnimation* animation) { queue.push_back(animation); }
 
 void FigureAnimationState::SetTime(float frame) {
-    EI_NAN_AUDIT(time, frame);
     if (time != frame) changed = 1;
     const FigureAnimation* before = current;
     time = frame;

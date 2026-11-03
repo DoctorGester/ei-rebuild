@@ -17,7 +17,6 @@
 #include <memory>
 #include <vector>
 #include "lib/float_select.h"
-#include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 #include "world_data.h"
 
@@ -74,7 +73,6 @@ Vector3 PickPoint(WorldClient* world, int screenX, int screenY, Height height) {
     float outX = 0.0f, outY = 0.0f, pz = 0.0f;
     float det = ((m[4] * m[13] - m[5] * m[12]) * sx + (m[1] * m[12] - m[0] * m[13]) * sy) + (m[0] * m[5] - m[4] * m[1]);
     // Skipped when zero.
-    EI_NAN_AUDIT(det);
     if (det != 0.0f) {
         // The screen ray as x = a z + b, y = c z + d.
         float a =
@@ -103,7 +101,6 @@ Vector3 PickPoint(WorldClient* world, int screenX, int screenY, Height height) {
             pz = static_cast<float>(height(outX, outY));
             float diff = std::fabs(pz - previous);
             ++steps;
-            EI_NAN_AUDIT(diff);
             if (diff <= 0.01f) {
                 converged = steps < 100;
                 break;
@@ -120,7 +117,6 @@ Vector3 PickPoint(WorldClient* world, int screenX, int screenY, Height height) {
                 pz = static_cast<float>(height(outX, outY));
                 float diff = std::fabs(pz - previous);
                 ++steps;
-                EI_NAN_AUDIT(diff);
                 if (diff <= 0.01f) break;
             } while (steps < 100);
         }

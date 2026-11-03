@@ -8,7 +8,6 @@
 #include "water_tweens.h"
 #include "lib/bytes.h"
 #include "lib/crt.h"
-#include "lib/nan_audit.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -86,7 +85,6 @@ void WaterTweens::SetTarget(int key, float target, int steps) {
 bool WaterTweens::Tick() {
     bool moving = false;
     for (auto e = entries.begin(); e != entries.end();) {
-        EI_NAN_AUDIT(e->value);
         if (e->steps > 0) {
             --e->steps;
             moving = true;

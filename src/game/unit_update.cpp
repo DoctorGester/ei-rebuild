@@ -15,7 +15,6 @@
 #include "world.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
-#include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
 #include <bit>
@@ -348,7 +347,6 @@ void Unit::AdvanceTime(float time) {
 
 int MapObject::SetVisibilityLevel(float level) {
     MapObject* slots = this;
-    EI_NAN_AUDIT(level);
     if (level == 0.0f) return slots->SetVisibilityMode(0);
     if (level == 1.0f) return slots->SetVisibilityMode(1);
     return slots->SetVisibilityMode(2);

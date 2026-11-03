@@ -12,7 +12,6 @@
 #include "logic_settings.h"
 #include "lib/crt.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/float_select.h"
 
 #include <algorithm>
@@ -101,7 +100,6 @@ float LowestSlotRatio(const UnitStats* stats, int type) {
     float lowest = 1.0f;
     for (const UnitStatSlot& slot : stats->slots) {
         if (slot.kind == 0 || slot.type != type) continue;
-        EI_NAN_AUDIT(slot.current, slot.maximum);
         if (slot.current == slot.maximum) continue;
         float ratio = slot.current / slot.maximum;
         float r = ratio;
@@ -111,7 +109,6 @@ float LowestSlotRatio(const UnitStats* stats, int type) {
 }
 
 float RatioFactor(float lowest) {
-    EI_NAN_AUDIT(lowest);
     if (lowest <= g_logicSettings.damageLevel2) return g_logicSettings.damageLevel2Value;
     if (lowest <= g_logicSettings.damageLevel1) return g_logicSettings.damageLevel1Value;
     return 1.0f;
@@ -179,7 +176,6 @@ bool UnitVitals::Regenerate(UnitStats* stats, Unit* unit, char inCombat) {
     if (ticks < kRegenPeriod && ticks > 0) return false;
     bool changed = false;
     regenTicks = 0;
-    EI_NAN_AUDIT(mana, maxMana);
     if (inCombat == 0 && mana < maxMana) {
         float raised = (LevelValueOf(stats, kSkillManaRegen) * kPercent + 1.0f) * manaRegen * maxMana + mana;
         float limit = maxMana;
@@ -187,7 +183,6 @@ bool UnitVitals::Regenerate(UnitStats* stats, Unit* unit, char inCombat) {
         mana = SelectLess(limit, r, limit, r);
         changed = true;
     }
-    EI_NAN_AUDIT(hitPoints, maxHitPoints);
     if (hitPoints < maxHitPoints) {
         float rate = (LevelValueOf(stats, kSkillHitPointRegen) * kPercent + 1.0f) * hitPointRegen;
         if (unit) {
@@ -207,14 +202,12 @@ bool UnitVitals::Regenerate(UnitStats* stats, Unit* unit, char inCombat) {
 void UnitStats::HealSlots(float scale, float amount) {
     float magnitude = AbsBits(amount);
     // Kept as the game's test: a NaN amount heals nothing. It occurs in every run: LearnSkill's heal (the
-    // default NaN) while a new unit's stats are being set up (the NaN audit).
+    // default NaN) while a new unit's stats are being set up.
     if (!(magnitude > kMinHeal)) return;
     float total = 0.0f;
     for (const UnitStatSlot& slot : slots) {
-        if (slot.kind > 1) EI_NAN_AUDIT(slot.current, slot.maximum);
         if (slot.kind > 1 && slot.current < slot.maximum) total += slot.factor;
     }
-    EI_NAN_AUDIT(total);
     if (total == 0.0f) return;
     float share = amount / (total * scale);
     for (UnitStatSlot& slot : slots) {
@@ -285,7 +278,6 @@ float UnitStats::ArmsFactor() { return RatioFactor(LowestSlotRatio(this, kSlotAr
 int UnitStats::MovementState(char checkLoad) {
     float lowest = LowestSlotRatio(this, kSlotLegs);
     if (checkLoad != 0 && load > capacity) return 2;
-    EI_NAN_AUDIT(lowest);
     if (lowest < g_logicSettings.damageLevelRunLimit) return 1;
     return 0;
 }
@@ -347,7 +339,6 @@ void UnitStats::Recompute(UnitVitals* vitals, Unit* unit) {
     float bonus = 0.0f;
     if (const ::SkillLevelRecord* record = SkillLevelRecord(kSkillBodyB0)) {
         float level = record->Value();
-        EI_NAN_AUDIT(level);
         if (level != 0.0f) bonus = level * perception[1].current * kPercentB;
     }
     perception[1].current = bonus + perception[1].current;

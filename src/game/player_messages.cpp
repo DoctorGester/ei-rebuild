@@ -16,7 +16,6 @@
 #include "world.h"
 
 #include "lib/bytes.h"
-#include "lib/nan_audit.h"
 
 #include <algorithm>
 #include <bit>
@@ -91,7 +90,6 @@ void PlayerServer::SetVariableMax(std::string_view name, float value) {
     float result;
     result = std::bit_cast<float>(resultBits);
     // Nothing to do when it compares equal.
-    EI_NAN_AUDIT(result, current);
     if (result == current) return;
     VariableSet(Variables(player), name, resultBits);
     WriteByte(&out, 0x81);

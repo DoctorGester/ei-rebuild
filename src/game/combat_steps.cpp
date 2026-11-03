@@ -10,7 +10,6 @@
 
 #include "lib/float_select.h"
 #include "platform/log.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 
 #include <bit>
@@ -155,17 +154,14 @@ std::uint32_t OrderKey(UnitServer* self, UnitOrderKind kind, std::uint32_t sourc
 std::uint32_t BandAt(float h, float base, float size, float top) {
     if (h >= base) {
         float low = size * kLowerPart + base;
-        EI_NAN_AUDIT(low);
         if (h <= low) return kKeyLow;
     }
     float low = size * kLowerPart + base;
     if (h >= low) {
         float middle = size * kUpperPart + base;
-        EI_NAN_AUDIT(middle);
         if (h <= middle) return kKeyMiddle;
     }
     float middle = size * kUpperPart + base;
-    EI_NAN_AUDIT(top);
     if (h >= middle && h <= top) return kKeyHigh;
     return kKeyMiddle;
 }
@@ -380,13 +376,11 @@ void UnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* d
     std::uint32_t key = kKeyMiddle;
     float blow;
     float myTop = mySize + myBase;
-    EI_NAN_AUDIT(myTop, theirBase);
     if (myTop < theirBase) {
         blow = theirBase - myTop;
         key = kKeyHigh;
     } else {
         float theirTop = theirSize + theirBase;
-        EI_NAN_AUDIT(theirTop, myBase);
         if (theirTop < myBase) {
             blow = myBase - theirTop;
             key = kKeyLow;
@@ -427,7 +421,6 @@ void UnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* d
     // Beyond close range the slope of the blow decides instead.
     float slope = blow / reach;
     if (reach > kNearReach) {
-        EI_NAN_AUDIT(slope);
         if (slope > kSteepUp) key = kKeyHigh;
         else if (slope < kSteepDown) key = kKeyLow;
         else key = kKeyMiddle;

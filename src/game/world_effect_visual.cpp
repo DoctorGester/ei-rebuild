@@ -16,7 +16,6 @@
 #include "game_singletons.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "save_versions.h"
 
 #include <bit>
@@ -54,7 +53,6 @@ int StepFraction(const Vector3& velocity, const Vector3& dxdy, float* t) {
     const float speed = std::sqrt(LengthSquared(velocity));
     const float dist = std::sqrt(LengthSquared2D(dxdy.y, dxdy.x));
     // On only when above.
-    EI_NAN_AUDIT(dist);
     if (dist <= 0.0f) return 0;
     // The speed when the distance is below it or they are unordered.
     const float divisor = MaxKeepB(dist, speed);
@@ -137,7 +135,6 @@ void EffectPointLight::Start(int update) {
         float shownRange;
         shownRange = light->range;
         float change = FromBits(Bits(shownRange - absRange) & 0x7FFFFFFFu);
-        EI_NAN_AUDIT(change);
         LightPosition(light) = localPosition;
         // A range not (nearly) the same is taken over.
         if (!(change < ConstAt(worlddata::RangeEpsilon()))) SetLightRange(light, Bits(range) & 0x7FFFFFFFu);

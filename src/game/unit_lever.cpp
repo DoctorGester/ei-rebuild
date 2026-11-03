@@ -9,7 +9,6 @@
 #include "sector_map.h"
 #include "world.h"
 
-#include "lib/nan_audit.h"
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
@@ -19,7 +18,6 @@
 
 void Lever::SetState(int wanted, float duration) {
     // A negative duration takes the model's default.
-    EI_NAN_AUDIT(duration);
     if (duration < 0.0f) {
         const LeverRecord* record = g_leverTable.Named(name);
         duration = record ? static_cast<float>(static_cast<std::int64_t>(record->duration)) : 10.0f;

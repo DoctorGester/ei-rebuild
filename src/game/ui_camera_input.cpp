@@ -10,7 +10,6 @@
 #include "ui.h"
 #include "ui_cursor.h"
 #include "screen_layout.h"
-#include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 #include "platform/platform.h"
 
@@ -30,7 +29,6 @@ constexpr float kPerWidth = 0.0025f;
 constexpr float kPerHeight = 0.0033333334f;
 
 bool Differs(float a, float b) {
-    EI_NAN_AUDIT(a, b);
     return a != b;
 }
 

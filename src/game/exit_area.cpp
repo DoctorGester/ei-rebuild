@@ -12,13 +12,11 @@
 #include <string>
 
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "save_versions.h"
 
 #include <memory>
 
 bool ZoneExit::Contains(float x, float y) const {
-    EI_NAN_AUDIT(angle, y, y2);
     if (angle == 0.0f) {
         if (x1 > x) return false;
         if (x > x2) return false;
@@ -33,7 +31,6 @@ bool ZoneExit::Contains(float x, float y) const {
     const float dx = x - centerX;
     const float turnedX = dx * c + dy * s + centerX;
     const float turnedY = centerY - dx * s + dy * c;
-    EI_NAN_AUDIT(turnedX, x1, turnedY, y2);
     if (turnedX < x1) return false;
     if (turnedX > x2) return false;
     if (y1 > turnedY) return false;

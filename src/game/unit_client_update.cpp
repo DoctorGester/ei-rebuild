@@ -23,7 +23,6 @@
 #include "world.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/vecmath.h"
 #include "render/render.h"
@@ -82,7 +81,6 @@ bool UnitClientSpecific::RunTick() {
     if (drawn) unit->flags &= ~kFlagNotDrawn;
     else unit->flags |= kFlagNotDrawn;
 
-    EI_NAN_AUDIT(fadeIn);
     if (fadeIn < 1.0f) {
         auto* half = unit->AsObject3D()->ClientSpecific();
         for (Material* part = half->FirstMaterial(); part; part = half->NextMaterial()) part->colors.diffuse.w = fadeIn;
@@ -179,7 +177,6 @@ constexpr std::uint32_t kKeySpecialIdle = kAnimationSpecialIdleKey;
 void UnitClientSpecific::AdvanceTime(float time) {
     float stored = time - lastTime;
     float step = stored;
-    EI_NAN_AUDIT(step);
     if (step < 0.0f) {   // back in time: only put back on the ground
         Vector3 position = unit->localPosition;
         position.z = unit->GroundHeight(position.x, position.y) + unit->heightOffset;
@@ -321,7 +318,6 @@ static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
     }
     float length;
     length = animation->stride;
-    EI_NAN_AUDIT(length);
     if (length == 0.0f) {
         unit->animationSpeed = unit->ActionSpeed(animation);
         return;
@@ -333,7 +329,6 @@ static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
         reinterpret_cast<const char*>(animation - index) - offsetof(AnimationDatabase, animations));
     float frames = 1.0f;
     float span = database->length;
-    EI_NAN_AUDIT(span);
     if (span != 0.0f)
         frames = ((database->end - database->start) * unit->scale.z + database->start) / span;
     float moved = std::sqrt(LengthSquared(direction));
@@ -481,7 +476,6 @@ void UnitClientSpecific::GetAttackParams(AttackParams* out) {
             out->damageType = kNoDamageType;
             for (int i = 0; i < kDamageTypes; ++i) {
                 float weight = model->damageWeights[i];
-                EI_NAN_AUDIT(weight);
                 if (weight != 0.0f) {
                     out->damageType = i;
                     break;

@@ -17,7 +17,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/intro_sort.h"
-#include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
 #include <bit>
@@ -450,7 +449,6 @@ struct TickSteps {
         const Vector3& m = s->motion;
         float distance = Length(m);
         s->distance = distance;
-        EI_NAN_AUDIT(distance);
         if (distance <= EI_STILL) {
             s->side = {};
             s->up = {};
@@ -459,7 +457,6 @@ struct TickSteps {
         float zero = EI_ZERO;
         s->side = {m.y - zero, zero - m.x, 0.0f};
         float length = Length(s->side);
-        EI_NAN_AUDIT(length);
         if (length < EI_DEGENERATE) {
             s->side = {m.y - m.z, -m.x, m.x};
             length = Length(s->side);

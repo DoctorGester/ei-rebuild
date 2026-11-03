@@ -7,7 +7,6 @@
 #include "item_manager.h"
 #include "lib/crt.h"
 #include "lib/rect.h"
-#include "lib/nan_audit.h"
 #include "party.h"
 #include "text_manager.h"
 #include "ui.h"
@@ -205,7 +204,6 @@ void HeroStatsPanel::DrawStats() {
         area = Rect{0xA0, 0x41, 0xB4, 0x50};
         float maximum = 35.0f;
         for (int i = 0; i < 3; ++i) {
-            EI_NAN_AUDIT(storedStats[i]);
             bool below = storedStats[i] < maximum;
             std::uint32_t colour = below && left > 0 ? kBright : kGrey;
             draw->DrawTextIn("+", &area, 0, colour, 1, 1);

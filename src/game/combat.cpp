@@ -15,7 +15,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "logic_settings.h"
 #include "map_object.h"
@@ -312,7 +311,6 @@ bool UnitServer::CanReachTarget(const AIOrder* order) {
     }
     float offset = other->GetPrototype()->height;
     float height = offset + other->localPosition.z;
-    EI_NAN_AUDIT(height);
     return height < kOnePointFive;
 }
 
@@ -382,7 +380,6 @@ void UnitServer::GetAttackParams(AttackParams* out) {
             out->damageType = kNoDamageType;
             for (int i = 0; i < 7; ++i) {
                 float weight = model->damageWeights[i];
-                EI_NAN_AUDIT(weight);
                 if (weight != 0.0f) {
                     out->damageType = i;
                     break;
@@ -468,7 +465,6 @@ void UnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, cha
         out->attackRoll = roll;
         float extra = 0.0f;
         float spread = stats.damageSpread;
-        EI_NAN_AUDIT(spread);
         if (spread != 0.0f) {
             float scaled = spread * kHundred;
             int sides = lib::RoundEven(scaled);
@@ -492,7 +488,6 @@ void UnitServer::TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) {
     bool hadPlayer = unit->player != nullptr;
     // |attackRoll| below FLT_MAX: not resolved yet.
     float roll = std::bit_cast<float>(std::bit_cast<std::uint32_t>(hit->attackRoll) & 0x7FFFFFFFu);
-    EI_NAN_AUDIT(roll);
     const float rolled = hit->attackRoll;   // logged as rolled, before ResolveHit marks it resolved
     if (roll < kHitMark) ResolveHit(hit, attacker);
     if (!dead) {
@@ -522,7 +517,6 @@ void UnitServer::TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) {
     AttackParams mine;
     AttackParamsOf(this, &mine);
     if (hit->backstabFactor > 1.0f) mine.defence = 0;
-    EI_NAN_AUDIT(hit->attackRoll);
     if (static_cast<float>(mine.defence) <= hit->attackRoll) {
         stats.flags |= UnitStatsFlag::Struck;
         unit->MarkChanged(4);

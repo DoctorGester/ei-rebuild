@@ -21,7 +21,6 @@
 #include "screen_layout.h"
 #include "lib/vecmath.h"
 #include "render/render_state.h"
-#include "lib/nan_audit.h"
 #include <bit>
 #include <cstdint>
 #include <cstring>
@@ -79,7 +78,6 @@ constexpr int kWobbleNod = 1;   // HudPortraitSlot::wobbleKind
 
 // Whether `x` is zero (either sign).
 bool IsZero(float value) {
-    EI_NAN_AUDIT(value);
     return value == 0.0f;
 }
 
@@ -787,7 +785,6 @@ void BattleScreen::OrderAt(Vector3 point, bool goTo, bool run) {
             float value = LocalPlayerVariable(name);
             const float one = 1.0f;
             // Equal skips.
-            EI_NAN_AUDIT(value);
             if (value != one) {
                 exitPending = true;
                 pendingExit = exit;

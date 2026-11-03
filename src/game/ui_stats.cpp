@@ -8,7 +8,6 @@
 #include "unit.h"
 #include "world.h"
 #include "lib/float_select.h"
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 
 #include <cstdint>
@@ -49,17 +48,14 @@ bool HeroStatsPanel::StepPoint(int region) {
     bool roomLeft = total < kMaxTotal;
     switch (region - kFirstButton) {
     case 0:
-        EI_NAN_AUDIT(stats->strengthBase);
         if (stats->strengthBase <= kMinAttribute) return false;
         SetAttribute(stats->strengthBase, stats->strength, stats->strengthBase - kStep);
         return true;
     case 1:
-        EI_NAN_AUDIT(stats->dexterityBase);
         if (stats->dexterityBase <= kMinAttribute) return false;
         SetAttribute(stats->dexterityBase, stats->dexterity, stats->dexterityBase - kStep);
         return true;
     case 2:
-        EI_NAN_AUDIT(stats->intelligenceBase);
         if (stats->intelligenceBase <= kMinAttribute) return false;
         SetAttribute(stats->intelligenceBase, stats->intelligence, stats->intelligenceBase - kStep);
         return true;

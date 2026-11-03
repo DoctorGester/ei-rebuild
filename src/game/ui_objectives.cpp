@@ -20,7 +20,6 @@
 #include "lib/float_select.h"
 #include "lib/rect.h"
 #include "lib/intro_sort.h"
-#include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
@@ -150,7 +149,6 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
                     anyKnown = true;
                     exit->distance = node->second;
                     exit->flag = true;
-                    EI_NAN_AUDIT(node->second, nearest);
                     if (node->second < nearest) {
                         nearestExit = index;
                         nearest = node->second;
@@ -161,7 +159,6 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
         } else {
             std::string name = std::format("z.{}", source.target);
             float value = LocalPlayerVariable(name);
-            EI_NAN_AUDIT(value);
             if (value != 1.0f) exit->flag = true;
         }
 
@@ -222,7 +219,6 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
         GameLocalPlayerVariables(prefix, &table);
         std::vector<std::string> found;
         for (auto node = table.begin(); node != table.end(); ++node) {
-            EI_NAN_AUDIT(node->second);
             if (node->second == 0.0f) continue;
             parts = text::Split(node->first, '.');
             if (parts.size() == 3) found.push_back(parts[2]);

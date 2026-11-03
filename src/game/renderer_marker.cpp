@@ -8,7 +8,6 @@
 #include "texture.h"       // TextureDevice
 #include "lib/float_select.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 #include "render/render.h"
 #include "render/render_state.h"
@@ -147,7 +146,6 @@ float Clamp(float v, float lo, float hi) { return MaxKeepA(lo, MinKeepB(hi, v));
 
 // The ramp of the clamped, halved settings (one table: every channel the same).
 void BuildRamp(std::uint16_t (&ramp)[kLevels], float brightness, float gamma) {
-    EI_NAN_AUDIT(gamma);
     float exponent = 1.0f;
     if (gamma > 0.0f) exponent = 1.0f / (gamma * 5.0f + 1.0f);
     else if (gamma < 0.0f) exponent = 1.0f / (gamma * 0.5f + 1.0f);

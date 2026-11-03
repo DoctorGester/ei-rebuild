@@ -28,7 +28,6 @@
 #include "render/render.h"
 #include "game_flow_data.h"
 #include "world_glue.h"
-#include "lib/nan_audit.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 
@@ -154,7 +153,6 @@ void SaveLoadWindow::SaveGame() {
     SaveEntry* entry = entries.data() + currentSelected;
     double space = platform::FreeDiskSpace(DataFolderText());
     // 0 means unknown: no check.
-    EI_NAN_AUDIT(space);
     if (space != 0.0) {
         int needed = CurrentSaveSize();
         if (static_cast<double>(needed) > space) {
@@ -292,7 +290,6 @@ void QuickSave(const char* slot, bool stepFrame) {
     if (IsMultiplayerClient()) return;
     double space = platform::FreeDiskSpace(DataFolderText());
     // 0 means unknown: no check.
-    EI_NAN_AUDIT(space);
     if (space != 0.0 && static_cast<double>(CurrentSaveSize()) > space) return;
     if (stepFrame) app::FrameStep(false, true);
     // A null surface (no memory) is used all the same, as in the original.

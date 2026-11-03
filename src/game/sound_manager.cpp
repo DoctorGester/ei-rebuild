@@ -14,7 +14,6 @@
 #include "lib/float_select.h"
 #include "platform/platform.h"
 #include "lib/maths.h"
-#include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
@@ -201,7 +200,6 @@ int SoundManager::FlatVolume(int level, int fade, int isSpeech) const {
     float v = static_cast<float>(level);
     if (fade != 0) {
         float h = listener.z;
-        EI_NAN_AUDIT(h);
         if (h >= kHeightSilent) v = 0.0f;
         else if (h > kHeightFull) v = v * HeightFactor(h);
     }
@@ -251,7 +249,6 @@ void SoundManager::UpdatePositional(SoundSlot* slot) {
         return;
     }
     float dist = std::sqrt(dist2);
-    EI_NAN_AUDIT(dist, slot->nearDistance);
     int level = 100;
     if (!(dist < slot->nearDistance))
         level = 100 - lib::RoundEven((dist - slot->nearDistance) / (slot->farDistance - slot->nearDistance) * kHundred);
@@ -262,7 +259,6 @@ void SoundManager::UpdatePositional(SoundSlot* slot) {
         slot->pan = 0;
         return;
     }
-    EI_NAN_AUDIT(dist);
     if (dist == 0.0f) {
         slot->pan = 0;
         return;
@@ -294,7 +290,6 @@ void SoundManager::SetListener(const Vector3& position, const Vector3& axis) {
     listener = position;
     listenerAxis = axis;
     float len = std::sqrt(LengthSquared2D(listenerAxis.x, listenerAxis.y));
-    EI_NAN_AUDIT(len);
     if (len == 0.0f) {
         listenerAxis = {1.0f, 0.0f, 0.0f};
     } else {
@@ -675,13 +670,11 @@ void SoundManager::Tick() {
         if (e->active == 0) continue;
         float dist = std::sqrt(DistanceSquaredXY(listener, e->position));
         std::uint32_t minInterval, maxInterval;
-        EI_NAN_AUDIT(dist, e->innerRadius);
         if (dist < e->innerRadius) {
             minInterval = static_cast<std::uint32_t>(e->minInterval);
             maxInterval = static_cast<std::uint32_t>(e->maxInterval);
         } else {
             // Out of earshot past outerRadius - 0.001.
-            EI_NAN_AUDIT(e->outerRadius);
             if (e->outerRadius - kEmitterMargin < dist) continue;
             float t = (e->outerRadius - e->innerRadius) / (e->outerRadius - dist);
             if (t > kEmitterMaxScale) continue;
@@ -833,7 +826,6 @@ void SoundManager::StopStream(int mode) {
             musicFader.mode = 2;
             musicFader.finished = 0;
             musicFader.step = step;
-            EI_NAN_AUDIT(step);
             if (step == 0.0f) musicFader.step = lib::FloatFromBits(FadeStepBits());
             musicFader.SetHold(platform::Milliseconds() + 2000);
         } else {
@@ -917,7 +909,6 @@ void SoundFader::Update() {
         break;
     case 2:
         factor -= step;
-        EI_NAN_AUDIT(factor);
         if (factor <= 0.0f) {
             mode = 0;
             factor = 0.0f;
