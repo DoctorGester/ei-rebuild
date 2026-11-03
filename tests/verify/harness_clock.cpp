@@ -1,6 +1,5 @@
 // The game's clocks in harness runs: virtual clock, held clocks, clock trace (harness_clock.h).
 #include "harness_clock.h"
-#include "harness_imports.h"
 
 #include "../../src/game/game_data.h"
 #include "../../src/hook/log.h"
@@ -10,6 +9,8 @@
 #include <windows.h>
 #include <intrin.h>
 #include <psapi.h>
+
+#pragma comment(lib, "winmm.lib")   // timeGetTime
 
 #include <algorithm>
 #include <cstdint>
@@ -24,7 +25,7 @@ namespace ei::verify::clock {
 
 namespace {
 
-// A slot of another module's import table (game.exe's: PatchImport, harness_imports.h).
+// A slot of another module's import table.
 template <class T>
 void PatchSlot(std::uintptr_t address, T replacement, T& original) {
     T* slot = ei::GamePointer<T>(address);
@@ -83,10 +84,7 @@ bool g_virtual = false;
 volatile bool g_frozen = false;
 volatile DWORD g_now = 1000000;
 const unsigned* g_tickLength = nullptr;
-decltype(&::timeGetTime) g_timeGetTime;
-decltype(&::GetTickCount) g_getTickCount;
-decltype(&::Sleep) g_sleep;
-decltype(&::WaitForSingleObject) g_waitForSingleObject;
+bool g_fixedDate = false;
 
 // Whether a timeGetTime call is the main loop's frame time: the rewritten WinMain (src/game/app_main.cpp) names
 // its site.
@@ -153,7 +151,7 @@ DWORD OtherThreadsNow() {
 // Main-thread sleeps since the last frame (see VirtualSleep).
 int g_sleepsSinceFrame = 0;
 
-DWORD WINAPI VirtualTimeGetTime() {
+DWORD VirtualTimeGetTime() {
     if (!OnMainThread()) return OtherThreadsNow();
     if (IsMainLoopTime()) {
         g_sleepsSinceFrame = 0;
@@ -164,32 +162,24 @@ DWORD WINAPI VirtualTimeGetTime() {
     }
     return g_now;
 }
-DWORD WINAPI VirtualGetTickCount() { return OnMainThread() ? g_now : OtherThreadsNow(); }
+DWORD VirtualGetTickCount() { return OnMainThread() ? g_now : OtherThreadsNow(); }
 
-// The main thread's sleeps and timed waits take no real time: the clock moves by what they would
-// have waited. Other threads wait for real (and only read the clock).
+// The main thread's sleeps take no real time: the clock moves by what they would have waited. Other threads sleep
+// for real (and only read the clock).
 // A main thread that sleeps over and over without a frame between is waiting for another thread (the
 // music's WaitAndEndAfter): Sleep(0) lets only threads of its own priority run, so on a busy machine
 // the one it waits for may get no time. After the first 50 such sleeps each one sleeps 1 ms for real.
-void WINAPI VirtualSleep(DWORD ms) {
-    if (!OnMainThread()) return g_sleep(ms);
+void VirtualSleep(DWORD ms) {
+    if (!OnMainThread()) return ::Sleep(ms);
     if (ms) RandomNote("clock +%lu: sleep", ms);
     Advance(ms);
-    g_sleep(++g_sleepsSinceFrame > 50 ? 1 : 0);
-}
-DWORD WINAPI VirtualWaitForSingleObject(HANDLE object, DWORD ms) {
-    if (!OnMainThread() || ms == 0 || ms == INFINITE) return g_waitForSingleObject(object, ms);
-    DWORD result = g_waitForSingleObject(object, 0);
-    if (result != WAIT_TIMEOUT) return result;
-    RandomNote("clock +%lu: wait timed out", ms);
-    Advance(ms);
-    return WAIT_TIMEOUT;
+    ::Sleep(++g_sleepsSinceFrame > 50 ? 1 : 0);
 }
 
 // ---- Held clocks ("freeze" in a real-time run) ---------------------------------------------------
 
 struct HeldClock {
-    DWORD(WINAPI* base)() = nullptr;
+    DWORD(WINAPI* base)() = nullptr;   // the system's clock; null while the clocks are not held
     DWORD offset = 0;   // the game's time is base() - offset while running
     DWORD heldAt = 0;
     DWORD Read() const { return g_frozen ? heldAt : base() - offset; }
@@ -197,8 +187,6 @@ struct HeldClock {
     void Resume() { offset = base() - heldAt; }
 };
 HeldClock g_heldTimeGetTime, g_heldTickCount;
-DWORD WINAPI HeldTimeGetTime() { return g_heldTimeGetTime.Read(); }
-DWORD WINAPI HeldGetTickCount() { return g_heldTickCount.Read(); }
 
 // ---- Trace ---------------------------------------------------------------------------------------
 
@@ -206,13 +194,13 @@ enum Fn : std::uint8_t {
     kTimeGetTime, kGetTickCount, kGetTickCount64, kQueryPerformanceCounter, kGetMessageTime, kGetLocalTime,
     kGetSystemTime, kGetSystemTimeAsFileTime, kSleep, kSleepEx, kWaitForSingleObject, kWaitForSingleObjectEx,
     kWaitForMultipleObjects, kWaitForMultipleObjectsEx, kMsgWaitForMultipleObjects, kMsgWaitForMultipleObjectsEx,
-    kGetMessageA, kTimeSetEvent, kSetTimer, kCreateThread, kFnCount
+    kTimeSetEvent, kSetTimer, kCreateThread, kFnCount
 };
 constexpr const char* kFnNames[kFnCount] = {
     "timeGetTime", "GetTickCount", "GetTickCount64", "QueryPerformanceCounter", "GetMessageTime", "GetLocalTime",
     "GetSystemTime", "GetSystemTimeAsFileTime", "Sleep", "SleepEx", "WaitForSingleObject", "WaitForSingleObjectEx",
     "WaitForMultipleObjects", "WaitForMultipleObjectsEx", "MsgWaitForMultipleObjects", "MsgWaitForMultipleObjectsEx",
-    "GetMessageA", "timeSetEvent", "SetTimer", "CreateThread",
+    "timeSetEvent", "SetTimer", "CreateThread",
 };
 
 struct Entry {
@@ -296,64 +284,42 @@ DWORD WaitArgument(A... a) {
     }
 }
 
-// One traced import: `inner` is what the slot held (game.exe) or the real export (other modules).
-template <Fn kFn, bool kGame, int kWaitIndex, class R, class... A>
+// One traced import of another module: `inner` is the real export.
+template <Fn kFn, int kWaitIndex, class R, class... A>
 struct Traced {
     static inline R(WINAPI* inner)(A...) = nullptr;
     static R WINAPI Call(A... a) {
         const void* caller = _ReturnAddress();
         Record(kFn, caller, WaitArgument<kWaitIndex>(a...), kWaitIndex >= 0);
         return inner(a...);
-
     }
 };
 
-template <bool kGame>
 struct TracedSet {
-    using TimeGetTime = Traced<kTimeGetTime, kGame, -1, DWORD>;
-    using GetTickCount = Traced<kGetTickCount, kGame, -1, DWORD>;
-    using GetTickCount64 = Traced<kGetTickCount64, kGame, -1, ULONGLONG>;
-    using QueryPerformanceCounter = Traced<kQueryPerformanceCounter, kGame, -1, BOOL, LARGE_INTEGER*>;
-    using GetMessageTime = Traced<kGetMessageTime, kGame, -1, LONG>;
-    using GetLocalTime = Traced<kGetLocalTime, kGame, -1, void, LPSYSTEMTIME>;
-    using GetSystemTime = Traced<kGetSystemTime, kGame, -1, void, LPSYSTEMTIME>;
-    using GetSystemTimeAsFileTime = Traced<kGetSystemTimeAsFileTime, kGame, -1, void, LPFILETIME>;
-    using Sleep = Traced<kSleep, kGame, 0, void, DWORD>;
-    using SleepEx = Traced<kSleepEx, kGame, 0, DWORD, DWORD, BOOL>;
-    using WaitForSingleObject = Traced<kWaitForSingleObject, kGame, 1, DWORD, HANDLE, DWORD>;
-    using WaitForSingleObjectEx = Traced<kWaitForSingleObjectEx, kGame, 1, DWORD, HANDLE, DWORD, BOOL>;
-    using WaitForMultipleObjects = Traced<kWaitForMultipleObjects, kGame, 3, DWORD, DWORD, const HANDLE*, BOOL, DWORD>;
+    using TimeGetTime = Traced<kTimeGetTime, -1, DWORD>;
+    using GetTickCount = Traced<kGetTickCount, -1, DWORD>;
+    using GetTickCount64 = Traced<kGetTickCount64, -1, ULONGLONG>;
+    using QueryPerformanceCounter = Traced<kQueryPerformanceCounter, -1, BOOL, LARGE_INTEGER*>;
+    using GetMessageTime = Traced<kGetMessageTime, -1, LONG>;
+    using GetLocalTime = Traced<kGetLocalTime, -1, void, LPSYSTEMTIME>;
+    using GetSystemTime = Traced<kGetSystemTime, -1, void, LPSYSTEMTIME>;
+    using GetSystemTimeAsFileTime = Traced<kGetSystemTimeAsFileTime, -1, void, LPFILETIME>;
+    using Sleep = Traced<kSleep, 0, void, DWORD>;
+    using SleepEx = Traced<kSleepEx, 0, DWORD, DWORD, BOOL>;
+    using WaitForSingleObject = Traced<kWaitForSingleObject, 1, DWORD, HANDLE, DWORD>;
+    using WaitForSingleObjectEx = Traced<kWaitForSingleObjectEx, 1, DWORD, HANDLE, DWORD, BOOL>;
+    using WaitForMultipleObjects = Traced<kWaitForMultipleObjects, 3, DWORD, DWORD, const HANDLE*, BOOL, DWORD>;
     using WaitForMultipleObjectsEx =
-        Traced<kWaitForMultipleObjectsEx, kGame, 3, DWORD, DWORD, const HANDLE*, BOOL, DWORD, BOOL>;
+        Traced<kWaitForMultipleObjectsEx, 3, DWORD, DWORD, const HANDLE*, BOOL, DWORD, BOOL>;
     using MsgWaitForMultipleObjects =
-        Traced<kMsgWaitForMultipleObjects, kGame, 3, DWORD, DWORD, const HANDLE*, BOOL, DWORD, DWORD>;
+        Traced<kMsgWaitForMultipleObjects, 3, DWORD, DWORD, const HANDLE*, BOOL, DWORD, DWORD>;
     using MsgWaitForMultipleObjectsEx =
-        Traced<kMsgWaitForMultipleObjectsEx, kGame, 2, DWORD, DWORD, const HANDLE*, DWORD, DWORD, DWORD>;
-    using GetMessageA = Traced<kGetMessageA, kGame, -1, BOOL, LPMSG, HWND, UINT, UINT>;
-    using TimeSetEvent = Traced<kTimeSetEvent, kGame, 0, MMRESULT, UINT, UINT, LPTIMECALLBACK, DWORD_PTR, UINT>;
-    using SetTimer = Traced<kSetTimer, kGame, 2, UINT_PTR, HWND, UINT_PTR, UINT, TIMERPROC>;
-    using CreateThread = Traced<kCreateThread, kGame, -1, HANDLE, LPSECURITY_ATTRIBUTES, SIZE_T,
+        Traced<kMsgWaitForMultipleObjectsEx, 2, DWORD, DWORD, const HANDLE*, DWORD, DWORD, DWORD>;
+    using TimeSetEvent = Traced<kTimeSetEvent, 0, MMRESULT, UINT, UINT, LPTIMECALLBACK, DWORD_PTR, UINT>;
+    using SetTimer = Traced<kSetTimer, 2, UINT_PTR, HWND, UINT_PTR, UINT, TIMERPROC>;
+    using CreateThread = Traced<kCreateThread, -1, HANDLE, LPSECURITY_ATTRIBUTES, SIZE_T,
                                 LPTHREAD_START_ROUTINE, LPVOID, DWORD, LPDWORD>;
 };
-
-// game.exe's imports: wrap whatever the slot holds now (the virtual or held clock, or the real one).
-template <class T, class F>
-void TraceSlot(F ImportTable::* slot) {
-    PatchImport(slot, &T::Call, T::inner);
-}
-
-void TraceGameImports() {
-    using S = TracedSet<true>;
-    TraceSlot<S::TimeGetTime>(&ImportTable::timeGetTime);
-    TraceSlot<S::GetTickCount>(&ImportTable::GetTickCount);
-    TraceSlot<S::Sleep>(&ImportTable::Sleep);
-    TraceSlot<S::WaitForSingleObject>(&ImportTable::WaitForSingleObject);
-
-    TraceSlot<S::GetMessageA>(&ImportTable::GetMessageA);
-    TraceSlot<S::GetLocalTime>(&ImportTable::GetLocalTime);
-    TraceSlot<S::GetSystemTime>(&ImportTable::GetSystemTime);
-
-}
 
 // Other modules' imports, by name, wrapped around the real export.
 struct NamedHook {
@@ -367,7 +333,7 @@ NamedHook Named(const char* name) {
 }
 
 const std::vector<NamedHook>& ModuleHooks() {
-    using S = TracedSet<false>;
+    using S = TracedSet;
     static const std::vector<NamedHook> hooks = {
         Named<S::TimeGetTime>("timeGetTime"),
         Named<S::GetTickCount>("GetTickCount"),
@@ -467,10 +433,6 @@ void InstallVirtual(const unsigned* tickLength) {
     g_tickLength = tickLength;
     WriteAnchor({g_now, GetTickCount()});
     g_otherNow = static_cast<LONG>(g_now);
-    PatchImport(&ImportTable::timeGetTime, &VirtualTimeGetTime, g_timeGetTime);
-    PatchImport(&ImportTable::GetTickCount, &VirtualGetTickCount, g_getTickCount);
-    PatchImport(&ImportTable::Sleep, &VirtualSleep, g_sleep);
-    PatchImport(&ImportTable::WaitForSingleObject, &VirtualWaitForSingleObject, g_waitForSingleObject);
 }
 
 bool Virtual() { return g_virtual; }
@@ -478,8 +440,36 @@ bool Virtual() { return g_virtual; }
 void SetFrameTime(unsigned ms) { g_frameMs = ms; }
 
 void InstallHeld() {
-    PatchImport(&ImportTable::timeGetTime, &HeldTimeGetTime, g_heldTimeGetTime.base);
-    PatchImport(&ImportTable::GetTickCount, &HeldGetTickCount, g_heldTickCount.base);
+    g_heldTimeGetTime.base = &::timeGetTime;
+    g_heldTickCount.base = &::GetTickCount;
+}
+
+void FixDate() { g_fixedDate = true; }
+
+DWORD Milliseconds() {
+    if (g_tracing) Record(kTimeGetTime, _ReturnAddress(), 0, false);
+    if (g_virtual) return VirtualTimeGetTime();
+    return g_heldTimeGetTime.base ? g_heldTimeGetTime.Read() : ::timeGetTime();
+}
+
+DWORD Ticks() {
+    if (g_tracing) Record(kGetTickCount, _ReturnAddress(), 0, false);
+    if (g_virtual) return VirtualGetTickCount();
+    return g_heldTickCount.base ? g_heldTickCount.Read() : ::GetTickCount();
+}
+
+void Sleep(DWORD ms) {
+    if (g_tracing) Record(kSleep, _ReturnAddress(), ms, true);
+    if (g_virtual) VirtualSleep(ms);
+    else ::Sleep(ms);
+}
+
+SYSTEMTIME LocalTime() {
+    if (g_tracing) Record(kGetLocalTime, _ReturnAddress(), 0, false);
+    SYSTEMTIME time;
+    if (g_fixedDate) time = SYSTEMTIME{2001, 3, 1, 26, 12, 0, 0, 0};   // 2001-03-26 12:00, game.exe's build date
+    else ::GetLocalTime(&time);
+    return time;
 }
 
 void Freeze(bool on) {
@@ -507,10 +497,10 @@ DWORD Now() { return g_virtual ? g_now : GetTickCount(); }
 void InstallTrace() {
     FindMainThreadOnce();
     g_tracing = true;
-    TraceGameImports();
     TraceModules();
     if (HANDLE thread = CreateThread(nullptr, 0, &TraceThread, nullptr, 0, nullptr)) CloseHandle(thread);
-    Log("clocktrace: on (game.exe's clock and wait imports, and those of the DLLs in the game's folders)");
+    Log("clocktrace: on (the game's clocks, sleeps and date, and the clock and wait imports of the DLLs in the game's "
+        "folders)");
 }
 
 void DumpTrace(const char* why) {

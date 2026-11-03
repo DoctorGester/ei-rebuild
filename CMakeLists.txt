@@ -64,7 +64,7 @@ if(WIN32)
     else()
         add_link_options(/DEPENDENTLOADFLAG:0x800)
     endif()
-    set(EI_SYSTEM win32)   # src/platform/win32, with game.exe's import slots (gameapi.h)
+    set(EI_SYSTEM win32)   # src/platform/win32
     set(EI_GRAPHICS d3d11)
     set(EI_GRAPHICS_BACKEND SOKOL_D3D11)
     set(EI_GRAPHICS_LIBRARIES d3d11 dxgi)
@@ -131,6 +131,13 @@ target_sources(ei_render PRIVATE ${EI_FONT_HEADERS})
 # (src/platform/sdl); the rest on the system's (src/platform/win32, the one place of the game's code that includes
 # <windows.h>, or src/platform/posix).
 file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/sdl/*.cpp src/platform/${EI_SYSTEM}/*.cpp)
+# The calls a harness run answers itself (src/platform/win32/game_calls.cpp): in the harness's builds the game takes
+# tests/verify's definitions (below), and the other programs that link the platform take the file (EI_GAME_CALLS).
+set(EI_GAME_CALLS)
+if(EI_HARNESS AND WIN32)
+    set(EI_GAME_CALLS ${CMAKE_SOURCE_DIR}/src/platform/win32/game_calls.cpp)
+    list(REMOVE_ITEM EI_PLATFORM_SOURCES ${EI_GAME_CALLS})
+endif()
 add_library(ei_platform STATIC ${EI_PLATFORM_SOURCES})
 target_include_directories(ei_platform PRIVATE include src)
 target_link_libraries(ei_platform PRIVATE SDL3::SDL3-static)
@@ -170,8 +177,9 @@ file(WRITE ${CMAKE_BINARY_DIR}/third_party_notices.txt
 
 if(EI_HARNESS)
     # The harness (tests/verify; docs/notes/harness.md), linked into this exe. Its own window, events, clocks, cursor,
-    # mouse and clipboard on SDL (tests/verify/harness_platform.cpp) take platform_sdl.cpp's place; sokol's validation
-    # layer is on (its messages in ei-rebuild.log).
+    # mouse and clipboard on SDL (tests/verify/harness_platform.cpp) take platform_sdl.cpp's place, and its answers to
+    # the game's file, .ini, socket and desktop calls (its overlay, its sockets on 127.0.0.1) game_calls.cpp's; sokol's
+    # validation layer is on (its messages in ei-rebuild.log).
     file(GLOB EI_HARNESS_SOURCES CONFIGURE_DEPENDS tests/verify/*.cpp tests/verify/image/*.cpp)
     target_sources(ei-rebuild PRIVATE ${EI_HARNESS_SOURCES})
     target_include_directories(ei-rebuild PRIVATE third_party/sokol)
@@ -192,7 +200,7 @@ if(WIN32)
     # The unit checks (tests/unit): the settings file's format and lib::HashMap's walk order, without the game.
     # build.cmd runs it.
     add_executable(ei_unit_check tests/unit/unit_check.cpp tests/unit/settings_file.cpp tests/unit/hash_map.cpp
-                   src/game/settings_document.cpp src/lib/hash_map.cpp src/lib/text_case.cpp)
+                   src/game/settings_document.cpp src/lib/hash_map.cpp src/lib/text_case.cpp ${EI_GAME_CALLS})
     target_include_directories(ei_unit_check PRIVATE include src)
     target_link_libraries(ei_unit_check PRIVATE ei_platform)
 

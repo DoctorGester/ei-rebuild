@@ -1,6 +1,6 @@
 // Crash reports and the "diskfull" test step (harness_crash.h; ticket X40).
 #include "harness_crash.h"
-#include "harness_imports.h"
+#include "platform/win32/platform_win32.h"
 #include "image/image_side.h"
 
 #include "../../src/hook/log.h"
@@ -199,7 +199,6 @@ OpenedFile g_opened[2 * kMaxOpened];   // reads, then writes
 int g_nextOpened[2];
 SRWLOCK g_openedLock = SRWLOCK_INIT;
 char g_failText[MAX_PATH];
-decltype(&::WriteFile) g_writeFile;
 // The first write that failed for real (not "diskfull"), as the run's failure line.
 SRWLOCK g_failedLock = SRWLOCK_INIT;
 std::string g_failedWrite;
@@ -216,42 +215,6 @@ bool FindOpened(HANDLE handle, OpenedFile* out) {
     }
     ReleaseSRWLockShared(&g_openedLock);
     return found;
-}
-
-BOOL WINAPI WatchedWriteFile(HANDLE file, LPCVOID buffer, DWORD size, LPDWORD written, LPOVERLAPPED overlapped) {
-    OpenedFile opened{};
-    const bool known = file != INVALID_HANDLE_VALUE && FindOpened(file, &opened);
-    const bool injected = known && opened.failing;   // "diskfull"
-    BOOL result = FALSE;
-    DWORD error = ERROR_DISK_FULL;
-    if (injected) {
-        if (written) *written = 0;
-    } else {
-        result = g_writeFile(file, buffer, size, written, overlapped);
-        if (result) return result;
-        error = GetLastError();
-        if (error == ERROR_IO_PENDING) return result;
-    }
-    char drive[4] = "";
-    if (known && opened.target[0] && opened.target[1] == ':') std::snprintf(drive, sizeof(drive), "%c:\\", opened.target[0]);
-    const long long freeMb = drive[0] ? FreeMegabytes(drive) : -1;
-    const bool redirected = known && std::strcmp(opened.path, opened.target) != 0;
-    char line[3 * MAX_PATH];
-    std::snprintf(line, sizeof(line), "a file write failed: %lu bytes to %s%s%s: error %lu (%s); %lld MB free on %s", size,
-                  known ? opened.path : "a file not opened through the redirection", redirected ? " -> " : "",
-                  redirected ? opened.target : "", error, OsErrorText(static_cast<long>(error)).c_str(), freeMb,
-                  drive[0] ? drive : "its disk");
-    static LONG logged = 0;
-    if (InterlockedIncrement(&logged) <= 10) Log("harness: %s%s", injected ? "diskfull: " : "", line);
-    // Only files the game opened for writing fail the run: a write to a file opened for reading (the
-    // CRT start-up checks try one) or to a handle the redirection never saw is the game's own business.
-    if (known && opened.write && !injected) {
-        AcquireSRWLockExclusive(&g_failedLock);
-        if (g_failedWrite.empty()) g_failedWrite = line;
-        ReleaseSRWLockExclusive(&g_failedLock);
-    }
-    SetLastError(error);
-    return result;
 }
 
 } // namespace
@@ -288,8 +251,6 @@ long long FreeMegabytes(const char* path) {
     if (!path || !GetDiskFreeSpaceExA(path, &available, nullptr, nullptr)) return -1;
     return static_cast<long long>(available.QuadPart / (1024 * 1024));
 }
-
-void WatchWrites() { PatchImport(&ImportTable::WriteFile, &WatchedWriteFile, g_writeFile); }
 
 void FailWritesTo(const char* text) {
     strncpy_s(g_failText, text, _TRUNCATE);
@@ -331,3 +292,41 @@ std::string FailedWrite() {
 }
 
 } // namespace ei::verify::crash
+
+// The game's file writes (game_calls.cpp's in its own builds), watched: harness_crash.h.
+BOOL platform::win32::WriteFile(HANDLE file, const void* buffer, DWORD size, DWORD* written) {
+    using namespace ei::verify::crash;
+    OpenedFile opened{};
+    const bool known = file != INVALID_HANDLE_VALUE && FindOpened(file, &opened);
+    const bool injected = known && opened.failing;   // "diskfull"
+    BOOL result = FALSE;
+    DWORD error = ERROR_DISK_FULL;
+    if (injected) {
+        if (written) *written = 0;
+    } else {
+        result = ::WriteFile(file, buffer, size, written, nullptr);
+        if (result) return result;
+        error = GetLastError();
+        if (error == ERROR_IO_PENDING) return result;
+    }
+    char drive[4] = "";
+    if (known && opened.target[0] && opened.target[1] == ':') std::snprintf(drive, sizeof(drive), "%c:\\", opened.target[0]);
+    const long long freeMb = drive[0] ? FreeMegabytes(drive) : -1;
+    const bool redirected = known && std::strcmp(opened.path, opened.target) != 0;
+    char line[3 * MAX_PATH];
+    std::snprintf(line, sizeof(line), "a file write failed: %lu bytes to %s%s%s: error %lu (%s); %lld MB free on %s", size,
+                  known ? opened.path : "a file not opened through the redirection", redirected ? " -> " : "",
+                  redirected ? opened.target : "", error, OsErrorText(static_cast<long>(error)).c_str(), freeMb,
+                  drive[0] ? drive : "its disk");
+    static LONG logged = 0;
+    if (InterlockedIncrement(&logged) <= 10) ei::Log("harness: %s%s", injected ? "diskfull: " : "", line);
+    // Only files the game opened for writing fail the run: a write to a file opened for reading (the
+    // CRT start-up checks try one) or to a handle the redirection never saw is the game's own business.
+    if (known && opened.write && !injected) {
+        AcquireSRWLockExclusive(&g_failedLock);
+        if (g_failedWrite.empty()) g_failedWrite = line;
+        ReleaseSRWLockExclusive(&g_failedLock);
+    }
+    SetLastError(error);
+    return result;
+}

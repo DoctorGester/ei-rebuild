@@ -83,7 +83,6 @@ Read before changing code:
   - `tools/check_cleanup.py`
   - `tools/comments.py check`
   - `tools/tickets.py`
-  - `tools/gen_iat.py --check`
   - `tools/data_seam.py --check`, `tools/named_data.py --check`, `tools/check_platform.py`,
     `tools/gen_settings_doc.py --check`
 - **Linux builds here too** (docs/notes/linux.md): `cmake -S . -B build/linux -G Ninja` and `xvfb-run -a ctest` in

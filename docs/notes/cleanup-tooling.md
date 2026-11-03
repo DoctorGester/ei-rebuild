@@ -47,21 +47,17 @@ of ei-rebuild.exe is ~2 s, the checks (`tools/build_checks.py`) ~1.6 s, vcvars 0
   1.25 -> 1.25: ~0.17 s each, ~15 s of a clean build's ~1,300 s. What still includes windows.h calls Windows: the
   window, messages and input (app, app_main, present_window, bink_video, ui_console_window's clipboard,
   ui_edit_field, ui_font), files and mappings (file_io, resource_stream's mmio, settings), threads and waits
-  (thread, sound_manager, ui_cursor_setup), text conversion (asset_text, platform_win32's UTF-8 routes), sockets
+  (thread, sound_manager, ui_cursor_setup), text conversion (asset_text, platform_win32's UTF-16 calls), sockets
   (net_second_master), MulDiv (ui_scrolling_surface); src/render (D3D11 and DXGI include it anyway), src/standalone
-  (the loader: exception handlers, VirtualAlloc, the environment), src/hook and import_table.h /
-  import_prototypes.h.
+  (the loader: exception handlers, VirtualAlloc, the environment) and src/hook.
 - Files go through `platform/platform.h` (no SDK header): File (`FileMode` Read / Create / WriteExisting, Seek's
   `SeekFrom`; ReadAt, a seek and an exact read that return false instead of throwing, as the archive and the seed
   file checked SetFilePointer and ReadFile), MappedFile (the mapped archives, read only) and FileFind. Rebirth's code (mod_folders, console_addon, script_addon_commands) looks files up with
   `platform::IsFile` / `platform::FolderEntries` (platform/platform.h), the UTF-8 calls directly: addon.dll called its own imports,
-  which the harness's read redirection (the game's slots only) leaves alone, so they must not move onto File /
+  which the harness's read redirection (File / FileFind only) leaves alone, so they must not move onto File /
   FileFind. A member type change (platform::MappedFile, held by FileRegistry, held by WorldServer and SoundManager) moves
   their members: a per-function `dumpbin` comparison then differs in displacements, so compare with hex
   immediates masked (H33g's scratch `objdiff_norm.py`).
-- gameapi.h's slot imports are `extern` references bound once in the generated gameapi.cpp (init_seg(lib)), not
-  `inline auto&` references whose dynamic initialiser every including object compiled: 0-0.07 s per object (thread,
-  calendar, random), a few s of a clean build; the call code is the same.
 - An include change can change how MSVC inlines `std::basic_string` members, as the precompiled header did: model.h
   without `script.h` changed ~25 objects, party.h without `map_object_figures.h` 3. Check each include change with a
   per-function `dumpbin /disasm` comparison of the objects (only `__LINE__` immediates may differ).
