@@ -145,6 +145,7 @@ inline Vector3 Min(const Vector3& a, const Vector3& b) {
 inline Vector3 Max(const Vector3& a, const Vector3& b) {
     return {a.x < b.x ? b.x : a.x, a.y < b.y ? b.y : a.y, a.z < b.z ? b.z : a.z};
 }
+inline Vector3 Abs(const Vector3& v) { return {std::fabs(v.x), std::fabs(v.y), std::fabs(v.z)}; }
 
 // The 2D part (x, y) of 3D positions.
 inline float DistanceSquaredXY(const Vector3& a, const Vector3& b) {

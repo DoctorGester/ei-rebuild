@@ -241,12 +241,10 @@ void WorldServer::ResetState() {
         alarm.x = 0.0f;
     }
     sessionKind = 0;
-    startPosition.x = 0.0f;
+    startPosition = {};
     weatherFactor = std::bit_cast<std::uint32_t>(1.0f);
     loaded = 0;
-    startPosition.y = 0.0f;
     lastRainBoltTick = 0;
-    startPosition.z = 0.0f;
 }
 
 void WorldServer::EnsureZone(std::string_view map, std::string_view mob) {

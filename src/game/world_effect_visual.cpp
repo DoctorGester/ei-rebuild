@@ -115,12 +115,7 @@ void EffectPointLight::Reset() {
 
 bool EffectPointLight::RunTick() {
     if (moving == 0) return true;
-    float x = localPosition.x + velocity.x;
-    float y = localPosition.y + velocity.y;
-    float z = localPosition.z + velocity.z;
-    localPosition.x = x;
-    localPosition.y = y;
-    localPosition.z = z;
+    localPosition += velocity;
     if (light != nullptr) LightPosition(light) = localPosition;
     return true;
 }

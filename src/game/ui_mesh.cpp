@@ -71,9 +71,8 @@ void SetBuildScale(UiMesh* mesh, float depth, float scale) {
 // The position from a layout point: ((x * 2/1600 - 1) * 0.48157 * depth, (y / 400 - 0.75) *
 // 0.48157 * depth, depth) (the rectangle builder adds the two edges first).
 void SetPosition(UiMesh* mesh, float x, float y, float depth) {
-    mesh->localPosition.x = (x - 1.0f) * worlddata::kInterfaceView * depth;
-    mesh->localPosition.y = (y - worlddata::kThreeQuarters) * worlddata::kInterfaceView * depth;
-    mesh->localPosition.z = depth;
+    mesh->localPosition = {(x - 1.0f) * worlddata::kInterfaceView * depth,
+                           (y - worlddata::kThreeQuarters) * worlddata::kInterfaceView * depth, depth};
 }
 
 // --- Points on a circle ------------------------------------------------------------------------------

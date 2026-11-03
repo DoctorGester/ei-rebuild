@@ -251,10 +251,7 @@ void AIBrain::UpdateMove() {
         }
         actionTime = kLookStarted;
         const AILook& look = move.looks.front();
-        Vector3 direction;
-        direction.z = 0.0f;
-        direction.x = pc24::Round(pc24::Cos(look.angle));
-        direction.y = pc24::Round(pc24::Sin(look.angle));
+        const Vector3 direction = {pc24::Round(pc24::Cos(look.angle)), pc24::Round(pc24::Sin(look.angle)), 0.0f};
         owner->OrderTurn(direction, std::bit_cast<std::uint32_t>(look.time));   // the float's bits as the time (sic)
         return;
     }

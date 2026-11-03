@@ -65,9 +65,7 @@ bool PointLightShare(const Object3D* object, Light* light, Vector3* out) {
     if (distanceSquared >= light->rangeSquared) return false;    // NaN counts as in range
     float falloff = 1.0f - light->inverseRangeSquared * distanceSquared;
     float intensity = Brightness(light) * falloff;
-    Vector3 towards = {at.x - from.x,
-                       at.y - from.y,
-                       at.z - from.z};
+    Vector3 towards = at - from;
     EI_NAN_AUDIT(distanceSquared);
     if (distanceSquared == 0.0f) {
         towards = kDefaultLight;
@@ -77,18 +75,13 @@ bool PointLightShare(const Object3D* object, Light* light, Vector3* out) {
     }
     float scale = intensity;
     if (light->flags & LightFlag::Strong) scale = scale * kStrongFactor;
-    out->z = towards.z * scale;
-    out->y = towards.y * scale;
-    out->x = towards.x * scale;
+    *out = towards * scale;
     return true;
 }
 
 // A directional light's share: its direction times its brightness.
 void DirectionalShare(Light* light, Vector3* out) {
-    float brightness = Brightness(light);
-    out->z = brightness * light->direction.z;
-    out->y = brightness * light->direction.y;
-    out->x = brightness * light->direction.x;
+    *out = light->direction * Brightness(light);
 }
 
 // The normalised direction of `sum`, tilted down to at least 20 degrees below the horizontal.
@@ -96,21 +89,13 @@ void LightDirection(const Vector3& sum, Vector3* direction) {
     float lengthSquared = LengthSquaredUnrounded<Sum3::ZXY>(sum);   // (x + z) + y
     *direction = sum;
     EI_NAN_AUDIT(lengthSquared);
-    if (lengthSquared != 0.0f) {
-        float inverse = 1.0f / std::sqrt(lengthSquared);
-        direction->x = sum.x * inverse;
-        direction->y = inverse * direction->y;
-        direction->z = inverse * direction->z;
-    }
+    if (lengthSquared != 0.0f) *direction = sum * (1.0f / std::sqrt(lengthSquared));
     float horizontal = std::sqrt(LengthSquared2DUnrounded(direction->y, direction->x));
     float height = AbsBits(direction->z);
     float elevation = std::atan2(height, horizontal);
     if (elevation >= kMinimumTilt) return;   // NaN tilts
-    float z = horizontal * kTiltSlope;
-    float inverse = 1.0f / std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(direction->x, direction->y, z));
-    direction->x = inverse * direction->x;
-    direction->y = inverse * direction->y;
-    direction->z = inverse * z;
+    const Vector3 tilted = {direction->x, direction->y, horizontal * kTiltSlope};
+    *direction = tilted * (1.0f / std::sqrt(LengthSquaredZYX(tilted)));
 }
 
 // The shadow's sphere about the object (the original projected the parts from the lights' direction and

@@ -148,10 +148,7 @@ bool AIBrain::CanReach(const AITargetChoice* choice, bool fromHere) {
         // The target is lifted off the sector map so it does not block its own cell.
         server->aiMap.sectorMap.Remove(object);
         if (server->aiMap.FindPath(self, object->localPosition, &path, range, minDistance)) {
-            float scale = 0.5f;
-            point.x = scale * path.targetX;
-            point.y = scale * path.targetY;
-            point.z = 0.0f;
+            point = {0.5f * path.targetX, 0.5f * path.targetY, 0.0f};
         } else {
             point = self->localPosition;
         }

@@ -27,12 +27,6 @@ int Classify(const std::uint32_t (&codes)[8]) {
     return -1;
 }
 
-// |v| per component, and the larger of a and b per component.
-Vector3 Magnitudes(const Vector3& v) { return {std::fabs(v.x), std::fabs(v.y), std::fabs(v.z)}; }
-Vector3 Larger(const Vector3& a, const Vector3& b) {
-    return {a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z};
-}
-
 // PlaneRanges::Classify's answer when a plane passes too near a corner to decide without the corners' codes.
 constexpr int kNearPlane = 3;
 
@@ -45,13 +39,13 @@ public:
     explicit PlaneRanges(const Matrix4& matrix) : m(matrix) {
         const float* r = m.m;
         const Vector3 x{r[0], r[1], r[2]}, y{r[4], r[5], r[6]}, z{r[8], r[9], r[10]}, w{r[12], r[13], r[14]};
-        reach[0] = Magnitudes(x + w);
-        reach[1] = Magnitudes(w - x);
-        reach[2] = Magnitudes(y + w);
-        reach[3] = Magnitudes(w - y);
-        reach[4] = Magnitudes(z);
-        reach[5] = Magnitudes(w - z);
-        scale = Magnitudes(x) + Magnitudes(y) + Magnitudes(z) + Magnitudes(w);
+        reach[0] = Abs(x + w);
+        reach[1] = Abs(w - x);
+        reach[2] = Abs(y + w);
+        reach[3] = Abs(w - y);
+        reach[4] = Abs(z);
+        reach[5] = Abs(w - z);
+        scale = Abs(x) + Abs(y) + Abs(z) + Abs(w);
         scaleW = std::fabs(r[3]) + std::fabs(r[7]) + std::fabs(r[11]) + std::fabs(r[15]);
     }
 
@@ -60,11 +54,11 @@ public:
     // coordinate is at most |c| plus the larger extent); the rounding of either is below 2^-19 of that bound. A
     // NaN or an infinity anywhere fails every test and gives kNearPlane.
     int Classify(const Vector3& c, const Vector3& lo, const Vector3& hi) const {
-        const Vector3 reaches = Magnitudes(c) + Larger(Magnitudes(lo), Magnitudes(hi));
+        const Vector3 reaches = Abs(c) + Max(Abs(hi), Abs(lo));
         const float margin = (vecmath::Dot<Sum3::XYZ>(scale, reaches) + scaleW) * 0x1p-16f + 1e-30f;
         if (!(margin < 1e30f)) return kNearPlane;
         const Vector3 middle = c + (lo + hi) * 0.5f;
-        const Vector3 half = Magnitudes(hi - lo) * 0.5f;
+        const Vector3 half = Abs(hi - lo) * 0.5f;
         const Vector3 clip = TransformColumn<Sum3::XYZ>(m, middle);
         const float w = TransformColumnW<Sum3::XYZ>(m, middle);
         const float centres[6] = {clip.x + w, w - clip.x, clip.y + w, w - clip.y, clip.z, w - clip.z};

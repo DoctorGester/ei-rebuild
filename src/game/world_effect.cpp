@@ -30,15 +30,8 @@ void ClearBase(Effect* e) {
     e->changeStamp = -1;
 }
 
-// The local position moved by the velocity (each sum rounded to float, as stored).
-void MoveByVelocity(Effect* e) {
-    float x = e->localPosition.x + e->velocity.x;
-    float y = e->localPosition.y + e->velocity.y;
-    float z = e->localPosition.z + e->velocity.z;
-    e->localPosition.x = x;
-    e->localPosition.y = y;
-    e->localPosition.z = z;
-}
+// The local position moved by the velocity.
+void MoveByVelocity(Effect* e) { e->localPosition += e->velocity; }
 
 } // namespace
 

@@ -115,12 +115,7 @@ void PlaceInLine(UnitSpec* message, const Vector3& position, const Quaternion& r
     float dx = step * cosine;
     float dz = zStep * worlddata::kLineSpacing;
     dy = dy * worlddata::kLineSpacing;
-    float& x = spec.position.x;
-    float& y = spec.position.y;
-    float& z = spec.position.z;
-    x = dx * worlddata::kLineSpacing + x;
-    y = y + dy;
-    z = z + dz;
+    spec.position += Vector3{dx * worlddata::kLineSpacing, dy, dz};
 }
 
 // An item from an item record, with its counted record holding the item record's id.
@@ -158,10 +153,8 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
     // A hero created next to the start of zone1 plays its arrival animation.
     bool atStart = false;
     if (text::CompareIgnoringCase(mapName.c_str(), worlddata::StartZoneText(), 5) == 0) {
-        float dz = position.z;
-        float dy = position.y - worlddata::kHeroStartY;
-        float dx = position.x - worlddata::kHeroStartX;
-        float distance = LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz);
+        const Vector3 heroStart = {worlddata::kHeroStartX, worlddata::kHeroStartY, 0.0f};
+        float distance = LengthSquaredXYZ(position - heroStart);
         EI_NAN_AUDIT(distance);
         atStart = distance < worlddata::kHeroStartRadius2;
     }
@@ -217,10 +210,9 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
         brain->AddMode(std::make_unique<PlayerMode>());
         brain->StopAction();
         aiMap.sectorMap.Remove(unit);
-        Vector3 free;
-        std::memcpy(&free, &unit->localPosition.x, sizeof(free));
+        Vector3 free = unit->localPosition;
         aiMap.FindFreeCellNear(unit, position, &free);
-        std::memcpy(&unit->localPosition.x, &free, sizeof(free));
+        unit->localPosition = free;
         aiMap.sectorMap.Add(unit);
 
         unit->SetPlayer(player);
@@ -293,8 +285,7 @@ void WorldServer::UseQuickItem(Unit* unit) {
     message.parentId = static_cast<std::int32_t>(kQuickEffectFlags);
     message.scale.y = 0.0f;
     // At the unit's position, on the ground.
-    std::memcpy(&message.position, &unit->localPosition.x, 12);
-    message.position.z = 0.0f;
+    message.position = {unit->localPosition.x, unit->localPosition.y, 0.0f};
     int objectId = CreateObject(&message);
     EngineObject* effect = ObjectWithId(objectId);
     effect->flags |= kFlagsNewEffect;

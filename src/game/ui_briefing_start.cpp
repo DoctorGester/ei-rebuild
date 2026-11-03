@@ -48,16 +48,7 @@ constexpr int kCampScreen = 5;
 constexpr int kStateStarting = 2;
 constexpr float kSpacing = 2.5f;         // added to the prototype's viewDistance
 
-Vector3 Facing(const Unit* unit) {
-    Vector3 axis = unit->localRotation.AxisY();
-    return Vector3{-axis.x, -axis.y, -axis.z};
-}
-
-Vector3 Middle(const Vector3& a, const Vector3& b) {
-    return Vector3{static_cast<float>((a.x + b.x) * 0.5f), static_cast<float>((a.y + b.y) * 0.5f), (a.z + b.z) * 0.5f};
-}
-
-Vector3 Difference(const Vector3& a, const Vector3& b) { return Vector3{a.x - b.x, a.y - b.y, a.z - b.z}; }
+Vector3 Facing(const Unit* unit) { return -unit->localRotation.AxisY(); }
 
 // Normalised unless its length is zero.
 void Normalise(Vector3* v) {
@@ -143,12 +134,10 @@ void BriefingScreen::StartDialogue(bool newImmediate, bool remember) {
     Vector3& walkingPlace = noWalk ? personPlace : leaderPlace;
     Vector3 axis = standing->localRotation.AxisY();
     Vector3 at = standing->localPosition;
-    float stepY = static_cast<float>(axis.y * reach);
-    float stepX = static_cast<float>(axis.x * reach);
-    walkingPlace = Vector3{at.x - stepX, at.y - stepY, at.z - axis.z * reach};
+    walkingPlace = at - axis * reach;
     standingPlace = at;
     // The third place: the middle, moved sideways by the person's offset from it.
-    Vector3 middle = Middle(personPlace, leaderPlace);
+    const Vector3 middle = (personPlace + leaderPlace) * 0.5f;
     newThirdPlace = middle;
     newThirdPlace.x = (personPlace.y - middle.y) + middle.x;
     newThirdPlace.y = (middle.x - personPlace.x) + middle.y;
@@ -158,29 +147,29 @@ void BriefingScreen::StartDialogue(bool newImmediate, bool remember) {
             personHomeDirection = Facing(person);
         }
     } else {
-        MovePerson(leader, leaderPlace, Difference(personPlace, leaderPlace), true, immediate, false);
+        MovePerson(leader, leaderPlace, personPlace - leaderPlace, true, immediate, false);
     }
     if (third && remember) {
         thirdPlace = third->localPosition;
         thirdDirection = Facing(third);
     }
 
-    directions[0] = Difference(leaderPlace, personPlace);
+    directions[0] = leaderPlace - personPlace;
     directions[0].z = 0.0f;
-    directions[1] = Difference(personPlace, leaderPlace);
+    directions[1] = personPlace - leaderPlace;
     directions[1].z = 0.0f;
-    directions[2] = Difference(Middle(personPlace, leaderPlace), newThirdPlace);
+    directions[2] = middle - newThirdPlace;
     directions[2].z = 0.0f;
     for (Vector3& direction : directions) Normalise(&direction);
 
     if (third) DropMover(movers, third, &thirdPlace, &thirdDirection);
     if (noWalk) DropMover(movers, person, &personHome, &personHomeDirection);
     if (third) {
-        MovePerson(third, newThirdPlace, Difference(Middle(personPlace, leaderPlace), newThirdPlace), true, immediate,
+        MovePerson(third, newThirdPlace, middle - newThirdPlace, true, immediate,
                    false);
     }
     if (noWalk) {
-        MovePerson(person, personPlace, Difference(leaderPlace, personPlace), true, immediate, false);
+        MovePerson(person, personPlace, leaderPlace - personPlace, true, immediate, false);
     }
     if (immediate)
         StartPhrases();

@@ -86,9 +86,7 @@ void UiModel::Load(const char* name, const char* from, const char* to) {
     object = newObject;
     newObject->AddRef();
     newObject->flags |= MapObjectFlag::Preview;
-    newObject->localPosition.x = 0.0f;
-    newObject->localPosition.y = 0.0f;
-    newObject->localPosition.z = 3.0f;
+    newObject->localPosition = {0.0f, 0.0f, 3.0f};
     Object3DClientSpecific* specific = newObject->ClientSpecific();
     std::vector<std::string> parts;
     newObject->MakeFigure(name, &parts, 1);
@@ -100,15 +98,9 @@ void UiModel::Load(const char* name, const char* from, const char* to) {
 
 void UiModel::SetScreenPosition(float x, float y, float depth) {
     // (1/400), (1), (0.75): layout coordinates to the view
-    // plane, (x / 400 - 1, y / 400 - 0.75) * k * depth. Each product is rounded once to float.
+    // plane, (x / 400 - 1, y / 400 - 0.75) * k * depth.
     constexpr float kLayoutScale = 0x1.47ae14p-9f;
     constexpr float kViewScale = 0x1.ed21e6p-2f;
-    float px = (x * kLayoutScale - 1.0f) * kViewScale * depth;
-    float py = (y * kLayoutScale - 0.75f) * kViewScale * depth;
-    Vector3& position = object->localPosition;
-    float value = px;
-    position.x = value;
-    value = py;
-    position.y = value;
-    position.z = depth;
+    object->localPosition = {(x * kLayoutScale - 1.0f) * kViewScale * depth,
+                             (y * kLayoutScale - 0.75f) * kViewScale * depth, depth};
 }

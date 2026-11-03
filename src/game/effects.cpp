@@ -105,13 +105,8 @@ int ParticleSource::UpdateSmoke(Particle* p) {
         if (p->frame == 8) p->drift.z = p->drift.z * 0.5f;
     }
     int frame = p->frame;
-    float oldZ = p->pos.z;
-    p->pos.z = p->drift.z + oldZ;
-    if (frame < 2) {
-        p->pos.x = p->velocity.x + p->pos.x;
-        p->pos.y = p->velocity.y + p->pos.y;
-        p->pos.z = (p->drift.z + oldZ) + p->velocity.z;
-    }
+    p->pos.z += p->drift.z;
+    if (frame < 2) p->pos += p->velocity;
     if (frame < 7) {
         p->size = growth * p->size;
         return 1;
@@ -220,13 +215,8 @@ int ParticleSource::UpdateOrbit(Particle* p) {
         offset = p->velocity;
     }
     const Vector3& center = elements[0].pos;
-    float by = origin.y + center.y;
-    float bz = origin.z + center.z;
     p->size = 1.0f;
-    float px = (origin.x + center.x) + offset.x;
-    p->pos.y = offset.y + by;
-    p->pos.z = offset.z + bz;
-    p->pos.x = px;
+    p->pos = offset + (origin + center);
     switch (ParticleTypeOf(type)) {
     case ParticleType::SphereFire:
         p->size = ByLife(kSphereSizeByLife, p->life, kSphereBefore) * p->drift.x * scale * 2.0f;

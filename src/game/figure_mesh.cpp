@@ -42,54 +42,32 @@ T* InFile(char** cursor, int count) {
     return at;
 }
 
-// Inline Vector3 arithmetic of the original: every component of every operation is rounded to a
-// float (each result goes through a Vector3 temporary).
 Vector3 Load(const float* p) { return {p[0], p[1], p[2]}; }
-Vector3 Sub(const Vector3& a, const Vector3& b) { return {static_cast<float>(a.x - b.x), static_cast<float>(a.y - b.y), static_cast<float>(a.z - b.z)}; }
-Vector3 Add(const Vector3& a, const Vector3& b) { return {static_cast<float>(a.x + b.x), static_cast<float>(a.y + b.y), static_cast<float>(a.z + b.z)}; }
-Vector3 Scale(const Vector3& a, float s) { return {static_cast<float>(a.x * s), static_cast<float>(a.y * s), static_cast<float>(a.z * s)}; }
-// a + (b - a) * s, written (b - a) * s + a as the original evaluates it.
-Vector3 LerpStored(const Vector3& from, const Vector3& to, float s) { return Add(Scale(Sub(to, from), s), from); }
 
 // One morphed vector from 8 corner versions (`v` points at 8 Vector3s):
 // lerp(lerp(lerp(v0, v1, s), lerp(v2, v3, s), t), lerp(lerp(v4, v5, s), lerp(v6, v7, s), t), u).
-// The original keeps the upper blend's z on the FPU for the centre and the box minimum: at the main thread's
-// 24-bit precision that is the stored float.
 Vector3 MorphVector(const float* v, float s, float t, float u) {
-    Vector3 lower = LerpStored(LerpStored(Load(v), Load(v + 3), s), LerpStored(Load(v + 6), Load(v + 9), s), t);
-    Vector3 a = LerpStored(Load(v + 12), Load(v + 15), s);
-    Vector3 b = LerpStored(Load(v + 18), Load(v + 21), s);
-    Vector3 step = Scale(Sub(b, a), t);
-    return Add(Scale(Sub(Add(step, a), lower), u), lower);
+    Vector3 lower = Lerp(Lerp(Load(v), Load(v + 3), s), Lerp(Load(v + 6), Load(v + 9), s), t);
+    Vector3 upper = Lerp(Lerp(Load(v + 12), Load(v + 15), s), Lerp(Load(v + 18), Load(v + 21), s), t);
+    return Lerp(lower, upper, u);
 }
 
 // The older 6-corner layout (non-FIG files), as for the bones (six corners per bone):
 // lerp(lerp(lerp(c0, c1, s), c2, t), lerp(lerp(c3, c4, s), c5, t), u).
 Vector3 MorphVector6(const float* c, float s, float t, float u) {
-    Vector3 lower = LerpStored(LerpStored(Load(c), Load(c + 3), s), Load(c + 6), t);
-    Vector3 a = LerpStored(Load(c + 9), Load(c + 12), s);
-    Vector3 step = Scale(Sub(Load(c + 15), a), t);
-    return Add(Scale(Sub(Add(step, a), lower), u), lower);
+    Vector3 lower = Lerp(Lerp(Load(c), Load(c + 3), s), Load(c + 6), t);
+    Vector3 upper = Lerp(Lerp(Load(c + 9), Load(c + 12), s), Load(c + 15), t);
+    return Lerp(lower, upper, u);
 }
 
-// A scalar from 6 corners, kept on the FPU until the result.
+// A scalar from 6 corners, as MorphVector6.
 float MorphScalar6(const float* r, float s, float t, float u) {
-    float a = (r[1] - r[0]) * s + r[0];
-    float lower = (r[2] - a) * t + a;
-    float b = (r[4] - r[3]) * s + r[3];
-    float upper = (r[5] - b) * t + b;
-    return (upper - lower) * u + lower;
+    return Lerp(Lerp(Lerp(r[0], r[1], s), r[2], t), Lerp(Lerp(r[3], r[4], s), r[5], t), u);
 }
 
-// A scalar morphed from 8 versions, every blend on the FPU.
+// A scalar morphed from 8 versions, as MorphVector.
 float MorphScalar(const float* r, float s, float t, float u) {
-    float a = (r[1] - r[0]) * s + r[0];
-    float b = (r[3] - r[2]) * s + r[2];
-    float lower = (b - a) * t + a;
-    float c = (r[5] - r[4]) * s + r[4];
-    float d = (r[7] - r[6]) * s + r[6];
-    float upper = (d - c) * t + c;
-    return (upper - lower) * u + lower;
+    return Lerp(Lerp(Lerp(r[0], r[1], s), Lerp(r[2], r[3], s), t), Lerp(Lerp(r[4], r[5], s), Lerp(r[6], r[7], s), t), u);
 }
 
 // FIG8 files hold 8 versions of every bound and vertex block, the old format 6 (the corners of the figure's

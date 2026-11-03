@@ -46,9 +46,7 @@ Material* NewGlowMaterial(float value) {
     MaterialManager* materials = g_clientWorld.materialManager;
     Material* material = materials->NewMaterial(0x16);
     materials->FillMaterial(material, 0x16);
-    material->colors.emissive.x = value;
-    material->colors.emissive.y = value;
-    material->colors.emissive.z = value;
+    material->colors.emissive = {value, value, value, material->colors.emissive.w};
     material->AddRef();
     return material;
 }

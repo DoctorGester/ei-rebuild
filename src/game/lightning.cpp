@@ -42,8 +42,8 @@ constexpr float kBranchFrequencies[12] = /*00787C8C*/ {2.0f, 3.0f, 2.5f, 1.8f, 0
 
 constexpr float kNoiseScale = 4.656613e-10f;   // about 2 / 2^32
 constexpr float kRandomScale = 2.3283064e-10f;  // about 1 / 2^32
-constexpr float kSideA = -0.0666f;
-constexpr float kSideB = 0.013f;
+// The bolt's side is across it and this axis (nearly straight up, so no bolt runs along it).
+constexpr Vector3 kSideAxis = {0.013f, -0.0666f, 1.0f};
 constexpr float kOffsetFactor = 0.05f;
 
 
@@ -180,9 +180,7 @@ void LightningSegment::Init(const Vector3& from, const Vector3& to) {
         else if (count < 4) count = 4;
     }
 
-    side.x = step.y - step.z * kSideA;
-    side.y = step.z * kSideB - step.x;
-    side.z = step.x * kSideA - step.y * kSideB;
+    side = Cross(step, kSideAxis);
     up = Cross(side, step);
 
     for (Vector3* axis : {&side, &up}) {
