@@ -171,10 +171,12 @@ std::intptr_t DispatchInput(const platform::Event& received) {
         input->OnKeyDown(event.key, event.repeat, event.keyFlags);
         return Handled();
     case EventType::SystemKeyUp:
-        // The key and its message data (the flags over the repeat count), as the original printed them.
+        // The key and its message data (the flags over the repeat count), as the original printed them: the 32 bits
+        // signed (a released key's are negative), wherever long is wider.
         console::EndLine(console::g_consoleOut << static_cast<unsigned>(event.key) << ':'
-                                               << static_cast<long>((static_cast<unsigned>(event.keyFlags) << 16) |
-                                                                    static_cast<unsigned>(event.repeat)));
+                                               << static_cast<long>(static_cast<std::int32_t>(
+                                                      (static_cast<std::uint32_t>(event.keyFlags) << 16) |
+                                                      static_cast<std::uint32_t>(event.repeat))));
         if (event.key == platform::kKeyTab && (event.keyFlags & platform::kKeyAltDown)) {   // Alt+Tab: as if the window was deactivated
             OnActivate(platform::Activation::Inactive, platform::IsMinimized(g_mainWindow));
             return Handled();

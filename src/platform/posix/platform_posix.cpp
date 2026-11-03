@@ -286,12 +286,12 @@ void MappedFile::Close() {
 // The pattern's folder through the mapping, its entries matched with Windows' wildcards and case rules, in NTFS's name
 // order (Windows' order on its volumes); no "." or "..".
 std::vector<FolderEntry> FolderEntries(std::string_view pattern) {
-    std::string game(pattern);
-    std::replace(game.begin(), game.end(), '\\', '/');
-    const fs::path path(game);
-    const std::string folderName = path.has_parent_path() ? path.parent_path().string() : ".";
+    // The folder in the game's form (backslashes), as every other call asks SystemPath for its path.
+    const std::string game(pattern);
+    const std::size_t slash = game.find_last_of("\\/");
+    const std::string folderName = slash == std::string::npos ? "." : game.substr(0, slash == 0 ? 1 : slash);
     const fs::path folder = SystemNative(folderName, PathUse::Read);
-    const std::string mask = path.filename().string();
+    const std::string mask = slash == std::string::npos ? game : game.substr(slash + 1);
     std::error_code e;
     const std::string root = GamePath(fs::absolute(NativePath(folderName), e));
     std::vector<fs::directory_entry> found;
