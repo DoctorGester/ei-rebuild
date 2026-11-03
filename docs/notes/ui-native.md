@@ -496,12 +496,8 @@ readers read the GPU: `PixelAt` (`ReadPixel`), `Rgb565Copy` (`ReadRgb565`); `Swa
 (R28a: the pick picture, the camp's backdrop modes 3 / 4 through the screen copy, greying and `MoveCanvas`); they
 now call render::ui directly.
 
-**Lost device.** With no memory behind it a canvas must come back by itself: each canvas keeps the commands drawn on
-it since a command last covered it whole (a whole fill or picture starts the list again), and `DropCanvases` queues
-them again, after a Make, for the new device. A screen copy cannot be drawn again (its frame is gone), so once one is
-drawn the canvas's pixels are read back as its history (one whole picture); so is a history past 256 commands.
-`ei_ui_check`'s "lost" holds it (fills, frames, lines, pixels, a picture, a glyph run, a moved canvas, a copy greyed,
-300 pixels); render_device_lost compares the frames before and after a loss.
+**Lost device.** A lost device ends the game (R41, docs/notes/renderer.md "No device-loss recovery"): a canvas keeps
+nothing but its render target.
 
 **Text in our own fonts** (user 2026-10-29). `UiFont` (ui_font.h: a face at an em height in pixels) replaces the
 HFONTs: `PointFont(tenths, face)` is CreatePointFont's size at 96 dots an inch (the interface's sizes are
@@ -527,8 +523,7 @@ switch, comparison views and read-back into memory, the UTF-8 routes' DrawTextA 
 CreateFontIndirectA routes.
 
 **Pictures.** `render::ui::Image` (a CPU picture written onto a canvas) has no game caller since P8a: it stays as
-`ei_ui_check`'s way to put arbitrary pixels on a canvas ("image", "picture", "lost"); it records the canvas's Pixels
-command, which the read-back history (`Compact`) needs anyway (P8b).
+`ei_ui_check`'s way to put arbitrary pixels on a canvas ("image", "picture").
 
 **Font smoothing (P8b).** The original's titles (0062B7D0) switched the system's font smoothing off for the session
 (SPI_SETFONTSMOOTHING, "restored" in 0062BD00 from a field never written) so RichEdit and the header drew unsmoothed,
@@ -666,8 +661,7 @@ line breaks may differ from the original in a few places ("P8 done", Checks). DT
 by their own layout (P8b). 16-bit mode quantises colours and the key test: 0x080808 survives, but a near-black text
 colour may become transparent, on the canvas as in the original's memory.
 
-**Lost device.** A canvas comes back from its command history or its read-back pixels ("P8 done", Lost device);
-render_device_lost compares the frames before and after a loss.
+**Lost device.** It ends the game ("P8 done", Lost device).
 
 **Open questions.**
 - Direct-to-frame glyph drawing (no canvas for text) would look cleaner but loses the keyed fringe.
@@ -682,9 +676,7 @@ carets and the connect list's rule, `Dot` for the minimap marker, `DrawTextIn` /
 `CaptureScreen`, `Greyscale`; the titles' text as glyph runs too) and blitted by `UiSurface::Blit` (`DrawCanvas`). The readers
 read the GPU: `PixelAt` (`ReadPixel`, packed back to the screen format), `Rgb565Copy` (`ReadRgb565`); `SwapContents`
 moves the canvas aside under the surface's address and back (`MoveCanvas`). Text is laid out, measured and drawn in our
-own fonts (ui_font.h). A lost device makes every canvas again and draws on it the commands drawn since it was last
-covered whole (render_ui.cpp's history; after a screen copy or 256 commands the canvas's pixels read back instead), so
-nothing comes back black (docs/notes/renderer.md section 6, "Screen copies on the GPU", and R9c1).
+own fonts (ui_font.h). A lost device ends the game (docs/notes/renderer.md, "No device-loss recovery").
 
 ## DrawText layout rules (render_text.cpp)
 
@@ -745,9 +737,7 @@ drawing lands before the frame's next pass, and RunCanvasesNow for a read-back. 
 quantised on the CPU; a glyph run is three steps (its coverage into an R8 scratch target with MAX blending, a copy
 of what the canvas held there, the composition of the two into the canvas), each a pass; copies and an Image's
 pixels are drawn texel for texel (`ui_move`; the pixels as an image of their own); greying works on a copy of the canvas;
-the screen copy samples the frame target. Each command drawn joins its canvas's history (cleared when a command covers
-the canvas whole); a screen copy or a history past 256 commands is replaced by the canvas's pixels read back
-(Compact), and DropCanvases queues every canvas's history again for the new device. Every pixel the shaders write is quantised to the surface format, so a
+the screen copy samples the frame target. Every pixel the shaders write is quantised to the surface format, so a
 canvas never holds a colour its surface could not. render.cpp's part: Command::Canvas (DrawCanvasBatch inside the
 frame's passes), SplitFrame (the frame so far drawn before a canvas already blitted in it changes, or before a
 screen copy) and RunCanvasesNow. The offline check tools/ui_check plays that part itself.

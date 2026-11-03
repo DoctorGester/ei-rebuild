@@ -98,7 +98,7 @@ bool Placement(int* clientWidth, int* clientHeight, int* frameWidth, int* frameH
 }
 
 #if defined(EI_RENDER_VALIDATION)
-// The checks' copies of the drawable and of the frame, kept from check to check (released in DropWindow).
+// The checks' copies of the drawable and of the frame, kept from check to check.
 platform::graphics::Readback g_backCopy, g_frameCopy;
 
 // Verify build: the drawable just drawn against the frame through the ramp, at a grid of points (one to one placement
@@ -147,12 +147,10 @@ bool DrawToWindow() {
     sg_swapchain drawable{};
     if ((!g_pipeline.id && !CreatePipeline()) ||
         !platform::graphics::BeginDrawable(GameWindow(), clientWidth, clientHeight, g_presentMode, &drawable)) {
-        // A lost device is made again at the frame's end (render.cpp, CheckDevice); on a working one the game cannot
-        // go on.
-        if (!platform::graphics::Lost())
-            Fatal("The renderer cannot present on the game window: %s (%dx%d).",
-                  g_pipeline.id ? platform::graphics::Error() : "no present pipeline", clientWidth, clientHeight);
-        return false;
+        // A lost device ends the game with its own reason.
+        CheckDevice();
+        Fatal("The renderer cannot present on the game window: %s (%dx%d).",
+              g_pipeline.id ? platform::graphics::Error() : "no present pipeline", clientWidth, clientHeight);
     }
     g_drawableWidth = clientWidth;
     g_drawableHeight = clientHeight;
@@ -194,24 +192,6 @@ bool PresentWindow() {
 
 const std::uint8_t* GammaRamp() { return g_ramp; }
 std::uint32_t GammaRampChanges() { return g_rampChanges; }
-
-void DropWindow() {
-    if (g_rampView.id) sg_destroy_view(g_rampView);
-    if (g_rampImage.id) sg_destroy_image(g_rampImage);
-    if (g_pipeline.id) sg_destroy_pipeline(g_pipeline);
-    if (g_shader.id) sg_destroy_shader(g_shader);
-    g_rampView = sg_view{};
-    g_rampImage = sg_image{};
-    g_pipeline = sg_pipeline{};
-    g_shader = sg_shader{};
-    g_rampDirty = true;   // the ramp the game set goes to the new device's lookup texture
-    g_drawableWidth = g_drawableHeight = 0;
-    g_info.presentsAtRecovery = g_info.presents;
-#if defined(EI_RENDER_VALIDATION)
-    g_backCopy.Release();
-    g_frameCopy.Release();
-#endif
-}
 
 } // namespace detail
 
@@ -267,7 +247,6 @@ WindowPresentInfo WindowPresents() {
     WindowPresentInfo info = g_info;
     info.rampCheckPending = g_checkRamp;
     info.rampIdentity = g_rampIdentity;
-    DeviceLossCounts(&info);
     return info;
 }
 

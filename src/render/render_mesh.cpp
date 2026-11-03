@@ -401,15 +401,6 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     CountDraw(sizeof(vs) + sizeof(fs) + sizeof(shadow) + sizeof(lighting) + sizeof(f.shadow.point.params));
 }
 
-void DestroyMeshes() {
-    g_geometry.Destroy();
-    DropMeshCache();
-    for (auto& p : g_pipelines) sg_destroy_pipeline(p.second);
-    g_pipelines.clear();
-    if (g_shader.id) sg_destroy_shader(g_shader);
-    g_shader = sg_shader{};
-}
-
 } // namespace detail
 
 void BeginMesh(void* device, const MeshDraw& mesh) {

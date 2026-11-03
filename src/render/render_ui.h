@@ -1,9 +1,6 @@
 #pragma once
 
-// The interface's 2D canvases: a window surface's pixels, kept only in a GPU render target. Each canvas keeps the
-// commands drawn on it since it was last covered whole (after a screen copy or a long run of commands, its pixels
-// read back instead) and draws them again on a new device (a lost one).
-// Single-threaded. See docs/notes/ui-native.md, section 3 and "Source file overviews".
+// The interface's 2D canvases: a window surface's pixels, kept only in a GPU render target. Single-threaded. See docs/notes/ui-native.md, section 3 and "Source file overviews".
 
 #include "render.h"
 

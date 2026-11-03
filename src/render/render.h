@@ -278,10 +278,8 @@ enum class ImageLayout : std::uint8_t {
     Rgb565,   // 16 bits 5:6:5, opaque (shot.sav's pictures)
 };
 // An image the game has drawn into a texture on the GPU (ComposeTexture, DrawIntoTexture): an .mmp file's pixels after
-// its header and extra block, or another file's picture, rows from the top. What the renderer decodes of a file is
-// shared by `name` while a texture holds it; an image without a name is decoded for its draw only.
+// its header and extra block, or another file's picture, rows from the top.
 struct TextureImage {
-    const char* name;
     const void* pixels;
     std::uint32_t bytes;   // the pixels' bytes in the file
     int width, height;
@@ -290,7 +288,7 @@ struct TextureImage {
 // The texture of `holder` composed on the GPU: `size` x `size` texels of transparent black, each image (`size`
 // square) drawn over the last (premultiplied: what is there x (1 - the image's alpha) + the image), the levels
 // below made from it; the texture shows the levels from `mip` on, `levels` of them (its size `size` >> `mip`).
-// Kept until the holder goes, made again on a new device. False when not made (nothing shown).
+// Kept until the holder goes. False when not made (nothing shown).
 bool ComposeTexture(const void* holder, int size, unsigned mip, unsigned levels, const TextureImage* images, int count);
 // What a texture the game draws into (BlankTexture) keeps of the alpha drawn into it, and what it starts as.
 enum class BlankAlpha : std::uint8_t {
@@ -470,15 +468,8 @@ struct WindowPresentInfo {
     int rampChecks = 0, rampPoints = 0, rampDiffering = 0;
     bool rampCheckPending = false;
     bool rampIdentity = true;
-    int deviceLosses = 0;       // devices lost (or LoseDevice) ...
-    int deviceRecoveries = 0;   // ... and made again with everything on them
-    std::uint32_t presentsAtRecovery = 0;   // `presents` when the last new device was made
-    std::uint32_t lastLossCode = 0;   // the last loss: the backend's code (0: LoseDevice's, not a real loss)
 };
 WindowPresentInfo WindowPresents();
-// Acts as if the device were lost at the end of the next presented frame ("losedevice"): as for a real loss,
-// everything is made again and textures uploaded again from what they were decoded from.
-void LoseDevice();
 // Harness build only ("terrainlevels"): what the ground pages draw. Levels: the texture level the page's
 // sampler reads at each pixel (red = level * 32, mips blended as the sampler blends them; green 0x5A and blue
 // 0xA5 mark the pixel). PointMips: the same through the old sampler (bilinear, point mips: the level steps

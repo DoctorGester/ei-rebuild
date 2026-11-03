@@ -12,7 +12,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <optional>
 #include <vector>
 
 namespace platform::graphics {
@@ -30,9 +29,10 @@ const char* Error();
 // The most samples, up to `most` (a power of two), the device draws an RGBA8 target with a depth buffer with (the
 // renderer's frame target); 1: none.
 int MaxSamples(int most);
-// The device was lost (removed, reset, hung, a driver error), as a call that failed or the device itself says: the
-// backend's code for it (for the log and the harness). Changes nothing.
-std::optional<std::uint32_t> Lost();
+// The device was lost (removed, reset, hung, a driver error), as a call that failed or the device itself says: why, in
+// words for the player (the renderer ends the game on it: docs/notes/renderer.md, "No device-loss recovery"); null
+// while it works. Changes nothing.
+const char* Lost();
 
 // ---- The window ---------------------------------------------------------------------------------------------------
 

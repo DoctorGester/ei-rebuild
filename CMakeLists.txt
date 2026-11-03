@@ -171,8 +171,7 @@ file(WRITE ${CMAKE_BINARY_DIR}/third_party_notices.txt
 if(EI_HARNESS)
     # The harness (tests/verify; docs/notes/harness.md), linked into this exe. Its own window, events, clocks, cursor,
     # mouse and clipboard on SDL (tests/verify/harness_platform.cpp) take platform_sdl.cpp's place; sokol's validation
-    # layer is on (its messages in ei-rebuild.log), with the Direct3D backend's removable device
-    # (src/platform/d3d11/graphics_d3d11.h), which the harness's image side (tests/verify/image) reaches.
+    # layer is on (its messages in ei-rebuild.log).
     file(GLOB EI_HARNESS_SOURCES CONFIGURE_DEPENDS tests/verify/*.cpp tests/verify/image/*.cpp)
     target_sources(ei-rebuild PRIVATE ${EI_HARNESS_SOURCES})
     target_include_directories(ei-rebuild PRIVATE third_party/sokol)

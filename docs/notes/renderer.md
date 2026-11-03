@@ -24,7 +24,7 @@ texture or surface holder of it is a DirectDraw object (section 9).
 
 The shaders are described in "Shader authoring" below. The Direct3D 11 device is
 made on a thread of its own from the image's start (`render::PrepareDevice`, called by standalone.cpp before
-WinMain; not with "removable") and taken at the renderer's first use.
+WinMain) and taken at the renderer's first use.
 
 ### Shader authoring
 
@@ -84,22 +84,22 @@ DisableExitOnCrashReport (which makes `game::FatalError` carry on; the renderer'
   pipeline could not be made.";
 - a sokol panic (SokolLog, level 0; sokol would abort after it): "The renderer stopped: sokol_gfx panic <item>
   (<message>).";
-- a lost device that cannot be made again (RecreateDevice, five tries 200 ms apart): "The Direct3D 11 device was lost
-  and no new one could be made: <reason>." (or its pipelines: "The Direct3D 11 device was lost and made again: the
-  ... could not be made.");
+- a lost device (R41, "No device-loss recovery" in section 9): "The graphics device was lost (<reason>); the game will
+  close.", the reason `platform::graphics::Lost()`'s (on Direct3D 11 the loss's name and code, e.g.
+  "DXGI_ERROR_DEVICE_HUNG, 887A0006");
 - no swap chain on a working device (render_window.cpp `NoChain`): "The renderer cannot present on the game window:
   no swap chain / the swap chain cannot be resized / the swap chain cannot be made again (<w>x<h>)." A swap chain that
-  fails on a lost device waits for the new device instead.
+  fails on a lost device ends the game with the lost device's message instead.
 A draw the renderer does not take is lost, not drawn another way: `render::MeshPass`, `TlDraw` and `ScreenDraw`
 return nothing (R26b), and render_mesh.cpp's `Refuse` logs each reason the first time ("render: <reason>; the draw is
 lost": a mesh or pre-transformed draw with no render target size, a mesh corner past its positions, a pre-transformed
 draw in another vertex format than 0x1C4 / 0xC4, too many pre-transformed vertices in one frame). An empty draw (no
 vertices) is nothing to draw, not a refusal. The device layer has no DrawPrimitive / DrawIndexedPrimitive.
-A lost device that is made again (R9c1) is recovery, not a fallback, and stays. There is no `render::Active()` query:
+There is no `render::Active()` query:
 every entry point draws. Only the image runs it: in game.exe (the harness and the vector recorders run inside the
 original's process) nothing of ours draws, and the harness asks `ei::Standalone()` (R26a folded HarnessRenderActive into it; a renderer failure ends the game, so
 there is no "failed" state to poll): captures there read the old render target. `EI_RENDER` (environment, or the harness step `render <spec>` in a run of the image) is a
-comma-separated list of options: the harness build's `removable` (R9c5) and `checkall`; any other word is logged as unknown (R16i removed `classicshadows`: the shadow map is the only shadow look). The original code (`--no-hooks`) never gets EI_RENDER and the harness ignores its `render`
+comma-separated list of options: the harness build's `checkall`; any other word is logged as unknown (R16i removed `classicshadows`: the shadow map is the only shadow look). The original code (`--no-hooks`) never gets EI_RENDER and the harness ignores its `render`
 step (logged). There is no mode with the old path drawing beside the new renderer (R11), and the renderer reads no
 DirectDraw surface (no holder has one).
 
@@ -246,9 +246,8 @@ MODULATE around it) goes to `render::TlDraw` (line strip, FVF 0xC4), not reached
 (`UiSurface::MakeCanvas`), drawn into by the surface functions (fills, frames, lines, pixels, glyph runs in our own
 fonts, the screen copy, greying) and blitted by 005FDA80 (`render::ui::DrawCanvas`). There is no
 memory, no DIB section, no GDI, no comparison or upload at a blit. The readers get pixels from the GPU: PixelAt
-(`ReadPixel`), the save picture (`ReadRgb565`); SwapContents moves the canvas aside (`MoveCanvas`). A lost device
-brings every canvas back from the commands drawn on it since it was last covered whole (a screen copy's and a long
-history's pixels read back instead; R9c1).
+(`ReadPixel`), the save picture (`ReadRgb565`); SwapContents moves the canvas aside (`MoveCanvas`). A canvas keeps
+nothing but its render target (R41: no command history for a new device).
 
 **No memory** (R30b): no holder has pixels in memory. The cursor's pictures were the last (004F0060 filled memory in
 the screen's format, 005E4EB0 read it back for the mask): the mask is built from the .mmp file's pixels
@@ -275,7 +274,7 @@ error is thrown (`ThrowSurfaceNotMade`). The screen's pixel format is `ScreenFor
 | 005FD3D0, 005FD440, 005FE440, 005FD7A0, 005FD240 | screen copy, save picture, Greyscale on the GPU (R28a, "Screen copies on the GPU" below); SwapContents (the canvas put aside on the GPU), pixel read (from the GPU): no Lock / GetSurfaceDesc |
 | 005FDA80, 005E54A0 / 005E5690 / 005E6630, 005DBD80 / 005DB3F0 / 005DA400 | the original's Blt, composition 005E5C40, background save, Lock / BinkCopyToBuffer / Unlock are gone (R11a); the new renderer gets the blits, the cursor and the frames |
 
-Scenarios: render_present, render_titles_present, render_movie_present, ui_compare, ui_saveload, render_device_lost.
+Scenarios: render_present, render_titles_present, render_movie_present, ui_compare, ui_saveload.
 Not reproduced: the unwinding when 004EFC60 / 004EF7B0 throw and the fallback to 004EF7B0 when 004EFA60's
 video-memory holder throws (only with 00784756 0; 004EFA60, the holder from a DirectDraw description, and 004EFEA0
 are not ported: config/dead_code.csv, R11b). The original quirks kept (failed Locks returning with the device
@@ -311,10 +310,9 @@ channel's top bits) and reads only that back (`render::ui::ReadRgb565`, a row co
 one pixel from the GPU (`ReadPixel`, each channel cut to the screen format's top bits by `render::ui::TopBits`: the
 pick picture's zone colours exact), and
 SwapContents 005FD7A0 (the camp's backdrop put aside in mode 3) moves the canvas aside under the surface's address
-and back (`MoveCanvas`) instead of keeping the bytes (the CPU loops and `render::CopyFrameTo` are gone). Once a
-copy is drawn the canvas's pixels are read back as its history (P8), so a lost device brings it back as it was.
+and back (`MoveCanvas`) instead of keeping the bytes (the CPU loops and `render::CopyFrameTo` are gone).
 Checked by ui_quicksave (checksave), ui_global_map_pick (the zone under the click), the gallery's escmenu /
-map_escmenu frames, ui_compare and `ei_ui_check` ("picture", "lost").
+map_escmenu frames, ui_compare and `ei_ui_check` ("picture").
 
 ## 7. Textures without DirectDraw
 
@@ -361,14 +359,14 @@ multiple of 4 wide and high (Direct3D 11's rule): every DXT file is, at the leve
 at (0..2). The software cursor's pictures (`PictureFromMmp`) are 8888 files; a DXT one is not decoded (logged). Measured
 (verify build, the log's `render: .mmp textures at exit` line; vanilla, zone1, 60-68 textures): uploaded 176 / 28 MB,
 held at most 129 / 19.6 MB (6.6x less), CPU time making them 296-344 / 110-116 ms (before / after). Frames against the
-CPU decoder (render_scene, units, models, render_device_lost, render_terrain_seams; 4K): 0.13% of the pixels over 8, at
+CPU decoder (render_scene, units, models, render_device_lost (gone in R41), render_terrain_seams; 4K): 0.13% of the pixels over 8, at
 most 79, all on interface sprites drawn smaller than their DXT texture that has one level (the portrait's health and
 mana bars, the minimap's frame: sharper now, the CPU path had box-filtered levels the original lacked); the main
 menu 0.031%; the world the same; the camp frame the same pixel for pixel.
 
 RGB .mmp textures (8888, 4444, 5551, 5650) hold the file's levels only too (R28d; the CPU box filter that added the
 missing ones, `MakeImage`'s halving and `HalveLevel`, is gone; `HalveLevel` stays only in `CheckMmpLevels`'s own
-comparison, verify builds). Frames before / after (render_scene, units, models, render_device_lost's menu, camp and
+comparison, verify builds; it reads every level back from the GPU, R41). Frames before / after (render_scene, units, models, render_device_lost's menu, camp and
 world; 4K): identical pixel for pixel, the `.mmp textures at exit` line the same (60 made, 28457 KB uploaded, 19588 KB
 held): every RGB file those scenes draw has its whole chain.
 
@@ -395,8 +393,8 @@ images)` makes a texture from images drawn over each other: the unit skins and w
 extra block: 32-bit 0xAARRGGBB with premultiplied alpha, rows from the top; "PNT3" files are packed: groups of four
 pixels, where a group's first pixel has alpha 0 and is not 0 that word instead counts target bytes left as they are
 (2DintMMX slot 5's reading; its plain path took pixel 1's alpha for pixel 0 of each group, not kept). The renderer
-decodes an image to RGBA8 once (shared by name while a texture holds it: `DecodeComposeImage`), and draws into a
-texture of the full size with every level the texture uses (`ComposeRecipe`): cleared to transparent
+decodes an image to RGBA8 for the draw (`DecodeComposeImage`), and draws into a
+texture of the full size with every level the texture uses (`ComposeShape`): cleared to transparent
 black, each image a rectangle drawn texel for texel (shader texture_compose.glsl) with premultiplied blending (ONE,
 INV_SRC_ALPHA, alpha too), then the levels below, each drawn from the one above (`texture_mip`: a linear filter at
 the pixel's centre, the mean of four texels; MAC3g, in place of Direct3D's GenerateMips: the 231 frame captures of
@@ -404,9 +402,8 @@ the vanilla runs the same). A pass may not read the image it draws into, so a le
 copied from there: two small passes a level. The scratch and the level views are kept for the texture drawn last (the
 global map's clouds are drawn every frame). The texture's view starts at level `mip` (the texture quality option),
 so its size is `size >> mip` (HolderSize, texture patches: the blink patches the hero's composed skin). The work runs at
-once from the game's load (not inside a frame pass). The entry is owned and keeps its recipe (the decoded images, shared): a new device draws every
-composed texture again right after it is made (`RemakeComposed`; render_device_lost's camp and world frames match
-before and after the loss). Frames against the CPU composition (render_blink, units, models, render_device_lost: at
+once from the game's load (not inside a frame pass). The entry keeps the image and its shape only (R41: no recipe
+for a new device). Frames against the CPU composition (render_blink, units, models, render_device_lost: at
 most 0.012% of a 4K frame over 8, on the hero's and wounded units' skins; ui_gallery_camp unchanged): the 8-bit
 colours instead of 1:5:5:5 / 4:4:4:4.
 
@@ -415,15 +412,14 @@ colours instead of 1:5:5:5 / 4:4:4:4.
 composed textures without layers: `render::BlankTexture` makes the transparent texture (one level), and
 `render::DrawIntoTexture(holder, image, x, y, width, height)` draws an .mmp picture's rectangle (or white, without
 the file) into it, replacing what was there: the same shader with blending off, alpha cut to one bit (at least
-half: opaque, else 0) as the 1:5:5:5 store did. The step joins the recipe (a step it covers whole leaves it), so a
-new device draws the texture again. The picture is the file's pixels right after the header (the extra block not
+half: opaque, else 0) as the 1:5:5:5 store did. The picture is the file's pixels right after the header (the extra block not
 skipped, as the original read them). No 2DintMMX: the original unpacked the picture with slot 5 and packed it to 1:5:5:5
 by hand under the device lock. Colours are 8-bit now (the picture's own instead of 5 bits a channel).
 
 **Save / load pictures and the global map's clouds on the GPU (R28b).** The textures 00691D80 makes for them (kinds
 0x1E, 5:6:5, and 0x21, 4:4:4:4) are blank textures like the item pictures. The save / load pictures: a 256x192 5:6:5
 picture (shot.sav's bytes as stored, or the escape menu's copy `screenCopy`) is drawn into the texture's top with
-`DrawIntoTexture` (`ImageLayout::Rgb565`, decoded to RGBA8 for the draw; an image without a name is not shared); the
+`DrawIntoTexture` (`ImageLayout::Rgb565`, decoded to RGBA8 for the draw); the
 save window keeps the copy (`SaveLoadWindow::newPicture`) and writes shot.sav from it, so the file's bytes are as
 before. The clouds (`GlobalMapClouds`, global_map_clouds.cpp): the CPU keeps only the three random words of each of
 a frame's four layers (`render::CloudFrame`, taken at build steps 1-4 as 00499F10's layers took them: the game's
@@ -432,8 +428,7 @@ and the 256-entry alpha ramp (texture_clouds.glsl `texture_clouds_fs`: white, al
 >> 8], 8-bit alpha now instead of the ramp's top 4 bits). A frame's 256 x 256 grey levels are built once by the GPU
 from its words (`texture_clouds_frame_fs`, into an R8UI texture, kept by words in render_compose.cpp: at most 4): the layers' hash,
 the 3 x 3 smoothing in the 1024 cells' order, the octaves' bilinear sums and the byte store, integer for integer as
-the CPU code did. The step joins the texture's recipe (it covers the whole texture, so it replaces the last), so a new
-device draws the clouds again. Frames against the memory textures (4K, at one frozen moment): ui_saveload's `save` /
+the CPU code did. Frames against the memory textures (4K, at one frozen moment): ui_saveload's `save` /
 `load` / `load2`, ui_quicksave's and render_loose_bmp's `world` the same pixel for pixel; ui_global_map_pick's `map`
 0.005% of the pixels over 8, at most 10 (the clouds' 8-bit alpha): the noise is the CPU code's.
 
@@ -507,8 +502,8 @@ come first, then what holds for the present path (the subsection names are cited
   R27e: app_dxversion.cpp's version probe of the system's DDRAW.DLL and the DirectDraw / Direct3D rows of dx_errors.cpp's
   message table are gone; no DirectDraw or Direct3D 7 name is left in game code.
   The EI_RENDER_VALIDATION code (harness build) was read through in R27e: every check and switch left (upload and
-  cursor / ramp read-backs, kept mesh / terrain page against a fresh build, missed surface writes, level map, timers,
-  removable device) validates or measures the renderer itself and has a scenario; the A/B against the old device draws
+  cursor / ramp read-backs, kept mesh / terrain page against a fresh build, missed surface writes, level map, timers)
+  validates or measures the renderer itself and has a scenario; the A/B against the old device draws
   went with R26 (meshcorners), so none was removed.
   R11d: the blink is a texture patch drawn in the shader (section 7).
 - No ticket yet: weather's old draw
@@ -568,7 +563,7 @@ no stand-in for any of them (R27c):
   through `render_internal.h`): the game window's swap chain. The frame is drawn by a full-screen triangle (shader
   "ei-present") into the client area with its aspect kept, centred, black bars (`render::FrameInWindow`,
   `WindowToFrame`, `FrameToWindow`). A failed `ResizeBuffers` (other than a lost device) makes the swap chain again
-  once. A lost device is logged with `GetDeviceRemovedReason` and handled by R9c1.
+  once. A lost device ends the game ("No device-loss recovery" below).
 - Gamma as a shader step: 00504A60 (`renderer_marker.cpp` SetGamma) keeps the three values, builds the ramp as before
   (BuildRamp, full scale 65280) and hands it to `render::SetGammaRamp`: a 256x1 lookup texture the present shader reads
   per channel (each entry v*255/65280, rounded). Result true, as with a primary that has DDCAPS2_PRIMARYGAMMA. The ramp
@@ -634,54 +629,18 @@ skipped only part of the probe's side effects hung sound init); the full skip di
 instruction pointer and return addresses (`LogMainThreadStack` in harness.cpp); a hang seen once in `AIL_waveOutOpen`
 is what to read it for.
 
-### R9c1: a lost Direct3D 11 device made again
+### No device-loss recovery (R41)
 
-- Losses are seen from the swap chain's Present / ResizeBuffers (DXGI_ERROR_DEVICE_REMOVED / RESET / HUNG /
-  DRIVER_INTERNAL_ERROR) and by `GetDeviceRemovedReason` (a loss nothing reported, e.g. minimised): both are
-  `platform::graphics::Lost()` (graphics_d3d11.cpp), asked at the end of every presented frame (`CheckDevice`). Nothing more is drawn in that frame; at the end of `render::Present` (the
-  frame's commands cleared, so nothing holds a sokol id), `RecreateDevice` (render.cpp): each module destroys what it
-  made (`DropWindow`, the frame target and readback copy, `DestroyTerrain`, `DestroyMeshes`,
-  `DropBlits`, `DropTextures`), then `sg_shutdown` and `platform::graphics::Stop` (the context cleared and released,
-  the device released; the log gives the references left: 0 in the runs), a new device (`Start`, up to five tries
-  200 ms apart), `sg_setup` and the pipelines. The next frames make the frame target, the swap chain (the game's gamma ramp is kept: the lookup table is
-  not reset to the identity when the present pipeline is made), the interface canvases (`DropCanvases`: each made
-  again and the commands drawn on it since it was last covered whole drawn again, P8) and the composed and drawn-into
-  textures (their recipes drawn again, `RemakeComposed`). A movie shows again from its next frame. No new device: the game ends (section 1, "When the
-  renderer fails").
-- The decoded textures keep what they were decoded from (`TextureSource`, render_textures.cpp):
-  the header and the file's bytes of the levels it holds;
-  `SurfaceView` makes the image again from it at
-  its next use (`Remake`, once a frame). game.exe is not large address aware: this is address space the switch-over
-  freed by dropping the DirectDraw textures.
-- Test: `render::LoseDevice` (harness step `losedevice [seconds]`) makes the end of the next presented frame see a
-  loss (code 0: simulated) without one; the rest is the real path. The step waits until the device is made
-  again and a frame presented on it. Scenario render_device_lost (vanilla and Rebirth): at one frozen moment in the
-  main menu, in zone1 and in the camp (textures loaded after the first loss), the frame before and after the loss match
-  (samecapture: 0 pixels over 8). A real removal: R9c5 below.
-
-### R9c5: a real removal of the device (harness build only)
-
-- `removable` in the harness's render step (the scenario's `render new,present,removable`; the harness passes it to
-  the backend, `platform::graphics::MakeRemovable` in graphics_d3d11.h, harness build only, `EI_RENDER_VALIDATION`)
-  makes the Direct3D 11 device through `D3D11On12CreateDevice` on a Direct3D 12 device of the
-  default adapter and a direct queue (d3d12.dll loaded at run time from System32; nothing installed). The swap chain,
-  the gamma ramp check and every frame work on it as on the hardware device.
-- `platform::graphics::RequestRemoval` (harness step `removedevice [seconds]`) asks for a removal; it happens right
-  before the next swap chain Present (`RemoveIfAsked`): the GPU is let finish
-  (an event query, at most 2 s), then `ID3D12Device5::RemoveDevice` removes the Direct3D 12 device, so Present and
-  `GetDeviceRemovedReason` report DXGI_ERROR_DEVICE_REMOVED for real, in this process only (no driver reset, no TDR;
-  other processes and the desktop are not touched). R9c1's path then releases everything (0 references left; the
-  Direct3D 12 device and queue too, so the next `D3D12CreateDevice` gives a new device and not the removed one:
-  Direct3D 12 devices are one per adapter while one lives) and makes a new removable device.
-- The step checks that the loss seen was that removal (not simulated, `GetDeviceRemovedReason` 887A0005) and that the
-  new device is removable again; `WindowPresents()` gives the last loss's code (`Lost()`'s).
-- Rule from a real bug: removed with GPU work in flight, the old device's teardown crashed in a thread of
-  d3d11on12.dll (a null fence in its command list manager) or of DXGI / the driver's user-mode part (nvwgf2um.dll), also
-  in a small program that presented on its own (cloaked) window and released everything in order (10 runs of 10); with
-  the GPU idle first it never did (the game's runs, that program 10 of 10). So the removal waits for the GPU; a real TDR goes through the kernel
-  and not through this teardown.
-- Scenario `render_device_removed` (image golden, vanilla; also runs on Rebirth): render_device_lost's three moments
-  (main menu, zone1, the camp) with `removedevice`: the frame before and after each removal match (0 pixels over 8).
+A lost device ends the game. `platform::graphics::Lost()` (Direct3D 11: Present or ResizeBuffers reported
+DXGI_ERROR_DEVICE_REMOVED / RESET / HUNG / DRIVER_INTERNAL_ERROR, or `GetDeviceRemovedReason` fails; OpenGL looks for
+none, it would need a robust context) is asked at the end of every presented frame and when the window's drawable
+cannot be had (`render::detail::CheckDevice`); a loss is a fatal error (section 1, "When the renderer fails"): logged,
+one message box, exit. Why there is no recovery (user, 2026-11-03): Direct3D 11 loses its device only on a driver
+update or reset, a TDR or a GPU switch, rare for a player and a restart away; making everything again needed every
+module to drop and remake its resources, each decoded texture to keep its file's bytes, composed textures their
+recipes and canvases their command histories (R9c1, R9c5: gone in R41), and runtime backends (R42) would need it
+twice. Dropping the kept file bytes took the process's private bytes with the hero on zone1 (vanilla, verify build)
+from about 130 MB to about 119 MB.
 
 ### R40: the cursor is the system's
 
@@ -833,7 +792,7 @@ Behaviour differences (one path for every sprite):
 ## 11. Verification and frame capture
 
 - **Frames are checked within one run**, at a frozen moment: `samecapture` (frames_basic, render_scene, render_present,
-  render_device_lost, ...: two captures in one frozen moment must match; on the image they match to the pixel, PF3a),
+  ...: two captures in one frozen moment must match; on the image they match to the pixel, PF3a),
   `tools/frame_preview.py` writes a downscaled side-by-side PNG. Cross-run comparisons are not meaningful (no
   determinism); A/B is always within one run.
 - The water pass writes depth as the old device does (ZWRITEENABLE stays 1 after the sky): without it the far sea's
