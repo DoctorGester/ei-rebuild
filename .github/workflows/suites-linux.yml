@@ -37,7 +37,7 @@ jobs:
       vars.EI_STUB_DATA_REPO != '' &&
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 330
     env:
       CCACHE_MAXSIZE: 2G
       # Scenarios that cannot match on llvmpipe yet (linux.md, "The harness"; H47b): the pairs (about 190 s a run
@@ -112,7 +112,8 @@ jobs:
           [ -d "$DATA/vanilla" ] && [ -d "$DATA/rebirth" ] || { echo "::error::the stub data has no vanilla/ and rebirth/"; exit 1; }
           echo "stub data: $(du -sm "$DATA" | cut -f1) MB unpacked"
 
-      # run_all.py's own slots are this runner's; four games at once on its four cores. The summary prints run_all's
+      # One game at a time (a pair's two together): llvmpipe draws on the CPU, and four at once on the runner's four cores
+      # timed most runs out (2026-11-03); a full run takes hours, so the job may take up to 5.5 h. The summary prints run_all's
       # table and the goldens block (scenario names, results, the digest's differences), never the data's files.
       - name: Suites
         env:
@@ -123,9 +124,9 @@ jobs:
           if [ -z "$names" ]; then
             names=$(ls tests/scenarios/*.txt | xargs -n1 basename | sed 's/\.txt$//' | grep -vxF -f <(tr ' ' '\n' <<< "$LINUX_SKIP"))
           fi
-          PYTHONUNBUFFERED=1 xvfb-run -a -s "-screen 0 1280x1024x24" python3 tools/run_all.py --golden --jobs 4 $names 2>&1 | tee suite_image.txt || true
+          PYTHONUNBUFFERED=1 xvfb-run -a -s "-screen 0 1280x1024x24" python3 tools/run_all.py --golden --jobs 1 $names 2>&1 | tee suite_image.txt || true
           rebirth=$(python3 -c "import sys; sys.path.insert(0, 'tools'); import run_all; print(' '.join(run_all.rebirth_scenarios(sys.argv[1:])))" $names)
-          PYTHONUNBUFFERED=1 xvfb-run -a -s "-screen 0 1280x1024x24" python3 tools/run_all.py --rebirth-only --golden --jobs 4 $rebirth 2>&1 | tee suite_rebirth.txt || true
+          PYTHONUNBUFFERED=1 xvfb-run -a -s "-screen 0 1280x1024x24" python3 tools/run_all.py --rebirth-only --golden --jobs 1 $rebirth 2>&1 | tee suite_rebirth.txt || true
           for f in suite_image.txt suite_rebirth.txt; do
             echo "### ${f%.txt}" | tee -a $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
