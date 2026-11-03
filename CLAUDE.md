@@ -1,4 +1,3 @@
 # Evil Islands rebuild
 
-Cloud sessions: read docs/cloud-handoff.md first. It says how to build and test (the Suites workflow on the
-self-hosted runner), how tickets work (tools/tickets.py, docs/ticket_status.tsv), the project's rules and what is next.
+Read docs/worker-brief.md first: what the project is, how to build and test (locally or through the Suites workflow), how tickets work (tools/tickets.py) and the project's rules. Area notes: docs/notes/README.md.
