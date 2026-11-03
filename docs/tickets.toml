@@ -6719,6 +6719,21 @@ depends = ["R40"]
 note = "User 2026-11-01: the SDL cursor works on macOS; macos-port (4196d48ad, the user's merge of main) already removes FPSIndependentCursor and fixes the camera rotation; take both into main from there (cherry-pick the parts, not the Metal/Apple files). After R40 the FPSIndependentCursor setting is read and saved but does nothing: remove it from the settings catalogue, the options screen and the ini. Add a scenario check that the gamma ramp reaches the cursor shapes. The real-game right-button camera turn under the SDL hold is for the user to try (play.cmd)."
 
 [[ticket]]
+id = "R41"
+title = "No device-loss recovery: a lost device ends the game cleanly"
+group = "renderer"
+model = "opus"
+note = "User 2026-11-03 asked whether the device-loss code is still needed. D3D11 loses its device only on driver updates/resets, TDRs and GPU switches; GL has no recovery at all (no robust context), and runtime backends (R42) would need it twice. Replace R9c1/R9c5 with one rule: when Lost() reports a loss, log it with the reason, show one message box ('The graphics device was lost (<reason>); the game will close.') and exit as the renderer's other fatal errors do. Delete: RecreateDevice and the per-module Drop/Destroy-for-recreation paths that exist only for it, TextureSource (decoded textures keeping their file bytes) and SurfaceView's Remake, RemakeComposed recipes, the canvases' command histories if nothing else needs them (check SwapContents/MoveCanvas), render::LoseDevice and the harness steps losedevice/removedevice, the removable D3D11On12 device (MakeRemovable, RequestRemoval, Removals, RemoveIfAsked, CreateRemovableDevice), the scenarios render_device_lost/render_device_removed and their goldens, and the notes' R9c1/R9c5 (one short paragraph saying why). Keep Lost() if the exit uses it. Check: goldens (image 154/3 minus the two scenarios, --rebirth-only 29/0, x64), frame captures, ui_check, perf_check, memory: private bytes after loading zone1 against main (TextureSource held file bytes)."
+
+[[ticket]]
+id = "R42"
+title = "Graphics backend chosen at run time: Direct3D 11 by default, OpenGL on Windows by flag or fallback"
+group = "renderer"
+model = "opus"
+depends = ["R41"]
+note = "User 2026-11-03: OpenGL on Windows (to test the Linux path on Windows), and the backend chosen at run time, not at compile time: Direct3D 11 by default on Windows, OpenGL by a flag (a setting in the ini's renderer section and/or EI_RENDER=gl) and as the fallback when no D3D11 device can be made. sokol_gfx builds one backend per implementation: compile it twice (SOKOL_D3D11 and SOKOL_GLCORE) with its public symbols prefixed, and a thin sg_* layer (generated from sokol_gfx.h by a script, checked in the build) that forwards to the chosen one; or another design if simpler, said why. sokol-shdc then emits hlsl5 and glsl430 on Windows (descs pick by sg_query_backend). platform::graphics: both backends linked on Windows, one chosen before the window is made (the SDL window needs the OpenGL flag for GL); the harness's window path the same. Linux keeps GL only. Check: all suites on D3D11 as main; the image suite once with GL on Windows (report which differ and why; frames, not goldens, should be where they differ); ui_check and perf_check on both; the Linux workflow green."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
