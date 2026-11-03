@@ -1,12 +1,27 @@
 {
   "scenario": "dropin_profile",
   "install": "vanilla",
-  "recorded": "2026-10-30",
-  "commit": "c1b726e",
+  "recorded": "2026-11-03",
+  "commit": "646ad67c9",
   "digest_period": 20,
   "left_out": null,
-  "clear": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C68: the main menu's script runs (AllowScriptsInMainMenu folded: its start-block run ends, record 0 of every run); addon's console commands in help (console); Add takes any argument count and IsEqual tests too many (script_parse); ResetTarget without behaviour records applies nothing (rebirth_flags); the whole map drawn (no draw radii: far units' client animation start / orientation, idle animations in bz1g, four more water sectors animated). Diffs: runs 41102852197 and 41107997893.",
-  "source": "image"
+  "reason": "C76's float constants (secondsPerTick 1 ulp, as every other golden re-recorded with C76); C76 left the dropin_* goldens out because H48 had changed them",
+  "source": "image",
+  "change": [
+    "digest: 1 of 1 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; unit place differs (hash only: no numbers)",
+    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 6 fields",
+    "    world (world) secondsPerTick: 0.00111111114 in the old golden, 0.00111111125 in the new run (d 1.1e-10)",
+    "    obj129 (80 unanwibo \"\") #ai: 0E443451 in the old golden, 8AF95674 in the new run",
+    "    obj129 (80 unanwibo \"\") #place: C7595BD8 in the old golden, D70B8DD1 in the new run",
+    "    ... 3 more",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  world: 1 of 1 differ",
+    "    secondsPerTick: 1 world, 1 record, from 0; max |d| 1.1e-10 (1 ulps) at world secondsPerTick, record 0: 0.00111111114 -> 0.00111111125",
+    "  units: 2 of 4 differ",
+    "    #ai: 2 units, 1 record, from 0; hash only (no numbers kept)",
+    "    #place: 1 unit, 1 record, from 0; hash only (no numbers kept)",
+    "... 2 more lines"
+  ]
 }
