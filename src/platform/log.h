@@ -9,7 +9,7 @@ namespace ei {
 void Log(const char* format, ...);
 
 // <output folder><separator><name> (UTF-8), the folder made when missing. The output folder holds what a run writes
-// (ei-rebuild.log, the harness report and saves, ...): EI_OUT_DIR when ei_launch sets it (one folder per run, so runs
+// (ei-rebuild.log, the harness report and saves, ...): EI_OUT_DIR when tools/run_all.py sets it (one folder per run, so runs
 // can go in parallel), else the exe's folder. Inputs (ei_settings.ini) stay next to the exe.
 std::string OutputPath(const char* name);
 

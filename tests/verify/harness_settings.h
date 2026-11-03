@@ -29,7 +29,7 @@
 //   settingsfile defaults   no file at the start: the first use writes it with the defaults (settings::Defaults,
 //                           for a 1280x720 desktop: SetDesktopSize), the game reads every value they leave out as
 //                           absent, and the exit save rewrites it
-// ei_launch compares the run folder's ei_settings.ini after the run with the expected file the scenario names in a
+// run_all compares the run folder's ei_settings.ini after the run with the expected file the scenario names in a
 // "# settings-file: <file>" line (tests/scenarios/settings/) and adds the differences to the run's failures. The
 // user's registry is never read or written in either.
 //

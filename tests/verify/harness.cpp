@@ -1,6 +1,6 @@
 // Automated test harness (verify build only).
 //
-// When ei_launch runs with --harness <scenario>, it sets EI_HARNESS to the scenario path. The
+// tools/run_all.py starts a run with EI_HARNESS set to the scenario path. The
 // scenario is a text file of steps, run on the game's main thread from its message loop:
 //
 //   wait <milliseconds>       let the game run (prefer a step that waits for the state wanted:
@@ -146,7 +146,7 @@
 //                             console lines "netstate: ..." (harness_pair.h; a golden keeps them)
 //   badupdate                 in a pair's game: its next update to the other game carries a record of an
 //                             unknown type (harness_pair.h): the other game drops its connection
-//   peer <name>               ei_launch's: start a second game beside this one on tests/scenarios/peer/<name>.txt,
+//   peer <name>               run_all's: start a second game beside this one on tests/scenarios/peer/<name>.txt,
 //                             the two in lockstep on a network of their own (harness_pair.h; net_pair_*.txt)
 //   peersignal <tag>, peerwait <seconds> <tag>
 //                             in a pair's game: mark <tag> as reached; wait until the other game has marked
@@ -161,12 +161,12 @@
 //                             and require a nonzero result (waits up to 3 s for the output)
 //   timeout <seconds>         the whole scenario's time limit (default 60 s); past it the run
 //                             fails and the game is closed (the watchdog thread; if that cannot run,
-//                             ei_launch reads this line too and ends the game 20 s later)
+//                             run_all reads this line too and ends the game 20 s later)
 //   hang main|dump|all        TEST ONLY, for the time limit's own checks (tests/scenarios/watchdog_*.txt,
 //                             "# expect: TIMEOUT"): block the main thread for good; "dump" also blocks
 //                             the thread that logs the main thread's stack (a main thread that cannot
 //                             be suspended does that), "all" stops the watchdog thread as well, so only
-//                             ei_launch can end the game
+//                             run_all can end the game
 //   waitline <seconds> <text> wait until the console has printed <text> (at any time in the run)
 //   waitexpect <seconds> <text>  like expect, but waits up to <seconds> for <text> to appear (for
 //                             output that follows posted keys, which a busy machine handles later)
@@ -225,7 +225,7 @@
 //                             "writable" starts from the snapshot's file with a probe section of odd values and lets
 //                             the game's exit save rewrite it (.tmp, then moved); "defaults" starts without a file,
 //                             which the first use writes with the defaults (for a 1280x720 desktop), as the
-//                             product's first start does. ei_launch compares the file after the run with the
+//                             product's first start does. run_all compares the file after the run with the
 //                             scenario's "# settings-file:" line (harness_settings.h)
 //   waitpresent <seconds> [gamma]
 //                             wait until the switch-over has presented a frame on the game window
@@ -344,8 +344,7 @@
 //   # comment
 //
 // Everything the console prints is captured into the report. The report ends with "RESULT: PASS"
-// (no failed checks or rejected output) or "RESULT: FAIL"; ei_launch --wait turns
-// that into its exit code.
+// (no failed checks or rejected output) or "RESULT: FAIL"; run_all reads it.
 //
 // Harness runs are hands-off and leave the install alone: no startup movies, the tutorial option
 // off, saves and config\tutorial.ini kept in harness_saves in the run folder, every other write under
@@ -353,7 +352,7 @@
 // going to a copy-on-write overlay there too (any other write into an install is refused and fails the
 // run: harness_install.h), no registry writes, and a UDP port of its own for the multiplayer
 // sessions instead of 8888, every socket on 127.0.0.1 only (harness_net.h).
-// A watchdog fails and ends a run that stops making progress (e.g. a message box), and ei_launch
+// A watchdog fails and ends a run that stops making progress (e.g. a message box), and run_all
 // ends a game that hangs after "quit".
 #include "harness_camera.h"
 #include "harness_capture.h"
@@ -362,7 +361,7 @@
 #include "harness_crash.h"
 #include "harness_digest.h"
 #include "harness_digest_read.h"   // the class ids
-#include "harness_dropin.h"
+#include "harness_folder_profile.h"
 
 #include "harness_startup.h"
 
@@ -2601,10 +2600,10 @@ void RunSteps() {
             HeldModifiers held(&s.argument);
             PostRegionMouse(s.verb, std::atoi(s.argument.c_str()));
         } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "modfile" || s.verb == "discprompts" ||
-                   s.verb == "dropin") {
+                   s.verb == "folderprofile") {
             std::string error = s.verb == "hudstate" ? HudState(s.argument)
                                 : s.verb == "campputon" ? CampPutOn(s.argument)
-                                : s.verb == "dropin" ? dropin::Step()
+                                : s.verb == "folderprofile" ? folder_profile::Step()
                                 : s.verb == "discprompts" ? startup::DiscPromptsStep(s.argument) : starter::ModFileStep(s.argument);
             if (!error.empty()) {
                 Log("harness: %s", error.c_str());
@@ -3006,7 +3005,7 @@ void RunSteps() {
             if (!g_expectedCrash.empty()) g_failures.push_back("the game did not crash (expectcrash " + g_expectedCrash + ")");
             WriteReport();
             // The game can hang on the way out (Rebirth did: harness_starter.cpp). The quit console command calls exit(),
-            // which stops our watchdog thread too, so ei_launch ends the process when it sees
+            // which stops our watchdog thread too, so run_all ends the process when it sees
             // harness_quit and the game is still running 3 s later.
             char marker[MAX_PATH];
             strcpy_s(marker, g_reportPath);
@@ -3376,7 +3375,7 @@ bool LoadScenario(const char* path) {
             g_steps.pop_back();
             continue;
         }
-        if (g_steps.back().verb == "peer") {   // ei_launch's: the other game of a pair (harness_pair.h)
+        if (g_steps.back().verb == "peer") {   // run_all's: the other game of a pair (harness_pair.h)
             g_steps.pop_back();
             continue;
         }
@@ -3407,7 +3406,7 @@ struct Harness {
         char path[MAX_PATH];
         DWORD n = GetEnvironmentVariableA("EI_HARNESS", path, MAX_PATH);
         if (n == 0 || n >= MAX_PATH) return;
-        // Report next to ei-rebuild.log. It exists from the start ("RESULT: RUNNING"), so ei_launch can
+        // Report next to ei-rebuild.log. It exists from the start ("RESULT: RUNNING"), so run_all can
         // tell a run whose harness never started from one that is still going.
         strcpy_s(g_reportPath, ei::OutputPath("harness_report.txt").c_str());
         FILE* report = nullptr;
@@ -3472,7 +3471,6 @@ struct Harness {
         // Every other module's writes into the install go to the overlay too, and what still reaches an install
         // is refused and fails the run (harness_install.h).
         install::Install({&WritePath, &ReadPath, &InInstall});
-        dropin::Install();   // a drop-in run's game paths: the default settings file's (harness_dropin.h)
         if (g_deterministic) {
             clock::InstallVirtual(&TickLength());
             image::SetWaitForVsync(false);   // frames need not wait for the display

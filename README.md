@@ -56,12 +56,12 @@ Lua mission scripting is planned (`docs/notes/lua-scripting.md`). The work queue
   - the GOG release (`EI_GAME_VANILLA`, default `F:\games\EvilIslands`), and/or
   - the Rebirth edition (`EI_GAME_REBIRTH`, default `F:\games\Evil Islands (Rebirth)`).
 
-  Nothing in the game folder is ever written: saves, settings and caches go to the play folder (`run\play`).
+  play.cmd keeps its settings and log in its own folder (`build\play_game`); the saves go to the install's `saves`.
 
 ## Build
 
 ```
-build.cmd release        the game: build\release\ei-rebuild.exe (and ei_launch.exe, the tools' launcher)
+build.cmd release        the game: build\release\ei-rebuild.exe
 build.cmd verify         the game with the test harness linked in, into build\verify (what the tests run)
 ```
 
@@ -87,12 +87,12 @@ set EI_GAME_REBIRTH=D:\Games\Evil Islands
 play.cmd
 ```
 
-The game plays from a copy of the build in `run\play`, so a game left open never locks the build. Its settings are
-`run\play\ei_settings.ini` (written with the defaults when missing: full screen at the desktop's size, every graphics
+The game plays from a copy of the build in `build\play_game`, so a game left open never locks the build. Its settings
+are `build\play_game\ei_settings.ini` (written with the defaults when missing: full screen at the desktop's size, every graphics
 setting at its best; the registry is never read). The render quality (MSAA samples,
 anisotropy), the performance overlay and vsync are set in its `[renderer]` section (comments at the top of `play.cmd`;
 `docs/notes/renderer.md` sections 11 and 15). The log is
-`run\play\ei-rebuild.log`.
+`build\play_game\ei-rebuild.log`.
 
 ## Test
 
@@ -106,8 +106,9 @@ repeats exactly, and compares the world state with its goldens (`tests/golden/`)
 stopped running the original game, H40, were the same as its runs). How to write scenarios and what a run does:
 `docs/notes/harness.md`; how changes are checked: `docs/notes/standalone-verification.md`.
 
-The test tools still expect the installs at the default `F:\games` paths (`tools/run_all.py`). The tools that read
-game.exe's file (the generators, `find_*`) need `tools\setup_vanilla_run.cmd` once.
+The test tools find the installs as play.cmd does (`EI_GAME_VANILLA`, `EI_GAME_REBIRTH`, default the `F:\games` paths
+above; `tools/run_all.py` install_dir); the tools that read game.exe's file (the generators, `find_*`) read the
+installs' (`tools/exe_path.py`).
 
 ## Layout
 

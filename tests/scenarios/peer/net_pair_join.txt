@@ -1,4 +1,4 @@
-# The peer of net_pair_join (started by ei_launch beside it; harness_pair.h): a hero of its own, the connection
+# The peer of net_pair_join (started by run_all beside it; harness_pair.h): a hero of its own, the connection
 # screen's list, the host's game (row 1: the lobby found it by its ping on 8888), joined; the multiplayer start
 # zone as a network client, a chat line and the host's answer. Then it leaves (quits) while the host stays.
 timeout 180

@@ -1,6 +1,5 @@
 @echo off
-rem Builds the standalone image (ei-rebuild.exe), ei_launch.exe and the tools for 64-bit Windows (x64) with the VS 2022
-rem Build Tools.
+rem Builds the standalone image (ei-rebuild.exe) and the tools for 64-bit Windows (x64) with the VS 2022 Build Tools.
 rem usage: build.cmd [release|verify|debug|play|asan]
 rem   release  the product: the standalone image
 rem   verify   the harness build: the same image plus the harness (tests/verify), for run_all / work.py test

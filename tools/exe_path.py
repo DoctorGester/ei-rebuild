@@ -1,11 +1,11 @@
 """Where the tools find game.exe (S18e3): one lookup for every tool that reads it.
 
   1. an explicit path (the tool's --exe, or the EI_EXE environment variable),
-  2. else run_all.run_dir(root)'s vanilla\\game.exe, then rebirth\\game.exe. run_dir is the root's run\\ folder, or
-     the main checkout's when the worktree has no junction of its own.
+  2. else the installs' (run_all.install_dir: EI_GAME_VANILLA, EI_GAME_REBIRTH): the vanilla install's game.exe, then
+     Rebirth's starter\\Engine\\game.exe.
 
 Vanilla's and Rebirth's game.exe 1.06 differ in one code byte (a Rebirth fix); the data the tools read is the same.
-The lookup never writes and never reads F:\\games. Nothing found: one error naming everything looked for.
+The lookup only reads the installs. Nothing found: one error naming everything looked for.
 
 usage: python tools/exe_path.py [--exe PATH] [--all]   prints the path (--all: every install's, one per line)
 (The build reads no game.exe: C25c, C25d. The generators and find_* read it.)
@@ -15,7 +15,6 @@ import os, struct, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-INSTALLS = ('vanilla', 'rebirth')   # in this order
 TIMESTAMP = 0x3ABF0DB3   # game.exe 1.06
 
 
@@ -24,10 +23,10 @@ class ExeNotFound(Exception):
 
 
 def install_exes(root=ROOT):
-    """run\\vanilla\\game.exe and run\\rebirth\\game.exe of root (or of the main checkout), existing or not."""
+    """The installs' game.exe 1.06 (vanilla's, then Rebirth's), existing or not."""
     import run_all
-    run = run_all.run_dir(root)
-    return [os.path.join(run, name, 'game.exe') for name in INSTALLS]
+    return [os.path.join(run_all.install_dir('vanilla'), 'game.exe'),
+            os.path.join(run_all.install_dir('rebirth'), 'starter', 'Engine', 'game.exe')]
 
 
 def find_exe(explicit=None, root=ROOT):
@@ -41,8 +40,8 @@ def find_exe(explicit=None, root=ROOT):
     for path in wanted:
         if os.path.isfile(path):
             return path
-    raise ExeNotFound('game.exe not found: looked for ' + ' and '.join(wanted) + ' (run tools\\setup_vanilla_run.cmd, '
-                      'or give --exe PATH or set EI_EXE)')
+    raise ExeNotFound('game.exe not found: looked for ' + ' and '.join(wanted) + ' (set EI_GAME_VANILLA or EI_GAME_REBIRTH, '
+                      'give --exe PATH or set EI_EXE)')
 
 
 def find_exes(explicit=(), root=ROOT):

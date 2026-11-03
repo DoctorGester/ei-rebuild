@@ -45,14 +45,14 @@ cell's pointer first.
   initialisers set is a definition's initialiser.
 - **Resources**: the exe's one resource is its own VERSIONINFO (`src/main.rc`). The window title "Evil Islands" and
   the class "EIGAME" are literals in app_main.cpp. The window class has no icon.
-- **A crash** in a harness run is reported by the harness: its crash log, tools/resolve_crash.py. ei_launch reports a
+- **A crash** in a harness run is reported by the harness: its crash log, tools/resolve_crash.py. run_all reports a
   game that ended by itself while its report still says RUNNING (`FAILED: the game ended ...`).
 - **Suite.** `run_all` / `work.py test` run two installs:
   - `standalone`: the vanilla data;
-  - `standalone-rebirth`: the Rebirth data with the patches of `config/rebirth_profile.ini`. Those are the 40 a Rebirth
-    launch with addon turns on; refresh the list when addon.dll or EI_Plugin.ini change.
+  - `standalone-rebirth`: the Rebirth data with the folder's profile, the patches of `config/rebirth_profile.ini`. Those
+    are the 40 a Rebirth launch with addon turns on; refresh the list when addon.dll or EI_Plugin.ini change.
 
-  `--game` names the install whose data a run plays, and ei_launch sets EI_GAME_ROOT from it.
+  run_all starts the exe with EI_GAME_ROOT the install whose data a run plays (EI_GAME_VANILLA, EI_GAME_REBIRTH).
 
 ### Own data (S18)
 
@@ -314,8 +314,7 @@ writes the registry.
     (renderer.md sections 11, 15, 15a; that section is not read in the harness build).
 - **Read filters** change a value as it is read:
   - EI_GAME_ROOT's Work path / CD-ROM Path;
-  - the harness's `discprompt`;
-  - drop-in runs' `.\`.
+  - the harness's `discprompt`.
 - **Harness runs** (tests/verify/harness_settings.h): the harness pins `<run folder>\ei_settings.ini` and writes it at
   first use from config/harness/registry.reg. That file holds the install's option tree (Rebirth's when
   `starter::RebirthInstall`), with the scenario's starter lines in place.
@@ -330,7 +329,7 @@ writes the registry.
   - `settingsfile writable` (settings_save.txt) runs the game's exit save for real.
   - `settingsfile defaults` (settings_defaults.txt) starts with no file and a 1280x720 desktop.
 
-  ei_launch compares the file after the game with the scenario's `# settings-file: settings/<name>.ini` and fails on a
+  run_all compares the file after the game with the scenario's `# settings-file: settings/<name>.ini` and fails on a
   difference or a left `.tmp`. To change an expected file, copy the run's ei_settings.ini over it.
 
 ### The CRT (src/lib/crt*.cpp, namespace `libcrt`)
@@ -553,33 +552,27 @@ from there, started from anywhere, with no launcher, no DLL of ours and no file 
   - **Else the plain install's**, which is the defaults.
 
   Then ei_settings.ini's `[patches]` apply, then EI_REBIRTH and a scenario's flags. When EI_REBIRTH is set no profile
-  is taken. ei_launch sets it to `defaults` for a harness run whose caller set none, and run_all sets it to the profile's
-  names on the Rebirth install. So the goldens do not read the install's EI_Plugin.ini.
+  is taken. Harness runs set none: they take the install folder's profile as a player's exe does, so the Rebirth
+  goldens read the install's EI_Plugin.ini (players 7, pause 1: the defaults).
 - **The exe's own imports** (d3d11, kernel32, user32, advapi32, winmm, ws2_32) come from System32 only
   (`/DEPENDENTLOADFLAG:0x800`). A wrapper DLL of the same name in a game folder (dgVoodoo, a dsound wrapper) is not
   taken. ASan's build leaves the flag out.
-- **The drop-in runs:** `ei_launch --drop-in`, or a `--standalone` scenario with a `# drop-in:` line on both installs.
-  1. **Makes the folder:** `<run folder>\dropin` is built like the install. Each folder is a junction to the install's.
-     Each file is a copy, except game.exe and our own files. Then the build's exe is added.
-  2. **Starts the copy:** it runs with EI_GAME_ROOT and EI_REBIRTH cleared, so the game folder and the profile are
-     found as in a player's folder.
-  3. **Cleans up:** it removes the folder afterwards. Junctions are removed, never followed.
-
-  Writes to the install are refused. The pinned settings read Work path / CD-ROM Path as `.\` there
-  (harness_dropin.cpp). The scenarios are `dropin_boot` and `dropin_profile`. The `dropin` step checks every flag
-  against the profile worked out from config/rebirth_profile.ini.
+- **Checks:** `dropin_profile` (both installs; in the Rebirth smoke set) is a run like any other, with no EI_REBIRTH:
+  its `folderprofile` step (harness_folder_profile.h) checks every flag against the profile worked out from
+  config/rebirth_profile.ini, and EI_Plugin.ini's players and pause. Every run starts the exe with EI_GAME_ROOT;
+  main.cpp's fallback to the exe's own folder (no EI_GAME_ROOT) has no run.
 
 ### The x64 build
 
 Every Windows build is x64 (release, verify, debug, asan, play; vcvars64).
-- **What it builds:** ei-rebuild.exe, ei_launch, ei_unit_check, ei_text_check, ei_input_check, ei_ui_check and
+- **What it builds:** ei-rebuild.exe, ei_unit_check, ei_text_check, ei_input_check, ei_ui_check and
   ei_perf_check. The verify and asan builds link the harness in. ASan uses clang_rt.asan_dynamic-x86_64.dll, copied
   beside the executables.
 - **Sound and movies:** they go through src/audio and src/video (docs/notes/sound.md); there is no Miles or Bink.
 - **No x87:** float-maths.md, "The control word".
 - **Formats:** formats read or written as bytes are 32-bit (core.md, "Values read and written as bytes"). A
   container's size meets the game's int counts through `lib::Count` (lib/containers.h), not `std::ssize`.
-- **Running it without ei_launch:** use a folder made like the game folder.
+- **Running it from a folder of its own:** use a folder made like the game folder.
   - **Folders:** each is a junction to the install's, except `saves` and `cache`, which are real.
   - **Files:** each is a copy, except game.exe.
   - **Settings:** ei_settings.ini's Work path and CD-ROM Path must be `.\`. An absolute path sends saves\current into
@@ -613,8 +606,8 @@ The harness (tests/verify) is linked into ei-rebuild.exe in the verify and asan 
 
 Nothing runs game.exe: the goldens are our own (docs/notes/standalone-verification.md section 2). The tag
 original-oracle has the last build that ran it as the harness's reference. What is left of it:
-- **Its file:** the tools of section 1 read a copy in run\vanilla or run\rebirth (tools/setup_vanilla_run.cmd,
-  setup_rebirth_run.cmd).
+- **Its file:** the tools of section 1 read the installs' (tools/exe_path.py: the vanilla install's game.exe, Rebirth's
+  starter\Engine\game.exe).
 - **Its addresses as names:**
   - comments and config/functions.csv name the original functions by address;
   - the data seam keeps unnamed data at its addresses;

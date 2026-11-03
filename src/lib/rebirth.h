@@ -12,7 +12,7 @@
 // start-up calls once, before any rewritten code runs (src/game/rebirth_profile.cpp): the defaults, then the game
 // folder's profile (Rebirth's in a Rebirth install:
 // config/rebirth_profile.ini; a launch that names its flags in EI_REBIRTH takes none), then the settings file's
-// [patches] (src/game/settings.h), then the EI_REBIRTH environment variable (ei_launch --rebirth) and a harness
+// [patches] (src/game/settings.h), then the EI_REBIRTH environment variable and a harness
 // scenario's "rebirthflags" lines (ApplyOverrides). The standalone image never loads addon.dll or EI_Plugin.asi:
 // these flags alone decide. "none" is the original 1.06.
 //

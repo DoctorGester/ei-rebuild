@@ -1,0 +1,5 @@
+# Time limit, main thread blocked and the game's own watchdog thread stopped: only run_all can end the game,
+# 20 s after the 10 s limit, and it reports TIMEOUT. About 32 s. SV1d.
+# expect: TIMEOUT
+timeout 10
+hang all

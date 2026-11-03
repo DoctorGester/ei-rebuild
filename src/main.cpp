@@ -1,6 +1,6 @@
 // ei-rebuild: the game.
 // usage: ei-rebuild [-- <game arguments>]
-//   The game folder is the one EI_GAME_ROOT names (a launcher's: ei_launch, play.cmd's x64 start), else the program's
+//   The game folder is the one EI_GAME_ROOT names (tools/run_all.py's, play.cmd's), else the program's
 //   own (the exe dropped into a game folder). With EI_GAME_ROOT the settings file's game paths (Work path, CD-ROM Path)
 //   are read as that folder. What follows "--" is the game's command line, as typed (WinMain's).
 #include "game/app.h"
@@ -38,7 +38,7 @@ std::string GameFolder() {
 } // namespace
 
 int main(int argc, char** argv) {
-    // Under ei_launch stdout is a pipe: unbuffered, so a run that ends abruptly loses none of it.
+    // Under run_all stdout is a file: unbuffered, so a run that ends abruptly loses none of it.
     std::setvbuf(stdout, nullptr, _IONBF, 0);
     if (argc > 1 && std::strcmp(argv[1], "--") != 0) {
         std::fprintf(stderr, "usage: ei-rebuild [-- <game arguments>]\n");

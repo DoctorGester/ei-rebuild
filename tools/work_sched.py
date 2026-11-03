@@ -652,8 +652,8 @@ def cmd_test(db, args):
     ra = run_all.parse_args(argv)           # run_all's own errors and exit
     jobs = run_all.plan(ra)
     root, build = work.norm(run_all.ROOT), work.norm(run_all.BUILD)
-    if not os.path.exists(os.path.join(build, 'ei_launch.exe')):
-        sys.exit(f'work.py: {build}/ei_launch.exe is missing; build.cmd verify first')
+    if not os.path.exists(os.path.join(build, run_all.EXE)):
+        sys.exit(f'work.py: {build}/{run_all.EXE} is missing; build.cmd verify first')
     expected = work.expected_times(db, root, jobs, run_all.load_times(build))    # timing table, else run_times.json
     env = run_all.game_environment()
     if ra.golden:

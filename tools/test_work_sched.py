@@ -5,6 +5,7 @@ Each test has its own database and slot folder in a temporary directory (the mac
 touched), so it can run beside real suites.
 """
 import contextlib, datetime, io, json, os, subprocess, sys, tempfile, threading, time, unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import run_all, work, work_sched
@@ -18,13 +19,6 @@ for n in names:
 open(os.path.join(folder, 'ready'), 'w').close()
 time.sleep(seconds)
 '''
-
-
-REAL_RUN = subprocess.run     # tests that fake the game replace subprocess.run (git still needs the real one)
-
-
-def is_game(cmd):
-    return os.path.basename(str(cmd[0])).lower() == 'ei_launch.exe'
 
 
 class Fake:
@@ -394,22 +388,16 @@ class SchedTest(unittest.TestCase):
             def release(self):
                 events.append('release')
 
-        def fake_subprocess_run(cmd, **kw):
-            if not is_game(cmd):
-                return REAL_RUN(cmd, **kw)
+        def fake_launch(scenario, out, data, build, env=None):
             events.append('game')
-            return subprocess.CompletedProcess(cmd, 0, '', '')
+            return 0, ''
         scenarios = os.path.join(self.tmp, 'tests', 'scenarios')
         os.makedirs(scenarios)
         open(os.path.join(scenarios, 'x.txt'), 'w').write('waitmenu\n')
         build = os.path.join(self.tmp, 'bld')
-        old_run = run_all.subprocess.run
-        run_all.subprocess.run = fake_subprocess_run
-        try:
+        with mock.patch.object(run_all, 'launch', fake_launch):
             run = {'scenario': 'x', 'install': 'standalone', 'hooks': 1, 'folder': build + '/runs/x-standalone'}
             work_sched.real_runner({'worktree': self.tmp, 'build': build, 'env': None}, run, 1, lambda n: None, Slots())
-        finally:
-            run_all.subprocess.run = old_run
         self.assertEqual(events, ['acquire', 'game', 'release'] * 2)     # NO REPORT, so played again
 
     def test_prune_counts(self):
@@ -453,17 +441,15 @@ class SchedTest(unittest.TestCase):
         and a batch from before (no recorded env) inherits as it did."""
         seen = []
 
-        def fake_subprocess_run(cmd, **kw):
-            if not is_game(cmd):
-                return REAL_RUN(cmd, **kw)       # git
-            seen.append((cmd, kw.get('env')))
-            return subprocess.CompletedProcess(cmd, 0, '', '')
+        def fake_launch(scenario, out, data, build, env=None):
+            seen.append((data, env))
+            return 0, ''
         scenarios = os.path.join(self.tmp, 'tests', 'scenarios')
         os.makedirs(scenarios)
         open(os.path.join(scenarios, 'x.txt'), 'w').write('waitmenu\n')
         build = os.path.join(self.tmp, 'bld')
-        old_run, old_environ = run_all.subprocess.run, dict(os.environ)
-        run_all.subprocess.run = fake_subprocess_run
+        old_launch, old_environ = run_all.launch, dict(os.environ)
+        run_all.launch = fake_launch
         os.environ['EI_PROFILE'] = 'scheduler-own'      # the scheduler's own, not any batch's
         os.environ['EI_BUILD_DIR'] = 'whatever'
         try:
@@ -476,7 +462,7 @@ class SchedTest(unittest.TestCase):
             work_sched.real_runner({'worktree': self.tmp, 'build': build}, run, 0, lambda n: None)   # no env column at all
             self.assertEqual(os.environ['EI_PROFILE'], 'scheduler-own')
         finally:
-            run_all.subprocess.run = old_run
+            run_all.launch = old_launch
             os.environ.clear()
             os.environ.update(old_environ)
         with_env, empty, null, no_column = (e for _, e in seen)
@@ -497,24 +483,18 @@ class SchedTest(unittest.TestCase):
 
     def test_clock_reaches_the_game(self):
         seen = []
-        def fake_subprocess_run(cmd, **kw):
-            if not is_game(cmd):
-                return REAL_RUN(cmd, **kw)       # git
-            seen.append(kw.get('env'))
-            return subprocess.CompletedProcess(cmd, 0, '', '')
+        def fake_launch(scenario, out, data, build, env=None):
+            seen.append(env)
+            return 0, ''
         scenarios = os.path.join(self.tmp, 'tests', 'scenarios')
         os.makedirs(scenarios)
         open(os.path.join(scenarios, 'x.txt'), 'w').write('waitmenu\n')
         build = os.path.join(self.tmp, 'bld')
-        old_run = run_all.subprocess.run
-        run_all.subprocess.run = fake_subprocess_run
-        try:
+        with mock.patch.object(run_all, 'launch', fake_launch):
             run = {'scenario': 'x', 'install': 'standalone', 'hooks': 1, 'folder': build + '/runs/x-standalone'}
             row = {'worktree': self.tmp, 'build': build, 'env': None}
             work_sched.real_runner(dict(row, args=json.dumps(['x', '--clock', 'virtual,randtrace'])), run, 0, lambda n: None)
             work_sched.real_runner(dict(row, args=json.dumps(['x'])), run, 0, lambda n: None)
-        finally:
-            run_all.subprocess.run = old_run
         self.assertEqual(seen[0]['EI_HARNESS_CLOCK'], 'virtual,randtrace')
         self.assertIsNone(seen[1])                                  # no --clock: the game inherits
 
@@ -680,31 +660,24 @@ class SchedTest(unittest.TestCase):
         return path
 
     def test_only_the_image_plays(self):
-        """H40: every run is the image's, ei_launch --standalone without EI_RENDER (the scenario's "render" step
-        decides); game.exe's installs and a game.exe row from an older checkout (hooks off) play no game."""
+        """H40: every run is the image's, without EI_RENDER (the scenario's "render" step decides); game.exe's installs
+        and a game.exe row from an older checkout (hooks off) play no game."""
         seen = []
 
-        def fake_subprocess_run(cmd, **kw):
-            if not is_game(cmd):
-                return REAL_RUN(cmd, **kw)
-            seen.append((cmd, kw.get('env')))
-            return subprocess.CompletedProcess(cmd, 0, '', '')
+        def fake_launch(scenario, out, data, build, env=None):
+            seen.append((data, env))
+            return 0, ''
         self.scenario('plain', 'waitmenu\n')
         build = os.path.join(self.tmp, 'bld')
-        old_run = run_all.subprocess.run
-        run_all.subprocess.run = fake_subprocess_run
-        try:
+        with mock.patch.object(run_all, 'launch', fake_launch):
             run_all.run('plain', 'standalone', root=self.tmp, build=build, take_slot=False, game_env={'EI_RENDER': 'smooth'})
             gone = [run_all.run('plain', install, root=self.tmp, build=build, take_slot=False)
                     for install in ('vanilla', 'rebirth', 'native')]
             row = {'worktree': self.tmp, 'build': build, 'env': None}
             unhooked = work_sched.real_runner(row, {'scenario': 'plain', 'install': 'vanilla', 'hooks': 0,
                                                     'folder': build + '/runs/plain-vanilla'}, 1, lambda n: None)
-        finally:
-            run_all.subprocess.run = old_run
         self.assertEqual(len(seen), 1, 'a game was played for an unknown install or a game.exe row')
-        self.assertIn('--standalone', seen[0][0])
-        self.assertNotIn('--no-hooks', seen[0][0])
+        self.assertEqual(seen[0][0], 'vanilla')
         self.assertNotIn('EI_RENDER', seen[0][1])
         for result in gone:
             self.assertEqual(result[0], 'FAIL')
@@ -713,15 +686,14 @@ class SchedTest(unittest.TestCase):
         self.assertIn('no longer run since H40', unhooked[2][0])
 
     def test_standalone(self):
-        """--standalone (the default since S21): every scenario, install "standalone", ei_launch --standalone on the vanilla
-        install's data, no game.exe (S18k1), always our renderer (never the display mode)."""
+        """--standalone (the default since S21): every scenario, install "standalone", the image on the vanilla
+        install's data, no game.exe (S18k1), always our renderer (never the display mode); "standalone-rebirth" on
+        Rebirth's data, its flags the folder's profile (no EI_REBIRTH of run_all's)."""
         seen = []
 
-        def fake_subprocess_run(cmd, **kw):
-            if not is_game(cmd):
-                return REAL_RUN(cmd, **kw)
-            seen.append((cmd, kw.get('env')))
-            return subprocess.CompletedProcess(cmd, 0, 'ei-rebuild: the game returned 0\n', '')
+        def fake_launch(scenario, out, data, build, env=None):
+            seen.append((data, env))
+            return 0, 'ei-rebuild: the game returned 0\n'
         self.scenario('boot', 'waitmenu\nquit\n')
         self.scenario('wide', 'render smooth\nresolution 800x600\nfullscreen 1\n')
         # The vanilla data only unless the Rebirth data is asked for (SV9)
@@ -750,59 +722,23 @@ class SchedTest(unittest.TestCase):
         self.assertEqual(run_all.plan(run_all.parse_args(['--standalone', '--rebirth-only', 'wide']), root=self.tmp),
                          [('wide', 'standalone-rebirth')])
         build = os.path.join(self.tmp, 'bld')
-        old_run = run_all.subprocess.run
-        run_all.subprocess.run = fake_subprocess_run
-        try:
+        with mock.patch.object(run_all, 'launch', fake_launch):
             notes = run_all.run('boot', 'standalone', root=self.tmp, build=build, take_slot=False,
                                 game_env={'EI_RENDER': 'smooth'})[4]
-        finally:
-            run_all.subprocess.run = old_run
-        cmd, env = seen[0]
-        self.assertIn('--standalone', cmd)
-        self.assertNotIn('--exe', cmd)                  # the image reads no game.exe: --game is its data (EI_GAME_ROOT)
-        self.assertEqual(cmd[cmd.index('--game') + 1], r'F:\games\EvilIslands')
-        self.assertNotIn('EI_RENDER', env)
-        self.assertEqual(notes, ['ei-rebuild: the game returned 0'])
-        # standalone-rebirth: ei_launch's default (Rebirth) game folder, the profile's patches
-        os.makedirs(os.path.join(self.tmp, 'config'), exist_ok=True)
-        with open(os.path.join(self.tmp, 'config', 'rebirth_profile.ini'), 'w') as f:
-            f.write('; a = true\n[patches]\nNivalRegistry = true\nWideScreen=true\nMaps = false\n')
-        run_all.subprocess.run = fake_subprocess_run
-        try:
             run_all.run('boot', 'standalone-rebirth', root=self.tmp, build=build, take_slot=False, game_env={})
-        finally:
-            run_all.subprocess.run = old_run
-        cmd, env = seen[1]
-        self.assertIn('--standalone', cmd)
-        self.assertNotIn('--game', cmd)
-        self.assertNotIn('--exe', cmd)
-        self.assertNotIn('EI_RENDER', env)
-        self.assertEqual(env['EI_REBIRTH'], 'NivalRegistry,WideScreen')
+        self.assertEqual(seen[0][0], 'vanilla')
+        self.assertNotIn('EI_RENDER', seen[0][1])
+        self.assertEqual(notes, ['ei-rebuild: the game returned 0'])
+        self.assertEqual(seen[1][0], 'rebirth')
+        self.assertNotIn('EI_REBIRTH', seen[1][1])
         self.assertEqual(run_all.GOLDEN_INSTALL['standalone-rebirth'], 'rebirth')
 
-    def test_drop_in(self):
-        """S23a: a scenario with "# drop-in:" (ei_launch makes its runs drop-in runs) runs on both of the image's
-        installs; its folder goes without touching what its junctions name."""
-        self.scenario('boot', 'waitmenu\nquit\n')
-        dropped = self.scenario('dropped', '# drop-in: the exe in a game folder\nwaitmenu\n')
-        self.assertTrue(run_all.drop_in(dropped))
-        plan = lambda *a: run_all.plan(run_all.parse_args(list(a)), root=self.tmp)
-        self.assertEqual(plan('boot', 'dropped'),
-                         [('boot', 'standalone'), ('dropped', 'standalone'), ('dropped', 'standalone-rebirth')])
-        self.assertEqual(plan('--vanilla-only', 'dropped'), [('dropped', 'standalone')])
-        self.assertEqual(plan('--rebirth-only'), [('dropped', 'standalone-rebirth')])
-        # A folder left by a killed ei_launch: removed, the junction's target kept
-        import _winapi
-        target = os.path.join(self.tmp, 'install', 'res')
-        os.makedirs(target)
-        open(os.path.join(target, 'kept.res'), 'w').close()
-        out = os.path.join(self.tmp, 'run')
-        os.makedirs(os.path.join(out, 'dropin'))
-        _winapi.CreateJunction(target, os.path.join(out, 'dropin', 'res'))
-        open(os.path.join(out, 'dropin', 'mss32.dll'), 'w').close()
-        run_all.remove_drop_in_folder(out)
-        self.assertFalse(os.path.exists(os.path.join(out, 'dropin')))
-        self.assertTrue(os.path.exists(os.path.join(target, 'kept.res')))
+    def test_install_dirs(self):
+        """The installs' folders: EI_GAME_VANILLA / EI_GAME_REBIRTH, else the machine's defaults."""
+        with mock.patch.dict(os.environ, {'EI_GAME_VANILLA': 'V', 'EI_GAME_REBIRTH': ''}):
+            self.assertEqual(run_all.install_dir('vanilla'), 'V')
+            self.assertEqual(run_all.install_dir('rebirth'), run_all.DEFAULT_INSTALLS['rebirth'])
+        self.assertNotIn('EI_GAME_VANILLA', run_all.game_environment({'EI_GAME_VANILLA': 'V', 'EI_GAME_ROOT': 'R'}))
 
 
 if __name__ == '__main__':
