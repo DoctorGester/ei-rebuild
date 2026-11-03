@@ -6742,6 +6742,14 @@ depends = ["R41"]
 note = "User 2026-11-03: replaces R42 (sokol compiled twice). sokol_gfx lacks readback and runtime backend choice; SDL_GPU (SDL3, already our platform layer) picks D3D12/Vulkan/Metal at device creation and has transfer-buffer downloads. Spike, not the port: draw one real scene (a zone's terrain + meshes, or the menu) through SDL_GPU beside the sokol path, shaders built by SDL_shadercross from our existing sources (say which source language), on D3D12 and Vulkan on Windows, and on Linux. Measure: frame time against sokol D3D11 on the same scene, readback latency for a full frame, and startup cost. WSL/WSLg: try the dozen (D3D12-backed) Vulkan driver and lavapipe; say which work. Report: what the full port needs (files, rough size, what in platform::graphics goes away: Readback, GpuTimer, per-backend files), blockers (feature levels, old GPUs, shader features), and a plan of tickets."
 
 [[ticket]]
+id = "R44"
+title = "Window resize changes the rendering resolution; resolution changeable at run time; letterboxed input right"
+group = "renderer"
+model = "opus"
+depends = ["R41"]
+note = "User 2026-11-03: resizing the window works today but only scales the output: the game still renders at its start resolution. Make a resize (drag, maximise, a monitor DPI change) change the rendering resolution: back buffer, render targets, the screen layout (src/game/screen_layout.*, widescreen axes, the interface's panels and fonts), camera projection and the UI's cached sizes, without restarting the zone; one path that a resolution change from the settings (options screen / ini) also takes later, so expose it as one call (e.g. app::SetResolution) and say what the options screen needs to use it. No device re-creation (R41 removed recovery; resize the swap chain and remake the size-dependent targets only). Letterboxing/pillarboxing (windows narrower than 4:3, screen_layout's marginY; the movie player's letterbox; the cutscene letterbox bars in ui_interface_input.cpp) must map input correctly: the cursor's window position to the game's point through the same transform the picture uses, camera edge pan (ui_camera_keys.h / ui_camera_input.cpp) triggered at the edges of the drawn picture, not the window's, and clicks in the bands ignored. Keep it backend-agnostic: R43 may replace sokol_gfx with SDL_GPU. Harness: a scenario step that resizes the window mid-zone (4:3 -> wide -> narrower than 4:3) with captures, and one for edge pan in a letterboxed window; frames, not goldens, should show the change. Check: suites 154/3 (or with the new scenarios), --rebirth-only, x64; ui_check; perf_check. play.cmd: try dragging the window."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
