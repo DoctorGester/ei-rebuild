@@ -137,7 +137,6 @@ const unsigned long kDiskFull = ENOSPC;
 
 // ==== The game's calls as the system answers them ====================================================================
 
-std::string VolumeLabel(const char*) { return {}; }
 
 bool FontSmoothing() { return true; }
 

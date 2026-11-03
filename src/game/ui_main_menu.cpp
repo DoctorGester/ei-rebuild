@@ -160,13 +160,13 @@ void MainMenu::MessageResult(int result) {
     GameSetServerPaused(0);
     if (result == 0x10001) {
         {
-            std::string path = g_discFolder + kExitMovie;
+            std::string path = g_dataFolder + kExitMovie;
             PlayMovie(path, 0, 0, 0, 1, 1);
         }
         app::QuitGame(0);
     } else if (result == 0x20001) {
         {
-            std::string path = g_discFolder + kIntroMovie;
+            std::string path = g_dataFolder + kIntroMovie;
             PlayMovie(path, 0, 1, 1, 1, 1);
         }
         app::g_interfaceHasScreen = 0;

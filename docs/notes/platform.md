@@ -71,7 +71,7 @@ platform.h's sections (the sockets in `platform::net`):
 | The message box | `ShowMessageBox(owner, text, caption, buttons, icon)` | SDL; harness builds: the harness's answer |
 | Paths | `ProgramPath()` (the system's separators), `CurrentFolder()`, `SetCurrentFolder`, `UserDataFolder()`, `ArgumentsAfterSeparator` | GetModuleFileNameW, GetCurrentDirectoryW, SetCurrentDirectoryW, GetEnvironmentVariableW |
 | The machine | `FontSmoothing()`; `PrimaryDesktopSize`, `EnvironmentVariable`, `EndProcess` | SystemParametersInfoW (game_calls.cpp: the harness fixes smoothing off); the last three direct |
-| Files and folders | `CreateFolder`, `RemoveFolder`, `RemoveFile`, `RenameFile`, `CopyFileOver`, `PathExists`, `IsFile`, `FreeDiskSpace` (files.cpp, std::filesystem); `VolumeLabel`; `FolderEntries` (a folder search's `FolderEntry`s: name, path, size, folder); `ReadWholeFile` / `WriteWholeFile`; `File` (`FileMode` Read / Create / WriteExisting; also text lines: `WriteLine`), `MappedFile` (read only), `FileError` | every path through `SystemPath` (the harness's overlay, below); GetVolumeInformationW (game_calls.cpp: the disc label); CreateFileW, FindFirstFileW, CreateFileMappingW direct; the file objects' writes through game_calls.cpp's `win32::WriteFile` (the harness's failed-write watch) |
+| Files and folders | `CreateFolder`, `RemoveFolder`, `RemoveFile`, `RenameFile`, `CopyFileOver`, `PathExists`, `IsFile`, `FreeDiskSpace` (files.cpp, std::filesystem); `FolderEntries` (a folder search's `FolderEntry`s: name, path, size, folder); `ReadWholeFile` / `WriteWholeFile`; `File` (`FileMode` Read / Create / WriteExisting; also text lines: `WriteLine`), `MappedFile` (read only), `FileError` | every path through `SystemPath` (the harness's overlay, below); CreateFileW, FindFirstFileW, CreateFileMappingW direct; the file objects' writes through game_calls.cpp's `win32::WriteFile` (the harness's failed-write watch) |
 | The window and its events | the window class, the game window, `Event`s, the event queue (`EventWaits`, `NextEvent`, `TakeEvent`, `DefaultHandling`, `DispatchEvent`, `PostQuit`), screen / client points, `CoverMonitor` | SDL; harness builds: the harness's backend on SDL (harness_platform.cpp) |
 | The other game window | `FindClassWindow(className, title)`, `WindowProcess`, `BringToFront`, `ProgramInstance()` | Windows in every build: FindWindowW (game_calls.cpp: the harness finds none), GetWindowThreadProcessId, the foreground calls, `ProgramInstance` |
 | The cursor | the game's shapes (`MakeCursor`, `FreeCursor`, `SetCursor`), the hold (`HoldCursor`), its position in game points (`MapCursorPoints` for the scaled frame) | SDL; harness builds: the same SDL cursors with their pixels kept for the checks, the harness's own mouse |
@@ -148,8 +148,7 @@ game's calls in its own builds, as harness_platform.cpp does for SDL's areas: CM
 src/platform/<system>/game_calls.cpp and src/platform/system_path.cpp out of them (EI_GAME_CALLS), and
 tests/verify/platform/game_answers.cpp defines the same functions, one file for both systems:
 
-- `SystemPath` (above: harness.cpp's MapPath), `FontSmoothing` (off), `FindClassWindow` (none; the disc check's
-  answers start there), `VolumeLabel` (the "discprompt" labels, harness_startup.h).
+- `SystemPath` (above: harness.cpp's MapPath), `FontSmoothing` (off), `FindClassWindow` (none).
 - `File::Write` (the file objects' writes, with the file's path: a failed write fails the run; "diskfull" fails a
   file's writes as on a full disk; harness_crash.h).
 - `net::Bind`, `SendTo`, `ReceiveFrom`, `Close`, `Connect`, `Send`, `Receive` and `Select` (binds and datagrams on

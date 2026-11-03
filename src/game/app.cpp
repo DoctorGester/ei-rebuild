@@ -126,8 +126,6 @@ std::intptr_t HandleWindowEvent(const platform::Event& event) {
         return OnActivate(event.activation, event.minimized);
     case EventType::SystemCommand:
         return OnSystemCommand(event);
-    case EventType::AutoPlay:
-        return 1;
     default:
         return 0;
     }

@@ -75,11 +75,10 @@ inline float DefaultWindForceOption() { return static_cast<const volatile float&
 // The hour the terrain's sun was last set for (world_client_lights.cpp); -1 makes the next UpdateLighting set it.
 inline float g_lastLitHour = /*0078FF38*/ -1.0f;
 
-// The configured paths the game's folders (TheDataFolder, TheTextFolder, TheDiscFolder the base folder;
-// game_singletons.h) are set from (their text pointers).
+// The configured paths the game's folders (TheDataFolder, TheTextFolder; game_singletons.h) are set from (their
+// text pointers).
 inline const char* ConfiguredDataPath() { return options::g_options.workPath.c_str(); }
 inline const char* ConfiguredTextPath() { return options::g_options.resourcesPath.c_str(); }
-inline const char* ConfiguredBasePath() { return options::g_options.cdRomPath.c_str(); }
 
 inline const char* AutosaveEventText() { return "autosave"; }
 inline const char* SegmentDisconnectedText() { return "CWorldClient::Segment().\nDisconnecting client due to packet parsing error.\n"; }

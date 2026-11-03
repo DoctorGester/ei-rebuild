@@ -6,7 +6,6 @@
 #include "harness_crash.h"
 #include "harness_net.h"
 #include "harness_pair.h"
-#include "harness_startup.h"
 #include "system/harness_sockets.h"
 #include "system/harness_system.h"
 
@@ -27,13 +26,6 @@ namespace platform {
 std::string SystemPath(std::string_view path, PathUse use) {
     if (!hp::Answering()) return std::string(path);
     return hp::MapPath(path, use);
-}
-
-// The disc check's root gets the harness's label ("discprompt", harness_startup.h); every other root the volume's own.
-std::string VolumeLabel(const char* root) {
-    std::string label;
-    if (ei::verify::startup::AnswerVolumeLabel(root, &label)) return label;
-    return sys::VolumeLabel(root);
 }
 
 // The game's file writes, watched (harness_crash.h): each failure is logged and the first real one fails the run;
@@ -74,7 +66,6 @@ bool FontSmoothing() {
 // title of its own (harness_platform.cpp's CreateGameWindow) and a play launch never finds it.
 NativeWindow FindClassWindow(const char* className, const char* title) {
     if (!hp::Answering()) return sys::OtherGameWindow(className, title);
-    ei::verify::startup::AtWindowClass();   // before the settings are read (harness_startup.h)
     return nullptr;
 }
 

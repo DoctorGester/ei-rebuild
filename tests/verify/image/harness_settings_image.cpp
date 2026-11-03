@@ -21,6 +21,5 @@ void DefaultSettings(const char* file, int width, int height) {
     ::settings::SetDesktopSize(width, height);
     ::settings::Pin(file, nullptr, false);
 }
-void AddSettingsReadFilter(SettingsReadFilter filter) { ::settings::AddReadFilter(filter); }
 
 } // namespace ei::verify::image

@@ -94,16 +94,15 @@ float g_clientSpeed = /*00784758*/ 1.0f;
 constexpr int kExitDeclined = 0xDEAD;   // WinMain's result when the player gives up at a warning
 // The lines of sysmsg.txt: line 0 was the "requires DX7" text of the DirectX version check (gone: the game needs
 // no DirectDraw), kept so the other lines keep their places.
-enum MessageLine { kUnusedDirectX7, kLittleDiskSpace, kInsertDisc };
-constexpr int kMessageLines = 3;
+enum MessageLine { kUnusedDirectX7, kLittleDiskSpace };
+constexpr int kMessageLines = 2;
 
 void AppendDefaultMessages(std::vector<std::string>& messages) {
     messages.push_back("This Game requires DX7 in order to run!");
     messages.push_back("Not enough free disk space - play on your own risk!");
-    messages.push_back("Please, insert EI disc 2 in the CD-ROM and press OK");
 }
 
-// The lines of .\res\sysmsg.txt (in the asset code page), or the built-in three when the file is missing or shorter.
+// The lines of .\res\sysmsg.txt (in the asset code page), or the built-in two when the file is missing or shorter.
 void LoadSystemMessages(std::vector<std::string>& messages) {
     messages.clear();
     std::string bytes;
@@ -177,32 +176,16 @@ void RegisterWindowClass(platform::NativeInstance instance) {
     std::exit(-1);
 }
 
-// "<drive>\." of `path`: the root the volume calls take.
-std::string DriveRoot(std::string_view path) {
-    return std::string(path.size() >= 2 && path[1] == ':' ? path.substr(0, 2) : "") + "\\.";
-}
-
 // The player's answer to a warning: false when cancelled.
 bool WarningAccepted(const std::string& text) {
     return platform::ShowMessageBox(nullptr, text.c_str(), "Warning", platform::MessageButtons::OkCancel,
                                     platform::MessageIcon::Warning) != platform::MessageAnswer::Cancel;
 }
 
-// Warns when the data folder's drive has under 300 MB free, and asks for the second disc while the
-// disc folder (when it is not the data folder) is not on a volume with the options' label. False
-// when the player cancels.
-bool CheckDrives(const std::vector<std::string>& messages) {
-    std::string discFolder = g_discFolder;
-    std::string dataFolder = g_dataFolder;
-    const double freeBytes = platform::FreeDiskSpace(dataFolder.c_str());
-    if (freeBytes != 0.0 && freeBytes < 314572800.0 && !WarningAccepted(messages[kLittleDiskSpace])) return false;
-    if (str::Compare(dataFolder, discFolder) != 0) {
-        const std::string root = DriveRoot(discFolder.c_str());
-        while (str::Compare(options::g_options.cd2Label, platform::VolumeLabel(root.c_str())) != 0) {
-            if (!WarningAccepted(messages[kInsertDisc])) return false;
-        }
-    }
-    return true;
+// Warns when the data folder's drive has under 300 MB free. False when the player cancels.
+bool CheckDiskSpace(const std::vector<std::string>& messages) {
+    const double freeBytes = platform::FreeDiskSpace(g_dataFolder.c_str());
+    return !(freeBytes != 0.0 && freeBytes < 314572800.0 && !WarningAccepted(messages[kLittleDiskSpace]));
 }
 
 void ReleaseMouse(DirectInputMouse* mouse) {
@@ -242,7 +225,6 @@ void OpenSound() {
     GameOptions* options = &options::g_options;
     std::string textFolder = g_textFolder;
     std::string dataFolder = g_dataFolder;
-    std::string discFolder = g_discFolder;
     g_clientWorld.sounds->Open(g_mainWindow, 1, 44100);
     {
         std::string registry = textFolder + "streamsn.reg";
@@ -256,8 +238,7 @@ void OpenSound() {
         sound->AddWaveSource(effects);
     }
     {
-        std::string unused = discFolder + "res\\speech.res";   // "res\speech.res" (built twice)
-        std::string speech = discFolder + "res\\speech.res";
+        std::string speech = dataFolder + "res\\speech.res";
         g_clientWorld.sounds->AddWaveSource(speech);
     }
     g_clientWorld.sounds->SetEffectsVolume(options->audioSfx);
@@ -560,7 +541,7 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
                    std::bit_cast<std::uint32_t>(options->farClipDistance),
                    std::bit_cast<std::uint32_t>(kPi * 2.0f / 7.0f));
     g_clientWorld.SetCamera(&g_camera);
-    if (!CheckDrives(messages)) return kExitDeclined;
+    if (!CheckDiskSpace(messages)) return kExitDeclined;
     CreateMouse();
 
     std::string folder;

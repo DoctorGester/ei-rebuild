@@ -331,9 +331,6 @@
 //                             rectangle under Rebirth's WideScreen, which the screen copy takes)
 //   record on|off             the game's frame recorder (0079BC54: a "shotNNNN.bmp" of each presented
 //                             frame, nothing in the shipped game sets it)
-//   discprompt <n>            (a line read before WinMain) the start-up disc check asks for the second disc
-//                             <n> times, each answered OK; "discprompts <n>" requires that count
-//                             (harness_startup.h, app_disc_prompt.txt)
 //   digest <N>|off, digest    a record of the game state (world, generators, players, every world
 //                             object: harness_digest.h) every <N> world updates from now into
 //                             digest.txt, none (off), or one now (no argument); EI_DIGEST=<N> takes
@@ -365,7 +362,6 @@
 #include "harness_digest_read.h"   // the class ids
 #include "harness_folder_profile.h"
 
-#include "harness_startup.h"
 
 #include "harness_savetrace.h"
 
@@ -2248,12 +2244,12 @@ void RunSteps() {
                    s.verb == "moveregion") {
             HeldModifiers held(&s.argument);
             PostRegionMouse(s.verb, std::atoi(s.argument.c_str()));
-        } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "modfile" || s.verb == "discprompts" ||
+        } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "modfile" ||
                    s.verb == "folderprofile") {
             std::string error = s.verb == "hudstate" ? HudState(s.argument)
                                 : s.verb == "campputon" ? CampPutOn(s.argument)
                                 : s.verb == "folderprofile" ? folder_profile::Step()
-                                : s.verb == "discprompts" ? startup::DiscPromptsStep(s.argument) : starter::ModFileStep(s.argument);
+                                : starter::ModFileStep(s.argument);
             if (!error.empty()) {
                 Log("harness: %s", error.c_str());
                 g_failures.push_back(error);
@@ -2897,8 +2893,7 @@ bool LoadScenario(const char* path) {
             }
         }
         if (ei::verify::starter::ParseStep(g_steps.back().verb, g_steps.back().argument) ||
-            settings::ParseStep(g_steps.back().verb, g_steps.back().argument) ||
-            ei::verify::startup::ParseStep(g_steps.back().verb, g_steps.back().argument)) {
+            settings::ParseStep(g_steps.back().verb, g_steps.back().argument)) {
             g_steps.pop_back();
             continue;
         }
@@ -3040,7 +3035,6 @@ bool MousePosition(Point* at) {
 }
 
 platform::MessageAnswer AnswerMessageBox(const char* text, const char* caption, platform::MessageButtons) {
-    if (ei::verify::startup::AnswerMessageBox(caption)) return platform::MessageAnswer::Ok;   // "discprompt"
     EndRunOnMessageBox(caption ? caption : "", text ? text : "");
     return platform::MessageAnswer::Cancel;
 }

@@ -105,8 +105,6 @@ bool PathExists(std::string_view path);
 bool IsFile(std::string_view path);
 // The bytes this user may still write on the drive of `path` (a folder on it, or its root); 0 when unknown.
 double FreeDiskSpace(std::string_view path);
-// The label of the volume whose root is `root` ("D:\." or "D:\"); empty when it has none or the drive has no disc.
-std::string VolumeLabel(const char* root);
 
 // One entry of a folder search.
 struct FolderEntry {
@@ -248,7 +246,6 @@ enum class EventType : std::uint8_t {
     Destroy,         // the window is being destroyed
     Activate,        // the window was activated or deactivated (activation, minimized)
     SystemCommand,   // a command of the window's system menu or a system key (command)
-    AutoPlay,        // the system asks whether a disc put in may start its AutoPlay
     Quit,            // the quit request (quitCode): the loop ends
     Other,           // anything else
 };

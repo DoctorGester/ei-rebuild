@@ -370,7 +370,7 @@ int EnterZone(Party* records) {
         if (str::Compare(zone,
                             kMovieZone) != 0) {
             {
-                std::string movie = g_discFolder + kMovieFile;
+                std::string movie = g_dataFolder + kMovieFile;
                 PlayMovie(movie, 0, 1, 1, 1, 1);
             }
             variables->Remove(kMovieVariable);

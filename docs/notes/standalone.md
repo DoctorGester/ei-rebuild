@@ -260,7 +260,7 @@ writes the registry.
   (empty, or every line not understood) is replaced by the defaults, the same as a missing one.
 - **The game folder:** main (src/main.cpp) makes the game folder the working directory first: EI_GAME_ROOT's when it is
   set, else the exe's own folder.
-  - **What that fixes:** the game's relative paths (Work path and CD-ROM Path `.\`, Resources path `.\res\`, saves,
+  - **What that fixes:** the game's relative paths (Work path `.\`, Resources path `.\res\`, saves,
     mods) are the exe's folder, whatever the shortcut's "Start in" says.
   - **Why it works:** the defaults hold no paths, so a moved game folder keeps working.
 - **Format:**
@@ -313,8 +313,7 @@ writes the registry.
   - **Readers:** the AutoExec lines, the start-up's Rebirth patches, mod_folders, and device_mesh's renderer section
     (renderer.md sections 11, 15, 15a; that section is not read in the harness build).
 - **Read filters** change a value as it is read:
-  - EI_GAME_ROOT's Work path / CD-ROM Path;
-  - the harness's `discprompt`.
+  - EI_GAME_ROOT's Work path.
 - **Harness runs** (tests/verify/harness_settings.h): the harness pins `<run folder>\ei_settings.ini` and writes it at
   first use from config/harness/registry.reg. That file holds the install's option tree (Rebirth's when
   `starter::RebirthInstall`), with the scenario's starter lines in place.
@@ -574,7 +573,7 @@ Every Windows build is x64 (release, verify, debug, asan, play; vcvars64).
 - **Running it from a folder of its own:** use a folder made like the game folder.
   - **Folders:** each is a junction to the install's, except `saves` and `cache`, which are real.
   - **Files:** each is a copy, except game.exe.
-  - **Settings:** ei_settings.ini's Work path and CD-ROM Path must be `.\`. An absolute path sends saves\current into
+  - **Settings:** ei_settings.ini's Work path must be `.\`. An absolute path sends saves\current into
     the install.
   - **DPI:** the exe is DPI-unaware. A script that clicks or captures its window calls SetProcessDPIAware first.
 

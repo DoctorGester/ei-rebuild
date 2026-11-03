@@ -19,7 +19,6 @@ ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, 
 |---|---|---|---|
 | `Work path` | `.\` | a folder | The game's own folder: saves, multiplayer heroes, config files, maps. Relative to the game's folder; end it with a backslash. |
 | `Resources path` | `.\res\` | a folder | Where the game's .res archives are: databases, texts, sound effects, models, textures. Relative to the game's folder; end it with a backslash. |
-| `CD-ROM Path` | `.\` | a folder | Where the movies (Movies\) and the voices (res\speech.res) are. If it differs from Work path, the game asks for disc 2 at start. |
 
 ## [video]
 
@@ -133,7 +132,6 @@ ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, 
 | `Autosave` | `true` | true / false | The game saves itself on entering a zone (savea) and on arriving at the world map (saveb). |
 | `ToolTip Time` | `0.5` | seconds | How long the pointer must rest on a control before its tooltip shows. 0: no tooltips. |
 | `SwitchFilters` | `true` | true / false | In the camp's screens the item lists jump to the tab that fits the page or item you pick. |
-| `CD2 Label` | `EICD2` | a disc label | When CD-ROM Path is not the game's folder, the game asks for the disc with this volume label until it is in. |
 | `Keyboard Layout` | `1033` | a Windows language id | At start Windows' keyboard layout switches to this language (1033 US English, 1049 Russian) if installed, else to US English. |
 | `ObjectsLightingCoeff` | `2` | a number | How brightly the sun and lights light units, buildings and trees: their light is multiplied by it. |
 | `Hero Light R` | `216` | 0 .. 255 | Red of the light that moves with your heroes. |

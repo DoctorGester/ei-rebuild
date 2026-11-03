@@ -42,7 +42,6 @@ GameOptions::GameOptions() {
 
     workPath = ".\\";
     resourcesPath = ".\\res\\";
-    cdRomPath = ".\\";
 
     cameraFlipX = 1.0f;
     cameraFlipY = 1.0f;
@@ -87,8 +86,6 @@ GameOptions::GameOptions() {
     autosave = 1;
     toolTipTime = 0.5f;
     switchFilters = 1;
-
-    cd2Label = "EICD2";
 
     keyboardLayout = 0x409;    // US English
     objectsLightingCoeff = 1.0f;

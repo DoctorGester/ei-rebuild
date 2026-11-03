@@ -1,4 +1,4 @@
-// The platform calls a harness run answers itself (its disc check, its window and desktop answers, its file write
+// The platform calls a harness run answers itself (its window and desktop answers, its file write
 // watch, its sockets on 127.0.0.1): the harness's builds leave this file out and take its platform backend's
 // definitions of the same functions (tests/verify/platform; CMakeLists.txt; docs/notes/platform.md, "The harness's
 // answers"). Each is the system's call. The paths of the file calls go through one mapping of their own
@@ -20,9 +20,6 @@
 // ==== Files ==========================================================================================================
 
 namespace platform {
-
-// No volume labels here: the disc check finds no disc (the game's data is installed).
-std::string VolumeLabel(const char*) { return {}; }
 
 // platform_posix.cpp's file handles are the descriptor + 1.
 void File::Write(const void* buffer, unsigned count) {

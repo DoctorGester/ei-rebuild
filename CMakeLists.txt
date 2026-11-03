@@ -264,7 +264,7 @@ file(WRITE ${CMAKE_BINARY_DIR}/third_party_notices.txt
 if(EI_HARNESS)
     # The harness (tests/verify; docs/notes/harness.md), linked into this exe. Its platform backend (tests/verify/platform)
     # takes the place of platform_sdl.cpp (the window, events, clocks, cursor, mouse and clipboard on SDL), of
-    # system_path.cpp (its overlay) and of game_calls.cpp (its answers to the game's file write, socket, disc and desktop
+    # system_path.cpp (its overlay) and of game_calls.cpp (its answers to the game's file write, socket and desktop
     # calls; its sockets on 127.0.0.1). Its own calls of the system are tests/verify/system's, one file per system.
     # sokol's validation layer is on (its messages in ei-rebuild.log).
     file(GLOB EI_HARNESS_SOURCES CONFIGURE_DEPENDS tests/verify/*.cpp tests/verify/image/*.cpp tests/verify/platform/*.cpp

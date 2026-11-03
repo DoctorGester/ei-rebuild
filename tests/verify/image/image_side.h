@@ -190,7 +190,7 @@ long ModFile(const char* path, const char* name);
 // g_memoryStreamWriteObserver: each memory stream write, before its bytes.
 void ObserveStreamWrites(void (*observer)(void* stream, std::uint32_t size, void* const* frame));
 
-// ---- the run's settings file (harness_settings.cpp, harness_startup.cpp; image/harness_settings_image.cpp)
+// ---- the run's settings file (harness_settings.cpp; image/harness_settings_image.cpp)
 
 // One line of a settings file, in order: a value of `section` (Document::Set), or with `name` empty a comment
 // (Document::Comment: `value` is its text).
@@ -200,7 +200,6 @@ struct SettingsLine {
     std::string value;
 };
 using SettingsMissing = void (*)(const char* section, const char* name);
-using SettingsReadFilter = void (*)(const char* name, std::string& value);
 const char* SettingsFileName();                                      // settings::kFileName
 std::string SettingsText(const std::vector<SettingsLine>& lines);    // the file's text
 // The file pinned (settings::Pin); and pinned writable without a file, which the first use writes with the defaults
@@ -208,7 +207,6 @@ std::string SettingsText(const std::vector<SettingsLine>& lines);    // the file
 using SettingsPrepare = void (*)(const char* file);
 void PinSettings(const char* file, SettingsMissing missing, bool readOnly, SettingsPrepare prepare);
 void DefaultSettings(const char* file, int width, int height);
-void AddSettingsReadFilter(SettingsReadFilter filter);
 
 // ---- the game's UDP port (harness_net.cpp; image/harness_objects_image.cpp)
 
