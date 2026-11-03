@@ -26,7 +26,7 @@ jobs:
   version:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
@@ -45,11 +45,11 @@ jobs:
     steps:
       # The generated-file checks compare bytes, so keep the repository's LF line endings.
       - run: git config --global core.autocrlf false
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref }}
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - run: pip install capstone==5.0.7
@@ -65,7 +65,7 @@ jobs:
         shell: cmd
         run: build.cmd release
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: windows
           path: build/release/ei-rebuild.exe
@@ -91,7 +91,7 @@ jobs:
           add-apt-repository -y ppa:ubuntu-toolchain-r/test
           apt-get install -y -q g++-13
           pip3 install cmake==3.31.6
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref }}
       - name: sokol-shdc
@@ -142,7 +142,7 @@ jobs:
           EOF
           sed -i 's/^          //' dist/ei-rebuild-linux-x64/README.txt
           tar -C dist -czf dist/ei-rebuild-linux-x64.tar.gz ei-rebuild-linux-x64
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: linux
           path: dist/ei-rebuild-linux-x64.tar.gz
@@ -152,11 +152,11 @@ jobs:
     needs: [windows, linux]
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           path: dist
           merge-multiple: true

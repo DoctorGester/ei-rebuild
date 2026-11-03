@@ -79,7 +79,7 @@ jobs:
       WORK_DB: E:\workspace\ei\build\live\work.db
       SUITES: ${{ inputs.suites || 'full' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref != 'main' && inputs.ref || github.ref }}   # the input's default main: the branch the run was started on
           # Keep the ignored build folders between runs: a clean checkout rebuilt all the builds from nothing
@@ -140,7 +140,7 @@ jobs:
       SCENARIOS: ${{ inputs.scenarios }}
       REASON: ${{ inputs.reason }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ env.REF }}
           clean: false   # the build folders stay (incremental builds), as in the suites job
@@ -206,7 +206,7 @@ jobs:
 
       - name: Keep the logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: record-logs
           path: |
@@ -236,7 +236,7 @@ jobs:
       RECORDS: ${{ inputs.records || '1' }}
       SKIP: ${{ inputs.skip || '0' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ env.REF }}
           clean: false
