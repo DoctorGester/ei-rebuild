@@ -501,6 +501,56 @@ void CheckPicture() {
     sg_commit();
 }
 
+// ---- resize: a surface's canvas placed again for another screen size --------------------------------------------
+
+// A canvas with a picture and a fill still queued, resized (larger, smaller, another shape): each pixel the one under
+// it at the old size (x * old width / new width, CopyFrame's rule), the fill drawn at the old size first; then a
+// fill at the new size lands where it is asked to.
+void CheckResize() {
+    if (g_verbose) std::printf("resize:\n");
+    struct Case {
+        int width, height, newWidth, newHeight;
+    };
+    const Case cases[] = {{80, 60, 128, 72}, {128, 72, 100, 80}, {37, 29, 74, 58}, {200, 150, 50, 75}};
+    for (const Format& f : kFormats) {
+        for (const Case& c : cases) {
+            const void* holder = &c;
+            ui::Canvas(holder, c.width, c.height, f.format);
+            std::mt19937 random(11);
+            std::vector<std::uint32_t> picture(static_cast<std::size_t>(c.width) * c.height);
+            for (std::uint32_t& px : picture) px = random() & 0xFFFFFF;
+            ui::Image(holder, Rect{0, 0, c.width, c.height}, picture.data(), c.width);
+            ui::Fill(holder, Rect{0, 0, c.width / 2, c.height / 2}, RGB(10, 200, 30));
+            std::vector<std::uint32_t> before;
+            const bool readBefore = ui::ReadPixels(holder, &before);
+            // Queued when the canvas is resized: drawn at the old size first.
+            ui::Fill(holder, Rect{c.width / 2, 0, c.width, c.height}, RGB(250, 40, 90));
+            for (int y = 0; y < c.height && readBefore; ++y)
+                for (int x = c.width / 2; x < c.width; ++x)
+                    before[static_cast<std::size_t>(y) * c.width + static_cast<std::size_t>(x)] = RefQuantise(0xFA285A, f.format);
+            ui::Resize(holder, c.newWidth, c.newHeight);
+            std::vector<std::uint32_t> after;
+            int width = 0, height = 0;
+            const bool read = readBefore && ui::ReadPixels(holder, &after, &width, &height) && width == c.newWidth && height == c.newHeight;
+            int differ = read ? 0 : -1;
+            for (int y = 0; y < c.newHeight && read; ++y)
+                for (int x = 0; x < c.newWidth; ++x) {
+                    const int sx = x * c.width / c.newWidth, sy = y * c.height / c.newHeight;
+                    differ += after[static_cast<std::size_t>(y) * c.newWidth + static_cast<std::size_t>(x)] !=
+                              before[static_cast<std::size_t>(sy) * c.width + static_cast<std::size_t>(sx)];
+                }
+            ui::Fill(holder, Rect{c.newWidth - 1, c.newHeight - 1, c.newWidth, c.newHeight}, RGB(255, 255, 255));
+            std::uint32_t corner = 0;
+            const bool filled = ui::ReadPixel(holder, c.newWidth - 1, c.newHeight - 1, &corner) && corner == 0xFFFFFF;
+            Check(differ == 0 && filled, std::string(f.name) + " " + std::to_string(c.width) + "x" + std::to_string(c.height) + " canvas resized to " +
+                                             std::to_string(c.newWidth) + "x" + std::to_string(c.newHeight) + ": " + std::to_string(differ) +
+                                             " pixels differ" + (filled ? "" : ", the fill at the new size missing"));
+            ui::DropCanvas(holder);
+        }
+    }
+    sg_commit();
+}
+
 // ---- frame: canvases in the frame, the pass split ---------------------------------------------------------------
 
 bool ReadTarget(std::vector<std::uint32_t>* rgb) {
@@ -669,6 +719,7 @@ int main(int argc, char** argv) {
     CheckImage();
     CheckCopy();
     CheckPicture();
+    CheckResize();
     CheckFrame();
     sg_shutdown();
     std::printf("ui_check: %d checks, %d failed, %d sokol / log problems\n", g_checks, g_failures, g_problems);

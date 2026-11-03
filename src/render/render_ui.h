@@ -26,6 +26,11 @@ bool Canvas(const void* holder, int width, int height, const PixelFormat& format
 bool HasCanvas(const void* holder);
 // The holder is gone (HolderGone): its canvas and queued commands are dropped.
 void DropCanvas(const void* holder);
+// The canvas made `width` x `height` with what it holds stretched over it, each pixel the one under it in the old size
+// (CopyFrame's nearest pixel, so a colour key stays exact): a window surface placed again for another screen size
+// (UiSurface::Relayout). The commands queued before it are drawn at the old size first. Nothing without a canvas or
+// for a size outside 1..8192.
+void Resize(const void* holder, int width, int height);
 // The canvas (and its queued commands) moved from the key `from` to `to`: SwapContents puts a surface's canvas
 // aside while the surface has no holder and back onto its new one. A blit of it the frame
 // has not drawn yet is drawn first. A canvas `to` had is dropped.
