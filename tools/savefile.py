@@ -96,30 +96,35 @@ def _offset(r):
 
 def decompress(data, p=0):
     """The LZ coder's output at data[p:] (int32 size, then a 0 bit and a literal byte or a 1 bit, a length
-    and an offset - 1 into a 1 KB window) as bytes."""
+    and an offset - 1 into a 1 KB window) as bytes. The window is the last 1024 bytes written (zeros before the
+    first), so a copy of an offset past 1023 wraps (the coder masks it): the copies are slices of the output, which
+    starts with 1024 zero bytes."""
     remaining = struct.unpack_from('<i', data, p)[0]
     r = _Bits(data, p + 4)
-    out = bytearray()
-    window = bytearray(0x400)
-    pos = 0
+    out = bytearray(0x400)
     while remaining > 0:
-        if not r.bit():
-            b = r.d[r.p]
+        # the flag bit, read inline: a literal is the byte at the cursor
+        if r.bits < 1:
+            r.acc = data[r.p]
             r.p += 1
-            out.append(b)
-            window[pos] = b
-            pos = (pos + 1) & 0x3FF
+            r.bits = 8
+        flag = r.acc & 1
+        r.acc >>= 1
+        r.bits -= 1
+        if not flag:
+            out.append(data[r.p])
+            r.p += 1
             remaining -= 1
             continue
         n = min(_length(r), remaining)
-        o = _offset(r)
-        for _ in range(n):
-            b = window[(pos - o - 1) & 0x3FF]
-            out.append(b)
-            window[pos] = b
-            pos = (pos + 1) & 0x3FF
+        period = (_offset(r) & 0x3FF) + 1
+        start = len(out) - period
+        if n <= period:
+            out += out[start:start + n]
+        else:
+            out += (out[start:] * (n // period + 1))[:n]
         remaining -= n
-    return bytes(out)
+    return bytes(out[0x400:])
 
 
 def checksum(data):

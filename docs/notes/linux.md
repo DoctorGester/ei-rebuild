@@ -88,17 +88,30 @@ two levels below the checkout. run_all's machine slots are the system's own (loc
 memory is capped at 16 GB; `EI_HARNESS_SLOTS` overrides it), and a local Linux suite runs only while no Windows suite
 does (hold slots on the Windows side for a few WSL games beside Windows work). Under WSL keep the checkout and the build in WSL's home
 (gcc over /mnt runs at a quarter of the speed).
+On Linux run_all starts one Xvfb itself (a free display number from :99 down, a 3840x2160 screen like the goldens' Windows desktop, DISPLAY of every game
+pointed at it, WAYLAND_DISPLAY unset; harness.md) unless `EI_SHOW_WINDOWS=1` is set, so a plain run opens no window on the desktop under
+WSLg either, and Mesa draws on llvmpipe as in CI; wrapping run_all in `xvfb-run` with `-screen 0 3840x2160x24` as CI does is the same thing (with `EI_SHOW_WINDOWS=1`). (Xvfb's own
+`-displayfd` choice of a number fails under WSL, where /tmp/.X11-unix is WSLg's; run_all names the number.)
 
-First runs (WSLg, the sokol OpenGL renderer on llvmpipe, Mesa's software OpenGL; 2026-11-03), the image suite against the Windows goldens: 141 of
-149 the same in the full run, and ui_modifier_keys and ui_saveload_delete too once the folder listing and the key line
-were fixed (a run of the rest); the Rebirth set without its pairs 22 of 23. That was on H47's branch, before C76 put
-the game's maths on the systems' float functions; since, every run differed until lib/maths.h (float-maths.md,
-"Maths functions"). What still differs, and why:
+Against the goldens (H47d, 2026-11-03, WSL2 with 32 cores and 16 GB, Xvfb at 3840x2160, SDL_GPU on lavapipe; the image
+suite less LINUX_SKIP and camera_smooth, camera_spin, render_stats and zone_gz15h_tornado, the Rebirth set less its
+pairs): the image suite 139 runs, 133 the same, 6 without a golden (render_resize_edgepan, render_resize_zone,
+render_shadows_trees, watchdog_*), none differing, in 438 s with 4 jobs (228 s with 16 jobs, where ui_describe and render_shadows_outside timed out too);
+the Rebirth set 19 of 19 the same, in 195 s. That is digest for digest the Windows goldens, record 0 included, since
+lib/maths.h (float-maths.md, "Maths functions"). What still differs, and why:
 
-- The pair scenarios (net_pair_leave, net_pair_speed, net_pair_zone; net_pair_master's peer lists the server one poll
-  sooner): llvmpipe draws a frame step in about 140 ms (6 ms on Windows' GPU), so a pair's run passes its frame waits
-  and its time limit (about 190 s against Windows' 30 to 50 s) and the turns fall differently. Not run again: they
-  exceed the 60 s game limit there.
+- The display's size. The scenarios with `resolution desktop` (ui_widescreen, ui_widescreen_dialogue, _hud, _more) take
+  the screen's size and their goldens are those of a 4K desktop: on Xvfb at 1280x1024 three of them differ (a click
+  lands elsewhere, the digest differs from tick 100 to 580), at 3840x2160 they are the same. run_all's own Xvfb has that
+  size.
+- Time limits under load: llvmpipe draws a 4K frame in 40 ms and more, so with 4 games at once camera_drag_rate (120 s
+  limit, 113 s used) is cut at its limit and levers_key and ui_widescreen (Rebirth) pass only on their retry (60 s limits); alone, camera_drag_rate takes 86 s. The retry is run_all's own.
+- settings_save compared the settings file's `CD-ROM Path` with the run's install folder; the line comes from
+  config/harness/registry.reg (F:\games\EvilIslands\), the Windows install's own path by chance. The expected file
+  now names it.
+- The pair scenarios (net_pair_*; net_pair_master's peer lists the server one poll sooner): llvmpipe draws a frame
+  step in about 140 ms (6 ms on Windows' GPU), so a pair's run passes its frame waits and its time limit (about 190 s
+  against Windows' 30 to 50 s) and the turns fall differently. Not run again: they exceed the 60 s game limit there.
 - net_second_master (both installs): a TCP connect to a closed loopback port is refused at once on Linux; Windows tries
   again for about a second, so the scenario's "the box is up, Esc cancels it" finds the box already gone.
 - render_present_window: `windowsize` resizes asynchronously under X11 / WSLg (SDL_SetWindowSize), so the clicks after it
@@ -106,6 +119,7 @@ the game's maths on the systems' float functions; since, every run differed unti
 - Frames, not digests: render_smooth and ui_quicksave's saved picture against the stored one (94% of the pixels
   differ: the read-back's orientation or format), render_terrain_seams' level steps on the vanilla data (0.9% against
   at most 0.3%).
+- Over 60 s on llvmpipe, left out: camera_smooth, camera_spin, render_stats, zone_gz15h_tornado (not run in H47d).
 
 Harness runs open no sound device; `EI_HARNESS_SOUND=1` keeps the real one (sound.md, "How the sound keeps up").
 
@@ -161,7 +175,7 @@ llvmpipe's frame waits run out), camera_smooth and camera_spin cut by their 120 
 scenarios without a digest; the Rebirth set less the pairs 22 of 22. Against the Windows goldens every Linux run
 differed from record 0 (the main menu's animals), on the install copies as on the stubs: the systems' float maths
 functions round differently (float-maths.md, "Maths functions"). With lib/maths.h boot plays on Linux as on Windows,
-digest 1 record for record; the suites on Linux against the goldens re-recorded with it are not run yet. Over 60 s on
+digest 1 record for record, and the suites on Linux are the same as the goldens ("The harness"). Over 60 s on
 llvmpipe besides the pairs: camera_smooth, camera_spin, render_stats, zone_gz15h_tornado.
 
 Sizes: the vanilla set 724 MB on disk (121 MB of it not zero: figures.res 53, the maps 59), Rebirth's 1850 MB (240 MB

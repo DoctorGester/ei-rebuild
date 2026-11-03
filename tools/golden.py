@@ -84,9 +84,11 @@ usage:
       the scenario's golden: the console, the digest, the dumps and the saves. The known differences (KNOWN, each
       with its ticket) are left out unless --strict. `run_all.py --golden` (also
       through `work.py test`) runs the games with the goldens' digest period and does this for every run.
+run_all --golden's check, record and snapshot work on the scenarios in a process pool (a process to a core; snapshot's copies in
+threads) and print in the scenarios' order. A save's decoded text is cached by the file's hash in <build>/save_cache.
 exit code: 0 the same, 1 a difference, 2 something missing
 """
-import argparse, datetime, glob, gzip, hashlib, json, os, re, shutil, struct, subprocess, sys, zlib
+import argparse, concurrent.futures, datetime, functools, glob, gzip, hashlib, json, os, re, shutil, struct, subprocess, sys, zlib
 
 import run_all
 import savefile
@@ -518,6 +520,42 @@ def save_hash(lines):
     return hashlib.sha1('\n'.join(lines).encode('utf-8')).hexdigest()[:16]
 
 
+def decoder_stamp():
+    """The decoder's version for the decoded-saves cache: a hash of the decoder's sources."""
+    here = os.path.dirname(os.path.abspath(savefile.__file__))
+    h = hashlib.sha1()
+    for f in sorted(glob.glob(os.path.join(here, 'savefile*.py'))):
+        with open(f, 'rb') as src:
+            h.update(src.read())
+    return h.hexdigest()[:10]
+
+
+def cached_decode(data, name):
+    """(hash, decoded lines) of a save file's bytes. Most runs of a suite leave the same autosave, so the result
+    is kept by the file's hash under build/save_cache (with the decoder's stamp: a changed decoder starts over);
+    the processes of a pool share it. A save that does not decode raises savefile.DecodeError and is not kept."""
+    if not hasattr(cached_decode, 'stamp'):
+        cached_decode.stamp = decoder_stamp()
+    path = os.path.join(run_all.BUILD, 'save_cache', f'{cached_decode.stamp}-{hashlib.sha1(data).hexdigest()}.json.gz')
+    try:
+        with gzip.open(path, 'rt', encoding='ascii') as f:
+            return tuple(json.load(f))
+    except (OSError, ValueError, EOFError):
+        pass
+    lines = savefile.lines(savefile.decode_data(data, name))
+    entry = (save_hash(lines), lines)
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        tmp = f'{path}.{os.getpid()}.tmp'
+        with open(tmp, 'wb') as f:
+            with gzip.GzipFile(fileobj=f, mode='wb', mtime=0, filename='', compresslevel=3) as z:
+                z.write(json.dumps(entry).encode('ascii'))
+        os.replace(tmp, path)   # whole or not there: another process may be reading
+    except OSError:
+        pass
+    return entry
+
+
 def decoded_saves(folder):
     """{save path: (hash, decoded lines)} of a run folder's saves (tools/savefile.py: field by field, keyed by
     ids, the values that follow memory layout as rule tokens); a save that does not decode: (None, [error]).
@@ -528,11 +566,10 @@ def decoded_saves(folder):
     out = {}
     for name, path in files.items():
         try:
-            lines = savefile.lines(savefile.decode(path))
+            with open(path, 'rb') as f:
+                out[name] = cached_decode(f.read(), path)
         except savefile.DecodeError as e:
             out[name] = (None, [f'does not decode: {e}'])
-            continue
-        out[name] = (save_hash(lines), lines)
     return out
 
 
@@ -546,9 +583,11 @@ def store_save(digest, lines, store=None):
     path = store_path(digest, store)
     if not os.path.exists(path):
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, 'wb') as f:   # mtime 0: the same save gives the same bytes
+        tmp = f'{path}.{os.getpid()}.tmp'   # whole or not there: record's pool writes it from several processes
+        with open(tmp, 'wb') as f:   # mtime 0: the same save gives the same bytes
             with gzip.GzipFile(fileobj=f, mode='wb', mtime=0, filename='') as z:
                 z.write(('\n'.join(lines) + '\n').encode('utf-8'))
+        os.replace(tmp, path)
 
 
 def stored_save(digest, store=None):
@@ -682,6 +721,7 @@ def shown_path(path):
         return path
 
 
+@functools.lru_cache(maxsize=None)
 def commit():
     try:
         return subprocess.run(['git', '-C', ROOT, 'rev-parse', '--short', 'HEAD'], capture_output=True, text=True).stdout.strip()
@@ -713,20 +753,26 @@ def snapshot(args):
         sorted(d for d in os.listdir(source) if d.endswith('-' + suffix)
                and os.path.exists(os.path.join(source, d, 'digest.txt')))
     since = os.path.getmtime(args.since) if getattr(args, 'since', None) else None
-    for name in names:
-        src, dst = os.path.join(source, name), os.path.join(args.dest, name)
-        if not os.path.isdir(src):
-            print(f'{name}: no run folder')
-            continue
-        report = os.path.join(src, 'harness_report.txt')
-        if since is not None and (not os.path.exists(report) or os.path.getmtime(report) < since):
-            print(f'{name}: left out, its run is older than {args.since}')
-            continue
-        shutil.rmtree(dst, ignore_errors=True)
-        for side in sides(src):
-            copy_run(on_side(src, side), on_side(dst, side))
+    one = functools.partial(snapshot_one, source=source, dest=args.dest, since=since, since_name=getattr(args, 'since', None))
+    for message in pool_map(one, names, threads=True):   # the copies in a pool, the messages in the names' order
+        if message:
+            print(message)
     print(f'{len(names)} run folders copied to {args.dest}')
     return 0
+
+
+def snapshot_one(name, source, dest, since, since_name):
+    """snapshot: one run folder's copy; the line to print when it is not copied, else None."""
+    src, dst = os.path.join(source, name), os.path.join(dest, name)
+    if not os.path.isdir(src):
+        return f'{name}: no run folder'
+    report = os.path.join(src, 'harness_report.txt')
+    if since is not None and (not os.path.exists(report) or os.path.getmtime(report) < since):
+        return f'{name}: left out, its run is older than {since_name}'
+    shutil.rmtree(dst, ignore_errors=True)
+    for side in sides(src):
+        copy_run(on_side(src, side), on_side(dst, side))
+    return None
 
 
 def copy_run(src, dst):
@@ -815,6 +861,91 @@ def change_lines(name, side, args, suffix, target, run):
     return []
 
 
+def record_one(name, args, dirs, suffix):
+    """record: one scenario's golden from the runs in dirs. (the exit code, 1 when a golden was written, the lines
+    to print)"""
+    out = []
+    folders = [os.path.join(d, f'{name}-{suffix}') for d in dirs]
+    digest = os.path.join(folders[0], 'digest.txt')
+    problem = []
+    if report_result(folders[0]) != 'PASS':
+        problem = [f'{folders[0]} did not pass ({report_result(folders[0]) or "no report"})']
+    elif not os.path.exists(digest):
+        problem = [f'{folders[0]} has no digest.txt (run it with EI_DIGEST=<N>)']
+    elif len(folders) < IMAGE_RUNS:
+        problem = [f'{len(folders)} runs; a golden needs {IMAGE_RUNS} that agree']
+    games = sides(folders[0])
+    for side in games:
+        # A pair (SV5d): the second game's runs must pass and agree as the first game's do.
+        runs = [on_side(f, side) for f in folders]
+        if not problem and side and report_result(runs[0]) != 'PASS':
+            problem = [f'{runs[0]} did not pass ({report_result(runs[0]) or "no report"})']
+        elif not problem and side and not os.path.exists(os.path.join(runs[0], 'digest.txt')):
+            problem = [f'{runs[0]} has no digest.txt']
+        for folder, other in zip(folders[1:], runs[1:]):
+            if problem:
+                break
+            if report_result(other) != 'PASS':
+                problem = [f'{other} did not pass ({report_result(other) or "no report"})']
+            else:
+                label_a, label_b = (os.path.basename(os.path.dirname(f)) for f in (folders[0], folder))
+                found = compare_folders(runs[0], other, label_a, label_b, ulps=0, records=1, fields=args.fields,
+                                        with_saves=False, known=known_pattern())
+                if found:
+                    problem = [f'{other} differs from {runs[0]}:'] + found
+    if problem:
+        out.append(f'{name} {args.install}: not recorded: ' + problem[0])
+        for line in problem[1:]:
+            out.append('  ' + line)
+        return 2, 0, out
+    target = os.path.join(GOLDEN, name, args.install)
+    # Written beside the golden first: a golden whose content (what the comparison checks) is the same is left as
+    # it was, golden.json too, so a recording changes only the goldens that changed.
+    staging = target + '.new'
+    shutil.rmtree(staging, ignore_errors=True)
+    changes = []
+    for side in games:
+        runs = [on_side(f, side) for f in folders]
+        into = on_side(staging, side)
+        os.makedirs(into)
+        digest = os.path.join(runs[0], 'digest.txt')
+        clear = golden_clear()
+        compact(digest, os.path.join(into, 'digest.txt'), clear=clear)
+        for dump, path in dumps(runs[0]).items():
+            compact(path, os.path.join(into, f'dump_{dump}.txt'), clear=clear)
+        with open(os.path.join(into, 'console.txt'), 'w', encoding='cp1251', errors='replace', newline='\n') as f:
+            f.writelines(line + '\n' for line in console(runs[0]))
+        meta = {'scenario': name, 'install': args.install, 'recorded': datetime.date.today().isoformat(),
+                'commit': commit(), 'digest_period': Digest(digest).period(), 'left_out': ADDRESS_DEPENDENT,
+                'clear': clear, 'repeated_in': len(folders), 'reason': args.reason}
+        if side:
+            meta['side'] = side   # the pair's second game (tests/scenarios/peer/<name>.txt)
+        meta['source'] = 'image'   # the standalone image's runs (H40; before it game.exe's)
+        keep_saves(into, runs, meta)
+        found = change_lines(name, side, args, suffix, target, runs[0])
+        if found:
+            meta['change'] = [l.rstrip() for l in found[:RECORD_LINES]] + \
+                ([f'... {len(found) - RECORD_LINES} more lines'] if len(found) > RECORD_LINES else [])
+            changes += [(f'{side}: ' if side else '') + l for l in meta['change']]
+        with open(os.path.join(into, 'golden.json'), 'w', encoding='utf-8', newline='\n') as f:
+            json.dump(meta, f, indent=2)
+            f.write('\n')
+    note = change_note(golden_content(target), golden_content(staging))
+    if note.startswith('changed') and not changes and os.path.exists(os.path.join(target, 'golden.json')):
+        note += ' (what it checks is the same; only its fields in clear changed)'
+    if note == 'the same as before':
+        shutil.rmtree(staging)
+        out.append(f'{name} {args.install}: the same as its golden, kept')
+        return 0, 0, out
+    shutil.rmtree(target, ignore_errors=True)
+    os.replace(staging, target)
+    out.append(f'{name} {args.install}: recorded in {shown_path(target)}' + (' (both games of the pair)' if len(games) > 1 else '')
+          + f' ({note})')
+    for line in changes:
+        out.append('    ' + line)
+    return 0, 1, out
+
+
 def record(args):
     if len((args.reason or '').split()) < 2:
         print('record: --reason needs a sentence (two words at least) saying why the goldens change (what the ticket changed on purpose); '
@@ -826,87 +957,12 @@ def record(args):
                                      if d.endswith('-' + suffix) and os.path.exists(os.path.join(dirs[0], d, 'digest.txt')))
     code = 0
     recorded = 0
-    for name in names:
-        folders = [os.path.join(d, f'{name}-{suffix}') for d in dirs]
-        digest = os.path.join(folders[0], 'digest.txt')
-        problem = []
-        if report_result(folders[0]) != 'PASS':
-            problem = [f'{folders[0]} did not pass ({report_result(folders[0]) or "no report"})']
-        elif not os.path.exists(digest):
-            problem = [f'{folders[0]} has no digest.txt (run it with EI_DIGEST=<N>)']
-        elif len(folders) < IMAGE_RUNS:
-            problem = [f'{len(folders)} runs; a golden needs {IMAGE_RUNS} that agree']
-        games = sides(folders[0])
-        for side in games:
-            # A pair (SV5d): the second game's runs must pass and agree as the first game's do.
-            runs = [on_side(f, side) for f in folders]
-            if not problem and side and report_result(runs[0]) != 'PASS':
-                problem = [f'{runs[0]} did not pass ({report_result(runs[0]) or "no report"})']
-            elif not problem and side and not os.path.exists(os.path.join(runs[0], 'digest.txt')):
-                problem = [f'{runs[0]} has no digest.txt']
-            for folder, other in zip(folders[1:], runs[1:]):
-                if problem:
-                    break
-                if report_result(other) != 'PASS':
-                    problem = [f'{other} did not pass ({report_result(other) or "no report"})']
-                else:
-                    label_a, label_b = (os.path.basename(os.path.dirname(f)) for f in (folders[0], folder))
-                    found = compare_folders(runs[0], other, label_a, label_b, ulps=0, records=1, fields=args.fields,
-                                            with_saves=False, known=known_pattern())
-                    if found:
-                        problem = [f'{other} differs from {runs[0]}:'] + found
-        if problem:
-            print(f'{name} {args.install}: not recorded: ' + problem[0])
-            for line in problem[1:]:
-                print('  ' + line)
-            code = 2
-            continue
-        target = os.path.join(GOLDEN, name, args.install)
-        # Written beside the golden first: a golden whose content (what the comparison checks) is the same is left as
-        # it was, golden.json too, so a recording changes only the goldens that changed.
-        staging = target + '.new'
-        shutil.rmtree(staging, ignore_errors=True)
-        changes = []
-        for side in games:
-            runs = [on_side(f, side) for f in folders]
-            into = on_side(staging, side)
-            os.makedirs(into)
-            digest = os.path.join(runs[0], 'digest.txt')
-            clear = golden_clear()
-            compact(digest, os.path.join(into, 'digest.txt'), clear=clear)
-            for dump, path in dumps(runs[0]).items():
-                compact(path, os.path.join(into, f'dump_{dump}.txt'), clear=clear)
-            with open(os.path.join(into, 'console.txt'), 'w', encoding='cp1251', errors='replace', newline='\n') as f:
-                f.writelines(line + '\n' for line in console(runs[0]))
-            meta = {'scenario': name, 'install': args.install, 'recorded': datetime.date.today().isoformat(),
-                    'commit': commit(), 'digest_period': Digest(digest).period(), 'left_out': ADDRESS_DEPENDENT,
-                    'clear': clear, 'repeated_in': len(folders), 'reason': args.reason}
-            if side:
-                meta['side'] = side   # the pair's second game (tests/scenarios/peer/<name>.txt)
-            meta['source'] = 'image'   # the standalone image's runs (H40; before it game.exe's)
-            keep_saves(into, runs, meta)
-            found = change_lines(name, side, args, suffix, target, runs[0])
-            if found:
-                meta['change'] = [l.rstrip() for l in found[:RECORD_LINES]] + \
-                    ([f'... {len(found) - RECORD_LINES} more lines'] if len(found) > RECORD_LINES else [])
-                changes += [(f'{side}: ' if side else '') + l for l in meta['change']]
-            with open(os.path.join(into, 'golden.json'), 'w', encoding='utf-8', newline='\n') as f:
-                json.dump(meta, f, indent=2)
-                f.write('\n')
-        note = change_note(golden_content(target), golden_content(staging))
-        if note.startswith('changed') and not changes and os.path.exists(os.path.join(target, 'golden.json')):
-            note += ' (what it checks is the same; only its fields in clear changed)'
-        if note == 'the same as before':
-            shutil.rmtree(staging)
-            print(f'{name} {args.install}: the same as its golden, kept')
-            continue
-        shutil.rmtree(target, ignore_errors=True)
-        os.replace(staging, target)
-        recorded += 1
-        print(f'{name} {args.install}: recorded in {shown_path(target)}' + (' (both games of the pair)' if len(games) > 1 else '')
-              + f' ({note})')
-        for line in changes:
-            print('    ' + line)
+    # The scenarios in a pool (a core each); what each prints is kept and printed in the scenarios' order.
+    for one_code, one_recorded, lines in pool_map(functools.partial(record_one, args=args, dirs=dirs, suffix=suffix), names):
+        for line in lines:
+            print(line)
+        code = max(code, one_code)
+        recorded += one_recorded
     prune_store()
     print(f'{recorded} of {len(names)} recorded (new or changed)')
     return code
@@ -1017,6 +1073,31 @@ def compare_one(name, install, folder, ulps=0, records=1, fields=12, root=ROOT, 
                                 saves_known=None if strict else 'default')
         lines += [prefix + line for line in found]
     return ('DIFFERS' if lines else 'SAME'), lines
+
+
+def pool_map(fn, items, threads=False):
+    """fn(item) for each of items, in a process pool with a process to a core, yielded in the items' order (so a
+    caller prints as a serial one would, each result when the ones before it are in). Fewer than three items run in
+    this process: a pool costs more to start than they take. fn is a module-level function (or a partial of one).
+    threads: a thread pool instead, for work that waits on the disk (copying files)."""
+    items = list(items)
+    workers = min(os.cpu_count() or 1, 60, len(items))   # 61 is the most Windows lets a pool have
+    if workers < 3:
+        yield from map(fn, items)
+        return
+    pool_class = concurrent.futures.ThreadPoolExecutor if threads else concurrent.futures.ProcessPoolExecutor
+    with pool_class(workers) as pool:
+        yield from pool.map(fn, items)
+
+
+def compare_task(task, root=ROOT):
+    name, install, folder = task
+    return compare_one(name, install, folder, root=root)
+
+
+def compare_many(tasks, root=ROOT):
+    """compare_one for each (name, install, folder) of tasks, in a pool: [(result, lines)] in the tasks' order."""
+    return pool_map(functools.partial(compare_task, root=root), tasks)
 
 
 def compare(args):

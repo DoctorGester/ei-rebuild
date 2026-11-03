@@ -152,7 +152,10 @@ harness ignores other game windows, keeps the game active when it loses focus, a
 On Windows harness games never take the foreground and every window stays out of sight (the game window concealed before
 it is first shown, any other window of the process concealed when the watch finds it; `EI_HARNESS_SHOW_WINDOW=1` shows
 them to watch a run); the report's `WINDOW:` line and run_all's `game windows:` summary check it. On Linux the window is
-shown. Harness runs open no sound device (sound.md).
+shown on the game's display; run_all starts one Xvfb for the suite (`start_headless_display`: a free number from :99 down, a 3840x2160 screen
+(the goldens' desktop: the `resolution desktop` scenarios, ui_widescreen_*, play differently on a smaller one),
+every game's DISPLAY pointed at it, WAYLAND_DISPLAY unset, stopped when run_all ends), so a local run opens nothing on the
+desktop; `EI_SHOW_WINDOWS=1` leaves the games on the session's display to watch them. Harness runs open no sound device (sound.md).
 
 ## The harness's code
 

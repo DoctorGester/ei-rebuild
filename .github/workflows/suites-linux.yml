@@ -124,9 +124,9 @@ jobs:
           if [ -z "$names" ]; then
             names=$(ls tests/scenarios/*.txt | xargs -n1 basename | sed 's/\.txt$//' | grep -vxF -f <(tr ' ' '\n' <<< "$LINUX_SKIP"))
           fi
-          PYTHONUNBUFFERED=1 xvfb-run -a -s "-screen 0 1280x1024x24" python3 tools/run_all.py --golden --jobs 1 $names 2>&1 | tee suite_image.txt || true
+          PYTHONUNBUFFERED=1 xvfb-run -a -s "-screen 0 3840x2160x24" python3 tools/run_all.py --golden --jobs 1 $names 2>&1 | tee suite_image.txt || true
           rebirth=$(python3 -c "import sys; sys.path.insert(0, 'tools'); import run_all; print(' '.join(run_all.rebirth_scenarios(sys.argv[1:])))" $names)
-          PYTHONUNBUFFERED=1 xvfb-run -a -s "-screen 0 1280x1024x24" python3 tools/run_all.py --rebirth-only --golden --jobs 1 $rebirth 2>&1 | tee suite_rebirth.txt || true
+          PYTHONUNBUFFERED=1 xvfb-run -a -s "-screen 0 3840x2160x24" python3 tools/run_all.py --rebirth-only --golden --jobs 1 $rebirth 2>&1 | tee suite_rebirth.txt || true
           for f in suite_image.txt suite_rebirth.txt; do
             echo "### ${f%.txt}" | tee -a $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
