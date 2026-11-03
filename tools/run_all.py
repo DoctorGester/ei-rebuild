@@ -44,7 +44,7 @@ A run that outlives the scenario's time limit ("timeout <seconds>", default 60 s
 game's watchdog ends it at the limit, launch() LIMIT_MARGIN_S later if the watchdog could not.
 A scenario with a line "# expect: TIMEOUT" passes when it times out (tests/scenarios/watchdog_*.txt check this).
 """
-import argparse, functools, collections, concurrent.futures, contextlib, glob, hashlib, json, os, re, shutil, struct, subprocess, sys, tempfile, threading, time
+import argparse, atexit, functools, collections, concurrent.futures, contextlib, glob, hashlib, json, os, re, shutil, struct, subprocess, sys, tempfile, threading, time
 
 import frame_store, game_process, prepare_scenario
 
@@ -174,7 +174,8 @@ def install_environment(environ=None):
 # slots, and what launch() sets itself. Every other EI_* variable (EI_PROFILE, EI_DIGEST, EI_SAVETRACE, ...) is read by
 # a game.
 NOT_GAME_ENV = ('EI_BUILD_DIR', 'EI_HARNESS_SLOTS', 'EI_OUT_DIR', 'EI_HARNESS', 'EI_WIDESCREEN_DIR', 'EI_PAIR',
-                'EI_GAME_ROOT', 'EI_INSTALL_ROOTS', 'EI_GAME_VANILLA', 'EI_GAME_REBIRTH')
+                'EI_GAME_ROOT', 'EI_INSTALL_ROOTS', 'EI_GAME_VANILLA', 'EI_GAME_REBIRTH',
+                'EI_SHOW_WINDOWS')
 
 
 def peer_scenario(scenario):
@@ -1121,9 +1122,10 @@ def golden_check(jobs, out=None, root=ROOT, build=BUILD):
     counts = collections.Counter()
     heads = []
     print('\ngoldens (tests/golden):', file=out)
-    for name, install in jobs:
-        folder = os.path.join(build, 'runs', f'{name}-{install}')
-        result, lines = golden.compare_one(name, GOLDEN_INSTALL.get(install, install), folder, root=root)
+    tasks = [(name, GOLDEN_INSTALL.get(install, install), os.path.join(build, 'runs', f'{name}-{install}'))
+             for name, install in jobs]
+    # The comparisons run in a pool (a core each); their results come back in the jobs' order, so the text is the same.
+    for (name, install), (result, lines) in zip(jobs, golden.compare_many(tasks, root=root)):
         counts[result] += 1
         if result == 'DIFFERS':
             # golden_explain's headline (the first difference, whether outcomes changed, the largest unit move)
@@ -1145,10 +1147,51 @@ def golden_check(jobs, out=None, root=ROOT, build=BUILD):
     return ok
 
 
+# The headless display's size: the goldens' machine has a 4K desktop and the scenarios that say "resolution desktop"
+# (ui_widescreen_*: the layout, the clicks) take its size, so a smaller screen plays them differently (H47d).
+HEADLESS_SCREEN = '3840x2160x24'
+
+
+def start_headless_display(environ=None):
+    """Linux, without EI_SHOW_WINDOWS=1: starts one Xvfb on a free display number and points DISPLAY at it for
+    every game (WAYLAND_DISPLAY unset), so a local run opens no window on the desktop, as Windows' runs are out of
+    sight. Stopped when this process ends. Returns the Xvfb's Popen or None (not Linux, windows asked for, or no
+    Xvfb: the games then use the session's display)."""
+    environ = os.environ if environ is None else environ
+    if not sys.platform.startswith('linux') or environ.get('EI_SHOW_WINDOWS'):
+        return None
+    xvfb = shutil.which('Xvfb')
+    if not xvfb:
+        print('no Xvfb installed: the games open their windows on the session display (EI_SHOW_WINDOWS=1 says so on purpose)')
+        return None
+    # xvfb-run's way: an explicit number from 99 down, the server dies on a number that is taken and the next is
+    # tried; -displayfd gives the number once it is up. (Xvfb choosing the number itself counts a refused socket as a
+    # taken number, and under WSL, where /tmp/.X11-unix is WSLg's, every number refuses one.)
+    for display in range(99, 49, -1):
+        read_end, write_end = os.pipe()
+        proc = subprocess.Popen([xvfb, f':{display}', '-screen', '0', HEADLESS_SCREEN, '-nolisten', 'tcp',
+                                 '-displayfd', str(write_end)], pass_fds=(write_end,), stdin=subprocess.DEVNULL,
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        os.close(write_end)
+        with os.fdopen(read_end, encoding='ascii', errors='replace') as f:
+            number = f.readline().strip()   # empty when the server died
+        if number.isdigit():
+            break
+        proc.wait()
+    else:
+        print('Xvfb did not start: the games open their windows on the session display')
+        return None
+    environ['DISPLAY'] = f':{number}'
+    environ.pop('WAYLAND_DISPLAY', None)
+    atexit.register(lambda: (proc.terminate(), proc.wait()))
+    return proc
+
+
 def main():
     args = parse_args()
     if args.golden:
         os.environ['EI_DIGEST'] = str(GOLDEN_PERIOD)
+    start_headless_display()
     jobs = plan(args)
     build = BUILD
     db = timing_db()
