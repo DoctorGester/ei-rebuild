@@ -67,15 +67,24 @@ STRUCT_DEFINITION = re.compile(
 
 
 def defined_struct_names(code):
-    """The struct/class names that `code` (comments blanked) defines with a body at the start of a line, as written
-    (`net::Connection`), but those inside an anonymous namespace: those are the file's own and cannot clash."""
+    """The struct/class names that `code` (comments blanked) defines with a body at the start of a line, qualified by
+    the namespaces around them (`net::Connection`), but those inside an anonymous namespace: those are the file's own
+    and cannot clash. The same name in two namespaces is two types."""
     scopes = None
     names = set()
     for m in STRUCT_DEFINITION.finditer(code):
         scopes = scopes or srcscan.Scopes(code)
-        if '' not in (scopes.namespace_at(m.start()) or []):
-            names.add(m.group(1))
+        namespaces = scopes.namespace_at(m.start()) or []
+        if '' not in namespaces:
+            names.add('::'.join(namespaces + [m.group(1)]))
     return names
+
+
+def struct_unit(path):
+    """What a definition's file counts as for a duplicate: the graphics backends (src/platform/d3d11, gl: one is built,
+    each defines its own helpers under the same names) are one unit."""
+    parts = path.split('/')
+    return 'src/platform/graphics-backend' if parts[:2] == ['src', 'platform'] and parts[2] in ('d3d11', 'gl') else path
 
 
 def structs_defined_twice(sources):
@@ -83,7 +92,7 @@ def structs_defined_twice(sources):
     files = defaultdict(set)
     for s in sources:
         for name in defined_struct_names(s.code):
-            files[name].add(s.path)
+            files[name].add(struct_unit(s.path))
     return sum(1 for paths in files.values() if len(paths) > 1)
 
 

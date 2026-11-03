@@ -12,7 +12,10 @@
 #include <cstring>
 
 TransformObject* TransformObject::CopyTransform(const TransformObject& other) {
-    std::memmove(&localPosition, &other.localPosition, sizeof(TransformObject) - offsetof(TransformObject, localPosition));
+    localPosition = other.localPosition;
+    worldPosition = other.worldPosition;
+    localRotation = other.localRotation;
+    worldRotation = other.worldRotation;
     return this;
 }
 

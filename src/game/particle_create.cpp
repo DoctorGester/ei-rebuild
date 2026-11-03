@@ -772,7 +772,6 @@ void ParticleSource::Create() {
 ParticleSource::ParticleSource(int newType) {
     localRotation.SetIdentity();
     worldRotation.SetIdentity();
-    std::memset(static_cast<void*>(&clip), 0, offsetof(ParticleSource, particles) - offsetof(ParticleSource, clip));
     Reset();
     type = newType;
 }

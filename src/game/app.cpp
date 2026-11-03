@@ -287,11 +287,9 @@ namespace app {
 // ---- FatalErrorCode -----------------------------------------------------------------
 
 int FatalErrorCodeV(long result, const char* format, va_list args) {
-    char text[0x400];
-    char report[0x400];
-    std::vsnprintf(text, sizeof(text), format, args);
-    std::snprintf(report, sizeof(report), CodeReportFormat(), text, result, DirectXErrorText(result));
-    ShowMessageBox(report);
+    const std::string text = str::FormatV(format, args);
+    const std::string report = str::Format(CodeReportFormat(), text.c_str(), result, DirectXErrorText(result));
+    ShowMessageBox(report.c_str());
     if (++g_fatalErrorCount >= 1) std::exit(-1);
     return 0;
 }

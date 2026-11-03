@@ -143,8 +143,6 @@ Unit* FirstUnitHit(WorldClient* client, MapObject* object) {
 
 bool SameText(std::string_view a, std::string_view b) { return a == b; }
 
-std::uint32_t Ftol(float v) { return static_cast<std::uint32_t>(static_cast<std::int64_t>(v)); }
-
 constexpr float kSteepest = 0.8f;   // the smallest normal z of a face added
 
 template <typename T>
@@ -543,10 +541,10 @@ std::vector<Object3D*> WorldClient::ObjectsInRange(const Vector3& point, float r
     std::uint32_t& lastY = rangeLastY;
     std::uint32_t& x = rangeX;
     std::uint32_t& y = rangeY;
-    firstX = x = Ftol(x0) >> 4;
-    firstY = y = Ftol(y0) >> 4;
-    lastX = Ftol(x1) >> 4;
-    lastY = Ftol(y1) >> 4;
+    firstX = x = static_cast<std::uint32_t>(static_cast<int>(x0)) >> 4;
+    firstY = y = static_cast<std::uint32_t>(static_cast<int>(y0)) >> 4;
+    lastX = static_cast<std::uint32_t>(static_cast<int>(x1)) >> 4;
+    lastY = static_cast<std::uint32_t>(static_cast<int>(y1)) >> 4;
 
     SectorGrid& grid = objectGrid;
     for (auto* cell = &grid.rows[y][x]; cell;) {

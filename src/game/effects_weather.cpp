@@ -201,10 +201,7 @@ void VisibilityFog::ClearCells() {
     boundsValid = 0;
 }
 
-VisibilityFog::VisibilityFog() {
-    std::memset(static_cast<void*>(&bounds), 0, offsetof(VisibilityFog, cells) - offsetof(VisibilityFog, bounds));
-    boundsValid = 0;
-}
+VisibilityFog::VisibilityFog() = default;
 
 VisibilityFog::~VisibilityFog() {
     ClearCells();

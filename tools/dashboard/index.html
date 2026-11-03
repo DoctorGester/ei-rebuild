@@ -274,13 +274,13 @@ function render(data) {
     ['reinterpret_cast', 'reinterpret_casts'], ['static_cast to a pointer type', 'pointer_static_casts'],
     ['Struct names defined in several files', 'structs_defined_twice'], ['Anonymous namespaces', 'anonymous_namespaces']]) + peakRows('cleanup', [
     ['Per-file Vector / Map / Set layouts', 'vector_map_set_structs'],
-    ['static_cast<float>', 'float_casts'], ['static_cast<double>', 'double_casts'], ['Ftol calls', 'ftol_calls']]);
+    ['static_cast<float>', 'float_casts'], ['static_cast<double>', 'double_casts']]);
   document.querySelector('#goals tbody').innerHTML = peakRows('goals', [
     ['pc24:: uses (24-bit-rounded operations on wider operands)', 'pc24_uses'],
     ['Ordered-sum vector helpers (DotZYX, Sum3::XYZ, *Unrounded)', 'ordered_sums'],
     ['render::ui:: canvas calls outside src/render', 'ui_canvas_calls']]);
   document.querySelector('#standalone tbody').innerHTML = peakRows('standalone', [
-    ['Text: case-insensitive compares and case changes', 'text_case_compares'], ['Text: fixed char buffers', 'text_fixed_buffers'],
+    ['Text: fixed char buffers (src/)', 'text_fixed_buffers'],
     ['Text: direct ANSI system calls', 'text_ansi_calls']]);
   const accent = css('--accent'), good = css('--good'), muted = css('--muted');
   const areaColors = ['#b5652a', '#3d7a52', '#4a6fa5', '#8a5aa0', '#a5793a', '#3a8a8a', '#a54a5a', '#6a7a3a', '#7a7a7a'];
@@ -300,12 +300,11 @@ function render(data) {
                   { name: 'render::ui:: canvas calls', color: good, get: gl('ui_canvas_calls') }],
       { title: 'Goals', note: "What the code is moving to: 24-bit-rounded pc24 operations (float-maths.md), the ordered-sum helpers of lib/vecmath.h, and the game's calls into the interface canvases (ui-native.md)." }),
     lineChart(h, [{ name: 'static_cast<float>', color: accent, get: p => p.cleanup.float_casts },
-                  { name: 'static_cast<double>', color: '#4a6fa5', get: p => p.cleanup.double_casts },
-                  { name: 'Ftol calls', color: muted, get: p => p.cleanup.ftol_calls }],
-      { title: 'x87 remains', note: 'Precision-pinning casts and the CRT truncation (C30): plain float maths replaces them where game state allows.' }),
-    lineChart(h, [{ name: 'Case compares', color: accent, get: p => p.standalone && p.standalone.text_case_compares },
-                  { name: 'Fixed char buffers', color: '#4a6fa5', get: p => p.standalone && p.standalone.text_fixed_buffers }],
-      { title: 'Single-byte text', note: 'Text sites that assume one byte per character; the text is UTF-8 everywhere (docs/notes/standalone.md).' }),
+                  { name: 'static_cast<double>', color: '#4a6fa5', get: p => p.cleanup.double_casts }],
+      { title: 'x87 remains', note: 'Precision-pinning casts (C30): plain float maths replaces them where game state allows.' }),
+    lineChart(h, [{ name: 'Fixed char buffers', color: accent, get: p => p.standalone && p.standalone.text_fixed_buffers },
+                  { name: 'Direct ANSI calls', color: '#4a6fa5', get: p => p.standalone && p.standalone.text_ansi_calls }],
+      { title: 'Single-byte text', note: 'Fixed char buffers in src/ and direct ANSI system calls; the text is UTF-8 everywhere (docs/notes/standalone.md).' }),
     lineChart(h, [{ name: 'src/game', color: accent, get: p => p.loc['src/game'] },
                   { name: 'src/render', color: '#4a6fa5', get: p => p.loc['src/render'] },
                   { name: 'src/platform', color: good, get: p => p.loc['src/platform'] },

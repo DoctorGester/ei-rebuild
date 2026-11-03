@@ -1,7 +1,8 @@
 # Linux: builds the game and the harness's build of it (-DEI_HARNESS=ON, tests/verify) with gcc on GitHub's Ubuntu
 # runner (CMakeLists.txt; docs/notes/linux.md) and runs the game's checks under a virtual display on Mesa's software
 # OpenGL (ctest: the POSIX platform's checks, the interface canvases' glyph cases on OpenGL). No game data: no game
-# runs here. On pushes to main and claude/** branches and by hand.
+# runs here. A compiler warning fails the build (CMAKE_COMPILE_WARNING_AS_ERROR; this job only, not the Windows builds).
+# On pushes to main and claude/** branches and by hand.
 name: Linux
 
 on:
@@ -49,11 +50,11 @@ jobs:
           chmod +x build/tools/sokol-shdc
       - name: Build
         run: |
-          cmake -S . -B build/linux -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          cmake -S . -B build/linux -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_COMPILE_WARNING_AS_ERROR=ON             -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           cmake --build build/linux
       - name: Build the harness
         run: |
-          cmake -S . -B build/linux-harness -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEI_HARNESS=ON -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          cmake -S . -B build/linux-harness -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_COMPILE_WARNING_AS_ERROR=ON             -DEI_HARNESS=ON -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           cmake --build build/linux-harness --target ei-rebuild
           ccache --show-stats
       - name: Checks
