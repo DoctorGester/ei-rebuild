@@ -61,9 +61,9 @@ array (a rare Rebirth crash). Ours zeroes the depth.
 
 ## The control word
 
-x64 code has no x87 arithmetic and no precision control. `render.cpp`'s `FpuGuard` (platform::FloatingPointGuard)
-puts MXCSR's control bits back around the renderer's library calls, only when they changed. No game code loads or
-resets the floating-point state.
+x64 code has no x87 arithmetic and no precision control. `render.cpp`'s `CheckFloatControl` compares MXCSR's control
+bits once a frame with those at the device's start and puts them back when a driver or library changed them (verify
+builds log it). No game code loads or resets the floating-point state.
 
 ## Vector helpers (src/lib/vecmath.h)
 

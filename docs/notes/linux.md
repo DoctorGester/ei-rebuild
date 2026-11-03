@@ -2,8 +2,8 @@
 
 The game builds on Linux (x86-64, gcc 13 or clang 18) from the same CMakeLists.txt as on Windows: the game and
 library code unchanged, SDL3 for the window, input, sound and threads, POSIX for the rest of the platform
-(src/platform/posix/platform_posix.cpp), and the renderer on sokol_gfx's OpenGL 4.5 backend
-(src/platform/gl/graphics_gl.cpp; docs/notes/platform.md, "Graphics"). The harness builds too (`-DEI_HARNESS=ON`, "The
+(src/platform/posix/platform_posix.cpp), and the renderer on SDL_GPU's Vulkan driver (src/render/gpu.cpp;
+docs/notes/renderer.md section 15c). The harness builds too (`-DEI_HARNESS=ON`, "The
 harness" below); the offline checks against Windows' drawing and keys stay Windows' only.
 
 ## Build
@@ -17,15 +17,7 @@ sudo apt-get install cmake ninja-build libx11-dev libxext-dev libxcursor-dev lib
 
 The configure step also fetches and builds the HLSL toolchain, SDL_shadercross with DXC's Linux release, once
 (docs/notes/renderer.md, "HLSL and SDL_shadercross"). `mesa-vulkan-drivers` brings lavapipe and the Vulkan loader for
-`port_shaders`.
-
-sokol-shdc, the shader compiler (CMakeLists.txt looks in build/tools, then PATH, or takes -DEI_SHDC):
-
-```sh
-mkdir -p build/tools
-curl -L https://raw.githubusercontent.com/floooh/sokol-tools-bin/b975d5642093d62e76a1e088bdae945d6d8b8ff2/bin/linux/sokol-shdc -o build/tools/sokol-shdc
-chmod +x build/tools/sokol-shdc
-```
+the game without a GPU and for the checks.
 
 Then:
 
@@ -40,14 +32,14 @@ from a clone in the WSL home, not under /mnt/e (9P is slow).
 
 ## Checks
 
-`ctest --test-dir build/linux` (on a machine without a display: `xvfb-run -a ctest`, Mesa's llvmpipe draws):
+`ctest --test-dir build/linux` (on a machine without a display: `xvfb-run -a ctest`, Mesa's lavapipe draws):
 
 - `port_platform` (tests/port/port_check.cpp): path folding, files and mappings, .ini reads and writes, the
   one-instance lock, UDP, the settings document's checks (tests/unit/settings_file.cpp).
-- `port_render` (tests/port/render_check.cpp): the interface canvases' glyph cases on OpenGL against their CPU
-  reference (tests/render/glyph_cases.cpp, which tools/ui_check runs on Direct3D 11), and the window's present after
-  resizes: a frame of known rows presented at four sizes, the window read back from the X server (XGetImage; a GL
-  front-buffer read gives zeros on Mesa's software paths).
+- `port_render` (tests/port/render_check.cpp): the interface canvases' glyph cases on Vulkan against their CPU
+  reference (tests/render/glyph_cases.cpp, which tools/ui_check runs on Direct3D 12), and the window's present after
+  resizes: a frame of known rows presented through the swap chain at four sizes, the window read back from the X
+  server (XGetImage).
 - `port_shaders` (tools/shader_check): every HLSL program and its pipelines on SDL_GPU's Vulkan driver (lavapipe
   without a GPU), with `--require`: no Vulkan device fails.
 - `port_gpu` (tools/gpu_check): the renderer's SDL_GPU layer (src/render/gpu.cpp; renderer.md section 15c) on the
@@ -92,7 +84,7 @@ two levels below the checkout. run_all's machine slots are the system's own: gam
 Windows' 16, so hold slots on the Windows side while they run. Under WSL keep the checkout and the build in WSL's home
 (gcc over /mnt runs at a quarter of the speed).
 
-First runs (WSLg, llvmpipe: Mesa's software OpenGL; 2026-11-03), the image suite against the Windows goldens: 141 of
+First runs (WSLg, the sokol OpenGL renderer on llvmpipe, Mesa's software OpenGL; 2026-11-03), the image suite against the Windows goldens: 141 of
 149 the same in the full run, and ui_modifier_keys and ui_saveload_delete too once the folder listing and the key line
 were fixed (a run of the rest); the Rebirth set without its pairs 22 of 23. What still differs, and why:
 

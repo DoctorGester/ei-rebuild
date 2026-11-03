@@ -553,7 +553,7 @@ from there, started from anywhere, with no launcher, no DLL of ours and no file 
   Then ei_settings.ini's `[patches]` apply, then EI_REBIRTH and a scenario's flags. When EI_REBIRTH is set no profile
   is taken. Harness runs set none: they take the install folder's profile as a player's exe does, so the Rebirth
   goldens read the install's EI_Plugin.ini (players 7, pause 1: the defaults).
-- **The exe's own imports** (d3d11, kernel32, user32, advapi32, winmm, ws2_32) come from System32 only
+- **The exe's own imports** (kernel32, user32, advapi32, winmm, ws2_32) come from System32 only
   (`/DEPENDENTLOADFLAG:0x800`). A wrapper DLL of the same name in a game folder (dgVoodoo, a dsound wrapper) is not
   taken. ASan's build leaves the flag out.
 - **Checks:** `dropin_profile` (both installs; in the Rebirth smoke set) is a run like any other, with no EI_REBIRTH:

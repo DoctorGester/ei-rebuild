@@ -57,8 +57,8 @@ and drawing use one set of metrics.
   the header is drawn in an unsmoothed font (`UiFont::unsmoothed`).
 - The fonts are byte arrays built into the executable: CMakeLists.txt runs `src/render/embed.cmake` on each at build time
   into fonts/ in the build folder (not committed, no Windows resource); `render::text::FontForFace(face)` gives the bytes.
-  Every build writes `third_party_notices.txt` beside the executables (the fonts' SIL Open Font License, sokol's zlib
-  licence, stb's note).
+  Every build writes `third_party_notices.txt` beside the executables (the fonts' SIL Open Font License, SDL's zlib
+  licence, dr_libs' and stb's notes).
 
 **Draw semantics.** Transparent background; the shadow first, in 0x080808 at +1,+1. The rectangle is scaled to the screen
 (without the WideScreen margin), then gets +2 on right and bottom; the text clips to it. Formats the game uses: 0,
@@ -129,11 +129,11 @@ horizontal, the row above too, without the start column; a zero-length 2-px line
 pens, horizontal or vertical. 16-bit mode quantises colours before the key test: 0x080808 survives, but a near-black text
 colour may become transparent, as in the original.
 
-**Checks.** `ei_ui_check` (tools/ui_check; build.cmd runs it, about 0.3 s on WARP; `--hardware` uses the GPU, `--verbose`
+**Checks.** `ei_ui_check` (tools/ui_check; build.cmd runs it on gpu.h's device, hardware Direct3D 12; `--verbose`
 prints each check and the difference maps) plays render.cpp's part itself (its frame, `SplitFrame`, `RunCanvasesNow`).
 Fills, frames, lines and pixels are compared with GDI drawing into a DIB section in 5:6:5, 5:5:5 and 8:8:8; glyph runs
 (`tests/render/glyph_cases.{h,cpp}`, no platform code) with `ComposeAgainstBlack`; greying, screen copies, frame blits (keyed,
-a source part, split, hoisted) and the resize too. Any sokol warning or `ei::Log` line fails. `ui_compare`
+a source part, split, hoisted) and the resize too. Any `ei::Log` line (gpu.h's problems among them) fails. `ui_compare`
 opens the options and the help over them twice and requires the same frames.
 
 ### The gallery
