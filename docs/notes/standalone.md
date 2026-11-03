@@ -72,8 +72,8 @@ each step green on the goldens and removing a measured tie:
 - **The seam** (S18a, src/game/game_data.h): code that reads game.exe's own data (the harness and the vector recorders
   in game.exe's runs) names it by the original's address and reaches it only through `GameData<T>(a)` or
   `GamePointer<T>(a)`; `DataId(a)` marks an address kept in a table, resolved by its reader (the harness's
-  `ExeTableId(a)`: a game.exe table kept as an id, never read). ei_vectors.exe (EI_VECTORS_REPLAY) hands a stand-in its checks
-  fill (tests/vectors/replay_game_data.cpp). The image has none of game.exe's data and src/ names no address of it
+  `ExeTableId(a)`: a game.exe table kept as an id, never read). The function vectors' replay (until the 32-bit build
+  went, C70) handed a stand-in its checks filled. The image has none of game.exe's data and src/ names no address of it
   (the dashboard's "game data addresses": 0 since C20u).
 - **The check** (`python tools/data_seam.py`, build.cmd): every literal of game.exe's data range in src/, tests/ and
   include/ is a seam argument, a helper's whose every definition hands its address to the seam, or a constant whose
@@ -891,8 +891,8 @@ and never reads or writes the registry. game.exe (the original game) keeps the r
 - **Checks (ST1a)**: the product's two file paths, which a read-only pinned run does not reach, are checked without
   the user's registry.
   - *Format and defaults, no game*: src/game/settings_document.cpp holds `Document` (Text / Parse), the values' text
-    (`IntText` / `ParseInt` ...) and `Defaults`. tests/vectors/replay_settings.cpp runs after the vector replays in
-    `ei_vectors.exe` (build.cmd fails when a check does): ints (DWORD bits, bad numbers), booleans, floats (+-0,
+    (`IntText` / `ParseInt` ...) and `Defaults`. tests/unit/settings_file.cpp runs in `ei_unit_check.exe` (build.cmd
+    fails when a check does) and in Linux's ei_port_check: ints (DWORD bits, bad numbers), booleans, floats (+-0,
     NaN, infinities, a sweep of 20,000 random bit patterns plus every exponent: the bits always read back), text
     values and their quotes, names and sections without case, comments / BOM / line breaks, bad lines and sections
     (reported and skipped), the old registry-shaped file (no setting), and the defaults (each value, what is left
@@ -962,8 +962,8 @@ and never reads or writes the registry. game.exe (the original game) keeps the r
   `_setmbcp(_MB_CP_LOCALE)`; ours does neither (the text is UTF-8, section 4, U5) and calls no multibyte function of
   the host's (`_splitpath`, the last, is resource_stream.cpp's SplitPath). Nothing reads the locale state: crt_format.cpp's Format takes the C
   locale's decimal point '.', no lead bytes in a format and a wide character's low byte (wctomb's "C" branch); MFC's
-  resource strings are copied as bytes. ei_vectors checks the game's recorded point and class words against that
-  ("@CrtFormatLocale": the point is '.', no lead-byte bit, the digits of ASCII are '0'-'9').
+  resource strings are copied as bytes. The function vectors (until C70) checked the game's recorded point and class
+  words against that ("@CrtFormatLocale": the point is '.', no lead-byte bit, the digits of ASCII are '0'-'9').
 - **Strings and characters** (C26, C34, C35b): no CRT function of ours. Callers use std::strcmp / strncmp / strncpy
   (_mbscmp, _mbsncmp, strcmp, strncpy), `str::Compare` for std::string / string_view texts (strcmp's order up to
   the first NUL, what _mbscmp read of a CString), and text_case.h: `CompareIgnoringCase` (_stricmp, _strnicmp, _memicmp,
@@ -980,7 +980,7 @@ and never reads or writes the registry. game.exe (the original game) keeps the r
   their own names; _splitpath is resource_stream.cpp's SplitPath. Both suites goldens the same,
   though the host's compares return a difference rather than VC6's
   -1 / 1, atoi saturates where VC6's wraps, and a negative char's class is 0 rather than the words before `_pctype`.
-  ei_vectors: the script lexer and loader replays call text_case.h too; none of their 772 records has a byte past ASCII,
+  The function vectors (until C70): the script lexer and loader replays called text_case.h too; none of their 772 records had a byte past ASCII,
   so the game's 1251 / 1252 answers were never needed: the records carry no per-call class answers (C35j) and
   "@GameCrtCtype" holds the game's isdigit, isspace and tolower for the ASCII bytes only, which text_case.h answers the same.
 - **Heap** (crt.cpp): malloc 006EABD1 and free 006EA8AD are the host CRT's (C26: both suites goldens the same, the
@@ -1211,7 +1211,8 @@ What must survive:
   small-block allocator only where code depends on reuse order (none known).
 - **Formats**: the archive encoding of strings and arrays in saves and network messages is a pair of read / write
   functions, independent of the container type.
-- **x87 maths**: the exe stays a 32-bit MSVC build with the same float settings until the float checks are replaced.
+- **x87 maths**: the original's x87 results are plain float maths in its order and src/lib/pc24.h where an operand
+  was wider; the exe is an x64 build (SSE only).
 ## 4. UTF-8 instead of cp1251
 
 Every string inside the game is UTF-8 (C34 dropped the old `EI_UTF8` switch: there is no 8-bit build). Text in the
@@ -1484,49 +1485,32 @@ from there, started from anywhere, with no ei_launch, no DLL of ours and no file
 
 ### The x64 build
 
-`build.cmd x64`: the release build for 64-bit Windows (vcvars64, build\x64; CMake's `EI_X64`, from the pointer size).
-- **What it builds**: ei-rebuild.exe, ei_text_check, ei_ui_check and ei_perf_check. 32-bit only: ei_vectors (its
-  recordings are game.exe's 32-bit calls); the harness and an x64 ei_launch are verify-x64's (below). build_checks.py `--x64` runs every check but the function vectors. No
-  `/arch:SSE2` (x64 has it always).
-- **No Miles, no Bink**: neither build calls them (PL6): sound and movies go through src/audio and src/video, the
-  same on x86 and x64 (docs/notes/audio.md).
-- **What stays 32-bit only in the source** (`#if defined(_M_IX86)`): the static_asserts that describe game.exe's or
-  layout (net_coder.h's buffers, ScriptKeyword), the PC24 control word
-  (device_mesh.cpp; x64 has no x87 maths), static_init.h's `__stdcall` Call (one convention on x64). FpuGuard keeps
-  MXCSR's control bits on x64 in place of the x87 control word. ImportTable's slots are pointer-sized (gen_iat.py);
-  the exception handlers read the return address through Rsp (standalone_main.cpp ReturnAddress), the profiler
-  Rsp / Rip.
+Every Windows build is x64 (C70: build.cmd's release, verify, debug, asan and play, vcvars64); there is no 32-bit
+build. Before C70 the 32-bit build was the main one and x64 ran beside it (`build.cmd x64`, `verify-x64`, `play-x64`,
+run_all.py `--x64`); the x64 suite matched the 32-bit one (154 the same, 3 without a golden; Rebirth 29), so no
+golden changed when the 32-bit build went.
+- **What it builds**: ei-rebuild.exe, ei_launch, ei_unit_check, ei_text_check, ei_input_check, ei_ui_check and
+  ei_perf_check; the verify and asan builds link the harness in. No `/arch:SSE2` (x64 has it always). ASan uses
+  clang_rt.asan_dynamic-x86_64.dll, copied beside the executables.
+- **No Miles, no Bink**: no build calls them (PL6): sound and movies go through src/audio and src/video
+  (docs/notes/audio.md).
+- **No x87**: x64 code has no x87 maths and no precision control (SSE float maths rounds to 24 bits already), so the
+  original's PC24 control word has no counterpart; FloatingPointGuard keeps MXCSR's control bits across the graphics
+  driver's calls. ImportTable's slots are pointer-sized (gen_iat.py); the exception handlers read the return address
+  through Rsp (standalone_main.cpp ReturnAddress), the profiler Rsp / Rip.
 - **Counts**: a container's size meets the game's int counts and indices through `lib::Count` (lib/containers.h), not
   `std::ssize` (64-bit on x64; the conversion warnings, C4244 / C4267).
-- **Playing it** (A3e): `play.cmd x64` (also `play.cmd vanilla x64`) builds `build.cmd play-x64` (the x64 release into
-  build\play-x64) and copies ei-rebuild.exe to `run\play-x64` (its own ei_settings.ini and ei-rebuild.log,
-  apart from run\play's). No x64 ei_launch in the release build: play.cmd sets EI_GAME_ROOT to the data folder (EI_GAME_REBIRTH /
-  EI_GAME_VANILLA) and starts the exe from run\play-x64, which is all ei_launch --standalone does for a play start. So the
-  paths are the 32-bit play's: the settings file's Work path and CD-ROM Path read as the data folder, and the saves, the
-  cache and the mods are that install's, as with `play.cmd`; the settings and the log stay in run\play-x64. To keep an
-  install clean, point EI_GAME_VANILLA / EI_GAME_REBIRTH at a copy made like the folder below.
-- **Running it** (no harness, no ei_launch): the exe in a folder made like the game folder (each folder a junction
+- **Running it without ei_launch**: the exe in a folder made like the game folder (each folder a junction
   to the install's but `saves` and `cache`, real folders; each file a copy but game.exe) with an ei_settings.ini
   whose Work path and CD-ROM Path are `.\`: an absolute path there sends the game's writes (saves\current) to the
   install. FullScreen 0 and a VideoResolution for a window. The exe is DPI-unaware: a script that clicks or captures
   the window calls SetProcessDPIAware first, or it sees a quarter of a 200% screen's window.
-- **Checked by hand** (vanilla data, windowed 1024x768): the main menu (the 3D scene and the signpost), a new game
-  (the difficulty dialog, the first zone with its hints, Zak in the circle by day), loading a save from the menu
-  (the party, the HUD, the log). Without the x64 data fixes of docs/notes/x64.md (among them the save counts written
-  as 32-bit values) a new game came up at night with no Zak; with them it starts as the 32-bit build's does.
-- **The x64 harness build** (A3c): `build.cmd verify-x64` builds build\verify-x64: ei-rebuild.exe with the harness
-  linked in and an x64 ei_launch. `python tools/work.py test <ID> --x64 [run_all args]` (or run_all.py `--x64`) runs
-  the image's scenarios on it, runs in build\verify-x64\runs, against the same goldens. The inline assembly steps are
-  x86 only. What the harness does differently on x64: thread contexts through src/hook/thread_context.h (Rip / Rsp),
-  user32's hot patches (an absolute jump and a trampoline for the prologues it knows, harness.cpp HotPatch), the
-  registry hook (advapi32's import slot by name: some exports are wrappers there), ntdll's write guard (the x64 system
-  call stub; the JMP goes to an absolute jump in a page near ntdll), a C++ throw's tables (offsets from the module base).
-- **What the x64 goldens show** (A3c, vanilla data, against a 32-bit image without Miles and Bink as reference): runs
-  without Miles never set a speaking unit's Blocked flag (0x800000), so every golden from the first spoken line on
-  differs in the hero's `#unit` hash and the 23 scenarios that wait for `IsUnitBlocked(GetLeader())` time out, in the
-  32-bit image without Miles just as on x64: the null audio backend (PL6) is to make both builds the same. The
-  comparison of the x64 runs with those of the 32-bit image without Miles is the x64 proof (docs/notes/x64.md, "The x64
-  goldens").
+- **The harness on x64**: thread contexts through src/platform/win32/thread_context.h (Rip / Rsp), user32's hot patches
+  (an absolute jump and a trampoline for the prologues it knows, harness.cpp HotPatch), the registry hook (advapi32's
+  import slot by name: some exports are wrappers there), ntdll's write guard (the x64 system call stub; the JMP goes
+  to an absolute jump in a page near ntdll), a C++ throw's tables (offsets from the module base).
+- **The data side**: docs/notes/x64.md (formats read or written as bytes, pointers and handles in 32-bit fields; among
+  them the save counts written as 32-bit values, without which a new game came up at night with no Zak).
 
 ### The harness in the image (S23, H40)
 
@@ -1562,8 +1546,9 @@ references, coverage), with ei_harness.dll and the vector recorders its only cod
 - **Its addresses as names**: the comments and function lists name the original functions by address (config/
   functions.csv), the data seam keeps the unnamed data at its addresses, and the harness's digest keeps the AI modes'
   ids as game.exe's table addresses (ExeTableId, harness_digest.cpp: the goldens hash them).
-- **Its recordings**: the function vectors (tests/vectors/data) replayed by ei_vectors, the widescreen references
-  (run_all.py --widescreen), tests/coverage/reach.txt.
+- **Its recordings**: the widescreen references (run_all.py --widescreen), tests/coverage/reach.txt. The function
+  vectors (game.exe's recorded calls, 32-bit payloads) went with the 32-bit build (C70); the tag original-oracle and
+  git history have them.
 - EI_PROFILE=1 samples the image: StandaloneMain calls InstallProfiler before WinMain, and profile_report names the
   image's functions `ours:`.
 - **The user's real mouse is kept out of the game** (tests/verify/harness_input.cpp / .h): the game window's subclass

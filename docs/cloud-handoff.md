@@ -9,7 +9,7 @@ Suites workflow).
 ## What the project is
 
 `README.md` covers it. In short, this is a readable C++ rebuild of Evil Islands' `game.exe` 1.06 that behaves the
-same, not one that matches it byte for byte. The product is `ei-rebuild.exe`, one exe in x86 and x64 builds that is
+same, not one that matches it byte for byte. The product is `ei-rebuild.exe`, one 64-bit exe that is
 dropped into a GOG or Rebirth install. Nothing runs or reads the original `game.exe` any more (H40): the goldens are
 the image's own, and the tag `original-oracle` (b06141b) has the last build that ran it.
 
@@ -47,7 +47,7 @@ Read before changing code:
 - **Trigger:** push to any `claude/**` branch, or run it by hand (Actions > Suites > Run workflow, or the API)
   with `ref` and `suites` = `full` | `quick`.
   - quick: the verify and release builds plus the image suite.
-  - full: also debug, asan, play, x64 and verify-x64, plus the Rebirth and x64 suites.
+  - full: also the Rebirth suite, and on main the debug, asan and play builds.
 - **Reading results:** the run's summary page has each suite's goldens block. A failing build prints its last 40
   log lines in the step log. From a session: `gh run list --workflow suites.yml`, `gh run view <id> --log-failed`,
   or the REST API (`/repos/DoctorGester/ei-rebuild/actions/runs/<id>/jobs`, then `/actions/jobs/<id>/logs`). The
@@ -62,7 +62,6 @@ Read before changing code:
 - **Expected results on main** as of 2026-10-30 (goldens recorded from the image, H40):
   - Image suite: 154 the same, 3 without a golden (the watchdogs).
   - Rebirth suite (`--rebirth-only`): 29 the same.
-  - x64 suite: 154 the same, 3 without a golden.
   - A change that should not alter behaviour keeps every golden the same. An intended change re-records the
     affected goldens and says why in the commit.
 - **Limits:**
@@ -122,7 +121,7 @@ Goal and code:
 - `play.cmd` (Kirill plays with it) must keep working. If you change `build.cmd`'s arguments or outputs, update it.
 
 Platform direction:
-- The x64 build and the platform layer (SDL3, `src/platform`) are the current direction.
+- Every Windows build is x64 (no 32-bit build). The platform layer (SDL3, `src/platform`) is the current direction.
 - Linux builds and runs its checks (LX1, docs/notes/linux.md): the POSIX platform, sokol on OpenGL 4.5, the Linux
   workflow on GitHub's Ubuntu runner. macOS is the macos-port branch (Metal), which keeps only macOS code.
 
@@ -151,13 +150,14 @@ Recently done:
 - PL11a and PL11b merged (files simplified).
 - R39: the menu fog default.
 - The goldens were re-recorded on the re-downloaded GOG data.
-- The release workflow: Actions > Release with a version, which publishes the x86 and x64 exes. v0.1.0 is out.
+- The release workflow: Actions > Release with a version, which publishes the x64 exe. v0.1.0 is out.
 
 Next, in rough order:
 1. **H40** is done: the goldens are the image's own (recorded by the workflow's `record` input from two agreeing
    runs), and the harness, launcher, tools and build have no game.exe side left (no `--no-hooks`, reference cache,
    harness key, `# no original` lines, ei_harness.dll, hook framework, vector recorders, coverage breakpoints or
-   heap jitter). The recorded vectors and their replay stay. The tag `original-oracle` has everything removed.
+   heap jitter). The recorded function vectors and their replay went with the 32-bit build (C70); `tests/unit`
+   keeps the checks that never needed the original. The tag `original-oracle` has everything removed.
 2. **W12** is merged (a32e6b8): one layout for every window. Vanilla image runs play at 960x720, Rebirth's at
    1280x720 with the wide layout; a scenario's `vanilla` / `rebirth` prefix on a window step picks one install.
 3. **C68** is done: Rebirth's bug fixes, the scripting / console additions and three multiplayer patches are the

@@ -20,11 +20,11 @@ history is in git. Each fact lives in one file; others link to it by file name a
 - `rebirth.md`: what the Rebirth edition patches and the patch flags of the rebuild.
 - `platform.md`: the platform layer (src/platform): its rule, the areas moved onto it and those left. `audio.md`: the
   sound (src/audio: our mixer on SDL3) and the movies (src/video: our Bink 1 decoder). `linux.md`: the Linux build.
-- `x64.md`: the data side of a 64-bit build (formats read or written as bytes, pointers and handles in 32-bit fields)
+- `x64.md`: the data side of the 64-bit build (formats read or written as bytes, pointers and handles in 32-bit fields)
   and its rules.
 - `standalone.md`: how the standalone image runs, what the MFC / STLport replacements and the CRT port must keep, the UTF-8 plan, the hook retirement's outcome (not an area note).
 - `harness.md`: running scenarios, the scenario steps, what a harness run does and leaves alone.
-- `standalone-verification.md`: how changes are checked (goldens, function vectors, WideScreen references), what makes runs repeat, the harness's isolation and diagnostic tools.
+- `standalone-verification.md`: how changes are checked (goldens, unit checks, WideScreen references), what makes runs repeat, the harness's isolation and diagnostic tools.
 - `inventory.md` (library / dead code classification), `cleanup-tooling.md` (checks, progress counts, shared forwarder
   headers), `cleanup-engine-base.md` / `cleanup-network.md` / `cleanup-map-objects.md` / `cleanup-units.md` / `cleanup-effects.md` / `cleanup-ui.md` /
   `cleanup-world.md` / `cleanup-figures.md` / `cleanup-ai.md` / `cleanup-script.md` / `cleanup-device.md` (how those classes are declared after cleanup phase 1).

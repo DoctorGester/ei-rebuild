@@ -35,8 +35,8 @@ shim, stub or workaround lands.
   TweenEntry, ScriptAreaPart, AnimationStep, the motion points), packets (net_messages.h, the order blocks,
   NetAddress, LockKey), resource files (map, sector, figure, mmp and res headers, the item and unit database
   records, the zone specs), external structs (D3D / DirectDraw / DirectInput / Miles / Bink, TLVertex), and the
-  types the function vectors copy as bytes or read in game.exe's memory through our header (UnitParams,
-  DamageInfo, IsaacRandom, LogicSettings, CoderState, the path cells). Some saves write a record by a literal
+  types the function vectors copied as bytes until C70 (UnitParams, DamageInfo, IsaacRandom, LogicSettings,
+  CoderState, the path cells). Some saves write a record by a literal
   size (`Read(&alarm, 16)`, `Read(views, 0xC0)`): grep `Read(&x, <number>)` as well as `sizeof` before
   dropping one. A literal-size memset can cover a pad after its member: Object3DClientSpecific's
   `memset(&sphere, 0, 0x38)` cleared the bounds and the 12 pad bytes after them, and zeroed `drawnRect` once the pad
@@ -69,9 +69,8 @@ shim, stub or workaround lands.
   `hash_map<void*, ...>`), so allocation order can change the order in which `MappedResource::FreeAllFiles` frees
   files. Harmless so far, but check before swapping allocators or containers (C14c).
 - `lib::RoundEven` rounds to nearest, ties to even, as the original's FISTP; a C++ cast truncates.
-- The game code is SSE2 (`/arch:SSE2 /fp:precise`, C30e15); the main thread still runs the x87 at 24-bit precision
-  (device_object, as Direct3D set it): MSVC's x87 operations on values returned in ST0, the UCRT's log2 / exp2 / cbrt
-  and Miles / Bink run under it (docs/notes/cleanup-tooling.md, "The control word").
+- The game code is SSE (`/fp:precise`, C30e15) in an x64 build (C70): no x87 maths and no precision control
+  (docs/notes/cleanup-tooling.md, "The control word").
 
 ## Original bugs kept on purpose
 

@@ -136,13 +136,11 @@ puns the forwarders hid are `reinterpret_cast`s at the call, and the harness cha
 (`IsaacRandom::SetSeedHook` / `SetDrawObserver`, `libcrt::SetRandObserver`). The shared headers (`originals_<area>.h`),
 `gen_originals.py`, `check_forwarders.py`, `direct_calls.py`, `RedirectCode` / `CodeLink` and the vector replay's stand-ins went
 with them. What was left called game.exe's own code in its runs (tests/verify's game.exe side, the recorders) and
-went with H40. ei_vectors links the callers without some targets: `tests/vectors/replay_unlinked.cpp` stops each one
-the replay never reaches (`EI_UNLINKED`) or stands in for it. From H30 until H40 nothing of ours ran in game.exe's runs
+went with H40. From H30 until H40 nothing of ours ran in game.exe's runs
 (the harness called game.exe's own heap, rand seed and functions there; the host heap once crashed 104 of the
 original's runs when the harness freed blocks the game allocated), so crt.cpp's heap and rand seed are the image's
 only. From H30b the harness read game.exe's objects there through its own views (tests/verify/exe_objects.h, our
-member names at game.exe's offsets as they were at the split); the views stay for the script vectors' replay
-(tests/vectors/script_original.h).
+member names at game.exe's offsets as they were at the split); the views went with the function vectors (C70).
 
 ## `__asm` and `float_control` (cleanup ticket C12)
 
@@ -185,15 +183,15 @@ framework, game.exe's side) keeps its `__asm` by design.
 
 ### The drawing-only code on SSE2 (C30a)
 
-Since C30e15 every game file and the renderer build with `/arch:SSE2 /fp:precise` (CMakeLists' `add_compile_options`;
-the harness and the vector replays too). Before that the build was split by file (`EI_X87_GAME_SOURCES` on
+Since C30e15 every game file and the renderer build as SSE code with `/fp:precise` (`/arch:SSE2` on 32-bit until
+C70; every build is x64 since, which has no x87 maths). Before that the build was split by file (`EI_X87_GAME_SOURCES` on
 `/arch:IA32`, the rest in the `ei_sse2` library); C30a put the drawing-only code on SSE2 (the interface, particles and
 effects, weather, sky, lightning, the terrain's draw passes, waves and ambience, decals and prints, the old renderer's
 glue, textures and surfaces, the music and the unit sound names), C30e moved the rest batch by batch (below).
 - **One library, whole archive:** the game code is `ei_game`, linked as `$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>` (every
   object kept, static initialisers too). The split needed it for a second reason, gone with the split: an inline
   function kept out of line in an SSE2 and an x87 object is one COMDAT, and the linker takes the first object's copy.
-- No game object loads or resets the x87 control word but device_object (PC24) and render.cpp's `FpuGuard`
+- No game object loads or resets the floating-point control state; render.cpp's `FpuGuard` puts MXCSR's back
   ("The control word" below).
 - **What C30a kept x87 and why** (moved by C30e12, C30e13 and C30e13a; C30e10 moved the figure and link mesh draws): picking reads the drawn view and the objects' screen
   rectangles (renderer_init's matrix stacks, the projected meshes device_mesh / device_bounds / device_shadow, the figure
@@ -363,12 +361,10 @@ SSE2 (C30a2: 30 M random cases, 0 differ). Per file, what breaks the equality an
   Accepted. NaNs: of two NaN
   operands the FPU takes the larger significand (of equal ones the positive), as `Add` .. `Div` do, but a signalling float operand loses to a
   quiet one in the FPU, and a float converted to double is already quiet (nan-bits cases only, never a number).
-- **x87 code in SSE2 objects:** a float returned by a call comes back in ST0 (the x86 calling convention), and the
+- **x87 code in SSE2 objects** (32-bit builds, until C70): a float returned by a call came back in ST0 (the x86 calling convention), and the
   compiler may do the next float operation there (`pc24::Exp(...) - 0.2f` is an FSUB). One such operation on two floats
   gives the SSE form's float at any precision control; a chain (spell_effect_internal.h's `LightRiseScaled`: FDIVR then
   FMUL) relies on the main thread's PC24, as the original does.
-- **ei_vectors** builds its game sources as the game does (SSE2, one executable since C30e15); its replays keep their
-  FLDCW of the recorded word (007F): the x87 operations MSVC leaves on ST0 results round at it.
 - **the game CRT's pow / acos / asin / hypot** (`libcrt::CiPow` ..., crt_maths.cpp, SSE2 since C30e15): the original's
   sequences at the main thread's PC24 through `lib/pc24.h` and exact double-double / integer steps (C30e15 below).
   The host CRT's `std::pow` (player_client) is the UCRT's SSE2 pow, equal to the x87 build's `__CIpow` there.
@@ -733,18 +729,14 @@ core_transform_math, world_units) can see the last-bit cases above.
 
 ### The control word
 
-The image keeps the main thread at 24-bit precision from the device's creation (device_object's
-`__control87_2(_PC_24, _MCW_PC)`, the word 007F Direct3D 7 left in the original) although no game file is x87 code:
-- MSVC's SSE2 code still does x87 arithmetic on a float or double returned on the x87 stack (the x86 calling
-  convention): the release objects hold about 470 such operations (FMUL, FADD, FADDP, FDIVR ...: `pc24::Exp(...) -
-  0.2f`, `LightRiseScaled`'s FDIVR then FMUL, `PlaneHeight`'s `(z0 + z1 + z2) * 1/3`). One operation on two floats
-  gives the float at any precision; a chain or a double operand gives the original's value only at PC24, as the
-  original computed it.
-- The UCRT's `log2`, `exp2` and `cbrt` follow the precision control (sin, cos, pow, atan2, hypot, acos, asin, exp,
-  log, floor, fmod, frexp, ldexp, fma, lround, lrint, atof do not: C30e15's scratch test at 007F and 027F).
-No DLL with x87 code is loaded any more (sound and Bink are our own code). render.cpp's `FpuGuard` puts the word
-back (only when it changed) around the renderer's library calls; the x64 build guards MXCSR the same way. The
-harness's control-word trace (TraceFpu) logs a change.
+The original ran its main thread at 24-bit precision (the word 007F Direct3D 7 left). Until C70 the 32-bit image set
+the same at the device's creation (device_mesh.cpp's `__control87_2(_PC_24, _MCW_PC)`), although no game file was x87
+code: MSVC's 32-bit SSE2 code still did x87 arithmetic on a float or double returned on the x87 stack (about 470
+operations in the release objects: `pc24::Exp(...) - 0.2f`, `LightRiseScaled`'s FDIVR then FMUL, `PlaneHeight`'s
+`(z0 + z1 + z2) * 1/3`), and the UCRT's `log2`, `exp2` and `cbrt` follow the precision control. Every build is x64
+since C70: no x87 arithmetic and no precision control, and SSE float maths gives the float result (the x64 suite
+matched the 32-bit one before the switch). render.cpp's `FpuGuard` (platform::FloatingPointGuard) puts MXCSR's control
+bits back (only when they changed) around the renderer's library calls.
 
 ### Selects on `>=` / `<=` (lib/float_select.h, C30e17)
 

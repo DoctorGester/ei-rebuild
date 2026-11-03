@@ -284,16 +284,8 @@ instantiations were, for reading game.exe (config/library.csv names them):
   the tree and the string: std types, or `lib::HashMap` / `lib::HashMultimap` where the walk order matters
   ("Containers" below). Layout asserts do not survive such a retype; archive formats are element-wise, so saves and
   messages keep their bytes.
-- game.exe's own layouts of these exist only in tests: tests/verify/exe_objects.h's views (`Vector<T>`, `List<T>`,
-  `HashTable`, `StlpList`, `exe::CString`) and the recorders' `Original*` records (record_stats.cpp's
-  `OriginalSkill*`, script_original.h). A recorder declared game.exe's layout itself, never our header with a sizeof
-  stride. Recording again needs the tag original-oracle (`EI_VECTORS=1`, `--no-hooks --vanilla-only` there,
-  `vectors.py merge <runs> --out <scratch>`, `ei_vectors.exe <scratch>`). The path family's raw recording does
-  not replay without `tools/path_vectors.py prune` (its @AIMap records are sampled: searches on maps not kept
-  crash). Replay a recorded script family together with tests/vectors/data/crt (the game CRT's character classes the
-  lexer reads): without that folder ei_vectors loops forever at full CPU. Replay a scratch folder with a timeout.
-  ei_vectors links only some of src/game (CMakeLists.txt's ei_vectors sources): a replayed function that calls a
-  helper defined elsewhere fails to link there; use a local helper.
+- game.exe's own layouts of these were only in tests (tests/verify/exe_objects.h's views and the vector recorders'
+  `Original*` records), which went with the 32-bit build (C70); the tag original-oracle has the recorders.
 - The device's mesh buffers (the original's 007AEDE0-007AEE3C; plain globals of ours): `src/game/device_buffers.h`. src/render reads the clip stack through
   the typed `TransformPipeline::stacks`; render_terrain.cpp once read it at pipeline +0x24 / +0x28 and drew no
   terrain after a layout change (the goldens did not notice, the render_shadows* / render_terrain_seams /
@@ -383,7 +375,7 @@ instantiations were, for reading game.exe (config/library.csv names them):
   entry a loop stops at) is `lib::HashMap<K, V[, lib::TextHash]>` (src/lib/hash_map.h): STLport's order, the prime
   bucket counts (100 asks for 193), a new key at the head of its chain, resize before each insert with the chains
   moved head first (keys that share a new bucket come out reversed), erase giving the next entry in walk order. A
-  std::string key hashes `h = 5 * h + c` over signed chars up to its zero byte. tests/vectors/replay_hash_map.cpp
+  std::string key hashes `h = 5 * h + c` over signed chars up to its zero byte. tests/unit/hash_map.cpp
   checks those cases. lib::HashMap holds (each declaration says what its order feeds; C14zj audit): the world's id
   maps and line lists, the player's objects / timed objects / units, the base manager's objects and spares, the
   archive's loaded objects, the held particles, the fog cells, the .mob reader's records, the deferred sounds, the
