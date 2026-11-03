@@ -139,7 +139,6 @@ ids collide with zone1's). AddMob's name is relative to the maps folder.
 Visible behaviour of the original kept until the user decides (rewrite-guide rule 9; C84 triaged the list, with a
 recommendation per entry). Crashes, undefined behaviour and invisible bookkeeping are fixed, not listed.
 
-- RaiseStrength computes the maximum from the current strength.
 - DamageSlot logs one line per damage type; ApplyHit wears the weapon by the part each damage type the protection
   absorbed.
 - CastAtUnits returns without restarting the countdown when it finds no unit and changes the caller's list; a periodic
@@ -148,6 +147,9 @@ recommendation per entry). Crashes, undefined behaviour and invisible bookkeepin
 - The lever's ApplyKey disables the lever it has just switched.
 
 By design (user 2026-11-03): IsBehind is never true without a player (NPCs never backstab players).
+
+RaiseStrength raises the strength in use with its base before the maxima, so the slots scale to the new maximum (a
+hero at full health stays there; a wounded one keeps the fraction).
 
 Left for C84a (bookkeeping): AddWeapon / AddQuickItem / AddSpell return 1 when the item is already in any slot (1 is
 also slot 1) and AddSpell has no null check; UnitStats::Reset leaves some fields alone; name lookups insert unknown

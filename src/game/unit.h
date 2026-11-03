@@ -146,7 +146,7 @@ public:
     virtual void PlayerChanged(void*) {}
     virtual void RefreshVitals(bool withHitPoints);
     // Either unit may be null.
-    virtual bool TakeHit(DamageInfo* hit, Unit* attacker, Unit* source);
+    virtual void TakeHit(DamageInfo* hit, Unit* attacker, Unit* source);
     virtual bool Heal(float amount);
     virtual void RepackStats() {}
     virtual void UpdateSizeClasses() {}
@@ -559,9 +559,6 @@ struct UnitVitals {
     // Every 15th call mana (unless `inCombat`) and hit points (through the slots) regenerate. Returns 1 when
     // something may have changed.
     bool Regenerate(UnitStats* stats, Unit* unit, char inCombat);
-    // A hit on a map object that is not a creature: each damage type beyond the protection comes off the hit
-    // points, not below -5 times the maximum.
-    void TakeHit(const DamageInfo* hit);
     // Zeroes everything but the first dword.
     void Reset();
     // The values rounded to nearest into `out`.
@@ -657,11 +654,11 @@ struct UnitStats {
     bool RaiseSkill(int skill, int amount, Unit* unit);
     bool RaiseAttribute(int index, int amount, Unit* unit);
     // GiveStrength / GiveDexterity / GiveIntelligence: the base value grows by `amount`, the maxima are recomputed
-    // (each its own way), strength makes the unit 0.2 wider and dexterity 0.2 less high, then Recompute. False when
-    // the unit has no server object.
-    bool RaiseStrength(int amount, Unit* unit);
-    bool RaiseDexterity(int amount, Unit* unit);
-    bool RaiseIntelligence(int amount, Unit* unit);
+    // (each its own way), strength makes the unit 0.2 wider and dexterity 0.2 less high, then Recompute. Nothing
+    // when the unit has no server object.
+    void RaiseStrength(int amount, Unit* unit);
+    void RaiseDexterity(int amount, Unit* unit);
+    void RaiseIntelligence(int amount, Unit* unit);
     float SkillLevelValueCopy(int skill);
 
     // Applies `hit` (from `weapon`'s attack, may be null): UnitStatsFlag Head / Electrical, the
@@ -889,9 +886,6 @@ public:
     bool RunTick() override;
     // Copies the vitals block (0x58 bytes) from `data` and marks the owner's part 0 changed.
     void SetData(const UnitVitals* data);
-    // Applies a hit to the vitals; a dead object loses its effects and gets flags bit 1. Returns 0 when the
-    // vitals take nothing, else 1.
-    virtual bool TakeHit(const DamageInfo* hit);
 
     // The vitals block, the two names and the string array (a count, then each string with its terminator;
     // Load appends to the array).

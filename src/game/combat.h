@@ -226,9 +226,9 @@ public:
     // The hit of a weapon (or natural) attack into `out`. Draws from rand() and the ISAAC generator.
     void BuildAttackHit(DamageInfo* out, int backstab, int location, char calledShot);
     // `source` (may be null) is whose player gets the experience for a kill. The damage applies when the hit
-    // beats the defence, unless the unit's player protects it (returns 1 then); on a miss the victim turns
-    // hostile and remembers the attacker.
-    bool TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) override;
+    // beats the defence, unless the unit's player protects it; on a miss the victim turns hostile and remembers
+    // the attacker.
+    void TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) override;
     void MoveFactorsChanged() override;
     // Part 4 changed; the server companion's hit points and mana set to their maxima.
     void SetStats(const UnitStats* stats);

@@ -9,12 +9,12 @@ MapObjectClientSpecific), `map_object_client_effects.cpp`, `map_object_manager.c
 ## Classes
 
 - `MapObject` (under `Object3D`, under `EngineObject`) is every object on a map; `Unit` derives from it. Its side
-  halves: a companion (`MapObjectServer` on the server: the statistics block, hit points, TakeHit; the client's
+  halves: a companion (`MapObjectServer` on the server: the statistics block, hit points; the client's
   `MapObjectClientSpecific`: looping effect sounds, effect particles, the light, the end sound) and the 3D object's
   side half (`Object3DSpecific`: `Object3DClientSpecific` draws, `Object3DServer` is all stubs; GetScale gives the
   client's scale or 1, 1, 1 on the server).
 - `Unit`'s update runs its controller's, then `MapObject::Update`, which runs the companion's.
-- Flags: 1 dead / destroyed (TakeHit), 2 dirty, 8 (network part 2), 0x10000 invisible, 0x40000 stunned (client,
+- Flags: 1 dead / destroyed, 2 dirty, 8 (network part 2), 0x10000 invisible, 0x40000 stunned (client,
   effect 0x19). A dead object has no effects.
 - `MapObjectManager` ("map_objects") makes objects by class; `PrototypeEquipment`, `GiveDefaults` and the perks
   database ("perks.pdb", units.md) sit beside it.
@@ -79,7 +79,6 @@ recommendation per entry). Crashes, undefined behaviour and invisible bookkeepin
 
 - The client's stench sound tests the record's kind a second time after drawing the random number (always true); the
   timer runs 0x10 .. -1, so the period is 17 ticks.
-- TakeHit always returns 1.
 - A source of an unknown type logs and uses 0x2013.
 
 By design (user 2026-11-03): RecomputeScale adds the net enlarge / shrink level to the strengthen level when enlarge or

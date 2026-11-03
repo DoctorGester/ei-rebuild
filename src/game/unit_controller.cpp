@@ -105,7 +105,7 @@ int UnitController::FiguresLoaded() { return 1; }
 void UnitController::RefreshVitals(bool) {}
 bool UnitController::Heal(float) { return false; }
 
-bool UnitController::TakeHit(DamageInfo*, Unit*, Unit*) { return false; }
+void UnitController::TakeHit(DamageInfo*, Unit*, Unit*) {}
 
 bool UnitController::WeaponAdded(std::uint32_t) { return false; }
 bool UnitController::RemoveWeaponModel(std::uint32_t) { return false; }

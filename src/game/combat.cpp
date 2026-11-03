@@ -486,7 +486,7 @@ void UnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, cha
     out->calledShot = static_cast<std::uint8_t>(calledShot);
 }
 
-bool UnitServer::TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) {
+void UnitServer::TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) {
     WorldServer* world = ServerWorld();
     int dead = unit->IsDead();
     bool hadPlayer = unit->player != nullptr;
@@ -515,8 +515,8 @@ bool UnitServer::TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) {
 
     Player* player = unit->player;
     if (player) {
-        if (PlayerGodMode(player) != 0) return false;
-        if (source && source->player && player != source->player) return false;
+        if (PlayerGodMode(player) != 0) return;
+        if (source && source->player && player != source->player) return;
     }
 
     AttackParams mine;
@@ -550,13 +550,13 @@ bool UnitServer::TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) {
                     const auto* prototype = unit->GetPrototype();
                     if (IsMultiplayerClient()) {
                         world->AwardExperience(nullptr, prototype->experienceValue);
-                        return true;
+                        return;
                     }
                     Player* killer = source->player;
                     world->AwardExperience(killer, prototype->experienceValue);
                 }
             }
-            return true;
+            return;
         }
     }
     if (attacker && attacker->GetClassId() == ClassId::Unit) {
@@ -564,7 +564,6 @@ bool UnitServer::TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) {
         diplomacy->OnAttack(attacker, unit);
     }
     brain.SetSeen(attacker);
-    return false;
 }
 
 void UnitServer::UpdateSizeClasses() {
