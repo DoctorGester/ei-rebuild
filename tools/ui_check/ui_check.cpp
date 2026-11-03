@@ -6,16 +6,16 @@
 // render.cpp's part itself (the frame, its target, SplitFrame, RunCanvasesNow, the commits), and
 // compares every canvas pixel exactly:
 //   gdi     fills, frames, lines (1 and 2 px, horizontal and vertical) and pixels against GDI drawing the
-//           same into a DIB section of each surface format (5:6:5, 5:5:5, 8:8:8); diagonal lines are
-//           reported, not gated (Bresenham's steps, not GDI's).
+//           same into an 8:8:8 DIB section; diagonal lines are reported, not gated (Bresenham's steps, not
+//           GDI's).
 //   glyphs  glyph runs (render_text layouts, underlines, clipping, over a coloured background, the shadow
 //           pass under the text) against the CPU rule, and over black against text::ComposeAgainstBlack.
-//   grey    greying against 005FE440's formulas on the packed pixels.
-//   copy    screen copies of a frame texture against the original's stretch (x * source / size) and packing.
+//   grey    greying against 005FE440's formula.
+//   copy    screen copies of a frame texture against the original's stretch (x * source / size).
 //   picture the save's 5:6:5 picture (ReadRgb565) against the original's stretch ((2 x + 1) * source / (2 size))
-//           and packing; one-pixel reads (ReadPixel) and their top bits (TopBits); a canvas moved to another key with its queued commands
+//           and packing; one-pixel reads (ReadPixel); a canvas moved to another key with its queued commands
 //           (MoveCanvas).
-//   image   pixels written into canvases (clipped, quantised) exactly.
+//   image   pixels written into canvases (clipped) exactly.
 //   frame   canvases blitted in the frame (keyed, stretched, a source part) against the window blit's
 //           rule, and the pass split: drawing into a canvas blitted and not drawn yet draws the frame
 //           first, so the blit shows the canvas as it was.
@@ -41,10 +41,6 @@ namespace text = render::text;
 namespace detail = render::detail;
 namespace gpu = render::gpu;
 using glyph_cases::Differ;
-using glyph_cases::Format;
-using glyph_cases::kFormats;
-using glyph_cases::RefQuantise;
-using glyph_cases::RefTopBits;
 
 namespace {
 
@@ -148,13 +144,14 @@ void Check(bool ok, const std::string& what) {
     std::printf("  FAIL %s\n", what.c_str());
 }
 
-// A canvas read back, each pixel packed in the surface format (empty when it cannot be read).
-std::vector<std::uint32_t> ReadPacked(const void* holder, const render::PixelFormat& f) {
+// A canvas read back as 0x00RRGGBB rows (empty when it cannot be read).
+std::vector<std::uint32_t> ReadCanvas(const void* holder) {
     std::vector<std::uint32_t> pixels;
     if (!ui::ReadPixels(holder, &pixels)) return {};
-    for (std::uint32_t& p : pixels) p = ui::Pack(p, f);
     return pixels;
 }
+
+const int kAnyHolder = 0;   // a canvas's key is any address
 
 // ---- gdi: fills, frames, lines, pixels against GDI ------------------------------------------------------------
 
@@ -163,32 +160,24 @@ struct Dib {
     HBITMAP bitmap = nullptr;
     HGDIOBJ old = nullptr;
     const std::uint8_t* bits = nullptr;
-    int pitch = 0, bitsPerPixel = 0;
-    Dib(int width, int height, const render::PixelFormat& f) {
-        struct {
-            BITMAPINFOHEADER header;
-            DWORD masks[3];
-        } info{};
-        info.header.biSize = sizeof(BITMAPINFOHEADER);
-        info.header.biWidth = width;
-        info.header.biHeight = -height;
-        info.header.biPlanes = 1;
-        info.header.biBitCount = static_cast<WORD>(f.bitsPerPixel);
-        info.header.biCompression = BI_BITFIELDS;
-        info.masks[0] = f.redMask;
-        info.masks[1] = f.greenMask;
-        info.masks[2] = f.blueMask;
+    int pitch = 0;
+    Dib(int width, int height) {   // 8:8:8, the top byte unused
+        BITMAPINFO info{};
+        info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        info.bmiHeader.biWidth = width;
+        info.bmiHeader.biHeight = -height;
+        info.bmiHeader.biPlanes = 1;
+        info.bmiHeader.biBitCount = 32;
+        info.bmiHeader.biCompression = BI_RGB;
         void* memory = nullptr;
-        bitmap = CreateDIBSection(nullptr, reinterpret_cast<BITMAPINFO*>(&info), DIB_RGB_COLORS, &memory, nullptr, 0);
+        bitmap = CreateDIBSection(nullptr, &info, DIB_RGB_COLORS, &memory, nullptr, 0);
         dc = CreateCompatibleDC(nullptr);
         old = SelectObject(dc, bitmap);
         bits = static_cast<const std::uint8_t*>(memory);
-        pitch = (width * f.bitsPerPixel / 8 + 3) & ~3;
-        bitsPerPixel = f.bitsPerPixel;
+        pitch = width * 4;
     }
     std::uint32_t At(int x, int y) const {
         const std::uint8_t* row = bits + static_cast<std::size_t>(y) * static_cast<std::size_t>(pitch);
-        if (bitsPerPixel == 16) return reinterpret_cast<const std::uint16_t*>(row)[x];
         return reinterpret_cast<const std::uint32_t*>(row)[x];
     }
     ~Dib() {
@@ -212,11 +201,11 @@ const char* ShapeName(Shape s) {
 }
 
 // `count` random shapes drawn by GDI and by the canvas: the pixels that differ.
-int CompareWithGdi(const Format& format, Shape shape, int count, unsigned seed, std::string* example) {
+int CompareWithGdi(Shape shape, int count, unsigned seed, std::string* example) {
     const int w = 61, h = 47;
-    const void* holder = &format;   // any address
-    ui::Canvas(holder, w, h, format.format);
-    Dib dib(w, h, format.format);
+    const void* holder = &kAnyHolder;
+    ui::Canvas(holder, w, h);
+    Dib dib(w, h);
     std::mt19937 random(seed);
     auto coord = [&](int size) { return static_cast<int>(random() % static_cast<unsigned>(size + 8)) - 4; };
     auto colour = [&]() { return static_cast<COLORREF>(random() & 0xFFFFFF); };
@@ -270,7 +259,7 @@ int CompareWithGdi(const Format& format, Shape shape, int count, unsigned seed, 
         }
     }
     GdiFlush();
-    const std::vector<std::uint32_t> ours = ReadPacked(holder, format.format);
+    const std::vector<std::uint32_t> ours = ReadCanvas(holder);
     if (ours.empty()) return -1;
     auto canvasAt = [&](int x, int y) { return ours[static_cast<std::size_t>(y) * w + static_cast<std::size_t>(x)]; };
     int differ = 0;
@@ -299,61 +288,49 @@ int CompareWithGdi(const Format& format, Shape shape, int count, unsigned seed, 
 
 void CheckGdi() {
     if (g_verbose) std::printf("gdi:\n");
-    for (const Format& f : kFormats) {
-        for (Shape s : {Shape::Fill, Shape::Frame, Shape::Line1, Shape::Line2, Shape::Pixel}) {
-            // One shape at a time (a difference shows which), and many on one canvas.
-            int single = 0;
-            std::string example;
-            for (unsigned seed = 1; seed <= 60 && single == 0; ++seed) single = CompareWithGdi(f, s, 1, seed * 7919u, &example);
-            int many = single == 0 ? CompareWithGdi(f, s, 300, 12345u, &example) : 0;
-            Check(single == 0 && many == 0,
-                  std::string(f.name) + " " + ShapeName(s) + ": " + std::to_string(single + many) + " pixels differ from GDI" +
-                      (example.empty() ? "" : " (" + example + ")"));
-        }
+    for (Shape s : {Shape::Fill, Shape::Frame, Shape::Line1, Shape::Line2, Shape::Pixel}) {
+        // One shape at a time (a difference shows which), and many on one canvas.
+        int single = 0;
         std::string example;
-        int diagonal = CompareWithGdi(f, Shape::Diagonal, 100, 777u, &example);
-        std::printf("  report %s %s: %d of %d pixels differ from GDI (not gated)\n", f.name, ShapeName(Shape::Diagonal), diagonal, 61 * 47);
+        for (unsigned seed = 1; seed <= 60 && single == 0; ++seed) single = CompareWithGdi(s, 1, seed * 7919u, &example);
+        int many = single == 0 ? CompareWithGdi(s, 300, 12345u, &example) : 0;
+        Check(single == 0 && many == 0,
+              std::string(ShapeName(s)) + ": " + std::to_string(single + many) + " pixels differ from GDI" +
+                  (example.empty() ? "" : " (" + example + ")"));
     }
+    std::string example;
+    int diagonal = CompareWithGdi(Shape::Diagonal, 100, 777u, &example);
+    std::printf("  report %s: %d of %d pixels differ from GDI (not gated)\n", ShapeName(Shape::Diagonal), diagonal, 61 * 47);
     Commit();
 }
 
 // ---- grey: 005FE440 -------------------------------------------------------------------------------------------
 
-std::uint32_t GreyPacked(std::uint32_t pixel, const render::PixelFormat& f) {
-    if (f.bitsPerPixel == 16 && f.greenMask == 0x7E0) {
-        std::uint32_t grey = (((pixel >> 4) & 0x7E) + ((pixel >> 10) & 0x3E) + (pixel & 0x1F)) >> 4;
-        return ((grey << 5 | grey) << 6) | grey;
-    }
-    if (f.bitsPerPixel == 16) {
-        std::uint32_t grey = (((pixel >> 3) & 0x7C) + ((pixel >> 9) & 0x3E) + (pixel & 0x1F)) >> 4;
-        return ((grey << 5 | grey) << 5) | grey;
-    }
+std::uint32_t GreyOf(std::uint32_t pixel) {
     std::uint32_t grey = (((pixel >> 6) & 0x3FC) + ((pixel >> 15) & 0x1FE) + (pixel & 0xFF)) >> 4;
     return ((grey << 8 | grey) << 8) | grey;
 }
 
 void CheckGrey() {
     if (g_verbose) std::printf("grey:\n");
-    for (const Format& f : kFormats) {
-        const int w = 70, h = 50;
-        const void* holder = &f.format;
-        ui::Canvas(holder, w, h, f.format);
-        std::mt19937 random(99);
-        for (int i = 0; i < 80; ++i) {
-            int x = static_cast<int>(random() % w), y = static_cast<int>(random() % h);
-            ui::Fill(holder, Rect{x, y, x + 1 + static_cast<int>(random() % 20), y + 1 + static_cast<int>(random() % 15)},
-                     static_cast<COLORREF>(random() & 0xFFFFFF));
-        }
-        const std::vector<std::uint32_t> before = ReadPacked(holder, f.format);
-        std::vector<std::uint32_t> expected;
-        for (std::uint32_t pixel : before) expected.push_back(GreyPacked(pixel, f.format));
-        ui::Greyscale(holder);
-        const std::vector<std::uint32_t> after = ReadPacked(holder, f.format);
-        int differ = 0;
-        for (std::size_t i = 0; i < after.size() && i < expected.size(); ++i) differ += after[i] != expected[i];
-        Check(!before.empty() && after.size() == before.size() && differ == 0, std::string(f.name) + " greyscale: " + std::to_string(differ) + " pixels differ from 005FE440's");
-        ui::DropCanvas(holder);
+    const int w = 70, h = 50;
+    const void* holder = &kAnyHolder;
+    ui::Canvas(holder, w, h);
+    std::mt19937 random(99);
+    for (int i = 0; i < 80; ++i) {
+        int x = static_cast<int>(random() % w), y = static_cast<int>(random() % h);
+        ui::Fill(holder, Rect{x, y, x + 1 + static_cast<int>(random() % 20), y + 1 + static_cast<int>(random() % 15)},
+                 static_cast<COLORREF>(random() & 0xFFFFFF));
     }
+    const std::vector<std::uint32_t> before = ReadCanvas(holder);
+    std::vector<std::uint32_t> expected;
+    for (std::uint32_t pixel : before) expected.push_back(GreyOf(pixel));
+    ui::Greyscale(holder);
+    const std::vector<std::uint32_t> after = ReadCanvas(holder);
+    int differ = 0;
+    for (std::size_t i = 0; i < after.size() && i < expected.size(); ++i) differ += after[i] != expected[i];
+    Check(!before.empty() && after.size() == before.size() && differ == 0, std::string("greyscale: ") + std::to_string(differ) + " pixels differ from 005FE440's");
+    ui::DropCanvas(holder);
     Commit();
 }
 
@@ -361,29 +338,27 @@ void CheckGrey() {
 
 void CheckImage() {
     if (g_verbose) std::printf("image:\n");
-    for (const Format& f : kFormats) {
-        const int w = 37, h = 29;
-        const void* holder = &f.name;
-        ui::Canvas(holder, w, h, f.format);
-        ui::Fill(holder, Rect{0, 0, w, h}, RGB(30, 60, 90));
-        // A picture larger than the canvas, placed partly outside it: only the part inside is written.
-        const int pw = 30, ph = 20;
-        std::mt19937 random(7);
-        std::vector<std::uint32_t> picture(static_cast<std::size_t>(pw) * ph);
-        for (std::uint32_t& p : picture) p = random() & 0xFFFFFF;
-        const Rect at{20, -5, 20 + pw, -5 + ph};
-        ui::Image(holder, at, picture.data(), pw);
-        std::vector<std::uint32_t> expected(static_cast<std::size_t>(w) * h, RefQuantise(0x1E3C5A, f.format));
-        for (int y = std::max(0, at.top); y < std::min(h, at.bottom); ++y)
-            for (int x = std::max(0, at.left); x < std::min(w, at.right); ++x)
-                expected[static_cast<std::size_t>(y) * w + static_cast<std::size_t>(x)] =
-                    RefQuantise(picture[static_cast<std::size_t>(y - at.top) * pw + static_cast<std::size_t>(x - at.left)], f.format);
-        std::vector<std::uint32_t> got;
-        std::string example;
-        int differ = ui::ReadPixels(holder, &got) ? Differ(expected, got, w, &example) : -1;
-        Check(differ == 0, std::string(f.name) + " image, clipped: " + std::to_string(differ) + " pixels differ" + (example.empty() ? "" : " (" + example + ")"));
-        ui::DropCanvas(holder);
-    }
+    const int w = 37, h = 29;
+    const void* holder = &kAnyHolder;
+    ui::Canvas(holder, w, h);
+    ui::Fill(holder, Rect{0, 0, w, h}, RGB(30, 60, 90));
+    // A picture larger than the canvas, placed partly outside it: only the part inside is written.
+    const int pw = 30, ph = 20;
+    std::mt19937 random(7);
+    std::vector<std::uint32_t> picture(static_cast<std::size_t>(pw) * ph);
+    for (std::uint32_t& p : picture) p = random() & 0xFFFFFF;
+    const Rect at{20, -5, 20 + pw, -5 + ph};
+    ui::Image(holder, at, picture.data(), pw);
+    std::vector<std::uint32_t> expected(static_cast<std::size_t>(w) * h, 0x1E3C5A);
+    for (int y = std::max(0, at.top); y < std::min(h, at.bottom); ++y)
+        for (int x = std::max(0, at.left); x < std::min(w, at.right); ++x)
+            expected[static_cast<std::size_t>(y) * w + static_cast<std::size_t>(x)] =
+                picture[static_cast<std::size_t>(y - at.top) * pw + static_cast<std::size_t>(x - at.left)];
+    std::vector<std::uint32_t> got;
+    std::string example;
+    int differ = ui::ReadPixels(holder, &got) ? Differ(expected, got, w, &example) : -1;
+    Check(differ == 0, std::string("image, clipped: ") + std::to_string(differ) + " pixels differ" + (example.empty() ? "" : " (" + example + ")"));
+    ui::DropCanvas(holder);
     Commit();
 }
 
@@ -410,31 +385,28 @@ void CheckCopy() {
         int width, height;
     };
     const Case cases[] = {{{0, 0, 200, 150}, 200, 150}, {{10, 20, 110, 95}, 256, 192}, {{150, 100, 260, 190}, 64, 48}, {{-20, -10, 37, 41}, 33, 77}};
-    for (const Format& f : kFormats) {
-        for (const Case& c : cases) {
-            const void* holder = &c;
-            ui::Canvas(holder, c.width, c.height, f.format);
-            ui::CopyFrame(holder, c.source);
-            std::vector<std::uint32_t> pixels;
-            const bool got = ui::ReadPixels(holder, &pixels);
-            Rect r{std::max(c.source.left, 0), std::max(c.source.top, 0), std::min(c.source.right, g_frameWidth), std::min(c.source.bottom, g_frameHeight)};
-            int sw = r.right - r.left, sh = r.bottom - r.top, differ = 0;
-            for (int y = 0; y < c.height && got; ++y)
-                for (int x = 0; x < c.width; ++x) {
-                    int sx = r.left + x * sw / c.width, sy = r.top + y * sh / c.height;
-                    const std::uint8_t* p = &g_frameRgba[(static_cast<std::size_t>(sy) * g_frameWidth + static_cast<std::size_t>(sx)) * 4];
-                    std::uint32_t rgb = (static_cast<std::uint32_t>(p[0]) << 16) | (static_cast<std::uint32_t>(p[1]) << 8) | p[2];
-                    differ += ui::Pack(pixels[static_cast<std::size_t>(y) * c.width + static_cast<std::size_t>(x)], f.format) !=
-                              ui::Pack(rgb, f.format);
-                }
-            Check(got && differ == 0, std::string(f.name) + " copy of (" + std::to_string(c.source.left) + ", " + std::to_string(c.source.top) + ")-(" +
-                                          std::to_string(c.source.right) + ", " + std::to_string(c.source.bottom) + ") into " + std::to_string(c.width) +
-                                          "x" + std::to_string(c.height) + ": " + std::to_string(differ) + " pixels differ");
-            ui::DropCanvas(holder);
-        }
+    for (const Case& c : cases) {
+        const void* holder = &c;
+        ui::Canvas(holder, c.width, c.height);
+        ui::CopyFrame(holder, c.source);
+        std::vector<std::uint32_t> pixels;
+        const bool got = ui::ReadPixels(holder, &pixels);
+        Rect r{std::max(c.source.left, 0), std::max(c.source.top, 0), std::min(c.source.right, g_frameWidth), std::min(c.source.bottom, g_frameHeight)};
+        int sw = r.right - r.left, sh = r.bottom - r.top, differ = 0;
+        for (int y = 0; y < c.height && got; ++y)
+            for (int x = 0; x < c.width; ++x) {
+                int sx = r.left + x * sw / c.width, sy = r.top + y * sh / c.height;
+                const std::uint8_t* p = &g_frameRgba[(static_cast<std::size_t>(sy) * g_frameWidth + static_cast<std::size_t>(sx)) * 4];
+                std::uint32_t rgb = (static_cast<std::uint32_t>(p[0]) << 16) | (static_cast<std::uint32_t>(p[1]) << 8) | p[2];
+                differ += pixels[static_cast<std::size_t>(y) * c.width + static_cast<std::size_t>(x)] != rgb;
+            }
+        Check(got && differ == 0, std::string("copy of (") + std::to_string(c.source.left) + ", " + std::to_string(c.source.top) + ")-(" +
+                                      std::to_string(c.source.right) + ", " + std::to_string(c.source.bottom) + ") into " + std::to_string(c.width) +
+                                      "x" + std::to_string(c.height) + ": " + std::to_string(differ) + " pixels differ");
+        ui::DropCanvas(holder);
     }
     // CopyFrame draws the frame so far first (SplitFrame).
-    Check(g_splits == 12, "every copy drew the frame so far first: " + std::to_string(g_splits) + " splits for 12 copies");
+    Check(g_splits == 4, "every copy drew the frame so far first: " + std::to_string(g_splits) + " splits for 4 copies");
     Commit();
 }
 
@@ -446,44 +418,41 @@ void CheckPicture() {
         int canvasWidth, canvasHeight, width, height;
     };
     const Case cases[] = {{800, 600, 256, 192}, {1920, 1080, 256, 192}, {37, 29, 256, 192}, {200, 150, 64, 48}};
-    for (const Format& f : kFormats) {
-        for (const Case& c : cases) {
-            const void* holder = &c;
-            ui::Canvas(holder, c.canvasWidth, c.canvasHeight, f.format);
-            std::mt19937 random(99);
-            std::vector<std::uint32_t> picture(static_cast<std::size_t>(c.canvasWidth) * c.canvasHeight);
-            for (std::uint32_t& px : picture) px = random() & 0xFFFFFF;
-            ui::Image(holder, Rect{0, 0, c.canvasWidth, c.canvasHeight}, picture.data(), c.canvasWidth);
-            std::vector<std::uint32_t> held;
-            std::vector<std::uint16_t> got(static_cast<std::size_t>(c.width) * c.height, 0xFFFF);
-            bool read = ui::ReadPixels(holder, &held) && ui::ReadRgb565(holder, c.width, c.height, got.data());
-            int differ = read ? 0 : -1;
-            for (int y = 0; y < c.height && read; ++y)
-                for (int x = 0; x < c.width; ++x) {
-                    int sx = (2 * x + 1) * c.canvasWidth / (2 * c.width), sy = (2 * y + 1) * c.canvasHeight / (2 * c.height);
-                    std::uint32_t rgb = held[static_cast<std::size_t>(sy) * c.canvasWidth + static_cast<std::size_t>(sx)];
-                    std::uint32_t packed = ((rgb >> 8) & 0xF800) | ((rgb >> 5) & 0x7E0) | ((rgb >> 3) & 0x1F);
-                    differ += got[static_cast<std::size_t>(y) * c.width + static_cast<std::size_t>(x)] != packed;
-                }
-            Check(differ == 0, std::string(f.name) + " 5:6:5 picture of a " + std::to_string(c.canvasWidth) + "x" + std::to_string(c.canvasHeight) +
-                                   " canvas at " + std::to_string(c.width) + "x" + std::to_string(c.height) + ": " + std::to_string(differ) + " pixels differ");
-            int wrong = read ? 0 : -1;
-            const int points[][2] = {{0, 0}, {c.canvasWidth - 1, c.canvasHeight - 1}, {c.canvasWidth / 3, c.canvasHeight / 2}};
-            for (const auto& pt : points) {
-                std::uint32_t one = 0;
-                wrong += !read || !ui::ReadPixel(holder, pt[0], pt[1], &one) ||
-                         one != held[static_cast<std::size_t>(pt[1]) * c.canvasWidth + static_cast<std::size_t>(pt[0])] ||
-                         ui::TopBits(one, f.format) != RefTopBits(one, f.format);
+    for (const Case& c : cases) {
+        const void* holder = &c;
+        ui::Canvas(holder, c.canvasWidth, c.canvasHeight);
+        std::mt19937 random(99);
+        std::vector<std::uint32_t> picture(static_cast<std::size_t>(c.canvasWidth) * c.canvasHeight);
+        for (std::uint32_t& px : picture) px = random() & 0xFFFFFF;
+        ui::Image(holder, Rect{0, 0, c.canvasWidth, c.canvasHeight}, picture.data(), c.canvasWidth);
+        std::vector<std::uint32_t> held;
+        std::vector<std::uint16_t> got(static_cast<std::size_t>(c.width) * c.height, 0xFFFF);
+        bool read = ui::ReadPixels(holder, &held) && ui::ReadRgb565(holder, c.width, c.height, got.data());
+        int differ = read ? 0 : -1;
+        for (int y = 0; y < c.height && read; ++y)
+            for (int x = 0; x < c.width; ++x) {
+                int sx = (2 * x + 1) * c.canvasWidth / (2 * c.width), sy = (2 * y + 1) * c.canvasHeight / (2 * c.height);
+                std::uint32_t rgb = held[static_cast<std::size_t>(sy) * c.canvasWidth + static_cast<std::size_t>(sx)];
+                std::uint32_t packed = ((rgb >> 8) & 0xF800) | ((rgb >> 5) & 0x7E0) | ((rgb >> 3) & 0x1F);
+                differ += got[static_cast<std::size_t>(y) * c.width + static_cast<std::size_t>(x)] != packed;
             }
-            std::uint32_t outside = 0;
-            Check(wrong == 0 && !ui::ReadPixel(holder, c.canvasWidth, 0, &outside),
-                  std::string(f.name) + " one-pixel reads of the " + std::to_string(c.canvasWidth) + "x" + std::to_string(c.canvasHeight) + " canvas");
-            ui::DropCanvas(holder);
+        Check(differ == 0, std::string("5:6:5 picture of a ") + std::to_string(c.canvasWidth) + "x" + std::to_string(c.canvasHeight) +
+                               " canvas at " + std::to_string(c.width) + "x" + std::to_string(c.height) + ": " + std::to_string(differ) + " pixels differ");
+        int wrong = read ? 0 : -1;
+        const int points[][2] = {{0, 0}, {c.canvasWidth - 1, c.canvasHeight - 1}, {c.canvasWidth / 3, c.canvasHeight / 2}};
+        for (const auto& pt : points) {
+            std::uint32_t one = 0;
+            wrong += !read || !ui::ReadPixel(holder, pt[0], pt[1], &one) ||
+                     one != held[static_cast<std::size_t>(pt[1]) * c.canvasWidth + static_cast<std::size_t>(pt[0])];
         }
+        std::uint32_t outside = 0;
+        Check(wrong == 0 && !ui::ReadPixel(holder, c.canvasWidth, 0, &outside),
+              std::string("one-pixel reads of the ") + std::to_string(c.canvasWidth) + "x" + std::to_string(c.canvasHeight) + " canvas");
+        ui::DropCanvas(holder);
     }
     // A canvas moved with a fill still queued: the fill lands on the canvas under its new key.
     int from = 0, to = 0;
-    ui::Canvas(&from, 16, 8, kFormats[2].format);
+    ui::Canvas(&from, 16, 8);
     ui::Fill(&from, Rect{0, 0, 16, 8}, RGB(10, 20, 30));
     ui::MoveCanvas(&from, &to);
     ui::Fill(&to, Rect{0, 0, 8, 8}, RGB(200, 100, 50));
@@ -505,41 +474,39 @@ void CheckResize() {
         int width, height, newWidth, newHeight;
     };
     const Case cases[] = {{80, 60, 128, 72}, {128, 72, 100, 80}, {37, 29, 74, 58}, {200, 150, 50, 75}};
-    for (const Format& f : kFormats) {
-        for (const Case& c : cases) {
-            const void* holder = &c;
-            ui::Canvas(holder, c.width, c.height, f.format);
-            std::mt19937 random(11);
-            std::vector<std::uint32_t> picture(static_cast<std::size_t>(c.width) * c.height);
-            for (std::uint32_t& px : picture) px = random() & 0xFFFFFF;
-            ui::Image(holder, Rect{0, 0, c.width, c.height}, picture.data(), c.width);
-            ui::Fill(holder, Rect{0, 0, c.width / 2, c.height / 2}, RGB(10, 200, 30));
-            std::vector<std::uint32_t> before;
-            const bool readBefore = ui::ReadPixels(holder, &before);
-            // Queued when the canvas is resized: drawn at the old size first.
-            ui::Fill(holder, Rect{c.width / 2, 0, c.width, c.height}, RGB(250, 40, 90));
-            for (int y = 0; y < c.height && readBefore; ++y)
-                for (int x = c.width / 2; x < c.width; ++x)
-                    before[static_cast<std::size_t>(y) * c.width + static_cast<std::size_t>(x)] = RefQuantise(0xFA285A, f.format);
-            ui::Resize(holder, c.newWidth, c.newHeight);
-            std::vector<std::uint32_t> after;
-            int width = 0, height = 0;
-            const bool read = readBefore && ui::ReadPixels(holder, &after, &width, &height) && width == c.newWidth && height == c.newHeight;
-            int differ = read ? 0 : -1;
-            for (int y = 0; y < c.newHeight && read; ++y)
-                for (int x = 0; x < c.newWidth; ++x) {
-                    const int sx = x * c.width / c.newWidth, sy = y * c.height / c.newHeight;
-                    differ += after[static_cast<std::size_t>(y) * c.newWidth + static_cast<std::size_t>(x)] !=
-                              before[static_cast<std::size_t>(sy) * c.width + static_cast<std::size_t>(sx)];
-                }
-            ui::Fill(holder, Rect{c.newWidth - 1, c.newHeight - 1, c.newWidth, c.newHeight}, RGB(255, 255, 255));
-            std::uint32_t corner = 0;
-            const bool filled = ui::ReadPixel(holder, c.newWidth - 1, c.newHeight - 1, &corner) && corner == 0xFFFFFF;
-            Check(differ == 0 && filled, std::string(f.name) + " " + std::to_string(c.width) + "x" + std::to_string(c.height) + " canvas resized to " +
-                                             std::to_string(c.newWidth) + "x" + std::to_string(c.newHeight) + ": " + std::to_string(differ) +
-                                             " pixels differ" + (filled ? "" : ", the fill at the new size missing"));
-            ui::DropCanvas(holder);
-        }
+    for (const Case& c : cases) {
+        const void* holder = &c;
+        ui::Canvas(holder, c.width, c.height);
+        std::mt19937 random(11);
+        std::vector<std::uint32_t> picture(static_cast<std::size_t>(c.width) * c.height);
+        for (std::uint32_t& px : picture) px = random() & 0xFFFFFF;
+        ui::Image(holder, Rect{0, 0, c.width, c.height}, picture.data(), c.width);
+        ui::Fill(holder, Rect{0, 0, c.width / 2, c.height / 2}, RGB(10, 200, 30));
+        std::vector<std::uint32_t> before;
+        const bool readBefore = ui::ReadPixels(holder, &before);
+        // Queued when the canvas is resized: drawn at the old size first.
+        ui::Fill(holder, Rect{c.width / 2, 0, c.width, c.height}, RGB(250, 40, 90));
+        for (int y = 0; y < c.height && readBefore; ++y)
+            for (int x = c.width / 2; x < c.width; ++x)
+                before[static_cast<std::size_t>(y) * c.width + static_cast<std::size_t>(x)] = 0xFA285A;
+        ui::Resize(holder, c.newWidth, c.newHeight);
+        std::vector<std::uint32_t> after;
+        int width = 0, height = 0;
+        const bool read = readBefore && ui::ReadPixels(holder, &after, &width, &height) && width == c.newWidth && height == c.newHeight;
+        int differ = read ? 0 : -1;
+        for (int y = 0; y < c.newHeight && read; ++y)
+            for (int x = 0; x < c.newWidth; ++x) {
+                const int sx = x * c.width / c.newWidth, sy = y * c.height / c.newHeight;
+                differ += after[static_cast<std::size_t>(y) * c.newWidth + static_cast<std::size_t>(x)] !=
+                          before[static_cast<std::size_t>(sy) * c.width + static_cast<std::size_t>(sx)];
+            }
+        ui::Fill(holder, Rect{c.newWidth - 1, c.newHeight - 1, c.newWidth, c.newHeight}, RGB(255, 255, 255));
+        std::uint32_t corner = 0;
+        const bool filled = ui::ReadPixel(holder, c.newWidth - 1, c.newHeight - 1, &corner) && corner == 0xFFFFFF;
+        Check(differ == 0 && filled, std::to_string(c.width) + "x" + std::to_string(c.height) + " canvas resized to " +
+                                         std::to_string(c.newWidth) + "x" + std::to_string(c.newHeight) + ": " + std::to_string(differ) +
+                                         " pixels differ" + (filled ? "" : ", the fill at the new size missing"));
+        ui::DropCanvas(holder);
     }
     Commit();
 }
@@ -586,12 +553,11 @@ void CheckFrame() {
     g_targetDepth = gpu::MakeTexture({g_targetWidth, g_targetHeight, 1, 1, detail::kDepthFormat, gpu::kDepthTarget, "ui-check-depth"});
 
     std::vector<std::uint32_t> expected(static_cast<std::size_t>(g_targetWidth) * g_targetHeight, kTargetClearRgb);
-    const render::PixelFormat f565 = kFormats[0].format;
     int a = 0, b = 0;
     const void* first = &a;
     const void* second = &b;
-    // A 5:6:5 canvas: black (the key) with a red block and a blue frame.
-    ui::Canvas(first, 32, 24, f565);
+    // A canvas: black (the key) with a red block and a blue frame.
+    ui::Canvas(first, 32, 24);
     ui::Fill(first, Rect{4, 4, 20, 16}, RGB(250, 10, 10));
     ui::FrameRect(first, Rect{0, 0, 32, 24}, RGB(10, 10, 250));
     std::vector<std::uint32_t> firstPixels;
@@ -611,15 +577,14 @@ void CheckFrame() {
     Check(g_splits == splitsBefore + 1, "drawing into a canvas blitted in the frame splits the frame once");
     ui::Fill(first, Rect{0, 0, 8, 8}, RGB(0, 0, 0));
     Check(g_splits == splitsBefore + 1, "and only once until it is blitted again");
-    // Drawn again after the change, keyed (the key a 5:6:5 pixel: black), stretched 1:2.
+    // Drawn again after the change, keyed (the key black), stretched 1:2.
     std::vector<std::uint32_t> changed;
     Check(ui::ReadPixels(first, &changed), "first canvas read again");
     ui::DrawCanvas(first, Rect{10, 40, 74, 88}, nullptr, true, 0);
     RefBlit(expected, changed, 32, 24, Rect{10, 40, 74, 88}, Rect{0, 0, 32, 24}, true, 0);
     // A second canvas made and drawn in the same frame, before its blit (hoisted, no split), keyed on
     // its fill colour (punched out).
-    const render::PixelFormat f888 = kFormats[2].format;
-    ui::Canvas(second, 40, 30, f888);
+    ui::Canvas(second, 40, 30);
     ui::Fill(second, Rect{0, 0, 40, 30}, RGB(1, 2, 3));
     ui::Fill(second, Rect{10, 10, 30, 20}, RGB(200, 200, 200));
     std::vector<std::uint32_t> secondPixels(40 * 30, 0x010203);
@@ -642,7 +607,7 @@ void CheckFrame() {
     Check(!ui::HasCanvas(first) && !ui::HasCanvas(second), "dropped canvases are gone");
     // A canvas dropped while its blit is not drawn yet (SwapContents putting away a backdrop the frame blitted):
     // the frame so far is drawn first, so the blit shows it.
-    ui::Canvas(first, 16, 16, f888);
+    ui::Canvas(first, 16, 16);
     ui::Fill(first, Rect{0, 0, 16, 16}, RGB(30, 60, 90));
     ui::DrawCanvas(first, Rect{120, 96, 136, 112}, nullptr, false, 0);
     RefBlit(expected, std::vector<std::uint32_t>(16 * 16, 0x1E3C5A), 16, 16, Rect{120, 96, 136, 112}, Rect{0, 0, 16, 16}, false, 0);

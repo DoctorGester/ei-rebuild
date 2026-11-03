@@ -13,6 +13,6 @@ float4 ps_main(float4 pos : SV_Position) : SV_Target0 {
     if (cover == 0u) discard;
     uint3 under = Bytes(tex1.Load(p).rgb);
     uint3 text = uint3(ui.colour.rgb);
-    return FromBytes(Quantise((text * cover + under * (255u - cover) + 127u) / 255u));
+    return FromBytes((text * cover + under * (255u - cover) + 127u) / 255u);
 }
 #endif
