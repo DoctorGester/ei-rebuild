@@ -80,7 +80,7 @@ float Scaled(float value, float scale) {
 }
 
 float FogStart(float hour) {
-    const float day = options::g_options.fogDayStartDistance, night = options::g_options.fogNightStartDistance;
+    const float day = options::kFogDayStartDistance, night = options::kFogNightStartDistance;
     float fog;
     if (hour >= kDayStart && hour <= kDayEnd) fog = day;
     else if (hour < kNightStart && hour > kDawnStart) {
@@ -128,7 +128,7 @@ int WorldClient::UpdateLighting() {
     if (cave == 1) {
         const float hour = now;
         if (g_lastLitHour > hour) g_lastLitHour = -1.0f;
-        pipeline->SetDepthRange(options::g_options.fogDayStartDistance, options::g_options.farClipDistance);
+        pipeline->SetDepthRange(options::kFogDayStartDistance, options::g_options.farClipDistance);
         const LightColour sun = sunlight[0];
         frameSun.r = sun.r;
         frameSun.g = sun.g;

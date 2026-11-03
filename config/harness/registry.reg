@@ -81,12 +81,9 @@ Windows Registry Editor Version 5.00
 "CAMERALIMITDISTANCETOCARRIER"=hex:00,00,40,40
 
 [HKEY_CURRENT_USER\Software\Nival Interactive\EvilIslands\Game Specific Settings]
-"DefaultWindForce"=hex:cd,cc,cc,3e
-"DefaultTimeScale"=dword:0000003c
 "UseSWCursors"=dword:00000000
 "SelectionType"=dword:00000001
 "CornerSize"=hex:00,00,00,3f
-"DrawVisibleOnly"=dword:00000001
 "DrawPath"=dword:00000001
 "DrawFlyingHP"=dword:00000001
 "ShowTutorial"=dword:00000000
@@ -97,26 +94,10 @@ Windows Registry Editor Version 5.00
 "CD2 Label"="EICD2"
 "CD3 Label"="EICD3"
 "Font CharSet"="english"
-"Keyboard Layout"=dword:00000409
-"ObjectsLightingCoeff"=hex:00,00,00,40
-"Hero Light R"=dword:000000d8
-"Hero Light G"=dword:000000d8
-"Hero Light B"=dword:00000074
-"Hero Light Radius"=dword:00000005
-"Quest Light R"=dword:00000078
-"Quest Light G"=dword:00000048
-"Quest Light B"=dword:00000078
-"Quest Light Radius"=dword:00000005
 "Difficulty Level"=dword:00000000
-"DefaultMapName"="Zone1.mpr"
-"DefaultStreamingSound"="melody.mp3"
-"FogNightStartDistance"=hex:00,00,48,42
-"FogDayStartDistance"=hex:00,00,b4,42
 
 [HKEY_CURRENT_USER\Software\Nival Interactive\EvilIslands\General Settings]
-"DrawingTarget"=dword:00000000
 "VideoResolution"="3840x2160"
-"VideoColorDepthInBits"=dword:00000020
 "VideoZBufferDepthInBits"=dword:00000010
 "VideoRefreshRate"=dword:00000000
 "FullScreen"=dword:00000001
@@ -128,17 +109,12 @@ Windows Registry Editor Version 5.00
 "AudioSpeech"=dword:00000019
 "Antialiasing"=dword:00000000
 "Dithering"=dword:00000000
-"Specular"=dword:00000000
-"TextureQuality"=dword:00000000
-"Mipmapping"=dword:00000001
-"Filtering"=dword:00000002
 "PerspectiveCorrection"=dword:00000001
 "ShowParticles"=dword:00000001
 "FPSIndependentCursor"=dword:00000000
 "AutomaticQuantization"=dword:00000000
 "MovieCapturingFPS"=dword:0000000f
 "Brightness"=hex:00,00,00,00
-"Contrast"=hex:00,00,00,00
 "Gamma"=hex:00,00,00,00
 "Reverse Stereo"=dword:00000000
 
@@ -152,14 +128,7 @@ Windows Registry Editor Version 5.00
 "FIRSTSTART"=dword:00000000
 
 [HKEY_CURRENT_USER\Software\Nival Interactive\EvilIslands\Shadow Settings]
-"ShadowQuality"=dword:00000002
-"HeroShadow"=dword:00000001
-"UnitShadow"=dword:00000001
-"BuildingShadow"=dword:00000001
-"FloraShadow"=dword:00000000
-"OtherShadow"=dword:00000000
-"LightingFreq"=dword:00002710
-"FloraSpecialLight"=dword:00000000
+"Shadows"=dword:00000001
 
 [HKEY_CURRENT_USER\Software\Nival Interactive\EvilIslands\Statistics Output Settings]
 "CreateOutputInfo"=dword:00000000
@@ -169,15 +138,7 @@ Windows Registry Editor Version 5.00
 "LOD1"=hex:00,00,b4,42
 "LOD2"=hex:00,00,02,43
 "BorderFogDistance"=hex:00,00,80,41
-"EnableWaterWaves"=dword:00000000
 "EnableDynamicLights"=dword:00000001
-"EnableSelfShadowing"=dword:00000000
-"LightingFreq"=dword:000003e8
-"ShadowingFreq"=dword:0000ea60
-"EnableFootprints"=dword:00000001
-"EnableBloodprints"=dword:00000001
-"EnableFireprints"=dword:00000001
-"EnableBloodprintsRelight"=dword:00000000
 
 
 [HKEY_CURRENT_USER\Software\Gipat.Ru]
@@ -258,31 +219,14 @@ Windows Registry Editor Version 5.00
 [HKEY_CURRENT_USER\Software\Gipat.Ru\EI_Starter\EvilIslands\Game Specific Settings]
 "Autosave"=dword:00000001
 "SHOWTUTORIAL"=dword:00000000
-"QUEST LIGHT RADIUS"=dword:00000005
-"HERO LIGHT RADIUS"=dword:00000005
 "CD2 LABEL"="EICD2"
-"DEFAULTSTREAMINGSOUND"="melody.mp3"
-"FOGNIGHTSTARTDISTANCE"=hex:00,00,48,42
 "CD1 LABEL"="EICD1"
 "CD3 LABEL"="EICD3"
 "CORNERSIZE"=hex:00,00,00,3f
-"DEFAULTMAPNAME"="Zone1.mpr"
-"DEFAULTTIMESCALE"=dword:0000003c
-"DEFAULTWINDFORCE"=hex:cd,cc,cc,3e
 "DRAWFLYINGHP"=dword:00000001
 "DRAWPATH"=dword:00000001
-"DRAWVISIBLEONLY"=dword:00000001
 "Difficulty Level"=dword:00000000
-"FOGDAYSTARTDISTANCE"=hex:00,00,b4,42
 "Font CharSet"="english"
-"HERO LIGHT B"=dword:00000074
-"HERO LIGHT G"=dword:000000d8
-"HERO LIGHT R"=dword:000000d8
-"Keyboard Layout"=dword:00000409
-"OBJECTSLIGHTINGCOEFF"=hex:00,00,00,40
-"QUEST LIGHT B"=dword:00000078
-"QUEST LIGHT G"=dword:00000048
-"QUEST LIGHT R"=dword:00000078
 "SELECTIONTYPE"=dword:00000001
 "SwitchFilters"=dword:00000001
 "ToolTip Time"=hex:00,00,00,3f
@@ -299,21 +243,14 @@ Windows Registry Editor Version 5.00
 "BRIGHTNESS"=hex:00,00,00,00
 "Reverse Stereo"=dword:00000000
 "FULLSCREEN"=dword:00000001
-"SPECULAR"=dword:00000000
 "DITHERING"=dword:00000000
 "MOVIECAPTURINGFPS"=dword:0000000f
-"CONTRAST"=hex:00,00,00,00
-"TEXTUREQUALITY"=dword:00000000
-"DRAWINGTARGET"=dword:00000000
-"FILTERING"=dword:00000002
 "FPSINDEPENDENTCURSOR"=dword:00000000
 "GAMMA"=hex:00,00,00,00
 "JOYSTICK"=dword:00000000
-"MIPMAPPING"=dword:00000001
 "PERSPECTIVECORRECTION"=dword:00000001
 "SHOWPARTICLES"=dword:00000001
 "VIDEO"=dword:00000002
-"VIDEOCOLORDEPTHINBITS"=dword:00000020
 "VIDEOREFRESHRATE"=dword:00000000
 "VIDEOZBUFFERDEPTHINBITS"=dword:00000010
 
@@ -327,30 +264,15 @@ Windows Registry Editor Version 5.00
 "FIRSTSTART"=dword:00000000
 
 [HKEY_CURRENT_USER\Software\Gipat.Ru\EI_Starter\EvilIslands\Shadow Settings]
-"BUILDINGSHADOW"=dword:00000001
-"UNITSHADOW"=dword:00000001
-"FLORASHADOW"=dword:00000000
-"FLORASPECIALLIGHT"=dword:00000000
-"HEROSHADOW"=dword:00000001
-"LIGHTINGFREQ"=dword:00002710
-"OTHERSHADOW"=dword:00000000
-"SHADOWQUALITY"=dword:00000002
+"SHADOWS"=dword:00000001
 
 [HKEY_CURRENT_USER\Software\Gipat.Ru\EI_Starter\EvilIslands\Statistics Output Settings]
 "CREATEOUTPUTINFO"=dword:00000000
 "NUMBEROFFRAMES"=dword:ffffffff
 
 [HKEY_CURRENT_USER\Software\Gipat.Ru\EI_Starter\EvilIslands\Terrain Settings]
-"ENABLEFOOTPRINTS"=dword:00000001
-"SHADOWINGFREQ"=dword:0000ea60
 "BORDERFOGDISTANCE"=hex:00,00,80,41
-"LIGHTINGFREQ"=dword:000003e8
-"ENABLESELFSHADOWING"=dword:00000000
-"ENABLEBLOODPRINTS"=dword:00000001
 "ENABLEDYNAMICLIGHTS"=dword:00000001
-"ENABLEFIREPRINTS"=dword:00000001
-"ENABLEWATERWAVES"=dword:00000000
-"EnableBloodprintsRelight"=dword:00000000
 "LOD1"=hex:00,00,b4,42
 "LOD2"=hex:00,00,02,43
 

@@ -131,7 +131,7 @@ int SceneRenderer::DrawRectangle(int left, int top, int right, int bottom, int a
 
 // --- Renderer gamma ----------------------------------------------------------------------------------
 
-// The display's gamma ramp: brightness, contrast and gamma from the options become the gamma ramp (the new
+// The display's gamma ramp: brightness and gamma from the options become the gamma ramp (the new
 // renderer's, applied as the frame goes to the window). Called by WinMain at start-up and with zeros at exit, and by the options screen when a value
 // changes; no caller reads the result. See docs/notes/renderer.md.
 
@@ -145,17 +145,14 @@ constexpr int kLevels = 256;
 float Clamp(float v, float lo, float hi) { return MaxKeepA(lo, MinKeepB(hi, v)); }
 
 // The ramp of the clamped, halved settings (one table: every channel the same).
-void BuildRamp(std::uint16_t (&ramp)[kLevels], float brightness, float contrast, float gamma) {
-    float scale = std::fabs(contrast) * 4.0f + 1.0f;
-    EI_NAN_AUDIT(contrast, gamma);
-    if (contrast < 0.0f) scale = 1.0f / scale;
-    float offset = (1.0f - scale) * 0.5f;
+void BuildRamp(std::uint16_t (&ramp)[kLevels], float brightness, float gamma) {
+    EI_NAN_AUDIT(gamma);
     float exponent = 1.0f;
     if (gamma > 0.0f) exponent = 1.0f / (gamma * 5.0f + 1.0f);
     else if (gamma < 0.0f) exponent = 1.0f / (gamma * 0.5f + 1.0f);
 
     for (int i = 0; i < kLevels; ++i) {
-        float value = std::pow(i * kLevelStep, exponent) * scale + offset;
+        float value = std::pow(i * kLevelStep, exponent);
         value = Clamp(value, 0.0f, 1.0f);
         value = Clamp(value + brightness, 0.0f, 1.0f);
         auto level = static_cast<std::uint16_t>(static_cast<int>(value * kRampScale));   // _ftol: truncated
@@ -165,17 +162,15 @@ void BuildRamp(std::uint16_t (&ramp)[kLevels], float brightness, float contrast,
 
 } // namespace
 
-bool SceneRenderer::SetGamma(float newBrightness, float newContrast, float newGamma) {
+bool SceneRenderer::SetGamma(float newBrightness, float newGamma) {
     TextureDevice* currentDevice = device;
     if (!currentDevice) return false;
     // The renderer applies the ramp as the frame goes to the window (render::SetGammaRamp), so there is
     // always gamma control.
     brightness = newBrightness;
-    contrast = newContrast;
     gamma = newGamma;
     std::uint16_t ramp[kLevels];
-    BuildRamp(ramp, Clamp(newBrightness, -1.0f, 1.0f) * 0.5f, Clamp(newContrast, -1.0f, 1.0f) * 0.5f,
-              Clamp(newGamma, -1.0f, 1.0f) * 0.5f);
+    BuildRamp(ramp, Clamp(newBrightness, -1.0f, 1.0f) * 0.5f, Clamp(newGamma, -1.0f, 1.0f) * 0.5f);
     render::SetGammaRamp(ramp, ramp, ramp);
     return true;
 }

@@ -11,7 +11,7 @@ Defaults: the value a new file holds, else the one the game takes when the line 
 game folder's profile decides (Rebirth's patches in a Rebirth install, none in a plain one).
 
 The original game's settings this build does not read (a file that holds them keeps the lines; the game
-ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, Dithering, PerspectiveCorrection, ShowParticles, FPSIndependentCursor, AutomaticQuantization, MovieCapturingFPS, [shadows] HeroShadow, OtherShadow, [terrain] EnableDynamicLights, LightingFreq, ShadowingFreq, [game] Joystick, UseSWCursors, CornerSize, CD1 Label, CD3 Label, Font CharSet, [statistics] CreateOutputInfo, NumberOfFrames.
+ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, Dithering, PerspectiveCorrection, ShowParticles, FPSIndependentCursor, AutomaticQuantization, MovieCapturingFPS, DrawingTarget, VideoColorDepthInBits, Specular, TextureQuality, Mipmapping, Filtering, Contrast, [shadows] ShadowQuality, HeroShadow, UnitShadow, BuildingShadow, FloraShadow, OtherShadow, LightingFreq, FloraSpecialLight, [terrain] EnableDynamicLights, ShadowingFreq, EnableWaterWaves, EnableSelfShadowing, EnableFootprints, EnableBloodprints, EnableFireprints, EnableBloodprintsRelight, LightingFreq, [game] Joystick, UseSWCursors, CornerSize, CD1 Label, CD3 Label, Font CharSet, DrawVisibleOnly, Keyboard Layout, ObjectsLightingCoeff, Hero Light R/G/B/Radius, Quest Light R/G/B/Radius, DefaultWindForce, DefaultTimeScale, DefaultMapName, DefaultStreamingSound, FogNightStartDistance, FogDayStartDistance, [statistics] CreateOutputInfo, NumberOfFrames.
 
 ## [paths]
 
@@ -24,17 +24,10 @@ ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, 
 
 | Name | Default | Values | What it does |
 |---|---|---|---|
-| `DrawingTarget` | `0` | a number | The original's choice of graphics card. Here any value but 0 only draws the wound marks on creatures as a second layer (meant to look the same). |
 | `VideoResolution` | `(desktop size)` | WxH | The size the game draws at. Full screen, the picture is scaled to the monitor keeping its shape; in a window, the window's size. |
-| `VideoColorDepthInBits` | `32` | 16 or 32 | 16: the interface's drawn colours and screenshots are 16-bit (slight banding); 32: full colour. The 3D world looks the same either way. |
 | `FullScreen` | `true` | true / false | A borderless window covering the monitor; false: a window with a title bar, the resolution's size, centred on the main monitor (it can be moved and resized). The display mode never changes. |
 | `Video` | `2` | 0, 1 or 2 | The game's movies: 0 none, 1 at their own size in the middle of the screen, 2 stretched to the screen's width. Loading screens show either way. |
-| `Specular` | `false` | true / false | Next to no effect: it only sets the models' extra shine until the game first draws the sky or a panel, which switch the shine on and off themselves. |
-| `TextureQuality` | `0` | 0, 1, 2 or 3 | Texture detail: 0 full size, 1 half, 2 a quarter, 3 an eighth (blurrier, less memory). |
-| `Mipmapping` | `true` | true / false | Distant surfaces use smaller copies of their textures so they don't shimmer; false: always the full-size texture (grainy in the distance). |
-| `Filtering` | `2` | 0, 1 or 2 | 0: textures drawn blocky, without smoothing (and without anisotropic filtering); 1 or 2: smoothed (the two are the same here). |
 | `Brightness` | `0` | -1 .. 1 | Brightens (above 0) or darkens (below 0) the whole picture; 0 leaves it as it is. The options screen's slider sets it. |
-| `Contrast` | `0` | -1 .. 1 | Above 0 makes darks darker and lights lighter; below 0 flattens the picture towards grey; 0 leaves it as it is. |
 | `Gamma` | `0` | -1 .. 1 | Above 0 lightens the mid-tones, below 0 darkens them (black and white stay); 0 leaves the picture as it is. |
 
 ## [sound]
@@ -51,24 +44,13 @@ ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, 
 
 | Name | Default | Values | What it does |
 |---|---|---|---|
-| `ShadowQuality` | `2` | 0, 1 or 2 | Shadows of units, buildings and trees: 0 off, 1 or 2 on (both the same in this build). |
-| `UnitShadow` | `true` | true / false | Units, heroes included, cast shadows (with ShadowQuality above 0). |
-| `BuildingShadow` | `true` | true / false | Buildings and every other object that is not a unit or a tree cast shadows (with ShadowQuality above 0). |
-| `FloraShadow` | `true` | true / false | Trees and plants cast shadows (with ShadowQuality above 0). |
-| `LightingFreq` | `10000` | milliseconds | With EnableBloodprintsRelight: how often blood stains are re-lit by the light around them. Its other use has no visible effect here. |
-| `FloraSpecialLight` | `false` | true / false | Tree crowns are lit more evenly: their light is pulled most of the way to the crown's average, for softer foliage. |
+| `Shadows` | `true` | true / false | Units, buildings and trees cast shadows, and hills and cliffs cast the sun's shadows across the ground. The options screen's switch sets it. |
 
 ## [terrain]
 
 | Name | Default | Values | What it does |
 |---|---|---|---|
 | `BorderFogDistance` | `16` | map units | How wide the band along the map's edges is where land and objects fade into the fog. The menu and briefing maps use their own. |
-| `EnableWaterWaves` | `true` | true / false | Water rises and falls with rolling waves and crests. Off: still water (caves keep their waves). |
-| `EnableSelfShadowing` | `true` | true / false | Hills and cliffs cast the sun's shadows across the ground, whatever ShadowQuality is. |
-| `EnableFootprints` | `true` | true / false | Units leave footprints on the ground. |
-| `EnableBloodprints` | `true` | true / false | Wounds and deaths leave blood stains on the ground. |
-| `EnableFireprints` | `true` | true / false | Fire leaves scorch marks on the ground. |
-| `EnableBloodprintsRelight` | `false` | true / false | Blood stains are re-lit by the sun and nearby lights every [shadows] LightingFreq. Off: they keep the light they were made in. |
 
 ## [camera]
 
@@ -122,31 +104,14 @@ ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, 
 
 | Name | Default | Values | What it does |
 |---|---|---|---|
-| `DefaultWindForce` | `0.4` | 0 .. 1 | The strongest wind a map may have; smoke and particles drift with it. Not 0: it also sets how high and fast the water's waves run. |
-| `DefaultTimeScale` | `60` | a number | How slowly the day and night clock runs: bigger is slower; at 60 a game day lasts about 20 minutes. 0 stops the clock. |
 | `SelectionType` | `1` | 0 or 1 | 1: a small arrow on the ground under each selected unit shows where it faces. 0: no arrow, selected units are only highlighted. |
-| `DrawVisibleOnly` | `true` | true / false | On: only units your party can see are drawn. Off shows every unit; the game turns it back on whenever a battle zone or network game starts. |
 | `DrawPath` | `true` | true / false | When you order a move, a trail of particles shows the path and a marker the destination. |
 | `DrawFlyingHP` | `true` | true / false | Damage numbers float up over units your party sees when they are hit. |
 | `ShowTutorial` | `true` | true / false | Tutorial messages and each screen's help open by themselves the first time. Off: help shows only when you ask for it. |
 | `Autosave` | `true` | true / false | The game saves itself on entering a zone (savea) and on arriving at the world map (saveb). |
 | `ToolTip Time` | `0.5` | seconds | How long the pointer must rest on a control before its tooltip shows. 0: no tooltips. |
 | `SwitchFilters` | `true` | true / false | In the camp's screens the item lists jump to the tab that fits the page or item you pick. |
-| `Keyboard Layout` | `1033` | a Windows language id | At start Windows' keyboard layout switches to this language (1033 US English, 1049 Russian) if installed, else to US English. |
-| `ObjectsLightingCoeff` | `2` | a number | How brightly the sun and lights light units, buildings and trees: their light is multiplied by it. |
-| `Hero Light R` | `216` | 0 .. 255 | Red of the light that moves with your heroes. |
-| `Hero Light G` | `216` | 0 .. 255 | Green of the light that moves with your heroes. |
-| `Hero Light B` | `116` | 0 .. 255 | Blue of the light that moves with your heroes. |
-| `Hero Light Radius` | `5` | map units | How far the light around your heroes reaches. |
-| `Quest Light R` | `120` | 0 .. 255 | Red of the glow on characters and objects a quest marks. |
-| `Quest Light G` | `72` | 0 .. 255 | Green of the glow on characters and objects a quest marks. |
-| `Quest Light B` | `120` | 0 .. 255 | Blue of the glow on characters and objects a quest marks. |
-| `Quest Light Radius` | `5` | map units | How far the glow on quest characters and objects reaches. |
 | `Difficulty Level` | `0` | 0 or 1 | 1 Easy, 0 Hard, as the new game's question names them: scales the monsters' attack, defence and armour. Network games always play at 0. |
-| `DefaultMapName` | `Zone1.mpr` | a map file | The map loaded when the game is started with a .mob file on its command line and no map. Not used in normal play. |
-| `DefaultStreamingSound` | `melody.mp3` | a music file | The music that plays in the main menu. |
-| `FogNightStartDistance` | `50` | distance | At night, how far from the camera objects start fading into the fog; dawn and dusk blend to the day value. |
-| `FogDayStartDistance` | `90` | distance | By day and in caves, how far from the camera objects start fading into the fog; they are gone at FarClipDistance. |
 
 ## [network]
 

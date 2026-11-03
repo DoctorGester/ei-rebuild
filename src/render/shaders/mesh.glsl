@@ -67,7 +67,7 @@ layout(binding = 1) uniform mesh_fs_params {
 };
 // A figure part lit on the GPU (render_lighting.cpp, MeshLightUniforms): the sun and lights in the part's model space.
 layout(binding = 3) uniform mesh_light_params {
-    vec4 on;               // x: lit here, y: the crown's pull, z: the lights
+    vec4 on;               // x: lit here, z: the lights
     vec4 sun;              // xyz: towards the sun in model space
     vec4 sunColour;        // rgb: the sun's lit colour
     vec4 ambient;          // rgb
@@ -118,12 +118,6 @@ vec3 figure_light(vec3 p, vec3 n, vec3 land, vec3 face, vec2 turn) {
         lit = max(lit, colour.rgb * c * falloff * seen);
     }
     vec3 c = min(vec3(1.0), lit + lighting.emissive.rgb);
-    if (lighting.on.y > 0.0) {
-        vec3 s = lighting.sunColour.rgb * length(lighting.sun.xyz);
-        vec3 t = clamp(ambient / max(s, 1e-6), -1.0, 1.0);
-        vec3 mean = 0.5 * (ambient * (t + 1.0) + s * (1.0 - t * t) * 0.5);
-        c = mix(c, min(vec3(1.0), mean + lighting.emissive.rgb), lighting.on.y);
-    }
     return c;
 }
 vec4 arg(int a, vec4 current, vec4 diffuse, vec4 texel, vec4 spec) {

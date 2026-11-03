@@ -27,7 +27,7 @@ std::vector<UiSurface*> g_surfaces;
 
 void UiSurface::MakeCanvas() {
     if (!holder) return;
-    render::ui::Canvas(holder, width, height, ScreenFormat(holder->bitsPerPixel));
+    render::ui::Canvas(holder, width, height, ScreenFormat());
 }
 
 // The destructor: drops the contents put aside and the holder (its canvas with it) and empties the screen
@@ -229,5 +229,5 @@ std::uint32_t UiSurface::PixelAt(Point at) {
     if (!holder || at.x < 0 || at.y < 0 || at.x >= width || at.y >= height) return 0;
     std::uint32_t rgb = 0;
     if (!render::ui::ReadPixel(holder, at.x, at.y, &rgb)) return 0;
-    return render::ui::TopBits(rgb, ScreenFormat(holder->bitsPerPixel));
+    return render::ui::TopBits(rgb, ScreenFormat());
 }

@@ -104,26 +104,21 @@ void SetViewport(SceneRenderer* renderer, const GameOptions* settings) {
     float width = static_cast<float>(screen.Width());
     float height = static_cast<float>(screen.Height());
     renderer->pipeline->SetViewportSize(width, height);
-    renderer->pipeline->SetDepthRange(settings->fogDayStartDistance, settings->farClipDistance);
+    renderer->pipeline->SetDepthRange(options::kFogDayStartDistance, settings->farClipDistance);
 }
 
-// The texture filters of the stages: Filtering picks point (0) or linear (1, 2) min / mag filters; the mip filter
-// is point with Mipmapping, else none.
-void SetTextureFilters(const GameOptions* settings) {
+// The texture filters of the stages: linear min / mag filters with the mip levels (anisotropy: [renderer]).
+void SetTextureFilters() {
     for (render::TextureStage& stage : render::g_renderState.stages) {
-        int filter = settings->filtering;
-        if (filter == 0 || filter == 1 || filter == 2) {
-            stage.minFilter = stage.magFilter = filter == 0 ? render::Filter::Point : render::Filter::Linear;
-            if (settings->mipmapping) stage.mipFilter = render::MipFilter::Point;
-        }
-        if (settings->mipmapping == 0) stage.mipFilter = render::MipFilter::None;
+        stage.minFilter = stage.magFilter = render::Filter::Linear;
+        stage.mipFilter = render::MipFilter::Point;
     }
 }
 
-// Blending (one, zero) and the alpha test (greater than 200) on, clockwise triangles dropped, specular from the
-// options, fog on in black. (The original's dithering, perspective correction and antialiasing options are gone:
-// the renderer always draws with perspective correction, [renderer] Msaa smooths the edges.)
-void SetRenderState(const GameOptions* settings) {
+// Blending (one, zero) and the alpha test (greater than 200) on, clockwise triangles dropped, specular off, fog on
+// in black. (The original's dithering, perspective correction and antialiasing options are gone: the renderer
+// always draws with perspective correction, [renderer] Msaa smooths the edges.)
+void SetRenderState() {
     render::RenderState& state = render::g_renderState;
     state.blend = true;
     state.alphaTest = true;
@@ -132,7 +127,7 @@ void SetRenderState(const GameOptions* settings) {
     state.sourceBlend = render::Blend::One;
     state.destBlend = render::Blend::Zero;
     state.cull = render::Cull::Clockwise;
-    state.specular = settings->specular != 0;
+    state.specular = false;
     state.fog = true;
     state.fogColour = 0;
 }
@@ -151,11 +146,9 @@ void AddDefaultLight(SceneRenderer* renderer) {
     renderer->SetSun(light);
 }
 
-// The counted helper object. The flag is a byte argument: only its low byte is read (the caller
-// pushes it with the rest of the register left over from operator new).
-void CreateHelper(SceneRenderer* renderer, const GameOptions* settings) {
-    const std::uint32_t flag = settings->driverIndex != 0 ? 1u : 0u;
-    renderer->helper.Assign(new RenderHelper(flag));
+// The counted helper object.
+void CreateHelper(SceneRenderer* renderer) {
+    renderer->helper.Assign(new RenderHelper());
 }
 
 } // namespace
@@ -173,9 +166,8 @@ void SceneRenderer::ResizeScreen(int width, int height) {
 void SceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     render::g_renderState = {};   // a new device's
     CreatePipeline();
-    // (The options' driver, refresh rate and depth buffer bits choose nothing: the new renderer draws.)
     TextureDevice* newDevice = new TextureDevice(window, settings->fullScreen != 0,
-                                                settings->resolutionX, settings->resolutionY, settings->colourDepth);
+                                                settings->resolutionX, settings->resolutionY);
     device.Assign(newDevice);
     DeviceSetPipeline(&device->pipeline, pipeline);
 
@@ -184,8 +176,8 @@ void SceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     render::g_renderState.depthTest = true;
     render::g_renderState.depthWrite = true;
 
-    SetTextureFilters(settings);
-    SetRenderState(settings);
+    SetTextureFilters();
+    SetRenderState();
 
     frameTime = 0;
     flags |= 2;
@@ -195,5 +187,5 @@ void SceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     // The ambient colour: grey 50, opaque.
     SetColour(0xFF323232u);
 
-    CreateHelper(this, settings);
+    CreateHelper(this);
 }

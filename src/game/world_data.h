@@ -53,10 +53,6 @@ inline const char* LightsTableText() { return "LightsGipat.ini"; }
 inline const char* GipathText() { return "gipath"; }
 inline const char* TextsFileText() { return "texts.res"; }
 inline const char* TextsLmpFileText() { return "textsLmp.res"; }
-// The shadow setting (0 off, 2 blurred; map_object_shadow.cpp's ShadowMode): above 0 the client
-// sets its flag 0x200.
-inline int ShadowSetting() { return static_cast<const volatile int&>(options::g_options.shadowQuality); }
-
 inline const char* DefaultAllodText() { return "gipat"; }
 inline const char* CantLoadTerrainFormat() { return "Can't load terrain or map file \"%s\".\n"; }
 inline const char* CaveSkyText() { return "Sky01"; }
@@ -66,12 +62,9 @@ inline const char* CaveText() { return "Cave"; }
 inline const char* IniSuffixText() { return ".ini"; }
 inline const char* FinalZoneText() { return "gz20g"; }
 inline const char* FinalMusicText() { return "final"; }
-// Options (options.cpp): Audio, EnableWaterWaves, EnableSelfShadowing and DefaultWindForce.
-// AudioStreaming / AudioSFX (the sound manager takes them on the client's tenth tick) are read from the options.
+// Options (options.cpp): Audio. AudioStreaming / AudioSFX (the sound manager takes them on the client's tenth tick)
+// are read from the options.
 inline int AudioOption() { return static_cast<const volatile int&>(options::g_options.audio); }
-inline int WaterWavesOption() { return static_cast<const volatile int&>(options::g_options.enableWaterWaves); }
-inline int SelfShadowingOption() { return static_cast<const volatile int&>(options::g_options.enableSelfShadowing); }
-inline float DefaultWindForceOption() { return static_cast<const volatile float&>(options::g_options.defaultWindForce); }
 // The hour the terrain's sun was last set for (world_client_lights.cpp); -1 makes the next UpdateLighting set it.
 inline float g_lastLitHour = /*0078FF38*/ -1.0f;
 

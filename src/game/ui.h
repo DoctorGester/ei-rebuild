@@ -1582,7 +1582,7 @@ struct OptionDefinition {
     int group;                       // the option group (0-10) it is shown in
     int row;                         // its row there
 };
-constexpr int kOptionDefinitionCount = 26;
+constexpr int kOptionDefinitionCount = 21;
 
 struct ActionDefinition {
     int id;                          // the action (the key code in the key table)
@@ -1800,7 +1800,7 @@ public:
     bool sliding;
     float slide;
     std::vector<std::string> groupNames;    // the option groups' titles
-    bool shadowsChanged;             // a shadow switch (settings 7-9: units, buildings, flora) changed
+    bool shadowsChanged;             // the shadows switch (setting 7) changed
     const UiKeyName* pressedKey;     // the key pressed for a binding row
 };
 

@@ -128,7 +128,7 @@ int& FlowState() { return g_gameFlow.state; }
 void SetLoadTarget(const char* slot) { g_gameFlow.requestTarget = slot; }
 void ClearShowTutorial() { options::g_options.showTutorial = 0; }
 void SetMasterHost(const char* host) { options::g_options.masterServerName = host; }
-void SetWaterWaves(bool on) { options::g_options.enableWaterWaves = on; }
+void SetShadows(bool on) { options::g_options.shadows = on; }
 
 CursorState Cursor() {
     const ::Cursor* cursor = &g_cursor;

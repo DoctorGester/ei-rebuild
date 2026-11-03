@@ -260,8 +260,7 @@ places them all again and resizes their canvases (`UiSurface::RelayoutAll`, "Res
 
 **Holders** are our own `Surface` (surface.h: width, height, bits per pixel); no holder has pixels in memory: the
 windows' holders have a canvas, the picture holders (cursor images) only a size, the textures section 7's images. A
-window of no size is not made (`ThrowSurfaceNotMade`). The screen's pixel format is `ScreenFormat` of the device object's
-colour depth (16 bits 5:6:5, else X8R8G8B8): a canvas quantises to it. The cursor's mask is built from the .mmp file's
+window of no size is not made (`ThrowSurfaceNotMade`). The screen's pixel format is `ScreenFormat` (X8R8G8B8): a canvas quantises to it. The cursor's mask is built from the .mmp file's
 pixels (`ChannelLayout::ToNative` to the screen's format, ui_cursor.cpp); the renderer keeps the picture as RGBA8
 (`render::PictureFromMmp`). Scenarios: render_present, render_titles_present, render_movie_present, ui_compare,
 ui_saveload.
@@ -384,7 +383,7 @@ every 16th, all with `checkall`).
 
 The game has no DirectDraw object, display mode, primary, render target, depth buffer, Direct3D object or device, and no
 stand-in for any of them:
-- `TextureDevice` (texture.h, device_mesh.cpp) is the screen: window, full-screen flag, screen rectangle, colour depth,
+- `TextureDevice` (texture.h, device_mesh.cpp) is the screen: window, full-screen flag, screen rectangle,
   the transform pipeline, the stages' bound holders and the draws' state. Its constructor starts the renderer
   (`render::StartPresenting`). The options' driver, refresh rate and depth / stencil bits choose nothing. Where the game
   read the screen's size (`GameTargetSize`, the cursor's bounds, the interface's size, the sprites' clip and the hit
@@ -402,7 +401,7 @@ stand-in for any of them:
 - **The window** (`src/render/render_window.cpp`): the frame is drawn by a full-screen triangle (shader "ei-present") into
   the client area with its aspect kept, centred, black bars (`render::FrameInWindow`, `WindowToFrame`, `FrameToWindow`).
   A failed resize (other than a lost device) makes the swap chain again once.
-- **Gamma** as a shader step: `SetGamma` (`renderer_marker.cpp`) keeps the three values, builds the ramp (full scale 65280)
+- **Gamma** as a shader step: `SetGamma` (`renderer_marker.cpp`) keeps the two values, builds the ramp (full scale 65280)
   and hands it to `render::SetGammaRamp`: a 256x1 lookup texture the present shader reads per channel. The ramp applies
   only to what is presented, not to the frame (captures, ReadFrame). Harness build: after a ramp change the presented
   back buffer is read back at a 17x17 grid and compared with the frame through the ramp ("render: gamma ramp check";
@@ -467,9 +466,9 @@ maximised, a DPI change). `present_window::Update` asks at each present (`app::R
 loop pass takes it (`TakeResolutionChange`), so a resize during a blocking movie or loading screen is taken after it;
 meanwhile the present scales the frame. The window's first client area is not a change. A settings screen (not built)
 would call `app::SetResolution` from its apply and, windowed, size the client area to it. The options window has no
-resolution: its 26 settings (table 00787430) are volumes, keys, mouse speeds, border scroll, the three shadow switches
-(7-9), marks, footprints, selection type, path, brightness / contrast / gamma, flying HP, tutorial, autosave, tooltip
-time, filters, camera axes, stereo and difficulty (`render_options_shadows` steps the shadow switches).
+resolution: its 21 settings are volumes, keys, mouse speeds, border scroll, the shadows switch (7), selection type,
+path, brightness / gamma, flying HP, tutorial, autosave, tooltip time, filters, camera axes, stereo and difficulty
+(`render_options_shadows` steps the shadows switch).
 
 **Input in a window of another shape.** Mouse coordinates are frame pixels through the picture's placement
 (`render::WindowToFrame`; the cursor's through `platform::MapCursorPoints`). A point over the bars goes to the frame's
@@ -560,8 +559,7 @@ Behind the camera 1 / w is negative and z / w lies above 1; at w 0 it is infinit
   INVSRCALPHA) with z-write on. The terrain shader picks the alpha (texture for ground, vertex colour for water) and always
   adds the specular colour. The harness build logs each new terrain pipeline's state.
 - **Terrain sampling**: the pages are sampled anisotropically (16x) with linear mips (`AnisotropicSampler`,
-  render_textures.cpp) when stage 0 asks for linear filters (the options' Filtering 1 / 2; point filters stay point,
-  Mipmapping 0 keeps level 0). The game asks for point mips, through which whole terrain triangles snapped to the next
+  render_textures.cpp) when stage 0 asks for linear filters (always; the textures keep their mip levels). The game asks for point mips, through which whole terrain triangles snapped to the next
   level and the sharpness jumped along the tiles' edges: seams moving with the camera. The user's own Rebirth setup
   (dgVoodoo, Filtering 16) did not show them; that is the look kept. Check (scenario `render_terrain_seams`):
   `terrainlevels on|point|off` (the ground pages draw one grey per level through the shipped or the point-mip sampler)
@@ -692,7 +690,7 @@ half of it); pages not drawn for 600 frames are dropped. Every tile is drawn at 
 map's fit reads a piece's vertices in runs of 72 with their boxes (`TerrainPieceGroups`). The circling water waves' sines
 are computed once per Animate call (`CircleSines`: 33 values) instead of per vertex. Check: `terraincache off` builds and
 uploads every page every frame; `terraincache check` compares every kept page with a fresh build every 16th frame (0
-stale); scenario `terrain_water_waves` (`waterwaves 1`; the digest's `water` group).
+stale); scenario `terrain_water_waves` (the waves are always on; the digest's `water` group).
 
 **4. Meshes kept on the GPU** (`render_mesh_cache.cpp`, the pool shared with the terrain in `render_buffers.cpp`:
 `GpuPool`). Each figure mesh drawn through the figure part draws (either through the device or a link figure's part) is
@@ -727,8 +725,7 @@ colours and ranges); what they light is done per pixel.
   landscape keeps only the table of shown point lights (`Terrain::lights`, by id: AddLight / RemoveLight), which the
   hand-over reads. `SectorData::Build` writes each vertex's edge fade into its specular word (the fog factor,
   `Terrain::EdgeFade`, rounded to nearest); on the water Animate writes the wave crests over the colour bytes. A sector's
-  fade never changes, so it is written once, at Build: no relighting, no relight countdowns (the LightingFreq option is
-  read by nothing). Nothing loads or touches sectors for the lighting, so the sector cache's order can differ from the
+  fade never changes, so it is written once, at Build: no relighting of the terrain, no relight countdowns. Nothing loads or touches sectors for the lighting, so the sector cache's order can differ from the
   original's.
 - **The figures.** The part draw (`figure_part_draw.cpp`) hands over `render::MeshLighting`: the model matrix (the world
   stack's top with the scene's camera taken off), the sun, the ambient colour (`AmbientColour`), the material's colours

@@ -25,12 +25,12 @@
 
 namespace {
 
-// The mask of the 8888 picture at `bitsPerPixel` (16 or 32) a pixel, its rows one after another: all ones where the
-// pixel's colour in the screen's format is 0 (16 bits 5:6:5: the whole pixel; 32 bits: its low 24 bits), else 0.
-void BuildMask(const MmpHeader* picture, int bitsPerPixel, std::uint8_t* mask) {
+// The mask of the 8888 picture at 32 bits a pixel, its rows one after another: all ones where the pixel's colour in
+// the screen's format is 0 (its low 24 bits), else 0.
+void BuildMask(const MmpHeader* picture, std::uint8_t* mask) {
     ChannelLayout layout;
-    layout.Split(ScreenFormat(bitsPerPixel));
-    const std::size_t bytes = static_cast<std::size_t>(bitsPerPixel / 8);
+    layout.Split(ScreenFormat());
+    const std::size_t bytes = 4;
     const std::uint8_t* pixels = reinterpret_cast<const std::uint8_t*>(picture) + sizeof(MmpHeader) + picture->MipOffset(0);
     const std::size_t count = static_cast<std::size_t>(picture->width) * picture->height;
     for (std::size_t i = 0; i < count; ++i) {
@@ -61,7 +61,7 @@ CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY) {
     hotY = static_cast<int>(g_cursorHeight) * hotSpotY / 32;
     std::uint32_t maskBytes = (static_cast<std::uint32_t>(holder->bitsPerPixel) * pictureHeight * pictureWidth) >> 3;
     saved.assign(maskBytes, 0);
-    BuildMask(picture, holder->bitsPerPixel, saved.data());
+    BuildMask(picture, saved.data());
     manager->CloseFile(picture);
 }
 

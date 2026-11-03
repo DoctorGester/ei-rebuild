@@ -2,7 +2,7 @@
 # only (tests/verify/harness_settings.h): it is written from the registry snapshot, with a probe section of odd values
 # (quotes, spaces at the ends, '=' and ';' inside, UTF-8, an empty value) and a comment, and the game's exit save
 # (WinMain's GameOptions::Save; settings::Save writes the file when a value changed, to ei_settings.ini.tmp and
-# moved over it) rewrites it. The options window's water waves setting is switched on in memory, so the save has a
+# moved over it) rewrites it. The shadows setting is switched off in memory, so the save has a
 # change to write; run_all compares the file after the exit with settings/settings_save.ini (the save's whole
 # output: every value the game writes, and the probe section kept as it was) and fails when ei_settings.ini.tmp is
 # left behind. The user's registry is never read or written.
@@ -16,6 +16,6 @@ fullscreen 0
 reject Script error
 waitmenu
 wait 500
-waterwaves 1
+shadows 0
 report
 quit

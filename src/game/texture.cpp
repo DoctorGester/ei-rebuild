@@ -119,12 +119,7 @@ void TextureManager::SetDevice(TextureDevice* newDevice) {
         mipLevel = 2;
         return;
     }
-    switch (options::g_options.textureQuality) {
-    case 0: mipLevel = 0; break;
-    case 1: mipLevel = 1; break;
-    case 2: mipLevel = 2; break;
-    default: mipLevel = 3; break;
-    }
+    mipLevel = 0;    // full size
     limitTo512 = 0;    // (the game set 1 for a card whose textures were at most 256 pixels wide or high)
 }
 

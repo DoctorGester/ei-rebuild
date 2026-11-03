@@ -326,29 +326,12 @@ void Object3DClientSpecific::SetLit(bool lit) { SetMaterialsLit(lit); }
 namespace {
 
 constexpr const char* kServerClassName = "CObject3DServer";
-// The shadow switches by the object's class: units (0x50), class 0x52, any other.
 constexpr std::uint32_t kHalfShown = 0x20;
 constexpr int kOutsideView = 2;
-
-int Setting(const int& setting) { return static_cast<const volatile int&>(setting); }
-
-// The switch for the class of `object`.
-int ShadowSwitchOf(Object3D* object) {
-    ClassId classId = object->GetClassId();
-    if (classId == ClassId::Unit) return Setting(options::g_options.unitShadow);
-    if (classId == ClassId::Tree) return Setting(options::g_options.floraShadow);
-    return Setting(options::g_options.buildingShadow);
-}
 
 } // namespace
 
 // --- The client half's shadow state -----------------------------------------------------------------
-
-std::uint32_t Object3DClientSpecific::ShadowsShown() {
-    int setting = worlddata::ShadowSetting();
-    if (setting <= 0) return static_cast<std::uint32_t>(setting) & 0xFFFFFF00u;
-    return ShadowSwitchOf(object) != 0 ? 1u : 0u;
-}
 
 void Object3DClientSpecific::ClearShadow() {
     shadowMade = false;
@@ -356,7 +339,7 @@ void Object3DClientSpecific::ClearShadow() {
 }
 
 bool Object3DClientSpecific::ShadowInView() {
-    if (worlddata::ShadowSetting() <= 0 || ShadowSwitchOf(object) == 0) return false;
+    if (!options::g_options.shadows) return false;
     if (flags & kHalfShown) return true;
     const Vector3& at = object->localPosition;
     sphere.center += at;

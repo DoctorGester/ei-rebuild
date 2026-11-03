@@ -915,7 +915,7 @@ void GameFlow::StartZone(std::string_view zone, int mode) {
         mode = kModeMainMenu;
     }
 
-    g_serverWorld.SetTimeSpeed(static_cast<float>(options::g_options.defaultTimeScale));
+    g_serverWorld.SetTimeSpeed(static_cast<float>(options::kDefaultTimeScale));
     int result;
     if (mode == kModeMainMenu) {
         g_serverWorld.NewZone(kMenuMap, kMenuMob, std::nullopt);

@@ -5,12 +5,10 @@
 
 #include "settings.h"
 
-#include "lib/rounding.h"
 #include "lib/str.h"
 
 #include "lib/rebirth.h"
 
-#include <bit>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -20,13 +18,6 @@
 
 namespace options {
 namespace {
-
-constexpr float kTimes255 = 255.0f;
-constexpr float kOver255 = 1.0f / 255.0f;     // (0x3B808081)
-
-std::uint32_t Bits(float value) { return std::bit_cast<std::uint32_t>(value); }
-
-int Times255(float value) { return lib::Truncate(value * kTimes255); }
 
 using namespace settings;
 
@@ -45,37 +36,18 @@ struct Value {
     bool flag = false;
 };
 
-constexpr Value kVideoValues[] = {
-    {kVideo, "VideoColorDepthInBits", &GameOptions::colourDepth},
-    {kVideo, "FullScreen", &GameOptions::fullScreen, kFlag},
-};
 constexpr Value kValues[] = {
+    {kVideo, "FullScreen", &GameOptions::fullScreen, kFlag},
     {kVideo, "Video", &GameOptions::video},
     {kSound, "Audio", &GameOptions::audio, kFlag},
     {kSound, "AudioStreaming", &GameOptions::audioStreaming},
     {kSound, "AudioSFX", &GameOptions::audioSfx},
     {kSound, "AudioSpeech", &GameOptions::audioSpeech},
-    {kVideo, "Specular", &GameOptions::specular, kFlag},
-    {kVideo, "TextureQuality", &GameOptions::textureQuality},
-    {kVideo, "Mipmapping", &GameOptions::mipmapping, kFlag},
-    {kVideo, "Filtering", &GameOptions::filtering},
     {kVideo, "Brightness", &GameOptions::brightness},
-    {kVideo, "Contrast", &GameOptions::contrast},
     {kVideo, "Gamma", &GameOptions::gamma},
     {kSound, "Reverse Stereo", &GameOptions::reverseStereo, kFlag},
-    {kShadows, "ShadowQuality", &GameOptions::shadowQuality},
-    {kShadows, "UnitShadow", &GameOptions::unitShadow, kFlag},
-    {kShadows, "BuildingShadow", &GameOptions::buildingShadow, kFlag},
-    {kShadows, "FloraShadow", &GameOptions::floraShadow, kFlag},
-    {kShadows, "LightingFreq", &GameOptions::shadowLightingFreq},
-    {kShadows, "FloraSpecialLight", &GameOptions::floraSpecialLight, kFlag},
+    {kShadows, "Shadows", &GameOptions::shadows, kFlag},
     {kTerrain, "BorderFogDistance", &GameOptions::borderFogDistance},
-    {kTerrain, "EnableWaterWaves", &GameOptions::enableWaterWaves, kFlag},
-    {kTerrain, "EnableSelfShadowing", &GameOptions::enableSelfShadowing, kFlag},
-    {kTerrain, "EnableFootprints", &GameOptions::enableFootprints, kFlag},
-    {kTerrain, "EnableBloodprints", &GameOptions::enableBloodprints, kFlag},
-    {kTerrain, "EnableFireprints", &GameOptions::enableFireprints, kFlag},
-    {kTerrain, "EnableBloodprintsRelight", &GameOptions::enableBloodprintsRelight, kFlag},
 };
 constexpr Value kCameraValues[] = {
     {kCamera, "CameraMinHeight", &GameOptions::cameraMinHeight},
@@ -122,24 +94,13 @@ constexpr struct {
     {"CameraDefaultZoomPowerKeyboard", &GameOptions::cameraZoom, &CameraMotionOptions::powerKeyboard},
 };
 constexpr Value kGameValues[] = {
-    {kGame, "DefaultWindForce", &GameOptions::defaultWindForce},
-    {kGame, "DefaultTimeScale", &GameOptions::defaultTimeScale},
     {kGame, "SelectionType", &GameOptions::selectionType},
-    {kGame, "DrawVisibleOnly", &GameOptions::drawVisibleOnly, kFlag},
     {kGame, "DrawPath", &GameOptions::drawPath, kFlag},
     {kGame, "DrawFlyingHP", &GameOptions::drawFlyingHp, kFlag},
     {kGame, "ShowTutorial", &GameOptions::showTutorial, kFlag},
     {kGame, "Autosave", &GameOptions::autosave, kFlag},
     {kGame, "ToolTip Time", &GameOptions::toolTipTime},
     {kGame, "SwitchFilters", &GameOptions::switchFilters, kFlag},
-};
-constexpr Value kGameValues2[] = {
-    {kGame, "Keyboard Layout", &GameOptions::keyboardLayout},
-    {kGame, "ObjectsLightingCoeff", &GameOptions::objectsLightingCoeff},
-};
-constexpr Value kFogValues[] = {
-    {kGame, "FogNightStartDistance", &GameOptions::fogNightStartDistance},
-    {kGame, "FogDayStartDistance", &GameOptions::fogDayStartDistance},
 };
 
 // One string option: section, value name, field.
@@ -155,15 +116,6 @@ constexpr StringValue kPathValues[] = {
     {kPaths, "Work path", &StringOf<&GameOptions::workPath>},
     {kPaths, "Resources path", &StringOf<&GameOptions::resourcesPath>},
 };
-constexpr StringValue kDefaultValues[] = {
-    {kGame, "DefaultMapName", &StringOf<&GameOptions::defaultMapName>},
-    {kGame, "DefaultStreamingSound", &StringOf<&GameOptions::defaultStreamingSound>},
-};
-
-// The lights: r, g, b stored as 0..1 (the file holds 0..255), then the radius.
-constexpr const char* kHeroLightNames[] = {"Hero Light R", "Hero Light G", "Hero Light B", "Hero Light Radius"};
-constexpr const char* kQuestLightNames[] = {"Quest Light R", "Quest Light G", "Quest Light B", "Quest Light Radius"};
-constexpr float LightOptions::*kLightChannels[] = {&LightOptions::red, &LightOptions::green, &LightOptions::blue};
 
 // The camera shortcuts: format (with the shortcut index), field of the shortcut.
 constexpr struct {
@@ -221,17 +173,6 @@ public:
         }
     }
 
-    // The colour channels are kept in the file as 0..255 integers.
-    void ReadLight(LightOptions& light, const char* const (&names)[4]) {
-        for (int c = 0; c < 3; ++c) {
-            float& channel = light.*kLightChannels[c];
-            int value = GetInt(kGame, names[c], Times255(channel));
-            channel = static_cast<float>(static_cast<std::uint32_t>(value)) * kOver255;
-        }
-        int radius = GetInt(kGame, names[3], lib::Truncate(light.radius));
-        light.radius = static_cast<float>(static_cast<std::uint32_t>(radius));
-    }
-
 private:
     GameOptions* options;
 };
@@ -273,12 +214,6 @@ public:
         }
     }
 
-    // The colour channels as _ftol(value * 255), the radius as _ftol(radius).
-    void WriteLight(const LightOptions& light, const char* const (&names)[4]) {
-        for (int c = 0; c < 3; ++c) SetInt(kGame, names[c], Times255(light.*kLightChannels[c]));
-        SetInt(kGame, names[3], lib::Truncate(light.radius));
-    }
-
 private:
     GameOptions* options;
 };
@@ -288,7 +223,6 @@ private:
 void GameOptions::Load() {
     Loader l(this);
     l.Read(kPathValues);
-    l.Read(Value{kVideo, "DrawingTarget", &GameOptions::driverIndex});
     {
         const std::string resolution = GetString(kVideo, "VideoResolution", std::string());
         int x = str::Find(resolution, 'x');
@@ -297,7 +231,6 @@ void GameOptions::Load() {
             resolutionY = std::atoi(str::Right(resolution, static_cast<int>(resolution.size()) - x - 1).c_str());
         }
     }
-    l.Read(kVideoValues);
     l.Read(kValues);
     l.ReadCameraFlip(cameraFlipX, "CameraFlipXAxis");
     l.ReadCameraFlip(cameraFlipY, "CameraFlipYAxis");
@@ -305,23 +238,16 @@ void GameOptions::Load() {
     l.ReadCameraMotions();
     l.ReadCameraShortcuts();
     l.Read(kGameValues);
-    l.Read(kGameValues2);
-    l.ReadLight(heroLight, kHeroLightNames);
-    l.ReadLight(questLight, kQuestLightNames);
     int newDifficulty = GetInt(kGame, "Difficulty Level", difficultyStored);
     difficultyStored = newDifficulty;
     difficulty = newDifficulty;
-    l.Read(kDefaultValues);
-    l.Read(kFogValues);
     masterServerName = GetString(kNetwork, "Master Server Name", masterServerName);
 }
 
 void GameOptions::Save() {
     Saver s(this);
     s.Write(kPathValues);
-    s.Write(Value{kVideo, "DrawingTarget", &GameOptions::driverIndex});
     SetString(kVideo, "VideoResolution", std::format("{}x{}", resolutionX, resolutionY));
-    s.Write(kVideoValues);
     s.Write(kValues);
     s.WriteCameraFlip(cameraFlipX, "CameraFlipXAxis");
     s.WriteCameraFlip(cameraFlipY, "CameraFlipYAxis");
@@ -329,12 +255,7 @@ void GameOptions::Save() {
     s.WriteCameraMotions();
     s.WriteCameraShortcuts();
     s.Write(kGameValues);
-    s.Write(kGameValues2);
-    s.WriteLight(heroLight, kHeroLightNames);
-    s.WriteLight(questLight, kQuestLightNames);
     SetInt(kGame, "Difficulty Level", difficultyStored);
-    s.Write(kDefaultValues);
-    s.Write(kFogValues);
     // EI_Plugin's NewMaster NOPs these 42 bytes: the Master Server Name is not saved.
     if (!ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster))
         SetString(kNetwork, "Master Server Name", masterServerName);

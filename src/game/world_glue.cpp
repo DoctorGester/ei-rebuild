@@ -39,7 +39,7 @@ Script* CommandScript() { return g_serverWorld.SecondScript(); }
 
 const char kConstructionVariable[] = "constr.current";
 // Every window closes before the next input message or by the next pass (CloseAllPending, Activate, Draw).
-const char* DefaultMusic() { return options::g_options.defaultStreamingSound.c_str(); }
+const char* DefaultMusic() { return options::kDefaultStreamingSound; }
 
 } // namespace
 

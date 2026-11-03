@@ -175,28 +175,24 @@ class FigureMesh;
 class Material;
 struct LineBatch;
 
-// A render state preset the renderer's helper keeps (counted): the passes of a material's draw. The first pass
-// sets the texture stages of the first `stages` states and turns the next stage off; each further pass is one of
-// the states from `stages` on, with its blend factors.
+// A render state preset the renderer's helper keeps (counted): the texture stages of a material's draw, one per
+// state; the stage after them is turned off.
 class RenderPreset final {
 public:
-    // One texture stage's operations and the blend factors of its pass.
+    // One texture stage's operations.
     struct State {
         bool enabled;                     // the stage's operations are set
         render::StageCombiner combiner;
-        bool blend;                       // the blend factors are set
-        render::Blend sourceBlend;
-        render::Blend destBlend;
     };
 
-    RenderPreset(const std::vector<State>& newStates, int newStages) : states(newStates), stages(newStages) {}
+    explicit RenderPreset(const std::vector<State>& newStates) : states(newStates) {}
 
     RenderPreset(const RenderPreset&) = delete;
     RenderPreset& operator=(const RenderPreset&) = delete;
 
-    int PassCount() const { return static_cast<int>(states.size()) - stages + 1; }
-    // Pass `pass`'s states set in the renderer's render state (render/render_state.h).
-    void ApplyPass(int pass) const;
+    int StageCount() const { return static_cast<int>(states.size()); }
+    // The states' stage operations set in the renderer's render state (render/render_state.h).
+    void Apply() const;
 
     void AddRef() { ++refs; }
     // Drops a reference; the last one deletes the preset.
@@ -206,7 +202,6 @@ public:
 
     int refs = 0;
     std::vector<State> states;
-    int stages;                          // texture stages the first pass sets
 };
 
 // The renderer's counted helper: the nine built-in render state presets of the materials.
@@ -214,8 +209,8 @@ class RenderHelper final {
 public:
     static constexpr unsigned kPresetCount = 9;
 
-    // Records the nine presets (`flag`'s low byte: one texture stage each).
-    explicit RenderHelper(std::uint32_t flag);
+    // Records the nine presets.
+    RenderHelper();
     ~RenderHelper();
     // Preset `index` of the nine, or null beyond them.
     RenderPreset* Preset(unsigned index) const { return index < kPresetCount ? presets[index] : nullptr; }
@@ -232,8 +227,8 @@ public:
     int refs = 0;
 
 private:
-    // Preset `index` made of `states`. `singleStage`: at most one texture stage.
-    void Record(const std::vector<RenderPreset::State>& states, unsigned index, bool singleStage);
+    // Preset `index` made of `states`.
+    void Record(const std::vector<RenderPreset::State>& states, unsigned index);
 
     RenderPreset* presets[kPresetCount] = {};    // counted
 };
@@ -295,9 +290,9 @@ public:
     // A black rectangle (left, top, right, bottom in screen pixels) of `alpha` over the current blend state,
     // with `outline` a white frame. Returns 1.
     int DrawRectangle(int left, int top, int right, int bottom, int alpha, int outline);
-    // The renderer's gamma ramp (applied as the frame goes to the window) from the options' brightness,
-    // contrast and gamma; false without a device.
-    bool SetGamma(float brightness, float contrast, float gamma);
+    // The renderer's gamma ramp (applied as the frame goes to the window) from the options' brightness and gamma;
+    // false without a device.
+    bool SetGamma(float brightness, float gamma);
     // After a switch back (WM_ACTIVATE): a full-screen device gets its cooperative level and display mode
     // back, then every surface and the texture manager are restored. False without a device object.
     bool RestoreSurfaces();
@@ -322,7 +317,6 @@ public:
     Ref<RenderHelper> helper;
     // The display settings SetGamma last applied, as given.
     float brightness = 0.0f;
-    float contrast = 0.0f;
     float gamma = 0.0f;
     // The frame time (milliseconds; BeginScene / EndScene).
     std::uint32_t frameTime = 0;               // the last frame's

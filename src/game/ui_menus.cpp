@@ -51,9 +51,11 @@ float Ease(float slide) {
 constexpr int kSettingVolumeA = 0;     // \ volumes, applied at once
 constexpr int kSettingVolumeB = 1;     //  |
 constexpr int kSettingVolumeC = 2;     // /
-constexpr int kSettingGammaFirst = 14; // the display's three gamma values (settings 14-16)
-constexpr int kSettingGammaLast = 16;
-constexpr int kSettingCount = 26;
+constexpr int kSettingShadows = 7;
+constexpr int kSettingBrightness = 10; // the display's brightness and gamma (settings 10 and 11)
+constexpr int kSettingGamma = 11;
+constexpr int kSettingReverseStereo = 19;
+constexpr int kSettingCount = kOptionDefinitionCount;
 constexpr float kGammaScale = 0.02f;   // value * 0.02 - 1
 constexpr float kSlideSeconds = 0.5f;
 
@@ -171,8 +173,7 @@ void OptionsWindow::RestoreSettings() {
     g_clientWorld.sounds->SetMusicVolume(options::g_options.audioStreaming);
     g_clientWorld.sounds->SetSpeechVolume(options::g_options.audioSpeech);
     // The scene renderer's gamma.
-    g_sceneRenderer.SetGamma(options::g_options.brightness, options::g_options.contrast,
-                              options::g_options.gamma);
+    g_sceneRenderer.SetGamma(options::g_options.brightness, options::g_options.gamma);
 }
 
 void OptionsWindow::LeftDown(int buttons, Point point) {
@@ -281,24 +282,20 @@ void OptionsWindow::Update() {
                 g_clientWorld.sounds->SetMusicVolume(value);
             } else if (definitionId == kSettingVolumeC) {
                 g_clientWorld.sounds->SetSpeechVolume(value);
-            } else if (definitionId >= kSettingGammaFirst && definitionId <= kSettingGammaLast) {
-                const OptionSetting* gamma = settings.data() + kSettingGammaFirst;
-                float r = gamma[0].value * kGammaScale - 1.0f;
-                float g = gamma[1].value * kGammaScale - 1.0f;
-                float b = gamma[2].value * kGammaScale - 1.0f;
-                g_sceneRenderer.SetGamma(r, g, b);
+            } else if (definitionId == kSettingBrightness || definitionId == kSettingGamma) {
+                float brightness = settings[kSettingBrightness].value * kGammaScale - 1.0f;
+                float gamma = settings[kSettingGamma].value * kGammaScale - 1.0f;
+                g_sceneRenderer.SetGamma(brightness, gamma);
             }
         }
         if (settings[i].spin && settings[i].spin->TakeChanged()) {
             const int value = settings[i].spin->Value();
             settings[i].value = value;
             int definitionId = settings[i].definition->id;
-            if (definitionId >= 7) {
-                if (definitionId <= 9)
-                    shadowsChanged = true;
-                else if (definitionId == 0x18)   // the sound system's pan switch
-                    g_clientWorld.sounds->panDirect = value != 0;
-            }
+            if (definitionId == kSettingShadows)
+                shadowsChanged = true;
+            else if (definitionId == kSettingReverseStereo)   // the sound system's pan switch
+                g_clientWorld.sounds->panDirect = value != 0;
         }
     }
 }

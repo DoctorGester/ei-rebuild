@@ -1,6 +1,5 @@
 # R25: the user's Rebirth save "ShadowCorrupt" (tests/saves/shadow_corrupt, prepared by tools/copy_save.py): the
-# town bz1g at the camera distance the save holds, flora shadows on (the user's setting, switched on in the
-# options window as render_shadows_mound does). Loading it opens the town's briefing screen (the base view, no
+# town bz1g at the camera distance the save holds, shadows on (the default). Loading it opens the town's briefing screen (the base view, no
 # battle screen). There the soldier under the hide-on-frame sign stood in a shadow with cell-sized squares
 # and straight cuts that crawled while the sun turned the map's texels across the ground (the user's
 # shimmer): the receivers read the map's depth range per 16 x 16-texel cell, so the filter's radius and
@@ -21,23 +20,6 @@ console thingamabob
 load save2
 waitwindow 30 briefing
 frames 30
-key esc
-waitwindow 10 escmenu
-move 395 260
-click 395 260
-waitwindow 10 options
-clickregion 2
-frames 5
-key down
-frames 3
-key down
-frames 3
-key enter
-frames 3
-moveregion 0
-frames 3
-clickregion 0
-waitwindow 10 briefing
 wait 1500
 move 400 20
 frames 5

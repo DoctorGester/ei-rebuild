@@ -117,7 +117,7 @@ void LoadSystemMessages(std::vector<std::string>& messages) {
 std::string Tail(const std::string& argument, int prefixLength) { return str::Right(argument, static_cast<int>(argument.size()) - prefixLength); }
 
 // The command line: "-moviepath_<folder>" (the client's WorldClientFlag::MoviePathOption off), "-nocam" (NoCamOption
-// off; only while not RecordingCamera), a ".cam", ".scr", ".mob" or ".mpr" file and "-devicetarget_<driver>". (The
+// off; only while not RecordingCamera), a ".cam", ".scr", ".mob" or ".mpr" file. (The
 // original's "-benchmark_<frames>" set statistics nothing reads; it is ignored.)
 void ReadCommandLine(const char* commandLine) {
     std::vector<std::string> arguments = text::Split(commandLine, ' ');
@@ -126,7 +126,6 @@ void ReadCommandLine(const char* commandLine) {
     g_commandLineMob.clear();
     g_commandLineMap.clear();
     WorldClient* client = &g_clientWorld;
-    GameOptions* options = &options::g_options;
     for (std::size_t i = 0; i < arguments.size(); ++i) {
         if (str::Find(arguments[i], "-moviepath_") == 0) {
             client->flags &= ~WorldClientFlag::MoviePathOption;
@@ -154,9 +153,6 @@ void ReadCommandLine(const char* commandLine) {
             g_commandLineMob = arguments[i].c_str();
         } else if (str::Find(arguments[i], ".mpr") != -1) {
             g_commandLineMap = arguments[i].c_str();
-        } else if (str::Find(arguments[i], "-devicetarget_") == 0) {
-            std::string driver = Tail(arguments[i], 14);
-            options->driverIndex = str::ToInt(driver);
         }
     }
 }
@@ -217,7 +213,7 @@ void CreateRenderer() {
     camera->localPosition.y = options->cameraDefaultYDeploy;
     camera->localPosition.z = options->cameraDefaultHeight;
     g_sceneRenderer.CreateRenderer(g_mainWindow, options);
-    g_sceneRenderer.SetGamma(options->brightness, options->contrast, options->gamma);
+    g_sceneRenderer.SetGamma(options->brightness, options->gamma);
 }
 
 // The sound opened (44.1 kHz, 16 bits) with its music folder, wave archives and volumes.
@@ -480,7 +476,7 @@ void ShutDown() {
     DirectInputMouse* mouse = g_mouse;
     g_mouse = nullptr;
     if (mouse) ReleaseMouse(mouse);
-    g_sceneRenderer.SetGamma(0.0f, 0.0f, 0.0f);
+    g_sceneRenderer.SetGamma(0.0f, 0.0f);
     g_sceneRenderer.DestroyRenderer();
     options::g_options.Save();
     g_clientWorld.SetCamera(nullptr);
@@ -567,7 +563,7 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
     g_interface.Create(g_sceneRenderer.device);
     g_mapDatabase.LoadAll();
     StartFirstMap();
-    g_sceneRenderer.SetGamma(options->brightness, options->contrast, options->gamma);
+    g_sceneRenderer.SetGamma(options->brightness, options->gamma);
 
     const int result = RunMainLoop();
     ShutDown();

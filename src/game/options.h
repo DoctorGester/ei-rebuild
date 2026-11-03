@@ -25,13 +25,26 @@ struct CameraShortcutOptions {
     float angle;
     float pitch;
 };
-// A light's colour (0..1; the settings file holds 0..255) and radius.
+// A light's colour (0..1) and radius.
 struct LightOptions {
     float red;
     float green;
     float blue;
     float radius;
 };
+
+// What the settings used to hold and no longer do: the values the game always runs with.
+inline constexpr float kOver255 = 1.0f / 255.0f;   // (0x3B808081)
+inline constexpr float kObjectsLightingCoeff = 2.0f;   // the sun's and the lights' strength on units, buildings and trees
+inline constexpr LightOptions kHeroLight = {216.0f * kOver255, 216.0f * kOver255, 116.0f * kOver255, 5.0f};
+inline constexpr LightOptions kQuestLight = {120.0f * kOver255, 72.0f * kOver255, 120.0f * kOver255, 5.0f};
+inline constexpr float kFogNightStartDistance = 50.0f;
+inline constexpr float kFogDayStartDistance = 90.0f;
+inline constexpr int kLightingPeriod = 10000;        // milliseconds between blood stains' re-lighting
+inline constexpr float kDefaultWindForce = 0.4f;     // the strongest wind a map may have
+inline constexpr int kDefaultTimeScale = 60;         // the day and night clock: bigger is slower
+inline constexpr const char* kDefaultMapName = "Zone1.mpr";
+inline constexpr const char* kDefaultStreamingSound = "melody.mp3";
 
 // The whole object; the settings file's value names in comments (a member named after its value is not commented).
 // The sections: options.cpp's tables.
@@ -48,37 +61,19 @@ public:
 
     std::string workPath;           // Work path
     std::string resourcesPath;      // Resources path
-    int driverIndex;                 // DrawingTarget: the Direct3D driver (-1: the first hardware one)
     int resolutionX;                 // VideoResolution
     int resolutionY;
-    int colourDepth;                 // VideoColorDepthInBits
     int fullScreen;                  // FullScreen
     int video;
     int audio;
     int audioStreaming;
     int audioSfx;
     int audioSpeech;
-    int specular;                    // Specular
-    int textureQuality;              // TextureQuality
-    int mipmapping;                  // Mipmapping (cleared when the driver has no mipmaps)
-    int filtering;                   // Filtering: 0 point, 1 / 2 linear
     float brightness;
-    float contrast;
     float gamma;
     int reverseStereo;               // "Reverse Stereo"
-    int shadowQuality;
-    int unitShadow;
-    int buildingShadow;
-    int floraShadow;
-    int shadowLightingFreq;          // LightingFreq of the shadow settings
-    int floraSpecialLight;
+    int shadows;                     // Shadows: every shadow on or off
     float borderFogDistance;
-    int enableWaterWaves;
-    int enableSelfShadowing;
-    int enableFootprints;
-    int enableBloodprints;
-    int enableFireprints;
-    int enableBloodprintsRelight;
     float cameraFlipX;               // CameraFlipXAxis: -1 or 1
     float cameraFlipY;
     float cameraMinHeight;
@@ -109,26 +104,16 @@ public:
     float cameraDefaultMaxPitch;
     float nearClipDistance;
     float farClipDistance;           // FarClipDistance
-    float defaultWindForce;
-    int defaultTimeScale;
     int selectionType;
-    int drawVisibleOnly;
+    int drawVisibleOnly;             // not a setting: 1 draws only the units the party sees (the spectator switch turns it off)
     int drawPath;
     int drawFlyingHp;                // DrawFlyingHP
     int showTutorial;
     int autosave;
     float toolTipTime;               // "ToolTip Time"
     int switchFilters;
-    int keyboardLayout;              // "Keyboard Layout"
-    float objectsLightingCoeff;
-    LightOptions heroLight;
-    LightOptions questLight;
     int difficulty;                  // "Difficulty Level"
     int difficultyStored;            // the same value: the one that is written back
-    std::string defaultMapName;
-    std::string defaultStreamingSound;
-    float fogNightStartDistance;
-    float fogDayStartDistance;       // FogDayStartDistance
     std::string masterServerName;   // "Master Server Name"
 };
 // The game's options (options_construct.cpp).

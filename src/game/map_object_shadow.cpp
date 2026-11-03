@@ -27,11 +27,6 @@
 
 namespace {
 
-int ShadowSwitch(ClassId classId) {
-    if (classId == ClassId::Unit) return options::g_options.unitShadow;
-    if (classId == ClassId::Tree) return options::g_options.floraShadow;
-    return options::g_options.buildingShadow;
-}
 constexpr Vector3 kDefaultLight = /*007AF230*/ {};   // a static initialiser: zeros
 constexpr int kTypePointLight = 0x31;
 constexpr std::uint32_t kFlagRefresh = 8;           // this->flags: fit the shadow's sphere again
@@ -170,8 +165,7 @@ void FitShadowSphere(Object3DClientSpecific* self) {
 // --- The shadow -------------------------------------------------------------------------------
 
 std::optional<float> ShadowCastStrength(Object3D* object) {
-    if (options::g_options.shadowQuality <= 0) return std::nullopt;
-    if (!ShadowSwitch(object->GetClassId())) return std::nullopt;
+    if (!options::g_options.shadows) return std::nullopt;
     if (object->flags & (MapObjectFlag::Hidden | MapObjectFlag::NotDrawn)) return std::nullopt;
     if (object->InvisibleSlot()) return std::nullopt;
     if (Unit* unit = UnitOrNull(object)) return unit->ClientController()->fadeIn;

@@ -137,13 +137,9 @@ public:
     void SetMaterialsLit(bool lit);
     void SetLit(bool lit) override;
     void Unused25(int) override {}
-    // Whether shadows are drawn for the object's kind: the option above 0 and the switch of its class (units,
-    // class 0x52, others each have one). With shadows off only the low byte is cleared (the original's XOR
-    // AL, AL on the setting's value).
-    std::uint32_t ShadowsShown();
     // Drops the shadow's sphere (the next draw fits it again).
     void ClearShadow();
-    // Whether the shadow can be seen: shadows are on for the kind and the half is flagged 0x20 or its sphere,
+    // Whether the shadow can be seen: shadows are on and the half is flagged 0x20 or its sphere,
     // moved to the object, is not outside the view (not fitted yet: listed).
     bool ShadowInView();
 

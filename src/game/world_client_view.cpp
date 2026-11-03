@@ -37,7 +37,6 @@ void PushBack(std::vector<MapObject*>& v, MapObject* const& value) {
 }
 
 const int& g_multiplayerView = options::g_options.drawVisibleOnly;
-const int& g_modelTouchDelay = options::g_options.shadowLightingFreq;
 
 // Pushes `matrix` on the pipeline's stack `index` (multiplied onto its top).
 void PushStackMatrix(TransformPipeline* device, int index, const float* matrix) {
@@ -199,7 +198,7 @@ int WorldClient::CollectVisible(MapObject* object, const Matrix4* view, float an
                 PushBack(g_shadowOther, entry);
                 break;
             }
-            if ((object->flags & MapObjectFlag::Stationary) && now - ModelOf(object)->touchTime > static_cast<std::uint32_t>(g_modelTouchDelay)) {
+            if ((object->flags & MapObjectFlag::Stationary) && now - ModelOf(object)->touchTime > static_cast<std::uint32_t>(options::kLightingPeriod)) {
                 PushBack(g_touchedModels, entry);
                 ++touched;
             }

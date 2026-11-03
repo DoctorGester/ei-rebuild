@@ -394,8 +394,7 @@ struct TerrainCacheInfo {
 TerrainCacheInfo TerrainCacheState();
 
 // A figure part lit on the GPU as 3DfpFPU's LightMesh lit its words (renderer.md section 13). Lights
-// and sun are taken into the part's model space; `crown`: the colours pulled 0.6 of the way to the part's
-// average (the flora's "crown" meshes).
+// and sun are taken into the part's model space.
 struct MeshLightSource {
     Vector3 position;              // the landscape's space
     float inverseRangeSquared;
@@ -412,7 +411,6 @@ struct MeshLighting {
     float diffuseColour[4];        // the material's
     float emissiveColour[3];
     float coefficient;             // the options' objects lighting coefficient (Light::SetLitColors)
-    bool crown;
     const MeshLightSource* lights;   // the lights within the object's reach (its draw's list)
     int lightCount;
 };

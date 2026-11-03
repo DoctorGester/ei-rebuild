@@ -234,7 +234,9 @@ void HandOverSceneLights(WorldClient* world) {
 
 void HandOverTerrainCasters(WorldClient* world) {
     terrain::Terrain* terrain = world->terrain;
-    if (!terrain || !terrain->mapLoaded || !lib::Has(terrain->landscapeFlags, terrain::LandscapeFlag::SunShadows) || terrain->sectorGrid.empty()) return;
+    if (!options::g_options.shadows || !terrain || !terrain->mapLoaded ||
+        !lib::Has(terrain->landscapeFlags, terrain::LandscapeFlag::SunShadows) || terrain->sectorGrid.empty())
+        return;
     render::ShadowCasterRect area;
     if (!render::ShadowTerrainArea(terrain->heightRange, &area)) return;
     constexpr float kSector = 32.0f;   // vertices a sector side, one unit apart
@@ -253,7 +255,7 @@ void HandOverTerrainCasters(WorldClient* world) {
 
 void HandOverOutsideCasters(WorldClient* world) {
     const std::uint32_t flags = world->flags;
-    if (!(flags & WorldClientFlag::DrawShadows) || !(flags & (WorldClientFlag::DrawObjects | WorldClientFlag::DrawUnits)) ||
+    if (!options::g_options.shadows || !(flags & (WorldClientFlag::DrawObjects | WorldClientFlag::DrawUnits)) ||
         !world->terrain)
         return;   // no shadows, no objects drawn
     const SectorGrid& grid = world->objectGrid;
