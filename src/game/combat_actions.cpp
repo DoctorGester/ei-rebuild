@@ -63,14 +63,8 @@ void PlayerMessage(PlayerServer* messages, Unit* unit, AckKind kind) {
 }
 
 void UnitServer::DropQueuedOrder() {
-    action2.kind = UnitOrderKind::None;
-    action2.target.Reset();
-    action2.pointIsUseSpot = false;
-    action2.param = 0;
-    action2.modifier = 0;
+    action2.Reset();
     action2.kind = UnitOrderKind::Idle;
-    action2.target.Reset();
-    action2.modifier = 0;
 }
 
 void UnitServer::FinishAction(int location) {
@@ -332,7 +326,7 @@ void UnitServer::UseSkill(MapObject* target) {
     float theirs = 0;
     if (other) theirs = other->ServerController()->stats.AttributeWithItems(0, other);
 
-    kCombatLog << "Unit" << static_cast<long>(unit->id) << " is using skill ";
+    kCombatLog << "Unit " << static_cast<long>(unit->id) << " is using skill ";
     const char* name;
     switch (skill) {
     case UseSource::Use: name = "science"; break;
@@ -350,10 +344,10 @@ void UnitServer::UseSkill(MapObject* target) {
     AckKind message;
     switch (skill) {
     case UseSource::Use: {
-        LockKey record = {1, 0, 0};
+        if (!target) return;
         auto* items = world->ItemFactory();
         Item* studied = FindItem(items, action.param);
-        record = {1, 0, 0};
+        LockKey record = {1, 0, 0};
         if (studied && studied->GetUse().mask != 0) record = studied->GetUse();
         record.level += lib::RoundEven(mine);
         if (target->ApplyScience(&record, unit)) return;

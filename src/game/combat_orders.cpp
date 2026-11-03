@@ -196,9 +196,8 @@ void UnitServer::OrderCastAt(std::uint32_t source, const Vector3& point, int run
     if (source & kQuickItemSource) {
         std::uint32_t slot = source & ~kQuickItemSource;
         auto* item = unit->GetQuickItem(slot);
-        if (item && item->GetClassId() == ClassId::ItemQuick &&
-            (item->GetCategory() == QuickItemCategory::Wand || item->GetCategory() == QuickItemCategory::Potion) &&
-            item->GetCategory() == QuickItemCategory::Potion) {
+        // A potion acts at once (the original's test names wands too, then wants a potion).
+        if (item && item->GetClassId() == ClassId::ItemQuick && item->GetCategory() == QuickItemCategory::Potion) {
             WorldServer* world = ServerWorld();
             auto* scroll = unit->GetQuickItem(slot);
             if (!scroll || !scroll->count) return;

@@ -494,6 +494,7 @@ bool UnitServer::TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) {
     // |attackRoll| below FLT_MAX: not resolved yet.
     float roll = std::bit_cast<float>(std::bit_cast<std::uint32_t>(hit->attackRoll) & 0x7FFFFFFFu);
     EI_NAN_AUDIT(roll);
+    const float rolled = hit->attackRoll;   // logged as rolled, before ResolveHit marks it resolved
     if (roll < kHitMark) ResolveHit(hit, attacker);
     if (!dead) {
         world->AddToUpdateMap(unit);
@@ -502,7 +503,7 @@ bool UnitServer::TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) {
         } else {
             kCombatLog << "Unit " << static_cast<long>(unit->id) << " was attacked by xz";
         }
-        kCombatLog << " skill=" << hit->attackRoll;
+        kCombatLog << " skill=" << rolled;
         float amount = hit->amount;
         kCombatLog << " damage=" << amount;
         if (hit->backstabFactor > 1.0f) {

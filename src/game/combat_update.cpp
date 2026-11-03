@@ -481,12 +481,12 @@ bool UnitServer::ActionInReach() {
         Spell* spell = SpellOfSource(action.source);
         if (!spell) return false;
         if ((spell->targetFlags & SpellTargetFlag::AtPoint) == 0) return false;
-        // Original bug kept: with no target this reads the target's vtable (null).
     } else if (target->IsDead() != 0) {
         if (kind != UnitOrderKind::Use) return false;
         if (action.Skill() != UseSource::SearchBody && action.Skill() != UseSource::Use) return false;
     }
-    Vector3 at = target->PositionAt(currentPlan.endTime);
+    // A cast at a point whose target is gone measures to the order's point.
+    Vector3 at = target ? target->PositionAt(currentPlan.endTime) : action.AimPoint();
     float distanceSq = DistanceSquaredXY(at, unit->localPosition);
     EI_NAN_AUDIT(distanceSq, currentPlan.rangeSq);
     return distanceSq < currentPlan.rangeSq;   // closer

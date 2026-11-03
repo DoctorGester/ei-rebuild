@@ -509,21 +509,8 @@ void UnitServer::ReportPath(AIPath* path, char partial) {
 // --- Resync with the unit ---------------------------------------------------------------------
 
 void UnitServer::ResyncWithUnit() {
-    action.kind = UnitOrderKind::None;
-    action.target.Reset();
-    action.pointIsUseSpot = false;
-    action.param = 0;
-    action.modifier = 0;
-    if (action.kind != UnitOrderKind::Idle && action2.kind != UnitOrderKind::Animation && action2.kind != UnitOrderKind::Emote) {   // the first is always true
-        action2.kind = UnitOrderKind::None;
-        action2.target.Reset();
-        action2.pointIsUseSpot = false;
-        action2.param = 0;
-        action2.modifier = 0;
-        action2.kind = UnitOrderKind::Idle;
-        action2.target.Reset();
-        action2.modifier = 0;
-    }
+    action.Reset();
+    if (action2.kind != UnitOrderKind::Animation && action2.kind != UnitOrderKind::Emote) DropQueuedOrder();
     RecordFromMode(&moveMode, unit->moveMode);
     RecordFromMode(&moveMode2, unit->moveMode2);
     motion.Clear();
@@ -536,7 +523,6 @@ void UnitServer::ResyncWithUnit() {
     unit->pendingWeapon = 0;
     if (unit->pendingWeapon != static_cast<int>(unit->activeWeapon))
         unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(unit->pendingWeapon));
-    if (state == UnitState::Turning) return;
     std::uint32_t key = WeaponTypeMask() | MoveModeMask(&moveMode);
     if (idleKey == key) {
         idleAnimation.extra = -1;
