@@ -7164,6 +7164,14 @@ model = "sonnet"
 note = "User 2026-11-03: do we still need EI_NAN_AUDIT? No. It marks 403 comparisons (132 files) whose result changes for a NaN, where the original counted NaN as equal and less, and logs the first NaN per site in harness and debug builds (CMakeLists.txt EI_NAN_AUDIT_LOG). Its reason was matching game.exe's NaN results; since H40 the goldens are our own and C76 removed the x87 rules, so nothing depends on the original's NaN behaviour, and the log is noisy (PL15 saw it fire on uninitialised UnitMotion::segmentStart/End). Delete the macro, its header and every call, the EI_NAN_AUDIT_LOG definition, and the docs' rule (rewrite-guide.md 8, float-maths.md, cleanup-tooling.md). Keep (or add) a real guard only where a NaN could hang a loop or index an array; list those. Optional: one NaN check in the harness's digest (a NaN in a unit's position or vitals fails the run) instead of 403 site checks. Goldens the same."
 
 [[ticket]]
+id = "C81"
+title = "Settings pruned for the modern renderer"
+group = "cleanup"
+model = "sonnet"
+files = ["src/game/settings_catalog.inc", "options code", "docs/settings.md"]
+note = "User 2026-11-03 approved the settings audit in full. Drop: DrawingTarget, VideoColorDepthInBits, Specular, Mipmapping (always on), TextureQuality (always full), Filtering (Anisotropy stays), EnableBloodprintsRelight + LightingFreq (always re-light), DrawVisibleOnly, Keyboard Layout, CD2 Label (or leave that one to C79 if it is still running). Collapse ShadowQuality, HeroShadow, UnitShadow, BuildingShadow, FloraShadow, OtherShadow, EnableSelfShadowing (and ShadowingFreq if it only paces those) into one Shadows on/off. Brightness/Contrast/Gamma: keep Gamma and Brightness, drop Contrast. Also always on, toggles removed (user): EnableFootprints, EnableBloodprints, scorch/fire marks, EnableWaterWaves. Move to code constants: ObjectsLightingCoeff (2), Hero Light RGB 216/216/116 r5, Quest Light 120/72/120 r5, FloraSpecialLight (false), FogNightStartDistance 50, FogDayStartDistance 90, DefaultWindForce 0.4, DefaultTimeScale 60, DefaultMapName Zone1.mpr, DefaultStreamingSound melody.mp3 (same in vanilla and Rebirth ei_settings.ini). Exception: BorderFogDistance is 32 in vanilla and 16 in Rebirth, so it is not a plain constant; take it from wherever the Rebirth profile lives, or keep it as a setting, and say which. Keep: VideoResolution, FullScreen, Video, VSync, Msaa, Anisotropy, PerfOverlay, sound volumes, EnableDynamicLights if it is real. Delete the code paths behind each dropped value (the off branches), not only the keys; an old ini with a removed key loads silently. Options screen: remove the controls for dropped keys. Regenerate docs/settings.md (tools/gen_settings_doc.py). Goldens the same, or re-record with --reason where a scenario set a removed key (say which)."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
