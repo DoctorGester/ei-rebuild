@@ -6049,6 +6049,14 @@ group = "native-ui"
 note = "User 2026-10-29 screenshots. (1) Briefing (ui_scroll_text.cpp, justified, align 2 as in the original): the first line of a paragraph can stop well short of the right edge while others are stretched with huge gaps; the gap divides by the token count including format tokens (end - begin - 1), so a line holding a colour/font token gets one gap too many; check against the original's layout (same text, game.exe) and decide: keep the justification but count only words, and do not stretch lines whose gaps would exceed about twice the normal word gap (leave them left aligned) unless the original does the same. (2) Help screen (hint window, e.g. Features / quest help): the text block sits left of centre, the left margin smaller than the right; check the original's margins and centre the block. (3) Behind the help window a line at the top of the screen shows mojibake (cp1251 bytes drawn as UTF-8 or the reverse: 'Р'Р...'); find which text that is (zone name / objective / console) and fix its conversion (UTF-8 always, C34). Goldens unchanged."
 
 [[ticket]]
+id = "P9"
+title = "UI drawn each frame: no per-window canvases, no pixel formats, no readbacks"
+group = "native-ui"
+model = "opus"
+depends = ["R43"]
+note = "User 2026-11-03: is the UI canvas caching needed; can UI rendering be simpler? Today every window surface (UiSurface, 45 files) owns a GPU render target (render_ui.cpp, 992 lines) that the game draws into when the window changes (Fill, FrameRect, Line, Pixel, GlyphRun, CopyFrame, Greyscale), quantised to a 16-bit screen format (Pack/TopBits, ScreenFormat), then blitted every frame; readers read GPU pixels back (PixelAt 4 files, Rgb565Copy 4), SwapContents/MoveCanvas move canvases between holders, R44's Resize stretches them. The UI is a few hundred quads and glyphs a frame, so caching buys nothing. Plan: (1) each surface keeps its draw commands as a display list (rebuilt when the window draws, as today) and the frame replays every list straight into the back buffer at the current screen size: no render targets, no format quantisation (renderer upgrades replace the old look), Resize/R46's stretching gone (re-layout at the new size); (2) PixelAt/Rgb565Copy readers replaced by what they really ask (hit tests on geometry, the minimap's colours from data), CaptureScreen/Greyscale as a frame copy + a shader pass; (3) SwapContents/MoveCanvas reduced to swapping lists, the canvas API deleted. Frames differ (no 565 banding): captures and ui_check re-baselined, digests the same. Report render_ui before/after and frame time on ui-heavy scenes. After R43 (written against the chosen graphics API)."
+
+[[ticket]]
 id = "S23"
 title = "One game exe: the game linked into the exe, the harness its own DLL"
 group = "standalone"
