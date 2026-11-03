@@ -7448,5 +7448,12 @@ id = "PL19"
 title = "macOS build and release: universal .app on SDL_GPU's Metal"
 group = "port"
 model = "opus"
-depends = ["R43"]
-note = "User 2026-11-03. Waits on the SDL_GPU port (macOS has only OpenGL 4.1; R43's plan gives the port tickets, add them here as depends). A universal (arm64 + x86_64) ei-rebuild.app with the game folder from a picker or EI_GAME_ROOT (an .app can't sit inside the game folder), built on a macos-14 runner in release.yml's matrix, zipped or in a .dmg. Unsigned at first (players right-click Open or clear the quarantine flag); signing and notarisation need an Apple Developer account, the user's call."
+depends = ["MAC4"]
+note = "User 2026-11-03. Waits on the SDL_GPU port (macOS has only OpenGL 4.1; R43's plan gives the port tickets, add them here as depends). A universal (arm64 + x86_64) ei-rebuild.app with the game folder from a picker or EI_GAME_ROOT (an .app can't sit inside the game folder), built on a macos-14 runner in release.yml's matrix, zipped or in a .dmg. Unsigned at first (players right-click Open or clear the quarantine flag); signing and notarisation need an Apple Developer account, the user's call.  2026-11-03: macos-port already runs on sokol's Metal backend, so the Mac release need not wait for SDL_GPU: after MAC4 it can ship on sokol Metal, and R43h later swaps the backend."
+
+[[ticket]]
+id = "MAC4"
+title = "macos-port merged into main"
+group = "port"
+model = "opus"
+note = "User 2026-11-03: the macos-port branch (Kirill, last 2026-11-01, b62d6e78d; 38 files +860/-116 over main at its merge base) already builds and runs the game natively on macOS: SDL3 + sokol's Metal backend (src/platform/metal/graphics_metal.mm), POSIX fixes, cursor and RMB camera fixes with two SDL cocoa patches (third_party/SDL), settings changes, tools/run_macos.py, docs/notes/macos.md. Main has moved 103 commits since (C70 x64 only, PL15 platform.h trim and SystemPath, C77 include/ dissolved, H48 launcher gone, PL17 GL present fix, the Bink fix done again on main). Merge it into main: resolve against PL15's file calls, keep the Metal backend until R43e replaces it with SDL_GPU (then graphics_metal.mm goes), check the settings changes against the user's intent (say what each does), Windows suites the same (149/5, 28/0), Linux build and ctest green. macOS itself cannot be built here: keep CMake's APPLE branch compiling by reading, and list what the user must check on the Mac."
