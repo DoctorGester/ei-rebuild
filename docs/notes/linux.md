@@ -46,6 +46,9 @@ cmake --build build/linux
   front-buffer read gives zeros on Mesa's software paths).
 - `port_shaders` (tools/shader_check): every HLSL program and its pipelines on SDL_GPU's Vulkan driver (lavapipe
   without a GPU), with `--require`: no Vulkan device fails.
+- `port_gpu` (tools/gpu_check): the renderer's SDL_GPU layer (src/render/gpu.cpp; renderer.md section 15c) on the
+  same driver: textures, buffers, draws in order, downloads, the upload ring, the swap chain on a small window of the
+  virtual display; `--require` as above.
 
 The Linux workflow (.github/workflows/linux.yml) runs them on GitHub's Ubuntu runner for every push.
 
