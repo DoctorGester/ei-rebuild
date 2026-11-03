@@ -1210,7 +1210,7 @@ public:
     // A click on the unit under the point, or a drag selecting the party units inside the box. Details:
     // docs/notes/ui.md, "Behaviour moved out of header comments".
     void LeftUp(int buttons, int x, int y) override;
-    // Also every frame from Draw. Details: docs/notes/ui.md, "Behaviour moved out of ui.h comments".
+    // Also every frame from Draw. Details: docs/notes/ui.md, "Behaviour moved out of header comments".
     void MouseMove(int buttons, int x, int y) override;
     // While a portrait click picks a player the portraits get it; else, when no panel took it, a press on
     // the view starts.
@@ -1219,7 +1219,7 @@ public:
     void Deactivate() override;
     // Rebirth's MPSpeedControl behind its flag. While a portrait click picks a player, Esc ends that; on a
     // network client Enter / Backspace go to the chat line. Otherwise Esc drops the pending action, else
-    // opens the escape menu; other keys run their action (docs/notes/ui.md, "Behaviour moved out of ui.h
+    // opens the escape menu; other keys run their action (docs/notes/ui.md, "Behaviour moved out of header
     // comments").
     void KeyDown(int key, int repeat, int flags) override;
     // Releases the order key of the key's action.
@@ -1231,7 +1231,7 @@ public:
     // line of the text "unit " + the prototype's name with spaces as '_'.
     std::string UnitName(Unit* unit);
     // A "q." player variable changed: a quest line to the top panel's text and the message log; the clock
-    // pulses. Details: docs/notes/ui.md, "Behaviour moved out of ui.h comments".
+    // pulses. Details: docs/notes/ui.md, "Behaviour moved out of header comments".
     void QuestVariable(std::string_view name, float value) override;
     // With exactly one living party unit selected the weapon bar, quick items, spell and action columns show
     // it, otherwise they are emptied; the pending action and highlights are cleared. Details:

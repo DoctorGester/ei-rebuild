@@ -1,4 +1,4 @@
-# Interface gallery, menus (ticket N4; docs/notes/ui-native.md, "N4: the gallery"): every window
+# Interface gallery, menus (ticket N4; docs/notes/ui-native.md, "The gallery"): every window
 # family reached from the main menu, each held still (freeze) and captured, for the native window
 # surfaces (P1-P8) and the per-surface diff (N3). Only menus, keys and clicks the original takes.
 # Frames: menu (the menu and its version line), options and options_keys (the option rows, spins,

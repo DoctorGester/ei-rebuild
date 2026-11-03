@@ -1,4 +1,4 @@
-# Interface gallery, the camp and the global map (ticket N4; docs/notes/ui-native.md, "N4: the
+# Interface gallery, the camp and the global map (ticket N4; docs/notes/ui-native.md, "The
 # gallery"): the inventory, trade and maker pages, held still (freeze) and captured. Frames:
 # camp_items (page 0: equipment, the item strip, the item description panel over a spell weapon),
 # camp_stats (page 0 with the statistics panel's row described), camp_levelup (page 1: the trade

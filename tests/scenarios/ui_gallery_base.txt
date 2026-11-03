@@ -1,4 +1,4 @@
-# Interface gallery, a base's dialogue (ticket N4; docs/notes/ui-native.md, "N4: the gallery"): the
+# Interface gallery, a base's dialogue (ticket N4; docs/notes/ui-native.md, "The gallery"): the
 # steps of ui_base_topic, held still (freeze) and captured. Frames: base (the base screen of bz1g,
 # the briefing window), base_topics (Smith's topics and "goodbye" after a click on him), base_phrase
 # (the dialogue's phrase text), base_rewards (after the phrases: the rewards). Smith's topic "M4"

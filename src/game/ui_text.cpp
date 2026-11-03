@@ -71,7 +71,7 @@ int UiSurface::DrawWrappedText(std::string_view text, const Rect* area, int maxL
 // (ui_font.h): the text laid out by DrawText's rules (render_text.h's Layout) and drawn as glyph runs on the
 // surface's canvas. Rebirth's WideScreen patches both (the rectangle scaled without the margin; the extent scaled
 // by the 4:3 part), which these reproduce for every window (ticket W2, screen_layout.h). See docs/notes/ui.md,
-// section 3, and docs/notes/ui-native.md, "P8 done".
+// section 3, and docs/notes/ui-native.md, "Fonts and metrics".
 
 namespace {
 constexpr std::uint32_t kShadowColour = 0x080808;
