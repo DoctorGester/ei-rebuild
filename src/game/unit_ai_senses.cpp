@@ -135,7 +135,7 @@ void AIViewer::See(Unit* self, AIMemory* memory) {
                 if (dead) continue;
                 EI_NAN_AUDIT(theirs->stats.conspicuity[2].current, ours->stats.perception[2].current, distance);
                 if (theirs->stats.conspicuity[2].current * ours->stats.perception[2].current <= distance) continue;
-                kAiLog << "using sense life ";
+                console::EndLine(kAiLog << "using sense life");
                 alive = true;
             }
         }

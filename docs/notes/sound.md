@@ -117,8 +117,7 @@ with fights the number of draws follows how far the stream got, i.e. the machine
 Visible behaviour of the original kept until the user decides (rewrite-guide rule 9; C84 triaged the list, with a
 recommendation per entry). Crashes, undefined behaviour and invisible bookkeeping are fixed, not listed.
 
-- Tick recomputes a restarted flat sound's level from its saved output level (0..127) as if it were the 0..100 base
-  volume: such sounds come back louder.
+None left.
 
 ## Movies
 

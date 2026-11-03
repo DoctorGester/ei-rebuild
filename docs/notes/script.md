@@ -135,8 +135,7 @@ recommendation per entry). Crashes, undefined behaviour and invisible bookkeepin
   way; `SetDiplomacy` maps NaN to neutral; flag commands treat NaN as zero. `Every` with no nested condition copies the
   constant argument as the result.
 - Parser: keyword prefixes split identifiers; `/**/` as one token does not close the comment; a For / ForIf whose header
-  fails still parses its body (usually "Wrong lexeme ,"); `LoadVariableDeclarations` returns 0 without an error when the
-  tokens run out; "In script %s should be at least one condtion" (sic) prints the qualified name.
+  fails still parses its body (usually "Wrong lexeme ,").
 - Runtime: `SetSpellAggression` (0x42) does nothing; a For counter is a global, so nested loops on the same counter
   overwrite it; `CreatePointLight` stops at the first free slot (two lights can share an id); `CreateLightning` appends
   without looking the id up (two bolts can share an id); `CreateParticleSource`'s id is FISTP-rounded.

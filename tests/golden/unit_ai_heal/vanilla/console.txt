@@ -119,5 +119,5 @@
   20
   10
   1
-  Unit 1000011214 was attacked by 1804 skill=-3.40282e+038 damage=7.93 destHL=RLeg
+  Unit 1000011214 was attacked by 1804 skill=-3.40282e+038 damage=12.42 destHL=LHand
   Delayed sound: Unit 1000011214 heard unit 1804 from 2.271138m distance

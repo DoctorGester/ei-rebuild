@@ -178,7 +178,6 @@ address,size,name,file
 007AF280,4,kFactorStatRange,src/game/unit_stats.cpp
 007AF2D0,12,kDefaultColour,src/game/torch_object.cpp
 007AF330,4,kFullTurn,src/game/unit_client_update.cpp
-007AF40C,4,g_squaredCallRadius,src/game/combat_actions.cpp
 007AFDB0,12,kOrigin,src/game/world_data.h
 007AFECC,4,g_guardKey,src/game/world_guard.cpp
 007AFED0,4,g_serverStamp,src/game/world_game.cpp

@@ -422,8 +422,8 @@ void UnitClientSpecific::PlayStepSounds() {
     if (action) sound = ActionSound(current, lastAnimationTime, now, 0).value_or(std::string());
 
     for (int step = 0; steps && step < kStepFrames; ++step) {
+        if (current->stepFrames[step] == 0) break;   // the list ends at its first 0
         int frame = static_cast<int>(current->stepFrames[step]) - 1;
-        if (frame == 0) break;
         if (!PassedFrame(frame, lastAnimationTime, now)) continue;
         if (!unit->HasEffect(SpellType::Silence)) {
             auto* world = ClientWorld();

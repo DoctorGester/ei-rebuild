@@ -27,11 +27,28 @@
   0
   0
   0
-  Unit 1000012714 was attacked by 1000011214 skill=3.40282e+038 damage=12.2753 destHL=RLeg
-  impaling passed damage = 12.2753 HL was crippled
+  Unit 1000012714 was attacked by 1000011214 skill=-3.40282e+038 damage=13.0941 destHL=RLeg
+  0
+  0
+  0
+  Unit 1000011214 was attacked by 1000012715 skill=-3.40282e+038 damage=8 destHL=Head!
+  Delayed sound: Unit 1000012714 heard unit 1000011214 from 1.835991m distance
+  Delayed sound: Unit 1000012714 call for help unit 1000012715 from 4.742870m distance
+  Unit 1000012714 was attacked by 1000011214 skill=3.40282e+038 damage=11.0919 destHL=RHand
+  impaling passed damage = 11.0919 HL was crippled
+  0
+  Unit 1000011214 was attacked by 1000012714 skill=3.40282e+038 damage=13.06 destHL=Body
+  slashing passed damage = 10.5725
+  0
+  0
+  Unit 1000012714 was attacked by 1000011214 skill=3.40282e+038 damage=12.9298 destHL=Body
+  impaling passed damage = 12.9298 HL was crippled
+  Unit 1000012715 sees unit 1000012714 from 3.73456m distance
+  Unit 1000012714 sees unit 1000012715 from 3.73456m distance
   Unit 1000012714 damaged to death
+  Unit 1000012715 sees corpse of unit 1000012714
+  Unit 1000012715 lost from sight unit 1000012714
   Unit 1000011214 sees corpse of unit 1000012714
   Unit 1000011214 lost from sight unit 1000012714
   1
-  Unit 1000012715 sees corpse of unit 1000012714
   1

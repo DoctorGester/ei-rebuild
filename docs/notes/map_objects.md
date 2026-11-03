@@ -79,11 +79,12 @@ recommendation per entry). Crashes, undefined behaviour and invisible bookkeepin
 
 - The client's stench sound tests the record's kind a second time after drawing the random number (always true); the
   timer runs 0x10 .. -1, so the period is 17 ticks.
-- RecomputeScale adds the net enlarge / shrink level to the strengthen level when enlarge or shrink is present
-  (strengthened + enlarged grows by 0.8) and leaves y alone for strengthen / weaken; heroes keep their height.
 - TakeHit always returns 1.
-- A source of an unknown type logs and uses 0x2013; feeble mind's start plays the bare "\start.wav" (its folder is
-  empty) even when `first` is set.
+- A source of an unknown type logs and uses 0x2013.
+
+By design (user 2026-11-03): RecomputeScale adds the net enlarge / shrink level to the strengthen level when enlarge or
+shrink is present (strengthened + enlarged grows by 0.8; strong units get wider) and leaves y alone for strengthen /
+weaken; heroes keep their height.
 
 Left for C84a (bookkeeping): Destroy3D only decrements the placed parts' counts while it releases the pending ones
 (CopyFigure's parts are uncounted copies; the ownership wants one rule).

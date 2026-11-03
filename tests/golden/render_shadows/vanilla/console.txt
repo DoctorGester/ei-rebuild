@@ -9,7 +9,8 @@
   Unit 1000000400 new motivation Player with power of 10
   Unit 1000000401 new motivation Player with power of 10
   Unit 1000000402 new motivation Player with power of 10
-  using sense life Unit 1000000403 sees unit 1000011214 from 7.78621m distance
+  using sense life
+  Unit 1000000403 sees unit 1000011214 from 7.78621m distance
   Unit 1000000403 new motivation Player with power of 10
   Unit 1000000404 new motivation Player with power of 10
   1

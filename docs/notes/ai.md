@@ -68,9 +68,5 @@ Visible behaviour of the original kept until the user decides (rewrite-guide rul
 recommendation per entry). Crashes, undefined behaviour and invisible bookkeeping are fixed, not listed.
 
 - Path smoother: the first-cell climb test is `<= 0`, the later ones `< 0`.
-- FindPath computes the fractional part of the snapped target twice from `targetX` (the second was presumably meant to
-  be `targetY`).
-- SnapTarget gives no cell when the unit already stands on the target cell with sameRegion (the original's step was 0 /
-  0 and every candidate failed; ours returns false at once). The target cell itself is never tried then.
 - LimitSteepCells clears the neighbour that broke the scan, or entry 4 of the offset table when none did.
 

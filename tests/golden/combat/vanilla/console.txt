@@ -28,8 +28,8 @@
   0
   0
   0
-  Unit 1000275419 was attacked by 1000011214 skill=3.40282e+038 damage=9.79718 destHL=LHand
-  impaling passed damage = 9.79718 HL was crippled
+  Unit 1000275419 was attacked by 1000011214 skill=3.40282e+038 damage=9.36907 destHL=LHand
+  impaling passed damage = 9.36907 HL was crippled
   Unit 1000275419 damaged to death
   Unit 1000011214 sees corpse of unit 1000275419
   Unit 1000011214 lost from sight unit 1000275419
@@ -44,34 +44,34 @@
   1
   Unit 1000275420 sees unit 1000275419 with peripheral vision
   Unit 1000275420 sees corpse of unit 1000275419
-  Unit 1000011214 was attacked by 1000275420 skill=-3.40282e+038 damage=9.22 destHL=RLeg
+  Unit 1000011214 was attacked by 1000275420 skill=-3.40282e+038 damage=12.92 destHL=RHand
   0
   0
   0
   0
   0
   0
-  Unit 1804 acknowledges with idleSound = AAn4XyU
   0
-  Unit 1000011214 was attacked by 1000275420 skill=3.40282e+038 damage=12.89 destHL=LHand
-  slashing passed damage = 10.4025
+  Unit 1000011214 was attacked by 1000275420 skill=3.40282e+038 damage=9.99 destHL=LHand
+  slashing passed damage = 7.50253
   1
-  28.1833
+  31.1413
   Unit 1000011214 was healed
   0
   0
   Delayed sound: Unit 1000011214 heard unit 1000275420 from 1.440063m distance
-  Unit 1000275420 was attacked by 1000011214 skill=-3.40282e+038 damage=9.96303 destHL=LLeg
+  0
+  Unit 1000275420 was attacked by 1000011214 skill=-3.40282e+038 damage=9.62691 destHL=LLeg
   0
   0
-  0
-  Unit 1000275420 was attacked by 1000011214 skill=3.40282e+038 damage=10.6088 destHL=RLeg
-  impaling passed damage = 10.6088 HL was crippled
+  Delayed sound: Unit 1000275420 heard unit 1000011214 from 1.440063m distance
+  Unit 1000275420 was attacked by 1000011214 skill=3.40282e+038 damage=13.1853 destHL=Body
+  impaling passed damage = 13.1853 HL was crippled
   Unit 1000275419 sees unit 1000011214 from 1.97454m distance
   Unit 1000275419 sees unit 1000275420 from 0.556578m distance
   Unit 1000275420 damaged to death
+  1
   Unit 1000011214 sees corpse of unit 1000275420
   Unit 1000011214 lost from sight unit 1000275420
-  1
   38.9066
   1

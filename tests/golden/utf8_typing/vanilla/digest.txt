@@ -702,7 +702,7 @@ client ticksRun 97
 cunit129 #place 60A34864
 cunit148 #place 783B5801
 cunit148 #unit 29178A0E
-@ 5 update 120 frame 35 tick 120 zone - hash 865BD57C n 68
+@ 5 update 120 frame 35 tick 120 zone - hash 1C85D2B9 n 68
 world tick 120
 world updates 120
 random isaac.count 219
@@ -713,10 +713,10 @@ random isaac.results 0xC3B976FE
 random isaac.memory 0x4195ABD6
 random crt.rand 0x9C4F9511
 obj2 #vitals 5151B000
-obj129 pos.x 35.7238312
-obj129 pos.y 31.2758331
+obj129 pos.x 35.7240295
+obj129 pos.y 31.2759705
 obj129 #ai 06347F77
-obj129 #place 3BC77EE2
+obj129 #place C050098B
 obj129 #vitals D67EC3B8
 obj148 pos.x 31.5257053
 obj148 pos.y 30.9051418

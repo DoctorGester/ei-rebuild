@@ -36,8 +36,8 @@ count and the action's moment come from the figure's animation database.
 ## The hit
 
 PrepareAttack decides backstab (attacker behind; not ranged, not against "cannot be backstabbed") and calls
-BuildAttackHit: damage weights; the attack roll (text-key units with a weapon use the CRT `rand()`: 2 * ((rand * 5 /
-32767) % 5) + 2 - 6, others the stats' attack times the difficulty factor); damage (the weapon's RollDamage, or damage +
+BuildAttackHit: damage weights; the attack roll (text-key units with a weapon draw ISAAC: 2 * (draw % 5) + 2 - 6,
+others the stats' attack times the difficulty factor); damage (the weapon's RollDamage, or damage +
 random % (spread * 100 + 1) * 0.01, scaled); the hit location (0 head, 1 body, 2 / 3 hands, 4 / 5 legs, 6 all); the
 backstab multiplier; called shot. The target's TakeHit resolves it unless the roll is already +-FLT_MAX: ResolveHit turns
 it into FLT_MAX (hit) or -FLT_MAX (miss): elemental hits always hit, else AttackRoll = max(0, 2r - (spread + 1) + attack
@@ -59,9 +59,9 @@ bonus, others their stats scaled by difficulty; no defence with a bow or crossbo
   ContinueAction (target alive and seen) -> ExecuteOrder -> PlanAction (steps through the ticks of a half turn plus 3 for
   the first moment the target (predicted for moving targets and missile spells) is in reach, the unit can turn in time
   and CanActFrom holds: AI units only within 1.05 times sight range, melee / skill orders not with a living unit in the
-  way, line of sight from the eye height). When it plans: the attack interval advanced, the hit built and resolved, the
-  action started; else ApproachTarget closes in (wait when in reach, else a path to where the target will be in 2..64
-  ticks).
+  way: 0.1..0.9 of the way along it and less than 0.3 metres to the side, not a bug; line of sight from the eye height).
+  When it plans: the attack interval advanced, the hit built and resolved, the action started; else ApproachTarget
+  closes in (wait when in reach, else a path to where the target will be in 2..64 ticks).
 - The animation code calls FinishAction(location) at the order's moment: kind 3 DeliverAttack (bows / crossbows: a
   missile 0x5B carrying the hit, a timed object; otherwise the target's ReceiveHit forwards the hit to its TakeHit at once;
   then the weapon's spell and a noise when the backstab multiplier is exactly 1.0), 4 / 5 FinishCast (a charged carrier
@@ -117,19 +117,18 @@ Visible behaviour of the original kept until the user decides (rewrite-guide rul
 recommendation per entry). Crashes, undefined behaviour and invisible bookkeeping are fixed, not listed.
 
 - Hit: the melee reach floor for two party units is 0x3E4CCCCE (0.20000002); GetAttackParams keeps the damage type when
-  the natural attack has no non-zero weight; BuildAttackHit's weapon branch rolls with `rand()`, the rest with ISAAC;
-  ResolveHit penalises every called-shot location except the body by 10 (including 6 and invalid); CanCast compares mana
-  only for units with a player.
-- Planning and steps: CanActFrom's "in the way" test divides by the squared distance; StartMove passes the goal's z as
-  the path range; ApproachTarget returns with the path flag cleared when the goal is under 0.1 away; PlanOrderRoute looks
-  up the spell of the current action, not of the planned order; FindUseSpot writes z = -1 into every order's point.
-- Orders and skills: UseSkill returns for skill 2 (tame) before its switch, so the tame order does nothing (TryTame is
-  reached nowhere else) and OrderTame compares the target's prototype field (not type) with 0x32; OrderMove stores its
-  fourth argument over the point's z; OrderCast ignores the aim point it asks for; OrderCastAt's at-once test names
-  wands but only lets potions through; WitnessMurder takes the diplomacy table from the unit's manager and the one it
-  changes from the controller's; PropagateHostility compares squared distance and radius as ints; SetMoveStyle sends
-  message 9 when the style fits (even the current one); StopAction always ends with the queued order of kind 0; boredom
-  draws ISAAC only past 500.
+  the natural attack has no non-zero weight; ResolveHit penalises every called-shot location except the body by 10
+  (including 6 and invalid); CanCast compares mana only for units with a player.
+- Planning and steps: ApproachTarget returns with the path flag cleared when the goal is under 0.1 away; FindUseSpot
+  writes z = -1 into every order's point.
+- Orders: OrderMove stores its fourth argument over the point's z; OrderCast ignores the aim point it asks for;
+  OrderCastAt's at-once test names wands but only lets potions through; WitnessMurder takes the diplomacy table from the
+  unit's manager and the one it changes from the controller's; SetMoveStyle sends message 9 when the style fits (even
+  the current one); StopAction always ends with the queued order of kind 0; boredom draws ISAAC only past 500.
+
+By design (user 2026-11-03): UseSkill returns for skill 2 (tame) before its switch, so the tame order does nothing
+(taming was cut from the original; TryTame is reached nowhere else) and OrderTame compares the target's prototype field
+(not type) with 0x32.
 
 ## Risks
 

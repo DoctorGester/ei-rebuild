@@ -193,8 +193,8 @@ struct PatrolPoint {
 class PatrolMode : public AIMode {
 public:
     PatrolMode() : AIMode(AIModeType::Patrol) {}
-    // kPriorityIdle; without points: FatalError "Unit %i has no patrol points, switching to guard" (which exits
-    // unless the Rebirth patch DisableExitOnCrashReport is on), a point at the unit's position, and kPriorityNone.
+    // kPriorityIdle; without points: FatalError "Unit %i has no patrol points, adding one at its position" (which
+    // exits unless the Rebirth patch DisableExitOnCrashReport is on), a point at the unit's position, and kPriorityNone.
     int Evaluate(AIBrain* brain) override;
     // When idle: on to the next point and its looks.
     void Execute(AIBrain* brain) override;

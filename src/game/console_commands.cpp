@@ -1,4 +1,4 @@
-// Console command handlers. Each gets the command's arguments, already lower-cased.
+// Console command handlers. Each gets the command's arguments as typed (keywords compare without case).
 // See docs/notes/console.md.
 #include "acks_db.h"
 #include "app.h"
@@ -16,7 +16,6 @@
 #include "world.h"
 #include "world_glue.h"
 
-#include "lib/calendar.h"
 #include "lib/containers.h"
 #include "platform/platform.h"
 #include "lib/str.h"
@@ -34,8 +33,10 @@ namespace {
 
 
 
-// Argument `i` equals `text` (_mbscmp).
-bool ArgIs(const std::vector<std::string>* args, int i, const char* text) { return str::Compare((*args)[i], text) == 0; }
+// Argument `i` equals `text`, without case.
+bool ArgIs(const std::vector<std::string>* args, int i, const char* text) {
+    return text::CompareIgnoringCase((*args)[i], text) == 0;
+}
 // "1"/"on" and "0"/"off".
 bool ArgOn(const std::vector<std::string>* args, int i) { return ArgIs(args, i, "1") || ArgIs(args, i, "on"); }
 bool ArgOff(const std::vector<std::string>* args, int i) { return ArgIs(args, i, "0") || ArgIs(args, i, "off"); }
@@ -81,10 +82,21 @@ void KickOrBan(std::vector<std::string>* args, int windowMode, int command) {
             return;
         }
     }
-    if (count != 1 || ArgIs(args, 0, "")) return;   // "" does nothing
+    if (count != 1) return;
     std::string name = (*args)[0];
-    if (name[0] == '"' && name[name.size() - 1] == '"') name = str::Mid(name, 1, static_cast<int>(name.size()) - 2);
+    if (name.size() >= 2 && name.front() == '"' && name.back() == '"') name = name.substr(1, name.size() - 2);
+    if (name.empty() || name == "\"") return;   // no name: nothing to send
     if (IsLive(net::g_gameClient)) net::g_gameClient->SendCommand(command, name);
+}
+
+// The day number of a date (days since 1970-01-01, any year; a day past the month's end runs into the next month).
+std::int64_t DaysFromCivil(int year, int month, int day) {
+    const int y = month <= 2 ? year - 1 : year;
+    const int era = (y >= 0 ? y : y - 399) / 400;
+    const int yearOfEra = y - era * 400;
+    const int dayOfYear = (153 * (month + (month > 2 ? -3 : 9)) + 2) / 5;
+    const int dayOfEra = yearOfEra * 365 + yearOfEra / 4 - yearOfEra / 100 + dayOfYear;
+    return static_cast<std::int64_t>(era) * 146097 + dayOfEra - 719468 + (day - 1);
 }
 
 // rate / localrate: bytes per second, clamped to 500..100000.
@@ -238,8 +250,7 @@ void LastFps(std::vector<std::string>*) {
     EndLine(os << fps);
 }
 
-// Exec <file>: runs each line of the file as a console command. Quotes around the name
-// are trimmed (the message names the argument as given).
+// Exec <file>: runs each line of the file as a console command. Quotes around the name are trimmed.
 void Exec(std::vector<std::string>* args) {
     if (args->empty()) return PrintLine("usage: exec<ute> [input file name]");
     std::string name = (*args)[0];
@@ -247,7 +258,7 @@ void Exec(std::vector<std::string>* args) {
     str::TrimRight(name, '"');
     std::string bytes;
     if (!platform::ReadWholeFile(name, &bytes)) {   // "Cannot open file <name> for reading"
-        EndLine(g_consoleOut << "Cannot open file " << (*args)[0] << " for reading");
+        EndLine(g_consoleOut << "Cannot open file " << name << " for reading");
         return;
     }
     for (const std::string& line : str::Lines(bytes)) console::Execute(line);
@@ -371,7 +382,7 @@ void GenerateAcks(std::vector<std::string>*) {
     file.Close();
 }
 
-// Days ddmmyyyy DDMMYYYY: the days between two dates (06:00:00 and 07:01:01 local time).
+// Days ddmmyyyy DDMMYYYY: the days between two dates (06:00:00 and 07:01:01), counted on the calendar.
 void Days(std::vector<std::string>* args) {
     auto digits = [&](int i) {
         for (int k = 0; k < 8; ++k) {
@@ -388,15 +399,16 @@ void Days(std::vector<std::string>* args) {
             if (month >= 1 && month <= 12) {
                 int day = number(0, 0, 2);
                 if (day >= 1 && day <= 31) {
-                    const std::int32_t from = lib::MakeTime(year, month, day, 6, 0, 0);
+                    const std::int64_t from = DaysFromCivil(year, month, day);
                     int year2 = number(1, 4, 4);
                     if (year2 >= 1900) {
                         int month2 = number(1, 2, 2);
                         if (month2 >= 1 && month2 <= 12) {
                             int day2 = number(1, 0, 2);
                             if (day2 >= 1 && day2 <= 31) {
-                                const std::int32_t to = lib::MakeTime(year2, month2, day2, 7, 1, 1);
-                                int days = static_cast<int>((to - from) / 86400);
+                                const std::int64_t to = DaysFromCivil(year2, month2, day2);
+                                // 06:00:00 on the first date to 07:01:01 on the second, whole days.
+                                int days = static_cast<int>(((to - from) * 86400 + 3661) / 86400);
                                 EndLine(g_consoleOut << "Your age: " << days << " days");
                                 return;
                             }
@@ -412,7 +424,7 @@ void Days(std::vector<std::string>* args) {
         "DDMMYYYY - current date",
         "example:",
         "> days 25011978 01072000",
-        "Your age: 8192 days",
+        "Your age: 8193 days",
     };
     for (const char* line : kUsage) PrintLine(line);
 }

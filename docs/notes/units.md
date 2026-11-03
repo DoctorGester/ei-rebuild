@@ -139,18 +139,15 @@ ids collide with zone1's). AddMob's name is relative to the maps folder.
 Visible behaviour of the original kept until the user decides (rewrite-guide rule 9; C84 triaged the list, with a
 recommendation per entry). Crashes, undefined behaviour and invisible bookkeeping are fixed, not listed.
 
-- PlayStepSounds: a step frame of 1 ends the step list, so an entry 0 never matches.
-- GetQuickItem returns null for a party item whose count is not positive but the non-party path returns the slot as is.
-- RaiseSkill / RaiseAttribute store the level as a byte (wraps) but book the worth of the unwrapped sum; RaiseStrength
-  computes the maximum from the current strength.
-- DamageSlot logs "termical" (sic) and one line per damage type; ApplyHit wears the weapon by the part each damage type
-  the protection absorbed; IsBehind is never true without a player.
-- CastAtUnits returns without restarting the countdown when it finds no unit and changes the caller's list;
-  ChangeWeaponModel leaves the arrow flag when the new slot holds no weapon; UpdateVictims tests only x and y against the
-  circles while FindTrapVictims uses the sector map (a unit in two circles is found twice); a periodic trap whose
-  countdown reached 0 and found nobody searches again every tick; FindAnimation's last fallback gets the kind without the
-  movement substitution.
+- RaiseStrength computes the maximum from the current strength.
+- DamageSlot logs one line per damage type; ApplyHit wears the weapon by the part each damage type the protection
+  absorbed.
+- CastAtUnits returns without restarting the countdown when it finds no unit and changes the caller's list; a periodic
+  trap whose countdown reached 0 and found nobody searches again every tick; FindAnimation's last fallback gets the
+  kind without the movement substitution.
 - The lever's ApplyKey disables the lever it has just switched.
+
+By design (user 2026-11-03): IsBehind is never true without a player (NPCs never backstab players).
 
 Left for C84a (bookkeeping): AddWeapon / AddQuickItem / AddSpell return 1 when the item is already in any slot (1 is
 also slot 1) and AddSpell has no null check; UnitStats::Reset leaves some fields alone; name lookups insert unknown

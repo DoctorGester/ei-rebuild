@@ -254,12 +254,12 @@ int UnitClientSpecific::ShowWeapon(std::uint32_t slot) {
     }
     unit->activeWeapon = slot;
     weaponHidden = 0;
+    arrowHidden = 0;
     if (next != kNoItemId) {
         for (const std::string& name : WeaponModelParts(next >> 16)) {
             EngineObject* part = unit->LoadPart(name);
             if (part) unit->AttachPartMesh(part);
         }
-        arrowHidden = 0;
         std::uint32_t hand = WeaponIdOf(this, unit->activeWeapon);
         if (hand != kNoItemId && ::WeaponType(hand) == kWeaponBow) {
             if (EngineObject* arrow = unit->FindPart(kBowArrow)) {

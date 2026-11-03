@@ -266,7 +266,7 @@ bool Script::LoadScriptBody(ScriptDefinition* script, std::vector<ScriptToken>::
         ClassifyToken(text, &id, nullptr);
         if (id == kLexClose) {
             if (script->ifThen.empty())
-                return Error(this, token.line, 11, "In script %s should be at least one condtion", script->name);
+                return Error(this, token.line, 11, "In script %s should be at least one condition", script->name);
             return true;
         }
         if (id != kLexIf) {
@@ -334,7 +334,7 @@ bool Script::LoadVariableDeclarations(ScriptDefinition* script, std::vector<Scri
                                        bool qualify) {
     ScriptToken token;
     std::string name, typeName;
-    bool result = 0;
+    bool result = false;
     bool first = true;
     while (*pos != tokens->end()) {
         token = NextToken(pos, tokens);
@@ -375,6 +375,7 @@ bool Script::LoadVariableDeclarations(ScriptDefinition* script, std::vector<Scri
             return Error(this, token.line, 13, "Duplicate variable name %s", name);
         first = false;
     }
+    if (!result) return Error(this, LastLine(tokens), 1, "Unexpected end of file");
     return result;
 }
 

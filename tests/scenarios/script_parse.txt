@@ -101,7 +101,10 @@ expect Script error: Wrong lexeme x
 console @) Script PTestF()( if(GetLeader()) then( Sleep(1) )
 expect Script error: Function returning float expected
 console @) Script PTestE()(
-expect should be at least one condtion
+expect should be at least one condition
+# The tokens run out inside the parameter list.
+console @) Script PTestD( x : float
+expect Script error: Unexpected end of file
 console @) Script PTestI()( Sleep(1)
 expect Script error: expected if section
 console @) Script PTestJ()( if IsEqual(1,1)

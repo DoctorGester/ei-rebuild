@@ -35,8 +35,6 @@ constexpr float kSkillNoiseScale = 1.5f;
 
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
-// PropagateHostility's squared call radius: the original rounds it to a float through this global.
-float g_squaredCallRadius = /*007AF40C*/ {};
 constexpr int kMissileObject = 0x5B;                    // object factory kind of a missile
 
 Diplomacy* DiplomacyOf(WorldServer* world) { return &world->diplomacy; }
@@ -234,9 +232,7 @@ void UnitServer::PropagateHostility() {
     claimedHostile |= unit->relationsA;
     WorldServer* world = ServerWorld();
     float radius = brain.callRadius;
-    // The squared radius goes through a global and is compared as an int.
-    volatile float* limit = &g_squaredCallRadius;
-    *limit = radius * radius;
+    float squaredRadius = radius * radius;
     Diplomacy* diplomacy = DiplomacyOf(world);
     int side = unit->side;
     auto node = brain.memory.nearby.begin();
@@ -246,8 +242,8 @@ void UnitServer::PropagateHostility() {
         if (!diplomacy->IsAllied(side, other->side)) continue;
         Unit* self = unit;
         float distance = DistanceSquaredXY(other->localPosition, self->localPosition);
-        float squaredRadius = *limit;
-        if (!(std::bit_cast<std::int32_t>(distance) < std::bit_cast<std::int32_t>(squaredRadius))) continue;
+        EI_NAN_AUDIT(distance, squaredRadius);
+        if (!(distance < squaredRadius)) continue;
         std::uint32_t mine = self->relationsA;
         UnitServer* theirController = other->ServerController();
         std::uint32_t theirClaims = theirController->claimedHostile;

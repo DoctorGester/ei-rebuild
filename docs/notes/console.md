@@ -28,9 +28,10 @@ takes its trail byte. The first token is the command.
 - `@x`, `#x`, `$x` (cheat word given, not a network game): loads `WorldScript(x args)`, `WorldScript( ConsoleFloat(
   ... ))` or `WorldScript( ConsoleString( ... ))` into the mission script (one tick when it loaded) and prints `Script
   error: <text>` exactly when the script's file count did not grow.
-- Otherwise command and arguments are lower-cased; `quit` / `exit` quit; a public handler runs; without the cheat word
-  the command XOR 0x66 is compared with "thingamabob" (sets the flag, prints `Activated!`); with it the cheat map's
-  handler runs (not in a network game); anything else prints `Unknown command`.
+- Otherwise the command word is lower-cased (the arguments keep their case; handlers compare keywords without case);
+  `quit` / `exit` quit; a public handler runs; without the cheat word the command XOR 0x66 is compared with
+  "thingamabob" (sets the flag, prints `Activated!`); with it the cheat map's handler runs (not in a network game);
+  anything else prints `Unknown command`.
 - Public: console, lastfps, exec, execute, kick, ban, fps, rate, localrate. After the cheat word: help, history,
   filter, listvar, loadvar, give, fadeout, join, server, memusage, lootall, net, disconnect, generateacks, days,
   partyresend. DEBUGINFO and show are gone (they drove nothing): `Unknown command`. The goldens keep the original's
@@ -43,8 +44,5 @@ Visible behaviour of the original kept until the user decides (rewrite-guide rul
 recommendation per entry). Crashes, undefined behaviour and invisible bookkeeping are fixed, not listed.
 
 The cheat-word test XORs the command in place (a command containing 'f' gets a NUL inside; the stored word is cut the
-same way). Arguments are lower-cased too (file and player names). exec trims the quotes for opening but prints them in
-"Cannot open file". `fps` with neither 1 / on nor 0 / off does nothing. `days`: the help's example (25011978 to 01072000
-= 8192 days) is really 8193; dates before 1970 go through mktime's -1. Kick / ban with a lone `"` strip it to an empty
-name.
+same way). `fps` with neither 1 / on nor 0 / off does nothing.
 
