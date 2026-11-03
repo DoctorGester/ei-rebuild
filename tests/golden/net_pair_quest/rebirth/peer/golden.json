@@ -2,27 +2,12 @@
   "scenario": "net_pair_quest",
   "install": "rebirth",
   "recorded": "2026-11-03",
-  "commit": "5a707c594",
+  "commit": "bde8162fd",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C84b visible fixes: FindPath fraction from targetY, SnapTarget tries the target cell, weapon roll with ISAAC, in-the-way test with the plain distance, StartMove's range, trap victims once, script error text",
+  "reason": "C84b: Combat 10 reverted to the original arithmetic (not a bug); these scenarios move back from the first C84b recording",
   "side": "peer",
-  "source": "image",
-  "change": [
-    "digest: 142 of 695 records differ, first at record 393 (world update 7880, tick 7477, frame 1575, zone bz1mpg); outcomes the same; max unit move 0.0662 (obj469697, record 521)",
-    "  first difference at record 393 (world update 7880, tick 7477, frame 1575, zone bz1mpg): 4 fields",
-    "    obj469697 (80 unhufe \"\") pos.x: 65.3941727 in the old golden, 65.4554901 in the new run (d 0.0613)",
-    "    obj469697 (80 unhufe \"\") pos.y: 61.9470863 in the old golden, 61.9222145 in the new run (d 0.0249)",
-    "    obj469697 (80 unhufe \"\") #place: 3F31BE25 in the old golden, 8284C912 in the new run",
-    "    ... 1 more",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  units: 2 of 27 differ",
-    "    pos: 1 unit, 138 records, from 393; moved 0.0662 at obj469697 80 unhufe \"\", record 393",
-    "    mana: 1 unit, 1 record, from 692; max |d| 5.35 at obj1000011214 mana, record 692: 52.9112282 -> 47.5613632",
-    "  client units: 2 of 24 differ",
-    "    #place: 1 client unit, 141 records, from 393; hash only (no numbers kept)",
-    "... 2 more lines"
-  ]
+  "source": "image"
 }

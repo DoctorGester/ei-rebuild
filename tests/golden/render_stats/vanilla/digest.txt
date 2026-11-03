@@ -7974,7 +7974,7 @@ missile1 # A1F6AC4D
 aievents tick 1320
 client tick 1320
 client ticksRun 992
-@ 66 update 1340 frame 267 tick 1340 zone gz1g hash 06C4ED11 n 815
+@ 66 update 1340 frame 267 tick 1340 zone gz1g hash 5B3B4390 n 815
 world tick 1340
 world updates 1340
 world objects 790
@@ -8032,7 +8032,7 @@ obj1000000401 pos.x 52.8123932
 obj1000000401 pos.y 143.270798
 obj1000000401 pos.z 0.0
 obj1000000401 #ai 5A663CC1
-obj1000000401 #place 4AE5C636
+obj1000000401 #place DE855169
 obj1000000401 #unit 34AF6E11
 obj1000000401 #vitals 213B448F
 + obj1000000402 80 unanwiwo "F4"
@@ -8043,7 +8043,7 @@ obj1000000402 pos.x 52.5071373
 obj1000000402 pos.y 135.605408
 obj1000000402 pos.z 0.0
 obj1000000402 #ai 061C3676
-obj1000000402 #place DFC2CC31
+obj1000000402 #place 853C8CF2
 obj1000000402 #unit C52AE1E8
 obj1000000402 #vitals 213B448F
 + obj1000000403 80 unmogo "F5"

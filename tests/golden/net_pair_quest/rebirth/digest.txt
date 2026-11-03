@@ -37583,7 +37583,7 @@ cunit1000197 #place 11486A04
 cunit1000000013 #place 5F232357
 cunit1000000013 #unit 97079D32
 cunit1000000013 #vitals B955516F
-@ 258 update 5180 frame 1035 tick 4932 zone z9q2 hash C0FB4ECB n 1745
+@ 258 update 5180 frame 1035 tick 4932 zone z9q2 hash 85467B7B n 1745
 world tick 4932
 world updates 5180
 world updateMap 30
@@ -37624,13 +37624,13 @@ obj576908 #vitals 28130E93
 obj576909 #ai D6149BF9
 obj576909 #place DA71855E
 obj576909 #vitals 6700C589
-obj1000188 pos.x 16.6644688
-obj1000188 pos.y 271.902649
-obj1000188 #place 8028BE2D
+obj1000188 pos.x 16.6543579
+obj1000188 pos.y 271.908417
+obj1000188 #place 83E6EDDB
 obj1000188 #vitals 585C8FA9
 obj1000189 pos.x 39.9471664
 obj1000189 pos.y 265.647095
-obj1000189 #place 42A1C6F4
+obj1000189 #place D65882CA
 obj1000189 #vitals B88966B7
 obj1000190 #ai 64402DB7
 obj1000190 #vitals 585C8FA9

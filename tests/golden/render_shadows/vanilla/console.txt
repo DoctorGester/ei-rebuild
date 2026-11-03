@@ -22,23 +22,19 @@
   Unit 1000000402 sees unit 1000011214 from 4.35327m distance
   Unit 1000011214 sees unit 1000000402 from 4.2276m distance
   Unit 1000011214 was attacked by 1000000400 skill=-3.40282e+038 damage=9.2 destHL=RLeg
-  Unit 1000011214 was attacked by 1000000402 skill=3.40282e+038 damage=8.22 destHL=Head!
+  Unit 1000011214 was attacked by 1000000402 skill=-3.40282e+038 damage=9.22 destHL=RLeg
   Delayed sound: Unit 1000011214 heard unit 1000000402 from 4.620788m distance
   Unit 1000000400 hear delayed sound: Unit 1000000399 claims that player 0 are enemies! 
   Unit 1000000401 hear delayed sound: Unit 1000000399 claims that player 0 are enemies! 
   Unit 1000000402 hear delayed sound: Unit 1000000399 claims that player 0 are enemies! 
   Unit 1000000403 hear delayed sound: Unit 1000000399 claims that player 0 are enemies! 
   Unit 1000000404 hear delayed sound: Unit 1000000400 claims that player 0 are enemies! 
-  Delayed sound: Unit 1000011214 heard unit 1000000400 from 1.754037m distance
+  Delayed sound: Unit 1000011214 heard unit 1000000400 from 1.639392m distance
   Delayed sound: Unit 1000011214 heard unit 1000000402 from 4.227598m distance
-  Delayed sound: Unit 1000011214 heard unit 1000000400 from 1.754037m distance
-  Unit 1000011214 was attacked by 1000000399 skill=-3.40282e+038 damage=9.28 destHL=Body
+  Delayed sound: Unit 1000011214 heard unit 1000000400 from 1.639392m distance
   Delayed sound: Unit 1000011214 heard unit 1000000402 from 3.570141m distance
-  Delayed sound: Unit 1000011214 heard unit 1000000400 from 1.754037m distance
-  Delayed sound: Unit 1000011214 heard unit 1000000399 from 1.965374m distance
-  Delayed sound: Unit 1000011214 heard unit 1000000402 from 2.238729m distance
-  Delayed sound: Unit 1000011214 heard unit 1000000399 from 1.965374m distance
-  Delayed sound: Unit 1000011214 heard unit 1000000402 from 1.820305m distance
+  Delayed sound: Unit 1000011214 heard unit 1000000400 from 1.639392m distance
+  Unit 1000011214 was attacked by 1000000399 skill=-3.40282e+038 damage=11.4 destHL=Body
   Delayed sound: Unit 1000011214 heard unit 1000000401 from 4.033970m distance
   1
   Unit 1000000464 new motivation Player with power of 10
