@@ -87,20 +87,26 @@ bool MakeFont(UiFont& font, int size) {
 // The keyboard's language when the option's (a Windows language id) has no layout: English.
 constexpr std::uint32_t kEnglish = 0x409;
 
+// The three fonts sized to the screen's width and the layout's font scale; false (and the fatal error) when one has
+// no size.
+bool MakeFonts(UiFont (&fonts)[3], int width) {
+    // The scale: what a 75-point font is high here, in pixels / 100.
+    if (!MakeFont(fonts[0], kMeasureSize)) return false;
+    const float scale = fonts[0].pixels * screen_layout::FontScale();    // 0.01
+    for (int i = 0; i < 3; ++i) {
+        float size = (width * kFontShares[i]) / scale * 0.00125f;    // 1 / 800
+        if (!MakeFont(fonts[i], static_cast<int>(size))) return false;
+    }
+    return true;
+}
+
 } // namespace
 
 void Interface3D::Create(TextureDevice* device) {
     renderer = device;
     width = device->screen.right;
     height = device->screen.bottom;
-
-    // The scale: what a 75-point font is high here, in pixels / 100.
-    if (!MakeFont(fonts[0], kMeasureSize)) return;
-    const float scale = fonts[0].pixels * screen_layout::FontScale();    // 0.01
-    for (int i = 0; i < 3; ++i) {
-        float size = (width * kFontShares[i]) / scale * 0.00125f;    // 1 / 800
-        if (!MakeFont(fonts[i], static_cast<int>(size))) return;
-    }
+    if (!MakeFonts(fonts, width)) return;
 
     platform::ActivateKeyboardLayout(static_cast<std::uint32_t>(options::g_options.keyboardLayout), kEnglish);
     keybind::LoadKeyBindings();
@@ -144,6 +150,27 @@ void Interface3D::Create(TextureDevice* device) {
     fpsTime = platform::Milliseconds();
     fpsFrames = 0;
     disconnected = false;
+}
+
+// --- Resize ------------------------------------------------------------------------------------------
+
+void Interface3D::Resize(const screen_layout::Layout& before) {
+    width = renderer->screen.right;
+    height = renderer->screen.bottom;
+    MakeFonts(fonts, width);
+    UiSurface::RelayoutAll(before);
+    // (A window's LayoutChanged may replace its children, never the stack.)
+    for (UiWindow* window : stack) ScreenOf(window)->LayoutChanged();
+}
+
+Rect Interface3D::PictureRect() const {
+    Rect picture{0, 0, width, height};
+    if (fade && fade->letterbox) {
+        const int bar = ScreenFade::LetterboxBar(height);
+        picture.top = bar;
+        picture.bottom = height - bar;
+    }
+    return picture;
 }
 
 // --- Shutdown ----------------------------------------------------------------------------------------

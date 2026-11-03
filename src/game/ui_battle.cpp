@@ -111,6 +111,35 @@ void BattleScreen::CreateScreen() {
     CreateTexture(0x100, 0x100, TextureKind::Blank1555);
     LoadTexture("battle00", TextureKind::Interface);
 
+    BuildPanels(mapZoom);
+    // The saved message text goes back to the top panel and, when it shows page 0, the log.
+    topPanel->pageTexts[0] += savedText;
+    if (topPanel->page == 0) messageLog->AddText(savedText);
+    topPanel->ShowItems();
+
+    AddInput(new CameraInput(ui));
+
+    g_camera.flags &= ~0x40u;
+    pendingAction = kPendingNone;
+    pendingSlot = -1;
+    g_serverWorld.SetWeather(0, 0.0f);   // clear weather
+    GameStartAmbience();
+    party.clear();
+    viewPressed = false;
+    boxSelecting = false;
+    std::memset(orderKeys, 0, 6);    // dword and +0x191 word
+    questSound = 0;
+
+    // The "pers <name>" texts: one line per person, by the person's text key.
+    LoadPersonTexts(&personTexts);
+    spare = 0;
+    if (IsMultiplayerClient()) {
+        PlayersChanged(1);
+    }
+    clientParty.camera = -1;
+}
+
+void BattleScreen::BuildPanels(float mapZoom) {
     // Panels built by their own constructors (Rebirth-patched: reproduced behind its flags, rule 9).
     weaponBar = new HudWeaponBar(ui, this);
     AddChild(weaponBar);
@@ -162,31 +191,32 @@ void BattleScreen::CreateScreen() {
     AddChild(topPanel);
     topPanel->AddObject(objects[2]);
     topPanel->Setup(ui->hudTopPage, ui->hudPanelsIn[1] != 0);
-    // The saved message text goes back to the top panel and, when it shows page 0, the log.
-    topPanel->pageTexts[0] += savedText;
-    if (topPanel->page == 0) messageLog->AddText(savedText);
-    topPanel->ShowItems();
+}
 
-    AddInput(new CameraInput(ui));
-
-    g_camera.flags &= ~0x40u;
-    pendingAction = kPendingNone;
-    pendingSlot = -1;
-    g_serverWorld.SetWeather(0, 0.0f);   // clear weather
-    GameStartAmbience();
-    party.clear();
-    viewPressed = false;
-    boxSelecting = false;
-    std::memset(orderKeys, 0, 6);    // dword and +0x191 word
-    questSound = 0;
-
-    // The "pers <name>" texts: one line per person, by the person's text key.
-    LoadPersonTexts(&personTexts);
-    spare = 0;
-    if (IsMultiplayerClient()) {
-        PlayersChanged(1);
+void BattleScreen::LayoutChanged() {
+    // What the panels hold that outlives them: the map's zoom, the top panel's texts, the pending action. The slides,
+    // the unit panel's body part, the top panel's page and the clock's speed the interface keeps every frame.
+    const float mapZoom = map->zoom;
+    const std::string pageTexts[2] = {topPanel->pageTexts[0], topPanel->pageTexts[1]};
+    const PendingAction mode = pendingAction;
+    const int slot = pendingSlot, item = pendingItem;
+    for (UiWindow* child : children) {
+        child->Input()->Deactivate();
+        if (ui->mouseCapture == child) ui->mouseCapture = nullptr;
+        delete child;
     }
-    clientParty.camera = -1;
+    children.clear();
+    BuildPanels(mapZoom);
+    topPanel->pageTexts[0] = pageTexts[0];
+    topPanel->pageTexts[1] = pageTexts[1];
+    if (topPanel->page == 0) messageLog->AddText(pageTexts[0]);
+    topPanel->ShowItems();
+    if (IsMultiplayerClient()) PlayersChanged(1);
+    else portraits->Rebuild(false);
+    RefreshSelection();
+    SetPendingAction(mode, slot, item);
+    // Under another window the panels' surfaces stay put aside, as the screen's own are.
+    if (ui->GetActiveWindow() != this) Show(false);
 }
 
 void BattleScreen::Draw(SceneRenderer* pass) {

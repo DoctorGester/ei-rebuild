@@ -414,9 +414,6 @@ void Interface3D::ChatKeyBackspace() {
 
 namespace {
 
-// The bars' share of the screen height.
-constexpr float kLetterboxShare = 0.217f;
-
 constexpr float kOpaque = 255.0f;
 
 Rect ScreenOf(const SceneRenderer* renderer) {
@@ -439,12 +436,17 @@ void MakeBackdrop(Interface3D* ui) {
 
 } // namespace
 
+int ScreenFade::LetterboxBar(int height) {
+    constexpr float kLetterboxShare = 0.217f;   // the bars' share of the screen height
+    return static_cast<int>(height * kLetterboxShare);
+}
+
 void ScreenFade::Draw(SceneRenderer* renderer) {
     Rect screen = ScreenOf(renderer);
     if (letterbox) {
         const int width = screen.right - screen.left;
         const int height = screen.bottom - screen.top;
-        const int bar = static_cast<int>(height * kLetterboxShare);
+        const int bar = LetterboxBar(height);
         render::g_renderState.depthTest = false;
         renderer->DrawRectangle(0, 0, width, bar, -1, 0);
         renderer->DrawRectangle(0, height - bar, width, height, -1, 0);

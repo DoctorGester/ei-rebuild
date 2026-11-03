@@ -485,8 +485,9 @@ come first, then what holds for the present path (the subsection names are cited
 
 ### Open items
 
-- A desktop display mode change while the game runs is not exercised: no run may switch the display mode (R9c4
-  below). R9c covers a window resized from outside, which is what such a change does to the game window.
+- A desktop display mode change while the game runs is not exercised: no run may switch the display mode.
+  `render_present_fullscreen` and `render_resize_zone` cover a window resized from outside, which is what such a change
+  does to the game window ("Resolution changes" below).
 - **Native interface** (docs/notes/ui-native.md, tickets N1, N4, P1 to P8): window surfaces drawn on the
   GPU instead of GDI into DIB sections, no GDI in src/render, own font loading. R28 (which took P7 in) put the composed
   skins and the item pictures on the GPU, R28a the screen copies (the menu backdrop, its greying, the save's picture,
@@ -575,15 +576,17 @@ no stand-in for any of them (R27c):
   render_* scenarios (not render_stats, which measures) say `checkall` in their `render` line for every one.
 - Full screen (device flags bit 0, registry FullScreen 1) without a display mode change (`present_window.cpp`, called
   from each present in device_draw.cpp): the WS_POPUP window is moved over the monitor it is on (not while
-  minimised; again after someone else resized it), and the frame is scaled into it; a window resized by the user
-  scales the frame the same way; a resolution below the desktop's shows in the window.
+  minimised; again after someone else resized it), and the frame is scaled into it; a resolution below the desktop's
+  shows in the window. A window (not full screen) resized by the user renders at its new size ("Resolution changes"
+  below).
 - Windowed (FullScreen 0; platform::CreateGameWindow, the same on SDL's window and the harness's): a decorated,
   movable, resizable window centred in the primary monitor's work area, its client area the resolution's, made
   smaller when the window would not fit the work area (the frame is scaled into it; MAC3j, user 2026-10-30).
 - The game's mouse coordinates, always mapped to frame pixels: the cursor's position (the
   cursor 005E52E0, the global map 0062F050 take screen coordinates as a window at 0, 0 the resolution's size) through
   platform::MapCursorPoints; the mouse events (client positions) and the wheel's (screen) mapped at the top of the
-  input dispatcher (00457970, app.cpp).
+  input dispatcher (00457970, app.cpp); over the bars, on the frame's nearest pixel, presses there ignored
+  ("Resolution changes" below).
 - Focus loss and return (Alt+Tab, minimise): the WM_ACTIVATE path is the game's own (app.cpp OnActivate): inactive
   deactivates the cursor, the mouse, the sound and the network; the window stays as it is (the original minimised it;
   gone with MAC3j1, user 2026-10-30) and 004EEC60's RestoreDisplayMode is gone too;
@@ -599,25 +602,70 @@ no stand-in for any of them (R27c):
   battle screen through the mapping, focus lost and given back, the window resized from outside and covering the
   monitor again). Both set a resolution; they run beside others (our renderer changes no display mode).
 
-### R9c4: no resolution change inside the game
+### Resolution changes (R44)
 
-The game never changes its resolution or makes its device again while running, so the new renderer's frame target
-keeps the size it was made with and only the swap chain follows the window (R9c):
-- The resolution is the registry's `VideoResolution` (with `FullScreen`, `VideoColorDepthInBits`), read once by the
-  options load (0045B210, `options.cpp`; 0045C560 writes it back) before WinMain makes the window at that size (the
-  other two functions naming the strings, 00459100 and 0045A380, have no caller); WinMain creates the renderer
-  once (00500B70 through slot 2 of 0073D93C; its only caller) and ShutDown destroys it (slot 3). 004EDD70 (the device
-  object) is called only from 004E5E50, which only 00500B70 calls; 004EEBC0 (SetDisplayMode, not ported) has its only
-  caller in 00504780, the restore after focus returns in full screen, which in ours returns at once.
-- The options window has no resolution: its 26 settings (table 00787430) are volumes, keyboard and mouse speeds,
-  border scroll, rubber band, three shadow switches (7-9: units, buildings, flora; globals 0079BD14 / 18 / 1C), marks,
-  footprints, selection type, path, brightness / contrast / gamma (applied at once through 00504A60, R9c), flying HP,
-  tutorial, autosave, tooltip time, filters, camera axes, stereo and difficulty. What our code once called the
-  "display mode" settings (OptionsWindow +0x410) are the shadow switches: OK (Apply 006524A0) with one changed
-  drops the shadows the switches turned off (0056D7A0); switched on again they are rasterised and uploaded anew.
-- Scenario `render_options_shadows` (vanilla and Rebirth, golden from the original): in zone1 the three switches
-  stepped and applied through the Esc menu's options and OK, then back; the captures show the ruins' shadows gone and
-  back. A desktop mode change is left out (no run may change the display mode).
+The rendering resolution is the device's `screen` (`TextureDevice::screen`), the settings' `VideoResolution` at the
+start (read once by the options load, 0045B210, before WinMain makes the window at it). It changes while the game runs
+through one call, `app::SetResolution(width, height)` (app_resolution.cpp), between frames; no device is made again
+and the zone goes on. It sets, in order:
+- the device's screen and the pipeline's viewport and axis swap stacks (`SceneRenderer::ResizeScreen`: stacks 8 and 7
+  and their products 0, 1, 2, 5 filled again from empty; the projection, stack 6, is kept, so the camera's near / far /
+  field of view stay what the creation took), and the viewport size the projections map to;
+- the interface layout (`screen_layout::Configure`: the 4:3 part, the widescreen margins and `extra`, the axis
+  scales, the font scale, the two layout widths; it logs "Interface layout: ...");
+- the cursor's bounds (its position is clamped to them at the next update);
+- the settings' `VideoResolution` (written at exit: the next start makes the window at that size);
+- the interface (`Interface3D::Resize`): its size and its three fonts (sized by the width and the font scale), every
+  surface placed again (`UiSurface::RelayoutAll`, a registry of every live surface: its rectangle scaled from the
+  layout rectangle it was given, the backdrop the whole screen; its canvas resized with what it holds stretched,
+  nearest pixel, `render::ui::Resize`, so keyed pixels stay exact: text drawn before is stretched until the window
+  draws it again), then each window on the stack, bottom first, `UiContainer::LayoutChanged`: the battle screen
+  builds its HUD panels again (`BattleScreen::BuildPanels`: they sit at the window's edges, `EdgeShift`), keeping the
+  map's zoom, the top panel's texts, the selection (`RefreshSelection`), the portraits and the pending action (the
+  slides, body part, page and clock speed the interface keeps every frame); under another window its new panels are
+  put aside as its own surfaces are. The camp and the multiplayer hero screen move their curtains to the new margins
+  (`screen_layout::PlaceCurtains`).
+
+The renderer follows by itself: the frame target is made again at the next frame at the screen's size (`EnsureTarget`
+reads `GameTargetSize`), the swap chain already follows the window's client area (`ResizeBuffers`), the cursor's
+shapes are made again at the window's new scale. The movies are placed from the current screen at every frame
+(`MovieRect`: as large as fits with the aspect kept, letterboxed or pillarboxed; mode 1 centred at the movie's size;
+the original stretched to the width only), the loading screen's movie too.
+
+Who calls it: a window that is not full screen and whose client area changed since the last present (dragged,
+maximised, a DPI change): `present_window::Update` asks at each present with `app::RequestResolution`, the next main
+loop pass takes it (`TakeResolutionChange`, beside `TakeActivationChange`), so a resize during a blocking movie or a
+loading screen is taken after it; meanwhile the present scales the frame into the window. Full screen keeps the
+settings' resolution and scales it over the monitor (no display mode change). The window's first client area is not a
+change: when the work area made it smaller than the settings' size, the frame stays at the settings' size, scaled into
+it, until the window is resized.
+
+**The settings screen (not built yet)**: a resolution picked there calls `app::SetResolution(w, h)` from its apply
+(an interface event handler runs between frames), then, windowed, sizes the window's client area to it (a platform
+call to add; the harness's `windowsize` does it with SetWindowPos): the next present sees the client area at the
+resolution it already has and asks for nothing. Full screen needs only the call. The options window has no
+resolution today: its 26 settings (table 00787430) are volumes, keys, mouse speeds, border scroll, the three shadow
+switches (7-9, globals 0079BD14 / 18 / 1C; what our code once called the "display mode" settings), marks,
+footprints, selection type, path, brightness / contrast / gamma (00504A60, R9c), flying HP, tutorial, autosave,
+tooltip time, filters, camera axes, stereo and difficulty (`render_options_shadows` steps the shadow switches).
+
+**Input in a window of another shape.** The game's mouse coordinates are frame pixels through the same placement as
+the picture (`render::WindowToFrame`; the cursor's through `platform::MapCursorPoints`). A point over the bars (full
+screen at a resolution of another shape, the window's first size smaller than the settings') is put on the frame's
+nearest pixel (`present_window::MouseToGame`), so the camera's edge pan works at the picture's edges; a press there
+(left or right, single or double) is not passed on and is logged ("input: a press outside the picture ignored"), its
+release is. Inside the frame the picture is `Interface3D::PictureRect`: the screen less the letterbox bars while
+`ScreenFade::letterbox` is set (nothing in the game sets it: the original's bars draw only behind that flag); presses
+in the bars are ignored and the edge pan uses the bars' inner edges. A window narrower than 4:3 has the world over
+its whole height (the interface letterboxed in its 4:3 part), so its picture is the whole window. The titles' movie
+is drawn over the whole frame's picture: a click anywhere ends them, as before.
+
+Scenarios: `render_resize_zone` (in zone1, windowed: 800x600, 1280x720, 1000x800 under the Esc menu, 800x600; the
+log's resolution and layout lines; captures r4x3, wide, narrow_menu, narrow, back), `render_resize_edgepan` (full
+screen at 800x600 on a 16:9 monitor: the camera pans on the picture's first column and over the right bar, not at
+the centre, `camsteadier`; a click over the left bar ignored); `render_present_window` and
+`render_cursor_present` (a 1600x900 window renders at 1600x900 now). ei_ui_check's resize cases check
+`render::ui::Resize`.
 
 ### PF3 (R9b1): no DirectDraw probes at startup
 

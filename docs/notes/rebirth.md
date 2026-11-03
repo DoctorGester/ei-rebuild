@@ -447,9 +447,9 @@ right of it (margin pixels each, `extra` layout units: addon's layout); a window
 has bands above and below it (marginY pixels: the 4:3 part letterboxed, nothing moves into the bands, the 3D view
 keeps its proportions over the whole window through the axis swap's y scale); at exactly 4:3 both are 0 and every
 value is the original's. addon computed its values once, before WinMain, from the starter's registry, and refused
-every shape but wider than 4:3 (the original's stretched layout then drew). This module computes them once as well
+every shape but wider than 4:3 (the original's stretched layout then drew). This module computes them at the start
 (screen_layout::Configure, in GameMain right after the options load), from the resolution the game loaded and makes its
-window at: the settings file's [video] VideoResolution, one value for both installs
+window at, and again at each resolution change (app::SetResolution, R44; docs/notes/renderer.md): the settings file's [video] VideoResolution, one value for both installs
 (tests/scenarios/ui_widescreen_resolution.txt; ui_layout_narrow at 1000x800).
 Done here: the layout widths (800 -> 800 + extra) and (695 -> 695 + extra), the layout-to-screen
 scaling (+ the margins), the screen-to-layout scaling (- the margins), UiRegion::SetRect / AddPoint and
