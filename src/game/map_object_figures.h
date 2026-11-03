@@ -415,9 +415,6 @@ public:
     virtual bool AcceptsAnimation(const FigureAnimation* animation);
     // AttachSpecific. MapObject and units override it.
     virtual void AttachObject(EngineObject* object);
-    // Takes `other`'s parts (the array copied, no references taken) and its transform
-    // (TransformObject::CopyTransform).
-    virtual void CopyFigure(const Object3D* other);
     // Whether the object is invisible: false here; map objects override it.
     virtual bool InvisibleSlot();
     // Draw the figure / draw it and collect its screen rectangle / draw its shadow with the scene context (the
@@ -547,7 +544,7 @@ public:
     std::string name;               // the figure's name
     std::vector<HeldRef<ParticleSource>> effectSources;   // the particle sources attached to the object
     Vector3 scale;
-    // the figure's parts (counted; CopyFigure shares them uncounted, Destroy3D drops them without a release)
+    // the figure's parts, each holding a reference (released by RemovePart and Destroy3D)
     std::vector<HeldRef<FigureMesh>> parts;
     // the figure (counted; deleted at its last reference), made by the figure cache: the parts' piece headers
     // (LoadPart, SetFigureScale) and the meshes the parts draw and shadow through.
