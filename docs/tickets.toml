@@ -6174,6 +6174,28 @@ model = "sonnet"
 note = "Found by MAC3e (main and its branch alike): with EI_RESOLUTION=1280x720, render_smooth / ui_quicksave (checksave about 20%), render_shadows_shimmer, render_cursor_present and ui_gallery_deals fail; at the default resolution all pass. Find whether the scenarios or the game depend on the resolution and fix the cause."
 
 [[ticket]]
+id = "H43"
+title = "Source coverage of the suites: which game code no scenario reaches"
+group = "harness"
+model = "opus"
+depends = ["C71"]
+note = "User 2026-11-03 (how not to break code now that the goldens compare us with ourselves): replace the game.exe-address coverage (C71 deletes tools/coverage.py and function_sizes.inc) with source coverage. A coverage build (clang-cl with -fprofile-instr-generate -fcoverage-mapping, or MSVC's /fsanitize-coverage if simpler; say which and why) as build.cmd coverage, the image and Rebirth suites run on it (merge the profiles of all runs, games still ≤60 s, --jobs 4), and a report (llvm-cov) by src/game area and file: lines and functions reached, the biggest unreached functions. Output a ranked list of gaps (gameplay code first: units, combat, spells, AI, scripts, network, saves) as build/coverage/report.md plus an HTML view, and file follow-up scenario tickets for the top gaps. Not in the merge routine: run it when wanted (a work.py or tools/coverage command)."
+
+[[ticket]]
+id = "H44"
+title = "Recorded play becomes a scenario: record input while playing, replay it as a golden"
+group = "harness"
+model = "opus"
+note = "User 2026-11-03: turn real play into regression tests. A play build option (play.cmd record, or a setting) that records the session as a harness scenario: the start (install, zone or save, settings, seed), then every input event with its frame (keys, mouse moves/buttons/wheel in game points, window events) and periodic checkpoints (digest steps), written to tests/scenarios/recorded/<name>.txt in the harness's step language. Replay is deterministic under the harness clock; a recorded scenario runs in the suites like any other and gets its golden. Must survive: menus, saves/loads during the session, movies (skipped consistently), focus changes. Long sessions: let the recording be cut into ≤60 s scenarios (each starting from a save the recording made). Check: record 2-3 short sessions by driving play through the harness itself (input injected), replay twice, digests the same; then the user records one by hand. Docs: how to record and add one."
+
+[[ticket]]
+id = "H45"
+title = "Golden diffs that explain themselves before a re-record"
+group = "harness"
+model = "sonnet"
+note = "User 2026-11-03: a re-record must not quietly accept a regression. When a run differs from its golden, golden.py (and run_all's summary) prints a readable diff: which digest sections and fields changed (units' positions/HP/states, items, scripts' variables, money, quests, save bytes by record), at which step/frame, first difference first, sizes of the change, grouped and capped; frames named by capture. golden.py record refuses without --reason and puts the diff summary in the commit-ready record note. Keep the output short enough to read in a worker's report."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"
