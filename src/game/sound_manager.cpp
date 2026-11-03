@@ -630,8 +630,8 @@ void SoundManager::Tick() {
         slot->nearDistance = rec->nearDistance;
         slot->farDistance = rec->farDistance;
         audio::ResetVoice(slot->voice);
-        // A flat sound's level is recomputed from its saved output level as if that were 0..100.
-        if (slot->flat != 0) slot->volume = FlatVolume(slot->volume, slot->heightFade, slot->speech);
+        // A flat sound's level is recomputed from its 0..100 base level.
+        if (slot->flat != 0) slot->volume = FlatVolume(slot->baseVolume, slot->heightFade, slot->speech);
         else UpdatePositional(slot);
         if (LoadSample(slot, rec->name.data(), 0) != 0) {
             slot->handle = rec->handle;

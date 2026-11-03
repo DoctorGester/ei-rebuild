@@ -165,10 +165,7 @@ void PlayEffectSound(bool play, EffectSoundRecord* record, const Vector3& positi
             std::vector<std::string> names{"magic\\FeebleMind\\start.wav", "magic\\FeebleMind\\circle.wav"};
             record->handle = sounds->AddSequence(&names, 0, position,
                                                  kSoundNear, kSoundFar, 0, -1, FeebleMindChooser);
-            // The folder is empty here: the original plays the bare suffix.
-            std::string name;
-            name += suffix;
-            g_clientWorld.sounds->Play3D(name, 0, position, kSoundNear, kSoundFar, 0);
+            // The sequence plays start.wav once, then circle.wav.
         } else {
             sounds->RemoveSequence(record->handle);
             record->handle = -1;
