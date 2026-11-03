@@ -136,9 +136,9 @@ const CommandRegistration kCommandRegistrations[25] = {
 };
 
 // Every call (re)registers all commands. The first token is the command; "@", "#" and
-// "$" lines (cheat word given, not in a network game) become WorldScript lines. Other commands and
-// their arguments are lower-cased; "quit"/"exit" quit; otherwise the public map is tried, then the
-// cheat word, then (after it) the cheat map. Looking a command up inserts it (original behaviour).
+// "$" lines (cheat word given, not in a network game) become WorldScript lines. Otherwise the command word is
+// lower-cased (the arguments keep their case); "quit"/"exit" quit; else the public map is tried, then the cheat word,
+// then (after it) the cheat map.
 void Execute(const std::string& text) {
     for (const CommandRegistration& r : kCommandRegistrations) {
         std::string name = r.name;
@@ -167,7 +167,6 @@ void Execute(const std::string& text) {
     }
 
     str::MakeLower(command);
-    for (std::string& arg : args) str::MakeLower(arg);
     if (str::Compare(command, "quit") == 0 || str::Compare(command, "exit") == 0) {
         app::QuitGame(0);
         return;

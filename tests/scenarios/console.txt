@@ -27,9 +27,9 @@ console kick
 console ban "nobody"
 console exec
 expect usage: exec<ute> [input file name]
-# A quoted name keeps its spaces; the quotes are trimmed for opening, the message shows them.
-console exec "no such console file.txt"
-expect Cannot open file "no such console file.txt" for reading
+# A quoted name keeps its spaces and its case; the quotes are trimmed for opening and in the message.
+console exec "No Such Console File.txt"
+expect Cannot open file No Such Console File.txt for reading
 console console
 expect Invalid console position
 
@@ -62,6 +62,10 @@ console days
 expect usage: days [ddmmyyyy] [DDMMYYYY]
 console days 01012000 11012000
 expect Your age: 10 days
+console days 25011978 01072000
+expect Your age: 8193 days
+console days 01011960 01011970
+expect Your age: 3653 days
 console days 3101197x 01012000
 expect usage: days
 console days 01131990 01012000

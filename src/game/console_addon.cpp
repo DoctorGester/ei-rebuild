@@ -13,6 +13,7 @@
 
 #include "lib/crt.h"
 #include "lib/str.h"
+#include "lib/text_case.h"
 
 
 #include <cstdarg>
@@ -82,6 +83,7 @@ void Help(std::vector<std::string>* args) {
 
 void AddonDebug(std::vector<std::string>* args) {
     std::string type = !args->empty() ? (*args)[0] : "";
+    str::MakeLower(type);
     int level = args->size() >= 2 ? str::ToInt((*args)[1]) : -1;
     if (type.empty() || type == "help") {
         SayFormat("Usage:\n\taddon debug {type} [level]\n\nSet debug level for type of addon's debugging settings\n"
@@ -105,13 +107,13 @@ void AddonDebug(std::vector<std::string>* args) {
 }
 
 void Addon(std::vector<std::string>* args) {
-    if (args->empty() || str::Compare((*args)[0], "help") == 0) {
+    if (args->empty() || text::CompareIgnoringCase((*args)[0], "help") == 0) {
         Say("Welcome to Evil Islands Addon Engine v0.12.4.2\n\nAvailable commands:\n"
             "* addon info          - show detailed information about addon\n"
             "* addon debug [args]  - set addon's debug settings");
-    } else if (str::Compare((*args)[0], "info") == 0) {
+    } else if (text::CompareIgnoringCase((*args)[0], "info") == 0) {
         SayFormat("Addon core version: 0.12.4.2\nCurrent mod: %s", "No mod is used");
-    } else if (str::Compare((*args)[0], "debug") == 0) {
+    } else if (text::CompareIgnoringCase((*args)[0], "debug") == 0) {
         args->erase(args->begin());
         AddonDebug(args);
     } else {
