@@ -6983,6 +6983,13 @@ depends = ["C74b"]
 note = "User 2026-11-03: how much do we still need pc24.h? Not at all once the goldens are our own: it reproduces game.exe's x87 results (PC24 rounding of double constants and of FSIN/FCOS/FPATAN/FYL2X's 64-bit results) bit for bit, 531 lines (pc24.h/.cpp) and ~340 uses in 72 files (Mul 79, Add 56, Round 43, Cos 28, Sin 27, Atan2 27, Sub 25, Div 20, Unrounded 15, Log 9, Exp 6 ...). Replace each with the plain expression: float operators, std::sin/cos/atan2/log/exp on floats (or the double form where precision matters, said why), double constants as float literals unless a double is wanted. Delete pc24.*, its checks (check_x87.py if it only guards this; cleanup-tooling's x87 equivalence material goes with C72's trim), and the docs. Results change in the last bits: same worker and the same golden re-record round as C74b (one re-record for both, with the same 'still plays the same' check)."
 
 [[ticket]]
+id = "C74c"
+title = "Vector maths a, rest: per-component code that went through scalar locals, Vector4 ops, stream float readers"
+group = "cleanup"
+depends = ["C74"]
+note = "Left by C74: (1) particle_callbacks.cpp (~120 .x/.y/.z assignments) and particle_emitters/lightning/camera/map_object_figures: x, y, z computed into separate locals (px, py, pz; ax, ay, az) and stored one by one; becomes Vector3 locals and operators (hand work, bit-identical). (2) Vector4 has no operators; the float[4] colour and the Vector4 points stay. (3) Pointer parameters left on purpose: SectorGrid::Move / AIMap chain, LineBatch::AddPoint(float[8][3] corners), DeltaField::WritePosition2D, figure_bones Lerp/Corner and map_object_animation LerpPoint (read from file streams as float*), script argument arrays f[]. (4) A few float* aliases kept because they loop with an index (particle_callbacks swirl, orbiter, ring offset)."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
