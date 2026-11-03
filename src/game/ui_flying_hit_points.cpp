@@ -9,6 +9,7 @@
 #include "link_figure.h"
 #include "map_object_figures.h"
 #include "model.h"
+#include "screen_layout.h"
 #include "texture.h"
 #include "ui.h"
 #include "unit.h"
@@ -36,7 +37,8 @@ constexpr std::uint32_t kSpecular = 0xFF000000u;
 constexpr int kMaxQuads = 16;   // the stack buffers hold 64 vertices and 96 indices
 
 // The texture: digits in 8 x 12 pixel cells (four to a row, rows 0.15625 high from the top),
-// label rows 64 x 10 pixels, the marker at u 0.5..1, v 0.84375..1.
+// label rows 64 x 10 pixels, the marker at u 0.5..1, v 0.84375..1. Drawn at these sizes on an 800x600
+// layout, scaled with the window like the interface (Draw's scale).
 constexpr float kDigitWidth = 8.0f, kDigitHeight = 12.0f, kDigitU = 0.125f, kDigitV = 0.15625f;
 constexpr float kLabelWidth = 64.0f, kLabelHeight = 10.0f;
 constexpr float kMarkerWidth = 32.0f, kMarkerHeight = 10.0f;
@@ -115,6 +117,11 @@ void FlyingHitPoints::Draw(SceneRenderer* renderer) {
     if (!options::g_options.drawFlyingHp) return;
 
     const float width = static_cast<float>(screen.right), height = static_cast<float>(screen.bottom);
+    // Sizes, offsets and the drift are 800x600 layout pixels, scaled by the 4:3 part's height as the
+    // interface is (1 at 800x600, the original's sizes).
+    const float scale = screen_layout::Get().height43 / 600.0f;
+    const float digitWidth = kDigitWidth * scale, digitHeight = kDigitHeight * scale;
+    const float labelWidth = kLabelWidth * scale, labelHeight = kLabelHeight * scale;
     for (const FlyingHitPoint& point : points) {
         // The age as a fraction of the lifetime, stored as float.
         float age = static_cast<int>(now - point.time) * kPerMillisecond;
@@ -128,14 +135,14 @@ void FlyingHitPoints::Draw(SceneRenderer* renderer) {
         int middleY = (rect->top + rect->bottom) / 2;
 
         if (point.flags & kMarker) {
-            // 32 x 10 pixels centred 20 pixels above the middle.
-            float x0 = middleX - kMarkerWidth * 0.5f;
-            float y0 = (middleY - 20) - kMarkerHeight * 0.5f;
+            // 32 x 10 centred 20 above the middle.
+            float x0 = middleX - kMarkerWidth * scale * 0.5f;
+            float y0 = (middleY - 20.0f * scale) - kMarkerHeight * scale * 0.5f;
             if (x0 < 0.0f) continue;   // integer-sourced, as below: never NaN
-            float x1 = x0 + kMarkerWidth;
+            float x1 = x0 + kMarkerWidth * scale;
             if (width < x1) continue;
             if (y0 < 0.0f) continue;
-            float y1 = y0 + kMarkerHeight;
+            float y1 = y0 + kMarkerHeight * scale;
             if (y1 > height) continue;
             QuadBuffer quads;
             quads.Add(x0, y0, x1, y1, 0.5f, 1.0f, 1.0f, 0.84375f, kMarkerColour);
@@ -144,27 +151,27 @@ void FlyingHitPoints::Draw(SceneRenderer* renderer) {
             continue;
         }
 
-        // The number drifts 120 pixels right and rises 100 over its life (truncated, as _ftol).
-        middleX += static_cast<int>(age * 120.0f);
-        middleY += static_cast<int>(age * -100.0f);
+        // The number drifts 120 right and rises 100 over its life (truncated, as _ftol).
+        middleX += static_cast<int>(age * 120.0f * scale);
+        middleY += static_cast<int>(age * -100.0f * scale);
         text = str::Format(game::DecimalFormat(), point.amount);
         int length = lib::Count(text);
-        // The box: the digits, at least a label row wide when there are labels; 12 pixels high
-        // (22 with the first label row), 10 more for each other one.
-        int boxWidth = length * static_cast<int>(kDigitWidth);
-        int boxHeight = 12;
+        // The box: the digits, at least a label row wide when there are labels; a digit high,
+        // a label row more for each label.
+        const float digitsWidth = length * digitWidth;
+        float boxWidth = digitsWidth;
+        float boxHeight = digitHeight;
         for (const LabelRow& row : kLabelRows) {
             if (!(point.flags & row.flag)) continue;
-            if (boxWidth <= 64) boxWidth = 64;
-            boxHeight = row.flag == kLabelA ? 22 : boxHeight + 10;
+            if (boxWidth <= labelWidth) boxWidth = labelWidth;
+            boxHeight += labelHeight;
         }
         float x0 = middleX - boxWidth * 0.5f;
-        float boxHeightF = static_cast<float>(boxHeight);
-        float y0 = middleY - boxHeightF * 0.5f;
+        float y0 = middleY - boxHeight * 0.5f;
         if (x0 < 0.0f) continue;   // integer-sourced: never NaN
         if (width < boxWidth + x0) continue;
         if (y0 < 0.0f) continue;
-        if (height < boxHeightF + y0) continue;
+        if (height < boxHeight + y0) continue;
 
         // Fading out over the life: green, red for a player's unit, cyan with flag 8.
         auto alpha = static_cast<std::uint32_t>(static_cast<int>((1.0f - age) * 255.0f)) & 0xFF;
@@ -172,23 +179,23 @@ void FlyingHitPoints::Draw(SceneRenderer* renderer) {
         colour |= alpha << 24;
 
         QuadBuffer quads;
-        float x = (boxWidth - length * static_cast<int>(kDigitWidth)) * 0.5f + x0;
-        float digitsBottom = y0 + kDigitHeight;
+        float x = (boxWidth - digitsWidth) * 0.5f + x0;
+        float digitsBottom = y0 + digitHeight;
         for (int i = 0; i < length; ++i) {
             int value = static_cast<signed char>(text[i]) - '0';
             float u0 = (value & 3) * kDigitU;
             float top = 1.0f - (value >> 2) * kDigitV;
-            float next = x + kDigitWidth;
+            float next = x + digitWidth;
             quads.Add(x, y0, next, digitsBottom, u0, top, u0 + kDigitU, top - kDigitV, colour);
             x = next;
         }
         // The label rows under the digits, centred in the box.
-        float y = y0 + kDigitHeight;
+        float y = digitsBottom;
         for (const LabelRow& row : kLabelRows) {
             if (!(point.flags & row.flag)) continue;
-            float left = (boxWidth - static_cast<int>(kLabelWidth)) * 0.5f + x0;
-            float bottom = y + kLabelHeight;
-            quads.Add(left, y, left + kLabelWidth, bottom, 0.0f, row.top, 1.0f, row.bottom, colour);
+            float left = (boxWidth - labelWidth) * 0.5f + x0;
+            float bottom = y + labelHeight;
+            quads.Add(left, y, left + labelWidth, bottom, 0.0f, row.top, 1.0f, row.bottom, colour);
             y = bottom;
         }
         quads.Inset(kNumberInset);
