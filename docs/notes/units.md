@@ -184,7 +184,7 @@ address in its source comment (grep the address); the per-function table that us
   / `unit_stats.cpp`, `unit_hits.cpp`, `unit_update.cpp` (virtual slots), `unit_items.cpp` / `unit_items.cpp`,
   `unit_save.cpp`, `net_state.cpp` (map object / unit net state, differential sampled), `unit_create*.cpp`,
   `unit_equipment.cpp`, `unit_db*.cpp` / `unit_db.cpp` / `chunk_archive.cpp` (the databases), `unit_params_*.cpp` /
-  `unit_skill_price.cpp` / `unit_armour_layers.cpp`, `unit_update.cpp` / `unit_stats.cpp` / `unit_items.cpp` /
+  `unit_armour_layers.cpp`, `unit_update.cpp` / `unit_stats.cpp` / `unit_items.cpp` /
   `unit_figure_queries.cpp` / `unit_update.cpp` / `unit_client_update.cpp`, `map_object.cpp` / `unit_controller.cpp` /
   `unit_update.cpp`, `unit_update.cpp`, the client half `unit_client_*.cpp` (update, models, effects),
   `map_object_figures.cpp` / `object3d_client.cpp`, `unit_lever.cpp` / `lever_object.cpp`, `magic_trap.cpp`, `torch_object.cpp` / `torch_object.cpp` /

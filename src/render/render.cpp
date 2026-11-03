@@ -6,7 +6,7 @@
 #include "render_perf.h"
 #include "render_ui.h"
 
-#include "../hook/log.h"
+#include "../platform/log.h"
 
 #include "render_state.h"
 #include "../game/texture.h"

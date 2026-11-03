@@ -3,7 +3,7 @@
 
 #include "platform/d3d11/graphics_d3d11.h"
 
-#include "hook/log.h"
+#include "platform/log.h"
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX

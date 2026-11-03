@@ -279,7 +279,7 @@ struct SkillDatabase {
     std::vector<SkillLevelRecord> levels;
 };
 extern SkillDatabase g_skillDatabase;
-// What raising a school from level value `from` to `to` costs (unit_skill_price.cpp).
+// What raising a school from level value `from` to `to` costs (unit_stats.cpp).
 int SchoolPrice(int from, int to);
 namespace unitdb {
 inline SkillLevelRecord* SkillLevelAt(std::uint32_t index) {

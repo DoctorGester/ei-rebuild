@@ -1,5 +1,5 @@
-# The AI's heal option (SV5's coverage list: UnitStats::ReduceKind1 00524020 had a vector check but no
-# scenario reached it). AIAttention::Build (005CEE80, from AIBrain::ApplyBehaviour 005D6630) turns a
+# The AI's heal option (UnitStats::ReduceKind1 00524020, which no other
+# scenario reached). AIAttention::Build (005CEE80, from AIBrain::ApplyBehaviour 005D6630) turns a
 # healing spell (type 0x18) into an option of kind 7; AIAttention::Choose (005D0030) scores every
 # spell option on the unit itself and its allies in sight, and Score (005CF9A0) reduces a candidate's
 # maximum hit points through ReduceKind1 for kind 7.

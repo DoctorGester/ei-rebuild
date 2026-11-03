@@ -3,8 +3,7 @@
 The harness logs fatal exceptions with the code addresses found on the stack: game.exe addresses
 as is ("stack 006936BE (game.exe)"), ours as <module>+offset: ei-rebuild+offset in the image (the game and the
 harness linked into ei-rebuild.exe; ei_harness+offset in the original's runs' logs before H40). This names each with the
-module's .map symbol (undecorated) or the game function list (tests/coverage/coverage.csv names the
-rewritten functions, config/functions.csv the rest).
+module's .map symbol (undecorated) or the game function list (config/functions.csv).
 
 The raw stack scan also holds words that are no return address (saved registers, a function
 pointer, return addresses of calls that finished long ago, whole stale call chains). A word counts as
@@ -59,19 +58,11 @@ def load_map(path, code_only=False):
 
 
 def load_game_functions(root=ROOT):
-    """(starts, names) of the known game functions, sorted: config/functions.csv, with the names of the
-    rewritten functions from tests/coverage/coverage.csv over its FUN_ placeholders."""
+    """(starts, names) of the known game functions, sorted: config/functions.csv."""
     rows = {}
     with open(os.path.join(root, 'config', 'functions.csv')) as f:
         for r in csv.DictReader(f):
             rows[int(r['address'], 16)] = r.get('name') or ''
-    path = os.path.join(root, 'tests', 'coverage', 'coverage.csv')
-    if os.path.exists(path):
-        with open(path) as f:
-            for r in csv.DictReader(l for l in f if not l.startswith('#')):
-                a = int(r['address'], 16)
-                if r['name'] and (not rows.get(a) or rows[a].startswith(('FUN_', 'sub_'))):
-                    rows[a] = r['name']
     keys = sorted(rows)
     return keys, [rows[a] for a in keys]
 
@@ -156,7 +147,7 @@ def call_of(code):
 
 def norm_name(name):
     """A function's name without namespaces, 'Verify' and case, to match a hooked game function
-    (coverage.csv name) with the rewrite that replaced it."""
+    (functions.csv name) with the rewrite that replaced it."""
     n = name.split('::')[-2:] if '::' in name else [name]
     return re.sub(r'verify$', '', ''.join(n).lower())
 

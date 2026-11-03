@@ -105,9 +105,6 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
 - Unit checks (`tests/unit`, `ei_unit_check.exe`, run by build.cmd): the settings file's format and lib::HashMap's
   walk order, without the game. The function vectors (game.exe's recorded calls, replayed against our code) went with
   the 32-bit build (docs/notes/standalone-verification.md, section 3).
-- Coverage (`tools/coverage.py`): `tests/coverage/reach.txt` holds which scenarios reached each rewrite in
-  runs of the original with EI_COVER, collected until H40 (`coverage.py addresses` / `collect`); `coverage.py list` writes `tests/coverage/coverage.csv` (golden, vector, suite
-  only or unreached, with a risk rank) and `coverage.py top` lists the largest gaps.
 
 A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_saves dir> [args]`
 before the game starts (`tools/prepare_scenario.py`, called by harness.cmd and run_all.py): the

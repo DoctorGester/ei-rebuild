@@ -23,6 +23,9 @@ constexpr int kMiddle = 8;
 
 } // namespace
 
+// The unit shape cache.
+UnitShapeCache g_unitShapes;
+
 // No references, no flags.
 UnitShape::UnitShape(float newRadius) {
     refs = 0;

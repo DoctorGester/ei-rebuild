@@ -134,7 +134,7 @@ would change what they see in verify runs). Each has its own platform function t
 - The settings file (settings.cpp: next to the exe or in the user's data folder, whatever a harness run
   redirects): `ReadWholeFile` / `WriteWholeFile` (wide calls), `ProgramPath`, `UserDataFolder`, `PrimaryDesktopSize`;
   its lock is a `std::mutex`.
-- The program's start-up (src/main.cpp, src/hook/rebirth_hook.cpp): `ProgramPath`, `ArgumentsAfterSeparator`,
+- The program's start-up (src/main.cpp, src/game/rebirth_profile.cpp): `ProgramPath`, `ArgumentsAfterSeparator`,
   `EnvironmentVariable`, `SetCurrentFolder`, `PathExists`, `IniInt` and `ProgramInstance`. `app::GameMain` takes
   `platform::NativeInstance`.
 
@@ -311,7 +311,7 @@ no more; sokol_gfx draws everything, so a backend is small. No backend type cros
 ## Left for the next areas
 
 - The renderer's own timings are `std::chrono::steady_clock` (render_internal.h's `Ticks` / `kMsPerTick`), not the
-  game's clocks; the log (src/hook/log.cpp) is standard C++ too (`std::mutex`, `std::ofstream`, the time of day
+  game's clocks; the log (src/platform/log.cpp) is standard C++ too (`std::mutex`, `std::ofstream`, the time of day
   through `FormatLocalTime`).
 - The renderer's own threads (render.cpp) stay its own.
 

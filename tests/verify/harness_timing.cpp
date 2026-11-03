@@ -2,7 +2,7 @@
 #include "harness_timing.h"
 
 #include "harness_clock.h"
-#include "../../src/hook/log.h"
+#include "../../src/platform/log.h"
 
 #include <windows.h>
 

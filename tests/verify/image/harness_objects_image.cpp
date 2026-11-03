@@ -2,7 +2,7 @@
 // harness.cpp).
 #include "image_side.h"
 
-#include "../../../src/hook/log.h"
+#include "../../../src/platform/log.h"
 
 #include "game/app.h"
 #include "game/camera.h"

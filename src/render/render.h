@@ -3,8 +3,7 @@
 // The renderer: draws the game's frame with sokol_gfx (on the device platform/graphics.h makes) from the data the game
 // hands over and presents it on the game window. No fallback of any kind: when it cannot start, or cannot go on (a
 // sokol panic, a lost device not made again, nothing to present into), the game ends with the reason in the
-// game's error box (renderer.md, "When the renderer fails"). Nothing calls it in game.exe's process (harness,
-// vector recorders). See docs/notes/renderer.md.
+// game's error box (renderer.md, "When the renderer fails"). See docs/notes/renderer.md.
 // EI_RENDER (or the harness step "render <spec>") is a comma-separated list of the harness build's words: "checkall"
 // (the harness's own "removable" never reaches it).
 

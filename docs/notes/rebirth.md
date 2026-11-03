@@ -222,7 +222,7 @@ the bug fixes and WideScreen; none when `EI_REBIRTH` is set); the settings file'
 environment variable (`ei_launch --rebirth <spec>`; `none` is the original 1.06, `defaults`); a scenario's `rebirthflags` line. Harness runs set
 `EI_REBIRTH` (ei_launch: `defaults` when the caller gave none; run_all: the Rebirth profile's names on the Rebirth install), so they take no folder's
 profile and stay independent of the install's EI_Plugin.ini. There was a separate ei_rebirth.ini until C66a; there is no conversion from it. The flags (`src/lib/rebirth.cpp`)
-are plain data; `rebirth_hook::RebirthLaunch()` (a flag other than the fixes on) makes a run of the image count as the Rebirth install.
+are plain data; `rebirth_profile::RebirthLaunch()` (a flag other than the fixes on) makes a run of the image count as the Rebirth install.
 `config/rebirth_profile.ini` no longer names the fixes.
 
 ### One test profile (SV9)
@@ -404,7 +404,7 @@ NPlayers +0x2C80, and +0x2D20 for more than 7 players), each behind its flag and
   `count % max(n, 7)`; 00608D9D / 00608DE4 `ChatWindow::Construct`: the window's left edge and its surface's x 0x1D0 -> 0; 006095FB
   `ChatWindow::Update`: the first status column 0x118 -> 0x2E8 (= 0x118 + 0x1D0); 006095A0 holds a site of the feature too, so it is declared.
 - *More than 7 players* (`+0x2D20`: six more sites in AddPortrait 0064016B..00640240): not reproduced. The installer (`Check` in
-  rebirth_hook.cpp) skips a function holding such a site while NPlayers > 7, so a Rebirth launch with a larger NPlayers keeps the original
+  rebirth_profile.cpp) skips a function holding such a site while NPlayers > 7, so a Rebirth launch with a larger NPlayers keeps the original
   there; the standalone image treats NPlayers above 7 as 7 in the portraits.
 - Not reached by any scenario: the prototype fallbacks (006093B7, 00640C97), Rebuild's players half (00640D2F: a client player without a
   live unit), the sex rule for a model other than "unhuma" / "unhufe".

@@ -45,9 +45,8 @@ STLport and MFC template instantiations plus a few CRT exception helpers. Recogn
 
 ## Dead code (`config/dead_code.csv`)
 
-`tools/find_dead_code.py` (method in its docstring; capstone, no Ghidra) takes no arguments and
-rewrites the CSV from scratch, so it drops rows added by hand (functions Ghidra never made,
-coincidental pointers ruled out by reading). Facts not in the script:
+Written by tools/find_dead_code.py (capstone over game.exe; C71 deleted it with the other game.exe-address
+tools) and by hand (functions Ghidra never made, coincidental pointers ruled out by reading). Facts:
 
 - Ghidra bodies are often truncated: 00431040 is 44 bytes in Ghidra but is followed by a static
   initialiser at 00431070 and the cipher at 00431090; the pseudo nodes cover such tails.

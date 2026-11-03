@@ -146,11 +146,13 @@ target_link_libraries(ei_platform PRIVATE SDL3::SDL3-static)
 # game.exe) with the whole game linked in (S23: no DLL; dropped into a game folder it plays from there). Its entry is
 # main (src/main.cpp, both systems); on Windows its one resource is its version information (src/main.rc, C23):
 # game.exe's own resources are not used.
-set(EI_PROGRAM_SOURCES src/hook/log.cpp src/hook/rebirth_hook.cpp)
+# The log is the program's, not ei_platform's: the offline checks that link the platform (tools/ui_check,
+# tools/perf_check) have their own ei::Log.
+set(EI_PROGRAM_SOURCES src/platform/log.cpp)
 add_executable(ei-rebuild WIN32 src/main.cpp ${EI_PROGRAM_SOURCES} ${EI_RESOURCES})
 target_include_directories(ei-rebuild PRIVATE include src)
 target_link_libraries(ei-rebuild PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>")
-# The Rebirth install's profile, which an exe takes in a Rebirth folder (src/hook/rebirth_hook.cpp):
+# The Rebirth install's profile, which an exe takes in a Rebirth folder (src/game/rebirth_profile.cpp):
 # config/rebirth_profile.ini's patches as a spec (rebirth::ApplySpec: none, then each name), written at configure time
 # into config/rebirth_profile.inc in the build folder.
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/config/rebirth_profile.ini)
@@ -162,7 +164,7 @@ foreach(line ${EI_REBIRTH_PROFILE_LINES})
 endforeach()
 list(JOIN EI_REBIRTH_PROFILE "," EI_REBIRTH_PROFILE)
 file(CONFIGURE OUTPUT ${CMAKE_BINARY_DIR}/config/rebirth_profile.inc CONTENT "\"@EI_REBIRTH_PROFILE@\"\n" @ONLY)
-set_source_files_properties(src/hook/rebirth_hook.cpp PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/config)
+set_source_files_properties(src/game/rebirth_profile.cpp PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/config)
 # The product's notices (third_party_notices.txt beside the executables; play.cmd copies it): the licences of the
 # third-party code and fonts built in, the fonts' SIL Open Font License among them.
 set(EI_NOTICES)

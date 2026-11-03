@@ -31,7 +31,7 @@ namespace settings {
 inline constexpr const char* kFileName = "ei_settings.ini";
 
 // The sections: the game's options (options.cpp), the renderer's switches (device_mesh.cpp), Rebirth's patches
-// (src/hook/rebirth_hook.cpp, include/ei/rebirth.h), its switch (mod_folders.cpp) and its console lines
+// (src/game/rebirth_profile.cpp, include/ei/rebirth.h), its switch (mod_folders.cpp) and its console lines
 // (console_addon.cpp).
 inline constexpr const char* kPaths = "paths";
 inline constexpr const char* kVideo = "video";

@@ -10,7 +10,7 @@
 #include "surface.h"
 #include "text_split.h"
 #include "unit_client_models.h"
-#include "../hook/log.h"
+#include "../platform/log.h"
 #include "lib/crt.h"
 #include "lib/str.h"
 #include "platform/platform.h"

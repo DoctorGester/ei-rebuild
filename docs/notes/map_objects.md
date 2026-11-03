@@ -179,7 +179,7 @@ Other callees stay forwarders: 00455950 `EngineObject::World`, 00688530 `MapEffe
   (sets the skin clock, rewinds) is unreferenced. A-U11: 0050A210 is library (CArray::Serialize); 00505380 (an aligned
   buffer's free) runs only in an unwind funclet of 005045D0, which is rewritten; 00505410 / 005054E0 / 005055F0 (key record
   writers) are called only from dead 0044A7B0 (the animation exporter; Ghidra's bodies for them overlap live readers, so
-  find_dead_code.py keeps them); 00501980 / 005019D0 only from slot 25 (005015A0, no caller); 00500A90 (4 bytes) too
+  find_dead_code.py kept them); 00501980 / 005019D0 only from slot 25 (005015A0, no caller); 00500A90 (4 bytes) too
   short; 00503F20 (a Vector3 copy) and 005000xx-005003D0 (STLport copy helpers) left.
 - Next after A-U11: Object3DClientSpecific's part sets (+0x20 / +0x24: objects holding arrays of arrays of parts; needs
   their layout declared): slots 13 / 14 / 15 (0051B050 / 0051B210 / 0051B160) with 0051B2F0 / 0051B470 / 0051B5B0 /

@@ -1,7 +1,7 @@
 // WinMain's start-up branches a normal run does not take. See harness_startup.h.
 #include "harness_startup.h"
 
-#include "../../src/hook/log.h"
+#include "../../src/platform/log.h"
 #include "image/image_side.h"
 #include "platform/platform.h"
 #include "platform/win32/platform_win32.h"

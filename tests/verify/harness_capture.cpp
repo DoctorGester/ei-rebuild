@@ -5,7 +5,7 @@
 // presented the frame by then, and the capture is its frame (image::ReadFrame).
 #include "harness_capture.h"
 
-#include "../../src/hook/log.h"
+#include "../../src/platform/log.h"
 #include "ei/main_loop.h"
 #include "image/image_side.h"
 

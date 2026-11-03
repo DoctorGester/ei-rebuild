@@ -19,7 +19,7 @@
 #include "screen_layout.h"
 #include "world.h"
 #include "world_glue.h"
-#include "../hook/log.h"
+#include "../platform/log.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
 #include "lib/rect.h"

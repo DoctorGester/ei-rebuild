@@ -1,6 +1,7 @@
 """Builds config/rebirth_patches.csv from the analysis: addon_sites.tsv (every site addon.log names:
 patch #n, address, size), site_instr.txt (the original instructions at each site and the function
-it lies in), the tables below (summaries, statuses) and src/hook/function_sizes.inc.
+it lies in), the tables below (summaries, statuses) and, for the sites site_instr.txt does not place, the CSV's own
+function column.
 
 usage: python tools/rebirth/make_csv.py
 (docs/notes/rebirth.md, "Flags in the rebuild").
@@ -390,21 +391,20 @@ PLUGIN = [
 ]
 VARIANT = {'always': 'kAlways', 'nplayers>7': 'kNPlayersOver7', 'pause12': 'kPause12', 'pause3': 'kPause3',
            'newmaster|test': 'kNewMasterOrTest', 'withtest': 'kWithTest', 'never': 'kNever'}
-import bisect
-sizes = [(int(m.group(1), 16), int(m.group(2))) for m in re.finditer(r'\{0x([0-9A-Fa-f]+), (\d+)\}', open(os.path.join(ROOT, 'src', 'hook', 'function_sizes.inc')).read())]
-sizes.sort(); starts = [s for s, _ in sizes]
-def fn(a):
-    i = bisect.bisect_right(starts, a) - 1
-    if i >= 0 and a < starts[i] + sizes[i][1]: return '%08X+%X' % (starts[i], a - starts[i])
-    return 'data'
+# The function of a site site_instr.txt does not place (FUNCTION+offset, or 'data'): the CSV's, as game.exe's function
+# list placed it when the CSV was written (C71 deleted that list).
+PLACED = {(r['patch'], r['site']): r['function']
+          for r in csv.DictReader(open(os.path.join(ROOT, 'config', 'rebirth_patches.csv'), encoding='utf-8'))}
+def fn(patch, a):
+    return PLACED.get((patch, '%08X' % a), 'data')
 for r in rows:
     if not r['function']:
-        r['function'] = fn(int(r['site'], 16))
+        r['function'] = fn(r['patch'], int(r['site'], 16))
 active = {'EiPluginInit', 'EiPluginNPlayers', 'EiPluginPause', 'EiPluginNewMaster', 'EiPluginBriefings', 'EiPluginFixes'}
 for patch, a, n, var, summ in PLUGIN:
     cat, sp, _ = META[patch]
     act = patch in active and var not in ('nplayers>7', 'pause3', 'withtest', 'never')
-    rows.append(dict(patch=patch, source='EI_Plugin', site='%08X' % a, size=n, function=fn(a), category=cat,
+    rows.append(dict(patch=patch, source='EI_Plugin', site='%08X' % a, size=n, function=fn(patch, a), category=cat,
                      single_player=sp, original='', summary=summ,
                      status=('active here' if act else 'inactive here') + '; not started', variant=var))
 

@@ -467,7 +467,7 @@ class SchedTest(unittest.TestCase):
         os.environ['EI_PROFILE'] = 'scheduler-own'      # the scheduler's own, not any batch's
         os.environ['EI_BUILD_DIR'] = 'whatever'
         try:
-            env = {'EI_VECTORS': '1', 'EI_PROFILE': '1'}
+            env = {'EI_EXAMPLE': '1', 'EI_PROFILE': '1'}
             row = {'worktree': self.tmp, 'build': build, 'env': json.dumps(env)}
             run = {'scenario': 'x', 'install': 'standalone', 'hooks': 1, 'folder': build + '/runs/x-standalone'}
             work_sched.real_runner(row, run, 0, lambda n: None)
@@ -480,7 +480,7 @@ class SchedTest(unittest.TestCase):
             os.environ.clear()
             os.environ.update(old_environ)
         with_env, empty, null, no_column = (e for _, e in seen)
-        self.assertEqual((with_env['EI_VECTORS'], with_env['EI_PROFILE']), ('1', '1'))
+        self.assertEqual((with_env['EI_EXAMPLE'], with_env['EI_PROFILE']), ('1', '1'))
         self.assertEqual(run_all.game_environment(with_env), env)
         self.assertEqual(run_all.game_environment(empty), {}, "the scheduler's own EI_PROFILE leaked into a batch")
         self.assertEqual(empty['EI_BUILD_DIR'], 'whatever')        # not a game setting: left alone
@@ -519,9 +519,9 @@ class SchedTest(unittest.TestCase):
         self.assertIsNone(seen[1])                                  # no --clock: the game inherits
 
     def test_game_environment_names(self):
-        got = run_all.game_environment({'EI_VECTORS': '1', 'EI_PROFILE': '1', 'EI_BUILD_DIR': 'x', 'EI_HARNESS_SLOTS': '4',
+        got = run_all.game_environment({'EI_EXAMPLE': '1', 'EI_PROFILE': '1', 'EI_BUILD_DIR': 'x', 'EI_HARNESS_SLOTS': '4',
                                         'EI_OUT_DIR': 'o', 'EI_HARNESS': 'h', 'PATH': 'p', 'WORK_DB': 'd'})
-        self.assertEqual(got, {'EI_VECTORS': '1', 'EI_PROFILE': '1'})
+        self.assertEqual(got, {'EI_EXAMPLE': '1', 'EI_PROFILE': '1'})
 
     # ---- WB6: machine-wide expected run times
 

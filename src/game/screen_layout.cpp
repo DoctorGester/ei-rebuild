@@ -4,7 +4,7 @@
 
 #include "ui.h"
 
-#include "hook/log.h"
+#include "platform/log.h"
 #include "lib/rect.h"
 
 #include <algorithm>

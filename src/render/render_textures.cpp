@@ -5,7 +5,7 @@
 #include "render_internal.h"
 #include "render_ui.h"
 
-#include "../hook/log.h"
+#include "../platform/log.h"
 
 #include "../game/texture.h"
 

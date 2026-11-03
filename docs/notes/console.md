@@ -67,7 +67,7 @@ window gets its surface recreated twice). State the handlers touch: window rects
 
 Handler addresses in the maps are the original addresses (they jump to the rewrites); calls between console functions go through the
 original addresses so Rebirth's executor patch stays in the path. The handlers Ghidra has no function for (all but listvar, exec, give,
-fadeout) have entries in `function_sizes.inc` from a flow walk. `006FD9B4` is `Mid(int)` (library.csv says Right); `00700EFE` is `MakeLower`.
+fadeout) had entries in game.exe's function sizes from a flow walk. `006FD9B4` is `Mid(int)` (library.csv says Right); `00700EFE` is `MakeLower`.
 Output capture (verify only): the image's harness reads each synced line through `console::g_consoleLineObserver`;
 game.exe's run takes the original streambuf table's sync slot (00740034 slot 1).
 

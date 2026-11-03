@@ -9,8 +9,7 @@ shim, stub or workaround lands.
 
 - Nothing of ours stands at game.exe's code addresses (C20 batch 6): no registrations, no code table. The
   image calls WinMain (`app::GameMain`) and everything else by name; no table maps game.exe's functions to ours
-  (C20l). `src/hook/` and `include/ei/hook.h` keep game.exe's side (the vector recorders,
-  `EI_RECORD`, which `InstallHooks` installs with EI_VECTORS=1) and the image's start-up actions.
+  (C20l).
 - Our code calls game functions by name; src has no `EI_ORIGINAL` forwarders (C29). The harness changes
   the image's behaviour through named seams (the fixed ISAAC seed, the traced draws), not addresses; its
   patches of game.exe by address stay: that is the original's side.

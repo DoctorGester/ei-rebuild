@@ -1,6 +1,6 @@
-#include "rebirth_hook.h"
+#include "rebirth_profile.h"
 
-#include "log.h"
+#include "platform/log.h"
 
 #include "game/settings.h"
 #include "lib/text_case.h"
@@ -10,7 +10,7 @@
 #include <cstring>
 #include <vector>
 
-namespace ei::rebirth_hook {
+namespace ei::rebirth_profile {
 
 using rebirth::Patch;
 
@@ -95,4 +95,4 @@ void Load(const std::string& gameFolder) {
 
 bool RebirthLaunch() { return g_rebirthLaunch; }
 
-} // namespace ei::rebirth_hook
+} // namespace ei::rebirth_profile

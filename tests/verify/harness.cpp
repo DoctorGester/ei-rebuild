@@ -381,7 +381,7 @@
 #include "harness_timing.h"
 #include "harness_utf8.h"
 
-#include "../../src/hook/log.h"
+#include "../../src/platform/log.h"
 #include "platform/platform.h"
 #include "platform/win32/platform_win32.h"
 #include "platform/win32/thread_context.h"

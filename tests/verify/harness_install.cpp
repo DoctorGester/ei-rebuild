@@ -2,7 +2,7 @@
 // calls refuse whatever still reaches an install. See harness_install.h.
 #include "harness_install.h"
 
-#include "../../src/hook/log.h"
+#include "../../src/platform/log.h"
 
 #include <windows.h>
 #include <winternl.h>

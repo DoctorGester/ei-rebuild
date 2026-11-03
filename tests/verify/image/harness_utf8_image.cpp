@@ -2,7 +2,7 @@
 // harness_utf8.cpp, harness_utf8.h).
 #include "image_side.h"
 
-#include "../../../src/hook/log.h"
+#include "../../../src/platform/log.h"
 
 #include "game/console.h"
 #include "game/game_singletons.h"

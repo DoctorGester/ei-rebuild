@@ -6,7 +6,7 @@
 
 #include <string>
 
-namespace ei::rebirth_hook {
+namespace ei::rebirth_profile {
 
 // The flags for the game in `gameFolder`: the defaults, then the folder's profile (Rebirth's, config/rebirth_profile.ini
 // with EI_Plugin.ini's player count and pause mode, where Rebirth's addon or plugin is; else the plain install's; none
@@ -17,4 +17,4 @@ void Load(const std::string& gameFolder);
 // True when a flag other than the default bug fixes was on before the settings file was read.
 bool RebirthLaunch();
 
-} // namespace ei::rebirth_hook
+} // namespace ei::rebirth_profile

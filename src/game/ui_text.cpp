@@ -5,7 +5,7 @@
 #include "console.h"
 #include "game_strings.h"
 #include "screen_layout.h"
-#include "hook/log.h"
+#include "platform/log.h"
 #include "lib/rect.h"
 #include "render/render_text.h"
 #include "render/render_ui.h"
