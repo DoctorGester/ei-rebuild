@@ -54,8 +54,8 @@ constexpr int kLevelDifferenceLimit = 25;
 
 // The speed shown: the speed of the mode (mode 3) for a unit outside the group, else of the current one,
 // times 7.5.
-double ShownSpeed(Unit* unit, bool outsideGroup) {
-    const double speed = outsideGroup ? unit->MoveSpeedFor(3) : unit->MoveSpeed2();
+float ShownSpeed(Unit* unit, bool outsideGroup) {
+    const float speed = outsideGroup ? unit->MoveSpeedFor(3) : unit->MoveSpeed2();
     return speed * 7.5f;
 }
 
@@ -116,11 +116,11 @@ void HudUnitPanel::DrawUnitInfo(Unit* unit) {
     } else {
         suffix.clear();
     }
-    double speed = ShownSpeed(unit, outside);
+    float speed = ShownSpeed(unit, outside);
     panel.text = str::Format(kSpeedLine, panel.labels[2], speed, suffix);
     panel.DrawLine();
 
-    float dayTime = static_cast<float>(g_clientWorld.NightLevel());
+    float dayTime = g_clientWorld.NightLevel();
     int vision = std::lround(params->VisionRange(dayTime));
     panel.text = str::Format(kValueUnit, panel.labels[6], vision, panel.labels[13]);
     panel.DrawLine();
@@ -230,7 +230,7 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
         size = viewSize[which];
         height = viewHeight[which];
         if (hoverUnit == shownUnit) size = viewSize[0];
-        if (unit) size = static_cast<float>(unit->AnimationRatio() * size);
+        if (unit) size = unit->AnimationRatio() * size;
     }
 
     for (int i = kFirstDisplay; i < kDisplaysEnd; ++i) SceneMesh(i)->visible = false;

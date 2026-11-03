@@ -48,7 +48,7 @@ void PlaceBoltPoint(ParticleSource* s, int i, Vector3& dir) {
     dir = {std::sin(angle) * radius, std::cos(angle) * radius, 0.0f};
     if (i == 0) dir = {};
     Vector3 point = s->size * dir * EI_POINT_THREE + s->origin;
-    point.z = static_cast<float>(g_clientWorld.RawSurfaceHeightAt(point.x, point.y) + EI_POINT_THREE);
+    point.z = g_clientWorld.RawSurfaceHeightAt(point.x, point.y) + EI_POINT_THREE;
     ParticleElement* points = s->elements.data();
     points[i].pos = point;
     points[i].bolt.base = point;
@@ -162,7 +162,7 @@ Vector3 ModifierAxis(ParticleSource* s, float twiceRadius) {
         axis.z = 1.0f;
         break;
     case 3:
-        s->spreadMin.x = s->spreadMin.x - twiceRadius * EI_POINT_FOUR;
+        s->spreadMin.x -= twiceRadius * EI_POINT_FOUR;
         axis.z = 1.0f;
         break;
     case 4:
@@ -334,7 +334,7 @@ int ParticleSource::EmitZoneExit(Particle* p, int) {
     float falloff = (EI_ZONE_EXIT_SPREAD - a * a) - b * b;
     float x = (a * alpha * turnCos + origin.x) - b * turnSin * typeParam;
     float y = (turnSin * alpha * a + b * turnCos * typeParam) + origin.y;
-    float ground = static_cast<float>(g_clientWorld.RawSurfaceHeightAt(x, y));
+    float ground = g_clientWorld.RawSurfaceHeightAt(x, y);
     p->pos.x = x;
     p->pos.y = y;
     p->size = 0.0f;
@@ -360,7 +360,7 @@ int ParticleSource::UpdateGroundDust(Particle* p) {
     if (--p->life < 0) return 0;
     p->color = (static_cast<std::uint32_t>(kDustAlpha[p->life]) << 24) + (p->color & 0xFFFFFF);
     p->pos += p->velocity;
-    float lifted = static_cast<float>(g_clientWorld.RawSurfaceHeightAt(p->pos.x, p->pos.y)) + EI_TENTH;
+    float lifted = g_clientWorld.RawSurfaceHeightAt(p->pos.x, p->pos.y) + EI_TENTH;
     p->pos.z = lifted;
     const auto& plane = elements[0].plane;
     float along = (p->pos.x - origin.x) * plane.normal.x + (p->pos.y - origin.y) * plane.normal.y;
@@ -412,7 +412,7 @@ int ParticleSource::UpdatePortal(Particle* p) {
     float rise = size * p->velocity.z;
     p->frameTimer = timer;
     p->pos.z = rise + p->pos.z;
-    p->velocity.z = p->velocity.z * EI_PORTAL_GROWTH;
+    p->velocity.z *= EI_PORTAL_GROWTH;
     if (timer == 0) {
         if (++p->frame == 4) p->frame = 0;
         if (p->frame == 15) p->frame = 4;
@@ -452,7 +452,7 @@ int ParticleSource::UpdateSparks(Particle* p) {
     if (--p->life < 0) return 0;
     p->color = (static_cast<std::uint32_t>(kSparkAlpha[p->life]) << 24) | 0xFFFFFF;
     p->pos += p->drift;
-    p->size = p->size * EI_POINT_NINE;
+    p->size *= EI_POINT_NINE;
     p->drift *= EI_POINT_SIX;
     ++p->frame;
     return 1;
@@ -520,7 +520,7 @@ void ParticleSource::TickStartTrans(ParticleElement* e) {
         Attach(nullptr);
     }
     e->trans.scale = size * EI_TRANS_GROWTH + e->trans.scale;
-    elements[0].trans.count = elements[0].trans.count + EI_POINT_FOUR;
+    elements[0].trans.count += EI_POINT_FOUR;
     int count = std::lround(elements[0].trans.count);
     emitCount = count;
     if (!(count < 8)) emitCount = 8;

@@ -3,7 +3,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/vecmath.h"
 
 #include <cmath>
@@ -41,13 +40,11 @@ float CubicSegment::Evaluate(float t) const {
 // --- Quaternion --------------------------------------------------------------------------------------
 
 // Quaternion helpers: rotation from an angle and an axis (two argument orders) and spherical interpolation.
-// The original's maths ran at the main thread's 24-bit precision: float maths in its order, and its FSIN of
-// a double through lib/pc24.h.
 
 namespace {
 
-// Below this 1 - cos interpolates linearly (a double the FPU compares exactly).
-constexpr double kSlerpLinear = 0.0001;
+// Below this 1 - cos interpolates linearly.
+constexpr float kSlerpLinear = 0.0001f;
 
 } // namespace
 
@@ -64,8 +61,7 @@ Quaternion* Quaternion::SetAxisAngle(const Vector3& axis, float angle) {
 }
 
 // *this = slerp(a, b, t) along the shorter arc (b negated when the dot product is negative); nearly equal
-// rotations interpolate linearly. The angle is the game CRT's arc cosine, a double: its sine is the FPU's
-// FSIN of the whole double (pc24::Sin's double form), and each weight one PC24 product.
+// rotations interpolate linearly.
 void Quaternion::Slerp(float t, const Quaternion& from, const Quaternion& to) {
     float cosine = Dot(from, to);
     Quaternion c = to;
@@ -79,11 +75,11 @@ void Quaternion::Slerp(float t, const Quaternion& from, const Quaternion& to) {
     }
     float weightA;
     float weightB;
-    if (static_cast<double>(1.0f - cosine) > kSlerpLinear) {
-        const double angle = libcrt::CiAcos(cosine);
-        const float inverseSine = pc24::Div(1.0, pc24::Sin(angle));
-        weightA = pc24::Mul(pc24::Sin(pc24::Mul(1.0f - t, angle)), inverseSine);
-        weightB = pc24::Mul(pc24::Sin(pc24::Mul(angle, t)), inverseSine);
+    if (1.0f - cosine > kSlerpLinear) {
+        const float angle = std::acos(cosine);
+        const float inverseSine = 1.0f / std::sin(angle);
+        weightA = std::sin((1.0f - t) * angle) * inverseSine;
+        weightB = std::sin(angle * t) * inverseSine;
     } else {   // also NaN
         weightA = 1.0f - t;
         weightB = t;
@@ -94,11 +90,11 @@ void Quaternion::Slerp(float t, const Quaternion& from, const Quaternion& to) {
     w = weightA * from.w + weightB * c.w;
 }
 
-// FSIN / FCOS of the half angle: the sine divided by the length in one rounding, the cosine stored (lib/pc24.h).
+// The half angle's sine over the axis's length and its cosine.
 void Quaternion::FromAxisAngle(const Vector3& axis, float angle) {
     float half = angle * 0.5f;
-    float s = pc24::Div(pc24::Sin(half), Length(axis));
-    w = pc24::Round(pc24::Cos(half));
+    float s = std::sin(half) / Length(axis);
+    w = std::cos(half);
     x = s * axis.x;
     y = s * axis.y;
     z = s * axis.z;

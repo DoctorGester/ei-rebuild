@@ -255,9 +255,9 @@ const char* ResourcesPath() { return options::g_options.resourcesPath.c_str(); }
 unsigned g_serverStamp = /*007AFED0*/ {};   // the newest variable stamp seen
 unsigned g_appliedStamp = /*007AFED4*/ {};   // the stamp applied up to
 
-// The variable setter with the value as the raw dword that is pushed (no FPU load on the way).
+// The variable setter with the value as its bits.
 void VariableSetBits(NamedFloatTable* table, std::string_view name, std::uint32_t bits) { table->Set(name, std::bit_cast<float>(bits)); }
-// The value's bits, moved as the dword that is pushed (no FPU load).
+// The value's bits.
 std::uint32_t ValueBits(const net::VariableMessage* record) {
     std::uint32_t bits;
     bits = std::bit_cast<std::uint32_t>(record->value);

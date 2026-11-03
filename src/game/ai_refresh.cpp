@@ -9,7 +9,6 @@
 
 #include <cstdint>
 
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 
 #include <vector>
@@ -18,7 +17,7 @@ namespace {
 
 constexpr int kLevels = 8;
 
-// The occluders' damping scale, ln 0.6 (the double) as FYL2X computes it, stored as a float by a static initialiser.
+// The occluders' damping scale, ln 0.6.
 float g_dampScale = /*007C2F8C*/ {-0.51082563f};
 // The special areas of a standing level: levels 5 and 6 use the second list, 7 the third, the
 // others the first.
@@ -32,9 +31,9 @@ std::uint32_t& CellWord(AIMap* map, int x, int y) {
     return map->cells[y][x].passable;
 }
 
-// passage * e^(table * a * b) as the original's x87 sequence computes it, stored to a float and rounded.
+// passage * e^(table * a * b), rounded to an int.
 int Damp(int table, float a, float b, int passage) {
-    const float damped = pc24::Mul(pc24::Exp(static_cast<float>(table) * a * b), static_cast<double>(passage));
+    const float damped = std::exp(static_cast<float>(table) * a * b) * static_cast<float>(passage);
     return lib::RoundEven(damped);
 }
 

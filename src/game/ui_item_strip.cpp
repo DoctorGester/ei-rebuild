@@ -177,7 +177,7 @@ void UiItemStrip::Update() {
     const float snapPending = 0.02f;
     const float snapHigh = 0.99f;
     const float one = 1.0f;
-    const float dt = static_cast<float>(UiContainer::FrameTime());
+    const float dt = UiContainer::FrameTime();
 
     // An arrow held: one slot at once, then one more every `repeatTicks` milliseconds (counted from 1).
     if (scrollDirection != 0) {
@@ -210,7 +210,7 @@ void UiItemStrip::Update() {
                 const float current = velocity;
                 limited = MinKeepA(current, limit);
             } else {
-                velocity = velocity - gain;
+                velocity -= gain;
                 const float minSpeed = -maxSpeed;
                 velocity = MaxKeepB(velocity, minSpeed);
                 const float limit = (nearDistance + pending) / dt;
@@ -228,7 +228,7 @@ void UiItemStrip::Update() {
         float step = speed * dt;
         step = std::fabs(pending) >= std::fabs(step) ? step : pending;
         position[tab] = step + position[tab];
-        pending = pending - step;
+        pending -= step;
 
         // Settle on a whole slot when the remaining scroll is tiny and the position is within
         // 0.01 above or 0.01 below one.

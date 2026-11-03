@@ -15,7 +15,6 @@
 #include "lib/bytes.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
@@ -42,7 +41,7 @@ void AddTile(VertexTiles& entry, int x, int y) {
     if (x >= 0 && y >= 0 && x < kSectorTiles && y < kSectorTiles) entry.tiles[entry.count++] = y * kSectorTiles + x;
 }
 
-constexpr double kSineStep = 1.0 / 256;
+constexpr float kSineStep = 1.0f / 256;
 constexpr float kWaveStepTurn = 0.500250161f;
 constexpr int kRipples = 40;
 
@@ -235,8 +234,7 @@ void Terrain::Create() {
     Reset();
     BuildVertexTiles();
     BuildWavePhases();
-    // Before the device exists (the main thread at 53 bits): the angle in double maths, FSIN's result stored.
-    for (int i = 0; i < 512; ++i) sine[i] = pc24::Round(pc24::Sin(i * kPiDouble * kSineStep));
+    for (int i = 0; i < 512; ++i) sine[i] = std::sin(static_cast<float>(i) * kPi * kSineStep);
     localPosition = kZeroPosition;
     localRotation = kIdentityRotation;
 }
@@ -279,16 +277,14 @@ void Terrain::BuildWavePhases() {
         float centreX = static_cast<float>(ClientRand() % kSectorRow);
         float centreY = static_cast<float>(ClientRand() % kSectorRow);
         int radius = ClientRand() % 5 + 1;
-        double radiusSquared = static_cast<double>(radius) * radius;
+        float radiusSquared = static_cast<float>(radius * radius);
         float* phase = phases;
         for (int row = 0; row < kSectorRow; ++row) {
-            double dy = row - centreY;
-            double dySquared = dy * dy;
+            float dy = static_cast<float>(row) - centreY;
             for (int column = 0; column < kSectorRow; ++column, ++phase) {
-                double dx = column - centreX;
-                double distanceSquared = dx * dx + dySquared;
-                if (distanceSquared < radiusSquared)
-                    *phase = static_cast<float>((1.0 - distanceSquared / radiusSquared) * kPi * 0.5f + *phase);
+                float dx = static_cast<float>(column) - centreX;
+                float distanceSquared = LengthSquared2D(dx, dy);
+                if (distanceSquared < radiusSquared) *phase += (1.0f - distanceSquared / radiusSquared) * kPi * 0.5f;
             }
         }
     }
@@ -305,9 +301,7 @@ void Terrain::BuildWavePhases() {
         phases[i] = average;
         phases[i + kSectorRow - 1] = average;
     }
-    // The four summed at 53 bits (Create runs before the device), then stored once.
-    const float corners = static_cast<float>(
-        (((static_cast<double>(phases[kLastRow]) + phases[kSectorVertices - 1]) + phases[kSectorRow - 1]) + phases[0]) * 0.25);
+    const float corners = (phases[kLastRow] + phases[kSectorVertices - 1] + phases[kSectorRow - 1] + phases[0]) * 0.25f;
     phases[0] = corners;
     phases[kSectorRow - 1] = corners;
     phases[kSectorVertices - 1] = corners;
@@ -320,8 +314,7 @@ void Terrain::SetWaveStrength(float strength) {
     waveGlow = strength;
     waveHeight = kWaveHeightScale * strength;
     waveSpeed = kWaveSpeedScale * strength;
-    // The game CRT's arc sine (its 64-bit result) plus the turn, one 24-bit rounding.
-    const float step = pc24::Add(libcrt::CiAsin(1.0f - strength), kPi * kWaveStepTurn);
+    const float step = std::asin(1.0f - strength) + kPi * kWaveStepTurn;
     float length = Length(waveDirection);
     if (length > 0.0f) waveDirection *= 1.0f / length;
     waveDirection.x = kWaveDirectionScale * waveDirection.x * step;
@@ -439,9 +432,8 @@ void Terrain::ReadMap(const MapHeader& header, const std::uint8_t* file) {
 
 void Terrain::BuildUvTables(int tileSize) {
     // A tile's side as a part of the page, and 8 pixels of the page inside each of its edges.
-    // The exact quotients of the ints, rounded once (an int past 2^24 is not rounded to a float first).
-    const float tileSide = pc24::Div(1.0, tilesPerRow);
-    const float margin = pc24::Div(tileSide, tileSize) * kMarginPixels;
+    const float tileSide = 1.0f / tilesPerRow;
+    const float margin = (tileSide / tileSize) * kMarginPixels;
     for (int rotation = 0; rotation < 4; ++rotation) {
         uvTables[rotation].assign(static_cast<std::size_t>(perPage), TileUv{});
         int index = 0;

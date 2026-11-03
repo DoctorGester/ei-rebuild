@@ -21,7 +21,6 @@
 
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 
 #include <bit>
@@ -35,7 +34,7 @@ constexpr float kLong = 0.001f;
 constexpr float kFive = 5.0f;
 constexpr float kFifteen = 15.0f;
 constexpr float kHeightLimit = 1.5f;
-constexpr double kArrived = 0.02;   // a double the FPU compares exactly (0.02f is below it)
+constexpr float kArrived = 0.02f;
 constexpr float kMinClosing = 0.1f;   // the slowest closing speed
 constexpr float kFar = 1000000.0f;                         // 1e6: no limit for a path
 
@@ -129,7 +128,7 @@ int AttackInterval(UnitServer* self, ItemWeapon* weapon) {
         // _ftol, as the original truncates it: through 64 bits, the low half (0 for a NaN).
         base = static_cast<int>(static_cast<std::int64_t>(self->stats.attackCategory));
     }
-    float scaled = pc24::Mul(static_cast<double>(base), factor);   // the int exact, one rounding
+    float scaled = static_cast<float>(base) * factor;
     return lib::RoundEven(scaled);
 }
 
@@ -612,11 +611,11 @@ void UnitServer::ApproachTarget() {
             // A moving target that comes into reach before the next attack: wait for it.
             Vector3 p = target->PositionAt(lead + now);
             Vector3 offset = p - unit->localPosition;
-            float closing = static_cast<float>(unit->MoveSpeed()) * 0.5f;   // Unit::MoveSpeed: a float
+            float closing = unit->MoveSpeed() * 0.5f;
             if (closing > 0.0f) {
                 float distance = Length(offset);
                 float ticks = (distance - reach) / closing;
-                if (static_cast<double>(lead) > ticks) {   // the int and the float compared exactly
+                if (static_cast<float>(lead) > ticks) {
                     if (state != UnitState::Turning) StandIdle(this);
                     return;
                 }
@@ -642,7 +641,7 @@ void UnitServer::ApproachTarget() {
     Vector3 where = chased->AimPoint();
     Vector3 offset = where - unit->localPosition;
     float distance = Length(offset);
-    float mySpeed = static_cast<float>(unit->MoveSpeed());
+    float mySpeed = unit->MoveSpeed();
     float closing;
     if (chased->IsLargeUnit()) {
         // The chased unit's speed along the line between them adds to ours.
@@ -652,7 +651,7 @@ void UnitServer::ApproachTarget() {
         if (length > 0.0f) v /= length;
         Vector3 axis = other->localRotation.AxisY();
         float along = Dot(axis, v);
-        closing = static_cast<float>(other->MoveSpeed()) * along + mySpeed;
+        closing = other->MoveSpeed() * along + mySpeed;
     } else {
         closing = mySpeed;
     }

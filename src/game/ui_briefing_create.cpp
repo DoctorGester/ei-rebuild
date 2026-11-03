@@ -65,7 +65,7 @@ constexpr int kPhrases = 3;
 constexpr int kRewards = 4;
 
 constexpr float kMoverTimeout = 30.0f;
-constexpr double kCloseEnough = 0.01;       // squared distance
+constexpr float kCloseEnough = 0.01f;       // squared distance
 constexpr int kEventOpenTopics = 1;
 constexpr int kEventNoTopics = 2;
 constexpr int kTopicNameParts = 3;
@@ -99,7 +99,7 @@ void StepWalking(BriefingMover* node) {
 void StepTurning(BriefingMover* node) {
     const Unit* person = node->person;
     Vector3 axis = person->localRotation.AxisY();
-    float facingX = static_cast<float>(-axis.x);
+    float facingX = -axis.x;
     float facingY = -axis.y;
     Vector3 direction = NormalisedUnlessZero(node->direction);
     float dy = direction.y - facingY;
@@ -224,8 +224,8 @@ void BriefingScreen::CreateScreen() {
 }
 
 void BriefingScreen::Update() {
-    markPhase = static_cast<float>(FrameTime() + markPhase);
-    while (markPhase >= 1.0f) markPhase = static_cast<float>(markPhase - 1.0f);
+    markPhase = FrameTime() + markPhase;
+    while (markPhase >= 1.0f) markPhase = markPhase - 1.0f;
     UiContainer::Update();
     SetMeshesVisible(this, 0);
     for (int i = 0; i < std::ssize(surfaces); ++i) surfaces[i]->Hide(false);
@@ -233,7 +233,7 @@ void BriefingScreen::Update() {
     children[kTextChild]->SetEnabled(false);
 
     for (BriefingMover& mover : movers) {
-        mover.time = static_cast<float>(FrameTime() + mover.time);
+        mover.time = FrameTime() + mover.time;
         if (mover.time > kMoverTimeout) {
             PlaceMover(&mover);
             mover.state = BriefingMover::kDone;
@@ -280,7 +280,7 @@ void BriefingScreen::Update() {
         if (voice != -1) {
             if (VoiceEnded(voice)) NextPhrase(false);
         } else {
-            phraseTime = static_cast<float>(phraseTime - FrameTime());
+            phraseTime -= FrameTime();
             EI_NAN_AUDIT(phraseTime);
             if (phraseTime < 0.0f) NextPhrase(false);
         }
@@ -292,7 +292,7 @@ void BriefingScreen::Update() {
         if (voice != -1) {
             if (speaking && VoiceEnded(voice)) StopTalking(speaking);
         } else {
-            phraseTime = static_cast<float>(phraseTime - FrameTime());
+            phraseTime -= FrameTime();
             EI_NAN_AUDIT(phraseTime);
             if (speaking && phraseTime < 0.0f) StopTalking(speaking);
         }

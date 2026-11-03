@@ -156,7 +156,7 @@ void SpellMakerPage::Draw(SceneRenderer* pass) {
             // A record out of range is read through null, like the original.
             const itemdb::SpellRecord* spell = itemdb::SpellAt(AsLoot(item)->index);
             needed += spell->skill;
-            manaSum = manaSum + spell->mana;
+            manaSum += spell->mana;
             lastMana = spell->mana;
             school = spell->school;
             cell.x = 350.0f;
@@ -165,7 +165,7 @@ void SpellMakerPage::Draw(SceneRenderer* pass) {
             hasSpell = true;
         } else if (IsModifier(item)) {
             const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(AsLoot(item)->index);
-            manaSum = manaSum + modifier->mana;
+            manaSum += modifier->mana;
             needed += modifier->skill;
             cell.x = column + 450.0f;
             cell.y = (row * 100) + 150.0f;

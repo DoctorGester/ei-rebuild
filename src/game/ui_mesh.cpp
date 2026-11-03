@@ -54,8 +54,8 @@ void AppendByGrow(std::vector<std::uint16_t>* indices, UiMesh* mesh, int value) 
 void NudgeAndCommit(UiMesh* mesh) {
     float half = worlddata::kHalfTexel;
     for (int i = 0; i < std::ssize(mesh->texCoords); ++i) {
-        mesh->texCoords[i].u = mesh->texCoords[i].u + half;
-        mesh->texCoords[i].v = mesh->texCoords[i].v - half;
+        mesh->texCoords[i].u += half;
+        mesh->texCoords[i].v -= half;
     }
     mesh->RefreshBuffers();
 }
@@ -515,8 +515,8 @@ void SetTexelCorners(UiMesh* sprite, int u0, int v0, int u1, int v1) {
 void InsetTexels(UiMesh* sprite) {
     for (int i = 0; i < std::ssize(sprite->texCoords); ++i) {
         TexCoord* texel = sprite->texCoords.data() + i;
-        texel->u = texel->u + kHalfTexel;
-        texel->v = texel->v - kHalfTexel;
+        texel->u += kHalfTexel;
+        texel->v -= kHalfTexel;
     }
 }
 

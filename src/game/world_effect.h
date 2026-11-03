@@ -32,7 +32,7 @@ public:
     // Position, state field, start tick, velocity and stamp cleared.
     virtual void Reset();
     // How far it reaches: a constant.
-    virtual double Radius();
+    virtual float Radius();
     // Its position as `group` sees it: the local position (the argument is ignored).
     virtual Vector3* Position(const ScriptGroup* group);
     virtual int Unpack(int update, DeltaField* field) = 0;   // 0 when the field did not end where expected
@@ -72,7 +72,7 @@ public:
     void Pack(DeltaField* field) override;
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
-    double Radius() override;
+    float Radius() override;
 
     char name[0x100];          // sound file
     float volume;
@@ -97,7 +97,7 @@ public:
     void Pack(DeltaField* field) override;
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
-    double Radius() override;
+    float Radius() override;
 
     std::string name;          // the first sound
     std::vector<std::string> names;   // the others
@@ -120,7 +120,7 @@ public:
     void Pack(DeltaField* field) override;
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
-    double Radius() override;
+    float Radius() override;
 
     std::vector<std::string> names;
     float volume;
@@ -144,7 +144,7 @@ public:
     void Pack(DeltaField* field) override;
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
-    virtual double LightRadius();
+    virtual float LightRadius();
 
     Vector3 color;
     float range;               // negative: LightFlag::Off on the light

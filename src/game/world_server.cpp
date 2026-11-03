@@ -228,14 +228,14 @@ void WorldServer::RemoveObject(unsigned objectId) {
     }
 }
 
-double WorldServer::RawSurfaceHeightAt(float x, float y) {
+float WorldServer::RawSurfaceHeightAt(float x, float y) {
     Vector3 point = {x, y, 0.0f};
     return aiMap.TopHeightAt(point);
 }
 
-double WorldServer::GroundHeightAt(float x, float y) { return GridHeightAt(x, y); }
+float WorldServer::GroundHeightAt(float x, float y) { return GridHeightAt(x, y); }
 
-double WorldServer::SurfaceHeightAt(float x, float y) { return RawSurfaceHeightAt(x, y); }
+float WorldServer::SurfaceHeightAt(float x, float y) { return RawSurfaceHeightAt(x, y); }
 
 // --- Class name and id ------------------------------------------------------------------------------
 

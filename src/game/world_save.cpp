@@ -35,7 +35,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "platform/platform.h"
-#include "lib/pc24.h"
 
 #include <bit>
 #include <cstdint>
@@ -174,7 +173,7 @@ void WorldServer::UpdatePlayerTimes(float offset) {
         player->lastTick = now;
         if (elapsed < 0) elapsed = 0;
         float current = player->GetParty()->variables.Get(name);
-        float value = pc24::Mul(static_cast<double>(elapsed), secondsPerTick) + offset + current;
+        float value = (static_cast<float>(elapsed) * secondsPerTick) + offset + current;
         player->Server()->SetVariable(name, std::bit_cast<std::uint32_t>(value));
     }
 }

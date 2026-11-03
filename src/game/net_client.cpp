@@ -9,7 +9,6 @@
 #include "net_messages.h"
 #include "party.h"
 #include "world.h"
-#include "lib/pc24.h"
 
 #include <cstring>
 
@@ -182,7 +181,6 @@ void ClientSession::OnJoined() { g_gameFlow.BeginMultiplayerGame(); }
 // Called by the transfer screen: a buffer's stream size (its base plus the highest written position, from
 // `begin`) over the dword at its start (1 when 0), both as signed integers; 0 for fewer than 4 bytes. Reading
 // the dword moves the read position to 4 (a Seek(0), then a 4-byte read as BufferRead does it).
-// The quotient rounded once to a float, as the original's division at 24-bit precision (the sizes can pass 2^24).
 float ClientSession::BufferRatio(GameBuffer* buffer) {
     auto streamSize = [buffer] {
         if (buffer->cur > buffer->high) buffer->high = buffer->cur;
@@ -195,7 +193,7 @@ float ClientSession::BufferRatio(GameBuffer* buffer) {
     std::uint32_t stored;
     buffer->ReadBytes(&stored, 4);
     std::int32_t divisor = stored != 0 ? static_cast<std::int32_t>(stored) : 1;
-    return pc24::Div(streamSize(), divisor);
+    return static_cast<float>(streamSize() / divisor);
 }
 
 } // namespace net

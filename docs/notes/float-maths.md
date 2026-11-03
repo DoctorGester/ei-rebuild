@@ -1,41 +1,18 @@
 # Floating point and vector maths
 
-The game code builds as SSE code with `/fp:precise` (x64, no x87 anywhere). `python tools/check_x87.py` fails on an
-`x87::` helper, a `libcrt::Ftol` or a `D()` register in src/game, src/lib or src/render.
+The game code is plain float maths: SSE code with `/fp:precise` (x64, no x87 anywhere), `std::` functions on floats.
+The goldens are our build's own, so nothing reproduces the original's x87 rounding any more.
 
-## Why plain float maths reproduces the original
-
-The original's main thread ran its x87 at 24-bit precision (the control word Direct3D left): every add, subtract,
-multiply, divide and square root rounded to a float significand, as the float operation does. So float maths in the
-original's order and grouping gives the original's results; a "double register" of the original is a float.
 - **Grouping decides the rounding.** `+` and `*` commute exactly; only the grouping of a sum matters. The grouping
-  written is the grouping compiled under `/fp:precise`; `/fp:fast` regrouped sums and distributed products
-  (FearMode's `(30x + d) * (1/31)` settled on another fixed point), so never use it. The vector helpers sum left to
-  right; the original's per-site groupings are gone: the goldens are our build's own.
-- **Constant products.** A product of two constants the original computed at run time rounds to 24 bits there; the
-  compiler folds it at double precision. Write it as the float (`static_cast<float>(kPi * kPerDegree)`, checking the
-  rounding) or keep the operation. The build inlines at /Ob2, so a constant behind a helper folds too.
-- **53-bit code.** Before the device existed (start-up: options, registry, settings, the first files) the original
-  ran at 53 bits, where its double maths is SSE's double maths: such code stays double (options' loader and saver
-  have their own helpers, `LoadedTimes255` / `SavedTimes255`). Other threads (the MP3 stream, the cursor, the master
-  lookup) do no float maths that matters.
-- **Kept double:** values that never were 24-bit results: timeGetTime counts, file sizes, doubles read from data or
-  messages, performance timers. Stored doubles (members, saves, messages) keep their type and receive float values.
-
-## Wider operands (lib/pc24.h)
-
-FSIN, FCOS, FPATAN, FYL2X and F2XM1 ignore the precision control (64-bit results); a double constant or an int above
-2^24 keeps all its bits until the one operation rounds. `pc24::Mul / Add / Sub / Div` do one 24-bit-rounded operation
-on two such values exactly (double-double, then one rounding); `pc24::Sin / Cos / Atan2 / Log / Log10` return the
-64-bit result as an `Unrounded`, `pc24::Round` stores it; `pc24::Exp` is VC6's inline exp step by step. The game CRT's
-pow / acos / asin / hypot are `libcrt::CiPow` / `CiAcos` / `CiAsin` / `Hypot` (src/lib/crt_maths.cpp). Examples:
-`x87::fcos(a) * r + x` is `pc24::Mul(pc24::Cos(a), r) + x`; `x * 0.001` (a double constant) is `pc24::Mul(x, 0.001)`;
-a float times the double 1 / (2^32 - 1) rounds as `* 0x1p-32f`; `pc24::Mul(x, word * 0x1p-32)` keeps the result where
-`x * word` alone would overflow. A constant exact in 24 bits (0.5, 100) is a float constant. Each helper was checked
-against the original's instruction sequences on every float or hundreds of millions of cases; the differences left are
-the exponent range (x87 registers kept a 15-bit exponent: products beyond 3.4e38 or below 1.2e-38 inside an
-expression), which NaN of two comes out, and FPATAN cases within hundredths of an ulp of a 64-bit tie (about 2 in 10^7
-of the AI's kind-4 turn orders). Accepted.
+  written is the grouping compiled under `/fp:precise`; `/fp:fast` regroups sums and distributes products (FearMode's
+  `(30x + d) * (1/31)` settled on another fixed point), so never use it. The vector helpers sum left to right.
+- **Floats, with float constants** (`0.001f`, `1.0f / 15.0f`, `6.3f * 0x1p-32f` for a random word to [0, 6.3)). A
+  double constant or a double-returning function in float maths is a C4244 warning, which fails the build.
+- **Double only where precision matters:** millisecond and tick clocks (`platform::Milliseconds`, the animation frames
+  of the hero and camp screens, the connections' clocks), free disk space and file sizes, the performance timers,
+  printf's arguments, the registry's `GetFloat` (an int value exact), script values (`GetVariable`, addon's
+  `CrtSin` / `CrtCos` / `CrtPow`), the shadow camera's matrix inverse (render_shadows.cpp) and the Bink audio
+  decoder.
 
 ## Conversions and copies
 
@@ -44,7 +21,8 @@ of the AI's kind-4 turn orders). Accepted.
 - VC6's `_ftol` truncates and keeps the low half of the 64-bit integer (0 for NaN):
   `static_cast<int>(static_cast<std::int64_t>(x))` where a NaN or a value beyond int can arrive, else
   `static_cast<int>`.
-- An unsigned 32-bit value (random words, tick counts) converts exactly with `static_cast<double>`.
+- An unsigned 32-bit value (random words, tick counts) converts to float with `static_cast<float>` (rounded to 24
+  bits).
 - Float copies are plain assignments (SSE copies keep a signalling NaN's bits, where FLD / FSTP set the quiet bit);
   a float seen as its bits is `std::bit_cast`.
 - The original truncated the terrain's edge fade under chop rounding; ours rounds to nearest (the speculars are shader

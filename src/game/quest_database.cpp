@@ -49,9 +49,9 @@ void ReadQuest(FileRegistry& reg, QuestRecord* quest, std::vector<std::string>& 
         str::TrimRight(place, '}');
         parts = text::Split(place, ';');
         if (parts.size() == 2) {
-            float x = static_cast<float>(str::ToDouble(parts[0]));
+            float x = str::ToFloat(parts[0]);
             PushPlace(quest, x);
-            float y = static_cast<float>(str::ToDouble(parts[1]));
+            float y = str::ToFloat(parts[1]);
             PushPlace(quest, y);
         }
     }

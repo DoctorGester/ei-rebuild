@@ -15,7 +15,6 @@
 // host CRT's (std::strcmp and so on) or text_case.h's (UTF-8: no lead bytes, no class past ASCII).
 namespace libcrt {
 
-
 // MSVC 6's quicksort (middle element as the pivot, selection sort up to 8 elements, the smaller part first):
 // equal elements end up in the same order as in the game (the host's qsort changed 105 image goldens). For the sorts
 // whose elements can compare equal and differ (the sector spiral's distances, the ambience's class weights); the
@@ -34,25 +33,11 @@ void Srand(unsigned seed);
 // The calling thread's seed itself (the harness's digest and random trace read it).
 unsigned& RandState();
 
-// floor, ceil, modf, fmod / _CIfmod are the host CRT's; acos asin are CiAcos and CiAsin below. _controlfp has no
-// port: its one use (terrain lighting's chop rounding) went with the CPU lighting.
+// The maths functions are the host CRT's (std::).
 
 // The game's printf text of `format` (crt_format.cpp; str::Format is its CString form), every byte written (a %c of
 // 0 too): the format read as MSVC 6's _output reads it, the floats with its digits, the rest the host's.
 std::string Format(const char* format, va_list args);
-
-// The maths as the CRT computes it on the game's main thread (x87 at 24-bit precision, rounding to nearest;
-// crt_maths.cpp, in SSE2 code): acos / asin by FPATAN of the root of (1 + x)(1 - x), pow by FYL2X / F2XM1 /
-// FSCALE. Out of the domain: the x87 indefinite. CiAcos and CiAsin are also acos asin themselves (the stack-argument
-// entries).
-double CiAcos(double x);
-double CiAsin(double x);
-double CiPow(double x, double y);
-// _hypot (the camera, the strips, the client maps): the larger size m of |x| and |y| times the root of
-// (x / m)^2 + (y / m)^2, each step at 64 bits then stored to a double, as _hypothlp computes it under its
-// control word 133F (to nearest); an overflow +infinity, a NaN argument as x87 addition propagates it, an
-// infinity otherwise +infinity.
-double Hypot(double x, double y);
 
 } // namespace libcrt
 

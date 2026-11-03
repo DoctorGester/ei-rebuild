@@ -447,7 +447,7 @@ void ClientBase::Tick(double dt) {
         return;
     }
     SendJoin(&host, &joinData);
-    retryInterval = retryInterval + retryInterval;
+    retryInterval += retryInterval;
     retryTimer = retryInterval;
 }
 

@@ -8,7 +8,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 #include "logic_settings.h"
 #include "map_object.h"
@@ -29,8 +28,8 @@
 #include <utility>
 
 namespace {
-// (a double, 0.4 / 2^32) (0.8f): the new alertness decay.
-constexpr double kDecayRandomScale = std::bit_cast<double>(0x3DD99999C019999Aull);
+// A random word * 0.4 / 2^32 + 0.8: the new alertness decay.
+constexpr float kDecayRandomScale = 0.4f * 0x1p-32f;
 constexpr float kDecayBase = 0.8f;
 
 constexpr float kMoveTime = 1000000.0f;
@@ -89,7 +88,7 @@ void AIMode::Execute(AIBrain* brain) {
 void AIMode::Enter(AIBrain* brain) {
     brain->StopAction();
     std::uint32_t roll = g_random.Next();
-    brain->decay = pc24::Mul(static_cast<double>(roll), kDecayRandomScale) + kDecayBase;
+    brain->decay = (static_cast<float>(roll) * kDecayRandomScale) + kDecayBase;
     brain->owner->moveMode2.onGuard = 0;
 }
 
@@ -607,9 +606,8 @@ constexpr float kDistanceWeight = 30.0f;
 constexpr float kDistanceDivisor = 0.032258064f; // (1 / 31)
 constexpr float kSpreadScale = 2.5f;
 constexpr float kMinDistance = 3.0f;
-constexpr double kRandomSix = std::bit_cast<double>(0x3E18000000180000ull);   // 6 / 2^32
-// A random word times a span times the double 2^-32 (1 + 2^-32): the product's float times it rounds to the float
-// times 2^-32.
+constexpr float kRandomSix = 6.0f * 0x1p-32f;
+// A random word to [0, 1).
 constexpr float kRandomUnit = 0x1p-32f;
 
 bool IsZero(float v) {
@@ -631,8 +629,8 @@ bool FindFlightPoint(AIBrain* brain, Unit* self, Unit* enemy, Vector3 me, const 
         away *= scale;
     }
     IsaacRandom& random = g_random;
-    float jitterX = pc24::Mul(static_cast<double>(random.Next()), kRandomSix) - kThree;
-    float jitterY = pc24::Mul(static_cast<double>(random.Next()), kRandomSix) - kThree;
+    float jitterX = (static_cast<float>(random.Next()) * kRandomSix) - kThree;
+    float jitterY = (static_cast<float>(random.Next()) * kRandomSix) - kThree;
     Vector3 back = me - away;
     Vector3 dest{back.x + jitterX, back.y + jitterY, back.z};
 
@@ -643,7 +641,7 @@ bool FindFlightPoint(AIBrain* brain, Unit* self, Unit* enemy, Vector3 me, const 
     float scale = 0.5f;
     float limit = 1.0f / scale * way * kSmoothingScale;
     EI_NAN_AUDIT(limit);
-    if (static_cast<double>(limit) < static_cast<double>(path.smoothing)) return false;   // the int compared exactly
+    if (limit < static_cast<float>(path.smoothing)) return false;
     Vector3 end{scale * path.targetX, scale * path.targetY, 0.0f};
 
     AIOrder order;
@@ -779,8 +777,8 @@ void FearMode::Execute(AIBrain* brain) {
             }
             float low = -width;
             IsaacRandom& random = g_random;
-            float jitterX = pc24::Mul(static_cast<double>(random.Next()), width - low) * kRandomUnit + low;
-            float jitterY = pc24::Mul(static_cast<double>(random.Next()), width - low) * kRandomUnit + low;
+            float jitterX = (static_cast<float>(random.Next()) * (width - low)) * kRandomUnit + low;
+            float jitterY = (static_cast<float>(random.Next()) * (width - low)) * kRandomUnit + low;
             Vector3 back = *here - step;
             dest = {back.x + jitterX, back.y + jitterY, back.z};
         }
@@ -791,7 +789,7 @@ void FearMode::Execute(AIBrain* brain) {
             brain->action = AIBrain::kActionWalk;
             brain->owner->OrderMove(dest, 0, 0, kMoveTime);
         }
-        spread = spread + spread;
+        spread += spread;
     }
 
     if (brain->action == AIBrain::kActionNone) {
@@ -973,8 +971,8 @@ constexpr float kWanderScale = 15.0f;
 constexpr float kDefaultWander = 40.0f;
 constexpr float kMinWaitFraction = 0.25f;
 // A random word to an angle in [0, 6.3).
-constexpr double kAngleScale = std::bit_cast<double>(0x3E19333340193333ull);
-// A random word to [0, 1): the double 2^-32 (1 + 2^-32), which a float times rounds to the float times 2^-32.
+constexpr float kAngleScale = 6.3f * 0x1p-32f;
+// A random word to [0, 1).
 constexpr float kUnitScale = 0x1p-32f;
 constexpr const char kHumanPrefix[] = "unhu";
 
@@ -1025,11 +1023,11 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3& direction, float wand
         int tries = 5;
         float dx, dy, wait;
         for (;;) {
-            float angle = pc24::Mul(static_cast<double>(random->Next()), kAngleScale);
+            float angle = static_cast<float>(random->Next()) * kAngleScale;
             std::uint32_t roll = random->Next();
-            wait = pc24::Mul(wander - minWait, static_cast<double>(roll)) * kUnitScale + minWait;
-            float sine = pc24::Round(pc24::Sin(angle));
-            dx = pc24::Add(pc24::Cos(angle), direction.x);
+            wait = ((wander - minWait) * static_cast<float>(roll)) * kUnitScale + minWait;
+            float sine = std::sin(angle);
+            dx = std::cos(angle) + direction.x;
             dy = sine + direction.y;
             if (tries-- < 0) break;
             Vector3 reach{dx + dx, dy + dy, direction.z + direction.z};
@@ -1039,7 +1037,7 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3& direction, float wand
             if (sight == 1.0f) break;
         }
         AILook look{};
-        look.angle = pc24::Round(pc24::Atan2(dy, dx));
+        look.angle = std::atan2(dy, dx);
         look.time = 0.0f;
         look.wait = wait;
         look.stopFirst = farGoal;
@@ -1054,14 +1052,14 @@ std::optional<Vector3> AIBrain::FindStandPoint(const Vector3& point, float radiu
     }
     IsaacRandom* random = (&g_random);
     float low = -radius;
-    float dx = pc24::Mul(radius - low, static_cast<double>(random->Next())) * kUnitScale + low;
-    float dy = pc24::Mul(radius - low, static_cast<double>(random->Next())) * kUnitScale + low;
+    float dx = ((radius - low) * static_cast<float>(random->Next())) * kUnitScale + low;
+    float dy = ((radius - low) * static_cast<float>(random->Next())) * kUnitScale + low;
     float radiusSq = radius * radius;
     for (int tries = 9;;) {
         EI_NAN_AUDIT(dy, dx, radiusSq);
         if (LengthSquared2D(dy, dx) <= radiusSq) break;
-        dx = pc24::Mul(radius - low, static_cast<double>(random->Next())) * kUnitScale + low;
-        dy = pc24::Mul(radius - low, static_cast<double>(random->Next())) * kUnitScale + low;
+        dx = ((radius - low) * static_cast<float>(random->Next())) * kUnitScale + low;
+        dy = ((radius - low) * static_cast<float>(random->Next())) * kUnitScale + low;
         if (--tries < 0) break;
     }
     Vector3 spot = {dx + point.x, dy + point.y, 0.0f};
@@ -1083,7 +1081,7 @@ std::optional<Vector3> AIBrain::FindStandPoint(const Vector3& point, float radiu
         bool found = map->FindPath(self, spot, &path, range, 0.0f);
         // A path much longer than the way there (smoothing) counts as none.
         EI_NAN_AUDIT(distance);
-        if (!found || static_cast<double>(2.0f * distance * kDetourFactor) < static_cast<double>(path.smoothing)) {
+        if (!found || 2.0f * distance * kDetourFactor < static_cast<float>(path.smoothing)) {
             result = false;
             int cooldown = lib::RoundEven(distance * kCooldownPerDistance);
             standCooldown = (std::min)(cooldown, kMaxCooldown);
@@ -1163,7 +1161,7 @@ void AIBrain::UpdateFollow() {
     float scale = kSideOffset / std::sqrt(lengthSq);
     side.x = scale * -along;
     side.y = scale * side.y;
-    side.z = side.z * scale;
+    side.z *= scale;
     Vector3 u = self->localPosition - leader->localPosition;
     EI_NAN_AUDIT(side.x, side.y, side.z, u.x, u.y, u.z);
     if (Dot(side, u) < 0.0f) {

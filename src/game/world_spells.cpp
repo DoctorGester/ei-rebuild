@@ -15,7 +15,6 @@
 #include <bit>
 #include <cstring>
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 
 namespace {
 
@@ -41,7 +40,7 @@ void WorldServer::CreateMissile(Spell* spell, Unit* caster, Vector3 from, MapObj
     Vector3 end;
     end = aim;
     if (spell->targetFlags & SpellTargetFlag::AtPoint) target = nullptr;
-    end.z = pc24::Add(RawSurfaceHeightAt(end.x, end.y), 0.3f);
+    end.z = RawSurfaceHeightAt(end.x, end.y) + 0.3f;
     if (caster) from = caster->localPosition;
 
     auto* missile = new SpellEffect();

@@ -17,7 +17,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/str.h"
 
 #include <algorithm>
@@ -98,7 +97,7 @@ void MagicTrap::CastAtUnits(std::vector<Unit*>* units) {
     const Vector3& origin = localPosition;
     Vector3 from = origin;
     auto* world = OwningWorld();
-    from.z = pc24::Add(world->RawSurfaceHeightAt(from.x, from.y), from.z);   // the double height: one rounding
+    from.z = world->RawSurfaceHeightAt(from.x, from.y) + from.z;
     if (!(spell->targetFlags & SpellTargetFlag::AtUnits) && std::ssize(points) != 0) {
         for (int i = 0; i < std::ssize(points); ++i) {
             const TrapPoint& point = points[i];
@@ -288,7 +287,7 @@ bool TrapObject::RunTick() {
         std::string line;
         float x = localPosition.x;
         float y = localPosition.y;
-        double z = world->RawSurfaceHeightAt(x, y);
+        float z = world->RawSurfaceHeightAt(x, y);
         line = str::Format(kTrapScript, static_cast<double>(x), static_cast<double>(y), z);
         TheMissionScript()->Load(&line, 1);
         flags &= ~MapObjectFlag::Armed;

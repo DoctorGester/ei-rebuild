@@ -220,7 +220,7 @@ void ComputeBounds(SectorData& s) {
     const float x0 = static_cast<float>(s.sx * kSectorCells);
     const float y0 = static_cast<float>(s.sy * kSectorCells);
     s.maxZ = 1.0f + s.maxZ;
-    s.minZ = s.minZ - 1.0f;
+    s.minZ -= 1.0f;
     const float centreZ = (s.maxZ - s.minZ) * 0.5f + s.minZ;
     s.box.center = {half + x0, half + y0, centreZ};
     s.box.boxMin = {-half, -half, s.minZ - centreZ};

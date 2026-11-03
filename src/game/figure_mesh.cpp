@@ -172,9 +172,6 @@ void ReverseWinding(std::vector<std::uint16_t>& indices) {
 
 } // namespace
 
-// Each value the original stores to a float is rounded with static_cast<float>; everything else
-// stays on the FPU.
-
 void FigureMesh::LoadBounds(char** cursor, std::uint32_t magic) {
     const int versions = magic == kFig8Magic ? kFig8Versions : 1;
     ReadFirstVersion(center, cursor, versions);

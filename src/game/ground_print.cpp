@@ -116,8 +116,8 @@ GroundPrint::GroundPrint(float x, float y, float newHalfWidth, float newHalfLeng
 
 int GroundPrint::Tick() {
     --life;
-    halfWidth = halfWidth + growth;
-    halfLength = halfLength + growth;
+    halfWidth += growth;
+    halfLength += growth;
     float t = static_cast<float>(lifetime - life) / lifetime;
     EI_NAN_AUDIT(t);
     float spent = t > 0.0f ? t : 0.0f;
@@ -288,7 +288,7 @@ BloodPrint::BloodPrint(float x, float y, float halfSize, float fullSize, float a
     kind = high;
     fresh = newFresh;
     float degrees = kSpinDegrees / life;
-    float radiansPerDegree = static_cast<float>(kPiDouble * kPerDegree);
+    float radiansPerDegree = kPi * kPerDegree;
     spin = degrees * radiansPerDegree;
     growth = (fullSize - halfWidth) / spreadTicks;
 }
@@ -296,7 +296,7 @@ BloodPrint::BloodPrint(float x, float y, float halfSize, float fullSize, float a
 int BloodPrint::Tick() {
     if (--spreadTicks < 0) growth = 0.0f;
     else built = false;
-    angle = angle + spin;
+    angle += spin;
     return GroundPrint::Tick();
 }
 

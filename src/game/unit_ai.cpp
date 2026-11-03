@@ -13,7 +13,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 #include "logic_settings.h"
@@ -251,7 +250,7 @@ void AIBrain::UpdateMove() {
         }
         actionTime = kLookStarted;
         const AILook& look = move.looks.front();
-        const Vector3 direction = {pc24::Round(pc24::Cos(look.angle)), pc24::Round(pc24::Sin(look.angle)), 0.0f};
+        const Vector3 direction = {std::cos(look.angle), std::sin(look.angle), 0.0f};
         owner->OrderTurn(direction, std::bit_cast<std::uint32_t>(look.time));   // the float's bits as the time (sic)
         return;
     }
@@ -761,9 +760,9 @@ void AddPatrolPoints(PatrolMode* mode, const mapspec::Behaviour* record) {
         int cellX = lib::RoundEven(1.0f / cell * patrol.position.x);
         int cellY = lib::RoundEven(1.0f / cell * patrol.position.y);
         PatrolPoint point{};
-        // The index plus a half rounded once (exact for any int; times a half is exact too).
-        point.position.y = pc24::Add(static_cast<double>(cellY), 0.5f) * cell;
-        point.position.x = pc24::Add(static_cast<double>(cellX), 0.5f) * cell;
+        // The cell's centre.
+        point.position.y = (static_cast<float>(cellY) + 0.5f) * cell;
+        point.position.x = (static_cast<float>(cellX) + 0.5f) * cell;
         point.position.z = 0.0f;
         mode->points.push_back(point);
 
@@ -775,7 +774,7 @@ void AddPatrolPoints(PatrolMode* mode, const mapspec::Behaviour* record) {
             float angle = 0.0f;
             float dx = waypoint.position.x - from.x;
             float dy = waypoint.position.y - from.y;
-            if (!IsZero(dx) || !IsZero(dy)) angle = pc24::Round(pc24::Atan2(dy, dx));
+            if (!IsZero(dx) || !IsZero(dy)) angle = std::atan2(dy, dx);
             last->looks.push_back(AILook{angle, waypoint.time, static_cast<float>(waypoint.lookWait),
                                          (waypoint.stopFirst & 1) != 0});
         }

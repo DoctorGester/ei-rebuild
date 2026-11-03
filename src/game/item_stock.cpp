@@ -340,7 +340,7 @@ std::vector<HeldRef<Spell>> ItemStock::GenerateSpells(const float* levels, unsig
                 itemdb::SpellModifierRecord* m = modifierMap[name];
                 if (!m) continue;
                 chosen.push_back(m);
-                cost = cost + m->mana;
+                cost += m->mana;
                 ++count;
                 level += m->skill;
             }
@@ -351,7 +351,7 @@ std::vector<HeldRef<Spell>> ItemStock::GenerateSpells(const float* levels, unsig
                 itemdb::SpellModifierRecord* m = modifierMap[optional[i]];
                 if (!m || budget < m->skill + level) continue;
                 chosen.push_back(m);
-                cost = cost + m->mana;
+                cost += m->mana;
                 ++count;
                 level += m->skill;
             }
@@ -367,7 +367,7 @@ std::vector<HeldRef<Spell>> ItemStock::GenerateSpells(const float* levels, unsig
                         EI_NAN_AUDIT(cost, prototype->mana);
                         if (cost <= prototype->mana) break;
                     } else {
-                        cost = cost + repeated->mana;
+                        cost += repeated->mana;
                     }
                     if (budget < repeated->skill + reached) break;
                 }

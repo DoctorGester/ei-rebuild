@@ -139,13 +139,13 @@ public:
     // The world's own virtuals; docs/notes/map_objects.md, "Virtual slot names".
     virtual const char* TexturePath() { return nullptr; }   // the client's "textures\"
     virtual bool IsServer() { return false; }                    // the server's 1
-    virtual double GridHeightAt(float x, float y) = 0;
+    virtual float GridHeightAt(float x, float y) = 0;
     // The server's AI map height.
-    virtual double RawSurfaceHeightAt(float x, float y) = 0;
+    virtual float RawSurfaceHeightAt(float x, float y) = 0;
     // The ground height and the water surface's height at (x, y): the server's call GridHeightAt / RawSurfaceHeightAt, the
     // client's also clamp.
-    virtual double GroundHeightAt(float x, float y) = 0;
-    virtual double SurfaceHeightAt(float x, float y) = 0;
+    virtual float GroundHeightAt(float x, float y) = 0;
+    virtual float SurfaceHeightAt(float x, float y) = 0;
     // The time of day becomes `hours` (the base is moved so that fmod(tick * secondsPerTick + base, 24)
     // = hours). The server's also updates the players' times first (game kinds 1 and 3), marks them
     // dirty (4) and updates the weather.
@@ -163,7 +163,7 @@ public:
     // `object` moves to `position` (the client's sector map).
     virtual void MoveObject(MapObject*, const float*) {}
 
-    // The game time: tick * secondsPerTick, the tick (above 2^24 in long games) taken whole, the product rounded once.
+    // The game time: tick * secondsPerTick.
     float Elapsed() const;
     // The time of day in hours: fmod(Elapsed() + timeBase, 24).
     float TimeOfDay() const;
@@ -178,7 +178,7 @@ public:
     void SetWind(const Vector3& direction, float strength);
     Unit* FindUnit(int id);
     // How dark the time of day is: 1 before 8 o'clock (and for a NaN), 0 until 20, then rising to 1 by midnight.
-    double NightLevel();
+    float NightLevel();
     // A new empty network session shared into the world's session pointer, the previous one destroyed.
     void OpenSession();
     void CloseSession();
@@ -255,12 +255,12 @@ public:
     ClassId GetClassId() override;
     Item* DuplicateItem(Item* item) override { return CopyItem(item); }
     bool IsServer() override;
-    double GridHeightAt(float x, float y) override { return GridHeight(x, y); }
+    float GridHeightAt(float x, float y) override { return GridHeight(x, y); }
     // RawSurfaceHeightAt: the AI map's top height at (x, y, 0); the other two return GridHeightAt /
     // RawSurfaceHeightAt unclamped.
-    double RawSurfaceHeightAt(float x, float y) override;
-    double GroundHeightAt(float x, float y) override;
-    double SurfaceHeightAt(float x, float y) override;
+    float RawSurfaceHeightAt(float x, float y) override;
+    float GroundHeightAt(float x, float y) override;
+    float SurfaceHeightAt(float x, float y) override;
     void SetTime(float hours) override;
     void SetTimeSpeed(float speed) override;
     MapObject* ObjectWithId(int objectId) override { return FindObject(static_cast<unsigned>(objectId)); }
@@ -756,12 +756,12 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
     const char* TexturePath() override;
-    double GridHeightAt(float x, float y) override { return ClampedGroundHeight(x, y); }
+    float GridHeightAt(float x, float y) override { return ClampedGroundHeight(x, y); }
     // The height of whatever surface is on top at (x, y): the ground, or the water when the point is submerged.
-    double RawSurfaceHeightAt(float x, float y) override;
+    float RawSurfaceHeightAt(float x, float y) override;
     // GridHeightAt / RawSurfaceHeightAt raised to the platforms over the point.
-    double GroundHeightAt(float x, float y) override;
-    double SurfaceHeightAt(float x, float y) override;
+    float GroundHeightAt(float x, float y) override;
+    float SurfaceHeightAt(float x, float y) override;
     MaterialManager* GetMaterialManager() override;
     TextureManager* GetTextureManager() override;
     BaseManager* ClientLightManager() override;

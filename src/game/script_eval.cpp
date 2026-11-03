@@ -1,9 +1,7 @@
 // Evaluation of script functions: SSCCmd::CalcParameters, CalcFloat, CalcObject and CalcGroup. Rebirth's
 // AddNewScriptCommands dispatches to addon's functions first.
 // Floating point: the comparisons are plain (a NaN argument compares as IEEE says, where the
-// old x87 compare counted it as equal and less: the NaN audit, lib/nan_audit.h). The game's x87
-// code ran at 24-bit precision, where every operation rounds to a float: float maths here, and
-// lib/pc24.h where an operand is an int or a double that a float cannot hold.
+// old x87 compare counted it as equal and less: the NaN audit, lib/nan_audit.h).
 #include "ai_map.h"
 #include "base_manager.h"
 #include "combat.h"
@@ -25,7 +23,6 @@
 #include "world_glue.h"
 
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 
@@ -48,14 +45,12 @@ float SquaredDistance(float x, float y, float centreX, float centreY) {
     return DistanceSquared2D(Vector2{x, y}, Vector2{centreX, centreY});
 }
 
-// value * range / (2^32 - 1): the game multiplies the 32-bit value (loaded whole) by the range, then by the double
-// 1 / (2^32 - 1) = 2^-32 (1 + 2^-32), which rounds the rounded product to the product times 2^-32: the same as the
-// range times value * 2^-32 (exact in a double) rounded once.
-float ScaleRandom(std::uint32_t value, float range) { return pc24::Mul(range, value * 0x1p-32); }
+// value * range / 2^32.
+float ScaleRandom(std::uint32_t value, float range) { return range * (value * 0x1p-32f); }
 
 // (float)(time + add) rounded to nearest: the sum (the int loaded whole) is rounded to float before the conversion.
 int RoundTimeOffset(int time, float extra) {
-    return lib::RoundEven(pc24::Add(static_cast<double>(time), extra));
+    return lib::RoundEven(static_cast<float>(time) + extra);
 }
 
 constexpr float kMinusOne = -1.0f;
@@ -80,7 +75,7 @@ WorldAlarm& Alarm(int index) { return g_serverWorld.alarms[index]; }
 // GetWorldTime: (time * scale + offset) mod 24 (the tick loaded whole; fmod is exact).
 float WorldTimeOfDay() {
     const WorldServer* world = &g_serverWorld;
-    return std::fmod(pc24::Mul(world->secondsPerTick, world->tick) + world->timeBase, 24.0f);
+    return std::fmod((world->secondsPerTick * world->tick) + world->timeBase, 24.0f);
 }
 
 // What a unit sees: the AI brain's visible list.
@@ -194,7 +189,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
             return;
         }
         float x = ObjectSlots(o)->localPosition.x, y = ObjectSlots(o)->localPosition.y, z = ObjectSlots(o)->localPosition.z;
-        if (Unit* unit = UnitOrNull(o)) *result = pc24::Add(unit->GroundHeight(x, y), z);   // (o is not null)
+        if (Unit* unit = UnitOrNull(o)) *result = unit->GroundHeight(x, y) + z;   // (o is not null)
         else *result = g_serverWorld.GridHeight(x, y) + z;
         return;
     }
@@ -442,7 +437,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         *result = g_serverWorld.GridHeight(f[0], f[1]);
         return;
     case ScriptFunction::GetBSZValue:
-        *result = static_cast<float>(g_serverWorld.RawSurfaceHeightAt(f[0], f[1]));
+        *result = g_serverWorld.RawSurfaceHeightAt(f[0], f[1]);
         return;
     case ScriptFunction::IsInArea: { // IsInArea(area, x, y)
         int area = lib::RoundEven(f[0]);
@@ -581,7 +576,7 @@ void SSCCmd::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result) {
         EI_NAN_AUDIT(floatArgs[0]);
         for (EngineObject* o = objects.First(g_serverWorld.objectManager); o; o = objects.Next()) {
             Unit* unit = UnitOrNull(o);
-            if (unit && static_cast<double>(unit->side) == floatArgs[0]) (*result)->Insert(o);
+            if (unit && static_cast<float>(unit->side) == floatArgs[0]) (*result)->Insert(o);
         }
         break;
     }

@@ -7,7 +7,6 @@
 #include "lib/containers.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 #include "map_object.h"
 #include "object_diplomacy.h"
@@ -225,7 +224,7 @@ float Score(const Vector3& from, Unit* self, UnitList* group, EngineObject* curr
         words = static_cast<int>(damage & 0xFFFF);
         float partial = static_cast<float>(words) * kGroupDamageWeight + score + kGroupBase;
         int count = (std::min)(others, cap);
-        score = pc24::Add(static_cast<double>(words * count), partial);   // the int exactly (data may pass 2^24)
+        score = static_cast<float>(words * count) + partial;
         break;
     }
     case AIOptionKind::Curse:
@@ -234,7 +233,7 @@ float Score(const Vector3& from, Unit* self, UnitList* group, EngineObject* curr
         if (candidate->HasEffect(option->EffectSpell())) return kNoScore;
         float partial = score + 1.0f;
         int count = (std::min)(others, cap);
-        score = pc24::Add(static_cast<double>(count), partial);
+        score = static_cast<float>(count) + partial;
         break;
     }
     case AIOptionKind::Heal: {
@@ -249,7 +248,7 @@ float Score(const Vector3& from, Unit* self, UnitList* group, EngineObject* curr
         } else {
             float partial = base + kHealGroupBase;
             int count = (std::min)(others, cap);
-            score = pc24::Add(static_cast<double>(count * 2), partial);
+            score = static_cast<float>(count * 2) + partial;
         }
         break;
     }

@@ -13,7 +13,6 @@
 #include "world_effect_internal.h"
 
 #include "lib/crt.h"
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 
 
@@ -25,8 +24,8 @@ namespace {
 constexpr int kTornadoParticles = static_cast<int>(ParticleType::Tornado);
 constexpr float kSoundNear = 10.0f;
 constexpr float kSoundFar = 40.0f;
-// The speed per tick: a random word * 2^-32 * 0.12 + 0.096.
-constexpr double kRandomScale = 9.313226580990458e-11;
+// The speed per tick: a random word * 0.4 / 2^32 * 0.12 + 0.096.
+constexpr float kRandomScale = 0.4f * 0x1p-32f;
 constexpr float kSpeedRange = 0.12f;
 constexpr float kSpeedMin = 0.096f;
 constexpr int kStopEmittingTicks = 110;        // the source stops emitting from here on
@@ -74,8 +73,8 @@ void EffectTornado::Reset() {
 }
 
 void EffectTornado::Launch(const Vector3& from, const Vector3& to) {
-    float speed = pc24::Mul(static_cast<double>(g_random.Next()), kRandomScale) * kSpeedRange + kSpeedMin;
-    Vector3 way{static_cast<float>(to.x - from.x), static_cast<float>(to.y - from.y), static_cast<float>(to.z - from.z)};
+    float speed = (static_cast<float>(g_random.Next()) * kRandomScale) * kSpeedRange + kSpeedMin;
+    Vector3 way{to.x - from.x, to.y - from.y, to.z - from.z};
     framesLeft = 0;
     float length = std::sqrt(LengthSquared(way));
     if (length > 0.0f) {
@@ -94,8 +93,8 @@ void EffectTornado::Launch(const Vector3& from, const Vector3& to) {
 
 bool EffectTornado::RunTick() {
     if (moving != 0) {
-        localPosition = Vector3{static_cast<float>(localPosition.x + velocity.x), static_cast<float>(localPosition.y + velocity.y),
-                                 static_cast<float>(localPosition.z + velocity.z)};
+        localPosition = Vector3{localPosition.x + velocity.x, localPosition.y + velocity.y,
+                                 localPosition.z + velocity.z};
         if (source != nullptr) source->localPosition = localPosition;
         if (sound != -1) g_clientWorld.sounds->SetSoundPosition(sound, localPosition, kSoundNear, kSoundFar);
     }

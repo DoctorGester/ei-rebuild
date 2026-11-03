@@ -4,7 +4,6 @@
 #include "core_maths.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "platform/platform.h"
 
 #include <cmath>
@@ -40,9 +39,8 @@ void TransformObject::LoadTransform(platform::File* file) {
 void Camera::GroundPoint(Vector3* out) const {
     const Quaternion& r = localRotation;
     const Vector3& pos = localPosition;
-    // The rotated Z axis (AxisZ's order), every component rounded to float.
-    const Vector3 axis = (r).AxisZ();
-    if (std::fabs(axis.z) > 1e-5 && -(pos.z / axis.z) > 0.0f) {
+    const Vector3 axis = r.AxisZ();
+    if (std::fabs(axis.z) > 1e-5f && -(pos.z / axis.z) > 0.0f) {
         *out = axis * -(pos.z / axis.z) + pos;
         return;
     }
@@ -83,15 +81,13 @@ void Camera::SetTargetId(int newId) {
 
 // TransformObject's rotation helpers: the world matrix, turning the local rotation towards a direction
 // (three variants), rotating about an axis and setting a heading. See core_transform.h and
-// docs/notes/core.md. Float maths in the game's order: at the main thread's 24-bit precision its x87 code rounds
-// every operation to a float. The game CRT's arc cosine (CiAcos) returns a double and the heading's arc tangent
-// an FPATAN result: an operation on one of those goes through lib/pc24.h.
+// docs/notes/core.md.
 
 namespace {
 
 constexpr float kTiltStep = 0.1f;      // TiltTowards turns a tenth of the way
 constexpr float kHalfTurn = 0.4f;      // TurnUpTowards' reduced step
-constexpr double kMinAxis = 0.00001;   // shorter rotation axes count as none (the float compared with the double)
+constexpr float kMinAxis = 0.00001f;   // shorter rotation axes count as none
 constexpr float kHeadingOffset = /*0079B1B8*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
 // The shared part of RollTowards and TurnUpTowards: `side` = forward x dir, `toward` = side x
@@ -105,7 +101,7 @@ void TowardsAxis(const Vector3& forward, const Vector3& dir, const Vector3& from
 
 // acos of the clamped dot product of two unit vectors, rounded to float (Dot, then ClampUnit).
 float AngleBetween(const Vector3& a, const Vector3& b) {
-    return static_cast<float>(libcrt::CiAcos(ClampUnit(Dot(a, b))));
+    return std::acos(ClampUnit(Dot(a, b)));
 }
 
 } // namespace
@@ -138,8 +134,8 @@ void TransformObject::TiltTowards(const Vector3& target) {
     float angle;
     if (length >= kMinAxis) {
         // The game clamps a second time while storing the float; the value is in range by now.
-        const double arc = libcrt::CiAcos(ClampUnit(Dot(n, down)));
-        angle = pc24::Mul(arc, kTiltStep);   // the double arc cosine times the step, one rounding
+        const float arc = std::acos(ClampUnit(Dot(n, down)));
+        angle = arc * kTiltStep;
     } else {   // also NaN
         axis = {1.0f, 0.0f, 0.0f};
         angle = 0.0f;
@@ -161,7 +157,7 @@ void TransformObject::TurnTowards(const Vector3& target) {
     float angle;
     if (length >= kMinAxis) {
         axis = r * (1.0f / length);
-        angle = static_cast<float>(libcrt::CiAcos(ClampUnit(Dot(n, forward))));
+        angle = std::acos(ClampUnit(Dot(n, forward)));
     } else {   // also NaN
         axis = {1.0f, 0.0f, 0.0f};
         angle = 0.0f;
@@ -207,8 +203,8 @@ void TransformObject::TurnUpTowards(const Vector3& dir, int reduced) {
     } else {   // also NaN
         axis = Vector3{1.0f, 0.0f, 0.0f};
     }
-    if (angle > kPiDouble) {
-        angle = pc24::Sub(kPiDouble + kPiDouble, angle);   // the double 2 pi minus the float, one rounding
+    if (angle > kPi) {
+        angle = kPi + kPi - angle;
         axis = -axis;
     }
     if (reduced) angle = angle * kHalfTurn;
@@ -219,6 +215,6 @@ void TransformObject::TurnUpTowards(const Vector3& dir, int reduced) {
 void TransformObject::SetHeading(const Vector3& dir) {
     Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion heading;
-    const Quaternion* r = heading.SetAxisAngle(axis, pc24::Add(pc24::Atan2(dir.y, dir.x), kHeadingOffset));
+    const Quaternion* r = heading.SetAxisAngle(axis, std::atan2(dir.y, dir.x) + kHeadingOffset);
     localRotation = *r;
 }

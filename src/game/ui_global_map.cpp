@@ -27,7 +27,6 @@
 #include "lib/containers.h"
 #include "platform/platform.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/str.h"
 
 #include <bit>
@@ -392,7 +391,7 @@ void GlobalMap::Update() {
 
     float time = FrameTime() + bobTime;
     bobTime = time;
-    float bob = 0.5f - pc24::Mul(pc24::Cos(time * 5.0f), 0.2f);   // the cosine's 64 bits times 0.2f: one rounding
+    float bob = 0.5f - (std::cos(time * 5.0f) * 0.2f);
     Vector3 above = {position.x, position.y, bob + position.z};
     SceneMesh(0)->localPosition = builder.ModelPoint(above);
     SetFrameFraction(sceneObjects[MarkerCount() + 3], bobTime, 0.01f);

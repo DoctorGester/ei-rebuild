@@ -15,10 +15,9 @@ and every scenario that starts the game.
 - `Unit` (class 0x50) is a MapObject; `CreateUnit` is its Create (a member named Create would override EngineObject's
   virtual). Its controller (`Unit::Controller()`) is `UnitServer` (combat.md) on the server and `UnitClientSpecific`
   (class 0x3D) on the client, called through the `UnitController` interface.
-- Floats: the original returned its ST0 results (Period20, Reduce, the curves, the speeds, TotalItemWeight ...) at the
-  main thread's 24-bit precision, so they are floats; `_ftol` of `Reduce` is the int64 truncation. The world's heights
-  (`GroundHeight`, `StandPoint`: a float added through `pc24::Add`) and the virtual `MoveSpeed` stay double. The skill
-  level values are floats (percentages and stat bonuses, exact below 2^24).
+- Floats: Period20, Reduce, the curves, the speeds, TotalItemWeight, the world's heights (`GroundHeight`, `StandPoint`)
+  and `MoveSpeed` are floats; `_ftol` of `Reduce` is the int64 truncation. The skill level values are floats
+  (percentages and stat bonuses, exact below 2^24).
 
 ## Statistics in play
 
@@ -26,8 +25,7 @@ and every scenario that starts the game.
   skill 19) * regen * maximum`, hit points heal the slots by `maximum * (1 + 0.01 * skill 18) * regen` (times effect 0x1F
   when positive) through `HealSlots`; returning 1 triggers `Recompute`: stats from bases plus skills 23-25, protection
   and value pairs from the strongest effect of each type, maxima from the experience curves `base ^ (ln(experience /
-  divisor) / ln(logBase)) * stat / divisor * scale * (1 + 0.01 * skill)` (in the original's order: `libcrt::CiPow`,
-  `pc24::Log`), strengthen / weaken scale (at least 1), slot maxima, capacity, load, legs / arms factors, rate. The
+  divisor) / ln(logBase)) * stat / divisor * scale * (1 + 0.01 * skill)` (in the original's order), strengthen / weaken scale (at least 1), slot maxima, capacity, load, legs / arms factors, rate. The
   difficulty table scales hits on units without a player.
 - Hits: `ApplyHit` (from UnitServer::TakeHit): damage per type beyond the vitals' protection (times the difficulty
   without a player), `WearItem`, `DamageSlot` on the hit location or all six slots for 6: layers (text-key units;

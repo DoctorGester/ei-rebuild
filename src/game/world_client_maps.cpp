@@ -48,7 +48,6 @@
 #include "lib/float_select.h"
 #include "lib/intro_sort.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/rect.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
@@ -328,10 +327,10 @@ void WorldClient::MarkFootprintsInSight(const float* point, float range) {
     for (Footprint& print : footprints) {
         float dx = print.position.x - point[0];
         float dy = print.position.y - point[1];
-        double distance = libcrt::Hypot(dx, dy);
+        float distance = std::hypot(dx, dy);
         float limit = print.scale * range;
         EI_NAN_AUDIT(distance, limit);
-        if (distance <= static_cast<double>(limit)) print.visible = 1;
+        if (distance <= limit) print.visible = 1;
     }
 }
 
@@ -350,15 +349,15 @@ int WorldClient::CentreOn(const Vector3& point) {
     return 1;
 }
 
-double WorldClient::GroundHeightAt(float x, float y) {
+float WorldClient::GroundHeightAt(float x, float y) {
     Vector3 point = {x, y, 0.0f};
-    float height = static_cast<float>(GridHeightAt(x, y));
+    float height = GridHeightAt(x, y);
     return platforms.SurfaceHeight(point, height);
 }
 
-double WorldClient::SurfaceHeightAt(float x, float y) {
+float WorldClient::SurfaceHeightAt(float x, float y) {
     Vector3 point = {x, y, 0.0f};
-    float height = static_cast<float>(RawSurfaceHeightAt(x, y));
+    float height = RawSurfaceHeightAt(x, y);
     return platforms.SurfaceHeight(point, height);
 }
 
@@ -555,7 +554,7 @@ std::vector<Object3D*> WorldClient::ObjectsInRange(const Vector3& point, float r
             float pz = point.z;
             float ox = object->localPosition.x + object->bounds.center.x;
             float oy = object->localPosition.y + object->bounds.center.y;
-            float reach = pc24::Add(libcrt::Hypot(object->bounds.boxMax.x, object->bounds.boxMax.y), radius);
+            float reach = std::hypot(object->bounds.boxMax.x, object->bounds.boxMax.y) + radius;
             float dx = ox - point.x;
             float dy = oy - point.y;
             float dz = pz - point.z;

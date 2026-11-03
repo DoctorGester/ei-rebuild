@@ -116,7 +116,7 @@ void BriefingScreen::StartDialogue(bool newImmediate, bool remember) {
     }
 
     auto* prototype = person->GetPrototype();
-    float reach = static_cast<float>(prototype->viewDistance + kSpacing);
+    float reach = prototype->viewDistance + kSpacing;
     Vector3& personPlace = places[0];
     Vector3& leaderPlace = places[1];
     Vector3& newThirdPlace = places[2];

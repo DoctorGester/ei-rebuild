@@ -10,7 +10,6 @@
 #include "world.h"
 #include "world_effect.h"
 
-#include "lib/pc24.h"
 #include "lib/str.h"
 
 #include <bit>
@@ -24,12 +23,12 @@ namespace {
 int g_weatherDelay = /*007C2DFC*/ {};
 
 // Constants read from the exe (rule 9).
-constexpr double kMapScale = 1.1920928957853683e-7;        // 2^-23: a random word to map coordinates
-constexpr double kOffsetScale = 3.259629011913116e-8;     // a random word to 0..140
+constexpr float kMapScale = 512.0f * 0x1p-32f;        // a random word to map coordinates (0..512)
+constexpr float kOffsetScale = 140.0f * 0x1p-32f;     // a random word to 0..140
 constexpr float kOffsetCentre = 70.0f;
 constexpr float kMinDistance2 = 900.0f;
-constexpr double kBoltScale = 1.1827796700370451e-7;
-constexpr double kBoltSpread = 9.31322574832319e-10;
+constexpr float kBoltScale = 508.0f * 0x1p-32f;
+constexpr float kBoltSpread = 4.0f * 0x1p-32f;
 constexpr float kFive = 5.0f;
 constexpr float kBoltHeight = 40.0f;
 
@@ -44,8 +43,8 @@ constexpr float kDayFactorRain = 0.9f;
 constexpr float kDayFactorDry = 1.0f;
 
 
-// A random word times a double constant, the product rounded once.
-float RandomTimes(double scale) { return pc24::Mul(static_cast<double>(g_random.Next()), scale); }
+// A random word times `scale`.
+float RandomTimes(float scale) { return static_cast<float>(g_random.Next()) * scale; }
 
 float UniformOnMap() { return RandomTimes(kMapScale); }
 
@@ -103,7 +102,7 @@ void ShowRainBolt(WorldServer* world) {
     world->lastRainBoltTick = static_cast<std::uint32_t>(world->tick);
     float x = RandomTimes(kBoltScale) + 2.0f;
     float y = RandomTimes(kBoltScale) + 2.0f;
-    float z = pc24::Sub(world->RawSurfaceHeightAt(x, y), kFive);
+    float z = world->RawSurfaceHeightAt(x, y) - kFive;
     float fromX = RandomTimes(kBoltSpread) + x - 2.0f;
     float fromY = RandomTimes(kBoltSpread) + y - 2.0f;
     float fromZ = z + kBoltHeight;
@@ -121,7 +120,7 @@ Script& ScriptQueue() { return *g_serverWorld.SecondScript(); }   // a command q
 } // namespace
 
 void WorldServer::UpdateWeather() {
-    float day = static_cast<float>(NightLevel());
+    float day = NightLevel();
     nightLevel = day;
     if (sessionKind == kKindSinglePlayer) {
         if (climate != 0) {

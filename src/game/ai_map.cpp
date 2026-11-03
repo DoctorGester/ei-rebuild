@@ -6,7 +6,6 @@
 #include "world_data.h"
 #include "lib/containers.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 
 #include <bit>
@@ -251,7 +250,7 @@ float AIMap::LineOfSight(const Vector3& from, const Vector3& to) {
     int stepX = lib::RoundEven(dx * inverse * 65536.0f / 0.5f);
     int stepY = lib::RoundEven(dy * inverse * 65536.0f / 0.5f);
     int toZ = lib::RoundEven(to.z * heightScale);
-    int stepZ = lib::RoundEven(pc24::Mul(static_cast<double>((toZ - (z >> 16)) << 16), inverse));
+    int stepZ = lib::RoundEven(static_cast<float>((toZ - (z >> 16)) << 16) * inverse);
 
     auto outside = [this](int fx, int fy) {
         int cx = fx >> 16, cy = fy >> 16;

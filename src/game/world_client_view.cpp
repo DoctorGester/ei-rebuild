@@ -18,7 +18,6 @@
 #include <vector>
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/vecmath.h"
 #include "world_data.h"
 
@@ -60,7 +59,7 @@ Object3DClientSpecific* ModelOf(MapObject* object) {
 // Clamp used by the picking: negative or NaN becomes +0 (a branch-free select).
 inline float NonNegative(float v) { return MaxKeepB(v, 0.0f); }
 
-// The two draws share everything but the height function (which returns its result unrounded).
+// The two draws share everything but the height function.
 template <typename Height>
 Vector3 PickPoint(WorldClient* world, int screenX, int screenY, Height height) {
     TransformPipeline* device = g_sceneRenderer.pipeline;
@@ -77,22 +76,22 @@ Vector3 PickPoint(WorldClient* world, int screenX, int screenY, Height height) {
     float det = ((m[4] * m[13] - m[5] * m[12]) * sx + (m[1] * m[12] - m[0] * m[13]) * sy) + (m[0] * m[5] - m[4] * m[1]);
     // Skipped when zero.
     EI_NAN_AUDIT(det);
-    if (det != 0.0) {
+    if (det != 0.0f) {
         // The screen ray as x = a z + b, y = c z + d.
-        float a = static_cast<float>(
-            (((m[13] * m[2] - m[1] * m[14]) * sy + (m[14] * m[5] - m[13] * m[6]) * sx) + (m[1] * m[6] - m[5] * m[2])) / det);
-        float b = static_cast<float>(
-            (((m[5] * m[15] - m[13] * m[7]) * sx + (m[3] * m[13] - m[1] * m[15]) * sy) + (m[1] * m[7] - m[3] * m[5])) / det);
-        float c = static_cast<float>(
-            -((((m[12] * m[2] - m[0] * m[14]) * sy + (m[4] * m[14] - m[6] * m[12]) * sx) + (m[0] * m[6] - m[4] * m[2])) / det));
-        float d = static_cast<float>(
-            -((((m[4] * m[15] - m[12] * m[7]) * sx + (m[3] * m[12] - m[0] * m[15]) * sy) + (m[0] * m[7] - m[3] * m[4])) / det));
+        float a =
+            (((m[13] * m[2] - m[1] * m[14]) * sy + (m[14] * m[5] - m[13] * m[6]) * sx) + (m[1] * m[6] - m[5] * m[2])) / det;
+        float b =
+            (((m[5] * m[15] - m[13] * m[7]) * sx + (m[3] * m[13] - m[1] * m[15]) * sy) + (m[1] * m[7] - m[3] * m[5])) / det;
+        float c =
+            -((((m[12] * m[2] - m[0] * m[14]) * sy + (m[4] * m[14] - m[6] * m[12]) * sx) + (m[0] * m[6] - m[4] * m[2])) / det);
+        float d =
+            -((((m[4] * m[15] - m[12] * m[7]) * sx + (m[3] * m[12] - m[0] * m[15]) * sy) + (m[0] * m[7] - m[3] * m[4])) / det);
 
         // Start halfway up the terrain's height range.
-        float half = static_cast<float>(world->terrain->heightRange * 0.5f);
-        float x = NonNegative(static_cast<float>(a * half + b));
-        float y = NonNegative(static_cast<float>(c * half + d));
-        pz = pc24::Add(height(x, y), half) * 0.5f;
+        float half = world->terrain->heightRange * 0.5f;
+        float x = NonNegative(a * half + b);
+        float y = NonNegative(c * half + d);
+        pz = (height(x, y) + half) * 0.5f;
 
         // Fixed-point iteration on the height (up to 100 steps)...
         float previous;
@@ -100,13 +99,13 @@ Vector3 PickPoint(WorldClient* world, int screenX, int screenY, Height height) {
         bool converged = false;
         for (;;) {
             previous = pz;
-            outX = NonNegative(static_cast<float>(a * previous + b));
-            outY = NonNegative(static_cast<float>(c * previous + d));
+            outX = NonNegative(a * previous + b);
+            outY = NonNegative(c * previous + d);
             pz = static_cast<float>(height(outX, outY));
-            float diff = std::fabs(static_cast<float>(pz - previous));
+            float diff = std::fabs(pz - previous);
             ++steps;
             EI_NAN_AUDIT(diff);
-            if (diff <= 0.01) {
+            if (diff <= 0.01f) {
                 converged = steps < 100;
                 break;
             }
@@ -116,14 +115,14 @@ Vector3 PickPoint(WorldClient* world, int screenX, int screenY, Height height) {
         if (!converged) {
             steps = 0;
             do {
-                previous = static_cast<float>((pz + previous) * 0.5f);
-                outX = NonNegative(static_cast<float>(a * previous + b));
-                outY = NonNegative(static_cast<float>(c * previous + d));
+                previous = (pz + previous) * 0.5f;
+                outX = NonNegative(a * previous + b);
+                outY = NonNegative(c * previous + d);
                 pz = static_cast<float>(height(outX, outY));
-                float diff = std::fabs(static_cast<float>(pz - previous));
+                float diff = std::fabs(pz - previous);
                 ++steps;
                 EI_NAN_AUDIT(diff);
-                if (diff <= 0.01) break;
+                if (diff <= 0.01f) break;
             } while (steps < 100);
         }
     }

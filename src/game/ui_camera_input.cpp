@@ -78,9 +78,9 @@ void CameraInput::KeyUp(int, int, int flags) {
     if (!handled) return;
     Camera* camera = &g_camera;
     if (!ModifierHeld(ui)) {
-        float left = static_cast<float>(-x);
+        float left = -x;
         float speed = KeyboardSpeed(options::g_options.cameraScroll);
-        Vector3 direction = {static_cast<float>(y * speed), static_cast<float>(left * speed), 0.0f};
+        Vector3 direction = {y * speed, left * speed, 0.0f};
         camera->Pan(direction);
         camera->SetTurnRate(0.0f);
         camera->SetZoomTarget(KeyboardSpeed(options::g_options.cameraZoom) * z);
@@ -130,7 +130,7 @@ void CameraInput::MouseMove(int, int atX, int atY) {
         // Rebirth's WideScreen scales the drag without the margin (addon's entry).
         ui->ScalePointFromScreenNoMargin(&drag);
         float across = static_cast<float>(drag.x) * kPerWidth;
-        float along = static_cast<float>(static_cast<float>(drag.y) * kPerHeight);
+        float along = static_cast<float>(drag.y) * kPerHeight;
         if (!ModifierHeld(ui)) {
             // The turn and tilt speeds times the mouse direction factors.
             const float turnSpeed = MouseSpeed(options::g_options.cameraRotate) * options::g_options.cameraFlipX;
@@ -147,7 +147,7 @@ void CameraInput::MouseMove(int, int atX, int atY) {
             }
         } else {
             float speed = MouseSpeed(options::g_options.cameraScroll);
-            Vector3 direction{static_cast<float>(across * speed), static_cast<float>(along * speed), 0.0f};
+            Vector3 direction{across * speed, along * speed, 0.0f};
             camera->Pan(direction);
         }
         g_cursor.motion.y = 0;
@@ -180,12 +180,12 @@ void CameraInput::MouseMove(int, int atX, int atY) {
         }
         if (!ModifierHeld(ui)) {
             // The keys' pan goes on (KeyUp sets the same).
-            float left = static_cast<float>(-x);
+            float left = -x;
             float speed = KeyboardSpeed(options::g_options.cameraScroll);
             float forward = y * speed;
-            left = static_cast<float>(left * speed);
-            direction.x = static_cast<float>(forward + direction.x);
-            direction.y = static_cast<float>(left + direction.y);
+            left *= speed;
+            direction.x = forward + direction.x;
+            direction.y = left + direction.y;
         }
         g_cursor.SetShape(EdgeCursor(edges));
         camera->Pan(direction);

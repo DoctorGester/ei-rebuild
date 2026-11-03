@@ -174,7 +174,7 @@ void UnitServer::TriggerItemSpells(char onHit) {
 void UnitServer::UseItemCharge(Item* item, float cost) {
     if (!item) return;
     WorldServer* world = ServerWorld();
-    item->charge = item->charge - cost;
+    item->charge -= cost;
     world->AddCounted(item);
     auto* player = unit->player;
     const ItemLink* link = item->ServerLink();

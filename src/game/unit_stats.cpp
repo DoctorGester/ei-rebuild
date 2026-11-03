@@ -9,7 +9,6 @@
 #include "unit_db.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 
 #include <bit>
@@ -402,11 +401,10 @@ int UnitStats::PickLocation(int location) {
 // --- Skill price ---------------------------------------------------------------------------------------
 
 // What learning a skill level or raising a school costs; the interface's skill pages call them. See
-// docs/notes/units.md ("Statistics in play"). The powers are the game CRT's _CIpow (libcrt::CiPow), the
-// logarithm the original's FYL2X (pc24::Log10).
+// docs/notes/units.md ("Statistics in play").
 
 namespace {
-constexpr double kWorthBase = 1.61;   // a double
+constexpr float kWorthBase = 1.61f;
 constexpr float kTwoDigitsBelow = 4.0f; // a first digit below this keeps two digits
 constexpr float kRoundUpTo = 10.0f;     // ... unless the price is at most this
 constexpr float kTenth = 0.1f;
@@ -416,8 +414,8 @@ constexpr int kKnownLevels = 0x24;      // the skill level bytes summed (UnitSta
 // (the scale) and "Skill Val 2" (the divisor), read at the time of the call. The int over the divisor rounds once.
 float Worth(int value) {
     const LogicSettings& settings = g_logicSettings;
-    const float exponent = pc24::Div(value, settings.skillVal[1]);
-    return static_cast<float>(libcrt::CiPow(kWorthBase, exponent)) * settings.skillVal[0];
+    const float exponent = value / settings.skillVal[1];
+    return std::pow(kWorthBase, exponent) * settings.skillVal[0];
 }
 
 } // namespace
@@ -444,17 +442,17 @@ int UnitStats::SkillPrice(const ::SkillLevelRecord* level) {
 
     std::uint8_t known = 0;   // a byte sum (wraps)
     for (int i = 0; i < kKnownLevels; ++i) known = static_cast<std::uint8_t>(known + skillLevels[i]);
-    float price = static_cast<float>(libcrt::CiPow(g_logicSettings.perkPowerBase, known)) * cost;
+    float price = std::pow(g_logicSettings.perkPowerBase, static_cast<float>(known)) * cost;
 
-    // The power of ten of the first digit: the 64-bit log10 stored to a double for the CRT's floor, then _CIpow.
-    float power = static_cast<float>(libcrt::CiPow(10.0, std::floor(pc24::Log10(price).hi)));
+    // The power of ten of the first digit.
+    float power = std::pow(10.0f, std::floor(std::log10(price)));
     float leading = price / power;
     if (leading >= kTwoDigitsBelow) return lib::Truncate(std::floor(leading + 0.5f) * power);
     // Below 4, or NaN: a price of 0 gives power 0 and 0 / 0, which this branch returns as 0 (it
     // occurs; the plain leading < 4 would return the NaN's integer conversion).
     EI_NAN_AUDIT(power);
     if (power <= kRoundUpTo) return lib::Truncate(std::ceil(price));
-    power = power * kTenth;
+    power *= kTenth;
     leading = price / power;
     return lib::Truncate(std::floor(leading + 0.5f) * power);
 }

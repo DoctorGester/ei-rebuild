@@ -472,7 +472,7 @@ Object3DSpecific::~Object3DSpecific() { object = nullptr; }
 Vector3 Object3DSpecific::GetScale() { return {kNoScale, kNoScale, kNoScale}; }
 
 namespace {
-constexpr double kPulsePeriod = 30.0;
+constexpr float kPulsePeriod = 30.0f;
 constexpr float kPulseFold = 15.0f;
 constexpr float kPulseFull = 30.0f;
 constexpr float kPulseScale = 0.06666667f;            // 1/15
@@ -482,7 +482,7 @@ constexpr float kPulseBase = 0.2f;
 float Pulse(float& clock, float frames) {
     float now = frames + clock;   // stored as a float, and to the clock
     clock = now;
-    float phase = static_cast<float>(std::fmod(static_cast<double>(now), kPulsePeriod));   // exact
+    float phase = std::fmod(now, kPulsePeriod);
     if (phase > kPulseFold) phase = kPulseFull - phase;
     float value = phase * kPulseScale * 0.5f + kPulseBase;
     return value;

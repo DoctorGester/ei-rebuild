@@ -170,8 +170,8 @@ void ObjectivesWindow::LoadQuestPlaces(std::string_view name) {
         if (words.size() > 1) {
             for (std::size_t i = 1; i < words.size(); i += 2) {
                 UiPointF place;
-                place.x = static_cast<float>(str::ToDouble(words[i - 1]));
-                place.y = static_cast<float>(str::ToDouble(words[i]));
+                place.x = str::ToFloat(words[i - 1]);
+                place.y = str::ToFloat(words[i]);
                 places.push_back(place);
             }
         }

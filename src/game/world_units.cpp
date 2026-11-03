@@ -42,7 +42,6 @@
 #include "lib/text_case.h"
 
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/str.h"
 #include "lib/float_select.h"
 
@@ -96,25 +95,25 @@ void PlaceInLine(UnitSpec* message, const Vector3& position, const Quaternion& r
     if (axis <= worlddata::kAxisEpsilon) {
         angle = 0.0f;
     } else {
-        double arc = libcrt::CiAcos(rx);
-        angle = pc24::Add(arc, arc);
+        float arc = std::acos(rx);
+        angle = arc + arc;
         float sign = 1.0f / std::sqrt(axis) * rw;
         EI_NAN_AUDIT(sign);
         if (sign < 0.0f) angle = -angle;
     }
-    angle = angle + worlddata::kLineAngleOffset;
+    angle += worlddata::kLineAngleOffset;
 
     Spec& spec = *message;
     float zStep = 0.0f;
     spec.position = position;
     spec.rotation = rotation;
-    float cosine = pc24::Round(pc24::Cos(angle));
-    pc24::Unrounded sine = pc24::Sin(angle);
+    float cosine = std::cos(angle);
+    float sine = std::sin(angle);
     float step = static_cast<float>(index);
-    float dy = pc24::Mul(sine, step);
+    float dy = sine * step;
     float dx = step * cosine;
     float dz = zStep * worlddata::kLineSpacing;
-    dy = dy * worlddata::kLineSpacing;
+    dy *= worlddata::kLineSpacing;
     spec.position += Vector3{dx * worlddata::kLineSpacing, dy, dz};
 }
 
@@ -137,7 +136,7 @@ constexpr std::uint32_t kGrey = 0x3F4CCCCD, kOne = 0x3F800000;
 constexpr std::uint32_t kTorchLightKind = static_cast<std::uint32_t>(ParticleType::CampFire);   // the torch's smoke particles
 
 
-// Copies dwords (floats are not loaded on the FPU).
+// Copies n bytes.
 void Copy(void* to, const void* from, std::size_t n) { std::memcpy(to, from, n); }
 
 } // namespace

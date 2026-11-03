@@ -1,7 +1,5 @@
 // A unit's motion: the order header of AIPath and the trajectory the unit follows. The trajectory is rebuilt
-// when a path is advanced (Build) and sampled every tick by the unit's movement (Sample). Float maths in the
-// original's order (its FPU registers held floats at the main thread's 24-bit precision); FSIN, FCOS and FPATAN's
-// 64-bit results through lib/pc24.h.
+// when a path is advanced (Build) and sampled every tick by the unit's movement (Sample).
 #include "ai_motion.h"
 
 #include "ai_map.h"
@@ -13,7 +11,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/vecmath.h"
 
 
@@ -55,12 +52,9 @@ int DirectionDelta(int a, int b) {
 }
 
 void FaceAngle(float angle, MotionSample* sample) {
-    sample->direction.x = pc24::Round(pc24::Cos(angle));
-    sample->direction.y = pc24::Round(pc24::Sin(angle));
+    sample->direction.x = std::cos(angle);
+    sample->direction.y = std::sin(angle);
 }
-
-// FCOS's 64-bit result above a double constant, compared unrounded.
-bool Above(pc24::Unrounded value, double limit) { return value.hi > limit || (value.hi == limit && value.lo > 0.0); }
 
 // Turning in place: the facing after `elapsed` of turning `turn` from `start` at `rate`; `final`
 // when the turn takes no longer than that. Used by the order kinds 1 and 4.
@@ -124,14 +118,13 @@ bool PathOrder::Start(const Vector3& position, const Vector3& direction, int tim
     float dx = direction.x;
     float dy = direction.y;
     float length = std::sqrt(LengthSquared2D(dy, dx));
-    // FPATAN's 64-bit result: compared with the stored angle unrounded.
-    pc24::Unrounded angle = length > 0.0f ? pc24::Atan2(dy / length, dx / length) : pc24::Unrounded{};
+    float angle = length > 0.0f ? std::atan2(dy / length, dx / length) : 0.0f;
     float x = kHalfCellScale * position.x;
     float y = kHalfCellScale * position.y;
-    EI_NAN_AUDIT(order->angle, angle.hi, x, order->x, order->y, y);
-    bool same = order->kind == 0 && order->angle == angle.hi && angle.lo == 0.0 && x == order->x && order->y == y;
+    EI_NAN_AUDIT(order->angle, angle, x, order->x, order->y, y);
+    bool same = order->kind == 0 && order->angle == angle && x == order->x && order->y == y;
     order->x = x;
-    order->angle = pc24::Round(angle);
+    order->angle = angle;
     order->kind = 0;
     order->y = y;
     order->startTime = time;
@@ -142,7 +135,7 @@ bool PathOrder::Start(const Vector3& position, const Vector3& direction, int tim
 void PathOrder::SetTurn(const Vector3& direction, std::uint32_t rateBits) {
     MotionOrder* order = OrderOf(this);
     order->kind = 1;
-    float angle = pc24::Round(pc24::Atan2(direction.y, direction.x));
+    float angle = std::atan2(direction.y, direction.x);
     order->arg6 = rateBits;
     order->arg5 = std::bit_cast<std::uint32_t>(angle);
 }
@@ -159,7 +152,7 @@ void PathOrder::SetTurnUntil(const Vector3& direction, int fromTime, int toTime)
     MotionOrder* order = OrderOf(this);
     order->kind = 4;
     order->arg7 = static_cast<std::uint32_t>(toTime);
-    float angle = pc24::Round(pc24::Atan2(direction.y, direction.x));
+    float angle = std::atan2(direction.y, direction.x);
     order->arg6 = static_cast<std::uint32_t>(fromTime);
     order->arg5 = std::bit_cast<std::uint32_t>(angle);
 }
@@ -220,11 +213,11 @@ void MotionCubic::Fit(float p0, float d0, float p1, float d1, float length) {
     c0 = p0;
     c1 = d0;
     float half = ((p1 - p0) - d0 * length) * inverse;
-    half = half + half;
+    half += half;
     float cubic = ((d1 - d0) - half) * inverse * inverse;
     c3 = cubic;
     float scaled = cubic * length * length;
-    scaled = scaled + scaled;
+    scaled += scaled;
     c2 = (half - scaled) * inverse * 0.5f;
 }
 
@@ -243,9 +236,8 @@ int UnitMotion::Clear() {
 
 MotionSample UnitMotion::Sample(World* world, MotionOrder* order, float time) {
     MotionSample sample;
-    // The start tick, an int: compared exactly; the elapsed time is the difference rounded once.
-    double start = order->startTime;
-    time = time >= start ? time : static_cast<float>(start);
+    float start = static_cast<float>(order->startTime);
+    time = time >= start ? time : start;
     sample.x = order->x;
     sample.y = order->y;
 
@@ -256,14 +248,14 @@ MotionSample UnitMotion::Sample(World* world, MotionOrder* order, float time) {
     case 1: {
         sample.turning = true;
         bool final;
-        float angle = TurnAngle(this, pc24::Sub(time, start), &final);
-        sample.direction.x = pc24::Round(pc24::Cos(angle));
-        sample.direction.y = pc24::Round(pc24::Sin(angle));
+        float angle = TurnAngle(this, time - start, &final);
+        sample.direction.x = std::cos(angle);
+        sample.direction.y = std::sin(angle);
         sample.alive = !final;
         return sample;
     }
     case 2:
-        return SamplePath(pc24::Sub(time, start), sample.x, sample.y);
+        return SamplePath(time - start, sample.x, sample.y);
     case 3: {
         MapObject* object = world->ObjectWithId(static_cast<int>(order->arg5));
         if (!object) {
@@ -271,22 +263,22 @@ MotionSample UnitMotion::Sample(World* world, MotionOrder* order, float time) {
             return sample;
         }
         int from = static_cast<int>(order->arg6);
-        Vector3 target = static_cast<double>(from) >= time ? object->PositionAt(from) : object->AimPoint();
+        Vector3 target = static_cast<float>(from) >= time ? object->PositionAt(from) : object->AimPoint();
         float tx = kHalfCellScale * target.x;
         float ty = kHalfCellScale * target.y;
         int to = static_cast<int>(order->arg7);
-        if (static_cast<double>(to) > time && to != order->startTime) {
-            float angleTo = pc24::Sub(pc24::Atan2(ty - order->y, tx - order->x), order->angle);
+        if (static_cast<float>(to) > time && to != order->startTime) {
+            float angleTo = std::atan2(ty - order->y, tx - order->x) - order->angle;
             const float twoPi = kPi + kPi;
             while (angleTo > kPi) angleTo = angleTo - twoPi;
             const float negPi = -kPi;
             EI_NAN_AUDIT(angleTo);
             while (angleTo < negPi) angleTo = angleTo + twoPi;   // ends on a NaN (the original's did not)
             // Over the turn's tick count, an int.
-            float angle = pc24::Div(pc24::Sub(time, start) * angleTo, static_cast<double>(to - order->startTime)) +
+            float angle = ((time - start) * angleTo / static_cast<float>(to - order->startTime)) +
                           order->angle;
-            sample.direction.x = pc24::Round(pc24::Cos(angle));
-            sample.direction.y = pc24::Round(pc24::Sin(angle));
+            sample.direction.x = std::cos(angle);
+            sample.direction.y = std::sin(angle);
             return sample;
         }
         sample.direction.x = tx - order->x;
@@ -301,9 +293,9 @@ MotionSample UnitMotion::Sample(World* world, MotionOrder* order, float time) {
     }
     case 4: {
         bool final;
-        float angle = TurnAngle(this, pc24::Sub(time, start), &final);
-        sample.direction.x = pc24::Round(pc24::Cos(angle));
-        sample.direction.y = pc24::Round(pc24::Sin(angle));
+        float angle = TurnAngle(this, time - start, &final);
+        sample.direction.x = std::cos(angle);
+        sample.direction.y = std::sin(angle);
         sample.turning = !final;
         return sample;
     }
@@ -342,8 +334,8 @@ MotionSample UnitMotion::SamplePath(float time, float startX, float startY) {
                 float sign = turn < 0.0f ? kMinusOne : (turn > 0.0f ? kOne : kZero);
                 angle = sign * turnRate * time + startAngle;
             }
-            sample.direction.x = pc24::Round(pc24::Cos(angle));
-            sample.direction.y = pc24::Round(pc24::Sin(angle));
+            sample.direction.x = std::cos(angle);
+            sample.direction.y = std::sin(angle);
             return sample;
         }
         end = turnTime;
@@ -364,7 +356,7 @@ MotionSample UnitMotion::SamplePath(float time, float startX, float startY) {
             float distance = std::sqrt(LengthSquared2D(dy, dx));
             length = distance;
             speed = from.speed;
-            end = end + distance / speed;
+            end += distance / speed;
             EI_NAN_AUDIT(end);
             if (time <= end) {
                 found = true;
@@ -416,34 +408,30 @@ void UnitMotion::Build(PathOrder* path) {
     case 1: {
         float rate = AsFloat(order->arg6);
         float angle = AsFloat(order->arg5);
-        float s = pc24::Round(pc24::Sin(angle));
-        pc24::Unrounded c = pc24::Cos(angle);   // compared with 0 unrounded
-        float cf = pc24::Round(c);
-        EI_NAN_AUDIT(c.hi, s);
-        if (c.hi == 0.0 && s == 0.0f) {
+        float s = std::sin(angle);
+        float c = std::cos(angle);
+        EI_NAN_AUDIT(c, s);
+        if (c == 0.0f && s == 0.0f) {
             turn = 0.0f;
             return;
         }
         EI_NAN_AUDIT(rate);
         if (rate != 0.0f) turnRate = rate;
         else turnRate = baseTurnRate;
-        NormalizeTurn(this, pc24::Sub(pc24::Atan2(s, cf), startAngle));
+        NormalizeTurn(this, std::atan2(s, c) - startAngle);
         return;
     }
     case 4: {
-        // FPATAN of FSIN's and FCOS's results stored as doubles (hi + lo: the 53-bit rounding).
         float angle = AsFloat(order->arg5);
-        pc24::Unrounded sine = pc24::Sin(angle);
-        pc24::Unrounded cosine = pc24::Cos(angle);
-        double s = sine.hi + sine.lo;
-        double c = cosine.hi + cosine.lo;
+        float s = std::sin(angle);
+        float c = std::cos(angle);
         EI_NAN_AUDIT(c, s);
-        if (c == 0.0 && s == 0.0) {
+        if (c == 0.0f && s == 0.0f) {
             turn = 0.0f;
             return;
         }
         turnRate = baseTurnRate;
-        NormalizeTurn(this, pc24::Sub(pc24::Atan2(s, c), startAngle));
+        NormalizeTurn(this, std::atan2(s, c) - startAngle);
         return;
     }
     default:
@@ -527,10 +515,10 @@ void UnitMotion::Build(PathOrder* path) {
 
     // Face the first point: no turn when it is within ~25 degrees of the current facing.
     MotionPoint* p = points.data();
-    if (Above(pc24::Cos(pc24::Sub(pc24::Atan2(p->dirY, p->dirX), startAngle)), 0.9)) {
+    if (std::cos(std::atan2(p->dirY, p->dirX) - startAngle) > 0.9f) {
         turn = 0.0f;
-        p->dirX = pc24::Round(pc24::Cos(startAngle));
-        points.data()->dirY = pc24::Round(pc24::Sin(startAngle));
+        p->dirX = std::cos(startAngle);
+        points.data()->dirY = std::sin(startAngle);
         AssignCells(path);
         return;
     }
@@ -540,9 +528,9 @@ void UnitMotion::Build(PathOrder* path) {
         AssignCells(path);
         return;
     }
-    pc24::Unrounded angle = pc24::Atan2(p->dirY, p->dirX);
+    float angle = std::atan2(p->dirY, p->dirX);
     turnRate = baseTurnRate;
-    NormalizeTurn(this, pc24::Sub(angle, startAngle));
+    NormalizeTurn(this, angle - startAngle);
     AssignCells(path);
 }
 
@@ -620,9 +608,7 @@ void UnitMotion::LimitSpeeds(float rate) {
     const float twoPi = kPi + kPi;
     for (int i = 0; i < std::ssize(points) - 1; ++i) {
         MotionPoint* p = &points[i];
-        // The first angle waits out the second FPATAN call stored as a double (rounded to 53 bits).
-        pc24::Unrounded a1 = pc24::Atan2(p[0].dirY, p[0].dirX);
-        float angle = AbsBits(pc24::Sub(a1.hi + a1.lo, pc24::Atan2(p[1].dirY, p[1].dirX)));
+        float angle = AbsBits(std::atan2(p[0].dirY, p[0].dirX) - std::atan2(p[1].dirY, p[1].dirX));
         while (angle > twoPi) angle = angle - twoPi;
         if (angle > kPi) angle = twoPi - angle;
         float distance = std::sqrt(LengthSquared2D(p[0].x - p[1].x, p[0].y - p[1].y));

@@ -15,7 +15,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 #include "logic_settings.h"
 #include "map_object.h"
@@ -41,9 +40,6 @@
 #include <format>
 #include <list>
 #include <string>
-
-// The original's float maths ran at the main thread's 24-bit precision: float maths in its order here, and an int
-// or a double operand through lib/pc24.h's one rounding.
 
 namespace {
 constexpr float kPointOne = 0.1f;
@@ -344,8 +340,8 @@ int UnitServer::Level() {
     float experience = stats.experience;
     float base = g_logicSettings.considerModifier;
     float step = g_logicSettings.considerLogBase;
-    // ln(experience / base) / ln(step): FYL2X's two 64-bit logarithms, one rounding; then to the nearest integer.
-    const float ratio = pc24::Div(pc24::Log(experience / base), pc24::Log(step));
+    // ln(experience / base) / ln(step), then to the nearest integer.
+    const float ratio = std::log(experience / base) / std::log(step);
     return lib::RoundEven(ratio);
 }
 
@@ -419,11 +415,10 @@ float UnitServer::AttackRoll(UnitServer* attacker, bool backstab) {
     if (spread > 0.0f) {
         int sides = lib::RoundEven(spread);
         std::uint32_t random = g_random.Next();
-        // The draw doubled rounds once: as the draw rounded to a float, doubled.
-        float drawn = static_cast<float>(static_cast<double>(random % static_cast<std::uint32_t>(sides + 1)));
+        float drawn = static_cast<float>(random % static_cast<std::uint32_t>(sides + 1));
         roll = (drawn + drawn) - (spread + 1.0f);
     }
-    roll = pc24::Add(roll, static_cast<double>(theirs.attack)) - penalty;   // the int exact, one rounding
+    roll = (roll + static_cast<float>(theirs.attack)) - penalty;
     if (!backstab) roll = roll + speedRatio;
     return MaxKeepB(0.0f, roll);
 }
@@ -444,7 +439,7 @@ bool UnitServer::ResolveHit(DamageInfo* hit, Unit* attacker) {
     AttackParams mine;
     AttackParamsOf(this, &mine);
     if (hit->backstabFactor > 1.0f) mine.defence = 0;
-    float result = static_cast<double>(mine.defence) > roll ? kMissMark : kHitMark;
+    float result = static_cast<float>(mine.defence) > roll ? kMissMark : kHitMark;
     hit->attackRoll = result;
     return result > 0.0f;
 }
@@ -465,7 +460,7 @@ void UnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, cha
         int value = face + face + 2;
         float roll = static_cast<float>(value) - (kFive + 1.0f);
         out->attackRoll = roll;
-        out->amount = static_cast<float>(weapon->RollDamage());   // stored as a float, as the original
+        out->amount = weapon->RollDamage();   // stored as a float, as the original
     } else {
         std::memcpy(out->typeWeights, stats.damageWeights, sizeof(out->typeWeights));
         out->weaponValue = 0;
@@ -479,7 +474,7 @@ void UnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, cha
             float scaled = spread * kHundred;
             int sides = lib::RoundEven(scaled);
             std::uint32_t random = g_random.Next();
-            extra = pc24::Mul(static_cast<double>(random % static_cast<std::uint32_t>(sides + 1)), kPercent);
+            extra = static_cast<float>(random % static_cast<std::uint32_t>(sides + 1)) * kPercent;
         }
         out->amount = extra + stats.damage;
     }
@@ -528,7 +523,7 @@ bool UnitServer::TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) {
     AttackParamsOf(this, &mine);
     if (hit->backstabFactor > 1.0f) mine.defence = 0;
     EI_NAN_AUDIT(hit->attackRoll);
-    if (static_cast<double>(mine.defence) <= hit->attackRoll) {
+    if (static_cast<float>(mine.defence) <= hit->attackRoll) {
         stats.flags |= UnitStatsFlag::Struck;
         unit->MarkChanged(4);
         TriggerItemSpells(1);
@@ -623,7 +618,7 @@ void UnitServer::UpdateMoveFactors() {
         speedClass = 15;
         return;
     }
-    float speed = static_cast<float>(unit->MoveSpeed());
+    float speed = unit->MoveSpeed();
     if (speed > kSpeedFast) speedClass = 0;
     else if (speed > kSizeSmall) speedClass = 1;
     else if (speed > kPointThree) speedClass = 3;
@@ -767,8 +762,7 @@ void UnitServer::RefreshVitals(bool withHitPoints) {
     if (withHitPoints) stats.RecomputeHitPoints(&VitalsOf(unit), unit);
     stats.Recompute(&VitalsOf(unit), unit);
     if (nextAttackTime > now) {
-        // The int exact, one rounding.
-        float scaled = pc24::Mul(static_cast<double>(nextAttackTime - now), oldRate) / stats.rate;
+        float scaled = (static_cast<float>(nextAttackTime - now) * oldRate) / stats.rate;
         nextAttackTime = lib::RoundEven(scaled) + now;
     }
     unit->MarkChanged(0);

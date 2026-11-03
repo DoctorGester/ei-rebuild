@@ -7,7 +7,6 @@
 #include "resource.h"
 
 #include "lib/crt.h"
-#include "lib/pc24.h"
 
 #include <cmath>
 #include <cstring>
@@ -158,16 +157,15 @@ Matrix4* ViewportMatrix(Matrix4* out, const Rect* rect) {
 }
 
 Matrix4* ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, float zFar) {
-    // FSIN / FCOS of the half angle (lib/pc24.h): the sine times zFar in one rounding, both stored.
     float half = fov * 0.5f;
-    float c = pc24::Round(pc24::Cos(half));
-    const pc24::Unrounded s = pc24::Sin(half);
-    float q = pc24::Mul(s, zFar) / (zFar - zNear);
+    float c = std::cos(half);
+    const float s = std::sin(half);
+    float q = (s * zFar) / (zFar - zNear);
     std::memset(out, 0, sizeof(Matrix4));
     out->m[0] = c;
     out->m[5] = c * aspect;
     out->m[10] = q;
-    out->m[14] = pc24::Round(s);
+    out->m[14] = s;
     out->m[11] = -(q * zNear);
     return out;
 }

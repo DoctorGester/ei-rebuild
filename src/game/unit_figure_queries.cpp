@@ -8,7 +8,6 @@
 #include "world.h"
 
 #include "lib/crt.h"
-#include "lib/pc24.h"
 #include "lib/str.h"
 
 #include <cmath>
@@ -70,12 +69,11 @@ float Unit::BodyExtent() {
     return extentScale * std::sqrt(LengthSquared2D(corner.y, corner.x));
 }
 
-double Unit::GroundHeight(float x, float y) {
+float Unit::GroundHeight(float x, float y) {
     auto* world = OwningWorld();
     if (params.movementKind != kMovesOnWater) return world->GroundHeightAt(x, y);
-    // The world's double plus a float: one rounding.
-    if (controller->GetClassId() == ClassId::UnitServer) return pc24::Add(world->SurfaceHeightAt(x, y), localPosition.z);
-    return pc24::Add(world->SurfaceHeightAt(x, y), heightOffset);
+    if (controller->GetClassId() == ClassId::UnitServer) return world->SurfaceHeightAt(x, y) + localPosition.z;
+    return world->SurfaceHeightAt(x, y) + heightOffset;
 }
 
 

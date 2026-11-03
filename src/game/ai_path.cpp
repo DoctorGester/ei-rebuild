@@ -10,7 +10,6 @@
 #include "world.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 #include "lib/vecmath.h"
 
@@ -163,7 +162,7 @@ bool AIMap::FindPath(Unit* unit, const Vector3& target, AIPath* path, float rang
     from = unit->localPosition;
     goal = target;
     path->goal = target;
-    if (LengthSquared2D(target.x, target.y) > 100000000.0) return false;   // NaN goes on
+    if (LengthSquared2D(target.x, target.y) > 100000000.0f) return false;   // NaN goes on
 
     sectorMap.Remove(unit);
     if (!SnapTarget(unit, &goal, false, minDistance)) {
@@ -261,7 +260,7 @@ bool AIMap::FindPath(Unit* unit, const Vector3& target, AIPath* path, float rang
         float b = AbsBits(px - static_cast<float>(lib::RoundEven(px)));
         float b2 = b + b, a2 = a + a;
         float fraction = b2 < a2 ? b2 : a2;   // a and b are the same value (see above)
-        int octant = lib::RoundEven(pc24::Mul(pc24::Atan2(by, bx), 1.273239605931458));
+        int octant = lib::RoundEven(std::atan2(by, bx) * 1.273239605931458f);
         int direction = 6 - octant;
         if (direction < 0) direction += static_cast<int>((static_cast<unsigned>(7 - direction) >> 3) * 8);
         if (direction > 7) direction -= static_cast<int>((static_cast<unsigned>(direction) >> 3) * 8);
@@ -357,7 +356,7 @@ void AIMap::ClearMarksAround(const PathCells* chain) {
 // A unit's path told to stand where the unit is (four variants): the remaining cells are dropped, the order
 // reset, the target becomes the unit's cell (position * cell scale) with the flags {reached, -, -, 1}, the
 // excluded regions emptied, and the order starts at the unit's position facing the direction its orientation
-// quaternion gives, negated (computed on the FPU in the original's order). Then the variants add a turn, a
+// quaternion gives, negated. Then the variants add a turn, a
 // tracked object or a turn with an end; one starts at the order's own start time. See ai_map.h (AIPath) and
 // docs/notes/ai.md.
 

@@ -29,7 +29,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
@@ -49,19 +48,19 @@
 float WorldClient::ClampedGroundHeight(float x, float y) {
     // Branch-free (the comparison turned into a select mask); NaN picks the first operand of each comparison.
     float cx = MaxKeepB(0.0f, x);
-    float maxX = static_cast<float>(terrain->width - 1.0f);
+    float maxX = terrain->width - 1.0f;
     cx = MinKeepA(maxX, cx);
     float cy = MaxKeepB(0.0f, y);
-    float maxY = static_cast<float>(terrain->height - 1.0f);
+    float maxY = terrain->height - 1.0f;
     cy = MinKeepA(maxY, cy);
     return terrain->HeightAt(cx, cy, terrain::Layer::Ground);
 }
 
-double WorldClient::RawSurfaceHeightAt(float x, float y) { return terrain->SurfaceHeight(x, y); }
+float WorldClient::RawSurfaceHeightAt(float x, float y) { return terrain->SurfaceHeight(x, y); }
 
 const char* WorldClient::AmbienceTimeOfDay() const {
-    float time = pc24::Mul(static_cast<double>(tick), secondsPerTick) + timeBase;
-    float hour = static_cast<float>(std::fmod(static_cast<double>(time), 24.0));   // exact
+    float time = (static_cast<float>(tick) * secondsPerTick) + timeBase;
+    float hour = std::fmod(time, 24.0f);
     if (!(hour < 6.0f || hour > 18.0f)) return "day";   // also NaN
     if (hour >= 22.0f || hour <= 2.0f) return "night";
     return hour < 6.0f ? "morning" : "evening";
@@ -69,7 +68,7 @@ const char* WorldClient::AmbienceTimeOfDay() const {
 
 // The (u, v) of `d` (a point relative to the platform's origin) moved along z onto the platform's plane.
 Vector2 PlaneUV(const Platform& p, Vector3 d) {
-    d.z = d.z - Dot(p.normal, d) / p.normal.z;
+    d.z -= Dot(p.normal, d) / p.normal.z;
     return {Dot(p.axisU, d), Dot(p.axisV, d)};
 }
 
@@ -84,7 +83,7 @@ float PlatformSet::SurfaceHeight(const Vector3& point, float height) {
         EI_NAN_AUDIT(u, v, p.sizeU, p.sizeV);
         if (u < -0.5f || v < -0.5f) continue;
         if (p.sizeU + 0.5f < u || p.sizeV + 0.5f < v) continue;
-        float z = static_cast<float>(p.axisV.z * v + p.axisU.z * u + p.origin.z);
+        float z = p.axisV.z * v + p.axisU.z * u + p.origin.z;
         height = MaxKeepB(height, z);
     }
     return height;
@@ -223,8 +222,8 @@ void WorldClient::CreateExitMarkers() {
         source->localPosition = {(exit.x2 + exit.x1) * kOneHalf, (exit.y2 + exit.y1) * kOneHalf, 0.0f};
         source->alpha = (exit.x2 - exit.x1) * kOneHalf;   // half extents, read by EmitZoneExit
         source->typeParam = (exit.y2 - exit.y1) * kOneHalf;
-        source->turnCos = pc24::Round(pc24::Cos(exit.angle));
-        source->turnSin = pc24::Round(pc24::Sin(exit.angle));
+        source->turnCos = std::cos(exit.angle);
+        source->turnSin = std::sin(exit.angle);
         for (int warmUpTick = 0; warmUpTick < kExitWarmUpTicks; ++warmUpTick) source->RunTick();
     }
     UpdateExitMarkers();
@@ -405,7 +404,7 @@ bool WorldClient::RunTick() {
                         float dx = light->localPosition.x - nodeX;
                         if (LengthSquared2D(dx, dy) > light->rangeSquared) continue;
                         Vector3 point = {nodeX, nodeY, 0.0f};
-                        point.z = static_cast<float>(terrain->HeightAt(nodeX, nodeY, terrain::Layer::Ground));
+                        point.z = terrain->HeightAt(nodeX, nodeY, terrain::Layer::Ground);
                         float intensity = light->GetIntensityAt(point);
                         level = SelectLess(level, intensity, intensity, level);
                     }

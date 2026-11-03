@@ -13,7 +13,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/str.h"
 #include "platform/platform.h"
 
@@ -28,8 +27,8 @@ namespace {
 
 // The default pitch (degrees as radians: pi / 180 * 45) and the default field of view
 // computed at run time as the game does.
-float DefaultPitch() { return static_cast<float>(CAM_DEGREE * CAM_FORTY_FIVE); }
-float DefaultAngle() { return static_cast<float>(CAM_PI * CAM_TWO_SEVENTHS); }
+float DefaultPitch() { return CAM_DEGREE * CAM_FORTY_FIVE; }
+float DefaultAngle() { return kPi * CAM_TWO_SEVENTHS; }
 
 const char kCurrentRecord[] = ".\\camera\\camera.cam";
 const char kNumberedRecords[] = ".\\camera\\camera0*.cam";
@@ -232,9 +231,7 @@ void Camera::Save(ByteStream* stream) {
 // --- Camera motion -----------------------------------------------------------------------------------
 
 // Camera helpers the per-frame update uses: aiming along a direction, turning the camera upright towards its
-// target and keeping it above nearby objects. See camera.h and docs/notes/core.md. Floating point: float maths in
-// the original's order (its x87 registers held floats at the main thread's 24-bit precision); an operation on the
-// CRT's double results through lib/pc24.h.
+// target and keeping it above nearby objects. See camera.h and docs/notes/core.md.
 
 // Aims the camera along (dx, dy, dz): the view heading is the turn about Z that points the camera's X axis
 // along the horizontal part (identity when that is straight along Y), then the local rotation tilts by -(90
@@ -242,13 +239,12 @@ void Camera::Save(ByteStream* stream) {
 bool Camera::LookDirection(float dx, float dy, float dz) {
     float lengthSquare = LengthSquared(Vector3{dx, dy, dz});
     EI_NAN_AUDIT(lengthSquare);
-    if (lengthSquare <= CAM_LOOK_EPSILON) return false;   // the double constant (exact as a compare)
+    if (lengthSquare <= CAM_LOOK_EPSILON) return false;
     float inv = 1.0f / std::sqrt(lengthSquare);
     float nx = inv * dx;
     float ny = inv * dy;
-    float elevation = static_cast<float>(libcrt::CiAsin(-(inv * dz)));
-    // ny over _hypot's double rounds once at 24 bits; the CRT's arc cosine returns a double.
-    float heading = static_cast<float>(libcrt::CiAcos(pc24::Div(ny, libcrt::Hypot(nx, ny))));
+    float elevation = std::asin(-(inv * dz));
+    float heading = std::acos(ny / std::hypot(nx, ny));
     EI_NAN_AUDIT(nx, heading);
     if (nx == CAM_ZERO || heading == CAM_ZERO) {
         viewRotation = camera::kIdentityRotation;
@@ -285,13 +281,13 @@ void Camera::AlignToTarget() {
     EI_NAN_AUDIT(dot);
     if (dot > CAM_ONE) cosine = 1.0f;
     else if (cosine < CAM_MINUS_ONE) cosine = -1.0f;
-    float angle = static_cast<float>(libcrt::CiAcos(cosine));
+    float angle = std::acos(cosine);
     float magnitude = AbsBits(angle);
     if (CAM_DEGREE > magnitude) return;
     Vector3 c = Cross(xAxis, h);
     Vector3 axis = c * (CAM_ONE / std::sqrt(LengthSquared(c)));
     float axisLength = std::sqrt(LengthSquared(axis));
-    if (axisLength > CAM_ALIGN_EPSILON) {   // the double constant (exact as a compare)
+    if (axisLength > CAM_ALIGN_EPSILON) {
         Quaternion turn;
         const Quaternion& r = *turn.SetAngleAxis(angle * CAM_TENTH, axis);
         q = r * q;
@@ -317,12 +313,11 @@ void Camera::ClampAboveObjects() {
         float cx = object->localPosition.x + object->bounds.center.x;
         float cy = object->localPosition.y + object->bounds.center.y;
         float cz = p->z;
-        double radius = libcrt::Hypot(object->bounds.boxMax.x, object->bounds.boxMax.y);
+        float radius = std::hypot(object->bounds.boxMax.x, object->bounds.boxMax.y);
         float dx = cx - p->x;
         float dy = cy - p->y;
         float dz = cz - p->z;
-        // The distance less _hypot's double, rounded once at 24 bits.
-        float outside = pc24::Sub(std::sqrt(LengthSquared(Vector3{dx, dy, dz})), radius);
+        float outside = std::sqrt(LengthSquared(Vector3{dx, dy, dz})) - radius;
         float factor = CAM_ZERO;
         EI_NAN_AUDIT(outside);
         if (outside <= CAM_ZERO) factor = CAM_ONE;

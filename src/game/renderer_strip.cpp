@@ -59,11 +59,11 @@ void EmitFirstSection(const TLVertex* first, const TLVertex* next, TLVertex** ar
     const float offsetX = acrossX;
     top->x = acrossX + top->x;
     const float acrossY = k * dx;
-    top->y = top->y - acrossY;
+    top->y -= acrossY;
     SetUv(top, g_topV);
     TLVertex* bottom = *array + (*count)++;
     *bottom = *first;
-    bottom->x = bottom->x - offsetX;
+    bottom->x -= offsetX;
     bottom->y = acrossY + bottom->y;
     SetUv(bottom, g_bottomV);
 }
@@ -96,11 +96,11 @@ void EmitSection(const TLVertex* src, const Vector2& direction, TLVertex** array
     const float k = scale / std::hypot(direction.x, direction.y);
     *top = *src;
     top->x = k * direction.y + top->x;
-    top->y = top->y - k * direction.x;
+    top->y -= k * direction.x;
     SetUv(top, g_topV);
     TLVertex* bottom = *array + (*count)++;
     *bottom = *src;
-    bottom->x = bottom->x - k * direction.y;
+    bottom->x -= k * direction.y;
     bottom->y = k * direction.x + bottom->y;
     SetUv(bottom, g_bottomV);
 }
@@ -187,7 +187,7 @@ int SceneRenderer::DrawStrip(const std::vector<Vector3>* pointArray, float width
         bool started = false;
         for (int i = 1; i < std::ssize(g_strip); ++i) {
             if (!started) EmitFirstSection(StripAt(i - 1), StripAt(i), &ribbon, &count, widthBits);
-            g_currentU = g_currentU + step;
+            g_currentU += step;
             Vector2 direction = StripDirection(i, i == std::ssize(g_strip) - 1 ? 1 : 2, &g_strip);
             EmitSection(StripAt(i), direction, &ribbon, &count, width);
             started = true;
@@ -199,7 +199,7 @@ int SceneRenderer::DrawStrip(const std::vector<Vector3>* pointArray, float width
         for (int i = 1; i < std::ssize(g_strip); ++i) {
             const std::uint8_t* clipFlags = g_clipped.data();
             if (clipFlags[i - 1] && clipFlags[i]) {
-                g_currentU = g_currentU + step;
+                g_currentU += step;
                 started = false;
                 continue;
             }
@@ -207,7 +207,7 @@ int SceneRenderer::DrawStrip(const std::vector<Vector3>* pointArray, float width
                 Vector2 direction = StripDirection(i, 1, &g_strip);
                 EmitSection(StripAt(i - 1), direction, &ribbon, &count, width);
             }
-            g_currentU = g_currentU + step;
+            g_currentU += step;
             Vector2 direction = StripDirection(i, i == std::ssize(g_strip) - 1 ? 1 : 2, &g_strip);
             EmitSection(StripAt(i), direction, &ribbon, &count, width);
             started = true;

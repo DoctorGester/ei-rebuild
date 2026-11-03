@@ -11,7 +11,6 @@
 #include "text_split.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
-#include "lib/pc24.h"
 #include "lib/str.h"
 
 #include <cstring>
@@ -142,9 +141,9 @@ const char* const kNoSpellConstructor = "No valid spell constructor\n";
 const char* const kCantBegin = "Can't begin spell construction with prototype \"%s\"\n";
 const char* const kCantEnd = "Can't end spell construction\n";
 
-// value * factor (rounded once) truncated as _ftol does: through a 64-bit integer, 0 for a NaN.
+// value * factor truncated as _ftol does: through a 64-bit integer, 0 for a NaN.
 int ScaleTruncate(std::uint32_t value, float factor) {
-    return static_cast<int>(static_cast<std::int64_t>(pc24::Mul(factor, value)));
+    return static_cast<int>(static_cast<std::int64_t>(factor * value));
 }
 
 // sqrt(area / pi).

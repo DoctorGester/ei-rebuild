@@ -10,7 +10,6 @@
 #include "world.h"
 
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 
 #include <initializer_list>
 #include <new>
@@ -59,8 +58,7 @@ bool Lever::RunTick() {
     Update();
     if (WorldContext()->IsServer()) return false;
     Vector3 shown = scale;
-    // The tick (an int) subtracted with one rounding.
-    float t = pc24::Sub(endTick, static_cast<double>(g_clientWorld.tick)) * rate;
+    float t = (endTick - static_cast<float>(g_clientWorld.tick)) * rate;
     if (t > 0.0f) {
         shown.y = to - (to - from) * t;
         AsObject3D()->SetFigureScale(shown);

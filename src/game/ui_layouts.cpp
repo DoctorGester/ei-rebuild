@@ -500,7 +500,7 @@ void CreditsScreen::CreateScreen() {
                                 0;
             }
             words.Next();
-            record.speed = static_cast<float>(str::ToDouble(words.word));
+            record.speed = str::ToFloat(words.word);
             words.Next();
             record.style = words.WordOrEmpty();
             words.Next();

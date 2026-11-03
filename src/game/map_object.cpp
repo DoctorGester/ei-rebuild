@@ -16,7 +16,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 
 #include <bit>
 #include <concepts>
@@ -45,7 +44,7 @@ int UpdateCount(const World* world) { return world->updateCount; }
 
 // The most effects an object holds: the network sends the count as a byte (WriteNetState).
 constexpr int kMaxEffects = 255;
-constexpr double kSameStrength = 0.001;   // Rebirth's constant (a double)
+constexpr float kSameStrength = 0.001f;   // Rebirth's constant
 
 // After adding `effect`: the older effects (not the new last one) it renews are removed, those of the same type
 // and end flag whose strength is within 0.001 of the new one's, that last no longer and whose value is not above it.
@@ -61,8 +60,7 @@ void RemoveOutdatedEffects(MapObject* object, const MapEffect* effect) {
         }
         if (outdated) {
             float difference = lib::FloatFromBits(e->strength) - lib::FloatFromBits(effect->strength);
-            float distance = difference < 0.0f ? -difference : difference;     // CRT fabs: exact
-            outdated = static_cast<double>(distance) < kSameStrength;          // plain IEEE compare
+            outdated = std::fabs(difference) < kSameStrength;
         }
         if (outdated) object->effects.erase(object->effects.begin() + i);
         else ++i;
@@ -173,12 +171,11 @@ void MapObject::ResetScale() { scale = baseScale; }
 
 Vector3 MapObject::GroundPoint() {
     const Vector3 centre = localPosition + bounds.center;
-    return {centre.x, centre.y, pc24::Add(OwningWorld()->GridHeightAt(centre.x, centre.y), centre.z)};
+    return {centre.x, centre.y, OwningWorld()->GridHeightAt(centre.x, centre.y) + centre.z};
 }
 
 void MapObject::PlaceOnGround(float offset) {
-    double height = OwningWorld()->GridHeightAt(localPosition.x, localPosition.y);
-    localPosition.z = pc24::Add(height, offset);
+    localPosition.z = OwningWorld()->GridHeightAt(localPosition.x, localPosition.y) + offset;
 }
 
 void MapObject::SetServerData(const UnitVitals* data) {
@@ -321,7 +318,7 @@ bool MapObject::IsDead() { return companion->IsDead(); }
 int MapObject::ForgetObject(EngineObject*) { return 0; }
 void MapObject::UpdateMoveFactors() {}
 void MapObject::RefreshWounds() {}
-double MapObject::MoveSpeed() { return kNoSpeed; }
+float MapObject::MoveSpeed() { return kNoSpeed; }
 float MapObject::Radius() { return kPlainRadius; }
 void MapObject::SetScriptName(std::string_view) {}
 

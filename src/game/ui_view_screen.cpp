@@ -23,8 +23,7 @@ constexpr int kCursorNormal = 0;
 constexpr int kCursorCtrl = 1;
 constexpr int kAttackHow = 6;
 
-// The view's turn about x: 225 degrees, the original's pi * (1 / 180) * 225 in doubles at 24-bit precision (one
-// degree as angles.h has it, times 225).
+// The view's turn about x: 225 degrees.
 constexpr float kTurnAngle = ei::kRadiansPerDegree * 225.0f;
 
 } // namespace

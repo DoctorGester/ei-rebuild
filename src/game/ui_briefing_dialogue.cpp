@@ -21,7 +21,6 @@
 #include "world.h"
 
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/str.h"
 #include "game_singletons.h"
 #include "lib/text_case.h"
@@ -129,8 +128,8 @@ void SpeakerAnimationDone(Unit* serverUnit) {
 }
 
 void BriefingScreen::ViewSpeaker(Unit* unit, float angle, float distance, float height) {
-    float cosAngle = pc24::Round(pc24::Cos(angle));
-    float sinAngle = pc24::Round(pc24::Sin(angle));
+    float cosAngle = std::cos(angle);
+    float sinAngle = std::sin(angle);
     Vector3 eye{};
     float x;   // the facing
     float y;

@@ -16,7 +16,6 @@
 #include "lib/containers.h"
 
 #include "lib/float_select.h"
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 
 #include <bit>
@@ -125,8 +124,8 @@ EngineObject** CollectTimedObjects(WorldServer* world, PlayerServer* state, Engi
         float dx = position->x - state->lastPosition.x;
         float dy = position->y - state->lastPosition.y;
         float distance = LengthSquared2D(dy, dx);
-        float reach = static_cast<float>(timed->Radius());
-        float reach2 = pc24::Mul(timed->Radius(), reach);
+        float reach = timed->Radius();
+        float reach2 = timed->Radius() * reach;
         if (reach2 > distance) *out++ = object;
     }
     return out;

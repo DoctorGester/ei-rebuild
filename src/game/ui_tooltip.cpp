@@ -112,7 +112,7 @@ void UiTooltip::OnMouseMove(int x, int y) {
             return;
         }
         if (timer < delay) {
-            timer = static_cast<float>(UiContainer::FrameTime() + timer);
+            timer = UiContainer::FrameTime() + timer;
             return;
         }
         // Shown: the first line is measured again with the key of the tooltip's command.
@@ -149,7 +149,7 @@ void UiTooltip::OnMouseMove(int x, int y) {
         // The appearing time is zero in the exe: the tooltip is fully shown on the next call.
         if (timer < kAppearTime) {
             DrawLines();
-            timer = static_cast<float>(UiContainer::FrameTime() + timer);
+            timer = UiContainer::FrameTime() + timer;
         } else {
             state = State::Shown;
             timer = kAppearTime;
@@ -159,7 +159,7 @@ void UiTooltip::OnMouseMove(int x, int y) {
     case State::Disappearing:
         if (timer > 0.0f) {
             DrawLines();
-            timer = static_cast<float>(timer - UiContainer::FrameTime());
+            timer -= UiContainer::FrameTime();
         } else {
             state = State::Idle;
             ClearSceneObjects();

@@ -332,7 +332,7 @@ int HeroSchoolSkill(UnitStats* stats, int school) {
 
 int HeroManaUnits(UnitStats* stats) {
     // The maximum is stored as a float before the division; the quotient is not rounded.
-    float maximum = static_cast<float>(stats->ManaCurve());
+    float maximum = stats->ManaCurve();
     return static_cast<int>(maximum / stats->Period20());
 }
 

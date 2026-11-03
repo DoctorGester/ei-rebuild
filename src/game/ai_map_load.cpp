@@ -18,7 +18,6 @@
 #include <new>
 #include <string>
 #include "lib/in_place.h"
-#include "lib/pc24.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
 
@@ -128,10 +127,8 @@ constexpr float kFlatCost = 1024.0f;
 constexpr int kFlatCostUnits = 0x400;
 constexpr float kLargeLimit = 40.0f;        // degrees
 constexpr float kSmallLimit = 60.0f;
-// Doubles the original divides and multiplies on the FPU (with vecmath.h's kPiDouble), each operation rounded to a
-// float (lib/pc24.h).
-constexpr double kHalfTurn = 180.0;
-constexpr double kPerDegree = 1.0 / 180.0;
+constexpr float kHalfTurn = 180.0f;
+constexpr float kPerDegree = 1.0f / 180.0f;
 
 // The cost of a height step between neighbouring cells, by its slope: (sin^2 + 1)^2 times the flat
 // cost uphill and on the level, the flat cost over sin^2 + 1 downhill. The larger size classes take
@@ -140,10 +137,10 @@ void BuildClimbTables(AIMap& map) {
     map.climbLarge.resize(kClimbSteps);
     map.climbSmall.resize(kClimbSteps);
     for (int i = 0; i < kClimbSteps; ++i) {
-        const float rise = std::fabs(static_cast<float>(static_cast<float>(i - kLevelStep) / map.heightScale));
-        const float slope = std::fabs(pc24::Mul(pc24::Atan2(rise, kCellSize), pc24::Div(kHalfTurn, kPiDouble)));
-        const pc24::Unrounded sine = pc24::Sin(pc24::Mul(kPerDegree, kPiDouble) * slope);
-        float effort = pc24::Mul(sine, sine) + 1.0f;
+        const float rise = std::fabs(static_cast<float>(i - kLevelStep) / map.heightScale);
+        const float slope = std::fabs(std::atan2(rise, kCellSize) * (kHalfTurn / kPi));
+        const float sine = std::sin((kPerDegree * kPi) * slope);
+        float effort = (sine * sine) + 1.0f;
         effort *= effort;
         if (i < kLevelStep) effort = 1.0f / std::sqrt(effort);
         const int cost = lib::RoundEven(effort * kFlatCost);
@@ -214,8 +211,7 @@ constexpr float kAltitudeUnit = 32769.0f / 2147483648.0f;
 
 constexpr float kQuarter = 0.25f;
 
-// The heights follow the original's x87 sequence value by value, in float maths (its registers held floats at the
-// main thread's 24-bit precision).
+// The heights in float maths, value by value.
 
 // A vertex's height in world units: the altitude times the map's highest point times the altitude unit, in that
 // order.

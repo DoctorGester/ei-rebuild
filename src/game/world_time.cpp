@@ -4,7 +4,6 @@
 #include "options.h"
 
 #include "lib/float_select.h"
-#include "lib/pc24.h"
 
 #include <bit>
 #include <cmath>
@@ -12,13 +11,13 @@
 
 namespace {
 constexpr float kHoursPerDay = 24.0f;
-constexpr double kHoursPerSecond = 1.0 / 15.0;  // as the game counts its speed
+constexpr float kHoursPerSecond = 1.0f / 15.0f;  // as the game counts its speed
 
 // Game kinds whose players keep their own time (UpdatePlayerTimes before a change).
 bool KeepsPlayerTimes(int kind) { return kind == 1 || kind == 3; }
 } // namespace
 
-float World::Elapsed() const { return pc24::Mul(static_cast<double>(tick), secondsPerTick); }
+float World::Elapsed() const { return (static_cast<float>(tick)) * secondsPerTick; }
 
 float World::TimeOfDay() const { return std::fmod(Elapsed() + timeBase, kHoursPerDay); }
 
@@ -31,17 +30,17 @@ void World::SetTimeSpeed(float speed) {
     // The time of day now, stored as a float before the speed changes.
     float now = TimeOfDay();
     if (speed > 0.0f) secondsPerTick = 1.0f / speed;
-    else if (speed < 0.0f) secondsPerTick = pc24::Div(1.0, static_cast<double>(options::g_options.defaultTimeScale));
+    else if (speed < 0.0f) secondsPerTick = 1.0f / static_cast<float>(options::g_options.defaultTimeScale);
     else secondsPerTick = 0.0f;      // 0 or NaN (equal or unordered)
-    secondsPerTick = pc24::Mul(secondsPerTick, kHoursPerSecond);
+    secondsPerTick *= kHoursPerSecond;
     SetTime(now);
 }
 
-double World::NightLevel() {
+float World::NightLevel() {
     float hours = TimeOfDay();
     if (hours > 20.0f) return (hours - 20.0f) * 0.25f;
-    if (hours >= 8.0f) return 0.0;
-    return 1.0;   // also NaN
+    if (hours >= 8.0f) return 0.0f;
+    return 1.0f;   // also NaN
 }
 
 bool World::IsNight() {

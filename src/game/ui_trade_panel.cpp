@@ -280,8 +280,8 @@ void TradePanel::RestoreRecord() {
     TradeStatsRecord& record = records[recordIndex];
     UnitStats* stats = PartyMemberStats(recordIndex);
     // The hit point maximum and the hit points the slots allow, before (both stored as float).
-    const float oldMaximum = static_cast<float>(stats->HitPointCurve());
-    const float oldHitPoints = static_cast<float>(stats->Reduce(oldMaximum));
+    const float oldMaximum = stats->HitPointCurve();
+    const float oldHitPoints = stats->Reduce(oldMaximum);
     for (int i = 0; i < 6; ++i) stats->skills[i] = record.schools[i];
     stats->attributes[0] = record.science;
     for (int i = 0; i < 36; ++i) stats->skillLevels[i] = record.perks[i];
@@ -289,13 +289,13 @@ void TradePanel::RestoreRecord() {
     stats->pendingExperience = record.pendingExperience;
     stats->spentExperience = record.spentExperience;
     record.bought = false;
-    const float newMaximum = static_cast<float>(stats->HitPointCurve());
+    const float newMaximum = stats->HitPointCurve();
     // Only when both maxima are above 1: the slots are healed by what keeps the hit points in the
     // old proportion to the new maximum.
     EI_NAN_AUDIT(oldMaximum, newMaximum);
     if (oldMaximum <= 1.0f || newMaximum <= 1.0f) return;
-    const double hitPoints = stats->Reduce(newMaximum);
-    stats->HealSlots(newMaximum, static_cast<float>(oldHitPoints / oldMaximum * newMaximum - hitPoints));
+    const float hitPoints = stats->Reduce(newMaximum);
+    stats->HealSlots(newMaximum, oldHitPoints / oldMaximum * newMaximum - hitPoints);
 }
 
 // --- Settling and choosing the hero ------------------------------------------------------------------

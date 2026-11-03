@@ -109,7 +109,7 @@ void UiScrollbar::MouseMove(int, int x, int y) {
 void UiScrollbar::Wheel(int, int delta, int x, int y) {
     if (RegionAt(x, y) == kTrackRegion) {
         float step = static_cast<short>(delta) * speed * kWheelStep;
-        accumulated = accumulated - step;
+        accumulated -= step;
         handled = true;
     }
 }

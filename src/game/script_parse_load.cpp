@@ -46,7 +46,7 @@ int FindName(const std::vector<std::string>& names, std::string_view name) {
 }
 
 // *dst = (float)atof(text): the CRT's result stored as a float.
-void StoreAtof(float* dst, const std::string& text) { *dst = static_cast<float>(str::ToDouble(text)); }
+void StoreAtof(float* dst, const std::string& text) { *dst = str::ToFloat(text); }
 
 // An int stored as a float.
 void StoreIntAsFloat(float* dst, int value) { *dst = static_cast<float>(value); }

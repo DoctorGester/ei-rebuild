@@ -26,8 +26,7 @@ struct Layout {
     // The 3D view keeps the 4:3 proportions over the whole window: the projection's x and y scales.
     float axisScale;    // (float)(width43 / width)
     float axisScaleY;   // (float)(height43 / height)
-    // The interface fonts' scale: (float)(width * (double)0.0075f / height43), 0.01 on a 4:3 window (addon's, which
-    // divides in double; at every 4:3 size the double result rounds to 0.01f, the original's constant).
+    // The interface fonts' scale: width * 0.0075 / height43 (addon's), 0.01 on a 4:3 window (the original's constant).
     float fontScale;
 };
 

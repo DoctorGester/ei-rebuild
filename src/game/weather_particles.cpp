@@ -82,7 +82,7 @@ float Sway(const WeatherNoiseCurve& curve, int cell, float at) {
     if (cell < 0 || cell >= kSwayCells) return 0.0f;
     const WeatherNoiseSegment& segment = curve.segments[cell];
     MotionCubic cubic{segment.value, segment.slope, segment.quadratic, segment.cubic};
-    return static_cast<float>(cubic.Value(at - cell));
+    return cubic.Value(at - cell);
 }
 
 // What both draws start from.
@@ -284,11 +284,11 @@ int RainSnow::BuildSnow(SceneRenderer* renderer) {
         TLVertex* triangle = vertices.data() + used;
         for (int corner = 0; corner < 3; ++corner) SetCorner(triangle[corner], projected[flake]);
         // A triangle around the point, in the projection's units.
-        triangle[0].x = triangle[0].x - kFlakeWidth * 0.5f;
-        triangle[1].x = triangle[1].x + kFlakeWidth * 0.5f;
-        triangle[0].y = triangle[0].y - (kFlakeHeight * kFlakeAbove);
-        triangle[1].y = triangle[1].y - (kFlakeHeight * kFlakeAbove);
-        triangle[2].y = triangle[2].y + (kFlakeHeight * kFlakeBelow);
+        triangle[0].x -= kFlakeWidth * 0.5f;
+        triangle[1].x += kFlakeWidth * 0.5f;
+        triangle[0].y -= (kFlakeHeight * kFlakeAbove);
+        triangle[1].y -= (kFlakeHeight * kFlakeAbove);
+        triangle[2].y += (kFlakeHeight * kFlakeBelow);
         SetFrame(triangle, *frameOf, kSnowTop, kSnowBottom);
         used += 3;
     }

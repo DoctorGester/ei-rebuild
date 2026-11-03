@@ -7,7 +7,7 @@ it by file name and section. How to write and keep them: docs/rewrite-guide.md, 
 Engine and game:
 - `core.md`: maths, transforms, reference counting, the object manager, streams and chunked files, values read and
   written as bytes, the camera, strings, containers.
-- `float-maths.md`: why plain float maths reproduces the original, lib/pc24.h, conversions, NaN, the vector helpers.
+- `float-maths.md`: plain float maths, where doubles stay, conversions, NaN, the vector helpers.
 - `app.md`: start-up, the main loop, the frame step, options, key bindings.
 - `console.md`: the developer console.
 - `network.md`: sessions, connections, messages, the lobby, the LZ coder, delta replication.

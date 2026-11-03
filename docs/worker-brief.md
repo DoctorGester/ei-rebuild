@@ -29,8 +29,7 @@ only through `tools/tickets.py`, never by hand.
 ## Build and test
 
 - `build.cmd verify` (the image with the harness: what the runs use) and `build.cmd release` (the product), by full
-  path, with no errors or warnings; both run the build checks (`tools/build_checks.py`), which must pass. Also
-  `python tools/check_x87.py`. Debug and asan builds are the coordinator's, at merge. `play.cmd` (the user plays with
+  path, with no errors or warnings; both run the build checks (`tools/build_checks.py`), which must pass. Debug and asan builds are the coordinator's, at merge. `play.cmd` (the user plays with
   it) must keep working: change it with `build.cmd`'s arguments or outputs.
 - Games only through `python tools/work.py test <ID> [run_all args]` (scenario names for a subset,
   `--rebirth-only`, `--golden`, at most `--jobs 4`): it queues on the machine's 16 game slots. Never call

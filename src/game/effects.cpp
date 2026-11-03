@@ -160,10 +160,10 @@ int ParticleSource::UpdateDebris(Particle* p) {
         p->pos.x = p->drift.x + p->pos.x;
         ++p->frame;
         std::uint32_t a = (p->color >> 24) - 16;
-        p->pos.y = p->pos.y + p->drift.y;
+        p->pos.y += p->drift.y;
         p->drift.x = kDebrisDamping * p->drift.x;
         p->drift.y = kDebrisDamping * p->drift.y;
-        p->size = p->size * kDebrisGrowth;
+        p->size *= kDebrisGrowth;
         if (a > 0xFF) a = 0;
         p->color = (a << 24) | 0xFFFFFF;
         return 1;

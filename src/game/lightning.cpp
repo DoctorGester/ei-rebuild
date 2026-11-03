@@ -123,7 +123,7 @@ void LightningSegment::SampleNoise(float time, float* outSide, float* outUp, flo
             upKeys[2] = upKeys[1];
             upKeys[1] = upKeys[0];
             RandomizeKey(upKeys[0], amplitude, true);
-            noiseTime = noiseTime + 1.0f;
+            noiseTime += 1.0f;
             next = left - 1.0f;
             left = next;
         } while (next > 1.0f);
@@ -155,8 +155,8 @@ void LightningSegment::Animate(float time, float amplitude) {
         float u = upNoise[i] - upAt;
         float along = static_cast<float>(i);
         points[i] = along * step + start + s * side + u * up;
-        sideAt = sideAt + sideSlope;
-        upAt = upAt + upSlope;
+        sideAt += sideSlope;
+        upAt += upSlope;
     }
 }
 

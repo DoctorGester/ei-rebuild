@@ -67,7 +67,7 @@ void WearItem(Item* item, Unit* unit, float amount, AckKind brokenRemark, AckKin
     if (pieces > 0) {
         item->condition = item->condition - amount / static_cast<float>(pieces);
     } else {
-        item->condition = item->condition - amount;
+        item->condition -= amount;
     }
     float condition = item->condition;
     if (lib::RoundEven(condition) <= 0) {
@@ -111,7 +111,7 @@ int UnitStats::DamageSlot(Unit* unit, UnitVitals* vitals, const DamageInfo* hit,
         if (typeDamage <= 0.0f) continue;
         for (int layer = keyed ? 2 : -1; layer >= 0; --layer) {
             if (slot.layers[layer].state < 2) continue;
-            typeDamage = typeDamage - hit->multiplier * slot.layers[layer].absorb[type];
+            typeDamage -= hit->multiplier * slot.layers[layer].absorb[type];
             WearArmour(unit, hit->location, layer, MaxKeepB(0.0f, typeDamage));
             EI_NAN_AUDIT(typeDamage);
             if (typeDamage <= 0.0f) break;

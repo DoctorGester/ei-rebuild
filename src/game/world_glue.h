@@ -46,7 +46,7 @@ class TextManager;
 // Player 0's connection, when there is one, sends "constr.current" = `value`.
 void GameSetConstructionVariable(std::uint32_t value);
 // The server world's time of day in hours (fmod(tick * secondsPerTick + base, 24)).
-double GameServerTimeOfDay();
+float GameServerTimeOfDay();
 // The players' times move on by `offset` (WorldServer::UpdatePlayerTimes) unless it is negative or a NaN.
 void GamePassTime(float offset);
 // The memory stream of the local server's pending messages (the client's state block hands it over).

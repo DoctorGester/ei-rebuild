@@ -153,8 +153,8 @@ void FootprintCellSet::AlongDirection(AIMap* map, const Vector3& position, const
     float ny = direction.x;
     float side = std::sqrt(LengthSquared2D(ny, nx));
     float divisor = side * (scale * kWidth + 1.0f);
-    nx = nx / divisor;
-    ny = ny / divisor;
+    nx /= divisor;
+    ny /= divisor;
 
     ResetSet(this);
     Bounds b = SquareAround(map, cx, cy, r);

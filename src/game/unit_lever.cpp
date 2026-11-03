@@ -96,8 +96,8 @@ std::vector<Vector3> Lever::UseSpots(float userRadius) {
         float across = spot[1];
         float length = std::sqrt(across * across + along * along);
         if (length > 0.0f) {
-            along = along / length;
-            across = across / length;
+            along /= length;
+            across /= length;
         }
         float phase = scale.z;
         float distance = ((1.0f - phase) + phase * record->farScale) * length + userRadius;

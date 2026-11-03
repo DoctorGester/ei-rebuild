@@ -1,6 +1,7 @@
 // The briefing / base screen's phrases (BriefingScreen::NextPhrase, ui_briefing.h): a dialogue
 // text's commands and phrases, the rewards after the last one, the camera and the speakers'
 // animations. See docs/notes/ui.md, "Briefing / base screen".
+#include "angles.h"
 #include "asset_text.h"
 #include "combat.h"
 #include "console.h"
@@ -24,7 +25,6 @@
 #include "random.h"
 
 #include "lib/containers.h"
-#include "lib/pc24.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "lib/vecmath.h"
@@ -70,9 +70,6 @@ constexpr int kQuestNameParts = 3;
 constexpr int kSoundPriority = 0x100;
 constexpr int kSoundVolume = 100;
 constexpr float kSecondsPerCharacter = 0.05f;
-constexpr double kDegree = 1.0 / 180.0;
-// pi * (1 / 180) as the original's arithmetic leaves it, at 24-bit precision (the folded double constant has 29 more bits).
-constexpr float kRadiansPerDegree = static_cast<float>(kPiDouble * kDegree);
 // Camera presets (ViewPreset) and the speakers they view.
 constexpr int kViewBoth = 1;
 constexpr int kViewLeader = 2;
@@ -125,9 +122,9 @@ void BriefingScreen::NextPhrase(bool skip) {
             animation = str::ToInt(words[1]);
         } else if (text::CompareIgnoringCase(words[0], kCameraCommand) == 0) {
             if (count >= 5) {
-                angle = pc24::Mul(kRadiansPerDegree, str::ToDouble(words[2]));   // the text's double: one rounding
-                distance = static_cast<float>(str::ToDouble(words[3]));
-                height = static_cast<float>(str::ToDouble(words[4]));
+                angle = ei::kRadiansPerDegree * str::ToFloat(words[2]);
+                distance = str::ToFloat(words[3]);
+                height = str::ToFloat(words[4]);
                 view = true;
             }
             preset = str::ToInt(words[1]);

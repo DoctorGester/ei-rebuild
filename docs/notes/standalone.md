@@ -342,7 +342,6 @@ Most of the C runtime is the host's. What stays the game's, and why:
 | `libcrt::Rand` / `Srand` | crt.cpp | VC6's LCG (seed * 214013 + 2531011, bits 16-30) on a thread_local seed. The game's draws are the game's: the host's rand would change every golden that draws. |
 | `libcrt::Qsort` | crt.cpp | VC6's quicksort (middle pivot, selection sort up to 8, smaller part first). It orders equal elements its own way, and two callers show that order: the sector spiral's cells by distance and the ambience's class votes by weight. Where equal elements are identical, callers use std::sort. |
 | `libcrt::Format` | crt_format.cpp | VC6's `_output` state machine. A malformed conversion prints as VC6 did, and the host never sees one: the UCRT's invalid-parameter handler would end the game on a run-time format from the game's texts. |
-| `CiAcos`, `CiAsin`, `CiPow`, `Hypot` | crt_maths.cpp | The original's x87 sequence at the main thread's 24-bit precision (float-maths.md, "Wider operands"). The host's results differ (pow in 4.1% of arguments rounded to a float, acos 7.8%, asin 18.8%) and changed 14 goldens. Hypot is kept for its last bit. |
 
 **Formatting** (`libcrt::Format`, behind `str::Format` / `str::FormatV`):
 - Integers, characters and strings go to the host's `snprintf` with VC6's sizes spelled for it: 'l' and "ll" are 32
@@ -603,7 +602,7 @@ The harness (tests/verify) is linked into ei-rebuild.exe in the verify and asan 
   - `ei::SetMissingCodeHandler`;
   - the log.
 - **Logs:** our addresses are `ei-rebuild+offset`. resolve_crash.py, randtrace.py and profile_report.py read
-  ei-rebuild.map; check_x87.py reads ei-rebuild.exe.
+  ei-rebuild.map.
 - **The user's real keyboard and mouse are kept out** (harness_input.h): a harness game reads its input only from the
   harness's own platform backend (harness_platform.h), which drops every system event. The steps still speak window
   messages; `input::Post` makes each into the game's event. The report's `MOUSE:` line counts the real events left

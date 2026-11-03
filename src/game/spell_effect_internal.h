@@ -20,7 +20,6 @@
 
 #include "lib/float_select.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 #include "lib/vecmath.h"
 
@@ -29,8 +28,8 @@ namespace spellfx {
 
 // --- Slots ---------------------------------------------------------------------------------------
 
-constexpr double (World::*kGridHeight)(float, float) = &World::GridHeightAt;
-constexpr double (World::*kRawSurfaceHeight)(float, float) = &World::RawSurfaceHeightAt;
+constexpr float (World::*kGridHeight)(float, float) = &World::GridHeightAt;
+constexpr float (World::*kRawSurfaceHeight)(float, float) = &World::RawSurfaceHeightAt;
 
 constexpr std::uint32_t kPointLightFlags = lib::Bits(LightFlag::Specular | LightFlag::Strong);
 
@@ -48,17 +47,14 @@ constexpr float kDefaultSpeed = 5.0f;                   // immediate in the fire
 // map.
 extern FootprintCellSet g_spellFootprint;
 
-// --- The original's maths -----------------------------------------------------------------------
-// Float maths in the original's order: its 24-bit x87 (PC24) rounds each operation as a float does. The logarithm,
-// the exponential, a ground height (a double from the world) and an int quotient go through lib/pc24.h.
+// --- Maths ---------------------------------------------------------------------------------------
 
-// The spell's power curve after the ratio: pow(min(max(ratio, 1), 8), 0.33) - 0.2, written by the original as
-// FYL2X / F2XM1 / FSCALE (VC6's inline log and exp; the logarithm is used unrounded). The two clamps keep a NaN
+// The spell's power curve after the ratio: pow(min(max(ratio, 1), 8), 0.33) - 0.2. The two clamps keep a NaN
 // ratio (1 < r or unordered; r < 8 or unordered).
 inline float ClampPow(float ratio) {
     const float low = MaxKeepB(1.0f, ratio);
     const float clamped = MinKeepA(low, 8.0f);
-    return pc24::Exp(pc24::Mul(pc24::Log(clamped), 0.33f)) - 0.2f;
+    return std::exp(std::log(clamped) * 0.33f) - 0.2f;
 }
 
 // The spell's power factor(repeated inline about twenty times in the game): 1 when the prototype's effect
@@ -77,10 +73,10 @@ inline void AreaCurve(const float* radius, const float* area, float* out) {
 // *out = (*a / *b) * *c.
 inline void DivideMultiply(const float* a, const float* b, const float* c, float* out) { *out = *a / *b * *c; }
 
-// The fireworks' fright level: _ftol(((float)timer / duration) * 250 + 50), the ints divided exactly and the
-// quotient rounded once; a duration of 0 gives _ftol's 0 for a NaN, 0x80000000 for an infinity's low half.
+// The fireworks' fright level: _ftol(((float)timer / duration) * 250 + 50); a duration of 0 gives _ftol's 0 for a
+// NaN, 0x80000000 for an infinity's low half.
 inline int FrightLevel(const int* timer, const int* duration) {
-    const float level = pc24::Div(static_cast<double>(*timer), static_cast<double>(*duration)) * 250.0f + 50.0f;
+    const float level = (static_cast<float>(*timer) / static_cast<float>(*duration)) * 250.0f + 50.0f;
     return static_cast<int>(static_cast<std::int64_t>(level));
 }
 
@@ -103,25 +99,25 @@ inline int PowerScaledToInt(const float* damage, const float* effect, const floa
     return static_cast<int>(static_cast<std::int64_t>(PowerFactor(damage, effect) * *scale));
 }
 
-// A world virtual `height` (kGridHeight, kRawSurfaceHeight) at (x, y): a ground height, a double.
-inline double WorldHeight(World* world, double (World::*height)(float, float), float x, float y) {
+// A world virtual `height` (kGridHeight, kRawSurfaceHeight) at (x, y): a ground height.
+inline float WorldHeight(World* world, float (World::*height)(float, float), float x, float y) {
     return (world->*height)(x, y);
 }
 
-// *out = height + *add, rounded once.
-inline void HeightPlus(World* world, double (World::*height)(float, float), float x, float y, const float* add, float* out) {
-    *out = pc24::Add(WorldHeight(world, height, x, y), *add);
+// *out = height + *add.
+inline void HeightPlus(World* world, float (World::*height)(float, float), float x, float y, const float* add, float* out) {
+    *out = WorldHeight(world, height, x, y) + *add;
 }
 
 // The same with height - *sub.
-inline void HeightMinus(World* world, double (World::*height)(float, float), float x, float y, const float* sub, float* out) {
-    *out = pc24::Sub(WorldHeight(world, height, x, y), *sub);
+inline void HeightMinus(World* world, float (World::*height)(float, float), float x, float y, const float* sub, float* out) {
+    *out = WorldHeight(world, height, x, y) - *sub;
 }
 
 // The lightning's end: *out = height + *a * *b.
-inline void HeightPlusProduct(World* world, double (World::*height)(float, float), float x, float y, const float* a, const float* b,
+inline void HeightPlusProduct(World* world, float (World::*height)(float, float), float x, float y, const float* a, const float* b,
                               float* out) {
-    *out = pc24::Add(WorldHeight(world, height, x, y), *a * *b);
+    *out = WorldHeight(world, height, x, y) + *a * *b;
 }
 
 // *out = sqrt(y*y + x*x).
@@ -217,7 +213,7 @@ inline float LightRise(SpellEffect* e) {
     return range / divisor;
 }
 
-// The same quotient left unrounded and multiplied by the constant at `scale`, then rounded.
+// The same quotient multiplied by the constant at `scale`.
 inline float LightRiseScaled(SpellEffect* e, const float& scale) {
     float value;
     value = std::bit_cast<float>(Prototype(e)->extraValues[4]);
@@ -238,12 +234,12 @@ inline void HitAreaTargets(SpellEffect* e) {
     }
 }
 
-inline float GroundPlus(SpellEffect* e, double (World::*height)(float, float), const Vector3& at, const float* add) {
+inline float GroundPlus(SpellEffect* e, float (World::*height)(float, float), const Vector3& at, const float* add) {
     float out;
     HeightPlus(e->world, height, at.x, at.y, add, &out);
     return out;
 }
-inline float GroundMinus(SpellEffect* e, double (World::*height)(float, float), const Vector3& at, const float* sub) {
+inline float GroundMinus(SpellEffect* e, float (World::*height)(float, float), const Vector3& at, const float* sub) {
     float out;
     HeightMinus(e->world, height, at.x, at.y, sub, &out);
     return out;

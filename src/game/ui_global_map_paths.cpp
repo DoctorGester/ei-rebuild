@@ -187,8 +187,8 @@ std::optional<Vector3> GlobalMap::MapPosition(std::string_view prefix, std::stri
         if (!texts->IsPastEnd(texts->cursor)) {
             words = texts->Split(true);
             while (words.size() < 3) words.push_back(kMissingNumber);
-            position = Vector3{static_cast<float>(str::ToDouble(words[0])), static_cast<float>(str::ToDouble(words[1])),
-                               static_cast<float>(str::ToDouble(words[2]))};
+            position = Vector3{str::ToFloat(words[0]), str::ToFloat(words[1]),
+                               str::ToFloat(words[2])};
         }
     }
     texts->Close();

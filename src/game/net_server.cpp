@@ -323,8 +323,7 @@ void CountDown(List& list, float dt) {
 
 // The base layer's tick, then the timed entries of the finished trades and the awards count down by `dt` (as
 // a float), and when the game is public the announcement timer does too: when it runs out it is reset and,
-// with a master server host set, the game is announced. `dt` holds a float value (net::Pump), so the float
-// subtractions are the original's at 24-bit precision.
+// with a master server host set, the game is announced. `dt` holds a float value (net::Pump).
 void ServerSession::Tick(double dt) {
     ServerBase::Tick(dt);
     float step = static_cast<float>(dt);

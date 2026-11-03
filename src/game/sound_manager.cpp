@@ -5,9 +5,7 @@
 // Float maths, built for SSE2. Two results reach game state: a 3D sound's level (UpdatePositional: Play3D gives a
 // silent one-shot no voice) and the ambient emitters' intervals (Tick: an emitter's Play2D takes a voice). With
 // every voice taken, a speech's Play2D answers -1, which keeps a unit's talking flag (unit_client_effects). Both are
-// basic operations on floats and small integers in the original's order, which the original ran on the main
-// thread at 24-bit precision control: there every x87 operation rounds once to a float significand, as a float
-// operation does, and lib::RoundEven rounds to an integer as it did. So the levels and intervals are the original's
+// basic operations on floats and small integers in the original's order, rounded to integers by lib::RoundEven
 // (docs/notes/sound.md, "Floating point"). The pans, the axis, the fader and the wave lengths only reach the output.
 #include "game_strings.h"
 #include "lib/bytes.h"
@@ -169,7 +167,7 @@ void UseCached(SoundManager* m, SoundSlot* slot, std::list<WaveRecord>::iterator
     m->cacheList.splice(m->cacheList.begin(), m->cacheList, node);
     WaveRecord& record = *node;
     record.lastUsed = platform::TickCount();
-    record.uses = record.uses + 1;
+    record.uses += 1;
     slot->length = m->WaveLength(record.data.data(), record.data.size());
     audio::SetWave(slot->voice, record.data.data(), record.data.size());
 }
@@ -206,8 +204,8 @@ int SoundManager::FlatVolume(int level, int fade, int isSpeech) const {
         if (h >= kHeightSilent) v = 0.0f;
         else if (h > kHeightFull) v = v * HeightFactor(h);
     }
-    v = v * (isSpeech != 0 ? speechVolume : effectsVolume);
-    v = v * kOutputScale;
+    v *= (isSpeech != 0 ? speechVolume : effectsVolume);
+    v *= kOutputScale;
     return ClampLevel(lib::RoundEven(v));
 }
 
@@ -900,7 +898,7 @@ void SoundFader::Update() {
         }
         break;
     case 2:
-        factor = factor - step;
+        factor -= step;
         EI_NAN_AUDIT(factor);
         if (factor <= 0.0f) {
             mode = 0;

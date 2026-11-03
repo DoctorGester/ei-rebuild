@@ -1,7 +1,7 @@
 #pragma once
 
 // Helpers shared by world_effect.cpp and world_effect_visual.cpp: the code the effects call, the
-// replicated-field operations, and the x87 details the effects repeat.
+// replicated-field operations.
 
 #include "world_effect.h"
 #include "map_object.h"
@@ -31,7 +31,7 @@ inline std::uint8_t FrameCounter() { return static_cast<std::uint8_t>(g_serverWo
 // Constants read from memory, as the original does, so that nothing is folded.
 inline float ConstAt(const float& constant) { return *reinterpret_cast<const volatile float*>(&constant); }
 
-// By reference: a float passed by value would be loaded and stored through the FPU.
+// A float's bits.
 inline std::uint32_t Bits(const float& f) {
     std::uint32_t u;
     u = std::bit_cast<std::uint32_t>(f);

@@ -9,7 +9,6 @@
 #include "world.h"
 #include "lib/bytes.h"
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/rounding.h"
 
 #include <cmath>
@@ -202,9 +201,9 @@ void FigureAnimationState::SetTime(float frame) {
         time = 0.0f;
     }
     while (current) {
-        double frames = current->frameCount;   // exact, where a float would round a count above 2^24
+        float frames = static_cast<float>(current->frameCount);
         if (frames >= time) break;             // on while below the frame reached, or NaN
-        time = pc24::Sub(time, frames);
+        time -= frames;
         if (onEnd) onEnd(owner);
         if (!queue.empty()) {
             current = PopQueued(this);

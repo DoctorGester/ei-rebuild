@@ -125,7 +125,7 @@ void HudPortraits::Update() {
             slot.faceTimer = 0.0f;
             slot.faceMode = 2;
         } else if (slot.flash > 0.0f) {
-            slot.flash = slot.flash - dt;
+            slot.flash -= dt;
         }
         slot.flash = MaxKeepB(slot.flash, 0.0f);
         EngineObject* flash = object(5);

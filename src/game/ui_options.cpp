@@ -343,7 +343,6 @@ void OptionsWindow::Apply() {
     options::g_options.audioStreaming = s[1].value;
     options::g_options.audioSpeech = s[2].value;
     options::g_options.reverseStereo = s[24].value;
-    // Each product is rounded once by its float stores.
     float speedA = s[3].value * toStep;
     float speedB = s[4].value * toStep;
     options::g_options.cameraScroll.powerKeyboard = speedA;

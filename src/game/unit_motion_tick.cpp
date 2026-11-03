@@ -19,7 +19,6 @@
 #include "world_data.h"
 
 #include "lib/nan_audit.h"
-#include "lib/pc24.h"
 #include "lib/vecmath.h"
 
 
@@ -30,8 +29,8 @@ namespace {
 
 // --- Float helpers -------------------------------------------------------------------------------
 
-// The stamina drain step, a double in the exe.
-constexpr double kDrainStep = 0.006666666666666666;
+// The stamina drain step.
+constexpr float kDrainStep = 1.0f / 150.0f;
 
 void FromHalfCells(float* xy) {
     xy[0] = 0.5f * xy[0];
@@ -51,11 +50,11 @@ bool SpeedBelow(MapObject* object, const float* than) {
     return object->MoveSpeed() < *than;
 }
 
-void SpeedOf(MapObject* object, float* out) { *out = static_cast<float>(object->MoveSpeed()); }
+void SpeedOf(MapObject* object, float* out) { *out = object->MoveSpeed(); }
 
-// *value -= *rate * the drain step (a double: the product rounds once); true when the result is below 0.
+// *value -= *rate * the drain step; true when the result is below 0.
 bool Drain(float* value, const float* rate) {
-    const float drained = *value - pc24::Mul(*rate, kDrainStep);
+    const float drained = *value - (*rate * kDrainStep);
     *value = drained;
     EI_NAN_AUDIT(drained);
     return drained < 0.0f;

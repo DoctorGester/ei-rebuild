@@ -109,8 +109,7 @@ effects, spells, items, resources), takes the command-line paths, then initialis
 
 The original's branch-free `max(0, v)` picks v when 0 < v or NaN (`MaxZero`; also the melee reach floor in
 ActionDistance); `TEST AH,0x40` skips on equal or unordered (`x < 0 || x > 0`); random draws `random % (n + 1)` with n =
-FISTP, then the zero-extended remainder (`Unsigned`). Values the original kept on the FPU stack were 24-bit results, so
-they are float locals; an int or a double operand goes through lib/pc24.h (float-maths.md).
+FISTP, then the zero-extended remainder (`Unsigned`).
 
 ## Original bugs kept
 

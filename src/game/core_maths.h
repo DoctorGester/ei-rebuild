@@ -13,6 +13,6 @@ struct CubicSegment {
     float c[4];
 
     void SetBSpline(float p0, float p1, float p2, float p3);
-    // Value at t (Horner's scheme). Returned unrounded.
+    // Value at t (Horner's scheme).
     float Evaluate(float t) const;
 };

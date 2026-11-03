@@ -32,9 +32,9 @@ struct MbsLess {
     bool operator()(const std::string& a, const std::string& b) const;
 };
 
-// std::atoi / std::atof of a std::string.
+// std::atoi / std::strtof of a std::string.
 inline int ToInt(const std::string& s) { return std::atoi(s.c_str()); }
-inline double ToDouble(const std::string& s) { return std::atof(s.c_str()); }
+inline float ToFloat(const std::string& s) { return std::strtof(s.c_str(), nullptr); }
 
 std::string Format(const char* format, ...);
 // With a std::string among the arguments: its text is passed for the %s.

@@ -158,7 +158,7 @@ bool UnitServer::RunTick() {
     if (self->localPosition.z > 0.0f) {
         float& sinking = sinkSpeed;
         sinking += kSinkAcceleration;
-        self->localPosition.z = self->localPosition.z - sinking;
+        self->localPosition.z -= sinking;
         float z = unit->localPosition.z;
         unit->localPosition.z = MaxKeepB(0.0f, z);    // a NaN z is kept
         unit->MarkChanged(2);

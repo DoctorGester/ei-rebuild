@@ -29,10 +29,11 @@ Layout Compute(int width, int height) {
     layout.marginY = (height - layout.height43) / 2;
     const float units = layout.margin * 800.0f / layout.width43;
     layout.extra = static_cast<int>(std::ceil(units));
-    // width43 / width (addon's 10024954) and width * 0.0075 / height43 (10024902; addon divides in double).
+    // width43 / width (addon's 10024954) and width * 0.0075 / height43 (10024902), written as 0.01 times the
+    // window's width over its 4:3 width so a 4:3 window gets 0.01 exactly.
     layout.axisScale = layout.width43 / static_cast<float>(width);
     layout.axisScaleY = layout.height43 / static_cast<float>(height);
-    layout.fontScale = static_cast<float>(width * static_cast<double>(0.0075f) / layout.height43);
+    layout.fontScale = 0.01f * (static_cast<float>(width) * 0.75f / static_cast<float>(layout.height43));
     return layout;
 }
 
