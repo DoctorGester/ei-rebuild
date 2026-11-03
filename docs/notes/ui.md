@@ -87,7 +87,10 @@ every side and child and touches no flag.
   (multiplayer only).
 - Cursor (`ui_cursor*.cpp`): `Cursor::Init` / `AddShape`, `SetShape`, `Start`, `UpdatePosition` (frames every 125 ms). The
   cursor is the system's ("Cursor in the frame" below).
-- Flying hit points (`ui_flying_hit_points.cpp`): `Add` with flag 8 starts 0.5 s later; numbers need option 17.
+- Flying hit points (`ui_flying_hit_points.cpp`): `Add` with flag 8 starts 0.5 s later; numbers need option 17. Their
+  sizes (8x12 digits, 64x10 label rows, the 32x10 marker), offsets and drift are 800x600 layout pixels scaled by
+  height43 / 600 (P8e: the original's sizes at 800x600, the same share of the screen at any size); the 8x12 texture
+  is magnified, so at 4K the digits are soft (a native-font path is P8's).
 - Chat overlay (`ui_chat_overlay.cpp`; multiplayer only, no scenario): `Update` erases lines older than 20 s, `AddLine`
   wraps at 780 px, "^<digit>" colours, at most 12 lines; Enter sends a `net::SayMessage` kept 60 s.
 - Camera input (`ui_camera_input.cpp`, `ui_camera_keys.h`): `RightDown` / `RightUp` turn with the cursor held,
