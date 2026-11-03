@@ -51,6 +51,23 @@ names are matched as Windows matches them: `res\database.res` opens `Res/Databas
 exact spelling first). Arguments for the game follow `--`. Under WSLg Mesa draws on llvmpipe (the CPU) unless
 `GALLIUM_DRIVER=d3d12` puts it on the Windows GPU.
 
+## Release
+
+The Release workflow (.github/workflows/release.yml, run by hand) builds Linux beside Windows and puts
+`ei-rebuild-linux-x64.tar.gz` (`ei-rebuild-linux-x64/`: `ei-rebuild`, `README.txt`, `third_party_notices.txt`) on the
+same GitHub release. Its `linux` job runs in an `ubuntu:22.04` container so that the binary needs no newer glibc than
+22.04's 2.35: gcc 13 from the ubuntu-toolchain-r PPA (22.04's gcc 11 has no `<format>`) with `-static-libstdc++
+-static-libgcc`, cmake from pip (CMakeLists.txt wants 3.24, 22.04 has 3.22), `-DCMAKE_BUILD_TYPE=Release`, the port
+checks under `xvfb-run`, then `strip`. The Package step fails on any `GLIBCXX_` import, writes the newest `GLIBC_`
+version the binary imports into the run's summary and the README, and lists its libraries: `libGL.so.1`, `libm`,
+`libc` (SDL3 is static and opens X11, sound and the rest itself).
+
+glibc: built on 24.04 the same steps need 2.38 (`__isoc23_*` and `strl*` from 2.38's headers, `arc4random` 2.36,
+which SDL finds at configure time); on 22.04's headers those are absent, and what remains tops out at 2.35
+(`_dl_find_object` from the static libgcc unwinder, `hypotf`), so the oldest systems are those with glibc 2.35:
+Ubuntu 22.04, Debian 12, Fedora 36, not RHEL 9 (2.34). The container run itself has not been tried (no Docker on the
+build machine); the first release's summary line is the measured answer.
+
 ## What differs from Windows
 
 - No lost context is looked for (it needs a robust context).
