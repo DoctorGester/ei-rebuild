@@ -6998,6 +6998,13 @@ depends = ["C74b"]
 note = "User 2026-11-03: how much do we still need pc24.h? Not at all once the goldens are our own: it reproduces game.exe's x87 results (PC24 rounding of double constants and of FSIN/FCOS/FPATAN/FYL2X's 64-bit results) bit for bit, 531 lines (pc24.h/.cpp) and ~340 uses in 72 files (Mul 79, Add 56, Round 43, Cos 28, Sin 27, Atan2 27, Sub 25, Div 20, Unrounded 15, Log 9, Exp 6 ...). Replace each with the plain expression: float operators, std::sin/cos/atan2/log/exp on floats (or the double form where precision matters, said why), double constants as float literals unless a double is wanted. Delete pc24.*, its checks (check_x87.py if it only guards this; cleanup-tooling's x87 equivalence material goes with C72's trim), and the docs. Results change in the last bits: same worker and the same golden re-record round as C74b (one re-record for both, with the same 'still plays the same' check)."
 
 [[ticket]]
+id = "C77"
+title = "include/ dissolved: rebirth headers to src/lib, main_loop.h to src/game without game.exe addresses"
+group = "cleanup"
+model = "sonnet"
+note = "User 2026-11-03: are the include folder's files up to date? include/ held what game.exe's hook DLL and the tools shared; with one exe it has no reason. include/ei/rebirth.h + rebirth_patches.inc (current) move beside src/lib/rebirth.cpp; include/ei/main_loop.h (stale: Site's comments are the original's return addresses 00457119/00457610/004571E2, HarnessHooks' comments are CALL addresses in game.exe's WinMain and 'in game.exe the harness redirects the original's CALLs') moves to src/game with comments saying what each hook and site is for now. If the Site/InSite global (app_main.cpp names the call it makes; harness.cpp and harness_clock.cpp read it) is simpler as HarnessHooks callbacks, do it, else leave for H47. Drop include/ from CMake's include paths and fix the ~50 includes. Goldens the same. Batch with WB18."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
