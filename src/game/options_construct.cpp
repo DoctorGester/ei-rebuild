@@ -1,5 +1,5 @@
 // The options object's constructor.
-// More: docs/notes/comments-c22i.md, "options.cpp".
+// More: docs/notes/app.md, "Options".
 #include "options.h"
 
 #include <cstdint>

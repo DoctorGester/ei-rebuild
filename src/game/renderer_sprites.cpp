@@ -1,5 +1,5 @@
 // The renderer's sprite draw with its helpers (indexed draw, a radix sort pass, a merge sort pass).
-// More: docs/notes/comments-c22i.md, "renderer_sprites.cpp".
+// More: docs/notes/models.md, "Renderer".
 #include "clip.h"   // TLVertex
 #include "model.h"
 #include "render/render.h"

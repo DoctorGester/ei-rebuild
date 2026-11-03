@@ -1,88 +1,92 @@
-# World effects: missiles, visibility, sound sequences, moshka, tornado (0x00672000-0x00680000)
+# Particles and world effects
 
-## Missiles and visibility (world_effect_missile.cpp, world_effect_visibility.cpp)
+Code: `particle_manager.cpp`, `particle_create.cpp`, `particle_emitters.cpp`, `particle_callbacks.cpp`,
+`particle_common.h`, `effects.h` / `effects.cpp`, `effects_weather.cpp`, `world_effect*.cpp`. Scenarios:
+`particles.txt` (every source type it can make), `effects.txt`, `spells*`, `effects_bow`.
 
-EffectMissile (abstract, vtable 00743754, 0x158): +0x14C arrived, +0x150 target id, +0x154 "from caster".
-EffectArrow (0x4E, vtable 007436F0, 0x6C0) embeds a EffectParticle (+0x158), EffectPointLight (+0x2D8) and
-EffectSound (+0x43C), then the sound name CString +0x6A0, light colour / range, particle type / size, caster id
-+0x6BC. Steer (0067AAB0, shared with class 0x5B, which doubles the speed 0.6667) aims at the target's
-+0x1C position with z + above.z / 2 + center.z; arrived when the planar distance is below one step (or NaN).
-On a client the missile is kept 1 above the world's slot 28 height. Tick moves, and on a client moves the parts
-(slot 24, Start(1) each). Start copies the settings into the parts (light velocity (0.0001, 0, 0), flags 0x840,
-sound radius 30, looping) and starts them. Scenario spells (arrow, acid ray). SpellEffect::Update calls Start /
-UpdateMissile directly and the factory constructs effects directly, so those wrappers (and constructor wrappers) never
-count; Tick / Pack / Unpack go through the vtables. World has slots 28 (RawSurfaceHeightAt) and 40 (ObjectWithId);
-MapObject +0x144 is the extent.
+## Particle sources
 
-Rewritten (grep the address): `Steer` 0067AAB0, SetTarget 0067AC70, Tick 0067AC90, Reset 0067AD10, MoveParts 0067B450, Start 0067B4E0, Unpack 0067B690,
-Pack 0067B800, Save 0067B9A0, Load 0067B8E0, constructor 0067AE30, destructor 0067B1C0, deleting destructor 0067B1A0; EffectSoundSeq Start
-00676C00 and Unpack 00676FD0 (+ ten pickers 00676DD0..00676F90; world_effect_sequence.cpp); EffectAmbientSound constructor 00677510,
-destructor 006776E0 (Reset inline, then again), deleting destructor 006776C0; effect factory EffectNewObject 0067E170 (manager slot 14, RET 4;
-world_effect.cpp). Also 0067AA00 (EffectMissile::Reset, the abstract vtable's slot 18; Arrow and ArrowFigure Reset call it),
-00675FB0 / 0067B390 (Effect's destructor, also the unwind funclets') with 00676910 / 0067B430 (slot 0 of the two abstract vtables), 0067B050
-(Effect's constructor out of line), 00676900 (Effect::RunTick: 1), 006773A0 (ReadSavedStrings; callers keep the forwarder). Nothing but unwinding
-reaches the first five.
-Kept: Load and Unpack do not recompute the moving flag; Start copies the sound name unbounded.
+- `ParticleSource` (class id 0xC, an engine object; made by `NewParticleSource`). `Create` resets the source, then fills
+  the per-type parameters by `type` (0x2000-0x2052; the script names are a table in the game's data: name, type,
+  lifetime): emission rates, lifetime, spread, sizes, the element array some types keep, the texture (kind 6, by name,
+  one UV rectangle per frame of a grid of `frameColumns` columns) and three callbacks, member pointers to our code:
+  `EmitCallback` (emit one particle), `UpdateCallback` (update one particle; 0 drops it), `ElementCallback` (update one
+  element of the source's array). Callbacks of ~50 effects live in `particle_callbacks.cpp` / `particle_emitters.cpp`;
+  the no-op element callbacks are one member, `TickNone`.
+- `Tick` computes the source motion, runs the element callback per element and the update callback per particle
+  (saving / restoring the "prev" fields), tracks the bounding box and emits up to `max(emitCount, distance moved /
+  emitSpacing)` particles with `emitChance`% each. Particles are pooled.
+- Named types: 0x201B-0x2026 Modifier1-12, 0x2030 LightningBlast, 0x2038 ZoneExit, 0x203E Portal, 0x2043 Sparks,
+  0x2049 FeebleMind, 0x204A / B FeetCloud, 0x2051 StartTrans; 0x2039-0x203B are unnamed.
+- `ParticleManager`: free particles, `held` (sources by id, one reference each), a quiet-start flag that stops
+  0x2001 / 3 / 4. `TickSources` ticks every source (paused: only flag 8; a held source whose tick returned 0 is
+  released); `ReleaseUnheld` releases held sources with no other reference (the client's zone load). `DrawAll` sorts the
+  sources by depth and draws each through the renderer's sprite draw (models.md, "Renderer").
+- The world's script particle source (class 0x4A, script `CreateParticleSource`) makes its `ParticleSource` on its
+  first tick and every tick copies the position and calls `ScaleSize(size / baseSize)`.
+- Floating point: `double` for values the original kept on the FPU stack, a store to float where it stored one; every
+  "below" / "equal" test takes the unordered case the original's way. The random-range constants (~2^-32, ~2^-33) carry
+  a stray mantissa bit; used as is.
 
-Sound sequences: the first name (when not empty) and the others go into a stack CStringArray handed to
-SoundManager::AddSequence with a chooser for their count; an update moves the sequence through SetSoundPosition with
-the sequence id. The chooser takes the number of sounds started so far in EDX (`SoundSequence::PlayNext`, sound_manager.cpp,
-passes it).
+Kept:
+- `Tick` unlinks and pools a particle the previous update rejected, then still updates it and counts it in the bounds.
+- An update that counts the life down then reads its life table at index -1 (Shower, Casting, CastSwirl, Orbit,
+  ZoneExit; ClayRing its countdown table): the original read the previous table's last entry; `ByLife` (effects.h) gives
+  that value. FireBlast's flame frame can step to 16 (read as alpha 0); Link sparks are emitted on a frame up to
+  frameCount, one past the grid (drawn with the first frame).
+- `EmitLightning` never counts its bursts; CastSwirl reads its locals one slot off (an element gets sign * carrier
+  radius instead of the size); Mushroom's spread is ln(1) = 0; Falling's direction spread is ftol(10 degrees) = 0;
+  Teleport adds its alpha step as an unsigned sum capped at 255 (a fade out below 19 jumps back to opaque);
+  LightningBlast sparks shift the alpha table by 22, not 24; FeetCloud uses the source's lifetime as the particles'
+  RGB; Shower and FireBlast keep odd counters (see the code).
 
-The factory constructs class 0x5B, Moshka (100) and Tornado (0x65) through their constructor addresses.
+## Missiles and visibility
 
-EffectShowVisibility (0x5E, vtable 0074381C, 0x170): +0x14C observer, +0x150 seer (SetUnits 0067C640, from vision fog
-0x17 with caster and target), +0x154 counted fog object (client: made by the fog manager *007AF75C, 004E28D0), +0x158
-FogGrid (origin and a `SearchGrid<uint8_t>` of marks, allocated by the constructor; `AIMap::MarkVisibleCells` grows it, `FogGrid::Grow`). The server's Tick follows the seer, recomputes the grid (005CD210)
-and marks the effect changed; Pack / Unpack send the grid through a stack memory stream (FogGrid Write / Read 005C8CC0 /
-005C8BF0); Start reveals it in the fog (`VisibilityFog::Reveal`). Reset does not reset the base. Not rewritten: 0067C5D0 (FogGrid free), 0067C450 / 0067C460 (class name / id). Script casts
-have no caster, so only `spells_hero.txt` reaches it (see below).
+`EffectMissile` (abstract): arrived flag, target id, "from caster". `EffectArrow` (0x4E) embeds a particle, a point
+light and a sound, then the sound name, light colour / range, particle type / size, caster id. `Steer` (shared with
+class 0x5B, which doubles the speed 0.6667) aims at the target's position with z + above.z / 2 + center.z; arrived when
+the planar distance is below one step (or NaN). On a client the missile is kept 1 above the world's surface height.
+Tick moves, and on a client moves the parts. Start copies the settings into the parts (light velocity (0.0001, 0, 0),
+flags 0x840, sound radius 30, looping) and starts them. Kept: Load and Unpack do not recompute the moving flag.
 
-EffectArrowFigure (0x5B, vtable 007437B8, 0x19C): +0x158 the figure object (class 0x38 from the object manager with the
-next client id 007AF63C, counted; model "efar1", texture "arrow01" swapped for "", filed with WorldClient::AddObject; the
-original reads the object's +0x94 figure before making it), +0x15C the shooter, +0x160 the DamageInfo DeliverAttack
-(0054F450) copies in (multiplier 1 after Reset). Tick: on the server, once arrived, the target's slot 31
-(CMapObjectVirtuals::ReceiveHit) gets (hit, shooter, shooter); the shooter is looked up before the target is tested. Slot
-24 moves the figure in the client's object grid (WorldClient +0x120) and rolls it along the velocity. The factory
-constructs it directly. Scenario `effects_bow` (the bow is selected on the weapon
-bar only in vanilla: Rebirth's layout moves the bar). Forwarders 00516DA0, 00518840, 00518860, 0051C970, 0051C250 live in
-originals_units.h (world_client_maps.cpp uses them).
+`EffectArrowFigure` (0x5B): the figure object (class 0x38, model "efar1", texture "arrow01" swapped for "", filed with
+WorldClient::AddObject), the shooter, the DamageInfo the attack copies in. Tick: on the server, once arrived, the
+target's ReceiveHit gets (hit, shooter, shooter); the shooter is looked up before the target is tested. On the client
+the figure moves in the object grid and rolls along the velocity.
 
-## Moshka (world_effect_moshka.cpp)
+`EffectShowVisibility` (0x5E): observer, seer (vision fog 0x17 with caster and target), a counted fog object (client),
+`FogGrid` (an origin and a `SearchGrid<uint8_t>` of marks; `AIMap::MarkVisibleCells` grows it). The server's Tick
+follows the seer, recomputes the grid and marks the effect changed; Pack / Unpack send the grid; Start reveals it in the
+fog (`VisibilityFog::Reveal`). Script casts have no caster, so only `spells_hero` reaches it.
 
-EffectMoshka (100, vtable 0074387C, 0x16C): the client world's bird (+0x1B0, made by 00566C20 with the constructor,
-told to follow the session's leader by 00565380 / 00566C20). +0x14C figure (class 0x38, "unmobi" / "bird00", filed with
-AddObject, lit, animation 0 played), +0x150 particle source 0x203C (scale 0.5, attached), +0x154 followed id, +0x158 last
-time, +0x15C timer, +0x160 circle angle, +0x164 perch height, +0x168 state (0 perched 200 frames, 1 circling within 5 of the
-leader for 100, 2 flying to the perch at +0x1C for 150, then Reset). Update (0067CEF0, from the draw pass with the
-animation time) steps at most 5 frames, keeps the bird 0.5 above the surface (slot 28, platforms), moves it at
-sqrt(sqrt(distance)) * 0.03 + 0.3 per frame (sector grid Move, RollTowards) and advances its animation. FindPerch
-(0067CD90) draws ISAAC angles until the AI map's line of sight is above 0.5. Kept: an unknown state leaves
-Update's target unset (never happens: Follow sets 0). Not rewritten: 0067CAB0 / 0067CAC0, 0067D650 / 0067D660 (3-byte
-Pack / Start stubs). 007C8430 (pi/2, set at startup) is a constant here.
+## Sound sequences
 
-## Tornado (world_effect_tornado.cpp)
+The first name (when not empty) and the others go to `SoundManager::AddSequence` with a chooser for their count (ten
+pickers); an update moves the sequence through SetSoundPosition with the sequence id. The chooser gets the number of
+sounds started so far (`SoundSequence::PlayNext`).
 
-EffectTornado (0x65, vtable 007438F8, 0x15C): +0x14C particle source 0x200A (client), +0x150 looping sound
-"nature\tornado\circle.wav" (near 10, far 40), +0x154 ticks left, +0x158 launch tick. Launch (0067DA50, from the server
-weather 0058CCD0's helper 0058CEA9) aims at a random speed 0.096..0.216 per tick, ticks = lrint(distance / speed). Tick
-moves it (source and sound follow), stops the source for the last 110 ticks, and on the server every 8th tick above 20
-hands each player-owned unit within 5 (SectorMap::FindUnitsInRadius) a hit of 5 (weight 1 on type 6) through its
-controller's slot 20 (UnitController::TakeHit, unit.h). Start catches a new source up by at most 29
-ticks. Not rewritten: 0067D7C0 / 0067D7D0 (class name / id), 0067E0D0 (counted-pointer
-release, unwind only). No scenario starts weather with a tornado yet.
+## Moshka
+
+`EffectMoshka` (100): the client world's bird, told to follow the session's leader. A figure (class 0x38, "unmobi" /
+"bird00", lit, animation 0), a particle source 0x203C (scale 0.5, attached), the followed id, a timer, a circle angle, a
+perch height and a state (0 perched 200 frames, 1 circling within 5 of the leader for 100, 2 flying to the perch for 150,
+then Reset). Update (from the draw pass with the animation time) steps at most 5 frames, keeps the bird 0.5 above the
+surface (platforms too), moves it at sqrt(sqrt(distance)) * 0.03 + 0.3 per frame and advances its animation. FindPerch
+draws ISAAC angles until the AI map's line of sight is above 0.5. No scenario makes one.
+
+## Tornado
+
+`EffectTornado` (0x65): a particle source 0x200A (client), a looping sound "nature\tornado\circle.wav" (near 10, far 40),
+ticks left, the launch tick. Launch (from the server weather) aims at a random speed 0.096..0.216 per tick, ticks =
+lrint(distance / speed). Tick moves it (source and sound follow), stops the source for the last 110 ticks, and on the
+server every 8th tick above 20 hands each player-owned unit within 5 a hit of 5 (weight 1 on type 6) through its
+controller's TakeHit. Start catches a new source up by at most 29 ticks. No scenario starts weather with a tornado yet.
 
 ## Scenario notes (spells_hero)
 
-- The server drops a blocked unit's orders, casts included (0066FFF0), so `spells_hero` waits for the intro script's
-  `BlockUnit` (flag 0x800000), lifts it and waits for the arrow to hurt either wolf; every newgame scenario shows 3
-  CastSpell (point lights). `ui_battle_spells` blocks the hero the same way (only checks that UseOnUnit is reached).
-- A party unit's spells come from its player's party record (GetSpell 005319A0), not Unit::AddSpell (00531820), so
-  GiveUnitSpell never reaches the hero's column. The scenario gives "spell container[...]" items (GiveItem) and puts
-  them on in the camp's magic page (page 1; CanEquip 006100E0 wants the school skill, hence GiveSkill). "Or" is a Rebirth
-  addon function (vanilla: "Parameter of type float expected"). hudstate logs the column unit's spell slots.
-  `ui_battle_spells` still uses GiveUnitSpell, so its column holds only the hero's two spells.
-
-## Next candidates
-
-The Moshka and the tornado need a followed object / tornado weather that no scenario provides.
+- The server drops a blocked unit's orders, casts included, so `spells_hero` waits for the intro script's `BlockUnit`
+  (flag 0x800000), lifts it and waits for the arrow to hurt either wolf. `ui_battle_spells` blocks the hero the same way.
+- A party unit's spells come from its player's party record, not Unit::AddSpell, so GiveUnitSpell never reaches the
+  hero's column. The scenario gives "spell container[...]" items (GiveItem) and puts them on in the camp's magic page
+  (CanEquip wants the school skill, hence GiveSkill). "Or" is a Rebirth function (vanilla: "Parameter of type float
+  expected").

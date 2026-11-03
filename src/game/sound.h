@@ -262,7 +262,7 @@ struct SoundManager : EngineObject {
     void StreamThread();
     // Rebirth-patched. Fills the spare buffer: silence when idle; else the playing file up to its loop point
     // or the switch point, and the rest from the next file. No next file (or it does not open): silence, the
-    // stream idle. Details: docs/notes/sound.md, "Header comments moved from sound.h".
+    // stream idle. Details: docs/notes/sound.md, "Game side".
     void ReadStreamVanilla();
 
     // The first free voice; else the lowest priority one (the first of equals) when `priority` is above it (a

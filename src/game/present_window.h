@@ -3,7 +3,7 @@
 // The game window the renderer presents on (render::StartPresenting): full screen without a
 // display mode change, and the game's mouse coordinates as frame pixels wherever the window is and whatever its size.
 // docs/notes/renderer.md, section 9.
-// More: docs/notes/comments-c22i.md, "present_window.h".
+// More: docs/notes/platform.md, "Window and events".
 
 class TextureDevice;
 namespace platform {

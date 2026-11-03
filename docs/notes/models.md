@@ -1,386 +1,155 @@
-# Models, resources, the 3D device layer and terrain sectors
+# Models, resources, the draw layer, terrain and ground prints
 
-Code: `src/game/model.h/.cpp` (3D library side of figures), `model_db.cpp` (databases, water level changes),
-`renderer_init.cpp`, `renderer_strip.cpp`, `renderer_sprites.cpp`, `device_mesh.cpp`, `device_draw.cpp`,
-`device_mesh.cpp`, `figure_*.cpp`, `unit_skins.cpp`, `terrain*.cpp`, `resource*.cpp`. Algorithms are described in each
-file's header comment. Verify: `tests/verify/verify_models.cpp` and one `verify_<file>.cpp` per file. Scenario:
-`tests/scenarios/models.txt` (the draw functions run in every scenario; ribbons and sprites in `spells` / `spells_cast`).
+Code: `model.h/.cpp`, `model_db.cpp` (databases, water level changes), `figure_*.cpp`, `link_figure.cpp`,
+`link_loader.cpp`, `renderer_init.cpp`, `renderer_strip.cpp`, `renderer_sprites.cpp`, `renderer_lines.cpp`,
+`device_*.cpp`, `unit_skins.cpp`, `terrain*.cpp`, `ground_print.cpp`, `ground_decal.cpp`, `acks_db.cpp`, `dib.cpp`,
+`resource*.cpp`. Algorithms are described in each file's header comment. Scenario: `tests/scenarios/models.txt` (the
+draw functions run in every scenario; ribbons and sprites in `spells` / `spells_cast`).
 
-## Map
+## Resources
 
-**004F0000-00500000, the 3D transform library**: 004F0B90 loaded `3DfpFPU.dll` / `GetTLPipeline` (once, from 00500540;
-ours loads nothing, R31: the pipeline's projections are plain C++, projection.cpp, renderer.md section 10);
-004F68C0 (Rebirth-patched) is the `LinkFigureLoader` constructor (vtable 0073D808; opens `figures.res` and `menus.res`
-through 004F6D30); the link / FIG loading 004F7150..004F87D0 is in script.md ("Link figures"); 004F16A0 frustum
-classification of a part's bounds (callers all over the renderer); 004F1330 (Rebirth-patched), 004F1370, 004F13F0, 004F0E80,
-004F1440 / 004F15C0 matrix builders; 004F57B0 triangle index buffer resize; 004F93A0 `ClipBounds::SetBox` (called by the
-figure manager for every part it loads); 004FA000-00500000 STLport instantiations, the D3D state-block manager (004FCA60,
-004FD2A0, 004FD9D0) and the effect manager.
+- Archives (`.res`) are `MappedResource`s over a `platform::MappedFile`, opened read only (the game never opened one
+  writable). `ResourceManager` lists them; `FindEntry`, `ListFiles` and `WildcardMatch` look names up. Mod folders and
+  Rebirth's archive overrides sit in front (rebirth.md, "Resources and paths").
+- The sound system's file reader (`ResourceStream`) reads loose files only; the original's archive path in it had no
+  callers.
+- Kept: `ResourceStream::Seek` treats "from the current position" of a loose file as "from the start"; `ListFiles`
+  copies a name into a 1 KB buffer without a length check; `MappedResource::CloseFile`'s message prints the data
+  pointer as the name; `GetFile` leaks its buffer on a failed read and on an in-memory archive does not report the
+  size; the texture loader leaks the buffer on an unrecognised .mmp header and a .bmp error reports format 0.
 
-**006D0000-006E0000, databases and bitmaps**: 006D0630 (Rebirth-patched) loads `prints.db` from `database.res` (records
-0x28, 0x34, 0x28 bytes), 006D7620 (Rebirth-patched) `acks.db` (0x1C4, 0x5C, 0x38), both once at startup (00456440) through
-a `ChunkArchive` over a memory stream. `ChunkArchive` (ctor 0053A7B0, open 00409AE0, close 0040A000): two `MemoryStream`s
-(index and data, data buffer +0x40), open chunk list +0x50 (last node = current chunk; its +0x14 picks the occurrence the
-next EnterChunk looks for), loading flag +0x58; Serialize functions read and write through the same code; a failed
-EnterChunk when loading still pushes a chunk (callers never pop it). 006D4400-006D49C0: the world's water level changes
-(`TweenArray`, 16-byte entries at 007AFF60 + 0x70): SetTarget (script `SetWaterLevel` via 00593FA0), Tick (every world
-update from 0058DCD0), Save, Load (applies each level through 006CC7F0). 006D4A60-006D6AB0 `Dib` (vtable 00744288): BMP /
-`.mmp` readers, drawing, writing; used only for loose `textures\*.bmp` overrides (0068FBF0), movie capture screenshots
-(00458010) and unreferenced code; not rewritten.
+## Databases (prints.db, acks.db)
 
-## 3D library and databases: rewritten
+- Both are read once at startup from `database.res` (a failure is reported as "databases.res"), the file copied into a
+  memory stream and each table read through a `ChunkArchive` of its own. `ChunkArchive`: two memory streams (index and
+  data), the open chunk list (the last node is the current chunk; its occurrence index picks which chunk the next
+  EnterChunk looks for), a loading flag; Serialize functions read and write through the same code. A failed EnterChunk
+  when loading still pushes a chunk (callers never pop it; `RestoreTop` pops them).
+- prints.db (`PrintsDatabase`, model.h): chunk 1 blood and bloody footprints, 2 footprints, 3 scorch; chunks 2 / 3 of a
+  record are {alpha, life, lifetime} (`PrintLook`).
+- acks.db (acks_db.h): three tables {vector of records, hash_map<string, record*>}: units by prototype name (kinds up to
+  0x29; 0x29 the environment speeches, matched against `WorldClient::EnvironmentFlags`), models by model name
+  (0x2E..0x32, fallback through the prototype's model), extras by prototype name (0x2A..0x2D); each record a
+  hash_map<kind, vector<SpeechRecord>*>. The load fills the units' kind map: 0..0x15 to lists 0..21, 0x16..0x1B null,
+  0x1C..0x1F to 22..25, 0x20..0x22 to 28..30, 0x23 / 0x24 to 26 / 27, 0x27 / 0x28 to 31 / 32, 0x2A the named speeches.
+  `Find` adds a null entry for a missing name. The original picked through a temporary vector of pointers; ours counts
+  and indexes (same draws).
+- Water level changes (`TweenArray`): SetTarget (script `SetWaterLevel`), Tick every world update (the removal test is
+  "value == 0 or unordered"), Save, Load (applies each level). Kept: Load reads the count into its stream argument's
+  slot; SetTarget appends an uninitialised entry before overwriting all of it.
 
-Rewritten (grep the address): `TransformPipeline::ClipTest` 004F16A0, `ClipBounds::SetBox` 004F93A0 (returns the flags), `ViewportMatrix` /
-`ShearMatrix` / `ProjectionMatrix` 004F1370 / 004F13F0 / 004F0E80 (`__stdcall`, return out), `TriangleIndexArray::Resize` 004F57B0,
-`LinkFigureLoader::AddArchive` 004F6D30 (runs twice at startup), `ChunkArchive::SerializePrints` / `2` 006D23A0 / 006D25F0 and
-`SerializeAcks` / `2` / `3` 006DB430 / 006DB680 / 006DB8D0 (loaded count = record chunks counted beforehand),
-`PrintRecord::Serialize` / `PrintRecord2::Serialize` 006D41D0 / 006D4270 (when loading the original's side run can push failed
-chunks: `RestoreTop` pops them), `TweenArray` RemoveAll 006D43E0, SetSize 006D4840, SetTarget 006D4410, Tick 006D44E0 (bool in AL),
-Save 006D4570 / 006D47E0 (identical copies), Load 006D45D0, LoadEntries 006D4660.
+## Figure models
 
-`ClipTest` answers as the original's 8 corner codes of the cube, then of the box (`CubeCorners` / `BoxCorners`, the
-original's sums), but decides first from each clip plane's range over the volume (`PlaneRanges`: the middle's value
-plus or minus the half extents' reach), with a margin of 2^-16 of a bound on every term both sides sum (the rounding
-of either is below 2^-19 of it); the corner codes are computed only when a plane is within the margin of the volume's
-nearest or farthest corner, or a value is NaN or infinite. Checked by comparing old and new on every call (a
-temporary build, 46 drawing scenarios on both installs: 12.6 M calls, 0 differences; the planes decide 99.98% of
-cubes and 99.5% of boxes). The forests' main thread: zone7 -0.27 ms a frame (3.04 -> 2.77), zone11 -0.12 ms (2.18
--> 2.06; R37's probe, old and new alternating in one game). `TweenArray::Tick`'s removal test is "value == 0 or unordered", written `!(v < 0) && !(v > 0)`. Acks records are not
-rewritten. Under Rebirth the database loaders (006D0630, 006D7620) and the link loader constructor (004F68C0) are patched;
-whether the patched code still calls the rewritten functions is unknown.
+The figure manager's `FindFigureModel` (a hash_map by name) opens `<name>.mod / .bon / .anm` (nothing without the
+.mod); `LoadSkeletonLinks` reads `<name>.lnk` ((child, parent) pairs), `LoadFigureBones` `<name>.bon` (0x48-byte records
+are prisms, others cubes), `LoadFigureBounds` `<name>.fig` ("FIG" headers or the older headerless records). Bones and
+animation: map_objects.md ("Skeleton").
 
-## Renderer (00500B70-005053FF)
+## Link figures
 
-The renderer is the global at 007AF060 (vtable 0073D93C). +8 the transform pipeline (matrix stacks as aligned arrays of
-64-byte matrices: data/count at +0x14, +0x1C, +0x24, +0x3C, +0x44, +0x4C, +0x54; +0xC 3DfpFPU's transform object, whose slots
-projected and clipped vertices), +0x20 the counted device holder (004E5E50: +8 last HRESULT, +0xC DirectDraw, +0x14 primary
-surface, +0x18 render target (+0x14 width, +0x18 height), +0x54 IDirect3DDevice7, +0xAC the pipeline again (its transform
-object's slot 35 sees every vertex batch when +0x158 is set), +0x150 override colour of the mesh draws, +0xE0 vertices sent
-to vertex buffers, +0x16C / +0x170 / +0x174 vertex, triangle and call counters), +0x24 the counted state-block helper
-(004FCA60). Device draws hold the lock 007AEE78 and store the HRESULT at +8. Shared buffers of the mesh / flat draws:
-007AEDE0 clip output, 007AEE00 TL vertices, 007AEE10 projected vertices (16 bytes each), 007AEE20 corner outcodes, 007AEE30
-vertex outcode bytes (all ..007AEE3C); the vertex buffer path 004E7820 was dead (always returned null; gone since R9b3). Ribbon / sprite
-buffers are function-local statics (007AF000..007AF05C, 007AEF60..007AEFF8). Ours are plain globals (the ribbon's
-texture coordinates 007AF054..007AF05C stay named); of the mesh / flat draws' only the projected vertices and their
-outcodes are left (device_buffers.h): the clip output, TL vertices and corner outcodes went with the CPU clip (R30f).
+`LinkMesh` (link_figure.h): part headers (map<string, LinkPartHeader>), the morph coefficients, six arrays (vertex
+packets, normal packets, texture coordinates, 6-byte corners, dwords, words), ranges by name, the loader. The loader
+(`LinkFigureLoader`, model.h; one per world view) has the figure sets, the device object and a cache by name; it opens
+figures.res and menus.res at startup. A .lnk lists the parts; each is a FIG / FIG8 (or older headerless) record morphed
+by three coefficients s, t, u and appended. Morphs are plain floats: FIG8 lerp(lerp(lerp(c0,c1,s), lerp(c2,c3,s), t),
+lerp(lerp(c4,c5,s), lerp(c6,c7,s), t), u); old records lerp(lerp(lerp(c0,c1,s), c2, t), lerp(lerp(c3,c4,s), c5, t), u).
+Kept: `RemovePart` lowers the later parts' starts by the removed part's starts, not its counts (only right for the first
+part), and picks the later parts by their index start alone; RemorphFigPart reads every record as FIG8; an empty part
+name in a .lnk keeps the previous one; a missing link file gives null; `AddArchive` leaks the archive when opening fails
+and passes the `std::string` by value to "%s".
 
-Rewritten (grep the address): `RendererCreate` 00500B70 (slot 2, RET 8), `DrawRibbon` 00501D90 (slot 16, RET 0x18), `DrawTlTriangles`
-00502A20 and `DrawIndexed` 00503680 (holder thiscall; RET 0x1C), `EmitSection` 00502AC0 (naked transcription), `StripDirection`
-00502B90, `DrawSprites` 00502CA0 (slot 17, RET 0xC), `SpriteRadixPass` / `SpriteMergePass` 00503710 / 005037D0, `DeviceDrawMesh`
-004E9010 (device thiscall, RET 0x48), `DeviceDrawMesh2` 004E9A50 (two textures, RET 0x50), `DeviceDrawFlat` 004EA4A0 (RET 0x24),
-`DeviceDrawIndexed` 004EB550 (RET 0x1C), `DeviceDrawTwoTextures` 004EB370 (RET 0x24), `DrawFigurePart` 005A7A70 (node thiscall, RET
-0x1C) and the plain variant 005A7640 (RET 0x18), the clip-box lines 005A7290 (finishing call of both draws), `FigureMesh::Rasterise`
-005A0E80, `BuildUnitSkins` 00568800 (zone client thiscall, RET 8).
+## Renderer
 
-Facts not in the code comments:
-- **Renderer creation**: the helper's flag argument is pushed as EDX with only DL set; the upper bytes are what the game's
-  operator new left in EDX, reproduced by capturing EDX after the same allocation. The depth range call takes two arguments
-  (settings +0x264, +0x1E4). The settings argument is `options::GameOptions` (video fields +0x2C..+0x78, FarClipDistance
-  +0x1E4, FogDayStartDistance +0x264); `SceneRenderer` +4 flags, +0x24 a counted `RenderHelper` (0x118), +0x50 creation
-  time; the original's transform object slots 1 SetViewportSize, 2 AddSun, 4 SetProjection, 5 SetDepthRange, 40
-  LightMesh (ours: the pipeline's SetViewportSize, SetDepthRange and `projection`; the sun and ambient go to the GPU
-  lighting only).
-- **Layouts** (C9): the figure at Object3D +0xF0 is a `LinkMesh` (slots 7-12 draw a mesh part, 13 / 14 project /
-  rasterise its shadow); 005A7A70's `this` is a `FigureMeshDrawer` (+0x1C the FigureMesh, +0x20 its screen rect);
-  FigureMesh +0x94 drawer, +0x98 owner, +0xD4 / +0xD8 flat colour / specular; Light (a TransformObject) +0x28 worldPosition / +0x108 position / direction
-  in the lit mesh's space, +0xD4 the direction; *007AF748 is `LightFactory` (spell.h). FigurePart (map_object_figures.h)
-  and FigureMesh describe the same objects (bounds +0x188, +0x158 / +0x15C); not merged. map_object_shadow.cpp (C9b): the ground quads were `VertexPacket`s (gone with the projection, R37f), the texture's name `Texture::Name()`. (The
-  shadow rasteriser's `RasterTarget`, the DLL's keyed triangle path and `keyTexels` are gone, R27e; R28 removed 2DintMMX's interface.) The unit's
-  controller through `static_cast<Unit*>` (Unit : MapObject : Object3D). The work buffers are (C14e / C14h: vectors) of
-  `Vector2` and `VertexPacket` (SetSizeDiscard / SetSize equal the inlined resizes; 004545A0,
-  004F65B0, 00452E70 allocate 32-byte aligned blocks); the callees took them typed (C9d: ProjectFlat, 004F4680 and
-  005A0CD0 `Vector2*`; all gone with the shadow's projection, R37f).
-- **Mesh draws**: callers are figures (005A7A70, 005A7640) and the 3D library's meshes (004F3C60 ...); flag 4 overwrites the
-  mesh's own colour and specular arrays with the device's +0x150 colour / alpha << 24; `DeviceDrawFlat` is used by shadows
-  (0051CE60), the renderer (00503A40) and 006CEDE0.
-- **Figure parts**: mesh +8 flags (FigureMeshFlag, figure_mesh.h) 0x40 drawn (cleared first), 0x80 hidden (nothing
-  more, not even the finishing call), 0x10 lit, 0x100 flat colours; +0x98 owner (Object3D, its figure at +0xF0 draws the mesh when present), +0x15C mesh type
-  (13..16 animated), +0x188 clip bounds. With 0079BD28 set the mesh named "crown" has every colour pulled 0.6 of the way (0073CDE0) to the
-  average. The plain variant (005A7640) clears the drawn flag only after the hidden test, has its own moved-positions static
-  (007C2E60, guard 007C2E70, freed by 005A7A50; ours a plain global) and sets the drawn flag whenever the draw did not return 2.
-- **Material draw**: the device's current material (+0x14C): +8 blend flag, +0xC / +0x10 source / destination blend, +0x14
-  technique (+8 / +0xC state block handles per pass), +0x18 stage records (0x14 bytes: coordinate index, texture name, +0x10
-  counted texture looked up through 00693C60 on first use).
-- **Unit skins** (`BuildUnitSkins`): called by the zone load 00567AB0 (Rebirth-patched for its map paths; this function is
-  not); `this` +0x18C the texture cache, +0x34 the figure maker; prototype table 007AF358, model table 007AF398 (+0xE8
-  texture prefix).
-- Naked transcriptions where the original keeps unrounded values on the FPU stack: `EmitSection`, the ribbon's first cross
-  section, `AddOffset` of the mesh draws, the light / sun transforms and crown blend of `DrawFigurePart`; `DrawSprites`
-  copies the view matrix's upper triangle through FLD / FSTP (`ThroughFpu`, an sNaN would come out quiet) and loads the clip
-  limits as zero-extended qwords.
+`SceneRenderer` (the global renderer) holds the transform pipeline (matrix stacks; projection.cpp, renderer.md) and the
+device holder. Its draws hand their triangles to src/render.
+- **Renderer creation**: the depth range comes from the options' far clip and fog day start distance; the sun and
+  ambient go to the GPU lighting only.
+- **Mesh draws**: callers are the figures and the 3D library's meshes; flag 4 overwrites the mesh's colours with the
+  device's override colour / alpha. `DeviceDrawFlat` is used by the selection marker and the ground prints. Of the old
+  CPU draw's shared buffers only the projected vertices and their outcodes are left (device_buffers.h).
+- **Figure parts**: mesh flags (FigureMeshFlag, figure_mesh.h) 0x40 drawn (cleared first), 0x80 hidden (nothing more,
+  not even the finishing call), 0x10 lit, 0x100 flat colours; mesh types 13..16 animated. With the crown option set, the
+  mesh named "crown" has every colour pulled 0.6 of the way to the average. The plain variant clears the drawn flag only
+  after the hidden test and sets it whenever the draw did not return 2.
+- **Material draw**: the device's current material: blend flag, source / destination blend, technique (state block
+  handles per pass), stage records (coordinate index, texture name, the counted texture looked up on first use).
+- **Unit skins** (`BuildUnitSkins`): run by the zone load, from the prototype and model tables (texture prefixes).
+- **Sprites** (`DrawSprites`): every point (x, y, z, size) becomes a screen-facing quad (colour, texture rectangle, four
+  TL vertices placed by `ProjectSprites`). Batches of up to 511 sprites are sorted back to front by the first corner's z
+  (a radix pass and a merge pass); sprites whose z is outside 0..1 are dropped; two triangles each, the GPU clips.
+  Particles draw through it, additive when their source asks.
+- **Ribbons** (`DrawRibbon`): a polyline of world points projected (with clipping flags when asked); every point becomes
+  a pair of screen vertices offset across the line's screen direction by width * rhw * 15, u along the ribbon, v
+  across; the ends are transparent (colour 0x00FFFFFF). Lightning bolts and similar strips.
+- **Lines**: two untextured one-colour strips (integer screen points, no caller; projected points, the debug bounds and
+  line lists); stage 0's colour and alpha operations off around the draw (renderer.md, "Pass state").
+- `ClipTest` answers as the original's 8 corner codes of the cube, then of the box, but decides first from each clip
+  plane's range over the volume, with a margin of 2^-16 of a bound; the corner codes are computed only when a plane is
+  within the margin, or a value is NaN or infinite (checked equal on 12.6 M calls; saves 0.1-0.3 ms a frame in forests).
+- Kept: `DrawFigurePart` without a rectangle never sets the drawn flag, and a singular model matrix uses the previous
+  call's inverse; `DrawSprites` returns 0 on a failed draw without restoring the blend states, and its sort writes a
+  dropped sprite's key into the next free record; `ShearMatrix` sets m[10] to 0 after zero-filling.
 
-Figure models, factory, loading (O): 005AA5F0 `FindFigureModel` (the manager's hash_map<string, model*> +0xBC; opens
-`<name>.mod / .bon / .anm` through slot 19, nothing without the .mod), 005A9C90 / 005A9A50 `DestroyFigureModel` /
-`ConstructFigureModel` (map ctor inlined as STLport's: buckets the first listed prime not below 100; three 0x6C-byte parts via
-006721D0), 005AA8E0 `CreateFigureObject` (class ids 0x41-0x44, 0x300B-0x300D; +0x10 gets the id), 005AC880
-`LoadSkeletonLinks` (`<name>.lnk`: (child, parent) pairs to 0050CC60, then 0050D2E0), 005ACB80 `LoadFigureBones`
-(`<name>.bon`: 0x48 bytes to 0050BC00, other sizes to 0050B8C0; data not released), 005AC010 `LoadFigureBounds` (`<name>.fig`:
-"FIG" headers to 005AAE60, others to 005AB9A0), 005ACCF0 `SetFigureAnimation`, 005A9EF0 `FindModelAnimation`, 005AA1C0
-`DestroyFigureManager`.
+## Terrain
 
-Kept: `LinkFigureLoader::AddArchive` leaks the `MMIOResource` when opening fails and passes the `std::string` by value to
-`"%s"`. `TweenArray::Load` reads the count into its stream argument's stack slot, `LoadEntries` into an uninitialised local
-(ours starts from 0); `SetTarget` appends an uninitialised entry before overwriting all of it; `ShearMatrix` sets m[10] to 0
-after zero-filling. `DrawFigurePart`: without a rectangle the device path never sets the drawn flag; a singular (or NaN)
-model matrix leaves the original's inverse in uninitialised stack slots, ours uses the previous call's inverse. `DrawSprites`:
-without a primary surface the clip path uses two uninitialised stack slots for the screen size (ours keeps the last values);
-a failed draw returns 0 without restoring the blend states; the 16-byte array at 007AEFA0 is sized to 0x200 every call and
-never used; the sort writes a dropped sprite's key into the next free record. `DrawRibbon`: the index array is sized for the
-ribbon and freed at once before the indices are added.
+Code: `terrain_sector.h/.cpp` (`terrain::SectorData`; the sector file's format and sizes are named in
+terrain_sector.h), `terrain.cpp`, `terrain_landscape.cpp`, `terrain_lights.cpp`, `terrain_ambience.cpp`.
+- **The map file** `<map>.MP` (`Terrain::LoadMap`): 0x26 bytes of header (magic CE4AF672, height range, sectors x / y,
+  pages, page size, texture count, tile size, material count (16 bits), animated texture count), the materials (0x2C
+  bytes each), a class per texture, (texture, frames) word pairs; the size must be exactly that. Missing: FatalError
+  "Unable to open file \"path\""; short or mismatched: "Wrong file format: path". Width / height = sectors x 32; tiles
+  per row = page / tile; a material's absorption is 1 / (1 - opacity), its colour the file's light factor x colour
+  capped at 1. Sixteen extra textures of class 15 follow the map's for the extra pages. The ambient sound set is
+  "Dungeon", or "Ingos" / "Suslanger" by zone, else "Gipat"; the one-shot count per sound class is how many of
+  `ambient\<set>\<class>\day\<n>.wav` exist (each probe holds a reference on the wave that is never given back).
+- **Sectors** (`<zone>XXXYYY.sec`, magic CF4BF774): Load, Build (the random generator and the owner's water row matter;
+  Build writes the edge fade into each vertex's specular word, rounded to nearest), ApplyWaterLevels, Ensure (build /
+  light on demand). `SectorAt` is a cache over the grid with an LRU list and a 240-frame age limit. `SurfaceClass` is the
+  texture class under a point (footprints, blood, effects); `SurfaceHeight` the ground raised to the water surface.
+- **Landscape passes, light tests**: `DrawGround` / `DrawWater` differ only in the page range (ground
+  0..LayerPages()-1, water the next LayerPages(); LayerPages() = pages + the two extra pages); a page's texture is
+  bound at the first sector with tiles on it. `DrawPages` per visible sector: clip test, projection, per page the
+  texture and `DrawPage` (src/render draws it). Every sector draws its full mesh (the original's distance LOD levels
+  and seams are gone; the two LOD options stay in the settings file, read by nothing). `EdgeFade` is the map edge's
+  fade byte. The GPU lights the terrain: the original's vertex lighting, sun shadow ray march, point light areas and
+  relight countdowns are not ported (renderer.md says what looks different); `AddLight` / `RemoveLight` keep only the
+  table of shown lights.
+- Waves and animated tiles: `SectorData::Animate`; the tiles draw from the client effects' generator
+  (`g_clientRandom`, core.md "Random generators"). Animate's sine index uses 256 / pi as a double.
+- Ambience: sixteen sound classes (name, variants, weight, pan limit, chance %); the class votes are sorted by the
+  game's qsort (`ByWeight`).
+- Kept: Load passes the error message to FatalError as its format string; Build compares the texture class index
+  against perPage * pages (not 16) before falling back to 15; Load picks a vertex's water material by lowest priority,
+  Build the first found; RemoveLight / MoveLight / AddLight do nothing before a map is loaded.
 
-Skipped: 004F0B90 (TL library loading: C++ throws, CPUID, once per run), 004F1330 (Rebirth-patched), the `Dib` class, the
-prints.db / acks.db loaders themselves (Rebirth-patched), STLport instantiations.
+## Ground prints
 
-## Terrain sectors, lighting, prints (006BE3A0-006CFEA0)
+`GroundPrint` (scorch marks), `Footprint`, `BloodPrint` in the client world's lists (`bloodPrints`, `footprints`,
+`scorchMarks`); `WorldClient::AddBloodPrint` / `AddFootprint` / `AddScorchMark`. A new print is built on the stack,
+copied into its list and destroyed; its prints.db entry (by the ground's surface class) gives alpha and life.
+- Blood: spin = 30 / life degrees per tick, spreads min(life / 2, 45) ticks (rebuilt each tick), the angle a random
+  multiple of 0.001 below 2 pi. Footprints take the kind of a death's blood print they step into (fresh hits' are
+  skipped) and return it.
+- Draw's uv loop rounds the fourth vertex's u part to a float, the others their v part (kept). Load does not restore
+  alpha (the next tick does).
+- `WorldClient::ProjectDecal` (world_client_lights.cpp) lays a print on the ground on its first draw: the platform faces
+  (an object with several faces adds its parts once per face, kept), each part's matrix pushed on the pipeline's decal
+  stack (multiplied through `MatrixMultiply`'s order, `PushDecalMatrix`), the part's packets transformed and each
+  triangle added; `Terrain::AddDecalTriangles` adds the terrain triangles under it.
 
-Code: `terrain_sector.h/.cpp` (`terrain::SectorData`; the sector file format and its sizes are named in terrain_sector.h),
-`terrain.cpp` (PlaneHeight, VertexAt, HeightAt, SurfaceHeight, SurfaceClass), `terrain.cpp` (the passes and
-`SectorData::DrawPage`, which hands the page to src/render). Reached by every scenario (zone1 loads several sectors, water sectors only where the map has water; the
-terrain pass draws every visible page each frame). Sound parts of the range are in `sound.md`.
+## Ground decals
 
-Map (R = Direct3D / renderer calls, left original): 006BF5F0 / 006BF8A0 `SectorData` ctor / dtor (0x394 bytes); 006BFC80
-`Project`; 006C13A0 `Load` (`<zone>XXXYYY.sec`, magic CF4BF774); 006C1C00 (+ chunk 006C29BD) `Build`; 006C30E0
-`ApplyWaterLevels`; 006C3DD0 `Ensure` (build 2 / light 4 on demand); 006C53C0 `TileUv`; vertex lighting 006C31C0 / 006C36B0
-/ 006C3A00 (3A00 switches the FPU to chop rounding with `_controlfp(0x300, 0x300)`; 36B0 tests shadows through 006C92C0);
-landscape object (vtable 0073F6A8): per-frame Update 006CB1E0 (light countdown 006C8ED0, animated tiles, ambience 006CB390,
-frame counter +0x218); draw passes 006C6230 / 006C6330 / 006C6460 / 006C66E0 (from 00569E40, Rebirth-patched) (R) ->
-`DrawSectorPage` 006BFF40; 006C68B0 map loader (Rebirth-patched); 006C8140 `Terrain::SectorAt` sector cache (grid +0x1F8, LRU
-list +0x200 / +0x204, 240-frame age limit); 006C85A0 / 006C8680 `VertexAt` / `HeightAt`; 006C8930 `GroundAndWaterDepth`;
-006C8D40 `SurfaceClass` (texture class under a point: footprints, blood, effects); 006CA5D0-006CAC10 point lights register
-with the vertices they reach (pooled 16-byte LightRef nodes, blocks of 1000 at 007C8840; not ported, R34); 006CB020 point
-test (8 callers);
-006CF370-006CFEA0 foot / blood / fire prints.
+The decal mesh builder (ground_decal.h): every ground triangle under the projected quad is clipped to the decal (a plane
+facing along the projection, then u >= 0, v >= 0, u <= 1, v <= 1; one recursive `ClipStage` with a buffer per stage)
+and appended to the caller's arrays. A corner is inside when its distance's sign bit is clear (-0 outside, NaN with a
+clear sign inside); 1 - u computed as 1.0 - u (u = 1 gives +0, inside). Vertex arrays are 4-vertex SoA packets;
+`Reserve` grows the packets by triangles * 3 / 4 + 1 + the vertex count (over-reserves, kept); `Finish` pads the last
+packet with copies of vertex 0. The texture coordinate array stays at its reserved size, so compare only the vertices
+the indices use.
 
-Rewritten (grep the address): `SectorData::Build` 006C1C00 (the random generator and the owner's water row matter), `Load` 006C13A0,
-`ApplyWaterLevels` 006C30E0 (one pass over the sector's water materials), `Ensure` 006C3DD0, `TileUv` 006C53C0, `SurfaceClass`
-006C8D40, `GroundAndWaterDepth` 006C8930 (`Terrain::SurfaceHeight`: the ground raised to the water surface), `Construct`
-006BF5F0 (default member initialisers; the projection's work arrays are function-local statics of `Project`, 0x330 vertices),
-`Project` 006BFC80 (RET 4: the pipeline; the pass 006C6460: per quarter not culled, positions at the LOD step through
-004F29F0 against the quarter box (a ClipBounds prefix); records +0x00 projected, +0x10 outcode), `DrawSectorPage` 006BFF40
-(`SectorData::DrawPage(renderer, page)`; the original's two unused arguments and constant return are gone). `Light` 006C3A00
-is gone (R34a): `Build` writes only the edge fade (the fog factor) into each vertex's specular word, once, rounded to
-nearest (`std::lround`; the original truncated it under chop rounding); `ShadeSun` / `LightVertex` 006C36B0 / 006C31C0 are not ported (R26: the GPU
-lights the terrain), nor the water's specular word or the sun's ray march (R34), nor the Lit stage and the relight
-countdowns (R34a; renderer.md section 13, R16i, says what behaves differently).
+## Dib
 
-Facts: in terrain_sector.cpp running x / y, heights in flight and bounding box intermediates are doubles. `DrawSectorPage`
-does nothing for a culled sector; the original's draw statics (007C8848..007C88C8) are never built (render_terrain.cpp
-draws the page). Kept: Load passes the error message to FatalError as its format string; Build's texture class index is compared against
-perPage * pages (not 16) before falling back to 15; Load picks a vertex's water material by lowest priority, Build the first
-found (Ghidra's listing of 006C1C00 drops the FNSTSW AX at 006C1F48: rewrite guide rule 1).
-Lighting: owner (`TerrainFields`) +0x94 flags (4 edge fade, 0x10 sun shadows), +0x224 ambient, +0x24C..+0x254 the vertex
-being lit (read by the forwarded shadow test 006C92C0, which loads the sectors the ray crosses), +0x258 the sun; record +0x11
-colour, +0x15 specular, +0x37 lit colour; material +0x14 absorption; 007C8908 the water falloff.
-
-Skipped: the other draw functions (R); 006C68B0 and 006D0630 / 006D7620 (Rebirth-patched); point light registration 006CAC10 (global
-node pool); dead code 006C8990, 006C9560, 006C5EA0, 006C5F50, 006C84E0, 006C4790 / 006C4A40 /
-006C4C90; STLport / MFC instantiations (006B01F0-006B4230, 006BDDD0-006BE300, 006CD540-006CEA10). The animated tiles' start
-frames and steps draw from the client effects' generator (`g_clientRandom`, R34a), so they no longer move the game's draws.
-
-## Game code left in 0x006C0000-0x00740000
-
-All of it lies in 006C1390-006E5E30 (beyond is the CRT / MFC). Groups (R = Rebirth-patched, forwarded):
-- **Landscape / sectors** 006C1390-006CCF20: shadow test 006C92C0; animated tiles 006C3E80; light countdown 006C8ED0 (gone, R34a);
-  ambience 006CB390 / 006CBC00 / 006CBCD0; map loading 006C68B0 (R; vanilla body ported, A-H26), 006C5AA0, 006C7940 / 006C7D70 / 006C7EB0, 006C5430-006C57E0 (client setup from 00561E50 / 00562B80); draw passes 006C6230 / 006C6330 / 006C6460 /
-  006C66E0 / 006C67E0 / 006C42A0 / 006C4310; point lights 006CA5D0-006CAC10, 006CB020; water level 006CC7F0; decal
-  triangles 006CCF20; sector parts (Clear 006C3C80, CArray element pairs 006C4EE0-006C5230).
-- Ground prints 006CECD0-006CFEA0: ported (A-X5, below).
-- **prints.db / acks.db** 006D00E0-006E5140: database ctors / dtors, the records' compiler-generated members, acks record
-  serialisers 006E3780 / 006E3DC0 / 006E3FD0 / 006E42F0 / 006E4410 / 006E46C0 / 006E4F40; loaders 006D0630 / 006D7620 (R).
-  98 STLport / MFC instantiations are in config/library.csv ("A-X1 review").
-- **CDib** 006D49E0-006D6FC0 (BMP overrides and movie screenshots).
-- Dead (config/dead_code.csv): 006C98F0 (reached only from the unreferenced chunk 006CA170), 006D5480, 006D6800.
-
-Ported (grep the address): `Terrain::SetVisibleSectors` 006CA260, `SectorAt` 006C8140 (LRU cache `CList<SectorData*>` +0x1FC, grid
-+0x1F8, frame +0x218), the `AlignedArray<uint32>` SetSize / SetAtGrow copies 006CD5C0, 006CE890 / 006CDD50, 006CDE90,
-`acks::AckTable<UnitAcks / ModelAcks / ExtraAcks>::Find` 006D9A30 / 006D9CE0 / 006D9F80 (acks_db.cpp; index operator[], adds a null
-entry for a missing name), `acks::PickSpeech` / `PickEnvironmentSpeech` 006D8780 / 006D88E0, `SayAck` / `SayNamedAck` 006D8430 /
-006D8A40 (call the five above through their addresses), `Terrain::RunTick` 006CB1E0 (slot 6; terrain.cpp), `SetSun`
-006C8ED0 (the sun and the ambient colour only: its ray steps are not ported, R34, nor its relight countdowns, R34a),
-`SectorData::Animate` 006C3E80 (animated tiles, water waves; the tiles draw from `g_clientRandom`), `SectorData::Clear` /
-`ResetFields` 006C3C80, 006C3D70 (`ScheduleRelight` / `RelightTick` 006C3E30 / 006C3E50 are gone, R34a), `PlayAmbience` / `StopAmbience` 006CB390 / 006CBCD0
-(terrain_ambience.cpp), `WorldClient::AmbienceTimeOfDay` 006CBC00, `Terrain::AddDecalTriangles` 006CCF20 (terrain.cpp;
-triangles through the unhooked original 004D8490).
-
-acks.db (acks_db.h): database 007C8A60 = three tables {vector of records, hash_map<string, record*>}: 0x1C4-byte records by
-prototype name (kinds up to 0x29; 0x29 = the environment speeches +0x1AC, 0x2C bytes, flags +0x28 matched against
-`WorldClient::EnvironmentFlags`), 0x5C by model name (0x2E..0x32, fallback through the prototype's model), 0x38 by
-prototype name (0x2A..0x2D); each record: name, hash_map<int kind, vector<SpeechRecord>*>. `UnitController` slots 48-52
-were declared for Say (51) / StopSpeech (52). The original picks through a temporary vector of pointers; ours counts and
-indexes (same draws, no allocation).
-
-Landscape fields (terrain.h / TerrainFields): +0x94 flags (1 waves, 2 animated tiles, 8 ambient sounds); +0x21C / +0x220 light
-interval / countdown (not kept, R34a); +0x234..+0x248 the sun's ray steps (not kept, R34); +0x274..+0x28C waves (direction,
-height, glow, phase, speed); +0x290 per-vertex wave phases; +0x2A0 a 512-entry sine table. SetSun's qsort comparator (006C8E90)
-read +0xC / +8 of the array slots, i.e. the pointers three and two slots on, so the original's relight order followed pointer
-values; the harness's patch of SetSun (harness_client_effects.h, until H40) skipped that sort in the original's runs. Animate's sine index uses 256 / pi as a double (the original divides at run time; a .5 edge may rarely differ).
-
-Ambience: sound classes at 007969D0 (16 x 0x18: name, variants, weight, class it counts as, pan limit, chance %; read from
-memory, most have variants -1, so the one-shot index is a draw % 0xFFFFFFFF + 1); loop slots +0xAC8 handles / +0xAD4 classes,
-+0xAE0 the sound set. The class votes are sorted by the game's qsort (comparator 006CB360 rewritten as `ByWeight`).
-
-A-X4 (terrain_landscape.cpp, terrain_lights.cpp, acks_db.cpp): `Terrain::Create` / `Destroy` 006C5430 / 006C54D0 (slots 2 / 3; Reset
-and the wave phases through their addresses), `Reset` 006C5620, `BuildWavePhases` 006C57E0, `SetWaveStrength` / `SetWaves`
-006C7D70 / 006C7EB0, `SetupPages` 006C5AA0 (texture pages from the map loader; `Material`, material.h), `AddLight` / `RemoveLight` 006CA5D0 /
-006CA720 (the table of shown lights only: held by id, released on removal, also when not registered, as the original; the
-light areas, per-vertex lists and relights are not ported, R34: `LightAreaOf` 006CAA70, `LightAreaFromBounds` 006BF580,
-`SetLightArea` 006BF4A0, `MoveLight` / `LightSector` / `RelightArea` 006CA830 / 006CA9C0 / 006CAB50, `UpdateVertexLights`
-006CAC10, the LightRef pool `FreeLightRef` / `SectorVertex::ReleaseLights` 006C5230 / 006C5150), `DestroyRecords` 006C4EE0,
-`UnitAcks` / `ModelAcks` / `ExtraAcks::Serialize` 006E3780 /
-006E3FD0 / 006E3DC0, `SpeechListField` / `EnvironmentSpeechListField` / `SpeechField` 006E42F0 / 006E4410 / 006E4F40 (archive
-helpers).
-
-Forwarders: 006C5620 shared as
-`LandscapeResetOriginal` (originals_world.h), 0068E970 as `MaterialNewOriginal` (originals_ui.h); 006E4560 / 006E47F0
-(speech list resize). Kept: RemoveLight of an unregistered light loops over an uninitialised area in the original (ours
-over none); MoveLight of an unregistered light writes its area to address 4 (ours to null: both crash); RemoveLight /
-MoveLight / AddLight do nothing (no Release) before a map is loaded. 006D5BF0 (Dib .mmp reader) is dead: only called from
-dead 006D6800 (config/dead_code.csv).
-
-Ground prints (A-X5; ground_print.h / .cpp, wrappers in verify_ground_print.cpp): `GroundPrint` (scorch marks, 0x8C,
-vtable 0073F76C; list copies get 0073F778), `Footprint` (0x94, 0073F760), `BloodPrint` (0x9C, 0073F754) in the client lists
-+0x1B8 blood, +0x1BC footprints, +0x1C0 scorch (world.h `bloodPrints` / `footprints` / `scorchMarks`). prints.db
-(`PrintsDatabase`, model.h, 007C89C8): chunk 1 blood and bloody footprints, 2 footprints, 3 scorch; chunks 2 / 3 of a record
-are {alpha, life, lifetime} (`PrintLook`), the client's +0x7A8 picks the second.
-
-Rewritten (grep the address): `GroundPrint::Tick` 006CECD0, `BloodPrint::Tick` 006CFA20, `Save` of the three 006CF370 / 006CFE10 /
-006CFAC0, `Load` 006CF4F0 / 006CFE60 / 006CFB40, `ConstructScorch` 006CFEA0, `Footprint::Construct` 006CFBA0,
-`BloodPrint::Construct` 006CF660, `GroundPrint::Draw` 006CEDE0, `Destruct` 006CF960 (only from the constructors' unwinding),
-`WorldClient::AddBloodPrint` / `AddFootprint` / `AddScorchMark` 0056CE90 / 0056D150 / 0056D4C0.
-
-Facts: Draw's uv loop is unrolled four times in the original: the fourth vertex rounds its u part to a float, the others
-their v part (kept). Blood: spin = 30 / life degrees per tick, spreads min(life / 2, 45) ticks (rebuilt each tick), angle a
-random multiple of 0.001 below 2 pi; footprints take the kind of a death's blood print they step into (fresh hits' are
-skipped) and return it. Kept: Load does not restore alpha (the next tick does). Risks: Draw's corners use FCOS / FSIN through
-x87::fcos / fsin and plain double maths (CheckNear-level differences possible); the footprint's blood test compares
-`limit >= d2` (NaN positions would differ).
-
-Also (terrain_landscape.cpp): 006C7A80 `Terrain::BuildVertexTiles` (S: the original on a raw copy; each entry's count and
-first `count` tiles: the original leaves the rest as its reused stack record held) and 006C7750 `Terrain::ClearMap` (O);
-Create / Destroy call them through their addresses. terrain.h now declares `archive` (+0x15C, MMIOResource) and
-`vertexTiles` (+0x1E8; `terrain::VertexTiles` moved there from terrain_sector.h).
-
-The decal projector 0056C750 is `WorldClient::ProjectDecal` (world_client_lights.cpp; S: the original into private copies of
-the three arrays, ours into the caller's, sizes / capacities / used elements compared; callers call it directly).
-The original's statics: the builder 007AF488 and the part points (Vector4 array 007AF478), guard 007AF504, exit
-handlers 0056CE30 / 0056CE10; ours are plain globals (C50b). The platform pass walks the platform faces (an object with several faces
-adds its parts once per face, kept), pushes the object's and each part's matrix on the scene pipeline's stack 14
-(`kDecalStack`), transforms the part's packets with the top (`ToClip`; the original passed the transposed top to
-3DfpFPU's slot 26) and adds each triangle (AddTriangle through its unhooked original). GetPartData's result is not checked
-(kept; ours starts from no part data). The parts are used as Object3D-like scene nodes (+0x34 orientation, +0x54 matrix),
-which FigurePart's declaration contradicts (C9).
-
-ProjectDecal's pushes on stack 14 are inlined in the original and multiply through 004D9880 (`MatrixMultiply`), not PushMatrix
-004D9B80 whose terms sum in another order (`PushDecalMatrix` in world_client_lights.cpp; X29). The builder leaves the texture
-coordinate array at its reserved size (Reserve: triangles * 3 + vertices; Finish never trims it): its size is not one per vertex,
-and the elements past the last written vertex (and the last packet's padding vertices) keep whatever the buffer held, so a
-comparison looks only at the vertices the indices use.
-
-### Landscape passes, light tests, Dib (A-X6)
-
-Code: `terrain.cpp`, `terrain.cpp`, `terrain_landscape.cpp` (tail), `dib.h/.cpp`, `surface.cpp`,
-`acks_db.cpp`. Every scenario
-that shows the world reaches the passes and light tests each frame; `terrain_water_load` (new: a save made while a script
-water change runs, loaded back) reaches SetWaterLevel; `camera` (Scroll Lock screenshot) reaches the Dib part marked *.
-
-Rewritten (grep the address): `Terrain::DrawGround` 006C6230 / `DrawWater` 006C6330 (the landscape's matrix on pipeline stacks 2 and
-1 around the pages), `DrawPages` 006C6460 (per visible sector: clip test, projection; per page: texture,
-DrawSectorPage; callees through their addresses), (`SunReaches` 006C92C0,
-the sun shadow ray over the vertex grid, is not ported, R34; `ChooseDetail` 006C66E0, `SetDetail` 006C1390 and `FindSeams` 006BFB80 are gone, R38), `EdgeFade` 006CB020 (the map edge's fade byte), `CombineRotation`
-006C6070 (slot 14: the base's, then the world matrix +0x98, which nothing read: not overridden), `SetWaterLevel` 006CC7F0,
-`BuildTileUv` 006C7940; `Dib` Create / ConstructSized / Construct / CreateObject (006D4BA0, 006D4B30, 006D4AA0, 006D49E0),
-AllocateBits 006D6AB0, MakePalette 006D54D0, Empty / Destruct / Delete (slot 1) / Serialize (slot 2), Size 006D4D10,
-GetRuntimeClass 006D4A60 (slot 0), `CaptureSurfaceRect` 006D6D40 (surface.cpp), `CaptureSurface` 006D6FC0 (the whole
-surface, through 006D6D40), `acks::AckTable<ExtraAcks>::RecordAt` 006D8E30 (from the loader at startup). The Dib functions and
-the captures are reached by `camera` (Scroll Lock screenshot).
-
-Facts. The two passes differ only in the page range: ground 0..LayerPages()-1, water LayerPages()..2*LayerPages()-1
-(LayerPages() = pages + the two extra pages); a page's texture is `pageTextures[page % LayerPages()]`, bound at the first
-sector that has tiles on it. They do not touch the device (matrix
-pushes, the renderer's SetTexture, DrawSectorPage), so they are ported; the sector's clip test 006BFB20
-(below 006C0000) is ported there too (A-Z1, items_spells.md). The original drew each sector at level 0 / 1 / 2 by its squared distance from the camera (the options' LOD1 / LOD2, 90 and 130 in Rebirth's best landscape detail) with seam triangles to a coarser neighbour; ours always draws the full mesh (R38: client drawing only, no server or save state read it; the two options stay loaded and saved for the settings file, read by nothing).
-Terrain members: `materials` (+0x12C in the original), `waterLevels` (+0xAE8; per sector, per material; ours one flat vector). Gone as written
-but never read (C62): the draw and world matrices, the "Wood" page materials (each page made a material of kind 0x12 that
-nothing used), page / tile sizes, the highest light id, the extra page count, `minDetail`, the per-row visible column
-vectors (one rectangle now), and `lightingSector / X / Y` (+0x24C, the ray march's). `Dib` (dib.h; the original's 0x3C bytes): colour table, bits (a
-`std::vector`), header (`::operator new`, owned), image size, colour count, mask bytes. Gone (C58a): the
-owner fields (bits and header were only ever ours; the global-memory header and the mapped file never set), the
-unused HBITMAP; (C58b) the GDI palette (MakePalette, which nothing read). AllocateBits and the capture size the rows with
-`DibRowBytes` (padded to four bytes, as `imageSize` counts them; the original sized them unpadded, so a screenshot whose
-row is not a multiple of four bytes was written from past the block's end and its rows were skewed). The captures (`DXSurface` holder in ECX, the rectangle in
-EDX for 006D6D40): GetPixelFormat, a read Lock under the device lock 007AEE78, a new Dib in the surface's depth with its
-channel masks, the rows copied from the last to the first (16, 24 and 32 bits only), Unlock; a failed DirectDraw call is
-reported and the capture goes on. They read the DirectDraw surface as before: a holder without one (the renderer's
-switch-over) is not handled, as in the original. texture_load.cpp, app_frame.cpp and ui_interface.cpp now use `Dib`
-and the shared capture forwarders instead of their own.
-
-A-H26: 006D0630 `PrintsDatabase::Load` and 006D7620 `acks::AckDatabase::Load` are ported as their vanilla bodies
-(model_db.cpp; hooked in the vanilla launch only, rule 9; wrappers ours only in verify_database_open.cpp, reached at
-every start): `folder` + "database.res" opened through 00671730 (a failure is reported as "databases.res"), the file copied
-into a memory stream, each table read through a ChunkArchive of its own (prints chunks 1 blood, 2 footprints, 3 scorch;
-acks chunks 1 units, 2 models, 3 extras) and filed under its records' names (`PrintsDatabase` gained `scorchByName` at
-+0x4C; 0x60 bytes). The ack load then fills every record's kind map: units kinds 0..0x15 to lists 0..21, 0x16..0x1B entered
-as null, 0x1C..0x1F to 22..25, 0x20..0x22 to 28..30, 0x23 / 0x24 to 26 / 27, 0x27 / 0x28 to 31 / 32, 0x2A the named
-speeches; models 0x2E..0x32; extras 0x2C / 0x2D.
-
-A-H26: 006C68B0 `Terrain::LoadMap(path, zone, dungeon)` (RET 0xC; terrain_landscape.cpp) is ported as its vanilla body
-(Rebirth redirects its ListFiles call at 006C6921; hooked in the vanilla launch only). Its only caller is the zone load
-00567AB0 (original, Rebirth-patched), with the zone's lower-cased name and "the zone is a dungeon" as a byte. ClearMap;
-the archive `path` opened (0 when not); +0xFC `textFC` the path without its extension; +0xF8 `textF8` the name of the
-archive's first "*.mp" file up to its dot (an archive without one is not tested for). The map file `<map>.MP` (the
-extension through the pointer at 007441D4), 0x26 bytes of header: magic CE4AF672, height range, sectors x / y, pages, page
-size, texture count, tile size, material count (16 bits), animated texture count; then the materials (0x2C bytes each), a
-class per texture, and (texture, frames) word pairs; the file's size must be exactly that. A missing file is FatalError
-"Unable to open file \"path\"", a short or mismatched one "Wrong file format: path" (through 00480080's address; its
-result is returned, after ClearMap). Then: the sector grid (+0x1F8, rows of null nodes); width / height = sectors x 32;
-+0x118 `pageSize`, +0x120 `tileSize`, +0x124 `tilesPerRow` = page / tile, perPage its square; the materials (kind and
-colour copied, +0x10 `opacity`, absorption 1 / (1 - opacity), +0x18 `opacityByte` = _ftol(opacity x 255), colour = the
-file's light factor x colour capped at 1, priority, +0x30 from the record's +0x1C, level 0; +0x28 is left as it was);
-+0x13C `textureClass` (the map's classes, then sixteen of class 15 for the extra pages' textures) and +0x14C
-`textureFrames` (0, or the frame count of an animated texture), both aligned int arrays; SetupPages (0 and ClearMap when a
-texture does not load); the uv tables (tile side 1 / tilesPerRow, margin side / tileSize x 8: BuildTileUv per rotation for
-every tile, and with "whole page" for one row of the last pages' tables); +0x100 `mapLoaded` = 1; the ambient sound set
-(+0xAE0: "Dungeon", or "Ingos" / "Suslanger" by `zone`, else "Gipat"); for each of the sixteen sound classes (table 007969D0;
-its +0x0C "votes as" class is -1 in every entry, so every class votes for itself) the one-shot count (the table's +0x04 in
-the original, ours `Terrain::ambientVariants`; the constant table `kAmbientSounds` keeps both fields unread) = how many of `ambient\<set>\<class>\day\<n>.wav`
-(n from 1) the wave sources have (`Terrain::CountAmbientVariants`, terrain_ambience.cpp; each probe takes a reference on
-the wave file that is never given back); flags |= 0xFFFF; a water level per sector and material, zeroed (ours one flat vector, `Terrain::SectorWaterLevels`; game.exe's outer
-CArray's elements are CArray<float>, vtable 0073D3E8, built and destroyed by 00575690 / 005755A0).
-Float note (rule 7): the quotients and products are rounded to float where the original's FPU does at 24-bit precision
-
-textures load twice per zone in the verify build. Scenario: every one that enters a zone.
-
-`Dib::Read` 006D5910 / `Write` 006D5AC0 (MFC TRY / CATCH frames around the file calls) are ported
-(`dib.cpp`, A-E2; side by side at start-up: app.md "MFC TRY / CATCH"; 004F0B90 has the same frames). Dead (config/dead_code.csv): 006C67E0,
-006C42A0, 006C4310 (a third draw pass reached only from the dead 006CC8D0). 50 rows in config/library.csv ("A-X6 review"): the landscape's CArray /
-aligned array element helpers and the prints / acks records' and databases' compiler-generated members. With these the
-range has no other unported game code.
-
-Next: `Dib::Read` / `Write` once the file layer is ours (no MFC exceptions to catch); the captures need the new
-renderer's frame when the switch-over draws without a DirectDraw surface.
-
-## Resources and the sound file reader (00671280-00675B40)
-
-Code: `resource_stream.h/.cpp`; earlier resource work (MappedResource, MMIOResource methods, ResourceManager slots
-16-22) is in `resource.cpp` / `resource_manager.cpp`; the mapping is `platform::MappedFile`. Every archive opens read
-only: the game never opened one writable (every OpenResource passed 0), so the writable path (CloseFile's write-back,
-Flush, the read-write mapping) is gone. Every scenario reaches it (archives open at startup, the sound
-file reader at every sound).
-
-MappedResource (vtable 007432E0), MMIOResource (00743300), ResourceBase (00743324), ResourceManager (00743338, ctor
-00674D90, dtor 00674DF0 / 00674DD0, slot 3 00674F40); FindEntry 00674850, accelerator 006748F0 / 00674910, ListFiles 00674AC0,
-WildcardMatch 00674CE0. The sound system's file reader (vtable 00743320, 0x34 bytes, created by 006B6040): ResourceBase
-fields plus +0x24 archive HMMIO, +0x28 entry offset (1 loose file, 0 nothing open), +0x2C entry size, +0x30 loose file HMMIO;
-OpenFile tries a readable loose file first, then the archive's entry; the archive part is dead code (Open 00674310 and
-006745C0 have no callers, so +0x14 / +0x18 stay null). Ours (C58a) is a plain class over the loose file only (a platform::File since PL7b).
-
-Rewritten (grep the address): ResourceBase Construct / Destruct / deleting / FreeAccelTable (00674790, 00674810, 006747C0, 00674A90),
-ResourceStream ctor / dtor / deleting / Close / OpenFile / Read / Seek (00674280..006746F0), WildcardMatch 00674CE0,
-MappedResource::ListFiles 00674AC0, MMIOResource ctor / dtor / deleting (006721D0, 006722F0, 006722D0), ResourceManager
-ctor / dtor / deleting / slot 3 (00674D90, 00674DF0, 00674DD0, 00674F40).
-
-`MMIOResource::Destroy` calls our `MappedResource::Destroy` directly (the original has an inline copy of that destructor, not
-a call to the Rebirth-patched 006714A0). Kept: `ResourceStream::Seek` treats "from the current position" of a loose file as
-"from the start"; the original's OpenFile leaks the `_findfirst`
-handle (ours closes it); `ListFiles` copies a name into a 1 KB buffer without a length check. Dead code: 00674310, 00674910, 006748F0,
-006745C0, 00674670. Skipped: STLport instantiations (006713C0-00674070, 00675560-00675690).
+`Dib` (dib.h): colour table, bits (`std::vector`), header, image size, colour count, masks; used for loose
+`textures\*.bmp` overrides and screenshots (Scroll Lock; `CaptureSurfaceRect` / `CaptureSurface` in surface.cpp copy
+16, 24 and 32-bit rows from the last to the first). Rows are padded to four bytes (`DibRowBytes`; the original sized them
+unpadded and skewed screenshots whose row was not a multiple of four bytes). `Read` / `Write` read and write BMP files.

@@ -1,159 +1,60 @@
-# Application layer (0x00440000-0x00480000, outside the network code)
+# Application layer
 
-Startup, the frame step, registries, option and device records, key bindings, small tables. Network code of the same range is in
-`network.md`. Names are provisional. Every function carries its address in its source comment (grep it). Most run at startup or in
-every scenario.
-
-- `app_frame.cpp`: WinMain's frame step `FrameStep` 00458010 (see "Frame capture"), intro movies 00458270 (list from the .ini, each
-  played, the screen cleared by a Blt colour fill). `app_frame.cpp`: type registration with a factory (vtable <-> id <-> factory) and
-  COM releases (00458570, 00458540, 00458550, 004586E0). `app_frame.cpp`:
-  device record list archiving (00463030-00465BC0).
-- `map_spec_unit.cpp`: waypoint lists and behaviour records read / written as stream chunks (0045DE30 is a stream reader, not a
-  CArray::SetSize; 0045DFB0, 0045D610, 0045D760). `zone_records.cpp`: zone exit destructors and the map database's zone record destructor
-  (eight CStrings, exit CArray at +0x48; 00460460, 004608B0, 00460970).
-- `object_tables.cpp`: `NamedFloatTable` (hash_map<CString, float>) Set 00460BC0 (zero removes; the value is tested with FCOMP against 0,
-  so NaN removes too), Remove, CopyPrefixed, Load, Save (00461260). `core_streams.cpp`: `ByteStream::ReadString` 00461190 (bytes up to a
-  zero into a CString; many callers keep forwarders). `key_bindings.cpp`: key bindings file load 00462C10 (key texts from
-  `GetKeyNameTextA`, "command key" lines) and save 00462DF0; entries at 00787070 (code, name). `lever_table.cpp`: the atexit destructor
-  00463120 of the lever table 0079C1A0 (vector of 0x2C records, hash map of vectors; it indexes the free lists with (0 - 1) >> 3 for a
-  zero-sized record block with a non-null pointer). `options.cpp`: `GameOptions::SaveToRegistry` 0045C560 (EI_Plugin's `NewMaster` NOPs 42 bytes at
-  0045D330 inside it: the Master Server Name is no longer saved).
+Start-up, the main loop, the frame step, options, key bindings and small tables. Network code is in `network.md`, the
+window and input in `platform.md`.
 
 ## WinMain
 
-`app_main.cpp` (`app::GameMain`). Start-up: the system messages (res\sysmsg.txt, three lines, with built-in ones as
-a fallback), the DirectX version, the command line, the window class and a second instance's hand-over, the folders
-and the options from the registry, the two worlds and the camera, the free disk space and the second disc, the mouse
-object, the save folders, the window, the renderer, the sound, the intro movies, the
-databases, the cursors, the interface, the maps and the first map (or the main menu).
+`app_main.cpp` (`app::GameMain`). Start-up order: the system messages (res\sysmsg.txt, three lines, built-in ones as
+a fallback), the command line ("-moviepath_", "-nocam", .cam / .scr / .mob / .mpr files, "-devicetarget_"), a second
+instance's hand-over (a running game is brought forward and this one exits), the settings (`ei_settings.ini`,
+`docs/settings.md`), the two worlds and the camera (field of view pi * 2 / 7), the free disk space (a 300 MB warning,
+`platform::FreeDiskSpace` of the data folder itself) and the second disc's label, the mouse object, the saves / mp /
+textures folders, the window, the renderer, the sound, the intro movies (list from the .ini), the databases, the
+cursors, the interface, the map list (`MapDatabase::LoadAll`: map.txt, then map-LMP.txt) and the first map or the main
+menu.
 
-Main loop: while no message waits, the time since the last pass runs the server world in whole ticks and the client
-world in ticks stretched by the "client speed" (1 in a local game; a network client speeds up or slows down by its
-backlog of server updates), then the camera, the interface and a frame. A waiting message goes to the interface's
-input (after a frame) or to the window procedure (while the renderer is inactive). Rebirth patches the original
-WinMain (NivalRegistry); ours reads its one settings file on either install (the flag is dropped).
+The disc check: with a "CD-ROM Path" whose text differs from the data folder's, start-up reads the disc folder's
+volume label and asks for the second disc ("Warning" box) until it is the options' "CD2 Label" (scenario
+`app_disc_prompt`). The GOG game.exe skipped the check; ours follows the Rebirth copy.
 
-## Frame capture (harness)
+## Main loop
 
-The harness's frame capture redirects the `CALL 005E65F0` at 004580D7 inside the original 00458010
-(`tests/verify/harness_capture.cpp`). The rewritten `FrameStep` (the image) calls the harness's hook point
-(`g_harnessHooks.cursorLock`, else 005E65F0) in the same place: after
-the game's draw (EndScene) and the interface draw, before the cursor blit (005E54A0), the flip
-(004EF610) and the lock's release (005E6610). The original body behind the hook's entry jump stays
-untouched so the harness can still find the call. The camera-freeze skip (`CALL 0040FB30` at 00457595)
-and the `PeekMessageA` return addresses (00457119 / 00457610) are in WinMain (00456440); the rewritten
-WinMain keeps both working (A-E2 below). A harness hook point (ei/main_loop.h, S15a) for each of these
-calls comes before the call-site read; the standalone image has only those (WinMain's rewrite reads no
-call site since R9b2: game.exe runs only the original).
+While no message waits, the time since the last pass (at most 5 ticks; 1000 / fps while frames are recorded) is added
+to the server's and the client's backlog (the client's scaled by the client speed, dropped above 0x4000000). The
+server runs whole ticks; the client runs one while it has a tick and either server updates wait or its view is not in
+mode 2, and moves the camera a tick each time. Then the game flow's request, the tick fraction, the next client speed
+from balance = waiting updates - fraction (e^(balance / 10) when negative, 1 up to 1, else sqrt(balance) * 0.1 + 0.9;
+kept within 0.1 .. 10; 1 in a local game), the camera for the real time of the pass, the camera file's record /
+playback, the interface and a frame (`FrameStep`). A waiting message goes to the interface's input.
 
-## Kept and skipped
+The harness's hook points (`include/ei/main_loop.h`, `g_harnessHooks`) sit at the loop's calls: the frame capture
+between the interface draw and the cursor blit, "freeze" (the camera's update), "speed" (the server and client
+updates), and the loop's message peeks and clock reads named in `ei::mainloop::g_site`.
 
-- Kept: `FrameStep`'s movie capture passes two uninitialised stack words as the capture rectangle's size when there is no render
-  target.
-- Rebirth-patched: 00456440 (WinMain), 00443080, 00463390, 00468A00 are ported with the vanilla body and
-  hooked in the vanilla launch only (A-E1, A-E2).
-- Static initialisers (run before the hooks): 0045E820, 004632A0 (lever table constructor); 00444740 (debug
-  panel) and 00458870 (GameOptions) are ported and compared at WinMain's entry (A-E2).
-- Dead: 00442F00, the animation exporter's writer and six unreferenced functions.
-- 00477B00 (applies a unit record to a new unit, from 005927C0) is in `objects.md`. The fake unit scene loader
-  (00471A90-004775F0, slot 62 of CFakeUnit via 00446BA0 -> 00446C10 -> 00471B10) is dead and gone (C35l).
+Dropped on purpose: the original chose the interface or the window procedure for a message waiting before the first
+pass by the top byte of a reused stack slot (it hung depending on where a string lay); ours always gives it to the
+interface. Kept: `SetUpCursors`' last argument has only its low byte set; "res\speech.res" is built twice;
+`FrameStep`'s movie capture passes two uninitialised words as the rectangle's size when there is no render target.
 
-## A-E1: the leftovers of 0x00440000-0x00480000
+## Options
 
-Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the main thread):
+`GameOptions` (options.h) is built by a static initialiser before WinMain. Its constructor's values are the defaults
+of every value the settings file lacks (the original's own defaults function ran before the registry and is gone).
+What stays from the constructor: the "Network Settings" subkey, the CD labels, the font's character set, the keyboard
+layout, both lights' radius; the master server's name is empty (EI_Plugin's NewMaster stopped saving it). Settings
+are `ei_settings.ini` beside the exe, described by `src/game/settings_catalog.inc` (`docs/settings.md` is generated
+from it by `tools/gen_settings_doc.py`, a build check).
 
-- 00455A90 `app::DiskFreeSpace` (path in ECX, a double in ST0): GetDiskFreeSpaceExA looked up in kernel32 on every call
-  (GetModuleHandleA + GetProcAddress), its free-bytes-for-the-caller as a signed 64-bit value; without it
-  sectors x bytes x free clusters; 0 when the call fails. Now `platform::FreeDiskSpace` (the save and load screens and
-  WinMain's warning): GetDiskFreeSpaceExW, which every Windows has, so the cluster count path is gone.
-  Dropped on purpose: WinMain asked for `<drive>\.` of the data folder; ours asks for the folder itself, as the
-  save screens do (the same drive; a path that names no existing folder, an empty one included, gives 0: no warning).
-- 00455F10 `SetQuitAllowed` (CL to the byte 00784751), 00455F20 `QuitGame` (PostQuitMessage and 1 when the byte is set,
-  else 0; ours only, it posts the message), 00455E20 `MovieMode` (the byte 00784752; side by side).
-- 00455B50 `DelayedProtectionCheck` (PlayerClient::OnNewObject calls it for every new object): rand() * 100 / 0x7FFF
-  % 100 < 1, then the STLport list at 0079BC2C (built empty by the static initialiser 00455E50, freed by 00455F00) is
-  searched for an entry whose byte is 0; one such entry runs 00455BA0 `ScrambleObjects` (the options back to their
-  defaults, every object of the object manager 007AF5F8 given rand() * 0x1000 / 0x7FFF % 0x1000 as its companion
-  (0050E8F0) and as its specific half (005161A0)). Nothing in the exe adds to the list, so the scramble never runs; ours
-  has none of it (R34c: the draw only shifted the game's rand(), the harness makes the original's return at once).
-- 00455950 `EngineObject::World` (the manager context's slot 13, `ManagerContext::ThisWorld`, now declared with its
-  result; null without a context) side by side, on every unit's updates; 00457720 `EngineObject::ReleaseAndDelete` (one
-  reference less, `delete` at zero) ours only.
-- 0045EA00 `MapDatabase::LoadAll` ("map.txt", then "map-LMP.txt"; WinMain). Ours calls `Load` directly, so the loader's
-  own check is no longer reached from it; `verify_map_database.cpp` runs the original's two loads on the shadow database
-  and compares the databases in depth after `LoadAll`.
-- 004645A0 `ChunkArchive::~ChunkArchive` (the out-of-line destructor the database loaders call):
-  ours only, both streams must carry the stream base's vtable afterwards.
-- party_manager.cpp: the DirectInput mouse's destructor (004578D0: Shutdown, the two counted pointers'
-  releases, the root vtable 0073C368; slot 0 004578B0) and the root class's slot 0 (00457950). Ours only; the
-  application drops the mouse at exit. The party record and class template creators and the party manager's
-  destructor in the same file are described in script.md.
-- The counted pointer's destructor (00455C80, with the identical copies 00455610 and
-  004BB050): one reference dropped (`--refCount`, no delete), the pointer cleared. Ours only (its prologue is a
-  short jump); the world server's tick and the object list iterators' owners call it. 00455610 is called by
-  unwind funclets only.
-- A-E1 library rows (config/library.csv, 60 rows; each row says why): STLport instantiations, MFC template helpers (element
-  constructors / destructors of the CArray and CList instantiations at 004763C0-00477530 and others) and compiler-generated helpers
-  only unwind funclets call.
-- Rebirth-patched functions ported by A-E1 (vanilla behaviour, vanilla launch only): 00468A00 the lightning
-  noise table's load (objects.md), 00463390 the lever table's load (units.md), 0040ECD0 the camera's path
-  file load (core.md); and the network 0041AA10, 0041ACA0, 0041B1C0 (network.md).
-- Not ported in 0x00400000-0x004C0000 after A-E1 (all but the last ported by A-E2, below): the Rebirth-patched 0041ECC0, 00443080 and 00456440
-  (the application's start-up, 4832 bytes); the static initialisers 00444740 and 00458870 (they run
-  before the hooks install); 004560D0 (the message box: it flips the DirectDraw surface to GDI); and 69
-  functions under five bytes. 0049F7B1 is listed as a
-  function but is the tail of `IsaacRandom::Seed` (0049F660, random.cpp) after its catch block (A-S11 gave it a
-  `compiler` row in config/library.csv, so it is no longer counted).
+## Small pieces
 
-## A-E2: WinMain, the static initialisers, the last Rebirth-patched functions, MFC TRY / CATCH
-
-- **WinMain 00456440** (`app_main.cpp`, `app::GameMain`). Until H40 ei_harness.dll installed its hooks in
-  game.exe from a stub at WinMain's first instruction (hook.cpp). Rebirth patches the body (NivalRegistry, CommandLine, SavesPath, the CD check), so the
-  rewrite runs in the vanilla launch only. Every callee is called through its address, so their hooks and
-  wrappers keep running. Ours only (`verify_app_main.cpp`: no window at entry, the mouse object released at the
-  end); every vanilla scenario runs on it from start to exit.
-- Branches (A-I23): the frame recorder's pass length (`app_record`, golden from the original) and the disc check's
-  second-disc boxes (`app_disc_prompt`, harness_startup.h; golden from Rebirth's original). The vanilla install's
-  game.exe jumps over the disc check (EB at 00456BB5, core.md): with a "CD-ROM Path" whose text differs from the
-  data folder's and a volume without the CD2 label, it starts where the image (the target's behaviour) asks; the
-  harness's registry gives the two folders the same text, so no other run differs. No scenario: the second
-  instance (FindWindowA finds a game window: brought forward, exit -1 before any scenario step), the DirectX 7
-  check, the low-disk-space box (platform::FreeDiskSpace); a vector test does not fit WinMain.
-- The harness told the loop's calls apart by return address (the two `PeekMessageA` calls that take posted
-  input, the frame's `timeGetTime`). The rewrite names the call it makes in `ei::mainloop::g_site`
-  (`include/ei/main_loop.h`), which the harness accepts beside the addresses, and makes the frame's last
-  camera update, the server's update and the client's tick through the harness's hook points when set
-  (`g_harnessHooks`: "freeze" holds the camera, "speed" the updates), else directly.
-- Start-up order: sysmsg.txt (three lines, built-in fallback), DirectX 7, the two class factories, the command
-  line ("-moviepath_", "-nocam", .cam / .scr / .mob / .mpr, "-devicetarget_"; the original's "-benchmark_" is
-  ignored since C69: it set statistics nothing reads), the window class
-  (a running game is brought forward and this one exits), the registry root and options, the new handler, the
-  worlds and the camera (field of view pi * 2 / 7), free disk space (300 MB warning) and the disc's label, the
-  mouse object, the saves / mp / textures folders, the window, the renderer (the driver flag 00784756 and the
-  video memory flags 00784753-00784755 are gone with the device: R27c, R27f), the sound, the intro movies, the databases, the cursors, the interface, the map list,
-  the first map.
-- The loop: the time since the last pass (at most 5 ticks; 1000 / fps while frames are recorded) is added to the
-  server's and the client's backlog (0079BC64 / 0079BC68; the client's scaled by the client speed 00784758,
-  dropped above 0x4000000). The server runs whole ticks; the client runs one while it has a tick and either
-  server updates wait or its view is not in mode 2, and moves the camera a tick each time. Then the game
-  flow's request, the tick fraction, the next client speed from balance = waiting updates - fraction
-  (e^(balance / 10) when negative, 1 up to 1, else sqrt(balance) * 0.1 + 1 - 0.1; kept within 0.1 .. 10), the
-  camera for the real time of the pass, the camera file's record / playback, the interface and a frame.
-- Kept: `SetUpCursors`' last argument has only its low byte set; "res\speech.res" is built twice.
-- Dropped on purpose: a message that waits before the first pass goes to the interface's input (`RunMainLoop`).
-  The original chose the interface or the window procedure by the top byte of a reused stack slot: the disc
-  folder's text pointer with sound, the free non-local video memory without. Copied, it hung on where the folder's
-  text happened to lie (the stack or the heap by its length; the address's upper bits on x64).
-- The operator new handler WinMain installs (00455A30, "Memory depleted", returns 0) is gone with `_set_new_handler`
-  (C35e): the host's malloc never called it (the game leaves `_newmode` 0).
-- Static initialisers (they run before WinMain): the options 00458870
-  (`options_construct.cpp`; the layout is named in options.h), `CSysInfo`'s unit 004DDCB0-004DE87C
-  (not made since C50d2: nothing read it) and the weather's noise curves 004E3980 (`weather_noise.cpp`: rebuilt from `rand` seeded
-  with 1, bit for bit).
-- 004560D0 `ShowMessageBox` (full screen: DirectDraw flips to the GDI surface first; the cursor is put back).
-  Ours only. 006462A0, the unit panel's draw: items_spells.md.
-- **The game's caught file errors**: the game's MFC threw a `CFileException*` from a failed file call, and
-  004D5880 (the script loader's text file reader, `script_exec_helpers.cpp`) and `Dib::Read` 006D5910 / `Write`
-  006D5AC0 (`dib.cpp`) caught it. Ours: Dib catches `platform::FileError`, which platform::File throws by value (no
-  MFC exception class is left); the script reader reads the whole file with `platform::ReadFile`, which does not
-  throw.
+- `NamedFloatTable` (object_tables.cpp; party and player variables): a `lib::HashMap<std::string, float>`; Set of zero
+  removes the entry (a NaN removes it too), CopyPrefixed, Load, Save.
+- Key bindings (key_bindings.cpp): config\keyboard.ini of "command key" lines, key texts from the platform's key
+  names; `platform.md` for the keys themselves.
+- The lever table (lever_table.cpp, Levers.ldb) and the class factories (app_frame.cpp: type registration, vtable to
+  id to factory).
+- `DelayedProtectionCheck` (the original's copy protection on every new object: a 1% `rand()` draw, then a list nothing
+  fills) is gone; the harness made the original's return at once, so nothing depends on its draw.
+- Caught file errors: `platform::File` throws `platform::FileError` by value; `Dib::Read` / `Write` catch it, the
+  script reader reads whole files with `platform::ReadFile`, which does not throw.

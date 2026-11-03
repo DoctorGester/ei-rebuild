@@ -1,6 +1,6 @@
 // The renderer's ribbon draw with its helpers (indexed draw of TL vertices, one ribbon cross section, the
 // direction at a point).
-// More: docs/notes/comments-c22i.md, "renderer_strip.cpp".
+// More: docs/notes/models.md, "Renderer".
 #include "clip.h"
 #include "lightning.h"   // LightningPoint
 #include "model.h"

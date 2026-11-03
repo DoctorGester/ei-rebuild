@@ -1,5 +1,5 @@
 // A new unit's starting equipment from its prototype (the world adds zone units with it after
-// ApplyPrototype). See unit_create.h (MapObjectManager) and docs/notes/units.md ("Rewritten").
+// ApplyPrototype). See unit_create.h (MapObjectManager) and docs/notes/units.md ("Creation helpers").
 #include "item.h"
 #include "item_manager.h"
 #include "unit_create.h"

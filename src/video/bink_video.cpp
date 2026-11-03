@@ -3,7 +3,7 @@
 // several blocks and coded with one of 16 fixed prefix codes; the DCT and residue coefficients and a few small numbers
 // come from the bit stream directly. Written from the format's description (multimedia.cx: Bink Video, Kostya
 // Shishkov's notes), the details it leaves out from the game's binkw32.dll, and checked frame for frame against an
-// independent decoder (docs/notes/platform.md, "Movies").
+// independent decoder (docs/notes/sound.md, "Movies").
 #include "video/bink_video.h"
 
 #include "video/bink_tables.h"

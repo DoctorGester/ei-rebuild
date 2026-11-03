@@ -3,8 +3,8 @@
 The game builds on Linux (x86-64, gcc 13 or clang 18) from the same CMakeLists.txt as on Windows: the game and
 library code unchanged, SDL3 for the window, input, sound and threads, POSIX for the rest of the platform
 (src/platform/posix/platform_posix.cpp), and the renderer on sokol_gfx's OpenGL 4.5 backend
-(src/platform/gl/graphics_gl.cpp; docs/notes/platform.md, "Graphics"). The harness, the function vectors' replay and the
-offline checks against Windows' drawing and keys stay Windows' only.
+(src/platform/gl/graphics_gl.cpp; docs/notes/platform.md, "Graphics"). The harness and the offline checks against Windows'
+drawing and keys stay Windows' only.
 
 ## Build
 

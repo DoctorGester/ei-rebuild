@@ -1,6 +1,6 @@
 // The zone file's object records: the base record, objects, flames, magic traps and levers
 // (map_spec.h), and the quaternion rotation the editor uses. Plain float maths
-// (rule 7). See docs/notes/objects.md ("Rewritten").
+// (rule 7). See docs/notes/objects.md, "Zone files and unit records".
 #include "ai_map.h"
 
 #include "base_manager.h"
@@ -343,7 +343,7 @@ ZoneDiplomacy::ZoneDiplomacy() {
 
 // The zone file's effect records: particle sources (kind 4), lights (kind 2) and sounds (kind 3) on their base
 // (map_spec.h). They keep the world object they made and its effect, are kept above the terrain when moved,
-// and save as chunks DD01 / AA01 / CC01. See docs/notes/objects.md ("Rewritten").
+// and save as chunks DD01 / AA01 / CC01. See docs/notes/objects.md, "Zone files and unit records".
 
 namespace mapspec {
 

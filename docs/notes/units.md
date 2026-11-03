@@ -1,449 +1,219 @@
-# Units, creature statistics, levers and magic traps (00500000-00540000)
+# Units, creature statistics, levers and magic traps
 
-Code (layouts, vtable slots and per-function comments are in `unit.h`, `unit_db.h`, `magic_trap.h`, `lever.h`,
+Code (layouts and per-function comments are in `unit.h`, `unit_db.h`, `magic_trap.h`, `lever.h`,
 `unit_client_models.h`; each file's header says what it does): `unit*.cpp`, `magic_trap.cpp`, `lever_object.cpp`,
-`torch_*.cpp`, `magic_trap.cpp`, `map_object_kinds.cpp`, `object3d_*.cpp`, `net_state.cpp`, `map_object.cpp`.
-Verify: `tests/verify/verify_<file>.cpp`. Scenarios: `units.txt`, `unit_create.txt` (eight prototypes, replace, kill,
-remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every scenario that starts the game
-(serialisers, factory, constructors). Shared forwarders are in `originals_units.h`; of the callees only 006AC970
-`CreateItem` (called by GiveStartingEquipment through its address) and FatalError 00480080 are Rebirth-patched.
+`lever_table.cpp`, `torch_*.cpp`, `map_object_kinds.cpp`, `object3d_*.cpp`, `net_state.cpp`. Scenarios: `units.txt`,
+`unit_create.txt` (eight prototypes, replace, kill, remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load),
+and every scenario that starts the game.
 
-## Address map
+## Layout and conventions
 
-| Range | Contents |
-|---|---|
-| 00500000-00522000 | rendering / animation, map object base, Object3D (`map_objects.md`) |
-| 00522000-00529000 | creature statistics (UnitStats, 0x704 bytes, often a stack copy), DamageInfo helpers |
-| 00529700-0052E000 | CTree, CBuilding, CStone, CStuffObject, TrapObject, CMagicTrapObject (id 0x3B), CLeverObject, TorchObject (0x3A) |
-| 0052E000-00533E00 | Unit (id 0x50, vtable 0073EA8C) |
-| 00533E00-0053A000 | UnitClientSpecific (id 0x3D, vtable 0073ECD8): the controller of party units |
-| 0053A000-00540000 | STLport instantiations of the unit database (library) |
+- Party units keep their items in the owning player's party records (found by unit id) instead of the unit's own lists.
+- Prototype tables (`UnitDatabase`, unit_db.h): prototypes (a prototype's `modelIndex` indexes models), NPCs, models,
+  skill level records; the skill (perk) database separately. The name lookups are `operator[]` on name maps (an unknown
+  name is inserted with a null record).
+- `Unit` (class 0x50) is a MapObject; `CreateUnit` is its Create (a member named Create would override EngineObject's
+  virtual). Its controller (`Unit::Controller()`) is `UnitServer` (combat.md) on the server and `UnitClientSpecific`
+  (class 0x3D) on the client, called through the `UnitController` interface.
+- Floats: the original returned its ST0 results (Period20, Reduce, the curves, the speeds, TotalItemWeight ...) at the
+  main thread's 24-bit precision, so they are floats; `_ftol` of `Reduce` is the int64 truncation. The world's heights
+  (`GroundHeight`, `StandPoint`: a float added through `pc24::Add`) and the virtual `MoveSpeed` stay double. The skill
+  level values are floats (percentages and stat bonuses, exact below 2^24).
 
-## Facts
+## Statistics in play
 
-### Layouts and conventions
-
-- Party units keep their items in the owning player's records (player + 0x70, 0x784-byte records found by unit id,
-  006621B0; weapons +0x730, quick items +0x740, spells +0x760) instead of Unit +0x440 / +0x450 / +0x460.
-- Prototype tables (STLport vectors with a name -> record hash_map at +0x0C): 007AF358 prototypes (0x120; +0x08 indexes
-  models), 007AF378 NPCs (0x60), 007AF398 models (0x168), 007AF268 skills, 007AF274 skill levels (0x44), 007AF3B8. The
-  database object at 007AF358 is four 0x20-byte tables. 00514930 / 005144D0 / 005145D0 are `operator[]` on the name maps
-  (an unknown name is inserted with a null record).
-- Unit slots rewritten: 3 DestroyUnit 0052E590, 5 ReleaseUnit 0052E740, 6 Tick 0052F7D0, 19 AttachCompanion, 25
-  AdvanceUnitTime 0052FC40, 26 LoadUnitFigures, 27 RecomputeUnitScale, 28 EffectsChanged, 30 ResetUnitScale, 32
-  StatsChanged, 33 ScaleEffectChanged, 34 PackPrototypeStats 0052EB70, 35 SetServerStats, 37 UpdateSizeClasses, 48
-  StandPoint, 49 / 50 network state, 51 PlaceUnitOnGround, 52 / 53 unit points. Create 0052E400 is `CreateUnit`: a member
-  named Create would override EngineObject's virtual.
-- Controller slots are called through `UnitController` (unit.h; `Unit::Controller()`): an interface declaration the
-  controller classes do not derive from, so their registered slot members stay non-virtual. Its unit is +0x1C; slots 48
-  Died, 49 EffectsChanged, 50 GetAttackParams, 51 Say, 52 StopSpeech; UpdateSizeClasses and Resettle return EAX
-  (std::uintptr_t), Level int; slot 19 RefreshVitals takes an int (0052EB30 pushes a whole dword, the bodies read the low
-  byte). UnitPrototypeRecord +0x50 is `level` (Unit::Level without a text key). World heights: World slots 29 / 30.
-  unit_update.cpp is clean (C10; its `_ftol` `__asm` and float_control stay).
-- The unit files build for SSE2 (C30e6): the original returns its ST0 results (Period20, Reduce, the curves, the speeds,
-  TotalItemWeight ...) at the main thread's 24-bit precision, so they are floats; 00532A20's `_ftol` of `Reduce` is the
-  int64 truncation. Kept double: the world's heights (`GroundHeight`, `StandPoint`: a float added through `pc24::Add`)
-  and the virtual `MoveSpeed`. The skill level values (unsigned dwords the original loads with FILD of a zero-extended
-  qword) are floats: percentages and stat bonuses, exact below 2^24.
-
-### Statistics in play
-
-- `UnitVitals::Regenerate` (00523740, every world update, from the controller 00552300): every 15th call mana (unless the
-  unit has an order) gains `(1 + 0.01 * skill 19) * regen * maximum`, hit points heal the slots by `maximum * (1 + 0.01 *
-  skill 18) * regen` (times effect 0x1F when positive) through `HealSlots`; returning 1 triggers `Recompute` (00524560):
-  stats from bases plus skills 23-25, protection and value pairs from the strongest effect of each type, maxima from the
-  experience curves `base ^ (ln(experience / divisor) / ln(logBase)) * stat / divisor * scale * (1 + 0.01 * skill)` (FYL2X
-  and `_CIpow`, inline assembly in the original's order), strengthen / weaken scale (at least 1), slot maxima, capacity,
-  load, legs / arms factors, rate. Constants: curves 007C5454..007C5480, slot ratio thresholds 007C543C..007C544C, wear
-  threshold 007C549C, difficulty table 007C54A0 indexed by 0079BEC0, hit log stream 007AF284.
-- Hits: `ApplyHit` (005254B0, from UnitServer::TakeHit): damage per type beyond the vitals' protection (times the
-  difficulty without a player), `WearItem` (005253E0; remarks 0x24 / 0x26), `DamageSlot` (00525070) on the hit location or
-  all six slots for 6: layers (text-key units; `WearArmour` 00525720, tables 0073E09C / A0 / A4, remarks 0x23 / 0x25),
-  backstab multiplier, sever (-5 x maximum; remark ArmCrippled / LegCrippled) or disable, log "<type> passed damage = <n>[ HL
-  was crippled| HL is dead]"; then 00532AC0 drops broken equipment. `IsBehind` (00530A60): units with a player and no bow /
-  crossbow; behind when the dot with the target's facing is below -0.5 (or NaN). `PickLocation` (00525B20): the aimed slot
-  is kept while its kind is 3; else a neighbour table (head 1, 2, 3; body 0, 2, 3, 4, 5; hand 2: 3, 1; hand 3: 2, 1; leg 4:
-  5, 1; leg 5: 4, 1), then a random working slot (inlined `IsaacRandom::Next`), none gives 1.
-- Raises: GiveStrength / Dexterity / Intelligence (script 0xCE-0xD0) -> RaiseStrength / Dexterity / Intelligence (00529090 /
-  00529220 / 00529400): base + amount, maxima recomputed (strength and dexterity round the curve product to float before
-  the skill percentage), strength widens the unit by 0.2, dexterity lowers y by 0.2 (at least 0), then Recompute.
-  GiveSkill -> RaiseSkill (00528AB0) / RaiseAttribute (00528DA0): the level byte grows and `truncate(1.61 ^ (new /
-  007C5480) * 007C547C - 1.61 ^ (old / 007C5480) * 007C547C)` is booked as experience and spent experience.
-  AddScaledExperience (00523960) is times 1.04 ^ (intelligence - 25).
-- Skills: `SkillPrice` (00528050): worth = 1.61 ^ (record +0x30 / 007C5480) * 007C547C; cost = _ftol(worth - worth of the
-  record before it (read unchecked)) when index % 3 > 0, else worth - worth of 0; price = 007C5484 ^ (byte sum of the 0x24
-  skill level bytes) * cost, kept to one significant digit (two when the first is 1-3), small prices rounded up. `CanLearn`
-  (005260A0) checks the learnable byte (+0x40), stat minima, required attribute and skill level, that no level of the same
-  skill id (+0x10) is known in another skill, and that the level is new; `LearnSkill` (00526450) keeps the hit point
-  proportion. `WeaponSkillBonus` (00526C70; 00527850 on the packed `UnitParams`): types 0-4 skill 0 and the weapon
-  prototype's +0x7B, 5-6 skill 1 and +0x7C, each plus (stat named by the skill's first letter - 25) plus the level value
-  of skill `type`; type 8 skill 0 and +0x7B; others 0. `SpellSchoolSkill` (00527EB0: school 4 -> 3, 6 / 7 -> 5; skill byte
-  +0x6CE / +0x6CF / +0x6D0 plus level value of skill school + 7 plus intelligence - 25). `VisionRange` (005271E0):
+- `UnitVitals::Regenerate` (every world update): every 15th call mana (unless the unit has an order) gains `(1 + 0.01 *
+  skill 19) * regen * maximum`, hit points heal the slots by `maximum * (1 + 0.01 * skill 18) * regen` (times effect 0x1F
+  when positive) through `HealSlots`; returning 1 triggers `Recompute`: stats from bases plus skills 23-25, protection
+  and value pairs from the strongest effect of each type, maxima from the experience curves `base ^ (ln(experience /
+  divisor) / ln(logBase)) * stat / divisor * scale * (1 + 0.01 * skill)` (in the original's order: `libcrt::CiPow`,
+  `pc24::Log`), strengthen / weaken scale (at least 1), slot maxima, capacity, load, legs / arms factors, rate. The
+  difficulty table scales hits on units without a player.
+- Hits: `ApplyHit` (from UnitServer::TakeHit): damage per type beyond the vitals' protection (times the difficulty
+  without a player), `WearItem`, `DamageSlot` on the hit location or all six slots for 6: layers (text-key units;
+  `WearArmour`), backstab multiplier, sever (-5 x maximum; ArmCrippled / LegCrippled) or disable, the log line "<type>
+  passed damage = <n>[ HL was crippled| HL is dead]"; then broken equipment is dropped. `IsBehind`: units with a player
+  and no bow / crossbow; behind when the dot with the target's facing is below -0.5 (or NaN). `PickLocation`: the aimed
+  slot is kept while its kind is 3; else a neighbour table (head 1, 2, 3; body 0, 2, 3, 4, 5; hand 2: 3, 1; hand 3: 2, 1;
+  leg 4: 5, 1; leg 5: 4, 1), then a random working slot, none gives 1.
+- Raises: GiveStrength / Dexterity / Intelligence (script) -> Raise*: base + amount, maxima recomputed (strength and
+  dexterity round the curve product to float before the skill percentage), strength widens the unit by 0.2, dexterity
+  lowers y by 0.2 (at least 0), then Recompute. GiveSkill -> RaiseSkill / RaiseAttribute: the level byte grows and the
+  difference of the worths `1.61 ^ (level / divisor) * scale` is booked as experience and spent experience.
+  AddScaledExperience is times 1.04 ^ (intelligence - 25).
+- Skills: `SkillPrice`: worth = 1.61 ^ (record value / divisor) * scale; cost = _ftol(worth - worth of the record before
+  it (read unchecked)) when index % 3 > 0, else worth - worth of 0; price = base ^ (byte sum of the skill level bytes) *
+  cost, kept to one significant digit (two when the first is 1-3), small prices rounded up. `CanLearn` checks the
+  learnable byte, stat minima, required attribute and skill level, that no level of the same skill id is known in
+  another skill, and that the level is new; `LearnSkill` keeps the hit point proportion. `WeaponSkillBonus`: types 0-4
+  skill 0 and the weapon prototype's first bonus, 5-6 skill 1 and the second, each plus (stat named by the skill's first
+  letter - 25) plus the level value of skill `type`; type 8 skill 0 and the first; others 0. `SpellSchoolSkill`: school
+  4 -> 3, 6 / 7 -> 5; the skill byte plus the level value of skill school + 7 plus intelligence - 25. `VisionRange`:
   perception[0] x ((1 - day) + perception[1] % x day).
-- Armour layers: table 0073E048 gives three body slots per armour type (7: none); `AddArmourLayer` (005230C0) adds the
-  piece's seven absorb floats (+0x4C first slot, +0x68 others) to layer `GetTypeGroup()` (2 for types 0-2 else 1), ORs the
-  mask (+0x84 / +0x88), state 3; `RebuildArmourLayers` zeroes layers 1 and 2 (0x90 bytes) and re-adds each worn piece whose
-  +0x20 rounds above 0; `PackBodyProtection` (00523020): out[1 + k] = round(current protection of type k + absorb values of
-  the body slot's layers with state >= 2, layer 2 down to 0 for text-key units else layer 0); out[0] is the caller's attack
-  value. `ProtectionBlock` (005270E0, the panel): text-key units weight worn slots by 0073E0FC and add the packed vitals;
-  others packed x difficulty 007C54A0.
+- Armour layers: three body slots per armour type; `AddArmourLayer` adds the piece's seven absorb values to layer
+  `GetTypeGroup()` (2 for types 0-2 else 1) and ORs the mask; `RebuildArmourLayers` zeroes layers 1 and 2 and re-adds
+  each worn piece whose condition rounds above 0; `PackBodyProtection`: out[1 + k] = round(current protection of type k
+  + absorb values of the body slot's layers with state >= 2, layer 2 down to 0 for text-key units else layer 0); out[0]
+  is the caller's attack value. `ProtectionBlock` (the panel): text-key units weight worn slots and add the packed vitals;
+  others packed x difficulty.
 
-### Creation, databases, save, network
+## Creation, databases, save, network
 
-- Factory (MapObjectManager slot 14, 00512730) by type (MapObjectType in unit_create.h; the side halves' types are SideObjectType in base_manager.h, the flags bits MapObjectFlag in map_object.h): 0x32-0x34 units (0x4DC, 0052E110), 0x35-0x38 (0x238), 0x39
-  (the fake unit, 0x580, 004466D0: dead, none made since C35l), 0x3A (0x23C, 0052BEE0), 0x3B (0x290, 00529DD0), 0x3C (0x264), 0x300D (0x78), 0x3010 (0x23C). The zone
-  loader then calls `ApplyPrototype` (00513B60): without a prototype defaults (005134F0) and "Can't find prototype %s for
-  object %d"; units get vitals / statistics from the records (005136D0: hit points / mana from prototype +0x48 / +0x4C,
-  regeneration from the model +0x08 / +0x0C, protection = model's seven values x prototype +0x58; stats from the NPC record
-  or a third of the hit points / mana) via MapObject::SetServerData and slot 35, stand lower by the model's +0x104, take the
-  prototype's scale (00517700) and second prototype (005308A0). 00513DA0 builds an NPC's statistics alone; `ResetToBase`
-  (00524CD0) refreshes current values from bases. `GiveStartingEquipment` (005141F0, zone loader record kind 5): a type 0x32
-  unit gets each armour of prototype +0x10C (006AC970; Rebirth's FixCreateItem runs; equipped), weapon +0x118 unless "none"
-  (slot to +0x270 unless -1) and +0x11C; every unit each spell of +0x100 (006AD1E0, AddSpell); an unmakeable piece is
-  FatalError.
-- **Database records**: `units.udb` is loaded once at startup by 0053A200 (Rebirth-patched) through the tagged-chunk
-  archive: chunk 1 skill levels (0x44), 2 models (0x168, -> 0052DC70), 3 prototypes (0x120, -> 0052D740), 4 NPCs (0x60, ->
-  0052DA60); then name indexes are filled, a prototype's +0x08 becomes the model's index and each model slot's +0x04 the
-  skill level record's. Serialisers call the archive's field / CString field / enter / leave (004092B0 / 004093A0 /
-  004098D0 / 00409980) in the original's order; bytes 0x38..0x47 of a prototype and 0x128..0x137 / 0x144..0x14F of a model
-  are not serialised. 0057DEE0 re-creates the database when the file changes (database.res <-> databaseLMP.res).
-  `CountSoundFiles` (0053A8E0): model sound names lower-cased, "*.wav" files counted by prefix.
-- **Save / Load** (`SaveUnit` 005321C0 slot 10, `LoadUnit` 00531A80 slot 9) order: map object part (0050F7A0 / 0050F900),
-  controller, name (+0x238), relations, player id (-1), side, +0x254, +0x255, +0x258..+0x278 (active weapon among them),
-  +0x27C sub-object (005C7860 / 005C79B0), +0x320, +0x324, +0x328, active weapon again, weapons / quick items / spells /
-  armour as item ids, +0x4C8 (0x14 bytes), +0x248, carried items, +0x32C, +0x438 (version 0x49), prototype names (version
-  0x4D; the second from 0x6A, before that looked up by the first name with 00514930). Load resolves items in the world's
-  item manager (ManagerContext slot 18), moves the unit between players (00665B50 / 00665A70, MarkChanged(0xB), controller
-  slot 18) and calls slot 32. UnitStats::LoadFrom (005287A0) sizes by format version 0x45 / 0x50 / 0x63 (pending experience
-  0 first).
-- **Network state** (DeltaState at +0x1C4; slots 49 / 50 and map objects 0050EC30 / 0050EAF0, `net_state.cpp`): map object
-  fields 0 the 0x18 bytes at +0x17C, 1 scale +0xC4 (read: SetPosition 00517700), 2 hidden bit (flag 8), position +0x1C,
-  orientation +0x34 (read: world slots 41 / 51), 3 effects (count byte, then per 0x14-byte effect bytes +0, +1, word +4,
-  byte +0x10; read: CArray::SetSize, then the companion +0x170's slot 13 with `first == 0` unless a unit). Units add 4 stats
-  block +0x330 (read: stat fractions before / after give controller slot 46 per changed stat, slot 31 when any changed, a
-  hit point drop or flag 0x10 (UnitStatsFlag::Struck) in +0x437 gives the companion's slot 16 with `_ftol(lost * max)`), 5 the 11 equipment ids
-  (armour slot 0, the helmet, -1 with flag 0x40000000, MapObjectFlag::HelmetHidden; writing refreshes a class 0x3E controller, slot 29), 6 +0x264 / +0x268 / +0x26C (+0x270
-  = +0x26C, slot 25 on a change), 7 packed bits of +0x25C / +0x260 / +0x274 / +0x278, 8 +0x254, +0x255, +0x258, +0x256, 9
-  the CString +0x238, 10 path (005C7DB0 / 005C7FC0) and motion speeds, 11 masks, +0x250, player id, 12 +0x4C8, 13 +0x438,
-  then re-equip (slots 32 / 33) and refresh (25, 29). The field 3 count is one byte read into a word. The wrapper compares
-  only the effect bytes the reader writes (the companion's slot 13 changes the others) and restores byte +0x76, which slot 41
-  (00535850) clears when it snaps the orientation to the path.
-- **Unit points** (slots 52 / 53): `UnitActionPoint` (0052FDF0, RET 4) always returns `out` in EAX although Ghidra shows
-  void (UnitServer::ApproachTarget reads it; returning nothing crashed combat, sound and units scenarios); a missing
-  animation entry logs "Can't find animation entry index"; it falls back to the position where size class 3 cannot stand
-  (005BA790). `UnitPredictPosition` (0052FCC0, RET 8) samples the motion for client units following a path order (kind 2).
-- **Client path placement** (`ClientPlaceOnPath` 00535850, RET 8; from slot 41 and 00535B30; `unit_client_update.cpp`): the
-  two heading angles must go through a float store (`Store`) as the original's FSTP (unrounded, the quaternion's sign flips
-  near +-pi).
-- Size class and figure queries: `UpdateSizeClass` (00530570) relies on controller slot 45 (server's UpdateMoveFactors;
-  empty on client / base controllers) so verify runs it twice; `FindAnimation` (005301B0) works only for type 0x32..0x34
-  and draws with `rand()` through 005190C0 / 00519380; `GroundHeight` (00530280) has a body too short for a trampoline
-  (verify uses a copy of its 98 bytes made at DLL load); `BodyExtent` (005304A0) feeds UnitServer::UpdateSizeClasses.
-- Client models (UnitClientSpecific id 0x3D; +0xA0 packed ids of the seven armour slots, +0xBC four weapons): armour part
-  rows at 0073EC24 (body "bd", "rh1".."lh3"; trousers "hp", "rl1".."ll3"; helmet "hr" ("hr.<nn>" with the prototype's +0x10)
-  and "hd"; armour slots 0 / 1 / 2 use rows 2 / 0 / 1; slots 3-6 have no parts); skin composition through the texture
-  manager (007AF744, 00693180): layers 0x32 skin, 0x3005 armour, 0x3004 weapon, names "mo<id>p" / "prot<prototype>p" (...s
-  for two layers); wounds "<model><part>w<level>.mmp", cache "mo<id>w" (levels 0-3 by durability ratio; heroes' armour with
-  ArmorRecord +0xB4 = 0 hides). `ClientGetAttackParams` (00538960, slot 50) reuses 005285D0, a byte-for-byte copy of
-  00523D30 registered with the same function. Controller fields (unit_client_models.h): +0x2C last animation time, +0x38
-  motion order (slot 16), +0x74 / +0x75 weapon / arrow hidden, +0x78 fade-in (15 ticks), +0x7C colour flash countdown, +0x84
-  footprint countdown (-1 from 00533FE0 until the first footprint; it only decrements above 0), +0x90 waiting speech sound,
-  +0x9C speech queue (STLport list of ClientSpeech; delay counts down, plays at 0, erased once its sound ended; kinds 2 /
-  0x1C skip while the previous one plays; kinds 0x1D-0x2A queue behind; `talking` sets the server unit's flag 0x800000),
-  +0xD0..+0xD8 blink (every 2..9 ticks, rand()). A unit dead for more than 50 ticks past its +0x254 byte is not drawn
-  (flags 8). Blink textures: model +0x158..+0x164. Sounds: footsteps by the model's names +0x138 / counts +0x144 per ground
-  kind (platform -> kind 2); action sounds at frame +0x44 in [from, to), sounds +0x48, folder second prototype +0x34 or model
-  +0x124, idle / attack chances +0x150 / +0x154; attack / death / skill sounds at priority 1000, idle / hit at 0; camera
-  shake by prototype +0x30; footprints through 0056D150 with model +0x10C / +0x110 / +0x11C and prototype +0xB0 as scale.
-- **Levers**: lever table 0079C1A0 (`lever_table.cpp`), records from `Levers.ldb` (00463030), found by model name through
-  0052CB40 (unknown names add a null record). `SetState` (0052B7A0): a negative (or NaN) duration takes the model's default
-  (map 0079C1AC) or 10; a negative state is the next (wraps when cycling); with a live world units within radius + 0.5
-  leave the sector map around the move, the end tick is (tick + duration) + 1, MarkChanged(5), lifted units that cannot stay
-  go to a free cell and are resynced (00554450). `CollectUseSpots` (0052BBE0, slot 44, from FindUseSpot 0054DF50).
-- **Magic traps** (class 0x3B, 0x290 bytes, vtable 0073E63C, derived from MapObject with members +0x238..+0x28C; flags
-  0x80000 armed, a new trap is armed until a script disarms it; 0x40 kind): `UpdateTrap` (slot 6): server only (world slot
-  26: 1 for WorldServer 0058A380, 0 for WorldClient 0055EB30; `world_effect_internal.h`'s IsClientSide is this slot,
-  misnamed); period <= 0: `UpdateVictims` (0052A680, armed traps ask `FindTrapVictims` 0052A920 for newcomers and cast),
-  else the countdown runs and `FireAtOccupants` (0052AB30) fires every tick until a cast resets it. `CastAtUnits` (0052A4B0)
-  casts at each point {x, y, 0} (spells without flag 0x10000000 and a trap with points) or at each unit; with +0x28C
-  narrowed to the last unit; casts through 0058E850 (007AFF60) with caster 0. `SetUp` (0052A2C0, per MagicTrap record at
-  +0x8C from the zone loader). `ForgetObject` (slot 56, from RemoveObject 005935C0) removes every node equal to the object
-  (null included). The zone loader registers traps in no name map (005927C0, record type 7): scripts use `GetObject(id)`.
-- Torch (class 0x3A, vtable 0073E834; spec at +0x238) `TorchObject::CreateTorch` (0052BFC0); `CreateUnit` (0052E400) calls Unit::Reset
-  and sets 14 network fields. `TakeRandomItem` (00531400, stealing): carried items first, else a random filled quick item
-  slot emptied without release. TrapObject (placed trap, class 0x55) is armed by 0058ECE0 when a trap item is used and sets
-  off "Mushroom" particles through a world script.
+- Factory (`MapObjectManager::NewObject`, "Creation helpers" below) by type (`MapObjectType` in unit_create.h; the side
+  halves' types are `SideObjectType` in base_manager.h, the flag bits `MapObjectFlag` in map_object.h). The zone loader
+  then calls `ApplyPrototype`: without a prototype defaults and "Can't find prototype %s for object %d"; units get vitals
+  and statistics from the records (hit points / mana from the prototype, regeneration from the model, protection = the
+  model's seven values x the prototype's factor; stats from the NPC record or a third of the hit points / mana), stand
+  lower by the model's offset, take the prototype's scale and second prototype. `ResetToBase` refreshes current values
+  from bases. `GiveStartingEquipment` (below).
+- **Database records**: `units.udb` is loaded once at startup (and again when the resource database switches) through
+  the chunk archive, four passes over one memory stream: level records (chunk 1), models (2), prototypes (3), NPCs (4),
+  each entered into its table's name index; then each prototype's `modelIndex` is the place of the model it names and
+  each model slot's `levelIndex` the place of the level record it names (-1: none). The skill load reads `perks.pdb`:
+  chunk 1 the skills, chunk 2 the level records. Both return 1, or the fatal error report's result when the archive or
+  the file is missing (the archive is then not closed). Some bytes of a prototype and a model are not serialised.
+  `CountSoundFiles`: model sound names lower-cased, "*.wav" files counted by prefix.
+- **Save / Load** order: the map object part, controller, name, relations, player id (-1), side, flags, the weapon
+  block (active weapon among them), the motion sub-object, three fields, the active weapon again, weapons / quick items
+  / spells / armour as item ids, the effects block, carried items, two fields (from version 0x49), prototype names (from
+  0x4D; the second from 0x6A, before that looked up by the first name). Load resolves items in the world's item manager,
+  moves the unit between players and refreshes the statistics. `UnitStats::LoadFrom` sizes by format version 0x45 / 0x50
+  / 0x63.
+- **Network state** (`net_state.cpp`; a DeltaState per object): map object fields 0 the 0x18-byte block, 1 scale, 2
+  hidden bit (flag 8), position, orientation, 3 effects (count byte, then per effect four fields; read into the
+  companion's EffectsChanged unless a unit). Units add 4 the stats block (read: stat fractions before / after give the
+  controller's StatChanged per changed stat, a refresh when any changed, a hit point drop or `UnitStatsFlag::Struck`
+  gives the companion's hit with `_ftol(lost * max)`), 5 the 11 equipment ids (the helmet -1 with
+  `MapObjectFlag::HelmetHidden`), 6 three motion fields, 7 packed bits, 8 small state bytes, 9 the name, 10 path and
+  motion speeds, 11 masks, side, player id, 12 the effects block, 13 a field; then re-equip and refresh. The field 3
+  count is one byte read into a word.
+- **Unit points**: `UnitActionPoint` always returns `out` (UnitServer::ApproachTarget reads it); a missing animation
+  entry logs "Can't find animation entry index"; it falls back to the position where size class 3 cannot stand.
+  `UnitPredictPosition` samples the motion for client units following a path order (kind 2).
+- **Client path placement** (`ClientPlaceOnPath`, unit_client_update.cpp): the two heading angles go through a float
+  store (`Store`) as the original's FSTP (the quaternion's sign flips near +-pi).
+- `UpdateSizeClass` relies on the server controller's UpdateMoveFactors; `FindAnimation` works only for types
+  0x32..0x34 and draws with `rand()`; `BodyExtent` feeds UnitServer::UpdateSizeClasses.
 
-## Rewritten
+## Client controller
 
-A-U9 (render / animation block 0x500000-0x50E000) is listed in `map_objects.md` (marker, gamma, bones) and `objects.md` (fake
-unit skeleton rewind), with that block's next candidates under "Skipped and why". Every rewritten function carries its
-address in its source comment (grep the address); the per-function table that used to be here is gone. Files:
-- `unit.cpp` (Unit setters, getters, item slots, speeds; `Unit::MarkChanged` / `HasEffect` are MapObject methods kept on
-  Unit: forwarders from MapObject), `unit_stats.cpp`, `unit_vitals.cpp` (regeneration, levelling, Raise*), `unit_stats.cpp`
-  / `unit_stats.cpp`, `unit_hits.cpp`, `unit_update.cpp` (virtual slots), `unit_items.cpp` / `unit_items.cpp`,
-  `unit_save.cpp`, `net_state.cpp` (map object / unit net state, differential sampled), `unit_create*.cpp`,
-  `unit_equipment.cpp`, `unit_db*.cpp` / `unit_db.cpp` / `chunk_archive.cpp` (the databases), `unit_params_*.cpp` /
-  `unit_skill_price.cpp` / `unit_armour_layers.cpp`, `unit_update.cpp` / `unit_stats.cpp` / `unit_items.cpp` /
-  `unit_figure_queries.cpp` / `unit_update.cpp` / `unit_client_update.cpp`, `map_object.cpp` / `unit_controller.cpp` /
-  `unit_update.cpp`, `unit_update.cpp`, the client half `unit_client_*.cpp` (update, models, effects),
-  `map_object_figures.cpp` / `object3d_client.cpp`, `unit_lever.cpp` / `lever_object.cpp`, `magic_trap.cpp`, `torch_object.cpp` / `torch_object.cpp` /
-  `torch_object.cpp`, `map_object_kinds.cpp` / `counted_ref.cpp` / `magic_trap.cpp`, `refptr_copies.cpp`.
-- Facts about specific groups: `Unit` virtual slots (Tick returns 1; LoadUnitFigures sets `flags` 0x80; AttachCompanion
-  returns the reference count). Unit database loading: the records are read twice by the original verify (ours first, then
-  the original reads the same record again). `UnitClientSpecific` slots: UpdateClient 6, FiguresLoaded 13, RestartFadeIn 43
-  (EAX 0), Level 24 (ln(packed experience / 007C5488) / ln(007C548C), rounded), RefreshWounds 31 (through 005370F0 /
-  0051C3D0, else 0051C920), RefreshSkins 29, RefreshSimpleSkin 30, SetArmourModels 32, SetWeaponModels 33, AddWeaponModel 34,
-  RemoveWeaponModel 35, HitEffect 46 (hit sound by weapon class and material, blood particles, decal), SparkEffect 47,
-  DeathEffect 48, OwnerPlayerChanged 18 (party light), Say 51, StopSpeech 52. `UpdateArrow`: the bow arrow "rh3.arrow00"
-  between frames +0x28 / +0x2C. `WeaponPoint`: node by WeaponBaseFigure or "baserh3", its +0x74. `LoadFaceTexture`:
-  "<model>mouth[_NN]" kind 0x3D. `HideWounds`: +0xD8 texture, +0xDC material. `Object3D::MakeFigure`: from the cache, whole for
-  an animated object without names (slot 4), else from the piece names (slot 3); LoadParts, bounds, `flags` 0x80.
-  `RandomAnimation`: variant bits, chance +0x1C narrowing; its draws from rand(), or from `g_clientRandom` for the client's
-  idle picks (`AnimationRandom::Client`, StartIdleAnimation, R34c). `Object3DClientSpecific::ExtraScale` (18: +0xF0..+0xF8),
-  `Object3DServer`'s is (1, 1, 1); RegisterPartMaterials uses world slot 33 (material manager, 0068EAF0).
-  `CTorchObjectClientSpecific` (A-U11, torch_client_spec.h: vtable 0073E954, 19 slots, 0x64): 13 / 14 show / hide the
-  particles, light and looping sound, 15 warms the particles up, 16-18 rebuild them (particle type + offset + scale, point
-  light offset + radius + colour, sound name); the spec's network read applies through slots 16-18, 13, 15. Lever record
-  ReadFrom / WriteTo are the lever's Load / Save. The skill (perk) database is the global 007AF268
-  (SkillRecord / SkillLevelRecord::Serialize; `IndexOf` compares with `_mbsicmp` on the level's +4 name).
-  `UnitStats::LoadFrom` is ours, `SaveTo` through a capture stream. `0052FC40` AdvanceUnitTime: controller slot 40, then a
-  party unit's sight on the client world (0056D740). `RefreshMotion` 0052E9D0: path forgets the unit, motion +0x27C rebuilt
-  from GetMoveSpeeds. `EffectPoint` 00532860 is skipped in comparisons where the original rotates uninitialised stack.
-  `ClientGetAttackParams` 00538960 compares within 4 ULPs, `CollectUseSpots` within 8.
-- 40 byte-identical copies (A-U11; found by comparing instruction streams with call targets resolved) are registered
-  beside the originals' rewrites: aligned array free / allocate / SetSize / SetAtGrow (0051EE50), RefPtr::Destroy (005587A0,
-  0055EDA0, 0055EDE0), ObjectHolderRelease, counted holder release (00519560, 0051E3E0, 0055FCE0 on DeviceHolderRelease),
-  CountedRef::Assign (0051E4F0, 0051E570), AIRef::Reset (00558CE0), CountedPointerRelease (00545B80), ScriptRefDestroy
-  (0052D030), TextSourceIterator::CopyTo (00539210).
+`UnitClientSpecific` (unit_client_models.h): packed ids of the seven armour slots and four weapons; armour part rows
+(body "bd", "rh1".."lh3"; trousers "hp", "rl1".."ll3"; helmet "hr" ("hr.<nn>") and "hd"; armour slots 0 / 1 / 2 use rows
+2 / 0 / 1; slots 3-6 have no parts); skins composed through the texture manager (items_spells.md, "Composed textures":
+layers 0x32 skin, 0x3005 armour, 0x3004 weapon); wounds "<model><part>w<level>.mmp" (levels 0-3 by durability ratio;
+heroes' armour can hide them). Fields: the last animation time, the motion order, weapon / arrow hidden, fade-in (15
+ticks), colour flash countdown, footprint countdown, the waiting speech sound, the speech queue (a delay counts down,
+plays at 0, erased once its sound ended; kinds 2 / 0x1C skip while the previous one plays; kinds 0x1D-0x2A queue
+behind; `talking` sets the server unit's flag 0x800000), the blink. Level is ln(packed experience / a) / ln(b), rounded
+(experience 0: ln 0 = -inf rounds to INT_MIN, kept). The client's idle animation picks draw from `g_clientRandom`.
 
-## Original bugs and oddities kept on purpose
+The "blink" is the speaking mouth: the face texture is "<model>mouth[_NN]", and only the briefing's speakers blink. Its
+rectangles go to `render::TexturePatch` (renderer.md), which draws them over the skin on every level. Check:
+`render_blink`.
 
-- Client `Level` (00539160) of a unit with experience 0: ln 0 = -inf and FISTP turns it into 0x80000000 (INT_MIN), not 0;
-  ours returns the same (x87::RoundToInt; X11: the CRT's lrint gave 0). A ratio within an ULP of .5 may round differently (std::log).
-- PlayStepSounds: a step frame of 1 ends the step list (the frame is the entry minus 1, tested for 0), so an entry 0 never
-  matches; the footprint scale reads the prototype unchecked; the "shown" flag goes to 0056D150 with stack garbage in its
-  upper bytes (ours 0 / 1); FootstepSound divides by a missing ground kind's count of 0 when a platform turns the kind into 2.
-- AddWeapon / AddQuickItem / AddSpell return 1 when the item is already in any slot (indistinguishable from "added to slot
-  1"); AddSpell has no null check; GiveStartingEquipment adds a weapon that could not be made (AddWeapon(null) returns 0,
-  +0x270 becomes 0). GetSpellObject reads a party spell entry's +0x44 unchecked; GetQuickItem returns null for a party item
-  whose +0x48 is not positive but the non-party path returns the slot as is; SkillWithBonus reads the record name without a
-  range check; several setters return what MarkChanged leaves in EAX; CanCastSpell / CanUseQuickItem take an unread second
-  argument (RET 8), GetFactors a third, 00525D60 is a copy of 00525CD0 with an unused argument.
+Torches (class 0x3A): the client half shows / hides the particles, light and looping sound and rebuilds them from the
+spec (particle type + offset + scale, point light offset + radius + colour, sound name). TrapObject (placed trap, class
+0x55) is armed when a trap item is used and sets off "Mushroom" particles through a world script. `TakeRandomItem`
+(stealing): carried items first, else a random filled quick item slot emptied without release.
+
+## Levers
+
+The lever table (`lever_table.cpp`, records from `Levers.ldb` in database.res: chunk 1, entered into a name index;
+missing: "Can't open Levers database"), found by model name (unknown names add a null record). `SetState`: a negative (or
+NaN) duration takes the model's default or 10; a negative state is the next (wraps when cycling); with a live world
+units within radius + 0.5 leave the sector map around the move, the end tick is (tick + duration) + 1, lifted units that
+cannot stay go to a free cell and are resynced. `CollectUseSpots` (from FindUseSpot). `levers.txt` switches zone1's gate
+"VGate" (id 1889, the only lever on zone1) and saves / loads it.
+
+## Magic traps
+
+Class 0x3B (flags 0x80000 armed: a new trap is armed until a script disarms it; 0x40 kind). `UpdateTrap`: server only;
+period <= 0: `UpdateVictims` (armed traps ask `FindTrapVictims` for newcomers and cast), else the countdown runs and
+`FireAtOccupants` fires every tick until a cast resets it. `CastAtUnits` casts at each point {x, y, 0} (spells without
+flag 0x10000000 and a trap with points) or at each unit, with caster 0. `ForgetObject` removes every node equal to the
+object (null included). The zone loader registers traps in no name map: scripts use `GetObject(id)`. `magic_traps.txt`
+loads `traps.mob`, written by `tools/make_trap_mob.py` into the run's folder (a `# prepare:` line), with
+`AddMob("..\saves\traps.mob")`: zone2's diplomacy table and its seven trap records renumbered 30001..30007 (zone2's own
+ids collide with zone1's). AddMob's name is relative to the maps folder.
+
+## Original bugs kept
+
+- PlayStepSounds: a step frame of 1 ends the step list, so an entry 0 never matches; FootstepSound divides by a missing
+  ground kind's count of 0 when a platform turns the kind into 2.
+- AddWeapon / AddQuickItem / AddSpell return 1 when the item is already in any slot; AddSpell has no null check;
+  GiveStartingEquipment adds a weapon that could not be made (its slot becomes 0); GetQuickItem returns null for a party
+  item whose count is not positive but the non-party path returns the slot as is; SkillWithBonus reads the record name
+  without a range check.
 - RaiseSkill / RaiseAttribute store the level as a byte (wraps) but book the worth of the unwrapped sum; RaiseStrength
-  computes the maximum from the current strength; HealSlots returns AL = 1 with FPU status bits in the rest of EAX;
-  Regenerate's third argument is a byte whose upper bytes are the controller's +0x190 bits; UnitStats::Reset leaves +0x6F7,
-  +0x34..+0x4C, +0x58..+0x6C, +0x8C and +0x6FC alone.
-- DamageSlot logs "termical" (sic) and one line per damage type; ApplyHit wears the weapon by the part each damage type the
-  protection absorbed; IsBehind is never true without a player; SetPrototype23CByName returns the low half of its division
-  product in EAX.
-- Save writes the active weapon twice (the second read wins) and copies the prototype name from address 0 for an
-  out-of-range index; name lookups insert unknown names (null record); BuildNpcStats reads the prototype's model index
-  before testing the prototype for null.
-- **Known divergence**: ApplyPrototype hands the object vitals and statistics built in uninitialised stack copies (the first
-  dword of each OR 1, statistics +0x58, +0x5C and the last skill level byte are stack garbage); ours start from zero, in
-  fields nothing seen reads before they are recomputed. `EffectPoint` on a server world (or a hero without "rh3") turns a
-  vector the original never wrote (ours zero; the wrapper does not compare those calls).
-- CollectArmourPartNames pushes the five empty names of the helmet row; WearArmourModel stores the id even for armour slots
-  3-6; RemoveArmourModel empties the slot before looking up the figure; DropBrokenEquipment gives broken pieces to the
-  player and releases the unit's reference after; Unit::Reset clears item slots without releasing; packed WeaponSkillBonus
-  reads the level byte at +0xE3 + type for any type below 5, negative ones too.
-- CollectUseSpots trusts the record's spot count (a count above 2 reads the count and factor as offsets); UpdateSizeClass reads the
-  prototype's +0x24 unchecked (an out-of-range index reads address 0x24); CastAtUnits returns without restarting the
-  countdown when +0x28C finds no unit and changes the caller's list; ChangeWeaponModel leaves +0x75 when the new slot holds
-  no weapon; UpdateVictims tests only x and y against the circles while FindTrapVictims uses the sector map (a unit in two
-  circles is found twice); a periodic trap whose countdown reached 0 and found nobody searches again every tick;
-  PickLocation reads a slot kind before its range check; the client attack figures keep the damage type for a weaponless
-  unit whose model weighs no damage type; FindAnimation's last fallback gets the kind without the movement substitution.
-- LoadTrap reads the spell id and counts into its argument's stack slot (a failed read leaves the previous value, at first
-  the stream pointer; ours starts its local with it) and appends to the list instead of replacing it; the trap constructor
-  releases a spell and empties lists it has just set empty; VictimList::Serialize (0052C740, library) writes raw pointers;
-  00539CE0 returns junk in EAX.
-- Client effects and figures: the "blink" is the speaking mouth: the face texture is "<model>mouth[_NN]", and only the
-  briefing's speakers blink (`blinks` set by 00604C50 while a phrase with lips plays; the faces load when a zone is
-  entered between zones, 0056DE80). Its rectangles mix units (closed: top = the face offset itself, unscaled; open:
-  top = (eye height + offset) x scale); integer edges follow `_ftol` of double maths (the original's x87 at 24 bits
-  could differ by one). `BlitMipChain` (00533980) blits the rectangle into the skin on every level of both mip chains
-  with all eight edges halved (SAR) per level, and never releases the attached mip surfaces it gets. Ours hands the
-  first level's rectangles to `render::TexturePatch` (R11d, renderer.md section 7): the shader draws them over the skin
-  on every level (a lower level's rectangle can be a texel off the original's halved one). Check: `render_blink`. `HitEffect`'s third argument is a flags word whose stack slot the original
-  reuses for the material CString; heroes index the armour table 0073EC78 by the hit location without a range check.
-  `Say`'s new queue entry has three padding bytes of stack garbage (ours zero); `StopSpeech` frees the nodes with the list's own erase where the original pushes them on the 32-byte free list (0079B230). `Object3D::LoadPart` returns null
-  for a part the figure has no piece of without releasing the new part object (leak).
-- TrapObject's +0x238 is saved and loaded but never initialised; a trap's 0x100000 flag changes nothing but is cleared when
-  nobody is near; the torch's Load, Save, AttachTorchObject (type read first) and network writer use the spec without a
-  null test; the lever's ApplyKey disables the lever it has just switched.
-
-## Skipped
-
-- 0052EA40 (SetMotionSpeeds with given speeds): only the multiplayer client calls it (00669FA0). 0050E9B0 (MapObject slot
-  34) packs vitals the builder never writes when the prototype exists: uninitialised stack, cannot be compared.
-- Candidates: 00522AE0 / 00522B20 (results depend on leftover register halves). A-U11 put the skill database's
-  STLport / compiler plumbing (0051F5B0-00522910, 26 functions), 0052CC50 (CArray SetAtGrow) and 0052CA40 / 0052CB40
-  (the lever table's hash_map operator[]) in config/library.csv.
-- Not unit logic: 00500000-0050E000 (`map_objects.md`), map object effect visuals (00510B80, 005112A0, 005114D0, 00511A00),
-  the client half's material sets and colour stack (0051C3D0, 0051C250, 0051B050, 0051B160, 0051C9F0: renderer data),
-  0051FF40 (writes "perks.pdb", no references: dead), the perks loader 00520220 (Rebirth-patched; its STLport helpers
-  0051F5B0 / 00521630 / 005218E0 are vector resize / insert-overflow instantiations), unit database STLport / MFC code (library: 0053F530, 0053FCC0,
-  0053F950, 00520FA0, 00521220, 0053E2A0, 00521C70, 0051F790, 005225E0, 00522480, 00522010, 00522160, 005222F0, 0052C740;
-  005335E0, 00539440, 00512060, 0051E5D0), 0053A200 and 00520220 (Rebirth-patched).
-- Inlined, no own function: 00519FC0 (zero part boxes), 0069FB60 (list AddTail pair), STLport `vector<int>::resize`
-  (004FE0C0). Ghidra calls 00700EFE MakeUpper; it is MakeLower (_mbslwr at 006EC8A8).
-
-## Risks and lessons
-
-- Destructors, the factory, the slot-style functions and the order / hit paths are consistency checks only. SkillPrice and
-  the experience curves are the original's sequence (`libcrt::CiPow`, `pc24::Log` / `Log10`, the int over Skill Val 2
-  through `pc24::Div`). 005179E0: the animation state's parts appear during the call (0050D320 gives it the model).
-- Not reached by every scenario: TakeRandomItem (stealing), TorchObject::CreateTorch, CollectUseSpots (no lever on zone1), AttributeWithItems,
-  ClientGetAttackParams, SkillPrice, packed WeaponSkillBonus (party unit holding a weapon), RemoveArmourModel (Rebirth's
-  GiveUnitArmor refuses text-key units), FireAtOccupants (only traps with a period above 0), DestroyNpcTable /
-  DestroyModelRecord, the lever's key slots 38-42 (science on a lever), the torch (none on zone1 known), the placed trap (use
-  a trap item), the player mode's tamed slots (taming). `levers.txt` switches zone1's gate "VGate" (id 1889, the only lever
-  on zone1; found by parsing the .mob records 0xBBAC0000) and saves / loads it. `magic_traps.txt` loads `traps.mob`, written
-  by `tools/make_trap_mob.py` into the run's harness_saves (a `# prepare:` line, `tools/prepare_scenario.py`), with
-  `AddMob("..\saves\traps.mob")`: one 0xA000 root with 0xD000 (leaves zone1's diplomacy alone), zone2's 0xDDDDDDD1 diplomacy
-  table and a 0xB000 with only the seven trap records (0xBBAB0000) renumbered 30001..30007 (zone2's own ids collided with
-  zone1's and crashed RemoveObject at 0059362A). AddMob's name is relative to the maps folder; a missing file hangs vanilla
-  (message box).
-- Shared-header hazards: Unit's old `speed*` fields are `boundsFlags` / `center[2]` / `radius` / `above[2]`; World
-  declares virtual slots 13-41 (named, world.h), so a later non-virtual WorldServer / WorldClient member with one of these
-  names silently overrides. The serialisers' verify relies on loading being
-  repeatable; `ComposeSkin` and `WearArmourModel` build CString / STLport temporaries in the original's order.
-
-## A-U12 (the range's leftovers, 0x00520000-0x00540000, and the Rebirth-patched loaders)
-
-After this ticket nothing in 0x00520000-0x00540000 is unported. Scenarios per wrapper: the head comments of
-`verify_unit_small_a12.cpp` and `verify_unit_db_load.cpp`.
-
-- **Statistics and database lookups** (`unit_db.cpp`): UnitStats::StrengthRatio / DexterityRatio (00523CB0,
-  00523CC0), the packed vitals / params field wrappers (00523700-00523730), ExcessDamage 00522AE0 (only AX is a result:
-  its caller 005CF9A0 masks every use), MaxDamage 00522B20, SchoolPrice 00527FF0, AttackParams::ScaleForDifficulty
-  0052E0D0, SkillDatabase::SkillAt / LevelAt (00526FF0, 00524FA0), UnitModelAt 00539280, UnitPrototypeAt 0053AD30. All
-  side by side except the field wrappers (ours only; no scenario, the state writers are rewritten and call the field
-  themselves). SchoolPrice truncates a difference of powers: one apart on a rounding edge is accepted (rule 7).
-- **The controllers' base** (`unit_controller.cpp`): the abstract controller's lifetime (00533D90, 00533DB0,
-  00533DD0, 00533DE0) and its empty / constant slots (00533B90-00533D80, 00534130, 00535580; most under five bytes, not
-  hookable), the client controller's path, class name and id (00533DF0, 00533E00, 00533E10),
-  UnitClientSpecific::SetMarkers 00535240 and DropFaceTexture 00538EA0. Side by side: the names / ids and
-  FiguresLoaded; the rest ours only.
-- **The unit** (`unit.cpp`, `unit_client_update.cpp`, `counted_ref.cpp`): the class name / id (0052E280,
-  0052E290), MotionSegmentConstruct 0052E230, Unit::SetMotionSpeeds 0052EA40, HasPlayer 005301A0, DoubleHeight
-  00530560, WornItem 00530830, ClientMotionChanged 00535B20, CountedListLoad 0052AF20 (a saved game with magic traps or
-  brains). Side by side: the names, HasPlayer, DoubleHeight, WornItem; the rest ours only.
-- **The databases' loads** (`unit_db.cpp`; Rebirth patches both, at their file lookup, so these are the vanilla
-  functions and install in the vanilla launch only): UnitDatabase::Load 0053A200 and SkillDatabase::Load 00520220, with
-  the model / level tables' FindByName copies 0053D240 / 0053D650 (operator[] on the name index: an unknown name gets a
-  null entry). `UnitDatabase` (unit_db.h) is now four typed tables (prototypes +0x00, NPCs +0x20, models +0x40, level
-  records +0x60; 0x80 bytes). The unit load makes four passes over one memory stream of `units.udb`, each with an archive
-  of its own: level records (chunk 1), models (2), prototypes (3), NPCs (4), entering every record into its table's
-  name index; then each prototype's modelIndex is the place of the model named by modelName and each model slot's
-  levelIndex the place of the level record named by levelName (-1: none). The skill load reads `perks.pdb`: chunk 1 the
-  skills, chunk 2 the level records (inlined: clear, resize to the count of chunks 1, one chunk 1 per record). Both
-  return 1, or what the fatal error report (00480080) returns when the archive or the file is missing. They call the
-  patched callees through their addresses (OpenResource 00671730, the resource's destructor 006714A0, the fatal error
-  00480080) and the vector serialisers through theirs so that those wrappers still run. Verified ours only (every start
-  of a vanilla launch): the tables are non-empty, every record is found by name in its index, every resolved index lies
-  in its table and names the record it stands for. FindByName is side by side (reached when the original loader runs:
-  every start of a Rebirth launch).
-- **config/library.csv** (STLport / MFC instantiations and unwind-only helpers; each row says why): 00520EF0, 005214B0,
-  00521C40, 0052C6B0, 0052CC30, 0052C8E0, 0052CE20, 0052CEC0, 0052E2C0, 00533720, 005338A0, 005338D0, 00533E20, 00536E30,
-  00539870, 00539910, 00539980, 0053B340, 0053D930, 0053D940, 0053D970, 0053D990, 0053D9B0, 0053EFF0, 0053F010, 0053F020.
-- **Original oddities kept**: both loads return the fatal error report's result on failure and never close the archive
-  on that path (its destructor does); the lookups insert a null entry for every unknown model or level name.
-- **Risks**: the two loads were not run by this worker (no game runs in this session): a wrong step would show at once
-  as a start-up failure of the vanilla launch or in the wrapper's checks. Their temporaries (the key strings of the
-  name index, the archives) are built in the original's order, but the unwind frames are not reproduced.
-- **Still forwarded on purpose**: the name indexes' operator[] (005335E0, 0053C650, 0053C780, 0053C8B0), the vectors'
-  resize / clear and the records' destructors (STLport instantiations, library.csv), the chunk archive's out-of-line
-  destructor 004645A0 (not in this range).
-
-## A-E1: the lever table's load (lever_table.cpp)
-
-`LeverRecordTable::Load` (00463390, RET 4; Rebirth-patched at its file lookup call 00463474, so it installs in
-the vanilla launch only): `<folder>database.res` opened in an archive of its own (the fatal error names
-"databases.res" when that fails, as the original), `Levers.ldb` fetched (missing: "Can't open Levers
-database"), copied into a memory stream, the records read as chunk 1 of a chunk archive opened for loading
-(00465090 through its address; the file's size is its unread third argument), then every record entered into
-the name index (lever.h now gives the table its layout: an STLport vector of LeverRecord and a hash map of
-string to record, the same instantiation shape as the unit database's indexes). The archive, the file, the
-stream and the resource are closed in the original's order. Side by side on the table itself: the original
-loads, the records are copied by content, ours loads again (records emptied and read anew, index entries of
-the same names overwritten) and both contents are compared; every record must be found under its name.
-Reached once at each start of the game from the application's start-up (00456440, in the exe).
-`resource_local.h` holds the stack archive and stream the two A-E1 loaders share (unit_db.cpp keeps its
-own copies).
-
-**PF1a, part-name tests without a CRT call per byte.** `Object3D::SetUpAnimatedFigure` (per bone) and `LoadPart` test each
-part name against BASE / CROWN / EMPTY; the game CRT's `_strnicmp` sends every upper-case byte through LCMapStringW under
-the game's locale. Ours compare with `text::CompareIgnoringCase` (src/lib/text_case.h, C35b; PF1a's case-fold table of
-the CRT's tolower went with the CRT's case functions). Profiling (EI_PLAIN=1 EI_PROFILE=1, world_load /
-models / net_lobby vanilla) found `_strnicmp` almost only under figure setup and `FindEntry`; the gain is about 10 ms of a 625 ms
-zone load. Skipped as not hot: `MappedResource::FindEntry` (resource.cpp) and `ServerSession::FindGuestConnection`
-(net_server_players.cpp). Checks: the part-name wrappers compare each part name against all three keywords both ways
-("map_object_figures part name fold"), and "ClassifyToken case fold" covers all 65536 byte pairs against `_strnicmp`.
-## CUnitClientModels per-tick update
-
-Virtual slot 6, the per-tick update on the client: the motion order's times
-shift by one tick while +0x260 is 1, +0x258 counts while +0x25C is 1, the weapon in hand is
-hidden during animations whose key has no low 15 bits (ShowWeaponParts); flags 8 (not
-drawn) for a unit dead for more than 50 ticks past +0x254 or without an animation, or in
-one of movement bits 0x30000 that is not a mode transition (0x240000); the fade-in
-goes to the drawn parts and grows by 1/15 up to 1; the colour flash countdown;
-the blink (+0xD0: every 2..9 ticks); the bow's arrow;
-the step sounds; the speech queue; for +0x255 == -2 with animation
-state +0x50 below 3, (0). Returns 1.
-
-## StatChanged on the client
-
-Virtual slot 46 (StatChanged), a hit on body location `location` (0 head .. 5 right leg) of
-strength `amount`; nothing for flag 8 or an amount up to 0.0001. The hit sound
-"weapons\<class>\<material>\1.wav" (class by the attacker's weapon, UnitParams +0x20: a
-kind below 0x10, else the prototype's hitSoundKind; material: the model's hitMaterial, for
-heroes the first armour worn over the location as "stone" (crystal, bone, stone),
-"Metal" or "leather") plays at 1000 from the unit; for a location's part ("hd", "bd", "lh2",
-"rh2", "ll2", "rl2") of loaded figures, blood particles of the model's bloodKind (0x200F,
-0x2031..0x2033) attach to the unit, and blood kinds 1..4 leave a decal near the part (two
-rand offsets within the unit's size, a rand variant).
-
-## Animation sounds
-
-The sounds of the animation playing between the last update's frame
-(+0x2C; 0 when the animation changed) and now: attacks (stop the idle sound; at the action's
-moment the prototype's +0x30 shakes the camera; heroes with +0x256 play the miss sound at
-1000) and deaths (stop the idle and speech sounds) and skills play ActionSound at priority
-1000, idles and hits at 0; run / walk (0x100000 / 0x140000) at a step frame play the footstep
-of the ground (unless silenced, effect 0x10) and, when not crawling, shake by the prototype's
-+0x30 and leave a footprint (model +0x10C / +0x110, part "ll<n>" / "rl<n>" by the step and
-the model's +0x11C) through the client world. An attack's sound waits for the
-speech sound and becomes it; an idle's becomes +0x88. Then +0x30 / +0x2C take the
-animation and frame.
+  computes the maximum from the current strength; UnitStats::Reset leaves some fields alone.
+- DamageSlot logs "termical" (sic) and one line per damage type; ApplyHit wears the weapon by the part each damage type
+  the protection absorbed; IsBehind is never true without a player.
+- Save writes the active weapon twice (the second read wins); name lookups insert unknown names (null record);
+  BuildNpcStats reads the prototype's model index before testing the prototype for null.
+- ApplyPrototype's vitals and statistics start from zero (the original's from uninitialised stack copies, in fields
+  nothing reads before they are recomputed).
+- CollectArmourPartNames pushes the five empty names of the helmet row; WearArmourModel stores the id even for armour
+  slots 3-6; RemoveArmourModel empties the slot before looking up the figure; DropBrokenEquipment gives broken pieces to
+  the player and releases the unit's reference after; Unit::Reset clears item slots without releasing; packed
+  WeaponSkillBonus reads the level byte for any type below 5, negative ones too.
+- CollectUseSpots trusts the record's spot count; CastAtUnits returns without restarting the countdown when it finds no
+  unit and changes the caller's list; ChangeWeaponModel leaves the arrow flag when the new slot holds no weapon;
+  UpdateVictims tests only x and y against the circles while FindTrapVictims uses the sector map (a unit in two circles
+  is found twice); a periodic trap whose countdown reached 0 and found nobody searches again every tick; PickLocation
+  reads a slot kind before its range check; FindAnimation's last fallback gets the kind without the movement
+  substitution.
+- LoadTrap reads the spell id and counts into its argument's slot and appends to the list instead of replacing it.
+- `HitEffect`: heroes index the armour table by the hit location without a range check. `Object3D::LoadPart` returns
+  null for a part the figure has no piece of without releasing the new part object.
+- TrapObject's first field is saved and loaded but never initialised; a trap's 0x100000 flag changes nothing but is
+  cleared when nobody is near; the torch's Load, Save, attach and network writer use the spec without a null test; the
+  lever's ApplyKey disables the lever it has just switched.
 
 ## Ack kinds
 
 `AckKind` (`ack_kind.h`) is the one enum of the codes in message 0x0B (`PlayerServer::SendObject0B`, `UnitServer::Shout`,
-`WorldServer::TellParties`; the client's `OnUnitSpeech` reads it back and `acks::SayAck` picks the list). The wire
-carries the dword; `SendObject0B` converts once and `PlayerClient::OnUnitSpeech` converts back once. The names are
-the folders of acks.db's sounds (Acks\<unit>\<folder>
-.wav), read from the unit table's chunks (the chunk-to-kind
-order is `kUnitChunks` / `kUnitKinds`; the models table's 0x2E..0x32 are Agress / Suspect / Kill / Rest / InAgress).
-Where the code's old names disagreed with the data, the data won: 0x0B is `NoWayToAttack` ("I cannot reach there",
-not "target lost"; 0x12 `NoTarget` is "where did he go"), 0x0E `NoPath` (not "cannot do"), 0x0F `NoMana` (acks.db
-"CantCast": no strength to cast) against 0x13 `SpellTooComplex` ("ComplSp": "am I a great mage?"), 0x14 / 0x15
-`Overloaded` / `Injured` (what UpdateSneak says when running is refused). 0x0C `OutOfReach` has no speech list in any
-unit record (silent); 0x11 `ScienceFailed` is also what a quick item without a charge says. 0x16 and 0x18..0x1B have no
-list either. `Shout` and the planner pass only the kinds up to `Bored` and `Kill` (`IsShoutable`); `None` (-1) is the
+`WorldServer::TellParties`; the client's `OnUnitSpeech` reads it back and `acks::SayAck` picks the list). The names are
+the folders of acks.db's sounds (Acks\<unit>\<folder>.wav), read from the unit table's chunks (`kUnitChunks` /
+`kUnitKinds`; the models table's 0x2E..0x32 are Agress / Suspect / Kill / Rest / InAgress). Where the code's old names
+disagreed with the data, the data won: 0x0B is `NoWayToAttack` ("I cannot reach there"; 0x12 `NoTarget` is "where did he
+go"), 0x0E `NoPath`, 0x0F `NoMana` (acks.db "CantCast") against 0x13 `SpellTooComplex` ("ComplSp"), 0x14 / 0x15
+`Overloaded` / `Injured` (what UpdateSneak says when running is refused). 0x0C `OutOfReach` has no speech list in any unit
+record (silent); 0x11 `ScienceFailed` is also what a quick item without a charge says. 0x16 and 0x18..0x1B have no list
+either. `Shout` and the planner pass only the kinds up to `Bored` and `Kill` (`IsShoutable`); `None` (-1) is the
 planner's "say nothing".
 
 ## Creation helpers
 
-Slot 14's body: a new object of class id `classId`
-(0x32..0x34 units, 0x35..0x3C the other map objects, 0x300D, 0x3010), constructed; null for
-other ids.
-Gives `unit` the starting equipment of prototype
-`name` (unit_db.h), made by the world's item manager (world slot 18; spells also take what
-slot 22 returns, asked first): a unit of type 0x32 equips each armour piece and gets the
-weapon (unless named "none" or empty; the slot it lands in becomes +0x270) and the second
-weapon; every unit gets each spell. A piece that cannot be made gets a FatalError message
-(a weapon is added even then: AddWeapon(null) returns 0, so +0x270 becomes 0). Without the
-prototype a FatalError message and 0; else 1.
+`MapObjectManager::NewObject`: a new object of class id `classId` (0x32..0x34 units, 0x35..0x3C the other map objects,
+0x300D, 0x3010), constructed; null for other ids. `GiveStartingEquipment` gives `unit` the starting equipment of prototype
+`name`, made by the world's item manager: a unit of type 0x32 equips each armour piece and gets the weapon (unless named
+"none" or empty; the slot it lands in becomes the active weapon) and the second weapon; every unit gets each spell. A
+piece that cannot be made gets a FatalError message (a weapon is added even then: AddWeapon(null) returns 0, so the
+active weapon becomes 0). Without the prototype a FatalError message and 0; else 1.
+
+## CUnitClientModels per-tick update
+
+The client controller's per-tick update: the motion order's times shift by one tick while its flag is 1, a counter runs
+while another is 1, the weapon in hand is hidden during animations whose key has no low 15 bits (ShowWeaponParts); flags
+8 (not drawn) for a unit dead for more than 50 ticks or without an animation, or in one of movement bits 0x30000 that is
+not a mode transition (0x240000); the fade-in goes to the drawn parts and grows by 1/15 up to 1; the colour flash
+countdown; the blink (every 2..9 ticks, rand()); the bow's arrow ("rh3.arrow00"); the step sounds; the speech queue.
+Returns 1.
+
+## StatChanged on the client
+
+A hit on body location `location` (0 head .. 5 right leg) of strength `amount`; nothing for flag 8 or an amount up to
+0.0001. The hit sound "weapons\<class>\<material>\1.wav" (class by the attacker's weapon: a kind below 0x10, else the
+prototype's hitSoundKind; material: the model's hitMaterial, for heroes the first armour worn over the location as
+"stone" (crystal, bone, stone), "Metal" or "leather") plays at 1000 from the unit; for a location's part ("hd", "bd",
+"lh2", "rh2", "ll2", "rl2") of loaded figures, blood particles of the model's bloodKind (0x200F, 0x2031..0x2033) attach to
+the unit, and blood kinds 1..4 leave a decal near the part (two rand offsets within the unit's size, a rand variant).
+
+## Animation sounds
+
+The sounds of the animation playing between the last update's frame (0 when the animation changed) and now: attacks
+(stop the idle sound; at the action's moment the prototype's shake value shakes the camera; heroes play the miss sound at
+1000) and deaths (stop the idle and speech sounds) and skills play ActionSound at priority 1000, idles and hits at 0;
+run / walk (0x100000 / 0x140000) at a step frame play the footstep of the ground (unless silenced, effect 0x10) and,
+when not crawling, shake and leave a footprint (part "ll<n>" / "rl<n>" by the step) through the client world. An
+attack's sound waits for the speech sound and becomes it.

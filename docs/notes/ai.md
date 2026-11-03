@@ -1,157 +1,82 @@
-# AI map, path search, unit motion (0x005A0000-0x005D0000)
+# AI map, path search, unit motion
 
-Code (layouts and per-function comments are in `ai_map.h`, `ai_motion.h`, `ai_unit_layer.h`,
-`sector_map.h`; each file's header says what it does): `ai_map.cpp` (cell queries, heights, line of
-sight), `ai_footprint*.cpp`, `ai_bridges.cpp`, `ai_occluders.cpp`, `ai_refresh.cpp`,
-`ai_region_reach.cpp`, `ai_path*.cpp`, `ai_movement.cpp`, `ai_map.cpp`, `ai_motion.cpp`, `ai_movement.cpp`,
-`ai_unit_layer.cpp`, `sector_map.cpp`, and the small ones named in the table. Verify:
-`tests/verify/verify_ai_*.cpp`, `verify_sector_map.cpp`. Scenario: `tests/scenarios/movement.txt`
-(the map functions also run in every scenario). Names are provisional.
+Code (layouts and per-function comments are in `ai_map.h`, `ai_motion.h`, `ai_unit_layer.h`, `sector_map.h`; each
+file's header says what it does): `ai_map*.cpp` (cell queries, heights, line of sight, construction, load),
+`ai_footprint*.cpp`, `ai_bridges.cpp`, `ai_occluders.cpp`, `ai_refresh.cpp`, `ai_region_reach.cpp`,
+`ai_block_search.cpp`, `ai_local_search.cpp`, `ai_path*.cpp`, `ai_movement.cpp`, `ai_motion.cpp`, `ai_unit_layer.cpp`,
+`ai_events.cpp`, `sector_map.cpp`, `sector_spiral.cpp`. Scenario: `tests/scenarios/movement.txt` (the map functions
+also run in every scenario).
 
-## How a unit moves (the per-tick path)
+## How a unit moves
 
-The unit movement tick 00547890 (controller `this`, outside the range) for a moving unit:
-`UnitMotion::Sample` (005C7430) on the trajectory at Unit + 0x27C with the controller's order
-(controller + 0x3C, the AIPath) and the world time gives the next position, direction and speed;
-`SectorMap::Remove`; `CanStandAtFromHere` at the new cell; `BlockingUnitAt` (005B7BB0) when it
-cannot stand there; `SectorMap::Add`; then `SectorMap::Move` (Rebirth-patched), which lifts and
-re-stamps the unit through `MarkFootprint` -> `UnitShape` (005B8350) and the unit layers (005B36B0 /
-005B3890, whose virtual callbacks write the cell levels). When the path needs new steps
-`ContinuePath` / `AdvancePath` refill them and `SetStepSpeeds` (005BA400) prices them; 0052E9D0 then
-rebuilds the trajectory with `UnitMotion::Build` (005C67D0). 00548520 at the end of the tick asks
-`StandsOnCheapCell` (005BA5A0). Long paths: `PlanLongPath` (005B9C90, region chain, then local
-searches per leg) -> `BuildCellsTo` (005B9A20).
+The unit movement tick (combat.md) for a moving unit: `UnitMotion::Sample` on the unit's trajectory with the
+controller's order (the AIPath) and the world time gives the next position, direction and speed; `SectorMap::Remove`;
+`CanStandAtFromHere` at the new cell; `BlockingUnitAt` when it cannot stand there; `SectorMap::Add`; then
+`SectorMap::Move`, which lifts and re-stamps the unit through `MarkFootprint` -> `UnitShape` and the unit layers (whose
+Set / Merge write the cell levels). When the path needs new steps `ContinuePath` / `AdvancePath` refill them and
+`SetStepSpeeds` prices them; the unit's RefreshMotion then rebuilds the trajectory with `UnitMotion::Build`. At the end
+of the tick `StandsOnCheapCell`. Long paths: `PlanLongPath` (region chain, then local searches per leg) ->
+`BuildCellsTo`.
 
-## The map archive (AIMap::Load)
+## The map archive
 
-`ai_map_load.cpp`. A map archive holds one .mp file (MapHeader, the materials, a type word per tile texture, the
-animated tiles) and a .sec file per sector of 32 x 32 terrain squares (SectorHeader, 33 x 33 vertices, the same again
-for the water when the sector has any, then 16 x 16 tile words, the water's tile words and the water's material
-indices). The AI map has 2 x 2 cells per terrain square and 4 x 4 per tile: 64 x 64 cells per sector. The original is
-one function; ours splits it into LoadTerrain (everything read from the files) and AttachTerrain (the rest), and its
-locals (archives, registry, strings) are destroyed at the end of the step that uses them instead of at the very end
-(nothing reads them in between). Rebirth patches the function.
+`AIMap::Load` (`ai_map_load.cpp`): a map archive holds one .mp file (MapHeader, the materials, a type word per tile
+texture, the animated tiles) and a .sec file per sector of 32 x 32 terrain squares (SectorHeader, 33 x 33 vertices, the
+same again for the water when the sector has any, then 16 x 16 tile words, the water's tile words and the water's
+material indices). The AI map has 2 x 2 cells per terrain square and 4 x 4 per tile: 64 x 64 cells per sector.
+LoadTerrain reads the files, AttachTerrain does the rest.
 
-## Regions (RegionMap::ReachesRegion, LabelRegions)
+## Regions
 
-The region map keeps, per size class, a u16 region per 8x8 block and the block's representative cell (rows of
-bytes: low nibble x, high nibble y in the block). `ReachesRegion` asks whether cell (x, y) can reach a region:
-when none of the 3x3 blocks around the cell's block is in the region, the cell's block is marked unreachable (2)
-in `marks`; otherwise the local search floods the 3x3 blocks from the cell, the region is reached when a
-representative cell of one of them that is in the region was reached, and every reached cell of the window gets
-the answer (1 yes, 2 no). `LabelRegions` numbers the connected areas of blocks per size class: each class's
-region grid is cleared, and every block still 0 starts a new region (1, 2, ...) flooded from a queue of blocks.
+The region map keeps, per size class, a u16 region per 8x8 block and the block's representative cell (rows of bytes: low
+nibble x, high nibble y in the block). `ReachesRegion` asks whether cell (x, y) can reach a region: when none of the 3x3
+blocks around the cell's block is in the region, the cell's block is marked unreachable (2) in `marks`; otherwise the
+local search floods the 3x3 blocks from the cell, the region is reached when a representative cell of one of them that
+is in the region was reached, and every reached cell of the window gets the answer (1 yes, 2 no). `LabelRegions` numbers
+the connected areas of blocks per size class: each class's region grid is cleared, and every block still 0 starts a new
+region (1, 2, ...) flooded from a queue of blocks.
 
-## Facts
+## The map's data
 
-- The map's grids are `SearchGrid` members (search_grid.h: a `std::vector` of `height` rows of `rowLength` elements, sized
-  by `Resize(width, height, fill, perCell)`, which leaves a grid of that size alone; `grid[y][x]` reads a row; the
-  original's row pointer table and the cells it left as allocated are gone: new cells are `fill`, 0 by default): `waterDepth` (+0x1F4),
-  `cells` (+0x2698, the map's size is `cells.width` x `cells.height`), `occluders` (+0x26A8), `marks` (+0x26B8).
-  The large-unit layer's Set / Merge also write signed bytes into `waterDepth`'s rows (the small layer writes
-  the cells' `level` byte).
-- The packed words have names in ai_map.h (C45d1): AIMapCell::flags is the water's depth (kCellDepthMask, set by
-  the map load; the old "object height" was wrong), kCellBridge and kCellWater (InWaterAt);
-  AIMapCell::Passability reads a size class's nibble; namespace `occluder` reads and writes the occluder word;
-  RepresentativeX / Y the region map's cells. The occluder kinds (sector_map.h OccluderKind) come from the part
-  names (model.h BoundsFlag: "CROWN" kind 2, "BASE" a bridge, "EMPTY" no footprint), the spells' walls and clouds
-  (kind 3, HasSpellArea) and ApplyBridgeDecks (kind 4); no part gives kind 1, whose cost-table entries (20, damping 2)
-  are unused.
-- UnitLayer (AIMap + 0x27C small, + 0x12A4 large; 0x1028 bytes): MFC CList of every node ever
-  allocated, 1024 hash buckets by (block x * 17 + block y), 4x4 blocks; vtable 0073FD74 (small) /
-  0073FD6C (large), slots 0 Set / 1 Merge. Shape cache: owner 007C2F70, hash_map 007C2F78, shapes
-  keyed by standing height rounded up to tenths. Globals: direction table 00791988, class heights
-  007912BC, climb-neighbour table 007916BC, spiral tables 007C2FC4..007C2FFC, spiral cache 007C2F48,
-  list vtable 0073D454.
-- Path cells' second dword (`BuildCellsTo`, 005B9A20): the original fills `flags` from a stack
-  slot it never writes, 20 bytes below the planner's stack pointer; there the planner (005B9C90)
-  leaves either 0 or, after any leg, `SearchCommit`'s row offset 4 * (last row + 1), in practice 0x84.
-  `PlanLongPath` records it (`CommitLeg`) and `BuildCellsTo` uses it. Readers: `SetStepSpeeds`
-  rewrites both halves of every step but the last, whose flags stay as built; the steering
-  (ai_motion.cpp) reads every step's flags as its speed word. (Writing 0 gave the last step of every
-  path speed 0.) The region chain cells (`BlockSearchPathTo`) are read only for x and y.
-- Sample / trajectory: waypoints at the order start, at path corners (direction change > 45
-  degrees; table 00791988), and the target; one point per path cell, speed = step speed * scale / 512,
-  slowed where turning takes longer than the way (`LimitSpeeds`); the unit first turns in place unless
-  the first direction is within acos(0.9) of its facing; segments are fitted with two Hermite cubics.
-- Calls to originals so the verify wrappers see them: SectorMap::Add / Remove / FindUnitsInRadius,
-  MarkFootprint (from sector_map.cpp, ai_path.cpp), `LineOfSight` (005BC3E0, its ST0 is taken
-  unrounded). Virtual callbacks (layer Set / Merge) are free `__fastcall` functions called through the
-  vtable (`ei::VCall`).
-- None of this area is in `docs/rebirth-patched-functions.txt` except `SectorMap::Move` (005C11D0),
-  and `AIMap::Load` (005B43C0, `ai_map_load.cpp`, A-W15), both installed only in the vanilla run.
+- The grids are `SearchGrid`s (search_grid.h: a `std::vector` of `height` rows of `rowLength` elements, sized by
+  `Resize(width, height, fill, perCell)`, which leaves a grid of that size alone; `grid[y][x]` reads a row; new cells are
+  `fill`, 0 by default): `waterDepth`, `cells` (the map's size), `occluders`, `marks`. The large-unit layer's Set / Merge
+  also write signed bytes into `waterDepth`'s rows (the small layer writes the cells' `level` byte).
+- The packed words have names in ai_map.h: AIMapCell::flags is the water's depth (kCellDepthMask), kCellBridge and
+  kCellWater; AIMapCell::Passability reads a size class's nibble; namespace `occluder` reads and writes the occluder word.
+  The occluder kinds (sector_map.h `OccluderKind`) come from the part names (model.h BoundsFlag: "CROWN" kind 2, "BASE"
+  a bridge, "EMPTY" no footprint), the spells' walls and clouds (kind 3, HasSpellArea) and ApplyBridgeDecks (kind 4); no
+  part gives kind 1, whose cost-table entries are unused.
+- `UnitLayer` (small and large): a list of every node ever allocated, 1024 hash buckets by (block x * 17 + block y), 4x4
+  blocks. Unit shapes are cached keyed by standing height rounded up to tenths.
+- Path cells' second dword: the original's `BuildCellsTo` filled `flags` from a stack slot it never wrote, where the
+  planner leaves either 0 or, after any leg, `SearchCommit`'s row offset 4 * (last row + 1), in practice 0x84.
+  `PlanLongPath` records it (`CommitLeg`) and `BuildCellsTo` uses it. `SetStepSpeeds` rewrites both halves of every step
+  but the last, whose flags stay as built; the steering reads every step's flags as its speed word (writing 0 gave the
+  last step of every path speed 0). The region chain's cells are read only for x and y.
+- Trajectory: waypoints at the order start, at path corners (direction change > 45 degrees), and the target; one point
+  per path cell, speed = step speed * scale / 512, slowed where turning takes longer than the way (`LimitSpeeds`); the
+  unit first turns in place unless the first direction is within acos(0.9) of its facing; segments are fitted with two
+  Hermite cubics.
+- The AI events (`AIEventTable`, ai_event_table.h, after the map): a time wheel (`Advance`), `ForgetUnit` drops a dead
+  unit's events; saved with the map.
+- The smoothing tables and the spiral tables are built on first use (`SmoothTables`, `SectorSpiralTables`).
 
-## Rewritten
+## Original bugs kept
 
-Every function carries its address in its source comment (grep the address); the per-function table that used to be here is gone.
-By file:
-- `ai_map.cpp`: cell queries and heights (LevelForSizeClass 005B7B20, StandingLevel, BridgeHeight, GroundHeight(At), SurfaceHeightAt,
-  TopHeightAt, SlopeAt, MaterialAt, CanStandAtFromHere 005B64E0, IsUnitCellPassable, IsPassableForClass, CanLeaveCell), IsPassable
-  005B79D0, IsPassableWithoutSelf 005B7A40, CanStandAt 005B80F0, LineOfSight 005BC3E0, SpiralCache::Get 005BFC40, FindFreeCellNear
-  005BA9D0. `ai_footprint*.cpp`: FootprintCellSet, MarkFootprint 005B6A80, Apply / Stamp / ClearFootprint, Begin / EndRefresh, the
-  cloud and wall shapes; `ai_bridges.cpp` ApplyBridgeDecks 005B6740 (OccluderKind::BridgeDeck, ground >= deck, terrain type occluder::kBridgeType); `ai_occluders.cpp`;
-  `ai_map_construct.cpp` (AIMap::AIMap 005B3C30, AIMap::Reset 005B5E10: refresh flag off, owner 0, inlined vtables and layer back
-  pointers); `ai_map.cpp`, `ai_map.cpp`; `ai_refresh.cpp` (RefreshArea 005B8FA0, CellMark, LimitSteepCells,
-  ClearUnmarkedArea 005B89F0); `ai_water_patch.cpp` StampWaterPatch 005B7EF0; `ai_events.cpp` StepAlarm 005AEA80; `ai_unit_shape.cpp`
-  CacheGet 005BD7F0 (object cache lookup for unit shapes); `ai_map.cpp` LargestStepAlong 005BC750.
-- `ai_region_reach.cpp` RegionMap 005AF1C0-005B1180 (BlockSearchPathTo, JoinBlockSearches, FloodRegionFrom, LabelRegions,
-  DominantRegion, ReachesRegion, FindRegionChain, ...); `ai_block_search.cpp` (BlockSearch Attach / Requeue / Relax / PickBest /
-  Expand 005AED60-005AF0C0, SeedSearch, AttachSearches, UpdateBlocks 005AFC70).
-- Paths: `ai_path.cpp` (SnapTarget 005BAC10, FindPath 005BB350, ContinuePath 005BB900, AdvancePath 005BB190, PathCellList::NewNode),
-  `ai_path.cpp` (stand orders: no cells, flags {1, 0, 0, 1}, target = the unit's cell), `ai_path_save.cpp` (LoadPath 005B2430,
-  SavePath 005B2570), `ai_movement.cpp` PlanLongPath 005B9C90, `ai_map.cpp` JoinLocalSearches 005B9690 / BuildCellsTo 005B9A20,
-  `ai_local_search.cpp` (LocalSearch 005C1D50-005C35F0, CostContextFor 005B9580), `ai_path.cpp` (PathCellList 005BD200-005C6000,
-  PathCell::Step 005C5CC0), `ai_path_smooth.cpp` (PathSmoother Smooth 005C46C0 / Advance 005C45D0 / Relax 005C44D0, SmoothPool::SetSize
-  005C4C20), `ai_path_state.cpp` (AIPath::WriteState / ReadState 005C7DB0 / 005C7FC0, the order and steps on a delta field).
-- Motion: `ai_motion.cpp` (UnitMotion::Sample 005C7430, SamplePath 005C6FC0, Build 005C67D0, AssignCells, Subdivide(Segment),
-  LimitSpeeds, MotionCubic::Fit, AIPath Start / Reset / Clear / SetTurn / SetTurnUntil / SetTrack / SetTarget / ShiftTime /
-  Destination / ForgetObject, UnitMotion::LoadState / SaveState 005C7860 / 005C79B0 = the unit save at Unit + 0x27C),
-  `ai_movement.cpp` (BlockingUnitAt 005B7BB0, UnitShape 005B8350, CostContext 005B9510, StandsOnCheapCell 005BA5A0,
-  AIMap::SetStepSpeeds 005BA400, MarkVisibleCells 005BC970, FogGrid::Grow 005C8D40 (Include stays the forwarder)),
-  `ai_unit_layer.cpp` (UnitLayer Add 005B36B0 / Remove 005B3890, small / large Set / Merge 005B39D0-005B3B90).
-- `sector_map.cpp`: SectorMap Init 005C06F0, UnitsAt 005C0930, FindUnitsInRadius 005C0BD0, Add 005C0DF0, Remove 005C1010, Move 005C11D0.
-  `ai_events.cpp`: AIEventTable (a AIMap member after the map, ai_event_table.h) Advance 005C9530 (the time wheel's tick), ForgetUnit 005C97B0 (a dead
-  unit's events), Load / Save 005CAE30 / 005CAFA0; AIEvent records come from the pool CList 007C43A8 and the free list 007C53F0.
-
-## Original bugs and oddities kept on purpose
-
-- Local search (`LocalSearch`, ai_map.h; AIMap + 0x2594 / + 0x2614): `Requeue` leaves a node that is its bucket's head in
-  place even when its cost changes. `PathTo` fills the cells' second dword from a stack slot it never writes; its only
-  caller (JoinLocalSearches) leaves the forward search's address there (Best pushes ESI), so ours writes that address.
-  `ExpandUntil` forms the target's row pointer without a bounds check (only compared). `Recenter` that fails on a
-  move of 31 cells or more has already moved the window and row table (the nodes stay); its grid copy (005C4BA0) is inlined.
-- Path smoother (AIMap + 0x22CC, trellis of nine states per cell over the transition tables 007C3058, node pool 007C3038):
-  the cells it rebuilds get second dwords from two stack slots the original never writes (the tail one, the stepped ones);
-  ours give them the old tail's. Which value vanilla leaves depends on FindPath's earlier calls; the steering reads the
-  last step's flags as its speed word (see BuildCellsTo). The first-cell climb test is `<= 0`, the later ones `< 0`.
-
-- FindPath computes the fractional part of the snapped target twice from `targetX` (the second was presumably meant to be `targetY`), stores odd values in the second dword of single-cell path entries (the unit's y in
-  half-cells minus 0.5 in one branch, min(|dx|, |dy|) in the other) before overwriting the low half with 0x200, and re-checks whether the unit is in the target cell in its local-search branch. SnapTarget divides 0/0
-  (NaN steps) when the unit already stands in the target cell with sameRegion; the NaN propagates as in the original (FCOMPP / FCOM treat NaN as "less").
-- MarkFootprint resets the scratch sets' buckets only when `hashed` is set, and nothing clears it; the new-cell record of AddTop / AddBottom has an uninitialised padding byte (ours 0; verify skips it), the wall / cloud
-  shapes leave byte 0x13 and `next` as stack garbage (ours 0 and -1). CanStandAtFromHere reads the unit's own cell without a bounds check; LevelForSizeClass sets only AL for a class outside 0..7.
-- LimitSteepCells clears the neighbour that broke the scan, or entry 4 of the table when none did, four times over. LargestStepAlong returns 1.0 for a NaN length like for zero (FCOMP sets C3). DominantRegion counts in a
-  temporary CList in the original, ours in a local array of at most nine entries (heap traffic differs, not the result); ReachesRegion's 3x3 block list is a static CArray (007C2EE0) freed with plain delete every call (ours a local);
-  LabelRegions calls the out-of-line SetSize 005B16D0 instead of the inlined one.
-- Sample kind 3 and SamplePath normalise angles with `while` loops that never end on NaN; UnitMotion::Build reads the first trajectory point even for a path with no steps; SamplePath compares the time with |turn / rate|
-  twice (the inner test cannot fail); SetStepSpeeds and StandsOnCheapCell ask the unit for its movement speeds (0052F920) and never use them (ours skips the call). UnitLayer::Add copies an uninitialised stack element
-  into each new node and Remove passes its callback a record with an uninitialised first dword (ours zeros); small / large layer Set / Merge check only the block's first cell against the map size and write all 16.
-
-## Skipped and why
-
-- 005C9310 (the event table's add, Rebirth-patched: ResOverride). 005D7970 (the fear order's operator=: only the original 005D30A0 calls
-  it; our Fear inlines it). 005C6E30 (waypoint constructor) is inlined. 005A0000-005AF000 (AI helpers of other systems: voice, groups) and
-  005C8xxx / 005C9xxx above 005C8D40 (time wheel, containers) are not movement code.
-- Run only by game.exe's static initialisers; ours build on first use, compared with game.exe's by the path vectors'
-  @PathTables (until C70; world.md "Rewritten"): the smoothing tables 005C42B0 with 005C3690, 005C3840,
-  005C3A00, 005C3E10, 005C4050 (`ai_path_smooth.cpp` SmoothTables), the spiral 005BF8F0 / 005BF5F0 (`sector_spiral.cpp`
-  SectorSpiralTables). The shape cache 005B32E0 / 005B31F0 (`ai_unit_shape.cpp`). 005C4F30, 005C5930, 005C5AB0, 005C5A80 are MFC and the shape cache helpers 005BCCB0, 005BE320,
-  005BE450, 005BE730 STLport hash_map instantiations (config/library.csv).
-
-## Risks
-
-- Float order follows the instruction order; intermediates are `double` where the original keeps them on the FPU stack (identical at 24 or
-  53-bit precision, could differ in the last bit at 64-bit). `CollectFootprint` (every face of every part) is the most sensitive.
-- `Sample` kind 3 calls the world's slot 0xA0/4 and the tracked object's slot 0xD0/4 or 0xD4/4 twice in the verify build (assumed free of
-  side effects). Unit layers, `ForgetObject`, `SetStepSpeeds`, FindPath / PlanLongPath were checked for consistency only; `UnitShape`'s
-  create path follows the original's helper calls one by one.
+- Local search: `Requeue` leaves a node that is its bucket's head in place even when its cost changes. `PathTo` fills the
+  cells' second dword with the forward search's address (what the original's unwritten slot held). `Recenter` that fails
+  on a move of 31 cells or more has already moved the window and row table.
+- Path smoother: the cells it rebuilds get the old tail's second dwords (the original's came from unwritten stack
+  slots); the first-cell climb test is `<= 0`, the later ones `< 0`.
+- FindPath computes the fractional part of the snapped target twice from `targetX` (the second was presumably meant to be
+  `targetY`), stores odd values in the second dword of single-cell path entries before overwriting the low half with
+  0x200, and re-checks whether the unit is in the target cell in its local-search branch. SnapTarget divides 0/0 (NaN
+  steps) when the unit already stands in the target cell with sameRegion; the NaN propagates.
+- MarkFootprint resets the scratch sets' buckets only when `hashed` is set, and nothing clears it. CanStandAtFromHere reads
+  the unit's own cell without a bounds check.
+- LimitSteepCells clears the neighbour that broke the scan, or entry 4 of the table when none did, four times over.
+  LargestStepAlong returns 1.0 for a NaN length like for zero.
+- Sample kind 3 and SamplePath normalise angles with `while` loops that never end on NaN; UnitMotion::Build reads the
+  first trajectory point even for a path with no steps; small / large layer Set / Merge check only the block's first cell
+  against the map size and write all 16.

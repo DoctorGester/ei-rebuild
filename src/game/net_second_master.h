@@ -1,6 +1,6 @@
 // EI_Plugin's NewMaster: the second master server (the plugin's is hat.gipath.org:28004; ours is the setting
 // ei::rebirth::PluginSecondMaster(), empty by default).
-// More: docs/notes/comments-c22i.md, "net_second_master.h".
+// More: docs/notes/network.md, "Sessions and messages".
 #pragma once
 
 #include "platform/platform.h"

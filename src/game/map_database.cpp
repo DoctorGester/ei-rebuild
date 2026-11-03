@@ -1,6 +1,6 @@
 // The map database loader: MapDatabase's allods, maps and exits (object_tables.h) filled from map.txt / map-
 // LMP.txt.
-// More: docs/notes/comments-c22i.md, "map_database.cpp".
+// More: docs/notes/objects.md, "Map database".
 #include "angles.h"
 #include "console.h"
 #include "game_singletons.h"

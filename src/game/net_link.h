@@ -2,7 +2,7 @@
 
 // Message links over streams: the endpoints a player's messages go through, and the pump that keeps a driver
 // link per remote player.
-// More: docs/notes/comments-c22i.md, "net_link.h".
+// More: docs/notes/network.md, "Message links".
 
 #include "core_refcount.h"
 #include "core_streams.h"

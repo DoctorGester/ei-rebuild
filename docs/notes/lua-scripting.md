@@ -1,20 +1,19 @@
-# Lua scripting: plan (2026-10-14, for after the standalone exe)
+# Lua scripting: plan
 
-Goal (user, 2026-10-14): run the game's mission scripts on Lua without changing the assets, and let mods write scripts in
+Goal: run the game's mission scripts on Lua without changing the assets, and let mods write scripts in
 Lua, with running scripts (coroutines included) kept in saves. Tickets L1-L9 in docs/tickets.md. Engine details are in
 `script.md`; Rebirth's extensions are in `rebirth.md` ("AddNewScriptCommands").
 
 ## What the current engine is
 
-- **Language.** It has no operators: every value comes from a built-in function. There are 300 keywords in the table at
-  0078BCA0, and Rebirth adds 69 more, replacing 7 of the originals.
+- **Language.** It has no operators: every value comes from a built-in function. There are 300 keywords in the table, and Rebirth adds 69 more, replacing 7 of the originals.
 - **Control flow.**
   - Each script instance re-checks its `if(...)then(...)` rules on every tick until KillScript.
   - For / ForIf walk a group from last to first.
   - There are four waits: Sleep, WaitSegment, SleepUntil and SleepUntilIdle.
   - A wait inside a For body ends that body for the current member, so a run only ever waits at a top-level command of its
     block.
-- **Saves hold the whole VM, compiled program included** (ScriptSave 004C0F90):
+- **Saves hold the whole VM, compiled program included** (ScriptSave):
   - command blocks, definitions, globals and instances;
   - every waiting run as block id, command index, ticks, sleep start, and a copy of its locals.
 
@@ -66,8 +65,6 @@ Lua, with running scripts (coroutines included) kept in saves. Tickets L1-L9 in 
   - Eris supports 5.3 and has a 5.2 branch, but not 5.4: confirm this before vendoring.
   - Luau has no `goto`, but does have a sandbox and types; Ares is the less proven of the two.
 - **Old-format saves.** Keep writing them while possible, or go Eris-only.
-- **String encoding.** Lua strings carry cp1251 until U1-U5 switch to UTF-8; mods should see whatever the engine uses at
-  that point.
 
 ## Verification
 
@@ -76,7 +73,7 @@ Lua, with running scripts (coroutines included) kept in saves. Tickets L1-L9 in 
 - **Coverage.** Every scenario, plus a corpus that loads each mission's scripts and runs N ticks.
 - **Saves.** Round trips: old save loaded into Lua, Lua save loaded into Lua, and old save loaded into the old engine and
   compared.
-- **Determinism.** The `deterministic` step and SV1's virtual clock make the runs repeatable.
+- **Determinism.** The `deterministic` step and the harness's virtual clock make the runs repeatable.
 
 ## Risks
 
