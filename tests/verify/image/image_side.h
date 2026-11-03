@@ -137,7 +137,7 @@ void LeaveToZone(void* connection, const char* name, int exit);
 // The device's surfaces restored after a minimise (the image's device holds no DirectDraw object: nothing to
 // restore); false without a device.
 bool RestoreSurfaces(long* result);
-// "hudstate": the battle screen's state logged; a failure, or "" (harness_hud_read.inc).
+// "hudstate": the battle screen's state logged; a failure, or "" (harness_objects_image.cpp).
 std::string HudState(void* screen, const std::string& argument);
 
 // ---- the main loop's calls the harness steps into (harness.cpp, harness_capture.cpp;

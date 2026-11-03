@@ -13,8 +13,7 @@ range's bytes (the image's copy of the sections is zero: C20t).
 C25d, the proof of each definition when it was made):
   * every tagged initialiser is well formed: its numbers pack by the declared element type (TYPES; a struct type its
     fields' formats, nested braces flattened), it lies in .rdata past the import table or .data and its zero-filled
-    tail, no addon.dll site but NAMED_ADDON_SITES (the ones the image writes itself), no two ranges overlapping, and one
-    in .rdata is constexpr;
+    tail, no two ranges overlapping, and one in .rdata is constexpr (but WRITTEN_RDATA);
   * config/named_data.csv lists exactly the tagged ranges (address, size, name, file): `--update` writes it;
   * a pointer element (TYPES 'P': `const char* const kX[] = /*addr*/ {"a", "b"};`, a struct's pointer field, or
     one pointer `constexpr const char* kX = /*addr*/ "text";`) names a string literal, another named range (qualified
@@ -446,25 +445,11 @@ def definitions(sources=None):
     return found
 
 
-def addon_sites():
-    """(begin, end) of the cells addon.dll writes (tests/verify/addon_sites.inc)."""
-    import rdata_literals
-    return [(a, a + n) for a, n in rdata_literals.addon_sites()]
-
-
-# The addon.dll sites a retired vtable may hold (see check: the image's class reproduces the slot), and the
-# generated list of sites that names them (game.exe's addresses; the harness's addon fix set read it until H40).
-RETIRED_ADDON_SITES = {0x007432F4}   # ResOverride: CMappedResource's slot 5, GetFile (007432E0, C19 batch 3)
-# The addon.dll sites a named range may hold (and addon_sites.inc may name, for the harness in game.exe): a patch
-# disabled here (config/rebirth_patches.csv), whose cell is a plain global of ours that the image's flag would write,
-# or one the image's code reproduces by writing our global (C25a: WideScreen). address -> why. One in .rdata is written
-# all the same (not const).
-NAMED_ADDON_SITES = {
+# The .rdata cells our code writes (addon.dll's in game.exe), so not constexpr: address -> why.
+WRITTEN_RDATA = {
     0x00742B08: "WideScreen's layout width: screen_layout::g_layoutWidth, written by screen_layout.cpp's Startup",
     0x007428AC: "WideScreen's panels' right column: screen_layout::g_panelRight, written by screen_layout.cpp's Startup",
-    0x00783E34: "SetDefaultRate (disabled here) writes Settings\\Rate over net::g_remoteRate (net_session.cpp)",
 }
-ADDON_SITES_INC = 'tests/verify/addon_sites.inc'
 
 
 def other_files():
@@ -528,12 +513,9 @@ def check(update):
         if not (RDATA[0] <= lo and hi <= RDATA[1] or DATA[0] <= lo and hi <= DATA[1]):
             problems.append(f'{d.where()}: {d.name} {lo:08X}+{d.size} is not in .rdata past the import table or .data')
             continue
-        own_site = any(lo <= a < hi for a in NAMED_ADDON_SITES)
-        if hi <= RDATA[1] and not d.const and not own_site:
+        written = any(lo <= a < hi for a in WRITTEN_RDATA)
+        if hi <= RDATA[1] and not d.const and not written:
             problems.append(f'{d.where()}: {d.name} is in .rdata, which nothing writes: declare it constexpr')
-        for a, b in addon_sites():
-            if a < hi and lo < b and a not in NAMED_ADDON_SITES:
-                problems.append(f'{d.where()}: {d.name} overlaps the addon.dll site {a:08X}: that cell is written')
     good = sorted((d for d in defs if d.size), key=lambda d: d.address)
     for x, y in zip(good, good[1:]):
         if y.address < x.address + x.size:
@@ -542,14 +524,6 @@ def check(update):
     # The retired vtables (config/vtables.csv, C19): no definition, the same proof that nothing reaches them.
     import retired_vtables
     retired = [Retired(v, n, cls, path) for v, n, cls, path in retired_vtables.retired_vtables()]
-    # addon.dll's sites are game.exe's: addon only ran in game.exe (the harness's addon fix set until H40), never in the
-    # image, which reproduces its patches behind flags. A retired vtable may hold a site whose slot the image's
-    # class reproduces (RETIRED_ADDON_SITES: ResOverride's GetFile slot, CMappedResource::GetFileImpl through
-    # mod_folders), and addon_sites.inc may name it; any other site in a retired vtable is a problem.
-    for r in retired:
-        for a, b in addon_sites():
-            if a < r.address + r.size and r.address < b and a not in RETIRED_ADDON_SITES:
-                problems.append(f'{r.where()}: {r.name} overlaps the addon.dll site {a:08X}: that slot is written')
     # The unread objects (config/unread_data.csv): the same proof; no named range overlaps one.
     unread = [Unread(a, n, i) for a, n, i in read_unread()]
     for u in unread:
@@ -573,7 +547,7 @@ def check(update):
             d = inside(a)
             # The harness keeps a few of game.exe's tables as ids (ExeTableId, tests/verify/harness_digest.cpp).
             original_read = rel.startswith('tests/') and ORIGINAL_READ.search(code, max(0, m.start() - 80), m.start())
-            if d and not original_read and not (rel == ADDON_SITES_INC and (a in RETIRED_ADDON_SITES or a in NAMED_ADDON_SITES)):
+            if d and not original_read:
                 line = raw.count('\n', 0, m.start()) + 1
                 problems.append(f'{rel}:{line}: names {a:08X}, inside {d.name} ({d.where()}): use the name')
     text = csv_text(good)

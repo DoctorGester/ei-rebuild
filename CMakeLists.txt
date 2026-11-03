@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-# Two systems: Windows with MSVC (build.cmd: the release and verify builds, 32-bit x86 or x64) and Linux with gcc or
+# Two systems: Windows with MSVC (build.cmd: the release and verify builds, x64) and Linux with gcc or
 # clang (docs/notes/linux.md: the game on SDL3, POSIX and OpenGL). The harness (for now) and the offline checks against
 # Windows' drawing and keys build on Windows.
 project(EvilIslands CXX)
@@ -9,8 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 # Two builds (build.cmd): `release` is the product (ei-rebuild.exe, the whole game); `verify` is the harness build,
-# the same program with the harness linked in (tests/verify: scenario runs of the image). On x64 (build.cmd
-# verify-x64) that build's ei_launch starts the x64 image (run_all.py --x64).
+# the same program with the harness linked in (tests/verify: scenario runs of the image).
 option(EI_HARNESS "Build the harness, linked into ei-rebuild.exe" OFF)
 
 # SDL3 (third_party/SDL; docs/notes/platform.md, "SDL3"): the window, its events, the cursor, the mouse, the clipboard,
@@ -53,16 +52,15 @@ if(WIN32)
     # (ei-rebuild+offset) to functions.
     add_link_options("$<$<NOT:$<CONFIG:Debug>>:/OPT:REF;/OPT:ICF>" /MAP)
     # AddressSanitizer (build.cmd asan: the verify build with it, into build\asan; docs/notes/harness.md): every target
-    # instrumented (the STL's container annotations must match across the libraries), the runtime DLL copied beside
-    # the executables and 4 GB of address space for its shadow, redzones and quarantine. Its reports go to the run's
+    # instrumented (the STL's container annotations must match across the libraries) and the runtime DLL copied beside
+    # the executables. Its reports go to the run's
     # folder (tests/verify/image/asan_report.cpp). Without it the executables load their DLLs from System32 only: a
     # game folder may hold a wrapper of the same name (dgVoodoo's beside the original's game.exe).
     option(EI_ASAN "Build with AddressSanitizer (/fsanitize=address)" OFF)
     if(EI_ASAN)
         add_compile_options(/fsanitize=address)
-        add_link_options(/LARGEADDRESSAWARE)
         get_filename_component(EI_CL_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
-        file(COPY "${EI_CL_DIR}/clang_rt.asan_dynamic-i386.dll" DESTINATION "${CMAKE_BINARY_DIR}")
+        file(COPY "${EI_CL_DIR}/clang_rt.asan_dynamic-x86_64.dll" DESTINATION "${CMAKE_BINARY_DIR}")
     else()
         add_link_options(/DEPENDENTLOADFLAG:0x800)
     endif()
@@ -192,54 +190,12 @@ if(WIN32)
     target_compile_definitions(ei_launch PRIVATE UNICODE _UNICODE)
     target_include_directories(ei_launch PRIVATE src)
 
-    # Replays the recorded function vectors (tests/vectors/vectors.h) against our code without the game: the
-    # families' sources, their checks, and a stub of ei::Standalone. build.cmd runs it. 32-bit only (its recordings
-    # are).
-    if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-    file(GLOB EI_REPLAY_SOURCES CONFIGURE_DEPENDS tests/vectors/replay_*.cpp)
-    set(EI_VECTORS_GAME_SOURCES
-            src/game/ai_block_search.cpp
-            src/game/ai_map.cpp
-            src/game/ai_local_search.cpp
-            src/game/ai_motion.cpp
-            src/game/ai_movement.cpp
-            src/game/ai_path.cpp
-            src/game/ai_path_smooth.cpp
-            src/game/ai_region_reach.cpp
-            src/game/core_maths.cpp
-            src/game/core_refcount.cpp
-            src/game/game_buffer.cpp
-            src/game/projection.cpp
-            src/game/net_coder.cpp
-            src/game/random.cpp
-            src/game/script_blocks.cpp
-            src/game/script_group.cpp
-            src/game/script_load.cpp
-            src/game/script_parse.cpp
-            src/game/script_parse_load.cpp
-            src/game/unit_db_globals.cpp
-            src/game/options_construct.cpp
-            src/game/script_vars.cpp
-            src/game/sector_spiral.cpp
-            src/game/settings_document.cpp
-            src/game/unit_stats.cpp
-            src/game/unit_params.cpp
-            src/game/unit_skill_price.cpp
-            src/lib/crt.cpp
-            src/lib/crt_format.cpp
-            src/lib/crt_maths.cpp
-            src/lib/hash_map.cpp
-            src/lib/pc24.cpp
-            src/lib/rebirth.cpp
-            src/lib/str.cpp
-            src/lib/text_case.cpp)
-    list(TRANSFORM EI_VECTORS_GAME_SOURCES PREPEND "${CMAKE_SOURCE_DIR}/")
-    # EI_VECTORS_REPLAY: the game's data at fixed addresses comes from the checks' stand-in (src/game/game_data.h).
-    add_executable(ei_vectors ${EI_REPLAY_SOURCES} tests/vectors/hook_stub.cpp ${EI_VECTORS_GAME_SOURCES})
-    target_include_directories(ei_vectors PRIVATE include src)
-    target_compile_definitions(ei_vectors PRIVATE EI_VECTORS_DATA="${CMAKE_SOURCE_DIR}/tests/vectors/data" EI_VECTORS_REPLAY)
-    target_link_libraries(ei_vectors PRIVATE ei_platform)
-    endif()
+    # The unit checks (tests/unit): the settings file's format and lib::HashMap's walk order, without the game.
+    # build.cmd runs it.
+    add_executable(ei_unit_check tests/unit/unit_check.cpp tests/unit/settings_file.cpp tests/unit/hash_map.cpp
+                   src/game/settings_document.cpp src/lib/hash_map.cpp src/lib/text_case.cpp)
+    target_include_directories(ei_unit_check PRIVATE include src)
+    target_link_libraries(ei_unit_check PRIVATE ei_platform)
 
     # Offline check of the interface text layout (render_text): DrawText rules on synthetic cases, and a
     # report against GDI on the game's strings (tools/text_check; GDI only there).
@@ -267,7 +223,7 @@ else()
     # cases on OpenGL (tests/render/glyph_cases.cpp, as tools/ui_check runs them on Direct3D 11).
     enable_testing()
     add_executable(ei_port_check tests/port/port_check.cpp src/lib/text_case.cpp src/game/settings_document.cpp
-                   tests/vectors/replay_settings.cpp)
+                   tests/unit/settings_file.cpp)
     target_include_directories(ei_port_check PRIVATE include src)
     target_link_libraries(ei_port_check PRIVATE ei_platform)
     add_test(NAME port_platform COMMAND ei_port_check)

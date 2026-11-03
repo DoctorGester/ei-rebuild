@@ -1,6 +1,5 @@
 // What learning a skill level or raising a school costs; the interface's
-// skill pages call them. With the level record lookup they use, so ei_vectors links
-// them without the rest of the skill database. See unit.h (UnitStats::SkillPrice) and
+// skill pages call them, with the level record lookup they use. See unit.h (UnitStats::SkillPrice) and
 // docs/notes/units.md ("Statistics in play"). Float maths at the main thread's 24-bit precision; the powers are the
 // game CRT's _CIpow (libcrt::CiPow), the logarithm the original's FYL2X (pc24::Log10).
 #include "logic_settings.h"

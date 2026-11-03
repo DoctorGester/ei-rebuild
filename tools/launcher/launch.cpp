@@ -21,8 +21,6 @@
 // "dropin" step (tests/verify/harness_dropin.h). The folder is removed when the game has ended. A run of a scenario
 // with a line "# drop-in: <why>" is one too (run_all's runs of tests/scenarios/dropin_*.txt).
 //
-// The x64 verify build (build.cmd verify-x64) has its own ei_launch, built for x64 beside its x64 ei-rebuild.exe.
-//
 // A run with --harness ends whatever state the game is in: the harness's watchdog thread ends it at the
 // scenario's "timeout" (60 s unless the scenario says otherwise); if that thread cannot run, ei_launch ends
 // it kTimeoutMargin later. The game runs in a job object that is killed with ei_launch, so it (and any

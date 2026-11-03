@@ -84,7 +84,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref != 'main' && inputs.ref || github.ref }}   # the input's default main: the branch the run was started on
-          # Keep the ignored build folders between runs: a clean checkout rebuilt all seven builds from nothing
+          # Keep the ignored build folders between runs: a clean checkout rebuilt all the builds from nothing
           # (6.5 of a run's 9.5 minutes); incremental they take a fraction of that.
           clean: false
 
@@ -94,11 +94,8 @@ jobs:
           rm -f suite_*.txt build_*.log
           git clean -ffdq -e build/   # untracked files of an earlier ref, but not the build folders
           builds="verify release"
-          if [ "$SUITES" = full ]; then
-            builds="verify release x64 verify-x64"
-            # debug / asan / play (the merge builds) on main only; a branch push gets the ones the suites use
-            [ "$GITHUB_REF_NAME" = main ] && builds="verify release debug asan play x64 verify-x64"
-          fi
+          # debug / asan / play (the merge builds) on main only; a branch push gets the ones the suites use
+          [ "$SUITES" = full ] && [ "$GITHUB_REF_NAME" = main ] && builds="verify release debug asan play"
           fail=0
           for c in $builds; do
             cmd //c ".\\build.cmd $c > build_$c.log 2>&1" || { echo "::error::build $c failed"; tail -40 build_$c.log; fail=1; }
@@ -113,10 +110,6 @@ jobs:
       - name: Rebirth suite
         if: ${{ !cancelled() && steps.build.outcome == 'success' && env.SUITES == 'full' }}
         run: python tools/work.py test CI --rebirth-only --golden --jobs 4 2>&1 | tee suite_rebirth.txt | tail -40
-
-      - name: x64 suite
-        if: ${{ !cancelled() && steps.build.outcome == 'success' && env.SUITES == 'full' }}
-        run: python tools/work.py test CI --x64 --golden --jobs 4 2>&1 | tee suite_x64.txt | tail -40
 
       - name: Summary
         if: always()

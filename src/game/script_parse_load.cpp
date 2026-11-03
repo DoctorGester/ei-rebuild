@@ -26,7 +26,6 @@
 
 using namespace scriptparse;
 
-#ifndef EI_VECTORS_REPLAY   // ei_vectors has its own (tests/vectors/replay_script.cpp)
 int Script::Error(Script* script, int line, int code, const char* format, ...) {
     va_list args;
     va_start(args, format);
@@ -34,7 +33,7 @@ int Script::Error(Script* script, int line, int code, const char* format, ...) {
     va_end(args);
     return result;
 }
-#endif
+
 namespace {
 
 // ---- Small helpers ------------------------------------------------------------------------------

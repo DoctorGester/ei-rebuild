@@ -448,8 +448,7 @@ NTSTATUS NTAPI GuardedDeleteFile(POBJECT_ATTRIBUTES attributes) {
     return g_ntDeleteFile(attributes);
 }
 
-#if defined(_M_X64)
-// ntdll's system call stubs in an x64 process (build.cmd verify-x64): MOV R10,RCX; MOV EAX,<number>; TEST BYTE PTR
+// ntdll's system call stubs: MOV R10,RCX; MOV EAX,<number>; TEST BYTE PTR
 // [7FFE0308],1; JNZ +3; SYSCALL; RET; INT 2E; RET: 24 position-independent bytes, copied whole as the call's original.
 constexpr std::size_t kStubBytes = 24;
 constexpr std::size_t kCopyBytes = 32;
@@ -476,15 +475,6 @@ void WriteAbsoluteJump(BYTE* at, const void* to) {
     std::memset(at + 2, 0, 4);
     std::memcpy(at + 6, &to, sizeof(to));
 }
-#else
-// ntdll's system call stubs in a 32-bit process on 64-bit Windows: MOV EAX,<number>; MOV EDX,<the WOW64 call>;
-// CALL EDX; RET <bytes>: 15 position-independent bytes, copied whole as the call's original.
-constexpr std::size_t kStubBytes = 15;
-constexpr std::size_t kCopyBytes = 16;
-bool IsStub(const BYTE* p) {
-    return p && p[0] == 0xB8 && p[5] == 0xBA && p[10] == 0xFF && p[11] == 0xD2 && p[12] == 0xC2;
-}
-#endif
 
 struct Stub {
     const char* name;
@@ -536,11 +526,7 @@ void GuardNtdll() {
             return;
         }
     }
-#if defined(_M_X64)
     auto* copies = AllocateNear(ntdll);
-#else
-    auto* copies = static_cast<BYTE*>(VirtualAlloc(nullptr, 4096, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
-#endif
     if (!copies) {
         Problem("no memory for ntdll's stubs: install writes are not guarded");
         return;
@@ -548,11 +534,9 @@ void GuardNtdll() {
     for (std::size_t i = 0; i < std::size(stubs); ++i) {
         std::memcpy(copies + kCopyBytes * i, stubs[i].code, kStubBytes);
         *stubs[i].original = copies + kCopyBytes * i;
-#if defined(_M_X64)
         BYTE* relay = copies + kCopyBytes * (std::size(stubs) + i);
         WriteAbsoluteJump(relay, stubs[i].replacement);
         stubs[i].replacement = relay;
-#endif
     }
     DWORD old;
     VirtualProtect(copies, 4096, PAGE_EXECUTE_READ, &old);

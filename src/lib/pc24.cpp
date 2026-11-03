@@ -9,10 +9,6 @@
 #include <cstddef>
 #include <cstdint>
 
-#if defined(_M_IX86) && (!defined(_M_IX86_FP) || _M_IX86_FP < 2)
-#error "pc24.cpp needs SSE2 doubles: on the main thread's 24-bit x87 a double rounds to a float's 24 bits"
-#endif
-
 namespace pc24 {
 
 namespace {

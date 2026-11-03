@@ -1,6 +1,6 @@
 # Release: run by hand (Actions > Release > Run workflow) with a version such as v0.1.0. It tags the chosen commit,
-# pushes the tag, builds ei-rebuild.exe for x86 and x64 (build.cmd release / x64, the build checks included; the
-# goldens need the game's data and are not run here) and publishes a GitHub release with both exes.
+# pushes the tag, builds ei-rebuild.exe for x64 (build.cmd release, the build checks included; the goldens need the
+# game's data and are not run here) and publishes a GitHub release with the exe.
 name: Release
 
 on:
@@ -54,20 +54,15 @@ jobs:
             -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
           "EI_VSROOT=$vs" >> $env:GITHUB_ENV
 
-      - name: Build x86
+      - name: Build
         shell: cmd
         run: build.cmd release
-
-      - name: Build x64
-        shell: cmd
-        run: build.cmd x64
 
       - name: Package
         shell: pwsh
         run: |
           New-Item -ItemType Directory dist | Out-Null
-          Copy-Item build\release\ei-rebuild.exe dist\ei-rebuild-x86.exe
-          Copy-Item build\x64\ei-rebuild.exe dist\ei-rebuild-x64.exe
+          Copy-Item build\release\ei-rebuild.exe dist\ei-rebuild.exe
 
       - name: Tag
         shell: bash
@@ -84,5 +79,5 @@ jobs:
         run: |
           flags=""
           if [ "${{ inputs.prerelease }}" = "true" ]; then flags="--prerelease"; fi
-          gh release create "${{ inputs.version }}" dist/ei-rebuild-x86.exe dist/ei-rebuild-x64.exe \
+          gh release create "${{ inputs.version }}" dist/ei-rebuild.exe \
             --title "${{ inputs.version }}" --generate-notes $flags

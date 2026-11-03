@@ -2,8 +2,8 @@
 nothing, so they run side by side; their output comes in the order below. Run alone they took about 9 s one after
 another, together about as long as the slowest.
 
-usage: python tools/build_checks.py BUILD_DIR [--times] [--x64]   (exit code 1 when any check fails; --times: each one's
-seconds; --x64: the x64 build, which has no function vectors: their recordings and replay are 32-bit only)
+usage: python tools/build_checks.py BUILD_DIR [--times]   (exit code 1 when any check fails; --times: each one's
+seconds)
 """
 import os, subprocess, sys, time
 from concurrent.futures import ThreadPoolExecutor
@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def checks(out, x64):
+def checks(out):
     py = [sys.executable]
     tool = lambda name: os.path.join(ROOT, 'tools', name)
     return [
@@ -31,8 +31,8 @@ def checks(out, x64):
         py + [tool('check_platform.py')],
         # docs/settings.md against the settings catalog, and the catalog against the settings the code reads (C69).
         py + [tool('gen_settings_doc.py'), '--check'],
-        # Function vectors recorded from the original, replayed against our code without the game (tests/vectors).
-        *([] if x64 else [[os.path.join(out, 'ei_vectors.exe')]]),
+        # Checks of our code without the game: the settings file, lib::HashMap's order (tests/unit).
+        [os.path.join(out, 'ei_unit_check.exe')],
         # The interface canvases (src/render/render_ui) on a WARP device against CPU rules and GDI (tools/ui_check).
         [os.path.join(out, 'ei_ui_check.exe')],
         # The SDL backend's keys against Windows' layouts (tools/input_check).
@@ -53,12 +53,12 @@ def run(cmd):
 
 
 def main(argv):
-    args = [a for a in argv[1:] if a not in ('--times', '--x64')]
+    args = [a for a in argv[1:] if a != '--times']
     if len(args) != 1:
         print(__doc__)
         return 2
     out = os.path.abspath(args[0])
-    cmds = checks(out, '--x64' in argv)
+    cmds = checks(out)
     with ThreadPoolExecutor(len(cmds)) as pool:
         results = list(pool.map(run, cmds))
     failed = []

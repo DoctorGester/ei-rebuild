@@ -138,8 +138,7 @@ LONG CALLBACK Handler(EXCEPTION_POINTERS* info) {
     const std::uint32_t* q = g_unit.rotation;
     std::fprintf(g_file, "u%u dr%X", g_updates, unsigned(c->Dr6 & 0xF));
     Print(InstructionPointer(*c));
-    std::fprintf(g_file, " q %08X %08X %08X %08X fcw %04X <", unsigned(q[0]), unsigned(q[1]), unsigned(q[2]),
-                 unsigned(q[3]), FpuControlWordOf(*c));
+    std::fprintf(g_file, " q %08X %08X %08X %08X <", unsigned(q[0]), unsigned(q[1]), unsigned(q[2]), unsigned(q[3]));
     const auto* stack = reinterpret_cast<const std::uintptr_t*>(StackPointer(*c));
     int found = 0;
     for (int i = 0; i < 256 && found < kCallers; ++i) {

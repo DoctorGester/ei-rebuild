@@ -8,7 +8,7 @@ literal stands for (below); the tagged literals were checked against the bytes o
 (`--check`, removed in C25d with the build's reads of game.exe). Strings were C11's (tools/exe_strings.py).
 
 What stays data (the cell is written at run time):
-  * the sites addon.dll writes (tests/verify/addon_sites.inc, generated from config/rebirth_patches.csv):
+  * the .rdata sites addon.dll writes (ADDON_RDATA_SITES, from config/rebirth_patches.csv):
     007428AC and 00742B08 (the interface's widescreen layout widths), 007432F4 (the mod-folder
     string pointer), 0073B720 (the movies path pointer);
   * the import address table (0073B000-0073B820), and any cell NaN / infinite (kept by bits).
@@ -38,14 +38,8 @@ TYPES = {'float': ('f', 4), 'double': ('d', 8), 'int': ('i', 4), 'std::uint32_t'
 TAG = re.compile(r'(\(?-?(?:\d+\.\d*|\.\d+|\d+)(?:[eE][+-]?\d+)?[fFuU]?\)?|\(?-?0[xX][0-9A-Fa-f]+[uU]?\)?)\s*/\*([0-9A-F]{8})( f)?\*/')
 
 
-def addon_sites():
-    out = []
-    with open(os.path.join(ROOT, 'tests', 'verify', 'addon_sites.inc')) as f:
-        for line in f:
-            m = re.search(r'0x([0-9A-Fa-f]{8})\)?,\s*(\d+)', line)   # 0x.. or ei::DataId(0x..)
-            if m:
-                out.append((int(m.group(1), 16), int(m.group(2))))
-    return out
+# The .rdata cells addon.dll writes: (address, size).
+ADDON_RDATA_SITES = [(0x007428AC, 4), (0x00742B08, 4), (0x007432F4, 4), (0x0073B720, 4)]
 
 
 class Exe:
@@ -57,8 +51,7 @@ class Exe:
             for va, size, raw in secs:
                 if va == RDATA[0] - 0x820 and other[raw:raw + size] != self.data[raw:raw + size]:
                     self.same = False
-        sites = addon_sites()
-        self.written = [(a, a + n) for a, n in sites if RDATA[0] - 0x820 <= a < RDATA[1]]
+        self.written = [(a, a + n) for a, n in ADDON_RDATA_SITES]
 
     def bytes(self, address, n):
         for va, size, raw in self.sections:
