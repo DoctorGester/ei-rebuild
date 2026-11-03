@@ -20,7 +20,8 @@ args]` (work-board.md). Each run writes to its own folder, `build\verify\runs\<s
 config/rebirth_scenarios.csv and the scenarios with Rebirth-specific steps, `--rebirth-only` runs those alone,
 `--all-rebirth` every scenario). The installs' folders are `EI_GAME_VANILLA` and `EI_GAME_REBIRTH` (default
 `F:\games\EvilIslands`, `F:\games\Evil Islands (Rebirth)`; run_all.install_dir, also play.cmd's and the tools that read
-game.exe, tools/exe_path.py). `EI_BUILD_DIR` points run_all at another verify build.
+game.exe, tools/exe_path.py); a `work.py test` batch carries the submitter's two, so a suite on the stub data
+(linux.md, "The stub data") goes through the scheduler too. `EI_BUILD_DIR` points run_all at another verify build.
 
 How a run starts (run_all.launch, tools/game_process.py): the exe itself, with the working directory and `EI_GAME_ROOT`
 the install, `EI_HARNESS` the scenario, `EI_OUT_DIR` the run folder and `EI_INSTALL_ROOTS` both installs. No

@@ -148,9 +148,17 @@ INSTALL_ENV = {'vanilla': 'EI_GAME_VANILLA', 'rebirth': 'EI_GAME_REBIRTH'}
 DEFAULT_INSTALLS = {'vanilla': r'F:\games\EvilIslands', 'rebirth': r'F:\games\Evil Islands (Rebirth)'}
 
 
-def install_dir(data):
-    """The folder of the install whose data a run plays: data 'vanilla' or 'rebirth' (GOLDEN_INSTALL's names)."""
-    return os.environ.get(INSTALL_ENV[data]) or DEFAULT_INSTALLS[data]
+def install_dir(data, environ=None):
+    """The folder of the install whose data a run plays: data 'vanilla' or 'rebirth' (GOLDEN_INSTALL's names), from
+    environ (default: this process's environment). A batch of work.py test carries the submitter's (install_environment):
+    the stub data's runs (tools/stub_data.py) go through the scheduler too."""
+    return (os.environ if environ is None else environ).get(INSTALL_ENV[data]) or DEFAULT_INSTALLS[data]
+
+
+def install_environment(environ=None):
+    """The install variables set in environ (default: this process's): {name: folder}."""
+    environ = os.environ if environ is None else environ
+    return {name: environ[name] for name in INSTALL_ENV.values() if environ.get(name)}
 
 
 # EI_* variables that are not settings of a game: where the build, the installs and the references are, the machine's
@@ -351,9 +359,10 @@ def launch(scenario, out, data, build, env=None, command=None):
         if not os.path.exists(peer):
             return 2, f"the peer's scenario {peer} not found\n"
         games.append(Game(peer, os.path.join(out, 'peer'), 'peer: '))
-    game_root = install_dir(data)
-    base = dict(os.environ if env is None else env, EI_GAME_ROOT=game_root,
-                EI_INSTALL_ROOTS=os.pathsep.join([game_root, install_dir('vanilla'), install_dir('rebirth')]))
+    environ = os.environ if env is None else env
+    game_root = install_dir(data, environ)
+    base = dict(environ, EI_GAME_ROOT=game_root,
+                EI_INSTALL_ROOTS=os.pathsep.join([game_root, install_dir('vanilla', environ), install_dir('rebirth', environ)]))
     pair = f'ei_pair_{os.getpid()}_{time.monotonic_ns()}'
     group = game_process.Group()
     outputs = []
@@ -384,7 +393,7 @@ def launch(scenario, out, data, build, env=None, command=None):
                     game.proc.wait(5)
         for f in outputs:
             f.close()
-    code = finish(games, data, timed_out, unkillable, said.append)
+    code = finish(games, game_root, data, timed_out, unkillable, said.append)
     for game in games:
         with contextlib.suppress(OSError):
             os.remove(game.quit)
@@ -478,7 +487,7 @@ def add_failures(report, failures):
     write_lines(report, lines + added if at is None else lines[:at] + added + lines[at + 1:])
 
 
-def finish(games, data, timed_out, unkillable, say):
+def finish(games, game_root, data, timed_out, unkillable, say):
     """The run's result code once its games have ended, the report completed: a game that died before its harness wrote
     a result, the peer's result, the settings file the scenario expects."""
     if not timed_out and not unkillable:
@@ -493,7 +502,7 @@ def finish(games, data, timed_out, unkillable, say):
     if len(games) > 1:
         merge_peer_report(main.report, games[1].report, say)
     if not timed_out and not unkillable:
-        check_settings_file(main.report, main.scenario, main.out, data == 'rebirth', say)
+        check_settings_file(main.report, main.scenario, main.out, data == 'rebirth', game_root, say)
     if timed_out:
         return UNKILLABLE_EXIT if unkillable else TIMEOUT_EXIT
     return 0 if any(l.startswith(b'RESULT: PASS') for l in read_lines(main.report) or []) else 1
@@ -560,7 +569,7 @@ def expected_settings_file(scenario, rebirth):
     return None
 
 
-def check_settings_file(report, scenario, out, rebirth, say):
+def check_settings_file(report, scenario, out, rebirth, install, say):
     expected_path = expected_settings_file(scenario, rebirth)
     if not expected_path or not any(l.startswith(b'RESULT: PASS') for l in read_lines(report) or []):
         return   # nothing to check, or another failure comes first
@@ -576,7 +585,6 @@ def check_settings_file(report, scenario, out, rebirth, say):
     else:
         a = [l.rstrip(b'\r\n').decode('utf8', 'replace') for l in actual]
         # "{install}" in the expected file: the run's install folder (the game writes its own folder's paths).
-        install = install_dir('rebirth' if rebirth else 'vanilla')
         e = [l.rstrip(b'\r\n').decode('utf8', 'replace').replace('{install}', install) for l in expected]
         shown = lambda lines, i: '(none)' if i >= len(lines) else '"' + lines[i][:150] + ('...' if len(lines[i]) > 150 else '') + '"'
         differing = [i for i in range(max(len(a), len(e))) if a[i:i + 1] != e[i:i + 1]]

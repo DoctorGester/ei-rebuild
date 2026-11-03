@@ -739,6 +739,11 @@ class SchedTest(unittest.TestCase):
             self.assertEqual(run_all.install_dir('vanilla'), 'V')
             self.assertEqual(run_all.install_dir('rebirth'), run_all.DEFAULT_INSTALLS['rebirth'])
         self.assertNotIn('EI_GAME_VANILLA', run_all.game_environment({'EI_GAME_VANILLA': 'V', 'EI_GAME_ROOT': 'R'}))
+        # a batch's own folders (the stub data, H41): its environment's, not the scheduler's
+        with mock.patch.dict(os.environ, {'EI_GAME_VANILLA': 'V'}):
+            self.assertEqual(run_all.install_dir('vanilla', {'EI_GAME_VANILLA': 'S'}), 'S')
+            self.assertEqual(run_all.install_dir('rebirth', {}), run_all.DEFAULT_INSTALLS['rebirth'])
+            self.assertEqual(run_all.install_environment(), {'EI_GAME_VANILLA': 'V'})
 
 
 if __name__ == '__main__':

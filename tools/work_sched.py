@@ -656,6 +656,7 @@ def cmd_test(db, args):
         sys.exit(f'work.py: {build}/{run_all.EXE} is missing; build.cmd verify first')
     expected = work.expected_times(db, root, jobs, run_all.load_times(build))    # timing table, else run_times.json
     env = run_all.game_environment()
+    env.update(run_all.install_environment())   # EI_GAME_VANILLA / EI_GAME_REBIRTH: another data folder (stub data)
     if ra.golden:
         # The digest the goldens were recorded with; the comparison runs here, after the batch, so the
         # scheduler gets run_all's arguments without --golden.

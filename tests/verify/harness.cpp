@@ -904,6 +904,31 @@ void RefuseInstallWrite(const std::string& path, const std::string& mapped) {
     Log("harness: install: write refused: %s%s%s", path.c_str(), path == mapped ? "" : " -> ", path == mapped ? "" : mapped.c_str());
 }
 
+// The read trace (EI_READTRACE=1; H41's stub data, tools/stub_data.py): every install path the game reads, lists or
+// asks about, once each, in harness_reads.txt beside the report ("+" there, "-" missing), so the files a suite needs
+// can be listed from its runs (docs/notes/linux.md, "The stub data").
+bool g_readTrace = false;
+std::mutex g_readsLock;
+std::vector<std::string> g_reads;
+
+void TraceRead(const std::string& mapped) {
+    if (!InInstall(mapped)) return;
+    const std::string full = sys::FullPath(mapped);
+    std::lock_guard<std::mutex> lock(g_readsLock);
+    for (const std::string& seen : g_reads)
+        if (text::CompareIgnoringCase(seen.c_str() + 2, full.c_str()) == 0) return;
+    g_reads.push_back(std::string(sys::Exists(full.c_str()) ? "+ " : "- ") + full);
+}
+
+void WriteReads() {
+    if (!g_readTrace) return;
+    FILE* f = sys::OpenFile(ei::OutputPath("harness_reads.txt"), "w");
+    if (!f) return;
+    std::lock_guard<std::mutex> lock(g_readsLock);
+    for (const std::string& path : g_reads) std::fprintf(f, "%s\n", path.c_str());
+    std::fclose(f);
+}
+
 // The report's failure for the refused writes, "" without any.
 std::string InstallFailure() {
     std::lock_guard<std::mutex> lock(g_refusedLock);
@@ -975,6 +1000,7 @@ void WriteReport() {
     for (const std::string& failure : failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());
     std::fprintf(f, "RESULT: %s\n", !failures.empty() ? "FAIL" : "PASS");
     std::fclose(f);
+    WriteReads();
     Log("harness: report written (%u failures)", unsigned(failures.size()));
 }
 
@@ -2977,6 +3003,7 @@ struct Harness {
         Log("harness: %lld MB free on the run folder's disk", sys::FreeMegabytes(g_savesDir));
         sys::CopyText(g_rootDirs[0], sys::FullPath(starter::GameFolder()).c_str());
         FindInstallRoots();
+        g_readTrace = platform::EnvironmentVariable("EI_READTRACE") == "1";
 
         // A scenario's "resolution" / "widescreen" (or EI_RESOLUTION / EI_WIDESCREEN), the image's small
         // window otherwise: harness_starter.cpp.
@@ -3056,7 +3083,9 @@ std::string MapPath(std::string_view path, platform::PathUse use) {
     char b[kPath];
     if (use == platform::PathUse::Read) {
         if (name.size() >= 9 && text::CompareIgnoringCase(name.c_str() + name.size() - 9, "movie.ini") == 0) return {};
-        return ReadPath(name.c_str(), b);
+        std::string mapped = ReadPath(name.c_str(), b);
+        if (g_readTrace) TraceRead(mapped);
+        return mapped;
     }
     savetrace::OnFileWrite(name.c_str());   // harness_savetrace.h
     const std::string mapped = WritePath(name.c_str(), b, use == platform::PathUse::Update);
