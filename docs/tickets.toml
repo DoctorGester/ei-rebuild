@@ -6203,6 +6203,14 @@ model = "sonnet"
 note = "PL14 saw ui_widescreen_dialogue (x64) crash at exit once: after the report is written, process exit destroys harness_net.cpp's static udp/tcp tables while the watchdog thread still scans them. Keep the tables alive past exit (leaked or function-static never destroyed) or stop the watchdog before static destructors run; say which."
 
 [[ticket]]
+id = "H47"
+title = "One harness platform backend; no system hooks; the harness builds and runs on Linux"
+group = "harness"
+model = "opus"
+depends = ["PL15"]
+note = "User 2026-11-03: gather the harness's platform answers into one backend folder (tests/verify/platform/ or similar) that implements platform.h and nothing else: harness_platform.cpp's window/events/clocks/mouse/message box and the game_calls answers now spread over harness.cpp, harness_net.cpp, harness_crash.cpp, harness_startup.cpp (after PL15 the file overlay is one path-mapping seam). Replace the remaining system hooks (harness_install.h, harness_settings.h: kernel32/advapi32 import-slot hooks, user32 hot patches) with platform calls or delete them if nothing needs them now (say which). Then build the harness on Linux (EI_HARNESS with the posix backend; the image side's D3D11-only parts behind the backend) and run scenarios there: in WSL/WSLg on this machine against the installs (read-only, a copied data folder, never write F:\\games), report which pass/differ and why (GL frames are expected to differ; digests should not). Windows: goldens the same. CI: the Linux workflow builds the harness (no game data there)."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"
@@ -7223,5 +7231,5 @@ id = "PL16"
 title = "Window, events and mouse made SDL-shaped instead of Win32-shaped"
 group = "port"
 model = "opus"
-depends = ["R44", "PL15"]
+depends = ["R44", "PL15", "H47"]
 note = "User 2026-11-03; review build/reviews/platform_h_trim.md sections 3-4. The platform's window and events still mimic Win32: RegisterWindowClass/ProgramInstance/NativeInstance, an EventHandler returning a window-procedure result, ShowGameWindow(nCmdShow), MarkPainted, RepaintDesktop, Paint/Destroy/SystemCommand/AutoPlay events, FindClassWindow+WindowProcess+BringToFront (one call: another copy runs, bring it forward), keyFlags with scan-code bits, MK_ button bits, UTF-16 Character units, SystemKeyDown, separate double-click events. Make Event SDL-shaped (key + modifiers, UTF-8 text, button enum + click count, window resized/focus/quit) and the window calls what the game needs on SDL; MouseDevice (DirectInput's steps and reports) becomes one 'relative motion and wheel since the last read'. Key codes stay the Windows values (bindings file). Game code that reads the old fields follows. Golden re-records only where input scenarios change for a stated reason; Linux and macOS (macos-port) keep building."
