@@ -68,7 +68,16 @@ GOLDEN_PERIOD = 20   # world updates between the digest records of the suite's g
 # workers' suites, 24 games of ~640 MB video memory each rendering without a frame limit, hung the
 # NVIDIA driver until Windows crashed twice). A slot is a byte lock on a file in the temp folder;
 # the system drops it when the process ends, so a killed run never leaves a slot taken.
-MACHINE_SLOTS = int(os.environ.get('EI_HARNESS_SLOTS', '16'))
+# Under WSL the temp folder is Linux's own /tmp: its games have a pool of their own, apart from Windows' 16, so there
+# the default is 6 (WSL's memory is capped at 16 GB; docs/notes/linux.md, "The harness"). EI_HARNESS_SLOTS overrides
+# both.
+def under_wsl():
+    with contextlib.suppress(OSError), open('/proc/version', encoding='utf-8', errors='replace') as f:
+        return 'microsoft' in f.read().lower()
+    return False
+
+
+MACHINE_SLOTS = int(os.environ.get('EI_HARNESS_SLOTS') or ('6' if under_wsl() else '16'))
 SLOT_DIR = os.path.join(tempfile.gettempdir(), 'ei_harness_slots')
 
 
