@@ -361,6 +361,14 @@ void RegisterWindowClass(NativeInstance instance, const char* className, EventHa
 }
 
 NativeWindow CreateGameWindow(NativeInstance, const char* title, int width, int height, bool fullScreen) {
+#if defined(__APPLE__)
+    // The window in points, so that its drawable holds `width` x `height` pixels (on Retina half as many points).
+    if (const SDL_DisplayMode* mode = SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay());
+        mode && mode->pixel_density > 0.0f) {
+        width = static_cast<int>(std::lround(static_cast<float>(width) / mode->pixel_density));
+        height = static_cast<int>(std::lround(static_cast<float>(height) / mode->pixel_density));
+    }
+#endif
     const SDL_PropertiesID properties = SDL_CreateProperties();
     SDL_SetStringProperty(properties, SDL_PROP_WINDOW_CREATE_TITLE_STRING, title);
     SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_X_NUMBER, 0);
@@ -370,6 +378,10 @@ NativeWindow CreateGameWindow(NativeInstance, const char* title, int width, int 
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_BORDERLESS_BOOLEAN, fullScreen);
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, !fullScreen);
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_HIDDEN_BOOLEAN, true);
+#if defined(__APPLE__)
+    // The drawable in pixels (SDL_GPU's Metal layer at the backing scale), the window and SDL's coordinates in points.
+    SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_HIGH_PIXEL_DENSITY_BOOLEAN, true);
+#endif
     g_window = SDL_CreateWindowWithProperties(properties);
     SDL_DestroyProperties(properties);
     if (!g_window) return nullptr;

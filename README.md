@@ -65,6 +65,9 @@ build.cmd verify         the game with the test harness linked in, into build\ve
 
 The build also runs the source checks (`tools/check_*.py`, the generated files' freshness); none reads `game.exe`.
 
+Linux and macOS build from the same CMakeLists.txt ([the Linux notes](docs/notes/linux.md),
+[the macOS notes](docs/notes/macos.md): SDL3, POSIX, SDL_GPU's Vulkan or Metal driver).
+
 ## Play
 
 ```

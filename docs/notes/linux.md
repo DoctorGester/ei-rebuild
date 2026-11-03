@@ -34,13 +34,15 @@ from a clone in the WSL home, not under /mnt/e (9P is slow).
 
 `ctest --test-dir build/linux` (on a machine without a display: `xvfb-run -a ctest`, Mesa's lavapipe draws):
 
-- `port_platform` (tests/port/port_check.cpp): path folding, files and mappings, .ini reads and writes, the
-  one-instance lock, UDP, the settings document's checks (tests/unit/settings_file.cpp), lib/maths.h's functions
-  where glibc's and Windows' own float functions round otherwise (tests/unit/maths.cpp).
-- `port_render` (tests/port/render_check.cpp): the interface canvases' glyph cases on Vulkan against their CPU
-  reference (tests/render/glyph_cases.cpp, which tools/ui_check runs on Direct3D 12), and the window's present after
-  resizes: a frame of known rows presented through the swap chain at four sizes, the window read back from the X
-  server (XGetImage).
+- `port_platform` (tests/port/port_check.cpp): path folding, the Bink container read through platform::File, files and
+  mappings, .ini reads and writes, the one-instance lock, UDP, the settings document's checks
+  (tests/unit/settings_file.cpp), lib/maths.h's functions where glibc's and Windows' own float functions round
+  otherwise (tests/unit/maths.cpp).
+- `port_render` (tests/port/render_check.cpp): the interface canvases' glyph cases on Vulkan against their CPU reference
+  (tests/render/glyph_cases.cpp, which tools/ui_check runs on Direct3D 12), the game window's pixel size and client /
+  screen round trip, the cursor's hold dropping the motion from before the press (macOS runs these too, macos.md), and
+  the window's present after resizes: a frame of known rows presented through the swap chain at four sizes, the window
+  read back from the X server (XGetImage).
 - `port_shaders` (tools/shader_check): every HLSL program and its pipelines on SDL_GPU's Vulkan driver (lavapipe
   without a GPU), with `--require`: no Vulkan device fails.
 - `port_gpu` (tools/gpu_check): the renderer's SDL_GPU layer (src/render/gpu.cpp; renderer.md section 15c) on the

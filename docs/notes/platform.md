@@ -1,14 +1,15 @@
 # Platform layer
 
-The game's code reaches the operating system through one header, `src/platform/platform.h` (namespace `platform`,
-one section per area), that carries no Windows SDK type (UTF-8 `std::string` / `const char*`, fixed-width integers,
-our own enums and structs, a native window as an opaque `void*`), and one implementation file per backend. SDL3
-(`src/platform/sdl/`) has the window, its events, the cursor, the mouse, the clipboard, the message box, the clocks
-and the threads' priority in the builds without the harness; the harness's builds have their own backend for those
-areas on SDL ("SDL3 and the harness" below). The folder calls are std::filesystem's (`src/platform/files.cpp`, every
-system). Windows (`src/platform/win32/`) has the rest; it is the only place of the game's code that includes
-`<windows.h>`. On Linux POSIX (`src/platform/posix/`) has it (linux.md). The renderer (`src/render`) reaches its device and the window's swap chain through
-SDL's GPU API ("Graphics" below). Game code does not change between the systems.
+The game's code reaches the operating system through one header, `src/platform/platform.h` (namespace `platform`, one
+section per area), that carries no Windows SDK type (UTF-8 `std::string` / `const char*`, fixed-width integers, our own
+enums and structs, a native window as an opaque `void*`), and one implementation file per backend. SDL3
+(`src/platform/sdl/`) has the window, its events, the cursor, the mouse, the clipboard, the message box, the clocks and
+the threads' priority in the builds without the harness; the harness's builds have their own backend for those areas on
+SDL ("SDL3 and the harness" below). The folder calls are std::filesystem's (`src/platform/files.cpp`, every system).
+Windows (`src/platform/win32/`) has the rest; it is the only place of the game's code that includes `<windows.h>`. On
+Linux and macOS POSIX (`src/platform/posix/`) has it (linux.md, macos.md). The renderer (`src/render`) reaches its
+device and the window's swap chain through SDL's GPU API ("Graphics" below). Game code does not change between the
+systems.
 
 ## Files
 
@@ -23,10 +24,10 @@ SDL's GPU API ("Graphics" below). Game code does not change between the systems.
 | `src/platform/win32/platform_win32.cpp` | the Windows remainder, in every build: UTF-8 to the wide calls (`text::Wide` / `Narrow`), paths, the machine, the file objects, whole files and folder searches, the other game window (the one-instance check), the keyboard's names and layouts, sockets |
 | `src/platform/win32/game_calls.cpp`, `src/platform/posix/game_calls.cpp` | the calls a harness run answers itself (below, "The harness's answers"), each system's; the harness's builds leave them out and take tests/verify/platform's |
 | `src/platform/win32/platform_win32.h`, `src/platform/posix/platform_posix.h` | each backend's own declarations for its files: Windows' `text::Wide` / `Narrow`; POSIX's one-instance look-up (`posix::OtherInstance`, game_calls.cpp's FindClassWindow) |
-| `src/platform/posix/platform_posix.cpp` | the remainder on Linux: paths, files, mappings and folder searches with Windows' case rules, the one-instance lock, key names, sockets |
+| `src/platform/posix/platform_posix.cpp` | the remainder on Linux and macOS: paths, files, mappings and folder searches with Windows' case rules, the one-instance lock, key names, sockets |
 
 - CMakeLists.txt's ei_platform builds src/platform/sdl/*.cpp, files.cpp, system_path.cpp and src/platform/win32/*.cpp
-  or (Linux) src/platform/posix/*.cpp (with EI_HARNESS but platform_sdl.cpp, game_calls.cpp and system_path.cpp).
+  or (Linux, macOS) src/platform/posix/*.cpp (with EI_HARNESS but platform_sdl.cpp, game_calls.cpp and system_path.cpp).
   The sound and the movies are not the platform's:
   src/audio and src/video, one implementation each (sound.md). platform.h carries no backend's type: `MouseDevice`
   holds a backend's private `Device` and `Event::window` is the event's window. Still Windows' values, on purpose: the

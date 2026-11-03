@@ -1,11 +1,11 @@
 // The check of src/render/gpu.{h,cpp} (docs/notes/renderer.md, "gpu.h"; tools/build_checks.py runs it on Windows,
-// ctest's port_gpu on Linux) on each GPU driver SDL_GPU has here: Direct3D 12 and Vulkan on Windows, Vulkan on Linux
-// (lavapipe without a GPU). Per driver: texture writes and downloads in every format, waited for and asynchronous;
-// writes between passes in order with the draws, in place and discarding; vertex, instance and index buffers at
-// offsets; the depth test and the targets' orientation; bindings kept across pipelines; a mip level and a resolved
-// multisampled target as targets; texture copies; the upload ring past its size and the burst submission; the pipeline
-// and sampler caches; the swap chain in every present mode on a small window off the screen (under a second); the
-// frame's GPU time; misused calls refused and logged.
+// ctest's port_gpu on Linux and macOS) on each GPU driver SDL_GPU has here: Direct3D 12 and Vulkan on Windows, Vulkan
+// on Linux (lavapipe without a GPU), Metal on macOS. Per driver: texture writes and downloads in every format, waited
+// for and asynchronous; writes between passes in order with the draws, in place and discarding; vertex, instance and
+// index buffers at offsets; the depth test and the targets' orientation; bindings kept across pipelines; a mip level
+// and a resolved multisampled target as targets; texture copies; the upload ring past its size and the burst
+// submission; the pipeline and sampler caches; the swap chain in every present mode on a small window off the screen
+// (under a second); the frame's GPU time; misused calls refused and logged.
 //
 // usage: ei_gpu_check [--require] [--driver NAME]   (--require: a driver that makes no device fails; else skipped)
 
@@ -770,8 +770,10 @@ int main(int argc, char** argv) {
         std::printf("gpu_check: SDL_Init: %s\n", SDL_GetError());
         return 1;
     }
-#ifdef _WIN32
+#if defined(_WIN32)
     const char* drivers[] = {"direct3d12", "vulkan"};
+#elif defined(__APPLE__)
+    const char* drivers[] = {"metal"};
 #else
     const char* drivers[] = {"vulkan"};
 #endif

@@ -1,7 +1,7 @@
 // The HLSL programs' check (docs/notes/renderer.md, "HLSL and SDL_shadercross"; tools/build_checks.py runs it on
-// Windows, ctest on Linux). On each GPU driver SDL_GPU has here (Direct3D 12 and Vulkan on Windows, Vulkan on Linux:
-// lavapipe without a GPU), every program's two shaders and a pipeline for each kind of target the renderer draws it
-// into (kDraws).
+// Windows, ctest on Linux and macOS). On each GPU driver SDL_GPU has here (Direct3D 12 and Vulkan on Windows, Vulkan on
+// Linux: lavapipe without a GPU; Metal on macOS), every program's two shaders and a pipeline for each kind of target
+// the renderer draws it into (kDraws).
 //
 // usage: ei_shader_check [--require]   (--require: a driver that makes no device fails; without it, it is skipped)
 
@@ -142,14 +142,24 @@ SDL_GPUVertexElementFormat ElementFormat(const gpu_shaders::Value& v) {
     return row[v.components - 1];
 }
 
-SDL_GPUShader* MakeShader(SDL_GPUDevice* device, bool dxil, const Program& p, bool vertex) {
+// The code format the device takes, as gpu.cpp chooses it: DXIL on Direct3D 12, SPIR-V on Vulkan, MSL on Metal.
+SDL_GPUShaderFormat CodeFormat(SDL_GPUDevice* device) {
+    const SDL_GPUShaderFormat formats = SDL_GetGPUShaderFormats(device);
+    if (formats & SDL_GPU_SHADERFORMAT_DXIL) return SDL_GPU_SHADERFORMAT_DXIL;
+    if (formats & SDL_GPU_SHADERFORMAT_SPIRV) return SDL_GPU_SHADERFORMAT_SPIRV;
+    return SDL_GPU_SHADERFORMAT_MSL;
+}
+
+SDL_GPUShader* MakeShader(SDL_GPUDevice* device, SDL_GPUShaderFormat format, const Program& p, bool vertex) {
     const gpu_shaders::Stage& s = vertex ? p.vertex : p.fragment;
-    const gpu_shaders::Code& code = dxil ? s.dxil : s.spirv;
+    const gpu_shaders::Code& code = format == SDL_GPU_SHADERFORMAT_DXIL  ? s.dxil
+                                    : format == SDL_GPU_SHADERFORMAT_MSL ? s.msl
+                                                                         : s.spirv;
     SDL_GPUShaderCreateInfo ci{};
     ci.code = code.bytes;
     ci.code_size = code.size;
     ci.entrypoint = s.entry;
-    ci.format = dxil ? SDL_GPU_SHADERFORMAT_DXIL : SDL_GPU_SHADERFORMAT_SPIRV;
+    ci.format = format;
     ci.stage = vertex ? SDL_GPU_SHADERSTAGE_VERTEX : SDL_GPU_SHADERSTAGE_FRAGMENT;
     ci.num_samplers = static_cast<Uint32>(s.samplers);
     ci.num_uniform_buffers = static_cast<Uint32>(s.uniformBlocks);
@@ -220,8 +230,10 @@ bool CheckDriver(const char* driver) {
     SDL_PropertiesID props = SDL_CreateProperties();
     SDL_SetStringProperty(props, SDL_PROP_GPU_DEVICE_CREATE_NAME_STRING, driver);
     SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN, true);
-#ifdef _WIN32
+#if defined(_WIN32)
     SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_DXIL_BOOLEAN, true);
+#elif defined(__APPLE__)
+    SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_MSL_BOOLEAN, true);
 #endif
     SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_DEBUGMODE_BOOLEAN, false);
     SDL_GPUDevice* device = SDL_CreateGPUDeviceWithProperties(props);
@@ -230,13 +242,13 @@ bool CheckDriver(const char* driver) {
         std::printf("shader_check: %s: no device (%s)\n", driver, SDL_GetError());
         return false;
     }
-    const bool dxil = (SDL_GetGPUShaderFormats(device) & SDL_GPU_SHADERFORMAT_DXIL) != 0;
+    const SDL_GPUShaderFormat format = CodeFormat(device);
     const char* name = SDL_GetStringProperty(SDL_GetGPUDeviceProperties(device), SDL_PROP_GPU_DEVICE_NAME_STRING, "?");
     const int failuresBefore = g_failures;
     std::vector<SDL_GPUShader*> vertex(kProgramCount), fragment(kProgramCount);
     for (int k = 0; k < kProgramCount; ++k) {
-        vertex[k] = MakeShader(device, dxil, kPrograms[k], true);
-        fragment[k] = MakeShader(device, dxil, kPrograms[k], false);
+        vertex[k] = MakeShader(device, format, kPrograms[k], true);
+        fragment[k] = MakeShader(device, format, kPrograms[k], false);
     }
     int pipelines = 0, unsupported = 0;
     for (const Draw& d : kDraws) {
@@ -255,7 +267,10 @@ bool CheckDriver(const char* driver) {
         if (vertex[k]) SDL_ReleaseGPUShader(device, vertex[k]);
         if (fragment[k]) SDL_ReleaseGPUShader(device, fragment[k]);
     }
-    std::printf("shader_check: %s (%s, %s): %d programs, %d pipelines%s%s\n", driver, name, dxil ? "DXIL" : "SPIR-V",
+    std::printf("shader_check: %s (%s, %s): %d programs, %d pipelines%s%s\n", driver, name,
+                format == SDL_GPU_SHADERFORMAT_DXIL  ? "DXIL"
+                : format == SDL_GPU_SHADERFORMAT_MSL ? "MSL"
+                                                     : "SPIR-V",
                 kProgramCount, pipelines, unsupported ? " (sample counts it lacks: " : "",
                 unsupported ? (std::to_string(unsupported) + " pipelines left out)").c_str() : "");
     if (g_failures != failuresBefore) std::printf("shader_check: %s: %d failures\n", driver, g_failures - failuresBefore);
@@ -281,8 +296,10 @@ int main(int argc, char** argv) {
         Fail("SDL_Init: %s", SDL_GetError());
         return 1;
     }
-#ifdef _WIN32
+#if defined(_WIN32)
     const char* drivers[] = {"direct3d12", "vulkan"};
+#elif defined(__APPLE__)
+    const char* drivers[] = {"metal"};
 #else
     const char* drivers[] = {"vulkan"};
 #endif

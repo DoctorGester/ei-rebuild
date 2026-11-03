@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.24)
 # The shader toolchain's build (toolchain.cmake runs it once at configure time): SDL_shadercross's command-line tool
 # and SPIRV-Cross's (its --reflect output feeds tools/gen_gpu_shaders.py), from the sources toolchain.cmake fetched,
 # with our SDL (EI_SDL) and DirectXShaderCompiler's release binaries (EI_DXC). Everything is linked statically but
-# DXC, whose dxcompiler and dxil sit beside shadercross (Windows) or are found through its run path (Linux).
+# DXC, whose dxcompiler and dxil sit beside shadercross (Windows) or are found through its run path (Linux, macOS).
 project(ei_shader_toolchain C CXX)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
 
@@ -27,6 +27,12 @@ if(WIN32)
     set(DirectXShaderCompiler_dxcompiler_BINARY ${EI_DXC}/bin/x64/dxcompiler.dll CACHE FILEPATH "" FORCE)
     set(DirectXShaderCompiler_dxcompiler_LIBRARY ${EI_DXC}/lib/x64/dxcompiler.lib CACHE FILEPATH "" FORCE)
     set(DirectXShaderCompiler_dxil_BINARY ${EI_DXC}/bin/x64/dxil.dll CACHE FILEPATH "" FORCE)
+elseif(APPLE)
+    # The Vulkan SDK's DXC: libdxcompiler.dylib only (no libdxil: nothing here makes DXIL; shadercross links
+    # dxcompiler alone and names dxil for its install only).
+    set(DirectXShaderCompiler_INCLUDE_PATH ${EI_DXC}/include/dxc CACHE PATH "" FORCE)
+    set(DirectXShaderCompiler_dxcompiler_LIBRARY ${EI_DXC}/lib/libdxcompiler.dylib CACHE FILEPATH "" FORCE)
+    set(DirectXShaderCompiler_dxil_LIBRARY ${EI_DXC}/lib/libdxcompiler.dylib CACHE FILEPATH "" FORCE)
 else()
     set(DirectXShaderCompiler_INCLUDE_PATH ${EI_DXC}/include/dxc CACHE PATH "" FORCE)
     set(DirectXShaderCompiler_dxcompiler_LIBRARY ${EI_DXC}/lib/libdxcompiler.so CACHE FILEPATH "" FORCE)
