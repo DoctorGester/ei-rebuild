@@ -96,7 +96,6 @@ void PresentChecks() {
     gpu::PipelineDesc desc;
     desc.program = gpu_shaders::solid::kIndex;
     desc.colour = gpu::SwapchainFormat();
-    desc.depthCompare = gpu::Compare::Always;
     const gpu::Pipeline solid = gpu::MakePipeline(desc, "ei-present-check");
     Check(static_cast<bool>(solid), "present: the solid pipeline");
     const int sizes[][2] = {{320, 200}, {480, 300}, {256, 160}, {400, 400}};
