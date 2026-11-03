@@ -172,7 +172,9 @@ template <> void ScriptNamedValues<ScriptGroup>::Load(ByteStream* stream) {
 
 // The mirror of SSCCmd::Save. Object and group arguments are saved as counts only: the
 // slots are made and left null. The called block is found in the lists of the world's first script (-1, an
-// unset block, finds a WorldScript block with id -1 if any).
+// unset block, finds a WorldScript block with id -1 if any). A For / ForIf whose body did not resolve (a save made
+// with other scripts) is cleared into a command that does nothing: its block keeps its length, so the saved runs'
+// indices still point at their commands, and Execute always has a body to run.
 void SSCCmd::Load(ByteStream* stream) {
     stream->ReadValue(id);
 
@@ -194,6 +196,7 @@ void SSCCmd::Load(ByteStream* stream) {
     for (ScriptSubCall& call : subCalls) call.Load(stream);
 
     calledScript = SavedScript()->FindBlock(ReadInt(stream));
+    if (!calledScript && (id == kCmdFor || id == kCmdForIf)) Clear();
 }
 
 void ScriptSubCall::Load(ByteStream* stream) {
