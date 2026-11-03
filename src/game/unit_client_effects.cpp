@@ -62,7 +62,7 @@ constexpr int kSparkAttach = 7;
 constexpr int kMinFlashTicks = 4;
 
 // The armour slots covering each hit location (four ints per location; columns 2, 0,
-// 1 are tried in that order, 7 none). Indexed without a range check.
+// 1 are tried in that order, 7 none).
 constexpr std::int32_t kHitArmourRows[6][4] = /*0073EC78*/ {{7, 7, 0, 7}, {3, 7, 1, 7}, {3, 6, 1, 7}, {3, 6, 1, 7}, {4, 5, 2, 7}, {4, 5, 2, 7}};
 constexpr int kArmourColumns[3] = {2, 0, 1};
 
@@ -114,6 +114,7 @@ float SmallerExtent(const Unit* unit) {
 
 // The hero's armour material over `location`, or null.
 const itemdb::MaterialRecordHead* ArmourMaterial(const UnitClientSpecific* self, int location) {
+    if (static_cast<unsigned>(location) >= std::size(kHitArmourRows)) return nullptr;
     const std::int32_t* row = kHitArmourRows[location];
     for (int column : kArmourColumns) {
         int slot = row[column];
@@ -311,6 +312,7 @@ std::optional<std::string> UnitClientSpecific::FootstepSound(int terrain) {
     if (unit->moveMode == 0 && terrain != kTerrainNoCrawl2 && terrain != kTerrainNoCrawl1)
         return std::format("steps\\human\\crawl\\{}.wav", ClientRandBelow(kCrawlSounds) + 1);
     int count = static_cast<int>(model->SoundCounts()[terrain]);
+    if (count == 0) return std::nullopt;   // a platform's kind without sounds
     const std::string& name = model->soundNames.begin()[terrain];
     return std::format("{}\\{}.wav", name, ClientRandBelow(count) + 1);
 }

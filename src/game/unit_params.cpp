@@ -16,18 +16,19 @@ constexpr int kWeaponSkill0Bonus = 0;   // WeaponRecord::skillBonus
 constexpr int kWeaponSkill1Bonus = 1;
 
 // The level value (unsigned) of the skill level record of skill `type` at the packed level byte, or null
-// without one. The byte is read unchecked (`type` may be negative).
+// without one (a negative `type` has none).
 const SkillLevelRecord* LevelRecord(const UnitParams* params, int type) {
+    if (type < 0) return nullptr;
     std::uint8_t level = params->skillLevels[type];
     if (level == 0) return nullptr;
     return unitdb::SkillLevelAt(static_cast<std::uint32_t>(type * 3 - 1 + level));
 }
 
-// The first letter of skill `skill`'s name: which stat counts ('s', 'd', 'i'). The record is read unchecked
-// (an empty skill table faults).
+// The first letter of skill `skill`'s name: which stat counts ('s', 'd', 'i'); 0 without a record.
 char StatLetter(int skill) {
     const SkillRecord* record = unitdb::SkillAt(static_cast<std::uint32_t>(skill));
-    return record->statNames.begin()[0][0];
+    if (!record || record->statNames.empty()) return 0;
+    return record->statNames.front()[0];
 }
 
 // The stat that letter names, minus 25, or false for another letter.

@@ -43,7 +43,7 @@ public:
     void LoadTrapObject(ByteStream* stream);
     void SaveTrapObject(ByteStream* stream);
 
-    std::uint32_t savedValue;    // only loaded and saved; nothing sets it (not even the constructor)
+    std::uint32_t savedValue = 0;   // only loaded and saved (0 unless a save held another value)
 };
 
 // Class name and id: "TrapObject" and 0x55. The magic trap's

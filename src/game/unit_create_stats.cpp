@@ -53,10 +53,9 @@ std::uint8_t RoundToByte(float value) { return static_cast<std::uint8_t>(lib::Ro
 const UnitPrototypeRecord* FindPrototype(std::string_view name) { return g_unitDatabase.prototypes.FindByName(name); }
 const UnitNpcRecord* FindNpc(std::string_view name) { return g_unitDatabase.npcs.FindByName(name); }
 
-// The prototype's model; its index is read even from a null prototype (that faults).
+// The prototype's model.
 const UnitModelRecord* ModelOf(const UnitPrototypeRecord* prototype) {
-    auto index = static_cast<std::uint32_t>(static_cast<const volatile UnitPrototypeRecord*>(prototype)->modelIndex);
-    return unitdb::ModelRecord(index);
+    return unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
 }
 
 // --- The statistics both builders fill the same way ---------------------------------------
@@ -348,12 +347,12 @@ int MapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, s
 
 void BuildNpcStats(UnitStats* stats, const std::string& name) {
     const UnitPrototypeRecord* prototype = FindPrototype(name);
-    const UnitModelRecord* model = ModelOf(prototype);   // reads the prototype before the null test
     const UnitNpcRecord* npc = FindNpc(name);
     if (!prototype) {
         game::FatalError("Can't find prototype \"%s\" for new HERO.\n", name);
         return;
     }
+    const UnitModelRecord* model = ModelOf(prototype);
     if (!npc) game::DebugLog("Can't find NPC prototype \"%s\" for new HERO.\n", name);
     stats->Reset();
 

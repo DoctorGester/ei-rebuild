@@ -59,9 +59,10 @@ float UnitStats::SkillBase(int index) { return static_cast<float>(skills[index])
 
 float UnitStats::SkillWithBonus(std::uint32_t index) {
     float skill = static_cast<float>(skills[index]);
-    // The first letter of the skill's first stat name picks the stat; a missing record faults.
+    // The first letter of the skill's first stat name picks the stat; none without a record.
     const SkillRecord* skillRecord = unitdb::SkillAt(index);
-    switch (skillRecord->statNames.begin()[0][0]) {
+    if (!skillRecord || skillRecord->statNames.empty()) return skill;
+    switch (skillRecord->statNames.front()[0]) {
     case 'd': return (dexterity - kStatBase) + skill;
     case 'i': return (intelligence - kStatBase) + skill;
     case 's': return (strength - kStatBase) + skill;
@@ -384,9 +385,8 @@ constexpr signed char kNeighbours[kSlots][kSlots] = {
 } // namespace
 
 int UnitStats::PickLocation(int location) {
-    // The slots are indexed with any location (only the neighbour table is guarded).
-    if (slots[location].kind == kWorking) return location;
     if (static_cast<unsigned>(location) < kSlots) {
+        if (slots[location].kind == kWorking) return location;
         for (const signed char* n = kNeighbours[location]; *n >= 0; ++n)
             if (slots[*n].kind == kWorking) return *n;
     }
