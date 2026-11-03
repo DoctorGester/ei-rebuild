@@ -35,7 +35,7 @@ const char* const kTypeNames[kDamageTypes] = {
     "impaling",
     "slashing",
     "crushing",
-    "termical",
+    "thermal",
     "chemical",
     "electrical",
     "general",

@@ -87,7 +87,8 @@ void FindTrapVictims(WorldServer* context, const std::vector<TrapCircle>* area, 
         for (Unit* unit : sectors->FindUnitsInRadius(point, circle.radius)) {
             if (unit->IsDead()) continue;
             int side = unit->side;
-            if (sides & (1u << (side & 31))) out->push_back(unit);   // SHL by CL: the count is taken mod 32
+            if (!(sides & (1u << (side & 31)))) continue;   // SHL by CL: the count is taken mod 32
+            if (!lib::Contains(*out, unit)) out->push_back(unit);   // a unit in two circles is one victim
         }
     }
 }

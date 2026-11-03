@@ -14,6 +14,7 @@
 #include "lib/nan_audit.h"
 #include "lib/float_select.h"
 
+#include <algorithm>
 #include <bit>
 #include <cstdint>
 #include <cstring>
@@ -150,10 +151,10 @@ bool RaiseLevel(UnitStats* stats, std::uint8_t* levels, int index, int amount, U
     UnitVitals* vitals = ServerVitals(unit);
     if (!vitals) return false;
     std::uint8_t old = levels[index];
-    int raised = (amount & 0xFF) + old;
+    int raised = std::clamp(old + amount, 0, 255);   // a level stays within a byte
     float worthNew = LevelWorth(raised);
     float worthOld = LevelWorth(old);
-    levels[index] = static_cast<std::uint8_t>(old + amount);
+    levels[index] = static_cast<std::uint8_t>(raised);
     // Truncated as _ftol does (the low half of the 64-bit integer; 0 for a NaN).
     int cost = static_cast<int>(static_cast<std::int64_t>(worthNew - worthOld));
     float total = cost + stats->pendingExperience;

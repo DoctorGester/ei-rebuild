@@ -200,15 +200,18 @@ ItemWeapon* Unit::GetWeapon(std::uint32_t slot) {
 }
 
 Item* Unit::GetQuickItem(std::uint32_t slot) {
+    Item* item = nullptr;
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
         PartyUnitRecord* record = RecordsOf(player)->Find(id);
         if (!record || slot >= static_cast<std::uint32_t>(std::ssize(record->quickItems))) return nullptr;
-        Item* item = record->quickItems[slot];
-        if (!item || static_cast<int>(item->count) < 1) return nullptr;
-        return item;
+        item = record->quickItems[slot];
+    } else if (slot < 4) {
+        item = quickItems[slot];
     }
-    return slot < 4 ? quickItems[slot] : nullptr;
+    // An item with nothing left is not there, for a party unit and any other.
+    if (!item || static_cast<int>(item->count) < 1) return nullptr;
+    return item;
 }
 
 Item* Unit::GetSpell(std::uint32_t slot) {
