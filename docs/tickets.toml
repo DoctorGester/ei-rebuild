@@ -6057,6 +6057,14 @@ depends = ["R43"]
 note = "User 2026-11-03: is the UI canvas caching needed; can UI rendering be simpler? Today every window surface (UiSurface, 45 files) owns a GPU render target (render_ui.cpp, 992 lines) that the game draws into when the window changes (Fill, FrameRect, Line, Pixel, GlyphRun, CopyFrame, Greyscale), quantised to a 16-bit screen format (Pack/TopBits, ScreenFormat), then blitted every frame; readers read GPU pixels back (PixelAt 4 files, Rgb565Copy 4), SwapContents/MoveCanvas move canvases between holders, R44's Resize stretches them. The UI is a few hundred quads and glyphs a frame, so caching buys nothing. Plan: (1) each surface keeps its draw commands as a display list (rebuilt when the window draws, as today) and the frame replays every list straight into the back buffer at the current screen size: no render targets, no format quantisation (renderer upgrades replace the old look), Resize/R46's stretching gone (re-layout at the new size); (2) PixelAt/Rgb565Copy readers replaced by what they really ask (hit tests on geometry, the minimap's colours from data), CaptureScreen/Greyscale as a frame copy + a shader pass; (3) SwapContents/MoveCanvas reduced to swapping lists, the canvas API deleted. Frames differ (no 565 banding): captures and ui_check re-baselined, digests the same. Report render_ui before/after and frame time on ui-heavy scenes. After R43 (written against the chosen graphics API).  User 2026-11-03: the end state is immediate mode, not display lists: every frame the interface walks its open windows and each draws its current state (quads, glyph runs) straight into the frame; no recorded commands kept. Windows that draw incrementally today (scrolling text, console and chat history, anything that paints over its own earlier pixels) keep that state as data instead. A display list may be used only as a short migration step per window, and none may remain at the end."
 
 [[ticket]]
+id = "P8e"
+title = "The flying hit numbers and their labels scale with the window like the interface"
+group = "native-ui"
+model = "sonnet"
+files = ["src/game/ui_flying_hit_points.cpp"]
+note = "User 2026-11-03: the damage / backstab popups look smaller than in the original on their screen. Cause: FlyingHitPoints::Draw sizes everything in render-target pixels: 8x12 digits, 64x10 label rows (backstab, head, electrical), the 32x10 marker 20 px above the unit, a 120 px drift and 100 px rise. The original ran at 800x600 to 1024x768, so at 4K the same pixels are a third to a quarter of the size on screen, while the interface around them scales from 800x600. Scale every size, offset and the drift by the interface's factor (height43 / 600, the same one the layout helpers use, so widescreen keeps 4:3 proportions), keeping the box's on-screen rules (inside the render target). The texture is 8x12 per digit: check how it looks scaled 3-4x with the current filtering and say whether it needs a larger texture or a native-font path later (P8). Check: captures at 800x600 (unchanged) and at 4K (the same proportion of the screen); goldens hold no frames, so none should move."
+
+[[ticket]]
 id = "S23"
 title = "One game exe: the game linked into the exe, the harness its own DLL"
 group = "standalone"
@@ -7220,6 +7228,22 @@ model = "opus"
 depends = ["C84"]
 files = ["src/game/map_object_figures.cpp", "src/game/unit.cpp", "src/game/unit_create.cpp", "src/game/unit_stats.cpp", "src/game/unit_skins.cpp", "src/game/unit_client_models.cpp", "src/game/magic_trap.cpp", "src/game/script_load.cpp", "src/game/script_vars.cpp", "src/game/script_eval.cpp", "src/game/script_exec_helpers.cpp", "src/game/script_parse_load.cpp"]
 note = "From C84's table (build/reviews/c84_original_bugs.md on C84's branch; the 'Left for C84a' paragraphs in docs/notes/{map_objects, script, units}.md). Fix each (rule 9), goldens the same unless a fix changes a recorded run (then re-record with --reason, two agreeing runs). Map objects: Destroy3D / CopyFigure part ownership (one counted rule for parts). Units: AddToSlots returns 1 for 'already there' which is also slot 1, AddSpell(null) (audit the callers, return a distinct value); UnitStats::Reset's untouched fields; name lookups that insert unknown names; CollectArmourPartNames' five empty helmet names; WearArmourModel's id for slots 3-6; RemoveArmourModel's order; DropBrokenEquipment's release order; Unit::Reset clearing item slots without releasing (check the slots start zeroed on fresh units first); LoadTrap appending victims (CountedListLoad); the trap's unused 0x100000 flag. Script: IsInArea creating an area for an unknown id; LoadScriptBody leaving a failed pair's blocks; DeleteArea's moved-out entry; the if-then block id presets; list loaders re-reading nodes; AppendFrom's names vs values; and the one A left: a save whose block ids the loaded scripts lack (savers and Execute fault on the null block) - drop such pairs and runs at load. Equivalence sweeps under ~5 min."
+
+[[ticket]]
+id = "C84b"
+title = "Original bugs: the visible fixes the user approved"
+group = "cleanup"
+model = "sonnet"
+depends = ["C84"]
+note = "Also in docs/notes: mark combat 14/24 (taming cut from the original), map objects 2 (RecomputeScale: strong units get wider) and units 14 (IsBehind: NPCs never backstab players) as by design (user 2026-11-03), out of the bug lists."
+
+[[ticket]]
+id = "C84c"
+title = "Original bugs: plain explanations of the kept entries and the open calls, with examples"
+group = "cleanup"
+model = "opus"
+depends = ["C84"]
+note = "User 2026-11-03: for the C list's 'keep' rows they need better descriptions, since they can't see the consequences of fixing most of them. Research only, no code changes. For each keep row in build/reviews/c84_original_bugs.md: what a player sees today, what fixing would change, with a concrete example (a map, creature, spell or item from the data where one exists), and how big the change is (never seen / rare / common; feel / balance / AI behaviour). Plus the open calls the user asked examples for: combat 2 (which creatures' natural attacks have no non-zero weight and what damage type they deal now vs after), combat 20 (what changes for wands used from the quick slots, step by step), units 9 (RaiseStrength's maximum: numbers for a hero raising strength at a few levels, now vs fixed), units 38 (which levers in the shipped maps and Rebirth's take a key, and what a player could do after a fix), unit AI 15 (how far off patrol / guard points land, in game units, and whether anyone could notice), unit AI 24 (which enemies choose spells and then attack with a weapon: list the creature kinds / prototypes with spells, what they do now and what they'd do fixed; this one may change the game a lot). Decided, don't re-ask: combat 14/24 taming stays (cut from the original), map objects 2 RecomputeScale stays (strong units get wider by design), units 14 IsBehind stays (NPCs never backstab players). Output: build/reviews/c84c_explanations.md; the coordinator publishes it as a page."
 
 [[ticket]]
 id = "PL6b"
