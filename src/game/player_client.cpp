@@ -27,6 +27,7 @@
 #include "unit_db.h"
 #include "world.h"
 
+#include "lib/maths.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 
@@ -82,7 +83,7 @@ constexpr int kNumberExperience = 8;
 
 // The experience shown for `amount`: amount times 1.04 ^ (intelligence - 25), rounded to the nearest integer.
 int ScaledExperience(const Unit* unit, float amount) {
-    const float power = std::pow(1.04f, static_cast<float>(unit->params.intelligence) - 25.0f);
+    const float power = lib::Pow(1.04f, static_cast<float>(unit->params.intelligence) - 25.0f);
     return lib::RoundEven(amount * power);
 }
 

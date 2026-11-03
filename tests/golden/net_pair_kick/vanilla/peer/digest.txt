@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 52FAE24B n 68
+@ 0 update 20 frame 3 tick 20 zone - hash 4A511AEC n 68
 + world world
 world tick 20
 world updates 20
@@ -595,7 +595,7 @@ cunit129 #place 0B14C5BC
 cunit129 #unit 81590308
 cunit129 #vitals B073BCC9
 + cunit148 80 unanwiwo ""
-cunit148 #place 226A830E
+cunit148 #place 93682B97
 cunit148 #unit 29178A0E
 cunit148 #vitals C17C1FEE
 + cunit187 80 unmoog1 ""
@@ -4131,7 +4131,7 @@ cunit831510 #place CE3AA288
 cunit831510 #unit F7FB8447
 cunit848411 #place 48A45CE7
 cunit999742 #unit 6D898324
-@ 34 update 700 frame 139 tick 257 zone bz1mpg hash A9301EAB n 389
+@ 34 update 700 frame 139 tick 257 zone bz1mpg hash 14892D73 n 389
 world tick 257
 world updates 700
 random isaac.count 207
@@ -4186,7 +4186,7 @@ client tick 256
 client ticksRun 237
 cunit182595 #place A6E12DCF
 cunit182595 #unit AE8521CF
-cunit183332 #place 375A9052
+cunit183332 #place 90B39863
 cunit399469 #place 3EE6A2F0
 cunit399469 #unit 09077522
 cunit831510 #place F51573EF
@@ -4626,7 +4626,7 @@ cunit182595 #unit D41662AE
 cunit831510 #place 74DEB376
 cunit848411 #place 389D689C
 cunit848411 #unit 72BDE0C2
-@ 43 update 880 frame 175 tick 437 zone bz1mpg hash 07B7D9A1 n 389
+@ 43 update 880 frame 175 tick 437 zone bz1mpg hash B726D497 n 389
 world tick 437
 world updates 880
 random isaac.count 75
@@ -4668,7 +4668,7 @@ client tick 436
 client ticksRun 417
 cunit182595 #place 9938A21E
 cunit831510 #place BDC3B13D
-cunit848411 #place 1F56ACDE
+cunit848411 #place 5147167C
 cunit848411 #unit 33B8AE83
 cunit999742 #unit 241A4BEE
 @ 44 update 900 frame 179 tick 457 zone bz1mpg hash 9BA0A1AA n 389
@@ -8554,7 +8554,7 @@ cunit1000063817 #vitals 8FC93AF9
 cunit1007671245 #place 435C2514
 cunit1007671245 #unit 47F4D6DC
 cunit1007671245 #vitals 8FC93AF9
-@ 68 update 1380 frame 275 tick 554 zone bz1mpg hash 8C82E280 n 389
+@ 68 update 1380 frame 275 tick 554 zone bz1mpg hash A6AF0969 n 389
 world tick 554
 world updates 1380
 random isaac.count 192
@@ -8613,7 +8613,7 @@ client tick 553
 client ticksRun 27
 cunit182595 #place 3FCA2E09
 cunit182595 #unit 7B83D8B7
-cunit183332 #place B2340CBF
+cunit183332 #place E74D6DAF
 cunit183332 #unit BFA7A600
 cunit399469 #place E8DC03D8
 cunit399469 #unit F29D4C24

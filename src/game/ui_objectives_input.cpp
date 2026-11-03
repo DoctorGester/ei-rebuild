@@ -13,6 +13,7 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "game_singletons.h"
+#include "lib/maths.h"
 #include "lib/str.h"
 
 #include <cmath>
@@ -220,9 +221,9 @@ void ObjectivesWindow::Update() {
     }
     blinkTime += FrameTime();
     const std::uint32_t slow =
-        static_cast<std::uint32_t>((std::cos(blinkTime * kSlowRate) * kSlowAmplitude + kSlowBase) * kAlphaScale);
+        static_cast<std::uint32_t>((lib::Cos(blinkTime * kSlowRate) * kSlowAmplitude + kSlowBase) * kAlphaScale);
     const std::uint32_t fast =
-        static_cast<std::uint32_t>((std::cos(blinkTime * kFastRate) * kFastAmplitude + kFastBase) * kAlphaScale);
+        static_cast<std::uint32_t>((lib::Cos(blinkTime * kFastRate) * kFastAmplitude + kFastBase) * kAlphaScale);
     for (int i = lib::Count(exits) + kFirstExitSprite; i < lib::Count(sceneObjects); ++i) {
         UiMesh* place = SceneMesh(i);
         place->flags |= FigureMeshFlag::Flat;

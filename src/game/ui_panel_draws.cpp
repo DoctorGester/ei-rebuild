@@ -16,6 +16,7 @@
 #include "game_singletons.h"
 #include "lib/containers.h"
 #include "lib/float_select.h"
+#include "lib/maths.h"
 #include "lib/str.h"
 
 #include <cmath>
@@ -44,7 +45,7 @@ struct Pulse {
 };
 Pulse Advance(ConstructorPage* page) {
     page->pulse += UiContainer::FrameTime();
-    float p = (std::cos(page->pulse * 5.0f) + 1.0f) * 0.5f;
+    float p = (lib::Cos(page->pulse * 5.0f) + 1.0f) * 0.5f;
     float a = 1.0f - p;
     float low = a * 80.0f;
     return Pulse{static_cast<int>(a * 130.0f + p * 240.0f), static_cast<int>(low), static_cast<int>(p * 160.0f + low)};

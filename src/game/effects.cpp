@@ -2,6 +2,7 @@
 #include "effects.h"
 
 #include "core_maths.h"
+#include "lib/maths.h"
 #include "lib/vecmath.h"
 #include "random.h"
 
@@ -259,7 +260,7 @@ void ParticleSource::TickMushroom(ParticleElement* e) {
     if (ParticleTypeOf(type) == ParticleType::Mushroom && e->ticks == 0 && e == elements.data())
         g_camera.Shake(origin, 5.0f, size, 0.25f);
     int ticks = ++e->ticks;
-    e->pos.x = std::log(static_cast<float>(ticks + 1)) * size * kMushroomWidth;
+    e->pos.x = lib::Log(static_cast<float>(ticks + 1)) * size * kMushroomWidth;
     e->pos.z = size * kMushroomRise + e->pos.z;
     if (ticks == 30) flags &= ~ParticleSourceFlag::Emitting;
 }

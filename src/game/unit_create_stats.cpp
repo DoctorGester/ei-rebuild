@@ -18,6 +18,7 @@
 #include "unit_db.h"
 
 #include "lib/crt.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
@@ -63,10 +64,10 @@ const UnitModelRecord* ModelOf(const UnitPrototypeRecord* prototype) {
 // cos(angle / 2) with the angle in degrees.
 float HalfAngleCosine(const UnitModelRecord* model) {
     float half = model->angle * 0.5f;
-    return std::cos(half * ei::kRadiansPerDegree);
+    return lib::Cos(half * ei::kRadiansPerDegree);
 }
 
-float RightAngleCosine() { return std::cos(ei::kRadiansPerDegree * 90.0f); }
+float RightAngleCosine() { return lib::Cos(ei::kRadiansPerDegree * 90.0f); }
 
 void SetAttributesAndSkills(UnitStats* stats, const UnitPrototypeRecord* prototype, const UnitNpcRecord* npc) {
     if (npc) {
@@ -146,8 +147,8 @@ constexpr int kSkillStat20 = 25;
 // hpVal[3] ^ (ln(experience / hpVal[2]) / ln(hpVal[4])).
 float HitPointExperienceCurve(const float* experience) {
     const float exponent =
-        std::log(*experience / g_logicSettings.hpVal[2]) / std::log(g_logicSettings.hpVal[4]);
-    return std::pow(g_logicSettings.hpVal[3], exponent);
+        lib::Log(*experience / g_logicSettings.hpVal[2]) / lib::Log(g_logicSettings.hpVal[4]);
+    return lib::Pow(g_logicSettings.hpVal[3], exponent);
 }
 
 float LevelOrZero(UnitStats* stats, int skill) {

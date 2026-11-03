@@ -19,6 +19,7 @@
 #include "world_effect.h"
 
 #include "lib/float_select.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/vecmath.h"
@@ -54,7 +55,7 @@ extern FootprintCellSet g_spellFootprint;
 inline float ClampPow(float ratio) {
     const float low = MaxKeepB(1.0f, ratio);
     const float clamped = MinKeepA(low, 8.0f);
-    return std::exp(std::log(clamped) * 0.33f) - 0.2f;
+    return lib::Exp(lib::Log(clamped) * 0.33f) - 0.2f;
 }
 
 // The spell's power factor(repeated inline about twenty times in the game): 1 when the prototype's effect

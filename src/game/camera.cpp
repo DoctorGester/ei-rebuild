@@ -9,6 +9,7 @@
 #include "terrain.h"
 #include "world.h"
 
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 #include "game_singletons.h"
@@ -289,8 +290,8 @@ void Camera::ApplyView() {
     if (before >= localPosition.z) return;
     // Lifted over an object: aim back down at the focus.
     float dz = localPosition.z - focus.z;
-    float across = std::hypot(localPosition.x - focus.x, localPosition.y - focus.y);
-    const float tiltAngle = -(CAM_RIGHT_ANGLE + std::atan2(dz, across));
+    float across = lib::Hypot(localPosition.x - focus.x, localPosition.y - focus.y);
+    const float tiltAngle = -(CAM_RIGHT_ANGLE + lib::Atan2(dz, across));
     localRotation = viewRotation;
     const Quaternion s = localRotation;
     const Vector3 axis = s.AxisX();
@@ -442,8 +443,8 @@ void Camera::Update(float dt) {
     for (auto node = shakes.begin(); node != shakes.end();) {
         CameraShake* s = &(*node);
         // The cosine (64 bits) times the exponential, then the amplitude and the sum at 24 bits.
-        float damping = std::exp(-(s->decay * s->elapsed));
-        float wave = std::cos(camera::kHalfPi * s->elapsed * kShakeFrequency);
+        float damping = lib::Exp(-(s->decay * s->elapsed));
+        float wave = lib::Cos(camera::kHalfPi * s->elapsed * kShakeFrequency);
         offset = (wave * damping) * s->amplitude + offset;
         float elapsed = dt + s->elapsed;
         s->elapsed = elapsed;
@@ -456,7 +457,7 @@ void Camera::Update(float dt) {
 }
 
 void Camera::ZoomBy(float steps) {
-    float d = std::pow(CAM_ZOOM_STEP, steps) * distance;
+    float d = lib::Pow(CAM_ZOOM_STEP, steps) * distance;
     distance = d;
     if (!settings) return;
     const CameraLimits limits = Limits();
@@ -510,7 +511,7 @@ void Camera::ViewsToSettings(options::GameOptions* gameOptions) {
         const Quaternion& q = v.rotation;
         float sum = LengthSquared(Vector3{q.x, q.y, q.z});
         if (sum > kAxisTiny) {
-            const float arc = std::acos(q.w);
+            const float arc = lib::Acos(q.w);
             float inv = 1.0f / std::sqrt(sum);
             r.axisX = inv * q.x;
             r.axisY = inv * q.y;
@@ -565,7 +566,7 @@ void Camera::SetBounds(const Vector3& center, float radius) {
 
 void Camera::Shake(const Vector3& source, float duration, float amplitude, float decay) {
     const Vector3& at = (flags & kPlaced) ? localPosition : focus;
-    float newDistance = std::hypot(at.x - source.x, at.y - source.y);
+    float newDistance = lib::Hypot(at.x - source.x, at.y - source.y);
     if (newDistance >= kShakeRange) return;
     float strength = amplitude;
     if (newDistance > kShakeFull) strength = (1.0f - (newDistance - kShakeFull) / (kShakeRange - kShakeFull)) * amplitude;

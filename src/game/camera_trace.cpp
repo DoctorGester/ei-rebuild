@@ -6,6 +6,7 @@
 
 #include "../platform/log.h"
 #include "platform/platform.h"
+#include "lib/maths.h"
 
 #include <algorithm>
 #include <cmath>
@@ -27,7 +28,7 @@ int g_drags = 0;    // the drags taken since the last poll
 
 float Heading() {
     const Vector3 x = g_camera.viewRotation.AxisX();
-    return std::atan2(x.y, x.x);
+    return lib::Atan2(x.y, x.x);
 }
 
 } // namespace

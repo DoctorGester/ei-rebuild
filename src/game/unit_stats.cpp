@@ -8,6 +8,7 @@
 #include "unit.h"
 #include "unit_db.h"
 #include "lib/crt.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/rounding.h"
 
@@ -415,7 +416,7 @@ constexpr int kKnownLevels = 0x24;      // the skill level bytes summed (UnitSta
 float Worth(int value) {
     const LogicSettings& settings = g_logicSettings;
     const float exponent = value / settings.skillVal[1];
-    return std::pow(kWorthBase, exponent) * settings.skillVal[0];
+    return lib::Pow(kWorthBase, exponent) * settings.skillVal[0];
 }
 
 } // namespace
@@ -442,10 +443,10 @@ int UnitStats::SkillPrice(const ::SkillLevelRecord* level) {
 
     std::uint8_t known = 0;   // a byte sum (wraps)
     for (int i = 0; i < kKnownLevels; ++i) known = static_cast<std::uint8_t>(known + skillLevels[i]);
-    float price = std::pow(g_logicSettings.perkPowerBase, static_cast<float>(known)) * cost;
+    float price = lib::Pow(g_logicSettings.perkPowerBase, static_cast<float>(known)) * cost;
 
     // The power of ten of the first digit.
-    float power = std::pow(10.0f, std::floor(std::log10(price)));
+    float power = lib::Pow(10.0f, std::floor(lib::Log10(price)));
     float leading = price / power;
     if (leading >= kTwoDigitsBelow) return lib::Truncate(std::floor(leading + 0.5f) * power);
     // Below 4, or NaN: a price of 0 gives power 0 and 0 / 0, which this branch returns as 0 (it

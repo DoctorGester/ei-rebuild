@@ -9,6 +9,7 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
@@ -52,7 +53,7 @@ void EmitFirstSection(const TLVertex* first, const TLVertex* next, TLVertex** ar
     const float dx = next->x - first->x;
     const float dy = next->y - first->y;
     const float scale = std::bit_cast<float>(widthBits) * first->rhw * kWidthScale;
-    const float k = scale / std::hypot(dx, dy);
+    const float k = scale / lib::Hypot(dx, dy);
     TLVertex* top = *array + (*count)++;
     *top = *first;
     const float acrossX = dy * k;
@@ -93,7 +94,7 @@ TLVertex* StripAt(int i) { return g_strip.data() + i; }
 void EmitSection(const TLVertex* src, const Vector2& direction, TLVertex** array, int* count, float width) {
     TLVertex* top = *array + (*count)++;
     const float scale = width * src->rhw * kWidthScale;
-    const float k = scale / std::hypot(direction.x, direction.y);
+    const float k = scale / lib::Hypot(direction.x, direction.y);
     *top = *src;
     top->x = k * direction.y + top->x;
     top->y -= k * direction.x;

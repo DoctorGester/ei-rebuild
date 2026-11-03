@@ -11,6 +11,7 @@
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
+#include "lib/maths.h"
 
 #include <cmath>
 #include <cstring>
@@ -237,8 +238,8 @@ void SetupClayRing(ParticleSource* s) {
     for (int i = 0; i < std::ssize(s->elements); ++i) {
         float angle = i * EI_RING_STEP;
         Vector3& direction = s->elements[i].clay.direction;
-        direction.x = std::sin(angle);
-        direction.y = std::cos(angle);
+        direction.x = lib::Sin(angle);
+        direction.y = lib::Cos(angle);
         direction.z = 0.0f;
         s->elements[i].pos = s->localPosition;
         s->elements[i].clay.previous = s->localPosition;

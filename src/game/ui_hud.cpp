@@ -9,6 +9,7 @@
 #include "console.h"
 #include "game_strings.h"
 #include "lib/containers.h"
+#include "lib/maths.h"
 #include "lib/text_case.h"
 #include "map_object.h"
 #include "net_classes.h"
@@ -498,8 +499,8 @@ void HudMovePanel::ShowMode(int newMode) {
         const Vector3 axis = {0.0f, 0.0f, -1.0f};
         Quaternion turn;
         marker->localRotation = *turn.SetAxisAngle(axis, angle);
-        const float y = kMarkerCentreY - (std::sin(angle) * kMarkerRadius);
-        const float x = std::cos(angle) * kMarkerRadius;
+        const float y = kMarkerCentreY - (lib::Sin(angle) * kMarkerRadius);
+        const float x = lib::Cos(angle) * kMarkerRadius;
         SceneMesh(0)->Place(x, y, kMarkerDepth);
         SetTint(button, kTintOn);
     }

@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include "lib/maths.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
 #include "game_singletons.h"
@@ -155,12 +156,12 @@ void HudMap::Layout() {
 void HudMap::Update() {
     // The zoom runs towards the chosen view's end: up to zoomMax (view 1) or down to 1 (view 2).
     if (view == 1) {
-        const float newZoom = std::pow(kZoomRate, UiContainer::FrameTime()) * zoom;
+        const float newZoom = lib::Pow(kZoomRate, UiContainer::FrameTime()) * zoom;
         zoom = newZoom;
         if (newZoom > zoomMax) zoom = zoomMax;
     }
     if (view == 2) {
-        const float newZoom = zoom / std::pow(kZoomRate, UiContainer::FrameTime());
+        const float newZoom = zoom / lib::Pow(kZoomRate, UiContainer::FrameTime());
         zoom = newZoom;
         if (newZoom < 1.0f) zoom = 1.0f;
     }
@@ -371,9 +372,9 @@ void HudMap::Setup(float newZoom, bool slid) {
     UiRegion* round = AddRegion();
     for (int i = 0; i < kOutlinePoints; ++i) {
         const float angle = (i * kPi) * kOutlineStep;
-        const float down = std::cos(angle) * kOutlineRadius;
+        const float down = lib::Cos(angle) * kOutlineRadius;
         const int y = static_cast<int>((down + kOutlineCentreY));
-        const float across = std::sin(angle) * kOutlineRadius;
+        const float across = lib::Sin(angle) * kOutlineRadius;
         const int x = static_cast<int>((kOutlineCentreX - across));
         round->AddPoint(x, y);
     }

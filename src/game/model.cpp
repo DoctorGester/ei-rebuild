@@ -7,6 +7,7 @@
 #include "resource.h"
 
 #include "lib/crt.h"
+#include "lib/maths.h"
 
 #include <cmath>
 #include <cstring>
@@ -158,8 +159,8 @@ Matrix4* ViewportMatrix(Matrix4* out, const Rect* rect) {
 
 Matrix4* ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, float zFar) {
     float half = fov * 0.5f;
-    float c = std::cos(half);
-    const float s = std::sin(half);
+    float c = lib::Cos(half);
+    const float s = lib::Sin(half);
     float q = (s * zFar) / (zFar - zNear);
     std::memset(out, 0, sizeof(Matrix4));
     out->m[0] = c;

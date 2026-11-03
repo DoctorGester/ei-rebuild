@@ -7,6 +7,7 @@
 #include "model.h"         // SceneRenderer
 #include "texture.h"       // TextureDevice
 #include "lib/float_select.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 #include "render/render.h"
@@ -155,7 +156,7 @@ void BuildRamp(std::uint16_t (&ramp)[kLevels], float brightness, float contrast,
     else if (gamma < 0.0f) exponent = 1.0f / (gamma * 0.5f + 1.0f);
 
     for (int i = 0; i < kLevels; ++i) {
-        float value = std::pow(i * kLevelStep, exponent) * scale + offset;
+        float value = lib::Pow(i * kLevelStep, exponent) * scale + offset;
         value = Clamp(value, 0.0f, 1.0f);
         value = Clamp(value + brightness, 0.0f, 1.0f);
         auto level = static_cast<std::uint16_t>(static_cast<int>(value * kRampScale));   // _ftol: truncated

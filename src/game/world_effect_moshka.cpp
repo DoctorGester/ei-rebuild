@@ -17,6 +17,7 @@
 
 #include "lib/crt.h"
 #include "lib/float_select.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 
 #include <cmath>
@@ -96,8 +97,8 @@ Vector3 EffectMoshka::FindPerch(const Vector3& from) {
         float radius = MaxKeepB(distance, kPerchMinRadius);
         float flightAngle = static_cast<float>(g_random.Next()) * kRandomAngle;
         perch.z = from.z + perchHeight;
-        perch.x = (std::cos(flightAngle) * radius) + from.x;
-        perch.y = (std::sin(flightAngle) * radius) + from.y;
+        perch.x = (lib::Cos(flightAngle) * radius) + from.x;
+        perch.y = (lib::Sin(flightAngle) * radius) + from.y;
         if (g_serverWorld.aiMap.LineOfSight(eye, perch) > kClearance) break;
         perchHeight += kPerchHeightStep;
         distance = radius - kPerchRadiusStep;
@@ -137,8 +138,8 @@ void EffectMoshka::Update(float now) {
             Vector3 perch = birdAt;
             perch.z += height;
             float outward = kHalfPi + flightAngle;
-            perch.x = (std::cos(outward) * kPerchSearchRadius) + perch.x;
-            perch.y = (std::sin(outward) * kPerchSearchRadius) + perch.y;
+            perch.x = (lib::Cos(outward) * kPerchSearchRadius) + perch.x;
+            perch.y = (lib::Sin(outward) * kPerchSearchRadius) + perch.y;
             if (g_serverWorld.aiMap.LineOfSight(currentBird->localPosition, perch) > kClearance) {
                 state = kFlyingOff;
                 timer = kFlyingOffFrames;
@@ -148,8 +149,8 @@ void EffectMoshka::Update(float now) {
             }
         }
         target.z = kCircleHeight + followed.z;
-        target.x = (std::cos(flightAngle) * kCircleRadius) + followed.x;
-        target.y = (std::sin(flightAngle) * kCircleRadius) + followed.y;
+        target.x = (lib::Cos(flightAngle) * kCircleRadius) + followed.x;
+        target.y = (lib::Sin(flightAngle) * kCircleRadius) + followed.y;
     } else if (state == kPerched) {
         if (timeUp) {
             Vector3 perch = FindPerch(followed);
@@ -164,7 +165,7 @@ void EffectMoshka::Update(float now) {
         float dy = target.y - birdAt.y;
         EI_NAN_AUDIT(dy, dx);
         if (LengthSquared2D(dy, dx) < kNearSquared) {   // close: start circling from here
-            float heading = std::atan2(-toFollowed.x, toFollowed.y);
+            float heading = lib::Atan2(-toFollowed.x, toFollowed.y);
             state = kCircling;
             timer = kCirclingFrames;
             height = kCircleStartHeight;

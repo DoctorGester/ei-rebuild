@@ -288,10 +288,11 @@ if(WIN32)
     # The game is a windowed program whose entry is main.
     target_link_options(ei-rebuild PRIVATE /ENTRY:mainCRTStartup)
 
-    # The unit checks (tests/unit): the settings file's format, lib::HashMap's walk order, the .ini reader and
-    # lib::ParseIpv4, without the game. build.cmd runs it.
+    # The unit checks (tests/unit): the settings file's format, lib::HashMap's walk order, the .ini reader,
+    # lib::ParseIpv4 and lib/maths.h, without the game. build.cmd runs it.
     add_executable(ei_unit_check tests/unit/unit_check.cpp tests/unit/settings_file.cpp tests/unit/hash_map.cpp
-                   tests/unit/ini_file.cpp tests/unit/ipv4.cpp src/game/settings_document.cpp src/game/ini_file.cpp
+                   tests/unit/ini_file.cpp tests/unit/ipv4.cpp tests/unit/maths.cpp src/game/settings_document.cpp
+                   src/game/ini_file.cpp
                    src/game/asset_text.cpp src/lib/hash_map.cpp src/lib/ipv4.cpp src/lib/text_case.cpp ${EI_GAME_CALLS})
     target_include_directories(ei_unit_check PRIVATE src)
     target_link_libraries(ei_unit_check PRIVATE ei_platform)
@@ -318,14 +319,14 @@ if(WIN32)
     target_link_libraries(ei_perf_check PRIVATE ei_render)
 else()
     # Linux's checks (ctest; without a display: xvfb-run ctest): the POSIX platform's (paths, files, the .ini reader, the
-    # one-instance lock, sockets, the settings document, IPv4 text; tests/port/port_check.cpp) and the interface
-    # canvases' glyph cases on OpenGL (tests/render/glyph_cases.cpp, as tools/ui_check runs them on Direct3D 11) and the
-    # window's present after resizes, read back from the X server.
+    # one-instance lock, sockets, the settings document, IPv4 text, the maths functions; tests/port/port_check.cpp) and
+    # the interface canvases' glyph cases on OpenGL (tests/render/glyph_cases.cpp, as tools/ui_check runs them on
+    # Direct3D 11) and the window's present after resizes, read back from the X server.
     enable_testing()
     add_executable(ei_port_check tests/port/port_check.cpp src/lib/text_case.cpp src/lib/calendar.cpp src/lib/ipv4.cpp
                    src/game/settings_document.cpp tests/unit/settings_file.cpp tests/unit/ini_file.cpp
-                   tests/unit/ipv4.cpp src/game/ini_file.cpp src/game/asset_text.cpp ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS}
-                   ${EI_SDL_CALLS})
+                   tests/unit/ipv4.cpp tests/unit/maths.cpp src/game/ini_file.cpp src/game/asset_text.cpp
+                   ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_port_check PRIVATE src)
     target_link_libraries(ei_port_check PRIVATE ei_platform SDL3::SDL3-static)
     add_test(NAME port_platform COMMAND ei_port_check)

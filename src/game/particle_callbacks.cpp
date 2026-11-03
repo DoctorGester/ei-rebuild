@@ -8,6 +8,7 @@
 
 #include "lib/containers.h"
 #include "lib/float_select.h"
+#include "lib/maths.h"
 #include "lib/vecmath.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
@@ -127,8 +128,8 @@ bool FollowCarrier(ParticleSource* s) {
     height = offset.z;
     if (std::ssize(s->elements) == 0) {
         s->elements.resize(2);
-        s->elements[1].sphereTilt.tiltCos = std::cos(EI_TILT_ANGLE);
-        s->elements[1].sphereTilt.tiltSin = std::sin(EI_TILT_ANGLE);
+        s->elements[1].sphereTilt.tiltCos = lib::Cos(EI_TILT_ANGLE);
+        s->elements[1].sphereTilt.tiltSin = lib::Sin(EI_TILT_ANGLE);
         s->elements[1].pos = {};
         s->elements[0].pos = {};
         s->elements[0].pos.z = height;
@@ -258,8 +259,8 @@ void TurnRing(ParticleElement* e) {
     float* angle = &e->flames.angle;
     float turned = (ei::kRadiansPerDegree * EI_TURN_SPEED) + (*angle);
     *angle = turned;
-    e->pos.x = std::sin(turned) * (*radius) + e->flames.centre.x;
-    e->pos.y = std::cos(*angle) * (*radius) + e->flames.centre.y;
+    e->pos.x = lib::Sin(turned) * (*radius) + e->flames.centre.x;
+    e->pos.y = lib::Cos(*angle) * (*radius) + e->flames.centre.y;
     e->pos.z = e->flames.rise + e->pos.z;
 }
 
@@ -319,15 +320,15 @@ int AddOrbiter(ParticleSource* s, Particle* p) {
         break;
     }
     Vector3& relative = e->orbiter.relative;
-    relative.x = std::cos(angle) * orbit;
+    relative.x = lib::Cos(angle) * orbit;
     e->word[9] = 0;
     e->ticks = 1;
-    relative.y = std::sin(angle) * orbit;
+    relative.y = lib::Sin(angle) * orbit;
     relative.z = lift;
     e->pos = s->origin + relative;
-    e->orbiter.turnCos = std::cos(turn);
+    e->orbiter.turnCos = lib::Cos(turn);
     e->orbiter.previous = e->pos;
-    e->orbiter.turnSin = std::sin(turn);
+    e->orbiter.turnSin = lib::Sin(turn);
     // Kept from the original (its locals read one slot off): the sign times the carrier's radius, not the orbit.
     e->orbiter.scale = sign * carrier;
     p->color = 0xFFFFFFFF;
@@ -657,15 +658,15 @@ void SetUpCylinder(ParticleSource* s) {
     auto [offset, radius] = s->AttachmentOffset();
     float turn = (EI_CYL_TURN * EI_CYL_PI) * EI_CYL_TURN_SCALE;
     if (ParticleTypeOf(s->type) == ParticleType::Cylinder2) turn = -turn;
-    float c = std::cos(turn);
-    float sn = std::sin(turn);
+    float c = lib::Cos(turn);
+    float sn = lib::Sin(turn);
     int count = lib::Count(s->elements);
     for (int i = 0; i < std::ssize(s->elements); ++i) {
         float orbit = radius * EI_CYL_ORBIT;
         float twice = static_cast<float>(2 * i);
         ParticleElement& e = s->elements[i];
-        e.pos.x = std::cos(twice * EI_CYL_PI / count) * orbit;
-        e.pos.y = std::sin(twice * EI_CYL_PI / std::ssize(s->elements)) * orbit;
+        e.pos.x = lib::Cos(twice * EI_CYL_PI / count) * orbit;
+        e.pos.y = lib::Sin(twice * EI_CYL_PI / std::ssize(s->elements)) * orbit;
         e.pos.z = radius * EI_CYL_LIFT;
         e.star.step = {};
         e.star.rotation[0] = c;
@@ -809,7 +810,7 @@ constexpr std::int32_t kTransAlpha[16] = /*0078ACF8*/ {0, 80, 176, 255, 255, 255
 
 
 // base ^ exponent the way VC6 inlined pow here (through ln and 2^x).
-float PowInline(float base, int exponent) { return std::exp(std::log(base) * exponent); }
+float PowInline(float base, int exponent) { return lib::Exp(lib::Log(base) * exponent); }
 
 // By quadrant.
 constexpr float kDustAxisX[4] = /*0078AAB8*/ {0.707f, -0.707f, -0.707f, 0.707f};
@@ -1020,8 +1021,8 @@ int ParticleSource::EmitCastRing(Particle* p, int) {
         float inner = (ringRadius - height * EI_TWENTY) * EI_HALF + ringRadius;
         float reach = WordToFloat(Next()) * (ringRadius - inner) * EI_P_SCALE_1 + inner;
         const ParticleElement& ring = elements[0];
-        p->pos.x = std::sin(angle) * reach + (origin.x + ring.pos.x);
-        p->pos.y = std::cos(angle) * reach + (elements[0].pos.y + origin.y);
+        p->pos.x = lib::Sin(angle) * reach + (origin.x + ring.pos.x);
+        p->pos.y = lib::Cos(angle) * reach + (elements[0].pos.y + origin.y);
         p->pos.z = elements[0].pos.z + origin.z;
     } else {
         const ParticleElement& ring = elements[Next() % static_cast<std::uint32_t>(std::ssize(elements))];
@@ -1249,8 +1250,8 @@ int ParticleSource::EmitLink(Particle* p, int) {
     float reach = std::sqrt(b * b + a * a);
     float reachRounded = reach;
     float twist = reach * EI_LINK_TWIST;
-    p->aux.x = std::cos(twist);
-    p->aux.y = std::sin(twist);
+    p->aux.x = lib::Cos(twist);
+    p->aux.y = lib::Sin(twist);
     Vector3 start = p->velocity + origin;
     p->PlaceAt(start);
     float factor;
@@ -1509,10 +1510,10 @@ int ParticleSource::EmitGeyser(Particle* p, int) {
         float yaw = (WordToFloat(Next()) * EI_GEYSER_YAW_SCALE - EI_GEYSER_YAW_LOW) * radian + e.pos.x;
         float tilt = (WordToFloat(Next()) * EI_GEYSER_TILT_SCALE - EI_GEYSER_TILT_LOW) * radian + e.pos.y;
         float power = WordToFloat(Next()) * EI_GEYSER_JET_SCALE + e.pos.z - EI_GEYSER_JET_LOW;
-        float sinTilt = std::sin(tilt);
-        p->drift.x = std::sin(yaw) * sinTilt * power * height;
-        p->drift.y = std::cos(yaw) * sinTilt * power * height;
-        p->drift.z = std::cos(tilt) * power * height;
+        float sinTilt = lib::Sin(tilt);
+        p->drift.x = lib::Sin(yaw) * sinTilt * power * height;
+        p->drift.y = lib::Cos(yaw) * sinTilt * power * height;
+        p->drift.z = lib::Cos(tilt) * power * height;
         p->pos = SpreadAround(p->pos, spreadMin, spreadMax);
         p->size = 0.0f;
         p->velocity.x = drop;
@@ -1746,8 +1747,8 @@ int ParticleSource::EmitColumn(Particle* p, int) {
                                     elements[0].column.height * EI_COLUMN_RISE;
     float ring = WordToFloat(Next()) * EI_COLUMN_RING_SCALE + EI_COLUMN_RING_BASE;
     float angle = WordToFloat(Next()) * EI_COLUMN_ANGLE_SCALE;
-    p->velocity.x = std::sin(angle) * ring;
-    p->velocity.y = std::cos(angle) * ring;
+    p->velocity.x = lib::Sin(angle) * ring;
+    p->velocity.y = lib::Cos(angle) * ring;
     float z = WordToFloat(Next()) * (spreadMax.z - spreadMin.z) * EI_P_SCALE_1 + spreadMin.z;
     p->velocity.z = z;
     p->velocity.z = z + elements[0].column.foot;
@@ -1784,7 +1785,7 @@ int ParticleSource::EmitMushroom(Particle* p, int) {
         elements.resize(1);
         ParticleElement* e = elements.data();
         e->ticks = 0;
-        e->pos.x = std::log(EI_MUSHROOM_ONE) * EI_MUSHROOM_SPREAD * size;
+        e->pos.x = lib::Log(EI_MUSHROOM_ONE) * EI_MUSHROOM_SPREAD * size;
         elements[0].pos.z = 0.0f;
         elements[0].mushroom.stem = origin;
     }
@@ -1876,14 +1877,14 @@ int ParticleSource::EmitStench(Particle* p, int) {
     p->frameTimer = frameDelay;
     float turn = t * EI_GAS_RADIUS / radius;
     float low = radius * EI_GAS_LOW;
-    float vx = std::sin(angle) * t;
-    float vy = std::cos(angle) * t;
+    float vx = lib::Sin(angle) * t;
+    float vy = lib::Cos(angle) * t;
     float vz = WordToFloat(Next()) * (radius * EI_GAS_RADIUS - low) * EI_P_SCALE_1 + low;
     p->velocity = {vx, vy, vz};
     float riseLow = carrierHeight * EI_GAS_RISE_LOW;
     std::uint32_t r4 = Next();
-    p->drift.x = std::sin(turn);
-    p->drift.y = std::cos(turn);
+    p->drift.x = lib::Sin(turn);
+    p->drift.y = lib::Cos(turn);
     p->drift.z = WordToFloat(r4) * (carrierHeight * EI_GAS_RISE_HIGH - riseLow) * EI_P_SCALE_1 + riseLow;
     p->PlaceAt(origin + elements[0].pos + p->velocity);
     p->size = radius * EI_GAS_SIZE;
@@ -1955,8 +1956,8 @@ int ParticleSource::EmitTornado(Particle* p, int) {
     p->drift.x = turn * (EI_FUNNEL_TURN_TOP - wRounded * wRounded) * EI_FUNNEL_TURN_SCALE;
     p->drift.z = 0.0f;
     p->drift.y = elements[0].funnel.damping;
-    p->pos.x = std::sin(angle) * radius + p->pos.x + cx;
-    p->pos.y = std::cos(angle) * radius + cy + p->pos.y;
+    p->pos.x = lib::Sin(angle) * radius + p->pos.x + cx;
+    p->pos.y = lib::Cos(angle) * radius + cy + p->pos.y;
     p->pos.z = height01 * elements[0].funnel.height + p->pos.z;
     if (p->state != 0) {
         p->size = (radius + EI_FUNNEL_SIZE) * size;
@@ -1983,8 +1984,8 @@ int ParticleSource::UpdateTornado(Particle* p) {
     float angle = p->velocity.x;
     p->velocity.y = p->drift.y * p->velocity.y;
     float radius = p->velocity.y;
-    p->pos.x = std::sin(angle) * radius + origin.x + cx;
-    p->pos.y = std::cos(angle) * radius + origin.y + cy;
+    p->pos.x = lib::Sin(angle) * radius + origin.x + cx;
+    p->pos.y = lib::Cos(angle) * radius + origin.y + cy;
     float base = elements[0].pos.z + origin.z;
     p->pos.z = base;
     p->pos.z = elements[0].funnel.height * p->aux.x + base;
@@ -2017,7 +2018,7 @@ void ParticleSource::TickTornado(ParticleElement* e) {
         sway.z = 0.0f;
         sway.y *= EI_FUNNEL_SWAY;
         for (int i = 0; i < std::ssize(elements); ++i) {
-            float c = std::cos(static_cast<float>(i) / static_cast<float>(std::ssize(elements) - 1) * EI_FUNNEL_PI *
+            float c = lib::Cos(static_cast<float>(i) / static_cast<float>(std::ssize(elements) - 1) * EI_FUNNEL_PI *
                                  EI_FUNNEL_HALF_ARC);
             elements[i].pos = sway * c;
         }
@@ -2033,7 +2034,7 @@ void ParticleSource::TickTornado(ParticleElement* e) {
         Vector3 g = n * lean + elements[0].pos;
         for (int i = 0; i < std::ssize(elements); ++i) {
             float f = static_cast<float>(i) / static_cast<float>(std::ssize(elements) - 1);
-            float c = std::cos(f * EI_FUNNEL_PI);
+            float c = lib::Cos(f * EI_FUNNEL_PI);
             float k = (c + (EI_P_ONE - f) * elements[0].funnel.bend + EI_FUNNEL_ONE) * EI_FUNNEL_BEND;
             elements[i].pos = g * k;
         }
@@ -2166,8 +2167,8 @@ void ParticleSource::TickCylinder(ParticleElement* e) {
     e->pos = next;
     float twist = EI_CYL_PI * EI_CYL_TWIST;
     if (ParticleTypeOf(type) == ParticleType::Cylinder2) twist = -twist;
-    float c = std::cos(twist);
-    float s = std::sin(twist);
+    float c = lib::Cos(twist);
+    float s = lib::Sin(twist);
     float a = s * rotation[1] + c * rotation[0];
     float b = c * rotation[1] - s * rotation[0];
     rotation[0] = a;
@@ -2340,8 +2341,8 @@ int ParticleSource::EmitBanshee(Particle* p, int) {
         reach = inner;
     else
         reach = WordToFloat(Next()) * (ringRadius - inner) * EI_P_SCALE_1 + inner;   // also NaN
-    p->pos.x = std::sin(angle) * reach + origin.x;
-    p->pos.y = std::cos(angle) * reach + origin.y;
+    p->pos.x = lib::Sin(angle) * reach + origin.x;
+    p->pos.y = lib::Cos(angle) * reach + origin.y;
     p->pos.z = origin.z + elements[0].pos.z;
     p->size = size * EI_BANSHEE_SIZE;
     return 1;
@@ -2392,8 +2393,8 @@ int ParticleSource::EmitPortal(Particle* p, int) {
     float spread = (t + EI_P_ONE) * t * EI_PORTAL_HALF_C;
     float angle = WordToFloat(Next()) * EI_PORTAL_ANGLE;
     float reach = spread * radius;
-    float x = std::sin(angle) * reach;
-    float y = std::cos(angle) * reach;
+    float x = lib::Sin(angle) * reach;
+    float y = lib::Cos(angle) * reach;
     p->pos.x = x + origin.x;
     p->pos.y = y + origin.y;
     p->pos.z = origin.z;
@@ -2408,8 +2409,8 @@ int ParticleSource::EmitPortal(Particle* p, int) {
         p->frame = static_cast<int>(Next() & 3);
         spin = -spin;
     }
-    p->velocity.x = std::cos(spin);
-    p->velocity.y = std::sin(spin);
+    p->velocity.x = lib::Cos(spin);
+    p->velocity.y = lib::Sin(spin);
     p->velocity.z = (EI_P_ONE - spread + 3.0f) * radius * EI_PORTAL_RISE;
     p->pos.z = (WordToFloat(Next()) * EI_P_SCALE_1 - EI_PORTAL_HALF_C) * p->velocity.z + p->pos.z;
     return 1;
@@ -2600,8 +2601,8 @@ int ParticleSource::EmitFalling(Particle* p, int) {
     float angle = WordToFloat(Next()) * (turn - lowTurn) * EI_P_SCALE_1 + gust.wind.direction + lowTurn;
     p->velocity.x = 1.0f;
     p->velocity.z = -0.12f;     // -0.12
-    p->drift.x = std::sin(angle) * x;
-    p->drift.y = std::cos(angle) * x;
+    p->drift.x = lib::Sin(angle) * x;
+    p->drift.y = lib::Cos(angle) * x;
     p->drift.z = 0.0f;
     p->velocity.z = WordToFloat(Next()) * EI_FALL_DROP_SCALE + p->velocity.z - EI_FALL_DROP;
     p->velocity.y = WordToFloat(Next()) * EI_FALL_SPIN_SCALE - EI_FALL_SPIN;
@@ -2649,8 +2650,8 @@ int ParticleSource::EmitVulkan(Particle* p, int) {
         std::uint32_t r = Next();
         p->drift.z = 0.0f;
         float angle = WordToFloat(r) * span * EI_P_SCALE_1;
-        p->drift.x = std::sin(angle) * reach;
-        p->drift.y = std::cos(angle) * reach;
+        p->drift.x = lib::Sin(angle) * reach;
+        p->drift.y = lib::Cos(angle) * reach;
         return 1;
     }
     p->state = 4;
@@ -2659,8 +2660,8 @@ int ParticleSource::EmitVulkan(Particle* p, int) {
     float reach = WordToFloat(Next()) * spreadMax.x * EI_P_SCALE_1;
     float span = radian;
     float angle = WordToFloat(Next()) * span * EI_P_SCALE_1;
-    p->pos.x = std::sin(angle) * reach + origin.x;
-    p->pos.y = std::cos(angle) * reach + origin.y;
+    p->pos.x = lib::Sin(angle) * reach + origin.x;
+    p->pos.y = lib::Cos(angle) * reach + origin.y;
     p->pos.z = origin.z;
     p->size = size * EI_VULKAN_SMOKE;
     p->velocity.x = 1.02f;     // 1.02
@@ -2773,13 +2774,13 @@ int ParticleSource::EmitVisionStar(Particle* p, int) {
     p->size = 0.0f;
     if (lifetime != 1) return 1;
     if (count == 0) {
-        p->velocity.x = std::cos(0.0f);
-        p->velocity.y = std::sin(0.0f);
+        p->velocity.x = lib::Cos(0.0f);
+        p->velocity.y = lib::Sin(0.0f);
         p->velocity.z = 0.0f;
     } else {
         float angle = kSpinAngle * SpinRate(count);
-        p->velocity.x = std::cos(angle);
-        p->velocity.y = std::sin(angle);
+        p->velocity.x = lib::Cos(angle);
+        p->velocity.y = lib::Sin(angle);
         p->velocity.z = 0.0f;
     }
     float half = 0.5f;
@@ -2800,9 +2801,9 @@ int ParticleSource::UpdateVisionStar(Particle* p) {
     float flicker;
     flicker = 0.3f;     // 0.3
     if (lifetime == 1) {
-        float c = std::cos(0.07f);
+        float c = lib::Cos(0.07f);
         flicker = 0.17f;     // 0.17
-        float s = std::sin(0.07f);
+        float s = lib::Sin(0.07f);
         float turnedY = p->velocity.y * c - p->velocity.x * s;
         float turnedX = c * p->velocity.x + p->velocity.y * s;
         p->velocity.y = turnedY;
@@ -2852,8 +2853,8 @@ int ParticleSource::UpdateFeebleMind(Particle* p) {
     p->color = (static_cast<std::uint32_t>(kFeebleAlpha[life]) << 24) | 0xFFFFFF;
     int frame = (p->frame + 1) & 15;
     p->pos -= p->velocity;
-    float c = std::cos(0.07f);
-    float s = std::sin(0.07f);
+    float c = lib::Cos(0.07f);
+    float s = lib::Sin(0.07f);
     float turnedY = p->velocity.y * c - p->velocity.x * s;
     float turnedX = c * p->velocity.x + p->velocity.y * s;
     float grow = 1.1f;
@@ -2986,10 +2987,10 @@ int ParticleSource::UpdateSilence(Particle* p) {
     } else {
         radius = kept;
     }
-    float c = std::cos(p->velocity.x);
+    float c = lib::Cos(p->velocity.x);
     p->color = 0xFFFFFFFF;
-    float sn = std::sin(p->velocity.x);
-    Vector3 circle = {c, sn, std::sin(p->aux.x) * 0.5f};
+    float sn = lib::Sin(p->velocity.x);
+    Vector3 circle = {c, sn, lib::Sin(p->aux.x) * 0.5f};
     Vector3 next = circle * (radius / std::sqrt(LengthSquared(circle))) + origin;
     next.z = radius * 0.5f + next.z;
     p->size = 1.0f;
@@ -3124,8 +3125,8 @@ int ParticleSource::EmitTeleport(Particle* p, int) {
     float spread = (t + EI_P_ONE) * t * 0.5f;
     float angle = WordToFloat(Next()) * 1.4629215e-09f;    // 2 pi * 2^-32
     float reach = magnitude * spread;
-    float sx = std::sin(angle) * reach;
-    float cy = std::cos(angle) * reach;
+    float sx = lib::Sin(angle) * reach;
+    float cy = lib::Cos(angle) * reach;
     p->pos.y = cy + origin.y;
     p->pos.x = sx + origin.x;
     p->pos.z = origin.z;
@@ -3297,9 +3298,9 @@ int ParticleSource::EmitNuke(Particle* p, int) {
     float reach = WordToFloat(Next()) * fifth * EI_P_SCALE_1;
     float turn = 3.1415927f + 3.1415927f;    // 2 pi
     float angle = WordToFloat(Next()) * turn * EI_P_SCALE_1;
-    float s = std::sin(angle);
+    float s = lib::Sin(angle);
     p->pos.x = reach * s + origin.x;
-    float c = std::cos(angle);
+    float c = lib::Cos(angle);
     p->pos.y = reach * c + origin.y;
     float top = size + size;
     p->pos.z = WordToFloat(Next()) * top * EI_P_SCALE_1 + origin.z;
@@ -3348,8 +3349,8 @@ int ParticleSource::EmitGroundDust(Particle* p, int index) {
     } else {
         float fu = index * 0.049140625f;
         float f = fu;
-        a = std::sin(fu) * 0.1f;
-        b = std::cos(f) * 0.1f;
+        a = lib::Sin(fu) * 0.1f;
+        b = lib::Cos(f) * 0.1f;
     }
     p->pos = origin;
     p->size = 0.0f;

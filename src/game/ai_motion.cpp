@@ -10,6 +10,7 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
@@ -52,8 +53,8 @@ int DirectionDelta(int a, int b) {
 }
 
 void FaceAngle(float angle, MotionSample* sample) {
-    sample->direction.x = std::cos(angle);
-    sample->direction.y = std::sin(angle);
+    sample->direction.x = lib::Cos(angle);
+    sample->direction.y = lib::Sin(angle);
 }
 
 // Turning in place: the facing after `elapsed` of turning `turn` from `start` at `rate`; `final`
@@ -118,7 +119,7 @@ bool PathOrder::Start(const Vector3& position, const Vector3& direction, int tim
     float dx = direction.x;
     float dy = direction.y;
     float length = std::sqrt(LengthSquared2D(dy, dx));
-    float angle = length > 0.0f ? std::atan2(dy / length, dx / length) : 0.0f;
+    float angle = length > 0.0f ? lib::Atan2(dy / length, dx / length) : 0.0f;
     float x = kHalfCellScale * position.x;
     float y = kHalfCellScale * position.y;
     EI_NAN_AUDIT(order->angle, angle, x, order->x, order->y, y);
@@ -135,7 +136,7 @@ bool PathOrder::Start(const Vector3& position, const Vector3& direction, int tim
 void PathOrder::SetTurn(const Vector3& direction, std::uint32_t rateBits) {
     MotionOrder* order = OrderOf(this);
     order->kind = 1;
-    float angle = std::atan2(direction.y, direction.x);
+    float angle = lib::Atan2(direction.y, direction.x);
     order->arg6 = rateBits;
     order->arg5 = std::bit_cast<std::uint32_t>(angle);
 }
@@ -152,7 +153,7 @@ void PathOrder::SetTurnUntil(const Vector3& direction, int fromTime, int toTime)
     MotionOrder* order = OrderOf(this);
     order->kind = 4;
     order->arg7 = static_cast<std::uint32_t>(toTime);
-    float angle = std::atan2(direction.y, direction.x);
+    float angle = lib::Atan2(direction.y, direction.x);
     order->arg6 = static_cast<std::uint32_t>(fromTime);
     order->arg5 = std::bit_cast<std::uint32_t>(angle);
 }
@@ -249,8 +250,8 @@ MotionSample UnitMotion::Sample(World* world, MotionOrder* order, float time) {
         sample.turning = true;
         bool final;
         float angle = TurnAngle(this, time - start, &final);
-        sample.direction.x = std::cos(angle);
-        sample.direction.y = std::sin(angle);
+        sample.direction.x = lib::Cos(angle);
+        sample.direction.y = lib::Sin(angle);
         sample.alive = !final;
         return sample;
     }
@@ -268,7 +269,7 @@ MotionSample UnitMotion::Sample(World* world, MotionOrder* order, float time) {
         float ty = kHalfCellScale * target.y;
         int to = static_cast<int>(order->arg7);
         if (static_cast<float>(to) > time && to != order->startTime) {
-            float angleTo = std::atan2(ty - order->y, tx - order->x) - order->angle;
+            float angleTo = lib::Atan2(ty - order->y, tx - order->x) - order->angle;
             const float twoPi = kPi + kPi;
             while (angleTo > kPi) angleTo = angleTo - twoPi;
             const float negPi = -kPi;
@@ -277,8 +278,8 @@ MotionSample UnitMotion::Sample(World* world, MotionOrder* order, float time) {
             // Over the turn's tick count, an int.
             float angle = ((time - start) * angleTo / static_cast<float>(to - order->startTime)) +
                           order->angle;
-            sample.direction.x = std::cos(angle);
-            sample.direction.y = std::sin(angle);
+            sample.direction.x = lib::Cos(angle);
+            sample.direction.y = lib::Sin(angle);
             return sample;
         }
         sample.direction.x = tx - order->x;
@@ -294,8 +295,8 @@ MotionSample UnitMotion::Sample(World* world, MotionOrder* order, float time) {
     case 4: {
         bool final;
         float angle = TurnAngle(this, time - start, &final);
-        sample.direction.x = std::cos(angle);
-        sample.direction.y = std::sin(angle);
+        sample.direction.x = lib::Cos(angle);
+        sample.direction.y = lib::Sin(angle);
         sample.turning = !final;
         return sample;
     }
@@ -334,8 +335,8 @@ MotionSample UnitMotion::SamplePath(float time, float startX, float startY) {
                 float sign = turn < 0.0f ? kMinusOne : (turn > 0.0f ? kOne : kZero);
                 angle = sign * turnRate * time + startAngle;
             }
-            sample.direction.x = std::cos(angle);
-            sample.direction.y = std::sin(angle);
+            sample.direction.x = lib::Cos(angle);
+            sample.direction.y = lib::Sin(angle);
             return sample;
         }
         end = turnTime;
@@ -408,8 +409,8 @@ void UnitMotion::Build(PathOrder* path) {
     case 1: {
         float rate = AsFloat(order->arg6);
         float angle = AsFloat(order->arg5);
-        float s = std::sin(angle);
-        float c = std::cos(angle);
+        float s = lib::Sin(angle);
+        float c = lib::Cos(angle);
         EI_NAN_AUDIT(c, s);
         if (c == 0.0f && s == 0.0f) {
             turn = 0.0f;
@@ -418,20 +419,20 @@ void UnitMotion::Build(PathOrder* path) {
         EI_NAN_AUDIT(rate);
         if (rate != 0.0f) turnRate = rate;
         else turnRate = baseTurnRate;
-        NormalizeTurn(this, std::atan2(s, c) - startAngle);
+        NormalizeTurn(this, lib::Atan2(s, c) - startAngle);
         return;
     }
     case 4: {
         float angle = AsFloat(order->arg5);
-        float s = std::sin(angle);
-        float c = std::cos(angle);
+        float s = lib::Sin(angle);
+        float c = lib::Cos(angle);
         EI_NAN_AUDIT(c, s);
         if (c == 0.0f && s == 0.0f) {
             turn = 0.0f;
             return;
         }
         turnRate = baseTurnRate;
-        NormalizeTurn(this, std::atan2(s, c) - startAngle);
+        NormalizeTurn(this, lib::Atan2(s, c) - startAngle);
         return;
     }
     default:
@@ -521,10 +522,10 @@ void UnitMotion::Build(PathOrder* path) {
     }
     // Face the first point: no turn when it is within ~25 degrees of the current facing.
     MotionPoint* p = points.data();
-    if (std::cos(std::atan2(p->dirY, p->dirX) - startAngle) > 0.9f) {
+    if (lib::Cos(lib::Atan2(p->dirY, p->dirX) - startAngle) > 0.9f) {
         turn = 0.0f;
-        p->dirX = std::cos(startAngle);
-        points.data()->dirY = std::sin(startAngle);
+        p->dirX = lib::Cos(startAngle);
+        points.data()->dirY = lib::Sin(startAngle);
         AssignCells(path);
         return;
     }
@@ -534,7 +535,7 @@ void UnitMotion::Build(PathOrder* path) {
         AssignCells(path);
         return;
     }
-    float angle = std::atan2(p->dirY, p->dirX);
+    float angle = lib::Atan2(p->dirY, p->dirX);
     turnRate = baseTurnRate;
     NormalizeTurn(this, angle - startAngle);
     AssignCells(path);
@@ -614,7 +615,7 @@ void UnitMotion::LimitSpeeds(float rate) {
     const float twoPi = kPi + kPi;
     for (int i = 0; i < std::ssize(points) - 1; ++i) {
         MotionPoint* p = &points[i];
-        float angle = AbsBits(std::atan2(p[0].dirY, p[0].dirX) - std::atan2(p[1].dirY, p[1].dirX));
+        float angle = AbsBits(lib::Atan2(p[0].dirY, p[0].dirX) - lib::Atan2(p[1].dirY, p[1].dirX));
         while (angle > twoPi) angle = angle - twoPi;
         if (angle > kPi) angle = twoPi - angle;
         float distance = std::sqrt(LengthSquared2D(p[0].x - p[1].x, p[0].y - p[1].y));

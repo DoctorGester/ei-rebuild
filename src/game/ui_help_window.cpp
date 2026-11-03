@@ -12,6 +12,7 @@
 #include "game_singletons.h"
 #include "world.h"
 #include "render/render_state.h"
+#include "lib/maths.h"
 #include "lib/str.h"
 #include "platform/platform.h"
 
@@ -82,7 +83,7 @@ void HelpWindow::Update() {
     UiContainer::Update();
     float time = FrameTime() + pulseTime;
     pulseTime = time;
-    float wave = (std::cos(time * 5.0f) + 1.0f) * 0.5f;
+    float wave = (lib::Cos(time * 5.0f) + 1.0f) * 0.5f;
     float alpha = wave * 255.0f;
     float alphaStored = alpha;   // stored to a float
     float rest = (1.0f - wave) * 80.0f;

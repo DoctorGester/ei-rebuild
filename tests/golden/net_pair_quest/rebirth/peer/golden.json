@@ -2,12 +2,23 @@
   "scenario": "net_pair_quest",
   "install": "rebirth",
   "recorded": "2026-11-03",
-  "commit": "bde8162fd",
+  "commit": "56708991a",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C84b: Combat 10 reverted to the original arithmetic (not a bug); these scenarios move back from the first C84b recording",
+  "reason": "H47c: game maths through lib/maths.h (each system's double function rounded to float), the same on Windows and Linux; UCRT's float sinf/cosf/... were an ulp off for some inputs",
   "side": "peer",
-  "source": "image"
+  "source": "image",
+  "change": [
+    "digest: 19 of 695 records differ, first at record 48 (world update 980, tick 577, frame 195, zone bz1mpg); outcomes the same; unit place differs (hash only: no numbers)",
+    "  first difference at record 48 (world update 980, tick 577, frame 195, zone bz1mpg): 1 fields",
+    "    obj848411 (80 unanhopi \"\") #place: 2EEFB771 in the old golden, 0137F611 in the new run",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  units: 3 of 27 differ",
+    "    #place: 3 units, 3 records, from 48; hash only (no numbers kept)",
+    "  client units: 5 of 24 differ",
+    "    #place: 4 client units, 13 records, from 124; hash only (no numbers kept)",
+    "    #unit: 2 client units, 4 records, from 124; hash only (no numbers kept)"
+  ]
 }

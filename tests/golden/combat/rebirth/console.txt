@@ -34,8 +34,19 @@
   0
   0
   0
-  Unit 1000275419 was attacked by 1000011214 skill=3.40282e+038 damage=12.1082 destHL=RHand
-  impaling passed damage = 12.1082 HL was crippled
+  Unit 1000275419 was attacked by 1000011214 skill=-3.40282e+038 damage=12.5461 destHL=RHand
+  0
+  Delayed sound: Unit 1000275419 heard unit 1000011214 from 2.054182m distance
+  0
+  Unit 1000275419 was attacked by 1000011214 skill=-3.40282e+038 damage=12.1582 destHL=LLeg
+  0
+  0
+  0
+  Unit 1000275419 was attacked by 1000011214 skill=-3.40282e+038 damage=11.3248 destHL=Body
+  0
+  0
+  Unit 1000275419 was attacked by 1000011214 skill=3.40282e+038 damage=10.2532 destHL=LLeg
+  impaling passed damage = 10.2532 HL was crippled
   Unit 1000275419 damaged to death
   Unit 1000011214 sees corpse of unit 1000275419
   Unit 1000011214 lost from sight unit 1000275419
@@ -44,92 +55,35 @@
   38.7939
   Unit 1000275420 sees unit 1000011214 from 1.97454m distance
   Unit 1000275420 new motivation Player with power of 10
-  1
   Unit 1000011214 sees unit 1000275420 from 1.97454m distance
+  1
   1
   1
   Unit 1000275420 sees unit 1000275419 with peripheral vision
   Unit 1000275420 sees corpse of unit 1000275419
-  Unit 1000011214 was attacked by 1000275420 skill=-3.40282e+038 damage=11.75 destHL=Body
-  0
-  0
-  0
-  0
-  0
-  0
-  0
-  Unit 1000011214 was attacked by 1000275420 skill=-3.40282e+038 damage=11.13 destHL=RLeg
-  0
-  0
-  0
-  Delayed sound: Unit 1000011214 heard unit 1000275420 from 1.440063m distance
-  0
-  0
-  0
-  0
-  0
-  Unit 1000011214 was attacked by 1000275420 skill=-3.40282e+038 damage=11.69 destHL=Body
-  0
-  0
-  0
-  Delayed sound: Unit 1000011214 heard unit 1000275420 from 1.440063m distance
-  0
-  0
-  0
-  0
-  0
-  Unit 1000011214 was attacked by 1000275420 skill=-3.40282e+038 damage=12.11 destHL=Body
-  0
-  0
-  Delayed sound: Unit 1000011214 heard unit 1000275420 from 1.440063m distance
-  0
-  0
-  0
-  0
-  0
-  Unit 1000011214 was attacked by 1000275420 skill=-3.40282e+038 damage=8.26 destHL=RLeg
-  0
-  0
-  0
-  Delayed sound: Unit 1000011214 heard unit 1000275420 from 1.440063m distance
-  0
-  0
-  0
-  0
-  0
-  Unit 1000011214 was attacked by 1000275420 skill=3.40282e+038 damage=8.15 destHL=Body
-  slashing passed damage = 5.66253
+  Unit 1000011214 was attacked by 1000275420 skill=3.40282e+038 damage=10.45 destHL=RLeg
+  slashing passed damage = 5.47506
   1
-  33.2687
+  33.4854
   Unit 1000011214 was healed
   0
   0
-  Delayed sound: Unit 1000011214 heard unit 1000275420 from 1.440063m distance
-  Unit 1000275420 was attacked by 1000011214 skill=-3.40282e+038 damage=11.355 destHL=RLeg
-  0
+  Unit 1000275420 was attacked by 1000011214 skill=-3.40282e+038 damage=12.363 destHL=Body
   0
   0
   Delayed sound: Unit 1000275420 heard unit 1000011214 from 1.440063m distance
-  Unit 1000275420 was attacked by 1000011214 skill=-3.40282e+038 damage=10.6287 destHL=LLeg
   0
+  Unit 1000275420 was attacked by 1000011214 skill=-3.40282e+038 damage=11.4022 destHL=Body
   0
-  Unit 1000011214 was attacked by 1000275420 skill=-3.40282e+038 damage=9.42 destHL=LHand
-  Unit 1000275420 was attacked by 1000011214 skill=-3.40282e+038 damage=12.5798 destHL=Body
+  Unit 1000011214 was attacked by 1000275420 skill=-3.40282e+038 damage=8.65 destHL=LLeg
   0
-  0
-  Delayed sound: Unit 1000011214 heard unit 1000275420 from 1.440063m distance
-  0
-  Unit 1000275420 was attacked by 1000011214 skill=-3.40282e+038 damage=10.3721 destHL=LHand
-  0
-  0
-  0
-  Unit 1000275420 was attacked by 1000011214 skill=3.40282e+038 damage=11.5259 destHL=LLeg
-  impaling passed damage = 11.5259 HL was crippled
+  Unit 1000275420 was attacked by 1000011214 skill=3.40282e+038 damage=9.12516 destHL=LLeg
+  impaling passed damage = 9.12516 HL was crippled
   Unit 1000275419 sees unit 1000011214 from 1.97454m distance
   Unit 1000275419 sees unit 1000275420 from 0.556578m distance
   Unit 1000275420 damaged to death
+  1
   Unit 1000011214 sees corpse of unit 1000275420
   Unit 1000011214 lost from sight unit 1000275420
-  1
   38.9066
   1

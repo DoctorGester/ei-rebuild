@@ -15,6 +15,7 @@
 #include "lib/bytes.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
+#include "lib/maths.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
@@ -234,7 +235,7 @@ void Terrain::Create() {
     Reset();
     BuildVertexTiles();
     BuildWavePhases();
-    for (int i = 0; i < 512; ++i) sine[i] = std::sin(static_cast<float>(i) * kPi * kSineStep);
+    for (int i = 0; i < 512; ++i) sine[i] = lib::Sin(static_cast<float>(i) * kPi * kSineStep);
     localPosition = kZeroPosition;
     localRotation = kIdentityRotation;
 }
@@ -314,7 +315,7 @@ void Terrain::SetWaveStrength(float strength) {
     waveGlow = strength;
     waveHeight = kWaveHeightScale * strength;
     waveSpeed = kWaveSpeedScale * strength;
-    const float step = std::asin(1.0f - strength) + kPi * kWaveStepTurn;
+    const float step = lib::Asin(1.0f - strength) + kPi * kWaveStepTurn;
     float length = Length(waveDirection);
     if (length > 0.0f) waveDirection *= 1.0f / length;
     waveDirection.x = kWaveDirectionScale * waveDirection.x * step;

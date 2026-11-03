@@ -9,6 +9,7 @@
 #include "world_data.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
+#include "lib/maths.h"
 #include "lib/vecmath.h"
 #include "render/render.h"   // SetInterfaceDraw
 
@@ -86,21 +87,21 @@ float CircleAngle(int j, int n) {
 // cos or sin of the angle, times the float at `factor`, divided by the float at `divisor`; stored as float.
 float CircleScaled(int j, int n, bool sine, const float* factor, const float* divisor) {
     const float angle = CircleAngle(j, n);
-    return (sine ? std::sin(angle) : std::cos(angle)) * *factor / *divisor;
+    return (sine ? lib::Sin(angle) : lib::Cos(angle)) * *factor / *divisor;
 }
 // The same with (the float at `r` - the float at `w`) as the factor.
 float CircleScaledInner(int j, int n, bool sine, const float* r, const float* w, const float* divisor) {
     const float factor = (*r) - *w;
     const float angle = CircleAngle(j, n);
-    return (sine ? std::sin(angle) : std::cos(angle)) * factor / *divisor;
+    return (sine ? lib::Sin(angle) : lib::Cos(angle)) * factor / *divisor;
 }
 // A texture coordinate on the circle of radius R around c (integers): (cos * R + c) / 256, or for v
 // 1 - (sin * R + c) / 256 (the scale is the 1/256 texel constant).
 float CircleTexel(int j, int n, bool sine, int radius, int centre) {
     const float angle = CircleAngle(j, n);
     const float scale = 0.00390625f;
-    if (!sine) return (std::cos(angle) * radius + centre) * scale;
-    return 1.0f - (std::sin(angle) * radius + centre) * scale;
+    if (!sine) return (lib::Cos(angle) * radius + centre) * scale;
+    return 1.0f - (lib::Sin(angle) * radius + centre) * scale;
 }
 
 } // namespace

@@ -16,6 +16,7 @@
 #include "world.h"
 #include "world_data.h"
 #include "lib/containers.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 #include "render/render.h"
@@ -174,10 +175,10 @@ int WorldClient::UpdateLighting() {
     const float elevation = SunElevation(hour) * kRadiansPerDegree;
     const float turn = hour * kPerHour;
     const float azimuth = (turn + turn) * kPi;
-    const float cosElevation = std::cos(elevation);
+    const float cosElevation = lib::Cos(elevation);
     Vector3 direction;
     {
-        direction = {std::cos(azimuth) * cosElevation, std::sin(azimuth) * cosElevation, -std::sin(elevation)};
+        direction = {lib::Cos(azimuth) * cosElevation, lib::Sin(azimuth) * cosElevation, -lib::Sin(elevation)};
     }
     float whole;
     const float fraction = std::modf(hour, &whole);

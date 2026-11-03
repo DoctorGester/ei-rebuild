@@ -39,6 +39,7 @@
 #include <cstring>
 #include <memory>
 #include <string>
+#include "lib/maths.h"
 #include "lib/text_case.h"
 
 #include "lib/nan_audit.h"
@@ -95,7 +96,7 @@ void PlaceInLine(UnitSpec* message, const Vector3& position, const Quaternion& r
     if (axis <= worlddata::kAxisEpsilon) {
         angle = 0.0f;
     } else {
-        float arc = std::acos(rx);
+        float arc = lib::Acos(rx);
         angle = arc + arc;
         float sign = 1.0f / std::sqrt(axis) * rw;
         EI_NAN_AUDIT(sign);
@@ -107,8 +108,8 @@ void PlaceInLine(UnitSpec* message, const Vector3& position, const Quaternion& r
     float zStep = 0.0f;
     spec.position = position;
     spec.rotation = rotation;
-    float cosine = std::cos(angle);
-    float sine = std::sin(angle);
+    float cosine = lib::Cos(angle);
+    float sine = lib::Sin(angle);
     float step = static_cast<float>(index);
     float dy = sine * step;
     float dx = step * cosine;

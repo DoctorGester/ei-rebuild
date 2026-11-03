@@ -16,6 +16,7 @@
 #include "world.h"   // g_clientWorld
 
 #include "lib/float_select.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 
@@ -91,7 +92,7 @@ void LightDirection(const Vector3& sum, Vector3* direction) {
     if (lengthSquared != 0.0f) *direction = sum * (1.0f / std::sqrt(lengthSquared));
     float horizontal = std::sqrt(LengthSquared2D(direction->y, direction->x));
     float height = AbsBits(direction->z);
-    float elevation = std::atan2(height, horizontal);
+    float elevation = lib::Atan2(height, horizontal);
     if (elevation >= kMinimumTilt) return;   // NaN tilts
     const Vector3 tilted = {direction->x, direction->y, horizontal * kTiltSlope};
     *direction = tilted * (1.0f / std::sqrt(LengthSquared(tilted)));

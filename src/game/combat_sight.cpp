@@ -12,6 +12,7 @@
 #include "world.h"
 
 #include "lib/bytes.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/vecmath.h"
@@ -259,7 +260,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     // The unit's heading and how many ticks a half turn takes.
     Vector3 axis = unit->localRotation.AxisY();
     Vector3 facing = -axis;
-    float heading = std::atan2(facing.y, facing.x);
+    float heading = lib::Atan2(facing.y, facing.x);
     const float turnSpeed = unit->GetMoveSpeeds().turn;
     float halfTurn = kPi / turnSpeed;
     int ticks = lib::RoundEven(halfTurn) + 3;
@@ -338,7 +339,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
                             (targetUnit && targetUnit->id == unit->id);
             int turnTicks = -1;
             if (!facingIt) {
-                float turn = std::atan2(delta.y, delta.x) - heading;
+                float turn = lib::Atan2(delta.y, delta.x) - heading;
                 turn = AbsBits(turn);
                 float angle = turn;
                 if (Greater(turn, kPi)) angle = kPi + kPi - turn;

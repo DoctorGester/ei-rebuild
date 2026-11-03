@@ -1,7 +1,8 @@
 # Floating point and vector maths
 
-The game code is plain float maths: SSE code with `/fp:precise` (x64, no x87 anywhere), `std::` functions on floats.
-The goldens are our build's own, so nothing reproduces the original's x87 rounding any more.
+The game code is plain float maths: SSE code with `/fp:precise` (x64, no x87 anywhere; gcc and clang with
+`-ffp-contract=off`), lib/maths.h's functions on floats. The goldens are our build's own, so nothing reproduces the
+original's x87 rounding any more, and one set of goldens holds on Windows and Linux.
 
 - **Grouping decides the rounding.** `+` and `*` commute exactly; only the grouping of a sum matters. The grouping
   written is the grouping compiled under `/fp:precise`; `/fp:fast` regroups sums and distributes products (FearMode's
@@ -13,6 +14,22 @@ The goldens are our build's own, so nothing reproduces the original's x87 roundi
   printf's arguments, the registry's `GetFloat` (an int value exact), script values (`GetVariable`, addon's
   `CrtSin` / `CrtCos` / `CrtPow`), the shadow camera's matrix inverse (render_shadows.cpp) and the Bink audio
   decoder.
+
+## Maths functions (src/lib/maths.h)
+
+The game code calls `lib::Sin`, `Cos`, `Asin`, `Acos`, `Atan2`, `Exp`, `Log`, `Log10`, `Pow` and `Hypot`, never the
+system's float functions: those are not correctly rounded and each system rounds its own way, so the same game left
+Windows' goldens on Linux at its first turning animal (H47c: the main menu's unanwibo, `rot.w` an ulp apart at world
+update 5). Measured over every float (2026-11-03, MSVC 14.43's static UCRT and glibc 2.39), the float function against
+the double one rounded to float: sinf off for 0.07% of the inputs on UCRT and 0.7% on glibc, cosf alike, acosf 0.03% /
+0.25%, log10f 0.06% / 0.7%, expf 0.0005% / 0.004%, and the two sets' results differ. The double functions rounded to
+float agree on both for every float (the same hash of all results) (sin, cos, tan, asin, acos, atan, exp, log, log10) and on 2^28 samples each of atan2 and
+pow; so each lib:: function is the double function on the float, rounded once. `Hypot` calls no library: two floats'
+squares are exact in double, the sum and the square root are IEEE's (glibc's `(float)hypot(double)` differed once in
+2^28 samples). tools/check_cleanup.py counts `std::sin` and the rest per file ("system maths function"); outside the
+game state they stay (the renderer's shadow camera, the sound and movie decoders, the scripts' doubles in
+script_addon_math.cpp). The doubles of the scripts (`CrtSin` / `CrtCos` / `CrtPow`) are the systems' and not
+checked across them.
 
 ## Conversions and copies
 

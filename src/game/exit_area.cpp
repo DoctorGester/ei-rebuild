@@ -11,6 +11,7 @@
 #include <cstring>
 #include <string>
 
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "save_versions.h"
 
@@ -26,8 +27,8 @@ bool ZoneExit::Contains(float x, float y) const {
     }
     const float centerX = (x2 + x1) * 0.5f;
     const float centerY = (y2 + y1) * 0.5f;
-    const float c = std::cos(angle);
-    const float s = std::sin(angle);
+    const float c = lib::Cos(angle);
+    const float s = lib::Sin(angle);
     const float dy = y - centerY;
     const float dx = x - centerX;
     const float turnedX = dx * c + dy * s + centerX;

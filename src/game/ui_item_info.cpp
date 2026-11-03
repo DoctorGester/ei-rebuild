@@ -13,6 +13,7 @@
 #include "unit.h"
 #include "unit_db.h"
 
+#include "lib/maths.h"
 #include "lib/rebirth.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
@@ -40,7 +41,7 @@ constexpr float kIntelligenceGrowth = 1.04f;
 
 // pow(base, exponent - subtrahend) * scale, truncated.
 int PowFtol(float base, float exponent, float subtrahend, float scale) {
-    const float power = std::pow(base, exponent - subtrahend);
+    const float power = lib::Pow(base, exponent - subtrahend);
     return static_cast<int>(power * scale);
 }
 // b + a truncated; ScaledFtol the same of a * scale.

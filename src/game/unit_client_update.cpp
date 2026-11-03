@@ -22,6 +22,7 @@
 #include "unit_db.h"
 #include "world.h"
 #include "lib/float_select.h"
+#include "lib/maths.h"
 #include "lib/nan_audit.h"
 #include "lib/rounding.h"
 #include "lib/vecmath.h"
@@ -139,8 +140,8 @@ int UnitClientSpecific::RestartFadeIn() {
 
 int UnitClientSpecific::Level() {
     float experience = static_cast<float>(static_cast<std::uint32_t>(unit->params.experience));
-    float numerator = std::log(experience / g_logicSettings.considerModifier);
-    float level = numerator / std::log(g_logicSettings.considerLogBase);
+    float numerator = lib::Log(experience / g_logicSettings.considerModifier);
+    float level = numerator / lib::Log(g_logicSettings.considerLogBase);
     // The rounding gives the integer indefinite 0x80000000 for an infinite, NaN or out-of-range value (the
     // CRT's lrint gives 0). Experience 0 reaches it: ln 0 = -inf.
     return lib::RoundEven(level);
@@ -292,8 +293,8 @@ static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
         unit->TurnUpTowards(direction, 1);
     } else if (rate > 0.0f) {   // only above zero (NaN not)
         Vector3 axis = unit->localRotation.AxisY();
-        float current = std::atan2(-axis.y, -axis.x);
-        float target = std::atan2(direction.y, direction.x);
+        float current = lib::Atan2(-axis.y, -axis.x);
+        float target = lib::Atan2(direction.y, direction.x);
         for (;;) {
             float gap = target - current;
             gap = gap < 0 ? -gap : gap;
@@ -304,10 +305,10 @@ static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
             else
                 target = kFullTurn + target;
         }
-        float weight = std::exp(rate * kDecay);
+        float weight = lib::Exp(rate * kDecay);
         float heading = (1.0f - weight) * target + weight * current;
-        direction.x = std::cos(heading);
-        direction.y = std::sin(heading);
+        direction.x = lib::Cos(heading);
+        direction.y = lib::Sin(heading);
         direction.z = 0.0f;
         unit->SetHeading(direction);
     }
