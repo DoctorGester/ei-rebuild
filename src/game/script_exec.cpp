@@ -505,11 +505,11 @@ bool ScriptRun::Execute(Script* script) {
             console::PrintLine(Text(cmd, 0));
             break;
         case ScriptFunction::AddRectToArea: {   // AddRectToArea(area, x1, y1, x2, y2)
-            script->FindArea(lib::RoundEven(f[0]))->AddRect(f[1], f[2], f[3], f[4]);
+            script->FindOrAddArea(lib::RoundEven(f[0]))->AddRect(f[1], f[2], f[3], f[4]);
             break;
         }
         case ScriptFunction::AddRoundToArea: {   // AddRoundToArea(area, x, y, radius)
-            script->FindArea(lib::RoundEven(f[0]))->AddRound(f[1], f[2], f[3]);
+            script->FindOrAddArea(lib::RoundEven(f[0]))->AddRound(f[1], f[2], f[3]);
             break;
         }
         case ScriptFunction::DeleteArea:   // DeleteArea(area)

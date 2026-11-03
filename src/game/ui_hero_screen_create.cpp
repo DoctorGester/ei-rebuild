@@ -205,14 +205,13 @@ void MpHeroScreen::CreateScreen() {
         const UnitPrototypeRecord* prototype;
         {
             std::string key(creature()->name);
-            prototype = unitdb::PrototypeNamed(key);
+            prototype = g_unitDatabase.prototypes.FindByName(key);
         }
         if (!prototype) continue;
         const UnitModelRecord* figure;
         {
-            // operator[] inlined (a pair of the name and null through).
             std::string key(prototype->modelName);
-            figure = unitdb::ModelNamed(key);
+            figure = g_unitDatabase.models.FindByName(key);
         }
         figureModel = figure->figureName;
         auto isModel = [&figureModel](const char* name) {

@@ -13,6 +13,8 @@ MapObjectClientSpecific), `map_object_client_effects.cpp`, `map_object_manager.c
   `MapObjectClientSpecific`: looping effect sounds, effect particles, the light, the end sound) and the 3D object's
   side half (`Object3DSpecific`: `Object3DClientSpecific` draws, `Object3DServer` is all stubs; GetScale gives the
   client's scale or 1, 1, 1 on the server).
+- An Object3D's `parts` hold a reference each (LoadPart takes it, RemovePart and Destroy3D release it); the client
+  half's part groups hold their own. A server part goes back to the figure manager's spares at Destroy3D.
 - `Unit`'s update runs its controller's, then `MapObject::Update`, which runs the companion's.
 - Flags: 1 dead / destroyed, 2 dirty, 8 (network part 2), 0x10000 invisible, 0x40000 stunned (client,
   effect 0x19). A dead object has no effects.
@@ -84,9 +86,6 @@ recommendation per entry). Crashes, undefined behaviour and invisible bookkeepin
 By design (user 2026-11-03): RecomputeScale adds the net enlarge / shrink level to the strengthen level when enlarge or
 shrink is present (strengthened + enlarged grows by 0.8; strong units get wider) and leaves y alone for strengthen /
 weaken; heroes keep their height.
-
-Left for C84a (bookkeeping): Destroy3D only decrements the placed parts' counts while it releases the pending ones
-(CopyFigure's parts are uncounted copies; the ownership wants one rule).
 
 ## Virtual slot names with low confidence
 

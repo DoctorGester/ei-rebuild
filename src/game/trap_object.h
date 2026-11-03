@@ -22,7 +22,7 @@ public:
     // The map object's update; then, armed (flags 0x80000) on the server (the
     // context's query): the units within 1 of the position (the sector map). With any, the
     // world script above runs (on the mission script, z = what the world's virtual gives at x, y)
-    // and the trap disarms; with none, flags 0x100000 is cleared. False.
+    // and the trap disarms. False.
     bool RunTick() override;
     void Load(ByteStream* stream) override;                      // LoadTrapObject
     void Save(ByteStream* stream) override;                      // SaveTrapObject

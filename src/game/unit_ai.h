@@ -417,7 +417,7 @@ public:
     int Evaluate(AIBrain*) override { return kPriority; }
 };
 
-// A count read from `stream`, then that many counted references appended to `list`, each loaded in `context`.
+// A count read from `stream`, then that many counted references that replace `list`, each loaded in `context`.
 void CountedListLoad(HeldUnits* list, ByteStream* stream, World* context);
 
 // The AI's perception log: the AI stream.

@@ -82,7 +82,7 @@ struct ExtraAcks {
 // A table: the records and the index by name.
 template <typename Record>
 struct AckTable {
-    // The index's operator[], so a missing name is added with a null record (and null is returned).
+    // The record named `name`, or null.
     Record* Find(std::string_view name);
     // Null past the end (the extras' table only, used by the loader).
     Record* RecordAt(std::uint32_t index);

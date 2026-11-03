@@ -28,18 +28,10 @@ bool AddVariable(ScriptNamedValues<T>& vars, std::string_view name) {
 
 } // namespace
 
-// The values grow by the other set's value count, the names to the old value count plus the other set's name
-// count; then, for every one of the other set's names, the name and the value with the same index go into the
-// new slots.
 template <typename T>
 void ScriptNamedValues<T>::Append(const ScriptNamedValues<T>& other) {
-    const std::size_t old = values.size();
-    values.resize(old + other.values.size());
-    names.resize(old + other.names.size());
-    for (std::size_t i = 0; i < other.names.size(); ++i) {
-        names[old + i] = other.names[i];
-        values[old + i] = other.values[i];
-    }
+    values.insert(values.end(), other.values.begin(), other.values.end());
+    names.insert(names.end(), other.names.begin(), other.names.end());
 }
 template void ScriptNamedValues<float>::Append(const ScriptNamedValues<float>&);
 template void ScriptNamedValues<std::string>::Append(const ScriptNamedValues<std::string>&);

@@ -201,9 +201,7 @@ void Object3D::Destroy3D() {
         }
         animation = nullptr;
     }
-    for (HeldRef<FigureMesh>& part : parts)
-        if (FigureMesh* forgotten = part.Take()) forgotten->ForgetReference();
-    parts.clear();
+    parts.clear();   // each part's reference released (the client half's part groups hold their own)
     if (attached) attached->Release();
     attached = nullptr;
     animations = nullptr;
@@ -234,16 +232,6 @@ void Object3D::CombineRotation(const Quaternion& parent) { TransformObject::Comb
 void Object3D::SaveTransform(platform::File* file) { TransformObject::SaveTransform(file); }
 
 void Object3D::LoadTransform(platform::File* file) { TransformObject::LoadTransform(file); }
-
-// The parts are copied uncounted, as the original copies the pointers: the old ones are dropped without a release
-// and the copies take no reference.
-void Object3D::CopyFigure(const Object3D* other) {
-    for (HeldRef<FigureMesh>& part : parts) part.Take();
-    parts = other->parts;
-    for (FigureMesh* part : parts)
-        if (part) part->ForgetReference();
-    TransformObject::CopyTransform(*other);
-}
 
 void Object3D::AttachSpecific(EngineObject* half) {
     if (!half || SideTypeOf(half) != SideObjectType::Object3D) return;

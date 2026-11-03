@@ -238,13 +238,6 @@ std::uint8_t ScaledByte(float value, float scale, float divisor) {
     return static_cast<std::uint8_t>(rounded);
 }
 
-void ResetLayerKeepingSpareAbsorb(UnitStatLayer& layer) {
-    layer.layerMask = 0;
-    for (float& a : layer.absorb) a = 0.0f;
-    layer.state = 0;
-    layer.reserved[0] = 0;
-    layer.reserved[1] = 0;
-}
 } // namespace
 
 // --- UnitVitals ------------------------------------------------------------------------------
@@ -319,40 +312,14 @@ void UnitStats::Pack(UnitParams* params) {
 
 // --- Resets ----------------------------------------------------------------------------------
 
-int UnitStats::Reset() {
-    experience = 0.0f;
-    pendingExperience = 0.0f;
-    spentExperience = 0.0f;
-    strengthBase = strength = 0.0f;
-    dexterityBase = dexterity = 0.0f;
-    intelligenceBase = intelligence = 0.0f;
-    speedBase = speed = 0.0f;
-    rateBase = rate = 0.0f;
-    capacity = 0.0f;
-    for (float& value : combat) value = 0.0f;
-    damage = 0.0f;
-    damageSpread = 0.0f;
-    combat[2] = 1.0f;   // attack spread
-    std::memset(damageWeights, 0, sizeof(damageWeights));
+void UnitStats::Reset() {
+    *this = {};
+    combat[kAttackSpread] = 1.0f;
     naturalWeapon = kNoNaturalWeapon;
-    std::memset(perception, 0, sizeof(perception));
-    std::memset(conspicuity, 0, sizeof(conspicuity));
-    for (UnitStatSlot& slot : slots) {
-        slot.vitalMask = 0;
-        slot.kind = 0;
-        slot.maximum = 0.0f;
-        slot.current = 0.0f;
-        slot.type = kResetSlotType;
-        for (UnitStatLayer& layer : slot.layers) ResetLayerKeepingSpareAbsorb(layer);
-    }
-    std::memset(attributes, 0, sizeof(attributes));
-    std::memset(skills, 0, sizeof(skills));
-    std::memset(skillLevels, 0, 0x24);   // the last level byte is left alone
-    flags = 0;
-    return 0;
+    for (UnitStatSlot& slot : slots) slot.type = kResetSlotType;
 }
 
-int UnitStats::ClearOuterLayers() {
+void UnitStats::ClearOuterLayers() {
     for (UnitStatSlot& slot : slots) {
         for (int i = 1; i < 3; ++i) {
             UnitStatLayer& layer = slot.layers[i];
@@ -361,7 +328,6 @@ int UnitStats::ClearOuterLayers() {
             for (float& u : layer.spareAbsorb) u = 0.0f;
         }
     }
-    return 0;
 }
 
 // --- Unit hit location -------------------------------------------------------------------------------

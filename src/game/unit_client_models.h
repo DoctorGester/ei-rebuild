@@ -102,14 +102,15 @@ public:
     // The unit puts on armour piece `itemId` (packed: prototype index in the high half, number in the low half). For
     // a body armour, trousers or helmet not already worn, each part of its group is replaced by
     // "<part>.armor<number>" when the unit's figure has it, or kept / restored to the plain part (the hair keeps
-    // "hr.<hair>"). False for an invalid id, an armour slot beyond 6 or an unknown figure.
-    bool ArmourPutOn(std::uint32_t itemId) override;
+    // "hr.<hair>"). Nothing for an invalid id or an armour slot beyond 6; the id is kept for the skin when the
+    // figure is unknown.
+    void ArmourPutOn(std::uint32_t itemId) override;
 
     // The unit takes off the armour in armour slot `slot`: the slot is emptied; for a body armour, trousers or helmet
     // each part of its group is put back plain (the hair as "hr.<hair>", skipped without hair), unless it is the only
-    // one and already plain. False for a slot beyond 6, an empty or invalid id, or an unknown figure (the slot is
-    // emptied then too).
-    bool ArmourTakenOff(std::uint32_t slot) override;
+    // one and already plain. Nothing for a slot beyond 6 or an empty or invalid id; the slot is emptied for an
+    // unknown figure too.
+    void ArmourTakenOff(std::uint32_t slot) override;
 
     // The unit takes the weapon of weapon slot `slot` in hand: the parts of the weapon in hand are removed by name,
     // the active weapon becomes `slot`, the new weapon's parts (none for an empty slot or a slot beyond 3) are added
@@ -283,7 +284,7 @@ struct ArmourPartNames {
 // The figure part names a unit of prototype `prototype` shows with the armour pieces `armourIds` (worn:
 // "<part>.armor<number>", the hair as "hr.<hair>.armor<number>" unless the prototype has no hair, -1), the
 // parts of the weapons `weaponIds` (also worn), and every plain part of the three rows (plain, the hair as
-// "hr.<hair>"; the empty names of the helmet row too).
+// "hr.<hair>").
 ArmourPartNames CollectArmourPartNames(const UnitPrototypeRecord* prototype, const std::vector<std::uint32_t>& armourIds,
                                        const std::vector<std::uint32_t>& weaponIds);
 

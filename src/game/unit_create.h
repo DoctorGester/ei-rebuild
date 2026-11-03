@@ -50,7 +50,7 @@ struct UnitPrototypeTable {
     // In STLport's bucket order (EI_Plugin's fallback prototype is the first bucket head that fits).
     using NameIndex = lib::HashMap<std::string, UnitPrototypeRecord*, lib::TextHash>;
 
-    // The record named `name` (an unknown name gets a null entry), or null.
+    // The record named `name`, or null.
     UnitPrototypeRecord* FindByName(std::string_view name);
 
     std::vector<UnitPrototypeRecord> records;

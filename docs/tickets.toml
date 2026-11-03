@@ -7290,6 +7290,13 @@ depends = ["C81"]
 note = "C81 removed VideoColorDepthInBits; ScreenFormat() is always X8R8G8B8. render_ui.cpp (is565/is555), ui_canvas shaders and ui_rgb565.hlsl may still serve the save-picture 565 path only; delete what nothing reaches."
 
 [[ticket]]
+id = "C84a1"
+title = "Script: a For / ForIf body whose saved block id does not resolve"
+group = "cleanup"
+depends = ["C84a"]
+note = "SSCCmd::Load resolves calledScript by id in the main script's lists; an id the save's blocks lack gives null and For / ForIf's RunBody then faults in Execute (the A case C84a fixed for pairs and runs, left for command calls). Decide at load: drop such a command, or treat a null body as empty in one place. Reach it with a hand-edited save (tests/unit or a scenario)."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"

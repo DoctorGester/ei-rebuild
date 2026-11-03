@@ -151,24 +151,24 @@ void NameSkinTextures(const UnitClientSpecific* self, int detailed, SkinRequest&
 
 // --- Armour figure parts ----------------------------------------------------------------------
 
-bool UnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
-    if (itemId == kNoItemId) return false;
+void UnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
+    if (itemId == kNoItemId) return;
     std::uint32_t prototypeType = PrototypeIndex(itemId);
-    if (prototypeType == kNoIndex || MaterialIndex(itemId) == kNoIndex) return false;
+    if (prototypeType == kNoIndex || MaterialIndex(itemId) == kNoIndex) return;
     std::uint32_t slot = static_cast<std::uint32_t>(ArmourRecord(prototypeType)->type);
-    if (slot >= 7) return false;
-    if (armourIds[slot] == itemId) return true;
+    if (slot >= 7) return;
+    if (armourIds[slot] == itemId) return;
     armourIds[slot] = itemId;
     FigureManager* manager = g_clientWorld.figureManager;
     int row = RowOfSlot(static_cast<int>(slot));
-    if (row < 0) return true;
+    if (row < 0) return;
 
     FigureModel* model;
     {
         std::string name = unit->name;
         model = manager->FindModel(&name);
     }
-    if (!model) return false;
+    if (!model) return;
     const itemdb::ArmorRecord* armour = ArmourRecord(prototypeType);
     std::string armourPart;
     for (int i = 0; i < 7; ++i) {
@@ -199,24 +199,23 @@ bool UnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
             unit->LoadPart(part);
         }
     }
-    return true;
 }
 
-bool UnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
-    if (slot >= 7) return false;
+void UnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
+    if (slot >= 7) return;
     std::uint32_t itemId = armourIds[slot];
-    if (itemId == kNoItemId) return false;
-    if (PrototypeIndex(itemId) == kNoIndex || MaterialIndex(itemId) == kNoIndex) return false;
+    if (itemId == kNoItemId) return;
+    if (PrototypeIndex(itemId) == kNoIndex || MaterialIndex(itemId) == kNoIndex) return;
     armourIds[slot] = kNoItemId;
     int row = RowOfSlot(static_cast<int>(slot));
-    if (row < 0) return true;
+    if (row < 0) return;
 
     FigureModel* model;
     {
         std::string name = unit->name;
         model = g_clientWorld.figureManager->FindModel(&name);
     }
-    if (!model) return false;   // the slot stays cleared
+    if (!model) return;   // the slot stays cleared
     for (int i = 0; i < 7; ++i) {
         const char* plain = kArmourPartNames[row][i];
         if (!plain[0]) break;
@@ -239,7 +238,6 @@ bool UnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
             unit->LoadPart(part);
         }
     }
-    return true;
 }
 
 int UnitClientSpecific::ShowWeapon(std::uint32_t slot) {
@@ -339,11 +337,11 @@ ArmourPartNames CollectArmourPartNames(const UnitPrototypeRecord* prototype, con
     }
     for (const auto& id : weaponIds) AppendWeaponModelParts(id, &names.worn);
 
-    // Every plain part of the three rows. All seven names of each row are walked (the
-    // test on the name's address never fails), so the empty names of the helmet row go in too.
+    // Every plain part of the three rows, up to each row's first empty name.
     for (int row = 0; row < 3; ++row) {
         for (int i = 0; i < 7; ++i) {
             const char* plain = kArmourPartNames[row][i];
+            if (!plain[0]) break;
             if (SameName(plain, kHair)) {
                 int hair = prototype->hair;
                 if (hair == -1) continue;

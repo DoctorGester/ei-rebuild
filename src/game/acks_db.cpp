@@ -71,7 +71,8 @@ void Lists(ChunkArchive* ar, Speeches (&lists)[N]) {
 
 template <typename Record>
 Record* AckTable<Record>::Find(std::string_view name) {
-    return byName[std::string(name)];
+    auto found = byName.find(std::string(name));
+    return found != byName.end() ? found->second : nullptr;
 }
 
 template <typename Record>

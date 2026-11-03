@@ -1,5 +1,5 @@
 // Small allocation helpers of the script runtime: the parser's new command blocks and WorldScript
-// block, the area lookup that creates missing areas and the temporary object references of the
+// block, the area lookups and the temporary object references of the
 // evaluator. See script.h and docs/notes/script.md.
 #include "script.h"
 
@@ -28,10 +28,14 @@ ScriptDecl* Script::NewWorldScript() {
     return AppendBlock(&worldBlocks, 0x80000000u);
 }
 
-// A linear search by id; when absent an empty area with the id is appended.
 ScriptArea* Script::FindArea(int id) {
     for (ScriptArea& area : areas)
         if (area.id == id) return &area;
+    return nullptr;
+}
+
+ScriptArea* Script::FindOrAddArea(int id) {
+    if (ScriptArea* found = FindArea(id)) return found;
     ScriptArea& area = areas.emplace_back();
     area.id = id;
     return &area;

@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <utility>
 
 #include "lib/rounding.h"
 
@@ -38,12 +39,8 @@ bool IsBroken(const Item* item) {
 // --- Prototype names --------------------------------------------------------------------------
 
 UnitPrototypeRecord* UnitPrototypeTable::FindByName(std::string_view name) {
-    // The key is built twice (a string, then the pair it would insert) and both freed
-    // afterwards; the pool sees the same allocations in the same order.
-    std::string key(name);
-    std::string pairKey(key);
-    UnitPrototypeRecord* record = byName[pairKey];
-    return record;
+    auto found = byName.find(std::string(name));
+    return found != byName.end() ? found->second : nullptr;
 }
 
 // --- Server controller ------------------------------------------------------------------------
@@ -71,20 +68,16 @@ void UnitServer::Shout(AckKind kind) {
 
 void Unit::DropBrokenEquipment() {
     Player* ownerObject = player;
-    if (!ownerObject) return;   // the empty list's destructor has nothing to free
-    std::vector<Item*> broken{};
+    if (!ownerObject) return;
+    // Each broken piece leaves its slot with the slot's reference, is given to the player, then released.
+    std::vector<Item*> broken;
     PlayerServer* messages = PlayerMessages(ownerObject);
 
     for (ItemArmor*& slot : armor) {
         if (!slot || !IsBroken(slot)) continue;
-        slot->AddRef();
-        broken.push_back(slot);
-        ItemArmor* piece = slot;
-        slot = nullptr;
-        if (piece) {
-            Controller()->ArmourTakenOff(static_cast<std::uint32_t>(piece->GetType()));
-            piece->Release();
-        }
+        ItemArmor* piece = std::exchange(slot, nullptr);
+        broken.push_back(piece);
+        Controller()->ArmourTakenOff(static_cast<std::uint32_t>(piece->GetType()));
         MarkChanged(kPartEquipment);
         MarkChanged(kPartStats);
     }
@@ -94,11 +87,7 @@ void Unit::DropBrokenEquipment() {
         Item*& slot = weapons[i];
         if (!slot || !IsBroken(slot)) continue;
         messages->SendPair16(static_cast<std::uint32_t>(id), static_cast<std::uint32_t>(i));
-        slot->AddRef();
-        broken.push_back(slot);
-        EngineObject* weapon = slot;
-        slot = nullptr;
-        if (weapon) weapon->Release();
+        broken.push_back(std::exchange(slot, nullptr));
         MarkChanged(kPartEquipment);
         for (int k = i; k < 3; ++k) weapons[k] = weapons[k + 1];
         weapons[3] = nullptr;
@@ -109,14 +98,9 @@ void Unit::DropBrokenEquipment() {
 
     if (!broken.empty()) {
         ownerObject->GiveItems(&broken, 1);
-        for (auto node = broken.begin(); node != broken.end();) {
-            auto next = std::next(node);
-            (*node)->Release();
-            node = next;
-        }
+        for (Item* item : broken) item->Release();
         MarkChanged(kPartEquipment);
     }
-    broken.clear();
 }
 
 // --- The unit's lifetime ---------------------------------------------------------------------------
@@ -165,11 +149,8 @@ void Unit::Reset() {
     obstacle = 0;
     activeWeapon = 0xFFFFFFFFu;
     params.Reset();
-    std::memset(weapons, 0, sizeof(weapons));
-    std::memset(quickItems, 0, sizeof(quickItems));
-    std::memset(armor, 0, sizeof(armor));
-    std::memset(spells, 0, sizeof(spells));
-    carried.clear();
+    // The item slots and the carried list are empty here: they start so, and ReleaseUnit empties them before
+    // every later Reset (Destroy, the destructor).
     altPassCosts = 0;
     AsMapObject()->netState.Reset();
     fightAtWill = 1;

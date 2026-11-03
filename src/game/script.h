@@ -92,7 +92,7 @@ template <typename T>
 struct ScriptNamedValues {
     void Load(ByteStream* stream);
     void Save(ByteStream* stream) const;
-    // The other set's values appended, and for each of its names the name and the value with its index.
+    // The other set's values and names appended (the two lists stay parallel).
     void Append(const ScriptNamedValues<T>& other);
 
     std::vector<T> values;
@@ -439,8 +439,10 @@ public:
     // to the head of the run list.
     void RunCommands(ScriptDecl* block, ScriptDefinition* instance);
     ScriptObjectRef* NewTempObject();
-    // Creates an empty area when it does not exist.
+    // The first area with the id (a linear search), or null.
     ScriptArea* FindArea(int id);
+    // The same, appending an empty area with the id when there is none.
+    ScriptArea* FindOrAddArea(int id);
 
     // Returns out.
     ScriptErrorInfo* GetError(ScriptErrorInfo* out);

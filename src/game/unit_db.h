@@ -171,8 +171,7 @@ struct UnitLevelRecord {
 // The model table: the records and an index by name, as the prototype tables.
 struct UnitModelTable {
 
-    // The record named `name`: operator[] on the name index, so an unknown name is
-    // inserted with a null record (and null is returned).
+    // The record named `name`, or null.
     UnitModelRecord* FindByName(std::string_view name);
     UnitModelRecord* At(std::uint32_t index);
 
@@ -209,14 +208,11 @@ struct UnitDatabase {
 
 extern UnitDatabase g_unitDatabase;
 namespace unitdb {
-// The record named `name` (an unknown name gets a null entry), or null.
-inline UnitPrototypeRecord* PrototypeNamed(const std::string& name) { return g_unitDatabase.prototypes.byName[name]; }
 // The byte distance of `record` from the first prototype record: what the originals divide by
 // 0x120 themselves (a null record included, which gives a negative distance).
 inline int PrototypeByteOffset(const UnitPrototypeRecord* record) {
     return static_cast<int>(reinterpret_cast<const char*>(record) - reinterpret_cast<const char*>(g_unitDatabase.prototypes.records.data()));
 }
-inline UnitModelRecord* ModelNamed(const std::string& name) { return g_unitDatabase.models.byName[name]; }
 } // namespace unitdb
 
 // The skill (perk) database (loaded from "perks.pdb" at startup): the skills, then the skill level records

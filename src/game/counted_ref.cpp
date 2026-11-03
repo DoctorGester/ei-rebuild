@@ -31,10 +31,11 @@ void SaveRef(const EngineObject* object, ByteStream* stream) {
 template void LoadRef(Ref<MapObject>&, ByteStream*, World*);
 template void LoadRef(Ref<Unit>&, ByteStream*, World*);
 
-// Reads a count, then that many counted references added at the tail of the list, each loaded in
-// `context` (the trap's units, the brain's lists).
+// Reads a count, then that many counted references that replace the list, each loaded in `context` (the
+// trap's units, the brain's lists).
 void CountedListLoad(HeldUnits* list, ByteStream* stream, World* context) {
-    int count;
+    list->clear();
+    int count = 0;
     stream->ReadValue(count);
     while (count-- > 0) LoadRef(list->emplace_back(), stream, context);
 }

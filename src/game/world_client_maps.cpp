@@ -477,7 +477,7 @@ void WorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, c
         for (int n = 0; n < worlddata::kHeroPartCount; ++n) {
             const char* name = worlddata::HeroPartText(n);
             if (SameText(name, worlddata::HairPartText())) {
-                UnitPrototypeRecord* prototype = unitdb::PrototypeNamed(std::string(record->texts[5]));
+                UnitPrototypeRecord* prototype = g_unitDatabase.prototypes.FindByName(std::string(record->texts[5]));
                 int number = prototype->hair;
                 if (number != -1) {
                     hair = str::Format(worlddata::HairFormat(), number);

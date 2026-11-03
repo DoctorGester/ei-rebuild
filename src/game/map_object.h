@@ -79,7 +79,6 @@ enum class MapObjectFlag : std::uint32_t {
     RelationsChanged = 0x80000, // units: the hostile mask changed, PropagateHostility is due
     Armed = 0x80000,            // traps: ActivateTrap
     Disabled = 0x80000,         // levers
-    ArmedFresh = 0x100000,      // traps: armed since the last update
     LootTaken = 0x100000,       // units: the loot was collected
     InParty = 0x400000,         // client units: in the local player's party (PlayerClient::OnPartyState): their
                                 // hits show their number, their footprints and attached particle sources show, the
