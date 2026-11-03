@@ -18,8 +18,6 @@ constexpr float kThumbInset = 5.0f;
 enum Sprite { kTrack, kThumb, kUpArrow, kDownArrow };
 enum Region { kUpRegion, kDownRegion, kTrackRegion };
 
-float AsFloat(int value) { return static_cast<float>(value); }
-
 constexpr int kDragging = 1;
 constexpr int kSliderThumbHalfWidth = 14;
 constexpr int kSliderThumbHeight = 10;
@@ -60,31 +58,25 @@ void UiScrollbar::SetPosition(int newPosition) {
                               : static_cast<int>(static_cast<float>(track.Height() * newPosition) / maximum);
     SceneMesh(kThumb)->Place(track.left + kThumbInset,
                                 static_cast<float>(offset) + track.top, depth - kThumbLift);
-    thumb.left = track.left;
-    thumb.right = track.left + 10;
-    int centre = track.top + offset;
-    thumb.top = centre - 14;
-    thumb.bottom = centre + 14;
+    const int centre = track.top + offset;
+    thumb = {track.left, centre - 14, track.left + 10, centre + 14};
 }
 
 void UiScrollbar::SetRect(const Rect* newRect) {
     rect = *newRect;
-    track = {newRect->right - 10, newRect->top + 26, newRect->right, newRect->bottom - 26};
+    const Rect bar = rect.RightStrip(10);   // the arrows at both ends, the track between them
+    track = bar.Inset(0, 26);
 
     // The sprites (SetRectangle and the regions' SetRect are Rebirth-patched: through their
     // addresses).
-    SceneMesh(kTrack)->SetRectangle(depth, 100.0f, AsFloat(newRect->right - 8), AsFloat(newRect->top + 4),
-                                       AsFloat(newRect->right - 2), AsFloat(newRect->bottom - 4), 8, 4, 0x20, 0xFC);
-    SceneMesh(kThumb)->SetRectangle(depth - kThumbLift, 100.0f, AsFloat(newRect->right - 10), AsFloat(newRect->top),
-                                       AsFloat(newRect->right), AsFloat(newRect->top + 0x1C), 0x28, 8, 0x50, 0x78);
-    SceneMesh(kUpArrow)->SetRectangle(depth, 100.0f, AsFloat(newRect->right - 10), AsFloat(newRect->top),
-                                         AsFloat(newRect->right), AsFloat(newRect->top + 0xC), 0x28, 0xB0, 0x50, 0x80);
-    SceneMesh(kDownArrow)->SetRectangle(depth, 100.0f, AsFloat(newRect->right - 10), AsFloat(newRect->bottom - 0xC),
-                                           AsFloat(newRect->right), AsFloat(newRect->bottom), 0x28, 0x80, 0x50, 0xB0);
+    SceneMesh(kTrack)->SetRectangle(depth, 100.0f, bar.Inset(2, 4), 8, 4, 0x20, 0xFC);
+    SceneMesh(kThumb)->SetRectangle(depth - kThumbLift, 100.0f, bar.TopStrip(0x1C), 0x28, 8, 0x50, 0x78);
+    SceneMesh(kUpArrow)->SetRectangle(depth, 100.0f, bar.TopStrip(0xC), 0x28, 0xB0, 0x50, 0x80);
+    SceneMesh(kDownArrow)->SetRectangle(depth, 100.0f, bar.BottomStrip(0xC), 0x28, 0x80, 0x50, 0xB0);
 
-    regions[kUpRegion]->SetRect(newRect->right - 10, newRect->top, newRect->right, newRect->top + 0xC);
-    regions[kDownRegion]->SetRect(newRect->right - 10, newRect->bottom - 0xC, newRect->right, newRect->bottom);
-    regions[kTrackRegion]->SetRect(newRect->left, newRect->top, newRect->right - 10, newRect->bottom);
+    regions[kUpRegion]->SetRect(bar.TopStrip(0xC));
+    regions[kDownRegion]->SetRect(bar.BottomStrip(0xC));
+    regions[kTrackRegion]->SetRect(rect.Inset(0, 0, 10, 0));
 
     int currentPosition = position;
     position = currentPosition - 1;
@@ -121,11 +113,8 @@ void UiSlider::SetPosition(int newPosition) {
     int offset = lib::Truncate(static_cast<float>(track.Width() * newPosition) / maximum);
     SceneMesh(kThumb)->Place(static_cast<float>(track.left + offset),
                                 track.top + kThumbInset, depth - kThumbLift);
-    thumb.top = track.top;
-    thumb.bottom = track.top + kSliderThumbHeight;
-    int centre = track.left + offset;
-    thumb.left = centre - kSliderThumbHalfWidth;
-    thumb.right = centre + kSliderThumbHalfWidth;
+    const int centre = track.left + offset;
+    thumb = {centre - kSliderThumbHalfWidth, track.top, centre + kSliderThumbHalfWidth, track.top + kSliderThumbHeight};
 }
 
 void UiSlider::MouseMove(int, Point point) {

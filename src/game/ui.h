@@ -845,12 +845,20 @@ public:
     // half a texel inwards; position the layout centre at `depth`.
     void SetRectangle(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
                              int u1, int v1);
+    void SetRectangle(float depth, float scale, const Rect& rect, int u0, int v0, int u1, int v1) {
+        SetRectangle(depth, scale, static_cast<float>(rect.left), static_cast<float>(rect.top),
+                     static_cast<float>(rect.right), static_cast<float>(rect.bottom), u0, v0, u1, v1);
+    }
     // A grid of columns x rows cells, each showing the whole picture; position the top left corner.
     void SetGrid(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0, int u1,
                         int v1, int columns, int rows);
     // A frame `border` wide inside the rectangle, each side showing the whole picture.
     void SetFrame(float depth, float scale, float left, float top, float right, float bottom, float border, int u0,
                          int v0, int u1, int v1);
+    void SetFrame(float depth, float scale, const Rect& rect, float border, int u0, int v0, int u1, int v1) {
+        SetFrame(depth, scale, static_cast<float>(rect.left), static_cast<float>(rect.top),
+                 static_cast<float>(rect.right), static_cast<float>(rect.bottom), border, u0, v0, u1, v1);
+    }
     // The first layout point is position, the other two relative to it in units of `scale`.
     void SetTriangle(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2, float u0,
                             float v0, float u1, float v1, float u2, float v2);

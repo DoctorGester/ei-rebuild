@@ -156,7 +156,7 @@ void BriefingScreen::CreateScreen() {
 
     // Surface 0 the topic rows, 1 a person's label.
     for (const Rect& area : {Rect{200, 430, 600, 570}, Rect{0, 0, 250, 30}}) {
-        UiSurface* surface = new UiSurface(ui, area.left, area.top, area.right, area.bottom, SurfaceBlend::Keyed, true);
+        UiSurface* surface = new UiSurface(ui, area, SurfaceBlend::Keyed, true);
         AddSurface(surface);
     }
 

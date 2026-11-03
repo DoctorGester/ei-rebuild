@@ -59,8 +59,7 @@ struct CursorImage {
     std::int32_t height;
     int frames;                      // frames side by side (the picture's width / height)
     int frame;                       // the frame shown (stepped every 125 ms)
-    int hotX;                        // the hot spot, scaled to the cursor's size
-    int hotY;
+    Point hot;                       // the hot spot, scaled to the cursor's size
     std::vector<std::uint8_t> saved; // the mask over the whole picture: all ones where the picture is black, else 0
 };
 

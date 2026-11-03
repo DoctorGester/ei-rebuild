@@ -247,13 +247,13 @@ int CompareWithGdi(Shape shape, int count, unsigned seed, std::string* example) 
             LineTo(dib.dc, x1, y1);
             SelectObject(dib.dc, old);
             DeleteObject(pen);
-            ui::Line(holder, x0, y0, x1, y1, width, c);
+            ui::Line(holder, {x0, y0}, {x1, y1}, width, c);
             break;
         }
         case Shape::Pixel: {
             int x = coord(w), y = coord(h);
             SetPixel(dib.dc, x, y, c);
-            ui::Pixel(holder, x, y, c);
+            ui::Pixel(holder, {x, y}, c);
             break;
         }
         }
@@ -439,14 +439,14 @@ void CheckPicture() {
         Check(differ == 0, std::string("5:6:5 picture of a ") + std::to_string(c.canvasWidth) + "x" + std::to_string(c.canvasHeight) +
                                " canvas at " + std::to_string(c.width) + "x" + std::to_string(c.height) + ": " + std::to_string(differ) + " pixels differ");
         int wrong = read ? 0 : -1;
-        const int points[][2] = {{0, 0}, {c.canvasWidth - 1, c.canvasHeight - 1}, {c.canvasWidth / 3, c.canvasHeight / 2}};
-        for (const auto& pt : points) {
+        const Point points[] = {{0, 0}, {c.canvasWidth - 1, c.canvasHeight - 1}, {c.canvasWidth / 3, c.canvasHeight / 2}};
+        for (const Point pt : points) {
             std::uint32_t one = 0;
-            wrong += !read || !ui::ReadPixel(holder, pt[0], pt[1], &one) ||
-                     one != held[static_cast<std::size_t>(pt[1]) * c.canvasWidth + static_cast<std::size_t>(pt[0])];
+            wrong += !read || !ui::ReadPixel(holder, pt, &one) ||
+                     one != held[static_cast<std::size_t>(pt.y) * c.canvasWidth + static_cast<std::size_t>(pt.x)];
         }
         std::uint32_t outside = 0;
-        Check(wrong == 0 && !ui::ReadPixel(holder, c.canvasWidth, 0, &outside),
+        Check(wrong == 0 && !ui::ReadPixel(holder, {c.canvasWidth, 0}, &outside),
               std::string("one-pixel reads of the ") + std::to_string(c.canvasWidth) + "x" + std::to_string(c.canvasHeight) + " canvas");
         ui::DropCanvas(holder);
     }
@@ -502,7 +502,7 @@ void CheckResize() {
             }
         ui::Fill(holder, Rect{c.newWidth - 1, c.newHeight - 1, c.newWidth, c.newHeight}, RGB(255, 255, 255));
         std::uint32_t corner = 0;
-        const bool filled = ui::ReadPixel(holder, c.newWidth - 1, c.newHeight - 1, &corner) && corner == 0xFFFFFF;
+        const bool filled = ui::ReadPixel(holder, {c.newWidth - 1, c.newHeight - 1}, &corner) && corner == 0xFFFFFF;
         Check(differ == 0 && filled, std::to_string(c.width) + "x" + std::to_string(c.height) + " canvas resized to " +
                                          std::to_string(c.newWidth) + "x" + std::to_string(c.newHeight) + ": " + std::to_string(differ) +
                                          " pixels differ" + (filled ? "" : ", the fill at the new size missing"));

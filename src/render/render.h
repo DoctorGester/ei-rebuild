@@ -352,9 +352,9 @@ struct FrameCursor {
     const void* imageHolder = nullptr;   // the cursor picture (its frames side by side)
     const void* mask = nullptr;          // over the whole picture, the surface's pixel format: texels where it is not 0 left out
     Rect from{0, 0, 0, 0};               // the frame shown
-    int hotX = 0, hotY = 0;              // the hot spot, texels into `from`
-    bool held = false;                   // the game keeps its cursor at (heldX, heldY), a game point, while the mouse
-    int heldX = 0, heldY = 0;            // turns the camera
+    Point hot;                           // the hot spot, texels into `from`
+    bool held = false;                   // the game keeps its cursor at `heldAt`, a game point, while the mouse
+    Point heldAt;                        // turns the camera
 };
 void Cursor(const FrameCursor& cursor);
 // The presents by what they did with the cursor, and the shape shown (its size and hot spot in window pixels).

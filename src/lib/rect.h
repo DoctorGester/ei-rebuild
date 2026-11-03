@@ -40,6 +40,7 @@ struct Rect {
     static Rect FromCorners(Point topLeft, Point bottomRight) {
         return {topLeft.x, topLeft.y, bottomRight.x, bottomRight.y};
     }
+    static Rect Sized(Point topLeft, Size size) { return {topLeft.x, topLeft.y, topLeft.x + size.w, topLeft.y + size.h}; }
 
     int Width() const { return right - left; }
     int Height() const { return bottom - top; }
@@ -48,6 +49,19 @@ struct Rect {
     Point BottomRight() const { return {right, bottom}; }
 
     bool IsEmpty() const { return right <= left || bottom <= top; }
+
+    // Each edge moved inwards (outwards when negative): all by `d`, by (dx, dy), or each by its own amount.
+    Rect Inset(int d) const { return Inset(d, d); }
+    Rect Inset(int dx, int dy) const { return Inset(dx, dy, dx, dy); }
+    Rect Inset(int dLeft, int dTop, int dRight, int dBottom) const {
+        return {left + dLeft, top + dTop, right - dRight, bottom - dBottom};
+    }
+
+    // The band `size` wide or high along the inside of one edge.
+    Rect LeftStrip(int size) const { return {left, top, left + size, bottom}; }
+    Rect RightStrip(int size) const { return {right - size, top, right, bottom}; }
+    Rect TopStrip(int size) const { return {left, top, right, top + size}; }
+    Rect BottomStrip(int size) const { return {left, bottom - size, right, bottom}; }
 
     // The right and bottom edges are outside.
     bool Contains(Point point) const {

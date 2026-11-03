@@ -283,14 +283,21 @@ void Start();
 // the game ends (exit -1), Rebirth's DisableExitOnCrashReport or not. There is no other way to draw: no fallback.
 [[noreturn]] void Fatal(const char* format, ...);
 
+// `r` as a shader's float4: left, top, right, bottom.
+inline void StoreRect(const Rect& r, float (&out)[4]) {
+    out[0] = static_cast<float>(r.left);
+    out[1] = static_cast<float>(r.top);
+    out[2] = static_cast<float>(r.right);
+    out[3] = static_cast<float>(r.bottom);
+}
+
 // `r` on a `width` x `height` target as the rectangle programs' vertex uniforms (shaders/rect_vs.hlsli): block 0
 // of every one of them.
 static_assert(gpu_shaders::blit::kBlockRectParams == 0 && gpu_shaders::ui_blit::kBlockRectParams == 0 &&
               gpu_shaders::texture_compose::kBlockRectParams == 0 && gpu_shaders::texture_mip::kBlockRectParams == 0);
 inline void ApplyRect(const Rect& r, int width, int height) {
-    const RectParams vs{{static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right),
-                         static_cast<float>(r.bottom)},
-                        {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
+    RectParams vs{{}, {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
+    StoreRect(r, vs.rect);
     gpu::PushUniforms(gpu::Stage::Vertex, 0, vs);
 }
 

@@ -891,7 +891,7 @@ bool Write(const Buffer& buffer, std::uint32_t offset, const void* data, std::ui
 bool Write(const Texture& texture, int level, const Rect& region, const void* rows, std::size_t pitch,
            Contents contents) {
     if (!texture || texture.swapchain || !WriteAllowed("a texture write")) return false;
-    const int w = region.right - region.left, h = region.bottom - region.top;
+    const int w = region.Width(), h = region.Height();
     const int levelWidth = std::max(1, texture.width >> level), levelHeight = std::max(1, texture.height >> level);
     if (w <= 0 || h <= 0 || level < 0 || level >= texture.levels || region.left < 0 || region.top < 0 ||
         region.right > levelWidth || region.bottom > levelHeight) {
@@ -920,7 +920,7 @@ bool Write(const Texture& texture, int level, const Rect& region, const void* ro
 
 bool Copy(const Texture& from, int fromLevel, const Rect& region, const Texture& to, int toLevel, int x, int y) {
     if (!from || !to || from.swapchain || to.swapchain || !WriteAllowed("a texture copy")) return false;
-    const int w = region.right - region.left, h = region.bottom - region.top;
+    const int w = region.Width(), h = region.Height();
     if (w <= 0 || h <= 0 || from.format != to.format || from.samples != 1 || to.samples != 1) {
         Problem("a texture copy of another format, of samples or of nothing");
         return false;
@@ -946,7 +946,7 @@ Ticket Download(const Texture& texture, int level, const Rect& region) {
         Problem("a download %s", g_pass ? "inside a pass" : texture.swapchain ? "of the swap chain" : "of samples");
         return {};
     }
-    const int w = region.right - region.left, h = region.bottom - region.top;
+    const int w = region.Width(), h = region.Height();
     const int levelWidth = std::max(1, texture.width >> level), levelHeight = std::max(1, texture.height >> level);
     if (w <= 0 || h <= 0 || level < 0 || level >= texture.levels || region.left < 0 || region.top < 0 ||
         region.right > levelWidth || region.bottom > levelHeight) {
@@ -1213,14 +1213,14 @@ bool InPass() { return g_pass != nullptr; }
 void SetViewport(const Rect& rect) {
     if (!g_pass) return Problem("a viewport outside a pass");
     const SDL_GPUViewport v{static_cast<float>(rect.left), static_cast<float>(rect.top),
-                            static_cast<float>(rect.right - rect.left), static_cast<float>(rect.bottom - rect.top),
+                            static_cast<float>(rect.Width()), static_cast<float>(rect.Height()),
                             0.0f, 1.0f};
     SDL_SetGPUViewport(g_pass, &v);
 }
 
 void SetScissor(const Rect& rect) {
     if (!g_pass) return Problem("a scissor rectangle outside a pass");
-    const SDL_Rect r{rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top};
+    const SDL_Rect r{rect.left, rect.top, rect.Width(), rect.Height()};
     SDL_SetGPUScissor(g_pass, &r);
 }
 
