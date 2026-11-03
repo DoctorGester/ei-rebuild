@@ -12,11 +12,25 @@ layout(binding = 2) uniform shadow_params {
 layout(binding = 3) uniform texture2D shadow_map;
 layout(binding = 3) uniform samplerShadow shadow_smp;
 layout(binding = 4) uniform texture2D shadow_range;
-layout(binding = 4) uniform sampler shadow_linear;   // the range, filtered
+layout(binding = 4) uniform sampler range_smp;   // nonfiltering: the range is read with texelFetch
 const int kSearchTaps = 8;
 const int kFilterTaps = 16;
 const int kFewTaps = 8;
 const float kShadowCell = 16.0;   // kRangeCell
+// The range at `uv`, bilinear between the four cells around it and clamped at the map's edges, done by hand: a
+// filtered read of RGBA32F is optional on some devices.
+vec4 range_at(vec2 uv) {
+    ivec2 size = textureSize(sampler2D(shadow_range, range_smp), 0);
+    vec2 p = uv * vec2(size) - 0.5;
+    vec2 base = floor(p);
+    vec2 f = p - base;
+    ivec2 lo = clamp(ivec2(base), ivec2(0), size - 1), hi = clamp(ivec2(base) + 1, ivec2(0), size - 1);
+    vec4 a = texelFetch(sampler2D(shadow_range, range_smp), lo, 0);
+    vec4 b = texelFetch(sampler2D(shadow_range, range_smp), ivec2(hi.x, lo.y), 0);
+    vec4 c = texelFetch(sampler2D(shadow_range, range_smp), ivec2(lo.x, hi.y), 0);
+    vec4 d = texelFetch(sampler2D(shadow_range, range_smp), hi, 0);
+    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
 vec2 shadow_disc(int k, int n, vec2 turn) {
     float r = sqrt((k + 0.5) / n);
     float a = k * 2.39996323;   // the golden angle
@@ -62,7 +76,7 @@ float shadow_amount(vec3 s, vec3 dsx, vec3 dsy, vec2 pixel, float front) {
         slope = vec2(0.0);
     }
     vec4 soft = shadow.soft;
-    vec4 around = textureLod(sampler2D(shadow_range, shadow_linear), uv, 0.0);
+    vec4 around = range_at(uv);
     float reach = (abs(slope.x) + abs(slope.y)) * soft.y;   // the receiver's plane across the search
     if (around.x >= z + reach) return 0.0;
     float widest = clamp((z + reach - around.x) * soft.x, soft.z, soft.y);
@@ -79,7 +93,7 @@ float shadow_amount(vec3 s, vec3 dsx, vec3 dsy, vec2 pixel, float front) {
         for (int k = 0; k < kSearchTaps; ++k) {
             vec2 o = shadow_disc(k, kSearchTaps, turn) * widest;
             float zo = z + dot(slope, o);
-            float d = textureLod(sampler2D(shadow_range, shadow_linear), uv + o, 0.0).z;
+            float d = range_at(uv + o).z;
             if (d < zo) {
                 apart += zo - d;
                 hidden += 1.0;

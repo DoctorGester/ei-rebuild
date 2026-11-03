@@ -76,8 +76,8 @@ enum TextureArg : std::uint8_t {
 enum class Filter : std::uint8_t { Point = 1, Linear };
 // D3DTFP.
 enum class MipFilter : std::uint8_t { None = 1, Point, Linear };
-// D3DTEXTUREADDRESS.
-enum class Address : std::uint8_t { Wrap = 1, Mirror, Clamp, Border };
+// D3DTEXTUREADDRESS, without D3DTADDRESS_BORDER (the game never sets a stage's address, and SDL_GPU has no border).
+enum class Address : std::uint8_t { Wrap = 1, Mirror, Clamp };
 
 // A texture stage's colour and alpha operations, each of its first and second argument.
 struct StageCombiner {

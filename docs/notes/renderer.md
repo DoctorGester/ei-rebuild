@@ -800,7 +800,8 @@ map is the only shadow look.
   own facing with a normal-offset bias. Check: render_shadows_mound (the user's save in tests/saves/shadow_mound).
 - **Steady soft edges.** The sun turns every frame, the map's texel grid turns with it across the ground, and per-cell
   reads of the range image made cell-sized squares and straight cuts in a penumbra that crawled (the user's shimmer). So
-  the range is sampled with a bilinear sampler (`RangeSampler`, clamp) between the four cells around the pixel, and the
+  the range is read bilinearly between the four cells around the pixel (`range_at`: four `texelFetch` / `Load` and a lerp, clamped
+  at the map's edges; no filtered RGBA32F read, which Vulkan does not promise), and the
   dilation reaches one cell more (`g_cellsAround`), so each of those four cells' bounds holds for all the pixel's taps and
   their weighted mean is still a bound; the search taps read the cells' own nearest filtered too; the searched radius is
   blended in from the bound between half a cell and a cell. The widest radius is capped to what `kMostCellsAround` cells
@@ -986,9 +987,11 @@ of the world's seven programs stay in `tools/gpu_spike/shaders`, with its hand-m
 
 Rules the spike found:
 - **Vertex buffer slots.** A pipeline's slots are packed from 0. The D3D12 backend looks a buffer's description up by
-  slot number.
+  slot number. The renderer's pipelines do this: the casters' instances are slot 1, `kInstanceBuffer`.
 - **What SDL_GPU lacks:**
-  - border clamp;
+  - border clamp (the renderer has none: nothing in the game sets a stage's address, so `Address` has no border);
+  - linear filtering of RGBA32F on every Vulkan device (the receivers read the shadow range with four loads and a lerp);
+  - D24S8 on AMD Vulkan and Metal (the renderer's depth is D32F everywhere, `kDepthFormat`, and it has no stencil);
   - sampling a multisampled texture, and depth resolve (depth_from_multisampled.glsl needs another way);
   - timestamp queries (GpuTimer);
   - a WARP device.
@@ -1098,7 +1101,7 @@ any discard), `pixel` its screen position. Every comparison follows the receiver
 clamped). A receiver weighs it by its facing to the sun: the ground by its normal, the meshes by their face normal
 (`shadow_facing`). A unit's meshes compare from the unit's nearest depth (`front`) on every face. `range` holds, per
 kRangeCell-texel cell of the map, the nearest and the farthest depth of the cells within the widest filter's reach and one
-cell more (x, y), and the cell's own nearest (z), read filtered (`range_smp`). A pixel nearer than every depth around is
+cell more (x, y), and the cell's own nearest (z), read bilinear by hand (`range_at`). A pixel nearer than every depth around is
 lit, one farther than every depth around is shadowed. For the others the nearest depth around bounds the filter's radius:
 the distance along the light to it times the sun's chosen size (soft.x), from soft.z to soft.y. When that bound is wider
 than half a cell, a blocker search narrows it: kSearchTaps points on a disc of the bound and the pixel's own give the mean

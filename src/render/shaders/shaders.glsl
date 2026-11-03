@@ -8,9 +8,11 @@
 @sampler_type copy_smp nonfiltering
 @sampler_type cloud_smp nonfiltering
 @sampler_type point_smp nonfiltering
+@sampler_type range_smp nonfiltering
 @image_sample_type depth_ms unfilterable_float
 @image_sample_type map unfilterable_float
 @image_sample_type cells unfilterable_float
+@image_sample_type shadow_range unfilterable_float
 @include rect.glsl
 @include fullscreen.glsl
 @include blit.glsl

@@ -512,8 +512,8 @@ public:
 
 private:
     struct Entry {
-        sg_buffer vertices[2], indices;
-        int vertexOffsets[2], indexOffset;
+        sg_buffer vertices, indices;   // the positions (MeshLayout's buffer 0; the colours are not read)
+        int vertexOffset, indexOffset;
         sg_view texture;
         sg_sampler sampler;
         int kept;
@@ -522,8 +522,7 @@ private:
     };
     // What a draw binds: the order Sort puts the draws in, the same key for draws with the same bindings.
     static auto BindingKey(const Entry& e) {
-        return std::make_tuple(e.kept, e.texture.id, e.sampler.id, e.vertices[0].id, e.vertexOffsets[0], e.vertices[1].id,
-                               e.vertexOffsets[1], e.indices.id, e.indexOffset);
+        return std::make_tuple(e.kept, e.texture.id, e.sampler.id, e.vertices.id, e.vertexOffset, e.indices.id, e.indexOffset);
     }
     std::vector<Entry> draws;
     std::vector<CasterInstance> instanceData;
