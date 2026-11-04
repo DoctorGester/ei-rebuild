@@ -584,7 +584,7 @@ public:
     // Reads a server list reply.
     void ReadServerList(GameBuffer* in);
     void StartParty(RefObject* partner);
-    void RecordTrade(const void* party);
+    void RecordTrade(Party* party);
 
     ClientSession();
     ~ClientSession() override;

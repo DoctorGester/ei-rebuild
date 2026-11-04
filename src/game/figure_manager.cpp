@@ -150,20 +150,23 @@ int FigureManager::LoadSkeletonLinks(FigureAnimationState* state, std::string_vi
         model = FindModel(&key);
     }
 
-    std::uint32_t* data;
+    void* data;
     if (model) {
-        data = static_cast<std::uint32_t*>(model->mesh->GetFile(name, nullptr));
+        data = model->mesh->GetFile(name, nullptr);
     } else {
         std::string base(name);
         std::string path = base + ".lnk";
-        data = static_cast<std::uint32_t*>(GetFile(path, nullptr));
+        data = GetFile(path, nullptr);
     }
     if (!data) return game::FatalError("Can't load skeleton file for \"%s\"\n", std::string(name));
 
-    const std::uint8_t* cursor = reinterpret_cast<const std::uint8_t*>(data + 1);
+    // A count, then that many (child, parent) names.
+    std::uint32_t links;
+    lib::LoadBytes(links, data);
+    const std::uint8_t* cursor = static_cast<const std::uint8_t*>(data) + sizeof(links);
     {
         std::string child, parent;
-        for (std::uint32_t i = data[0]; i != 0; --i) {
+        for (std::uint32_t i = links; i != 0; --i) {
             ReadPrefixedName(&child, &cursor);
             ReadPrefixedName(&parent, &cursor);
             state->LinkPiece(model, child, parent);
@@ -193,11 +196,16 @@ int FigureManager::LoadFigureBones(FigureModel* model, FigureBone* bone) {
         bones.data = GetFile(path, &bones.size);
     }
     if (!bones.data) return 0;
-    // The bone's cage interpolation: 0x48-byte data (a prism of six points), or
-    // any other size (a cube of eight); the stream is the data pointer, advanced as it is read.
-    const auto* stream = static_cast<const float*>(bones.data);
-    if (bones.size == 0x48) bone->InterpolatePrism(&stream);
-    else bone->InterpolateCube(&stream);
+    // The bone's cage interpolation: 0x48-byte data (a prism of six points), or any other size (a cube of eight).
+    if (bones.size == 0x48) {
+        float prism[18];
+        lib::LoadBytes(prism, bones.data);
+        bone->InterpolatePrism(prism);
+    } else {
+        float cube[24];
+        lib::LoadBytes(cube, bones.data);
+        bone->InterpolateCube(cube);
+    }
     return 1;
 }
 
@@ -419,7 +427,7 @@ int FigureManager::LoadMenuRects(Rect* rects) {
 
 namespace {
 
-void* Create(int classId) {
+EngineObject* Create(int classId) {
     switch (static_cast<FigureObjectType>(classId)) {
     case FigureObjectType::SharedFigureMesh:
         return new SharedFigureMesh();
@@ -442,9 +450,9 @@ void* Create(int classId) {
 
 } // namespace
 
-void* CreateFigureObject(int classId) {
-    void* object = Create(classId);
+EngineObject* CreateFigureObject(int classId) {
+    EngineObject* object = Create(classId);
     if (!object) return nullptr;
-    static_cast<EngineObject*>(object)->type = classId;
+    object->type = classId;
     return object;
 }

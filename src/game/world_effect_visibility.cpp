@@ -39,8 +39,7 @@ void EffectShowVisibility::SetUnits(int newObserverId, int newSeerId) {
 
 void EffectShowVisibility::Start(int update) {
     if (update == 0) {
-        auto* created = static_cast<VisibilityFog*>(VisFogManagerAdd(g_clientWorld.arrayManager));
-        fog.Assign(created);
+        fog.Assign(VisFogManagerAdd(g_clientWorld.arrayManager));
     }
     if (fog != nullptr) fog->Reveal(&grid);
 }
@@ -60,7 +59,7 @@ void EffectShowVisibility::Pack(DeltaField* field) {
 }
 
 bool EffectShowVisibility::RunTick() {
-    if (!WorldContext()->IsServer()) return true;
+    if (!OwningWorld()->IsServer()) return true;
     Unit* seer = OwningWorld()->FindUnit(seerId);
     Unit* observer = OwningWorld()->FindUnit(observerId);
     if (seer == nullptr || observer == nullptr) return false;

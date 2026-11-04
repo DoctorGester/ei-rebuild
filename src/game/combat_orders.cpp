@@ -113,7 +113,7 @@ void UnitServer::FinishCast() {
         float capped = MinKeepA(left, maximum);
         float result = MaxKeepB(0.0f, capped);
         *mana = result;
-        CompanionOwner(ServerObjectOf(unit))->MarkChanged(0);
+        unit->companion->owner->MarkChanged(0);
         unit->MarkChanged(0);
     }
     world->CastSpell(spell, unit, unit->localPosition, action.target, at, 0);
@@ -134,7 +134,7 @@ void UnitServer::OrderTurn(const Vector3& direction, std::uint32_t time) {
 }
 
 void UnitServer::OrderMove(const Vector3& point, int run, int walk) {
-    const World* world = WorldContext();
+    const World* world = OwningWorld();
     ResetOrder(&action2);
     action2.kind = UnitOrderKind::Move;
     action2.point = point;

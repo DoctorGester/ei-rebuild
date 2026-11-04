@@ -16,6 +16,7 @@
 #include <vector>
 
 class ChunkArchive;
+struct SoundManager;
 
 // A vector<std::string> as chunk `id` holding one field 1 per string, the way the NPC
 // and quest briefing serialisers inline it: loading empties the vector (the other serialiser erases the range
@@ -192,7 +193,7 @@ struct UnitLevelTable {
 struct UnitDatabase {
     // Gives each model's sound names (lower-cased in place) the number of "*.wav" files of the sound system `sounds`
     // whose name starts with it (soundCounts).
-    void CountSoundFiles(void* sounds);
+    void CountSoundFiles(SoundManager* sounds);
     // Rebirth-patched: the vanilla behaviour. Reads "units.udb" of the archive `folder` + `archive`: the level
     // records (chunk 1), models (2), prototypes (3) and NPCs (4), each from its own pass with every record entered
     // into its table's name index; then every prototype's modelIndex and every model slot's levelIndex are resolved

@@ -37,11 +37,11 @@ void Unit::Tick() {
 
 void Unit::RecomputeScale() {
     MapObject::RecomputeScale();
-    Controller()->Resettle();
+    controller->Resettle();
 }
 
 void Unit::EffectsChanged() {
-    Controller()->EffectsChanged();
+    controller->EffectsChanged();
 }
 
 void Unit::ApplyBaseScale() { SetFigureScale(baseScale); }
@@ -49,7 +49,7 @@ void Unit::ApplyBaseScale() { SetFigureScale(baseScale); }
 void Unit::LoadFigures() {
     if (flags & MapObjectFlag::FiguresLoaded) return;
     Object3D::LoadFigures();
-    Controller()->FiguresLoaded();
+    controller->FiguresLoaded();
 }
 
 void Unit::AttachObject(EngineObject* object) {
@@ -58,22 +58,22 @@ void Unit::AttachObject(EngineObject* object) {
         return;
     }
     if (controller) {
-        Controller()->unit = nullptr;
+        controller->unit = nullptr;
         controller->Release();
     }
-    controller = object;
-    Controller()->unit = this;
+    controller = static_cast<UnitController*>(object);   // the unit's side half
+    controller->unit = this;
     controller->AddRef();
 }
 
 int Unit::StatsChanged() {
     PackVitals();
-    if (controller) Controller()->RepackStats();
+    if (controller) controller->RepackStats();
     return 1;
 }
 
 void Unit::ScaleEffectChanged(bool scaleEffect) {
-    if (controller) Controller()->RefreshVitals(scaleEffect);
+    if (controller) controller->RefreshVitals(scaleEffect);
 }
 
 void Unit::SetStats(const UnitStats* stats) {
@@ -83,7 +83,7 @@ void Unit::SetStats(const UnitStats* stats) {
 }
 
 void Unit::UpdateSizeClasses() {
-    Controller()->UpdateSizeClasses();
+    controller->UpdateSizeClasses();
 }
 
 float* Unit::StandPoint(float* out) {
@@ -134,7 +134,7 @@ void Unit::SetFromStats(UnitStats* stats) {
 }
 
 int Unit::Level() {
-    if (IsTextKey(id)) return Controller()->Level();
+    if (IsTextKey(id)) return controller->Level();
     const auto* prototype =
         unitdb::PrototypeRecord(prototypeId);
     return static_cast<int>(prototype->level);
@@ -161,8 +161,8 @@ Vector3 Unit::EyePoint() {
 }
 bool Unit::IsLargeUnit() { return obstacle != 0; }
 bool Unit::IsDead() { return dead; }
-void Unit::UpdateMoveFactors() { Controller()->MoveFactorsChanged(); }
-void Unit::RefreshWounds() { Controller()->RefreshWounds(); }
+void Unit::UpdateMoveFactors() { controller->MoveFactorsChanged(); }
+void Unit::RefreshWounds() { controller->RefreshWounds(); }
 float Unit::MoveSpeed() {
     return GetMoveSpeeds().forward;
 }
@@ -203,7 +203,7 @@ constexpr float kDefaultRadius = 0.75f;
 } // namespace
 
 void Unit::UpdateSizeClass() {
-    Controller()->UpdateMoveFactors();   // the server's controller; empty on the others
+    controller->UpdateMoveFactors();   // the server's controller; empty on the others
     if (controller->GetClassId() != ClassId::UnitServer) {
         sizeClass = params.movementKind == kMovesOnWater ? 0 : 3;
         unitRadius = kDefaultRadius;
@@ -249,7 +249,7 @@ const char* const kNoEntry = "Can't find animation entry index\n %i\n for \"%s\"
 // 0x8000000 gives its motion's position at `time`, and any other its position.
 static Vector3 PredictPosition(Unit* unit, int time) {
     // The controller's motion virtual: its motion (the order in its first 0x20 bytes).
-    PathOrder* path = unit->Controller()->Path();
+    PathOrder* path = unit->controller->Path();
     if (unit->IsDead()) return unit->AimPoint();
     MotionOrder* order = &path->motionOrder;
     if (order->kind == kOrderPath && !(unit->flags & MapObjectFlag::Planned)) {
@@ -292,9 +292,8 @@ static Vector3 ActionPoint(Unit* unit) {
             offset = -axis * reach;
         }
     }
-    // The world's IsServer; the server's AI map.
-    auto* world = unit->ServerWorld();
-    if (world->IsServer()) {
+    // On the server: the server's AI map.
+    if (auto* world = unit->ServerWorld()) {
         Vector3 point = offset + unit->localPosition;
         if (!world->aiMap.IsPassableForClass(3, point)) return unit->localPosition;
     }
@@ -337,7 +336,7 @@ float UnitParams::VisionRange(float daylight) {
 }
 
 void Unit::AdvanceTime(float time) {
-    if (controller) Controller()->AdvanceTime(time);
+    if (controller) controller->AdvanceTime(time);
     if (!IsTextKey(id)) return;
     float daylight = g_clientWorld.NightLevel();
     float range = params.VisionRange(daylight);

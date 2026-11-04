@@ -115,7 +115,7 @@ public:
     }
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
-    // An object of type SideObjectType::MapObject becomes the companion (AttachCompanion); null and others go to Object3D's (which
+    // An object of type SideObjectType::MapObject becomes the companion (AttachObject sets its owner); null and others go to Object3D's (which
     // takes SideObjectType::Object3D). Units override it.
     void AttachObject(EngineObject* object) override;
     bool InvisibleSlot() override;
@@ -213,7 +213,7 @@ public:
 
     // Replaces the companion: the old one is detached and released, the new one points back here and gains a
     // reference.
-    void AttachCompanion(EngineObject* companion);
+
 
     // Statistics changed: a MapObjectServer companion packs its vitals into the rounded vitals. Returns 1, or 0
     // for another companion.
@@ -298,15 +298,14 @@ public:
     virtual bool IsOverkilled() = 0;
     // The client's sets the object's light mode; the server's is empty.
     virtual void SetLightMode(int) {}
+    // This half as the server's or the client's: null on the other side.
+    virtual MapObjectServer* ServerSide() { return nullptr; }
+    virtual MapObjectClientSpecific* ClientSide() { return nullptr; }
 
-    MapObject* owner;              // the map object (MapObject::AttachCompanion sets it)
+    MapObject* owner;              // the map object (MapObject::AttachObject sets it)
 };
-inline MapObjectCompanion* CompanionSlots(EngineObject* companion) {
-    return static_cast<MapObjectCompanion*>(companion);
-}
 
 // An engine object known to be a map object (a unit, a lever, a trap ...): its slots and fields.
 inline MapObject* ObjectSlots(EngineObject* object) { return static_cast<MapObject*>(object); }
 
-// The companion's back pointer.
-inline MapObject*& CompanionOwner(EngineObject* companion) { return CompanionSlots(companion)->owner; }
+

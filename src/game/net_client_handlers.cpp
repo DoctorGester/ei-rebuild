@@ -69,7 +69,7 @@ void ClearTradeRecords(ClientSession* self) { self->tradeRecords.clear(); }
 // Records the trade the paired offer stands for: our offer accepts the other's current
 // revision (and changes), and unless a record of the two revisions exists one is added with copies
 // of the two parties (parties) and `party`.
-void ClientSession::RecordTrade(const void* tradeParty) {
+void ClientSession::RecordTrade(Party* tradeParty) {
     PartyMessage* remote = ClientFindParty(this);
     if (!remote) return;
     if (!party.Get()) return;
@@ -91,7 +91,7 @@ void ClientSession::RecordTrade(const void* tradeParty) {
     record.revision = ours->revision;
     record.parties[0].Assign(parties[0].Get());
     record.parties[1].Assign(parties[1].Get());
-    record.parties[2].Assign(static_cast<Party*>(const_cast<void*>(tradeParty)));
+    record.parties[2].Assign(tradeParty);
 }
 
 // Starts our trade offer to `partner` when the binding and its player are

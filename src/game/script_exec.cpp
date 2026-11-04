@@ -62,7 +62,7 @@ bool ServerActive() {
 }
 
 AIBrain* BrainOf(UnitServer* state) { return &state->brain; }
-PatrolMode* PatrolOf(UnitServer* state) { return BrainOf(state)->FindPatrolMode(); }
+PatrolMode* PatrolOf(UnitServer* state) { return BrainOf(state)->FindModeOf<PatrolMode>(); }
 UnitStats* StatsOf(UnitServer* state) { return &state->stats; }
 Vector3* Position(EngineObject* object) { return &ObjectSlots(object)->localPosition; }
 
@@ -807,7 +807,7 @@ bool ScriptRun::Execute(Script* script) {
         case ScriptFunction::UMPatrolClear: {
             UnitServer* state = UnitStateArg(cmd);
             if (!state) break;
-            PatrolMode* patrol = BrainOf(state)->FindPatrolMode();
+            PatrolMode* patrol = BrainOf(state)->FindModeOf<PatrolMode>();
             if (patrol) patrol->points.clear();
             break;
         }

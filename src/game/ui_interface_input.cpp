@@ -33,7 +33,7 @@
 #include <vector>
 
 UiInputSide* Interface3D::MouseTarget() const {
-    if (mouseCapture) return static_cast<UiInputSide*>(mouseCapture);
+    if (mouseCapture) return mouseCapture;
     if (stack.begin() != stack.end()) return stack.end()[-1]->Input();
     return nullptr;
 }
@@ -87,7 +87,7 @@ void Interface3D::OnWheel(int delta, Point point) {
 void Interface3D::OnChar(int key, int scan) {
     if (scan == kScanConsoleKey) return;
     if (console->shown) {
-        static_cast<console::ConsoleWindow*>(console)->OnChar(key, scan);
+        console->OnChar(key, scan);
         return;
     }
     if (IsMultiplayerClient() && root->chatOpen) {

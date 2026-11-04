@@ -172,20 +172,17 @@ AIMode* AIBrain::FindMode(AIModeType type) {
     return nullptr;
 }
 
-PatrolMode* AIBrain::FindPatrolMode() { return static_cast<PatrolMode*>(FindMode(AIModeType::Patrol)); }
-
-PlayerMode* AIBrain::FindPlayerMode() { return static_cast<PlayerMode*>(FindMode(AIModeType::Player)); }
 
 MapObject* AIBrain::LeaderOrFollowed() {
     MapObject* leader = nullptr;
-    if (PlayerMode* mode = FindPlayerMode()) leader = mode->leader;
+    if (PlayerMode* mode = FindModeOf<PlayerMode>()) leader = mode->leader;
     if (!leader && action == kActionFollow) return target;
     return leader;
 }
 
 MapObject* AIBrain::AggressionEnemy() {
-    AIMode* mode = FindMode(AIModeType::Aggression);
-    return mode && mode == current ? static_cast<AggressionMode*>(mode)->enemy.Get() : nullptr;
+    AggressionMode* mode = FindModeOf<AggressionMode>();
+    return mode && mode == current ? mode->enemy.Get() : nullptr;
 }
 
 // --- Positions -----------------------------------------------------------------------------------
@@ -798,7 +795,7 @@ void AIBrain::ApplyBehaviour(const mapspec::Behaviour* record, int slot) {
     }
     case kPatrol: {
         AddMode(std::make_unique<PatrolMode>());
-        AddPatrolPoints(FindPatrolMode(), record);
+        AddPatrolPoints(FindModeOf<PatrolMode>(), record);
         break;
     }
     default:

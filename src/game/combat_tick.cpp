@@ -293,7 +293,7 @@ bool UnitServer::StartQueuedOrder() {
         TakeOver(this);
         LeaveMoveMode(this);
         int time = action.param;
-        int now = WorldContext()->tick;
+        int now = OwningWorld()->tick;
         motion.StandAndTurn(now, unit, action.point, static_cast<std::uint32_t>(time));
         unit->RefreshMotion();
         PlayIdle();
@@ -473,7 +473,7 @@ void UnitServer::ExecuteOrder() {
         return;
     }
     if (unit->pendingWeapon != static_cast<int>(unit->activeWeapon))
-        unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(unit->pendingWeapon));
+        unit->controller->ShowWeapon(static_cast<std::uint32_t>(unit->pendingWeapon));
     OrderPlan* plan = &currentPlan;
     if (!PlanAction(&action, plan)) {
         ApproachTarget();
@@ -633,7 +633,7 @@ void UnitServer::ApproachTarget() {
     float closing;
     if (chased->IsLargeUnit()) {
         // The chased unit's speed along the line between them adds to ours.
-        auto* other = static_cast<Unit*>(chased);
+        auto* other = static_cast<Unit*>(chased);   // only a unit is a large unit
         Vector3 v = other->localPosition - unit->localPosition;
         float length = std::sqrt(LengthSquared(v));
         if (length > 0.0f) v /= length;

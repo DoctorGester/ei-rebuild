@@ -135,7 +135,7 @@ int FigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
     bone->morphS = morphS;
     bone->morphT = morphT;
     bone->morphU = morphU;
-    OwningFigureManager(bone)->LoadFigureBones(model, bone);
+    FigureManagerOf(bone)->LoadFigureBones(model, bone);
     changed = 1;
     return 1;
 }
@@ -236,7 +236,7 @@ void FigureAnimationState::Rescale(float s, float t, float u) {
         bone->morphS = s;
         bone->morphT = t;
         bone->morphU = u;
-        OwningFigureManager(bone)->LoadFigureBones(model, bone);
+        FigureManagerOf(bone)->LoadFigureBones(model, bone);
     }
     morphS = s;
     morphT = t;

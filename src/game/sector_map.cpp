@@ -214,9 +214,9 @@ struct SpiralCell {
 };
 
 // The sort's comparison: by distance, ascending.
-int ByDistance(const void* a, const void* b) {
-    const float da = static_cast<const SpiralCell*>(a)->distance;
-    const float db = static_cast<const SpiralCell*>(b)->distance;
+int ByDistance(const SpiralCell& a, const SpiralCell& b) {
+    const float da = a.distance;
+    const float db = b.distance;
     if (da > db) return 1;
     return da == db ? 0 : -1;
 }
@@ -243,7 +243,7 @@ SectorSpiral BuildSectorSpiral() {
         }
     }
     // The game's own qsort: it decides the order of the sectors at the same distance.
-    libcrt::Qsort(cells.data(), cells.size(), sizeof(SpiralCell), ByDistance);
+    libcrt::Qsort(cells.data(), cells.size(), ByDistance);
     for (int i = 0; i < std::ssize(cells); ++i) spiral.offsets[i] = cells[i].offset;
 
     // A length per distinct distance: the offsets up to and including that distance.

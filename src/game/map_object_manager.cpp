@@ -68,9 +68,9 @@ EngineObject* MapObjectManager::CreateMapObject(int newType, int newId) {
     // The base's CreateObject, not the virtual (that one is this function's caller).
     auto* object = static_cast<MapObject*>(BaseManager::CreateObject(newType, newId));
     if (!object) return nullptr;
-    auto* figures = manager->ContextAsWorld()->GetFigureManager();
+    FigureManager* figures = manager->context->GetFigureManager();
     object->SetAnimationState(figures->CreateObjectAs<FigureAnimationState>(FigureObjectType::AnimationState, kNoObjectId));
-    BaseManager* halves = manager->ContextAsWorld()->SpecificManager();
+    BaseManager* halves = manager->context->SpecificManager();
     object->AttachObject(halves->CreateObjectAs<EngineObject>(SideObjectType::Object3D, kNoObjectId));
     object->AttachObject(halves->CreateObjectAs<EngineObject>(SideObjectType::MapObject, kNoObjectId));
     if (auto half = ThirdHalfOf(kind)) object->AttachObject(halves->CreateObjectAs<EngineObject>(*half, kNoObjectId));

@@ -25,8 +25,9 @@ constexpr std::uint32_t kFormat8888 = 0x8888;
 // The holder takes the picture's size and the screen's pixel size (the original filled memory of that size with the
 // picture; the cursor builds its mask from the file's pixels instead). 1 when done; otherwise the result of the fatal
 // error report (nonzero when the player goes on).
-int LoadPicture(Surface* holder, const MmpHeader* picture) {
-    if (!picture) return game::FatalError("Can't load picture from NULL pointer.\n");
+int LoadPicture(Surface* holder, const MmpFile& file) {
+    if (!file.data) return game::FatalError("Can't load picture from NULL pointer.\n");
+    const MmpHeader* picture = &file.header;
     if (picture->format != kFormat8888) return game::FatalError("Can't load picture from non-8888 format.\n");
     const int width = static_cast<int>(picture->width), height = static_cast<int>(picture->height);
     if (width <= 0 || height <= 0)
@@ -132,7 +133,7 @@ Surface* NewDecodedTextureHolder(TextureDevice* device, int width, int height, i
 Surface::Surface(TextureDevice* deviceIn) : device(deviceIn) {}
 
 // The renderer keeps the picture's pixels from the file data (render::PictureFromMmp).
-Surface::Surface(TextureDevice* deviceIn, const MmpHeader* picture) : device(deviceIn) {
+Surface::Surface(TextureDevice* deviceIn, const MmpFile& picture) : device(deviceIn) {
     if (!LoadPicture(this, picture)) ThrowGameError("Can't load picture to surface.\n");
     render::PictureFromMmp(this, picture);
 }
@@ -166,7 +167,7 @@ Dib* CaptureScreen(const TextureDevice* device) {
     auto* dib = new Dib(width, height, format.bitsPerPixel, format.redMask, format.greenMask, format.blueMask);
     std::uint8_t* out = dib->AllocateBits();
     if (!out || width <= 0 || height <= 0) return dib;
-    const std::size_t rowBytes = DibRowBytes(dib->header);
+    const std::size_t rowBytes = DibRowBytes(*dib->header);
     for (int row = height - 1; row >= 0; --row, out += rowBytes) {
         std::memset(out, 0, rowBytes);
         if (row >= frameHeight) continue;

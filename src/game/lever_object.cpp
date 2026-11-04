@@ -55,7 +55,7 @@ void Lever::Create() {
 
 bool Lever::RunTick() {
     Update();
-    if (WorldContext()->IsServer()) return false;
+    if (OwningWorld()->IsServer()) return false;
     Vector3 shown = scale;
     float t = (endTick - static_cast<float>(g_clientWorld.tick)) * rate;
     if (t > 0.0f) {

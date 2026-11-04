@@ -83,7 +83,7 @@ int MoveUnits(MoveCommand command) {
     FormationOffsets(&units, &offsets);
     for (int i = 0; i < std::ssize(units); ++i) {
         AIBrain* brain = &units[i]->ServerController()->brain;
-        if (PlayerMode* mode = brain->FindPlayerMode())
+        if (PlayerMode* mode = brain->FindModeOf<PlayerMode>())
             (mode->*command)(brain, to, std::ssize(units) > 1, run != 0, offsets[i]);
     }
     return 1;
@@ -242,7 +242,7 @@ int PlayerServer::OnUseOrder() {
 
     if (chosen) {
         AIBrain* brain = &chosen->ServerController()->brain;
-        if (PlayerMode* mode = brain->FindPlayerMode())
+        if (PlayerMode* mode = brain->FindModeOf<PlayerMode>())
             mode->CommandUse(brain, object, kind, value, flag != 0);
     }
     return 1;
@@ -400,7 +400,7 @@ int PlayerServer::OnAttack() {
     if (MapObject* object = g_serverWorld.FindObject(static_cast<unsigned>(objectId))) {
         for (int i = 0; i < std::ssize(units); ++i) {
             AIBrain* brain = &units[i]->ServerController()->brain;
-            if (PlayerMode* mode = brain->FindPlayerMode())
+            if (PlayerMode* mode = brain->FindModeOf<PlayerMode>())
                 mode->CommandAttack(brain, object, how, ctrl != 0);
         }
     }

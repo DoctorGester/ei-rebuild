@@ -410,7 +410,7 @@ void MpHeroScreen::RefreshStats() {
         Unit* unit = previewModel;
         unit->SetFromStats(&HeroRecord()->stats);
 
-        unit->Controller()->RefreshWounds();
+        unit->controller->RefreshWounds();
     }
     statsPanel->DrawStats();
 }

@@ -231,7 +231,7 @@ void HeroStatsPanel::DrawStats() {
             labels.push_back({texts[3], area, 0, kBright, 0});
             Down(&area);
             AttackParams info;
-            unit->Controller()->GetAttackParams(&info);
+            unit->controller->GetAttackParams(&info);
             line = std::format("     {}", texts[0]);
             labels.push_back({line, area, 0, kBright, 0});
             line = std::format("{}", info.attack);

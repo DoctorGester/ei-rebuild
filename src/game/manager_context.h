@@ -8,6 +8,7 @@
 #include "engine_object.h"
 
 class BaseManager;
+class FigureManager;
 class Item;
 class ItemConstructor;
 struct ItemManager;
@@ -17,14 +18,18 @@ class PlayerManager;
 class SpellConstructor;
 class SpellManager;
 class World;
+class WorldClient;
+class WorldServer;
 
 class ManagerContext : public EngineObject {
 public:
     void Create() override;
 
     virtual World* ThisWorld() { return nullptr; }                      // the world (returns this)
+    virtual WorldServer* ThisServerWorld() { return nullptr; }          // the server's world (returns this)
+    virtual WorldClient* ThisClientWorld() { return nullptr; }          // the client's world (returns this)
     virtual BaseManager* TimedObjectManager() { return nullptr; }       // the world's timedObjectManager (the client's Segment ticks its objects)
-    virtual BaseManager* GetFigureManager() { return nullptr; }            // the world's figureManager
+    virtual FigureManager* GetFigureManager() { return nullptr; }       // the world's figureManager
     virtual ItemConstructor* GetItemConstructor() { return nullptr; }
     virtual SpellConstructor* GetSpellConstructor() { return nullptr; }
     virtual ItemManager* ItemFactory() { return nullptr; }

@@ -284,13 +284,13 @@ void CampPages::BuildPages() {
             int start = static_cast<int>(frames - static_cast<int>(random % 51));
             unit->SetAnimationEntries(-1, static_cast<std::int8_t>(animation->index), start, 0);
         }
-        unit->Controller()->ShowWeapon(kNoWeaponSlot);
-        unit->Controller()->RefreshModel();
-        UnitController* controller = unit->Controller();
+        unit->controller->ShowWeapon(kNoWeaponSlot);
+        unit->controller->RefreshModel();
+        UnitController* controller = unit->controller;
         controller->RestartAnimation(static_cast<float>(FramesNow()));
         PartyUnitRecord* record = &player->members[i];
         unit->SetFromStats(&record->stats);
-        unit->Controller()->RefreshWounds();
+        unit->controller->RefreshWounds();
         // The armour the record wears.
         auto* heroStats = &record->stats;
         heroStats->ClearOuterLayers();

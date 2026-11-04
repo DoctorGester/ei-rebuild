@@ -44,9 +44,8 @@ Item* MakeWeapon(ItemManager* items, const std::string& name, const std::string&
 } // namespace
 
 int MapObjectManager::GiveStartingEquipment(Unit* unit, const std::string& name) {
-    World* world = ContextAsWorld();
-    SpellManager* spellOwner = world->GetSpellManager();   // passed on to the spell factory
-    ItemManager* items = world->ItemFactory();
+    SpellManager* spellOwner = context->GetSpellManager();   // passed on to the spell factory
+    ItemManager* items = context->ItemFactory();
     auto* prototype = g_unitDatabase.prototypes.FindByName(name);
     if (!prototype) {
         game::FatalError(game::equipmenttexts::NoPrototype(), name);

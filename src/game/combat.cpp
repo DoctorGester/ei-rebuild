@@ -751,7 +751,7 @@ UnitVitals& VitalsOf(Unit* unit) { return unit->ServerCompanion()->vitals; }
 } // namespace
 
 void UnitServer::RefreshVitals(bool withHitPoints) {
-    int now = WorldContext()->tick;
+    int now = OwningWorld()->tick;
     float oldRate = stats.rate;
     if (withHitPoints) stats.RecomputeHitPoints(&VitalsOf(unit), unit);
     stats.Recompute(&VitalsOf(unit), unit);

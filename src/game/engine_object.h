@@ -138,13 +138,11 @@ public:
     void ForgetReference() { --refCount; }
 
     ManagerContext* GetManagerContext() const;
-    // The manager context as the world, for the world's objects (a party's items have the party instead).
-    // Templates so that the world's classes need to be complete only where they are used.
-    template <class WorldType = World> WorldType* WorldContext() const { return static_cast<WorldType*>(GetManagerContext()); }
-    template <class WorldType = WorldServer> WorldType* ServerWorld() const { return WorldContext<WorldType>(); }
-    template <class WorldType = WorldClient> WorldType* ClientWorld() const { return WorldContext<WorldType>(); }
-    // The world the object belongs to, or null without a context.
+    // The world the object belongs to, or null without a context (a party's items have the party instead).
     World* OwningWorld() const;
+    // The same as the server's or the client's world: null in the other one.
+    WorldServer* ServerWorld() const;
+    WorldClient* ClientWorld() const;
     BaseManager* SetOwner(BaseManager* owner);
 
     int refCount = 0;

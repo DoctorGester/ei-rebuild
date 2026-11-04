@@ -208,7 +208,7 @@ void EffectParticle::Reset() {
 
 Vector3* EffectParticle::Position(const ScriptGroup* group) {
     if (attachedTo == -1) return &localPosition;
-    MapObject* object = WorldContext()->ObjectWithId(attachedTo);
+    MapObject* object = OwningWorld()->ObjectWithId(attachedTo);
     if (object == nullptr) return &localPosition;
     if (group->Contains(object) == 0) {
         // Not in the group: far away.
@@ -495,7 +495,7 @@ void EffectLightning::UpdateEnds() {
         to.z += worlddata::OneRef();
     }
     Unit* source = UnitOrNull(OwningWorld()->ObjectWithId(fromObject));
-    if (source != nullptr && WorldContext()->IsServer() == 0) {
+    if (source != nullptr && OwningWorld()->IsServer() == 0) {
         from = source->EffectPoint();
     }
 }

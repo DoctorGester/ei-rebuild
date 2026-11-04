@@ -575,11 +575,11 @@ void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
     auto unitPosition = [](Unit* u) { return u->localPosition; };
     auto objectAt = [mouse]() {
         Point point = mouse;
-        return static_cast<Unit*>(g_clientWorld.PickAt2(&point));
+        return g_clientWorld.PickAt2(&point);
     };
     // The portrait of member `index` nods after a short random delay.
     auto flash = [this](int index) { portraits->Wobble(index, kWobbleNod); };
-    auto order = [this, ctrl](Unit* first, Unit* target, int kind, int value) {
+    auto order = [this, ctrl](Unit* first, MapObject* target, int kind, int value) {
         g_clientWorld.LocalView()->SendUseOrder(first, target, kind, value, ctrl);
     };
 
@@ -653,7 +653,7 @@ void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
             OrderAt(unitPosition(unit), false, ctrl);
             return;
         }
-        if (Unit* object = objectAt()) {
+        if (MapObject* object = objectAt()) {
             if (object->IsUsable() != 0 && object->IsDirectUseBlocked() == 0 && selected == 1) {
                 order(first, object, 0, -1);
                 flash(firstIndex);
@@ -691,7 +691,7 @@ void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
     }
     case kPendingItemOnObject:
     case kPendingKeyOnObject: {
-        Unit* target = unit ? unit : objectAt();
+        MapObject* target = unit ? unit : objectAt();
         if (!target || !first) return;
         if (target->IsUsable() == 0) return;
         if (pendingAction == kPendingKeyOnObject && target->AcceptsKey(&itemUseKey) == 0) return;
@@ -713,7 +713,7 @@ void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
         return;
     }
     case kPendingOrder: {   // a unit outside the party, or the object under the mouse
-        Unit* target = unit ? unit : objectAt();
+        MapObject* target = unit ? unit : objectAt();
         if (!target || !first) return;
         if (unit) {
             for (int i = 0; i < std::ssize(party); ++i)

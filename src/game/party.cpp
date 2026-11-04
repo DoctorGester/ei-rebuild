@@ -213,7 +213,7 @@ void Append(std::vector<Item*>& list, Item* item) {
 void RemoveAt(std::vector<Item*>& list, int index) { list.erase(list.begin() + index); }
 
 Item* AddEntry(std::vector<Item*>& list, Item* item) {
-    Item* entry = item->Clone(item->WorldContext()->GetSpellManager());
+    Item* entry = item->Clone(item->GetManagerContext()->GetSpellManager());
     entry->AddRef();
     Append(list, entry);
     return entry;
@@ -319,7 +319,7 @@ namespace {
 // meanwhile and released after.
 Item* CountedClone(Item* item) {
     if (item) item->AddRef();
-    Item* copy = item->Clone(item->WorldContext()->GetSpellManager());
+    Item* copy = item->Clone(item->GetManagerContext()->GetSpellManager());
     copy->AddRef();
     return copy;
 }

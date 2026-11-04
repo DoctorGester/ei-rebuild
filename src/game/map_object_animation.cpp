@@ -167,7 +167,7 @@ FigureAnimation* PopQueued(FigureAnimationState* state) {
 void FigureAnimationState::AnimateBone(FigureBone* bone, const FigureAnimation* animation) {
     AnimationTrack* animator = AnimatorOf(bone);
     animator->animation = animation;
-    OwningFigureManager(animator)->LoadBoneAnimation(animator->bone, animator, animation ? animation->name : nullptr);
+    FigureManagerOf(animator)->LoadBoneAnimation(animator->bone, animator, animation ? animation->name : nullptr);
     animator->time = 0.0f;
 }
 

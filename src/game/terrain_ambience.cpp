@@ -86,9 +86,9 @@ constexpr float kHalfPi = /*007C8930*/ 1.5707964f;
 int SectorOf(float v) { return std::lround(v) / kSectorCells; }
 
 // By weight, highest first (an unordered pair sorts "after").
-int ByWeight(const void* a, const void* b) {
-    float wa = static_cast<const ClassVotes*>(a)->weightSum;
-    float wb = static_cast<const ClassVotes*>(b)->weightSum;
+int ByWeight(const ClassVotes& a, const ClassVotes& b) {
+    float wa = a.weightSum;
+    float wb = b.weightSum;
     if (wa > wb) return -1;
     if (wa == wb) return 0;
     return 1;
@@ -191,7 +191,7 @@ void Terrain::PlayAmbience() {
             ++vote.count;
         }
     }
-    libcrt::Qsort(votes, kClasses, sizeof(ClassVotes), ByWeight);
+    libcrt::Qsort(votes, kClasses, ByWeight);
 
     int heard = 0;
     for (; heard < kAmbientLoops && votes[heard].weightSum > kMinWeight; ++heard) {   // a NaN weight ends it

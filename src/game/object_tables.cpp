@@ -74,7 +74,7 @@ void NamedFloatTable::Save(ByteStream* stream) {
     stream->WriteString("");   // the end
 }
 
-void* FindCommandByKey(int key) {
+const char* FindCommandByKey(int key) {
     const signed char* keys = g_keyActions;
     for (int slot = 0; slot < 0x200; ++slot) {
         if (keys[slot] != key) continue;

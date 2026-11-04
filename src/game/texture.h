@@ -24,6 +24,7 @@ struct NamedTexture;
 struct SkinRequest;
 struct ComposedTexture;
 struct MmpHeader;
+struct MmpFile;
 struct TLVertex;
 using VertexPacket = render::VertexPacket;
 using NormalPacket = render::NormalPacket;
@@ -134,6 +135,16 @@ static_assert(offsetof(MmpHeader, alphaKind) == 0x20);
 static_assert(offsetof(MmpHeader, blueBits) == 0x44);
 static_assert(sizeof(MmpHeader) == 0x4C);
 
+// An .mmp file as an archive hands it out (GetFile): its header read from the first bytes, the extra block and the
+// mips after it. A null file reads as a zero header.
+struct MmpFile {
+    explicit MmpFile(void* file);
+    void* data;             // the file as GetFile returned it (CloseFile takes it back), or null
+    MmpHeader header{};
+    // The bytes after the header: the extra block, then the mips (header.MipOffset).
+    const std::uint8_t* Body() const { return static_cast<const std::uint8_t*>(data) + sizeof(MmpHeader); }
+};
+
 // The texture formats, one fixed list: the RGB ids 0x5650 (5:6:5), 0x5551 (1:5:5:5), 0x4444 and 0x8888 and the
 // compressed DXT1 .. DXT5 by their four-character codes (texture.cpp).
 bool IsTextureFormat(std::uint32_t id);
@@ -186,7 +197,7 @@ public:
 
     // From mip level `mip` on: a holder for the levels the new renderer decodes; copies the file's extra
     // block. Returns 1.
-    int CreateFromMmp(TextureDevice* device, const MmpHeader* data, unsigned mip);
+    int CreateFromMmp(TextureDevice* device, const MmpFile& file, unsigned mip);
     // From mip level `mip` on: a holder for the levels the new renderer composes from the layer textures (no
     // check that the level exists, as the original's load of its cache file); copies the extra block. Returns 1.
     int CreateComposed(TextureDevice* device, const ComposedTexture& composed, unsigned mip);
@@ -292,7 +303,7 @@ public:
     // The composed texture `name` (any case), or null.
     const ComposedTexture* FindComposed(std::string_view name);
 
-    MmpHeader* GetFileData(std::string_view name);   // an .mmp file's data (CloseFile frees it)
+    MmpFile GetFileData(std::string_view name);   // an .mmp file (CloseFile frees its data)
     Texture* NewTextureOfType(int type);
     // Given `name` either way (no null check). Not loaded.
     Texture* FindOrCreate(int type, std::string_view name);
@@ -310,4 +321,4 @@ public:
     std::uint16_t mipLevel;     // first mip level to load
     int limitTo512;             // nonzero: textures are loaded at most 511 pixels wide and high
 };
-inline TextureManager* Texture::Manager() const { return static_cast<TextureManager*>(owner); }
+

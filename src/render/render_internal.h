@@ -695,14 +695,14 @@ void LogImageCounts(const char* when);
 const gpu::Texture& TextureView(const void* texture);
 const gpu::Texture& SurfaceView(const void* holder);
 // render::TextureFromMmp: kept until the holder goes.
-bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsigned levels);
+bool TextureFromMmpData(const void* holder, const MmpFile& file, unsigned mip, unsigned levels);
 void ForgetHolder(const void* holder);
 // render::PictureFromMmp: level 0 as RGBA8, kept until the holder goes.
 struct Picture {
     int width = 0, height = 0;
     std::vector<std::uint8_t> rgba;
 };
-bool PictureFromMmpData(const void* holder, const void* data);
+bool PictureFromMmpData(const void* holder, const MmpFile& file);
 const Picture* PictureOf(const void* holder);
 gpu::Sampler LinearSampler();
 // A 1x1 white texture.

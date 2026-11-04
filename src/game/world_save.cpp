@@ -534,7 +534,7 @@ void WorldServer::PrepareSave() {
     for (auto node = mapObjects.map.begin(); node != mapObjects.map.end() && node->second; ++node) {
         Unit* unit = UnitOrNull(node->second);
         if (!unit || unit->IsDead()) continue;
-        UnitController* controller = unit->Controller();
+        UnitController* controller = unit->controller;
         unit->ServerController()->stats.RefillSlots();
         controller->RefreshVitals(false);
     }

@@ -220,7 +220,7 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
         // record's), spells.
         for (int n = 0; n < std::ssize(record->weapons); ++n)
             unit->AddWeapon(MakeItem(this, record->weapons[n]));
-        unit->Controller()->ShowWeapon(0);
+        unit->controller->ShowWeapon(0);
         for (int n = 0; n < std::ssize(record->armor); ++n)
             unit->EquipArmour(MakeItem(this, record->armor[n]));
         for (int n = 0; n < std::ssize(record->quickItems); ++n) {
@@ -258,7 +258,7 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
             UnitServer* controller = unit->ServerController();
             if (record->leaderId <= 0) continue;
             AIBrain* brain = &controller->brain;
-            PlayerMode* follow = brain->FindPlayerMode();
+            PlayerMode* follow = brain->FindModeOf<PlayerMode>();
             if (!follow) continue;
             follow->SetLeader(brain, FindUnit(record->leaderId));
         }
@@ -287,11 +287,12 @@ void WorldServer::UseQuickItem(Unit* unit) {
 
 int WorldServer::CreateObject(mapspec::Spec* message) {
     // Every kind starts with the base record (Spec); kinds 1, 5-9 are object records (ObjectSpec), 5 a unit
-    // record, 6 a flame, 7 a magic trap, 8 a lever; 2 a light, 3 a sound, 4 a particle source.
-    auto* spec = static_cast<ObjectSpec*>(message);
+    // record, 6 a flame, 7 a magic trap, 8 a lever; 2 a light, 3 a sound, 4 a particle source. `spec` is set
+    // by the object kinds' cases.
+    ObjectSpec* spec = nullptr;
     Spec& base = *message;
     // The object of the spec's class (parentId), as the class the kind makes.
-    auto created = [this, spec]<class T>(std::type_identity<T>) {
+    auto created = [this, &spec]<class T>(std::type_identity<T>) {
         return GetMapObjectManager()->CreateObjectAs<T>(static_cast<MapObjectType>(spec->parentId), spec->id);
     };
     auto allowed = [this](MapObject* object) {
@@ -302,19 +303,19 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         object->Release();
         return -1;
     };
-    auto companionTexts = [spec](MapObjectServer* companion) {
+    auto companionTexts = [&spec](MapObjectServer* companion) {
         companion->parentIname = spec->parentIname;
         companion->skinTexture = spec->skinTexture;
         companion->strings = spec->parts;
     };
-    auto race = [spec](MapObject* object) {
+    auto race = [&spec](MapObject* object) {
         object->AddRef();
         const std::string_view prototype = spec->kind == 5 ? std::string_view(static_cast<UnitSpec*>(spec)->prototype)
                                                            : std::string_view(spec->primaryTexture);
         object->TakePrototype(prototype);
         object->WriteFullState();
     };
-    auto place = [spec](MapObject* object) {
+    auto place = [&spec](MapObject* object) {
         object->SetFigureScale(spec->scale);
         object->baseScale = spec->scale;
         object->ApplyBaseScale();
@@ -334,6 +335,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
     switch (base.kind) {
     case 6: {   // a torch (flame) with its state object (a campfire when it stands on the ground)
         auto* flame = static_cast<mapspec::FlameSpec*>(message);
+        spec = flame;
         TorchObject* object = created(std::type_identity<TorchObject>{});
         if (!allowed(object)) return refuse(object);
         int objectId = object->id;
@@ -381,6 +383,8 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         return result;
     }
     case 7: {   // a magic trap: updated every tick (no texts, not in the sector map)
+        auto* trap = static_cast<mapspec::TrapSpec*>(message);
+        spec = trap;
         MagicTrap* object = created(std::type_identity<MagicTrap>{});
         if (!allowed(object)) return refuse(object);
         int objectId = object->id;
@@ -398,13 +402,14 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         updateMap.Set(static_cast<unsigned>(object->id), object);
         int result = object->id;
         if (object->flags & MapObjectFlag::Changed) object->WriteChangedState();
-        object->SetUp(&static_cast<mapspec::TrapSpec*>(message)->trap);
+        object->SetUp(&trap->trap);
         return result;
     }
     case 1:
     case 5:
     case 8:
     case 9: {   // map objects, units (5) and levers (8)
+        spec = static_cast<ObjectSpec*>(message);
         Unit* unit = nullptr;
         Lever* lever = nullptr;
         MapObject* object;

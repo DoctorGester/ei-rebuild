@@ -323,7 +323,7 @@ UnitList AIMemory::FindEnemiesNear(Unit* self, const Vector3& point, float radiu
         if (!other->IsHostileTo(self) || other->IsDead() || reports.Contains(other)) continue;
         if (LengthSquared(other->localPosition - point) >= radius2) {
             AIBrain* theirs = &other->ServerController()->brain;
-            auto* mode = static_cast<AggressionMode*>(theirs->FindMode(AIModeType::Aggression));
+            auto* mode = theirs->FindModeOf<AggressionMode>();
             if (!mode || (mode->fixed && !mode->enemy)) continue;
             Unit* enemy = UnitOrNull(theirs->AggressionEnemy());
             if (enemy && !g_serverWorld.diplomacy.IsAllied(self->side, enemy->side)) continue;

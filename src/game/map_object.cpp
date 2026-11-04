@@ -182,17 +182,6 @@ void MapObject::SetServerData(const UnitVitals* data) {
     ServerCompanion()->SetData(data);
 }
 
-void MapObject::AttachCompanion(EngineObject* object) {
-    if (companion) {
-        CompanionOwner(companion) = nullptr;
-        companion->Release();
-    }
-    companion = CompanionSlots(object);
-    if (object) {
-        CompanionOwner(object) = this;
-        companion->AddRef();
-    }
-}
 
 void MapObject::AttachObject(EngineObject* object) {
     if (!object || SideTypeOf(object) != SideObjectType::MapObject) {
@@ -200,11 +189,11 @@ void MapObject::AttachObject(EngineObject* object) {
         return;
     }
     if (companion) {
-        CompanionOwner(companion) = nullptr;
+        companion->owner = nullptr;
         companion->Release();
     }
-    companion = CompanionSlots(object);
-    CompanionOwner(object) = this;
+    companion = static_cast<MapObjectCompanion*>(object);   // the map object's side half
+    companion->owner = this;
     companion->AddRef();
 }
 
@@ -361,8 +350,8 @@ constexpr int kMapObjectNetFields = 4;
 constexpr int kInitialCountdown = 5;      // MapObject::updateCountdown
 
 void DetachCompanion(MapObject* object) {
-    if (EngineObject* companion = object->companion) {
-        CompanionOwner(companion) = nullptr;
+    if (MapObjectCompanion* companion = object->companion) {
+        companion->owner = nullptr;
         companion->Release();
     }
     object->companion = nullptr;

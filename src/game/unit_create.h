@@ -3,6 +3,7 @@
 // Unit setup helpers around creation and loading: the unit prototype table's name index and the server controller's
 // statistics hand-over. See docs/notes/units.md ("Creation, databases, save").
 
+#include "manager_context.h"
 #include "resource_manager.h"
 
 #include "lib/hash_map.h"
@@ -134,8 +135,9 @@ struct MapObjectManager : ResourceManager {
     std::unordered_map<std::string, std::unique_ptr<AnimationDatabase>> animationDatabases;
 };
 
+// The map object manager of `object`'s world: the one that made it (a world has one).
 inline MapObjectManager* MapObjectManagerOf(const EngineObject* object) {
-    return static_cast<MapObjectManager*>(object->owner);
+    return object->GetManagerContext()->GetMapObjectManager();
 }
 
 namespace unitdb {

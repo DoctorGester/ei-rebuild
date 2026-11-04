@@ -326,10 +326,10 @@ StagePatch PatchOf(const void* holder) {
     return p;
 }
 
-bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsigned levels) {
-    if (!holder || !data) return false;
-    const auto& h = *static_cast<const MmpHeader*>(data);
-    const auto* base = static_cast<const std::uint8_t*>(data) + sizeof(MmpHeader);
+bool TextureFromMmpData(const void* holder, const MmpFile& file, unsigned mip, unsigned levels) {
+    if (!holder || !file.data) return false;
+    const MmpHeader& h = file.header;
+    const std::uint8_t* base = file.Body();
     if (h.width == 0 || h.height == 0 || h.width > 8192 || h.height > 8192 || h.mipCount == 0 || h.mipCount > 16) {
         if (g_mmpFailures++ < 10) ei::Log("render: .mmp header not understood; the texture is not decoded");
         return false;
@@ -351,15 +351,14 @@ bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsi
     return made;
 }
 
-bool PictureFromMmpData(const void* holder, const void* data) {
+bool PictureFromMmpData(const void* holder, const MmpFile& file) {
     g_pictures.erase(holder);
-    const auto& h = *static_cast<const MmpHeader*>(data);
+    const MmpHeader& h = file.header;
     if (h.width == 0 || h.height == 0 || h.width > 4096 || h.height > 4096) return false;
     Picture p;
     p.width = static_cast<int>(h.width);
     p.height = static_cast<int>(h.height);
-    const auto* base = static_cast<const std::uint8_t*>(data) + sizeof(MmpHeader);
-    if (!DecodeMmpLevel(h, base + h.MipOffset(0), p.width, p.height, p.rgba)) {
+    if (!DecodeMmpLevel(h, file.Body() + h.MipOffset(0), p.width, p.height, p.rgba)) {
         if (g_mmpFailures++ < 10)
             ei::Log("render: picture format %08X not decoded; the cursor draws nothing for it", static_cast<unsigned>(h.format));
         return false;
@@ -448,11 +447,11 @@ void ForgetHolder(const void* holder) {
 
 namespace render {
 
-bool TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned levels) {
-    if (!holder || !data) return false;
+bool TextureFromMmp(const void* holder, const MmpFile& file, unsigned mip, unsigned levels) {
+    if (!holder || !file.data) return false;
     detail::Start();
     detail::StatsTimer timer(&FrameStats::textureMs);
-    return detail::TextureFromMmpData(holder, data, mip, levels);
+    return detail::TextureFromMmpData(holder, file, mip, levels);
 }
 
 bool ComposeTexture(const void* holder, int size, unsigned mip, unsigned levels, const TextureImage* images, int count) {
@@ -561,9 +560,9 @@ void HolderGone(const void* holder) {
     detail::ForgetCursor(holder);
 }
 
-void PictureFromMmp(const void* holder, const void* data) {
-    if (!holder || !data) return;
-    detail::PictureFromMmpData(holder, data);
+void PictureFromMmp(const void* holder, const MmpFile& file) {
+    if (!holder || !file.data) return;
+    detail::PictureFromMmpData(holder, file);
 }
 
 #if defined(EI_RENDER_VALIDATION)

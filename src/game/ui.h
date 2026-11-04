@@ -40,6 +40,7 @@ class ChatOverlay;
 struct UiInputSide;
 class UiMesh;
 struct Surface;
+class Material;
 class Texture;
 class TextureDevice;
 class UiSurface;
@@ -221,7 +222,7 @@ public:
     int width = 0;                   // screen width
     int height = 0;                  // screen height
     TextureDevice* renderer = nullptr;    // the device
-    void* mouseCapture = nullptr;    // input side that took the button press
+    UiInputSide* mouseCapture = nullptr;    // input side that took the button press
     console::ConsoleWindow* console = nullptr;
     ScreenFade* fade = nullptr;
     ChatOverlay* root = nullptr;    // the chat overlay; updated after the top window every frame
@@ -573,9 +574,8 @@ public:
 
     Rect rect = {};                           // layout coordinates
     bool enabled = true;
-    EngineObject* blackMaterial = nullptr;   // given to every sprite (AddSprite)
-    EngineObject* whiteMaterial = nullptr;
-    EngineObject* heldObject = nullptr;      // released by the destructor (writer not identified)
+    Material* blackMaterial = nullptr;   // given to every sprite (AddSprite)
+    Material* whiteMaterial = nullptr;
     std::vector<Texture*> objects;             // the referenced textures
     std::vector<EngineObject*> sceneObjects;
     std::vector<UiSurface*> surfaces;
@@ -935,7 +935,7 @@ public:
     float& ScaleX() { return scaleMatrix.m[0]; }
     float& ScaleY() { return scaleMatrix.m[5]; }
     float& ScaleZ() { return scaleMatrix.m[10]; }
-    EngineObject* material;         // the window's black material
+    Material* material;             // the window's black material
     Texture* texture;               // one of the window's referenced textures
 };
 
@@ -1444,6 +1444,7 @@ struct UiWordToken;
 struct UiTextToken {
     explicit UiTextToken(int newType) : type(newType) {}
     virtual ~UiTextToken();
+    // The token as the class its type makes (callers test `type` first).
     UiFormatToken* AsFormat();
     const UiFormatToken* AsFormat() const;
     UiWordToken* AsWord();
@@ -1797,6 +1798,7 @@ public:
     int selectedQuest;               // row of the quest named by the current-quest global
     int shownQuest;                  // the row ShowQuest last showed (-1: none)
     std::vector<std::string> quests;
+    UiScrollText* questText = nullptr;   // the selected quest's text column (a child)
     UiScrollbar* bar;
     int firstRow;                    // the first quest row shown (the bar's position)
     float markerScale;

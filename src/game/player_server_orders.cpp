@@ -110,11 +110,11 @@ int PlayerServer::OnCastAtObject() {
     CastAtObject message;
     g_receivedMessages.ReadValue(message);
     Player* currentPlayer = player;
-    MapObject* target = currentPlayer->WorldContext()->ObjectWithId(message.targetId);
-    Unit* unit = currentPlayer->WorldContext()->FindUnit(message.unitId);
+    MapObject* target = currentPlayer->OwningWorld()->ObjectWithId(message.targetId);
+    Unit* unit = currentPlayer->OwningWorld()->FindUnit(message.unitId);
     if (target && Able(unit)) {
         AIBrain* brain = &unit->ServerController()->brain;
-        if (PlayerMode* mode = brain->FindPlayerMode())
+        if (PlayerMode* mode = brain->FindModeOf<PlayerMode>())
             mode->CommandCast(brain, message.spell, target);
     }
     return 1;
@@ -123,10 +123,10 @@ int PlayerServer::OnCastAtObject() {
 int PlayerServer::OnCastAtPoint() {
     CastAtPoint message;
     g_receivedMessages.ReadValue(message);
-    Unit* unit = player->WorldContext()->FindUnit(message.unitId);
+    Unit* unit = player->OwningWorld()->FindUnit(message.unitId);
     if (Able(unit)) {
         AIBrain* brain = &unit->ServerController()->brain;
-        if (PlayerMode* mode = brain->FindPlayerMode()) {
+        if (PlayerMode* mode = brain->FindModeOf<PlayerMode>()) {
             const Vector3 point = message.point;
             mode->CommandCastAt(brain, message.spell, point);
         }
@@ -137,7 +137,7 @@ int PlayerServer::OnCastAtPoint() {
 int PlayerServer::OnWantedWeapon() {
     UnitByte message;
     g_receivedMessages.ReadValue(message);
-    Unit* unit = player->WorldContext()->FindUnit(message.unitId);
+    Unit* unit = player->OwningWorld()->FindUnit(message.unitId);
     if (Able(unit)) unit->ServerController()->SetWantedWeapon(message.value);
     return 1;
 }
@@ -145,7 +145,7 @@ int PlayerServer::OnWantedWeapon() {
 int PlayerServer::OnMoveStyle() {
     UnitByte message;
     g_receivedMessages.ReadValue(message);
-    Unit* unit = player->WorldContext()->FindUnit(message.unitId);
+    Unit* unit = player->OwningWorld()->FindUnit(message.unitId);
     if (unit && !unit->IsDead()) unit->ServerController()->SetMoveStyle(message.value);
     return 1;
 }
@@ -155,7 +155,7 @@ int PlayerServer::OnUnitLookup() {
     int values[2];
     g_receivedMessages.ReadValue(values[0]);
     g_receivedMessages.ReadValue(values[1]);
-    player->WorldContext()->FindUnit(values[0]);
+    player->OwningWorld()->FindUnit(values[0]);
     return 1;
 }
 
@@ -163,18 +163,18 @@ int PlayerServer::OnFollow() {
     int ids[2];   // unit, leader
     g_receivedMessages.Read(ids, 8);
     Player* currentPlayer = player;
-    Unit* unit = currentPlayer->WorldContext()->FindUnit(ids[0]);
+    Unit* unit = currentPlayer->OwningWorld()->FindUnit(ids[0]);
     if (!unit) return 1;
-    Unit* leader = currentPlayer->WorldContext()->FindUnit(ids[1]);
+    Unit* leader = currentPlayer->OwningWorld()->FindUnit(ids[1]);
     AIBrain* brain = &unit->ServerController()->brain;
-    if (PlayerMode* mode = brain->FindPlayerMode()) mode->SetLeader(brain, leader);
+    if (PlayerMode* mode = brain->FindModeOf<PlayerMode>()) mode->SetLeader(brain, leader);
     return 1;
 }
 
 int PlayerServer::OnFightAtWill() {
     int objectId;
     g_receivedMessages.ReadValue(objectId);
-    Unit* unit = player->WorldContext()->FindUnit(objectId);
+    Unit* unit = player->OwningWorld()->FindUnit(objectId);
     std::int8_t value = 0;
     g_receivedMessages.ReadValue(value);
     if (unit) unit->SetFightAtWill(value);

@@ -46,9 +46,7 @@ constexpr float kNearSquared = 1e9f;                 // parts farther away are s
 std::uint32_t Bits(float v) { return std::bit_cast<std::uint32_t>(v); }
 
 // Animation state: rescale to x, y, z.
-void AnimationSetScale(void* state, float x, float y, float z) {
-    static_cast<FigureAnimationState*>(state)->Rescale(x, y, z);
-}
+void AnimationSetScale(FigureAnimationState* state, float x, float y, float z) { state->Rescale(x, y, z); }
 
 // The original's branch-free selects: the stored candidate `v` replaces the bound when the comparison sets C0
 // (it is beyond the bound, or unordered).
@@ -103,7 +101,7 @@ void Object3D::SetFigureScale(const Vector3& newScale) {
         return;
     scale = newScale;
     if (LinkMesh* current = figure) {
-        LinkFigureLoader* loader = WorldContext()->FigureLoader();
+        LinkFigureLoader* loader = GetManagerContext()->FigureLoader();
         LinkMesh* rebuilt = loader->Remorph(current, scale.x, scale.y, scale.z);
         figure.Assign(rebuilt);
         for (int i = 0; i < std::ssize(parts); ++i) {
@@ -237,7 +235,7 @@ void Object3D::AttachSpecific(EngineObject* half) {
         attached->object = nullptr;
         attached->Release();
     }
-    attached = static_cast<Object3DSpecific*>(half);
+    attached = static_cast<Object3DSpecific*>(half);   // the 3D object's side half
     attached->object = this;
     attached->AddRef();
 }
@@ -578,14 +576,14 @@ int Object3D::MakeFigure(std::string_view model, std::vector<std::string>* names
     if (names->empty() && animation) {
         *names = animation->BoneNames();
         std::string key(model);
-        LinkMesh* made = WorldContext()->FigureLoader()->LoadLink(&key, scale.x, scale.y, scale.z);
+        LinkMesh* made = GetManagerContext()->FigureLoader()->LoadLink(&key, scale.x, scale.y, scale.z);
         figure.Assign(made);
     } else {
         // The piece names as the loader's LoadFigure reads them.
         std::vector<std::string> pieces = *names;
         {
             std::string key(model);
-            LinkMesh* made = WorldContext()->FigureLoader()->LoadFigure(&key, &pieces, scale.x, scale.y, scale.z);
+            LinkMesh* made = GetManagerContext()->FigureLoader()->LoadFigure(&key, &pieces, scale.x, scale.y, scale.z);
             figure.Assign(made);
         }
     }

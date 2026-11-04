@@ -77,7 +77,7 @@ void Unit::DropBrokenEquipment() {
         if (!slot || !IsBroken(slot)) continue;
         ItemArmor* piece = std::exchange(slot, nullptr);
         broken.push_back(piece);
-        Controller()->ArmourTakenOff(static_cast<std::uint32_t>(piece->GetType()));
+        controller->ArmourTakenOff(static_cast<std::uint32_t>(piece->GetType()));
         MarkChanged(kPartEquipment);
         MarkChanged(kPartStats);
     }
@@ -94,7 +94,7 @@ void Unit::DropBrokenEquipment() {
         MarkChanged(kPartWeapons);
         weaponLost = true;
     }
-    if (weaponLost) Controller()->ShowWeapon(0xFFFFFFFFu);   // re-pick the active weapon
+    if (weaponLost) controller->ShowWeapon(0xFFFFFFFFu);   // re-pick the active weapon
 
     if (!broken.empty()) {
         ownerObject->GiveItems(&broken, 1);
@@ -131,7 +131,7 @@ void Unit::Reset() {
     relationsB = 0xFFFFFFFFu;
     side = 0;
     if (controller) {
-        ServerController()->unit = nullptr;
+        controller->unit = nullptr;
         controller->Release();
     }
     animationEntry = -1;

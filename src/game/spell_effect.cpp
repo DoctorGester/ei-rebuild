@@ -432,7 +432,7 @@ Next StartHealing(SpellEffect* e) {
     if (e->target->GetClassId() != ClassId::Unit) return Next::Done;   // no null check
     // Controller Heal (the amount's bits are pushed, MOV/PUSH).
     Unit* unit = TargetUnit(e);
-    unit->Controller()->Heal(e->HeldSpell()->damage);
+    unit->controller->Heal(e->HeldSpell()->damage);
     float size = Power(e);
     e->CreateParticle(0, static_cast<int>(ParticleType::Healing), kZeroVector, size, 1.0f, kZeroVector, unit);
     bool full = unit->packedVitals.hitPoints == unit->packedVitals.maxHitPoints;

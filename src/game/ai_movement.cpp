@@ -47,7 +47,7 @@ Unit* AIMap::BlockingUnitAt(Unit* unit, const Vector3& position) {
         } else {
             int tenths = lib::RoundEven(otherHeight * 10.0f + 1.0f);
             handle.height = static_cast<float>(tenths) * 0.1f;
-            shape = static_cast<const UnitShape*>(g_unitShapes.Get(&handle));
+            shape = g_unitShapes.Get(&handle);
             handle.ref.Reset();
         }
 
@@ -189,13 +189,13 @@ void AIMap::MarkVisibleCells(const Vector3& eye, float radius, const Vector3& lo
     }
 }
 
-void* AIMap::ShapeForHeight(float standingHeight) {
+UnitShape* AIMap::ShapeForHeight(float standingHeight) {
     ShapeCacheHandle handle;
     if (standingHeight <= kShapeMinHeight) return nullptr;
     int tenths = lib::RoundEven(standingHeight * 10.0f + 1.0f);
     handle.height = static_cast<float>(tenths) * 0.1f;
 
-    RefObject* shape = g_unitShapes.Resolve(&handle);
+    UnitShape* shape = g_unitShapes.Resolve(&handle);
     handle.ref.Reset();
     return shape;
 }

@@ -13,24 +13,6 @@
 #include <cstddef>
 #include <cstdint>
 
-// A unit's footprint on the layers: 16 x 16 cell levels around the unit, shared by radius through the shape
-// cache (ai_unit_shape.cpp; its handles are UnitShapeHandle). Methods in ai_unit_shape.cpp. Names
-// provisional.
-class UnitShape final : public RefObject {
-public:
-    // The levels of a disc: per cell (2 + radius - half its distance from the
-    // middle cell (8, 8)) x 16, rounded; cells where that is not above 0 stay 0. No references.
-    explicit UnitShape(float radius);
-    // An empty shape, as OnShutdown leaves one (the water patch, ai_water_patch.cpp). No references.
-    UnitShape();
-    // Constructed again empty: no levels, radius -1. Returns 0.
-    void OnShutdown() override;
-    UnitShape* Clone() override;
-
-    std::uint8_t levels[16][16];    // rows of 16
-    float radius;
-};
-
 // The shape cache's creator virtual: a new shape for the handle's radius (`this` unused).
 UnitShape* CreateUnitShape(const ShapeCacheHandle* handle);
 

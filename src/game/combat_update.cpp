@@ -47,7 +47,7 @@ constexpr float kSinkAcceleration = 0.01f;
 // The weapon slot the unit wants taken up when it differs from the active one.
 void SwitchWeaponIfWanted(Unit* unit) {
     if (unit->pendingWeapon != static_cast<int>(unit->activeWeapon))
-        unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(unit->pendingWeapon));
+        unit->controller->ShowWeapon(static_cast<std::uint32_t>(unit->pendingWeapon));
 }
 
 // The unit's standing flag changed, re-registered on the sector map.
@@ -300,7 +300,7 @@ void UnitServer::AdvanceAnimation() {
 
 bool UnitServer::PopFinishedSteps() {
     bool popped = false;
-    int now = WorldContext()->tick;
+    int now = OwningWorld()->tick;
     while (!queue.steps.empty()) {
         AnimationStep* steps = queue.steps.data();
         int duration = steps[0].duration;
@@ -350,7 +350,7 @@ void UnitServer::SetState(UnitState newState) {
         DropEffectObject();
         return;
     }
-    actingCheckTime = WorldContext()->tick + 10;
+    actingCheckTime = OwningWorld()->tick + 10;
 }
 
 void UnitServer::ClearStanding() { SetStandingFlag(this, 0); }
@@ -386,7 +386,7 @@ void UnitServer::PlayHitReaction() {
 // --- The end of an order ------------------------------------------------------------------------
 
 void UnitServer::EndOrder(char abort) {
-    int now = WorldContext()->tick;
+    int now = OwningWorld()->tick;
     bool open = HasOpenStep(queue);
     if (abort != 0 || now < currentPlan.startTime || open) {
         SetState(UnitState::Stopped);
@@ -449,7 +449,7 @@ void UnitServer::TickAction() {
     }
     if (now < plan.endTime) {
         // Still acting: the unit stays where its motion puts it, facing its direction.
-        World* context = WorldContext();
+        World* context = OwningWorld();
         MotionSample sample = unit->motion.Sample(context, OrderOf(&motion), static_cast<float>(context->tick));
         SetStandingFlag(this, state == UnitState::Idle ? 1 : 0);
         unit->TurnUpTowards(sample.direction, 0);

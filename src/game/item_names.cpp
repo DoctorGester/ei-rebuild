@@ -88,7 +88,7 @@ template <typename Add> void ForEachPart(const WeaponRecord* head, Add add) {
             end += n;
         }
         *end = '\0';
-        add(static_cast<const char*>(name));
+        add(name);
     }
 }
 

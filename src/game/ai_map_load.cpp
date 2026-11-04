@@ -292,11 +292,12 @@ std::uint32_t TileType(const MapDescription& map, std::uint16_t tile) {
 // Whether a sector file of `size` bytes is one: the magic, and the size its layers give.
 bool IsSector(const void* file, std::uint32_t size) {
     if (size < sizeof(SectorHeader)) return false;
-    const auto* header = static_cast<const SectorHeader*>(file);
-    if (header->magic != kSectorMagic) return false;
+    SectorHeader header;
+    lib::LoadBytes(header, file);
+    if (header.magic != kSectorMagic) return false;
     std::size_t expected = sizeof(SectorHeader) + kVertexBytes + kTileBytes;
-    if (header->layers & 1) expected += kVertexBytes + kTileBytes;
-    if (header->layers & 3) expected += kTileBytes;
+    if (header.layers & 1) expected += kVertexBytes + kTileBytes;
+    if (header.layers & 3) expected += kTileBytes;
     return size == expected;
 }
 
@@ -304,9 +305,10 @@ bool IsSector(const void* file, std::uint32_t size) {
 // over each cell (0 .. 63); the tiles' terrain types; the water flag of the cells with depth under a
 // tile of a water material; and the water tile's terrain type on the cells under water.
 void StampSector(AIMap& map, const MapDescription& description, const void* file, int x0, int y0) {
-    const auto* header = static_cast<const SectorHeader*>(file);
-    const bool hasWater = (header->layers & 1) != 0;
-    const bool hasWaterTiles = (header->layers & 3) != 0;
+    SectorHeader header;
+    lib::LoadBytes(header, file);
+    const bool hasWater = (header.layers & 1) != 0;
+    const bool hasWaterTiles = (header.layers & 3) != 0;
     const SectorVertices ground{static_cast<const std::uint8_t*>(file) + sizeof(SectorHeader)};
     const SectorVertices water{ground.bytes + kVertexBytes};
     const float maxZ = description.header.heightRange;

@@ -58,6 +58,7 @@ struct LineBatch;
 class Spell;
 class SpellEffect;
 class ParticleManager;
+class VisibilityFog;
 class Hoover;
 class EffectMoshka;
 namespace mapspec { class Spec; }
@@ -126,7 +127,7 @@ public:
 
     World* ThisWorld() override { return this; }
     BaseManager* TimedObjectManager() override { return timedObjectManager; }
-    BaseManager* GetFigureManager() override;   // figureManager (world_create.cpp: FigureManager is complete there)
+    FigureManager* GetFigureManager() override { return figureManager; }
     ItemConstructor* GetItemConstructor() override { return itemConstructor; }
     SpellConstructor* GetSpellConstructor() override { return spellConstructor; }
     ItemManager* ItemFactory() override { return itemManager; }
@@ -254,6 +255,7 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
     Item* DuplicateItem(Item* item) override { return CopyItem(item); }
+    WorldServer* ThisServerWorld() override { return this; }
     bool IsServer() override;
     float GridHeightAt(float x, float y) override { return GridHeight(x, y); }
     // RawSurfaceHeightAt: the AI map's top height at (x, y, 0); the other two return GridHeightAt /
@@ -695,12 +697,12 @@ struct ClientArrayManager : BaseManager {
     int Draw(SceneRenderer* renderer);
 
     Ref<Texture> texture;                  // the fog texture (counted)
-    std::vector<EngineObject*> list;     // counted
+    std::vector<VisibilityFog*> list;    // counted
 };
 // The manager's Clear (its object and every listed one released, the list emptied); a new fog object,
 // counted, at the list end.
 void VisFogManagerDestroy(ClientArrayManager* manager);
-EngineObject* VisFogManagerAdd(ClientArrayManager* manager);
+VisibilityFog* VisFogManagerAdd(ClientArrayManager* manager);
 
 // The bits of EngineObject::flags on the client world (the constructor sets the draw bits).
 enum class WorldClientFlag : std::uint32_t {
@@ -753,6 +755,7 @@ public:
     bool RunTick() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
+    WorldClient* ThisClientWorld() override { return this; }
     const char* TexturePath() override;
     float GridHeightAt(float x, float y) override { return ClampedGroundHeight(x, y); }
     // The height of whatever surface is on top at (x, y): the ground, or the water when the point is submerged.

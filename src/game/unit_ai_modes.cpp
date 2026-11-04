@@ -441,7 +441,7 @@ void PlayerMode::Execute(AIBrain* brain) {
         }
         if (!danger) brain->Follow(leader);
         // While the leader itself carries out a command (its Player mode in state 1), only follow.
-        PlayerMode* leaderMode = leader->ServerController()->brain.FindPlayerMode();
+        PlayerMode* leaderMode = leader->ServerController()->brain.FindModeOf<PlayerMode>();
         if (leaderMode && leaderMode->state == kStateCommand) return;
         UpdateCombat(brain);
         return;
@@ -530,10 +530,10 @@ void PlayerMode::SetLeader(AIBrain* brain, Unit* newLeader) {
     }
     // Following a unit that (through its leaders) follows this one: this unit stops following.
     for (Unit* unit = newLeader; unit;) {
-        PlayerMode* mode = unit->ServerController()->brain.FindPlayerMode();
+        PlayerMode* mode = unit->ServerController()->brain.FindModeOf<PlayerMode>();
         Unit* next = mode ? mode->leader.Get() : nullptr;
         if (next == self) {
-            if (PlayerMode* own = brain->FindPlayerMode()) own->SetLeader(brain, nullptr);
+            if (PlayerMode* own = brain->FindModeOf<PlayerMode>()) own->SetLeader(brain, nullptr);
             break;
         }
         unit = next;
@@ -814,7 +814,7 @@ constexpr float kNoRadius = -1.0f;
 Unit* LeaderOf(const Unit* unit) {
     AIBrain* brain = &unit->ServerController()->brain;
     MapObject* leader = nullptr;
-    if (auto* mode = brain->FindPlayerMode()) leader = mode->leader;
+    if (auto* mode = brain->FindModeOf<PlayerMode>()) leader = mode->leader;
     if (!leader && brain->action == AIBrain::kActionFollow) leader = brain->target;
     return static_cast<Unit*>(leader);
 }
@@ -870,7 +870,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
                 ++node;
                 if (other == unit) continue;
                 AIBrain* theirs = &other->ServerController()->brain;
-                auto* mode = theirs->FindPlayerMode();
+                auto* mode = theirs->FindModeOf<PlayerMode>();
                 if (!mode || theirs->action == AIBrain::kActionAttack || theirs->action == AIBrain::kActionCast) continue;
                 mode->state = kStateFollow;
                 theirs->StopAction();
@@ -934,7 +934,7 @@ bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
     if (!player) return true;
     for (auto node = player->units.begin(); node != player->units.end() && node->second; ++node) {
         Unit* member = node->second;
-        PlayerMode* mode = member->ServerController()->brain.FindPlayerMode();
+        PlayerMode* mode = member->ServerController()->brain.FindModeOf<PlayerMode>();
         // A unit without a Player mode would have its leader read at address 0x0C (a crash).
         if (!mode || mode->leader != unit) continue;
         Vector3 d = member->localPosition - unit->localPosition;

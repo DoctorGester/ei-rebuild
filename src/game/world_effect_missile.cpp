@@ -98,7 +98,7 @@ bool EffectArrow::RunTick() {
     fromCaster = 0;
     int flying = Steer();
     localPosition += velocity;
-    if (!WorldContext()->IsServer()) MoveParts();
+    if (!OwningWorld()->IsServer()) MoveParts();
     return flying;
 }
 
@@ -249,7 +249,7 @@ bool EffectArrowFigure::RunTick() {
     fromCaster = 0;
     Steer();
     localPosition += velocity;
-    if (!WorldContext()->IsServer()) MoveParts();
+    if (!OwningWorld()->IsServer()) MoveParts();
     World* world = OwningWorld();
     if (arrived != 0 && world->IsServer()) {
         // The caster is looked up before the target is tested, as the original does.
@@ -328,7 +328,7 @@ void EffectArrowFigure::Load(ByteStream* s) {
     s->ReadValue(casterId);
     s->ReadValue(velocity);
     s->ReadValue(arrived);
-    LoadRef(figure, s, WorldContext());
+    LoadRef(figure, s, OwningWorld());
     s->ReadValue(hit);
     s->ReadValue(fromCaster);
 }

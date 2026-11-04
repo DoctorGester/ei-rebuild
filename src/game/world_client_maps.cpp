@@ -288,7 +288,7 @@ int WorldClient::AddObject(MapObject* object) {
     }
     Unit* unit = UnitOrNull(object);
     if (unit && session->sessionKind == 1) {
-        if (unit->player == nullptr && ticksRun >= 1) unit->Controller()->RestartFadeIn();
+        if (unit->player == nullptr && ticksRun >= 1) unit->controller->RestartFadeIn();
     }
 
     object->AddRef();
@@ -508,7 +508,7 @@ void WorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, c
         unit->ReleaseAllItems();
         for (int j = 0; j < std::ssize(record->weapons); ++j)
             unit->AddWeapon(record->weapons[j]);
-        UnitController* controller = unit->Controller();
+        UnitController* controller = unit->controller;
         if (!record->weapons.empty()) controller->ShowWeapon(0);
         for (int j = 0; j < std::ssize(record->armor); ++j) {
             Item* armour = record->armor[j];
@@ -516,8 +516,8 @@ void WorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, c
         }
         for (int j = 0; j < std::ssize(record->quickItems); ++j)
             unit->AddQuickItem(record->quickItems[j]);
-        unit->Controller()->RefreshEquipment();
-        unit->Controller()->RefreshModel();
+        unit->controller->RefreshEquipment();
+        unit->controller->RefreshModel();
         slots->SetScriptName(record->texts[0]);
         AddObject(unit);
     }

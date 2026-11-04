@@ -185,7 +185,7 @@ void MapObjectClientSpecific::EffectsChanged(bool first) {
 }
 
 void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
-    MapObject* mapObject = CompanionOwner(this);
+    MapObject* mapObject = owner;
     // The effects, those of the merging types once each with the highest power.
     std::vector<MapEffect> wanted;
     if (std::ssize(mapObject->effects) > 0) {
@@ -201,7 +201,7 @@ void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
                 }
             }
             if (!merged) wanted.push_back(effect);
-            mapObject = CompanionOwner(this);
+            mapObject = owner;
         }
     }
 
@@ -239,15 +239,15 @@ void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
         added.present = 1;
         switch (spellType) {
         case SpellType::Invisibility:
-            CompanionOwner(this)->flags |= MapObjectFlag::Invisible;
+            owner->flags |= MapObjectFlag::Invisible;
             break;
         case SpellType::Stun:
-            CompanionOwner(this)->flags |= MapObjectFlag::Stunned;
+            owner->flags |= MapObjectFlag::Stunned;
             break;
         case SpellType::Lichdom:
         case SpellType::Strengthen:
         case SpellType::Weaken:
-            if (!first) SpawnRing(CompanionOwner(this), spellType, RingSize(spellType, power), false);
+            if (!first) SpawnRing(owner, spellType, RingSize(spellType, power), false);
             break;
         case SpellType::Teleport:
         case SpellType::Enlarge:
@@ -256,7 +256,7 @@ void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
         default: {
             ParticleSource* source = g_clientWorld.particleManager->CreateSource(ParticleSourceType(spellType));
             added.source = source;
-            source->Attach(CompanionOwner(this));
+            source->Attach(owner);
             source->ScaleSize(static_cast<float>(power) * kPowerScale / source->baseSize);
             if (first)
                 for (int tick = 0; tick < kWarmUpTicks; ++tick) source->RunTick();
@@ -272,19 +272,19 @@ void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
         switch (record->type) {
         case SpellType::Stun:
             if (OtherRecordOfType(particles, i, SpellType::Stun)) break;
-            CompanionOwner(this)->flags &= ~MapObjectFlag::Stunned;
-            CompanionOwner(this)->ClientSpecific()->ClearPartTints();
+            owner->flags &= ~MapObjectFlag::Stunned;
+            owner->ClientSpecific()->ClearPartTints();
             break;
         case SpellType::Invisibility:
             if (OtherRecordOfType(particles, i, SpellType::Invisibility)) break;
-            CompanionOwner(this)->flags &= ~MapObjectFlag::Invisible;
-            CompanionOwner(this)->ClientSpecific()->ResetPartAlpha();
+            owner->flags &= ~MapObjectFlag::Invisible;
+            owner->ClientSpecific()->ResetPartAlpha();
             break;
         case SpellType::Lichdom:
         case SpellType::Strengthen:
         case SpellType::Weaken:
-            if (!CompanionOwner(this)->IsDead())
-                SpawnRing(CompanionOwner(this), record->type, RingSize(record->type, record->power), true);
+            if (!owner->IsDead())
+                SpawnRing(owner, record->type, RingSize(record->type, record->power), true);
             break;
         default:
             break;
@@ -297,7 +297,7 @@ void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
 }
 
 void MapObjectClientSpecific::UpdateEffectSounds(bool first) {
-    MapObject* mapObject = CompanionOwner(this);
+    MapObject* mapObject = owner;
     // The effect types, once each.
     SpellType types[256];
     int typeCount = 0;
@@ -306,7 +306,7 @@ void MapObjectClientSpecific::UpdateEffectSounds(bool first) {
         bool known = false;
         for (int j = 0; j < typeCount && !known; ++j) known = types[j] == spellType;
         if (!known) types[typeCount++] = spellType;
-        mapObject = CompanionOwner(this);
+        mapObject = owner;
     }
 
     for (int i = 0; i < std::ssize(sounds); ++i) sounds[i].present = 0;
@@ -326,14 +326,14 @@ void MapObjectClientSpecific::UpdateEffectSounds(bool first) {
         added.handle = -1;
         added.timer = 0;
         added.present = 1;
-        PlayEffectSound(!first, &added, CompanionOwner(this)->localPosition, added.kind, "\\start.wav");
+        PlayEffectSound(!first, &added, owner->localPosition, added.kind, "\\start.wav");
         sounds.push_back(added);
     }
 
     for (int i = 0; i < std::ssize(sounds); ++i) {
         EffectSoundRecord* record = &sounds[i];
         if (record->present) continue;
-        MapObject* target = CompanionOwner(this);
+        MapObject* target = owner;
         bool alive = !target->IsDead();
         PlayEffectSound(alive, record, target->localPosition, record->kind, "\\end.wav");
         sounds.erase(sounds.begin() + i);
@@ -357,7 +357,7 @@ void MapObjectClientSpecific::HideLight() {
     if (!light || (light->flags & LightFlag::Hidden) || (light->flags & LightFlag::Held)) return;
     light->flags |= LightFlag::Hidden;
     g_clientWorld.terrain->RemoveLight(light);
-    MapObject* mapObject = CompanionOwner(this);
+    MapObject* mapObject = owner;
     if (mapObject && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(false);
 }
 
@@ -365,7 +365,7 @@ void MapObjectClientSpecific::ShowLight() {
     if (!light || !(light->flags & LightFlag::Hidden) || (light->flags & LightFlag::Held)) return;
     light->flags &= ~LightFlag::Hidden;
     g_clientWorld.terrain->AddLight(light);
-    MapObject* mapObject = CompanionOwner(this);
+    MapObject* mapObject = owner;
     if (mapObject && mapObject->GetClassId() == ClassId::Unit && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(true);
 }
 
@@ -374,7 +374,7 @@ void MapObjectClientSpecific::CreateLight(const float* colour, float radius, boo
     light.Assign(g_clientWorld.lightFactory->CreateLight(kPointLight));
     Vector3 rgb = {colour[0], colour[1], colour[2]};
     light->SetPoint(rgb, rgb);
-    MapObject* mapObject = CompanionOwner(this);
+    MapObject* mapObject = owner;
     Light* point = light;
     point->localPosition = {mapObject->localPosition.x, mapObject->localPosition.y,
                              kLightHeight + mapObject->localPosition.z};

@@ -39,7 +39,7 @@ void WriteItemIds(ByteStream* stream, T* const* items, int count) {
 // Reads an item id and resolves it in the world's item manager (asked before each read), with a
 // counted reference.
 Item* ReadItem(Unit* unit, ByteStream* stream) {
-    BaseManager* manager = unit->WorldContext()->ItemFactory();
+    BaseManager* manager = unit->GetManagerContext()->ItemFactory();
     int id;
     stream->ReadValue(id);
     if (id == -1) return nullptr;
@@ -62,7 +62,7 @@ void ReadItems(Unit* unit, ByteStream* stream, ItemArmor** slots, int count) {
 // The unit's new owner: on a server world, player `id` (null when there is none).
 Player* PlayerById(Unit* unit, int id) {
     Player* player = nullptr;
-    if (unit->WorldContext()->GetClassId() == ClassId::WorldServer)
+    if (unit->OwningWorld()->GetClassId() == ClassId::WorldServer)
         player = unit->ServerWorld()->GetPlayer(id);
     return player;
 }

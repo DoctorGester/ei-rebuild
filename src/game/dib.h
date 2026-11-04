@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 // A .bmp file's headers and colour table entry, byte for byte as the file holds them (the system's BITMAPFILEHEADER,
@@ -72,16 +73,17 @@ public:
     int Write(platform::File* file);
 
     std::vector<std::uint8_t> bits;
-    DibHeader* header = nullptr;             // with what follows it (::operator new), or null
+    std::optional<DibHeader> header;         // none while empty
+    std::uint32_t masks[3] = {};             // Create's channel masks (red, green, blue), written after the header
     std::uint32_t imageSize = 0;             // bytes of bits
     int colourCount = 0;
     int maskBytes = 0;                       // bytes of channel masks after the header (0 or 12)
 };
 
 // The bytes of a header's pixels: its imageSize, or (when that is 0) its rows padded to four bytes.
-std::uint32_t DibImageSize(const DibHeader* header);
+std::uint32_t DibImageSize(const DibHeader& header);
 // The bytes of one row of a header's bitmap: width * bits per pixel, up to a multiple of four bytes.
-std::uint32_t DibRowBytes(const DibHeader* header);
+std::uint32_t DibRowBytes(const DibHeader& header);
 
 class TextureDevice;
 

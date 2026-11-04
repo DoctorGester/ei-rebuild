@@ -683,7 +683,7 @@ void FigureMesh::SetObject(TransformObject* newObject) { object = newObject; }
 FigureManager::FigureManager() {}
 
 EngineObject* FigureManager::NewObject(int objectType) {
-    return static_cast<EngineObject*>(::CreateFigureObject(objectType));
+    return ::CreateFigureObject(objectType);
 }
 
 EngineObject* FigureManager::CreateFigureObject(int newType, int newId) {
