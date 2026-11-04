@@ -396,7 +396,7 @@ void UnitServer::TickAction() {
         // The action starts: its animation replaces the queue, and a cast shows its effect.
         PlaySteps(&plan.animation);
         if (plan.isCast != 0 && unit->GetPrototypeModel()->castEffect != 0) {
-            auto* objects = g_serverWorld.timedObjectManager;
+            auto* objects = g_serverWorld.timedObjectManager.get();
             auto* particle = objects->CreateObjectAs<EffectParticle>(ClassId::EffectParticle, -1);
             // The casting particle of each SpellSchool.
             static constexpr int kEffects[8] = {
