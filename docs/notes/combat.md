@@ -25,6 +25,11 @@ boredom counter; movement and idle animation keys / lists (idle 0x666DEAD: no ke
 when state 3 ends; `voice`. A step is {animation, 0xFF, 0, 0, duration, kind}; duration = entry frames over the unit's
 speed factor for it, truncated (a default step: 0xFF, 0xFF, 0, 0, -1, 0).
 
+Lifetime: the fields carry their start values as initialisers. The server-specific manager reuses destroyed objects
+from its spares, so Create, ClearState and Destroy put the fields back with `ResetController` (sneakWait, protection
+and waitFrame keep theirs); the manager destroys every object before deleting it, so the destructor has nothing to do.
+`OrderPlan::Reset` keeps the plan's direction (it is saved).
+
 ## Animation keys
 
 The layout and AnimationKind / BlowSide / SkillAnimation are in map_object_figures.h (names from database.res's *.adb):

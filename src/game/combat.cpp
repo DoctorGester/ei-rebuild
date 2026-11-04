@@ -589,10 +589,10 @@ const char* const kServerName = "CUnitServer";
 
 // --- UnitServer's lifetime, class name and id -----------------------------------------------------
 
-UnitServer::UnitServer() { ResetController(); }
-
-// ResetController empties the brain (Init) and releases every reference the controller holds.
-UnitServer::~UnitServer() { ResetController(); }
+// The fields start at their initialisers; Create resets the brain, the statistics and the orders (ResetController).
+// The manager destroys an object before it deletes it, so the destructor finds nothing left to release.
+UnitServer::UnitServer() = default;
+UnitServer::~UnitServer() = default;
 
 const char* UnitServer::ClassName() { return kServerName; }
 ClassId UnitServer::GetClassId() { return ClassId::UnitServer; }
@@ -601,18 +601,7 @@ void UnitServer::MoveFactorsChanged() { UpdateMoveFactors(); }
 
 // --- OrderPlan ----------------------------------------------------------------------------------
 
-// Unreached in the shipped game: only the use-item order plans with it, and nothing sets that order.
-void OrderPlan::Reset() {
-    animation = {};
-    targetId = -1;
-    endTime = 0;
-    startTime = 0;
-    hitLocation = 1;
-    rangeSq = kNoPlanRange;
-    isCast = 0;
-    notSkill = 0;
-    castKind = SpellSchool::None;
-}
+void OrderPlan::Reset() { *this = {.direction = direction}; }
 
 void OrderPlan::TakeSteps(AnimationSteps steps, int start, int duration) {
     Reset();

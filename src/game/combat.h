@@ -84,18 +84,18 @@ inline constexpr float kNoPathLimit = 1e6f;
 // The plan of an order: its animation, when it starts and ends, and what it aims at.
 struct OrderPlan {
     AnimationSteps animation;
-    int startTime;              // game time
-    int endTime;                // startTime + the animation's duration
-    int targetId;               // -1: none
-    float rangeSq;              // squared distance the target may move away
-    std::uint8_t isCast;
-    int hitLocation;            // the body location the attack aims at (1 by default)
-    std::uint8_t notSkill;      // order source != 6
-    SpellSchool castKind;       // None; for a cast: Lightning (spell kind 0x28), Fire (0x29) or the spell
-                                // prototype's school
-    Vector3 direction;          // from the unit to the target
+    int startTime = 0;          // game time
+    int endTime = 0;            // startTime + the animation's duration
+    int targetId = -1;          // -1: none
+    float rangeSq = kNoPlanRange;   // squared distance the target may move away
+    std::uint8_t isCast = 0;
+    int hitLocation = 1;        // the body location the attack aims at
+    std::uint8_t notSkill = 0;  // order source != 6
+    SpellSchool castKind = SpellSchool::None;   // for a cast: Lightning (spell kind 0x28), Fire (0x29) or the
+                                                // spell prototype's school
+    Vector3 direction{};        // from the unit to the target
 
-    // The plan of nothing: no animation, target or range; the direction stays.
+    // The plan of nothing: every field to its start value but the direction, which stays (it is saved).
     void Reset();
     // Takes `steps` as the animation from `start` for `duration` ticks; the other fields are reset.
     void TakeSteps(AnimationSteps steps, int start, int duration);
@@ -494,7 +494,7 @@ public:
     std::vector<Unit*> LiftNearby(const Vector3& point, char moving);
     // Messages 0x0E / 0x01 to a party unit's player, unless the brain's mode is 6.
     void ReportPath(AIPath* path, char partial);
-    // Every field to its start value (constructor and Load).
+    // Every field back to its start value (Create, ClearState, Destroy: the manager reuses its objects).
     void ResetController();
     // Drops the orders and takes the movement records from the unit's modes; the wanted weapon is taken up
     // and, unless turning, the idle animation plays (a random phase on an empty queue).
@@ -548,58 +548,59 @@ public:
     // `dying` and `fall` count.
     void BuildDeathAnimation(struct AnimationSteps* steps, BlowSide direction, int dying, int fall);
 
-    std::uint8_t frozen;            // the unit is frozen: the animation and the orders wait (UpdateState)
-    std::uint8_t animationHeld;     // a hit reaction plays (or no size classes): the times shift
+    std::uint8_t frozen = 0;        // the unit is frozen: the animation and the orders wait (UpdateState)
+    std::uint8_t animationHeld = 0; // a hit reaction plays (or no size classes): the times shift
     AnimationSteps queue;           // extra: when its first step started, -1 until then
     AIPath motion;
     OrderPlan currentPlan;
-    DamageInfo pendingHit;          // the hit of the attack in progress
-    std::uint8_t keepHitDirection;  // while set, OnDamaged leaves hitDirection alone
-    std::uint8_t stoodBlocked;      // the unit stood still because its path search failed
-    std::uint8_t motionChanged;     // set when the movement speeds or mode changed (cleared by PathTo)
-    std::uint8_t movingAnimation;   // the movement animation is in the queue (cleared when no
+    DamageInfo pendingHit{.multiplier = 1.0f};   // the hit of the attack in progress
+    std::uint8_t keepHitDirection = 0;   // while set, OnDamaged leaves hitDirection alone
+    std::uint8_t stoodBlocked = 0;  // the unit stood still because its path search failed
+    std::uint8_t motionChanged = 0; // set when the movement speeds or mode changed (cleared by PathTo)
+    std::uint8_t movingAnimation = 0;   // the movement animation is in the queue (cleared when no
                                     // path is found)
     AnimationSteps savedQueue;      // the queue a hit reaction saved (its extra is its time)
     static constexpr BlowSide kNoHitDirection = static_cast<BlowSide>(0xFFFFFFFFu);   // hitDirection: no hit to react to
-    BlowSide hitDirection;          // HitDirection of the last hit that did not kill, or kNoHitDirection
-    UnitState state;
-    MoveModeState moveMode;
-    MoveModeState moveMode2;
-    int sneakWait;                  // updates mode 3 was kept without a cheap cell (UpdateSneak)
+    BlowSide hitDirection = kNoHitDirection;   // HitDirection of the last hit that did not kill, or kNoHitDirection
+    UnitState state = UnitState::Stopped;
+    MoveModeState moveMode{MoveMode::Walk, 0, 0};
+    MoveModeState moveMode2{MoveMode::Walk, 0, 0};
+    int sneakWait = 0;              // updates mode 3 was kept without a cheap cell (UpdateSneak)
     Ref<EngineObject> effectObject;   // removed from the world on death
-    int actingCheckTime;            // world tick + 10 when acting starts (StartAction), -1 reset
-    int nextAttackTime;             // world tick of the next attack
-    int interceptTime;              // the tick a chase aims at (the target's position then); saved
-    std::uint8_t orderStopped;      // set when a move order ends, cleared when one starts; saved; the AI
+    int actingCheckTime = -1;       // world tick + 10 when acting starts (StartAction), -1 reset
+    int nextAttackTime = 0;         // world tick of the next attack
+    int interceptTime = 0;          // the tick a chase aims at (the target's position then); saved
+    std::uint8_t orderStopped = 0;  // set when a move order ends, cleared when one starts; saved; the AI
                                     // brain reports its target only while it is set (unit_ai.cpp)
-    std::uint8_t deathReported;     // the death was reported to the world (the dead unit's update)
-    std::uint8_t searchingTarget;   // TargetBusy counts a search under way when set (or while Acting)
+    std::uint8_t deathReported = 0; // the death was reported to the world (the dead unit's update)
+    std::uint8_t searchingTarget = 0;   // TargetBusy counts a search under way when set (or while Acting)
     UnitAction action;
     UnitAction action2;
-    std::uint8_t followsLeader;     // the chase follows `followedLeader`'s target (combat_tick.cpp)
+    std::uint8_t followsLeader = 0; // the chase follows `followedLeader`'s target (combat_tick.cpp)
     Ref<Unit> followedLeader;      // the party unit whose attack this one joins
     UnitStats stats;                // its flags get bit 0x10 on a hit
-    DamageWords protection;         // [0] the defence value, [1..7] the body's protection
+    DamageWords protection{};       // [0] the defence value, [1..7] the body's protection
                                     // per damage type (UnitStats::PackBodyProtection)
-    float sinkSpeed;                // a dead unit's body sinks this much a tick (accelerating)
-    float moveFactors[4];
-    int tameStage;                  // 0..3 (TryTame)
-    int ownSide;                    // the unit's own side while tamed (TryTame)
-    int tamerSide;                  // the tamer's side (TryTame)
-    int speedClass;
-    AIEventPresence* aiPresence;    // StepNoise's result, always 0
+    float sinkSpeed = 0.0f;         // a dead unit's body sinks this much a tick (accelerating)
+    float moveFactors[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+    int tameStage = 0;              // 0..3 (TryTame)
+    int ownSide = -1;               // the unit's own side while tamed (TryTame)
+    int tamerSide = -1;             // the tamer's side (TryTame)
+    int speedClass = 15;
+    AIEventPresence* aiPresence = nullptr;   // StepNoise's result, always 0
     std::vector<ArmourSpell> armourSpells;   // periodic spells of the worn items
-    int boredTicks;                 // a party unit's updates since its last order (a bored remark past a
+    int boredTicks = 0;             // a party unit's updates since its last order (a bored remark past a
                                     // limit); cleared when an order starts and by the move style /
                                     // wanted weapon setters
-    int waitFrame;                  // a frame number; the movement tick waits for a party member
+    int waitFrame = 0;              // a frame number; the movement tick waits for a party member
                                     // it blocks while the frame is below this + 2
-    std::uint32_t moveAnimationKey; // 0x666DEAD: none yet
+    static constexpr std::uint32_t kNoAnimationKey = 0x666DEAD;   // moveAnimationKey / idleKey: none built yet
+    std::uint32_t moveAnimationKey = kNoAnimationKey;
     AnimationSteps moveAnimation;   // the movement animation (NextAnimation)
-    std::uint32_t idleKey;          // 0x666DEAD: none yet
+    std::uint32_t idleKey = kNoAnimationKey;
     AnimationSteps idleAnimation;   // extra: its time
-    void(*actionDone)(Unit*);   // run when Animating ends; cleared by the reset
-    std::uint32_t claimedHostile;   // players the unit has claimed as enemies
+    void (*actionDone)(Unit*) = nullptr;   // run when Animating ends
+    std::uint32_t claimedHostile = 0;   // players the unit has claimed as enemies
     AIBrain brain;
     AIAlarm voice;                  // the voice / alarm
 };
