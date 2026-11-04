@@ -28,10 +28,11 @@ constexpr int kArrowHeight = 12;
 constexpr int kTextInset = 4;
 
 // The flat colours (ARGB) of the list's shade (the save list's black, denser: what the list covers hardly shows), the
-// active entry's highlight (the rows') and the chosen entry's fainter one.
+// active entry's highlight (the rows') and the chosen entry's darker one. A window's sprites draw with alpha reference
+// 200, so an alpha below 0xC8 draws nothing.
 constexpr std::uint32_t kShadeColour = 0xE0000000;
 constexpr std::uint32_t kActiveColour = 0xC8A06800;
-constexpr std::uint32_t kChosenColour = 0x78A06800;
+constexpr std::uint32_t kChosenColour = 0xC8503400;
 
 // Depths: the row's arrow with the rows' controls (3); the list in front of them and of the rows' highlight, behind
 // the near plane (NearClipDistance, 2: nothing nearer is drawn), the scroll bar in front of the list.

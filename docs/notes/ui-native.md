@@ -180,7 +180,8 @@ second player; `net_pair_zone` reaches it). Rebirth's layout is covered by the W
 `platform::DisplaySizes`) uses it, the other rows keep the original's spin and slider. It is drawn in the game's list look,
 nothing new: the save list's frame art (`saveload` texels 2, 0xFE - 0xB4, 0xF9, 5 wide) and shade (flat black, denser:
 0xE0000000 where the save list's is 0xA0, so what the list covers hardly shows), the
-rows' highlight (flat 0xC8A06800) on the active entry and a fainter one (0x78A06800) on the chosen one, font 1 in the rows'
+rows' highlight (flat 0xC8A06800) on the active entry and a darker one (0xC8503400: a window's
+sprites draw with alpha reference 200, so a fainter alpha draws nothing) on the chosen one, font 1 in the rows'
 colour, the game's scroll bar (`UiScrollbar`, speed 1: a wheel notch or 1/16 s of a held arrow is one entry), and the
 scroll bar's down arrow at the right of the closed row.
 - **Layout** (layout units): entries 20 high, at most 10 shown, in a frame 5 wide 2 below the row, or 2 above it when the
