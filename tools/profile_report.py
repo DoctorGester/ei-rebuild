@@ -37,7 +37,7 @@ class Symbols:
                 m = re.match(r'\s*Preferred load address is ([0-9a-fA-F]+)', line)
                 if m:
                     preferred = int(m.group(1), 16)
-                m = re.match(r'\s*[0-9a-fA-F]{4}:[0-9a-fA-F]{8}\s+(\S+)\s+([0-9a-fA-F]{8})\s+f?\s', line)
+                m = re.match(r'\s*[0-9a-fA-F]{4}:[0-9a-fA-F]{8}\s+(\S+)\s+([0-9a-fA-F]{8,16})\s+f?\s', line)
                 if m and int(m.group(2), 16):
                     self.own.append((int(m.group(2), 16), self.pretty(m.group(1))))
         self.own.sort()
@@ -99,12 +99,24 @@ def main():
     build = os.path.dirname(os.path.dirname(os.path.abspath(args.run)))
     own = next((os.path.basename(n) for b, s, n in modules if os.path.basename(n).lower() in OWN_MODULES), 'ei-rebuild.exe')
     symbols = Symbols(modules, os.path.join(build, os.path.splitext(own)[0] + '.map'))
-    # The harness steps, as times since the profile started.
+    # The harness steps, as times since the profile started. The T line is the machine's local time; the log's
+    # stamps switch to the run's zone (the virtual clock's TZ=EET-2) once the harness sets it, so a stamp more than
+    # half an hour off the one before is taken back by whole hours.
     marks = [(0.0, 'start (WinMain)')]
+    previous, shift = start, 0.0
     for line in open(os.path.join(args.run, 'ei-rebuild.log'), encoding='latin-1'):
-        m = re.match(r'\[(\d\d:\d\d:\d\d\.\d+)\] harness: (.*)', line)
-        if m and not m.group(2).startswith(('saves and', 'steps from')) and re.match(r'\d+ steps', m.group(2)) is None:
-            marks.append((ms_of_day(m.group(1)) - start, m.group(2)[:90]))
+        m = re.match(r'\[(\d\d:\d\d:\d\d\.\d+)\] (\w+): (.*)', line)
+        if not m:
+            continue
+        stamp = ms_of_day(m.group(1)) - shift
+        if abs(stamp - previous) > 1800000:
+            hours = round((stamp - previous) / 3600000)
+            shift += hours * 3600000
+            stamp -= hours * 3600000
+        previous = stamp
+        text = m.group(3)
+        if m.group(2) == 'harness' and not text.startswith(('saves and', 'steps from')) and re.match(r'\d+ steps', text) is None:
+            marks.append((stamp - start, text[:90]))
     end = samples[-1][0] if samples else 0
     marks.append((end, 'end of samples'))
     print(f'{len(samples)} samples over {end / 1000:.1f} s')
