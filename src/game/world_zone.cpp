@@ -71,6 +71,14 @@ void WorldServer::AddUnitToServer(unsigned newId, const char* prototype, const c
     CreateUnits(nullptr, &records, position, kNewUnitRotation, nullptr);
 }
 
+void WorldServer::TakeLookFromUnit(PartyUnitRecord* record) {
+    Unit* unit = FindUnit(static_cast<int>(record->unitId));
+    MapObjectServer* server = unit ? unit->ServerCompanion() : nullptr;
+    if (!server) return;
+    record->texts[3] = server->parentIname;
+    record->texts[4] = server->skinTexture;
+}
+
 // ---- .mob object files ------------------------------------------------------------------------
 
 int WorldServer::LoadMapObjects(std::string_view fileName, int keepIds) {

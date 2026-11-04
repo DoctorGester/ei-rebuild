@@ -1,0 +1,44 @@
+# R49a: a creature that joins the party through AddUnitToParty keeps its texture in the next zone. The original's party
+# record made by AddUnitToParty (0065F5F0, 006621F0) left the skin texture names (texts 3 and 4) empty, so the creature
+# came back untextured after a zone change (zone4hadagans' DrPlen). WorldServer::TakeLookFromUnit copies the map
+# unit's names into the record. tools/make_trap_mob.py copies zone1's first textured wolf (Wolf00 GoblinAxeBag00) into
+# joinwolf.mob with the id of the text key "JoinWolf" (1007305800), beside the hero's start; the scenario finds it by
+# name (script numbers are floats) and AddUnitToParty names it. The party is quick-saved and loaded back (the record's
+# names go through the save) and leaves for gz2g; there the client's joined wolf must hold the map unit's texture names
+# (the harness's "unitskins" step; without the fix both are empty and the unit draws untextured).
+# prepare: make_trap_mob.py --zone zone1 --kind BBBB0000 --with Wolf00 --count 1 --first-id 1007305800 --at 56 138 --out joinwolf.mob
+render checkall
+timeout 60
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),1)
+console @GodMode(0,1)
+console @FixWorldTime(12)
+waitwindow 15 battle
+console @AddMob("..\saves\joinwolf.mob")
+waitfor 10 IsAlive(GetObjectByName("JoinWolf"))
+console @AddUnitToParty(GetPlayer(GetLeader()),"JoinWolf","WolfTutorWOLoot")
+wait 1000
+key f5
+waitline 20 Saved saveq
+key f8
+waitline 30 Loaded saveq
+waitfor 15 IsGreater(HP(GetLeader()),0)
+check IsAlive(GetObjectByName("JoinWolf"))
+
+zone gz2g 0
+waitzone 30 gz2g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),1)
+console @GodMode(0,1)
+console @FixWorldTime(12)
+waitwindow 15 battle
+check IsAlive(GetObjectByName("JoinWolf"))
+waitunit 10 JoinWolf
+unitskins JoinWolf Wolf00 GoblinAxeBag00
+report
+quit

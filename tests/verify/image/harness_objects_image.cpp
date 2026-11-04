@@ -283,6 +283,18 @@ bool SetObjectSkins(int id, const char* first, const char* second) {
     return false;
 }
 
+bool ObjectSkins(int id, std::string* first, std::string* second) {
+    for (MapObject* object : g_clientWorld.objects) {
+        if (!object || object->id != id) continue;
+        Object3DClientSpecific* half = object->ClientSpecific();
+        if (!half) return false;
+        *first = half->skinName;
+        *second = half->secondSkinName;
+        return true;
+    }
+    return false;
+}
+
 int RegionCount(void* window) { return static_cast<int>(std::ssize(static_cast<UiWindow*>(window)->regions)); }
 bool Region(void* window, int index, RegionInfo* region) {
     const UiRegion* found = static_cast<UiWindow*>(window)->regions[index];
