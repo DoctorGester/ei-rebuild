@@ -7330,6 +7330,13 @@ depends = ["R15"]
 note = "User 2026-11-04: drop the ConfineCursor option and always confine the cursor to the window while edge pan is available: the window is active, the camera's edge pan is on (options cameraBorderScrollArea > 0, ui_camera_input.cpp) and the view the camera input serves is up (the world / battle view, not the menus, the escape menu or a modal window, where the cursor goes free). Remove GameOptions::confineCursor, its [video] ConfineCursor read/write (options.cpp), settings_catalog.inc and docs/settings.md, the options window's display-group row (ui_options.cpp kConfineSetting) and the notes (platform.md, renderer.md, app.h); a stale ConfineCursor line in an existing ei_settings.ini is ignored. app_confine.cpp's UpdateCursorConfinement keeps the focus-lost ResetInput. Rework ui_options_confine.txt into a scenario that checks confined in the world view, released in a menu and on focus loss, released when cameraBorderScrollArea is 0 (the harness backend logs the requests). Goldens: ui_options captures change only by the removed row; re-record what changes and say which."
 
 [[ticket]]
+id = "R49"
+title = "Creatures added by script drawn pale blue-white"
+group = "renderer"
+model = "opus"
+note = "Seen 2026-11-04 in R17b's crowd captures (render_occlusion's crowd, the same in render_lighting's light_fight and render_stats' fight): the twelve units made with AddUnitToServer (WolfTutor, GoblinF1, BoarTutor, ToadTutor, SkeletonF2, DeerF0, WolfGreyF1) draw untextured pale blue-white, at night and by day; the hero and the map's own units look right. Find why: their skin textures not loaded or not bound on the client for units created after the map loaded (unit_client_models.h, the face/skin texture path, texture_load.cpp), a material left at a default, or a client tint (an illusion or a selection highlight). Check against the game's real look of such units (the same creatures placed by the map, e.g. zone1's wolves) and say whether the original draws them so (then it's a kept look) or it is ours. Goldens hold no frames; a scenario frame check that a spawned wolf's pixels match a map-placed wolf's colour range."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
@@ -7975,7 +7982,7 @@ id = "LX2"
 title = "Linux: play with real data (menus, maps, movies, sound, saves, multiplayer)"
 group = "port"
 depends = ["LX1"]
-note = "LX1 builds and passes its checks without game data. Play a vanilla and a Rebirth folder on Linux by hand (Kirill, or a machine with the data): the menus and a new game, a campaign map, a movie, music and sounds, a save and its load, the settings file in the user data folder, a LAN game against Windows. Fix what differs; frame captures against Windows' where they differ visibly."
+note = "LX1 builds and passes its checks without game data. Play a vanilla and a Rebirth folder on Linux by hand (Kirill, or a machine with the data): the menus and a new game, a campaign map, a movie, music and sounds, a save and its load, the settings file in the user data folder, a LAN game against Windows. Fix what differs; frame captures against Windows' where they differ visibly. User 2026-11-04: someone played the Linux build with real data for the user (not a rigorous pass) and reports it fine; the user has no Linux machine. Closed on that report; anything found later gets its own ticket."
 
 [[ticket]]
 id = "LX3"
