@@ -904,6 +904,10 @@ colour, the meshes the game lights, the water, the interface's previews) is touc
   white none; check: made, ground and meshes in the depth and taking it, sectors worked out). Check: render_occlusion
   (bz1g by day, at night, a crowd of 12 at night and by day: each on, off and alone; two captures of one moment match),
   render_occlusion_cave (the Dragon's Cave gz5g, "#sky cave"); the frames in build/r17b of the R17b worktree.
+- GPU cost (R17b, RTX 4070 Ti SUPER, D3D12, 3840 x 2160 msaa 8, bz1g by day and with a crowd of 12; the depth and
+  occlusion passes submitted apart and timed by their fences, on and off alternated twice, 200 frames each): the
+  passes 0.30 ms a frame in both (p10-p90 0.29-0.31), the rest of the frame (about 1.9-2.0 ms) no dearer with the
+  lookups; the ground's own occlusion costs only when a sector is first held.
 
 **12. Profiling the heaviest scenes.** The user's play settings: 3840 x 2160 windowed, msaa 8, anisotropy 16, flora
 shadows on, Rebirth's draw radii, `frametime 8`; zone1, zone7 (forest), zone11 (snow forest), zone19, the town bz1g, the
