@@ -38,8 +38,7 @@ constexpr float kVolume = 10.0f;
 constexpr float kHearing = 50.0f;
 constexpr float kLoud = 1000.0f;
 
-// Constants read from memory (Rebirth may patch data, so they are read, not folded).
-inline float ConstAt(const float& constant) { return *reinterpret_cast<const volatile float*>(&constant); }
+// The address of an effect constant, for the helpers that take one.
 inline const float* ConstPtr(const float& constant) { return &constant; }
 constexpr float kDefaultSpeed = 5.0f;                   // immediate in the fireball case
 

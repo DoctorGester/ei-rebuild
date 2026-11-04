@@ -254,7 +254,7 @@ Next StartFireball(SpellEffect* e, const Vector3& from) {
     if (e->caster) particle->unitId = e->caster->id;     // the particle's unit (no null check)
     e->targetPoint.z = GroundPlus(e, kRawSurfaceHeight, e->targetPoint, ConstPtr(worlddata::OneRef()));
     particle->SetTarget(e->targetPoint);
-    if (speed * ConstAt(worlddata::FireballNear()) > distance) {
+    if (speed * worlddata::FireballNear() > distance) {
         e->CreateSound("magic\\FireBall\\start.wav", e->position, velocity, kVolume, kHearing);
     } else {
         e->CreateSoundSequence(e->position, velocity, "magic\\Fireball\\start.wav", "magic\\Fireball\\circle.wav", -1);
@@ -271,16 +271,16 @@ Next StartLightStrike(SpellEffect* e) {
     e->targetPoint.z = GroundMinus(e, kRawSurfaceHeight, e->targetPoint, ConstPtr(worlddata::StrikeDepth()));
     e->position = e->targetPoint;
     Vector3 top = e->targetPoint;
-    top.z += ConstAt(worlddata::StrikeHeight());
+    top.z += worlddata::StrikeHeight();
     float power = Power(e);
     auto* bolt = CreateObject<EffectLightning>(e, ClassId::EffectLightning);
-    bolt->SetEnds(top, e->position, power * ConstAt(worlddata::StrikeWidth()));
+    bolt->SetEnds(top, e->position, power * worlddata::StrikeWidth());
     e->SetVisual(bolt);
 
     float alpha = Power(e);
     e->CreateParticle(0, static_cast<int>(ParticleType::LightningBlast), e->targetPoint, e->HeldSpell()->radius, alpha, kZeroVector, nullptr);
     e->CreateSound("magic\\InvokeLight\\start.wav", e->position, kZeroVector, kLoud, kLoud);
-    e->targetPoint.z += ConstAt(worlddata::LightAbove());
+    e->targetPoint.z += worlddata::LightAbove();
     Vector3 rise{0.0f, 0.0f, LightRise(e)};
     PrototypeLight(e, e->targetPoint, PrototypeRange(e), rise);
 
@@ -645,7 +645,7 @@ void SpellEffect::CreateLightning(const Vector3& from, MapObject* boltTarget, En
     HeightPlusProduct(world, kGridHeight, to.x, to.y, &boltTarget->bounds.boxMax.z,
                       ConstPtr(worlddata::TargetHeight()), &to.z);
     auto* bolt = CreateObject<EffectLightning>(this, ClassId::EffectLightning);
-    bolt->SetEnds(from, to, power * ConstAt(worlddata::BoltWidthScale()));
+    bolt->SetEnds(from, to, power * worlddata::BoltWidthScale());
     bolt->SetObjects(source ? source->id : -1, boltTarget->id);
     bolt->SetFlag(static_cast<unsigned char>(flag));
     Assign<Effect>(this, &visual, bolt);
