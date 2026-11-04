@@ -155,12 +155,12 @@ bool PlayerServer::OnUseOrder() {
         Unit* unit = g_serverWorld.FindUnit(in.ReadId());
         if (unit && !(unit->flags & MapObjectFlag::Blocked)) lib::SetAtGrow(units, lib::Count(units), unit);
     }
-    int flag = 0, value = 0, objectId = 0;
+    int flag = 0, value = 0;
     int skillWord = 0;
     in.ReadValue(flag);
     in.ReadValue(skillWord);
     in.ReadValue(value);
-    in.ReadValue(objectId);
+    const int objectId = in.ReadId();
     const UseSource kind = static_cast<UseSource>(skillWord);
     // A map object (the use order's target), or null.
     MapObject* object = g_serverWorld.FindObject(static_cast<unsigned>(objectId));
@@ -368,10 +368,10 @@ bool PlayerServer::OnGoTo() {
 bool PlayerServer::OnAttack() {
     std::vector<Unit*> units{};
     ReadUnits(in, &units);
-    int ctrl = 0, how = 0, objectId = 0;
+    int ctrl = 0, how = 0;
     in.ReadValue(ctrl);
     in.ReadValue(how);
-    in.ReadValue(objectId);
+    const int objectId = in.ReadId();
     if (MapObject* object = g_serverWorld.FindObject(static_cast<unsigned>(objectId))) {
         for (int i = 0; i < std::ssize(units); ++i) {
             AIBrain* brain = &units[i]->ServerController()->brain;

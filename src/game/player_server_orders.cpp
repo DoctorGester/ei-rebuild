@@ -168,8 +168,7 @@ bool PlayerServer::OnFollow() {
 }
 
 bool PlayerServer::OnFightAtWill() {
-    int objectId;
-    in.ReadValue(objectId);
+    const int objectId = in.ReadId();
     Unit* unit = player->OwningWorld()->FindUnit(objectId);
     std::int8_t value = 0;
     in.ReadValue(value);

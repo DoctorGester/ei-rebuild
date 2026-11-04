@@ -113,8 +113,7 @@ bool PlayerClient::OnUnitSpeech() {
 // Unreached in the shipped game: our server never sends message 0x0C (kept for a peer that does).
 bool PlayerClient::OnObjectValues() {
     for (;;) {
-        int objectId;
-        in.ReadValue(objectId);
+        const int objectId = in.ReadId();
         if (objectId == -1) return true;
         if (!in.ok) return false;
         Item* item = FindItem(g_clientWorld.itemManager.get(), static_cast<unsigned>(objectId));
@@ -144,8 +143,7 @@ bool PlayerClient::OnWorldValue() {
 }
 
 bool PlayerClient::OnItemValue() {
-    int objectId;
-    in.ReadValue(objectId);
+    const int objectId = in.ReadId();
     float value;
     in.ReadValue(value);
     Player* currentPlayer = player;
@@ -158,8 +156,7 @@ bool PlayerClient::OnItemValue() {
 }
 
 bool PlayerClient::OnWeaponRemoved() {
-    int unitId;
-    in.ReadValue(unitId);
+    const int unitId = in.ReadId();
     int index;
     in.ReadValue(index);
     // The party (an embedded Party) seen as its record array.
@@ -173,8 +170,7 @@ bool PlayerClient::OnWeaponRemoved() {
 bool PlayerClient::OnUnitControl() {
     int kind = 0;
     in.Read(&kind, 1);
-    int unitId;
-    in.ReadValue(unitId);
+    const int unitId = in.ReadId();
     auto* unit = g_clientWorld.FindUnit(unitId);
     switch (kind) {
     case 0:
@@ -198,8 +194,7 @@ bool PlayerClient::OnUnitControl() {
 }
 
 bool PlayerClient::OnObjectChanged() {
-    int objectId;
-    in.ReadValue(objectId);
+    const int objectId = in.ReadId();
     Player::MapObjectMap& known = player->knownObjects;
     auto node = known.find(objectId);
     if (node == known.end()) return false;
@@ -212,8 +207,7 @@ bool PlayerClient::OnObjectChanged() {
 }
 
 bool PlayerClient::OnObjectRemoved() {
-    int objectId;
-    in.ReadValue(objectId);
+    const int objectId = in.ReadId();
     Player* currentPlayer = player;
     if (auto unit = currentPlayer->units.find(objectId); unit != currentPlayer->units.end()) unit->second->SetPlayer(nullptr);
     auto node = currentPlayer->knownObjects.find(objectId);
@@ -227,8 +221,7 @@ bool PlayerClient::OnObjectRemoved() {
 }
 
 bool PlayerClient::OnUnitDied() {
-    int objectId;
-    in.ReadValue(objectId);
+    const int objectId = in.ReadId();
     EngineObject* object = g_clientWorld.objectManager->FindObject(static_cast<unsigned>(objectId));
     if (Unit* unit = UnitOrNull(object)) unit->controller->Died();
     return true;
@@ -250,8 +243,7 @@ bool PlayerClient::OnTimedObjectAdded() {
 }
 
 bool PlayerClient::OnTimedObjectChanged() {
-    int objectId;
-    in.ReadValue(objectId);
+    const int objectId = in.ReadId();
     Player::TimedObjectMap& known = player->knownTimed;
     auto node = known.find(objectId);
     if (node == known.end()) return false;
@@ -259,8 +251,7 @@ bool PlayerClient::OnTimedObjectChanged() {
 }
 
 bool PlayerClient::OnTimedObjectRemoved() {
-    int objectId;
-    in.ReadValue(objectId);
+    const int objectId = in.ReadId();
     Player* currentPlayer = player;
     auto node = currentPlayer->knownTimed.find(objectId);
     if (node == currentPlayer->knownTimed.end()) return false;

@@ -4,3 +4,5 @@ group = "cleanup"
 depends = ["C119"]
 note = "C119 left: the network handlers still read object ids into zeroed locals (player_client_handlers.cpp ~10, player_client.cpp 298/324/343/408, player_server_handlers.cpp 163/374, player_server_orders.cpp 172: int objectId = 0; in.ReadValue(objectId)) and net_client_party.cpp writes ids through WriteDword(stream, &scratch, id); world_effect_missile.cpp saves targetId / casterId / arrived through memcpy into a uint32 copy (WriteValue writes the same bytes). Move them to ReadId / ReadAs / WriteId / WriteValue. QOI (lib/qoi.cpp) and the font tables (render_text.cpp ReadU16) keep their big-endian readers on purpose. Style only: wire and save bytes the same, goldens the same."
 order = 1135
+status = "review"
+started = "2026-11-04"
