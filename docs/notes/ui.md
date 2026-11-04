@@ -89,7 +89,7 @@ every side and child and touches no flag.
   cursor is the system's ("Cursor in the frame" below).
 - Flying hit points (`ui_flying_hit_points.cpp`): `Add` with flag 8 starts 0.5 s later; numbers need option 17. Their
   sizes (8x12 digits, 64x10 label rows, the 32x10 marker), offsets and drift are 800x600 layout pixels scaled by
-  height43 / 600 (P8e: the original's sizes at 800x600, the same share of the screen at any size); the 8x12 texture
+  max(1, height43 / 1200) (P8e: the original's pixels up to a 1600x1200 screen, grown above it; 1.8 at 4K. The user found height43 / 600 twice too large at 4K, 2026-11-04); the 8x12 texture
   is magnified, so at 4K the digits are soft (a native-font path is P8's).
 - Chat overlay (`ui_chat_overlay.cpp`; multiplayer only, no scenario): `Update` erases lines older than 20 s, `AddLine`
   wraps at 780 px, "^<digit>" colours, at most 12 lines; Enter sends a `net::SayMessage` kept 60 s.

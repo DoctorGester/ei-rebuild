@@ -1,5 +1,8 @@
 // The flying hit points (ui_flying_hit_points.h): the list and its drawing. docs/notes/ui.md, section 3.
 #include "ui_flying_hit_points.h"
+
+#include <algorithm>
+
 #include "world.h"
 
 #include "clip.h"
@@ -37,8 +40,8 @@ constexpr std::uint32_t kSpecular = 0xFF000000u;
 constexpr int kMaxQuads = 16;   // the stack buffers hold 64 vertices and 96 indices
 
 // The texture: digits in 8 x 12 pixel cells (four to a row, rows 0.15625 high from the top),
-// label rows 64 x 10 pixels, the marker at u 0.5..1, v 0.84375..1. Drawn at these sizes on an 800x600
-// layout, scaled with the window like the interface (Draw's scale).
+// label rows 64 x 10 pixels, the marker at u 0.5..1, v 0.84375..1. Drawn at these sizes up to a
+// 1600x1200 screen and scaled up with the window above it (Draw's scale).
 constexpr float kDigitWidth = 8.0f, kDigitHeight = 12.0f, kDigitU = 0.125f, kDigitV = 0.15625f;
 constexpr float kLabelWidth = 64.0f, kLabelHeight = 10.0f;
 constexpr float kMarkerWidth = 32.0f, kMarkerHeight = 10.0f;
@@ -117,9 +120,9 @@ void FlyingHitPoints::Draw(SceneRenderer* renderer) {
     if (!options::g_options.drawFlyingHp) return;
 
     const float width = static_cast<float>(screen.right), height = static_cast<float>(screen.bottom);
-    // Sizes, offsets and the drift are 800x600 layout pixels, scaled by the 4:3 part's height as the
-    // interface is (1 at 800x600, the original's sizes).
-    const float scale = screen_layout::Get().height43 / 600.0f;
+    // Sizes, offsets and the drift are the original's pixels, kept up to a 1200-high 4:3 area (1600x1200; the
+    // user found 800x600's scale twice too large at 4K) and grown with the 4:3 part's height above it (1.8 at 4K).
+    const float scale = std::max(1.0f, screen_layout::Get().height43 / 1200.0f);
     const float digitWidth = kDigitWidth * scale, digitHeight = kDigitHeight * scale;
     const float labelWidth = kLabelWidth * scale, labelHeight = kLabelHeight * scale;
     for (const FlyingHitPoint& point : points) {
