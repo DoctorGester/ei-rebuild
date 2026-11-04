@@ -152,8 +152,8 @@ void ExchangeScreen::CreateScreen() {
     scratch = new Party();
     scratch->Create();
     net::ClientSession* client = net::g_gameClient;
-    ownOffer = client->parties[0].Get();
-    partnerOffer = client->parties[1].Get();
+    ownOffer = &client->parties[0];
+    partnerOffer = &client->parties[1];
     ownOffer->Clear(true, false);
 
     // The description panel (its item list and text arrays constructed in place).

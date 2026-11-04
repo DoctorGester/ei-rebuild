@@ -77,8 +77,8 @@ void ClientSession::RecordTrade(Party* tradeParty) {
     TradeRecord& record = tradeRecords.back();
     record.acceptedRevision = ours->acceptedRevision;
     record.revision = ours->revision;
-    record.parties[0].Assign(parties[0].Get());
-    record.parties[1].Assign(parties[1].Get());
+    record.parties[0].Assign(&parties[0]);
+    record.parties[1].Assign(&parties[1]);
     record.parties[2].Assign(tradeParty);
 }
 
@@ -195,7 +195,7 @@ void ClientSession::OnBinding(BindingMessage* message) {
 void ClientSession::OnMap(MapMessage* message) {
     map.Assign(message);
     ServerSession* server = g_gameServer;
-    if (server && !(server->flags7 & RefObject::kDetached)) return;
+    if (IsLive(server)) return;
     LoadZoneQuests(message->text.data());
     g_gameFlow.RegisterQuests(message->text.data());
 }
@@ -246,8 +246,8 @@ void ClientSession::OnFileChunk(FileChunkMessage* message) {
 void ClientSession::OnTrade(TradeMessage* message) {
     trade.Assign(message);
     tradeRecords.clear();
-    parties[0].Get()->Clear(true, false);
-    parties[1].Get()->Clear(true, false);
+    parties[0].Clear(true, false);
+    parties[1].Clear(true, false);
 }
 // A finished trade (done, and ours): the record of the two sides' values is shown, then the trade ends.
 void ClientSession::OnTradeChanged(TradeMessage* message) {

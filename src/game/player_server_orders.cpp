@@ -86,7 +86,7 @@ bool PlayerServer::OnPause() {
     // test by the pausing player's own leader; 3 skips the announcement.
     const int mode = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginPause) ? ei::rebirth::PluginPause() : 0;
     const bool announceResume = mode == 1 || mode == 2;
-    if (IsMultiplayerClient() && server && !(server->flags7 & RefCounted::kDetached) && (pause || announceResume)) {
+    if (IsMultiplayerClient() && IsLive(server) && (pause || announceResume)) {
         if (announceResume) SetPauseTextDigit(pause);
         int leader = server->LeaderId();
         const int own = static_cast<int>(player->GetParty()->members[0].unitId);

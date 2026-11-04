@@ -8,7 +8,6 @@
 
 #include "core_refcount.h"
 #include "party.h"
-#include "lib/in_place.h"
 #include "net_coder.h"
 #include "platform/platform.h"
 
@@ -607,8 +606,8 @@ public:
     void DropParty();
     void ApplyParty();
 
+    // Parties made, then the local player's login shared, then the parties' managers created.
     ClientSession();
-    ~ClientSession() override;
     void CollectReplicated(const Connection* connection, std::vector<Replicated>* out) override;
     // The server's messages, kept in the lists below.
     void OnMessage(Connection* from, MessageEvent event, Message* message) override;
@@ -635,6 +634,7 @@ private:
     void EndTrade();
 
 public:
+    // Destroyed in the original's order, the reverse of this one: the parties first, the players last.
     std::vector<HeldRef<PlayerMessage>> players;
     std::vector<HeldRef<LineMessage>> lines;
     std::vector<HeldRef<FileMessage>> files;
@@ -645,15 +645,15 @@ public:
     Ref<MapMessage> map;                // the map message
     std::vector<HeldRef<ZoneMessage>> zones; // map messages the host may pick
     std::vector<HeldRef<VariableMessage>> variables;
-    Ref<LoginMessage> player;      // the local player's login record
+    SharedRef<LoginMessage> player;     // the local player's login record
     std::vector<TimedEntry<SharedRef<Message>>> timers;             // {seconds left, object}: objects kept for a while
     std::vector<HeldRef<AwardMessage>> awards; // awards received, applied by ApplyAwards
-    Ref<PartyMessage> party;       // our trade offer (party description)
+    SharedRef<PartyMessage> party;      // our trade offer (party description)
     std::vector<HeldRef<PartyMessage>> offers; // the other players' trade offers
     std::list<TradeRecord> tradeRecords;   // a list: a record's copy draws object ids, so records never move
     Ref<TradeMessage> trade;            // the current trade
     std::uint32_t gameType;             // the multiplayer game type 0..3 (StartServer): start zone, type variable
-    lib::InPlace<Party> parties[2];            // ours, the partner's
+    Party parties[2];                   // ours, the partner's
 };
 
 // ---- The game announcement ------------------------------------------------------------------------

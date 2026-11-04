@@ -81,7 +81,7 @@ void DestroyOwned(Ref<T>& slot) {
 template <typename T>
 void ShareOwned(Ref<T>& slot, std::type_identity_t<T>* object) {
     static_assert(std::is_base_of_v<RefObject, T>);
-    if (!object || (object->flags7 & RefCounted::kDetached)) return;
+    if (!IsLive(object)) return;
     if (object->flags6 & RefCounted::kCopyOnShare) object = static_cast<T*>(object->Clone());
     slot.Assign(object);
     object->flags6 |= RefCounted::kCopyOnShare;

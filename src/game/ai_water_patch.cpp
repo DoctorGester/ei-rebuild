@@ -18,7 +18,7 @@ void AIMap::StampWaterPatch(const Vector3& position, bool add) {
     int x = static_cast<int>(scale * position.x);
     int y = static_cast<int>(scale * position.y);
     static Ref<UnitShape> patch;
-    if (!patch || (patch->flags7 & RefObject::kDetached)) patch.Assign(new UnitShape());
+    if (!IsLive(patch)) patch.Assign(new UnitShape());
     int key = ((y + 0x800) << 16) + x;
     int x0 = x - 7 < 0 ? 0 : x - 7;
     int y0 = y - 7 < 0 ? 0 : y - 7;

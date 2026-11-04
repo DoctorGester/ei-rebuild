@@ -70,7 +70,7 @@ const int* AIMap::CostContext(int sizeClass, PassCostContext* out) {
     out->turnScale = 10.0f;
     out->shift = sizeClass * 4;
     const std::vector<int>& climb = out->shift == 0 ? climbSmall : climbLarge;
-    out->costs = passCosts;
+    out->costs = kPassCosts;
     out->climb = climb.data() + std::ssize(climb) / 2;
     return out->climb;
 }
@@ -96,7 +96,7 @@ void AIMap::SetStepSpeeds(Unit* unit, PathCells* steps) {
             return;
         }
         const AIMapCell& to = cells[next->y][next->x];
-        int cost = stepCosts[to.Passability(shift)];
+        int cost = kStepCosts[to.Passability(shift)];
         int contextCost = context.costs[to.Passability(context.shift)];
         if (cost < 0) cost = 0x400;
         int climbCost = climb[static_cast<int>(to.groundLevel) - static_cast<int>(cell.groundLevel)];

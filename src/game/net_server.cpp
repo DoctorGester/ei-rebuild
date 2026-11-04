@@ -66,7 +66,7 @@ void ServerSession::CollectReplicated(const Connection* connection, std::vector<
             if (record->host) hosting = true;
             PushReplicated(out, binding, 2);
         }
-        if (record && !(record->flags7 & RefObject::kDetached)) {
+        if (IsLive(record)) {
             for (auto& n : lines) {
                 auto* line = n.Get();
                 RefObject* target = line->connection.Get();
@@ -99,7 +99,7 @@ void ServerSession::CollectReplicated(const Connection* connection, std::vector<
         bool complete = true;
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(offer->members.size()); ++i) {
             RefObject* member = offer->members[i].Get();
-            if (!member || (member->flags7 & RefObject::kDetached)) complete = false;
+            if (!IsLive(member)) complete = false;
         }
         if (!complete) continue;
         PushReplicated(out, offer, 2);
@@ -132,7 +132,7 @@ void ServerSession::Describe(Ref<ServerEntry>* out) {
     description->assign(game::kEmptyText);
 
     RefObject* newMap = map.Get();
-    if (newMap && !(newMap->flags7 & RefObject::kDetached)) description->assign(SessionMapName());    // overwrite, then cut or append
+    if (IsLive(newMap)) description->assign(SessionMapName());    // overwrite, then cut or append
 
     entry->players = static_cast<std::uint8_t>(ClientCount());
     entry->maxPlayers = static_cast<std::uint8_t>(maxPlayers);
@@ -196,7 +196,7 @@ void ServerSession::AnnounceToMaster() {
     const char* empty = game::kEmptyText;
     description.assign(empty);
     RefObject* newMap = map.Get();
-    if (newMap && !(newMap->flags7 & RefCounted::kDetached)) description.assign(SessionMapName());
+    if (IsLive(newMap)) description.assign(SessionMapName());
     info.players = static_cast<std::uint8_t>(ClientCount());
     info.maxPlayers = static_cast<std::uint8_t>(maxPlayers);
     info.masterToken = masterToken;
@@ -267,12 +267,12 @@ void ServerSession::OnMessage(Connection* from, MessageEvent event, Message* mes
 // player (nothing without one, or when the binding is detached), and the line is announced to everybody as
 // "^<number><name>^7: <text>".
 void ServerSession::OnSay(Connection* from, SayMessage* message) {
-    if (!from || (from->flags7 & RefCounted::kDetached)) return;
+    if (!IsLive(from)) return;
     for (auto& node : bindings) {
         auto* binding = node.Get();
         if (binding->connection.Get() != from) continue;
         // (The original also tests the binding for null here, after having read it.)
-        if (binding->flags7 & RefCounted::kDetached) return;
+        if (!IsLive(binding)) return;
         auto* player = binding->player.Get();
         std::string line;
         line = std::format("^{}{}^7: {}", player->number, player->name.data(), message->text.data());

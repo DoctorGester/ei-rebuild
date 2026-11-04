@@ -320,11 +320,11 @@ void AIMap::CostContextFor(Unit* unit, PassCostContext* out) {
     out->shift = unit->sizeClass * 4;
     const std::vector<int>& climb = out->shift == 0 ? climbSmall : climbLarge;
     out->climb = climb.data() + std::ssize(climb) / 2;
-    out->costs = passCosts;
+    out->costs = kPassCosts;
     const Unit::MoveSpeeds speeds = unit->GetMoveSpeeds();
     out->forwardSpeed = speeds.forward;
     out->backwardSpeed = speeds.turn;
-    out->costs = unit->altPassCosts ? passCostsAlt : passCosts;
+    out->costs = unit->altPassCosts ? kPassCostsAlt : kPassCosts;
 }
 
 void LocalSearch::Attach(AIMap* mapArg, bool backwardArg) {

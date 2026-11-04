@@ -401,7 +401,6 @@ void AIMap::AttachTerrain() {
     loaded = true;
     refreshUnits = false;
     BuildOpenMarks();
-    InitCostTables(this);
     SearchGrid<std::int8_t>& water = waterDepth;
     water.Resize(cells.width, cells.height);
     water.data.assign(water.data.size(), 0);

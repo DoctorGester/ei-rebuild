@@ -125,6 +125,15 @@ struct PassCostContext {
     float forwardSpeed;     // 0.1, or the unit's
 };
 
+// The passability cost tables, indexed by a cell's passability nibble (entry 0, impassable, is -1): the cost per
+// nibble (1/1024), the flat cost of the units with Unit::altPassCosts set, and the step speeds (SetStepSpeeds).
+inline constexpr int kPassCosts[16] = {-1,     0x6400, 0x77EC, 0x8BD8, 0x2FF8, 0x37F0, 0x3FFC, 0x0DFC,
+                                       0x0FFF, 0x11FD, 0x1400, 0x0666, 0x0732, 0x0800, 0x0400, 0x04CC};
+inline constexpr int kPassCostsAlt[16] = {-1,    0x400, 0x400, 0x400, 0x400, 0x400, 0x400, 0x400,
+                                          0x400, 0x400, 0x400, 0x400, 0x400, 0x400, 0x400, 0x400};
+inline constexpr int kStepCosts[16] = {-1,    0x200, 0x266, 0x2CC, 0x266, 0x2CC, 0x333, 0x2CC,
+                                       0x333, 0x399, 0x400, 0x333, 0x399, 0x400, 0x400, 0x4CC};
+
 struct FogGrid;
 
 class DeltaReader;
@@ -411,8 +420,15 @@ inline std::uint8_t WithRepresentativeY(std::uint8_t cell, int y) { return stati
 inline Point Representative(std::uint8_t cell) { return {RepresentativeX(cell), RepresentativeY(cell)}; }
 
 struct RegionMap {
-    // The block grids 1 x 1 (edges -1, representative cells zeroed) with both block searches attached to them.
+    // Reset.
     RegionMap();
+    // The block searches point at the map they belong to: never copied.
+    RegionMap(const RegionMap&) = delete;
+    RegionMap& operator=(const RegionMap&) = delete;
+
+    // The block grids 1 x 1 (edges -1, representative cells zeroed) with both block searches attached to them,
+    // a new local search, no progress report.
+    void Reset();
 
     // The region of `cell` for a size class, the one most of the reachable 3x3 blocks around the cell belong
     // to (the first seen on a tie; 0 when none).
@@ -576,6 +592,9 @@ public:
     // Removes `owner`'s nodes from the 5x5 blocks from the one holding `topLeft` (each coordinate >> 2); for
     // each block it had, Set gets the block with the other owners' levels merged (maximum).
     void Remove(UnitLayerOwner owner, Point topLeft);
+    // Every node dropped (the map's levels are not touched).
+    void Clear();
+
     std::list<UnitLayerNode> nodes;     // every node made: a list, the buckets and free list point into it as it grows
     UnitLayerNode* buckets[1024] = {};  // by (key x * 17 + key y) & 0x3FF
     UnitLayerNode* freeNodes = nullptr; // unused nodes
@@ -643,8 +662,10 @@ struct CellMarkState {
 // The navigation grid of the current map (Rebirth patches Load).
 class AIMap {
 public:
+    // Reset.
     AIMap();
-    // Destroyed and constructed again in place.
+    // Every member as a new map has it: no map loaded, the map's own grids 1 x 1, the area lists filled, the
+    // events back on the free list.
     void Reset();
 
     // Loads the map archive `path`: LoadTerrain, then AttachTerrain. Returns 1; 0 when the archive cannot be opened;
@@ -652,10 +673,9 @@ public:
     int Load(const char* path);
     // Load's first part: the archive's .mp file gives the height scale and the climb tables, tileDesc.reg in
     // aiinfo.res the terrain types; the cell grids are sized for the map (64 x 64 cells per sector) and every
-    // sector file stamped into the cells and the occluder words. It touches nothing else of the map, so the
-    // verify wrapper runs it on a copy.
+    // sector file stamped into the cells and the occluder words. It touches nothing else of the map.
     int LoadTerrain(const char* path);
-    // Load's second part: the open marks and cost tables, the water depths zeroed, both local searches, the
+    // Load's second part: the open marks, the water depths zeroed, both local searches, the
     // region map, the AI events and the sector map attached to the new size, and the whole map refreshed (or
     // added to the dirty rectangle while batching).
     void AttachTerrain();
@@ -812,16 +832,13 @@ public:
     bool batching = false;              // refreshes collect into the dirty rectangle
     std::uint8_t refreshUnits = 0;      // non-zero: a refresh also re-registers the units around it
     AIDirtyRect dirty;                  // the area to refresh when batching ends
-    int passCosts[16];                  // cost per passability nibble (1/1024)
-    int passCostsAlt[16];               // the same for units with Unit::altPassCosts set
-    int stepCosts[16];                  // step speeds per nibble (SetStepSpeeds)
     // Per size class: the cost of a height step between neighbouring cells, indexed from the middle (negative
     // steps down, positive up): 1023 costs in 1/1024, -1 for a step that cannot be taken (AIMap::Load fills them).
     std::vector<int> climbLarge;              // size classes other than 0: no step steeper than 40 degrees
     std::vector<int> climbSmall;              // size class 0: up to 60 degrees, every step at the flat cost
     std::vector<AITerrainType> materials;     // the terrain types (16 after Load)
     BridgeHeights bridgeHeights;
-    float heightScale;                  // world z to AI height units
+    float heightScale = 0.0f;           // world z to AI height units
     SectorMap sectorMap;
     FootprintCellSet footprint;         // scratch for MarkFootprint
     FootprintCellSet bridges;
@@ -858,7 +875,6 @@ struct SpiralCache {
 int WorldToCell(float world);
 Point WorldToCell(const Vector3& position);   // the cell holding a position's x, y
 
-void InitCostTables(AIMap* map);
 // The map's six area lists (areaLists) from the level tables.
 void FillAreaLists(AIMap* map);
 // Standing level of size class `sizeClass` (0..7): (2 - height) * 16, at least 0. Outside 0..7 the original

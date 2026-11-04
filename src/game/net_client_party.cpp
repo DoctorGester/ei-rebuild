@@ -52,7 +52,7 @@ Player* LocalPlayer() { return g_serverWorld.GetPlayer(0); }
 // The offer takes the party's money; then its counters move on and its accepted flag is cleared.
 void ClientSession::PublishParty() {
     if (!party) return;
-    Party* own = parties[0].Get();
+    Party* own = &parties[0];
     // A copy of the old messages, then the list emptied.
     MemberList previous = party->members;
     party->members.clear();
@@ -95,7 +95,7 @@ PartyMessage* ClientSession::FindParty() {
     for (auto& node : offers) {
         auto* other = node.Get();
         if (other->partner.Get() != party->player.Get() || other->player.Get() != party->partner.Get()) continue;
-        if (other && !(other->flags7 & RefObject::kDetached)) return other;
+        if (IsLive(other)) return other;
     }
     return nullptr;
 }
@@ -119,11 +119,11 @@ void ClientSession::ApplyParty() {
     PartyMessage* remote = FindParty();
     if (!remote) return;
     for (const auto& member : remote->members) {
-        if (!member.Get() || (member.Get()->flags7 & RefObject::kDetached)) return;
+        if (!IsLive(member.Get())) return;
         if (member.Get()->stream.Size() == 0) return;
     }
 
-    Party* partner = parties[1].Get();
+    Party* partner = &parties[1];
     partner->Clear(true, false);
     partner->money = static_cast<int>(remote->money);
     std::vector<Item*> items;   // each holds a reference

@@ -158,7 +158,7 @@ bool WorldClient::IsLocalPlayerIdle() {
     PlayerConnection* view = session->connection;
     if (!view) return false;
     netlink::NetLink* link = view->player->link;
-    if (link && !(link->flags7 & RefObject::kDetached) && link->Alive()) return false;
+    if (IsLive(link) && link->Alive()) return false;
     return true;
 }
 

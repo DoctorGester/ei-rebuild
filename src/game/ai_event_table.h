@@ -83,10 +83,15 @@ extern AIEvent* g_freeEvents;
 struct AIEventTable : AIViewer {
     // Clear (a 1 x 1 grid).
     AIEventTable();
-    // Every event of the wheel goes to the free list.
+    // FreeEvents.
     ~AIEventTable();
     AIEventTable(const AIEventTable&) = delete;
     AIEventTable& operator=(const AIEventTable&) = delete;
+
+    // Every event of the wheel goes to the free list (the wheel still points at them).
+    void FreeEvents();
+    // FreeEvents, then Clear: the table as constructed.
+    void Reset();
 
     // The wheel moves to `tick`: every event of that tick's 16 slots leaves its cell list and goes to the
     // free list; the slots empty. A first event whose cell is outside the grid faults (a null cell is read).

@@ -50,6 +50,12 @@ bool BlockInMap(const AIMap* map, const UnitLayerNode* block, BlockArea* area) {
 
 } // namespace
 
+void UnitLayer::Clear() {
+    nodes.clear();
+    std::ranges::fill(buckets, nullptr);
+    freeNodes = nullptr;
+}
+
 void UnitLayer::Add(UnitLayerOwner owner, const UnitShape* shape, Point topLeft) {
     // The shape placed in a 20x20 grid at the unit's offset within its 4-cell block.
     std::uint8_t grid[20 * 20] = {};

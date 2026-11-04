@@ -43,7 +43,7 @@ namespace {
 // FindPlayer is the player record with that id, or null.
 net::ServerSession* ActiveGameServer() {
     net::ServerSession* server = net::g_gameServer;
-    if (!server || (server->flags7 & RefCounted::kDetached)) return nullptr;
+    if (!IsLive(server)) return nullptr;
     return server;
 }
 
@@ -374,7 +374,7 @@ void WorldServer::Update() {
     }
     if (netlink::DriverSession* session = netSession.Get()) {
         net::ServerSession* server = net::g_gameServer;
-        if (server && !(server->flags7 & RefCounted::kDetached)) session->PumpDrivers(server);
+        if (IsLive(server)) session->PumpDrivers(server);
         AcceptNewPlayers(session);
     }
 

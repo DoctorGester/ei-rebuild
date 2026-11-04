@@ -153,11 +153,7 @@ ParticleManager::~ParticleManager() {
     freeParticles.clear();
 }
 
-Sector::~Sector() {
-    Clear();
-    units.clear();
-    objects.clear();
-}
+
 
 WorldClient::~WorldClient() {
     DestroyOwned(handle);

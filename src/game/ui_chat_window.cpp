@@ -42,8 +42,6 @@ constexpr int kFirstFaceLeft = 0x2E8;
 constexpr int kFirstStatusLeft = 0x118;   // with the window at 0x1D0; 0x2E8 with EI_Plugin's NPlayers
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 
-bool Live(const RefObject* object) { return object && !(object->flags7 & RefObject::kDetached); }
-
 } // namespace
 
 // --- the constructor -----------------------------------------------------------------------------
@@ -117,7 +115,7 @@ void ChatWindow::ShowPlayers() {
     net::ClientSession* client = net::g_gameClient;
     const auto& clientPlayers = client->players;
     for (auto node = clientPlayers.begin(); node != clientPlayers.end(); ++node) {
-        if (!Live(client->binding)) continue;
+        if (!IsLive(client->binding)) continue;
         net::PlayerMessage* player = node->Get();
         bool own = client->binding->player.Get() == player;
         if (own)
@@ -160,7 +158,7 @@ void ChatWindow::ShowPlayers() {
 
 void ChatWindow::Update() {
     net::ClientSession* client = net::g_gameClient;
-    if (Live(client->trade)) {
+    if (IsLive(client->trade)) {
         g_interface.closeAll = 1;
         g_clientWorld.LocalView()->RequestGameState(9);
         return;

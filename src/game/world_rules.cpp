@@ -52,7 +52,7 @@ bool DepthLess::Less(const ScreenEntry* a, const ScreenEntry* b) const {
 
 bool IsMultiplayerClient() {
     net::ClientSession* client = net::g_gameClient;
-    if (client && !(client->flags7 & RefCounted::kDetached)) return true;
+    if (IsLive(client)) return true;
     return false;
 }
 
