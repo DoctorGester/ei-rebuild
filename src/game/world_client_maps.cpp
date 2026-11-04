@@ -144,15 +144,13 @@ void GridToFour(SectorGrid& grid) {
 }
 
 void ReferenceEveryObject(BaseManager* manager) {
-    ObjectListIterator walk{};
+    ObjectListIterator walk;
     for (EngineObject* object = walk.First(manager); object; object = walk.Next()) object->AddRef();
-    if (BaseManager* held = walk.manager) --held->refCount;
 }
 
 void ReleaseEveryObject(BaseManager* manager) {
-    ObjectListIterator walk{};
+    ObjectListIterator walk;
     for (EngineObject* object = walk.First(manager); object; object = walk.Next()) object->Release();
-    if (BaseManager* held = walk.manager) --held->refCount;
 }
 
 constexpr int kSkyTextureKind = static_cast<int>(TextureKind::SkyFace);
@@ -613,10 +611,9 @@ void WorldClient::ResetZoneObjects() {
     for (int x = 0; x < static_cast<int>(second.width); ++x)
         for (int y = 0; y < static_cast<int>(second.height); ++y)
             second.rows[y][x].clear();
-    ObjectListIterator it{nullptr, {}};
+    ObjectListIterator it;
     for (EngineObject* object = it.First(TimedObjectManager()); object; object = it.Next()) object->Release();
     if (bird) bird->Reset();
-    if (it.manager) --it.manager->refCount;
 }
 
 void WorldClient::Deselect() {
@@ -906,7 +903,7 @@ int WorldClient::LoadZone(ByteStream* block) {
     LocalView()->AppendReceived(&g_serverWorld.zoneHeader);
     ticksRun = 0;
     BuildUnitSkins(&looks.figured, &looks.dressed);
-    g_clientWorld.terrain->SetWaveStrength(options::kDefaultWindForce);
+    terrain->SetWaveStrength(options::kDefaultWindForce);
     ShowLoadingMovie(kProgressZoneReady);
     LocalView()->SendResume();
     CloseLoadingMovie();

@@ -95,17 +95,8 @@ struct MapObjectIdMap {
     }
 };
 
-// Walks the world's player list; the list object is reference counted while an iterator holds it.
-struct PlayerIterator : ObjectListIteratorOf<Player> {
-    PlayerIterator() : ObjectListIteratorOf<Player>{{nullptr, {}}} {}
-    PlayerIterator(const PlayerIterator&) = delete;
-    PlayerIterator& operator=(const PlayerIterator&) = delete;
-
-    // Drops the list's count without releasing it (the list must outlive the iterator).
-    ~PlayerIterator() {
-        if (manager) --manager->refCount;
-    }
-};
+// Walks the world's player list.
+using PlayerIterator = ObjectListIteratorOf<Player>;
 
 class FlyingHitPoints;
 

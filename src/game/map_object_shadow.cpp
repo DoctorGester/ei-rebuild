@@ -97,7 +97,7 @@ void FitShadowSphere(Object3DClientSpecific* self) {
     // The lights reaching the object.
     Vector3 sum;
     sum = kDefaultLight;
-    ObjectListIteratorOf<Light> lights{};
+    ObjectListIteratorOf<Light> lights;
     for (Light* light = lights.First(g_clientWorld.lightFactory); light; light = lights.Next()) {
         if ((light->flags & LightFlag::Off) || (light->flags & LightFlag::Hidden)) continue;
         Vector3 share;
@@ -108,7 +108,6 @@ void FitShadowSphere(Object3DClientSpecific* self) {
         }
         sum += share;
     }
-    if (lights.manager) lights.manager->ForgetReference();
     Vector3 direction;
     LightDirection(sum, &direction);
     self->flags &= ~kHalfRedraw;

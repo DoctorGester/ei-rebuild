@@ -100,9 +100,9 @@ void WorldServer::LootDeadUnits() {
         EngineObject* object = node->second;
         Unit* unit = UnitOrNull(object);   // no null test here: the map holds no null
         if (unit && unit->IsDead()) {
-            g_serverWorld.Loot(unit, local);
+            Loot(unit, local);
             dead.push_back(static_cast<unsigned>(object->id));
         }
     }
-    for (unsigned objectId : dead) g_serverWorld.RemoveObject(objectId);
+    for (unsigned objectId : dead) RemoveObject(objectId);
 }

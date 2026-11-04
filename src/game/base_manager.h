@@ -104,18 +104,25 @@ public:
     ManagerContext* context;       // set by Init / SetContext (the world for its managers, a party for its own)
 };
 
-// Walks a manager's objectList. While iterating it holds a reference on the manager (refCount + 1); the
-// owner drops it afterwards with `manager->ForgetReference()` (the destructor).
+// Walks a manager's objectList. From First on it holds a count on the manager (refCount + 1), dropped without a
+// release when the next First takes a manager or the iterator ends: the manager must outlive the iterator.
 struct ObjectListIterator {
-    BaseManager* manager;
-    std::list<EngineObject*>::iterator position;   // the node Next returns (the list's end: none)
+    ObjectListIterator() = default;
+    ObjectListIterator(const ObjectListIterator&) = delete;
+    ObjectListIterator& operator=(const ObjectListIterator&) = delete;
+    ~ObjectListIterator() {
+        if (manager) manager->ForgetReference();
+    }
 
     EngineObject* First(BaseManager* list);
     EngineObject* Next();
+
+    BaseManager* manager = nullptr;
+    std::list<EngineObject*>::iterator position;   // the node Next returns (the list's end: none)
 };
 
 // The same walk over a manager whose objects are all of class T (the light factory's lights, an
-// item manager's items): First and Next hand them out typed. The user drops the manager's count.
+// item manager's items): First and Next hand them out typed.
 template <typename T>
 struct ObjectListIteratorOf : ObjectListIterator {
     T* First(BaseManager* list) { return static_cast<T*>(ObjectListIterator::First(list)); }

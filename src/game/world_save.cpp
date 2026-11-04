@@ -470,7 +470,7 @@ void WorldServer::SaveWorld(ByteStream* stream) {
 
     // The item manager's object records.
     {
-        ObjectListIteratorOf<Item> it{};
+        ObjectListIteratorOf<Item> it;
         for (Item* item = it.First(ItemFactory()); item; item = it.Next()) {
             ItemLink* record = item->serverLink.Get();
             if (!record) continue;
@@ -478,7 +478,6 @@ void WorldServer::SaveWorld(ByteStream* stream) {
             stream->WriteValue(record->value);
         }
         stream->WriteValue(-1);
-        if (it.manager) --it.manager->refCount;
     }
 
     stream->WriteValue(static_cast<int>(mobFiles.size()));

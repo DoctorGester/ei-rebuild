@@ -238,9 +238,8 @@ constexpr const char* kItemsFolderName = "items";
 
 void World::Destroy() {
     if (GetSpellManager()) {
-        ObjectListIterator objects{nullptr, {}};
+        ObjectListIterator objects;
         for (EngineObject* object = objects.First(GetSpellManager()); object; object = objects.Next()) object->ClearState();
-        if (objects.manager) --objects.manager->refCount;
     }
     DeleteManager(players);
     DestroyOwned(worldHandle);

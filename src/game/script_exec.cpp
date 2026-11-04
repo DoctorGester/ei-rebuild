@@ -998,14 +998,8 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::FixItems: {   // FixItems: every item repaired
-            auto* list = g_serverWorld.itemManager;
             ObjectListIteratorOf<Item> it;
-            it.manager = nullptr;
-            for (Item* item = it.First(list); item; item = it.Next()) item->Repair();
-            if (it.manager) {   // destructor
-                --it.manager->refCount;
-                it.manager = nullptr;
-            }
+            for (Item* item = it.First(g_serverWorld.itemManager); item; item = it.Next()) item->Repair();
             break;
         }
 

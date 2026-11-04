@@ -83,16 +83,10 @@ int WorldServer::LoadMap(std::string_view map, std::string_view mob, ByteStream*
     PlayerIterator it;
     for (Player* player = it.First(PlayerList()); player; player = it.Next())
         player->dirty = kPlayerDirtyAll;
-    if (it.manager) --it.manager->refCount;
     zoneLoaded = 1;
     weather = 0;
     weatherStrength = 0.0f;
-    it.manager = nullptr;
     for (Player* player = it.First(PlayerList()); player; player = it.Next()) player->dirty |= PlayerDirty::Weather;
-    if (it.manager) {
-        --it.manager->refCount;
-        it.manager = nullptr;
-    }
 
     if (keepsState || loadedFresh) {
         mobName = mob;
@@ -160,11 +154,7 @@ void WorldServer::TeardownZone() {
          player = it.First(PlayerList())) {
         player->Disconnect();
         player->Release();
-        if (it.manager) --it.manager->refCount;
-        it.manager = nullptr;
     }
-    if (it.manager) --it.manager->refCount;
-    it.manager = nullptr;
     zoneLoaded = 0;
 
     sharedObjects.clear();
