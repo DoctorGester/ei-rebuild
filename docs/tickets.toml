@@ -7368,6 +7368,14 @@ depends = ["R17c"]
 note = "From R17c/R17a2's hand-back: surface wetness from rain carries over a zone change (reset it when a zone loads). render_water_looks' minimap-based lookat misses on Rebirth's zone1 (its map differs), so the swamp views land past the map edge in fog and Rebirth's swamps are not visually checked: give Rebirth its own coordinates. Also check where a swamp meets the sea, the ground's swamp-depth attribute blends with -1 under the water (hidden by opaque water; confirm). Captures before/after for the captures page."
 
 [[ticket]]
+id = "R17c2"
+title = "Characters get wet in rain and covered in snow"
+group = "renderer"
+model = "opus"
+depends = ["R17c"]
+note = "User 2026-11-04: characters should also get wet / snow-covered. Today (R17c, mesh.hlsl weathered_mesh) units only darken when wet (no sheen: few large faces) and get no snow at all. Give units their own look: a wet sheen that works on low-poly figures (per-pixel from the interpolated vertex normal, not face normals; specular on top faces/shoulders/heads), snow settling on upward-facing parts (head, shoulders, the tops of armour) building over time with the cover and melting/brushing off; under a roof or in a cave none. Per-unit state is client-only (the rendering side, no game state, no goldens change): ideally a unit that walks out of shelter starts dry and wets over time; a simple version may follow the world's state. Captures in rain and snow (zone1 rain, gz11k snow) of heroes and monsters, close up, before/after; cost on the R17c profile scene."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
