@@ -29,13 +29,13 @@ struct SoundFader {
     std::int32_t volume;        // 0..100
     std::int32_t level;         // 0..127, round(volume * factor * 127 * 0.01)
     float factor;               // fade factor 0..1
-    float step;                 // added / subtracted per update (100 ms on the stream thread)
+    float step;                 // added / subtracted per update (a stream step, 100 ms)
     std::int32_t mode;          // 0 none, 1 fade in, 2 fade out
     std::int32_t finished;      // set when a fade out reached 0
     std::uint32_t holdUntil;    // timeGetTime() at which the fade is cancelled (0: none)
 
     void SetHold(std::uint32_t until);
-    void Update();                      // on the stream thread
+    void Update(std::uint32_t now);     // a stream step's (StepStream)
     void Recalc();
 };
 
@@ -93,7 +93,6 @@ struct SoundEmitter {
 };
 
 struct SoundSequence;
-unsigned StreamThreadEntry(void* manager);
 
 // The bit of a sequence chooser's result that loops the sound (bit 30).
 inline constexpr int kSequenceLoop = 0x40000000;
@@ -194,7 +193,10 @@ struct SoundManager : EngineObject {
     // PlayStreamOnce's file waits for the stream thread, which asks for silence after it as it switches to it
     // (StopStream(1)); any other request clears it.
     std::atomic<bool> endAfterSwitch;
-    std::thread streamThread;           // started when the MP3 stream opened, joined by Close
+    std::thread streamThread;           // started when the MP3 stream opened with a device, joined by Close
+    // Without a device the main loop steps the stream (FollowClock); the last step's time.
+    bool streamOnMainLoop = false;
+    std::uint32_t streamSteppedAt = 0;
     volatile std::int32_t threadsQuit;  // set by Close; the stream thread ends on it
     std::unique_ptr<SoundSlot[]> slots; // 15 voices while open
     Vector3 listener;                   // listener position (z: camera height)
@@ -291,13 +293,17 @@ struct SoundManager : EngineObject {
     int OpenStream();
     // Frees what OpenStream made. Returns 0.
     int CloseStream();
-    // Every 100 ms until Close sets threadsQuit: a fader step, and every half the output has played out gets the
-    // spare buffer. The thread ends when it returns.
+    // With a device: a step every 100 ms of real time until Close sets threadsQuit. The thread ends when it returns.
     void StreamThread();
+    // Without a device (no stream thread), from the main loop with the frame's time: the steps due by `now`, each at
+    // its time 100 ms after the last, as the thread would have made them.
+    void FollowClock(std::uint32_t now);
+    // A step at `now`: a fader step, and every half the output has played out by then gets the spare buffer.
+    void StepStream(std::uint32_t now);
     // Rebirth-patched. Fills the spare buffer: silence when idle; else the playing file up to its loop point
     // or the switch point, and the rest from the next file. No next file (or it does not open): silence, the
     // stream idle. Details: docs/notes/sound.md, "Game side".
-    void ReadStreamVanilla();
+    void ReadStreamVanilla(std::uint32_t now);
 
     // The first free voice; else the lowest priority one (the first of equals) when `priority` is above it (a
     // looping sound there is deferred). -1 when no voice can be had.
