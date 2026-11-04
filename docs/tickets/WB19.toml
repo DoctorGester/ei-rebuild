@@ -1,0 +1,6 @@
+id = "WB19"
+title = "Waits page: pick and slide the time window"
+group = "harness"
+model = "sonnet"
+note = "User 2026-11-04: the /waits/ page is useful; let it pick the window's length (e.g. 6 h, 1 day, 3 days, 7 days) and move it back and forth in time to see progress. Today tools/worker_waits.py collects a fixed last-7-days window into build/live/waits.json (transcripts + work.db) and waits.html draws it whole. Likely shape: worker_waits.py keeps per-worker and per-batch rows with timestamps over a longer span (say 30 days) plus per-run game timings, and waits.html filters and re-totals them client-side for the chosen [start, end) window (tiles, the time split, findings, workers, slowest scenarios, batches), with a range control (length buttons + earlier/later steps or a slider) and the window in the URL hash. Keep the five-minute background refresh and the page calm (user likes a calm live page). Check: totals for the 7-day window equal today's page; moving the window changes every section consistently."
+order = 1140
