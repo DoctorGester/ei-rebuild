@@ -110,7 +110,7 @@ std::string Format(const char* format, va_list args);
 namespace game {
 
 // Reports a fatal error (printf-style) and normally exits the game.
-int FatalError(const char* format, ...);
+EI_PRINTF_FORMAT(1, 2) int FatalError(const char* format, ...);
 // With a std::string among the arguments: its text is passed for the %s.
 template <class... Args>
     requires libprintf::HasString<Args...>
@@ -127,7 +127,7 @@ T* FatalErrorAs(const char* format, Args... args) {
 }
 // Debug log; compiled out (empty) in the release build, but other mods may hook it. It leaves the caller's
 // result register unchanged (bink_video.cpp's error message masks it, so it returns a value).
-unsigned DebugLog(const char* format, ...);
+EI_PRINTF_FORMAT(1, 2) unsigned DebugLog(const char* format, ...);
 template <class... Args>
     requires libprintf::HasString<Args...>
 unsigned DebugLog(const char* format, Args&&... args) {

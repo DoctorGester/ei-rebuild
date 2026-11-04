@@ -38,7 +38,7 @@ bool g_applyGui = false;               // the battle screen applies g_guiShown
 
 // addon's console output: the text, "\n" (as a string), flush.
 void Say(const char* text) { (g_consoleOut << text << "\n").Flush(); }
-void SayFormat(const char* format, ...) {
+EI_PRINTF_FORMAT(1, 2) void SayFormat(const char* format, ...) {
     std::string text;
     va_list args;
     va_start(args, format);
