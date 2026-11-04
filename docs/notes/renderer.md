@@ -16,7 +16,8 @@ objects, sky, interface sprites and 3D previews), the flat geometry (selection m
 windows' quads and glyph runs, the renderer's rectangles (rubber band, fades), the depth clears mid-frame, every pre-transformed draw
 (particles and sprites, the vision fog's quads, ribbons and lightning, flying hit points), the weather and the movies
 (also the players outside the frame). The escape menu's and the save game's screen copies come from its frame. The
-device is made on a thread of its own from the program's start (`render::PrepareDevice`, before WinMain) and taken
+device is made on a thread of its own, with the pipelines every game draws with (section 15c, "Pipelines made ahead"),
+as soon as SDL's video is up (`render::PrepareDevice`, in GameMain right after the window class is registered) and taken
 at the renderer's first use.
 
 ### Shader authoring: HLSL and SDL_shadercross
@@ -921,7 +922,7 @@ scaled to 800x600): the same counts turn the camera faster at a lower resolution
 
 The renderer draws with SDL3's GPU API (R43e; sokol_gfx on Direct3D 11 and OpenGL before it). The spike that compared
 the two (build/reviews/r43_sdl_gpu.md) found the same pixels and close frame times, the device about 150 ms slower to
-make (made in the background from the program's start, `render::PrepareDevice`).
+make (made in the background from GameMain's window class registration, `render::PrepareDevice`).
 
 Rules it found:
 - **Vertex buffer slots.** A pipeline's slots are packed from 0. The D3D12 backend looks a buffer's description up by
@@ -940,11 +941,32 @@ Rules it found:
 forward-declared handles, so the files include no SDL header. `ei_gpu_check` checks it.
 
 **Shape.**
-- **Device.** `PrepareInBackground` (SDL's video started on the calling thread, then the device made on a thread of its
-  own) and `Start` (takes it, or makes one); `Stop` waits for the GPU and releases everything. Driver: Direct3D 12, else
+- **Device.** `PrepareInBackground` (the device made on a thread of its own; SDL's video must be up already, or both
+  drivers refuse and `Start` makes the device again on the calling thread: R43e removed the video start from here,
+  which left the background device failing until `PrepareDevice` moved to after the platform layer's window class and
+  video start, R43d1) and `Start` (takes it, or makes one); `Stop` waits for the GPU and releases everything. Driver: Direct3D 12, else
   Vulkan, on Windows; Vulkan on Linux; Metal on macOS; `DeviceOptions::driver` picks one. Shaders: DXIL on Direct3D 12,
   SPIR-V on Vulkan, MSL on Metal, from `gpu_shaders::kPrograms` (made at their first pipeline). `MaxSamples`,
   `FormatSupported`. No device loss is reported (section 9).
+- **Pipelines made ahead** (R43d1). `PrepareInBackground(options, lister)`: the thread that made the device calls the
+  `PipelineLister` (descriptions appended to a vector; `DeviceLimits::MaxSamples` for the device-dependent ones) and
+  makes each into its own cache and shader list, which nothing else touches; `Start` joins the thread and moves both
+  into the globals, so no lock is needed and the cache is the main thread's from then on. SDL_GPU's device-level
+  creation calls (`SDL_CreateGPUShader`, `SDL_CreateGPUGraphicsPipeline`) are thread-safe by SDL's documentation, as
+  device and resource creation are, and `ei_gpu_check` makes pipelines on the thread on Direct3D 12 and Vulkan. A
+  description that cannot be made (a faulty one, a sample count the device lacks) is skipped without a message and
+  `MakePipeline` tries it again at its first use, saying why then. `render.cpp`'s `ListPipelines` is the renderer's
+  list: each file builds its descriptions in the function its draws also use (`MeshDesc`, `TerrainDesc`, `PassDesc`,
+  `QuadDesc`, ...) and lists them in `List*Pipelines`: meshes (the eight pass states every battle and menu draws with,
+  found by logging a run's pipeline creations, each as a kept mesh or a frame-stream one), the terrain's two, the
+  blit, depth clear and fill, the interface quads, picture and copy, the shadow map's, the composition's, the present
+  (Bgra8), and for the render quality's samples the meshes, terrain and the copies between the targets. A pass state
+  the list lacks is made at its first draw as before; when the draws change, log the creations (a temporary line in
+  `MakePipeline`) over a few scenarios and list what shows up. The log line "gpu: N of M pipelines made ahead in X ms
+  (the start waited Y ms for them)" says what it cost: on this machine's warm driver cache 5-10 ms for the 28 of a run
+  (the same as making them at first use), several hundred under four games at once or after a driver or shader change.
+  Y is mostly the device itself: GameMain reaches the renderer's start within about 50 ms of registering the window
+  class, so little of the device's ~300 ms is hidden (starting SDL's video before GameMain would hide more).
 - **Handles** are plain values: `Texture` (with its size, levels, samples and format), `Buffer`, `Sampler`, `Pipeline`,
   `Ticket`. `Release` empties a handle. A texture or buffer released while recorded commands use it lives until they
   are done (SDL's). A handle released and then bound is not: a file that replaces a buffer or texture binds the new
@@ -955,7 +977,7 @@ forward-declared handles, so the files include no SDL header. `ei_gpu_check` che
   4x4 blocks, also on a level smaller than one, and Vulkan only at the level's own size there: gpu.cpp rounds the
   copy's extent up on Direct3D 12 alone.
 - **Samplers and pipelines are kept by description** (`MakeSampler`, `MakePipeline`: the pipeline cache). The same
-  description gives the same object, made at its first use and kept until `Stop`, so callers keep no maps of their own
+  description gives the same object, made at its first use (or ahead, above) and kept until `Stop`, so callers keep no maps of their own
   beyond a cheap key if they want one. A `PipelineDesc` is the program, the vertex buffers (0..n-1, no gaps: SDL's
   Direct3D 12 backend looks a layout up by its index) and attributes, primitive, cull and winding, colour format, write
   mask and blend, a second colour target's format and mask (never blended), depth format, compare, write and bias, and

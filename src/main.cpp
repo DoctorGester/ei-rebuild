@@ -9,7 +9,6 @@
 #include "lib/text_case.h"
 #include "platform/log.h"
 #include "platform/platform.h"
-#include "render/render.h"
 
 #include <cstdio>
 #include <cstring>
@@ -56,6 +55,5 @@ int main(int argc, char** argv) {
     std::string arguments = platform::ArgumentsAfterSeparator(argc, argv);
     ei::Log("ei-rebuild started in %s, arguments '%s'", folder.c_str(), arguments.c_str());
     ei::rebirth_profile::Load(folder);
-    render::PrepareDevice();   // the renderer's device made while the game starts up
     return app::GameMain(arguments.data());
 }

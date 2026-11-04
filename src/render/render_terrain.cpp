@@ -541,6 +541,19 @@ bool BuildAgain(const SectorData* s, int page, CachedPage& p) {
 
 namespace detail {
 
+// The pass states the ground and the water pages are drawn with in every battle (the pipelines a run makes, logged).
+void ListTerrainPipelines(std::vector<gpu::PipelineDesc>& out, int samples) {
+    PassState ground;   // alpha-blended, clockwise triangles culled
+    ground.cull = 2;
+    ground.blend = true;
+    ground.sourceBlend = 5;   // D3DBLEND_SRCALPHA
+    ground.destBlend = 6;     // D3DBLEND_INVSRCALPHA
+    out.push_back(TerrainDesc(ground, samples));
+    PassState water;   // opaque, nothing culled
+    water.blend = false;
+    out.push_back(TerrainDesc(water, samples));
+}
+
 // The program checked at the start: a pipeline of it made (gpu.h keeps it).
 bool CreateTerrainShader() {
     bool ok = static_cast<bool>(gpu::MakePipeline(TerrainDesc(PassState{}, 1), "ei-terrain"));

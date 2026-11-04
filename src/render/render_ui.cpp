@@ -46,7 +46,7 @@ std::size_t g_uploaded = 0;   // g_frame.uiVertices on the GPU from g_offset
 int g_offset = -1;
 
 // The quads' pipeline for the pass's sample count: alpha-blended over the frame, the depth ignored and kept.
-gpu::Pipeline QuadPipeline(int samples) {
+gpu::PipelineDesc QuadDesc(int samples) {
     gpu::PipelineDesc p;
     p.program = gpu_shaders::ui_quad::kIndex;
     p.bufferCount = 1;
@@ -61,7 +61,7 @@ gpu::Pipeline QuadPipeline(int samples) {
                gpu::BlendFactor::Zero, gpu::BlendOp::Add, gpu::BlendOp::Add};
     p.samples = samples;
     AddDepthCopy(p);
-    return gpu::MakePipeline(p, "ei-ui-quads");
+    return p;
 }
 
 // The atlas as an R8 texture, made again when it changed.
@@ -134,14 +134,14 @@ std::vector<UiCopy> g_copies;   // frame copies waiting for the next DrawPending
 static_assert(gpu_shaders::ui_picture::kBlockUiParams == 0 && gpu_shaders::ui_copy::kBlockUiParams == 0);
 void ApplyFs(const UiParams& fs) { gpu::PushUniforms(gpu::Stage::Fragment, 0, fs); }
 
-gpu::Pipeline TargetPipeline(int program, gpu::Format format, const char* label) {
+gpu::PipelineDesc TargetDesc(int program, gpu::Format format) {
     gpu::PipelineDesc p;
     p.program = program;
     p.colour = format;
-    return gpu::MakePipeline(p, label);
+    return p;
 }
 
-gpu::Pipeline PicturePipeline(int samples) {
+gpu::PipelineDesc PictureDesc(int samples) {
     gpu::PipelineDesc p;
     p.program = gpu_shaders::ui_picture::kIndex;
     p.depth = kDepthFormat;
@@ -149,7 +149,7 @@ gpu::Pipeline PicturePipeline(int samples) {
     p.colourMask = gpu::kWriteRed | gpu::kWriteGreen | gpu::kWriteBlue;
     p.samples = samples;
     AddDepthCopy(p);
-    return gpu::MakePipeline(p, "ei-ui-picture");
+    return p;
 }
 
 bool BeginTargetPass(const gpu::Texture& target, bool clear, const char* label) {
@@ -166,7 +166,7 @@ void RunCopies() {
     const gpu::Texture& frame = FrameTexture();
     int fw = 0, fh = 0;
     const bool haveFrame = frame && FrameSize(&fw, &fh);
-    const gpu::Pipeline pipeline = TargetPipeline(gpu_shaders::ui_copy::kIndex, gpu::Format::Rgba8, "ei-ui-copy");
+    const gpu::Pipeline pipeline = gpu::MakePipeline(TargetDesc(gpu_shaders::ui_copy::kIndex, gpu::Format::Rgba8), "ei-ui-copy");
     for (const UiCopy& copy : g_copies) {
         if (!BeginTargetPass(copy.image, true, "ei-ui-copy")) continue;
         const Rect r = haveFrame ? copy.source.Intersection(Rect{0, 0, fw, fh}) : Rect{};
@@ -344,6 +344,12 @@ bool ReadPicture(const void* key, int* width, int* height, std::vector<std::uint
 
 namespace detail {
 
+void ListUiPipelines(std::vector<gpu::PipelineDesc>& out, int samples) {
+    out.push_back(QuadDesc(samples));
+    out.push_back(PictureDesc(samples));
+    out.push_back(TargetDesc(gpu_shaders::ui_copy::kIndex, gpu::Format::Rgba8));
+}
+
 void RunCanvasCommands() { RunCopies(); }
 
 void UploadUi(const Frame& f) {
@@ -364,7 +370,7 @@ void UiFrameDone() {
 void DrawUiBatch(const UiBatch& batch, int width, int height) {
     if (batch.count == 0 || g_offset < 0) return;
     const gpu::Texture atlas = AtlasImage(batch.atlas);
-    const gpu::Pipeline pipeline = QuadPipeline(PassSampleCount());
+    const gpu::Pipeline pipeline = gpu::MakePipeline(QuadDesc(PassSampleCount()), "ei-ui-quads");
     if (!atlas || !pipeline) return;
     gpu::ApplyPipeline(pipeline);
     const gpu::BufferBinding vertices{g_vertices.Buffer(), static_cast<std::uint32_t>(g_offset)};
@@ -380,7 +386,7 @@ void DrawUiBatch(const UiBatch& batch, int width, int height) {
 void DrawPictureBatch(const PictureBatch& batch, int width, int height) {
     const int dw = batch.destination.Width(), dh = batch.destination.Height();
     if (!batch.texture || dw <= 0 || dh <= 0) return;
-    const gpu::Pipeline pipeline = PicturePipeline(PassSampleCount());
+    const gpu::Pipeline pipeline = gpu::MakePipeline(PictureDesc(PassSampleCount()), "ei-ui-picture");
     if (!pipeline) return;
     gpu::ApplyPipeline(pipeline);
     BindTexture(batch.texture);

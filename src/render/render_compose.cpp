@@ -31,25 +31,27 @@ constexpr std::size_t kCloudFramesKept = 4;
 
 // The programs' rectangle into a target of `format`, no depth; `over`: premultiplied blending (the image plus what is
 // there times one less the image's alpha, alpha too).
-gpu::Pipeline Pipeline(int program, gpu::Format format, bool over, const char* label) {
+gpu::PipelineDesc Desc(int program, gpu::Format format, bool over) {
     gpu::PipelineDesc p;
     p.program = program;
     p.colour = format;
     if (over)
         p.blend = {true, gpu::BlendFactor::One, gpu::BlendFactor::OneMinusSourceAlpha, gpu::BlendFactor::One,
                    gpu::BlendFactor::OneMinusSourceAlpha};
-    return gpu::MakePipeline(p, label);
+    return p;
 }
 
+gpu::PipelineDesc ComposeDesc(bool over) { return Desc(gpu_shaders::texture_compose::kIndex, gpu::Format::Rgba8, over); }
+gpu::PipelineDesc MipDesc() { return Desc(gpu_shaders::texture_mip::kIndex, gpu::Format::Rgba8, false); }
+gpu::PipelineDesc CloudFrameDesc() { return Desc(gpu_shaders::texture_clouds_frame::kIndex, gpu::Format::R8, false); }
+gpu::PipelineDesc CloudsDesc() { return Desc(gpu_shaders::texture_clouds::kIndex, gpu::Format::Rgba8, false); }
+
 gpu::Pipeline ComposePipeline(bool over) {
-    return Pipeline(gpu_shaders::texture_compose::kIndex, gpu::Format::Rgba8, over,
-                    over ? "ei-texture-compose-over" : "ei-texture-compose-replace");
+    return gpu::MakePipeline(ComposeDesc(over), over ? "ei-texture-compose-over" : "ei-texture-compose-replace");
 }
-gpu::Pipeline MipPipeline() { return Pipeline(gpu_shaders::texture_mip::kIndex, gpu::Format::Rgba8, false, "ei-texture-mip"); }
-gpu::Pipeline CloudFramePipeline() {
-    return Pipeline(gpu_shaders::texture_clouds_frame::kIndex, gpu::Format::R8, false, "ei-cloud-frame");
-}
-gpu::Pipeline CloudsPipeline() { return Pipeline(gpu_shaders::texture_clouds::kIndex, gpu::Format::Rgba8, false, "ei-clouds"); }
+gpu::Pipeline MipPipeline() { return gpu::MakePipeline(MipDesc(), "ei-texture-mip"); }
+gpu::Pipeline CloudFramePipeline() { return gpu::MakePipeline(CloudFrameDesc(), "ei-cloud-frame"); }
+gpu::Pipeline CloudsPipeline() { return gpu::MakePipeline(CloudsDesc(), "ei-clouds"); }
 
 bool EnsurePipelines() {
     static bool tried = false, made = false;
@@ -252,6 +254,14 @@ void DrawSteps(const ComposeShape& shape, const gpu::Texture& target, const Comp
 }
 
 } // namespace
+
+void ListComposePipelines(std::vector<gpu::PipelineDesc>& out) {
+    out.push_back(ComposeDesc(true));
+    out.push_back(ComposeDesc(false));
+    out.push_back(MipDesc());
+    out.push_back(CloudFrameDesc());
+    out.push_back(CloudsDesc());
+}
 
 bool DecodeComposeImage(const TextureImage& image, ComposeImage* decoded) {
     if (!image.pixels || image.width <= 0 || image.height <= 0 || image.width > 4096 || image.height > 4096) return false;

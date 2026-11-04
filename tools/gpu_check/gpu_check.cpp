@@ -33,7 +33,9 @@ void Log(const char* format, ...) {
     std::vsnprintf(text, sizeof(text), format, args);
     va_end(args);
     std::printf("gpu_check: log: %s\n", text);
-    if (std::strncmp(text, "gpu: ", 5) == 0 && std::strstr(text, " device (") == nullptr) ++g_logLines;
+    if (std::strncmp(text, "gpu: ", 5) == 0 && std::strstr(text, " device (") == nullptr &&
+        std::strstr(text, " pipelines made ahead") == nullptr)
+        ++g_logLines;
 }
 
 } // namespace ei
@@ -745,11 +747,25 @@ bool CheckDriver(const char* driver) {
     g_driver = driver;
     g::DeviceOptions options;
     options.driver = driver;
+    // The pipelines made on the device's thread: the listed ones, once each; a faulty description skipped quietly.
+    const int problemsBefore = g::Problems();
+    g::PrepareInBackground(options, [](const g::DeviceLimits&, std::vector<g::PipelineDesc>& out) {
+        out.push_back(CasterDesc());
+        out.push_back(SolidDesc(g::Format::Rgba8, g::Format::None, g::Compare::Always));
+        out.push_back(CasterDesc());
+        g::PipelineDesc missing = CasterDesc();
+        missing.attributeCount = 1;
+        out.push_back(missing);
+    });
     if (!g::Start(options)) {
         std::printf("gpu_check: %s: no device (%s)\n", driver, g::Error());
         return false;
     }
     Check(std::strcmp(g::DriverName(), driver) == 0, "the driver asked for");
+    const int aheadCount = g::PipelineCount();
+    const g::Pipeline ahead = g::MakePipeline(CasterDesc(), "caster");
+    Check(aheadCount == 2 && ahead && g::PipelineCount() == 2 && g::Problems() == problemsBefore,
+          "two pipelines made ahead on the device's thread, the cache's afterwards, the faulty one skipped quietly");
     const int failures = g_failures, checks = g_checks, logged = ei::g_logLines, problems = g::Problems();
     g_misuses = 0;
     CheckTextures();

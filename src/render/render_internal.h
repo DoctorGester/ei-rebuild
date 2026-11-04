@@ -729,6 +729,19 @@ constexpr int kSmoothSamples = 8;   // the most the render quality asks for
 constexpr gpu::Format kDepthCopyFormat = gpu::Format::R32Float;
 // A pipeline made for more than one sample: that target added, written when `p` writes the depth.
 void AddDepthCopy(gpu::PipelineDesc& p);
+
+// The pipelines every game makes, listed for gpu::PrepareInBackground (render.cpp's ListPipelines), which makes them on
+// the device's thread before the first frame. Each is the description the file's draws make (the same function builds
+// both), appended for a pass of `samples` samples where that matters. Pure: they run off the main thread.
+void ListMeshPipelines(std::vector<gpu::PipelineDesc>& out, int samples);
+void ListTerrainPipelines(std::vector<gpu::PipelineDesc>& out, int samples);
+void ListBlitPipelines(std::vector<gpu::PipelineDesc>& out, int samples);
+void ListUiPipelines(std::vector<gpu::PipelineDesc>& out, int samples);
+void ListSmoothPipelines(std::vector<gpu::PipelineDesc>& out, int samples);
+void ListShadowPipelines(std::vector<gpu::PipelineDesc>& out);
+void ListComposePipelines(std::vector<gpu::PipelineDesc>& out);
+void ListPresentPipelines(std::vector<gpu::PipelineDesc>& out);
+gpu::PipelineDesc PointShadowClearDesc();
 // False (logged) when the copies could not be made: the world is then drawn without multisampling.
 bool PrepareSmoothCopies(int samples);
 // Inside a pass on the multisampled target: the frame target's colour and depth copied into every sample (and the

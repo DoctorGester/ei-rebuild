@@ -80,12 +80,16 @@ bool ClaimGameWindow() {
     return true;
 }
 
-// The frame through the ramp into `placed` of the bound target (inside its pass).
-void DrawFrame(gpu::Format format, const Rect& placed) {
+gpu::PipelineDesc PresentDesc(gpu::Format format) {
     gpu::PipelineDesc p;
     p.program = gpu_shaders::present::kIndex;
     p.colour = format;
-    const gpu::Pipeline pipeline = gpu::MakePipeline(p, "ei-present");
+    return p;
+}
+
+// The frame through the ramp into `placed` of the bound target (inside its pass).
+void DrawFrame(gpu::Format format, const Rect& placed) {
+    const gpu::Pipeline pipeline = gpu::MakePipeline(PresentDesc(format), "ei-present");
     if (!pipeline) Fatal("The renderer cannot present on the game window: no present pipeline.");
     gpu::SetViewport(placed);
     gpu::ApplyPipeline(pipeline);
@@ -191,6 +195,10 @@ void CheckRamp() {
 } // namespace
 
 namespace detail {
+
+void ListPresentPipelines(std::vector<gpu::PipelineDesc>& out) {
+    out.push_back(PresentDesc(gpu::Format::Bgra8));   // the swap chain's format on Direct3D 12 and Vulkan
+}
 
 bool DrawToWindow() {
     int frameWidth = 0, frameHeight = 0;

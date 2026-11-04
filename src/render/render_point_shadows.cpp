@@ -247,13 +247,7 @@ gpu::Texture g_atlas;
 bool MakePipelines() {
     if (!g_clearTried) {
         g_clearTried = true;
-        gpu::PipelineDesc p;
-        p.program = gpu_shaders::solid::kIndex;
-        p.colour = gpu::Format::None;
-        p.depth = kDepthFormat;
-        p.depthCompare = gpu::Compare::Always;
-        p.depthWrite = true;
-        g_clearPipeline = gpu::MakePipeline(p, "ei-point-shadow-clear");
+        g_clearPipeline = gpu::MakePipeline(PointShadowClearDesc(), "ei-point-shadow-clear");
         if (!g_clearPipeline) ei::Log("render: the point shadows' pipeline could not be created (see the gpu messages above)");
     }
     return static_cast<bool>(g_clearPipeline);
@@ -332,6 +326,16 @@ bool InView(const Matrix4& clip, const Vector3& c, float radius) {
 } // namespace
 
 namespace detail {
+
+gpu::PipelineDesc PointShadowClearDesc() {
+    gpu::PipelineDesc p;
+    p.program = gpu_shaders::solid::kIndex;
+    p.colour = gpu::Format::None;
+    p.depth = kDepthFormat;
+    p.depthCompare = gpu::Compare::Always;
+    p.depthWrite = true;
+    return p;
+}
 
 void PreparePointShadows(Frame& f) {
     PointShadowFrame& ps = f.shadow.point;

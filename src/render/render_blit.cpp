@@ -20,7 +20,7 @@ enum PipelineKind { kBlit, kClearDepth, kFill };
 
 // None of them tests the depth: a blit and the fill keep the depth buffer, the depth clear writes only it. Made for
 // the pass's sample count (render_smooth.cpp).
-gpu::Pipeline PassPipeline(PipelineKind kind) {
+gpu::PipelineDesc PassDesc(PipelineKind kind, int samples) {
     gpu::PipelineDesc p;
     p.program = kind == kBlit ? gpu_shaders::blit::kIndex : gpu_shaders::solid::kIndex;
     p.depth = kDepthFormat;
@@ -28,9 +28,14 @@ gpu::Pipeline PassPipeline(PipelineKind kind) {
     p.depthWrite = kind == kClearDepth;
     p.colour = kColourFormat;
     p.colourMask = kind == kClearDepth ? 0 : gpu::kWriteRed | gpu::kWriteGreen | gpu::kWriteBlue;
-    p.samples = PassSampleCount();
+    p.samples = samples;
     AddDepthCopy(p);
-    return gpu::MakePipeline(p, kind == kBlit ? "ei-image-blit" : kind == kClearDepth ? "ei-clear-depth" : "ei-fill");
+    return p;
+}
+
+gpu::Pipeline PassPipeline(PipelineKind kind) {
+    return gpu::MakePipeline(PassDesc(kind, PassSampleCount()),
+                             kind == kBlit ? "ei-image-blit" : kind == kClearDepth ? "ei-clear-depth" : "ei-fill");
 }
 
 // `r` with the depth clear's or the fill's pipeline; `colour` a D3DCOLOR, its alpha ignored.
@@ -123,6 +128,10 @@ std::vector<std::uint8_t> g_movieScratch;
 } // namespace
 
 namespace detail {
+
+void ListBlitPipelines(std::vector<gpu::PipelineDesc>& out, int samples) {
+    for (PipelineKind kind : {kBlit, kClearDepth, kFill}) out.push_back(PassDesc(kind, samples));
+}
 
 bool CreateBlitPipeline() {
     bool ok = PassPipeline(kBlit) && PassPipeline(kClearDepth) && PassPipeline(kFill);

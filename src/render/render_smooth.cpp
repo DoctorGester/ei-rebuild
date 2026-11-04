@@ -21,7 +21,7 @@ gpu::Pipeline g_into, g_from;
 int g_copySamples = 0;   // the sample count the copies were made for
 
 // Depth always written, colour as `writeColour`, for `samples`.
-gpu::Pipeline CopyPipeline(int program, int samples, bool writeColour, const char* label) {
+gpu::PipelineDesc CopyDesc(int program, int samples, bool writeColour) {
     gpu::PipelineDesc p;
     p.program = program;
     p.depth = kDepthFormat;
@@ -31,7 +31,7 @@ gpu::Pipeline CopyPipeline(int program, int samples, bool writeColour, const cha
     p.colourMask = writeColour ? gpu::kWriteAll : 0;
     p.samples = samples;
     AddDepthCopy(p);
-    return gpu::MakePipeline(p, label);
+    return p;
 }
 
 void Draw(gpu::Pipeline pipeline, const gpu::Texture* textures, int count) {
@@ -53,11 +53,16 @@ void AddDepthCopy(gpu::PipelineDesc& p) {
     p.secondMask = p.depthWrite ? gpu::kWriteRed : 0;
 }
 
+void ListSmoothPipelines(std::vector<gpu::PipelineDesc>& out, int samples) {
+    out.push_back(CopyDesc(gpu_shaders::into_multisampled::kIndex, samples, true));
+    out.push_back(CopyDesc(gpu_shaders::depth_from_resolved::kIndex, 1, false));
+}
+
 bool PrepareSmoothCopies(int samples) {
     if (g_copySamples == samples) return true;
     g_copySamples = 0;
-    g_into = CopyPipeline(gpu_shaders::into_multisampled::kIndex, samples, true, "ei-into-multisampled");
-    g_from = CopyPipeline(gpu_shaders::depth_from_resolved::kIndex, 1, false, "ei-depth-from-resolved");
+    g_into = gpu::MakePipeline(CopyDesc(gpu_shaders::into_multisampled::kIndex, samples, true), "ei-into-multisampled");
+    g_from = gpu::MakePipeline(CopyDesc(gpu_shaders::depth_from_resolved::kIndex, 1, false), "ei-depth-from-resolved");
     if (!g_into || !g_from) {
         ei::Log("render: msaa: the copies between the targets could not be made (see the gpu messages above)");
         return false;
