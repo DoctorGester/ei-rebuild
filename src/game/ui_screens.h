@@ -383,7 +383,7 @@ public:
     // (Rebirth-patched: WideScreen, and ExtendedServerName behind its flag).
     void DrawListVanilla();
     void PaintList(UiSurface& surface) const;
-    // The list again: the client's servers (ServerAt) in order, sorted by sortKey (std::sort), the new game entry
+    // The list again: the client's servers in order, sorted by sortKey (std::sort), the new game entry
     // inserted first; the selection follows its address (row 0 and address 0 when gone); the scroll bar's range is
     // the rows past 15 and its position set again; scrollTop 0.
     void RebuildList();

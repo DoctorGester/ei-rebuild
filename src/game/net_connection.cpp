@@ -399,10 +399,6 @@ Message* Connection::ReadObjectRef(BufferCursor* cursor) {
     return object;
 }
 
-} // namespace net
-
-namespace net {
-
 void Connection::Acknowledge(std::uint16_t sequence) {
     for (std::vector<SentPacket>* packets : {&history, &acknowledged}) {
         for (auto packet = packets->begin(); packet != packets->end(); ++packet) {
@@ -425,7 +421,7 @@ void Connection::ReadAcks(BufferCursor* cursor) {
     if (moved > 0x8000) moved -= 0x10000;
     if (moved <= 0) {
         if (moved < -0x20) ackMask = 0;
-        else ackMask >>= (-moved) & 31;    // SHR by CL: a shift of 32 leaves it as it is
+        else ackMask >>= (-moved) & 31;    // a shift of 32 leaves it as it is
     } else {
         std::uint32_t shifted = (ackMask << 1) | 1;
         ackMask = shifted;

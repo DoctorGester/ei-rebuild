@@ -20,7 +20,7 @@ namespace {
 // The std::vector<int> of received sequences given back to the pool.
 void FreeReceived(Connection* c) { std::destroy_at(&c->received); }
 
-// Every container destroyed in the order the destructor's unwinding would (Reset's teardown).
+// Every container destroyed in the destructor's order (Reset's teardown).
 void DestroyForReset(Connection* c) {
     c->reliableIn.~GrowingBuffer();
     c->reliableOut.~GrowingBuffer();
@@ -37,6 +37,11 @@ void DestroyForReset(Connection* c) {
     for (int i = kMessageTypes; i-- > 0;) std::destroy_at(&c->idPools[i].free);    // the last first
     FreeReceived(c);
 }
+
+// The time from `then` to `now` on a connection's clock (doubles holding float values).
+float Age(double now, double then) { return static_cast<float>(now) - static_cast<float>(then); }
+
+constexpr float kRttKeep = 0.93f;   // the share of the old average kept per sample
 
 } // namespace
 
@@ -73,7 +78,7 @@ Connection::Connection(std::uint32_t newId) {
     ackBase = 0;
 }
 
-// Tears every container down (in the order the destructor's unwinding would)
+// Tears every container down (in the destructor's order)
 // and constructs the connection again with id 0 (the count and the flags kept).
 void Connection::OnShutdown() {
     DestroyForReset(this);
@@ -84,11 +89,7 @@ void Connection::OnShutdown() {
 // from the last).
 Connection::~Connection() = default;
 
-} // namespace net
-
 // ---- Id pools and replica entries ---------------------------------------------------------------------
-
-namespace net {
 
 ReplicaEntry::ReplicaEntry() {
     version = 0;
@@ -97,24 +98,11 @@ ReplicaEntry::ReplicaEntry() {
 
 ReplicaEntry::~ReplicaEntry() {}
 
-} // namespace net
-
 // --- Net connection tick -----------------------------------------------------------------------------
 
 // A connection's tick: clocks, lost-packet detection, sending, delayed id reuse and the
 // timeout. See net_connection.h and docs/notes/network.md. The clocks are doubles holding float values: their
 // sums are float sums, as the original's were.
-
-namespace net {
-
-namespace {
-
-// The time from `then` to `now` on a connection's clock (doubles holding float values).
-float Age(double now, double then) { return static_cast<float>(now) - static_cast<float>(then); }
-
-constexpr float kRttKeep = 0.93f;   // the share of the old average kept per sample
-
-} // namespace
 
 // Advances the idle time and the clock by `dt`. Packets older than the loss timeout (3 standard deviations
 // above the average round trip, at least 0.1, at most the session's maxRoundTrip) are rolled back and move
@@ -177,10 +165,6 @@ bool Connection::Tick(double dt) {
     g_currentConnection = nullptr;
     return alive;
 }
-
-} // namespace net
-
-namespace net {
 
 void Connection::Delivered(SentPacket* packet) {
     const float sample = Age(clock, packet->time);

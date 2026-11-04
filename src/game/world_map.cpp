@@ -284,7 +284,7 @@ bool MapFileExists(const char* name) {
 }
 
 void WriteMapFile(const char* name, GameBuffer* buffer) {
-    netlink::FileStream file;
+    FileStream file;
     modfolders::SelectMaps(name, modfolders::MapsSite::WriteFile);
     file.Open(MapsFolder() + name, platform::FileMode::Create);
     file.Write(buffer->begin, static_cast<std::uint32_t>(buffer->Size()));

@@ -124,8 +124,8 @@ struct HandlerEntry {
 // them, CreateUnits restores them).
 struct UnitPlacement {
     int id;
-    std::uint32_t position[3];      // float bits
-    std::uint32_t rotation[4];
+    Vector3 position;
+    Quaternion rotation;
     std::uint32_t moveMode;         // the unit's moveMode2
     std::uint32_t weapon;           // its active weapon (pendingWeapon on restore)
 };
@@ -187,13 +187,13 @@ public:
     void SetVariableMax(std::string_view name, float value);             // raises a variable, 0x81
     void DeleteVariable(const char* name);                          // message 0x82
     void SendGameTime();                                            // message 0x07
-    int SendZone(MemoryStream* zone);                           // message 0x02, `zone`
-    int SendWeather(std::uint8_t weather, std::uint16_t strength);   // message 0x70
-    int SendTime(std::uint32_t time, std::uint32_t speed);   // message 0x71 (float bits)
-    int SendWind(std::uint32_t x, std::uint32_t y, std::uint32_t z, std::uint32_t w);   // 0x72 (float bits)
+    void SendZone(MemoryStream* zone);                           // message 0x02, `zone`
+    void SendWeather(std::uint8_t weather, std::uint16_t strength);   // message 0x70
+    void SendTime(float hours, float speed);                          // message 0x71
+    void SendWind(float x, float y, float z, float strength);       // message 0x72
     void SendCountdowns(const WaterTweens* source);                    // message 0x73
-    int SendCameraPlacement(const Vector3& at, std::uint32_t startValue, std::uint32_t sessionKind);   // message 0x04
-    std::uint32_t SendFreeCamera(const Vector3& at, const Vector3& other, std::uint8_t flag);   // 0x0F
+    void SendCameraPlacement(const Vector3& at, std::uint32_t startValue, std::uint32_t sessionKind);   // message 0x04
+    void SendFreeCamera(const Vector3& at, const Vector3& other, std::uint8_t flag);   // 0x0F
     void SendQuestItemsChanged();
     void SendItemRemoved(const EngineObject* object);                 // id
     void SendWeaponRemoved(std::uint32_t unitId, std::uint32_t index);
@@ -216,16 +216,16 @@ public:
     int Flush();
     // Each new map object (message 0x40: header, scale, names, the server companion's names and strings, a
     // unit's name, its full state) / timed object (0x50: id, class, full state) is sent and kept, counted, in
-    // the player's map. 1.
-    int SendObjectsAdded(const std::vector<MapObject*>* objects);
-    int SendTimedAdded(const std::vector<Effect*>* effects);
+    // the player's map.
+    void SendObjectsAdded(const std::vector<MapObject*>* objects);
+    void SendTimedAdded(const std::vector<Effect*>* effects);
     // The objects changed in this world update (their stamp equals the world's update count) send their delta
-    // (0x41 / 0x51: id, then the delta stream). 1.
-    int SendObjectsChanged(const std::vector<MapObject*>* objects);
-    int SendTimedChanged(const std::vector<Effect*>* effects);
-    // Objects gone from view: dropped from the player's map and released (0x42 / 0x52: id). 1.
-    int SendObjectsRemoved(const std::vector<MapObject*>* objects);
-    int SendTimedRemoved(const std::vector<Effect*>* effects);
+    // (0x41 / 0x51: id, then the delta stream).
+    void SendObjectsChanged(const std::vector<MapObject*>* objects);
+    void SendTimedChanged(const std::vector<Effect*>* effects);
+    // Objects gone from view: dropped from the player's map and released (0x42 / 0x52: id).
+    void SendObjectsRemoved(const std::vector<MapObject*>* objects);
+    void SendTimedRemoved(const std::vector<Effect*>* effects);
     // Every item of the player's item list the party's item manager knows is sent (SendItemValue).
     void SendItems();
     // For a joined player (State::Joined): message 0x05, a stream with the given items' spells and then the items,
@@ -234,12 +234,11 @@ public:
     // Message 0x60: the world's pause flag, possessedId, the party units (partyUnits) by id and the party's
     // danger (danger: EnemyNear when a unit of the player has an exposure at most 2, InDanger when a party unit
     // fights or is the enemy of a hostile neighbour), then the objects shared with a
-    // multiplayer client's single hero. Returns 1.
-    int SendPartyState();
+    // multiplayer client's single hero.
+    void SendPartyState();
     // A map object leaves the world: when the client knows it, it is dropped from the player's map and the
     // sent list (each drop releases it) and message 0x42 goes out; it leaves both groups in any case.
-    // Returns 1.
-    int ForgetObject(EngineObject* object);
+    void ForgetObject(EngineObject* object);
     bool IsPartyUnit(EngineObject* object);
     // Message 0x80: the party saved (with its variables) as a sized block; the next refresh in 900..1800
     // updates (ISAAC).
@@ -356,7 +355,6 @@ public:
     using Handler = int (PlayerServer::*)();
     std::vector<Handler> handlers;    // by message type (null: refused; 256 of them)
     Vector3 lastPosition;           // sent with 0x04 / 0x0F
-    int spare;                      // -1 after Create; nothing reads it
     MemoryStream out;                  // messages to the client
     std::uint8_t partyDeployed;     // the party stands in the world: OnLeaderDied collects it when set, redeploys it when clear
     std::vector<UnitPlacement> placements;
@@ -374,10 +372,10 @@ public:
 
 // The client's login message to the world server (not net::LoginMessage; 0x88 bytes, read whole by PlayerServer::OnLogin).
 struct PlayerLoginMessage {
-    int version;                    // +0x00 0x64
-    char name[0x40];                // +0x04
-    char password[0x40];            // +0x44
-    std::uint32_t partyId;          // +0x84 the client player's partyId (cleared before the read)
+    int version;                    // 0x64
+    char name[0x40];
+    char password[0x40];
+    std::uint32_t partyId;          // the client player's partyId (cleared before the read)
 };
 static_assert(sizeof(PlayerLoginMessage) == 0x88);   // sent as its bytes
 

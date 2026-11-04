@@ -297,6 +297,8 @@ void PathCellsRemoveRepeats(PathCells* list) {
     list->erase(kept, list->end());
 }
 
+Vector3 AIPath::TargetPoint() const { return WithZ(0.5f * target, 0.0f); }
+
 void AIPath::ToMotionOrder(PathOrder* out) const {
     constexpr int kFollowSteps = 2;
     std::memcpy(&out->motionOrder, &motionOrder, sizeof(motionOrder));

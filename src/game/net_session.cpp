@@ -40,6 +40,31 @@ void TickSession(net::SessionBase* session, std::uint32_t elapsed) {
     session->Tick(seconds);
 }
 
+// A new driver for `player`, put at the end of the owning list (shared there).
+netlink::DriverLink* NewDriver(netlink::DriverSession* self, net::Connection* player) {
+    auto* driver = net::NewCounted<netlink::DriverLink>();
+    driver->player.Assign(player);
+    self->drivers.emplace_back(driver);
+    return driver;
+}
+
+// "<text><address>\n" and a flush to the network log.
+void LogAddress(const char* text, const char* address) { console::EndLine(*net::g_netLog << text << address); }
+
+// "<text>\n" and a flush, when there is a network log.
+void LogText(const char* text) {
+    if (console::Stream* log = net::g_netLog) console::EndLine(*log << text);
+}
+
+// The address string of a connection, logged as "<before><address><after>\n", then freed.
+void LogConnection(const char* before, net::Connection* connection, const char* after) {
+    std::string peer = connection->address.ToString();
+    const char* text = peer.data();
+    console::Stream& log = *net::g_netLog << before << text;
+    if (after) log << after;
+    console::EndLine(log);
+}
+
 } // namespace
 
 // Their static initialisers (in the list's order): the counted pointer's constructor clears it, then the exit
@@ -69,14 +94,10 @@ void Pump() {
     g_gameFlow.UpdateMultiplayerVariable();   // With the game flow: the per-frame network step
 }
 
-} // namespace net
-
 // --- Base --------------------------------------------------------------------------------------------
 
 // The network session base class: construction, the message type registry and
 // the handler tables. See net_classes.h and docs/notes/network.md.
-
-namespace net {
 
 int TypeRegistry::TypeOf(const std::uintptr_t* key) const {
     auto node = byVtable.find(*key);
@@ -133,102 +154,10 @@ void SessionBase::RegisterMessageTypes() {
 
 std::uint32_t SessionBase::ClientCount() const { return static_cast<std::uint32_t>(clients.size()); }
 
-} // namespace net
-
-// --- Pump --------------------------------------------------------------------------------------------
-
-// The connection pump of a network session and its start: a driver link (net_link.h) per remote player. The
-// session keeps two lists of the drivers (owning, and holders). See docs/notes/network.md.
-
-namespace netlink {
-
-namespace {
-
-// A new driver for `player`, put at the end of the owning list (shared there).
-DriverLink* NewDriver(DriverSession* self, net::Connection* player) {
-    auto* driver = net::NewCounted<DriverLink>();
-    driver->player.Assign(player);
-    self->drivers.emplace_back(driver);
-    return driver;
-}
-
-} // namespace
-
-// A driver for every connection of `session` this one has none for, when the connection has something queued
-// and the game server knows it; then each driver pumped, and those whose player is gone or detached erased.
-void DriverSession::PumpDrivers(net::SessionBase* session) {
-    if (!IsLive(session)) return;
-    for (auto& node : session->clients) {
-        net::Connection* player = node.Get();
-        bool known = false;
-        for (auto& it : drivers) {
-            if (it.Get()->player.Get() == player) {
-                known = true;
-                break;
-            }
-        }
-        if (known) continue;
-        if (node.Get()->reliableIn.Size() <= 0) continue;
-        net::ServerSession* server = net::g_gameServer;
-        if (!IsLive(server)) continue;
-        if (!server->IsConnecting(node.Get())) continue;
-        player = node.Get();
-        DriverLink* driver = NewDriver(this, player);
-        holders.emplace_back(driver);
-    }
-    for (auto it = drivers.begin(); it != drivers.end();) {
-        it->Get()->Pump();
-        if (IsLive(it->Get()->player.Get())) {
-            ++it;
-        } else {
-            it = drivers.erase(it);
-        }
-    }
-}
-
-// Both lists emptied, then one driver for `player`: started, and its pending output
-// drained into throwaway memory streams while its virtual check answers true. Returns the driver.
-DriverLink* DriverSession::Start(net::Connection* player) {
-    drivers.clear();
-    holders.clear();
-    DriverLink* driver = NewDriver(this, player);
-    driver->Pump();
-    while (driver->HasIncoming()) {
-        MemoryStream stream;
-        driver->Receive(&stream);
-    }
-    return driver;
-}
-
-} // namespace netlink
-
 // --- Tick --------------------------------------------------------------------------------------------
 
 // The session's receive step, its packet handlers, sends and destruction,
 // and the byte buffer helpers they use. See net_classes.h and docs/notes/network.md.
-
-namespace net {
-
-namespace {
-
-// "<text><address>\n" and a flush to the network log.
-void LogAddress(const char* text, const char* address) { console::EndLine(*g_netLog << text << address); }
-
-// "<text>\n" and a flush, when there is a network log.
-void LogText(const char* text) {
-    if (console::Stream* log = g_netLog) console::EndLine(*log << text);
-}
-
-// The address string of a connection, logged as "<before><address><after>\n", then freed.
-void LogConnection(const char* before, Connection* connection, const char* after) {
-    std::string peer = connection->address.ToString();
-    const char* text = peer.data();
-    console::Stream& log = *g_netLog << before << text;
-    if (after) log << after;
-    console::EndLine(log);
-}
-
-} // namespace
 
 // An empty datagram is only logged; the current session is this one meanwhile.
 void SessionBase::Tick(double dt) {
@@ -279,11 +208,7 @@ void SessionBase::Tick(double dt) {
     g_currentSession = nullptr;
 }
 
-} // namespace net
-
 // ---- Session virtuals ---------------------------------------------------------------
-
-namespace net {
 
 std::list<SharedRef<Connection>>::iterator SessionBase::FindClient(const NetAddress* address) {
     auto node = clients.begin();
@@ -335,11 +260,7 @@ void SessionBase::OnAccepted(const NetAddress*, BufferCursor*) { LogText(game::n
 void SessionBase::OnRejected(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleRejected()); }
 void SessionBase::OnMaster(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleMaster()); }
 
-} // namespace net
-
 // ---- Byte buffer writes and small socket helpers ---------------------------------------------------
-
-namespace net {
 
 int g_remoteRate = /*00783E34*/ 2500;
 int g_localRate = /*00783E38*/ 12500;
@@ -358,21 +279,13 @@ void SessionBase::SendLeave(const NetAddress* address, std::uint32_t id) {
     socket.SendTo(address, &buffer);
 }
 
-} // namespace net
-
-namespace net {
-
 // Every client is sent a leave packet; the members then close the socket, free the type registry and release the
 // connections.
 SessionBase::~SessionBase() {
     for (auto& node : clients) SendLeave(&node.Get()->address, node.Get()->id);
 }
 
-} // namespace net
-
 // ---- Adding a client ---------------------------------------------------------------------------------
-
-namespace net {
 
 // The send interval is the constant over the rate clamped to [500, 50000].
 void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rate) {
@@ -391,3 +304,54 @@ void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rat
 }
 
 } // namespace net
+
+// --- Pump --------------------------------------------------------------------------------------------
+
+// The connection pump of a network session and its start: a driver link (net_link.h) per remote player. The
+// session keeps two lists of the drivers (owning, and holders). See docs/notes/network.md.
+
+// A driver for every connection of `session` this one has none for, when the connection has something queued
+// and the game server knows it; then each driver pumped, and those whose player is gone or detached erased.
+void netlink::DriverSession::PumpDrivers(net::SessionBase* session) {
+    if (!IsLive(session)) return;
+    for (auto& node : session->clients) {
+        net::Connection* player = node.Get();
+        bool known = false;
+        for (auto& it : drivers) {
+            if (it.Get()->player.Get() == player) {
+                known = true;
+                break;
+            }
+        }
+        if (known) continue;
+        if (node.Get()->reliableIn.Size() <= 0) continue;
+        net::ServerSession* server = net::g_gameServer;
+        if (!IsLive(server)) continue;
+        if (!server->IsConnecting(node.Get())) continue;
+        player = node.Get();
+        DriverLink* driver = NewDriver(this, player);
+        holders.emplace_back(driver);
+    }
+    for (auto it = drivers.begin(); it != drivers.end();) {
+        it->Get()->Pump();
+        if (IsLive(it->Get()->player.Get())) {
+            ++it;
+        } else {
+            it = drivers.erase(it);
+        }
+    }
+}
+
+// Both lists emptied, then one driver for `player`: started, and its pending output
+// drained into throwaway memory streams while its virtual check answers true. Returns the driver.
+netlink::DriverLink* netlink::DriverSession::Start(net::Connection* player) {
+    drivers.clear();
+    holders.clear();
+    DriverLink* driver = NewDriver(this, player);
+    driver->Pump();
+    while (driver->HasIncoming()) {
+        MemoryStream stream;
+        driver->Receive(&stream);
+    }
+    return driver;
+}

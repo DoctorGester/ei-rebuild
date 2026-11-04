@@ -109,7 +109,7 @@ void LockKey::WriteTo(ByteStream* stream) const {
     for (std::uint32_t word : {mask, id, level}) stream->WriteValue(word);
 }
 
-void Lever::WriteLeverNetState() {
+void Lever::WriteNetState() {
     MapObject::WriteNetState();
     DeltaField* field = netState.BeginField(NetField::LeverState);
     if (!field) return;
@@ -124,8 +124,8 @@ void Lever::WriteLeverNetState() {
     field->EndField();
 }
 
-std::uint32_t Lever::ReadLeverNetState(int first) {
-    std::uint32_t complete = MapObject::ReadNetState(first);
+bool Lever::ReadNetState(bool update) {
+    bool complete = MapObject::ReadNetState(update);
     DeltaField* field = netState.BeginField(NetField::LeverState);
     if (!field) return complete;
     field->ReadDelta(&lock, sizeof(LockKey));
@@ -135,15 +135,12 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
     field->ReadDelta(&rate, 4);
     std::uint8_t disabled;
     field->ReadDelta(&disabled, 1);
-    MemoryStream* snapshot = delta::g_readSnapshot;
-    std::uint32_t readTo = snapshot->Position();
-    std::uint32_t size = delta::g_readSnapshot->Size();
-    complete &= readTo == size ? 1u : 0u;
+    complete &= delta::SnapshotConsumed();
     field->EndField();
     if (disabled) flags |= MapObjectFlag::Disabled;
     else flags &= ~MapObjectFlag::Disabled;
     g_clientWorld.QueueSynchronised(this);
-    if (first == 1) {
+    if (update) {
         const LeverRecord* record = g_leverTable.Named(name);
         if (record && from != to)
             g_clientWorld.sounds->Play3D(record->sound, 0, localPosition, kSoundNear, kSoundFar, 0);

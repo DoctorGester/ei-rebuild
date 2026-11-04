@@ -35,9 +35,8 @@ bool NetAddress::Parse(const char* text, int defaultPort) {
     std::memset(this, 0, sizeof(*this));
     family = 2;
     std::string s(text, text + std::strlen(text));
-    const std::size_t npos = 0xFFFFFFFFu;
     int number = defaultPort;
-    std::size_t colon = npos;
+    std::size_t colon = std::string::npos;
     if (s.size() != 0) {
         for (const char* p = s.data(); p != s.data() + s.size(); ++p) {
             if (*p == ':') {
@@ -46,17 +45,9 @@ bool NetAddress::Parse(const char* text, int defaultPort) {
             }
         }
     }
-    if (colon != npos) {
-        std::size_t first = colon + 1;   // substr's range check (out_of_range) can't fire: the colon is in s
-        std::size_t n = s.size() - first;
-        if (n >= npos) n = npos;
-        {
-            std::string digits(s.data() + first, s.data() + first + n);
-            number = std::atoi(digits.data());
-        }
-        std::size_t m = s.size() < colon ? s.size() : colon;
-        std::string host(s.data(), s.data() + m);
-        s.assign(host.data(), host.data() + host.size());
+    if (colon != std::string::npos) {
+        number = std::atoi(s.c_str() + colon + 1);
+        s.resize(colon);
     }
     ip = lib::ParseIpv4(s.data());
     if (ip == lib::kNoAddress && !sockets::LookUp(s.data(), &ip)) return false;
@@ -222,8 +213,7 @@ int MasterLinkTick(MasterLink* self) {
             return self->state;
         }
         if (n == 0) {
-            // EI_Plugin's NewMaster (its 10005490): a link closed before anything
-            // arrived (base - begin + high of +0x1C, `high` as it stands) is left as it is.
+            // EI_Plugin's NewMaster: a link closed before anything arrived (nothing received) is left as it is.
             GameBuffer* received = &self->in;
             if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster) &&
                 received->PositionOf(received->high) ==

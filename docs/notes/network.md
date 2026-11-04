@@ -116,13 +116,13 @@ idle.
   binding handler did not refresh it (players read before the binding left the base without faces); ours refreshes it
   at the binding.
 - Kept: `SendUpdate`'s entry that overflows the budget stays in the packet uncounted, the rest of that priority
-  waits, lower priorities are still tried. `ReadRecord`'s skip path creates a throwaway object. `ClientApplyParty`
+  waits, lower priorities are still tried. `ReadRecord`'s skip path creates a throwaway object. `ClientSession::ApplyParty`
   creates and drops a member's object with a positive id.
 - Undefined in the original, defined in ours: a new connection's `roundTripSquare` starts at 0 (the original squared
   what the memory held); an object of no registered type is tracked unreliable (the original read `reliable[-1]`);
   every read through a `BufferCursor` stops at its `limit` (`BeginRead`'s size: a datagram's end, a compressed
   stream's end): bytes and bits past it read as zero and a text without its zero byte ends there (the original read on
-  into whatever memory followed); `ClientApplyParty` stops at a spell or item type its factory does not know.
+  into whatever memory followed); `ClientSession::ApplyParty` stops at a spell or item type its factory does not know.
 
 ## Compression
 

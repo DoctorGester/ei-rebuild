@@ -24,6 +24,13 @@
 
 namespace net {
 
+namespace {
+
+const char* MasterHost() { return options::g_options.masterServerName.c_str(); }    // the master server's host name
+
+
+} // namespace
+
 ServerBase::ServerBase() {
     socket.Open(g_gamePort);
 }
@@ -127,14 +134,10 @@ void ServerSession::CollectReplicated(std::vector<Replicated>** out) {
     }
 }
 
-} // namespace net
-
 // --- Entry -------------------------------------------------------------------------------------------
 
 // The game server's description of itself: a server entry like those the
 // client reads from the server list (net_server.cpp). See net_classes.h and docs/notes/network.md.
-
-namespace net {
 
 // Makes `*out` a new server entry: the name, the kind, the current map's title as the description when a map
 // message is held (else empty), the number of clients, the maximum and whether a password is set.
@@ -160,16 +163,11 @@ void ServerSession::SetPublic(bool announce) {
     if (announce) masterAddress.Parse(options::g_options.masterServerName.c_str(), 28004);
 }
 
-} // namespace net
-
 // --- Life --------------------------------------------------------------------------------------------
 
-// The game server's destructor, scalar deleting destructor and its
-// base layer's destructor body. The members are torn down in reverse order: the lists are cleared where the
-// original destroys them, between the counted pointers' releases; then the session base. See net_classes.h and
+// The game server's destructor and its base layer's. The members are torn down in reverse order: the lists are
+// cleared between the counted pointers' releases; then the session base. See net_classes.h and
 // docs/notes/network.md.
-
-namespace net {
 
 // The original frees the two names first; ours last (they are members). The pending joins and the session base
 // follow (their destructors).
@@ -189,10 +187,7 @@ ServerSession::~ServerSession() {
     players.clear();
 }
 
-// Also reached from the constructor's unwind funclets.
-ServerBase::~ServerBase() {  }
-
-} // namespace net
+ServerBase::~ServerBase() {}
 
 // --- Handlers ----------------------------------------------------------------------------------------
 
@@ -200,14 +195,11 @@ ServerBase::~ServerBase() {  }
 // master server's answer and a client's chat line (registered for SayMessage by ServerSession's constructor).
 // All run from the session's tick on the main thread (net::Pump). Rebirth's EI_Plugin.asi patches the
 // announcement and the master answer (NewMaster; both reproduced: the answer's NOPs and the announcement's
-// copy of the announcement to the second master server, net_second_master.h) and addon.dll's ChatLog has a
+// copy of the announcement to the second master server, net_second_master.h) and the addon's ChatLog has a
 // site in the chat handler (disabled in this install). See docs/notes/network.md and rebirth.md.
 
-namespace net {
-
-// The record is built on the stack (two strings with room for 8 bytes first, as their
-// constructors make them), written into a growing buffer and sent from the session's socket to
-// the master's address; the result of the send is not looked at.
+// The record is written into a growing buffer and sent from the session's socket to the master's address; the
+// result of the send is not looked at.
 void ServerSession::AnnounceToMaster() {
     GrowingBuffer buffer;
     GameInfoRecord info;
@@ -235,7 +227,7 @@ void ServerSession::AnnounceToMaster() {
 
 // A PacketKind::Master packet: only from the master server's address (all 16 bytes compared; from any address with
 // EI_Plugin's NewMaster, which NOPs a jump so the answer of its second master server counts). Its first dword
-// must be the session's +0x25FC; the second is then kept (the next announcement sends it back). The first
+// must be the session's master key; the second is then kept (the next announcement sends it back). The first
 // dword is consumed either way.
 void ServerSession::OnMaster(const NetAddress* from, BufferCursor* cursor) {
     if (std::memcmp(from, &masterAddress, sizeof(NetAddress)) != 0 &&
@@ -272,35 +264,10 @@ void ServerOnSay(ServerSession* server, SayMessage* message) {
 // moves on, so the connections send it again.
 void ServerOnMemberChanged(ServerSession*, Message* message) { ++message->version; }
 
-} // namespace net
-
 // --- Tick --------------------------------------------------------------------------------------------
 
 // The game server's tick and a player state query (called by the file chunk sender). Float maths in plain C++
 // (rewrite-guide rule 7). See net_classes.h and docs/notes/network.md.
-
-namespace net {
-
-namespace {
-
-const char* MasterHost() { return options::g_options.masterServerName.c_str(); }    // the master server's host name
-
-// Timed entries {seconds left (float), object}: each loses `dt`; those below zero are erased.
-template <typename List>
-void CountDown(List& list, float dt) {
-    for (auto node = list.begin(); node != list.end();) {
-        float& seconds = node->seconds;
-        float left = seconds - dt;
-        seconds = left;
-        if (left < 0.0f) {
-            node = list.erase(node);
-        } else {
-            ++node;
-        }
-    }
-}
-
-} // namespace
 
 // The base layer's tick, then the timed entries of the finished trades and the awards count down by `dt` (as
 // a float), and when the game is public the announcement timer does too: when it runs out it is reset and,
@@ -334,14 +301,10 @@ bool ServerSession::IsConnecting(const Connection* connection) {
     return false;
 }
 
-} // namespace net
-
 // --- List --------------------------------------------------------------------------------------------
 
 // The server list reply: a compressed run of {address, GameInfoRecord} turned into the
 // client base's server entries. See net_classes.h and docs/notes/network.md.
-
-namespace net {
 
 // Reads a server list reply from `in` (rewound): its size, then the LZ-compressed list.
 // Each item is a 16-byte address and a GameInfoRecord; it becomes a server entry with the record's

@@ -45,8 +45,8 @@ namespace {
 
 constexpr int kLoginVersion = 100;
 
-// The login request (message 0). The original copies the two texts into stack buffers
-// and sends the bytes after them uninitialised; here they are zero.
+// The login request (message 0). The bytes after the two texts are zero (the original sent whatever its buffers
+// held).
 struct LoginRequest {
     int version;
     char name[64];
@@ -56,16 +56,8 @@ struct LoginRequest {
 static_assert(sizeof(LoginRequest) == 0x88);   // sent as its bytes
 
 // The texts the original reads from the exe: the traffic log, the login, the dispatch errors.
-const char* TextClientToServer() { return "client to server, size = "; }
-const char* TextSqueezedSize() { return " squeezed size = "; }
-const char* TextLoginName() { return "Tango"; }
-const char* TextLoginPassword() { return "Very top secret"; }
-const char* TextReadPastEnd() { return "Pkt read error prevID=%x curID=%x\n"; }
-const char* TextNoHandler() { return "Packet has no handler prevID=%x curID=%x\n"; }
-const char* TextHandlerFailed() { return "Error during parsing update prevID=%x curID=%x\n"; }
-const char* TextUnknownType() { return "Wrong packet ID prevID=%x curID=%x\n"; }
-
-const char* QuestPrefix() { return "q."; }
+constexpr const char* kLoginName = "Tango";
+constexpr const char* kLoginPassword = "Very top secret";
 
 // The quest log refreshed: no items picked up.
 void RefreshQuestLog() { g_interface.OnItemsPicked({}, 0, false); }
@@ -80,7 +72,7 @@ int ScaledExperience(const Unit* unit, float amount) {
 }
 
 bool IsQuestVariable(const std::string& name) {
-    return static_cast<int>(name.size()) > 2 && name.starts_with(std::string_view(QuestPrefix(), 2));
+    return static_cast<int>(name.size()) > 2 && name.starts_with("q.");
 }
 
 constexpr int kKindNoPath = 3;               // OnPathMarker: no path to read
@@ -91,7 +83,6 @@ constexpr std::uint32_t kMarkerSpeedB = 0x501502F9u;   // float bits (1e10)
 
 // Path markers are shown.
 bool MarkersShown() { return options::g_options.drawPath != 0; }
-const char* TextPartyReceived() { return "party received on client"; }
 
 constexpr std::uint32_t kHeaderFlagHidden = 8;
 constexpr std::uint32_t kFlagCow = 0x10000000;
@@ -108,23 +99,6 @@ struct NewObjectHeader {
     std::uint32_t prototype;   // the object's prototypeId
     std::uint32_t flags;
 };
-
-// Model and part names the handler compares with (the exe's strings).
-const char* TextCow1() { return "unmoco1"; }
-const char* TextCow2() { return "unmoco2"; }
-const char* TextHuman() { return "unhuma"; }
-const char* TextHumanFemale() { return "unhufe"; }
-const char* TextHairPart() { return "hr"; }
-const char* TextHairFormat() { return "hr.%.2d"; }
-const char* TextGoblin() { return "unmogo"; }
-const char* TextAxePart() { return "rh3.axeth00"; }
-const char* TextSwordPart() { return "rh3.sword00"; }
-const char* TextPikePart() { return "rh3.pike00"; }
-const char* TextSlingPart() { return "sling"; }
-const char* TextWisp() { return "unmowi"; }
-const char* TextSkinFrom() { return "mo%dp"; }
-const char* TextSkinTo() { return "mo%ds"; }
-const char* TextNone() { return "none"; }
 
 bool Same(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 
@@ -203,8 +177,8 @@ bool PlayerClient::Pump() {
         LoginRequest login;
         std::memset(&login, 0, sizeof(login));
         login.version = kLoginVersion;
-        std::memcpy(login.name, TextLoginName(), std::strlen(TextLoginName()) + 1);
-        std::memcpy(login.password, TextLoginPassword(), std::strlen(TextLoginPassword()) + 1);
+        std::memcpy(login.name, kLoginName, std::strlen(kLoginName) + 1);
+        std::memcpy(login.password, kLoginPassword, std::strlen(kLoginPassword) + 1);
         login.partyId = player->partyId;
         WriteType(&out, ClientMessage::Login);
         out.WriteValue(login);
@@ -235,7 +209,7 @@ bool PlayerClient::SendToServer() {
         if (player->logTraffic != 0) {
             std::uint32_t packedSize = packed.size;
             std::uint32_t size = out.Size();
-            console::EndLine(console::g_netLogOut << TextClientToServer() << size << TextSqueezedSize() << packedSize);
+            console::EndLine(console::g_netLogOut << "client to server, size = " << size << " squeezed size = " << packedSize);
         }
         sent = link->Send(&packed);
     }
@@ -249,13 +223,13 @@ int PlayerClient::DispatchMessages() {
     std::uint8_t messageType = 0xFF;
     std::uint8_t previous = 0xFF;
     for (;;) {
-        if (!in.ok) return PlayerMessageError(TextReadPastEnd(), previous, messageType);
+        if (!in.ok) return PlayerMessageError("Pkt read error prevID=%x curID=%x\n", previous, messageType);
         previous = messageType;
         if (in.Read(&messageType, 1) == 0) return 1;
-        if (static_cast<int>(messageType) >= std::ssize(handlers)) return PlayerMessageError(TextUnknownType(), previous, messageType);
+        if (static_cast<int>(messageType) >= std::ssize(handlers)) return PlayerMessageError("Wrong packet ID prevID=%x curID=%x\n", previous, messageType);
         auto handler = handlers[messageType];
-        if (handler == nullptr) return PlayerMessageError(TextNoHandler(), previous, messageType);
-        if (!(this->*handler)()) return PlayerMessageError(TextHandlerFailed(), previous, messageType);
+        if (handler == nullptr) return PlayerMessageError("Packet has no handler prevID=%x curID=%x\n", previous, messageType);
+        if (!(this->*handler)()) return PlayerMessageError("Error during parsing update prevID=%x curID=%x\n", previous, messageType);
     }
 }
 
@@ -371,7 +345,7 @@ int PlayerClient::OnItemsReceived() {
     int& money = player->GetParty()->money;
     int before = money;
     in.ReadValue(money);
-    std::uint8_t flag = 0;   // the original passes this byte with three bytes of stack memory above it
+    std::uint8_t flag = 0;
     in.ReadValue(flag);
     int result = 1;
     for (;;) {
@@ -416,7 +390,7 @@ int PlayerClient::OnParty() {
             party->variables = saved;
         }
         g_clientWorld.ApplyObjectVariables();
-        console::EndLine(console::g_netLogOut << TextPartyReceived());
+        console::EndLine(console::g_netLogOut << "party received on client");
         g_gameFlow.ReturnLocalParty();
     }
     return 1;
@@ -503,7 +477,7 @@ int PlayerClient::OnNewObject() {
     in.ReadText(model, kTextSize);
     in.ReadText(textureFrom, kTextSize);
     in.ReadText(textureTo, kTextSize);
-    std::uint16_t count = 0;   // read into the low half of a stack dword
+    std::uint16_t count = 0;
     in.ReadValue(count);
     parts.resize(count);
     for (std::uint16_t i = 0; i < count; ++i) {
@@ -535,25 +509,25 @@ int PlayerClient::OnNewObject() {
         unit->SetSecondPrototypeIndex(prototypeValue);
     }
     if (header.flags & kHeaderFlagHidden) created->flags |= kHeaderFlagHidden;
-    if (Same(model, TextCow1()) || Same(model, TextCow2())) created->flags |= kFlagCow;
-    if (created->MapType() == MapObjectType::Hero && (Same(model, TextHuman()) || Same(model, TextHumanFemale()))) {
+    if (Same(model, "unmoco1") || Same(model, "unmoco2")) created->flags |= kFlagCow;
+    if (created->MapType() == MapObjectType::Hero && (Same(model, "unhuma") || Same(model, "unhufe"))) {
         // The head part takes the prototype's hair, or goes without one.
         for (std::size_t i = 0; i < parts.size(); ++i) {
-            if (str::Compare(parts[i], TextHairPart()) != 0) continue;
+            if (str::Compare(parts[i], "hr") != 0) continue;
             int hair = unitdb::PrototypeRecord(header.prototype)->hair;
             if (hair == -1) parts.erase(parts.begin() + static_cast<std::ptrdiff_t>(i));
-            else parts[i] = str::Format(TextHairFormat(), hair);
+            else parts[i] = str::Format("hr.%.2d", hair);
             break;
         }
     }
     figure->MakeFigure(model, &parts);
-    if (Same(model, TextGoblin())) {
-        RemovePartNamed(figure, TextAxePart());
-        RemovePartNamed(figure, TextSwordPart());
+    if (Same(model, "unmogo")) {
+        RemovePartNamed(figure, "rh3.axeth00");
+        RemovePartNamed(figure, "rh3.sword00");
         bool pike = static_cast<int>(unitdb::PrototypeRecord(created->prototypeId)->naturalWeapon) == kWeaponPike;
-        RemovePartNamed(figure, pike ? TextPikePart() : TextSlingPart());
+        RemovePartNamed(figure, pike ? "rh3.pike00" : "sling");
     }
-    if (Same(model, TextWisp())) {
+    if (Same(model, "unmowi")) {
         auto* source =
             g_clientWorld.particleManager->CreateSource(kWispParticles);
         source->Attach(object);
@@ -571,9 +545,9 @@ int PlayerClient::OnNewObject() {
     figure->RestartPose();
     std::optional<std::string_view> to = std::string_view(textureTo);
     if (created->MapType() == MapObjectType::Hero) {
-        std::snprintf(textureFrom, sizeof(textureFrom), TextSkinFrom(), created->id);
-        std::snprintf(textureTo, sizeof(textureTo), TextSkinTo(), created->id);
-    } else if (Same(textureTo, TextNone())) {
+        std::snprintf(textureFrom, sizeof(textureFrom), "mo%dp", created->id);
+        std::snprintf(textureTo, sizeof(textureTo), "mo%ds", created->id);
+    } else if (Same(textureTo, "none")) {
         to = std::nullopt;
     }
     attached->SetSkins(textureFrom, to);
@@ -589,7 +563,7 @@ int PlayerClient::OnNewObject() {
     else
         object->TakePrototype(model);
     object->WriteFullState();
-    if (object->ReadState(0, &in) == 0) return 0;
+    if (!object->ReadState(false, &in)) return 0;
     g_clientWorld.AddObject(object);
     if (object->name2[0] != 0) {
         const std::string variable = g_clientWorld.ObjectVariableName(object->name2);

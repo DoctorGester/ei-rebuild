@@ -18,6 +18,24 @@ namespace {
 
 constexpr std::uint32_t kDefaultVersion = 2000000000;
 
+// ReadStream refuses longer streams.
+constexpr std::uint32_t kMaxStreamLength = 100000;
+
+// A fixed view over `self`'s bytes run through the coder into a growing buffer, whose bytes then replace
+// `out`'s (Resize, Seek 0, Write, Seek 0).
+void CodeStream(MemoryStream* self, CoderState* coder, MemoryStream* out, void (CoderState::*code)(GameBuffer*, GameBuffer*)) {
+    GrowingBuffer result;
+    std::uint8_t* data = self->data.data();
+    std::uint8_t* last = data + self->Size();
+    BufferView view(data, last);
+    (coder->*code)(&view, &result);
+    out->Resize(static_cast<std::uint32_t>(result.Size()));
+    out->Seek(0);
+    std::uint32_t length = static_cast<std::uint32_t>(result.Size());
+    out->Write(result.begin, length);
+    out->Seek(0);
+}
+
 } // namespace
 
 ByteStream::ByteStream() {
@@ -323,4 +341,74 @@ void ByteStream::WriteHeader(std::uint32_t magic, std::uint32_t headerVersion) {
     WriteValue(magic);
     WriteValue(headerVersion);
     version = headerVersion;
+}
+
+void MemoryStream::PutBit(bool bit) {
+    bitMask = static_cast<std::int32_t>(static_cast<std::uint32_t>(bitMask) << 1);
+    if (bitMask > 0x80) StartByte();    // sets bitMask to 1
+    if (bit) bits |= static_cast<std::uint8_t>(bitMask);
+}
+
+bool MemoryStream::GetBit() {
+    bitMask = static_cast<std::int32_t>(static_cast<std::uint32_t>(bitMask) << 1);
+    if (bitMask > 0x80) {
+        bitMask = 1;
+        ReadValue(bits);
+    }
+    return (bitMask & static_cast<std::int8_t>(bits)) != 0;
+}
+
+// --- Whole streams: length-prefixed copies and the message compression ------------------------
+
+void MemoryStream::WriteStream(MemoryStream* from) {
+    from->EndBits();
+    std::int32_t header = static_cast<std::int32_t>(from->Size() << 1);
+    if (header < 0x100) {
+        Write(&header, 1);
+    } else {
+        header |= 1;
+        WriteValue(header);
+    }
+    std::uint8_t* newData = from->data.data();
+    Write(newData, from->Size());
+}
+
+int MemoryStream::ReadStream(MemoryStream* to) {
+    std::uint32_t length = 0;
+    Read(&length, 1);
+    if (length & 1) Read(reinterpret_cast<std::uint8_t*>(&length) + 1, 3);
+    length >>= 1;
+    if (length > kMaxStreamLength) return 0;
+    to->SetSize(length);
+    if (Read(to->data.data(), length) != length) return 0;
+    to->Seek(0);
+    to->ok = 1;
+    return 1;
+}
+
+void MemoryStream::CompressTo(CoderState* coder, MemoryStream* out) { CodeStream(this, coder, out, &CoderState::Compress); }
+
+void MemoryStream::DecompressTo(CoderState* coder, MemoryStream* out) { CodeStream(this, coder, out, &CoderState::Decompress); }
+
+FileStream::FileStream() = default;
+
+FileStream::~FileStream() = default;
+
+std::uint32_t FileStream::Read(void* buffer, std::uint32_t size) {
+    std::uint32_t read = file.Read(buffer, size);
+    ok = static_cast<std::uint8_t>(ok & (read == size ? 1 : 0));
+    return read;
+}
+
+void FileStream::Write(const void* buffer, std::uint32_t size) { file.Write(buffer, size); }
+
+long FileStream::SeekFrom(long position) { return file.Seek(position, platform::SeekFrom::Begin); }
+void FileStream::Seek(std::uint32_t position) { SeekFrom(static_cast<long>(position)); }
+
+std::uint32_t FileStream::Size() { return file.Size(); }
+std::uint32_t FileStream::Position() { return file.Position(); }
+
+void FileStream::Clear() {
+    ok = 1;
+    file.Seek(0L, platform::SeekFrom::Begin);
 }

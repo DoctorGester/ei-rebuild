@@ -31,13 +31,16 @@ void WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t 
 // All of `data`: a 0 bit, then a 0 bit before every 4-byte word.
 void WriteRaw(const std::uint8_t* data, std::uint32_t size, MemoryStream* out);
 
+// Whether the snapshot read against (g_readSnapshot) is consumed to its end.
+bool SnapshotConsumed();
+
 // Reads what WriteDiff wrote: `data` = `old` when nothing changed (returns false),
 // otherwise the changed words from `reader` (returns true).
 bool ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, MemoryStream* reader);
 } // namespace delta
 
 namespace delta {
-// The 16-bit float format of WriteFloat16 / ReadFloat16 (inline in the original).
+// The 16-bit float format of WriteFloat16 / ReadFloat16.
 std::uint16_t PackFloat16(std::uint32_t floatBits);
 std::uint32_t UnpackFloat16(std::uint16_t packed);
 } // namespace delta
@@ -93,10 +96,9 @@ struct DeltaField {
     // Reads a string (ReadString) into `text`, a buffer of `size` bytes: a
     // string of size - 1 characters or more leaves `text` empty instead.
     void ReadText(char* text, int size);
-    // BitStream::WriteStream of `from` into both outputs (inlined twice; the
-    // pending bits stored before each).
+    // MemoryStream::WriteStream of `from` into both outputs (the pending bits stored before each).
     void WriteStreamBoth(MemoryStream* from);
-    // BitStream::ReadStream from the reader into `to` (inlined; `this` unused).
+    // MemoryStream::ReadStream from the reader into `to`.
     int ReadStream(MemoryStream* to);
     // Writes a position as three 16-bit values (WriteDelta of 2 bytes each): x and y as
     // (v + 16) * 120.46875, z as (v + 32) * 341.328125, rounded through a float, then to nearest.
@@ -112,14 +114,14 @@ struct DeltaField {
     void WriteRanged(float value, float min, float max);
     float ReadRanged(float min, float max);
     // A float packed into 16 bits (sign, 7-bit exponent, 8-bit mantissa; see
-    // PackFloat16). The writer takes the float's bits (a stack argument).
+    // PackFloat16). The writer takes the float's bits.
     void WriteFloat16(std::uint32_t floatBits);
     float ReadFloat16();
     // Three of them (each float is first copied through the FPU).
     void WriteFloat16x3(const float* values);
     Vector3 ReadFloat16x3();
-    // The 16-bit read of the readers above (inline in the original; ReadDiff of 2 bytes, which
-    // some of them call instead, does the same).
+    // The 16-bit read of the readers above (ReadDiff of 2 bytes, which some of them call instead, does the
+    // same).
     std::uint16_t ReadWord();
 };
 

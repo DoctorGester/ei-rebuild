@@ -19,9 +19,9 @@ template <typename F> void ForEachPlayer(PlayerManager* manager, F f) {
     for (Player* player = it.First(manager); player; player = it.Next()) f(player);
 }
 
-// Rebirth's PlayerNumbers (addon's 10021B4A in place of the call of Player::SetPlayerId):
-// the player gets the highest number of the server world's other players + 1 (signed), or `id` when
-// there is no player list, no other player or none numbered 0 or more. Written straight into +0x24.
+// Rebirth's PlayerNumbers (in place of the call of Player::SetPlayerId): the player gets the highest number of the
+// server world's other players + 1 (signed), or `id` when there is no player list, no other player or none
+// numbered 0 or more.
 int NextPlayerNumber(Player* self, int id) {
     PlayerManager* players = g_serverWorld.PlayerList();
     if (!players) return id;

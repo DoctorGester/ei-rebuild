@@ -11,29 +11,22 @@
 #include "unit.h"
 #include "world.h"
 
-
+#include <array>
 #include <cstdint>
-#include <cstring>
-#include <string>
 
 namespace {
 
-void PutByte(DeltaField* field, std::uint8_t value) { field->WriteDelta(&value, 1); }
-void PutWord(DeltaField* field, std::uint32_t value) { field->WriteDelta(&value, 4); }
-
-// Whether the stream read against (delta::g_readSnapshot) is consumed: Position() == Size().
-std::uint32_t SnapshotConsumed() {
-    MemoryStream* snapshot = delta::g_readSnapshot;
-    std::uint32_t position = snapshot->Position();
-    std::uint32_t size = delta::g_readSnapshot->Size();
-    return position == size ? 1u : 0u;
+// One value as its own bytes; the wire holds the value's size.
+template <typename T>
+void Put(DeltaField* field, T value) {
+    field->WriteDelta(&value, sizeof value);
 }
 
 constexpr float kStatEpsilon = 1e-4f;
 
 // A body part's condition as current / maximum (signed 16-bit over unsigned 16-bit), as a float.
-float StatFraction(Unit* unit, int k) {
-    const UnitParamsSlot& part = unit->params.slots[k];   // + k * 0x1C: current, maximum
+float StatFraction(const Unit* unit, int k) {
+    const UnitParamsSlot& part = unit->params.slots[k];
     return static_cast<float>(part.current) / static_cast<float>(part.maximum);
 }
 
@@ -43,32 +36,32 @@ bool Exceeds(float v) {
     return a > kStatEpsilon;
 }
 
+static_assert(sizeof(Vector3) == 0xC && sizeof(Quaternion) == 0x10 && sizeof(UnitParams) == 0x108);
+
 } // namespace
 
 void MapObject::WriteNetState() {
-    DeltaState* state = &netState;
-    if (DeltaField* field = state->BeginField(NetField::Vitals)) {
-        field->WriteDelta(&packedVitals, 0x18);
+    if (DeltaField* field = netState.BeginField(NetField::Vitals)) {
+        field->WriteDelta(&packedVitals, sizeof packedVitals);
         field->EndField();
     }
-    if (DeltaField* field = state->BeginField(NetField::Scale)) {
-        field->WriteDelta(&scale, 0xC);
+    if (DeltaField* field = netState.BeginField(NetField::Scale)) {
+        field->WriteDelta(&scale, sizeof scale);
         field->EndField();
     }
-    if (DeltaField* field = state->BeginField(NetField::Placement)) {
-        PutByte(field, static_cast<std::uint8_t>((flags >> 3) & 1));
-        field->WriteDelta(&localPosition.x, 0xC);
-        field->WriteDelta(&localRotation, 0x10);
+    if (DeltaField* field = netState.BeginField(NetField::Placement)) {
+        Put<std::uint8_t>(field, lib::Has(flags, MapObjectFlag::Hidden));
+        field->WriteDelta(&localPosition, sizeof localPosition);
+        field->WriteDelta(&localRotation, sizeof localRotation);
         field->EndField();
     }
-    if (DeltaField* field = state->BeginField(NetField::Effects)) {
-        PutByte(field, static_cast<std::uint8_t>(std::ssize(effects)));
-        for (int i = 0; i < std::ssize(effects); ++i) {
-            MapEffect* effect = &effects[i];
-            field->WriteBoth(&effect->type, 1);
-            field->WriteBoth(&effect->power, 1);
-            field->WriteBoth(&effect->ticksLeft, 2);
-            field->WriteBoth(&effect->ending, 1);
+    if (DeltaField* field = netState.BeginField(NetField::Effects)) {
+        Put<std::uint8_t>(field, static_cast<std::uint8_t>(std::ssize(effects)));
+        for (MapEffect& effect : effects) {
+            field->WriteBoth(&effect.type, 1);
+            field->WriteBoth(&effect.power, 1);
+            field->WriteBoth(&effect.ticksLeft, 2);   // the low 16 bits
+            field->WriteBoth(&effect.ending, 1);
         }
         field->EndField();
     }
@@ -76,286 +69,266 @@ void MapObject::WriteNetState() {
 
 void Unit::WriteNetState() {
     MapObject::WriteNetState();
-    Unit* unit = this;
-    DeltaState* state = &netState;
-    if (DeltaField* field = state->BeginField(NetField::Stats)) {
-        field->WriteDelta(&unit->params, 0x108);
+    if (DeltaField* field = netState.BeginField(NetField::Stats)) {
+        field->WriteDelta(&params, sizeof params);
         field->EndField();
     }
-    if (DeltaField* field = state->BeginField(NetField::Equipment)) {
-        auto ids = unit->GetEquipmentIds();
-        for (int i = 0; i < 4; ++i) PutWord(field, ids[i]);
-        PutWord(field, (unit->flags & MapObjectFlag::HelmetHidden) ? 0xFFFFFFFFu : ids[4]);
-        for (int i = 5; i < 11; ++i) PutWord(field, ids[i]);
+    if (DeltaField* field = netState.BeginField(NetField::Equipment)) {
+        // The eleven slots as they are, except slot 4 (the helmet), which is none while it is hidden.
+        std::array<std::uint32_t, 11> ids = GetEquipmentIds();
+        if (lib::Has(flags, MapObjectFlag::HelmetHidden)) ids[4] = 0xFFFFFFFFu;
+        for (std::uint32_t slotId : ids) Put(field, slotId);
         field->EndField();
-        if (unit->controller->GetClassId() == ClassId::UnitServer)
-            unit->controller->RefreshEquipment();
+        if (controller->GetClassId() == ClassId::UnitServer) controller->RefreshEquipment();
     }
-    if (DeltaField* field = state->BeginField(NetField::Modes)) {
-        field->WriteDelta(&unit->moveMode, 4);
-        field->WriteDelta(&unit->moveMode2, 4);
-        PutWord(field, unit->activeWeapon);
-        field->EndField();
-    }
-    if (DeltaField* field = state->BeginField(NetField::Motion)) {
-        // +0x278 (1 bit), +0x274 dead (1 bit), +0x260 (3 bits), +0x25C (3 bits): their low bytes.
-        std::uint8_t bits = static_cast<std::uint8_t>(
-            (static_cast<std::uint8_t>((static_cast<std::uint8_t>(static_cast<std::uint8_t>(unit->obstacle) << 1) |
-                                        (static_cast<std::uint8_t>(unit->dead) & 1))
-                                       << 3) |
-             (static_cast<std::uint8_t>(unit->pathTimeShift) & 7))
-            << 3);
-        bits = static_cast<std::uint8_t>(bits | (static_cast<std::uint8_t>(unit->motionMode) & 7));
-        PutByte(field, bits);
+    if (DeltaField* field = netState.BeginField(NetField::Modes)) {
+        field->WriteDelta(&moveMode, sizeof moveMode);
+        field->WriteDelta(&moveMode2, sizeof moveMode2);
+        Put(field, activeWeapon);
         field->EndField();
     }
-    if (DeltaField* field = state->BeginField(NetField::Animation)) {
-        PutByte(field, static_cast<std::uint8_t>(unit->animationEntry));
-        PutByte(field, static_cast<std::uint8_t>(unit->secondEntry));
-        PutWord(field, static_cast<std::uint32_t>(unit->animationStart));
-        PutByte(field, static_cast<std::uint8_t>(unit->actionSound));
+    if (DeltaField* field = netState.BeginField(NetField::Motion)) {
+        // One byte, from the top: obstacle (1 bit), dead (1), pathTimeShift (3), motionMode (3).
+        Put<std::uint8_t>(field, static_cast<std::uint8_t>(((obstacle & 1) << 7) | ((dead & 1) << 6) |
+                                                           ((pathTimeShift & 7) << 3) | (motionMode & 7)));
         field->EndField();
     }
-    if (DeltaField* field = state->BeginField(NetField::ScriptName)) {
-        field->WriteStringBoth(unit->scriptName);
+    if (DeltaField* field = netState.BeginField(NetField::Animation)) {
+        Put(field, animationEntry);
+        Put(field, secondEntry);
+        Put(field, animationStart);
+        Put(field, actionSound);
         field->EndField();
     }
-    if (DeltaField* field = state->BeginField(NetField::Path)) {
-        PathOrder* path = unit->controller->Path();
-        path->WriteState(field);
+    if (DeltaField* field = netState.BeginField(NetField::ScriptName)) {
+        field->WriteStringBoth(scriptName);
         field->EndField();
     }
-    if (DeltaField* field = state->BeginField(NetField::Relations)) {
-        Player* target = unit->player;
-        std::uint32_t objectId = target ? static_cast<std::uint32_t>(target->id) : 0xFFFFFFFFu;
-        PutWord(field, unit->relationsB & unit->relationsA);
-        PutByte(field, static_cast<std::uint8_t>(unit->side));
-        PutWord(field, objectId);
+    if (DeltaField* field = netState.BeginField(NetField::Path)) {
+        controller->Path()->WriteState(field);
         field->EndField();
     }
-    if (DeltaField* field = state->BeginField(NetField::Exposure)) {
-        field->WriteDelta(unit->exposure.data(), 0x14);
+    if (DeltaField* field = netState.BeginField(NetField::Relations)) {
+        Put(field, relationsB & relationsA);
+        Put(field, static_cast<std::uint8_t>(side));
+        Put(field, player ? static_cast<std::uint32_t>(player->id) : 0xFFFFFFFFu);
         field->EndField();
     }
-    if (DeltaField* field = state->BeginField(NetField::FightAtWill)) {
-        field->WriteDelta(&unit->fightAtWill, 4);
+    if (DeltaField* field = netState.BeginField(NetField::Exposure)) {
+        field->WriteDelta(exposure.data(), sizeof exposure);
+        field->EndField();
+    }
+    if (DeltaField* field = netState.BeginField(NetField::FightAtWill)) {
+        field->WriteDelta(&fightAtWill, sizeof fightAtWill);
         field->EndField();
     }
 }
 
-
-std::uint32_t MapObject::ReadNetState(int first) {
-    DeltaState* state = &netState;
-    std::uint32_t complete = 1;
-    if (DeltaField* field = state->BeginField(NetField::Vitals)) {
+bool MapObject::ReadNetState(bool update) {
+    bool complete = true;
+    if (DeltaField* field = netState.BeginField(NetField::Vitals)) {
         short before = packedVitals.hitPoints;
-        field->ReadDelta(&packedVitals, 0x18);
-        complete = SnapshotConsumed();
+        field->ReadDelta(&packedVitals, sizeof packedVitals);
+        complete = delta::SnapshotConsumed();
         field->EndField();
-        if (before != packedVitals.hitPoints || first == 1) RefreshWounds();
+        if (before != packedVitals.hitPoints || update) RefreshWounds();
     }
-    if (DeltaField* field = state->BeginField(NetField::Scale)) {
+    if (DeltaField* field = netState.BeginField(NetField::Scale)) {
         Vector3 figureScale;
-        field->ReadDelta(&figureScale, 0xC);
+        field->ReadDelta(&figureScale, sizeof figureScale);
         SetFigureScale(figureScale);
-        complete &= SnapshotConsumed();
+        complete &= delta::SnapshotConsumed();
         field->EndField();
     }
-    if (DeltaField* field = state->BeginField(NetField::Placement)) {
-        char hidden;
+    if (DeltaField* field = netState.BeginField(NetField::Placement)) {
+        std::uint8_t hidden;
         field->ReadDelta(&hidden, 1);
-        if (hidden)
-            flags |= 8;
-        else
-            flags &= ~8u;
+        if (hidden) flags |= MapObjectFlag::Hidden;
+        else flags &= ~MapObjectFlag::Hidden;
         Vector3 position;
-        field->ReadDelta(&position, 0xC);
-        field->ReadDelta(&localRotation, 0x10);
-        World* world = OwningWorld();
-        world->MoveObject(this, &position.x);
+        field->ReadDelta(&position, sizeof position);
+        field->ReadDelta(&localRotation, sizeof localRotation);
+        OwningWorld()->MoveObject(this, &position.x);
         PlaceOnGround(localPosition.z);
-        complete &= SnapshotConsumed();
+        complete &= delta::SnapshotConsumed();
         field->EndField();
     }
-    DeltaField* field = state->BeginField(NetField::Effects);
+    DeltaField* field = netState.BeginField(NetField::Effects);
     if (!field) return complete;
-    std::uint32_t countWord = 0;   // (one byte read into a word whose upper bytes the original leaves)
-    field->ReadDelta(&countWord, 1);
-    int count = static_cast<int>(countWord & 0xFF);
+    std::uint8_t count = 0;
+    field->ReadDelta(&count, 1);
     SetEffectCount(count);
-    for (int i = 0; i < std::ssize(effects); ++i) {
-        MapEffect* effect = &effects[i];
-        effect->ticksLeft = 0;
-        field->ReadRaw(&effect->type, 1);
-        field->ReadRaw(&effect->power, 1);
-        field->ReadRaw(&effect->ticksLeft, 2);
-        field->ReadRaw(&effect->ending, 1);
+    for (MapEffect& effect : effects) {
+        effect.ticksLeft = 0;
+        field->ReadRaw(&effect.type, 1);
+        field->ReadRaw(&effect.power, 1);
+        field->ReadRaw(&effect.ticksLeft, 2);
+        field->ReadRaw(&effect.ending, 1);
     }
-    if (GetClassId() != ClassId::Unit)
-        companion->EffectsChanged(first == 0);
-    complete &= SnapshotConsumed();
+    if (GetClassId() != ClassId::Unit) companion->EffectsChanged(!update);
+    complete &= delta::SnapshotConsumed();
     field->EndField();
     return complete;
 }
 
-std::uint32_t Unit::ReadNetState(int first) {
-    Unit* unit = this;
-    float hpBefore = static_cast<float>(unit->packedVitals.hitPoints) / static_cast<float>(unit->packedVitals.maxHitPoints);
-    std::uint32_t complete = MapObject::ReadNetState(first);
-    DeltaState* state = &netState;
+bool Unit::ReadNetState(bool update) {
+    float hpBefore = static_cast<float>(packedVitals.hitPoints) / static_cast<float>(packedVitals.maxHitPoints);
+    bool complete = MapObject::ReadNetState(update);
     bool gotItems = false;
     bool changed = false;
-    std::uint32_t ids4[4];
-    std::uint32_t ids7[7];
-    if (DeltaField* field = state->BeginField(NetField::Stats)) {
-        float before[6];
-        for (int k = 0; k < 6; ++k) before[k] = StatFraction(unit, k);
-        field->ReadDelta(&unit->params, 0x108);
-        // IsDead: a dead unit skips the stat reactions.
-        if (!unit->IsDead() && first == 1) {
-            bool any = false;
-            for (int k = 0; k < 6; ++k) {
-                float now = StatFraction(unit, k);
-                if (Exceeds(now - before[k])) any = true;
-                float change = before[k] - now;
-                if (Exceeds(change)) {
-                    unit->controller->StatChanged(k, change, unit->params.flags);
-                }
-            }
-            if (any) unit->controller->RefreshWounds();
-        } else if (first == 0) {
-            unit->controller->RefreshWounds();
-        }
-        float maxHp = static_cast<float>(unit->packedVitals.maxHitPoints);
-        float hpNow = static_cast<float>(unit->packedVitals.hitPoints) / maxHp;
-        // A drop (before > now, ordered), or UnitStatsFlag::Struck otherwise.
-        bool dropped = hpBefore > hpNow;
-        if ((dropped || (unit->params.flags & UnitStatsFlag::Struck)) && first != 0) {
-            constexpr UnitStatsFlag kHitKinds =
-                UnitStatsFlag::Backstab | UnitStatsFlag::Head | UnitStatsFlag::Electrical;
-            std::uint32_t kind = unit->params.flags & kHitKinds;
-            float lost = hpBefore - hpNow;
-            int damage = static_cast<int>(static_cast<std::int64_t>(lost * maxHp));   // _ftol
-            unit->companion->Hit(damage, static_cast<int>(kind));
-            if (kind & UnitStatsFlag::Electrical) {
-                unit->controller->Wound();
-            }
-        }
-        complete &= SnapshotConsumed();
+    std::uint32_t weaponIds[4];
+    std::uint32_t armourIds[7];
+    if (DeltaField* field = netState.BeginField(NetField::Stats)) {
+        ReadNetStats(field, update, hpBefore);
+        complete &= delta::SnapshotConsumed();
         field->EndField();
     }
-    if (DeltaField* field = state->BeginField(NetField::Equipment)) {
-        unit->ReleaseAllItems();
-        for (auto& fieldId : ids4) field->ReadDelta(&fieldId, 4);
-        for (auto& fieldId : ids7) field->ReadDelta(&fieldId, 4);
+    if (DeltaField* field = netState.BeginField(NetField::Equipment)) {
+        ReleaseAllItems();
+        for (std::uint32_t& slotId : weaponIds) field->ReadDelta(&slotId, 4);
+        for (std::uint32_t& slotId : armourIds) field->ReadDelta(&slotId, 4);
         gotItems = true;
         changed = true;
-        complete &= SnapshotConsumed();
+        complete &= delta::SnapshotConsumed();
         field->EndField();
     }
-    if (DeltaField* field = state->BeginField(NetField::Modes)) {
-        field->ReadDelta(&unit->moveMode, 4);
-        field->ReadDelta(&unit->moveMode2, 4);
-        std::uint32_t value;
-        field->ReadDelta(&value, 4);
-        if (unit->activeWeapon != value) {
+    if (DeltaField* field = netState.BeginField(NetField::Modes)) {
+        field->ReadDelta(&moveMode, sizeof moveMode);
+        field->ReadDelta(&moveMode2, sizeof moveMode2);
+        std::uint32_t weapon;
+        field->ReadDelta(&weapon, 4);
+        if (activeWeapon != weapon) {
             changed = true;
-            unit->controller->ShowWeapon(value);
+            controller->ShowWeapon(weapon);
         }
-        unit->pendingWeapon = static_cast<int>(unit->activeWeapon);
+        pendingWeapon = static_cast<int>(activeWeapon);
         field->EndField();
     }
-    if (DeltaField* field = state->BeginField(NetField::Motion)) {
+    if (DeltaField* field = netState.BeginField(NetField::Motion)) {
+        // The bits WriteNetState packed, each sign-extended from its width.
         std::uint8_t bits;
         field->ReadDelta(&bits, 1);
-        unit->motionMode = static_cast<signed char>(bits << 5) >> 5;
-        unit->pathTimeShift = static_cast<signed char>(bits << 2) >> 5;
-        unit->dead = static_cast<signed char>(bits << 1) >> 7;
-        unit->obstacle = static_cast<std::uint32_t>(static_cast<signed char>(bits) >> 7);
+        motionMode = static_cast<signed char>(bits << 5) >> 5;
+        pathTimeShift = static_cast<signed char>(bits << 2) >> 5;
+        dead = static_cast<signed char>(bits << 1) >> 7;
+        obstacle = static_cast<std::uint32_t>(static_cast<signed char>(bits) >> 7);
         field->EndField();
     }
-    if (DeltaField* field = state->BeginField(NetField::Animation)) {
-        field->ReadDelta(&unit->animationEntry, 1);
-        field->ReadDelta(&unit->secondEntry, 1);
-        field->ReadDelta(&unit->animationStart, 4);
-        field->ReadDelta(&unit->actionSound, 1);
-        if (unit->motionMode == 1) --unit->animationStart;
-        float time = static_cast<float>(unit->OwningWorld()->tick);
-        unit->controller->RestartAnimation(time);
+    if (DeltaField* field = netState.BeginField(NetField::Animation)) {
+        field->ReadDelta(&animationEntry, 1);
+        field->ReadDelta(&secondEntry, 1);
+        field->ReadDelta(&animationStart, 4);
+        field->ReadDelta(&actionSound, 1);
+        if (motionMode == 1) --animationStart;
+        controller->RestartAnimation(static_cast<float>(OwningWorld()->tick));
         field->EndField();
     }
-    if (DeltaField* field = state->BeginField(NetField::ScriptName)) {
-        unit->scriptName = field->ReadString();
-        complete &= SnapshotConsumed();
+    if (DeltaField* field = netState.BeginField(NetField::ScriptName)) {
+        scriptName = field->ReadString();
+        complete &= delta::SnapshotConsumed();
         field->EndField();
     }
-    if (DeltaField* field = state->BeginField(NetField::Path)) {
-        PathOrder* path = unit->controller->Path();
-        path->ReadState(field);
-        if (unit->pathTimeShift == 1) path->ShiftTime(-1);
-        PathOrder* path2 = unit->controller->Path();
-        path2->ForgetObject(unit->id);
-        const Unit::MoveSpeeds speeds = unit->GetMoveSpeeds();
-        const float walk = speeds.forward, run = speeds.turn;
-        UnitMotion* walker = &unit->motion;
-        walker->segment = -1;
-        walker->speedScale = walk;
-        walker->baseTurnRate = run;
-        walker->Build(path2);
-        unit->MarkChanged(NetField::Path);
-        unit->controller->MotionChanged();
-        complete &= SnapshotConsumed();
+    if (DeltaField* field = netState.BeginField(NetField::Path)) {
+        ReadNetPath(field);
+        complete &= delta::SnapshotConsumed();
         field->EndField();
     }
-    if (DeltaField* field = state->BeginField(NetField::Relations)) {
-        field->ReadDelta(&unit->relationsA, 4);
-        unit->side = 0;
-        field->ReadDelta(&unit->side, 1);
-        int objectId;
-        field->ReadDelta(&objectId, 4);
-        Player* current = unit->player;
-        if (objectId == -1) {
-            if (current) {
-                unit->player = nullptr;
-                current->RemoveUnit(unit);
-                if (Player* now = unit->player) now->AddUnit(unit);
-                unit->MarkChanged(NetField::Relations);
-                if (unit->controller) unit->controller->PlayerChanged(nullptr);
-            }
-        } else if (!current || current->id != objectId) {
-            PlayerClient* view = unit->ClientWorld()->LocalView();
-            Player* local = view->player;
-            if ((local->id == objectId || view->localSession) && unit->player != local) {
-                Player* old = unit->player;
-                unit->player = local;
-                if (old) old->RemoveUnit(unit);
-                if (Player* now = unit->player) now->AddUnit(unit);
-                unit->MarkChanged(NetField::Relations);
-                if (unit->controller) unit->controller->PlayerChanged(local);
-            }
-        }
-        complete &= SnapshotConsumed();
+    if (DeltaField* field = netState.BeginField(NetField::Relations)) {
+        ReadNetRelations(field);
+        complete &= delta::SnapshotConsumed();
         field->EndField();
     }
-    if (DeltaField* field = state->BeginField(NetField::Exposure)) {
-        field->ReadDelta(unit->exposure.data(), 0x14);
+    if (DeltaField* field = netState.BeginField(NetField::Exposure)) {
+        field->ReadDelta(exposure.data(), sizeof exposure);
         field->EndField();
     }
-    if (DeltaField* field = state->BeginField(NetField::FightAtWill)) {
-        field->ReadDelta(&unit->fightAtWill, 4);
+    if (DeltaField* field = netState.BeginField(NetField::FightAtWill)) {
+        field->ReadDelta(&fightAtWill, sizeof fightAtWill);
         field->EndField();
     }
-    if (DeltaField* field = state->BeginField(NetField::Effects)) {
-        unit->companion->EffectsChanged(first == 0);
+    if (DeltaField* field = netState.BeginField(NetField::Effects)) {
+        companion->EffectsChanged(!update);
         field->EndField();
     }
     if (changed) {
         if (gotItems) {
-            unit->controller->SetArmourModels(ids7);
-            unit->controller->SetWeaponModels(ids4);
+            controller->SetArmourModels(armourIds);
+            controller->SetWeaponModels(weaponIds);
         }
-        unit->controller->ShowWeapon(unit->activeWeapon);
-        unit->controller->RefreshEquipment();
+        controller->ShowWeapon(activeWeapon);
+        controller->RefreshEquipment();
     }
     return complete;
+}
+
+// The statistics field: the parameters read, the body part reactions and the hit reaction.
+void Unit::ReadNetStats(DeltaField* field, bool update, float hpBefore) {
+    float before[6];
+    for (int k = 0; k < 6; ++k) before[k] = StatFraction(this, k);
+    field->ReadDelta(&params, sizeof params);
+    // A dead unit skips the stat reactions.
+    if (!IsDead() && update) {
+        bool any = false;
+        for (int k = 0; k < 6; ++k) {
+            float now = StatFraction(this, k);
+            if (Exceeds(now - before[k])) any = true;
+            float change = before[k] - now;
+            if (Exceeds(change)) controller->StatChanged(k, change, params.flags);
+        }
+        if (any) controller->RefreshWounds();
+    } else if (!update) {
+        controller->RefreshWounds();
+    }
+    float maxHp = static_cast<float>(packedVitals.maxHitPoints);
+    float hpNow = static_cast<float>(packedVitals.hitPoints) / maxHp;
+    // A drop (before > now, ordered), or UnitStatsFlag::Struck otherwise.
+    bool dropped = hpBefore > hpNow;
+    if ((dropped || (params.flags & UnitStatsFlag::Struck)) && update) {
+        constexpr UnitStatsFlag kHitKinds = UnitStatsFlag::Backstab | UnitStatsFlag::Head | UnitStatsFlag::Electrical;
+        std::uint32_t kind = params.flags & kHitKinds;
+        float lost = hpBefore - hpNow;
+        int damage = static_cast<int>(static_cast<std::int64_t>(lost * maxHp));
+        companion->Hit(damage, static_cast<int>(kind));
+        if (kind & UnitStatsFlag::Electrical) controller->Wound();
+    }
+}
+
+// The path field: the order's state, then the client's motion built over it.
+void Unit::ReadNetPath(DeltaField* field) {
+    PathOrder* path = controller->Path();
+    path->ReadState(field);
+    if (pathTimeShift == 1) path->ShiftTime(-1);
+    path->ForgetObject(id);
+    const MoveSpeeds speeds = GetMoveSpeeds();
+    motion.segment = -1;
+    motion.speedScale = speeds.forward;
+    motion.baseTurnRate = speeds.turn;
+    motion.Build(path);
+    MarkChanged(NetField::Path);
+    controller->MotionChanged();
+}
+
+// The relations field: the hostility mask, the side and the owning player. This client takes a player only when
+// it is its view's own (any in a local session) and drops it when the server sends none.
+void Unit::ReadNetRelations(DeltaField* field) {
+    field->ReadDelta(&relationsA, 4);
+    side = 0;
+    field->ReadDelta(&side, 1);
+    int objectId;
+    field->ReadDelta(&objectId, 4);
+    auto setPlayer = [this](Player* newPlayer) {
+        Player* old = player;
+        player = newPlayer;
+        if (old) old->RemoveUnit(this);
+        if (Player* now = player) now->AddUnit(this);
+        MarkChanged(NetField::Relations);
+        if (controller) controller->PlayerChanged(newPlayer);
+    };
+    if (objectId == -1) {
+        if (player) setPlayer(nullptr);
+    } else if (!player || player->id != objectId) {
+        PlayerClient* view = ClientWorld()->LocalView();
+        Player* local = view->player;
+        if ((local->id == objectId || view->localSession) && player != local) setPlayer(local);
+    }
 }

@@ -21,8 +21,7 @@ void PartyConstruct(lib::InPlace<Party>* party) { new (party->Get()) Party(); }
 
 } // namespace
 
-// The client base's constructor is inlined into the game client's: the session base, its lobby fields, an unbound
-// socket.
+// The client base: the session base, its lobby fields, an unbound socket.
 ClientBase::ClientBase() {
     host = NetAddress{};
     alwaysAsk = NetAddress{};
@@ -94,16 +93,11 @@ void ClientSession::CollectReplicated(std::vector<Replicated>** out) {
     }
 }
 
-} // namespace net
-
 // --- Life --------------------------------------------------------------------------------------------
 
-// The game client's destructor, scalar deleting destructor and its
-// base layer's destructor. The members are torn down in reverse order: the lists are cleared where the original
-// destroys them, between the counted pointers' releases; then the session base. See net_classes.h and
+// The game client's destructor and its base layer's. The members are torn down in reverse order: the lists are
+// cleared between the counted pointers' releases; then the session base. See net_classes.h and
 // docs/notes/network.md.
-
-namespace net {
 
 // The client base's part and the session base follow (their destructors).
 ClientSession::~ClientSession() {
@@ -130,24 +124,14 @@ ClientSession::~ClientSession() {
 
 ClientBase::~ClientBase() {}
 
-} // namespace net
-
 // --- Commands ----------------------------------------------------------------------------------------
 
 // The game client's timed entries and commands: an object kept on the timers list, a
 // command message for the server, the client's own server entry, the start of the game and the ratio of a
 // received buffer. See net_classes.h and docs/notes/network.md.
 
-namespace net {
-
-namespace {
-
-constexpr std::uint32_t kCommandLifetime = 0x42700000;     // 60.0f
-
-} // namespace
-
 // Keeps `object` on the timers list for `seconds` (shared into the entry).
-void ClientSession::AddTimed(Message* object, std::uint32_t seconds) {
+void ClientSession::AddTimed(Message* object, float seconds) {
     // The list's copy shares the entry's share: a clone, as sharing marked the object copy-on-share.
     TimedEntry<SharedRef<Message>> entry(seconds, SharedRef<Message>(object));
     timers.push_back(entry);
@@ -155,16 +139,12 @@ void ClientSession::AddTimed(Message* object, std::uint32_t seconds) {
 
 // Sends the server a command message, kept 60 seconds on the timers list.
 void ClientSession::SendCommand(CommandKind kind, std::string_view text) {
-    ClientSession* self = this;
     auto* command = NewCounted<CommandMessage>();
     command->kind = kind;
     // The assign of a C string: copied over the current characters, the rest cut (the
     // terminator moved down) or appended.
     command->text.assign(text);
-
-    // As AddTimed: the list keeps a clone of the entry's share.
-    TimedEntry<SharedRef<Message>> entry(kCommandLifetime, SharedRef<Message>(command));
-    self->timers.push_back(entry);
+    AddTimed(command, kTimedEntryLifetime);
 }
 
 // Makes `*out` an empty server entry (no name or description, no kind, no players).

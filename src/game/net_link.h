@@ -23,31 +23,6 @@ class WorldHandle;
 
 namespace netlink {
 
-// A ByteStream over a file.
-class FileStream : public ByteStream {
-public:
-    FileStream();
-    ~FileStream() override;
-    std::uint32_t Read(void* buffer, std::uint32_t size) override;     // a short read clears ok
-    void Write(const void* buffer, std::uint32_t size) override;
-    void Seek(std::uint32_t position) override;                        // SeekFrom
-    std::uint32_t Size() override;
-    std::uint32_t Position() override;
-    void Clear() override;                                             // ok again, back to the start
-
-    // Seeks from the start; returns the file's position.
-    long SeekFrom(long position);
-
-    // The file's Open; ok tells whether it opened.
-    bool Open(std::string_view path, platform::FileMode mode) {
-        ok = file.Open(path, mode);
-        return ok != 0;
-    }
-    void Close() { file.Close(); }
-
-    platform::File file;
-};
-
 class NetLink : public RefObject {
 public:
     ~NetLink() override;
@@ -130,7 +105,6 @@ public:
 
     void OnShutdown() override;          // both lists emptied
     DriverSession* Clone() override;    // drivers shared, holders counted
-    bool Query() override { return true; }
     void TakeNew(std::vector<HeldRef<netlink::NetLink>>* joined) override;   // the live holders' links appended
 
     std::vector<SharedRef<DriverLink>> drivers;     // owning

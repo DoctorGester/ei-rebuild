@@ -74,7 +74,7 @@ void ExchangeScreen::Update() {
     moneyField->changed = false;
     if (!changed) return;
     ownOffer->money = str::ToInt(moneyField->text);
-    net::ClientPublishParty(net::g_gameClient);
+    net::g_gameClient->PublishParty();
 }
 
 // --- the left button -------------------------------------------------------------------------------
@@ -96,13 +96,13 @@ void ExchangeScreen::LeftDown(Point point) {
         net::PartyMessage* offer = LiveOffer();
         if (offer && offer->accepted) {
             ui->PlayInterfaceSound(game::CancelSoundText());
-            net::ClientCommitParty(net::g_gameClient);
+            net::g_gameClient->CommitParty();
         }
         return;
     }
     case kLeaveRegion:
         ui->PlayInterfaceSound(kTransitSound);
-        net::ClientDropParty(net::g_gameClient);
+        net::g_gameClient->DropParty();
         return;
     default:
         return;
@@ -224,7 +224,7 @@ void ExchangeScreen::Draw(SceneRenderer* pass) {
     labels[1].push_back({text, Rect{0x14, 0, 0xB4, 0x14}, {1, kWhite, render::text::kCenter}, kWrapLines});
 
     // Surface 2: the partner's money, while its offer pairs with ours.
-    net::PartyMessage* partner = net::ClientFindParty(client);
+    net::PartyMessage* partner = client->FindParty();
     if (IsLive(partner)) {
         text = texts->GetString("xch_money_remote");
         labels[2].push_back({text, Rect{0x14, 0, 0xB4, 0x14}, {1, kWhite, render::text::kCenter}, kWrapLines});
@@ -233,11 +233,11 @@ void ExchangeScreen::Draw(SceneRenderer* pass) {
     }
 
     // Surface 3: whether the partner accepted.
-    partner = net::ClientFindParty(client);
+    partner = client->FindParty();
     if (IsLive(partner)) {
         text = texts->GetString("xch_remote_header");
         labels[3].push_back({text, Rect{0x14, 0, 0xB4, 0x14}, {1, kWhite, render::text::kCenter}, kWrapLines});
-        text = texts->GetString(net::ClientFindParty(client)->accepted ? "xch_remote_ok"
+        text = texts->GetString(client->FindParty()->accepted ? "xch_remote_ok"
                                                               : "xch_remote_cancel");
         labels[3].push_back({text, Rect{0, 0x28, 200, 0x3C}, {kFont, kUiTextColour, render::text::kCenter}});
     }
@@ -247,7 +247,7 @@ void ExchangeScreen::Draw(SceneRenderer* pass) {
     bool accepted = LiveAccepted(client->party.Get());
     SetTint(sceneObjects[0], accepted ? 0.5f : 1.0f);
     SetTint(sceneObjects[1], accepted ? 1.0f : 0.5f);
-    bool partnerAccepted = LiveAccepted(net::ClientFindParty(client));
+    bool partnerAccepted = LiveAccepted(client->FindParty());
     SetTint(sceneObjects[2], partnerAccepted ? 0.5f : 1.0f);
 
     UiContainer::Draw(pass);
@@ -260,7 +260,7 @@ void ExchangeScreen::TakeItem(Item* item, int mode) {
     if (mode == kStripActionTake) {
         ui->PlayInterfaceSound(kPutOnSound);
         MoveItem(item, ownOffer, LocalPlayerData(), kOfferLimit, true, false);
-        net::ClientPublishParty(net::g_gameClient);
+        net::g_gameClient->PublishParty();
         return;
     }
     if (mode != kGridMode) return;
@@ -270,7 +270,7 @@ void ExchangeScreen::TakeItem(Item* item, int mode) {
         ui->PlayInterfaceSound(kPutOffSound);
         Item* held = MoveItem(item, LocalPlayerData(), ownOffer, 0, true, false);
         strip->ScrollToItem(held);
-        net::ClientPublishParty(net::g_gameClient);
+        net::g_gameClient->PublishParty();
         return;
     }
 }

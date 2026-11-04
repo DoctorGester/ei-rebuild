@@ -23,8 +23,6 @@ public:
     }
     ~PlayerSource() override;   // The destructor; the base has no fields
 
-    // 2 / 3 / 4 / 6 pure in the base.
-    virtual bool Query() = 0;           // Virtual 4: the helpers answer 0, the session 1
-    virtual void Pump() {}              // Virtual 5: empty in every source
-    virtual void TakeNew(std::vector<HeldRef<netlink::NetLink>>* joined) = 0;   // 6: new connections appended to the list
+    // New connections appended to the list.
+    virtual void TakeNew(std::vector<HeldRef<netlink::NetLink>>* joined) = 0;
 };

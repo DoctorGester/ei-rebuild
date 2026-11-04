@@ -231,7 +231,7 @@ void ChatWindow::LeftDown(Point point) {
     if (client->binding->player.Get() == player) return;
     auto* own = client->party.Get();
     if (own && own->partner.Get() == player) {
-        net::ClientDropParty(client);
+        client->DropParty();
         return;
     }
     client->StartParty(player);

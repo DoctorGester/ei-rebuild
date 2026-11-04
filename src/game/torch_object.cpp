@@ -65,7 +65,7 @@ void TorchObject::AttachTorchObject(EngineObject* object) {
     if (spec) spec->torch = this;    // the spec's owner
 }
 
-void TorchObject::WriteTorchNetState() {
+void TorchObject::WriteNetState() {
     MapObject::WriteNetState();
     DeltaField* field = netState.BeginField(NetField::TorchLight);
     if (!field) return;
@@ -79,14 +79,12 @@ void TorchObject::WriteTorchNetState() {
     field->EndField();
 }
 
-std::uint32_t TorchObject::ReadTorchNetState(int first) {
-    std::uint32_t complete = MapObject::ReadNetState(first);
+bool TorchObject::ReadNetState(bool update) {
+    bool complete = MapObject::ReadNetState(update);
     DeltaField* field = netState.BeginField(NetField::TorchLight);
     if (!field) return complete;
     spec->ReadNetState(field);
-    std::uint32_t readTo = delta::g_readSnapshot->Position();
-    std::uint32_t size = delta::g_readSnapshot->Size();
-    complete &= readTo == size ? 1u : 0u;
+    complete &= delta::SnapshotConsumed();
     field->EndField();
     return complete;
 }

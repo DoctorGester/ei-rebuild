@@ -27,7 +27,8 @@ namespace net {
 namespace {
 
 
-constexpr std::uint32_t kNever = 0x7E967699;   // 1e38f
+constexpr float kNever = 1e38f;      // a listed server's timeout: never checked again
+constexpr float kNoPing = 9.999f;
 constexpr float kFirstRetry = 0.1f;
 
 
@@ -42,8 +43,6 @@ void LogAddressLine(const char* text, const NetAddress* address) {
     console::EndLine(*g_netLog << text << s.data());
 }
 
-void SetBits(float& f, std::uint32_t bits) { f = std::bit_cast<float>(bits); }
-
 bool SameAddress(const NetAddress* a, const NetAddress* b) { return std::memcmp(a, b, sizeof(NetAddress)) == 0; }
 
 // The servers list node whose entry has `address`, or the end.
@@ -53,18 +52,12 @@ std::vector<SharedRef<ServerEntry>>::iterator FindServer(ClientBase* self, const
     while (node != end && !SameAddress(&node->Get()->address, address)) ++node;
     return node;
 }
-// The query with `address`, or the end.
-std::vector<Query>::iterator FindQuery(ClientQueries& v, const NetAddress* address) {
-    return std::find_if(v.list.begin(), v.list.end(), [address](const Query& q) { return SameAddress(&q.address, address); });
-}
 
-// Hands `entry` (non-null) over to a new node at the end of the servers list: the reference the local pointer
-// held is dropped without release (the copy-on-share mark cleared), and the list shares the raw pointer.
-void AppendServer(ClientBase* self, Ref<ServerEntry>& entry) {
-    ServerEntry* raw = entry.Take();
-    --raw->refs;
-    raw->flags6 &= static_cast<std::uint8_t>(~RefCounted::kCopyOnShare);
-    self->servers.emplace_back(raw);
+// Hands `entry` (non-null) over to a new node at the end of the servers list, marked copy-on-share as a shared
+// object is.
+void AppendServer(ClientBase* self, SharedRef<ServerEntry>& entry) {
+    entry.Get()->flags6 |= RefCounted::kCopyOnShare;
+    self->servers.push_back(std::move(entry));
 }
 
 // PacketKind::Accepted with the join's id, to `to`.
@@ -82,12 +75,14 @@ void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
 ServerEntryBase::ServerEntryBase() {
     std::memset(&address, 0, sizeof(address));
     timeout = 0.0f;
-    ping = 9.999f;
+    ping = kNoPing;
     foreign = 0;
     state = kLocal;
 }
 
-std::vector<Query>::iterator ClientQueries::QueriesFind(const NetAddress* address) { return FindQuery(*this, address); }
+std::vector<Query>::iterator ClientQueries::Find(const NetAddress* address) {
+    return std::find_if(list.begin(), list.end(), [address](const Query& q) { return SameAddress(&q.address, address); });
+}
 
 Query::Query() { std::memset(&address, 0, sizeof(address)); }
 Query::~Query() {}
@@ -185,7 +180,7 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
     bool local = socket.IsLocal(from);
     ClientQueries& v = queries;
     auto end = v.list.end();
-    auto query = v.QueriesFind(from);
+    auto query = v.Find(from);
     if (local) {
         e->state = query != end ? ServerEntry::kAsked : ServerEntry::kLocal;
         e->timeout = 20.0f;
@@ -196,16 +191,14 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
     } else {
         if (node == servers.end()) return;
         e->state = ServerEntry::kFromList;
-        SetBits(e->timeout, kNever);
+        e->timeout = kNever;
     }
-    float echoed;
-    echoed = std::bit_cast<float>(echo);
-    e->ping = static_cast<float>(time) - echoed;
+    e->ping = static_cast<float>(time) - std::bit_cast<float>(echo);
     if (node == servers.end()) {
         AppendServer(this, entry);
     } else {
         ShareAssignOwned(*node, entry.Get());
-        auto q = FindQuery(v, from);
+        auto q = v.Find(from);
         if (q != v.list.end()) {
             BufferCursor c;
             q->reply.Clear();
@@ -284,7 +277,7 @@ void ClientBase::SetQueries(const ClientQueries* from) {
 // marked as asked.
 void ClientBase::Ask(const NetAddress* address) {
     std::vector<Query>& v = queries.list;
-    if (FindQuery(queries, address) == v.end()) {
+    if (queries.Find(address) == v.end()) {
         v.emplace_back().address = *address;
         SendPing(address);
     }
@@ -305,7 +298,7 @@ void ClientBase::Ask(const NetAddress* address) {
 
 void ClientBase::Forget(const NetAddress* address) {
     std::vector<Query>& v = queries.list;
-    auto q = FindQuery(queries, address);
+    auto q = queries.Find(address);
     if (q != v.end()) v.erase(q);
     auto node = servers.begin();
     while (node != servers.end()) {
@@ -321,7 +314,7 @@ void ClientBase::Forget(const NetAddress* address) {
 void ClientBase::AddServer(ServerEntry* entry) {
     if (FindServer(this, &entry->address) == servers.end()) {
         entry->state = ServerEntry::kFromList;
-        SetBits(entry->timeout, kNever);
+        entry->timeout = kNever;
         servers.emplace_back(entry);
     }
     waiting.push_back(entry->address);
@@ -342,17 +335,6 @@ void ClientBase::Join(const NetAddress* address, const GrowingBuffer* data) {
     joinData = *data;
 }
 
-ServerEntry* ClientBase::ServerAt(int index) {
-    auto sentinel = servers.end();
-    auto node = servers.begin();
-    for (int i = 0; i < index; ++i) {
-        if (node == sentinel) return nullptr;
-        ++node;
-    }
-    if (node == sentinel) return nullptr;
-    return node->Get();
-}
-
 // Counts the servers' timeouts down; a server whose time ran out is dropped
 // unless asked directly (then its ping is reset). Then the session's receive step, and while
 // joining the request is repeated with a doubling interval until it passes the limit.
@@ -365,11 +347,11 @@ void ClientBase::Tick(double dt) {
             e = node->Get();
             if (e->timeout <= 0.0f) {
                 ClientQueries& v = queries;
-                if (v.list.begin() == v.list.end() || FindQuery(v, &e->address) == v.list.end()) {
+                if (v.list.begin() == v.list.end() || v.Find(&e->address) == v.list.end()) {
                     node = servers.erase(node);
                     continue;
                 }
-                e->ping = 9.999f;
+                e->ping = kNoPing;
             }
         }
         ++node;

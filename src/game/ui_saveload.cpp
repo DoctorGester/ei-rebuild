@@ -190,7 +190,7 @@ void SaveLoadWindow::SaveGame() {
     g_cursor.SetShape(CursorShape::Wait);
 
     // info.sav: the new save's entry (the first) with the title being given.
-    netlink::FileStream info;
+    FileStream info;
     {
         std::string path = folder + game::savewords::InfoFile();
         info.Open(path, platform::FileMode::Create);
@@ -241,7 +241,7 @@ void SaveLoadWindow::FillEntries() {
             entry->broken = true;
             entry->title = game::savewords::BrokenTitle();
         } else {
-            netlink::FileStream info;
+            FileStream info;
             info.Open(infoPath, platform::FileMode::Read);
             if (info.ReadHeader(kInfoMagic, (int)kInfoVersion, 1)) {
                 info.ReadValue(entry->gameTime);
@@ -326,7 +326,7 @@ void QuickSave(const char* slot, bool stepFrame) {
     if (const MapRecord* record = g_mapDatabase.FindMap(zone))
         map = record->allod;
     std::string folder = SlotFolder(slot);
-    netlink::FileStream info;
+    FileStream info;
     info.Open(folder + game::savewords::InfoFile(), platform::FileMode::Create);
     info.WriteHeader(kInfoMagic, kInfoVersion);
     info.WriteValue(gameTime);

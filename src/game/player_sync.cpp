@@ -35,10 +35,6 @@ constexpr std::uint32_t kRefreshSpread = 901;
 
 
 // The receive errors' formats ("Serv pkt read error prevID=%x curID=%x", ...), read from the exe.
-const char* TextReadPastEnd() { return "Serv pkt read error prevID=%x curID=%x"; }
-const char* TextNoHandler() { return "Serv packet has no handler prevID=%x curID=%x"; }
-const char* TextHandlerFailed() { return "Serv error during parsing command prevID=%x curID=%x"; }
-const char* TextUnknownType() { return "Serv wrong packet ID prevID=%x curID=%x"; }
 
 constexpr std::uint32_t kNoPartyCopy = 0xFFFFFFFF;   // PlayerServer::possessedId
 
@@ -46,8 +42,6 @@ constexpr std::uint32_t kNoPartyCopy = 0xFFFFFFFF;   // PlayerServer::possessedI
 constexpr float kLowLevel = 2.0f;
 
 // The texts of the traffic log (read from the exe).
-const char* TextServerToClient() { return "server to client, size = "; }
-const char* TextSqueezedTo() { return " squeezed to "; }
 
 void WriteDword(MemoryStream* out, std::uint32_t value) { out->WriteValue(value); }
 
@@ -59,8 +53,7 @@ void WriteStateStream(MemoryStream* out, MemoryStream* from) {
     out->Write(data, from->Size());
 }
 
-// The insert of hash_map::operator[] inlined by the senders: the highest id kept, the object
-// stored under its id and counted.
+// The highest id kept, the object stored under its id and counted.
 template <typename T>
 void Keep(lib::HashMap<int, T*>& map, int& maxId, T* object) {
     int id = object->id;
@@ -112,14 +105,14 @@ int PlayerServer::Flush() {
     if (player->logTraffic != 0) {
         std::uint32_t packedSize = packed.size;
         std::uint32_t size = out.Size();
-        console::EndLine(console::g_netLogOut << TextServerToClient() << size << TextSqueezedTo() << packedSize);
+        console::EndLine(console::g_netLogOut << "server to client, size = " << size << " squeezed to " << packedSize);
     }
     int sent = link->Send(&packed) ? 1 : 0;
     out.Resize(0);
     return sent;
 }
 
-int PlayerServer::SendObjectsAdded(const std::vector<MapObject*>* objects) {
+void PlayerServer::SendObjectsAdded(const std::vector<MapObject*>* objects) {
     for (MapObject* object : *objects) {
         bool isUnit = object->GetClassId() == ClassId::Unit;
         std::uint32_t header[4] = {static_cast<std::uint32_t>(object->id), static_cast<std::uint32_t>(object->type),
@@ -150,10 +143,9 @@ int PlayerServer::SendObjectsAdded(const std::vector<MapObject*>* objects) {
         Player* currentPlayer = player;
         Keep(currentPlayer->knownObjects, currentPlayer->maxObjectId, object);
     }
-    return 1;
 }
 
-int PlayerServer::SendObjectsChanged(const std::vector<MapObject*>* objects) {
+void PlayerServer::SendObjectsChanged(const std::vector<MapObject*>* objects) {
     int stamp = WorldUpdateCount(player);
     for (MapObject* object : *objects) {
         if (object->changeStamp != stamp) continue;
@@ -162,10 +154,9 @@ int PlayerServer::SendObjectsChanged(const std::vector<MapObject*>* objects) {
         WriteDword(&out, static_cast<std::uint32_t>(object->id));
         WriteStateStream(&out, &object->netState.header[1]);
     }
-    return 1;
 }
 
-int PlayerServer::SendObjectsRemoved(const std::vector<MapObject*>* objects) {
+void PlayerServer::SendObjectsRemoved(const std::vector<MapObject*>* objects) {
     for (MapObject* object : *objects) {
         int objectId = object->id;
         Forget(player->knownObjects, objectId);
@@ -173,10 +164,9 @@ int PlayerServer::SendObjectsRemoved(const std::vector<MapObject*>* objects) {
         WriteType(&out, ServerMessage::ObjectRemoved);
         WriteDword(&out, static_cast<std::uint32_t>(objectId));
     }
-    return 1;
 }
 
-int PlayerServer::SendTimedAdded(const std::vector<Effect*>* effects) {
+void PlayerServer::SendTimedAdded(const std::vector<Effect*>* effects) {
     for (Effect* effect : *effects) {
         if (effect->flags & kFlagDeltaPending) effect->SendDelta();
         std::uint32_t header[2];
@@ -188,10 +178,9 @@ int PlayerServer::SendTimedAdded(const std::vector<Effect*>* effects) {
         Player* currentPlayer = player;
         Keep(currentPlayer->knownTimed, currentPlayer->maxTimedId, effect);
     }
-    return 1;
 }
 
-int PlayerServer::SendTimedChanged(const std::vector<Effect*>* effects) {
+void PlayerServer::SendTimedChanged(const std::vector<Effect*>* effects) {
     int stamp = WorldUpdateCount(player);
     for (Effect* effect : *effects) {
         if (effect->changeStamp != stamp) continue;
@@ -200,17 +189,15 @@ int PlayerServer::SendTimedChanged(const std::vector<Effect*>* effects) {
         WriteDword(&out, static_cast<std::uint32_t>(effect->id));
         WriteStateStream(&out, &effect->state.out[1]);
     }
-    return 1;
 }
 
-int PlayerServer::SendTimedRemoved(const std::vector<Effect*>* effects) {
+void PlayerServer::SendTimedRemoved(const std::vector<Effect*>* effects) {
     for (Effect* effect : *effects) {
         WriteType(&out, ServerMessage::TimedRemoved);
         WriteDword(&out, static_cast<std::uint32_t>(effect->id));
         Forget(player->knownTimed, effect->id);
         effect->Release();
     }
-    return 1;
 }
 
 // The original calls SendItemValue of this object for each item.
@@ -221,7 +208,7 @@ void PlayerServer::SendItems() {
     }
 }
 
-int PlayerServer::SendPartyState() {
+void PlayerServer::SendPartyState() {
     danger = PartyDanger::Safe;
     Player* currentPlayer = player;
     const float low = kLowLevel;
@@ -259,10 +246,9 @@ int PlayerServer::SendPartyState() {
         g_serverWorld.CollectSharedObjects(static_cast<int>(currentPlayer->GetParty()->members[0].unitId), &shared);
     WriteDword(&out, static_cast<std::uint32_t>(shared.size()));
     for (const ScriptObjectRef& member : shared) WriteDword(&out, static_cast<std::uint32_t>(member.AsUnit()->id));
-    return 1;
 }
 
-int PlayerServer::ForgetObject(EngineObject* object) {
+void PlayerServer::ForgetObject(EngineObject* object) {
     Player::MapObjectMap& known = player->knownObjects;
     if (known.contains(object->id)) {
         Forget(known, object->id);
@@ -278,7 +264,6 @@ int PlayerServer::ForgetObject(EngineObject* object) {
     }
     possessedGroup.Remove(object);
     partyUnits.Remove(object);
-    return 1;
 }
 
 bool PlayerServer::IsPartyUnit(EngineObject* object) { return partyUnits.Contains(object) != 0; }
@@ -305,16 +290,16 @@ int PlayerServer::ReceiveMessages() {
         std::uint8_t messageType = 0xFF;
         std::uint8_t previous = 0xFF;
         for (;;) {
-            if (!in.ok) return PlayerMessageError(TextReadPastEnd(), previous, messageType);
+            if (!in.ok) return PlayerMessageError("Serv pkt read error prevID=%x curID=%x", previous, messageType);
             previous = messageType;
             if (in.Read(&messageType, 1) == 0) break;
             if (state == State::NotLoggedIn && messageType != static_cast<std::uint8_t>(ClientMessage::Login) &&
                 messageType != static_cast<std::uint8_t>(ClientMessage::NewParty))
                 break;
-            if (static_cast<int>(messageType) >= std::ssize(handlers)) return PlayerMessageError(TextUnknownType(), previous, messageType);
+            if (static_cast<int>(messageType) >= std::ssize(handlers)) return PlayerMessageError("Serv wrong packet ID prevID=%x curID=%x", previous, messageType);
             auto handler = handlers[messageType];
-            if (handler == nullptr) return PlayerMessageError(TextNoHandler(), previous, messageType);
-            if (!(this->*handler)()) return PlayerMessageError(TextHandlerFailed(), previous, messageType);
+            if (handler == nullptr) return PlayerMessageError("Serv packet has no handler prevID=%x curID=%x", previous, messageType);
+            if (!(this->*handler)()) return PlayerMessageError("Serv error during parsing command prevID=%x curID=%x", previous, messageType);
             if (state == State::Leaving) return 0;
         }
     }

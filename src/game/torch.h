@@ -29,8 +29,12 @@ public:
     ClassId GetClassId() override;
     void AttachObject(EngineObject* object) override { AttachTorchObject(object); }
     bool IsSynchronised() override { return true; }
-    std::uint32_t ReadNetState(int first) override { return ReadTorchNetState(first); }
-    void WriteNetState() override { WriteTorchNetState(); }
+    // The map object's network state, then field 4: the spec's light kind, two values, four more, the two colours
+    // and its name (both channels).
+    void WriteNetState() override;
+    // The map object's reader, then field 4 read into the spec (the spec's own reader, which applies it through
+    // the spec's slots); the result and-ed with "the snapshot was consumed".
+    bool ReadNetState(bool update) override;
 
     // map_object.cpp.
     // Destroy. The spec released and cleared, the network state reset
@@ -44,13 +48,6 @@ public:
     // the spec (a reference taken, the old one released) and points back here. Anything else goes to the map
     // object's AttachObject.
     void AttachTorchObject(EngineObject* object);
-    // The map object's network state, then field 4: the spec's +0x20, +0x28,
-    // +0x2C (through stack copies), +0x30 (16 bytes), the two colours and its name (both channels).
-    void WriteTorchNetState();
-    // The map object's reader, then field 4 read into the spec
-    // (the spec's own reader, which applies it through the spec's slots); the result and-ed with "the snapshot
-    // was consumed".
-    std::uint32_t ReadTorchNetState(int first);
 
     TorchObjectSpec* spec;         // a counted reference
 };

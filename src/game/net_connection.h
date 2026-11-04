@@ -189,6 +189,5 @@ public:
     std::uint16_t ackBase;              // the peer's newest acknowledged sequence
     GrowingBuffer reliableOut;
     GrowingBuffer reliableIn;
-    std::uint32_t padding_1164;
 };
 } // namespace net

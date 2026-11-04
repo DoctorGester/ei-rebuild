@@ -33,7 +33,6 @@ constexpr std::uint32_t kUnitFlagLit = 0x100;
 constexpr float kSpecialZoneDistance = 23.0f;
 
 // The zone whose camera placement keeps a fixed view ("gz20g").
-const char* FixedViewZone() { return "gz20g"; }
 // An identity rotation.
 constexpr Quaternion kFixedViewRotation = /*007C8388*/ {1.0f, 0.0f, 0.0f, 0.0f};   // the identity (a static initialiser)
 
@@ -65,7 +64,7 @@ int PlayerClient::OnCameraPlacement() {
     const int result = static_cast<int>(in.Read(&mode, 4));
     g_clientWorld.CentreOn(point);
     Camera* camera = &g_camera;
-    if (player->GetParty()->zone == FixedViewZone()) {
+    if (player->GetParty()->zone == "gz20g") {
         CameraView view;
         view.distance = kSpecialZoneDistance;
         view.rotation = kFixedViewRotation;
@@ -205,7 +204,7 @@ int PlayerClient::OnObjectChanged() {
     auto node = known.find(objectId);
     if (node == known.end()) return 0;
     MapObject* object = node->second;
-    if (object->ReadState(1, &in) == 0) return 0;
+    if (!object->ReadState(true, &in)) return 0;
     const ClassId classId = object->GetClassId();
     if (classId == ClassId::Building || classId == ClassId::Lever)
         ClientWorld()->RefreshPlatforms(object);   // the client's own

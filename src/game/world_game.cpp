@@ -70,8 +70,6 @@ constexpr unsigned kMagicMission = 0x102;
 MapRecord* ZoneRecords() { return g_mapDatabase.maps.data(); }
 int ZoneRecordCount() { return static_cast<int>(g_mapDatabase.maps.size()); }
 
-using netlink::FileStream;
-
 void ScriptsReset(MemoryStream* scripts) { scripts->Resize(0); }
 
 // Copies <zone>.sav of every visited zone that has to be kept (the current map's zones and bz7g) from

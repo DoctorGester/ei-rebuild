@@ -23,10 +23,21 @@
 
 namespace net {
 
+namespace {
+
+constexpr std::int32_t kChunkSize = static_cast<std::int32_t>(FileChunkMessage::kDataSize);
+
+bool Is(const std::string& s, const char* t) {
+    std::size_t length = std::strlen(t);
+    return s.size() == length && std::memcmp(s.data(), t, length) == 0;
+}
+
+} // namespace
+
 // Empties queuedMaps and variables, queues a map message (name + suffix) on the first, replaces map by a fresh
 // one and copies the name into it and into mapName, loads the map into the world and announces its title. Then,
-// when the map registry knows "name + suffix", sets a script variable to 1 for each of the map's names (inline,
-// through FindOrAddVariable) and for two paths built from the map name (SetVariable), and queues the host's item
+// when the map registry knows "name + suffix", sets a script variable to 1 for each of the map's names
+// (FindOrAddVariable) and for two paths built from the map name (SetVariable), and queues the host's item
 // awards (without the final award).
 void ServerSession::SetMap(const std::string* newName) {
     queuedMaps.clear();
@@ -120,20 +131,10 @@ bool ServerSession::FinishMap(const std::string* mapFile) {
     return true;
 }
 
-} // namespace net
-
 // --- Net server files --------------------------------------------------------------------------------
 
 // The game server's shared files (called by the world for the saved zone data): a file
 // message split into 64-byte chunk messages, queued on files. See net_classes.h and docs/notes/network.md.
-
-namespace net {
-
-namespace {
-
-constexpr std::int32_t kChunkSize = static_cast<std::int32_t>(FileChunkMessage::kDataSize);
-
-} // namespace
 
 // Shares `data` (read from its start to its highest position) under `name` unless a file of that name is
 // listed already: a file message (chunk count, size, name) with a chunk message (the file, its index, up to
@@ -169,25 +170,10 @@ void ServerSession::ShareFile(const std::string* fileName, GameBuffer* data) {
     files.emplace_back(file);
 }
 
-} // namespace net
-
 // --- Net server commands -----------------------------------------------------------------------------
 
 // The game server's command messages (CommandMessage) and the file requests a client
 // hands in, with the host check they use. See net_messages.h and docs/notes/network.md.
-
-namespace net {
-
-namespace {
-
-std::size_t StringNpos() { return 0xFFFFFFFFu; }
-
-bool Is(const std::string& s, const char* t) {
-    std::size_t length = std::strlen(t);
-    return s.size() == length && std::memcmp(s.data(), t, length) == 0;
-}
-
-} // namespace
 
 // Whether `connection` is the host's (a binding of it with a live host player).
 bool ServerSession::IsHostConnection(const Connection* connection) {
@@ -228,7 +214,7 @@ void ServerOnCommand(ServerSession* self, CommandMessage* message) {
         }
         if (node == self->queuedMaps.end()) return;
         const std::size_t cut = text->size() - 2;
-        std::string suffix = text->substr(cut, StringNpos());
+        std::string suffix = text->substr(cut);
         std::string name = text->substr(0, text->size() - 2);
         if (Is(suffix, game::ZoneSuffix1Text())) self->SetMap(&name);
         if (Is(suffix, game::ZoneSuffix2Text())) self->LeaveZone();

@@ -376,7 +376,6 @@ void WorldServer::Update() {
     }
 
     if (WorldHandle* handle = worldHandle.Get()) {
-        handle->Pump();
         AcceptNewPlayers(handle);
     }
     if (netlink::DriverSession* session = netSession.Get()) {

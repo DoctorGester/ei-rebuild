@@ -1,6 +1,6 @@
 #pragma once
 
-// The world's player manager (a BaseManager of Player objects, the world's +0x38, also the script commands'
+// The world's player manager (a BaseManager of Player objects, also the script commands'
 // event dispatcher; a real virtual class); player_manager.cpp holds its lifetime and class virtuals. Creating a
 // player for a lobby session is Rebirth-patched (PlayerNumbers, reproduced behind its flag).
 

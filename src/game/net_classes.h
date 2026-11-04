@@ -167,12 +167,6 @@ extern GrowingBuffer g_receiveBuffer;
 // initialisers and released by the exit functions those register (net_session.cpp).
 inline Ref<ClientSession> g_gameClient = /*0079B5D8*/ {};
 inline Ref<ServerSession> g_gameServer = /*0079B5DC*/ {};
-// The game client's trade offer: publish ours, find the partner's offer that pairs with ours (a
-// PartyMessage, or null), take the acceptance back, drop the offer.
-void ClientPublishParty(ClientSession* self);
-PartyMessage* ClientFindParty(ClientSession* self);
-void ClientCommitParty(ClientSession* self);
-void ClientDropParty(ClientSession* self);
 
 // ---- The message base ---------------------------------------------------------------------------
 
@@ -254,7 +248,7 @@ struct ClientQueries {
     // address, 2 the reply's length, 3 the reply), then field 2 the extra dword.
     void Serialize(ChunkArchive* archive);
     // The query with `address`, or the end.
-    std::vector<Query>::iterator QueriesFind(const NetAddress* address);
+    std::vector<Query>::iterator Find(const NetAddress* address);
 };
 
 // ---- The session base ---------------------------------------------------------------------------
@@ -321,21 +315,31 @@ struct SocketDriver {
     bool Receive(NetAddress* from, GrowingBuffer* buffer);
 };
 
-// The value of the timed lists (the client's timers, the server's awards and finished trades): the
-// seconds left (a float; the code that queues an entry stores a constant's bits) and a counted object, held
-// shared (the client's timers, the server's awards) or counted (the server's finished trades). A copy copies
-// the key, then the reference; a vector's growth moves them (a copy of a shared one would share a clone).
+// How long a command, an award and a finished trade stay on their timed lists.
+inline constexpr float kTimedEntryLifetime = 60.0f;
+
+// The value of the timed lists (the client's timers, the server's awards and finished trades): the seconds left
+// and a counted object, held shared (the client's timers, the server's awards) or counted (the server's finished
+// trades). A copy copies the seconds, then the reference; a vector's growth moves them (a copy of a shared one
+// would share a clone).
 template <typename Holder>
 struct TimedEntry {
-    TimedEntry(std::uint32_t bits, Holder object) : key(bits), ref(std::move(object)) {}
+    TimedEntry(float seconds, Holder object) : seconds(seconds), ref(std::move(object)) {}
 
-    union {
-        float seconds;
-        std::uint32_t key;   // the seconds' bits, as the lists copy them
-    };
+    float seconds;
     Holder ref;
 };
 static_assert(std::is_nothrow_move_constructible_v<TimedEntry<SharedRef<RefObject>>>);
+
+// Each entry of a timed list loses `dt` seconds; those below zero are erased.
+template <typename List>
+void CountDown(List& list, float dt) {
+    for (auto node = list.begin(); node != list.end();) {
+        node->seconds -= dt;
+        if (node->seconds < 0.0f) node = list.erase(node);
+        else ++node;
+    }
+}
 
 // What a session replicates to the connection being updated (CollectReplicated fills it).
 struct Replicated {
@@ -420,7 +424,6 @@ public:
     SocketDriver socket;
     std::uint8_t reliable[kMessageTypes];    // per message type: its objects are sent reliably
     std::vector<MessageHandler> handlers[kChannels][kMessageTypes];
-    std::uint32_t padding_2564;
 };
 
 constexpr std::uint32_t kSessionMagic = 0xDEC0AD07;
@@ -591,8 +594,6 @@ public:
     void AddServer(ServerEntry* entry);
     // Starts joining the host at `address` with `data` sent along.
     void Join(const NetAddress* address, const GrowingBuffer* data);
-    // The entry of the `index`th server found, or null.
-    ServerEntry* ServerAt(int index);
 
     NetAddress host;                    // the host joined or being asked
     GrowingBuffer joinData;             // sent with every join request
@@ -635,6 +636,13 @@ public:
     void ReadServerList(GameBuffer* in);
     void StartParty(PlayerMessage* partner);
     void RecordTrade(Party* party);
+    // The game client's trade offer: publish ours, find the partner's offer that pairs with ours (null without
+    // one), take the acceptance back, drop the offer, rebuild the partner's party from its offer.
+    void PublishParty();
+    PartyMessage* FindParty();
+    void CommitParty();
+    void DropParty();
+    void ApplyParty();
 
     ClientSession();
     ~ClientSession() override;
@@ -646,7 +654,7 @@ public:
     // Applies the awards received: experience, gold, items.
     void ApplyAwards();
     // Keeps `object` on the timers list for `seconds`.
-    void AddTimed(Message* object, std::uint32_t seconds);
+    void AddTimed(Message* object, float seconds);
     // A command message ({kind, text}) for the server, kept 60 s.
     void SendCommand(CommandKind kind, std::string_view text);
 
