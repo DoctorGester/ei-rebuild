@@ -1440,7 +1440,7 @@ bool Submit() {
     std::lock_guard<std::mutex> lock(g_fenceLock);
     g_submissions.push_back({serial, fence, submitted, fence == nullptr});
     // Without the frame timer nothing else asks the older fences, so every submission's fence was kept: thousands a
-    // minute, until Dozen on WSL (D3D12 fences) refused new ones (H50). The timer's own marks keep their times.
+    // minute, until Dozen on WSL (D3D12 fences) refused new ones. The timer's own marks keep their times.
     if (!g_timing.load()) MarkFinished(false);
     DropDone();
     return fence != nullptr;

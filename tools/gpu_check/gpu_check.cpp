@@ -679,7 +679,7 @@ void CheckSwapchain() {
     SDL_DestroyWindow(window);
 }
 
-// Many submissions with the frame timer off: their fences go back once they have finished (H50: they were all kept,
+// Many submissions with the frame timer off: their fences go back once they have finished (they were all kept,
 // and Dozen on WSL refused new fences after some thousands).
 void CheckFencesReleased() {
     g::Texture target = g::MakeTexture({4, 4, 1, 1, g::Format::Rgba8, g::kColourTarget | g::kSampled, "fences"});
