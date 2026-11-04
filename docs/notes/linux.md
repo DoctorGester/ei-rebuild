@@ -179,9 +179,15 @@ draw on Windows' GPU, so under WSL run_all then also holds Windows' machine slot
 Windows' python.exe through WSL's interop runs run_all.py `--hold-slots N [--hold-most M]`, which takes lock files in
 Windows' temp folder, the same as Windows' suites and work.py's scheduler, until the run ends), so Windows' and WSL's
 games together stay within Windows' 16, and runs no more games at once than it holds. With `--jobs N` it waits for N
-slots (2N with a pair in the run); without, it waits for 2 (a pair's) and takes every other one free at that moment
-up to `WSL_GPU_SLOTS`, 8 (`EI_HARNESS_SLOTS` sets the most instead): half the machine, so Windows' suites keep the
-other half however long the WSL run lasts. The hold is kept to the run's end, also while its last games finish.
+slots (2N with a pair in the run), fixed to the run's end; without, it waits for 2 (a pair's) and takes every other one
+free at that moment up to `WSL_GPU_SLOTS`, 8 (`EI_HARNESS_SLOTS` sets the most instead): half the machine, so Windows' suites
+keep the other half however long the WSL run lasts. Then the hold follows the run's need (H50a1: `follow_need()`, every
+2 s): the games it still has to run (running and queued, a pair's two) are the slots it wants, at most the most. More than
+it holds: it sends `want <n>` on the Windows process's stdin, which takes the free slots one at a time without waiting
+(`adjust_hold()`) and answers `held <m>`, and the games' limit (`GameSlots`, in place of run_all's own slot pool) grows to
+m; so a run started while Windows' 16 are busy begins with 2 and grows as they free. Fewer: the limit drops to the games
+running (never below), then `want` gives the rest back, so the last games of a run do not hold slots they no longer
+use. Checked in `tools/test_work_sched.py` (hold_slots, adjust_hold, GameSlots, rebalance, follow_need).
 (Windows' Python started from WSL works in a `\\wsl.localhost` folder, where `/proc/version` is WSL's: `under_wsl()`
 asks Linux first, or that side took WSL's pool of 6 as the most.)
 

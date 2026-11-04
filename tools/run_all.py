@@ -27,7 +27,8 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                    addon's frames, recorded from game.exe until H40 in <main checkout>\\build\\widescreen; a
                    scenario whose steps changed since has none (the comparison names it)
   --jobs N         games running at once (default 16; under WSL on Windows' GPU the Windows game slots free at the
-                   start, at most WSL_GPU_SLOTS, 8, or EI_HARNESS_SLOTS); all runs on the machine together never
+                   start, at most WSL_GPU_SLOTS, 8, or EI_HARNESS_SLOTS, then growing as more free and going back as the queue
+                   empties: follow_need()); all runs on the machine together never
                    exceed EI_HARNESS_SLOTS (default 16) games, whatever --jobs says. Each run writes to its own folder,
                    build\\verify\\runs\\<scenario>-<install> (ei-rebuild.log, harness_report.txt and
                    harness_saves, emptied first, so every run starts without saves or texture cache).
@@ -489,8 +490,10 @@ def watch(games, group, say):
                 unkillable = not end_game(other, group, say) or unkillable
 
     while any(g.proc.poll() is None for g in games):
-        with contextlib.suppress(subprocess.TimeoutExpired):
-            next(g for g in games if g.proc.poll() is None).proc.wait(0.5)
+        running = next((g for g in games if g.proc.poll() is None), None)    # none: the last one ended just now
+        if running:
+            with contextlib.suppress(subprocess.TimeoutExpired):
+                running.proc.wait(0.5)
         elapsed = time.monotonic() - started
         for game in games:
             if game.proc.poll() is not None:
