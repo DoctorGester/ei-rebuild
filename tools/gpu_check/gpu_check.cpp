@@ -8,6 +8,7 @@
 // (under a second); the frame's GPU time; misused calls refused and logged.
 //
 // usage: ei_gpu_check [--require] [--driver NAME]   (--require: a driver that makes no device fails; else skipped)
+//        ei_gpu_check --bench [--driver NAME] [--frames N]   (gpu_bench.cpp: the draw loop's and downloads' costs)
 
 #include "render/gpu.h"
 
@@ -18,6 +19,7 @@
 #include <cmath>
 #include <cstdarg>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -39,6 +41,10 @@ void Log(const char* format, ...) {
 }
 
 } // namespace ei
+
+namespace render_bench {
+bool Run(const char* driver, int frames);
+}
 
 namespace {
 
@@ -793,18 +799,24 @@ bool CheckDriver(const char* driver) {
 }  // namespace
 
 int main(int argc, char** argv) {
-    bool require = false;
+    bool require = false, bench = false;
+    int frames = 500;
     const char* only = nullptr;
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--require") == 0) {
             require = true;
+        } else if (std::strcmp(argv[i], "--bench") == 0) {
+            bench = true;
+        } else if (std::strcmp(argv[i], "--frames") == 0 && i + 1 < argc) {
+            frames = std::atoi(argv[++i]);
         } else if (std::strcmp(argv[i], "--driver") == 0 && i + 1 < argc) {
             only = argv[++i];
         } else {
-            std::printf("usage: ei_gpu_check [--require] [--driver NAME]\n");
+            std::printf("usage: ei_gpu_check [--require] [--driver NAME] | --bench [--driver NAME] [--frames N]\n");
             return 2;
         }
     }
+    if (bench) std::setvbuf(stdout, nullptr, _IONBF, 0);
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         std::printf("gpu_check: SDL_Init: %s\n", SDL_GetError());
         return 1;
@@ -819,10 +831,13 @@ int main(int argc, char** argv) {
     int made = 0;
     for (const char* driver : drivers) {
         if (only && std::strcmp(only, driver) != 0) continue;
-        if (CheckDriver(driver)) ++made;
+        if (bench) {
+            if (render_bench::Run(driver, frames)) ++made;
+        } else if (CheckDriver(driver)) ++made;
         else if (require) Fail("no device, and --require");
     }
     SDL_Quit();
+    if (bench) return made ? 0 : 1;
     std::printf("gpu_check: %d checks, %d failed, on %d drivers\n", g_checks, g_failures, made);
     return g_failures ? 1 : 0;
 }

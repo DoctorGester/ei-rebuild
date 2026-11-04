@@ -990,8 +990,11 @@ forward-declared handles, so the files include no SDL header. `ei_gpu_check` che
   second colour target, resolved with the first; a depth target) .. `EndPass`. A target cleared or not cared about is cycled (a free copy of it takes the pass while
   the GPU still reads the old one). Viewport and scissor in target pixels from the top-left on every driver. Bindings
   (`ApplyPipeline`, `BindVertexBuffers`, `BindIndexBuffer` 32-bit, `BindTextures` texture-sampler pairs,
-  `PushUniforms`) last for the pass, across pipelines, and one set again unchanged is not sent again.
-  `Draw`, `DrawIndexed` (with a first instance).
+  `PushUniforms`) last for the pass, across pipelines, and one set again unchanged is not sent again (a uniform block
+  is compared byte for byte with the one last pushed in its slot). `Counts()` says what the draws sent and what the
+  filter left out; in a real run (scenario `render_stats`, 272k draws) 8% of the pipeline calls, 4% of the vertex and 4%
+  of the index buffer binds, 12% of the texture calls and 30% of the uniform pushes were sent. `SetStateFiltering(false)`
+  turns the filter off for `ei_gpu_check --bench` alone. `Draw`, `DrawIndexed` (with a first instance).
 - **Writes** (`Write` of a buffer range or a texture region, `Copy` of a texture region) go between passes, never
   inside one (refused and logged). The bytes are copied into the upload ring at once; the copies wait and are recorded
   in one copy pass before the next pass, download wait or submission, so they are in order with the draws: a draw
@@ -1024,6 +1027,27 @@ forward-declared handles, so the files include no SDL header. `ei_gpu_check` che
   overlay every fence was kept: thousands a minute, which lavapipe and Windows' Direct3D 12 took, but Dozen on WSL
   turned down after a few seconds of several games (`vkCreateFence` VK_ERROR_OUT_OF_DEVICE_MEMORY, then an abort).
 - `Problems()` counts misused calls (each logged "gpu: ..."); the check holds it at its deliberate misuses.
+
+**Cost** (`ei_gpu_check --bench [--driver NAME] [--frames N]`, tools/gpu_check/gpu_bench.cpp; the numbers below are
+the RTX 4070 Ti SUPER on Windows 10, two runs of 3 x 500 frames, a quiet machine; the spike's tables are in
+build/reviews/r43_sdl_gpu.md, 'Numbers'). The bench replays a synthetic world frame through gpu.h's calls the way
+render_mesh.cpp and render_shadows.cpp make them (155 instanced caster draws into a 4096 x 4096 depth map, 263 mesh draws
+with five uniform blocks and six samplers, the present; half of the draws keep the last one's mesh, 40% its textures),
+once with the filter off and once on, and reads a frame target back:
+- **The draw loop**, CPU time of recording and submitting a frame (median, ms): Direct3D 12 0.26 without the filter, 0.17
+  with it (960x720 and 2560x1440 alike); Vulkan 0.29 and 0.155. The spike's replay sent every call (D3D12 level with
+  D3D11, Vulkan 15-25% slower); with the filter on the call counts of a frame fall from 419 pipeline, 418 + 418 buffer,
+  1208 texture and 1317 uniform calls to 19, 195 + 195, 279 and 398 (94 KB of uniforms instead of 259). The frame time
+  (acquire to submit) then follows the swap chain: 0.17-0.21 ms on D3D12 and 0.32-0.36 ms on Vulkan.
+- **Downloads** (RGBA8 frame target, median ms, idle / drawn then read; the spike's SDL path made a transfer buffer
+  each time): 960x720 Direct3D 12 0.20 / 0.21, Vulkan 0.18 / 0.19 (spike 0.78-1.21 / 0.95-1.50); 2560x1440 Direct3D 12
+  0.75 / 0.69, Vulkan 0.72 / 0.76 (spike 3.3-5.2 / 3.8-5.9; its sokol D3D11 2.7-3.1 / 2.1-2.7). The first read pays the
+  buffer (0.6-0.7 ms at 960x720, 1.6 at 1440p on D3D12; 7-8 ms on Vulkan's first). A download recorded with the frame
+  and read a frame later with `Done` / `Read` costs the calls only: 0.12-0.14 / 0.6 ms including the frame's own
+  commands. The game's own reads (screenshots, the movie recorder, the harness's captures, a picture of the escape
+  menu) want the pixels now and wait; nothing in a frame's path reads back.
+- **Pipelines made ahead** (the log line, a scenario run on this machine's warm driver cache): 28 of 28 in 8 ms, and the
+  start waited about 500 ms for the thread, which is the device itself.
 
 **Check**: `ei_gpu_check` (tools/gpu_check; build_checks.py on Windows, ctest `port_gpu --require` on Linux), per driver
 (Direct3D 12 and Vulkan on Windows, Vulkan on Linux: lavapipe without a GPU), in a few seconds:

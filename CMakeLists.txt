@@ -201,7 +201,7 @@ target_include_directories(ei_shader_check PRIVATE src ${CMAKE_BINARY_DIR})
 target_link_libraries(ei_shader_check PRIVATE ei_render SDL3::SDL3-static)
 target_include_directories(ei_render PUBLIC ${CMAKE_BINARY_DIR})
 # gpu.cpp's check (tools/gpu_check) on Direct3D 12 and Vulkan: build_checks.py runs it on Windows, ctest on Linux.
-add_executable(ei_gpu_check tools/gpu_check/gpu_check.cpp)
+add_executable(ei_gpu_check tools/gpu_check/gpu_check.cpp tools/gpu_check/gpu_bench.cpp)
 target_include_directories(ei_gpu_check PRIVATE src ${CMAKE_BINARY_DIR})
 target_link_libraries(ei_gpu_check PRIVATE ei_render SDL3::SDL3-static)
 # The interface fonts built into the executable (render_fonts.cpp): third_party/fonts' two Liberation files written
