@@ -30,6 +30,15 @@ bool WriteFrame(const char* name, int width, int height, const std::vector<std::
 // channel difference. False (with `why`) when a file is missing, unreadable or of another size.
 bool Compare(const char* a, const char* b, int tolerance, double* differing, int* largest, const char** why);
 
+// The pixels of frames\<smooth>.bmp (the world multisampled) outside the range of their 3 x 3 neighbourhood in
+// frames\<plain>.bmp (the same frozen moment drawn without) by more than `tolerance` in a channel, in the rectangle
+// `left`..`right` x `top`..`bottom` (right and bottom excluded; cut to the frame less its border pixels): `outside`
+// gets their share of the pixels compared, `count` their number. A multisampled pixel mixes surfaces its neighbours
+// show at their centres, so it lies within their range. False (with `why`) as Compare, or when the rectangle holds no
+// pixel.
+bool OutsideNeighbours(const char* plain, const char* smooth, int tolerance, int left, int top, int right, int bottom,
+                       double* outside, long long* count, const char** why);
+
 // The level steps of frames\<name>.bmp, a capture of the terrain's level map (render::TerrainLevels,
 // R12): of the horizontally and vertically neighbouring pixel pairs that both show the map (green
 // 0x5A, blue 0xA5), the fraction (`steps`) whose red differs by 24 or more (most of a level: a level

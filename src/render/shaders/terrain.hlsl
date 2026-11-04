@@ -313,14 +313,20 @@ float4 Shade(VsOut i) {
     float3 n = len > 1e-6 ? i.normal / len : float3(0.0, 0.0, 1.0);
     float footprint = length(fwidth(i.world.xy));
     float3 spec, c;
-    float a = fs.flags.x > 0.5 ? i.col.a : t.a;
+    // The layer is the batch's, not the interpolated `loss`'s sign: with multisampling a pixel on a triangle's edge is
+    // shaded at its centre, past the triangle, and there the ground's loss (0 on the dry ground, more under the water)
+    // fell below 0 at the shore, which drew the ground's edge pixels as water, nearly transparent: the sky showed
+    // through in a dotted line along the triangles (scenario render_shore_seams).
+    const bool water = fs.flags.x > 0.5;
+    float a = water ? i.col.a : t.a;
     // The water: the clouds' shade only (the map's falls on the ground under it); the crests or the specular lights.
-    if (i.loss < 0.0) {
+    if (water) {
         float3 lit = ground_light(i.world, n, i.col.rgb, i.col.rgb, 0.0, hidden, shadow.on.y, false, 0.0, 1.0, spec);
         float seen;
         c = Water(i, saturate(t.rgb * lit + max(spec, i.spec.rgb)), a, n, hidden, footprint, seen);
         a = seen;
     } else {
+        i.loss = max(i.loss, 0.0);   // past the triangle's edge (above) it can fall below 0
         float occlusion = i.occlusion * ambient_occlusion(i.pos.xy, i.pos.z, fs.occlusion, fs.occlusionMap);
         if (fs.occlusion.w > 0.5) return float4(occlusion.xxx, 1.0);   // the harness's occlusion view
         float3 lit = ground_light(i.world, n, i.col.rgb, 0.0, i.loss, hidden, shadow.on.y, pointShadow.on.x > 0.5,

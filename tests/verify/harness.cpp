@@ -328,6 +328,14 @@
 //                             to differ from frames\<plain>.bmp (the same frozen moment with both off)
 //                             in a fraction of its pixels (by more than 8) within <least>..<most>: the
 //                             world's edges and textures, nothing black or stale
+//   smoothedges <plain> <smooth> <tolerance> <most> [<left> <top> <right> <bottom>]
+//                             require at most a fraction <most> of frames\<smooth>.bmp's pixels (the
+//                             world multisampled; in the rectangle, right and bottom excluded, or the
+//                             whole frame) to lie outside the range of their 3 x 3 neighbourhood
+//                             in frames\<plain>.bmp (the same frozen moment without) by more than
+//                             <tolerance> in a channel: an edge pixel mixes what its neighbours show,
+//                             so one outside was shaded wrongly where a triangle covers part of it
+//                             (R17c1: the ground at the shore drawn as water along its triangles' edges)
 //   smoothorder game|before|split|check
 //                             the image's multisampled passes in an order the game never draws
 //                             (render::SetSmoothOrder, R12a1), from the next frame: an empty pass on
@@ -2070,7 +2078,7 @@ std::string DescribeTopWindow() {
 
 // The image's renderer's steps (image::RenderStep).
 bool IsRenderStep(const std::string& verb) {
-    return verb == "terrainlevels" || verb == "levelsteps" || verb == "hues" || verb == "mmplevels" || verb == "msaa" || verb == "anisotropy" || verb == "smoothcheck" || verb == "smoothorder" || verb == "shadowcasters" || verb == "shadowview" || verb == "shadowshift" || verb == "terraincache" || verb == "meshcache" || verb == "shadowcheck" || verb == "cloudcheck" || verb == "weathercheck" || verb == "occlusion" || verb == "renderstats";
+    return verb == "terrainlevels" || verb == "levelsteps" || verb == "hues" || verb == "mmplevels" || verb == "msaa" || verb == "anisotropy" || verb == "smoothcheck" || verb == "smoothedges" || verb == "smoothorder" || verb == "shadowcasters" || verb == "shadowview" || verb == "shadowshift" || verb == "terraincache" || verb == "meshcache" || verb == "shadowcheck" || verb == "cloudcheck" || verb == "weathercheck" || verb == "occlusion" || verb == "renderstats";
 }
 
 // The steps that post input messages to the game window.
