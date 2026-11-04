@@ -150,7 +150,8 @@ struct TextLayout {
 // False (and nothing written) for format bits outside kSupportedFormats.
 bool Layout(TextFont& font, std::u32string_view text, const Rect& rect, unsigned format, TextLayout& out);
 
-// GetTextExtentPoint32: the advances summed (no kerning, prefix or tab handling) and the font's height.
+// GetTextExtentPoint32: the advances summed (no kerning, prefix or tab handling) and the font's height; 0 x 0 for an
+// empty text.
 Size TextExtent(TextFont& font, std::u32string_view text);
 
 // ---- CPU composition ----------------------------------------------------------------------------------

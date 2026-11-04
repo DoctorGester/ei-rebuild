@@ -532,6 +532,9 @@ bool Layout(TextFont& font, std::u32string_view text, const Rect& rect, unsigned
 }
 
 Size TextExtent(TextFont& font, std::u32string_view text) {
+    // An empty text measures 0 x 0, as GDI's GetTextExtentPoint32 does: the tooltips add no row for the empty
+    // line after a text's final line break.
+    if (text.empty()) return Size{0, 0};
     Size extent;
     for (char32_t ch : text) extent.w += font.Advance(ch);
     extent.h = font.Metrics().height;
