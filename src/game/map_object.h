@@ -173,7 +173,7 @@ public:
     virtual std::uint32_t SetStunned(int on);   // ignores it (0); units: the new flags
     virtual int SetVisibilityMode(int mode);    // hands it to the companion
     virtual Vector3 EyePoint();        // where the object sees from (GroundPoint)
-    virtual std::uint32_t ReadNetState(int first);   // (units override)
+    virtual bool ReadNetState(bool update);   // (units override)
     virtual void WriteNetState();      // (units override)
     // z = ground height at (x, y) + `offset`.
     virtual void PlaceOnGround(float offset);
@@ -228,7 +228,7 @@ public:
     void WriteFullState();
     void WriteChangedState();
     // The network state read from `reader`: BeginRead, ReadNetState with `first`, the state finished.
-    std::uint32_t ReadState(int first, MemoryStream* reader);
+    bool ReadState(bool update, MemoryStream* reader);
     std::string* SetSecondName(const char* text);
 
     Object3D* AsObject3D() { return this; }

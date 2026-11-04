@@ -225,12 +225,11 @@ void MapObject::WriteChangedState() {
     flags &= ~MapObjectFlag::Changed;
 }
 
-std::uint32_t MapObject::ReadState(int first, MemoryStream* reader) {
-    DeltaState* state = &netState;
-    state->BeginRead(first, reader);
-    std::uint32_t result = ReadNetState(first);
-    state->Finish();
-    return result;
+bool MapObject::ReadState(bool update, MemoryStream* reader) {
+    netState.BeginRead(update, reader);
+    bool complete = ReadNetState(update);
+    netState.Finish();
+    return complete;
 }
 
 std::string* MapObject::SetSecondName(const char* text) {

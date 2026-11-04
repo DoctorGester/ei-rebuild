@@ -684,15 +684,13 @@ struct SectorGrid {
     void Move(MapObject* object, const float* position);
 };
 
-// The worlds' counted helpers: player sources (player_source.h; Query false, the client's Segment calls Pump every
-// tick). The server's hands its pending link over once (TakeNew).
+// The worlds' counted helpers: player sources (player_source.h). The server's hands its pending link over once (TakeNew).
 class WorldHandle final : public PlayerSource {
 public:
     ~WorldHandle() override;
 
     void OnShutdown() override;
     WorldHandle* Clone() override;
-    bool Query() override { return false; }
     void TakeNew(std::vector<HeldRef<netlink::NetLink>>* joined) override;
 
     Ref<netlink::NetLink> pendingLink;      // handed over by TakeNew
@@ -703,7 +701,6 @@ class ClientHandle final : public PlayerSource {
 public:
     void OnShutdown() override {}
     ClientHandle* Clone() override;
-    bool Query() override { return false; }
     // The client takes no connections: every link of the list is released and the list emptied.
     void TakeNew(std::vector<HeldRef<netlink::NetLink>>* joined) override;
 };

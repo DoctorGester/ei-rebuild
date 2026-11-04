@@ -38,6 +38,11 @@ void DestroyForReset(Connection* c) {
     FreeReceived(c);
 }
 
+// The time from `then` to `now` on a connection's clock (doubles holding float values).
+float Age(double now, double then) { return static_cast<float>(now) - static_cast<float>(then); }
+
+constexpr float kRttKeep = 0.93f;   // the share of the old average kept per sample
+
 } // namespace
 
 // The constructor (id). The containers are members, built before the body (the original builds the reliable
@@ -84,11 +89,7 @@ void Connection::OnShutdown() {
 // from the last).
 Connection::~Connection() = default;
 
-} // namespace net
-
 // ---- Id pools and replica entries ---------------------------------------------------------------------
-
-namespace net {
 
 ReplicaEntry::ReplicaEntry() {
     version = 0;
@@ -97,24 +98,11 @@ ReplicaEntry::ReplicaEntry() {
 
 ReplicaEntry::~ReplicaEntry() {}
 
-} // namespace net
-
 // --- Net connection tick -----------------------------------------------------------------------------
 
 // A connection's tick: clocks, lost-packet detection, sending, delayed id reuse and the
 // timeout. See net_connection.h and docs/notes/network.md. The clocks are doubles holding float values: their
 // sums are float sums, as the original's were.
-
-namespace net {
-
-namespace {
-
-// The time from `then` to `now` on a connection's clock (doubles holding float values).
-float Age(double now, double then) { return static_cast<float>(now) - static_cast<float>(then); }
-
-constexpr float kRttKeep = 0.93f;   // the share of the old average kept per sample
-
-} // namespace
 
 // Advances the idle time and the clock by `dt`. Packets older than the loss timeout (3 standard deviations
 // above the average round trip, at least 0.1, at most the session's maxRoundTrip) are rolled back and move
@@ -177,10 +165,6 @@ bool Connection::Tick(double dt) {
     g_currentConnection = nullptr;
     return alive;
 }
-
-} // namespace net
-
-namespace net {
 
 void Connection::Delivered(SentPacket* packet) {
     const float sample = Age(clock, packet->time);

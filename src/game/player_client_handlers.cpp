@@ -205,7 +205,7 @@ int PlayerClient::OnObjectChanged() {
     auto node = known.find(objectId);
     if (node == known.end()) return 0;
     MapObject* object = node->second;
-    if (object->ReadState(1, &in) == 0) return 0;
+    if (!object->ReadState(true, &in)) return 0;
     const ClassId classId = object->GetClassId();
     if (classId == ClassId::Building || classId == ClassId::Lever)
         ClientWorld()->RefreshPlatforms(object);   // the client's own

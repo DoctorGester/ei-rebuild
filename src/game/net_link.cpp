@@ -25,31 +25,6 @@ constexpr unsigned kMaxMessage = 0x7FFC;
 
 } // namespace
 
-// FileStream
-
-FileStream::FileStream() = default;
-
-FileStream::~FileStream() = default;
-
-std::uint32_t FileStream::Read(void* buffer, std::uint32_t size) {
-    std::uint32_t read = file.Read(buffer, size);
-    ok = static_cast<std::uint8_t>(ok & (read == size ? 1 : 0));
-    return read;
-}
-
-void FileStream::Write(const void* buffer, std::uint32_t size) { file.Write(buffer, size); }
-
-long FileStream::SeekFrom(long position) { return file.Seek(position, platform::SeekFrom::Begin); }
-void FileStream::Seek(std::uint32_t position) { SeekFrom(static_cast<long>(position)); }
-
-std::uint32_t FileStream::Size() { return file.Size(); }
-std::uint32_t FileStream::Position() { return file.Position(); }
-
-void FileStream::Clear() {
-    ok = 1;
-    file.Seek(0L, platform::SeekFrom::Begin);
-}
-
 // NetLink
 
 NetLink::NetLink() = default;

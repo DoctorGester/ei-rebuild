@@ -19,6 +19,8 @@ namespace {
 // The embedded party's constructor.
 void PartyConstruct(lib::InPlace<Party>* party) { new (party->Get()) Party(); }
 
+constexpr std::uint32_t kCommandLifetime = 0x42700000;     // 60.0f
+
 } // namespace
 
 // The client base's constructor is inlined into the game client's: the session base, its lobby fields, an unbound
@@ -94,16 +96,12 @@ void ClientSession::CollectReplicated(std::vector<Replicated>** out) {
     }
 }
 
-} // namespace net
-
 // --- Life --------------------------------------------------------------------------------------------
 
 // The game client's destructor, scalar deleting destructor and its
 // base layer's destructor. The members are torn down in reverse order: the lists are cleared where the original
 // destroys them, between the counted pointers' releases; then the session base. See net_classes.h and
 // docs/notes/network.md.
-
-namespace net {
 
 // The client base's part and the session base follow (their destructors).
 ClientSession::~ClientSession() {
@@ -130,21 +128,11 @@ ClientSession::~ClientSession() {
 
 ClientBase::~ClientBase() {}
 
-} // namespace net
-
 // --- Commands ----------------------------------------------------------------------------------------
 
 // The game client's timed entries and commands: an object kept on the timers list, a
 // command message for the server, the client's own server entry, the start of the game and the ratio of a
 // received buffer. See net_classes.h and docs/notes/network.md.
-
-namespace net {
-
-namespace {
-
-constexpr std::uint32_t kCommandLifetime = 0x42700000;     // 60.0f
-
-} // namespace
 
 // Keeps `object` on the timers list for `seconds` (shared into the entry).
 void ClientSession::AddTimed(Message* object, std::uint32_t seconds) {

@@ -327,8 +327,6 @@ bool WorldClient::RunTick() {
     if (!paused) {
         if (arrayManager) arrayManager->RunTick();
     }
-    if (WorldHandle* source = worldHandle.Get()) source->Pump();
-    if (ClientHandle* source = handle.Get()) source->Pump();
     if (netlink::DriverSession* driver = netSession.Get()) driver->PumpDrivers(net::g_gameClient);
     if (Player* currentSession = session) {
         PlayerConnection* view = currentSession->connection;

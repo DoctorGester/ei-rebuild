@@ -288,7 +288,7 @@ bool MapFileExists(const char* name) {
 }
 
 void WriteMapFile(const char* name, GameBuffer* buffer) {
-    netlink::FileStream file;
+    FileStream file;
     {
         modfolders::SelectMaps(name, modfolders::MapsSite::WriteFile);
         std::string path = MapsFolder() + name;

@@ -149,8 +149,6 @@ netlink::NetLink* ActiveLink(Player* session) {
 }
 
 void PumpSources(WorldClient* world) {
-    if (WorldHandle* source = world->worldHandle.Get()) source->Pump();
-    if (ClientHandle* source = world->handle.Get()) source->Pump();
     if (netlink::DriverSession* session = world->netSession.Get()) session->PumpDrivers(net::g_gameClient);
 }
 

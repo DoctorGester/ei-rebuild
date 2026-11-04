@@ -36,6 +36,17 @@ void DropClient(ServerSession* self, Connection* connection) {
     self->RemoveClient(self->FindClient(&connection->address));
 }
 
+// The serial the next player record gets.
+std::uint32_t g_playerSerial = /*0079B60C*/ {};
+
+// Every element of `list` holding `value` erased.
+template <typename List>
+void EraseValue(List& list, const void* value) {
+    std::erase_if(list, [value](const auto& element) { return element.Get() == value; });
+}
+
+constexpr std::uint32_t kMaxLines = 50;
+
 } // namespace
 
 // The id of the first host player, -1 without one.
@@ -188,27 +199,11 @@ void ServerSession::ReportDeparture(Connection* connection, int text) {
 void ServerSession::OnClientLost(Connection* connection) { ReportDeparture(connection, 4); }
 void ServerSession::OnClientLeft(Connection* connection) { ReportDeparture(connection, 1); }
 
-} // namespace net
-
 // --- Net server join ---------------------------------------------------------------------------------
 
 // The game server's handlers of the login message (LoginMessage, registered by the server constructor):
 // a client joined (a player record and a connection binding for it), its record changed or it left. See
 // net_classes.h and docs/notes/network.md.
-
-namespace net {
-
-namespace {
-// The serial the next player record gets.
-std::uint32_t g_playerSerial = /*0079B60C*/ {};
-
-// Every element of `list` holding `value` erased.
-template <typename List>
-void EraseValue(List& list, const void* value) {
-    std::erase_if(list, [value](const auto& element) { return element.Get() == value; });
-}
-
-} // namespace
 
 // A client joined (a LoginMessage). Appends a player record (the login's texts and
 // values, the lowest free player number, the next serial, the server's next line number) and a
@@ -291,19 +286,10 @@ void ServerOnPlayerGone(ServerSession* self, LoginMessage* message) {
     EraseValue(self->bindings, message->binding.Get());
 }
 
-} // namespace net
-
 // --- Net server chat ---------------------------------------------------------------------------------
 
 // The game server's chat and system lines: kept on lines for the clients, at most 50. See net_classes.h and
 // docs/notes/network.md.
-
-namespace net {
-
-namespace {
-constexpr std::uint32_t kMaxLines = 50;
-
-} // namespace
 
 // Appends a line (the next line number, the text, the connection of `player`'s binding,
 // null for the server's own lines) and drops the oldest past 50.
@@ -336,14 +322,10 @@ void ServerSession::AnnounceText(int textKind, const char* text, RefObject* play
     Announce(g_interface.MessageText(textKind, text), player);
 }
 
-} // namespace net
-
 // --- Net server vars ---------------------------------------------------------------------------------
 
 // The game server's script variables: named floats the script reads and writes in a
 // network game, replicated to the clients as VariableMessages. See net_messages.h and docs/notes/network.md.
-
-namespace net {
 
 // The search the original inlines in each function: the first variable whose name has the same bytes as
 // `name`.

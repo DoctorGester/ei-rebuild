@@ -22,24 +22,6 @@ std::uint32_t Word(const std::uint8_t* p) {
     return w;
 }
 
-// ReadStream refuses longer streams.
-constexpr std::uint32_t kMaxStreamLength = 100000;
-
-// A fixed view over `self`'s bytes run through the coder into a growing buffer, whose bytes then replace
-// `out`'s (Resize, Seek 0, Write, Seek 0).
-void CodeStream(MemoryStream* self, CoderState* coder, MemoryStream* out, void (CoderState::*code)(GameBuffer*, GameBuffer*)) {
-    GrowingBuffer result;
-    std::uint8_t* data = self->data.data();
-    std::uint8_t* last = data + self->Size();
-    BufferView view(data, last);
-    (coder->*code)(&view, &result);
-    out->Resize(static_cast<std::uint32_t>(result.Size()));
-    out->Seek(0);
-    std::uint32_t length = static_cast<std::uint32_t>(result.Size());
-    out->Write(result.begin, length);
-    out->Seek(0);
-}
-
 void RewindAndEmpty(DeltaField* field) {
     field->snapshot[0].Seek(0);
     field->snapshot[1].Seek(0);
@@ -101,58 +83,9 @@ void RebuildHeader(DeltaState* state, int channel, std::uint16_t mask) {
 
 } // namespace
 
-void MemoryStream::PutBit(bool bit) {
-    bitMask = static_cast<std::int32_t>(static_cast<std::uint32_t>(bitMask) << 1);
-    if (bitMask > 0x80) StartByte();    // sets bitMask to 1
-    if (bit) bits |= static_cast<std::uint8_t>(bitMask);
-}
-
-bool MemoryStream::GetBit() {
-    bitMask = static_cast<std::int32_t>(static_cast<std::uint32_t>(bitMask) << 1);
-    if (bitMask > 0x80) {
-        bitMask = 1;
-        ReadValue(bits);
-    }
-    return (bitMask & static_cast<std::int8_t>(bits)) != 0;
-}
-
-// --- Whole streams: length-prefixed copies and the message compression ------------------------
-
-void MemoryStream::WriteStream(MemoryStream* from) {
-    from->EndBits();
-    std::int32_t header = static_cast<std::int32_t>(from->Size() << 1);
-    if (header < 0x100) {
-        Write(&header, 1);
-    } else {
-        header |= 1;
-        WriteValue(header);
-    }
-    std::uint8_t* newData = from->data.data();
-    Write(newData, from->Size());
-}
-
-int MemoryStream::ReadStream(MemoryStream* to) {
-    std::uint32_t length = 0;
-    Read(&length, 1);
-    if (length & 1) Read(reinterpret_cast<std::uint8_t*>(&length) + 1, 3);
-    length >>= 1;
-    if (length > kMaxStreamLength) return 0;
-    to->SetSize(length);
-    if (Read(to->data.data(), length) != length) return 0;
-    to->Seek(0);
-    to->ok = 1;
-    return 1;
-}
-
-void MemoryStream::CompressTo(CoderState* coder, MemoryStream* out) { CodeStream(this, coder, out, &CoderState::Compress); }
-
-void MemoryStream::DecompressTo(CoderState* coder, MemoryStream* out) { CodeStream(this, coder, out, &CoderState::Decompress); }
-
 // --- Channel writers ---------------------------------------------------------------------------
 
-namespace delta {
-
-void WriteRaw(const std::uint8_t* data, std::uint32_t size, MemoryStream* out) {
+void delta::WriteRaw(const std::uint8_t* data, std::uint32_t size, MemoryStream* out) {
     const std::uint8_t* p = data;
     std::uint32_t rest = size;
     out->PutBit(false);
@@ -168,7 +101,7 @@ void WriteRaw(const std::uint8_t* data, std::uint32_t size, MemoryStream* out) {
     out->Write(p, rest);
 }
 
-void WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t size, MemoryStream* out) {
+void delta::WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t size, MemoryStream* out) {
     if (std::memcmp(old, data, size) == 0) {
         out->PutBit(true);
         return;
@@ -197,7 +130,7 @@ void WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t 
 // appended to the snapshot. Otherwise a 1 bit means "all unchanged"; else a 0 bit and, per 4-byte
 // word, 1 (unchanged) or 0 and the word, then the remaining bytes as they are. With
 // `keepSnapshot` the snapshot is updated in place; it is advanced past the bytes either way.
-void WriteDeltaChannel(MemoryStream* snapshot, const void* data, std::uint32_t size, int keepSnapshot,
+void delta::WriteDeltaChannel(MemoryStream* snapshot, const void* data, std::uint32_t size, int keepSnapshot,
                                   MemoryStream* out) {
     const auto* bytes = static_cast<const std::uint8_t*>(data);
     std::uint32_t end = snapshot->Position() + size;
@@ -213,14 +146,13 @@ void WriteDeltaChannel(MemoryStream* snapshot, const void* data, std::uint32_t s
     snapshot->Seek(snapshot->Position() + size);
 }
 
-} // namespace delta
-
-
 DeltaField* DeltaField::BeginWriteB(int channel1Only) {
     RewindAndEmpty(this);
     SetKeep(channel1Only);
     return this;
 }
+
+bool delta::SnapshotConsumed() { return g_readSnapshot->Position() == g_readSnapshot->Size(); }
 
 DeltaField* DeltaField::BeginReadB(int second, MemoryStream* reader) {
     StartRead(this, second, reader);
@@ -306,9 +238,7 @@ void DeltaField::ReadText(char* text, int size) {
 
 int DeltaField::ReadStream(MemoryStream* to) { return delta::g_received->ReadStream(to); }
 
-namespace delta {
-
-bool ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, MemoryStream* reader) {
+bool delta::ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, MemoryStream* reader) {
     if (reader->GetBit()) {
         std::memcpy(data, old, size);
         return false;
@@ -328,9 +258,6 @@ bool ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, MemoryStr
     reader->Read(p, rest);
     return true;
 }
-
-} // namespace delta
-
 
 void DeltaField::WritePosition(const Vector3& position) {
     int q = Quantize(position.x, kWriteOffsetXY, kWriteScaleXY);
@@ -404,11 +331,9 @@ float DeltaField::ReadRanged(float min, float max) {
 
 // --- 16-bit floats -----------------------------------------------------------------------------
 
-namespace delta {
-
 // Sign; exponent - 0x40 in 7 bits (0 when the exponent is below 0x40); the top 8 mantissa bits
 // rounded (a carry out of them is dropped, not added to the exponent).
-std::uint16_t PackFloat16(std::uint32_t u) {
+std::uint16_t delta::PackFloat16(std::uint32_t u) {
     auto h = static_cast<std::uint16_t>(((u >> 31) << 15) | (u & 0x7FFF));
     if ((u & 0x7F800000) < 0x20000000) {
         h &= 0x80FF;
@@ -421,7 +346,7 @@ std::uint16_t PackFloat16(std::uint32_t u) {
     return h;
 }
 
-std::uint32_t UnpackFloat16(std::uint16_t q) {
+std::uint32_t delta::UnpackFloat16(std::uint16_t q) {
     std::uint32_t bits = q;
     std::uint32_t a = ((bits & 0xFFFF8000u) << 16) | (bits & 0x7FFFFFFFu);
     if (bits & 0x7F00) {
@@ -432,8 +357,6 @@ std::uint32_t UnpackFloat16(std::uint16_t q) {
     }
     return ((bits & 0xFF) << 15) | (a & 0xFF800000);
 }
-
-} // namespace delta
 
 void DeltaField::WriteFloat16(std::uint32_t floatBits) {
     std::uint16_t h = delta::PackFloat16(floatBits);

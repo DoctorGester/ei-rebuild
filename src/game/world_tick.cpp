@@ -109,7 +109,6 @@ void WorldServer::SetGameState(GameState state) {
     gameState = state;
     if (state == GameState::Network || state == GameState::Network3) {
         OpenSession();
-        netSession.Get()->Query();    // the new session's Query (result unused)
     }
 }
 

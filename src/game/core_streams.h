@@ -7,6 +7,7 @@
 #include "net_coder.h"
 
 #include "lib/bytes.h"
+#include "platform/platform.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -151,6 +152,31 @@ public:
     std::vector<std::uint8_t> data;     // the buffer: its size is the capacity
     std::uint32_t position = 0;     // read / write position
     std::uint32_t size = 0;         // end of the data
+};
+
+// A ByteStream over a file.
+class FileStream : public ByteStream {
+public:
+    FileStream();
+    ~FileStream() override;
+    std::uint32_t Read(void* buffer, std::uint32_t size) override;     // a short read clears ok
+    void Write(const void* buffer, std::uint32_t size) override;
+    void Seek(std::uint32_t position) override;                        // SeekFrom
+    std::uint32_t Size() override;
+    std::uint32_t Position() override;
+    void Clear() override;                                             // ok again, back to the start
+
+    // Seeks from the start; returns the file's position.
+    long SeekFrom(long position);
+
+    // The file's Open; ok tells whether it opened.
+    bool Open(std::string_view path, platform::FileMode mode) {
+        ok = file.Open(path, mode);
+        return ok != 0;
+    }
+    void Close() { file.Close(); }
+
+    platform::File file;
 };
 
 // The saved game's stream (world_game.cpp).

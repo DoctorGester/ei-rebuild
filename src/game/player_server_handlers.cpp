@@ -159,8 +159,6 @@ void PlayerServer::OnLeaderDied() {
 
 // --- Message 0x36, a use order --------------------------------------------------------
 
-Vector3 AIPath::TargetPoint() const { return WithZ(0.5f * target, 0.0f); }
-
 int PlayerServer::OnUseOrder() {
     MemoryStream& in = g_receivedMessages;
     std::vector<Unit*> units{};

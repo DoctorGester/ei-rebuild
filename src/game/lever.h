@@ -76,8 +76,13 @@ public:
     // turned into the lever's frame, its length scaled between 1 and the record's farScale by scale.z, plus
     // userRadius. None for an unknown model.
     std::vector<Vector3> UseSpots(float userRadius) override;
-    std::uint32_t ReadNetState(int first) override { return ReadLeverNetState(first); }
-    void WriteNetState() override { WriteLeverNetState(); }
+    // The map object's network state, then field 5: the lock, from, to, end tick, rate and the disabled
+    // bit. A finished move (to != shown position) first restarts from the shown position with rate 0.
+    void WriteNetState() override;
+    // Reads what WriteNetState writes: the map object's result and-ed with "the snapshot was consumed", or the
+    // map object's result alone without field 5. The client world queues the object; on an update a moving lever
+    // plays its record's sound at its position (8 to 40 units).
+    bool ReadNetState(bool update) override;
     float Radius() override { return static_cast<float>(bounds.radius); }
 
     // Sets state `state` (negative: the next one, wrapping when cycling) and
@@ -90,13 +95,6 @@ public:
     // both flag bytes.
     void LoadLever(ByteStream* stream);
     void SaveLever(ByteStream* stream);
-    // The map object's network state, then field 5: the lock, from, to, end tick, rate and the disabled
-    // bit. A finished move (to != shown position) first restarts from the shown position with rate 0.
-    void WriteLeverNetState();
-    // Reads what WriteLeverNetState writes: the map object's result and-ed with "the snapshot was
-    // consumed", or the map object's result alone without field 5. The client world queues the object;
-    // on the first read a moving lever plays its record's sound at its position (8 to 40 units).
-    std::uint32_t ReadLeverNetState(int first);
 
     // The zone loader's set-up: the record's state, count, cycling, lock and flags; the shown position
     // is state / (count - 1) (0 for one state).

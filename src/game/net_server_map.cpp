@@ -23,6 +23,19 @@
 
 namespace net {
 
+namespace {
+
+constexpr std::int32_t kChunkSize = static_cast<std::int32_t>(FileChunkMessage::kDataSize);
+
+std::size_t StringNpos() { return 0xFFFFFFFFu; }
+
+bool Is(const std::string& s, const char* t) {
+    std::size_t length = std::strlen(t);
+    return s.size() == length && std::memcmp(s.data(), t, length) == 0;
+}
+
+} // namespace
+
 // Empties queuedMaps and variables, queues a map message (name + suffix) on the first, replaces map by a fresh
 // one and copies the name into it and into mapName, loads the map into the world and announces its title. Then,
 // when the map registry knows "name + suffix", sets a script variable to 1 for each of the map's names (inline,
@@ -120,20 +133,10 @@ bool ServerSession::FinishMap(const std::string* mapFile) {
     return true;
 }
 
-} // namespace net
-
 // --- Net server files --------------------------------------------------------------------------------
 
 // The game server's shared files (called by the world for the saved zone data): a file
 // message split into 64-byte chunk messages, queued on files. See net_classes.h and docs/notes/network.md.
-
-namespace net {
-
-namespace {
-
-constexpr std::int32_t kChunkSize = static_cast<std::int32_t>(FileChunkMessage::kDataSize);
-
-} // namespace
 
 // Shares `data` (read from its start to its highest position) under `name` unless a file of that name is
 // listed already: a file message (chunk count, size, name) with a chunk message (the file, its index, up to
@@ -169,25 +172,10 @@ void ServerSession::ShareFile(const std::string* fileName, GameBuffer* data) {
     files.emplace_back(file);
 }
 
-} // namespace net
-
 // --- Net server commands -----------------------------------------------------------------------------
 
 // The game server's command messages (CommandMessage) and the file requests a client
 // hands in, with the host check they use. See net_messages.h and docs/notes/network.md.
-
-namespace net {
-
-namespace {
-
-std::size_t StringNpos() { return 0xFFFFFFFFu; }
-
-bool Is(const std::string& s, const char* t) {
-    std::size_t length = std::strlen(t);
-    return s.size() == length && std::memcmp(s.data(), t, length) == 0;
-}
-
-} // namespace
 
 // Whether `connection` is the host's (a binding of it with a live host player).
 bool ServerSession::IsHostConnection(const Connection* connection) {

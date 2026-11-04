@@ -31,6 +31,9 @@ void WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t 
 // All of `data`: a 0 bit, then a 0 bit before every 4-byte word.
 void WriteRaw(const std::uint8_t* data, std::uint32_t size, MemoryStream* out);
 
+// Whether the snapshot read against (g_readSnapshot) is consumed to its end.
+bool SnapshotConsumed();
+
 // Reads what WriteDiff wrote: `data` = `old` when nothing changed (returns false),
 // otherwise the changed words from `reader` (returns true).
 bool ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, MemoryStream* reader);

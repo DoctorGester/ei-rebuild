@@ -399,10 +399,6 @@ Message* Connection::ReadObjectRef(BufferCursor* cursor) {
     return object;
 }
 
-} // namespace net
-
-namespace net {
-
 void Connection::Acknowledge(std::uint16_t sequence) {
     for (std::vector<SentPacket>* packets : {&history, &acknowledged}) {
         for (auto packet = packets->begin(); packet != packets->end(); ++packet) {

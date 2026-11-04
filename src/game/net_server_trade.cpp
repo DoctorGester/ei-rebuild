@@ -40,11 +40,9 @@ void TellPartner(ServerSession* self, PartyMessage* offer, int text) {
     self->Announce(g_interface.MessageText(text, name), partner);
 }
 
+constexpr std::uint32_t kAwardDelay = 0x42700000;   // 60.0f
+
 } // namespace
-
-} // namespace net
-
-namespace net {
 
 // The trade between the two offers (in either order), or null.
 TradeMessage* ServerSession::FindTrade(const PartyMessage* offer, const PartyMessage* other) {
@@ -119,24 +117,10 @@ void ServerOnTradeCancel(ServerSession* self, PartyMessage* message) {
     std::erase_if(self->trades, [&removing](const auto& held) { return held.Get() == removing.Get(); });
 }
 
-} // namespace net
-
 // --- Net server awards -------------------------------------------------------------------------------
 
 // The game server's awards: the zone completion command ("<zone>_3"), the host's item awards and the queued
 // award message, plus the counted pointer copy they use. See net_classes.h and docs/notes/network.md.
-
-namespace net {
-
-namespace {
-
-constexpr std::uint32_t kAwardDelay = 0x42700000;   // 60.0f
-
-} // namespace
-
-} // namespace net
-
-namespace net {
 
 // Queues an award message for `connection` on the pending awards with a 60 second delay. `text` is the
 // caller's string (made in the argument slot), destroyed here as the callee destroys a by-value argument.

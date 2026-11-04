@@ -589,7 +589,7 @@ int PlayerClient::OnNewObject() {
     else
         object->TakePrototype(model);
     object->WriteFullState();
-    if (object->ReadState(0, &in) == 0) return 0;
+    if (!object->ReadState(false, &in)) return 0;
     g_clientWorld.AddObject(object);
     if (object->name2[0] != 0) {
         const std::string variable = g_clientWorld.ObjectVariableName(object->name2);

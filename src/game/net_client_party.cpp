@@ -45,6 +45,9 @@ MemberList::iterator FindSameMessage(MemberList::iterator first, MemberList::ite
     return first;
 }
 
+// Player 0 of the world (the local player), or null.
+Player* LocalPlayer() { return g_serverWorld.GetPlayer(0); }
+
 } // namespace
 
 // Rebuilds the member messages of our offer from our party: one per
@@ -170,21 +173,10 @@ void ClientApplyParty(ClientSession* self) {
         if (item) item->Release();
 }
 
-} // namespace net
-
 // --- Net client awards -------------------------------------------------------------------------------
 
 // The game client's tick and its award handling: timers count down,
 // and received awards are applied to the local player. See net_classes.h and docs/notes/network.md.
-
-namespace net {
-
-namespace {
-
-// Player 0 of the world (the local player), or null.
-Player* LocalPlayer() { return g_serverWorld.GetPlayer(0); }
-
-} // namespace
 
 // Applies the received awards (net_server_trade.cpp) to player 0 and empties the list. Experience; Gold:
 // money (the party's, the value truncated), then an empty item list given; Item: the item named by the text, given; RemoveItem:
