@@ -7,11 +7,12 @@ int RunIniFileChecks();        // ini_file.cpp: the game's .ini reader
 int RunIpv4Checks();           // ipv4.cpp: lib::ParseIpv4 against Winsock's inet_addr
 int RunMathsChecks();          // maths.cpp: lib/maths.h where the systems' float functions round otherwise
 int RunSavePictureChecks();    // save_picture.cpp: the save pictures and their QOI codec
+int RunAudioMixChecks();       // audio_mix.cpp: src/audio's mixer on an offline output
 
 int main() {
     std::setvbuf(stdout, nullptr, _IONBF, 0);   // what was printed survives a crashing check
     const int failures = RunSettingsFileChecks() + RunHashMapChecks() + RunIniFileChecks() + RunIpv4Checks() +
-                         RunMathsChecks() + RunSavePictureChecks();
+                         RunMathsChecks() + RunSavePictureChecks() + RunAudioMixChecks();
     std::printf("ei_unit_check: %d problems\n", failures);
     return failures ? 1 : 0;
 }

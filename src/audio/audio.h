@@ -52,6 +52,12 @@ bool OpenOutput(platform::NativeWindow window, unsigned rate, bool reverb, std::
 void UseNoDevice();
 // Closes the device; every voice and stream must be destroyed first.
 void CloseOutput();
+// An output for the offline checks (tests/unit/audio_mix.cpp) in place of OpenOutput: no device and no thread, the
+// caller is the device and takes the mixed frames with MixOffline, through the stream the device's callback fills.
+// The halves free as MixOffline plays them, as with a device. Closed by CloseOutput. False when the stream cannot be made.
+bool OpenOffline(unsigned rate);
+// `frames` of 32-bit float stereo, interleaved, as the device would be given them.
+void MixOffline(float* out, std::uint32_t frames);
 
 // ---- Voices ----
 

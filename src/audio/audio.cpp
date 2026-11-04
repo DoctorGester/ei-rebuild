@@ -6,6 +6,7 @@
 // plays them; without a device (UseNoDevice, or none could be opened) as fast as they would play on the game's clock.
 #include "audio.h"
 
+#include "lib/maths.h"
 #include "platform/log.h"
 
 // dr_wav and dr_mp3 (third_party/dr_libs, unmodified); their implementations are at the end of this file.
@@ -269,7 +270,7 @@ public:
         const float perFrame = -3.0f / (time * static_cast<float>(rate_));
         for (int side = 0; side < 2; ++side)
             for (Comb& comb : combs_[side])
-                comb.feedback = std::pow(10.0f, perFrame * static_cast<float>(comb.Length()));
+                comb.feedback = lib::Pow(10.0f, perFrame * static_cast<float>(comb.Length()));
         tailFrames_ = static_cast<std::uint32_t>(2.0f * time * static_cast<float>(rate_)) + DelayAt(kCombDelays[kCombs - 1], 1, 1.0f);
     }
 
@@ -407,6 +408,7 @@ constexpr float kReverbDryCut = 0.35f;
 
 bool g_open = false;
 bool g_noDevice = false;
+bool g_offline = false;   // OpenOffline: g_device is a plain stream with no device behind it
 unsigned g_rate = kDefaultRate;
 // The default playback device's stream: SDL asks the mixer for its frames on the device's thread.
 SDL_AudioStream* g_device = nullptr;
@@ -627,8 +629,32 @@ bool OpenOutput(platform::NativeWindow, unsigned rate, bool, std::string*) {
     return true;
 }
 
+bool OpenOffline(unsigned rate) {
+    g_open = true;
+    g_offline = true;
+    g_rate = rate != 0 ? rate : kDefaultRate;
+    {
+        std::lock_guard hold(g_mix);
+        g_reverb.Open(g_rate);
+    }
+    const SDL_AudioSpec spec{SDL_AUDIO_F32, kOutputChannels, static_cast<int>(g_rate)};
+    g_device = SDL_CreateAudioStream(&spec, &spec);
+    g_deviceLive = g_device != nullptr;
+    return g_device != nullptr;
+}
+
+void MixOffline(float* out, std::uint32_t frames) {
+    const int bytes = static_cast<int>(frames * kOutputChannels * sizeof(float));
+    DeviceData(nullptr, g_device, bytes, bytes);
+    SDL_GetAudioStreamData(g_device, out, bytes);
+}
+
 void CloseOutput() {
-    if (g_device) {
+    if (g_offline) {
+        SDL_DestroyAudioStream(g_device);
+        g_device = nullptr;
+        g_offline = false;
+    } else if (g_device) {
         SDL_DestroyAudioStream(g_device);
         g_device = nullptr;
         SDL_QuitSubSystem(SDL_INIT_AUDIO);
