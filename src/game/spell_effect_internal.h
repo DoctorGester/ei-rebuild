@@ -25,10 +25,7 @@
 
 namespace spellfx {
 
-// --- Slots ---------------------------------------------------------------------------------------
-
-constexpr float (World::*kGridHeight)(float, float) = &World::GridHeightAt;
-constexpr float (World::*kRawSurfaceHeight)(float, float) = &World::RawSurfaceHeightAt;
+// --- Constants ----------------------------------------------------------------------------------
 
 constexpr std::uint32_t kPointLightFlags = lib::Bits(LightFlag::Specular | LightFlag::Strong);
 
@@ -37,9 +34,24 @@ constexpr float kVolume = 10.0f;
 constexpr float kHearing = 50.0f;
 constexpr float kLoud = 1000.0f;
 
-// The address of an effect constant, for the helpers that take one.
-inline const float* ConstPtr(const float& constant) { return &constant; }
-constexpr float kDefaultSpeed = 5.0f;                   // immediate in the fireball case
+constexpr float kDefaultSpeed = 5.0f;           // the fireball's speed when the spell has none
+constexpr float kAcidRayScale = 0.4f;           // the acid ray's missile size per power
+constexpr float kFireballScale = 0.3f;          // the fireball's particle size per power
+constexpr float kFireballNear = 1.25f;          // a fireball within speed x this plays one sound, not the sequence
+constexpr float kStrikeDepth = 3.0f;            // the light strike's point below the surface
+constexpr float kStrikeHeight = 30.0f;          // its bolts start this far above the point
+constexpr float kStrikeWidth = -7.0f;           // its bolts' width (per power for the first)
+constexpr float kLightAbove = 5.0f;             // its light above the point
+constexpr float kBoltWidthScale = 5.0f;         // a lightning's width per power
+constexpr float kTargetHeight = 1.2f;           // a lightning ends at the target's top x this above the ground
+constexpr float kTeleportDepth = 0.2f;          // the teleport's arrival particle below the ground
+constexpr float kBuffScale = 16.0f;             // a buff's strength per power
+constexpr float kSplashScale = 0.7f;            // the impact particle's size per power
+constexpr float kRiseScale = 1.5f;              // impact lights rise faster and reach further
+constexpr float kImpactWakeMargin = 5.0f;       // fireworks and clairvoyance wake the units this far past the radius
+constexpr float kPossessWake = 2.0f;            // possession wakes the units within reach x this + kPossessWakeBase
+constexpr float kPossessWakeBase = 20.0f;
+constexpr int kExplosionNoiseDelay = 4;         // the AI call delay of the fireball's noise
 
 // Footprints of the walls and clouds, along a direction or a disc, then stamped into / cleared from the AI
 // map.
@@ -55,100 +67,42 @@ inline float ClampPow(float ratio) {
     return lib::Exp(lib::Log(clamped) * 0.33f) - 0.2f;
 }
 
-// The spell's power factor(repeated inline about twenty times in the game): 1 when the prototype's effect
-// compares equal to 0, else ClampPow of damage / effect.
-inline float PowerFactor(const float* damage, const float* effect) {
-    if (*effect == 0.0f) return 1.0f;
-    return ClampPow(*damage / *effect);
+// The spell's power factor: 1 when the prototype's effect compares equal to 0, else ClampPow of damage / effect.
+inline float PowerFactor(float damage, float effect) {
+    if (effect == 0.0f) return 1.0f;
+    return ClampPow(damage / effect);
 }
 
-// The fireball explosion's size curve: pow(clamp((r * r * pi) / area, 1, 8), 0.33) - 0.2 into *out.
-inline void AreaCurve(const float* radius, const float* area, float* out) {
-    *out = ClampPow(*radius * *radius * 3.1415927f / *area);
-}
-
-// *out = (*a / *b) * *c.
-inline void DivideMultiply(const float* a, const float* b, const float* c, float* out) { *out = *a / *b * *c; }
+// The fireball explosion's size curve: pow(clamp((r * r * pi) / area, 1, 8), 0.33) - 0.2.
+inline float AreaCurve(float radius, float area) { return ClampPow(radius * radius * 3.1415927f / area); }
 
 // The fireworks' fright level: _ftol(((float)timer / duration) * 250 + 50); a duration of 0 gives _ftol's 0 for a
 // NaN, 0x80000000 for an infinity's low half.
-inline int FrightLevel(const int* timer, const int* duration) {
-    const float level = (static_cast<float>(*timer) / static_cast<float>(*duration)) * 250.0f + 50.0f;
+inline int FrightLevel(int timer, int duration) {
+    const float level = (static_cast<float>(timer) / static_cast<float>(duration)) * 250.0f + 50.0f;
     return static_cast<int>(static_cast<std::int64_t>(level));
 }
 
-// *out = *a * *b + *c.
-inline void MultiplyAdd(const float* a, const float* b, const float* c, float* out) { *out = *a * *b + *c; }
-
-// The game's _ftol of a float constant in memory.
-inline int FtolOf(const float* value) { return static_cast<int>(*value); }
-
-// The factor as a float.
-inline void PowerToFloat(const float* damage, const float* effect, float* out) { *out = PowerFactor(damage, effect); }
-
-// The factor times *scale.
-inline void PowerScaledToFloat(const float* damage, const float* effect, const float* scale, float* out) {
-    *out = PowerFactor(damage, effect) * *scale;
-}
-
-// The factor times *scale, truncated by the game's _ftol (0 for a NaN damage).
-inline int PowerScaledToInt(const float* damage, const float* effect, const float* scale) {
-    return static_cast<int>(static_cast<std::int64_t>(PowerFactor(damage, effect) * *scale));
-}
-
-// A world virtual `height` (kGridHeight, kRawSurfaceHeight) at (x, y): a ground height.
-inline float WorldHeight(World* world, float (World::*height)(float, float), float x, float y) {
-    return (world->*height)(x, y);
-}
-
-// *out = height + *add.
-inline void HeightPlus(World* world, float (World::*height)(float, float), float x, float y, const float* add, float* out) {
-    *out = WorldHeight(world, height, x, y) + *add;
-}
-
-// The same with height - *sub.
-inline void HeightMinus(World* world, float (World::*height)(float, float), float x, float y, const float* sub, float* out) {
-    *out = WorldHeight(world, height, x, y) - *sub;
-}
-
-// The lightning's end: *out = height + *a * *b.
-inline void HeightPlusProduct(World* world, float (World::*height)(float, float), float x, float y, const float* a, const float* b,
-                              float* out) {
-    *out = WorldHeight(world, height, x, y) + *a * *b;
-}
-
-// *out = the length of (x, y).
-inline void PlanarLength(const Vector3& v, float* out) { *out = Length2D(XY(v)); }
-
-// The fireball's velocity: v *= (speed * 1/15) / sqrt((y*y + x*x) + z*z).
-inline void ScaleToSpeed(Vector3* v, const float* speed) {
-    const float length = std::sqrt(LengthSquared(*v));
-    const float k = *speed * 0.06666667f / length;
-    *v *= k;
+// The fireball's velocity: v * ((speed * 1/15) / sqrt((y*y + x*x) + z*z)).
+inline Vector3 ScaledToSpeed(Vector3 v, float speed) {
+    const float length = std::sqrt(LengthSquared(v));
+    const float k = speed * 0.06666667f / length;
+    v *= k;
+    return v;
 }
 
 // (distance / speed) * 15 rounded to nearest: the missile's flight time in ticks.
-inline int FlightTicks(const float* distance, const float* speed) { return lib::RoundEven(*distance / *speed * 15.0f); }
+inline int FlightTicks(float distance, float speed) { return lib::RoundEven(distance / speed * 15.0f); }
 
 // The walls' extent: the normal (-d.y, d.x, 0) in the ground plane scaled to length `radius` (each component times
 // radius / |n|).
-inline void WallSpan(const Vector3& direction, const float* radius, Vector3* out) {
-    *out = {-direction.y, direction.x, 0.0f};
-    *out *= *radius / Length2D(XY(*out));
-}
-
-// The light wall's half extent from its lightning's ends.
-inline void HalfSpan(const EffectLightning* bolt, Vector3* out) {
-    *out = (bolt->to - bolt->from) * 0.5f;
+inline Vector3 WallSpan(const Vector3& direction, float radius) {
+    Vector3 span{-direction.y, direction.x, 0.0f};
+    span *= radius / Length2D(XY(span));
+    return span;
 }
 
 // --- Small helpers ------------------------------------------------------------------------------
-
-inline std::uint32_t Bits(const float& f) {
-    std::uint32_t u;
-    u = std::bit_cast<std::uint32_t>(f);
-    return u;
-}
 
 inline bool IsUnit(EngineObject* object) { return object && object->GetClassId() == ClassId::Unit; }
 // A unit's server half (Unit::controller).
@@ -188,16 +142,7 @@ inline float PrototypeRange(SpellEffect* e) {
     return range;
 }
 
-inline float Power(SpellEffect* e) {
-    float out;
-    PowerToFloat(&e->HeldSpell()->damage, &Prototype(e)->damage, &out);
-    return out;
-}
-inline float PowerScaled(SpellEffect* e, const float& scale) {
-    float out;
-    PowerScaledToFloat(&e->HeldSpell()->damage, &Prototype(e)->damage, ConstPtr(scale), &out);
-    return out;
-}
+inline float Power(SpellEffect* e) { return PowerFactor(e->HeldSpell()->damage, Prototype(e)->damage); }
 
 // The lights' rise speed: range / max(extraValues[4], 1) (the larger picked on C0: 1 < v or NaN).
 inline float LightRise(SpellEffect* e) {
@@ -208,17 +153,6 @@ inline float LightRise(SpellEffect* e) {
     return range / divisor;
 }
 
-// The same quotient multiplied by the constant at `scale`.
-inline float LightRiseScaled(SpellEffect* e, const float& scale) {
-    float value;
-    value = std::bit_cast<float>(Prototype(e)->extraValues[4]);
-    float range = PrototypeRange(e);
-    float divisor = MaxKeepB(1.0f, value);
-    float out;
-    DivideMultiply(&range, &divisor, ConstPtr(scale), &out);
-    return out;
-}
-
 // Every unit within the radius of the effect's position that IsSpellTarget accepts gets the
 // effect's damage (a list on the stack, walked node by node).
 inline void HitAreaTargets(SpellEffect* e) {
@@ -227,17 +161,6 @@ inline void HitAreaTargets(SpellEffect* e) {
     for (Unit* unit : e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->HeldSpell()->radius)) {
         if (static_cast<std::uint8_t>(IsSpellTarget(unit))) e->HitUnit(&hit, unit);
     }
-}
-
-inline float GroundPlus(SpellEffect* e, float (World::*height)(float, float), const Vector3& at, const float* add) {
-    float out;
-    HeightPlus(e->world, height, at.x, at.y, add, &out);
-    return out;
-}
-inline float GroundMinus(SpellEffect* e, float (World::*height)(float, float), const Vector3& at, const float* sub) {
-    float out;
-    HeightMinus(e->world, height, at.x, at.y, sub, &out);
-    return out;
 }
 
 // The light every lasting spell puts at its point: the prototype's colour and range.

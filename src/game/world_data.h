@@ -112,34 +112,17 @@ inline const char* HeroesGroupText() { return "Heroes"; }
 inline constexpr float kHearingScale = 2.0f;   // the units' perception scale (SyncPlayer too)
 inline constexpr float kWakeMargin = 20.0f;     // added to it when units wake others
 
-// ---- Effect constants (spell_effect_*.cpp, world_effect_*.cpp) -----------------------------------
-// References, one object per value: some effects pass their address (ConstPtr).
+// ---- Effect constants (world_effect_*.cpp) ------------------------------------------------------
+// References, one object per value.
 template <float V>
 inline constexpr float kFloatConstant = V;
 inline const float& OneRef() { return kFloatConstant<1.0f>; }
 inline const float& ZeroRef() { return kFloatConstant<0.0f>; }
 inline const float& HalfRef() { return kFloatConstant<0.5f>; }
-inline const float& AcidRayScale() { return kFloatConstant<0.4f>; }
-inline const float& FireballScale() { return kFloatConstant<0.3f>; }
-inline const float& FireballNear() { return kFloatConstant<1.25f>; }
-inline const float& StrikeDepth() { return kFloatConstant<3.0f>; }
-inline const float& StrikeHeight() { return kFloatConstant<30.0f>; }
-inline const float& StrikeWidth() { return kFloatConstant<-7.0f>; }
-inline const float& LightAbove() { return kFloatConstant<5.0f>; }
-inline const float& BoltWidthScale() { return kFloatConstant<5.0f>; }   // 5.0 (the same constant)
-inline const float& ImpactWakeMargin() { return kFloatConstant<5.0f>; }   // 5.0 (the same constant)
-inline const float& TeleportDepth() { return kFloatConstant<0.2f>; }
-inline const float& BuffScale() { return kFloatConstant<16.0f>; }
-inline const float& TargetHeight() { return kFloatConstant<1.2f>; }
 inline const float& RangeEpsilon() { return kFloatConstant<0.001f>; }
 inline const float& ScorchAlpha() { return kFloatConstant<0.6f>; }
-inline const float& ScorchMargin() { return kFloatConstant<0.3f>; }   // 0.3 (the same constant as FireballScale)
+inline const float& ScorchMargin() { return kFloatConstant<0.3f>; }
 inline const float& DefaultRadius() { return kFloatConstant<100.0f>; }
-inline const float& SplashScale() { return kFloatConstant<0.7f>; }   // 0.7: the impact particle's size per power
-inline const float& RiseScale() { return kFloatConstant<1.5f>; }   // 1.5: impact lights rise faster and reach further
-inline const float& NoiseKind() { return kFloatConstant<4.0f>; }   // 4.0, truncated by _ftol
-inline const float& PossessWake() { return kFloatConstant<2.0f>; }
-inline const float& PossessWakeBase() { return kFloatConstant<20.0f>; }
 
 // ---- AI, interface mesh and server constants ----------------------------------------------------
 inline constexpr float kFixedPoint = 65536.0f;

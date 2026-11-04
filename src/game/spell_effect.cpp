@@ -231,7 +231,7 @@ Next StartAcidRay(SpellEffect* e, const Vector3& from) {
     e->timer = 0x96;
     float range = PrototypeRange(e);
     Vector3 color = PrototypeColor(e);
-    float power = PowerScaled(e, worlddata::AcidRayScale());
+    float power = Power(e) * kAcidRayScale;
     e->CreateArrow(from, e->target, static_cast<int>(ParticleType::AcidRay), power, "magic\\Acidray\\circle.wav", color, range);
     e->CreateSound("magic\\Acidray\\start.wav", e->position, kZeroVector, kVolume, kHearing);
     e->state = 1;
@@ -243,18 +243,17 @@ Next StartFireball(SpellEffect* e, const Vector3& from) {
     float speed = e->HeldSpell()->speed;
     Vector3 velocity = e->targetPoint - e->position;
     velocity.z = 0.0f;
-    float distance;
-    PlanarLength(velocity, &distance);
+    float distance = Length2D(XY(velocity));
     speed = speed > 0.0f ? speed : kDefaultSpeed;
-    e->timer = FlightTicks(&distance, &speed) - 2;
-    ScaleToSpeed(&velocity, &speed);
+    e->timer = FlightTicks(distance, speed) - 2;
+    velocity = ScaledToSpeed(velocity, speed);
 
-    float size = PowerScaled(e, worlddata::FireballScale());
+    float size = Power(e) * kFireballScale;
     EffectParticle* particle = e->CreateParticle(1, static_cast<int>(ParticleType::FireBall), from, size, 1.0f, velocity, nullptr);   // the visual
     if (e->caster) particle->unitId = e->caster->id;     // the particle's unit
-    e->targetPoint.z = GroundPlus(e, kRawSurfaceHeight, e->targetPoint, ConstPtr(worlddata::OneRef()));
+    e->targetPoint.z = e->world->RawSurfaceHeightAt(e->targetPoint.x, e->targetPoint.y) + 1.0f;
     particle->SetTarget(e->targetPoint);
-    if (speed * worlddata::FireballNear() > distance) {
+    if (speed * kFireballNear > distance) {
         e->CreateSound("magic\\FireBall\\start.wav", e->position, velocity, kVolume, kHearing);
     } else {
         e->CreateSoundSequence(e->position, velocity, "magic\\Fireball\\start.wav", "magic\\Fireball\\circle.wav", -1);
@@ -268,19 +267,19 @@ Next StartFireball(SpellEffect* e, const Vector3& from) {
 
 // InvokeLightning: a lightning strike from 30 above the target point, hitting every unit in the radius.
 Next StartLightStrike(SpellEffect* e) {
-    e->targetPoint.z = GroundMinus(e, kRawSurfaceHeight, e->targetPoint, ConstPtr(worlddata::StrikeDepth()));
+    e->targetPoint.z = e->world->RawSurfaceHeightAt(e->targetPoint.x, e->targetPoint.y) - kStrikeDepth;
     e->position = e->targetPoint;
     Vector3 top = e->targetPoint;
-    top.z += worlddata::StrikeHeight();
+    top.z += kStrikeHeight;
     float power = Power(e);
     auto* bolt = CreateObject<EffectLightning>(e, ClassId::EffectLightning);
-    bolt->SetEnds(top, e->position, power * worlddata::StrikeWidth());
+    bolt->SetEnds(top, e->position, power * kStrikeWidth);
     e->SetVisual(bolt);
 
     float alpha = Power(e);
     e->CreateParticle(0, static_cast<int>(ParticleType::LightningBlast), e->targetPoint, e->HeldSpell()->radius, alpha, kZeroVector, nullptr);
     e->CreateSound("magic\\InvokeLight\\start.wav", e->position, kZeroVector, kLoud, kLoud);
-    e->targetPoint.z += worlddata::LightAbove();
+    e->targetPoint.z += kLightAbove;
     Vector3 rise{0.0f, 0.0f, LightRise(e)};
     PrototypeLight(e, e->targetPoint, PrototypeRange(e), rise);
 
@@ -317,13 +316,12 @@ Next StartFireWall(SpellEffect* e, const Vector3& from) {
     float size = Power(e);
     e->CreateParticle(1, static_cast<int>(ParticleType::Tendril), centre, size, alpha, kZeroVector, nullptr);
     Vector3 direction = WallDirection(centre, from);
-    Vector3 span;
-    WallSpan(direction, &e->HeldSpell()->radius, &span);
+    Vector3 span = WallSpan(direction, e->HeldSpell()->radius);
     if (e->visual) e->Visual<EffectWall>()->SetDirection(span);
     e->position = centre;
     e->timer = static_cast<int>(e->HeldSpell()->duration);
     e->state = 2;
-    centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
+    centre.z = e->world->GridHeightAt(centre.x, centre.y) + 1.0f;
     float radius = e->HeldSpell()->radius;
     float range = PrototypeRange(e);
     PrototypeLight(e, centre, radius + range, kZeroVector);
@@ -335,20 +333,19 @@ Next StartFireWall(SpellEffect* e, const Vector3& from) {
 Next StartLightWall(SpellEffect* e, const Vector3& from) {
     Vector3 centre = e->targetPoint;
     Vector3 direction = WallDirection(centre, from);
-    Vector3 span;
-    WallSpan(direction, &e->HeldSpell()->radius, &span);
+    Vector3 span = WallSpan(direction, e->HeldSpell()->radius);
     Vector3 a, b;
     a = e->targetPoint - span;
     b = span + e->targetPoint;
-    a.z = GroundPlus(e, kRawSurfaceHeight, a, ConstPtr(worlddata::OneRef()));
-    b.z = GroundPlus(e, kRawSurfaceHeight, b, ConstPtr(worlddata::OneRef()));
+    a.z = e->world->RawSurfaceHeightAt(a.x, a.y) + 1.0f;
+    b.z = e->world->RawSurfaceHeightAt(b.x, b.y) + 1.0f;
     auto* bolt = CreateObject<EffectLightning>(e, ClassId::EffectLightning);
     bolt->SetEnds(a, b, 0.0f);
     e->SetVisual(bolt);
     e->position = centre;
     e->timer = static_cast<int>(e->HeldSpell()->duration);
     e->state = 2;
-    centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
+    centre.z = e->world->GridHeightAt(centre.x, centre.y) + 1.0f;
     float radius = e->HeldSpell()->radius;
     float range = PrototypeRange(e);
     PrototypeLight(e, centre, radius + range, kZeroVector);
@@ -359,7 +356,7 @@ Next StartLightWall(SpellEffect* e, const Vector3& from) {
 // AcidFog: the poison cloud at the target point.
 Next StartPoisonCloud(SpellEffect* e) {
     Vector3 centre = e->targetPoint;
-    centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
+    centre.z = e->world->GridHeightAt(centre.x, centre.y) + 1.0f;
     float alpha = Power(e);
     e->CreateParticle(1, static_cast<int>(ParticleType::PoisonFog), centre, e->HeldSpell()->radius, alpha, kZeroVector, nullptr);
     e->CreateSoundSequence(centre, kZeroVector, "magic\\poison\\start.wav", "magic\\poison\\circle.wav", -1);
@@ -375,8 +372,7 @@ Next StartPoisonCloud(SpellEffect* e) {
 Next ApplyBuff(SpellEffect* e) {
     if (!e->target) return Next::Done;
     MapEffect record = e->HeldSpell()->EffectRecord();
-    record.power = static_cast<std::uint8_t>(
-        PowerScaledToInt(&e->HeldSpell()->damage, &Prototype(e)->damage, ConstPtr(worlddata::BuffScale())));
+    record.power = static_cast<std::uint8_t>(static_cast<std::int64_t>(Power(e) * kBuffScale));
     record.ending = e->silentEnd;
     e->target->AddEffect(&record);
     return Next::Done;
@@ -385,7 +381,7 @@ Next ApplyBuff(SpellEffect* e) {
 // Fireworks (five numbered sounds).
 Next StartFirework(SpellEffect* e) {
     Vector3 centre = e->targetPoint;
-    centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
+    centre.z = e->world->GridHeightAt(centre.x, centre.y) + 1.0f;
     float size = Power(e);
     e->CreateParticle(1, static_cast<int>(ParticleType::Geyser), centre, size, 1.0f, kZeroVector, nullptr);
     PrototypeLight(e, centre, PrototypeRange(e), kZeroVector);
@@ -397,7 +393,7 @@ Next StartFirework(SpellEffect* e) {
 // Clairvoyance. The particle uses the target point as it was; the light, the ground point.
 Next StartClairvoyance(SpellEffect* e) {
     Vector3 centre = e->targetPoint;
-    centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
+    centre.z = e->world->GridHeightAt(centre.x, centre.y) + 1.0f;
     e->position = centre;
     e->CreateParticle(0, static_cast<int>(ParticleType::ClayRing), e->targetPoint, e->HeldSpell()->radius, 1.0f, kZeroVector, nullptr);
     PrototypeLight(e, centre, e->HeldSpell()->radius, kZeroVector);
@@ -474,10 +470,10 @@ Next StartLink(SpellEffect* e) {
 Next StartTeleport(SpellEffect* e) {
     const Vector3* source = e->caster ? &e->caster->localPosition : &e->position;
     Vector3 point = *source;
-    point.z = GroundPlus(e, kGridHeight, point, &point.z);
+    point.z = e->world->GridHeightAt(point.x, point.y) + point.z;
     e->CreateParticle(1, static_cast<int>(ParticleType::Teleport), point, 1.0f, 1.0f, kZeroVector, nullptr);
     point = e->targetPoint;
-    point.z = GroundMinus(e, kGridHeight, point, ConstPtr(worlddata::TeleportDepth()));
+    point.z = e->world->GridHeightAt(point.x, point.y) - kTeleportDepth;
     e->CreateParticle(0, static_cast<int>(ParticleType::Teleport), point, -1.0f, 1.0f, kZeroVector, nullptr);
     e->CreateSound("magic\\Teleport\\start.wav", point, kZeroVector, kVolume, kHearing);
     PrototypeLight(e, point, PrototypeRange(e), kZeroVector);
@@ -511,7 +507,7 @@ Next StartCharm(SpellEffect* e) {
 // Campfire: the effect only moves to the ground point.
 Next StartAtGround(SpellEffect* e) {
     Vector3 centre = e->targetPoint;
-    centre.z = GroundPlus(e, kGridHeight, centre, ConstPtr(worlddata::OneRef()));
+    centre.z = e->world->GridHeightAt(centre.x, centre.y) + 1.0f;
     e->position = centre;
     return Next::Set;
 }
@@ -585,8 +581,8 @@ void SpellEffect::UpdateFootprint(SpellType type, int stamp) {
         break;
     }
     case SpellType::LightningWall: {
-        Vector3 half;
-        HalfSpan(Visual<EffectLightning>(), &half);
+        const EffectLightning* bolt = Visual<EffectLightning>();
+        Vector3 half = (bolt->to - bolt->from) * 0.5f;
         g_spellFootprint.AlongDirection(aiMap, position, half);
         break;
     }
@@ -645,10 +641,9 @@ void SpellEffect::CreateLightning(const Vector3& from, MapObject* boltTarget, En
                                    int flag) {
     if (!boltTarget) return;
     Vector3 to = boltTarget->localPosition;
-    HeightPlusProduct(world, kGridHeight, to.x, to.y, &boltTarget->bounds.boxMax.z,
-                      ConstPtr(worlddata::TargetHeight()), &to.z);
+    to.z = world->GridHeightAt(to.x, to.y) + boltTarget->bounds.boxMax.z * kTargetHeight;
     auto* bolt = CreateObject<EffectLightning>(this, ClassId::EffectLightning);
-    bolt->SetEnds(from, to, power * worlddata::BoltWidthScale());
+    bolt->SetEnds(from, to, power * kBoltWidthScale);
     bolt->SetObjects(source ? source->id : -1, boltTarget->id);
     bolt->SetFlag(static_cast<unsigned char>(flag));
     Assign<Effect>(this, &visual, bolt);

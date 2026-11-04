@@ -18,16 +18,14 @@ using namespace spellfx;
 namespace {
 
 constexpr float kExplosionLoudness = 5.0f;             // immediate
-constexpr float kStrikeWidthImmediate = -7.0f;         // immediate in the lasting strike
 constexpr int kEndedTimer = -80;                       // the effects linger this long after ending
 
 // --- State 1 -------------------------------------------------------------------------------------
 
 // FireArrow / RickMagic (the fire arrow) and AcidRay: the effect follows its missile; when the missile
 // reports a hit the target takes the damage, the missile, sound and light go, and a
-// splash, an end sound and a rising light appear at the target's height. The two spells compute
-// the light's rise differently (the arrow rounds the quotient before scaling it).
-void MissileImpact(SpellEffect* e, int particleType, const char* sound, bool arrow) {
+// splash, an end sound and a rising light appear at the target's height.
+void MissileImpact(SpellEffect* e, int particleType, const char* sound) {
     auto* missile = e->Visual<EffectMissile>();
     if (!missile) return;
     e->position = missile->localPosition;
@@ -51,21 +49,15 @@ void MissileImpact(SpellEffect* e, int particleType, const char* sound, bool arr
     Vector3 at;
     at = target->localPosition;
     at.z = target->ModeSpeed();
-    at.z = GroundPlus(e, kGridHeight, e->targetPoint, &at.z);
-    float size = PowerScaled(e, worlddata::SplashScale());
+    at.z = e->world->GridHeightAt(e->targetPoint.x, e->targetPoint.y) + at.z;
+    float size = Power(e) * kSplashScale;
     e->CreateParticle(0, particleType, kZeroVector, size, 1.0f, kZeroVector, e->target);
     e->CreateSound(sound, at, kZeroVector, kVolume, kHearing);
 
-    Vector3 velocity;
-    if (arrow) {
-        Vector3 rise{0.0f, 0.0f, LightRise(e)};
-        velocity = rise * worlddata::RiseScale();
-    } else {
-        velocity = {0.0f, 0.0f, LightRiseScaled(e, worlddata::RiseScale())};
-    }
+    Vector3 velocity{0.0f, 0.0f, LightRise(e) * kRiseScale};
     float range = PrototypeRange(e);
     Vector3 color = PrototypeColor(e);
-    e->CreatePointLight(at, color, range * worlddata::RiseScale(), velocity);
+    e->CreatePointLight(at, color, range * kRiseScale, velocity);
     e->timer = 0x23;
     e->state = 2;
 }
@@ -84,20 +76,19 @@ void FireballFlight(SpellEffect* e) {
         e->ReleaseLight();
         Vector3 at = e->targetPoint;
         float power = Power(e);
-        float curve;
-        AreaCurve(&e->HeldSpell()->radius, &Prototype(e)->area, &curve);
+        float curve = AreaCurve(e->HeldSpell()->radius, Prototype(e)->area);
         float size = MaxKeepB(curve, power);
         EffectParticle* blast = e->CreateParticle(0, static_cast<int>(ParticleType::FireBlast), at, size, 1.0f, kZeroVector, nullptr);
         float radius = e->HeldSpell()->radius;
         float alpha = Power(e);
         blast->SetColors(alpha, radius);
         e->CreateSound("magic\\fireball\\end.wav", at, kZeroVector, kVolume, kHearing);
-        Vector3 velocity{0.0f, 0.0f, LightRiseScaled(e, worlddata::RiseScale())};
+        Vector3 velocity{0.0f, 0.0f, LightRise(e) * kRiseScale};
         float range = PrototypeRange(e);
         Vector3 color = PrototypeColor(e);
-        e->CreatePointLight(at, color, range * worlddata::RiseScale(), velocity);
+        e->CreatePointLight(at, color, range * kRiseScale, velocity);
         if (IsUnit(e->caster)) {
-            e->world->aiMap.events.Noise(ControllerOf(e->caster), kExplosionLoudness, FtolOf(ConstPtr(worlddata::NoiseKind())), e->targetPoint);
+            e->world->aiMap.events.Noise(ControllerOf(e->caster), kExplosionLoudness, kExplosionNoiseDelay, e->targetPoint);
         }
         e->timer = 0x23;
         e->state = 2;
@@ -142,9 +133,9 @@ void LightStrikeEcho(SpellEffect* e) {
     e->ReleaseVisual();
     if (e->timer == 5) {
         Vector3 top = e->position;
-        top.z += worlddata::StrikeHeight();
+        top.z += kStrikeHeight;
         auto* bolt = CreateObject<EffectLightning>(e, ClassId::EffectLightning);
-        bolt->SetEnds(top, e->position, kStrikeWidthImmediate);
+        bolt->SetEnds(top, e->position, kStrikeWidth);
         e->SetVisual(bolt);
     }
     CountDown(e);
@@ -235,11 +226,11 @@ void Fireworks(SpellEffect* e) {
     int ticks = e->timer - 1;
     e->timer = ticks;
     if (ticks >= 0) {
-        float wake = e->HeldSpell()->radius + worlddata::ImpactWakeMargin();
+        float wake = e->HeldSpell()->radius + kImpactWakeMargin;
         e->world->WakeUnitsAround(e->position, wake);
         for (Unit* unit : e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->HeldSpell()->radius)) {
             int duration = static_cast<int>(e->HeldSpell()->duration);
-            int level = FrightLevel(&e->timer, &duration);
+            int level = FrightLevel(e->timer, duration);
             ControllerOf(unit)->brain.memory.Notice(e->position, level, -1);
         }
         return;
@@ -263,7 +254,7 @@ void Clairvoyance(SpellEffect* e) {
             for (Unit* unit : e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->HeldSpell()->radius))
                 group->Insert(unit);
         }
-        float wake = e->HeldSpell()->radius + worlddata::ImpactWakeMargin();
+        float wake = e->HeldSpell()->radius + kImpactWakeMargin;
         e->world->WakeUnitsAround(e->position, wake);
     }
     int ticks = e->timer - 1;
@@ -296,8 +287,7 @@ void Possession(SpellEffect* e) {
         float sight = server->moveFactors[3] * server->stats.perception[0].current;
         float floor = server->stats.perception[2].current;
         float reach = MaxKeepB(sight, floor);
-        float wake;
-        MultiplyAdd(&reach, ConstPtr(worlddata::PossessWake()), ConstPtr(worlddata::PossessWakeBase()), &wake);
+        float wake = reach * kPossessWake + kPossessWakeBase;
         e->world->WakeUnitsAround(target->localPosition, wake);
     }
     int ticks = e->timer - 1;
@@ -381,11 +371,11 @@ void SpellEffect::UpdateMissile(SpellType type) {
     switch (type) {
     case SpellType::FireArrow:
     case SpellType::RickMagic:
-        MissileImpact(this, static_cast<int>(ParticleType::FireStar), "magic\\Firearrow\\end.wav", true);
+        MissileImpact(this, static_cast<int>(ParticleType::FireStar), "magic\\Firearrow\\end.wav");
         CountDown(this);
         break;
     case SpellType::AcidRay:
-        MissileImpact(this, static_cast<int>(ParticleType::AcidStar), "magic\\Acidray\\end.wav", false);
+        MissileImpact(this, static_cast<int>(ParticleType::AcidStar), "magic\\Acidray\\end.wav");
         CountDown(this);
         break;
     case SpellType::Fireball: FireballFlight(this); break;
