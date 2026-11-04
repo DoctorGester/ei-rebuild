@@ -23,6 +23,18 @@
 //                             require recording <name> to have moved in <kind>, without a jump (with
 //                             "jerky": with at least one, e.g. the camera's own at a frame time shorter than a
 //                             tick, where each client tick moves it by a tick at once)
+// The objects' drawn motion (drawn::PoseOf, R19; renderer.md section 14, "Objects") the same way, sampled after
+// each frame's draw (the main loop's frame step, taken over for this: TracedFrameStep):
+//   objtrace start <who> [part|-] [log]
+//                             follow `who` ("leader", a script name, or "arrow": the first bow arrow in flight,
+//                             then that one until it is gone) or its part's place in the figure (e.g. "rh3", the
+//                             right hand: the pose alone, its blends); with "log" each frame's places go to the
+//                             log ("harness: objframe ...")
+//   objtrace stop <name>      keep the drawn place as <name> and the object's own as <name>.own (kinds pan:
+//                             the path on the map, turn: the yaw, height); camsame / camsteadier / camsmooth
+//                             check them
+//   animblend on|off          animation switches blend (the default) or snap as in the original
+//                             (FigureAnimationState::SetBlends)
 
 #include <string>
 #include <vector>
@@ -33,8 +45,13 @@ namespace ei::verify::camera_trace {
 // camera time).
 void Frame(const void* camera, float seconds);
 
+// After each frame's draw (the main loop's frame step): the object trace's sample.
+void ObjectFrame();
+
 // Whether the scenario's steps use the recording (the per-frame camera call is then taken over).
 bool UsedBy(const std::string& verb);
+// Whether they use the object trace (the frame step is then taken over).
+bool ObjectsUsedBy(const std::string& verb);
 
 // Runs one of the steps above (`verb` as UsedBy accepts). A failed check's text goes to `failures`,
 // every result line to `lines` (the report).

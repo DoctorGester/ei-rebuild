@@ -83,6 +83,9 @@ without a parent name.
 coefficients) read point records from a stream advancing 0x60 / 0x48. UpdatePose evaluates the tracks at the frame,
 then places the skeleton at AnimationFactor(scale.z) * defaultScale, one float factor for x, y and z.
 
+**Blends** (client side only): a switch of animation blends the pose last placed into the new one's over 100-250 ms
+(BeginBlend, FigureBone::Place's `blend`); renderer.md section 14, "Animation blends".
+
 ## Original bugs kept
 
 Visible behaviour of the original kept until the user decides (rewrite-guide rule 9; C84 triaged the list, with a

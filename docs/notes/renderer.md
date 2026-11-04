@@ -887,7 +887,7 @@ pages are 5:6:5 (no alpha), so the alpha file is read and its depth checked but 
 alpha kind is not loaded from a .bmp by any scenario. `hues <frame> <least> <most>` (`capture::HueShares`) needs each of
 the four hues on 8%..25% of the frame.
 
-## 14. The drawn view (smooth camera motion)
+## 14. The drawn view (smooth camera and object motion, animation blends)
 
 The world ticks every 55 ms. The main loop (`RunPass`, src/game/app_main.cpp) moves the camera once a frame by the
 frame's real time (cut into whole ticks), and `RunWorlds` moves it again by a whole tick after each client tick, so half
@@ -930,8 +930,62 @@ aims it back down at the focus, so over one turn it rises and its pitch changes 
 last digit). The drawn view spreads those tick steps. The mouse turn's rate is the drag in layout pixels (the counts
 scaled to 800x600): the same counts turn the camera faster at a lower resolution (the original's).
 
+### Objects
+
+Units already move without jumps at any frame rate: the client places each on its motion path at the frame's time
+(`UnitClientSpecific::AdvanceTime` from CollectVisible: PlaceOnPath samples the path at tick + fraction, the heading
+turns per frame), the original's own interpolation; particles likewise draw between their last two ticks' places. What
+moves only in client ticks is drawn as the camera is: a bow's arrow (EffectArrowFigure moves its figure each tick), map
+objects the server's updates move, a held unit (pathTimeShift 1, not placed on its path).
+- `drawn::PoseOf` (drawn_motion.cpp) is the object's own pose less the part of its last tick's step the frame has not
+  reached (`drawn::Back`: the camera's spread and progress, so none at the harness's default pass of five ticks: the
+  goldens' frames draw the own poses), the position along the step, the rotation slerped. Always on, no option.
+- The step: `drawn::Observe` in CollectVisible (every object of the map's grid each frame; a unit before its
+  AdvanceTime): the first look after a tick takes the pose at the look after the tick before and the pose now. Kept
+  only when one tick passed between the two looks, nothing placed the object at a frame's time between them
+  (`drawn::NotePlaced` after a unit's AdvanceTime), it moved, and by at most 8 map units (the camera's cut). An object
+  placed at the frame's time (pose no longer the step's end) is drawn where it is.
+- Read by the object's matrix in CollectVisible (the clip test) and `Object3DClientSpecific::Draw` (so picking's part
+  rectangles follow what is drawn, as with the camera) and the outside shadow casters. The own pose (localPosition /
+  localRotation: digests, saves, AI, sounds, PartWorldPosition) never changes.
+- **Path changes:** a unit's new client path (UnitClientSpecific::MotionChanged, from the server's update) can start a
+  little off where the unit was drawn (0.25-0.35 units when the hero sets off), so its placement jumps once. The jump
+  from the place last shown (`drawn::Show`) fades out over 150 ms of real time (smoothstep), times the pass's spread
+  (none at the harness's default pass), unless longer than the cut.
+- Lag: up to a tick's step; an arrow vanishes up to one step short of its target (it is removed in the tick it arrives,
+  so the original never drew it there either).
+
+### Animation blends
+
+A switch from one animation to another (`FigureAnimationState::Play`, or SetTime passing into the next queued one)
+blends the pose last placed into the new one's (map_object_animation.cpp, figure_bones.cpp). Always on.
+- `BeginBlend` keeps each placed bone's own turn, the root's position before the origin and the mesh's offsets as the
+  outgoing pose; `FigureBone::Place(origin, blend)` slerps the turn and lerps the root's position and the morph offsets
+  by the incoming share (at 1 the original's computation, bit for bit); `UpdatePose` places the skeleton again at every
+  draw while a blend runs.
+- The share: smoothstep of the real time since the outgoing pose was placed (`placedAt`: the draw before the
+  switch; platform milliseconds, so a blend running also finishes in a pause) over the length, by the incoming
+  animation's kind: attack, cast and hit 100 ms (the blow's moment reads at once), death 150, idle 250, the rest
+  (walk, run, cross, special, map objects' None) 200. None from or into no animation (a figure built anew, a fresh
+  unit). An object not drawn for longer than the length switches at once.
+- Goldens: the harness's default frames are 275 ms apart, longer than any blend, so each draw shows the new pose
+  alone, as before. A blend counted from the switch itself drew the outgoing pose on the switch's frame: its parts'
+  clip tests then differed at the screen's edge, and with them a client unit's Static flag (all its parts lit),
+  which the digests read (zone_gz15h_tornado, net_pair_quest differed).
+- Client side only: what plays, its frame, the end callback, hit moments and the server's view are the game's. What
+  reads the placed parts sees the blended pose, all on the client: the part rectangles picking tests (a click picks what
+  the screen shows), PartWorldPosition (a hero's effect point, footprints, blood, attached particles).
+
 ### Checks
 
+- `render_drawn_motion` (vanilla and Rebirth), at 8 ms frames: the hero walks back over a new path's start
+  (`objtrace` of the leader: drawn without a jump, own with the path change's one, the same path within 1%; captures
+  `moving_*`), stands until an idle plays and sets off (idle, `scross20`, `cwalk05`; its right hand "rh3" without a
+  jump; captures `idle_run_*`). Vanilla only (Rebirth's weapon bar click misses, and the wolf's place is out of reach on
+  foot): with a bow it shoots a wolf standing with the blends off (`animblend off`: the hand jumps at the switch) and
+  a second one walking (`cwalk05` into `uattack02`, no jump; captures `walk_attack_*`), and its arrow flies
+  (`objtrace arrow`: drawn without a jump, own jerky, the same path within 25%). A hero standing after a walk in zone1
+  keeps its walk animation until an idle starts (a few seconds).
 - `camera_smooth` (vanilla and Rebirth): pan, turn (Ctrl), zoom (Page Down) and follow (Home, the hero walking).
   `camtrace` keeps each recording as the drawn view (`pan`) and the camera's own (`pan.camera`). `camsame` (3%): the drawn
   view covers what the camera does. `camsmooth`: the drawn view without a jump, the camera with (a jump is a frame whose
@@ -943,7 +997,9 @@ scaled to 800x600): the same counts turn the camera faster at a lower resolution
   wolf mid-pan and mid-turn where the drawn frame's picking finds it. What the drawn view feeds (the Shown flags, the
   visible and shadow lists, picking) must not reach the world's state.
 - Harness: `keydown` / `keyup` (a key held over frames), `frametime <ms>`, `mousedrag <dx> <dy>`, `camtrace` / `camsame` /
-  `camsteadier` / `camsmooth` (tests/verify/harness_camera.h; kinds pan, turn, zoom, height, reach).
+  `camsteadier` / `camsmooth` (tests/verify/harness_camera.h; kinds pan, turn, zoom, height, reach); `objtrace start <who>
+  [part|-] [log]` / `objtrace stop <name>` (an object's drawn and own place, or a part's place in the figure, after each
+  frame's draw; the same checks), `animblend on|off`.
 
 ## 15. The performance overlay
 

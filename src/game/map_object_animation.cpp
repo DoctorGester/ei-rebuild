@@ -9,6 +9,7 @@
 #include "world.h"
 #include "lib/bytes.h"
 #include "lib/rounding.h"
+#include "platform/platform.h"
 
 #include <algorithm>
 #include <cmath>
@@ -171,6 +172,7 @@ void FigureAnimationState::AnimateBone(FigureBone* bone, const FigureAnimation* 
 }
 
 void FigureAnimationState::Play(FigureAnimation* animation) {
+    BeginBlend(current, animation);
     for (auto node = bones.begin(); node != bones.end();) {
         FigureBone* bone = *node;
         ++node;
@@ -210,11 +212,63 @@ void FigureAnimationState::SetTime(float frame) {
         changed = 1;
     }
     if (before == current) return;
+    BeginBlend(before, current);
     Apply(this, current);
     changed = 1;
 }
 
 void FigureAnimationState::Advance(float frames) { SetTime(frames + time); }
+
+// --- The blend between animations ------------------------------------------------------------------
+
+namespace {
+
+bool g_blends = true;   // FigureAnimationState::SetBlends
+
+// How long a switch into `to` blends, by its kind (milliseconds): into a blow, a cast or a hit quickly, so its
+// moment reads at once; into a fall a little longer; into walking, running, a mode change or a gesture longer, and
+// longest into standing.
+std::uint32_t BlendMilliseconds(const FigureAnimation* to) {
+    switch (AnimationKindOf(to->key)) {
+    case AnimationKind::Attack:
+    case AnimationKind::Cast:
+    case AnimationKind::Hit: return 100;
+    case AnimationKind::Death: return 150;
+    case AnimationKind::Idle: return 250;
+    default: return 200;
+    }
+}
+
+} // namespace
+
+void FigureAnimationState::BeginBlend(const FigureAnimation* from, const FigureAnimation* to) {
+    blendLength = 0;
+    const bool blends = from && to;
+    for (FigureBone* bone : bones) {
+        bone->blendFrom = blends && bone->shown;
+        if (!bone->blendFrom) continue;
+        bone->fromTurn = bone->shownTurn;
+        bone->fromPosition = bone->shownPosition;
+        if (bone->mesh) bone->fromOffsets = bone->mesh->offsets;
+        else bone->fromOffsets.clear();
+    }
+    if (!blends || !g_blends) return;
+    blendStart = placedAt;
+    blendLength = BlendMilliseconds(to);
+}
+
+void FigureAnimationState::SetBlends(bool on) { g_blends = on; }
+
+float FigureAnimationState::BlendWeight() {
+    if (blendLength == 0) return 1.0f;
+    const std::uint32_t elapsed = platform::Milliseconds() - blendStart;
+    if (elapsed >= blendLength) {
+        blendLength = 0;
+        return 1.0f;
+    }
+    const float t = static_cast<float>(elapsed) / static_cast<float>(blendLength);
+    return t * t * (3.0f - 2.0f * t);
+}
 
 // --- Class name and id -----------------------------------------------------------------------------
 

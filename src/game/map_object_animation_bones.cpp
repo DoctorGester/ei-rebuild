@@ -10,6 +10,7 @@
 #include "map_object_animation.h"
 #include "map_object_figures.h"
 #include "world.h"
+#include "platform/platform.h"
 
 #include <cstdint>
 #include <cstring>
@@ -28,7 +29,8 @@ void PlaceRoot(FigureAnimationState* state) {
     Object3D* owner = state->owner;
     float factor = owner->AnimationFactor(owner->scale.z);
     Vector3 origin = factor * owner->defaultScale;
-    state->root->Place(origin);
+    state->root->Place(origin, state->BlendWeight());
+    state->placedAt = platform::Milliseconds();
 }
 
 // Inlines DestroyTrack's reset without the bone (the key frames' array emptied through its SetSize(0)).
@@ -91,6 +93,9 @@ void FigureAnimationState::Reset() {
     morphT = 0.0f;
     morphU = 0.0f;
     changed = 1;
+    blendStart = 0;
+    blendLength = 0;
+    placedAt = 0;
 }
 
 FigureBone* FigureAnimationState::FindBone(std::string_view boneName) {
@@ -205,11 +210,16 @@ void FigureAnimationState::PlaceIfChanged() {
 }
 
 void FigureAnimationState::UpdatePose() {
-    if (!changed) return;
-    for (auto node = bones.begin(); node != bones.end();) {
-        FigureBone* bone = *node;
-        ++node;
-        bone->pose->Evaluate(time);
+    if (changed) {
+        for (auto node = bones.begin(); node != bones.end();) {
+            FigureBone* bone = *node;
+            ++node;
+            bone->pose->Evaluate(time);
+        }
+    } else if (blendLength != 0) {
+        changed = 1;
+    } else {
+        return;
     }
     PlaceIfChanged();
 }
@@ -297,6 +307,14 @@ void FigureBone::CreateBone() {
     morphS = 0.0f;
     morphT = 0.0f;
     morphU = 0.0f;
+    shownTurn = kTrackDefaultRotation;
+    shownPosition = kTrackDefaultPosition;
+    shown = false;
+    fromTurn = kTrackDefaultRotation;
+    fromPosition = kTrackDefaultPosition;
+    fromOffsets.clear();
+    blendFrom = false;
+    blendedOffsets.clear();
 }
 
 void FigureBone::DestroyBone() {

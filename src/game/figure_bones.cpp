@@ -12,31 +12,53 @@ namespace {
 
 } // namespace
 
-void FigureBone::Place(const Vector3& origin) {
+void FigureBone::Place(const Vector3& origin, float blend) {
+    const bool blended = blend < 1.0f && blendFrom;
     if (parent) {
         position = parent->rotation.Rotate(offset) + parent->position;
-        rotation = pose->rotation * parent->rotation;
+        Quaternion turn = pose->rotation;
+        if (blended) turn.Slerp(blend, fromTurn, pose->rotation);
+        rotation = turn * parent->rotation;
+        shownTurn = turn;
+        shown = true;
     } else if (pose) {
+        Vector3 at;
         if (pose->animation) {
             float factor = pose->animation->database->TimeFactor(morphU);
-            position = {factor * pose->position.x, factor * pose->position.y, factor * pose->position.z};
+            at = {factor * pose->position.x, factor * pose->position.y, factor * pose->position.z};
         } else {
-            position = pose->position;
+            at = pose->position;
         }
-        rotation = pose->rotation;
-        position -= origin;
+        Quaternion turn = pose->rotation;
+        if (blended) {
+            at = Lerp(fromPosition, at, blend);
+            turn.Slerp(blend, fromTurn, pose->rotation);
+        }
+        rotation = turn;
+        position = at - origin;
+        shownTurn = turn;
+        shownPosition = at;
+        shown = true;
     }
     if (mesh) {
         mesh->localPosition = position;
         mesh->localRotation = rotation;
-        // The pose's morphed vertices ({data, count}; read even without a pose, like the original).
-        FigureMesh::OffsetSpan vertices{pose->vertices.data(), static_cast<int>(lib::Count(pose->vertices))};
+        // The pose's morphed vertices ({data, count}; read even without a pose, like the original), within a
+        // blend lerped from the outgoing ones when both have as many.
+        const std::vector<Vector3>* offsets = &pose->vertices;
+        if (blended && !fromOffsets.empty() && fromOffsets.size() == pose->vertices.size()) {
+            blendedOffsets.resize(fromOffsets.size());
+            for (std::size_t i = 0; i < fromOffsets.size(); ++i)
+                blendedOffsets[i] = Lerp(fromOffsets[i], pose->vertices[i], blend);
+            offsets = &blendedOffsets;
+        }
+        FigureMesh::OffsetSpan vertices{offsets->data(), static_cast<int>(lib::Count(*offsets))};
         mesh->SetOffsets(&vertices);
     }
     for (auto node = children.begin(); node != children.end();) {
         FigureBone* child = *node;
         ++node;
-        child->Place(origin);
+        child->Place(origin, blend);
     }
 }
 

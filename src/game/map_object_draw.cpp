@@ -1,5 +1,6 @@
 // Drawing a 3D object on the client (Object3DClientSpecific::Draw). See map_object_shadow.h and
 // docs/notes/map_objects.md ("Drawing").
+#include "drawn_motion.h"
 #include "engine_object.h"
 #include "map_object.h"
 #include "map_object_figures.h"
@@ -88,8 +89,9 @@ int Object3DClientSpecific::Draw(SceneRenderer* context, Rect* dirty) {
         list.push_back(light);
     }
 
-    // The object's matrix, and its extra scale when it has one.
-    ObjectWorldMatrix(&object->localRotation, object->localPosition, &object->worldMatrix);
+    // The object's matrix at the pose the draw shows (drawn_motion.h), and its extra scale when it has one.
+    const drawn::Pose shown = drawn::PoseOf(object);
+    ObjectWorldMatrix(&shown.rotation, shown.position, &object->worldMatrix);
     Matrix4 m = object->worldMatrix;
     pipeline->PushMatrix(m.m, kStackView);
     pipeline->PushMatrix(m.m, kStackWorld);

@@ -8,9 +8,12 @@
 #include "game/camera.h"
 #include "game/console.h"
 #include "game/core_streams.h"
+#include "game/drawn_motion.h"
 #include "game/game_singletons.h"
 #include "game/figure_manager.h"
 #include "game/item.h"
+#include "game/map_object_figures.h"
+#include "game/map_object_shadow.h"
 #include "game/net_classes.h"
 #include "game/model.h"
 #include "game/object_tables.h"
@@ -34,6 +37,7 @@
 #include "game/world_map_files.h"
 #include "lib/crt.h"
 
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <list>
@@ -425,5 +429,46 @@ CameraState Camera(const void* camera) {
 }
 
 std::string HudState(void* screen, const std::string& argument) { return HudStateOf(screen, argument); }
+
+namespace {
+
+// The object's place at `pose`, or with `part` that part's place in the figure (the pose alone).
+ObjectPlace PlaceAt(const FigureMesh* part, const drawn::Pose& pose) {
+    if (part) return ObjectPlace{part->localPosition.x, part->localPosition.y, part->localPosition.z, 0.0f};
+    const Quaternion& q = pose.rotation;
+    return ObjectPlace{pose.position.x, pose.position.y, pose.position.z, 2.0f * std::atan2(q.z, q.w)};
+}
+
+} // namespace
+
+void SetAnimationBlends(bool on) { FigureAnimationState::SetBlends(on); }
+
+bool ClientObject(int id, const char* part, ObjectState* out) {
+    MapObject* found = nullptr;
+    for (MapObject* object : g_clientWorld.objects) {
+        if (!object) continue;
+        if (id != 0 ? object->id == id : object->name == "efar1") {
+            found = object;
+            break;
+        }
+    }
+    if (!found) return false;
+    const FigureMesh* piece = nullptr;
+    if (part && *part) {
+        piece = found->FindPart(part);
+        if (!piece) return false;
+    }
+    out->id = found->id;
+    if (FigureAnimationState* state = found->animation) {
+        out->animation = state->current ? state->current->name : "";
+        out->frame = state->time;
+        out->blend = state->blendLength != 0 ? static_cast<float>(platform::Milliseconds() - state->blendStart) /
+                                                   static_cast<float>(state->blendLength)
+                                             : 1.0f;
+    }
+    out->own = PlaceAt(piece, drawn::OwnPose(found));
+    out->drawn = PlaceAt(piece, drawn::PoseOf(found));
+    return true;
+}
 
 } // namespace ei::verify::image

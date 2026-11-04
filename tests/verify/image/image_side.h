@@ -250,6 +250,24 @@ struct CameraState {
 };
 CameraState Camera(const void* camera);
 
+// What the object trace samples of a client world object (harness_camera.cpp): its id, its own place and the
+// place the draw shows (drawn::PoseOf), the yaw in radians (about z); with a part named, both the part's place in
+// the figure (what the pose and its blends move).
+struct ObjectPlace {
+    float x = 0, y = 0, z = 0, yaw = 0;
+};
+struct ObjectState {
+    int id = 0;
+    ObjectPlace own, drawn;
+    std::string animation;   // the animation playing ("" for none), its frame and the blend's weight now
+    float frame = 0, blend = 1;
+};
+// The client world's object `id`, or with `id` 0 its first bow arrow (the figure "efar1"); `part` "" for the
+// object's origin. False when there is none (or no such part).
+bool ClientObject(int id, const char* part, ObjectState* out);
+// Animation switches blend (FigureAnimationState::SetBlends; "animblend on|off").
+void SetAnimationBlends(bool on);
+
 // ---- the UTF-8 checks (harness_utf8.cpp; image/harness_utf8_image.cpp)
 
 namespace utf8files {

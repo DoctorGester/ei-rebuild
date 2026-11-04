@@ -5,6 +5,7 @@
 // was built for. See docs/notes/map_objects.md ("Figures").
 
 #include "core_transform.h"
+#include "drawn_motion.h"
 #include "engine_object.h"
 #include "figure_mesh.h"            // FigureMesh (an object's figure parts)
 #include "map_object_animation.h"   // AnimationTrack (a bone's animator)
@@ -287,6 +288,17 @@ struct FigureBone : EngineObject {
     Vector3 position;                       // in figure space
     Quaternion rotation;                    // in figure space
     std::vector<Matrix4> matrices;    // (emptied without freeing; freed by the destructor)
+    // The blend from one animation into the next (FigureAnimationState::BeginBlend): the bone's own turn and
+    // (the root) its position before the origin as last placed (`shown` once placed); the outgoing pose a switch
+    // blends from (`blendFrom` while it has one: the mesh's offsets then too) and the blended offsets.
+    Quaternion shownTurn;
+    Vector3 shownPosition;
+    bool shown;
+    Quaternion fromTurn;
+    Vector3 fromPosition;
+    std::vector<Vector3> fromOffsets;
+    bool blendFrom;
+    std::vector<Vector3> blendedOffsets;
 
     FigureBone();
     ~FigureBone() override;
@@ -304,8 +316,10 @@ struct FigureBone : EngineObject {
     // rotation ((w^2 - u.u) o + 2w (u x o) + 2 (u.o) u, the scaled terms rounded) onto the parent's position and
     // takes rotation = pose * parent (Hamilton); the root takes the pose's position (times the animation's time
     // factor at morphU while one plays) minus `origin`, and its rotation; a root without a pose keeps both. A bone
-    // with a mesh gives it the position and rotation and the pose's morphed vertices as offsets.
-    void Place(const Vector3& origin);
+    // with a mesh gives it the position and rotation and the pose's morphed vertices as offsets. With `blend`
+    // below 1 a bone with an outgoing pose takes that much of the animator's (its turn slerped, the root's
+    // position and the offsets lerped); at 1 the animator's alone.
+    void Place(const Vector3& origin, float blend);
     // The bone's cage (figure_bones.cpp): `offset` becomes the point at (morphS, morphT, morphU) in the cube of
     // the next 8 points of *stream (0x60 bytes, consumed; edges 0-1 and 2-3 at morphS, between them at morphT;
     // edges 4-5 and 6-7 likewise; then between the two at morphU) or in the prism of the next 6 (0x48 bytes; edge
@@ -367,7 +381,8 @@ public:
     // When `changed`: cleared, and the root (if any) places the skeleton at the owner's time factor (at its scale
     // z) times its default scale.
     void PlaceIfChanged();
-    // When `changed`: each bone's placing animator is evaluated at the frame reached then PlaceIfChanged.
+    // When `changed`: each bone's placing animator is evaluated at the frame reached then PlaceIfChanged. While a
+    // blend runs the skeleton is placed again at its weight now, changed or not.
     void UpdatePose();
     // The morph becomes (s, t, u) on every bone, whose manager reloads its key frames from the owner's model,
     // and on the state (`changed` cleared); then the root places the skeleton as PlaceIfChanged does.
@@ -395,6 +410,22 @@ public:
     float morphT;
     float morphU;
     std::uint8_t changed;           // set when the frame, the animation or the bones changed
+
+    // A switch from one animation to another blends the pose last placed into the new one's over a short time
+    // (client side only: what plays and its frame stay the game's). The blend runs from `placedAt`, when the
+    // outgoing pose was placed (the draw before the switch), so a draw a blend's length after it shows the new
+    // pose alone, as at the harness's default frames. In the platform's milliseconds; `blendLength` 0 while none
+    // runs.
+    std::uint32_t blendStart;
+    std::uint32_t blendLength;
+    std::uint32_t placedAt;
+    // Before a switch from `from` to `to`: each bone keeps the pose last placed as the outgoing one and the blend
+    // starts, as long as `to`'s kind asks (none when either is null; one running is cut short).
+    void BeginBlend(const FigureAnimation* from, const FigureAnimation* to);
+    // The incoming animation's share of the pose now (eased; 1 once the blend is over, which ends it).
+    float BlendWeight();
+    // The harness's seam (its "animblend off"): switches snap, as in the original, while off.
+    static void SetBlends(bool on);
 };
 
 // The 3D object: a transform object with a figure, its parts and their animation (abstract: class name and
@@ -556,6 +587,7 @@ public:
     // Cleared with the bounds; a part's piece record sets it (LoadPart). The AI adds it to a unit's eye height.
     float eyeHeight;
     std::vector<FootprintPart> partBoxes;   // one box per animated part (SetUpAnimatedFigure); FootprintPart: model.h
+    drawn::ObjectStep drawnStep;    // client: its last tick's step as the draw spreads it (drawn_motion.h)
 
 protected:
     Object3D();
