@@ -25,6 +25,7 @@
 namespace {
 
 constexpr const char* kSoundClick = "buttons\\battle\\click.wav";
+constexpr TextStyle kPanelText{0, kUiTextColour};
 constexpr char kNewLine[] = {'\n', '\0'};
 constexpr std::uint32_t kRed = 0x0000FF;                             // COLORREF
 
@@ -80,10 +81,10 @@ void HudUnitPanel::ShowHealth(Unit* unit) {
 
 void HudUnitPanel::PaintHealth(UiSurface& surface, Unit* unit) {
     std::string health = std::format("{}", unit->packedVitals.hitPoints > 0 ? unit->packedVitals.hitPoints : 0);
-    surface.DrawTextIn(health, Rect{130, 185, 160, 200}, TextStyle{0, kUiTextColour});
+    surface.DrawTextIn(health, Rect{130, 185, 160, 200}, kPanelText);
     if (!InParty(owner, unit)) return;
     std::string mana = std::format("{}", static_cast<int>(unit->packedVitals.mana));
-    surface.DrawTextIn(mana, Rect{130, 200, 160, 215}, TextStyle{0, kUiTextColour});
+    surface.DrawTextIn(mana, Rect{130, 200, 160, 215}, kPanelText);
 }
 
 void HudUnitPanel::ShowParts(Unit* unit) {
@@ -164,9 +165,9 @@ void HudUnitPanel::PaintEffects(UiSurface& surface, Unit* unit) {
             // The texts' section "spell <code>": its first line is the spell's name.
             if (clientWorldTexts->TextManager::Open(std::string("spell ") + spell->code.c_str())) text = clientWorldTexts->ReadLine(true);
         }
-        surface.DrawTextIn(text, line, TextStyle{0, kUiTextColour});
+        surface.DrawTextIn(text, line, kPanelText);
         line.Offset(0, kLineHeight);
-        surface.DrawTextIn(std::format("{}", effects[i].ticksLeft / 15), line, TextStyle{0, kUiTextColour});
+        surface.DrawTextIn(std::format("{}", effects[i].ticksLeft / 15), line, kPanelText);
         line.Offset(0, kLineHeight);
     }
 }

@@ -44,6 +44,9 @@ constexpr float kTexel = 0.00390625f;
 constexpr char kHelpAction = ';';                  // the help key's action (g_keyActions)
 constexpr std::uint32_t kTitleColour = 0x82F5FF;
 constexpr std::uint32_t kTextColour = 0xBBF9FF;
+constexpr TextStyle kPageTitleText{2, kTitleColour, render::text::kCenter};
+constexpr TextStyle kHeaderText{1, kTitleColour, render::text::kCenter};
+constexpr TextStyle kFooterText{0, kTitleColour, render::text::kCenter};
 constexpr int kStripHeight = 55;                   // the title's and the buttons' strips
 constexpr int kRowHeight = 16;
 constexpr int kPictureSize = 64;
@@ -293,9 +296,9 @@ void HelpWindow::ShowPage() {
 
 void HelpWindow::PaintHeader(UiSurface& surface) const {
     Rect line{0, 8, pageWidth, 30};
-    surface.DrawTextIn(lines[page], line, TextStyle{2, kTitleColour, render::text::kCenter});
+    surface.DrawTextIn(lines[page], line, kPageTitleText);
     line = Rect{0, 30, pageWidth, 50};
-    surface.DrawTextIn(str::Format(kTitleFormat, title, page + 1, static_cast<int>(lines.size())), line, TextStyle{1, kTitleColour, render::text::kCenter});
+    surface.DrawTextIn(str::Format(kTitleFormat, title, page + 1, static_cast<int>(lines.size())), line, kHeaderText);
 }
 
 void HelpWindow::PaintBody(UiSurface& surface) const {
@@ -305,14 +308,14 @@ void HelpWindow::PaintBody(UiSurface& surface) const {
 void HelpWindow::PaintFooter(UiSurface& surface) const {
     if (page > 0) {
         Rect label{0, 5, pageWidth / 3, 25};
-        surface.DrawTextIn(lines[page - 1], label, TextStyle{0, kTitleColour, render::text::kCenter});
+        surface.DrawTextIn(lines[page - 1], label, kFooterText);
     }
     if (!keyHint.empty()) {
         Rect label{pageWidth / 3, 5, 2 * pageWidth / 3, 25};
-        surface.DrawTextIn(keyHint, label, TextStyle{0, kTitleColour, render::text::kCenter});
+        surface.DrawTextIn(keyHint, label, kFooterText);
     }
     if (page < static_cast<int>(lines.size()) - 1) {
         Rect label{2 * pageWidth / 3, 5, pageWidth, 25};
-        surface.DrawTextIn(lines[page + 1], label, TextStyle{0, kTitleColour, render::text::kCenter});
+        surface.DrawTextIn(lines[page + 1], label, kFooterText);
     }
 }
