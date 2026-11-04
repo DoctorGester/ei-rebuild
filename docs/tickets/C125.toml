@@ -5,4 +5,5 @@ model = "opus"
 depends = ["C120"]
 note = "Style review round 3 (2026-11-04, https://claude.ai/artifact/KKkymAu9dSoUWGGcbsLwPa, digests in build/style_review/round3/*.md; user: file the tickets). Items Y7, Y10 outside networking. g_streamedScript (feeds run save/load while block ids use MainScript()), g_loadingParty (feeds PartyUnitRecord::Load) and the global quest being built (3 files) become parameters or members, or a scope guard where unavoidable. chunk_archive.cpp:372's save class registry keyed by vtable address becomes an enum Type() (rewrite-guide forbids code-address keys under /OPT:ICF); database_file's LoadTable pointer-to-member serializer becomes a call. Save bytes the same. Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes."
 order = 1053
-status = "queued"
+status = "running"
+started = "2026-11-04"
