@@ -307,6 +307,8 @@ bool AcquireSwapchain(Texture* target);
 // SDL refused them.
 bool Submit();
 std::uint64_t SubmitCount();
+// The submissions whose fences are still kept: each is let go at a later Submit once it has finished.
+std::size_t SubmissionsHeld();
 
 // The whole frame's GPU time from the submissions' fences (there are no timestamp queries): from a submission (or the
 // end of the one before, if later) to the end of its work, found by a thread polling the fences every 0.2 ms while it

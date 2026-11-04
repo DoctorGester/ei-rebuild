@@ -253,14 +253,19 @@ void DropDone() {
     }
 }
 
-void PollFences(bool timed) {
-    std::lock_guard<std::mutex> lock(g_fenceLock);
+// The finished submissions marked done, asking their fences. Under g_fenceLock.
+void MarkFinished(bool timed) {
     // One queue: they finish in order.
     for (Submission& s : g_submissions) {
         if (s.done) continue;
         if (!SDL_QueryGPUFence(g_device, s.fence)) break;
         MarkDone(s, timed);
     }
+}
+
+void PollFences(bool timed) {
+    std::lock_guard<std::mutex> lock(g_fenceLock);
+    MarkFinished(timed);
 }
 
 void TimerThread() {
@@ -1434,11 +1439,19 @@ bool Submit() {
     if (!fence) Problem("a submission failed: %s", SDL_GetError());
     std::lock_guard<std::mutex> lock(g_fenceLock);
     g_submissions.push_back({serial, fence, submitted, fence == nullptr});
+    // Without the frame timer nothing else asks the older fences, so every submission's fence was kept: thousands a
+    // minute, until Dozen on WSL (D3D12 fences) refused new ones (H50). The timer's own marks keep their times.
+    if (!g_timing.load()) MarkFinished(false);
     DropDone();
     return fence != nullptr;
 }
 
 std::uint64_t SubmitCount() { return g_serial - 1; }
+
+std::size_t SubmissionsHeld() {
+    std::lock_guard<std::mutex> lock(g_fenceLock);
+    return g_submissions.size();
+}
 
 void SetFrameTiming(bool on) {
     if (on == g_timing.load()) return;
