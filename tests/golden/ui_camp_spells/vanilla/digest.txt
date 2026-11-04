@@ -6555,15 +6555,20 @@ missile1 # A0AF4C60
 aievents tick 140
 client tick 140
 client ticksRun 112
-@ 7 update 160 frame 31 tick 142 zone gz1g hash BC508985 n 790
+@ 7 update 160 frame 31 tick 142 zone gz1g hash C89C31DF n 790
 world tick 142
 world updates 160
 world paused 1
 world objects 777
 world mapObjects 54
 world updateMap 13
-random isaac.count 128
-random crt.rand 0x2777BA8B
+random isaac.count 91
+random isaac.a 0xAF371F0D
+random isaac.b 0x77EF5226
+random isaac.c 0x00000006
+random isaac.results 0xD79A95AD
+random isaac.memory 0xEEB2EC97
+random crt.rand 0x35B00169
 player0 sessionKind 5
 player0 lastTick 141
 player0 items 0
@@ -6571,7 +6576,7 @@ player0 units 0
 player0 objects 7
 player0 partyItems 3
 player0 var.gtime 6.12666702
-player0 var.constr.current 1.0
+player0 var.constr.current 3.0
 obj699 #ai C269B926
 obj699 #unit BFA1B299
 obj699 #vitals 3B4AA515
@@ -6611,37 +6616,44 @@ client ticksRun 132
 cunit1100011214 #place 125B38F9
 cunit1100011214 #unit 7D285A44
 cunit1100011214 #vitals 54F14E8E
-@ 8 update 180 frame 35 tick 142 zone gz1g hash E245E16E n 790
+@ 8 update 180 frame 35 tick 142 zone gz1g hash 96895934 n 790
 world updates 180
 client ticksRun 152
-@ 9 update 200 frame 39 tick 142 zone gz1g hash 98FA1BFD n 790
+@ 9 update 200 frame 39 tick 142 zone gz1g hash EC36A3A7 n 790
 world updates 200
 client ticksRun 172
-@ 10 update 220 frame 43 tick 142 zone gz1g hash B48FAE4E n 790
+@ 10 update 220 frame 43 tick 142 zone gz1g hash C0431614 n 790
 world updates 220
 client ticksRun 192
-@ 11 update 240 frame 47 tick 142 zone gz1g hash 52BFF043 n 790
+@ 11 update 240 frame 47 tick 142 zone gz1g hash 26734819 n 790
 world updates 240
 client ticksRun 212
-@ 12 update 260 frame 51 tick 142 zone gz1g hash A1249DD5 n 790
+@ 12 update 260 frame 51 tick 142 zone gz1g hash D5E8258F n 790
 world updates 260
 client ticksRun 232
-@ 13 update 280 frame 55 tick 142 zone gz1g hash 0FB08B97 n 790
+@ 13 update 280 frame 55 tick 142 zone gz1g hash 7B7C33CD n 790
 world updates 280
 client ticksRun 252
-@ 14 update 300 frame 59 tick 157 zone gz1g hash F328C00E n 791
+@ 14 update 300 frame 59 tick 157 zone gz1g hash B02646AD n 791
 world tick 157
 world updates 300
 world paused 0
 world objects 778
 world mapObjects 55
 world updateMap 14
-random isaac.count 22
-random crt.rand 0x3D5548F4
+random isaac.count 239
+random isaac.a 0xC428F8FC
+random isaac.b 0x0ADA487A
+random isaac.c 0x00000007
+random isaac.results 0x9CE3E70D
+random isaac.memory 0x3C8DFD0D
+random crt.rand 0x16311287
 player0 sessionKind 1
 player0 lastTick 143
 player0 units 1
 player0 objects 8
+player0 money 5020250
+player0 partyItems 0
 obj699 #unit 2F1EAF08
 obj702 #unit B0CC1FED
 obj1804 #ai 418606A0

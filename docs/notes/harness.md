@@ -248,6 +248,18 @@ routine: run it when wanted.
   `gvar.` variables hosts a game: the AddonStringMap), `ambient_sounds` (tools/make_ambient_mob.py: no zone of the game has
   an ambient sound). Left: SharedObject (a multiplayer hero's death, H43c1) and the `Chunk` writers, whose only callers
   are the map specs' `Save` methods, which nothing calls (H43c2).
+- **Gap scenarios (H43g, H43h):** pairs `net_pair_lobby` (the peer asks the host's address in the connection screen's
+  address box: ClientBase::Ask; the same button on an asked row forgets it; Esc saves the address book, the next visit
+  reads it; a double click on the row joins), `net_pair_password` (a password on the hosted game: a wrong one is refused
+  with the refusal box, the right one joins; Connect's own first join goes out with no password and is refused unseen) and `net_pair_party` (an exchange
+  offer withdrawn by a second click on the face, offered again, answered, accepted, taken back, accepted, left); single
+  games `ui_base_hide` (Smith's topic M6: HideSpeaker), `ui_base_objectives` (TAB on the base screen),
+  `ui_minimap_edges` (the camera at each side of zone1: the visible area clipped against the world), `ui_hero_rename`
+  (MpHeroScreen::Rename; the edit field is short, so the suffix is cut) and `ui_camp_spells` (trader class 3 has the spell
+  trade page; class 1 shows the item page). Not reachable by play (H43g1): GiveBriefingRewards (`CompleteBriefing` returns
+  early in every network game, and the briefing records exist only after hosting, when the quit to the menu has dropped
+  the text sources), the message clones and copy constructors. Left: the multiplayer zone scripts' GSSetVarMax / GSDelVar
+  (H43g2).
 
 ## What a run leaves alone
 

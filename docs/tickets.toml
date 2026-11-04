@@ -6523,6 +6523,15 @@ files = ["tests/scenarios"]
 note = "H43c left WorldServer::AddSharedObject and SharedObject::Load unreached: they run when a hero dies in a multiplayer game (PlayerServer::OnLeaderDied's multiplayer branch drops the hero's items into a shared object) and when a save made then is loaded. A hosted game is a network client, so no @ line runs in it: the death needs a fight in a quest zone (net_pair_quest's) or a harness step that damages the leader; the load needs a multiplayer load. Golden scenario, 60 s."
 
 [[ticket]]
+id = "H43g2"
+title = "Scenario: hosted zone scripts that raise and delete server variables (z6q3, z7q1) and ask the leader"
+group = "harness"
+model = "sonnet"
+depends = ["H43g"]
+files = ["tests/scenarios"]
+note = "Left from H43g: ServerSession::RaiseVariable, RemoveVariable and LeaderId are reached only by the multiplayer zone scripts' GSSetVarMax, GSDelVar and GetLeader (z6q3.mob raises q.z6q3.z6q3.1 when a hero stands within 7 of BoarCage; z7q1.mob, z18q1.mob and z19q3.mob do likewise). The console's script lines do nothing in a network game, so a pair scenario has to host, take the sheriff's topic whose quest map is one of those (the offer follows the game's random draws and differs between the vanilla and Rebirth data: net_pair_leave gets z6q1) and walk the leader to the trigger."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"
@@ -7627,6 +7636,15 @@ title = "Dead code the coverage run found: cut spells, taming and the unused use
 group = "cleanup"
 depends = ["H43b"]
 note = "H43a/H43b found (python tools/coverage.py run, then reading the callers) code no play reaches, cut from the original: TryTame, UndoTaming, UndoIfTamedBy (combat_taming.cpp: UseSkill returns for skill 2 before its switch; WorldServer::CastSpell refuses charm), OrderTame (the interface sends use kinds 0 and 1 only), StartCharm, StartLink, StartPossession and the Link and Possession updates (spell_effect*.cpp: CastSpell returns for those three types; only a saved projectile of one would start them), the UseItem order (no setter: OrderPlan::TakeSteps, CanStillDo, the UseItem cases of FinishAction and the tick), TellParty(OutOfReach) and AIBrain::IsNearPath. The user decided 2026-11-03 that taming stays cut; decide per item: delete with their comments and table rows (a saved game with such a projectile would then need a refusal at load), or keep as documented. Check: build checks, image and Rebirth suites with every golden the same."
+
+[[ticket]]
+id = "H43g1"
+title = "Dead code H43g and H43h found: message clones, copy constructors, GiveBriefingRewards, empty virtuals"
+group = "cleanup"
+model = "sonnet"
+depends = ["H43j"]
+files = ["src/game"]
+note = "Found while writing the lobby, party, base screen and camp scenarios (coverage run of 2026-11-04, every function below unreached after them; read the callers before cutting). Network: the Clone methods and copy constructors of the messages (net_messages.cpp: LoginMessage, ZoneMessage, MapMessage, BindingMessage, FileRequestMessage, PlayerMessage, LineMessage, HostMessage, VariableMessage, FileMessage, TradeMessage, PartyMemberMessage, PartyMessage, PairMessage's), Connection::Clone and its copy constructor and constructor with an id (net_connection_life.cpp:47, 98), ReplicaEntry's copy constructor, Clone and OnShutdown, LoopbackLink and DriverLink's copy constructors, Clone and OnShutdown (net_link.cpp), NetLink and FileStream's constructor, Restart and Clear, Query::operator=, Message's copy constructor, TradeRecord's constructors, ServerEntry::OnShutdown, TypeRegistry::KeyOf, PushReplicated, CollectReplicated, ServerBase::Admit and SessionBase's six empty handlers (net_session.cpp:346), ClientBase::OnJoined, BufferView::ReserveRead and ReserveWrite, ReliableChunk's Sequence and Size. World: GiveBriefingRewards and CreateNamedItem (world_quests.cpp:54, 56): CompleteBriefing returns before them in any network game (the host is a client too) and a single-player game never holds a briefing record (the .mq files' records come from hosting; the quit to the menu drops the text sources, so the dialogue cannot start: tried in a scratch scenario). Interface: BriefingScreen::GameOver, ShowBriefing and SaveState (ui_briefing.cpp:144-159) and PlaceMover, StopTalking, SpeakerAnimationDone, Facing and DropMover (ui_briefing_create.cpp, _dialogue.cpp, _start.cpp), HudClock::LeftDown and LeftUp (ui_hud.cpp:387, 393). Player link handlers: PlayerClient::OnDisconnect, SendGoTo, SendFollow, TakeExit, OnObjectValues, OnWeaponRemoved; PlayerServer::Send17, SendObject0A, SendPair16, OnMessage37, OnRefreshParty, OnTakeExit, OnBriefingDone, OnGoTo, OnLeave, OnUnitLookup, OnFollow. Decide per item as H43j does; check: build checks, image and Rebirth suites with every golden the same."
 
 [[ticket]]
 id = "PL6b"

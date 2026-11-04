@@ -18,7 +18,8 @@ Files: `net_classes.h` (sessions, lobby, message base), `net_session*.cpp`, `net
   loopback), the pairs (`peer` in harness.md): `net_pair_join` (find in the lobby, join, chat, leave), `net_pair_zone`
   (an exchange, the map choice, both into the zone), `net_pair_kick` (kick by serial, ban by name, a refused join),
   `net_pair_leave` (shared files, a peer lost in the zone, LeaveZone), `net_pair_quest` (a quest done, CompleteZone and
-  its awards, a fake master), `net_pair_master` (the master's server list, a bad update), `net_second_master`.
+  its awards, a fake master), `net_pair_master` (the master's server list, a bad update), `net_second_master`, `net_pair_lobby` (direct queries, the address book), `net_pair_password` (a refused and an admitted join)
+and `net_pair_party` (an exchange offered, withdrawn, answered, left).
 
 ## The multiplayer game
 
