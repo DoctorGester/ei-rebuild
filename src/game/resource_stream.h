@@ -1,8 +1,7 @@
 #pragma once
 
-// The rest of the resource code: the sound system's file reader,
-// the name listing of an archive and the constructors and destructors of
-// MMIOResource (the readers' base ResourceBase is in resource.h). Names provisional.
+// The rest of the resource code: the sound system's file reader and the name listing of an archive (the
+// archive readers are in resource.h). Names provisional.
 
 #include "platform/platform.h"
 #include "resource.h"

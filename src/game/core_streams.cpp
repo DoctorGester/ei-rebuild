@@ -40,7 +40,6 @@ void CodeStream(MemoryStream* self, CoderState* coder, MemoryStream* out, void (
 
 ByteStream::ByteStream() {
     version = kDefaultVersion;
-    ok = 1;
 }
 
 void (*g_memoryStreamWriteObserver)(MemoryStream* stream, std::uint32_t size, void* const* frame) = nullptr;
@@ -86,7 +85,7 @@ void MemoryStream::Clear() {
     data = {};
     position = 0;
     size = 0;
-    ok = 1;
+    ok = true;
     bitMask = 0x80;
     bitsIndex = -1;
 }
@@ -116,12 +115,10 @@ bool ByteStream::FindTagged(std::uint32_t id, ByteStream* out) {
 
 void ByteStream::ReadText(char* buffer, int capacity) {
     char* at = buffer;
-    // Each byte is read into the low byte of one dword: a failed read of a stream that does not zero-fill
-    // leaves the old byte.
-    std::uint32_t slot = 0;
+    // A failed read of a stream that does not zero-fill leaves the old byte.
+    char c = 0;
     for (int left = capacity; left > 0;) {
-        Read(&slot, 1);
-        char c = static_cast<char>(slot);
+        Read(&c, 1);
         *at++ = c;
         --left;
         if (c == 0) break;
@@ -189,15 +186,11 @@ void ByteStream::WriteDiff(ByteStream* base, ByteStream* current) {
             count = 1;
         }
     }
-    std::uint32_t end = Position();
-    Seek(header);
-    WriteValue(static_cast<std::uint8_t>(count));
-    Seek(end);
-    WriteValue(std::uint8_t{0});
+    CloseRun(this, header, static_cast<std::uint8_t>(count));
 }
 
 void ByteStream::ApplyDiff(ByteStream* base, ByteStream* diff) {
-    std::uint32_t length = 0;   // one byte is read into it at a time
+    std::uint8_t length = 0;   // a failed read of a stream that does not zero-fill leaves the old byte
     int done = 0;
     const int size = static_cast<int>(base->Size());
     base->Seek(0);
@@ -219,8 +212,6 @@ void ByteStream::ApplyDiff(ByteStream* base, ByteStream* diff) {
 
 namespace {
 
-// The format header's magic number and version are written and read as four bytes each.
-constexpr std::uint32_t kHeaderFieldBytes = 4;
 // Sizes above this are written in four bytes (bit 0 set), others in two.
 constexpr std::int32_t kShortSizeLimit = 30000;
 
@@ -229,7 +220,7 @@ constexpr std::int32_t kShortSizeLimit = 30000;
 std::uint32_t MemoryStream::Read(void* buffer, std::uint32_t byteCount) {
     if (position + byteCount > size) {
         std::uint32_t left = size - position;
-        ok = 0;
+        ok = false;
         std::memset(buffer, 0, byteCount);
         if (static_cast<std::int32_t>(left) < 0) return 0;
         byteCount = left;
@@ -310,9 +301,14 @@ void ByteStream::CopyFrom(ByteStream* source) {
 }
 
 void ByteStream::ReadSized(ByteStream* to) {
-    std::uint32_t size = 0;
-    Read(&size, 2);
-    if (size & 1) Read(reinterpret_cast<std::uint8_t*>(&size) + 2, 2);
+    std::uint16_t low = 0;
+    Read(&low, 2);
+    std::uint32_t size = low;
+    if (low & 1) {
+        std::uint16_t high = 0;
+        Read(&high, 2);
+        size |= static_cast<std::uint32_t>(high) << 16;
+    }
     size >>= 1;
     to->Clear();
     to->Seek(0);
@@ -324,13 +320,10 @@ void ByteStream::ReadSized(ByteStream* to) {
 
 void ByteStream::WriteSized(ByteStream* from) {
     auto size = static_cast<std::int32_t>(from->Size());
-    std::uint32_t word;
     if (size > kShortSizeLimit) {
-        word = static_cast<std::uint32_t>(size) * 2 + 1;
-        WriteValue(word);
+        WriteValue(static_cast<std::uint32_t>(size) * 2 + 1);
     } else {
-        word = static_cast<std::uint32_t>(size) * 2;
-        Write(&word, 2);
+        WriteValue(static_cast<std::uint16_t>(static_cast<std::uint32_t>(size) * 2));
     }
     std::vector<std::uint8_t> block(static_cast<std::uint32_t>(size));
     from->Seek(0);
@@ -386,15 +379,21 @@ void MemoryStream::WriteStream(MemoryStream* from) {
 }
 
 int MemoryStream::ReadStream(MemoryStream* to) {
-    std::uint32_t length = 0;
-    Read(&length, 1);
-    if (length & 1) Read(reinterpret_cast<std::uint8_t*>(&length) + 1, 3);
+    std::uint8_t low = 0;
+    Read(&low, 1);
+    std::uint32_t length = low;
+    if (low & 1) {
+        std::uint8_t rest[3] = {};
+        Read(rest, 3);
+        length |= static_cast<std::uint32_t>(rest[0]) << 8 | static_cast<std::uint32_t>(rest[1]) << 16 |
+                  static_cast<std::uint32_t>(rest[2]) << 24;
+    }
     length >>= 1;
     if (length > kMaxStreamLength) return 0;
     to->SetSize(length);
     if (Read(to->data.data(), length) != length) return 0;
     to->Seek(0);
-    to->ok = 1;
+    to->ok = true;
     return 1;
 }
 
@@ -408,7 +407,7 @@ FileStream::~FileStream() = default;
 
 std::uint32_t FileStream::Read(void* buffer, std::uint32_t size) {
     std::uint32_t read = file.Read(buffer, size);
-    ok = static_cast<std::uint8_t>(ok & (read == size ? 1 : 0));
+    ok = ok && read == size;
     return read;
 }
 
@@ -421,6 +420,6 @@ std::uint32_t FileStream::Size() { return file.Size(); }
 std::uint32_t FileStream::Position() { return file.Position(); }
 
 void FileStream::Clear() {
-    ok = 1;
+    ok = true;
     file.Seek(0L, platform::SeekFrom::Begin);
 }

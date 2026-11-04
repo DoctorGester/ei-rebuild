@@ -1,6 +1,5 @@
-// The rest of the resource code: ResourceBase, the sound system's file reader, the archive name
-// listing, and the MMIOResource constructors and destructors (ResourceManager's are in
-// resource_manager.cpp). See resource_stream.h and docs/notes/models.md.
+// The rest of the resource code: the sound system's file reader and the archive name listing. See
+// resource_stream.h and docs/notes/models.md.
 
 #include "lib/str.h"
 #include "lib/text_case.h"
@@ -48,22 +47,6 @@ bool PartMatches(const char* name, const char* pattern) {
 }
 
 } // namespace
-
-
-ResourceBase::ResourceBase() {
-    header = ResHeader{};
-    entries = nullptr;
-    names = nullptr;
-}
-
-ResourceBase::~ResourceBase() {
-    header = ResHeader{};
-    entries = nullptr;
-    names = nullptr;
-}
-
-
-
 
 
 void ResourceStream::Close() { file.Close(); }
@@ -141,16 +124,4 @@ std::vector<std::string> MappedResource::ListFilesPlain(const char* pattern) con
         fileNames.push_back(name);
     }
     return fileNames;
-}
-
-
-MMIOResource::MMIOResource() { mappedImage = nullptr; }
-
-MMIOResource::~MMIOResource() {
-    // CloseResource, inlined.
-    file.Close();
-    entries = nullptr;
-    names = nullptr;
-    mappedImage = nullptr;
-    header = ResHeader{};
 }

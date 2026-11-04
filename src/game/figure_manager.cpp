@@ -217,15 +217,14 @@ int FigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, std::st
 
 // --- Figure model destroy ----------------------------------------------------------------------------
 
-// The figure model's destructor (FigureModel, model.h): every cached animation deleted, each archive closed
-// (CloseResource) and deleted. See docs/notes/models.md.
+// The figure model's destructor (FigureModel, model.h): every cached animation and the three archives deleted.
+// See docs/notes/models.md.
 
 FigureModel::~FigureModel() {
     for (auto& [name, animation] : animationCache) delete animation;
-
-    MappedResource* const archives[3] = {mesh, bones, animations};
-    for (MappedResource* archive : archives) archive->CloseResource();
-    for (MappedResource* archive : archives) delete archive;
+    delete mesh;
+    delete bones;
+    delete animations;
 }
 
 // The figure manager's destructor: every cached model deleted, then the base's clean-up.

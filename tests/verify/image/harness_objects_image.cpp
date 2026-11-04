@@ -384,33 +384,25 @@ int& GamePort() { return net::g_gamePort; }
 const char* TextFolder() { return g_textFolder.c_str(); }
 
 long ModFile(const char* path, const char* name) {
-    void* memory = ::operator new(sizeof(MappedResource));
-    std::memset(memory, 0, sizeof(MappedResource));
-    auto* res = new (memory) MappedResource();
+    MappedResource res;
     long got = -2;   // the archive did not open
-    if (res->MappedResource::OpenResource(path)) {
+    if (res.OpenResource(path)) {
         std::uint32_t size = 0;
-        void* data = res->GetFile(name, &size);   // slot 5 (00671B40, Rebirth's ResOverride)
+        void* data = res.GetFile(name, &size);   // Rebirth's ResOverride
         got = data ? static_cast<long>(size) : 0;
-        if (data) res->CloseFile(data);
+        if (data) res.CloseFile(data);
     }
-    res->MappedResource::Destroy();
-    ::operator delete(memory);
     return got;
 }
 
 long ModList(const char* path, const char* pattern) {
-    void* memory = ::operator new(sizeof(MappedResource));
-    std::memset(memory, 0, sizeof(MappedResource));
-    auto* res = new (memory) MappedResource();
+    MappedResource res;
     long count = -2;   // the archive did not open
-    if (res->MappedResource::OpenResource(path)) {
+    if (res.OpenResource(path)) {
         std::vector<std::string> names;
-        res->ListFiles(&names, pattern);   // Rebirth's ResOverride: the mod's archives' names too
+        res.ListFiles(&names, pattern);   // Rebirth's ResOverride: the mod's archives' names too
         count = static_cast<long>(names.size());
     }
-    res->MappedResource::Destroy();
-    ::operator delete(memory);
     return count;
 }
 

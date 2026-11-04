@@ -11,6 +11,8 @@
 // and colliding names are chained through ResEntry::next (-1 ends the chain).
 
 #include <cstdint>
+#include <map>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -41,38 +43,32 @@ static_assert(sizeof(ResEntry) == 22);
 
 constexpr std::uint32_t kResMagic = 0x019CE23C;
 
-// A file loaded from an archive by MappedResource::GetFile. 0x1C bytes, allocated with operator new.
+// A file loaded from an archive by MappedResource::GetFile.
 struct LoadedFile {
-    std::string name;       // name as requested
-    void* data;             // contents (operator new)
+    std::string name;                   // name as requested
+    std::vector<std::uint8_t> bytes;    // contents (at least one byte, so that an empty file still has an address)
     std::uint32_t size;
-    int refCount;           // GetFile calls not yet matched by CloseFile
-    std::uint32_t offset;   // offset in the archive
+    int refCount;                       // GetFile calls not yet matched by CloseFile
 };
 
-// The base of the archive readers (ResourceBaseClass in the game's messages; the first virtual is the scalar
-// deleting destructor): the archive header and tables. (The game's index table from numbers to
+// The base of the archive readers (ResourceBaseClass in the game's messages): the archive header and tables. (The game's index table from numbers to
 // entries, CreateAccelTable's, is never built: it has no caller.)
 class ResourceBase {
 public:
-    ResourceBase();                                // fields cleared
-    virtual ~ResourceBase();
+    virtual ~ResourceBase() = default;
 
     // Index of the entry named `name` (case-insensitive), or -1.
     int FindEntry(std::string_view name) const;
 
-    ResHeader header;
-    ResEntry* entries;
-    char* names;
+    ResHeader header{};
+    ResEntry* entries = nullptr;
+    char* names = nullptr;
 };
 
-// Reads an archive with low-level file I/O, loading individual files into memory on request.
+// Reads an archive with file I/O, loading individual files into memory on request.
 class MappedResource : public ResourceBase {
 public:
-    MappedResource();
-    // Virtual methods, in vtable order.
-    // The loaded files freed, the archive
-    // closed, the maps destroyed, then ResourceBase's (the accelerator table freed).
+    // Rebirth's ResOverride forgets the archive, then CloseResource.
     ~MappedResource() override;
     virtual bool OpenResource(const std::string& path);
     virtual bool OpenFromMemory(const void* image);
@@ -84,34 +80,27 @@ public:
     virtual bool CloseFile(void* data);
     virtual void FreeAllFiles();
 
-    // the destructor's body, called qualified where Rebirth patches
-    // it): the in-place archives of the loaders and screens.
-    void Destroy();
-
     // Fills `names` with the names of the entries that
     // match `pattern` (drive, directory, name and extension matched separately with * and ?), or
     // with every name when `pattern` is null.
     void ListFiles(std::vector<std::string>* names, const char* pattern) const;
     // The names ListFiles fills in, without Rebirth's ResOverride (see GetFilePlain).
     std::vector<std::string> ListFilesPlain(const char* pattern) const;
-    // The entry table of the archive image at `base` (header read) copied into entryTable (the entries are packed
-    // 22-byte records), and the names pointed at in the image.
-    void CopyEntries(char* base);
+    // The header checked and the entry table (packed 22-byte records) copied from the archive image at `base`,
+    // the names pointed at in the image; false when it is not an archive. Both readers' OpenFromMemory.
+    bool ReadImage(char* base);
 
     platform::File archive;           // the archive's file
-    char* image;                 // archive image when opened with OpenFromMemory
+    char* image = nullptr;              // archive image when opened with OpenFromMemory
     std::vector<ResEntry> entryTable;   // the entry table (entries points into it)
     std::vector<char> nameTable;        // the names OpenResource reads (names points into them)
-    std::unordered_map<void*, LoadedFile*> filesByData;
-    std::unordered_map<std::string, LoadedFile*> filesByName;
+    std::unordered_map<void*, std::unique_ptr<LoadedFile>> filesByData;   // the loaded files, by their contents
+    std::map<std::string, LoadedFile*, std::less<>> filesByName;
 };
 
-// Maps the whole archive into memory; GetFile returns pointers into the mapping. A real virtual class.
+// Maps the whole archive into memory; GetFile returns pointers into the mapping.
 class MMIOResource : public MappedResource {
 public:
-    MMIOResource();
-    ~MMIOResource() override;
-
     bool OpenResource(const std::string& path) override;
     bool OpenFromMemory(const void* image) override;
     void CloseResource() override;
@@ -120,5 +109,5 @@ public:
     void FreeAllFiles() override;                                     // (empty)
 
     platform::MappedFile file;
-    char* mappedImage;           // base of the mapped archive
+    char* mappedImage = nullptr;         // base of the mapped archive
 };

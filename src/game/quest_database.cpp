@@ -190,25 +190,24 @@ constexpr int kBriefingsChunk = 2;
 
 int QuestDatabase::Load(const std::string& folder) {
     std::string base = folder;
-    LocalResource resource;
+    MappedResource resource;
     if (!dbfile::OpenDatabase(resource, base)) return dbfile::ReportNoDatabase(base);
     std::uint32_t size;
-    void* data = resource.Get()->MappedResource::GetFile("quests.qdb", &size);
+    void* data = resource.GetFile("quests.qdb", &size);
     if (!data) return game::FatalError("Can't open quests database\n");
 
-    MemoryStream local;
-    MemoryStream* stream = &local;
-    FillStream(*stream, data, size);
+    MemoryStream stream;
+    stream.Fill(data, size);
 
-    LoadTable(stream, kQuestsChunk, &ChunkArchive::SerializeQuests, &quests, [this] {
+    LoadTable(&stream, kQuestsChunk, &ChunkArchive::SerializeQuests, &quests, [this] {
         for (QuestRecord& record : quests) questsByName[record.name] = &record;
     });
-    LoadTable(stream, kBriefingsChunk, &ChunkArchive::SerializeBriefings, &briefings.records, [this] {
+    LoadTable(&stream, kBriefingsChunk, &ChunkArchive::SerializeBriefings, &briefings.records, [this] {
         for (QuestBriefingRecord& record : briefings.records) briefings.index[record.name] = &record;
     });
 
-    resource.Get()->MappedResource::CloseFile(data);
-    resource.Get()->MappedResource::CloseResource();
+    resource.CloseFile(data);
+    resource.CloseResource();
     return 1;
 }
 

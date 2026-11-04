@@ -13,7 +13,6 @@
 #include "party_manager.h"
 #include "party_records.h"
 #include "player_messages.h"
-#include "resource_local.h"   // FillStream
 #include "lib/str.h"
 
 #include <bit>

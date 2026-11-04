@@ -6,7 +6,8 @@
 #include "game_singletons.h"
 #include "model.h"
 #include "random.h"
-#include "resource_local.h"
+#include "resource.h"
+#include "core_streams.h"
 #include "texture.h"
 #include "world.h"
 #include "world_data.h"
@@ -437,27 +438,27 @@ EngineObject* LightningManager::NewObject(int /*type*/) { return new Lightning()
 // (a short file leaves the rest zero-filled, as the stream's Read does). Returns 0 when the archive does not
 // open (no message), the fatal error's result when the file is missing, else 1.
 int LoadLightningNoise() {
-    LocalResource resource;
+    MappedResource resource;
     MemoryStream local;
     bool opened;
     {
         std::string folder = g_textFolder;
         std::string path = folder + "gfx.res";
         // Through the vtable.
-        opened = resource.Get()->OpenResource(path) != 0;
+        opened = resource.OpenResource(path);
     }
     if (!opened) return 0;
 
     std::uint32_t size;
-    void* data = resource.Get()->MappedResource::GetFile("lightning.dat", &size);
+    void* data = resource.GetFile("lightning.dat", &size);
     if (!data) return game::FatalError("Unable to open file gfx.res\\lightning.dat");
 
-    FillStream(local, data, size);
+    local.Fill(data, size);
     ByteStream* stream = &local;
     float* row = g_lightningNoise[0];
     for (int i = 0; i < kLightningNoiseRows; ++i, row += kLightningNoiseRowLength)
         stream->Read(row, kLightningNoiseRowLength * sizeof(float));
-    resource.Get()->MappedResource::CloseFile(data);
+    resource.CloseFile(data);
     return 1;
 }
 

@@ -223,11 +223,9 @@ void LoadModArchives() {
     // OpenResource's address (whose entry records it like any other).
     for (const auto& [key, paths] : Config().overrides) {
         for (const std::string& path : paths) {
-            void* memory = ::operator new(sizeof(MappedResource));
-            std::memset(memory, 0, sizeof(MappedResource));
-            MappedResource* res = new (memory) MappedResource();
+            MappedResource* res = new MappedResource();
             tables.modArchives[key].push_back(res);
-            res->MappedResource::OpenResource(path);
+            res->OpenResource(path);
         }
     }
 }

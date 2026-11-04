@@ -7,9 +7,9 @@
 #include "lib/bytes.h"
 #include "lib/crt.h"
 #include "platform/platform.h"
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
-#include <new>
 #include <string>
 #include "lib/text_case.h"
 
@@ -34,26 +34,14 @@ int ResourceBase::FindEntry(std::string_view name) const {
     }
 }
 
-// The archive's reads are File's ReadAt (SetFilePointer, then ReadFile; VC6's _lseek and _read on a binary descriptor
-// did the same calls).
-MappedResource::MappedResource() { image = nullptr; }
-
 MappedResource::~MappedResource() {
     // Rebirth's ResOverride: addon forgets the archive first.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::ResOverride)) modfolders::OnDestroyResource(this);
-    MappedResource::FreeAllFiles();   // called directly, not through the vtable
-    archive.Close();
-    entries = nullptr;
-    names = nullptr;
-    entryTable = {};
-    nameTable = {};
-    image = nullptr;
-    header = ResHeader{};
-    // ~ResourceBase follows.
+    CloseResource();
 }
 
-void MappedResource::Destroy() { this->MappedResource::~MappedResource(); }
-
+// The archive's reads are File's ReadAt (SetFilePointer, then ReadFile; VC6's _lseek and _read on a binary descriptor
+// did the same calls).
 bool MappedResource::OpenResource(const std::string& path) {
     // Rebirth's ResOverride: addon loads the mod's archives on the first open and records
     // which archive this is.
@@ -81,27 +69,27 @@ bool MappedResource::OpenResource(const std::string& path) {
     return game::FatalError("CMappedResource::OpenResource()\nUnable to read file \"" + path + "\"");
 }
 
-void MappedResource::CopyEntries(char* base) {
+bool MappedResource::ReadImage(char* base) {
+    lib::LoadBytes(header, base);
+    if (header.magic != kResMagic) {
+        game::FatalError("Wrong format resource");
+        return false;
+    }
     entryTable.resize(header.count);
     if (header.count != 0)
         std::memcpy(entryTable.data(), base + header.tableOffset, header.count * sizeof(ResEntry));
     entries = entryTable.data();
     names = base + header.tableOffset + header.count * sizeof(ResEntry);
+    return true;
 }
 
 bool MappedResource::OpenFromMemory(const void* memoryImage) {
     CloseResource();
     // GetFile hands out pointers into the image (writable through them).
-    char* base = const_cast<char*>(static_cast<const char*>(memoryImage));
-    image = base;
-    lib::LoadBytes(header, base);
-    if (header.magic != kResMagic) {
-        game::FatalError("Wrong format resource");
-        CloseResource();
-        return false;
-    }
-    CopyEntries(base);
-    return true;
+    image = const_cast<char*>(static_cast<const char*>(memoryImage));
+    if (ReadImage(image)) return true;
+    CloseResource();
+    return false;
 }
 
 void MappedResource::CloseResource() {
@@ -125,14 +113,11 @@ void* MappedResource::GetFilePlain(std::string_view name, std::uint32_t* size) {
     if (!entries || !names) return nullptr;
 
     // Already loaded: share it.
-    {
-        std::string key(name);
-        if (auto node = filesByName.find(key); node != filesByName.end()) {
-            LoadedFile* file = node->second;
-            ++file->refCount;
-            if (size) *size = file->size;
-            return file->data;
-        }
+    if (auto node = filesByName.find(name); node != filesByName.end()) {
+        LoadedFile* file = node->second;
+        ++file->refCount;
+        if (size) *size = file->size;
+        return file->bytes.data();
     }
 
     int index = FindEntry(name);
@@ -142,29 +127,17 @@ void* MappedResource::GetFilePlain(std::string_view name, std::uint32_t* size) {
     // An archive image in memory hands out pointers into the image (size is not reported).
     if (image) return image + entry.offset;
 
-    auto* file = new LoadedFile;
-    {
-        std::string requested(name);
-        file->name.assign(requested.data(), requested.data() + requested.size());
-    }
+    auto file = std::make_unique<LoadedFile>();
+    file->name = name;
     file->refCount = 1;
     file->size = entry.size;
-    file->data = ::operator new(file->size);
-    file->offset = entry.offset;
-
-    if (archive.ReadAt(static_cast<long>(file->offset), file->data, file->size)) {
-        if (size) *size = file->size;
-        {
-            std::string key(file->name);
-            filesByName[key] = file;
-        }
-        filesByData[file->data] = file;
-        return file->data;
-    }
-
-    ::operator delete(file->data);
-    delete file;
-    return nullptr;
+    file->bytes.resize(std::max(entry.size, 1u));
+    void* data = file->bytes.data();
+    if (!archive.ReadAt(static_cast<long>(entry.offset), data, entry.size)) return nullptr;
+    if (size) *size = entry.size;
+    filesByName[file->name] = file.get();
+    filesByData[data] = std::move(file);
+    return data;
 }
 
 bool MappedResource::CloseFile(void* data) {
@@ -176,24 +149,18 @@ bool MappedResource::CloseFile(void* data) {
         game::DebugLog("CMappedResource::CloseFile()\nFile already closed\n");
         return false;
     }
-    LoadedFile* file = byData->second;
+    LoadedFile* file = byData->second.get();
     if (--file->refCount != 0) return true;
 
-    filesByData.erase(byData);
     filesByName.erase(file->name);
-    ::operator delete(file->data);
-    delete file;
+    filesByData.erase(byData);
     return true;
 }
 
 void MappedResource::FreeAllFiles() {
     if (image) return;
-    for (auto& [data, file] : filesByData) {
-        ::operator delete(file->data);
-        delete file;
-    }
-    filesByData.clear();
     filesByName.clear();
+    filesByData.clear();
 }
 
 bool MMIOResource::OpenResource(const std::string& path) {
@@ -207,18 +174,11 @@ bool MMIOResource::OpenResource(const std::string& path) {
 }
 
 bool MMIOResource::OpenFromMemory(const void* memoryImage) {
-    char* base = const_cast<char*>(static_cast<const char*>(memoryImage));
-    mappedImage = base;
-    lib::LoadBytes(header, base);
-    if (header.magic != kResMagic) {
-        game::FatalError("Wrong format resource");
-        CloseResource();
-        return false;
-    }
-    CopyEntries(base);
-    return true;
+    mappedImage = const_cast<char*>(static_cast<const char*>(memoryImage));
+    if (ReadImage(mappedImage)) return true;
+    CloseResource();
+    return false;
 }
-
 
 void MMIOResource::CloseResource() {
     file.Close();
