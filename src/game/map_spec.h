@@ -92,7 +92,7 @@ struct Behaviour {
     std::uint32_t loop = 1;      // a patrol loops; 0: its points are walked back too
     std::uint32_t flags = 0;     // BehaviourFlag bits
     float guardRadius = 10.0f;
-    float unreadChunk = -1.0f;   // chunk BBBC000A; only read and written with the record
+    float unreadChunk = -1.0f;   // chunk BBBC000A; only read
     std::uint32_t alarmKind = 0; // the alarm raised when the countdown ends (low byte)
     std::uint32_t enabled = 0;   // (1 for the first record) HearAlarm applies a record other than the
                                  // first only when set
@@ -102,7 +102,7 @@ struct Behaviour {
     std::uint32_t alarm = 0;     // the reaction modes 0..3 (4 while reading: unset)
 };
 
-// The base record. The records are read and written chunk by chunk (no record is a block of file bytes).
+// The base record. The records are read chunk by chunk (no record is a block of file bytes).
 class Spec : public Chunk {
 public:
     Spec();
@@ -117,8 +117,6 @@ public:
     virtual void Apply() {}
     // Refreshes the world object (here: Apply).
     virtual void Refresh();
-    // Empty. Writes the record as a chunk of its own.
-    virtual void Save() {}
     virtual ~Spec();
 
 
@@ -145,9 +143,6 @@ public:
     // visibility) while it is out of the editor's lists.
     void Apply() override;
     void Refresh() override;
-    void Save() override;                                    // the record as chunk B001
-    // The common fields (also called directly by the subclasses' Save).
-    virtual void WriteFields();
 
     // The world object an object record makes is a map object (a unit for a unit record).
     MapObject* MadeMapObject() const;
@@ -158,7 +153,7 @@ public:
     std::string texture;
     std::string primaryTexture;
     std::int32_t player;         // (-1); the type name formats it
-    Vector3 scale;               // (0.5 each; read and written y, x, z)
+    Vector3 scale;               // (0.5 each; read y, x, z)
     std::uint8_t shadow;
     std::uint8_t visible;
     std::uint8_t side;           // the owner's player number (chunk B011; Unit::SetSide, the traps' hostile players)
@@ -175,7 +170,6 @@ public:
 
     void OnChunk() override;
     void Apply() override;          // the world object is always made again
-    void Save() override;           // chunk BBBF0000 with the flame's fields, then the common ones
 
     float volume;                // (0.7)
     Vector3 offset;
@@ -189,8 +183,6 @@ public:
     ~TrapSpec() override;
 
     void OnChunk() override;
-    // Chunk BBAB0000: the trap's fields (the arrays as a count and the raw elements), then the common ones.
-    void Save() override;
 
     MagicTrapRecord trap;
 };
@@ -202,7 +194,6 @@ public:
     ~LeverSpec() override;
 
     void OnChunk() override;
-    void Save() override;           // chunk BBAC0000
 
     LeverSetup lever;
 };
@@ -244,7 +235,6 @@ public:
 
     void OnChunk() override;
     void Apply() override;          // makes the source (when it has a type) or updates its effect
-    void Save() override;           // chunk DD01
 
     std::int32_t type;           // (0: none made)
     float scale;
@@ -258,7 +248,6 @@ public:
 
     void OnChunk() override;
     void Apply() override;          // makes the light or updates its effect (colour, radius, position)
-    void Save() override;           // chunk AA01
 
     Vector3 colour;              // (1, 1, 1)
     std::uint8_t shadows;
@@ -274,7 +263,6 @@ public:
     void OnChunk() override;
     // Makes the sound (when it has sounds); otherwise moves the world object and makes its effect again.
     void Apply() override;
-    void Save() override;           // chunk CC01
 
     std::vector<std::string> sounds;   // (none made without any)
     std::int32_t volume;         // (10; chunk CC04) the sound's volume
@@ -293,7 +281,6 @@ public:
 
     void OnChunk() override;        // the chunk just read, by its id
     void Apply() override;          // makes the unit, or moves, turns and rescales it
-    void Save() override;           // chunk BBBB0000
 
     std::int32_t behaviours;     // records read so far
     Behaviour behaviour[5];

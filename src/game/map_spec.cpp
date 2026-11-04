@@ -16,7 +16,6 @@
 #include "world_effect.h"
 #include "lib/crt.h"
 
-#include <bit>
 #include <cstring>
 #include <format>
 #include <memory>
@@ -27,19 +26,10 @@ namespace mapspec {
 
 namespace {
 
-std::uint32_t Bits(float f) {
-    std::uint32_t b;
-    b = std::bit_cast<std::uint32_t>(f);
-    return b;
-}
-
 bool ReadFlag(Chunk& c) { return c.ReadByte() == 1; }
 
 // The chunk's file.
-void FileWrite(Chunk& c, const void* data, unsigned size) { c.File()->Write(data, size); }
 void FileRead(Chunk& c, void* data, unsigned size) { c.File()->Read(data, size); }
-
-void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(id, Bits(v.x), Bits(v.y), Bits(v.z)); }
 
 } // namespace
 
@@ -82,37 +72,6 @@ ObjectSpec::ObjectSpec() {
 }
 
 ObjectSpec::~ObjectSpec() = default;
-
-void ObjectSpec::WriteFields() {
-    WriteStringArray(0xB00D, &parts);
-    WriteByte(0xB011, side);
-    WriteInt(0xB002, id);
-    WriteInt(0xB003, parentId);
-    WriteString(0xB004, name);
-    WriteString(0xB006, texture);
-    WriteString(0xB00E, primaryTexture);
-    WriteString(0xB007, parentIname);
-    WriteString(0xB008, skinTexture);
-    WriteString(0xB00F, comment);
-    WriteVector(*this, 0xB009, position);
-    Quaternion turn;
-    turn = rotation;
-    WriteQuaternion(0xB00A, turn);
-    WriteByte(0xB013, shadow);
-    WriteByte(0xB014, visible);
-    WriteInt(0xB012, player);
-    WriteString(0xB016, model);
-    WriteHeader(0xB00C, 0xC);
-    FileWrite(*this, &scale.y, 4);
-    FileWrite(*this, &scale.x, 4);
-    FileWrite(*this, &scale.z, 4);
-}
-
-void ObjectSpec::Save() {
-    BeginWrite(0xB001);
-    WriteFields();
-    EndWrite();
-}
 
 void ObjectSpec::OnChunk() {
     Chunk& c = *this;
@@ -195,15 +154,6 @@ void FlameSpec::Apply() {
     g_serverWorld.CreateObject(this);
 }
 
-void FlameSpec::Save() {
-    BeginWrite(0xBBBF0000);
-    WriteVector(*this, 0xBBBF0002, offset);
-    WriteFloat(0xBBBF0001, Bits(volume));
-    WriteString(0xBBBF0003, sound);
-    ObjectSpec::WriteFields();
-    EndWrite();
-}
-
 void FlameSpec::OnChunk() {
     Chunk& c = *this;
     switch (c.id) {
@@ -223,24 +173,6 @@ TrapSpec::TrapSpec() {
 }
 
 TrapSpec::~TrapSpec() = default;
-
-void TrapSpec::Save() {
-    BeginWrite(0xBBAB0000);
-    WriteInt(0xBBAB0001, static_cast<int>(trap.sides));
-    WriteString(0xBBAB0002, trap.spell);
-    WriteInt(0xBBAB0005, trap.period);
-    WriteByte(0xBBAC0005, trap.singleTarget);
-    std::uint32_t count = static_cast<std::uint32_t>(trap.area.size());
-    WriteHeader(0xBBAB0003, static_cast<int>(count * 12 + 4));
-    FileWrite(*this, &count, 4);
-    for (std::uint32_t i = 0; i < count; ++i) FileWrite(*this, &trap.area[i], 12);
-    count = static_cast<std::uint32_t>(trap.points.size());
-    WriteHeader(0xBBAB0004, static_cast<int>(count * 8 + 4));
-    FileWrite(*this, &count, 4);
-    for (std::uint32_t i = 0; i < count; ++i) FileWrite(*this, &trap.points[i], 8);
-    ObjectSpec::WriteFields();
-    EndWrite();
-}
 
 void TrapSpec::OnChunk() {
     Chunk& c = *this;
@@ -284,18 +216,6 @@ LeverSpec::LeverSpec() {
 }
 
 LeverSpec::~LeverSpec() = default;
-
-void LeverSpec::Save() {
-    BeginWrite(0xBBAC0000);
-    WriteBlob(0xBBAC0006, &lever.lock, 12);
-    WriteByte(0xBBAC0002, static_cast<std::uint8_t>(lever.state));
-    WriteByte(0xBBAC0003, static_cast<std::uint8_t>(lever.stateCount));
-    WriteByte(0xBBAC0004, lever.cycling);
-    WriteByte(0xBBAC0007, lever.directUseBlocked);
-    WriteByte(0xBBAC0008, lever.keepsMapFlag);
-    ObjectSpec::WriteFields();
-    EndWrite();
-}
 
 void LeverSpec::OnChunk() {
     Chunk& c = *this;
@@ -385,17 +305,6 @@ ParticleSpec::ParticleSpec() {
     scale = 1.0f;
 }
 
-void ParticleSpec::Save() {
-    BeginWrite(0xDD01);
-    WriteInt(0xDD02, id);
-    WriteVector(*this, 0xDD03, position);
-    WriteString(0xDD05, name);
-    WriteString(0xDD04, comment);
-    WriteInt(0xDD06, type);
-    WriteFloat(0xDD07, Bits(scale));
-    EndWrite();
-}
-
 void ParticleSpec::OnChunk() {
     Chunk& c = *this;
     switch (c.id) {
@@ -428,18 +337,6 @@ LightSpec::LightSpec() {
     shadows = 1;
     kind = 2;
     radius = 10.0f;
-}
-
-void LightSpec::Save() {
-    BeginWrite(0xAA01);
-    WriteInt(0xAA05, id);
-    WriteByte(0xAA06, shadows);
-    WriteVector(*this, 0xAA04, position);
-    WriteVector(*this, 0xAA07, colour);
-    WriteFloat(0xAA02, Bits(radius));
-    WriteString(0xAA03, name);
-    WriteString(0xAA08, comment);
-    EndWrite();
 }
 
 void LightSpec::OnChunk() {
@@ -480,22 +377,6 @@ SoundSpec::SoundSpec() {
 }
 
 SoundSpec::~SoundSpec() = default;
-
-void SoundSpec::Save() {
-    BeginWrite(0xCC01);
-    WriteStringArray(0xCC0A, &sounds);
-    WriteInt(0xCC02, id);
-    WriteVector(*this, 0xCC03, position);
-    WriteInt(0xCC04, volume);
-    WriteInt(0xCC0B, radius);
-    WriteString(0xCC05, name);
-    WriteString(0xCC08, comment);
-    WriteInt(0xCC06, minInterval);
-    WriteInt(0xCC07, maxInterval);
-    WriteByte(0xCC0D, ambient);
-    WriteByte(0xCC0E, unreadChunk);
-    EndWrite();
-}
 
 void SoundSpec::OnChunk() {
     Chunk& c = *this;

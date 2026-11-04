@@ -64,6 +64,13 @@ Only these reach game logic; volumes, pans, reverb, positions and the pixels and
   scaled by 0.5 + room and the rate, the right side 23 frames longer; each comb's feedback the time's -60 dB over its
   delay, low-pass 0.1). A new room empties the lines; with nothing sent for two tails it clears and rests (no
   denormals, no cost). Checked: tails fall 60 dB in 2.6-2.7 s of the 3.0 asked, nothing clips that did not clip dry.
+- **Offline check** (`tests/unit/audio_mix.cpp`, run by the unit check and the POSIX port check): `OpenOffline` opens no
+  device and no thread; `MixOffline` takes the frames through a plain SDL audio stream that `DeviceData` fills, so the
+  mixer runs as with a device (the halves free as they are played). The check plays synthetic waves (PCM 8 / 16 bits,
+  IMA ADPCM, other rates, loops, positions, pauses), halves and the cave reverb against a model of the rules written out
+  in the test, and keeps a hash of one mix of everything together, the same on Windows and Linux (basic float operations
+  in a fixed order, `lib::Pow` for the reverb's feedback). Under 1 s. A change to the mix that moves the hash is intended
+  or not: the check prints the new hash. Not reached: the trace (`NoteFrame`), the real device, the MP3 decoders.
 - The stream mixes straight from the caller's halves at each half's format; more than one stream can play (a movie's
   sound takes its own). All mixer state is under one lock; the voices' clock fields are the main thread's.
 

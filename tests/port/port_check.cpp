@@ -28,6 +28,7 @@ int RunIniFileChecks();
 int RunIpv4Checks();
 int RunMathsChecks();
 int RunSavePictureChecks();
+int RunAudioMixChecks();
 
 namespace {
 void Check(bool ok, const char* message) {
@@ -49,6 +50,7 @@ int main() {
     Check(RunIpv4Checks() == 0, "IPv4 text as Winsock read it");
     Check(RunMathsChecks() == 0, "maths functions as on Windows");
     Check(RunSavePictureChecks() == 0, "save pictures and QOI");
+    Check(RunAudioMixChecks() == 0, "the audio mixer on an offline output");
     Check(CallerCaptured(), "caller frame starts at the return address");
     Check(lib::FormatLocalTime(0, "%Y-%m-%d").size() == 10, "format saved timestamp");
     const std::string tooLong(128, 'x');

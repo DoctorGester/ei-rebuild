@@ -448,7 +448,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
     closes);
   - `TextManager::ListKeys` and the lookup key (one "pers" key holds Cyrillic);
   - FileRegistry's `GetString` / `GetStringBuffer` / `GetStringArray`;
-  - Chunk's `ReadString` / `ReadEncodedString` (.mob), with `WriteString` / `WriteStringArray` converting back;
+  - Chunk's `ReadString` / `ReadEncodedString` (.mob);
   - credits.scr;
   - the titles' headers.
 
