@@ -18,6 +18,7 @@ systems.
 | `src/platform/platform.h` | the layer: every area below, in that order |
 | `src/platform/sdl/platform_sdl.cpp` | SDL3's areas (builds without the harness): the clocks, the message box, the threads, the window and its events, the cursor, the mouse, the clipboard |
 | `src/platform/sdl/sdl_threads.cpp`, `sdl_keys.cpp` | the threads' priority, and the keys' codes, of every build on SDL (the harness's too) |
+| `src/platform/sdl/sdl_input.cpp` | SDL's keyboard and mouse events as the platform's (`sdl_input::Translator`): the game's backend and the harness's recording of real play (harness.md, "Recorded play") take the same translation |
 | `tests/verify/platform/` | the harness's platform backend: harness_platform.cpp (the window, events, clocks, cursor, mouse and clipboard on SDL, in place of platform_sdl.cpp) and game_answers.cpp (the calls a harness run answers itself, in place of game_calls.cpp and system_path.cpp) |
 | `src/platform/files.cpp` | the folder calls (create, remove, rename, copy, exists, free space) on std::filesystem, every system, each path through `paths.h` |
 | `src/platform/paths.h`, `system_path.cpp` | the file calls' path seam: `SystemPath(path, use)` (system_path.cpp: the path itself; the harness's builds: its overlay, below) and each backend's `NativePath` |
@@ -185,7 +186,9 @@ window (gpu.h's `ClaimWindow`; the NativeWindow the game holds is `SDL_PROP_WIND
   platform's events (harness_input.h: a key with its scan code, Alt's own key holding Alt, a character as UTF-8 text
   with its key's scan code, a double click's second press with two clicks, the wheel's turn), as the games saw them
   on the window-procedure path (gone with DirectInput: PL12). SDL's translation of real
-  input is checked by tools/input_check against Windows' layouts.
+  input is checked by tools/input_check against Windows' layouts. A live recording (`recordinput live`, harness.md
+  "Recorded play") takes the real keyboard and mouse through that translation (sdl_input.h) instead of dropping them,
+  in a window shown and activated, its cursor held as the game's backend holds it.
 - What stays Windows in every build: the other game window (FindWindowW on the class name, which SDL_RegisterApp
   gives SDL's window class: "EIGAME"), the key names and keyboard layouts, the paths (SDL's pref path is the roaming
   folder and creates it, its base path is the folder, not the file: the settings file would move), the

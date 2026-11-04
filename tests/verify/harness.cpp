@@ -356,6 +356,20 @@
 //   digest water              (a line for the whole run) the records and dumps hold the water layer too:
 //                             hashes of each cached sector's water vertices as the waves move them (R16c3)
 //   dump <name>               the whole game state now into dump_<name>.txt (harness_digest.h)
+//   recordinput [live]        (a line for the whole run) write the run's input into recorded.txt in the run folder
+//                             as a scenario that replays it (harness_record.h); "live": the player's own keyboard
+//                             and mouse in a window shown and activated, the frames paced to real time
+//                             (tools/recorded.py, play.cmd record)
+//   recorded                  (a line for the whole run) a recorded scenario: its game may quit itself after the
+//                             last step (the player's Exit), which passes
+//   at <frame> <step>         run the step in the pass after frame <frame> of the main loop (a recorded
+//                             scenario's lines; fails when the run is already past it); "at <frame> event ..." gives
+//                             the game one input event, motion or mouse position (harness_record.h)
+//   realinput key <name>|text <text>|move <x> <y>|click <x> <y>|rclick <x> <y>
+//                             input made as SDL's own events and translated as real play's
+//                             (platform/sdl/sdl_input.h): a key pressed and released (SDL's key name: A, Return,
+//                             Escape, Left), typed text, the mouse moved to (x, y) of the 800x600 layout and
+//                             clicked there; given to the game at the end of the pass, as a player's input is
 //   # comment
 //
 // Everything the console prints is captured into the report. The report ends with "RESULT: PASS"
@@ -391,6 +405,7 @@
 #include "platform/harness_platform.h"
 #include "harness_net.h"
 #include "harness_pair.h"
+#include "harness_record.h"
 #include "harness_timing.h"
 #include "harness_utf8.h"
 
@@ -484,6 +499,11 @@ struct Step {
 
 std::vector<Step> g_steps;
 std::size_t g_next = 0;
+// The scenario's lines read before the game starts (a recording's header, harness_record.h); "recorded": a recorded
+// scenario (its game may quit itself after the last step); an "at" step came after its frame (said once).
+std::vector<std::string> g_loadLines;
+bool g_recordedScenario = false;
+bool g_replayLate = false;
 
 // When a wait ends: after `ms` on the harness's clock (virtual time in deterministic mode), or at a
 // real-time safety limit, so that a game which stops drawing frames (the virtual clock stands
@@ -1929,6 +1949,8 @@ void EndRunOnMessageBox(const std::string& caption, const std::string& text) {
 std::string FocusStep(const std::string& argument);
 std::string WindowSizeStep(const std::string& argument);
 
+std::string RealInputStep(const std::string& argument);
+
 void RunSteps() {
     sys::ReassertFaultHandler();
     // The "show tutorial" option (registry value ShowTutorial). With it off, tutorial windows open only where the game
@@ -2253,6 +2275,35 @@ void RunSteps() {
             s.verb = s.argument.substr(0, space);
             s.argument = space == std::string::npos ? "" : s.argument.substr(space + 1);
         }
+        // "at <frame> <step>": a recorded scenario's line (harness_record.h), run in the pass after that frame; its
+        // "event ..." given to the game here.
+        if (s.verb == "at") {
+            char* rest = nullptr;
+            const unsigned long frame = std::strtoul(s.argument.c_str(), &rest, 10);
+            if (g_frames < frame) {
+                --g_next;
+                return;
+            }
+            if (g_frames > frame && !g_replayLate) {
+                g_replayLate = true;
+                const std::string what = "at " + std::to_string(frame) + ": the replay is at frame " + std::to_string(g_frames) +
+                                         " already (it has parted from the recording)";
+                Log("harness: %s", what.c_str());
+                g_failures.push_back(what);
+            }
+            std::string line = rest ? rest : "";
+            line.erase(0, line.find_first_not_of(' '));
+            const std::size_t space = line.find(' ');
+            s.verb = line.substr(0, space);
+            s.argument = space == std::string::npos ? "" : line.substr(space + 1);
+            if (s.verb == "event") {
+                if (std::string error = record::Replay(s.argument); !error.empty()) {
+                    Log("harness: %s", error.c_str());
+                    g_failures.push_back(error);
+                }
+                continue;
+            }
+        }
         // "layout <mouse step> <x> <y> ...": the point is in the 800x600 layout, which sits in the window's 4:3 part
         // (W12), so the same step aims at the same interface place in a window of any shape.
         if (s.verb == "layout") {
@@ -2284,6 +2335,17 @@ void RunSteps() {
         }
         Log("harness: %s %s", s.verb.c_str(), s.argument.c_str());
         clock::RandomNote("step %s %s", s.verb.c_str(), s.argument.c_str());
+        if (record::On()) {
+            const record::StepKind kind = record::Classify(s.verb);
+            if (kind == record::StepKind::Kept) {
+                record::Step(s.verb, s.argument);
+                if (s.verb == "quit") record::End();   // the quit console command ends the process
+            } else if (kind == record::StepKind::Refused) {
+                const std::string what = "recordinput: a recording cannot replay the step '" + s.verb + "' (harness_record.h)";
+                Log("harness: %s", what.c_str());
+                g_failures.push_back(what);
+            }
+        }
         if (s.verb == "wait") {
             g_waitUntil.Set(std::strtoul(s.argument.c_str(), nullptr, 10));
         } else if (s.verb == "frames") {
@@ -2795,6 +2857,8 @@ void RunSteps() {
                 Log("harness: %s", error.c_str());
                 g_failures.push_back(error);
             }
+        } else if (s.verb == "realinput") {
+            if (std::string error = RealInputStep(s.argument); !error.empty()) g_failures.push_back(error);
         } else if (s.verb == "focus" || s.verb == "windowsize") {
             std::string error = s.verb == "focus" ? FocusStep(s.argument) : WindowSizeStep(s.argument);
             if (!error.empty()) g_failures.push_back(error);
@@ -2930,6 +2994,55 @@ std::string WindowSizeStep(const std::string& argument) {
     return "";
 }
 
+// "realinput": input made as SDL's own events, translated as real play's (harnessplatform::InjectReal*), given to the
+// game with the player's at the end of the pass (ReleaseRealInput).
+std::string RealInputStep(const std::string& argument) {
+    const std::size_t space = argument.find(' ');
+    const std::string kind = argument.substr(0, space), rest = space == std::string::npos ? "" : argument.substr(space + 1);
+    if (kind == "key" && !rest.empty()) {
+        harnessplatform::InjectRealKey(rest.c_str());
+        return "";
+    }
+    if (kind == "text" && !rest.empty()) {
+        harnessplatform::InjectRealText(rest);
+        return "";
+    }
+    int x = 0, y = 0;
+    if ((kind == "move" || kind == "click" || kind == "rclick") && std::sscanf(rest.c_str(), "%d %d", &x, &y) == 2) {
+        const Rect client = GameClient();
+        const Point at = ToWindow(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
+        harnessplatform::InjectRealMouse(kind == "move"    ? harnessplatform::RealMouse::Move
+                                         : kind == "click" ? harnessplatform::RealMouse::Click
+                                                           : harnessplatform::RealMouse::RightClick,
+                                         at);
+        return "";
+    }
+    return "realinput needs key <name>, text <text>, move|click|rclick <x> <y>";
+}
+
+// Real play's input (the player's in a live recording, or the "realinput" step's) given to the game at the end of the
+// pass after a frame, where a recorded scenario's "at" lines give it on replay: a frame's mouse moves merged into the
+// last, the harness's mouse (CursorPosition) put where each mouse event is, the motion added.
+void ReleaseRealInput() {
+    std::deque<platform::Event> events;
+    Point motion{};
+    if (!harnessplatform::TakeReal(&events, &motion)) return;
+    for (std::size_t i = 0; i < events.size(); ++i) {
+        const platform::Event& e = events[i];
+        const bool mouse = e.type == platform::EventType::MouseMove || e.type == platform::EventType::MouseDown ||
+                           e.type == platform::EventType::MouseUp || e.type == platform::EventType::Wheel;
+        if (e.type == platform::EventType::MouseMove && i + 1 < events.size() &&
+            events[i + 1].type == platform::EventType::MouseMove)
+            continue;
+        if (mouse) {
+            g_mouseX = e.x;
+            g_mouseY = e.y;
+        }
+        harnessplatform::Queue(e, false);
+    }
+    if (motion.x || motion.y) input::AddMotion(motion.x, motion.y);
+}
+
 void KeepGameWindowActive() {
     void* window = GameWindow();
     if (!window) return;
@@ -2984,6 +3097,8 @@ bool HoldMessagesForCloseAll() {
     return g_frames < g_closeAllHeldFrom + 2;
 }
 
+bool g_closeTaken = false;   // live play's window close, taken as a quit
+
 // Before the game looks for events (harness_platform.h): the frame count, the steps; false
 // while the close-all holds the events.
 bool BeforeEvents() {
@@ -3010,6 +3125,17 @@ bool BeforeEvents() {
         g_winMainLoop = IsWinMainLoop();
         timing::Scope scope(timing::Steps);
         RunSteps();
+        if (afterFrame) {
+            ReleaseRealInput();
+            // Live play: the player closed the window; the recording ends with a quit in the next pass.
+            if (record::Live() && harnessplatform::CloseRequested() && !g_closeTaken) {
+                g_closeTaken = true;
+                Log("harness: the window was closed: the recording ends");
+                g_steps.resize(g_next);
+                g_steps.push_back({"quit", ""});
+            }
+            record::EndPass();
+        }
         g_inStep = false;
     }
     return !HoldMessagesForCloseAll();
@@ -3034,25 +3160,39 @@ bool LoadScenario(const char* path) {
         std::string text(line);
         while (!text.empty() && (text.back() == '\n' || text.back() == '\r' || text.back() == ' ')) text.pop_back();
         std::size_t start = text.find_first_not_of(" \t");
+        if (start != std::string::npos && text.compare(start, 10, "# prepare:") == 0) g_loadLines.push_back(text);
         if (start == std::string::npos || text[start] == '#') continue;
         text = text.substr(start);
         std::size_t space = text.find(' ');
         g_steps.push_back({text.substr(0, space), space == std::string::npos ? "" : text.substr(space + 1)});
+        // A line read here, not a step: kept for a recording's header (harness_record.h), but for the run's own time
+        // limit and peer.
+        auto TakeLoadLine = [&] {
+            const std::string& verb = g_steps.back().verb;
+            if (verb != "timeout" && verb != "peer") g_loadLines.push_back(text);
+            g_steps.pop_back();
+        };
+        if (g_steps.back().verb == "recordinput" || g_steps.back().verb == "recorded") {
+            if (g_steps.back().verb == "recorded") g_recordedScenario = true;
+            else record::Ask(g_steps.back().argument == "live");
+            g_steps.pop_back();
+            continue;
+        }
         if (g_steps.back().verb == "randtrace") {
             g_randomTrace = true;
-            g_steps.pop_back();
+            TakeLoadLine();
             continue;
         }
         if (g_steps.back().verb == "deterministic" || g_steps.back().verb == "realtime" ||
             g_steps.back().verb == "clocktrace") {
             if (g_steps.back().verb == "clocktrace") g_clockTrace = true;
             else g_deterministic = g_steps.back().verb == "deterministic";
-            g_steps.pop_back();
+            TakeLoadLine();
             continue;
         }
         if (g_steps.back().verb == "rebirthflags") {
             ei::rebirth::QueueSpec(g_steps.back().argument.c_str());
-            g_steps.pop_back();
+            TakeLoadLine();
             continue;
         }
         // "vanilla <step>" / "rebirth <step>" for a window step, taken before the game starts (a window size for one
@@ -3064,33 +3204,33 @@ bool LoadScenario(const char* path) {
             if (verb == "resolution" || verb == "widescreen" || verb == "fullscreen") {
                 if ((g_steps.back().verb == "rebirth") == ei::verify::starter::RebirthData())
                     ei::verify::starter::ParseStep(verb, argument);
-                g_steps.pop_back();
+                TakeLoadLine();
                 continue;
             }
         }
         if (ei::verify::starter::ParseStep(g_steps.back().verb, g_steps.back().argument) ||
             settings::ParseStep(g_steps.back().verb, g_steps.back().argument)) {
-            g_steps.pop_back();
+            TakeLoadLine();
             continue;
         }
         if (g_steps.back().verb == "digest" && g_steps.back().argument == "water") {
             digest::WithWater();   // named in the digest's title, written before the main menu's first record
-            g_steps.pop_back();
+            TakeLoadLine();
             continue;
         }
         if (g_steps.back().verb == "render") {
             rendered = true;
             image::ConfigureRenderer(WithExtraRenderWords(g_steps.back().argument).c_str());
-            g_steps.pop_back();
+            TakeLoadLine();
             continue;
         }
         if (g_steps.back().verb == "peer") {   // run_all's: the other game of a pair (harness_pair.h)
-            g_steps.pop_back();
+            TakeLoadLine();
             continue;
         }
         if (g_steps.back().verb == "timeout") {
             g_budget = 1000 * std::strtoul(g_steps.back().argument.c_str(), nullptr, 10);
-            g_steps.pop_back();
+            TakeLoadLine();
             continue;
         }
         // The clocks are hooked from the start when the scenario freezes them (see HeldClock).
@@ -3155,6 +3295,18 @@ struct Harness {
         settings::Install();   // the registry snapshot and the pinned install files, never the user's (harness_settings.h)
         netlocal::Install();   // a UDP port of its own, sockets on 127.0.0.1 only (harness_net.h)
         digest::Init(&g_frames);   // EI_DIGEST
+        record::Init(&g_frames, &g_mouseX, &g_mouseY);
+        if (record::Asked()) {
+            std::string error = !g_deterministic ? "recordinput needs the virtual clock (deterministic)"
+                                : pair::Active() ? "recordinput cannot record a pair"
+                                                 : record::Begin(g_loadLines, path);
+            if (!error.empty()) {
+                Log("harness: %s", error.c_str());
+                g_failures.push_back(error);
+            } else if (record::Live()) {
+                harnessplatform::TakeRealInput();
+            }
+        }
         if (savetrace::Enabled()) savetrace::Install(g_self.base, g_self.end);   // EI_SAVETRACE (harness_savetrace.h)
 
         if (watch::Enabled()) watch::Install();   // EI_WATCH_CUNIT (harness_watch.h)
@@ -3211,6 +3363,17 @@ bool MousePosition(Point* at) {
     return true;
 }
 
+// A recorded scenario's game, or a recording's, quits itself after the last step (the player's Exit): the run ends as
+// the quit step ends it.
+void GameQuits() {
+    if ((!g_recordedScenario && !record::On()) || g_quitting || g_next < g_steps.size()) return;
+    Log("harness: the game quits itself after the scenario's last step");
+    record::End();
+    WriteReport();
+    if (FILE* f = sys::OpenFile(ei::OutputPath("harness_quit"), "w")) std::fclose(f);
+    g_quitting = true;
+}
+
 platform::MessageAnswer AnswerMessageBox(const char* text, const char* caption, platform::MessageButtons) {
     EndRunOnMessageBox(caption ? caption : "", text ? text : "");
     return platform::MessageAnswer::Cancel;
@@ -3218,14 +3381,29 @@ platform::MessageAnswer AnswerMessageBox(const char* text, const char* caption, 
 
 bool Answering() { return g_answering; }
 
+// A movie the game plays by itself (the new game's intro, the exit's, a script's PlayMovie) in a recording or a recorded
+// scenario's run: a .bik other than the loading screen's (app::g_loadingMovieName). PlayMovie times its frames by the
+// wall clock in a loop of its own, where the steps do not run: the player's skip of a long one (Esc) would reach
+// nothing, and its replay would wait for all of it. So these runs skip them (PlayMovie plays nothing when the file is
+// missing); the loading screen's movie is drawn by the load's progress and stays. Other runs play them
+// (render_movie_present's short one).
+bool PlayedMovie(const std::string& path) {
+    if (!g_recordedScenario && !record::Asked()) return false;
+    if (path.size() < 4 || text::CompareIgnoringCase(path.c_str() + path.size() - 4, ".bik") != 0) return false;
+    const std::size_t slash = path.find_last_of("\\/");
+    const char* loading = image::LoadingMovieName();
+    return !loading || text::CompareIgnoringCase(path.c_str() + (slash == std::string::npos ? 0 : slash + 1), loading) != 0;
+}
+
 // The game's paths mapped onto the run's overlay (ReadPath / WritePath above): config\movie.ini (the startup movies:
-// "Start" lists 1C.bik and Nival.bik) is missing, so nothing plays; a write still in an install is refused. The saves
-// trace sees every write (EI_SAVETRACE).
+// "Start" lists 1C.bik and Nival.bik) is missing, so nothing plays, and in recorded play the movies the game plays
+// (PlayedMovie); a write still in an install is refused. The saves trace sees every write (EI_SAVETRACE).
 std::string MapPath(std::string_view path, platform::PathUse use) {
     const std::string name(path);
     char b[kPath];
     if (use == platform::PathUse::Read) {
         if (name.size() >= 9 && text::CompareIgnoringCase(name.c_str() + name.size() - 9, "movie.ini") == 0) return {};
+        if (PlayedMovie(name)) return {};
         std::string mapped = ReadPath(name.c_str(), b);
         if (g_readTrace) TraceRead(mapped);
         return mapped;

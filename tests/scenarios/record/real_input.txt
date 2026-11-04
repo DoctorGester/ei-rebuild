@@ -1,0 +1,36 @@
+# Recorded play, session 3 (harness_record.h; docs/notes/harness.md, "Recorded play"): input made as SDL's own events
+# and translated as a player's ("realinput": the path a live recording takes), with the focus lost and given back: a
+# new game, the mouse moved and clicked on the ground, the escape menu by its key, the console opened, typed into and
+# closed, a right click. Its recording is tests/scenarios/rec_real_input.txt (python tools\recorded.py take).
+recordinput
+reject Script error
+waitmenu
+newgame
+waitline 15 Saved savea
+waitwindow 15 battle
+realinput move 400 300
+frames 5
+realinput click 470 330
+frames 40
+realinput key Escape
+waitwindow 10 escmenu
+realinput key Escape
+waitwindow 10 battle
+realinput key `
+frames 5
+realinput text hello
+frames 2
+realinput key Backspace
+realinput key Return
+frames 5
+realinput key `
+frames 5
+focus off
+frames 20
+focus on
+frames 5
+realinput rclick 300 300
+frames 5
+realinput click 350 380
+frames 60
+quit

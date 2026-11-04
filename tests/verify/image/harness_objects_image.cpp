@@ -184,6 +184,7 @@ int TextKey(const char* name) { return TextKeyFromName(name); }
 void* LocalWorldPlayer(int player) { return g_serverWorld.GetPlayer(player); }
 void* WorldHandle() { return g_serverWorld.worldHandle.Get(); }
 const char* ServerZoneName() { return g_serverWorld.zoneName.c_str(); }
+const char* LoadingMovieName() { return app::g_loadingMovieName; }
 
 void* PickAt2(void* world, int x, int y) {
     const Point p{x, y};

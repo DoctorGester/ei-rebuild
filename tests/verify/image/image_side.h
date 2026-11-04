@@ -96,6 +96,7 @@ int TextKey(const char* name);                  // TextKeyFromName
 void* LocalWorldPlayer(int player);             // WorldServer::GetPlayer
 void* WorldHandle();                          // the server world's worldHandle
 const char* ServerZoneName();                   // the server world's zone, may be null
+const char* LoadingMovieName();                 // app::g_loadingMovieName: the loading screen's movie file
 void* PickAt2(void* world, int x, int y);       // WorldClient::PickAt2, as its EngineObject
 void* UnitAt(void* world, int x, int y);        // WorldClient::UnitAt, as its EngineObject
 // The client world's rectangle of object `id` in this frame's screen list (screenEntries; the last entry for it):

@@ -106,6 +106,8 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   FullScreen 0 unless the scenario says `fullscreen 1`). A scenario with a `resolution` step runs alone on the machine.
   `chat 1|0` opens and closes the chat line. Every other setting a run reads comes from the committed snapshot
   `config/harness/` (`tests/verify/harness_settings.h`), never the user's own.
+- `recordinput [live]` records the run as a scenario, `recorded` marks one, `at <frame> <step>` / `at <frame> event
+  ...` are its lines, `realinput ...` is input made as SDL's own ("Recorded play" below).
 
 ## The virtual clock
 
@@ -136,6 +138,56 @@ order, without the game.
 
 Timing runs: `EI_PROFILE=1` samples the main thread into the run's `profile.txt` (`python tools\profile_report.py <run
 folder>`: time per function between harness steps).
+
+## Recorded play
+
+Real play becomes a scenario with a golden (`tests/verify/harness_record.h`, `tools/recorded.py`).
+
+**To record a session by hand:** `play.cmd record <name>` (Rebirth's data: `play.cmd record <name> rebirth`; the
+suites play every scenario on the vanilla data). It builds the verify build and starts it on
+`tests/scenarios/record/live.txt` in a 960x720 window that is shown and takes the keyboard and mouse, from the main
+menu on (no sound; no movies: below). Play; close the window, or Exit from the main menu, to end it. The session
+becomes `tests/scenarios/rec_<name>.txt`. Keep it to about a minute (`recorded.py` warns past frame 3750): the replay
+runs faster than the play, but a run has 60 s. Then replay it twice and record its golden like any new scenario
+(standalone-verification.md, "Recording goldens"):
+
+    python tools\work.py test <ID> rec_<name> --golden --vanilla-only      (twice, golden.py snapshot after each)
+    python tools\golden.py record --install vanilla --runs <pass1> <pass2> --reason "..." rec_<name>
+
+**What a recording holds.** A scenario line `recordinput` makes its run write `recorded.txt` in the run folder: the
+marker `recorded`, the scenario's lines read before the game starts (window, settings, flags, `# prepare:`), then an
+`at <frame> ...` line for everything that reached the game, at the harness's frame count: each platform event the
+harness queued (`at 14 event down left 564 396 1 c`: keys with code, scan code, modifiers, `raw` when the harness adds
+no character; text; mouse moves, buttons, wheel), the mouse's motion (`event motion`), the harness's mouse position
+(`event cursor`, or `c` on the event that put it there), and the steps that act on the game themselves (`newgame`,
+`load`, `console`, `zone`, `screen`, `focus`, `windowsize`, `frametime`, `quit`, ...). The input steps (`key`, `click`,
+`clickunit`, `walkto`'s clicks, ...) leave only their events, the waits and checks nothing; any other step fails the
+recording (record::Classify). On replay each `at` line runs in the pass after its frame (the steps run once a frame on
+the virtual clock), so the game takes the same input at the same frames: a replay's digest equals its recording run's
+(`golden.py diff` of the two). An `at` line whose frame has passed fails the run (the replay has parted). A recorded
+scenario's game may quit by itself after its last line (the player's Exit), which passes.
+
+**Live play** (`recordinput live`, live.txt): the backend takes SDL's keyboard and mouse events through the game's own
+translation (`src/platform/sdl/sdl_input.h`, the same as platform_sdl.cpp's) and holds them until the pass after the
+next frame, where they are queued and recorded (a frame's mouse moves merged into the last); the window is shown,
+activated and not resizable, the cursor held for real (relative mode, as the game's backend). Frames are 16 ms of game
+time (`frametime 16`) held to the wall clock, so the game plays at its speed; focus changes reach nothing (the game
+stays active, as in every harness run). `realinput key|text|move|click|rclick` makes the same SDL events in a hidden
+run (tests/scenarios/record/real_input.txt).
+
+**Movies**: a recording and a recorded scenario's run play none. PlayMovie (the new game's intro, the exit's, a
+script's) times its frames by the wall clock in a loop where the steps do not run, so the player's Esc would reach
+nothing and the replay would wait for the whole movie: their files read as missing there (harness.cpp PlayedMovie);
+the loading screen's movie (app::g_loadingMovieName) is drawn by the load's progress and stays. Other runs play them
+(render_movie_present).
+
+The recordings in the suite and their sources (`python tools\recorded.py take <run folder> <name>` turns a run's
+recording into `rec_<name>.txt`): `rec_menu_newgame` (the main menu's clicks into a new game, a walk, camera keys and
+wheel, the escape menu), `rec_save_load` (a save and its load through the escape menu's windows), `rec_real_input`
+(`realinput` keys, text and clicks, the console, `focus off` / `on`), recorded from `tests/scenarios/record/*.txt`
+(not in the suite; run by name, `record/<name>`). A change that moves a recording's game re-records its golden as any
+other; when the menus or the windows' timing change, the recording may miss what it clicked: record it again from
+its source.
 
 ## AddressSanitizer
 

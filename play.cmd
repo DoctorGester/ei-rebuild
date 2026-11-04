@@ -1,6 +1,10 @@
 @echo off
 rem Builds the product with every option on and starts it to play.
 rem usage: play.cmd [rebirth|vanilla]
+rem        play.cmd record <name> [vanilla|rebirth]
+rem   record <name>      a session recorded as a scenario (docs/notes/harness.md, "Recorded play"): the verify build
+rem                      (build\verify) in a window on the vanilla data (default) or Rebirth's, your input recorded;
+rem                      close the window to end it. It becomes tests\scenarios\rec_<name>.txt (tools/recorded.py).
 rem   rebirth (default)  the Rebirth install's data (EI_GAME_REBIRTH, default F:\games\Evil Islands (Rebirth)) with the Rebirth profile
 rem                      (config\rebirth_profile.ini: draw radii, console and script additions, the bug fixes)
 rem   vanilla            the plain GOG install's data (EI_GAME_VANILLA, default F:\games\EvilIslands) with the plain profile (the bug fixes)
@@ -20,6 +24,21 @@ rem   PerfOverlay = true   the performance overlay: FPS, frame and GPU times, dr
 rem   VSync = false        run unlocked, tearing where the system allows it (section 15a; true by default)
 rem A harness game open does not end it (ST1b: harness windows have their own title).
 setlocal
+if /i "%~1"=="record" (
+    if "%~2"=="" (
+        echo play: record needs a name ^(usage: play.cmd record ^<name^> [vanilla^|rebirth]^)
+        exit /b 2
+    )
+    echo play: building the verify build ^(build\verify^)...
+    call "%~dp0build.cmd" verify > "%~dp0build\record_build.log" 2>&1
+    if errorlevel 1 (
+        echo play: the build failed, see build\record_build.log
+        pause
+        exit /b 1
+    )
+    python "%~dp0tools\recorded.py" play %2 %3
+    exit /b
+)
 set MODE=rebirth
 for %%a in (%*) do (
     if /i "%%~a"=="vanilla" (set MODE=vanilla) else if /i "%%~a"=="rebirth" (set MODE=rebirth) else (
