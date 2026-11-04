@@ -24,8 +24,6 @@
 #include <deque>
 #include <vector>
 
-struct VertexPacket;
-
 // The particle source / effect types (EngineObject::type of a ParticleSource and a EffectParticle). The names
 // are the script table's (script_effects.cpp kScriptParticleTypes) and the texture SetupType returns; a type neither
 // names is described: Shower1-4 (the RainSnow texture, texture frames 12-15), Falling1-4 (a gust of RainSnow),

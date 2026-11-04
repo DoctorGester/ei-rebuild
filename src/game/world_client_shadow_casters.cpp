@@ -88,8 +88,8 @@ const LinkPartRanges* RangesOf(const LinkMesh* figure, const char* name) {
 }
 
 // The part's positions with its per-vertex offsets added (as the draws add them), in `moved`.
-const float* MovedPositions(const VertexPacket* positions, int packets, const std::vector<Vector3>& offsets,
-                            std::vector<VertexPacket>& moved) {
+const VertexPacket* MovedPositions(const VertexPacket* positions, int packets, const std::vector<Vector3>& offsets,
+                                   std::vector<VertexPacket>& moved) {
     moved.assign(positions, positions + packets);
     const int count = static_cast<int>((std::min)(std::ssize(offsets), static_cast<std::ptrdiff_t>(packets) * 4));
     for (int i = 0; i < count; ++i) {
@@ -98,7 +98,7 @@ const float* MovedPositions(const VertexPacket* positions, int packets, const st
         packet.block[1][i & 3] = offsets[i].y + packet.block[1][i & 3];
         packet.block[2][i & 3] = offsets[i].z + packet.block[2][i & 3];
     }
-    return &moved.data()->block[0][0];
+    return moved.data();
 }
 
 // Hands over the parts of `object` that were not drawn this frame, placed by `world` (and the extra
@@ -152,8 +152,8 @@ void HandOverParts(Object3D* object, Object3DClientSpecific* half, const Matrix4
                     mesh.indexCount = b.indexCount;
                 }
                 if (!positions || packets <= 0) continue;
-                mesh.positions = !part->offsets.empty() ? MovedPositions(positions, packets, part->offsets, moved)
-                                                          : &positions->block[0][0];
+                mesh.positions =
+                    !part->offsets.empty() ? MovedPositions(positions, packets, part->offsets, moved) : positions;
                 mesh.positionCount = packets * 4;
                 mesh.uOffset = part->textureOffsetU;
                 mesh.vOffset = part->textureOffsetV;

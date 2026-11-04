@@ -20,7 +20,7 @@ import csv, glob, os, re, sys
 # 2. A non-const `float name[3]`, `[16]` or `[4][4]` (a vector or matrix that should be Vector3 /
 #    Matrix4), and `float name[4]` only when the name says quaternion or homogeneous point; names
 #    that say colour, stats, sound or unknown bytes are skipped, as are const tables. Also skipped:
-#    `block`, the SoA vertex packets of figure_mesh.h (VertexPacket: rows x[4], y[4], z[4], w[4] of four
+#    `block`, the SoA vertex packets of render/mesh_records.h (VertexPacket: rows x[4], y[4], z[4], w[4] of four
 #    vertices, indexed by row and lane; not a matrix) and plurals ending in `distances` (one scalar per
 #    triangle corner or per point, not the components of a vector).
 _VEC_OPERAND = r'(?:\w+\s*(?:<\s*\w+\s*>\s*)?\(\s*[\w.\[\]>-]+\s*\)|\w+(?:\s*(?:\.|->)\s*\w+|\s*\[\s*\w+\s*\])*)'

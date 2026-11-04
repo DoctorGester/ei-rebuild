@@ -25,8 +25,8 @@ struct SkinRequest;
 struct ComposedTexture;
 struct MmpHeader;
 struct TLVertex;
-struct VertexPacket;
-struct NormalPacket;
+using VertexPacket = render::VertexPacket;
+using NormalPacket = render::NormalPacket;
 struct Vector4;
 
 // The device object: the screen (its window, size and colour depth), the transform pipeline, the texture stages' holders and the

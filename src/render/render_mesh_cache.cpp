@@ -36,7 +36,7 @@ MeshChanges ChangesOf(const void* object) {
 // What a kept mesh was built from: when an array or count differs, it is built again.
 struct MeshFrom {
     const void* shared = nullptr;
-    const float* positions = nullptr;   // null for moved positions (a work array all moved meshes share)
+    const VertexPacket* positions = nullptr;   // null for moved positions (a work array all moved meshes share)
     int positionCount = 0;
     const std::uint32_t* colours = nullptr;
     const std::uint32_t* speculars = nullptr;
@@ -46,7 +46,7 @@ struct MeshFrom {
     int cornerCount = 0;
     const std::uint16_t* indices = nullptr;
     int indexCount = 0;
-    const float* normals = nullptr;
+    const NormalPacket* normals = nullptr;
     const std::uint32_t* words = nullptr;
     int wordCount = 0;
     MeshChanges own, link;   // the figure mesh's and the link figure's changes when built
@@ -156,21 +156,24 @@ MeshFrom FromOf(const ShadowMesh& m) {
     return f;
 }
 
-// Corner `i`'s position (blocks of four vertices: x[4], y[4], z[4], 4 unused), texture coordinates and normal.
+// Vertex `index` of the packets: lane index % 4 of packet index / 4.
+Vector3 PacketVertex(const VertexPacket* packets, int index) {
+    const VertexPacket& packet = packets[index / 4];
+    const int lane = index % 4;
+    return Vector3{packet.x()[lane], packet.y()[lane], packet.z()[lane]};
+}
+
+// Corner `i`'s position, texture coordinates and normal.
 MeshVertex CornerVertex(const MeshDraw& m, int i) {
     const MeshCorner& c = m.corners[i];
-    const float* block = m.positions + (c.position / 4) * 16;
-    int lane = c.position % 4;
-    return MeshVertex{{block[lane], block[4 + lane], block[8 + lane]}, m.uvs[c.texCoord].u, m.uvs[c.texCoord].v,
+    return MeshVertex{PacketVertex(m.positions, c.position), m.uvs[c.texCoord].u, m.uvs[c.texCoord].v,
                       CornerNormal(m, c.normal)};
 }
 
 // A caster's corner `i` (KeepCasterMesh): its position and texture coordinates (none: 0, 0), no normal.
 MeshVertex CasterCorner(const ShadowMesh& m, int i) {
     const MeshCorner& c = m.corners[i];
-    const float* block = m.positions + (c.position / 4) * 16;
-    int lane = c.position % 4;
-    MeshVertex v{{block[lane], block[4 + lane], block[8 + lane]}, 0.0f, 0.0f, {}};
+    MeshVertex v{PacketVertex(m.positions, c.position), 0.0f, 0.0f, {}};
     if (m.uvs && c.texCoord < m.uvCount) {
         v.u = m.uvs[c.texCoord].u;
         v.v = m.uvs[c.texCoord].v;
@@ -488,10 +491,10 @@ bool PositionBox(const MeshDraw& m, float box[6]) {
         box[3 + k] = -1e30f;
     }
     for (int i = 0; i < m.positionCount; ++i) {
-        const float* block = m.positions + (i / 4) * 16;
+        const VertexPacket& packet = m.positions[i / 4];
         int lane = i % 4;
         for (int k = 0; k < 3; ++k) {
-            float v = block[4 * k + lane];
+            float v = packet.block[k][lane];
             box[k] = v < box[k] ? v : box[k];
             box[3 + k] = v > box[3 + k] ? v : box[3 + k];
         }
@@ -520,9 +523,9 @@ Vector3 CornerNormal(const MeshDraw& m, int index) {
     if (!m.normals || !m.words || index >= m.wordCount) return Vector3{};
     const int normal = static_cast<int>(m.words[index] >> 16);
     if (normal >= m.normalCount) return Vector3{};
-    const float* block = m.normals + (normal / 4) * 16;
+    const NormalPacket& packet = m.normals[normal / 4];
     const int lane = normal % 4;
-    return Vector3{block[lane], block[4 + lane], block[8 + lane]};
+    return Vector3{packet.block[0][lane], packet.block[1][lane], packet.block[2][lane]};
 }
 
 int CachedIndexCount(const CachedMesh& mesh) { return static_cast<int>(mesh.indices.size()); }

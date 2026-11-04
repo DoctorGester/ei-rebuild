@@ -43,7 +43,8 @@ enum class OccluderKind : std::int8_t;   // sector_map.h
 inline OccluderKind BoundsOccluderKind(std::uint32_t flags) { return static_cast<OccluderKind>((flags >> 3) & 7); }
 inline std::int8_t BoundsTransparency(std::uint32_t flags) { return static_cast<std::int8_t>((flags >> 6) & 0xF); }
 
-struct VertexPacket;
+using VertexPacket = render::VertexPacket;
+using NormalPacket = render::NormalPacket;
 
 // Bounding volume of a figure part, tested against the view frustum.
 struct ClipBounds {

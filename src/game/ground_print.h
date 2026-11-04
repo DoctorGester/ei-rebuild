@@ -18,7 +18,6 @@
 
 class ByteStream;
 class Texture;
-struct VertexPacket;
 
 // A texture by name. The device binds it by looking the texture up again by name.
 struct NamedTexture {
