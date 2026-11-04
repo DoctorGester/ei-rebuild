@@ -5,7 +5,10 @@
 namespace ei {
 
 // Appends a line, after the local time of day, to ei-rebuild.log in the output folder; lines of several threads do not
-// mix.
+// mix. gcc and clang check the arguments against the format.
+#if defined(__GNUC__)
+[[gnu::format(printf, 1, 2)]]
+#endif
 void Log(const char* format, ...);
 
 // <output folder><separator><name> (UTF-8), the folder made when missing. The output folder holds what a run writes

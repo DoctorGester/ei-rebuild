@@ -56,7 +56,7 @@ Read ReadWhole(const std::string& file, std::string* text) {
     std::uint32_t error = 0;
     if (platform::ReadWholeFile(file, text, &error)) return Read::read;
     if (!platform::PathExists(file)) return Read::missing;
-    ei::Log("settings: %s cannot be read (error %lu)", file.c_str(), error);
+    ei::Log("settings: %s cannot be read (error %u)", file.c_str(), static_cast<unsigned>(error));
     return Read::failed;
 }
 
@@ -64,7 +64,7 @@ Read ReadWhole(const std::string& file, std::string* text) {
 bool Write(Store& s) {
     std::uint32_t error = 0;
     if (!platform::WriteWholeFile(s.file, s.document.Text(), &error)) {
-        ei::Log("settings: cannot write %s (error %lu)", s.file.c_str(), error);
+        ei::Log("settings: cannot write %s (error %u)", s.file.c_str(), static_cast<unsigned>(error));
         return false;
     }
     s.dirty = false;

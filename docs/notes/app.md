@@ -35,6 +35,9 @@ Dropped on purpose: the original chose the interface or the window procedure for
 pass by the top byte of a reused stack slot (it hung depending on where a string lay); ours always gives it to the
 interface. Kept: `SetUpCursors`' last argument has only its low byte set; "res\speech.res" is built twice;
 `FrameStep`'s movie capture passes two uninitialised words as the rectangle's size when there is no render target.
+Fixed: the original's message drain (`PumpMessages`, run by loading screens and window switches) and the movie loop
+dispatched a posted quit to the window procedure, which ignored it, so Exit or a window close during a load was lost.
+Ours leave the quit posted (the movie ends on it) and the main loop ends on it.
 
 ## Options
 

@@ -76,8 +76,8 @@ public:
     void ApplyDiff(ByteStream* base, ByteStream* diff);
     // Tagged blocks (a four-byte tag, the size including these eight bytes, then the content). Reads the next
     // block's tag into *tag and its content into `out` (emptied, reading cleared, written, sought to 0).
-    // False when the tag, the size or the content cannot be read (`out` is then already emptied once the size
-    // was read).
+    // False when the tag, the size or the content cannot be read or the size is below 8 (`out` is then already
+    // emptied once a size of 8 or more was read).
     bool ReadTagged(std::uint32_t* tag, ByteStream* out);
     // From the start (reading set), reads blocks until one has tag `id`;
     // when none has, `out` is emptied and the result is false.

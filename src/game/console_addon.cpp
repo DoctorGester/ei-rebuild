@@ -123,6 +123,7 @@ void Addon(std::vector<std::string>* args) {
 
 // execs file: loads a script file into the script loader and runs it.
 void Execs(std::vector<std::string>* args) {
+    if (args->empty()) return;
     if (TheMissionScript()->LoadFile((*args)[0])) {
         ScriptTick(TheMissionScript());
         return;
