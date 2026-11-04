@@ -701,6 +701,8 @@ class SchedTest(unittest.TestCase):
         both = [('boot', 'standalone'), ('boot', 'standalone-rebirth'), ('wide', 'standalone'), ('wide', 'standalone-rebirth')]
         self.assertEqual(run_all.plan(run_all.parse_args(['--standalone']), root=self.tmp), vanilla)
         self.assertEqual(run_all.plan(run_all.parse_args([]), root=self.tmp), vanilla)     # the default since S21
+        self.assertEqual(run_all.plan(run_all.parse_args([]), root=self.tmp, left_out=('wide',)), [('boot', 'standalone')])
+        self.assertEqual(run_all.plan(run_all.parse_args(['wide']), root=self.tmp, left_out=('wide',)), [('wide', 'standalone')])
         self.assertEqual(run_all.plan(run_all.parse_args(['--all-rebirth']), root=self.tmp), both)
         for gone in ('--hooked', '--native', '--dgvoodoo', '--verified-candidates',     # S21c
                      '--no-hooks', '--fresh', '--record'):                              # H40
@@ -751,6 +753,38 @@ class SchedTest(unittest.TestCase):
             self.assertEqual(run_all.install_dir('vanilla', {'EI_GAME_VANILLA': 'S'}), 'S')
             self.assertEqual(run_all.install_dir('rebirth', {}), run_all.DEFAULT_INSTALLS['rebirth'])
             self.assertEqual(run_all.install_environment(), {'EI_GAME_VANILLA': 'V'})
+
+    def test_linux_vulkan_driver(self):
+        """H50a: dzn the default under WSL when installed, the system's (lavapipe) elsewhere or when asked; the
+        scenarios left out without names follow the driver."""
+        manifest = os.path.join(self.tmp, 'dzn_icd.json')
+        open(manifest, 'w').close()
+        quiet = contextlib.redirect_stdout(io.StringIO())
+        with mock.patch.object(sys, 'platform', 'linux'), mock.patch.object(run_all, 'DZN_ICD', manifest), quiet:
+            env = {}
+            self.assertEqual(run_all.vulkan_driver(None, env, wsl=True), manifest)
+            self.assertEqual(env['VK_DRIVER_FILES'], manifest)
+            for choice, env, wsl in ((None, {}, False), ('system', {}, True), (None, {'EI_VK_ICD': 'system'}, True)):
+                self.assertIsNone(run_all.vulkan_driver(choice, env, wsl=wsl))
+                self.assertNotIn('VK_DRIVER_FILES', env)
+            self.assertEqual(run_all.vulkan_driver('dzn', {}, wsl=False), manifest)
+            self.assertEqual(run_all.linux_left_out(manifest), ('net_second_master', 'render_present_window'))
+            self.assertIn('camera_smooth', run_all.linux_left_out(None))
+        with mock.patch.object(run_all, 'DZN_ICD', manifest), quiet:
+            self.assertIsNone(run_all.vulkan_driver(None, {}, wsl=True))      # not Linux: nothing to choose
+            self.assertEqual(run_all.linux_left_out(None), ())
+        with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
+            run_all.parse_args(['--dzn', '--lavapipe'])
+
+    def test_machine_slots_up_to(self):
+        """hold_slots()'s most: as many slots as are free, up to most, once count are."""
+        with mock.patch.object(run_all, 'SLOT_DIR', self.slots), mock.patch.object(run_all, 'MACHINE_SLOTS', 4):
+            with run_all.machine_slot(count=1) as one:
+                self.assertEqual(one, 1)
+                with run_all.machine_slot(count=2, most=8) as free:
+                    self.assertEqual(free, 3)
+            with run_all.machine_slot(count=2) as two:
+                self.assertEqual(two, 2)
 
 
 if __name__ == '__main__':

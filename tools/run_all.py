@@ -1,9 +1,10 @@
 """Runs every harness scenario on the vanilla install's data and on Rebirth's and prints a summary.
 
 usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only | --all-rebirth]
-                               [--jobs N] [--retries N] [--clock virtual|real[,...]] [--golden]
+                               [--jobs N] [--retries N] [--clock virtual|real[,...]] [--golden] [--dzn | --lavapipe]
        python tools/run_all.py --widescreen [scenario names...]
-  scenario names   e.g. combat items (default: every tests/scenarios/*.txt)
+  scenario names   e.g. combat items (default: every tests/scenarios/*.txt; on Linux less those its driver cannot
+                   match, LINUX_LEFT_OUT)
   default          the image, build\\verify\\ei-rebuild.exe (the game and the harness linked in), started by this
                    tool (launch()) on an install's data: EI_GAME_ROOT names the install, each run takes the
                    install folder's own Rebirth profile as a player's exe does (EI_REBIRTH only when the caller sets
@@ -25,7 +26,8 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                    (compare_widescreen: tools/compare_frames.py with WIDESCREEN_COMPARE). The references are
                    addon's frames, recorded from game.exe until H40 in <main checkout>\\build\\widescreen; a
                    scenario whose steps changed since has none (the comparison names it)
-  --jobs N         games running at once (default 16); all runs on the machine together never
+  --jobs N         games running at once (default 16; under WSL on Windows' GPU the Windows game slots free at the
+                   start, at most WSL_GPU_SLOTS, 8, or EI_HARNESS_SLOTS); all runs on the machine together never
                    exceed EI_HARNESS_SLOTS (default 16) games, whatever --jobs says. Each run writes to its own folder,
                    build\\verify\\runs\\<scenario>-<install> (ei-rebuild.log, harness_report.txt and
                    harness_saves, emptied first, so every run starts without saves or texture cache).
@@ -42,8 +44,11 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
   --dzn            Linux: the games draw on Dozen, Mesa's Vulkan on D3D12 (WSL's GPU), from ~/mesa-dzn, instead of
                    the system's driver (lavapipe without a GPU, CI's reference); EI_VK_ICD=dzn says the same,
                    EI_VK_ICD=<manifest .json> names any Vulkan driver (vulkan_driver(); docs/notes/linux.md, "The GPU
-                   under WSL"). Under WSL such games draw on Windows' GPU, so the run also holds as many of Windows'
-                   game slots as it can run games at once (hold_windows_slots(), through Windows' Python)
+                   under WSL"). The default under WSL when ~/mesa-dzn is installed. Such games draw on Windows' GPU,
+                   so the run also holds as many of Windows' game slots as it runs games at once
+                   (hold_windows_slots(), through Windows' Python)
+  --lavapipe       Linux: the system's Vulkan drivers (lavapipe under WSL and on GitHub's runner); EI_VK_ICD=system
+                   says the same
 exit code: 0 when every run passed
 
 A run that outlives the scenario's time limit ("timeout <seconds>", default 60 s) is reported as TIMEOUT: the
@@ -111,9 +116,10 @@ def _unlock(f):
 
 
 @contextlib.contextmanager
-def machine_slot(alone=False, count=1):
+def machine_slot(alone=False, count=1, most=None):
     """count of the machine's MACHINE_SLOTS game slots (shared by every checkout's run_all; 2 for a pair's
-    run, games_of()), or all of them (alone): for a game that sets the display mode, which takes the surfaces
+    run, games_of()), or as many as are free up to most once count of them are (hold_slots()), or all of them
+    (alone); yields how many it holds. All of them: for a game that sets the display mode, which takes the surfaces
     of every other game running then (they fail with DDERR_SURFACELOST: "Can't begin scene", untextured models).
     Games that want all the slots queue on one more lock, so two of them never split the slots; while
     one holds it, no other game takes a slot (a suite's next game would take each slot as it frees,
@@ -137,12 +143,12 @@ def machine_slot(alone=False, count=1):
             for i in range(MACHINE_SLOTS):
                 if alone and i in [h[0] for h in held]:
                     continue
-                if not alone and len(held) == count:
+                if not alone and len(held) == (most or count):
                     break
                 f = _lock(os.path.join(SLOT_DIR, f'slot{i:02}'))
                 if f:
                     held.append((i, f))
-            if len(held) == (MACHINE_SLOTS if alone else count):
+            if (len(held) == MACHINE_SLOTS) if alone else (len(held) >= count):
                 break
             if not alone:
                 # A pair's run takes its slots together: none held while waiting, or two pairs could each hold one.
@@ -150,7 +156,7 @@ def machine_slot(alone=False, count=1):
                     _unlock(f)
                 held = []
             time.sleep(0.5)
-        yield
+        yield len(held)
     finally:
         for _, f in held:
             _unlock(f)
@@ -955,9 +961,12 @@ def parse_args(argv=None):
     ap.add_argument('--golden', action='store_true')
     ap.add_argument('--retries', type=int, default=1)
     ap.add_argument('--clock')
-    ap.add_argument('--jobs', type=int, default=16)
-    ap.add_argument('--dzn', action='store_true')
+    ap.add_argument('--jobs', type=int)      # default: 16, under WSL on Windows' GPU main()'s (WSL_GPU_SLOTS)
+    driver = ap.add_mutually_exclusive_group()
+    driver.add_argument('--dzn', action='store_true')
+    driver.add_argument('--lavapipe', action='store_true')
     ap.add_argument('--hold-slots', type=int, help=argparse.SUPPRESS)   # hold_windows_slots()'s Windows side
+    ap.add_argument('--hold-most', type=int, help=argparse.SUPPRESS)
     return ap.parse_args(argv)
 
 
@@ -966,12 +975,13 @@ def has_golden(name, install, root=ROOT):
     return os.path.exists(os.path.join(root, 'tests', 'golden', name, install, 'golden.json'))
 
 
-def plan(args, root=ROOT):
+def plan(args, root=ROOT, left_out=()):
     """The runs args ask for: (scenario, install) pairs in the summary's order. install is standalone (the vanilla
     data) or standalone-rebirth; the run folder is <scenario>-<install>. Also used by tools/work_sched.py
-    (`work.py test`), so a batch holds the runs run_all would make."""
-    names = args.scenarios or sorted(os.path.splitext(os.path.basename(p))[0]
-                                     for p in glob.glob(os.path.join(root, 'tests', 'scenarios', '*.txt')))
+    (`work.py test`), so a batch holds the runs run_all would make. left_out: scenarios that no names given means
+    leaving out (linux_left_out())."""
+    names = args.scenarios or sorted(n for p in glob.glob(os.path.join(root, 'tests', 'scenarios', '*.txt'))
+                                     if (n := os.path.splitext(os.path.basename(p))[0]) not in left_out)
     if args.widescreen and args.vanilla_only:
         sys.exit("--widescreen compares the image on the Rebirth install with addon's recorded frames: not with "
                  '--vanilla-only')
@@ -1076,7 +1086,8 @@ def summary(jobs, results, args, elapsed, out=None, root=ROOT, build=BUILD):
               + ', '.join(f'{n}-{i}' for n, i in exits), file=out)
     window_check(jobs, out, build)
     net_check(jobs, out, build)
-    print(f'\n{len(jobs)} runs in {elapsed:.0f}s with {args.jobs} at once', file=out)
+    # The scheduler's batches (tools/work_sched.py) ignore --jobs: they take every free slot.
+    print(f'\n{len(jobs)} runs in {elapsed:.0f}s' + (f' with {args.jobs} at once' if args.jobs else ''), file=out)
     print('ALL PASS' if ok else 'SOME RUNS FAILED', file=out)
     return ok
 
@@ -1201,17 +1212,48 @@ def start_headless_display(environ=None):
 # Dozen's driver manifest where the Mesa build of linux.md installs it (docs/notes/linux.md, "The GPU under WSL").
 DZN_ICD = os.path.join('~', 'mesa-dzn', 'share', 'vulkan', 'icd.d', 'dzn_icd.x86_64.json')
 
+# Linux, no scenario names given: the scenarios left out (docs/notes/linux.md, "The harness" and "The GPU under WSL").
+# On the system's driver (lavapipe, the CPU): CI's LINUX_SKIP (.github/workflows/suites-linux.yml) and two more that
+# pass 60 s on llvmpipe. On a GPU (dzn) the two that fail on any Linux: a closed port is refused at once, and
+# SDL_SetWindowSize resizes asynchronously under X11.
+LINUX_LEFT_OUT = {
+    'system': ('net_pair_join', 'net_pair_kick', 'net_pair_leave', 'net_pair_master', 'net_pair_quest', 'net_pair_speed',
+               'net_pair_zone', 'net_second_master', 'render_present_window', 'render_smooth', 'render_terrain_seams',
+               'ui_quicksave', 'camera_drag_rate', 'camera_smooth', 'camera_spin', 'render_stats', 'zone_gz15h_tornado'),
+    'gpu': ('net_second_master', 'render_present_window'),
+}
 
-def vulkan_driver(dzn=False, environ=None):
-    """Linux: points the games' Vulkan loader at one driver manifest (VK_DRIVER_FILES, and VK_ICD_FILENAMES for older
-    loaders): Dozen's (DZN_ICD) for --dzn or EI_VK_ICD=dzn, the file EI_VK_ICD names, else nothing is set and the
-    system's drivers are used. Returns the manifest or None; exits when the one asked for is missing."""
-    environ = os.environ if environ is None else environ
-    choice = 'dzn' if dzn else environ.get('EI_VK_ICD', '')
-    if not choice:
-        return None
+# Under WSL on Windows' GPU (dzn), games at once by default: the Windows game slots free when the run starts, at most
+# this many (EI_HARNESS_SLOTS sets the most instead). Half the machine's 16, so Windows' suites (work.py test's batches
+# of up to 4 jobs) keep the other half; the image suite took 91 to 112 s with 6 jobs, 138 to 209 s with 4 (H50).
+WSL_GPU_SLOTS = 8
+
+
+def linux_left_out(gpu):
+    """The scenarios a Linux run leaves out when no names are given (LINUX_LEFT_OUT), for the games' Vulkan driver
+    gpu (vulkan_driver()'s manifest, or None for the system's); () elsewhere."""
     if not sys.platform.startswith('linux'):
-        sys.exit('--dzn / EI_VK_ICD choose the Vulkan driver of the Linux games only')
+        return ()
+    return LINUX_LEFT_OUT['gpu' if gpu else 'system']
+
+
+def vulkan_driver(choice=None, environ=None, wsl=None):
+    """Linux: points the games' Vulkan loader at one driver manifest (VK_DRIVER_FILES, and VK_ICD_FILENAMES for older
+    loaders) and returns it, or None for the system's drivers (nothing set). choice: 'dzn' (--dzn), 'system'
+    (--lavapipe), else EI_VK_ICD's: dzn, system or a manifest's path; neither: Dozen's (DZN_ICD) under WSL when it is
+    installed (the local default; GitHub's runner is no WSL and stays on lavapipe), else the system's. Exits when the
+    one asked for is missing."""
+    environ = os.environ if environ is None else environ
+    choice = choice or environ.get('EI_VK_ICD', '')
+    if not sys.platform.startswith('linux'):
+        if choice:
+            sys.exit('--dzn / --lavapipe / EI_VK_ICD choose the Vulkan driver of the Linux games only')
+        return None
+    if not choice and (under_wsl() if wsl is None else wsl) and os.path.isfile(os.path.expanduser(DZN_ICD)):
+        choice = 'dzn'
+    if not choice or choice == 'system':
+        print("Vulkan driver: the system's")
+        return None
     manifest = os.path.expanduser(DZN_ICD if choice == 'dzn' else choice)
     if not os.path.isfile(manifest):
         sys.exit(f'no Vulkan driver manifest {manifest} (docs/notes/linux.md, "The GPU under WSL")')
@@ -1220,48 +1262,59 @@ def vulkan_driver(dzn=False, environ=None):
     return manifest
 
 
-def hold_windows_slots(count):
+def hold_windows_slots(count, most=None):
     """WSL, games on Windows' GPU (vulkan_driver()): Windows' Python (python.exe through WSL's interop) runs this file
-    with --hold-slots count, which takes that many of Windows' machine slots (machine_slot(), the same lock files as
-    Windows' suites and work.py's scheduler) and keeps them until this process ends, so Windows' and WSL's games on
-    the GPU together stay within Windows' 16 (24 crashed Windows: the NVIDIA driver hung). Waits until they are held;
-    exits when Windows' Python cannot be started."""
+    with --hold-slots count (and --hold-most most), which takes that many of Windows' machine slots (or as many as
+    are free up to most, once count are; machine_slot(), the same lock files as Windows' suites and work.py's
+    scheduler) and keeps them until this process ends, so Windows' and WSL's games on the GPU together stay within
+    Windows' 16 (24 crashed Windows: the NVIDIA driver hung). Waits until they are held; returns how many. Exits when
+    Windows' Python cannot be started."""
     python = os.environ.get('EI_WINDOWS_PYTHON') or shutil.which('python.exe')
     if not python:
         sys.exit("no Windows python.exe on PATH (EI_WINDOWS_PYTHON names one): the games on Windows' GPU need its slots")
     script = subprocess.run(['wslpath', '-w', os.path.abspath(__file__)], capture_output=True, text=True).stdout.strip()
-    print(f"waiting for {count} of Windows' game slots")
+    print(f"waiting for {count}{f' to {most}' if most and most > count else ''} of Windows' game slots")
     sys.stdout.flush()
-    proc = subprocess.Popen([python, script, '--hold-slots', str(count)], stdin=subprocess.PIPE,
-                            stdout=subprocess.PIPE, text=True)
-    if proc.stdout.readline().strip() != 'held':
+    proc = subprocess.Popen([python, script, '--hold-slots', str(count)] + (['--hold-most', str(most)] if most else []),
+                            stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+    reply = proc.stdout.readline().split()
+    if len(reply) != 2 or reply[0] != 'held' or not reply[1].isdigit():
         proc.kill()
         sys.exit("Windows' game slots could not be taken")
     atexit.register(lambda: (proc.stdin.close(), proc.wait()))
-    return proc
+    print(f"holding {reply[1]} of Windows' game slots")
+    return int(reply[1])
 
 
-def hold_slots(count):
-    """--hold-slots (Windows' side of hold_windows_slots()): count machine slots until stdin closes."""
-    with machine_slot(count=count):
-        print('held')
+def hold_slots(count, most=None):
+    """--hold-slots (Windows' side of hold_windows_slots()): count machine slots, or as many as are free up to most,
+    until stdin closes; prints "held <n>" once they are held."""
+    with machine_slot(count=count, most=most) as held:
+        print(f'held {held}')
         sys.stdout.flush()
         sys.stdin.read()
     return 0
 
 
 def main():
+    global MACHINE_SLOTS
     args = parse_args()
     if args.hold_slots:
-        return hold_slots(args.hold_slots)
+        return hold_slots(args.hold_slots, args.hold_most)
     if args.golden:
         os.environ['EI_DIGEST'] = str(GOLDEN_PERIOD)
     start_headless_display()
-    gpu = vulkan_driver(args.dzn)
-    jobs = plan(args)
+    gpu = vulkan_driver('dzn' if args.dzn else 'system' if args.lavapipe else None)
+    jobs = plan(args, left_out=linux_left_out(gpu))
     if gpu and under_wsl():
+        # The slots held on Windows' side bound this run's games; WSL's own pool (6, for lavapipe's memory) does not.
         games = max([games_of(os.path.join(ROOT, 'tests', 'scenarios', n + '.txt')) for n, _ in jobs] or [1])
-        hold_windows_slots(min(MACHINE_SLOTS, max(1, args.jobs) * games))
+        if args.jobs:
+            MACHINE_SLOTS = hold_windows_slots(min(16, max(1, args.jobs) * games))
+        else:
+            most = int(os.environ.get('EI_HARNESS_SLOTS') or WSL_GPU_SLOTS)
+            MACHINE_SLOTS = args.jobs = hold_windows_slots(games, max(games, most))
+    args.jobs = max(1, args.jobs or 16)
     build = BUILD
     db = timing_db()
     times = expected_times(jobs, build=build, db=db)
@@ -1273,7 +1326,7 @@ def main():
     print(HEADER)
     sys.stdout.flush()
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
         futures = {pool.submit(run_with_retries, n, i, args.retries, f'{n}-{i}',
                                functools.partial(run, build=build, clock=args.clock),
                                functools.partial(keep_attempt, build=build)): (n, i)
