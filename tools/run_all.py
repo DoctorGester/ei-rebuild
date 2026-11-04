@@ -692,7 +692,14 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
     if left := empty_folder(out):
         return 'FAIL', 0.0, [f'the run folder could not be emptied ({", ".join(left[:5])} left: a file in it is still open)'], {}, []
     os.makedirs(out, exist_ok=True)
-    prepare_scenario.prepare(scenario, os.path.join(out, 'harness_saves'))   # "# prepare:" lines
+    try:
+        prepare_scenario.prepare(scenario, os.path.join(out, 'harness_saves'))   # "# prepare:" lines
+    except subprocess.CalledProcessError as error:
+        tail = (error.stderr or error.stdout or b'').decode('utf8', 'replace').strip().splitlines()[-3:]
+        return 'FAIL', 0.0, [f'a "# prepare:" tool failed ({" ".join(str(a) for a in error.cmd[1:])}; exit code '
+                             f'{error.returncode}){": " + " | ".join(tail) if tail else ""}'], {}, []
+    except OSError as error:
+        return 'FAIL', 0.0, [f'a "# prepare:" tool could not run: {error}'], {}, []
     env = None
     if game_env is not None:
         env = {k: v for k, v in os.environ.items() if k not in game_environment()}
@@ -1304,14 +1311,15 @@ def start_headless_display(environ=None):
 DZN_ICD = os.path.join('~', 'mesa-dzn', 'share', 'vulkan', 'icd.d', 'dzn_icd.x86_64.json')
 
 # Linux, no scenario names given: the scenarios left out (docs/notes/linux.md, "The harness" and "The GPU under WSL").
-# On the system's driver (lavapipe, the CPU): CI's LINUX_SKIP (.github/workflows/suites-linux.yml) and two more that
-# pass 60 s on llvmpipe. On a GPU (dzn) the three that differ on any Linux: a closed port is refused at once,
-# SDL_SetWindowSize resizes asynchronously under X11, and net_pair_master's peer lists the server one poll sooner.
+# On the system's driver (lavapipe, the CPU): CI's LINUX_SKIP (.github/workflows/suites-linux.yml) and a few more
+# that pass 60 s on llvmpipe. render_smooth (its split pass's frame) and render_terrain_seams (the level steps) are
+# lavapipe's own differences; they pass on a GPU. On a GPU (dzn): net_pair_master, whose peer list shows the server
+# one poll sooner on any Linux.
 LINUX_LEFT_OUT = {
     'system': ('net_pair_join', 'net_pair_kick', 'net_pair_leave', 'net_pair_master', 'net_pair_quest', 'net_pair_speed',
-               'net_pair_zone', 'net_second_master', 'render_present_window', 'render_smooth', 'render_terrain_seams',
-               'ui_quicksave', 'camera_drag_rate', 'camera_smooth', 'camera_spin', 'render_stats', 'zone_gz15h_tornado'),
-    'gpu': ('net_pair_master', 'net_second_master', 'render_present_window'),
+               'net_pair_zone', 'render_smooth', 'render_terrain_seams', 'camera_drag_rate', 'camera_smooth',
+               'camera_spin', 'render_stats', 'zone_gz15h_tornado'),
+    'gpu': ('net_pair_master',),
 }
 
 # Under WSL on Windows' GPU (dzn), games at once by default: the Windows game slots free when the run starts, at most
