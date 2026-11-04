@@ -50,7 +50,11 @@ bool NetAddress::Parse(const char* text, int defaultPort) {
         s.resize(colon);
     }
     ip = lib::ParseIpv4(s.data());
-    if (ip == lib::kNoAddress && !sockets::LookUp(s.data(), &ip)) return false;
+    if (ip == lib::kNoAddress) {
+        const std::optional<std::uint32_t> found = sockets::LookUp(s.data());
+        if (!found) return false;
+        ip = *found;
+    }
     port = lib::ToNetwork(static_cast<std::uint16_t>(number));
     return true;
 }
@@ -68,10 +72,11 @@ std::string NetAddress::ToString() const {
 // The broadcast address is the host's first address with the host part (by its class: A, B or C) set to 0xFF.
 SocketDriver::SocketDriver() {
     socket = kNoSocket;
-    char name[1000];
-    if (!sockets::HostName(name, sizeof(name))) return;
-    std::uint32_t ip;
-    if (!sockets::LookUp(name, &ip)) return;
+    const std::string name = sockets::HostName();
+    if (name.empty()) return;
+    const std::optional<std::uint32_t> found = sockets::LookUp(name.c_str());
+    if (!found) return;
+    const std::uint32_t ip = *found;
     NetAddress a{};
     a.family = sockets::kIpv4;
     if (ip == 0) return;

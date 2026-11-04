@@ -44,14 +44,14 @@ int FigureManager::LoadMenuRects(Rect* rects) {
     // The manager's GetFile: the resource file's data.
     void* file = GetFile(game::menutexts::MenusReg(), nullptr);
     if (!file || !reg.Attach(file)) {
-        return game::FatalError(file ? game::menutexts::CantParse() : game::menutexts::CantOpen());
+        return game::FatalError("%s", file ? game::menutexts::CantParse() : game::menutexts::CantOpen());
     }
     std::vector<std::int32_t> values;
     for (const MenuRect& entry : kRects) {
         values.clear();
         reg.GetIntArray(entry.section, entry.name, &values);
         if (std::ssize(values) != 4) {
-            int result = game::FatalError(entry.error);
+            int result = game::FatalError("%s", entry.error);
             lib::FreeStorage(values);
             return result;
         }

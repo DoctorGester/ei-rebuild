@@ -148,10 +148,10 @@ constexpr int kServerMessageZone = 8;
 
 // Tells the clients of the game server where the game is: the host's address and the zone.
 void AnnounceHost(const char* zone) {
-    char host[100];
-    if (!platform::net::HostName(host, sizeof(host))) return;
+    const std::string host = platform::net::HostName();
+    if (host.empty()) return;
     net::NetAddress address{};
-    address.Parse(host, kHostPort);
+    address.Parse(host.c_str(), kHostPort);
     std::string formatted = address.ToString();
     net::HostMessage* record = new net::HostMessage();
     ShareAssignOwned(net::g_gameServer->hostInfo, record);

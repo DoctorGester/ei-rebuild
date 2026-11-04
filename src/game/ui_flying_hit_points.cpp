@@ -100,7 +100,7 @@ const Rect* UnitScreenRect(Unit* unit) {
 
 void FlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
     if (!target || amount < 0) return;
-    std::uint32_t time = (flags & kDelayed) ? platform::Milliseconds() + kDelay : platform::Milliseconds();
+    std::uint32_t time = (flags & kDelayed) ? platform::FrameClock() + kDelay : platform::FrameClock();
     points.push_back(FlyingHitPoint{target, amount, flags, time});
 }
 
@@ -108,11 +108,11 @@ void FlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
 
 void FlyingHitPoints::Draw(SceneRenderer* renderer) {
     std::string text;
-    std::uint32_t now = platform::Milliseconds();
+    std::uint32_t now = platform::FrameClock();
     const Rect& screen = renderer->device->screen;
     if (!texture) return;
     if (!renderer->SetTexture(0, texture)) {
-        game::FatalError(game::FlyingHitPointsTextureText());
+        game::FatalError("%s", game::FlyingHitPointsTextureText());
         return;
     }
 

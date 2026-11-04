@@ -4,7 +4,7 @@
 // double-buffered stream, and the MP3 decoders the music and the briefing voices go through; our mixer on SDL3's
 // audio device with the dr_wav / dr_mp3 decoders (audio.cpp). Game logic reads back only when a voice has ended (its
 // end callback), so that end is timed by the wave's length (WaveMilliseconds) on the game's clock
-// (platform::Milliseconds) and delivered from the main loop (DeliverEnds), whatever the device does: the harness's
+// (platform::FrameClock) and delivered from the main loop (DeliverEnds), whatever the device does: the harness's
 // runs stay deterministic (its virtual clock). Volumes and pans are the game's 0..127 scales.
 
 #include "platform/platform.h"
@@ -92,7 +92,7 @@ void Resume(Voice* voice);
 void End(Voice* voice);
 // `callback(user)` once the started wave has played (all its loops), from DeliverEnds.
 void SetEndCallback(Voice* voice, EndCallback callback, void* user);
-// Calls the end callbacks due at `now` (platform::Milliseconds), in the order the voices were made. The main loop
+// Calls the end callbacks due at `now` (platform::FrameClock), in the order the voices were made. The main loop
 // calls it once a pass, right after reading the frame's time.
 void DeliverEnds(std::uint32_t now);
 
@@ -113,7 +113,7 @@ void SetStreamFormat(Stream* stream, unsigned rate, int channels, int bits);
 void SetStreamVolume(Stream* stream, int volume);   // 0..127
 void SetStreamPan(Stream* stream, int pan);         // 0..127
 // The half to fill next (0 or 1), or -1 while both wait to play. Without a device the halves have played up to `now`
-// (platform::Milliseconds, or a step's time); with one the device says what has played.
+// (platform::FrameClock, or a step's time); with one the device says what has played.
 int ReadyHalf(Stream* stream, std::uint32_t now);
 // Queues `bytes` of `data` in `half` (the one ReadyHalf just gave); the memory stays the caller's until the half is
 // ready again.

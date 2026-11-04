@@ -572,7 +572,7 @@ void MpConnectScreen::CreateScreen() {
         file.Close();
         if (queries.extra == 0) {
             const std::uint32_t random = g_clientRandom.Next();
-            queries.extra = platform::TickCount() ^ random;
+            queries.extra = platform::CoarseClock() ^ random;
         }
         net::g_gameClient->SetQueries(&queries);
     }

@@ -1,4 +1,4 @@
-// Check of the POSIX platform's keyboard on X11's layouts (src/platform/posix/platform_posix.cpp: LayoutKey,
+// Check of the POSIX platform's keyboard on X11's layouts (src/platform/posix/keyboard.cpp: LayoutKey,
 // LayoutControlCharacter, KeyName through SDL's keymap): on an Xvfb of its own (never the session's
 // display), setxkbmap's us, ru, fr and de in turn, every key a layout moves against the codes, names and Ctrl characters
 // written below, as the SDL backend makes its events of them (sdl_keys::KeyOf, ControlCharacter). `--print` prints
@@ -219,10 +219,7 @@ std::string Hex(int value) {
     return text;
 }
 
-std::string Name(int scan, int size = 64) {
-    char name[64] = {};
-    return platform::KeyName(scan, name, size) ? name : "";
-}
+std::string Name(int scan) { return platform::KeyName(scan); }
 
 void Check(const Layout& layout, bool print) {
     const std::vector<int> scans = MovedScans();
@@ -231,11 +228,12 @@ void Check(const Layout& layout, bool print) {
     std::string keys, typed, control;
     for (std::size_t i = 0; i < scans.size(); ++i) {
         const int scan = scans[i];
-        const KeyCode code = platform::sdl_keys::KeyOf(platform::sdl_keys::ScancodeOf(scan), SDL_KMOD_NONE, platform::LayoutKey);
+        const KeyCode code = platform::sdl_keys::KeyOf(platform::sdl_keys::ScancodeOf(scan), SDL_KMOD_NONE,
+                                                       platform::sdl_keys::LayoutKey);
         const int withCtrl = platform::sdl_keys::ControlCharacter(code.key, code.scan, SDL_KMOD_CTRL,
-                                                                  platform::LayoutControlCharacter);
+                                                                  platform::sdl_keys::LayoutControlCharacter);
         const int plain = platform::sdl_keys::ControlCharacter(code.key, code.scan, SDL_KMOD_NONE,
-                                                               platform::LayoutControlCharacter);
+                                                               platform::sdl_keys::LayoutControlCharacter);
         const std::string name = Name(scan);
         const bool letter = code.key >= 'A' && code.key <= 'Z';
         if (print) {
@@ -259,9 +257,6 @@ void Check(const Layout& layout, bool print) {
         return;
     }
     for (const FixedName& fixed : kFixedNames) Expect(Name(fixed.scan) == fixed.name, layout.name, fixed.scan, "name", Name(fixed.scan), fixed.name);
-    // A name cut to its buffer at a character's start: one byte left for 2-byte "х" is none, for "Q" the letter.
-    if (std::string(layout.name) == "ru") Expect(Name(0x1A, 2).empty(), layout.name, 0x1A, "name in 2 bytes", Name(0x1A, 2), "");
-    Expect(Name(0x10, 2).size() == 1, layout.name, 0x10, "name in 2 bytes", Name(0x10, 2), "one letter");
 }
 
 } // namespace

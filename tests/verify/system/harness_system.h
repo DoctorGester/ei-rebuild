@@ -65,19 +65,9 @@ std::string FullPath(const std::string& path);
 long long FreeMegabytes(const std::string& folder);
 // A system error code's text (GetLastError's, errno's).
 std::string ErrorText(unsigned long code);
-// The file a handle of the game's file objects writes (platform::File's), as the system names it now; "" unknown.
-std::string FileOfHandle(void* handle);
-// Writes `size` bytes to a handle of the game's file objects; false with the system's error, else the bytes written.
-bool WriteHandle(void* handle, const void* data, unsigned size, unsigned* written, unsigned long* error);
-// The system's error for a full disk (ERROR_DISK_FULL, ENOSPC).
-extern const unsigned long kDiskFull;
-
-// ---- The game's calls as the system answers them (the backend's answers while the harness does not answer) ----
-
-bool FontSmoothing();
-// Whether another game of this name and window title runs, brought to the front (the game's builds'
-// platform::BringOtherInstanceForward).
-bool BringOtherGameForward(const char* name, const char* title);
+// The file a handle of the game's file objects writes (platform::File's: a handle or a descriptor), as the system names
+// it now; "" unknown.
+std::string FileOfHandle(std::intptr_t handle);
 
 // ---- Processes, threads and time ----
 

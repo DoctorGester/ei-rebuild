@@ -140,7 +140,7 @@ void ChatOverlay::AddLine(const char* text) {
     // The oldest lines go.
     lines.erase(lines.begin(), lines.begin() + std::clamp(count + before - kMaxLines, 0, before));
 
-    std::uint32_t now = platform::Milliseconds();
+    std::uint32_t now = platform::FrameClock();
     std::uint32_t colour = kWhite;
     for (int i = 0; i < count; ++i) {
         ChatLine& added = lines.emplace_back();
@@ -281,7 +281,7 @@ ChatOverlay::ChatOverlay(Interface3D* ownerUi) : UiWindow(ownerUi) {
 }
 
 void ChatOverlay::Update() {
-    std::uint32_t now = platform::Milliseconds();
+    std::uint32_t now = platform::FrameClock();
     std::erase_if(lines, [now](const ChatLine& line) { return static_cast<int>(now - line.time) > kLineLifetime; });
 }
 

@@ -248,7 +248,7 @@ int WorldClient::DrawPass() {
         return 0;
     }
     TransformPipeline* device = g_sceneRenderer.pipeline;
-    std::uint32_t now = platform::Milliseconds();
+    std::uint32_t now = platform::FrameClock();
     const Matrix4* view = device->Top(kStackView);
     g_deferredUnits.clear();
     static const FrameList kCleared[] = {FrameList::VisibleBuildings, FrameList::VisibleOther, FrameList::VisibleLevers,

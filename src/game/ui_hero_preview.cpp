@@ -71,7 +71,7 @@ void UiWindow::DrawHeroPreview(SceneRenderer* pass, Unit* hero, float turn, floa
     model->flags |= MapObjectFlag::NoEdgeFade;
     {
         // In animation frames: milliseconds / 1024 * 15 (a double: the milliseconds since the system started).
-        model->AdvanceTime(static_cast<float>(platform::Milliseconds() * (15.0 / 1024.0)));
+        model->AdvanceTime(static_cast<float>(platform::FrameClock() * (15.0 / 1024.0)));
     }
 
     // The turn about y. (The original also turned the origin by it and added that zero vector to the place.)

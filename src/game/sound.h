@@ -58,7 +58,7 @@ struct SoundFader {
     float factor;               // fade factor 0..1; a fade moves it by 1/96 per update (a stream step, 100 ms)
     FadeMode mode;
     bool finished;              // set when a fade out reached 0
-    std::uint32_t holdUntil;    // platform::Milliseconds() at which the fade is cancelled (0: none)
+    std::uint32_t holdUntil;    // platform::FrameClock() at which the fade is cancelled (0: none)
 
     void SetHold(std::uint32_t until);
     void Update(std::uint32_t now);     // a stream step's (StepStream)
@@ -112,7 +112,7 @@ struct SoundEmitter {
     float outerRadius;
     std::int32_t minInterval;   // ms
     std::int32_t maxInterval;   // ms
-    std::uint32_t lastPlayed;   // platform::TickCount()
+    std::uint32_t lastPlayed;   // platform::CoarseClock()
 };
 
 // The bit of a sequence chooser's result that loops the sound (bit 30).
@@ -167,7 +167,7 @@ using DeferredMap = lib::HashMap<std::int32_t, DeferredSound*>;
 struct WaveRecord {
     std::vector<std::uint8_t> data;   // the wave file (a decoded MP3's as a 16-bit PCM wave)
     std::string name;
-    std::uint32_t lastUsed = 0; // GetTickCount()
+    std::uint32_t lastUsed = 0; // platform::CoarseClock()
     std::int32_t size = 0;      // bytes
     std::int32_t uses = 0;      // voices playing it
 };
@@ -391,7 +391,7 @@ struct MusicSystem : EngineObject {
     std::string combatTrack;
     std::string jingle;
     bool jinglePlaying;
-    std::uint32_t calmDue;              // platform::Milliseconds() for the next calm track (0: not chosen)
+    std::uint32_t calmDue;              // platform::FrameClock() for the next calm track (0: not chosen)
 
     void SetZoneMode(std::string_view allod, bool dungeon);
     void Stop();

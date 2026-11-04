@@ -2,7 +2,7 @@
 // decoded by dr_wav and the music's halves at their volume and pan, the cave voices through a reverb; the MP3 files
 // decoded by dr_mp3 (third_party/dr_libs).
 // What the game reads back keeps to the game's clock whatever the device does: a voice ends when its wave would have
-// (WaveMilliseconds on platform::Milliseconds, delivered by DeliverEnds). The music's halves become free as the device
+// (WaveMilliseconds on platform::FrameClock, delivered by DeliverEnds). The music's halves become free as the device
 // plays them; without a device (UseNoDevice, or none could be opened) as fast as they would play on the game's clock.
 #include "audio.h"
 
@@ -773,7 +773,7 @@ void StartTimer(Voice& v) {
     v.running = true;
     v.stopped = false;
     v.forever = v.loops == 0;
-    v.startedAt = platform::Milliseconds();
+    v.startedAt = platform::FrameClock();
     v.end = v.startedAt + Remaining(v);
 }
 
@@ -866,7 +866,7 @@ void SetPosition(Voice* voice, std::int32_t bytes) {
 
 std::int32_t Position(const Voice* voice) {
     if (!voice->running || voice->stopped || voice->wave.dataLength == 0) return voice->position;
-    const std::uint64_t played = static_cast<std::uint64_t>(platform::Milliseconds() - voice->startedAt) * BytesPerSecond(voice->wave) / 1000;
+    const std::uint64_t played = static_cast<std::uint64_t>(platform::FrameClock() - voice->startedAt) * BytesPerSecond(voice->wave) / 1000;
     return static_cast<std::int32_t>((voice->position + played) % voice->wave.dataLength);
 }
 
@@ -884,7 +884,7 @@ void Stop(Voice* voice) {
     if (!voice->running || voice->stopped) return;
     voice->position = Position(voice);
     voice->stopped = true;
-    const std::uint32_t now = platform::Milliseconds();
+    const std::uint32_t now = platform::FrameClock();
     voice->left = static_cast<std::int32_t>(voice->end - now) > 0 ? voice->end - now : 0;
 }
 
@@ -895,7 +895,7 @@ void Resume(Voice* voice) {
     }
     if (!voice->running || !voice->stopped) return;
     voice->stopped = false;
-    voice->startedAt = platform::Milliseconds();
+    voice->startedAt = platform::FrameClock();
     voice->end = voice->startedAt + voice->left;
 }
 
@@ -1088,7 +1088,7 @@ void QueueHalf(Stream* stream, int half, const void* data, int bytes) {
 
 void StopStream(Stream* stream) {
     MixHold hold;
-    stream->Pump(platform::Milliseconds());
+    stream->Pump(platform::FrameClock());
     stream->stopped = true;
 }
 
@@ -1096,7 +1096,7 @@ void ResumeStream(Stream* stream) {
     MixHold hold;
     if (!stream->stopped) return;
     stream->stopped = false;
-    stream->pumpedAt = platform::Milliseconds();
+    stream->pumpedAt = platform::FrameClock();
 }
 
 // ---- The mixer ----

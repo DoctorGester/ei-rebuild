@@ -2,7 +2,7 @@
 #include "harness_system.h"
 
 #include "platform/log.h"
-#include "platform/paths.h"
+#include "platform/seams.h"
 #include "platform/platform.h"
 #include "platform/posix/platform_posix.h"
 
@@ -123,9 +123,9 @@ long long FreeMegabytes(const std::string& folder) {
 
 std::string ErrorText(unsigned long code) { return std::strerror(static_cast<int>(code)); }
 
-std::string FileOfHandle(void* handle) {
-    if (!handle) return {};
-    const int fd = static_cast<int>(reinterpret_cast<std::intptr_t>(handle) - 1);   // platform_posix.cpp's handles
+std::string FileOfHandle(std::intptr_t handle) {
+    if (handle < 0) return {};
+    const int fd = static_cast<int>(handle);
 #if defined(__APPLE__)
     char path[MAXPATHLEN];
     return fcntl(fd, F_GETPATH, path) == 0 ? std::string(path) : std::string();
@@ -136,32 +136,6 @@ std::string FileOfHandle(void* handle) {
     return n > 0 ? std::string(target, static_cast<std::size_t>(n)) : std::string();
 #endif
 }
-
-bool WriteHandle(void* handle, const void* data, unsigned size, unsigned* written, unsigned long* error) {
-    const int fd = handle ? static_cast<int>(reinterpret_cast<std::intptr_t>(handle) - 1) : -1;
-    const auto* bytes = static_cast<const char*>(data);
-    unsigned done = 0;
-    while (done < size) {
-        const ssize_t n = write(fd, bytes + done, size - done);
-        if (n < 0 && errno == EINTR) continue;
-        if (n <= 0) {
-            *error = n ? static_cast<unsigned long>(errno) : static_cast<unsigned long>(ENOSPC);
-            return false;
-        }
-        done += static_cast<unsigned>(n);
-    }
-    *written = done;
-    return true;
-}
-
-const unsigned long kDiskFull = ENOSPC;
-
-// ==== The game's calls as the system answers them ====================================================================
-
-
-bool FontSmoothing() { return true; }
-
-bool BringOtherGameForward(const char* name, const char* title) { return platform::posix::OtherInstanceRunning(name, title); }
 
 // ==== Processes, threads and time ====================================================================================
 

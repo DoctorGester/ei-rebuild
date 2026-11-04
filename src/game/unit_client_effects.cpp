@@ -581,7 +581,7 @@ void UnitClientSpecific::StopSpeech() {
 }
 
 bool UnitClientSpecific::Speak(ClientSpeech* said) {
-    std::uint32_t now = platform::Milliseconds();
+    std::uint32_t now = platform::FrameClock();
     if (lastSpeech == said->id && now - lastSpeechTime < kRepeatAfter) return false;
     said->sound = g_clientWorld.sounds->Play2D(said->id->sound.data(), kSpeechPriority, kSpeechVolume, 0, {.speech = true});
     lastSpeech = said->id;

@@ -323,7 +323,7 @@ bool WorldClient::RunTick() {
             // The connection is gone. Rebirth's DisableExitOnCrashReport
             // keeps the session: only the error is reported.
             if (!ei::rebirth::Enabled(ei::rebirth::Patch::DisableExitOnCrashReport)) SessionDisconnect(session);
-            game::FatalError(worlddata::SegmentDisconnectedText());
+            game::FatalError("%s", worlddata::SegmentDisconnectedText());
             return false;
         }
         view->RunTick();

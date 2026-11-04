@@ -23,7 +23,7 @@ Only these reach game logic; volumes, pans, reverb, positions and the pixels and
 
 - **Voice ends on the game's clock.** A voice's end is due its wave's length after Start (`WaveMilliseconds`: the
   data's bytes over the byte rate (IMA ADPCM: `rate * block / samplesPerBlock` truncated), truncated to ms, less the
-  start position, times the loop count; never with loop count 0), on `platform::Milliseconds`; Stop / Resume keep
+  start position, times the loop count; never with loop count 0), on `platform::FrameClock`; Stop / Resume keep
   what is left. The main loop delivers due ends with `DeliverEnds(now)` right after reading the frame's time, on the
   main thread, in voice order. A backend that plays for real still times ends this way, not by the device. This is
   Miles' own rule, checked on every wave and briefing voice of the vanilla, Rebirth and LostInAstral archives.

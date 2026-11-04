@@ -173,12 +173,11 @@ void Cursor::SetHeld(bool newHeld) {
     if (newHeld && !held) {
         platform::TakeMouseMotion();   // the motion from before the press dropped
         motion = {};
-        pollTime = platform::Milliseconds();
+        pollTime = platform::FrameClock();
         pollCount = 0;
         dragGiven = true;
-        Point at{};
-        if (platform::CursorPosition(&at)) {
-            heldPosition = Min(Max(at, Point{}), bounds.BottomRight());
+        if (const std::optional<Point> at = platform::CursorPosition()) {
+            heldPosition = Min(Max(*at, Point{}), bounds.BottomRight());
             position = heldPosition;
         }
     }
@@ -233,7 +232,7 @@ void Cursor::Shutdown() {
 
 bool Cursor::UpdatePosition() {
     // The frame: one step per 125 ms since frameTime (unsigned), wrapped by the frame count.
-    const std::uint32_t now = platform::Milliseconds();
+    const std::uint32_t now = platform::FrameClock();
     const std::uint32_t steps = (now - frameTime) / kFramePeriod;
     image->frame = static_cast<int>(static_cast<unsigned>(image->frame + steps) % static_cast<unsigned>(image->frames));
     frameTime += steps * kFramePeriod;
@@ -252,9 +251,7 @@ bool Cursor::UpdatePosition() {
     if (held) {
         point = heldPosition;
     } else {
-        Point at{};
-        platform::CursorPosition(&at);
-        point = at;
+        point = platform::CursorPosition().value_or(Point{});
         heldPosition = point;
     }
     point = Min(Max(point, Point{}), bounds.BottomRight());

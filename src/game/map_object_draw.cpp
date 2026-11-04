@@ -153,7 +153,7 @@ int Object3DClientSpecific::DrawParts(SceneRenderer* context, Rect* dirty) {
     if (allLit) {
         object->flags |= MapObjectFlag::Static;
         if (!wasStatic) {
-            touchTime = platform::Milliseconds();
+            touchTime = platform::FrameClock();
             flags |= kHalfRedraw;
         }
     } else {

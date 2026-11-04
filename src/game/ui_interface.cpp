@@ -147,7 +147,7 @@ void Interface3D::Create(TextureDevice* device) {
     messageFlag = 0;
     fpsSurface = nullptr;
     fpsSpare = 0;
-    fpsTime = platform::Milliseconds();
+    fpsTime = platform::FrameClock();
     fpsFrames = 0;
     disconnected = false;
 }

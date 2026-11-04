@@ -48,10 +48,9 @@ constexpr const char* kImageResolutionRebirth = "1280x720";
 
 bool SetResolution(const char* text) {
     if (text::CompareIgnoringCase(text, "desktop") == 0) {
-        int width = 0, height = 0;
-        platform::PrimaryDesktopSize(&width, &height);
-        if (width <= 0 || height <= 0) return false;
-        std::snprintf(g_resolution, sizeof(g_resolution), "%dx%d", width, height);
+        const std::optional<Size> desktop = platform::PrimaryDesktopSize();
+        if (!desktop || desktop->w <= 0 || desktop->h <= 0) return false;
+        std::snprintf(g_resolution, sizeof(g_resolution), "%dx%d", desktop->w, desktop->h);
         return true;
     }
     int w = 0, h = 0;

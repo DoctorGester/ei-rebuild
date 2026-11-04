@@ -1,8 +1,8 @@
 // platform.h's folder calls on std::filesystem, for every system: each path through SystemPath, then the backend's
-// NativePath (paths.h). The file objects, the folder search and the whole files are each backend's.
+// NativePath (seams.h). The file objects, the folder search and the whole files are each backend's.
 #include "platform/platform.h"
 
-#include "platform/paths.h"
+#include "platform/seams.h"
 
 #include <filesystem>
 #include <system_error>

@@ -211,7 +211,7 @@ int ParticleSource::EmitModifier(Particle* p, int index) {
     p->frameTimer = frameDelay;
     if (elements.empty()) {
         if (!attachedTo) {
-            game::DebugLog(NoCarrierMessage());
+            game::DebugLog("%s", NoCarrierMessage());
             return 0;
         }
         int count = static_cast<int>(AbsBits(size) * 10.0f);

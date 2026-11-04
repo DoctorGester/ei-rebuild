@@ -118,19 +118,18 @@ bool PlayMovie(const std::string& name, bool keysEnd, bool clearScreen, bool loa
     const bool centred = options::g_options.video != 2;
     bool escaped = false;
     std::vector<std::uint8_t> frame;
-    platform::Event event;
     for (;;) {
-        if (platform::TakeEvent(&event)) {
-            if (event.type == platform::EventType::KeyDown) {
-                if (event.key != platform::kKeyEscape && event.key != platform::kKeySpace) continue;
+        if (const std::optional<platform::Event> event = platform::TakeEvent()) {
+            if (event->type == platform::EventType::KeyDown) {
+                if (event->key != platform::kKeyEscape && event->key != platform::kKeySpace) continue;
                 if (!keysEnd) continue;
-                if (event.key == platform::kKeyEscape) escaped = true;
+                if (event->key == platform::kKeyEscape) escaped = true;
                 break;
-            } else if (event.type == platform::EventType::Quit) {   // the movie ends; the main loop ends on it
-                platform::PostQuit(event.quitCode);
+            } else if (event->type == platform::EventType::Quit) {   // the movie ends; the main loop ends on it
+                platform::PostQuit(event->quitCode);
                 break;
             } else {
-                app::HandleWindowEvent(event);
+                app::HandleWindowEvent(*event);
             }
             continue;
         }

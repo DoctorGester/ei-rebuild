@@ -176,7 +176,7 @@ int AIEventTable::Setup(AIMap* aiMap, float sizeX, float sizeY) {
         data = archive.GetFile(kNormalFile, nullptr);
         error = kCantOpenNormal;
     }
-    if (!data) return game::FatalError(error);
+    if (!data) return game::FatalError("%s", error);
     std::memcpy(g_normalTable, data, kNormalTableSize);
     archive.CloseFile(data);
     return 1;

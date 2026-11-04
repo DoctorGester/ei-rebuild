@@ -49,12 +49,12 @@ template <typename Object>
 Object* CachedObject(ItemObjectCache<Object>* cache, std::string_view name, Object* (*make)(std::string_view)) {
     auto node = cache->map.find(std::string(name));
     if (node != cache->map.end()) {
-        node->second.lastUse = platform::Milliseconds();
+        node->second.lastUse = platform::FrameClock();
         return node->second.object;
     }
     Object* object = make(name);
     if (!object) return nullptr;
-    std::uint32_t time = platform::Milliseconds();
+    std::uint32_t time = platform::FrameClock();
     {
         std::string key(name);
         ItemCacheEntry<Object>& value = cache->map[key];

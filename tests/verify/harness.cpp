@@ -503,7 +503,7 @@
 #include "harness_utf8.h"
 
 #include "platform/log.h"
-#include "platform/paths.h"
+#include "platform/seams.h"
 #include "platform/platform.h"
 #include "game/main_loop.h"
 #include "lib/rebirth.h"
@@ -3802,8 +3802,7 @@ bool MousePosition(Point* at) {
     int width = 0, height = 0;
     if (!window || !ClientSize(&width, &height)) return false;
     Point p = g_mouseX < 0 ? Point{width / 2, height / 2} : Point{g_mouseX, g_mouseY};
-    platform::ClientToScreen(window, &p);
-    *at = p;
+    *at = platform::ClientToScreen(window, p);
     return true;
 }
 

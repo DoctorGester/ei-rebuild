@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <deque>
 #include <memory>
+#include <optional>
 #include <string>
 #include <thread>
 #include <utility>
@@ -49,9 +50,9 @@ std::uint32_t Clock() { return static_cast<std::uint32_t>(SDL_GetTicks() + kCloc
 
 } // namespace
 
-std::uint32_t Milliseconds() { return Clock(); }
+std::uint32_t FrameClock() { return Clock(); }
 
-std::uint32_t TickCount() { return Clock(); }
+std::uint32_t CoarseClock() { return Clock(); }
 
 void Sleep(std::uint32_t ms) {
     if (ms == 0)
@@ -66,7 +67,7 @@ std::int64_t SecondsSince1970() {
 
 // ==== The message box ================================================================================================
 
-MessageAnswer ShowMessageBox(void* owner, const char* text, const char* caption, MessageButtons buttons,
+MessageAnswer ShowMessageBox(NativeWindow owner, const char* text, const char* caption, MessageButtons buttons,
                              MessageIcon icon) {
     constexpr int kOk = 0;
     const SDL_MessageBoxButtonData choices[] = {
@@ -172,7 +173,14 @@ void Fill() {
     while (g_waiting.empty() && SDL_PollEvent(&e)) Take(e);
 }
 
-Event QuitEvent() {
+// The next event taken from us: the first waiting, else PostQuit's request (once), else none.
+std::optional<Event> PopEvent() {
+    if (!g_waiting.empty()) {
+        Event event = std::move(g_waiting.front());
+        g_waiting.pop_front();
+        return event;
+    }
+    if (!g_quitPosted) return std::nullopt;
     Event quit;
     quit.type = EventType::Quit;
     quit.quitCode = g_quitCode;
@@ -276,39 +284,37 @@ void ShowGameWindow(NativeWindow window) {
 
 bool IsMinimized(NativeWindow window) { return WindowOf(window) && Minimized(); }
 
-void ScreenToClient(NativeWindow window, Point* point) {
+Point ScreenToClient(NativeWindow window, Point point) {
     int left = 0, top = 0;
     if (SDL_Window* w = WindowOf(window)) SDL_GetWindowPosition(w, &left, &top);
-    point->x -= Pixels(static_cast<float>(left));
-    point->y -= Pixels(static_cast<float>(top));
+    return Point{point.x - Pixels(static_cast<float>(left)), point.y - Pixels(static_cast<float>(top))};
 }
 
-void ClientToScreen(NativeWindow window, Point* point) {
+Point ClientToScreen(NativeWindow window, Point point) {
     int left = 0, top = 0;
     if (SDL_Window* w = WindowOf(window)) SDL_GetWindowPosition(w, &left, &top);
-    point->x += Pixels(static_cast<float>(left));
-    point->y += Pixels(static_cast<float>(top));
+    return Point{point.x + Pixels(static_cast<float>(left)), point.y + Pixels(static_cast<float>(top))};
 }
 
-bool CoverMonitor(NativeWindow window, Rect* was, Rect* monitor) {
+std::optional<MonitorCover> CoverMonitor(NativeWindow window) {
 #if defined(__APPLE__)
     // SDL's full screen covers the display (CreateGameWindow); a window the player took out of its Space stays so.
-    (void)window, (void)was, (void)monitor;
-    return false;
-#endif
+    (void)window;
+    return std::nullopt;
+#else
     SDL_Window* w = WindowOf(window);
-    if (!w || Minimized()) return false;
+    if (!w || Minimized()) return std::nullopt;
     SDL_Rect bounds{};
-    if (!SDL_GetDisplayBounds(SDL_GetDisplayForWindow(w), &bounds)) return false;
+    if (!SDL_GetDisplayBounds(SDL_GetDisplayForWindow(w), &bounds)) return std::nullopt;
     int left = 0, top = 0, width = 0, height = 0;
     SDL_GetWindowPosition(w, &left, &top);
     SDL_GetWindowSize(w, &width, &height);
-    if (left == bounds.x && top == bounds.y && width == bounds.w && height == bounds.h) return false;
-    *was = Rect{left, top, left + width, top + height};
-    *monitor = Rect{bounds.x, bounds.y, bounds.x + bounds.w, bounds.y + bounds.h};
+    if (left == bounds.x && top == bounds.y && width == bounds.w && height == bounds.h) return std::nullopt;
     SDL_SetWindowPosition(w, bounds.x, bounds.y);
     SDL_SetWindowSize(w, bounds.w, bounds.h);
-    return true;
+    return MonitorCover{Rect{left, top, left + width, top + height},
+                        Rect{bounds.x, bounds.y, bounds.x + bounds.w, bounds.y + bounds.h}};
+#endif
 }
 
 void SetFullScreen(NativeWindow window, bool fullScreen) {
@@ -325,10 +331,12 @@ void SetFullScreen(NativeWindow window, bool fullScreen) {
 #endif
 }
 
-bool WindowPixelSize(NativeWindow window, int* width, int* height) {
+std::optional<Size> WindowPixelSize(NativeWindow window) {
     SDL_Window* w = WindowOf(window);
-    if (!w || Minimized() || !SDL_GetWindowSizeInPixels(w, width, height)) return false;
-    return *width > 0 && *height > 0;
+    int width = 0, height = 0;
+    if (!w || Minimized() || !SDL_GetWindowSizeInPixels(w, &width, &height) || width <= 0 || height <= 0)
+        return std::nullopt;
+    return Size{width, height};
 }
 
 void SetClientSize(NativeWindow window, int width, int height) {
@@ -374,32 +382,17 @@ bool EventWaits() {
     return !g_waiting.empty() || g_quitPosted;
 }
 
-bool NextEvent(Event* event) {
+Event NextEvent() {
     for (;;) {
         Fill();
-        if (!g_waiting.empty()) {
-            *event = g_waiting.front();
-            g_waiting.pop_front();
-            return true;
-        }
-        if (g_quitPosted) {
-            *event = QuitEvent();
-            return false;
-        }
+        if (std::optional<Event> event = PopEvent()) return *std::move(event);
         SDL_WaitEvent(nullptr);
     }
 }
 
-bool TakeEvent(Event* event) {
+std::optional<Event> TakeEvent() {
     Fill();
-    if (!g_waiting.empty()) {
-        *event = g_waiting.front();
-        g_waiting.pop_front();
-        return true;
-    }
-    if (!g_quitPosted) return false;
-    *event = QuitEvent();
-    return true;
+    return PopEvent();
 }
 
 void PostQuit(int code) {
@@ -459,28 +452,18 @@ void MapCursorPoints(PointMap toGame, PointMap toScreen) {
     g_toScreen = toScreen;
 }
 
-bool CursorPosition(Point* at) {
+std::optional<Point> CursorPosition() {
     float x = 0.0f, y = 0.0f;
     SDL_GetGlobalMouseState(&x, &y);
-    Point point{Pixels(x), Pixels(y)};
-    if (g_toGame) g_toGame(&point);
-    *at = point;
-    return true;
+    const Point point{Pixels(x), Pixels(y)};
+    return g_toGame ? g_toGame(point) : point;
 }
 
 // Held: SDL's relative mode (the motion from the device, not the pointer) with the pointer kept in a one-pixel mouse
 // rectangle at the point. Let go, SDL puts the pointer where its motion would have taken it.
-void HoldCursor(const Point* at) {
+void HoldCursor(Point at) {
     if (!g_window) return;
-    if (!at) {
-        if (!g_holding) return;
-        SDL_SetWindowMouseRect(g_window, nullptr);
-        SDL_SetWindowRelativeMouseMode(g_window, false);
-        g_holding = false;
-        return;
-    }
-    Point screen = *at;
-    if (g_toScreen) g_toScreen(&screen);
+    const Point screen = g_toScreen ? g_toScreen(at) : at;
     int left = 0, top = 0;
     SDL_GetWindowPosition(g_window, &left, &top);
     const SDL_Rect place{Whole(static_cast<float>(screen.x) / PixelsPerPoint()) - left,
@@ -492,9 +475,16 @@ void HoldCursor(const Point* at) {
     g_holding = true;
 }
 
+void ReleaseCursor() {
+    if (!g_window || !g_holding) return;
+    SDL_SetWindowMouseRect(g_window, nullptr);
+    SDL_SetWindowRelativeMouseMode(g_window, false);
+    g_holding = false;
+}
+
 void SetCursorPosition(Point at) {
-    HoldCursor(nullptr);
-    if (g_toScreen) g_toScreen(&at);
+    ReleaseCursor();
+    if (g_toScreen) at = g_toScreen(at);
     SDL_WarpMouseGlobal(static_cast<float>(at.x) / PixelsPerPoint(), static_cast<float>(at.y) / PixelsPerPoint());
 }
 

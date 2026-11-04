@@ -113,7 +113,7 @@ struct Movie {
         for (;;) {
             const std::size_t available = pending.size() - pendingStart;
             if (available == 0 || (available < halfSamples && decoded < file.FrameCount())) break;
-            const int half = audio::ReadyHalf(stream, platform::Milliseconds());
+            const int half = audio::ReadyHalf(stream, platform::FrameClock());
             if (half < 0) break;
             const std::size_t take = std::min(available, halfSamples);
             const auto from = pending.begin() + static_cast<std::ptrdiff_t>(pendingStart);

@@ -74,7 +74,7 @@ void drawn::NotePlaced(Object3D* object, const Pose& before) {
     }
     step.correction = jump;
     step.correctionShare = g_spread;
-    step.correctionStart = platform::Milliseconds();
+    step.correctionStart = platform::FrameClock();
 }
 
 void drawn::NotePathChanged(Object3D* object) { object->drawnStep.pathChanged = true; }
@@ -91,7 +91,7 @@ drawn::Pose drawn::PoseOf(const Object3D* object) {
         out.rotation.Slerp(g_back, step.to.rotation, step.from.rotation);
     }
     if (step.correctionShare > 0.0f) {
-        const std::uint32_t elapsed = platform::Milliseconds() - step.correctionStart;
+        const std::uint32_t elapsed = platform::FrameClock() - step.correctionStart;
         if (elapsed < kCorrectionFade) {
             const float t = static_cast<float>(elapsed) / static_cast<float>(kCorrectionFade);
             const float left = (1.0f - t * t * (3.0f - 2.0f * t)) * step.correctionShare;
@@ -106,7 +106,7 @@ drawn::Pose drawn::Show(Object3D* object) {
     ObjectStep& step = object->drawnStep;
     step.shown = shown.position;
     step.hasShown = true;
-    if (step.correctionShare > 0.0f && platform::Milliseconds() - step.correctionStart >= kCorrectionFade)
+    if (step.correctionShare > 0.0f && platform::FrameClock() - step.correctionStart >= kCorrectionFade)
         step.correctionShare = 0.0f;
     return shown;
 }

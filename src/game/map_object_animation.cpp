@@ -236,7 +236,7 @@ void FigureAnimationState::SetBlends(bool on) { g_blends = on; }
 
 float FigureAnimationState::BlendWeight() {
     if (blendLength == 0) return 1.0f;
-    const std::uint32_t elapsed = platform::Milliseconds() - blendStart;
+    const std::uint32_t elapsed = platform::FrameClock() - blendStart;
     if (elapsed >= blendLength) {
         blendLength = 0;
         return 1.0f;

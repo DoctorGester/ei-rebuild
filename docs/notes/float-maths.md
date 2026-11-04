@@ -9,7 +9,7 @@ original's x87 rounding any more, and one set of goldens holds on Windows and Li
   `(30x + d) * (1/31)` settled on another fixed point), so never use it. The vector helpers sum left to right.
 - **Floats, with float constants** (`0.001f`, `1.0f / 15.0f`, `6.3f * 0x1p-32f` for a random word to [0, 6.3)). A
   double constant or a double-returning function in float maths is a C4244 warning, which fails the build.
-- **Double only where precision matters:** millisecond and tick clocks (`platform::Milliseconds`, the animation frames
+- **Double only where precision matters:** millisecond and tick clocks (`platform::FrameClock`, the animation frames
   of the hero and camp screens, the connections' clocks), free disk space and file sizes, the performance timers,
   printf's arguments, the registry's `GetFloat` (an int value exact), script values (`GetVariable`, addon's
   `CrtSin` / `CrtCos` / `CrtPow`), the shadow camera's matrix inverse (render_shadows.cpp) and the Bink audio

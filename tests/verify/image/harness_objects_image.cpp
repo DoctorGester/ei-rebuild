@@ -559,7 +559,7 @@ bool ClientObject(int id, const char* part, ObjectState* out) {
     if (FigureAnimationState* state = found->animation) {
         out->animation = state->current ? state->current->name : "";
         out->frame = state->time;
-        out->blend = state->blendLength != 0 ? static_cast<float>(platform::Milliseconds() - state->blendStart) /
+        out->blend = state->blendLength != 0 ? static_cast<float>(platform::FrameClock() - state->blendStart) /
                                                    static_cast<float>(state->blendLength)
                                              : 1.0f;
     }

@@ -195,13 +195,12 @@ void DispatchInput(const platform::Event& received) {
 }
 
 void PumpMessages() {
-    platform::Event event;
-    while (platform::TakeEvent(&event)) {
-        if (event.type == EventType::Quit) {   // left for the main loop, which ends on it
-            platform::PostQuit(event.quitCode);
+    while (const std::optional<platform::Event> event = platform::TakeEvent()) {
+        if (event->type == EventType::Quit) {   // left for the main loop, which ends on it
+            platform::PostQuit(event->quitCode);
             return;
         }
-        HandleWindowEvent(event);
+        HandleWindowEvent(*event);
     }
 }
 
