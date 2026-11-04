@@ -57,6 +57,7 @@ ChatWindow::ChatWindow(Interface3D* ownerUi) : UiWindow(ownerUi) {
     rect = Rect{left, 0, 800, 0xA0};
     UiSurface* surface = new UiSurface(ui, left, 0x4B, 800, 0x69, SurfaceBlend::Keyed, true);
     AddSurface(surface);
+    surface->PaintWith([this](UiSurface& out) { PaintStatus(out); });
     portraits = 0;
     std::string text;
     for (const char* key : kTextKeys) {
@@ -166,8 +167,7 @@ void ChatWindow::Update() {
         GameSendLeave04(9);
         return;
     }
-    UiSurface* surface = surfaces[0];
-    surface->Clear();
+    statusRows.clear();
     std::string status, offer;
     int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? kFirstFaceLeft : kFirstStatusLeft;
     for (auto p = players.begin(); p != players.end(); ++p, left -= kFaceWidth) {
@@ -191,13 +191,19 @@ void ChatWindow::Update() {
                 break;
             }
         }
-        if (status.size() != 0) {
-            Rect line{left, 0, left + kFaceWidth, 0xF};
-            surface->DrawTextIn(status, &line, 0, kWhite, 1, 1);
+        statusRows.push_back({left, status, offer});
+    }
+}
+
+void ChatWindow::PaintStatus(UiSurface& surface) const {
+    for (const StatusRow& row : statusRows) {
+        if (row.status.size() != 0) {
+            Rect line{row.left, 0, row.left + kFaceWidth, 0xF};
+            surface.DrawTextIn(row.status, &line, 0, kWhite, 1, 1);
         }
-        if (offer.size() != 0) {
-            Rect line{left, 0xF, left + kFaceWidth, 0x1E};
-            surface->DrawTextIn(offer, &line, 0, kWhite, 1, 1);
+        if (row.offer.size() != 0) {
+            Rect line{row.left, 0xF, row.left + kFaceWidth, 0x1E};
+            surface.DrawTextIn(row.offer, &line, 0, kWhite, 1, 1);
         }
     }
 }

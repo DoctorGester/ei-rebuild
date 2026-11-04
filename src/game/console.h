@@ -97,7 +97,7 @@ inline unsigned g_filterMask = /*007C7B68*/ {};
 inline bool g_cheatEnabled = /*007C7B64*/ {};
 
 // The console window (the interface manager keeps it). Lines are kept as text;
-// the surface is redrawn from them.
+// the surface is painted from them each frame.
 class ConsoleWindow {
 public:
     // Made by Interface3D::Create: a 9-point "Courier New" font, the rectangle (0, 0)-(800, 150), a 256-line history.
@@ -114,8 +114,11 @@ public:
     void OnKeyDown(int key, int repeat, int flags);   // editing and scrolling keys
     void OnChar(int key, int repeat, int flags);      // typed characters, Enter, Escape
     void OnKeyUp(int key, int repeat, int flags);     // platform::kKeyShift / platform::kKeyControl clear shift / ctrl
-    void DrawLines();                          // the lines above the input line
-    void DrawInput();                          // the input line, selection and caret
+    void ClampScroll();                        // the scroll position within the lines
+    void ClampCaret();                         // the caret and the anchor within the input
+    // The surface's paint: the lines above the input line; the input line, selection and caret.
+    void PaintLines(UiSurface& surface) const;
+    void PaintInput(UiSurface& surface) const;
     // Called by the interface's 2D redraw while the console is shown. The surface's blit when there is one.
     void Blit();
     // Keeps the last `count` lines.

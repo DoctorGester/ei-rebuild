@@ -255,12 +255,8 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
             if (foundText) {
                 title = g_clientWorld.texts->ReadLine(true);
                 text = g_clientWorld.texts->ReadToHash();
-                UiSurface* surface = surfaces[1];
-                surface->Clear();
-                Rect titleRect = {0, 5, 340, 25};
-                surface->DrawTextIn(title, &titleRect, 1, 0x31B3FF, 1, 1);
-                Rect textRect = {10, 25, 330, 140};
-                surface->DrawTextIn(text, &textRect, 1, 0xA7D7E4, 0x11, 1);
+                zoneTitle = title;
+                zoneText = text;
             }
         }
     }
@@ -403,8 +399,8 @@ void ObjectivesWindow::CreateScreen() {
 
     LoadTexture("saveload", TextureKind::Interface);
     LoadTexture("cross", TextureKind::Interface);
-    AddSurface(NewSurface(ui, 50, 20, 390, 160));
-    AddSurface(NewSurface(ui, 410, 380, 750, 520));
+    AddSurface(NewSurface(ui, 50, 20, 390, 160))->PaintWith([this](UiSurface& out) { PaintQuestList(out); });
+    AddSurface(NewSurface(ui, 410, 380, 750, 520))->PaintWith([this](UiSurface& out) { PaintZone(out); });
     AddSurface(NewSurface(ui, 280, 540, 520, 580));
 
     if (twoButtons)
@@ -534,8 +530,7 @@ void ObjectivesWindow::DrawQuestList() {
     std::string variable;
     auto mesh = [this](int index) { return SceneMesh(index); };
     mesh(2)->visible = false;
-    auto* surface = surfaces[0];
-    surface->Clear();
+    questTitles.clear();
     for (int i = 16; i < 21; ++i) mesh(i)->visible = false;
     std::vector<std::string>& currentQuests = quests;
     int row = firstRow;
@@ -560,9 +555,24 @@ void ObjectivesWindow::DrawQuestList() {
             mesh(2)->Place(215.0f, static_cast<float>(y + 29), 3.0f);
             mesh(2)->visible = true;
         }
-        Rect area{36, y, 320, y + 21};
-        surface->DrawTextIn(title, &area, 1, 0xA7D7E4, 0, 1);
+        questTitles.push_back(title);
     }
+}
+
+void ObjectivesWindow::PaintQuestList(UiSurface& surface) const {
+    int y = 13;
+    for (const std::string& title : questTitles) {
+        Rect area{36, y, 320, y + 21};
+        surface.DrawTextIn(title, &area, 1, 0xA7D7E4, 0, 1);
+        y += 24;
+    }
+}
+
+void ObjectivesWindow::PaintZone(UiSurface& surface) const {
+    Rect titleRect = {0, 5, 340, 25};
+    surface.DrawTextIn(zoneTitle, &titleRect, 1, 0x31B3FF, 1, 1);
+    Rect textRect = {10, 25, 330, 140};
+    surface.DrawTextIn(zoneText, &textRect, 1, 0xA7D7E4, 0x11, 1);
 }
 
 // --- What the window is opened for, and its help topic --------------------

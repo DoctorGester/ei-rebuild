@@ -1,7 +1,7 @@
 // A scrolling text's tokeniser (UiScrollText::Tokenize): the message log and the objectives window's quest
-// log hand it each text they add; and its drawing of the laid out lines (DrawLines); also the rest of the
-// class (constructor, destructor body, texts, layout, drawing), the scroll bar's maximum and the tokens'
-// destructor bodies. See ui.h and docs/notes/items_spells.md.
+// log hand it each text they add; and the placing of the laid out lines' words (PlaceWords) that its paint draws;
+// also the rest of the class (constructor, destructor body, texts, layout, drawing), the scroll bar's maximum and
+// the tokens' destructor bodies. See ui.h and docs/notes/items_spells.md.
 #include "ui.h"
 
 #include "lib/containers.h"
@@ -32,11 +32,6 @@ bool IsFormat(const char* token) {
 constexpr int kAlignLeft = 1;
 const char* FontSampleText() { return "W"; }   // measured for each font's height
 constexpr int kMeasuredFonts = 3;
-
-// A word of a line (the surface's text call, Rebirth-patched).
-void DrawWord(UiSurface* surface, std::string_view text, Rect* rect, int font, std::uint32_t colour) {
-    surface->DrawTextIn(text, rect, font, colour, 0, 1);
-}
 
 constexpr float kScrollSpeed = 20.0f;        // lines per second while an arrow is held
 constexpr int kBarWidth = 14;                // the text's rectangle stops short of the bar
@@ -132,9 +127,8 @@ void UiScrollText::Tokenize(const std::string& text) {
     } while (pos < static_cast<int>(text.size()));
 }
 
-void UiScrollText::DrawLines(int scroll) {
-    UiSurface* surface = !surfaces.empty() ? surfaces[0] : nullptr;
-    surface->Clear();
+void UiScrollText::PlaceWords(int scroll) {
+    shownWords.clear();
     int lineCount = lib::Count(lines);
     if (lineCount <= 0) {
         return;
@@ -214,7 +208,7 @@ void UiScrollText::DrawLines(int scroll) {
                 font = format->font;
             } else if (token->type == kWordType) {
                 auto* w = token->AsWord();
-                DrawWord(surface, w->text, &word, font, colour);
+                shownWords.push_back({w->text, word, font, colour});
                 word.left += w->width + gap;
             }
         }
@@ -225,12 +219,20 @@ void UiScrollText::DrawLines(int scroll) {
     } while (drawn < textRect.Height() - offset && line < std::ssize(lines));
 }
 
+// Each placed word through the surface's text call (Rebirth-patched).
+void UiScrollText::PaintWords(UiSurface& surface) const {
+    for (const ShownWord& shown : shownWords) {
+        Rect area = shown.rect;
+        surface.DrawTextIn(shown.text, &area, shown.font, shown.colour, 0, 1);
+    }
+}
+
 // --- Construction, texts, layout ----------------------------------------------------------
 
 // The scroll bar's tables with its own drawing and layout.
 UiScrollText::UiScrollText(Interface3D* ownerUi, const char* text, Rect rect, float depth)
     : UiScrollbar(ownerUi, rect, depth, 0, kScrollSpeed) {
-    AddSurface(new UiSurface(ui, &rect, SurfaceBlend::Keyed));
+    AddSurface(new UiSurface(ui, &rect, SurfaceBlend::Keyed))->PaintWith([this](UiSurface& out) { PaintWords(out); });
     UiScrollbar::SetRect(&rect);
     PlaceText(rect);
     DeleteTokens();
@@ -284,7 +286,7 @@ void UiScrollText::SetRect(const Rect* newRect) {
 }
 
 void UiScrollText::Draw(SceneRenderer* pass) {
-    if (TakeMoved()) DrawLines(Position());
+    if (TakeMoved()) PlaceWords(Position());
     DrawBase(pass);
 }
 

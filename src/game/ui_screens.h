@@ -379,9 +379,11 @@ public:
     void MasterRequest();
     // Writes the client's queries to config\addrbook.ini (a chunk archive, chunk 1).
     void SaveAddressBook();
-    // The list drawn on surface 0 (Rebirth-patched: WideScreen, and ExtendedServerName behind its flag): see
-    // docs/notes/ui.md, "MpConnectScreen::DrawListVanilla".
+    // The list's controls, sprites and tips for the selection, and the text colour left as the list's drawing left
+    // it (docs/notes/ui.md, "MpConnectScreen::DrawListVanilla"); PaintList, surface 0's paint, draws the list's texts
+    // (Rebirth-patched: WideScreen, and ExtendedServerName behind its flag).
     void DrawListVanilla();
+    void PaintList(UiSurface& surface) const;
     // The list again: the client's servers (ServerAt) in order, sorted by sortKey (std::sort), the new game entry
     // inserted first; the selection follows its address (row 0 and address 0 when gone); the scroll bar's range is
     // the rows past 15 and its position set again; scrollTop 0.
@@ -405,6 +407,7 @@ public:
     std::vector<std::string> texts;       // "lmp_connection %d" texts (22)
     int sortKey;                   // 0 none; 1..8 the column pairs (odd ascending)
     bool newGameTips;              // the unlisted and password regions have their tips (DrawList; 0 from Create)
+    std::uint32_t titleColour = 0xA7D7E4;   // the titles' colour: g_connectTextColour before the last DrawListVanilla
 };
 
 // A message box waiting on a master server request: one cancel button, the link to the master server and a progress bar

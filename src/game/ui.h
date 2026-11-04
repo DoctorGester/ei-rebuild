@@ -1441,7 +1441,7 @@ struct UiWordToken : UiTextToken {
 inline UiFormatToken* UiTextToken::AsFormat() { return static_cast<UiFormatToken*>(this); }
 inline const UiFormatToken* UiTextToken::AsFormat() const { return static_cast<const UiFormatToken*>(this); }
 inline UiWordToken* UiTextToken::AsWord() { return static_cast<UiWordToken*>(this); }
-// A laid out line of a scrolling text: the fields DrawLines reads (the record's size is not known).
+// A laid out line of a scrolling text: the fields PlaceWords reads.
 struct UiTextLine {
     int height;                      // pixels
     int firstToken;                  // index in the token array
@@ -1459,7 +1459,7 @@ public:
     // Scrolls to the top.
     void SetText(std::string_view text);
     void SetRect(const Rect* rect) override;
-    // Draws the lines again when the position moved.
+    // Places the words again when the position moved.
     void Draw(SceneRenderer* pass) override;
     // The lines stay until the next layout.
     void Clear();
@@ -1472,14 +1472,24 @@ public:
     // up to the next space, tab, BEL or newline. Returns the position after it, or -1 at the end (`out`
     // untouched). `this` is not read.
     int NextToken(const std::string& text, int pos, std::string* out);
-    // From `scroll` pixels down. A line is justified when align is not 1, it is not the last, not ended by
-    // a newline, and of two or more tokens.
-    void DrawLines(int scroll);
+    // The words of the lines shown from `scroll` pixels down into shownWords. A line is justified when align is
+    // not 1, it is not the last, not ended by a newline, and of two or more tokens.
+    void PlaceWords(int scroll);
+    // The surface's paint: shownWords.
+    void PaintWords(UiSurface& surface) const;
 
     Rect textRect;                   // the text's rectangle (surface coordinates)
     std::vector<UiTextToken*> tokens;
     std::vector<UiTextLine*> lines; // the laid out lines
     int align;                       // 1: left aligned (else justified)
+    // A word as PlaceWords placed it: its rectangle (surface layout units), font and colour.
+    struct ShownWord {
+        std::string text;
+        Rect rect;
+        int font;
+        std::uint32_t colour;
+    };
+    std::vector<ShownWord> shownWords;
 
 private:
     // The tail of SetRect (the text 14 pixels narrower for the bar).
@@ -1558,7 +1568,10 @@ public:
     // Not for a broken save.
     void LoadSelected();
 
+    // The caret kept within the name and the selection's marker on its row; PaintList (surface 0's paint) draws the
+    // rows, the caret and the selected save's details (Rebirth-patched: WideScreen).
     void RefreshListVanilla();
+    void PaintList(UiSurface& surface) const;
 
     // Saves into the selected entry's folder, then info.sav and shot.sav (newPicture); a message
     // box when the disc is full.
@@ -1714,8 +1727,11 @@ public:
     void ShowZone(std::string_view zone);
     // When the selected quest changed: its description and a marker and region per place of the quest.
     void ShowQuest();
-    // Up to five rows from firstRow.
+    // Up to five rows from firstRow: their marks and the selection's marker, their titles into questTitles.
     void DrawQuestList();
+    // Surface 0's and surface 1's paints: questTitles; the zone's title and description.
+    void PaintQuestList(UiSurface& surface) const;
+    void PaintZone(UiSurface& surface) const;
     // Region 0 OK (with two buttons the time to the nearest exit passes and that zone is requested), 1
     // cancel, 2 / 3 the previous / next listed zone, 4-8 a quest row, from 9 an exit.
     void LeftDown(int buttons, Point point) override;
@@ -1755,6 +1771,9 @@ public:
     float blinkTime;                 // seconds since the exit was selected (the markers' blink)
     std::vector<Vector2> questPlaces;    // the selected quest's places
     std::vector<std::string> objectiveTexts;    // obj_0..obj_2
+    std::vector<std::string> questTitles;    // the shown rows' titles (DrawQuestList)
+    std::string zoneTitle;          // the last zone with a text: its title and description (ShowZone)
+    std::string zoneText;
     std::uint8_t savedAlphaRef;
 };
 
@@ -1788,8 +1807,10 @@ public:
     // Applies the settings whose bar or spin control changed (volumes, the display's gamma at once).
     void Update() override;
 
-    // The group titles, the shown group's rows (a binding waiting for its key in red) and the highlight.
+    // The group buttons' tints and the highlight on the selected row; PaintRows (surface 0's paint) draws the group
+    // titles and the shown group's rows (a binding waiting for its key in red).
     void RefreshRows();
+    void PaintRows(UiSurface& surface) const;
     // Clamped to 0-10; the first filled row selected (or row 0), the key wait cleared.
     void ShowGroup(int group);
     // OK: the key table and every setting into the game's option globals (the difficulty only outside a
@@ -1965,8 +1986,10 @@ public:
     // Opening empties the typed line.
     void SetOpen(bool open);
     void ClearLines();
-    // Rebirth-patched (WideScreen). Hidden while the chat is closed; clamps the caret.
-    void DrawTyped();
+    // Hidden while the chat is closed; clamps the caret.
+    void ShowTyped();
+    // Rebirth-patched (WideScreen). The typed line's paint: the background, the text and a 1-pixel caret line.
+    void PaintTyped(UiSurface& surface) const;
     // Nothing while the chat is closed. Every key is marked used; Enter sends a non-empty line (a network
     // client: SayMessage kept 60 s) and, like Esc, closes the chat. Char inserts unless Ctrl is down, the
     // line is 200 characters or more, or it would be 780 pixels wide; the character is not marked used.
