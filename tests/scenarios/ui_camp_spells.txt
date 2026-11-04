@@ -1,0 +1,44 @@
+# H43h: the camp's spell trade page (ui_camp_deals.cpp's StockSpells and the spell halves of DoAction / UndoAction;
+# ui_camp_deals is the item trade page's). The camp opens with trader class 1; page 2 (region 6) is the spell
+# constructor's trade page. A spell container (class 0x3008) from the strip goes onto its sell list (campputon), the
+# first action button (region 0) stocks it into the template's spells (the container's spell) and returns the lists;
+# a second one is taken back with the second button (region 1). A rune's trade (rune.e2: a modifier) goes the same
+# way through the modifier branch. Esc leaves the camp.
+reject Script error
+waitmenu
+console thingamabob
+
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GiveItem(0,"spell container[strength{d2}]")
+frames 5
+console @GiveItem(0,"spell container[antimagic]")
+frames 5
+console @GiveItem(0,"rune.e2")
+frames 10
+
+screen 5 1
+waitwindow 15 camp
+clickregion 6
+frames 5
+campputon 3008 1
+frames 3
+clickregion 0
+wait 500
+campputon 3008 1
+frames 3
+clickregion 1
+frames 5
+campputon 3008 1
+frames 3
+campputon 3007 1
+frames 3
+clickregion 0
+wait 500
+key esc
+waitwindow 15 battle
+waitfor 10 IsGreater(HP(GetLeader()),0)
+check IsAlive(GetLeader())
+report
+quit

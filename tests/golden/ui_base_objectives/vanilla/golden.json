@@ -1,0 +1,13 @@
+{
+  "scenario": "ui_base_objectives",
+  "install": "vanilla",
+  "recorded": "2026-11-04",
+  "commit": "74077fd31",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "New scenarios for H43g and H43h (lobby address book, password join, exchange withdraw and leave, base screen hide and objectives, mini map edges, hero rename, camp spell trade): first goldens.",
+  "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+}

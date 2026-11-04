@@ -1,0 +1,33 @@
+# H43h: a base dialogue that hides what it showed (BriefingScreen::HideSpeaker; ui_base_topic is the same walk with
+# M4). Smith's topic "M6" (texts.res "briefing M6") shows a rune item ("#show CryptRune00") and hides it again and
+# then hides Smith himself ("#hide CryptRune00", "#hide Smith"): the first hide finds no unit, so it takes the shown
+# item's scene objects away; the second finds the unit among the speakers and sends it back to its place.
+# Esc skips the phrases (every command line runs), the next Esc takes the rewards.
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 40 IsUnitBlocked(GetLeader())
+zone bz1g 0
+waitzone 20 bz1g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+check IsAlive(GetObjectByName("Smith"))
+console @GSSetVar(0,"b.Smith.M6",1)
+console #GSGetVar(0,"b.Smith.M6")
+console @MoveToObject(GetLeader(),GetObjectByName("Smith"))
+waitfor 30 IsLess(DistanceUnitUnit(GetLeader(),GetObjectByName("Smith")),4)
+waitunit 10 Smith
+clickunit Smith
+frames 10
+clickregion 0
+# the people walk to their places (state 2) before the phrases start
+waitdialogue 20 3
+key esc
+waitdialogue 20 4
+key esc
+waitdialogue 20 0
+console #GSGetVar(0,"b.Smith.M6")
+check IsAlive(GetLeader())
+report
+quit
