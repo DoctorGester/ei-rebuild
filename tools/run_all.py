@@ -41,7 +41,8 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
   --dzn            Linux: the games draw on Dozen, Mesa's Vulkan on D3D12 (WSL's GPU), from ~/mesa-dzn, instead of
                    the system's driver (lavapipe without a GPU, CI's reference); EI_VK_ICD=dzn says the same,
                    EI_VK_ICD=<manifest .json> names any Vulkan driver (vulkan_driver(); docs/notes/linux.md, "The GPU
-                   under WSL")
+                   under WSL"). Under WSL such games draw on Windows' GPU, so the run also holds as many of Windows'
+                   game slots as it can run games at once (hold_windows_slots(), through Windows' Python)
 exit code: 0 when every run passed
 
 A run that outlives the scenario's time limit ("timeout <seconds>", default 60 s) is reported as TIMEOUT: the
@@ -952,6 +953,7 @@ def parse_args(argv=None):
     ap.add_argument('--clock')
     ap.add_argument('--jobs', type=int, default=16)
     ap.add_argument('--dzn', action='store_true')
+    ap.add_argument('--hold-slots', type=int, help=argparse.SUPPRESS)   # hold_windows_slots()'s Windows side
     return ap.parse_args(argv)
 
 
@@ -1214,13 +1216,47 @@ def vulkan_driver(dzn=False, environ=None):
     return manifest
 
 
+def hold_windows_slots(count):
+    """WSL, games on Windows' GPU (vulkan_driver()): Windows' Python (python.exe through WSL's interop) runs this file
+    with --hold-slots count, which takes that many of Windows' machine slots (machine_slot(), the same lock files as
+    Windows' suites and work.py's scheduler) and keeps them until this process ends, so Windows' and WSL's games on
+    the GPU together stay within Windows' 16 (24 crashed Windows: the NVIDIA driver hung). Waits until they are held;
+    exits when Windows' Python cannot be started."""
+    python = os.environ.get('EI_WINDOWS_PYTHON') or shutil.which('python.exe')
+    if not python:
+        sys.exit("no Windows python.exe on PATH (EI_WINDOWS_PYTHON names one): the games on Windows' GPU need its slots")
+    script = subprocess.run(['wslpath', '-w', os.path.abspath(__file__)], capture_output=True, text=True).stdout.strip()
+    print(f"waiting for {count} of Windows' game slots")
+    sys.stdout.flush()
+    proc = subprocess.Popen([python, script, '--hold-slots', str(count)], stdin=subprocess.PIPE,
+                            stdout=subprocess.PIPE, text=True)
+    if proc.stdout.readline().strip() != 'held':
+        proc.kill()
+        sys.exit("Windows' game slots could not be taken")
+    atexit.register(lambda: (proc.stdin.close(), proc.wait()))
+    return proc
+
+
+def hold_slots(count):
+    """--hold-slots (Windows' side of hold_windows_slots()): count machine slots until stdin closes."""
+    with machine_slot(count=count):
+        print('held')
+        sys.stdout.flush()
+        sys.stdin.read()
+    return 0
+
+
 def main():
     args = parse_args()
+    if args.hold_slots:
+        return hold_slots(args.hold_slots)
     if args.golden:
         os.environ['EI_DIGEST'] = str(GOLDEN_PERIOD)
     start_headless_display()
-    vulkan_driver(args.dzn)
+    gpu = vulkan_driver(args.dzn)
     jobs = plan(args)
+    if gpu and under_wsl():
+        hold_windows_slots(min(MACHINE_SLOTS, max(1, args.jobs) * max([games_of(n) for n, _ in jobs] or [1])))
     build = BUILD
     db = timing_db()
     times = expected_times(jobs, build=build, db=db)

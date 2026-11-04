@@ -1002,6 +1002,11 @@ forward-declared handles, so the files include no SDL header. `ei_gpu_check` che
   time runs from its submission (or the end of the one before, if later) to when its fence was seen signalled.
   `FrameGpuTime` gives the latest. The thread only queries fences: SDL's Direct3D 12 `SDL_WaitForGPUFences` holds the
   submit lock while it waits, so a waiting thread would stall the main thread's submissions.
+- **Fences**: each `Submit` keeps its submission's fence until the submission is seen finished; with the frame timer
+  off, `Submit` asks the older ones itself, so a finished submission's fence goes back to SDL at the next submission
+  (`SubmissionsHeld` counts the kept ones). Before (H50) only the timer or a download's wait asked, so outside the
+  overlay every fence was kept: thousands a minute, which lavapipe and Windows' Direct3D 12 took, but Dozen on WSL
+  turned down after a few seconds of several games (`vkCreateFence` VK_ERROR_OUT_OF_DEVICE_MEMORY, then an abort).
 - `Problems()` counts misused calls (each logged "gpu: ..."); the check holds it at its deliberate misuses.
 
 **Check**: `ei_gpu_check` (tools/gpu_check; build_checks.py on Windows, ctest `port_gpu --require` on Linux), per driver
@@ -1019,6 +1024,7 @@ forward-declared handles, so the files include no SDL header. `ei_gpu_check` che
 - the swap chain on a 64x48 borderless, unfocusable window at (-4000, -4000) (shown, as SDL's Vulkan driver gives a
   hidden window no texture), four frames in each present mode with the fallbacks, the textures at the window's pixel
   size; under a second;
+- 300 submissions with the frame timer off, at most 2 still held once the last has finished;
 - frame GPU times from the fences; the misuses refused, each logged once, and nothing else logged.
 
 ## The renderer's source files
