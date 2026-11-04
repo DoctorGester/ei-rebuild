@@ -119,7 +119,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
         map->MoveInSectors(object, point);
         if (Unit* unit = UnitOrNull(object)) unit->ServerController()->ResyncWithUnit();
         map->SetRefreshUnits(1);
-        object->MarkChanged(2);
+        object->MarkChanged(NetField::Placement);
         return;
     }
     float oldZ = Position(object)->z;
@@ -127,7 +127,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     map->MoveInSectors(object, point);
     if (Unit* unit = UnitOrNull(object)) {
         unit->ServerController()->ResyncWithUnit();
-        if (oldZ != Position(object)->z) object->MarkChanged(2);
+        if (oldZ != Position(object)->z) object->MarkChanged(NetField::Placement);
         return;
     }
     // Other objects: the units around the new place are taken off the sector map, moved off cells
@@ -145,7 +145,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
         }
         map->AddToSectors(unit);
     }
-    object->MarkChanged(2);
+    object->MarkChanged(NetField::Placement);
 }
 
 void GiveSkill(const SSCCmd* cmd) {
@@ -906,7 +906,7 @@ bool ScriptRun::Execute(Script* script) {
         }
         case ScriptFunction::PlayMusic: {   // PlayMusic(player, name)
             Player* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
-            if (player) player->Server()->SendText0D(Text(cmd, 0));
+            if (player) player->Server()->SendJingle(Text(cmd, 0));
             break;
         }
         case ScriptFunction::LeaveToZone: {   // LeaveToZone(player, zone, point)

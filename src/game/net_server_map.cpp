@@ -189,15 +189,6 @@ namespace net {
 
 namespace {
 
-enum CommandKind : std::uint32_t {
-    kPreviewMap = 0,       // the host shows a map
-    kZoneCommand = 1,      // the host picks a queued map message: "<zone>_1" / "_2" / "_3"
-    kKickByName = 2,
-    kBanByName = 3,
-    kKickBySerial = 4,
-    kBanBySerial = 5,
-};
-
 std::size_t StringNpos() { return 0xFFFFFFFFu; }
 
 bool Is(const std::string& s, const char* t) {
@@ -225,20 +216,19 @@ void ServerOnObjectAdded(ServerSession* self, FileRequestMessage* message) {
     self->fileRequests.emplace_back(message);
 }
 
-// Commands, from the connection being read. Kinds 0-2 need the host's
-// connection, 3-5 the same through IsHostConnection:
-//   0: the world prepares map `text`;
-//   1: when a queued map message is named `text`, its suffix picks SetMap (_1),
+// Commands, from the connection being read; each needs the host's connection (IsHostConnection):
+//   PreviewMap: the world prepares map `text`;
+//   Zone: when a queued map message is named `text`, its suffix picks SetMap (_1),
 //      LeaveZone (_2) or CompleteZone (_3) with the name before it;
-//   2 / 3: every guest whose name starts with `text` is kicked / banned;
-//   4 / 5: the client with serial atoi(text) is kicked / banned.
+//   KickByName / BanByName: every guest whose name starts with `text` is kicked / banned;
+//   KickBySerial / BanBySerial: the client with serial atoi(text) is kicked / banned.
 void ServerOnCommand(ServerSession* self, CommandMessage* message) {
     std::string* text = &message->text;
     switch (message->kind) {
-    case kPreviewMap:
+    case CommandKind::PreviewMap:
         if (self->IsHostConnection(g_currentConnection)) g_gameFlow.SetNetworkZone(text->data());
         return;
-    case kZoneCommand: {
+    case CommandKind::Zone: {
         if (!self->IsHostConnection(g_currentConnection)) return;
         auto node = self->queuedMaps.begin();
         for (; node != self->queuedMaps.end(); ++node) {
@@ -254,24 +244,24 @@ void ServerOnCommand(ServerSession* self, CommandMessage* message) {
         if (Is(suffix, game::ZoneSuffix3Text())) self->CompleteZone(&name);
         return;
     }
-    case kKickByName:
+    case CommandKind::KickByName:
         if (!self->IsHostConnection(g_currentConnection)) return;
         for (;;) {
             Connection* connection = self->FindGuestConnection(text);
             if (!IsLive(connection)) return;
             self->Kick(connection);
         }
-    case kBanByName:
+    case CommandKind::BanByName:
         if (!self->IsHostConnection(g_currentConnection)) return;
         for (;;) {
             Connection* connection = self->FindGuestConnection(text);
             if (!IsLive(connection)) return;
             self->Ban(connection);
         }
-    case kKickBySerial:
+    case CommandKind::KickBySerial:
         if (self->IsHostConnection(g_currentConnection)) self->Kick(self->FindConnectionBySerial(std::atoi(text->data())));
         return;
-    case kBanBySerial:
+    case CommandKind::BanBySerial:
         if (self->IsHostConnection(g_currentConnection)) self->Ban(self->FindConnectionBySerial(std::atoi(text->data())));
         return;
     default:

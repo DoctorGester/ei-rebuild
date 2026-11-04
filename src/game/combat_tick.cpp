@@ -46,7 +46,6 @@ constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 
 
-constexpr int kPartMoveModes = 6;           // MarkChanged part of the movement modes
 
 bool IsUnit(MapObject* object) { return object && object->GetClassId() == ClassId::Unit; }
 bool IsCastKind(UnitOrderKind kind) { return kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn; }
@@ -55,7 +54,7 @@ bool IsActionKind(UnitOrderKind kind) { return kind == UnitOrderKind::Attack || 
 float PrototypeHeight(Unit* unit) { return unit->GetPrototype()->height; }
 
 void TellParty(Unit* unit, AckKind kind) {
-    if (unit->player) unit->player->Server()->SendObject0B(unit, kind);
+    if (unit->player) unit->player->Server()->SendUnitSpeech(unit, kind);
 }
 
 // UnitAction::Clear followed by the reset of its two extra fields, as callers inline it.
@@ -133,7 +132,7 @@ int AttackInterval(UnitServer* self, ItemWeapon* weapon) {
 void SetModeInline(Unit* unit, int mode) {
     if (unit->moveMode2 == mode) return;
     unit->moveMode2 = mode;
-    unit->MarkChanged(kPartMoveModes);
+    unit->MarkChanged(NetField::Modes);
 }
 
 bool OutOfReachUp(UnitServer* self, const AIOrder* order) {
@@ -178,7 +177,7 @@ void UnitAction::Reset() {
 void UnitServer::SetUnitMoveMode2(int mode) {
     if (mode == unit->moveMode2) return;
     unit->moveMode2 = mode;
-    unit->MarkChanged(kPartMoveModes);
+    unit->MarkChanged(NetField::Modes);
 }
 
 void UnitServer::SyncMoveModes() {
@@ -220,7 +219,7 @@ void UnitServer::TakeQueuedOrder() {
     if (action.modifier && moveMode.mode != kModeRun) {
         if (!(IsActionKind(action.kind) && CanStillDo(this, &action)) && unit->moveMode2 != kModeRun) {
             unit->moveMode2 = kModeRun;
-            unit->MarkChanged(kPartMoveModes);
+            unit->MarkChanged(NetField::Modes);
         }
     }
     SyncMoveModes();

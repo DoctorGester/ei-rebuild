@@ -20,9 +20,6 @@
 #include <vector>
 
 namespace {
-constexpr int kPartStats = 4;          // MarkChanged parts
-constexpr int kPartEquipment = 5;
-constexpr int kPartWeapons = 6;
 constexpr float kTenth = 0.1f;
 constexpr float kThreeQuarters = 0.75f;
 constexpr float kHalf = 0.5f;
@@ -47,7 +44,7 @@ UnitPrototypeRecord* UnitPrototypeTable::FindByName(std::string_view name) {
 
 void UnitServer::SetStats(const UnitStats* source) {
     std::memcpy(&stats, source, sizeof(UnitStats));
-    unit->MarkChanged(kPartStats);
+    unit->MarkChanged(NetField::Stats);
     RefreshVitals(false);
     stats.RefillSlots();
     RefreshVitals(false);
@@ -61,7 +58,7 @@ void UnitServer::SetStats(const UnitStats* source) {
 void UnitServer::Shout(AckKind kind) {
     if (!IsShoutable(kind)) return;
     if (!unit->player) return;
-    PlayerMessages(unit->player)->SendObject0B(unit, kind);
+    PlayerMessages(unit->player)->SendUnitSpeech(unit, kind);
 }
 
 // --- Broken equipment -------------------------------------------------------------------------
@@ -78,20 +75,20 @@ void Unit::DropBrokenEquipment() {
         ItemArmor* piece = std::exchange(slot, nullptr);
         broken.push_back(piece);
         controller->ArmourTakenOff(static_cast<std::uint32_t>(piece->GetType()));
-        MarkChanged(kPartEquipment);
-        MarkChanged(kPartStats);
+        MarkChanged(NetField::Equipment);
+        MarkChanged(NetField::Stats);
     }
 
     bool weaponLost = false;
     for (int i = 3; i >= 0; --i) {
         Item*& slot = weapons[i];
         if (!slot || !IsBroken(slot)) continue;
-        messages->SendPair16(static_cast<std::uint32_t>(id), static_cast<std::uint32_t>(i));
+        messages->SendWeaponRemoved(static_cast<std::uint32_t>(id), static_cast<std::uint32_t>(i));
         broken.push_back(std::exchange(slot, nullptr));
-        MarkChanged(kPartEquipment);
+        MarkChanged(NetField::Equipment);
         for (int k = i; k < 3; ++k) weapons[k] = weapons[k + 1];
         weapons[3] = nullptr;
-        MarkChanged(kPartWeapons);
+        MarkChanged(NetField::Modes);
         weaponLost = true;
     }
     if (weaponLost) controller->ShowWeapon(0xFFFFFFFFu);   // re-pick the active weapon
@@ -99,7 +96,7 @@ void Unit::DropBrokenEquipment() {
     if (!broken.empty()) {
         ownerObject->GiveItems(&broken, 1);
         for (Item* item : broken) item->Release();
-        MarkChanged(kPartEquipment);
+        MarkChanged(NetField::Equipment);
     }
 }
 

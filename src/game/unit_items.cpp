@@ -15,15 +15,13 @@
 #include <vector>
 
 namespace {
-constexpr int kPartEquipment = 5;
-constexpr int kPartStats = 4;
 
 void ReleaseSlots(Unit* unit, Item** slots, int count) {
     for (int i = 0; i < count; ++i) {
         Item* item = slots[i];
         slots[i] = nullptr;
         if (item) item->Release();
-        unit->MarkChanged(kPartEquipment);
+        unit->MarkChanged(NetField::Equipment);
     }
 }
 } // namespace
@@ -39,7 +37,7 @@ ItemArmor* Unit::EquipArmour(Item* item) {
     piece->AddRef();
     controller->ArmourPutOn(piece->prototypeId);
     if (previous) previous->Release();
-    MarkChanged(kPartEquipment);
+    MarkChanged(NetField::Equipment);
     return previous;
 }
 
@@ -50,8 +48,8 @@ ItemArmor* Unit::UnequipArmour(int slot) {
         controller->ArmourTakenOff(static_cast<std::uint32_t>(item->GetType()));
         item->Release();
     }
-    MarkChanged(kPartEquipment);
-    MarkChanged(kPartStats);
+    MarkChanged(NetField::Equipment);
+    MarkChanged(NetField::Stats);
     return item;
 }
 
@@ -64,8 +62,8 @@ void Unit::ReleaseAllItems() {
             controller->ArmourTakenOff(static_cast<std::uint32_t>(item->GetType()));
             item->Release();
         }
-        MarkChanged(kPartEquipment);
-        MarkChanged(kPartStats);
+        MarkChanged(NetField::Equipment);
+        MarkChanged(NetField::Stats);
     }
     controller->ClearOuterArmourLayers();
     ReleaseSlots(this, quickItems, 4);
@@ -77,7 +75,7 @@ void Unit::ReleaseAllItems() {
 void Unit::AddCarried(Item* item) {
     item->AddRef();
     carried.push_back(item);
-    MarkChanged(kPartEquipment);
+    MarkChanged(NetField::Equipment);
 }
 
 int Unit::RemoveCarried(int index) {
@@ -145,7 +143,6 @@ ItemsAndSpells Unit::CollectItems() {
 
 namespace {
 constexpr int kQuickSlots = 4;
-constexpr int kPartItems = 5;     // MarkChanged part
 
 } // namespace
 
@@ -154,7 +151,7 @@ Item* Unit::TakeRandomItem() {
         // The first carried item, the rest moved down.
         Item* item = carried.front();
         carried.erase(carried.begin());
-        MarkChanged(kPartItems);
+        MarkChanged(NetField::Equipment);
         return item;
     }
     // The game collects the filled slots in an int array (grown one by one) and frees it afterwards; a
@@ -167,6 +164,6 @@ Item* Unit::TakeRandomItem() {
     int slot = filled[g_random.Next() % count];   // the draw is inlined
     Item* item = quickItems[slot];
     quickItems[slot] = nullptr;
-    MarkChanged(kPartItems);
+    MarkChanged(NetField::Equipment);
     return item;
 }

@@ -81,7 +81,7 @@ void BriefingScreen::StartDialogue(bool newImmediate, bool remember) {
         int constructor = str::ToInt(str::Mid(topic, kConstructorNumber));
         if (g_partyManager.templates.Find(constructor)) {
             GameSetConstructionVariable(std::bit_cast<std::uint32_t>(static_cast<float>(constructor)));
-            GameSendLeave04(kCampScreen);
+            GameRequestGameState(kCampScreen);
         }
         state = 0;
         return;
@@ -189,7 +189,7 @@ void BriefingScreen::FinishDialogue() {
     for (const BriefingSpeaker& speaker : speakers) {
         Unit* unit = speaker.unit;
         PlayerServer* server = g_serverWorld.GetPlayer(0)->Server();
-        if (server) server->SendPair19(kEventLeaves, unit->id);
+        if (server) server->SendUnitControl(kEventLeaves, unit->id);
         UnitClientSpecific* model = unit->ClientController();
         model->blinks = 0;
         model->BlinkOpen(true);
@@ -227,13 +227,13 @@ void BriefingScreen::FinishDialogue() {
 
     state = kStateWalking;
     PlayerServer* server = g_serverWorld.GetPlayer(0)->Server();
-    if (server) server->SendPair19(kEventEnds, leader->id);
+    if (server) server->SendUnitControl(kEventEnds, leader->id);
     Vector3 at = leader->localPosition;
     if (briefingStarted) {
-        g_serverWorld.GetPlayer(0)->Server()->SendPosition04(at, 0, 1);
+        g_serverWorld.GetPlayer(0)->Server()->SendCameraPlacement(at, 0, 1);
         g_camera.flags &= ~Camera::kFree;
         briefingStarted = false;
     } else {
-        g_serverWorld.GetPlayer(0)->Server()->SendPosition0F(savedCamera, lookAt, 0);
+        g_serverWorld.GetPlayer(0)->Server()->SendFreeCamera(savedCamera, lookAt, 0);
     }
 }

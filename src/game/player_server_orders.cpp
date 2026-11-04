@@ -21,10 +21,7 @@
 
 namespace {
 
-constexpr std::uint8_t kMessageGameState = 0x07;
 constexpr int kTextPause = 0xC;                       // the session's announcement for a pause
-constexpr int kStateJoined = 1;
-constexpr int kStateSendingCamera = 2;
 
 
 // The last digit of "reserved_02", the key of the pause announcement's text (Interface3D::MessageText,
@@ -63,21 +60,20 @@ int PlayerServer::OnLeave() {
 }
 
 int PlayerServer::OnGameStateRequest() {
-    if (state != kStateJoined) return 0;
+    if (state != State::Joined) return 0;
     Player* currentPlayer = player;
     int gameState;
     g_receivedMessages.ReadValue(gameState);
     currentPlayer->sessionKind = gameState;
     g_serverWorld.CollectParty(currentPlayer, &placements);
     SendParty();
-    std::uint8_t messageType = kMessageGameState;
-    out.WriteValue(messageType);
+    WriteType(&out, ServerMessage::GameState);
     int value = currentPlayer->sessionKind;
     out.WriteValue(value);
     value = g_serverWorld.tick;
     out.WriteValue(value);
     currentPlayer->dirty &= ~PlayerDirty::GameState;
-    state = kStateSendingCamera;
+    state = State::GameStateSent;
     return 1;
 }
 

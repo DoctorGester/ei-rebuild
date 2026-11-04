@@ -514,9 +514,9 @@ constexpr int kPath = sys::kMaxPath;
 // The console's command executor (console::Execute).
 void ConsoleExecute(const char* text) { image::ConsoleExecute(text); }
 
-// GameSendLeave04: the client asks the server for interface screen `id` (the server answers with message 7 ->
+// GameRequestGameState: the client asks the server for interface screen `id` (the server answers with message 7 ->
 // Interface3D::CreateScreen: 1 battle, 3 briefing, 4 global map, 5 camp).
-void RequestScreen(int id) { image::SendLeave04(id); }
+void RequestScreen(int id) { image::RequestGameState(id); }
 // GameSetConstructionVariable: sets player 0's "constr_current" (the constructor the camp opens with).
 void SetCurrentConstructor(float constructor) { image::SetConstructionVariable(std::bit_cast<std::uint32_t>(constructor)); }
 

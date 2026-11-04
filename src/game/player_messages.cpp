@@ -28,7 +28,6 @@ namespace {
 void VariableSet(NamedFloatTable* table, std::string_view name, std::uint32_t bits) { table->Set(name, std::bit_cast<float>(bits)); }
 
 void Write(MemoryStream* out, const void* data, std::uint32_t size) { out->Write(data, size); }
-void WriteByte(MemoryStream* out, std::uint8_t value) { Write(out, &value, 1); }
 void WriteDword(MemoryStream* out, std::uint32_t value) { Write(out, &value, 4); }
 
 std::uint32_t ObjectId(const EngineObject* object) { return static_cast<std::uint32_t>(object->id); }
@@ -42,16 +41,31 @@ NamedFloatTable* Variables(Player* player) { return &player->GetParty()->variabl
 constexpr int kServerHandlerCount = 0x100;
 
 // The server's message handlers by type.
-constexpr HandlerEntry<PlayerServer> kServerHandlers[] = {
-    {0x00, &PlayerServer::OnLogin}, {0x01, &PlayerServer::OnLeave}, {0x02, &PlayerServer::OnRefreshParty},
-    {0x03, &PlayerServer::OnTakeExit}, {0x04, &PlayerServer::OnGameStateRequest}, {0x05, &PlayerServer::OnJoined},
-    {0x06, &PlayerServer::OnLeaveToZone}, {0x07, &PlayerServer::OnBriefingDone}, {0x08, &PlayerServer::OnNewParty},
-    {0x09, &PlayerServer::OnResume}, {0x10, &PlayerServer::OnPause}, {0x30, &PlayerServer::OnWalk},
-    {0x31, &PlayerServer::OnAttack}, {0x32, &PlayerServer::OnCastAtPoint}, {0x33, &PlayerServer::OnCastAtObject},
-    {0x34, &PlayerServer::OnWantedWeapon}, {0x35, &PlayerServer::OnMoveStyle}, {0x36, &PlayerServer::OnUseOrder},
-    {0x37, &PlayerServer::OnMessage37}, {0x38, &PlayerServer::OnUnitLookup}, {0x39, &PlayerServer::OnFollow},
-    {0x3A, &PlayerServer::OnGoTo}, {0x3B, &PlayerServer::OnFightAtWill}, {0x40, &PlayerServer::OnLastPosition},
-    {0x50, &PlayerServer::OnPartyUpdate},
+constexpr HandlerEntry<PlayerServer, ClientMessage> kServerHandlers[] = {
+    {ClientMessage::Login, &PlayerServer::OnLogin},
+    {ClientMessage::Leave, &PlayerServer::OnLeave},
+    {ClientMessage::RefreshParty, &PlayerServer::OnRefreshParty},
+    {ClientMessage::TakeExit, &PlayerServer::OnTakeExit},
+    {ClientMessage::GameStateRequest, &PlayerServer::OnGameStateRequest},
+    {ClientMessage::Joined, &PlayerServer::OnJoined},
+    {ClientMessage::LeaveToZone, &PlayerServer::OnLeaveToZone},
+    {ClientMessage::BriefingDone, &PlayerServer::OnBriefingDone},
+    {ClientMessage::NewParty, &PlayerServer::OnNewParty},
+    {ClientMessage::Resume, &PlayerServer::OnResume},
+    {ClientMessage::Pause, &PlayerServer::OnPause},
+    {ClientMessage::Walk, &PlayerServer::OnWalk},
+    {ClientMessage::Attack, &PlayerServer::OnAttack},
+    {ClientMessage::CastAtPoint, &PlayerServer::OnCastAtPoint},
+    {ClientMessage::CastAtObject, &PlayerServer::OnCastAtObject},
+    {ClientMessage::WantedWeapon, &PlayerServer::OnWantedWeapon},
+    {ClientMessage::MoveStyle, &PlayerServer::OnMoveStyle},
+    {ClientMessage::UseOrder, &PlayerServer::OnUseOrder},
+    {ClientMessage::UnitLookup, &PlayerServer::OnUnitLookup},
+    {ClientMessage::Follow, &PlayerServer::OnFollow},
+    {ClientMessage::GoTo, &PlayerServer::OnGoTo},
+    {ClientMessage::FightAtWill, &PlayerServer::OnFightAtWill},
+    {ClientMessage::LastPosition, &PlayerServer::OnLastPosition},
+    {ClientMessage::PartyUpdate, &PlayerServer::OnPartyUpdate},
 };
 
 // The sent-object arrays emptied: every object released, the block freed.
@@ -63,7 +77,6 @@ void ReleaseAll(std::vector<T*>& objects) {
     objects.clear();
 }
 
-constexpr std::uint8_t kPathMessage = 0x0E;
 constexpr int kPathKindNoPath = 3;
 
 } // namespace
@@ -72,7 +85,7 @@ constexpr int kPathKindNoPath = 3;
 
 void PlayerServer::SetVariable(std::string_view name, std::uint32_t value) {
     VariableSet(Variables(player), name, value);
-    WriteByte(&out, 0x81);
+    WriteType(&out, ServerMessage::SetVariable);
     out.WriteString(name);
     WriteDword(&out, value);
 }
@@ -90,65 +103,65 @@ void PlayerServer::SetVariableMax(std::string_view name, float value) {
     // Nothing to do when it compares equal.
     if (result == current) return;
     VariableSet(Variables(player), name, resultBits);
-    WriteByte(&out, 0x81);
+    WriteType(&out, ServerMessage::SetVariable);
     out.WriteString(name);
     WriteDword(&out, resultBits);
 }
 
 void PlayerServer::DeleteVariable(const char* name) {
     Variables(player)->Remove(name);
-    WriteByte(&out, 0x82);
+    WriteType(&out, ServerMessage::DeleteVariable);
     out.WriteString(name);
 }
 
 void PlayerServer::SendGameTime() {
     std::uint32_t value = static_cast<std::uint32_t>(player->sessionKind);
-    WriteByte(&out, 0x07);
+    WriteType(&out, ServerMessage::GameState);
     WriteDword(&out, value);
     WriteDword(&out, static_cast<std::uint32_t>(g_serverWorld.tick));
     player->dirty &= ~PlayerDirty::GameState;
 }
 
-int PlayerServer::SendState02(MemoryStream* zone) {
+int PlayerServer::SendZone(MemoryStream* zone) {
     player->dirty &= ~PlayerDirty::Zone;
-    WriteByte(&out, 0x02);
+    WriteType(&out, ServerMessage::Zone);
     out.WriteStream(zone);
     return 1;
 }
 
-int PlayerServer::SendState70(std::uint8_t weather, std::uint16_t strength) {
+int PlayerServer::SendWeather(std::uint8_t weather, std::uint16_t strength) {
     player->dirty &= ~PlayerDirty::Weather;
     std::uint8_t payload[3] = {weather, static_cast<std::uint8_t>(strength), static_cast<std::uint8_t>(strength >> 8)};
-    WriteByte(&out, 0x70);
+    WriteType(&out, ServerMessage::Weather);
     Write(&out, payload, 3);
     return 1;
 }
 
-int PlayerServer::SendState71(std::uint32_t time, std::uint32_t speed) {
+int PlayerServer::SendTime(std::uint32_t time, std::uint32_t speed) {
     player->dirty &= ~PlayerDirty::Time;
     std::uint32_t payload[2] = {time, speed};
-    WriteByte(&out, 0x71);
+    WriteType(&out, ServerMessage::Time);
     Write(&out, payload, 8);
     return 1;
 }
 
-int PlayerServer::SendState72(std::uint32_t x, std::uint32_t y, std::uint32_t z, std::uint32_t w) {
+int PlayerServer::SendWind(std::uint32_t x, std::uint32_t y, std::uint32_t z, std::uint32_t w) {
     player->dirty &= ~PlayerDirty::Wind;
-    WriteByte(&out, 0x72);
+    WriteType(&out, ServerMessage::Wind);
     std::uint32_t xyz[3] = {x, y, z};
     Write(&out, xyz, 12);
     WriteDword(&out, w);
     return 1;
 }
 
-void PlayerServer::SendState73(const WaterTweens* source) {
-    WriteByte(&out, 0x73);
+void PlayerServer::SendCountdowns(const WaterTweens* source) {
+    WriteType(&out, ServerMessage::Countdowns);
     source->Save(&out);
     player->dirty &= ~PlayerDirty::Countdowns;
 }
 
-int PlayerServer::SendPosition04(const Vector3& at, std::uint32_t startValue, std::uint32_t sessionKind) {
-    WriteByte(&out, 0x04);
+int PlayerServer::SendCameraPlacement(const Vector3& at, std::uint32_t startValue, std::uint32_t sessionKind) {
+    WriteType(&out, ServerMessage::CameraPlacement);
     Write(&out, &at, 12);
     WriteDword(&out, startValue);
     WriteDword(&out, sessionKind);
@@ -156,8 +169,8 @@ int PlayerServer::SendPosition04(const Vector3& at, std::uint32_t startValue, st
     return 1;
 }
 
-std::uint32_t PlayerServer::SendPosition0F(const Vector3& at, const Vector3& other, std::uint8_t flag) {
-    WriteByte(&out, 0x0F);
+std::uint32_t PlayerServer::SendFreeCamera(const Vector3& at, const Vector3& other, std::uint8_t flag) {
+    WriteType(&out, ServerMessage::FreeCamera);
     Write(&out, &at, 12);
     Write(&out, &other, 12);
     Write(&out, &flag, 1);
@@ -170,69 +183,69 @@ std::uint32_t PlayerServer::SendPosition0F(const Vector3& at, const Vector3& oth
 
 // --- Simple messages -----------------------------------------------------------------------------
 
-void PlayerServer::Send17() { WriteByte(&out, 0x17); }
+void PlayerServer::SendQuestItemsChanged() { WriteType(&out, ServerMessage::QuestItemsChanged); }
 
-void PlayerServer::SendObject0A(const EngineObject* object) {
-    WriteByte(&out, 0x0A);
+void PlayerServer::SendItemRemoved(const EngineObject* object) {
+    WriteType(&out, ServerMessage::ItemRemoved);
     WriteDword(&out, ObjectId(object));
 }
 
-void PlayerServer::SendPair16(std::uint32_t unitId, std::uint32_t index) {
-    WriteByte(&out, 0x16);
+void PlayerServer::SendWeaponRemoved(std::uint32_t unitId, std::uint32_t index) {
+    WriteType(&out, ServerMessage::WeaponRemoved);
     WriteDword(&out, unitId);
     WriteDword(&out, index);
 }
 
 // The item's charge goes as its float's bits (the client's 0x0C / 0x14 handlers store it there).
-void PlayerServer::SendObject14(const Item* item) {
-    WriteByte(&out, 0x14);
+void PlayerServer::SendItemValue(const Item* item) {
+    WriteType(&out, ServerMessage::ItemValue);
     WriteDword(&out, ObjectId(item));
     WriteDword(&out, std::bit_cast<std::uint32_t>(item->charge));
 }
 
-void PlayerServer::SendText0D(const char* text) {
-    WriteByte(&out, 0x0D);
+void PlayerServer::SendJingle(const char* text) {
+    WriteType(&out, ServerMessage::Jingle);
     out.WriteString(text);
 }
 
-void PlayerServer::SendValue15(std::uint32_t value) {
-    WriteByte(&out, 0x15);
+void PlayerServer::SendExperienceAll(std::uint32_t value) {
+    WriteType(&out, ServerMessage::ExperienceAll);
     WriteDword(&out, value);
 }
 
-void PlayerServer::SendPair18(std::uint32_t unitId, std::uint32_t value) {
-    WriteByte(&out, 0x18);
+void PlayerServer::SendExperience(std::uint32_t unitId, std::uint32_t value) {
+    WriteType(&out, ServerMessage::Experience);
     WriteDword(&out, unitId);
     WriteDword(&out, value);
 }
 
-void PlayerServer::SendObject43(const EngineObject* object) {
+void PlayerServer::SendUnitDied(const EngineObject* object) {
     if (object == nullptr) return;
-    WriteByte(&out, 0x43);
+    WriteType(&out, ServerMessage::UnitDied);
     WriteDword(&out, ObjectId(object));
 }
 
-void PlayerServer::SendObject0B(const EngineObject* object, AckKind kind) {
+void PlayerServer::SendUnitSpeech(const EngineObject* object, AckKind kind) {
     std::uint32_t payload[2] = {ObjectId(object), static_cast<std::uint32_t>(kind)};
-    WriteByte(&out, 0x0B);
+    WriteType(&out, ServerMessage::UnitSpeech);
     Write(&out, payload, 8);
 }
 
-void PlayerServer::SendValue12(std::uint32_t value) {
+void PlayerServer::SendWorldValue(std::uint32_t value) {
     std::uint8_t payload[1 + sizeof(value)] = {};
     lib::StoreBytes(payload + 1, value);
-    WriteByte(&out, 0x12);
+    WriteType(&out, ServerMessage::WorldValue);
     Write(&out, payload, sizeof(payload));
 }
 
-void PlayerServer::SendText13(std::string_view text) {
-    WriteByte(&out, 0x13);
+void PlayerServer::SendStringEvent(std::string_view text) {
+    WriteType(&out, ServerMessage::StringEvent);
     out.WriteString(text);
 }
 
 void PlayerServer::WriteTo(ByteStream* target) { target->CopyFrom(&out); }
 
-void PlayerServer::SetDisconnect() { state = 4; }
+void PlayerServer::SetDisconnect() { state = State::Disconnected; }
 
 void PlayerServer::SetPartyDeployed(std::uint8_t value) { partyDeployed = value; }
 
@@ -244,7 +257,7 @@ void PlayerServer::ClearServerState() {
     out.Resize(0);
     ReleaseAll(sentObjects);
     ReleaseAll(sentTimed);
-    state = 0;
+    state = State::NotLoggedIn;
     lastPosition = {};
     spare = -1;
     possessedGroup.Clear();
@@ -263,11 +276,8 @@ void PlayerServer::CreateServer() {
     handlers.resize(kServerHandlerCount);
     std::fill_n(handlers.data(), std::ssize(handlers), Handler{});
     for (const auto& entry : kServerHandlers)
-        handlers[entry.type] = entry.handler;
+        handlers[static_cast<std::uint8_t>(entry.type)] = entry.handler;
 }
-
-// Unreached in the shipped game: our client never sends message 0x37.
-int PlayerServer::OnMessage37() { return 0; }
 
 // --- The server's lifetime and virtuals ------------------------------------------------------
 
@@ -297,8 +307,7 @@ void PlayerServer::ClearPossessedGroup() { possessedGroup.Clear(); }
 void PlayerServer::SendPathMessage(EngineObject* unit, PathOrder* path, const Vector3& point, int kind, int flag,
                                     std::uint32_t limitBits) {
     if (!unit) return;
-    std::uint8_t messageType = kPathMessage;
-    out.WriteValue(messageType);
+    WriteType(&out, ServerMessage::PathMarker);
     out.WriteValue(kind);
     out.WriteValue(flag);
     out.WriteValue(XY(point));

@@ -84,7 +84,7 @@ void SetObstacle(UnitServer* c, int obstacle) {
     world->aiMap.sectorMap.Remove(unit);
     c->unit->obstacle = static_cast<std::uint32_t>(obstacle);
     world->aiMap.sectorMap.Add(c->unit);
-    c->unit->MarkChanged(7);
+    c->unit->MarkChanged(NetField::Motion);
 }
 
 void QueueNextAnimation(UnitServer* c) {
@@ -277,21 +277,21 @@ void Exhaustion(UnitServer* c) {
             int mode = (c->moveMode2.wasMode3 & 1) ? 3 : c->moveMode2.mode;
             if (mode != unit->moveMode2) {
                 unit->moveMode2 = mode;
-                c->unit->MarkChanged(6);
+                c->unit->MarkChanged(NetField::Modes);
             }
         } else {
             if (Drain(stamina, rate)) {
                 if (c->unit->player)
-                    c->unit->player->Server()->SendObject0B(c->unit, AckKind::OutOfStamina);
+                    c->unit->player->Server()->SendUnitSpeech(c->unit, AckKind::OutOfStamina);
                 *stamina = 0.0f;
                 c->moveMode2.wasMode3 = 0;
                 int mode = (c->moveMode2.wasMode3 & 1) ? 3 : c->moveMode2.mode;
                 if (mode != c->unit->moveMode2) {
                     c->unit->moveMode2 = mode;
-                    c->unit->MarkChanged(6);
+                    c->unit->MarkChanged(NetField::Modes);
                 }
             }
-            c->unit->MarkChanged(0);
+            c->unit->MarkChanged(NetField::Vitals);
         }
     }
     c->UpdateSneak();

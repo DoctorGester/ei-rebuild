@@ -437,7 +437,7 @@ void HudPortraits::Rebuild(bool wide) {
         auto* player = node->Get();
         EngineObject* unit = nullptr;
         if (player->id >= 0) unit = g_clientWorld.FindUnit(player->id);
-        if (player->state == 0 && player->id >= 0 && unit) continue;
+        if (player->state == net::PlayerStatus::InZone && player->id >= 0 && unit) continue;
 
         UnitPrototypeRecord* prototype;
         {

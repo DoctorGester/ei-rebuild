@@ -51,7 +51,7 @@ public:
     // 0x39: the unit's id and the target's (-1 for none).
     int SendFollow(Unit* unit, EngineObject* target);
     // 0x10: whether `value` (a byte) is set.
-    int SendFlag10(std::uint8_t value);
+    int SendPause(std::uint8_t value);
     // 0x36 use order for one unit (count 1, its id or -1): `flag`, `kind`, `value`, the target's id
     // (PlayerServer::OnUseOrder).
     int SendUseOrder(Unit* unit, EngineObject* target, int kind, int value, int flag);
@@ -60,24 +60,24 @@ public:
     // 0x50: the player's party saved without its variables (Party::SaveParty, which draws an ISAAC key) as
     // a sized block.
     int SendPartyUpdate();
-    // The zone requests. When the client is between zones (state 3) they first return the local party
-    // (GameFlow::ReturnLocalParty), send it (SendPartyUpdate) and the joined message 0x05 (state 2). They
+    // The zone requests. When the client is between zones they first return the local party
+    // (GameFlow::ReturnLocalParty), send it (SendPartyUpdate) and the joined message 0x05 (SendingCamera). They
     // return the stream position after the last write.
     // 0x03: take exit `exit`.
     int TakeExit(int exit);
     // 0x06: go to `zone` (the text with its zero) at `entrance`.
     int RequestZone(std::string_view zone, int entrance);
-    // Only the state 3 part (0x05 joined); nothing otherwise.
+    // Only the BetweenZones part (0x05 joined); nothing otherwise.
     void Rejoin();
-    // 0x04 and `value`; state 3. Returns the stream position.
-    int SendLeave04(int value);
+    // 0x04 and `value`; State::BetweenZones. Returns the stream position.
+    int RequestGameState(int value);
     // 0x09 (resume).
     int SendResume();
 
-    // State 0: once the link is connected, the party (message 8, with the variables, when sendParty is set)
+    // Connecting: once the link is connected, the party (message 8, with the variables, when sendParty is set)
     // and the login (message 0: version 100, "Tango", "Very top secret", the player's partyId) are queued,
-    // state 1, and everything is sent (SendToServer's result); without a connected link 1. State 1: 1.
-    // State 2: the camera's anchor x, y as message 0x40, then sent. Other states: sent.
+    // LoginSent, and everything is sent (SendToServer's result); without a connected link 1. LoginSent: 1.
+    // SendingCamera: the camera's anchor x, y as message 0x40, then sent. Other states: sent.
     bool Pump();
     // Compresses the queued requests and sends them on the link; the queue is emptied unless there is no
     // link. 1 without a link, 0 when it is not connected, else the send's result.
@@ -107,8 +107,8 @@ public:
     // stream (Rebirth-patched). 0 when the block cannot be read.
     int OnZone();
     // Messages 0x03 / 0x05. A block for the client world's two readers; 0 when it cannot be read.
-    int OnWorldBlock3();
-    int OnWorldBlock5();
+    int OnItemsAndSpells();
+    int OnNewItemsAndSpells();
     // Message 0x0A. The player drops an item (id); the quest log is refreshed with an empty list.
     int OnItemRemoved();
     // Message 0x17. A player update, then the quest log refreshed with an empty list.
@@ -152,11 +152,11 @@ public:
     int OnPartyState();
     // Clear's state, then the handler table: 256 entries, zeroed, and the 40 handlers by message type.
     void CreateClient();
-    // State 0, partyUnitIds freed, both streams emptied, localSession and sendParty cleared, both coders
+    // Connecting, partyUnitIds freed, both streams emptied, localSession and sendParty cleared, both coders
     // reset.
     void Clear();
 
-    // Message 0x00. Login accepted: a dword, state 2, the player's owner gives the player that id
+    // Message 0x00. Login accepted: a dword, SendingCamera, the player's owner gives the player that id
     // (PlayerManager::ChangeId).
     int OnLoginAccepted();
     // Message 0x01. The player disconnects (Player::Disconnect).
@@ -210,14 +210,22 @@ public:
     // Message 0x71. Two floats: the client world's time speed (second) and time (first), then its lighting.
     int OnWorldTime();
     // Message 0x72. A point and a dword to the client world.
-    int OnWorldPoint();
+    int OnWind();
     // Message 0x73. The client world reads the stream.
-    int OnWorldStream();
+    int OnCountdowns();
     // A unit joined (`player` set) or left the player: the interface is told; a multiplayer client whose party
     // has one member, `unit`, puts its id (-1 when it left) in the login record and raises its version.
     void NotifyUnitChanged(Unit* unit);
 
-    // The base's state: 0 connecting, 1 logged in, 2 sending the camera, 3 between zones.
+    // Where the client is in joining and in changing zones (the harness reads it).
+    enum class State : int {
+        Connecting = 0,
+        LoginSent = 1,          // the login (and the party) is sent; the server's login answer is next
+        SendingCamera = 2,      // the camera's anchor goes to the server on every Pump
+        BetweenZones = 3,       // RequestGameState asked for a screen; Rejoin leaves it
+    };
+    State state;
+
     using Handler = int (PlayerClient::*)();
     std::vector<Handler> handlers;    // by message type (null: refused; 256 of them)
     MemoryStream in;                   // the server's messages being run

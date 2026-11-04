@@ -29,21 +29,10 @@
 
 namespace {
 
-constexpr std::uint8_t kMessageObjectAdded = 0x40;
-constexpr std::uint8_t kMessageObjectChanged = 0x41;
-constexpr std::uint8_t kMessageObjectRemoved = 0x42;
-constexpr std::uint8_t kMessageTimedAdded = 0x50;
-constexpr std::uint8_t kMessageTimedChanged = 0x51;
-constexpr std::uint8_t kMessageTimedRemoved = 0x52;
-constexpr std::uint8_t kMessagePartyState = 0x60;
-constexpr std::uint8_t kMessageParty = 0x80;
 constexpr std::uint32_t kFlagDeltaPending = 2;   // flags: the object's delta is still to be written
 constexpr std::uint32_t kRefreshMinimum = 900;   // updates until the party is sent again: 900..1800
 constexpr std::uint32_t kRefreshSpread = 901;
 
-constexpr std::uint8_t kMessageJoin = 0;    // the two types handled before the player has joined
-constexpr std::uint8_t kMessageJoin8 = 8;
-constexpr int kStateLeaving = 3;
 
 // The receive errors' formats ("Serv pkt read error prevID=%x curID=%x", ...), read from the exe.
 const char* TextReadPastEnd() { return "Serv pkt read error prevID=%x curID=%x"; }
@@ -60,7 +49,6 @@ constexpr float kLowLevel = 2.0f;
 const char* TextServerToClient() { return "server to client, size = "; }
 const char* TextSqueezedTo() { return " squeezed to "; }
 
-void WriteByte(MemoryStream* out, std::uint8_t value) { out->WriteValue(value); }
 void WriteDword(MemoryStream* out, std::uint32_t value) { out->WriteValue(value); }
 
 // Appends all of `from` (sought to 0) to `out`, the pending bits of `out` stored first.
@@ -89,10 +77,6 @@ void Forget(Map& map, int id) {
 
 int WorldUpdateCount(Player* player) { return player->ServerWorld()->updateCount; }
 
-// SendItemsGiven.
-constexpr std::uint8_t kMessageItemStates = 0x05;
-constexpr std::uint8_t kMessageItemsGiven = 0x06;
-constexpr int kStateJoined = 1;
 // SaveListedObjects on a typed list.
 template <typename T>
 void SaveListed(const std::vector<T*>* list, ByteStream* stream) {
@@ -103,17 +87,17 @@ void SaveListed(const std::vector<T*>* list, ByteStream* stream) {
 } // namespace
 
 void PlayerServer::SendItemsGiven(const std::vector<Item*>* items, int flag) {
-    if (state != kStateJoined) return;
+    if (state != State::Joined) return;
     ItemsAndSpells gathered;
     for (Item* item : *items) gathered.Add(item);
     MemoryStream states;
     SaveListed(&gathered.spells, &states);
     SaveListed(&gathered.items, &states);
-    WriteByte(&out, kMessageItemStates);
+    WriteType(&out, ServerMessage::NewItemsAndSpells);
     out.WriteStream(&states);
-    WriteByte(&out, kMessageItemsGiven);
+    WriteType(&out, ServerMessage::ItemsReceived);
     WriteDword(&out, static_cast<std::uint32_t>(player->GetParty()->money));
-    WriteByte(&out, static_cast<std::uint8_t>(flag));
+    out.WriteValue(static_cast<std::uint8_t>(flag));
     for (Item* item : *items) WriteDword(&out, static_cast<std::uint32_t>(item->id));
     WriteDword(&out, 0xFFFFFFFFu);
     gathered.items.clear();
@@ -140,7 +124,7 @@ int PlayerServer::SendObjectsAdded(const std::vector<MapObject*>* objects) {
         bool isUnit = object->GetClassId() == ClassId::Unit;
         std::uint32_t header[4] = {static_cast<std::uint32_t>(object->id), static_cast<std::uint32_t>(object->type),
                                    object->prototypeId, object->flags};
-        WriteByte(&out, kMessageObjectAdded);
+        WriteType(&out, ServerMessage::ObjectAdded);
         out.Write(header, sizeof(header));
         Vector3 scale;
         scale = object->scale;
@@ -174,7 +158,7 @@ int PlayerServer::SendObjectsChanged(const std::vector<MapObject*>* objects) {
     for (MapObject* object : *objects) {
         if (object->changeStamp != stamp) continue;
         if (object->flags & kFlagDeltaPending) object->WriteChangedState();
-        WriteByte(&out, kMessageObjectChanged);
+        WriteType(&out, ServerMessage::ObjectChanged);
         WriteDword(&out, static_cast<std::uint32_t>(object->id));
         WriteStateStream(&out, &object->netState.header[1]);
     }
@@ -186,7 +170,7 @@ int PlayerServer::SendObjectsRemoved(const std::vector<MapObject*>* objects) {
         int objectId = object->id;
         Forget(player->knownObjects, objectId);
         object->Release();
-        WriteByte(&out, kMessageObjectRemoved);
+        WriteType(&out, ServerMessage::ObjectRemoved);
         WriteDword(&out, static_cast<std::uint32_t>(objectId));
     }
     return 1;
@@ -198,7 +182,7 @@ int PlayerServer::SendTimedAdded(const std::vector<Effect*>* effects) {
         std::uint32_t header[2];
         header[1] = static_cast<std::uint32_t>(effect->GetClassId());
         header[0] = static_cast<std::uint32_t>(effect->id);
-        WriteByte(&out, kMessageTimedAdded);
+        WriteType(&out, ServerMessage::TimedAdded);
         out.Write(header, sizeof(header));
         WriteStateStream(&out, &effect->state.out[0]);
         Player* currentPlayer = player;
@@ -212,7 +196,7 @@ int PlayerServer::SendTimedChanged(const std::vector<Effect*>* effects) {
     for (Effect* effect : *effects) {
         if (effect->changeStamp != stamp) continue;
         if (effect->flags & kFlagDeltaPending) effect->SendDelta();
-        WriteByte(&out, kMessageTimedChanged);
+        WriteType(&out, ServerMessage::TimedChanged);
         WriteDword(&out, static_cast<std::uint32_t>(effect->id));
         WriteStateStream(&out, &effect->state.out[1]);
     }
@@ -221,7 +205,7 @@ int PlayerServer::SendTimedChanged(const std::vector<Effect*>* effects) {
 
 int PlayerServer::SendTimedRemoved(const std::vector<Effect*>* effects) {
     for (Effect* effect : *effects) {
-        WriteByte(&out, kMessageTimedRemoved);
+        WriteType(&out, ServerMessage::TimedRemoved);
         WriteDword(&out, static_cast<std::uint32_t>(effect->id));
         Forget(player->knownTimed, effect->id);
         effect->Release();
@@ -229,11 +213,11 @@ int PlayerServer::SendTimedRemoved(const std::vector<Effect*>* effects) {
     return 1;
 }
 
-// The original calls SendObject14 of this object for each item.
+// The original calls SendItemValue of this object for each item.
 void PlayerServer::SendItems() {
     for (unsigned objectId : player->recharging) {
         ResourceManager* items = player->GetParty()->ItemFactory();
-        if (Item* item = items->FindObjectAs<Item>(objectId)) SendObject14(item);
+        if (Item* item = items->FindObjectAs<Item>(objectId)) SendItemValue(item);
     }
 }
 
@@ -248,8 +232,8 @@ int PlayerServer::SendPartyState() {
     }
 
     int count = static_cast<int>(partyUnits.size());
-    WriteByte(&out, kMessagePartyState);
-    WriteByte(&out, currentPlayer->ServerWorld()->paused != 0 ? 1 : 0);
+    WriteType(&out, ServerMessage::PartyState);
+    out.WriteValue(static_cast<std::uint8_t>(currentPlayer->ServerWorld()->paused != 0 ? 1 : 0));
     WriteDword(&out, possessedId);
     WriteDword(&out, static_cast<std::uint32_t>(count));
     std::uint32_t playerBit = 1u << (currentPlayer->playerId & 31);
@@ -289,7 +273,7 @@ int PlayerServer::ForgetObject(EngineObject* object) {
             object->Release();
             --i;
         }
-        WriteByte(&out, kMessageObjectRemoved);
+        WriteType(&out, ServerMessage::ObjectRemoved);
         WriteDword(&out, static_cast<std::uint32_t>(object->id));
     }
     possessedGroup.Remove(object);
@@ -302,13 +286,13 @@ bool PlayerServer::IsPartyUnit(EngineObject* object) { return partyUnits.Contain
 void PlayerServer::SendParty() {
     MemoryStream party;
     player->GetParty()->SaveParty(&party, 1);
-    WriteByte(&out, kMessageParty);
+    WriteType(&out, ServerMessage::Party);
     out.WriteSized(&party);
     refreshTimer = static_cast<int>(g_random.Next() % kRefreshSpread + kRefreshMinimum);
 }
 
 int PlayerServer::ReceiveMessages() {
-    if (state == kStateLeaving) return 0;
+    if (state == State::Leaving) return 0;
     netlink::NetLink* link = player->link;
     if (link == nullptr) return 0;
     MemoryStream& in = g_receivedMessages;
@@ -324,12 +308,14 @@ int PlayerServer::ReceiveMessages() {
             if (!in.ok) return PlayerMessageError(TextReadPastEnd(), previous, messageType);
             previous = messageType;
             if (in.Read(&messageType, 1) == 0) break;
-            if (state == 0 && messageType != kMessageJoin && messageType != kMessageJoin8) break;
+            if (state == State::NotLoggedIn && messageType != static_cast<std::uint8_t>(ClientMessage::Login) &&
+                messageType != static_cast<std::uint8_t>(ClientMessage::NewParty))
+                break;
             if (static_cast<int>(messageType) >= std::ssize(handlers)) return PlayerMessageError(TextUnknownType(), previous, messageType);
             auto handler = handlers[messageType];
             if (handler == nullptr) return PlayerMessageError(TextNoHandler(), previous, messageType);
             if (!(this->*handler)()) return PlayerMessageError(TextHandlerFailed(), previous, messageType);
-            if (state == kStateLeaving) return 0;
+            if (state == State::Leaving) return 0;
         }
     }
     return 1;

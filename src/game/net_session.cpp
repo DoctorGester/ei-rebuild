@@ -101,9 +101,9 @@ SessionBase::SessionBase() {
     time = 0.0;
     frame = 1;
     magic = 0;
-    timeout = 0x3C;
+    timeout = 60;
     maxRoundTrip = 5;
-    idReuseTime = 0x4B;
+    idReuseTime = 75;
 }
 
 void SessionBase::AddHandler(int channel, std::uint32_t type, MessageHandler handler) {
@@ -174,7 +174,7 @@ void DriverSession::PumpDrivers(net::SessionBase* session) {
         if (in->PositionOf(in->high) <= 0) continue;
         net::ServerSession* server = net::g_gameServer;
         if (!IsLive(server)) continue;
-        if (!server->PlayerStateIs3(node.Get())) continue;
+        if (!server->IsConnecting(node.Get())) continue;
         player = node.Get();
         DriverLink* driver = NewDriver(this, player);
         holders.emplace_back(driver);
@@ -254,7 +254,7 @@ void SessionBase::Tick(double dt) {
             }
             continue;
         }
-        char kind;
+        std::uint8_t kind;
         if (buffer->cur + 1 > buffer->high) buffer->ReadPastEnd(&kind, 1);
         else if (buffer->cur + 1 > buffer->end) buffer->ReadMore(&kind, 1u);
         else buffer->CopyOut(&kind, 1);
@@ -264,15 +264,15 @@ void SessionBase::Tick(double dt) {
         cursor.limit = buffer->high;
         cursor.bytePtr = nullptr;
         cursor.bits = 0;
-        switch (kind) {
-        case -1: OnMaster(&from, &cursor); break;
-        case 0: OnUpdate(&from, &cursor); break;
-        case 1: OnLeave(&from, &cursor); break;
-        case 3: OnGetInfo(&from, &cursor); break;
-        case 4: OnLogin(&from, &cursor); break;
-        case 5: OnInfo(&from, &cursor); break;
-        case 6: OnAccepted(&from, &cursor); break;
-        case 7: OnRejected(&from, &cursor); break;
+        switch (static_cast<PacketKind>(kind)) {
+        case PacketKind::Master: OnMaster(&from, &cursor); break;
+        case PacketKind::Update: OnUpdate(&from, &cursor); break;
+        case PacketKind::Leave: OnLeave(&from, &cursor); break;
+        case PacketKind::GetInfo: OnGetInfo(&from, &cursor); break;
+        case PacketKind::Login: OnLogin(&from, &cursor); break;
+        case PacketKind::Info: OnInfo(&from, &cursor); break;
+        case PacketKind::Accepted: OnAccepted(&from, &cursor); break;
+        case PacketKind::Rejected: OnRejected(&from, &cursor); break;
         default: break;   // 2 and anything else: ignored
         }
     }
@@ -314,7 +314,7 @@ void SessionBase::RemoveClient(std::list<SharedRef<Connection>>::iterator node) 
     clients.erase(node);
 }
 
-// Packet kind 0: an update from a client. Unknown senders are logged (returns
+// PacketKind::Update: an update from a client. Unknown senders are logged (returns
 // false); a client whose update does not read is logged, reported and removed.
 bool SessionBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
     auto node = FindClient(from);
@@ -330,7 +330,7 @@ bool SessionBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
     return true;
 }
 
-// Packet kind 1: a client leaves: its connection id follows; when it matches,
+// PacketKind::Leave: a client leaves: its connection id follows; when it matches,
 // the client is reported and removed.
 void SessionBase::OnLeave(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t id;
@@ -370,7 +370,7 @@ std::uint32_t SessionBase::RateFor(const NetAddress* address) {
 void SessionBase::SendLeave(const NetAddress* address, std::uint32_t id) {
     GrowingBuffer storage;
     auto* buffer = &storage;
-    std::uint8_t kind = 1;
+    std::uint8_t kind = static_cast<std::uint8_t>(PacketKind::Leave);
     if (buffer->cur + 1 <= buffer->end) {
         buffer->flags |= 1;
         *buffer->cur = kind;
@@ -400,7 +400,7 @@ SessionBase::~SessionBase() {
         std::uint32_t id = connection->id;
         GrowingBuffer storage;
         auto* buffer = &storage;
-        std::uint8_t kind = 1;
+        std::uint8_t kind = static_cast<std::uint8_t>(PacketKind::Leave);
         buffer->BufferWrite(&kind, 1);
         if (buffer->cur + 4 <= buffer->end) {
             buffer->flags |= 1;

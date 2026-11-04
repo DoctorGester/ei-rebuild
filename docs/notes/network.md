@@ -44,8 +44,8 @@ and `net_pair_party` (an exchange offered, withdrawn, answered, left);
   FinishQuestMap). Awards wait 60 s on the server's timed list before the Award message goes out.
 - **Exchange**: a click on another player's face sends a Party offer; the partner's click on the offerer's face opens
   the exchange on both; both accepting completes the Trade.
-- **Kick / ban**: console `kick` / `ban` without a name opens the host's player pick (a face click sends command 4 / 5
-  with the serial); with a name, command 2 / 3 (guests whose name starts with it). A banned address's join is refused.
+- **Kick / ban**: console `kick` / `ban` without a name opens the host's player pick (a face click sends KickBySerial / BanBySerial
+  with the serial); with a name, KickByName / BanByName (guests whose name starts with it). A banned address's join is refused.
 - **Shared files**: the server shares each queued zone's .mq (a File message, 64-byte FileChunk messages); a client
   that lacks one answers with a FileRequest; vanilla writes the file into Maps, Rebirth's MQClient keeps the chunks
   only.
@@ -66,8 +66,13 @@ and `net_pair_party` (an exchange offered, withdrawn, answered, left);
   class to type id to factory), the UDP socket driver, one "reliable" byte per message type, handler vectors per
   channel (0 created, 1 changed, 2 removed) and type. `ServerBase` / `ClientBase` are the lobby layers;
   `ServerSession` / `ClientSession` on top. +8 of both sessions is the magic 0xDEC0AD07.
-- Packet kinds (first byte): -1 master, 0 update, 1 leave, 2 none, 3 get info, 4 login, 5 info, 6 accepted, 7
-  rejected.
+- Packet kinds (first byte, `net::PacketKind`): Master (0xFF, -1), Update 0, Leave 1, (2 none), GetInfo 3, Login 4,
+  Info 5, Accepted 6, Rejected 7 (the join id and a `RefusalReason`: Full 1, Banned 2, WrongPassword 3). The other
+  numbers of the wire are enums too, in `net_classes.h`: `AwardKind`, `CommandKind`, `PlayerStatus` (the state of a
+  client's login record: InZone 0, InBase 1, InCamp 2, Connecting 3, Fresh 4); the player link's message types are
+  `ServerMessage` / `ClientMessage` (`player_messages.h`), the connection states `PlayerServer::State` /
+  `PlayerClient::State`, a map object's delta fields `NetField` (`net_delta.h`). Values equal the old numbers; the
+  handler tables are keyed by the enums.
 - Message types: client to server: Login (5), Say (6), Command (7, {kind, text}), FileRequest (13), Party (15, a trade
   offer), PartyMember (16, a MemoryStream); server to client: Player (1), Line (2, chat), Host (3, "host:port" + zone),
   Binding (4), Zone (8), Map (9), Variable (10), File (11), FileChunk (12), Award (14), Trade (17). Duplicate layouts
@@ -76,8 +81,8 @@ and `net_pair_party` (an exchange offered, withdrawn, answered, left);
   ours leaves out. Only the messages a second share of an object clones (Say, Command, FileChunk, Award, ServerEntry)
   have `Clone` and a copy constructor; `RefObject::Clone` of any other class is a fatal error, and `OnShutdown` is
   empty unless a class overrides it (H43g1 cut the clones the coverage runs never reached).
-- Command kinds (host only): 0 preview a map, 1 zone command ("_1" enter, "_2" leave, "_3" finish), 2 / 3 kick / ban
-  by name, 4 / 5 by serial.
+- Command kinds (host only, `CommandKind`): PreviewMap, Zone ("_1" enter, "_2" leave, "_3" finish), KickByName /
+  BanByName, KickBySerial / BanBySerial.
 - Rates: 12500 local / 2500 otherwise, clamped 500..50000. Say is announced as "^<number><name>^7: <text>".
 - **Ports.** One UDP port, 8888, for the server's socket (a failed bind leaves the session without a socket), the
   local client's join of 127.0.0.1 and the lobby's pings. A second game on the machine joins the first one's server;
@@ -167,7 +172,7 @@ coverage runs of H43 never reached them:
   (zone13.mob, zone2.mob) sit behind single-player story variables.
 - Handlers for messages our own peer never sends, kept for a vanilla peer: `PlayerClient::OnDisconnect` (0x01) and
   `OnObjectValues` (0x0C); `PlayerServer::OnLeave` (0x01), `OnRefreshParty` (0x02), `OnBriefingDone` (0x07),
-  `OnMessage37` and `OnUnitLookup` (0x38, reads and drops). The other handlers H43g1 listed (`SendGoTo`, `SendFollow`,
-  `TakeExit`, `OnGoTo`, `OnFollow`, `OnTakeExit`, `OnWeaponRemoved`, `Send17`, `SendObject0A`, `SendPair16`) have
+  and `OnUnitLookup` (ClientMessage::UnitLookup, 0x38, reads and drops; 0x37 has no handler). The other handlers H43g1 listed (`SendGoTo`, `SendFollow`,
+  `TakeExit`, `OnGoTo`, `OnFollow`, `OnTakeExit`, `OnWeaponRemoved`, `SendQuestItemsChanged`, `SendItemRemoved`, `SendWeaponRemoved`) have
   callers in play (the hud's orders, a broken weapon, taken loot); the scenarios just do not click them.
 - The `SessionBase` handlers of the packet kinds a session does not serve log an error and are not empty.

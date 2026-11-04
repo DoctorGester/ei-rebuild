@@ -245,11 +245,11 @@ void HudPortraits::LeftDown(Point point) {
     }
     char text[128];
     std::snprintf(text, sizeof(text), "%d", playerId);
-    // ClientSession::SendCommand: the server commands 4 and 5.
+    // ClientSession::SendCommand: kick / ban by serial.
     if (mode == 1)
-        net::g_gameClient->SendCommand(4, text);
+        net::g_gameClient->SendCommand(net::CommandKind::KickBySerial, text);
     else if (mode == 2)
-        net::g_gameClient->SendCommand(5, text);
+        net::g_gameClient->SendCommand(net::CommandKind::BanBySerial, text);
     owner->portraitMode = 0;
 }
 
@@ -404,7 +404,7 @@ void HudClock::LeftUp(Point point) {
         handled = true;
         // A network client too (Rebirth's MPSpeedControl; the original ignored the buttons there): the host's sets
         // the server's speed, everyone's game.
-        if (g_clientWorld.paused) g_clientWorld.SendFlag10(0);
+        if (g_clientWorld.paused) g_clientWorld.SendPause(0);
         SetSpeed(region == 2);
         return;
     case 3:     // the objectives
@@ -423,7 +423,7 @@ void HudClock::MouseMove(Point point) {
 void HudClock::TogglePause() {
     ui->PlayInterfaceSound(kSoundClock);
     const bool paused = g_clientWorld.paused;
-    g_clientWorld.SendFlag10(paused ? 0 : 1);
+    g_clientWorld.SendPause(paused ? 0 : 1);
 }
 
 void HudClock::SetSpeed(bool newFast) {

@@ -79,7 +79,7 @@ void BriefingScreen::StartPhrases() {
         return;
     }
     PlayerServer* server = g_serverWorld.GetPlayer(0)->Server();
-    if (server) server->SendPair19(kEventPhrases, 0);
+    if (server) server->SendUnitControl(kEventPhrases, 0);
 
     // The camera's position, and that plus its rotation's z axis (third column of the matrix).
     const Camera* camera = &g_camera;
@@ -176,7 +176,7 @@ void BriefingScreen::ViewSpeaker(Unit* unit, float angle, float distance, float 
     float alongX = (x * cosAngle + y * sinAngle) * distance;
     float alongY = (y * cosAngle - x * sinAngle) * distance;
     at = eye + Vector3{alongX, alongY, height};
-    g_serverWorld.GetPlayer(0)->Server()->SendPosition0F(at, eye, 1);
+    g_serverWorld.GetPlayer(0)->Server()->SendFreeCamera(at, eye, 1);
 }
 
 void BriefingScreen::ViewPreset(int preset) {
@@ -253,7 +253,7 @@ void BriefingScreen::HideSpeaker(std::string_view name, bool immediately, bool r
     auto entry = std::find_if(speakers.begin(), speakers.end(), [speaker](const BriefingSpeaker& s) { return s.unit == speaker; });
     if (entry != speakers.end()) {
         PlayerServer* server = g_serverWorld.GetPlayer(0)->Server();
-        if (server) server->SendPair19(kEventLeaves, speaker->id);
+        if (server) server->SendUnitControl(kEventLeaves, speaker->id);
         UnitClientSpecific* model = speaker->ClientController();
         model->blinks = 0;
         model->BlinkOpen(true);

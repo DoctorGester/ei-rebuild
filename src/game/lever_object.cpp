@@ -15,8 +15,6 @@
 
 namespace {
 constexpr int kLeverNetFields = 6;
-constexpr int kLeverField = 5;            // the network field and the MarkChanged part
-constexpr int kPartScale = 1;
 constexpr std::uint32_t kKeyById = 8;           // lock mask bit: the id names the key
 constexpr float kNextStateDuration = -10.0f;   // SetState(-1, -10): the model's default
 constexpr float kSoundNear = 8.0f;
@@ -113,7 +111,7 @@ void LockKey::WriteTo(ByteStream* stream) const {
 
 void Lever::WriteLeverNetState() {
     MapObject::WriteNetState();
-    DeltaField* field = netState.BeginField(kLeverField);
+    DeltaField* field = netState.BeginField(NetField::LeverState);
     if (!field) return;
     if (to != scale.y) {
         rate = 0.0f;
@@ -128,7 +126,7 @@ void Lever::WriteLeverNetState() {
 
 std::uint32_t Lever::ReadLeverNetState(int first) {
     std::uint32_t complete = MapObject::ReadNetState(first);
-    DeltaField* field = netState.BeginField(kLeverField);
+    DeltaField* field = netState.BeginField(NetField::LeverState);
     if (!field) return complete;
     field->ReadDelta(&lock, sizeof(LockKey));
     field->ReadDelta(&from, 4);
@@ -162,18 +160,18 @@ void Lever::SetUp(const LeverSetup* setup) {
     keepsMapFlag = setup->keepsMapFlag;
     if (stateCount > 1) scale.y = static_cast<float>(state) / static_cast<float>(stateCount - 1);   // states < 256
     else scale.y = 0.0f;
-    MarkChanged(kPartScale);
+    MarkChanged(NetField::Scale);
 }
 
 void Lever::Enable(bool on) {
     if (on) flags &= ~MapObjectFlag::Disabled;
     else flags |= MapObjectFlag::Disabled;
-    MarkChanged(kLeverField);
+    MarkChanged(NetField::LeverState);
 }
 
 void Lever::SetLock(const LockKey* key) {
     lock = *key;
-    MarkChanged(kLeverField);
+    MarkChanged(NetField::LeverState);
 }
 
 
@@ -188,7 +186,7 @@ bool Lever::ApplyKey(const LockKey* key) {
     if (!key->Opens(&lock)) return false;
     SetState(-1, kNextStateDuration);
     flags |= MapObjectFlag::Disabled;
-    MarkChanged(kLeverField);
+    MarkChanged(NetField::LeverState);
     return true;
 }
 

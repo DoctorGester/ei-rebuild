@@ -96,7 +96,7 @@ void GameSetUnitHeight(int id, float z) {
     if (unit->localPosition.z == z) return;
     Vector3 target = {unit->localPosition.x, unit->localPosition.y, z};
     world->aiMap.sectorMap.Move(unit, target);
-    unit->MarkChanged(2);
+    unit->MarkChanged(NetField::Placement);
 }
 
 void GameSetServerPaused(int paused) { g_serverWorld.SetServerPaused(static_cast<std::uint8_t>(paused)); }
@@ -153,9 +153,9 @@ void GameLeaveThroughExit(int exit) {
         g_clientWorld.LocalView()->TakeExit(exit);
 }
 
-void GameSendLeave04(int value) {
+void GameRequestGameState(int value) {
     g_interface.closeAll = 1;
-    g_clientWorld.LocalView()->SendLeave04(value);
+    g_clientWorld.LocalView()->RequestGameState(value);
 }
 
 void GameRejoin() {

@@ -186,9 +186,9 @@ Player* LocalPlayer() { return g_serverWorld.GetPlayer(0); }
 
 } // namespace
 
-// Applies the received awards (net_server_trade.cpp) to player 0 and empties the list. Kind 0: experience; 1:
-// money (the party's, the value truncated), then an empty item list given; 2: the item named by the text, given; 3:
-// the first given item whose IsSameAs with the named item returns 0 is taken (by id); 4: the party's quest items
+// Applies the received awards (net_server_trade.cpp) to player 0 and empties the list. Experience; Gold:
+// money (the party's, the value truncated), then an empty item list given; Item: the item named by the text, given; RemoveItem:
+// the first given item whose IsSameAs with the named item returns 0 is taken (by id); QuestReset: the party's quest items
 // removed and every given quest item (class 0x14) taken.
 void ClientSession::ApplyAwards() {
     ClientSession* self = this;
@@ -198,20 +198,20 @@ void ClientSession::ApplyAwards() {
         auto* award = node.Get();
         const char* name = award->text.data();
         switch (award->kind) {
-        case 0: {
+        case AwardKind::Experience: {
             std::uint32_t bits;
             bits = std::bit_cast<std::uint32_t>(award->value);
             g_serverWorld.AwardExperience(nullptr, std::bit_cast<float>(bits));
             break;
         }
-        case 1: {
+        case AwardKind::Gold: {
             std::vector<Item*> none;
             // Truncated as _ftol does: through 64 bits, so a NaN or a value beyond the int range gives 0.
             localPlayer->GetParty()->money += static_cast<int>(static_cast<std::int64_t>(award->value));
             localPlayer->GiveItems(&none, 0);
             break;
         }
-        case 2: {
+        case AwardKind::Item: {
             std::vector<Item*> items;
             Item* item = localPlayer->GetParty()->ItemFactory()->CreateItem(name);
             if (item) item->AddRef();
@@ -220,7 +220,7 @@ void ClientSession::ApplyAwards() {
             ReleaseAndClear(items);
             break;
         }
-        case 3: {
+        case AwardKind::RemoveItem: {
             auto* item = localPlayer->GetParty()->ItemFactory()->CreateItem(name);
             if (item) item->AddRef();
             for (Item* owned : localPlayer->items) {
@@ -233,7 +233,7 @@ void ClientSession::ApplyAwards() {
             if (item) item->Release();
             break;
         }
-        case 4: {
+        case AwardKind::QuestReset: {
             localPlayer->GetParty()->RemoveQuestItems();
             // TakeItem erases from the list: the quest items' ids first.
             std::vector<int> quest;
@@ -268,7 +268,7 @@ void ClientSession::Tick(double dt) {
     }
     if (self->awards.begin() == self->awards.end() || g_serverWorld.sessionKind != 3) return;
     Player* localPlayer = LocalPlayer();
-    if (!localPlayer || localPlayer->connection->state != 1 || !g_serverWorld.zoneLoaded) return;
+    if (!localPlayer || localPlayer->Server()->state != PlayerServer::State::Joined || !g_serverWorld.zoneLoaded) return;
     ApplyAwards();
 }
 

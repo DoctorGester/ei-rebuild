@@ -70,7 +70,7 @@ void WriteSpeech(platform::File* file, const SpeechRecord& speech) {
 
 // kick / ban: without arguments the server's player list window (if the server allows it), with a
 // name (quotes stripped) the server command.
-void KickOrBan(std::vector<std::string>* args, int windowMode, int command) {
+void KickOrBan(std::vector<std::string>* args, int windowMode, net::CommandKind command) {
     int count = static_cast<int>(args->size());
     if (count == 0) {
         net::ClientSession* server = net::g_gameClient;
@@ -346,7 +346,7 @@ void Net(std::vector<std::string>* args) {
         app::g_showClientSpeed = str::ToInt((*args)[1]);
     if (text::CompareIgnoringCase((*args)[0], "zone") == 0 && IsLive(net::g_gameClient)) {
         std::string zone = (*args)[1];
-        net::g_gameClient->SendCommand(0, zone);
+        net::g_gameClient->SendCommand(net::CommandKind::PreviewMap, zone);
     }
 }
 
@@ -434,10 +434,10 @@ void PartyResend(std::vector<std::string>*) {
 }
 
 // Kick [name].
-void Kick(std::vector<std::string>* args) { KickOrBan(args, 1, 2); }
+void Kick(std::vector<std::string>* args) { KickOrBan(args, 1, net::CommandKind::KickByName); }
 
 // Ban [name].
-void Ban(std::vector<std::string>* args) { KickOrBan(args, 2, 3); }
+void Ban(std::vector<std::string>* args) { KickOrBan(args, 2, net::CommandKind::BanByName); }
 
 // Fps [1|on|0|off]: shows or hides the frame rate; anything else toggles it.
 void Fps(std::vector<std::string>* args) {

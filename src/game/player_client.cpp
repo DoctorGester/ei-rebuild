@@ -43,13 +43,7 @@
 
 namespace {
 
-constexpr std::uint8_t kRequestLogin = 0;
-constexpr std::uint8_t kRequestParty = 8;
-constexpr std::uint8_t kRequestCamera = 0x40;
 constexpr int kLoginVersion = 100;
-constexpr int kStateConnecting = 0;
-constexpr int kStateLoggedIn = 1;
-constexpr int kStateSendingCamera = 2;
 
 // The login request (message 0). The original copies the two texts into stack buffers
 // and sends the bytes after them uninitialised; here they are zero.
@@ -70,8 +64,6 @@ const char* TextReadPastEnd() { return "Pkt read error prevID=%x curID=%x\n"; }
 const char* TextNoHandler() { return "Packet has no handler prevID=%x curID=%x\n"; }
 const char* TextHandlerFailed() { return "Error during parsing update prevID=%x curID=%x\n"; }
 const char* TextUnknownType() { return "Wrong packet ID prevID=%x curID=%x\n"; }
-
-void WriteByte(MemoryStream* out, std::uint8_t value) { out->WriteValue(value); }
 
 const char* QuestPrefix() { return "q."; }
 
@@ -145,21 +137,47 @@ void RemovePartNamed(Object3D* object, const char* name) {
 constexpr int kClientHandlerCount = 0x100;
 
 // The client's message handlers by type.
-constexpr HandlerEntry<PlayerClient> kClientHandlers[] = {
-    {0x00, &PlayerClient::OnLoginAccepted}, {0x01, &PlayerClient::OnDisconnect}, {0x02, &PlayerClient::OnZone},
-    {0x03, &PlayerClient::OnWorldBlock3}, {0x04, &PlayerClient::OnCameraPlacement}, {0x05, &PlayerClient::OnWorldBlock5},
-    {0x06, &PlayerClient::OnItemsReceived}, {0x07, &PlayerClient::OnGameState}, {0x08, &PlayerClient::OnZoneChange},
-    {0x09, &PlayerClient::OnGameLost}, {0x0A, &PlayerClient::OnItemRemoved}, {0x0B, &PlayerClient::OnUnitSpeech},
-    {0x0C, &PlayerClient::OnObjectValues}, {0x0D, &PlayerClient::OnJingle}, {0x0E, &PlayerClient::OnPathMarker},
-    {0x0F, &PlayerClient::OnFreeCamera}, {0x12, &PlayerClient::OnWorldValue}, {0x13, &PlayerClient::OnStringEvent},
-    {0x14, &PlayerClient::OnItemValue}, {0x15, &PlayerClient::OnExperienceAll}, {0x16, &PlayerClient::OnWeaponRemoved},
-    {0x17, &PlayerClient::OnQuestItemsChanged}, {0x18, &PlayerClient::OnExperience}, {0x19, &PlayerClient::OnUnitControl},
-    {0x40, &PlayerClient::OnNewObject}, {0x41, &PlayerClient::OnObjectChanged}, {0x42, &PlayerClient::OnObjectRemoved},
-    {0x43, &PlayerClient::OnUnitDied}, {0x50, &PlayerClient::OnTimedObjectAdded}, {0x51, &PlayerClient::OnTimedObjectChanged},
-    {0x52, &PlayerClient::OnTimedObjectRemoved}, {0x60, &PlayerClient::OnPartyState}, {0x70, &PlayerClient::OnWeather},
-    {0x71, &PlayerClient::OnWorldTime}, {0x72, &PlayerClient::OnWorldPoint}, {0x73, &PlayerClient::OnWorldStream},
-    {0x80, &PlayerClient::OnParty}, {0x81, &PlayerClient::OnSetVariable}, {0x82, &PlayerClient::OnDeleteVariable},
-    {0x83, &PlayerClient::OnPartyUpdate},
+constexpr HandlerEntry<PlayerClient, ServerMessage> kClientHandlers[] = {
+    {ServerMessage::LoginAccepted, &PlayerClient::OnLoginAccepted},
+    {ServerMessage::Disconnect, &PlayerClient::OnDisconnect},
+    {ServerMessage::Zone, &PlayerClient::OnZone},
+    {ServerMessage::ItemsAndSpells, &PlayerClient::OnItemsAndSpells},
+    {ServerMessage::CameraPlacement, &PlayerClient::OnCameraPlacement},
+    {ServerMessage::NewItemsAndSpells, &PlayerClient::OnNewItemsAndSpells},
+    {ServerMessage::ItemsReceived, &PlayerClient::OnItemsReceived},
+    {ServerMessage::GameState, &PlayerClient::OnGameState},
+    {ServerMessage::ZoneChange, &PlayerClient::OnZoneChange},
+    {ServerMessage::GameLost, &PlayerClient::OnGameLost},
+    {ServerMessage::ItemRemoved, &PlayerClient::OnItemRemoved},
+    {ServerMessage::UnitSpeech, &PlayerClient::OnUnitSpeech},
+    {ServerMessage::ObjectValues, &PlayerClient::OnObjectValues},
+    {ServerMessage::Jingle, &PlayerClient::OnJingle},
+    {ServerMessage::PathMarker, &PlayerClient::OnPathMarker},
+    {ServerMessage::FreeCamera, &PlayerClient::OnFreeCamera},
+    {ServerMessage::WorldValue, &PlayerClient::OnWorldValue},
+    {ServerMessage::StringEvent, &PlayerClient::OnStringEvent},
+    {ServerMessage::ItemValue, &PlayerClient::OnItemValue},
+    {ServerMessage::ExperienceAll, &PlayerClient::OnExperienceAll},
+    {ServerMessage::WeaponRemoved, &PlayerClient::OnWeaponRemoved},
+    {ServerMessage::QuestItemsChanged, &PlayerClient::OnQuestItemsChanged},
+    {ServerMessage::Experience, &PlayerClient::OnExperience},
+    {ServerMessage::UnitControl, &PlayerClient::OnUnitControl},
+    {ServerMessage::ObjectAdded, &PlayerClient::OnNewObject},
+    {ServerMessage::ObjectChanged, &PlayerClient::OnObjectChanged},
+    {ServerMessage::ObjectRemoved, &PlayerClient::OnObjectRemoved},
+    {ServerMessage::UnitDied, &PlayerClient::OnUnitDied},
+    {ServerMessage::TimedAdded, &PlayerClient::OnTimedObjectAdded},
+    {ServerMessage::TimedChanged, &PlayerClient::OnTimedObjectChanged},
+    {ServerMessage::TimedRemoved, &PlayerClient::OnTimedObjectRemoved},
+    {ServerMessage::PartyState, &PlayerClient::OnPartyState},
+    {ServerMessage::Weather, &PlayerClient::OnWeather},
+    {ServerMessage::Time, &PlayerClient::OnWorldTime},
+    {ServerMessage::Wind, &PlayerClient::OnWind},
+    {ServerMessage::Countdowns, &PlayerClient::OnCountdowns},
+    {ServerMessage::Party, &PlayerClient::OnParty},
+    {ServerMessage::SetVariable, &PlayerClient::OnSetVariable},
+    {ServerMessage::DeleteVariable, &PlayerClient::OnDeleteVariable},
+    {ServerMessage::PartyUpdate, &PlayerClient::OnPartyUpdate},
 };
 
 constexpr int kSessionKindSingle = 1;
@@ -176,10 +194,10 @@ int ReadDword(MemoryStream* in) {
 bool PlayerClient::Pump() {
     netlink::NetLink* link = player->link;
     switch (state) {
-    case kStateConnecting: {
+    case State::Connecting: {
         if (link == nullptr || !link->Connected()) return true;
         if (sendParty) {
-            WriteByte(&out, kRequestParty);
+            WriteType(&out, ClientMessage::NewParty);
             player->GetParty()->SaveParty(&out, 1);
         }
         LoginRequest login;
@@ -188,17 +206,17 @@ bool PlayerClient::Pump() {
         std::memcpy(login.name, TextLoginName(), std::strlen(TextLoginName()) + 1);
         std::memcpy(login.password, TextLoginPassword(), std::strlen(TextLoginPassword()) + 1);
         login.partyId = player->partyId;
-        WriteByte(&out, kRequestLogin);
+        WriteType(&out, ClientMessage::Login);
         out.WriteValue(login);
-        state = kStateLoggedIn;
+        state = State::LoginSent;
         return SendToServer();
     }
-    case kStateLoggedIn:
+    case State::LoginSent:
         return true;
-    case kStateSendingCamera: {
+    case State::SendingCamera: {
         const Vector3* anchor = CameraAnchor(g_clientWorld.camera);
         Vector2 point = XY(*anchor);   // sent as two floats
-        WriteByte(&out, kRequestCamera);
+        WriteType(&out, ClientMessage::LastPosition);
         out.Write(&point, sizeof(point));
         return SendToServer();
     }
@@ -297,14 +315,14 @@ int PlayerClient::OnZone() {
     return 1;
 }
 
-int PlayerClient::OnWorldBlock3() {
+int PlayerClient::OnItemsAndSpells() {
     MemoryStream block;
     if (in.ReadStream(&block) == 0) return 0;
     g_clientWorld.LoadItemsAndSpells(&block);
     return 1;
 }
 
-int PlayerClient::OnWorldBlock5() {
+int PlayerClient::OnNewItemsAndSpells() {
     MemoryStream block;
     if (in.ReadStream(&block) == 0) return 0;
     g_clientWorld.LoadNewItemsAndSpells(&block);
@@ -586,7 +604,7 @@ int PlayerClient::OnNewObject() {
 // --- Clearing the connection ---------------------------------------------------------------
 
 void PlayerClient::CreateClient() {
-    state = 0;
+    state = State::Connecting;
     partyUnitIds.clear();
     in.Resize(0);
     out.Resize(0);
@@ -597,11 +615,11 @@ void PlayerClient::CreateClient() {
     handlers.resize(kClientHandlerCount);
     std::fill_n(handlers.data(), std::ssize(handlers), Handler{});
     for (const auto& entry : kClientHandlers)
-        handlers[entry.type] = entry.handler;
+        handlers[static_cast<std::uint8_t>(entry.type)] = entry.handler;
 }
 
 void PlayerClient::Clear() {
-    state = 0;
+    state = State::Connecting;
     partyUnitIds.clear();
     in.Resize(0);
     out.Resize(0);

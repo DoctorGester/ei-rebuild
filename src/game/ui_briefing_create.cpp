@@ -312,7 +312,7 @@ void BriefingScreen::MarkPeople() {
         if (!g_clientWorld.FindUnit(personId)) continue;
         bool hasTopics = std::find(open.begin(), open.end(), personId) != open.end();
         auto* player = g_serverWorld.GetPlayer(0);
-        if (player && player->Server()) player->Server()->SendPair19(hasTopics ? kEventOpenTopics : kEventNoTopics, personId);
+        if (player && player->Server()) player->Server()->SendUnitControl(hasTopics ? kEventOpenTopics : kEventNoTopics, personId);
     }
     open.clear();
 }

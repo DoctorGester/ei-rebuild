@@ -59,7 +59,7 @@ Connection::Connection(std::uint32_t newId) {
     sendInterval = 0.04f;
     sendTimer = 0.0f;
     idleTime = 0.0f;
-    updateBudget = 0xDC;
+    updateBudget = 220;
     roundTripSquare = 0.0f;
     lastReceived = 0;
     sequenceHigh = 0x10000;

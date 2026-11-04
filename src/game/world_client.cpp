@@ -148,10 +148,10 @@ PlayerClient* WorldClient::LocalView() {
     return session && session->connection ? session->connection->ClientSide() : nullptr;
 }
 
-bool WorldClient::IsLocalViewMode2() {
+bool WorldClient::IsLocalViewSendingCamera() {
     PlayerClient* view = LocalView();
     if (!view) return false;
-    return view->state == 2;
+    return view->state == PlayerClient::State::SendingCamera;
 }
 
 bool WorldClient::IsLocalPlayerIdle() {

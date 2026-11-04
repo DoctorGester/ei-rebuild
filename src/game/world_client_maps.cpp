@@ -378,8 +378,8 @@ void WorldClient::RemoveUnitsOf(const std::vector<PartyUnitRecord*>* records) {
         RemoveObject(static_cast<int>((*records)[i]->unitId));
 }
 
-int WorldClient::SendFlag10(int value) {
-    return LocalView()->SendFlag10(static_cast<std::uint8_t>(value));
+int WorldClient::SendPause(int value) {
+    return LocalView()->SendPause(static_cast<std::uint8_t>(value));
 }
 
 void WorldClient::DropShadows() {

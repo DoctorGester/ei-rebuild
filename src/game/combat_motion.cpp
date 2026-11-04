@@ -111,7 +111,7 @@ void Play(UnitServer* self, const AnimationSteps& steps, UnitState newState) {
         sectors->Remove(self->unit);
         self->unit->obstacle = 0;
         sectors->Add(self->unit);
-        self->unit->MarkChanged(7);
+        self->unit->MarkChanged(NetField::Motion);
     }
 }
 
@@ -290,7 +290,7 @@ void UnitServer::StartAction(char follow, char stepFlags) {
     sectors->Remove(unit);
     unit->obstacle = 0;
     sectors->Add(unit);
-    unit->MarkChanged(7);
+    unit->MarkChanged(NetField::Motion);
 }
 
 // --- Movement modes -----------------------------------------------------------------------------
@@ -307,7 +307,7 @@ void UnitServer::UpdateSneak() {
         int mode = moveMode2.mode;
         if (mode != unit->moveMode2) {
             unit->moveMode2 = mode;
-            unit->MarkChanged(6);
+            unit->MarkChanged(NetField::Modes);
         }
     }
     if (moveMode.wasMode3 != 0) {
@@ -322,7 +322,7 @@ void UnitServer::UpdateSneak() {
         int mode = moveMode.mode;
         if (mode != unit->moveMode) {
             unit->moveMode = mode;
-            unit->MarkChanged(6);
+            unit->MarkChanged(NetField::Modes);
         }
         unit->UpdateSizeClass();
         motionChanged = 1;
@@ -338,7 +338,7 @@ void UnitServer::UpdateSneak() {
     int mode = UnitModeOf(moveMode);
     if (mode != unit->moveMode) {
         unit->moveMode = mode;
-        unit->MarkChanged(6);
+        unit->MarkChanged(NetField::Modes);
     }
     unit->UpdateSizeClass();
     motionChanged = 1;
@@ -360,7 +360,7 @@ bool UnitServer::ChangeMoveMode() {
         placed = false;
     else
         placed = g_serverWorld.aiMap.sectorMap.Add(unit);
-    unit->MarkChanged(6);
+    unit->MarkChanged(NetField::Modes);
     if (!placed) {
         // The new mode does not fit here: back to the old one, and the party is told.
         moveMode = saved;

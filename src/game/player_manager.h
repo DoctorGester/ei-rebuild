@@ -32,7 +32,7 @@ public:
     // (positions and the object list are left alone).
     void ChangeId(EngineObject* object, int id);
     // Every player's connection (a PlayerServer) gets message
-    // 0x12 (SendValue12 through its address: a byte, then `value`) / 0x13 (SendText13, `text`).
+    // 0x12 (SendWorldValue through its address: a byte, then `value`) / 0x13 (SendStringEvent, `text`).
     void SendValueToAll(int value);
     void SendTextToAll(const char* text);
 };

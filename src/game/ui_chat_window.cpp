@@ -41,7 +41,6 @@ constexpr int kFaceWidth = 0x38;
 constexpr int kFirstFaceLeft = 0x2E8;
 constexpr int kFirstStatusLeft = 0x118;   // with the window at 0x1D0; 0x2E8 with EI_Plugin's NPlayers
 constexpr std::uint32_t kWhite = 0xFFFFFF;
-constexpr int kPickCommandA = 4, kPickCommandB = 5;   // the client's command kinds for picks 1 / 2
 
 bool Live(const RefObject* object) { return object && !(object->flags7 & RefObject::kDetached); }
 
@@ -163,7 +162,7 @@ void ChatWindow::ShowPlayers() {
 void ChatWindow::Update() {
     net::ClientSession* client = net::g_gameClient;
     if (Live(client->trade)) {
-        GameSendLeave04(9);
+        GameRequestGameState(9);
         return;
     }
     statusRows.clear();
@@ -173,11 +172,11 @@ void ChatWindow::Update() {
         net::PlayerMessage* player = *p;
         status.clear();
         switch (player->state) {
-        case 0: status = texts[0]; break;
-        case 1: status = texts[1]; break;
-        case 2: status = texts[2]; break;
-        case 3:
-        case 4: status = texts[3]; break;
+        case net::PlayerStatus::InZone: status = texts[0]; break;
+        case net::PlayerStatus::InBase: status = texts[1]; break;
+        case net::PlayerStatus::InCamp: status = texts[2]; break;
+        case net::PlayerStatus::Connecting:
+        case net::PlayerStatus::Fresh: status = texts[3]; break;
         default: break;
         }
         offer.clear();
@@ -219,9 +218,9 @@ void ChatWindow::LeftDown(Point point) {
         char text[0x80];
         std::snprintf(text, sizeof(text), "%d", players[index]->serial);
         if (pick == 1)
-            net::g_gameClient->SendCommand(kPickCommandA, text);
+            net::g_gameClient->SendCommand(net::CommandKind::KickBySerial, text);
         else if (pick == 2)
-            net::g_gameClient->SendCommand(kPickCommandB, text);
+            net::g_gameClient->SendCommand(net::CommandKind::BanBySerial, text);
         briefing->chatActive = 0;
         return;
     }

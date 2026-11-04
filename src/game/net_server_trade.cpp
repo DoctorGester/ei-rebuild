@@ -140,10 +140,10 @@ namespace net {
 
 // Queues an award message for `connection` on the pending awards with a 60 second delay. `text` is the
 // caller's string (made in the argument slot), destroyed here as the callee destroys a by-value argument.
-void ServerSession::QueueAward(RefObject* connection, int textKind, float value, std::string text) {
+void ServerSession::QueueAward(RefObject* connection, AwardKind awardKind, float value, std::string text) {
     auto* award = NewCounted<AwardMessage>();
     award->connection.Assign(connection);
-    award->kind = static_cast<std::uint32_t>(textKind);
+    award->kind = awardKind;
     award->value = value;
 
     // The text, assigned in place (string::operator= inlined: overwrite, then cut or append).
@@ -157,8 +157,8 @@ void ServerSession::QueueAward(RefObject* connection, int textKind, float value,
 }
 
 // Finds the host (the first binding whose player is live and has the host flag) and,
-// when its connection is live, queues a kind 2 award for each item name of `entry` (its given items)
-// and, with `withFinal`, a kind 4 award with an empty text.
+// when its connection is live, queues an Item award for each item name of `entry` (its given items)
+// and, with `withFinal`, a QuestReset award with an empty text.
 void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) {
     auto sentinel = bindings.end();
     auto node = bindings.begin();
@@ -178,17 +178,17 @@ void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) 
         std::uint32_t i = 0;
         if (count() != 0) {
             do {
-                QueueAward(connection, 2, 0.0f, items.begin()[i]);
+                QueueAward(connection, AwardKind::Item, 0.0f, items.begin()[i]);
                 ++i;
             } while (i < count());
         }
     }
-    if (withFinal) QueueAward(connection, 4, 0.0f, std::string(game::kEmptyText));
+    if (withFinal) QueueAward(connection, AwardKind::QuestReset, 0.0f, std::string(game::kEmptyText));
 }
 
 // The zone completion command ("<zone>_3"). Announces the current map's title (text 7)
 // when a map message is held, then, when the map registry knows "zone_3", queues for every client
-// its share of the entry's two values (exp as kind 0, money as kind 1, divided by the number of
+// its share of the entry's two values (exp as Experience, money as Gold, divided by the number of
 // clients, at least 1) and the host's items with the final award. Then drops the map message and
 // empties queuedMaps, variables and files, and queues the following zones
 void ServerSession::CompleteZone(const std::string* zone) {
@@ -214,8 +214,8 @@ void ServerSession::CompleteZone(const std::string* zone) {
         for (auto& node : clients) {
             RefObject* connection = node.Get();
             const char* empty = game::kEmptyText;
-            QueueAward(connection, 0, award0, std::string(empty));
-            QueueAward(connection, 1, award1, std::string(empty));
+            QueueAward(connection, AwardKind::Experience, award0, std::string(empty));
+            QueueAward(connection, AwardKind::Gold, award1, std::string(empty));
         }
         AwardHost(entry, true);
     }

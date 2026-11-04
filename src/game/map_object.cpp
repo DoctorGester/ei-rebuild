@@ -69,8 +69,8 @@ void RemoveOutdatedEffects(MapObject* object, const MapEffect* effect) {
 
 // --- Change tracking -------------------------------------------------------------------------
 
-void MapObject::MarkChanged(int part) {
-    if (part >= 0) netState.mask = static_cast<std::uint16_t>(netState.mask | (1u << (part & 31)));
+void MapObject::MarkChanged(NetField part) {
+    if (part != NetField::None) netState.mask = static_cast<std::uint16_t>(netState.mask | (1u << (static_cast<int>(part) & 31)));
     flags |= MapObjectFlag::Changed;
     if (refCount == 0) return;
     if (World* world = OwningWorld()) changeStamp = UpdateCount(world);

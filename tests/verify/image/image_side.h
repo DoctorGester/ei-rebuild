@@ -85,7 +85,7 @@ void* SceneDevice();                            // the scene renderer's device, 
 // ---- the steps' calls of the game (harness.cpp; image/harness_objects_image.cpp)
 
 void ConsoleExecute(const char* text);
-void SendLeave04(int id);                       // GameSendLeave04: ask the server for interface screen `id`
+void RequestGameState(int id);                       // GameRequestGameState: ask the server for interface screen `id`
 void SetConstructionVariable(std::uint32_t value);   // GameSetConstructionVariable
 void ObserveConsoleLines(void (*observer)(const char* line));
 unsigned& UpdatePeriod();                       // worlddata::g_updatePeriod

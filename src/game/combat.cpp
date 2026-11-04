@@ -521,7 +521,7 @@ void UnitServer::TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) {
     if (hit->backstabFactor > 1.0f) mine.defence = 0;
     if (static_cast<float>(mine.defence) <= hit->attackRoll) {
         stats.flags |= UnitStatsFlag::Struck;
-        unit->MarkChanged(4);
+        unit->MarkChanged(NetField::Stats);
         TriggerItemSpells(1);
         Item* weapon = attacker ? attacker->GetWeapon(attacker->activeWeapon) : nullptr;
         if (stats.ApplyHit(unit, ServerStatsOf(unit), hit, weapon)) {
@@ -538,8 +538,8 @@ void UnitServer::TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) {
                 LastDamageSource(unit) = 7;
             }
             stats.Recompute(ServerStatsOf(unit), unit);
-            unit->MarkChanged(0);
-            unit->MarkChanged(4);
+            unit->MarkChanged(NetField::Vitals);
+            unit->MarkChanged(NetField::Stats);
             if (!dead) {
                 OnDamaged(attacker, hit->hitKind);
                 if (unit->IsDead() != 0 && source && source->player && !hadPlayer) {
@@ -658,7 +658,6 @@ void OrderPlan::TakeSteps(AnimationSteps steps, int start, int duration) {
 
 namespace {
 constexpr int kCallClaim = 0x1E;        // the kind of the AI memory's call for a claim
-constexpr int kPartWeapons = 6;         // Unit::MarkChanged part
 
 
 // The weapon's condition (Item +0x20, a float) rounded to nearest is above 0.
@@ -680,7 +679,7 @@ void UnitServer::ClaimHostility(Unit* claimant, std::uint32_t mask) {
 bool UnitServer::TakeUpWeapon(int slot) {
     auto* weapon = unit->GetWeapon(static_cast<std::uint32_t>(slot));
     int taken = Usable(weapon) ? slot : -1;
-    unit->MarkChanged(kPartWeapons);
+    unit->MarkChanged(NetField::Modes);
     unit->activeWeapon = static_cast<std::uint32_t>(taken);
     unit->pendingWeapon = taken;
     if (unit->player) brain.attention.Build(unit);
@@ -761,7 +760,7 @@ void UnitServer::RefreshVitals(bool withHitPoints) {
         float scaled = (static_cast<float>(nextAttackTime - now) * oldRate) / stats.rate;
         nextAttackTime = lib::RoundEven(scaled) + now;
     }
-    unit->MarkChanged(0);
+    unit->MarkChanged(NetField::Vitals);
 }
 
 void UnitServer::UpdateProtection() {
@@ -782,7 +781,7 @@ void UnitServer::RepackStats() {
     stats.Pack(&unit->params);
     stats.flags = 0;
     UpdateProtection();
-    unit->MarkChanged(4);
+    unit->MarkChanged(NetField::Stats);
     if (std::memcmp(speedsBefore, unit->params.modeSpeeds, sizeof(speedsBefore)) != 0) motionChanged = 1;
 }
 

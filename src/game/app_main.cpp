@@ -306,7 +306,7 @@ bool RunWorlds() {
             g_serverBacklog -= TickLength();
             net::Pump();
         }
-        if (g_clientBacklog >= TickLength() && (g_clientWorld.PumpHasIncoming() || !g_clientWorld.IsLocalViewMode2())) {
+        if (g_clientBacklog >= TickLength() && (g_clientWorld.PumpHasIncoming() || !g_clientWorld.IsLocalViewSendingCamera())) {
             if (!RunClientSegment()) return false;
             const std::uint32_t tick = TickLength();
             g_clientBacklog -= tick;
@@ -373,7 +373,7 @@ bool RunPass() {
         elapsed = static_cast<std::uint32_t>(static_cast<std::int64_t>(std::ceil(frame)));
     }
     g_serverBacklog += elapsed;
-    if (!client->IsLocalViewMode2()) g_clientSpeed = 1.0f;
+    if (!client->IsLocalViewSendingCamera()) g_clientSpeed = 1.0f;
     // The elapsed time at the client's speed plus the backlog (an int), truncated as _ftol does.
     const float backlog = static_cast<float>(elapsed) * g_clientSpeed + static_cast<float>(static_cast<std::int32_t>(g_clientBacklog));
     g_clientBacklog = static_cast<std::uint32_t>(static_cast<std::int64_t>(backlog));

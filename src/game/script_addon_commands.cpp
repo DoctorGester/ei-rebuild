@@ -98,7 +98,7 @@ bool GiveUnitExp(Call* call) {
     Unit* unit = data->unit;
     if (auto* party = unit->player)
         if (PlayerServer* state = party->Server())
-            state->SendPair18(static_cast<std::uint32_t>(unit->id), Bits(Floats(call)[0]));
+            state->SendExperience(static_cast<std::uint32_t>(unit->id), Bits(Floats(call)[0]));
     return true;
 }
 
@@ -150,14 +150,14 @@ bool Loot(Call* call) {
 
 // GameOver / GameOverMSG(title, text): the "gameover" string event to player 0's client.
 bool GameOver(Call*) {
-    if (PlayerServer* state = FirstPlayerState()) state->SendText13("gameover");
+    if (PlayerServer* state = FirstPlayerState()) state->SendStringEvent("gameover");
     return true;
 }
 
 bool GameOverMsg(Call* call) {
     if (PlayerServer* state = FirstPlayerState()) {
         std::string text = std::string("gameover ") + Text(call, 0) + " " + Text(call, 1);
-        state->SendText13(text);
+        state->SendStringEvent(text);
     }
     return true;
 }
@@ -221,7 +221,7 @@ bool GiveUnitWeapon(Call* call) {
         stats.attackCategory = static_cast<float>(weapon->category);
         stats.naturalWeapon = made->GetType();
         for (int i = 0; i < 7; ++i) stats.damageWeights[i] = weapon->damageTypes[i];
-        unit->MarkChanged(0);
+        unit->MarkChanged(NetField::Vitals);
     }
     unit->controller->RefreshModel();
     unit->controller->RefreshEquipment();
@@ -275,7 +275,7 @@ bool GiveUnitArmor(Call* call) {
             value = prototype->protectionScale + sum;
             protection[c].current = value;
         }
-        unit->MarkChanged(0);
+        unit->MarkChanged(NetField::Vitals);
     }
     unit->controller->RefreshEquipment();
     return true;
@@ -289,7 +289,7 @@ bool ShowAllUnits(Call* call) {
 
 // PauseGame(value): outside network games, the client's pause request with (value == 0).
 bool PauseGame(Call* call) {
-    if (!IsMultiplayerClient()) g_clientWorld.SendFlag10(Equals(0.0f, Floats(call)[0]) ? 1 : 0);
+    if (!IsMultiplayerClient()) g_clientWorld.SendPause(Equals(0.0f, Floats(call)[0]) ? 1 : 0);
     return true;
 }
 
