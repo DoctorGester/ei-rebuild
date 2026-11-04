@@ -1256,7 +1256,7 @@ def main():
     gpu = vulkan_driver(args.dzn)
     jobs = plan(args)
     if gpu and under_wsl():
-        hold_windows_slots(min(MACHINE_SLOTS, max(1, args.jobs) * max([games_of(n) for n, _ in jobs] or [1])))
+        hold_windows_slots(min(MACHINE_SLOTS, max(1, args.jobs) * max([games_of(os.path.join(ROOT, 'tests', 'scenarios', n + '.txt')) for n, _ in jobs] or [1])))
     build = BUILD
     db = timing_db()
     times = expected_times(jobs, build=build, db=db)
