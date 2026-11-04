@@ -7945,6 +7945,13 @@ depends = ["C94"]
 note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Review P3, P4, P8, P9 for the UI: the 119 index loops over std::ssize and 82 lib::Count loops become range-for where nothing erases (scripted batch); decide once whether g_interface is a global or passed and drop the stored copies; the Scale* forwarders become value-returning transforms (Rect ToScreen(Rect), 55 calls) instead of in-out pointers; ItemAt's int* parameter with two meanings split; const Rect& inputs in FrameRect and UiScrollbar::SetRect. Style only: goldens the same, float operation order untouched, no new forwarders."
 
 [[ticket]]
+id = "C108"
+title = "Rule-9 fixes found by the round-3 reviews (undefined behaviour in net, scripts, saves, sound)"
+group = "cleanup"
+model = "opus"
+note = "Style review round 3 (2026-11-04, https://claude.ai/artifact/KKkymAu9dSoUWGGcbsLwPa, digests in build/style_review/round3/*.md). Net: reliable[type] read with type -1 (net_connection.cpp:316, 327); Connection's roundTripSquare read uninitialised (net_connection_life.cpp:58, 64; choose a defined value, golden decision); TakeString strlen unbounded on packet bytes (net_messages.cpp:49-55); OnInfo uses the entry before its null check (net_lobby.cpp:221-223); item->Load then null check (net_client_party.cpp:166-167). Scripts: sound name memcpy into char name[0x100] unchecked (script_effects.cpp:122-172, script_exec_run.cpp:46-59); CopyItems/CopyStats dereference PartyForScript's result unchecked (script_exec.cpp:942-945); CountedClone null check then deref (party.cpp:321-322). Saves: out-of-range prototype/model 'read through null' (unit_save.cpp:167-169, world_save.cpp:210-214); resource.cpp:165 leak; resource_stream.cpp:123 name[0x400] memcpy of a uint16 length; link_loader.cpp:226-233 path[512] no length check; ai_map_load.cpp:188-192 atoi section index unchecked and name[0x100] memcpy; ai_map_load.cpp:393 maps[0] with no empty check; resource_manager CloseAll and link_loader 247 null test after deref. Sound: Play3D's deferred record leaves volume/baseVolume/pan/length uninitialised (sound_manager.cpp:1037, copied at 631-633, read by ApplyVolumePan); SoundSequence::generation never initialised (read at 527); streamBufferFrames read before SwitchStream sets it (840, 1429); volatile threadsQuit/streamState as thread flags (std::atomic); torch_object.cpp:253/264 tests 'if (sound)' though handle 0 is valid (kNoSound = -1; output only). Fix each; keep only player-visible quirks; a golden that moves is re-recorded with the reason. Unit checks where practical."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
