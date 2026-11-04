@@ -72,7 +72,7 @@ Player* PlayerById(Unit* unit, int id) {
 } // namespace
 
 void Unit::LoadUnit(ByteStream* stream) {
-    LoadMapObject(stream);
+    MapObject::Load(stream);
     controller->Load(stream);
     flags &= ~MapObjectFlag::Blocked;
     scriptName = stream->ReadString();
@@ -133,7 +133,7 @@ void Unit::LoadUnit(ByteStream* stream) {
 }
 
 void Unit::SaveUnit(ByteStream* stream) {
-    SaveMapObject(stream);
+    MapObject::Save(stream);
     controller->Save(stream);
     stream->WriteString(scriptName);
     stream->WriteValue(relationsA);

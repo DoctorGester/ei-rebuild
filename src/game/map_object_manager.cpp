@@ -31,8 +31,6 @@ constexpr const char* kFolderName = "map objects";
 constexpr const char* kClassName = "CMapObjectManager";
 constexpr const char* kNoDatabaseText = "Can't find animation database file for \"%s\".\n";
 
-constexpr std::uint32_t kKeyKindBits = 0xFFFF8000;     // must match exactly
-
 // The third half an object of type `type` gets (the world's specific manager makes the client's halves: the 3D
 // object's, the map object's and the unit's; the server's theirs), or null for none.
 std::optional<SideObjectType> ThirdHalfOf(MapObjectType type) {
@@ -143,12 +141,8 @@ FigureAnimation* MapObjectManager::FindAnimation(const std::string* figure, std:
         game::DebugLog(kNoDatabaseText, *figure);
         return nullptr;
     }
-    const std::uint32_t variant = key & kAnimationVariantBits;
-    for (FigureAnimation& entry : database->animations) {
-        const bool variantFits = variant == 0 ? (entry.key & kAnimationVariantBits) == 0
-                                              : (~entry.key & key & kAnimationVariantBits) == 0;
-        if (variantFits && ((entry.key ^ key) & kKeyKindBits) == 0) return &entry;
-    }
+    for (FigureAnimation& entry : database->animations)
+        if (AnimationKeyFits(entry.key, key)) return &entry;
     return nullptr;
 }
 

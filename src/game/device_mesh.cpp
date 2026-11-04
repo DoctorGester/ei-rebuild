@@ -24,9 +24,9 @@ struct Textures {
 using devicebuffers::g_projected;
 using devicebuffers::g_outcodes;
 
-// The pipeline's screen stack (1) and clip-space stack (2), whose top matrices project the mesh.
-constexpr int kScreenStack = 1;
-constexpr int kClipStack = 2;
+// The pipeline's screen stack (the world's) and clip-space stack, whose top matrices project the mesh.
+constexpr int kScreenStack = TransformPipeline::kWorldStack;
+constexpr int kClipStack = TransformPipeline::kClipStack;
 
 // --- The steps -----------------------------------------------------------------------------------
 
@@ -51,7 +51,7 @@ void Submit(TextureDevice* device, const Textures* textures) {
 // On screen or crossing the view's edges: draw flag 1's rectangle from the projected positions (screen positions,
 // or clip-space ones when the mesh crosses the edges), and the passes go to the device; the GPU clips the hand-over.
 void Draw(TextureDevice* device, const MeshArgs& args, const Textures* textures, bool crossing) {
-    if (args.flags & 1) device->BoundsOfProjected(&g_projected, crossing);
+    if (args.flags & kDrawScreenRect) device->BoundsOfProjected(&g_projected, crossing);
     Submit(device, textures);
 }
 
@@ -74,10 +74,10 @@ void HandOver(TextureDevice* device, const MeshArgs& args) {
     // previews). Both stacks get the same pushes.
     m.screenMatrix = true;
     m.matrix = device->pipeline->Top(kScreenStack);
-    m.clipped = (args.flags & 2) != 0;
+    m.clipped = (args.flags & kDrawClipped) != 0;
     m.distanceFog = device->distanceFog != 0;
     m.zScale = 1.0f;
-    m.coloursWritten = (args.flags & 4) != 0;   // OverrideColours
+    m.coloursWritten = (args.flags & kDrawColours) != 0;   // OverrideColours
     // A figure part lit on the GPU needs its normals.
     m.normals = args.normals;
     m.normalCount = args.colourCount * 4;
@@ -86,27 +86,27 @@ void HandOver(TextureDevice* device, const MeshArgs& args) {
     render::BeginMesh(device, m);
 }
 
-// Returns the projection's verdict: 2 nothing on screen, 1 crossing the edges, 0 on screen (drawn: 1). Without flag
-// 2 the mesh is projected with the screen stack and counts as on screen.
+// Returns the projection's verdict: kClipOutside nothing on screen, kClipCrossing crossing the edges, kClipInside on
+// screen (drawn: 1). Without kDrawClipped the mesh is projected with the screen stack and counts as on screen.
 int ProjectAndDraw(TextureDevice* device, const MeshArgs& args, const Textures* textures) {
     const TransformPipeline* pipeline = device->pipeline;
     g_projected.resize(args.blocks * 4);
-    int visibility = 0;
-    if (args.flags & 2) {
+    int visibility = TransformPipeline::kClipInside;
+    if (args.flags & kDrawClipped) {
         g_outcodes.resize(args.blocks * 4);
         visibility = pipeline->ProjectClipped(*pipeline->Top(kClipStack), args.positions, g_projected.data(),
                                               g_outcodes.data(), args.blocks);
     } else {
         TransformPipeline::Project(*pipeline->Top(kScreenStack), args.positions, g_projected.data(), args.blocks);
     }
-    if (visibility == 2) return 2;
-    if (args.flags & 4) OverrideColours(device, args);
+    if (visibility == TransformPipeline::kClipOutside) return TransformPipeline::kClipOutside;
+    if (args.flags & kDrawColours) OverrideColours(device, args);
     // The new renderer (src/render) takes the mesh in model space with the matrix it was projected
     // with; each pass the old path draws below hands over the device's state.
     HandOver(device, args);
     int result = visibility;
-    if (visibility == 0 || visibility == 1) {
-        Draw(device, args, textures, visibility == 1);
+    if (visibility == TransformPipeline::kClipInside || visibility == TransformPipeline::kClipCrossing) {
+        Draw(device, args, textures, visibility == TransformPipeline::kClipCrossing);
         result = 1;
     }
     render::EndMesh();

@@ -11,12 +11,12 @@ template <> constexpr const char* kName<ClassId::StuffObject> = "CStuffObject";
 
 template <ClassId Id>
 PlainMapObject<Id>::PlainMapObject() {
-    CreateMapObject();
+    MapObject::Create();
 }
 
 template <ClassId Id>
 PlainMapObject<Id>::~PlainMapObject() {
-    DestroyMapObject();
+    MapObject::Destroy();
 }
 
 template <ClassId Id>

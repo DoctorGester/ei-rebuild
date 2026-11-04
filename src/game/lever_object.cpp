@@ -40,14 +40,14 @@ void ResetLever(Lever* self) {
 
 Lever::Lever() {
     lock = LockKey{1, 0, 0};
-    CreateMapObject();
+    MapObject::Create();
     ResetLever(this);
 }
 
-Lever::~Lever() { DestroyMapObject(); }
+Lever::~Lever() { MapObject::Destroy(); }
 
 void Lever::Create() {
-    CreateMapObject();
+    MapObject::Create();
     ResetLever(this);
 }
 
@@ -71,7 +71,7 @@ bool Lever::RunTick() {
 }
 
 void Lever::LoadLever(ByteStream* stream) {
-    LoadMapObject(stream);
+    MapObject::Load(stream);
     stream->ReadValue(state);
     stream->ReadValue(stateCount);
     stream->ReadValue(cycling);
@@ -81,7 +81,7 @@ void Lever::LoadLever(ByteStream* stream) {
 }
 
 void Lever::SaveLever(ByteStream* stream) {
-    SaveMapObject(stream);
+    MapObject::Save(stream);
     std::uint32_t value = static_cast<std::uint32_t>(state);
     stream->WriteValue(value);
     value = static_cast<std::uint32_t>(stateCount);

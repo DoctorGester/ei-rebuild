@@ -12,6 +12,7 @@
 #include "world.h"
 #include "platform/platform.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <new>
@@ -20,7 +21,7 @@
 
 namespace {
 
-// The root places the skeleton (through its address) at the owner's time factor at its scale z times its
+// The root places the skeleton at the owner's time factor at its scale z times its
 // default scale.
 void PlaceRoot(FigureAnimationState* state) {
     Object3D* owner = state->owner;
@@ -28,20 +29,6 @@ void PlaceRoot(FigureAnimationState* state) {
     Vector3 origin = factor * owner->defaultScale;
     state->root->Place(origin, state->BlendWeight());
     state->placedAt = platform::Milliseconds();
-}
-
-// Inlines DestroyTrack's reset without the bone (the key frames' array emptied through its SetSize(0)).
-void ClearTrack(AnimationTrack* track) {
-    track->animation = nullptr;
-    track->positions.clear();
-    track->rotations.clear();
-    track->vertexCount = 0;
-    track->frameCount = 0;
-    track->frames.clear();
-    track->position = kTrackDefaultPosition;
-    track->rotation = kTrackDefaultRotation;
-    track->vertices.clear();
-    track->time = 0.0f;
 }
 
 } // namespace
@@ -60,7 +47,7 @@ FigureAnimationState::~FigureAnimationState() {
 void FigureAnimationState::Destroy() { DestroyState(); }
 
 void FigureAnimationState::Create() {
-    changed = 1;
+    changed = true;
     Reset();
 }
 
@@ -70,11 +57,7 @@ void FigureAnimationState::DestroyState() {
 }
 
 void FigureAnimationState::ReleaseBones() {
-    for (auto node = bones.begin(); node != bones.end();) {
-        FigureBone* bone = *node;
-        ++node;
-        bone->Release();
-    }
+    for (FigureBone* bone : bones) bone->Release();
     bones.clear();
 }
 
@@ -89,38 +72,37 @@ void FigureAnimationState::Reset() {
     morphS = 0.0f;
     morphT = 0.0f;
     morphU = 0.0f;
-    changed = 1;
+    changed = true;
     blendStart = 0;
     blendLength = 0;
     placedAt = 0;
 }
 
 FigureBone* FigureAnimationState::FindBone(std::string_view boneName) {
-    for (auto node = bones.begin(); node != bones.end(); ++node)
-        if (str::Compare((*node)->name, boneName) == 0) return *node;
+    for (FigureBone* bone : bones)
+        if (str::Compare(bone->name, boneName) == 0) return bone;
     return nullptr;
 }
 
-int FigureAnimationState::LinkPiece(FigureModel* model, std::string_view child, std::string_view parentName) {
+void FigureAnimationState::LinkPiece(FigureModel* model, std::string_view child, std::string_view parentName) {
     BaseManager* manager = FigureManagerOf(this);
     auto* bone = manager->CreateObjectAs<FigureBone>(FigureObjectType::FigureBone, -1);
     bone->name = child;
-    bone->name2 = parentName;
-    return LinkBone(model, bone);
+    bone->parentName = parentName;
+    LinkBone(model, bone);
 }
 
-int FigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
+void FigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
     FigureBone* parent = nullptr;
-    for (auto& node : bones) {
-        if (str::Compare(node->name, bone->name2) == 0) {
-            parent = node;
+    for (FigureBone* candidate : bones) {
+        if (str::Compare(candidate->name, bone->parentName) == 0) {
+            parent = candidate;
             break;
         }
     }
     if (parent) {
-        bool known = false;
-        for (auto node = parent->children.begin(); node != parent->children.end() && !known; ++node)
-            known = str::Compare((*node)->name, bone->name) == 0;
+        const bool known = std::ranges::any_of(
+            parent->children, [&](const FigureBone* child) { return str::Compare(child->name, bone->name) == 0; });
         if (!known) {
             parent->children.push_back(bone);
             bone->parent = parent;
@@ -128,21 +110,20 @@ int FigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
     }
     bones.push_back(bone);
     bone->AddRef();
-    bone->name3 = owner->name;
+    bone->modelName = owner->name;
     bone->morphS = morphS;
     bone->morphT = morphT;
     bone->morphU = morphU;
     FigureManagerOf(bone)->LoadFigureBones(model, bone);
-    changed = 1;
-    return 1;
+    changed = true;
 }
 
 int FigureAnimationState::AttachMesh(FigureMesh* part) {
-    changed = 1;
+    changed = true;
     FigureBone* bone = nullptr;
-    for (auto& node : bones) {
-        if (str::Compare(node->name, part->GetName()) == 0) {
-            bone = node;
+    for (FigureBone* candidate : bones) {
+        if (str::Compare(candidate->name, part->GetName()) == 0) {
+            bone = candidate;
             break;
         }
     }
@@ -159,10 +140,10 @@ int FigureAnimationState::AttachMesh(FigureMesh* part) {
 }
 
 int FigureAnimationState::FindRoot() {
-    changed = 1;
-    for (auto& node : bones) {
-        if (node->name2.empty()) {
-            root = node;
+    changed = true;
+    for (FigureBone* bone : bones) {
+        if (bone->parentName.empty()) {
+            root = bone;
             return 1;
         }
     }
@@ -170,14 +151,13 @@ int FigureAnimationState::FindRoot() {
 }
 
 int FigureAnimationState::SetModel(std::string_view model) {
-    changed = 1;
+    changed = true;
     return FigureManagerOf(this)->LoadSkeletonLinks(this, model);
 }
 
 int FigureAnimationState::DetachMesh(FigureMesh* part) {
-    changed = 1;
-    for (auto& node : bones) {
-        FigureBone* bone = node;
+    changed = true;
+    for (FigureBone* bone : bones) {
         if (bone->mesh && bone->mesh == part) {
             FigureMesh* old = bone->mesh;
             bone->mesh = nullptr;
@@ -188,33 +168,26 @@ int FigureAnimationState::DetachMesh(FigureMesh* part) {
     return 0;
 }
 
-int FigureAnimationState::DetachMeshes() {
-    changed = 1;
-    for (auto node = bones.begin(); node != bones.end();) {
-        FigureBone* bone = *node;
-        ++node;
+void FigureAnimationState::DetachMeshes() {
+    changed = true;
+    for (FigureBone* bone : bones) {
         FigureMesh* old = bone->mesh;
         bone->mesh = nullptr;
         if (old) old->Release();
     }
-    return 1;
 }
 
 void FigureAnimationState::PlaceIfChanged() {
     if (!changed) return;
-    changed = 0;
+    changed = false;
     if (root) PlaceRoot(this);
 }
 
 void FigureAnimationState::UpdatePose() {
     if (changed) {
-        for (auto node = bones.begin(); node != bones.end();) {
-            FigureBone* bone = *node;
-            ++node;
-            bone->pose->Evaluate(time);
-        }
+        for (FigureBone* bone : bones) bone->pose->Evaluate(time);
     } else if (blendLength != 0) {
-        changed = 1;
+        changed = true;
     } else {
         return;
     }
@@ -227,9 +200,7 @@ void FigureAnimationState::Rescale(float s, float t, float u) {
         std::string key = owner->name;
         model = FigureManagerOf(this)->FindModel(&key);
     }
-    for (auto node = bones.begin(); node != bones.end();) {
-        FigureBone* bone = *node;
-        ++node;
+    for (FigureBone* bone : bones) {
         bone->morphS = s;
         bone->morphT = t;
         bone->morphU = u;
@@ -238,51 +209,34 @@ void FigureAnimationState::Rescale(float s, float t, float u) {
     morphS = s;
     morphT = t;
     morphU = u;
-    changed = 0;
+    changed = false;
     if (root) PlaceRoot(this);
 }
 
 std::vector<std::string> FigureAnimationState::BoneNames() {
     std::vector<std::string> names;
-    for (auto& node : bones) names.push_back(node->name);
+    for (const FigureBone* bone : bones) names.push_back(bone->name);
     return names;
 }
 
-int FigureAnimationState::ClearBoneTracks() {
-    changed = 1;
-    for (auto node = bones.begin(); node != bones.end();) {
-        FigureBone* bone = *node;
-        ++node;
-        ClearTrack(bone->pose);
-        bone->pose->animation = nullptr;
-    }
-    return 1;
+void FigureAnimationState::ClearBoneTracks() {
+    changed = true;
+    for (FigureBone* bone : bones) bone->pose->ClearKeys();
 }
 
-int FigureAnimationState::LoadBoneTracks(MappedResource* part, const FigureAnimation* animation) {
-    changed = 1;
-    for (auto node = bones.begin(); node != bones.end();) {
-        FigureBone* bone = *node;
-        ++node;
+void FigureAnimationState::LoadBoneTracks(MappedResource* part, const FigureAnimation* animation) {
+    changed = true;
+    for (FigureBone* bone : bones) {
         auto* data = static_cast<std::uint8_t*>(part->GetFile(bone->name, nullptr));
-        if (!data) ClearTrack(bone->pose);
+        if (!data) bone->pose->ClearKeys();
         else bone->pose->LoadKeyFrames(&data);
         bone->pose->animation = animation;
     }
-    return 1;
 }
 
-// --- The bone's lifetime (class 0x300C, 0xA0 bytes; FigureBone in map_object_figures.h). The figure
-// factory makes bones; the animation state links them.
+// --- The bone's lifetime (FigureBone in map_object_figures.h). The figure factory makes bones; the animation
+// state links them.
 
-namespace {
-
-// The mesh is a counted engine object (its release virtual).
-void ReleaseMesh(FigureMesh* mesh) { mesh->Release(); }
-
-} // namespace
-
-// The names are members (empty strings before the body).
 FigureBone::FigureBone() {
     rotation = {1.0f, 0.0f, 0.0f, 0.0f};
     CreateBone();
@@ -291,8 +245,8 @@ FigureBone::FigureBone() {
 void FigureBone::CreateBone() {
     // The original assigns "none" to all three names, not an empty string.
     name = "none";
-    name2 = "none";
-    name3 = "none";
+    parentName = "none";
+    modelName = "none";
     parent = nullptr;
     children.clear();
     mesh = nullptr;
@@ -317,17 +271,15 @@ void FigureBone::CreateBone() {
 void FigureBone::DestroyBone() {
     FigureMesh* placed = mesh;
     mesh = nullptr;
-    if (placed) ReleaseMesh(placed);
+    if (placed) placed->Release();
     pose = nullptr;
     if (animator) animator->Release();
     animator = nullptr;
     CreateBone();
 }
 
-// The names go after the body (name3, name2, name), then the engine object's part.
 FigureBone::~FigureBone() {
-    DestroyBone();   // its reset empties the matrices here, the same SetSize
-    // The child list's destructor: its vtable, emptied again.
+    DestroyBone();
     children.clear();
 }
 

@@ -39,54 +39,39 @@
 namespace {
 constexpr std::uint32_t kBoundsValid = 1 | 2;
 
-constexpr std::uint32_t kFloatMax = 0x7F7FFFFF;      // FLT_MAX / -FLT_MAX: the empty box
-constexpr std::uint32_t kFloatLowest = 0xFF7FFFFF;
-constexpr float kNearSquared = 1e9f;                 // parts farther away are skipped
-
-std::uint32_t Bits(float v) { return std::bit_cast<std::uint32_t>(v); }
-
 // Animation state: rescale to x, y, z.
 void AnimationSetScale(FigureAnimationState* state, float x, float y, float z) { state->Rescale(x, y, z); }
 
-// The original's branch-free selects: the stored candidate `v` replaces the bound when the comparison sets C0
-// (it is beyond the bound, or unordered).
-std::uint32_t KeepLower(std::uint32_t bound, float v) { return v >= lib::FloatFromBits(bound) ? bound : Bits(v); }
-std::uint32_t KeepHigher(std::uint32_t bound, float v) { return lib::FloatFromBits(bound) >= v ? bound : Bits(v); }
-
-// The box being grown, as float bits (the original selects bits, never loading them twice).
-struct BoxBits {
-    std::uint32_t low[3] = {kFloatMax, kFloatMax, kFloatMax};
-    std::uint32_t high[3] = {kFloatLowest, kFloatLowest, kFloatLowest};
+// The box being grown; empty is FLT_MAX / -FLT_MAX.
+struct GrowingBox {
+    Vector3 low = {FLT_MAX, FLT_MAX, FLT_MAX};
+    Vector3 high = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
 };
 
 // The squared distance of the part's position from the figure's origin.
 float DistanceSquared(const FigureMesh* part) { return LengthSquared(part->localPosition); }
 
 // A placed part: its piece's box moved by its position and the piece's offset.
-void AddPlacedPart(BoxBits& box, const FigureMesh* p) {
+void AddPlacedPart(GrowingBox& box, const FigureMesh* p) {
     const Vector3 low = p->box.bounds.boxMin + p->localPosition + p->box.bounds.center;
     const Vector3 high = p->box.bounds.boxMax + p->localPosition + p->box.bounds.center;
-    box.low[0] = KeepLower(box.low[0], low.x);
-    box.high[0] = KeepHigher(box.high[0], high.x);
-    box.low[1] = KeepLower(box.low[1], low.y);
-    box.high[1] = KeepHigher(box.high[1], high.y);
-    box.low[2] = KeepLower(box.low[2], low.z);
-    box.high[2] = KeepHigher(box.high[2], high.z);
+    box.low = MinKeepA(low, box.low);
+    box.high = MaxKeepB(box.high, high);
 }
 
 } // namespace
 
 void Object3D::ComputeBounds() {
-    BoxBits box;
+    GrowingBox box;
     for (int i = 0; i < std::ssize(parts); ++i) {
         FigureMesh* part = parts[i];
-        if (DistanceSquared(part) > kNearSquared) continue;   // NaN distances count as near
+        if (DistanceSquared(part) > kPartsNearSquared) continue;   // NaN distances count as near
         AddPlacedPart(box, part);
     }
     if (parts.empty()) return;
 
-    Vector3 low = {lib::FloatFromBits(box.low[0]), lib::FloatFromBits(box.low[1]), lib::FloatFromBits(box.low[2])};
-    Vector3 high = {lib::FloatFromBits(box.high[0]), lib::FloatFromBits(box.high[1]), lib::FloatFromBits(box.high[2])};
+    const Vector3 low = box.low;
+    const Vector3 high = box.high;
     Vector3 center = (low + high) * 0.5f;
     bounds.boxMin = low - center;
     bounds.boxMax = high - center;
@@ -217,8 +202,8 @@ void Object3D::RemoveEffectSource(ParticleSource* source) {
     if (source) source->Attach(nullptr);
 }
 
-// --- Virtuals shared by every map object's vtable: the world rotation, copying a figure, the side half, the
-// effect sources and the drawing slots.
+// --- Virtuals shared by every map object: the world rotation, copying a figure, the side half, the effect
+// sources and the drawing slots.
 
 // The same body as the base's.
 void Object3D::CombineRotation(const Quaternion& parent) { TransformObject::CombineRotation(parent); }
@@ -325,7 +310,6 @@ void Object3D::RestartPose() {
 // FindAnimation picks idle, attack and death animations with them). See map_object_figures.h.
 
 namespace {
-constexpr std::uint32_t kKeyKindBits = 0xFFFF8000;     // must match exactly
 
 // A draw below `n` (> 0) from `random`'s generator.
 int RandomBelow(AnimationRandom random, int n) {
@@ -338,13 +322,9 @@ FigureAnimation* Object3D::RandomAnimation(std::uint32_t key, AnimationRandom ra
     AnimationDatabase* database = Animations();
     if (!database) return nullptr;
     std::vector<FigureAnimation*> candidates{};
-    std::uint32_t wanted = key & kAnimationVariantBits;
     for (FigureAnimation& candidate : database->animations) {
         FigureAnimation* entry = &candidate;
-        std::uint32_t entryKey = entry->key;
-        bool variant =
-            wanted == 0 ? (entryKey & kAnimationVariantBits) == 0 : (~entryKey & key & kAnimationVariantBits) == 0;
-        if (!variant || ((entryKey ^ key) & kKeyKindBits) != 0) continue;
+        if (!AnimationKeyFits(entry->key, key)) continue;
         if (AcceptsAnimation(entry)) candidates.push_back(entry);
     }
     FigureAnimation** list = candidates.data();
@@ -372,7 +352,7 @@ FigureAnimation* Object3D::RandomAnimationOfKind(std::uint32_t key, AnimationRan
     std::vector<FigureAnimation*> candidates{};
     for (FigureAnimation& candidate : database->animations) {
         FigureAnimation* entry = &candidate;
-        if (((entry->key ^ key) & kKeyKindBits) != 0) continue;
+        if (((entry->key ^ key) & kAnimationKindBits) != 0) continue;
         if (!AcceptsAnimation(entry)) continue;
         int index = lib::Count(candidates);
         candidates.resize(index + 1);
@@ -425,20 +405,13 @@ void Object3D::SetUpAnimatedFigure(std::string_view model) {
             figureModel = manager->FindModel(&modelName);
         }
         int index = 0;
-        for (auto node = animation->bones.begin(); node != animation->bones.end(); ++index) {
-            FigureBone* bone = *node;
-            ++node;
+        for (FigureBone* bone : animation->bones) {
             FootprintPart* box = &partBoxes[index];
-            manager->LoadFigureBounds(&box->bounds, figureModel, model, bone->GetName(),
-                                            std::bit_cast<std::uint32_t>(scale.x),
-                                            std::bit_cast<std::uint32_t>(scale.y),
-                                            std::bit_cast<std::uint32_t>(scale.z));
-            box = &partBoxes[index];
+            manager->LoadFigureBounds(&box->bounds, figureModel, model, bone->GetName(), scale.x, scale.y, scale.z);
             box->pivot = bone->position;
             box->bounds.flags |= BoundsFlag::Loaded;
             partNames[index] = bone->GetName();
 
-            box = &partBoxes[index];
             high = MaxKeepB(high, box->pivot + box->bounds.boxMax + box->bounds.center);
             low = MinKeepA(box->pivot + box->bounds.boxMin + box->bounds.center, low);
 
@@ -446,6 +419,7 @@ void Object3D::SetUpAnimatedFigure(std::string_view model) {
             if (text::CompareIgnoringCase(partName.substr(0, 4), "BASE") == 0) box->bounds.flags |= BoundsFlag::Base;
             if (text::CompareIgnoringCase(partName.substr(0, 5), "CROWN") == 0) box->bounds.flags |= BoundsFlag::Crown;
             if (text::CompareIgnoringCase(partName.substr(0, 5), "EMPTY") == 0) box->bounds.flags |= BoundsFlag::NoFootprint | BoundsFlag::Crown;
+            ++index;
         }
         animation->ReleaseBones();
     }

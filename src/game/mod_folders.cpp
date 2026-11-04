@@ -281,6 +281,14 @@ void ListFiles(const MappedResource* res, std::vector<std::string>* out, const c
 }
 
 const std::vector<std::string>& FigureArchives() { return Config().figures; }
+
+std::vector<std::string> FigureArchivePaths(const std::string& folder) {
+    std::vector<std::string> paths;
+    if (ei::rebirth::Enabled(Patch::ResOverride)) paths = FigureArchives();
+    paths.push_back(folder + "figures.res");
+    paths.push_back(folder + "menus.res");
+    return paths;
+}
 const std::vector<std::string>& TextureArchives() { return Config().textures; }
 
 

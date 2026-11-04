@@ -106,13 +106,16 @@ struct LockKey;
 class MapObject : public Object3D {
 public:
     ~MapObject() override;
-    void Create() override { CreateMapObject(); }
-    void Destroy() override { DestroyMapObject(); }
+    void Create() override;
+    void Destroy() override;
     void ClearState() override {}
     bool RunTick() override {
         Update();
         return true;
     }
+    // Load: the companion's Load, then animationSpeed, the position, the orientation, the name, the scale, the
+    // effects (count, then MapEffect::Load each), flags, the second name and, from version 0x4F, the base scale.
+    // Save: the same fields (names with their terminators; the base scale always).
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
     // An object of type SideObjectType::MapObject becomes the companion (AttachObject sets its owner); null and others go to Object3D's (which
@@ -132,7 +135,9 @@ public:
     virtual void ApplyBaseScale();
     // A hit (DamageInfo) from `attacker` (units: to the controller's TakeHit; other objects ignore it).
     virtual void ReceiveHit(DamageInfo* hit, Unit* attacker, Unit* caster);
-    virtual int StatsChanged();        // PackVitals (units override); 1
+    // A MapObjectServer companion packs its vitals into the rounded vitals; returns 1, or 0 for another companion
+    // (units override it and repack their statistics too).
+    virtual int StatsChanged();
     // Nothing (units hand the argument to their controller's vitals virtual).
     virtual void ScaleEffectChanged(bool scaleEffect);
     // The prototype by name (units: their statistics). Here the vitals of `prototype` are packed into the
@@ -205,36 +210,15 @@ public:
     // `type` (compared with the whole low byte); 0 without one. NaN values win the comparison.
     float EffectValue(SpellType type);
 
-    // scale = base scale.
-    void ResetScale();
-
     // The point at the object's offset, moved to the ground height there plus the offset's z.
     Vector3 GroundPoint();
 
-    // Replaces the companion: the old one is detached and released, the new one points back here and gains a
-    // reference.
-
-
-    // Statistics changed: a MapObjectServer companion packs its vitals into the rounded vitals. Returns 1, or 0
-    // for another companion.
-    int PackVitals();
     // A MapObjectServer companion (class 0x39) gets the base of each protection (7 pairs) zeroed.
     void ClearProtectionBases();
 
-    // Bits 16 (invisible: set by the client for effect 0x0F), 18 (stunned: effect 0x19) and 17 of flags;
-    // IsInvisible and the bit-17 test are virtuals.
-    bool IsInvisible();
+    // Bit 18 of flags (stunned: effect 0x19); bit 16 (invisible: set by the client for effect 0x0F) is
+    // InvisibleSlot and bit 17 IsSynchronised.
     bool IsStunned();
-    std::uint32_t Flag20000();
-
-    void CreateMapObject();
-    void DestroyMapObject();
-
-    // Load: the companion's Load, then animationSpeed, the position, the orientation, the name, the scale, the
-    // effects (count, then MapEffect::Load each), flags, the second name and, from version 0x4F, the base scale.
-    void LoadMapObject(ByteStream* stream);
-    // Save: the same fields (names with their terminators; the base scale always).
-    void SaveMapObject(ByteStream* stream);
 
     // SetVisibilityMode with mode 0 for `level` 0 (or NaN), 1 for 1, else 2.
     int SetVisibilityLevel(float level);

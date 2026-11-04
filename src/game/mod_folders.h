@@ -39,6 +39,9 @@ void ListFiles(const MappedResource* res, std::vector<std::string>* out, const c
 // The mod's extra archives (their full paths): figures.res / menus.res entries for the figure manager and the
 // link figure loader, textures.res / redress.res / menus.res entries for the texture manager.
 const std::vector<std::string>& FigureArchives();
+// The archives the figure manager and the link figure loader open, in order: the mod's figure archives first
+// (Rebirth's ResOverride), then "figures.res" and "menus.res" of `folder`.
+std::vector<std::string> FigureArchivePaths(const std::string& folder);
 const std::vector<std::string>& TextureArchives();
 
 // The site kinds addon passes (1-9): NewZone's map and mob, MapPath, the client's LoadZone, the zone

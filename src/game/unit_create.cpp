@@ -157,6 +157,6 @@ Unit::~Unit() {
     // The release-from-the-player virtual, called directly like the original (through the vtable's memory, not
     // the object's).
     ReleaseUnit();
-    DestroyMapObject();
+    MapObject::Destroy();
     Reset();
 }

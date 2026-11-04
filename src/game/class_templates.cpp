@@ -28,14 +28,12 @@ bool Allowed(const ClassTemplate* t, std::uint32_t classMask) {
 ItemStock* AllList(ClassTemplate* t) { return &t->allowed; }
 ItemStock* MagicList(ClassTemplate* t) { return &t->magic; }
 
-// The weights (bit patterns as stored).
-constexpr std::uint32_t kOne = 0x3F800000, kHalf = 0x3F000000, kFifth = 0x3E4CCCCD, kTenth = 0x3DCCCCCD;
-constexpr std::uint32_t kDefaultWeights[9] = {kOne, kHalf, kFifth, kTenth, kOne, kHalf, kFifth, kTenth, kFifth};
-constexpr std::uint32_t kZeroWeights[9] = {};
+constexpr float kDefaultWeights[9] = {1.0f, 0.5f, 0.2f, 0.1f, 1.0f, 0.5f, 0.2f, 0.1f, 0.2f};
+constexpr float kZeroWeights[9] = {};
 
 // One template, appended to the vector through a temporary counted pointer.
 void AddTemplate(std::vector<HeldRef<ClassTemplate>>* v, int type, std::uint8_t sellsItems, std::uint8_t sellsSpells,
-                 const std::uint32_t (&weights)[9]) {
+                 const float (&weights)[9]) {
     auto* t = new ClassTemplate();
     t->refs = 0;
     t->flags6 = 0;

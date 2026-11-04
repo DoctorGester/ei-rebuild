@@ -64,6 +64,19 @@ constexpr std::uint32_t AnimationKeyOf(AnimationKind kind) { return static_cast<
 // The key's low bits (0..14): the variant bits (the weapon, movement and attack options an entry is made for);
 // the bits above them must match a request exactly.
 inline constexpr std::uint32_t kAnimationVariantBits = 0x7FFF;
+inline constexpr std::uint32_t kAnimationKindBits = ~kAnimationVariantBits;
+
+// Whether an entry made for `entryKey` answers a request for `key`: the bits above the variant bits are equal,
+// and the request's variant bits all lie in the entry's (none asked: an entry without any).
+constexpr bool AnimationKeyFits(std::uint32_t entryKey, std::uint32_t key) {
+    const std::uint32_t wanted = key & kAnimationVariantBits;
+    const bool variantFits = wanted == 0 ? (entryKey & kAnimationVariantBits) == 0 : (~entryKey & wanted) == 0;
+    return variantFits && ((entryKey ^ key) & kAnimationKindBits) == 0;
+}
+
+// A figure's part counts as near when its squared distance from the figure's origin is at most this (farther parts
+// are skipped by the bounds and the draw).
+inline constexpr float kPartsNearSquared = 1e9f;
 
 // Which generator a random animation pick draws from: the game's rand() (the server's steps and idles), or the client
 // effects' (g_clientRandom, random.h: the client's idle animations, picked as often as its draw time restarts them).
@@ -275,8 +288,8 @@ public:
 // one of its members the root. Only the fields the pose code uses.
 struct FigureBone : EngineObject {
     std::string name;                      // the piece's name (children are linked by it)
-    std::string name2;                     // its parent's name (empty for the root)
-    std::string name3;                     // the figure's model name (LinkBone)
+    std::string parentName;                // its parent's name (empty for the root)
+    std::string modelName;                 // the figure's model name (LinkBone)
     FigureBone* parent;                     // null for the root
     std::vector<FigureBone*> children;
     FigureMesh* mesh;                      // the part the bone places, or null
@@ -356,12 +369,12 @@ public:
     // The first bone named `boneName` (_mbscmp), or null.
     FigureBone* FindBone(std::string_view boneName);
     // A new bone (the figure manager's class 0x300C) named `child` with parent `parentName` joins through
-    // LinkBone. Returns 1.
-    int LinkPiece(FigureModel* model, std::string_view child, std::string_view parentName);
-    // `bone` becomes a child of the first bone named as its parent (name2) unless that one has a child of its
-    // name; it joins the list (referenced), takes the model name (name3) and morph, and its manager loads its
-    // key frames from `model`. `changed` set. Returns 1.
-    int LinkBone(FigureModel* model, FigureBone* bone);
+    // LinkBone.
+    void LinkPiece(FigureModel* model, std::string_view child, std::string_view parentName);
+    // `bone` becomes a child of the first bone named as its parent (parentName) unless that one has a child of its
+    // name; it joins the list (referenced), takes the model name and morph, and its manager loads its
+    // key frames from `model`. `changed` set.
+    void LinkBone(FigureModel* model, FigureBone* bone);
     // The bone named as `part` carries it as its mesh (referenced, the old one released): the part takes the
     // bone's position and rotation. 0 when no bone has the name, else 1. `changed` set.
     int AttachMesh(FigureMesh* part);
@@ -371,8 +384,8 @@ public:
     int SetModel(std::string_view model);
     // The first bone carrying `part` lets it go (released). 1, or 0 when none.
     int DetachMesh(FigureMesh* part);
-    // Every bone lets its mesh go (released). `changed` set. Returns 1.
-    int DetachMeshes();
+    // Every bone lets its mesh go (released). `changed` set.
+    void DetachMeshes();
     // When `changed`: cleared, and the root (if any) places the skeleton at the owner's time factor (at its scale
     // z) times its default scale.
     void PlaceIfChanged();
@@ -385,12 +398,11 @@ public:
     // Every bone's name.
     std::vector<std::string> BoneNames();
     // The figure manager's SetAnimation without an animation. Every bone's placing track forgets its animation and
-    // key frames (DestroyTrack's reset, the bone kept). `changed` set. Returns 1.
-    int ClearBoneTracks();
+    // key frames (ClearKeys). `changed` set.
+    void ClearBoneTracks();
     // The figure manager's SetAnimation with an animation. Every bone's placing track loads the entry of `part`
     // named as the bone (LoadKeyFrames), or without one is cleared as above, and takes `animation`. `changed` set.
-    // Returns 1.
-    int LoadBoneTracks(MappedResource* part, const FigureAnimation* animation);
+    void LoadBoneTracks(MappedResource* part, const FigureAnimation* animation);
 
     Object3D* owner;
     FigureBone* root;               // the skeleton's root bone (FindRoot)
@@ -404,7 +416,7 @@ public:
     float morphS;                   // the figure's morph coefficients (Rescale; bones copy them)
     float morphT;
     float morphU;
-    std::uint8_t changed;           // set when the frame, the animation or the bones changed
+    bool changed;                   // set when the frame, the animation or the bones changed
 
     // A switch from one animation to another blends the pose last placed into the new one's over a short time
     // (client side only: what plays and its frame stay the game's). The blend runs from `placedAt`, when the

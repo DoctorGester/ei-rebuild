@@ -223,7 +223,7 @@ void FigureMesh::RefreshBuffers() {
 }
 
 void FigureMesh::SetOffsets(const OffsetSpan* newOffsets) {
-    // The positions the new renderer keeps on the GPU move with new offsets: the animation's frame.
+    // The positions the renderer keeps on the GPU move with new offsets: the animation's frame.
     const bool same = std::ssize(offsets) == newOffsets->count &&
                       (newOffsets->count == 0 ||
                        std::memcmp(offsets.data(), newOffsets->data, static_cast<std::size_t>(newOffsets->count) * sizeof(Vector3)) == 0);

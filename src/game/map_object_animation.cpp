@@ -1,5 +1,5 @@
 // Animation tracks of figure parts: a part's position, rotation and morphed vertices at a time between two
-// key frames. Names provisional; see docs/notes/map_objects.md ("Animation tracks").
+// key frames. See docs/notes/map_objects.md ("Animation tracks").
 #include "map_object_animation.h"
 
 #include "base_manager.h"
@@ -48,8 +48,7 @@ void AnimationTrack::Evaluate(float atTime) {
     time = atTime;
 }
 
-// --- The track's lifetime (class 0x300B, 0x78 bytes). A bone's manager makes the tracks; the bones hold
-// them counted.
+// --- The track's lifetime. A bone's manager makes the tracks; the bones hold them counted.
 
 namespace {
 
@@ -79,8 +78,12 @@ AnimationTrack::AnimationTrack() {
 }
 
 void AnimationTrack::DestroyTrack() {
-    animation = nullptr;
     bone = nullptr;
+    ClearKeys();
+}
+
+void AnimationTrack::ClearKeys() {
+    animation = nullptr;
     positions.clear();
     rotations.clear();
     vertexCount = 0;
@@ -93,7 +96,7 @@ void AnimationTrack::DestroyTrack() {
 }
 
 AnimationTrack::~AnimationTrack() {
-    DestroyTrack();   // empties the arrays through SetSize(0)
+    DestroyTrack();
 }
 
 void AnimationTrack::Create() { DestroyTrack(); }
@@ -117,7 +120,7 @@ ClassId AnimationTrack::GetClassId() { return ClassId::AnimationTrack; }
 
 // --- State -------------------------------------------------------------------------------------------
 
-// The figure's animation state (FigureAnimationState, Object3D + 0x98): what plays, the queue
+// The figure's animation state (FigureAnimationState): what plays, the queue
 // behind it and the frame reached. See map_object_figures.h and docs/notes/map_objects.md.
 
 namespace {
@@ -141,11 +144,7 @@ const char* ModelName(const FigureAnimationState* state) { return state->owner->
 // The figure manager or else each bone takes `animation`.
 void Apply(FigureAnimationState* state, const FigureAnimation* animation) {
     if (FigureManagerOf(state)->SetFigureAnimation(state, ModelName(state), animation)) return;
-    for (auto node = state->bones.begin(); node != state->bones.end();) {
-        FigureBone* bone = *node;
-        ++node;
-        FigureAnimationState::AnimateBone(bone, state->current);
-    }
+    for (FigureBone* bone : state->bones) FigureAnimationState::AnimateBone(bone, state->current);
 }
 
 // Takes the head off the queue.
@@ -165,17 +164,9 @@ void FigureAnimationState::AnimateBone(FigureBone* bone, const FigureAnimation* 
 
 void FigureAnimationState::Play(FigureAnimation* animation) {
     BeginBlend(current, animation);
-    for (auto node = bones.begin(); node != bones.end();) {
-        FigureBone* bone = *node;
-        ++node;
-        bone->pose = AnimatorOf(bone);
-    }
+    for (FigureBone* bone : bones) bone->pose = AnimatorOf(bone);
     if (!FigureManagerOf(this)->SetFigureAnimation(this, ModelName(this), animation)) {
-        for (auto node = bones.begin(); node != bones.end();) {
-            FigureBone* bone = *node;
-            ++node;
-            AnimateBone(bone, animation);
-        }
+        for (FigureBone* bone : bones) AnimateBone(bone, animation);
     }
     SetTime(0.0f);
     current = animation;
@@ -184,7 +175,7 @@ void FigureAnimationState::Play(FigureAnimation* animation) {
 void FigureAnimationState::Queue(FigureAnimation* animation) { queue.push_back(animation); }
 
 void FigureAnimationState::SetTime(float frame) {
-    if (time != frame) changed = 1;
+    if (time != frame) changed = true;
     const FigureAnimation* before = current;
     time = frame;
     if (!current && !queue.empty()) {
@@ -201,12 +192,12 @@ void FigureAnimationState::SetTime(float frame) {
         } else if ((current->key & kKeyEndMask) != kKeyLoops) {
             time = static_cast<float>(frames);
         }
-        changed = 1;
+        changed = true;
     }
     if (before == current) return;
     BeginBlend(before, current);
     Apply(this, current);
-    changed = 1;
+    changed = true;
 }
 
 void FigureAnimationState::Advance(float frames) { SetTime(frames + time); }

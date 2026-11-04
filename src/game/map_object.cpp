@@ -15,6 +15,7 @@
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
+#include "lib/float_select.h"
 
 #include <bit>
 #include <concepts>
@@ -27,19 +28,7 @@
 // The scale formulas must keep the original's order of operations and its NaN behaviour.
 
 namespace {
-constexpr float kOne = 1.0f;
 constexpr float kScaleStep = 0.4f;
-
-// The original's branch-free max(0, v): 0 against v, as a mask selecting v's bits
-// (also a NaN's), else 0.
-std::uint32_t ClampToZero(float v) {
-    return 0.0f >= v ? 0u : std::bit_cast<std::uint32_t>(v);
-}
-
-void StoreBits(float& field, std::uint32_t bits) { field = std::bit_cast<float>(bits); }
-
-// The change stamp: the world's update count.
-int UpdateCount(const World* world) { return world->updateCount; }
 
 // The most effects an object holds: the network sends the count as a byte (WriteNetState).
 constexpr int kMaxEffects = 255;
@@ -73,7 +62,7 @@ void MapObject::MarkChanged(NetField part) {
     if (part != NetField::None) netState.mask = static_cast<std::uint16_t>(netState.mask | (1u << (static_cast<int>(part) & 31)));
     flags |= MapObjectFlag::Changed;
     if (refCount == 0) return;
-    if (World* world = OwningWorld()) changeStamp = UpdateCount(world);
+    if (World* world = OwningWorld()) changeStamp = world->updateCount;
 }
 
 bool MapObject::HasEffect(SpellType spellType) {
@@ -96,14 +85,8 @@ void MapObject::SetEffectCount(int count) {
 
 void MapObject::AddEffect(const MapEffect* effect) {
     if (std::ssize(effects) >= kMaxEffects) return;   // RemoveOutdatedEffects keeps the list far below this
-    int count = lib::Count(effects);
-    SetEffectCount(count + 1);
-    std::memcpy(&effects[count], effect, sizeof(MapEffect));
-    netState.mask = static_cast<std::uint16_t>(netState.mask | 8);       // part 3
-    flags |= MapObjectFlag::Changed;
-    if (refCount != 0) {
-        if (World* world = OwningWorld()) changeStamp = UpdateCount(world);
-    }
+    effects.push_back(*effect);
+    MarkChanged(NetField::Effects);
     SpellType spellType = effect->Type();
     bool scales = spellType == SpellType::Strengthen || spellType == SpellType::Weaken || spellType == SpellType::Enlarge ||
                   spellType == SpellType::Shrink;
@@ -113,30 +96,23 @@ void MapObject::AddEffect(const MapEffect* effect) {
     if (scales) RecomputeScale();
     if (effect->ticksLeft > 1) RemoveOutdatedEffects(this, effect);
 }
-// A sleeping object's effects count down too (WorldServer::TickSleepingEffects).
 
 void MapObject::ClearEffects() {
     effects = {};
-    netState.mask = static_cast<std::uint16_t>(netState.mask | 8);       // part 3
-    flags |= MapObjectFlag::Changed;
-    if (refCount != 0) {
-        if (World* world = OwningWorld()) changeStamp = UpdateCount(world);
-    }
+    MarkChanged(NetField::Effects);
     ScaleEffectChanged(true);
     SetStunned(0);
     RecomputeScale();
 }
 
 float MapObject::EffectValue(SpellType spellType) {
-    std::uint32_t best = 0;
+    float best = 0.0f;
     for (int i = 0; i < std::ssize(effects); ++i) {
         MapEffect effect = effects[i];   // the record is copied twice
         if (effect.Type() != spellType) continue;   // the record's first dword & 0xFF
-        float current = std::bit_cast<float>(best);
-        float value = std::bit_cast<float>(effect.value);
-        best = current >= value ? best : effect.value;   // the C0 mask: a NaN takes the value
+        best = MaxKeepB(best, std::bit_cast<float>(effect.value));   // a NaN takes the value
     }
-    return std::bit_cast<float>(best);
+    return best;
 }
 
 void MapObject::RecomputeScale() {
@@ -150,22 +126,17 @@ void MapObject::RecomputeScale() {
     if (size == 0) {
         if (strengthLevel != 0.0f) {
             float step = strengthLevel * kScaleStep;
-            StoreBits(scale.x, ClampToZero(step + scale.x));
-            if (MapType() != MapObjectType::Hero) StoreBits(scale.z, ClampToZero(step + scale.z));
+            scale.x = MaxKeepB(0.0f, step + scale.x);
+            if (MapType() != MapObjectType::Hero) scale.z = MaxKeepB(0.0f, step + scale.z);
         }
     } else if (total != 0.0f) {
         float step = total * kScaleStep;
-        StoreBits(scale.x, ClampToZero(step + scale.x));
-        StoreBits(scale.y, ClampToZero(step + scale.y));
-        StoreBits(scale.z, ClampToZero(step + scale.z));
+        scale.x = MaxKeepB(0.0f, step + scale.x);
+        scale.y = MaxKeepB(0.0f, step + scale.y);
+        scale.z = MaxKeepB(0.0f, step + scale.z);
     }
-    netState.mask = static_cast<std::uint16_t>(netState.mask | 2);       // part 1
-    flags |= MapObjectFlag::Changed;
-    if (refCount == 0) return;
-    if (World* world = OwningWorld()) changeStamp = UpdateCount(world);
+    MarkChanged(NetField::Scale);
 }
-
-void MapObject::ResetScale() { scale = baseScale; }
 
 Vector3 MapObject::GroundPoint() {
     const Vector3 centre = localPosition + bounds.center;
@@ -197,17 +168,13 @@ void MapObject::AttachObject(EngineObject* object) {
     companion->AddRef();
 }
 
-int MapObject::PackVitals() {
+int MapObject::StatsChanged() {
     if (companion->GetClassId() != ClassId::MapObjectServer) return 0;
     ServerCompanion()->vitals.Pack(&packedVitals);
     return 1;
 }
 
-bool MapObject::IsInvisible() { return lib::Has(flags, MapObjectFlag::Invisible); }
-
 bool MapObject::IsStunned() { return lib::Has(flags, MapObjectFlag::Stunned); }
-
-std::uint32_t MapObject::Flag20000() { return lib::Has(flags, MapObjectFlag::Synchronised); }
 
 // --- Lifetime ------------------------------------------------------------------------------------
 
@@ -216,7 +183,7 @@ MapObject::MapObject() {
     packedVitals.Reset();
     sectorCellX = -1;
     sectorCellY = -1;
-    animationSpeed = kOne;
+    animationSpeed = 1.0f;
 }
 
 MapObject::~MapObject() = default;
@@ -271,17 +238,13 @@ std::string* MapObject::SetSecondName(const char* text) {
     return &name2;
 }
 
-// --- The virtuals for the compiler's tables ----------------------------------------------------------------
-// The bodies above and in map_object*.cpp, called without dispatch.
+// --- The virtuals a plain object answers -------------------------------------------------------------------
 
-void MapObject::Load(ByteStream* stream) { LoadMapObject(stream); }
-void MapObject::Save(ByteStream* stream) { SaveMapObject(stream); }
-bool MapObject::InvisibleSlot() { return IsInvisible() != 0; }
+bool MapObject::InvisibleSlot() { return lib::Has(flags, MapObjectFlag::Invisible); }
 void MapObject::EffectsChanged() {}
-bool MapObject::IsSynchronised() { return Flag20000() != 0; }
-void MapObject::ApplyBaseScale() { ResetScale(); }
+bool MapObject::IsSynchronised() { return lib::Has(flags, MapObjectFlag::Synchronised); }
+void MapObject::ApplyBaseScale() { scale = baseScale; }
 void MapObject::ReceiveHit(DamageInfo*, Unit*, Unit*) {}
-int MapObject::StatsChanged() { return PackVitals(); }
 void MapObject::ScaleEffectChanged(bool) {}
 void MapObject::SetStats(const UnitStats*) {}
 void MapObject::UpdateSizeClasses() {}
@@ -307,7 +270,7 @@ void MapObject::SetScriptName(std::string_view) {}
 // --- Visibility and science -------------------------------------------------------------------------
 
 // Of the unit and nine other map object classes: the visibility mode is handed to the companion
-// (the client's shows or hides the object's light); whatever it returns is passed on.
+// (the client's shows or hides the object's light).
 int MapObject::SetVisibilityMode(int mode) {
     companion->SetLightMode(mode);
     return 0;
@@ -321,9 +284,6 @@ bool MapObject::ApplyScience(const LockKey*, EngineObject*) {
 // --- Vitals ------------------------------------------------------------------------------------------
 
 // MapObject: the server companion's vitals. See map_object.h and docs/notes/map_objects.md.
-
-namespace {
-} // namespace
 
 void MapObject::ClearProtectionBases() {
     if (companion->GetClassId() != ClassId::MapObjectServer) return;
@@ -356,12 +316,11 @@ void DetachCompanion(MapObject* object) {
 
 // --- MapObject's Create / Destroy (A-U) ---------------------------------------------------------
 
-void MapObject::CreateMapObject() {
+void MapObject::Create() {
     Create3D();
     DetachCompanion(this);
     packedVitals.Reset();
     animationSpeed = 1.0f;
-    packedVitals.Reset();
     netState.SetFieldCount(kMapObjectNetFields);
     netState.Reset();
     changeStamp = -1;
@@ -371,7 +330,7 @@ void MapObject::CreateMapObject() {
     baseScale.x = baseScale.y = baseScale.z = 0.0f;
 }
 
-void MapObject::DestroyMapObject() {
+void MapObject::Destroy() {
     SetEffectCount(0);
     DetachCompanion(this);
     Destroy3D();
@@ -380,13 +339,13 @@ void MapObject::DestroyMapObject() {
 // --- Units and torches -----------------------------------------------------------------------------
 
 void Unit::Create() {
-    CreateMapObject();
+    MapObject::Create();
     Reset();
     AsMapObject()->netState.SetFieldCount(kUnitNetFields);
 }
 
 void TorchObject::Create() {
-    CreateMapObject();
+    MapObject::Create();
     TorchObjectSpec* old = spec;
     spec = nullptr;
     if (old) old->Release();
@@ -400,11 +359,7 @@ void TorchObject::Create() {
 // Saving and loading the map object part of every map object (MapObject Load / Save) and its
 // server companion's (MapObjectServer Load / Save). See map_object.h and docs/notes/map_objects.md.
 
-namespace {
-
-} // namespace
-
-void MapObject::LoadMapObject(ByteStream* stream) {
+void MapObject::Load(ByteStream* stream) {
     companion->Load(stream);
     stream->ReadValue(animationSpeed);
     stream->Read(&localPosition.x, 3 * sizeof(float));
@@ -422,7 +377,7 @@ void MapObject::LoadMapObject(ByteStream* stream) {
     if (stream->version > kVersionBaseScale) stream->ReadValue(baseScale);
 }
 
-void MapObject::SaveMapObject(ByteStream* stream) {
+void MapObject::Save(ByteStream* stream) {
     companion->Save(stream);
     float speed = animationSpeed;
     stream->WriteValue(speed);

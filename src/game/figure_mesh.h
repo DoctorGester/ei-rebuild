@@ -109,6 +109,11 @@ class FigureMesh;
 
 struct FigureMeshDrawer;
 // The flags an animated mesh's drawer gets on top of its own (figure_part_draw*.cpp).
+// The packets of `source` (`packets` of them) with the per-vertex `offsets` added (a vertex beyond the offsets keeps
+// its position), in one work array that the next call reuses.
+const VertexPacket* MovedPositions(const VertexPacket* source, int packets,
+                                  const std::vector<Vector3>& offsets);
+
 inline constexpr std::uint32_t kAnimatedDrawerFlags = /*00790C0C*/ 0x200;
 
 // The material a figure part is drawn with (the draw's fourth argument) is a Material: MaterialFlag::KeepSpecular
@@ -167,7 +172,7 @@ public:
     // box (box.bounds) transformed by its matrix; nothing when the position is 1e4 or more from the origin.
     void ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* minX, float* minY, float* minZ) const;
 
-    // The mesh's buffers or vertices changed in place: the new renderer builds its copy kept on the GPU
+    // The mesh's buffers or vertices changed in place: the renderer builds its copy kept on the GPU
     // again (render::MeshChanged).
     void BuffersChanged();
     struct OffsetSpan {

@@ -66,7 +66,7 @@ void Unit::ReleaseUnit() {
 
 void Unit::DestroyUnit() {
     ClearState();
-    DestroyMapObject();
+    MapObject::Destroy();
     Reset();
 }
 

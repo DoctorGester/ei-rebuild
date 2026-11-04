@@ -58,7 +58,7 @@ void SetTalking(const Unit* unit, bool talking) {
 
 // The drawn parts take `alpha`.
 void SetPartsAlpha(Object3DClientSpecific* half, float alpha) {
-    for (Material* part = half->FirstMaterial(); part; part = half->NextMaterial()) part->colors.diffuse.w = alpha;
+    for (Material* part : half->materials) part->colors.diffuse.w = alpha;
 }
 
 } // namespace
@@ -82,7 +82,7 @@ bool UnitClientSpecific::RunTick() {
 
     if (fadeIn < 1.0f) {
         auto* half = unit->AsObject3D()->ClientSpecific();
-        for (Material* part = half->FirstMaterial(); part; part = half->NextMaterial()) part->colors.diffuse.w = fadeIn;
+        for (Material* part : half->materials) part->colors.diffuse.w = fadeIn;
         float grown = fadeIn + kFadeStep;   // stored as a float before the compare
         float next = grown;
         fadeIn = MinKeepA(next, 1.0f);   // the select keeps a NaN

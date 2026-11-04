@@ -48,10 +48,10 @@ public:
 
     int LoadSkeletonLinks(FigureAnimationState* state, std::string_view name);
     int LoadFigureBones(FigureModel* model, FigureBone* bone);
-    int LoadFigureBounds(ClipBounds* out, FigureModel* model, std::string_view directory, std::string_view name, std::uint32_t s, std::uint32_t t, std::uint32_t u);
+    int LoadFigureBounds(ClipBounds* out, FigureModel* model, std::string_view directory, std::string_view name, float s, float t, float u);
     FigureModel* FindModel(const std::string* name);
-    // Sets the animation found by name in model `modelName` on `figure`; 0 when it cannot.
-    int SetFigureAnimation(FigureAnimationState* figure, const char* modelName, const FigureAnimation* animation);
+    // Sets the animation found by name in model `modelName` on `figure`; false when it cannot.
+    bool SetFigureAnimation(FigureAnimationState* figure, const char* modelName, const FigureAnimation* animation);
     // The menus' button rectangles from "menus.reg" into `rects`; 1, or FatalError's result when the file or an
     // entry cannot be read.
     int LoadMenuRects(Rect* rects);

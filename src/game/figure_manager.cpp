@@ -26,22 +26,9 @@
 #include <new>
 #include <string>
 
-namespace {
-
-constexpr const char* kFiguresArchive = "figures.res";
-constexpr const char* kMenusArchive = "menus.res";
-
-} // namespace
-
 void FigureManager::Create() {
     BaseManager::Create();
-    // Rebirth's ResOverride: the mod's figure archives come first.
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::ResOverride)) {
-        for (const std::string& path : modfolders::FigureArchives()) AddArchive(path);
-    }
-    std::string folder = g_textFolder;
-    AddArchive((folder + kFiguresArchive));
-    AddArchive((folder + kMenusArchive));
+    for (const std::string& path : modfolders::FigureArchivePaths(g_textFolder)) AddArchive(path);
     LoadMenuRects(g_menuRects);
 }
 
@@ -73,7 +60,7 @@ UiMesh* FigureManager::NewFigure(std::string_view name) {
 
 int FigureManager::LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator, const char* animation) {
     if (!animation) return 0;
-    const std::string path = bone->name3 + bone->GetName() + animation + game::AstExtensionText();
+    const std::string path = bone->modelName + bone->GetName() + animation + game::AstExtensionText();
     void* data = GetFile(path, nullptr);
     if (!data) return 0;
     auto* cursor = static_cast<std::uint8_t*>(data);
@@ -93,31 +80,29 @@ const char* FigureManager::GetFolderName() { return "figures"; }
 
 // --- Figure animation --------------------------------------------------------------------------------
 
-// Sets a figure's animation by name (figure manager). Without an animation name the figure's animation is
-// cleared (and the clear's result returned). Otherwise the model is looked up and its animation part asked
-// for the name; each failure logs "Can't open model" / "Can't open animation ... for model" and returns 0; a
-// found animation goes to the figure (its result returned). See docs/notes/models.md.
-
-namespace {
-
-} // namespace
-
-int FigureManager::SetFigureAnimation(FigureAnimationState* figure, const char* modelName,
+// Sets a figure's animation by name. Without an animation the figure's animation is cleared; otherwise the
+// model is looked up and its animation of that name found; each failure logs "Can't open model" / "Can't open
+// animation ... for model" and returns 0. See docs/notes/models.md.
+bool FigureManager::SetFigureAnimation(FigureAnimationState* figure, const char* modelName,
                                        const FigureAnimation* animation) {
-    if (!animation) return figure->ClearBoneTracks();
+    if (!animation) {
+        figure->ClearBoneTracks();
+        return true;
+    }
     std::string key(modelName);
     FigureModel* model = FindModel(&key);
     if (!model) {
         game::DebugLog("Can't open model \"%s\"\n", modelName);
-        return 0;
+        return false;
     }
     std::string name(animation->name);
     MappedResource* found = model->FindAnimation(&name);
     if (!found) {
         game::DebugLog("Can't open animation \"%s\" for model \"%s\"\n", animation->name, modelName);
-        return 0;
+        return false;
     }
-    return figure->LoadBoneTracks(found, animation);
+    figure->LoadBoneTracks(found, animation);
+    return true;
 }
 
 // --- Figure links ------------------------------------------------------------------------------------
@@ -127,10 +112,6 @@ int FigureManager::SetFigureAnimation(FigureAnimationState* figure, const char* 
 // CloseFile); with neither the fatal error "Can't load skeleton file" is returned. The data is a count and
 // that many (child, parent) length-prefixed names (read into strings), each passed to the animation state's
 // LinkPiece with the model; FindRoot finishes it. Returns 1. See docs/notes/models.md.
-
-namespace {
-
-} // namespace
 
 int FigureManager::LoadSkeletonLinks(FigureAnimationState* state, std::string_view name) {
     FigureModel* model;
@@ -180,7 +161,7 @@ int FigureManager::LoadFigureBones(FigureModel* model, FigureBone* bone) {
         bones.data = model->bones->GetFile(bone->name, &bones.size);
     } else {
         std::string name = bone->GetName();
-        std::string directory = bone->name3;
+        std::string directory = bone->modelName;
         std::string path = (directory + name) + ".bon";
         bones.data = GetFile(path, &bones.size);
     }
@@ -206,9 +187,7 @@ int FigureManager::LoadFigureBones(FigureModel* model, FigureBone* bone) {
 // missing data returns 0. A "FIG" header (the low three bytes of the first dword) sends the data past the
 // 0x28-byte header to the FIG bounds morph with the full magic, any other past 8 bytes to the older-format
 // one, both with the morph weights. Returns 1. See figure_mesh.h and docs/notes/models.md.
-
-
-int FigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, std::string_view directory, std::string_view name, std::uint32_t s, std::uint32_t t, std::uint32_t u) {
+int FigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, std::string_view directory, std::string_view name, float weightS, float weightT, float weightU) {
     std::uint8_t* data;
     if (model) {
         data = static_cast<std::uint8_t*>(model->mesh->GetFile(name, nullptr));
@@ -219,7 +198,6 @@ int FigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, std::st
     if (!data) return 0;
     std::uint32_t magic;
     lib::LoadBytes(magic, data);
-    const float weightS = std::bit_cast<float>(s), weightT = std::bit_cast<float>(t), weightU = std::bit_cast<float>(u);
     // The bounds' floats (centre, box minimum, box maximum, radius): 8 versions of each in FIG8, one in another FIG,
     // 6 corner versions without a FIG header.
     if (fig::IsFig(magic)) {
@@ -239,87 +217,49 @@ int FigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, std::st
 
 // --- Figure model destroy ----------------------------------------------------------------------------
 
-// The figure model's destructor (FigureModel, model.h). Every cached animation is deleted, the map cleared,
-// each archive closed (CloseResource) and deleted, then the map destroyed. See docs/notes/models.md.
+// The figure model's destructor (FigureModel, model.h): every cached animation deleted, each archive closed
+// (CloseResource) and deleted. See docs/notes/models.md.
 
 FigureModel::~FigureModel() {
-    std::unordered_map<std::string, MappedResource*>& table = animationCache;
-    for (auto& [name, animation] : table)
-        if (animation) delete animation;
-    table.clear();
+    for (auto& [name, animation] : animationCache) delete animation;
 
-    static constexpr MappedResource* FigureModel::*kArchives[3] = {&FigureModel::mesh, &FigureModel::bones,
-                                                                    &FigureModel::animations};
-    for (MappedResource* FigureModel::*archive : kArchives) (this->*archive)->CloseResource();
-    for (MappedResource* FigureModel::*archive : kArchives) delete (this->*archive);
+    MappedResource* const archives[3] = {mesh, bones, animations};
+    for (MappedResource* archive : archives) archive->CloseResource();
+    for (MappedResource* archive : archives) delete archive;
 }
 
-// The figure manager's destructor: every cached model destroyed and freed, the base's clean-up, the model map
-// cleared and its buckets freed (the map's inline destructor), then the base destructor.
+// The figure manager's destructor: every cached model deleted, then the base's clean-up.
 FigureManager::~FigureManager() {
-    for (auto& [name, model] : models) {
-        delete model;
-    }
-    ResourceManager::Destroy();   // the base's clean-up
+    for (auto& [name, model] : models) delete model;
+    ResourceManager::Destroy();
 }
 
 // --- Figure models -----------------------------------------------------------------------------------
 
-// The model named `name`, loaded on first use. The models are cached in FigureManager::models (nodes {next,
-// key, value}; the key hashed h = h * 5 + c). A missing model opens "<name>.mod", ".bon" and ".anm" through
-// the manager's GetFile; without the .mod nothing is created (the others are closed) and null is returned.
-// Otherwise a FigureModel is stored under the name, its mesh, bones and animation archives load from the files
-// (OpenFromMemory; the .bon and .anm only when they opened), and the cached entry is looked up again. See
-// docs/notes/models.md.
-
-namespace {
-
-void* OpenPart(FigureManager* manager, const std::string* name, const char* suffix) {
-    return manager->GetFile(*name + suffix, nullptr);
-}
-
-FigureModel** ModelSlot(std::unordered_map<std::string, FigureModel*>* map, const std::string* name) { return &(*map)[*name]; }
-MappedResource** AnimationSlot(std::unordered_map<std::string, MappedResource*>* map, const std::string* name) { return &(*map)[*name]; }
-
-} // namespace
-
+// The model named `name`, loaded on first use from "<name>.mod", ".bon" and ".anm" through the manager's GetFile
+// and cached in FigureManager::models. Without the .mod nothing is created (the others are closed) and null is
+// returned. See docs/notes/models.md.
 FigureModel* FigureManager::FindModel(const std::string* name) {
-    std::unordered_map<std::string, FigureModel*>* map = &models;
-    if (auto found = map->find(*name); found != map->end()) return found->second;
-
-    void* mesh = OpenPart(this, name, ".mod");
-    void* bones = OpenPart(this, name, ".bon");
-    void* animation = OpenPart(this, name, ".anm");
-    if (!mesh) {
-        if (bones) CloseFile(bones);
-        if (animation) CloseFile(animation);
-        return nullptr;
-    }
-
-    auto* model = new FigureModel();
-    *ModelSlot(map, name) = model;
-    FigureModel* parts = *ModelSlot(map, name);
-    parts->mesh->OpenFromMemory(mesh);
-    if (bones) parts->bones->OpenFromMemory(bones);
-    if (animation) parts->animations->OpenFromMemory(animation);
-    auto found = map->find(*name);
-    return found != map->end() ? found->second : nullptr;
+    if (auto found = models.find(*name); found != models.end()) return found->second;
+    FigureModel* model = OpenFigureModel(
+        *name, [this](const std::string& path) { return GetFile(path, nullptr); },
+        [this](void* data) {
+            if (data) CloseFile(data);
+        });
+    if (model) models[*name] = model;
+    return model;
 }
 
 // The model's animation of a name, loaded on first use from its animation archive (GetFile with the name) into
-// a new archive over that data (OpenFromMemory); without data nothing is created. The cached entry is looked
-// up again either way.
+// a new archive over that data (OpenFromMemory); without data nothing is created and null is returned.
 MappedResource* FigureModel::FindAnimation(const std::string* name) {
-    std::unordered_map<std::string, MappedResource*>* map = &animationCache;
-    if (auto found = map->find(*name); found != map->end()) return found->second;
+    if (auto found = animationCache.find(*name); found != animationCache.end()) return found->second;
     void* data = animations->GetFile(name->data(), nullptr);
-    if (data) {
-        MappedResource* animation = new MMIOResource();
-        *AnimationSlot(map, name) = animation;
-        (*AnimationSlot(map, name))->OpenFromMemory(data);
-    }
-    auto found = map->find(*name);
-    return found != map->end() ? found->second : nullptr;
+    if (!data) return nullptr;
+    MappedResource* animation = new MMIOResource();
+    animationCache[*name] = animation;
+    animation->OpenFromMemory(data);
+    return animation;
 }
 
 FigureModel::FigureModel() {
@@ -334,67 +274,12 @@ void FigureModel::Open(const void* mod, const void* bon, const void* anm) {
     if (anm) animations->OpenFromMemory(anm);
 }
 
-// --- Menu rects --------------------------------------------------------------------------------------
-
-// The main menu's and the escape menu's button rectangles from "menus.reg" (each entry
-// four integers; a missing or malformed one is a fatal error). See docs/notes/world.md.
-
-Rect g_menuRects[kMenuRects] = /*007C8048*/ {};
-
-namespace {
-
-// The entries in the order the original reads them: section, name, error, the RECT's index.
-struct MenuRect {
-    const char* section;
-    const char* name;
-    const char* error;
-    int index;
-};
-constexpr MenuRect kRects[] = {
-    {"MainMenu", "NewGame", "Can't get rect for MM NewGame\n", 0},
-    {"MainMenu", "LoadGame", "Can't get rect for MM LoadGame\n", 1},
-    {"MainMenu", "ExitGame", "Can't get rect for MM ExitGame\n", 2},
-    {"MainMenu", "Options", "Can't get rect for MM Options\n", 3},
-    {"MainMenu", "Credits", "Can't get rect for MM Credits\n", 4},
-    {"MainMenu", "Multiplayer", "Can't get rect for MM Multiplayer\n", 5},
-    {"EscMenu", "SaveGame", "Can't get rect for EM SaveGame\n", 6},
-    {"EscMenu", "LoadGame", "Can't get rect for EM LoadGame\n", 7},
-    {"EscMenu", "Options", "Can't get rect for EM Options\n", 10},
-    {"EscMenu", "ResumeGame", "Can't get rect for EM ResumeGame\n", 8},
-    {"EscMenu", "ExitMM", "Can't get rect for EM ExitMM\n", 9},
-};
-
-} // namespace
-
-int FigureManager::LoadMenuRects(Rect* rects) {
-    FileRegistry reg;
-    // The manager's GetFile: the resource file's data.
-    void* file = GetFile(game::menutexts::MenusReg(), nullptr);
-    if (!file || !reg.Attach(file)) {
-        return game::FatalError(file ? game::menutexts::CantParse() : game::menutexts::CantOpen());
-    }
-    std::vector<std::int32_t> values;
-    for (const MenuRect& entry : kRects) {
-        values.clear();
-        reg.GetIntArray(entry.section, entry.name, &values);
-        if (std::ssize(values) != 4) {
-            int result = game::FatalError(entry.error);
-            lib::FreeStorage(values);
-            return result;
-        }
-        rects[entry.index] = {values[0], values[1], values[2], values[3]};
-    }
-    lib::FreeStorage(values);
-    return 1;
-}
-
 // --- Figure factory ----------------------------------------------------------------------------------
 
-// The figure object factory (virtual, `this` unused): creates a scene object of a class id. 0x41-0x43 are the
-// figure part meshes: 0x41 and 0x42 are FigureMeshes, 0x43 a UiMesh (ui.h). 0x44 and
-// 0x300B-0x300D (AnimationTrack, FigureBone, FigureAnimationState) have their own. All are C++ classes,
-// allocated at the game's sizes. The new object's type gets the class id; an unknown id or a failed
-// allocation returns null. See docs/notes/models.md.
+// The figure object factory: creates a scene object of a class id. 0x41 and 0x42 are FigureMeshes, 0x43 a
+// UiMesh (ui.h), 0x44 a SkyObject and 0x300B-0x300D an AnimationTrack, a FigureBone and a
+// FigureAnimationState. The new object's type gets the class id; an unknown id returns null. See
+// docs/notes/models.md.
 
 namespace {
 

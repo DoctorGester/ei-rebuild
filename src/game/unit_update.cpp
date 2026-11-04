@@ -67,7 +67,7 @@ void Unit::AttachObject(EngineObject* object) {
 }
 
 int Unit::StatsChanged() {
-    PackVitals();
+    MapObject::StatsChanged();
     if (controller) controller->RepackStats();
     return 1;
 }

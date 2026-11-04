@@ -30,6 +30,14 @@ using VertexPacket = render::VertexPacket;
 using NormalPacket = render::NormalPacket;
 struct Vector4;
 
+// The flags of the device's mesh draws (DrawMeshBlocks, DrawMeshBlocks2).
+enum DrawFlag : int {
+    kDrawScreenRect = 1,   // keep the drawn screen rectangle (TextureDevice::drawnRect)
+    kDrawClipped = 2,      // the mesh crosses the view's edges: project it with the clip stack
+    kDrawColours = 4,      // the device colours the mesh (the alpha with it)
+    kDrawSpecular = 8,     // the material keeps its speculars
+};
+
 // The arguments of a mesh draw. A corner's position indexes the projected vertices, its normal the colour and specular
 // arrays (one colour per normal) and its texCoord the texture coordinates.
 struct MeshArgs {
@@ -49,7 +57,7 @@ struct MeshArgs {
     float uOffset;                // compared with 0 and added to the texture coordinates
     float vOffset;
     int alpha;                    // the low byte, with flag 4
-    int flags;                    // 1 screen bounds, 2 clip, 4 colours from the device (colour) and alpha
+    int flags;                    // DrawFlag bits
 };
 
 // The device object: the screen (its window, size and colour depth), the transform pipeline, the texture stages' holders and the
@@ -60,9 +68,8 @@ public:
     void SetMaterial(DeviceMaterial* material);
     int DrawFlatBlocks(const VertexPacket* positions, const render::TexCoord* uvs, int blocks, const std::uint16_t* indices,
                        int indexCount, std::uint32_t colour, std::uint32_t specular, bool groundPrint);
-    // The mesh drawn (with two textures for DrawMeshBlocks2). Returns the projection's verdict: 2 nothing on screen,
-    // 1 crossing the edges, 0 on screen (drawn: 1). Without flag 2 the mesh is projected with the screen stack and
-    // counts as on screen.
+    // The mesh drawn (with two textures for DrawMeshBlocks2). Returns the projection's verdict (TransformPipeline::ClipResult;
+    // drawn: 1). Without kDrawClipped the mesh is projected with the screen stack and counts as on screen.
     int DrawMeshBlocks2(Surface* firstTexture, Surface* secondTexture, const MeshArgs& args);
     int DrawMeshBlocks(const MeshArgs& args);
     void DrawTwoTextures(Surface* first, Surface* second);

@@ -30,9 +30,9 @@ namespace {
 constexpr int kWarmUpTicks = 0x1E;                    // a source arriving with the object runs ahead
 constexpr float kPowerScale = 0.0625f;                // power / 16
 
-constexpr int kRingSource = static_cast<int>(ParticleType::ClayRing);        // Lichdom's ring
-constexpr int kScaleRingSource = static_cast<int>(ParticleType::Modifier1);   // strengthen / weaken
-constexpr int kFallbackSource = static_cast<int>(ParticleType::BlueGas);
+constexpr ParticleType kRingSource = ParticleType::ClayRing;        // Lichdom's ring
+constexpr ParticleType kScaleRingSource = ParticleType::Modifier1;   // strengthen / weaken
+constexpr ParticleType kFallbackSource = ParticleType::BlueGas;
 
 // The sound distances (10 and 50), read from the exe.
 constexpr float kSoundNear = 10.0f;
@@ -53,21 +53,21 @@ bool MergesParticles(SpellType type) {
 }
 
 // The particle source type of a lasting effect source; unknown types log and take 0x2013.
-int ParticleSourceType(SpellType type) {
+ParticleType ParticleSourceType(SpellType type) {
     switch (type) {
-    case SpellType::ProtectionFromFire: return static_cast<int>(ParticleType::SphereFire);
-    case SpellType::ProtectionFromLightning: return static_cast<int>(ParticleType::SphereElectricity);
-    case SpellType::ProtectionFromAcid: return static_cast<int>(ParticleType::SphereAcid);
-    case SpellType::EagleSight: return static_cast<int>(ParticleType::VisionStar1);
-    case SpellType::Infravision: return static_cast<int>(ParticleType::VisionStar2);
-    case SpellType::DetectLife: return static_cast<int>(ParticleType::VisionStar3);
-    case SpellType::Silence: return static_cast<int>(ParticleType::VisionStar4);
-    case SpellType::Stench: return static_cast<int>(ParticleType::BlueGas);
-    case SpellType::Antimagic: return static_cast<int>(ParticleType::Antimagic);
-    case SpellType::Regeneration: return static_cast<int>(ParticleType::Silence);
-    case SpellType::Feeblemind: return static_cast<int>(ParticleType::FeebleMind);
-    case SpellType::Speed: return static_cast<int>(ParticleType::FeetCloud2);
-    case SpellType::Slow: return static_cast<int>(ParticleType::FeetCloud1);
+    case SpellType::ProtectionFromFire: return ParticleType::SphereFire;
+    case SpellType::ProtectionFromLightning: return ParticleType::SphereElectricity;
+    case SpellType::ProtectionFromAcid: return ParticleType::SphereAcid;
+    case SpellType::EagleSight: return ParticleType::VisionStar1;
+    case SpellType::Infravision: return ParticleType::VisionStar2;
+    case SpellType::DetectLife: return ParticleType::VisionStar3;
+    case SpellType::Silence: return ParticleType::VisionStar4;
+    case SpellType::Stench: return ParticleType::BlueGas;
+    case SpellType::Antimagic: return ParticleType::Antimagic;
+    case SpellType::Regeneration: return ParticleType::Silence;
+    case SpellType::Feeblemind: return ParticleType::FeebleMind;
+    case SpellType::Speed: return ParticleType::FeetCloud2;
+    case SpellType::Slow: return ParticleType::FeetCloud1;
     default:
         game::DebugLog("ERROR: Spell effect on map object with unknown particle effect");
         return kFallbackSource;
@@ -101,7 +101,8 @@ const char* SoundFolder(SpellType type) {
 
 // The one-shot ring of Lichdom / strengthen / weaken, scaled by `size` (stored as a float).
 void SpawnRing(MapObject* owner, SpellType type, float size, bool negate) {
-    ParticleSource* ring = g_clientWorld.particleManager->CreateSource(type == SpellType::Strengthen || type == SpellType::Weaken ? kScaleRingSource : kRingSource);
+    const bool scales = type == SpellType::Strengthen || type == SpellType::Weaken;
+    ParticleSource* ring = g_clientWorld.particleManager->CreateSource(static_cast<int>(scales ? kScaleRingSource : kRingSource));
     ring->Attach(owner);
     float factor = size / ring->baseSize;
     ring->ScaleSize(negate ? -factor : factor);
@@ -109,13 +110,8 @@ void SpawnRing(MapObject* owner, SpellType type, float size, bool negate) {
 
 // The ring's size: power / 16, negative for weaken, rounded to a float.
 float RingSize(SpellType type, int power) {
-    float size = static_cast<float>(power) * kPowerScale;
-    float value = size;
-    if (type == SpellType::Weaken) {
-        size = -value;
-        value = size;
-    }
-    return value;
+    const float size = static_cast<float>(power) * kPowerScale;
+    return type == SpellType::Weaken ? -size : size;
 }
 
 // The feeble mind sequence's chooser: the first name once, then the second.
@@ -131,14 +127,7 @@ bool OtherRecordOfType(const std::vector<ParticleRecord>& particles, int index, 
 
 // A new light's flags (ShowLight then clears Hidden).
 constexpr LightFlag kLightNew = LightFlag::Hidden | LightFlag::Moving | LightFlag::Off;
-constexpr int kPointLight = 0x31;
 
-// The default light of mode 1 (r, g, b, radius).
-const float* DefaultLightColour() { return &options::kQuestLight.red; }
-
-Object3DSpecific* SideHalf(MapObject* owner) {
-    return owner->attached;
-}
 
 // The light goes out for good: no longer held, hidden, its id off the list, released.
 void DropLight(MapObjectClientSpecific* self) {
@@ -152,9 +141,9 @@ void DropLight(MapObjectClientSpecific* self) {
 
 } // namespace
 
-void PlayEffectSound(bool play, EffectSoundRecord* record, const Vector3& position, SpellType kind,
-                     const char* suffix) {
+void PlayEffectSound(bool play, EffectSoundRecord* record, const Vector3& position, const char* suffix) {
     SoundManager* sounds = g_clientWorld.sounds;
+    const SpellType kind = record->kind;
     if (kind == SpellType::Stench) {
         record->timer = 0;
         return;
@@ -201,7 +190,6 @@ void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
                 }
             }
             if (!merged) wanted.push_back(effect);
-            mapObject = owner;
         }
     }
 
@@ -254,7 +242,7 @@ void MapObjectClientSpecific::UpdateEffectParticles(bool first) {
         case SpellType::Shrink:
             break;
         default: {
-            ParticleSource* source = g_clientWorld.particleManager->CreateSource(ParticleSourceType(spellType));
+            ParticleSource* source = g_clientWorld.particleManager->CreateSource(static_cast<int>(ParticleSourceType(spellType)));
             added.source = source;
             source->Attach(owner);
             source->ScaleSize(static_cast<float>(power) * kPowerScale / source->baseSize);
@@ -306,7 +294,6 @@ void MapObjectClientSpecific::UpdateEffectSounds(bool first) {
         bool known = false;
         for (int j = 0; j < typeCount && !known; ++j) known = types[j] == spellType;
         if (!known) types[typeCount++] = spellType;
-        mapObject = owner;
     }
 
     for (int i = 0; i < std::ssize(sounds); ++i) sounds[i].present = 0;
@@ -326,7 +313,7 @@ void MapObjectClientSpecific::UpdateEffectSounds(bool first) {
         added.handle = -1;
         added.timer = 0;
         added.present = 1;
-        PlayEffectSound(!first, &added, owner->localPosition, added.kind, "\\start.wav");
+        PlayEffectSound(!first, &added, owner->localPosition, "\\start.wav");
         sounds.push_back(added);
     }
 
@@ -335,7 +322,7 @@ void MapObjectClientSpecific::UpdateEffectSounds(bool first) {
         if (record->present) continue;
         MapObject* target = owner;
         bool alive = !target->IsDead();
-        PlayEffectSound(alive, record, target->localPosition, record->kind, "\\end.wav");
+        PlayEffectSound(alive, record, target->localPosition, "\\end.wav");
         sounds.erase(sounds.begin() + i);
         --i;
     }
@@ -358,7 +345,7 @@ void MapObjectClientSpecific::HideLight() {
     light->flags |= LightFlag::Hidden;
     g_clientWorld.terrain->RemoveLight(light);
     MapObject* mapObject = owner;
-    if (mapObject && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(false);
+    if (mapObject && mapObject->attached) mapObject->attached->SetLit(false);
 }
 
 void MapObjectClientSpecific::ShowLight() {
@@ -366,12 +353,12 @@ void MapObjectClientSpecific::ShowLight() {
     light->flags &= ~LightFlag::Hidden;
     g_clientWorld.terrain->AddLight(light);
     MapObject* mapObject = owner;
-    if (mapObject && mapObject->GetClassId() == ClassId::Unit && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(true);
+    if (mapObject && mapObject->GetClassId() == ClassId::Unit && mapObject->attached) mapObject->attached->SetLit(true);
 }
 
 void MapObjectClientSpecific::CreateLight(const float* colour, float radius, bool flag) {
     HideLight();
-    light.Assign(g_clientWorld.lightFactory->CreateLight(kPointLight));
+    light.Assign(g_clientWorld.lightFactory->CreateLight(kLightTypePoint));
     Vector3 rgb = {colour[0], colour[1], colour[2]};
     light->SetPoint(rgb, rgb);
     MapObject* mapObject = owner;
@@ -390,7 +377,8 @@ void MapObjectClientSpecific::CreateLight(const float* colour, float radius, boo
 void MapObjectClientSpecific::SetLightMode(int mode) {
     if (mode == 1) {
         if (!light) {
-            float colour[4] = {DefaultLightColour()[0], DefaultLightColour()[1], DefaultLightColour()[2], 1.0f};
+            const float* quest = &options::kQuestLight.red;   // red, green, blue
+            float colour[4] = {quest[0], quest[1], quest[2], 1.0f};
             CreateLight(colour, options::kQuestLight.radius, true);
         } else {
             light->flags &= ~LightFlag::Held;

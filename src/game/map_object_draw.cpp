@@ -23,13 +23,7 @@
 #include "game_singletons.h"
 
 namespace {
-constexpr std::uint32_t kRedrawStatic = 8;          // this->flags
-constexpr float kNearSquared = 1e9f;
 constexpr float kLightMargin = 10.0f;
-constexpr std::uint32_t kOne = 0x3F800000;
-constexpr int kStackWorld = 1;                      // the pipeline's matrix stacks
-constexpr int kStackView = 2;
-constexpr int kStackObject = 3;
 
 // Does `light` reach `object`: its range + 10 squared at least the squared distance.
 bool InReach(const Object3D* object, const Light* light) {
@@ -40,7 +34,7 @@ bool InReach(const Object3D* object, const Light* light) {
 }
 
 bool PartTooFar(const FigureMesh* part) {
-    return LengthSquared(part->localPosition) > kNearSquared;
+    return LengthSquared(part->localPosition) > kPartsNearSquared;
 }
 
 // The end of a draw: the iterator's reference to the light list and the light list itself.
@@ -59,7 +53,7 @@ void ObjectWorldMatrix(const Quaternion* orientation, const Vector3& position, M
     out->m[3] = position.x;
     out->m[7] = position.y;
     std::memset(&out->m[12], 0, 3 * sizeof(float));
-    out->m[15] = std::bit_cast<float>(kOne);
+    out->m[15] = 1.0f;
 }
 
 int Object3DClientSpecific::Draw(SceneRenderer* context, Rect* dirty) {
@@ -93,22 +87,20 @@ int Object3DClientSpecific::Draw(SceneRenderer* context, Rect* dirty) {
     const drawn::Pose shown = drawn::PoseOf(object);
     ObjectWorldMatrix(&shown.rotation, shown.position, &object->worldMatrix);
     Matrix4 m = object->worldMatrix;
-    pipeline->PushMatrix(m.m, kStackView);
-    pipeline->PushMatrix(m.m, kStackWorld);
-    if (!(object->flags & MapObjectFlag::Static)) pipeline->PushMatrixProduct(m, kStackObject);
+    pipeline->PushMatrix(m.m, TransformPipeline::kClipStack);
+    pipeline->PushMatrix(m.m, TransformPipeline::kWorldStack);
+    if (!(object->flags & MapObjectFlag::Static)) pipeline->PushMatrixProduct(m, TransformPipeline::kObjectStack);
     const Vector3& extraScale = figureScale;
-    bool scaled = !(std::bit_cast<std::uint32_t>(extraScale.x) == kOne &&
-                    std::bit_cast<std::uint32_t>(extraScale.y) == kOne &&
-                    std::bit_cast<std::uint32_t>(extraScale.z) == kOne);
+    bool scaled = !(extraScale.x == 1.0f && extraScale.y == 1.0f && extraScale.z == 1.0f);
     if (scaled) {
         std::memset(m.m, 0, sizeof(m));
         m.m[0] = extraScale.x;
         m.m[5] = extraScale.y;
         m.m[10] = extraScale.z;
-        m.m[15] = std::bit_cast<float>(kOne);
-        pipeline->PushMatrix(m.m, kStackView);
-        pipeline->PushMatrix(m.m, kStackWorld);
-        if (!(object->flags & MapObjectFlag::Static)) pipeline->PushMatrixProduct(m, kStackObject);
+        m.m[15] = 1.0f;
+        pipeline->PushMatrix(m.m, TransformPipeline::kClipStack);
+        pipeline->PushMatrix(m.m, TransformPipeline::kWorldStack);
+        if (!(object->flags & MapObjectFlag::Static)) pipeline->PushMatrixProduct(m, TransformPipeline::kObjectStack);
     }
     std::uint8_t lit = 0xFF;
     if (!(object->flags & MapObjectFlag::NoEdgeFade)) {
@@ -140,9 +132,9 @@ int Object3DClientSpecific::Draw(SceneRenderer* context, Rect* dirty) {
                 bool pushed = !(part->flags & FigureMeshFlag::Lit);
                 ObjectWorldMatrix(&part->localRotation, part->localPosition, &part->worldMatrix);
                 m = part->worldMatrix;
-                pipeline->PushMatrix(m.m, kStackView);
-                pipeline->PushMatrix(m.m, kStackWorld);
-                if (pushed) pipeline->PushMatrixProduct(m, kStackObject);
+                pipeline->PushMatrix(m.m, TransformPipeline::kClipStack);
+                pipeline->PushMatrix(m.m, TransformPipeline::kWorldStack);
+                if (pushed) pipeline->PushMatrixProduct(m, TransformPipeline::kObjectStack);
                 TextureParts* current = partSets[k];
                 int drawn = context->DrawFigureLit(part, &list, current->groups[g]->material, static_cast<int>(lit),
                                                    dirty ? &partRect : nullptr, nullptr, nullptr);
@@ -155,27 +147,27 @@ int Object3DClientSpecific::Draw(SceneRenderer* context, Rect* dirty) {
                 if (dirty && !partRect.IsEmpty() && (part->flags & FigureMeshFlag::Drawn)) {
                     drawnRect = drawnRect.Union(partRect);
                 }
-                if (pushed) pipeline->PopMatrix(kStackObject);
-                pipeline->PopMatrix(kStackView);
-                pipeline->PopMatrix(kStackWorld);
+                if (pushed) pipeline->PopMatrix(TransformPipeline::kObjectStack);
+                pipeline->PopMatrix(TransformPipeline::kClipStack);
+                pipeline->PopMatrix(TransformPipeline::kWorldStack);
                 allLit = allLit && lib::Has(part->flags, FigureMeshFlag::Lit);
             }
         }
     }
     if (scaled) {
-        if (!(object->flags & MapObjectFlag::Static)) pipeline->PopMatrix(kStackObject);
-        pipeline->PopMatrix(kStackView);
-        pipeline->PopMatrix(kStackWorld);
+        if (!(object->flags & MapObjectFlag::Static)) pipeline->PopMatrix(TransformPipeline::kObjectStack);
+        pipeline->PopMatrix(TransformPipeline::kClipStack);
+        pipeline->PopMatrix(TransformPipeline::kWorldStack);
     }
-    if (!(object->flags & MapObjectFlag::Static)) pipeline->PopMatrix(kStackObject);
-    pipeline->PopMatrix(kStackView);
-    pipeline->PopMatrix(kStackWorld);
+    if (!(object->flags & MapObjectFlag::Static)) pipeline->PopMatrix(TransformPipeline::kObjectStack);
+    pipeline->PopMatrix(TransformPipeline::kClipStack);
+    pipeline->PopMatrix(TransformPipeline::kWorldStack);
 
     if (allLit) {
         object->flags |= MapObjectFlag::Static;
         if (!wasStatic) {
             touchTime = platform::Milliseconds();
-            flags |= kRedrawStatic;
+            flags |= kHalfRedraw;
         }
     } else {
         object->flags &= ~MapObjectFlag::Static;
