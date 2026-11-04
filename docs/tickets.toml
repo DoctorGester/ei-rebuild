@@ -7775,6 +7775,169 @@ depends = ["C86"]
 note = "C86 took the count from 219 to 154: 0 wrong left (file bytes now read into values), about 52 byte views of void* buffers, 4 callback user data, about 32 downcasts after a class test, a kind switch or a typed factory (CreateObjectAs, FindModeOf, the side-half AttachObject), and about 66 typing debt, listed here by area. Items: item.h AsWeapon/AsArmor/AsLoot/AsQuick/AsQuest (type Unit::weapons and PartyUnitRecord weapons/armor), item_db RecordAs and item_stock, Item::link as ItemLink (ServerLink) and ItemTurn (ui_item_info ItemTurnOf), player_messages ItemCharge, net_client_party AddItem. UI: ui.h ActiveWindowAs (HUD panels could hold a typed screen), ScreenOf, AsUiMesh / sceneObjects, ui_chat_window PlayerOf. Net: net_messages PairMessage/BindingMessage PlayerInfo, net_client_handlers PlayerRef, PushReplicated, net_server TimedValueOf, net_server_map chunks, net_classes' handler registry and the message vector, net_connection ReadObject, net_messages ReadRef, player_sync, party_manager's archive ObjectRef. Script: script.h get<T>, map_object.h ObjectSlots, script_eval Lever, script_group CopyToList, script_exec_run EffectMoved. Spells and particles: spell.h Visual<T>, spell_effect_internal TargetUnit, spell.cpp target, particle_common Carrier, particle_callbacks attachedTo as Unit, particle_manager's object/source casts. AI: unit_ai_modes leader/target/enemy as Unit (5), combat_order_setters target, world_client_maps hits as Unit (2), OrderTame (unreached, keep). Specs: map_spec MadeMapObject/Transform, map_spec_unit MadeUnit, torch_object spec. Figures: figure_part_draw LinkMesh, figure_mesh SetDrawer, address_order AsObject3D, map_object_animation_bones AsMesh. Lists: lightning's objectList walk, texture.cpp ReleaseObject, render_textures' Texture, world_save / world_sync timed objects as Effect (type timedObjects). The same rules as C86: normal C++ classes, no forwarders to hide a cast, no reinterpret_cast, goldens the same."
 
 [[ticket]]
+id = "C87"
+title = "Renderer style 1: one namespace per file, dead code, shared small helpers, one world-model walk"
+group = "cleanup"
+model = "sonnet"
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Items R1, R3, R4, R5, R12. R1: one namespace render block per file, static for file-local helpers, drop detail and the 16 using namespace detail (do first: touches every file). R3: build the world-model list (batches after the first ground batch, flat/additive skipped, repeat passes flagged) once in PrepareShadows; CasterAlpha(); casters as an unordered_map; one kLeastStrength. R4: NearestClampSampler, ReleaseAfterPresent, UnpackColour, struct Box {low, high}, LogFirst(count, most, ...) replacing the 3-5 copies and the 16 rate-limited log counters. R5: render_terrain.cpp:472 dead colour half, PresentWindow always true, GammaRamp/GammaRampTable duplicate, the Ramp alias, unused params, exit-time loggers. R12: delete the pipeline/sampler front caches over gpu.cpp's own unless a profile shows they matter (measure on the R17c profile scene). Also the clever expressions: ++(cond ? a : b), comma operators, assignment in conditions, return Problem() from void. Style only: goldens the same, float operation order untouched, no new forwarders."
+
+[[ticket]]
+id = "C88"
+title = "Renderer style 2: typed render-state enums in PassState, typed object keys"
+group = "cleanup"
+model = "sonnet"
+depends = ["C87"]
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Items R2, R10. PassState/StageState hold render_state.h's Blend/Compare/Cull/TextureOp/Filter/Address instead of uint8 bytes; ToGpu() switches with named cases; bool AddsLight(const PassState&) replaces the three destBlend == 2 tests; fix the render::Compare / Compare() and Blend/Cull/Primitive name clashes; cast to int only where uniforms are filled. Vertex offsets through offsetof and a struct per format read (render_terrain.cpp:539-546, render_mesh.cpp:297-308, 569-576). R10: forward-declared Surface/Texture/FigureMesh/LinkMesh instead of const void* keys (TextureView/SurfaceView); void* only for truly opaque keys. Style only: goldens the same, float operation order untouched, no new forwarders."
+
+[[ticket]]
+id = "C89"
+title = "Renderer style 3: FrameStats as arrays, one timer, harness API in render_checks.h"
+group = "cleanup"
+model = "sonnet"
+depends = ["C87"]
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Items R6, R9. FrameStats keeps counts[kCountKinds] and ms[kTimeKinds] indexed by enum (summing becomes two loops); one plain Timer with Begin/End replacing the placement-new/launder storage, optional<StatsTimer>, the intrusive chain and perf::CpuTimer duplicates. Move the harness-only API (SmoothInfo, OcclusionInfo, ShadowInfo, cache infos, CursorInfo, WindowPresentInfo, the Begin/End*Time functions) to render_checks.h with the same API in every build and the check bodies in render_checks.cpp; no declared-but-only-defined-under-EI_RENDER_VALIDATION functions or (void)x bodies. Style only: goldens the same, float operation order untouched, no new forwarders."
+
+[[ticket]]
+id = "C90"
+title = "Renderer style 4: one kept-geometry cache for terrain pages and meshes"
+group = "cleanup"
+model = "opus"
+depends = ["C87"]
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Item R7. render_terrain.cpp's CachedPage and render_mesh_cache.cpp's CachedMesh share a KeptRanges struct (place, dirty, pending, vertex/colour ranges, lastUsed, mark); UploadKept/WriteKept next to GpuPool in render_buffers.cpp; eviction with std::erase_if; no function-local static stamp; shared PacketVertex() and AppendTriangles() for the SoA lane read (4 copies) and the bad-corner triangle drop (3 copies). The cache validation checks keep working. Style only: goldens the same, float operation order untouched, no new forwarders."
+
+[[ticket]]
+id = "C91"
+title = "Renderer style 5: named uniform fields; CPU state out of the uniform blocks"
+group = "cleanup"
+model = "opus"
+depends = ["C87"]
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Item R8. tools/gen_gpu_shaders.py accepts float/float2/float3/int members with HLSL packing; every packed value gets a name (shadow_receiver.hlsli on.xyzw, mesh.hlsl distanceFog.w and shift.z, ui_params.hlsli, TerrainFsParams flags[0] as an int mode); CPU logic stops reading uniforms back (scene.counts[0], on[0] > 0.5f, pointColour.w turned from light+1 to shadow slot+1): plain structs for the kept lights, packed only when pushed. Shaders build on every backend. Style only: goldens the same, float operation order untouched, no new forwarders."
+
+[[ticket]]
+id = "C92"
+title = "Renderer style 6: split the long shadow functions; no hidden frame state"
+group = "cleanup"
+model = "opus"
+depends = ["C88"]
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Items R11 and the hidden-globals pattern for the renderer. Split PreparePointShadows (180 lines) along its comment headers; the caller calls DrawPointShadows itself and the sun map returns early when off; unordered_set instead of maps used as sets. A function takes Frame& or reads g_frame, never both (render_lighting.cpp:73-76, render_shadows.cpp:1040, render_point_shadows.cpp:621); no function-local static state or scratch (render_terrain.cpp:268, 401, 634; render_lighting.cpp:42, 121; render_shadows.cpp:435, UnderCamera's hidden cache); each per-frame struct gets one Clear() (Present's 25 field resets, ShadowFrame's split reset). Single-letter names only in short scopes. Out-params to returned Size/structs (15 int* width/height signatures, Placement's 5). Style only: goldens the same, float operation order untouched, no new forwarders."
+
+[[ticket]]
+id = "C93"
+title = "UI style 1: TextStyle, message-box enums, const Rect&"
+group = "cleanup"
+model = "sonnet"
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Item U1. struct TextStyle {font, colour, format} with named styles; DrawTextIn takes const Rect& and a TextStyle, the always-true shadow parameter goes (47 sites pass 1); render::text::k* names for formats; check ui_interface_input.cpp:384 (kStatusTextFormat passed as the font) against the original's look and keep it; MessageWindow button sets and results as enums (no result | (region + 1) decoding at callers); PushWindow's bool pair named; SetRectangle's repeated 3.0f, 100.0f and hex UVs named; the shared UI colour 0xA7D7E4 (23 files), a CursorShape enum in ui_cursor.h, ok.wav and the six NewSurface helpers in one ui header. Style only: goldens the same, float operation order untouched, no new forwarders."
+
+[[ticket]]
+id = "C94"
+title = "UI style 2: panel slide struct, one window close, typed stack, dead draw virtual, options ids, unread fields"
+group = "cleanup"
+model = "sonnet"
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Items U2, U4, U5, U6. PanelSlide {t, direction, travel, moving, Step, Offset} replaces the three copies (and AdvanceSlide's template, the Bits(slide) tests); PopWindow()/CloseAll() replace the four close loops; ResetInput's three copies one function; Create's re-zeroing of defaulted fields deleted; enum class Backdrop; std::vector<UiContainer*> stack, ScreenOf gone, HudPortraits uses owner, CreateScreen() = 0 instead of std::abort. U4: delete DrawChild, rename Draw to DrawSprites and Redraw to DrawSurfaces, fold RedrawTips in. U5: an OptionId enum for settings[], dead stores, the one-key vector becomes a pointer, ShowGroup's double RefreshRows. U6: delete fpsSpare, tintSpare, BattleScreen::spare, imageSpare, HudClock::owner; initialise UiRegion bounds, UiTooltip fields and handled; no read at index -1 (HudQuickItems::RegionItem). Also the decompiler residue across ui*: currentUi-style aliases, end()[-1], hand-written push_back/SetAtGrow, goto tail, the TokenizeText/LayOut forwarders, empty rulers. Style only: goldens the same, float operation order untouched, no new forwarders."
+
+[[ticket]]
+id = "C95"
+title = "UI style 3: one pressed-region helper, one verb per action"
+group = "cleanup"
+model = "opus"
+depends = ["C94"]
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Item U3. UiWindow::PressedRegion(Point, count) does the hit test, capture/release and handled (like ImGui's ButtonBehavior); the ~30 LeftDown/LeftUp/MouseMove triplets shrink to 2-3 lines; one verb per action called from both the click and the key (HudWeaponBar::Choose(slot) used by BattleScreen::KeyDown, HudMap::ToggleSlide for the sling), matching the spell column's Click/ClickAlternate. Same order of sounds and messages as now. Style only: goldens the same, float operation order untouched, no new forwarders."
+
+[[ticket]]
+id = "C96"
+title = "UI style 4: named regions and sprites instead of creation indices"
+group = "cleanup"
+model = "opus"
+depends = ["C95"]
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Item U7. Keep AddRegion/AddSprite's returned pointers in named members (UiRegion* slingButton; UiMesh* viewButtons[2]) or a per-window enum where a list must stay indexed; switch (region) on raw numbers becomes comparisons with names. Per window: HUD panels first, then options, hero screen click, camp create, save/load, the rest. The ui.h comments listing what region 0, 1, ... are go. May split into C96a/b by window family. Style only: goldens the same, float operation order untouched, no new forwarders."
+
+[[ticket]]
+id = "C97"
+title = "UI style 5: one UiEvent and OnEvent instead of three event layers"
+group = "cleanup"
+model = "opus"
+depends = ["C95"]
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Item U8. struct UiEvent {kind, at, key, scan, delta, repeat, handled} and one virtual OnEvent(UiEvent&); UiContainer's dispatch one plain loop; UiInputSide (the second base), Input() and UiInertInput go; the template Offer and its triple children[i] re-reads go. Event order and handled semantics unchanged. Style only: goldens the same, float operation order untouched, no new forwarders."
+
+[[ticket]]
+id = "C98"
+title = "UI style 6: unique_ptr ownership, composition over inheritance"
+group = "cleanup"
+model = "opus"
+depends = ["C97"]
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Item U9. surfaces/regions/models/children as std::vector<std::unique_ptr<...>>; DestroySurface's explicit ~UiSurface plus operator delete goes (UiScrollingSurface::text then destructs); a virtual destructor or no derived surface (scrolling text as a paint); ~UiWindow = default apart from refcounted objects; one TextToken value struct with a TokenKind instead of the UiTextToken/UiFormatToken/UiWordToken RTTI; UiScrollText has a scrollbar; the tooltip a plain struct owned by its region (no glow materials per tooltip); delete UiWindowBase. Virtuals with fewer than two real overrides go (UiContainer's 18 screen virtuals, ItemScreen's 13). Style only: goldens the same, float operation order untouched, no new forwarders."
+
+[[ticket]]
+id = "C99"
+title = "UI style 7: one header and source per window family; ui.h keeps the core"
+group = "cleanup"
+model = "sonnet"
+depends = ["C98"]
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Item U10. OptionsWindow (4 files), SaveLoadWindow (5), HudUnitPanel (5), BattleScreen (5), CampPages (5), HelpWindow (3) each into ui_<family>.{h,cpp}; ui.h (2,072 lines) keeps Interface3D, UiWindow, UiContainer, UiSurface, UiRegion; the 60-row data table to its window's file; fold the slivers (ui_input_defaults.cpp, ui_control_delete.cpp); fix file headers pointing at the wrong notes. Pure moves: run when no other ui* ticket is running. Style only: goldens the same, float operation order untouched, no new forwarders."
+
+[[ticket]]
+id = "C100"
+title = "UI style 8: window-local coordinates instead of the global panel mode"
+group = "cleanup"
+model = "opus"
+depends = ["C99"]
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Item U11. Regions and sprites take coordinates relative to their window and the panel offset is the window's origin; screen_layout::EnterLeftPanel/EnterRightPanel/LeavePanel (26 calls) and the hand-paired LeavePanel at early returns go, with the 18 addon-address comments around them. Captures of every HUD panel and window at 4:3 and widescreen, vanilla and Rebirth, the same before and after. Style only: goldens the same, float operation order untouched, no new forwarders."
+
+[[ticket]]
+id = "C101"
+title = "Particles style 1: dead stores, existing helpers, one name per value, manager tidy"
+group = "cleanup"
+model = "sonnet"
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Items P1, P9. Delete the 22 p->size = 1.0f stores before a reassignment and the writes before return 0 that RestorePrevious undoes (list in the review); call ParticleSource::Stop() (6 inlined copies), AddParticle (EmitPoisonFog's copy with its adjacency memcpy), RandomInBall; Particle::PlaceAt becomes p->pos = ...; kept draws get a 'draw kept' comment (emitters:90, :102-105). One name per value (the xRounded aliases, y/vy), declared where initialised (26 split declarations), references instead of float* field aliases, RingRadius() inlined; check the -0 case before folding zero - x. P9: Emit's early out, DrawAll reuses order with clear()/push_back, static functions instead of the TickSteps struct, the ARGB shift chain as one OR, elements.empty() for the 41 ssize == 0. Style only: goldens the same, float operation order untouched, no new forwarders."
+
+[[ticket]]
+id = "C102"
+title = "Particles style 2: literals instead of EI_ macros, one random draw, typed fields"
+group = "cleanup"
+model = "opus"
+depends = ["C101"]
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Items P2, P3, P8. Replace the 297 #define EI_* constants: the literal where the number is the meaning (token-identical), a constexpr with a meaning-name otherwise, one kPi; fix the wrong names (EI_SCALE_0_03 is 0.6*2^-32, EI_FUNNEL_PI_F is 5.0f, three different '2 pi' scales). Random draws: g_clientRandom.Range(lo, hi) where bit-identical (19 sites plus Between and RandomInBox; the review lists which k*2^-32 scales are exact); the inexact scales as named constants with a static_assert on the bits; delete particle::Next, Signed, Between, EI_P_SCALE_*. P3: bool additiveBlend (15 StoreBytes), int emitState, plain float literals instead of F(bits) and StoreBytes into floats; delete particle::Bits. P8: alpha tables sized to their data, with a note where a read past it is reachable. Any change in a particle golden is a bit slip. Style only: goldens the same, float operation order untouched, no new forwarders."
+
+[[ticket]]
+id = "C103"
+title = "Particles style 3: one meaning per field; ParticleElement without padding"
+group = "cleanup"
+model = "opus"
+depends = ["C102"]
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Item P4. Name reused particle slots with local references at the top of each callback (float& angle = p->velocity.x); real source fields for the tint colour (held in lifetime/frameDelay now), the ray count and the glow kind (alpha tested as bits); drop ParticleElement's offset padding and the raw word[]/value[] writes, views only as named fields. World's windDirection (uint8_t[12]) and windStrength float bits typed too if small, else note it. Save and packet layouts unaffected (check). Style only: goldens the same, float operation order untouched, no new forwarders."
+
+[[ticket]]
+id = "C104"
+title = "Particles style 4: switch dispatch, one section per effect, a spec table"
+group = "cleanup"
+model = "opus"
+depends = ["C103"]
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Items P5, P6. Replace the three member-function pointers (emitFn/updateFn/elementFn) with switch (type) in EmitParticle/UpdateParticle/TickSource calling free functions (int EmitTornado(ParticleSource&, Particle&, int index)); TickSource loops elements itself where needed (the element-0 guards go); about 100 member declarations leave effects.h. Each effect's setup, emit, update and tick together (particle_<family>.cpp or sections). SetupType's 335-line switch becomes constexpr ParticleSpec kSpecs[] with code only for types with draws or elements; plus the small items (create:427 dead test, the name copy, duplicate kFar/kNear, ~ParticleSource repeating Clear). Same order of random draws. Style only: goldens the same, float operation order untouched, no new forwarders."
+
+[[ticket]]
+id = "C105"
+title = "Particles style 5: comments and names"
+group = "cleanup"
+model = "sonnet"
+depends = ["C101"]
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Item P7. Enum names instead of hex type ids in comments (four are wrong: effects.h:449, :537, callbacks:2770, :3161); offset and size narration, 'Names are provisional', restated literals and case labels repeated as comments go; enum class AttachPoint; one kBagBalls; inline the NoCarrier* literal functions with the original's text; IsZero/Same and the isZero lambdas become == 0.0f; BagColours/BagAlpha constexpr arrays; g_bagSizes filled once; one-call wrappers (CameraRotation, SceneLightColor, FigurePartPosition, GroundHeight; BindLoadedTexture moved to the renderer); switch on enum cases, not type - FirstKind; moveMode == 3 and the renderer codes named. comments.py samecode for the comment-only parts. Style only: goldens the same, float operation order untouched, no new forwarders."
+
+[[ticket]]
+id = "C106"
+title = "Style rules and checks from round 2"
+group = "cleanup"
+model = "sonnet"
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Cross-area patterns X1-X10. Add the rules to the rewrite guide (no #define for numbers, meaning-named constexpr; an enum per code in the owning header; one full-sentence comment per declaration, no hex ids; in-memory structs typed, byte layout only for file/save/packet structs; a virtual needs two real overrides, no pointer-to-member callbacks; a feature's code shares a file, check code in *_checks files; take the state or read the global, never both, no function-local static state; inputs const T&, results returned; one integer type per quantity). Tools: comments.py scans .hlsl/.hlsli and bans addon's [0-9A-F]{8} and 'Rebirth-patched' without a Patch:: name; check_cleanup.py counts #define EI_ and value-named constants (kOne/kHalf/kTwo/kZero) for the dashboard's cleanup counts. Fix what the new checks find outside the areas the other round-2 tickets cover, or list it. Style only: goldens the same, float operation order untouched, no new forwarders."
+
+[[ticket]]
+id = "C107"
+title = "UI style 9: range-for, one interface, value-returning transforms"
+group = "cleanup"
+model = "sonnet"
+depends = ["C94"]
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Review P3, P4, P8, P9 for the UI: the 119 index loops over std::ssize and 82 lib::Count loops become range-for where nothing erases (scripted batch); decide once whether g_interface is a global or passed and drop the stored copies; the Scale* forwarders become value-returning transforms (Rect ToScreen(Rect), 55 calls) instead of in-out pointers; ItemAt's int* parameter with two meanings split; const Rect& inputs in FrameRect and UiScrollbar::SetRect. Style only: goldens the same, float operation order untouched, no new forwarders."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
