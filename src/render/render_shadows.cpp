@@ -815,6 +815,7 @@ void PrepareShadows(Frame& f) {
     // The map is drawn with casters; the receivers' matrices into it are made for the clouds too.
     const float cloudLight = PrepareClouds(sh);
     PrepareSurfaces(sh);
+    PrepareUnitWeather(f);
     SurfaceState(&g_info.wetness, &g_info.puddles, &g_info.snowCover);
     for (const MeshBatch& b : f.meshBatches) g_info.groundDecals += b.decal ? 1 : 0;
     const bool casters = !(sh.casters.empty() && g_outside.empty() && TerrainCasterCount() == 0);

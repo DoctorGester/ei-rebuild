@@ -71,7 +71,7 @@ int WeaponType(ItemWeapon* weapon) { return weapon->GetType(); }
 std::string HudStateOf(void* window, const std::string& argument) {
     auto* battle = static_cast<BattleScreen*>(window);
     Log("harness: hudstate: window %p, mode %d, slot %d, item %d, %d members", window, battle->pendingAction,
-        battle->pendingSlot, battle->pendingItem, std::ssize(battle->party));
+        battle->pendingSlot, battle->pendingItem, static_cast<int>(std::ssize(battle->party)));
     for (int i = 0; i < std::ssize(battle->party) && i < 8; ++i) {
         Unit* member = battle->party[i];
         if (!member) continue;
@@ -89,8 +89,8 @@ std::string HudStateOf(void* window, const std::string& argument) {
         }
         const int* items = quickPanel->regionItem;
         Log("harness: hudstate: quick panel unit %p, %d entries (%d own), highlight %d, regions %d %d %d %d %d %d %d %d",
-            quickPanel->unit, std::ssize(quickPanel->entries), own, quickPanel->selected, items[0], items[1], items[2],
-            items[3], items[4], items[5], items[6], items[7]);
+            quickPanel->unit, static_cast<int>(std::ssize(quickPanel->entries)), own, quickPanel->selected, items[0],
+            items[1], items[2], items[3], items[4], items[5], items[6], items[7]);
         // The player's quest items in the top row: the id a lever's lock matches (SetScience).
         for (int e = 0; e < std::ssize(quickPanel->entries); ++e) {
             const HudQuickItems::Entry& entry = quickPanel->entries[e];
@@ -293,6 +293,12 @@ bool ObjectSkins(int id, std::string* first, std::string* second) {
         return true;
     }
     return false;
+}
+
+const void* ClientObject(int id) {
+    for (MapObject* object : g_clientWorld.objects)
+        if (object && object->id == id) return object;
+    return nullptr;
 }
 
 int RegionCount(void* window) { return static_cast<int>(std::ssize(static_cast<UiWindow*>(window)->regions)); }

@@ -137,11 +137,6 @@ struct Particle {
     std::uint32_t color;        // ARGB
     std::uint32_t prevColor;
     int dead;                   // set by the tick when the update returned 0
-
-    void PlaceAt(const Vector3& at) {
-        pos = at;
-        size = 1.0f;
-    }
 };
 
 // A table read by a particle's remaining life, unchecked as the original reads it. The tick updates a particle

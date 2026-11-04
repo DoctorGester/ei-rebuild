@@ -87,6 +87,15 @@ void CloudShadows(const CloudWeather& weather);
 // from the settled weather of the next hand-overs, so the ground of a zone does not stay wet or snowy from the one
 // before (the world's time goes on) and a zone entered or loaded in snow is covered at once.
 void LandscapeLoaded();
+// Harness build: a unit's own weather (11b, Units) as the last frame left it: `known` when the unit (the object its
+// meshes were handed over with, BeginCaster) was drawn lately; its wetness and snow (0 .. 1) and the share of its
+// top covered by a roof (0 .. 1), and where it stood (the middle of its box's foot, the landscape's space).
+struct UnitWeather {
+    bool known = false;
+    float wet = 0.0f, snow = 0.0f, shelter = 0.0f;
+    Vector3 at{};
+};
+UnitWeather UnitWeatherState(const void* object);
 // The GPU lighting (renderer.md section 13). The world's draw hands over the frame's light, kept
 // until the next hand-over: the sun, the ambient colour, the point lights the landscape lights its ground
 // with (the nearest kMostSceneLights), the camera and the client's time (the water's ripples move by it). The terrain

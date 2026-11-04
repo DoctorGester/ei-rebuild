@@ -79,8 +79,9 @@ bool Spell::HasCastFlagModifier() {
     for (int i = 0; i < 8; ++i) {
         std::int8_t entry = modifiers[i];
         if (entry == 0) break;
-        // Modifier index = entry - 1, sign-extended then compared unsigned; faults when out of range.
+        // Modifier index = entry - 1, sign-extended then compared unsigned; one out of range is skipped.
         SpellModifierRecord* modifier = SpellModifierAt(static_cast<std::uint32_t>(entry - 1));
+        if (!modifier) continue;
         int code;
         lib::LoadBytes(code, modifier->code);
         if (code == 0x6369 || code == 0x7469) return true;   // "ic", "it"

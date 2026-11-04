@@ -317,7 +317,7 @@ struct FigureBone : EngineObject {
     // Places this bone and, recursively, its children: a child turns its offset by the parent's
     // rotation ((w^2 - u.u) o + 2w (u x o) + 2 (u.o) u, the scaled terms rounded) onto the parent's position and
     // takes rotation = pose * parent (Hamilton); the root takes the pose's position (times the animation's time
-    // factor at morphU while one plays) minus `origin`, and its rotation; a root without a pose keeps both. A bone
+    // factor at morphU while one plays) minus `origin`, and its rotation; a bone without a pose keeps both. A bone
     // with a mesh gives it the position and rotation and the pose's morphed vertices as offsets. With `blend`
     // below 1 a bone with an outgoing pose takes that much of the animator's (its turn slerped, the root's
     // position and the offsets lerped); at 1 the animator's alone.

@@ -87,24 +87,19 @@ int EmitAlongBolt(ParticleSource* s, Particle* p, ParticleElement* points) {
 int EmitBurst(ParticleSource* s, Particle* p, ParticleElement* points) {
     p->color = 0x40FFFFFF;
     p->frame = 8;
-    g_clientRandom.Next();
+    g_clientRandom.Next();   // draw kept
     float u = WordToFloat(g_clientRandom.Next()) * EI_SCALE_1;
     float spread = EI_ONE - u * u;
     float angle = WordToFloat(g_clientRandom.Next()) * EI_SCALE_ANGLE;
-    float vx, vy;
+    // A random point of the unit disc (ten tries) that nothing uses; draws kept.
     for (int tries = 10;;) {
-        vx = WordToFloat(g_clientRandom.Next()) * EI_SCALE_2 - EI_ONE;
-        float y = g_clientRandom.Range(-1.0f, 1.0f);
-        vy = y;
-        if (y * vy + vx * vx < EI_ONE) break;   // random: never NaN
+        float vx = WordToFloat(g_clientRandom.Next()) * EI_SCALE_2 - EI_ONE;
+        float vy = g_clientRandom.Range(-1.0f, 1.0f);
+        if (LengthSquared2D(vy, vx) < EI_ONE) break;   // random: never NaN
         if (!(--tries > 0)) break;
     }
-    p->drift = {vx, vy, 0.0f};
-    p->drift.z = 0.0f;
-    p->drift.x = lib::Cos(angle) * spread;
-    p->drift.y = lib::Sin(angle) * spread;
-    float scale = s->size * EI_POINT_THREE;
-    p->drift *= scale;
+    p->drift = {lib::Cos(angle) * spread, lib::Sin(angle) * spread, 0.0f};
+    p->drift *= s->size * EI_POINT_THREE;
     p->drift.z = 0.0f;
     p->pos.x = points[0].pos.x + p->drift.x;
     p->pos.y = points[0].pos.y + p->drift.y;
@@ -150,8 +145,7 @@ const char* NoCarrierMessage() { return "Particle effect Modifier without carrie
 // The axis the points are spread around (their offsets are perpendicular to it); some types also
 // raise or lower the ring (spreadMin.x holds the height).
 Vector3 ModifierAxis(ParticleSource* s, float twiceRadius) {
-    Vector3 axis;
-    axis = {};
+    Vector3 axis = {};
     switch (s->type - static_cast<int>(ParticleType::Modifier1)) {
     case 0:
         axis.z = 1.0f;
@@ -247,7 +241,7 @@ float Signed(std::uint32_t roll) { return WordToFloat(roll) * EI_SCALE_2 - EI_ON
 // particles run along the bolt (two per point), then bursts at the impact point (up to five, while
 // the source has fewer than 200 particles), then sparks between the points.
 int ParticleSource::EmitLightning(Particle* p, int) {
-    if (std::ssize(elements) == 0) {
+    if (elements.empty()) {
         elements.resize(10);
         Vector3 dir;
         for (int i = 0; i < std::ssize(elements); ++i) PlaceBoltPoint(this, i, dir);
@@ -267,7 +261,7 @@ int ParticleSource::EmitModifier(Particle* p, int index) {
     p->color = 0xFFFFFFFF;
     p->life = lifetime;
     p->frameTimer = frameDelay;
-    if (std::ssize(elements) == 0) {
+    if (elements.empty()) {
         if (!attachedTo) {
             game::DebugLog(NoCarrierMessage());
             return 0;
@@ -285,7 +279,6 @@ int ParticleSource::EmitModifier(Particle* p, int index) {
         if (kind <= 11) p->frame = static_cast<int>(kind);
         p->state = index;
         p->pos = points[index].pos;
-        p->size = 1.0f;
         lib::StoreBytes(&p->size, size >= EI_ZERO ? 0x3E000000u : 0x3E4CCCCDu);   // 0.125 / 0.2
         p->life = 25;
         return 1;
@@ -358,12 +351,10 @@ int ParticleSource::UpdateGroundDust(Particle* p) {
     p->color = (static_cast<std::uint32_t>(kDustAlpha[p->life]) << 24) + (p->color & 0xFFFFFF);
     p->pos += p->velocity;
     float lifted = g_clientWorld.RawSurfaceHeightAt(p->pos.x, p->pos.y) + EI_TENTH;
-    p->pos.z = lifted;
     const auto& plane = elements[0].plane;
     float along = (p->pos.x - origin.x) * plane.normal.x + (p->pos.y - origin.y) * plane.normal.y;
     float onPlane = plane.height - along * plane.normal.z + EI_TENTH;
-    float ground = lifted;
-    p->pos.z = SelectLess(ground, onPlane, onPlane, ground);
+    p->pos.z = SelectLess(lifted, onPlane, onPlane, lifted);
     p->size = p->aux.x;
     p->velocity *= EI_DUST_GROWTH;
     p->aux.x = p->aux.y * p->aux.x;
@@ -400,11 +391,10 @@ int ParticleSource::UpdatePortal(Particle* p) {
     float nx = p->aux.y * s + c * p->aux.x;
     int timer = p->frameTimer - 1;
     float ny = p->aux.y * c - p->aux.x * s;
-    float nyRounded = ny;
     p->aux.x = nx;
     p->aux.y = ny;
     p->pos.x = nx + origin.x;
-    p->pos.y = nyRounded + origin.y;
+    p->pos.y = ny + origin.y;
     float rise = size * p->velocity.z;
     p->frameTimer = timer;
     p->pos.z = rise + p->pos.z;
@@ -436,10 +426,7 @@ void ParticleSource::TickPortal(ParticleElement*) { emitCount = static_cast<int>
 // rest fly along their drift, shrinking and slowing, with the alpha from kSparkAlpha.
 int ParticleSource::UpdateSparks(Particle* p) {
     if (p->state != 0) {
-        if (p->size != 0.0f) {
-            p->size = 0.0f;
-            return 0;
-        }
+        if (p->size != 0.0f) return 0;
         p->size = (WordToFloat(g_clientRandom.Next()) * EI_SCALE_0_4 + EI_POINT_EIGHT) * size *
                         EI_SPARK_SCALE;
         return 1;
@@ -486,14 +473,12 @@ int ParticleSource::EmitFeetCloud(Particle* p, int) {
     const ParticleElement& e = elements[foot];
     if (e.foot.countdown >= 0) p->pos = e.pos;
     else p->pos = origin;
-    p->size = 1.0f;
     p->size = 0.0f;
     float x, y;
     for (int tries = 10;;) {
         x = Signed(g_clientRandom.Next());
-        float wide = Signed(g_clientRandom.Next());
-        y = wide;
-        if (wide * y + x * x < EI_ONE) break;   // integer-sourced: never NaN
+        y = Signed(g_clientRandom.Next());
+        if (LengthSquared2D(y, x) < EI_ONE) break;   // integer-sourced: never NaN
         if (!(--tries > 0)) break;
     }
     float scale = e.foot.radius;
@@ -511,8 +496,7 @@ int ParticleSource::EmitFeetCloud(Particle* p, int) {
 void ParticleSource::TickStartTrans(ParticleElement* e) {
     int ticks = e->ticks--;
     if (ticks < 0) {
-        flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
-        Attach(nullptr);
+        Stop();
     }
     e->trans.scale = size * EI_TRANS_GROWTH + e->trans.scale;
     elements[0].trans.count += EI_POINT_FOUR;

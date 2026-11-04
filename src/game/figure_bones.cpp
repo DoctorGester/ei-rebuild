@@ -14,7 +14,7 @@ namespace {
 
 void FigureBone::Place(const Vector3& origin, float blend) {
     const bool blended = blend < 1.0f && blendFrom;
-    if (parent) {
+    if (parent && pose) {
         position = parent->rotation.Rotate(offset) + parent->position;
         Quaternion turn = pose->rotation;
         if (blended) turn.Slerp(blend, fromTurn, pose->rotation);
@@ -43,13 +43,15 @@ void FigureBone::Place(const Vector3& origin, float blend) {
     if (mesh) {
         mesh->localPosition = position;
         mesh->localRotation = rotation;
-        // The pose's morphed vertices ({data, count}; read even without a pose, like the original), within a
-        // blend lerped from the outgoing ones when both have as many.
-        const std::vector<Vector3>* offsets = &pose->vertices;
-        if (blended && !fromOffsets.empty() && fromOffsets.size() == pose->vertices.size()) {
+        // The pose's morphed vertices (none without a pose), within a blend lerped from the outgoing ones when
+        // both have as many.
+        static const std::vector<Vector3> kNoOffsets;
+        const std::vector<Vector3>& poseOffsets = pose ? pose->vertices : kNoOffsets;
+        const std::vector<Vector3>* offsets = &poseOffsets;
+        if (blended && !fromOffsets.empty() && fromOffsets.size() == poseOffsets.size()) {
             blendedOffsets.resize(fromOffsets.size());
             for (std::size_t i = 0; i < fromOffsets.size(); ++i)
-                blendedOffsets[i] = Lerp(fromOffsets[i], pose->vertices[i], blend);
+                blendedOffsets[i] = Lerp(fromOffsets[i], poseOffsets[i], blend);
             offsets = &blendedOffsets;
         }
         FigureMesh::OffsetSpan vertices{offsets->data(), static_cast<int>(lib::Count(*offsets))};

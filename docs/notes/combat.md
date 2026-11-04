@@ -129,6 +129,9 @@ recommendation per entry). Crashes, undefined behaviour and invisible bookkeepin
 - Orders: OrderCastAt's at-once test names wands but only lets potions through; WitnessMurder takes the diplomacy table
   from the unit's manager and the one it changes from the controller's; SetMoveStyle sends message 9 when the style fits
   (even the current one); StopAction always ends with the queued order of kind 0.
+- Casting glow: FillCastKind gives RickMagic (school fire) cast kind 1 and CurseMagic (school lightning) kind 0, so the
+  caster shows CastingElectricity for the fire arrow and CastingFire for the lightning; every other spell takes its
+  prototype's school. The original does the same (PlanAction's 0x28 -> 1, 0x29 -> 0). A fix would swap the two glows.
 
 Facts behind fixed entries: a natural attack whose damage weights are all zero has no damage type (kNoDamageType: the
 panels show none). A move point's z is no height (PlayerMode keeps a flag there, -1313 marks "no point"), so StartMove's

@@ -7447,6 +7447,13 @@ depends = ["R52"]
 note = "R52 found: a print's colour is unlit (blood keeps the sun colour of the moment it was made, footprints are white), so prints made by day stay bright red / white on the ground at night (render_shadows_decals' night frame). The shadows now darken them (mesh.hlsl ground_shade); light them as the ground under them is lit (ground_light's light over a daylight reference), keeping the game's look by day."
 
 [[ticket]]
+id = "R17c5"
+title = "Ground and objects under roofs stay dry"
+group = "renderer"
+depends = ["R17c3"]
+note = "R17c3 gave each unit its own wetness from a roof test (CPU rays up against the drawn objects' triangles). The ground (wetness, puddles, rain rings, snow) and the world's other meshes under a roof (the floor of bz1g's gateway, a cart under a shed) still take the world's weather. Per pixel this needs a small top-down depth map of the casters around the view (the receivers compare their height with it), unlike the units' per-object rays."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
