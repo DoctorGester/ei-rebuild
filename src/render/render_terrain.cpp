@@ -35,7 +35,7 @@ constexpr std::uint16_t kTileTriangles[24] = {0, 1, 4, 0, 4, 3, 1, 2, 5, 1, 5, 4
 
 // The landscape's page texture of `page` (Terrain::pageTextures, indexed page % LayerPages(); they are bound
 // so before each page).
-const void* PageTexture(const SectorData* s, int page) {
+const Texture* PageTexture(const SectorData* s, int page) {
     if (!s->owner || s->LayerPages() <= 0) return nullptr;
     const std::vector<Texture*>& textures = s->owner->pageTextures;
     const int index = page % s->LayerPages();
@@ -926,7 +926,7 @@ void TerrainPage(const SectorData* s, const SceneRenderer* renderer, int page) {
     if (depth <= 0) return;
     if (!f.haveFog) ReadFog(f);
     int matrix = AddMatrix(clipStack.matrices[depth - 1]);
-    const void* texture = PageTexture(s, page);
+    const Texture* texture = PageTexture(s, page);
     bool water = page >= s->LayerPages();
     bool inView = false;
     for (int q = 0; q < 4 && !inView; ++q) {

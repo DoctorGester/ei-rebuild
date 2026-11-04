@@ -153,8 +153,6 @@ inline std::uint32_t Bits(const float& f) {
 inline bool IsUnit(EngineObject* object) { return object && object->GetClassId() == ClassId::Unit; }
 // A unit's server half (Unit::controller).
 inline UnitServer* ControllerOf(Unit* unit) { return unit->ServerController(); }
-// The target as a unit (the callers checked its class, or the game does not).
-inline Unit* TargetUnit(SpellEffect* e) { return static_cast<Unit*>(e->target.Get()); }
 
 // From the world's timed object manager.
 template <class T>

@@ -372,9 +372,9 @@ const Picture* PictureOf(const void* holder) {
     return it == g_pictures.end() ? nullptr : &it->second;
 }
 
-const gpu::Texture& TextureView(const void* texture) {
+const gpu::Texture& TextureView(const ::Texture* texture) {
     if (!texture) return White().image;
-    return SurfaceView(static_cast<const ::Texture*>(texture)->surface);
+    return SurfaceView(texture->surface);
 }
 
 gpu::Sampler LinearSampler() {

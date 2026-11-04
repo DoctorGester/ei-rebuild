@@ -40,7 +40,9 @@ void MissileImpact(SpellEffect* e, int particleType, const char* sound, bool arr
     e->ReleaseSound();
     e->ReleaseLight();
 
-    Unit* target = TargetUnit(e);   // no null check
+    // The game takes the missile's target as a unit without a class test (or a null check): the fire arrow and
+    // the acid ray are cast at units.
+    auto* target = static_cast<Unit*>(e->target.Get());
     e->targetPoint = target->localPosition;
     Vector3 at;
     at = target->localPosition;
@@ -280,7 +282,7 @@ void Possession(SpellEffect* e) {
     auto* player = e->caster->player;
     if (player && e->target->GetClassId() == ClassId::Unit) {   // no null check on the target
         MapObject* target = e->target;
-        UnitServer* server = ControllerOf(TargetUnit(e));
+        UnitServer* server = ControllerOf(UnitOrNull(target));
         ScriptGroup* group = &player->Server()->possessedGroup;
         group->Insert(target);
         group->InsertAll(&server->brain.memory.visible);

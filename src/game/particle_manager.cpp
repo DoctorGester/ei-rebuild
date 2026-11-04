@@ -125,7 +125,7 @@ void ParticleManagerClearQuietStart(ParticleManager* manager) {
 // Particle sources that follow an object (A-S4): Attach, the attachment point
 // and its part lookup, the attachment offset and StopAndClear
 //. Names are provisional.
-// The object a source follows is a Object3D (attachedTo, +0x94). With ParticleSourceFlag::OnPart a source on a
+// The object a source follows is a map object (attachedTo, +0x94). With ParticleSourceFlag::OnPart a source on a
 // unit sits on the part attachPoint names; otherwise on top of the object's bounds.
 
 namespace {
@@ -180,8 +180,8 @@ ParticleSource::Attachment ParticleSource::AttachmentOffset() {
     return {{0.0f, 0.0f, object->bounds.center.z}, radius};
 }
 
-void ParticleSource::Attach(Object3D* object) {
-    Object3D* old = attachedTo;
+void ParticleSource::Attach(MapObject* object) {
+    MapObject* old = attachedTo;
     if (old == object) {
         if (!old) origin = localPosition;
         return;

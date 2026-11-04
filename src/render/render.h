@@ -15,6 +15,7 @@
 #include <vector>
 
 struct MmpFile;
+struct Surface;
 class SceneRenderer;
 class TextureDevice;
 
@@ -381,7 +382,7 @@ void Fill(const Rect& to, std::uint32_t colour);
 // the window's scale and through the gamma ramp (a shape per picture frame, made at its first show); a frame presented
 // without it hides it (movies, loading screens).
 struct FrameCursor {
-    const void* imageHolder = nullptr;   // the cursor picture (its frames side by side)
+    const Surface* imageHolder = nullptr;   // the cursor picture (its frames side by side)
     const void* mask = nullptr;          // over the whole picture, the surface's pixel format: texels where it is not 0 left out
     Rect from{0, 0, 0, 0};               // the frame shown
     Point hot;                           // the hot spot, texels into `from`

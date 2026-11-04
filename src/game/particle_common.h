@@ -29,10 +29,6 @@ inline std::uint32_t Next() { return g_clientRandom.Next(); }
 // WorldClient::RawSurfaceHeightAt(x, y) on the client world.
 inline float GroundHeight(float x, float y) { return g_clientWorld.RawSurfaceHeightAt(x, y); }
 
-// The attached object as a map object: the callbacks call its slots past Object3D's (the
-// carriers are units).
-inline MapObject* Carrier(Object3D* object) { return static_cast<MapObject*>(object); }
-
 #define EI_P_ONE 1.0f
 #define EI_P_ZERO 0.0f
 #define EI_P_SCALE_2 4.656613e-10f   // ~2^-31

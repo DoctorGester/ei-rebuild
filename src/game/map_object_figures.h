@@ -536,8 +536,8 @@ public:
     // Destroy: the figure, the effect sources, the animation state, the parts and the side half let go (the
     // parts lose a reference without a release).
     void Destroy3D();
-    // Adds `source` (a particle source; it calls this from its Attach) to the effect sources unless it is there:
-    // referenced and attached to this object.
+    // Adds `source` (a particle source; it calls this from its Attach, attached to this object already) to the
+    // effect sources unless it is there: referenced. (The game calls Attach(this) back, which then does nothing.)
     void AddEffectSource(ParticleSource* source);
     // Takes `source` out of the effect sources, detaches it and releases it. Nothing when not there.
     void RemoveEffectSource(ParticleSource* source);
