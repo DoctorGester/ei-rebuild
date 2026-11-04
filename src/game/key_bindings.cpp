@@ -12,7 +12,6 @@
 #include "lib/text_case.h"
 #include "text_split.h"
 #include "ui.h"
-#include "world_glue.h"
 #include "game_singletons.h"
 
 #include <cstdint>

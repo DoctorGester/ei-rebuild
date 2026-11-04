@@ -235,6 +235,29 @@ struct SharedObject {
     void Load(ByteStream* stream);
 };
 
+// What the server world runs (WorldServer::gameState; the saves do not hold it).
+enum class GameState {
+    None = 0,        // no zone loaded yet
+    Playing = 1,     // a single player game (a campaign zone, "endofgame" too)
+    Network = 2,     // a network game
+    Network3 = 3,    // handled like Network; nothing sets it
+    MainMenu = 4,    // the main menu zone
+};
+
+// The campaign mode of the zone (WorldServer::zoneMode; the saves hold the number). Battle and Base are the
+// modes of a single player game: their players keep their own time, the leader's death ends the game, and
+// Base skips the range test.
+enum class ZoneMode {
+    None = 0,        // nothing loaded; as a StartZone argument: the mode comes from the zone record's kind
+    Battle = 1,      // a zone record of kind 0, and every network zone
+    MainMenu = 2,
+    Base = 3,        // a zone record of kind 2
+    Edge = 4,        // a zone record of kind 1
+    Script = 7,      // StartFirstMap: the command-line script's zone
+    EndOfGame = 8,   // the zone "endofgame"
+};
+inline bool IsSinglePlayerMode(ZoneMode mode) { return mode == ZoneMode::Battle || mode == ZoneMode::Base; }
+
 class WorldServer : public World {
 public:
     WorldServer();
@@ -324,9 +347,9 @@ public:
     // `force` clears all five first), tells every AI unit without a player and wakes those that react. Script
     // InvokeAlarm.
     void InvokeAlarm(int index, const float* point, char force);
-    // Records how the game ended (only the first time); results 2 and 3 also replace the network session
+    // Records the game's state (only the first time); Network and Network3 also replace the network session
     // and query it (Query).
-    void SetGameResult(int result);
+    void SetGameState(GameState state);
     // Sends the unit's message 0x0B (the ack `kind`) to every player with `unit` among its party units.
     void TellParties(EngineObject* unit, AckKind kind);
     void TellPartiesGone(EngineObject* unit);
@@ -367,6 +390,17 @@ public:
     void LoadSavedMapObjects(ByteStream* stream);
     // Adds the time each player missed since its last update (plus `offset`) to its "gtime" variable.
     void UpdatePlayerTimes(float offset);
+    // The players' times move on by `offset` (UpdatePlayerTimes) unless it is negative or a NaN.
+    void PassTime(float offset);
+    // Player 0's connection, when there is one, sends "constr.current" = `value`.
+    void SetConstructionVariable(std::uint32_t value);
+    // The unit with id `id` moves to height `z` (its sector map entry follows, its placement is marked changed)
+    // unless it is there already (or NaN).
+    void SetUnitHeight(int unitId, float z);
+    // The console's script command: loads `text` into the second command script (Script::Load) and runs it
+    // (ScriptTick) when it loaded and `run` is set; the script's last error is copied into `error` when
+    // given. Returns Load's result.
+    int RunCommandScript(const std::string& text, bool run, ScriptErrorInfo* error);
     // Puts a new entry at the head of the shared-object list: `id`, the session player's field for that id in a
     // multiplayer game (else -1), `value`, and references to the objects of `objects`.
     void AddSharedObject(int id, std::uint32_t value, const std::vector<Item*>* objects);
@@ -513,7 +547,7 @@ public:
     std::uint8_t keepsState;
     std::string zoneName;                // the zone's map database name
     std::vector<std::string> mobFiles;     // .mob files loaded in this zone (LoadMobFile)
-    int gameResult;                       // 0 until SetGameResult; 1 playing, 2 a network game, 4 main menu (world_game.cpp)
+    GameState gameState;                  // None until SetGameState
     std::uint32_t lastRainBoltTick;       // the tick of the last bolt in the rain (one per 20 ticks); saved
     Hoover* hoover;                      // counted; made by Setup, deleted by Teardown
     // The server's messages: the login handler reads "SrvErrMsg" / "WrongClientVersion" from it.
@@ -528,11 +562,9 @@ public:
     Script commandsB;
     Script* SecondScript() { return &commandsB; }
     Diplomacy diplomacy;
-    // The session kind: 1 single player, 3 no range test, 4 network; 1 or 3: SaveWorld updates the
-    // players' "gtime" first. Joining players take it (Player::sessionKind). Also the campaign mode
-    // (in the server world): GameFlow::StartZone stores its mode here (1 battle, 2 main menu, 3 base,
-    // 4 edge, 8 the end of the game), StartFirstMap 7 for the command-line script.
-    int sessionKind;
+    // The campaign mode: GameFlow::StartZone stores its mode here. Battle or Base: SaveWorld updates the
+    // players' "gtime" first. Joining players take it (Player::sessionKind).
+    ZoneMode zoneMode;
     std::string mobName;                 // the zone's .mob file
     std::string mapName;                 // the zone's map
     MapObjectIdMap objects;               // every world object by id
@@ -815,6 +847,9 @@ public:
     // A new texture / material of class `type` from the world's managers; null without the manager.
     Texture* NewTexture(int type);
     Material* NewMaterial(int type);
+    // Loads the camera path file `name` and, when that works, plays it from now (Camera::kPlaying): the time offset
+    // is the client time (tick + fraction) less the first key's, the key index 0.
+    void PlayCameraPath(const char* name);
     // Takes `camera` as the view camera: the old one loses a reference (it is not released at zero), the
     // new one gains one; either may be null.
     void SetCamera(Camera* camera);
@@ -1059,6 +1094,9 @@ float LocalPlayerVariable(std::string_view name);
 // Float variable `name` of the local player: the client's view in multiplayer, player 0
 // of the server otherwise (0 without that player).
 float PlayerZeroVariable(std::string_view name);
+// For the quest and briefing screens: player zero's variables whose names start with `prefix` copied into
+// `out` (NamedFloatTable::CopyPrefixed), PlayerZeroVariable's player; `out` is emptied when there is none.
+void PlayerZeroVariables(const char* prefix, NamedFloatTable* out);
 
 struct GameFlow {
     // Saves the game into saves\<slot>\ (single player only): empties the folder, copies the visited zones' files
@@ -1092,7 +1130,9 @@ struct GameFlow {
     void RequestBriefing(std::string_view briefing);
     void ForgetBriefing(const char* briefing);
     void RecreateClientSession();
-    int SaveGameThunk(const std::string& slot);
+    // Leaves through exit `exit`: with a live client session the flow switches the multiplayer zone, otherwise the
+    // local client takes the exit.
+    void LeaveThroughExit(int exit);
     // Clears the sessions-open flag, releases both network sessions (server, then client), sets the state to 1.
     void CloseSessions();
     // Used by the menus and the interface on leaving a network game. As CloseSessions without the
@@ -1128,13 +1168,12 @@ struct GameFlow {
     void RequestZoneChange(std::string_view zone);                        // 4
     void RequestPartyZone5(const char* zone, Party* party);
     void RequestPartyZone6(const char* zone, Party* party);
-    void DisconnectClient();
-    // Starts `zone`: the current zone is torn down; mode 0 takes the mode from the zone record's kind
-    // (0 -> 1, 1 -> 4, 2 -> 3), "endofgame" is mode 8, mode 2 loads the main menu zone (also when the
+    // Starts `zone`: the current zone is torn down; mode None takes the mode from the zone record's kind
+    // (0 Battle, 1 Edge, 2 Base), "endofgame" is EndOfGame, MainMenu loads the main menu zone (also when the
     // zone is unknown, after FatalError and closing the network sessions); otherwise the party enters
     // the zone and the clock follows its "gtime". The mode becomes the campaign mode (the server world's
-    // sessionKind). Rebirth's AllowScriptsInMainMenu sets the server's scriptsActive in the menu.
-    void StartZone(std::string_view zone, int mode);
+    // zoneMode). Rebirth's AllowScriptsInMainMenu sets the server's scriptsActive in the menu.
+    void StartZone(std::string_view zone, ZoneMode mode);
     // A new game: "exec autoexec.cfg" on the console, the party manager's new game, saves\current
     // emptied, then the party's zone started (mode 0). Rebirth's AutoExec runs addon's AutoExec lines
     // first.

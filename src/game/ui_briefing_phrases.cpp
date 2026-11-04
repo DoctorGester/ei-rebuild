@@ -21,7 +21,6 @@
 #include "unit_client_models.h"
 #include "world.h"
 #include "world_data.h"
-#include "world_glue.h"
 #include "random.h"
 
 #include "lib/containers.h"
@@ -253,8 +252,8 @@ void BriefingScreen::NextPhrase(bool skip) {
     // the line has one word).
     auto named = [&words] { return words.size() > 1 ? words[1].c_str() : ""; };
     if (!skip || last) {
-        if (leader) GameSetUnitHeight(leader->id, 0.0f);
-        if (person) GameSetUnitHeight(person->id, 0.0f);
+        if (leader) g_serverWorld.SetUnitHeight(leader->id, 0.0f);
+        if (person) g_serverWorld.SetUnitHeight(person->id, 0.0f);
         for (std::size_t i = 0; i < speakers.size(); ++i) {
             if (text::CompareIgnoringCase(speakers[i].name, named()) != 0) continue;
             if (view) {

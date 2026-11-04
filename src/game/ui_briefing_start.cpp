@@ -19,7 +19,7 @@
 #include "unit_client_models.h"
 #include "unit_db.h"
 #include "world.h"
-#include "world_glue.h"
+#include "player_client.h"
 
 #include "lib/str.h"
 #include "lib/text_case.h"
@@ -80,8 +80,9 @@ void BriefingScreen::StartDialogue(bool newImmediate, bool remember) {
     if (text::CompareIgnoringCase(str::Left(topic, kConstructorPrefix), kConstructorTopic) == 0) {
         int constructor = str::ToInt(str::Mid(topic, kConstructorNumber));
         if (g_partyManager.templates.Find(constructor)) {
-            GameSetConstructionVariable(std::bit_cast<std::uint32_t>(static_cast<float>(constructor)));
-            GameRequestGameState(kCampScreen);
+            g_serverWorld.SetConstructionVariable(std::bit_cast<std::uint32_t>(static_cast<float>(constructor)));
+            g_interface.closeAll = 1;
+            g_clientWorld.LocalView()->RequestGameState(kCampScreen);
         }
         state = 0;
         return;
@@ -196,7 +197,7 @@ void BriefingScreen::FinishDialogue() {
         auto* serverUnit = g_serverWorld.FindUnit(unit->id);
         if (!serverUnit) continue;
         serverUnit->ShowHelmet(true);
-        GameSetUnitHeight(unit->id, 0.0f);
+        g_serverWorld.SetUnitHeight(unit->id, 0.0f);
         auto* controller = serverUnit->ServerController();
         controller->actionDone = nullptr;
         controller->StopAction();
@@ -205,8 +206,8 @@ void BriefingScreen::FinishDialogue() {
     speakers.clear();
     speaking = nullptr;
 
-    if (leader) GameSetUnitHeight(leader->id, 0.0f);
-    if (person) GameSetUnitHeight(person->id, 0.0f);
+    if (leader) g_serverWorld.SetUnitHeight(leader->id, 0.0f);
+    if (person) g_serverWorld.SetUnitHeight(person->id, 0.0f);
     if (third) {
         MovePerson(third, thirdPlace, thirdDirection, false, false, false);
         third = nullptr;

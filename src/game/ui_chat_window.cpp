@@ -10,7 +10,7 @@
 #include "ui_cursor.h"
 #include "ui_screens.h"
 #include "unit_db.h"
-#include "world_glue.h"
+#include "player_client.h"
 #include "world.h"
 
 #include "lib/vecmath.h"
@@ -162,7 +162,8 @@ void ChatWindow::ShowPlayers() {
 void ChatWindow::Update() {
     net::ClientSession* client = net::g_gameClient;
     if (Live(client->trade)) {
-        GameRequestGameState(9);
+        g_interface.closeAll = 1;
+        g_clientWorld.LocalView()->RequestGameState(9);
         return;
     }
     statusRows.clear();

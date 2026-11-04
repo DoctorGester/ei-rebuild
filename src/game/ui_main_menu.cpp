@@ -20,7 +20,8 @@
 #include "platform/platform.h"
 #include <cstdint>
 #include <string>
-#include "world_glue.h"
+#include "camera.h"
+#include "terrain.h"
 #include "bink_video.h"
 #include "game_singletons.h"
 #include "model.h"
@@ -102,16 +103,16 @@ void MainMenu::CreateScreen() {
         area = g_menuRects[i];
         region->SetRect(area);
     }
-    GamePlayMusic(nullptr);
+    g_clientWorld.sounds->RequestStream(options::kDefaultStreamingSound, 4);
     savedEdgeFade = options::g_options.borderFogDistance;
     options::g_options.borderFogDistance = kMenuEdgeFade;
     rain = (g_clientRandom.Next() & 1) == 1;
     // The hour is read three times.
-    daylight = GameServerTimeOfDay() > kDawn && GameServerTimeOfDay() < kDusk;
-    if (GameServerTimeOfDay() < kDawn && rain)
+    daylight = g_serverWorld.TimeOfDay() > kDawn && g_serverWorld.TimeOfDay() < kDusk;
+    if (g_serverWorld.TimeOfDay() < kDawn && rain)
         g_serverWorld.SetWeather(kWeatherRain, kWeatherStrength);
-    GameStartAmbience();
-    GameShowCameraPath(kCameraPath);
+    g_clientWorld.terrain->landscapeFlags |= terrain::LandscapeFlag::Ambience;
+    if (g_clientWorld.camera->LoadPath(kCameraPath, 0)) g_clientWorld.camera->PlaybackStart();
     hour = 0.0f;
     g_clientWorld.music->PlayMainMenu();
 }
@@ -120,7 +121,7 @@ void MainMenu::CreateScreen() {
 
 void MainMenu::Update() {
     UiContainer::Update();
-    int serverHour = static_cast<int>(GameServerTimeOfDay());
+    int serverHour = static_cast<int>(g_serverWorld.TimeOfDay());
     if (serverHour != static_cast<int>(hour) && rain) {
         if (serverHour == kRainStartHour) g_serverWorld.SetWeather(kWeatherRain, kWeatherStrength);
         else if (serverHour == kRainEndHour) g_serverWorld.SetWeather(kWeatherClear, kWeatherStrength);
@@ -140,22 +141,22 @@ void MainMenu::Update() {
             }
         }
     }
-    hour = GameServerTimeOfDay();
+    hour = g_serverWorld.TimeOfDay();
 }
 
 // --- Close -----------------------------------------------------------------
 
 void MainMenu::CloseScreen() {
     options::g_options.borderFogDistance = savedEdgeFade;
-    GameStopSounds(1);
-    GameStopAmbience();
+    g_clientWorld.sounds->StopAll(true);
+    g_clientWorld.terrain->StopAmbience();
 }
 
 // --- A message box's answer -----------------------------------------------
 
 void MainMenu::MessageResult(std::uint32_t result) {
     g_gameFlow.UseResources(false);
-    GameSetServerPaused(0);
+    g_serverWorld.SetServerPaused(0);
     if (result == BoxResult(MessageQuestion::First, MessageAnswer::Ok)) {
         {
             std::string path = g_dataFolder + kExitMovie;
@@ -170,7 +171,7 @@ void MainMenu::MessageResult(std::uint32_t result) {
         app::g_interfaceHasScreen = 0;
         g_gameFlow.RequestState3();
     } else if (result == 0xCCCCCCCC) {
-        GameStartAmbience();
+        g_clientWorld.terrain->landscapeFlags |= terrain::LandscapeFlag::Ambience;
         AddVersionLine();
     }
 }

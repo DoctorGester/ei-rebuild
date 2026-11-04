@@ -18,7 +18,6 @@
 #include "screen_layout.h"
 #include "unit.h"
 #include "world.h"
-#include "world_glue.h"
 #include "lib/crt.h"
 #include "lib/rect.h"
 #include "lib/str.h"
@@ -223,7 +222,7 @@ void MpHeroScreen::MakePreview(bool allArmour) {
         player->AddMember(kHeroName, kHumanHero, game::kEmptyText);
     }
     const std::vector<PartyUnitRecord*> records{player->members.data()};
-    GameCreatePartyUnits(&records, allArmour);
+    g_clientWorld.CreatePartyUnits(&records, allArmour);
     auto* unit = g_clientWorld.FindUnit(player->members.data()->unitId);
     unit->SetSecondPrototype(unit->GetPrototype());
     previewModel = unit;

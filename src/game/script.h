@@ -416,9 +416,12 @@ struct ScriptRun {
     ScriptVars vars;                // a copy of the instance's variables
 };
 
-// A script's error as Script::GetError hands it out: the text (the caller destroys it), the code and the
-// line.
-struct ScriptErrorInfo;
+// A script's error as Script::GetError hands it out: the text, the code and the line.
+struct ScriptErrorInfo {
+    std::string text;
+    int code;
+    int line;
+};
 
 // The script interpreter state passed to every evaluation. The world has two: its own and the mission script
 // the console uses.

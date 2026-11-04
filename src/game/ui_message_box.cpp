@@ -3,7 +3,6 @@
 #include "ui_screens.h"
 #include "asset_text.h"
 #include "app_helpers.h"
-#include "world_glue.h"
 
 #include <cstddef>
 #include <cstdint>

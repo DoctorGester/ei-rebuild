@@ -42,7 +42,6 @@
 #include <string_view>
 #include "lib/str.h"
 #include "lib/vecmath.h"
-#include "world_glue.h"
 #include "../platform/log.h"
 #include "game_singletons.h"
 #include "world_data.h"
@@ -498,7 +497,7 @@ int GameMain(char* commandLine) {
     ReadCommandLine(commandLine);
 
     GameOptions* options = &options::g_options;
-    StoreStartFolder();
+    g_startFolder = platform::CurrentFolder() + '\\';
     {
         std::string settings = g_startFolder + "config\\ai.reg";
         g_logicSettings.Load(settings);

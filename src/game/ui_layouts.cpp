@@ -27,7 +27,7 @@
 #include <cstring>
 #include <string>
 #include "lib/text_case.h"
-#include "world_glue.h"
+#include "terrain.h"
 #include "game_singletons.h"
 #include "figure_manager.h"
 #include "lib/str.h"
@@ -316,8 +316,8 @@ void MainMenu::LeftDown(Point point) {
     }
     case 4: {
         // The titles (opened over a cleared menu, not as a dialog).
-        GameStopSounds(0);
-        GameStopAmbience();
+        g_clientWorld.sounds->StopAll(false);
+        g_clientWorld.terrain->StopAmbience();
         currentUi->PlayInterfaceSound(okSound);
         ClearSurfaces();
         currentUi->PushWindow(new CreditsScreen(currentUi, true, "Titles"), WindowBackdrop::None);
@@ -329,7 +329,7 @@ void MainMenu::LeftDown(Point point) {
         if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) net::second_master::OnMultiplayerClick();
         std::string text = g_clientWorld.texts->TextManager::GetString("reserved_04");
         g_interface.ShowStatusText(text);
-        GameSetServerPaused(1);
+        g_serverWorld.SetServerPaused(1);
         currentUi->PlayInterfaceSound(okSound);
         currentUi->PushWindow(new MpHeroScreen(currentUi), WindowBackdrop::FirstWindow);
         break;
@@ -515,7 +515,7 @@ void CreditsScreen::CreateScreen() {
         headerSurface->PaintWith([this](UiSurface& out) { PaintHeader(out); });
         headerSurface->Hide();
     }
-    if (fromGame) GameSetServerPaused(0);
+    if (fromGame) g_serverWorld.SetServerPaused(0);
     savedDisplay = static_cast<int>(g_sceneRenderer.fogColour);
     g_sceneRenderer.fogColour = 0;
     player.Open((g_dataFolder + "Movies\\" + currentName + ".bik").c_str(),    // "<folder>Movies\<name>.bik"

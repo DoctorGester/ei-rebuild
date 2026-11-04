@@ -16,7 +16,6 @@
 #include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
-#include "world_glue.h"
 #include "lib/containers.h"
 #include "lib/text_case.h"
 #include "platform/platform.h"

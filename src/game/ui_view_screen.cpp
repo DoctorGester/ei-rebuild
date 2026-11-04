@@ -10,7 +10,6 @@
 #include "world.h"
 
 #include <cstdint>
-#include "world_glue.h"
 #include "game_singletons.h"
 #include "lib/containers.h"
 #include "platform/platform.h"
@@ -89,7 +88,7 @@ void UnitPickInput::KeyDown(int key, int, bool) {
     if (key == platform::kKeyControl) {
         g_cursor.SetShape(CursorShape::Attack);
     } else if (key == platform::kKeySpace) {
-        GameSetServerPaused(g_serverWorld.paused == 0);
+        g_serverWorld.SetServerPaused(g_serverWorld.paused == 0);
     }
 }
 

@@ -28,7 +28,6 @@
 #include "model.h"
 #include "player_manager.h"
 #include "world_effect.h"
-#include "world_glue.h"
 
 #include "lib/rebirth.h"
 #include "lib/containers.h"
@@ -489,7 +488,7 @@ bool ScriptRun::Execute(Script* script) {
             g_serverWorld.LoadMobFile(Text(cmd, 0));
             break;
         case ScriptFunction::PlayCamera:   // PlayCamera(name)
-            GamePlayCameraPath(Text(cmd, 0), 0);
+            g_clientWorld.PlayCameraPath(Text(cmd, 0));
             break;
         case ScriptFunction::PlayMovie:   // PlayMovie(name)
             PlayMovie(cmd);
@@ -1010,7 +1009,8 @@ bool ScriptRun::Execute(Script* script) {
 
         case ScriptFunction::QuestComplete: {   // QuestComplete(player, quest)
             if (IsMultiplayerClient()) {
-                if (FinishQuestMap(Text(cmd, 0)) != 0) {
+                const std::string map = Text(cmd, 0);
+                if (IsLive(net::g_gameServer) && net::g_gameServer->FinishMap(&map)) {
                     QuestRecord* quest = g_questDatabase.FindQuest(Text(cmd, 0));
                     if (quest) g_serverWorld.AwardExperience(nullptr, quest->exp);
                 }

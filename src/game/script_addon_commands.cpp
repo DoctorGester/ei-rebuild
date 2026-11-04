@@ -1,6 +1,7 @@
 // AddNewScriptCommands: addon's commands, plus GSGetPlayerVar and IsFileExists. The game
 // functions they call are the rewritten members.
 #include "bink_video.h"   // g_loadingMovieOff
+#include "camera.h"
 #include "combat.h"
 #include "console.h"
 #include "game_singletons.h"
@@ -17,7 +18,6 @@
 #include "unit_ai.h"
 #include "unit_db.h"
 #include "world.h"
-#include "world_glue.h"
 
 #include "lib/str.h"
 
@@ -103,12 +103,14 @@ bool GiveUnitExp(Call* call) {
 }
 
 bool StartCameraSave(Call* call) {
-    GameStartCameraRecording(Text(call, 0));
+    g_clientWorld.flags |= WorldClientFlag::RecordingCamera;
+    g_clientWorld.camera->OpenFile(Text(call, 0));
     return true;
 }
 
 bool StopCameraSave(Call*) {
-    GameStopCameraRecording();
+    CameraCloseFile(g_clientWorld.camera);
+    g_clientWorld.flags &= ~WorldClientFlag::RecordingCamera;
     return true;
 }
 

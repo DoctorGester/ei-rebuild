@@ -266,7 +266,7 @@ void ClientSession::Tick(double dt) {
             ++node;
         }
     }
-    if (self->awards.begin() == self->awards.end() || g_serverWorld.sessionKind != 3) return;
+    if (self->awards.begin() == self->awards.end() || g_serverWorld.zoneMode != ZoneMode::Base) return;
     Player* localPlayer = LocalPlayer();
     if (!localPlayer || localPlayer->Server()->state != PlayerServer::State::Joined || !g_serverWorld.zoneLoaded) return;
     ApplyAwards();

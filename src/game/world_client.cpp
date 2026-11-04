@@ -443,6 +443,13 @@ Material* WorldClient::NewMaterial(int materialType) {
     return materialManager->NewMaterial(materialType);
 }
 
+void WorldClient::PlayCameraPath(const char* name) {
+    if (!camera->LoadPath(name, 0)) return;
+    camera->flags |= Camera::kPlaying;
+    camera->keyIndex = 0;
+    camera->timeOffset = (static_cast<float>(tick) + tickFraction) - camera->keys[0].time;
+}
+
 void WorldClient::SetCamera(Camera* newCamera) {
     if (camera) --camera->refCount;
     camera = newCamera;

@@ -3,7 +3,6 @@
 #include "app.h"
 #include "console.h"
 #include "player_client.h"
-#include "world_glue.h"
 #include "sound.h"
 #include "ui_cursor.h"
 #include "dx_errors.h"
@@ -231,11 +230,11 @@ int StartFirstMap() {
     WorldServer* world = &g_serverWorld;
     if (!world->NewZone(map, cmdMode, std::nullopt))
         return game::FatalError("Can't load map \"%s\".\n", map);
-    world->SetGameResult(1);
+    world->SetGameState(GameState::Playing);
     WorldClient* client = &g_clientWorld;
     client->SetPlayer(g_serverWorld.worldHandle.Get());
     client->LocalView()->sendParty = 0;
-    g_serverWorld.sessionKind = 7;
+    g_serverWorld.zoneMode = ZoneMode::Script;
     if (cmdScript.size() == 0) return 1;
     Script* script = TheMissionScript();
     bool loaded;

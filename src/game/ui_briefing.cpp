@@ -21,7 +21,8 @@
 #include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
-#include "world_glue.h"
+#include "sound.h"
+#include "terrain.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/intro_sort.h"
@@ -49,8 +50,8 @@ constexpr int kTopicNameParts = 3;
 
 void BriefingScreen::CloseScreen() {
     options::g_options.borderFogDistance = savedEdgeFade;
-    GameStopSounds(1);
-    GameStopAmbience();
+    g_clientWorld.sounds->StopAll(true);
+    g_clientWorld.terrain->StopAmbience();
     std::uint32_t& cameraFlags = g_camera.flags;
     cameraFlags = (cameraFlags & ~(Camera::kBounded | Camera::kAlternate)) | Camera::kFree;
 }
@@ -58,7 +59,7 @@ void BriefingScreen::CloseScreen() {
 void BriefingScreen::MessageResult(std::uint32_t result) {
     switch (result) {
     case kLeaveZoneYes:
-        GameLeaveThroughExit(exit);
+        g_gameFlow.LeaveThroughExit(exit);
         break;
     case kGameOverLoad: {
         ui->PushWindow(new SaveLoadWindow(ui, false, false), WindowBackdrop::FirstWindow);

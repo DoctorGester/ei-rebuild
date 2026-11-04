@@ -48,8 +48,6 @@ constexpr float kUnknownZ = -1313.0f;                 // lastPosition.z after a 
 constexpr float kPathRange = 1000000.0f;              // FindPath's range for the use order
 constexpr float kFarAway = 1e30f;                     // the nearest-unit search's start
 
-// The game mode (1 single player, 2 multiplayer); the campaign mode is WorldServer::sessionKind (1 and 3 end
-// the game when the leader is gone).
 // The next object id for a new party's record (the party manager stores the party).
 int g_nextRecordObjectId = /*00794E3C*/ 1000000013;
 
@@ -266,8 +264,7 @@ void PlayerServer::LeaveToZone(std::string_view zone, int entrance) {
     if (state != State::Joined) return;
     Player* currentPlayer = player;
     Party* party = currentPlayer->GetParty();
-    int campaign = g_serverWorld.sessionKind;
-    if (campaign == 1 || campaign == 3) {
+    if (IsSinglePlayerMode(g_serverWorld.zoneMode)) {
         Unit* leader = g_serverWorld.FindUnit(static_cast<int>(party->members[0].unitId));
         if (leader == nullptr || leader->IsDead() != 0) {
             LeaderDied();
@@ -281,10 +278,10 @@ void PlayerServer::LeaveToZone(std::string_view zone, int entrance) {
     state = State::Leaving;
     party->entrance = static_cast<std::uint32_t>(entrance);
     party->zone = zone;
-    int mode = g_serverWorld.gameResult;
-    if (mode == 1) {
+    GameState gameState = g_serverWorld.gameState;
+    if (gameState == GameState::Playing) {
         g_partyManager.BeginRedeploy(party);
-    } else if (mode == 2) {
+    } else if (gameState == GameState::Network) {
         if (std::ssize(party->members) == 1) party->members[0].unitId = kLoneHeroRecordId;
         SendParty();
     }
@@ -300,7 +297,7 @@ void PlayerServer::LeaveAndFlush() {
             g_serverWorld.CollectParty(player, nullptr);
             partyDeployed = 0;
         }
-        if (g_serverWorld.gameResult == 2) SendParty();
+        if (g_serverWorld.gameState == GameState::Network) SendParty();
     }
     if (state != State::Leaving) {
         state = State::Leaving;
@@ -330,7 +327,7 @@ int PlayerServer::OnJoined() {
     if (state != State::GameStateSent) return 0;
     state = State::Joined;
     Player* currentPlayer = player;
-    currentPlayer->sessionKind = currentPlayer->ServerWorld()->sessionKind;
+    currentPlayer->sessionKind = static_cast<int>(currentPlayer->ServerWorld()->zoneMode);
     g_serverWorld.Redeploy(currentPlayer, &placements, 1);
     currentPlayer->dirty |= PlayerDirty::GameState;
     return 1;
@@ -443,17 +440,17 @@ int PlayerServer::OnLogin() {
     login.name[kLoginTextLength] = 0;
     login.password[kLoginTextLength] = 0;
     Party* party = currentPlayer->GetParty();
-    switch (g_serverWorld.gameResult) {
-    case 1:
+    switch (g_serverWorld.gameState) {
+    case GameState::Playing:
         g_partyManager.EndRedeploy(party);
         party->OpenEdgeExits();
         break;
-    case 2:
-    case 3:
+    case GameState::Network:
+    case GameState::Network3:
         if (!g_partyManager.LoadParty(&currentPlayer->partyId, party))
             return 0;
         break;
-    case 4:
+    case GameState::MainMenu:
         party->Clear(1, 0);
         break;
     default:

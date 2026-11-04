@@ -104,10 +104,10 @@ void WorldServer::InvokeAlarm(int index, const float* point, char force) {
     }
 }
 
-void WorldServer::SetGameResult(int result) {
-    if (gameResult != 0) return;
-    gameResult = result;
-    if (result == 2 || result == 3) {
+void WorldServer::SetGameState(GameState state) {
+    if (gameState != GameState::None) return;
+    gameState = state;
+    if (state == GameState::Network || state == GameState::Network3) {
         OpenSession();
         netSession.Get()->Query();    // the new session's Query (result unused)
     }
@@ -118,7 +118,7 @@ void WorldServer::UpdateUnits() {
     std::vector<unsigned> sleepingIds;   // leave the update map
 
     // The walk stops at the end or at an entry without an object.
-    if (sessionKind != 1) {
+    if (zoneMode != ZoneMode::Battle) {
         // Every map object runs (no sleeping).
         auto& objectMap = mapObjects.map;
         for (auto node = objectMap.begin(); node != objectMap.end() && node->second; ++node) {

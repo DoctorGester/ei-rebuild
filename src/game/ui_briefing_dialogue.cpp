@@ -2,7 +2,6 @@
 // speakers' animations and the camera on a speaker. See docs/notes/ui.md, "Briefing / base screen".
 #include "player_messages.h"
 #include "game_strings.h"
-#include "world_glue.h"
 #include "combat.h"
 #include "ui.h"
 #include "ui_briefing.h"
@@ -60,7 +59,7 @@ constexpr float kSunk = -100.0f;
 
 // A speaker who is not in the picture is moved below the ground.
 void Sink(Unit* unit) {
-    if (unit) GameSetUnitHeight(unit->id, kSunk);
+    if (unit) g_serverWorld.SetUnitHeight(unit->id, kSunk);
 }
 
 constexpr int kEventLeaves = 2;
@@ -259,7 +258,7 @@ void BriefingScreen::HideSpeaker(std::string_view name, bool immediately, bool r
         model->BlinkOpen(true);
         if (auto* serverUnit = g_serverWorld.FindUnit(speaker->id)) {
             serverUnit->ShowHelmet(true);
-            GameSetUnitHeight(speaker->id, 0.0f);
+            g_serverWorld.SetUnitHeight(speaker->id, 0.0f);
             auto* controller = serverUnit->ServerController();
             controller->actionDone = nullptr;
             controller->StopAction();

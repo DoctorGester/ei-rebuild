@@ -14,7 +14,6 @@
 #include "ui.h"
 #include "unit.h"
 #include "world.h"
-#include "world_glue.h"
 
 #include "lib/containers.h"
 #include "platform/platform.h"
@@ -314,7 +313,7 @@ void HostServer(std::vector<std::string>* args) {
 void MemUsage(std::vector<std::string>*) {}
 
 // disconnect, any arguments: the client world's local player disconnects.
-void Disconnect(std::vector<std::string>*) { g_gameFlow.DisconnectClient(); }
+void Disconnect(std::vector<std::string>*) { g_clientWorld.DisconnectLocalPlayer(); }
 
 void LootAll(std::vector<std::string>*) {
     PrintLine("Looting...");

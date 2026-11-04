@@ -145,7 +145,7 @@ Rules learned:
   and take an end as begin + count.
 - **An object's start** is where the previous one ends, not the base the code indexes from. net_coder's length tables
   are indexed from one entry before their start, so ours take `length - 1`.
-- **Not a global:** "campaign mode" 007C2CC4 is the server world's `sessionKind`. Naming it apart left its readers on
+- **Not a global:** "campaign mode" 007C2CC4 is the server world's `zoneMode`. Naming it apart left its readers on
   the world's own copy.
 
 **The static initialisers' objects.** The objects game.exe's static initialisers built are plain globals of ours: the

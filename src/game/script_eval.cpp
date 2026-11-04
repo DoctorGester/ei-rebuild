@@ -20,7 +20,7 @@
 #include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
-#include "world_glue.h"
+#include "camera.h"
 
 #include "lib/rebirth.h"
 #include "lib/rounding.h"
@@ -392,7 +392,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         return;
     }
     case ScriptFunction::IsCameraPlaying:
-        *result = static_cast<float>(static_cast<int>(GameCameraPathPlaying()));
+        *result = static_cast<float>(static_cast<int>(g_clientWorld.camera->flags & Camera::kPlaying));
         return;
     case ScriptFunction::IsNight:   // IsNight (the world's day-time value, copied as a float)
         *result = g_serverWorld.nightLevel;

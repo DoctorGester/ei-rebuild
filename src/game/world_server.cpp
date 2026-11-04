@@ -303,7 +303,7 @@ void WorldServer::Create() {
     const float direction[3] = {1.0f, 0.0f, 0.0f};
     std::memcpy(windDirection, direction, sizeof(direction));
     windStrength = std::bit_cast<std::uint32_t>(kWindStrength);
-    sessionKind = 0;
+    zoneMode = ZoneMode::None;
     scriptsActive = 0;
     exits.clear();
     climate = 1;
@@ -311,7 +311,7 @@ void WorldServer::Create() {
     loadedFresh = 1;
     keepsState = 1;
     zoneName = game::kEmptyText;
-    gameResult = 0;
+    gameState = GameState::None;
     mobFiles.clear();
 }
 

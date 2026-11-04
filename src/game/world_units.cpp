@@ -55,9 +55,6 @@ using mapspec::Spec;
 using mapspec::SpecKind;
 using mapspec::UnitSpec;
 
-constexpr int kKindSinglePlayer = 1;
-constexpr int kKindNoRangeTest = 3;
-constexpr int kGameResultLost = 2;
 
 // The hero's figure parts, "hr" replaced by its numbered style (none when the style is -1).
 void FillHeroParts(UnitSpec* message, const char* prototypeName, std::string& scratch) {
@@ -232,20 +229,20 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
         unit->SetSecondPrototypeByName(record->texts[6]);
         line = str::Format(worlddata::AddToHeroesFormat(), unit->id);
         script += line;
-        if (sessionKind == kKindSinglePlayer && !atStart) unit->moveMode2 = record->moveMode2;
+        if (zoneMode == ZoneMode::Battle && !atStart) unit->moveMode2 = record->moveMode2;
         if (placement) {
             bool flagged = aiMap.IsPassableForClass(1, unit->localPosition);
             if (flagged) unit->SetMoveModes(placement->moveMode, placement->moveMode);
             else unit->moveMode2 = static_cast<int>(placement->moveMode);
         }
         controller->ResyncWithUnit();
-        if (sessionKind == kKindSinglePlayer || sessionKind == kKindNoRangeTest)
+        if (IsSinglePlayerMode(zoneMode))
             unit->pendingWeapon = static_cast<int>(record->weaponIndex);
-        if (placement && sessionKind != kKindNoRangeTest) unit->pendingWeapon = static_cast<int>(placement->weapon);
+        if (placement && zoneMode != ZoneMode::Base) unit->pendingWeapon = static_cast<int>(placement->weapon);
     }
 
     // Followers follow their leaders.
-    if (sessionKind == kKindSinglePlayer) {
+    if (zoneMode == ZoneMode::Battle) {
         for (int i = 0; i < std::ssize(*records); ++i) {
             auto* record = (*records)[i];
             Unit* unit = FindUnit(static_cast<int>(record->unitId));
@@ -259,7 +256,7 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
         }
     }
 
-    if (atStart && gameResult != kGameResultLost) script += worlddata::HeroArrivalText();
+    if (atStart && gameState != GameState::Network) script += worlddata::HeroArrivalText();
     script += worlddata::ScriptEndText();
     if (player) MainScript()->Load(&script, 1);
 }
@@ -499,4 +496,14 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
     default:
         return -1;
     }
+}
+
+void WorldServer::SetUnitHeight(int unitId, float z) {
+    Unit* unit = FindUnit(unitId);
+    if (!unit) return;
+    // Nothing when the heights are equal.
+    if (unit->localPosition.z == z) return;
+    Vector3 target = {unit->localPosition.x, unit->localPosition.y, z};
+    aiMap.sectorMap.Move(unit, target);
+    unit->MarkChanged(NetField::Placement);
 }
