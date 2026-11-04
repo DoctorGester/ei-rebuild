@@ -34,6 +34,8 @@ only through `tools/tickets.py`, never by hand.
 - Games only through `python tools/work.py test <ID> [run_all args]` (scenario names for a subset,
   `--rebirth-only`, `--golden`, at most `--jobs 4`): it queues on the machine's 16 game slots. Never call
   `tools/run_all.py` directly, never leave a game running. Equivalence sweeps stay under about 5 minutes per run.
+- Every check run passes `--golden` (without it a run only checks itself and compares nothing); report its
+  "N the same, N differ" line, not a pass count.
 - A change that should not alter behaviour keeps every golden the same. An intended change re-records the affected
   goldens and says why in the commit (`docs/notes/standalone-verification.md`, "Recording goldens").
 - Say how each change is checked: the scenario with a golden that reaches it, or the unit check (`tests/unit`).

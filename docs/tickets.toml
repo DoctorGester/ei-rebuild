@@ -6401,6 +6401,13 @@ depends = ["H50a"]
 note = "H50a: without --jobs a WSL run on dzn takes the Windows game slots free at its start (2 to 8) and keeps that many to its end. Started while Windows' 16 were busy it got 2 and stayed at 2 (347 s for the image suite, against 208 to 270 s with 6 to 8), and its last games hold slots they no longer use. Let the hold grow as Windows slots free (up to WSL_GPU_SLOTS) and give slots back as the queue empties; the Windows side of hold_windows_slots() then needs a way to take and release slots one at a time (stdin commands). docs/notes/linux.md, The GPU under WSL."
 
 [[ticket]]
+id = "H54"
+title = "world_client: a passing run sometimes leaves no digest or saves"
+group = "harness"
+model = "sonnet"
+note = "Seen 2026-11-04 after the PL16 merge: in the full image suite world_client-standalone passed (RESULT: PASS) but wrote no digest.txt and no harness saves, so the golden compare counted it as differing; 5 reruns by name were all the same. Find why the run ends without writing them (exit path, a timing race with the new event queue, or the harness's save step) and make it deterministic. Goldens the same."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"
