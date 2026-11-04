@@ -7430,7 +7430,7 @@ id = "R53"
 title = "Rain: the falling rain is not seen, and the drops on the water read as bright dots"
 group = "renderer"
 model = "opus"
-note = "User 2026-11-04, playing in rain: no visible rain streaks, and the rain on the water looks funky, just bright dots appearing on the water. (1) The streaks: weather_particles.cpp draws rain through render::TlDraw; renderer.md section 12 'Weather' says the original never writes the rain's vertex colours or packet w (what the buffer held stays). Find why nothing shows on the SDL_GPU renderer (alpha 0 from stale/zeroed colours, fog, the depth test, the texture frames, the draw order against the water) and make the rain visible as streaks, as in the original under dgVoodoo (compare a frame of the original game if needed, never writing to F:\\games). (2) The water: rain_rings in terrain.hlsl (renderer.md 11b, 'Rings and splashes') adds rings to the ripples and splashes lit like the foam; on the water the splashes read as isolated bright dots. Make drops on water read as rain: rings that show, splashes smaller/softer and not brighter than the lit water, density by the rain's strength. Captures before/after (zone 1 a minute into rain: ground, water, units) for the captures page; a harness check that rain particles cover some share of the frame in rain. Goldens hold no frames."
+note = "Also (user 2026-11-04: is weather state not in the save files?): the world saves weather + weatherStrength; check whether the client rain/snow layer's build-up (RainSnow level / density, effects_weather.cpp) restarts from nothing after a load and, if so, start it at the saved strength."
 
 [[ticket]]
 id = "R53a"
