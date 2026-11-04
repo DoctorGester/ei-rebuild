@@ -38,6 +38,7 @@ struct Pending {
 };
 Pending g_pending;
 int g_dropped = 0;
+bool g_groundDecals = true;   // SetGroundDecals
 
 // A draw the renderer does not take is lost (there is no other way to draw): each reason logged the first time.
 enum Refusal { NoTargetSize, BadCorner, OtherFvf, VertexLimit, RefusalCount };
@@ -328,7 +329,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     namespace program = gpu_shaders::mesh;
     Geometry g;
     int first = 0;
-    if (batch.indexCount <= 0 || !BindMeshBatch(batch, g, &first)) return;
+    if (batch.indexCount <= 0 || (batch.decal && !GroundDecalsDrawn()) || !BindMeshBatch(batch, g, &first)) return;
     const PassState& s = batch.state;
     gpu::Pipeline pipeline = Pipeline(s, batch.lines, batch.cached != nullptr);
     if (!pipeline) return;
@@ -382,13 +383,19 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
             std::memcpy(fs.pointFront, batch.pointFront, sizeof(fs.pointFront));
         }
     }
+    if (batch.decal) {   // a ground print: lit as the ground (its positions the landscape's), its normal up
+        GroundDecalLight(f, batch.box, &lighting);
+        for (int k = 0; k < 3; ++k) vs.landscape[k][k] = 1.0f;
+        vs.normalOffset[1] = 1.0f;
+        fs.pointOn[0] = 1.0f;
+    }
     if (batch.figure && batch.front <= 1.0f) {   // a unit's: no shadow of its own to keep off
         fs.shadowFigure[0] = 1.0f;
         fs.shadowFigure[1] = batch.front;
         vs.normalOffset[0] = 0.0f;
     }
     OcclusionUniforms(batch.occluded, fs.occlusion, fs.occlusionMap);
-    if (batch.light >= 0) {   // a world mesh
+    if (batch.light >= 0 && !batch.decal) {   // a world mesh
         MeshWeatherUniforms(fs.weather, fs.weatherSun, fs.weatherSunColour);
         fs.weather[2] = batch.figure ? 1.0f : 0.0f;
     }
@@ -516,6 +523,8 @@ void MeshPass(const TextureDevice* device) {
         if (g_pending.boxed) {
             if (g_pending.cached) CachedMeshBox(*g_pending.cached, g_pending.mesh, g_pending.box);
             else PositionBox(g_pending.mesh, g_pending.box);
+        } else if (g_pending.mesh.groundDecal) {
+            PositionBox(g_pending.mesh, g_pending.box);
         }
     }
     if (g_pending.indexCount > 0) {
@@ -531,6 +540,7 @@ void MeshPass(const TextureDevice* device) {
         batch.zScale = g_pending.mesh.zScale != 0.0f ? g_pending.mesh.zScale : 1.0f;
         batch.model = true;
         batch.flat = !g_pending.mesh.corners;
+        batch.decal = batch.flat && g_pending.mesh.groundDecal;
         batch.caster = g_pending.caster;
         batch.figure = g_pending.figure;
         batch.boxed = g_pending.boxed;
@@ -548,6 +558,15 @@ void MeshPass(const TextureDevice* device) {
 }
 
 void EndMesh() { g_pending = Pending{}; }
+
+void SetGroundDecals(bool on) {
+    if (on != g_groundDecals) ei::Log("render: ground prints %s", on ? "drawn" : "left out");
+    g_groundDecals = on;
+}
+
+namespace detail {
+bool GroundDecalsDrawn() { return g_groundDecals; }
+} // namespace detail
 
 void TlDraw(const TextureDevice* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
             Primitive primitive) {

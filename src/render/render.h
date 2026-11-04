@@ -168,6 +168,8 @@ void SetOffscreenCasters(OffscreenCasters mode);
 // along), to show a filter that depends on the range cells.
 void SetShadowView(bool on);
 void SetShadowShift(int texels);
+// Harness build: the ground prints (MeshDraw::groundDecal) drawn (the default) or left out ("decals on|off").
+void SetGroundDecals(bool on);
 // Harness build: the ambient occlusion on (the default), off, or shown alone by its receivers (white none, black
 // all; "occlusion on|off|view"). OcclusionState: the last presented frame's, with the ground's sectors whose
 // occlusion is kept and how often one was worked out since the start.
@@ -191,6 +193,7 @@ struct ShadowInfo {
     int offScreen = 0, lost = 0;
     int outsideCasters = 0, outsideDraws = 0, outsideCorners = 0;
     int terrainCasters = 0;   // the ground's sectors drawn into the map
+    int groundDecals = 0, receivingDecals = 0;   // the ground prints handed over, and those sampling the map
     // The cloud shadows: how much of the sun a full cloud hid (0: none) and the share of the ground under clouds.
     float cloudLight = 0.0f, cloudCover = 0.0f;
     // The weather on the surfaces (0 .. 1): how wet the ground is, the puddles' share and the snow's cover.
@@ -287,6 +290,8 @@ struct MeshDraw {
     bool distanceFog;
     float zScale;                      // 0 taken as 1
     bool coloursWritten;               // the draw set every colour to the device's (flag 4)
+    bool groundDecal;                  // flat geometry laid on the ground (a print: blood, footprints, scorch marks),
+                                       // its positions in the landscape's space: shaded by the shadows as the ground
 // A figure mesh lit on the GPU (MeshSource::lighting), else null: the normals (packets of four as the
 // positions) and the words (a position index in the low half, a normal index in the high half, by the corners'
 // colour index).

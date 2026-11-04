@@ -2,7 +2,7 @@
 // over once a frame (render::SceneLighting) kept for the terrain shader's uniforms
 // (shaders/scene_lighting.hlsli). The point lights nearest the camera (by the distance to their reach)
 // are kept, at most kMostSceneLights. A figure part's light (render::MeshLighting) becomes the mesh
-// shader's uniforms (MeshLightUniforms) in the part's model space.
+// shader's uniforms (MeshLightUniforms) in the part's model space, a ground print's the scene's (GroundDecalLight).
 #include "render.h"
 #include "render_internal.h"
 
@@ -133,6 +133,41 @@ void MeshLightUniforms(const MeshLighting& l, MeshLightParams* params) {
         p.pointAt[k][3] = s.inverseRangeSquared;
         for (int j = 0; j < 3; ++j) p.pointColour[k][j] = diffuse[j] * s.colour[j] * l.coefficient;
         p.pointColour[k][3] = static_cast<float>(SceneLightIndex(s.position) + 1);   // its point shadow at the draw
+    }
+    p.on[2] = static_cast<float>(count);
+    *params = p;
+}
+
+void GroundDecalLight(const Frame& frame, const float box[6], MeshLightParams* params) {
+    SceneLightParams scene;
+    LightUniforms(&scene);
+    MeshLightParams p{};
+    p.on[1] = 1.0f;
+    for (int k = 0; k < 3; ++k) {
+        p.sun[k] = -scene.sun[k];
+        p.sunColour[k] = scene.sunColour[k];
+        p.ambient[k] = scene.ambient[k];
+        p.mapSun[k] = scene.mapSun[k];
+    }
+    // The lights that reach the box's sphere, the nearest to their reach first.
+    const Vector3 low{box[0], box[1], box[2]}, high{box[3], box[4], box[5]};
+    const Vector3 centre = (low + high) * 0.5f;
+    const float radius = std::sqrt(LengthSquared(high - low)) * 0.5f;
+    static std::vector<std::pair<float, int>> order;
+    order.clear();
+    for (int k = 0; k < static_cast<int>(scene.counts[0]); ++k) {
+        const float* at = scene.pointAt[k];
+        if (!(at[3] > 0.0f)) continue;
+        const float outside = std::sqrt(LengthSquared(Vector3{at[0], at[1], at[2]} - centre)) - 1.0f / std::sqrt(at[3]);
+        if (outside < radius) order.emplace_back(outside, k);
+    }
+    std::stable_sort(order.begin(), order.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+    const int count = std::min(static_cast<int>(order.size()), kMostMeshLights);
+    for (int j = 0; j < count; ++j) {
+        const int k = order[static_cast<std::size_t>(j)].second;
+        for (int i = 0; i < 4; ++i) p.pointAt[j][i] = scene.pointAt[k][i];
+        for (int i = 0; i < 3; ++i) p.pointColour[j][i] = scene.pointColour[k][i];
+        p.pointColour[j][3] = static_cast<float>(PointShadowSlot(frame, k) + 1);
     }
     p.on[2] = static_cast<float>(count);
     *params = p;

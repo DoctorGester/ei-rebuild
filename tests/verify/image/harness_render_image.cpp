@@ -238,6 +238,9 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         if (verb == "shadowshift") render::SetShadowShift(std::atoi(argument.c_str()));
         else if (argument == "on" || argument == "off") render::SetShadowView(argument == "on");
         else failures->push_back("shadowview needs on or off");
+    } else if (verb == "decals") {
+        if (argument == "on" || argument == "off") render::SetGroundDecals(argument == "on");
+        else failures->push_back("decals needs on or off");
     } else if (verb == "terraincache") {
         if (argument == "on" || argument == "off") {
             render::SetTerrainCache(argument == "on");
@@ -276,19 +279,19 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             return true;
         }
         render::ShadowInfo info = render::ShadowState();
-        char text[420];
+        char text[480];
         std::snprintf(text, sizeof(text),
-                      "shadowcheck: map %s (%d texels over %.0f units), %d casters in %d draws, %d meshes and %d "
-                      "ground batches sampling it (at least %d casters); shadowed objects not drawn %d, drawn but "
-                      "not cast %d; outside the view %d casters in %d draws (%d corners)",
+                      "shadowcheck: map %s (%d texels over %.0f units), %d casters in %d draws, %d meshes, %d "
+                      "ground batches and %d of %d ground prints sampling it (at least %d casters); shadowed objects "
+                      "not drawn %d, drawn but not cast %d; outside the view %d casters in %d draws (%d corners)",
                       info.made ? "made" : "not made", info.size,
                       static_cast<double>(info.extent), info.casters, info.casterDraws, info.receivingMeshes,
-                      info.receivingTerrain, least, info.offScreen, info.lost, info.outsideCasters,
-                      info.outsideDraws, info.outsideCorners);
+                      info.receivingTerrain, info.receivingDecals, info.groundDecals, least, info.offScreen, info.lost,
+                      info.outsideCasters, info.outsideDraws, info.outsideCorners);
         Log("harness: %s", text);
         frames->push_back(text);
         if (!info.made || info.casters < least || info.receivingMeshes < 1 || info.receivingTerrain < 1 ||
-            info.lost > 0 || info.outsideCasters < leastOutside)
+            info.receivingDecals < info.groundDecals || info.lost > 0 || info.outsideCasters < leastOutside)
             failures->push_back(text);
     } else if (verb == "cloudcheck") {
         // cloudcheck <least light> <most light> [<least cover> <most cover>]

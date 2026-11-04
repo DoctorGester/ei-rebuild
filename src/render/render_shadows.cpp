@@ -816,6 +816,7 @@ void PrepareShadows(Frame& f) {
     const float cloudLight = PrepareClouds(sh);
     PrepareSurfaces(sh);
     SurfaceState(&g_info.wetness, &g_info.puddles, &g_info.snowCover);
+    for (const MeshBatch& b : f.meshBatches) g_info.groundDecals += b.decal ? 1 : 0;
     const bool casters = !(sh.casters.empty() && g_outside.empty() && TerrainCasterCount() == 0);
     if (!sh.haveSun || f.worldRanges.empty() || (!casters && cloudLight <= 0.0f)) return;
     StatsTimer timer(&FrameStats::shadowMs);
@@ -829,8 +830,8 @@ void PrepareShadows(Frame& f) {
     sh.lights.push_back(light);
     const M4 lightFromClip = Multiply(FromMatrix(light), fit.fromClip);
 
-    // Every model mesh the world draws after the ground (figures, objects; not the sky, the flat
-    // geometry or additive effects) gets its matrix into the map.
+    // Every model mesh the world draws after the ground (figures, objects; not the sky, the flat geometry
+    // but the ground prints, or additive effects) gets its matrix into the map.
     std::unordered_map<std::uint32_t, int> reused;   // the frame's matrix index -> light index
     for (const Frame::Range& r : f.worldRanges) {
         std::size_t end = std::min(r.end, f.commands.size());
@@ -842,7 +843,7 @@ void PrepareShadows(Frame& f) {
             }
             if (c.kind != Command::Mesh) continue;
             MeshBatch& b = f.meshBatches[static_cast<std::size_t>(c.index)];
-            if (!b.model || b.flat) continue;
+            if (!b.model || (b.flat && !b.decal)) continue;
             if (b.state.blend && b.state.destBlend == 2) continue;   // D3DBLEND_ONE: light added
             auto it = reused.find(static_cast<std::uint32_t>(b.matrix));
             if (it == reused.end()) {
@@ -851,7 +852,7 @@ void PrepareShadows(Frame& f) {
                 it = reused.emplace(static_cast<std::uint32_t>(b.matrix), static_cast<int>(sh.lights.size()) - 1).first;
             }
             b.light = it->second;
-            ++g_info.receivingMeshes;
+            ++(b.decal ? g_info.receivingDecals : g_info.receivingMeshes);
         }
     }
     FigureFronts(f);

@@ -72,7 +72,7 @@ int SceneRenderer::DrawSelectionMarker(const Vector3& point, float size, const V
     TexCoord uvs[kVertices] = {};
     std::uint16_t indices[18];
     for (int i = 0; i < 18; ++i) indices[i] = kIndices[i];
-    device->DrawFlatBlocks(blocks, uvs, kBlocks, indices, 18, kColour, kSpecular);
+    device->DrawFlatBlocks(blocks, uvs, kBlocks, indices, 18, kColour, kSpecular, false);   // drawn over the shadows
     return 1;
 }
 
