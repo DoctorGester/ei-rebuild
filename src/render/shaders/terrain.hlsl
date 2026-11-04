@@ -4,7 +4,8 @@
 // (`extra` there, 1 none: render_terrain.cpp's height field), which the screen's (ambient_occlusion.hlsli) darkens
 // more. On the water `depth` is its depth over the ground (negative where the ground is above it) and `extra` its
 // kind (0 water, 1 a swamp, 2 lava: render_terrain.cpp's WaterKind), which the water's look (Water, below) starts
-// from. On the ground `depth` is the depth of a swamp over it (-1 where there is none near), for the swamps' muddy rim.
+// from. On the ground `depth` is the depth of a swamp over it (-1 where there is none near), for the swamps' muddy rim,
+// and `otherWater` 1 where it lies under water that is not a swamp.
 #include "bindings.hlsli"
 #include "depth_copy.hlsli"
 struct VsIn {
@@ -14,7 +15,7 @@ struct VsIn {
     [[vk::location(3)]] float2 uv : TEXCOORD3;
     [[vk::location(4)]] float3 normal : TEXCOORD4;
     [[vk::location(5)]] float loss : TEXCOORD5;
-    [[vk::location(6)]] float depth : TEXCOORD6;
+    [[vk::location(6)]] float2 depth : TEXCOORD6;   // the depth, otherWater
     [[vk::location(7)]] float extra : TEXCOORD7;
 };
 struct VsOut {
@@ -28,6 +29,7 @@ struct VsOut {
     [[vk::location(7)]] float depth : TEXCOORD7;
     [[vk::location(8)]] float occlusion : TEXCOORD8;   // the ground's own (1 on the water)
     [[vk::location(9)]] float kind : TEXCOORD9;        // the water's kind (0 on the ground)
+    [[vk::location(10)]] float otherWater : TEXCOORD10;
     float4 pos : SV_Position;
 };
 
@@ -52,7 +54,8 @@ VsOut vs_main(VsIn i) {
     o.world = i.pos;
     o.normal = i.normal;
     o.loss = i.loss;
-    o.depth = i.depth;
+    o.depth = i.depth.x;
+    o.otherWater = i.depth.y;
     const bool water = i.loss < 0.0;
     o.occlusion = water ? 1.0 : i.extra;
     o.kind = water ? i.extra : 0.0;
@@ -161,6 +164,7 @@ float shore_distance(float d, float2 xy) {
 }
 
 static const float kMudRim = 0.6;                      // the swamps' muddy rim on the ground, landscape units
+static const float kMudOther = 0.25;                   // the otherWater over which it fades out
 static const float3 kMud = float3(0.95, 0.78, 0.52);   // its tint, of the ground's luminance
 
 // The weather at a ground pixel: how wet (0 .. 1), how much of a puddle and how much snow; and how much of a swamp's
@@ -189,7 +193,10 @@ GroundWeather ground_weather(VsOut i, float3 n, float open) {
         g.puddle = smoothstep(edge, edge + 0.05, noise * 0.75 + low * 0.5) * flat * g.wet;
     }
     if (i.depth > -0.99) {
-        g.mud = 1.0 - smoothstep(0.0, kMudRim, -shore_distance(i.depth, i.world.xy));
+        // Where a swamp meets other water both under it, the depth runs to the other's -1 and crosses 0 under the
+        // water: no rim there, gone within a quarter of the way to ground under the other water.
+        g.mud = (1.0 - smoothstep(0.0, kMudRim, -shore_distance(i.depth, i.world.xy))) *
+                (1.0 - smoothstep(0.0, kMudOther, i.otherWater));
         g.wet = max(g.wet, g.mud * (1.0 - g.snow));
     }
     return g;
