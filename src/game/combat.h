@@ -137,17 +137,15 @@ struct AttackParams {
 // An entry of the armour spell list: the item (a counted reference), its countdown and whether it is still
 // worn.
 struct ArmourSpell {
-// The item's id (-1 without one) and the countdown.
+    // The item's id (-1 without one) and the countdown. Load takes the item manager's object of the id,
+    // referenced.
+    void Load(ByteStream* stream);
     void Save(ByteStream* stream) const;
 
     HeldRef<Item> item;
     int countdown;
     std::uint8_t worn;
 };
-
-// `count` entries appended (no item, countdown 0; the original's `worn` byte was stack garbage, ours 0), then
-// each entry from the head takes its item (the item manager's object of the id read, referenced) and countdown.
-void LoadArmourSpells(std::vector<ArmourSpell>* list, ByteStream* stream);
 
 // What a unit controller is doing (UnitServer::state).
 enum class UnitState : int {

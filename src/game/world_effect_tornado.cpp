@@ -131,7 +131,7 @@ void EffectTornado::Start(int update) {
     }
     if (source != nullptr) return;
     if (sound == -1) {
-        sound = g_clientWorld.sounds->Play3D(game::TornadoSoundText(), 0, localPosition, kSoundNear, kSoundFar, 1);
+        sound = g_clientWorld.sounds->Play3D(game::TornadoSoundText(), 0, localPosition, kSoundNear, kSoundFar, true);
     }
     ParticleSource* particles = g_clientWorld.particleManager->CreateSource(kTornadoParticles);
     source.Assign(particles);

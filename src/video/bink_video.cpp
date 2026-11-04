@@ -506,18 +506,12 @@ private:
     void Block(int type, Plane& to, const Plane& from, int x, int y) {
         std::uint8_t* out = to.Row(y) + x;
         std::uint8_t block[64];
-        std::int16_t coefficients[64];
-        std::int32_t transformed[64];
         switch (type) {
         case kSkip:
             CopyBlock(out, to.stride, from.Row(y) + x, from.stride);
             break;
         case kMotion:
             CopyBlock(out, to.stride, Moved(from, x, y), from.stride);
-            break;
-        case kRun:
-            RunBlock(block);
-            CopyBlock(out, to.stride, block, 8);
             break;
         case kResidue: {
             CopyBlock(block, 8, Moved(from, x, y), from.stride);
@@ -528,16 +522,10 @@ private:
             CopyBlock(out, to.stride, block, 8);
             break;
         }
-        case kIntra:
-            IntraBlock(block, coefficients, transformed);
-            CopyBlock(out, to.stride, block, 8);
-            break;
-        case kFill:
-            std::memset(block, colors.bundle.Next(), sizeof(block));
-            CopyBlock(out, to.stride, block, 8);
-            break;
         case kInter: {
             CopyBlock(block, 8, Moved(from, x, y), from.stride);
+            std::int16_t coefficients[64];
+            std::int32_t transformed[64];
             coefficients[0] = static_cast<std::int16_t>(interDc.Next());
             ReadCoefficients(bits, coefficients);
             InverseDct(coefficients, kInterQuant[bits.Bits(4)], transformed);
@@ -545,43 +533,39 @@ private:
             CopyBlock(out, to.stride, block, 8);
             break;
         }
-        case kPattern:
-            PatternBlock(block);
-            CopyBlock(out, to.stride, block, 8);
-            break;
-        case kRaw:
-            RawBlock(block);
-            CopyBlock(out, to.stride, block, 8);
-            break;
         default:
+            if (MakeBlock(type, block)) CopyBlock(out, to.stride, block, 8);
             break;
         }
     }
 
     void Scaled(Plane& to, int x, int y) {
         std::uint8_t block[64];
-        std::int16_t coefficients[64];
-        std::int32_t transformed[64];
-        switch (subTypes.Next()) {
+        if (MakeBlock(subTypes.Next(), block)) PutScaled(to, x, y, block);
+    }
+
+    // The block of a type that needs nothing of the previous frame (also the subtype of a scaled block); false for
+    // the other types.
+    bool MakeBlock(int type, std::uint8_t block[64]) {
+        switch (type) {
         case kRun:
             RunBlock(block);
-            break;
+            return true;
         case kIntra:
-            IntraBlock(block, coefficients, transformed);
-            break;
+            IntraBlock(block);
+            return true;
         case kFill:
-            std::memset(block, colors.bundle.Next(), sizeof(block));
-            break;
+            std::memset(block, colors.bundle.Next(), 64);
+            return true;
         case kPattern:
             PatternBlock(block);
-            break;
+            return true;
         case kRaw:
             RawBlock(block);
-            break;
+            return true;
         default:
-            return;
+            return false;
         }
-        PutScaled(to, x, y, block);
     }
 
     const std::uint8_t* Moved(const Plane& from, int x, int y) {
@@ -606,7 +590,9 @@ private:
         if (i == 63) block[order[63]] = static_cast<std::uint8_t>(colors.bundle.Next());
     }
 
-    void IntraBlock(std::uint8_t block[64], std::int16_t coefficients[64], std::int32_t transformed[64]) {
+    void IntraBlock(std::uint8_t block[64]) {
+        std::int16_t coefficients[64];
+        std::int32_t transformed[64];
         coefficients[0] = static_cast<std::int16_t>(intraDc.Next());
         ReadCoefficients(bits, coefficients);
         InverseDct(coefficients, kIntraQuant[bits.Bits(4)], transformed);

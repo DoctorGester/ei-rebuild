@@ -34,7 +34,7 @@ void SaveFileWrite(ByteStream* file, unsigned magic, MemoryStream* data) {
         GrowingBuffer packed;
         std::uint8_t compressed = 1;
         coder.Compress(&view, &packed);
-        file->WriteHeader(magic, static_cast<std::uint32_t>(kSaveVersion));
+        file->WriteHeader(magic, kSaveVersion);
         std::uint32_t sum = Checksum(data->data.data(), static_cast<std::int32_t>(data->Size()));
         file->WriteValue(sum);
         // Decompressed again; the packed data is used only when it gives the input back.
@@ -64,7 +64,7 @@ void SaveFileWrite(ByteStream* file, unsigned magic, MemoryStream* data) {
 
 bool SaveFileRead(MemoryStream* out, unsigned magic, ByteStream* file) {
     if (!file->ReadHeader(magic, kSaveVersion, kSaveOldestVersion)) return false;
-    if (file->Version() <= kSaveLastUncompressedVersion) {
+    if (file->version <= kSaveLastUncompressedVersion) {
         int start = static_cast<int>(file->Position());
         int size = static_cast<int>(file->Size()) - start;
         out->Resize(static_cast<std::uint32_t>(size));
@@ -76,8 +76,8 @@ bool SaveFileRead(MemoryStream* out, unsigned magic, ByteStream* file) {
         GrowingBuffer packed;
         GrowingBuffer plain;
         std::uint32_t stored = 0;
-        if (file->Version() > kVersionChecksum) file->ReadValue(stored);
-        if (file->Version() > kVersionCompressedFlag) file->ReadValue(compressed);
+        if (file->version >= kVersionChecksum) file->ReadValue(stored);
+        if (file->version >= kVersionCompressedFlag) file->ReadValue(compressed);
         int start = static_cast<int>(file->Position());
         int size = static_cast<int>(file->Size()) - start;
         if (compressed) {
@@ -85,7 +85,7 @@ bool SaveFileRead(MemoryStream* out, unsigned magic, ByteStream* file) {
             file->Read(packed.begin, static_cast<std::uint32_t>(size));
             packed.Seek(0);
             coder.Decompress(&packed, &plain);
-            if (file->Version() > kVersionChecksum && Checksum(plain.begin, plain.Size()) != stored)
+            if (file->version >= kVersionChecksum && Checksum(plain.begin, plain.Size()) != stored)
                 return false;   // the buffers and the coder's cursor go on the way out
         } else {
             plain.Seek(size);

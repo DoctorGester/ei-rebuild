@@ -250,7 +250,7 @@ void TorchObjectClientSpec::ShowEffects() {
     }
     if (sound != kNoSound) g_clientWorld.sounds->StopSound(sound);
     const float farRadius = values[1] * kShowFarFactor;
-    sound = g_clientWorld.sounds->Play3D(name, 0, torch->localPosition, kSoundNear, farRadius, 1);
+    sound = g_clientWorld.sounds->Play3D(name, 0, torch->localPosition, kSoundNear, farRadius, true);
 }
 
 void TorchObjectClientSpec::HideEffects() {
@@ -312,7 +312,7 @@ void TorchObjectClientSpec::SetSound(const char* newName) {
     SetName(newName);
     if (sound != kNoSound) g_clientWorld.sounds->StopSound(sound);
     const float farRadius = values[1] * kSetFarFactor;
-    sound = g_clientWorld.sounds->Play3D(name, 0, torch->localPosition, kSoundNear, farRadius, 1);
+    sound = g_clientWorld.sounds->Play3D(name, 0, torch->localPosition, kSoundNear, farRadius, true);
 }
 
 // The update returns 1; the class name and id.

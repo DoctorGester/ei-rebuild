@@ -44,7 +44,7 @@ struct ViewHash {
 inline int ToInt(const std::string& s) { return std::atoi(s.c_str()); }
 inline float ToFloat(const std::string& s) { return std::strtof(s.c_str(), nullptr); }
 
-std::string Format(const char* format, ...);
+EI_PRINTF_FORMAT(1, 2) std::string Format(const char* format, ...);
 // With a std::string among the arguments: its text is passed for the %s.
 template <class... Args>
     requires libprintf::HasString<Args...>

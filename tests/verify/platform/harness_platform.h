@@ -1,6 +1,6 @@
 #pragma once
 
-#include "platform/paths.h"
+#include "platform/seams.h"
 #include "platform/platform.h"
 
 #include <cstdint>
@@ -12,10 +12,11 @@
 // The harness's platform backend (this folder; docs/notes/harness.md): every answer of platform.h that a harness's
 // build takes in place of the game's own. harness_platform.cpp on SDL takes platform_sdl.cpp's place: a harness game
 // takes no real input and shows no box, its window is never activated (and kept out of sight where the system can),
-// its events are the harness's, its clocks, mouse and message boxes the harness's answers. game_answers.cpp takes
-// game_calls.cpp's and system_path.cpp's: the file paths mapped onto the run's overlay, the game's file writes
-// watched, its sockets on 127.0.0.1, the desktop and other-instance answers. Each is the system's call while the
-// harness is not answering (a harness's build started without a scenario).
+// its events are the harness's, its clocks, mouse and message boxes the harness's answers. game_answers.cpp answers the
+// platform's seams in place of seams.cpp: the file paths mapped onto the run's overlay, the game's file writes watched,
+// the run isolated from the desktop (no font smoothing, no other game). game_sockets.cpp takes the sockets' place:
+// the game's sockets on 127.0.0.1. Each is the game's answer while the harness is not answering (a harness's build
+// started without a scenario).
 
 namespace ei::verify::harnessplatform {
 

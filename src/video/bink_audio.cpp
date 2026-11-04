@@ -47,6 +47,7 @@ AudioDecoder::AudioDecoder(int rate, int channels) {
         bands.push_back(static_cast<int>(frequency * half / nyquist));
     }
     bands.push_back(static_cast<int>(half));
+    values.resize(static_cast<std::size_t>(frameSize));
     coefficients.resize(static_cast<std::size_t>(frameSize));
     work.resize(half);
     twiddles.resize(half);
@@ -77,7 +78,7 @@ void AudioDecoder::DecodeFrame(BitReader& bits) {
         quantisers[b] = static_cast<float>(std::pow(10.0, bits.Bits(8) * static_cast<double>(0.0664f)));
 
     // The coefficients from the third on, as integers, in runs of a shared width (0: all zero).
-    std::vector<std::int16_t> values(static_cast<std::size_t>(frameSize), 0);
+    std::fill(values.begin(), values.end(), std::int16_t{0});
     for (int i = 2; i < frameSize;) {
         int end = bits.Bit() ? i + 8 * kRunLengths[bits.Bits(4)] : i + 8;
         end = std::min(end, frameSize);

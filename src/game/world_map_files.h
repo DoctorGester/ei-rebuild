@@ -1,7 +1,6 @@
 #pragma once
 
-// The maps folder and its files (world_map.cpp). All four are patched by Rebirth (the mod's own maps
-// folder), so these install in the vanilla launch only and callers keep calling the fixed addresses.
+// The maps folder and its files (world_map.cpp).
 
 #include <string>
 #include <string_view>

@@ -6,6 +6,7 @@
 #include "platform/platform.h"
 
 #include <mutex>
+#include <optional>
 #include <string>
 
 namespace settings {
@@ -81,7 +82,8 @@ struct DesktopSize {
 // desktop writes its own.
 DesktopSize UseDefaults(Store& s) {
     DesktopSize size = {s.desktopWidth, s.desktopHeight};
-    if (size.width <= 0 || size.height <= 0) platform::PrimaryDesktopSize(&size.width, &size.height);
+    if (size.width <= 0 || size.height <= 0)
+        if (const std::optional<Size> desktop = platform::PrimaryDesktopSize()) size = {desktop->w, desktop->h};
     if (size.width <= 0 || size.height <= 0) {
         ei::Log("settings: no desktop size (%dx%d): the defaults for 1024x768, not written this session", size.width,
                 size.height);

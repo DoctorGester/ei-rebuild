@@ -53,7 +53,7 @@ Vector3 RandomInBall() {
 // 0 (and a debug message) without a carrier.
 bool SetUpCasting(ParticleSource* s) {
     if (!s->attachedTo) {
-        game::DebugLog(NoCarrierCasting());
+        game::DebugLog("%s", NoCarrierCasting());
         return false;
     }
     auto [offset, radius] = s->AttachmentOffset();
@@ -90,7 +90,7 @@ const char* NoCarrierSphere() { return "Particle effect Link without carrier\n";
 // figure, the emission rate follows the source's size, and element 1 smooths the carrier's motion.
 bool FollowCarrier(ParticleSource* s) {
     if (!s->attachedTo) {
-        game::DebugLog(NoCarrierSphere());
+        game::DebugLog("%s", NoCarrierSphere());
         return false;
     }
     auto [offset, radius] = s->AttachmentOffset();
@@ -382,7 +382,7 @@ std::uint32_t ColumnAlpha(int life) { return life < 0 ? 0 : static_cast<std::uin
 // The ring from the carrier's figure (the first emission). False without a carrier.
 bool SetUpColumn(ParticleSource* s) {
     if (!s->attachedTo) {
-        game::DebugLog(NoCarrierCasting());
+        game::DebugLog("%s", NoCarrierCasting());
         return false;
     }
     auto [offset, radius] = s->AttachmentOffset();
@@ -712,7 +712,7 @@ int ParticleSource::EmitOrbit(Particle* p, int index) {
 int ParticleSource::EmitCastRing(Particle* p, int) {
     if (elements.empty()) {
         if (!attachedTo) {
-            game::DebugLog(NoCarrierRing());
+            game::DebugLog("%s", NoCarrierRing());
             return 0;
         }
         emitCount = 3;
@@ -810,7 +810,7 @@ void ParticleSource::TickCastRing(ParticleElement* e) {
 int ParticleSource::EmitHealing(Particle* p, int) {
     if (elements.empty()) {
         if (!attachedTo) {
-            game::DebugLog(NoCarrierHealing());
+            game::DebugLog("%s", NoCarrierHealing());
             return 0;
         }
         emitCount = std::lround(size * 6.0f + 2.0f);
@@ -880,7 +880,7 @@ void ParticleSource::TickHealing(ParticleElement* e) {
 int ParticleSource::EmitCastSwirl(Particle* p, int) {
     if (std::ssize(elements) < lifetime) {
         if (!attachedTo) {
-            game::DebugLog(NoCarrierCasting());
+            game::DebugLog("%s", NoCarrierCasting());
             return 0;
         }
         return AddOrbiter(this, p);
@@ -1535,7 +1535,7 @@ int ParticleSource::UpdateMushroom(Particle* p) {
 int ParticleSource::EmitStench(Particle* p, int) {
     if (elements.empty()) {
         if (!attachedTo) {
-            game::DebugLog(NoCarrierGas());
+            game::DebugLog("%s", NoCarrierGas());
             return 0;
         }
         auto [offset, radius] = AttachmentOffset();

@@ -16,7 +16,7 @@
 
 namespace {
 
-constexpr std::uint32_t kDefaultVersion = 2000000000;
+constexpr std::int32_t kDefaultVersion = 2000000000;
 
 // ReadStream refuses longer streams.
 constexpr std::uint32_t kMaxStreamLength = 100000;
@@ -347,11 +347,11 @@ bool ByteStream::ReadHeader(std::uint32_t magic, std::int32_t newestVersion, std
     ReadValue(value);
     if (value > newestVersion) return false;
     if (value < oldestVersion) return false;
-    version = static_cast<std::uint32_t>(value);
+    version = value;
     return true;
 }
 
-void ByteStream::WriteHeader(std::uint32_t magic, std::uint32_t headerVersion) {
+void ByteStream::WriteHeader(std::uint32_t magic, std::int32_t headerVersion) {
     WriteValue(magic);
     WriteValue(headerVersion);
     version = headerVersion;

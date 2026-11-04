@@ -112,7 +112,7 @@ bool EffectSound::RunTick() {
 void EffectSound::Start(int update) {
     if (update == 0) {
         sound = g_clientWorld.sounds->Play3D(name, noFade != 0 ? 1000 : 0, localPosition,
-                                            volume, radius, looping);
+                                            volume, radius, looping != 0);
         return;
     }
     g_clientWorld.sounds->SetSoundPosition(sound, localPosition, volume, radius);
@@ -153,9 +153,9 @@ void EffectSound::Load(ByteStream* stream) {
     stream->ReadValue(radius);
     stream->ReadValue(velocity);
     moving = IsMoving(velocity);
-    if (Version(stream) < kVersionSoundLooping) return;
+    if (stream->version < kVersionSoundLooping) return;
     stream->ReadValue(looping);
-    if (Version(stream) < kVersionSoundNoFade) return;
+    if (stream->version < kVersionSoundNoFade) return;
     stream->ReadValue(noFade);
 }
 
@@ -213,7 +213,7 @@ void EffectSoundSeq::Load(ByteStream* stream) {
     stream->ReadValue(volume);
     stream->ReadValue(radius);
     moving = IsMoving(velocity);
-    if (Version(stream) < kVersionSoundNoFade) return;
+    if (stream->version < kVersionSoundNoFade) return;
     stream->ReadValue(noFade);
 }
 

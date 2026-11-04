@@ -1,13 +1,11 @@
-// The platform calls a harness run answers itself (its window and desktop answers, its file write
-// watch, its sockets on 127.0.0.1): the harness's builds leave this file out and take its platform backend's
-// definitions of the same functions (tests/verify/platform; CMakeLists.txt; docs/notes/platform.md, "The harness's
-// answers"). Each is the system's call. The paths of the file calls go through one mapping of their own
-// (src/platform/paths.h, system_path.cpp).
+// The platform's sockets on Linux and macOS (platform.h, "Sockets"): BSD sockets failing as Winsock's did where the
+// game relies on it. The harness's builds leave this file out and take their own sockets on 127.0.0.1 and a pair's
+// network (tests/verify/platform/game_sockets.cpp; CMakeLists.txt, EI_GAME_CALLS).
 #include "platform/platform.h"
 
-#include "platform/posix/platform_posix.h"
-
 #include <arpa/inet.h>
+#include <fcntl.h>
+#include <netdb.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -16,37 +14,6 @@
 #include <cerrno>
 #include <cstdint>
 #include <string>
-
-// ==== Files ==========================================================================================================
-
-namespace platform {
-
-// platform_posix.cpp's file handles are the descriptor + 1.
-void File::Write(const void* buffer, unsigned count) {
-    const int fd = handle ? static_cast<int>(reinterpret_cast<std::intptr_t>(handle) - 1) : -1;
-    const auto* bytes = static_cast<const char*>(buffer);
-    while (count) {
-        const ssize_t n = write(fd, bytes, count);
-        if (n < 0 && errno == EINTR) continue;
-        if (n <= 0) throw FileError(n ? errno : ENOSPC, path);
-        bytes += n;
-        count -= static_cast<unsigned>(n);
-    }
-}
-
-} // namespace platform
-
-// ==== The desktop and the other game window ==========================================================================
-
-namespace platform {
-
-bool FontSmoothing() { return true; }
-
-bool BringOtherInstanceForward(const char* name, const char* title) { return posix::OtherInstanceRunning(name, title); }
-
-} // namespace platform
-
-// ==== Sockets ========================================================================================================
 
 namespace platform::net {
 
@@ -69,11 +36,32 @@ Address Public(const sockaddr_in& n) { return {kIpv4, n.sin_port, n.sin_addr.s_a
 
 } // namespace
 
+Socket Open(Kind kind) {
+    const int fd = socket(AF_INET, kind == Kind::Udp ? SOCK_DGRAM : SOCK_STREAM, 0);
+    if (fd < 0) return kNoSocket;
+#ifdef SO_NOSIGPIPE
+    const int yes = 1;
+    setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &yes, sizeof(yes));
+#endif
+    fcntl(fd, F_SETFD, FD_CLOEXEC);
+    return static_cast<Socket>(fd);
+}
+
 void Close(Socket s) { close(Fd(s)); }
 
 bool Bind(Socket s, const Address& a) {
     const auto n = Native(a);
     return a.family == kIpv4 && bind(Fd(s), reinterpret_cast<const sockaddr*>(&n), sizeof(n)) == 0;
+}
+
+void SetNonBlocking(Socket s, bool on) {
+    const int flags = fcntl(Fd(s), F_GETFL);
+    if (flags >= 0) fcntl(Fd(s), F_SETFL, on ? flags | O_NONBLOCK : flags & ~O_NONBLOCK);
+}
+
+void AllowBroadcast(Socket s) {
+    const int yes = 1;
+    setsockopt(Fd(s), SOL_SOCKET, SO_BROADCAST, &yes, sizeof(yes));
 }
 
 bool Connect(Socket s, const Address& a) {
@@ -122,6 +110,23 @@ int Receive(Socket s, void* p, int n) {
     return static_cast<int>(recv(Fd(s), p, n, 0));
 }
 
+Error LastError() {
+    switch (errno) {
+    case 0:
+        return Error::None;
+    case EAGAIN:
+    case EINPROGRESS:
+    case EALREADY:
+        return Error::WouldBlock;
+    case EADDRINUSE:
+        return Error::AddressInUse;
+    case ECONNREFUSED:
+        return Error::Refused;
+    default:
+        return Error::Other;
+    }
+}
+
 int Select(SocketGroup* read, SocketGroup* write, SocketGroup* failed, std::int32_t microseconds) {
     SocketGroup* groups[] = {read, write, failed};
     fd_set sets[3];
@@ -155,6 +160,22 @@ int Select(SocketGroup* read, SocketGroup* write, SocketGroup* failed, std::int3
             groups[i]->count = count;
         }
     return ready;
+}
+
+std::string HostName() {
+    char name[256] = {};   // the longest a host name gets, and a terminator gethostname may leave out
+    return gethostname(name, sizeof(name) - 1) == 0 ? name : "";
+}
+
+std::optional<std::uint32_t> LookUp(const char* name) {
+    addrinfo hint{};
+    hint.ai_family = AF_INET;
+    hint.ai_socktype = SOCK_DGRAM;
+    addrinfo* found = nullptr;
+    if (getaddrinfo(name, nullptr, &hint, &found) || !found) return std::nullopt;
+    const std::uint32_t ip = reinterpret_cast<sockaddr_in*>(found->ai_addr)->sin_addr.s_addr;
+    freeaddrinfo(found);
+    return ip;
 }
 
 } // namespace platform::net

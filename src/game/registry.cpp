@@ -19,7 +19,36 @@ namespace {
 const char* const kNotRegistry = "CFileRegistry::IsValid().\nThat is not registry file.\n";   // "FileRegistry::IsValid().\nThat is not registry file.\n"
 const char* const kWrongType = "CFileRegistry::FindData().\nWrong type of entry.\n";     // "FileRegistry::FindData().\nWrong type of entry.\n"
 
-// The text bytes at `p` (names and strings are stored inline, without a terminator).
+// The file's layout. Sections and keys are found in hash tables whose slots chain on collisions; names and
+// strings are stored inline, without a terminator.
+#pragma pack(push, 1)
+// The file starts with this; the section table's slots follow.
+struct RegistryHeader {
+    std::uint32_t magic;                // kRegistryMagic
+    std::uint16_t sectionSlots;
+};
+// A table slot: the next slot of the chain (0xFFFF: the end) and the entry's offset (a section's from the file
+// start, a key's from its section record).
+struct RegistrySlot {
+    std::uint16_t next;
+    std::uint32_t offset;
+};
+// A section record: the name's characters follow, then the key table (its slots).
+struct RegistrySection {
+    std::uint16_t keySlots;
+    std::uint16_t nameLength;
+};
+// A key's entry in a section: the name's characters follow, then the value (an int or a float; a string or an
+// array with its 16-bit length or count first).
+struct RegistryKey {
+    std::uint8_t type;                  // RegistryType
+    std::uint16_t nameLength;
+};
+#pragma pack(pop)
+static_assert(sizeof(RegistryHeader) == 6 && sizeof(RegistrySlot) == 6 && sizeof(RegistrySection) == 4 &&
+              sizeof(RegistryKey) == 3);
+
+// The text bytes at `p`.
 const char* Chars(const std::uint8_t* p) { return reinterpret_cast<const char*>(p); }
 
 // The home slot of `name` in a table of `slots` entries.
@@ -29,119 +58,115 @@ std::uint32_t HomeSlot(const char* name, std::uint16_t slots) {
     return sum % slots;
 }
 
+// A table's slot `index`, the table starting at `table`.
+RegistrySlot SlotAt(const std::uint8_t* table, std::uint32_t index) {
+    return lib::Load<RegistrySlot>(table + sizeof(RegistrySlot) * index);
+}
+
 // GetIntArray / GetFloatArray: the values are copied bit for bit.
 template <typename T>
-bool GetDwordArray(FileRegistry* registry, const char* section, const char* key, unsigned type, std::vector<T>* out) {
-    int isScalar;
+bool GetDwordArray(FileRegistry* registry, const char* section, const char* key, RegistryType type, std::vector<T>* out) {
+    bool isScalar;
     const std::uint8_t* value = registry->FindData(section, key, type, &isScalar);
     if (!value) {
         out->clear();
         return false;
     }
-    int count;
-    if (isScalar) {
-        count = 1;
-    } else {
+    int count = 1;
+    if (!isScalar) {
         count = lib::Load<std::uint16_t>(value);
         value += 2;
-        if (count == 0) {
-            out->clear();
-            return true;
-        }
     }
     out->resize(count);
-    for (int i = 0; i < count; ++i) (*out)[i] = static_cast<T>(lib::Load<std::uint32_t>(value + 4 * i));
+    for (int i = 0; i < count; ++i) (*out)[i] = lib::Load<T>(value + 4 * i);
     return true;
 }
 
 } // namespace
-
 
 bool FileRegistry::Open(const std::string& path) {
     if (!file.Open(path)) {
         game::DebugLog("CMappedFile::Open().\nUnable to open file \"%s\".\n", path);
         return false;
     }
-    attached = 0;
+    attached = false;
     data = static_cast<const std::uint8_t*>(file.Data());
-    if (lib::Load<std::uint32_t>(data) == kRegistryMagic) return true;
+    if (lib::Load<RegistryHeader>(data).magic == kRegistryMagic) return true;
     game::DebugLog(kNotRegistry);
-    if (!attached) file.Close();
-    attached = 0;
-    data = nullptr;
+    Close();
     return false;
 }
 
 bool FileRegistry::Attach(const void* image) {
-    attached = 1;
+    attached = true;
     data = static_cast<const std::uint8_t*>(image);
-    if (lib::Load<std::uint32_t>(data) == kRegistryMagic) return true;
+    if (lib::Load<RegistryHeader>(data).magic == kRegistryMagic) return true;
     game::DebugLog(kNotRegistry);
-    if (!attached) file.Close();
-    attached = 0;
-    data = nullptr;
+    Close();
     return false;
 }
 
 void FileRegistry::Close() {
     if (!attached) file.Close();
-    attached = 0;
+    attached = false;
     data = nullptr;
 }
 
-const std::uint8_t* FileRegistry::FindData(const char* section, const char* key, unsigned type, int* isScalar) {
-    const std::uint8_t* root = data;
-    if (!root) return nullptr;
+const std::uint8_t* FileRegistry::FindData(const char* section, const char* key, RegistryType type, bool* isScalar) {
+    if (!data) return nullptr;
 
-    // The section: chained 6-byte slots after the u16 count at +4.
-    std::uint32_t slot = HomeSlot(section, lib::Load<std::uint16_t>(root + 4));
-    std::uint32_t sectionLength = static_cast<std::uint32_t>(std::strlen(section));
+    // The section: the slots after the header.
+    const std::uint8_t* sectionTable = data + sizeof(RegistryHeader);
+    std::uint32_t slot = HomeSlot(section, lib::Load<RegistryHeader>(data).sectionSlots);
+    const auto sectionLength = static_cast<std::uint16_t>(std::strlen(section));
     const std::uint8_t* record;
     for (;;) {
-        const std::uint8_t* entry = root + 6 + 6 * (slot & 0xFFFF);
-        record = data + lib::Load<std::uint32_t>(entry + 2);
-        if (lib::Load<std::uint16_t>(record + 2) == static_cast<std::uint16_t>(sectionLength) &&
-            text::CompareIgnoringCase(Chars(record + 4), section, sectionLength & 0xFFFF, false) == 0)
+        const RegistrySlot entry = SlotAt(sectionTable, slot);
+        record = data + entry.offset;
+        const auto head = lib::Load<RegistrySection>(record);
+        if (head.nameLength == sectionLength &&
+            text::CompareIgnoringCase(Chars(record + sizeof(head)), section, sectionLength, false) == 0)
             break;
-        slot = lib::Load<std::uint16_t>(entry);
+        slot = entry.next;
         if (slot == 0xFFFF) return nullptr;
     }
     if (!key) return record;
 
     // The key: the section's own table follows its name.
-    const std::uint8_t* keyTable = record + 4 + (sectionLength & 0xFFFF);
-    slot = HomeSlot(key, lib::Load<std::uint16_t>(record));
-    std::uint32_t keyLength = static_cast<std::uint32_t>(std::strlen(key));
+    const std::uint8_t* keyTable = record + sizeof(RegistrySection) + sectionLength;
+    slot = HomeSlot(key, lib::Load<RegistrySection>(record).keySlots);
+    const auto keyLength = static_cast<std::uint16_t>(std::strlen(key));
     const std::uint8_t* value;
     for (;;) {
-        const std::uint8_t* entry = keyTable + 6 * (slot & 0xFFFF);
-        value = record + lib::Load<std::uint32_t>(entry + 2);
-        if (lib::Load<std::uint16_t>(value + 1) == static_cast<std::uint16_t>(keyLength) &&
-            text::CompareIgnoringCase(Chars(value + 3), key, keyLength & 0xFFFF, false) == 0)
+        const RegistrySlot entry = SlotAt(keyTable, slot);
+        value = record + entry.offset;
+        const auto head = lib::Load<RegistryKey>(value);
+        if (head.nameLength == keyLength &&
+            text::CompareIgnoringCase(Chars(value + sizeof(head)), key, keyLength, false) == 0)
             break;
-        slot = lib::Load<std::uint16_t>(entry);
+        slot = entry.next;
         if (slot == 0xFFFF) return nullptr;
     }
 
-    std::uint8_t wanted = static_cast<std::uint8_t>(type);
-    if (isScalar) *isScalar = (wanted & 0x80) ? 0 : 1;
-    if (value[0] != wanted) {
-        if (value[0] != (wanted & 0x7F)) {
+    const std::uint8_t found = lib::Load<RegistryKey>(value).type;
+    if (isScalar) *isScalar = (type & kRegArray) == 0;
+    if (found != type) {
+        if (found != (type & ~kRegArray)) {
             game::DebugLog(kWrongType);
             return nullptr;
         }
-        if (isScalar) *isScalar = 1;
+        if (isScalar) *isScalar = true;
     }
-    return value + 3 + (keyLength & 0xFFFF);
+    return value + sizeof(RegistryKey) + keyLength;
 }
 
 std::vector<std::string> FileRegistry::SectionNames() {
-    const std::uint8_t* root = data;
-    int count = lib::Load<std::uint16_t>(root + 4);
-    std::vector<std::string> names(static_cast<std::size_t>(count));
+    const auto count = lib::Load<RegistryHeader>(data).sectionSlots;
+    std::vector<std::string> names(count);
     for (int i = 0; i < count; ++i) {
-        const std::uint8_t* record = data + lib::Load<std::uint32_t>(root + 8 + 6 * i);
-        names[i].assign(Chars(record + 4), lib::Load<std::uint16_t>(record + 2));
+        const std::uint8_t* record = data + SlotAt(data + sizeof(RegistryHeader), i).offset;
+        const auto head = lib::Load<RegistrySection>(record);
+        names[i].assign(Chars(record + sizeof(head)), head.nameLength);
     }
     return names;
 }
@@ -192,24 +217,22 @@ void FileRegistry::GetStringBuffer(const char* section, const char* key, char* b
 }
 
 bool FileRegistry::GetIntArray(const char* section, const char* key, std::vector<std::int32_t>* out) {
-    return GetDwordArray(this, section, key, kRegArray | kRegInt, out);
+    return GetDwordArray(this, section, key, kRegIntArray, out);
 }
 
-bool FileRegistry::GetFloatArray(const char* section, const char* key, std::vector<std::uint32_t>* out) {
-    return GetDwordArray(this, section, key, kRegArray | kRegFloat, out);
+bool FileRegistry::GetFloatArray(const char* section, const char* key, std::vector<float>* out) {
+    return GetDwordArray(this, section, key, kRegFloatArray, out);
 }
 
 bool FileRegistry::GetStringArray(const char* section, const char* key, std::vector<std::string>* out) {
-    int isScalar;
-    const std::uint8_t* value = FindData(section, key, kRegArray | kRegString, &isScalar);
+    bool isScalar;
+    const std::uint8_t* value = FindData(section, key, kRegStringArray, &isScalar);
     if (!value) {
         out->clear();
         return false;
     }
-    int count;
-    if (isScalar) {
-        count = 1;
-    } else {
+    int count = 1;
+    if (!isScalar) {
         count = lib::Load<std::uint16_t>(value);
         value += 2;
     }

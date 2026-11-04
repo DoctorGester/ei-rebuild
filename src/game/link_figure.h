@@ -80,7 +80,7 @@ struct LinkPartRanges {
 // part headers. The draws go through the device (link_mesh_draw.cpp).
 class LinkMesh {
 public:
-    LinkMesh(LinkFigureLoader* loader, std::string_view name, float s, float t, float u);
+    LinkMesh(LinkFigureLoader* loader, std::string_view name, Morph morph);
     ~LinkMesh();
     LinkMesh(const LinkMesh&) = delete;
     LinkMesh& operator=(const LinkMesh&) = delete;
@@ -124,9 +124,6 @@ public:
     // packets (unsigned) with `vertices`; false when there is no such part.
     bool SetPartVertices(std::string_view name, const VertexPacket* vertices, unsigned count);
 
-    // Sets the morph coefficients.
-    void SetMorph(float s, float t, float u);
-
     // Appends a part: false when `name` is already a part; otherwise each array grows by the elements given, and
     // the part's ranges are recorded; true.
     bool AddPart(const std::string& name, std::span<const VertexPacket> newVertices,
@@ -137,7 +134,7 @@ public:
     int refCount = 0;
     std::string name;
     std::map<std::string, LinkPartHeader, std::less<>> headers;
-    float morphWeights[3];            // the morph coefficients (s, t, u) the figure was loaded with
+    Morph morph;                      // the coefficients the figure was loaded (or last morphed) with
     std::vector<VertexPacket> vertices;
     std::vector<NormalPacket> normals;
     std::vector<TexCoord> texCoords;

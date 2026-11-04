@@ -110,8 +110,8 @@ void AddExtraWeapon(SkinRequest& set, const UnitModelRecord* model, DressedUnitR
 
 // The texture cache is the client world's texture manager.
 void Compose(WorldClient* self, std::string& out, SkinRequest& set, const std::string& name, int size, int kind) {
-    set.flags = size;
-    self->textureManager->Compose(&out, &set, &name, &name, 3, 0x5551);
+    set.side = size;
+    self->textureManager->Compose(&out, &set, &name, &name, 3, kMmpFormat1555);
     self->textureManager->FindOrLoad(kind, name);
 }
 
@@ -175,7 +175,8 @@ void FigureUnit(WorldClient* self, FiguredUnitRecord* record) {
         first.insert(first.end(), parts.plain.begin(), parts.plain.end());
     }
 
-    self->figureLoader->LoadFigure(model->figureName.c_str(), first, record->morphS, record->morphT, record->morphU);
+    self->figureLoader->LoadFigure(model->figureName.c_str(), first,
+                                      {record->morphS, record->morphT, record->morphU});
 }
 } // namespace
 

@@ -2,13 +2,14 @@
 // decoded by dr_wav and the music's halves at their volume and pan, the cave voices through a reverb; the MP3 files
 // decoded by dr_mp3 (third_party/dr_libs).
 // What the game reads back keeps to the game's clock whatever the device does: a voice ends when its wave would have
-// (WaveMilliseconds on platform::Milliseconds, delivered by DeliverEnds). The music's halves become free as the device
+// (WaveMilliseconds on platform::FrameClock, delivered by DeliverEnds). The music's halves become free as the device
 // plays them; without a device (UseNoDevice, or none could be opened) as fast as they would play on the game's clock.
 #include "audio.h"
 
 #include "lib/bytes.h"
 #include "lib/maths.h"
 #include "platform/log.h"
+#include "platform/platform.h"
 
 // dr_wav and dr_mp3 (third_party/dr_libs, unmodified); their implementations are at the end of this file.
 #pragma warning(push, 0)
@@ -27,6 +28,7 @@
 #include <cstring>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <string_view>
 #include <thread>
 
@@ -36,20 +38,10 @@
 
 namespace audio {
 
-// An MP3 file's whole frames: their samples per channel, the first frame's rate and channels.
-struct Mp3Layout {
-    std::uint32_t frames = 0;
-    std::uint32_t samples = 0;
-    unsigned rate = 0;
-    int channels = 0;
-};
-
 namespace {
 
 // The chunks a wave can have before its data are short; a size past this is not a wave.
 constexpr std::uint32_t kLongestHeader = 1u << 20;
-
-} // namespace
 
 // Bytes a second of the wave takes: for IMA ADPCM the rate times the block size over the samples a block holds (4
 // bytes of header per channel, then two samples a byte), truncated; 0 when the header makes no sense.
@@ -61,6 +53,60 @@ std::uint32_t WaveBytesPerSecond(const WaveInfo& info) {
     }
     return info.rate * static_cast<std::uint32_t>(info.channels * info.bits) / 8;
 }
+
+// An MP3 file's whole frames: their samples per channel, the first frame's rate and channels.
+struct Mp3Layout {
+    std::uint32_t frames = 0;
+    std::uint32_t samples = 0;
+    unsigned rate = 0;
+    int channels = 0;
+};
+
+// Layer 3 bit rates in kbit/s by the header's index: MPEG-1, then MPEG-2 and 2.5.
+constexpr int kBitRates[2][16] = {
+    {0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0},
+    {0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0},
+};
+// Sample rates by the header's index: MPEG-1, MPEG-2, MPEG-2.5.
+constexpr unsigned kRates[3][3] = {{44100, 48000, 32000}, {22050, 24000, 16000}, {11025, 12000, 8000}};
+
+// The layout of the MPEG audio layer 3 frames in `data` (an ID3v2 tag at the start skipped; bytes that are not a
+// frame header passed over a byte at a time; a frame cut short by the file's end not counted). No frames: zeros.
+Mp3Layout ScanMp3(const void* data, std::size_t size) {
+    const auto* p = static_cast<const std::uint8_t*>(data);
+    std::size_t at = 0;
+    if (size >= 10 && std::memcmp(p, "ID3", 3) == 0)
+        at = 10 + (static_cast<std::size_t>(p[6] & 0x7F) << 21 | static_cast<std::size_t>(p[7] & 0x7F) << 14 |
+                   static_cast<std::size_t>(p[8] & 0x7F) << 7 | (p[9] & 0x7F));
+    Mp3Layout layout;
+    while (at + 4 <= size) {
+        const std::uint32_t h = static_cast<std::uint32_t>(p[at]) << 24 | static_cast<std::uint32_t>(p[at + 1]) << 16 |
+                                static_cast<std::uint32_t>(p[at + 2]) << 8 | p[at + 3];
+        const unsigned version = h >> 19 & 3;   // 3 MPEG-1, 2 MPEG-2, 0 MPEG-2.5
+        const unsigned layer = h >> 17 & 3;     // 1 layer 3
+        const unsigned rateIndex = h >> 12 & 15;
+        const unsigned sampleIndex = h >> 10 & 3;
+        if ((h >> 21) != 0x7FF || layer != 1 || version == 1 || rateIndex == 0 || rateIndex == 15 || sampleIndex == 3) {
+            ++at;
+            continue;
+        }
+        const bool mpeg1 = version == 3;
+        const unsigned rate = kRates[mpeg1 ? 0 : version == 2 ? 1 : 2][sampleIndex];
+        const unsigned kbps = static_cast<unsigned>(kBitRates[mpeg1 ? 0 : 1][rateIndex]);
+        const std::size_t length = (mpeg1 ? 144000u : 72000u) * kbps / rate + (h >> 9 & 1);
+        if (at + length > size) break;
+        if (layout.frames == 0) {
+            layout.rate = rate;
+            layout.channels = (h >> 6 & 3) == 3 ? 1 : 2;
+        }
+        ++layout.frames;
+        layout.samples += mpeg1 ? 1152 : 576;
+        at += length;
+    }
+    return layout;
+}
+
+} // namespace
 
 WaveInfo ReadWaveInfo(const void* wave, std::size_t size) {
     WaveInfo info;
@@ -103,59 +149,7 @@ std::uint32_t WaveMilliseconds(const WaveInfo& info) {
     return static_cast<std::uint32_t>(static_cast<std::uint64_t>(info.dataLength) * 1000 / rate);
 }
 
-namespace {
-
-// Layer 3 bit rates in kbit/s by the header's index: MPEG-1, then MPEG-2 and 2.5.
-constexpr int kBitRates[2][16] = {
-    {0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0},
-    {0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0},
-};
-// Sample rates by the header's index: MPEG-1, MPEG-2, MPEG-2.5.
-constexpr unsigned kRates[3][3] = {{44100, 48000, 32000}, {22050, 24000, 16000}, {11025, 12000, 8000}};
-
-} // namespace
-
-// The layout of the MPEG audio layer 3 frames in `data` (an ID3v2 tag at the start skipped; bytes that are not a
-// frame header passed over a byte at a time; a frame cut short by the file's end not counted). No frames: zeros.
-Mp3Layout ScanMp3(const void* data, std::size_t size) {
-    const auto* p = static_cast<const std::uint8_t*>(data);
-    std::size_t at = 0;
-    if (size >= 10 && std::memcmp(p, "ID3", 3) == 0)
-        at = 10 + (static_cast<std::size_t>(p[6] & 0x7F) << 21 | static_cast<std::size_t>(p[7] & 0x7F) << 14 |
-                   static_cast<std::size_t>(p[8] & 0x7F) << 7 | (p[9] & 0x7F));
-    Mp3Layout layout;
-    while (at + 4 <= size) {
-        const std::uint32_t h = static_cast<std::uint32_t>(p[at]) << 24 | static_cast<std::uint32_t>(p[at + 1]) << 16 |
-                                static_cast<std::uint32_t>(p[at + 2]) << 8 | p[at + 3];
-        const unsigned version = h >> 19 & 3;   // 3 MPEG-1, 2 MPEG-2, 0 MPEG-2.5
-        const unsigned layer = h >> 17 & 3;     // 1 layer 3
-        const unsigned rateIndex = h >> 12 & 15;
-        const unsigned sampleIndex = h >> 10 & 3;
-        if ((h >> 21) != 0x7FF || layer != 1 || version == 1 || rateIndex == 0 || rateIndex == 15 || sampleIndex == 3) {
-            ++at;
-            continue;
-        }
-        const bool mpeg1 = version == 3;
-        const unsigned rate = kRates[mpeg1 ? 0 : version == 2 ? 1 : 2][sampleIndex];
-        const unsigned kbps = static_cast<unsigned>(kBitRates[mpeg1 ? 0 : 1][rateIndex]);
-        const std::size_t length = (mpeg1 ? 144000u : 72000u) * kbps / rate + (h >> 9 & 1);
-        if (at + length > size) break;
-        if (layout.frames == 0) {
-            layout.rate = rate;
-            layout.channels = (h >> 6 & 3) == 3 ? 1 : 2;
-        }
-        ++layout.frames;
-        layout.samples += mpeg1 ? 1152 : 576;
-        at += length;
-    }
-    return layout;
-}
-
-} // namespace audio
-
 // ==== The backend ====================================================================================================
-
-namespace audio {
 
 namespace {
 
@@ -436,17 +430,12 @@ struct MainHealth {
     Clock::duration longest{};     // the most in one frame
     Clock::duration longestWait{};
     unsigned waits = 0;            // times g_mix was taken by the device
-    Clock::duration longestStreamWait{};
-    unsigned streamTakes = 0;      // the game's stream lock
-    unsigned streamWaits = 0;      // ... found taken by the stream thread
     unsigned frames = 0;
     Clock::duration longestPass{};
     Clock::time_point passAt{};
     Clock::time_point reportedAt{};
 } g_main;
 
-// The longest time the stream thread held the game's stream lock since the last report, in nanoseconds.
-std::atomic<std::int64_t> g_longestStreamHold{0};
 
 // The device's side (under g_mix).
 struct DeviceHealth {
@@ -531,13 +520,11 @@ void NoteFrame() {
     const double ahead = device.given == 0 ? 0.0 : static_cast<double>(device.given) * 1000.0 / g_rate - Ms(now - device.first);
     ei::Log("audio trace: %u frames (longest pass %.1f ms); the game thread in sound %.3f ms a frame, at most %.3f ms, "
             "%u lock waits (longest %.3f ms); the device %u requests, %llu frames (largest %u, longest gap %.1f ms, "
-            "mix at most %.2f ms), %.0f ms ahead; the stream starved %llu frames; the stream lock taken %u times, %u "
-            "waits (longest %.3f ms), held by the stream thread at most %.3f ms",
+            "mix at most %.2f ms), %.0f ms ahead; the stream starved %llu frames",
             g_main.frames, Ms(g_main.longestPass), g_main.frames != 0 ? Ms(g_main.total) / g_main.frames : 0.0,
             Ms(g_main.longest), g_main.waits, Ms(g_main.longestWait), device.calls,
             static_cast<unsigned long long>(device.frames), device.largest, Ms(device.longestGap), Ms(device.longestMix),
-            ahead, static_cast<unsigned long long>(device.starved), g_main.streamTakes, g_main.streamWaits,
-            Ms(g_main.longestStreamWait), static_cast<double>(g_longestStreamHold.exchange(0)) / 1e6);
+            ahead, static_cast<unsigned long long>(device.starved));
     g_main = MainHealth{};
     g_main.passAt = now;
     g_main.reportedAt = now;
@@ -574,24 +561,7 @@ void UseNoDevice() { g_noDevice = true; }
 
 bool HasDevice() { return g_deviceLive; }
 
-void NoteStreamTaken(Clock::duration wait) {
-    if (!g_trace || std::this_thread::get_id() != g_mainThread) return;
-    ++g_main.streamTakes;
-    if (wait == Clock::duration{}) return;
-    g_main.frame += wait;
-    g_main.longestStreamWait = std::max(g_main.longestStreamWait, wait);
-    ++g_main.streamWaits;
-}
-
-void NoteStreamHeld(Clock::duration held) {
-    if (!g_trace) return;
-    const std::int64_t ns = std::chrono::duration_cast<std::chrono::nanoseconds>(held).count();
-    std::int64_t longest = g_longestStreamHold.load();
-    while (ns > longest && !g_longestStreamHold.compare_exchange_weak(longest, ns)) {
-    }
-}
-
-bool OpenOutput(platform::NativeWindow, unsigned rate, bool, std::string*) {
+void OpenOutput(unsigned rate) {
     g_open = true;
     g_rate = rate != 0 ? rate : kDefaultRate;
     g_trace = !platform::EnvironmentVariable("EI_AUDIO_TRACE").empty();
@@ -600,11 +570,11 @@ bool OpenOutput(platform::NativeWindow, unsigned rate, bool, std::string*) {
         std::lock_guard hold(g_mix);
         g_reverb.Open(g_rate);
     }
-    if (g_noDevice) return true;
+    if (g_noDevice) return;
     // The game goes on as with a device, silently, when none opens.
     if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) {
         ei::Log("audio: no audio (%s): silent", SDL_GetError());
-        return true;
+        return;
     }
     const SDL_AudioSpec spec{SDL_AUDIO_F32, kOutputChannels, static_cast<int>(g_rate)};
     g_device = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, DeviceData, nullptr);
@@ -613,7 +583,7 @@ bool OpenOutput(platform::NativeWindow, unsigned rate, bool, std::string*) {
         if (g_device) SDL_DestroyAudioStream(g_device);
         g_device = nullptr;
         SDL_QuitSubSystem(SDL_INIT_AUDIO);
-        return true;
+        return;
     }
     g_deviceLive = true;
     const SDL_AudioDeviceID device = SDL_GetAudioStreamDevice(g_device);
@@ -623,7 +593,6 @@ bool OpenOutput(platform::NativeWindow, unsigned rate, bool, std::string*) {
     SDL_GetAudioDeviceFormat(device, &deviceSpec, &deviceFrames);
     ei::Log("audio: %s through %s, %u Hz; the device %d Hz, %d frames a period", name ? name : "the default device",
             SDL_GetCurrentAudioDriver(), g_rate, deviceSpec.freq, deviceFrames);
-    return true;
 }
 
 bool OpenOffline(unsigned rate) {
@@ -773,7 +742,7 @@ void StartTimer(Voice& v) {
     v.running = true;
     v.stopped = false;
     v.forever = v.loops == 0;
-    v.startedAt = platform::Milliseconds();
+    v.startedAt = platform::FrameClock();
     v.end = v.startedAt + Remaining(v);
 }
 
@@ -866,7 +835,7 @@ void SetPosition(Voice* voice, std::int32_t bytes) {
 
 std::int32_t Position(const Voice* voice) {
     if (!voice->running || voice->stopped || voice->wave.dataLength == 0) return voice->position;
-    const std::uint64_t played = static_cast<std::uint64_t>(platform::Milliseconds() - voice->startedAt) * BytesPerSecond(voice->wave) / 1000;
+    const std::uint64_t played = static_cast<std::uint64_t>(platform::FrameClock() - voice->startedAt) * BytesPerSecond(voice->wave) / 1000;
     return static_cast<std::int32_t>((voice->position + played) % voice->wave.dataLength);
 }
 
@@ -884,7 +853,7 @@ void Stop(Voice* voice) {
     if (!voice->running || voice->stopped) return;
     voice->position = Position(voice);
     voice->stopped = true;
-    const std::uint32_t now = platform::Milliseconds();
+    const std::uint32_t now = platform::FrameClock();
     voice->left = static_cast<std::int32_t>(voice->end - now) > 0 ? voice->end - now : 0;
 }
 
@@ -895,7 +864,7 @@ void Resume(Voice* voice) {
     }
     if (!voice->running || !voice->stopped) return;
     voice->stopped = false;
-    voice->startedAt = platform::Milliseconds();
+    voice->startedAt = platform::FrameClock();
     voice->end = voice->startedAt + voice->left;
 }
 
@@ -925,16 +894,17 @@ void DeliverEnds(std::uint32_t now) {
 
 namespace {
 
-// A queued half: its bytes (the caller's) and their format.
+// A queued half: its 16-bit samples (QueueHalf's copy) and their format.
 struct Half {
-    const std::uint8_t* data = nullptr;
+    std::vector<std::int16_t> samples;
     std::uint32_t frames = 0;
     std::uint32_t next = 0;   // the frame played next
     unsigned rate = kDefaultRate;
     int channels = 2;
-    int bits = 16;
     bool queued = false;
 };
+
+std::vector<Stream*> g_streams;   // in the order they were made
 
 } // namespace
 
@@ -943,7 +913,6 @@ struct Half {
 struct Stream {
     unsigned rate = kDefaultRate;   // the format of the halves queued from now on
     int channels = 2;
-    int bits = 16;
     int volume = 127;
     int pan = 64;
     Gains gains;
@@ -975,16 +944,8 @@ struct Stream {
         started = true;
         Half& h = halves[playing];
         const std::size_t at = static_cast<std::size_t>(h.next) * h.channels;
-        for (int c = 0; c < 2; ++c) {
-            const std::size_t i = at + static_cast<std::size_t>(std::min(c, h.channels - 1));
-            if (h.bits == 16) {
-                std::int16_t sample;
-                std::memcpy(&sample, h.data + i * 2, sizeof(sample));
-                frame[c] = static_cast<float>(sample) * kSampleScale;
-            } else {
-                frame[c] = static_cast<float>(h.data[i] - 128) * (1.0f / 128.0f);
-            }
-        }
+        for (int c = 0; c < 2; ++c)
+            frame[c] = static_cast<float>(h.samples[at + static_cast<std::size_t>(std::min(c, h.channels - 1))]) * kSampleScale;
         ++h.next;
         return true;
     }
@@ -1011,10 +972,6 @@ struct Stream {
     }
 };
 
-namespace {
-std::vector<Stream*> g_streams;
-} // namespace
-
 Stream* CreateStream() {
     if (!g_open) return nullptr;
     auto* stream = new Stream;
@@ -1031,9 +988,9 @@ void DestroyStream(Stream* stream) {
     delete stream;
 }
 
-int MinimumHalfBytes(unsigned rate, int channels, int bits) {
+int MinimumHalfBytes(unsigned rate, int channels) {
     // 87 ms rounded up to 512 bytes: what the original asked for 44.1 kHz 16-bit stereo through the wave mapper.
-    const std::uint64_t bytes = static_cast<std::uint64_t>(rate) * channels * bits / 8 * 87 / 1000;
+    const std::uint64_t bytes = static_cast<std::uint64_t>(rate) * channels * 2 * 87 / 1000;
     return static_cast<int>((bytes + 511) & ~std::uint64_t{511});
 }
 
@@ -1046,11 +1003,10 @@ void ResetStream(Stream* stream) {
     stream->stopped = false;
 }
 
-void SetStreamFormat(Stream* stream, unsigned rate, int channels, int bits) {
+void SetStreamFormat(Stream* stream, unsigned rate, int channels) {
     MixHold hold;
     stream->rate = rate;
     stream->channels = channels;
-    stream->bits = bits;
 }
 
 void SetStreamVolume(Stream* stream, int volume) {
@@ -1074,13 +1030,12 @@ int ReadyHalf(Stream* stream, std::uint32_t now) {
 void QueueHalf(Stream* stream, int half, const void* data, int bytes) {
     MixHold hold;
     Half& h = stream->halves[half];
-    const int frameBytes = std::max(1, stream->channels * stream->bits / 8);
-    h.data = static_cast<const std::uint8_t*>(data);
-    h.frames = static_cast<std::uint32_t>(std::max(bytes, 0) / frameBytes);
+    h.channels = std::max(1, stream->channels);
+    h.frames = static_cast<std::uint32_t>(std::max(bytes, 0) / (h.channels * static_cast<int>(sizeof(std::int16_t))));
+    h.samples.resize(static_cast<std::size_t>(h.frames) * h.channels);
+    std::memcpy(h.samples.data(), data, h.samples.size() * sizeof(std::int16_t));
     h.next = 0;
     h.rate = stream->rate;
-    h.channels = std::max(1, stream->channels);
-    h.bits = stream->bits;
     h.queued = true;
     stream->next = 1 - half;
     if (stream->playing < 0) stream->playing = half;
@@ -1088,7 +1043,7 @@ void QueueHalf(Stream* stream, int half, const void* data, int bytes) {
 
 void StopStream(Stream* stream) {
     MixHold hold;
-    stream->Pump(platform::Milliseconds());
+    stream->Pump(platform::FrameClock());
     stream->stopped = true;
 }
 
@@ -1096,7 +1051,7 @@ void ResumeStream(Stream* stream) {
     MixHold hold;
     if (!stream->stopped) return;
     stream->stopped = false;
-    stream->pumpedAt = platform::Milliseconds();
+    stream->pumpedAt = platform::FrameClock();
 }
 
 // ---- The mixer ----
@@ -1179,20 +1134,6 @@ struct Mp3Close {
 };
 using Mp3Decoder = std::unique_ptr<drmp3, Mp3Close>;
 
-} // namespace
-
-struct Mp3Stream {
-    std::vector<char> file;
-    Mp3Layout layout;
-    Mp3Decoder decoder;              // null unless dr_mp3 opened the file with the layout's channels
-    std::uint64_t given = 0;         // frames
-    std::vector<std::int16_t> samples;
-};
-
-namespace {
-
-constexpr int kReadStep = 0x10000;
-
 // dr_mp3 on the MP3 file in memory (16-bit samples), when it decodes the layout's channels; null otherwise.
 Mp3Decoder OpenMp3Decoder(const void* data, std::size_t size, const Mp3Layout& layout) {
     Mp3Decoder decoder(new drmp3);
@@ -1211,21 +1152,24 @@ void DecodeFrames(drmp3* decoder, int channels, std::uint64_t frames, std::vecto
     std::memcpy(to, samples->data(), samples->size() * sizeof(std::int16_t));
 }
 
+void PutTag(std::uint8_t* p, std::string_view tag) { std::copy(tag.begin(), tag.end(), p); }
+
 } // namespace
 
-Mp3Stream* OpenMp3(ReadFn read, void* user) {
+struct Mp3Stream {
+    std::string file;
+    Mp3Layout layout;
+    Mp3Decoder decoder;              // null unless dr_mp3 opened the file with the layout's channels
+    std::uint64_t given = 0;         // frames
+    std::vector<std::int16_t> samples;
+};
+
+Mp3Stream* OpenMp3(std::string file) {
     auto mp3 = std::make_unique<Mp3Stream>();
-    std::vector<char>& file = mp3->file;
-    for (int offset = 0;; offset = -1) {
-        const std::size_t at = file.size();
-        file.resize(at + kReadStep);
-        const int got = read(user, file.data() + at, kReadStep, offset);
-        file.resize(at + static_cast<std::size_t>(std::max(got, 0)));
-        if (got <= 0) break;
-    }
-    mp3->layout = ScanMp3(file.data(), file.size());
+    mp3->file = std::move(file);
+    mp3->layout = ScanMp3(mp3->file.data(), mp3->file.size());
     if (mp3->layout.frames == 0) return nullptr;
-    mp3->decoder = OpenMp3Decoder(file.data(), file.size(), mp3->layout);
+    mp3->decoder = OpenMp3Decoder(mp3->file.data(), mp3->file.size(), mp3->layout);
     return mp3.release();
 }
 
@@ -1233,7 +1177,6 @@ void CloseMp3(Mp3Stream* mp3) { delete mp3; }
 
 unsigned Mp3Rate(const Mp3Stream* mp3) { return mp3->layout.rate; }
 int Mp3Channels(const Mp3Stream* mp3) { return mp3->layout.channels; }
-int Mp3Bits(const Mp3Stream*) { return 16; }
 
 int DecodeMp3(Mp3Stream* mp3, void* to, int bytes) {
     const int frameBytes = mp3->layout.channels * 2;
@@ -1248,10 +1191,6 @@ void RewindMp3(Mp3Stream* mp3) {
     mp3->given = 0;
     if (mp3->decoder) drmp3_seek_to_pcm_frame(mp3->decoder.get(), 0);
 }
-
-namespace {
-void PutTag(std::uint8_t* p, std::string_view tag) { std::copy(tag.begin(), tag.end(), p); }
-} // namespace
 
 bool DecodeMp3File(const void* data, std::size_t size, std::vector<std::uint8_t>* wave) {
     const Mp3Layout layout = ScanMp3(data, size);

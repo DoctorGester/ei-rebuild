@@ -17,8 +17,8 @@
 //
 // Loopback only (WB14): Windows Firewall asks the user about a program that listens on an address other
 // than loopback, once per program path (worktrees' builds, the standalone host's copies). The harness
-// answers the game's socket calls itself (platform::net's, game_calls.cpp's in the game's builds: the harness's backend
-// answers them, tests/verify/platform/game_answers.cpp, with the calls below): a bind on every address (SocketDriver::Open 004409A0, MasterLink 00440C60) binds 127.0.0.1, a datagram from a socket not bound yet (the client session's, Open(-1): Winsock
+// answers the game's socket calls itself (platform::net's, src/platform/<system>/sockets.cpp's in the game's builds: the
+// harness's backend answers them, tests/verify/platform/game_sockets.cpp, with the calls below): a bind on every address (SocketDriver::Open 004409A0, MasterLink 00440C60) binds 127.0.0.1, a datagram from a socket not bound yet (the client session's, Open(-1): Winsock
 // would bind it on every address) binds it to 127.0.0.1 first, and a datagram to another address
 // (the lobby's ping to the host's broadcast address, 00440A90) goes to 127.0.0.1 on the same port,
 // which reaches the same game's server as the broadcast did. Nothing leaves the machine. A check of

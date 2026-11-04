@@ -113,8 +113,10 @@ Rect Placed(int clientWidth, int clientHeight, int frameWidth, int frameHeight) 
 
 // The client area, the frame's size and its place; false when there is no frame or window.
 bool Placement(int* clientWidth, int* clientHeight, int* frameWidth, int* frameHeight, Rect* placed) {
-    if (!platform::WindowPixelSize(GameWindow(), clientWidth, clientHeight) || !GameTargetSize(frameWidth, frameHeight))
-        return false;
+    const std::optional<Size> client = platform::WindowPixelSize(GameWindow());
+    if (!client || !GameTargetSize(frameWidth, frameHeight)) return false;
+    *clientWidth = client->w;
+    *clientHeight = client->h;
     *placed = Placed(*clientWidth, *clientHeight, *frameWidth, *frameHeight);
     return true;
 }

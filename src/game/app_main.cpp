@@ -157,7 +157,7 @@ void OpenSound() {
     GameOptions* options = &options::g_options;
     std::string textFolder = g_textFolder;
     std::string dataFolder = g_dataFolder;
-    g_clientWorld.sounds->Open(g_mainWindow, 1, 44100);
+    g_clientWorld.sounds->Open(true, 44100);
     {
         std::string registry = textFolder + "streamsn.reg";
         std::string folder = dataFolder + "stream\\";
@@ -226,12 +226,12 @@ float CameraSeconds(std::uint32_t milliseconds) { return static_cast<float>(mill
 std::uint32_t TimeSinceLastPass() {
     if (!g_clock.started) {
         g_clock.started = true;
-        g_clock.last = platform::Milliseconds();
+        g_clock.last = platform::FrameClock();
     }
     std::uint32_t now;
     {
         ei::mainloop::InSite site(ei::mainloop::Site::FrameTime);
-        now = platform::Milliseconds();
+        now = platform::FrameClock();
     }
     // The voices whose wave has played out by the frame's time end now (the sound manager's Tick frees them), and
     // without a device the music's stream catches up to it.
@@ -382,7 +382,6 @@ bool EventWaits(ei::mainloop::Site where) {
 // The loop: passes while no event waits, then the event handled. Returns the quit request's code. Whether the
 // interface takes the input is what the last pass said; before the first pass it does.
 int RunMainLoop() {
-    platform::Event event;
     bool interfaceInput = true;
     for (;;) {
         bool waits = EventWaits(ei::mainloop::Site::PeekBeforeFrame);
@@ -390,7 +389,8 @@ int RunMainLoop() {
             interfaceInput = RunPass();
             waits = EventWaits(ei::mainloop::Site::PeekAfterFrame);
         }
-        if (!platform::NextEvent(&event)) return event.quitCode;
+        const platform::Event event = platform::NextEvent();
+        if (event.type == platform::EventType::Quit) return event.quitCode;
         if (interfaceInput) DispatchInput(event);
         else HandleWindowEvent(event);
     }

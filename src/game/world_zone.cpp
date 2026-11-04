@@ -53,7 +53,7 @@ void WorldServer::SetZoneExits(const std::vector<ZoneExit>* source) {
     for (const ZoneExit& from : *source) {
         if (str::Compare(from.target, game::kEmptyText) == 0) continue;   // leads nowhere
         if (from.entrance < 0 && str::Compare(from.target, kNoExit) != 0)
-            game::FatalError(game::zonetexts::WrongEntrance());
+            game::FatalError("%s", game::zonetexts::WrongEntrance());
         exits.push_back(from);
     }
 }

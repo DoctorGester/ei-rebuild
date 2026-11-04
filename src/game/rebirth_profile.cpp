@@ -78,7 +78,7 @@ void Load(const std::string& gameFolder) {
     const std::string plugin = gameFolder + "\\EI_Plugin.ini";
     if (profile == kRebirthProfile && platform::PathExists(plugin)) {
         IniFile ini;
-        ini.SetPath(plugin);
+        ini.Load(plugin);
         rebirth::SetPluginNPlayers(ini.GetInt("CONFIG", "NPlayers", 7));
         rebirth::SetPluginPause(ini.GetInt("CONFIG", "Pause", 1));
         Log("Rebirth: EI_Plugin.ini's players %d, pause mode %d", rebirth::PluginNPlayers(), rebirth::PluginPause());

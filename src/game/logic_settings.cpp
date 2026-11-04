@@ -3,18 +3,15 @@
 
 #include "registry.h"
 
-#include "lib/containers.h"
-
-#include <cstring>
+#include <algorithm>
+#include <vector>
 
 namespace {
-// Up to three values of a [DifficultyLevels] array into `out` (copied bit for bit).
+// Up to three values of a [DifficultyLevels] array into `out`.
 void ReadDifficulties(FileRegistry& reg, const char* key, float* out) {
-    std::vector<std::uint32_t> values{};
+    std::vector<float> values;
     reg.GetFloatArray("DifficultyLevels", key, &values);
-    int n = lib::Count(values) < 3 ? lib::Count(values) : 3;
-    if (n > 0) std::memcpy(out, values.data(), static_cast<std::size_t>(n) * sizeof(float));
-    values.clear();
+    std::copy_n(values.begin(), std::min<std::size_t>(values.size(), 3), out);
 }
 } // namespace
 

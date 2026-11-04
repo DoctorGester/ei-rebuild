@@ -42,5 +42,4 @@ inline float BelowOneOrOne(const float& value) {
 
 inline void Read(ByteStream* stream, void* data, std::uint32_t size) { stream->Read(data, size); }
 inline void Write(ByteStream* stream, const void* data, std::uint32_t size) { stream->Write(data, size); }
-inline int Version(const ByteStream* stream) { return static_cast<int>(stream->version); }
 } // namespace effect

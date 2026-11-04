@@ -57,9 +57,7 @@ void SplitSetting() {
 
 // The look-up thread: the first address of the host, or -1; then the end and the running flag.
 void LookUp(std::promise<void> done) {
-    std::uint32_t address = kUnknown;
-    if (!sockets::LookUp(g_host.c_str(), &address)) address = kUnknown;
-    g_resolved = address;
+    g_resolved = sockets::LookUp(g_host.c_str()).value_or(kUnknown);
     done.set_value();
     g_lookingUp = false;
 }

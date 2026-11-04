@@ -14,6 +14,9 @@ enum RegistryType : std::uint8_t {
     kRegFloat = 1,
     kRegString = 2,
     kRegArray = 0x80,       // with one of the above
+    kRegIntArray = kRegArray | kRegInt,
+    kRegFloatArray = kRegArray | kRegFloat,
+    kRegStringArray = kRegArray | kRegString,
 };
 
 class FileRegistry {
@@ -26,9 +29,9 @@ public:
     void Close();
 
     // The section record (key null) or the value of `key` in `section`, or null. With
-    // `isScalar`, an array type also accepts a single value of the element type (*isScalar is 1
-    // then; 0 for an array; for a scalar type it is 1). A wrong type logs and gives null.
-    const std::uint8_t* FindData(const char* section, const char* key, unsigned type, int* isScalar);
+    // `isScalar`, an array type also accepts a single value of the element type (*isScalar is true
+    // then; false for an array; for a scalar type it is true). A wrong type logs and gives null.
+    const std::uint8_t* FindData(const char* section, const char* key, RegistryType type, bool* isScalar);
 
     // The names of all sections (in table order).
     std::vector<std::string> SectionNames();
@@ -46,11 +49,11 @@ public:
 
     // Int / float array (or a single value) into `out`. Without the key `out` is emptied and the result is 0.
     bool GetIntArray(const char* section, const char* key, std::vector<std::int32_t>* out);
-    bool GetFloatArray(const char* section, const char* key, std::vector<std::uint32_t>* out);
+    bool GetFloatArray(const char* section, const char* key, std::vector<float>* out);
     // A string array (or a single string) into `out`. Without the key `out` is emptied and the result is 0.
     bool GetStringArray(const char* section, const char* key, std::vector<std::string>* out);
 
-    bool attached = false;        // 1: the data is not ours (Attach)
+    bool attached = false;        // true: the data is not ours (Attach)
     platform::MappedFile file;
     const std::uint8_t* data = nullptr;
 };

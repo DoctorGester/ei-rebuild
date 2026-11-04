@@ -248,12 +248,12 @@ void SaveLoadWindow::FillEntries() {
                 entry->map = info.ReadString();
                 entry->zone = info.ReadString();
                 // The version the header read.
-                if (static_cast<int>(info.version) > 1) {
+                if (info.version > 1) {
                     std::int32_t savedAt;
                     info.ReadValue(savedAt);
                     entry->savedAt = savedAt;
                 }
-                if (static_cast<int>(info.version) > 2) entry->title = info.ReadString();
+                if (info.version > 2) entry->title = info.ReadString();
             }
             info.Close();
             if (entry->title.size() == 0) entry->MakeTitle();

@@ -445,8 +445,8 @@ void Reverb() {
 void Stream() {
     Device device;
     audio::Stream* stream = audio::CreateStream();
-    Check(audio::MinimumHalfBytes(44100, 2, 16) == 15360, "the half's minimum size");
-    audio::SetStreamFormat(stream, kRate, 2, 16);
+    Check(audio::MinimumHalfBytes(44100, 2) == 15360, "the half's minimum size");
+    audio::SetStreamFormat(stream, kRate, 2);
     const Samples a = Tone(1000, 2, 90, 14000, 7);
     const Samples b = Tone(1000, 2, 110, 14000, 8);
     const Samples c = Tone(600, 2, 70, 14000, 9);
@@ -485,7 +485,7 @@ void Stream() {
     Check(audio::ReadyHalf(stream, 0) == 0, "a reset stream asks for half 0");
     audio::DestroyStream(stream);
     stream = audio::CreateStream();
-    audio::SetStreamFormat(stream, kRate, 2, 16);
+    audio::SetStreamFormat(stream, kRate, 2);
 
     // Stopped: silent; Resume goes on where it was.
     audio::QueueHalf(stream, 0, a.data(), static_cast<int>(a.size() * 2));
@@ -504,7 +504,7 @@ void Stream() {
     stream = audio::CreateStream();
     audio::SetStreamVolume(stream, 50);
     audio::SetStreamPan(stream, 100);
-    audio::SetStreamFormat(stream, 22050, 1, 16);
+    audio::SetStreamFormat(stream, 22050, 1);
     const Samples mono = Tone(300, 1, 60, 12000, 10);
     audio::QueueHalf(stream, 0, mono.data(), static_cast<int>(mono.size() * 2));
     Frames wantMono = Resample(AsFrames(mono, 1), 22050, kRate, 600);
@@ -515,17 +515,6 @@ void Stream() {
     }
     Check(Difference(Mix(600), wantMono) <= 1e-5f, "a mono half at 22050 Hz with volume and pan");
 
-    // 8-bit halves.
-    audio::DestroyStream(stream);
-    stream = audio::CreateStream();
-    audio::SetStreamFormat(stream, kRate, 1, 8);
-    std::vector<std::uint8_t> bytes;
-    for (int i = 0; i < 50; ++i) bytes.push_back(static_cast<std::uint8_t>(i * 5));
-    audio::QueueHalf(stream, 0, bytes.data(), static_cast<int>(bytes.size()));
-    Frames wantBytes;
-    for (std::uint8_t x : bytes) wantBytes.push_back({(x - 128) / 128.0f, (x - 128) / 128.0f});
-    wantBytes.resize(60, {0.0f, 0.0f});
-    Check(Difference(Mix(60), wantBytes) <= kTolerance, "an 8-bit mono half");
     audio::DestroyStream(stream);
 }
 
@@ -561,7 +550,7 @@ void Everything() {
     audio::SetVolume(va, 127);
     audio::SetReverb(va, 0.5f, 0.8f, 2.0f);
     audio::Stream* stream = audio::CreateStream();
-    audio::SetStreamFormat(stream, kRate, 2, 16);
+    audio::SetStreamFormat(stream, kRate, 2);
     audio::SetStreamVolume(stream, 60);
     const Samples a = Tone(7680, 2, 301, 20000, 13);
     const Samples b = Tone(7680, 2, 157, 20000, 14);

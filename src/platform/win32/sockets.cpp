@@ -1,57 +1,33 @@
-// The platform calls a harness run answers itself (its window and desktop answers, its file write
-// watch, its sockets on 127.0.0.1): the harness's builds leave this file out and take its platform backend's
-// definitions of the same functions (tests/verify/platform; CMakeLists.txt; docs/notes/platform.md, "The harness's
-// answers"). Each is the system's call. The paths of the file calls go through one mapping of their own
-// (src/platform/paths.h, system_path.cpp).
+// The platform's sockets on Windows (platform.h, "Sockets"): Winsock 1.1 (ws2_32). The harness's builds leave this file
+// out and take their own sockets on 127.0.0.1 and a pair's network (tests/verify/platform/game_sockets.cpp;
+// CMakeLists.txt, EI_GAME_CALLS).
+#define _WINSOCK_DEPRECATED_NO_WARNINGS   // gethostbyname: the look-up the game made
 #include <winsock2.h>   // before anything includes windows.h (and with it winsock.h)
 
 #include "platform/platform.h"
 
-#include "platform/win32/platform_win32.h"
-
-#include <windows.h>
-
+#include <cstring>
 #include <string>
 
 #pragma comment(lib, "ws2_32.lib")
-
-// ==== Files ==========================================================================================================
-
-namespace platform {
-
-void File::Write(const void* buffer, unsigned count) {
-    if (count == 0) return;
-    DWORD written;
-    if (!::WriteFile(handle ? handle : INVALID_HANDLE_VALUE, buffer, count, &written, nullptr))
-        throw FileError(::GetLastError(), path);
-    if (written != count) throw FileError(ERROR_DISK_FULL, path);
-}
-
-} // namespace platform
-
-// ==== The desktop and the other game window ==========================================================================
-
-namespace platform {
-
-bool FontSmoothing() {
-    BOOL smoothing = FALSE;
-    if (!SystemParametersInfoW(SPI_GETFONTSMOOTHING, 0, &smoothing, 0)) return true;
-    return smoothing != FALSE;
-}
-
-bool BringOtherInstanceForward(const char* name, const char* title) {
-    return win32::BringForward(FindWindowW(text::Wide(name).c_str(), text::Wide(title).c_str()));
-}
-
-} // namespace platform
-
-// ==== Sockets ========================================================================================================
 
 namespace platform::net {
 
 namespace {
 
+static_assert(sizeof(Address) == sizeof(sockaddr_in) && sizeof(Socket) == sizeof(SOCKET));
+static_assert(SocketGroup::kCapacity == FD_SETSIZE);
+
 constexpr int kAddressLength = sizeof(sockaddr_in);
+
+// Winsock 1.1, started by the first call that needs it and up until the process ends.
+void Start() {
+    static const bool started = [] {
+        WSADATA data;
+        return WSAStartup(0x101, &data) == 0;
+    }();
+    static_cast<void>(started);
+}
 
 const sockaddr* Native(const Address& address) { return reinterpret_cast<const sockaddr*>(&address); }
 
@@ -72,9 +48,25 @@ void FromNative(const fd_set& native, SocketGroup* set) {
 
 } // namespace
 
+Socket Open(Kind kind) {
+    Start();
+    if (kind == Kind::Udp) return socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    return socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+}
+
 void Close(Socket socket) { closesocket(socket); }
 
 bool Bind(Socket socket, const Address& address) { return bind(socket, Native(address), kAddressLength) == 0; }
+
+void SetNonBlocking(Socket socket, bool on) {
+    u_long value = on ? 1 : 0;
+    ioctlsocket(socket, static_cast<long>(FIONBIO), &value);
+}
+
+void AllowBroadcast(Socket socket) {
+    const BOOL on = TRUE;
+    setsockopt(socket, SOL_SOCKET, SO_BROADCAST, reinterpret_cast<const char*>(&on), sizeof(on));
+}
 
 bool Connect(Socket socket, const Address& address) {
     return connect(socket, Native(address), kAddressLength) == 0;
@@ -93,6 +85,16 @@ int Send(Socket socket, const void* data, int length) { return send(socket, stat
 
 int Receive(Socket socket, void* data, int length) { return recv(socket, static_cast<char*>(data), length, 0); }
 
+Error LastError() {
+    switch (WSAGetLastError()) {
+    case 0: return Error::None;
+    case WSAEWOULDBLOCK: return Error::WouldBlock;
+    case WSAEADDRINUSE: return Error::AddressInUse;
+    case WSAECONNREFUSED: return Error::Refused;
+    default: return Error::Other;
+    }
+}
+
 // The count is ignored by Winsock.
 int Select(SocketGroup* read, SocketGroup* write, SocketGroup* failed, std::int32_t microseconds) {
     fd_set sets[3];
@@ -102,6 +104,21 @@ int Select(SocketGroup* read, SocketGroup* write, SocketGroup* failed, std::int3
     FromNative(sets[1], write);
     FromNative(sets[2], failed);
     return ready;
+}
+
+std::string HostName() {
+    Start();
+    char name[256];   // the longest a host name gets
+    return gethostname(name, sizeof(name)) == 0 ? name : "";
+}
+
+std::optional<std::uint32_t> LookUp(const char* name) {
+    Start();
+    const hostent* host = gethostbyname(name);
+    if (!host || !host->h_addr_list[0]) return std::nullopt;
+    std::uint32_t ip;
+    std::memcpy(&ip, host->h_addr_list[0], sizeof(ip));
+    return ip;
 }
 
 } // namespace platform::net

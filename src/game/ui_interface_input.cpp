@@ -449,9 +449,9 @@ void ScreenFade::Draw(SceneRenderer* renderer) {
     if (!active) return;
     // A step towards 255 (rate > 0) or 0 (rate < 0), by the milliseconds since the last one.
     if ((alpha < kOpaque && rate > 0.0f) || (alpha > 0.0f && rate < 0.0f)) {
-        const std::uint32_t now = platform::Milliseconds();
+        const std::uint32_t now = platform::FrameClock();
         alpha = (now - lastTime) * rate + alpha;
-        lastTime = platform::Milliseconds();
+        lastTime = platform::FrameClock();
     }
     if (alpha > kOpaque) {
         alpha = kOpaque;
@@ -468,7 +468,7 @@ void ScreenFade::Draw(SceneRenderer* renderer) {
 void ScreenFade::Start(int ms) {
     rate = kOpaque / ms;
     alpha = ms > 0 ? 0.0f : kOpaque;
-    lastTime = platform::Milliseconds();
+    lastTime = platform::FrameClock();
     active = true;
 }
 
@@ -513,7 +513,7 @@ void Interface3D::DrawOverlays() {
     if (IsMultiplayerClient() && std::ssize(stack) == 1) root->Redraw();
 
     ++fpsFrames;
-    const std::uint32_t now = platform::Milliseconds();
+    const std::uint32_t now = platform::FrameClock();
     const std::uint32_t elapsed = now - fpsTime;
     if (elapsed > kFpsPeriod) {
         if (fpsSurface) {

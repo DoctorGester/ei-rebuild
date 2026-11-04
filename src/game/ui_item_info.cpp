@@ -284,7 +284,7 @@ void WeaponLines(Writer& w, const ItemHoverInfo& info) {
 
 } // namespace
 
-std::uint32_t ItemCacheTime() { return platform::Milliseconds(); }
+std::uint32_t ItemCacheTime() { return platform::FrameClock(); }
 
 DamageLists ItemDamageLists(const float* values, bool integer) {
     TextManager* texts = g_clientWorld.texts.get();

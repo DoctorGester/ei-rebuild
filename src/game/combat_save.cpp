@@ -82,20 +82,14 @@ void SavePlanFields(ByteStream* stream, OrderPlan* plan) {
 
 // --- Step lists and the armour spell list ----------------------------------------------------
 
+void ArmourSpell::Load(ByteStream* stream) {
+    item.Assign(ReadItem(stream, g_serverWorld.itemManager.get()));
+    stream->ReadValue(countdown);
+}
+
 void ArmourSpell::Save(ByteStream* stream) const {
     stream->WriteId(item);
     stream->WriteValue(countdown);
-}
-
-void LoadArmourSpells(std::vector<ArmourSpell>* list, ByteStream* stream) {
-    const int count = stream->ReadCount();
-    // Blank entries (no item, countdown 0; `worn` is the original's stack byte), replacing the list.
-    list->clear();
-    list->resize(count, ArmourSpell{{}, 0, 0});
-    for (ArmourSpell& entry : *list) {
-        entry.item.Assign(ReadItem(stream, g_serverWorld.itemManager.get()));
-        stream->ReadValue(entry.countdown);
-    }
 }
 
 void UnitServer::Load(ByteStream* stream) {
@@ -119,7 +113,7 @@ void UnitServer::Load(ByteStream* stream) {
     stream->ReadValue(sneakWait);
     LoadOrder(stream, &action);
     LoadOrder(stream, &action2);
-    stats.LoadFrom(stream);
+    stats.Load(stream);
     if (stream->version < kVersionFixedMaxHitPoints)
         stats.fixedMaxHitPoints = unit->Vitals().maxHitPoints;
     for (int i = 0; i < 4; ++i) stream->ReadValue(moveFactors[i]);
@@ -136,7 +130,9 @@ void UnitServer::Load(ByteStream* stream) {
 
     BaseManager* effects = GetManagerContext()->TimedObjectManager();
     effectObject.Assign(ReadObject(stream, effects));
-    LoadArmourSpells(&armourSpells, stream);
+    // Blank entries (no item, countdown 0; `worn` was the original's stack byte, ours 0), replacing the list.
+    armourSpells.assign(stream->ReadCount(), ArmourSpell{{}, 0, 0});
+    for (ArmourSpell& entry : armourSpells) entry.Load(stream);
     stream->ReadValue(followsLeader);
     followedLeader.Assign(ReadUnit(stream, g_serverWorld.objectManager.get()));
 
@@ -177,7 +173,7 @@ void UnitServer::Save(ByteStream* stream) {
     stream->WriteValue(sneakWait);
     SaveOrder(stream, &action);
     SaveOrder(stream, &action2);
-    stats.SaveTo(stream);
+    stats.Save(stream);
     for (int i = 0; i < 4; ++i) stream->WriteValue(moveFactors[i]);
     stream->WriteValue(tameStage);
     stream->WriteValue(ownSide);

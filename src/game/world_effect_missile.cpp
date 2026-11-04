@@ -187,7 +187,7 @@ void EffectArrow::Load(ByteStream* s) {
     s->ReadValue(lightRange);
     s->ReadValue(particleType);
     s->ReadValue(particleSize);
-    if (static_cast<int>(s->version) < kVersionMissileCaster) return;
+    if (s->version < kVersionMissileCaster) return;
     s->ReadValue(casterId);
     s->ReadValue(fromCaster);
 }

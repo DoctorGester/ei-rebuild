@@ -90,38 +90,14 @@ std::string ErrorText(unsigned long code) {
     return text;
 }
 
-std::string FileOfHandle(void* handle) {
+std::string FileOfHandle(std::intptr_t handle) {
     wchar_t name[MAX_PATH];
-    const DWORD n = GetFinalPathNameByHandleW(handle ? handle : INVALID_HANDLE_VALUE, name, MAX_PATH,
+    const DWORD n = GetFinalPathNameByHandleW(reinterpret_cast<HANDLE>(handle), name, MAX_PATH,
                                               FILE_NAME_NORMALIZED | VOLUME_NAME_DOS);
     if (n == 0 || n >= MAX_PATH) return {};
     std::wstring_view path(name, n);
     if (path.starts_with(L"\\\\?\\")) path.remove_prefix(4);
     return text::Narrow(path);
-}
-
-bool WriteHandle(void* handle, const void* data, unsigned size, unsigned* written, unsigned long* error) {
-    DWORD done = 0;
-    if (!::WriteFile(handle ? handle : INVALID_HANDLE_VALUE, data, size, &done, nullptr)) {
-        *error = GetLastError();
-        return false;
-    }
-    *written = done;
-    return true;
-}
-
-const unsigned long kDiskFull = ERROR_DISK_FULL;
-
-// ==== The game's calls as the system answers them ====================================================================
-
-bool FontSmoothing() {
-    BOOL smoothing = FALSE;
-    if (!SystemParametersInfoW(SPI_GETFONTSMOOTHING, 0, &smoothing, 0)) return true;
-    return smoothing != FALSE;
-}
-
-bool BringOtherGameForward(const char* name, const char* title) {
-    return platform::win32::BringForward(FindWindowW(text::Wide(name).c_str(), text::Wide(title).c_str()));
 }
 
 // ==== Processes, threads and time ====================================================================================

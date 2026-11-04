@@ -787,7 +787,7 @@ int WorldClient::LoadZone(ByteStream* block) {
     std::string map;
     std::string mob;
     sounds->SetEffectsVolume(0);
-    sounds->StopAll(1);
+    sounds->StopAll(true);
     partyDanger = 0;
 
     // The block: the tick, the map and .mob names, the exits, the cave flag, the unit looks.

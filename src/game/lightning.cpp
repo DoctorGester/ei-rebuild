@@ -429,10 +429,7 @@ EngineObject* LightningManager::NewObject(int /*type*/) { return new Lightning()
 
 // --- Load --------------------------------------------------------------------------------------------
 
-// The lightning noise table's load. Rebirth patches the function (it redirects the
-// file lookup to a mod folder's copy): this is the vanilla function and it
-// installs in the vanilla launch only (rule 9). The lightning manager's Create calls it through
-// its address (LoadLightningNoiseOriginal). Main thread. See docs/notes/objects.md.
+// The lightning noise table's load (the lightning manager's Create calls it). Main thread. See docs/notes/objects.md.
 
 // Opens <text folder>gfx.res and reads lightning.dat into the noise table, row by row through a memory stream
 // (a short file leaves the rest zero-filled, as the stream's Read does). Returns 0 when the archive does not

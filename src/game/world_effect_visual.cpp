@@ -165,7 +165,7 @@ void EffectPointLight::Load(ByteStream* stream) {
     stream->ReadValue(range);
     stream->ReadValue(velocity);
     moving = IsMoving(velocity);
-    if (Version(stream) < kVersionLightFlags) return;
+    if (stream->version < kVersionLightFlags) return;
     stream->ReadValue(lightFlags);
 }
 
@@ -353,9 +353,9 @@ void EffectParticle::Load(ByteStream* stream) {
     moving = IsMoving(velocity);
     stream->ReadValue(startTick);
     stream->ReadValue(target);
-    if (Version(stream) < kVersionEffectUnitId) return;
+    if (stream->version < kVersionEffectUnitId) return;
     stream->ReadValue(unitId);
-    if (Version(stream) < kVersionEffectAlpha) return;
+    if (stream->version < kVersionEffectAlpha) return;
     stream->ReadValue(alpha);
     stream->ReadValue(typeParam);
 }
@@ -541,7 +541,7 @@ void EffectLightning::Load(ByteStream* stream) {
     stream->ReadValue(width);
     stream->ReadValue(toObject);
     stream->ReadValue(fromObject);
-    if (Version(stream) < 100) return;
+    if (stream->version < kVersionLightningFlag) return;
     stream->ReadValue(flag);
 }
 

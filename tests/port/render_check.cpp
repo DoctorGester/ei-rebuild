@@ -161,21 +161,20 @@ void CheckCursorMotion(platform::NativeWindow window, int width, int height) {
         motion.motion.xrel = 5.0f;
         motion.motion.yrel = -3.0f;
         SDL_PushEvent(&motion);
-        platform::Event event;
-        while (platform::TakeEvent(&event)) {
+        while (platform::TakeEvent()) {
         }
     };
     Cursor cursor;
     cursor.enabled = true;
     cursor.bounds = Rect{0, 0, width, height};
     cursor.motion = Point{9, -4};
-    platform::MapCursorPoints([](Point* at) { *at = {31, 47}; }, nullptr);
+    platform::MapCursorPoints([](Point) { return Point{31, 47}; }, nullptr);
     move();
     cursor.SetHeld(true);
     Point motion = platform::TakeMouseMotion();
     Check(cursor.motion.x == 0 && cursor.motion.y == 0 && motion.x == 0 && motion.y == 0,
           "holding discards movement from before the press");
-    platform::MapCursorPoints([](Point* at) { *at = {83, 96}; }, nullptr);
+    platform::MapCursorPoints([](Point) { return Point{83, 96}; }, nullptr);
     move();
     cursor.SetHeld(true);
     motion = platform::TakeMouseMotion();
@@ -201,12 +200,10 @@ int main() {
     std::printf("render_check: %s, %s\n", gpu::DriverName(), gpu::DeviceName());
     platform::StartWindowSystem("ei-render-check");
     platform::NativeWindow window = platform::CreateGameWindow("Render check", 640, 400, false);
-    int width = 0, height = 0;
-    Check(window && platform::WindowPixelSize(window, &width, &height) && width == 640 && height == 400,
-          "window drawable matches the configured pixel size");
-    Point point{73, 51};
-    platform::ClientToScreen(window, &point);
-    platform::ScreenToClient(window, &point);
+    const std::optional<Size> drawable = window ? platform::WindowPixelSize(window) : std::nullopt;
+    const int width = drawable ? drawable->w : 0, height = drawable ? drawable->h : 0;
+    Check(width == 640 && height == 400, "window drawable matches the configured pixel size");
+    const Point point = platform::ScreenToClient(window, platform::ClientToScreen(window, Point{73, 51}));
     Check(point.x == 73 && point.y == 51, "client and screen pixel coordinates round-trip");
     if (window) CheckCursorMotion(window, width, height);
     glyph_cases::Run(Check);

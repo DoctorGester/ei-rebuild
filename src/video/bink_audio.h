@@ -30,6 +30,7 @@ private:
     int overlap;     // the samples of a frame blended into the next one's start
     float scale;     // from the transform's values to samples
     std::vector<int> bands;   // the quantiser bands' first coefficient pairs, and the end
+    std::vector<std::int16_t> values;             // the coefficients as read, before their quantisers
     std::vector<float> coefficients;
     std::vector<std::complex<double>> work;
     std::vector<std::complex<double>> twiddles;   // e^(2 pi i k / frameSize), k < frameSize / 2

@@ -12,6 +12,7 @@
 #include "render/render.h"
 
 #include <algorithm>
+#include <optional>
 
 namespace present_window {
 namespace {
@@ -24,19 +25,20 @@ platform::NativeWindow Window() {
 }
 
 // The cursor's screen position as a point of the frame (the game's screen).
-void ScreenToGame(Point* point) {
+Point ScreenToGame(Point point) {
     platform::NativeWindow window = Window();
-    if (!window) return;
-    platform::ScreenToClient(window, point);
-    render::WindowToFrame(&point->x, &point->y);
+    if (!window) return point;
+    point = platform::ScreenToClient(window, point);
+    render::WindowToFrame(&point.x, &point.y);
+    return point;
 }
 
 // A point of the frame as the screen's.
-void GameToScreen(Point* point) {
+Point GameToScreen(Point point) {
     platform::NativeWindow window = Window();
-    if (!window) return;
-    render::FrameToWindow(&point->x, &point->y);
-    platform::ClientToScreen(window, point);
+    if (!window) return point;
+    render::FrameToWindow(&point.x, &point.y);
+    return platform::ClientToScreen(window, point);
 }
 
 } // namespace
@@ -44,16 +46,19 @@ void GameToScreen(Point* point) {
 void Update(TextureDevice* device) {
     if (!device) return;
     platform::MapCursorPoints(ScreenToGame, GameToScreen);
-    Rect was{}, monitor{};
-    if (device->fullScreen && device->window && platform::CoverMonitor(device->window, &was, &monitor)) {
-        ei::Log("present: full screen without a display mode change: the window (%d,%d)-(%d,%d) covers the monitor "
-                "(%d,%d)-(%d,%d)",
-                was.left, was.top, was.right, was.bottom, monitor.left, monitor.top, monitor.right, monitor.bottom);
-    }
+    if (device->fullScreen && device->window)
+        if (const std::optional<platform::MonitorCover> cover = platform::CoverMonitor(device->window)) {
+            const Rect& was = cover->was;
+            const Rect& monitor = cover->monitor;
+            ei::Log("present: full screen without a display mode change: the window (%d,%d)-(%d,%d) covers the "
+                    "monitor (%d,%d)-(%d,%d)",
+                    was.left, was.top, was.right, was.bottom, monitor.left, monitor.top, monitor.right, monitor.bottom);
+        }
     // Full screen keeps the resolution of the settings, scaled over the monitor; a window renders at its size once
     // it changes (the size it was made at may be smaller than the settings': the frame is scaled into it).
-    int width = 0, height = 0;
-    if (!device->window || !platform::WindowPixelSize(device->window, &width, &height)) return;   // (minimised)
+    const std::optional<Size> client = device->window ? platform::WindowPixelSize(device->window) : std::nullopt;
+    if (!client) return;   // (minimised)
+    const int width = client->w, height = client->h;
     const bool changed = g_clientWidth != 0 && (width != g_clientWidth || height != g_clientHeight);
     g_clientWidth = width;
     g_clientHeight = height;
@@ -63,7 +68,9 @@ void Update(TextureDevice* device) {
 void SizeClient(TextureDevice* device, int width, int height) {
     if (!device || !device->window || device->fullScreen) return;
     platform::SetClientSize(device->window, width, height);
-    if (!platform::WindowPixelSize(device->window, &g_clientWidth, &g_clientHeight)) g_clientWidth = g_clientHeight = 0;
+    const std::optional<Size> client = platform::WindowPixelSize(device->window);
+    g_clientWidth = client ? client->w : 0;
+    g_clientHeight = client ? client->h : 0;
     ei::Log("present: the window's client area sized to %dx%d (asked %dx%d)", g_clientWidth, g_clientHeight, width,
             height);
 }

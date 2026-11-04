@@ -104,12 +104,9 @@ public:
     // text then in UTF-8, cut at a character's end when it no longer fits.
     void ReadText(char* buffer, int capacity);
     // Reads the magic number and the version (four bytes each, into one variable); true and version set when
-    // the magic matches and oldest <= version <= newest (signed).
+    // the magic matches and oldest <= version <= newest.
     bool ReadHeader(std::uint32_t magic, std::int32_t newestVersion, std::int32_t oldestVersion);
-    void WriteHeader(std::uint32_t magic, std::uint32_t version);
-
-    // The format version, compared signed.
-    int Version() const { return static_cast<int>(version); }
+    void WriteHeader(std::uint32_t magic, std::int32_t version);
 
     void Rewind() {
         ok = true;
@@ -117,7 +114,7 @@ public:
     }
 
     bool ok = true;                 // cleared when a read runs past the end
-    std::uint32_t version;          // format version (the save game's); 2000000000 when constructed
+    int version;                    // format version (the save game's); 2000000000 when constructed
 };
 
 // A growable memory stream that can also pack bits. The bit writer assembles bits in bits and stores the

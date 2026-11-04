@@ -283,7 +283,7 @@ void WorldServer::Create() {
     std::string folder = g_textFolder;
     bool opened = messages.Open(folder + kMessagesFileName);
     if (!opened) {
-        game::FatalError(CantOpenText());
+        game::FatalError("%s", CantOpenText());
         return;
     }
 

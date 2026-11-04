@@ -85,7 +85,7 @@ GrowingBuffer g_receiveBuffer;
 GrowingBuffer g_sendBuffer;
 
 void Pump() {
-    std::uint32_t now = platform::Milliseconds();
+    std::uint32_t now = platform::FrameClock();
     std::uint32_t elapsed = now - g_lastPumpTime;
     if (elapsed > 5000) elapsed = 1000;   // after a long stall, pretend one second passed
     g_lastPumpTime = now;

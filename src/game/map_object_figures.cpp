@@ -87,7 +87,7 @@ void Object3D::SetFigureScale(const Vector3& newScale) {
     scale = newScale;
     if (LinkMesh* current = figure) {
         LinkFigureLoader* loader = GetManagerContext()->FigureLoader();
-        LinkMesh* rebuilt = loader->Remorph(current, scale.x, scale.y, scale.z);
+        LinkMesh* rebuilt = loader->Remorph(current, {scale.x, scale.y, scale.z});
         figure.Assign(rebuilt);
         for (int i = 0; i < std::ssize(parts); ++i) {
             FigureMesh* part = parts[i];
@@ -481,9 +481,9 @@ void Object3D::MakeFigure(std::string_view model, std::vector<std::string>* name
     LinkFigureLoader* loader = GetManagerContext()->FigureLoader();
     if (names->empty() && animation) {
         *names = animation->BoneNames();
-        figure.Assign(loader->LoadLink(model, scale.x, scale.y, scale.z));
+        figure.Assign(loader->LoadLink(model, {scale.x, scale.y, scale.z}));
     } else {
-        figure.Assign(loader->LoadFigure(model, *names, scale.x, scale.y, scale.z));
+        figure.Assign(loader->LoadFigure(model, *names, {scale.x, scale.y, scale.z}));
     }
     LoadParts(model, *names);
     ClassId classId = GetClassId();

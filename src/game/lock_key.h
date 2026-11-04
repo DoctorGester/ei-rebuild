@@ -16,8 +16,8 @@ struct LockKey {
     // Always 1: placed traps take any key.
     bool AcceptedByTrap() const;
     // Reads / writes the three dwords.
-    void ReadFrom(ByteStream* stream);
-    void WriteTo(ByteStream* stream) const;
+    void Load(ByteStream* stream);
+    void Save(ByteStream* stream) const;
     std::uint32_t mask;
     std::uint32_t id;
     std::uint32_t level;
