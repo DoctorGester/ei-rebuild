@@ -32,7 +32,7 @@ class NetLink;
 }
 
 // The messages a PlayerServer sends its client, by the type byte that starts each one (PlayerClient's
-// handler table is keyed by them). The numbers are the wire format.
+// DispatchMessages switches on them). The numbers are the wire format.
 enum class ServerMessage : std::uint8_t {
     LoginAccepted = 0x00,       // the player's id; answers ClientMessage::Login
     Disconnect = 0x01,          // our server writes it when a player leaves
@@ -77,7 +77,7 @@ enum class ServerMessage : std::uint8_t {
     PartyUpdate = 0x83,
 };
 
-// The messages a PlayerClient sends its server (PlayerServer's handler table is keyed by them). The numbers are
+// The messages a PlayerClient sends its server (PlayerServer::ReceiveMessages switches on them). The numbers are
 // the wire format; 0x37 has no handler.
 enum class ClientMessage : std::uint8_t {
     Login = 0x00,
@@ -111,14 +111,6 @@ template <typename Message>
 void WriteType(MemoryStream* out, Message type) {
     out->WriteValue(static_cast<std::uint8_t>(type));
 }
-
-// One row of the server's and the client's handler tables: a message type and its handler, a method of the
-// connection that reads the message from its stream.
-template <typename Connection, typename Message>
-struct HandlerEntry {
-    Message type;
-    int (Connection::*handler)();
-};
 
 // A unit placement: the unit's id, position, rotation and two unit values (WorldServer::StoreParty stores
 // them, CreateUnits restores them).
@@ -262,61 +254,61 @@ public:
     // object's id. Of several units, the nearest to the order's aim point first, the first whose controller
     // accepts the use order (CheckOrder, or CheckOrderAt where its path ends) does it, else the nearest; its
     // brain's Player mode runs CommandUse. Returns 1.
-    int OnUseOrder();
+    bool OnUseOrder();
 
-    // The rest of the client's messages. Each returns 1, or 0 to refuse (the dispatcher's fatal error).
+    // The rest of the client's messages. Each returns true, or false to refuse (the dispatcher's fatal error).
     // The player leaves for zone `zone` at `entrance` (joined players only): in campaign modes 1 and 3 a dead
     // or missing leader first dies (outside a network game nothing more); the party is collected, handed to
     // the party manager (single player) or sent (multiplayer); then message 0x08 and a flush.
     void LeaveToZone(std::string_view zone, int entrance);
-    int OnRefreshParty();      // Message 0x02: ForgetKnownObjects, SendParty
-    int OnTakeExit();          // Message 0x03: exit index -> FindZoneExit -> LeaveToZone (0 when none)
+    bool OnRefreshParty();      // Message 0x02: ForgetKnownObjects, SendParty
+    bool OnTakeExit();          // Message 0x03: exit index -> FindZoneExit -> LeaveToZone (0 when none)
     // Message 0x05: GameStateSent -> Joined, the session kind, Redeploy with the placements, PlayerDirty::GameState.
-    int OnJoined();
-    int OnLeaveToZone();       // Message 0x06: zone text, entrance -> LeaveToZone
-    int OnBriefingDone();      // Message 0x07: briefing name -> CompleteBriefing(player id)
+    bool OnJoined();
+    bool OnLeaveToZone();       // Message 0x06: zone text, entrance -> LeaveToZone
+    bool OnBriefingDone();      // Message 0x07: briefing name -> CompleteBriefing(player id)
     // Message 0x08: a party (LoadParty with variables); one of a single record gets a fresh party id
     // (PartyNextId into partyId), its record the next free object id (from 1000000013), and is stored in
     // the party manager's map. 0 for any other record count.
-    int OnNewParty();
-    int OnResume();            // Message 0x09: Disconnected -> Joined; Redeploy (no placements) unless deployed
+    bool OnNewParty();
+    bool OnResume();            // Message 0x09: Disconnected -> Joined; Redeploy (no placements) unless deployed
     // Messages 0x30 / 0x3A: unit ids (missing or blocked ones left out), a run flag and a point; each unit's
     // Player mode walks / goes (CommandWalk / CommandGoTo) to the point plus its formation offset.
-    int OnWalk();
-    int OnGoTo();
+    bool OnWalk();
+    bool OnGoTo();
     // Message 0x31: unit ids, two flags, an object id; each unit's Player mode attacks it.
-    int OnAttack();
-    int OnPartyUpdate();       // Message 0x50: a sized block loaded into the party (no variables)
+    bool OnAttack();
+    bool OnPartyUpdate();       // Message 0x50: a sized block loaded into the party (no variables)
     // "Able" units below: present, not blocked (flag 0x800000) and not dead.
-    int OnLeave();             // Message 0x01: the connection's Leave
+    bool OnLeave();             // Message 0x01: the connection's Leave
     // Message 0x04 (joined players, else 0): the game state into sessionKind, the party collected
     // (CollectParty with the placements) and sent, message 0x07 (the state and the world tick), dirty bit
     // 0x10 cleared, GameStateSent.
-    int OnGameStateRequest();
+    bool OnGameStateRequest();
     // Message 0x10: a pause byte. A multiplayer client that is also the attached game server, asking to
     // pause: only the session leader (its id the party's first record's unit) may, and its name is announced
     // (text 0xC); then the world's SetPaused(pause != 0).
-    int OnPause();
+    bool OnPause();
     // Messages 0x33 / 0x32: {spell, unit id, target id / point, flag byte}: an able unit with a Player mode
     // casts at the object / point (CommandCast / CommandCastAt).
-    int OnCastAtObject();
-    int OnCastAtPoint();
+    bool OnCastAtObject();
+    bool OnCastAtPoint();
     // Messages 0x34 / 0x35: {unit id, byte}: an able unit's wanted weapon slot / a living unit's movement
     // style (no blocked test).
-    int OnWantedWeapon();
-    int OnMoveStyle();
-    int OnUnitLookup();        // Message 0x38: two dwords, the first looked up as a unit (unused)
+    bool OnWantedWeapon();
+    bool OnMoveStyle();
+    bool OnUnitLookup();        // Message 0x38: two dwords, the first looked up as a unit (unused)
     // Message 0x39: {unit id, leader id}: a unit's Player mode follows the leader (may be null).
-    int OnFollow();
+    bool OnFollow();
     // Message 0x3B: a unit id, then a byte: Unit::SetFightAtWill(signed byte) when the unit exists.
-    int OnFightAtWill();
-    int OnLastPosition();      // Message 0x40: 8 bytes into lastPosition x, y
+    bool OnFightAtWill();
+    bool OnLastPosition();      // Message 0x40: 8 bytes into lastPosition x, y
     // Message 0x00: the login (PlayerLoginMessage); 0 unless the player is NotLoggedIn (after the read). A client version
     // other than 0x64 gets message 0x11 ("WrongClientVersion") and Leaving (0); a name or password that is
     // not printable text: 0. The party by game mode (1 the party manager's EndRedeploy; 2 / 3 the one stored
     // under partyId, 0 when there is none; 4 cleared), then message 0x00 with the player's id, SendParty,
     // Joined.
-    int OnLogin();
+    bool OnLogin();
     // Message 0x83: the party saved without its variables as a sized block.
     void SendPartyUpdate();
     // From the player state tick: a joined, deployed player's party is sent again (logged, the records
@@ -339,7 +331,6 @@ public:
     // -1, or the unit a Possession spell took (its id): the next party refresh then sends possessedGroup (the
     // target and what it sees) and sets it back to -1. Sent with message 0x60.
     std::uint32_t possessedId;
-    // ClearServerState, then the handler table: 256 entries, zeroed, and the 24 handlers by message type.
     void CreateServer();
 
     // Where the client is in joining and leaving (the harness reads it).
@@ -352,9 +343,8 @@ public:
     };
     State state;
 
-    using Handler = int (PlayerServer::*)();
-    std::vector<Handler> handlers;    // by message type (null: refused; 256 of them)
     Vector3 lastPosition;           // sent with 0x04 / 0x0F
+    MemoryStream in;                   // the client's messages being run (each received packet decompressed)
     MemoryStream out;                  // messages to the client
     std::uint8_t partyDeployed;     // the party stands in the world: OnLeaderDied collects it when set, redeploys it when clear
     std::vector<UnitPlacement> placements;

@@ -108,52 +108,6 @@ void RemovePartNamed(Object3D* object, const char* name) {
     if (FigureMesh* part = object->FindPart(name)) object->RemovePart(part);
 }
 
-constexpr int kClientHandlerCount = 0x100;
-
-// The client's message handlers by type.
-constexpr HandlerEntry<PlayerClient, ServerMessage> kClientHandlers[] = {
-    {ServerMessage::LoginAccepted, &PlayerClient::OnLoginAccepted},
-    {ServerMessage::Disconnect, &PlayerClient::OnDisconnect},
-    {ServerMessage::Zone, &PlayerClient::OnZone},
-    {ServerMessage::ItemsAndSpells, &PlayerClient::OnItemsAndSpells},
-    {ServerMessage::CameraPlacement, &PlayerClient::OnCameraPlacement},
-    {ServerMessage::NewItemsAndSpells, &PlayerClient::OnNewItemsAndSpells},
-    {ServerMessage::ItemsReceived, &PlayerClient::OnItemsReceived},
-    {ServerMessage::GameState, &PlayerClient::OnGameState},
-    {ServerMessage::ZoneChange, &PlayerClient::OnZoneChange},
-    {ServerMessage::GameLost, &PlayerClient::OnGameLost},
-    {ServerMessage::ItemRemoved, &PlayerClient::OnItemRemoved},
-    {ServerMessage::UnitSpeech, &PlayerClient::OnUnitSpeech},
-    {ServerMessage::ObjectValues, &PlayerClient::OnObjectValues},
-    {ServerMessage::Jingle, &PlayerClient::OnJingle},
-    {ServerMessage::PathMarker, &PlayerClient::OnPathMarker},
-    {ServerMessage::FreeCamera, &PlayerClient::OnFreeCamera},
-    {ServerMessage::WorldValue, &PlayerClient::OnWorldValue},
-    {ServerMessage::StringEvent, &PlayerClient::OnStringEvent},
-    {ServerMessage::ItemValue, &PlayerClient::OnItemValue},
-    {ServerMessage::ExperienceAll, &PlayerClient::OnExperienceAll},
-    {ServerMessage::WeaponRemoved, &PlayerClient::OnWeaponRemoved},
-    {ServerMessage::QuestItemsChanged, &PlayerClient::OnQuestItemsChanged},
-    {ServerMessage::Experience, &PlayerClient::OnExperience},
-    {ServerMessage::UnitControl, &PlayerClient::OnUnitControl},
-    {ServerMessage::ObjectAdded, &PlayerClient::OnNewObject},
-    {ServerMessage::ObjectChanged, &PlayerClient::OnObjectChanged},
-    {ServerMessage::ObjectRemoved, &PlayerClient::OnObjectRemoved},
-    {ServerMessage::UnitDied, &PlayerClient::OnUnitDied},
-    {ServerMessage::TimedAdded, &PlayerClient::OnTimedObjectAdded},
-    {ServerMessage::TimedChanged, &PlayerClient::OnTimedObjectChanged},
-    {ServerMessage::TimedRemoved, &PlayerClient::OnTimedObjectRemoved},
-    {ServerMessage::PartyState, &PlayerClient::OnPartyState},
-    {ServerMessage::Weather, &PlayerClient::OnWeather},
-    {ServerMessage::Time, &PlayerClient::OnWorldTime},
-    {ServerMessage::Wind, &PlayerClient::OnWind},
-    {ServerMessage::Countdowns, &PlayerClient::OnCountdowns},
-    {ServerMessage::Party, &PlayerClient::OnParty},
-    {ServerMessage::SetVariable, &PlayerClient::OnSetVariable},
-    {ServerMessage::DeleteVariable, &PlayerClient::OnDeleteVariable},
-    {ServerMessage::PartyUpdate, &PlayerClient::OnPartyUpdate},
-};
-
 constexpr int kSessionKindSingle = 1;
 
 std::unordered_set<int> g_partyIdSet;
@@ -226,10 +180,51 @@ int PlayerClient::DispatchMessages() {
         if (!in.ok) return PlayerMessageError("Pkt read error prevID=%x curID=%x\n", previous, messageType);
         previous = messageType;
         if (in.Read(&messageType, 1) == 0) return 1;
-        if (static_cast<int>(messageType) >= std::ssize(handlers)) return PlayerMessageError("Wrong packet ID prevID=%x curID=%x\n", previous, messageType);
-        auto handler = handlers[messageType];
-        if (handler == nullptr) return PlayerMessageError("Packet has no handler prevID=%x curID=%x\n", previous, messageType);
-        if (!(this->*handler)()) return PlayerMessageError("Error during parsing update prevID=%x curID=%x\n", previous, messageType);
+        bool handled;
+        switch (static_cast<ServerMessage>(messageType)) {
+        case ServerMessage::LoginAccepted: handled = OnLoginAccepted(); break;
+        case ServerMessage::Disconnect: handled = OnDisconnect(); break;
+        case ServerMessage::Zone: handled = OnZone(); break;
+        case ServerMessage::ItemsAndSpells: handled = OnItemsAndSpells(); break;
+        case ServerMessage::CameraPlacement: handled = OnCameraPlacement(); break;
+        case ServerMessage::NewItemsAndSpells: handled = OnNewItemsAndSpells(); break;
+        case ServerMessage::ItemsReceived: handled = OnItemsReceived(); break;
+        case ServerMessage::GameState: handled = OnGameState(); break;
+        case ServerMessage::ZoneChange: handled = OnZoneChange(); break;
+        case ServerMessage::GameLost: handled = OnGameLost(); break;
+        case ServerMessage::ItemRemoved: handled = OnItemRemoved(); break;
+        case ServerMessage::UnitSpeech: handled = OnUnitSpeech(); break;
+        case ServerMessage::ObjectValues: handled = OnObjectValues(); break;
+        case ServerMessage::Jingle: handled = OnJingle(); break;
+        case ServerMessage::PathMarker: handled = OnPathMarker(); break;
+        case ServerMessage::FreeCamera: handled = OnFreeCamera(); break;
+        case ServerMessage::WorldValue: handled = OnWorldValue(); break;
+        case ServerMessage::StringEvent: handled = OnStringEvent(); break;
+        case ServerMessage::ItemValue: handled = OnItemValue(); break;
+        case ServerMessage::ExperienceAll: handled = OnExperienceAll(); break;
+        case ServerMessage::WeaponRemoved: handled = OnWeaponRemoved(); break;
+        case ServerMessage::QuestItemsChanged: handled = OnQuestItemsChanged(); break;
+        case ServerMessage::Experience: handled = OnExperience(); break;
+        case ServerMessage::UnitControl: handled = OnUnitControl(); break;
+        case ServerMessage::ObjectAdded: handled = OnNewObject(); break;
+        case ServerMessage::ObjectChanged: handled = OnObjectChanged(); break;
+        case ServerMessage::ObjectRemoved: handled = OnObjectRemoved(); break;
+        case ServerMessage::UnitDied: handled = OnUnitDied(); break;
+        case ServerMessage::TimedAdded: handled = OnTimedObjectAdded(); break;
+        case ServerMessage::TimedChanged: handled = OnTimedObjectChanged(); break;
+        case ServerMessage::TimedRemoved: handled = OnTimedObjectRemoved(); break;
+        case ServerMessage::PartyState: handled = OnPartyState(); break;
+        case ServerMessage::Weather: handled = OnWeather(); break;
+        case ServerMessage::Time: handled = OnWorldTime(); break;
+        case ServerMessage::Wind: handled = OnWind(); break;
+        case ServerMessage::Countdowns: handled = OnCountdowns(); break;
+        case ServerMessage::Party: handled = OnParty(); break;
+        case ServerMessage::SetVariable: handled = OnSetVariable(); break;
+        case ServerMessage::DeleteVariable: handled = OnDeleteVariable(); break;
+        case ServerMessage::PartyUpdate: handled = OnPartyUpdate(); break;
+        default: return PlayerMessageError("Packet has no handler prevID=%x curID=%x\n", previous, messageType);
+        }
+        if (!handled) return PlayerMessageError("Error during parsing update prevID=%x curID=%x\n", previous, messageType);
     }
 }
 
@@ -243,7 +238,7 @@ int PlayerClient::ReceiveMessages() {
     return DispatchMessages() != 0 ? 1 : 0;
 }
 
-int PlayerClient::OnSetVariable() {
+bool PlayerClient::OnSetVariable() {
     std::string name = in.ReadString();
     std::uint32_t value;
     in.ReadValue(value);
@@ -254,70 +249,70 @@ int PlayerClient::OnSetVariable() {
         g_interface.OnQuestVariable(name, std::bit_cast<float>(value));
         g_clientWorld.OnQuestVariable(name, std::bit_cast<float>(value));
     }
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnDeleteVariable() {
+bool PlayerClient::OnDeleteVariable() {
     std::string name = in.ReadString();
     player->GetParty()->variables.Remove(name);
     if (IsQuestVariable(name)) {
         g_interface.OnQuestVariable(name, 0.0f);
         g_clientWorld.OnQuestVariable(name, 0.0f);
     }
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnZoneChange() {
+bool PlayerClient::OnZoneChange() {
     std::string zone = in.ReadString();
     int entrance;   // the server's entrance number: the zone start takes none
     in.ReadValue(entrance);
     g_gameFlow.RequestZoneChange(zone);
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnJingle() {
+bool PlayerClient::OnJingle() {
     std::string name = in.ReadString();
     g_clientWorld.music->PlayJingle(name);
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnZone() {
+bool PlayerClient::OnZone() {
     MemoryStream block;
-    if (in.ReadStream(&block) == 0) return 0;
+    if (in.ReadStream(&block) == 0) return false;
     player->Clear();
     g_clientWorld.LoadZone(&block);
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnItemsAndSpells() {
+bool PlayerClient::OnItemsAndSpells() {
     MemoryStream block;
-    if (in.ReadStream(&block) == 0) return 0;
+    if (in.ReadStream(&block) == 0) return false;
     g_clientWorld.LoadItemsAndSpells(&block);
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnNewItemsAndSpells() {
+bool PlayerClient::OnNewItemsAndSpells() {
     MemoryStream block;
-    if (in.ReadStream(&block) == 0) return 0;
+    if (in.ReadStream(&block) == 0) return false;
     g_clientWorld.LoadNewItemsAndSpells(&block);
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnItemRemoved() {
+bool PlayerClient::OnItemRemoved() {
     int objectId;
     in.ReadValue(objectId);
     player->TakeItem(objectId);
     RefreshQuestLog();
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnQuestItemsChanged() {
+bool PlayerClient::OnQuestItemsChanged() {
     player->TakeAllItems();
     RefreshQuestLog();
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnExperienceAll() {
+bool PlayerClient::OnExperienceAll() {
     float amount;
     in.ReadValue(amount);
     Player::UnitMap& units = player->units;
@@ -325,49 +320,49 @@ int PlayerClient::OnExperienceAll() {
         Unit* unit = node->second;
         g_clientWorld.ShowNumber(unit->id, ScaledExperience(unit, amount), kNumberExperience);
     }
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnExperience() {
+bool PlayerClient::OnExperience() {
     int objectId;
     float amount;
     in.ReadValue(objectId);
     in.ReadValue(amount);
     auto* unit = g_clientWorld.FindUnit(objectId);
     if (unit != nullptr) g_clientWorld.ShowNumber(objectId, ScaledExperience(unit, amount), kNumberExperience);
-    return 1;
+    return true;
 }
 
 // --- Items, party, path markers, string events, recording ---------------------------------------
 
-int PlayerClient::OnItemsReceived() {
+bool PlayerClient::OnItemsReceived() {
     std::vector<Item*> items;
     int& money = player->GetParty()->money;
     int before = money;
     in.ReadValue(money);
     std::uint8_t flag = 0;
     in.ReadValue(flag);
-    int result = 1;
+    bool complete = true;
     for (;;) {
         int objectId;
         in.ReadValue(objectId);
         if (objectId == -1) break;
         if (!in.ok) {
-            result = 0;
+            complete = false;
             break;
         }
         auto* manager = g_clientWorld.itemManager;
         if (Item* item = FindItem(manager, static_cast<unsigned>(objectId))) items.insert(items.begin(), item);
     }
-    if (result != 0) {
+    if (complete) {
         player->GiveItems(&items, flag);
         g_interface.OnItemsPicked(items, money - before, flag != 0);
     }
     items.clear();
-    return result;
+    return complete;
 }
 
-int PlayerClient::OnParty() {
+bool PlayerClient::OnParty() {
     Party* party = player->GetParty();
     NamedFloatTable saved(party->variables);
     {
@@ -393,18 +388,18 @@ int PlayerClient::OnParty() {
         console::EndLine(console::g_netLogOut << "party received on client");
         g_gameFlow.ReturnLocalParty();
     }
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnPartyUpdate() {
+bool PlayerClient::OnPartyUpdate() {
     MemoryStream block;
     in.ReadSized(&block);
     block.MemoryStream::Seek(0);
     if (in.ok) player->GetParty()->LoadParty(&block, 0);
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnPathMarker() {
+bool PlayerClient::OnPathMarker() {
     DeltaField field;
     ParticleSource* pathSource = nullptr;
     int kind;
@@ -449,18 +444,18 @@ int PlayerClient::OnPathMarker() {
         Unit* unit = ownerObject->OwningWorld()->FindUnit(unitId);
         if (unit != nullptr) unit->ClientController()->SetMarkers(pathSource, marker);
     }
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnStringEvent() {
+bool PlayerClient::OnStringEvent() {
     std::string text = in.ReadString();
     g_interface.OnStringEvent(text);
-    return 1;
+    return true;
 }
 
 // --- A new map object (message 0x40, multiplayer) ------------------------------------------
 
-int PlayerClient::OnNewObject() {
+bool PlayerClient::OnNewObject() {
     std::vector<std::string> parts;
     std::string scriptName;
     std::string secondName;
@@ -469,7 +464,7 @@ int PlayerClient::OnNewObject() {
     Vector3 scale;
     in.ReadValue(scale);
     secondName = in.ReadString();
-    if (!in.ok) return 0;
+    if (!in.ok) return false;
     char model[kTextSize];
     char textureFrom[kTextSize];
     char textureTo[kTextSize];
@@ -490,7 +485,7 @@ int PlayerClient::OnNewObject() {
 
     auto* world = player->OwningWorld();
     MapObject* created = world->objectManager->CreateObjectAs<MapObject>(static_cast<MapObjectType>(header.type), header.id);
-    if (created == nullptr) return 0;
+    if (created == nullptr) return false;
     MapObject* object = created;
     Object3D* figure = object;
     object->name = model;
@@ -563,7 +558,7 @@ int PlayerClient::OnNewObject() {
     else
         object->TakePrototype(model);
     object->WriteFullState();
-    if (!object->ReadState(false, &in)) return 0;
+    if (!object->ReadState(false, &in)) return false;
     g_clientWorld.AddObject(object);
     if (object->name2[0] != 0) {
         const std::string variable = g_clientWorld.ObjectVariableName(object->name2);
@@ -572,7 +567,7 @@ int PlayerClient::OnNewObject() {
     if (currentPlayer->sessionKind == kSessionClient) {
         if (Unit* unit = UnitOrNull(created)) unit->ClientController()->LoadFaceTexture();
     }
-    return 1;
+    return true;
 }
 
 // --- Clearing the connection ---------------------------------------------------------------
@@ -586,10 +581,6 @@ void PlayerClient::CreateClient() {
     sendParty = 0;
     compressor.Reset();
     decompressor.Reset();
-    handlers.resize(kClientHandlerCount);
-    std::fill_n(handlers.data(), std::ssize(handlers), Handler{});
-    for (const auto& entry : kClientHandlers)
-        handlers[static_cast<std::uint8_t>(entry.type)] = entry.handler;
 }
 
 void PlayerClient::Clear() {
@@ -611,12 +602,10 @@ PlayerConnection::PlayerConnection() {
 
 PlayerConnection::~PlayerConnection() { player = nullptr; }
 
-// The streams are members (constructed before the body; the original builds them after the handler table).
 PlayerClient::PlayerClient() {
     Clear();
 }
 
-// The streams and coders are members, destroyed after the body (the original frees them before the handler table).
 PlayerClient::~PlayerClient() {
     Clear();
 }
@@ -626,7 +615,7 @@ ClassId PlayerClient::GetClassId() { return ClassId::PlayerClient; }
 
 // --- The party state ---------------------------------------------------------------------
 
-int PlayerClient::OnPartyState() {
+bool PlayerClient::OnPartyState() {
     Player* currentPlayer = player;
     for (int i = 0; i < std::ssize(partyUnitIds); ++i) {
         g_partyIdSet.insert(partyUnitIds[i]);
@@ -657,7 +646,7 @@ int PlayerClient::OnPartyState() {
     int others = ReadDword(&in);
     otherUnitIds.resize(others);
     for (int i = 0; i < others; ++i) in.ReadValue(otherUnitIds[i]);
-    return 1;
+    return true;
 }
 
 // --- Messages appended to the received stream -----------------------------------------------

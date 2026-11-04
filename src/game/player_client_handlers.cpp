@@ -40,28 +40,28 @@ constexpr Quaternion kFixedViewRotation = /*007C8388*/ {1.0f, 0.0f, 0.0f, 0.0f};
 
 } // namespace
 
-int PlayerClient::OnLoginAccepted() {
+bool PlayerClient::OnLoginAccepted() {
     int objectId;
     in.ReadValue(objectId);
     state = State::SendingCamera;
     Player* currentPlayer = player;
     currentPlayer->GetManagerContext()->PlayerList()->ChangeId(currentPlayer, objectId);
-    return 1;
+    return true;
 }
 
 // Unreached in the shipped game: our server never sends message 0x01 (kept for a peer that does).
-int PlayerClient::OnDisconnect() {
+bool PlayerClient::OnDisconnect() {
     player->Disconnect();
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnCameraPlacement() {
+bool PlayerClient::OnCameraPlacement() {
     Vector3 point;
     in.ReadValue(point);
     float heading;
     in.ReadValue(heading);
     int mode;
-    const int result = static_cast<int>(in.Read(&mode, 4));
+    const bool read = in.Read(&mode, 4) != 0;
     g_clientWorld.CentreOn(point);
     Camera* camera = &g_camera;
     if (player->GetParty()->zone == "gz20g") {
@@ -74,10 +74,10 @@ int PlayerClient::OnCameraPlacement() {
         camera->RestoreView(mode == 3 ? 6 : 7);
     }
     camera->SetHeading(heading);
-    return result;
+    return read;
 }
 
-int PlayerClient::OnGameState() {
+bool PlayerClient::OnGameState() {
     Player* currentPlayer = player;
     currentPlayer->lastScreen = static_cast<std::uint32_t>(currentPlayer->sessionKind);
     int gameState;
@@ -86,7 +86,7 @@ int PlayerClient::OnGameState() {
     in.ReadValue(tick);
     if (localSession) {
         g_interface.OnKeyDown(-1, 0, false);   // a press of no key (-1, scan code 0), as the original's
-        return 1;
+        return true;
     }
     currentPlayer->sessionKind = gameState;
     g_interface.CreateScreen(gameState);
@@ -95,28 +95,28 @@ int PlayerClient::OnGameState() {
     for (auto node = currentPlayer->units.begin(); node != currentPlayer->units.end() && node->second; ++node)
         UnitChanged(node->second);
     if (IsMultiplayerClient()) g_gameFlow.UpdateFromServer();
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnGameLost() {
+bool PlayerClient::OnGameLost() {
     g_interface.OnGameLost();
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnUnitSpeech() {
+bool PlayerClient::OnUnitSpeech() {
     int values[2];
     in.Read(values, 8);
     g_interface.OnUnitSpeech(values[0], static_cast<AckKind>(values[1]));
-    return 1;
+    return true;
 }
 
 // Unreached in the shipped game: our server never sends message 0x0C (kept for a peer that does).
-int PlayerClient::OnObjectValues() {
+bool PlayerClient::OnObjectValues() {
     for (;;) {
         int objectId;
         in.ReadValue(objectId);
-        if (objectId == -1) return 1;
-        if (!in.ok) return 0;
+        if (objectId == -1) return true;
+        if (!in.ok) return false;
         Item* item = FindItem(g_clientWorld.itemManager, static_cast<unsigned>(objectId));
         if (!item) continue;   // the value is then read as the next id (kept)
         float value;
@@ -125,7 +125,7 @@ int PlayerClient::OnObjectValues() {
     }
 }
 
-int PlayerClient::OnFreeCamera() {
+bool PlayerClient::OnFreeCamera() {
     Vector3 from;
     in.ReadValue(from);
     Vector3 to;
@@ -134,16 +134,16 @@ int PlayerClient::OnFreeCamera() {
     in.ReadValue(free);
     g_camera.LookFrom(from, to);
     g_camera.SetFree(free != 0);
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnWorldValue() {
+bool PlayerClient::OnWorldValue() {
     std::uint8_t bytes[5];
     in.Read(bytes, 5);   // the world value (bytes 1-4): nothing reads it
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnItemValue() {
+bool PlayerClient::OnItemValue() {
     int objectId;
     in.ReadValue(objectId);
     float value;
@@ -154,10 +154,10 @@ int PlayerClient::OnItemValue() {
         item->charge = value;
         currentPlayer->ItemUsed(item);
     }
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnWeaponRemoved() {
+bool PlayerClient::OnWeaponRemoved() {
     int unitId;
     in.ReadValue(unitId);
     int index;
@@ -167,10 +167,10 @@ int PlayerClient::OnWeaponRemoved() {
     if (record && std::ssize(record->weapons) > index)
         record->RemoveWeapon(record->weapons[index]);
     if (Unit* unit = g_clientWorld.FindUnit(unitId)) unit->controller->ShowWeapon(0xFFFFFFFFu);
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnUnitControl() {
+bool PlayerClient::OnUnitControl() {
     int kind = 0;
     in.Read(&kind, 1);
     int unitId;
@@ -179,128 +179,128 @@ int PlayerClient::OnUnitControl() {
     switch (kind) {
     case 0:
         if (unit) g_clientWorld.Select(unit);
-        return 1;
+        return true;
     case 1:
     case 2: {
-        if (!unit || (unit->flags & kUnitFlagHidden)) return 1;
+        if (!unit || (unit->flags & kUnitFlagHidden)) return true;
         const bool lit = (unit->flags & kUnitFlagLit) != 0;
-        if (lit == (kind == 1)) return 1;
+        if (lit == (kind == 1)) return true;
         unit->flags ^= kUnitFlagLit;
         unit->AsObject3D()->attached->SetLit(kind == 1);
-        return 1;
+        return true;
     }
     case 3:
         g_clientWorld.Deselect();
-        return 1;
+        return true;
     default:
-        return 0;
+        return false;
     }
 }
 
-int PlayerClient::OnObjectChanged() {
+bool PlayerClient::OnObjectChanged() {
     int objectId;
     in.ReadValue(objectId);
     Player::MapObjectMap& known = player->knownObjects;
     auto node = known.find(objectId);
-    if (node == known.end()) return 0;
+    if (node == known.end()) return false;
     MapObject* object = node->second;
-    if (!object->ReadState(true, &in)) return 0;
+    if (!object->ReadState(true, &in)) return false;
     const ClassId classId = object->GetClassId();
     if (classId == ClassId::Building || classId == ClassId::Lever)
         ClientWorld()->RefreshPlatforms(object);   // the client's own
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnObjectRemoved() {
+bool PlayerClient::OnObjectRemoved() {
     int objectId;
     in.ReadValue(objectId);
     Player* currentPlayer = player;
     if (auto unit = currentPlayer->units.find(objectId); unit != currentPlayer->units.end()) unit->second->SetPlayer(nullptr);
     auto node = currentPlayer->knownObjects.find(objectId);
-    if (node == currentPlayer->knownObjects.end()) return 0;
+    if (node == currentPlayer->knownObjects.end()) return false;
     MapObject* object = node->second;
     currentPlayer->knownObjects.erase(objectId);
     object->flags |= MapObjectFlag::Removed;
     object->Release();
     g_clientWorld.RemoveObject(object->id);
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnUnitDied() {
+bool PlayerClient::OnUnitDied() {
     int objectId;
     in.ReadValue(objectId);
     EngineObject* object = g_clientWorld.objectManager->FindObject(static_cast<unsigned>(objectId));
     if (Unit* unit = UnitOrNull(object)) unit->controller->Died();
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnTimedObjectAdded() {
+bool PlayerClient::OnTimedObjectAdded() {
     int message[2];   // id, type
     in.Read(message, 8);
     const int objectId = message[0];
     Player* currentPlayer = player;
     BaseManager* manager = currentPlayer->GetManagerContext()->TimedObjectManager();
     auto* object = manager->CreateObjectAs<Effect>(message[1], objectId);
-    if (!object) return 0;
-    if (!object->Receive(0, &in)) return 0;
+    if (!object) return false;
+    if (!object->Receive(0, &in)) return false;
     if (objectId > currentPlayer->maxTimedId) currentPlayer->maxTimedId = objectId;
     currentPlayer->knownTimed[objectId] = object;
     object->AddRef();
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnTimedObjectChanged() {
+bool PlayerClient::OnTimedObjectChanged() {
     int objectId;
     in.ReadValue(objectId);
     Player::TimedObjectMap& known = player->knownTimed;
     auto node = known.find(objectId);
-    if (node == known.end()) return 0;
-    return node->second->Receive(1, &in) != 0 ? 1 : 0;
+    if (node == known.end()) return false;
+    return node->second->Receive(1, &in) != 0;
 }
 
-int PlayerClient::OnTimedObjectRemoved() {
+bool PlayerClient::OnTimedObjectRemoved() {
     int objectId;
     in.ReadValue(objectId);
     Player* currentPlayer = player;
     auto node = currentPlayer->knownTimed.find(objectId);
-    if (node == currentPlayer->knownTimed.end()) return 0;
+    if (node == currentPlayer->knownTimed.end()) return false;
     Effect* object = node->second;
     currentPlayer->knownTimed.erase(objectId);
     object->flags |= MapObjectFlag::Removed;
     object->Release();
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnWeather() {
+bool PlayerClient::OnWeather() {
     std::uint8_t bytes[3];
     in.Read(bytes, 3);
     const int strength = bytes[1] | (bytes[2] << 8);
     g_clientWorld.rainSnow.Start(bytes[0], static_cast<float>(strength));
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnWorldTime() {
+bool PlayerClient::OnWorldTime() {
     float values[2];   // time, speed
     in.Read(values, 8);
     WorldClient* world = &g_clientWorld;
     world->World::SetTimeSpeed(values[1]);
     world->World::SetTime(values[0]);
     world->UpdateLighting();
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnWind() {
+bool PlayerClient::OnWind() {
     Vector3 point;
     in.ReadValue(point);
     int value;
     in.ReadValue(value);
     g_clientWorld.ApplyWind(point, std::bit_cast<float>(value));
-    return 1;
+    return true;
 }
 
-int PlayerClient::OnCountdowns() {
+bool PlayerClient::OnCountdowns() {
     g_clientWorld.ReadWaterLevels(&in);
-    return 1;
+    return true;
 }
 
 void PlayerClient::NotifyUnitChanged(Unit* unit) {
