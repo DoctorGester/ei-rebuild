@@ -13,8 +13,9 @@ wrapping products, truncating division). The WideScreen layout (rebirth.md, "Wid
 
 **Screen classes.** Each screen is a `UiWindow` subclass with an input side (`UiInputSide`). Input handlers get the platform's
 event data, the mouse's in screen pixels: Deactivate, LeftDown, LeftUp, MouseMove, RightDown / RightUp, LeftDouble /
-RightDouble `(point)`, KeyDown `(vk, scan, repeat)`, KeyUp `(vk, scan)`, Char `(code point, scan)`, Wheel `(turn, point)`
-(120 a notch, positive away from the player). The key tables are indexed by the scan code (0x100 extended). A button-down handler that takes the mouse
+RightDouble `(point)`, KeyDown `(key, scan, repeat)`, KeyUp `(key, scan)`, Char `(code point, scan)`, Wheel `(notches, point)`
+(a float, positive away from the player; the original's wheel constants are per Windows unit, `kWheelUnits` 120 a
+notch, and its handlers multiply by it, exact for whole notches). The key tables are indexed by the scan code (0x100 extended). A button-down handler that takes the mouse
 stores its input side in `Interface3D::mouseCapture`; the button-up handler acts only when the capture is its own and
 clears it; a handler sets `handled` when it used the event, which stops the container passing it on.
 
@@ -308,7 +309,7 @@ Rebuild every new game, ShowFace for low mana and hits), `HudMap`, `HudUnitPanel
 
 - Quick items' slot lookup uses RegionAt's result unchecked: a point inside the panel but outside every slot (-1) reads the
   entry before the table (zero in practice) and counts as a hit (`RegionItem`); the weapon bar's button-up orders
-  `LocalView()` without a null check; the minimap wheel zooms only over region 0 (zoom 2.5^(delta/1200)); hidden minimap
+  `LocalView()` without a null check; the minimap wheel zooms only over region 0 (zoom 2.5^(notches/10)); hidden minimap
   entries keep stale positions; unit 0xA2C2A counts as hostile in gz20g.
 - Minimap sprites are `UiMesh` quads; `UpdateView` clips the outline in place against the world rectangle, pads to a
   multiple of four with its first point and fans it; the needle angle is atan2(-x, -y) of the facing.

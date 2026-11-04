@@ -38,6 +38,11 @@ Event MouseEvent(EventType type, float x, float y, float pixelsPerPoint) {
 
 } // namespace
 
+bool IsCloseKey(const SDL_Event& e) {
+    return e.type == SDL_EVENT_KEY_DOWN && e.key.scancode == SDL_SCANCODE_F4 && (e.key.mod & SDL_KMOD_ALT) &&
+           !(e.key.mod & SDL_KMOD_CTRL);
+}
+
 bool Translator::Take(const SDL_Event& e, float pixelsPerPoint, std::deque<Event>* out) {
     switch (e.type) {
     case SDL_EVENT_KEY_DOWN:

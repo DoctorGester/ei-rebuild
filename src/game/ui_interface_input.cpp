@@ -77,8 +77,8 @@ void Interface3D::OnRightDouble(Point point) {
     if (UiInputSide* target = MouseTarget()) target->RightDouble(point);
 }
 
-void Interface3D::OnWheel(int delta, Point point) {
-    if (UiInputSide* target = MouseTarget()) target->Wheel(delta, point);
+void Interface3D::OnWheel(float notches, Point point) {
+    if (UiInputSide* target = MouseTarget()) target->Wheel(notches, point);
 }
 
 // --- Keys ------------------------------------------------------------------

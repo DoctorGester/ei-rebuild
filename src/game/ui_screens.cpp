@@ -305,9 +305,9 @@ void UiItemStrip::MouseMove(Point point) {
     if ((scrollDirection == 1 && region != 0) || (scrollDirection == 2 && region != 1)) SettleScroll();
 }
 
-void UiItemStrip::Wheel(int delta, Point point) {
+void UiItemStrip::Wheel(float notches, Point point) {
     if (RegionAt(point) == 8) {
-        pending = (delta / 120) + pending;
+        pending = static_cast<int>(notches) + pending;   // whole notches, towards 0
         ui->PlayInterfaceSound(kSoundCampScroll);
     }
 }

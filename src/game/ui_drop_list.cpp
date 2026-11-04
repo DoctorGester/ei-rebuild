@@ -255,8 +255,8 @@ void UiDropList::MouseMove(Point point) {
     }
 }
 
-void UiDropList::Wheel(int delta, Point point) {
-    if (open && scroll->enabled) scroll->Wheel(delta, point);
+void UiDropList::Wheel(float notches, Point point) {
+    if (open && scroll->enabled) scroll->Wheel(notches, point);
 }
 
 void UiDropList::KeyDown(platform::Key key, int, bool) {

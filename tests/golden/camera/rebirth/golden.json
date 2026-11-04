@@ -2,15 +2,15 @@
   "scenario": "camera",
   "install": "rebirth",
   "recorded": "2026-11-04",
-  "commit": "ad8ff5f9f",
+  "commit": "52e38d30e",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "The harness's key f10 step posted WM_KEYDOWN / WM_KEYUP; Windows sends F10 as a system key, so with a real keyboard the original printed its release to the console (121:-1069285375, as the SDL backend already did). PL16's dispatcher applies the system-key rule to every key event, so the harness's F10 now does the same; the camera2 binding still takes the press. Console only.",
+  "reason": "C143a: the console no longer prints a released system key's number and rebuilt WM_KEYUP data (the original's debug line); nothing else changed",
   "source": "image",
   "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "console: differs from line 31: the old golden '0', the new run '121:-1069285375'"
+    "console: differs from line 31: the old golden '121:-1069285375', the new run '0'"
   ]
 }

@@ -222,8 +222,8 @@ void MakeThreadTimeCritical();
 
 // A key event's key: what the active layout makes the key (layouts move the letters, the digits and the punctuation:
 // AZERTY's key where a US keyboard has Q is A), named as Windows' US layout names it. The values are Windows'
-// virtual-key codes, because the console prints them (a system key's release, app.cpp) and the harness's recordings
-// keep them; a layout can give a value that has no name here (Windows' VK_OEM_8), which passes through as it is.
+// virtual-key codes: Windows' layouts answer in them (win32/keyboard.cpp, tools/input_check), the harness's recordings
+// keep them, and a layout can give a value that has no name here (Windows' VK_OEM_8), which passes through as it is.
 enum class Key : std::uint8_t {
     None = 0x00,
     Backspace = 0x08,
@@ -346,7 +346,6 @@ bool BringOtherInstanceForward(const char* name, const char* title);
 // made.
 NativeWindow CreateGameWindow(const char* title, int width, int height, bool fullScreen);
 void ShowGameWindow(NativeWindow window);
-bool IsMinimized(NativeWindow window);
 // A point of the screen as one of the window's client area, and back.
 Point ScreenToClient(NativeWindow window, Point point);
 Point ClientToScreen(NativeWindow window, Point point);

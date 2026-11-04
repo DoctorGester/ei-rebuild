@@ -75,16 +75,16 @@ void BattleScreen::KeyUp(platform::Key key, int scan) {
 
 // --- the wheel on the battle screen --------------------------------------------------------------
 
-void BattleScreen::Wheel(int delta, Point point) {
+void BattleScreen::Wheel(float notches, Point point) {
     if (portraitMode != 0) return;
     UiWindow* const panels[4] = {map, unitPanel, messageLog, topPanel};
     for (UiWindow* panel : panels) {
         panel->handled = false;
-        panel->Input()->Wheel(delta, point);
+        panel->Input()->Wheel(notches, point);
         if (panel->handled) return;
     }
     for (UiWindow* panel : panels) panel->SetEnabled(false);
-    UiContainer::Wheel(delta, point);
+    UiContainer::Wheel(notches, point);
     for (UiWindow* panel : panels) panel->SetEnabled(true);
 }
 

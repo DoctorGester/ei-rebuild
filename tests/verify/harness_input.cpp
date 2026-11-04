@@ -106,6 +106,13 @@ unsigned ScanCode(Key key) {
 }
 
 void PressKey(Key key, unsigned scan, std::uint8_t modifiers) {
+    // Alt+F4 is the window's close request, as the game's backend gives it (sdl_input.h, IsCloseKey).
+    if (key == Key::F4 && (modifiers & platform::kModifierAlt) && !(modifiers & platform::kModifierControl)) {
+        Event close;
+        close.type = EventType::CloseRequested;
+        harnessplatform::Queue(close);
+        return;
+    }
     harnessplatform::Queue(KeyEvent(EventType::KeyDown, key, scan, modifiers));
 }
 

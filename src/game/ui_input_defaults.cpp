@@ -6,4 +6,4 @@ void UiInputSide::LeftDouble(Point point) { LeftDown(point); }
 
 void UiInputSide::RightDouble(Point point) { RightDown(point); }
 
-void UiInputSide::Wheel(int, Point) {}
+void UiInputSide::Wheel(float, Point) {}

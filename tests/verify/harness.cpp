@@ -1292,7 +1292,7 @@ unsigned ParseModifiers(const std::string& text, std::string* bad) {
 using platform::MouseButton;
 
 void PostModifiers(unsigned mods, bool down) {
-    // Alt's own press and release hold Alt (Windows' system keys: the console prints the release).
+    // Alt's own press and release hold Alt, as the backend's key events carry it.
     struct ModifierKey { unsigned mod; platform::Key key; unsigned scan; std::uint8_t modifiers; };
     static const ModifierKey keys[] = {{kModCtrl, platform::Key::Control, 0x1D, 0},
                                        {kModShift, platform::Key::Shift, 0x2A, 0},

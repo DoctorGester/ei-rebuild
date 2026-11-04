@@ -245,9 +245,9 @@ void ClipPass(std::vector<Vector2>& points, Cut cut, Outside outside) {
     }
 }
 
-// 2.5^(delta / 1200).
-float WheelZoomFactor(int delta) {
-    return lib::Pow(2.5f, static_cast<float>(delta) * 0.00083333335f);
+// 2.5 to the power of a tenth of the notches, as the original's 2.5^(units / 1200).
+float WheelZoomFactor(float notches) {
+    return lib::Pow(2.5f, notches * kWheelUnits * 0.00083333335f);
 }
 
 } // namespace
@@ -500,11 +500,11 @@ void HudMap::UpdateView() {
 
 // --- The zoom factor ----------------------------------------------------------------------------------
 
-void HudMap::Wheel(int delta, Point point) {
+void HudMap::Wheel(float notches, Point point) {
     int region = RegionAt(point);
     if (region < 0) return;
     if (region == 0) {
-        float newZoom = WheelZoomFactor(delta) * zoom;
+        float newZoom = WheelZoomFactor(notches) * zoom;
         zoom = newZoom;
         if (newZoom > zoomMax) zoom = zoomMax;
         zoom = MaxKeepB(zoom, 1.0f);

@@ -378,7 +378,7 @@ void HudUnitPanel::MouseMove(Point point) {
     if (RegionAt(point) >= 0) handled = true;
 }
 
-void HudUnitPanel::Wheel(int, Point point) {
+void HudUnitPanel::Wheel(float, Point point) {
     if (RegionAt(point) >= 0) handled = true;
 }
 
@@ -561,7 +561,7 @@ void HudTopPanel::MouseMove(Point point) {
     if (RegionAt(point) >= 0) handled = true;
 }
 
-void HudTopPanel::Wheel(int, Point point) {
+void HudTopPanel::Wheel(float, Point point) {
     if (RegionAt(point) >= 0) handled = true;
 }
 

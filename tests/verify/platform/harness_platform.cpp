@@ -71,8 +71,9 @@ void Pump() {
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
         if (g_live) {
-            if (!g_real.Take(e, 1.0f, &g_realWaiting) &&
-                (e.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED || e.type == SDL_EVENT_QUIT))
+            if (platform::sdl_input::IsCloseKey(e) ||
+                (!g_real.Take(e, 1.0f, &g_realWaiting) &&
+                 (e.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED || e.type == SDL_EVENT_QUIT)))
                 g_closeRequested = true;
             continue;
         }
@@ -341,8 +342,6 @@ void ShowGameWindow(NativeWindow window) {
     SDL_ShowWindow(w);
     if (hp::g_live) SDL_RaiseWindow(w);
 }
-
-bool IsMinimized(NativeWindow window) { return hp::WindowOf(window) && hp::Minimized(); }
 
 Point ScreenToClient(NativeWindow window, Point point) {
     int left = 0, top = 0;

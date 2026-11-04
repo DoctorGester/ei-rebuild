@@ -1,7 +1,6 @@
 // Application helpers around WinMain: the window's events, the input dispatcher, the event pump and the start of the
 // first map. See app.h.
 #include "app.h"
-#include "console.h"
 #include "player_client.h"
 #include "sound.h"
 #include "ui_cursor.h"
@@ -13,9 +12,7 @@
 #include "lib/crt.h"
 #include "lib/text_case.h"
 #include "platform/platform.h"
-#include <cmath>
 #include <cstdarg>
-#include <cstdint>
 #include <cstring>
 #include <string>
 #include "options.h"
@@ -63,60 +60,27 @@ void OnActivate(bool active, bool minimized) {
 
 void Handled() { g_interface.CloseAllPending(); }
 
-// The keys Windows called system keys (Alt held without Ctrl, or F10): the original printed their releases to the
-// console and took Alt+F4 and Alt+Tab from them.
-bool SystemKey(const platform::Event& event) {
-    const bool alt = (event.modifiers & platform::kModifierAlt) != 0;
-    return (alt && !(event.modifiers & platform::kModifierControl)) || event.key == platform::Key::F10;
-}
-
-// The wheel's turn as the interface takes it: 120 a notch, positive away from the player.
-int WheelTurn(const platform::Event& event) { return static_cast<int>(std::lround(event.wheel * 120.0f)); }
-
-// A released system key's message data as the original printed it: the repeat count 1, the scan code at bit 16 (the
-// extended bit 24), Alt held bit 29, the key down before and released bits 30 and 31.
-std::int32_t ReleaseData(const platform::Event& event) {
-    constexpr std::uint32_t kRepeatCount = 1, kAlt = 0x20000000u, kReleased = 0xC0000000u;
-    const std::uint32_t alt = (event.modifiers & platform::kModifierAlt) ? kAlt : 0;
-    return static_cast<std::int32_t>(kReleased | alt | (static_cast<std::uint32_t>(event.scan) << 16) | kRepeatCount);
-}
-
 // The events the interface takes: keys, text, the mouse's moves, its left and right buttons and a wheel's turn.
 bool IsInput(const platform::Event& event) {
     switch (event.type) {
     case EventType::KeyDown:
     case EventType::KeyUp:
     case EventType::Text:
-    case EventType::MouseMove: return true;
+    case EventType::MouseMove:
+    case EventType::Wheel: return true;
     case EventType::MouseDown:
     case EventType::MouseUp: return event.button == MouseButton::Left || event.button == MouseButton::Right;
-    case EventType::Wheel: return WheelTurn(event) != 0;
     default: return false;
     }
 }
 
 void MenuOpen(void* flow) { static_cast<GameFlow*>(flow)->ProcessRequest(); }
 
+// Alt+F4 and Alt+Tab never get here: the backend makes Alt+F4 the close request, the system's switcher takes Alt+Tab
+// and the backend reports the focus it took.
 void OnKey(Interface3D* input, const platform::Event& event) {
-    if (event.type == EventType::KeyDown) {
-        if (event.key == platform::Key::F4 && SystemKey(event)) {   // Alt+F4
-            platform::PostQuit(0);
-            return;
-        }
-        input->OnKeyDown(event.key, event.scan, event.repeat);
-        return;
-    }
-    if (SystemKey(event)) {
-        // The key's virtual-key code (Key's value) and its message data, signed (a released key's are negative),
-        // wherever long is wider: F10's "121:-1069285375" (the goldens of camera and ui_modifier_keys hold such lines).
-        console::EndLine(console::g_consoleOut << static_cast<unsigned>(event.key) << ':'
-                                               << static_cast<long>(ReleaseData(event)));
-        if (event.key == platform::Key::Tab && (event.modifiers & platform::kModifierAlt)) {   // Alt+Tab: as if the window was deactivated
-            OnActivate(false, platform::IsMinimized(g_mainWindow));
-            return;
-        }
-    }
-    input->OnKeyUp(event.key, event.scan);
+    if (event.type == EventType::KeyDown) input->OnKeyDown(event.key, event.scan, event.repeat);
+    else input->OnKeyUp(event.key, event.scan);
 }
 
 // Each character of the text to the interface, with the scan code of the key that typed it (the interface drops the
@@ -148,7 +112,7 @@ void OnMouse(Interface3D* input, const platform::Event& event, Point at) {
         if (left) input->OnLeftUp(at);
         else input->OnRightUp(at);
         break;
-    case EventType::Wheel: input->OnWheel(WheelTurn(event), at); break;
+    case EventType::Wheel: input->OnWheel(event.wheel, at); break;
     default: break;
     }
 }

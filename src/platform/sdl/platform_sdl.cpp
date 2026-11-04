@@ -146,7 +146,17 @@ int Pixels(float points) { return Whole(points * PixelsPerPoint()); }
 
 // ---- SDL's events ------------------------------------------------------------------------------------------------
 
+void Queue(EventType type) {
+    Event event;
+    event.type = type;
+    Queue(event);
+}
+
 void Take(const SDL_Event& e) {
+    if (sdl_input::IsCloseKey(e)) {
+        Queue(EventType::CloseRequested);
+        return;
+    }
     if (g_input.Take(e, PixelsPerPoint(), &g_waiting)) return;
     switch (e.type) {
     case SDL_EVENT_WINDOW_FOCUS_GAINED: Focus(true, Minimized()); break;
@@ -157,12 +167,7 @@ void Take(const SDL_Event& e) {
         break;
     // The player closes the window (or the system ends the session): the game decides.
     case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-    case SDL_EVENT_QUIT: {
-        Event close;
-        close.type = EventType::CloseRequested;
-        Queue(close);
-        break;
-    }
+    case SDL_EVENT_QUIT: Queue(EventType::CloseRequested); break;
     default: break;
     }
 }
@@ -212,7 +217,7 @@ bool PlaceInUsableBounds(SDL_Window* window, SDL_DisplayID display, int width, i
 } // namespace
 
 void StartWindowSystem(const char* name) {
-    SDL_SetHint(SDL_HINT_WINDOWS_CLOSE_ON_ALT_F4, "0");      // the game takes Alt+F4 itself
+    SDL_SetHint(SDL_HINT_WINDOWS_CLOSE_ON_ALT_F4, "0");      // Alt+F4 is ours (IsCloseKey), the same on every system
     SDL_SetHint(SDL_HINT_QUIT_ON_LAST_WINDOW_CLOSE, "0");    // closing the window is a request (CloseRequested)
     SDL_SetHint(SDL_HINT_MOUSE_AUTO_CAPTURE, "0");           // mouse events only over the window, as Windows gave them
     // The held cursor (HoldCursor): relative mode keeps it visible where the mouse rectangle holds it, its motion scaled
@@ -281,8 +286,6 @@ NativeWindow CreateGameWindow(const char* title, int width, int height, bool ful
 void ShowGameWindow(NativeWindow window) {
     if (SDL_Window* w = WindowOf(window)) SDL_ShowWindow(w);
 }
-
-bool IsMinimized(NativeWindow window) { return WindowOf(window) && Minimized(); }
 
 Point ScreenToClient(NativeWindow window, Point point) {
     int left = 0, top = 0;
