@@ -284,6 +284,16 @@
 //                             require frames <a> and <b> to match: at most <fraction> (default
 //                             0.001) of the pixels may have a channel differing by more than
 //                             <tolerance> (default 8), as tools/compare_frames.py counts
+//   skin <unit> <first> [<second>]
+//                             the client's unit <unit> (a script name, or "#<id>") takes the textures a map
+//                             placement names (primary <first>, secondary <second>; without it the unit's own
+//                             kept), as soon as it reaches the client: a unit made by AddUnitToServer has none
+//                             and draws untextured, as in the original. Client only; fails at the report when
+//                             the unit never came
+//   unitcolour <frame> <a> <b> <least> <most>
+//                             while frozen: the mean colours of the middle half of units <a>'s and <b>'s
+//                             rectangles (this frame's screen list) in frames\<frame>.bmp; their largest channel
+//                             difference must lie within <least>..<most>
 //   terrainlevels on|point|off
 //                             the image's ground pages draw the texture level their sampler reads
 //                             (render::TerrainLevels: a grey per level, marked green / blue), through
@@ -649,6 +659,12 @@ int g_dialogueState = 0;
 int g_talkClicks = 0;
 unsigned g_talkNextFrame = 0;
 Deadline g_dialogueDeadline;
+// The "skin" steps whose unit has not reached the client yet (SkinStep).
+struct PendingSkin {
+    int id;
+    std::string unit, first, second;   // second "": the unit's own second name kept
+};
+std::vector<PendingSkin> g_pendingSkins;
 // A pending "waitunit": the unit's script name, when it started and gives up.
 bool g_waitingUnit = false;
 std::string g_waitUnitName;
@@ -1087,6 +1103,9 @@ int HeldClientSegment(void* client) {
 }
 
 void WriteReport() {
+    for (const PendingSkin& skin : g_pendingSkins)
+        g_failures.push_back("skin " + skin.unit + ": the unit never reached the client");
+    g_pendingSkins.clear();
     clock::FlushRandomTrace();
     digest::Flush();
     coverage::Write();
@@ -1752,6 +1771,67 @@ std::string BlinkStep(const std::string& argument) {
     return faces ? "" : "blink: no unit has a face texture";
 }
 
+// --- skin <unit> <first> [<second>], unitcolour <frame> <a> <b> <least> <most> (R49) ---------------------------
+// A unit made by AddUnitToServer has no texture names (its party record's texts 3 and 4 are empty, as the original's
+// were), so its figure draws untextured: the original's look, which only the harness's spawns reach. "skin" gives the
+// client's unit the textures a map placement of its kind names (zone1's wolves: Wolf00 GoblinAxeBag00), as soon as
+// the unit reaches the client (checked every frame, so the step takes no frame); the client draws it, nothing of
+// the game's state changes. A unit is a script name (as GetObjectByName) or "#<id>".
+int UnitIdOf(const std::string& unit) {
+    return !unit.empty() && unit[0] == '#' ? std::atoi(unit.c_str() + 1) : image::TextKey(unit.c_str());
+}
+
+void ApplyPendingSkins() {
+    std::erase_if(g_pendingSkins, [](const PendingSkin& skin) {
+        if (!image::SetObjectSkins(skin.id, skin.first.c_str(), skin.second.empty() ? nullptr : skin.second.c_str()))
+            return false;
+        Log("harness: skin %s: %s %s", skin.unit.c_str(), skin.first.c_str(), skin.second.c_str());
+        return true;
+    });
+}
+
+std::string SkinStep(const std::string& argument) {
+    char unit[64] = "", first[64] = "", second[64] = "";
+    if (std::sscanf(argument.c_str(), "%63s %63s %63s", unit, first, second) < 2) return "skin needs <unit> <first> [<second>]";
+    g_pendingSkins.push_back({UnitIdOf(unit), unit, first, second});
+    ApplyPendingSkins();
+    return "";
+}
+
+// The mean colour of the middle half (each way) of unit `a`'s and unit `b`'s rectangles in this frame's screen list
+// (the parts drawn: frozen, the frame captured shows the same) in frames\<frame>.bmp; the largest channel difference
+// of the two means must lie within <least>..<most>. A spawned wolf with Wolf00 against zone1's LoneWolf: the same
+// colours (render_unit_skin).
+std::string UnitColourStep(const std::string& argument) {
+    char frame[64] = "", names[2][64] = {"", ""};
+    double least = 0, most = 0;
+    if (std::sscanf(argument.c_str(), "%63s %63s %63s %lf %lf", frame, names[0], names[1], &least, &most) < 5)
+        return "unitcolour needs <frame> <a> <b> <least> <most>";
+    double means[2][3] = {};
+    Rect rects[2] = {};
+    for (int k = 0; k < 2; ++k) {
+        const int listed = ScreenRect(HarnessClientWorld(), UnitIdOf(names[k]), &rects[k]);
+        if (listed <= 0) return std::string("unitcolour: ") + names[k] + (listed < 0 ? ": no screen list" : ": not drawn");
+        const Rect& r = rects[k];
+        const int qx = (r.right - r.left) / 4, qy = (r.bottom - r.top) / 4;
+        const char* why = "";
+        if (!capture::MeanColour(frame, r.left + qx, r.top + qy, r.right - qx, r.bottom - qy, means[k], &why))
+            return std::string("unitcolour ") + frame + " " + names[k] + ": " + why;
+    }
+    double largest = 0;
+    for (int c = 0; c < 3; ++c) largest = (std::max)(largest, std::abs(means[0][c] - means[1][c]));
+    char text[320];
+    std::snprintf(text, sizeof(text),
+                  "unitcolour %s: %s (%d,%d)-(%d,%d) rgb %.0f %.0f %.0f, %s (%d,%d)-(%d,%d) rgb %.0f %.0f %.0f: largest "
+                  "difference %.1f (allowed %.1f .. %.1f)",
+                  frame, names[0], rects[0].left, rects[0].top, rects[0].right, rects[0].bottom, means[0][2], means[0][1],
+                  means[0][0], names[1], rects[1].left, rects[1].top, rects[1].right, rects[1].bottom, means[1][2],
+                  means[1][1], means[1][0], largest, least, most);
+    Log("harness: %s", text);
+    g_capturedFrames.push_back(text);
+    return largest < least || largest > most ? text : "";
+}
+
 std::string PostGroundMouse(const std::string& argument) {
     float wx = 0.0f, wy = 0.0f;
     char verb[16] = "click";
@@ -2031,6 +2111,7 @@ std::string RealInputStep(const std::string& argument);
 
 void RunSteps() {
     sys::ReassertFaultHandler();
+    if (!g_pendingSkins.empty()) ApplyPendingSkins();
     // The "show tutorial" option (registry value ShowTutorial). With it off, tutorial windows open only where the game
     // forces them (005F86F0, 005F8A80). Cleared every frame, since the options are reloaded when a game starts.
     HarnessClearShowTutorial();
@@ -2927,6 +3008,9 @@ void RunSteps() {
             if (differing < least || differing > most) g_failures.push_back(text);
         } else if (s.verb == "blink") {
             std::string error = BlinkStep(s.argument);
+            if (!error.empty()) g_failures.push_back(error);
+        } else if (s.verb == "skin" || s.verb == "unitcolour") {
+            std::string error = s.verb == "skin" ? SkinStep(s.argument) : UnitColourStep(s.argument);
             if (!error.empty()) g_failures.push_back(error);
         } else if (IsRenderStep(s.verb)) {
             // The image's renderer (image/harness_render_image.cpp).

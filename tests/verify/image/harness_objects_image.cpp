@@ -271,6 +271,18 @@ bool UnitFaceHalves(std::vector<void*>* halves) {
     return true;
 }
 
+bool SetObjectSkins(int id, const char* first, const char* second) {
+    for (MapObject* object : g_clientWorld.objects) {
+        if (!object || object->id != id) continue;
+        Object3DClientSpecific* half = object->ClientSpecific();
+        if (!half) return false;
+        const std::string secondName = second ? std::string(second) : half->secondSkinName;
+        half->SetSkins(std::string_view(first), std::string_view(secondName));
+        return true;
+    }
+    return false;
+}
+
 int RegionCount(void* window) { return static_cast<int>(std::ssize(static_cast<UiWindow*>(window)->regions)); }
 bool Region(void* window, int index, RegionInfo* region) {
     const UiRegion* found = static_cast<UiWindow*>(window)->regions[index];

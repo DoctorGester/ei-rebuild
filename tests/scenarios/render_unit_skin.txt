@@ -1,0 +1,52 @@
+# R49: a unit made by AddUnitToServer has no texture names (its party record's texts 3 and 4 stay empty, as in the
+# original: 006621F0 fills texts 2 and 6 only), so its figure draws untextured, pale in the light: the original's look,
+# reached only by the harness's spawns (no map script calls AddUnitToServer; docs/notes/world.md, "A record's texture
+# names"). The "skin" step gives the client's unit the textures zone1's wolves are placed with; then a spawned wolf
+# draws in the colours of the map's LoneWolf (#1804) beside it, and one without draws far from them. The hero walks
+# to LoneWolf first: the client draws no unit out of the party's sight (and none new while zone1's arrival plays,
+# hence the leader blocked at once). Frames only (image).
+render checkall
+timeout 60
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),1)
+console @GodMode(0,1)
+console @FixWorldTime(12)
+waitwindow 15 battle
+move 400 300
+console @BlockUnit(GetObject(1804),1)
+console @MoveToPoint(GetLeader(),Add(GetX(GetObject(1804)),5),GetY(GetObject(1804)))
+waitfor 40 IsLess(DistanceUnitUnit(GetObject(1804),GetLeader()),6)
+console @GSSetVar(0,"wx",GetX(GetObject(1804)))
+console @GSSetVar(0,"wy",GetY(GetObject(1804)))
+console @AddUnitToServer("SkinWolf","WolfTutor","SkinWolf",GSGetVar(0,"wx"),Add(GSGetVar(0,"wy"),2.5),0)
+console @AddUnitToServer("PaleWolf","WolfTutor","PaleWolf",GSGetVar(0,"wx"),Add(GSGetVar(0,"wy"),5),0)
+skin SkinWolf Wolf00 GoblinAxeBag00
+waitfor 10 IsAlive(GetObjectByName("PaleWolf"))
+console @BlockUnit(GetObjectByName("SkinWolf"),1)
+console @BlockUnit(GetObjectByName("PaleWolf"),1)
+move 400 20
+frames 5
+vanilla minimap 701 81 2.8 2.8
+rebirth minimap 726 80.6 3.75 2.7
+lookat 65 116
+frames 3
+lookat 65 116
+frames 3
+lookat 65 116
+frames 3
+move 400 20
+waitunit 10 #1804
+waitunit 10 SkinWolf
+waitunit 10 PaleWolf
+frames 2
+freeze
+capture wolves
+unitcolour wolves SkinWolf #1804 0 16
+unitcolour wolves PaleWolf #1804 40 255
+unfreeze
+report
+quit

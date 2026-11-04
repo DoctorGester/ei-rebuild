@@ -122,6 +122,10 @@ void BlinkOpen(void* half);
 void BlinkClose(void* half);
 // The client halves of the client world's units with a face texture.
 bool UnitFaceHalves(std::vector<void*>* halves);   // false without a client world
+// The "skin" step: the client world's object `id` takes the textures `first` and `second` (null: its second name
+// kept) through Object3DClientSpecific::SetSkins, as a map placement's primary and secondary textures name them.
+// False when the client world has no such object (yet).
+bool SetObjectSkins(int id, const char* first, const char* second);
 // The window's regions (null ones too) and region `index`'s rectangle, hit offset and enabled flag; false for none.
 struct RegionInfo {
     int left = 0, top = 0, right = 0, bottom = 0;

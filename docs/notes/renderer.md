@@ -276,6 +276,10 @@ multiple of 4 wide and high: every DXT file is, at the levels the texture qualit
 pictures (`PictureFromMmp`) are 8888 files; a DXT one is not decoded (logged). The decoded textures do not keep the
 file's bytes.
 
+**A texture found nowhere** (its name in no archive and not composed; `LoadTexture`'s "Can't find texture" is a
+`DebugLog`, which writes nothing) keeps no image and draws white, as a Direct3D stage without a texture did: a unit made by AddUnitToServer has the texture
+name "" and draws white lit, pale (world.md, "A record's texture names"; the original's look, R49).
+
 **Texture patches**: `render::TexturePatch(target, to, source, from)` records that a rectangle of one holder's texture
 shows a rectangle of another's (first-level texels, one per target, gone with either holder). `ReadPassState` gives stage
 0's patch to the batch (`PassState::patch`), and the mesh shader samples the source (`tex2`, stage 0's sampler;
