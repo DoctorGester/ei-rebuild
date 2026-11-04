@@ -111,8 +111,9 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   wrote into the run's `harness_saves`. `read` / `wrote` `mod|game <path> yes|no` and `waitread <seconds> mod|game <path>`
   ask which files the game touched or wrote (`harness_modtrace.h`; noted only in a scenario that uses them, the wait is in
   real seconds because a thread opens the file); `modfile`, `modlist`, `modarchive` and `mapfile` ask Rebirth's patches
-  directly; `playstream <file>.mp3` asks the music stream for a track. A wait on the stream thread changes how many world
-  updates the run takes: do it at the main menu with `digest off`, then `digest 20` in the game (the goldens' period).
+  directly; `playstream <file>.mp3` asks the music stream for a track. The stream's steps run on the virtual clock (a
+  harness run opens no sound device), so the wait takes the same world updates every run and the digest records them
+  (S19d1: four runs agreed record for record); with `music <volume>` and a device the thread is real and would not.
 - `resolution <WxH|desktop>` and `widescreen 0|1` (or `EI_RESOLUTION` / `EI_WIDESCREEN`) set the run's window; without
   them runs play in a window of 960x720 on the vanilla data and 1280x720 on Rebirth's (each takes its goldens' shape;
   FullScreen 0 unless the scenario says `fullscreen 1`).

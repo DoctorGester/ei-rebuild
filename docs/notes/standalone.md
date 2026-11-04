@@ -235,7 +235,7 @@ Classes are ordinary C++: constructors, virtual destructors, virtual overrides w
     game); the last four are `tools/make_mod_s19d.py stream|archives|maps`. Each file a scenario's mod holds is
     asked for with the steps `read` / `wrote` / `waitread` (the files the game touched: `tests/verify/harness_modtrace.h`),
     `modfile` / `modlist` / `modarchive` and `mapfile` (harness.cpp's header); "playstream" asks the music stream for
-    a track at the main menu, where the stream thread's real-time wait changes no digest.
+    a track at the main menu (its steps follow the virtual clock, so the wait is the same every run).
   - **A mod file is also asked about** (IsFile) before the game chooses between the mod's and its own, so "the mod's
     file was touched" cannot tell the choice by itself: a check pairs it with the game's path for the same name,
     untouched.
