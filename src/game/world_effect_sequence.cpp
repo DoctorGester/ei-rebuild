@@ -44,13 +44,6 @@ Chooser ChooserFor(int count, bool withFirst) {
     }
 }
 
-bool SnapshotReadToEnd() {
-    MemoryStream* snapshot = delta::g_readSnapshot;
-    std::uint32_t position = snapshot->Position();
-    return position == snapshot->Size();
-}
-
-
 } // namespace
 
 // An update moves the sequence through the single-sound call (SetSoundPosition with the sequence id,
@@ -73,21 +66,21 @@ void EffectSoundSeq::Start(int update) {
                                  localPosition, volume, radius, 0, -1, chooser);
 }
 
-int EffectSoundSeq::Unpack(int update, DeltaField* field) {
+int EffectSoundSeq::Unpack(int update, DeltaReader& field) {
     Vector3 position;
-    position = field->ReadPosition();
-    name = field->ReadString();
+    position = field.ReadPosition();
+    name = field.ReadString();
     int count = 0;   // ReadDelta always stores all four bytes
-    field->ReadDelta(&count, 4);
+    field.ReadDelta(&count, 4);
     std::vector<std::string>& others = names;
     others.resize(static_cast<std::size_t>(count));
-    for (std::string& other : others) other = field->ReadString();
-    volume = field->ReadFloat16();
-    radius = field->ReadFloat16();
-    velocity = field->ReadFloat16x3();
-    field->ReadDelta(&noFade, 1);
+    for (std::string& other : others) other = field.ReadString();
+    volume = field.ReadFloat16();
+    radius = field.ReadFloat16();
+    velocity = field.ReadFloat16x3();
+    field.ReadDelta(&noFade, 1);
     moving = velocity.x == 0.0f && velocity.y == 0.0f && velocity.z == 0.0f ? 0 : 1;
-    if (!SnapshotReadToEnd()) return 0;
+    if (!field.SnapshotConsumed()) return 0;
     localPosition = position;
     Start(update);
     return 1;

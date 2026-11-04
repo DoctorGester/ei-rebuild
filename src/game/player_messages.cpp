@@ -260,9 +260,9 @@ void PlayerServer::SendPathMessage(EngineObject* unit, PathOrder* path, const Ve
     out.WriteValue(limit);
     if (kind == kPathKindNoPath) return;
     DeltaField field;
-    DeltaField* delta = field.BeginWriteB(0);
-    path->WriteState(delta);
-    delta->EndField();
+    DeltaWriter writer(field, DeltaWrite::Full);
+    path->WriteState(writer);
+    writer.End();
     out.EndBits();
     MemoryStream& written = field.out[0];
     written.Seek(0);

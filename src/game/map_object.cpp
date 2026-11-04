@@ -208,7 +208,7 @@ void MapObject::TakePrototype(std::string_view prototype) {
 
 void MapObject::WriteFullState() {
     DeltaState* state = &netState;
-    state->SetWriteMode(0);
+    state->SetWriteMode(DeltaWrite::Full);
     WriteNetState();
     state->Finish();
     flags &= ~MapObjectFlag::Changed;
@@ -217,7 +217,7 @@ void MapObject::WriteFullState() {
 void MapObject::WriteChangedState() {
     if (netState.mask & kVitalParts) StatsChanged();
     DeltaState* state = &netState;
-    state->SetWriteMode(1);
+    state->SetWriteMode(DeltaWrite::Changes);
     WriteNetState();
     state->Finish();
     flags &= ~MapObjectFlag::Changed;

@@ -30,7 +30,7 @@ namespace {
 
 void ClearBase(Effect* e) {
     e->localPosition = Vector3{0.0f, 0.0f, 0.0f};
-    EmptyField(&e->state);
+    e->state.Empty();
     e->velocity = Vector3{0.0f, 0.0f, 0.0f};
     e->startTick = 0;
     e->moving = 0;
@@ -136,27 +136,27 @@ void EffectPointLight::Start(int update) {
         LightFlags(light) |= LightFlag::Off;
 }
 
-int EffectPointLight::Unpack(int update, DeltaField* field) {
+int EffectPointLight::Unpack(int update, DeltaReader& field) {
     Vector3 position;
-    position = field->ReadPosition();
-    color = field->ReadFloat16x3();
-    range = field->ReadFloat16();
-    velocity = field->ReadFloat16x3();
-    field->ReadDelta(&lightFlags, 4);
+    position = field.ReadPosition();
+    color = field.ReadFloat16x3();
+    range = field.ReadFloat16();
+    velocity = field.ReadFloat16x3();
+    field.ReadDelta(&lightFlags, 4);
     moving = IsMoving(velocity);
-    if (!SnapshotReadToEnd()) return 0;
+    if (!field.SnapshotConsumed()) return 0;
     localPosition = position;
     Start(update);
     return 1;
 }
 
-void EffectPointLight::Pack(DeltaField* field) {
+void EffectPointLight::Pack(DeltaWriter& field) {
     Vector3 position = localPosition;
-    field->WritePosition(position);
-    field->WriteFloat16x3(&color.x);
-    field->WriteFloat16(Bits(range));
-    field->WriteFloat16x3(&velocity.x);
-    field->WriteDelta(&lightFlags, 4);
+    field.WritePosition(position);
+    field.WriteFloat16x3(color);
+    field.WriteFloat16(range);
+    field.WriteFloat16x3(velocity);
+    field.WriteDelta(&lightFlags, 4);
 }
 
 void EffectPointLight::Load(ByteStream* stream) {
@@ -216,21 +216,21 @@ void EffectParticle::Start(int update) {
     Spawn();
 }
 
-int EffectParticle::Unpack(int update, DeltaField* field) {
+int EffectParticle::Unpack(int update, DeltaReader& field) {
     Vector3 position;
-    position = field->ReadPosition();
-    field->ReadDelta(&startTick, 4);
-    field->ReadDelta(&type, 4);
-    size = field->ReadFloat16();
-    field->ReadDelta(&attachedTo, 4);
-    velocity = field->ReadFloat16x3();
-    target = field->ReadPosition();
-    field->ReadDelta(&unitId, 4);
-    alpha = field->ReadFloat16();
-    typeParam = field->ReadFloat16();
+    position = field.ReadPosition();
+    field.ReadDelta(&startTick, 4);
+    field.ReadDelta(&type, 4);
+    size = field.ReadFloat16();
+    field.ReadDelta(&attachedTo, 4);
+    velocity = field.ReadFloat16x3();
+    target = field.ReadPosition();
+    field.ReadDelta(&unitId, 4);
+    alpha = field.ReadFloat16();
+    typeParam = field.ReadFloat16();
     moving = IsMoving(velocity);
     // Only a plain particle effect checks the snapshot here (the wall checks after its own field).
-    if (GetClassId() == ClassId::EffectParticle && !SnapshotReadToEnd()) return 0;
+    if (GetClassId() == ClassId::EffectParticle && !field.SnapshotConsumed()) return 0;
     if (unitId != -1) {
         Unit* unit = OwningWorld()->FindUnit(unitId);
         if (unit != nullptr) {
@@ -288,21 +288,21 @@ void EffectParticle::Spawn() {
     }
 }
 
-void EffectParticle::Pack(DeltaField* field) {
+void EffectParticle::Pack(DeltaWriter& field) {
     Vector3 position = localPosition;
-    field->WritePosition(position);
+    field.WritePosition(position);
     int value = startTick;
-    field->WriteDelta(&value, 4);
-    field->WriteDelta(&type, 4);
-    field->WriteFloat16(Bits(size));
+    field.WriteDelta(&value, 4);
+    field.WriteDelta(&type, 4);
+    field.WriteFloat16(size);
     value = attachedTo;
-    field->WriteDelta(&value, 4);
-    field->WriteFloat16x3(&velocity.x);
-    field->WritePosition(target);
+    field.WriteDelta(&value, 4);
+    field.WriteFloat16x3(velocity);
+    field.WritePosition(target);
     value = unitId;
-    field->WriteDelta(&value, 4);
-    field->WriteFloat16(Bits(alpha));
-    field->WriteFloat16(Bits(typeParam));
+    field.WriteDelta(&value, 4);
+    field.WriteFloat16(alpha);
+    field.WriteFloat16(typeParam);
 }
 
 void EffectParticle::SetAttachedTo(int objectId) {
@@ -396,7 +396,7 @@ bool EffectParticle::RunTick() {
 
 void EffectWall::Reset() {
     localPosition = Vector3{0.0f, 0.0f, 0.0f};
-    EmptyField(&state);
+    state.Empty();
     startTick = 0;
     velocity = Vector3{0.0f, 0.0f, 0.0f};
     moving = 0;
@@ -420,10 +420,10 @@ void EffectWall::SetDirection(const Vector3& newDirection) {
     MarkChanged();
 }
 
-int EffectWall::Unpack(int update, DeltaField* field) {
+int EffectWall::Unpack(int update, DeltaReader& field) {
     if (EffectParticle::Unpack(update, field) == 0) return 0;
-    direction = field->ReadFloat16x3();
-    if (!SnapshotReadToEnd()) return 0;
+    direction = field.ReadFloat16x3();
+    if (!field.SnapshotConsumed()) return 0;
     if (source != nullptr) source->extent = direction;
     if (update == 0 && ParticleTypeOf(type) == ParticleType::Tendril) {
         // A scorch mark under the new wall: as long as the wall, as wide as half its size.
@@ -437,22 +437,22 @@ int EffectWall::Unpack(int update, DeltaField* field) {
     return 1;
 }
 
-void EffectWall::Pack(DeltaField* field) {
+void EffectWall::Pack(DeltaWriter& field) {
     Vector3 position = localPosition;
-    field->WritePosition(position);
+    field.WritePosition(position);
     int value = startTick;
-    field->WriteDelta(&value, 4);
-    field->WriteDelta(&type, 4);
-    field->WriteFloat16(Bits(size));
+    field.WriteDelta(&value, 4);
+    field.WriteDelta(&type, 4);
+    field.WriteFloat16(size);
     value = attachedTo;
-    field->WriteDelta(&value, 4);
-    field->WriteFloat16x3(&velocity.x);
-    field->WritePosition(target);
+    field.WriteDelta(&value, 4);
+    field.WriteFloat16x3(velocity);
+    field.WritePosition(target);
     value = unitId;
-    field->WriteDelta(&value, 4);
-    field->WriteFloat16(Bits(alpha));
-    field->WriteFloat16(Bits(typeParam));
-    field->WriteFloat16x3(&direction.x);
+    field.WriteDelta(&value, 4);
+    field.WriteFloat16(alpha);
+    field.WriteFloat16(typeParam);
+    field.WriteFloat16x3(direction);
 }
 
 void EffectWall::Load(ByteStream* stream) {
@@ -497,33 +497,33 @@ void EffectLightning::Start(int update) {
     bolt->Start(from, to, width, flag);
 }
 
-int EffectLightning::Unpack(int update, DeltaField* field) {
+int EffectLightning::Unpack(int update, DeltaReader& field) {
     Vector3 position;
-    position = field->ReadPosition();
-    from = field->ReadPosition();
-    to = field->ReadPosition();
-    width = field->ReadFloat16();
-    field->ReadDelta(&flag, 1);
-    field->ReadDelta(&toObject, 4);
-    field->ReadDelta(&fromObject, 4);
-    if (!SnapshotReadToEnd()) return 0;
+    position = field.ReadPosition();
+    from = field.ReadPosition();
+    to = field.ReadPosition();
+    width = field.ReadFloat16();
+    field.ReadDelta(&flag, 1);
+    field.ReadDelta(&toObject, 4);
+    field.ReadDelta(&fromObject, 4);
+    if (!field.SnapshotConsumed()) return 0;
     UpdateEnds();
     localPosition = position;
     Start(update);
     return 1;
 }
 
-void EffectLightning::Pack(DeltaField* field) {
+void EffectLightning::Pack(DeltaWriter& field) {
     Vector3 position = localPosition;
-    field->WritePosition(position);
-    field->WritePosition(from);
-    field->WritePosition(to);
-    field->WriteFloat16(Bits(width));
-    field->WriteDelta(&flag, 1);
+    field.WritePosition(position);
+    field.WritePosition(from);
+    field.WritePosition(to);
+    field.WriteFloat16(width);
+    field.WriteDelta(&flag, 1);
     int value = toObject;
-    field->WriteDelta(&value, 4);
+    field.WriteDelta(&value, 4);
     value = fromObject;
-    field->WriteDelta(&value, 4);
+    field.WriteDelta(&value, 4);
 }
 
 void EffectLightning::SetEnds(const Vector3& newFrom, const Vector3& newTo, float newWidth) {

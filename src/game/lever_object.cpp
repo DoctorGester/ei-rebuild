@@ -111,7 +111,7 @@ void LockKey::WriteTo(ByteStream* stream) const {
 
 void Lever::WriteNetState() {
     MapObject::WriteNetState();
-    DeltaField* field = netState.BeginField(NetField::LeverState);
+    std::optional<DeltaWriter> field = netState.WriteField(NetField::LeverState);
     if (!field) return;
     if (to != scale.y) {
         rate = 0.0f;
@@ -121,12 +121,12 @@ void Lever::WriteNetState() {
     for (float value : {from, to, endTick, rate}) field->WriteDelta(&value, 4);
     std::uint8_t disabled = lib::Has(flags, MapObjectFlag::Disabled);
     field->WriteDelta(&disabled, 1);
-    field->EndField();
+    field->End();
 }
 
 bool Lever::ReadNetState(bool update) {
     bool complete = MapObject::ReadNetState(update);
-    DeltaField* field = netState.BeginField(NetField::LeverState);
+    std::optional<DeltaReader> field = netState.ReadField(NetField::LeverState);
     if (!field) return complete;
     field->ReadDelta(&lock, sizeof(LockKey));
     field->ReadDelta(&from, 4);
@@ -135,8 +135,8 @@ bool Lever::ReadNetState(bool update) {
     field->ReadDelta(&rate, 4);
     std::uint8_t disabled;
     field->ReadDelta(&disabled, 1);
-    complete &= delta::SnapshotConsumed();
-    field->EndField();
+    complete &= field->SnapshotConsumed();
+    field->End();
     if (disabled) flags |= MapObjectFlag::Disabled;
     else flags &= ~MapObjectFlag::Disabled;
     g_clientWorld.QueueSynchronised(this);

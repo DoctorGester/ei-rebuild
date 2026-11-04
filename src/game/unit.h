@@ -37,7 +37,7 @@ template <> inline constexpr bool lib::kBitFlags<UnitStatsFlag> = true;
 // The weapon slot of no weapon: ShowWeapon's argument, and CHeroRecord::weaponIndex when the hero shows none.
 inline constexpr std::uint32_t kNoWeaponSlot = 0xFFFFFFFFu;
 struct UnitParams;
-struct DeltaField;
+class DeltaReader;
 struct UnitPrototypeRecord;
 struct UnitModelRecord;
 struct SkillLevelRecord;
@@ -235,9 +235,9 @@ public:
     bool ReadNetState(bool update) override;
     void WriteNetState() override;
     // The parts of ReadNetState (net_state.cpp): the statistics field, the path field, the relations field.
-    void ReadNetStats(DeltaField* field, bool update, float hpBefore);
-    void ReadNetPath(DeltaField* field);
-    void ReadNetRelations(DeltaField* field);
+    void ReadNetStats(DeltaReader& field, bool update, float hpBefore);
+    void ReadNetPath(DeltaReader& field);
+    void ReadNetRelations(DeltaReader& field);
     // The position predicted along the path at world time `time`, the point the animation acts on.
     Vector3 PositionAt(int time) override;
     Vector3 AimPoint() override;

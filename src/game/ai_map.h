@@ -127,7 +127,8 @@ struct PassCostContext {
 
 struct FogGrid;
 
-struct DeltaField;
+class DeltaReader;
+class DeltaWriter;
 
 struct PathCell {
     std::int16_t x, y;
@@ -207,8 +208,8 @@ struct PathOrder {
     // order angle range, the time and three arguments) on the field's delta channels, then each step as a 16-bit
     // header (x and y codes: one less, the same, one more than the previous step, or written out after it;
     // terrainBits & 3; the flags up to 0x3FF) on both outputs. ReadState empties the steps and reads them back.
-    void WriteState(DeltaField* field);
-    void ReadState(DeltaField* field);
+    void WriteState(DeltaWriter& field);
+    void ReadState(DeltaReader& field);
     // The order and its steps in the save stream: kind, x / y, angle, start time and the three
     // arguments (4, 8, 4, 4, 0xC bytes), the steps' count, then each step (8 bytes). Loading appends that many
     // steps and reads over every step from the head.

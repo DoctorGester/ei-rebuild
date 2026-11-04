@@ -44,18 +44,18 @@ void EffectShowVisibility::Start(int update) {
     if (fog != nullptr) fog->Reveal(&grid);
 }
 
-int EffectShowVisibility::Unpack(int update, DeltaField* field) {
+int EffectShowVisibility::Unpack(int update, DeltaReader& field) {
     MemoryStream stream;
-    if (field->ReadStream(&stream) == 0) return 0;
+    if (field.ReadStream(&stream) == 0) return 0;
     grid.Read(&stream);
     Start(update);
     return 1;
 }
 
-void EffectShowVisibility::Pack(DeltaField* field) {
+void EffectShowVisibility::Pack(DeltaWriter& field) {
     MemoryStream stream;
     grid.Write(&stream);
-    field->WriteStreamBoth(&stream);
+    field.WriteStreamBoth(&stream);
 }
 
 bool EffectShowVisibility::RunTick() {

@@ -23,7 +23,7 @@ namespace {
 // flag and stamp.
 void ClearBase(Effect* e) {
     e->localPosition = Vector3{0.0f, 0.0f, 0.0f};
-    EmptyField(&e->state);
+    e->state.Empty();
     e->velocity = Vector3{0.0f, 0.0f, 0.0f};
     e->startTick = 0;
     e->moving = 0;
@@ -37,21 +37,21 @@ void MoveByVelocity(Effect* e) { e->localPosition += e->velocity; }
 
 
 void Effect::SendFull() {
-    DeltaField* field = state.BeginWriteB(0);
+    DeltaWriter field(state, DeltaWrite::Full);
     Pack(field);
-    state.EndField();
+    field.End();
 }
 
 void Effect::SendDelta() {
-    DeltaField* field = state.BeginWriteB(1);
+    DeltaWriter field(state, DeltaWrite::Changes);
     Pack(field);
-    state.EndField();
+    field.End();
 }
 
 int Effect::Receive(int update, MemoryStream* reader) {
-    DeltaField* field = state.BeginReadB(update, reader);
+    DeltaReader field(state, update, reader);
     int result = Unpack(update, field);
-    state.EndField();
+    field.End();
     return result;
 }
 
@@ -122,32 +122,32 @@ void EffectSound::Start(int update) {
     g_clientWorld.sounds->SetSoundPosition(sound, localPosition, volume, radius);
 }
 
-int EffectSound::Unpack(int update, DeltaField* field) {
+int EffectSound::Unpack(int update, DeltaReader& field) {
     Vector3 position;
-    position = field->ReadPosition();
-    field->ReadDelta(&looping, 4);
-    field->ReadText(name, 0xFF);
-    volume = field->ReadFloat16();
-    radius = field->ReadFloat16();
-    velocity = field->ReadFloat16x3();
-    field->ReadDelta(&noFade, 1);
+    position = field.ReadPosition();
+    field.ReadDelta(&looping, 4);
+    field.ReadText(name, 0xFF);
+    volume = field.ReadFloat16();
+    radius = field.ReadFloat16();
+    velocity = field.ReadFloat16x3();
+    field.ReadDelta(&noFade, 1);
     moving = IsMoving(velocity);
-    if (!SnapshotReadToEnd()) return 0;
+    if (!field.SnapshotConsumed()) return 0;
     localPosition = position;
     Start(update);
     return 1;
 }
 
-void EffectSound::Pack(DeltaField* field) {
+void EffectSound::Pack(DeltaWriter& field) {
     Vector3 position = localPosition;
-    field->WritePosition(position);
+    field.WritePosition(position);
     int currentLooping = looping;
-    field->WriteDelta(&currentLooping, 4);
-    field->WriteStringBoth(name);
-    field->WriteFloat16(Bits(volume));
-    field->WriteFloat16(Bits(radius));
-    field->WriteFloat16x3(&velocity.x);
-    field->WriteDelta(&noFade, 1);
+    field.WriteDelta(&currentLooping, 4);
+    field.WriteStringBoth(name);
+    field.WriteFloat16(volume);
+    field.WriteFloat16(radius);
+    field.WriteFloat16x3(velocity);
+    field.WriteDelta(&noFade, 1);
 }
 
 void EffectSound::Load(ByteStream* stream) {
@@ -196,17 +196,17 @@ bool EffectSoundSeq::RunTick() {
     return true;
 }
 
-void EffectSoundSeq::Pack(DeltaField* field) {
+void EffectSoundSeq::Pack(DeltaWriter& field) {
     Vector3 position = localPosition;
-    field->WritePosition(position);
-    field->WriteStringBoth(name);
+    field.WritePosition(position);
+    field.WriteStringBoth(name);
     int count = static_cast<int>(names.size());
-    field->WriteDelta(&count, 4);
-    for (const std::string& entry : names) field->WriteStringBoth(entry);
-    field->WriteFloat16(Bits(volume));
-    field->WriteFloat16(Bits(radius));
-    field->WriteFloat16x3(&velocity.x);
-    field->WriteDelta(&noFade, 1);
+    field.WriteDelta(&count, 4);
+    for (const std::string& entry : names) field.WriteStringBoth(entry);
+    field.WriteFloat16(volume);
+    field.WriteFloat16(radius);
+    field.WriteFloat16x3(velocity);
+    field.WriteDelta(&noFade, 1);
 }
 
 void EffectSoundSeq::Load(ByteStream* stream) {
@@ -256,35 +256,35 @@ void EffectAmbientSound::Start(int update) {
                 maxInterval);
 }
 
-int EffectAmbientSound::Unpack(int update, DeltaField* field) {
+int EffectAmbientSound::Unpack(int update, DeltaReader& field) {
     Vector3 position;
-    position = field->ReadPosition();
+    position = field.ReadPosition();
     std::uint8_t count = 0;   // (ReadDelta writes it either way)
-    field->ReadDelta(&count, 1);
+    field.ReadDelta(&count, 1);
     names.resize(count);
-    for (std::string& name : names) name = field->ReadString();
-    volume = field->ReadFloat16();
-    radius = field->ReadFloat16();
-    field->ReadDelta(&minInterval, 4);
-    field->ReadDelta(&maxInterval, 4);
-    if (!SnapshotReadToEnd()) return 0;
+    for (std::string& name : names) name = field.ReadString();
+    volume = field.ReadFloat16();
+    radius = field.ReadFloat16();
+    field.ReadDelta(&minInterval, 4);
+    field.ReadDelta(&maxInterval, 4);
+    if (!field.SnapshotConsumed()) return 0;
     localPosition = position;
     Start(update);
     return 1;
 }
 
-void EffectAmbientSound::Pack(DeltaField* field) {
+void EffectAmbientSound::Pack(DeltaWriter& field) {
     Vector3 position = localPosition;
-    field->WritePosition(position);
+    field.WritePosition(position);
     std::uint8_t count = static_cast<std::uint8_t>(names.size());
-    field->WriteDelta(&count, 1);
-    for (const std::string& name : names) field->WriteStringBoth(name);
-    field->WriteFloat16(Bits(volume));
-    field->WriteFloat16(Bits(radius));
+    field.WriteDelta(&count, 1);
+    for (const std::string& name : names) field.WriteStringBoth(name);
+    field.WriteFloat16(volume);
+    field.WriteFloat16(radius);
     int value = minInterval;
-    field->WriteDelta(&value, 4);
+    field.WriteDelta(&value, 4);
     value = maxInterval;
-    field->WriteDelta(&value, 4);
+    field.WriteDelta(&value, 4);
 }
 
 void EffectAmbientSound::Load(ByteStream* stream) {

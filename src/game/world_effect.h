@@ -35,8 +35,8 @@ public:
     virtual float Radius();
     // Its position as `group` sees it: the local position (the argument is ignored).
     virtual Vector3* Position(const ScriptGroup* group);
-    virtual int Unpack(int update, DeltaField* field) = 0;   // 0 when the field did not end where expected
-    virtual void Pack(DeltaField* field) = 0;
+    virtual int Unpack(int update, DeltaReader& field) = 0;   // 0 when the field did not end where expected
+    virtual void Pack(DeltaWriter& field) = 0;
     virtual void Start(int update) = 0;                      // 0 creates the sound / light / source, else moves it
 
     // Pack into the state field written in full / as a delta.
@@ -68,8 +68,8 @@ public:
     void Reset() override;
     bool RunTick() override;
     void Start(int update) override;
-    int Unpack(int update, DeltaField* field) override;
-    void Pack(DeltaField* field) override;
+    int Unpack(int update, DeltaReader& field) override;
+    void Pack(DeltaWriter& field) override;
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
     float Radius() override;
@@ -93,8 +93,8 @@ public:
     void Reset() override;
     bool RunTick() override;
     void Start(int update) override;
-    int Unpack(int update, DeltaField* field) override;
-    void Pack(DeltaField* field) override;
+    int Unpack(int update, DeltaReader& field) override;
+    void Pack(DeltaWriter& field) override;
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
     float Radius() override;
@@ -116,8 +116,8 @@ public:
     ~EffectAmbientSound() override;
     void Reset() override;
     void Start(int update) override;
-    int Unpack(int update, DeltaField* field) override;
-    void Pack(DeltaField* field) override;
+    int Unpack(int update, DeltaReader& field) override;
+    void Pack(DeltaWriter& field) override;
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
     float Radius() override;
@@ -140,8 +140,8 @@ public:
     void Reset() override;
     bool RunTick() override;
     void Start(int update) override;
-    int Unpack(int update, DeltaField* field) override;
-    void Pack(DeltaField* field) override;
+    int Unpack(int update, DeltaReader& field) override;
+    void Pack(DeltaWriter& field) override;
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
     virtual float LightRadius();
@@ -162,9 +162,9 @@ public:
     void Reset() override;
     Vector3* Position(const ScriptGroup* group) override;
     void Start(int update) override;
-    int Unpack(int update, DeltaField* field) override;
+    int Unpack(int update, DeltaReader& field) override;
     void Spawn();                                 // creates or moves the source
-    void Pack(DeltaField* field) override;
+    void Pack(DeltaWriter& field) override;
     void SetAttachedTo(int objectId);
     void SetSize(float size);
     void SetColors(float newAlpha, float newTypeParam);
@@ -194,8 +194,8 @@ public:
     ~EffectWall() override;
     void Reset() override;
     void SetDirection(const Vector3& direction);
-    int Unpack(int update, DeltaField* field) override;
-    void Pack(DeltaField* field) override;
+    int Unpack(int update, DeltaReader& field) override;
+    void Pack(DeltaWriter& field) override;
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
 
@@ -212,8 +212,8 @@ public:
     void Reset() override;
     void UpdateEnds();                            // end points from the objects
     void Start(int update) override;
-    int Unpack(int update, DeltaField* field) override;
-    void Pack(DeltaField* field) override;
+    int Unpack(int update, DeltaReader& field) override;
+    void Pack(DeltaWriter& field) override;
     void SetEnds(const Vector3& from, const Vector3& to, float width);
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
@@ -263,8 +263,8 @@ public:
     void Reset() override;
     void MoveParts() override;                    // the parts follow, Start(1)
     void Start(int update) override;
-    int Unpack(int update, DeltaField* field) override;
-    void Pack(DeltaField* field) override;
+    int Unpack(int update, DeltaReader& field) override;
+    void Pack(DeltaWriter& field) override;
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
 
@@ -294,8 +294,8 @@ public:
     bool RunTick() override;
     void MoveParts() override;                    // the figure follows
     void Start(int update) override;                       // 0 makes the figure
-    int Unpack(int update, DeltaField* field) override;
-    void Pack(DeltaField* field) override;
+    int Unpack(int update, DeltaReader& field) override;
+    void Pack(DeltaWriter& field) override;
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
 
@@ -316,8 +316,8 @@ public:
     void Reset() override;                                 // grid cleared, fog released
     void SetUnits(int observerId, int seerId);
     void Start(int update) override;
-    int Unpack(int update, DeltaField* field) override;
-    void Pack(DeltaField* field) override;
+    int Unpack(int update, DeltaReader& field) override;
+    void Pack(DeltaWriter& field) override;
     bool RunTick() override;
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
@@ -349,8 +349,8 @@ public:
     // Follows object `objectId`: when it exists, a new figure at a perch near it (filed in the client's
     // maps) with its source, perched (state 0) for 200 frames.
     void Follow(int objectId);
-    int Unpack(int update, DeltaField* field) override;    // 1
-    void Pack(DeltaField*) override {}            // nothing is sent
+    int Unpack(int update, DeltaReader& field) override;    // 1
+    void Pack(DeltaWriter&) override {}            // nothing is sent
     void Start(int) override {}
 
     Ref<MapObject> bird;      // the figure object (a stuff object, class 0x38, counted), null: none
@@ -378,8 +378,8 @@ public:
     // distance over the speed (rounded, at least 0; 0 when the points meet).
     void Launch(const Vector3& from, const Vector3& to);
     bool RunTick() override;                                   // 0 once the ticks are used up
-    int Unpack(int update, DeltaField* field) override;
-    void Pack(DeltaField* field) override;
+    int Unpack(int update, DeltaReader& field) override;
+    void Pack(DeltaWriter& field) override;
     void Start(int update) override;
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;

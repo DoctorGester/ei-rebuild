@@ -417,12 +417,12 @@ bool PlayerClient::OnPathMarker() {
         auto* walker = g_clientWorld.objectManager->CreateObjectAs<Unit>(MapObjectType::Hero, -1);
         walker->AddRef();
         PathOrder* path = &walker->ClientController()->motion;
-        DeltaField* writing = field.BeginWriteB(0);
+        DeltaWriter writing(field, DeltaWrite::Full);
         path->WriteState(writing);
-        writing->EndField();
-        DeltaField* reading = field.BeginReadB(0, &in);
+        writing.End();
+        DeltaReader reading(field, 0, &in);
         path->ReadState(reading);
-        reading->EndField();
+        reading.End();
         if (MarkersShown()) {
             walker->SetMotionSpeeds(kMarkerSpeedA, std::bit_cast<float>(kMarkerSpeedB));
             auto* source = g_clientWorld.particleManager->CreateSource(kPathParticles);
