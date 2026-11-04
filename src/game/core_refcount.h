@@ -9,6 +9,14 @@
 
 class ChunkArchive;
 
+// The classes a ChunkArchive holds by reference: a save's index stores the id, a load creates the object from it
+// (ChunkArchive::Open). Every other class saves as None (-1), which loads as no object.
+enum class ArchiveClass : std::int32_t {
+    None = -1,
+    ClassTemplate = 1,
+    PartyRecord = 2,
+};
+
 // The root of the reference-counted classes. The network sessions and the cast spells derive from it directly,
 // everything else through RefObject.
 class RefCounted {
@@ -24,6 +32,7 @@ public:
     RefCounted& operator=(const RefCounted&) = delete;
     virtual ~RefCounted() {}
     virtual void Serialize(ChunkArchive*) {}
+    virtual ArchiveClass ArchiveType() const { return ArchiveClass::None; }
 
     void AddRef() { ++refs; }
     // Drops a reference; the last one deletes the object.

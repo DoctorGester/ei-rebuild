@@ -24,9 +24,6 @@ class SpellConstructor;
 class SpellManager;
 struct PartyUnitRecord;
 
-// The party whose records are being loaded (set by Party::LoadParty around the records).
-inline Party* g_loadingParty = /*007C8344*/ {nullptr};
-
 // Every item of the list released (one reference each) and the list emptied.
 void ReleaseItems(std::vector<Item*>& list);
 
@@ -99,11 +96,11 @@ public:
     // zone name, and clears money and entrance.
     void Clear(bool clearVariables, bool keepSpells);
 
-    // Reads what SaveParty writes: Create when there is no item manager, Clear(loadVariables, 0) with the
-    // party marked as being loaded (LoadingParty, which the records' item lookups use), the zone name,
-    // entrance, both managers (their Load, then LoadObjects), the item ids (resolved in the item manager and
-    // counted), the records (PartyUnitRecord::Load), the variables (with `loadVariables`), money (from
-    // version 0x6C stored xor a key that follows it); then both managers' ReleaseUnused.
+    // Reads what SaveParty writes: Create when there is no item manager, Clear(loadVariables, 0), the zone
+    // name, entrance, both managers (their Load, then LoadObjects), the item ids (resolved in the item manager
+    // and counted), the records (PartyUnitRecord::Load, their item ids resolved in this party), the variables
+    // (with `loadVariables`), money (from version 0x6C stored xor a key that follows it); then both managers'
+    // ReleaseUnused.
     void LoadParty(ByteStream* stream, bool loadVariables);
     // Create when there is no item manager; the zone name with its zero, entrance, both managers (their Save,
     // then SaveObjects), the item ids (-1 for an empty entry), the record count and records, the variables

@@ -1034,24 +1034,26 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::QStart:   // QStart(name)
-            g_scriptQuest.Start(args.Text().c_str());
+            script->quest.Start(args.Text().c_str());
             break;
-        case ScriptFunction::QFinish:
-            g_scriptQuest.Finish(script);
+        case ScriptFunction::QFinish: {
+            std::string text = script->quest.Finish();
+            script->Load(&text, true);
             break;
+        }
         case ScriptFunction::QObjArea:   // QObjArea(area)
         case ScriptFunction::QObjGetItem:   // QObjGetItem(item)
-            g_scriptQuest.AddObjective(cmd->id, game::kEmptyText, args.Float());
+            script->quest.AddObjective(cmd->id, game::kEmptyText, args.Float());
             break;
         case ScriptFunction::QObjSeeObject:   // QObjSeeObject(name)
         case ScriptFunction::QObjSeeUnit:
         case ScriptFunction::QObjKillUnit:
         case ScriptFunction::QObjKillGroup:
-            g_scriptQuest.AddObjective(cmd->id, args.Text(), 0.0f);
+            script->quest.AddObjective(cmd->id, args.Text(), 0.0f);
             break;
         case ScriptFunction::QObjUse: {   // QObjUse(name, value)
             const std::string& name = args.Text();
-            g_scriptQuest.AddObjective(cmd->id, name, args.Float());
+            script->quest.AddObjective(cmd->id, name, args.Float());
             break;
         }
 

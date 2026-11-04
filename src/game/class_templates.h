@@ -23,6 +23,7 @@ public:
     // Fields 1 class (4 bytes), 2 / 3 the flags (1 byte each), 4 the weights and weightsTail, 5 (both parties
     // without variables, then both stocks' lists: SaveLists / LoadLists), 6 restockDue (1 byte).
     void Serialize(ChunkArchive* ar) override;
+    ArchiveClass ArchiveType() const override { return ArchiveClass::ClassTemplate; }
     // Both stocks take the kSchoolCount base and scroll levels.
     void SetLevels(const float* base, const float* scroll);
 
@@ -41,8 +42,6 @@ public:
     ItemStock allowed{&items};      // everything the class may use
     ItemStock magic{&spells};       // the same layout: spells and modifiers only
 };
-// A new template with no references; the application's start registers it with the class registry as class 1.
-RefCounted* CreateClassTemplate();
 
 // The class templates (counted pointers).
 class TemplateTable {

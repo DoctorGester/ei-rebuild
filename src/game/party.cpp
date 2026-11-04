@@ -460,7 +460,7 @@ void ReadItemIds(ByteStream* stream, std::vector<Item*>& list, BaseManager* mana
 
 } // namespace
 
-void PartyUnitRecord::Load(ByteStream* stream) {
+void PartyUnitRecord::Load(ByteStream* stream, Party* party) {
     ClearItems();
     weaponIndex = 0;
     moveMode2 = MoveMode::Walk;
@@ -476,10 +476,10 @@ void PartyUnitRecord::Load(ByteStream* stream) {
     stream->ReadValue(unitId);
     stats.Load(stream);
     stream->Read(&scaleX, 0xC);   // +0x728 and the height
-    ReadItemIds(stream, weapons, g_loadingParty->ItemFactory());
-    ReadItemIds(stream, quickItems, g_loadingParty->ItemFactory());
-    ReadItemIds(stream, armor, g_loadingParty->ItemFactory());
-    ReadItemIds(stream, spells, g_loadingParty->ItemFactory());
+    ReadItemIds(stream, weapons, party->ItemFactory());
+    ReadItemIds(stream, quickItems, party->ItemFactory());
+    ReadItemIds(stream, armor, party->ItemFactory());
+    ReadItemIds(stream, spells, party->ItemFactory());
     name = stream->ReadString();
     if (stream->version < kVersionRecordFlags) return;
     stream->ReadValue(moveMode2);
@@ -517,7 +517,6 @@ void PartyUnitRecord::Save(ByteStream* stream) {
 
 void Party::LoadParty(ByteStream* stream, bool loadVariables) {
     if (itemManager == nullptr) Create();
-    g_loadingParty = this;
     Clear(loadVariables, 0);
     zone = stream->ReadString();
     stream->ReadValue(entrance);
@@ -527,9 +526,8 @@ void Party::LoadParty(ByteStream* stream, bool loadVariables) {
     spellManager->LoadObjects(stream);
     ReadItemIds(stream, items, ItemFactory());
     members.resize(stream->ReadCount());
-    for (PartyUnitRecord& member : members) member.Load(stream);
+    for (PartyUnitRecord& member : members) member.Load(stream, this);
     if (loadVariables) variables.Load(stream);
-    g_loadingParty = nullptr;
     money = 0;
     stream->ReadValue(money);
     if (stream->version >= kVersionPartyKey) {

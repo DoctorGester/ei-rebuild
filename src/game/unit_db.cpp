@@ -278,24 +278,13 @@ constexpr int kSkillLevelsChunk = 2;
 constexpr int kRecordChunk = 1;
 constexpr int kModelSlots = 6;
 
-// The tables' vector serialisers (id, vector; ChunkArchive::SerializeUnitLevels / SerializeModels /
-// SerializePrototypes / SerializeNpcs, unit_db.cpp).
-template <typename Record>
-using SerializeTable = void (ChunkArchive::*)(int, std::vector<Record>*);
+using dbfile::LoadTable;
 
-// One pass over the file: an archive of its own opened for loading, the table's records read as chunk `id`
-// and, after the archive is closed, each entered into the name index under its name (operator[]; a record of
-// a name seen before replaces the earlier one).
-template <typename Table, typename Record>
-void LoadTable(MemoryStream* stream, int id, SerializeTable<Record> serialize, Table& table) {
-    ChunkArchive archive;
-    archive.Open(stream, 1, 1);
-    (archive.*serialize)(id, &table.records);
-    archive.Close(stream);
-    for (Record& record : table.records) {
-        std::string key(record.name);
-        table.byName[key] = &record;
-    }
+// A loaded table's records entered into its name index (operator[]; a record of a name seen before replaces the
+// earlier one).
+template <typename Table>
+void FileByName(Table& table) {
+    for (auto& record : table.records) table.byName[record.name] = &record;
 }
 
 } // namespace
@@ -326,10 +315,16 @@ int UnitDatabase::Load(const std::string& folder, const std::string& archive) {
     MemoryStream stream;
     stream.Fill(data, size);
 
-    LoadTable(&stream, kLevelsChunk, &ChunkArchive::SerializeUnitLevels, levels);
-    LoadTable(&stream, kModelsChunk, &ChunkArchive::SerializeModels, models);
-    LoadTable(&stream, kPrototypesChunk, &ChunkArchive::SerializePrototypes, prototypes);
-    LoadTable(&stream, kNpcsChunk, &ChunkArchive::SerializeNpcs, npcs);
+    LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializeUnitLevels(kLevelsChunk, &levels.records); });
+    FileByName(levels);
+    LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializeModels(kModelsChunk, &models.records); });
+    FileByName(models);
+    LoadTable(&stream, [&](ChunkArchive& archive) {
+        archive.SerializePrototypes(kPrototypesChunk, &prototypes.records);
+    });
+    FileByName(prototypes);
+    LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializeNpcs(kNpcsChunk, &npcs.records); });
+    FileByName(npcs);
 
     resource.CloseFile(data);
     resource.CloseResource();

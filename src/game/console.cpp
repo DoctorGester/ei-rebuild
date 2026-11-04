@@ -2,7 +2,7 @@
 // See docs/notes/console.md.
 #include "console.h"
 
-#include "app_helpers.h"
+#include "app.h"
 #include "game_singletons.h"
 #include "game_strings.h"
 #include "ui.h"

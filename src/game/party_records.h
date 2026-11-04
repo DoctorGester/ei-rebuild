@@ -21,15 +21,13 @@ public:
     // Serialize: the name as string field 1, the party (SaveParty / LoadParty with variables) as stream
     // field 2.
     void Serialize(ChunkArchive* ar) override;
+    ArchiveClass ArchiveType() const override { return ArchiveClass::PartyRecord; }
 
     std::string name;           // "" for the unnamed record
     Party party;               // destroyed before the name
 
     Party* GetParty() { return &party; }
 };
-// A new unnamed record with no references (operator new and the constructor: the party constructed and
-// created, an empty name). The application's start registers it with the class registry as class 2.
-RefCounted* CreatePartyRecord();
 
 // The named records: counted pointers, then two strings.
 struct NamedPartyRecords {

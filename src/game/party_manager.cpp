@@ -206,13 +206,6 @@ void PartyManager::Save(MemoryStream* to) {
     to->WriteSized(&local);
 }
 
-// --- The class registry's creators: id 1 a class template, id 2 a named party record (made when a saved
-// party manager is loaded) --------------------------------------------------------------------------------
-
-RefCounted* CreatePartyRecord() { return new PartyRecord(); }
-
-RefCounted* CreateClassTemplate() { return new ClassTemplate(); }
-
 // --- The party record ------------------------------------------------------------------------------
 
 PartyRecord::PartyRecord() { party.Create(); }

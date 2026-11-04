@@ -135,7 +135,6 @@ address,size,name,file
 007A9BFC,48,g_bagSizes,src/game/particle_callbacks.cpp
 007A9C30,16,kIdentityRotation,src/game/particle_create.cpp
 007A9D40,2068,g_random,src/game/random.cpp
-007AA620,4,g_streamedScript,src/game/script.h
 007ABA58,256,g_fogTiles,src/game/effects.h
 007ABB98,2560,g_swayYByPlace,src/game/weather_noise.cpp
 007AC598,2560,g_swayXByPlace,src/game/weather_noise.cpp
@@ -194,7 +193,6 @@ address,size,name,file
 007C81C8,4,kSaveLoadTilt,src/game/ui_layouts.cpp
 007C8210,4,kQuarterTurn,src/game/ui_options.cpp
 007C8258,8,kCursorOffset,src/game/ui_tooltip.cpp
-007C8344,4,g_loadingParty,src/game/party.h
 007C8388,16,kFixedViewRotation,src/game/player_client_handlers.cpp
 007C84EC,4,g_loadingProjectileWorld,src/game/world.h
 007C8908,4,kWaterFalloff,src/game/terrain_sector.h

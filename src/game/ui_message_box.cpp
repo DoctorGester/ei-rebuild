@@ -2,7 +2,7 @@
 // ui.h; built in ui_layouts.cpp). See docs/notes/ui.md, section 4.
 #include "ui_screens.h"
 #include "asset_text.h"
-#include "app_helpers.h"
+#include "app.h"
 
 #include <cstddef>
 #include <cstdint>

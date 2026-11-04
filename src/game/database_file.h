@@ -24,17 +24,14 @@ inline int ReportNoDatabase(const std::string& folder) {
     return game::FatalError("Can't open database file \"%s\"\n", (folder + "databases.res"));
 }
 
-// One table's pass over the stream: an archive of its own (the out-of-line constructor)
-// opened for loading, the table's records read as chunk `id` by the archive's vector serialiser
-// `serialize` (the chunk id, the vector), the archive closed; `index` then
-// files the records, and the archive is destroyed.
-template <typename Records, typename Table, typename Index>
-void LoadTable(MemoryStream* stream, int id, void (ChunkArchive::*serialize)(int, Records*), Table* table, Index index) {
+// One table's pass over the stream: an archive of its own opened for loading, `read(archive)` reads the table's
+// records (the archive's serialiser of the table's chunk), the archive closed.
+template <typename Read>
+void LoadTable(MemoryStream* stream, Read read) {
     ChunkArchive archive;
     archive.Open(stream, 1, 1);
-    (archive.*serialize)(id, table);
+    read(archive);
     archive.Close(stream);
-    index();
 }
 
 } // namespace dbfile

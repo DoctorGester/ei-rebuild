@@ -179,12 +179,12 @@ int PrintsDatabase::Load(const std::string& folder) {
     stream.Fill(data, size);
 
     const auto name = [](auto& record) -> const std::string& { return record.name; };
-    LoadTable(&stream, kBloodChunk, &ChunkArchive::SerializePrints, &blood,
-              [&] { FileRecords(blood, bloodByName, name); });
-    LoadTable(&stream, kFootprintsChunk, &ChunkArchive::SerializeFootprints, &footprints,
-              [&] { FileRecords(footprints, footprintsByName, name); });
-    LoadTable(&stream, kScorchChunk, &ChunkArchive::SerializePrints, &scorch,
-              [&] { FileRecords(scorch, scorchByName, name); });
+    LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializePrints(kBloodChunk, &blood); });
+    FileRecords(blood, bloodByName, name);
+    LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializeFootprints(kFootprintsChunk, &footprints); });
+    FileRecords(footprints, footprintsByName, name);
+    LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializePrints(kScorchChunk, &scorch); });
+    FileRecords(scorch, scorchByName, name);
 
     resource.CloseFile(data);
     resource.CloseResource();
@@ -207,12 +207,12 @@ int AckDatabase::Load(const std::string& folder) {
     stream.Fill(data, size);
 
     const auto name = [](auto& record) -> const std::string& { return record.head.name; };
-    LoadTable(&stream, kUnitAcksChunk, &ChunkArchive::SerializeUnitAcks, &units.records,
-              [&] { FileRecords(units.records, units.byName, name); });
-    LoadTable(&stream, kModelAcksChunk, &ChunkArchive::SerializeModelAcks, &models.records,
-              [&] { FileRecords(models.records, models.byName, name); });
-    LoadTable(&stream, kExtraAcksChunk, &ChunkArchive::SerializeExtraAcks, &extras.records,
-              [&] { FileRecords(extras.records, extras.byName, name); });
+    LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializeUnitAcks(kUnitAcksChunk, &units.records); });
+    FileRecords(units.records, units.byName, name);
+    LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializeModelAcks(kModelAcksChunk, &models.records); });
+    FileRecords(models.records, models.byName, name);
+    LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializeExtraAcks(kExtraAcksChunk, &extras.records); });
+    FileRecords(extras.records, extras.byName, name);
 
     resource.CloseFile(data);
     resource.CloseResource();

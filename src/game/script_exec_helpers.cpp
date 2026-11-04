@@ -127,7 +127,7 @@ void Script::DeletePointLight(ScriptArgs args) {
 //   WorldScript( Su0() )
 // The conditions by objective (%f of the float, %s of the string): QObjArea, QObjSeeObject,
 // QObjSeeUnit, QObjKillUnit, QObjKillGroup, QObjUse, QObjGetItem; another id leaves it empty.
-void ScriptQuestBuilder::Finish(Script* script) {
+std::string ScriptQuestBuilder::Finish() {
     std::string text;
     for (int i = 0; i < std::ssize(objectives) + 1; ++i) {
         text += std::format("DeclareScript Su{}()\n", i);
@@ -181,13 +181,11 @@ void ScriptQuestBuilder::Finish(Script* script) {
         text += last;
     }
     text += "WorldScript( Su0() )\n";
-    script->Load(&text, true);
     name = game::kEmptyText;
+    return text;
 }
 
 // ---- The quest being built (script.h) --------------------------------------------------------------------
-
-ScriptQuestBuilder g_scriptQuest;
 
 void ScriptQuestBuilder::Start(const char* questName) {
     objectives.clear();

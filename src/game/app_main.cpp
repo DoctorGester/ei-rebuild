@@ -4,7 +4,7 @@
 #include "app.h"
 #include "acks_db.h"
 #include "asset_text.h"
-#include "app_helpers.h"
+#include "app.h"
 #include "camera.h"
 #include "class_templates.h"
 #include "console.h"
@@ -448,9 +448,6 @@ int GameMain(char* commandLine) {
     InitCodeTables();
     BuildWeatherNoise();
 
-    // The classes the chunk archives can hold: 1 the class template, 2 the party record.
-    TypeRegistryRegister(&g_classRegistry, 1, CreateClassTemplate);
-    TypeRegistryRegister(&g_classRegistry, 2, CreatePartyRecord);
     ReadCommandLine(commandLine);
 
     GameOptions* options = &options::g_options;

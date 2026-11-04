@@ -2,9 +2,11 @@
 // fields, whole archives over a stream. See docs/notes/core.md.
 #include "chunk_archive.h"
 
+#include "class_templates.h"
 #include "core_refcount.h"
 #include "game_strings.h"
 #include "hash_tables_400.h"
+#include "party_records.h"
 
 #include "lib/bytes.h"
 
@@ -28,6 +30,15 @@ T ValueAt(const std::uint8_t* p) {
     return value;
 }
 const char* TextAt(const std::uint8_t* p) { return reinterpret_cast<const char*>(p); }
+
+// The object an index entry's class id stands for, new with no references; null for any other id.
+RefCounted* CreateArchived(ArchiveClass type) {
+    switch (type) {
+    case ArchiveClass::ClassTemplate: return new ClassTemplate();
+    case ArchiveClass::PartyRecord: return new PartyRecord();
+    default: return nullptr;
+    }
+}
 
 // The record chunk the Open / Close loops push on the stack: child 1 of the current chunk.
 ChunkArchive::Ref* PushRecordChunk(ChunkArchive* archive) {
@@ -61,8 +72,6 @@ void ChunkArchive::Ref::Reset() {
     offset = 0;
     size = 0;
 }
-
-ChunkArchive::ClassRegistry g_classRegistry;
 
 void ChunkArchive::PopChunk() {
     stack.pop_back();
@@ -308,12 +317,11 @@ void ChunkArchive::Open(ByteStream* stream, int newLoading, int newVersion) {
 
     // The index: per object its class id and the key its record is stored under.
     while (index->Position() < index->Size()) {
-        std::uint32_t classId = 0;
+        std::int32_t classId = 0;
         std::uint32_t key = 0;
         index->ReadValue(classId);
         index->ReadValue(key);
-        Factory factory = g_classRegistry.factories[classId];
-        RefCounted* object = factory ? factory() : nullptr;
+        RefCounted* object = CreateArchived(static_cast<ArchiveClass>(classId));
         saved.push_back(object);
         loaded[key] = object;
     }
@@ -360,10 +368,7 @@ void ChunkArchive::Close(ByteStream* stream) {
         while (!saved.empty()) {
             RefCounted* object = saved.front();
             saved.pop_front();
-            std::uintptr_t vtable = lib::Load<std::uintptr_t>(object);
-            const std::unordered_map<std::uintptr_t, std::int32_t>& classIds = g_classRegistry.classIds;
-            auto found = classIds.find(vtable);
-            std::int32_t classId = found != classIds.end() ? found->second : -1;
+            std::int32_t classId = static_cast<std::int32_t>(object->ArchiveType());
             std::uint32_t number = SavedNumber(this, object);   // the number is the key, not the address
             index->WriteValue(classId);
             index->WriteValue(number);
