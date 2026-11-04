@@ -1,12 +1,17 @@
 """Where the workers' time goes: builds, golden suites, scenario reruns, the scheduler's queue, and their own reasoning.
 
-    python tools/worker_waits.py [--days 7] [--out build/live/waits.json] [--print]
+    python tools/worker_waits.py [--days 30] [--out build/live/waits.json] [--print [--window-days 7]]
 
 Reads the area workers' transcripts (~/.claude/projects/<this repo>/*/subagents/agent-*.jsonl) and the work database
 (batch, timing). For every worker: wall time, its reasoning (assistant turns), its foreground tool calls by kind, and
 its background jobs from launch to the notification that they finished. Builds and test runs are listed one by one, so
 repeats show. The work board serves the result at /waits/ (work.py serve); the coordinator reads its findings after
 merges and acts on the largest avoidable wait (docs/notes/work-board.md, "Waits").
+
+The JSON holds timestamped rows over the last --days (30), not totals: waits.html picks a window [start, end) (6 h to
+30 days, stepped through time) and totals it client-side. view() below is the same computation in Python (--print and
+tools/test_waits.py, which checks the page's JavaScript against it). What belongs to a window: a worker, where it
+finished (or is still running); a test batch, where it was submitted; game time, per hour, by the hour's start.
 
 Per-transcript results are cached in build/live/waits_cache.json by size and mtime, so a refresh reads only new ones.
 """
@@ -26,6 +31,8 @@ sys.path.insert(0, HERE)
 import work  # noqa: E402
 
 CACHE_VERSION = 3
+DAYS = 30
+SLOW_KEPT = 100          # scenarios (per install) whose hourly game times are kept for the slowest-scenarios table
 
 
 def stamp(s):
@@ -163,7 +170,9 @@ def median(xs):
     return round(statistics.median(xs), 1) if xs else None
 
 
-def collect(days):
+def collect_workers(days, db):
+    """One row per area worker whose transcript was written in the last `days`: its times and its build and test calls
+    ([start, seconds, what, background] each)."""
     since = time.time() - days * 86400
     root = transcripts_root()
     cache_path = os.path.join(work.main_checkout(), 'build', 'live', 'waits_cache.json')
@@ -172,7 +181,6 @@ def collect(days):
             cache = json.load(f)
     except (OSError, ValueError):
         cache = {}
-    db = work.connect()
     tickets = agent_tickets(db)
     workers = []
     for session in os.listdir(root) if os.path.isdir(root) else []:
@@ -194,26 +202,16 @@ def collect(days):
             d = hit['data']
             if d['first'] is None:
                 continue
-            agent = name[:-len('.jsonl')]
-            tk = tickets.get(agent, [])
+            tk = tickets.get(name[:-len('.jsonl')], [])
             if not tk:
                 continue      # not an area worker of the board (reviews, explorers)
-            wall = d['last'] - d['first']
-            fg_tool = sum(d['fg'].values())
-            builds = [c for c in d['calls'] if c[2] == 'build']
-            tests = [c for c in d['calls'] if c[2] == 'test']
-            suites = [c for c in tests if c[3].startswith('suite')]
             workers.append({
-                'agent': agent, 'tickets': tk, 'start': d['first'], 'end': d['last'],
-                'live': time.time() - d['last'] < 600,
-                'wall': round(wall), 'model': round(d['model']),
+                'tickets': tk, 'start': round(d['first']), 'end': round(d['last']),
+                'live': time.time() - d['last'] < 600, 'model': round(d['model']),
                 'fg': {k: round(v) for k, v in d['fg'].items()},
                 'bg': {k: round(v) for k, v in d['bg'].items()},
-                'idle': round(max(0.0, wall - d['model'] - fg_tool)),
-                'build_seconds': round(sum(c[1] for c in builds)), 'test_seconds': round(sum(c[1] for c in tests)),
-                'builds': [{'t': c[0], 's': round(c[1]), 'what': c[3], 'bg': c[4]} for c in builds],
-                'tests': [{'t': c[0], 's': round(c[1]), 'what': c[3], 'bg': c[4]} for c in tests],
-                'suite_count': len(suites),
+                'builds': [[round(c[0]), round(c[1]), c[3], int(c[4])] for c in d['calls'] if c[2] == 'build'],
+                'tests': [[round(c[0]), round(c[1]), c[3], int(c[4])] for c in d['calls'] if c[2] == 'test'],
             })
     os.makedirs(os.path.dirname(cache_path), exist_ok=True)
     tmp = cache_path + '.tmp'
@@ -221,49 +219,99 @@ def collect(days):
         json.dump(cache, f)
     os.replace(tmp, cache_path)
     workers.sort(key=lambda w: -w['start'])
+    return workers
 
-    iso_since = datetime.fromtimestamp(since, timezone.utc).strftime('%Y-%m-%dT%H:%M:%S')
-    batches = []
-    for b in db.execute("SELECT id, ticket, args, submitted, started, finished, state FROM batch "
-                        "WHERE submitted >= ? ORDER BY id", (iso_since,)):
-        if not b['started']:
+
+def collect_batches(db, since):
+    """Test batches submitted since `since` (epoch) that got going: [id, ticket, submitted, queue s, run s or None, games, retries, args]."""
+    iso = datetime.fromtimestamp(since - 86400, timezone.utc).strftime('%Y-%m-%dT%H:%M:%S')    # a day's margin for the string compare
+    out = []
+    for b in db.execute("SELECT id, ticket, args, submitted, started, finished FROM batch WHERE submitted >= ? ORDER BY id", (iso,)):
+        if not b['started'] or stamp(b['submitted']) < since:
             continue
-        q = stamp(b['started']) - stamp(b['submitted'])
         run = stamp(b['finished']) - stamp(b['started']) if b['finished'] else None
         games = db.execute('SELECT COUNT(*), SUM(attempt) FROM run WHERE batch = ?', (b['id'],)).fetchone()
-        batches.append({'id': b['id'], 'ticket': b['ticket'], 'queue': round(q), 'run': round(run) if run else None,
-                        'games': games[0], 'retries': games[1] or 0, 'args': json.loads(b['args'] or '[]')[:6]})
-    slow = []
-    for r in db.execute('SELECT scenario, install, COUNT(*) n, AVG(seconds) avg, MAX(seconds) mx FROM timing '
-                        "WHERE time >= ? AND install LIKE 'standalone%' GROUP BY scenario, install "
-                        'HAVING n > 2 ORDER BY avg DESC LIMIT 25', (iso_since,)):
-        slow.append({'scenario': r['scenario'], 'install': r['install'], 'n': r['n'],
-                     'avg': round(r['avg'], 1), 'max': round(r['mx'], 1)})
-    total_game = db.execute('SELECT COUNT(*), SUM(seconds) FROM timing WHERE time >= ?', (iso_since,)).fetchone()
-    db.close()
-    return workers, batches, slow, total_game
+        out.append([b['id'], b['ticket'] or '', round(stamp(b['submitted'])), round(stamp(b['started']) - stamp(b['submitted'])),
+                    round(run) if run else None, games[0], games[1] or 0, ' '.join(json.loads(b['args'] or '[]')[:6])])
+    return out
+
+
+def collect_games(db, since):
+    """Game time per hour: {'hours': [[hour, games, seconds]], 'scenarios': [[name, install]], 'rows': [[hour, scenario index,
+    games, seconds, longest]]}. The rows are only for the SLOW_KEPT slowest standalone scenarios (the table lists 25)."""
+    epoch = "CAST(strftime('%s', time) AS INTEGER)"
+    hour = f'CAST({epoch} / 3600 AS INTEGER)'
+    hours = [[r[0], r[1], round(r[2] or 0)] for r in db.execute(
+        f'SELECT {hour} h, COUNT(*), SUM(seconds) FROM timing WHERE {epoch} >= ? GROUP BY h ORDER BY h', (int(since),))]
+    scen = [[r[0], r[1]] for r in db.execute(
+        f"SELECT scenario, install FROM timing WHERE {epoch} >= ? AND install LIKE 'standalone%' "
+        'GROUP BY scenario, install HAVING COUNT(*) > 2 ORDER BY AVG(seconds) DESC LIMIT ?', (int(since), SLOW_KEPT))]
+    index = {tuple(s): i for i, s in enumerate(scen)}
+    rows = []
+    for r in db.execute(f'SELECT {hour} h, scenario, install, COUNT(*), SUM(seconds), MAX(seconds) FROM timing '
+                        f"WHERE {epoch} >= ? AND install LIKE 'standalone%' GROUP BY h, scenario, install ORDER BY h", (int(since),)):
+        i = index.get((r[1], r[2]))
+        if i is not None:
+            rows.append([r[0], i, r[3], round(r[4], 1), round(r[5], 1)])
+    return {'hours': hours, 'scenarios': scen, 'rows': rows}
+
+
+# ---- one window of the rows: the same computation as waits.html (tools/test_waits.py compares them)
+
+def view(data, start, end):
+    """Everything the page shows for [start, end) (epoch seconds), from the rows build() wrote."""
+    ws = [dict(w) for w in data['workers'] if start <= w['end'] < end]
+    for w in ws:
+        w['wall'] = w['end'] - w['start']
+        w['build_seconds'] = sum(c[1] for c in w['builds'])
+        w['test_seconds'] = sum(c[1] for c in w['tests'])
+        w['suite_count'] = sum(1 for c in w['tests'] if c[2].startswith('suite'))
+    bs = [b for b in data['batches'] if start <= b[2] < end]
+    g = data['games']
+    games = [h for h in g['hours'] if start <= h[0] * 3600 < end]
+    acc = {}
+    for h, i, n, sm, mx in g['rows']:
+        if start <= h * 3600 < end:
+            a = acc.setdefault(i, [0, 0.0, 0.0])
+            a[0] += n
+            a[1] += sm
+            a[2] = max(a[2], mx)
+    slow = sorted(({'scenario': g['scenarios'][i][0], 'install': g['scenarios'][i][1], 'n': a[0], 'avg': round(a[1] / a[0], 1),
+                    'max': round(a[2], 1)} for i, a in acc.items() if a[0] > 2), key=lambda s: -s['avg'])[:25]
+    tot = defaultdict(float, reasoning=0.0, builds=0.0, tests=0.0)
+    for w in ws:
+        tot['reasoning'] += w['model']
+        tot['builds'] += w['build_seconds']
+        tot['tests'] += w['test_seconds']
+        for k, v in list(w['fg'].items()) + list(w['bg'].items()):
+            if k not in ('build', 'test'):
+                tot[k] += v
+    found, bmed, smed = findings(ws, bs, slow)
+    return {'workers': ws, 'batches': bs, 'slow': slow, 'findings': found, 'median_build': bmed, 'median_suite': smed,
+            'totals': {k: round(v) for k, v in sorted(tot.items(), key=lambda kv: -kv[1])},
+            'game_runs': sum(h[1] for h in games), 'game_seconds': sum(h[2] for h in games)}
 
 
 def findings(workers, batches, slow):
     """The waits worth acting on, largest first."""
     out = []
     done = [w for w in workers if not w['live']]
-    bmed = median([b['s'] for w in workers for b in w['builds'] if 'verify' in b['what'] or 'release' in b['what']])
-    smed = median([t['s'] for w in workers for t in w['tests'] if t['what'].startswith('suite') and t['s'] > 20])
+    bmed = median([b[1] for w in workers for b in w['builds'] if 'verify' in b[2] or 'release' in b[2]])
+    smed = median([t[1] for w in workers for t in w['tests'] if t[2].startswith('suite') and t[1] > 20])
     for w in done:
         extra = max(0, w['suite_count'] - 2)
         if extra:
-            secs = sum(sorted(t['s'] for t in w['tests'] if t['what'].startswith('suite'))[:extra])
+            secs = sum(sorted(t[1] for t in w['tests'] if t[2].startswith('suite'))[:extra])
             out.append({'seconds': secs, 'what': f"{'/'.join(w['tickets'])}: {w['suite_count']} golden suites "
                         f"(2 expected: image + Rebirth), {extra} extra"})
         nb = len(w['builds'])
         if nb > 3:
-            secs = sum(sorted(b['s'] for b in w['builds'])[:nb - 3])
+            secs = sum(sorted(b[1] for b in w['builds'])[:nb - 3])
             out.append({'seconds': secs, 'what': f"{'/'.join(w['tickets'])}: {nb} build calls"})
-    qs = [b for b in batches if b['queue'] > 120]
+    qs = [b for b in batches if b[3] > 120]
     if qs:
-        out.append({'seconds': sum(b['queue'] for b in qs),
-                    'what': f'{len(qs)} test batches queued over 2 min for game slots (longest {max(b["queue"] for b in qs) // 60} min)'})
+        out.append({'seconds': sum(b[3] for b in qs),
+                    'what': f'{len(qs)} test batches queued over 2 min for game slots (longest {max(b[3] for b in qs) // 60} min)'})
     for s in slow[:5]:
         if s['avg'] > 40:
             out.append({'seconds': round(s['avg'] * s['n']),
@@ -273,41 +321,34 @@ def findings(workers, batches, slow):
 
 
 def build(days):
-    workers, batches, slow, total_game = collect(days)
-    found, bmed, smed = findings(workers, batches, slow)
-    tot = defaultdict(float)
-    for w in workers:
-        tot['reasoning'] += w['model']
-        tot['builds'] += w['build_seconds']
-        tot['tests'] += w['test_seconds']
-        for k, v in list(w['fg'].items()) + list(w['bg'].items()):
-            if k not in ('build', 'test'):
-                tot[k] += v
-    return {
-        'generated': time.time(), 'days': days,
-        'totals': {k: round(v) for k, v in sorted(tot.items(), key=lambda kv: -kv[1])},
-        'median_build': bmed, 'median_suite': smed,
-        'game_runs': total_game[0], 'game_seconds': round(total_game[1] or 0),
-        'findings': found, 'workers': workers, 'batches': batches[-60:], 'slow': slow,
-    }
+    since = time.time() - days * 86400
+    db = work.connect()
+    workers = collect_workers(days, db)
+    data = {'generated': time.time(), 'days': days, 'workers': workers,
+            'batches': collect_batches(db, since), 'games': collect_games(db, since)}
+    db.close()
+    return data
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    ap.add_argument('--days', type=float, default=7)
+    ap.add_argument('--days', type=float, default=DAYS, help='how far back the rows go')
     ap.add_argument('--out', default=os.path.join(work.main_checkout(), 'build', 'live', 'waits.json'))
-    ap.add_argument('--print', action='store_true', help='print the findings and per-worker summary')
+    ap.add_argument('--print', action='store_true', help='print the findings and per-worker summary of the last --window-days')
+    ap.add_argument('--window-days', type=float, default=7)
     a = ap.parse_args()
     data = build(a.days)
     with open(a.out, 'w', encoding='utf-8') as f:
-        json.dump(data, f)
+        json.dump(data, f, separators=(',', ':'))
     if a.print:
-        print(f"{len(data['workers'])} workers, last {a.days:g} days; median verify/release build call "
-              f"{data['median_build']} s, median golden suite {data['median_suite']} s")
-        print('totals (min):', {k: round(v / 60) for k, v in data['totals'].items()})
-        for f in data['findings'][:12]:
+        now = time.time()
+        v = view(data, now - a.window_days * 86400, now + 1)
+        print(f"{len(v['workers'])} workers, last {a.window_days:g} days; median verify/release build call "
+              f"{v['median_build']} s, median golden suite {v['median_suite']} s")
+        print('totals (min):', {k: round(x / 60) for k, x in v['totals'].items()})
+        for f in v['findings'][:12]:
             print(f"  {f['seconds'] / 60:6.1f} min  {f['what']}")
-        for w in data['workers'][:15]:
+        for w in v['workers'][:15]:
             print(f"  {'/'.join(w['tickets']):18s} wall {w['wall'] / 60:5.0f}  reason {w['model'] / 60:4.0f}  "
                   f"build {w['build_seconds'] / 60:4.0f} ({len(w['builds'])})  test {w['test_seconds'] / 60:4.0f} "
                   f"({len(w['tests'])}, {w['suite_count']} suites)")
