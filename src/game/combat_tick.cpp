@@ -331,7 +331,7 @@ bool UnitServer::StartQueuedOrder() {
         return true;
     }
 
-    case UnitOrderKind::UseItem: {
+    case UnitOrderKind::UseItem: {   // unreached in the shipped game: nothing sets the use-item order
         TakeQueuedOrder();
         AnimationSteps steps;
         int duration;

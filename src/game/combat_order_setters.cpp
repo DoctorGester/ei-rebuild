@@ -76,6 +76,7 @@ void UnitServer::OrderSteal(MapObject* target, int run) {
     QueueUse(this, target, UseSource::Steal, 0, run, AckKind::Steal);
 }
 
+// Unreached in the shipped game: the interface sends only the use and steal kinds.
 void UnitServer::OrderTame(MapObject* target, int run) {
     if (!target || target->IsDead() != 0 || target == unit) return;
     auto* other = static_cast<Unit*>(target);

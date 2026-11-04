@@ -22,6 +22,7 @@ constexpr int kStatTaming = 2;
 
 
 // The side that tamed the unit (-1 when not tamed) is the attacker's: the taming is undone.
+// Unreached in the shipped game: nothing starts a taming (see TryTame).
 void UndoIfTamedBy(UnitServer* self, Unit* tamer) {
     int side = self->tameStage == 0 ? -1 : self->tamerSide;
     if (side == tamer->side) self->UndoTaming();
@@ -29,6 +30,7 @@ void UndoIfTamedBy(UnitServer* self, Unit* tamer) {
 
 } // namespace
 
+// Unreached in the shipped game: the taming skill returns before its use case and the charm spell is refused.
 bool UnitServer::TryTame(Unit* tamer, float roll) {
     float bonus = stats.AttributeWithItems(kStatTaming, unit);
     int level = TamingStage();
@@ -81,6 +83,7 @@ bool UnitServer::TryTame(Unit* tamer, float roll) {
     return true;
 }
 
+// Unreached in the shipped game: nothing tames a unit (see TryTame).
 void UnitServer::UndoTaming() {
     if (tameStage == 0) return;
     brain.RemoveModesOfType(AIModeType::Tamed);   // unit_ai.h: the tamed mode (8)

@@ -404,7 +404,7 @@ void ServerSession::RaiseVariable(const std::string* variableName, float value) 
     }
 }
 
-// Removes the variable when it exists.
+// Removes the variable when it exists. Unreached in the shipped game: only GSDelVar in a network game calls it.
 void ServerSession::RemoveVariable(const std::string* variableName) {
     auto node = FindVariable(variableName);
     if (node != variables.end()) variables.erase(node);

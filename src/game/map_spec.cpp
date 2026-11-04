@@ -50,9 +50,6 @@ Spec::Spec() : Chunk(nullptr) {
 
 Spec::~Spec() = default;
 
-void Spec::Remove() { Apply(); }
-void Spec::Refresh() { Apply(); }
-
 void* Spec::WorldObject() { return g_clientWorld.objectManager->FindObject(id); }
 
 ObjectSpec::ObjectSpec() {
@@ -101,41 +98,7 @@ void ObjectSpec::OnChunk() {
     }
 }
 
-void ObjectSpec::Remove() {
-    if (object) {
-        g_serverWorld.RemoveObject(id);
-        object = nullptr;
-    }
-    Apply();
-}
-
 MapObject* ObjectSpec::MadeMapObject() const { return static_cast<MapObject*>(object); }
-
-void ObjectSpec::Refresh() {
-    if (object) MadeMapObject()->MarkChanged(2);
-}
-
-void ObjectSpec::Apply() {
-    if (!object) {
-        g_serverWorld.CreateObject(this);
-        return;
-    }
-    g_serverWorld.aiMap.BeginRefresh();
-    g_serverWorld.aiMap.sectorMap.Remove(MadeMapObject());
-    MapObject* mapObject = MadeMapObject();
-    mapObject->localPosition = position;
-    mapObject->localRotation = rotation;
-    mapObject->SetFigureScale(scale);
-    mapObject->baseScale = scale;
-    mapObject->ApplyBaseScale();
-    std::uint32_t& flags = mapObject->flags;
-    if (!visible) flags |= 8;
-    else flags &= ~8u;
-    MadeMapObject()->MarkChanged(2);
-    MadeMapObject()->MarkChanged(1);
-    g_serverWorld.aiMap.sectorMap.Add(MadeMapObject());
-    g_serverWorld.aiMap.EndRefresh();
-}
 
 FlameSpec::FlameSpec() {
     offset = {0.0f, 0.0f, 0.0f};
@@ -145,14 +108,6 @@ FlameSpec::FlameSpec() {
 }
 
 FlameSpec::~FlameSpec() = default;
-
-void FlameSpec::Apply() {
-    if (object) {
-        g_serverWorld.RemoveObject(id);
-        object = nullptr;
-    }
-    g_serverWorld.CreateObject(this);
-}
 
 void FlameSpec::OnChunk() {
     Chunk& c = *this;
@@ -258,22 +213,6 @@ ZoneDiplomacy::ZoneDiplomacy() {
 
 namespace mapspec {
 
-void EffectNotify(const std::string& kind, const std::string& family);
-namespace {
-
-
-// The notification made before a new effect: (kind, family) strings by value, built in their argument slots
-// right to left (the second first, like the original) and destroyed by the callee.
-void Notify(const char* kind, const char* family) { EffectNotify(std::string(kind), std::string(family)); }
-
-// A new world object for the record and its effect.
-void MakeEffect(EffectSpec* self) {
-    g_serverWorld.CreateObject(self);
-    self->effect = g_serverWorld.timedObjectManager->FindObject(self->id);
-}
-
-} // namespace
-
 // ---- The base ------------------------------------------------------------------------
 
 // The records' destructors are the base record's.
@@ -293,9 +232,6 @@ void EffectSpec::SetVisible(std::uint8_t newVisible) {
     if (newVisible != 0) flags &= ~0x40u;
     else flags |= 0x40;
 }
-
-// Takes the two strings by value and only destroys them (the callee destroys its by-value parameters).
-void EffectNotify(const std::string&, const std::string&) {}
 
 // ---- Particle sources ------------------------------------------------------------------
 
@@ -318,20 +254,6 @@ void ParticleSpec::OnChunk() {
     }
 }
 
-void ParticleSpec::Apply() {
-    if (!object) {
-        Notify("efcu3", "particles");
-        if (type) MakeEffect(this);
-        return;
-    }
-    auto* particle = static_cast<EffectParticle*>(effect);
-    Transform()->localPosition = position;
-    particle->size = scale;
-    particle->type = type;
-    particle->localPosition = position;
-    particle->MarkChanged();
-}
-
 LightSpec::LightSpec() {
     colour = {1.0f, 1.0f, 1.0f};
     shadows = 1;
@@ -351,20 +273,6 @@ void LightSpec::OnChunk() {
     case 0xAA08: comment = c.ReadString(); break;
     default: break;
     }
-}
-
-void LightSpec::Apply() {
-    if (!object) {
-        Notify("efcu0", "light");
-        MakeEffect(this);
-        return;
-    }
-    auto* light = static_cast<EffectPointLight*>(effect);
-    light->color = colour;
-    light->range = radius;
-    light->localPosition = position;
-    Transform()->localPosition = position;
-    light->MarkChanged();
 }
 
 SoundSpec::SoundSpec() {
@@ -396,18 +304,6 @@ void SoundSpec::OnChunk() {
     case 0xCC0E: unreadChunk = c.ReadByte() == 1; break;
     default: break;
     }
-}
-
-void SoundSpec::Apply() {
-    if (!object) {
-        Notify("efcu2", "sound");
-        if (!sounds.empty()) MakeEffect(this);
-        return;
-    }
-    Transform()->localPosition = position;
-    if (effect) g_serverWorld.RemoveTimedObject(id);
-    if (!sounds.empty()) MakeEffect(this);
-    else effect = nullptr;
 }
 
 } // namespace mapspec

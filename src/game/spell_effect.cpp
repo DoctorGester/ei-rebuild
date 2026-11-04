@@ -406,6 +406,7 @@ Next StartClairvoyance(SpellEffect* e) {
 }
 
 // Possession (only the sound here).
+// Unreached in the shipped game: CastSpell refuses possession, only a saved projectile of that type gets here.
 Next StartPossession(SpellEffect* e) {
     if (!e->target) return Next::Done;
     e->CreateSound("magic\\Possession\\start.wav", e->target->EyePoint(), kZeroVector, kVolume, kHearing);
@@ -448,6 +449,7 @@ Next StartHealing(SpellEffect* e) {
 }
 
 // Link between two different units that are both free; otherwise the caster complains (0x18).
+// Unreached in the shipped game: CastSpell refuses the link, only a saved projectile of that type gets here.
 Next StartLink(SpellEffect* e) {
     if (!IsUnit(e->target) || !IsUnit(e->caster)) return Next::Done;
     bool free = e->target->IsLargeUnit() == 0 && e->caster->IsLargeUnit() == 0 &&
@@ -488,6 +490,7 @@ Next StartTeleport(SpellEffect* e) {
 
 // Charm. The target's controller is tamed by the caster until their sides (controller
 // +0x1C, +0x24C) agree; a failed attempt makes the caster complain (0x1A).
+// Unreached in the shipped game: CastSpell refuses charm, only a saved projectile of that type gets here.
 Next StartCharm(SpellEffect* e) {
     if (e->target->GetClassId() != ClassId::Unit) return Next::Leave;   // no null check
     if (!IsUnit(e->caster)) return Next::Leave;

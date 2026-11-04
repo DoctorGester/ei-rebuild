@@ -5,7 +5,7 @@
 // the world arms one when a trap item is used (the world server calls
 // Arm); while armed on the server, the first unit within 1 of it sets it off: a world script
 // "CreateParticleSource( 100, x, y, z, 1, "Mushroom")" at its position and the trap disarms.
-// Names provisional; magic_trap.cpp.
+// Names provisional; magic_trap.cpp. Unreached in the shipped game: no map record makes a TrapObject.
 
 #include "map_object.h"
 

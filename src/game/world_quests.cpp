@@ -51,8 +51,11 @@ PartyUnitRecord& MercRecord(Player* player, int index) { return player->GetParty
 constexpr int kKindNoRangeTest = 3;
 
 // The item named `name` (the game builds two unused temporary lists around the creation).
+// Unreached in the shipped game, like GiveBriefingRewards.
 Item* CreateNamedItem(std::string_view name) { return g_serverWorld.itemManager->CreateItem(name); }
 
+// Unreached in the shipped game: CompleteBriefing returns first in a network game and no single-player game holds a
+// briefing record.
 void GiveBriefingRewards(WorldServer* world, Player* player, QuestBriefingRecord* record) {
     float experience = record->exp;
     if (experience != 0.0f) {
