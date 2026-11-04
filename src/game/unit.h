@@ -599,8 +599,8 @@ struct UnitStats {
     float DexterityRatio();
     // pendingExperience 0, then the block read raw, as long as the stream's format version knew it (below
     // 0x45: 0x6F8 bytes, below 0x50: 0x6FC, below 0x63: 0x700, else 0x704). Returns the stream's result.
-    int LoadFrom(ByteStream* stream);
-    void SaveTo(ByteStream* stream);
+    void Load(ByteStream* stream);
+    void Save(ByteStream* stream) const;
     float AttributeBase(int index);
     // Attribute `index` (0..2) with the bonus of the stat it depends on (stat - 25).
     float AttributeWithBonus(int index);
@@ -798,7 +798,7 @@ static_assert(offsetof(UnitStats, damageWeights) == 0x90 && offsetof(UnitStats, 
 static_assert(offsetof(UnitStats, perception) == 0xB0);
 static_assert(offsetof(UnitStats, slots) == 0x110);
 static_assert(offsetof(UnitStats, flags) == 0x6F8);
-static_assert(sizeof(UnitStats) == 0x704);   // saved as its bytes (UnitStats::SaveTo / LoadFrom)
+static_assert(sizeof(UnitStats) == 0x704);   // saved as its bytes (UnitStats::Save / Load)
 
 // The record the player keeps for each unit of the party (found by unit id through a party's record array).
 // Each item list is an aligned pointer array of the record's own copies of the items.

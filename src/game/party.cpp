@@ -122,12 +122,10 @@ PartyUnitRecord* Party::Find(int unitId) {
 // --- File --------------------------------------------------------------------------------------------
 
 // The multiplayer heroes' files (<folder>\<n>.mp): one party per file, saved (with its variables)
-// into a memory stream and written as a save file (magic 0x114). See party.h, ui_screens.h
+// into a memory stream and written as a save file (magic kMagicParty). See party.h, ui_screens.h
 // (MpHeroRecord) and docs/notes/items_spells.md ("Party records and the party object").
 
 namespace {
-
-constexpr unsigned kPartyFileMagic = 0x114;
 
 const char* TempFileName() { return "temp.mp"; }
 
@@ -164,7 +162,7 @@ void MpHeroRecord::WriteFile(const std::string& folder) {
         LocalStreams streams;
         streams.file.Open(InFolder(folder, file), platform::FileMode::Create);
         GetParty()->SaveParty(&streams.data, 1);
-        SaveFileWrite(&streams.file, kPartyFileMagic, &streams.data);
+        SaveFileWrite(&streams.file, kMagicParty, &streams.data);
     }
     platform::RemoveFile(TempFile(folder).c_str());
 }
@@ -172,7 +170,7 @@ void MpHeroRecord::WriteFile(const std::string& folder) {
 bool MpHeroRecord::ReadFile(const std::string& folder) {
     LocalStreams streams;
     streams.file.Open(InFolder(folder, file), platform::FileMode::Read);
-    if (!SaveFileRead(&streams.data, kPartyFileMagic, &streams.file)) return false;
+    if (!SaveFileRead(&streams.data, kMagicParty, &streams.file)) return false;
     GetParty()->LoadParty(&streams.data, 1);
     return streams.data.ok;
 }
@@ -516,11 +514,6 @@ void ReadItemIds(ByteStream* stream, std::vector<Item*>& list, BaseManager* mana
     }
 }
 
-// Versions of the save format that added fields (compared signed).
-constexpr int kVersionRecord77C = 0x5B;
-constexpr int kVersionRecord780 = 0x61;
-constexpr int kVersionRecordText6 = 0x6B;
-
 void CopyThrough(Party* target, Party* source) {
     // Through an empty memory stream, freed afterwards.
     MemoryStream copy;
@@ -545,22 +538,22 @@ void PartyUnitRecord::Load(ByteStream* stream) {
     texts[5] = stream->ReadString();
     texts[6] = texts[5];
     stream->ReadValue(unitId);
-    stats.LoadFrom(stream);
+    stats.Load(stream);
     stream->Read(&scaleX, 0xC);   // +0x728 and the height
     ReadItemIds(stream, weapons, g_loadingParty->ItemFactory());
     ReadItemIds(stream, quickItems, g_loadingParty->ItemFactory());
     ReadItemIds(stream, armor, g_loadingParty->ItemFactory());
     ReadItemIds(stream, spells, g_loadingParty->ItemFactory());
     texts[1] = stream->ReadString();
-    if (stream->Version() < kVersionRecordFlags) return;
+    if (stream->version < kVersionRecordFlags) return;
     stream->ReadValue(moveMode2);
     stream->ReadValue(weaponIndex);
     stream->ReadValue(selected);
-    if (stream->Version() < kVersionRecord77C) return;
+    if (stream->version < kVersionRecordLeader) return;
     stream->ReadValue(leaderId);
-    if (stream->Version() < kVersionRecord780) return;
+    if (stream->version < kVersionRecordFightAtWill) return;
     stream->ReadValue(fightAtWill);
-    if (stream->Version() < kVersionRecordText6) return;
+    if (stream->version < kVersionRecordSixthText) return;
     texts[6] = stream->ReadString();
 }
 
@@ -571,7 +564,7 @@ void PartyUnitRecord::Save(ByteStream* stream) {
     stream->WriteString(texts[4]);
     stream->WriteString(texts[5]);
     stream->WriteValue(unitId);
-    stats.SaveTo(stream);
+    stats.Save(stream);
     stream->Write(&scaleX, 0xC);
     WriteItemIds(stream, weapons);
     WriteItemIds(stream, quickItems);
@@ -603,7 +596,7 @@ void Party::LoadParty(ByteStream* stream, int loadVariables) {
     g_loadingParty = nullptr;
     money = 0;
     stream->ReadValue(money);
-    if (stream->Version() > kVersionPartyKey) {
+    if (stream->version >= kVersionPartyKey) {
         std::uint32_t key;
         stream->ReadValue(key);
         money ^= key;
@@ -644,7 +637,7 @@ void Party::ArchiveParty(ChunkArchive* ar) {
     MemoryStream held;
     if (ar->loading) {
         ar->StreamField(kStreamField, &held);
-        held.version = static_cast<std::uint32_t>(ar->version);
+        held.version = ar->version;
         LoadParty(&held, 1);
     } else {
         SaveParty(&held, 1);

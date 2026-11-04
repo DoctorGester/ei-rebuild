@@ -103,6 +103,7 @@ public:
     bool Contains(EngineObject* object) const;
     // A count and that many object ids, then sorted.
     void Load(ByteStream* stream);
+    void Save(ByteStream* stream) const;
     void Clear() { members.clear(); }
 
     std::size_t size() const { return members.size(); }
@@ -119,6 +120,7 @@ private:
 // appends values without names).
 template <typename T>
 struct ScriptNamedValues {
+    // A count, then per variable its value and name (a name missing from `names` saves as an empty one).
     void Load(ByteStream* stream);
     void Save(ByteStream* stream) const;
     // The other set's values and names appended (the two lists stay parallel).
@@ -129,14 +131,6 @@ struct ScriptNamedValues {
     std::vector<T> values;
     std::vector<std::string> names;
 };
-template <> void ScriptNamedValues<float>::Load(ByteStream* stream);
-template <> void ScriptNamedValues<std::string>::Load(ByteStream* stream);
-template <> void ScriptNamedValues<ScriptObjectRef>::Load(ByteStream* stream);
-template <> void ScriptNamedValues<ScriptGroup>::Load(ByteStream* stream);
-template <> void ScriptNamedValues<float>::Save(ByteStream* stream) const;
-template <> void ScriptNamedValues<std::string>::Save(ByteStream* stream) const;
-template <> void ScriptNamedValues<ScriptObjectRef>::Save(ByteStream* stream) const;
-template <> void ScriptNamedValues<ScriptGroup>::Save(ByteStream* stream) const;
 
 // Where ScriptVars::FindVariable found a variable: its type (1..4) and index in that type's arrays. A name
 // not found has index -1 and the last type searched (group).
@@ -148,8 +142,9 @@ struct ScriptVarRef {
 // A set of named script variables, one value array and one name array per type: a script's local variables
 // and the global variables (GlobalVars).
 struct ScriptVars {
-    // The four kinds of variables, each as count, then per variable its value and name.
+    // The four kinds of variables (floats, strings, objects, groups), each as ScriptNamedValues saves it.
     void Load(ByteStream* stream);
+    void Save(ByteStream* stream) const;
     void AppendFrom(const ScriptVars& other);
     // Zeroes floats, empties strings, releases objects and empties every group.
     void ResetValues();
@@ -483,7 +478,8 @@ struct ScriptDefinition {
 // run list and continue each tick.
 struct ScriptRun {
     // Block id, index, ticks, sleep start, the index of its instance in g_streamedScript's instance list (-1
-    // when absent), the variables.
+    // when absent), the variables. Load resolves the block like FindBlock; an index out of range leaves no instance.
+    void Load(ByteStream* stream);
     void Save(ByteStream* stream) const;
     // Runs commands from `index` until one waits (Sleep, WaitSegment, SleepUntil, SleepUntilIdle) or the block
     // ends. Returns false when the block had already ended on entry.

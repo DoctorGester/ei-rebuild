@@ -223,9 +223,10 @@ struct SharedObject {
     std::uint32_t money = 0;                // gold the loot adds to the finder's party
     std::vector<HeldRef<Item>> objects;    // counted
 
-    // Reads the entry: id, player, value, then object ids resolved by the item manager; each found
-    // object is appended with a reference.
+    // The entry: id, player, value, then a count and the object ids. Load resolves them by the item manager;
+    // each found object is appended with a reference.
     void Load(ByteStream* stream);
+    void Save(ByteStream* stream) const;
 };
 
 // What the server world runs (WorldServer::gameState; the saves do not hold it).
@@ -1281,14 +1282,11 @@ std::vector<std::string> PickZones(int id, const char* exclude);
 // also carry the globals (< 0x52) and the input state (< 0x47). 0 when the file does not read.
 int LoadMission(ByteStream* file);
 
-// SaveFileWrite writes the header, at version > 0x6B a checksum, then a flag byte and the LZ-compressed data
+// SaveFileWrite writes the header, from version kVersionChecksum a checksum, then a flag byte and the LZ-compressed data
 // (or, when decompressing it does not give the data back, 0 and the raw data). SaveFileRead reads one back
 // (versions up to kSaveLastUncompressedVersion uncompressed); false on a bad header or checksum.
 void SaveFileWrite(ByteStream* file, unsigned magic, MemoryStream* data);
 bool SaveFileRead(MemoryStream* out, unsigned magic, ByteStream* file);
-inline constexpr int kSaveVersion = /*00790260*/ 116;
-inline constexpr int kSaveLastUncompressedVersion = /*00790264*/ 100;
-inline constexpr int kSaveOldestVersion = /*00790268*/ 66;
 
 // The mercenary who speaks `briefing` (the second word of the first "#show" line of
 // section "briefing <name>" that is not "Hero"), or "". The briefing's

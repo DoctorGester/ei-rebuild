@@ -104,19 +104,13 @@ void WaterTweens::Save(ByteStream* stream) const {
     for (const TweenEntry& e : entries) stream->WriteValue(e);
 }
 
-void WaterTweens::ReadEntries(ByteStream* stream) {
+void WaterTweens::Load(ByteStream* stream) {
     entries.resize(stream->ReadCount());
     for (TweenEntry& e : entries) stream->ReadValue(e);
 }
 
-void WaterTweens::Load(ByteStream* stream, terrain::Terrain* terrain) {
-    ReadEntries(stream);
+void WaterTweens::ApplyTo(terrain::Terrain* terrain) const {
     for (const TweenEntry& e : entries) terrain->SetWaterLevel(e.key, e.value);
-}
-
-void WaterTweens::LoadEntries(ByteStream* stream) {
-    // The count is read into an uninitialised local; the game's streams always write it.
-    ReadEntries(stream);
 }
 
 // --- Open --------------------------------------------------------------------------------------------

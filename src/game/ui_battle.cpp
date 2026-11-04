@@ -48,8 +48,7 @@
 #include <vector>
 
 namespace {
-// The game's save stream's version and a game being loaded (the save stream holds its data).
-int SaveVersion() { return static_cast<int>(g_saveStream.version); }
+// A game being loaded (the save stream holds its data).
 bool LoadingGame() { return g_saveStream.size != 0; }
 
 } // namespace
@@ -77,12 +76,12 @@ void BattleScreen::CreateScreen() {
         std::uint8_t serverFlag;
         stream->ReadValue(serverFlag);
         g_serverWorld.SetServerPaused(serverFlag);
-        if (SaveVersion() >= kVersionBattleText) {
+        if (g_saveStream.version >= kVersionBattleText) {
             int money;   // the party's money (SaveState), not used
             stream->ReadValue(money);
             savedText = stream->ReadString();
         }
-        if (SaveVersion() >= kVersionPendingExit) {
+        if (g_saveStream.version >= kVersionPendingExit) {
             std::uint8_t newExitPending;   // a byte
             stream->ReadValue(newExitPending);
             exitPending = newExitPending != 0;

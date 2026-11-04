@@ -283,7 +283,6 @@ namespace {
 
 // The save stream: reads `size` bytes; version is the save's version.
 void Read(ByteStream* stream, void* to, int size) { stream->Read(to, static_cast<std::uint32_t>(size)); }
-int Version(const ByteStream* stream) { return static_cast<int>(stream->version); }
 
 const char* const kMessageKeys[13] = {
     "lmp_player_connected",
@@ -309,18 +308,18 @@ void Interface3D::LoadState(ByteStream* stream) {
     stream->ReadValue(hudPanelsIn[2]);
     stream->ReadValue(hudBodyPart);
     stream->ReadValue(hudTopPage);
-    if (Version(stream) < kVersionFastGame) return;
+    if (stream->version < kVersionFastGame) return;
     stream->ReadValue(fastGame);
-    if (Version(stream) < kVersionInterfaceList) return;
+    if (stream->version < kVersionInterfaceList) return;
     // An obsolete list: each name and four-byte value read and dropped.
     for (int count = stream->ReadCount(); count > 0; --count) {
         stream->ReadString();
         stream->Skip(4);
     }
     messageText = stream->ReadString();
-    if (Version(stream) >= kVersionMessageFlag) {
+    if (stream->version >= kVersionMessageFlag) {
         stream->ReadValue(messageFlag);
-        if (Version(stream) >= kVersionSavedText) savedText = stream->ReadString();
+        if (stream->version >= kVersionSavedText) savedText = stream->ReadString();
     }
 }
 

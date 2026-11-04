@@ -213,7 +213,7 @@ void Behaviour::Read(ByteStream* stream) {
     StreamRead(stream, &callRadius, 4);
     StreamRead(stream, &alertMode, 4);
     StreamRead(stream, &alarmDelay, 4);
-    if (static_cast<std::int32_t>(stream->version) >= kVersionUnitAlarm) {
+    if (stream->version >= kVersionUnitAlarm) {
         StreamRead(stream, &alarm, 4);
         return;
     }

@@ -300,11 +300,11 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
 
     aiMap.events.Load(stream);
     MainScript()->LoadState(stream);
-    diplomacy.ReadFrom(stream);
+    diplomacy.Load(stream);
     stream->ReadValue(climate);
     stream->ReadValue(cave);
     if (stream->version >= kVersionCountdowns)    // the countdowns are a tween array
-        countdowns.LoadEntries(stream);
+        countdowns.Load(stream);
 
     // Counted references to items (added at the head of the list).
     for (;;) {
@@ -420,7 +420,7 @@ void WorldServer::SaveWorld(ByteStream* stream) {
 
     aiMap.events.Save(stream);
     MainScript()->SaveState(stream);
-    diplomacy.WriteTo(stream);
+    diplomacy.Save(stream);
     stream->WriteValue(climate);
     stream->WriteValue(cave);
     countdowns.Save(stream);
@@ -447,24 +447,25 @@ void WorldServer::SaveWorld(ByteStream* stream) {
     for (const std::string& file : mobFiles) stream->WriteString(file);
 
     stream->WriteCount(sharedObjects.size());
-    for (const SharedObject& entry : sharedObjects) {
-        stream->WriteValue(entry.objectId);
-        stream->WriteValue(entry.player);
-        stream->WriteValue(entry.money);
-        stream->WriteCount(entry.objects.size());
-        for (const Item* object : entry.objects) stream->WriteId(object);
-    }
+    for (const SharedObject& entry : sharedObjects) entry.Save(stream);
 }
 
 void SharedObject::Load(ByteStream* stream) {
-    SharedObject* entry = this;
-    stream->ReadValue(entry->objectId);
-    stream->ReadValue(entry->player);
-    stream->ReadValue(entry->money);
+    stream->ReadValue(objectId);
+    stream->ReadValue(player);
+    stream->ReadValue(money);
     for (int count = stream->ReadCount(); count > 0; --count) {
         Item* object = FindItem(g_serverWorld.itemManager.get(), stream->ReadId());
-        if (object) entry->objects.emplace_back(object);
+        if (object) objects.emplace_back(object);
     }
+}
+
+void SharedObject::Save(ByteStream* stream) const {
+    stream->WriteValue(objectId);
+    stream->WriteValue(player);
+    stream->WriteValue(money);
+    stream->WriteCount(objects.size());
+    for (const Item* object : objects) stream->WriteId(object);
 }
 
 void WorldServer::AddSharedObject(int newId, std::uint32_t value, const std::vector<Item*>* newObjects) {

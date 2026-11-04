@@ -73,9 +73,9 @@ address,size,name,file
 0078F990,28,kParts,src/game/unit_client_models.cpp
 0078FF34,4,g_updatePeriod,src/game/world_data.h
 0078FF38,4,g_lastLitHour,src/game/world_data.h
-00790260,4,kSaveVersion,src/game/world.h
-00790264,4,kSaveLastUncompressedVersion,src/game/world.h
-00790268,4,kSaveOldestVersion,src/game/world.h
+00790260,4,kSaveVersion,src/game/save_versions.h
+00790264,4,kSaveLastUncompressedVersion,src/game/save_versions.h
+00790268,4,kSaveOldestVersion,src/game/save_versions.h
 0079026C,1,g_guardPlain,src/game/world_guard.cpp
 00790270,120,kAllodMaps,src/game/world_game.cpp
 007907AC,40,kZones,src/game/world_data.h

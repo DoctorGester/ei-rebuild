@@ -8,22 +8,11 @@
 
 namespace {
 
-// Variable i's name, or an empty one when the name array is shorter.
-void WriteName(ByteStream* stream, const std::vector<std::string>& names, std::size_t i) {
-    if (i < names.size()) {
-        stream->WriteString(names[i]);
-    } else {
-        stream->WriteString("");
-    }
-}
-
-// A ScriptVars: floats, strings, objects, groups.
-void WriteVars(ByteStream* stream, const ScriptVars* vars) {
-    vars->floats.Save(stream);
-    vars->strings.Save(stream);
-    vars->objects.Save(stream);
-    vars->groups.Save(stream);
-}
+// ScriptNamedValues::Save writes a value by the overload for its type.
+void WriteOne(ByteStream* stream, float value) { stream->WriteValue(value); }
+void WriteOne(ByteStream* stream, const std::string& value) { stream->WriteString(value); }
+void WriteOne(ByteStream* stream, const ScriptObjectRef& value) { value.Save(stream); }
+void WriteOne(ByteStream* stream, const ScriptGroup& value) { value.Save(stream); }
 
 // A list's count, then each element's Save.
 template <typename Container>
@@ -39,38 +28,24 @@ void ScriptDecl::Save(ByteStream* stream) const {
     WriteList(stream, commands);
 }
 
-template <> void ScriptNamedValues<float>::Save(ByteStream* stream) const {
+template <typename T>
+void ScriptNamedValues<T>::Save(ByteStream* stream) const {
     stream->WriteCount(values.size());
     for (std::size_t i = 0; i < values.size(); ++i) {
-        stream->WriteValue(values[i]);
-        WriteName(stream, names, i);
+        WriteOne(stream, values[i]);
+        stream->WriteString(i < names.size() ? std::string_view(names[i]) : std::string_view());
     }
 }
+template void ScriptNamedValues<float>::Save(ByteStream*) const;
+template void ScriptNamedValues<std::string>::Save(ByteStream*) const;
+template void ScriptNamedValues<ScriptObjectRef>::Save(ByteStream*) const;
+template void ScriptNamedValues<ScriptGroup>::Save(ByteStream*) const;
 
-template <> void ScriptNamedValues<std::string>::Save(ByteStream* stream) const {
-    stream->WriteCount(values.size());
-    for (std::size_t i = 0; i < values.size(); ++i) {
-        stream->WriteString(values[i]);
-        WriteName(stream, names, i);
-    }
-}
-
-template <> void ScriptNamedValues<ScriptObjectRef>::Save(ByteStream* stream) const {
-    stream->WriteCount(values.size());
-    for (std::size_t i = 0; i < values.size(); ++i) {
-        values[i].Save(stream);
-        WriteName(stream, names, i);
-    }
-}
-
-template <> void ScriptNamedValues<ScriptGroup>::Save(ByteStream* stream) const {
-    stream->WriteCount(values.size());
-    for (std::size_t i = 0; i < values.size(); ++i) {
-        const ScriptGroup& group = values[i];
-        stream->WriteCount(group.size());
-        for (const ScriptObjectRef& member : group) member.Save(stream);
-        WriteName(stream, names, i);
-    }
+void ScriptVars::Save(ByteStream* stream) const {
+    floats.Save(stream);
+    strings.Save(stream);
+    objects.Save(stream);
+    groups.Save(stream);
 }
 
 // A definition (Script::definitions) or an instance (instances). The pairs' blocks are not null-checked.
@@ -83,7 +58,7 @@ void ScriptDefinition::Save(ByteStream* stream) const {
         stream->WriteValue(pair.conditions->id);
         stream->WriteValue(pair.commands->id);
     }
-    WriteVars(stream, &vars);
+    vars.Save(stream);
 }
 
 // A run (Script::runs). Its instance is found by the address of the killed flag (the instance's
@@ -103,7 +78,7 @@ void ScriptRun::Save(ByteStream* stream) const {
         ++instance;
     }
     stream->WriteValue(found ? instance : -1);
-    WriteVars(stream, &vars);
+    vars.Save(stream);
 }
 
 void Script::SaveState(ByteStream* stream) {
@@ -119,7 +94,7 @@ void Script::SaveState(ByteStream* stream) {
     WriteList(stream, worldBlocks);
     WriteList(stream, definitions);
 
-    WriteVars(stream, &globals);
+    globals.Save(stream);
 
     // Instances (copies of definitions) and runs.
     WriteList(stream, instances);

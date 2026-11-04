@@ -355,7 +355,7 @@ void MapObject::Load(ByteStream* stream) {
     stream->ReadValue(currentFlags);
     flags = currentFlags;
     name2 = stream->ReadString();
-    if (stream->version > kVersionBaseScale) stream->ReadValue(baseScale);
+    if (stream->version >= kVersionBaseScale) stream->ReadValue(baseScale);
 }
 
 void MapObject::Save(ByteStream* stream) {
