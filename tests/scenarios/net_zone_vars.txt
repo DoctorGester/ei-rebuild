@@ -1,0 +1,83 @@
+# H43g2: a game hosted alone into a quest zone whose script raises the server's variables (RaiseVariable through the
+# script command GSSetVarMax; the console's script lines do nothing in a network game, so the zone's own script has
+# to run). No peer: the host's own client plays its zone.
+# - The offer: the base's zones are one per map group (zone3Obr, zone6, zone7, zone9), each picked by one draw of the
+#   game's random generator (PickZones). The steps are the same in every run, so the draws are too: the sheriff's
+#   third topic is z6q2 first on both installs, and the next offer comes from the draw at the reject, which follows
+#   the frames the game has run since the start. This game takes z6q2 (the topic's phrases), rejects it with the
+#   sheriff's middle topic (z6q2_2: LeaveZone, as net_pair_quest does with z9q3) after 25 frames, which offers z6q3 on
+#   both installs (0 frames give z6q1 on vanilla, 10 z6q1 on both: the offer is stable only because the steps are),
+#   and takes the third topic again. "waitzone z6q3" fails the run when another zone came.
+# - The hero: a prepared strong one (tools/make_mp_hero.py, as net_pair_quest), as the walk crosses the zone.
+# - The zone: z6q3.mob's first trigger, "Any(i,Heroes,IsLess(DistanceUnitUnit(i,BoarCage),7))" ("Come to gate"),
+#   holds when the hero stands by the cage in the north (BoarCage at 91.7 298.9; the cage's own size stops him about
+#   6 units away, at 85.5 299.3). Its commands GSSetVarMax(0,"q.z6q3.z6q3.1",2) and (0,"q.z6q3.z6q3.2",1) run on the
+#   server (GSVarMultiplayer -> ServerSession::RaiseVariable). The walk is one long order: the game's pathfinder goes
+#   round the zone's obstacles (by about 142 181 on the way), so it gets a long wait; the hero starts at 15 35.
+# A clickground lands where the clicked pixel's ray meets the ground and the leader walks to that exact point, so
+# the walk follows the frame's pixel grid. The vanilla runs play in the image's 4:3 window (harness_starter.h), the
+# layout their goldens have had since game.exe's; the Rebirth runs at the desktop's size, the wide layout at 16:9 (W12).
+# prepare: make_mp_hero.py --stats 1000 60 60 --skills 60 --damage 300 --absorb 100
+rebirth resolution desktop
+timeout 240
+music 0
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+frames 10
+clickregion 9
+frames 10
+clickregion 1
+frames 10
+waitwindow 15 mpconnect
+
+clickregion 14
+frames 5
+clickregion 0
+waitwindow 25 briefing
+frames 20
+
+# z6q2 taken (the third topic) and rejected (the middle topic); the new offer has z6q3.
+clickground 63 64 dblclick
+frames 60
+waitunit 10 Nsheriff
+clickunit Nsheriff
+waitdialogue 10 1
+clickregion 2
+talk 30
+frames 25
+clickunit Nsheriff
+waitdialogue 10 1
+clickregion 1
+talk 30
+frames 20
+
+clickunit Nsheriff
+waitdialogue 10 1
+clickregion 2
+talk 30
+clickground 61 50 dblclick
+frames 60
+clickground 59 43 dblclick
+waitzone 40 z6q3
+frames 40
+
+# The camera zoomed out; the walk to the cage.
+key f1
+frames 3
+wheel 400 300 -120
+frames 5
+wheel 400 300 -120
+frames 5
+wheel 400 300 -120
+frames 5
+wheel 400 300 -120
+frames 5
+vanilla minimap 701 81 2.8 2.8
+rebirth minimap 726 80.6 3.75 2.7
+walkto 600 86 299
+frames 40
+report
+quit

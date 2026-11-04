@@ -20,7 +20,8 @@ Files: `net_classes.h` (sessions, lobby, message base), `net_session*.cpp`, `net
   `net_pair_leave` (shared files, a peer lost in the zone, LeaveZone), `net_pair_quest` (a quest done, CompleteZone and
   its awards, a fake master), `net_pair_master` (the master's server list, a bad update), `net_second_master`, `net_pair_lobby` (direct queries, the address book), `net_pair_password` (a refused and an admitted join)
 and `net_pair_party` (an exchange offered, withdrawn, answered, left);
-  `net_host_death` (one hosted game: its hero killed in the game zone, the zone saved and entered again).
+  `net_host_death` (one hosted game: its hero killed in the game zone, the zone saved and entered again);
+  `net_zone_vars` (one hosted game: z6q3's script raises server variables) and `net_zone_leader` (z7q3's script asks for the leader).
 
 ## The multiplayer game
 

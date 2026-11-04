@@ -288,8 +288,16 @@ routine: run it when wanted.
   (MpHeroScreen::Rename; the edit field is short, so the suffix is cut) and `ui_camp_spells` (trader class 3 has the spell
   trade page; class 1 shows the item page). Not reachable by play (H43g1): GiveBriefingRewards (`CompleteBriefing` returns
   early in every network game, and the briefing records exist only after hosting, when the quit to the menu has dropped
-  the text sources), the message clones and copy constructors. Left: the multiplayer zone scripts' GSSetVarMax / GSDelVar
-  (H43g2).
+  the text sources), the message clones and copy constructors. Quest zones of a game hosted alone (H43g2; the console's script lines do nothing in a network game, so
+  the zone's own script has to run, and only z6q3.mob and z7q1.mob of the offered zones call GSSetVarMax): `net_zone_vars` (a
+  prepared strong hero; z6q2 taken and rejected after 25 frames, which offers z6q3 on both installs; one long walk
+  to BoarCage, where the first trigger raises the server's variables: ServerSession::RaiseVariable) and `net_zone_leader`
+  (z7q1 taken and rejected after 30 frames, which offers z7q3, whose first trigger calls GetLeader: LeaderId). The offer
+  follows the game's draws, which move with the frames before the reject (z6 after 0 / 10 frames: z6q1 on vanilla; z7
+  after 0: z7q2 on vanilla), so the numbers hold only because every run takes the same steps; the fourth topic of
+  a first offer is z7q1, whose trigger needs the hero about 190 units from its start (not walked). Not reachable by play:
+  GSDelVar (ServerSession::RemoveVariable): the only uncommented calls are in zone13.mob and zone2.mob behind
+  variables of the single-player story that a multiplayer game never sets.
 - **Gap scenarios (H43c1, H43e1):** `net_host_death` (a hosted game's hero killed by a `hit` step in the game zone:
   OnLeaderDied's multiplayer branch, AddSharedObject, StopSpeech on the host's own client; the zone left, saved and
   entered again: SharedObject::Load), `unit_hit_turning` (a blow while the hero turns: HitWhileTurning),

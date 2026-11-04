@@ -1,0 +1,12 @@
+{
+  "scenario": "net_zone_leader",
+  "install": "vanilla",
+  "recorded": "2026-11-04",
+  "commit": "fa7cc20b6",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "new scenarios net_zone_vars (z6q3's GSSetVarMax) and net_zone_leader (z7q3's GetLeader), first goldens (H43g2)",
+  "source": "image"
+}
