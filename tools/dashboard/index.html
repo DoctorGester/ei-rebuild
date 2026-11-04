@@ -260,7 +260,6 @@ function render(data) {
     stat('reinterpret_casts', fmt(t.reinterpret_casts || 0), down('track', 'reinterpret_casts')) +
     stat('pc24 uses', fmt(g.pc24_uses || 0), 'lib/pc24.h, outside src/lib') +
     stat('Ordered-sum helpers', fmt(g.ordered_sums || 0), 'DotZYX, Sum3::XYZ, *Unrounded ...') +
-    stat('UI canvas calls', fmt(g.ui_canvas_calls || 0), 'render::ui:: outside src/render') +
     stat('Source lines', fmt(src), `src/, plus ${fmt(tests)} in tests/`) +
     stat('Scenarios', fmt(c.cleanup.scenarios || 0), 'in tests/scenarios');
   const peakRows = (group, rows) => rows.map(([name, key]) => {
@@ -277,8 +276,7 @@ function render(data) {
     ['static_cast<float>', 'float_casts'], ['static_cast<double>', 'double_casts']]);
   document.querySelector('#goals tbody').innerHTML = peakRows('goals', [
     ['pc24:: uses (24-bit-rounded operations on wider operands)', 'pc24_uses'],
-    ['Ordered-sum vector helpers (DotZYX, Sum3::XYZ, *Unrounded)', 'ordered_sums'],
-    ['render::ui:: canvas calls outside src/render', 'ui_canvas_calls']]);
+    ['Ordered-sum vector helpers (DotZYX, Sum3::XYZ, *Unrounded)', 'ordered_sums']]);
   document.querySelector('#standalone tbody').innerHTML = peakRows('standalone', [
     ['Text: fixed char buffers (src/)', 'text_fixed_buffers'],
     ['Text: direct ANSI system calls', 'text_ansi_calls']]);
@@ -296,9 +294,8 @@ function render(data) {
                   { name: 'Per-file Vector / Map / Set layouts', color: muted, get: p => p.cleanup.vector_map_set_structs }],
       { title: 'Duplicated layouts', note: 'Struct names defined in more than one file, and containers declared per file instead of the shared templates.' }),
     lineChart(h, [{ name: 'pc24:: uses', color: accent, get: gl('pc24_uses') },
-                  { name: 'Ordered-sum helpers', color: '#4a6fa5', get: gl('ordered_sums') },
-                  { name: 'render::ui:: canvas calls', color: good, get: gl('ui_canvas_calls') }],
-      { title: 'Goals', note: "What the code is moving to: 24-bit-rounded pc24 operations (float-maths.md), the ordered-sum helpers of lib/vecmath.h, and the game's calls into the interface canvases (ui-native.md)." }),
+                  { name: 'Ordered-sum helpers', color: '#4a6fa5', get: gl('ordered_sums') }],
+      { title: 'Goals', note: "What the code is moving to: 24-bit-rounded pc24 operations (float-maths.md), and the ordered-sum helpers of lib/vecmath.h." }),
     lineChart(h, [{ name: 'static_cast<float>', color: accent, get: p => p.cleanup.float_casts },
                   { name: 'static_cast<double>', color: '#4a6fa5', get: p => p.cleanup.double_casts }],
       { title: 'x87 remains', note: 'Precision-pinning casts (C30): plain float maths replaces them where game state allows.' }),
