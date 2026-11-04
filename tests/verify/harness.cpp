@@ -289,6 +289,10 @@
 //                             require frames <a> and <b> to match: at most <fraction> (default
 //                             0.001) of the pixels may have a channel differing by more than
 //                             <tolerance> (default 8), as tools/compare_frames.py counts
+//   diffcapture <a> <b> <least> <most> [<tolerance> [<left> <top> <right> <bottom>]]
+//                             require frames <a> and <b> to differ in a share of their pixels (by more than
+//                             <tolerance>, default 8) from <least> to <most>; with a rectangle (right and bottom
+//                             excluded) the share of that rectangle's pixels
 //   printlight <with> <without> <least> <most>
 //                             where frames <with> and <without> differ by more than 8 in a channel (what
 //                             <with> draws over <without>: the ground prints with "decals on" and off),
@@ -374,6 +378,9 @@
 //   weatherparticles on|off   the rain and snow particles drawn (the default) or left out
 //                             (render::SetWeatherParticles, R53), from the next frame: a frozen capture
 //                             with and without, and diffcapture, give the share of the frame they cover
+//   panelweather on|off       the HUD unit panel's figure with its unit's weather (the default) or dry
+//                             (render::SetInterfaceUnitWeather, R53a), from the next frame: a frozen
+//                             capture both ways, and diffcapture on the panel's rectangle, show the weather
 //   shadowshift <texels>      with the shadow map, its origin moved by <texels> whole texels across and half
 //                             as many along (render::SetShadowShift, R25; 0 the default): the same shadow,
 //                             other range cells
@@ -2105,7 +2112,7 @@ std::string DescribeTopWindow() {
 
 // The image's renderer's steps (image::RenderStep).
 bool IsRenderStep(const std::string& verb) {
-    return verb == "terrainlevels" || verb == "levelsteps" || verb == "hues" || verb == "mmplevels" || verb == "msaa" || verb == "anisotropy" || verb == "smoothcheck" || verb == "smoothedges" || verb == "smoothorder" || verb == "shadowcasters" || verb == "shadowview" || verb == "shadowshift" || verb == "decals" || verb == "weatherparticles" || verb == "terraincache" || verb == "meshcache" || verb == "shadowcheck" || verb == "cloudcheck" || verb == "weathercheck" || verb == "unitweather" || verb == "occlusion" || verb == "renderstats";
+    return verb == "terrainlevels" || verb == "levelsteps" || verb == "hues" || verb == "mmplevels" || verb == "msaa" || verb == "anisotropy" || verb == "smoothcheck" || verb == "smoothedges" || verb == "smoothorder" || verb == "shadowcasters" || verb == "shadowview" || verb == "shadowshift" || verb == "decals" || verb == "weatherparticles" || verb == "panelweather" || verb == "terraincache" || verb == "meshcache" || verb == "shadowcheck" || verb == "cloudcheck" || verb == "weathercheck" || verb == "unitweather" || verb == "occlusion" || verb == "renderstats";
 }
 
 // The steps that post input messages to the game window.
@@ -3074,15 +3081,19 @@ void RunSteps() {
             char a[64] = "", b[64] = "";
             double least = 0, most = 1;
             int tolerance = 8;
-            if (std::sscanf(s.argument.c_str(), "%63s %63s %lf %lf %d", a, b, &least,
-                         &most, &tolerance) < 4) {
+            int rect[4] = {};
+            const int read = std::sscanf(s.argument.c_str(), "%63s %63s %lf %lf %d %d %d %d %d", a, b, &least, &most,
+                                         &tolerance, &rect[0], &rect[1], &rect[2], &rect[3]);
+            if (read < 4 || (read > 5 && read < 9)) {
                 g_failures.push_back("diffcapture needs two frame names, a least and a most fraction");
                 continue;
             }
             double differing = 0;
             int largest = 0;
             const char* why = "";
-            if (!capture::Compare(a, b, tolerance, &differing, &largest, &why)) {
+            if (!(read == 9 ? capture::CompareRect(a, b, tolerance, rect[0], rect[1], rect[2], rect[3], &differing,
+                                                   &largest, &why)
+                            : capture::Compare(a, b, tolerance, &differing, &largest, &why))) {
                 g_failures.push_back(std::string("diffcapture ") + a + " " + b + ": " + why);
                 continue;
             }

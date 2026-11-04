@@ -56,6 +56,7 @@ struct UnitSurface {
     Vector3 at{};   // the middle of its box's foot (the harness's)
 };
 std::unordered_map<const void*, UnitSurface> g_units;
+const void* g_interfaceUnit = nullptr;   // BeginInterfaceUnit .. EndInterfaceUnit
 
 struct Box {
     Vector3 low{1e30f, 1e30f, 1e30f}, high{-1e30f, -1e30f, -1e30f};
@@ -270,13 +271,16 @@ void PrepareUnitWeather(Frame& f) {
         u.at = Vector3{(box.low.x + box.high.x) * 0.5f, (box.low.y + box.high.y) * 0.5f, box.low.z};
     }
     std::erase_if(g_units, [&](const auto& entry) { return s.time - entry.second.time > kUnitForgetTicks; });
+    // A unit's figure parts, in the world (its own weather) and in the interface (the same unit's).
     for (MeshBatch& b : f.meshBatches) {
-        if (!b.figure) continue;
-        auto it = g_units.find(b.caster);
+        if (!b.figure && !b.interfaceUnit) continue;
+        auto it = g_units.find(b.figure ? b.caster : b.interfaceUnit);
         b.weather[0] = it != g_units.end() ? it->second.wet : s.wet;
         b.weather[1] = it != g_units.end() ? it->second.snow : s.snow;
     }
 }
+
+const void* CurrentInterfaceUnit() { return g_interfaceUnit; }
 
 void SurfaceUniforms(float weather[4], float rain[4]) {
     const Surfaces& s = g_surfaces;
@@ -309,6 +313,9 @@ void SurfaceState(float* wet, float* puddles, float* snow) {
 } // namespace render::detail
 
 namespace render {
+
+void BeginInterfaceUnit(const void* object) { detail::g_interfaceUnit = object; }
+void EndInterfaceUnit() { detail::g_interfaceUnit = nullptr; }
 
 void LandscapeLoaded() {
     detail::g_surfaces.started = false;

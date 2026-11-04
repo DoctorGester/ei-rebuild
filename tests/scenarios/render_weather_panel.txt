@@ -1,0 +1,48 @@
+# R53a: the figure in the HUD unit panel (top left) takes its unit's own weather (docs/notes/renderer.md section 13,
+# item 11b, "Units", and section 14, "Interface figures"). The hero on zone1 by day, 1440x1080: dry, then a minute into
+# rain (the unit as wet as the ground: unitweather). In each frozen moment the panel is captured with its figure's
+# weather and without (panelweather off: the same pose): dry, the two are the same; in rain the panel's rectangle
+# differs in the figure (darker, a sheen) and nowhere else (diffcapture on the rectangle), so the panel cannot silently
+# go back to a dry figure. Frames only (goldens hold none).
+render checkall
+resolution 1440x1080
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @GodMode(0,1)
+waitwindow 15 battle
+console @BlockUnit(GetLeader(),1)
+console @FixWorldTime(12)
+console @SetWeather("clear")
+waitpresent 10
+move 400 20
+wait 3000
+frames 5
+freeze
+unitweather leader 0 0.05 0 0 0 0
+capture panel_dry
+panelweather off
+frames 3
+capture panel_dry_off
+panelweather on
+diffcapture panel_dry panel_dry_off 0 0.0005 8 0 0 330 400
+unfreeze
+
+# A minute of rain: the hero as wet as the ground, the panel's figure with him.
+console @SetWeather("rain")
+wait 60000
+frames 5
+freeze
+weathercheck 0.55 1 0 0
+unitweather leader 0.5 1 0 0 0 0
+capture panel_rain
+panelweather off
+frames 3
+capture panel_rain_off
+panelweather on
+diffcapture panel_rain panel_rain_off 0.02 0.3 8 0 0 330 400
+unfreeze
+report
+quit

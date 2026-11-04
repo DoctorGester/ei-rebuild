@@ -269,6 +269,41 @@ bool Compare(const char* a, const char* b, int tolerance, double* differing, int
     return CompareImages(ia, ib, tolerance, differing, largest, why);
 }
 
+bool CompareRect(const char* a, const char* b, int tolerance, int left, int top, int right, int bottom,
+                 double* differing, int* largest, const char** why) {
+    Image ia, ib;
+    if (!ReadBmp(a, ia) || !ReadBmp(b, ib)) {
+        *why = "a frame is missing or unreadable";
+        return false;
+    }
+    if (ia.width != ib.width || ia.height != ib.height) {
+        *why = "the frames differ in size";
+        return false;
+    }
+    left = (std::max)(left, 0);
+    top = (std::max)(top, 0);
+    right = (std::min)(right, ia.width);
+    bottom = (std::min)(bottom, ia.height);
+    if (left >= right || top >= bottom) {
+        *why = "the rectangle holds no pixel of the frames";
+        return false;
+    }
+    long long found = 0;
+    int worst = 0;
+    for (int y = top; y < bottom; ++y) {
+        for (int x = left; x < right; ++x) {
+            const std::size_t at = (static_cast<std::size_t>(y) * ia.width + x) * 3;
+            int d = 0;
+            for (int c = 0; c < 3; ++c) d = (std::max)(d, std::abs(ia.bgr[at + c] - ib.bgr[at + c]));
+            worst = (std::max)(worst, d);
+            if (d > tolerance) ++found;
+        }
+    }
+    *differing = static_cast<double>(found) / (static_cast<double>(right - left) * (bottom - top));
+    *largest = worst;
+    return true;
+}
+
 bool OutsideNeighbours(const char* plain, const char* smooth, int tolerance, int left, int top, int right, int bottom,
                        double* outside, long long* count, const char** why) {
     Image ia, ib;

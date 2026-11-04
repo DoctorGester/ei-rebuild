@@ -31,6 +31,7 @@ struct Pending {
     float fogScale = 0.0f;
     const void* caster = nullptr;   // render::BeginCaster's object
     bool figure = false;            // ... a unit's
+    const void* interfaceUnit = nullptr;   // render::BeginInterfaceUnit's unit, if any
     bool boxed = false;             // its positions' box in model space taken (a caster's: MeshPass)
     float box[6] = {};
     CachedMesh* cached = nullptr;   // kept on the GPU, else built into the frame's stream
@@ -40,6 +41,7 @@ Pending g_pending;
 int g_dropped = 0;
 bool g_groundDecals = true;   // SetGroundDecals
 bool g_weatherParticles = true;   // SetWeatherParticles
+bool g_interfaceUnitWeather = true;   // SetInterfaceUnitWeather
 
 // A draw the renderer does not take is lost (there is no other way to draw): each reason logged the first time.
 enum Refusal { NoTargetSize, BadCorner, OtherFvf, VertexLimit, RefusalCount };
@@ -403,6 +405,10 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
             fs.weather[1] = batch.weather[1];
         }
         fs.weather[2] = batch.figure ? 1.0f : 0.0f;
+    } else if (batch.interfaceUnit) {   // an interface figure of a world unit: its weather, no map's space
+        fs.weather[0] = batch.weather[0];
+        fs.weather[1] = batch.weather[1];
+        fs.weather[2] = 2.0f;
     }
     fs.fogColour[0] = ((s.fogColour >> 16) & 0xFF) / 255.0f;
     fs.fogColour[1] = ((s.fogColour >> 8) & 0xFF) / 255.0f;
@@ -477,6 +483,7 @@ void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {
     // A caster's box (its point shadows), and a unit's: taken in MeshPass (a kept mesh keeps it).
     g_pending.boxed = g_pending.caster && mesh.positions && mesh.positionCount > 0;
     g_pending.figure = CurrentCasterFigure() && g_pending.boxed;
+    g_pending.interfaceUnit = g_interfaceUnitWeather ? CurrentInterfaceUnit() : nullptr;
     // A figure part lit on the GPU, unless the draw set its colours to the device's. Only its
     // normals are read (the other mesh draws' callers may pass anything there).
     if (const MeshLighting* lighting = MeshSourceLighting(); lighting && !mesh.coloursWritten) {
@@ -484,8 +491,8 @@ void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {
         MeshLightUniforms(*lighting, &params);
         f.meshLights.push_back(params);
         g_pending.lighting = static_cast<int>(f.meshLights.size()) - 1;
-    } else {
-        g_pending.mesh.normals = nullptr;
+    } else if (!g_pending.interfaceUnit) {
+        g_pending.mesh.normals = nullptr;   // an interface figure with weather keeps them (its snow settles by them)
         g_pending.mesh.words = nullptr;
     }
     // The distance fog's range: the pipeline's (its start and 255 / length).
@@ -548,6 +555,7 @@ void MeshPass(const TextureDevice* device) {
         batch.decal = batch.flat && g_pending.mesh.groundDecal;
         batch.caster = g_pending.caster;
         batch.figure = g_pending.figure;
+        batch.interfaceUnit = g_pending.interfaceUnit;
         batch.boxed = g_pending.boxed;
         std::memcpy(batch.box, g_pending.box, sizeof(batch.box));
         batch.cached = g_pending.cached;
@@ -579,6 +587,8 @@ void SetWeatherParticles(bool on) {
 }
 
 bool WeatherParticlesDrawn() { return g_weatherParticles; }
+
+void SetInterfaceUnitWeather(bool on) { g_interfaceUnitWeather = on; }
 
 void TlDraw(const TextureDevice* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
             Primitive primitive) {

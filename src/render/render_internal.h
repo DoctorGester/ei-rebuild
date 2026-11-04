@@ -165,6 +165,7 @@ struct MeshBatch {
     int lighting = -1;        // index into Frame::meshLights: lit on the GPU, else the vertex colours
     bool occluded = false;    // a world mesh lit on the GPU: it takes the ambient occlusion (DrawOcclusion)
     float weather[2] = {};    // a unit's own wetness and snow (PrepareUnitWeather)
+    const void* interfaceUnit = nullptr;   // an interface figure of that world unit (BeginInterfaceUnit): its weather
 };
 
 // The image is read at the blit.
@@ -642,6 +643,8 @@ void GroundDecalLight(const Frame& frame, const float box[6], MeshLightParams* p
 // The object whose meshes are being handed over. ShadowFrameDone: the frame is presented.
 const void* CurrentCaster();
 bool CurrentCasterFigure();
+// The world unit an interface figure being handed over shows (render::BeginInterfaceUnit), or null.
+const void* CurrentInterfaceUnit();
 void NoteCasterPart(const void* part);
 void ShadowFrameDone();
 

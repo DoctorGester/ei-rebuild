@@ -3,8 +3,8 @@
 // the GPU (render::MeshLighting) takes its diffuse colour from `figure_light` instead of the vertex colour (whose
 // alpha it keeps), its ambient light darkened by the screen's ambient occlusion in the world (ambient_occlusion.hlsli).
 // The world's meshes take the weather on their faces (weathered_mesh), a unit's figure on its smoothed normals
-// (weathered_unit). A ground print is lit as the ground under it: by the time of day, the lights and the shadows
-// (ground_shade).
+// (weathered_unit), an interface figure of a unit on its model-space normals (weathered_figure). A ground print is lit
+// as the ground under it: by the time of day, the lights and the shadows (ground_shade).
 #include "bindings.hlsli"
 #include "depth_copy.hlsli"
 struct VsIn {
@@ -245,6 +245,23 @@ float value_noise(float3 p) {
     float b = lerp(lerp(hash3(c + float3(0, 0, 1)), hash3(c + float3(1, 0, 1)), f.x), lerp(hash3(c + float3(0, 1, 1)), hash3(c + 1.0), f.x), f.y);
     return lerp(a, b, f.z);
 }
+// A unit's snow and wetness on the pixel of colour `rgb` lit by `light`, the normal's up component `up0` (the noise
+// fixed to the part, `model`, breaks it): snow dusted where it turns up, then wet parts darker. `wet` gets the share left
+// wet, for the sheen.
+float3 unit_snow_and_wet(float3 rgb, float3 light, float up0, float3 model, out float wet) {
+    float cover = fs.weather.y;
+    float grain = value_noise(model * 7.0) * 0.6 + value_noise(model * 19.0) * 0.4;
+    float up = up0 + (grain - 0.5) * 0.35;
+    // A dusting: a soft edge, and at most 0.45 .. 0.8 of the part (by the noise), so its texture shows through.
+    float snow = smoothstep(lerp(0.95, 0.4, cover), lerp(1.25, 0.9, cover), up) * saturate(cover * 2.0) *
+                 (0.45 + 0.35 * grain);
+    // The snow shaded by the texture under it (its light against the pixel's light) and the noise, so a dusted back
+    // keeps its shape.
+    float albedo = saturate(dot(rgb, 1.0 / 3.0) / max(dot(light, 1.0 / 3.0), 0.05));
+    rgb = lerp(rgb, kSnow * saturate(light) * (0.7 + 0.3 * albedo + 0.08 * grain), snow);
+    wet = fs.weather.x * (1.0 - snow);
+    return rgb * lerp(1.0, 0.6, wet);
+}
 // The weather on a unit's figure part lit on the GPU, per pixel from its interpolated vertex normal (`mapNormal`, in the
 // map's clip space, taken to the landscape's; a low-poly figure's faces are too few and large for a face normal):
 // snow settles where it turns up (the head, the shoulders, the tops of armour and backs), broken by a noise fixed to
@@ -256,18 +273,8 @@ float3 weathered_unit(float3 rgb, float3 light, float3 s, float3 mapNormal, floa
     if (len <= 1e-20) return rgb;
     n /= len;
     float3 v = normalize(map_to_landscape((shadow.camera.xyz - s) * shadow.scale.xyz));
-    float cover = fs.weather.y;
-    float grain = value_noise(model * 7.0) * 0.6 + value_noise(model * 19.0) * 0.4;
-    float up = n.z + (grain - 0.5) * 0.35;
-    // A dusting: a soft edge, and at most 0.45 .. 0.8 of the part (by the noise), so its texture shows through.
-    float snow = smoothstep(lerp(0.95, 0.4, cover), lerp(1.25, 0.9, cover), up) * saturate(cover * 2.0) *
-                 (0.45 + 0.35 * grain);
-    // The snow shaded by the texture under it (its light against the pixel's light) and the noise, so a dusted back
-    // keeps its shape.
-    float albedo = saturate(dot(rgb, 1.0 / 3.0) / max(dot(light, 1.0 / 3.0), 0.05));
-    rgb = lerp(rgb, kSnow * saturate(light) * (0.7 + 0.3 * albedo + 0.08 * grain), snow);
-    float wet = fs.weather.x * (1.0 - snow);
-    rgb *= lerp(1.0, 0.6, wet);
+    float wet;
+    rgb = unit_snow_and_wet(rgb, light, n.z, model, wet);
     float3 r = reflect(-v, n);
     float fresnel = 0.04 + 0.96 * pow(1.0 - saturate(dot(n, v)), 5.0);
     float sky = pow(saturate(r.z), 3.0) * (0.3 + fresnel);
@@ -276,6 +283,18 @@ float3 weathered_unit(float3 rgb, float3 light, float3 s, float3 mapNormal, floa
     float3 sheen = saturate(lighting.ambient.rgb + 0.1) * sky * 0.35 +
                    fs.weatherSunColour.rgb * sunUp * pow(saturate(dot(n, h)), 30.0) * 0.4;
     rgb += sheen * wet;
+    return saturate(rgb);
+}
+// The same for an interface figure of a world unit (the HUD unit panel's; MeshFsParams::weather z 2): it has no map's
+// space, no sun and no ambient light, so by its model-space normal (a unit's model stands up along z, as in the world)
+// with a fixed sheen on the faces turned up.
+float3 weathered_figure(float3 rgb, float3 light, float3 normal, float3 model) {
+    float len = length(normal);
+    if (len <= 1e-20) return rgb;
+    float3 n = normal / len;
+    float wet;
+    rgb = unit_snow_and_wet(rgb, light, n.z, model, wet);
+    rgb += pow(saturate(n.z), 3.0) * 0.08 * wet;
     return saturate(rgb);
 }
 // HLSL's round takes halves to the even neighbour, as the GLSL's roundEven.
@@ -343,7 +362,9 @@ float4 Shade(VsOut i) {
     if (fs.switches.x != 0) rgb = saturate(rgb + i.spec.rgb);
     if (shadow.on.z > 0.5) return float4((1.0 - hidden).xxx, current.a);   // the harness's shadowview
     if (fs.weather.x > 0.0 || fs.weather.y > 0.0) {
-        if (fs.weather.z > 0.5 && lighting.on.x > 0.5)
+        if (fs.weather.z > 1.5)
+            rgb = weathered_figure(rgb, diffuse.rgb, i.normal, i.model);
+        else if (fs.weather.z > 0.5 && lighting.on.x > 0.5)
             rgb = weathered_unit(rgb, diffuse.rgb, i.shadow.xyz, i.mapNormal, i.model, hidden);
         else
             rgb = weathered_mesh(rgb, diffuse.rgb, i.shadow.xyz, dsx, dsy, unit, hidden);
