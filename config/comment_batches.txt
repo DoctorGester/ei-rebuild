@@ -618,7 +618,6 @@ src/game/party_records.cpp
 src/game/party_records.h
 src/game/party_save.cpp
 src/game/party_script.cpp
-src/game/party_storage.h
 src/game/scene_renderer.cpp
 src/game/sound.h
 src/game/sound_manager.cpp
@@ -1260,7 +1259,6 @@ src/game/party_records.cpp
 src/game/party_records.h
 src/game/party_save.cpp
 src/game/party_script.cpp
-src/game/party_storage.h
 src/game/persistent_globals.cpp
 src/game/pixel_formats.cpp
 src/game/player.cpp

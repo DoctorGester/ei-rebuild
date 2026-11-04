@@ -107,22 +107,12 @@ constexpr int kRecordCount = static_cast<int>(sizeof(kRecords) / sizeof(kRecords
 static_assert(kRecordCount == 69);
 constexpr int kFirstNewId = 300;
 
-// _stricmp in the "C" locale (the names are ASCII).
-int AsciiStricmp(const char* a, const char* b) {
-    for (;; ++a, ++b) {
-        int ca = static_cast<unsigned char>(*a), cb = static_cast<unsigned char>(*b);
-        if (ca >= 'A' && ca <= 'Z') ca += 'a' - 'A';
-        if (cb >= 'A' && cb <= 'Z') cb += 'a' - 'A';
-        if (ca != cb || ca == 0) return ca - cb;
-    }
-}
-
 bool IsAsciiAlpha(char c) { return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'); }
 bool IsAsciiAlnum(char c) { return IsAsciiAlpha(c) || (c >= '0' && c <= '9'); }
 
 bool IsVanillaKept(const char* name) {
     for (const char* kept : {"IsAlive", "IsDead", "ResetTarget"})
-        if (AsciiStricmp(name, kept) == 0) return true;
+        if (Stricmp(name, kept) == 0) return true;
     return false;
 }
 
@@ -142,7 +132,7 @@ const Built& Build() {
             bool function = std::strchr("FGOS", record.signature[0]) != nullptr && record.signature[0] != 0;
             ScriptKeyword* existing = nullptr;
             for (ScriptKeyword& k : b.table)
-                if (AsciiStricmp(k.name, record.name) == 0) {
+                if (Stricmp(k.name, record.name) == 0) {
                     existing = &k;
                     break;
                 }
@@ -180,7 +170,14 @@ int TruncateOrMin(float value) {
 
 float Distance(float x0, float y0, float x1, float y1) { return Length2D(Vector2{x1, y1} - Vector2{x0, y0}); }
 
-int Stricmp(const char* a, const char* b) { return AsciiStricmp(a, b); }
+int Stricmp(const char* a, const char* b) {
+    for (;; ++a, ++b) {
+        int ca = static_cast<unsigned char>(*a), cb = static_cast<unsigned char>(*b);
+        if (ca >= 'A' && ca <= 'Z') ca += 'a' - 'A';
+        if (cb >= 'A' && cb <= 'Z') cb += 'a' - 'A';
+        if (ca != cb || ca == 0) return ca - cb;
+    }
+}
 
 bool IsUnit(EngineObject* object) { return object->GetClassId() == ClassId::Unit; }
 

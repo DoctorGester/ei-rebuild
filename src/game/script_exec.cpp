@@ -49,7 +49,6 @@ bool IsZero(float value) {
 }
 
 const char* const kKillScriptNotAllowed = "KillScript command not allowed here";
-const char* MoviesFolder() { return "Movies\\"; }
 
 PatrolMode* PatrolOf(UnitServer* state) { return state->brain.FindModeOf<PatrolMode>(); }
 
@@ -191,7 +190,7 @@ void GSVarMultiplayer(const SSCCmd* cmd, bool setMax) {
 }
 
 void PlayMovie(const SSCCmd* cmd) {
-    std::string path = g_dataFolder + MoviesFolder();
+    std::string path = g_dataFolder + "Movies\\";
     std::string file = path + cmd->stringArgs[0];
     ::PlayMovie(file, 0, true, true, true, true);
 }

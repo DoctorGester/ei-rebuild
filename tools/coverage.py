@@ -45,7 +45,7 @@ MAGIC = b'EICOV1\0\0'
 # The areas of the report, gameplay first (the ticket's order: units, combat, spells, AI, scripts, network, saves).
 # A src/game file goes to the first area whose pattern matches its name; the other folders are areas of their own.
 GAME_AREAS = [
-    ('saves', r'.*save.*|persistent_globals|party_storage|chunk_.*'),
+    ('saves', r'.*save.*|persistent_globals|chunk_.*'),
     ('AI', r'unit_ai.*|ai_.*'),
     ('units', r'unit.*|map_spec_unit|lever.*|trap_object|magic_trap|lock_key'),
     ('combat', r'combat.*'),

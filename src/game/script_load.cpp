@@ -27,14 +27,9 @@ int ReadInt(ByteStream* stream) {
 // A count; a negative one reads as 0.
 std::size_t ReadCount(ByteStream* stream) { return static_cast<std::size_t>(std::max(ReadInt(stream), 0)); }
 
-// Areas are saved from 0x57 on.
-int StreamVersion(const ByteStream* stream) { return static_cast<int>(stream->version); }
-
 // The world's first script (the only script a savegame holds): block
 // ids resolve in its lists whatever script is loaded.
 const Script* SavedScript() { return g_serverWorld.MainScript(); }
-
-ScriptDecl* FindBlock(int id) { return SavedScript()->FindBlock(id); }
 
 void LoadVariables(ScriptVars* vars, ByteStream* stream) {
     vars->floats.Load(stream);
@@ -72,7 +67,7 @@ void DropUnresolvedPairs(std::vector<ScriptIfThen>* pairs) {
 // (-1 or out of range: none), vars.
 void LoadRuns(std::list<ScriptRun>* list, ByteStream* stream) {
     LoadList(list, stream, [stream](ScriptRun& run) {
-        run.block = FindBlock(ReadInt(stream));
+        run.block = SavedScript()->FindBlock(ReadInt(stream));
         stream->ReadValue(run.index);
         stream->ReadValue(run.ticks);
         stream->ReadValue(run.sleepStart);
@@ -185,8 +180,8 @@ void ScriptSubCall::Load(ByteStream* stream) {
 
 // The ids of the condition and command blocks, resolved in the saved script's block lists (FindBlock).
 void ScriptIfThen::Load(ByteStream* stream) {
-    conditions = FindBlock(ReadInt(stream));
-    commands = FindBlock(ReadInt(stream));
+    conditions = SavedScript()->FindBlock(ReadInt(stream));
+    commands = SavedScript()->FindBlock(ReadInt(stream));
 }
 
 // Negative ids are WorldScript blocks.
@@ -242,7 +237,7 @@ void Script::LoadState(ByteStream* stream) {
     stream->ReadValue(fileCount);
     g_streamedScript = nullptr;
 
-    if (StreamVersion(stream) < kVersionScriptAreas) return;
+    if (stream->Version() < kVersionScriptAreas) return;
     areas.resize(ReadCount(stream));
     for (ScriptArea& area : areas) {
         stream->ReadValue(area.id);

@@ -17,7 +17,7 @@ using Handler = bool (*)(Call* call);
 int TruncateOrMin(float value);
 // sqrt(dx * dx + dy * dy) with dx = x1 - x0 and dy = y1 - y0.
 float Distance(float x0, float y0, float x1, float y1);
-// _stricmp in the "C" locale.
+// Case-insensitive comparison of ASCII text.
 int Stricmp(const char* a, const char* b);
 // The object's class is a unit's.
 bool IsUnit(EngineObject* object);
