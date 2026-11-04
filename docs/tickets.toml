@@ -6382,6 +6382,18 @@ depends = ["H50"]
 note = "H50: dzn_instance_destroy closes libd3d12 (util_dl_close), which unloads libd3d12core while one of its threads still runs; a program that makes and ends an instance before its real one (SDL_GPU's driver probe) crashes about 1 in 3 starts with a SIGSEGV in no module. Our ~/mesa-dzn build drops that close (linux.md, The GPU under WSL). File a Mesa issue (or merge request: keep d3d12_mod open as dxcore already is) so the local change can go; the user's call, nothing here posts by itself."
 
 [[ticket]]
+id = "H52"
+title = "Fresh worktree builds: a compiler cache for the first verify and release build"
+group = "harness"
+note = "From the Waits tab (2026-11-04, last 7 days, 310 workers): a worker's first verify build takes a median 68 s and first release 98 s, 745 of 1752 build minutes; later incremental verify calls take 38 s. Every worktree compiles everything from scratch. Try sccache (or an equivalent) for MSVC: /Z7 instead of /Zi where the cache needs it, the cache dir on E: (build/, never C:), keyed so verify / release / asan stay apart. Measure a fresh worktree's first verify + release with a warm cache against now, check the binaries behave the same (image + Rebirth goldens), and that incremental builds don't get slower. Adopt only if the first builds drop by half or more; say what /Z7 does to PDB size and debugging."
+
+[[ticket]]
+id = "H53"
+title = "net_pair_quest: from 55 s to under 30 s"
+group = "harness"
+note = "From the Waits tab (2026-11-04): net_pair_quest averages 55 s on standalone over 981 runs a week (15 h of game time) and 37 s on Rebirth; it is the longest game in the image suite, so it sets the suite's floor (suite batches run 35-90 s). Its script has fixed waits (wait 4000, wait 800 between clicks, peerwait 90, frames 60). Replace fixed waits with conditions (waitwindow / waitunit / peer signals) and cut what it does not need, keeping what it checks and its goldens (re-record only if a digest must move, with the reason). Same pass over the other net_pair_* scenarios over 30 s (net_pair_leave, net_pair_kick). Check: 5 runs each before and after, times and goldens."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"
