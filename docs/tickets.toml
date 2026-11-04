@@ -7357,7 +7357,15 @@ id = "R49a"
 title = "A creature party member made by AddUnitToParty draws untextured in the next zone (original bug?)"
 group = "renderer"
 files = ["src/game/party.cpp", "src/game/world_units.cpp"]
-note = "Found in R49: a party record made by Party::AddMember (AddUnitToParty, AddUnitToServer) has texts 3 and 4 (primary / secondary texture) empty, as the original's (0065F5F0, 006621F0); CreateUnits sends them as the unit's textures, so a non-hero unit created from such a record draws untextured (white lit). The campaign does this once: zone4hadagans' AddUnitToParty(0, \"DrPlen\", \"DragonkinGreenF3\") after AddUnitUnderControl; when the party next enters a zone (zone8 scripts name DrPlen) the dragon would be created from the record, untextured, in the original too. Check by a save after the lizard cage (or a scenario: AddUnitToParty of a placed creature, then zone change) whether it shows; a fix would keep the joining unit's texture names in its record (behaviour change: the save's texts 3 and 4), a user decision. docs/notes/world.md, \"A record's texture names\"."
+note = "User 2026-11-04: confirmed in the original (0065F5F0 leaves texts[3]/[4] empty, 006621F0 never fills them); user says fix it. Trigger: zone4.mob adds Zone4Hadagans.mob while Q29 runs; its LizardCage lever adds DrPlen. Fix: copy the joining map unit's skin texture names into the record; scenario that adds a placed unit, changes zone and checks the colour."
+
+[[ticket]]
+id = "R17c1"
+title = "Wetness resets on a zone change; render_water_looks aimed for Rebirth's zone1"
+group = "renderer"
+model = "opus"
+depends = ["R17c"]
+note = "From R17c/R17a2's hand-back: surface wetness from rain carries over a zone change (reset it when a zone loads). render_water_looks' minimap-based lookat misses on Rebirth's zone1 (its map differs), so the swamp views land past the map edge in fog and Rebirth's swamps are not visually checked: give Rebirth its own coordinates. Also check where a swamp meets the sea, the ground's swamp-depth attribute blends with -1 under the water (hidden by opaque water; confirm). Captures before/after for the captures page."
 
 [[ticket]]
 id = "C30e16"
