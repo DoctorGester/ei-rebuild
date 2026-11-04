@@ -133,13 +133,13 @@ void ExchangeScreen::CreateScreen() {
     region->SetRect(740, 460, 780, 490);
     region->SetTip(0xA02B);
     // The buttons: accept, take back, a hidden one, leave (shaded).
-    AddBlankSprite()->SetRectangle(3.0f, 100.0f, 12.0f, 450.0f, 52.0f, 490.0f, 0xA5, 0xAC, 0xCD, 0xD4);
-    AddBlankSprite()->SetRectangle(3.0f, 100.0f, 148.0f, 450.0f, 188.0f, 490.0f, 0xA5, 0xD6, 0xCD, 0xFE);
+    AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 12.0f, 450.0f, 52.0f, 490.0f, 0xA5, 0xAC, 0xCD, 0xD4);
+    AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 148.0f, 450.0f, 188.0f, 490.0f, 0xA5, 0xD6, 0xCD, 0xFE);
     UiMesh* sprite = AddBlankSprite();
-    sprite->SetRectangle(3.0f, 100.0f, 12.0f, 150.0f, 52.0f, 190.0f, 0xA5, 0xAC, 0xCD, 0xD4);
+    sprite->SetRectangle(kDialogDepth, kSpriteScale, 12.0f, 150.0f, 52.0f, 190.0f, 0xA5, 0xAC, 0xCD, 0xD4);
     sprite->visible = false;
     sprite = AddBlankSprite();
-    sprite->SetRectangle(3.0f, 100.0f, 740.0f, 460.0f, 780.0f, 490.0f, 0x7D, 0xE0, 0xA5, 0xFE);
+    sprite->SetRectangle(kDialogDepth, kSpriteScale, 740.0f, 460.0f, 780.0f, 490.0f, 0x7D, 0xE0, 0xA5, 0xFE);
     sprite->tint[0] = 0.5f;
     sprite->tint[1] = 0.5f;
     sprite->tint[2] = 0.5f;

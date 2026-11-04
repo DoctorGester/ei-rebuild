@@ -73,7 +73,7 @@ void SetPlain(UiMesh* sprite, std::uint32_t colour) {
 }
 
 void SetRectangle(UiMesh* sprite, const Rect& rect, int u0, int v0, int u1, int v1) {
-    sprite->SetRectangle(3.0f, 100.0f, rect, u0, v0, u1, v1);
+    sprite->SetRectangle(kDialogDepth, kSpriteScale, rect, u0, v0, u1, v1);
 }
 
 // Rebirth's WideScreen (addon's handler, a context hook over the first AddSprite of a
@@ -232,7 +232,7 @@ void HelpWindow::ShowPage() {
                                   cellY);
                     }
                     UiMesh* picture = AddBlankSprite();
-                    picture->SetRectangle(3.0f, 100.0f, 0.0f, 0.0f, 64.0f, 64.0f, 0, 0, kPictureSize, kPictureSize);
+                    picture->SetRectangle(kDialogDepth, kSpriteScale, 0.0f, 0.0f, 64.0f, 64.0f, 0, 0, kPictureSize, kPictureSize);
                     picture->textureOffsetU = cellX * kTexel;
                     picture->textureOffsetV = (cellY + kPictureSize) * kTexel;
                     picture->Place(static_cast<float>(pageArea.left + 47 + shift),

@@ -117,7 +117,7 @@ void GlobalMap::MouseMove(Point point) {
     }
     const int lines = static_cast<int>(tipQuests.size());
     UiMesh* back = sceneObjects[MarkerCount() + kTipBack];
-    back->SetRectangle(3.0f, 100.0f, 400.0f, 20.0f, 780.0f, static_cast<float>(lines * kTipLine + 75), 0, 0, 0x100, 0x100);
+    back->SetRectangle(kDialogDepth, kSpriteScale, 400.0f, 20.0f, 780.0f, static_cast<float>(lines * kTipLine + 75), 0, 0, kUiTextureSize, kUiTextureSize);
     back->visible = true;
     UiMesh* frame = sceneObjects[MarkerCount() + kTipFrame];
     frame->SetFrame(3.0f, 100.0f, 395.0f, 15.0f, 785.0f, static_cast<float>((lines * 5 + 20) * 4), 5.0f, 2, 0xFE, 0xB4,
@@ -146,7 +146,7 @@ void GlobalMap::PaintTitle(UiSurface& surface) const {
 void GlobalMap::KeyDown(int key, int scan, bool repeat) {
     UiContainer::KeyDown(key, scan, repeat);
     if (key == platform::kKeyEscape) {
-        ui->PushWindow(new EscMenu(ui), true, true);
+        ui->PushWindow(new EscMenu(ui), WindowBackdrop::FirstWindow);
         handled = true;
     }
     if (handled) return;

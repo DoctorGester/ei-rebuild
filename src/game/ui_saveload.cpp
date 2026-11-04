@@ -118,7 +118,7 @@ constexpr const char* kEveryFile = "\\*.*";
 // original does).
 void Ask(Interface3D* ui, const char* name, const char* text, MessageQuestion question) {
     auto* box = new MessageWindow(ui, name, text, question, MessageButtons::OkCancel);
-    ui->PushWindow(box, true, true);
+    ui->PushWindow(box, WindowBackdrop::FirstWindow);
 }
 
 } // namespace
@@ -179,7 +179,7 @@ void SaveLoadWindow::SaveGame() {
         int needed = CurrentSaveSize();
         if (static_cast<double>(needed) > space) {
             auto* box = new MessageWindow(ui, game::savewords::NoSpace(), game::savewords::NoSpaceText(), MessageQuestion::Third, MessageButtons::Ok);
-            ui->PushWindow(box, true, true);
+            ui->PushWindow(box, WindowBackdrop::FirstWindow);
             return;
         }
     }
@@ -187,7 +187,7 @@ void SaveLoadWindow::SaveGame() {
     std::string notice = g_clientWorld.texts->GetString(game::savewords::NotifySaving());
     g_interface.ShowStatusText(notice);
     g_gameFlow.SaveGameThunk(entry->folder);
-    g_cursor.SetShape(3);
+    g_cursor.SetShape(CursorShape::Wait);
 
     // info.sav: the new save's entry (the first) with the title being given.
     netlink::FileStream info;
@@ -223,7 +223,7 @@ void SaveLoadWindow::SaveGame() {
         shot.Write(newPicture.data(), static_cast<unsigned>(newPicture.size()));
         shot.Close();
     }
-    g_cursor.SetShape(0);
+    g_cursor.SetShape(CursorShape::Default);
     ui->SetPendingValue(kClosed);
 }
 
@@ -311,7 +311,7 @@ void QuickSave(const char* slot, bool stepFrame) {
     // A null surface (no memory) is used all the same, as in the original.
     UiSurface* surface = new UiSurface(&g_interface, 0, 0, kScreenWidth, kScreenHeight, SurfaceBlend::Opaque, true);
     surface->CaptureScreen();
-    g_cursor.SetShape(3);
+    g_cursor.SetShape(CursorShape::Wait);
     g_interface.serverFlag = static_cast<std::uint8_t>(g_serverWorld.paused);
     std::string notice = g_clientWorld.texts->GetString(game::savewords::NotifySaving());
     g_interface.ShowStatusText(notice);
@@ -345,7 +345,7 @@ void QuickSave(const char* slot, bool stepFrame) {
     if (surface != nullptr) {
         delete surface;
     }
-    g_cursor.SetShape(0);
+    g_cursor.SetShape(CursorShape::Default);
 }
 
 void QuickLoad(const char* slot) {

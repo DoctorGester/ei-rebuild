@@ -190,7 +190,7 @@ void BattleScreen::KeyDown(int key, int scan, bool repeat) {
             SetPendingAction(kPendingNone, -1, -1);
             return;
         }
-        ui->PushWindow(new EscMenu(ui), true, true);
+        ui->PushWindow(new EscMenu(ui), WindowBackdrop::FirstWindow);
         handled = true;
         return;
     }
@@ -359,8 +359,6 @@ void BattleScreen::KeyDown(int key, int scan, bool repeat) {
 // docs/notes/ui.md ("Battle screen").
 
 namespace {
-constexpr int kCursorArrow = 0;
-constexpr int kCursorPickPlayer = 0xD;   // a portrait click picks a player
 constexpr const char* kUnitTextPrefix = "unit ";
 
 int Distance(int a, int b) { return a < b ? b - a : a - b; }
@@ -370,11 +368,11 @@ int Distance(int a, int b) { return a < b ? b - a : a - b; }
 
 void BattleScreen::MouseMove(Point point) {
     if (portraitMode != 0) {
-        g_cursor.SetShape(kCursorPickPlayer);
+        g_cursor.SetShape(CursorShape::Cancel);
         if (portraits) portraits->Input()->MouseMove(point);
         return;
     }
-    g_cursor.SetShape(kCursorArrow);
+    g_cursor.SetShape(CursorShape::Default);
     if (viewPressed && options::g_options.cameraFrameSelectionArea > 0 && !IsMultiplayerClient()) {
         int threshold = options::g_options.cameraFrameSelectionArea;
         if (Distance(point.x, press.x) > threshold || Distance(point.y, press.y) > threshold) boxSelecting = true;
@@ -435,15 +433,6 @@ std::string BattleScreen::UnitName(Unit* unit) {
 
 namespace {
 
-// Cursor shapes ('s index).
-constexpr int kCursorAttack = 1;
-constexpr int kCursorCast = 2;
-constexpr int kCursorUse = 4;
-constexpr int kCursorNo = 0xD;
-constexpr int kCursorExit = 0xF;
-constexpr int kCursorFlagBase = 0x10;   // + the first set flag of +0x18D..+0x192
-constexpr int kCursorCantCast = 0x17;
-constexpr int kCursorOrder = 0x18;
 
 // fcomp with 0.0 and: true for zero (either sign).
 bool IsZero(float value) {
@@ -493,22 +482,22 @@ void BattleScreen::HoverUnit(Unit* unit, Point mouse) {
     }
     if (selected == 0) return;
 
-    int shape = 0;
+    CursorShape shape = CursorShape::Default;
     if (ui->altDown) {
         Vector3 at = pick();
         int exit;
         if (!g_clientWorld.FindExitAt(at, &exit)) return;
-        g_cursor.SetShape(kCursorExit);
+        g_cursor.SetShape(CursorShape::Move);
         return;
     }
     for (int i = 0; i < 6; ++i) {
         if (orderKeys[i]) {
-            g_cursor.SetShape(kCursorFlagBase + i);
+            g_cursor.SetShape(static_cast<CursorShape>(static_cast<int>(CursorShape::AttackHead) + i));
             return;
         }
     }
     if (ui->ctrlDown) {
-        g_cursor.SetShape(kCursorAttack);
+        g_cursor.SetShape(CursorShape::Attack);
         return;
     }
 
@@ -516,19 +505,19 @@ void BattleScreen::HoverUnit(Unit* unit, Point mouse) {
     case kPendingNone:
         if (unit) {
             if (unitDead(unit)) {
-                shape = kCursorUse;
+                shape = CursorShape::Use;
                 break;
             }
             if (party.empty() || !party[0]) return;
             if (!party[0]->IsHostileTo(unit)) return;
-            shape = kCursorAttack;
+            shape = CursorShape::Attack;
             break;
         }
         {
             MapObject* object = objectAt();
             if (object && object->IsUsable() != 0 && object->IsDirectUseBlocked() == 0 &&
                 selected == 1) {
-                shape = kCursorUse;
+                shape = CursorShape::Use;
                 break;
             }
             // Over a zone exit: the exit cursor unless the zone's "z.<name>" variable is 1 ("none"
@@ -543,69 +532,69 @@ void BattleScreen::HoverUnit(Unit* unit, Point mouse) {
                 float value = LocalPlayerVariable(name);
                 const float one = 1.0f;
                 // equal skips.
-                if (value != one) g_cursor.SetShape(kCursorExit);
+                if (value != one) g_cursor.SetShape(CursorShape::Move);
             }
             return;
         }
     case kPendingSpellOnUnit: {
         if (!unit || unitDead(unit)) {
-            shape = kCursorCantCast;
+            shape = CursorShape::SpellCancel;
             break;
         }
         if (!first || !first->CanCastSpell(pendingSlot)) {
-            shape = kCursorCantCast;
+            shape = CursorShape::SpellCancel;
             break;
         }
-        shape = kCursorCast;
+        shape = CursorShape::Spell;
         break;
     }
     case kPendingSpellAtPoint:
     case kPendingQuickAtPoint: {
         Vector3 at = (unit && !unitDead(unit)) ? unitPosition(unit) : pick();
         if ((IsZero(at.x) && IsZero(at.y)) || !first) {
-            shape = kCursorCantCast;
+            shape = CursorShape::SpellCancel;
             break;
         }
         const bool able = pendingAction == kPendingSpellAtPoint ? first->CanCastSpell(pendingSlot)
                                                                  : first->CanUseQuickItem(pendingSlot);
-        shape = able ? kCursorCast : kCursorCantCast;
+        shape = able ? CursorShape::Spell : CursorShape::SpellCancel;
         break;
     }
     case kPendingQuickOnUnit: {   // a potion only on the user itself
-        shape = kCursorCantCast;
+        shape = CursorShape::SpellCancel;
         if (!unit || unitDead(unit)) break;
         if (!first || !first->CanUseQuickItem(pendingSlot)) break;
         Item* item = first->GetQuickItem(pendingSlot);
         if (item && item->GetCategory() == QuickItemCategory::Potion && unit != first) break;
-        shape = kCursorCast;
+        shape = CursorShape::Spell;
         break;
     }
     case kPendingItemOnObject: {
         MapObject* target = unit ? unit : objectAt();
-        shape = (target && first && target->IsUsable() != 0) ? kCursorUse : kCursorNo;
+        shape = (target && first && target->IsUsable() != 0) ? CursorShape::Use : CursorShape::Cancel;
         break;
     }
     case kPendingKeyOnObject: {
         MapObject* target = unit ? unit : objectAt();
         shape = (target && first && target->IsUsable() != 0 && target->AcceptsKey(&itemUseKey) != 0)
-                    ? kCursorUse
-                    : kCursorNo;
+                    ? CursorShape::Use
+                    : CursorShape::Cancel;
         break;
     }
     case kPendingFollow:
-        shape = (first && unit && !unitDead(unit)) ? kCursorExit : kCursorNo;
+        shape = (first && unit && !unitDead(unit)) ? CursorShape::Move : CursorShape::Cancel;
         break;
     case kPendingOrder: {
         if (unit) {
-            shape = kCursorNo;
+            shape = CursorShape::Cancel;
             if (!first) break;
             bool member = false;
             for (int i = 0; i < count; ++i) member |= unit == party[i];
-            if (!member) shape = kCursorOrder;
+            if (!member) shape = CursorShape::Steal;
             break;
         }
         MapObject* target = objectAt();
-        shape = (target && first && target->IsUsable() != 0) ? kCursorUse : kCursorNo;
+        shape = (target && first && target->IsUsable() != 0) ? CursorShape::Use : CursorShape::Cancel;
         break;
     }
     default:

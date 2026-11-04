@@ -231,7 +231,7 @@ void OptionsWindow::KeyDown(int key, int scan, bool repeat) {
             message = str::Format(format, pressed->name, other->name);
             // The box's text (a null box is written through, like the original).
             box->text = message.c_str();
-            ui->PushWindow(box, true, true);
+            ui->PushWindow(box, WindowBackdrop::FirstWindow);
             return;
         }
         CommitBinding();

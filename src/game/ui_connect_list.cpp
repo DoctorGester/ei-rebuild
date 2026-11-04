@@ -100,9 +100,9 @@ void MpConnectScreen::DrawListVanilla() {
     sprite(kSpriteSelection)->visible = false;
     UiMesh* arrow = sprite(kSpriteSortArrow);
     if (sortKey % 2 == 0)
-        arrow->SetRectangle(4.0f, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
+        arrow->SetRectangle(4.0f, kSpriteScale, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
     else
-        arrow->SetRectangle(4.0f, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0xB0, 0x50, 0x80);
+        arrow->SetRectangle(4.0f, kSpriteScale, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0xB0, 0x50, 0x80);
     if (sortKey != 0) {
         arrow->visible = true;
         arrow->Place(SortArrowX((sortKey - 1) / 2), 116.0f, 4.0f);

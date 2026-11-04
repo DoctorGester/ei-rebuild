@@ -32,21 +32,20 @@ bool Differs(float a, float b) {
     return a != b;
 }
 
-constexpr int kDragCursor = 0x16;
 enum Edge : unsigned { kLeft = 1, kRight = 0x10, kTop = 0x100, kBottom = 0x1000 };
 
 // The arrow cursor of the screen edges the mouse is at.
-int EdgeCursor(unsigned edges) {
+CursorShape EdgeCursor(unsigned edges) {
     switch (edges) {
-    case kLeft: return 11;
-    case kRight: return 7;
-    case kTop: return 5;
-    case kLeft | kTop: return 12;
-    case kRight | kTop: return 6;
-    case kBottom: return 9;
-    case kLeft | kBottom: return 10;
-    case kRight | kBottom: return 8;
-    default: return 0;
+    case kLeft: return CursorShape::ScrollLeft;
+    case kRight: return CursorShape::ScrollRight;
+    case kTop: return CursorShape::ScrollUp;
+    case kLeft | kTop: return CursorShape::ScrollUpLeft;
+    case kRight | kTop: return CursorShape::ScrollUpRight;
+    case kBottom: return CursorShape::ScrollDown;
+    case kLeft | kBottom: return CursorShape::ScrollDownLeft;
+    case kRight | kBottom: return CursorShape::ScrollDownRight;
+    default: return CursorShape::Default;
     }
 }
 
@@ -146,7 +145,7 @@ void CameraInput::MouseMove(Point at) {
             camera->Pan(direction);
         }
         camera_trace::Drag(taken, dragX, dragY);
-        g_cursor.SetShape(kDragCursor);
+        g_cursor.SetShape(CursorShape::Camera);
         handled = true;
         pressLayout = point;
         return;

@@ -303,14 +303,14 @@ void MpHeroScreen::LeftDown(Point point) {
         currentUi->PlayInterfaceSound(game::SelectSoundText());
         if (!IsHero(heroIndex)) return;
         auto* box = new MessageWindow(currentUi, "lmp_deletepers", "lmp_deletepers_msg", MessageQuestion::First, MessageButtons::OkCancel);
-        currentUi->PushWindow(box, true, true);
+        currentUi->PushWindow(box, WindowBackdrop::FirstWindow);
         return;
     }
     case 8: {
         // The hero's inventory: the camp screen.
         currentUi->PlayInterfaceSound(game::SelectSoundText());
         if (!IsHero(heroIndex)) return;
-        ui->PushWindow(new CampPages(ui, true), false, true);
+        ui->PushWindow(new CampPages(ui, true), WindowBackdrop::None);
         return;
     }
     default:
@@ -388,11 +388,11 @@ void MpHeroScreen::Continue() {
     currentUi->PlayInterfaceSound(game::OkSoundText());
     if (IsHero(heroIndex)) {
         g_savedParties.SaveAll();
-        currentUi->PushWindow(new MpConnectScreen(currentUi), true, true);
+        currentUi->PushWindow(new MpConnectScreen(currentUi), WindowBackdrop::FirstWindow);
         return;
     }
     auto* box = new MessageWindow(currentUi, "lmp_no_pers", "lmp_no_pers_msg", MessageQuestion::Second, MessageButtons::Ok);
-    currentUi->PushWindow(box, true, true);
+    currentUi->PushWindow(box, WindowBackdrop::FirstWindow);
 }
 
 // --- The new hero's statistics and its creation --------------------------------------

@@ -124,7 +124,7 @@ void CampPages::BuildPages() {
     // The buttons' sprites, in the regions' order without the turn areas.
     auto button = [this](float left, float top, float right, float bottom, int u0, int v0, int u1, int v1) {
         UiMesh* sprite = AddBlankSprite();
-        sprite->SetRectangle(3.0f, 100.0f, left, top, right, bottom, u0, v0, u1, v1);
+        sprite->SetRectangle(kDialogDepth, kSpriteScale, left, top, right, bottom, u0, v0, u1, v1);
         return sprite;
     };
     button(12.0f, 450.0f, 52.0f, 490.0f, 0xA5, 0xAC, 0xCD, 0xD4);

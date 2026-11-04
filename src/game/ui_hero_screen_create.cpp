@@ -101,7 +101,7 @@ void MpHeroScreen::CreateScreen() {
 
     auto sprite = [this](float depth, float left, float top, float right, float bottom, int u0, int v0, int u1, int v1) {
         UiMesh* added = AddBlankSprite();
-        added->SetRectangle(depth, 100.0f, left, top, right, bottom, u0, v0, u1, v1);
+        added->SetRectangle(depth, kSpriteScale, left, top, right, bottom, u0, v0, u1, v1);
         return added;
     };
     auto plain = [](UiMesh* mesh, std::uint32_t colour) {
@@ -114,7 +114,7 @@ void MpHeroScreen::CreateScreen() {
     sprite(3.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32)->texture = texture(kSaveLoadTexture);
     sprite(3.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32)->texture = texture(kSaveLoadTexture);
     {
-        UiMesh* frame = sprite(3.0f, 110.0f, 250.0f, 370.0f, 274.0f, 0, 0, 0x100, 0x100);
+        UiMesh* frame = sprite(3.0f, 110.0f, 250.0f, 370.0f, 274.0f, 0, 0, kUiTextureSize, kUiTextureSize);
         plain(frame, kSelectionColour);
         frame->visible = false;
     }
@@ -140,8 +140,8 @@ void MpHeroScreen::CreateScreen() {
     frame(95.0f, 95.0f, 395.0f, 225.0f);
     frame(95.0f, 235.0f, 395.0f, 505.0f);
     frame(405.0f, 95.0f, 705.0f, 505.0f);
-    plain(sprite(5.0f, 100.0f, 100.0f, 390.0f, 220.0f, 0, 0, 0x100, 0x100), kBackColour);
-    plain(sprite(5.0f, 100.0f, 240.0f, 390.0f, 500.0f, 0, 0, 0x100, 0x100), kBackColour);
+    plain(sprite(5.0f, 100.0f, 100.0f, 390.0f, 220.0f, 0, 0, kUiTextureSize, kUiTextureSize), kBackColour);
+    plain(sprite(5.0f, 100.0f, 240.0f, 390.0f, 500.0f, 0, 0, kUiTextureSize, kUiTextureSize), kBackColour);
     // 15-18: the four commands' buttons.
     for (int top = 115; top < 211; top += 24) {
         UiMesh* button = sprite(3.0f, 180.0f, static_cast<float>(top), 310.0f, static_cast<float>(top + 19), 0x7A, 0x6C,

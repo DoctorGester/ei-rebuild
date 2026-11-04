@@ -14,6 +14,35 @@
 
 class TextureDevice;
 
+// The cursor's shapes, in the order cursor_setup.cpp makes their images.
+enum class CursorShape : int {
+    Default,
+    Attack,
+    Spell,
+    Wait,
+    Use,
+    ScrollUp,
+    ScrollUpRight,
+    ScrollRight,
+    ScrollDownRight,
+    ScrollDown,
+    ScrollDownLeft,
+    ScrollLeft,
+    ScrollUpLeft,
+    Cancel,
+    Talk,
+    Move,
+    AttackHead,        // the six attack cursors of the order keys: head, body, left and right hand, left and right leg
+    AttackBody,
+    AttackLeftHand,
+    AttackRightHand,
+    AttackLeftLeg,
+    AttackRightLeg,
+    Camera,
+    SpellCancel,
+    Steal,
+};
+
 // The cursor's size in pixels: 32, or 16 for the small cursors (static initialisers set 32).
 inline std::int32_t g_cursorWidth = /*007C7C90*/ 32;
 inline std::int32_t g_cursorHeight = /*007C7C94*/ 32;
@@ -48,8 +77,8 @@ public:
     Cursor& operator=(const Cursor&) = delete;
 
     // Unless no shape is selected yet or the cursor is not enabled (-1): shape `shape` and its image become
-    // current with the image's current frame as `from`; returns the previous shape.
-    int SetShape(int shape);
+    // current with the image's current frame as `from`; returns the previous shape (a CursorShape, -1 for none).
+    int SetShape(CursorShape shape);
     void ShowImage(bool shown);
     // Held from now on (or let go). Taking hold polls the mouse and drops its motion so far (from before the press,
     // which must not turn the camera) and keeps the pointer's position.

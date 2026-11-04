@@ -9,13 +9,13 @@
 namespace {
 // The cursor object and its methods.
 // The device the cursor is drawn on.
-struct CursorShape {
+struct ShapeFiles {
     const char* name;
     const char* smallName;
     int hotX, hotY;
 };
 // In the shape order the game selects them by.
-const CursorShape kShapes[] = {
+const ShapeFiles kShapes[] = {
     {"cursor_default", "sm_cursor_default", 0, 0},
     {"cursor_attack", "sm_cursor_attack", 0, 0},
     {"cursor_spell", "sm_cursor_spell", 0, 0},
@@ -48,7 +48,7 @@ const CursorShape kShapes[] = {
 void SetUpCursors(int smallCursors) {
     const bool useSmall = static_cast<std::uint8_t>(smallCursors) != 0;
     g_cursor.Init(g_sceneRenderer.device, useSmall);
-    for (const CursorShape& shape : kShapes)
+    for (const ShapeFiles& shape : kShapes)
         g_cursor.AddShape(useSmall ? shape.smallName : shape.name, shape.hotX, shape.hotY);
     g_cursor.Start();
 }

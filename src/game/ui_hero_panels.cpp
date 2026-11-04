@@ -49,7 +49,7 @@ void BuildCellGrid(UiWindow* window, const std::vector<UiLabel>* labels) {
                                                 : (left <= 300 ? textures[2] : textures[3]);
             int right = left + 100;
             UiMesh* picture = window->AddBlankSprite();
-            picture->SetRectangle(pictureDepth, 100.0f, static_cast<float>(left), static_cast<float>(top),
+            picture->SetRectangle(pictureDepth, kSpriteScale, static_cast<float>(left), static_cast<float>(top),
                                   static_cast<float>(right), static_cast<float>(bottom), u, v, u + 100, v + 100);
             picture->texture = texture;
             UiMesh* frame = window->AddBlankSprite();
@@ -83,12 +83,12 @@ void AddMakerPictures(ConstructorPage* page) {
     const float quarters[4][4] = {{200, 100, 400, 300}, {400, 100, 600, 300}, {200, 300, 400, 500}, {400, 300, 600, 500}};
     for (int i = 0; i < 4; ++i) {
         UiMesh* picture = page->AddBlankSprite();
-        picture->SetRectangle(7.0f, 100.0f, quarters[i][0], quarters[i][1], quarters[i][2], quarters[i][3], 0x1C, 0x1C,
+        picture->SetRectangle(7.0f, kSpriteScale, quarters[i][0], quarters[i][1], quarters[i][2], quarters[i][3], 0x1C, 0x1C,
                               0xE4, 0xE4);
         picture->texture = page->objects[i];
     }
     UiMesh* frame = page->AddBlankSprite();
-    frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
+    frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, kUiTextureSize, kUiTextureSize);
     frame->flatColour = 0x96FFFFFF;
     frame->flags |= FigureMeshFlag::Flat;
     frame->texture = nullptr;
@@ -303,7 +303,7 @@ void HeroEquipPanel::Build(bool withBody) {
     for (int x = 0; x < 800; x += 100) AddRect(this, Rect{x, 0, x + 100, 100});
     for (int i = 0; i < 2; ++i) {
         UiMesh* frame = AddBlankSprite();
-        frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
+        frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, kUiTextureSize, kUiTextureSize);
         frame->flags |= FigureMeshFlag::Flat;
         frame->flatColour = 0xFF8B8B37;
         frame->texture = nullptr;
@@ -327,7 +327,7 @@ void HeroEquipPanel::Build(bool withBody) {
         const float quarters[4][4] = {{200, 100, 400, 300}, {400, 100, 600, 300}, {200, 300, 400, 500}, {400, 300, 600, 500}};
         for (int i = 0; i < 4; ++i) {
             UiMesh* picture = AddBlankSprite();
-            picture->SetRectangle(7.0f, 100.0f, quarters[i][0], quarters[i][1], quarters[i][2], quarters[i][3], 0x1C,
+            picture->SetRectangle(7.0f, kSpriteScale, quarters[i][0], quarters[i][1], quarters[i][2], quarters[i][3], 0x1C,
                                   0x1C, 0xE4, 0xE4);
             picture->texture = objects[i + 1];
         }
@@ -342,14 +342,14 @@ void HeroStatsPanel::Build() {
     AddRect(this, Rect{0xAA, 0x7D, 200, 0x91});    // next hero
     AddSurface(new UiSurface(ui, 0, 100, 200, 400, SurfaceBlend::Keyed, true))
         ->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
-    AddBlankSprite()->SetRectangle(5.0f, 100.0f, 176.0f, 125.0f, 192.0f, 145.0f, 2, 0x81, 0x12, 0x95);
-    AddBlankSprite()->SetRectangle(5.0f, 100.0f, 8.0f, 125.0f, 24.0f, 145.0f, 0x12, 0x81, 2, 0x95);
-    AddBlankSprite()->SetRectangle(6.0f, 100.0f, 14.0f, 110.0f, 100.0f, 160.0f, 0xE7, 0x4C, 0x91, 0x88);
-    AddBlankSprite()->SetRectangle(6.0f, 100.0f, 100.0f, 110.0f, 186.0f, 160.0f, 0x91, 0x4C, 0xE7, 0x88);
+    AddBlankSprite()->SetRectangle(5.0f, kSpriteScale, 176.0f, 125.0f, 192.0f, 145.0f, 2, 0x81, 0x12, 0x95);
+    AddBlankSprite()->SetRectangle(5.0f, kSpriteScale, 8.0f, 125.0f, 24.0f, 145.0f, 0x12, 0x81, 2, 0x95);
+    AddBlankSprite()->SetRectangle(6.0f, kSpriteScale, 14.0f, 110.0f, 100.0f, 160.0f, 0xE7, 0x4C, 0x91, 0x88);
+    AddBlankSprite()->SetRectangle(6.0f, kSpriteScale, 100.0f, 110.0f, 186.0f, 160.0f, 0x91, 0x4C, 0xE7, 0x88);
     // The new hero page's -/+ buttons (scene objects 4-11, shown only there).
     const float buttons[8][4] = {{140, 165, 160, 180}, {140, 180, 160, 195}, {140, 195, 160, 210}, {140, 240, 160, 255},
                                  {160, 165, 180, 180}, {160, 180, 180, 195}, {160, 195, 180, 210}, {160, 240, 180, 255}};
-    for (const auto& b : buttons) AddBlankSprite()->SetRectangle(5.0f, 100.0f, b[0], b[1], b[2], b[3], 0x90, 0xB1, 0xA4, 0xC0);
+    for (const auto& b : buttons) AddBlankSprite()->SetRectangle(5.0f, kSpriteScale, b[0], b[1], b[2], b[3], 0x90, 0xB1, 0xA4, 0xC0);
     TextManager* clientWorldTexts = g_clientWorld.texts;
     std::string text;
     for (const char* key : {"infounit_3", "infounit_4", "infounit_9", "infounit_14", "infounit_17", "lmp_points_left",
@@ -417,7 +417,7 @@ void HeroQuickStrip::Build(bool top) {
     mode = 0;
     for (int x = 0; x < 800; x += 100) AddRect(this, Rect{x, y, x + 100, y + 100});
     UiMesh* frame = AddBlankSprite();
-    frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
+    frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, kUiTextureSize, kUiTextureSize);
     frame->flatColour = 0xFF8B8B37;
     frame->flags |= FigureMeshFlag::Flat;
     frame->texture = nullptr;

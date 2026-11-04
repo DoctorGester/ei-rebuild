@@ -392,7 +392,7 @@ void BattleScreen::MessageResult(std::uint32_t result) {
         GameLeaveThroughExit(pendingExit);
         break;
     case kGameOverLoad: {
-        ui->PushWindow(new SaveLoadWindow(ui, false, false), true, true);
+        ui->PushWindow(new SaveLoadWindow(ui, false, false), WindowBackdrop::FirstWindow);
         break;
     }
     case kGameOverQuit:
@@ -417,7 +417,7 @@ void BattleScreen::GameOver(bool won) {
     } else {
         box = new MessageWindow(ui, "end_of_game", "end_of_game_msg", MessageQuestion::Exit, MessageButtons::OkCancel);
     }
-    ui->PushWindow(box, true, true);
+    ui->PushWindow(box, WindowBackdrop::FirstWindow);
 }
 
 // --- The every-frame update --------------------------------------------------------------------------
@@ -639,7 +639,7 @@ void BattleScreen::Update() {
             lib::SetAtGrow(records, lib::Count(records), &data->members[i]);
         if (g_clientWorld.PartyInExit(&records, pendingExit, &second)) {
             MessageWindow* box = new MessageWindow(ui, "leave_zone", "leave_zone_msg", MessageQuestion::First, MessageButtons::OkCancel);
-            ui->PushWindow(box, true, true);
+            ui->PushWindow(box, WindowBackdrop::FirstWindow);
             exitPending = false;
         }
     }

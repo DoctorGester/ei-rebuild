@@ -302,7 +302,7 @@ void SetQuarter(MpHeroScreen* screen, int quarter, float left, float top, float 
 
 // The selection frame over a list's first row (the whole texture).
 void SetSelectionFrame(MpHeroScreen* screen, float left, float top, float right, float bottom) {
-    screen->sceneObjects[kSelectionFrame]->SetRectangle(kFrameDepth, kScale, left, top, right, bottom, 0, 0, 0x100, 0x100);
+    screen->sceneObjects[kSelectionFrame]->SetRectangle(kFrameDepth, kScale, left, top, right, bottom, 0, 0, kUiTextureSize, kUiTextureSize);
 }
 
 // The rows of a list as regions: `height` apart from `top` down to kRowsBottom.

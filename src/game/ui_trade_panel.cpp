@@ -56,7 +56,7 @@ std::uint32_t PriceColour(int price, int experience) { return price > experience
 // the row's height lower by 100 (the panel's layout offset).
 void PriceSprite(TradePanel* panel, const Rect& row, float left, float right) {
     UiMesh* sprite = panel->AddBlankSprite();
-    sprite->SetRectangle(6.0f, 100.0f, left, static_cast<float>(row.top + 100), right,
+    sprite->SetRectangle(6.0f, kSpriteScale, left, static_cast<float>(row.top + 100), right,
                          static_cast<float>(row.bottom + 100), 0x7C, 0x8A, 0xA4, 0x99);
 }
 
@@ -225,10 +225,10 @@ void TradePanel::Build() {
     for (int y = 135; y < 480; y += 15) AddRegion()->SetRect(415, y, 585, y + 15);
     for (int y = 330; y < 480; y += 15) AddRegion()->SetRect(215, y, 385, y + 15);
 
-    AddBlankSprite()->SetRectangle(6.0f, 100.0f, 360.0f, 320.0f, 380.0f, 330.0f, 0x82, 3, 0x96, 0xD);
-    AddBlankSprite()->SetRectangle(6.0f, 100.0f, 360.0f, 480.0f, 380.0f, 490.0f, 0x82, 0xD, 0x96, 3);
-    AddBlankSprite()->SetRectangle(6.0f, 100.0f, 560.0f, 125.0f, 580.0f, 135.0f, 0x82, 3, 0x96, 0xD);
-    AddBlankSprite()->SetRectangle(6.0f, 100.0f, 560.0f, 480.0f, 580.0f, 490.0f, 0x82, 0xD, 0x96, 3);
+    AddBlankSprite()->SetRectangle(6.0f, kSpriteScale, 360.0f, 320.0f, 380.0f, 330.0f, 0x82, 3, 0x96, 0xD);
+    AddBlankSprite()->SetRectangle(6.0f, kSpriteScale, 360.0f, 480.0f, 380.0f, 490.0f, 0x82, 0xD, 0x96, 3);
+    AddBlankSprite()->SetRectangle(6.0f, kSpriteScale, 560.0f, 125.0f, 580.0f, 135.0f, 0x82, 3, 0x96, 0xD);
+    AddBlankSprite()->SetRectangle(6.0f, kSpriteScale, 560.0f, 480.0f, 580.0f, 490.0f, 0x82, 0xD, 0x96, 3);
 
     TextManager* clientWorldTexts = g_clientWorld.texts;
     std::string text;

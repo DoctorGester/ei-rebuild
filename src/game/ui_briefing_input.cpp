@@ -50,10 +50,6 @@ constexpr std::uint32_t kHoveredTopicColour = 0xFFFFFF;
 constexpr int kFont = 1;
 
 // Cursor shapes.
-constexpr int kCursorNormal = 0;
-constexpr int kCursorChat = 0xD;
-constexpr int kCursorTalk = 0xE;
-constexpr int kCursorExit = 0xF;
 
 // The person's name label (surface 1) left and up of the mouse.
 constexpr int kLabelOffsetX = 0x7D;
@@ -129,11 +125,11 @@ void BriefingScreen::LeftDown(Point point) {
 
 void BriefingScreen::MouseMove(Point point) {
     if (chatActive) {
-        g_cursor.SetShape(kCursorChat);
+        g_cursor.SetShape(CursorShape::Cancel);
         if (chat) chat->Input()->MouseMove(point);
         return;
     }
-    g_cursor.SetShape(kCursorNormal);
+    g_cursor.SetShape(CursorShape::Default);
     UiContainer::MouseMove(point);
     if (state == 1) {
         int region = RegionAt(point);
@@ -144,9 +140,9 @@ void BriefingScreen::MouseMove(Point point) {
             DrawTopics();
         }
     } else if (state == 3) {
-        g_cursor.SetShape(kCursorTalk);
+        g_cursor.SetShape(CursorShape::Talk);
     } else if (state == 4) {
-        g_cursor.SetShape(kCursorNormal);
+        g_cursor.SetShape(CursorShape::Default);
     }
     if (ui->rightDown || state != 0) return;
 
@@ -156,7 +152,7 @@ void BriefingScreen::MouseMove(Point point) {
         if (IsMultiplayerClient() && leader && leader->id == objectId) return;
         if (!CanTalk(object)) return;
         FindTopics(objectId);
-        if (!topics.empty()) g_cursor.SetShape(kCursorTalk);
+        if (!topics.empty()) g_cursor.SetShape(CursorShape::Talk);
         auto node = personTexts.find(objectId);
         if (node == personTexts.end()) return;
         UiSurface* label = surfaces[1];
@@ -177,7 +173,7 @@ void BriefingScreen::MouseMove(Point point) {
     std::string variable = kZoneVariablePrefix;
     variable += zone;
     float visited = PlayerZeroVariable(variable);
-    if (visited != 1.0f) g_cursor.SetShape(kCursorExit);
+    if (visited != 1.0f) g_cursor.SetShape(CursorShape::Move);
 }
 
 void BriefingScreen::LeftDouble(Point point) {
@@ -267,7 +263,7 @@ void OpenObjectives(Interface3D* ui) {
         if (!IsMultiplayerClient() && text::CompareIgnoringCase(questZone->allod, zone->allod) != 0) continue;
         auto* window = new ObjectivesWindow(ui);
         window->Setup(LocalPlayerZone(), nullptr, false, true);
-        ui->PushWindow(window, true, true);
+        ui->PushWindow(window, WindowBackdrop::FirstWindow);
         break;
     }
 }
@@ -302,7 +298,7 @@ void BriefingScreen::KeyDown(int key, int scan, bool repeat) {
         return;
     case platform::kKeyEscape:
         if (state == 0) {
-            ui->PushWindow(new EscMenu(ui), true, true);
+            ui->PushWindow(new EscMenu(ui), WindowBackdrop::FirstWindow);
         } else if (state == 3) {
             ui->PlayInterfaceSound(kClickSound);
             while (state == 3) NextPhrase(true);

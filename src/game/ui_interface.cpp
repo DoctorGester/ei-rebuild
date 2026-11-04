@@ -212,7 +212,6 @@ bool Interface3D::EdgePanLive() const {
 // and the console window's destructor body. See ui.h and docs/notes/ui.md, section 3.
 
 namespace {
-constexpr int kCursorWait = 3;
 
 // A surface the interface owns: its destructor body, then the memory.
 void DeleteSurface(UiSurface* surface) {
@@ -231,7 +230,7 @@ void Interface3D::ResetInput() {
 }
 
 void Interface3D::Shutdown() {
-    g_cursor.SetShape(kCursorWait);
+    g_cursor.SetShape(CursorShape::Wait);
     while (!stack.empty()) {
         stack.back()->Input()->Deactivate();
         stack.back()->CloseScreen();

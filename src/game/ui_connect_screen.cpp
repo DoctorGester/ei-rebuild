@@ -86,7 +86,7 @@ void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(fr
 
 void OpenBox(Interface3D* ui, std::string_view title, const char* text, MessageQuestion question, MessageButtons buttons) {
     MessageWindow* box = new MessageWindow(ui, title, text, question, buttons);
-    ui->PushWindow(box, true, true);
+    ui->PushWindow(box, WindowBackdrop::FirstWindow);
 }
 
 
@@ -126,7 +126,7 @@ void MpConnectScreen::Update() {
             joining = false;
             std::string key = RefusalKey(client->refusal);
             std::string text = key + kMessageSuffix;
-            ui->PushWindow(new MessageWindow(ui, key, text.c_str(), MpConnectScreen::kBoxNotice, MessageButtons::Ok), true, true);
+            ui->PushWindow(new MessageWindow(ui, key, text.c_str(), MpConnectScreen::kBoxNotice, MessageButtons::Ok), WindowBackdrop::FirstWindow);
             return;
         }
     }
@@ -353,8 +353,8 @@ void MpConnectScreen::MasterRequest() {
         master.Parse(options::g_options.masterServerName.c_str(), kMasterPort);
     net::ClientSession* client = net::g_gameClient;
     std::uint32_t extra = client ? client->queries.extra : 0;
-    ui->PushWindow(new MasterRequestBox(ui, texts[kTextMaster], boxText, kBoxMaster, &master, extra), true,
-                           true);
+    ui->PushWindow(new MasterRequestBox(ui, texts[kTextMaster], boxText, kBoxMaster, &master, extra),
+                   WindowBackdrop::FirstWindow);
 }
 
 void MpConnectScreen::SaveAddressBook() {
@@ -469,7 +469,7 @@ void MpConnectScreen::CreateScreen() {
 
     auto sprite = [this](float depth, float left, float top, float right, float bottom, int u0, int v0, int u1, int v1) {
         UiMesh* added = AddBlankSprite();
-        added->SetRectangle(depth, 100.0f, left, top, right, bottom, u0, v0, u1, v1);
+        added->SetRectangle(depth, kSpriteScale, left, top, right, bottom, u0, v0, u1, v1);
         return added;
     };
     auto plain = [](UiMesh* mesh, std::uint32_t colour) {
@@ -480,12 +480,12 @@ void MpConnectScreen::CreateScreen() {
     sprite(3.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
     sprite(3.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
     // The selection's right edge (Rebirth's ExtendedServerName; the original's 370).
-    plain(sprite(3.0f, 108.0f, 108.0f, kExtendedSelectionRight, 132.0f, 0, 0, 0x100, 0x100),
+    plain(sprite(3.0f, 108.0f, 108.0f, kExtendedSelectionRight, 132.0f, 0, 0, kUiTextureSize, kUiTextureSize),
           kSelectionColour);
     {
         UiMesh* arrow = AddBlankSprite();
         arrow->texture = objects[kScrollbarObject];
-        arrow->SetRectangle(4.0f, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
+        arrow->SetRectangle(4.0f, kSpriteScale, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
         arrow->visible = false;
     }
     sprite(4.0f, 440.0f, 346.0f, 461.0f, 367.0f, 0xD1, 0x37, 0xE6, 0x4C)->textureOffsetU = -kTabSelected;
@@ -510,9 +510,9 @@ void MpConnectScreen::CreateScreen() {
     AddBlankSprite()->SetFrame(2.0f, 100.0f, 95.0f, 95.0f, 395.0f, 505.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
     AddBlankSprite()->SetFrame(2.0f, 100.0f, 405.0f, 95.0f, 705.0f, 415.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
     AddBlankSprite()->SetFrame(2.0f, 100.0f, 405.0f, 425.0f, 705.0f, 505.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
-    plain(sprite(5.0f, 100.0f, 100.0f, 390.0f, 500.0f, 0, 0, 0x100, 0x100), kBackColour);
-    plain(sprite(5.0f, 410.0f, 100.0f, 700.0f, 410.0f, 0, 0, 0x100, 0x100), kBackColour);
-    plain(sprite(5.0f, 410.0f, 430.0f, 700.0f, 500.0f, 0, 0, 0x100, 0x100), kBackColour);
+    plain(sprite(5.0f, 100.0f, 100.0f, 390.0f, 500.0f, 0, 0, kUiTextureSize, kUiTextureSize), kBackColour);
+    plain(sprite(5.0f, 410.0f, 100.0f, 700.0f, 410.0f, 0, 0, kUiTextureSize, kUiTextureSize), kBackColour);
+    plain(sprite(5.0f, 410.0f, 430.0f, 700.0f, 500.0f, 0, 0, kUiTextureSize, kUiTextureSize), kBackColour);
     for (int top = 132; top < 492; top += 24) region(108, top, 370, top + 24, 0);   // the rows
 
     AddSurface(NewSurface(ui, Rect{100, 100, 700, 500}))->PaintWith([this](UiSurface& out) { PaintList(out); });
@@ -610,7 +610,7 @@ MasterRequestBox::MasterRequestBox(Interface3D* ui, std::string_view titleKey, c
 
 void MasterRequestBox::Update() {
     float right = net::g_gameClient->BufferRatio(&link.in) * kBarWidth + kBarLeft;
-    bar->SetRectangle(2.5f, 100.0f, 220.0f, 280.0f, right, 300.0f, 0, 0, 0x100, 0x100);
+    bar->SetRectangle(2.5f, kSpriteScale, 220.0f, 280.0f, right, 300.0f, 0, 0, kUiTextureSize, kUiTextureSize);
     if (net::MasterLinkTick(&link) == net::MasterLink::kDone) net::g_gameClient->ReadServerList(&link.in);
     if (net::MasterLinkTick(&link) == net::MasterLink::kDone || net::MasterLinkTick(&link) == net::MasterLink::kClosed)
         ui->SetPendingValue(BoxResult(MpConnectScreen::kBoxMaster, MessageAnswer::Cancel));

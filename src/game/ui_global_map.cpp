@@ -91,7 +91,7 @@ public:
     }
     UiMesh* Layer(std::uint32_t v0, std::uint32_t u1, std::uint32_t v1, float height) const {
         UiMesh* sprite = map->AddBlankSprite();
-        sprite->SetRectangle(25.0f, 100.0f, 700.0f, 0.0f, 100.0f, 600.0f, 0, static_cast<int>(v0),
+        sprite->SetRectangle(25.0f, kSpriteScale, 700.0f, 0.0f, 100.0f, 600.0f, 0, static_cast<int>(v0),
                              static_cast<int>(u1), static_cast<int>(v1));
         sprite->texture = MapTexture(4);
         Turn(sprite);
@@ -276,7 +276,7 @@ void GlobalMap::CreateScreen() {
     }
     {
         UiMesh* shade = AddBlankSprite();
-        shade->SetRectangle(3.0f, 100.0f, 20.0f, 20.0f, 170.0f, 70.0f, 0, 0, 0x100, 0x100);
+        shade->SetRectangle(kDialogDepth, kSpriteScale, 20.0f, 20.0f, 170.0f, 70.0f, 0, 0, kUiTextureSize, kUiTextureSize);
         shade->texture = nullptr;
         shade->flatColour = 0xA0000000;
         shade->flags |= FigureMeshFlag::Flat;
@@ -298,15 +298,15 @@ void GlobalMap::CreateScreen() {
     // The camp button (hidden with "i.nocamp" = 1) and the two turn buttons.
     {
         UiMesh* camp = AddBlankSprite();
-        camp->SetRectangle(3.0f, 100.0f, 15.0f, 525.0f, 107.0f, 585.0f, 2, 0x97, 0x5E, 0xD3);
+        camp->SetRectangle(kDialogDepth, kSpriteScale, 15.0f, 525.0f, 107.0f, 585.0f, 2, 0x97, 0x5E, 0xD3);
         camp->texture = builder.MapTexture(3);
         noCamp = lib::Truncate(LocalPlayerVariable("i.nocamp")) == 1;
         if (noCamp) camp->visible = false;
         UiMesh* left = AddBlankSprite();
-        left->SetRectangle(3.0f, 100.0f, 689.0f, 537.0f, 737.0f, 585.0f, 0x51, 0x37, 0x81, 0x67);
+        left->SetRectangle(kDialogDepth, kSpriteScale, 689.0f, 537.0f, 737.0f, 585.0f, 0x51, 0x37, 0x81, 0x67);
         left->texture = builder.MapTexture(3);
         UiMesh* right = AddBlankSprite();
-        right->SetRectangle(3.0f, 100.0f, 737.0f, 537.0f, 785.0f, 585.0f, 0x86, 0x37, 0xB6, 0x67);
+        right->SetRectangle(kDialogDepth, kSpriteScale, 737.0f, 537.0f, 785.0f, 585.0f, 0x86, 0x37, 0xB6, 0x67);
         right->texture = builder.MapTexture(3);
     }
 
@@ -395,7 +395,7 @@ void GlobalMap::Update() {
 
     // The weather is drawn into texture 4 on the GPU (the original wrote its pixels under the device lock).
     if (std::ssize(objects) > 4) weather->Draw(objects[4]->surface, FrameTime());
-    g_cursor.SetShape(dragging ? 0x16 : 0);
+    g_cursor.SetShape(dragging ? CursorShape::Camera : CursorShape::Default);
 }
 
 // --- Draw -------------------------------------------------------------------------------

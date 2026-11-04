@@ -256,13 +256,13 @@ void HudUnitPanel::Setup(int newBodyPart, bool slid) {
     AddRegion()->SetRect(0, 0, 185, 225);
 
     UiMesh* back = AddBlankSprite();
-    back->SetRectangle(60.0f, 100.0f, 20.0f, 0.0f, 180.0f, 220.0f, 0, 0, 256, 256);
+    back->SetRectangle(60.0f, kSpriteScale, 20.0f, 0.0f, 180.0f, 220.0f, 0, 0, 256, 256);
     back->texture = nullptr;
     back->flags |= FigureMeshFlag::Flat;
     back->flatColour = 0x50000000;
     back->visible = false;
     UiMesh* edge = AddBlankSprite();
-    edge->SetRectangle(20.0f, 100.0f, 0.0f, 0.0f, 20.0f, 220.0f, 0, 0, 256, 256);
+    edge->SetRectangle(20.0f, kSpriteScale, 0.0f, 0.0f, 20.0f, 220.0f, 0, 0, 256, 256);
     edge->texture = nullptr;
     edge->flags |= FigureMeshFlag::Flat;
     edge->flatColour = 0xB4000000;
@@ -282,13 +282,13 @@ void HudUnitPanel::Setup(int newBodyPart, bool slid) {
     strip->SetGrid(4.0f, StripScale(), 20.0f, 0.0f, 25.0f, 220.0f, 0x55, 2, 0x5A, 0x2A, 1, 20);
     strip->visible = false;
     UiMesh* more = AddBlankSprite();
-    more->SetRectangle(4.0f, 100.0f, 164.0f, 204.0f, 180.0f, 220.0f, 0xD3, 2, 0xE3, 0x12);
+    more->SetRectangle(4.0f, kSpriteScale, 164.0f, 204.0f, 180.0f, 220.0f, 0xD3, 2, 0xE3, 0x12);
     more->visible = false;
     // 10-13: the health and the mana bar, each over its frame.
-    AddBlankSprite()->SetRectangle(4.0f, 100.0f, 40.0f, 190.0f, 140.0f, 195.0f, 0x40, 0x9A, 0xA4, 0x9F);
-    AddBlankSprite()->SetRectangle(5.0f, 100.0f, 35.0f, 190.0f, 145.0f, 195.0f, 0x3B, 0x93, 0xA9, 0x98);
-    AddBlankSprite()->SetRectangle(4.0f, 100.0f, 40.0f, 205.0f, 140.0f, 210.0f, 0x40, 0xA1, 0xA4, 0xA6);
-    AddBlankSprite()->SetRectangle(5.0f, 100.0f, 35.0f, 205.0f, 145.0f, 210.0f, 0x3B, 0x93, 0xA9, 0x98);
+    AddBlankSprite()->SetRectangle(4.0f, kSpriteScale, 40.0f, 190.0f, 140.0f, 195.0f, 0x40, 0x9A, 0xA4, 0x9F);
+    AddBlankSprite()->SetRectangle(5.0f, kSpriteScale, 35.0f, 190.0f, 145.0f, 195.0f, 0x3B, 0x93, 0xA9, 0x98);
+    AddBlankSprite()->SetRectangle(4.0f, kSpriteScale, 40.0f, 205.0f, 140.0f, 210.0f, 0x40, 0xA1, 0xA4, 0xA6);
+    AddBlankSprite()->SetRectangle(5.0f, kSpriteScale, 35.0f, 205.0f, 145.0f, 210.0f, 0x3B, 0x93, 0xA9, 0x98);
     // 14-25: the six body parts' bars, each over its frame, at the tables' places.
     for (int i = 0; i < kParts; ++i) {
         const int x = kPartX[i];
@@ -394,7 +394,7 @@ void HudMap::Setup(float newZoom, bool slid) {
     // Scene object 0: the world's bounds, in the map's picture; 1: the visible area's disc, in the
     // picture too; 2: the markers, four texels of one colour each.
     UiMesh* bounds = AddBlankSprite();
-    bounds->SetRectangle(18.0f, 100.0f, 620.0f, 0.0f, 780.0f, 160.0f, 0, 0, 256, 256);
+    bounds->SetRectangle(18.0f, kSpriteScale, 620.0f, 0.0f, 780.0f, 160.0f, 0, 0, 256, 256);
     bounds->texture = objects[1];
     bounds->tint[0] = bounds->tint[1] = bounds->tint[2] = 0.8f;
     bounds->SetScale((kDepthUnit * halfSide) * kBoundsScale);
@@ -412,10 +412,10 @@ void HudMap::Setup(float newZoom, bool slid) {
     for (int i = 0; i < 4; ++i) markers->texCoords[i] = markerTexels[i];
     // 3 and 4: the map's and the buttons' plain backgrounds.
     UiMesh* back = AddBlankSprite();
-    back->SetRectangle(20.0f, 100.0f, 620.0f, 0.0f, 780.0f, 160.0f, 0, 0, 256, 256);
+    back->SetRectangle(20.0f, kSpriteScale, 620.0f, 0.0f, 780.0f, 160.0f, 0, 0, 256, 256);
     SetPlain(back, 0x50000000);
     UiMesh* edge = AddBlankSprite();
-    edge->SetRectangle(20.0f, 100.0f, 780.0f, 0.0f, 800.0f, 160.0f, 0, 0, 256, 256);
+    edge->SetRectangle(20.0f, kSpriteScale, 780.0f, 0.0f, 800.0f, 160.0f, 0, 0, 256, 256);
     SetPlain(edge, 0xB4000000);
     UiMesh* slingButton = AddSprite(kArrowSprite);
     slingButton->textureOffsetU = 0.22265625f;

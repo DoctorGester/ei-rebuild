@@ -273,7 +273,7 @@ void HudPortraits::MouseMove(Point point) {
         if (region < std::ssize(currentOwner->party)) currentOwner->HoverUnit(currentOwner->party[region], {});
         return;
     }
-    if (region >= 0 && region < count) g_cursor.SetShape(0);
+    if (region >= 0 && region < count) g_cursor.SetShape(CursorShape::Default);
 }
 
 // --- Map ---------------------------------------------------------------------------------------
@@ -438,7 +438,7 @@ void HudClock::OpenObjectives() {
     ui->PlayInterfaceSound(kSoundClick);
     auto* window = new ObjectivesWindow(ui);
     window->Setup(LocalPlayerZone(), nullptr, false, false);
-    ui->PushWindow(window, true, true);
+    ui->PushWindow(window, WindowBackdrop::FirstWindow);
 }
 
 // --- Movement panel ----------------------------------------------------------------------------

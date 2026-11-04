@@ -87,13 +87,13 @@ void OpenOnTop(Interface3D* ui, UiContainer* window) {
     window->CreateScreen();
     app::PumpMessages();
     ui->mouseCapture = nullptr;
-    g_cursor.SetShape(0);
+    g_cursor.SetShape(CursorShape::Default);
 }
 } // namespace
 
-void Interface3D::PushWindow(UiContainer* window, bool behind, bool pauseFrame) {
-    g_cursor.SetShape(3);
-    if (behind && !pauseFrame) {
+void Interface3D::PushWindow(UiContainer* window, WindowBackdrop keep) {
+    g_cursor.SetShape(CursorShape::Wait);
+    if (keep == WindowBackdrop::Screen) {
         backdropMode = 3;
         backdropWindows = stack.size();
         app::FrameStep(false, true);
@@ -101,7 +101,7 @@ void Interface3D::PushWindow(UiContainer* window, bool behind, bool pauseFrame) 
     if (stack.size() == 1) {    // one window open
         serverFlag = static_cast<std::uint8_t>(g_serverWorld.paused);
         if (!IsMultiplayerClient()) GameSetServerPaused(1);
-        if (behind && pauseFrame) {
+        if (keep == WindowBackdrop::FirstWindow) {
             backdropMode = 1;
             app::FrameStep(false, true);
         }
@@ -123,7 +123,7 @@ void Interface3D::Activate(UiContainer* window) {
         closeAll = false;
         CloseAll();
     }
-    g_cursor.SetShape(3);
+    g_cursor.SetShape(CursorShape::Wait);
     delete backdrop;
     backdrop = nullptr;
     delete secondBackdrop;
@@ -131,7 +131,7 @@ void Interface3D::Activate(UiContainer* window) {
     backdropMode = 0;
     serverFlag = 0;
     GameSetServerPaused(0);
-    g_cursor.SetShape(3);
+    g_cursor.SetShape(CursorShape::Wait);
     while (!stack.empty()) {
         stack.back()->Input()->Deactivate();
         stack.back()->CloseScreen();
@@ -160,7 +160,7 @@ void Interface3D::ShowMessage(bool forced) {
     }
     if (messageText.size() == 0) return;
     if (options::g_options.showTutorial == 0 && !forced) return;
-    PushWindow(new HelpWindow(this, true, messageText, messageFlag), true, false);
+    PushWindow(new HelpWindow(this, true, messageText, messageFlag), WindowBackdrop::Screen);
 }
 
 // --- the help window -----------------------------------------------------------------------------
@@ -181,7 +181,7 @@ void Interface3D::OpenHelp(bool forced) {
     } else if (!forced) {
         return;
     }
-    PushWindow(new HelpWindow(this, false, topic, seen), true, false);
+    PushWindow(new HelpWindow(this, false, topic, seen), WindowBackdrop::Screen);
 }
 
 // --- Screens 8 and 9: constructors -------------------------------------------------------------------

@@ -217,12 +217,12 @@ void HudTopPanel::Setup(int newPage, bool shown) {
     AddRegion()->SetRect(0xB4, 0, 0x26C, 100);
 
     UiMesh* back = AddBlankSprite();
-    back->SetRectangle(20.0f, 100.0f, 180.0f, 20.0f, 620.0f, 95.0f, 0, 0, 0x100, 0x100);
+    back->SetRectangle(20.0f, kSpriteScale, 180.0f, 20.0f, 620.0f, 95.0f, 0, 0, kUiTextureSize, kUiTextureSize);
     back->texture = nullptr;
     back->flags |= FigureMeshFlag::Flat;
     back->flatColour = 0x50000000;
     UiMesh* bar = AddBlankSprite();
-    bar->SetRectangle(20.0f, 100.0f, 180.0f, 0.0f, 620.0f, 20.0f, 0, 0, 0x100, 0x100);
+    bar->SetRectangle(20.0f, kSpriteScale, 180.0f, 0.0f, 620.0f, 20.0f, 0, 0, kUiTextureSize, kUiTextureSize);
     bar->texture = nullptr;
     bar->flags |= FigureMeshFlag::Flat;
     bar->flatColour = 0xB4000000;

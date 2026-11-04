@@ -73,6 +73,13 @@ struct ScreenFade {
 // writes its digit, '2' for a pause and '3' ("reserved_03") for a resume (player_server_orders.cpp).
 extern char g_pauseMessageKey[12];
 
+// What a window pushed over the screen below keeps of it.
+enum class WindowBackdrop {
+    None,
+    Screen,         // the screen below is kept as the backdrop (backdrop mode 3)
+    FirstWindow,    // the same (mode 1) when only one window is open, else nothing
+};
+
 // The interface manager.
 class Interface3D {
 public:
@@ -104,10 +111,8 @@ public:
     // whether it was down already (the keyboard's repeat). The key under Esc toggles the console; Scroll Lock saves
     // "shot<nnnn>.bmp"; an unhandled ';' shows help.
     void OnKeyDown(int key, int scan, bool repeat);
-    // Opens `window` on top of the stack (null is fatal). The first window keeps the server flag. `behind`
-    // set and `pauseFrame` clear picks backdrop mode 3 (the screen below kept as the backdrop); both set
-    // do so as mode 1 when only one window is open.
-    void PushWindow(UiContainer* window, bool behind, bool pauseFrame);
+    // Opens `window` on top of the stack (null is fatal). The first window keeps the server flag.
+    void PushWindow(UiContainer* window, WindowBackdrop keep);
     // Closes and deletes every window, then opens `window` as PushWindow does.
     void Activate(UiContainer* window);
     // Reads the interface's saved state from `stream`: flags and two values; from save version 0x47 one
@@ -851,6 +856,12 @@ public:
     int count;
     std::vector<HudPortraitSlot> slots;    // one per portrait
 };
+
+// A sprite's depth in front of the interface camera for the dialog pieces (frames, shades, buttons), the layout
+// pixels one mesh unit spans (SetRectangle's `scale`) and the side of a whole interface texture in texels.
+inline constexpr float kDialogDepth = 3.0f;
+inline constexpr float kSpriteScale = 100.0f;
+inline constexpr int kUiTextureSize = 0x100;
 
 // The figure factory's class 0x43 ("CI3DFigure"): a plain figure mesh with the sprite's fields.
 class UiMesh : public PlainFigureMesh {
