@@ -15,8 +15,12 @@ compiled from the same source and flags.
   and passes the compiler's output on with the other checkouts' folders in it changed to this one's.
 - No cache (EI_COMPILER_CACHE=0, or the program unavailable): EI_COMPILER_LAUNCHER is empty and cl runs directly.
 
+- The step wrapper (EI_STEP_WRAPPER, also without the cache): the same program in front of the linker and the archiver,
+  running them directly. It prints the exit code of a step that failed with no output (H52a).
+
 usage: python tools/compiler_cache.py CONFIGURATION
-  (build.cmd, after vcvars64) prints EI_COMPILER_LAUNCHER=<CMake's launcher list> and starts this checkout's server
+  (build.cmd, after vcvars64) prints EI_COMPILER_LAUNCHER=<CMake's launcher list> and EI_STEP_WRAPPER=<the step
+  wrapper's list>, and starts this checkout's server
 """
 import os, subprocess, sys, zlib
 
@@ -118,11 +122,11 @@ def download(main):
 def main():
     config = sys.argv[1].lower() if len(sys.argv) > 1 else 'release'
     main = main_checkout()
-    run = None
-    if os.environ.get('EI_COMPILER_CACHE', '1') != '0' and os.name == 'nt' and download(main):
-        run = launcher(main)
-    if not run:
+    run = launcher(main) if os.name == 'nt' else None
+    steps = run and ';'.join([run, 'EI_COMPILER_CACHE_DIRECT=1', '--'])
+    if not (run and os.environ.get('EI_COMPILER_CACHE', '1') != '0' and download(main)):
         print('EI_COMPILER_LAUNCHER=')
+        print('EI_STEP_WRAPPER=' + (steps or ''))
         return 0
     variables = server(main, config)
     # Started here, its output to nowhere: a server started by the first compile would hold the build's output pipe.
@@ -132,6 +136,7 @@ def main():
                        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     variables.update(EI_CACHE_PROGRAM=sccache(main), EI_CACHE_MAIN=main, EI_CACHE_HERE=ROOT)
     print('EI_COMPILER_LAUNCHER=' + ';'.join([run] + [f'{k}={v}' for k, v in variables.items()] + ['--']))
+    print('EI_STEP_WRAPPER=' + steps)
     return 0
 
 

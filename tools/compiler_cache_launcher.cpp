@@ -6,7 +6,9 @@
 // The NAME=VALUE pairs go into the environment (sccache's server variables). EI_CACHE_PROGRAM names sccache.exe,
 // EI_CACHE_MAIN the main checkout's folder and EI_CACHE_HERE this checkout's. When build.cmd sets
 // EI_COMPILER_CACHE_DIRECT=1 (a build folder's later builds), the compiler runs by itself. Otherwise it runs through
-// sccache.
+// sccache. The same program stands in front of the linker and the archiver (the NAME=VALUE pair
+// EI_COMPILER_CACHE_DIRECT=1 alone), where it only reports the exit code of a failed step: it ends its output with
+// "exited with 0x..." (H52a; docs/notes/standalone.md, "Build steps that fail without a cause").
 //
 // The compiler's output is passed on with every other checkout's folder in it changed to this one's. A cached object
 // comes with the output of the checkout that compiled it first, so its /showIncludes lines name that checkout's
@@ -120,7 +122,8 @@ int main() {
                                ? compile
                                : L"\"" + Env(L"EI_CACHE_PROGRAM") + L"\" " + compile;
 
-    // The child's output through a pipe that only it inherits.
+    // The child's output and errors through a pipe that only it inherits (ninja takes both together anyway; an exit
+    // without any output is then exactly that).
     SECURITY_ATTRIBUTES inherit{sizeof(inherit), nullptr, TRUE};
     HANDLE read = nullptr;
     HANDLE write = nullptr;
@@ -128,13 +131,11 @@ int main() {
         return Fail("no pipe");
     }
     SetHandleInformation(read, HANDLE_FLAG_INHERIT, 0);
-    HANDLE handles[3] = {write, GetStdHandle(STD_ERROR_HANDLE), GetStdHandle(STD_INPUT_HANDLE)};
+    HANDLE handles[2] = {write, GetStdHandle(STD_INPUT_HANDLE)};
     DWORD count = 1;
-    for (DWORD i = 1; i < 3; ++i) {
-        if (handles[i] && handles[i] != INVALID_HANDLE_VALUE &&
-            SetHandleInformation(handles[i], HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT)) {
-            handles[count++] = handles[i];
-        }
+    if (handles[1] && handles[1] != INVALID_HANDLE_VALUE &&
+        SetHandleInformation(handles[1], HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT)) {
+        count = 2;
     }
     SIZE_T size = 0;
     InitializeProcThreadAttributeList(nullptr, 1, 0, &size);
@@ -149,7 +150,7 @@ int main() {
     start.StartupInfo.cb = sizeof(start);
     start.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
     start.StartupInfo.hStdOutput = write;
-    start.StartupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+    start.StartupInfo.hStdError = write;
     start.StartupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
     start.lpAttributeList = list;
     PROCESS_INFORMATION process{};
@@ -181,6 +182,11 @@ int main() {
             break;
         }
         done += wrote;
+    }
+    if (code != 0) {
+        // The exit code of a failed step (H52a): ninja does not print it, and a step that crashes or fails under
+        // load says nothing else. tools/build_retry.py builds again when this is the step's only line.
+        std::fprintf(stderr, "compiler_cache_launcher: %ls exited with 0x%08lX\n", compile.c_str(), code);
     }
     return static_cast<int>(code);
 }

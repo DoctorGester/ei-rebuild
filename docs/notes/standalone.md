@@ -620,6 +620,30 @@ through tools/compiler_cache.py.
     tail, and Visual Studio asks for the file once.
   - Only a build folder's first build takes cached objects; anything compiled later names this checkout.
 
+### Build steps that fail without a cause
+
+On a loaded machine (a whole-machine load near 100% with games running) a build step now and then exits non-zero and
+prints nothing, or the linker prints only `LNK1000: Internal error`; a plain rerun passes (H52a). Seen: lib.exe
+archiving ei_render.lib, a cached compile of registry.cpp (the same command passed 20 times in a row on a quiet
+machine), and the debug build's incremental link of ei_perf_check.exe (`LNK1000 ... IncrBuildImage`).
+- **The exit codes:** ninja 1.12 does not print them. The step wrapper does: tools/compiler_cache_launcher.exe stands
+  in front of every compile (CMAKE_CXX_COMPILER_LAUNCHER) and every link and archive step (CMAKE_CXX_LINKER_LAUNCHER,
+  and CMAKE_CXX_CREATE_STATIC_LIBRARY in CMakeLists.txt, which has no launcher of its own). A step that exits non-zero
+  gets the line `compiler_cache_launcher: <command> exited with 0xC0000142` after its output (standard output and
+  error go through the wrapper together). 0xC0000142 (STATUS_DLL_INIT_FAILED) would point at the desktop heap,
+  0xC0000005 or 0xC0000409 at a crashed tool, 1 at a tool that failed itself. No cause is known yet; the next
+  occurrence names the code. ninja drops the compiler's own file-name line, so a compile that crashed after printing
+  it shows nothing at all (H52a's own debug build: SDL_render_ps2.c, the first build of the folder, through sccache;
+  the retry below built it).
+- **The incremental link (fixed):** the debug build linked with `/INCREMENTAL` (CMake's default for Debug), the only
+  configuration that did. The release-like builds have had `/INCREMENTAL:NO` since R16c2 (an incremental relink once
+  dropped new code from ei_render.lib). All configurations link non-incrementally now.
+- **The retry:** build.cmd runs the build through tools/build_retry.py (`cmake --build` with its output passed on). When
+  every failed step has no output of its own (or only the wrapper's line above), or prints LNK1000, it says so
+  (`build_retry: the build failed in steps that printed no error ...`) and builds once more. Any other failure, and a
+  second failure, ends the build as before. A build through a pipe shows ninja's plain `[n/m]` lines, one per step.
+  tools/test_build_retry.py checks the reading of a failed log.
+
 ### The harness in the image
 
 The harness (tests/verify) is linked into ei-rebuild.exe in the verify and asan builds (EI_HARNESS), with its image side
