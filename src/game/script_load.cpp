@@ -27,21 +27,9 @@ int ReadInt(ByteStream* stream) {
 // A count; a negative one reads as 0.
 std::size_t ReadCount(ByteStream* stream) { return static_cast<std::size_t>(std::max(ReadInt(stream), 0)); }
 
-// Areas are saved from 0x57 on.
-int StreamVersion(const ByteStream* stream) { return static_cast<int>(stream->version); }
-
-// -1 is none, else the registry's object.
-template <class T>
-T* FindById(int id) {
-    if (id == -1) return nullptr;
-    return g_serverWorld.timedObjectManager->FindObjectAs<T>(id);
-}
-
 // The world's first script (the only script a savegame holds): block
 // ids resolve in its lists whatever script is loaded.
 const Script* SavedScript() { return g_serverWorld.MainScript(); }
-
-ScriptDecl* FindBlock(int id) { return SavedScript()->FindBlock(id); }
 
 void LoadVariables(ScriptVars* vars, ByteStream* stream) {
     vars->floats.Load(stream);
@@ -64,50 +52,22 @@ void LoadList(Container* list, ByteStream* stream, Read read) {
     for (auto& element : *list) read(element);
 }
 
+// The same for elements with a Load member.
+template <typename Container>
+void LoadEach(Container* list, ByteStream* stream) {
+    LoadList(list, stream, [stream](auto& element) { element.Load(stream); });
+}
+
 // A save made with other scripts can name blocks the loaded lists lack: such pairs and runs are dropped.
 void DropUnresolvedPairs(std::vector<ScriptIfThen>* pairs) {
     std::erase_if(*pairs, [](const ScriptIfThen& pair) { return !pair.conditions || !pair.commands; });
-}
-
-// Particle sources: source object, id, flags, moving, steps, step (12 bytes), lifetime.
-void LoadParticles(std::vector<ScriptParticleSource>* list, ByteStream* stream) {
-    LoadList(list, stream, [stream](ScriptParticleSource& source) {
-        source.object = ScriptEffect<EffectParticle>(FindById<EffectParticle>(ReadInt(stream)));
-        stream->ReadValue(source.id);
-        stream->ReadValue(source.deleteAfterMove);
-        stream->ReadValue(source.moving);
-        stream->ReadValue(source.steps);
-        stream->ReadValue(source.step);
-        stream->ReadValue(source.lifetime);
-    });
-}
-
-// Lightning: object, id.
-void LoadLightning(std::vector<ScriptLightning>* list, ByteStream* stream) {
-    LoadList(list, stream, [stream](ScriptLightning& bolt) {
-        bolt.object = ScriptEffect<EffectLightning>(FindById<EffectLightning>(ReadInt(stream)));
-        stream->ReadValue(bolt.id);
-    });
-}
-
-// Script instances: killed flag, name, parameter types, if-then pairs, variables.
-void LoadInstances(std::list<ScriptDefinition>* list, ByteStream* stream) {
-    LoadList(list, stream, [stream](ScriptDefinition& instance) {
-        stream->ReadValue(instance.index);
-        instance.name = stream->ReadString();
-        instance.params = stream->ReadString();
-        instance.ifThen.resize(ReadCount(stream));
-        for (ScriptIfThen& pair : instance.ifThen) pair.Load(stream);
-        DropUnresolvedPairs(&instance.ifThen);
-        LoadVariables(&instance.vars, stream);
-    });
 }
 
 // Runs: block id, index, ticks, sleep start, the index of its instance in the loading script's instance list
 // (-1 or out of range: none), vars.
 void LoadRuns(std::list<ScriptRun>* list, ByteStream* stream) {
     LoadList(list, stream, [stream](ScriptRun& run) {
-        run.block = FindBlock(ReadInt(stream));
+        run.block = SavedScript()->FindBlock(ReadInt(stream));
         stream->ReadValue(run.index);
         stream->ReadValue(run.ticks);
         stream->ReadValue(run.sleepStart);
@@ -125,6 +85,17 @@ void LoadRuns(std::list<ScriptRun>* list, ByteStream* stream) {
 }
 
 } // namespace
+
+// Killed flag, name, parameter types, if-then pairs, variables.
+void ScriptDefinition::Load(ByteStream* stream) {
+    stream->ReadValue(index);
+    name = stream->ReadString();
+    params = stream->ReadString();
+    ifThen.resize(ReadCount(stream));
+    for (ScriptIfThen& pair : ifThen) pair.Load(stream);
+    DropUnresolvedPairs(&ifThen);
+    vars.Load(stream);
+}
 
 template <> void ScriptNamedValues<float>::Load(ByteStream* stream) {
     const std::size_t count = ReadCount(stream);
@@ -209,8 +180,8 @@ void ScriptSubCall::Load(ByteStream* stream) {
 
 // The ids of the condition and command blocks, resolved in the saved script's block lists (FindBlock).
 void ScriptIfThen::Load(ByteStream* stream) {
-    conditions = FindBlock(ReadInt(stream));
-    commands = FindBlock(ReadInt(stream));
+    conditions = SavedScript()->FindBlock(ReadInt(stream));
+    commands = SavedScript()->FindBlock(ReadInt(stream));
 }
 
 // Negative ids are WorldScript blocks.
@@ -238,9 +209,9 @@ void Script::LoadState(ByteStream* stream) {
     pointLights.resize(ReadCount(stream));
     for (ScriptPointLight& light : pointLights) light.Load(stream);
 
-    LoadParticles(&particles, stream);
-    LoadList(&fxSources, stream, [stream](ScriptFxSource& source) { source.Load(stream); });
-    LoadLightning(&lightning, stream);
+    LoadEach(&particles, stream);
+    LoadEach(&fxSources, stream);
+    LoadEach(&lightning, stream);
     stream->ReadValue(nextParticleId);
     stream->ReadValue(nextFxId);
 
@@ -256,25 +227,17 @@ void Script::LoadState(ByteStream* stream) {
     LoadList(&worldBlocks, stream, loadBlock);
 
     definitions.resize(ReadCount(stream));
-    for (ScriptDefinition& definition : definitions) {
-        stream->ReadValue(definition.index);
-        definition.name = stream->ReadString();
-        definition.params = stream->ReadString();
-        definition.ifThen.resize(ReadCount(stream));
-        for (ScriptIfThen& pair : definition.ifThen) pair.Load(stream);
-        DropUnresolvedPairs(&definition.ifThen);
-        definition.vars.Load(stream);
-    }
+    for (ScriptDefinition& definition : definitions) definition.Load(stream);
 
     LoadVariables(&globals, stream);
-    LoadInstances(&instances, stream);
+    LoadEach(&instances, stream);
     LoadRuns(&runs, stream);
     std::erase_if(runs, [](const ScriptRun& run) { return !run.block; });
     stream->ReadValue(loaded);
     stream->ReadValue(fileCount);
     g_streamedScript = nullptr;
 
-    if (StreamVersion(stream) < kVersionScriptAreas) return;
+    if (stream->Version() < kVersionScriptAreas) return;
     areas.resize(ReadCount(stream));
     for (ScriptArea& area : areas) {
         stream->ReadValue(area.id);

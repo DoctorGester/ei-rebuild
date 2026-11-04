@@ -9,7 +9,7 @@
 #include "engine_object.h"
 #include "lib/vecmath.h"
 #include "net_delta.h"
-#include "party_storage.h"
+#include "party.h"
 #include "script.h"
 #include "water_tweens.h"
 

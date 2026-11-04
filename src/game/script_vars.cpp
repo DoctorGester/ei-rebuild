@@ -12,22 +12,27 @@
 
 namespace {
 
-int FindName(const std::vector<std::string>& names, std::string_view name) {
-    for (std::size_t i = 0; i < names.size(); ++i)
-        if (names[i] == name) return static_cast<int>(i);
-    return -1;
-}
-
 // A new variable named `name` at the end of `vars` unless the name is taken.
 template <typename T>
 bool AddVariable(ScriptNamedValues<T>& vars, std::string_view name) {
-    if (::FindName(vars.names, name) >= 0) return false;
+    if (vars.Find(name) >= 0) return false;
     vars.values.resize(vars.values.size() + 1);
     vars.names.emplace_back(name);
     return true;
 }
 
 } // namespace
+
+template <typename T>
+int ScriptNamedValues<T>::Find(std::string_view name) const {
+    for (std::size_t i = 0; i < names.size(); ++i)
+        if (names[i] == name) return static_cast<int>(i);
+    return -1;
+}
+template int ScriptNamedValues<float>::Find(std::string_view) const;
+template int ScriptNamedValues<std::string>::Find(std::string_view) const;
+template int ScriptNamedValues<ScriptObjectRef>::Find(std::string_view) const;
+template int ScriptNamedValues<ScriptGroup>::Find(std::string_view) const;
 
 template <typename T>
 void ScriptNamedValues<T>::Append(const ScriptNamedValues<T>& other) {
@@ -66,21 +71,26 @@ void ScriptVars::Clear() {
 }
 
 bool ScriptVars::HasVariable(std::string_view name) const {
-    if (::FindName(floats.names, name) >= 0) return true;
-    if (::FindName(strings.names, name) >= 0) return true;
-    if (::FindName(objects.names, name) >= 0) return true;
-    if (::FindName(groups.names, name) >= 0) return true;
-    return false;
+    return floats.Find(name) >= 0 || strings.Find(name) >= 0 || objects.Find(name) >= 0 || groups.Find(name) >= 0;
 }
 
 ScriptVarRef ScriptVars::FindVariable(std::string_view name) const {
-    int index = ::FindName(floats.names, name);
+    int index = floats.Find(name);
     if (index >= 0) return {index, kScriptFloat};
-    index = ::FindName(strings.names, name);
+    index = strings.Find(name);
     if (index >= 0) return {index, kScriptString};
-    index = ::FindName(objects.names, name);
+    index = objects.Find(name);
     if (index >= 0) return {index, kScriptObject};
-    return {::FindName(groups.names, name), kScriptGroup};
+    return {groups.Find(name), kScriptGroup};
+}
+
+int ScriptVars::FindOfType(int type, std::string_view name) const {
+    switch (type) {
+    case kScriptFloat: return floats.Find(name);
+    case kScriptString: return strings.Find(name);
+    case kScriptObject: return objects.Find(name);
+    default: return groups.Find(name);
+    }
 }
 
 void ScriptVars::RemoveDeletedObjects() {
@@ -93,26 +103,16 @@ void ScriptVars::RemoveDeletedObjects() {
 // An unknown type is accepted and adds no letter.
 bool ScriptDefinition::AddParameter(const std::string* parameterName, int type) {
     const std::string& text = *parameterName;
+    bool added;
     switch (type) {
-    case kScriptFloat:
-        if (!AddVariable(vars.floats, text)) return false;
-        params += "f";
-        return true;
-    case kScriptString:
-        if (!AddVariable(vars.strings, text)) return false;
-        params += "s";
-        return true;
-    case kScriptObject:
-        if (!AddVariable(vars.objects, text)) return false;
-        params += "o";
-        return true;
-    case kScriptGroup:
-        if (!AddVariable(vars.groups, text)) return false;
-        params += "g";
-        return true;
-    default:
-        return true;
+    case kScriptFloat: added = AddVariable(vars.floats, text); break;
+    case kScriptString: added = AddVariable(vars.strings, text); break;
+    case kScriptObject: added = AddVariable(vars.objects, text); break;
+    case kScriptGroup: added = AddVariable(vars.groups, text); break;
+    default: return true;
     }
+    if (added) params += ScriptTypeLetter(type);
+    return added;
 }
 
 void SSCCmd::SetParameters(const std::vector<ScriptBinding>& bindings, ScriptVars* vars) {

@@ -8362,6 +8362,13 @@ depends = ["C135"]
 note = "Left by C135 (same pattern, other areas). Unit::controller (unit_update.cpp AttachObject: hand AddRef/Release) and TorchObject::spec (torch_object.cpp AttachTorchObject, TorchObject::Create) as Ref<T> with one setter each; TorchObject's Load/Save/Destroy/AttachObject bodies under their own names (LoadTorch, SaveTorch, DestroyTorch, AttachTorchObject: the body in the virtual, MapObject:: qualified). FigureAnimationState::bones (LinkBone AddRef, ReleaseBones) as std::vector<HeldRef<FigureBone>> where the release order stays; Object3DClientSpecific::partSets as std::unique_ptr<TextureParts>[2]. Style only: goldens the same."
 
 [[ticket]]
+id = "C115a"
+title = "Scripts style 1 tail: party and quest duplicates"
+group = "cleanup"
+model = "sonnet"
+note = "Left by C115 (it stayed in the script files while C119 / C114a ran): quest add once (QuestDatabase / ScriptQuestAddObjective, the quest being built is a global over 3 files), ReadListInline = ReadStringList (quest_database.cpp), party memory-stream copy and archive-as-stream once, NewRecord = CreatePartyRecord, ReleaseItems = ReleaseAll, the two different Drop in one file, the create/clone/append/drop loop (x6, three append spellings), PartyManager::BeginRedeploy / EndRedeploy forwarders (party_manager.cpp:326-328, 12 callers), 'Names are provisional' in party / quest headers. Also not done from the digest: A1 argument cursor, A2 typed fields, A5 renames, A9 ScriptBool, CopyItems / CopyStats null checks. Style only, goldens the same."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"

@@ -8,7 +8,7 @@
 // kUiTextColour, the description text wrapped last.
 
 #include "core_refcount.h"
-#include "party_storage.h"
+#include "party.h"
 #include "ui.h"
 
 #include <cstddef>

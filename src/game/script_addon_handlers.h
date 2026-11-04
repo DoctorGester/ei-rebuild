@@ -1,8 +1,8 @@
 #pragma once
 
-// AddNewScriptCommands: addon's handlers (script_addon_*.cpp) and the helpers they share
-// (script_addon.cpp). Each handler returns what addon's returns: true when the call is done, false
-// to let the game's own code for the id run (only Random does that, for one argument).
+// Rebirth's extra script commands and functions: the handlers (script_addon_*.cpp) and the helpers they share
+// (script_addon.cpp). A handler returns true when the call is done, false to let the game's own code for the id run
+// (only Random does that, for one argument).
 
 #include "script_addon.h"
 
@@ -13,22 +13,21 @@ namespace scriptaddon {
 using Handler = bool (*)(Call* call);
 
 
-// _ftol2_sse (10090EB0): truncation toward zero (CVTTSD2SI); NaN and out-of-range values give
-// 0x80000000.
+// Truncation toward zero; NaN and out-of-range values give INT_MIN.
 int TruncateOrMin(float value);
-// 10010CC5: sqrt(dx * dx + dy * dy) with dx = x1 - x0 and dy = y1 - y0.
+// sqrt(dx * dx + dy * dy) with dx = x1 - x0 and dy = y1 - y0.
 float Distance(float x0, float y0, float x1, float y1);
-// _stricmp in the "C" locale.
+// Case-insensitive comparison of ASCII text.
 int Stricmp(const char* a, const char* b);
-// The object's class (virtual 12) is a unit's (0x50).
+// The object's class is a unit's.
 bool IsUnit(EngineObject* object);
-// 10010E2D: a unit's data object, null for a missing reference, object or non-unit.
+// A unit's server-side data, null for a missing reference, object or non-unit.
 UnitServer* UnitData(const ScriptObjectRef* ref);
-// 10010D12: addon reports a handler's problem as a "Scripts" error ("<function>: <message>") in
-// its console log only when the mod setting EnableShowingScriptErrors is on, which no Rebirth mod
-// sets, so nothing is shown. Returns true: the call counts as done.
+// Rebirth reports a handler's problem as a "Scripts" error ("<function>: <message>") in its console log only when the
+// mod setting EnableShowingScriptErrors is on, which no mod sets, so nothing is shown. Returns true: the call counts
+// as done.
 bool Report(const char* function, const char* format, ...);
-// 10010D7B: Report(function, "Invalid argument(s) passed to function").
+// Report(function, "Invalid argument(s) passed to function").
 bool InvalidArguments(const char* function);
 
 

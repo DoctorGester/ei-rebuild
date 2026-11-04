@@ -23,11 +23,6 @@ const char* const kWrongStringCount = "Wrong number of script %s string paramete
 const char* const kWrongObjectCount = "Wrong number of script %s object parameters";
 const char* const kWrongGroupCount = "Wrong number of script %s group parameters";
 
-// Compared with 0.0 (a NaN counts as zero).
-bool IsZero(float value) {
-    return value == 0.0f;
-}
-
 // An FX source's offset on one axis: (r - (-r)) * random / 2^32 + (-r).
 float FxOffset(float radius, std::uint32_t random) {
     const float negative = -radius;
@@ -41,19 +36,10 @@ void RespawnFxSources(Script* script) {
         int minDelay = fx.minDelay;
         fx.countdown = static_cast<int>(g_random.Next() % static_cast<std::uint32_t>(fx.maxDelay - minDelay + 1)) + minDelay;
         fx.object.reset();
-        auto* sound = g_serverWorld.timedObjectManager->CreateObjectAs<EffectSound>(ClassId::EffectSound, -1);
         float yOffset = FxOffset(fx.spread, g_random.Next());
         float x = FxOffset(fx.spread, g_random.Next()) + fx.position.x;
         float y = yOffset + fx.position.y;
-        float z = fx.position.z;
-        sound->localPosition.x = x;
-        sound->localPosition.y = y;
-        sound->localPosition.z = z;
-        sound->volume = fx.volume;
-        sound->radius = fx.radius;
-        fx.object = ScriptEffect<EffectSound>(sound);
-        str::CopyInto(sound->name, fx.name);
-        g_serverWorld.AddTimedObject(sound);
+        fx.object = ScriptEffect<EffectSound>(ScriptNewSound({x, y, fx.position.z}, fx.volume, fx.radius, fx.name, true));
     }
 }
 
@@ -131,7 +117,7 @@ void ScriptIfThen::Run(Script* script, ScriptDefinition* instance) const {
         float result;
         condition.CalcFloat(script, &instance->vars, &result);
         ScriptFreeTemporaries(script);
-        if (IsZero(result)) return;
+        if (result == 0.0f) return;
     }
     script->RunCommands(commands, instance);
 }

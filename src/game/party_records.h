@@ -4,7 +4,7 @@
 // The party manager keeps them in a vector followed by two strings. Names are provisional.
 
 #include "core_refcount.h"
-#include "party_storage.h"
+#include "party.h"
 
 #include <string>
 

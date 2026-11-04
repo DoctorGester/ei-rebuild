@@ -58,11 +58,13 @@ Names declared in a file are qualified with the file counter: `QualifyName` give
 loaded; lookups try the plain name then the qualified one; `FindScript` also retries without each leading `!n!`, so a
 console line can refer to a name from the previous console line only if that line failed (a scenario relies on it).
 Script bodies are `if(` float functions `)then(` commands `)` pairs. A command is a keyword with a command signature
-(For / ForIf are followed by `(` body `)` parsed into another block, without the script's locals), a declared script
+(For / ForIf are followed by `(` body `)` parsed into another block, which sees the enclosing locals), a declared script
 (command 8: float 0 = script index, string 0 = name), or `global = value` (command 0x78, float 0 = variable index,
 float 1 = type - 1). `LoadFunction` parses one call against a signature string (f float, s string, o object, g group, O
 loop counter = a global object variable); each parameter is a literal, a local variable, a global variable (plain or
 qualified) or a nested call of a function with the right result type.
+The parser reads the tokens through a `TokenReader` (`Next(&id)` takes a token and classifies it, `Expect(lexeme)` checks
+the next one, `EndOfFileError()` reports on the last line); error codes are `ScriptParseError`.
 
 **Lexer** (`ClassifyToken`): lines start at 1 and count `\n` in white space and block comments; a token runs to white
 space (a space inside quotes does not end it) or to one of `, ) ( : =` after its first character, at most 255

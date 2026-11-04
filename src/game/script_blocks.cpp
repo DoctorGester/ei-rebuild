@@ -75,17 +75,11 @@ void ScriptReset(Script* script) {
     script->errorText = "Unknown error";
     script->errorLine = 0;
 
-    script->instances.clear();
-    script->runs.clear();
+    ScriptDropInstancesAndRuns(script);
     script->worldBlocks.clear();
     script->globals.Clear();
     script->forDepth = 0;
-
-    // Temporaries: every entry but one dropped, the last one emptied.
-    script->tempGroups.resize(1);
-    script->tempGroups.front().Clear();
-    script->tempObjects.resize(1);
-    script->tempObjects.front().object = nullptr;
+    ScriptFreeTemporaries(script);
 
     // Point lights: objects dropped, slots zeroed.
     for (ScriptPointLight& light : script->pointLights) light = {};
@@ -107,7 +101,6 @@ void ScriptDefinition::Reset() {
     ifThen.clear();
     vars.Clear();
     index = 0;
-    const char* empty = game::kEmptyText;
-    params = empty;
-    name = empty;
+    params = game::kEmptyText;
+    name = game::kEmptyText;
 }

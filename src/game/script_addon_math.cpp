@@ -1,5 +1,4 @@
-// AddNewScriptCommands: addon's arithmetic functions (handlers 10011200-10011A53). Each reads its
-// float arguments and stores the result as a float (helpers in script_addon.cpp): float maths.
+// Rebirth's arithmetic script functions. Each reads its float arguments and stores the result as a float.
 #include "script_addon_handlers.h"
 
 #include "asset_text.h"
@@ -29,33 +28,29 @@ namespace {
 float* Floats(Call* call) { return call->cmd->floatArgs.data(); }
 int FloatCount(Call* call) { return lib::Count(call->cmd->floatArgs); }
 
-double CrtSin(double x) { return std::sin(x); }
-double CrtCos(double x) { return std::cos(x); }
-double CrtPow(double x, double y) { return std::pow(x, y); }
-
 } // namespace
 
 bool Sin(Call* call) {
     float x = Floats(call)[0];
-    *call->result.number = static_cast<float>(CrtSin(x));
+    *call->result.number = static_cast<float>(std::sin(x));
     return true;
 }
 
 bool Cos(Call* call) {
     float x = Floats(call)[0];
-    *call->result.number = static_cast<float>(CrtCos(x));
+    *call->result.number = static_cast<float>(std::cos(x));
     return true;
 }
 
 bool Pow(Call* call) {
     float x = Floats(call)[0];
     float y = Floats(call)[1];
-    *call->result.number = static_cast<float>(CrtPow(x, y));
+    *call->result.number = static_cast<float>(std::pow(x, y));
     return true;
 }
 
-// The signature has two floats, but the handler reads four, as in addon: there the last two came from past the end
-// of the argument array (heap bytes, any value from run to run), here they are 0.
+// The signature has two floats, but the handler reads four, as Rebirth's does: there the last two came from past the
+// end of the argument array (heap bytes, any value from run to run), here they are 0.
 bool DistancePointPoint(Call* call) {
     float f[4] = {};
     const float* given = Floats(call);
@@ -64,7 +59,7 @@ bool DistancePointPoint(Call* call) {
     return true;
 }
 
-// Add / Mul of more than two: the sum / product in addon's order; of two, the game's own (false).
+// Add / Mul of more than two: the sum / product in argument order; of two, the game's own (false).
 bool Add(Call* call) {
     if (FloatCount(call) == 2) return false;
     float sum = 0.0f;
@@ -174,10 +169,8 @@ bool Random(Call* call) {
 
 // --- Script addon strings ----------------------------------------------------------------------------
 
-// AddNewScriptCommands: addon's string functions and its two text commands. String results are
-// assigned to the string addon gets (its c_str(), as the game's string assignment took it) from a
-// std::string addon builds first.
-// FloatToStr formats with the C runtime's "%.<n>f" and StrToFloat parses with atof.
+// Rebirth's string functions and its two text commands. A string result is cut at its first NUL, as the game's
+// string assignment did. FloatToStr formats with the C runtime's "%.<n>f" and StrToFloat parses with atof.
 
 namespace scriptaddon {
 
@@ -188,7 +181,7 @@ namespace {
 
 const std::string& Arg(Call* call, int i) { return call->cmd->stringArgs[i]; }
 
-// 10010D8F: every string argument appended in order (each by its length).
+// Every string argument appended in order (each by its length).
 std::string Joined(Call* call) {
     std::string text;
     for (const std::string& part : call->cmd->stringArgs) text += part;
@@ -198,7 +191,7 @@ std::string Joined(Call* call) {
 // std::string's c_str() assigned to the result (the text up to its first NUL).
 void Assign(Call* call, const std::string& text) { *call->result.text = text.c_str(); }
 
-// A NUL-terminated copy changed in place by lib/text_case.h's case (Rebirth's CharLowerA / CharUpperA).
+// A NUL-terminated copy changed in place by lib/text_case.h's case.
 std::string CaseConverted(std::string_view text, bool upper) {
     std::vector<char> buffer(text.begin(), text.end());
     buffer.push_back(0);
@@ -303,10 +296,9 @@ bool StrUpper(Call* call) {
 // Say(text, ...): in a network game, the joined texts go out as a chat line from the server.
 bool Say(Call* call) {
     if (IsMultiplayerClient()) {
-        net::ServerSession* server = net::g_gameServer;
-        if (server && !(server->flags7 & RefCounted::kDetached)) {
+        if (IsLive(net::g_gameServer)) {
             std::string text = Joined(call);
-            server->Announce(text, 0);
+            net::g_gameServer->Announce(text, 0);
         }
     }
     return true;

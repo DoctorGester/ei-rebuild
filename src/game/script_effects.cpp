@@ -19,8 +19,7 @@
 
 namespace {
 
-// The particle types CreateParticleSource accepts (the exe's table of 64: name, EffectParticle type,
-// lifetime in ticks, -1 forever).
+// The particle types CreateParticleSource accepts: name, EffectParticle type, lifetime in ticks (-1 forever).
 constexpr ScriptParticleType kScriptParticleTypes[64] = /*0078B120*/ {
     {"AcidRay", 0x2012, -1},
     {"FireArrow", 0x2011, -1},
@@ -88,9 +87,6 @@ constexpr ScriptParticleType kScriptParticleTypes[64] = /*0078B120*/ {
     {"Transform", 0x2052, 200},
 };
 
-// Class ids of the effect objects the script makes (BaseManager::CreateObject).
-constexpr int kCommandCreateFxSource = 0x16;   // CreateRandomizedFXSource is 0x18
-
 // The effect object saved under `id` (-1: none), as the slot's effect class.
 template <class T>
 ScriptEffect<T> ReadObject(ByteStream* stream) {
@@ -121,16 +117,21 @@ template void ScriptDropEffect(EffectParticle*);
 template void ScriptDropEffect(EffectSound*);
 template void ScriptDropEffect(EffectLightning*);
 
+EffectSound* ScriptNewSound(const Vector3& position, float volume, float radius, const std::string& name, bool looping) {
+    auto* sound = g_serverWorld.timedObjectManager->CreateObjectAs<EffectSound>(ClassId::EffectSound, -1);
+    sound->localPosition = position;
+    sound->volume = volume;
+    sound->radius = radius;
+    sound->looping = looping;
+    str::CopyInto(sound->name, name);
+    g_serverWorld.AddTimedObject(sound);
+    return sound;
+}
+
 // CreateFX(x, y, z, volume, radius, name), a sound played once.
 void Script::ScriptCreateFx(const SSCCmd* cmd) {
-    auto* sound = g_serverWorld.timedObjectManager->CreateObjectAs<EffectSound>(ClassId::EffectSound, -1);
     const float* f = cmd->floatArgs.data();
-    sound->localPosition = {f[0], f[1], f[2]};
-    sound->volume = f[3];
-    sound->radius = f[4];
-    sound->looping = 0;
-    str::CopyInto(sound->name, cmd->stringArgs[0]);
-    g_serverWorld.AddTimedObject(sound);
+    ScriptNewSound({f[0], f[1], f[2]}, f[3], f[4], cmd->stringArgs[0], false);
 }
 
 // CreateFXSource / CreateRandomizedFXSource (script.h). A new source is appended empty. Every field
@@ -156,7 +157,7 @@ void Script::ScriptCreateFxSource(const SSCCmd* cmd) {
     source->radius = f[5];
     source->name = cmd->stringArgs[0];
 
-    if (cmd->id != kCommandCreateFxSource) {
+    if (cmd->id != static_cast<int>(ScriptFunction::CreateFXSource)) {
         source->minDelay = lib::RoundEven(f[6]);
         source->maxDelay = lib::RoundEven(f[7]);
         source->countdown = 0;
@@ -164,13 +165,8 @@ void Script::ScriptCreateFxSource(const SSCCmd* cmd) {
         source->idle = 1;
         return;
     }
-    auto* sound = g_serverWorld.timedObjectManager->CreateObjectAs<EffectSound>(ClassId::EffectSound, -1);
-    source->object = ScriptEffect<EffectSound>(sound);
-    sound->localPosition = source->position;
-    sound->volume = source->volume;
-    sound->radius = source->radius;
-    str::CopyInto(sound->name, source->name);
-    g_serverWorld.AddTimedObject(sound);
+    source->object = ScriptEffect<EffectSound>(
+        ScriptNewSound(source->position, source->volume, source->radius, source->name, true));
     source->idle = 0;
 }
 
@@ -282,6 +278,21 @@ void ScriptLightning::Save(ByteStream* stream) const {
     stream->WriteValue(id);
 }
 
+
+void ScriptParticleSource::Load(ByteStream* stream) {
+    object = ReadObject<EffectParticle>(stream);
+    stream->ReadValue(id);
+    stream->ReadValue(deleteAfterMove);
+    stream->ReadValue(moving);
+    stream->ReadValue(steps);
+    stream->ReadValue(step);
+    stream->ReadValue(lifetime);
+}
+
+void ScriptLightning::Load(ByteStream* stream) {
+    object = ReadObject<EffectLightning>(stream);
+    stream->ReadValue(id);
+}
 
 void ScriptPointLight::Load(ByteStream* stream) {
     object = ReadObject<EffectPointLight>(stream);

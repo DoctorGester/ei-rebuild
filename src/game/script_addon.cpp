@@ -1,15 +1,10 @@
-// Rebirth's AddNewScriptCommands (addon.dll v0.12.4.2): the extended keyword table, the dispatch of
-// addon's script functions and commands, and the parser changes. See script_addon.h and
-// docs/notes/rebirth.md. The handlers are in script_addon_*.cpp.
-// How addon installs it: a std::vector of 300 entries gets the game's keywords (script.h's
-// kScriptKeywords, without the terminator); then each of its 69 command records (0x40 bytes: name,
-// signature, handler, flags) is registered: a name already in the table (stricmp) with
-// an id below 300 keeps its id and gets the record's signature as its function signature (the
-// first letter is one of "FGOS") or command signature (both cleared first); a new name is appended
-// with id 300 + the number of records registered before it. The terminator is appended, the vector
-// shrunk to fit, and the loader's (and the dumper's) references to the keyword table are
-// pointed at it. The records also go into a hash map by id that the hooks look the command up in
-// before the game's own switch.
+// Rebirth's extra script commands and functions (addon.dll's AddNewScriptCommands, v0.12.4.2): the extended keyword
+// table, the dispatch to the handlers (script_addon_*.cpp) and the parser's '?' / '+' signature letters. See
+// script_addon.h and docs/notes/rebirth.md.
+// The table is the game's keywords (script.h's kScriptKeywords) plus the 69 records (name, signature, handler):
+// a name already in the table (case-insensitive) keeps its id and gets the record's signature as its function
+// signature (the first letter is one of "FGOS") or command signature (both cleared first); a new name is appended
+// with id 300 + the record's index. A map by id finds the record before the game's own switch runs.
 #include "script_addon.h"
 #include "script_addon_handlers.h"
 
@@ -29,8 +24,7 @@ namespace scriptaddon {
 
 namespace {
 
-// A command record (100BA738): flags are 0 for every record, so the first letter alone makes a
-// signature a function's.
+// A command record: the first letter alone makes a signature a function's.
 struct Record {
     const char* name;
     const char* signature;
@@ -113,22 +107,12 @@ constexpr int kRecordCount = static_cast<int>(sizeof(kRecords) / sizeof(kRecords
 static_assert(kRecordCount == 69);
 constexpr int kFirstNewId = 300;
 
-// _stricmp in the "C" locale (the names are ASCII).
-int AsciiStricmp(const char* a, const char* b) {
-    for (;; ++a, ++b) {
-        int ca = static_cast<unsigned char>(*a), cb = static_cast<unsigned char>(*b);
-        if (ca >= 'A' && ca <= 'Z') ca += 'a' - 'A';
-        if (cb >= 'A' && cb <= 'Z') cb += 'a' - 'A';
-        if (ca != cb || ca == 0) return ca - cb;
-    }
-}
-
 bool IsAsciiAlpha(char c) { return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'); }
 bool IsAsciiAlnum(char c) { return IsAsciiAlpha(c) || (c >= '0' && c <= '9'); }
 
 bool IsVanillaKept(const char* name) {
     for (const char* kept : {"IsAlive", "IsDead", "ResetTarget"})
-        if (AsciiStricmp(name, kept) == 0) return true;
+        if (Stricmp(name, kept) == 0) return true;
     return false;
 }
 
@@ -148,7 +132,7 @@ const Built& Build() {
             bool function = std::strchr("FGOS", record.signature[0]) != nullptr && record.signature[0] != 0;
             ScriptKeyword* existing = nullptr;
             for (ScriptKeyword& k : b.table)
-                if (AsciiStricmp(k.name, record.name) == 0) {
+                if (Stricmp(k.name, record.name) == 0) {
                     existing = &k;
                     break;
                 }
@@ -178,7 +162,6 @@ const Built& Build() {
 
 // ---- Helpers for the handlers -------------------------------------------------------------------
 
-// CVTTSD2SI (addon.dll's conversion): truncation; NaN and values outside the int range give INT_MIN.
 int TruncateOrMin(float value) {
     const double wide = value;
     if (!(wide > -2147483649.0 && wide < 2147483648.0)) return INT32_MIN;
@@ -187,7 +170,14 @@ int TruncateOrMin(float value) {
 
 float Distance(float x0, float y0, float x1, float y1) { return Length2D(Vector2{x1, y1} - Vector2{x0, y0}); }
 
-int Stricmp(const char* a, const char* b) { return AsciiStricmp(a, b); }
+int Stricmp(const char* a, const char* b) {
+    for (;; ++a, ++b) {
+        int ca = static_cast<unsigned char>(*a), cb = static_cast<unsigned char>(*b);
+        if (ca >= 'A' && ca <= 'Z') ca += 'a' - 'A';
+        if (cb >= 'A' && cb <= 'Z') cb += 'a' - 'A';
+        if (ca != cb || ca == 0) return ca - cb;
+    }
+}
 
 bool IsUnit(EngineObject* object) { return object->GetClassId() == ClassId::Unit; }
 

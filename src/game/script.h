@@ -34,6 +34,25 @@ enum ScriptType : int {
     kScriptGroup = 4,
 };
 
+// The four types' signature letters and names, in ScriptType order.
+inline constexpr char kScriptTypeLetters[] = "fsog";
+inline constexpr const char* kScriptTypeNames[] = {"float", "string", "object", "group"};
+
+// The signature letter of a type ('f', 's', 'o', 'g'); 0 for a number that is none.
+inline char ScriptTypeLetter(int type) {
+    return type >= kScriptFloat && type <= kScriptGroup ? kScriptTypeLetters[type - 1] : 0;
+}
+// The type of a signature letter (upper-case too: a result letter, the loop counter 'O'); 0 for none.
+inline int ScriptTypeOfLetter(char letter) {
+    for (int type = kScriptFloat; type <= kScriptGroup; ++type)
+        if (letter == kScriptTypeLetters[type - 1] || letter == kScriptTypeLetters[type - 1] - 'a' + 'A') return type;
+    return 0;
+}
+// "float", "string", "object" or "group"; null for any other number.
+inline const char* ScriptTypeName(int type) {
+    return type >= kScriptFloat && type <= kScriptGroup ? kScriptTypeNames[type - 1] : nullptr;
+}
+
 // A counted reference to a world object: holding one keeps the object's refCount raised. Objects
 // deleted from the world stay allocated while referenced and have bit 0 of flags set.
 struct ScriptObjectRef {
@@ -104,6 +123,8 @@ struct ScriptNamedValues {
     void Save(ByteStream* stream) const;
     // The other set's values and names appended (the two lists stay parallel).
     void Append(const ScriptNamedValues<T>& other);
+    // The index of the name (case-sensitive), -1 when there is none.
+    int Find(std::string_view name) const;
 
     std::vector<T> values;
     std::vector<std::string> names;
@@ -137,6 +158,8 @@ struct ScriptVars {
     // Any type; case-sensitive.
     bool HasVariable(std::string_view name) const;
     ScriptVarRef FindVariable(std::string_view name) const;
+    // The index of the name among the variables of one ScriptType, -1 when there is none.
+    int FindOfType(int type, std::string_view name) const;
     void RemoveDeletedObjects();
 
     ScriptNamedValues<float> floats;
@@ -157,6 +180,52 @@ static_assert(sizeof(ScriptBinding) == 12);   // saved as its 12 bytes
 struct ScriptToken {
     std::string text = "None";
     int line = -1;
+};
+
+// What Script::Error records as the error code.
+enum ScriptParseError : int {
+    kErrNone = 0,
+    kErrEndOfFile = 1,          // "Unexpected end of file" (and the open comment)
+    kErrWrongLexeme = 2,
+    kErrUnexpectedToken = 3,
+    kErrExpected = 4,
+    kErrNotEnoughParameters = 5,
+    kErrTooManyParameters = 6,
+    kErrParameterType = 7,
+    kErrLoopCounter = 8,
+    kErrFloatFunction = 9,
+    kErrExpectedIf = 10,
+    kErrNoCondition = 11,
+    kErrUnknownType = 12,
+    kErrDuplicateVariable = 13,
+    kErrSecondWorldScript = 14,
+    kErrDuplicateScript = 15,
+    kErrMultipleDeclaration = 16,
+    kErrCannotRead = 17,
+};
+
+class Script;
+
+// The tokens of one file in reading order, and the Script that gets the parse errors.
+class TokenReader {
+public:
+    TokenReader(Script* script, const std::vector<ScriptToken>* tokens) : script(script), tokens(tokens), pos(tokens->begin()) {}
+
+    bool AtEnd() const { return pos == tokens->end(); }
+    // The line of the last token (-1 with no tokens).
+    int LastLine() const { return tokens->empty() ? -1 : tokens->back().line; }
+    // Takes the next token and sets *id (when given) to what ClassifyToken makes of it. At the end: an empty token on
+    // the last line, the position staying (the game read past the end: a script ending in "Foo(" faulted).
+    ScriptToken Next(int* id = nullptr);
+    // The next token must be lexeme `id`: otherwise the error "Unexpected end of file" or "Wrong lexeme", returns false.
+    bool Expect(int id);
+    // Records "Unexpected end of file" on the last line; returns false.
+    bool EndOfFileError();
+
+private:
+    Script* script;
+    const std::vector<ScriptToken>* tokens;
+    std::vector<ScriptToken>::const_iterator pos;
 };
 
 // A part of a named area for IsInArea (AddRectToArea / AddRoundToArea).
@@ -186,6 +255,13 @@ struct ScriptArea {
 // classes in script_effects.cpp.
 template <class T>
 void ScriptDropEffect(T* object);
+
+// A sound made at once and added to the world's timed objects (CreateFX, CreateFXSource and the respawns of the
+// FX sources).
+EffectSound* ScriptNewSound(const Vector3& position, float volume, float radius, const std::string& name, bool looping);
+
+// A colour channel in 0..255 scaled to 0..1 (1 / 255).
+inline constexpr float kScriptColourScale = 0.003921569f;
 
 // The effect object of one of them: made from a pointer it takes a reference of its own; reset, assigned over or
 // destroyed, it drops the effect. Move-only. Made and read only where the effect classes are complete
@@ -238,6 +314,7 @@ struct ScriptPointLight {
 struct ScriptParticleSource {
     // As the point light's.
     void Save(ByteStream* stream) const;
+    void Load(ByteStream* stream);
 
     ScriptEffect<EffectParticle> object;
     int id = 0;
@@ -272,6 +349,7 @@ struct ScriptFxSource {
 struct ScriptLightning {
     // As the point light's.
     void Save(ByteStream* stream) const;
+    void Load(ByteStream* stream);
 
     ScriptEffect<EffectLightning> object;
     int id = -1;
@@ -328,6 +406,9 @@ public:
     void CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result);
 
     void PrepareArguments(Script* script, ScriptVars* vars);
+    // The nested call that computes a float: the condition of Every / Any / Sum / ForIf. Null when there is none
+    // (the condition is then the constant in float 0).
+    const ScriptSubCall* ConditionCall() const;
 
     // Every argument, binding and nested call dropped; id and calledScript become 0.
     void Clear();
@@ -380,10 +461,12 @@ struct ScriptIfThen {
 struct ScriptDefinition {
     // Name and parameter string (terminators included), the if-then pairs (block ids), the variables.
     void Save(ByteStream* stream) const;
+    // Reads what Save wrote; if-then pairs naming a block the saved script lacks are dropped.
+    void Load(ByteStream* stream);
     // A script call's arguments (all but the first float and string, which name the script) into the
     // instance's variables; FatalError when a type's count does not match.
     void BindCall(const SSCCmd* call);
-    // FALSE when the name is taken.
+    // False when the name is taken.
     bool AddParameter(const std::string* name, int type);
     // Emptied (Script::Load before each `Script` section).
     void Reset();
@@ -404,8 +487,8 @@ struct ScriptRun {
     // Block id, index, ticks, sleep start, the index of its instance in g_streamedScript's instance list (-1
     // when absent), the variables.
     void Save(ByteStream* stream) const;
-    // Rebirth patches it. Runs commands from `index` until one waits (Sleep, WaitSegment, SleepUntil,
-    // SleepUntilIdle) or the block ends. Returns 0 when the block had already ended on entry, else 1.
+    // Runs commands from `index` until one waits (Sleep, WaitSegment, SleepUntil, SleepUntilIdle) or the block
+    // ends. Returns false when the block had already ended on entry.
     bool Execute(Script* script);
 
     ScriptDecl* block = nullptr;    // the commands
@@ -481,43 +564,38 @@ public:
     void ScriptMoveParticleSource(const SSCCmd* cmd);
 
     // ---- Loader and parser ----
-    // Every Load* function returns 1 on success; on failure it returns what Error returned (0). `pos` is the
-    // current token; functions consume tokens through it.
+    // Every Load* function returns true on success; on failure it returns what Error returned (false) after
+    // recording the error. `tokens` is the file's token stream; functions consume it.
 
-    // Formats the message into the error text; returns 0. Rebirth patches it.
-    static int Error(Script* script, int line, int code, const char* format, ...);
+    // Formats the message into the error text; returns 0.
+    static int Error(Script* script, int line, ScriptParseError code, const char* format, ...);
     // With a std::string among the arguments: its text is passed for the %s.
     template <class... Args>
         requires libprintf::HasString<Args...>
-    static int Error(Script* script, int line, int code, const char* format, Args&&... args) {
+    static int Error(Script* script, int line, ScriptParseError code, const char* format, Args&&... args) {
         return Error(script, line, code, format, libprintf::Arg(std::forward<Args>(args))...);
     }
     // See script.md, "Lexer".
     bool Tokenize(const std::string& text, std::vector<ScriptToken>* tokens);
-    bool ExpectLexeme(const std::vector<ScriptToken>* tokens, std::vector<ScriptToken>::const_iterator* pos, int id);
     // `name`, or "!<file>!<name>" when this is not the first file loaded.
     std::string QualifyName(const std::string& name);
     // Retries without each "!<n>!" prefix.
     int FindScript(std::string_view name);
-    // Rebirth patches it. `signature`: the parameter types (lower-case letters). `assignment`: one parameter,
-    // no parentheses; `scriptCall`: one extra float and string slot.
-    bool LoadFunction(SSCCmd* cmd, std::vector<ScriptToken>::const_iterator* pos, const std::vector<ScriptToken>* tokens, int id,
-                      ScriptVars* locals, const char* signature, bool assignment, bool scriptCall);
+    // `signature`: the parameter types (lower-case letters). `assignment`: one parameter, no parentheses;
+    // `scriptCall`: one extra float and string slot.
+    bool LoadFunction(SSCCmd* cmd, TokenReader* tokens, int id, ScriptVars* locals, const char* signature, bool assignment,
+                      bool scriptCall);
     // Float functions up to ')'.
-    bool LoadConditions(std::vector<SSCCmd>* conditions, std::vector<ScriptToken>::const_iterator* pos,
-                        const std::vector<ScriptToken>* tokens, ScriptVars* locals);
+    bool LoadConditions(std::vector<SSCCmd>* conditions, TokenReader* tokens, ScriptVars* locals);
     // `if(...)then(...)` pairs up to ')'.
-    bool LoadScriptBody(ScriptDefinition* script, std::vector<ScriptToken>::const_iterator* pos, const std::vector<ScriptToken>* tokens);
+    bool LoadScriptBody(ScriptDefinition* script, TokenReader* tokens);
     // `= value` assigned to global variable `name` (command 0x78).
-    bool LoadAssignOperator(SSCCmd* cmd, std::vector<ScriptToken>::const_iterator* pos, const std::vector<ScriptToken>* tokens,
-                            ScriptVars* locals, const std::string* name);
-    // `name : type, ...)` (parameters or GlobalVars). Returns 0 without an error when the tokens run out.
-    bool LoadVariableDeclarations(ScriptDefinition* script, std::vector<ScriptToken>::const_iterator* pos,
-                                  const std::vector<ScriptToken>* tokens, bool qualify);
-    // Rebirth patches it. Commands up to ')'; null `locals` means an empty variable set (For bodies; with
-    // Rebirth's AllowScriptArgsInLoops a For body gets the enclosing `locals`).
-    bool LoadCommands(std::vector<SSCCmd>* commands, std::vector<ScriptToken>::const_iterator* pos, const std::vector<ScriptToken>* tokens,
-                      ScriptVars* locals);
+    bool LoadAssignOperator(SSCCmd* cmd, TokenReader* tokens, ScriptVars* locals, const std::string* name);
+    // `name : type, ...)` (parameters or GlobalVars); "Unexpected end of file" when the tokens run out.
+    bool LoadVariableDeclarations(ScriptDefinition* script, TokenReader* tokens, bool qualify);
+    // Commands up to ')'; null `locals` means an empty variable set (the WorldScript). A For body sees the
+    // enclosing `locals`.
+    bool LoadCommands(std::vector<SSCCmd>* commands, TokenReader* tokens, ScriptVars* locals);
     // The text is replaced by its #define-expanded form.
     bool Load(std::string* text, bool runWorldScript);
     // With the WorldScript started; error 0x11 when the file cannot be read.
@@ -820,15 +898,15 @@ void AddDefine(std::vector<ScriptDefine>* defines, const ScriptDefine* define);
 // Each define in list order.
 void ApplyDefines(std::string* line, const std::vector<ScriptDefine>* defines);
 
-// Rebirth patches it. *id = number (7A), string (7B, closed quote) or the id of the longest keyword the text
+// *id = number (7A), string (7B, closed quote) or the id of the longest keyword the text
 // starts with (case-insensitive; 0 if none), *rest = characters after the matched part. Either may be null.
 void ClassifyToken(const char* text, int* id, int* rest);
 inline void ClassifyToken(const std::string& text, int* id, int* rest) { ClassifyToken(text.c_str(), id, rest); }
-// Rebirth patches it. Null unless function `id` returns `type`.
+// Null unless function `id` returns `type`.
 const char* FunctionSignature(int id, int type);
-// Rebirth patches it. "Unknown command" if none.
+// "Unknown command" if none.
 const char* KeywordName(int id);
-// Rebirth's extended table (scriptaddon::Table(): kScriptKeywords and AddNewScriptCommands' additions).
+// The keyword table with Rebirth's additions (scriptaddon::Table()).
 const ScriptKeyword* KeywordTable();
 
 // Outside For loops; keeps one empty group and one released object reference.
