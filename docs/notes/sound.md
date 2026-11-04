@@ -85,6 +85,9 @@ Measured 2026-11-03 (the game thread's sound time a pass; the device):
 - Before PlayStreamOnce, PlayJingle and the calm music spun on the main thread until the stream thread took the file:
   127 and 146 ms a request on Windows, 9 to 207 ms on WSLg with a working sink, 874 ms and then for good (the harness's
   60 s limit) once the sink had stalled.
+- The stream thread's longest hold of `streamLock` (2026-11-04, a realtime zone, a jingle every 2.5 s, no device):
+  while it decoded and opened under the lock 0.1 to 0.19 ms a half and 1.2 to 2.6 ms at a file's opening (Windows
+  and WSL alike, the files on a local disk), at most 0.007 ms since; no game-thread wait seen in either.
 
 ## Game side
 
