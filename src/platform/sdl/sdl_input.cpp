@@ -43,7 +43,7 @@ bool Translator::Take(const SDL_Event& e, float pixelsPerPoint, std::deque<Event
     case SDL_EVENT_KEY_DOWN:
     case SDL_EVENT_KEY_UP: {
         const SDL_KeyboardEvent& k = e.key;
-        const sdl_keys::KeyCode code = sdl_keys::KeyOf(k.scancode, k.mod, LayoutKey);
+        const sdl_keys::KeyCode code = sdl_keys::KeyOf(k.scancode, k.mod, sdl_keys::LayoutKey);
         if (code.key == 0) return true;
         Event event;
         event.type = k.down ? EventType::KeyDown : EventType::KeyUp;
@@ -54,7 +54,7 @@ bool Translator::Take(const SDL_Event& e, float pixelsPerPoint, std::deque<Event
         out->push_back(event);
         if (!k.down) return true;
         typedScan = code.scan;
-        if (const int character = sdl_keys::ControlCharacter(code.key, code.scan, k.mod, LayoutControlCharacter)) {
+        if (const int character = sdl_keys::ControlCharacter(code.key, code.scan, k.mod, sdl_keys::LayoutControlCharacter)) {
             char text[5] = {};
             SDL_UCS4ToUTF8(static_cast<Uint32>(character), text);
             out->push_back(TextEvent(text, typedScan));

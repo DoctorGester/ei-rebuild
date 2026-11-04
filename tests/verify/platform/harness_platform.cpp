@@ -264,9 +264,9 @@ SDL_Window* SdlWindow(NativeWindow window) { return hp::WindowOf(window); }
 
 // ---- Clocks, the message box -------------------------------------------------------------------------------------
 
-std::uint32_t Milliseconds() { return clock::Milliseconds(); }
+std::uint32_t FrameClock() { return clock::Milliseconds(); }
 
-std::uint32_t TickCount() { return clock::Ticks(); }
+std::uint32_t CoarseClock() { return clock::Ticks(); }
 
 void Sleep(std::uint32_t ms) { clock::Sleep(ms); }
 
@@ -284,7 +284,7 @@ std::int64_t SecondsSince1970() {
     return std::mktime(&at);
 }
 
-MessageAnswer ShowMessageBox(void*, const char* text, const char* caption, MessageButtons buttons, MessageIcon) {
+MessageAnswer ShowMessageBox(NativeWindow, const char* text, const char* caption, MessageButtons buttons, MessageIcon) {
     return hp::AnswerMessageBox(text, caption, buttons);
 }
 

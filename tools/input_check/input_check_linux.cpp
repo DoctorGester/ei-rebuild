@@ -231,11 +231,12 @@ void Check(const Layout& layout, bool print) {
     std::string keys, typed, control;
     for (std::size_t i = 0; i < scans.size(); ++i) {
         const int scan = scans[i];
-        const KeyCode code = platform::sdl_keys::KeyOf(platform::sdl_keys::ScancodeOf(scan), SDL_KMOD_NONE, platform::LayoutKey);
+        const KeyCode code = platform::sdl_keys::KeyOf(platform::sdl_keys::ScancodeOf(scan), SDL_KMOD_NONE,
+                                                       platform::sdl_keys::LayoutKey);
         const int withCtrl = platform::sdl_keys::ControlCharacter(code.key, code.scan, SDL_KMOD_CTRL,
-                                                                  platform::LayoutControlCharacter);
+                                                                  platform::sdl_keys::LayoutControlCharacter);
         const int plain = platform::sdl_keys::ControlCharacter(code.key, code.scan, SDL_KMOD_NONE,
-                                                               platform::LayoutControlCharacter);
+                                                               platform::sdl_keys::LayoutControlCharacter);
         const std::string name = Name(scan);
         const bool letter = code.key >= 'A' && code.key <= 'Z';
         if (print) {

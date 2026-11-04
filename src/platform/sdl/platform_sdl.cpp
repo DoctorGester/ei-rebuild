@@ -49,9 +49,9 @@ std::uint32_t Clock() { return static_cast<std::uint32_t>(SDL_GetTicks() + kCloc
 
 } // namespace
 
-std::uint32_t Milliseconds() { return Clock(); }
+std::uint32_t FrameClock() { return Clock(); }
 
-std::uint32_t TickCount() { return Clock(); }
+std::uint32_t CoarseClock() { return Clock(); }
 
 void Sleep(std::uint32_t ms) {
     if (ms == 0)
@@ -66,7 +66,7 @@ std::int64_t SecondsSince1970() {
 
 // ==== The message box ================================================================================================
 
-MessageAnswer ShowMessageBox(void* owner, const char* text, const char* caption, MessageButtons buttons,
+MessageAnswer ShowMessageBox(NativeWindow owner, const char* text, const char* caption, MessageButtons buttons,
                              MessageIcon icon) {
     constexpr int kOk = 0;
     const SDL_MessageBoxButtonData choices[] = {

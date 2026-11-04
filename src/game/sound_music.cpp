@@ -30,7 +30,7 @@ constexpr const char* kMp3 = /*00744094*/ ".mp3";
 // Next delay of the calm music: 120..180 s from now. The random value is drawn first.
 std::uint32_t CalmDelay() {
     std::uint32_t r = g_clientRandom.Next() % 60001;
-    return platform::Milliseconds() + r + 120000;
+    return platform::FrameClock() + r + 120000;
 }
 
 // One name of a theme list: the only one, or one at random; an empty list gives an empty name.
@@ -194,9 +194,9 @@ void MusicSystem::UpdateMusic() {
         combatTrack = game::kEmptyText;
         if (calmDue == 0) {
             std::uint32_t r = g_clientRandom.Next();
-            calmDue = platform::Milliseconds() + r % 60001 + 120000;
+            calmDue = platform::FrameClock() + r % 60001 + 120000;
         }
-        if (platform::Milliseconds() >= calmDue) {
+        if (platform::FrameClock() >= calmDue) {
             calmDue = 0;
             const MusicTheme& t = themes[theme];
             if (!t.calm.empty()) {

@@ -121,7 +121,7 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
     // Mode 2 as large as fits, otherwise centred at its size.
     const bool centred = options::g_options.video != 2;
     if (frameTime) SetQuitAllowed(0);
-    std::uint32_t start = platform::Milliseconds() - frameTime;
+    std::uint32_t start = platform::FrameClock() - frameTime;
     bool escaped = false;
     std::vector<std::uint8_t> frame;
     platform::Event event;
@@ -134,7 +134,7 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
                     break;
                 }
                 if (!spaceSkips) continue;
-                start = platform::Milliseconds() - frameTime * 2;
+                start = platform::FrameClock() - frameTime * 2;
             } else if (event.type == platform::EventType::Quit) {   // the movie ends; the main loop ends on it
                 platform::PostQuit(event.quitCode);
                 break;
@@ -143,7 +143,7 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
             }
             continue;
         }
-        std::uint32_t now = platform::Milliseconds();
+        std::uint32_t now = platform::FrameClock();
         if (Ended(movie)) {
             if (frameTime == 0 || now - start >= frameTime) break;
             continue;

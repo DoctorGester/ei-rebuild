@@ -14,7 +14,16 @@ struct KeyCode {
     int scan;
 };
 
-// The virtual-key code the active keyboard layout gives the key at a set-1 scan code, or 0 (platform::LayoutKey).
+// The active keyboard layout's answers for SDL's keys, each system's (win32/keyboard.cpp: Windows' layouts;
+// posix/keyboard.cpp: SDL's keymap read as Windows' layouts give theirs). LayoutKey: the virtual-key code the layout
+// gives the key with the set-1 scan code `scan` (bit 8 for an extended key), as the window procedure's key messages
+// carried it; 0 when the system has no such code (KeyOf then names the key itself). LayoutControlCharacter: the
+// control character the layout types for the key (code `key`, scan code `scan`) with Ctrl held, as TranslateMessage
+// made it: 0 for none; -1 when the system cannot say (ControlCharacter then applies its own rule).
+int LayoutKey(int scan);
+int LayoutControlCharacter(int key, int scan);
+
+// The virtual-key code the active keyboard layout gives the key at a set-1 scan code, or 0 (LayoutKey).
 using LayoutKeyFunction = int (*)(int scan);
 
 // The key of `scancode` (its place on the keyboard); {0, 0} for a key the game has no code for. The keys a layout
@@ -36,7 +45,7 @@ SDL_Scancode ScancodeOf(int scan);
 int KeyOfTyped(SDL_Keycode typed);
 
 // The control character the active layout types with Ctrl held for a key (code, set-1 scan code): 0 for none, -1 when
-// the system cannot say (platform::LayoutControlCharacter).
+// the system cannot say (LayoutControlCharacter).
 using LayoutControlFunction = int (*)(int key, int scan);
 
 // The control character TranslateMessage made of a key press (a WM_CHAR), or 0. Alt without Ctrl made none for the

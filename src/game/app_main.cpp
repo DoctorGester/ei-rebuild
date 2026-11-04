@@ -226,12 +226,12 @@ float CameraSeconds(std::uint32_t milliseconds) { return static_cast<float>(mill
 std::uint32_t TimeSinceLastPass() {
     if (!g_clock.started) {
         g_clock.started = true;
-        g_clock.last = platform::Milliseconds();
+        g_clock.last = platform::FrameClock();
     }
     std::uint32_t now;
     {
         ei::mainloop::InSite site(ei::mainloop::Site::FrameTime);
-        now = platform::Milliseconds();
+        now = platform::FrameClock();
     }
     // The voices whose wave has played out by the frame's time end now (the sound manager's Tick frees them), and
     // without a device the music's stream catches up to it.

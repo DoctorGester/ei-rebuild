@@ -28,7 +28,7 @@ void PlaceRoot(FigureAnimationState* state) {
     float factor = owner->AnimationFactor(owner->scale.z);
     Vector3 origin = factor * owner->defaultScale;
     state->root->Place(origin, state->BlendWeight());
-    state->placedAt = platform::Milliseconds();
+    state->placedAt = platform::FrameClock();
 }
 
 } // namespace

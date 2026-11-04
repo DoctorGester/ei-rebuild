@@ -24,7 +24,7 @@
 
 int SceneRenderer::BeginScene() {
     if (!running) return 0;
-    std::uint32_t now = platform::Milliseconds();
+    std::uint32_t now = platform::FrameClock();
     frameStart = now;
     frameTime = now - lastFrameStart;
     return 1;

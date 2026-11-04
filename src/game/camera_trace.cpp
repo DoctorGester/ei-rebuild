@@ -63,14 +63,14 @@ void Drag(Point drag, float layoutX, float layoutY) {
     ++g_drags;
     if (drag.x == 0 && drag.y == 0) return;
     ei::Log("camera trace: drag %d %d (layout %.3f %.3f) at %u: turn target %.5f tilt target %.5f", drag.x, drag.y, layoutX,
-            layoutY, platform::Milliseconds(), g_camera.turnTarget, g_camera.tiltTarget);
+            layoutY, platform::FrameClock(), g_camera.turnTarget, g_camera.tiltTarget);
 }
 
 void MapDrag(Point drag, float layoutX, float angle) {
     if (!On()) return;
     if (drag.x == 0 && drag.y == 0) return;
     ei::Log("camera trace: global map drag %d %d (layout %.3f) at %u: angle %.5f", drag.x, drag.y, layoutX,
-            platform::Milliseconds(), angle);
+            platform::FrameClock(), angle);
 }
 
 } // namespace camera_trace

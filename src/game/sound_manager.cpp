@@ -186,7 +186,7 @@ constexpr std::uint32_t kCacheKeep = 60000;        // ms a wave stays cached aft
 void UseCached(SoundManager* m, SoundSlot* slot, std::list<WaveRecord>::iterator node) {
     m->cacheList.splice(m->cacheList.begin(), m->cacheList, node);
     WaveRecord& record = *node;
-    record.lastUsed = platform::TickCount();
+    record.lastUsed = platform::CoarseClock();
     record.uses += 1;
     slot->length = m->WaveLength(record.data.data(), record.data.size());
     audio::SetWave(slot->voice, record.data.data(), record.data.size());
@@ -469,7 +469,7 @@ int SoundManager::AddEmitter(const std::vector<std::string>* names, const Vector
     e->active = 1;
     e->names = *names;
     MoveEmitter(i, position, inner, outer, minInterval, maxInterval);
-    e->lastPlayed = platform::TickCount();
+    e->lastPlayed = platform::CoarseClock();
     return i;
 }
 
@@ -674,7 +674,7 @@ void SoundManager::Tick() {
         }
     }
 
-    std::uint32_t now = platform::TickCount();
+    std::uint32_t now = platform::CoarseClock();
     if (now - emitterTick < 100) return;
     emitterTick = now;
     IsaacRandom& random = g_clientRandom;
@@ -871,7 +871,7 @@ void SoundManager::MakeStop(int mode) {
             musicFader.finished = 0;
             musicFader.step = step;
             if (step == 0.0f) musicFader.step = lib::FloatFromBits(FadeStepBits());
-            musicFader.SetHold(platform::Milliseconds() + 2000);
+            musicFader.SetHold(platform::FrameClock() + 2000);
         } else {
             MakeSwitch(game::kEmptyText, mode);
         }
@@ -1093,7 +1093,7 @@ int SoundManager::LoadSample(SoundSlot* slot, std::string_view name, int compres
             if (data != nullptr) break;
         }
         int size = static_cast<int>(fileSize);
-        std::uint32_t now = platform::TickCount();
+        std::uint32_t now = platform::CoarseClock();
         WaveRecord record;
         if (compressed != 0) {
             const bool ok = audio::DecodeMp3File(data, fileSize, &record.data);
@@ -1395,13 +1395,13 @@ int SoundManager::OpenStream() {
 }
 
 void SoundManager::StreamThread() {
-    std::uint32_t last = platform::Milliseconds();
+    std::uint32_t last = platform::FrameClock();
     while (threadsQuit == 0) {
-        std::uint32_t now = platform::Milliseconds();
+        std::uint32_t now = platform::FrameClock();
         std::uint32_t elapsed = now - last;
         last = now;
         if (elapsed < kStreamPeriodMs) platform::Sleep(kStreamPeriodMs - elapsed);
-        StepStream(platform::Milliseconds());
+        StepStream(platform::FrameClock());
     }
 }
 
@@ -1524,7 +1524,7 @@ int SoundManager::Open(void* window, int useReverb, unsigned rate) {
             });
         } else {
             streamOnMainLoop = true;
-            streamSteppedAt = platform::Milliseconds();
+            streamSteppedAt = platform::FrameClock();
         }
     }
     slots = std::make_unique<SoundSlot[]>(kVoiceCount);

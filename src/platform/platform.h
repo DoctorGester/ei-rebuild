@@ -22,14 +22,15 @@ namespace platform {
 
 // ==== Clocks =========================================================================================================
 
-// Clocks and waiting. The game reads two millisecond clocks, both counting from the system's start and wrapping at
-// 2^32, each where the original read it: the harness drives them as two clocks (its virtual and held clocks), so a call
-// keeps the clock it has.
+// Clocks and waiting. Two millisecond clocks, both counting from the system's start and wrapping at 2^32. They are
+// two because the original read a precise and a coarse clock in different places and the harness drives each
+// separately (its virtual and held clocks), so a call keeps the clock it has.
 
-// The multimedia timer (timeGetTime): milliseconds in 1 ms steps.
-std::uint32_t Milliseconds();
-// The system tick count (GetTickCount): milliseconds in the scheduler's steps (about 16 ms).
-std::uint32_t TickCount();
+// The frame clock: the main loop's time and everything timed by it (animations, effects, the interface, sound and
+// movies), in 1 ms steps.
+std::uint32_t FrameClock();
+// The coarse clock: the network's ids, the sound cache's ages, the menu's lightning; the system's steps (about 16 ms).
+std::uint32_t CoarseClock();
 // Gives up the calling thread for at least `ms` milliseconds; 0 only lets the other ready threads of its priority run.
 void Sleep(std::uint32_t ms);
 // The calendar's clock: seconds since 1970 UTC now (lib/calendar.h makes a local date of it; the harness fixes it).
@@ -37,13 +38,16 @@ std::int64_t SecondsSince1970();
 
 // ==== The message box ================================================================================================
 
+// A native window (an HWND on Windows, else the SDL_Window): "The window and its events" below.
+using NativeWindow = void*;
+
 enum class MessageButtons : std::uint8_t { Ok, OkCancel };
 enum class MessageIcon : std::uint8_t { Error, Warning };
 enum class MessageAnswer : std::uint8_t { Ok, Cancel };
 
 // Shows `text` (UTF-8) under `caption` and waits for the player. `owner` is the native window it belongs to (null:
 // none). Cancel only when the player cancelled; a box that could not be shown answers Ok.
-MessageAnswer ShowMessageBox(void* owner, const char* text, const char* caption, MessageButtons buttons,
+MessageAnswer ShowMessageBox(NativeWindow owner, const char* text, const char* caption, MessageButtons buttons,
                              MessageIcon icon);
 
 // ==== Paths ==========================================================================================================
@@ -78,13 +82,13 @@ std::string EnvironmentVariable(const char* name);
 // name is matched with Windows' case rules). Every call takes its path through one mapping, which the harness's builds
 // answer with the run's saves and install overlay (src/platform/seams.h): what a call sees depends on its path alone.
 // Every open shares the file with other readers and writers.
-//   - File: a binary file on a system handle (the game's CFile uses), also written by text lines;
+//   - File: a binary file on a system handle, also written by text lines;
 //   - ReadWholeFile / WriteWholeFile: a whole file at once (the text files, split into lines with str::Lines; the
 //     settings file);
 //   - MappedFile: a whole file mapped into memory, read only (the archives' and the registry files');
-//   - FolderEntries: a folder search (its CFileFind uses).
-// A File's read, write or seek that fails throws a FileError, where MFC threw a CFileException: what the game caught it
-// catches; an uncaught one ends the game as before (a write to a full disk).
+//   - FolderEntries: a folder search.
+// A File's read, write or seek that fails throws a FileError: what the game catches of it is caught, an uncaught one
+// ends the game (a write to a full disk).
 
 // Creates the folder `path` (its parent must exist). False when it could not, also when it exists already.
 bool CreateFolder(std::string_view path);
@@ -209,8 +213,8 @@ private:
 
 // Threads are std::thread, locks std::mutex (std::recursive_mutex where a critical section was entered again).
 
-// Gives the calling thread the highest priority (the music stream's thread, which AfxBeginThread started at
-// THREAD_PRIORITY_TIME_CRITICAL: its buffers must be filled in time). std::thread has no priorities.
+// Gives the calling thread the highest priority (the music stream's thread: its buffers must be filled in time).
+// std::thread has no priorities.
 void MakeThreadTimeCritical();
 
 // ==== The window and its events ======================================================================================
@@ -218,9 +222,6 @@ void MakeThreadTimeCritical();
 // docs/notes/platform.md, "Window and events". The window is a native one (an HWND on Windows, else the SDL_Window)
 // that the game passes around as an opaque pointer. What happens to it and the keyboard's and the mouse's input reach
 // the game as Events, which the game's loops take from the queue (EventWaits, NextEvent, TakeEvent).
-
-// A native window (an HWND on Windows, else the SDL_Window).
-using NativeWindow = void*;
 
 enum class EventType : std::uint8_t {
     KeyDown,          // a key pressed, or held and repeating (key, scan, repeat, modifiers)
@@ -373,13 +374,6 @@ void SetCursorPosition(Point at);
 // The name the system gives the key with the scan code `scan` (bit 8 for an extended key) in the active layout's
 // language, UTF-8 into `name` (`size` bytes with the terminator, cut at a character). False when it has none.
 bool KeyName(int scan, char* name, int size);
-// The virtual-key code the active keyboard layout gives the key with the scan code `scan` (set 1, bit 8 for an extended
-// key), as the window procedure's key messages carried it; 0 when the system has no such codes (SDL's backend then
-// names the key itself: sdl_keys.h).
-int LayoutKey(int scan);
-// The control character the active layout types for the key `key` (scan code `scan`) with Ctrl held, as
-// TranslateMessage made it: 0 for none; -1 when the system cannot say (SDL's backend then applies its own rule).
-int LayoutControlCharacter(int key, int scan);
 // Activates the keyboard layout of `language` (a Windows language id), else one of `fallback`, else keeps the one in
 // use. Each installed layout is active for a moment on the way (only the active one tells its language).
 void ActivateKeyboardLayout(std::uint32_t language, std::uint32_t fallback);
@@ -407,12 +401,12 @@ std::string ClipboardText();
 
 // IPv4 UDP and TCP sockets, host names, waiting for readiness. The calls mirror BSD sockets one to one, each failing the
 // way the system's does (the callers rely on it), so a port of the layer maps them straight onto its own sockets. The
-// system's sockets start with the first call that needs them (Winsock 1.1) and stay up until the process ends. Byte
+// system's sockets start with the first call that needs them and stay up until the process ends. Byte
 // order and IPv4 numbers are lib/ipv4.h's.
 
 namespace net {
 
-// A socket: the system's handle, pointer-sized (Winsock's SOCKET); kNoSocket when there is none.
+// A socket: the system's handle or descriptor, pointer-sized; kNoSocket when there is none.
 using Socket = std::uintptr_t;
 inline constexpr Socket kNoSocket = ~Socket{0};
 
@@ -460,10 +454,10 @@ int Receive(Socket socket, void* data, int length);
 
 Error LastError();
 
-// Sockets to wait on (an fd_set). Select leaves in each group only its ready sockets: a group asked again after a
+// Sockets to wait on. Select leaves in each group only its ready sockets: a group asked again after a
 // Select that found none ready is empty.
 struct SocketGroup {
-    static constexpr int kCapacity = 64;   // FD_SETSIZE
+    static constexpr int kCapacity = 64;   // as many as Windows' select takes
 
     int count = 0;
     Socket sockets[kCapacity];

@@ -92,7 +92,7 @@ struct SoundEmitter {
     float outerRadius;
     std::int32_t minInterval;   // ms
     std::int32_t maxInterval;   // ms
-    std::uint32_t lastPlayed;   // GetTickCount()
+    std::uint32_t lastPlayed;   // platform::CoarseClock()
 };
 
 struct SoundSequence;
@@ -139,7 +139,7 @@ using DeferredMap = lib::HashMap<std::int32_t, DeferredSound*>;
 struct WaveRecord {
     std::vector<std::uint8_t> data;   // the wave file (a decoded MP3's as a 16-bit PCM wave)
     std::string name;
-    std::uint32_t lastUsed = 0; // GetTickCount()
+    std::uint32_t lastUsed = 0; // platform::CoarseClock()
     std::int32_t size = 0;      // bytes
     std::int32_t uses = 0;      // voices playing it
 };

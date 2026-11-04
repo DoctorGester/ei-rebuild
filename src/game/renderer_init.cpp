@@ -179,7 +179,7 @@ void SceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     SetRenderState();
 
     frameTime = 0;
-    lastFrameStart = platform::Milliseconds();
+    lastFrameStart = platform::FrameClock();
     AddDefaultLight(this);
 
     // The ambient colour: grey 50, opaque.

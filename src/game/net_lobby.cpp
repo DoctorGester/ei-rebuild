@@ -326,7 +326,7 @@ void ClientBase::Join(const NetAddress* address, const GrowingBuffer* data) {
     if (joinState == kAsking && SameAddress(address, &host)) return;
     host = *address;
     std::uint32_t id = static_cast<std::uint32_t>(libcrt::Rand()) << 16;
-    id |= platform::TickCount() & 0xFFFF;
+    id |= platform::CoarseClock() & 0xFFFF;
     joinId = id;
     joinState = kAsking;
     retryTimer = 0.0f;
