@@ -12,30 +12,28 @@ using platform::Event;
 using platform::EventType;
 using platform::MouseButton;
 
-// A key message's data: the scan code (bit 8 extended), Alt held, the key down before.
-constexpr int kDataScan = 0x1FF, kDataAlt = 0x2000, kDataRepeated = 0x4000;
-
-int DataFlags(std::intptr_t data) { return static_cast<int>((static_cast<std::uintptr_t>(data) >> 16) & 0xFFFF); }
-
-void SetKey(Event& event, EventType type, std::uintptr_t key, std::intptr_t data) {
-    const int flags = DataFlags(data);
+Event KeyEvent(EventType type, unsigned key, unsigned scan, std::uint8_t modifiers) {
+    Event event;
     event.type = type;
     event.key = static_cast<int>(key);
-    event.scan = flags & kDataScan;
-    event.repeat = type == EventType::KeyDown && (flags & kDataRepeated) != 0;
-    event.modifiers = (flags & kDataAlt) ? platform::kModifierAlt : 0;
+    event.scan = static_cast<int>(scan);
+    event.modifiers = modifiers;
+    return event;
 }
 
-void SetMouse(Event& event, EventType type, std::intptr_t at) {
+Event MouseEvent(EventType type, Point at) {
+    Event event;
     event.type = type;
-    event.x = static_cast<short>(at & 0xFFFF);
-    event.y = static_cast<short>((at >> 16) & 0xFFFF);
+    event.x = at.x;
+    event.y = at.y;
+    return event;
 }
 
-void SetButton(Event& event, EventType type, MouseButton button, int clicks, std::intptr_t at) {
-    SetMouse(event, type, at);
+Event ButtonEvent(EventType type, MouseButton button, Point at, int clicks) {
+    Event event = MouseEvent(type, at);
     event.button = button;
     event.clicks = clicks;
+    return event;
 }
 
 // A character (at most U+FFFF) as UTF-8.
@@ -105,35 +103,33 @@ unsigned ScanCode(unsigned key) {
     }
 }
 
-void Post(unsigned message, std::uintptr_t word, std::intptr_t data) {
-    if (message == Activate) {
-        harnessplatform::Activate((word & 0xFFFF) != 0);
-        return;
-    }
+void PressKey(unsigned key, unsigned scan, std::uint8_t modifiers) {
+    harnessplatform::Queue(KeyEvent(EventType::KeyDown, key, scan, modifiers));
+}
+
+void ReleaseKey(unsigned key, unsigned scan, std::uint8_t modifiers) {
+    harnessplatform::Queue(KeyEvent(EventType::KeyUp, key, scan, modifiers));
+}
+
+void TypeCharacter(unsigned character, unsigned scan) {
     Event event;
-    switch (message) {
-    case KeyDown:
-    case SystemKeyDown: SetKey(event, EventType::KeyDown, word, data); break;
-    case KeyUp:
-    case SystemKeyUp: SetKey(event, EventType::KeyUp, word, data); break;
-    case Character:
-        event.type = EventType::Text;
-        event.scan = DataFlags(data) & kDataScan;
-        event.text = Utf8(static_cast<unsigned>(word & 0xFFFF));
-        break;
-    case MouseMove: SetMouse(event, EventType::MouseMove, data); break;
-    case LeftDown: SetButton(event, EventType::MouseDown, MouseButton::Left, 1, data); break;
-    case LeftUp: SetButton(event, EventType::MouseUp, MouseButton::Left, 1, data); break;
-    case LeftDouble: SetButton(event, EventType::MouseDown, MouseButton::Left, 2, data); break;
-    case RightDown: SetButton(event, EventType::MouseDown, MouseButton::Right, 1, data); break;
-    case RightUp: SetButton(event, EventType::MouseUp, MouseButton::Right, 1, data); break;
-    case RightDouble: SetButton(event, EventType::MouseDown, MouseButton::Right, 2, data); break;
-    case Wheel:
-        SetMouse(event, EventType::Wheel, data);
-        event.wheel = static_cast<float>(static_cast<short>((word >> 16) & 0xFFFF)) / 120.0f;
-        break;
-    default: return;
-    }
+    event.type = EventType::Text;
+    event.scan = static_cast<int>(scan);
+    event.text = Utf8(character);
+    harnessplatform::Queue(event);
+}
+
+void MoveMouse(Point at) { harnessplatform::Queue(MouseEvent(EventType::MouseMove, at)); }
+
+void PressButton(MouseButton button, Point at, int clicks) {
+    harnessplatform::Queue(ButtonEvent(EventType::MouseDown, button, at, clicks));
+}
+
+void ReleaseButton(MouseButton button, Point at) { harnessplatform::Queue(ButtonEvent(EventType::MouseUp, button, at, 1)); }
+
+void TurnWheel(int turn, Point at) {
+    Event event = MouseEvent(EventType::Wheel, at);
+    event.wheel = static_cast<float>(turn) / 120.0f;
     harnessplatform::Queue(event);
 }
 

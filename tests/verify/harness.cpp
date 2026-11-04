@@ -1132,16 +1132,18 @@ unsigned ParseModifiers(const std::string& text, std::string* bad) {
     return mods;
 }
 
+using platform::MouseButton;
+
 void PostModifiers(unsigned mods, bool down) {
-    struct Key { unsigned mod, vk, scan; bool system; };
-    static const Key keys[] = {{kModCtrl, input::kKeyControl, 0x1D, false},
-                               {kModShift, input::kKeyShift, 0x2A, false},
-                               {kModAlt, input::kKeyMenu, 0x38, true}};
+    // Alt's own press and release hold Alt (Windows' system keys: the console prints the release).
+    struct Key { unsigned mod, vk, scan; std::uint8_t modifiers; };
+    static const Key keys[] = {{kModCtrl, input::kKeyControl, 0x1D, 0},
+                               {kModShift, input::kKeyShift, 0x2A, 0},
+                               {kModAlt, input::kKeyMenu, 0x38, platform::kModifierAlt}};
     for (const Key& key : keys) {
         if (!(mods & key.mod)) continue;
-        const std::intptr_t data = 1 | (key.scan << 16) | (key.system ? 0x20000000 : 0);
-        if (down) input::Post(key.system ? input::SystemKeyDown : input::KeyDown, key.vk, data);
-        else input::Post(key.system ? input::SystemKeyUp : input::KeyUp, key.vk, data | 0xC0000000u);
+        if (down) input::PressKey(key.vk, key.scan, key.modifiers);
+        else input::ReleaseKey(key.vk, key.scan, key.modifiers);
     }
 }
 
@@ -1245,14 +1247,13 @@ void PostKey(const std::string& name, KeyPart part = KeyPart::Both) {
                           vk == input::kKeyPageUp || vk == input::kKeyPageDown || vk == input::kKeyHome ||
                           vk == input::kKeyEnd || vk == input::kKeyDelete;
     if (part != KeyPart::Both && extended) scan |= 0x100;
-    const std::intptr_t data = 1 | (static_cast<std::intptr_t>(scan) << 16);
     if (part != KeyPart::Up) {
-        input::Post(input::KeyDown, vk, data);
+        input::PressKey(vk, scan);
         if (part == KeyPart::Both && vk >= '0' && vk <= 'Z')
-            input::Post(input::Character, std::tolower(static_cast<int>(vk)), data);
-        if (part == KeyPart::Both && name == "enterchar") input::Post(input::Character, 0x0D, data);
+            input::TypeCharacter(static_cast<unsigned>(std::tolower(static_cast<int>(vk))), scan);
+        if (part == KeyPart::Both && name == "enterchar") input::TypeCharacter(0x0D, scan);
     }
-    if (part != KeyPart::Down) input::Post(input::KeyUp, vk, data | 0xC0000000u);
+    if (part != KeyPart::Down) input::ReleaseKey(vk, scan);
 }
 
 // The image's renderer's present counts.
@@ -1446,35 +1447,35 @@ void LayoutToWindowShare(int width, int height, int* x, int* y) {
 void PostMouse(const std::string& verb, int x, int y) {
     Rect client = GameClient();
     Point window = ToWindow(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
-    const std::intptr_t at = input::Point(window.x, window.y);
+    const Point at = window;
     g_mouseX = window.x;
     g_mouseY = window.y;
-    input::Post(input::MouseMove, 0, at);
+    input::MoveMouse(at);
     if (verb == "click") {
-        input::Post(input::LeftDown, input::kLeftButton, at);
-        input::Post(input::LeftUp, 0, at);
+        input::PressButton(MouseButton::Left, at);
+        input::ReleaseButton(MouseButton::Left, at);
     } else if (verb == "rclick") {
-        input::Post(input::RightDown, input::kRightButton, at);
-        input::Post(input::RightUp, 0, at);
+        input::PressButton(MouseButton::Right, at);
+        input::ReleaseButton(MouseButton::Right, at);
     } else if (verb == "dblclick") {
         // What Windows sends for a double click: down, up, double click, up.
-        input::Post(input::LeftDown, input::kLeftButton, at);
-        input::Post(input::LeftUp, 0, at);
-        input::Post(input::LeftDouble, input::kLeftButton, at);
-        input::Post(input::LeftUp, 0, at);
+        input::PressButton(MouseButton::Left, at);
+        input::ReleaseButton(MouseButton::Left, at);
+        input::PressButton(MouseButton::Left, at, 2);
+        input::ReleaseButton(MouseButton::Left, at);
     } else if (verb == "ldown") {
-        input::Post(input::LeftDown, input::kLeftButton, at);
+        input::PressButton(MouseButton::Left, at);
     } else if (verb == "lup") {
-        input::Post(input::LeftUp, 0, at);
+        input::ReleaseButton(MouseButton::Left, at);
     } else if (verb == "rdown") {
-        input::Post(input::RightDown, input::kRightButton, at);
+        input::PressButton(MouseButton::Right, at);
     } else if (verb == "rup") {
-        input::Post(input::RightUp, 0, at);
+        input::ReleaseButton(MouseButton::Right, at);
     } else if (verb == "rdblclick") {
-        input::Post(input::RightDown, input::kRightButton, at);
-        input::Post(input::RightUp, 0, at);
-        input::Post(input::RightDouble, input::kRightButton, at);
-        input::Post(input::RightUp, 0, at);
+        input::PressButton(MouseButton::Right, at);
+        input::ReleaseButton(MouseButton::Right, at);
+        input::PressButton(MouseButton::Right, at, 2);
+        input::ReleaseButton(MouseButton::Right, at);
     }
 }
 
@@ -1482,8 +1483,8 @@ void PostMouse(const std::string& verb, int x, int y) {
 void PostWheel(int x, int y, int delta) {
     Rect client = GameClient();
     Point point = ToWindow(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
-    input::Post(input::MouseMove, 0, input::Point(point.x, point.y));
-    input::Post(input::Wheel, input::WheelWord(0, delta), input::Point(point.x, point.y));
+    input::MoveMouse(point);
+    input::TurnWheel(delta, point);
 }
 
 // The centre of region `index` of the top interface window, posted as a mouse event. The region's
@@ -1509,20 +1510,20 @@ void PostRegionMouse(const std::string& verb, int index) {
         point.y = point.y * (client.bottom - client.top) / height;
     }
     point = ToWindow(point.x, point.y);
-    const std::intptr_t at = input::Point(point.x, point.y);
-    input::Post(input::MouseMove, 0, at);
+    const Point at = point;
+    input::MoveMouse(at);
     if (verb == "clickregion") {
-        input::Post(input::LeftDown, input::kLeftButton, at);
-        input::Post(input::LeftUp, 0, at);
+        input::PressButton(MouseButton::Left, at);
+        input::ReleaseButton(MouseButton::Left, at);
     } else if (verb == "rclickregion") {
-        input::Post(input::RightDown, input::kRightButton, at);
-        input::Post(input::RightUp, 0, at);
+        input::PressButton(MouseButton::Right, at);
+        input::ReleaseButton(MouseButton::Right, at);
     } else if (verb == "dblclickregion") {
         // As "dblclick": down, up, double click, up.
-        input::Post(input::LeftDown, input::kLeftButton, at);
-        input::Post(input::LeftUp, 0, at);
-        input::Post(input::LeftDouble, input::kLeftButton, at);
-        input::Post(input::LeftUp, 0, at);
+        input::PressButton(MouseButton::Left, at);
+        input::ReleaseButton(MouseButton::Left, at);
+        input::PressButton(MouseButton::Left, at, 2);
+        input::ReleaseButton(MouseButton::Left, at);
     }
 }
 
@@ -1610,19 +1611,19 @@ std::string PostUnitMouse(const std::string& argument) {
     at = ToWindow(at.x, at.y);   // the frame's pixel in the window (R9c)
     g_mouseX = at.x;
     g_mouseY = at.y;
-    const std::intptr_t where = input::Point(at.x, at.y);
-    input::Post(input::MouseMove, 0, where);
+    const Point where = at;
+    input::MoveMouse(where);
     if (std::strcmp(button, "l") == 0) {
-        input::Post(input::LeftDown, input::kLeftButton, where);
-        input::Post(input::LeftUp, 0, where);
+        input::PressButton(MouseButton::Left, where);
+        input::ReleaseButton(MouseButton::Left, where);
     } else if (std::strcmp(button, "r") == 0) {
-        input::Post(input::RightDown, input::kRightButton, where);
-        input::Post(input::RightUp, 0, where);
+        input::PressButton(MouseButton::Right, where);
+        input::ReleaseButton(MouseButton::Right, where);
     } else if (std::strcmp(button, "dbl") == 0) {
         // The second half of a double click only: the release after it carries the interface's
         // double-click flag (+0x7F) into the battle screen's SelectUnit (rebirth_fixes_ui).
-        input::Post(input::LeftDouble, input::kLeftButton, where);
-        input::Post(input::LeftUp, 0, where);
+        input::PressButton(MouseButton::Left, where, 2);
+        input::ReleaseButton(MouseButton::Left, where);
     }
     return "";
 }
@@ -2996,7 +2997,7 @@ bool BeforeEvents() {
         pair::FrameDone(g_frames);   // a pair's games take turns a frame at a time (harness_pair.h)
         if (g_dragX || g_dragY) {
             input::AddMotion(g_dragX, g_dragY);
-            input::Post(input::MouseMove, 0, input::Point(g_mouseX, g_mouseY));
+            input::MoveMouse(Point{g_mouseX, g_mouseY});
         }
     }
     // On the virtual clock the steps run once a frame, after it: how often the game peeks besides
