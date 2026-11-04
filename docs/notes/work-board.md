@@ -69,7 +69,7 @@ python tools/work.py serve`.
 - Frames are packed as `<name>.bmp.z` (tools/frame_store.py: each byte XORed with the byte one pixel before, then zlib
   level 3; lossless) in processes of their own at below-normal priority; compare_frames.py and the frame listings read
   either form.
-- Tests: tools/test_work_sched.py, tools/test_tickets.py, tools/test_frame_store.py.
+- Tests: tools/test_work_sched.py, tools/test_tickets.py, tools/test_frame_store.py, tools/test_install_watch.py.
 
 ## Games at once
 

@@ -8,7 +8,7 @@ import contextlib, datetime, io, json, os, shutil, subprocess, sys, tempfile, th
 from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import run_all, work, work_sched
+import install_watch, run_all, work, work_sched
 
 HOLD = r'''
 import msvcrt, os, sys, time
@@ -435,6 +435,44 @@ class SchedTest(unittest.TestCase):
         xs = sorted((s, e) for _, n, s, e in fake.spans if n == 'x')
         self.assertEqual(len(xs), 2)
         self.assertGreaterEqual(xs[1][0], xs[0][1] - 0.01)
+
+    def test_install_check(self):
+        """H47a: the batch's installs are listed when its first game starts and again before the summary; the run whose
+        game window holds a write into the install fails, the other passes."""
+        install = os.path.join(self.tmp, 'install')
+        os.makedirs(install)
+        open(os.path.join(install, 'a.res'), 'w').write('a')
+        build = f'{self.root}/b'
+        os.makedirs(build, exist_ok=True)
+
+        def runner(batch, run, retries, on_attempt, slots=None):
+            on_attempt(0)
+            folder = os.path.join(batch['build'], 'runs', os.path.basename(run['folder']))
+            if run['scenario'] == 'clean':
+                time.sleep(0.6)      # plays well after the write
+            t0 = time.time()
+            if run['scenario'] == 'writer':
+                open(os.path.join(install, 'driver.cache'), 'w').write('x')
+            time.sleep(0.05)
+            run_all.RUN_WINDOWS[folder] = [(t0, time.time())]
+            return 'PASS', 0.05, [], {}, []
+        names = ['writer', 'clean']
+        runs = [{'scenario': n, 'install': 'standalone', 'hooks': True, 'alone': False, 'expected': None,
+                 'folder': f'{build}/runs/{n}-standalone'} for n in names]
+        env = {'EI_GAME_VANILLA': install}
+        a = work_sched.submit(self.db, 'T1', self.root, build, names, runs, None, env=env)
+        s = work_sched.Scheduler(self.db, runner=runner, slots=work_sched.SlotPool(4, self.slots), code=[])
+        s.last_check = time.time() + 3600
+        with mock.patch.object(install_watch, 'AFTER_S', 0.2), mock.patch.object(install_watch, 'BEFORE_S', 0.2):
+            self.drive(s)
+        summary = self.batch(a)['summary']
+        self.assertIn('install trees: 1 files in 1 install', summary)
+        self.assertIn('1 changed', summary)
+        self.assertIn('driver.cache', summary)
+        self.assertIn('1 run(s) overlap a change and fail: writer-standalone', summary)
+        self.assertIn('SOME RUNS FAILED', summary)
+        self.assertNotIn('clean-standalone ', summary.split('not passed:')[1])
+        self.assertEqual(s.watches, {})
 
     def test_game_environment_per_batch(self):
         """WB5: a batch's games get the submitter's EI_* variables (and only those), os.environ is untouched,

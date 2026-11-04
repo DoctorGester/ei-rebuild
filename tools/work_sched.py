@@ -289,6 +289,7 @@ class Scheduler:
         self.finishing = {}        # batch id -> thread writing its summary (frame comparisons take minutes)
         self.events = queue.Queue()
         self.wake = threading.Event()        # set with every event: the loop's wait ends at once
+        self.watches = {}          # batch id -> its install_watch.Watch (None: not listed), from its first game
         self.args = {}             # batch id -> parsed run_all arguments (None: unusable)
         self.arg_errors = {}       # batch id -> why run_all did not take them
         self.last_check = 0.0
@@ -481,6 +482,11 @@ class Scheduler:
         if not started:
             self.pool.release(slots)
             return False
+        if batch['id'] not in self.watches:
+            # H47a: the batch's installs listed before its first game starts (run_all.check_installs after its last).
+            env = batch_env(batch)
+            self.watches[batch['id']] = run_all.watch_installs(
+                [r['install'] for r in self.db.execute('SELECT install FROM run WHERE batch = ?', (batch['id'],))], env)
         thread = threading.Thread(target=self.play, args=(dict(batch), dict(run, slots_held=len(slots)), args.retries),
                                   daemon=True)
         self.games[run['id']] = {'batch': batch['id'], 'slots': slots, 'folder': run['folder'],
@@ -534,6 +540,7 @@ class Scheduler:
                        for r in runs}
             out = io.StringIO()
             try:
+                run_all.check_installs(self.watches.pop(b['id'], None), jobs, results, out, b['build'])
                 ok = run_all.summary(jobs, results, args, seconds_since(b['started']), out,
                                      root=b['worktree'], build=b['build'])
             except Exception:

@@ -156,7 +156,8 @@ their `asan.*` files, not their result.
 Harness runs need no clicks and leave the install alone (standalone-verification.md, "No run writes into an install"):
 startup movies are skipped, the tutorial option is off, saves and `config\tutorial.ini` go to
 `build\verify\harness_saves`, every other file the game writes under its folder goes to a copy-on-write overlay there
-(reads prefer the overlay copy), settings are not written. Every game hosts and joins on a UDP port of its own instead of
+(reads prefer the overlay copy), settings are not written; run_all lists the installs' files before a suite and after
+(install_watch.py) and fails the runs that overlap a change. Every game hosts and joins on a UDP port of its own instead of
 8888 (but a pair's two games; `tests/verify/harness_net.h`) and binds on 127.0.0.1 only (the report's `NET:` line,
 run_all's `network:` summary). The user's real mouse never reaches the game (`tests/verify/harness_input.h`, the
 report's `MOUSE:` line; the harness's posted input and its GetCursorPos are the game's only mouse). For parallel runs the

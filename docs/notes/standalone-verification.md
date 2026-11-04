@@ -242,8 +242,15 @@ empty). mp\ (multiplayer heroes) is the overlay's only: a run starts with none, 
 
 What the seam does not see: another library's own file calls (the graphics driver's shader caches, SDL's), which go to
 the system directly. Their paths are not the install's in practice (a driver's cache folder, the user's data folder),
-and the runs' working directory is the install, so a library writing a relative path would write into it unseen; no
-check after the run looks for that yet (the harness's kernel32 and ntdll hooks did, on Windows only).
+and the runs' working directory is the install, so a library writing a relative path would write into it unseen.
+tools/install_watch.py (H47a) looks for that from outside: run_all lists the installs the suite plays (every file's
+name, size and time, read only; 0.1 s for both on Windows, 6.9k entries) before the first game and again after the last.
+A run whose game window (run_once records it in `RUN_WINDOWS`) holds the time of an added or changed file, give or take
+a few seconds, fails with `an install changed while this run played: <files>`; a removed file, or one whose time is older
+than the first listing (copied in with its old time), has no place in time and fails every run of the suite; a change
+inside no run's window is only printed. The summary says `install trees: N files ... no change`. `work.py test`
+batches do the same in the scheduler (work_sched keeps one Watch per batch, listed when its first game starts).
+Checked by tools/test_install_watch.py.
 
 ## 7. Diagnostic tools
 

@@ -58,7 +58,7 @@ A scenario with a line "# expect: TIMEOUT" passes when it times out (tests/scena
 """
 import argparse, atexit, functools, collections, concurrent.futures, contextlib, glob, hashlib, json, os, re, shutil, struct, subprocess, sys, tempfile, threading, time
 
-import frame_store, game_process, prepare_scenario
+import frame_store, game_process, install_watch, prepare_scenario
 
 if os.name == 'nt':
     import msvcrt
@@ -276,6 +276,11 @@ def expected_result(scenario):
                 if text.startswith(EXPECT_PREFIX):
                     return text[len(EXPECT_PREFIX):].strip()
     return None
+
+
+# When each run's games played, {run folder: [(start, end)]} in seconds since the epoch (a retry adds one): the install
+# check (install_watch.py) names the runs whose game ran while an install changed.
+RUN_WINDOWS = {}
 
 
 def run(name, install, folder=None, root=ROOT, build=BUILD, take_slot=True, clock=None, game_env=None, held=1,
@@ -711,6 +716,7 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
             if slots:
                 slots.release()       # the game has ended: the rest of the run needs no slot
         seconds = time.time() - start
+        RUN_WINDOWS.setdefault(out, []).append((start, start + seconds))
     path = os.path.join(out, 'harness_report.txt')
     report = open(path, encoding='cp1251', errors='replace').read() if os.path.exists(path) else ''
     result = next((l[8:] for l in report.splitlines() if l.startswith('RESULT: ')), 'NO REPORT')
@@ -750,6 +756,30 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
     notes += [l for l in report.splitlines() if l.startswith('WINDOW: in sight')]   # WB12: a window the user saw
     notes += [l for l in report.splitlines() if l.startswith('NET: outside')]   # WB14: a bind the firewall asks about
     return result, seconds, failures, counts, notes
+
+
+def watch_installs(installs, environ=None):
+    """H47a: the install_watch.Watch of the installs the runs of `installs` (their run_all names: standalone,
+    standalone-rebirth) play; None when listing them fails (the check is then left out, not the suite)."""
+    try:
+        return install_watch.Watch([install_dir(GOLDEN_INSTALL[i], environ) for i in sorted(set(installs)) if i in GOLDEN_INSTALL])
+    except Exception as e:
+        print(f'install trees not listed ({type(e).__name__}: {e}): runs are not checked for writes into them')
+        return None
+
+
+def check_installs(watch, jobs, results, out=None, build=BUILD):
+    """H47a: after the suite, results {(scenario, install): (result, seconds, failures, notes)} with the runs that
+    overlap a change in an install failed (install_watch.Watch.apply). Never raises."""
+    if watch is None:
+        return results
+    try:
+        folders = {job: os.path.join(build, 'runs', f'{job[0]}-{job[1]}') for job in jobs}
+        windows = {f: list(RUN_WINDOWS.get(f, ())) for f in folders.values()}      # this suite's runs only
+        return watch.apply(results, folders, {f: w for f, w in windows.items() if w}, out)
+    except Exception as e:
+        print(f'install trees not checked ({type(e).__name__}: {e})', file=out or sys.stdout)
+        return results
 
 
 def main_build_dir():
@@ -1482,6 +1512,7 @@ def main():
     print(HEADER)
     sys.stdout.flush()
 
+    watch = watch_installs([i for _, i in jobs])
     left = {j: games_of(os.path.join(ROOT, 'tests', 'scenarios', j[0] + '.txt')) for j in jobs} if most else {}
     stop = threading.Event()
     if left:
@@ -1505,6 +1536,7 @@ def main():
 
     stop.set()
     save_times({f'{n}-{i}': r[1] for (n, i), r in results.items()}, build=build)
+    check_installs(watch, jobs, results, build=build)
     ok = summary(jobs, results, args, time.time() - started, build=build)
     if args.widescreen:
         ok = widescreen_check(jobs, build=build) and ok
