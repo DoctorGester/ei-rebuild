@@ -5,6 +5,7 @@
 #include "mod_folders.h"
 #include "options.h"
 #include "world_data.h"   // the text resources' folder
+#include "lib/bytes.h"
 #include "lib/crt.h"
 #include "lib/str.h"
 #include "platform/platform.h"
@@ -83,15 +84,15 @@ int TextureManager::LoadTexture(Texture* texture) {
     }
 
     path = std::string(texture->GetName()) + ".mmp";
-    if (auto* header = static_cast<MmpHeader*>(GetFile(path, nullptr))) {
-        texture->format = header->HeldFormat();
+    if (const MmpFile file(GetFile(path, nullptr)); file.data) {
+        texture->format = file.header.HeldFormat();
         if (!texture->format)
             return game::FatalError("CTextureManager::LoadTexture.\n Can't find texture format for texture \"%s\".\n",
                                     texture->GetName());
         unsigned mip = mipLevel;
-        if (mip >= header->mipCount) mip = header->mipCount - 1;
-        result = texture->CreateFromMmp(device, header, mip);
-        CloseFile(header);
+        if (mip >= file.header.mipCount) mip = file.header.mipCount - 1;
+        result = texture->CreateFromMmp(device, file, mip);
+        CloseFile(file.data);
         return result;
     }
 
@@ -203,7 +204,11 @@ Texture::~Texture() {
     flags = 0;
 }
 
-MmpHeader* TextureManager::GetFileData(std::string_view name) { return static_cast<MmpHeader*>(GetFile(name, nullptr)); }
+MmpFile::MmpFile(void* file) : data(file) {
+    if (file) lib::LoadBytes(header, file);
+}
+
+MmpFile TextureManager::GetFileData(std::string_view name) { return MmpFile(GetFile(name, nullptr)); }
 
 Texture* TextureManager::NewTextureOfType(int textureType) { return CreateObjectAs<Texture>(textureType, -1); }
 

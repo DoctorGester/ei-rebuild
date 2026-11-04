@@ -27,12 +27,12 @@ namespace {
 
 // The mask of the 8888 picture at 32 bits a pixel, its rows one after another: all ones where the pixel's colour in
 // the screen's format is 0 (its low 24 bits), else 0.
-void BuildMask(const MmpHeader* picture, std::uint8_t* mask) {
+void BuildMask(const MmpFile& picture, std::uint8_t* mask) {
     ChannelLayout layout;
     layout.Split(ScreenFormat());
     const std::size_t bytes = 4;
-    const std::uint8_t* pixels = reinterpret_cast<const std::uint8_t*>(picture) + sizeof(MmpHeader) + picture->MipOffset(0);
-    const std::size_t count = static_cast<std::size_t>(picture->width) * picture->height;
+    const std::uint8_t* pixels = picture.Body() + picture.header.MipOffset(0);
+    const std::size_t count = static_cast<std::size_t>(picture.header.width) * picture.header.height;
     for (std::size_t i = 0; i < count; ++i) {
         std::uint32_t argb;
         std::memcpy(&argb, pixels + i * 4, sizeof(argb));
@@ -46,7 +46,7 @@ CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY) {
     holder = nullptr;
     frame = 0;
     TextureManager* manager = g_clientWorld.textureManager;
-    MmpHeader* picture = manager->GetFileData(name);
+    const MmpFile picture = manager->GetFileData(name);
     // (A throw passes the exception on; that ends the game.)
     holder = new Surface(g_sceneRenderer.device, picture);
     holder->AddRef();
@@ -61,7 +61,7 @@ CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY) {
     std::uint32_t maskBytes = (static_cast<std::uint32_t>(holder->bitsPerPixel) * pictureHeight * pictureWidth) >> 3;
     saved.assign(maskBytes, 0);
     BuildMask(picture, saved.data());
-    manager->CloseFile(picture);
+    manager->CloseFile(picture.data);
 }
 
 // --- Frame -------------------------------------------------------------------------------------------

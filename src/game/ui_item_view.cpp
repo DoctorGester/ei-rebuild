@@ -142,10 +142,10 @@ constexpr std::uint32_t kPnt3 = kMmpFormatPnt3;
 
 // An item picture's file as the renderer takes it: `width` x `height` pixels right after the header (the extra block
 // not skipped, as the original read them), premultiplied 32-bit or "PNT3" packed. Valid while the file is.
-render::TextureImage PictureOf(const MmpHeader* image, std::uint32_t fileBytes, int width, int height) {
+render::TextureImage PictureOf(const MmpFile& image, std::uint32_t fileBytes, int width, int height) {
     const std::uint32_t header = static_cast<std::uint32_t>(sizeof(MmpHeader));
-    return render::TextureImage{image + 1, fileBytes > header ? fileBytes - header : 0, width, height,
-                                image->format == kPnt3 ? render::ImageLayout::Pnt3 : render::ImageLayout::Argb};
+    return render::TextureImage{image.Body(), fileBytes > header ? fileBytes - header : 0, width, height,
+                                image.header.format == kPnt3 ? render::ImageLayout::Pnt3 : render::ImageLayout::Argb};
 }
 
 } // namespace
@@ -363,13 +363,13 @@ Texture* ItemFigureTexture(std::string_view name) {
     texture->AddRef();
     const std::string file = std::string(name) + ".mmp";
     std::uint32_t size = 0;
-    const auto* image = static_cast<const MmpHeader*>(manager->GetFile(file, &size));
-    if (!image) {
+    const MmpFile image(manager->GetFile(file, &size));
+    if (!image.data) {
         // No picture: the whole texture white.
         render::DrawIntoTexture(texture->surface, nullptr, 0, 0, 0x100, 0x100);
     } else {
         // The picture at the texture's bottom left.
-        const int width = static_cast<int>(image->width), height = static_cast<int>(image->height);
+        const int width = static_cast<int>(image.header.width), height = static_cast<int>(image.header.height);
         const render::TextureImage picture = PictureOf(image, size, width, height);
         render::DrawIntoTexture(texture->surface, &picture, 0, 0x100 - height, width, height);
     }
@@ -384,13 +384,13 @@ bool UiWindow::CopyImage(Texture* texture, std::string_view name, int imageWidth
     TextureManager* manager = g_clientWorld.textureManager;
     const std::string file = std::string(name) + ".mmp";
     std::uint32_t size = 0;
-    const auto* image = static_cast<const MmpHeader*>(manager->GetFile(file, &size));
-    if (!image) {
+    const MmpFile image(manager->GetFile(file, &size));
+    if (!image.data) {
         render::DrawIntoTexture(texture->surface, nullptr, x, y, width, height);    // white
     } else {
         const render::TextureImage picture = PictureOf(image, size, imageWidth, imageHeight);
         render::DrawIntoTexture(texture->surface, &picture, x, y, width, height);
     }
     manager->FreeAllFiles();
-    return image != nullptr;
+    return image.data != nullptr;
 }

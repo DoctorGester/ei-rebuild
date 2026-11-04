@@ -126,15 +126,15 @@ bool g_undecodedLogged = false;
 // A holder with no DirectDraw texture for the levels the new renderer decodes from the file (keyed
 // by the holder). One it does not decode keeps the holder and shows nothing (logged once). Its
 // allocation failing ends the game, like a surface that could not be made.
-Surface* DecodedHolder(TextureDevice* device, const Texture* texture, const MmpHeader* data, unsigned mip,
+Surface* DecodedHolder(TextureDevice* device, const Texture* texture, const MmpFile& file, unsigned mip,
                        unsigned levels) {
     Surface* holder = NewDecodedTextureHolder(device, static_cast<int>(texture->width), static_cast<int>(texture->height),
                                               TextureFormat(texture->format).bitsPerPixel);
     if (!holder) ThrowSurfaceNotMade(0, 0);
-    if (!render::TextureFromMmp(holder, data, mip, levels) && !g_undecodedLogged) {
+    if (!render::TextureFromMmp(holder, file, mip, levels) && !g_undecodedLogged) {
         g_undecodedLogged = true;
         ei::Log("cpuwindows: an .mmp texture the new renderer does not decode (format %08X) shows nothing",
-                data->format);
+                file.header.format);
     }
     return holder;
 }
@@ -175,9 +175,9 @@ std::uint32_t MmpHeader::FilledBytes(std::uint32_t heldFormat, unsigned mip, uns
     return total;
 }
 
-int Texture::CreateFromMmp(TextureDevice* device, const MmpHeader* header, unsigned mip) {
+int Texture::CreateFromMmp(TextureDevice* device, const MmpFile& file, unsigned mip) {
     if (flags & TextureFlag::Loaded) return 1;
-    header->MipOffset(mip);   // the result is not used
+    const MmpHeader* header = &file.header;
 
     std::uint32_t mipWidth = header->width >> (mip & 31);
     std::uint32_t mipHeight = header->height >> (mip & 31);
@@ -196,12 +196,12 @@ int Texture::CreateFromMmp(TextureDevice* device, const MmpHeader* header, unsig
     // The new renderer decodes the levels from the file and the holder has no DirectDraw texture
     // (a system-memory staging surface filled from the file, loaded into a managed
     // texture with the kind's priority hints, its priority set to 100, is not made).
-    Surface* decoded = DecodedHolder(device, this, header, mip, levels);
+    Surface* decoded = DecodedHolder(device, this, file, mip, levels);
     surface.Assign(decoded);
     uploadResult = static_cast<int>(header->FilledBytes(format, mip, levels));
     MarkLoaded(header);
     extra.resize(static_cast<int>(header->extraSize));
-    std::memcpy(extra.data(), header + 1, header->extraSize);
+    std::memcpy(extra.data(), file.Body(), header->extraSize);
     return 1;
 }
 
@@ -211,14 +211,14 @@ int TextureManager::LoadMmpExtra(const char* name, std::vector<std::uint8_t>* ou
         return 1;
     }
     std::string path = std::format("{}.mmp", name);
-    auto* fileHeader = static_cast<MmpHeader*>(GetFile(path, nullptr));
-    if (!fileHeader) {
+    const MmpFile file(GetFile(path, nullptr));
+    if (!file.data) {
         out->clear();
         return 0;
     }
-    out->resize(static_cast<int>(fileHeader->extraSize));
-    if (fileHeader->extraSize) std::memcpy(out->data(), fileHeader + 1, fileHeader->extraSize);
-    CloseFile(fileHeader);
+    out->resize(static_cast<int>(file.header.extraSize));
+    if (file.header.extraSize) std::memcpy(out->data(), file.Body(), file.header.extraSize);
+    CloseFile(file.data);
     return 1;
 }
 
@@ -279,7 +279,7 @@ int Texture::LoadBmpFiles(TextureDevice* device, const char* path, const char* a
     if (alphaFile.Open(alphaPath, platform::FileMode::Read)) {
         alpha.Read(&alphaFile);
         alphaFile.Close();
-        std::uint16_t bits = alpha.header->bitCount;
+        std::uint16_t bits = alpha.header ? alpha.header->bitCount : 0;   // 0: not read
         if (bits == 8)
             withAlpha = true;
         else
@@ -383,13 +383,14 @@ const ComposedTexture* TextureManager::FindComposed(std::string_view name) {
 int TextureManager::FindLayers(const std::vector<std::string>* names, int width, std::vector<std::string>* found) {
     int count = 0;
     for (const std::string& name : *names) {
-        MmpHeader* data = GetFileData(name);
-        if (!data) {
+        const MmpFile file = GetFileData(name);
+        if (!file.data) {
             game::DebugLog(kCantFindLayer, name);
             continue;
         }
-        const bool fits = data->width == static_cast<std::uint32_t>(width) && data->height == static_cast<std::uint32_t>(width);
-        CloseFile(data);
+        const bool fits =
+            file.header.width == static_cast<std::uint32_t>(width) && file.header.height == static_cast<std::uint32_t>(width);
+        CloseFile(file.data);
         if (!fits) return game::FatalError(kWrongLayerSize, name);
         found->push_back(name);
         ++count;
@@ -452,14 +453,14 @@ int Texture::CreateComposed(TextureDevice* device, const ComposedTexture& compos
     std::vector<void*> files;
     for (const std::string& layer : composed.layers) {
         std::uint32_t size = 0;
-        auto* data = static_cast<MmpHeader*>(manager->GetFile(layer, &size));
-        if (!data) continue;
-        files.push_back(data);
-        const std::uint32_t skipped = static_cast<std::uint32_t>(sizeof(MmpHeader)) + data->extraSize;
-        const render::ImageLayout layout = data->format == kMmpFormatPnt3 ? render::ImageLayout::Pnt3 : render::ImageLayout::Argb;
-        images.push_back(render::TextureImage{reinterpret_cast<const std::uint8_t*>(data) + skipped,
-                                              size > skipped ? size - skipped : 0, static_cast<int>(data->width),
-                                              static_cast<int>(data->height), layout});
+        const MmpFile file(manager->GetFile(layer, &size));
+        if (!file.data) continue;
+        files.push_back(file.data);
+        const MmpHeader& h = file.header;
+        const std::uint32_t skipped = static_cast<std::uint32_t>(sizeof(MmpHeader)) + h.extraSize;
+        const render::ImageLayout layout = h.format == kMmpFormatPnt3 ? render::ImageLayout::Pnt3 : render::ImageLayout::Argb;
+        images.push_back(render::TextureImage{file.Body() + h.extraSize, size > skipped ? size - skipped : 0,
+                                              static_cast<int>(h.width), static_cast<int>(h.height), layout});
     }
     render::ComposeTexture(holder, static_cast<int>(header.width), mip, levels, images.data(),
                            static_cast<int>(images.size()));

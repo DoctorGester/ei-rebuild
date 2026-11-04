@@ -321,11 +321,11 @@ struct FigureBone : EngineObject {
     // position and the offsets lerped); at 1 the animator's alone.
     void Place(const Vector3& origin, float blend);
     // The bone's cage (figure_bones.cpp): `offset` becomes the point at (morphS, morphT, morphU) in the cube of
-    // the next 8 points of *stream (0x60 bytes, consumed; edges 0-1 and 2-3 at morphS, between them at morphT;
-    // edges 4-5 and 6-7 likewise; then between the two at morphU) or in the prism of the next 6 (0x48 bytes; edge
-    // 0-1 at morphS, towards point 2 at morphT; edge 3-4 likewise towards point 5; then between the two at morphU).
-    void InterpolateCube(const float** stream);
-    void InterpolatePrism(const float** stream);
+    // the 8 points `corners` (24 floats; edges 0-1 and 2-3 at morphS, between them at morphT; edges 4-5 and 6-7
+    // likewise; then between the two at morphU) or in the prism of 6 (18 floats; edge 0-1 at morphS, towards
+    // point 2 at morphT; edge 3-4 likewise towards point 5; then between the two at morphU).
+    void InterpolateCube(const float* corners);
+    void InterpolatePrism(const float* corners);
 };
 
 // The figure's animation state (Object3D's animation member): the skeleton's bones, the animation playing

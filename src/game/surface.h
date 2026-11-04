@@ -10,7 +10,7 @@
 #include <cstdint>
 
 class TextureDevice;
-struct MmpHeader;
+struct MmpFile;
 
 // The screen's pixel format: X8R8G8B8.
 render::PixelFormat ScreenFormat();
@@ -36,7 +36,7 @@ struct Surface final : RendererBase {
     explicit Surface(TextureDevice* device);
     // An 8888 .mmp picture (the software cursor's images): its size in the screen's format, the renderer keeping the
     // picture's pixels. Throws the game's error object when the picture cannot be loaded.
-    Surface(TextureDevice* device, const MmpHeader* picture);
+    Surface(TextureDevice* device, const MmpFile& picture);
     ~Surface() override;
 
     TextureDevice* device;

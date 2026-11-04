@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <vector>
 
+struct MmpFile;
 class SceneRenderer;
 class TextureDevice;
 
@@ -232,7 +233,7 @@ void EndShadowBuildTime();
 void HolderGone(const void* holder);
 // A holder loaded from an 8888 .mmp picture (the software cursor's images): the renderer keeps the
 // picture's pixels from the file data.
-void PictureFromMmp(const void* holder, const void* data);
+void PictureFromMmp(const void* holder, const MmpFile& file);
 
 // The device object is being built: the renderer starts (it presents through its own swap chain). When it cannot
 // start the game ends here.
@@ -277,7 +278,7 @@ struct MeshDraw {
 
 // A texture's .mmp file in memory: the levels from `mip` on that the game loads for `holder`, decoded and
 // kept until the holder goes. False when not decoded (a format it does not read).
-bool TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned levels);
+bool TextureFromMmp(const void* holder, const MmpFile& file, unsigned mip, unsigned levels);
 
 // From now on mesh draws sampling `target` in their first stage take the rectangle `to` from `source`'s
 // rectangle `from` (left, top, right, bottom in first-level texels); the target's texture is not changed.
