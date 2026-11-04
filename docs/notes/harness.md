@@ -55,7 +55,8 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   waits until the main menu is up and taking input, and every scenario starts with it. `waitwindow <seconds> <window>`
   waits until that window is on top, nothing is queued to replace it, no game request (new game, load) is pending, and
   the save/load or options window has finished sliding in, for two frames in a row. Names: `menu battle briefing map
-  camp view trade escmenu saveload options objectives help msgbox difficulty heroes titles`, or a vtable in hex. A new
+  camp view trade escmenu saveload options objectives help msgbox difficulty heroes titles mpconnect masterbox`. `ifwindow <window> <step>` runs a step only while that window is
+  on top (else skipped, logged): a box that Windows keeps up and Linux closes by itself. A new
   game's battle screen comes seconds after the leader has HP, so input for it waits on `waitwindow 15 battle` first.
   `waitunit <seconds> <name>` waits until `clickunit` would find the unit on screen. `frames <n>` lets the game run <n>
   frames (input posted before it has been handled after one). Plain `wait <ms>` is left for "let the world run this

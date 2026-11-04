@@ -110,6 +110,13 @@ class Run(unittest.TestCase):
                 open(os.path.join(out, 'digest.txt'), 'w').close()
                 self.assertEqual(run_all.empty_folder(out, tries=2), ['digest.txt'])
 
+    def test_failing_prepare_tool_fails_the_run(self):
+        # H47b: a "# prepare:" tool that fails ends that run, not the whole suite; no report is read.
+        result, seconds, failures, _, _ = self.run_scenario('# prepare: no_such_tool.py\nquit\n', 0, 'RESULT: PASS\n')
+        self.assertEqual((result, seconds), ('FAIL', 0.0))
+        self.assertIn('"# prepare:" tool failed', failures[0])
+        self.assertIn('no_such_tool.py', failures[0])
+
     def test_ordinary_results_are_unchanged(self):
         self.assertEqual(self.run_scenario('quit\n', 0, 'RESULT: PASS\n')[0], 'PASS')
         self.assertEqual(self.run_scenario('quit\n', 1, 'FAILED: a check\nRESULT: FAIL\n')[0], 'FAIL')

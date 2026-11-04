@@ -15,7 +15,8 @@
 //                             done sliding in (they ignore input meanwhile), on top for two frames;
 //                             fails after <seconds>. <window>: menu, battle, briefing, map, camp,
 //                             view, trade, escmenu, saveload, options, objectives, help, msgbox,
-//                             difficulty, heroes, titles, mpconnect (image/harness_windows_image.cpp)
+//                             difficulty, heroes, titles, mpconnect, masterbox (image/harness_windows_image.cpp)
+//   ifwindow <window> <step>  the step only when <window> is on top now (the names of waitwindow), else skipped
 //   waitdialogue <seconds> <state>
 //                             wait until the base screen (briefing) is on top with its dialogue in <state>
 //                             (BriefingScreen::state: 0 walking, 1 a person's topics open, 2 the dialogue
@@ -2253,6 +2254,25 @@ void RunSteps() {
             s.verb = s.argument.substr(0, space);
             s.argument = space == std::string::npos ? "" : s.argument.substr(space + 1);
         }
+        // "ifwindow <window> <step>": the step only while that window is on top (a box that closes by itself when a
+        // connect is refused at once, as on Linux, is not there to cancel).
+        if (s.verb == "ifwindow") {
+            const std::size_t space = s.argument.find(' ');
+            const std::string name = s.argument.substr(0, space);
+            if (space == std::string::npos || !image::IsWindowName(name)) {
+                g_failures.push_back("ifwindow: needs a window name and a step (got '" + s.argument + "')");
+                continue;
+            }
+            void* top = TopWindow();
+            if (!top || WindowKind(top) != name) {
+                Log("harness: skipped (%s is not on top): %s", name.c_str(), s.argument.c_str() + space + 1);
+                continue;
+            }
+            const std::string inner = s.argument.substr(space + 1);
+            const std::size_t at = inner.find(' ');
+            s.verb = inner.substr(0, at);
+            s.argument = at == std::string::npos ? "" : inner.substr(at + 1);
+        }
         // "layout <mouse step> <x> <y> ...": the point is in the 800x600 layout, which sits in the window's 4:3 part
         // (W12), so the same step aims at the same interface place in a window of any shape.
         if (s.verb == "layout") {
@@ -2927,6 +2947,9 @@ std::string WindowSizeStep(const std::string& argument) {
     if (!GameWindow()) return "windowsize: no game window yet";
     Log("harness: windowsize %dx%d", width, height);
     harnessplatform::ResizeClient(width, height);
+    int now = 0, high = 0;
+    harnessplatform::ClientSize(&now, &high);
+    Log("harness: windowsize: the window is %dx%d", now, high);
     return "";
 }
 

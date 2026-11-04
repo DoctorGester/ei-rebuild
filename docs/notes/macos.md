@@ -130,8 +130,9 @@ golden, and these five differ:
 - ui_widescreen_dialogue, ui_widescreen_hud and render_present_fullscreen take the display's size (`resolution
   desktop`, full screen); the goldens are a 3840x2160 desktop's, as on Linux (linux.md, "The harness").
 - net_pair_master: the peer lists the server one poll sooner, as on Linux.
-- net_second_master fails: a TCP connect to a closed loopback port is refused at once, as on Linux, so the box the
-  scenario cancels is already gone.
+- net_second_master failed (a TCP connect to a closed loopback port is refused at once, as on Linux, so the box the
+  scenario cancelled was already gone); its Esc is now `ifwindow masterbox key esc` (linux.md, "The harness"; checked
+  on Linux, not run again on the Mac).
 The Rebirth suite was not run (no Rebirth install on the Mac).
 
 ## Checks on the Mac

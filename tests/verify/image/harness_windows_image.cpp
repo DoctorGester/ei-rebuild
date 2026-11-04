@@ -43,6 +43,7 @@ const std::vector<Named>& NamedWindows() {
         {"heroes", &typeid(MpHeroScreen)},          // the multiplayer hero screen (main menu region 5)
         {"titles", &typeid(CreditsScreen)},
         {"mpconnect", &typeid(MpConnectScreen)},    // the multiplayer connect screen
+        {"masterbox", &typeid(MasterRequestBox)},   // the connect screen's master server request box
     };
     return windows;
 }
