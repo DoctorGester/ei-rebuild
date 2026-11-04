@@ -27,7 +27,8 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                    addon's frames, recorded from game.exe until H40 in <main checkout>\\build\\widescreen; a
                    scenario whose steps changed since has none (the comparison names it)
   --jobs N         games running at once (default 16; under WSL on Windows' GPU the Windows game slots free at the
-                   start, at most WSL_GPU_SLOTS, 8, or EI_HARNESS_SLOTS); all runs on the machine together never
+                   start, at most WSL_GPU_SLOTS, 8, or EI_HARNESS_SLOTS, then growing as more free and going back as the queue
+                   empties: follow_need()); all runs on the machine together never
                    exceed EI_HARNESS_SLOTS (default 16) games, whatever --jobs says. Each run writes to its own folder,
                    build\\verify\\runs\\<scenario>-<install> (ei-rebuild.log, harness_report.txt and
                    harness_saves, emptied first, so every run starts without saves or texture cache).
@@ -120,16 +121,18 @@ def _unlock(f):
 
 
 @contextlib.contextmanager
-def machine_slot(alone=False, count=1, most=None):
+def machine_slot(alone=False, count=1, most=None, held=None):
     """count of the machine's MACHINE_SLOTS game slots (shared by every checkout's run_all; 2 for a pair's
     run, games_of()), or as many as are free up to most once count of them are (hold_slots()), or all of them
     (alone); yields how many it holds. All of them: for a game that sets the display mode, which takes the surfaces
     of every other game running then (they fail with DDERR_SURFACELOST: "Can't begin scene", untextured models).
     Games that want all the slots queue on one more lock, so two of them never split the slots; while
     one holds it, no other game takes a slot (a suite's next game would take each slot as it frees,
-    and the one that wants them all waited for the end of every other suite on the machine)."""
+    and the one that wants them all waited for the end of every other suite on the machine).
+    held: a list that holds the (index, lock) pairs of the slots taken, for a caller that gives some back or takes
+    more while it holds them (adjust_hold()); what is left in it is released at the end."""
     os.makedirs(SLOT_DIR, exist_ok=True)
-    held = []
+    held = [] if held is None else held
     gate = None
     try:
         if alone:
@@ -158,7 +161,7 @@ def machine_slot(alone=False, count=1, most=None):
                 # A pair's run takes its slots together: none held while waiting, or two pairs could each hold one.
                 for _, f in held:
                     _unlock(f)
-                held = []
+                del held[:]
             time.sleep(0.5)
         yield len(held)
     finally:
@@ -166,6 +169,30 @@ def machine_slot(alone=False, count=1, most=None):
             _unlock(f)
         if gate:
             _unlock(gate)
+
+
+def take_free_slot(held):
+    """Takes one more slot now if one is free (not the gate's, and not one of held's), appends it to held and returns
+    True; False when none is free."""
+    waiting = _lock(os.path.join(SLOT_DIR, 'alone'))
+    if not waiting:
+        return False
+    _unlock(waiting)
+    for i in range(MACHINE_SLOTS):
+        if i not in [h[0] for h in held] and (f := _lock(os.path.join(SLOT_DIR, f'slot{i:02}'))):
+            held.append((i, f))
+            return True
+    return False
+
+
+def adjust_hold(held, want):
+    """Brings the slots in held (machine_slot's list) to want: gives the last ones back, or takes the free ones, one
+    at a time, without waiting (take_free_slot()); returns how many are held."""
+    while len(held) > want:
+        _unlock(held.pop()[1])
+    while len(held) < want and take_free_slot(held):
+        pass
+    return len(held)
 
 
 # The installs whose data the runs play, read only (EI_GAME_VANILLA, EI_GAME_REBIRTH; play.cmd takes the same).
@@ -463,8 +490,10 @@ def watch(games, group, say):
                 unkillable = not end_game(other, group, say) or unkillable
 
     while any(g.proc.poll() is None for g in games):
-        with contextlib.suppress(subprocess.TimeoutExpired):
-            next(g for g in games if g.proc.poll() is None).proc.wait(0.5)
+        running = next((g for g in games if g.proc.poll() is None), None)    # none: the last one ended just now
+        if running:
+            with contextlib.suppress(subprocess.TimeoutExpired):
+                running.proc.wait(0.5)
         elapsed = time.monotonic() - started
         for game in games:
             if game.proc.poll() is not None:
@@ -671,7 +700,7 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
         env = dict(os.environ if env is None else env, EI_HARNESS_CLOCK=clock)
     games = games_of(scenario)
     # A pair whose caller holds one slot takes the second here.
-    with machine_slot(count=games) if take_slot else \
+    with (GAME_SLOTS.hold(games) if GAME_SLOTS else machine_slot(count=games)) if take_slot else \
             machine_slot(count=games - held) if games > held else contextlib.nullcontext():
         if slots:
             slots.acquire()
@@ -1295,13 +1324,96 @@ def vulkan_driver(choice=None, environ=None, wsl=None):
     return manifest
 
 
+class GameSlots:
+    """The games a run on Windows' GPU may have going at once (WSL; hold_windows_slots()): count of them for a game
+    (2 for a pair), as many as capacity, which follows the slots held on Windows' side (rebalance()). Games wait in
+    the order they came."""
+
+    def __init__(self, capacity):
+        self.cond = threading.Condition()
+        self.capacity = capacity
+        self.used = 0
+        self.queue = []
+
+    @contextlib.contextmanager
+    def hold(self, count):
+        ticket = object()
+        with self.cond:
+            self.queue.append(ticket)
+            try:
+                self.cond.wait_for(lambda: self.queue[0] is ticket and self.used + count <= self.capacity)
+            finally:
+                self.queue.remove(ticket)
+                self.cond.notify_all()
+            self.used += count
+        try:
+            yield
+        finally:
+            with self.cond:
+                self.used -= count
+                self.cond.notify_all()
+
+    def resize(self, capacity):
+        """Sets the capacity, but not below what the running games use; returns it."""
+        with self.cond:
+            self.capacity = max(capacity, self.used)
+            self.cond.notify_all()
+            return self.capacity
+
+
+# Seconds between two looks at how many Windows slots the run wants and could have (follow_need()).
+HOLD_FOLLOW_S = 2.0
+GAME_SLOTS = None      # main(): the GameSlots of a run on Windows' GPU under WSL
+
+
+def rebalance(hold, slots, remaining, most):
+    """One step of a WSL run's hold on Windows' game slots (hold: WindowsHold, or anything with want(n) -> held): the
+    run wants as many slots as it has game units left (remaining: running and queued games, a pair's two), at most
+    most. Fewer than it holds: the unused ones go back (the running games keep theirs). More: it takes the free ones,
+    one at a time, without waiting. slots (GameSlots) follows what is held. Returns how many are held."""
+    want = min(most, remaining)
+    if want < slots.capacity:
+        return hold.want(slots.resize(want))
+    if want > slots.capacity:
+        return slots.resize(hold.want(want))
+    return slots.capacity
+
+
+def follow_need(hold, slots, remaining, most, stop, period=None):
+    """Thread body of a WSL run on Windows' GPU: rebalance() every period seconds (HOLD_FOLLOW_S) until stop (a
+    threading.Event) is set; remaining() -> the game units left."""
+    while not stop.wait(HOLD_FOLLOW_S if period is None else period):
+        if remaining() > 0:
+            rebalance(hold, slots, remaining(), most)
+
+
+class WindowsHold:
+    """Windows' side of hold_windows_slots(): the Windows process that holds the slots (hold_slots()), and its
+    stdin commands; held is how many."""
+
+    def __init__(self, proc, held):
+        self.proc, self.held, self.lock = proc, held, threading.Lock()
+
+    def want(self, count):
+        """Asks for count slots (hold_slots()): the Windows side takes the free ones and gives back the ones above
+        count at once. Returns how many it holds."""
+        with self.lock:
+            self.proc.stdin.write(f'want {count}\n')
+            self.proc.stdin.flush()
+            reply = self.proc.stdout.readline().split()
+            if len(reply) != 2 or reply[0] != 'held' or not reply[1].isdigit():
+                sys.exit("Windows' game slots could not be changed")
+            self.held = int(reply[1])
+            return self.held
+
+
 def hold_windows_slots(count, most=None):
     """WSL, games on Windows' GPU (vulkan_driver()): Windows' Python (python.exe through WSL's interop) runs this file
     with --hold-slots count (and --hold-most most), which takes that many of Windows' machine slots (or as many as
     are free up to most, once count are; machine_slot(), the same lock files as Windows' suites and work.py's
     scheduler) and keeps them until this process ends, so Windows' and WSL's games on the GPU together stay within
-    Windows' 16 (24 crashed Windows: the NVIDIA driver hung). Waits until they are held; returns how many. Exits when
-    Windows' Python cannot be started."""
+    Windows' 16 (24 crashed Windows: the NVIDIA driver hung). Waits until they are held; returns a WindowsHold, whose
+    want() takes more slots or gives some back later. Exits when Windows' Python cannot be started."""
     python = os.environ.get('EI_WINDOWS_PYTHON') or shutil.which('python.exe')
     if not python:
         sys.exit("no Windows python.exe on PATH (EI_WINDOWS_PYTHON names one): the games on Windows' GPU need its slots")
@@ -1316,21 +1428,29 @@ def hold_windows_slots(count, most=None):
         sys.exit("Windows' game slots could not be taken")
     atexit.register(lambda: (proc.stdin.close(), proc.wait()))
     print(f"holding {reply[1]} of Windows' game slots")
-    return int(reply[1])
+    return WindowsHold(proc, int(reply[1]))
 
 
-def hold_slots(count, most=None):
+def hold_slots(count, most=None, stdin=None):
     """--hold-slots (Windows' side of hold_windows_slots()): count machine slots, or as many as are free up to most,
-    until stdin closes; prints "held <n>" once they are held."""
-    with machine_slot(count=count, most=most) as held:
-        print(f'held {held}')
+    until stdin closes; prints "held <n>" once they are held. A line "want <n>" on stdin brings the hold to n slots
+    (adjust_hold(): the free ones are taken without waiting, the ones above n given back) and prints "held <m>"."""
+    stdin = sys.stdin if stdin is None else stdin
+    held = []
+    with machine_slot(count=count, most=most, held=held) as n:
+        print(f'held {n}')
         sys.stdout.flush()
-        sys.stdin.read()
+        while line := stdin.readline():
+            words = line.split()
+            if len(words) == 2 and words[0] == 'want' and words[1].isdigit():
+                adjust_hold(held, int(words[1]))
+                print(f'held {len(held)}')
+                sys.stdout.flush()
     return 0
 
 
 def main():
-    global MACHINE_SLOTS
+    global GAME_SLOTS
     args = parse_args()
     if args.hold_slots:
         return hold_slots(args.hold_slots, args.hold_most)
@@ -1339,14 +1459,17 @@ def main():
     start_headless_display()
     gpu = vulkan_driver('dzn' if args.dzn else 'system' if args.lavapipe else None)
     jobs = plan(args, left_out=linux_left_out(gpu))
+    hold = most = None
     if gpu and under_wsl():
         # The slots held on Windows' side bound this run's games; WSL's own pool (6, for lavapipe's memory) does not.
         games = max([games_of(os.path.join(ROOT, 'tests', 'scenarios', n + '.txt')) for n, _ in jobs] or [1])
         if args.jobs:
-            MACHINE_SLOTS = hold_windows_slots(min(16, max(1, args.jobs) * games))
+            hold = hold_windows_slots(min(16, max(1, args.jobs) * games))
         else:
-            most = int(os.environ.get('EI_HARNESS_SLOTS') or WSL_GPU_SLOTS)
-            MACHINE_SLOTS = args.jobs = hold_windows_slots(games, max(games, most))
+            most = max(games, int(os.environ.get('EI_HARNESS_SLOTS') or WSL_GPU_SLOTS))
+            hold = hold_windows_slots(games, most)
+        GAME_SLOTS = GameSlots(hold.held)
+        args.jobs = args.jobs or most
     args.jobs = max(1, args.jobs or 16)
     build = BUILD
     db = timing_db()
@@ -1359,6 +1482,12 @@ def main():
     print(HEADER)
     sys.stdout.flush()
 
+    left = {j: games_of(os.path.join(ROOT, 'tests', 'scenarios', j[0] + '.txt')) for j in jobs} if most else {}
+    stop = threading.Event()
+    if left:
+        # Windows' slots follow the run's need: more as they free, back as the queue empties (H50a1).
+        threading.Thread(target=follow_need, args=(hold, GAME_SLOTS, lambda: sum(left.values()), most, stop),
+                         daemon=True).start()
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
         futures = {pool.submit(run_with_retries, n, i, args.retries, f'{n}-{i}',
                                functools.partial(run, build=build, clock=args.clock),
@@ -1368,11 +1497,13 @@ def main():
             name, install = futures[future]
             result, seconds, failures, _, notes = future.result()
             with lock:
+                left.pop((name, install), None)
                 results[(name, install)] = (result, seconds, failures, notes)
                 record_time(db, name, install, seconds, result, notes=notes)
                 print(line(name, install, result, seconds, failures, notes, build=build))
                 sys.stdout.flush()
 
+    stop.set()
     save_times({f'{n}-{i}': r[1] for (n, i), r in results.items()}, build=build)
     ok = summary(jobs, results, args, time.time() - started, build=build)
     if args.widescreen:

@@ -790,5 +790,111 @@ class SchedTest(unittest.TestCase):
                 self.assertEqual(two, 2)
 
 
+    def test_hold_slots_follow_commands(self):
+        """H50a1: Windows' side of a WSL run's hold takes slots one at a time and gives some back on "want n"."""
+        stdin = io.StringIO(''.join(line + chr(10) for line in ('want 4', 'want 1', 'bogus', 'want 3')))
+        out = io.StringIO()
+        with mock.patch.object(run_all, 'SLOT_DIR', self.slots), mock.patch.object(run_all, 'MACHINE_SLOTS', 4), \
+                contextlib.redirect_stdout(out):
+            self.assertEqual(run_all.hold_slots(2, 3, stdin), 0)
+        self.assertEqual(out.getvalue().splitlines(), ['held 3', 'held 4', 'held 1', 'held 3'])
+        with mock.patch.object(run_all, 'SLOT_DIR', self.slots), mock.patch.object(run_all, 'MACHINE_SLOTS', 4):
+            with run_all.machine_slot(count=4) as all_back:        # the end of the hold released every slot
+                self.assertEqual(all_back, 4)
+
+    def test_adjust_hold_takes_only_free_slots(self):
+        with mock.patch.object(run_all, 'SLOT_DIR', self.slots), mock.patch.object(run_all, 'MACHINE_SLOTS', 4):
+            with run_all.machine_slot(count=1) as one:                # another run holds a slot
+                held = []
+                self.assertEqual(run_all.adjust_hold(held, 4), 3)     # no waiting for the fourth
+                self.assertEqual(run_all.adjust_hold(held, 1), 1)
+                self.assertEqual(run_all.adjust_hold(held, 2), 2)
+                for _, f in held:
+                    run_all._unlock(f)
+
+    def test_game_slots_floor(self):
+        slots = run_all.GameSlots(2)
+        with slots.hold(1):
+            self.assertEqual(slots.resize(0), 1)                      # not below the games running
+        self.assertEqual(slots.used, 0)
+
+    def test_game_slots_follow_capacity(self):
+        slots = run_all.GameSlots(1)
+        started = []
+        release = threading.Event()
+
+        def game(name, count):
+            with slots.hold(count):
+                started.append(name)
+                release.wait(10)
+        with slots.hold(1):
+            pair = threading.Thread(target=game, args=('pair', 2))
+            pair.start()
+            time.sleep(0.1)
+            single = threading.Thread(target=game, args=('single', 1))
+            single.start()
+            time.sleep(0.1)
+            self.assertEqual(started, [], 'nothing starts on a full capacity (a single does not pass the pair)')
+            slots.resize(4)
+            deadline = time.time() + 5
+            while len(started) < 2 and time.time() < deadline:
+                time.sleep(0.02)
+            self.assertEqual(started, ['pair', 'single'])
+        release.set()
+        pair.join(5)
+        single.join(5)
+        self.assertEqual(slots.used, 0)
+
+    def test_rebalance_follows_need(self):
+        """The hold grows as Windows' slots free (up to most) and goes back as the queue empties, never below the
+        games running."""
+        class Windows:
+            def __init__(self, free):
+                self.free, self.held, self.asked = free, 2, []
+
+            def want(self, n):
+                self.asked.append(n)
+                self.held = min(n, self.held + self.free)
+                self.free = 0
+                return self.held
+        windows = Windows(free=0)
+        slots = run_all.GameSlots(2)
+        self.assertEqual(run_all.rebalance(windows, slots, 100, 8), 2)         # Windows busy: stays at 2
+        windows.free = 4
+        self.assertEqual(run_all.rebalance(windows, slots, 100, 8), 6)
+        self.assertEqual(slots.capacity, 6)
+        self.assertEqual(run_all.rebalance(windows, slots, 100, 8), 6)
+        windows.free = 9
+        self.assertEqual(run_all.rebalance(windows, slots, 100, 8), 8)         # never above most
+        with slots.hold(1), slots.hold(2):                                     # 3 games running
+            self.assertEqual(run_all.rebalance(windows, slots, 2, 8), 3)       # 2 units left but 3 running
+            self.assertEqual(windows.asked[-1], 3)
+        self.assertEqual(run_all.rebalance(windows, slots, 1, 8), 1)
+        self.assertEqual(windows.asked[-1], 1)
+
+    def test_follow_need_thread(self):
+        class Windows:
+            held = 2
+
+            def want(self, n):
+                self.held = n
+                return n
+        windows, slots, stop = Windows(), run_all.GameSlots(2), threading.Event()
+        left = [6]
+        thread = threading.Thread(target=run_all.follow_need, args=(windows, slots, lambda: left[0], 4, stop, 0.02))
+        thread.start()
+        deadline = time.time() + 5
+        while slots.capacity != 4 and time.time() < deadline:
+            time.sleep(0.02)
+        self.assertEqual((slots.capacity, windows.held), (4, 4))
+        left[0] = 1
+        while slots.capacity != 1 and time.time() < deadline:
+            time.sleep(0.02)
+        self.assertEqual((slots.capacity, windows.held), (1, 1))
+        stop.set()
+        thread.join(5)
+        self.assertFalse(thread.is_alive())
+
+
 if __name__ == '__main__':
     unittest.main()
