@@ -35,11 +35,9 @@ float CubicSegment::Evaluate(float t) const {
     return ((t * c[3] + c[2]) * t + c[1]) * t + c[0];
 }
 
-// --- Maths -------------------------------------------------------------------------------------------
-
 // --- Quaternion --------------------------------------------------------------------------------------
 
-// Quaternion helpers: rotation from an angle and an axis (two argument orders) and spherical interpolation.
+// Quaternion helpers: rotation from an axis and an angle, and spherical interpolation.
 
 namespace {
 
@@ -47,18 +45,6 @@ namespace {
 constexpr float kSlerpLinear = 0.0001f;
 
 } // namespace
-
-// Arguments (angle, axis); returns this.
-Quaternion* Quaternion::SetAngleAxis(float angle, const Vector3& axis) {
-    FromAxisAngle(axis, angle);
-    return this;
-}
-
-// Arguments (axis, angle); returns this.
-Quaternion* Quaternion::SetAxisAngle(const Vector3& axis, float angle) {
-    FromAxisAngle(axis, angle);
-    return this;
-}
 
 // *this = slerp(a, b, t) along the shorter arc (b negated when the dot product is negative); nearly equal
 // rotations interpolate linearly.
@@ -90,12 +76,9 @@ void Quaternion::Slerp(float t, const Quaternion& from, const Quaternion& to) {
 }
 
 // The half angle's sine over the axis's length and its cosine.
-void Quaternion::FromAxisAngle(const Vector3& axis, float angle) {
+Quaternion Quaternion::AxisAngle(const Vector3& axis, float angle) {
     float half = angle * 0.5f;
     float s = lib::Sin(half) / Length(axis);
-    w = lib::Cos(half);
-    x = s * axis.x;
-    y = s * axis.y;
-    z = s * axis.z;
+    return {lib::Cos(half), s * axis.x, s * axis.y, s * axis.z};
 }
 

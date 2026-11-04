@@ -1,6 +1,5 @@
 #include "core_transform.h"
 
-#include "camera.h"
 #include "core_maths.h"
 #include "lib/crt.h"
 #include "lib/maths.h"
@@ -39,47 +38,6 @@ void TransformObject::LoadTransform(platform::File* file) {
     file->ReadValue(localRotation);
 }
 
-void Camera::GroundPoint(Vector3* out) const {
-    const Quaternion& r = localRotation;
-    const Vector3& pos = localPosition;
-    const Vector3 axis = r.AxisZ();
-    if (std::fabs(axis.z) > 1e-5f && -(pos.z / axis.z) > 0.0f) {
-        *out = axis * -(pos.z / axis.z) + pos;
-        return;
-    }
-    *out = pos;
-}
-
-void Camera::SetTurnRate(float rate) {
-    turnTarget = rate;
-    if (std::fabs(turnRate) < std::fabs(rate)) turnRate = turnTarget;
-}
-
-void Camera::SetTiltRate(float rate) {
-    tiltTarget = rate;
-    if (std::fabs(tiltRate) < std::fabs(rate)) tiltRate = tiltTarget;
-}
-
-void Camera::SetZoomTarget(float value) { zoomTarget = value; }
-
-void Camera::SetTarget(const EngineObject* target) {
-    if (!target) {
-        targetId = -1;
-        return;
-    }
-    SetTargetId(target->id);
-}
-
-void Camera::SetTargetId(int newId) {
-    targetId = newId;
-    if (newId != -1) {
-        panTarget = camera::kZeroVector;
-        panVelocity = camera::kZeroVector;
-    }
-}
-
-// --- Math --------------------------------------------------------------------------------------------
-
 // TransformObject's rotation helpers: the world matrix, turning the local rotation towards a direction
 // (three variants), rotating about an axis and setting a heading. See core_transform.h and
 // docs/notes/core.md.
@@ -89,7 +47,6 @@ namespace {
 constexpr float kTiltStep = 0.1f;      // TiltTowards turns a tenth of the way
 constexpr float kHalfTurn = 0.4f;      // TurnUpTowards' reduced step
 constexpr float kMinAxis = 0.00001f;   // shorter rotation axes count as none
-constexpr float kHeadingOffset = /*0079B1B8*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
 // The shared part of RollTowards and TurnUpTowards: `side` = forward x dir, `toward` = side x
 // forward normalised, `axis` = from x toward.
@@ -141,8 +98,7 @@ void TransformObject::TiltTowards(const Vector3& target) {
         axis = {1.0f, 0.0f, 0.0f};
         angle = 0.0f;
     }
-    Quaternion turn;
-    turn.SetAngleAxis(angle, axis);
+    Quaternion turn = Quaternion::AxisAngle(axis, angle);
     localRotation.PreMultiply(turn);
 }
 
@@ -163,8 +119,7 @@ void TransformObject::TurnTowards(const Vector3& target) {
         axis = {1.0f, 0.0f, 0.0f};
         angle = 0.0f;
     }
-    Quaternion turn;
-    turn.SetAngleAxis(angle, axis);
+    Quaternion turn = Quaternion::AxisAngle(axis, angle);
     localRotation.PreMultiply(turn);
 }
 
@@ -186,8 +141,7 @@ void TransformObject::RollTowards(const Vector3& dir) {
 }
 
 void TransformObject::Rotate(const Vector3& axis, float angle) {
-    Quaternion turn;
-    const Quaternion& r = *turn.SetAngleAxis(angle, axis);
+    const Quaternion& r = Quaternion::AxisAngle(axis, angle);
     localRotation = r * localRotation;
 }
 
@@ -215,7 +169,5 @@ void TransformObject::TurnUpTowards(const Vector3& dir, int reduced) {
 // The local rotation becomes a turn about +Z by atan2(dir[1], dir[0]) (plus the heading offset, pi / 2).
 void TransformObject::SetHeading(const Vector3& dir) {
     Vector3 axis = {0.0f, 0.0f, 1.0f};
-    Quaternion heading;
-    const Quaternion* r = heading.SetAxisAngle(axis, lib::Atan2(dir.y, dir.x) + kHeadingOffset);
-    localRotation = *r;
+    localRotation = Quaternion::AxisAngle(axis, lib::Atan2(dir.y, dir.x) + kHalfPi);
 }

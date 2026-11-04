@@ -410,9 +410,8 @@ bool RunPass() {
         }
     }
     g_interface.Update();
-    const bool draw = static_cast<char>(g_movieMode) != 0;
-    if (auto hook = ei::mainloop::g_harnessHooks.frameStep) hook(draw, true);
-    else app::FrameStep(draw, true);
+    if (auto hook = ei::mainloop::g_harnessHooks.frameStep) hook(true);
+    else app::FrameStep(true);
     return true;
 }
 
@@ -511,9 +510,7 @@ int GameMain(char* commandLine) {
     g_clientWorld.Create();
     g_serverWorld.Create();
     // The field of view: pi * 2 / 7 (51.4 degrees).
-    g_camera.Init(options, std::bit_cast<std::uint32_t>(options->nearClipDistance),
-                   std::bit_cast<std::uint32_t>(options->farClipDistance),
-                   std::bit_cast<std::uint32_t>(kPi * 2.0f / 7.0f));
+    g_camera.Init(options, options->nearClipDistance, options->farClipDistance, kPi * 2.0f / 7.0f);
     g_clientWorld.SetCamera(&g_camera);
     if (!CheckDiskSpace(messages)) return kExitDeclined;
 

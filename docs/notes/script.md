@@ -190,4 +190,3 @@ can reach command 8 (`KillScript() VTriger#0#n( this )`).
   position raised by radius * 1.6 or the box height.
 - `ComputeFaceNormal`: edges from vertex 1 normalised unless below 1e-10 squared, crossed, normalised; a zero or NaN
   length takes the default normal.
-- `DirectXErrorText` (a sorted table of 149 codes), `app::FatalErrorCode` ("%s (0x%.8X) %s"; always exits).

@@ -644,15 +644,14 @@ void BattleScreen::ToggleMember(int index) {
         auto* currentPortraits = portraits;
         std::uint32_t value = chosen[i];
         currentPortraits->sceneObjects[i * 5 + 4]->visible = value != 0;
-        Quaternion turn;
-        const Quaternion* rest = &kHudRestRotation;
+        Quaternion rest = kHudRestRotation;
         if (value != 0) {
             const Vector3 axis = {-1.0f, 0.0f, 0.0f};
             const float angle = kHudQuarterTurn *
                                 0.14285715f;   // 1/7
-            rest = turn.SetAxisAngle(axis, angle);
+            rest = Quaternion::AxisAngle(axis, angle);
         }
-        currentPortraits->slots[i].restB = *rest;
+        currentPortraits->slots[i].restB = rest;
         Unit* member = unitAt(i);
         if (member && chosen[i] != 0) {
             g_clientWorld.Select(member);

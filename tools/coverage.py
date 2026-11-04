@@ -60,7 +60,7 @@ GAME_AREAS = [
     ('sound and video', r'sound.*|bink_video'),
     ('game drawing', r'renderer.*|device_.*|figure_.*|model.*|texture.*|terrain.*|particle_.*|effects.*|sky_object|'
                      r'light|ground_.*|material|surface|link_.*|camera.*|view_matrices|vis_fog_manager|water_tweens|'
-                     r'weather_.*|torch.*|global_map_clouds|clip|projection|dib|render_helper|dx_errors'),
+                     r'weather_.*|torch.*|global_map_clouds|clip|projection|dib|render_helper'),
     ('game core', r'.*'),
 ]
 FOLDER_AREAS = {'render': 'renderer', 'platform': 'platform', 'lib': 'lib', 'audio': 'sound and video',

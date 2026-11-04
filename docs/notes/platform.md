@@ -35,8 +35,7 @@ systems.
   SDL's backend maps its keys to them).
 - Inside `namespace platform` an unqualified call of a Windows function finds the platform function of that name first
   (`Sleep`, `ScreenToClient`, `ClientToScreen`, `SetCursor`, `ActivateKeyboardLayout`): the backend calls
-  the system as `::X`. When the files were merged, EndProcess's `Sleep(INFINITE)` (system.cpp, which did not see the
-  clock header) would have become `platform::Sleep`, the harness's clock; it is `::Sleep`.
+  the system as `::X`.
 
 ## The rule and its check
 
@@ -67,7 +66,7 @@ platform.h's sections (the sockets in `platform::net`):
 | Clocks | `Milliseconds()` (timeGetTime), `TickCount()` (GetTickCount), `Sleep`, `SecondsSince1970()` (a save's date: lib/calendar.h turns it into the local date and text) | SDL (`std::chrono::system_clock` for the date); harness builds: the harness's clocks and fixed date (harness_clock.h) |
 | The message box | `ShowMessageBox(owner, text, caption, buttons, icon)` | SDL; harness builds: the harness's answer |
 | Paths | `ProgramPath()` (the system's separators), `CurrentFolder()`, `SetCurrentFolder`, `UserDataFolder()`, `ArgumentsAfterSeparator` | GetModuleFileNameW, GetCurrentDirectoryW, SetCurrentDirectoryW, GetEnvironmentVariableW |
-| The machine | `FontSmoothing()`; `PrimaryDesktopSize`, `EnvironmentVariable`, `EndProcess` | SystemParametersInfoW (game_calls.cpp: the harness fixes smoothing off); the last three direct |
+| The machine | `FontSmoothing()`; `PrimaryDesktopSize`, `EnvironmentVariable` | SystemParametersInfoW (game_calls.cpp: the harness fixes smoothing off); the last two direct |
 | Files and folders | `CreateFolder`, `RemoveFolder`, `RemoveFile`, `RenameFile`, `CopyFileOver`, `PathExists`, `IsFile`, `FreeDiskSpace` (files.cpp, std::filesystem); `FolderEntries` (a folder search's `FolderEntry`s: name, path, size, folder); `ReadWholeFile` / `WriteWholeFile`; `File` (`FileMode` Read / Create / WriteExisting; also text lines: `WriteLine`), `MappedFile` (read only), `FileError` | every path through `SystemPath` (the harness's overlay, below); CreateFileW, FindFirstFileW, CreateFileMappingW direct; the file objects' writes through game_calls.cpp's `win32::WriteFile` (the harness's failed-write watch) |
 | The window and its events | `StartWindowSystem(name)`, the game window (`CreateGameWindow`, `ShowGameWindow`), `Event`s (keys with modifiers, UTF-8 text, a mouse button with its click count, the wheel in notches, the focus, the close request), the event queue (`EventWaits`, `NextEvent`, `TakeEvent`, `PostQuit`), screen / client points, `CoverMonitor`, `SetClientSize`, `DisplaySizes` (the display's modes' sizes for the resolution row) | SDL; harness builds: the harness's backend on SDL (harness_platform.cpp) |
 | The other game | `BringOtherInstanceForward(name, title)`: another copy runs, its window brought forward | Windows in every build: FindWindowW and the foreground calls (game_calls.cpp: the harness finds none); POSIX a lock file |
@@ -293,7 +292,7 @@ What needed no system at all is standard C++, each checked equal to the call it 
   character the code page lacks becomes '?', one past U+FFFF "??" (WideCharToMultiByte's two units). Checked against
   MultiByteToWideChar / WideCharToMultiByte on 10.2 million cases. `text::CodePoints` (the interface's drawing and
   measuring) decodes UTF-8 the same way; text that is not UTF-8 is taken in the asset code page.
-- **Formatting**: the script errors and DXException's texts are `std::vsnprintf` into a 1 KB buffer (the formats use
+- **Formatting**: the script errors are `std::vsnprintf` into a 1 KB buffer (the formats use
   only %s and %d).
 - **The titles' twips** (ui_scrolling_surface.cpp): MulDiv's rounding (half away from zero, -1 for a zero divisor or an
   overflow) on 64 bits; equal to USER32's on 20 million cases but a divisor of INT_MIN (the divisor is a positive DPI).

@@ -175,7 +175,7 @@ std::string HudState(void* screen, const std::string& argument);
 int ServerUpdate(void* server);                 // WorldServer::Update
 int ClientSegment(void* client);                // WorldClient::Segment
 void CameraUpdate(void* camera, float seconds); // Camera::Update
-void FrameStep(bool draw, bool cursor);         // app::FrameStep
+void FrameStep(bool draw);        // app::FrameStep
 
 // ---- the image's renderer (harness.cpp, harness_capture.cpp; image/harness_render_image.cpp)
 

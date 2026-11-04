@@ -39,8 +39,7 @@ void ViewScreen::CreateScreen() {
     Vector3 focus{30.0f, 30.0f, 0.0f};
     camera->SetFocus(focus);
     Vector3 axis{1.0f, 0.0f, 0.0f};
-    Quaternion turn;
-    turn.SetAngleAxis(kTurnAngle, axis);
+    Quaternion turn = Quaternion::AxisAngle(axis, kTurnAngle);
     camera->localRotation.PreMultiply(turn);
 }
 

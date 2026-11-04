@@ -11,6 +11,7 @@
 // ---- Constants -----------------------------------------------------------------------------------
 
 constexpr float kPi = 3.14159274f;
+constexpr float kHalfPi = kPi * 0.5f;
 
 // ---- Types ---------------------------------------------------------------------------------------
 
@@ -34,8 +35,8 @@ static_assert(sizeof(Vector4) == 16);
 struct Quaternion {
     float w, x, y, z;
 
-    // Rotation of `angle` radians about `axis` (need not be normalised).
-    void FromAxisAngle(const Vector3& axis, float angle);
+    // The rotation of `angle` radians about `axis` (need not be normalised).
+    static Quaternion AxisAngle(const Vector3& axis, float angle);
 
     Quaternion* SetIdentity();
     void PreMultiply(const Quaternion& r);          // *this = r * *this
@@ -43,8 +44,6 @@ struct Quaternion {
     Vector3 AxisY() const;
     Vector3 AxisZ() const;
 
-    Quaternion* SetAngleAxis(float angle, const Vector3& axis);
-    Quaternion* SetAxisAngle(const Vector3& axis, float angle);
     void Slerp(float t, const Quaternion& a, const Quaternion& b);  // shortest arc
 
     // The rotation part of the row-major 4x4 matrix `out`

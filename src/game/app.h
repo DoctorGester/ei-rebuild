@@ -48,11 +48,11 @@ void DispatchInput(const platform::Event& event);
 // Takes every waiting event and passes it to HandleWindowEvent (input dropped); a quit request stays for the main
 // loop.
 void PumpMessages();
-// Without a map on the command line opens the main menu; otherwise loads the map into the
+// Without a .mob on the command line opens the main menu; otherwise loads the map into the
 // world server and runs the command line's script file. Returns 1, or FatalError's result.
 int StartFirstMap();
 // One frame: the interface drawn and the scene presented, nothing while the application is inactive.
-void FrameStep(bool draw, bool cursor);
+void FrameStep(bool draw);
 // Plays the movies listed under `section` of config\movie.ini.
 void PlayMovies(const std::string& section, bool loadingStep);
 // The game's error box (OK, the error icon) over the main window, under the window's title; the cursor that was set is
@@ -90,10 +90,5 @@ void UpdateCursorConfinement();
 void StartVideo();
 // WinMain: the application's start-up, main loop and shutdown.
 int GameMain(char* commandLine);
-// A DirectX failure: the formatted text (1 KB), then "%s (0x%.8X) %s" with the result and its
-// DirectXErrorText in a message box and to the error hook; the error counter is raised and the
-// game exits (exit(-1)). Not patched by Rebirth. Returns 0.
-int FatalErrorCode(long result, const char* format, ...);
-int FatalErrorCodeV(long result, const char* format, va_list args);
 
 } // namespace app

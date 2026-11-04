@@ -71,8 +71,8 @@ void GlobalMap::MouseMove(Point point) {
         camera_trace::MapDrag(drag, layoutX, turned);
         angle = std::fmod(turned, kGlobalMapFullTurn);
         Quaternion spin, tilt;
-        spin.SetAngleAxis(angle, Vector3{0.0f, 0.0f, 1.0f});
-        tilt.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, 3.1415927f * 0.8f);
+        spin = Quaternion::AxisAngle(Vector3{0.0f, 0.0f, 1.0f}, angle);
+        tilt = Quaternion::AxisAngle(Vector3{1.0f, 0.0f, 0.0f}, 3.1415927f * 0.8f);
         Quaternion rotation = tilt * spin;
         turn = rotation;
         g_cursor.motion = {};

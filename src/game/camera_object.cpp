@@ -25,10 +25,12 @@
 
 namespace {
 
-// The default pitch (degrees as radians: pi / 180 * 45) and the default field of view
-// computed at run time as the game does.
-float DefaultPitch() { return CAM_DEGREE * CAM_FORTY_FIVE; }
-float DefaultAngle() { return kPi * CAM_TWO_SEVENTHS; }
+// The default pitch: 45 degrees in radians.
+constexpr float kDefaultPitch = ei::kRadiansPerDegree * 45.0f;
+constexpr float kLookEpsilon = 1e-18f;   // squared length
+constexpr float kAlignEpsilon = 0.1f;
+constexpr float kObjectExtentLimit = 100.0f;
+constexpr float kObjectFade = 10.0f;
 
 const char kCurrentRecord[] = ".\\camera\\camera.cam";
 const char kNumberedRecords[] = ".\\camera\\camera0*.cam";
@@ -38,33 +40,9 @@ const char kRecordFolder[] = ".\\camera\\";
 } // namespace
 
 Camera::Camera() {
-    localRotation = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
+    localRotation = camera::kIdentityRotation;
     worldRotation.SetIdentity();
-    viewRotation = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
-    for (CameraView& view : views) {
-        view.distance = 30.0f;
-        view.rotation = camera::kIdentityRotation;
-        view.pitch = DefaultPitch();
-    }
-    panVelocity = camera::kZeroVector;
-    panTarget = camera::kZeroVector;
-    panResponse = 2.0f / 15.0f;
-    turnResponse = 1.0f / 3.0f;
-    tiltResponse = 1.0f / 3.0f;
-    zoomResponse = 1.0f / 3.0f;
-    turnRate = 0.0f;
-    turnTarget = 0.0f;
-    tiltRate = 0.0f;
-    focus = {10.0f, 10.0f, 2.0f};
-    tiltTarget = 0.0f;
-    zoomRate = 0.0f;
-    zoomTarget = 0.0f;
-    focusHeight = 2.0f;
-    viewRotation = camera::kIdentityRotation;
-    targetId = -1;
-    nearDistance = 1.0f;
-    farDistance = 2000.0f;
-    fieldOfView = DefaultAngle();
+    for (CameraView& view : views) view = {30.0f, camera::kIdentityRotation, kDefaultPitch};
 }
 
 Camera::~Camera() {
@@ -80,45 +58,38 @@ ClassId Camera::GetClassId() { return ClassId::Camera; }
 
 void Camera::Create() {
     targetId = -1;
-    nearDistance = 1.0f;
-    farDistance = 2000.0f;
-    fieldOfView = DefaultAngle();
+    nearDistance = camera::kDefaultNear;
+    farDistance = camera::kDefaultFar;
+    fieldOfView = camera::kDefaultFieldOfView;
 }
 void Camera::Destroy() { targetId = -1; }
 
-// Init(settings, near, far, fov). Takes the views and the start distance and focus from the settings, keeps the
-// three distances / angle as float bit patterns, switches to free placement, and resets views 6 and 7 to the
-// start distance at 45 degrees (the pitch too). Returns 1.
-int Camera::Init(options::GameOptions* newSettings, std::uint32_t nearBits, std::uint32_t farBits, std::uint32_t fovBits) {
+// Takes the views and the start distance and focus from the settings, keeps the near and far distances and the
+// field of view, switches to free placement, and resets views 6 and 7 to the start distance at 45 degrees (the
+// pitch too).
+void Camera::Init(options::GameOptions* newSettings, float nearClip, float farClip, float fov) {
     camera::ForgetViewStep();
     ViewsFromSettings(newSettings);
     settings = newSettings;
     distance = newSettings->cameraDefaultDistance;
     focus = {newSettings->cameraDefaultXDeploy, newSettings->cameraDefaultYDeploy, newSettings->cameraDefaultHeight};
-    nearDistance = std::bit_cast<float>(nearBits);
-    farDistance = std::bit_cast<float>(farBits);
-    fieldOfView = std::bit_cast<float>(fovBits);
+    nearDistance = nearClip;
+    farDistance = farClip;
+    fieldOfView = fov;
     flags |= kFree;
-    views[7].distance = newSettings->cameraDefaultDistance;
-    pitch = DefaultPitch();
-    views[7].pitch = pitch;
-    views[6].distance = newSettings->cameraDefaultDistance;
-    pitch = DefaultPitch();
-    views[6].pitch = pitch;
-    return 1;
-}
-
-// The point the camera is placed by: its own position when playing a file or placed freely, else the focus.
-const Vector3* CameraAnchor(const Camera* self) {
-    return (self->flags & Camera::kPlaced) ? &self->localPosition : &self->focus;
+    pitch = kDefaultPitch;
+    for (int slot : {6, 7}) {
+        views[slot].distance = newSettings->cameraDefaultDistance;
+        views[slot].pitch = pitch;
+    }
 }
 
 // Starts recording into ".\camera\" + `name`. When ".\camera\camera.cam" exists it is
 // first renamed to the next numbered file: the number after the highest found, where each found
-// name's number is read from its title past the fourth character ("ra0005": always 0, so the
-// rename goes to camera0001.cam; kept as the game has it). Sets the client world's
-// WorldClientFlag::RecordingCamera either way. Returns 1 (file name kept in fileName, flag 0x10 set) when the file can be created, else 0.
-int Camera::OpenFile(const char* name) {
+// name's number is read from the last four characters of its title ("camera0005": 5). Sets the client world's
+// WorldClientFlag::RecordingCamera either way. True (file name kept in fileName, flag 0x10 set) when the file can be
+// created.
+bool Camera::OpenFile(const char* name) {
     platform::File file;
     if (platform::PathExists(kCurrentRecord)) {
         int last = 0;
@@ -126,50 +97,33 @@ int Camera::OpenFile(const char* name) {
             const int number = str::ToInt(str::Right(entry.Title(), 4));
             if (number > last) last = number;
         }
-        std::string path;
-        path = str::Format(kNumberedRecord, last + 1);
-        platform::RenameFile(kCurrentRecord, path.c_str());
+        platform::RenameFile(kCurrentRecord, str::Format(kNumberedRecord, last + 1).c_str());
     }
     g_clientWorld.flags |= WorldClientFlag::RecordingCamera;
-    bool failed;
-    {
-        std::string folder = kRecordFolder;
-        std::string full = folder + name;
-        failed = !file.Open(full, platform::FileMode::Create);
-    }
-    if (failed) return 0;
-    {
-        std::string folder = kRecordFolder;
-        std::string full = folder + name;
-        fileName = full;
-    }
+    const std::string full = std::string(kRecordFolder) + name;
+    if (!file.Open(full, platform::FileMode::Create)) return false;
+    fileName = full;
     flags |= Camera::kRecording;
     file.Close();
-    return 1;
+    return true;
 }
 
-// While recording (flag 0x10), appends a frame {time, -, local position, local rotation} to fileName. Returns 1
-// when written, 0 when not recording or the file does not open.
-int Camera::RecordFrame(std::uint32_t time) {
-    CameraKey record;
+// While recording (flag 0x10), appends a frame {time, -, local position, local rotation} to fileName; nothing when
+// the file does not open.
+void Camera::RecordFrame(std::uint32_t time) {
     platform::File file;
-    if (!(flags & Camera::kRecording)) return 0;
-    if (!file.Open(fileName, platform::FileMode::WriteExisting)) return 0;    // (an existing file only)
+    if (!(flags & Camera::kRecording)) return;
+    if (!file.Open(fileName, platform::FileMode::WriteExisting)) return;    // (an existing file only)
     file.Seek(0, platform::SeekFrom::End);
-    record.time = std::bit_cast<float>(time);
-    record.reserved = 0;
-    record.position = localPosition;
-    record.rotation = localRotation;
+    const CameraKey record = {std::bit_cast<float>(time), 0, localPosition, localRotation};
     file.WriteValue(record);
     file.Close();
-    return 1;
 }
 
-// Closes the camera file: flag 0x10 off, the file name emptied. Returns 1.
-int CameraCloseFile(Camera* self) {
-    self->flags &= ~Camera::kRecording;
-    self->fileName.clear();
-    return 1;
+// Closes the camera file: flag 0x10 off, the file name emptied.
+void Camera::CloseFile() {
+    flags &= ~kRecording;
+    fileName.clear();
 }
 
 // Loads the camera state saved by Save. Saves before version 0x6F hold all eight
@@ -228,28 +182,26 @@ void Camera::Save(ByteStream* stream) {
 // degrees + elevation) about its own X axis. False (and nothing done) for a direction shorter than 1e-9.
 bool Camera::LookDirection(float dx, float dy, float dz) {
     float lengthSquare = LengthSquared(Vector3{dx, dy, dz});
-    if (lengthSquare <= CAM_LOOK_EPSILON) return false;
+    if (lengthSquare <= kLookEpsilon) return false;
     float inv = 1.0f / std::sqrt(lengthSquare);
     float nx = inv * dx;
     float ny = inv * dy;
     float elevation = lib::Asin(-(inv * dz));
     float heading = lib::Acos(ny / lib::Hypot(nx, ny));
-    if (nx == CAM_ZERO || heading == CAM_ZERO) {
+    if (nx == 0.0f || heading == 0.0f) {
         viewRotation = camera::kIdentityRotation;
     } else {
         float side = -nx;
         float z;
-        if (side < CAM_ZERO) z = CAM_MINUS_ONE;
-        else if (side > CAM_ZERO) z = CAM_ONE;
-        else z = CAM_ZERO;
-        viewRotation.FromAxisAngle({0.0f, 0.0f, z}, heading);
+        if (side < 0.0f) z = -1.0f;
+        else if (side > 0.0f) z = 1.0f;
+        else z = 0.0f;
+        viewRotation = Quaternion::AxisAngle({0.0f, 0.0f, z}, heading);
     }
     localRotation = viewRotation;
     const Vector3 xAxis = localRotation.AxisX();
-    float angle = -(CAM_RIGHT_ANGLE + elevation);
-    Quaternion turn;
-    const Quaternion& r = *turn.SetAngleAxis(angle, xAxis);
-    localRotation = r * localRotation;
+    float angle = -(camera::kRightAngle + elevation);
+    localRotation = Quaternion::AxisAngle(xAxis, angle) * localRotation;
     return true;
 }
 
@@ -261,23 +213,19 @@ void Camera::AlignToTarget() {
     const Vector3 zAxis = q.AxisZ();
     const Vector3 xAxis = q.AxisX();
     float hy = -zAxis.x;
-    float inv = CAM_ONE / std::sqrt(hy * hy + zAxis.y * zAxis.y);
+    float inv = 1.0f / std::sqrt(hy * hy + zAxis.y * zAxis.y);
     Vector3 h = {inv * zAxis.y, hy * inv, 0.0f};
     float dot = Dot(xAxis, h);
     float cosine = dot;
-    if (dot > CAM_ONE) cosine = 1.0f;
-    else if (cosine < CAM_MINUS_ONE) cosine = -1.0f;
+    if (dot > 1.0f) cosine = 1.0f;
+    else if (cosine < -1.0f) cosine = -1.0f;
     float angle = lib::Acos(cosine);
     float magnitude = AbsBits(angle);
-    if (CAM_DEGREE > magnitude) return;
+    if (ei::kRadiansPerDegree > magnitude) return;
     Vector3 c = Cross(xAxis, h);
-    Vector3 axis = c * (CAM_ONE / std::sqrt(LengthSquared(c)));
+    Vector3 axis = c * (1.0f / std::sqrt(LengthSquared(c)));
     float axisLength = std::sqrt(LengthSquared(axis));
-    if (axisLength > CAM_ALIGN_EPSILON) {
-        Quaternion turn;
-        const Quaternion& r = *turn.SetAngleAxis(angle * CAM_TENTH, axis);
-        q = r * q;
-    }
+    if (axisLength > kAlignEpsilon) q = Quaternion::AxisAngle(axis, angle * 0.1f) * q;
     ClampAboveObjects();
 }
 
@@ -286,27 +234,26 @@ void Camera::AlignToTarget() {
 // radius and fading out over the next 10; the camera height becomes at least the highest of these
 // (raised over the highest terrain by at most settings->cameraMaxHeight) plus settings->cameraMinHeight.
 void Camera::ClampAboveObjects() {
-    Vector3* p = &localPosition;
-    const float highest = SampleTerrain(*p, 1.0f, 2.0f, 2.0f).maximum;
-    std::vector<Object3D*> list = g_clientWorld.ObjectsInRange(*p, 16.0f);
+    const Vector3& p = localPosition;
+    const float highest = SampleTerrain(p, 1.0f, 2.0f, 2.0f).maximum;
+    std::vector<Object3D*> list = g_clientWorld.ObjectsInRange(p, 16.0f);
     float best = 0.0f;
     for (auto& node : list) {
         const Object3D* object = node;
-        const float limit = CAM_OBJECT_EXTENT_LIMIT;
-        if (object->bounds.boxMax.x > limit || object->bounds.boxMax.y > limit || object->bounds.boxMax.z > limit ||
-            object->bounds.center.z > limit)
+        if (object->bounds.boxMax.x > kObjectExtentLimit || object->bounds.boxMax.y > kObjectExtentLimit ||
+            object->bounds.boxMax.z > kObjectExtentLimit || object->bounds.center.z > kObjectExtentLimit)
             continue;
         float cx = object->localPosition.x + object->bounds.center.x;
         float cy = object->localPosition.y + object->bounds.center.y;
-        float cz = p->z;
+        float cz = p.z;
         float radius = lib::Hypot(object->bounds.boxMax.x, object->bounds.boxMax.y);
-        float dx = cx - p->x;
-        float dy = cy - p->y;
-        float dz = cz - p->z;
+        float dx = cx - p.x;
+        float dy = cy - p.y;
+        float dz = cz - p.z;
         float outside = std::sqrt(LengthSquared(Vector3{dx, dy, dz})) - radius;
-        float factor = CAM_ZERO;
-        if (outside <= CAM_ZERO) factor = CAM_ONE;
-        else if (outside <= CAM_OBJECT_FADE) factor = CAM_ONE - outside * CAM_TENTH;
+        float factor = 0.0f;
+        if (outside <= 0.0f) factor = 1.0f;
+        else if (outside <= kObjectFade) factor = 1.0f - outside * 0.1f;
         float height = ((object->localPosition.z + object->bounds.boxMax.z) + object->bounds.center.z) * factor;
         best = MaxKeepB(best, height);
     }
@@ -317,42 +264,30 @@ void Camera::ClampAboveObjects() {
         float limit = s->cameraMaxHeight;
         float used = MinKeepA(over, limit);
         float wanted = (used + highest) + s->cameraMinHeight;
-        float z = p->z;
-        raised = MaxKeepB(z, wanted);
+        raised = MaxKeepB(p.z, wanted);
     } else {
         float top = MaxKeepB(best, highest);
         float wanted = top + s->cameraMinHeight;
-        float z = p->z;
-        raised = MaxKeepB(z, wanted);
+        raised = MaxKeepB(p.z, wanted);
     }
-    p->z = raised;
+    localPosition.z = raised;
 }
 
 // --- Camera path load --------------------------------------------------------------------------------
-
-// The camera's recorded path file load: the file open is redirected to a mod folder's copy
-// (CameraPatch, mod_folders.h). Its callers (the camera commands' glue) reach it through its address. Main thread.
-// See docs/notes/core.md.
 
 namespace {
 // The gap in the keys' time that ends the lead-in.
 constexpr float kLeadInGap = 500.0f;
 } // namespace
 
-int Camera::LoadPath(const char* name, int settle) {
+bool Camera::LoadPath(const char* name, int settle) {
     platform::File file;
-    int opened;
-    {
-        std::string folder = g_dataFolder;
-        std::string path = folder + "camera\\" + name;
-        if (ei::rebirth::Enabled(ei::rebirth::Patch::CameraPatch)) {
-            // CameraPatch: the mod's Camera\ copy when there is one.
-            opened = file.Open(modfolders::CameraFile(path.c_str()), platform::FileMode::Read);
-        } else {
-            opened = file.Open(path, platform::FileMode::Read);
-        }
-    }
-    if (!opened) return 0;
+    const std::string path = g_dataFolder + "camera\\" + name;
+    // CameraPatch: the mod's Camera\ copy when there is one.
+    const bool opened = ei::rebirth::Enabled(ei::rebirth::Patch::CameraPatch)
+                            ? file.Open(modfolders::CameraFile(path.c_str()), platform::FileMode::Read)
+                            : file.Open(path, platform::FileMode::Read);
+    if (!opened) return false;
 
     // As many keys as the file holds whole; the array is resized as the engine's aligned arrays
     // are (the old keys kept when it grows) and filled with one read.
@@ -372,5 +307,5 @@ int Camera::LoadPath(const char* name, int settle) {
         }
     }
     file.Close();
-    return 1;
+    return true;
 }

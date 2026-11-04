@@ -10,8 +10,6 @@
 
 namespace app {
 
-extern std::uint8_t g_movieMode;   // app_helpers.cpp
-
 
 bool QuitGame(int exitCode);
 

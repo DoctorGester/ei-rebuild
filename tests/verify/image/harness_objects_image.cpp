@@ -177,7 +177,7 @@ int ServerUpdate(void* server) {
 }
 int ClientSegment(void* client) { return static_cast<WorldClient*>(client)->RunTick() ? 1 : 0; }
 void CameraUpdate(void* camera, float seconds) { static_cast<::Camera*>(camera)->Update(seconds); }
-void FrameStep(bool draw, bool cursor) { app::FrameStep(draw, cursor); }
+void FrameStep(bool draw) { app::FrameStep(draw); }
 
 void ConsoleExecute(const char* text) { console::Execute(text); }
 void RequestGameState(int id) { GameRequestGameState(id); }

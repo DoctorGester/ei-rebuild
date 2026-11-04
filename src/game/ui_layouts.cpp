@@ -72,8 +72,7 @@ UiModel* AddMenuModel(UiWindow* window, float angle) {
     UiModel* model = window->AddModel();
     model->Load("unmoco1", "escMenu00", "escMenu00labels");
     Vector3 axis = {1.0f, 0.0f, 0.0f};
-    Quaternion turn;
-    turn.SetAxisAngle(axis, angle);
+    Quaternion turn = Quaternion::AxisAngle(axis, angle);
     model->object->localRotation = turn;
     return model;
 }
@@ -228,8 +227,7 @@ void EscMenu::CreateScreen() {
     model->Load("unmoco1", "escMenu00", "escMenu00labels");
     model->SetScreenPosition(400.0f, 700.0f, 4.8f);
     Vector3 axis = {1.0f, 0.0f, 0.0f};
-    Quaternion turn;
-    turn.SetAxisAngle(axis, kEscMenuTilt);
+    Quaternion turn = Quaternion::AxisAngle(axis, kEscMenuTilt);
     model->object->localRotation = turn;
 
     // Regions 0-4 (save, load, resume, quit, options) from the menus.reg rectangles; the

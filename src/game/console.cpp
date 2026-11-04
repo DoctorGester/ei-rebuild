@@ -62,8 +62,6 @@ Stream& Stream::Flush() {
 
 // ---- Helpers ------------------------------------------------------------------------------------
 
-CommandHandler& Command(CommandMap* map, const std::string& name) { return (*map)[name]; }
-
 CommandHandler FindCommand(const CommandMap& map, const std::string& name) {
     auto found = map.find(name);
     return found != map.end() ? found->second : nullptr;
@@ -77,7 +75,7 @@ void PrintLine(const char* text) { EndLine(g_consoleOut << text); }
 
 void (*g_consoleLineObserver)(const char* line) = nullptr;
 
-ConsoleStreambuf::ConsoleStreambuf(unsigned newFilter) : filter(newFilter) {}
+ConsoleStreambuf::ConsoleStreambuf(LogCategory newCategory) : category(newCategory) {}
 
 void ConsoleStreambuf::Put(char c) {
     if (putNext < putEnd) buffer[putNext++] = c;
@@ -89,7 +87,7 @@ void ConsoleStreambuf::Write(std::string_view text) {
 }
 
 void ConsoleStreambuf::Overflow(int c) {
-    if (filter == 0 || (g_filterMask & filter) != 0) {
+    if (category == kLogConsole || (g_filterMask & category) != 0) {
         line.append(buffer, putNext);
         if (c != -1) line += static_cast<char>(c);
         putNext = 0;
@@ -101,7 +99,7 @@ void ConsoleStreambuf::Sync() {
     Overflow(-1);
     if (g_consoleLineObserver) g_consoleLineObserver(line.c_str());
     g_interface.ConsoleAddText(line);
-    line = game::kEmptyText;
+    line.clear();
 }
 
 // ---- Executor -----------------------------------------------------------------------------------
@@ -134,23 +132,40 @@ const CommandRegistration kCommandRegistrations[25] = {
     {false, "localrate", commands::LocalRate},
 };
 
-// Every call (re)registers all commands. The first token is the command; "@", "#" and
+namespace {
+
+// The two maps: the commands always available and those after the cheat word. The game's commands, then Rebirth's
+// over them.
+struct CommandMaps {
+    CommandMap publicCommands;
+    CommandMap cheatCommands;
+
+    CommandMaps() {
+        for (const CommandRegistration& r : kCommandRegistrations) Register(r);
+        for (const CommandRegistration& r : kAddonCommandRegistrations) Register(r);
+    }
+
+private:
+    void Register(const CommandRegistration& r) { (r.cheat ? cheatCommands : publicCommands)[r.name] = r.handler; }
+};
+
+const CommandMaps& Maps() {
+    static const CommandMaps maps;
+    return maps;
+}
+
+} // namespace
+
+// The first token is the command; "@", "#" and
 // "$" lines (cheat word given, not in a network game) become WorldScript lines. Otherwise the command word is
 // lower-cased (the arguments keep their case); "quit"/"exit" quit; else the public map is tried, then the cheat word,
 // then (after it) the cheat map.
 void Execute(const std::string& text) {
-    for (const CommandRegistration& r : kCommandRegistrations) {
-        std::string name = r.name;
-        Command(r.cheat ? &g_cheatCommands : &g_publicCommands, name) = r.handler;
-    }
-
     std::vector<std::string> args = Tokenize(text);
     if (args.empty()) return;
     std::string command = args[0];
     args.erase(args.begin());
     bool local = !IsMultiplayerClient();
-    // Rebirth's AddNewConsoleCommands: addon's commands, registered again on every call like the game's own.
-    RegisterAddonCommands();
     char first = command[0];
     if (first == '@' || first == '#' || first == '$') {
         if (g_cheatEnabled && local) {
@@ -170,8 +185,8 @@ void Execute(const std::string& text) {
         app::QuitGame(0);
         return;
     }
-    if (CommandHandler handler = FindCommand(g_publicCommands, command)) {
-        handler(&args);
+    if (CommandHandler handler = FindCommand(Maps().publicCommands, command)) {
+        handler(args);
         return;
     }
     if (!g_cheatEnabled) {
@@ -182,50 +197,40 @@ void Execute(const std::string& text) {
             PrintLine("Activated!");
             return;
         }
-    } else if (CommandHandler handler = FindCommand(g_cheatCommands, command)) {
-        if (!IsMultiplayerClient()) handler(&args);
+    } else if (CommandHandler handler = FindCommand(Maps().cheatCommands, command)) {
+        if (!IsMultiplayerClient()) handler(args);
         return;
     }
     PrintLine("Unknown command");
 }
 
-// States: 0 between tokens, 1 in a token, 2 inside double quotes (which stay in the
-// token).
+// A token's quotes stay in it.
 std::vector<std::string> Tokenize(std::string_view source) {
+    enum class State { Between, InToken, Quoted };
     const std::string text(source);   // the scan below stops at the terminator
     std::vector<std::string> tokens;
     std::string token;
-    int state = 0;
-    const char* p = text.c_str();
-    for (;;) {
-        const char c = *p;
+    State state = State::Between;
+    for (const char c : text) {
         if (c == 0) break;
         if (c == ' ') {
-            if (state == 1) {
-                state = 0;
-                if (token.size() != 0) {
+            if (state == State::InToken) {
+                state = State::Between;
+                if (!token.empty()) {
                     tokens.push_back(token);
                     token.clear();
                 }
-                ++p;
                 continue;
             }
-            if (state != 2) {
-                ++p;
-                continue;
-            }
+            if (state != State::Quoted) continue;
         } else if (c == '"') {
-            state = state != 2 ? 2 : 1;
-        } else if (state == 0) {
-            state = 1;
+            state = state != State::Quoted ? State::Quoted : State::InToken;
+        } else if (state == State::Between) {
+            state = State::InToken;
         }
         token += c;
-        ++p;
     }
-    if (token.size() != 0) {
-        tokens.push_back(token);
-        token.clear();
-    }
+    if (!token.empty()) tokens.push_back(token);
     return tokens;
 }
 
@@ -242,29 +247,21 @@ void RunScriptLine(const std::string& text, const std::vector<std::string>& args
         EndLine(g_consoleOut << "Script error: " << error.text);
 }
 
-} // namespace console
+// ---- The streams --------------------------------------------------------------------------------
 
-// --- Streams -----------------------------------------------------------------------------------------
-
-// The console's static objects: its two command maps, the eight streambufs (one per message filter) and the eight
-// streams on them, plain globals of ours. The streambufs are built when the exe starts and destroyed after the
-// game's exit functions; a stream only names its streambuf (constant-initialised). See docs/notes/console.md.
-
-namespace console {
-
-CommandMap g_publicCommands;
-CommandMap g_cheatCommands;
+// The eight streambufs (one per message category) and the eight streams on them, plain globals of ours. A stream only
+// names its streambuf (constant-initialised). See docs/notes/console.md.
 
 namespace {
 
-ConsoleStreambuf g_consoleBuf(0);
-ConsoleStreambuf g_allLogBuf(0xFFFFFFFF);
-ConsoleStreambuf g_netLogBuf(0x20);
-ConsoleStreambuf g_unitAcksLogBuf(0x10);
-ConsoleStreambuf g_rpgLogBuf(8);
-ConsoleStreambuf g_graphicsLogBuf(4);
-ConsoleStreambuf g_eventLogBuf(2);
-ConsoleStreambuf g_aiLogBuf(1);
+ConsoleStreambuf g_consoleBuf(kLogConsole);
+ConsoleStreambuf g_allLogBuf(kLogAll);
+ConsoleStreambuf g_netLogBuf(kLogNet);
+ConsoleStreambuf g_unitAcksLogBuf(kLogUnitAcks);
+ConsoleStreambuf g_rpgLogBuf(kLogRpg);
+ConsoleStreambuf g_graphicsLogBuf(kLogGraphics);
+ConsoleStreambuf g_eventLogBuf(kLogEvent);
+ConsoleStreambuf g_aiLogBuf(kLogAi);
 
 } // namespace
 

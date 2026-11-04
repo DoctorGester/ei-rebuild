@@ -87,10 +87,9 @@ void ChatWindow::AddPortrait(const std::string& model, std::string_view texture)
         sprite->Place((left + right) * 0.5f, 32.0f, 7.0f);
         sprite->SetScale(0.3f);
         Vector3 axis{1.0f, 0.0f, 0.0f};
-        Quaternion turn;
         // pi * 1.05, passed as a float.
         sprite->localRotation =
-            *turn.SetAxisAngle(axis, 3.1415927f * 1.05f);
+            Quaternion::AxisAngle(axis, 3.1415927f * 1.05f);
     } else {
         sprite = AddBlankSprite();
         sprite->SetRectangle(7.0f, kSpriteScale, static_cast<float>(left), 0.0f, static_cast<float>(right), 60.0f, 0, 0, 0x80,

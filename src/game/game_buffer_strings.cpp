@@ -25,7 +25,7 @@ void ReadInline(GameBuffer* buffer, void* to, std::uint32_t size) {
 // virtual.
 void WriteInline(GameBuffer* buffer, const void* from, std::uint32_t size) {
     if (buffer->cur + size <= buffer->end) {
-        buffer->flags |= 1;
+        buffer->flags |= GameBuffer::kFlagWritten;
         std::memcpy(buffer->cur, from, size);
         buffer->cur += size;
     } else {
@@ -42,7 +42,7 @@ bool GameBuffer::ReadString(std::string* s, int maxLength) {
     if (word & 1) ReadInline(this, bytes + 1, 3);
     const int length = static_cast<int>(word) >> 1;
     if (maxLength > 0 && length > maxLength) {
-        flags |= 8;
+        flags |= kFlagReadPastEnd;
         return false;
     }
     if (cur + length > end) ReserveRead(length);

@@ -116,10 +116,10 @@ views; the mouse wheel zooms by 1.05^steps; a shake's distance uses `_hypot`. Re
 500 time units after its predecessor gives its pose to every key before it).
 
 Kept: `RestoreView` sets distance and pitch only; `SampleTerrain` counts the centre sample once more; `StopMotion`
-multiplies the view axes by 0 and replaces the turn / tilt rate only when NaN; `PlaybackStep` at the last key places
+multiplies the view axes by 0 and leaves the turn / tilt rates; `PlaybackStep` at the last key places
 the camera without clearing the playing flag; `Update` tracks a target only with flag 8 clear, and panning clears both;
-the script commands SetCameraPosition / SetCameraOrientation do nothing; `OpenFile` always renames an existing
-camera.cam to camera0001.cam (it reads the number past the fourth character of the title, always 0).
+the script commands SetCameraPosition / SetCameraOrientation do nothing; `OpenFile` renames an existing
+camera.cam to the next number after the highest camera0*.cam (read from the last four characters of the title).
 
 ## Strings
 

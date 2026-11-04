@@ -184,19 +184,12 @@ void DrawThroughDevice(Part& part) {
     const MeshBuffers& b = mesh->buffers;
     const render::MeshSource source = part.Source(false);
     render::SetMeshSource(&source);
-    int result;
-    if (part.Textured()) {
-        result = part.device->DrawMeshBlocks2(part.textureA->surface, part.textureB->surface, positions, blocks,
-                                              b.normals, b.normalCount, mesh->colorsA.data(), mesh->colorsB.data(),
-                                              b.texCoords, b.texCoordCount, b.corners, b.cornerCount, b.words,
-                                              b.wordCount, b.indices, b.indexCount,
-                                              mesh->textureOffsetU, mesh->textureOffsetV, part.alpha, part.drawFlags);
-    } else {
-        result = part.device->DrawMeshBlocks(positions, blocks, b.normals, b.normalCount, mesh->colorsA.data(),
-                                             mesh->colorsB.data(), b.texCoords, b.texCoordCount, b.corners, b.cornerCount,
-                                             b.words, b.wordCount, b.indices, b.indexCount,
-                                             mesh->textureOffsetU, mesh->textureOffsetV, part.alpha, part.drawFlags);
-    }
+    const MeshArgs args{positions, blocks, b.normals, b.normalCount, mesh->colorsA.data(), mesh->colorsB.data(),
+                        b.texCoords, b.corners, b.cornerCount, b.words, b.wordCount, b.indices, b.indexCount,
+                        mesh->textureOffsetU, mesh->textureOffsetV, part.alpha, part.drawFlags};
+    const int result = part.Textured()
+                           ? part.device->DrawMeshBlocks2(part.textureA->surface, part.textureB->surface, args)
+                           : part.device->DrawMeshBlocks(args);
     render::SetMeshSource(nullptr);
     if (!part.rect) return;
     Rect* own = &part.node->screen;
@@ -368,10 +361,10 @@ int FigureMeshDrawer::DrawPlain(TextureDevice* device, Material*, int alpha,
     // The new renderer keeps the mesh on the GPU: what the device's draw below draws.
     const render::MeshSource source{m, nullptr, !m->offsets.empty(), lib::Has(meshFlags, FigureMeshFlag::Flat)};
     render::SetMeshSource(&source);
-    int result = device->DrawMeshBlocks(positions, blocks, b.normals, b.normalCount, m->colorsA.data(), m->colorsB.data(),
-                                        b.texCoords, b.texCoordCount, b.corners, b.cornerCount, b.words, b.wordCount,
-                                        b.indices, b.indexCount, m->textureOffsetU,
-                                        m->textureOffsetV, alpha, drawFlags);
+    const MeshArgs args{positions, blocks, b.normals, b.normalCount, m->colorsA.data(), m->colorsB.data(),
+                        b.texCoords, b.corners, b.cornerCount, b.words, b.wordCount, b.indices, b.indexCount,
+                        m->textureOffsetU, m->textureOffsetV, alpha, drawFlags};
+    int result = device->DrawMeshBlocks(args);
     render::SetMeshSource(nullptr);
     if (rect) {
         Rect* own = &screen;

@@ -214,7 +214,7 @@ bool PlayerClient::Pump() {
     case State::LoginSent:
         return true;
     case State::SendingCamera: {
-        const Vector3* anchor = CameraAnchor(g_clientWorld.camera);
+        const Vector3* anchor = g_clientWorld.camera->Anchor();
         Vector2 point = XY(*anchor);   // sent as two floats
         WriteType(&out, ClientMessage::LastPosition);
         out.Write(&point, sizeof(point));

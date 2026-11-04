@@ -103,7 +103,7 @@ void GameSetServerPaused(int paused) { g_serverWorld.SetServerPaused(static_cast
 
 void GameStopCameraRecording() {
     WorldClient* world = &g_clientWorld;
-    CameraCloseFile(world->camera);
+    world->camera->CloseFile();
     world->flags &= ~WorldClientFlag::RecordingCamera;
 }
 

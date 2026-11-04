@@ -30,7 +30,6 @@ namespace {
 int* const kSpectator = &options::g_options.drawVisibleOnly;
 
 // addon's state.
-CommandHandler g_gameHelp = nullptr;   // the game's "help", saved at each registration
 int g_consoleLogLevel = 1;             // addon's messages to the console
 int g_addonLogLevel = 0;               // addon.log
 bool g_guiShown = true;                // nogui
@@ -75,16 +74,16 @@ std::string GroupText(const ScriptGroup& group) {
 
 // ---- The commands (the arguments, lower case) ----------------------------------------------
 
-void Help(std::vector<std::string>* args) {
-    g_gameHelp(args);
+void Help(const CommandArgs& args) {
+    commands::Help(args);
     Say("ADDON [command]");
     Say("addon-specific commands");
 }
 
-void AddonDebug(std::vector<std::string>* args) {
-    std::string type = !args->empty() ? (*args)[0] : "";
+void AddonDebug(const CommandArgs& args) {
+    std::string type = !args.empty() ? args[0] : "";
     str::MakeLower(type);
-    int level = args->size() >= 2 ? str::ToInt((*args)[1]) : -1;
+    int level = args.size() >= 2 ? str::ToInt(args[1]) : -1;
     if (type.empty() || type == "help") {
         SayFormat("Usage:\n\taddon debug {type} [level]\n\nSet debug level for type of addon's debugging settings\n"
                   "or show current value if level is not specified\n\nTypes:\n* log      - addon log file (current: %d)\n"
@@ -106,25 +105,24 @@ void AddonDebug(std::vector<std::string>* args) {
     }
 }
 
-void Addon(std::vector<std::string>* args) {
-    if (args->empty() || text::CompareIgnoringCase((*args)[0], "help") == 0) {
+void Addon(const CommandArgs& args) {
+    if (args.empty() || text::CompareIgnoringCase(args[0], "help") == 0) {
         Say("Welcome to Evil Islands Addon Engine v0.12.4.2\n\nAvailable commands:\n"
             "* addon info          - show detailed information about addon\n"
             "* addon debug [args]  - set addon's debug settings");
-    } else if (text::CompareIgnoringCase((*args)[0], "info") == 0) {
+    } else if (text::CompareIgnoringCase(args[0], "info") == 0) {
         SayFormat("Addon core version: 0.12.4.2\nCurrent mod: %s", "No mod is used");
-    } else if (text::CompareIgnoringCase((*args)[0], "debug") == 0) {
-        args->erase(args->begin());
-        AddonDebug(args);
+    } else if (text::CompareIgnoringCase(args[0], "debug") == 0) {
+        AddonDebug(CommandArgs(args.begin() + 1, args.end()));
     } else {
-        SayFormat("Unknown command: %s", (*args)[0]);
+        SayFormat("Unknown command: %s", args[0]);
     }
 }
 
 // execs file: loads a script file into the script loader and runs it.
-void Execs(std::vector<std::string>* args) {
-    if (args->empty()) return;
-    if (TheMissionScript()->LoadFile((*args)[0])) {
+void Execs(const CommandArgs& args) {
+    if (args.empty()) return;
+    if (TheMissionScript()->LoadFile(args[0])) {
         ScriptTick(TheMissionScript());
         return;
     }
@@ -132,7 +130,7 @@ void Execs(std::vector<std::string>* args) {
 }
 
 // listgvar: the global script variables (floats, strings, objects, groups).
-void ListGlobals(std::vector<std::string>*) {
+void ListGlobals(const CommandArgs&) {
     const ScriptVars& globals = TheMissionScript()->globals;
     auto name = [](const std::vector<std::string>& names, int i) { return names[static_cast<std::size_t>(i)].c_str(); };
     for (int i = 0; i < std::ssize(globals.floats.values); ++i)
@@ -150,14 +148,14 @@ void ListGlobals(std::vector<std::string>*) {
 }
 
 // drawall n: the draw-all flag becomes (n == 0).
-void DrawAll(std::vector<std::string>* args) {
-    if (args->size() < 1) return;
-    *kSpectator = str::ToInt((*args)[0]) == 0 ? 1 : 0;
+void DrawAll(const CommandArgs& args) {
+    if (args.empty()) return;
+    *kSpectator = str::ToInt(args[0]) == 0 ? 1 : 0;
 }
 
 // nogui 0|1|2: GUI and cursor shown / GUI hidden / both hidden.
-void NoGui(std::vector<std::string>* args) {
-    int mode = args->size() == 1 ? str::ToInt((*args)[0]) : -1;
+void NoGui(const CommandArgs& args) {
+    int mode = args.size() == 1 ? str::ToInt(args[0]) : -1;
     if (static_cast<unsigned>(mode) > 2) {
         Say("Hide or show GUI in game missions\n\nnogui 0 - show all (default)\nnogui 1 - hide GUI but show cursor\n"
             "nogui 2 - hide GUI and cursor");
@@ -168,11 +166,6 @@ void NoGui(std::vector<std::string>* args) {
     g_applyGui = true;
     SayFormat("GUI: %s, cursor: %s", g_guiShown ? "show" : "hide", g_cursorShown ? "show" : "hide");
     g_cursor.ShowImage(g_cursorShown);
-}
-
-void Register(CommandMap* map, const char* name, CommandHandler handler) {
-    std::string key = name;
-    Command(map, key) = handler;
 }
 
 // The AutoExec lines, read once (addon reads them when it loads).
@@ -200,12 +193,6 @@ const CommandRegistration kAddonCommandRegistrations[6] = {
     {true, "drawall", DrawAll},
     {false, "nogui", NoGui},
 };
-
-void RegisterAddonCommands() {
-    g_gameHelp = Command(&g_cheatCommands, "help");
-    for (const CommandRegistration& r : kAddonCommandRegistrations)
-        Register(r.cheat ? &g_cheatCommands : &g_publicCommands, r.name, r.handler);
-}
 
 void ApplyAddonGuiVisibility(UiContainer* screen) {
     if (!g_applyGui) return;

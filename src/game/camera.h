@@ -61,6 +61,17 @@ struct TerrainSample {
 };
 TerrainSample SampleTerrain(const Vector3& p, float step, float halfX, float halfY);
 
+// The constants the camera code uses: the zero vector and the identity rotation it copies, ninety degrees in radians
+// and the defaults of the near / far distances and the field of view.
+namespace camera {
+inline constexpr Vector3 kZeroVector = /*0079B5C8*/ {0.0f, 0.0f, 0.0f};
+inline constexpr Quaternion kIdentityRotation = /*0079B5B8*/ {1.0f, 0.0f, 0.0f, 0.0f};
+inline constexpr float kRightAngle = ei::kRadiansPerDegree * 90.0f;
+inline constexpr float kDefaultNear = 1.0f;
+inline constexpr float kDefaultFar = 2000.0f;
+inline constexpr float kDefaultFieldOfView = kPi * (2.0f / 7.0f);
+}   // namespace camera
+
 // The camera ("Camera"). flags: 0x8 following the target, 0x10 a camera file is open, 0x20 playing a
 // camera file, 0x40 free (scripted) placement, 0x100 focus kept inside a circle, 0x200 the alternate limits.
 class Camera final : public TransformObject {
@@ -76,10 +87,11 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    // Starts recording into ".\camera\" + `name` (1 when the file
-    // can be made). The other stops recording (the file name emptied); returns 1.
-    int OpenFile(const char* name);
-    int RecordFrame(std::uint32_t time);
+    // Starts recording into ".\camera\" + `name`; false when the file cannot be made. Appends a frame at `time`.
+    // CloseFile stops recording (the file name emptied).
+    bool OpenFile(const char* name);
+    void RecordFrame(std::uint32_t time);
+    void CloseFile();
 
     static constexpr std::uint32_t kFollowing = 0x8;
     static constexpr std::uint32_t kRecording = 0x10;
@@ -119,13 +131,14 @@ public:
     void SetBounds(const Vector3& center, float radius);
     // Starts a shake from an event at `source` (ignored 20 or more away).
     void Shake(const Vector3& source, float duration, float amplitude, float decay);
-    // Recorded camera path: jump to the first key / interpolate at `time` (0 when finished or not playing).
-    int PlaybackStart();
-    int PlaybackStep(float time);
+    // Recorded camera path: jump to the first key (false without keys) / interpolate at `time` (nothing when finished
+    // or not playing).
+    bool PlaybackStart();
+    void PlaybackStep(float time);
 
-    // Views and start placement from the settings; the near / far distances and the field of view (floats
-    // passed as their dword bit patterns) kept in nearDistance..fieldOfView.
-    int Init(options::GameOptions* settings, std::uint32_t nearBits, std::uint32_t farBits, std::uint32_t fovBits);
+    // Views and start placement from the settings; the near / far distances and the field of view are kept in
+    // nearDistance..fieldOfView.
+    void Init(options::GameOptions* settings, float nearClip, float farClip, float fov);
 
     // Lifts the camera over the terrain and the objects within 16 of it.
     void ClampAboveObjects();
@@ -148,70 +161,48 @@ public:
     void SetTarget(const EngineObject* target);
     void SetTargetId(int id);
 
-    options::GameOptions* settings;    // the game options: heights, start placement, limits, saved views
-    Vector3 panVelocity;        // pan velocity
-    Vector3 panTarget;          // pan velocity target
-    float panResponse;
-    float turnRate;
-    float turnTarget;
-    float turnResponse;
-    float tiltRate;
-    float tiltTarget;
-    float tiltResponse;
-    float zoomRate;
-    float zoomTarget;           // the zoom rate target (SetZoomTarget)
-    float zoomResponse;
-    Vector3 focus;              // the point looked at
-    float focusHeight;          // above the ground
-    float distance;
-    Quaternion viewRotation;    // heading
-    float pitch;                // degrees
+    // The point the camera is placed by: its own position when playing a file or placed freely, else the focus.
+    const Vector3* Anchor() const { return (flags & kPlaced) ? &localPosition : &focus; }
+
+    // Reads the recorded path <data folder>camera\<name> into the keys (as many as the file holds whole; the mod
+    // folder's copy when CameraPatch is on). With `settle` above 1 and below the key count, the keys before the first
+    // gap of more than 500 time units among the first `settle` take the pose of the key after the gap. False when
+    // the file does not open.
+    bool LoadPath(const char* name, int settle);
+
+    options::GameOptions* settings = nullptr;    // the game options: heights, start placement, limits, saved views
+    Vector3 panVelocity = camera::kZeroVector;
+    Vector3 panTarget = camera::kZeroVector;     // pan velocity target
+    float panResponse = 2.0f / 15.0f;
+    float turnRate = 0.0f;
+    float turnTarget = 0.0f;
+    float turnResponse = 1.0f / 3.0f;
+    float tiltRate = 0.0f;
+    float tiltTarget = 0.0f;
+    float tiltResponse = 1.0f / 3.0f;
+    float zoomRate = 0.0f;
+    float zoomTarget = 0.0f;    // the zoom rate target (SetZoomTarget)
+    float zoomResponse = 1.0f / 3.0f;
+    Vector3 focus = {10.0f, 10.0f, 2.0f};   // the point looked at
+    float focusHeight = 2.0f;               // above the ground
+    float distance = 0.0f;
+    Quaternion viewRotation = camera::kIdentityRotation;   // heading
+    float pitch = 0.0f;                     // degrees
     std::vector<CameraShake> shakes;
-    Vector3 boundsCenter;
-    float boundsRadius;
-    int targetId;
+    Vector3 boundsCenter = camera::kZeroVector;
+    float boundsRadius = 0.0f;
+    int targetId = -1;
     CameraView views[8];
-    float nearDistance;         // (renderer_init reads the three as zNear / zFar / fov)
-    float farDistance;
-    float fieldOfView;
+    float nearDistance = camera::kDefaultNear;   // (renderer_init reads the three as zNear / zFar / fov)
+    float farDistance = camera::kDefaultFar;
+    float fieldOfView = camera::kDefaultFieldOfView;
     std::string fileName;      // the camera file being recorded
-    // Rebirth patches it. Reads the recorded path <data folder>camera\<name> into the keys (as many as the
-    // file holds whole). With `settle` above 1 and below the key count, the keys before the first gap of more
-    // than 500 time units among the first `settle` take the pose of the key after the gap. Returns 0 when the
-    // file does not open, else 1.
-    int LoadPath(const char* name, int settle);
-    // the recorded path's keys
-    std::vector<CameraKey> keys;
-    float timeOffset;
-    int keyIndex;
+    std::vector<CameraKey> keys;   // the recorded path's keys
+    float timeOffset = 0.0f;
+    int keyIndex = 0;
 };
 
-// The point the camera is placed by: its own position when playing a file or placed freely, else the focus.
-const Vector3* CameraAnchor(const Camera* self);
-
-// Names for the game's globals and constants the camera code uses.
 namespace camera {
-
-// What static initialisers leave: pi * 0.5 (the shake's wave runs at this rate), the
-// zero vector and the identity rotation the camera copies.
-inline constexpr float kHalfPi = /*0079B2A4*/ 1.5707964f;
-inline constexpr Vector3 kZeroVector = /*0079B5C8*/ {0.0f, 0.0f, 0.0f};
-inline constexpr Quaternion kIdentityRotation = /*0079B5B8*/ {1.0f, 0.0f, 0.0f, 0.0f};
-
-#define CAM_NINETY 90.0f
-#define CAM_FORTY_FIVE 45.0f
-#define CAM_TWO_SEVENTHS (2.0f / 7.0f)
-#define CAM_ZOOM_STEP 1.05f
-#define CAM_LOOK_EPSILON 1e-18f   // squared length
-#define CAM_ALIGN_EPSILON 0.1f
-#define CAM_ONE 1.0f
-#define CAM_MINUS_ONE (-1.0f)
-#define CAM_ZERO 0.0f
-#define CAM_TENTH 0.1f
-#define CAM_OBJECT_EXTENT_LIMIT 100.0f
-#define CAM_OBJECT_FADE 10.0f
-#define CAM_DEGREE ei::kRadiansPerDegree                             // one degree in radians
-#define CAM_RIGHT_ANGLE (CAM_DEGREE * CAM_NINETY)
 
 // The drawn view (docs/notes/renderer.md section 14): the camera keeps the game's timing (each client tick
 // moves it by a tick, each frame by its time), and the world's draw shows its pose less the part of the last
@@ -244,5 +235,3 @@ ViewPose DrawnView(const Camera* camera);
 void TakeFrameView(const Camera* camera);
 const ViewPose& FrameView();
 } // namespace camera
-
-int CameraCloseFile(Camera* self);

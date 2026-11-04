@@ -23,6 +23,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <optional>
 #include <string>
 #include <vector>
 #include <format>
@@ -34,60 +35,33 @@ namespace {
 
 
 // Argument `i` equals `text`, without case.
-bool ArgIs(const std::vector<std::string>* args, int i, const char* text) {
-    return text::CompareIgnoringCase((*args)[i], text) == 0;
+bool ArgIs(const CommandArgs& args, int i, const char* text) {
+    return text::CompareIgnoringCase(args[i], text) == 0;
 }
+// A log category's name for the filter command and its label in the list of shown ones.
+struct LogName {
+    const char* name;
+    const char* label;
+    LogCategory category;
+};
+constexpr LogName kLogNames[] = {
+    {"ai", "AI: ", kLogAi},
+    {"event", "\nEVENT: ", kLogEvent},
+    {"graphics", "\nGRAPHICS: ", kLogGraphics},
+    {"rpg", "\nRPG: ", kLogRpg},
+    {"unitacks", "\nUNITACKS: ", kLogUnitAcks},
+    {"net", "\nNET: ", kLogNet},
+};
+
 // "1"/"on" and "0"/"off".
-bool ArgOn(const std::vector<std::string>* args, int i) { return ArgIs(args, i, "1") || ArgIs(args, i, "on"); }
-bool ArgOff(const std::vector<std::string>* args, int i) { return ArgIs(args, i, "0") || ArgIs(args, i, "off"); }
+bool ArgOn(const CommandArgs& args, int i) { return ArgIs(args, i, "1") || ArgIs(args, i, "on"); }
+bool ArgOff(const CommandArgs& args, int i) { return ArgIs(args, i, "0") || ArgIs(args, i, "off"); }
 
 Player* LocalPlayer() {
     PlayerClient* view = g_clientWorld.LocalView();
     return view ? view->player : nullptr;
 }
 
-
-void SetConsoleRect(int left, int top, int right, int bottom) {
-    Rect rect = {left, top, right, bottom};
-    g_interface.SetConsoleRect(&rect);
-}
-
-// join / server: a party with one member ("F", "Human Hero", `extra`) on the stack, handed
-// to the game flow's request 5 / 6 with the map name.
-template <void (GameFlow::*Request)(const char*, Party*)>
-void RequestWithParty(std::vector<std::string>* args, const char* extra) {
-    Party party;
-    party.AddMember("F", "Human Hero", extra);
-    std::string map = (*args)[0];
-    (g_gameFlow.*Request)(map.c_str(), &party);
-}
-
-void WriteSpeech(platform::File* file, const SpeechRecord& speech) {
-    if (speech.text.size() == 0) return;
-    file->WriteLine(std::format("#say {}", speech.name.data()));
-    file->WriteLine(speech.text.data());
-}
-
-// kick / ban: without arguments the server's player list window (if the server allows it), with a
-// name (quotes stripped) the server command.
-void KickOrBan(std::vector<std::string>* args, int windowMode, net::CommandKind command) {
-    int count = static_cast<int>(args->size());
-    if (count == 0) {
-        net::ClientSession* server = net::g_gameClient;
-        if (IsLive(server)) {
-            // Our binding's player record: only the host gets the window.
-            net::BindingMessage* binding = server->binding;
-            if (binding->player.Get()->host)
-                g_interface.GetActiveWindow()->PlayerList(windowMode);
-            return;
-        }
-    }
-    if (count != 1) return;
-    std::string name = (*args)[0];
-    if (name.size() >= 2 && name.front() == '"' && name.back() == '"') name = name.substr(1, name.size() - 2);
-    if (name.empty() || name == "\"") return;   // no name: nothing to send
-    if (IsLive(net::g_gameClient)) net::g_gameClient->SendCommand(command, name);
-}
 
 // The day number of a date (days since 1970-01-01, any year; a day past the month's end runs into the next month).
 std::int64_t DaysFromCivil(int year, int month, int day) {
@@ -99,10 +73,82 @@ std::int64_t DaysFromCivil(int year, int month, int day) {
     return static_cast<std::int64_t>(era) * 146097 + dayOfEra - 719468 + (day - 1);
 }
 
+// A console position: its name, its letter and the window's rectangle (800x600 coordinates).
+struct ConsolePosition {
+    const char* name;
+    const char* letter;
+    Rect rect;
+};
+constexpr ConsolePosition kPositions[] = {
+    {"left", "l", {0, 0, 200, 600}},
+    {"right", "r", {600, 0, 800, 600}},
+    {"top", "t", {0, 0, 800, 150}},
+    {"bottom", "b", {0, 450, 800, 600}},
+    {"center", "c", {200, 150, 600, 450}},
+    {"fullscreen", "f", {0, 0, 800, 600}},
+};
+
+// The player list window's modes (Window::PlayerList).
+constexpr int kKickList = 1;
+constexpr int kBanList = 2;
+
+// Days: the day number of a ddmmyyyy date, none unless it is eight digits (year 1900 or later, month 1-12, day 1-31).
+std::optional<std::int64_t> DateDays(const std::string& text) {
+    if (text.size() < 8) return std::nullopt;
+    for (int i = 0; i < 8; ++i)
+        if (text[i] < '0' || text[i] > '9') return std::nullopt;
+    auto number = [&](int first, int count) { return std::atoi(str::Mid(text, first, count).c_str()); };
+    const int year = number(4, 4);
+    const int month = number(2, 2);
+    const int day = number(0, 2);
+    if (year < 1900 || month < 1 || month > 12 || day < 1 || day > 31) return std::nullopt;
+    return DaysFromCivil(year, month, day);
+}
+
+// join / server: a party with one member ("F", "Human Hero", `extra`) on the stack, handed
+// to the game flow's request 5 / 6 with the map name.
+template <void (GameFlow::*Request)(const char*, Party*)>
+void RequestWithParty(const CommandArgs& args, const char* extra) {
+    Party party;
+    party.AddMember("F", "Human Hero", extra);
+    std::string map = args[0];
+    (g_gameFlow.*Request)(map.c_str(), &party);
+}
+
+void WriteSpeech(platform::File* file, const SpeechRecord& speech) {
+    if (speech.text.size() == 0) return;
+    file->WriteLine(std::format("#say {}", speech.name.data()));
+    file->WriteLine(speech.text.data());
+}
+
+// kick / ban: without arguments the server's player list window (if the server allows it), with a
+// name (quotes stripped) the server command.
+void KickOrBan(const CommandArgs& args, int windowMode, net::CommandKind command) {
+    int count = static_cast<int>(args.size());
+    if (count == 0) {
+        net::ClientSession* server = net::g_gameClient;
+        if (IsLive(server)) {
+            // Our binding's player record: only the host gets the window.
+            net::BindingMessage* binding = server->binding;
+            if (binding->player.Get()->host)
+                g_interface.GetActiveWindow()->PlayerList(windowMode);
+            return;
+        }
+    }
+    if (count != 1) return;
+    std::string name = args[0];
+    if (name.size() >= 2 && name.front() == '"' && name.back() == '"') name = name.substr(1, name.size() - 2);
+    if (name.empty() || name == "\"") return;   // no name: nothing to send
+    if (IsLive(net::g_gameClient)) net::g_gameClient->SendCommand(command, name);
+}
+
 // rate / localrate: bytes per second, clamped to 500..100000.
-void SetRate(std::vector<std::string>* args, int* rate, const char* usage) {
-    if (args->size() != 1) return PrintLine(usage);
-    int value = str::ToInt((*args)[0]);
+void SetRate(const CommandArgs& args, int* rate, const char* usage) {
+    if (args.size() != 1) {
+        PrintLine(usage);
+        return;
+    }
+    int value = str::ToInt(args[0]);
     if (value < 500) value = 500;
     else if (value > 100000) value = 100000;
     *rate = value;
@@ -110,7 +156,7 @@ void SetRate(std::vector<std::string>* args, int* rate, const char* usage) {
 
 } // namespace
 
-void Help(std::vector<std::string>*) {
+void Help(const CommandArgs&) {
     static constexpr const char* kLines[] = {
         "Commands are:",
         "HELP",
@@ -136,50 +182,52 @@ void Help(std::vector<std::string>*) {
 }
 
 // Console l<eft>|r<ight>|t<op>|b<ottom>|c<enter>|f<ullscreen> (800x600 coordinates).
-void ConsolePos(std::vector<std::string>* args) {
-    if (!args->empty()) {
-        if (ArgIs(args, 0, "left") || ArgIs(args, 0, "l"))
-            return SetConsoleRect(0, 0, 0xC8, 0x258);
-        if (ArgIs(args, 0, "right") || ArgIs(args, 0, "r"))
-            return SetConsoleRect(0x258, 0, 0x320, 0x258);
-        if (ArgIs(args, 0, "top") || ArgIs(args, 0, "t"))
-            return SetConsoleRect(0, 0, 0x320, 0x96);
-        if (ArgIs(args, 0, "bottom") || ArgIs(args, 0, "b"))
-            return SetConsoleRect(0, 0x1C2, 0x320, 0x258);
-        if (ArgIs(args, 0, "center") || ArgIs(args, 0, "c"))
-            return SetConsoleRect(0xC8, 0x96, 0x258, 0x1C2);
-        if (ArgIs(args, 0, "fullscreen") || ArgIs(args, 0, "f"))
-            return SetConsoleRect(0, 0, 0x320, 0x258);
+void ConsolePos(const CommandArgs& args) {
+    if (!args.empty()) {
+        for (const ConsolePosition& position : kPositions) {
+            if (!ArgIs(args, 0, position.name) && !ArgIs(args, 0, position.letter)) continue;
+            Rect rect = position.rect;
+            g_interface.SetConsoleRect(&rect);
+            return;
+        }
     }
     PrintLine("Invalid console position");
 }
 
 // History <lines>.
-void History(std::vector<std::string>* args) {
-    if (args->empty()) return PrintLine("Invalid parameters");
-    g_interface.SetConsoleHistory(str::ToInt((*args)[0]));
+void History(const CommandArgs& args) {
+    if (args.empty()) {
+        PrintLine("Invalid parameters");
+        return;
+    }
+    g_interface.SetConsoleHistory(str::ToInt(args[0]));
 }
 
 // Filter (prints the shown categories), filter <type> (shows only that one), filter <type> 1|on|0|off.
-void Filter(std::vector<std::string>* args) {
-    if (args->empty()) {
-        static constexpr const char* kLabels[] = {"AI: ", "\nEVENT: ", "\nGRAPHICS: ", "\nRPG: ", "\nUNITACKS: ", "\nNET: "};
+void Filter(const CommandArgs& args) {
+    if (args.empty()) {
         Stream& os = g_consoleOut;
-        for (int i = 0; i < 6; ++i)   // "AI: on", "\nEVENT: off", ...
-            os << kLabels[i] << (g_filterMask & (1u << i) ? "on" : "off");
-        return EndLine(os);
+        for (const LogName& log : kLogNames)   // "AI: on", "\nEVENT: off", ...
+            os << log.label << (g_filterMask & log.category ? "on" : "off");
+        EndLine(os);
+        return;
     }
-    unsigned type;
-    if (ArgIs(args, 0, "none")) type = 0;
-    else if (ArgIs(args, 0, "ai")) type = 1;
-    else if (ArgIs(args, 0, "event")) type = 2;
-    else if (ArgIs(args, 0, "graphics")) type = 4;
-    else if (ArgIs(args, 0, "rpg")) type = 8;
-    else if (ArgIs(args, 0, "unitacks")) type = 0x10;
-    else if (ArgIs(args, 0, "net")) type = 0x20;
-    else if (ArgIs(args, 0, "all")) type = ~0u;
-    else return PrintLine("Invalid parameters");
-    if (args->size() <= 1) {
+    unsigned type = 0;
+    bool known = ArgIs(args, 0, "none");
+    if (ArgIs(args, 0, "all")) {
+        type = kLogAll;
+        known = true;
+    }
+    for (const LogName& log : kLogNames) {
+        if (!ArgIs(args, 0, log.name)) continue;
+        type = log.category;
+        known = true;
+    }
+    if (!known) {
+        PrintLine("Invalid parameters");
+        return;
+    }
+    if (args.size() <= 1) {
         g_filterMask = type;
     } else if (ArgOn(args, 1)) {
         g_filterMask |= type;
@@ -192,21 +240,27 @@ void Filter(std::vector<std::string>* args) {
 
 // Listvar <player> [file]: prints the player's global variables ("name = value") and
 // writes them to the file ("%s %g") when one is given. In a network game the local player is used.
-void ListVar(std::vector<std::string>* args) {
-    if (args->empty()) return PrintLine("usage: listvar [Nplayer] <[output file name]>");
+void ListVar(const CommandArgs& args) {
+    if (args.empty()) {
+        PrintLine("usage: listvar [Nplayer] <[output file name]>");
+        return;
+    }
     Player* player;
     if (IsMultiplayerClient())
         player = LocalPlayer();
     else
-        player = g_serverWorld.GetPlayer(str::ToInt((*args)[0]));
-    if (!player) return PrintLine("Wrong player number");
+        player = g_serverWorld.GetPlayer(str::ToInt(args[0]));
+    if (!player) {
+        PrintLine("Wrong player number");
+        return;
+    }
 
     platform::File file;
     bool writing = false;
-    if (args->size() > 1) {
-        writing = file.Open((*args)[1], platform::FileMode::Create);
+    if (args.size() > 1) {
+        writing = file.Open(args[1], platform::FileMode::Create);
         if (!writing)   // "Cannot open file <name> for writing"
-            EndLine(g_consoleOut << "Cannot open file " << (*args)[1] << " for writing");
+            EndLine(g_consoleOut << "Cannot open file " << args[1] << " for writing");
     }
     const NamedFloatTable& variables = player->GetParty()->variables;
     for (auto& node : variables) {
@@ -218,17 +272,26 @@ void ListVar(std::vector<std::string>* args) {
 }
 
 // Loadvar <player> <file>: sets the variables of each "name value" line.
-void LoadVar(std::vector<std::string>* args) {
-    if (args->size() < 2) return PrintLine("usage: loadvar [N player] [input file name]");
-    Player* player = g_serverWorld.GetPlayer(str::ToInt((*args)[0]));
-    if (!player) return PrintLine("Wrong player number");
+void LoadVar(const CommandArgs& args) {
+    if (args.size() < 2) {
+        PrintLine("usage: loadvar [N player] [input file name]");
+        return;
+    }
+    Player* player = g_serverWorld.GetPlayer(str::ToInt(args[0]));
+    if (!player) {
+        PrintLine("Wrong player number");
+        return;
+    }
     PlayerServer* state = player->Server();
-    if (!state) return PrintLine("Wrong player number");
+    if (!state) {
+        PrintLine("Wrong player number");
+        return;
+    }
 
     std::vector<std::string> parts;
     std::string bytes;
-    if (!platform::ReadWholeFile((*args)[1], &bytes)) {   // "Cannot open file <name> for reading"
-        EndLine(g_consoleOut << "Cannot open file " << (*args)[1] << " for reading");
+    if (!platform::ReadWholeFile(args[1], &bytes)) {   // "Cannot open file <name> for reading"
+        EndLine(g_consoleOut << "Cannot open file " << args[1] << " for reading");
         return;
     }
     for (const std::string& line : str::Lines(bytes)) {
@@ -242,7 +305,7 @@ void LoadVar(std::vector<std::string>* args) {
 }
 
 // "Current FPS: " 1000 / last frame time (printed as float).
-void LastFps(std::vector<std::string>*) {
+void LastFps(const CommandArgs&) {
     auto* timer = &g_sceneRenderer;
     Stream& os = g_consoleOut << "Current FPS: ";
     unsigned ms = timer->FrameTime();
@@ -251,9 +314,12 @@ void LastFps(std::vector<std::string>*) {
 }
 
 // Exec <file>: runs each line of the file as a console command. Quotes around the name are trimmed.
-void Exec(std::vector<std::string>* args) {
-    if (args->empty()) return PrintLine("usage: exec<ute> [input file name]");
-    std::string name = (*args)[0];
+void Exec(const CommandArgs& args) {
+    if (args.empty()) {
+        PrintLine("usage: exec<ute> [input file name]");
+        return;
+    }
+    std::string name = args[0];
     str::TrimLeft(name, '"');
     str::TrimRight(name, '"');
     std::string bytes;
@@ -265,31 +331,38 @@ void Exec(std::vector<std::string>* args) {
 }
 
 // Give <player> money <n> | exp <n> (shared by the party) | assortment.
-void Give(std::vector<std::string>* args) {
-    std::string unused1;
-    std::string unused2;
-    if (args->size() < 2) {
+void Give(const CommandArgs& args) {
+    if (args.size() < 2) {
         PrintLine("IMPORTANT: use only from global map");
         PrintLine("give [NPlayer] money [NMoney]");
-        return PrintLine("give [NPlayer] exp [NExp]");
+        PrintLine("give [NPlayer] exp [NExp]");
+        return;
     }
-    Player* player = g_serverWorld.GetPlayer(str::ToInt((*args)[0]));
-    if (!player) return PrintLine("Wrong player number");
+    Player* player = g_serverWorld.GetPlayer(str::ToInt(args[0]));
+    if (!player) {
+        PrintLine("Wrong player number");
+        return;
+    }
     PlayerServer* state = player->Server();
-    if (!state) return PrintLine("Wrong player number");
-    if (ArgIs(args, 1, "money") && args->size() > 2) {
-        int amount = str::ToInt((*args)[2]);
-        player->GetParty()->money += amount;
-        return state->SendParty();
+    if (!state) {
+        PrintLine("Wrong player number");
+        return;
     }
-    if (ArgIs(args, 1, "exp") && args->size() > 2) {
+    if (ArgIs(args, 1, "money") && args.size() > 2) {
+        int amount = str::ToInt(args[2]);
+        player->GetParty()->money += amount;
+        state->SendParty();
+        return;
+    }
+    if (ArgIs(args, 1, "exp") && args.size() > 2) {
         int count = lib::Count(player->GetParty()->members);
         if (count == 0) return;
         // The typed number over the count.
-        const float share = str::ToFloat((*args)[2]) / static_cast<float>(count);
+        const float share = str::ToFloat(args[2]) / static_cast<float>(count);
         for (int i = 0; i < count; ++i)
             player->GetParty()->members[i].stats.AddScaledExperience(share);
-        return state->SendParty();
+        state->SendParty();
+        return;
     }
     if (ArgIs(args, 1, "assortment")) {
         g_interface.GetActiveWindow()->DebugFill();
@@ -299,53 +372,63 @@ void Give(std::vector<std::string>* args) {
 }
 
 // join <map>: the flow's request 5 with a party of one ("Hercules").
-void Join(std::vector<std::string>* args) {
-    if (args->size() != 1) return PrintLine("Join has 1 parameter, server name");
+void Join(const CommandArgs& args) {
+    if (args.size() != 1) {
+        PrintLine("Join has 1 parameter, server name");
+        return;
+    }
     RequestWithParty<&GameFlow::RequestPartyZone5>(args, "Hercules");
 }
 
 // server <map>: "Starting up a server", then the flow's request 6 with a party of one ("Serv").
-void HostServer(std::vector<std::string>* args) {
-    if (args->size() != 1) return PrintLine("Join has 1 parameter, map name");
+void HostServer(const CommandArgs& args) {
+    if (args.size() != 1) {
+        PrintLine("Join has 1 parameter, map name");
+        return;
+    }
     PrintLine("Starting up a server");
     RequestWithParty<&GameFlow::RequestPartyZone6>(args, "Serv");
 }
 
-void MemUsage(std::vector<std::string>*) {}
+void MemUsage(const CommandArgs&) {}
 
 // disconnect, any arguments: the client world's local player disconnects.
-void Disconnect(std::vector<std::string>*) { g_gameFlow.DisconnectClient(); }
+void Disconnect(const CommandArgs&) { g_gameFlow.DisconnectClient(); }
 
-void LootAll(std::vector<std::string>*) {
+void LootAll(const CommandArgs&) {
     PrintLine("Looting...");
     g_serverWorld.LootDeadUnits();
 }
 
 // Fadeout <milliseconds>.
-void FadeOut(std::vector<std::string>* args) {
-    if (args->empty()) return PrintLine("FADEOUT nMillSec");
+void FadeOut(const CommandArgs& args) {
+    if (args.empty()) {
+        PrintLine("FADEOUT nMillSec");
+        return;
+    }
     if (!g_interface.fade) return;
-    g_interface.fade->Start(str::ToInt((*args)[0]));
+    g_interface.fade->Start(str::ToInt(args[0]));
     PrintLine("Ok");
 }
 
 // Net client|server|time 0/1 (traffic and timing output), net zone <name>.
-void Net(std::vector<std::string>* args) {
-    if (args->size() != 2) {
+void Net(const CommandArgs& args) {
+    if (args.size() != 2) {
         PrintLine("net client 0/1 - show client traffic");
         PrintLine("net server 0/1 - show server traffic");
-        return PrintLine("net time 0/1   - show client time counting info");
+        PrintLine("net time 0/1   - show client time counting info");
+        return;
     }
-    if (text::CompareIgnoringCase((*args)[0], "client") == 0) {
-        if (Player* player = LocalPlayer()) player->logTraffic = str::ToInt((*args)[1]);
+    if (text::CompareIgnoringCase(args[0], "client") == 0) {
+        if (Player* player = LocalPlayer()) player->logTraffic = str::ToInt(args[1]);
     }
-    if (text::CompareIgnoringCase((*args)[0], "server") == 0) {
-        if (Player* player = g_serverWorld.GetPlayer(0)) player->logTraffic = str::ToInt((*args)[1]);
+    if (text::CompareIgnoringCase(args[0], "server") == 0) {
+        if (Player* player = g_serverWorld.GetPlayer(0)) player->logTraffic = str::ToInt(args[1]);
     }
-    if (text::CompareIgnoringCase((*args)[0], "time") == 0)
-        app::g_showClientSpeed = str::ToInt((*args)[1]);
-    if (text::CompareIgnoringCase((*args)[0], "zone") == 0 && IsLive(net::g_gameClient)) {
-        std::string zone = (*args)[1];
+    if (text::CompareIgnoringCase(args[0], "time") == 0)
+        app::g_showClientSpeed = str::ToInt(args[1]);
+    if (text::CompareIgnoringCase(args[0], "zone") == 0 && IsLive(net::g_gameClient)) {
+        std::string zone = args[1];
         net::g_gameClient->SendCommand(net::CommandKind::PreviewMap, zone);
     }
 }
@@ -366,7 +449,7 @@ void WriteEnvironmentSpeechLines(platform::File* file, const acks::EnvironmentSp
 // Generateacks. Writes <data folder>scenack.txt: for every record of the three ack
 // tables, each speech list its kind map names (in the map's order; a list that serves several
 // kinds is written once per kind), and after a unit record's lists its environment speeches.
-void GenerateAcks(std::vector<std::string>*) {
+void GenerateAcks(const CommandArgs&) {
     platform::File file;
     if (!file.Open(g_dataFolder + "scenack.txt", platform::FileMode::Create)) return;
     platform::File* out = &file;
@@ -383,39 +466,15 @@ void GenerateAcks(std::vector<std::string>*) {
 }
 
 // Days ddmmyyyy DDMMYYYY: the days between two dates (06:00:00 and 07:01:01), counted on the calendar.
-void Days(std::vector<std::string>* args) {
-    auto digits = [&](int i) {
-        for (int k = 0; k < 8; ++k) {
-            signed char c = (*args)[i][k];
-            if (c < '0' || c > '9') return false;
-        }
-        return true;
-    };
-    auto number = [&](int i, int first, int count) { return std::atoi(str::Mid((*args)[i], first, count).c_str()); };
-    if (args->size() >= 2 && (*args)[0].size() >= 8 && (*args)[1].size() >= 8 && digits(0) && digits(1)) {
-        int year = number(0, 4, 4);
-        if (year >= 1900) {
-            int month = number(0, 2, 2);
-            if (month >= 1 && month <= 12) {
-                int day = number(0, 0, 2);
-                if (day >= 1 && day <= 31) {
-                    const std::int64_t from = DaysFromCivil(year, month, day);
-                    int year2 = number(1, 4, 4);
-                    if (year2 >= 1900) {
-                        int month2 = number(1, 2, 2);
-                        if (month2 >= 1 && month2 <= 12) {
-                            int day2 = number(1, 0, 2);
-                            if (day2 >= 1 && day2 <= 31) {
-                                const std::int64_t to = DaysFromCivil(year2, month2, day2);
-                                // 06:00:00 on the first date to 07:01:01 on the second, whole days.
-                                int days = static_cast<int>(((to - from) * 86400 + 3661) / 86400);
-                                EndLine(g_consoleOut << "Your age: " << days << " days");
-                                return;
-                            }
-                        }
-                    }
-                }
-            }
+void Days(const CommandArgs& args) {
+    if (args.size() >= 2) {
+        const std::optional<std::int64_t> from = DateDays(args[0]);
+        const std::optional<std::int64_t> to = DateDays(args[1]);
+        if (from && to) {
+            // 06:00:00 on the first date to 07:01:01 on the second, whole days.
+            int days = static_cast<int>(((*to - *from) * 86400 + 3661) / 86400);
+            EndLine(g_consoleOut << "Your age: " << days << " days");
+            return;
         }
     }
     static constexpr const char* kUsage[] = {
@@ -429,28 +488,28 @@ void Days(std::vector<std::string>* args) {
     for (const char* line : kUsage) PrintLine(line);
 }
 
-void PartyResend(std::vector<std::string>*) {
+void PartyResend(const CommandArgs&) {
     if (Player* player = g_serverWorld.GetPlayer(0)) player->Server()->ResendParty();
 }
 
 // Kick [name].
-void Kick(std::vector<std::string>* args) { KickOrBan(args, 1, net::CommandKind::KickByName); }
+void Kick(const CommandArgs& args) { KickOrBan(args, kKickList, net::CommandKind::KickByName); }
 
 // Ban [name].
-void Ban(std::vector<std::string>* args) { KickOrBan(args, 2, net::CommandKind::BanByName); }
+void Ban(const CommandArgs& args) { KickOrBan(args, kBanList, net::CommandKind::BanByName); }
 
 // Fps [1|on|0|off]: shows or hides the frame rate; anything else toggles it.
-void Fps(std::vector<std::string>* args) {
+void Fps(const CommandArgs& args) {
     bool on = g_interface.fpsSurface == nullptr;
-    if (!args->empty() && ArgOn(args, 0)) on = true;
-    else if (!args->empty() && ArgOff(args, 0)) on = false;
+    if (!args.empty() && ArgOn(args, 0)) on = true;
+    else if (!args.empty() && ArgOff(args, 0)) on = false;
     g_interface.ShowFps(on);
 }
 
 // Rate <bytes per second>.
-void Rate(std::vector<std::string>* args) { SetRate(args, &net::g_remoteRate, "Rate has one parameter - connection rate in bytes per second"); }
+void Rate(const CommandArgs& args) { SetRate(args, &net::g_remoteRate, "Rate has one parameter - connection rate in bytes per second"); }
 
 // Localrate <bytes per second>.
-void LocalRate(std::vector<std::string>* args) { SetRate(args, &net::g_localRate, "LocalRate has one parameter - connection rate in bytes per second"); }
+void LocalRate(const CommandArgs& args) { SetRate(args, &net::g_localRate, "LocalRate has one parameter - connection rate in bytes per second"); }
 
 } // namespace console::commands

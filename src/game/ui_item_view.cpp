@@ -116,8 +116,7 @@ void Turn(ItemTurn* turn, float dt, bool hovered) {
 
 Quaternion HalfTurn(float ax, float ay, float az) {
     const Vector3 axis = {ax, ay, az};
-    Quaternion q;
-    q.SetAxisAngle(axis, 3.1415927f);
+    Quaternion q = Quaternion::AxisAngle(axis, 3.1415927f);
     return q;
 }
 
@@ -201,8 +200,7 @@ void ItemScreen::DrawItem(SceneRenderer* pass, const ItemCell& cell) {
             // Weapons turn about (1, 1, 0) after a half turn about x.
             Quaternion a = HalfTurn(1.0f, 0.0f, 0.0f);
             const Vector3 axis = {1.0f, 1.0f, 0.0f};
-            Quaternion b;
-            b.SetAxisAngle(axis, turn->angle);
+            Quaternion b = Quaternion::AxisAngle(axis, turn->angle);
             model->localRotation = b * a;
         } else if (IsRecordLoot(item, LootRecordType::Weapon) || IsRecordLoot(item, LootRecordType::Armor) || IsRecordLoot(item, LootRecordType::Quick)) {
             model->localRotation = HalfTurn(1.0f, 0.0f, 0.0f);    // blueprints lie still
@@ -210,8 +208,7 @@ void ItemScreen::DrawItem(SceneRenderer* pass, const ItemCell& cell) {
             // Others turn about y after a half turn about x.
             Quaternion a = HalfTurn(1.0f, 0.0f, 0.0f);
             const Vector3 axis = {0.0f, 1.0f, 0.0f};
-            Quaternion b;
-            b.SetAxisAngle(axis, turn->angle);
+            Quaternion b = Quaternion::AxisAngle(axis, turn->angle);
             model->localRotation = b * a;
         }
 
@@ -339,8 +336,7 @@ void ItemScreen::DrawHeroFace(SceneRenderer* pass, const HeroFaceCell& cell) {
     SetShade(model, 1.0f);
     Quaternion turn = HalfTurn(1.0f, 0.0f, 0.0f);
     const Vector3 axis = {-1.0f, 0.0f, 0.0f};
-    Quaternion tilt;
-    tilt.SetAxisAngle(axis, (cell.y - 300.0f) * 0.001f);
+    Quaternion tilt = Quaternion::AxisAngle(axis, (cell.y - 300.0f) * 0.001f);
     model->localRotation = tilt * turn;
 
     float frameDepth = cell.depth * 1.3f;

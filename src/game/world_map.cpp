@@ -292,7 +292,7 @@ void WriteMapFile(const char* name, GameBuffer* buffer) {
     {
         modfolders::SelectMaps(name, modfolders::MapsSite::WriteFile);
         std::string path = MapsFolder() + name;
-        file.Open(path, platform::FileMode::Create, 0);
+        file.Open(path, platform::FileMode::Create);
     }
     if (buffer->cur > buffer->high) buffer->high = buffer->cur;
     file.Write(buffer->begin, static_cast<std::uint32_t>(buffer->base + (buffer->high - buffer->begin)));

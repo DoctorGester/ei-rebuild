@@ -131,7 +131,7 @@ int RestoreZone(Party* records, MapRecord* zoneRecord, const std::string& zone, 
     bool opened;
     {
         std::string path = folder + fileName;
-        opened = file.Open(path, platform::FileMode::Read, 1);
+        opened = file.Open(path, platform::FileMode::Read);
     }
     if (!opened) {
         failed = true;
@@ -307,7 +307,7 @@ int GameFlow::SaveGame(const std::string& slot) {
     bool opened;
     {
         std::string path = slotFolder + kScenarioFile;
-        opened = file.Open(path, platform::FileMode::Create, 0);
+        opened = file.Open(path, platform::FileMode::Create);
     }
     if (!opened) {
         g_interface.closeAll = 1;
@@ -333,7 +333,7 @@ int GameFlow::SaveGame(const std::string& slot) {
     if (kind == 0 || kind == 2) {
         {
             std::string path = slotFolder + kMissionFile;
-            opened = file.Open(path, platform::FileMode::Create, 0);
+            opened = file.Open(path, platform::FileMode::Create);
         }
         if (!opened) return 0;
         MemoryStream mission;
@@ -433,7 +433,7 @@ int StartNetworkZone(const std::string& zone) {
     {
         std::string path = folder + zone;
         std::string fileName = path + kSaveExtension;
-        opened = file.Open(fileName, platform::FileMode::Read, 1);
+        opened = file.Open(fileName, platform::FileMode::Read);
     }
     if (opened) {
         MemoryStream data;
@@ -486,7 +486,7 @@ int LeaveZone(Party* records) {
         std::string fileName = zone + kSaveExtension;
         path += fileName;
     }
-    if (!file.Open(path, platform::FileMode::Create, 0)) {
+    if (!file.Open(path, platform::FileMode::Create)) {
         game::FatalError(kCantWrite, path);
         return 0;
     }
@@ -642,7 +642,7 @@ int WorldServer::ReadAIGraph(std::string_view map, std::string_view mob, ByteStr
     // The graph chunk of the .mob file.
     {
         std::string path = MapPath(mob);
-        mobFile.Open(path, platform::FileMode::Read, 1);
+        mobFile.Open(path, platform::FileMode::Read);
     }
     if (mobFile.FindTagged(kGraphChunk, out)) found = 1;
     mobFile.Close();
@@ -659,7 +659,7 @@ int WorldServer::ReadAIGraph(std::string_view map, std::string_view mob, ByteStr
         bool opened;
         {
             std::string path = base + kGraphExtension;
-            opened = graph.Open(path, platform::FileMode::Read, 1);
+            opened = graph.Open(path, platform::FileMode::Read);
         }
         if (opened) {
             out->CopyFrom(&graph);
@@ -678,7 +678,7 @@ void WorldServer::LoadZoneScripts(std::string_view mob) {
     MobScriptDecoder decoder;
     {
         std::string path = MapPath(mob);
-        file.Open(path, platform::FileMode::Read, 1);
+        file.Open(path, platform::FileMode::Read);
     }
     file.FindTagged(kScriptsChunk, &scripts);
     if (scripts.FindTagged(kScriptEncoded, &text)) {
@@ -1074,7 +1074,7 @@ int GameFlow::LoadGame(const std::string& slot) {
     bool opened;
     {
         std::string path = slotFolder + kScenarioFile;
-        opened = file.Open(path, platform::FileMode::Read, 1);
+        opened = file.Open(path, platform::FileMode::Read);
     }
     if (!opened) {
         g_interface.closeAll = 1;
@@ -1147,7 +1147,7 @@ int GameFlow::LoadGame(const std::string& slot) {
     } else {
         {
             std::string path = slotFolder + kMissionFile;
-            opened = file.Open(path, platform::FileMode::Read, 1);
+            opened = file.Open(path, platform::FileMode::Read);
         }
         if (!opened) return 0;
         LoadMission(&file);

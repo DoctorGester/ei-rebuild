@@ -43,7 +43,6 @@ constexpr float kMilli = 0.001f;
 constexpr float kAngleMilli = 1000.0f;
 constexpr float kSpinDegrees = 30.0f;
 
-constexpr float kHalfPi = /*007C899C*/ 1.5707964f;
 constexpr float kTwoPi = /*007C8998*/ 6.2831855f;
 // pi / 180.
 constexpr float kPerDegree = 0.0055555557f;
