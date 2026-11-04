@@ -975,6 +975,9 @@ option). Client side only: driven by the weather the world's light hands over (`
   after it stopped, the sea and the beach in rain; gz11k before and after two minutes of snow; samecapture of a frozen
   moment drawn twice). `weathercheck <least wet> <most wet> [<least snow> <most snow>]` reads ShadowInfo's `wetness`,
   `puddles` and `snowCover`.
+- Cost (R17c, RTX 4070 Ti SUPER, Direct3D 12, 3840x2009 msaa 8 anisotropy 16, zone1 a minute into rain, a frozen
+  frame; the uniforms zeroed and set again in turn, 150 frames each): the frame's GPU time 2.59 .. 2.61 ms with the
+  weather and 2.59 .. 2.63 ms without, at the start and at the shore; no difference above the noise.
 
 **12. Profiling the heaviest scenes.** The user's play settings: 3840 x 2160 windowed, msaa 8, anisotropy 16, flora
 shadows on, Rebirth's draw radii, `frametime 8`; zone1, zone7 (forest), zone11 (snow forest), zone19, the town bz1g, the
