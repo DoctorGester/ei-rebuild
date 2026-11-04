@@ -95,22 +95,22 @@ public:
     // an exact cell edge). Not range-checked.
     int SlotAt(int x) const;
 
-    int tab;                    // 0-5
-    int scrollDirection;        // 0 none, 1 left arrow held, 2 right arrow held
-    int scrollTicks;            // milliseconds into the held arrow's repeat (0 not held yet)
-    float position[6];          // scroll position of each tab, in slots
-    float pending;              // scroll still to apply, in slots
-    float velocity;
-    int selected;               // -1; the hero screen's figure strips: the chosen figure
-    int top;                    // y of the strip: 500 (bottom) or 0 (top)
-    float scale;
-    int count;                  // visible list size after the last rebuild
-    bool tabsEnabled;
-    int hovered;                // -1
-    int filter;                 // 0 items, 1 spells, 2 armour
+    int tab = 0;                // 0-5
+    int scrollDirection = 0;    // 0 none, 1 left arrow held, 2 right arrow held
+    int scrollTicks = 0;        // milliseconds into the held arrow's repeat (0 not held yet)
+    float position[6] = {};     // scroll position of each tab, in slots
+    float pending = 0.0f;       // scroll still to apply, in slots
+    float velocity = 0.0f;
+    int selected = 0;           // -1; the hero screen's figure strips: the chosen figure
+    int top = 0;                // y of the strip: 500 (bottom) or 0 (top)
+    float scale = 0.0f;
+    int count = 0;              // visible list size after the last rebuild
+    bool tabsEnabled = false;
+    int hovered = 0;            // -1
+    int filter = 0;             // 0 items, 1 spells, 2 armour
     std::vector<Item*> list;           // the visible items
-    std::vector<Item*>* source; // all the items (a party's item list, PartyItemArray)
-    PriceKind priceKind;        // the price shown under each item (None: no price)
+    std::vector<Item*>* source = nullptr; // all the items (a party's item list, PartyItemArray)
+    PriceKind priceKind = {};   // the price shown under each item (None: no price)
 };
 
 // The forwarding strip: the camp's item strips and the exchange's; an item click goes to the owner.
@@ -269,32 +269,32 @@ public:
     // range count - 10 keeping the position, or 0 with the top row 0.
     void RefreshHeroScroll();
 
-    int mode;                   // 9, 10, 11
-    int heroIndex;              // selected hero
-    UiScrollbar* heroScroll;   // scroll bar of the hero list
-    int heroTop;                // first row shown
-    Unit* previewModel;        // the hero's figure shown by the preview
-    Item* weapon;
-    Item* quickItem;
-    Item* spellContainer;
-    HeroStatsPanel* statsPanel;
-    HeroEquipPanel* weaponPanel;   // shows the weapon and the quick item
-    HeroQuickStrip* spellPanel;
-    FigureStrip* figureStrips[2]; // the figures of defaults (voices voiceLists[0]) and of names (voiceLists[1])
-    TradePanel* tradePanel;
+    int mode = 0;               // 9, 10, 11
+    int heroIndex = 0;          // selected hero
+    UiScrollbar* heroScroll = nullptr;  // scroll bar of the hero list
+    int heroTop = 0;            // first row shown
+    Unit* previewModel = nullptr;  // the hero's figure shown by the preview
+    Item* weapon = nullptr;
+    Item* quickItem = nullptr;
+    Item* spellContainer = nullptr;
+    HeroStatsPanel* statsPanel = nullptr;
+    HeroEquipPanel* weaponPanel = nullptr;  // shows the weapon and the quick item
+    HeroQuickStrip* spellPanel = nullptr;
+    FigureStrip* figureStrips[2] = {}; // the figures of defaults (voices voiceLists[0]) and of names (voiceLists[1])
+    TradePanel* tradePanel = nullptr;
     std::vector<std::string> defaults;    // the men's figures; its first entry goes to ChooseFigure for a new hero
     std::vector<std::string> names;       // the women's figures
-    float turn;                 // the preview's turn
-    int rotating;               // 0, 1 or 2 while a rotate arrow is held
-    UiEditField* renameEdit;   // the hero list's rename edit window (focused while renaming)
-    UiEditField* nameEdit;     // the new hero's name edit window
-    UiScrollbar* voiceScroll;
+    float turn = 0.0f;          // the preview's turn
+    int rotating = 0;           // 0, 1 or 2 while a rotate arrow is held
+    UiEditField* renameEdit = nullptr;  // the hero list's rename edit window (focused while renaming)
+    UiEditField* nameEdit = nullptr;  // the new hero's name edit window
+    UiScrollbar* voiceScroll = nullptr;
     std::string text;
     std::vector<MpVoiceEntry> voiceLists[2];    // voices points at one of them
-    std::vector<MpVoiceEntry>* voices;      // voiceLists[0] or [1]
-    int voiceTop;
-    int voiceIndex;
-    int voiceSound;
+    std::vector<MpVoiceEntry>* voices = nullptr;  // voiceLists[0] or [1]
+    int voiceTop = 0;
+    int voiceIndex = 0;
+    int voiceSound = 0;
     // The four surfaces' paints: 0 the hero list, 1 the list's commands, 2 the voices or the experience lines, 3 the
     // renamed hero's name.
     std::vector<UiLabel> labels[4];
@@ -310,14 +310,14 @@ public:
 struct MpAddressEntry {
     std::string name;             // the server's name
     std::string description;      // the current map's title
-    int players;
-    int maxPlayers;
-    int ping;                      // milliseconds (9999: none)
+    int players = 0;
+    int maxPlayers = 0;
+    int ping = 0;                  // milliseconds (9999: none)
     net::NetAddress address;
-    int gameType;                  // 0..3 (4: the new game entry)
-    bool foreign;                  // the server answered with another protocol
-    int state;                     // net::ServerEntryBase::State (1: asked directly, forgettable)
-    bool password;                 // joining needs a password
+    int gameType = 0;              // 0..3 (4: the new game entry)
+    bool foreign = false;          // the server answered with another protocol
+    int state = 0;                 // net::ServerEntryBase::State (1: asked directly, forgettable)
+    bool password = false;         // joining needs a password
 };
 
 // The colour the connect list's texts and its line are drawn in: set per row and for the details by the list draw
@@ -388,24 +388,24 @@ public:
     // the rows past 15 and its position set again; scrollTop 0.
     void RebuildList();
 
-    float refreshTimer;            // seconds since the last refresh (0.5 s period)
+    float refreshTimer = 0.0f;     // seconds since the last refresh (0.5 s period)
     std::vector<MpAddressEntry> entries;
-    int selected;                  // row
+    int selected = 0;              // row
     net::NetAddress selectedAddress{};    // the selected row's address (0: row 0)
-    int scrollTop;                 // the first row shown
-    UiScrollbar* scroll;
-    UiSlider* playersSlider;      // the new game's maximum players - 1
-    UiEditField* nameEdit;        // the new game's name
-    int maxPlayers;                // the slider's position + 1 (6 from Create)
-    int gameType;                  // the new game's type tab 0..3
-    char boxText[0x80];            // the edit boxes' text (an address, a password)
-    bool unlisted;                 // the new game is not announced (1 from Create)
+    int scrollTop = 0;             // the first row shown
+    UiScrollbar* scroll = nullptr;
+    UiSlider* playersSlider = nullptr;  // the new game's maximum players - 1
+    UiEditField* nameEdit = nullptr;  // the new game's name
+    int maxPlayers = 0;            // the slider's position + 1 (6 from Create)
+    int gameType = 0;              // the new game's type tab 0..3
+    char boxText[0x80] = {};       // the edit boxes' text (an address, a password)
+    bool unlisted = false;         // the new game is not announced (1 from Create)
     std::string hostPassword;     // the new game's password
     std::vector<std::string> allodNames; // "lmp_allod_name %d" texts (the game type tabs)
-    bool joining;                  // the client was asking a host last frame
+    bool joining = false;          // the client was asking a host last frame
     std::vector<std::string> texts;       // "lmp_connection %d" texts (22)
-    int sortKey;                   // 0 none; 1..8 the column pairs (odd ascending)
-    bool newGameTips;              // the unlisted and password regions have their tips (DrawList; 0 from Create)
+    int sortKey = 0;               // 0 none; 1..8 the column pairs (odd ascending)
+    bool newGameTips = false;      // the unlisted and password regions have their tips (DrawList; 0 from Create)
     std::uint32_t titleColour = kUiTextColour;   // the titles' colour: g_connectTextColour before the last DrawListVanilla
 };
 
@@ -423,7 +423,7 @@ public:
     void Update() override;
 
     net::MasterLink link;
-    UiMesh* bar;
+    UiMesh* bar = nullptr;
 };
 
 // --- In-game escape menu ----------------------------------------------------------------------
@@ -443,14 +443,14 @@ public:
     // The menu closes: its stone model (models[0]) plays animation 0.
     void CloseScreen() override;
 
-    int hovered;                // region under the mouse, -1 for none
+    int hovered = 0;            // region under the mouse, -1 for none
 };
 
 // --- Credits ------------------------------------------------------------------------------------
 // The titles window (main menu region 4). A line of the titles' script:
 struct TitleLine {
-    bool scroll;                // the first word is "#scroll"
-    float speed;                // the second word (atof): the scroll speed, or the seconds shown
+    bool scroll = false;        // the first word is "#scroll"
+    float speed = 0.0f;         // the second word (atof): the scroll speed, or the seconds shown
     std::string text;          // the fourth word (the header)
     std::string style;         // the third word (the text file in the archive)
 };
@@ -521,7 +521,7 @@ public:
     std::size_t nextLine = 0;          // the index of the next line (lines.size() at the end)
     std::string name;          // ("Titles")
     BinkVideo player;          // the movie player
-    bool fromGame;              // opened in a game (pending value 0xCCCCCCCC) or the menu
+    bool fromGame = false;      // opened in a game (pending value 0xCCCCCCCC) or the menu
     bool finished = false;              // the last line has gone (cleared by Build)
     int savedDisplay = 0;           // the renderer's fog colour while the titles run
 };
@@ -605,13 +605,13 @@ public:
     // accepted), 2 leave (the transit sound and the recorded leave). The event is not marked used.
     void LeftDown(Point point) override;
 
-    Party* scratch;                 // a party of the screen's own (made by Create, deleted by Close)
-    Party* partnerOffer;            // the client's parties[1]
-    Party* ownOffer;                // the client's parties[0]
-    UiItemStrip* strip;             // the local party's items (forwarding strip, mode 1)
-    FigureStrip* figures;           // the players (figure strip)
-    TradeGrid* grid;                // the two offers (mode 5)
-    UiEditField* moneyField;        // the money offered
+    Party* scratch = nullptr;       // a party of the screen's own (made by Create, deleted by Close)
+    Party* partnerOffer = nullptr;  // the client's parties[1]
+    Party* ownOffer = nullptr;      // the client's parties[0]
+    UiItemStrip* strip = nullptr;   // the local party's items (forwarding strip, mode 1)
+    FigureStrip* figures = nullptr;  // the players (figure strip)
+    TradeGrid* grid = nullptr;      // the two offers (mode 5)
+    UiEditField* moneyField = nullptr;  // the money offered
     std::vector<std::string> names;            // the figure strip's names
     std::vector<UiLabel> labels[4];            // the four surfaces' paints: what Draw found
 };

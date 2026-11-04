@@ -50,22 +50,22 @@ inline const char* const* AttributeNames() {
 // links between zones.
 
 struct GlobalMapZone {
-    int state;                       // the player's "z.<zone>" variable, truncated
-    int link;                        // -1, or the link that leads to it (state 2)
+    int state = 0;                   // the player's "z.<zone>" variable, truncated
+    int link = 0;                    // -1, or the link that leads to it (state 2)
     std::string name;
     std::string title;
 };
 // A quest place or a link (an "edge" zone) on the map.
 struct GlobalMapPlace {
-    int zone;                        // index into the zones
+    int zone = 0;                    // index into the zones
     Vector3 position;                // on the map model
     std::string name;
     std::string title;
 };
 // A zone on the way of the global map's way search and the exit taken.
 struct GlobalMapStep {
-    MapRecord* zone;
-    int exit;
+    MapRecord* zone = nullptr;
+    int exit = 0;
 };
 
 class GlobalMap : public UiContainer {
@@ -174,9 +174,9 @@ struct TradeRow {
     std::string name;
     std::string key;                // the perk's record name (perk rows)
     std::string nextKey;            // the next level's record name (held perks below 3)
-    int price;                       // experience
-    int level;
-    bool learnable;                  // set on the learnable list (not written in the others)
+    int price = 0;                   // experience
+    int level = 0;
+    bool learnable = false;          // set on the learnable list (not written in the others)
 };
 
 // A party member's statistics as the trade panel keeps them (filled from the local player's unit record
@@ -341,7 +341,7 @@ public:
     void DebugFill() override;
 
     int page = 0;
-    bool fromHeroScreen;             // opened from the multiplayer hero screen (closes with a pending value)
+    bool fromHeroScreen = false;     // opened from the multiplayer hero screen (closes with a pending value)
     int curtains = -1;               // the curtains' first sprite (screen_layout::AddCurtains)
     bool spellConstructor = false;   // the spell constructor's pages are offered
     bool itemConstructor = false;    // the item constructor's pages are offered

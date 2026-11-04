@@ -66,23 +66,23 @@ protected:
     void SetTexture(const char* name);
 
 public:
-    bool built;                    // the ground geometry is made
-    std::uint8_t visible;           // drawn only when nonzero (a footprint: the caller's low byte)
+    bool built = false;            // the ground geometry is made
+    std::uint8_t visible = 0;       // drawn only when nonzero (a footprint: the caller's low byte)
     Vector2 position;
-    float halfWidth;
-    float halfLength;
-    float growth;                   // added to both half sizes every tick
-    std::int16_t life;              // ticks left
+    float halfWidth = 0.0f;
+    float halfLength = 0.0f;
+    float growth = 0.0f;            // added to both half sizes every tick
+    std::int16_t life = 0;          // ticks left
     NamedTexture texture;
     Vector2 uvOffset;               // the tile in the texture
     Vector2 uvScale;
-    float uvAngle;                  // the texture's turn about its tile's centre
-    float angle;                    // the quad's turn
-    std::uint8_t lit;               // the terrain's point test; the specular alpha
-    float alpha;
-    float alphaScale;
-    std::uint32_t colour;           // its alpha byte is set from alpha every draw; saved (drawn: DayColour)
-    int lifetime;
+    float uvAngle = 0.0f;           // the texture's turn about its tile's centre
+    float angle = 0.0f;             // the quad's turn
+    std::uint8_t lit = 0;           // the terrain's point test; the specular alpha
+    float alpha = 0.0f;
+    float alphaScale = 0.0f;
+    std::uint32_t colour = 0;       // its alpha byte is set from alpha every draw; saved (drawn: DayColour)
+    int lifetime = 0;
     std::vector<VertexPacket> positions;      // the ground geometry (blocks of four)
     std::vector<TexCoord> texCoords;     // one per vertex
     std::vector<std::uint16_t> indices;
@@ -98,8 +98,8 @@ public:
     void Load(ByteStream* stream) override;   // GroundPrint's, then scale, kind
     void Save(ByteStream* stream) override;   // the same order
 
-    float scale;                    // the unit's footprint scale (only saved)
-    int kind;                       // -1, or the blood print's kind it was made with
+    float scale = 0.0f;             // the unit's footprint scale (only saved)
+    int kind = 0;                   // -1, or the blood print's kind it was made with
 };
 
 // A blood print. Spreads for half its life (at most 45 ticks), turning.
@@ -121,10 +121,10 @@ public:
     void Load(ByteStream* stream) override;   // GroundPrint's, then spin, spread, kind, fresh
     void Save(ByteStream* stream) override;
 
-    float spin;                     // radians per tick: 30 / life degrees
-    std::int16_t spreadTicks;
-    int kind;                       // tile >> 16
-    std::uint8_t fresh;             // a hit's blood (not a death's): footprints ignore it
+    float spin = 0.0f;              // radians per tick: 30 / life degrees
+    std::int16_t spreadTicks = 0;
+    int kind = 0;                   // tile >> 16
+    std::uint8_t fresh = 0;         // a hit's blood (not a death's): footprints ignore it
 };
 
 static_assert(std::is_nothrow_move_constructible_v<Footprint> && std::is_nothrow_move_constructible_v<BloodPrint>);

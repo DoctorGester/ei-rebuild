@@ -211,9 +211,9 @@ SDL_GPUSamplerAddressMode ToSdl(Wrap w) {
 // A command buffer sent to the GPU: its fence until it is done. The frame timer's thread marks them done too, so the
 // list is read and changed under g_fenceLock (the fences are released only by the main thread).
 struct Submission {
-    std::uint64_t serial;
-    SDL_GPUFence* fence;   // null: SDL refused it, nothing to wait for
-    double submitted;   // NowMs()
+    std::uint64_t serial = 0;
+    SDL_GPUFence* fence = nullptr;  // null: SDL refused it, nothing to wait for
+    double submitted = 0.0;  // NowMs()
     bool done = false;
     double gpuMs = -1.0;   // the frame timer's, when it saw it finish
 };
@@ -494,8 +494,8 @@ std::unordered_map<std::uint32_t, DownloadEntry> g_downloads;
 std::uint32_t g_nextTicket = 1;
 // Download transfer buffers of released tickets, kept for the next downloads (the largest few).
 struct Spare {
-    SDL_GPUTransferBuffer* buffer;
-    std::uint32_t capacity;
+    SDL_GPUTransferBuffer* buffer = nullptr;
+    std::uint32_t capacity = 0;
 };
 std::vector<Spare> g_spares;
 constexpr std::size_t kMostSpares = 4;

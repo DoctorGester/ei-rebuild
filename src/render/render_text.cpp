@@ -242,8 +242,8 @@ public:
     }
 
     struct Line {
-        int begin, end, next;
-        bool lastBreak;   // ended at a CR / LF that was the text's last character(s)
+        int begin = 0, end = 0, next = 0;
+        bool lastBreak = false;  // ended at a CR / LF that was the text's last character(s)
     };
 
     // The line starting at `begin`, and where the next one starts.
@@ -289,9 +289,9 @@ public:
 private:
     TextFont& font;
     std::u32string_view text;
-    unsigned format;
-    bool prefixes, expandTabs;
-    int tabLength;
+    unsigned format = 0;
+    bool prefixes = false, expandTabs = false;
+    int tabLength = 0;
 };
 
 } // namespace

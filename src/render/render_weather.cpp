@@ -83,7 +83,7 @@ struct Box {
 // A mesh that can roof a unit this frame: an object's (not a unit's) mesh drawn in the world, its model matrix into
 // the landscape's space and its box there; the matrix is inverted when a point first lies under the box.
 struct Roof {
-    const MeshBatch* batch;
+    const MeshBatch* batch = nullptr;
     Matrix4 model;
     Box box;
     bool inverted = false;

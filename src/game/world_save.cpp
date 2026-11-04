@@ -473,7 +473,7 @@ void WorldServer::AddSharedObject(int newId, std::uint32_t value, const std::vec
     // The session player record's serial in a multiplayer game, else -1.
     int player = -1;
     net::ServerSession* session = net::g_gameServer;
-    if (session && !(session->flags7 & RefCounted::kDetached))
+    if (IsLive(session))
         if (net::PlayerMessage* record = session->FindPlayer(newId)) player = record->serial;
 
     // Pushing SharedObject() at the head: the new head copies an empty local (whose first three dwords the

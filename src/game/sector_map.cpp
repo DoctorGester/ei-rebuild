@@ -11,13 +11,6 @@
 #include <cstring>
 #include <vector>
 
-void Sector::Clear() {
-    freeOccluder = -1;
-    occluders.clear();
-    objects.clear();
-    units.clear();
-}
-
 int Sector::NewOccluder() {
     if (freeOccluder >= 0) {
         int index = freeOccluder;
@@ -51,10 +44,6 @@ void Sector::FreeOccluder(int index) {
     freeOccluder = index;
 }
 
-Sector::Sector() {
-    Clear();
-}
-
 void SectorMap::Init(int cellsX, int cellsY, AIMap* map) {
     width = cellsX / 32;
     height = cellsY / 32;
@@ -63,14 +52,7 @@ void SectorMap::Init(int cellsX, int cellsY, AIMap* map) {
     aiMap = map;
 }
 
-SectorMap::SectorMap() {
-    aiMap = nullptr;
-    height = 0;
-    added = 0;
-    width = 0;
-}
 
-SectorMap::~SectorMap() = default;
 
 bool SectorMap::Add(MapObject* object) {
     const Point cell = WorldToCell(object->localPosition);
@@ -209,7 +191,7 @@ constexpr float kBeyondSpiral = 1.0e30f;                            // 7149F2CA:
 // A sector of the square and how far it is: the gap between the sectors, in sectors.
 struct SpiralCell {
     SpiralOffset offset;
-    float distance;
+    float distance = 0.0f;
 };
 
 // The sort's comparison: by distance, ascending.

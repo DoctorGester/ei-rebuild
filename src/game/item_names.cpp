@@ -35,9 +35,9 @@ std::string WeaponOrArmorPicture(bool weapon, const ItemRecordHead* record) {
 
 // One part name: prefix + the weapon's two-digit number + suffix, or a fixed name.
 struct PartName {
-    const char* prefix;
-    bool numbered;
-    const char* suffix;
+    const char* prefix = nullptr;
+    bool numbered = false;
+    const char* suffix = nullptr;
 };
 
 constexpr PartName kSword[] = {{"rh3.sword", true, ""}};
@@ -56,8 +56,8 @@ constexpr PartName kCrossbow[] = {
 };
 
 struct PartSpan {
-    const PartName* parts;
-    int count;
+    const PartName* parts = nullptr;
+    int count = 0;
 };
 
 template <int N> constexpr PartSpan List(const PartName (&parts)[N]) { return {parts, N}; }

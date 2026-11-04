@@ -32,9 +32,9 @@ const std::string& IndexKey(const itemdb::ItemRecordHead& record) { return recor
 // and the flags. The first row's factor is the head's category, which an x64 build's head (8-byte aligned for its
 // vtable) does not keep beside absorbFirst: each row goes through this copy, not one read across the members.
 struct AbsorbRow {
-    std::uint32_t factor;   // float bits
-    float absorb[kDamageTypeCount];
-    std::uint32_t flags;
+    std::uint32_t factor = 0;  // float bits
+    float absorb[kDamageTypeCount] = {};
+    std::uint32_t flags = 0;
 };
 static_assert(sizeof(AbsorbRow) == 0x24);
 

@@ -47,10 +47,10 @@ public:
     // A chunk being read or written: where its content is in the data stream, and which
     // occurrence of a child id the next search for it takes.
     struct Ref {
-        std::uint8_t id;
-        std::int32_t offset;     // of the content in dataStream
-        std::int32_t size;
-        std::int32_t occurrence;
+        std::uint8_t id = 0;
+        std::int32_t offset = 0;  // of the content in dataStream
+        std::int32_t size = 0;
+        std::int32_t occurrence = 0;
 
         // {0xFF, 0, 0, occurrence 1}.
         void Reset();
@@ -169,8 +169,8 @@ public:
     MemoryStream dataStream;      // the chunk data (chunk 2 while loading the records)
     // The last chunk is the current one. A deque: PushRecordChunk keeps the parent's pointer across PushChunk.
     std::deque<Ref> stack;
-    std::int32_t version;          // 1 when constructed; field 2 of the root chunk
-    std::uint8_t loading;          // Open stores the low byte of its argument
+    std::int32_t version = 0;      // 1 when constructed; field 2 of the root chunk
+    std::uint8_t loading = 0;      // Open stores the low byte of its argument
     LoadedObjects loaded;
     // While saving: the objects already listed -> their number by first save (1, 2, ...), written as the key
     // instead of the object's address.

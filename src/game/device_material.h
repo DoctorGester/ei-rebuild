@@ -40,9 +40,9 @@ public:
     DeviceMaterial& operator=(const DeviceMaterial&) = delete;
 
     int refCount = 0;
-    std::uint8_t blend;             // alpha blending on (with sourceBlend / destBlend)
-    render::Blend sourceBlend;      // the factors the draw blends with
-    render::Blend destBlend;
+    std::uint8_t blend = 0;         // alpha blending on (with sourceBlend / destBlend)
+    render::Blend sourceBlend = {};  // the factors the draw blends with
+    render::Blend destBlend = {};
     // the passes (counted): the renderer helper's preset, the first pass's texture stages.
     Ref<RenderPreset> preset;
     std::vector<MaterialStage> stages;   // the first pass's stages, then one per further pass

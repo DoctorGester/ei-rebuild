@@ -49,10 +49,10 @@ constexpr int kLoginVersion = 100;
 // The login request (message 0). The bytes after the two texts are zero (the original sent whatever its buffers
 // held).
 struct LoginRequest {
-    int version;
-    char name[64];
-    char password[64];
-    std::uint32_t partyId; // the player's partyId
+    int version = 0;
+    char name[64] = {};
+    char password[64] = {};
+    std::uint32_t partyId = 0; // the player's partyId
 };
 static_assert(sizeof(LoginRequest) == 0x88);   // sent as its bytes
 
@@ -95,10 +95,10 @@ constexpr int kSessionClient = 3;
 
 // The header of message 0x40.
 struct NewObjectHeader {
-    int id;
-    int type;
-    std::uint32_t prototype;   // the object's prototypeId
-    std::uint32_t flags;
+    int id = 0;
+    int type = 0;
+    std::uint32_t prototype = 0;  // the object's prototypeId
+    std::uint32_t flags = 0;
 };
 
 bool Same(const char* a, const char* b) { return std::strcmp(a, b) == 0; }

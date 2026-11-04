@@ -272,7 +272,7 @@ void JoinWithPassword(const net::NetAddress& address, const char* password) {
 struct ZoneEntry {
     std::string first;
     std::string second;
-    int id;
+    int id = 0;
 };
 std::vector<ZoneEntry> g_zoneTable;
 bool SameText(std::string_view a, std::string_view b) {

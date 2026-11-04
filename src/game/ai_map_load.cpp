@@ -42,13 +42,13 @@ using terrain::MapMaterial;   // the AI map only asks whether it is water
 #pragma pack(push, 1)
 // A sector file's header, and a vertex.
 struct SectorHeader {
-    std::uint32_t magic;                // kSectorMagic
-    std::uint8_t layers;                // bit 0: water vertices and materials follow; bits 0-1: water tiles
+    std::uint32_t magic = 0;            // kSectorMagic
+    std::uint8_t layers = 0;            // bit 0: water vertices and materials follow; bits 0-1: water tiles
 };
 struct SectorFileVertex {
-    std::int8_t offsetX, offsetY;
-    std::uint16_t altitude;             // in kAltitudeUnit of the map's highest point
-    std::uint32_t normal;
+    std::int8_t offsetX = 0, offsetY = 0;
+    std::uint16_t altitude = 0;         // in kAltitudeUnit of the map's highest point
+    std::uint32_t normal = 0;
 };
 #pragma pack(pop)
 static_assert(sizeof(SectorHeader) == 5 && sizeof(SectorFileVertex) == 8);
@@ -205,7 +205,7 @@ inline float VertexHeight(const SectorFileVertex& vertex, float maxZ) {
 
 // A vertex layer of a sector file, its vertices read by value (the layers start at byte 5, unaligned).
 struct SectorVertices {
-    const std::uint8_t* bytes;
+    const std::uint8_t* bytes = nullptr;
     SectorFileVertex operator[](int index) const {
         SectorFileVertex vertex = lib::Load<SectorFileVertex>(bytes + static_cast<std::size_t>(index) * sizeof(SectorFileVertex));
         return vertex;
@@ -215,7 +215,7 @@ struct SectorVertices {
 // Four floats of a terrain square, one per cell: [0] at its first vertex, [1] towards the next
 // vertex of the row, [2] towards the next row, [3] opposite.
 struct SquareHeights {
-    float cell[4];
+    float cell[4] = {};
 };
 
 // The ground's height at the four cells of a terrain square: half of the cell's own corner and a quarter of
@@ -401,7 +401,6 @@ void AIMap::AttachTerrain() {
     loaded = true;
     refreshUnits = false;
     BuildOpenMarks();
-    InitCostTables(this);
     SearchGrid<std::int8_t>& water = waterDepth;
     water.Resize(cells.width, cells.height);
     water.data.assign(water.data.size(), 0);

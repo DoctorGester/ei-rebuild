@@ -188,20 +188,20 @@ struct FigureAnimationRecord {
     BlowSide Side() const { return static_cast<BlowSide>(flags & kBlowSideMask); }
 
     char name[0x10];                // (the figure manager takes the entry as an animation's name)
-    std::uint8_t index;             // its index in the database (a unit keeps it)
-    std::uint8_t unused_11[3];
-    std::uint32_t key;              // the animation key (above)
-    std::uint32_t flags;            // bit 0: a bow's arrow shows from frame arrowFrom to arrowTo; a death's BlowSide
-    std::uint32_t chance;           // percent (a random pick drops entries below a random percent)
-    std::uint32_t frameCount;       // the animation's length in frames
+    std::uint8_t index = 0;         // its index in the database (a unit keeps it)
+    std::uint8_t unused_11[3] = {};
+    std::uint32_t key = 0;          // the animation key (above)
+    std::uint32_t flags = 0;        // bit 0: a bow's arrow shows from frame arrowFrom to arrowTo; a death's BlowSide
+    std::uint32_t chance = 0;       // percent (a random pick drops entries below a random percent)
+    std::uint32_t frameCount = 0;   // the animation's length in frames
     // The distance one play of the animation moves the unit (0: the speed comes from the unit instead).
-    float stride;
-    std::uint32_t arrowFrom;
-    std::uint32_t arrowTo;
-    std::uint32_t stepFrames[4];    // the footsteps' frames + 1 (0 ends the list)
-    std::uint32_t moment;           // the action's moment (frame)
-    int soundFrame;                 // the frame of the action's sound (0: none)
-    std::uint32_t sounds[4];        // sound numbers to pick from (0 ends the list)
+    float stride = 0.0f;
+    std::uint32_t arrowFrom = 0;
+    std::uint32_t arrowTo = 0;
+    std::uint32_t stepFrames[4] = {};  // the footsteps' frames + 1 (0 ends the list)
+    std::uint32_t moment = 0;       // the action's moment (frame)
+    int soundFrame = 0;             // the frame of the action's sound (0: none)
+    std::uint32_t sounds[4] = {};   // sound numbers to pick from (0 ends the list)
 };
 static_assert(offsetof(FigureAnimationRecord, arrowFrom) == 0x28);
 static_assert(offsetof(FigureAnimationRecord, soundFrame) == 0x44);
@@ -212,7 +212,7 @@ struct AnimationDatabase;
 // An animation: an entry of its database. What an object plays need not come from its own database (the rest
 // pose of UiModel and of the main menu's stones comes from MapObjectManager::FindAnimation).
 struct FigureAnimation : FigureAnimationRecord {
-    const AnimationDatabase* database;   // the database it is an entry of
+    const AnimationDatabase* database = nullptr;  // the database it is an entry of
 };
 
 // A figure's animation database, read from "<figure name>.adb" by MapObjectManager::AnimationDatabaseOf (which
@@ -291,15 +291,15 @@ struct FigureBone : EngineObject {
     std::string name;                      // the piece's name (children are linked by it)
     std::string parentName;                // its parent's name (empty for the root)
     std::string modelName;                 // the figure's model name (LinkBone)
-    FigureBone* parent;                     // null for the root
+    FigureBone* parent = nullptr;           // null for the root
     std::vector<FigureBone*> children;
     Ref<FigureMesh> mesh;                   // the part the bone places, or null
-    AnimationTrack* pose;                   // the animator whose values place the bone
+    AnimationTrack* pose = nullptr;         // the animator whose values place the bone
     Ref<AnimationTrack> animator;           // made on first use; Play copies it to `pose`
     Vector3 offset;                         // the place relative to the parent
-    float morphS;                           // the figure's morph coefficients
-    float morphT;
-    float morphU;                           // (also the time factor's t)
+    float morphS = 0.0f;                    // the figure's morph coefficients
+    float morphT = 0.0f;
+    float morphU = 0.0f;                    // (also the time factor's t)
     Vector3 position;                       // in figure space
     Quaternion rotation;                    // in figure space
     std::vector<Matrix4> matrices;    // (emptied without freeing; freed by the destructor)
@@ -308,11 +308,11 @@ struct FigureBone : EngineObject {
     // blends from (`blendFrom` while it has one: the mesh's offsets then too) and the blended offsets.
     Quaternion shownTurn;
     Vector3 shownPosition;
-    bool shown;
+    bool shown = false;
     Quaternion fromTurn;
     Vector3 fromPosition;
     std::vector<Vector3> fromOffsets;
-    bool blendFrom;
+    bool blendFrom = false;
     std::vector<Vector3> blendedOffsets;
 
     FigureBone();
@@ -403,28 +403,28 @@ public:
     // named as the bone (LoadKeyFrames), or without one is cleared as above, and takes `animation`. `changed` set.
     void LoadBoneTracks(MappedResource* part, const FigureAnimation* animation);
 
-    Object3D* owner;
-    FigureBone* root;               // the skeleton's root bone (FindRoot)
+    Object3D* owner = nullptr;
+    FigureBone* root = nullptr;     // the skeleton's root bone (FindRoot)
     std::vector<HeldRef<FigureBone>> bones;   // LinkBone adds
-    FigureAnimation* current;       // the animation playing, or null
+    FigureAnimation* current = nullptr;  // the animation playing, or null
     // The animations queued after it (the client update keeps fewer than 3).
     std::deque<FigureAnimation*> queue;
-    float time;                     // the frame reached
+    float time = 0.0f;              // the frame reached
     // Called each time an animation's end is passed, or null.
     void(*onEnd)(Object3D* owner);
-    float morphS;                   // the figure's morph coefficients (Rescale; bones copy them)
-    float morphT;
-    float morphU;
-    bool changed;                   // set when the frame, the animation or the bones changed
+    float morphS = 0.0f;            // the figure's morph coefficients (Rescale; bones copy them)
+    float morphT = 0.0f;
+    float morphU = 0.0f;
+    bool changed = false;           // set when the frame, the animation or the bones changed
 
     // A switch from one animation to another blends the pose last placed into the new one's over a short time
     // (client side only: what plays and its frame stay the game's). The blend runs from `placedAt`, when the
     // outgoing pose was placed (the draw before the switch), so a draw a blend's length after it shows the new
     // pose alone, as at the harness's default frames. In the platform's milliseconds; `blendLength` 0 while none
     // runs.
-    std::uint32_t blendStart;
-    std::uint32_t blendLength;
-    std::uint32_t placedAt;
+    std::uint32_t blendStart = 0;
+    std::uint32_t blendLength = 0;
+    std::uint32_t placedAt = 0;
     // Before a switch from `from` to `to`: each bone keeps the pose last placed as the outgoing one and the blend
     // starts, as long as `to`'s kind asks (none when either is null; one running is cut short).
     void BeginBlend(const FigureAnimation* from, const FigureAnimation* to);
@@ -567,7 +567,7 @@ public:
     Matrix4 worldMatrix;            // object -> world: the rotation, the position as column 3
     Ref<Object3DSpecific> attached;    // the side half (SetHalf)
     Ref<FigureAnimationState> animation;   // the figure's animation state (SetAnimationState)
-    AnimationDatabase* animations;  // loaded on first use
+    AnimationDatabase* animations = nullptr;  // loaded on first use
     std::string name;               // the figure's name
     std::vector<HeldRef<ParticleSource>> effectSources;   // the particle sources attached to the object
     Vector3 scale;
@@ -581,7 +581,7 @@ public:
     std::vector<std::string> partNames;    // the figure's part names, in the order of the part boxes
     ClipBounds bounds;              // flags 1 and 2: the sphere and the box are valid; the box is relative to the centre
     // Cleared with the bounds; a part's piece record sets it (LoadPart). The AI adds it to a unit's eye height.
-    float eyeHeight;
+    float eyeHeight = 0.0f;
     std::vector<FootprintPart> partBoxes;   // one box per animated part (SetUpAnimatedFigure); FootprintPart: model.h
     drawn::ObjectStep drawnStep;    // client: its last tick's step as the draw spreads it (drawn_motion.h)
 

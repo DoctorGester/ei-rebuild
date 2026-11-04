@@ -13,13 +13,6 @@
 
 namespace net {
 
-namespace {
-
-// The embedded party's constructor.
-void PartyConstruct(lib::InPlace<Party>* party) { new (party->Get()) Party(); }
-
-} // namespace
-
 // The client base: the session base, its lobby fields, an unbound socket.
 ClientBase::ClientBase() {
     host = NetAddress{};
@@ -30,16 +23,13 @@ ClientBase::ClientBase() {
 }
 
 ClientSession::ClientSession() {
-    PartyConstruct(&parties[0]);
-    PartyConstruct(&parties[1]);
-
     // The local player's login.
     ShareOwned(player, new LoginMessage());
 
     magic = kSessionMagic;
 
-    parties[0]->Create();
-    parties[1]->Create();
+    parties[0].Create();
+    parties[1].Create();
 }
 
 // What the server receives from this client: the local player's login, the timed objects and the file
@@ -59,33 +49,6 @@ void ClientSession::CollectReplicated(const Connection*, std::vector<Replicated>
 }
 
 // --- Life --------------------------------------------------------------------------------------------
-
-// The game client's destructor and its base layer's. The members are torn down in reverse order: the lists are
-// cleared between the counted pointers' releases; then the session base. See net_classes.h and
-// docs/notes/network.md.
-
-// The client base's part and the session base follow (their destructors).
-ClientSession::~ClientSession() {
-    parties[1].Get()->Party::~Party();
-    parties[0].Get()->Party::~Party();
-    trade.Reset();
-    tradeRecords.clear();    // here, where the original destroys it
-    offers.clear();
-    DestroyOwned(party);
-    awards.clear();
-    timers.clear();
-    DestroyOwned(player);
-    variables.clear();
-    zones.clear();
-    map.Reset();
-    binding.Reset();
-    info.Reset();
-    fileRequests.clear();
-    chunks.clear();
-    files.clear();
-    lines.clear();
-    players.clear();
-}
 
 ClientBase::~ClientBase() {}
 

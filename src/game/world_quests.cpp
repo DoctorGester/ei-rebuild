@@ -117,8 +117,8 @@ constexpr float kMinimumWeight = 0.01f;
 
 // An element of the list of shares: the unit's controller and its experience (nodes of 0x10 bytes).
 struct Share {
-    UnitServer* controller;
-    float share;
+    UnitServer* controller = nullptr;
+    float share = 0.0f;
 };
 
 // The weight of a unit in the shared experience: sqrt(pending + gained experience) of its controller's statistics.

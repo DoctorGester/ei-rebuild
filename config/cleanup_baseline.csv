@@ -1,11 +1,18 @@
-file,offset access (At<>/Field<>),VCall slot call,__asm block,float_control pragma,raw game address (0x004..0x007 literal),*At view struct,placeholder virtual (SlotNN),byte offset arithmetic,per-file container struct,per-file vector/map/set struct,hand-written vector maths,unknown field,"raw float / vector copy (memcpy, memset)",unused field accessed,system maths function
-src/audio/audio.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/ai_unit_layer.cpp,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0
-src/game/net_delta.cpp,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0
-src/game/particle_callbacks.cpp,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0
-src/game/script_addon_math.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3
-src/game/world_effect_missile.cpp,0,0,0,0,0,0,0,0,0,0,0,0,6,0,0
-src/game/world_effect_visibility.cpp,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0
-src/render/render.cpp,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0
-src/render/render_shadows.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4
-src/video/bink_audio.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+file,offset access (At<>/Field<>),VCall slot call,__asm block,float_control pragma,raw game address (0x004..0x007 literal),*At view struct,placeholder virtual (SlotNN),byte offset arithmetic,per-file container struct,per-file vector/map/set struct,hand-written vector maths,unknown field,"raw float / vector copy (memcpy, memset)",unused field accessed,system maths function,field without a default initialiser
+src/audio/audio.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+src/game/ai_unit_layer.cpp,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0
+src/game/net_delta.cpp,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0
+src/game/particle_callbacks.cpp,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0
+src/game/script.h,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24
+src/game/script_addon.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3
+src/game/script_addon.h,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3
+src/game/script_addon_math.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0
+src/game/script_addon_units.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3
+src/game/world.h,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,27
+src/game/world_effect_visibility.cpp,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0
+src/platform/platform.h,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6
+src/platform/posix/keyboard.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2
+src/platform/sdl/sdl_keys.h,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2
+src/render/render.cpp,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0
+src/render/render_shadows.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0
+src/video/bink_audio.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0

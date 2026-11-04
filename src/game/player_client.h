@@ -214,16 +214,16 @@ public:
         SendingCamera = 2,      // the camera's anchor goes to the server on every Pump
         BetweenZones = 3,       // RequestGameState asked for a screen; Rejoin leaves it
     };
-    State state;
+    State state = {};
 
     MemoryStream in;                   // the server's messages being run
     MemoryStream out;                  // requests for the server
     // A local session (GameStartLocalSession sets it): a unit's network owner becomes the local
     // player whatever its id (Unit::ReadNetState), and the game-state message only presses Enter.
-    std::uint8_t localSession;
+    std::uint8_t localSession = 0;
     // The login sends the party first: the flow sets it once the local player took the requested party,
     // clears it for a new zone.
-    std::uint8_t sendParty;
+    std::uint8_t sendParty = 0;
     CoderState compressor;          // for the requests sent
     CoderState decompressor;        // for the messages received
     // The ids of the party's units (message 0x60; the HUD's map and the client world's NearestVisibleUnit

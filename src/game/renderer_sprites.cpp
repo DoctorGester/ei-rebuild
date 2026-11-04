@@ -19,9 +19,9 @@
 
 // One record of the back-to-front sort.
 struct SpriteSortRecord {
-    std::int32_t key;             // the first corner's z, as bits (never negative here)
-    SpriteSortRecord* next;       // the radix pass's bucket list
-    TLVertex* corners;            // the sprite's four corners (in the copy)
+    std::int32_t key = 0;         // the first corner's z, as bits (never negative here)
+    SpriteSortRecord* next = nullptr;  // the radix pass's bucket list
+    TLVertex* corners = nullptr;  // the sprite's four corners (in the copy)
 };
 
 void SpriteRadixPass(int shift, SpriteSortRecord* const* src, SpriteSortRecord** dst, int count,
@@ -33,8 +33,8 @@ namespace {
 // --- The arguments -------------------------------------------------------------------------------
 
 struct Sprite {               // 8 bytes
-    std::uint32_t color;      // ARGB
-    const float* uv;          // the texture rectangle: u0, v0, u1, v1
+    std::uint32_t color = 0;  // ARGB
+    const float* uv = nullptr;  // the texture rectangle: u0, v0, u1, v1
 };
 
 // --- The statics ---------------------------------------------------------------------------------

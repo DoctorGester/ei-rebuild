@@ -17,10 +17,10 @@
 struct LeverRecord {
     void Archive(ChunkArchive* archive);
     std::string name;           // field 0
-    float spots[2][2];          // field 1: {along, across}
-    std::uint32_t spotCount;    // field 2
-    float farScale;             // field 3: the spots' distance factor when scale.z is 1
-    std::uint32_t duration;     // field 4: a state change's default ticks
+    float spots[2][2] = {};     // field 1: {along, across}
+    std::uint32_t spotCount = 0;  // field 2
+    float farScale = 0.0f;      // field 3: the spots' distance factor when scale.z is 1
+    std::uint32_t duration = 0;  // field 4: a state change's default ticks
     std::string unreadTextFirst;   // field 5; nothing reads it
     std::string sound;          // played while the lever moves
     std::string unreadTextLast;    // field 7; nothing reads it
@@ -111,15 +111,15 @@ public:
     bool ApplyKey(const LockKey* key);
     bool KeyOpens(const LockKey* key);
 
-    int state;
-    int stateCount;
-    int cycling;                    // wraps instead of stopping at the last state
+    int state = 0;
+    int stateCount = 0;
+    int cycling = 0;                // wraps instead of stopping at the last state
     LockKey lock;
-    float from;                     // the shown position when the move started
-    float to;                       // the state's position
-    float endTick;                  // the world tick at which the move ends
-    float rate;                     // 1 / duration (0: no move)
-    std::uint8_t directUseBlocked;  // the player cannot use it by clicking (IsDirectUseBlocked; chunk BBAC0007)
-    std::uint8_t keepsMapFlag;      // the AI map flag kept while it moves
+    float from = 0.0f;              // the shown position when the move started
+    float to = 0.0f;                // the state's position
+    float endTick = 0.0f;           // the world tick at which the move ends
+    float rate = 0.0f;              // 1 / duration (0: no move)
+    std::uint8_t directUseBlocked = 0;  // the player cannot use it by clicking (IsDirectUseBlocked; chunk BBAC0007)
+    std::uint8_t keepsMapFlag = 0;  // the AI map flag kept while it moves
 };
 

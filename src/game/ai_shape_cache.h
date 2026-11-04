@@ -21,8 +21,8 @@ public:
     void OnShutdown() override;
     UnitShape* Clone() override;
 
-    std::uint8_t levels[16][16];    // rows of 16
-    float radius;
+    std::uint8_t levels[16][16] = {};  // rows of 16
+    float radius = 0.0f;
 };
 
 class UnitShapeCache;

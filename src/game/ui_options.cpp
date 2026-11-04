@@ -106,8 +106,8 @@ constexpr OptionDefinition kOptionDefinitions[kOptionDefinitionCount] = {
 
 // A choice row's steps (kind 3): each one's text key (else the text itself) and the value it stands for, ascending.
 struct Choice {
-    const char* text;
-    int value;
+    const char* text = nullptr;
+    int value = 0;
 };
 constexpr Choice kDisplayModes[] = {{"option_window", 0}, {"option_full_screen", 1}};
 constexpr Choice kMsaaLevels[] = {{kTextOptionOff, 1}, {"2x", 2}, {"4x", 4}, {"8x", 8}};
@@ -130,9 +130,9 @@ int ChoiceIndex(std::span<const Choice> choices, int value) {
 // The texts of what the rebuild adds to the options, which the game's texts lack: in Russian where the game's are
 // (the video group's title holds letters beyond ASCII), else in English. A text the game's files have wins.
 struct AddedText {
-    const char* key;
-    const char* russian;
-    const char* english;
+    const char* key = nullptr;
+    const char* russian = nullptr;
+    const char* english = nullptr;
 };
 constexpr AddedText kAddedTexts[] = {
     {"option_resolution", "Разрешение", "Resolution"},

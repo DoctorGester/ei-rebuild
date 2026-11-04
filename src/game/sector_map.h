@@ -27,26 +27,17 @@ enum class OccluderKind : std::int8_t {
 
 // The world split into 32x32-cell sectors, each listing the objects and units inside it. Used to
 // find what is near a point and to keep the AI map's footprints in sync. Names provisional.
-// A sector's one virtual is its destructor.
 // An AI map cell with more than one occluder chains 8-byte records of its sector
 // (ai_occluders.cpp); the sector recycles them through a free list.
 struct SectorOccluder {
-    std::int16_t top;
-    std::int16_t bottom;
-    OccluderKind kind;
-    std::int8_t transparency;
-    std::int16_t next;          // the cell's next record, or the next free one; negative ends
+    std::int16_t top = 0;
+    std::int16_t bottom = 0;
+    OccluderKind kind = {};
+    std::int8_t transparency = 0;
+    std::int16_t next = 0;      // the cell's next record, or the next free one; negative ends
 };
 
 struct Sector {
-    Sector();
-    Sector(Sector&&) = default;
-    Sector& operator=(Sector&&) = default;
-    virtual ~Sector();
-
-    // Clear: no free record, the records' storage freed, both lists
-    // emptied.
-    void Clear();
     // A free record's index: the head of the free list, else the array grown by one
     // (SetSize; new records zeroed) and its last index.
     int NewOccluder();
@@ -59,7 +50,7 @@ struct Sector {
 
     std::vector<MapObject*> objects;    // non-unit objects
     std::vector<Unit*> units;
-    int freeOccluder;                            // head of the free records (-1 none)
+    int freeOccluder = -1;              // head of the free records (-1 none)
     std::vector<SectorOccluder> occluders;
 };
 
@@ -82,7 +73,7 @@ struct RadiusTree {
 
 // A sector offset of the spiral.
 struct SpiralOffset {
-    std::int16_t x, y;
+    std::int16_t x = 0, y = 0;
 };
 // The sector spiral's tables: the 441 offsets of a 21 x 21 square of sectors ordered by distance, the number of
 // offsets within each distinct distance and the tree that finds a distance's place among them.
@@ -94,12 +85,9 @@ struct SectorSpiral {
 // The tables, built on first use.
 const SectorSpiral& SectorSpiralTables();
 
-// The AI map's sector map (one virtual: the destructor).
+// The AI map's sector map.
 class SectorMap {
 public:
-    SectorMap();
-    virtual ~SectorMap();
-
     // Registers `object` in the sector under its position and stamps its footprint.
     // Undone again if the footprint does not fit.
     bool Add(MapObject* object);
@@ -124,11 +112,12 @@ public:
     // width * height, then the AI map.
     void Init(int cellsX, int cellsY, AIMap* map);
 
-    int width;              // in sectors
-    int height;
-    int added;              // successful Add calls (Remove does not decrement it)
+    int width = 0;          // in sectors
+    int height = 0;
+    int added = 0;          // successful Add calls (Remove does not decrement it)
     std::vector<Sector> sectors;   // width * height, row by row
-    AIMap* aiMap;
+    AIMap* aiMap = nullptr;
+
 };
 
 #include "ai_map.h"

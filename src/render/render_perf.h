@@ -45,7 +45,7 @@ public:
     CpuTimer& operator=(const CpuTimer&) = delete;
 
 private:
-    Cpu part;
+    Cpu part = {};
     long long start = 0;
 };
 

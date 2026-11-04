@@ -322,7 +322,7 @@ public:
 
 private:
     std::unique_ptr<Font> font;
-    int strength;
+    int strength = 0;
 };
 
 // ---- Layout ------------------------------------------------------------------------------------------
@@ -339,10 +339,10 @@ constexpr int kHalfPointsPerInch = 144;
 
 // One character placed on a line.
 struct Item {
-    TextFont* font;
-    std::uint32_t colour;
-    char32_t ch;
-    int advance;                 // without tabs (theirs depends on the pen)
+    TextFont* font = nullptr;
+    std::uint32_t colour = 0;
+    char32_t ch = 0;
+    int advance = 0;             // without tabs (theirs depends on the pen)
 };
 
 bool IsBlank(char32_t ch) { return ch == U' ' || ch == U'\t'; }
@@ -452,8 +452,8 @@ private:
 
     const RichText& text;
     const RichParagraph& paragraph;
-    int width, dpi;
-    bool smoothing;
+    int width = 0, dpi = 0;
+    bool smoothing = false;
     std::vector<Item> items;
 };
 

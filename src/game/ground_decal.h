@@ -14,7 +14,7 @@
 // A clipper vertex: position, then the decal's texture coordinate.
 struct DecalVertex {
     Vector3 position;
-    float u, v;
+    float u = 0.0f, v = 0.0f;
 };
 
 class DecalBuilder {
@@ -53,13 +53,13 @@ public:
     Vector3 slope;           // direction / |direction.z|
     Vector3 direction;
     Vector3 point;
-    float uOffset;           // u of a point p = uAxis . p + uOffset
-    float vOffset;
-    float planeOffset;       // plane distance = normal . p + planeOffset
-    float uLength;           // |uAxis|
-    float vLength;           // |vAxis|
-    int vertexCount;
-    int indexCount;
+    float uOffset = 0.0f;    // u of a point p = uAxis . p + uOffset
+    float vOffset = 0.0f;
+    float planeOffset = 0.0f;  // plane distance = normal . p + planeOffset
+    float uLength = 0.0f;    // |uAxis|
+    float vLength = 0.0f;    // |vAxis|
+    int vertexCount = 0;
+    int indexCount = 0;
 
 private:
     void AddCorners(DecalVertex* tri, const Vector3& a, const Vector3& b, const Vector3& c);

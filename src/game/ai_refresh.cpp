@@ -70,7 +70,7 @@ void Occlude(CellMarkState* s, OccluderKind type, int lowest, int highest, bool 
 // 17 cell offsets {dy, dx}; the first 4 the direct neighbours, the other 13 the cells
 // whose nibble 7 a steep cell clears.
 struct CellOffset {
-    int dy, dx;
+    int dy = 0, dx = 0;
 };
 constexpr CellOffset kSteepOffsets[17] = /*007916BC*/ {
     {0, 1}, {0, -1}, {1, 0}, {-1, 0}, {0, 2}, {-1, 1}, {0, 1}, {1, 1},

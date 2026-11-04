@@ -42,28 +42,28 @@ UiMesh* ItemModel(std::string_view name);
 
 // An item drawn as a turning model in a cell (DrawItem's argument).
 struct ItemCell {
-    Item* item;
-    float x;         // the cell's centre (layout)
-    float y;
-    float depth;
-    float size;      // the cell (100 in the strips and grids, 120 in the description panel)
-    int mode;        // the strip's action mode; 9: greyed out, never shaded as unusable
+    Item* item = nullptr;
+    float x = 0.0f;  // the cell's centre (layout)
+    float y = 0.0f;
+    float depth = 0.0f;
+    float size = 0.0f;  // the cell (100 in the strips and grids, 120 in the description panel)
+    int mode = 0;    // the strip's action mode; 9: greyed out, never shaded as unusable
 };
 
 // A hero's face drawn in a cell (the hero-face draw's argument).
 struct HeroFaceCell {
-    const char* prototype;   // the unit prototype's name
-    float x;                 // the cell's centre (layout)
-    float y;
-    float depth;
-    float size;
+    const char* prototype = nullptr;  // the unit prototype's name
+    float x = 0.0f;          // the cell's centre (layout)
+    float y = 0.0f;
+    float depth = 0.0f;
+    float size = 0.0f;
 };
 
 // A cached object (counted) and when it was last used (timeGetTime).
 template <typename Object>
 struct ItemCacheEntry {
-    Object* object;
-    std::uint32_t lastUse;
+    Object* object = nullptr;
+    std::uint32_t lastUse = 0;
 };
 
 // A cache of the item screens (models and textures): a map from a name to {object, time of last use}, and

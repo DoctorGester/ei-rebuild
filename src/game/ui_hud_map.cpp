@@ -149,7 +149,7 @@ private:
     }
 
     UiMesh* mesh;
-    const HudMap* map;
+    const HudMap* map = nullptr;
     int entry = 0;       // quad block
     int vertex = 0;      // first vertex of the entry (4 per entry)
     int indexPos = 0;    // next index

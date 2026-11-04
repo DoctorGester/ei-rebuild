@@ -350,9 +350,9 @@ Texture* SkinOf(Unit* unit) {
 
 // The eye rectangle's numbers shared by both: the skin's scale and the face's offset `t` (in mixed units).
 struct EyeFrame {
-    float scale;
-    float offset;
-    int at[2];
+    float scale = 0.0f;
+    float offset = 0.0f;
+    int at[2] = {};
 };
 
 EyeFrame Frame(const Texture* skin, const Texture* face, const UnitModelRecord* model) {

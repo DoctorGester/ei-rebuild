@@ -10,9 +10,9 @@ namespace {
 // The cursor object and its methods.
 // The device the cursor is drawn on.
 struct ShapeFiles {
-    const char* name;
-    const char* smallName;
-    int hotX, hotY;
+    const char* name = nullptr;
+    const char* smallName = nullptr;
+    int hotX = 0, hotY = 0;
 };
 // In the shape order the game selects them by.
 const ShapeFiles kShapes[] = {

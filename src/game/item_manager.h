@@ -19,8 +19,8 @@ class SpellManager;
 // plus the material's, unsigned, as a float) and the power (the prototype's charge plus the material's
 // magicPower); without a material the prototype's values alone.
 struct MagicCapacity {
-    float level;
-    float power;
+    float level = 0.0f;
+    float power = 0.0f;
 };
 // None for a weapon or armour (`kind`) without a material.
 std::optional<MagicCapacity> MagicCapacityOf(ItemKind kind, const itemdb::ItemRecordHead* prototype,
@@ -66,7 +66,7 @@ public:
     itemdb::ItemRecordHead* prototype = nullptr;
     Ref<Item> item;
     Spell* spell = nullptr;            // not counted
-    int count;                          // copied to the item's count; set by BeginCreateItem
+    int count = 0;                      // copied to the item's count; set by BeginCreateItem
 
 private:
     // Fills the item from a temporary database record: the prototype's values combined with the material's,

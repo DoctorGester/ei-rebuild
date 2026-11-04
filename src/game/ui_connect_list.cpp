@@ -37,8 +37,8 @@ constexpr int kGameTypes = 4;
 
 // Rebirth's ExtendedServerName layout (the original's: 265, 270, 220, 239).
 struct Layout {
-    int rowRight, lineRight, rowLeftPing;
-    float selectionX;
+    int rowRight = 0, lineRight = 0, rowLeftPing = 0;
+    float selectionX = 0.0f;
 };
 constexpr Layout kLayout{278, 283, 233, 244.75f};
 constexpr std::uint32_t kFormatEllipsis = 0x18000;   // DT_END_ELLIPSIS | DT_MODIFYSTRING

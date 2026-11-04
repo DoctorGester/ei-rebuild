@@ -147,10 +147,10 @@ namespace detail {
 // their first draw): D3DCULL, D3DBLEND, D3DCMP numbers as PassState keeps them.
 void ListMeshPipelines(std::vector<gpu::PipelineDesc>& out, int samples) {
     struct Wanted {
-        std::uint8_t cull;
-        std::uint8_t sourceBlend, destBlend;   // 0: blending off
-        bool depthTest, depthWrite;
-        bool cached;
+        std::uint8_t cull = 0;
+        std::uint8_t sourceBlend = 0, destBlend = 0;  // 0: blending off
+        bool depthTest = false, depthWrite = false;
+        bool cached = false;
     };
     constexpr std::uint8_t kSourceAlpha = 5, kInvSourceAlpha = 6, kOne = 2;
     static constexpr Wanted kWanted[] = {

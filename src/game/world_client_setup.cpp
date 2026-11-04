@@ -135,7 +135,7 @@ namespace {
 // The local player's link when it is there and not detached (the dword +4's bit 31), else null.
 netlink::NetLink* ActiveLink(Player* session) {
     netlink::NetLink* link = session->link;
-    if (link && !(link->flags7 & RefCounted::kDetached)) return link;
+    if (IsLive(link)) return link;
     return nullptr;
 }
 
@@ -156,7 +156,7 @@ void WorldClient::SetPlayer(WorldHandle* player) {
 
 bool WorldClient::JoinGameClient() {
     net::ClientSession* client = net::g_gameClient;
-    if (!client || (client->flags7 & RefCounted::kDetached)) return false;
+    if (!IsLive(client)) return false;
     if (client->clients.empty()) return false;
     OpenSession();
     netlink::NetLink* link = netSession.Get()->Start(client->clients.front().Get());

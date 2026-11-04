@@ -13,8 +13,8 @@
 // Where an order must be seen from.
 struct SightTarget {
     Vector3 point;              // the point to see (a target unit's is filled in later)
-    float minDistanceSq;        // closer than this needs no line of sight
-    float eyeHeight;            // the viewer's eye height above the ground
-    Unit* unit;                // the target unit, or null for a point
+    float minDistanceSq = 0.0f;  // closer than this needs no line of sight
+    float eyeHeight = 0.0f;     // the viewer's eye height above the ground
+    Unit* unit = nullptr;      // the target unit, or null for a point
 };
 

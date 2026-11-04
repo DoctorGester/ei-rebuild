@@ -142,8 +142,8 @@ void RegionMap::AttachSearches() {
 
 // --- Ai grids ----------------------------------------------------------------------------------------
 
-// The small constructors of the AI map's members: the local and block searches, the event table, the dirty
-// rectangle's reset; and the terrain types' open-cell marks. See ai_map.h and
+// The small constructors of the AI map's members: the local and block searches, the event table and its reset,
+// the dirty rectangle's reset; and the terrain types' open-cell marks. See ai_map.h and
 // docs/notes/ai.md.
 
 // ---- Constructors ---------------------------------------------------------------------------------
@@ -180,7 +180,15 @@ int CostBand(int cost) {
 
 AIEventTable::AIEventTable() { Clear(); }
 
-AIEventTable::~AIEventTable() {
+AIEventTable::~AIEventTable() { FreeEvents(); }
+
+void AIEventTable::Reset() {
+    FreeEvents();
+    static_cast<AIViewer&>(*this) = AIViewer{};
+    Clear();
+}
+
+void AIEventTable::FreeEvents() {
     for (auto& slot : slots) {
         for (AIEvent* head : slot) {
             for (AIEvent* event = head; event; event = event->nextInSlot) {

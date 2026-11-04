@@ -8,9 +8,9 @@
 // Splits a string at a separator string. The credits screen is the only user: it walks
 // the lines of the titles text.
 struct TextTokenizer {
-    int position;                    // where the next word starts; -1 at the end
-    const std::string* source;
-    const char* separator;
+    int position = 0;                // where the next word starts; -1 at the end
+    const std::string* source = nullptr;
+    const char* separator = nullptr;
     std::string word;                // the last word returned
 
     // From the start of the text: position 0, then Next.

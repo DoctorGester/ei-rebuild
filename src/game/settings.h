@@ -105,11 +105,11 @@ Document Defaults(int width, int height);
 // ---- The catalog: what every setting does (settings_catalog.inc; tools/gen_settings_doc.py writes docs/settings.md)
 
 struct Described {
-    const char* section;
-    const char* name;          // "<n>" stands for a number (the camera shortcuts), "<name>" for any name
-    const char* defaultText;   // what a new file holds, else what the game takes when the value is absent
-    const char* values;        // the values it takes, short
-    const char* description;   // what it does, for the player
+    const char* section = nullptr;
+    const char* name = nullptr;  // "<n>" stands for a number (the camera shortcuts), "<name>" for any name
+    const char* defaultText = nullptr;  // what a new file holds, else what the game takes when the value is absent
+    const char* values = nullptr;  // the values it takes, short
+    const char* description = nullptr;  // what it does, for the player
 };
 // Every setting the game reads, by section, in the order of settings_catalog.inc.
 const Described* CatalogBegin();

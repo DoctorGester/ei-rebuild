@@ -26,18 +26,18 @@ void BlitMipChain(Texture* target, const int* at, Texture* source, const Rect* f
 
 // What a unit says: an acks.db entry with its sound file name.
 struct SpeechRecord {
-    int chance;                     // eligible when at least the roll (0..99)
+    int chance = 0;                 // eligible when at least the roll (0..99)
     std::string sound;              // the sound file
     std::string text;
     std::string name;               // named speeches
 };
 
 struct ClientSpeech {
-    const SpeechRecord* id;         // (compared with lastSpeech)
-    AckKind kind;                   // Attack / DecidedToAttack: not over a speech that still plays
-    int delay;                      // ticks until it plays; negative: playing
-    int sound;                      // its sound handle (-1 none)
-    std::uint8_t talking;           // the server unit has flag 0x800000 while it plays
+    const SpeechRecord* id = nullptr;  // (compared with lastSpeech)
+    AckKind kind = {};              // Attack / DecidedToAttack: not over a speech that still plays
+    int delay = 0;                  // ticks until it plays; negative: playing
+    int sound = 0;                  // its sound handle (-1 none)
+    std::uint8_t talking = 0;       // the server unit has flag 0x800000 while it plays
 };
 
 // What the speech queue's filters compare.
@@ -45,8 +45,8 @@ struct SpeechFilter {
     bool Replaced(const ClientSpeech* queued) const;
     // Has `queued`'s sound ended (it had one)? A talking speech then clears the server unit's flag 0x800000.
     bool Finished(const ClientSpeech* queued) const;
-    int unitId;                     // SpeechFinished: the unit whose talking flag ends
-    AckKind kind;                   // SpeechReplaced: the new speech's kind
+    int unitId = 0;                 // SpeechFinished: the unit whose talking flag ends
+    AckKind kind = {};              // SpeechReplaced: the new speech's kind
 };
 
 // The figure part names of the three armour groups: a body armour covers "bd" and the arm pieces, trousers
@@ -71,7 +71,7 @@ struct SkinLayer {
 struct SkinRequest {
     std::vector<std::uint8_t> layers;
     std::vector<std::string> textures;
-    int side;
+    int side = 0;
 };
 
 struct AttackParams;
@@ -251,30 +251,30 @@ public:
     void DropFaceTexture();
 
 
-    ParticleSource* sources[3];    // particle sources the controller keeps (counted)
-    float lastAnimationTime;        // the animation state's time at the last update
-    const FigureAnimation* lastAnimation;   // the animation at the last update
-    float lastTime;                 // the world time the unit was last advanced to
+    ParticleSource* sources[3] = {};  // particle sources the controller keeps (counted)
+    float lastAnimationTime = 0.0f;  // the animation state's time at the last update
+    const FigureAnimation* lastAnimation = nullptr;  // the animation at the last update
+    float lastTime = 0.0f;          // the world time the unit was last advanced to
     PathOrder motion;               // the order part of a path
-    std::uint8_t weaponHidden;      // ShowWeaponParts' state (cleared by a weapon change)
-    std::uint8_t arrowHidden;       // the bow's arrow part is flagged hidden
-    std::uint8_t snapHeading;       // the next path placement turns the unit to the path at once
-    float fadeIn;                   // 1 when fully shown; the drawn parts take it as alpha
-    int flashCountdown;             // the drawn parts get their colours back at 0
-    int footprint;                  // the last footprint, -1 none
-    int footprintRepeats;           // further steps that may reuse it
-    int idleSound;                  // the idle animation's sound handle
-    int otherSound;                     // a sound handle, -1 after Create; nothing reads it
-    int speechSound;                // the sound of the last speech that waits (-1 none)
-    const SpeechRecord* lastSpeech; // the speech played last
-    std::uint32_t lastSpeechTime;   // when (timeGetTime)
+    std::uint8_t weaponHidden = 0;  // ShowWeaponParts' state (cleared by a weapon change)
+    std::uint8_t arrowHidden = 0;   // the bow's arrow part is flagged hidden
+    std::uint8_t snapHeading = 0;   // the next path placement turns the unit to the path at once
+    float fadeIn = 0.0f;            // 1 when fully shown; the drawn parts take it as alpha
+    int flashCountdown = 0;         // the drawn parts get their colours back at 0
+    int footprint = 0;              // the last footprint, -1 none
+    int footprintRepeats = 0;       // further steps that may reuse it
+    int idleSound = 0;              // the idle animation's sound handle
+    int otherSound = 0;                 // a sound handle, -1 after Create; nothing reads it
+    int speechSound = 0;            // the sound of the last speech that waits (-1 none)
+    const SpeechRecord* lastSpeech = nullptr; // the speech played last
+    std::uint32_t lastSpeechTime = 0;  // when (timeGetTime)
     std::deque<ClientSpeech> speech; // the speech queue
-    std::uint32_t armourIds[7];     // packed ids of the armour worn, -1 none
-    std::uint32_t weaponIds[4];
+    std::uint32_t armourIds[7] = {};  // packed ids of the armour worn, -1 none
+    std::uint32_t weaponIds[4] = {};
     Ref<Texture> faceTexture;      // the face texture the blink changes
-    std::uint8_t blinks;
-    int blinkTimer;                 // ticks to the next blink change
-    int eyesClosed;
+    std::uint8_t blinks = 0;
+    int blinkTimer = 0;             // ticks to the next blink change
+    int eyesClosed = 0;
 };
 
 // The figure part names of a unit, worn first, then the plain parts.

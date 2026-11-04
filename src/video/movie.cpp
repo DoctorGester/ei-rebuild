@@ -21,11 +21,11 @@ namespace {
 // BT.601 limited range to RGB in 15-bit fixed point, each term truncated: the luma's part per Y, the chroma's parts
 // per U or V.
 struct ColorTables {
-    int luma[256];
-    int redV[256];
-    int greenU[256];
-    int greenV[256];
-    int blueU[256];
+    int luma[256] = {};
+    int redV[256] = {};
+    int greenU[256] = {};
+    int greenV[256] = {};
+    int blueU[256] = {};
 };
 
 const ColorTables& Colors() {

@@ -148,18 +148,18 @@ public:
     static constexpr int kAmbientLoops = 3;
     static constexpr int kSoundClasses = 16;
 
-    LandscapeFlag landscapeFlags;
+    LandscapeFlag landscapeFlags = {};
     std::vector<Texture*> pageTextures;     // held
     std::string mapName;
-    bool mapLoaded;                 // nothing is drawn or lit while false
-    int sectorsX;                   // map size in sectors
-    int sectorsY;
-    float width;                    // the map's size in cells
-    float height;
-    float heightRange;              // the highest terrain height (cursor picking starts at half of it)
-    int pages;
-    int tilesPerRow;
-    int perPage;                    // tilesPerRow squared
+    bool mapLoaded = false;         // nothing is drawn or lit while false
+    int sectorsX = 0;               // map size in sectors
+    int sectorsY = 0;
+    float width = 0.0f;             // the map's size in cells
+    float height = 0.0f;
+    float heightRange = 0.0f;       // the highest terrain height (cursor picking starts at half of it)
+    int pages = 0;
+    int tilesPerRow = 0;
+    int perPage = 0;                // tilesPerRow squared
     std::vector<TerrainMaterial> materials;   // the water materials
     // Per tile texture: its class 0..15 (sounds, prints), with sixteen entries of class 15 after the map's
     // own; its frame count when animated, else 0.
@@ -171,17 +171,17 @@ public:
     std::vector<VertexTiles> vertexTiles;   // 33 x 33
     std::vector<SectorData*> sectorGrid;      // [sx * sectorsY + sy]: the cached sector, or null
     std::vector<SectorData*> sectorCache;      // most recently used first
-    int frame;
+    int frame = 0;
     Vector4 ambient;
-    Light* sun;
+    Light* sun = nullptr;
     lib::HashMap<int, Light*> lights;   // by id, held
     Vector3 waveDirection;          // unit vector; x, y: the waves' travel
-    float waveHeight;
-    float waveGlow;                 // scales the crests' specular colour
-    float wavePhase;                // advanced by waveSpeed every frame
-    float waveSpeed;
+    float waveHeight = 0.0f;
+    float waveGlow = 0.0f;          // scales the crests' specular colour
+    float wavePhase = 0.0f;         // advanced by waveSpeed every frame
+    float waveSpeed = 0.0f;
     std::vector<float> wavePhases;   // per water vertex (33 x 33) phase offsets
-    float sine[512];                // sin(i * pi / 256)
+    float sine[512] = {};           // sin(i * pi / 256)
     SectorRect visible;
     AmbientLoop ambientLoops[kAmbientLoops];
     std::string ambientSet;           // the ambient sound set (ambient\<set>\...)

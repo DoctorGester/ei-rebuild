@@ -12,25 +12,25 @@ namespace options {
 // One camera movement's three settings ("CameraDefault<Scroll|Rotate|Pitch|Zoom>Speed",
 // "...PowerMouse", "...PowerKeyboard").
 struct CameraMotionOptions {
-    float speed;
-    float powerMouse;
-    float powerKeyboard;
+    float speed = 0.0f;
+    float powerMouse = 0.0f;
+    float powerKeyboard = 0.0f;
 };
 // One camera shortcut ("CameraShortcut <n> Distance / AxisX / AxisY / AxisZ / Angle / Pitch").
 struct CameraShortcutOptions {
-    float distance;
-    float axisX;
-    float axisY;
-    float axisZ;
-    float angle;
-    float pitch;
+    float distance = 0.0f;
+    float axisX = 0.0f;
+    float axisY = 0.0f;
+    float axisZ = 0.0f;
+    float angle = 0.0f;
+    float pitch = 0.0f;
 };
 // A light's colour (0..1) and radius.
 struct LightOptions {
-    float red;
-    float green;
-    float blue;
-    float radius;
+    float red = 0.0f;
+    float green = 0.0f;
+    float blue = 0.0f;
+    float radius = 0.0f;
 };
 
 // What the settings used to hold and no longer do: the values the game always runs with.
@@ -61,59 +61,59 @@ public:
 
     std::string workPath;           // Work path
     std::string resourcesPath;      // Resources path
-    int resolutionX;                 // VideoResolution
-    int resolutionY;
-    int fullScreen;                  // FullScreen
-    int video;
-    int audio;
-    int audioStreaming;
-    int audioSfx;
-    int audioSpeech;
-    float brightness;
-    float gamma;
-    int reverseStereo;               // "Reverse Stereo"
-    int shadows;                     // Shadows: every shadow on or off
-    float borderFogDistance;
-    float cameraFlipX;               // CameraFlipXAxis: -1 or 1
-    float cameraFlipY;
-    float cameraMinHeight;
-    float cameraMaxHeight;
-    float cameraDefaultHeight;
-    float cameraDefaultXDeploy;
-    float cameraDefaultYDeploy;
-    float cameraMinDistance;         // CameraMinDistanceToCarrier
-    float cameraMaxDistance;
-    float cameraMinLimitDistance;    // CameraMinLimitDistanceToCarrier
-    float cameraMaxLimitDistance;
-    float cameraDefaultDistance;     // CameraDefaultDistanceToCarrier
-    float briefingMinDistance;       // CameraBriefingMinDistanceToCarrier
-    float briefingMaxDistance;
-    float briefingMinLimitDistance;
-    float briefingMaxLimitDistance;
-    float briefingMinPitch;          // CameraBriefingMinPitch
-    float briefingMaxPitch;
-    int cameraBorderScrollArea;
-    int cameraFrameSelectionArea;    // CameraFrameSelectionSensetiveArea
-    float cameraTerrainArea;         // CameraTerrainSensetiveArea
+    int resolutionX = 0;             // VideoResolution
+    int resolutionY = 0;
+    int fullScreen = 0;              // FullScreen
+    int video = 0;
+    int audio = 0;
+    int audioStreaming = 0;
+    int audioSfx = 0;
+    int audioSpeech = 0;
+    float brightness = 0.0f;
+    float gamma = 0.0f;
+    int reverseStereo = 0;           // "Reverse Stereo"
+    int shadows = 0;                 // Shadows: every shadow on or off
+    float borderFogDistance = 0.0f;
+    float cameraFlipX = 0.0f;        // CameraFlipXAxis: -1 or 1
+    float cameraFlipY = 0.0f;
+    float cameraMinHeight = 0.0f;
+    float cameraMaxHeight = 0.0f;
+    float cameraDefaultHeight = 0.0f;
+    float cameraDefaultXDeploy = 0.0f;
+    float cameraDefaultYDeploy = 0.0f;
+    float cameraMinDistance = 0.0f;  // CameraMinDistanceToCarrier
+    float cameraMaxDistance = 0.0f;
+    float cameraMinLimitDistance = 0.0f;  // CameraMinLimitDistanceToCarrier
+    float cameraMaxLimitDistance = 0.0f;
+    float cameraDefaultDistance = 0.0f;  // CameraDefaultDistanceToCarrier
+    float briefingMinDistance = 0.0f;  // CameraBriefingMinDistanceToCarrier
+    float briefingMaxDistance = 0.0f;
+    float briefingMinLimitDistance = 0.0f;
+    float briefingMaxLimitDistance = 0.0f;
+    float briefingMinPitch = 0.0f;   // CameraBriefingMinPitch
+    float briefingMaxPitch = 0.0f;
+    int cameraBorderScrollArea = 0;
+    int cameraFrameSelectionArea = 0;  // CameraFrameSelectionSensetiveArea
+    float cameraTerrainArea = 0.0f;  // CameraTerrainSensetiveArea
     CameraMotionOptions cameraScroll;
     CameraMotionOptions cameraRotate;
     CameraMotionOptions cameraPitch;
     CameraMotionOptions cameraZoom;
     CameraShortcutOptions cameraShortcuts[4];
-    float cameraDefaultMinPitch;
-    float cameraDefaultMaxPitch;
-    float nearClipDistance;
-    float farClipDistance;           // FarClipDistance
-    int selectionType;
-    int drawVisibleOnly;             // not a setting: 1 draws only the units the party sees (the spectator switch turns it off)
-    int drawPath;
-    int drawFlyingHp;                // DrawFlyingHP
-    int showTutorial;
-    int autosave;
-    float toolTipTime;               // "ToolTip Time"
-    int switchFilters;
-    int difficulty;                  // "Difficulty Level"
-    int difficultyStored;            // the same value: the one that is written back
+    float cameraDefaultMinPitch = 0.0f;
+    float cameraDefaultMaxPitch = 0.0f;
+    float nearClipDistance = 0.0f;
+    float farClipDistance = 0.0f;    // FarClipDistance
+    int selectionType = 0;
+    int drawVisibleOnly = 0;         // not a setting: 1 draws only the units the party sees (the spectator switch turns it off)
+    int drawPath = 0;
+    int drawFlyingHp = 0;            // DrawFlyingHP
+    int showTutorial = 0;
+    int autosave = 0;
+    float toolTipTime = 0.0f;        // "ToolTip Time"
+    int switchFilters = 0;
+    int difficulty = 0;              // "Difficulty Level"
+    int difficultyStored = 0;        // the same value: the one that is written back
     std::string masterServerName;   // "Master Server Name"
 };
 // The game's options (options_construct.cpp).

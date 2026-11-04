@@ -200,9 +200,9 @@ bool Inside(const TextManager* t, const char* p) {
 // How one inlined "move the cursor past the next LF" tests the end and reads characters.
 enum class Test { Inline, Call };
 struct AdvanceKind {
-    Test entry;     // the first test of the cursor
-    Test loopEnd;   // the end test of the scanning loop
-    Test exit;      // the final test (cursor = p at the end, else just past the LF)
+    Test entry = {};  // the first test of the cursor
+    Test loopEnd = {};  // the end test of the scanning loop
+    Test exit = {};  // the final test (cursor = p at the end, else just past the LF)
 };
 
 bool InsideBy(TextManager* t, const char* p, Test test) {

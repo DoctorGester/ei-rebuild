@@ -491,30 +491,6 @@ void FillAreaLists(AIMap* map) {
     }
 }
 
-// --- Ai cost tables ----------------------------------------------------------------------------------
-
-// The three passability cost tables of AIMap, 16 ints each indexed by a cell's passability nibble (entry 0,
-// impassable, is -1): the per-nibble costs, a flat 0x400, and the step costs (PassCostContext and
-// SetStepSpeeds use them). See ai_map.h.
-
-namespace {
-constexpr int kCosts[16] = {-1,    0x6400, 0x77EC, 0x8BD8, 0x2FF8, 0x37F0, 0x3FFC, 0x0DFC,
-                            0x0FFF, 0x11FD, 0x1400, 0x0666, 0x0732, 0x0800, 0x0400, 0x04CC};
-constexpr int kStepCosts[16] = {-1,    0x200, 0x266, 0x2CC, 0x266, 0x2CC, 0x333, 0x2CC,
-                                0x333, 0x399, 0x400, 0x333, 0x399, 0x400, 0x400, 0x4CC};
-} // namespace
-
-void InitCostTables(AIMap* map) {
-    int* costs = map->passCosts;
-    int* flat = map->passCostsAlt;
-    int* steps = map->stepCosts;
-    for (int i = 0; i < 16; ++i) {
-        costs[i] = kCosts[i];
-        flat[i] = i == 0 ? -1 : 0x400;
-        steps[i] = kStepCosts[i];
-    }
-}
-
 // --- Script runtime helpers --------------------------------------------------------------------------
 
 // The AI map's sector map wrappers the script commands reach.

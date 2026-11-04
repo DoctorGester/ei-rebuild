@@ -147,8 +147,8 @@ int FigureManager::LoadSkeletonLinks(FigureAnimationState* state, std::string_vi
 // is not released here. Returns 1.
 int FigureManager::LoadFigureBones(FigureModel* model, FigureBone* bone) {
     struct {
-        void* data;
-        std::uint32_t size;
+        void* data = nullptr;
+        std::uint32_t size = 0;
     } bones{nullptr, 0};
     if (model) {
         bones.data = model->bones->GetFile(bone->name, &bones.size);

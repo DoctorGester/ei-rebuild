@@ -10,7 +10,7 @@ namespace render {
 // 1.0). Vertex i of a mesh is component i & 3 of packet i >> 2. Also the moved positions the part drawers
 // build. `block` is four rows of lanes, not a matrix (check_cleanup skips the name).
 struct VertexPacket {
-    float block[4][4];
+    float block[4][4] = {};
     // The rows by name (the interface sprites' quads: the four corners' x, y, z (0) and w (1)).
     float (&x())[4] { return block[0]; }
     float (&y())[4] { return block[1]; }
@@ -24,20 +24,20 @@ struct VertexPacket {
 
 // Four normals in the same SoA form (mirrored together with the positions); the loaders copy them verbatim.
 struct NormalPacket {
-    float block[4][4];
+    float block[4][4] = {};
 };
 
 // A texture coordinate (u, v).
 struct TexCoord {
-    float u, v;
+    float u = 0.0f, v = 0.0f;
 };
 
 // A triangle corner: the index of its position, of its normal (which also picks its colour, specular and lighting
 // word; the interface's sprites write 0) and of its texture coordinate.
 struct MeshCorner {
-    std::uint16_t position;
-    std::uint16_t normal;
-    std::uint16_t texCoord;
+    std::uint16_t position = 0;
+    std::uint16_t normal = 0;
+    std::uint16_t texCoord = 0;
 };
 
 static_assert(sizeof(TexCoord) == 8 && sizeof(MeshCorner) == 6 && sizeof(VertexPacket) == 0x40 &&

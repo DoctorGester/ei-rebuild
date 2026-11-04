@@ -47,7 +47,7 @@ constexpr int kOutsideClass = 8;
 // A vertex column (or row) of the map as a sector's and its vertex in that sector. Vertex 32 of a sector is
 // vertex 0 of the next; such a shared vertex is the earlier sector's (the first sector keeps its vertex 0).
 struct SplitVertex {
-    int sector, vertex;
+    int sector = 0, vertex = 0;
 };
 SplitVertex SplitOf(int v) {
     const int sector = v / kSectorCells, vertex = v - sector * kSectorCells;

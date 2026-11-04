@@ -134,15 +134,15 @@ public:
     std::unique_ptr<TextureParts> partSets[2];
     std::vector<HeldRef<Texture>> textures;     // the sets' textures
     std::vector<HeldRef<Material>> materials;   // the groups' materials: fade-in, tints
-    bool shadowMade;                // the sphere fitted since Create / ClearShadow
+    bool shadowMade = false;        // the sphere fitted since Create / ClearShadow
     ClipBounds sphere;              // the object and its shadow (box and sphere), the centre relative to the object
     Rect drawnRect;                 // the screen area of the dirty parts DrawParts drew
     Ref<Texture> woundsTexture;    // the wounds texture (ShowWounds loads it)
     Ref<WoundsMaterial> woundsMaterial;  // the material drawing it (counted)
     std::string skinName;          // the first set's texture name (SetSkins)
     std::string secondSkinName;    // the second set's
-    float pulseClock;               // frames counted by the invisible / stunned pulses
-    std::uint32_t touchTime;        // the frame time the model was last kept loaded (CollectVisible)
+    float pulseClock = 0.0f;        // frames counted by the invisible / stunned pulses
+    std::uint32_t touchTime = 0;    // the frame time the model was last kept loaded (CollectVisible)
     Vector3 figureScale;            // the figure's extra scale (GetScale)
 };
 

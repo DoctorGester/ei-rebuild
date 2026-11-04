@@ -30,7 +30,7 @@ bool AnyLevel(const UnitLayerNode* node) {
 
 // The part of a block's 4x4 cells that lies in the map: its first cell and the columns and rows inside.
 struct BlockArea {
-    int x, y, columns, rows;
+    int x = 0, y = 0, columns = 0, rows = 0;
 };
 
 // Whether the block's first cell lies in the map (keys are signed 16-bit halves; the comparisons are unsigned, so
@@ -49,6 +49,12 @@ bool BlockInMap(const AIMap* map, const UnitLayerNode* block, BlockArea* area) {
 }
 
 } // namespace
+
+void UnitLayer::Clear() {
+    nodes.clear();
+    std::ranges::fill(buckets, nullptr);
+    freeNodes = nullptr;
+}
 
 void UnitLayer::Add(UnitLayerOwner owner, const UnitShape* shape, Point topLeft) {
     // The shape placed in a 20x20 grid at the unit's offset within its 4-cell block.

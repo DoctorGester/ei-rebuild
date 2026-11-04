@@ -15,8 +15,8 @@
 namespace {
 
 struct Textures {
-    Surface* first;
-    Surface* second;
+    Surface* first = nullptr;
+    Surface* second = nullptr;
 };
 
 // --- The buffers ---------------------------------------------------------------------------------

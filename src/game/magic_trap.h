@@ -60,14 +60,14 @@ public:
     // Nothing without units or a spell; nothing either (the countdown kept) when singleTarget finds none.
     void CastAtUnits(std::vector<Unit*>* units);
 
-    std::uint32_t sides;            // bit per unit side that sets it off
+    std::uint32_t sides = 0;        // bit per unit side that sets it off
     Ref<Spell> spell;              // null: none
     std::vector<TrapCircle> area;
     std::vector<Vector2> points;              // where it casts ({x, y})
     std::vector<HeldRef<Unit>> inside;      // the units inside
-    int period;                     // 0: casts at newcomers; else ticks between casts
-    int countdown;
-    int singleTarget;               // cast at one unit only
+    int period = 0;                 // 0: casts at newcomers; else ticks between casts
+    int countdown = 0;
+    int singleTarget = 0;           // cast at one unit only
 };
 
 // `out` becomes the living units whose side has its bit in `sides` within each circle of `area` (from the

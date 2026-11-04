@@ -14,27 +14,27 @@
 // BITMAPINFOHEADER and RGBQUAD).
 #pragma pack(push, 2)
 struct DibFileHeader {
-    std::uint16_t type;         // "BM"
-    std::uint32_t size;         // the file's bytes
-    std::uint16_t reserved1;
-    std::uint16_t reserved2;
-    std::uint32_t bitsOffset;   // where the bits start
+    std::uint16_t type = 0;     // "BM"
+    std::uint32_t size = 0;     // the file's bytes
+    std::uint16_t reserved1 = 0;
+    std::uint16_t reserved2 = 0;
+    std::uint32_t bitsOffset = 0;  // where the bits start
 };
 #pragma pack(pop)
 static_assert(sizeof(DibFileHeader) == 14);
 
 struct DibHeader {
-    std::uint32_t size;               // this header's bytes (40)
-    std::int32_t width;
-    std::int32_t height;              // positive: the rows bottom-up
-    std::uint16_t planes;
-    std::uint16_t bitCount;
-    std::uint32_t compression;        // kDibRgb or kDibBitFields
-    std::uint32_t imageSize;          // the bits' bytes, or 0
-    std::int32_t xPixelsPerMeter;
-    std::int32_t yPixelsPerMeter;
-    std::uint32_t coloursUsed;
-    std::uint32_t coloursImportant;
+    std::uint32_t size = 0;           // this header's bytes (40)
+    std::int32_t width = 0;
+    std::int32_t height = 0;          // positive: the rows bottom-up
+    std::uint16_t planes = 0;
+    std::uint16_t bitCount = 0;
+    std::uint32_t compression = 0;    // kDibRgb or kDibBitFields
+    std::uint32_t imageSize = 0;      // the bits' bytes, or 0
+    std::int32_t xPixelsPerMeter = 0;
+    std::int32_t yPixelsPerMeter = 0;
+    std::uint32_t coloursUsed = 0;
+    std::uint32_t coloursImportant = 0;
 };
 static_assert(sizeof(DibHeader) == 40);
 

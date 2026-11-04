@@ -38,9 +38,9 @@ std::uint32_t Colour(int alpha, int red, int blue) {
 // colour's three values, truncated: the
 // alpha 130 (1 - p) + 240 p, `low` 80 (1 - p) and `high` 160 p + 80 (1 - p).
 struct Pulse {
-    int alpha;
-    int low;
-    int high;
+    int alpha = 0;
+    int low = 0;
+    int high = 0;
 };
 Pulse Advance(ConstructorPage* page) {
     page->pulse += UiContainer::FrameTime();

@@ -89,8 +89,8 @@ void UiItemStrip::Build(bool atTop) {
     const float y5 = 5.0f, y35 = 35.0f, y65 = 65.0f,
                 y95 = 95.0f;
     struct Tab {
-        float left, right;
-        int u0, u1;
+        float left = 0.0f, right = 0.0f;
+        int u0 = 0, u1 = 0;
     };
     static constexpr Tab kTabs[2] = {{0.0f, 30.0f, 2, 0x2A}, {770.0f, 800.0f, 0x2C, 0x54}};
     for (const Tab& entry : kTabs) {

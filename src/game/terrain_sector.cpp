@@ -41,7 +41,7 @@ constexpr int kTileEntries = TileUv::kVertices;
 
 // Where a tile texture is: its page and its index in the page.
 struct PageSlot {
-    int page, index;
+    int page = 0, index = 0;
 };
 PageSlot SlotOf(int texture, int perPage, int pages) {
     if (texture / perPage < pages) return {texture / perPage, texture % perPage};

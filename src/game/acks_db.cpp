@@ -51,8 +51,8 @@ void SpeechFields(SpeechRecord& speech, ChunkArchive* ar) {
 constexpr int kEnvironment = -1;   // environmentSpeeches
 constexpr int kNamed = -2;         // namedSpeeches
 struct ListChunk {
-    std::uint8_t id;
-    std::int8_t list;
+    std::uint8_t id = 0;
+    std::int8_t list = 0;
 };
 constexpr ListChunk kUnitChunks[] = {
     {10, 0},  {11, 1},  {12, 2},  {13, 3},  {14, 4},  {15, 5},  {16, 6},  {17, 7},  {18, 8},

@@ -269,7 +269,7 @@ StatsTimer* g_innerTimer = nullptr;
 // CountReuse: per key the hashes of the vertices' geometry (positions, texture coordinates) and
 // colours, this frame's and the last; this frame's mesh geometry hashes.
 struct VertexHashes {
-    std::uint64_t geometry, colours;
+    std::uint64_t geometry = 0, colours = 0;
 };
 std::unordered_map<std::uint64_t, VertexHashes> g_hashes, g_lastHashes;
 std::unordered_set<std::uint64_t> g_frameGeometry;

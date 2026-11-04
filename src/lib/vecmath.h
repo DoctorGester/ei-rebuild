@@ -16,24 +16,24 @@ constexpr float kHalfPi = kPi * 0.5f;
 // ---- Types ---------------------------------------------------------------------------------------
 
 struct Vector2 {
-    float x, y;
+    float x = 0.0f, y = 0.0f;
 };
 static_assert(sizeof(Vector2) == 8);
 
 struct Vector3 {
-    float x, y, z;
+    float x = 0.0f, y = 0.0f, z = 0.0f;
 };
 static_assert(sizeof(Vector3) == 12);
 
 // A homogeneous point (x, y, z, w).
 struct Vector4 {
-    float x, y, z, w;
+    float x = 0.0f, y = 0.0f, z = 0.0f, w = 0.0f;
 };
 static_assert(sizeof(Vector4) == 16);
 
 // Rotation quaternion, stored w first.
 struct Quaternion {
-    float w, x, y, z;
+    float w = 0.0f, x = 0.0f, y = 0.0f, z = 0.0f;
 
     // The rotation of `angle` radians about `axis` (need not be normalised).
     static Quaternion AxisAngle(const Vector3& axis, float angle);
@@ -60,13 +60,13 @@ static_assert(sizeof(Quaternion) == 16);
 // vectors (M * v, translation in m[3], m[7], m[11]: the transform pipeline, clip codes, decals).
 // The first three rows of a row-major 4x4 matrix (row stride 16 bytes).
 struct MatrixRows {
-    float m[12];
+    float m[12] = {};
 };
 static_assert(sizeof(MatrixRows) == 48);
 
 struct Matrix4 {
     union {
-        float m[16];
+        float m[16] = {};
         MatrixRows rows;   // the first three rows
     };
 

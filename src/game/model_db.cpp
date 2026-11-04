@@ -143,8 +143,8 @@ void FileRecords(std::vector<Record>& records, Index& index, Name name) {
 constexpr int kNamedSpeeches = -1;
 constexpr int kNoList = -2;
 struct KindEntry {
-    std::uint8_t kind;
-    std::int8_t list;
+    std::uint8_t kind = 0;
+    std::int8_t list = 0;
 };
 constexpr KindEntry kUnitKinds[] = {
     {0x00, 0},  {0x01, 1},  {0x02, 2},  {0x03, 3},  {0x04, 4},  {0x05, 5},  {0x06, 6},  {0x07, 7},

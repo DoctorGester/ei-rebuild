@@ -103,7 +103,7 @@ Connection* ServerSession::FindGuestConnection(const std::string* guestName) {
             for (auto other = first; other != currentBindings.end(); ++other) {
                 if (other->Get()->connection.Get() != connection) continue;
                 PlayerMessage* owner = other->Get()->player.Get();
-                if (owner && !(owner->flags7 & RefObject::kDetached) && owner->host) {
+                if (IsLive(owner) && owner->host) {
                     hostsToo = true;
                     break;
                 }
@@ -246,7 +246,7 @@ void ServerSession::OnJoin(Connection* from, LoginMessage* msg) {
 
     ClientSession* client = g_gameClient;
     bool host;
-    if (client && !(client->flags7 & RefObject::kDetached)) {
+    if (IsLive(client)) {
         host = msg->host != 0;
     } else {
         host = bindings.size() == 1;
@@ -302,7 +302,7 @@ void ServerSession::Announce(std::string_view text, RefObject* player) {
     ++nextLine;
 
     RefObject* connection = nullptr;
-    if (player && !(player->flags7 & RefObject::kDetached)) {
+    if (IsLive(player)) {
         for (auto& node : bindings) {
             auto* binding = node.Get();
             if (binding->player.Get() == player) {

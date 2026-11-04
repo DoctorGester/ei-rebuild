@@ -1,0 +1,7 @@
+id = "C124a"
+title = "Lifetimes tail: default initialisers in the files other tickets held, kZeroed allocations"
+group = "cleanup"
+model = "sonnet"
+depends = ["C124"]
+note = "C124 left these. (1) Default initialisers (check_cleanup's 'field without a default initialiser', 71 left) in the files running tickets held on 2026-11-04: world.h (C132), script.h, script_addon.h/.cpp, script_addon_units.cpp (C117), src/audio/audio.cpp (C123), src/platform/platform.h, posix/keyboard.cpp, sdl/sdl_keys.h (C143a); the C124 script is mechanical (scalar = 0 / 0.0f / false, pointer = nullptr, enum and array = {}; a trailing comment keeps its column). (2) Fields the count does not see: function pointers, typedef'd scalars (HWND and the like), members under #if inside a class. (3) new (kZeroed) (engine_object.h: the server and map objects, lights, particle sources): once every field of those classes and their bases has an initialiser, they can be plain new; check padding and the class-type members first (goldens). Style only: goldens the same."
+order = 1142

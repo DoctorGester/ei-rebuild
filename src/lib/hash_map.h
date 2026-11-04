@@ -44,7 +44,7 @@ struct TextHash {
 template <typename K, typename V, typename Hash = DwordHash, bool Multi = false>
 class HashMap {
     struct Node {
-        Node* next;
+        Node* next = nullptr;
         std::pair<const K, V> value;
     };
 

@@ -51,9 +51,9 @@ using NormalPacket = render::NormalPacket;
 
 // Bounding volume of a figure part, tested against the view frustum.
 struct ClipBounds {
-    std::uint32_t flags;   // BoundsFlag
+    std::uint32_t flags = 0;  // BoundsFlag
     Vector3 center;
-    float radius;          // half the side of the cube around the centre
+    float radius = 0.0f;   // half the side of the cube around the centre
     Vector3 boxMin;        // box corners, relative to the centre
     Vector3 boxMax;
 
@@ -86,7 +86,7 @@ class Light;
 // A screen-facing sprite's centre and size (SceneRenderer::DrawSprites' points).
 struct SpritePoint {
     Vector3 position;
-    float size;
+    float size = 0.0f;
 };
 
 // `m` times the point (x, y, z, 1), each row's sum adding the translation first
@@ -192,7 +192,7 @@ class RenderPreset final {
 public:
     // One texture stage's operations.
     struct State {
-        bool enabled;                     // the stage's operations are set
+        bool enabled = false;             // the stage's operations are set
         render::StageCombiner combiner;
     };
 
@@ -372,9 +372,9 @@ struct FigureModel {
     FigureModel& operator=(const FigureModel&) = delete;
     MappedResource* FindAnimation(std::string_view name);
 
-    MappedResource* mesh;          // the .mod archive
-    MappedResource* bones;
-    MappedResource* animations;
+    MappedResource* mesh = nullptr;  // the .mod archive
+    MappedResource* bones = nullptr;
+    MappedResource* animations = nullptr;
     // each a MMIOResource over the animation's data
     std::unordered_map<std::string, MappedResource*, str::ViewHash, std::equal_to<>> animationCache;
 
@@ -403,7 +403,7 @@ FigureModel* OpenFigureModel(std::string_view name, GetFile&& getFile, Discard&&
 
 // The three coefficients (s, t, u) a link figure's parts are morphed by.
 struct Morph {
-    float s, t, u;
+    float s = 0.0f, t = 0.0f, u = 0.0f;
 };
 
 // Loads .lnk link files and the figures they name (created at startup with figures.res and menus.res). A
@@ -482,9 +482,9 @@ public:
 // What chunks 2 and 3 of both prints.db record types hold: a print's alpha and its life and lifetime in ticks
 // (chunk 3 while it rains or snows).
 struct PrintLook {
-    float alpha;
-    int life;
-    int lifetime;
+    float alpha = 0.0f;
+    int life = 0;
+    int lifetime = 0;
 };
 
 // A record of prints.db (terrain footprints).
@@ -511,7 +511,7 @@ struct PrintRecord2 {
     std::string name;
     PrintLook dryLook;           // chunk 2
     PrintLook wetLook;           // chunk 3 (while it rains or snows)
-    std::uint32_t unreadChunk[3];   // chunk 10
+    std::uint32_t unreadChunk[3] = {};  // chunk 10
 };
 
 inline const PrintLook& LookOf(const PrintRecord& r, bool second) { return second ? r.wetLook : r.dryLook; }

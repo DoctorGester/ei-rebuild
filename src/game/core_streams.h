@@ -114,7 +114,7 @@ public:
     }
 
     bool ok = true;                 // cleared when a read runs past the end
-    int version;                    // format version (the save game's); 2000000000 when constructed
+    int version = 0;                // format version (the save game's); 2000000000 when constructed
 };
 
 // A growable memory stream that can also pack bits. The bit writer assembles bits in bits and stores the

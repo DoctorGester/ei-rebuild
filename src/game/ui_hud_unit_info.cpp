@@ -59,8 +59,8 @@ float ShownSpeed(Unit* unit, bool outsideGroup) {
 }
 
 struct Panel {
-    UiSurface* surface;
-    const std::string* labels;
+    UiSurface* surface = nullptr;
+    const std::string* labels = nullptr;
     Rect rect;
     std::string text;
 

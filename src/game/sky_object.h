@@ -16,7 +16,7 @@
 
 // A light colour as the sky gets it (by value): red, green, blue (0..1) and a fourth value.
 struct SkyColour {
-    float r, g, b, a;
+    float r = 0.0f, g = 0.0f, b = 0.0f, a = 0.0f;
 };
 
 class SkyObject : public FigureMesh {
@@ -57,7 +57,7 @@ struct Sky {
     Ref<SkyObject> object;   // null until the zone's sky is loaded
     Ref<EngineObject> material;   // type 0x12, by WorldClient::LoadSky
     Ref<Texture> texture;  // texture holder
-    int turns;            // 1 when constructed
+    int turns = 0;        // 1 when constructed
 
     // Object->ApplyLight(...) when there is an object.
     void ApplyLight(const Vector3& direction, SkyColour ambient, SkyColour light);

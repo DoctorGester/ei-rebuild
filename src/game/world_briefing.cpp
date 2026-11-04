@@ -47,7 +47,7 @@ constexpr const char* kQuestFileSuffix = ".mq";
 // Whether a game server runs (bit 31 of its count word marks one shut down).
 bool ServerRuns() {
     const net::ServerSession* server = net::g_gameServer;
-    return server && !(server->flags7 & RefCounted::kDetached);
+    return IsLive(server);
 }
 
 // The game server lists the file at `path` under `name` for its clients: the whole file (none of it when it does not

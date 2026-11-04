@@ -49,11 +49,11 @@ public:
     // Sets the velocity (moving as in UpdateMoving) and marks the effect changed.
     void SetVelocity(const Vector3& velocity);
 
-    int startTick;             // game tick the effect began (particles: warm-up and lifetime)
+    int startTick = 0;         // game tick the effect began (particles: warm-up and lifetime)
     Vector3 velocity;          // added to the position every tick while moving
-    int moving;                // velocity is not zero
+    int moving = 0;            // velocity is not zero
     DeltaField state;          // the replicated state (see net_delta.h)
-    int changeStamp;           // the global when last changed, -1 after Reset
+    int changeStamp = 0;       // the global when last changed, -1 after Reset
 };
 // Reads a count and that many strings from a save stream, each appended to `array`.
 std::vector<std::string> ReadSavedStrings(ByteStream* stream);
@@ -74,13 +74,13 @@ public:
     void Save(ByteStream* stream) override;
     float Radius() override;
 
-    char name[0x100];          // sound file
-    float volume;
-    float radius;
-    int looping;               // 0: the effect ends after its first tick
-    std::uint8_t noFade;       // plays with flag 1000
-    int sound;                 // handle in the sound system, -1: none
-    std::uint8_t fresh;        // set by Reset, cleared by the first tick
+    char name[0x100] = {};     // sound file
+    float volume = 0.0f;
+    float radius = 0.0f;
+    int looping = 0;           // 0: the effect ends after its first tick
+    std::uint8_t noFade = 0;   // plays with flag 1000
+    int sound = 0;             // handle in the sound system, -1: none
+    std::uint8_t fresh = 0;    // set by Reset, cleared by the first tick
 };
 
 // A sequence of sounds picked at random (class id 99).
@@ -101,10 +101,10 @@ public:
 
     std::string name;          // the first sound
     std::vector<std::string> names;   // the others
-    float volume;
-    float radius;
-    std::uint8_t noFade;
-    int sound;                 // sequence handle, -1: none
+    float volume = 0.0f;
+    float radius = 0.0f;
+    std::uint8_t noFade = 0;
+    int sound = 0;             // sequence handle, -1: none
 };
 
 // A looping ambient sound (class id 0x49).
@@ -123,11 +123,11 @@ public:
     float Radius() override;
 
     std::vector<std::string> names;
-    float volume;
-    float radius;
-    int minInterval;           // ms between plays (the sound emitter's minInterval)
-    int maxInterval;           // ms, the upper bound
-    int sound;                 // handle, -1: none
+    float volume = 0.0f;
+    float radius = 0.0f;
+    int minInterval = 0;       // ms between plays (the sound emitter's minInterval)
+    int maxInterval = 0;       // ms, the upper bound
+    int sound = 0;             // handle, -1: none
 };
 
 // A point light (class id 0x4B).
@@ -147,9 +147,9 @@ public:
     virtual float LightRadius();
 
     Vector3 color;
-    float range;               // negative: LightFlag::Off on the light
+    float range = 0.0f;        // negative: LightFlag::Off on the light
     Ref<Light> light; // reference counted, null: none
-    std::uint32_t lightFlags; // LightFlag bits ored into the light's flags (saved)
+    std::uint32_t lightFlags = 0; // LightFlag bits ored into the light's flags (saved)
 };
 
 // A particle source (class id 0x4A; CreateParticleSource).
@@ -175,14 +175,14 @@ public:
     bool RunTick() override;
 
     Vector3 worldPosition;     // Position's result when attached
-    int type;                  // particle type 0x2000..
-    float size;
-    float alpha;               // copied to the source
-    float typeParam;            // copied to the source
-    int attachedTo;            // object id, -1: none
+    int type = 0;              // particle type 0x2000..
+    float size = 0.0f;
+    float alpha = 0.0f;        // copied to the source
+    float typeParam = 0.0f;     // copied to the source
+    int attachedTo = 0;        // object id, -1: none
     Vector3 target;            // moves towards it
     Ref<ParticleSource> source;    // reference counted
-    int unitId;                // a unit whose position is used when unpacking, -1: none
+    int unitId = 0;            // a unit whose position is used when unpacking, -1: none
 };
 
 // A particle wall (class id 0x5A; fire wall).
@@ -223,11 +223,11 @@ public:
 
     Vector3 from;
     Vector3 to;
-    float width;
+    float width = 0.0f;
     Ref<Lightning> bolt;      // the drawn bolt
-    int toObject;              // its position (+1 in z) becomes to
-    int fromObject;            // a unit: its point becomes from (server only)
-    std::uint8_t flag;
+    int toObject = 0;          // its position (+1 in z) becomes to
+    int fromObject = 0;        // a unit: its point becomes from (server only)
+    std::uint8_t flag = 0;
 };
 
 // A missile homing on a world object (abstract base). Subclasses: EffectArrow (0x4E) and the class 0x5B
@@ -246,9 +246,9 @@ public:
     // The parts (or the figure) follow the missile.
     virtual void MoveParts() = 0;
 
-    int arrived;
-    int targetId;              // world object id, -1: none
-    std::uint8_t fromCaster;   // the client starts the missile at the caster's effect point
+    int arrived = 0;
+    int targetId = 0;          // world object id, -1: none
+    std::uint8_t fromCaster = 0;  // the client starts the missile at the caster's effect point
 };
 
 // A spell missile: a particle source, a light and a looping sound flying together (class id 0x4E; created by
@@ -274,10 +274,10 @@ public:
     EffectSound sound;
     std::string soundName;
     Vector3 lightColor;
-    float lightRange;
-    int particleType;
-    float particleSize;
-    int casterId;                  // unit, -1: none
+    float lightRange = 0.0f;
+    int particleType = 0;
+    float particleSize = 0.0f;
+    int casterId = 0;              // unit, -1: none
 };
 
 // A bow or crossbow shot (class id 0x5B, "EffectArrowFigure"; made by UnitServer::DeliverAttack with the
@@ -300,7 +300,7 @@ public:
     void Save(ByteStream* stream) override;
 
     Ref<MapObject> figure;    // client only: the figure object (a stuff object, class 0x38, counted), null: none
-    int casterId;              // the shooter, -1: none
+    int casterId = 0;          // the shooter, -1: none
     DamageInfo hit;            // delivered on arrival (multiplier 1 after Reset)
 };
 
@@ -322,8 +322,8 @@ public:
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
 
-    int observerId;            // unit (the second unit of the sight computation)
-    int seerId;                // unit whose sight is shown; the effect follows it
+    int observerId = 0;        // unit (the second unit of the sight computation)
+    int seerId = 0;            // unit whose sight is shown; the effect follows it
     Ref<VisibilityFog> fog;   // client only, null: none
     FogGrid grid;
 };
@@ -355,12 +355,12 @@ public:
 
     Ref<MapObject> bird;      // the figure object (a stuff object, class 0x38, counted), null: none
     Ref<ParticleSource> source;    // null: none
-    int followedId;            // world object id, -1: none
-    float lastTime;            // Update's last `now`
-    float timer;               // frames left in the state
-    float angle;               // circling: the angle at time 0 (radians)
-    float height;              // circling: the height above the bird where it looks for a perch
-    int state;                 // 0 perched, 1 circling, 2 flying to position (the perch)
+    int followedId = 0;        // world object id, -1: none
+    float lastTime = 0.0f;     // Update's last `now`
+    float timer = 0.0f;        // frames left in the state
+    float angle = 0.0f;        // circling: the angle at time 0 (radians)
+    float height = 0.0f;       // circling: the height above the bird where it looks for a perch
+    int state = 0;             // 0 perched, 1 circling, 2 flying to position (the perch)
 };
 
 // A tornado crossing the map (class id 0x65, "EffectTornado"; the server weather launches it). It moves in a
@@ -385,9 +385,9 @@ public:
     void Save(ByteStream* stream) override;
 
     Ref<ParticleSource> source;    // client only, null: none
-    int sound;                 // client: the looping sound's handle, -1: none
-    int framesLeft;            // ticks still to move
-    int launchTick;            // the world's tick at Launch (Start catches the source up, at most 30)
+    int sound = 0;             // client: the looping sound's handle, -1: none
+    int framesLeft = 0;        // ticks still to move
+    int launchTick = 0;        // the world's tick at Launch (Start catches the source up, at most 30)
 };
 
 

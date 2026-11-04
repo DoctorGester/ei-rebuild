@@ -18,8 +18,8 @@ struct LockKey {
     // Reads / writes the three dwords.
     void Load(ByteStream* stream);
     void Save(ByteStream* stream) const;
-    std::uint32_t mask;
-    std::uint32_t id;
-    std::uint32_t level;
+    std::uint32_t mask = 0;
+    std::uint32_t id = 0;
+    std::uint32_t level = 0;
 };
 static_assert(sizeof(LockKey) == 0xC);   // sent as its 12 bytes

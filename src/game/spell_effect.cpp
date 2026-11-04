@@ -82,8 +82,8 @@ namespace {
 
 // What a spell type deals: its damage type, and a hitKind of 1 for the spells that burn an area over time.
 struct SpellDamageKind {
-    DamageType type;
-    int hitKind;
+    DamageType type = {};
+    int hitKind = 0;
 };
 
 constexpr SpellDamageKind kFireHit{DamageType::Fire, 0};

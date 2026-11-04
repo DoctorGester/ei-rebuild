@@ -59,20 +59,20 @@ void MarkSightCells(Unit* seer, Unit* observer, FogGrid* grid);
 // An AI event: filed in its map cell's list for its side and in the time wheel's slot of the tick it expires.
 // Records come from the pool list (AIEventPool) and go back to the free list (chained through `next`).
 struct AIEvent {
-    float x, y;                     // where; its cell is (x / 8, y / 8) rounded
-    std::uint32_t origin[2];            // x and y again (sets them; saved)
-    int expiry;                     // the tick it goes; wheel slot (expiry - 1) & 0x3FF
-    std::uint32_t payload[2];           // saved and loaded; left to the creator's caller
-    int sourceId;                   // the unit that made it
-    int side;                       // its low 4 bits: the side list it is filed in
-    AIEvent* next;                  // the cell's list for the side; the free list's link
-    AIEvent* prev;                  // null for the cell's first
-    AIEvent* nextInSlot;            // the wheel slot's list
+    float x = 0.0f, y = 0.0f;       // where; its cell is (x / 8, y / 8) rounded
+    std::uint32_t origin[2] = {};       // x and y again (sets them; saved)
+    int expiry = 0;                 // the tick it goes; wheel slot (expiry - 1) & 0x3FF
+    std::uint32_t payload[2] = {};      // saved and loaded; left to the creator's caller
+    int sourceId = 0;               // the unit that made it
+    int side = 0;                   // its low 4 bits: the side list it is filed in
+    AIEvent* next = nullptr;        // the cell's list for the side; the free list's link
+    AIEvent* prev = nullptr;        // null for the cell's first
+    AIEvent* nextInSlot = nullptr;  // the wheel slot's list
 };
 
 // A map cell of the event grid: the newest event of each side (lists through AIEvent::next).
 struct AIEventCell {
-    AIEvent* bySide[16];
+    AIEvent* bySide[16] = {};
 };
 
 // The free event records, chained through AIEvent::next.
@@ -83,10 +83,15 @@ extern AIEvent* g_freeEvents;
 struct AIEventTable : AIViewer {
     // Clear (a 1 x 1 grid).
     AIEventTable();
-    // Every event of the wheel goes to the free list.
+    // FreeEvents.
     ~AIEventTable();
     AIEventTable(const AIEventTable&) = delete;
     AIEventTable& operator=(const AIEventTable&) = delete;
+
+    // Every event of the wheel goes to the free list (the wheel still points at them).
+    void FreeEvents();
+    // FreeEvents, then Clear: the table as constructed.
+    void Reset();
 
     // The wheel moves to `tick`: every event of that tick's 16 slots leaves its cell list and goes to the
     // free list; the slots empty. A first event whose cell is outside the grid faults (a null cell is read).
@@ -110,7 +115,7 @@ struct AIEventTable : AIViewer {
     AIEventCell* CellOf(const AIEvent* event);
     void Free(AIEvent* event, int side);
 
-    AIEvent* slots[0x400][16];      // by tick & 0x3FF, then side
+    AIEvent* slots[0x400][16] = {};  // by tick & 0x3FF, then side
     std::vector<AIEventCell> cells; // the grid, rows of `width` cells
     int width = 0;
     int height = 0;

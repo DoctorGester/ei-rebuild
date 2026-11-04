@@ -19,7 +19,7 @@ constexpr float kRangeScale = 0x1p-32f;
 
 // The reference ISAAC mix of the eight randinit words.
 struct InitMix {
-    std::uint32_t a, b, c, d, e, f, g, h;
+    std::uint32_t a = 0, b = 0, c = 0, d = 0, e = 0, f = 0, g = 0, h = 0;
 
     void Mix() {
         a ^= b << 11; d += a; b += c;

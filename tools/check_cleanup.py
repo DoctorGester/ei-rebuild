@@ -55,6 +55,115 @@ def count_vector_maths(text):
     return n
 
 
+# A data member of a class or struct without a default initialiser (docs/rewrite-guide.md, "Lifetimes"; MSVC's
+# C26495 by source scan): a member of a fundamental type, a pointer, an enum or an array of them, declared with no
+# `= ...` or `{...}`. Class-type members construct themselves; union members (and the structs inside a union),
+# static and const ones, references and members under an #if inside the class are not counted.
+_FIELD_CLASS = re.compile(r'\b(struct|class|union)\s+(?:alignas\s*\([^)]*\)\s*)?(\w+)?\s*(?:final\s*)?(?::[^{;()]*)?\{')
+_FIELD_SKIP = re.compile(r'^(?:using|typedef|friend|static|enum|struct|class|union|template|return|operator|~|'
+                         r'virtual|explicit|inline|constexpr|#|public|private|protected)\b')
+_FIELD_SCALAR = re.compile(r'^(?:(?:volatile|mutable|const)\s+)*(?:(?:unsigned|signed)\s+)?(?:(?:std::)?(?:u?int\d+_t|'
+                           r'size_t|ptrdiff_t|uintptr_t|intptr_t)|bool|char|short|int|long|float|double|wchar_t|'
+                           r'char8_t|char16_t|char32_t|unsigned|BOOL|DWORD|WORD|BYTE|UINT|LONG|HRESULT)\b')
+_FIELD_DECL = re.compile(r'^(.*?)([\s*]+)(\w+)\s*((?:\[[^\]]*\]\s*)*)(?::\s*\w+\s*)?$', re.S)
+_enum_names = None
+
+
+def _enums():
+    global _enum_names
+    if _enum_names is None:
+        _enum_names = set()
+        for path in glob.glob(os.path.join(ROOT, 'src', '**', '*.*'), recursive=True):
+            if path.endswith(('.cpp', '.h', '.inc')):
+                text = open(path, encoding='utf-8', errors='replace').read()
+                _enum_names.update(re.findall(r'\benum\s+(?:class\s+|struct\s+)?(\w+)\s*[:{]', text))
+    return _enum_names
+
+
+def _closing_brace(text, i):
+    depth = 0
+    for j in range(i, len(text)):
+        if text[j] == '{':
+            depth += 1
+        elif text[j] == '}':
+            depth -= 1
+            if depth == 0:
+                return j
+    return len(text) - 1
+
+
+def _class_statements(text, lo, hi):
+    """The class body's statements that end in ';' (function bodies and nested types are skipped whole)."""
+    out, start, i = [], lo, lo
+    while i < hi:
+        c = text[i]
+        if c == '{':
+            head = text[start:i]
+            i = _closing_brace(text, i) + 1
+            if '(' in head or re.search(r'\b(struct|class|union|enum)\b', head):
+                k = i
+                while k < hi and text[k] in ' \t\r\n':
+                    k += 1
+                if k >= hi or (text[k] != ';' and not text[k].isalpha() and text[k] != '*'):
+                    start = i
+            continue
+        if c == ';':
+            out.append(text[start:i])
+            start = i + 1
+        elif c == ':' and text[i + 1:i + 2] != ':' and text[i - 1:i] != ':' and \
+                re.search(r'\b(public|private|protected)\s*$', text[start:i]):
+            start = i + 1
+        i += 1
+    return out
+
+
+def _uninitialised(statement):
+    body = re.sub(r'^\[\[[^\]]*\]\]\s*', '', ' '.join(statement.split()))
+    if not body or _FIELD_SKIP.match(body) or any(c in body for c in '(={&'):
+        return 0
+    parts, depth, cur = [], 0, ''
+    for c in body:
+        if c in '<[':
+            depth += 1
+        elif c in '>]':
+            depth -= 1
+        if c == ',' and depth == 0:
+            parts.append(cur)
+            cur = ''
+        else:
+            cur += c
+    parts.append(cur)
+    m = _FIELD_DECL.match(parts[0])
+    if not m or not m.group(1).strip():
+        return 0
+    base = m.group(1).strip()
+    words = base.split('::')[-1].split()
+    scalar = _FIELD_SCALAR.match(base) or (words and words[-1] in _enums())
+    n = 0
+    for i, part in enumerate(parts):
+        pointer = '*' in m.group(2) if i == 0 else part.strip().startswith('*')
+        if i == 0 and (re.search(r'\*\s*const\b', part) or (base.startswith('const ') and not pointer)):
+            continue
+        n += bool(pointer or scalar)
+    return n
+
+
+def count_uninitialised_fields(text):
+    text = re.sub(r'"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])\'', '""', text)
+    n = 0
+    unions = [(m.end() - 1, _closing_brace(text, m.end() - 1)) for m in _FIELD_CLASS.finditer(text)
+              if m.group(1) == 'union']
+    for m in _FIELD_CLASS.finditer(text):
+        if m.group(1) == 'union' or re.search(r'\benum\s*$', text[max(0, m.start() - 12):m.start()]):
+            continue
+        if any(lo < m.start() < hi for lo, hi in unions):     # a view of the union's bytes
+            continue
+        start = m.end() - 1
+        for statement in _class_statements(text, start + 1, _closing_brace(text, start)):
+            n += _uninitialised(statement)
+    return n
+
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASELINE = os.path.join(ROOT, 'config', 'cleanup_baseline.csv')
 PATTERNS = {
@@ -100,6 +209,8 @@ PATTERNS = {
     'system maths function': re.compile(
         r'\bstd::(?:sin|cos|tan|asin|acos|atan|atan2|exp|exp2|expm1|log|log2|log10|log1p|pow|hypot|cbrt|sinh|cosh|tanh)'
         r'\s*\('),
+    # A field that starts out indeterminate (count_uninitialised_fields above).
+    'field without a default initialiser': count_uninitialised_fields,
 }
 # Patterns not counted under these directories (or files).
 # Structs the vector/map/set pattern matches by name that are not container layouts. Each was checked

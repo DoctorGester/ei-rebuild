@@ -85,7 +85,7 @@ public:
 private:
     void Place(AtlasGlyph& glyph, char32_t ch);
     const Font& font;
-    bool smoothing;
+    bool smoothing = false;
     int width, height = 0;
     int shelfX = 0, shelfY = 0, shelfHeight = 0;
     unsigned generation = 0;
@@ -126,14 +126,14 @@ constexpr unsigned kSupportedFormats =
     kCenter | kRight | kVCenter | kWordBreak | kSingleLine | kExpandTabs | kNoClip | kCalcRect | kNoPrefix | kEndEllipsis;
 
 struct GlyphQuad {
-    int atlasX, atlasY, width, height;   // source in the atlas
-    int x, y;                            // destination top-left (same size, unclipped)
+    int atlasX = 0, atlasY = 0, width = 0, height = 0;  // source in the atlas
+    int x = 0, y = 0;                    // destination top-left (same size, unclipped)
 };
 
 struct TextLine {
-    int begin, end;   // characters of the decoded text drawn on this line (prefix '&' included)
-    int x, y;         // where the line starts
-    int width;        // its extent (tab stops and prefixes applied)
+    int begin = 0, end = 0;  // characters of the decoded text drawn on this line (prefix '&' included)
+    int x = 0, y = 0;  // where the line starts
+    int width = 0;    // its extent (tab stops and prefixes applied)
 };
 
 struct TextLayout {

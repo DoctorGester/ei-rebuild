@@ -18,7 +18,7 @@ namespace netlink {
 void DriverSession::TakeNew(std::vector<HeldRef<netlink::NetLink>>* list) {
     for (const auto& holder : holders) {
         DriverLink* link = holder.Get();
-        if (link && !(link->flags7 & RefCounted::kDetached)) list->emplace_back(link);
+        if (IsLive(link)) list->emplace_back(link);
     }
     // Each reference dropped.
     holders.clear();

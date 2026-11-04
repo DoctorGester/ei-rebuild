@@ -88,11 +88,11 @@ float Sway(const WeatherNoiseCurve& curve, int cell, float at) {
 // What both draws start from.
 struct ParticleFrame {
     Vector3 wind;   // the layer's, falling `sink` faster
-    float time;     // the world's tick and its fraction
-    int baseX;      // the grid's middle cell
-    int baseY;
-    float low;      // the heights particles are kept between: the camera's -/+ HalfHeight, not below 0
-    float high;
+    float time = 0.0f;  // the world's tick and its fraction
+    int baseX = 0;  // the grid's middle cell
+    int baseY = 0;
+    float low = 0.0f;  // the heights particles are kept between: the camera's -/+ HalfHeight, not below 0
+    float high = 0.0f;
 };
 
 ParticleFrame Begin(RainSnow& layer, float sink, float rise) {

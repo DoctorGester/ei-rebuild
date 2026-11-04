@@ -58,8 +58,8 @@ constexpr int kPageTexture = static_cast<int>(TextureKind::TerrainPage);     // 
 
 // The map file's animated texture entries.
 struct MapAnimatedTexture {
-    std::uint16_t texture;
-    std::uint16_t frames;
+    std::uint16_t texture = 0;
+    std::uint16_t frames = 0;
 };
 
 constexpr int kExtraTextures = kExtraPages * kExtraPageTextures;   // after the map's own

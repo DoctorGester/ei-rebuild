@@ -418,12 +418,26 @@ void RegionMap::Attach(AIMap* map) {
     backward.Attach(this, true);
 }
 
-RegionMap::RegionMap() {
-    for (SearchGrid<std::int16_t>& grid : edges) grid.Resize(1, 1, kNoWay, kEdgesPerBlock);
-    for (SearchGrid<std::uint8_t>& grid : cells) grid.Resize(1, 1);
-    for (SearchGrid<std::uint16_t>& grid : regions) grid.Resize(1, 1);
-    forward.Attach(this, false);
-    backward.Attach(this, true);
+RegionMap::RegionMap() { Reset(); }
+
+void RegionMap::Reset() {
+    forward = {};
+    backward = {};
+    local = {};
+    progress = nullptr;
+    for (SearchGrid<std::int16_t>& grid : edges) {
+        grid = {};
+        grid.Resize(1, 1, kNoWay, kEdgesPerBlock);
+    }
+    for (SearchGrid<std::uint8_t>& grid : cells) {
+        grid = {};
+        grid.Resize(1, 1);
+    }
+    for (SearchGrid<std::uint16_t>& grid : regions) {
+        grid = {};
+        grid.Resize(1, 1);
+    }
+    AttachSearches();
 }
 
 bool RegionMap::CellSuitsBlockAt(int sizeClass, Point block, Point inBlock) {

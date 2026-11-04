@@ -73,8 +73,8 @@ bool Write(Store& s) {
 }
 
 struct DesktopSize {
-    int width;
-    int height;
+    int width = 0;
+    int height = 0;
 };
 
 // The defaults for the primary monitor's mode in pixels (whatever the process's DPI awareness), or the harness's

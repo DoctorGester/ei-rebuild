@@ -33,20 +33,20 @@ bool Able(Unit* unit) { return unit && !(unit->flags & MapObjectFlag::Blocked) &
 // The cast messages' layouts as they arrive (0xD / 0x15 bytes).
 #pragma pack(push, 1)
 struct CastAtObject {
-    int spell;
-    int unitId;
-    int targetId;
-    std::uint8_t flag;
+    int spell = 0;
+    int unitId = 0;
+    int targetId = 0;
+    std::uint8_t flag = 0;
 };
 struct CastAtPoint {
-    int spell;
-    int unitId;
+    int spell = 0;
+    int unitId = 0;
     Vector3 point;
-    std::uint8_t flag;
+    std::uint8_t flag = 0;
 };
 struct UnitByte {
-    int unitId;
-    std::uint8_t value;
+    int unitId = 0;
+    std::uint8_t value = 0;
 };
 #pragma pack(pop)
 static_assert(sizeof(CastAtObject) == 0xD && sizeof(CastAtPoint) == 0x15 && sizeof(UnitByte) == 5);   // received as these bytes
@@ -86,7 +86,7 @@ bool PlayerServer::OnPause() {
     // test by the pausing player's own leader; 3 skips the announcement.
     const int mode = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginPause) ? ei::rebirth::PluginPause() : 0;
     const bool announceResume = mode == 1 || mode == 2;
-    if (IsMultiplayerClient() && server && !(server->flags7 & RefCounted::kDetached) && (pause || announceResume)) {
+    if (IsMultiplayerClient() && IsLive(server) && (pause || announceResume)) {
         if (announceResume) SetPauseTextDigit(pause);
         int leader = server->LeaderId();
         const int own = static_cast<int>(player->GetParty()->members[0].unitId);

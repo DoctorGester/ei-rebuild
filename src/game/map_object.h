@@ -45,12 +45,12 @@ struct MapEffect {
 struct UnitVitalsPacked {
     int Reset();
 
-    std::uint8_t unused_00[2];      // sent with the record; Reset zeroes the first
-    std::int16_t hitPoints;
-    std::int16_t maxHitPoints;
-    std::uint16_t mana;             // (read unsigned)
-    std::uint16_t maxMana;
-    std::int16_t protection[7];
+    std::uint8_t unused_00[2] = {};  // sent with the record; Reset zeroes the first
+    std::int16_t hitPoints = 0;
+    std::int16_t maxHitPoints = 0;
+    std::uint16_t mana = 0;         // (read unsigned)
+    std::uint16_t maxMana = 0;
+    std::int16_t protection[7] = {};
 };
 static_assert(sizeof(UnitVitalsPacked) == 0x18);   // sent as its 24 bytes
 
@@ -273,15 +273,15 @@ public:
     MapObjectClientSpecific* ClientCompanion() const;
     // World updates until the object's effects are next looked at (5 after Create; the server world's update map
     // sets it).
-    int updateCountdown;
-    float animationSpeed;           // the animation's speed factor (Unit::animationSpeed; 1 after Create)
+    int updateCountdown = 0;
+    float animationSpeed = 0.0f;    // the animation's speed factor (Unit::animationSpeed; 1 after Create)
     UnitVitalsPacked packedVitals;  // hit points, maximum, mana, maximum
     std::vector<MapEffect> effects; // (SetEffectCount is its SetSize)
     std::string name2;
     Vector3 baseScale;
-    int sectorCellX;
-    int sectorCellY;
-    int changeStamp;                // the world's change counter when last changed
+    int sectorCellX = 0;
+    int sectorCellY = 0;
+    int changeStamp = 0;            // the world's change counter when last changed
     DeltaState netState;            // the network state; its mask is the parts changed since the last send (bit
                                     // per part: MarkChanged)
 

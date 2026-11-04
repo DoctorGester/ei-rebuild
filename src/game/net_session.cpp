@@ -33,8 +33,7 @@ constexpr float kMillisecondsToSeconds = 0.0009765625f;
 
 // A session that is there and not shutting down is ticked with `elapsed` milliseconds.
 void TickSession(net::SessionBase* session, std::uint32_t elapsed) {
-    if (!session) return;
-    if (session->flags7 & RefCounted::kDetached) return;
+    if (!IsLive(session)) return;
     // At most 5000 milliseconds (Pump): exact in a float, as is the product.
     const float seconds = static_cast<float>(elapsed) * kMillisecondsToSeconds;
     session->Tick(seconds);

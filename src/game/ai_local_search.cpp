@@ -58,7 +58,7 @@ void Start(LocalSearch* search, Point window) {
 // The inclusive window range of cells on the map, off the window's border:
 // [max(1, -origin), min(32, size - origin - 1)] for x and y.
 struct WindowRange {
-    int x0, x1, y0, y1;
+    int x0 = 0, x1 = 0, y0 = 0, y1 = 0;
 };
 WindowRange OnMapRange(const LocalSearch* search) {
     WindowRange r;
@@ -175,8 +175,8 @@ void LocalSearch::Expand() {
     currentCost = node->cost;
     // The neighbours in the original's order, each with the direction leading back to `node`.
     static const struct {
-        int dx, dy, factor;
-        std::int8_t direction;
+        int dx = 0, dy = 0, factor = 0;
+        std::int8_t direction = 0;
     } kSteps[8] = {
         {-1, 1, kDiagonal, 8}, {0, 1, kStraight, 1},  {1, 1, kDiagonal, 2},   {1, 0, kStraight, 3},
         {-1, 0, kStraight, 7}, {-1, -1, kDiagonal, 6}, {0, -1, kStraight, 5}, {1, -1, kDiagonal, 4},
@@ -320,11 +320,11 @@ void AIMap::CostContextFor(Unit* unit, PassCostContext* out) {
     out->shift = unit->sizeClass * 4;
     const std::vector<int>& climb = out->shift == 0 ? climbSmall : climbLarge;
     out->climb = climb.data() + std::ssize(climb) / 2;
-    out->costs = passCosts;
+    out->costs = kPassCosts;
     const Unit::MoveSpeeds speeds = unit->GetMoveSpeeds();
     out->forwardSpeed = speeds.forward;
     out->backwardSpeed = speeds.turn;
-    out->costs = unit->altPassCosts ? passCostsAlt : passCosts;
+    out->costs = unit->altPassCosts ? kPassCostsAlt : kPassCosts;
 }
 
 void LocalSearch::Attach(AIMap* mapArg, bool backwardArg) {

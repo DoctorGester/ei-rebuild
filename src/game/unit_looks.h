@@ -22,11 +22,11 @@ struct DressedUnitRecord {
     // the byte and the dword through `stream`'s Write (also called on a FiguredUnitRecord's head).
     void Write(ByteStream* stream);
 
-    std::uint16_t prototype;
+    std::uint16_t prototype = 0;
     std::vector<std::uint32_t> items;
     std::vector<std::uint32_t> extraWeapons;        // weapon index << 16 | material index
-    std::int8_t extraWeapon;
-    int modelNumber;                // -1: the textures are named after the prototype
+    std::int8_t extraWeapon = 0;
+    int modelNumber = 0;            // -1: the textures are named after the prototype
 };
 
 // Another unit of the zone (the first list read): a dressed record's head (its prototype, the
@@ -34,9 +34,9 @@ struct DressedUnitRecord {
 // dressed copy and Write take that head), the figure's morph coefficients and the texture names (none: from
 // the prototype).
 struct FiguredUnitRecord : DressedUnitRecord {
-    float morphS;                   // the figure's morph coefficients (LoadFigure's s, t, u)
-    float morphT;
-    float morphU;
+    float morphS = 0.0f;            // the figure's morph coefficients (LoadFigure's s, t, u)
+    float morphT = 0.0f;
+    float morphU = 0.0f;
     std::vector<std::string> names;
 };
 

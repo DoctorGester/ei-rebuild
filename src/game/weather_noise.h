@@ -10,10 +10,10 @@
 // One segment between two samples: value + slope * t + quadratic * t^2 + cubic * t^3 for t in 0..1
 // (a Hermite segment through both samples with the slopes below).
 struct WeatherNoiseSegment {
-    float value;       // the sample the segment starts at
-    float slope;       // half the difference of the samples around it (the plain difference at the curve's first sample)
-    float quadratic;
-    float cubic;
+    float value = 0.0f;  // the sample the segment starts at
+    float slope = 0.0f;  // half the difference of the samples around it (the plain difference at the curve's first sample)
+    float quadratic = 0.0f;
+    float cubic = 0.0f;
 };
 
 struct WeatherNoiseCurve {
@@ -25,7 +25,7 @@ struct WeatherNoiseCurve {
     // mean square is `amplitude`, then the 127 segments.
     void Build(float amplitude);
 
-    float samples[kSamples];
+    float samples[kSamples] = {};
     WeatherNoiseSegment segments[kSamples];   // 127 used; the last stays zero
 };
 

@@ -27,9 +27,9 @@ void LogLine(const char* text) {
 
 // An object reference on the wire: a flag bit, the type and the id.
 struct WireId {
-    std::uint32_t flag;
-    std::uint8_t type;
-    std::uint16_t id;
+    std::uint32_t flag = 0;
+    std::uint8_t type = 0;
+    std::uint16_t id = 0;
 };
 
 void PutWireId(BufferCursor* cursor, const WireId& ref) {

@@ -76,9 +76,9 @@ public:
     // effects and warms the particles up.
     void ReadNetState(DeltaReader& field);
 
-    MapObject* torch;          // the torch it belongs to (set by the torch's attach); null when constructed
-    std::uint32_t lightKind;    // the light's kind (SetLight; saved and sent)
+    MapObject* torch = nullptr;  // the torch it belongs to (set by the torch's attach); null when constructed
+    std::uint32_t lightKind = 0;  // the light's kind (SetLight; saved and sent)
     std::string name;
-    float values[6];            // Create: 1, 10, 1, 1, 1, 1
-    float colours[2][3];        // Create: both black
+    float values[6] = {};       // Create: 1, 10, 1, 1, 1, 1
+    float colours[2][3] = {};   // Create: both black
 };

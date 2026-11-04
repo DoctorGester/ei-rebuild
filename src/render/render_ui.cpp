@@ -126,7 +126,7 @@ std::vector<gpu::Texture> g_retired;
 
 struct UiCopy {
     gpu::Texture image;
-    int width, height;
+    int width = 0, height = 0;
     Rect source;
 };
 std::vector<UiCopy> g_copies;   // frame copies waiting for the next DrawPending (or a read)

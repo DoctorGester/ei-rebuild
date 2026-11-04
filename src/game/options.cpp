@@ -30,7 +30,7 @@ struct Value {
     constexpr Value(const char* valueSection, const char* valueName, float GameOptions::*field)
         : section(valueSection), name(valueName), real(field) {}
     const char* section;
-    const char* name;
+    const char* name = nullptr;
     int GameOptions::*number = nullptr;
     float GameOptions::*real = nullptr;
     bool flag = false;
@@ -76,9 +76,9 @@ constexpr Value kCameraValues[] = {
 };
 // Read right after kCameraValues: "CameraDefault<Scroll|Rotate|Pitch|Zoom><Speed|PowerMouse|PowerKeyboard>".
 constexpr struct {
-    const char* name;
-    CameraMotionOptions GameOptions::*motion;
-    float CameraMotionOptions::*part;
+    const char* name = nullptr;
+    CameraMotionOptions GameOptions::*motion = nullptr;
+    float CameraMotionOptions::*part = nullptr;
 } kCameraMotionValues[] = {
     {"CameraDefaultScrollSpeed", &GameOptions::cameraScroll, &CameraMotionOptions::speed},
     {"CameraDefaultScrollPowerMouse", &GameOptions::cameraScroll, &CameraMotionOptions::powerMouse},
@@ -108,8 +108,8 @@ using StringField = std::string& (*)(GameOptions&);
 template <std::string GameOptions::*Member>
 std::string& StringOf(GameOptions& options) { return options.*Member; }
 struct StringValue {
-    const char* section;
-    const char* name;
+    const char* section = nullptr;
+    const char* name = nullptr;
     StringField field;
 };
 constexpr StringValue kPathValues[] = {
@@ -119,8 +119,8 @@ constexpr StringValue kPathValues[] = {
 
 // The camera shortcuts: format (with the shortcut index), field of the shortcut.
 constexpr struct {
-    const char* format;
-    float CameraShortcutOptions::*field;
+    const char* format = nullptr;
+    float CameraShortcutOptions::*field = nullptr;
 } kShortcutValues[] = {
     {"CameraShortcut %d AxisX", &CameraShortcutOptions::axisX},
     {"CameraShortcut %d AxisY", &CameraShortcutOptions::axisY},
@@ -174,7 +174,7 @@ public:
     }
 
 private:
-    GameOptions* options;
+    GameOptions* options = nullptr;
 };
 
 // The writer: the same tables in the same order.
@@ -215,7 +215,7 @@ public:
     }
 
 private:
-    GameOptions* options;
+    GameOptions* options = nullptr;
 };
 
 } // namespace

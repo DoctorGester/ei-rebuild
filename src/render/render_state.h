@@ -81,10 +81,10 @@ enum class Address : std::uint8_t { Wrap = 1, Mirror, Clamp };
 
 // A texture stage's colour and alpha operations, each of its first and second argument.
 struct StageCombiner {
-    TextureOp colourOp;
-    std::uint8_t colourArg1, colourArg2;   // TextureArg
-    TextureOp alphaOp;
-    std::uint8_t alphaArg1, alphaArg2;
+    TextureOp colourOp = {};
+    std::uint8_t colourArg1 = 0, colourArg2 = 0;  // TextureArg
+    TextureOp alphaOp = {};
+    std::uint8_t alphaArg1 = 0, alphaArg2 = 0;
 };
 
 struct TextureStage {

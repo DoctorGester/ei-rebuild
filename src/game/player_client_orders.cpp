@@ -21,20 +21,20 @@ constexpr std::uint32_t kItemSlot = 0x80000000u;   // a quick item, not a spell
 
 #pragma pack(push, 1)
 struct OnUnitBlock {        // 13 bytes
-    std::uint32_t slot;
-    int caster;
-    int target;
-    std::uint8_t ctrl;
+    std::uint32_t slot = 0;
+    int caster = 0;
+    int target = 0;
+    std::uint8_t ctrl = 0;
 };
 struct AtPointBlock {       // 21 bytes
-    std::uint32_t slot;
-    int caster;
+    std::uint32_t slot = 0;
+    int caster = 0;
     Vector3 point;
-    std::uint8_t ctrl;
+    std::uint8_t ctrl = 0;
 };
 struct UnitByteBlock {      // 5 bytes
-    int unit;
-    std::uint8_t value;
+    int unit = 0;
+    std::uint8_t value = 0;
 };
 #pragma pack(pop)
 static_assert(sizeof(OnUnitBlock) == 13 && sizeof(AtPointBlock) == 21 && sizeof(UnitByteBlock) == 5);   // sent as these bytes

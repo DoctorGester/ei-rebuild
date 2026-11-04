@@ -16,18 +16,18 @@ namespace screen_layout {
 
 // The layout's values (Rebirth's for a window wider than 4:3: addon's globals at 100BD094..100BD0A8).
 struct Layout {
-    int width;      // the window's width in pixels (the options' VideoResolution: the window is made at it)
-    int height;     // ... and height
-    int width43;    // the 4:3 part's width: min(width, height * 800 / 600)
-    int height43;   // ... and height: min(height, width * 600 / 800)
-    int margin;     // (width - width43) / 2: pixels left and right of the 4:3 part
-    int marginY;    // (height - height43) / 2: pixels above and below it
-    int extra;      // margin in layout units, ceil((float)(margin * 800.0 / width43))
+    int width = 0;  // the window's width in pixels (the options' VideoResolution: the window is made at it)
+    int height = 0;  // ... and height
+    int width43 = 0;  // the 4:3 part's width: min(width, height * 800 / 600)
+    int height43 = 0;  // ... and height: min(height, width * 600 / 800)
+    int margin = 0;  // (width - width43) / 2: pixels left and right of the 4:3 part
+    int marginY = 0;  // (height - height43) / 2: pixels above and below it
+    int extra = 0;  // margin in layout units, ceil((float)(margin * 800.0 / width43))
     // The 3D view keeps the 4:3 proportions over the whole window: the projection's x and y scales.
-    float axisScale;    // (float)(width43 / width)
-    float axisScaleY;   // (float)(height43 / height)
+    float axisScale = 0.0f;  // (float)(width43 / width)
+    float axisScaleY = 0.0f;  // (float)(height43 / height)
     // The interface fonts' scale: width * 0.0075 / height43 (addon's), 0.01 on a 4:3 window (the original's constant).
-    float fontScale;
+    float fontScale = 0.0f;
 };
 
 // Computes the layout for the window the game makes, at the resolution it loaded from its options (GameMain, right

@@ -87,21 +87,21 @@ protected:
 
 public:
     ObjectMap objects;              // registered objects by id
-    int maxId;                      // highest id registered
+    int maxId = 0;                  // highest id registered
     // The registered objects in registration order (saved so); a list: positions keeps its iterators.
     std::list<EngineObject*> objectList;
     std::unordered_map<int, std::list<EngineObject*>::iterator> positions;          // id -> its node in objectList
-    int maxPositionId;              // highest key of positions (kept by RegisterInstant)
+    int maxPositionId = 0;          // highest key of positions (kept by RegisterInstant)
     SpareMap spares;                // type -> its spare objects, taken from the front
-    int maxSpareType;               // highest key of spares
+    int maxSpareType = 0;           // highest key of spares
     std::unordered_map<int, int> spareCounts;      // type -> number of spares
-    int maxSpareCountType;          // highest key of spareCounts
-    int idLow;                      // automatic ids come from [idLow, idHigh)
-    int idHigh;                     // 2000000000
-    int reservedA;                  // -1 when constructed, 0 after Create; nothing reads it
-    int reservedB;                  // -1 when constructed, 300 after Create; nothing reads it
-    int lastId;                     // id most recently registered (-1 when constructed)
-    ManagerContext* context;       // set by Init / SetContext (the world for its managers, a party for its own)
+    int maxSpareCountType = 0;      // highest key of spareCounts
+    int idLow = 0;                  // automatic ids come from [idLow, idHigh)
+    int idHigh = 0;                 // 2000000000
+    int reservedA = 0;              // -1 when constructed, 0 after Create; nothing reads it
+    int reservedB = 0;              // -1 when constructed, 300 after Create; nothing reads it
+    int lastId = 0;                 // id most recently registered (-1 when constructed)
+    ManagerContext* context = nullptr;  // set by Init / SetContext (the world for its managers, a party for its own)
 };
 
 // Walks a manager's objectList. From First on it holds a count on the manager (refCount + 1), dropped without a

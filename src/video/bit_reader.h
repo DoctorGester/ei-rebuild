@@ -46,8 +46,8 @@ public:
     bool More() const { return position < size * 8; }
 
 private:
-    const std::uint8_t* data;
-    std::size_t size;
+    const std::uint8_t* data = nullptr;
+    std::size_t size = 0;
     std::size_t position = 0;   // in bits
 };
 
