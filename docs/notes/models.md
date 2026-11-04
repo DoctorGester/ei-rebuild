@@ -132,6 +132,11 @@ copied into its list and destroyed; its prints.db entry (by the ground's surface
   skipped) and return it.
 - Draw's uv loop rounds the fourth vertex's u part to a float, the others their v part (kept). Load does not restore
   alpha (the next tick does).
+- Colour: footprints and scorch marks white; blood the sun's colour at its making, then every 10 s (Segment,
+  `kLightingPeriod`) a grey of the brightest of the sun's luminance and the lights reaching it. That colour is saved
+  but no longer drawn: a print is drawn in `DayColour` (white; blood the grey of the daylight sun,
+  `WorldClient::DaylightColours`: the table's noon, a cave's hour 0) and the renderer lights it as the ground under it
+  (renderer.md section 13, item 10, "Ground prints").
 - `WorldClient::ProjectDecal` (world_client_lights.cpp) lays a print on the ground on its first draw: the platform faces
   (an object with several faces adds its parts once per face, kept), each part's matrix pushed on the pipeline's decal
   stack (multiplied through `MatrixMultiply`'s order, `PushDecalMatrix`), the part's packets transformed and each

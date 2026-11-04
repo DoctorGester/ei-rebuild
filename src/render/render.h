@@ -96,7 +96,9 @@ UnitWeather UnitWeatherState(const void* object);
 // The GPU lighting (renderer.md section 13). The world's draw hands over the frame's light, kept
 // until the next hand-over: the sun, the ambient colour, the point lights the landscape lights its ground
 // with (the nearest kMostSceneLights), the camera and the client's time (the water's ripples move by it). The terrain
-// shader lights each pixel and SectorData::Light writes only the edge fade.
+// shader lights each pixel and SectorData::Light writes only the edge fade. The daylight colours: the sun and ambient
+// colour the ground prints' own colours are for (WorldClient::DaylightColours); a print is lit by the ground's light
+// over the ground's light in them (mesh.hlsl's ground_shade).
 struct ScenePointLight {
     Vector3 position;   // the landscape's space
     float inverseRangeSquared;
@@ -108,6 +110,8 @@ struct SceneLights {
     Vector3 sunDirection;
     float sunColour[3];
     float ambientColour[3];
+    float daySunColour[3];
+    float dayAmbientColour[3];
     Vector3 camera;
     const ScenePointLight* points;
     int pointCount;

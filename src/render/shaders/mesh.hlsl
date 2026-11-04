@@ -3,7 +3,8 @@
 // the GPU (render::MeshLighting) takes its diffuse colour from `figure_light` instead of the vertex colour (whose
 // alpha it keeps), its ambient light darkened by the screen's ambient occlusion in the world (ambient_occlusion.hlsli).
 // The world's meshes take the weather on their faces (weathered_mesh), a unit's figure on its smoothed normals
-// (weathered_unit). A ground print is darkened by the shadows as the ground under it (ground_shade).
+// (weathered_unit). A ground print is lit as the ground under it: by the time of day, the lights and the shadows
+// (ground_shade).
 #include "bindings.hlsli"
 #include "depth_copy.hlsli"
 struct VsIn {
@@ -111,6 +112,8 @@ struct MeshLightParams {
     float4 pointAt[8];       // per light: model-space position xyz, w: 1 / range squared
     float4 pointColour[8];   // per light: lit colour rgb, w: its point shadow's map + 1, 0 none
     float4 mapSun;           // a ground print's: xyz the direction the shadow map's light travels (unit)
+    float4 daySunColour;     // a ground print's: rgb the daylight sun (render::SceneLights::daySunColour)
+    float4 dayAmbient;       // ... and ambient colour
 };
 ConstantBuffer<MeshLightParams> lighting : FS_BLOCK(2);
 Texture2D<float4> tex0 : FS_TEXTURE(0);
@@ -150,15 +153,17 @@ float3 figure_light(float3 p, float3 n, float3 land, float3 face, float2 turn, f
     float3 c = min(1.0, lit + lighting.emissive.rgb);
     return c;
 }
-// How much of its light a ground print keeps in the shadows, per channel: the light of the ground under it
-// (scene_lighting.hlsli's ground_light on dry ground: no material colour, all of the ambient light) with the sun map,
-// the clouds and the point shadows over the same light without them. The print is blended over that ground, which
-// they darkened alike; its own colour is unlit (the sun's when it was made, or white). `p`: the point (the
-// landscape's space), `n`: the ground's normal, `hidden`: the share of the sun the map and the clouds hide.
+// A ground print's light, per channel: the light of the ground under it (scene_lighting.hlsli's ground_light on dry
+// ground: no material colour, all of the ambient light) with the sun map, the clouds and the point shadows, over the
+// same ground's light in the daylight colours or without the shadows, whichever is more. The print is blended over
+// that ground; its own colour is its colour in daylight (by day the game's), so it darkens with the ground at night
+// and in the shadows and takes the dawn's tint. `p`: the point (the landscape's space), `n`: the ground's normal,
+// `hidden`: the share of the sun the map and the clouds hide.
 float3 ground_shade(float3 p, float3 n, float hidden, float2 turn) {
     float3 ambient = lighting.ambient.rgb;
     float facing = dot(lighting.sun.xyz, n);
     float3 sunlit = max(facing > 0.0 ? min(1.0, facing * lighting.sunColour.rgb) : 0.0, ambient);
+    float3 daylight = max(facing > 0.0 ? min(1.0, facing * lighting.daySunColour.rgb) : 0.0, lighting.dayAmbient.rgb);
     float shade = 1.0 - hidden * shadow.on.y * saturate(-dot(lighting.mapSun.xyz, n) * 6.0);
     float3 lit = min(lerp(sunlit, min(1.0, ambient), hidden), sunlit * shade);
     float3 open = sunlit;
@@ -175,7 +180,8 @@ float3 ground_shade(float3 p, float3 n, float hidden, float2 turn) {
         lit = max(lit, min(1.0, v * seen) * shade);
         open = max(open, min(1.0, v));
     }
-    return lerp(1.0, saturate(min(1.0, lit) / max(open, 1e-3)), step(1e-3, open));
+    float3 full = max(open, daylight);
+    return lerp(1.0, saturate(min(1.0, lit) / max(full, 1e-3)), step(1e-3, full));
 }
 float4 arg(int a, float4 current, float4 diffuse, float4 texel, float4 spec) {
     int sel = a & 15;

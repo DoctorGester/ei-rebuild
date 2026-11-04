@@ -289,6 +289,11 @@
 //                             require frames <a> and <b> to match: at most <fraction> (default
 //                             0.001) of the pixels may have a channel differing by more than
 //                             <tolerance> (default 8), as tools/compare_frames.py counts
+//   printlight <with> <without> <least> <most>
+//                             where frames <with> and <without> differ by more than 8 in a channel (what
+//                             <with> draws over <without>: the ground prints with "decals on" and off),
+//                             the mean brightness (r + g + b) there in <with> over that in <without> must lie
+//                             within <least>..<most> (R52a: a print about as dark as the ground under it)
 //   skin <unit> <first> [<second>]
 //                             the client's unit <unit> (a script name, or "#<id>") takes the textures a map
 //                             placement names (primary <first>, secondary <second>; without it the unit's own
@@ -3085,6 +3090,30 @@ void RunSteps() {
             Log("harness: %s", text);
             g_capturedFrames.push_back(text);
             if (differing < least || differing > most) g_failures.push_back(text);
+        } else if (s.verb == "printlight") {
+            // How bright what one capture draws over another is against what it covers (R52a).
+            char with[64] = "", without[64] = "";
+            double least = 0, most = 0;
+            if (std::sscanf(s.argument.c_str(), "%63s %63s %lf %lf", with, without, &least, &most) < 4) {
+                g_failures.push_back("printlight needs two frame names, a least and a most ratio");
+                continue;
+            }
+            double over[3] = {}, under[3] = {}, share = 0;
+            const char* why = "";
+            if (!capture::DrawnOver(with, without, 8, over, under, &share, &why)) {
+                g_failures.push_back(std::string("printlight ") + with + " " + without + ": " + why);
+                continue;
+            }
+            const double ratio = (over[0] + over[1] + over[2]) / (std::max)(under[0] + under[1] + under[2], 1.0);
+            char text[240];
+            std::snprintf(text, sizeof(text),
+                          "printlight %s %s: %.3f%% of the pixels, rgb %.0f %.0f %.0f over %.0f %.0f %.0f: ratio %.3f "
+                          "(allowed %.3f .. %.3f)",
+                          with, without, 100.0 * share, over[2], over[1], over[0], under[2], under[1], under[0], ratio,
+                          least, most);
+            Log("harness: %s", text);
+            g_capturedFrames.push_back(text);
+            if (ratio < least || ratio > most) g_failures.push_back(text);
         } else if (s.verb == "blink") {
             std::string error = BlinkStep(s.argument);
             if (!error.empty()) g_failures.push_back(error);

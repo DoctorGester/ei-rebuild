@@ -33,6 +33,7 @@ namespace {
 constexpr float kHoursPerDay = 24.0f;
 constexpr float kAmbientFromSun = 0.8f;          // a black ambient entry takes 0.8 x the sunlight
 constexpr int kHours = 24;
+constexpr int kNoon = 12;                        // the daylight colours' hour (DaylightColours)
 // The fog start: the day's value from 6 to 18, the night's before 2 and from 22, linear between.
 constexpr float kDawnStart = 2.0f, kDayStart = 6.0f;
 constexpr float kDayEnd = 18.0f, kNightStart = 22.0f;
@@ -236,6 +237,19 @@ int WorldClient::UpdateLighting() {
         terrain->SetSun(light, &ambientColour);
     }
     return 1;
+}
+
+void WorldClient::DaylightColours(LightColour* sun, LightColour* ambientColour) const {
+    const int hour = cave == 1 ? 0 : kNoon;
+    *sun = sunlight[hour];
+    if (IsBlack(ambient[hour])) {
+        ambientColour->r = Scaled(sun->r, kAmbientFromSun);
+        ambientColour->g = Scaled(sun->g, kAmbientFromSun);
+        ambientColour->b = Scaled(sun->b, kAmbientFromSun);
+        ambientColour->a = 0.0f;
+    } else {
+        *ambientColour = ambient[hour];
+    }
 }
 
 void WorldClient::UpdateExitMarkers() {

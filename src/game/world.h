@@ -1025,6 +1025,10 @@ public:
     // the table's is black; its fourth float is never written) and the sunlight (its fourth float is whatever the original's stack held).
     LightColour frameAmbient;
     LightColour frameSun;
+    // The daylight colours: the sun and ambient colour of the table's noon (a cave's hour 0, the light it keeps), the
+    // ambient colour taken as UpdateLighting takes it. A ground print's own colour is its colour in them (by day the
+    // game's); the renderer lights it by the ground's light over the ground's light in them.
+    void DaylightColours(LightColour* sun, LightColour* ambientColour) const;
     // 1: a cave zone (the map's flag: LightsCave.ini, the sky "Sky01", light fixed at hour 0;
     // EnvironmentFlag::Cave instead of Outdoors).
     int cave;

@@ -11,6 +11,7 @@
 #include "ground_decal.h"
 #include "model.h"
 #include "options.h"
+#include "spell.h"   // Light
 #include "terrain.h"
 #include "texture.h"
 #include "world.h"
@@ -20,6 +21,7 @@
 #include "lib/maths.h"
 #include "lib/vecmath.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -208,9 +210,12 @@ int GroundPrint::Draw() {
     colour = (colour & 0xFFFFFFu) | fadeAlpha << 24;
     TextureDevice* device = g_sceneRenderer.device;
     device->BindNamedTexture(0, &texture);
-    return device->DrawFlatBlocks(positions.data(), texCoords.data(), lib::Count(positions),
-                                  indices.data(), lib::Count(indices), colour, static_cast<std::uint32_t>(lit) << 24, true);
+    return device->DrawFlatBlocks(positions.data(), texCoords.data(), lib::Count(positions), indices.data(),
+                                  lib::Count(indices), (DayColour() & 0xFFFFFFu) | fadeAlpha << 24,
+                                  static_cast<std::uint32_t>(lit) << 24, true);
 }
+
+std::uint32_t GroundPrint::DayColour() const { return colour & 0xFFFFFFu; }
 
 // ---- Footprint ----------------------------------------------------------------------------------
 
@@ -288,6 +293,14 @@ int BloodPrint::Tick() {
     else built = false;
     angle += spin;
     return GroundPrint::Tick();
+}
+
+std::uint32_t BloodPrint::DayColour() const {
+    LightColour sun, ambient;
+    g_clientWorld.DaylightColours(&sun, &ambient);
+    const float sunColour[3] = {sun.r, sun.g, sun.b};
+    const std::uint32_t grey = Channel(std::clamp(Light::Luminance(sunColour), 0.0f, 1.0f));
+    return (grey << 8 | grey) << 8 | grey;
 }
 
 void BloodPrint::Load(ByteStream* stream) {

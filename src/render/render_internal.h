@@ -637,7 +637,7 @@ void BindPointShadows(int slot);
 int PointShadowSlot(const Frame& frame, int sceneLight);
 // A ground print's light (MeshBatch::decal; mesh.hlsl's ground_shade, `on` y 1): the scene's sun, ambient light and
 // the kMostMeshLights point lights nearest its box (in the landscape's space, low xyz, high xyz) that reach it, each
-// light's pointColour w its point shadow + 1 (0 none), and the shadow map's light.
+// light's pointColour w its point shadow + 1 (0 none), the shadow map's light and the daylight colours.
 void GroundDecalLight(const Frame& frame, const float box[6], MeshLightParams* params);
 // The object whose meshes are being handed over. ShadowFrameDone: the frame is presented.
 const void* CurrentCaster();
