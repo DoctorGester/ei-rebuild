@@ -23,6 +23,10 @@ void LerpPoint(float* out, const float* from, const float* to, float s) {
     out[1] = (to[1] - from[1]) * s + from[1];
     out[2] = (to[2] - from[2]) * s + from[2];
 }
+
+// The key frame at `p`: a position's three floats, a rotation's four (w first).
+Vector3 KeyPosition(const float* p) { return {p[0], p[1], p[2]}; }
+Quaternion KeyRotation(const float* p) { return {p[0], p[1], p[2], p[3]}; }
 } // namespace
 
 void AnimationTrack::Evaluate(float atTime) {
@@ -34,16 +38,15 @@ void AnimationTrack::Evaluate(float atTime) {
     if (next < positionCount) {
         LerpPoint(&position.x, positions + 3 * index, positions + 3 * next, fraction);
     } else if (positionCount != 0) {
-        std::memcpy(&position, positions + 3 * (positionCount - 1), 12);
+        position = KeyPosition(positions + 3 * (positionCount - 1));
     } else {
         position = kTrackDefaultPosition;
     }
 
     if (next < rotationCount) {
-        rotation.Slerp(fraction, *reinterpret_cast<const Quaternion*>(rotations + 4 * index),
-                       *reinterpret_cast<const Quaternion*>(rotations + 4 * next));
+        rotation.Slerp(fraction, KeyRotation(rotations + 4 * index), KeyRotation(rotations + 4 * next));
     } else if (rotationCount != 0) {
-        std::memcpy(&rotation, rotations + 4 * (rotationCount - 1), 16);
+        rotation = KeyRotation(rotations + 4 * (rotationCount - 1));
     } else {
         rotation = kTrackDefaultRotation;
     }

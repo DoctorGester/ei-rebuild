@@ -4,6 +4,7 @@
 #include "figure_mesh.h"
 
 #include "engine_object.h"
+#include "manager_context.h"
 #include "game_singletons.h"
 #include "link_figure.h"
 #include "map_object_figures.h"
@@ -300,15 +301,12 @@ int FigureMeshDrawer::DrawLit(TextureDevice* device, const std::vector<Light*>* 
 
 namespace {
 
-// The owning manager's context (hoover_loot.cpp; the world, an engine object), and appending a point.
-EngineObject* ContextOf(FigureMeshDrawer* node) { return reinterpret_cast<EngineObject*>(node->GetManagerContext()); }
-
 constexpr std::uint32_t kShowBounds = 0x4000;   // the context's flags
 
 } // namespace
 
 void FigureMeshDrawer::DrawBounds(SceneRenderer* renderer) {
-    if (!(ContextOf(this)->flags & kShowBounds)) return;
+    if (!(GetManagerContext()->flags & kShowBounds)) return;
     LineBatch lines{{}, 0, 0xFFFF0000u};
     const ClipBounds& bounds = mesh->box.bounds;
     const Vector3& origin = bounds.center;

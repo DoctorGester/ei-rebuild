@@ -14,6 +14,7 @@
 #include <vector>
 
 class SceneRenderer;
+class TextureDevice;
 
 namespace terrain {
 struct SectorData;
@@ -307,8 +308,8 @@ struct CloudFrame {
 // g = (frame `to`'s grey level x `blend` + `from`'s x (256 - `blend`)) / 256.
 void DrawClouds(const void* holder, const CloudFrame& from, const CloudFrame& to, int blend, const std::uint8_t ramp[256]);
 
-void BeginMesh(void* device, const MeshDraw& mesh);
-void MeshPass(void* device);
+void BeginMesh(const TextureDevice* device, const MeshDraw& mesh);
+void MeshPass(const TextureDevice* device);
 void EndMesh();
 
 // Pre-transformed vertices (FVF 0xC4, rhw taken as 1): the rectangle fill and outline. A triangle list over
@@ -317,7 +318,7 @@ struct ScreenVertex {
     float x, y, z, rhw;
     std::uint32_t colour, specular;
 };
-void ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std::uint16_t* indices, int indexCount);
+void ScreenDraw(const TextureDevice* device, const ScreenVertex* vertices, int count, const std::uint16_t* indices, int indexCount);
 
 // The game's two layouts of pre-transformed vertices (the vertex format codes the game's draws pass): x, y, z, rhw, colour,
 // specular, and in the textured one u, v.
@@ -328,7 +329,7 @@ enum class Primitive { LineStrip, TriangleList };
 
 // A draw of pre-transformed vertices, fog already applied: `fvf` kFvfTextured or kFvfUntextured, indexed when
 // `indices`. A draw it refuses is lost (logged).
-void TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
+void TlDraw(const TextureDevice* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
             Primitive primitive);
 
 // A pixel format (the screen's, a texture's, an interface canvas's): 16 or 32 bits a pixel with the channels at their

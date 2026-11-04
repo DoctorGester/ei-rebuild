@@ -103,7 +103,7 @@ struct PassState {
 
 // The render state the game set for the pass about to be drawn (render_state.h). `device`'s bound surfaces
 // become the stages' textures; null: no textures.
-PassState ReadPassState(char* device);
+PassState ReadPassState(const TextureDevice* device);
 void ApplyPassState(gpu::PipelineDesc& p, const PassState& s);
 
 // A terrain page kept on the GPU and one quarter of it drawn in a frame.
