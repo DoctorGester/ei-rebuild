@@ -173,7 +173,6 @@ void UiEditField::DrawContentsVanilla() {
     if (caret > static_cast<int>(currentText.size())) caret = lib::Count(currentText);
     if (caret < 0) caret = 0;
     UiSurface* surface = surfaces[0];
-    if (!surface->holder) return;
     surface->Clear();
     const int width = area.Width();
     const int height = area.Height();

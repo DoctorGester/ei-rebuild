@@ -94,14 +94,14 @@ RichLayout LayoutRichText(const RichText& text, int width, int dpi, bool smoothi
 // built in). Made on first use and kept for the process, like GetTextFont.
 TextFont* BoldFont(std::string_view face, int pixels, bool smoothing);
 
-// What one GlyphRun draws: the glyphs of one font and colour.
+// What one glyph run draws (render::ui::Glyphs): the glyphs of one font and colour.
 struct RichDraw {
     TextFont* font;
     std::uint32_t colour;
     TextLayout layout;
 };
 
-// The glyphs of the lines of `layout` that `clip` shows, with the text's top left at (x, y), as GlyphRun layouts
+// The glyphs of the lines of `layout` that `clip` shows, with the text's top left at (x, y), as glyph run layouts
 // clipped to `clip`, one per font and colour.
 std::vector<RichDraw> RichDraws(const RichLayout& layout, int x, int y, const Rect& clip);
 

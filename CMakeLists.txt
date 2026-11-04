@@ -297,7 +297,7 @@ if(WIN32)
 else()
     # The POSIX checks (ctest; Linux without a display: xvfb-run ctest): the POSIX platform's (paths, files, the .ini
     # reader, the one-instance lock, sockets, the settings document, IPv4 text, the maths functions, the Bink container;
-    # tests/port/port_check.cpp), the interface canvases' glyph cases on Vulkan or Metal (tests/render/glyph_cases.cpp,
+    # tests/port/port_check.cpp), the interface's glyph cases on Vulkan or Metal (tests/render/glyph_cases.cpp,
     # as tools/ui_check runs them on Direct3D 12), the game window's pixels and the cursor's hold, and on Linux the
     # window's present after resizes, read back from the X server.
     enable_testing()

@@ -3,7 +3,6 @@
 // (render_compose.cpp), kept as GPU textures until the holder goes. Also the cursor pictures' pixels as RGBA8
 // (render::PictureFromMmp).
 #include "render_internal.h"
-#include "render_ui.h"
 
 #include "../platform/log.h"
 
@@ -560,7 +559,6 @@ void HolderGone(const void* holder) {
     // What the renderer made for it (a later holder at the same address starts afresh).
     detail::ForgetHolder(holder);
     detail::ForgetCursor(holder);
-    ui::DropCanvas(holder);
 }
 
 void PictureFromMmp(const void* holder, const void* data) {

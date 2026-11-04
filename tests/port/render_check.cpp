@@ -1,4 +1,4 @@
-// The interface canvases' glyph cases (tests/render/glyph_cases.cpp, as tools/ui_check runs them on Direct3D 12) on
+// The interface's glyph cases (tests/render/glyph_cases.cpp, as tools/ui_check runs them on Direct3D 12) on
 // the native renderer (render/gpu.h: Vulkan on Linux, lavapipe without a GPU; Metal on macOS), the game window's pixel
 // size and coordinates, and the cursor's hold (Cursor::SetHeld). On Linux then the window's present after resizes: a
 // frame of known rows presented on a window of its own, read back from the X server. Exit code 0 when all pass.

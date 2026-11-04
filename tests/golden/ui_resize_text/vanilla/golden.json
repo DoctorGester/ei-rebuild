@@ -1,0 +1,12 @@
+{
+  "scenario": "ui_resize_text",
+  "install": "vanilla",
+  "recorded": "2026-11-04",
+  "commit": "de5e0bd3a",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "P9: new scenario, text through window resizes",
+  "source": "image"
+}

@@ -1,7 +1,6 @@
 // The surface holder (Surface, surface.h): a holder of the screen's pixel format, one from an .mmp picture, the texture
-// holders and the destructor; the pixel formats and their channels. Used for the interface windows, the software
-// cursor and the textures. No holder has a DirectDraw surface or memory: an interface window's pixels are its canvas
-// on the GPU, a picture's the renderer's copy of the file's pixels (render::PictureFromMmp), a texture's decoded from
+// holders and the destructor; the pixel formats and their channels. Used for the software cursor and the textures. No
+// holder has a DirectDraw surface or memory: a picture's pixels are the renderer's copy of the file's pixels (render::PictureFromMmp), a texture's decoded from
 // its file or drawn on the GPU. See docs/notes/renderer.md, sections 6 and 7.
 #include "surface.h"
 
@@ -131,13 +130,6 @@ Surface* NewDecodedTextureHolder(TextureDevice* device, int width, int height, i
 }
 
 Surface::Surface(TextureDevice* deviceIn) : device(deviceIn) {}
-
-Surface::Surface(TextureDevice* deviceIn, int widthIn, int heightIn) : device(deviceIn) {
-    if (widthIn <= 0 || heightIn <= 0) ThrowSurfaceNotMade(widthIn, heightIn);
-    width = widthIn;
-    height = heightIn;
-    bitsPerPixel = ScreenFormat().bitsPerPixel;
-}
 
 // The renderer keeps the picture's pixels from the file data (render::PictureFromMmp).
 Surface::Surface(TextureDevice* deviceIn, const MmpHeader* picture) : device(deviceIn) {

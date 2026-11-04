@@ -1,27 +1,28 @@
 # Native interface drawing
 
-How the interface's window surfaces draw on the GPU renderer: every surface's pixels are a canvas on the GPU, and text
-is laid out, measured and drawn in our own fonts. There is no GDI in the interface. How the screens behave is ui.md.
+How the interface's window surfaces draw on the GPU renderer: every frame each shown surface draws its quads and glyph
+runs straight into the frame at the current size, and text is laid out, measured and drawn in our own fonts. There is no
+GDI in the interface and no per-window render target. How the screens behave is ui.md.
 
 ## 1. How the interface produces pixels
 
-Frame order: `Interface3D::Draw` draws the backdrop blit, then the top window's sprites and models, then the fade. After
-the scene, `DrawOverlays` blits every shown surface of the top window (containers recurse), then the tooltips, then the
-status surface, the FPS surface, the console and the backdrop captures. The cursor comes last. So every window surface
-is drawn above every mesh, in stack and child order.
+Frame order: `Interface3D::Draw` draws the backdrop's picture, then the top window's sprites and models, then the fade.
+After the scene, `DrawOverlays` draws every shown surface of the top window (containers recurse), then the tooltips, then
+the status surface, the FPS surface, the console and the backdrop captures. The cursor comes last. So every window
+surface is drawn above every mesh, in stack and child order.
 
 | Primitive | Functions (file) | Path |
 |---|---|---|
-| Surface blit (plain or colour-keyed) | `UiSurface::Blit` (`ui_surface.cpp`) -> `render::ui::DrawCanvas` | the canvas drawn into the frame |
-| Text | `UiSurface::DrawTextIn` / `DrawTextPixels` (shadow first in 0x080808 at +1,+1), `DrawWrappedText` (`ui_text.cpp`); extents by `TextExtent` (`ui_font.h`) | glyph runs on the canvas |
-| Fill / Clear / FillRect / FrameRect | `ui_surface.cpp` | canvas commands |
-| Lines and carets | `UiSurface::Line` (the 1-pixel pen's rule: end point left out): console, chat typed line, edit field, connect list, save / load list | canvas commands |
-| Single pixel | `UiSurface::Dot`: the HUD map's marker | canvas command |
-| Screen copy into a surface | `CaptureScreen`: escape-menu backdrop, global-map pick picture | GPU copy (`ps_copy`) |
-| Greyscale, (2r+4g+b)/16 | `Greyscale`: escape-menu backdrop | GPU (`ps_grey`) |
-| Save picture | `Rgb565Copy` -> `render::ui::ReadRgb565`: the escape menu's 256x192 copy, QuickSave, SaveGame | GPU, 5:6:5 read back |
-| Pixel read | `PixelAt` -> `render::ui::ReadPixel`: the global-map click and FindPaths (zone = (pixel>>4)&0xF - 1) | GPU read back of one pixel |
-| Swap / freeze | `SwapContents` -> `render::ui::MoveCanvas`; `UiSurface::Show` / `Hide` | the canvas moved aside and back |
+| Surface draw | `UiSurface::Blit` (`ui_surface.cpp`): its frame picture, then its draws at its rectangle | `render::ui::Solid` / `Glyphs` into the frame |
+| Text | `UiSurface::DrawTextIn` / `DrawTextPixels` (shadow first in 0x080808 at +1,+1), `DrawWrappedText` (`ui_text.cpp`); extents by `TextExtent` (`ui_font.h`) | glyph runs, laid out again when the font or rectangle changes |
+| Fill / Clear / FillRect / FrameRect | `ui_surface.cpp` (`render::ui::FrameRects`) | solid quads |
+| Lines and carets | `UiSurface::Line` (`render::ui::LineRects`: the 1-pixel pen's rule, end point left out): console, chat typed line, edit field, connect list, save / load list | solid quads |
+| Single pixel | `UiSurface::Dot`: the HUD map's marker | a solid quad |
+| Screen copy into a surface | `CaptureScreen`: escape-menu backdrop, global-map pick picture | a frame picture (`render::ui::CapturePicture`, `ui_copy`) |
+| Greyscale, (2r+4g+b)/16 | `Greyscale`: escape-menu backdrop | the picture drawn through `ui_picture`'s grey option |
+| Save picture | `Rgb565Copy` -> `render::ui::ReadPictureRgb565`: the escape menu's 256x192 copy, QuickSave, SaveGame | GPU, 5:6:5 read back |
+| Pixel read | `PixelAt` -> `render::ui::ReadPicturePixel`: the global-map click and FindPaths (zone = (pixel>>4)&0xF - 1) | GPU read back of one pixel of the pick picture |
+| Show / hide | `UiSurface::Show` / `Hide` | the shown flag; what it holds is kept |
 | Titles' RTF text | `UiScrollingSurface::RenderText` (`render_rich_text.cpp` lays it out) | glyph runs |
 | Sprites, shapes, minimap, portraits | `UiMesh::Draw` -> `render::BeginMesh`; `ui_mesh.cpp` | GPU meshes |
 | 3D previews and models | `UiModel::Draw`, the hero preview, the container draws, `render::ClearDepth` | GPU meshes |
@@ -30,14 +31,15 @@ is drawn above every mesh, in stack and child order.
 | Movies | `bink_video.cpp` -> `MovieFrame` / `MovieBlit` | GPU draw of the CPU-decoded frame |
 | Textures the interface writes | `CopyImage` (portraits, HUD icons, help pictures), `ItemFigureTexture`, the save / load pictures, the global-map clouds (noise and blend in shaders) | GPU |
 
-What is left on the CPU per frame: the text layout of what is drawn again (the unit panel every frame, tooltips), the mesh
+What is left on the CPU per frame: the quads of every shown surface (a text is laid out again only when its font or its
+pixel rectangle changed), the text layout of what windows draw again (the unit panel every frame, tooltips), the mesh
 path's projection for picking bounds, and the Bink decode.
 
 ## 2. Text
 
 The interface draws and measures text in its own fonts (`UiFont`, ui_font.h; Liberation Serif for Times New Roman,
 Liberation Mono for Courier New, both built into the executable), laid out by `render::text` (render_text.cpp; "DrawText
-layout rules" below) and drawn as glyph runs on the canvases. The user's call: not pixel-exact against GDI, but wrapping
+layout rules" below) and drawn as glyph runs into the frame. The user's call: not pixel-exact against GDI, but wrapping
 and drawing use one set of metrics.
 
 ### Fonts and metrics
@@ -65,8 +67,8 @@ and drawing use one set of metrics.
 DT_CENTER, DT_RIGHT, 4 (DT_VCENTER without SINGLELINE: no effect), DT_WORDBREAK, DT_EXPANDTABS (help page), DT_NOPREFIX,
 DT_CALCRECT, DT_SINGLELINE | DT_VCENTER | DT_CENTER (the global map's titles), DT_END_ELLIPSIS (the connect list's Rebirth
 names); any other bit is logged once and left out. Colours come from callers; scroll text uses BEL 'C' r g b and BEL 'F'
-digit tokens. Surfaces are usually keyed on black, so antialiased edges are composited against black and become opaque
-(the keyed fringe of the original's look).
+digit tokens. Text is alpha-blended over what the frame holds, so on a keyed surface its antialiased edges blend over
+the scene (the original's edges were composited against black and keyed: a dark fringe).
 
 **render_text** (namespace `render::text`, no game code):
 - `Font`: vertical metrics, glyph advance and box, pair kerning, 8-bit coverage. `LoadFont(data, pixels)` implements it with
@@ -88,50 +90,55 @@ the differences left are synthetic strings with '&', which the game's texts do n
 (information): average widths match, GDI is 1-3 px taller above 800x600 font 0, and about one string in ten wraps at a
 different word than GDI did. `--titles` checks the titles' rich text against a real RichEdit (below).
 
-## 3. The canvases
+## 3. The surfaces drawn each frame
 
-**A GPU canvas per surface** (`render_ui.cpp`). Surfaces are retained images: drawn when something changes and blitted every
-frame; incremental (drawing without a Clear adds to what is there); some are redrawn every frame (the unit panel's name,
-tooltips). So each surface's holder has a render target, not a per-frame draw list. A canvas is made black with the surface
-(`UiSurface::MakeCanvas`; again after SwapContents brings a surface back without one); it holds what the surface's memory
-would: 8 bits a channel (X8R8G8B8; the colour key compares exactly). The surface functions queue commands on it in surface pixels, after the game's own scaling (so the
-WideScreen rectangles stay upstream); the blit draws it at the blit's rectangle, keyed by the stored colour.
+**Immediate drawing.** The UI is a few hundred quads and glyphs a frame, so nothing is cached in render targets: a shown
+surface draws into the frame at the point of its Blit (`render::ui::Solid` and `Glyphs`, render_ui.cpp), in screen
+pixels at its rectangle, clipped to it and to the screen. One program (`ui_quad`) draws both: vertices in frame pixels,
+the atlas's coverage (or full coverage for solids and underlines), alpha-blended; consecutive quads with one atlas and
+one clip rectangle are one draw. A keyed surface leaves out its draws in its background colour (the key), so what is
+behind it shows; an opaque one draws them. A new surface is black.
 
-**Commands**: `Fill`, `FrameRect`, `Line`, `Pixel`, `GlyphRun(font, layout, colour)`,
-`CopyFrame(source)`, `Greyscale`, `Image` (CPU pixels; only `ei_ui_check` uses it). `GlyphRun` composes colour x coverage over
-what is there (max coverage between glyphs, underlines full), so over black it is `ComposeAgainstBlack`; consecutive runs on
-a canvas that overlap none of each other are drawn together in one coverage pass and one compose pass (the vertex stream is
-grown for the whole group before its first run is appended: a buffer replaced between them voided the earlier runs'
-vertices). `Greyscale` is (2 r + 4 g + b) / 16 on the 8-bit channels.
+**The draws a surface keeps (migration step).** Windows still draw into their surfaces when something changes (ui.md),
+not each frame. Until a window paints its state each frame (P9a-P9e), its surface keeps the draws it was given
+(`UiSurface::draws`) in the coordinates they came in and Blit draws them again: a fill, frame or line in surface pixels
+with the size it was made at (scaled to the current size; whole-surface fills and frames follow the size), a
+`DrawTextIn` in layout units with the interface font's index, a `DrawTextPixels` in pixels with its own font. A text is
+laid out again when its font or pixel rectangle changed, so after a resize it is laid out at the new size in the new
+fonts (sharp; scenario `ui_resize_text`). A fill covers the draws inside it: Clear (a whole fill) empties the list, a
+partial fill drops the draws wholly inside it (a key-coloured partial fill over part of a draw cannot erase that part).
+More than 4096 kept draws are logged once (a window adding without clearing). The titles' scrolling surface keeps none:
+its Blit draws the laid-out rich text at the current offset.
 
-**Order.** Commands queue in call order. `DrawPending` runs `RunCanvasCommands` before its passes. A command on a canvas
-whose blit is recorded and not drawn calls `SplitFrame` first (the frame so far drawn, so the blit shows the old contents).
-`CopyFrame` always splits first; between frames nothing is drawn, so the copy reads the last frame. Dropping a canvas whose
-blit is not drawn yet draws the frame so far first: backdrop mode 3 puts the old backdrop away after the frame blitted it and
-then copies that frame, which otherwise came out black (`ui_compare` and `ei_ui_check` hold it).
+**Frame pictures.** A screen copy (`CaptureScreen`: the escape menu's and the camp's backdrops, the global map's pick
+picture, the save's copy) is state as data: what the frame looked like, which cannot be drawn again. It is a picture of
+the surface's size on the GPU (`render::ui::CapturePicture`: `source` of the frame drawn so far, nearest pixel, x *
+source / size; the copy runs at the next DrawPending, after the frame so far is drawn, `SplitFrame`), drawn at the
+surface's Blit stretched over its rectangle and greyed after `Greyscale` (`ui_picture`). A picture still drawn in the
+frame is released after it. A capture between frames reads the last frame (the quick save's key).
 
-**Readers** read the GPU: `PixelAt` (`ReadPixel`; the global-map pick must stay exact),
-`Rgb565Copy` (`ReadRgb565`; the escape-menu and QuickSave pictures only need to be within tolerance). In-game screenshots
-come from render::ReadFrame (renderer.md).
+**Readers.** `PixelAt` reads one pixel of the pick picture (`ReadPicturePixel`; the global-map pick must stay exact),
+`Rgb565Copy` the picture as 5:6:5 (`ReadPictureRgb565`; the escape-menu and QuickSave pictures only need to be within
+tolerance). In-game screenshots come from render::ReadFrame (renderer.md).
 
-**Lost device.** A lost device ends the game (renderer.md, "No device-loss recovery"): a canvas keeps nothing but its
-render target.
+**Lost device.** A lost device ends the game (renderer.md, "No device-loss recovery").
 
 **Resolution changes.** Each surface keeps the layout rectangle it was given and is in a registry of live surfaces, so a
-resolution change places them all again and resizes their canvases, what they hold stretched to the nearest pixel
-(`UiSurface::RelayoutAll`, `render::ui::Resize`; renderer.md, "Resolution changes").
+resolution change places them all again (`UiSurface::RelayoutAll`); their draws are drawn at the new size from the next
+frame, texts laid out again (renderer.md, "Resolution changes"). A frame picture is stretched to the new rectangle.
 
-**GDI rules the canvases follow** (measured on Windows 10; `ei_ui_check` holds them): FrameRect draws a 1-px border inside the rectangle. A 1-px pen leaves
-out the end point. A 2-px pen (round ends) draws both end points; vertical, it covers the column left of the line too;
-horizontal, the row above too, without the start column; a zero-length 2-px line is one dot. The game uses only 1 and 2 px
-pens, horizontal or vertical.
+**GDI rules the quads follow** (measured on Windows 10; `ei_ui_check` holds them): FrameRect draws a 1-px border inside the
+rectangle (`FrameRects`). A 1-px pen leaves out the end point (`LineRects`). A 2-px pen (round ends) draws both end points;
+vertical, it covers the column left of the line too; horizontal, the row above too, without the start column; a
+zero-length 2-px line is one dot. The game uses only 1 and 2 px pens, horizontal or vertical.
 
 **Checks.** `ei_ui_check` (tools/ui_check; build.cmd runs it on gpu.h's device, hardware Direct3D 12; `--verbose`
-prints each check and the difference maps) plays render.cpp's part itself (its frame, `SplitFrame`, `RunCanvasesNow`).
-Fills, frames, lines and pixels are compared with GDI drawing into an 8:8:8 DIB section; glyph runs
-(`tests/render/glyph_cases.{h,cpp}`, no platform code) with `ComposeAgainstBlack`; greying, screen copies, frame blits (keyed,
-a source part, split, hoisted) and the resize too. Any `ei::Log` line (gpu.h's problems among them) fails. `ui_compare`
-opens the options and the help over them twice and requires the same frames.
+prints each check) plays render.cpp's part itself with the frame of `tests/render/glyph_cases.{h,cpp}` (no platform
+code; `ei_render_check` runs the glyph cases on Vulkan or Metal). Fills, frames, lines and pixels drawn as solids are
+compared with GDI drawing into an 8:8:8 DIB section exactly; glyph runs with each quad's coverage blended in turn (one
+level a channel); the picture's copy, 5:6:5 reading, one-pixel reads and its plain and grey draws exactly. Any `ei::Log`
+line (gpu.h's problems among them) fails. `ui_compare` opens the options and the help over them twice and requires the
+same frames.
 
 ### The gallery
 
@@ -157,8 +164,8 @@ reads). Rebirth's layout is covered by the WideScreen frames (`run_all --widescr
 
 The titles' scrolling surface (`UiScrollingSurface`, ui_scrolling_surface.cpp) reads the RTF block with
 `render::text::ReadRtf` and lays it out once at the surface's width with `LayoutRichText` (src/render/render_rich_text.{h,cpp},
-no Windows calls); `RenderText` fills the canvas white (the key) and draws the lines the surface shows as glyph runs (one
-`GlyphRun` per font and colour), its top `offset` twips above the surface's. The speed, the offsets in twips and the end are
+no Windows calls); its Blit draws the lines the surface shows as glyph runs into the frame (one per font and colour, none
+in the background colour, white, the key), its top `offset` twips above the surface's. The speed, the offsets in twips and the end are
 the original's: the whole text fitting above 1000 twips below the surface keeps the offset, and 1000 twips plus the height
 past it stop the scroll; "fits" is the text's pixel bottom at most the page bottom's (`TwipsToPixels`, MulDiv's rounding),
 where RichEdit's EM_FORMATRANGE said all characters fitted.
@@ -203,7 +210,6 @@ Both changed from the original on the user's playtest; layout and state are othe
   original in a few places (the objectives' help page breaks one word earlier, the objectives' zone description and the
   briefing's scroll text move one word). DT_VCENTER without SINGLELINE and the '&' prefix in formats without DT_NOPREFIX are
   the easy ones to get wrong.
-- Direct-to-frame glyph drawing (no canvas for text) would look cleaner but loses the keyed fringe.
 - A resolution-independent interface scale (4K) needs atlases rasterised again and changes metrics.
 
 ## DrawText layout rules (render_text.cpp)
@@ -249,22 +255,20 @@ The rules (measured against user32's DrawTextA on Windows 10; the synthetic case
 
 ### render_ui.cpp
 
-The interface's 2D canvases (render_ui.h; section 3). A canvas is an RGBA8 render target holding a surface's pixels. Its commands queue in call order (g_queue) and RunCanvasCommands draws them, outside any pass: render.cpp
-calls it at the start of DrawPending, so a canvas's drawing lands before the frame's next pass, and RunCanvasesNow for a
-read-back. Solid shapes are quads of one colour; a glyph run is three steps (its coverage into an R8
-scratch target with MAX blending, a copy of what the canvas held there, the composition of the two into the canvas), each a
-pass; copies and an Image's pixels are drawn texel for texel (`ui_move`); greying works on a copy of the canvas; the screen
-copy samples the frame target. render.cpp's part: Command::Canvas (DrawCanvasBatch inside the frame's passes), SplitFrame and
-RunCanvasesNow. The offline check tools/ui_check plays that part itself.
+The interface drawn into the frame (render_ui.h; section 3). `Solid` and `Glyphs` append quads to the frame's
+`uiVertices` and a `Command::Ui` batch (one atlas, one scissor; the last batch grows while both match); `UploadUi` puts
+the vertices and the atlases on the GPU before the frame's passes and `DrawUiBatch` draws a batch with `ui_quad`. The
+frame pictures: `CapturePicture` makes a render target of the picture's size and queues the frame copy (`ui_copy`), run
+at the start of the next DrawPending (`RunCanvasCommands`) or of a read (`RunCanvasesNow`); `DrawPicture` records a
+`Command::Picture` (`ui_picture`, nearest texel, greyed on request); the 5:6:5 read draws the picture into an R16_UINT
+target and reads only that back. The GDI pen and frame rules as rectangles (`LineRects`, `FrameRects`). render.cpp's
+part: the two commands, `UploadUi`, `UiFrameDone` after the present; tools/ui_check plays it itself.
 
 ### render_ui.h
 
-The interface's 2D canvases (section 3): a window surface's pixels, kept only on the GPU in a render target, drawn into by
-fills, frames, lines, pixels and glyph runs and by the surface pixel code (the screen copy, greying, a picture), read by the
-readers (one pixel, all of them, the 5:6:5 picture), and blitted onto the frame by the surface's blit. A canvas belongs to a
-surface holder (the `Surface` of a UiSurface). Commands are queued in call order and drawn on the GPU before the frame's next
-pass. Drawing into a canvas already blitted in the frame and not drawn yet first draws the frame so far (a pass split), so
-the blit shows the canvas as it was. Single-threaded: the thread that draws the interface.
+The interface drawn into the frame (section 3): solid rectangles and glyph runs at the point of the call in screen pixels,
+the frame pictures (copies of the frame kept as data, drawn stretched and optionally grey, read as 5:6:5 or one pixel),
+and the GDI pen rules. Single-threaded: the thread that draws the interface.
 
 ### render_text.h
 
@@ -273,5 +277,5 @@ pixel size, and a layout that follows user32's DrawTextA for the formats the gam
 (GetTextExtentPoint32A), so wrapping and drawing use one set of metrics. Nothing here is pixel-exact with GDI: the fonts are
 metric-compatible stand-ins rasterised without hinting. What follows DrawText exactly are the rules: where lines break, how
 they are aligned, tabs, the '&' prefix, clipping and the return value / DT_CALCRECT rectangle, given the font's advances.
-Output: glyph quads (atlas rectangle -> destination rectangle) plus underline rectangles, for the GPU canvas to draw, and a
+Output: glyph quads (atlas rectangle -> destination rectangle) plus underline rectangles, for render_ui to draw, and a
 CPU composition "against black" for tests.

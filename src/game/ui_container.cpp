@@ -50,14 +50,6 @@ void UiContainer::RedrawTips() {
     }
 }
 
-void UiContainer::Show(bool show) {
-    UiWindow::Show(show);
-    for (int i = 0; i < std::ssize(children); ++i) {
-        UiWindow* child = children[i];
-        if (child->enabled) child->Show(show);
-    }
-}
-
 // --- Input dispatch ----------------------------------------------------------------------------
 
 namespace {

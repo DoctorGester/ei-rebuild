@@ -1,6 +1,8 @@
 #pragma once
 
-// The interface's 2D canvases: a window surface's pixels, kept only in a GPU render target. Single-threaded. See docs/notes/ui-native.md, section 3 and "Source file overviews".
+// The interface drawn into the frame: solid rectangles and glyph runs at the point of the call, in screen pixels,
+// and the frame pictures (copies of the frame kept as data). Single-threaded: the thread that draws the interface.
+// See docs/notes/ui-native.md, section 3.
 
 #include "render.h"
 
@@ -14,61 +16,33 @@ struct TextLayout;
 
 namespace render::ui {
 
-// The canvas of `holder`, 8 bits a channel: made (or made again at another size) all black, as the original's new
-// surface was. False for a size outside 1..8192.
-bool Canvas(const void* holder, int width, int height);
-bool HasCanvas(const void* holder);
-// The holder is gone (HolderGone): its canvas and queued commands are dropped.
-void DropCanvas(const void* holder);
-// The canvas made `width` x `height` with what it holds stretched over it, each pixel the one under it in the old size
-// (CopyFrame's nearest pixel, so a colour key stays exact): a window surface placed again for another screen size
-// (UiSurface::Relayout). The commands queued before it are drawn at the old size first. Nothing without a canvas or
-// for a size outside 1..8192.
-void Resize(const void* holder, int width, int height);
-// The canvas (and its queued commands) moved from the key `from` to `to`: SwapContents puts a surface's canvas
-// aside while the surface has no holder and back onto its new one. A blit of it the frame
-// has not drawn yet is drawn first. A canvas `to` had is dropped.
-void MoveCanvas(const void* from, const void* to);
+// `rect` filled with `colour` (a COLORREF), clipped to `clip`.
+void Solid(const Rect& rect, std::uint32_t colour, const Rect& clip);
+// A text layout (render_text.h) drawn with its rectangle's origin at `origin` in `colour` (a COLORREF): each pixel
+// colour x coverage over what the frame holds there, underlines fully covered; clipped to `clip` and to the
+// layout's clip rectangle. The font (and its atlas) must outlive the frame.
+void Glyphs(text::TextFont& font, const text::TextLayout& layout, Point origin, std::uint32_t colour, const Rect& clip);
 
-// Drawing, in canvas pixels; each is clipped to the canvas, and does nothing without one.
-// FillSolidRect: [left, right) x [top, bottom).
-void Fill(const void* holder, const Rect& rect, std::uint32_t colour);
-// FrameRect with a solid brush: the rectangle's one-pixel border inside it.
-void FrameRect(const void* holder, const Rect& rect, std::uint32_t colour);
-// MoveTo `from`, LineTo `to` with a solid pen of `width`. GDI's pixels for horizontal and vertical
-// lines 1 px wide (the end point not drawn) and 2 px wide (the game's pens); wider pens and slanted lines
-// are close to GDI, not exact (a band around the line; Bresenham's steps).
-void Line(const void* holder, Point from, Point to, int width, std::uint32_t colour);
-void Pixel(const void* holder, Point at, std::uint32_t colour);
-// A text layout (render_text.h, its rectangle in canvas pixels) drawn in `colour`: each pixel becomes
-// colour x coverage + what was there x (1 - coverage), overlapping glyphs keeping the larger coverage,
-// underlines fully covered; clipped to the layout's clip rectangle. Over black this is
-// text::ComposeAgainstBlack. The font (and its atlas) must outlive the canvas's queued commands.
-void GlyphRun(const void* holder, text::TextFont& font, const text::TextLayout& layout, std::uint32_t colour);
-// The screen copy: `source` of the frame drawn so far stretched over the whole canvas, nearest
-// pixel (CopyFrameTo's rule).
-void CopyFrame(const void* holder, const Rect& source);
-// The greying.
-void Greyscale(const void* holder);
+// GDI's pixels for a solid pen of `width` from `from` to `to` (MoveTo, LineTo) as rectangles: a one-pixel pen covers
+// the pixels from the start up to the end, not including it; a two-pixel pen (round ends; measured on Windows 10, the
+// console's caret) draws both end points, vertical with the column left of the line too, horizontal with the row
+// above too, without the start column, and a zero-length line as one dot. Slanted lines and wider pens: a pen-wide
+// square at each of Bresenham's steps (close to GDI, not exact).
+std::vector<Rect> LineRects(Point from, Point to, int width);
+// FrameRect's one-pixel border inside `rect`; none for an empty one.
+std::vector<Rect> FrameRects(const Rect& rect);
 
-// The canvas's pixels after every queued command, as 0x00RRGGBB rows top-down (width x height); false
-// without a canvas or when the GPU is not there.
-bool ReadPixels(const void* holder, std::vector<std::uint32_t>* rgb, int* width = nullptr, int* height = nullptr);
-// The pixel `at` of the canvas after every queued command, as 0x00RRGGBB; false outside it, without one
-// or when the GPU is not there.
-bool ReadPixel(const void* holder, Point at, std::uint32_t* rgb);
-// The canvas after every queued command stretched to `width` x `height` on the GPU (each pixel the canvas
-// pixel under its centre, (2 x + 1) * canvas width / (2 width)) as 5:6:5 pixels (each channel's top bits),
-// rows from the top, read back into `out` (width x height): the save's picture (shot.sav keeps 5:6:5).
-bool ReadRgb565(const void* holder, int width, int height, std::uint16_t* out);
-
-// Draws the canvas onto the frame at this point of the frame's draws (the window surface's blit):
-// `source` (null: all of it) onto `destination`, stretched when the sizes differ, and with `keyed`
-// leaving out pixels equal to `key` (0x00RRGGBB).
-void DrawCanvas(const void* holder, const Rect& destination, const Rect* source, bool keyed, std::uint32_t key);
-
-// `rgb` (0x00RRGGBB rows from the top, `pitch` pixels apart) written over `destination` of the canvas
-// (clipped to it): a picture drawn on the CPU (ei_ui_check's; the game draws none).
-void Image(const void* holder, const Rect& destination, const std::uint32_t* rgb, int pitch);
+// The frame pictures, each under a key (the surface it belongs to). CapturePicture: `source` of the frame drawn so
+// far stretched to `width` x `height`, nearest pixel (x * source / size, as DirectDraw's Blt picked); between frames
+// the last frame. DrawPicture: the picture over `destination`, stretched, greyed ((2 r + 4 g + b) / 16) with `grey`.
+void CapturePicture(const void* key, const Rect& source, int width, int height);
+bool HasPicture(const void* key);
+void DrawPicture(const void* key, const Rect& destination, bool grey);
+void DropPicture(const void* key);
+// The picture stretched to `width` x `height` (each pixel the one under its centre, (2 x + 1) * size / (2 width)) as
+// 5:6:5 pixels (each channel's top bits), rows from the top: the save's picture (shot.sav keeps 5:6:5).
+bool ReadPictureRgb565(const void* key, int width, int height, std::uint16_t* out);
+// The picture's pixel `at` as 0x00RRGGBB; false outside it or without one.
+bool ReadPicturePixel(const void* key, Point at, std::uint32_t* rgb);
 
 } // namespace render::ui

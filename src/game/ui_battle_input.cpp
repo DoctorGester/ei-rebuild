@@ -84,9 +84,9 @@ void BattleScreen::Wheel(int modifiers, int delta, Point point) {
         panel->Input()->Wheel(modifiers, delta, point);
         if (panel->handled) return;
     }
-    for (UiWindow* panel : panels) panel->SetEnabled(false, false);
+    for (UiWindow* panel : panels) panel->SetEnabled(false);
     UiContainer::Wheel(modifiers, delta, point);
-    for (UiWindow* panel : panels) panel->SetEnabled(true, false);
+    for (UiWindow* panel : panels) panel->SetEnabled(true);
 }
 
 // --- Key down ----------------------------------------------------------------------------------------

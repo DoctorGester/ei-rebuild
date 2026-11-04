@@ -1,7 +1,6 @@
 // The image blits: the movies' frames (MovieFrame / MovieBlit: an RGBA8 image updated in place, drawn as a screen
 // rectangle that copies texels one to one, a stretch when the sizes differ). Also here: the
 // solid rectangles, the depth clear the game does in the middle of the frame and the movie player's fill (Fill).
-// (The interface windows' canvases have their own blit, render_ui.cpp.)
 #include "render.h"
 #include "render_internal.h"
 

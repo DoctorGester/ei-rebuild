@@ -40,6 +40,7 @@ struct Surface;
 class Texture;
 class TextureDevice;
 class UiSurface;
+struct UiSurfaceDraw;
 class ItemScreen;
 namespace screen_layout {
 struct Layout;
@@ -308,30 +309,26 @@ public:
 
 enum class SkillAnimation : int;   // map_object_figures.h
 
-// An off-screen surface a window draws into: its pixels are its holder's canvas on the GPU (render_ui.h), made
-// black with the surface. No destructor: the owners destroy it directly.
+// A rectangle of the interface a window draws into, drawn into the frame each frame by its Blit (ui_surface.cpp).
 // How a window surface's Blit draws it: every pixel, or with its background as the source colour key (the
 // pixels of that colour left out).
 enum class SurfaceBlend : bool { Opaque, Keyed };
 
 class UiSurface {
 public:
-    // A surface of the layout rectangle drawn with `blend`, scaled to the screen with `scale`: shown, its
-    // holder's canvas made black.
+    // A surface of the layout rectangle drawn with `blend`, scaled to the screen with `scale`: shown, black.
     UiSurface(Interface3D* ui, int left, int top, int right, int bottom, SurfaceBlend blend, bool scale);
     UiSurface(Interface3D* ui, const Rect& rect, SurfaceBlend blend, bool scale);
     // Over the layout rectangle `rect` (always scaled).
     UiSurface(Interface3D* ui, const Rect* rect, SurfaceBlend blend);
-    // Releases the contents put aside and the holder. Not virtual (a window's surface list destroys a
-    // scrolling surface as a plain one).
+    // Not virtual (a window's surface list destroys a scrolling surface as a plain one).
     ~UiSurface();
     UiSurface(const UiSurface&) = delete;
     UiSurface& operator=(const UiSurface&) = delete;
     // Every surface placed again after the screen's size changed from `before` (app::SetResolution): its rectangle
-    // scaled from its layout rectangle as the layout scales now, its canvas resized with what it holds stretched (the
-    // window draws what it draws next at the new size).
+    // scaled from its layout rectangle as the layout scales now; what it draws is laid out again at the new size.
     static void RelayoutAll(const screen_layout::Layout& before);
-    // Onto the render target, when shown.
+    // Into the frame, when shown.
     virtual void Blit();
 
     std::uint32_t PixelAt(Point at);
@@ -351,14 +348,11 @@ public:
     // (the height laid out, pixels); 0 without a surface or font.
     int DrawTextPixels(const UiFont& font, std::string_view text, const Rect& rect, std::uint32_t format, std::uint32_t colour,
                        bool shadow);
-    // Show: shown, contents put aside put back into a holder. Hide: not shown; with `release` the contents are
-    // put aside in memory and the holder released.
+    // Show: shown. Hide: not shown (what it holds is kept).
     void Show();
     void Hide(bool release);
-    // SwapContents: `restore` false puts the surface's pixels aside (kept) and releases the holder; true makes the
-    // holder again and puts them back. Rgb565Copy returns width * height 5:6:5 pixels
-    // (the surface stretched; none without a holder). Greyscale: (2 r + 4 g + b) / 16 per channel.
-    void SwapContents(bool restore);
+    // CaptureScreen: the screen under the surface copied into it (a frame picture). Rgb565Copy returns width *
+    // height 5:6:5 pixels (the picture stretched). Greyscale: the picture drawn as (2 r + 4 g + b) / 16 per channel.
     void CaptureScreen();
     std::vector<std::uint16_t> Rgb565Copy(int width, int height);
     void Greyscale();
@@ -377,22 +371,29 @@ public:
     void FillRect(const Rect& rect, std::uint32_t colour);
     void Line(Point from, Point to, int width, std::uint32_t colour);
     void Dot(Point at, std::uint32_t colour);
-    // The holder's canvas, black, of the surface's size in the screen's format.
-    void MakeCanvas();
     // RelayoutAll's step for this surface.
     void Relayout(const screen_layout::Layout& before);
 
     Interface3D* ui;
     SurfaceBlend blend;
     bool shown = true;               // set by Show, cleared by Hide
-    Surface* holder = nullptr;       // the holder its canvas belongs to (null while swapped out)
     int width = 0;
     int height = 0;
-    bool kept = false;               // while swapped out: the canvas is kept under the surface's address
+    bool greyed = false;             // its frame picture drawn grey
     Rect rect;                       // screen coordinates
     Rect layoutRect;                 // what rect is scaled from (layout coordinates); screen pixels when not `scaled`
     bool scaled = true;              // made over a layout rectangle (not the screen's pixels)
     std::uint32_t background = 0;         // the colour Clear fills with
+    // What it was asked to draw, drawn again each frame (until its window paints it each frame).
+    std::vector<UiSurfaceDraw> draws;
+
+private:
+    bool Transparent(std::uint32_t colour) const;
+    void Keep(UiSurfaceDraw&& draw);
+    void Cover(const Rect& area, bool whole);
+    void AddFill(const Rect& area, bool whole, std::uint32_t colour);
+    int AddText(UiSurfaceDraw&& draw, std::string_view text, std::uint32_t format, std::uint32_t colour, bool shadow);
+    bool LayOut(UiSurfaceDraw& draw);
 };
 
 // A 3D model shown in a window (an inventory item, a portrait).
@@ -471,9 +472,6 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
     virtual void Build() {}
-    // Hidden: every surface puts its contents aside and lets its holder go (SwapContents); shown: the shown
-    // surfaces get theirs back.
-    virtual void Show(bool show);
     virtual void Draw(SceneRenderer* pass) { DrawBase(pass); }
     virtual void DrawChild(SceneRenderer*) { UpdateRegionTips(); }
     virtual void Redraw();
@@ -485,8 +483,7 @@ public:
     bool ContainsPoint(Point point) const;
     void UpdateRegionTips();
 
-    // `notify`: Show(enabled) as well.
-    void SetEnabled(bool enabled, bool notify = true);
+    void SetEnabled(bool enabled);
 
     // Takes a reference (null is ignored).
     void AddObject(Texture* texture);
@@ -1106,8 +1103,6 @@ public:
     explicit UiContainer(Interface3D* ui) : UiWindow(ui) {}
     ~UiContainer() override;
 
-    // The window's own surfaces, then every enabled child's.
-    void Show(bool show) override;
     // Only while the interface draws: the window's own draw, then every enabled child's.
     void Draw(SceneRenderer* pass) override;
     // Alpha reference 1 around the region tips and every enabled child's draw, while the interface draws.

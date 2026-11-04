@@ -5,7 +5,7 @@ The game's own renderer (DirectDraw 7 / Direct3D 7) is replaced by our renderer 
 15c): Direct3D 12 (feature level 11_0, shader model 6.0) on Windows, Vulkan on Windows and Linux, Metal on macOS.
 
 1. Game code that called the renderer hands its data over instead: camera and matrices, object transforms, figure
-   meshes, terrain sectors, particles, textures, the interface windows' canvases, movie frames. Game code makes no
+   meshes, terrain sectors, particles, textures, the interface windows' quads and glyphs, movie frames. Game code makes no
    Direct3D or DirectDraw call and includes no such header; only the gamma ramp's table is left of that interface.
 2. No Direct3D 7 emulation and no compatibility shims. Neither of the original's helper DLLs is loaded (2DintMMX: its
    texture work is on the GPU; 3DfpFPU: its projections are plain C++ in `projection.cpp`, section 10). Results only need
@@ -13,7 +13,7 @@ The game's own renderer (DirectDraw 7 / Direct3D 7) is replaced by our renderer 
 
 The renderer draws, in the game's order, the terrain (ground and water pages), every mesh the game draws (figures, map
 objects, sky, interface sprites and 3D previews), the flat geometry (selection markers, ground prints), the interface
-windows' canvases, the renderer's rectangles (rubber band, fades), the depth clears mid-frame, every pre-transformed draw
+windows' quads and glyph runs, the renderer's rectangles (rubber band, fades), the depth clears mid-frame, every pre-transformed draw
 (particles and sprites, the vision fog's quads, ribbons and lightning, flying hit points), the weather and the movies
 (also the players outside the frame). The escape menu's and the save game's screen copies come from its frame. The
 device is made on a thread of its own from the program's start (`render::PrepareDevice`, before WinMain) and taken
@@ -116,14 +116,14 @@ Per main-loop pass: BeginScene; the interface draws window by window; EndScene; 
 - terrain water pages, blended;
 - effects: vision fog, particles, lightning, rain and snow; then the line lists and the flying hit points.
 Then the interface window by window: sprites (`UiMesh::Draw`: the mesh draw), 3D models (`UiModel::Draw`; the hero
-preview first clears depth to 0 and its rectangles to 1) and surfaces (each shown `UiSurface` blitted from its canvas,
-plain or colour-keyed, no alpha blending). The battle screen clears the depth buffer before its panels. Renderer
+preview first clears depth to 0 and its rectangles to 1) and surfaces (each shown `UiSurface` draws its quads and glyph
+runs into the frame, alpha-blended). The battle screen clears the depth buffer before its panels. Renderer
 rectangles: translucent black with an outline (rubber band, fades).
 
 The renderer's frame: game code hands data over while running its draw code, as a command list in the game's order
 (terrain batch, mesh pass, surface blit, depth clear, ...); `render::EndFrame()` (from the present, or earlier for a
 capture) draws them with depth; the swap chain's present shows it (section 9). Per-frame data is rebuilt every frame
-unless kept on the GPU (section 13); textures and canvases are kept per holder.
+unless kept on the GPU (section 13); textures are kept per holder.
 
 Conventions taken over: Direct3D clip space (the game's projection already produces it), Direct3D 7 pixel centres (3D
 draws shift their clip positions by half a pixel, `Frame::pixelShift`, because the viewport is kept in whole pixels
@@ -167,7 +167,7 @@ texturing. Textures have the .mmp file's own mip levels and no others (section 7
 | Shadows | `world_client_draw.cpp` (the sun; `BeginCaster` / `EndCaster` around each object's draws), `map_object_shadow.cpp` (`CastsShadow`), the casters outside the view | `ShadowSun`, `ShadowCasterMesh` (section 13) |
 | Particles, ribbons, lightning, hit points, vision fog | pre-transformed draws: sprites (`renderer_sprites.cpp`), ribbons and triangles (`renderer_strip.cpp`), line strips (`renderer_lines.cpp`) | `TlDraw` with vertices after the fog pass |
 | Weather | rain / snow triangles (`weather_particles.cpp`) | `TlDraw` |
-| Interface surfaces | `UiSurface::Blit` (`ui_surface.cpp`) | `ui::DrawCanvas` |
+| Interface surfaces | `UiSurface::Blit` (`ui_surface.cpp`) | `ui::Solid`, `ui::Glyphs`, `ui::DrawPicture` |
 | Rectangle fills | `renderer_marker.cpp` | `ScreenDraw` |
 | Cursor | the frame's cursor image (`ui_cursor.cpp`) | `Cursor` (shown as the system's cursor, section 9) |
 | Movies | `bink_video.cpp` (our Bink decoder into a CPU buffer, letterboxed) | `MovieFrame` / `MovieBlit`, `Fill` |
@@ -210,17 +210,15 @@ two blend factors (the particles' additive / normal switch). The line strip (`re
 
 ## 6. Interface windows and holders
 
-**Interface windows on GPU canvases.** A window surface's pixels live only in its interface canvas (`render_ui.cpp`,
-ui-native.md section 3): an RGBA8 render target per holder, made with the surface (`UiSurface::MakeCanvas`), drawn into
-by the surface functions (fills, frames, lines, pixels, glyph runs in our own fonts, the screen copy, greying) and blitted
-by `UiSurface::Blit` (`render::ui::DrawCanvas`). The readers get pixels from the GPU: PixelAt (`ReadPixel`), the save
-picture (`ReadRgb565`); SwapContents moves the canvas aside (`MoveCanvas`). A canvas keeps nothing but its render target.
-Each surface keeps the layout rectangle it was given and is in a registry of live surfaces, so a resolution change
-places them all again and resizes their canvases (`UiSurface::RelayoutAll`, "Resolution changes").
+**Interface windows drawn each frame.** A window surface has no pixels of its own: each frame its Blit draws its quads and
+glyph runs into the frame (`render::ui::Solid` / `Glyphs`, `render_ui.cpp`, ui-native.md section 3), and a screen copy is
+a frame picture on the GPU (`CapturePicture` / `DrawPicture`). The readers: PixelAt (`ReadPicturePixel`), the save
+picture (`ReadPictureRgb565`). Each surface keeps the layout rectangle it was given and is in a registry of live surfaces,
+so a resolution change places them all again (`UiSurface::RelayoutAll`, "Resolution changes").
 
 **Holders** are our own `Surface` (surface.h: width, height, bits per pixel); no holder has pixels in memory: the
-windows' holders have a canvas, the picture holders (cursor images) only a size, the textures section 7's images. A
-window of no size is not made (`ThrowSurfaceNotMade`). The screen's pixel format is `ScreenFormat` (X8R8G8B8); a canvas is 8 bits a channel. The cursor's mask is built from the .mmp file's
+picture holders (cursor images) have only a size, the textures section 7's images. A
+The screen's pixel format is `ScreenFormat` (X8R8G8B8). The cursor's mask is built from the .mmp file's
 pixels (`ChannelLayout::ToNative` to the screen's format, ui_cursor.cpp); the renderer keeps the picture as RGBA8
 (`render::PictureFromMmp`). Scenarios: render_present, render_titles_present, render_movie_present, ui_compare,
 ui_saveload.
@@ -232,19 +230,18 @@ GPU (section 7). The new folder is "save<n>", n one more than the highest number
 **Screen copies between frames.** The quick save (F5 "saveq") and the autosaves copy the screen with CaptureScreen and
 stretch it to 256x192 for shot.sav. The new game's autosave draws the interface first (a frame step without a present:
 the copy comes from that frame); the quick save key copies between frames, before the next frame's first draw. The
-renderer's target then still holds the last frame: the copy (`render::ui::CopyFrame`, which draws the frame so far
+renderer's target then still holds the last frame: the copy (`render::ui::CapturePicture`, which draws the frame so far
 first, SplitFrame) reads it as it is when nothing of the frame is drawn or queued yet. A pass there would clear it first
 (the save's picture was once the plain clear colour). Checked by ui_quicksave (`checksave saveq world`: the picture
 against a capture of the same frozen moment as 8x8 block averages).
 
 **Screen copies on the GPU.** A surface the screen is copied into (the escape menu's and the camp's backdrops, the
-global map's pick picture, the quick save's copy) gets the copy as its canvas's `ui_copy_fs` from the frame target (x *
-source / size, as DirectDraw's Blt picked), the greying as its `ui_grey_fs`, and the blit draws
-the canvas. Rgb565Copy draws the canvas into an R16_UINT target of the picture's size (`ps_rgb565`: the pixel under each
-centre, (2x+1) * source / (2 * size), each channel's top bits) and reads only that back (`render::ui::ReadRgb565`): the
-escape menu's 256x192 `screenCopy` and the quick save's shot.sav keep their 5:6:5 format. PixelAt reads one pixel from
-the GPU (`ReadPixel`: the pick picture's zone
-colours exact). Checked by ui_quicksave, ui_global_map_pick, the gallery's escmenu / map_escmenu frames, ui_compare and
+global map's pick picture, the quick save's copy) gets a frame picture of its size (`ui_copy` from the frame target, x *
+source / size, as DirectDraw's Blt picked), drawn by its Blit (`ui_picture`, greyed after Greyscale). Rgb565Copy draws the
+picture into an R16_UINT target of the wanted size (`ui_rgb565`: the pixel under each centre, (2x+1) * source / (2 *
+size), each channel's top bits) and reads only that back (`render::ui::ReadPictureRgb565`): the escape menu's 256x192
+`screenCopy` and the quick save's shot.sav keep their 5:6:5 format. PixelAt reads one pixel of the picture
+(`ReadPicturePixel`: the pick picture's zone colours exact). Checked by ui_quicksave, ui_global_map_pick, the gallery's escmenu / map_escmenu frames, ui_compare and
 `ei_ui_check`.
 
 ## 7. Textures
@@ -255,7 +252,7 @@ No texture has memory the game writes: .mmp textures have only their decoded cop
 **Texture formats.** A texture keeps the id of the format it is held in (`Texture::format`: 0x5650, 0x5551, 0x4444,
 0x8888 or a DXT1..DXT5 code; 0 none). The list is fixed (texture.cpp `IsTextureFormat`; DXT5 must stay: Rebirth's battle00
 and footprints are DXT5) and `TextureFormat(id)` gives an RGB one's `render::PixelFormat` (bits and channel masks,
-render.h; the canvases take the same type). An .mmp file is held in its own format, a DXT code outside the list in the
+render.h). An .mmp file is held in its own format, a DXT code outside the list in the
 RGB format its channel bit counts name (`MmpHeader::HeldFormat`; none: the original's "Can't find texture format"
 error); a .bmp texture by its kind (1:5:5:5, 4:4:4:4 or 5:6:5).
 
@@ -334,7 +331,7 @@ Images kept across frames (`render_blit.cpp`): a movie keeps one texture per pla
 place unless it was already blitted in this frame (the blits are drawn at the end of the frame; then a new one replaces
 it, the old one released after the present). `render::Fill` is a solid rectangle command drawn with the depth clear's
 program (`solid.hlsl`) through a pipeline that writes the colour only. Every read-back of a texture (the frame, the
-canvases, the composed levels, the harness build's checks) is a gpu.h download (`Download`, `Wait`, `Read`). Harness build: counts per purpose in ei-rebuild.log (`render: images ...`), and in-place
+pictures, the composed levels, the harness build's checks) is a gpu.h download (`Download`, `Wait`, `Read`). Harness build: counts per purpose in ei-rebuild.log (`render: images ...`), and in-place
 uploads are read back and compared with the pixels written (`render: MISMATCH`; sampled: the first 64 of each kind, then
 every 16th, all with `checkall`).
 
@@ -388,7 +385,7 @@ stand-in for any of them:
 A lost device ends the game. SDL_GPU reports no loss of its own: a lost device shows as a swap chain texture SDL
 refuses (render_window.cpp), a fatal error (section 1, "When the renderer fails"). Why no recovery (user): a device is
 lost only on a driver update or reset, a TDR or a GPU switch, rare for a player and a restart away. Making everything again needed every module to drop and remake its resources, each decoded
-texture to keep its file's bytes, composed textures their recipes and canvases their command histories, and runtime
+texture to keep its file's bytes, composed textures their recipes, and runtime
 backends would need it twice. Dropping the kept file bytes took the process from about 130 MB to about 119 MB private
 bytes on zone1.
 
@@ -405,9 +402,8 @@ frames; no device is made again and the zone goes on. It sets, in order:
 - the cursor's bounds;
 - the settings' `VideoResolution` (written at exit: the next start makes the window at that size);
 - the interface (`Interface3D::Resize`): its size and its three fonts, every surface placed again
-  (`UiSurface::RelayoutAll`: its rectangle scaled from the layout rectangle it was given; its canvas resized with what
-  it holds stretched, nearest pixel, `render::ui::Resize`, so keyed pixels stay exact until the window draws again),
-  then each window on the stack, bottom first, `UiContainer::LayoutChanged`. The battle screen builds its HUD panels
+  (`UiSurface::RelayoutAll`: its rectangle scaled from the layout rectangle it was given; what it draws is drawn at the
+  new size from the next frame, its texts laid out again in the new fonts), then each window on the stack, bottom first, `UiContainer::LayoutChanged`. The battle screen builds its HUD panels
   again (`BattleScreen::BuildPanels`, at the window's edges, `EdgeShift`), keeping the map's zoom, the top panel's
   texts, the selection, the portraits and the pending action; the camp and the multiplayer hero screen move their
   curtains (`screen_layout::PlaceCurtains`).
@@ -435,8 +431,8 @@ game sets it). A window narrower than 4:3 has the world over its whole height.
 
 Scenarios: `render_resize_zone` (zone1 windowed at 800x600, 1280x720, 1000x800 under the Esc menu, back to 800x600),
 `render_resize_edgepan` (full screen at 800x600 on a 16:9 monitor: the camera pans at the picture's edges, a click over
-the bar ignored), `render_present_window`, `render_cursor_present`; ei_ui_check's resize cases check
-`render::ui::Resize`.
+the bar ignored), `render_present_window`, `render_cursor_present`; `ui_resize_text` (the options and the help captured at 800x600, again
+after several shrinks and grows: the same frames).
 
 ### The cursor
 

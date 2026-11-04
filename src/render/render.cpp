@@ -426,14 +426,16 @@ void DrawCommands(std::size_t from, std::size_t to, int width, int height) {
         case Command::Blit: DrawBlitBatch(g_frame, g_frame.blitBatches[i], width, height); break;
         case Command::ClearDepth: DrawClearDepth(g_frame.clears[i], width, height); break;
         case Command::Fill: DrawFill(g_frame.fills[i], width, height); break;
-        case Command::Canvas: DrawCanvasBatch(g_frame.canvasBatches[i], width, height); break;
+        case Command::Ui: DrawUiBatch(g_frame.uiBatches[i], width, height); break;
+        case Command::Picture: DrawPictureBatch(g_frame.pictureBatches[i], width, height); break;
         }
     }
 }
 
 // Draws the frame's commands not drawn yet into the off-screen target: one pass, the frame's first clearing
 // it. A frame is drawn in more than one pass when a copy of it is taken in its middle (CopyFrameTo), and with
-// multisampling one pass per run of world and other commands. The interface canvases' queued drawing goes first.
+// multisampling one pass per run of world and other commands. The copies waiting for the interface's
+// pictures go first.
 bool DrawPending() {
     perf::BeginDraws();
     perf::Enter(perf::Pass::Ui);
@@ -444,6 +446,7 @@ bool DrawPending() {
     perf::Enter(perf::Pass::Other);
     UploadTerrain(g_frame);
     UploadMeshes(g_frame);
+    UploadUi(g_frame);
     // The sun's shadow map, once a frame before its first pass (the classic option: none).
     if (!g_frame.shadow.prepared) {
         perf::CpuTimer shadowTime(perf::Cpu::Shadow);
@@ -487,7 +490,6 @@ bool DrawPending() {
         k = stop;
     } while (k < end);
     g_drawnCommands = end;
-    CanvasBlitsDrawn();
     return true;
 }
 
@@ -803,7 +805,10 @@ void Present() {
     g_frame.blitBatches.clear();
     g_frame.clears.clear();
     g_frame.fills.clear();
-    g_frame.canvasBatches.clear();
+    g_frame.uiVertices.clear();
+    g_frame.uiBatches.clear();
+    g_frame.pictureBatches.clear();
+    UiFrameDone();
     g_frame.commands.clear();
     g_frame.worldRanges.clear();
     g_frame.shadow.haveSun = false;

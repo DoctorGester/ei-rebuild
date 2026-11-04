@@ -1,0 +1,68 @@
+# P9: text stays sharp through window resizes. The interface is drawn each frame at the current size (no window
+# canvases stretched from their last copy), so the options window and its help page, captured at 800x600, then
+# after shrinking and growing the window several times (640x480, 1600x1200, 700x525, 1280x960) and back at 800x600,
+# are the same frame. Captures to look at: options, options_large, help, help_back (and the others at their sizes).
+resolution 800x600
+fullscreen 0
+timeout 60
+reject Script error
+waitmenu
+clickregion 3
+waitwindow 10 options
+move 400 20
+frames 5
+freeze
+capture options
+unfreeze
+
+windowsize 640 480
+waitpresent 10
+frames 5
+windowsize 1600 1200
+waitpresent 10
+frames 5
+freeze
+capture options_large
+unfreeze
+windowsize 700 525
+waitpresent 10
+frames 5
+windowsize 1280 960
+waitpresent 10
+frames 5
+windowsize 800 600
+waitpresent 10
+frames 5
+expectlog Resolution: 800x600 (was 1280x960)
+move 400 20
+frames 5
+freeze
+capture options_back
+unfreeze
+samecapture options options_back
+
+# The help page (wrapped text), resized the same way with it open.
+key h
+waitwindow 10 help
+move 400 20
+frames 10
+freeze
+capture help
+unfreeze
+windowsize 1600 1200
+waitpresent 10
+frames 5
+windowsize 640 480
+waitpresent 10
+frames 5
+windowsize 800 600
+waitpresent 10
+frames 5
+move 400 20
+frames 5
+freeze
+capture help_back
+unfreeze
+samecapture help help_back
+report
+quit

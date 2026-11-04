@@ -1,5 +1,5 @@
-// A rectangle of the frame (tex0) stretched over the canvas, nearest texel as CopyFrameTo picks it (ui_canvas.hlsli).
-#include "ui_canvas.hlsli"
+// A rectangle of the frame (tex0) stretched over a picture, nearest texel as CopyFrameTo picks it (ui_params.hlsli).
+#include "ui_params.hlsli"
 #ifdef EI_FRAGMENT
 Texture2D<float4> tex0 : FS_TEXTURE(0);
 SamplerState smp : FS_SAMPLER(0);

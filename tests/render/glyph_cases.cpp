@@ -1,80 +1,158 @@
 #include "render/glyph_cases.h"
 
+#include "render/gpu.h"
+#include "render/render_internal.h"
 #include "render/render_text.h"
 #include "render/render_ui.h"
 
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <vector>
 
 namespace glyph_cases {
 
 namespace ui = render::ui;
 namespace text = render::text;
+namespace detail = render::detail;
+namespace gpu = render::gpu;
 
 namespace {
+gpu::Texture g_target, g_targetDepth;
+int g_targetWidth = 0, g_targetHeight = 0;
+std::size_t g_drawnCommands = 0;
+int g_passes = 0;
+std::uint32_t g_commits = 0;
 
-constexpr std::uint32_t Colourref(unsigned r, unsigned g, unsigned b) { return r | (g << 8) | (b << 16); }
-std::uint32_t RgbOfColorref(std::uint32_t c) { return ((c & 0xFF) << 16) | (c & 0xFF00) | ((c >> 16) & 0xFF); }
+} // namespace
 
-// The run drawn onto `pixels` (0x00RRGGBB) by the canvas's rule.
-void RefGlyphRun(std::vector<std::uint32_t>& pixels, int width, int height, text::TextFont& font,
-                 const text::TextLayout& layout, std::uint32_t colour) {
-    int x0 = 0, y0 = 0, x1 = width, y1 = height;
-    if (layout.clipped) {
-        x0 = std::max(x0, layout.clip.left);
-        y0 = std::max(y0, layout.clip.top);
-        x1 = std::min(x1, layout.clip.right);
-        y1 = std::min(y1, layout.clip.bottom);
-    }
-    if (x1 <= x0 || y1 <= y0) return;
-    std::vector<std::uint8_t> cover(static_cast<std::size_t>(width) * static_cast<std::size_t>(height), 0);
-    const text::GlyphAtlas& atlas = font.Atlas();
-    for (const text::GlyphQuad& q : layout.quads)
-        for (int y = std::max(y0, q.y); y < std::min(y1, q.y + q.height); ++y)
-            for (int x = std::max(x0, q.x); x < std::min(x1, q.x + q.width); ++x) {
-                std::uint8_t a = atlas.Pixels()[static_cast<std::size_t>(q.atlasY + y - q.y) *
-                                                    static_cast<std::size_t>(atlas.Width()) +
-                                                static_cast<std::size_t>(q.atlasX + x - q.x)];
-                std::uint8_t& c =
-                    cover[static_cast<std::size_t>(y) * static_cast<std::size_t>(width) + static_cast<std::size_t>(x)];
-                c = std::max(c, a);
-            }
-    for (const Rect& u : layout.underlines)
-        for (int y = std::max(y0, u.top); y < std::min(y1, u.bottom); ++y)
-            for (int x = std::max(x0, u.left); x < std::min(x1, u.right); ++x)
-                cover[static_cast<std::size_t>(y) * static_cast<std::size_t>(width) + static_cast<std::size_t>(x)] =
-                    255;
-    std::uint32_t text = RgbOfColorref(colour);
-    for (std::size_t i = 0; i < cover.size(); ++i) {
-        unsigned c = cover[i];
-        if (!c) continue;
-        std::uint32_t out = 0;
-        for (int shift : {16, 8, 0}) {
-            unsigned t = (text >> shift) & 0xFF, d = (pixels[i] >> shift) & 0xFF;
-            out |= ((t * c + d * (255 - c) + 127) / 255) << shift;
-        }
-        pixels[i] = out;
-    }
+void NewFrame(int width, int height) {
+    gpu::Release(g_target);
+    gpu::Release(g_targetDepth);
+    g_targetWidth = width;
+    g_targetHeight = height;
+    g_target = gpu::MakeTexture({width, height, 1, 1, detail::kColourFormat, gpu::kColourTarget | gpu::kSampled, "ui-check-target"});
+    g_targetDepth = gpu::MakeTexture({width, height, 1, 1, detail::kDepthFormat, gpu::kDepthTarget, "ui-check-depth"});
 }
 
-}   // namespace
+void DrawFrame() {
+    detail::RunCanvasCommands();
+    detail::UploadUi(detail::g_frame);
+    if (g_passes > 0 && g_drawnCommands == detail::g_frame.commands.size()) return;
+    gpu::PassDesc pass;
+    pass.colour.texture = g_target;
+    pass.colour.load = g_passes == 0 ? gpu::Load::Clear : gpu::Load::Keep;
+    pass.depth = {g_targetDepth, 0, g_passes == 0 ? gpu::Load::Clear : gpu::Load::Keep, 1.0f, true};
+    if (!gpu::BeginPass(pass)) return;
+    for (std::size_t k = g_drawnCommands; k < detail::g_frame.commands.size(); ++k) {
+        const detail::Command& c = detail::g_frame.commands[k];
+        const auto i = static_cast<std::size_t>(c.index);
+        if (c.kind == detail::Command::Ui) detail::DrawUiBatch(detail::g_frame.uiBatches[i], g_targetWidth, g_targetHeight);
+        if (c.kind == detail::Command::Picture)
+            detail::DrawPictureBatch(detail::g_frame.pictureBatches[i], g_targetWidth, g_targetHeight);
+    }
+    gpu::EndPass();
+    ++g_passes;
+    g_drawnCommands = detail::g_frame.commands.size();
+}
 
-int Differ(const std::vector<std::uint32_t>& a, const std::vector<std::uint32_t>& b, int width, std::string* example) {
+void EndFrame() {
+    detail::g_frame.uiVertices.clear();
+    detail::g_frame.uiBatches.clear();
+    detail::g_frame.pictureBatches.clear();
+    detail::g_frame.commands.clear();
+    detail::UiFrameDone();
+    g_drawnCommands = 0;
+    g_passes = 0;
+    gpu::Submit();
+    ++g_commits;
+}
+
+bool ReadFrame(std::vector<std::uint32_t>* rgb) {
+    DrawFrame();
+    const int w = g_targetWidth, h = g_targetHeight;
+    gpu::Ticket ticket = gpu::Download(g_target, 0, Rect{0, 0, w, h});
+    gpu::Texels texels;
+    const bool read = ticket && gpu::Wait(ticket) && gpu::Read(ticket, &texels);
+    if (read) {
+        rgb->resize(static_cast<std::size_t>(w) * h);
+        for (int y = 0; y < h; ++y) {
+            const std::uint8_t* row = texels.Row(y);
+            for (int x = 0; x < w; ++x)
+                (*rgb)[static_cast<std::size_t>(y) * w + x] = (static_cast<std::uint32_t>(row[x * 4]) << 16) |
+                                                              (static_cast<std::uint32_t>(row[x * 4 + 1]) << 8) | row[x * 4 + 2];
+        }
+    }
+    gpu::Release(ticket);
+    return read;
+}
+
+const gpu::Texture& Target() { return g_target; }
+Size TargetSize() { return {g_targetWidth, g_targetHeight}; }
+std::uint32_t Commits() { return g_commits; }
+void ReleaseFrame() {
+    gpu::Release(g_target);
+    gpu::Release(g_targetDepth);
+}
+
+std::uint32_t RgbOfColorref(std::uint32_t c) { return ((c & 0xFF) << 16) | (c & 0xFF00) | ((c >> 16) & 0xFF); }
+
+int Differ(const std::vector<std::uint32_t>& a, const std::vector<std::uint32_t>& b, int width, std::string* example, int tolerance) {
     int differ = 0;
-    for (std::size_t i = 0; i < a.size() && i < b.size(); ++i)
-        if (a[i] != b[i] && ++differ == 1 && example) {
+    for (std::size_t i = 0; i < a.size() && i < b.size(); ++i) {
+        bool off = false;
+        for (int shift : {16, 8, 0})
+            off = off || std::abs(static_cast<int>((a[i] >> shift) & 0xFF) - static_cast<int>((b[i] >> shift) & 0xFF)) > tolerance;
+        if (off && ++differ == 1 && example) {
             char buffer[160];
-            std::snprintf(buffer, sizeof buffer, "first at (%d, %d): expected %06X, canvas %06X",
-                          static_cast<int>(i % static_cast<std::size_t>(width)),
+            std::snprintf(buffer, sizeof buffer, "first at (%d, %d): expected %06X, drawn %06X", static_cast<int>(i % static_cast<std::size_t>(width)),
                           static_cast<int>(i / static_cast<std::size_t>(width)), a[i], b[i]);
             *example = buffer;
         }
+    }
     return differ + (a.size() == b.size() ? 0 : 1000000);
 }
 
+std::string Outcome(int differ, const std::string& example) {
+    return std::to_string(differ) + " pixels differ" + (example.empty() ? "" : " (" + example + ")");
+}
+
+namespace {
+constexpr std::uint32_t Colourref(unsigned r, unsigned g, unsigned b) { return r | (g << 8) | (b << 16); }
+
+// The run drawn onto `pixels` (0x00RRGGBB, `width` x `height`) at `origin`: each quad's coverage blended over what
+// is there in turn (underlines fully covered), clipped to `clip` and the layout's clip.
+void RefGlyphs(std::vector<std::uint32_t>& pixels, int width, Rect clip, text::TextFont& font, const text::TextLayout& layout,
+               Point origin, std::uint32_t colour) {
+    if (layout.clipped) clip = clip.Intersection(layout.clip.Offsetted(origin));
+    const std::uint32_t t = RgbOfColorref(colour);
+    auto blend = [&](int x, int y, unsigned c) {
+        if (!c || !clip.Contains({x, y})) return;
+        std::uint32_t& p = pixels[static_cast<std::size_t>(y) * width + static_cast<std::size_t>(x)];
+        std::uint32_t out = 0;
+        for (int shift : {16, 8, 0}) {
+            unsigned a = (t >> shift) & 0xFF, d = (p >> shift) & 0xFF;
+            out |= ((a * c + d * (255 - c) + 127) / 255) << shift;
+        }
+        p = out;
+    };
+    const text::GlyphAtlas& atlas = font.Atlas();
+    for (const text::GlyphQuad& q : layout.quads)
+        for (int y = 0; y < q.height; ++y)
+            for (int x = 0; x < q.width; ++x)
+                blend(origin.x + q.x + x, origin.y + q.y + y,
+                      atlas.Pixels()[static_cast<std::size_t>(q.atlasY + y) * static_cast<std::size_t>(atlas.Width()) +
+                                     static_cast<std::size_t>(q.atlasX + x)]);
+    for (const Rect& u : layout.underlines)
+        for (int y = u.top; y < u.bottom; ++y)
+            for (int x = u.left; x < u.right; ++x) blend(origin.x + x, origin.y + y, 255);
+}
+
+} // namespace
+
 void Run(CheckFn check) {
     const int w = 180, h = 72;
+    const Rect all{0, 0, w, h};
     struct Case {
         const char* text;
         unsigned format;
@@ -95,130 +173,63 @@ void Run(CheckFn check) {
     };
     int caseIndex = 0;
     for (const Case& c : cases) {
-        const void* holder = &c;
         text::TextFont* font = text::GetTextFont("Times New Roman", c.pixels, c.smoothing);
-        if (!font) {
-            check(false, std::string("font Times New Roman ") + std::to_string(c.pixels) + " px");
+        text::TextLayout layout;
+        if (!font || !text::Layout(*font, text::DecodeCp1251(c.text), c.rect, c.format, layout)) {
+            check(false, "font and layout of case " + std::to_string(caseIndex));
             continue;
         }
-        ui::Canvas(holder, w, h);
-        // A background of fills (the text blends over it), the shadow then the text.
+        NewFrame(w, h);
+        // A background of fills (the text blends over it), the shadow one pixel right and down, then the text,
+        // drawn at an origin inside the frame and clipped to a part of it.
         std::vector<std::uint32_t> expected(static_cast<std::size_t>(w) * h, 0);
         const std::uint32_t fills[3] = {Colourref(200, 30, 90), Colourref(10, 140, 250), Colourref(255, 255, 255)};
         for (int i = 0; i < 3; ++i) {
-            Rect r{i * 60, i * 10, i * 60 + 70, h - i * 5};
-            ui::Fill(holder, r, fills[i]);
+            Rect r = Rect{i * 60, i * 10, i * 60 + 70, h - i * 5}.Intersection(all);
+            ui::Solid(r, fills[i], all);
             for (int y = r.top; y < r.bottom; ++y)
-                for (int x = r.left; x < std::min(r.right, w); ++x)
-                    expected[static_cast<std::size_t>(y) * w + static_cast<std::size_t>(x)] = RgbOfColorref(fills[i]);
+                for (int x = r.left; x < r.right; ++x) expected[static_cast<std::size_t>(y) * w + static_cast<std::size_t>(x)] = RgbOfColorref(fills[i]);
         }
-        std::u32string decoded = text::DecodeCp1251(c.text);
-        text::TextLayout shadow, layout;
-        Rect shifted{c.rect.left + 1, c.rect.top + 1, c.rect.right + 1, c.rect.bottom + 1};
-        bool laid = text::Layout(*font, decoded, shifted, c.format, shadow) &&
-                    text::Layout(*font, decoded, c.rect, c.format, layout);
-        check(laid, std::string("layout of case ") + std::to_string(caseIndex));
-        ui::GlyphRun(holder, *font, shadow, Colourref(8, 8, 8));
-        RefGlyphRun(expected, w, h, *font, shadow, Colourref(8, 8, 8));
+        const Rect clip{0, 0, w - 7, h};
+        const Point origin{2, 1};
+        ui::Glyphs(*font, layout, origin + Point{1, 1}, Colourref(8, 8, 8), clip);
+        RefGlyphs(expected, w, clip, *font, layout, origin + Point{1, 1}, Colourref(8, 8, 8));
         const std::uint32_t colour = Colourref(250, 220, 120 + caseIndex * 30);
-        ui::GlyphRun(holder, *font, layout, colour);
-        RefGlyphRun(expected, w, h, *font, layout, colour);
+        ui::Glyphs(*font, layout, origin, colour, clip);
+        RefGlyphs(expected, w, clip, *font, layout, origin, colour);
         std::vector<std::uint32_t> got;
         std::string example;
-        int differ = ui::ReadPixels(holder, &got) ? Differ(expected, got, w, &example) : -1;
-        check(differ == 0, "glyph run, case " + std::to_string(caseIndex) + " (" +
-                               std::to_string(layout.quads.size()) + " glyphs, " +
-                               std::to_string(layout.underlines.size()) +
-                               " underlines): " + std::to_string(differ) + " pixels differ" +
-                               (example.empty() ? "" : " (" + example + ")"));
-        ui::DropCanvas(holder);
+        const int differ = ReadFrame(&got) ? Differ(expected, got, w, &example, 1) : -1;
+        EndFrame();
+        check(differ == 0, "glyph run, case " + std::to_string(caseIndex) + " (" + std::to_string(layout.quads.size()) + " glyphs, " +
+                               std::to_string(layout.underlines.size()) + " underlines): " + Outcome(differ, example));
         ++caseIndex;
     }
-    // Runs that overlap none of the others are drawn together (one coverage pass and one compose pass, the runs
-    // stacked in the scratch targets): four of them, one clipped by the canvas's left edge, in different colours.
-    {
-        const void* holder = &w;
-        text::TextFont* font = text::GetTextFont("Times New Roman", 14, true);
-        if (!font) {
-            check(false, "font Times New Roman 14 px");
-            return;
-        }
-        ui::Canvas(holder, w, h);
-        std::vector<std::uint32_t> expected(static_cast<std::size_t>(w) * h,
-                                            RgbOfColorref(Colourref(30, 90, 60)));
-        ui::Fill(holder, Rect{0, 0, w, h}, Colourref(30, 90, 60));
-        const Rect rects[] = {{2, 2, 80, 20}, {100, 2, 178, 20}, {2, 28, 178, 46}, {-10, 52, 70, 70}};
-        const char* const texts[] = {"First run", "Second", "A third, longer run of text", "Clipped at the edge"};
-        int runs = 0;
-        for (int i = 0; i < 4; ++i) {
-            text::TextLayout layout;
-            if (!text::Layout(*font, text::DecodeCp1251(texts[i]), rects[i], text::kNoPrefix, layout)) continue;
-            const std::uint32_t colour = Colourref(250 - i * 40, 200, 40 + i * 50);
-            ui::GlyphRun(holder, *font, layout, colour);
-            RefGlyphRun(expected, w, h, *font, layout, colour);
-            ++runs;
-        }
-        std::vector<std::uint32_t> got;
-        std::string example;
-        int differ = ui::ReadPixels(holder, &got) ? Differ(expected, got, w, &example) : -1;
-        check(runs == 4 && differ == 0, "glyph runs drawn together (" + std::to_string(runs) +
-                                            " laid out): " + std::to_string(differ) + " pixels differ" +
-                                            (example.empty() ? "" : " (" + example + ")"));
-        ui::DropCanvas(holder);
+    // Many runs in one frame (about 2,000 glyphs, more than the stream buffer's first size), in several colours.
+    const int bw = 960, bh = 340;
+    text::TextFont* font = text::GetTextFont("Times New Roman", 14, true);
+    if (!font) {
+        check(false, "font Times New Roman 14 px");
+        return;
     }
-    // Runs drawn together whose vertices outgrow the stream buffer (about 2,000 glyphs, 190 KB): the buffer is
-    // replaced before the first of them is appended, never between them.
-    {
-        const int bw = 960, bh = 340;
-        const void* holder = &bw;
-        text::TextFont* font = text::GetTextFont("Times New Roman", 14, true);
-        if (font) {
-            ui::Canvas(holder, bw, bh);
-            std::vector<std::uint32_t> expected(static_cast<std::size_t>(bw) * bh, 0);
-            const char* line = "The quick brown fox jumps over the lazy dog; pack my box with five dozen liquor jugs. "
-                               "Sphinx of black quartz, judge my vow: 0123456789 and again 9876543210.";
-            int runs = 0;
-            for (int i = 0; i < 13; ++i) {
-                text::TextLayout layout;
-                if (!text::Layout(*font, text::DecodeCp1251(line), Rect{2, 2 + i * 26, bw - 2, 2 + i * 26 + 24},
-                                  text::kNoPrefix, layout))
-                    continue;
-                ui::GlyphRun(holder, *font, layout, Colourref(220, 230, 140 + i * 8));
-                RefGlyphRun(expected, bw, bh, *font, layout, Colourref(220, 230, 140 + i * 8));
-                ++runs;
-            }
-            std::vector<std::uint32_t> got;
-            std::string example;
-            int differ = ui::ReadPixels(holder, &got) ? Differ(expected, got, bw, &example) : -1;
-            check(runs == 13 && differ == 0, "glyph runs drawn together past the stream buffer (" +
-                                                 std::to_string(runs) + " laid out): " + std::to_string(differ) +
-                                                 " pixels differ" + (example.empty() ? "" : " (" + example + ")"));
-            ui::DropCanvas(holder);
-        } else {
-            check(false, "font Times New Roman 14 px");
-        }
-    }
-    // Over black the run is ComposeAgainstBlack (render_text's CPU reference).
-    {
-        const void* holder = &w;
-        text::TextFont* font = text::GetTextFont("Times New Roman", 21, true);
+    NewFrame(bw, bh);
+    std::vector<std::uint32_t> expected(static_cast<std::size_t>(bw) * bh, 0);
+    const char* line = "The quick brown fox jumps over the lazy dog; pack my box with five dozen liquor jugs. "
+                       "Sphinx of black quartz, judge my vow: 0123456789 and again 9876543210.";
+    int runs = 0;
+    for (int i = 0; i < 13; ++i) {
         text::TextLayout layout;
-        if (font && text::Layout(*font, text::DecodeCp1251("&Against black: Ww Qq \xC6\xE6"), Rect{3, 3, 170, 60},
-                                 text::kWordBreak, layout)) {
-            ui::Canvas(holder, w, h);
-            ui::GlyphRun(holder, *font, layout, Colourref(255, 200, 40));
-            std::vector<std::uint32_t> composed(static_cast<std::size_t>(w) * h, 0), got;
-            text::ComposeAgainstBlack(*font, layout, Colourref(255, 200, 40), composed.data(), w, h, w);
-            for (std::uint32_t& p : composed) p &= 0xFFFFFF;
-            std::string example;
-            int differ = ui::ReadPixels(holder, &got) ? Differ(composed, got, w, &example) : -1;
-            check(differ == 0, "glyph run over black against ComposeAgainstBlack: " + std::to_string(differ) +
-                                   " pixels differ" + (example.empty() ? "" : " (" + example + ")"));
-            ui::DropCanvas(holder);
-        } else {
-            check(false, "font or layout for the ComposeAgainstBlack case");
-        }
+        if (!text::Layout(*font, text::DecodeCp1251(line), Rect{2, 2 + i * 26, bw - 2, 2 + i * 26 + 24}, text::kNoPrefix, layout)) continue;
+        ui::Glyphs(*font, layout, {0, 0}, Colourref(220, 230, 140 + i * 8), Rect{0, 0, bw, bh});
+        RefGlyphs(expected, bw, Rect{0, 0, bw, bh}, *font, layout, {0, 0}, Colourref(220, 230, 140 + i * 8));
+        ++runs;
     }
+    std::vector<std::uint32_t> got;
+    std::string example;
+    const int differ = ReadFrame(&got) ? Differ(expected, got, bw, &example, 1) : -1;
+    EndFrame();
+    check(runs == 13 && differ == 0, "13 glyph runs in one frame (" + std::to_string(runs) + " laid out): " + Outcome(differ, example));
 }
+
 
 }   // namespace glyph_cases

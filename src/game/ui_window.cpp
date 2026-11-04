@@ -170,10 +170,7 @@ void UiWindow::Redraw() {
     }
 }
 
-void UiWindow::SetEnabled(bool newEnabled, bool notify) {
-    enabled = newEnabled;
-    if (notify) Show(newEnabled);
-}
+void UiWindow::SetEnabled(bool newEnabled) { enabled = newEnabled; }
 
 void UiWindow::AddObject(Texture* texture) {
     if (!texture) return;
@@ -266,13 +263,6 @@ Texture* UiWindow::CreateTexture(int width, int height, TextureKind kind) {
     return texture;
 }
 
-void UiWindow::Show(bool show) {
-    for (int i = 0; i < std::ssize(surfaces); ++i) {
-        UiSurface* surface = surfaces[i];
-        if (!show || surface->Shown()) surface->SwapContents(show);
-    }
-}
-
 UiRegion* UiWindow::AddRegion() {
     auto* region = new UiRegion(ui);
     regions.push_back(region);
@@ -352,7 +342,6 @@ UiMesh* UiWindow::AddSceneObject(FigureMesh* object) {
 
 // --- The constructor ---------------------------------------------------------------------------------
 
-// The original's closing Show(true) reaches UiWindow's own (the surfaces' list is empty): left out.
 UiWindow::UiWindow(Interface3D* ui) : UiInputSide(ui) {
     localRotation = kIdentityRotation;
     worldRotation.SetIdentity();

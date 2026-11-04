@@ -1,9 +1,8 @@
 #pragma once
 
 // The game's surfaces and textures without DirectDraw (surface.cpp): the surface holder (Surface) and the pixel format.
-// No holder has memory: an interface window's pixels are its holder's canvas on the GPU (render_ui.h); a software
-// cursor picture's are the renderer's copy of the file's pixels (render::PictureFromMmp); a texture's are decoded from
-// its file or drawn on the GPU. See docs/notes/renderer.md, sections 6 and 7.
+// No holder has memory: a software cursor picture's pixels are the renderer's copy of the file's pixels
+// (render::PictureFromMmp); a texture's are decoded from its file or drawn on the GPU. See docs/notes/renderer.md, sections 6 and 7.
 
 #include "renderer_base.h"
 #include "render/render.h"
@@ -30,14 +29,11 @@ struct ChannelLayout {
     std::uint32_t FromNative(std::uint32_t pixel) const;
 };
 
-// A surface or texture holder, counted: the interface windows' and the software cursor's surfaces, the textures. Its
-// pixels are its canvas, the picture the renderer kept for it, or the texture the renderer decoded for it.
+// A surface or texture holder, counted: the software cursor's surfaces, the textures. Its pixels are the picture the
+// renderer kept for it or the texture the renderer decoded for it.
 struct Surface final : RendererBase {
     // No pixels yet; the maker sets the size.
     explicit Surface(TextureDevice* device);
-    // `width` x `height` pixels in the screen's format, without memory (an interface window's pixels are its canvas,
-    // UiSurface::MakeCanvas). Throws the game's error object for an empty size.
-    Surface(TextureDevice* device, int width, int height);
     // An 8888 .mmp picture (the software cursor's images): its size in the screen's format, the renderer keeping the
     // picture's pixels. Throws the game's error object when the picture cannot be loaded.
     Surface(TextureDevice* device, const MmpHeader* picture);
