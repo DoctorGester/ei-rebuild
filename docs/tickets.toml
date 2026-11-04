@@ -7419,6 +7419,13 @@ depends = ["R17c1"]
 note = "From R17c1 (not done there): on Rebirth's zone1 at 1440x1080 lookat cannot aim the camera. Calibration (minimap clicks with 60 frames between, groundview after each): the hero starts at about (42, 138) near the map's west edge with the camera turned 90 degrees (screen right = world +y), the minimap's circle centre is about layout (701, 72) and north-up, but clicks move the camera erratically (20 px right: +48 x; 20 px left and up: nothing; the camera turns again after a click), so the 'rebirth minimap 726 80.6 3.75 2.7' numbers (made at 800x600) do not hold at 1440x1080 and the swamp views land at the map's edge. Wanted: a harness step that places the camera at a map point directly (camera.cpp's target / view, no minimap), then Rebirth's own swamp coordinates in render_water_looks (find them from the map's water materials: WaterKind 1). Also confirm R17c's note: where a swamp meets the sea the ground's swamp-depth attribute blends with -1 under the water (hidden by the opaque water?)."
 
 [[ticket]]
+id = "R52a"
+title = "Ground prints follow the time of day"
+group = "renderer"
+depends = ["R52"]
+note = "R52 found: a print's colour is unlit (blood keeps the sun colour of the moment it was made, footprints are white), so prints made by day stay bright red / white on the ground at night (render_shadows_decals' night frame). The shadows now darken them (mesh.hlsl ground_shade); light them as the ground under them is lit (ground_light's light over a daylight reference), keeping the game's look by day."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
