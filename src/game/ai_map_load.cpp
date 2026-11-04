@@ -419,7 +419,7 @@ void AIMap::AttachTerrain() {
     regionMap.Attach(this);
     events.Setup(this, static_cast<float>(cells.width) * kCellSize, static_cast<float>(cells.height) * kCellSize);
     sectorMap.Init(cells.width, cells.height, this);
-    QueueRefresh(0, cells.width - 1, 0, cells.height - 1);
+    QueueRefresh({0, 0}, {cells.width - 1, cells.height - 1});
 }
 
 int AIMap::Load(const char* path) {

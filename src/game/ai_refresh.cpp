@@ -82,32 +82,28 @@ int MaxStep(const std::vector<int>& table) {
 
 } // namespace
 
-void AIMap::RefreshArea(int x0, int x1, int y0, int y1) {
-    if (x0 > x1 || y0 > y1) return;
-    if (x0 < 0) x0 = 0;
-    if (y0 < 0) y0 = 0;
-    if (cells.width - 1 < x1) x1 = cells.width - 1;
-    if (cells.height - 1 < y1) y1 = cells.height - 1;
-    int ix0 = x0, ix1 = x1, iy0 = y0, iy1 = y1;
-    int ox0 = x0 - 3, ox1 = x1 + 3, oy0 = y0 - 3, oy1 = y1 + 3;
-    if (ox0 < 0) ox0 = 0;
-    if (oy0 < 0) oy0 = 0;
-    if (cells.width - 1 < ox1) ox1 = cells.width - 1;
-    if (cells.height - 1 < oy1) oy1 = cells.height - 1;
+void AIMap::RefreshArea(Point first, Point last) {
+    if (first.x > last.x || first.y > last.y) return;
+    // The cells refreshed, and the ones whose marks are measured (3 more each way); both clamped to the map.
+    const Point mapLast{cells.width - 1, cells.height - 1};
+    first = Max(first, Point{});
+    last = Min(last, mapLast);
+    const Point outerFirst = Max(first - Point{3, 3}, Point{});
+    const Point outerLast = Min(last + Point{3, 3}, mapLast);
 
     CellMarkState scratch;
     for (int level = 0; level < kLevels; ++level) {
         float h = kLevelHeights[level] * heightScale;
         int levelHeight = lib::RoundEven(h);
-        for (int y = oy0; y <= oy1; ++y)
-            for (int x = ox0; x <= ox1; ++x) {
+        for (int y = outerFirst.y; y <= outerLast.y; ++y)
+            for (int x = outerFirst.x; x <= outerLast.x; ++x) {
                 std::int8_t* row = marks[y];
                 row[x] = static_cast<std::int8_t>(CellMark(&scratch, level, levelHeight, {x, y}));
             }
         int shift = level * 4;
         std::uint32_t keep = ~(0xFu << shift);
-        for (int y = iy0; y <= iy1; ++y)
-            for (int x = ix0; x <= ix1; ++x) {
+        for (int y = first.y; y <= last.y; ++y)
+            for (int x = first.x; x <= last.x; ++x) {
                 CellWord(this, x, y) &= keep;
                 int mark = marks[y][x];
                 CellWord(this, x, y) |= static_cast<std::uint32_t>(mark << shift);
@@ -115,13 +111,13 @@ void AIMap::RefreshArea(int x0, int x1, int y0, int y1) {
         const std::vector<AreaOffset>& areas = areaLists[AreaList(level)];
         for (int i = 0; i < std::ssize(areas); ++i) {
             const AreaOffset& entry = areas[i];
-            ClearUnmarkedArea(level, entry.dx, entry.dy, ix0, ix1, iy0, iy1);
+            ClearUnmarkedArea(level, {entry.dx, entry.dy}, first, last);
         }
     }
-    LimitSteepCells(ix0, ix1, iy0, iy1);
+    LimitSteepCells(first, last);
 
     // The three outermost rows and columns are never passable.
-    for (int x = ox0; x <= ox1; ++x) {
+    for (int x = outerFirst.x; x <= outerLast.x; ++x) {
         CellWord(this, x, 0) = 0;
         CellWord(this, x, cells.height - 1) = 0;
         CellWord(this, x, 1) = 0;
@@ -129,7 +125,7 @@ void AIMap::RefreshArea(int x0, int x1, int y0, int y1) {
         CellWord(this, x, 2) = 0;
         CellWord(this, x, cells.height - 3) = 0;
     }
-    for (int y = oy0; y <= oy1; ++y) {
+    for (int y = outerFirst.y; y <= outerLast.y; ++y) {
         CellWord(this, 0, y) = 0;
         CellWord(this, cells.width - 1, y) = 0;
         CellWord(this, 1, y) = 0;
@@ -139,21 +135,21 @@ void AIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     }
 
     if (!refreshUnits) return;
-    int bx0 = ox0 / 8 - 1, by0 = oy0 / 8 - 1;
-    int bx1 = ox1 / 8 + 1, by1 = oy1 / 8 + 1;
-    float halfW = static_cast<float>(ox1 - ox0) * 0.5f + 1.0f;
-    float halfH = static_cast<float>(oy1 - oy0) * 0.5f + 1.0f;
+    // The blocks from the one before the area's first to the one after its last (right and bottom outside).
+    const Rect blocks = Rect::FromCorners(outerFirst / 8 - Point{1, 1}, outerLast / 8 + Point{1, 1});
+    float halfW = static_cast<float>(outerLast.x - outerFirst.x) * 0.5f + 1.0f;
+    float halfH = static_cast<float>(outerLast.y - outerFirst.y) * 0.5f + 1.0f;
     float scale = 0.5f;
     float radius = std::sqrt(halfW * halfW + halfH * halfH) * scale;
     Vector3 centre;   // x and y (FindUnitsInRadius reads no more)
-    float cx = static_cast<float>(ox0 + ox1) * scale * 0.5f;
-    float cy = static_cast<float>(oy0 + oy1) * scale * 0.5f;
+    float cx = static_cast<float>(outerFirst.x + outerLast.x) * scale * 0.5f;
+    float cy = static_cast<float>(outerFirst.y + outerLast.y) * scale * 0.5f;
     centre.x = cx;
     centre.y = cy;
     SectorMap* sectors = &sectorMap;
     std::vector<Unit*> objects = sectors->FindUnitsInRadius(centre, radius);
     for (Unit* object : objects) sectors->Remove(object);
-    regionMap.UpdateBlocksFor(this, bx0, bx1, by0, by1);
+    regionMap.UpdateBlocks(this, blocks);
     for (Unit* object : objects) sectors->Add(object);
 }
 
@@ -232,16 +228,14 @@ std::uint32_t AIMap::CellMark(CellMarkState* s, int level, int levelHeight, Poin
     return worlddata::kMarkTable[row * 16 + column];
 }
 
-void AIMap::LimitSteepCells(int x0, int x1, int y0, int y1) {
-    if (x0 < 2) x0 = 2;
-    if (y0 < 2) y0 = 2;
-    if (cells.width - 3 < x1) x1 = cells.width - 3;
-    if (cells.height - 3 < y1) y1 = cells.height - 3;
+void AIMap::LimitSteepCells(Point first, Point last) {
+    first = Max(first, Point{2, 2});
+    last = Min(last, Point{cells.width - 3, cells.height - 3});
     int maxLarge = MaxStep(climbLarge);
     int maxSmall = MaxStep(climbSmall);
     const CellOffset* offsets = kSteepOffsets;
-    for (int y = y0; y <= y1; ++y)
-        for (int x = x0; x <= x1; ++x) {
+    for (int y = first.y; y <= last.y; ++y)
+        for (int x = first.x; x <= last.x; ++x) {
             int here = cells[y][x].groundLevel;
             int steepest = 0;
             int k = 0;
@@ -265,14 +259,12 @@ void AIMap::LimitSteepCells(int x0, int x1, int y0, int y1) {
         }
 }
 
-void AIMap::ClearUnmarkedArea(int level, int dx, int dy, int x0, int x1, int y0, int y1) {
-    if (-dx > x0) x0 = -dx;
-    if (-dy > y0) y0 = -dy;
-    if (cells.width - dx - 1 < x1) x1 = cells.width - dx - 1;
-    if (cells.height - dy - 1 < y1) y1 = cells.height - dy - 1;
+void AIMap::ClearUnmarkedArea(int level, Point offset, Point first, Point last) {
+    first = Max(first, -offset);
+    last = Min(last, Point{cells.width - offset.x - 1, cells.height - offset.y - 1});
     // The shift count is masked to 5 bits, as the original's shift does.
     std::uint32_t keep = ~(0xFu << ((level * 4) & 31));
-    for (int y = y0; y <= y1; ++y)
-        for (int x = x0; x <= x1; ++x)
-            if (marks[y + dy][x + dx] == 0) cells[y][x].passable &= keep;
+    for (int y = first.y; y <= last.y; ++y)
+        for (int x = first.x; x <= last.x; ++x)
+            if (marks[y + offset.y][x + offset.x] == 0) cells[y][x].passable &= keep;
 }

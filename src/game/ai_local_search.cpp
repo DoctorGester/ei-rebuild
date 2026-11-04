@@ -18,6 +18,8 @@ constexpr int kDiagonal = 0x5A8;
 
 SearchNode* NodeAt(LocalSearch* search, int wx, int wy) { return search->nodes[wy] + wx; }
 
+bool InWindow(Point window) { return window.x >= 0 && window.x < kWindow && window.y >= 0 && window.y < kWindow; }
+
 void ResetNode(SearchNode* node) {
     node->cost = kUnreached;
     node->next = nullptr;
@@ -34,17 +36,17 @@ int CdqAbs(int v) {
     return static_cast<int>((u ^ sign) - sign);
 }
 
-// The window's map rows: cellRows[i] = &map cell (originX, originY + i) for the rows on the map.
+// The window's map rows: cellRows[i] = &map cell origin + (0, i) for the rows on the map.
 void FillCellRows(LocalSearch* search) {
     for (int i = 0; i < kWindow; ++i) {
-        int row = search->originY + i;
-        if (row >= 0 && row < search->map->cells.height) search->cellRows[i] = search->map->cells[row] + search->originX;
+        int row = search->origin.y + i;
+        if (row >= 0 && row < search->map->cells.height) search->cellRows[i] = search->map->cells[row] + search->origin.x;
     }
 }
 
-// Window cell (wx, wy) becomes the start: cost 0, settled, nothing queued; the search is active.
-void Start(LocalSearch* search, int wx, int wy) {
-    SearchNode* start = NodeAt(search, wx, wy);
+// Window cell `window` becomes the start: cost 0, settled, nothing queued; the search is active.
+void Start(LocalSearch* search, Point window) {
+    SearchNode* start = &search->nodes[window];
     search->current = start;
     start->cost = 0;
     start->direction = 0;
@@ -60,11 +62,11 @@ struct WindowRange {
 };
 WindowRange OnMapRange(const LocalSearch* search) {
     WindowRange r;
-    r.x0 = -search->originX > 0 ? -search->originX : 1;
-    r.y0 = -search->originY > 0 ? -search->originY : 1;
-    r.x1 = search->map->cells.width - search->originX - 1;
+    r.x0 = -search->origin.x > 0 ? -search->origin.x : 1;
+    r.y0 = -search->origin.y > 0 ? -search->origin.y : 1;
+    r.x1 = search->map->cells.width - search->origin.x - 1;
     if (r.x1 > 32) r.x1 = 32;
-    r.y1 = search->map->cells.height - search->originY - 1;
+    r.y1 = search->map->cells.height - search->origin.y - 1;
     if (r.y1 > 32) r.y1 = 32;
     return r;
 }
@@ -128,20 +130,18 @@ void LocalSearch::Requeue(SearchNode* node, int cost) {
     node->prev = after;
 }
 
-void LocalSearch::Best(int* x, int* y, int* cost) {
+void LocalSearch::Best(Point* cell, int* cost) {
     *cost = kUnreached;
     if (!current) return;
-    *x = current->x + originX;
-    *y = current->y + originY;
+    *cell = Point{current->x, current->y} + origin;
     *cost = current->cost;
 }
 
-int LocalSearch::CostAt(int x, int y) {
-    int wx = x - originX;
-    int wy = y - originY;
-    if (wx < 0 || wx >= kWindow || wy < 0 || wy >= kWindow) return kUnreached;
-    const SearchNode* node = NodeAt(this, wx, wy);
-    return node->settled ? node->cost : kUnreached;
+int LocalSearch::CostAt(Point cell) {
+    const Point window = cell - origin;
+    if (!InWindow(window)) return kUnreached;
+    const SearchNode& node = nodes[window];
+    return node.settled ? node.cost : kUnreached;
 }
 
 int LocalSearch::StepCost(const SearchNode* node, int factor) {
@@ -200,54 +200,38 @@ void LocalSearch::ExpandAll() {
     while (current) Expand();
 }
 
-bool LocalSearch::ExpandUntil(int x, int y) {
+bool LocalSearch::ExpandUntil(Point cell) {
     if (!active) return false;
-    // The row pointer is formed without a bounds check; it is only compared.
-    const SearchNode* target = nodes[y - originY] + (x - originX);
+    // The node's address is formed without a bounds check; it is only compared.
+    const SearchNode* target = &nodes[cell - origin];
     while (current && current != target) Expand();
     return current != nullptr;
 }
 
-void LocalSearch::PathTo(int x, int y, PathCells* out) {
+void LocalSearch::PathTo(Point cell, PathCells* out) {
     out->clear();
-    int wx = x - originX;
-    int wy = y - originY;
-    if (wx < 0 || wx >= kWindow || wy < 0 || wy >= kWindow) return;
-    auto cellAt = [&](int cx, int cy) {
-        return PathCell{static_cast<std::int16_t>(originX + cx), static_cast<std::int16_t>(originY + cy),
+    Point window = cell - origin;
+    if (!InWindow(window)) return;
+    auto cellAt = [&](Point at) {
+        return PathCell{static_cast<std::int16_t>(origin.x + at.x), static_cast<std::int16_t>(origin.y + at.y),
                         kPlainStepSpeed, 0};
     };
-    // Walk back along the directions, then turn the cells round: the start first.
+    // Walk back along the directions (kDirectionDx / Dy), then turn the cells round: the start first.
     for (;;) {
-        std::int8_t direction = NodeAt(this, wx, wy)->direction;
+        std::int8_t direction = nodes[window].direction;
         if (!direction) break;
-        out->push_back(cellAt(wx, wy));
-        switch (direction) {
-        case 1: --wy; break;
-        case 2: --wy; --wx; break;
-        case 3: --wx; break;
-        case 4: ++wy; --wx; break;
-        case 5: ++wy; break;
-        case 6: ++wy; ++wx; break;
-        case 7: ++wx; break;
-        case 8: --wy; ++wx; break;
-        default: break;
-        }
+        out->push_back(cellAt(window));
+        if (direction >= 1 && direction <= 8) window += Point{kDirectionDx[direction], kDirectionDy[direction]};
     }
-    out->push_back(cellAt(wx, wy));
+    out->push_back(cellAt(window));
     std::ranges::reverse(*out);
 }
 
-bool LocalSearch::PlaceWindow(int x0, int y0, int x1, int y1) {
-    if (CdqAbs(x0 - x1) >= 32 || CdqAbs(y0 - y1) >= 32) return false;
-    if (x0 < 0 || x0 >= map->cells.width || x1 < 0 || x1 >= map->cells.width) return false;
-    if (y0 < 0 || y0 >= map->cells.height || y1 < 0 || y1 >= map->cells.height) return false;
-    int ox = (x0 + x1) / 2 - 16;
-    int oy = (y0 + y1) / 2 - 16;
-    int minX = x1 <= x0 ? x1 : x0;
-    int minY = y1 <= y0 ? y1 : y0;
-    originX = minX - 1 <= ox ? minX - 1 : ox;
-    originY = minY - 1 <= oy ? minY - 1 : oy;
+bool LocalSearch::PlaceWindow(Point a, Point b) {
+    if (CdqAbs(a.x - b.x) >= 32 || CdqAbs(a.y - b.y) >= 32) return false;
+    if (!map->InBounds(a) || !map->InBounds(b)) return false;
+    const Point centred = (a + b) / 2 - Point{16, 16};
+    origin = Min(Min(b, a) - Point{1, 1}, centred);
     return true;
 }
 
@@ -257,21 +241,20 @@ void LocalSearch::SetUnit(Unit* unit) {
     level = static_cast<std::uint8_t>(StandingLevel(unit));
 }
 
-bool LocalSearch::Begin(Unit* unit, int x0, int y0, int x1, int y1) {
+bool LocalSearch::Begin(Unit* unit, Point from, Point to) {
     SetUnit(unit);
-    if (!PlaceWindow(x0, y0, x1, y1)) return false;
+    if (!PlaceWindow(from, to)) return false;
     FillCellRows(this);
-    Start(this, x0 - originX, y0 - originY);
+    Start(this, from - origin);
     return true;
 }
 
-bool LocalSearch::BeginInRect(int x0, int y0, int x1, int y1, int sx, int sy) {
-    int dx = CdqAbs(x1 - x0);
-    int dy = CdqAbs(y1 - y0);
+bool LocalSearch::BeginInRect(Point first, Point last, Point start) {
+    int dx = CdqAbs(last.x - first.x);
+    int dy = CdqAbs(last.y - first.y);
     if (dx + 4 > 32 || dy + 4 > 32) return false;
-    if (sx < x0 || sx > x1 || sy < y0 || sy > y1) return false;
-    originX = (x1 < x0 ? x1 : x0) - 1;
-    originY = (y1 < y0 ? y1 : y0) - 1;
+    if (start.x < first.x || start.x > last.x || start.y < first.y || start.y > last.y) return false;
+    origin = Min(last, first) - Point{1, 1};
     // Fence the rectangle: the row below it and the column right of it join the settled list,
     // unusable (row 0 and column 0 are the window's border).
     for (int i = 1; i <= dx + 1; ++i) {
@@ -287,15 +270,15 @@ bool LocalSearch::BeginInRect(int x0, int y0, int x1, int y1, int sx, int sy) {
         settledList = node;
     }
     FillCellRows(this);
-    Start(this, sx - originX, sy - originY);
+    Start(this, start - origin);
     return true;
 }
 
-bool LocalSearch::BeginInRectForClass(int sizeClassArg, int x0, int y0, int x1, int y1, int sx, int sy) {
+bool LocalSearch::BeginInRectForClass(int sizeClassArg, Point first, Point last, Point start) {
     map->CostContext(sizeClassArg, &costs);
     sizeClass = sizeClassArg;
     level = static_cast<std::uint8_t>(LevelForSizeClass(sizeClassArg));
-    return BeginInRect(x0, y0, x1, y1, sx, sy);
+    return BeginInRect(first, last, start);
 }
 
 void LocalSearch::CommitDirections() {
@@ -304,7 +287,7 @@ void LocalSearch::CommitDirections() {
         for (int wx = r.x0; wx <= r.x1; ++wx) {
             const SearchNode* node = NodeAt(this, wx, wy);
             if (node->cost >= kUnreached) continue;
-            std::int8_t& mark = map->marks[originY + wy][originX + wx];
+            std::int8_t& mark = map->marks[origin.y + wy][origin.x + wx];
             if (mark == 0) mark = node->direction;
         }
     }
@@ -314,10 +297,10 @@ void LocalSearch::SaveLevels() {
     levels.Resize(kWindow, kWindow);
     WindowRange r = OnMapRange(this);
     for (int wy = r.y0; wy <= r.y1; ++wy) {
-        for (int wx = r.x0; wx <= r.x1; ++wx) levels[wy][wx] = map->cells[originY + wy][originX + wx].level;
+        for (int wx = r.x0; wx <= r.x1; ++wx) levels[wy][wx] = map->cells[origin.y + wy][origin.x + wx].level;
     }
     for (int wy = r.y0; wy <= r.y1; ++wy) {
-        for (int wx = r.x0; wx <= r.x1; ++wx) map->cells[originY + wy][originX + wx].level = 0;
+        for (int wx = r.x0; wx <= r.x1; ++wx) map->cells[origin.y + wy][origin.x + wx].level = 0;
     }
     levelsSaved = true;
 }
@@ -325,7 +308,7 @@ void LocalSearch::SaveLevels() {
 void LocalSearch::RestoreLevels() {
     WindowRange r = OnMapRange(this);
     for (int wy = r.y0; wy <= r.y1; ++wy) {
-        for (int wx = r.x0; wx <= r.x1; ++wx) map->cells[originY + wy][originX + wx].level = levels[wy][wx];
+        for (int wx = r.x0; wx <= r.x1; ++wx) map->cells[origin.y + wy][origin.x + wx].level = levels[wy][wx];
     }
     levelsSaved = false;
 }
@@ -366,34 +349,33 @@ void LocalSearch::Attach(AIMap* mapArg, bool backwardArg) {
     active = false;
 }
 
-bool LocalSearch::Recenter(int x0, int y0, int x1, int y1, bool settleInside) {
-    int oldX = originX, oldY = originY;
-    if (!PlaceWindow(x0, y0, x1, y1)) return false;
+bool LocalSearch::Recenter(Point from, Point to, bool settleInside) {
+    const Point oldOrigin = origin;
+    if (!PlaceWindow(from, to)) return false;
     FillCellRows(this);
-    if (CdqAbs(originX - oldX) >= 31 || CdqAbs(originY - oldY) >= 31) {
+    const Point shift = origin - oldOrigin;
+    if (CdqAbs(shift.x) >= 31 || CdqAbs(shift.y) >= 31) {
         // Too far to shift the nodes: the window stays where they are.
-        originX = oldX;
-        originY = oldY;
+        origin = oldOrigin;
         FillCellRows(this);
         return false;
     }
     const SearchGrid<SearchNode> old = nodes;
-    int shiftX = originX - oldX, shiftY = originY - oldY;
     // Shift the nodes; remember the cheapest one kept on the old window's inner ring.
     int cheapestBorder = kUnreached;
     for (int wy = 1; wy <= 32; ++wy) {
-        int oy = shiftY + wy;
+        int oy = shift.y + wy;
         for (int wx = 1; wx <= 32; ++wx) {
-            int ox = shiftX + wx;
+            int ox = shift.x + wx;
             SearchNode* node = NodeAt(this, wx, wy);
             if (ox < 1 || oy < 1 || ox > 32 || oy > 32) {
                 node->cost = kUnreached;
                 node->settled = false;
                 node->direction = 0;
             } else {
-                const SearchNode& from = old[oy][ox];
-                if ((ox == 1 || ox == 32 || oy == 1 || oy == 32) && from.cost <= cheapestBorder) cheapestBorder = from.cost;
-                *node = from;
+                const SearchNode& kept = old[oy][ox];
+                if ((ox == 1 || ox == 32 || oy == 1 || oy == 32) && kept.cost <= cheapestBorder) cheapestBorder = kept.cost;
+                *node = kept;
                 node->x = static_cast<std::int16_t>(wx);
                 node->y = static_cast<std::int16_t>(wy);
             }

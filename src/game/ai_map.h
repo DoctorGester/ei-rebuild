@@ -296,31 +296,31 @@ struct LocalSearch {
     void PickCurrent();
     // Moves `node` to its place in its bucket for `cost` (a node already at the head stays there).
     void Requeue(SearchNode* node, int cost);
-    // The current node's map cell and cost (cost 0x7FFFFFFF when there is none).
-    void Best(int* x, int* y, int* cost);
-    // The cost of map cell (x, y) if it is settled, else 0x7FFFFFFF.
-    int CostAt(int x, int y);
+    // The current node's map cell and cost (cost 0x7FFFFFFF when there is none; `cell` then unchanged).
+    void Best(Point* cell, int* cost);
+    // The cost of map cell `cell` if it is settled, else 0x7FFFFFFF.
+    int CostAt(Point cell);
     // The cost of stepping between `current` and `node` (neighbours), `factor` 0x400 straight or 0x5A8
     // diagonal; -1 when the step is impossible. A backward search prices the step from `node` into `current`.
     int StepCost(const SearchNode* node, int factor);
     // Settles `current`, relaxes its eight neighbours, picks the next current.
     void Expand();
     void ExpandAll();
-    // Expands until map cell (x, y) is current; false when the search runs out (or is inactive).
-    bool ExpandUntil(int x, int y);
-    // The path from the start to map cell (x, y), walked back along the directions, into
+    // Expands until map cell `cell` is current; false when the search runs out (or is inactive).
+    bool ExpandUntil(Point cell);
+    // The path from the start to map cell `cell`, walked back along the directions, into
     // `out` (emptied first; nothing when the cell is outside the window).
-    void PathTo(int x, int y, PathCells* out);
-    // Places the window over map cells (x0, y0) and (x1, y1): less than 32 apart, both on
-    // the map; centred, both at least one cell inside. False (window unchanged) otherwise.
-    bool PlaceWindow(int x0, int y0, int x1, int y1);
+    void PathTo(Point cell, PathCells* out);
+    // Places the window over map cells `a` and `b`: less than 32 apart, both on the map; centred, both at least
+    // one cell inside. False (window unchanged) otherwise.
+    bool PlaceWindow(Point a, Point b);
     void SetUnit(Unit* unit);
-    // Starts a search for `unit` at (x0, y0) with the window over it and (x1, y1).
-    bool Begin(Unit* unit, int x0, int y0, int x1, int y1);
-    // Starts a search at (sx, sy) confined to the rectangle (x0, y0)-(x1, y1) (x0 <= x1,
-    // y0 <= y1, at most 28 apart): the row below and the column right of it are made unusable.
-    bool BeginInRect(int x0, int y0, int x1, int y1, int sx, int sy);
-    bool BeginInRectForClass(int sizeClass, int x0, int y0, int x1, int y1, int sx, int sy);
+    // Starts a search for `unit` at `from` with the window over it and `to`.
+    bool Begin(Unit* unit, Point from, Point to);
+    // Starts a search at `start` confined to the cells from `first` to `last`, both corners inside (first <= last
+    // in x and y, at most 28 apart): the row below and the column right of it are made unusable.
+    bool BeginInRect(Point first, Point last, Point start);
+    bool BeginInRectForClass(int sizeClass, Point first, Point last, Point start);
     // Copies the reached cells' directions into the map's marks (AIMap::marks) where they are still 0.
     void CommitDirections();
     // Saves the window's cell levels into `levels` and zeroes them in the map.
@@ -328,22 +328,22 @@ struct LocalSearch {
     void RestoreLevels();
     // Attaches the search to `map`: a fresh 34 x 34 node grid (the border unusable) and the row table.
     void Attach(AIMap* map, bool backward);
-    // Moves the window over (x0, y0)-(x1, y1) keeping what was searched: the nodes are shifted, then (with
+    // Moves the window over `from` and `to` keeping what was searched: the nodes are shifted, then (with
     // `settleInside`) the ones cheaper than the cheapest kept border node are settled and the rest queued, or
     // (without) the settled stay and the reached are queued. False when the window cannot be placed
     // (unchanged) or moved 31 cells or more (the window and row table are already moved, the nodes not).
-    bool Recenter(int x0, int y0, int x1, int y1, bool settleInside);
+    bool Recenter(Point from, Point to, bool settleInside);
 
     bool active = false;
     bool levelsSaved = false;           // the window's cell levels are in `levels`
     SearchGrid<SearchNode> nodes;       // 34 x 34
     SearchGrid<std::uint8_t> levels;    // saved cell levels
     AIMap* map = nullptr;
-    std::vector<AIMapCell*> cellRows;   // cellRows[i] = &map cell (originX, originY + i): the window's map rows
+    std::vector<AIMapCell*> cellRows;   // cellRows[i] = &map cell origin + (0, i): the window's map rows
     SearchNode* settledList = nullptr;  // linked through `next`
     SearchNode* buckets[4] = {};        // open nodes by x & 3, sorted by cost
     SearchNode* current = nullptr;      // the cheapest open node
-    int originX = 0, originY = 0;       // map cell of window cell (0, 0)
+    Point origin;                       // map cell of window cell (0, 0)
     int currentCost = 0;                // cost of the node being expanded
     PassCostContext costs = {};
     int sizeClass = 0;
@@ -379,8 +379,8 @@ struct BlockSearch {
 
     // Attaches to the region map: one record per block, all unreached.
     void Attach(RegionMap* regionMap, bool fromTarget);
-    // The path from the search's start to block (x, y) into `path` (emptied first).
-    void PathTo(int x, int y, PathCells* path);
+    // The path from the search's start to `block` into `path` (emptied first; nothing off the grid).
+    void PathTo(Point block, PathCells* path);
     // Moves `record` to its place in its bucket (a bucket head stays).
     void Requeue(BlockRecord* record);
     // Relaxes the neighbour of `best` in `direction` (1..8) through the open edge, its back direction `back`.
@@ -405,6 +405,8 @@ inline int RepresentativeX(std::uint8_t cell) { return cell & 0xF; }
 inline int RepresentativeY(std::uint8_t cell) { return cell >> 4; }
 inline std::uint8_t WithRepresentativeX(std::uint8_t cell, int x) { return static_cast<std::uint8_t>((cell & 0xF0) | (x & 0xF)); }
 inline std::uint8_t WithRepresentativeY(std::uint8_t cell, int y) { return static_cast<std::uint8_t>((cell & 0x0F) | (y << 4)); }
+// The representative cell within its block.
+inline Point Representative(std::uint8_t cell) { return {RepresentativeX(cell), RepresentativeY(cell)}; }
 
 struct RegionMap {
     // The block grids 1 x 1 (edges -1, representative cells zeroed) with both block searches attached to them.
@@ -425,31 +427,30 @@ struct RegionMap {
     // The block grids as LoadBlocks reads them: width and height, then per size class each row's edge words,
     // representative cells and regions.
     void SaveBlocks(ByteStream* stream);
-    // Per size class the representative cell of block (bx, by): (3, 3) unless a passable cell in rings from the
+    // Per size class the representative cell of `block`: (3, 3) unless a passable cell in rings from the
     // middle is better.
-    void PickRepresentatives(class AIMap* map, int bx, int by);
-    // The chain of regions from (fromX, fromY) to (toX, toY) into `chain`, avoiding the blocks in `excluded`.
-    bool FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, PathCells* chain,
-                         std::vector<Point>* excluded);
+    void PickRepresentatives(class AIMap* map, Point block);
+    // The chain of regions from cell `from` to cell `to` into `chain`, avoiding the blocks in `excluded`.
+    bool FindRegionChain(int sizeClass, Point from, Point to, PathCells* chain, std::vector<Point>* excluded);
     // Expands the two block searches until they meet and joins their paths into `chain`; false when one runs out.
     bool JoinBlockSearches(PathCells* chain);
-    // Per size class the block (bx, by)'s edge words: the local search cost to each neighbour's representative
-    // cell / 128.
-    void MeasureBlockEdges(int bx, int by);
+    // Per size class the edge words of `block`: the local search cost to each neighbour's representative cell
+    // / 128.
+    void MeasureBlockEdges(Point block);
     // Sizes the block grids for the map (8x8-cell blocks), sets up the local search and rebuilds the tables.
     void Attach(class AIMap* map);
-    // Whether cell (xx, yy) of block (bx, by) reaches both side edges or both end edges of the block.
-    bool CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy);
+    // Whether cell `inBlock` (0..7 each way) of `block` reaches both side edges or both end edges of the block.
+    bool CellSuitsBlockAt(int sizeClass, Point block, Point inBlock);
     // Floods `label` over the blocks connected through open edges, breadth first from `frontier`.
     void FloodRegionFrom(int sizeClass, std::vector<Point>* frontier, std::vector<Point>* next, int label);
     // The 3x3 blocks around `cell` whose representative cell the local search reaches from it, as {block x,
     // block y, cost}.
     std::vector<BlockCost> NearbyBlocks(int sizeClass, bool flag, Point cell);
 
-    // Re-measures blocks [x0, x1) x [y0, y1) (clamped to the grid): representative cells, then edges, row by
-    // row (reporting progress), then the edge clamp, the two block searches and the regions.
-    void UpdateBlocks(AIMap* map, int x0, int x1, int y0, int y1);
-    void UpdateBlocksFor(AIMap* map, int x0, int x1, int y0, int y1);
+    // Re-measures the blocks of `blocks` (right and bottom edges outside; clamped to the grid): representative
+    // cells, then edges, row by row (reporting progress), then the edge clamp, the two block searches and the
+    // regions.
+    void UpdateBlocks(AIMap* map, Rect blocks);
     void AttachSearches();
     // Seeds `search` with the blocks around `cell` its representative cells are reached from
     // (NearbyBlocks), cost / 128; true when one was lowered.
@@ -567,12 +568,12 @@ public:
     virtual void Set(const UnitLayerNode* block) = 0;
     virtual void Merge(const UnitLayerNode* block) = 0;
 
-    // Stamps `owner`'s shape (16x16 levels) with its top-left cell at (x, y): one node per non-empty
+    // Stamps `owner`'s shape (16x16 levels) with its top-left cell at `topLeft`: one node per non-empty
     // 4x4 block, each announced through Merge.
-    void Add(UnitLayerOwner owner, const UnitShape* shape, int x, int y);
-    // Removes `owner`'s nodes from the 5x5 blocks from block (x >> 2, y >> 2); for each
-    // block it had, Set gets the block with the other owners' levels merged (maximum).
-    void Remove(UnitLayerOwner owner, int x, int y);
+    void Add(UnitLayerOwner owner, const UnitShape* shape, Point topLeft);
+    // Removes `owner`'s nodes from the 5x5 blocks from the one holding `topLeft` (each coordinate >> 2); for
+    // each block it had, Set gets the block with the other owners' levels merged (maximum).
+    void Remove(UnitLayerOwner owner, Point topLeft);
     std::list<UnitLayerNode> nodes;     // every node made: a list, the buckets and free list point into it as it grows
     UnitLayerNode* buckets[1024] = {};  // by (key x * 17 + key y) & 0x3FF
     UnitLayerNode* freeNodes = nullptr; // unused nodes
@@ -602,14 +603,14 @@ struct AreaOffset {
 // The cells under a bridge (AIMap::bridgeHeights): what each cell was before a bridge deck covered it.
 class BridgeHeights {
 public:
-    // Saves cell (x, y)'s ground level, water depth and the terrain type of its occluder word; a cell saved
-    // already keeps its entry. x and y are read as shorts.
-    void SaveCell(int x, int y, const AIMapCell& cell, std::uint32_t occluder);
+    // Saves the ground level, water depth and the terrain type of the occluder word of map cell `at`; a cell
+    // saved already keeps its entry. `at`'s x and y are read as shorts (here and below).
+    void SaveCell(Point at, const AIMapCell& cell, std::uint32_t occluder);
     // Puts back what the cell's bridge map entry saved (ground level, water depth, terrain type) and erases the
-    // entry; nothing without one. x and y are read as shorts.
-    void RestoreCell(int x, int y, AIMapCell* cell, std::uint32_t* occluder);
-    // Bridge deck height of cell (x, y), 0 if none.
-    int HeightAt(short x, short y) const;
+    // entry; nothing without one.
+    void RestoreCell(Point at, AIMapCell* cell, std::uint32_t* occluder);
+    // Bridge deck height of cell `at`, 0 if none.
+    int HeightAt(Point at) const;
 
 private:
     // Keyed (short)x << 16 | (short)y: the saved ground level (low word), water depth (bits 16-21) and terrain
@@ -617,13 +618,13 @@ private:
     std::unordered_map<std::uint32_t, std::uint32_t> saved;
 };
 
-// AIMap's dirty rectangle: the area refreshed when a batch of refreshes ends.
+// AIMap's dirty rectangle: the cells from `first` to `last` (both inside) refreshed when a batch of refreshes ends.
 struct AIDirtyRect {
-    // Empty: the minimums 10000, the maximums 0.
+    // Empty: the first corner (10000, 10000), the last (0, 0).
     void Reset();
 
-    int minX = 10000, maxX = 0;
-    int minY = 10000, maxY = 0;
+    Point first{10000, 10000};
+    Point last{0, 0};
 };
 
 // The column AIMap::CellMark measures against a cell's occluders; a cell with no occluder and no water leaves it
@@ -696,11 +697,11 @@ public:
     bool SnapTarget(Unit* unit, Vector3* target, bool sameRegion, float minDistance);
 
     bool FindPath(Unit* unit, const Vector3& target, AIPath* path, float range, float minDistance);
-    // The long-range plan from cell (fromX, fromY) to (toX, toY): region chain,
+    // The long-range plan from cell `from` to cell `to`: region chain,
     // local-search legs between the regions' representative cells, then the cells into path->cells. On a failed
     // leg: aim at the best reached cell when it is far enough from the start, else (with `retry`) exclude the
     // region and plan again.
-    bool PlanLongPath(Unit* unit, int fromX, int fromY, int toX, int toY, AIPath* path, int retry, int maxCells);
+    bool PlanLongPath(Unit* unit, Point from, Point to, AIPath* path, int retry, int maxCells);
     // Searches again if the last search failed and nothing is left, else moves on; true at the path's end.
     bool ContinuePath(Unit* unit, AIPath* path);
     // Moves up to 32 cells from the path into the steps and points the unit at the next one.
@@ -778,17 +779,20 @@ public:
     void StampWaterPatch(const Vector3& position, bool add);
     bool AddOccluderRecord(FootprintCell* cell);
     bool ClearOccluderRecord(FootprintCell* cell);
-    void RefreshArea(int minX, int maxX, int minY, int maxY);
+    // Refresh: the cells from `first` to `last`, both corners inside (nothing when first is beyond last in x or
+    // y; clamped to the map).
+    void RefreshArea(Point first, Point last);
     // The passability mark of `cell` for a standing level from the terrain type, the water depth and the
     // occluders over the cell, looked up in the mark table. `scratch` keeps the column it measured.
     std::uint32_t CellMark(CellMarkState* scratch, int level, int levelHeight, Point cell);
-    // Refresh's second pass over [x0, x1] x [y0, y1] (kept 2 cells from the border): a cell whose step to a direct
-    // neighbour exceeds what size class 0 can climb becomes impassable, one beyond the larger classes keeps only
-    // class 0; either way nibbles 5-6 of one neighbour and nibble 7 of 13 cells around it are cleared.
-    void LimitSteepCells(int x0, int x1, int y0, int y1);
-    // A level's special area {dx, dy}: in [x0, x1] x [y0, y1] (kept so that (x + dx, y + dy) is on the map) each
-    // cell whose mark at (x + dx, y + dy) is 0 loses the level's passability nibble.
-    void ClearUnmarkedArea(int level, int dx, int dy, int x0, int x1, int y0, int y1);
+    // Refresh's second pass over the cells from `first` to `last`, both inside (kept 2 cells from the border): a
+    // cell whose step to a direct neighbour exceeds what size class 0 can climb becomes impassable, one beyond the
+    // larger classes keeps only class 0; either way nibbles 5-6 of one neighbour and nibble 7 of 13 cells around
+    // it are cleared.
+    void LimitSteepCells(Point first, Point last);
+    // A level's special area `offset`: in the cells from `first` to `last`, both inside (kept so that the cell
+    // + offset is on the map), each cell whose mark at cell + offset is 0 loses the level's passability nibble.
+    void ClearUnmarkedArea(int level, Point offset, Point first, Point last);
 
 
     // Clears the marks of the cells around the blocks of `chain` (8 x 8 cells each): their bounding box widened
@@ -798,8 +802,9 @@ public:
     // its cost (up to 1: 14, 2: 13, up to 9: 10, up to 34: 6, up to 70: 3, above: 0); size class 0 always gets 14.
     void BuildOpenMarks();
 
-    // Refresh the rectangle now, or add it to the dirty rectangle while batching.
-    void QueueRefresh(int minX, int maxX, int minY, int maxY);
+    // Refresh the cells from `first` to `last` (both inside) now, or add them to the dirty rectangle while
+    // batching.
+    void QueueRefresh(Point first, Point last);
 
     bool loaded = false;                // set by Load
     bool batching = false;              // refreshes collect into the dirty rectangle
@@ -813,7 +818,7 @@ public:
     std::vector<int> climbLarge;              // size classes other than 0: no step steeper than 40 degrees
     std::vector<int> climbSmall;              // size class 0: up to 60 degrees, every step at the flat cost
     std::vector<AITerrainType> materials;     // the terrain types (16 after Load)
-    BridgeHeights bridgeHeights;            // keyed (short)x << 16 | (short)y
+    BridgeHeights bridgeHeights;
     float heightScale;                  // world z to AI height units
     SectorMap sectorMap;
     FootprintCellSet footprint;         // scratch for MarkFootprint
