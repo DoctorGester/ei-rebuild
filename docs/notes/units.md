@@ -167,7 +167,7 @@ hero at full health stays there; a wounded one keeps the fraction).
 
 ## Ack kinds
 
-`AckKind` (`ack_kind.h`) is the one enum of the codes in message 0x0B (`PlayerServer::SendObject0B`, `UnitServer::Shout`,
+`AckKind` (`ack_kind.h`) is the one enum of the codes in message 0x0B (`PlayerServer::SendUnitSpeech`, `UnitServer::Shout`,
 `WorldServer::TellParties`; the client's `OnUnitSpeech` reads it back and `acks::SayAck` picks the list). The names are
 the folders of acks.db's sounds (Acks\<unit>\<folder>.wav), read from the unit table's chunks (`kUnitChunks` /
 `kUnitKinds`; the models table's 0x2E..0x32 are Agress / Suspect / Kill / Rest / InAgress). Where the code's old names

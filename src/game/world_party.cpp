@@ -169,7 +169,7 @@ void WorldServer::Redeploy(Player* player, std::vector<UnitPlacement>* placement
     lastZ = std::bit_cast<std::uint32_t>(state->lastPosition.z);
     if (lastZ != kNoStart) {
         state->lastPosition = start;
-        state->SendPosition04(start, startValue, sessionKind);
+        state->SendCameraPlacement(start, startValue, sessionKind);
     }
     player->lastTick = tick;
     if (sessionKind == kKindNoRangeTest) UpdateMercBriefings();

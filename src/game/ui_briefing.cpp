@@ -281,7 +281,7 @@ void BriefingScreen::ShowItem(std::string_view name, int index) {
         if (entry != speakers.end()) speakers.erase(entry);
         speakers.push_back(BriefingSpeaker{unit, std::string(name)});
         auto* player = g_serverWorld.GetPlayer(0);
-        if (player->Server()) player->Server()->SendPair19(kEventJoins, unit->id);
+        if (player->Server()) player->Server()->SendUnitControl(kEventJoins, unit->id);
         if (auto* serverUnit = g_serverWorld.FindUnit(unit->id)) {
             if (leader && leader->id == unit->id) serverUnit->ShowHelmet(false);
             serverUnit->ServerController()->actionDone = SpeakerAnimationDone;

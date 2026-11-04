@@ -61,7 +61,7 @@ void UnitServer::SetMoveStyle(int style) {
     unit->moveMode2 = style;
     if (FitsMoveMode(style)) {
         if (style == kStyleRun && stats.MovementState(1) != 0) return;
-        if (unit->player) unit->player->Server()->SendObject0B(unit, AckKind::ChangePosition);
+        if (unit->player) unit->player->Server()->SendUnitSpeech(unit, AckKind::ChangePosition);
     }
     if (style != kStyleWalk && style != kStyleRun) action.modifier = 0;
 }

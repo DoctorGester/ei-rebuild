@@ -811,7 +811,7 @@ public:
     // relation masks); null when none or `unit` is null.
     Unit* NearestVisibleUnit(Unit* unit);
     PlayerClient* LocalView();
-    bool IsLocalViewMode2();
+    bool IsLocalViewSendingCamera();
     // A new texture / material of class `type` from the world's managers; null without the manager.
     Texture* NewTexture(int type);
     Material* NewMaterial(int type);
@@ -933,7 +933,7 @@ public:
     // copy's text, which shares the element's buffer).
     const char* ExitTarget(int index);
     void RemoveUnitsOf(const std::vector<PartyUnitRecord*>* records);
-    int SendFlag10(int value);
+    int SendPause(int value);
     // The camera looks at the point (x, y) at its own focus height, with its view applied and kept above
     // the objects. Returns 1.
     int CentreOn(const Vector3& point);

@@ -282,7 +282,7 @@ void Exhaustion(UnitServer* c) {
         } else {
             if (Drain(stamina, rate)) {
                 if (c->unit->player)
-                    c->unit->player->Server()->SendObject0B(c->unit, AckKind::OutOfStamina);
+                    c->unit->player->Server()->SendUnitSpeech(c->unit, AckKind::OutOfStamina);
                 *stamina = 0.0f;
                 c->moveMode2.wasMode3 = 0;
                 int mode = (c->moveMode2.wasMode3 & 1) ? 3 : c->moveMode2.mode;

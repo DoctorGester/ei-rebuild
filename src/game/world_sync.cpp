@@ -32,12 +32,6 @@ constexpr float kHearingMargin = 5.0f;    // added to it
 
 constexpr MapObjectType kTypeNoSync = MapObjectType::MagicTrap;   // never sent
 
-// PlayerServer::state.
-constexpr int kModePlaying = 1;
-constexpr int kModeJoining = 2;
-constexpr int kModeLeaving = 3;
-constexpr int kModeGone = 4;
-
 constexpr int kKindSinglePlayer = 1;         // WorldServer::sessionKind
 constexpr int kKindNoRangeTest = 3;
 
@@ -115,7 +109,7 @@ void CollectTimedObjects(WorldServer* world, PlayerServer* state, std::vector<Ef
 
 int WorldServer::SyncPlayer(Player* player) {
     PlayerServer* state = player->Server();
-    if (state->state == kModePlaying && zoneLoaded != 0) {
+    if (state->state == PlayerServer::State::Joined && zoneLoaded != 0) {
         std::uint32_t dirty = player->dirty;
         if (dirty & PlayerDirty::Zone) {
             int sent = SendZone(player);
@@ -126,20 +120,20 @@ int WorldServer::SyncPlayer(Player* player) {
         }
         if (dirty & PlayerDirty::Weather) {
             int strength = lib::RoundEven(weatherStrength);
-            if (!state->SendState70(static_cast<std::uint8_t>(weather), static_cast<std::uint16_t>(strength))) return 0;
+            if (!state->SendWeather(static_cast<std::uint8_t>(weather), static_cast<std::uint16_t>(strength))) return 0;
         }
         if (player->dirty & PlayerDirty::Time) {
             const Clock clock = GetTime();
-            if (!state->SendState71(std::bit_cast<std::uint32_t>(clock.hours), std::bit_cast<std::uint32_t>(clock.speed))) return 0;
+            if (!state->SendTime(std::bit_cast<std::uint32_t>(clock.hours), std::bit_cast<std::uint32_t>(clock.speed))) return 0;
         }
         if (player->dirty & PlayerDirty::Wind) {
             Vector3 direction;
             lib::LoadBytes(direction, windDirection);
-            if (!state->SendState72(std::bit_cast<std::uint32_t>(direction.x), std::bit_cast<std::uint32_t>(direction.y),
+            if (!state->SendWind(std::bit_cast<std::uint32_t>(direction.x), std::bit_cast<std::uint32_t>(direction.y),
                                     std::bit_cast<std::uint32_t>(direction.z), windStrength))
                 return 0;
         }
-        if (player->dirty & PlayerDirty::Countdowns) state->SendState73(&countdowns);
+        if (player->dirty & PlayerDirty::Countdowns) state->SendCountdowns(&countdowns);
 
         // Map objects.
         std::vector<MapObject*> collected;
@@ -168,11 +162,14 @@ int WorldServer::SyncPlayer(Player* player) {
         }
     }
 
-    int mode = state->state;
-    if ((mode == kModePlaying || mode == kModeJoining) && zoneLoaded != 0) state->SendPartyState();
+    PlayerServer::State mode = state->state;
+    if ((mode == PlayerServer::State::Joined || mode == PlayerServer::State::GameStateSent) && zoneLoaded != 0)
+        state->SendPartyState();
     mode = state->state;
-    if (mode == kModeLeaving) return 1;
-    if (mode != 0 && (player->dirty & PlayerDirty::GameState) && mode != kModeGone) state->SendGameTime();
+    if (mode == PlayerServer::State::Leaving) return 1;
+    if (mode != PlayerServer::State::NotLoggedIn && (player->dirty & PlayerDirty::GameState) &&
+        mode != PlayerServer::State::Disconnected)
+        state->SendGameTime();
     return state->Flush();
 }
 
@@ -181,7 +178,7 @@ int WorldServer::SendZone(Player* player) {
 
     PlayerServer* state = player->Server();
     int result;
-    if (state->state != kModePlaying) {
+    if (state->state != PlayerServer::State::Joined) {
         result = 1;
     } else {
         ByteStream* stream = &message;
@@ -200,7 +197,7 @@ int WorldServer::SendZone(Player* player) {
             if (Unit* unit = UnitOrNull(node->second)) units.Add(unit);
         units.Write(&message);
 
-        result = state->SendState02(&message);
+        result = state->SendZone(&message);
         if (result != 0) player->connection->ItemsGiven(&player->items, 0);
     }
     return result;

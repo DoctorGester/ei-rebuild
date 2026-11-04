@@ -151,7 +151,7 @@ void ShareAmongSoloPlayers(WorldServer* world, float amount) {
     for (Player* p = it.First(world->PlayerList()); p; p = it.Next()) {
         PlayerServer* state = p->Server();
         if (!state) continue;
-        for (auto& node : list) state->SendPair18(node.controller->unit->id, std::bit_cast<std::uint32_t>(node.share));
+        for (auto& node : list) state->SendExperience(node.controller->unit->id, std::bit_cast<std::uint32_t>(node.share));
     }
     if (it.manager) {
         --it.manager->refCount;
@@ -184,7 +184,7 @@ void ShareAmongHeroes(WorldServer* world, Player* player, float amount) {
                 if (static_cast<int>(record.unitId) == heroes[i]) record.stats.AddScaledExperience(share);
             }
         }
-        player->Server()->SendValue15(std::bit_cast<std::uint32_t>(share));
+        player->Server()->SendExperienceAll(std::bit_cast<std::uint32_t>(share));
     }
 }
 
@@ -548,7 +548,7 @@ void WorldServer::TellParties(EngineObject* unit, AckKind kind) {
     PlayerIterator it;
     for (Player* player = it.First(PlayerList()); player; player = it.Next()) {
         PlayerServer* server = player->Server();
-        if (static_cast<std::uint8_t>(server->IsPartyUnit(unit))) server->SendObject0B(unit, kind);
+        if (static_cast<std::uint8_t>(server->IsPartyUnit(unit))) server->SendUnitSpeech(unit, kind);
     }
 }
 
@@ -556,6 +556,6 @@ void WorldServer::TellPartiesGone(EngineObject* unit) {
     PlayerIterator it;
     for (Player* player = it.First(PlayerList()); player; player = it.Next()) {
         PlayerServer* server = player->Server();
-        if (server->partyUnits.Contains(unit)) server->SendObject43(unit);
+        if (server->partyUnits.Contains(unit)) server->SendUnitDied(unit);
     }
 }

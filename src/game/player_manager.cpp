@@ -64,11 +64,11 @@ void PlayerManager::ChangeId(EngineObject* object, int newId) {
 }
 
 void PlayerManager::SendValueToAll(int value) {
-    ForEachPlayer(this, [&](Player* player) { player->Server()->SendValue12(value); });
+    ForEachPlayer(this, [&](Player* player) { player->Server()->SendWorldValue(value); });
 }
 
 void PlayerManager::SendTextToAll(const char* text) {
     ForEachPlayer(this, [&](Player* player) {
-        player->Server()->SendText13(text);
+        player->Server()->SendStringEvent(text);
     });
 }

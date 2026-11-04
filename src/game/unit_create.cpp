@@ -61,7 +61,7 @@ void UnitServer::SetStats(const UnitStats* source) {
 void UnitServer::Shout(AckKind kind) {
     if (!IsShoutable(kind)) return;
     if (!unit->player) return;
-    PlayerMessages(unit->player)->SendObject0B(unit, kind);
+    PlayerMessages(unit->player)->SendUnitSpeech(unit, kind);
 }
 
 // --- Broken equipment -------------------------------------------------------------------------
@@ -86,7 +86,7 @@ void Unit::DropBrokenEquipment() {
     for (int i = 3; i >= 0; --i) {
         Item*& slot = weapons[i];
         if (!slot || !IsBroken(slot)) continue;
-        messages->SendPair16(static_cast<std::uint32_t>(id), static_cast<std::uint32_t>(i));
+        messages->SendWeaponRemoved(static_cast<std::uint32_t>(id), static_cast<std::uint32_t>(i));
         broken.push_back(std::exchange(slot, nullptr));
         MarkChanged(kPartEquipment);
         for (int k = i; k < 3; ++k) weapons[k] = weapons[k + 1];

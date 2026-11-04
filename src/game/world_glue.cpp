@@ -153,9 +153,9 @@ void GameLeaveThroughExit(int exit) {
         g_clientWorld.LocalView()->TakeExit(exit);
 }
 
-void GameSendLeave04(int value) {
+void GameRequestGameState(int value) {
     g_interface.closeAll = 1;
-    g_clientWorld.LocalView()->SendLeave04(value);
+    g_clientWorld.LocalView()->RequestGameState(value);
 }
 
 void GameRejoin() {

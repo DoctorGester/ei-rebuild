@@ -163,7 +163,7 @@ void ChatWindow::ShowPlayers() {
 void ChatWindow::Update() {
     net::ClientSession* client = net::g_gameClient;
     if (Live(client->trade)) {
-        GameSendLeave04(9);
+        GameRequestGameState(9);
         return;
     }
     statusRows.clear();

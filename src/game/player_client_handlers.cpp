@@ -27,7 +27,6 @@
 
 namespace {
 
-constexpr int kStateLoggedIn = 2;
 constexpr int kGameStateBetweenZones = 3;
 constexpr std::uint32_t kUnitFlagHidden = 0x10;
 constexpr std::uint32_t kUnitFlagLit = 0x100;
@@ -45,7 +44,7 @@ constexpr Quaternion kFixedViewRotation = /*007C8388*/ {1.0f, 0.0f, 0.0f, 0.0f};
 int PlayerClient::OnLoginAccepted() {
     int objectId;
     in.ReadValue(objectId);
-    state = kStateLoggedIn;
+    state = State::SendingCamera;
     Player* currentPlayer = player;
     currentPlayer->GetManagerContext()->PlayerList()->ChangeId(currentPlayer, objectId);
     return 1;
@@ -291,7 +290,7 @@ int PlayerClient::OnWorldTime() {
     return 1;
 }
 
-int PlayerClient::OnWorldPoint() {
+int PlayerClient::OnWind() {
     Vector3 point;
     in.ReadValue(point);
     int value;
@@ -300,7 +299,7 @@ int PlayerClient::OnWorldPoint() {
     return 1;
 }
 
-int PlayerClient::OnWorldStream() {
+int PlayerClient::OnCountdowns() {
     g_clientWorld.ReadWaterLevels(&in);
     return 1;
 }

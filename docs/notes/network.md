@@ -167,7 +167,7 @@ coverage runs of H43 never reached them:
   (zone13.mob, zone2.mob) sit behind single-player story variables.
 - Handlers for messages our own peer never sends, kept for a vanilla peer: `PlayerClient::OnDisconnect` (0x01) and
   `OnObjectValues` (0x0C); `PlayerServer::OnLeave` (0x01), `OnRefreshParty` (0x02), `OnBriefingDone` (0x07),
-  `OnMessage37` and `OnUnitLookup` (0x38, reads and drops). The other handlers H43g1 listed (`SendGoTo`, `SendFollow`,
-  `TakeExit`, `OnGoTo`, `OnFollow`, `OnTakeExit`, `OnWeaponRemoved`, `Send17`, `SendObject0A`, `SendPair16`) have
+  and `OnUnitLookup` (ClientMessage::UnitLookup, 0x38, reads and drops; 0x37 has no handler). The other handlers H43g1 listed (`SendGoTo`, `SendFollow`,
+  `TakeExit`, `OnGoTo`, `OnFollow`, `OnTakeExit`, `OnWeaponRemoved`, `SendQuestItemsChanged`, `SendItemRemoved`, `SendWeaponRemoved`) have
   callers in play (the hud's orders, a broken weapon, taken loot); the scenarios just do not click them.
 - The `SessionBase` handlers of the packet kinds a session does not serve log an error and are not empty.

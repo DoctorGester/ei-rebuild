@@ -55,7 +55,7 @@ bool IsActionKind(UnitOrderKind kind) { return kind == UnitOrderKind::Attack || 
 float PrototypeHeight(Unit* unit) { return unit->GetPrototype()->height; }
 
 void TellParty(Unit* unit, AckKind kind) {
-    if (unit->player) unit->player->Server()->SendObject0B(unit, kind);
+    if (unit->player) unit->player->Server()->SendUnitSpeech(unit, kind);
 }
 
 // UnitAction::Clear followed by the reset of its two extra fields, as callers inline it.

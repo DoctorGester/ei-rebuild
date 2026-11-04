@@ -111,7 +111,7 @@ void GlobalMap::LeftDown(Point point) {
         if (noCamp) return;
         ui->PlayInterfaceSound(kTransitSound);
         GameSetConstructionVariable(std::bit_cast<std::uint32_t>(0.0f));
-        GameSendLeave04(kCampScreen);
+        GameRequestGameState(kCampScreen);
         return;
     }
     int link;

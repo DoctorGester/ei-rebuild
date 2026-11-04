@@ -78,7 +78,7 @@ void GameCreatePartyUnits(const std::vector<PartyUnitRecord*>* party, int allArm
 // Leaves through exit `exit`: with a live client session the flow switches the
 // multiplayer zone, otherwise the local client takes the exit.
 void GameLeaveThroughExit(int exit);
-// The interface's close-all flag set, then the local client's SendLeave04(value) / Rejoin.
-void GameSendLeave04(int value);
+// The interface's close-all flag set, then the local client's RequestGameState(value) / Rejoin.
+void GameRequestGameState(int value);
 void GameRejoin();
 void GameLocalPlayerVariables(std::string_view prefix, NamedFloatTable* out);

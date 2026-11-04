@@ -906,7 +906,7 @@ bool ScriptRun::Execute(Script* script) {
         }
         case ScriptFunction::PlayMusic: {   // PlayMusic(player, name)
             Player* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
-            if (player) player->Server()->SendText0D(Text(cmd, 0));
+            if (player) player->Server()->SendJingle(Text(cmd, 0));
             break;
         }
         case ScriptFunction::LeaveToZone: {   // LeaveToZone(player, zone, point)

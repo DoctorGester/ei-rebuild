@@ -41,7 +41,6 @@
 
 namespace {
 
-constexpr std::uint8_t kMessageGameOver = 0x09;
 constexpr int kRevivedIdBase = 1001000000;            // OnLeaderDied: ids below it are moved up
 constexpr int kRevivedIdStep = 1000000;
 constexpr int kNoId = -1;                             // see OnLeaderDied: the original's uninitialised ids
@@ -54,7 +53,6 @@ constexpr float kFarAway = 1e30f;                     // the nearest-unit search
 // The next object id for a new party's record (the party manager stores the party).
 int g_nextRecordObjectId = /*00794E3C*/ 1000000013;
 
-constexpr std::uint8_t kMessageZone = 0x08;
 constexpr std::uint32_t kLoneHeroRecordId = 0x3B9AF5CE;   // 999999950
 
 // The unit list of the walk / attack orders: a count, then that many ids (missing units and units
@@ -91,11 +89,6 @@ int MoveUnits(MoveCommand command) {
 
 constexpr int kClientVersion = 0x64;
 constexpr int kLoginTextLength = 0x3F;
-constexpr std::uint8_t kMessageLogin = 0x00;
-constexpr std::uint8_t kMessageError = 0x11;
-
-constexpr std::uint8_t kMessagePartyUpdate = 0x83;
-constexpr std::uint8_t kMessage19 = 0x19;
 const char* const kResendingParty = "Resending party of player ";
 
 } // namespace
@@ -109,10 +102,9 @@ void PlayerServer::OnLeaderDied() {
     Player* currentPlayer = player;
     Party* party = currentPlayer->GetParty();
     if (!IsMultiplayerClient()) {
-        std::uint8_t messageType = kMessageGameOver;
-        out.WriteValue(messageType);
+        WriteType(&out, ServerMessage::GameLost);
         Unit* hero = g_serverWorld.FindUnit(static_cast<int>(party->members[0].unitId));
-        if (hero) SendObject0B(hero, AckKind::StopSpeech);
+        if (hero) SendUnitSpeech(hero, AckKind::StopSpeech);
         return;
     }
 
@@ -125,7 +117,7 @@ void PlayerServer::OnLeaderDied() {
         party->money -= lost;
         oldId = static_cast<int>(party->members[0].unitId);
         Unit* hero = g_serverWorld.FindUnit(oldId);
-        if (hero) SendObject0B(hero, AckKind::StopSpeech);
+        if (hero) SendUnitSpeech(hero, AckKind::StopSpeech);
         newId = oldId;
         if (newId < kRevivedIdBase) newId += kRevivedIdStep;
         while (g_serverWorld.FindObject(static_cast<unsigned>(newId))) ++newId;
@@ -271,7 +263,7 @@ void FormationOffsets(const std::vector<Unit*>* units, std::vector<Vector3>* off
 }
 
 void PlayerServer::LeaveToZone(std::string_view zone, int entrance) {
-    if (state != 1) return;
+    if (state != State::Joined) return;
     Player* currentPlayer = player;
     Party* party = currentPlayer->GetParty();
     int campaign = g_serverWorld.sessionKind;
@@ -286,7 +278,7 @@ void PlayerServer::LeaveToZone(std::string_view zone, int entrance) {
         g_serverWorld.CollectParty(currentPlayer, nullptr);
         partyDeployed = 0;
     }
-    state = 3;
+    state = State::Leaving;
     party->entrance = static_cast<std::uint32_t>(entrance);
     party->zone = zone;
     int mode = g_serverWorld.gameResult;
@@ -296,25 +288,23 @@ void PlayerServer::LeaveToZone(std::string_view zone, int entrance) {
         if (std::ssize(party->members) == 1) party->members[0].unitId = kLoneHeroRecordId;
         SendParty();
     }
-    std::uint8_t messageType = kMessageZone;
-    out.WriteValue(messageType);
+    WriteType(&out, ServerMessage::ZoneChange);
     out.WriteString(zone);
     out.WriteValue(entrance);
     Flush();
 }
 
 void PlayerServer::LeaveAndFlush() {
-    if (state == 1) {
+    if (state == State::Joined) {
         if (partyDeployed) {
             g_serverWorld.CollectParty(player, nullptr);
             partyDeployed = 0;
         }
         if (g_serverWorld.gameResult == 2) SendParty();
     }
-    if (state != 3) {
-        state = 3;
-        std::uint8_t messageType = 0x01;
-        out.WriteValue(messageType);
+    if (state != State::Leaving) {
+        state = State::Leaving;
+        WriteType(&out, ServerMessage::Disconnect);
     }
     Flush();
 }
@@ -337,8 +327,8 @@ int PlayerServer::OnTakeExit() {
 }
 
 int PlayerServer::OnJoined() {
-    if (state != 2) return 0;
-    state = 1;
+    if (state != State::GameStateSent) return 0;
+    state = State::Joined;
     Player* currentPlayer = player;
     currentPlayer->sessionKind = currentPlayer->ServerWorld()->sessionKind;
     g_serverWorld.Redeploy(currentPlayer, &placements, 1);
@@ -377,8 +367,8 @@ int PlayerServer::OnNewParty() {
 }
 
 int PlayerServer::OnResume() {
-    if (state != 4) return 0;
-    state = 1;
+    if (state != State::Disconnected) return 0;
+    state = State::Joined;
     if (!partyDeployed) {
         g_serverWorld.Redeploy(player, nullptr, 1);
         partyDeployed = 1;
@@ -435,7 +425,7 @@ int PlayerServer::OnLogin() {
     PlayerLoginMessage login;
     login.partyId = 0;
     g_receivedMessages.ReadValue(login);
-    if (state != 0) return 0;
+    if (state != State::NotLoggedIn) return 0;
     Player* currentPlayer = player;
     if (login.version != kClientVersion) {
         int length = 0x100;
@@ -443,10 +433,9 @@ int PlayerServer::OnLogin() {
         auto* world = currentPlayer->ServerWorld();
         world->messages.GetStringBuffer("SrvErrMsg", "WrongClientVersion", format, &length, "");
         const std::string text = str::Format(format, 1, 0);
-        std::uint8_t messageType = kMessageError;
-        out.WriteValue(messageType);
+        WriteType(&out, ServerMessage::Error);
         out.WriteString(text);
-        state = 3;
+        state = State::Leaving;
         return 0;
     }
     if (!IsPrintableText(login.name)) return 0;
@@ -470,12 +459,11 @@ int PlayerServer::OnLogin() {
     default:
         break;
     }
-    std::uint8_t messageType = kMessageLogin;
     int playerId = currentPlayer->id;
-    out.WriteValue(messageType);
+    WriteType(&out, ServerMessage::LoginAccepted);
     out.WriteValue(playerId);
     SendParty();
-    state = 1;
+    state = State::Joined;
     return 1;
 }
 
@@ -484,13 +472,12 @@ int PlayerServer::OnLogin() {
 void PlayerServer::SendPartyUpdate() {
     MemoryStream block;
     player->GetParty()->SaveParty(&block, 0);
-    std::uint8_t messageType = kMessagePartyUpdate;
-    out.WriteValue(messageType);
+    WriteType(&out, ServerMessage::PartyUpdate);
     out.WriteSized(&block);
 }
 
 void PlayerServer::ResendParty() {
-    if (state != 1 || !partyDeployed) return;
+    if (state != State::Joined || !partyDeployed) return;
     Player* currentPlayer = player;
     console::EndLine(console::g_netLogOut << kResendingParty << currentPlayer->playerId);
     g_serverWorld.SyncPartyRecords(currentPlayer);
@@ -498,9 +485,8 @@ void PlayerServer::ResendParty() {
     g_serverWorld.ClearPlayerItems(currentPlayer);
 }
 
-void PlayerServer::SendPair19(std::uint8_t event, std::uint32_t subject) {
-    std::uint8_t messageType = kMessage19;
-    out.WriteValue(messageType);
+void PlayerServer::SendUnitControl(std::uint8_t event, std::uint32_t subject) {
+    WriteType(&out, ServerMessage::UnitControl);
     out.WriteValue(event);
     out.WriteValue(subject);
 }

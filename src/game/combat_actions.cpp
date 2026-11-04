@@ -57,7 +57,7 @@ Unit* FirstOtherPartyMember(Player* player, const Unit* self) {
 
 // Player messages: message `code` about `unit`.
 void PlayerMessage(PlayerServer* messages, Unit* unit, AckKind kind) {
-    messages->SendObject0B(unit, kind);
+    messages->SendUnitSpeech(unit, kind);
 }
 
 void UnitServer::DropQueuedOrder() {

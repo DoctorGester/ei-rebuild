@@ -19,6 +19,7 @@
 #include "game/object_tables.h"
 #include "game/options.h"
 #include "game/party_manager.h"
+#include "game/player_client.h"
 #include "game/player_messages.h"
 #include "game/random.h"
 #include "game/resource.h"
@@ -179,7 +180,7 @@ void CameraUpdate(void* camera, float seconds) { static_cast<::Camera*>(camera)-
 void FrameStep(bool draw, bool cursor) { app::FrameStep(draw, cursor); }
 
 void ConsoleExecute(const char* text) { console::Execute(text); }
-void SendLeave04(int id) { GameSendLeave04(id); }
+void RequestGameState(int id) { GameRequestGameState(id); }
 void SetConstructionVariable(std::uint32_t value) { GameSetConstructionVariable(value); }
 void ObserveConsoleLines(void (*observer)(const char* line)) { console::g_consoleLineObserver = observer; }
 unsigned& UpdatePeriod() { return reinterpret_cast<unsigned&>(worlddata::g_updatePeriod); }
@@ -237,7 +238,11 @@ int ScreenRect(void* world, int id, Rect* rect) {
 int ObjectId(const void* object) { return static_cast<const EngineObject*>(object)->id; }
 std::uint32_t ObjectFlags(const void* object) { return static_cast<const EngineObject*>(object)->flags; }
 void* PlayerConnection(void* player) { return static_cast<Player*>(player)->connection; }
-int ConnectionState(void* connection) { return static_cast<::PlayerConnection*>(connection)->state; }
+int ConnectionState(void* connection) {
+    auto* base = static_cast<::PlayerConnection*>(connection);
+    if (PlayerServer* server = base->ServerSide()) return static_cast<int>(server->state);
+    return static_cast<int>(base->ClientSide()->state);
+}
 bool CampItems(void* camp, int* page, std::vector<void*>* items, std::vector<unsigned>* types) {
     auto* pages = static_cast<CampPages*>(static_cast<UiWindow*>(camp));
     *page = pages->page;
