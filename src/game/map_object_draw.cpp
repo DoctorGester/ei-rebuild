@@ -26,7 +26,6 @@ namespace {
 constexpr std::uint32_t kRedrawStatic = 8;          // this->flags
 constexpr float kNearSquared = 1e9f;
 constexpr float kLightMargin = 10.0f;
-constexpr std::uint32_t kOne = 0x3F800000;
 constexpr int kStackWorld = 1;                      // the pipeline's matrix stacks
 constexpr int kStackView = 2;
 constexpr int kStackObject = 3;
@@ -59,7 +58,7 @@ void ObjectWorldMatrix(const Quaternion* orientation, const Vector3& position, M
     out->m[3] = position.x;
     out->m[7] = position.y;
     std::memset(&out->m[12], 0, 3 * sizeof(float));
-    out->m[15] = std::bit_cast<float>(kOne);
+    out->m[15] = 1.0f;
 }
 
 int Object3DClientSpecific::Draw(SceneRenderer* context, Rect* dirty) {
@@ -97,15 +96,13 @@ int Object3DClientSpecific::Draw(SceneRenderer* context, Rect* dirty) {
     pipeline->PushMatrix(m.m, kStackWorld);
     if (!(object->flags & MapObjectFlag::Static)) pipeline->PushMatrixProduct(m, kStackObject);
     const Vector3& extraScale = figureScale;
-    bool scaled = !(std::bit_cast<std::uint32_t>(extraScale.x) == kOne &&
-                    std::bit_cast<std::uint32_t>(extraScale.y) == kOne &&
-                    std::bit_cast<std::uint32_t>(extraScale.z) == kOne);
+    bool scaled = !(extraScale.x == 1.0f && extraScale.y == 1.0f && extraScale.z == 1.0f);
     if (scaled) {
         std::memset(m.m, 0, sizeof(m));
         m.m[0] = extraScale.x;
         m.m[5] = extraScale.y;
         m.m[10] = extraScale.z;
-        m.m[15] = std::bit_cast<float>(kOne);
+        m.m[15] = 1.0f;
         pipeline->PushMatrix(m.m, kStackView);
         pipeline->PushMatrix(m.m, kStackWorld);
         if (!(object->flags & MapObjectFlag::Static)) pipeline->PushMatrixProduct(m, kStackObject);

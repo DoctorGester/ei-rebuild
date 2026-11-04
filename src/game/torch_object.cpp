@@ -37,16 +37,16 @@ void TorchObject::DestroyTorch() {
     spec = nullptr;
     if (old) old->Release();
     netState.Reset();
-    DestroyMapObject();
+    MapObject::Destroy();
 }
 
 void TorchObject::LoadTorch(ByteStream* stream) {
-    LoadMapObject(stream);
+    MapObject::Load(stream);
     spec->Load(stream);
 }
 
 void TorchObject::SaveTorch(ByteStream* stream) {
-    SaveMapObject(stream);
+    MapObject::Save(stream);
     spec->Save(stream);
 }
 

@@ -39,45 +39,32 @@
 namespace {
 constexpr std::uint32_t kBoundsValid = 1 | 2;
 
-constexpr std::uint32_t kFloatMax = 0x7F7FFFFF;      // FLT_MAX / -FLT_MAX: the empty box
-constexpr std::uint32_t kFloatLowest = 0xFF7FFFFF;
 constexpr float kNearSquared = 1e9f;                 // parts farther away are skipped
-
-std::uint32_t Bits(float v) { return std::bit_cast<std::uint32_t>(v); }
 
 // Animation state: rescale to x, y, z.
 void AnimationSetScale(FigureAnimationState* state, float x, float y, float z) { state->Rescale(x, y, z); }
 
-// The original's branch-free selects: the stored candidate `v` replaces the bound when the comparison sets C0
-// (it is beyond the bound, or unordered).
-std::uint32_t KeepLower(std::uint32_t bound, float v) { return v >= lib::FloatFromBits(bound) ? bound : Bits(v); }
-std::uint32_t KeepHigher(std::uint32_t bound, float v) { return lib::FloatFromBits(bound) >= v ? bound : Bits(v); }
-
-// The box being grown, as float bits (the original selects bits, never loading them twice).
-struct BoxBits {
-    std::uint32_t low[3] = {kFloatMax, kFloatMax, kFloatMax};
-    std::uint32_t high[3] = {kFloatLowest, kFloatLowest, kFloatLowest};
+// The box being grown; empty is FLT_MAX / -FLT_MAX.
+struct GrowingBox {
+    Vector3 low = {FLT_MAX, FLT_MAX, FLT_MAX};
+    Vector3 high = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
 };
 
 // The squared distance of the part's position from the figure's origin.
 float DistanceSquared(const FigureMesh* part) { return LengthSquared(part->localPosition); }
 
 // A placed part: its piece's box moved by its position and the piece's offset.
-void AddPlacedPart(BoxBits& box, const FigureMesh* p) {
+void AddPlacedPart(GrowingBox& box, const FigureMesh* p) {
     const Vector3 low = p->box.bounds.boxMin + p->localPosition + p->box.bounds.center;
     const Vector3 high = p->box.bounds.boxMax + p->localPosition + p->box.bounds.center;
-    box.low[0] = KeepLower(box.low[0], low.x);
-    box.high[0] = KeepHigher(box.high[0], high.x);
-    box.low[1] = KeepLower(box.low[1], low.y);
-    box.high[1] = KeepHigher(box.high[1], high.y);
-    box.low[2] = KeepLower(box.low[2], low.z);
-    box.high[2] = KeepHigher(box.high[2], high.z);
+    box.low = MinKeepA(low, box.low);
+    box.high = MaxKeepB(box.high, high);
 }
 
 } // namespace
 
 void Object3D::ComputeBounds() {
-    BoxBits box;
+    GrowingBox box;
     for (int i = 0; i < std::ssize(parts); ++i) {
         FigureMesh* part = parts[i];
         if (DistanceSquared(part) > kNearSquared) continue;   // NaN distances count as near
@@ -85,8 +72,8 @@ void Object3D::ComputeBounds() {
     }
     if (parts.empty()) return;
 
-    Vector3 low = {lib::FloatFromBits(box.low[0]), lib::FloatFromBits(box.low[1]), lib::FloatFromBits(box.low[2])};
-    Vector3 high = {lib::FloatFromBits(box.high[0]), lib::FloatFromBits(box.high[1]), lib::FloatFromBits(box.high[2])};
+    const Vector3 low = box.low;
+    const Vector3 high = box.high;
     Vector3 center = (low + high) * 0.5f;
     bounds.boxMin = low - center;
     bounds.boxMax = high - center;

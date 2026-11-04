@@ -141,7 +141,7 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
 // --- Construction, destruction, Save / Load ------------------------------------------
 
 MagicTrap::MagicTrap() {
-    CreateMapObject();
+    MapObject::Create();
     sides = 0xFFFFFFFFu;
     flags |= kTrapFlags;
     SetSpell(this, nullptr);
@@ -154,7 +154,7 @@ MagicTrap::MagicTrap() {
 }
 
 MagicTrap::~MagicTrap() {
-    DestroyMapObject();
+    MapObject::Destroy();
     SetSpell(this, nullptr);
     area.clear();
     points.clear();
@@ -165,7 +165,7 @@ void MagicTrap::Load(ByteStream* stream) { LoadTrap(stream); }
 void MagicTrap::Save(ByteStream* stream) { SaveTrap(stream); }
 
 void MagicTrap::SaveTrap(ByteStream* stream) {
-    SaveMapObject(stream);
+    MapObject::Save(stream);
     std::int32_t value = spell ? spell->id : -1;
     stream->WriteValue(value);
     value = lib::Count(area);
@@ -184,7 +184,7 @@ void MagicTrap::SaveTrap(ByteStream* stream) {
 }
 
 void MagicTrap::LoadTrap(ByteStream* stream) {
-    LoadMapObject(stream);
+    MapObject::Load(stream);
     SpellManager* manager = GetManagerContext()->GetSpellManager();
     // The id and the two counts are read into one local: a read that fails leaves the previous value.
     std::int32_t value = 0;
@@ -203,7 +203,7 @@ void MagicTrap::LoadTrap(ByteStream* stream) {
 // --- Create, Destroy, the update, firing, forgetting a removed object -------------
 
 void MagicTrap::Create() {
-    CreateMapObject();
+    MapObject::Create();
     sides = 0xFFFFFFFFu;
     flags |= kTrapFlags;
     SetSpell(this, nullptr);
@@ -216,7 +216,7 @@ void MagicTrap::Create() {
 }
 
 void MagicTrap::DestroyTrap() {
-    DestroyMapObject();
+    MapObject::Destroy();
     SetSpell(this, nullptr);
     area = {};
     points.clear();
@@ -265,12 +265,12 @@ constexpr float kTriggerRadius = 1.0f;
 bool LockKey::AcceptedByTrap() const { return true; }
 
 TrapObject::TrapObject() {
-    CreateMapObject();
+    MapObject::Create();
     flags &= ~MapObjectFlag::NotDrawn;
 }
 
 void TrapObject::Create() {
-    CreateMapObject();
+    MapObject::Create();
     flags &= ~MapObjectFlag::NotDrawn;
 }
 
@@ -301,12 +301,12 @@ bool TrapObject::Disarm(const LockKey* key) {
 int TrapObject::KeyFits(const LockKey* key) { return key->AcceptedByTrap(); }
 
 void TrapObject::LoadTrapObject(ByteStream* stream) {
-    LoadMapObject(stream);
+    MapObject::Load(stream);
     stream->ReadValue(savedValue);
 }
 
 void TrapObject::SaveTrapObject(ByteStream* stream) {
-    SaveMapObject(stream);
+    MapObject::Save(stream);
     std::uint32_t value = savedValue;
     stream->WriteValue(value);
 }
