@@ -592,6 +592,13 @@ bool UnderCamera(const Matrix4& camera, const Matrix4& placed, Matrix4* model) {
     return true;
 }
 
+bool InvertMatrix(const Matrix4& m, Matrix4* inverse) {
+    M4 r;
+    if (!Invert(FromMatrix(m), &r)) return false;
+    *inverse = ToMatrix(r);
+    return true;
+}
+
 Matrix4 Product(const Matrix4& a, const Matrix4& b) {
     Matrix4 r;
     for (int i = 0; i < 4; ++i)

@@ -85,6 +85,10 @@ const Draw kDraws[] = {
     {"shadow_terrain", kNone, true, 1},
     {"shadow_reduce", SDL_GPU_TEXTUREFORMAT_R32G32B32A32_FLOAT, false, 1},
     {"shadow_dilate", SDL_GPU_TEXTUREFORMAT_R32G32B32A32_FLOAT, false, 1},
+    // The ambient occlusion (render_occlusion.cpp): found and blurred at half size (its depth: shadow_caster's and
+    // shadow_terrain's pipelines).
+    {"occlusion", SDL_GPU_TEXTUREFORMAT_R8_UNORM, false, 1},
+    {"occlusion_blur", SDL_GPU_TEXTUREFORMAT_R8_UNORM, false, 1},
     // The interface's frame pictures (render_ui.cpp): the copy into an RGBA8 picture.
     {"ui_copy", kRgba8, false, 1},
 };

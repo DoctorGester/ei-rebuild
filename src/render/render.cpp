@@ -479,12 +479,16 @@ bool DrawPending() {
     UploadTerrain(g_frame);
     UploadMeshes(g_frame);
     UploadUi(g_frame);
-    // The sun's shadow map, once a frame before its first pass (the classic option: none).
+    // The sun's shadow map and the ambient occlusion, once a frame before its first pass.
     if (!g_frame.shadow.prepared) {
-        perf::CpuTimer shadowTime(perf::Cpu::Shadow);
-        perf::Enter(perf::Pass::Sun);
-        PrepareShadows(g_frame);
-        DrawShadowMap(g_frame);
+        {
+            perf::CpuTimer shadowTime(perf::Cpu::Shadow);
+            perf::Enter(perf::Pass::Sun);
+            PrepareShadows(g_frame);
+            DrawShadowMap(g_frame);
+        }
+        perf::Enter(perf::Pass::Other);
+        DrawOcclusion(g_frame);
     }
     // Direct3D 7 puts pixel centres at integer screen coordinates, today's GPUs half a pixel further: the 3D
     // draws move their positions by half a pixel (Frame::pixelShift); the viewport is kept in whole pixels.
@@ -603,6 +607,7 @@ void ListPipelines(const gpu::DeviceLimits& limits, int msaa, std::vector<gpu::P
     ListBlitPipelines(out, 1);
     ListUiPipelines(out, 1);
     ListShadowPipelines(out);
+    ListOcclusionPipelines(out);
     ListComposePipelines(out);
     ListPresentPipelines(out);
     const int samples = SamplesFor(msaa, [&limits](gpu::Format colour, gpu::Format depth, int count) {
@@ -874,6 +879,7 @@ void Present() {
     g_frame.shadow.on = false;
     g_frame.shadow.lights.clear();
     ShadowFrameDone();
+    OcclusionFrameDone();
     g_frame.haveFog = false;
     g_frameDrawn = false;
     g_holder = Holder::None;

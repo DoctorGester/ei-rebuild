@@ -161,6 +161,18 @@ void SetOffscreenCasters(OffscreenCasters mode);
 // along), to show a filter that depends on the range cells.
 void SetShadowView(bool on);
 void SetShadowShift(int texels);
+// Harness build: the ambient occlusion on (the default), off, or shown alone by its receivers (white none, black
+// all; "occlusion on|off|view"). OcclusionState: the last presented frame's, with the ground's sectors whose
+// occlusion is kept and how often one was worked out since the start.
+enum class OcclusionMode { On, Off, View };
+void SetOcclusion(OcclusionMode mode);
+struct OcclusionInfo {
+    bool made = false;
+    int width = 0, height = 0;   // the half-size depth's
+    int meshDraws = 0, terrainDraws = 0, receivingMeshes = 0, receivingTerrain = 0;
+    int groundSectors = 0, groundMade = 0;
+};
+OcclusionInfo OcclusionState();
 // The last presented frame's shadow map. Of the objects whose shadow the game draws: `offScreen` cast
 // nothing and handed over no mesh, `lost` handed over meshes of which none went into the map (none should);
 // `outside*`: casters through ShadowCasterMesh.

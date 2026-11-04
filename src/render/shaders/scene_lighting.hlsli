@@ -16,10 +16,11 @@ ConstantBuffer<SceneLightParams> scene : FS_BLOCK(SCENE_BLOCK_SLOT);
 
 // The landscape lit as the game's vertex lighting lit each vertex. `m`: the material colour the sun and ambient light
 // start from, `mp`: the point lights', `loss`: the light lost under the water, `hidden`: how much sun the shadow map
-// hides, `strength`: the map's darkening. See docs/notes/renderer.md, "The renderer's source files".
+// hides, `strength`: the map's darkening, `occlusion`: how much of the ambient light reaches the point (1 all). See
+// docs/notes/renderer.md, "The renderer's source files".
 float3 ground_light(float3 p, float3 n, float3 m, float3 mp, float loss, float hidden, float strength, bool shadows,
-                    float2 turn, out float3 spec) {
-    float3 ambient = scene.ambient.rgb * saturate(1.0 - loss);
+                    float2 turn, float occlusion, out float3 spec) {
+    float3 ambient = scene.ambient.rgb * saturate(1.0 - loss) * occlusion;
     float facing = -dot(scene.sun.xyz, n);
     float3 direct = facing > 0.0 ? min(1.0, m + facing * scene.sunColour.rgb) : m;
     float3 sunlit = max(direct, ambient);

@@ -1,7 +1,7 @@
 // The meshes (render_mesh.cpp): the fixed-function texture stages of the old device as the game sets them
 // (D3DTEXTUREOP and D3DTA values), evaluated per pixel; then specular, fog and the alpha test. A figure part lit on
 // the GPU (render::MeshLighting) takes its diffuse colour from `figure_light` instead of the vertex colour (whose
-// alpha it keeps).
+// alpha it keeps), its ambient light darkened by the screen's ambient occlusion in the world (ambient_occlusion.hlsli).
 #include "bindings.hlsli"
 #include "depth_copy.hlsli"
 struct VsIn {
@@ -67,9 +67,12 @@ VsOut vs_main(VsIn i) {
 #define POINT_BLOCK_SLOT 3
 #define POINT_MAP_SLOT 5
 #define CLOUD_MAP_SLOT 6
+#define OCCLUSION_MAP_SLOT 7
+#define OCCLUSION_DEPTH_SLOT 8
 #include "shadow_receiver.hlsli"
 #include "point_shadow.hlsli"
 #include "cloud_shadow.hlsli"
+#include "ambient_occlusion.hlsli"
 struct MeshFsParams {
     float4 fogColour;      // rgb
     float4 factor;         // TEXTUREFACTOR
@@ -84,6 +87,8 @@ struct MeshFsParams {
     float4 shadowFigure;   // x: a unit's mesh, y: its object's nearest depth in the map (MeshBatch::front)
     float4 pointOn;        // x: point shadows taken (the landscape rows set), y: a unit's mesh
     float4 pointFront;     // per map: a unit's nearest distance to the light (MeshBatch::pointFront)
+    float4 occlusion;      // ambient_occlusion's `on` (a world mesh lit here)
+    float4 occlusionMap;   // ... and `map`
 };
 ConstantBuffer<MeshFsParams> fs : FS_BLOCK(0);
 // A figure part lit on the GPU (render_lighting.cpp, MeshLightUniforms): the sun and lights in the part's model space.
@@ -105,9 +110,9 @@ Texture2D<float4> tex2 : FS_TEXTURE(2);   // stage 0's patch
 SamplerState smp2 : FS_SAMPLER(2);
 
 // A figure part's colour as 3DfpFPU's LightMesh lit it (render.h, MeshLighting). See docs/notes/renderer.md, "The
-// renderer's source files".
-float3 figure_light(float3 p, float3 n, float3 land, float3 face, float2 turn) {
-    float3 ambient = lighting.ambient.rgb;
+// renderer's source files". `occlusion`: how much of the ambient light reaches the pixel (1 all).
+float3 figure_light(float3 p, float3 n, float3 land, float3 face, float2 turn, float occlusion) {
+    float3 ambient = lighting.ambient.rgb * occlusion;
     float facing = dot(lighting.sun.xyz, n);
     float3 lit = max(ambient, lighting.sunColour.rgb * facing);
     int count = (int)lighting.on.z;
@@ -203,7 +208,8 @@ float4 Shade(VsOut i) {
                                i.shadow.xy);
     if (!unit && hidden > 0.0) hidden *= shadow_facing(i.shadow.xyz, dsx, dsy);
     float4 diffuse = i.col;
-    if (lighting.on.x > 0.5) diffuse.rgb = figure_light(i.model, i.normal, i.land, face, pixel_turn(i.pos.xy));
+    float occlusion = ambient_occlusion(i.pos.xy, i.pos.z, fs.occlusion, fs.occlusionMap);
+    if (lighting.on.x > 0.5) diffuse.rgb = figure_light(i.model, i.normal, i.land, face, pixel_turn(i.pos.xy), occlusion);
     float4 current = diffuse;
     float4 t0 = tex0.Sample(smp0, i.uv);
     // Stage 0's patch: inside its rectangle the texels come from the patch texture (a unit's face).
@@ -219,6 +225,7 @@ float4 Shade(VsOut i) {
         }
     }
     if (fs.switches.z != 0 && !passes(fs.switches.z, current.a, fs.switches.w)) discard;
+    if (fs.occlusion.w > 0.5) return float4(occlusion.xxx, current.a);   // the harness's occlusion view
     float3 rgb = current.rgb;
     if (fs.switches.x != 0) rgb = saturate(rgb + i.spec.rgb);
     if (shadow.on.z > 0.5) return float4((1.0 - hidden).xxx, current.a);   // the harness's shadowview

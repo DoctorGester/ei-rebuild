@@ -1,7 +1,9 @@
 // The landscape's pages (render_terrain.cpp), lit here (scene_lighting.hlsli): the vertices carry the normal, the
-// material colour (colour word) and, on the ground, the light lost under the water (`loss`, 0 or more; below 0 on the
-// water layer, whose specular word carries the wave crests). On the water `depth` is its depth over the ground
-// (negative where the ground is above it), which the water's look (Water, below) starts from.
+// material colour (colour word), on the ground the light lost under the water (`loss`, 0 or more; below 0 on the
+// water layer, whose specular word carries the wave crests) and the ground's own occlusion of the ambient light
+// (`occlusion`, 1 none: render_terrain.cpp's height field), which the screen's (ambient_occlusion.hlsli) darkens more.
+// On the water `depth` is its depth over the ground (negative where the ground is above it), which the water's look
+// (Water, below) starts from.
 #include "bindings.hlsli"
 #include "depth_copy.hlsli"
 struct VsIn {
@@ -12,6 +14,7 @@ struct VsIn {
     [[vk::location(4)]] float3 normal : TEXCOORD4;
     [[vk::location(5)]] float loss : TEXCOORD5;
     [[vk::location(6)]] float depth : TEXCOORD6;
+    [[vk::location(7)]] float occlusion : TEXCOORD7;
 };
 struct VsOut {
     [[vk::location(0)]] float4 col : TEXCOORD0;
@@ -22,6 +25,7 @@ struct VsOut {
     [[vk::location(5)]] float3 normal : TEXCOORD5;
     [[vk::location(6)]] float loss : TEXCOORD6;
     [[vk::location(7)]] float depth : TEXCOORD7;
+    [[vk::location(8)]] float occlusion : TEXCOORD8;
     float4 pos : SV_Position;
 };
 
@@ -47,6 +51,7 @@ VsOut vs_main(VsIn i) {
     o.normal = i.normal;
     o.loss = i.loss;
     o.depth = i.depth;
+    o.occlusion = i.occlusion;
     return o;
 }
 #endif
@@ -59,14 +64,19 @@ VsOut vs_main(VsIn i) {
 #define POINT_BLOCK_SLOT 3
 #define POINT_MAP_SLOT 3
 #define CLOUD_MAP_SLOT 5   // 4 is the ripple map (render_water.cpp)
+#define OCCLUSION_MAP_SLOT 6
+#define OCCLUSION_DEPTH_SLOT 7
 #include "shadow_receiver.hlsli"
 #include "point_shadow.hlsli"
 #include "cloud_shadow.hlsli"
 #include "scene_lighting.hlsli"
+#include "ambient_occlusion.hlsli"
 struct TerrainFsParams {
-    float4 fog;       // rgb: the fog colour
-    float4 flags;     // x: water (alpha from the vertex colour; 2: the level map, render::TerrainLevels), y: fog on
-    float4 ripples;   // the two ripple layers' offsets at the client time (render_water.cpp): xy, zw
+    float4 fog;            // rgb: the fog colour
+    float4 flags;          // x: water (alpha from the vertex colour; 2: the level map, render::TerrainLevels), y: fog on
+    float4 ripples;        // the two ripple layers' offsets at the client time (render_water.cpp): xy, zw
+    float4 occlusion;      // ambient_occlusion's `on`
+    float4 occlusionMap;   // ... and `map`
 };
 ConstantBuffer<TerrainFsParams> fs : FS_BLOCK(0);
 Texture2D<float4> tex : FS_TEXTURE(0);
@@ -139,13 +149,15 @@ float4 Shade(VsOut i) {
     float a = fs.flags.x > 0.5 ? i.col.a : t.a;
     // The water: the clouds' shade only (the map's falls on the ground under it); the crests or the specular lights.
     if (i.loss < 0.0) {
-        float3 lit = ground_light(i.world, n, i.col.rgb, i.col.rgb, 0.0, hidden, shadow.on.y, false, 0.0, spec);
+        float3 lit = ground_light(i.world, n, i.col.rgb, i.col.rgb, 0.0, hidden, shadow.on.y, false, 0.0, 1.0, spec);
         float seen;
         c = Water(i, saturate(t.rgb * lit + max(spec, i.spec.rgb)), a, n, seen);
         a = seen;
     } else {
+        float occlusion = i.occlusion * ambient_occlusion(i.pos.xy, i.pos.z, fs.occlusion, fs.occlusionMap);
+        if (fs.occlusion.w > 0.5) return float4(occlusion.xxx, 1.0);   // the harness's occlusion view
         float3 lit = ground_light(i.world, n, i.col.rgb, 0.0, i.loss, hidden, shadow.on.y, pointShadow.on.x > 0.5,
-                                  pixel_turn(i.pos.xy), spec);
+                                  pixel_turn(i.pos.xy), occlusion, spec);
         c = saturate(t.rgb * lit + spec);
     }
     if (fs.flags.y > 0.5) c = lerp(fs.fog.rgb, c, i.spec.a);
