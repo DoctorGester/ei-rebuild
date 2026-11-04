@@ -161,9 +161,9 @@ void ReadOrSilence(SoundManager* m, std::uint8_t* to, int bytes) {
     if (got < bytes) Silence(to + got, bytes - got);
 }
 
-// The next file takes over: `bytes` of it (or silence) to `to`.
+// The next file takes over: `bytes` of it (or silence) to `to`. On the stream thread while it is busy: the file opens
+// without the lock, which it takes to show the game thread the new state.
 void SwitchStream(SoundManager* m, std::uint8_t* to, int bytes) {
-    m->streamState = StreamState::Idle;
     // Rebirth's StreamPatch: the mod's Stream\ folder when it has the file.
     const bool modStream = ei::rebirth::Enabled(ei::rebirth::Patch::StreamPatch) && modfolders::StreamInMod(m->nextName);
     std::string path = (modStream ? modfolders::StreamFolder() : m->soundPath) + m->nextName;
@@ -172,14 +172,15 @@ void SwitchStream(SoundManager* m, std::uint8_t* to, int bytes) {
     if (!m->nextName.empty() && platform::ReadWholeFile(path, &file)) m->streamFile = audio::OpenMp3(std::move(file));
     if (m->streamFile == nullptr) {
         Silence(to, bytes);
+        std::lock_guard guard(m->streamLock);
+        m->streamState = StreamState::Idle;
         m->endAfterSwitch = false;
-        std::lock_guard guard(m->nameLock);
         m->streamName.clear();
         return;
     }
-    m->streamState = StreamState::Playing;
     {
-        std::lock_guard guard(m->nameLock);
+        std::lock_guard guard(m->streamLock);
+        m->streamState = StreamState::Playing;
         m->streamName = m->nextName;
     }
     m->soundRegistry.GetIntArray(m->streamName.c_str(), kSwitchMarkers, &m->markers);
@@ -194,7 +195,10 @@ void SwitchStream(SoundManager* m, std::uint8_t* to, int bytes) {
     m->streamBufferFrames = m->streamBufferSize / m->streamFrameBytes;
     m->streamPosition = 0;
     ReadOrSilence(m, to, bytes);
-    if (m->endAfterSwitch.exchange(false)) m->MakeStop(StreamSwitch::AtEnd);
+    std::lock_guard guard(m->streamLock);
+    if (!m->endAfterSwitch) return;
+    m->endAfterSwitch = false;
+    m->MakeStop(StreamSwitch::AtEnd);
 }
 
 } // namespace
@@ -620,8 +624,14 @@ void SoundManager::Submit(StreamRequest request) {
         MakeRequest(request);
         return;
     }
-    if (request.kind == StreamRequest::Kind::PlayOnce) onceQueued = true;
     lateRequests.push_back(std::move(request));
+}
+
+bool SoundManager::StreamSwitchPending() {
+    std::lock_guard guard(streamLock);
+    return endAfterSwitch || std::ranges::any_of(lateRequests, [](const StreamRequest& request) {
+        return request.kind == StreamRequest::Kind::PlayOnce;
+    });
 }
 
 void SoundManager::MakeRequest(const StreamRequest& request) {
@@ -973,7 +983,7 @@ bool SoundManager::SetPath(std::string_view folder, const std::string& registryP
 }
 
 std::string SoundManager::CurrentStreamName() {
-    std::lock_guard guard(nameLock);
+    std::lock_guard guard(streamLock);
     if (streamState == StreamState::Playing || streamState == StreamState::Switching) return streamName;
     return {};
 }
@@ -996,7 +1006,6 @@ void SoundManager::ResetStream() {
     streamOnMainLoop = false;
     streamSteppedAt = 0;
     lateRequests.clear();
-    onceQueued = false;
     streamSample = nullptr;
     streamFile = nullptr;
     streamBuffer.clear();
@@ -1077,7 +1086,6 @@ void SoundManager::StepStream(std::uint32_t now) {
         streamBusy = false;
         for (const StreamRequest& request : lateRequests) MakeRequest(request);
         lateRequests.clear();
-        onceQueued = false;
     }
 }
 
