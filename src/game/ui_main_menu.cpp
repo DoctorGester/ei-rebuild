@@ -103,7 +103,7 @@ void MainMenu::CreateScreen() {
         area = g_menuRects[i];
         region->SetRect(area);
     }
-    g_clientWorld.sounds->RequestStream(options::kDefaultStreamingSound, 4);
+    g_clientWorld.sounds->RequestStream(options::kDefaultStreamingSound, StreamSwitch::Now);
     savedEdgeFade = options::g_options.borderFogDistance;
     options::g_options.borderFogDistance = kMenuEdgeFade;
     rain = (g_clientRandom.Next() & 1) == 1;
@@ -160,13 +160,13 @@ void MainMenu::MessageResult(std::uint32_t result) {
     if (result == BoxResult(MessageQuestion::First, MessageAnswer::Ok)) {
         {
             std::string path = g_dataFolder + kExitMovie;
-            PlayMovie(path, 0, 0, 0, 1, 1);
+            PlayMovie(path, false, true, true);
         }
-        app::QuitGame(0);
+        platform::PostQuit(0);
     } else if (result == BoxResult(MessageQuestion::Second, MessageAnswer::Ok)) {
         {
             std::string path = g_dataFolder + kIntroMovie;
-            PlayMovie(path, 0, 1, 1, 1, 1);
+            PlayMovie(path, true, true, true);
         }
         app::g_interfaceHasScreen = 0;
         g_gameFlow.RequestState3();

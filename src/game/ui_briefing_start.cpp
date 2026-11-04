@@ -184,7 +184,7 @@ void BriefingScreen::ClearShownItems() {
 void BriefingScreen::FinishDialogue() {
     if (voice != -1) g_clientWorld.sounds->StopSound(voice);
     voice = -1;
-    g_clientWorld.music->FadeIn();
+    g_clientWorld.sounds->FadeInStream();
     ClearShownItems();
 
     for (const BriefingSpeaker& speaker : speakers) {

@@ -320,7 +320,7 @@ int EnterZone(Party* records) {
     if (lib::Truncate(variables->Get(kMovieVariable)) == 1) {
         if (str::Compare(zone,
                             kMovieZone) != 0) {
-            PlayMovie(g_dataFolder + kMovieFile, 0, 1, 1, 1, 1);
+            PlayMovie(g_dataFolder + kMovieFile, true, true, true);
             variables->Remove(kMovieVariable);
         }
     } else {

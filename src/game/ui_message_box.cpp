@@ -26,9 +26,9 @@ constexpr std::size_t kEditTextSize = 0x80;
 void PlayExitMovieAndQuit() {
     {
         std::string path = g_dataFolder + ExitMovie();
-        PlayMovie(path, 0, 0, 0, 1, 1);
+        PlayMovie(path, false, true, true);
     }
-    app::QuitGame(0);
+    platform::PostQuit(0);
 }
 
 } // namespace

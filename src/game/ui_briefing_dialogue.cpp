@@ -70,7 +70,7 @@ constexpr int kEventLeaves = 2;
 void BriefingScreen::StartPhrases() {
     if (voice != -1) g_clientWorld.sounds->StopSound(voice);
     voice = -1;
-    g_clientWorld.music->FadeOut();
+    g_clientWorld.sounds->FadeOutStream();
     std::string key = kBriefingSection;
     key += topic;
     if (!g_clientWorld.texts->TextManager::Open(key)) {

@@ -160,7 +160,7 @@ void BriefingScreen::NextPhrase(bool skip) {
                 std::string file;
                 int folder = ClientRandBelow(2);
                 file = str::Format(kVoiceFormat, kVoiceFolders[folder], topic, number);
-                voice = g_clientWorld.sounds->Play2D(file, kSoundPriority, kSoundVolume, 0, 0, 0, 1, 1);
+                voice = g_clientWorld.sounds->Play2D(file, kSoundPriority, kSoundVolume, 0, {.speech = true, .compressed = true});
             }
             phraseTime = static_cast<float>(text::CharacterCount(std::string_view(phrase))) *
                           kSecondsPerCharacter;

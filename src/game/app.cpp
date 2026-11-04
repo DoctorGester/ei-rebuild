@@ -100,7 +100,7 @@ void MenuOpen(void* flow) { static_cast<GameFlow*>(flow)->ProcessRequest(); }
 void OnKey(Interface3D* input, const platform::Event& event) {
     if (event.type == EventType::KeyDown) {
         if (event.key == platform::kKeyF4 && SystemKey(event)) {   // Alt+F4
-            if (g_quitAllowed != 0) platform::PostQuit(0);
+            platform::PostQuit(0);
             return;
         }
         input->OnKeyDown(event.key, event.scan, event.repeat);
@@ -157,7 +157,7 @@ void OnMouse(Interface3D* input, const platform::Event& event, Point at) {
 void HandleWindowEvent(const platform::Event& event) {
     switch (event.type) {
     case EventType::CloseRequested:
-        if (g_quitAllowed != 0) platform::PostQuit(0);
+        platform::PostQuit(0);
         break;
     case EventType::Focus: OnActivate(event.active, event.minimized); break;
     default: break;
