@@ -111,7 +111,7 @@ public:
     // header comments".
     void LeftDown(Point point) override;
     // Esc opens the escape menu; an unused key whose action is '5' quick-saves ("saveq"), '6' quick-loads.
-    void KeyDown(int key, int scan, bool repeat) override;
+    void KeyDown(platform::Key key, int scan, bool repeat) override;
     // A window above closed.
     void MessageResult(std::uint32_t result) override;
     const char* HelpTopic() override { return noCamp ? "global_map_nocamp" : "global_map"; }
@@ -322,7 +322,7 @@ public:
     void LeftDown(Point point) override;
     void LeftUp(Point point) override;
     // Esc shows page 7 (leaves); on a network client Backspace and Enter go to the chat line.
-    void KeyDown(int key, int scan, bool repeat) override;
+    void KeyDown(platform::Key key, int scan, bool repeat) override;
     const char* HelpTopic() override;
     // By page: 0 repairs the hero's weapons and armour, 1 settles the trade (the money is left alone), 2 / 4
     // a constructor buys its third list, 3 / 5 the made spell / item (or the parts while deconstructing),

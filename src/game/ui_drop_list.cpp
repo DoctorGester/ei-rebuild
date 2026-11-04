@@ -259,15 +259,15 @@ void UiDropList::Wheel(int delta, Point point) {
     if (open && scroll->enabled) scroll->Wheel(delta, point);
 }
 
-void UiDropList::KeyDown(int key, int, bool) {
+void UiDropList::KeyDown(platform::Key key, int, bool) {
     if (!open) return;
     switch (key) {
-    case platform::kKeyUp: SetActive(active - 1); break;
-    case platform::kKeyDown: SetActive(active + 1); break;
-    case platform::kKeyHome: SetActive(0); break;
-    case platform::kKeyEnd: SetActive(static_cast<int>(std::ssize(texts)) - 1); break;
-    case platform::kKeyReturn: Choose(active); break;
-    case platform::kKeyEscape:
+    case platform::Key::Up: SetActive(active - 1); break;
+    case platform::Key::Down: SetActive(active + 1); break;
+    case platform::Key::Home: SetActive(0); break;
+    case platform::Key::End: SetActive(static_cast<int>(std::ssize(texts)) - 1); break;
+    case platform::Key::Return: Choose(active); break;
+    case platform::Key::Escape:
         ui->PlayInterfaceSound(game::CancelSoundText());
         Close();
         break;

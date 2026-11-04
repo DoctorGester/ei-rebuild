@@ -268,21 +268,21 @@ void OpenObjectives(Interface3D* ui) {
 
 } // namespace
 
-void BriefingScreen::KeyDown(int key, int scan, bool repeat) {
+void BriefingScreen::KeyDown(platform::Key key, int scan, bool repeat) {
     if (chatActive) {
-        if (key == platform::kKeyEscape) chatActive = 0;
+        if (key == platform::Key::Escape) chatActive = 0;
         return;
     }
     UiContainer::KeyDown(key, scan, repeat);
     switch (key) {
-    case platform::kKeyBack:
+    case platform::Key::Backspace:
         if (IsMultiplayerClient()) {
             ui->ChatKeyBackspace();
             handled = true;
             return;
         }
         break;
-    case platform::kKeyReturn:
+    case platform::Key::Return:
         if (IsMultiplayerClient()) {
             ui->ChatKeyEnter();
         } else if (state == 3) {
@@ -294,7 +294,7 @@ void BriefingScreen::KeyDown(int key, int scan, bool repeat) {
         }
         handled = true;
         return;
-    case platform::kKeyEscape:
+    case platform::Key::Escape:
         if (state == 0) {
             ui->PushWindow(new EscMenu(ui), WindowBackdrop::FirstWindow);
         } else if (state == 3) {
@@ -310,7 +310,7 @@ void BriefingScreen::KeyDown(int key, int scan, bool repeat) {
         }
         handled = true;
         return;
-    case platform::kKeySpace:
+    case platform::Key::Space:
         if (state == 3) {
             ui->PlayInterfaceSound(kClickSound);
             NextPhrase(false);

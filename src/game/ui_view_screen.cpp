@@ -83,14 +83,14 @@ void UnitPickInput::RightDown(Point) {
     g_clientWorld.Deselect();
 }
 
-void UnitPickInput::KeyDown(int key, int, bool) {
-    if (key == platform::kKeyControl) {
+void UnitPickInput::KeyDown(platform::Key key, int, bool) {
+    if (key == platform::Key::Control) {
         g_cursor.SetShape(CursorShape::Attack);
-    } else if (key == platform::kKeySpace) {
+    } else if (key == platform::Key::Space) {
         g_serverWorld.SetServerPaused(g_serverWorld.paused == 0);
     }
 }
 
-void UnitPickInput::KeyUp(int key, int) {
-    if (key == platform::kKeyControl) g_cursor.SetShape(CursorShape::Default);
+void UnitPickInput::KeyUp(platform::Key key, int) {
+    if (key == platform::Key::Control) g_cursor.SetShape(CursorShape::Default);
 }

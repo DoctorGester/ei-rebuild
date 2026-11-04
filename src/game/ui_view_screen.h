@@ -22,11 +22,11 @@ struct UnitPickInput final : UiInputSide {
     void LeftDown(Point point) override;
     // The list emptied (storage freed), the world's selection cleared.
     void RightDown(Point point) override;
-    // Ctrl (platform::kKeyControl) shows cursor 1; Space toggles the server
+    // Ctrl (platform::Key::Control) shows cursor 1; Space toggles the server
     // flag.
-    void KeyDown(int key, int scan, bool repeat) override;
+    void KeyDown(platform::Key key, int scan, bool repeat) override;
     // Ctrl released: cursor 0.
-    void KeyUp(int key, int scan) override;
+    void KeyUp(platform::Key key, int scan) override;
 
     std::vector<std::uint32_t> picked;             // ids of the picked units
 };

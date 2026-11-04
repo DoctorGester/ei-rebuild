@@ -64,16 +64,16 @@ void ActivateKeyboardLayout(std::uint32_t, std::uint32_t) {}   // Text input fol
 // letter keys type Latin letters the layout's character (AZERTY's M key VK_M, its comma key VK_OEM_COMMA; a French
 // digit row, digits with Shift, its digits), on another (Russian, Greek) the US layout's, as Windows' Russian layout
 // keeps the US codes. A key that types none of KeyOfTyped's characters keeps its US code (KeyOf).
-int sdl_keys::LayoutKey(int scan) {
-    if (!sdl_keys::LayoutMoves(scan)) return 0;
+Key sdl_keys::LayoutKey(int scan) {
+    if (!sdl_keys::LayoutMoves(scan)) return Key::None;
     return sdl_keys::KeyOfTyped(SDL_GetKeyFromScancode(sdl_keys::ScancodeOf(scan), SDL_KMOD_NONE, true));
 }
 
 // A letter key (its code a letter's) and the keys layouts do not move: sdl_keys' rule (-1). Another key types ESC, FS
 // or GS with Ctrl where the layout's key types `[`, `\` or `]` (Windows' US layout's and xkb's rule), else nothing:
 // Russian's х and ъ keys none, as on Windows.
-int sdl_keys::LayoutControlCharacter(int key, int scan) {
-    if (!sdl_keys::LayoutMoves(scan) || (key >= 'A' && key <= 'Z')) return -1;
+int sdl_keys::LayoutControlCharacter(Key key, int scan) {
+    if (!sdl_keys::LayoutMoves(scan) || (key >= Key::A && key <= Key::Z)) return -1;
     switch (LayoutTyped(scan)) {
     case '[': return 0x1B;
     case '\\': return 0x1C;
@@ -89,10 +89,10 @@ std::string KeyName(int scan) {
     char text[8] = {};
     const char* chosen = UsName(scan);
     if (sdl_keys::LayoutMoves(scan)) {
-        const int key = sdl_keys::KeyOf(sdl_keys::ScancodeOf(scan), SDL_KMOD_NONE, sdl_keys::LayoutKey).key;
+        const Key key = sdl_keys::KeyOf(sdl_keys::ScancodeOf(scan), SDL_KMOD_NONE, sdl_keys::LayoutKey).key;
         const SDL_Keycode typed = LayoutTyped(scan);
-        if (key >= 'A' && key <= 'Z') {
-            text[0] = static_cast<char>(key);
+        if (key >= Key::A && key <= Key::Z) {
+            text[0] = static_cast<char>('A' + (static_cast<int>(key) - static_cast<int>(Key::A)));
             chosen = text;
         } else if (typed >= 0x20 && typed != 0x7F && !(typed & (SDLK_SCANCODE_MASK | SDLK_EXTENDED_MASK))) {
             SDL_UCS4ToUTF8(typed, text);

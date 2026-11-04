@@ -17,19 +17,20 @@
 
 namespace {
 
+using platform::Key;
 using platform::sdl_keys::KeyCode;
 
 HKL g_layout = nullptr;
 
-int LayoutKeyOf(int scan) {
+Key LayoutKeyOf(int scan) {
     const UINT code = static_cast<UINT>(scan & 0xFF) | ((scan & 0x100) ? 0xE000u : 0u);
-    return static_cast<int>(MapVirtualKeyExW(code, MAPVK_VSC_TO_VK_EX, g_layout));
+    return static_cast<Key>(MapVirtualKeyExW(code, MAPVK_VSC_TO_VK_EX, g_layout));
 }
 
 // The window procedure's code for a key: the layout's, with the left / right modifiers as one (WM_KEYDOWN's), and the
 // number pad's digits with Num Lock on.
 int WindowsKey(int scan, bool numLock) {
-    int key = LayoutKeyOf(scan);
+    const int key = static_cast<int>(LayoutKeyOf(scan));
     switch (key) {
     case VK_LSHIFT: case VK_RSHIFT: return VK_SHIFT;
     case VK_LCONTROL: case VK_RCONTROL: return VK_CONTROL;
@@ -56,7 +57,7 @@ int WindowsKey(int scan, bool numLock) {
 }
 
 // The layout's control character with Ctrl held (platform::LayoutControlCharacter's, on the layout checked).
-int LayoutControlOf(int key, int scan) {
+int LayoutControlOf(Key key, int scan) {
     BYTE state[256] = {};
     state[VK_CONTROL] = 0x80;
     wchar_t out[8] = {};
@@ -69,7 +70,7 @@ int LayoutControlOf(int key, int scan) {
 bool Unmappable(int scan) { return scan == 0x45 || scan == 0x145 || scan == 0x137; }
 
 // The character the layout types for `key` with Ctrl held or not, or 0 (none, or more than one).
-int Typed(int key, int scan, bool control) {
+int Typed(Key key, int scan, bool control) {
     BYTE state[256] = {};
     if (control) state[VK_CONTROL] = 0x80;
     wchar_t out[8] = {};
@@ -93,15 +94,15 @@ int main() {
             for (const bool numLock : {false, true}) {
                 const SDL_Keymod mod = numLock ? SDL_KMOD_NUM : SDL_KMOD_NONE;
                 const KeyCode code = platform::sdl_keys::KeyOf(static_cast<SDL_Scancode>(sc), mod, LayoutKeyOf);
-                if (code.key == 0 || Unmappable(code.scan)) continue;
+                if (code.key == Key::None || Unmappable(code.scan)) continue;
                 ++keys;
                 ++checks;
                 const int want = WindowsKey(code.scan, numLock);
-                if (want != code.key) {
+                if (want != static_cast<int>(code.key)) {
                     ++differing;
                     if (++problems <= 40)
                         std::printf("input_check: layout %04X, SDL scancode %d (scan %03X, Num Lock %s): key %02X, Windows %02X\n",
-                                    language, sc, code.scan, numLock ? "on" : "off", code.key, want);
+                                    language, sc, code.scan, numLock ? "on" : "off", static_cast<int>(code.key), want);
                 }
                 if (numLock) continue;
                 for (const bool control : {false, true}) {
@@ -115,7 +116,7 @@ int main() {
                         ++differing;
                         if (++problems <= 40)
                             std::printf("input_check: layout %04X, scan %03X key %02X%s: control character %02X, Windows %02X\n",
-                                        language, code.scan, code.key, control ? " with Ctrl" : "", ours, windows);
+                                        language, code.scan, static_cast<int>(code.key), control ? " with Ctrl" : "", ours, windows);
                     }
                 }
             }

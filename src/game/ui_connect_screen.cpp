@@ -261,24 +261,24 @@ void MpConnectScreen::LeftDouble(Point point) {
     UiContainer::LeftDouble(point);
 }
 
-void MpConnectScreen::KeyDown(int key, int scan, bool repeat) {
+void MpConnectScreen::KeyDown(platform::Key key, int scan, bool repeat) {
     UiContainer::KeyDown(key, scan, repeat);
     int step;
     switch (key) {
-    case platform::kKeyReturn:
+    case platform::Key::Return:
         Connect();
         handled = true;
         return;
-    case platform::kKeyEscape:
+    case platform::Key::Escape:
         ui->PlayInterfaceSound(game::CancelSoundText());
         g_gameFlow.DropSessions();
         ui->SetPendingValue(kLeaveScreen);
         handled = true;
         return;
-    case platform::kKeyUp: step = -1; break;
-    case platform::kKeyDown: step = 1; break;
-    case platform::kKeyPageUp: step = -kRows; break;
-    case platform::kKeyPageDown: step = kRows; break;
+    case platform::Key::Up: step = -1; break;
+    case platform::Key::Down: step = 1; break;
+    case platform::Key::PageUp: step = -kRows; break;
+    case platform::Key::PageDown: step = kRows; break;
     default: return;
     }
     ui->PlayInterfaceSound(kSelectSound);

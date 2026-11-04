@@ -94,7 +94,7 @@ MessageAnswer ShowMessageBox(NativeWindow owner, const char* text, const char* c
 
 // ==== The window and its events ======================================================================================
 
-// SDL's window and events as the game's Events (docs/notes/platform.md, "SDL3"): keys with the virtual-key codes and
+// SDL's window and events as the game's Events (docs/notes/platform.md, "SDL3"): keys as platform::Key and
 // the set-1 scan codes (sdl_keys.cpp), SDL's typed text and the control characters a key types, the mouse in pixels,
 // the focus only on a change. Every event waits in the queue for the game's loops.
 

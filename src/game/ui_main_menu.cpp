@@ -195,8 +195,8 @@ void MainMenu::MouseMove(Point point) {
     UiContainer::MouseMove(point);
 }
 
-void MainMenu::KeyDown(int key, int scan, bool repeat) {
+void MainMenu::KeyDown(platform::Key key, int scan, bool repeat) {
     UiContainer::KeyDown(key, scan, repeat);
-    if (key != platform::kKeyEscape) return;
+    if (key != platform::Key::Escape) return;
     ui->PushWindow(new MessageWindow(ui, kQuitTitle, kQuitText, MessageQuestion::First, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
 }

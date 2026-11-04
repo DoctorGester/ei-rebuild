@@ -59,10 +59,10 @@ void MessageWindow::LeftDown(Point point) {
     ui->SetPendingValue(BoxResult(question, static_cast<MessageAnswer>(region + 1)));
 }
 
-void MessageWindow::KeyDown(int key, int scan, bool repeat) {
+void MessageWindow::KeyDown(platform::Key key, int scan, bool repeat) {
     UiContainer::KeyDown(key, scan, repeat);
     if (handled) return;
-    if (key == platform::kKeyReturn) {
+    if (key == platform::Key::Return) {
         if (question == MessageQuestion::Exit) {
             PlayExitMovieAndQuit();
         } else {
@@ -70,7 +70,7 @@ void MessageWindow::KeyDown(int key, int scan, bool repeat) {
             ui->PlayInterfaceSound(game::OkSoundText());
             ui->SetPendingValue(BoxResult(question, MessageAnswer::Ok));
         }
-    } else if (key == platform::kKeyEscape) {
+    } else if (key == platform::Key::Escape) {
         ui->PlayInterfaceSound(game::CancelSoundText());
         ui->SetPendingValue(BoxResult(question, MessageAnswer::Cancel));
     } else {
@@ -107,14 +107,14 @@ void DifficultyBox::LeftDown(Point point) {
     }
 }
 
-void DifficultyBox::KeyDown(int key, int scan, bool repeat) {
+void DifficultyBox::KeyDown(platform::Key key, int scan, bool repeat) {
     UiContainer::KeyDown(key, scan, repeat);
     if (handled) return;
-    if (key == platform::kKeyReturn) {
+    if (key == platform::Key::Return) {
         options::g_options.difficulty = easy;
         ui->PlayInterfaceSound(game::OkSoundText());
         ui->SetPendingValue(BoxResult(question, MessageAnswer::Ok));
-    } else if (key == platform::kKeyEscape) {
+    } else if (key == platform::Key::Escape) {
         ui->PlayInterfaceSound(game::CancelSoundText());
         ui->SetPendingValue(BoxResult(question, MessageAnswer::Cancel));
     } else {

@@ -14,6 +14,7 @@
 #include "unit.h"   // LockKey
 
 #include "lib/containers.h"
+#include "platform/platform.h"
 #include "lib/str.h"
 #include "lib/rect.h"
 #include "render/text_format.h"
@@ -107,10 +108,10 @@ public:
     // Makes screen `id` (1 in-game, 3 base, 4 island map, 2, 5, 7, 8, 9) and activates it; 0 does
     // nothing; 6 and ids above 9 hand over the id itself as the window pointer.
     void CreateScreen(int id);
-    // A key pressed: its virtual-key code, its set-1 scan code (0x100 extended: the key tables are indexed by it) and
+    // A key pressed: the key, its set-1 scan code (0x100 extended: the key tables are indexed by it) and
     // whether it was down already (the keyboard's repeat). The key under Esc toggles the console; Scroll Lock saves
     // "shot<nnnn>.bmp"; an unhandled ';' shows help.
-    void OnKeyDown(int key, int scan, bool repeat);
+    void OnKeyDown(platform::Key key, int scan, bool repeat);
     // Opens `window` on top of the stack (null is fatal). The first window keeps the server flag.
     void PushWindow(UiContainer* window, WindowBackdrop keep);
     // Closes and deletes every window, then opens `window` as PushWindow does.
@@ -186,9 +187,9 @@ public:
     // A typed character (a code point) with the scan code of the key that typed it: nothing for the key under Esc;
     // the shown console's OnChar, else a multiplayer client's open chat line, else the top window.
     void OnChar(int key, int scan);
-    // A key released: platform::kKeyShift / platform::kKeyControl / platform::kKeyMenu clear their modifier flags; then the shown
-    // console's OnKeyUp, else the top window.
-    void OnKeyUp(int key, int scan);
+    // A key released: Shift, Control and Alt clear their modifier flags; then the shown console's OnKeyUp, else the top
+    // window.
+    void OnKeyUp(platform::Key key, int scan);
     // Closes every window, top first.
     void CloseAll();
     // CloseAll when asked for.
@@ -468,7 +469,7 @@ public:
 
 // An input side: a window's own (UiWindow's second base) or a separate handler a container keeps in its
 // list (e.g. the battle camera's keys, CameraInput). The interface hands each event to the top window's
-// side (arguments: the mouse's position in screen pixels; a key's virtual-key code, scan code and, pressed, its repeat;
+// side (arguments: the mouse's position in screen pixels; a key (platform::Key), its scan code and, pressed, its repeat;
 // a character's code point and scan code; the wheel's turn, 120 a notch, positive away from the player, and the
 // position). The base does nothing, except that a double click is a press.
 struct UiInputSide {
@@ -483,9 +484,9 @@ struct UiInputSide {
     virtual void RightUp(Point) {}
     virtual void LeftDouble(Point point);
     virtual void RightDouble(Point point);
-    virtual void KeyDown(int, int, bool) {}
+    virtual void KeyDown(platform::Key, int, bool) {}
     virtual void Char(int, int) {}
-    virtual void KeyUp(int, int) {}
+    virtual void KeyUp(platform::Key, int) {}
     virtual void Wheel(int delta, Point point);
     // Whether the side pans the camera at the screen's edges (CameraInput with the border scroll area above 0).
     virtual bool PansAtEdges() const { return false; }
@@ -1210,9 +1211,9 @@ public:
     void RightUp(Point point) override;
     void LeftDouble(Point point) override;
     void RightDouble(Point point) override;
-    void KeyDown(int key, int scan, bool repeat) override;
+    void KeyDown(platform::Key key, int scan, bool repeat) override;
     void Char(int key, int scan) override;
-    void KeyUp(int key, int scan) override;
+    void KeyUp(platform::Key key, int scan) override;
     void Wheel(int delta, Point point) override;
 
     // Seconds since the last frame (milliseconds * 0.001f).
@@ -1291,9 +1292,9 @@ public:
     // network client Enter / Backspace go to the chat line. Otherwise Esc drops the pending action, else
     // opens the escape menu; other keys run their action (docs/notes/ui.md, "Behaviour moved out of header
     // comments").
-    void KeyDown(int key, int scan, bool repeat) override;
+    void KeyDown(platform::Key key, int scan, bool repeat) override;
     // Releases the order key of the key's action.
-    void KeyUp(int key, int scan) override;
+    void KeyUp(platform::Key key, int scan) override;
     // Offered to the map, the unit panel, the message log and the top panel in that order; when none takes
     // it, the container passes it on with those four disabled.
     void Wheel(int delta, Point point) override;
@@ -1600,7 +1601,7 @@ public:
     void LeftDouble(Point point) override { LeftDown(point); }
     void MouseMove(Point point) override;
     void Wheel(int delta, Point point) override;
-    void KeyDown(int key, int scan, bool repeat) override;
+    void KeyDown(platform::Key key, int scan, bool repeat) override;
 
     std::vector<std::string> texts;
     int value = 0;                   // the chosen entry
@@ -1694,7 +1695,7 @@ public:
 
     // In a save window the edit keys edit the save's name (the first edit of an ordinary save takes over its
     // title, Backspace / Delete starting from an empty name).
-    void KeyDown(int key, int scan, bool repeat) override;
+    void KeyDown(platform::Key key, int scan, bool repeat) override;
     // In a save window: the first character for an ordinary save starts an empty name; a name stays under 60
     // characters and 178 pixels (font 1).
     void Char(int key, int scan) override;
@@ -1846,7 +1847,7 @@ public:
     void LeftDown(Point point) override;
     // Enter as the OK region, Esc closes, PgUp / PgDn / Up / Down move the selected quest by 5 / 1. A key
     // left unused that is bound to the objectives action closes a window with one button.
-    void KeyDown(int key, int scan, bool repeat) override;
+    void KeyDown(platform::Key key, int scan, bool repeat) override;
     // A multiplayer client takes them from the quest database's record, otherwise from map.txt's "#quest
     // <name>" entry (the second line after it, its words as x y pairs).
     void LoadQuestPlaces(std::string_view name);
@@ -1945,7 +1946,7 @@ public:
     // Esc cancels, Enter starts a key binding, steps a spin row or opens a list row, Up / Down select rows, PgUp /
     // PgDn switch groups, Left / Right move a bar or step a spin or list row back or on. While a binding waits, the
     // next key is bound (Esc gives up); a key bound to another action asks first. An open list takes every key.
-    void KeyDown(int key, int scan, bool repeat) override;
+    void KeyDown(platform::Key key, int scan, bool repeat) override;
 
     OptionRow& RegionRow(int region) { return rows[region - 13]; }
 
@@ -1969,7 +1970,7 @@ class UiEditField : public UiWindow {
 public:
     // While focused. The first edit key starts editing (Backspace / Delete from an empty text, the others
     // with the caret at the end); the caret is not clamped here.
-    void KeyDown(int key, int scan, bool repeat) override;
+    void KeyDown(platform::Key key, int scan, bool repeat) override;
     // The caret kept within the text (after every change, as the original's redraw did).
     void ClampCaret();
     // The surface's paint: the text (centred with mode 1), then a 1-pixel caret line in caretColour after the
@@ -2044,7 +2045,7 @@ public:
     // the edit field's text into editText. The region n pressed then leaves BoxResult(question, n + 1) pending.
     void LeftDown(Point point) override;
     // Unless a child used the key, Enter answers as region 0 and Esc as region 1.
-    void KeyDown(int key, int scan, bool repeat) override;
+    void KeyDown(platform::Key key, int scan, bool repeat) override;
     // Into the caller's buffer.
     void CopyEditText();
     // Also the master request box's and the difficulty question's.
@@ -2075,7 +2076,7 @@ public:
     // Region 0 the previous page, 1 OK (Finish), 2 the next page.
     void LeftDown(Point point) override;
     // Enter the next page (Finish on the last), Esc or the help key Finish.
-    void KeyDown(int key, int scan, bool repeat) override;
+    void KeyDown(platform::Key key, int scan, bool repeat) override;
     // Rebirth-patched (WideScreen). Builds the page from its "#screen" line: the rectangle
     // (200, 50)-(600, 560) or "#position", one pulsing frame per "#rectangle" line, one entry per "#text"
     // line. Details: docs/notes/ui.md, "Behaviour moved out of header comments".
@@ -2139,7 +2140,7 @@ public:
     // Nothing while the chat is closed. Every key is marked used; Enter sends a non-empty line (a network
     // client: SayMessage kept 60 s) and, like Esc, closes the chat. Char inserts unless Ctrl is down, the
     // line is 200 characters or more, or it would be 780 pixels wide; the character is not marked used.
-    void KeyDown(int key, int scan, bool repeat) override;
+    void KeyDown(platform::Key key, int scan, bool repeat) override;
     void Char(int key, int scan) override;
     // Lines older than 20 s are erased.
     void Update() override;
@@ -2160,7 +2161,7 @@ public:
     // No container handler. Region 0 OK (easy to options::g_options.difficulty), 1 cancel, 2 / 3 check easy / hard.
     void LeftDown(Point point) override;
     // Unless a child used the key, Enter answers as OK and Esc as cancel.
-    void KeyDown(int key, int scan, bool repeat) override;
+    void KeyDown(platform::Key key, int scan, bool repeat) override;
     // CreateScreen adds them first.
     UiMesh* EasyBox() const { return sceneObjects[0]; }
     UiMesh* HardBox() const { return sceneObjects[1]; }

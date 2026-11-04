@@ -32,8 +32,9 @@ systems.
   seams.cpp: EI_GAME_CALLS, EI_SDL_CALLS).
   The sound and the movies are not the platform's:
   src/audio and src/video, one implementation each (sound.md). platform.h carries no backend's type. Still Windows'
-  values, on purpose: the virtual-key codes and the set-1 scan codes (the bindings file and the interface keep them;
-  SDL's backend maps its keys to them).
+  values, on purpose: `platform::Key`'s values are the virtual-key codes (the console prints a released system key's,
+  two goldens hold such lines, and the harness's recordings keep them) and scan codes are set 1 (the bindings file and
+  the interface's key tables are indexed by them); SDL's backend maps its keys to both.
 - Inside `namespace platform` an unqualified call of a Windows function finds the platform function of that name first
   (`Sleep`, `ScreenToClient`, `ClientToScreen`, `SetCursor`, `ActivateKeyboardLayout`): the backend calls
   the system as `::X`.
@@ -49,8 +50,8 @@ systems.
   ("Files and the harness's overlay" below).
 - platform.h names concepts, not Windows calls: a backend-only function goes in the backend's header (the layout
   answers SDL's backend asks are sdl_keys.h's), results are values (`std::optional<Size>`, `Point`, `std::string`)
-  rather than out-pointers. Windows' encodings stay only where a file or wire format keeps them (the key codes, C143;
-  an `Address`'s 16 bytes).
+  rather than out-pointers. Windows' encodings stay only where a file or wire format keeps them (`Key`'s values,
+  above; an `Address`'s 16 bytes).
 - A call the harness never answered stays out of its answers: code from another module that read the real clock
   (net_second_master.cpp's `GetTickCount`) must not start reading the harness's.
 - `tools/check_platform.py` (a build check) fails on a file under `src/` outside `src/platform` that includes
@@ -80,7 +81,7 @@ platform.h's sections (the sockets in `platform::net`):
 | The keyboard | `KeyName(scan)` (UTF-8, empty for none), `ActivateKeyboardLayout(language, fallback)`, `IsLetter(character)` (the message box's edit field); the layout answers SDL's backend asks (`sdl_keys::LayoutKey`, `LayoutControlCharacter`) in the same file | Windows in every build (SDL has no key names in the layout's language, no layout choice): GetKeyNameTextW, the keyboard layout calls, IsCharAlphaW |
 | The clipboard | `CopyText`, `ClipboardText` (Rebirth's console) | SDL; harness builds: direct |
 | Threads | `MakeThreadTimeCritical()` (the sound's stream thread); the threads are `std::thread`, their waits `std::condition_variable` or a join, locks `std::mutex` / `std::recursive_mutex` | SDL in every build (sdl_threads.cpp) |
-| Key codes | the game's key codes (`kKeyEscape`, `kKeyReturn`, ...: the virtual-key values the bindings file keeps) | none |
+| Key codes | `enum class Key` (`Key::Escape`, `Key::Return`, `Key::A` ..., `KeyAfter`): a key as the active layout makes it, its value the virtual-key code | none |
 | The mouse | `TakeMouseMotion()`: the relative motion since the last call (the buttons and the wheel are events) | SDL's motion events; harness builds: the harness's own motion (harness_platform.cpp) |
 | Sockets | IPv4 UDP / TCP sockets (`Socket`, pointer-sized), `Address` (sockaddr_in's 16 bytes), `Select` on `SocketGroup`s, `HostName()` and `LookUp(name)` (none for an unknown host), `LastError()` as our `Error`; Winsock starts with the first socket call (1.1, never cleaned up). Byte order and `ParseIpv4` (inet_addr) are lib/ipv4.h's | Winsock (ws2_32), one file; the harness's builds take their own whole sockets area (game_sockets.cpp: binds and datagrams on 127.0.0.1, a pair's network) |
 
@@ -224,10 +225,10 @@ What SDL's backend does (platform_sdl.cpp):
 - **Every event waits in the queue** for the game's loops: focus gained / lost, minimised, restored become `Focus`
   (only on a change of active / minimised), the close request (and SDL's quit) `CloseRequested`. SDL keeps the cursor
   set over its window and the screen saver off itself; exposures are not passed on (the renderer presents on its own).
-- **Keys** (sdl_keys.cpp): the virtual-key code and the set-1 scan code (0x100 extended) from the key's place (a table of
-  US positions); the keys a layout moves (the digit row, the letters, the main block's punctuation) take the active
-  layout's code (`sdl_keys::LayoutKey`: Windows' MapVirtualKeyExW, so AZERTY's M key is VK_M; on Linux and macOS
-  `sdl_keys::KeyOfTyped` of what the key types in SDL's keymap), else the US place's; tools/input_check checks the codes
+- **Keys** (sdl_keys.cpp): the `Key` and the set-1 scan code (0x100 extended) from the key's place (a table of US
+  positions); the keys a layout moves (the digit row, the letters, the main block's punctuation) take the active
+  layout's key (`sdl_keys::LayoutKey`: Windows' MapVirtualKeyExW, so AZERTY's M key is the M key; on Linux
+  and macOS `sdl_keys::KeyOfTyped` of what the key types in SDL's keymap), else the US place's; tools/input_check checks the codes
   and the control characters against every layout the machine has (a build check), and on Linux
   (input_check_linux.cpp, ctest's `port_input`) codes, Ctrl characters and names on X11's us, ru, fr and de layouts. A key event carries SDL's repeat and Shift, Ctrl and Alt. Text: SDL's typed
   text, UTF-8, with the scan code of the last key pressed (the interface drops the console key's character by it), and
@@ -273,8 +274,10 @@ What SDL's backend does (platform_sdl.cpp):
   pixels: present_window.cpp maps mouse events (`MouseToGame`) and gives the cursor calls its mapping with
   `platform::MapCursorPoints` at each present; every game call of the cursor's position goes through platform.h's cursor
   calls.
-- Key codes stay the virtual-key values, as `platform::kKey...` constants (the bindings file and the options keep the
-  values); a port gives its key events the same values.
+- Keys are `platform::Key` everywhere past the backend (events, the interface's KeyDown / KeyUp, the harness's steps);
+  only the console's system-key line and the harness's recordings use its value (`static_cast`), the virtual-key code. A
+  layout's code without a name passes through as it is. Typed characters (Char, OnChar) are code points, compared with
+  character literals (`'\b'`, `'\r'`, `'\x1B'`), not with keys.
 
 ## Graphics
 

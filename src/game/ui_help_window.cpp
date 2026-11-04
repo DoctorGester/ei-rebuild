@@ -133,16 +133,16 @@ void HelpWindow::LeftDown(Point point) {
     }
 }
 
-void HelpWindow::KeyDown(int key, int scan, bool repeat) {
+void HelpWindow::KeyDown(platform::Key key, int scan, bool repeat) {
     UiContainer::KeyDown(key, scan, repeat);
-    if (key == platform::kKeyReturn && page < static_cast<int>(lines.size()) - 1) {
+    if (key == platform::Key::Return && page < static_cast<int>(lines.size()) - 1) {
         ui->PlayInterfaceSound(kNextSound);
         ++page;
         ShowPage();
         handled = true;
         return;
     }
-    if (key != platform::kKeyReturn && key != platform::kKeyEscape && g_keyActions[scan] != kHelpAction) return;
+    if (key != platform::Key::Return && key != platform::Key::Escape && g_keyActions[scan] != kHelpAction) return;
     Finish();
     handled = true;
 }

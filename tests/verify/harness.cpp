@@ -1293,14 +1293,14 @@ using platform::MouseButton;
 
 void PostModifiers(unsigned mods, bool down) {
     // Alt's own press and release hold Alt (Windows' system keys: the console prints the release).
-    struct Key { unsigned mod, vk, scan; std::uint8_t modifiers; };
-    static const Key keys[] = {{kModCtrl, input::kKeyControl, 0x1D, 0},
-                               {kModShift, input::kKeyShift, 0x2A, 0},
-                               {kModAlt, input::kKeyMenu, 0x38, platform::kModifierAlt}};
-    for (const Key& key : keys) {
+    struct ModifierKey { unsigned mod; platform::Key key; unsigned scan; std::uint8_t modifiers; };
+    static const ModifierKey keys[] = {{kModCtrl, platform::Key::Control, 0x1D, 0},
+                                       {kModShift, platform::Key::Shift, 0x2A, 0},
+                                       {kModAlt, platform::Key::Alt, 0x38, platform::kModifierAlt}};
+    for (const ModifierKey& key : keys) {
         if (!(mods & key.mod)) continue;
-        if (down) input::PressKey(key.vk, key.scan, key.modifiers);
-        else input::ReleaseKey(key.vk, key.scan, key.modifiers);
+        if (down) input::PressKey(key.key, key.scan, key.modifiers);
+        else input::ReleaseKey(key.key, key.scan, key.modifiers);
     }
 }
 
@@ -1334,63 +1334,65 @@ struct HeldModifiers {
 // translate as the US layout with no key held: letters and digits make no WM_CHAR here (the "key" step posts
 // theirs, so a name comes out as typed), the other keys their fixed character (Enter 0x0D, Esc 0x1B, ...).
 
-char FixedKeyChar(unsigned vk) {
-    switch (vk) {
-    case input::kKeyBack: return 0x08;
-    case input::kKeyTab: return 0x09;
-    case input::kKeyReturn: return 0x0D;
-    case input::kKeyEscape: return 0x1B;
-    case input::kKeySpace: return ' ';
-    case input::kKeyMultiply: return '*';
-    case input::kKeyAdd: return '+';
-    case input::kKeySubtract: return '-';
-    case input::kKeyDivide: return '/';
-    case input::kKeyOem1: return ';';
-    case input::kKeyOemPlus: return '=';
-    case input::kKeyOemComma: return ',';
-    case input::kKeyOemMinus: return '-';
-    case input::kKeyOemPeriod: return '.';
-    case input::kKeyOem2: return '/';
-    case input::kKeyOem3: return '`';
-    case input::kKeyOem4: return '[';
-    case input::kKeyOem5: return '\\';
-    case input::kKeyOem6: return ']';
-    case input::kKeyOem7: return '\'';
+char FixedKeyChar(platform::Key key) {
+    switch (key) {
+    case platform::Key::Backspace: return 0x08;
+    case platform::Key::Tab: return 0x09;
+    case platform::Key::Return: return 0x0D;
+    case platform::Key::Escape: return 0x1B;
+    case platform::Key::Space: return ' ';
+    case platform::Key::KeypadMultiply: return '*';
+    case platform::Key::KeypadPlus: return '+';
+    case platform::Key::KeypadMinus: return '-';
+    case platform::Key::KeypadDivide: return '/';
+    case platform::Key::Semicolon: return ';';
+    case platform::Key::Equals: return '=';
+    case platform::Key::Comma: return ',';
+    case platform::Key::Minus: return '-';
+    case platform::Key::Period: return '.';
+    case platform::Key::Slash: return '/';
+    case platform::Key::Grave: return '`';
+    case platform::Key::LeftBracket: return '[';
+    case platform::Key::Backslash: return '\\';
+    case platform::Key::RightBracket: return ']';
+    case platform::Key::Apostrophe: return '\'';
     default: return 0;
     }
 }
 
 // The character a key press types (platform/harness_platform.h): the US layout's, with no key held.
-int TypedCharacter(int key) { return static_cast<unsigned char>(FixedKeyChar(static_cast<unsigned>(key))); }
+int TypedCharacter(platform::Key key) { return static_cast<unsigned char>(FixedKeyChar(key)); }
 
 // Which messages PostKey posts: the press and release ("key"), or only one of them ("keydown" / "keyup").
 enum class KeyPart { Both, Down, Up };
 
 void PostKey(const std::string& name, KeyPart part = KeyPart::Both) {
-    unsigned vk = 0;
-    if (name.size() == 1 && std::isalnum(static_cast<unsigned char>(name[0]))) vk = std::toupper(static_cast<unsigned char>(name[0]));
-    else if (name == "esc") vk = input::kKeyEscape;
-    else if (name == "enter" || name == "enterchar") vk = input::kKeyReturn;
-    else if (name == "space") vk = input::kKeySpace;
-    else if (name == "tab") vk = input::kKeyTab;
-    else if (name == "up") vk = input::kKeyUp;
-    else if (name == "down") vk = input::kKeyDown;
-    else if (name == "left") vk = input::kKeyLeft;
-    else if (name == "right") vk = input::kKeyRight;
-    else if (name == "plus") vk = input::kKeyAdd;
-    else if (name == "minus") vk = input::kKeySubtract;
-    else if (name == "grave") vk = input::kKeyOem3;   // the console key (scan code 0x29)
-    else if (name == "backspace") vk = input::kKeyBack;
-    else if (name == "delete") vk = input::kKeyDelete;
-    else if (name == "home") vk = input::kKeyHome;
-    else if (name == "end") vk = input::kKeyEnd;
-    else if (name == "pgup") vk = input::kKeyPageUp;
-    else if (name == "pgdn") vk = input::kKeyPageDown;
-    else if (name == "scrolllock") vk = input::kKeyScroll;   // scan 0x46: the screenshot key (005F78C0)
-    else if (name == "ctrl") vk = input::kKeyControl;   // scan 0x1D: sets Interface3D +0x7C while down
-    else if (name == "shift") vk = input::kKeyShift;    // scan 0x2A: +0x7D
-    else if (name.size() >= 2 && name[0] == 'f') vk = input::kKeyF1 + std::atoi(name.c_str() + 1) - 1;
-    if (!vk) {
+    using platform::Key;
+    Key vk = Key::None;
+    if (name.size() == 1 && std::isalpha(static_cast<unsigned char>(name[0]))) vk = KeyAfter(Key::A, std::tolower(static_cast<unsigned char>(name[0])) - 'a');
+    else if (name.size() == 1 && std::isdigit(static_cast<unsigned char>(name[0]))) vk = KeyAfter(Key::Digit0, name[0] - '0');
+    else if (name == "esc") vk = platform::Key::Escape;
+    else if (name == "enter" || name == "enterchar") vk = platform::Key::Return;
+    else if (name == "space") vk = platform::Key::Space;
+    else if (name == "tab") vk = platform::Key::Tab;
+    else if (name == "up") vk = platform::Key::Up;
+    else if (name == "down") vk = platform::Key::Down;
+    else if (name == "left") vk = platform::Key::Left;
+    else if (name == "right") vk = platform::Key::Right;
+    else if (name == "plus") vk = platform::Key::KeypadPlus;
+    else if (name == "minus") vk = platform::Key::KeypadMinus;
+    else if (name == "grave") vk = platform::Key::Grave;   // the console key (scan code 0x29)
+    else if (name == "backspace") vk = platform::Key::Backspace;
+    else if (name == "delete") vk = platform::Key::Delete;
+    else if (name == "home") vk = platform::Key::Home;
+    else if (name == "end") vk = platform::Key::End;
+    else if (name == "pgup") vk = platform::Key::PageUp;
+    else if (name == "pgdn") vk = platform::Key::PageDown;
+    else if (name == "scrolllock") vk = platform::Key::ScrollLock;   // scan 0x46: the screenshot key (005F78C0)
+    else if (name == "ctrl") vk = platform::Key::Control;   // scan 0x1D: sets Interface3D +0x7C while down
+    else if (name == "shift") vk = platform::Key::Shift;    // scan 0x2A: +0x7D
+    else if (name.size() >= 2 && name[0] == 'f') vk = KeyAfter(Key::F1, std::atoi(name.c_str() + 1) - 1);
+    if (vk == Key::None) {
         Log("harness: unknown key '%s'", name.c_str());
         return;
     }
@@ -1400,14 +1402,14 @@ void PostKey(const std::string& name, KeyPart part = KeyPart::Both) {
     // table (0079BF70) is indexed by the scan code with that bit, and the camera keys of keyboard.ini
     // (arrows, Page Up / Down, Home) are the extended ones. "key" posts them without it, as it always
     // has (its scenarios' goldens; the arrows then read as the numeric keypad's).
-    const bool extended = vk == input::kKeyUp || vk == input::kKeyDown || vk == input::kKeyLeft || vk == input::kKeyRight ||
-                          vk == input::kKeyPageUp || vk == input::kKeyPageDown || vk == input::kKeyHome ||
-                          vk == input::kKeyEnd || vk == input::kKeyDelete;
+    const bool extended = vk == platform::Key::Up || vk == platform::Key::Down || vk == platform::Key::Left || vk == platform::Key::Right ||
+                          vk == platform::Key::PageUp || vk == platform::Key::PageDown || vk == platform::Key::Home ||
+                          vk == platform::Key::End || vk == platform::Key::Delete;
     if (part != KeyPart::Both && extended) scan |= 0x100;
     if (part != KeyPart::Up) {
         input::PressKey(vk, scan);
-        if (part == KeyPart::Both && vk >= '0' && vk <= 'Z')
-            input::TypeCharacter(static_cast<unsigned>(std::tolower(static_cast<int>(vk))), scan);
+        if (part == KeyPart::Both && vk >= Key::Digit0 && vk <= Key::Z)   // a letter's or a digit's: the name's
+            input::TypeCharacter(static_cast<unsigned>(std::tolower(static_cast<unsigned char>(name[0]))), scan);
         if (part == KeyPart::Both && name == "enterchar") input::TypeCharacter(0x0D, scan);
     }
     if (part != KeyPart::Down) input::ReleaseKey(vk, scan);
@@ -3794,7 +3796,7 @@ namespace harnessplatform {
 
 bool BeforeEvents() { return ei::verify::BeforeEvents(); }
 bool CollectCursors() { return ei::verify::g_cursorCollecting && ei::verify::RampIsIdentity(); }
-int TypedCharacter(int key) { return ei::verify::TypedCharacter(key); }
+int TypedCharacter(platform::Key key) { return ei::verify::TypedCharacter(key); }
 
 // The harness's mouse (the last position a step put it at, the client area's centre before), on the screen.
 bool MousePosition(Point* at) {

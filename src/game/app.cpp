@@ -67,7 +67,7 @@ void Handled() { g_interface.CloseAllPending(); }
 // console and took Alt+F4 and Alt+Tab from them.
 bool SystemKey(const platform::Event& event) {
     const bool alt = (event.modifiers & platform::kModifierAlt) != 0;
-    return (alt && !(event.modifiers & platform::kModifierControl)) || event.key == platform::kKeyF10;
+    return (alt && !(event.modifiers & platform::kModifierControl)) || event.key == platform::Key::F10;
 }
 
 // The wheel's turn as the interface takes it: 120 a notch, positive away from the player.
@@ -99,7 +99,7 @@ void MenuOpen(void* flow) { static_cast<GameFlow*>(flow)->ProcessRequest(); }
 
 void OnKey(Interface3D* input, const platform::Event& event) {
     if (event.type == EventType::KeyDown) {
-        if (event.key == platform::kKeyF4 && SystemKey(event)) {   // Alt+F4
+        if (event.key == platform::Key::F4 && SystemKey(event)) {   // Alt+F4
             platform::PostQuit(0);
             return;
         }
@@ -107,11 +107,11 @@ void OnKey(Interface3D* input, const platform::Event& event) {
         return;
     }
     if (SystemKey(event)) {
-        // The key and its message data, signed (a released key's are negative), wherever long is wider: F10's
-        // "121:-1069285375".
+        // The key's virtual-key code (Key's value) and its message data, signed (a released key's are negative),
+        // wherever long is wider: F10's "121:-1069285375" (the goldens of camera and ui_modifier_keys hold such lines).
         console::EndLine(console::g_consoleOut << static_cast<unsigned>(event.key) << ':'
                                                << static_cast<long>(ReleaseData(event)));
-        if (event.key == platform::kKeyTab && (event.modifiers & platform::kModifierAlt)) {   // Alt+Tab: as if the window was deactivated
+        if (event.key == platform::Key::Tab && (event.modifiers & platform::kModifierAlt)) {   // Alt+Tab: as if the window was deactivated
             OnActivate(false, platform::IsMinimized(g_mainWindow));
             return;
         }

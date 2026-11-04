@@ -79,21 +79,21 @@ void ConsoleWindow::Show(bool newShown) {
 // Ctrl, PgUp/PgDn scroll by a page and Home/End go to the first/last page, otherwise PgUp/PgDn
 // scroll by a line and Home/End/Left/Right move the caret (Shift keeps the selection's anchor);
 // Up/Down step through the entered commands; Delete removes the selection or the next character.
-void ConsoleWindow::OnKeyDown(int key, int, bool) {
+void ConsoleWindow::OnKeyDown(platform::Key key, int, bool) {
     switch (key) {
-    case platform::kKeyShift:
+    case platform::Key::Shift:
         shift = true;
         return;
-    case platform::kKeyControl:
+    case platform::Key::Control:
         ctrl = true;
         return;
-    case platform::kKeyPageUp:
+    case platform::Key::PageUp:
         scroll = ctrl ? scroll + visibleLines : scroll + 1;
         break;
-    case platform::kKeyPageDown:
+    case platform::Key::PageDown:
         scroll = ctrl ? scroll - visibleLines : scroll - 1;
         break;
-    case platform::kKeyEnd:
+    case platform::Key::End:
         if (!ctrl) {
             caret = lib::Count(input);
             if (!shift) anchor = caret;
@@ -102,7 +102,7 @@ void ConsoleWindow::OnKeyDown(int key, int, bool) {
         }
         scroll = 0;
         break;
-    case platform::kKeyHome:
+    case platform::Key::Home:
         if (!ctrl) {
             caret = 0;
             if (!shift) anchor = 0;
@@ -114,15 +114,15 @@ void ConsoleWindow::OnKeyDown(int key, int, bool) {
             scroll = first < 0 ? 0 : first;
         }
         break;
-    case platform::kKeyLeft:
-    case platform::kKeyRight:   // by character
-        caret = key == platform::kKeyLeft ? ::text::PreviousCharacter(input, caret) : ::text::NextCharacter(input, caret);
+    case platform::Key::Left:
+    case platform::Key::Right:   // by character
+        caret = key == platform::Key::Left ? ::text::PreviousCharacter(input, caret) : ::text::NextCharacter(input, caret);
         if (!shift) anchor = caret;
         ClampCaret();
         return;
-    case platform::kKeyUp:
-    case platform::kKeyDown:
-        if (key == platform::kKeyUp) {
+    case platform::Key::Up:
+    case platform::Key::Down:
+        if (key == platform::Key::Up) {
             if (commandIndex < static_cast<int>(commands.size())) ++commandIndex;
         } else if (commandIndex >= 0) {
             --commandIndex;
@@ -135,7 +135,7 @@ void ConsoleWindow::OnKeyDown(int key, int, bool) {
         anchor = caret;
         ClampCaret();
         return;
-    case platform::kKeyDelete:
+    case platform::Key::Delete:
         if (anchor == caret) {
             if (caret < static_cast<int>(input.size())) {
                 std::string rest = str::Mid(input, ::text::NextCharacter(input, caret));

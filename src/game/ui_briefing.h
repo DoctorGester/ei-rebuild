@@ -137,7 +137,7 @@ public:
     void MouseMove(Point point) override;
     // With the chat window active only Esc, which gives the input back. See docs/notes/ui.md, "Behaviour moved
     // out of header comments".
-    void KeyDown(int key, int scan, bool repeat) override;
+    void KeyDown(platform::Key key, int scan, bool repeat) override;
 
     // None leaves state 0; otherwise the leader stops (unless noWalk), "goodbye" is appended, state 1.
     void OpenTopics(EngineObject* person);

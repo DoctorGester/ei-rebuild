@@ -512,9 +512,9 @@ void EscMenu::MouseMove(Point point) {
     UiContainer::MouseMove(point);
 }
 
-void EscMenu::KeyDown(int key, int scan, bool repeat) {
+void EscMenu::KeyDown(platform::Key key, int scan, bool repeat) {
     UiContainer::KeyDown(key, scan, repeat);
-    if (key == platform::kKeyEscape) {
+    if (key == platform::Key::Escape) {
         ui->PlayInterfaceSound(kSoundMenuOk);
         ui->SetPendingValue(0);
         handled = true;
@@ -541,25 +541,25 @@ void CreditsScreen::Close() {
 
 void CreditsScreen::LeftDown(Point) { Close(); }
 
-void CreditsScreen::KeyDown(int key, int, bool) {
-    if (key == platform::kKeyReturn || key == platform::kKeyEscape || key == platform::kKeySpace) Close();
+void CreditsScreen::KeyDown(platform::Key key, int, bool) {
+    if (key == platform::Key::Return || key == platform::Key::Escape || key == platform::Key::Space) Close();
 }
 
 // --- ExchangeScreen --------------------------------------------------------------------------
 
-void ExchangeScreen::KeyDown(int key, int scan, bool repeat) {
+void ExchangeScreen::KeyDown(platform::Key key, int scan, bool repeat) {
     UiContainer::KeyDown(key, scan, repeat);
     if (handled) return;
     switch (key) {
-    case platform::kKeyBack:
+    case platform::Key::Backspace:
         ui->ChatKeyBackspace();
         handled = true;
         break;
-    case platform::kKeyReturn:
+    case platform::Key::Return:
         ui->ChatKeyEnter();
         handled = true;
         break;
-    case platform::kKeyEscape:
+    case platform::Key::Escape:
         net::g_gameClient->DropParty();
         handled = true;
         break;

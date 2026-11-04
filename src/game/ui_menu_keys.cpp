@@ -22,10 +22,6 @@
 #include <cstring>
 
 namespace {
-// Virtual-key codes.
-constexpr int kKeyBack = 0x08, kKeyEnter = 0x0D, kKeyEsc = 0x1B, kKeyPageUp = 0x21, kKeyPageDown = 0x22;
-constexpr int kKeyEnd = 0x23, kKeyHome = 0x24, kKeyLeft = 0x25, kKeyUp = 0x26, kKeyRight = 0x27, kKeyDown = 0x28;
-constexpr int kKeyDelete = 0x2E, kKeyTab = 0x09;
 constexpr int kMaxNameLength = 60;       // characters of a typed save name
 constexpr int kMaxNameWidth = 0xB2;      // its width limit in pixels (font 1)
 constexpr int kScanEsc = 1;              // the scan code that gives up a key binding
@@ -64,24 +60,24 @@ void SaveLoadWindow::ShowSelection() {
     ShowPicture();
 }
 
-void SaveLoadWindow::KeyDown(int key, int scan, bool repeat) {
+void SaveLoadWindow::KeyDown(platform::Key key, int scan, bool repeat) {
     if (sliding) return;
     UiContainer::KeyDown(key, scan, repeat);
     int step = 0;
     switch (key) {
-    case kKeyEnter:
+    case platform::Key::Return:
         Confirm();
         handled = true;
         break;
-    case kKeyEsc:
+    case platform::Key::Escape:
         ui->PlayInterfaceSound(game::CancelSoundText());
         ui->SetPendingValue(kCloseSaveLoad);
         handled = true;
         break;
-    case kKeyPageUp: step = -kListRows; break;
-    case kKeyPageDown: step = kListRows; break;
-    case kKeyUp: step = -1; break;
-    case kKeyDown: step = 1; break;
+    case platform::Key::PageUp: step = -kListRows; break;
+    case platform::Key::PageDown: step = kListRows; break;
+    case platform::Key::Up: step = -1; break;
+    case platform::Key::Down: step = 1; break;
     default: break;
     }
     if (step != 0) {
@@ -99,7 +95,7 @@ void SaveLoadWindow::KeyDown(int key, int scan, bool repeat) {
                     !IsReservedSave(currentSelected) && !nameTyped;
     auto& currentName = name;
     switch (key) {
-    case kKeyBack:
+    case platform::Key::Backspace:
         if (editable) {
             nameTyped = true;
             currentName.clear();
@@ -111,7 +107,7 @@ void SaveLoadWindow::KeyDown(int key, int scan, bool repeat) {
             cursor = previous;
         }
         break;
-    case kKeyDelete:
+    case platform::Key::Delete:
         if (editable) {
             nameTyped = true;
             currentName.clear();
@@ -120,20 +116,20 @@ void SaveLoadWindow::KeyDown(int key, int scan, bool repeat) {
         if (cursor < static_cast<int>(currentName.size()))
             currentName = str::Left(currentName, cursor) + str::Mid(currentName, text::NextCharacter(currentName, cursor));
         break;
-    case kKeyEnd:
-    case kKeyHome:
-    case kKeyLeft:
-    case kKeyRight:
+    case platform::Key::End:
+    case platform::Key::Home:
+    case platform::Key::Left:
+    case platform::Key::Right:
         if (editable) {
             nameTyped = true;
             currentName = entries[selected].title;
             cursor = lib::Count(currentName);
         }
-        if (key == kKeyEnd)
+        if (key == platform::Key::End)
             cursor = lib::Count(currentName);
-        else if (key == kKeyHome)
+        else if (key == platform::Key::Home)
             cursor = 0;
-        else if (key == kKeyLeft)
+        else if (key == platform::Key::Left)
             cursor = text::PreviousCharacter(currentName, cursor);
         else
             cursor = text::NextCharacter(currentName, cursor);
@@ -148,10 +144,10 @@ void SaveLoadWindow::KeyDown(int key, int scan, bool repeat) {
 void SaveLoadWindow::Char(int key, int scan) {
     if (!isSave) return;
     switch (key) {
-    case kKeyBack:
-    case kKeyTab:
-    case kKeyEnter:
-    case kKeyEsc:
+    case '\b':
+    case '\t':
+    case '\r':
+    case '\x1B':
         break;
     default: {
         int currentSelected = selected;
@@ -181,7 +177,7 @@ void SaveLoadWindow::Char(int key, int scan) {
     UiContainer::Char(key, scan);
 }
 
-void OptionsWindow::KeyDown(int key, int scan, bool repeat) {
+void OptionsWindow::KeyDown(platform::Key key, int scan, bool repeat) {
     if (sliding) return;
     const bool listOpen = popup != nullptr;
     UiContainer::KeyDown(key, scan, repeat);
@@ -240,7 +236,7 @@ void OptionsWindow::KeyDown(int key, int scan, bool repeat) {
     }
 
     switch (key) {
-    case kKeyEnter: {
+    case platform::Key::Return: {
         OptionRow& row = rows[selectedRow];
         if (row.binding) {
             waitingForKey = true;
@@ -259,37 +255,37 @@ void OptionsWindow::KeyDown(int key, int scan, bool repeat) {
         handled = true;
         return;
     }
-    case kKeyEsc:
+    case platform::Key::Escape:
         RestoreSettings();
         ui->PlayInterfaceSound(game::CancelSoundText());
         ui->SetPendingValue(kCloseOptions);
         break;
-    case kKeyPageUp:
-    case kKeyPageDown:
+    case platform::Key::PageUp:
+    case platform::Key::PageDown:
         ui->PlayInterfaceSound(game::SelectSoundText());
-        ShowGroup(key == kKeyPageUp ? group - 1 : group + 1);
+        ShowGroup(key == platform::Key::PageUp ? group - 1 : group + 1);
         break;
-    case kKeyLeft:
-    case kKeyRight: {
+    case platform::Key::Left:
+    case platform::Key::Right: {
         // The row's bar moves one step, or its spin control steps back or on; the handled flag stays as it is.
         OptionSetting* setting = rows[selectedRow].setting;
         if (!setting) return;
         if (setting->list) {
-            setting->list->Step(key == kKeyLeft ? -1 : 1);
+            setting->list->Step(key == platform::Key::Left ? -1 : 1);
             ui->PlayInterfaceSound(game::OkSoundText());
             return;
         }
         if (setting->spin) {
-            setting->spin->Step(key == kKeyLeft ? -1 : 1);
+            setting->spin->Step(key == platform::Key::Left ? -1 : 1);
             ui->PlayInterfaceSound(game::OkSoundText());
             return;
         }
         if (!setting->bar) return;
         const int position = setting->bar->TakePosition();
-        rows[selectedRow].setting->bar->SetPosition(key == kKeyLeft ? position - 1 : position + 1);
+        rows[selectedRow].setting->bar->SetPosition(key == platform::Key::Left ? position - 1 : position + 1);
         return;
     }
-    case kKeyUp:
+    case platform::Key::Up:
         ui->PlayInterfaceSound(game::SelectSoundText());
         for (int i = selectedRow - 1; i >= 0; --i) {
             if (rows[i].binding || rows[i].setting) {
@@ -299,7 +295,7 @@ void OptionsWindow::KeyDown(int key, int scan, bool repeat) {
             }
         }
         break;
-    case kKeyDown:
+    case platform::Key::Down:
         ui->PlayInterfaceSound(game::SelectSoundText());
         for (int i = selectedRow + 1; i < kOptionRows; ++i) {
             if (rows[i].binding || rows[i].setting) {

@@ -205,7 +205,7 @@ public:
     void LeftDown(Point point) override;
     // After the container's handler, unless a child used the key: Enter, Esc and the paging keys by mode (9, 10, 11):
     // see docs/notes/ui.md, "MpHeroScreen::KeyDown". A key used is marked.
-    void KeyDown(int key, int scan, bool repeat) override;
+    void KeyDown(platform::Key key, int scan, bool repeat) override;
     // Enter while renaming: the hero's name becomes the text before its " | " plus " | " and the typed text (trimmed); the
     // transfer sent; the edit window put away.
     void FinishRename();
@@ -359,7 +359,7 @@ public:
     void LeftDouble(Point point) override;
     // The container's handler first; then Enter connects, Esc leaves (as region 1 without the address book), Up / Down / PgUp /
     // PgDn move the selection by 1 / 15 with the select sound (SelectAndScroll); those keys are marked used.
-    void KeyDown(int key, int scan, bool repeat) override;
+    void KeyDown(platform::Key key, int scan, bool repeat) override;
     // The selection clamped to the list (an empty list gives -1 and reads the entry before it), its address kept, the list
     // scrolled to show it and drawn.
     void SelectAndScroll();
@@ -433,7 +433,7 @@ class EscMenu : public UiContainer {
 public:
     explicit EscMenu(Interface3D* ui) : UiContainer(ui) {}
     void MouseMove(Point point) override;
-    void KeyDown(int key, int scan, bool repeat) override;
+    void KeyDown(platform::Key key, int scan, bool repeat) override;
     void MessageResult(std::uint32_t result) override;
     // The stone model and the five regions, whose rectangles come from menus.reg.
     void CreateScreen() override;
@@ -490,7 +490,7 @@ class CreditsScreen : public UiContainer {
 public:
     CreditsScreen(Interface3D* ui, bool fromGame, const char* name);
     void LeftDown(Point point) override;
-    void KeyDown(int key, int scan, bool repeat) override;
+    void KeyDown(platform::Key key, int scan, bool repeat) override;
     // Ends the titles: back to where they were opened from.
     void Close();
     // Opened in a game (fromGame 0) the loading screen steps and the music stops; the cursor hidden, the
@@ -558,7 +558,7 @@ public:
     // sound, once per region; then the container's handler.
     void MouseMove(Point point) override;
     // The container's handler, then Esc asks to quit (a message box "quit" / "quit_msg", flags 0x10000).
-    void KeyDown(int key, int scan, bool repeat) override;
+    void KeyDown(platform::Key key, int scan, bool repeat) override;
 
     int hovered = -1;                     // the region under the mouse (-1 none)
     bool rain = false;
@@ -594,7 +594,7 @@ public:
     // "xch_remote_header" with "xch_remote_ok" / "_cancel"; the accept / take back buttons are shaded by our
     // offer's acceptance and the third button by the partner's; then the children.
     void Draw(SceneRenderer* pass) override;
-    void KeyDown(int key, int scan, bool repeat) override;
+    void KeyDown(platform::Key key, int scan, bool repeat) override;
     // The children's update; then, when the client's offer is gone or detached, our offer's items go back to
     // the local party and the client returns to the world; else a changed money field (its changed cleared)
     // becomes our offer's money (atoi) and the offer is published.

@@ -218,6 +218,72 @@ private:
 // std::thread has no priorities.
 void MakeThreadTimeCritical();
 
+// ==== Key codes ======================================================================================================
+
+// A key event's key: what the active layout makes the key (layouts move the letters, the digits and the punctuation:
+// AZERTY's key where a US keyboard has Q is A), named as Windows' US layout names it. The values are Windows'
+// virtual-key codes, because the console prints them (a system key's release, app.cpp) and the harness's recordings
+// keep them; a layout can give a value that has no name here (Windows' VK_OEM_8), which passes through as it is.
+enum class Key : std::uint8_t {
+    None = 0x00,
+    Backspace = 0x08,
+    Tab = 0x09,
+    Clear = 0x0C,          // the keypad's 5 with Num Lock off
+    Return = 0x0D,         // Enter, the main block's and the keypad's
+    Shift = 0x10,
+    Control = 0x11,
+    Alt = 0x12,
+    Pause = 0x13,
+    CapsLock = 0x14,
+    Escape = 0x1B,
+    Space = 0x20,
+    PageUp = 0x21,
+    PageDown = 0x22,
+    End = 0x23,
+    Home = 0x24,
+    Left = 0x25,
+    Up = 0x26,
+    Right = 0x27,
+    Down = 0x28,
+    PrintScreen = 0x2C,
+    Insert = 0x2D,
+    Delete = 0x2E,
+    Digit0 = 0x30,         // Digit0 + n (KeyAfter): the digit n's key, to Digit9
+    Digit9 = 0x39,
+    A = 0x41,              // A + n: the n-th letter's key after A, to Z
+    Z = 0x5A,
+    LeftWindows = 0x5B,
+    RightWindows = 0x5C,
+    Application = 0x5D,
+    Keypad0 = 0x60,        // Keypad0 + n: the keypad's digit n with Num Lock on
+    KeypadMultiply = 0x6A,
+    KeypadPlus = 0x6B,
+    KeypadMinus = 0x6D,
+    KeypadPeriod = 0x6E,   // with Num Lock on
+    KeypadDivide = 0x6F,
+    F1 = 0x70,             // F1 + n: the function key n + 1, to F12
+    F4 = 0x73,
+    F10 = 0x79,
+    F12 = 0x7B,
+    NumLock = 0x90,
+    ScrollLock = 0x91,
+    Semicolon = 0xBA,      // the punctuation keys by what they type on a US keyboard
+    Equals = 0xBB,
+    Comma = 0xBC,
+    Minus = 0xBD,
+    Period = 0xBE,
+    Slash = 0xBF,
+    Grave = 0xC0,          // the key under Escape (the console's)
+    LeftBracket = 0xDB,
+    Backslash = 0xDC,
+    RightBracket = 0xDD,
+    Apostrophe = 0xDE,
+    NonUsBackslash = 0xE2, // the key left of Z on a 102-key keyboard
+};
+
+// The key `n` places after `first` (KeyAfter(Key::A, 2) is C).
+constexpr Key KeyAfter(Key first, int n) { return static_cast<Key>(static_cast<int>(first) + n); }
+
 // ==== The window and its events ======================================================================================
 
 // docs/notes/platform.md, "Window and events". The window is a native one (an HWND on Windows, else the SDL_Window)
@@ -246,7 +312,7 @@ inline constexpr std::uint8_t kModifierAlt = 0x04;
 
 struct Event {
     EventType type = EventType::KeyDown;
-    int key = 0;                  // keys: the virtual-key code (the next section)
+    Key key = Key::None;          // keys: the key ("Key codes" above)
     int scan = 0;                 // keys: the key's place as its set-1 scan code (0x100 for an extended key); Text: the
                                   // last key pressed's
     bool repeat = false;          // KeyDown: the key was down already (the keyboard's repeat)
@@ -320,31 +386,6 @@ Event NextEvent();
 std::optional<Event> TakeEvent();
 // Asks the loop to end: NextEvent gives a Quit event with `code` once the waiting events are taken.
 void PostQuit(int code);
-
-// ==== Key codes ======================================================================================================
-
-// A key event's `key` is one of these, on every system. The values are the Windows virtual-key codes, which the
-// bindings file and the options keep.
-
-inline constexpr int kKeyBack = 0x08;
-inline constexpr int kKeyTab = 0x09;
-inline constexpr int kKeyReturn = 0x0D;
-inline constexpr int kKeyShift = 0x10;
-inline constexpr int kKeyControl = 0x11;
-inline constexpr int kKeyMenu = 0x12;       // Alt
-inline constexpr int kKeyEscape = 0x1B;
-inline constexpr int kKeySpace = 0x20;
-inline constexpr int kKeyPageUp = 0x21;
-inline constexpr int kKeyPageDown = 0x22;
-inline constexpr int kKeyEnd = 0x23;
-inline constexpr int kKeyHome = 0x24;
-inline constexpr int kKeyLeft = 0x25;
-inline constexpr int kKeyUp = 0x26;
-inline constexpr int kKeyRight = 0x27;
-inline constexpr int kKeyDown = 0x28;
-inline constexpr int kKeyDelete = 0x2E;
-inline constexpr int kKeyF4 = 0x73;
-inline constexpr int kKeyF10 = 0x79;
 
 // ==== The cursor =====================================================================================================
 

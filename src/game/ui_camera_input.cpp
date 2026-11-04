@@ -51,7 +51,7 @@ CursorShape EdgeCursor(unsigned edges) {
 
 } // namespace
 
-void CameraInput::KeyUp(int, int scan) {
+void CameraInput::KeyUp(platform::Key, int scan) {
     switch (g_keyActions[scan]) {
     case 5:
     case 6:
@@ -209,7 +209,7 @@ void CameraInput::Wheel(int delta, Point) {
 // or Alt held: interface +0x7C / +0x7E). While a direction is held, the camera pans (or with
 // a modifier turns and tilts) at the option speeds.
 
-void CameraInput::KeyDown(int, int scan, bool) {
+void CameraInput::KeyDown(platform::Key, int scan, bool) {
     int character = g_keyActions[scan];
     switch (character) {
     case 5: x = 1.0f; handled = true; break;
