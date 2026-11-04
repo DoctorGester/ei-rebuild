@@ -8,6 +8,13 @@ endif()
 # (docs/notes/linux.md: the game on SDL3, POSIX and Vulkan) and macOS with Apple Clang (docs/notes/macos.md: SDL3,
 # POSIX and Metal). The offline checks against Windows' drawing and keys build on Windows.
 project(EvilIslands CXX)
+# The step wrapper (build.cmd: tools/compiler_cache.py's EI_STEP_WRAPPER, as CMAKE_CXX_LINKER_LAUNCHER) also in front of
+# the archiver: a link or archive step that fails with no output then prints its exit code (H52a).
+if(WIN32 AND CMAKE_CXX_LINKER_LAUNCHER)
+    list(JOIN CMAKE_CXX_LINKER_LAUNCHER " " EI_STEP_WRAPPER_TEXT)
+    set(CMAKE_CXX_CREATE_STATIC_LIBRARY
+        "${EI_STEP_WRAPPER_TEXT} <CMAKE_AR> /nologo <LINK_FLAGS> /out:<TARGET> <OBJECTS> ")
+endif()
 set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -63,9 +70,12 @@ if(WIN32)
     # own picks (file-local helpers).
     string(REPLACE "/Ob1" "/Ob2" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
     # No incremental linking: an incremental relink left out new code from ei_render.lib while reporting success
-    # (R16c2), so a run could test stale code.
-    string(REGEX REPLACE "/INCREMENTAL(:[A-Z]+)?" "/INCREMENTAL:NO" CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO
-           "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO}")
+    # (R16c2), so a run could test stale code; the debug build's failed once with LNK1000 "Internal error during
+    # IncrBuildImage" (H52a).
+    foreach(config DEBUG RELWITHDEBINFO)
+        string(REGEX REPLACE "/INCREMENTAL(:[A-Z]+)?" "/INCREMENTAL:NO" CMAKE_EXE_LINKER_FLAGS_${config}
+               "${CMAKE_EXE_LINKER_FLAGS_${config}}")
+    endforeach()
     # /OPT:REF leaves out code and data nothing references; /OPT:ICF folds identical functions to one address (no code
     # compares function pointers: H33c), so a crash or profile address names one of the functions folded there; the
     # debug build keeps the linker's default. /MAP: ei-rebuild.map resolves the harness's crash log
