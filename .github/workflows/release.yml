@@ -180,10 +180,10 @@ jobs:
             "https://sdk.lunarg.com/sdk/download/$VULKAN_SDK_VERSION/mac/vulkansdk-macos-$VULKAN_SDK_VERSION.zip"
           echo "Vulkan SDK $VULKAN_SDK_VERSION: sha256 $(shasum -a 256 "$RUNNER_TEMP/vulkansdk.zip" | cut -d' ' -f1)" \
             | tee -a $GITHUB_STEP_SUMMARY
-          unzip -q "$RUNNER_TEMP/vulkansdk.zip" -d "$RUNNER_TEMP/vulkansdk"
-          set -- "$RUNNER_TEMP"/vulkansdk/*.app/Contents/MacOS/*
-          sudo "$1" --root "$RUNNER_TEMP/VulkanSDK" --accept-licenses --default-answer --confirm-command install
-          sdk="$RUNNER_TEMP/VulkanSDK/macOS"
+          unzip -q "$RUNNER_TEMP/vulkansdk.zip" -d "$RUNNER_TEMP/vulkansdk-installer"
+          set -- "$RUNNER_TEMP"/vulkansdk-installer/*.app/Contents/MacOS/*
+          sudo "$1" --root "$RUNNER_TEMP/vulkansdk-root" --accept-licenses --default-answer --confirm-command install
+          sdk="$RUNNER_TEMP/vulkansdk-root/macOS"
           mkdir -p ~/dxc-macos/lib ~/dxc-macos/include
           cp -a "$sdk"/lib/libdxcompiler*.dylib ~/dxc-macos/lib/
           cp -a "$sdk/include/dxc" ~/dxc-macos/include/
