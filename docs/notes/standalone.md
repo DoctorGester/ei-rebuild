@@ -596,7 +596,31 @@ through tools/compiler_cache.py.
   the object's dependencies, so a header changed here would have rebuilt nothing. The launcher changes every other
   checkout's folder in the output to this one's. Python was too slow for this (0.2 s to start, per compile).
 - **Why only the first build:** sccache runs the preprocessor before every compile (its direct mode is for gcc and
-  clang only), about 0.5 s of CPU per object. That makes a miss slower than a plain compile.
+  clang only), about 0.3-0.4 s of CPU per object for the whole hit (launcher, client, server, cl /E, reading the
+  object). That makes a miss slower than a plain compile.
+- **What the preprocessor reads (H52b):** the preprocessed text of an object is 75% standard library
+  (`cl /E`, summed over the tree: 1556 MB before, 1378 MB after H52b), 16% the Windows SDK's C headers, 9% our own
+  headers. `<string>` alone is 1.4 MB, so no object gets below about 1.6 MB. The headers that cost more than that
+  are the ones to keep out of widely included headers (extra size per object): `<chrono>` 1.6 MB (it includes
+  `<format>` and `<filesystem>`), `<filesystem>` 2.2 MB, `<format>` 1.1 MB, `<algorithm>` 0.45 MB, `<memory>`
+  0.3 MB (with `<atomic>`), `<variant>` 0.28 MB, `<functional>` 0.3 MB, `<unordered_map>` 0.23 MB, `<list>` /
+  `<deque>` / `<map>` 0.2 MB, windows.h 3.3 MB (1.8 MB less with WIN32_LEAN_AND_MEAN). Out of the widely
+  included headers now: `<algorithm>` (rect.h, containers.h: a file that calls `std::sort` and the like includes
+  it itself), `<chrono>` (render_internal.h) and the Windows files' full windows.h. Kept because the types are
+  real members: `<memory>` (`unique_ptr` in script.h, unit_ai.h, ui.h, sound.h), `<variant>` (ai_map.h),
+  `<unordered_map>` / `<list>` / `<deque>` / `<map>` (base_manager.h, model.h: 0.4 MB in about 330 objects;
+  lookup-only maps are `std::unordered_map` by design) and `std::format` (55 objects).
+  - **Measured (all 476 compile commands of the verify build run through sccache, all hits, 8 at a time, CPU of the
+    whole process tree):** the numbers move by +-20% between runs on the shared machine (three alternating pairs:
+    107, 129, 149 s before and 123, 113, 110 s after), so the cut is about 10% at best. The `cl /E` alone is small
+    (about 0.09 s of CPU per object) and a hit costs 0.17-0.3 s, so an 11% smaller text moves the hit by less than
+    that. A plain compile of 12 sample objects (CPU): 14.3 s before, 13.4 s after (with the `unique_ptr`
+    and `variant` cuts that were taken back). The warm first build (fresh build folder, warm cache) is 26 s with
+    and without the cuts: its ninja part is 15-18 s and configure, checks and the links are the rest.
+  - **How to measure again:** `ninja -t compdb` in a build folder, `cl /E /showIncludes` per entry (the compile
+    command without /Fo /Fd /c), then add up the `#line` sections per header and the include tree's first-seen
+    subtree per header. Put the process in a job object (CPU of the tree) and run the compile commands through an
+    sccache server of its own for the hit cost.
 - **Off:** set `EI_COMPILER_CACHE=0` and cl runs without the launcher (the changed command lines rebuild everything
   once). A server that cannot start makes sccache run cl itself (SCCACHE_IGNORE_SERVER_IO_ERROR).
 - **What the cache needs from the build (CMakeLists.txt):**

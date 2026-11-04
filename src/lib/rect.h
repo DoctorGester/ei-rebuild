@@ -6,8 +6,13 @@
 // the right and bottom edges are outside it. All three are aggregates (`Rect{l, t, r, b}`). The float pair is
 // Vector2 (vecmath.h).
 
-#include <algorithm>
 #include <cstdint>
+
+namespace rect_detail {
+// std::min / std::max without <algorithm>, which this header would cost every includer.
+inline constexpr std::int32_t Smaller(std::int32_t a, std::int32_t b) { return b < a ? b : a; }
+inline constexpr std::int32_t Larger(std::int32_t a, std::int32_t b) { return a < b ? b : a; }
+} // namespace rect_detail
 
 struct Point {
     std::int32_t x = 0, y = 0;
@@ -21,8 +26,8 @@ inline Point operator/(Point a, int s) { return {a.x / s, a.y / s}; }
 inline Point& operator+=(Point& a, Point b) { a = a + b; return a; }
 inline Point& operator-=(Point& a, Point b) { a = a - b; return a; }
 // Each coordinate's smaller and larger.
-inline Point Min(Point a, Point b) { return {(std::min)(a.x, b.x), (std::min)(a.y, b.y)}; }
-inline Point Max(Point a, Point b) { return {(std::max)(a.x, b.x), (std::max)(a.y, b.y)}; }
+inline Point Min(Point a, Point b) { return {rect_detail::Smaller(a.x, b.x), rect_detail::Smaller(a.y, b.y)}; }
+inline Point Max(Point a, Point b) { return {rect_detail::Larger(a.x, b.x), rect_detail::Larger(a.y, b.y)}; }
 inline bool operator==(Point a, Point b) { return a.x == b.x && a.y == b.y; }
 inline bool operator!=(Point a, Point b) { return !(a == b); }
 
@@ -86,16 +91,16 @@ struct Rect {
             other.top >= bottom) {
             return {};
         }
-        return {(std::max)(left, other.left), (std::max)(top, other.top), (std::min)(right, other.right),
-                (std::min)(bottom, other.bottom)};
+        return {rect_detail::Larger(left, other.left), rect_detail::Larger(top, other.top), rect_detail::Smaller(right, other.right),
+                rect_detail::Smaller(bottom, other.bottom)};
     }
 
     // The bounding rectangle of the non-empty operands (an empty operand is ignored); all zero when both are empty.
     Rect Union(const Rect& other) const {
         if (IsEmpty()) return other.IsEmpty() ? Rect{} : other;
         if (other.IsEmpty()) return *this;
-        return {(std::min)(left, other.left), (std::min)(top, other.top), (std::max)(right, other.right),
-                (std::max)(bottom, other.bottom)};
+        return {rect_detail::Smaller(left, other.left), rect_detail::Smaller(top, other.top), rect_detail::Larger(right, other.right),
+                rect_detail::Larger(bottom, other.bottom)};
     }
 };
 

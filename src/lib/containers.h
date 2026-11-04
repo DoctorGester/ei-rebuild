@@ -4,11 +4,9 @@
 // vectors). Which original instantiation each address belongs to:
 // docs/notes/core.md, "Shared containers".
 
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <iterator>
 #include <utility>
 #include <vector>
 
@@ -24,7 +22,10 @@ void FreeStorage(std::vector<T>& v) {
 // CList::Find as a test: whether `c` holds `value`.
 template <typename C, typename T>
 bool Contains(const C& c, const T& value) {
-    return std::find(std::begin(c), std::end(c), value) != std::end(c);
+    for (const auto& element : c) {
+        if (element == value) return true;
+    }
+    return false;
 }
 
 // A container's element count as an int, the type of the game's counts and indices (std::ssize is 64-bit on x64).

@@ -1,7 +1,11 @@
 // What the harness asks of Windows (harness_system.h).
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN   // windows.h without its rarely used parts (shell, OLE, ...): 1.8 MB less to preprocess
+#endif
 #include <winsock2.h>   // before windows.h
 #include <ws2tcpip.h>
 #include <windows.h>
+#include <mmsystem.h>   // timeBeginPeriod, timeGetTime
 #include <dwmapi.h>
 #include <iphlpapi.h>
 #include <psapi.h>

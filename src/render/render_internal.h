@@ -10,7 +10,6 @@
 // The programs' uniform blocks, slots and vertex inputs (CMakeLists.txt, tools/gen_gpu_shaders.py).
 #include "shaders/gpu_shaders.h"
 
-#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <utility>
@@ -604,10 +603,10 @@ void ForgetCursor(const void* holder);
 // The counts of the frame being built (summed at Present). StatsTimer adds its scope's CPU time to a field; a
 // timer inside another's scope takes its time out of the outer one's field.
 extern FrameStats g_stats;
-// The renderer's own timings (StatsTimer, the perf overlay, the texture counts): the steady clock's ticks.
-inline long long Ticks() { return std::chrono::steady_clock::now().time_since_epoch().count(); }
-inline constexpr double kMsPerTick =
-    1000.0 * std::chrono::steady_clock::period::num / std::chrono::steady_clock::period::den;
+// The renderer's own timings (StatsTimer, the perf overlay, the texture counts): the steady clock's ticks, nanoseconds
+// (render_perf.cpp: <chrono> would cost every includer a megabyte of header).
+long long Ticks();
+inline constexpr double kMsPerTick = 1e-6;
 class StatsTimer {
 public:
     explicit StatsTimer(double FrameStats::* field);

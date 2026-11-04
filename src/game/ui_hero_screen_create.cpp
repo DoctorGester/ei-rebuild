@@ -16,6 +16,7 @@
 #include "world.h"
 
 #include "lib/rebirth.h"
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <string>
