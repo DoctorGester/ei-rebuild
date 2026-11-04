@@ -1,0 +1,29 @@
+# Rebirth's PersistentGlobalVars (src/game/persistent_globals.cpp, H43c): the "gvar." variables survive where the game
+# empties a variable table, and are set again in the order of addon's own container (an MSVC 2010 unordered_map of
+# strings: FNV-1 over every (length / 10 + 1)-th character, eight buckets growing by eight at a load factor above one).
+# The prepared hero (tools/make_mp_hero.py --variables) carries a dozen "gvar." variables of different lengths (the
+# stride is 1 up to nine characters, 2 up to nineteen, 3 from twenty) and one plain one besides the new hero's own. The
+# hero screen lists the heroes with SavedParties::Reload, which empties each hero's variables keeping the "gvar." ones
+# (the container's inserts, finds and rehash), and hosting the game does it again for the party outside a game
+# (GameFlow::AfterServerStart). The hosted game's player then has the variables, in the order the container gave.
+# prepare: make_mp_hero.py --variables gvar.a=1 gvar.bb=2 gvar.ccc=3 gvar.dddd=4 gvar.eeeee=5 gvar.ffffff=6 gvar.ggggggg=7 gvar.hhhhhhhh=8 gvar.long_name_12=9 gvar.a_name_that_is_longer_than_twenty=10 gvar.quest.state=11 gvar.quest.step=12 plain.a=14
+timeout 120
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+frames 10
+clickregion 9
+frames 10
+clickregion 1
+frames 10
+waitwindow 15 mpconnect
+clickregion 0
+waitwindow 25 briefing
+frames 10
+# The hosted game's player: the digest lists its variables in the table's order (a golden checkpoint). The console's
+# script commands are not for a network client, so the variables are read from the dump, not with a script.
+dump hosted_gvar
+report
+quit

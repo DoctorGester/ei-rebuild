@@ -1,0 +1,33 @@
+# Ambient sounds (H43c; src/game/world_effect.cpp EffectAmbientSound, world_units.cpp's sound records): none of the game's
+# zones has one (a sound record's ambient byte is 0 in every .mob), so tools/make_ambient_mob.py writes zone15.mob
+# into the run's saves folder with the byte set in each of gz15h's twelve sounds. The zone loader makes the server's
+# EffectAmbientSound for each, the client unpacks them from the snapshot (Unpack, Start: the sound manager's emitter),
+# the escape menu's Save writes them and the load reads them back (Save, Load).
+# prepare: make_ambient_mob.py
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 40 IsUnitBlocked(GetLeader())
+zone gz15h 0
+waitzone 30 gz15h
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @GodMode(0,1)
+wait 1500
+dump ambient_zone
+key esc
+waitwindow 10 escmenu
+click 395 120
+waitwindow 10 saveload
+clickregion 0
+waitline 15 Saved save1
+wait 300
+load save1
+waitwindow 30 battle
+waitfor 20 IsGreater(HP(GetLeader()),0)
+wait 1500
+dump ambient_loaded
+check IsAlive(GetLeader())
+report
+quit

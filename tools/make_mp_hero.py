@@ -9,6 +9,7 @@ usage: python tools/make_mp_hero.py <saves dir> [--name NAME] [--file N.mp] [--s
   --skills     every skill byte (default 0, a new hero's)
   --damage     the weapon's damage (default 9.12, the new hero's axe)
   --absorb     every armour piece's absorption of each damage type, both layers (default: the new kit's)
+  --variables  NAME=VALUE ...: more party variables after the new hero's z.MPGame1 (gvar_hosted.txt: "gvar." ones)
 
 The file is what the game writes for a hero made on its multiplayer hero screen (MpHeroRecord::WriteFile 00662AC0;
 the same bytes on both installs): SaveFileWrite's frame (magic 0x114, version 0x74, the checksum of the plain data)
@@ -145,7 +146,7 @@ def stats(o, strength, dexterity, intelligence, skills):
     assert len(o.b) - start == 0x704
 
 
-def party(name, strength, dexterity, intelligence, skills, damage=9.11999989, absorb=None):
+def party(name, strength, dexterity, intelligence, skills, damage=9.11999989, absorb=None, variables=()):
     """CParty::SaveParty (00661C10) with its variables."""
     o = Out()
     o.string('bz1mpg')
@@ -208,14 +209,18 @@ def party(name, strength, dexterity, intelligence, skills, damage=9.11999989, ab
     o.string('Human Hero')
     o.string('z.MPGame1')
     o.f32(1.0)
+    for variable, value in variables:
+        o.string(variable)
+        o.f32(value)
     o.string('')
     o.u32(500 ^ MONEY_KEY)
     o.u32(MONEY_KEY)
     return bytes(o.b)
 
 
-def hero_file(name='host', strength=25.0, dexterity=25.0, intelligence=25.0, skills=0, damage=9.11999989, absorb=None):
-    plain = party(name, strength, dexterity, intelligence, skills, damage, absorb)
+def hero_file(name='host', strength=25.0, dexterity=25.0, intelligence=25.0, skills=0, damage=9.11999989, absorb=None,
+              variables=()):
+    plain = party(name, strength, dexterity, intelligence, skills, damage, absorb, variables)
     return struct.pack('<IIIB', savefile.MAGIC_PARTY, VERSION, savefile.checksum(plain), 0) + plain
 
 
@@ -228,11 +233,13 @@ def main():
     parser.add_argument('--skills', type=int, default=0)
     parser.add_argument('--damage', type=float, default=9.11999989)
     parser.add_argument('--absorb', type=float, default=None)
+    parser.add_argument('--variables', nargs='*', default=[], metavar='NAME=VALUE')
     a = parser.parse_args()
+    variables = [(v.split('=')[0], float(v.split('=')[1])) for v in a.variables]
     folder = os.path.join(a.saves, 'mp')
     os.makedirs(folder, exist_ok=True)
     with open(os.path.join(folder, a.file), 'wb') as f:
-        f.write(hero_file(a.name, *a.stats, skills=a.skills, damage=a.damage, absorb=a.absorb))
+        f.write(hero_file(a.name, *a.stats, skills=a.skills, damage=a.damage, absorb=a.absorb, variables=variables))
 
 
 if __name__ == '__main__':

@@ -6515,6 +6515,14 @@ depends = ["H44"]
 note = "H44's live mode (recordinput live: real SDL input through sdl_input's translation, frames paced to the wall clock, the cursor held for real) was checked only by the realinput step in a hidden run. The user plays one short session with play.cmd record <name>, replays it twice (work.py test, golden.py record), and the scenario and golden are committed; whatever the live window does wrong (focus, held cursor, pacing, text) is fixed here."
 
 [[ticket]]
+id = "H43c1"
+title = "Scenario: a multiplayer hero's death and a loaded multiplayer game (SharedObject)"
+group = "harness"
+depends = ["H43c"]
+files = ["tests/scenarios"]
+note = "H43c left WorldServer::AddSharedObject and SharedObject::Load unreached: they run when a hero dies in a multiplayer game (PlayerServer::OnLeaderDied's multiplayer branch drops the hero's items into a shared object) and when a save made then is loaded. A hosted game is a network client, so no @ line runs in it: the death needs a fight in a quest zone (net_pair_quest's) or a harness step that damages the leader; the load needs a multiplayer load. Golden scenario, 60 s."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"
@@ -7604,6 +7612,14 @@ title = "Renderer positions and normals as packet records; AI map sector vertice
 group = "cleanup"
 depends = ["C85b"]
 note = "C85b left: MeshDraw / ShadowMesh still take positions and normals as const float* over arrays of VertexPacket / NormalPacket (device_mesh.cpp &positions->block[0][0], MovedPositions; the renderer indexes block (i/4)*16 + lane), the same array-of-structs-as-scalars read C85b removed for corners and texture coordinates: give src/render a packet record (as mesh_records.h) the game's packets are. ai_map_load.cpp StampSector views the sector file as SectorFileVertex* at header + 1 (offset 5: misaligned, the last struct view over file bytes left in src): read each vertex with lib::LoadBytes. Goldens the same."
+
+[[ticket]]
+id = "H43c2"
+title = "Dead code: the map specs' Save methods and Chunk's writers"
+group = "cleanup"
+depends = ["H43c"]
+files = ["src/game/map_spec.cpp", "src/game/map_spec_unit.cpp", "src/game/chunk_stream.cpp"]
+note = "H43c's coverage run: Chunk::WriteString, WriteStringArray and WriteVector3 are reached by no run, and nothing calls Spec::Save (ObjectSpec, FlameSpec, TrapSpec, LeverSpec, ParticleSpec, LightSpec, SoundSpec, UnitSpec): the .mob writer is the editor's. Check the callers (grep finds none), delete the Save methods and the Chunk write side with their comments, keep the goldens the same."
 
 [[ticket]]
 id = "PL6b"

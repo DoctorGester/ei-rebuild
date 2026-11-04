@@ -1,0 +1,47 @@
+  Activated!
+  Cannot open file autoexec.cfg for reading
+  Saved savea
+  1
+  Script error: line 0: Unable to read file ".\saves\nothere.txt"
+  1
+  1
+  1
+  Saved save1
+  Cannot open file autoexec.cfg for reading
+  Loaded save1
+  1
+  1
+  1
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1

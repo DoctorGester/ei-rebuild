@@ -1,0 +1,74 @@
+# A mission script loaded from a file, and the commands no other scenario runs (H43d; src/game/script_parse_load.cpp
+# LoadFile, script_parse.cpp AddDefine, script_effects.cpp, script_exec.cpp RedeployParty, script_addon_commands.cpp
+# GameOverMsg and AddMobEx, script_addon_units.cpp GetObjectsOnMap). The console's "@" lines run in the world's second
+# script, which a save does not hold; "execs <file>" (Rebirth's console command) loads the file into the mission
+# script, which it does. tools/make_gap_script.py writes the file into the run's saves folder: "#define" lines, a
+# script that sleeps, and a WorldScript block that makes an FX source, a randomized one, a particle source, a point
+# light and a lightning bolt. The scenario saves with the escape menu (the effects and the sleeping instance are
+# written) and loads the save back (ScriptFxSource::Load, the instance's loader).
+# prepare: make_gap_script.py
+# prepare: make_trap_mob.py
+waitmenu
+console thingamabob
+newgame
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+
+# A file that is not there (the one error this scenario expects).
+console execs .\saves\nothere.txt
+expect Script error: line 0: Unable to read file
+reject Script error
+
+# The file: the defines are replaced (3 + 10 + 5 + 7), the script sleeps, the effects exist.
+console execs .\saves\gaps.txt
+check IsEqual(GSGetVar(0,"gap.defs"),25)
+waitfor 5 IsEqual(GSGetVar(0,"gap.s1"),1)
+check IsEqual(GSGetVar(0,"gap.s2"),0)
+wait 500
+
+# Save with the sleeper and the effects alive, then load it: the sleeper wakes up in the loaded game.
+key esc
+waitwindow 10 escmenu
+click 395 120
+waitwindow 10 saveload
+clickregion 0
+waitline 15 Saved save1
+wait 300
+load save1
+waitwindow 30 battle
+waitfor 20 IsGreater(HP(GetLeader()),0)
+dump loaded_gap
+check IsEqual(GSGetVar(0,"gap.s1"),1)
+check IsEqual(GSGetVar(0,"gap.s2"),0)
+waitfor 20 IsEqual(GSGetVar(0,"gap.s2"),1)
+
+# GetObjectsOnMap: all of the world's objects, then those of the leader's class only.
+console @GodMode(0,1)
+console @GSSetVar(0,"gap.all",GroupSize(GetObjectsOnMap(-1)))
+check IsGreater(GSGetVar(0,"gap.all"),100)
+console @GSSetVar(0,"gap.some",GroupSize(GetObjectsOnMap(GetObjectTypeID(GetLeader()))))
+check IsGreater(GSGetVar(0,"gap.some"),0)
+check IsLess(GSGetVar(0,"gap.some"),GSGetVar(0,"gap.all"))
+
+# AddMobEx: the magic traps of traps.mob, with the ids it holds (keep them).
+console @AddMobEx("..\saves\traps.mob",1)
+waitfor 10 IsEqual(GetObjectID(GetObject(30004)),30004)
+check IsEqual(GetObjectID(GetObject(30007)),30007)
+
+# RedeployParty: the party is placed again (at the zone's entrance), away from where the hero was put.
+console @GSSetVar(0,"gap.rx",GetX(GetLeader())) GSSetVar(0,"gap.ry",GetY(GetLeader()))
+console @SetCPFast(GetLeader(),Add(GSGetVar(0,"gap.rx"),12),Add(GSGetVar(0,"gap.ry"),12),GetZ(GetLeader()))
+check IsGreater(DistanceUnitPoint(GetLeader(),GSGetVar(0,"gap.rx"),GSGetVar(0,"gap.ry")),10)
+console @RedeployParty(0)
+wait 1500
+check IsGreater(DistanceUnitPoint(GetLeader(),Add(GSGetVar(0,"gap.rx"),12),Add(GSGetVar(0,"gap.ry"),12)),1)
+check IsAlive(GetLeader())
+
+# GameOverMsg: the game over window opens with the given title and text.
+console @GameOverMsg("Gap","Over")
+waitwindow 20 msgbox
+frames 5
+report
+quit
