@@ -195,9 +195,9 @@ int FigureManager::LoadFigureBones(FigureModel* model, FigureBone* bone) {
     if (!bones.data) return 0;
     // The bone's cage interpolation: 0x48-byte data (a prism of six points), or
     // any other size (a cube of eight); the stream is the data pointer, advanced as it is read.
-    auto** stream = reinterpret_cast<const float**>(static_cast<void*>(&bones.data));
-    if (bones.size == 0x48) bone->InterpolatePrism(stream);
-    else bone->InterpolateCube(stream);
+    const auto* stream = static_cast<const float*>(bones.data);
+    if (bones.size == 0x48) bone->InterpolatePrism(&stream);
+    else bone->InterpolateCube(&stream);
     return 1;
 }
 

@@ -21,7 +21,7 @@ public:
     virtual int ReadMore(void* to, std::uint32_t size) = 0;         // a read past the end (0 in both classes)
     virtual int WriteMore(const void* from, std::uint32_t size) = 0;   // a write past the end
     virtual ~GameBuffer() {}
-    virtual std::uint8_t* Seek(std::int32_t position) = 0;          // the cursor to `position` bytes from the start
+    virtual void Seek(std::int32_t position) = 0;                   // the cursor to `position` bytes from the start
 
     unsigned ReadBytes(void* to, unsigned size);
     GameBuffer* CopyOut(void* to, unsigned size);
@@ -79,7 +79,7 @@ public:
     int WriteMore(const void* from, std::uint32_t size) override;
     // `high` raised to the cursor, the cursor moved to begin + position; past `end` the contents move to a
     // block of position * 2 + 0x40 bytes. Returns the cursor, or the new capacity when it grew.
-    std::uint8_t* Seek(std::int32_t position) override;
+    void Seek(std::int32_t position) override;
 
     // The block resized to `capacity` bytes (ResizeBlock).
     void Reallocate(std::uint32_t capacity);
@@ -108,7 +108,7 @@ public:
     int ReadMore(void*, std::uint32_t) override;
     int WriteMore(const void*, std::uint32_t) override;
     // The cursor moved to `position` bytes from the start; returns it.
-    std::uint8_t* Seek(std::int32_t position) override;
+    void Seek(std::int32_t position) override;
 };
 
 // A cursor over a GameBuffer that reads and writes bytes and LSB-first bit fields. Bits are collected in

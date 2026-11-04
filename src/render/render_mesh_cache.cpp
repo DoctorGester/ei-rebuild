@@ -47,7 +47,7 @@ struct MeshFrom {
     const std::uint16_t* indices = nullptr;
     int indexCount = 0;
     const float* normals = nullptr;
-    const std::uint16_t* words = nullptr;
+    const std::uint32_t* words = nullptr;
     int wordCount = 0;
     MeshChanges own, link;   // the figure mesh's and the link figure's changes when built
     std::uint32_t colourWrites = 0;   // the colour array's (MeshChanged on the array's data)
@@ -518,7 +518,7 @@ const MeshLighting* MeshSourceLighting() { return g_haveSource ? g_source.lighti
 
 Vector3 CornerNormal(const MeshDraw& m, int index) {
     if (!m.normals || !m.words || index >= m.wordCount) return Vector3{};
-    const int normal = m.words[index * 2 + 1];
+    const int normal = static_cast<int>(m.words[index] >> 16);
     if (normal >= m.normalCount) return Vector3{};
     const float* block = m.normals + (normal / 4) * 16;
     const int lane = normal % 4;

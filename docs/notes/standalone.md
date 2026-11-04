@@ -61,10 +61,8 @@ The image holds nothing of game.exe's sections. Every value the code reads is on
 - a tagged literal;
 - a compiler-made vtable.
 
-- **The seam** (src/game/game_data.h). Code that names game.exe's data by the original's address reaches it only
-  through `GameData<T>(a)` or `GamePointer<T>(a)`. `DataId(a)` marks an address kept in a table and resolved by its
-  reader; the harness's `ExeTableId(a)` is a game.exe table kept as an id and never read. src/ names no such address
-  any more.
+- **The seam**. No code names game.exe's data by the original's address but the harness's `ExeTableId(a)`, a
+  game.exe table kept as an id and never read (src/'s `GameData` / `GamePointer` / `DataId` had no users and went).
 - **The check** (`python tools/data_seam.py --check`, a build check). Every literal in game.exe's data range
   (0073B000-007D7000) in src/ and tests/ must be one of these, or the check fails:
   - an argument to the seam;

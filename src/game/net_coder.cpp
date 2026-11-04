@@ -405,9 +405,6 @@ void CoderState::Decompress(GameBuffer* in, GameBuffer* outBuffer) {
 void BufferView::ReserveRead(std::int32_t) {}
 void BufferView::ReserveWrite(std::int32_t) {}
 
-std::uint8_t* BufferView::Seek(std::int32_t position) {
-    cur = begin + position;
-    return cur;
-}
+void BufferView::Seek(std::int32_t position) { cur = begin + position; }
 
 BufferView::~BufferView() {}

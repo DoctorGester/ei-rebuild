@@ -94,11 +94,14 @@ public:
     void ListFiles(std::vector<std::string>* names, const char* pattern) const;
     // The names ListFiles fills in, without Rebirth's ResOverride (see GetFilePlain).
     std::vector<std::string> ListFilesPlain(const char* pattern) const;
+    // The entry table of the archive image at `base` (header read) copied into entryTable (the entries are packed
+    // 22-byte records), and the names pointed at in the image.
+    void CopyEntries(char* base);
 
     platform::File archive;           // the archive's file
     char* image;                 // archive image when opened with OpenFromMemory
-    std::vector<ResEntry> entryTable;   // the tables OpenResource reads (entries and names point into them)
-    std::vector<char> nameTable;
+    std::vector<ResEntry> entryTable;   // the entry table (entries points into it)
+    std::vector<char> nameTable;        // the names OpenResource reads (names points into them)
     std::unordered_map<void*, LoadedFile*> filesByData;
     std::unordered_map<std::string, LoadedFile*> filesByName;
 };

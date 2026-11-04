@@ -50,7 +50,7 @@ bool BlockInMap(const AIMap* map, const UnitLayerNode* block, BlockArea* area) {
 
 } // namespace
 
-void UnitLayer::Add(Unit* unit, const UnitShape* shape, int x, int y) {
+void UnitLayer::Add(UnitLayerOwner owner, const UnitShape* shape, int x, int y) {
     // The shape placed in a 20x20 grid at the unit's offset within its 4-cell block.
     std::uint8_t grid[20 * 20] = {};
     std::uint8_t* row = grid + (x & 3) + (y & 3) * 20;
@@ -64,7 +64,7 @@ void UnitLayer::Add(Unit* unit, const UnitShape* shape, int x, int y) {
             int keyY = (y >> 2) + by;
             int keyX = (x >> 2) + bx;
             node->key = (keyY << 16) + keyX;
-            node->owner = unit;
+            node->owner = owner;
             UnitLayerNode*& bucket = buckets[UnitLayerBucket(keyX, keyY)];
             node->next = bucket;
             bucket = node;
@@ -76,7 +76,7 @@ void UnitLayer::Add(Unit* unit, const UnitShape* shape, int x, int y) {
     freeNodes = node;
 }
 
-void UnitLayer::Remove(Unit* unit, int x, int y) {
+void UnitLayer::Remove(UnitLayerOwner owner, int x, int y) {
     int firstY = y >> 2, firstX = x >> 2;
     for (int by = firstY; by < firstY + 5; ++by) {
         for (int bx = firstX; bx < firstX + 5; ++bx) {
@@ -88,7 +88,7 @@ void UnitLayer::Remove(Unit* unit, int x, int y) {
             UnitLayerNode** slot = &buckets[UnitLayerBucket(bx, by)];
             for (UnitLayerNode* node = *slot; node;) {
                 if (node->key == record.key) {
-                    if (node->owner == unit) {
+                    if (node->owner == owner) {
                         found = true;
                         *slot = node->next;
                         node->next = freeNodes;

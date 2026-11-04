@@ -14,6 +14,7 @@
 
 #include <list>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 // AIMapCell::passable holds a 4-bit passability per size class at bit 4 * sizeClass.
@@ -543,12 +544,15 @@ struct PathSmoother {
     PassCostContext costs;
 };
 
-// A 4x4-cell block of one unit's levels.
+// Who stamped a layer node: a unit, or a water patch by its cell key (AIMap::StampWaterPatch).
+using UnitLayerOwner = std::variant<const Unit*, int>;
+
+// A 4x4-cell block of one owner's levels.
 struct UnitLayerNode {
     UnitLayerNode* next;        // next in the bucket, or in the free list
     int key;                    // (block y << 16) + block x, blocks of 4 cells
     std::int8_t levels[16];     // rows of 4
-    Unit* owner;
+    UnitLayerOwner owner;
 };
 
 // The unit occupancy layers of AIMap (small units and large units): every unit on the map is stamped as a
@@ -563,12 +567,12 @@ public:
     virtual void Set(const UnitLayerNode* block) = 0;
     virtual void Merge(const UnitLayerNode* block) = 0;
 
-    // Stamps `unit`'s shape (16x16 levels at shape + 8) with its top-left cell at
-    // (x, y): one node per non-empty 4x4 block, each announced through Merge.
-    void Add(Unit* unit, const UnitShape* shape, int x, int y);
-    // Removes `unit`'s nodes from the 5x5 blocks from block (x >> 2, y >> 2); for each
-    // block it had, Set gets the block with the other units' levels merged (maximum).
-    void Remove(Unit* unit, int x, int y);
+    // Stamps `owner`'s shape (16x16 levels) with its top-left cell at (x, y): one node per non-empty
+    // 4x4 block, each announced through Merge.
+    void Add(UnitLayerOwner owner, const UnitShape* shape, int x, int y);
+    // Removes `owner`'s nodes from the 5x5 blocks from block (x >> 2, y >> 2); for each
+    // block it had, Set gets the block with the other owners' levels merged (maximum).
+    void Remove(UnitLayerOwner owner, int x, int y);
     std::list<UnitLayerNode> nodes;     // every node made: a list, the buckets and free list point into it as it grows
     UnitLayerNode* buckets[1024] = {};  // by (key x * 17 + key y) & 0x3FF
     UnitLayerNode* freeNodes = nullptr; // unused nodes

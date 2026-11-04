@@ -70,6 +70,7 @@ TYPES = {
     'Rect': 'iiii', 'Point': 'ii', 'HINSTANCE': 'I', 'platform::NativeInstance': 'I', 'platform::NativeWindow': 'I', 'HWND': 'I', 'GUID': 'IHH' + 'B' * 8, 'IID': 'IHH' + 'B' * 8, 'CLSID': 'IHH' + 'B' * 8,   # one code per number
     'DecalBuilder': 'B' * 0x7C,   # ground_decal.h
     'SpiralCache': 'if',   # ai_map.h: length, radius
+    'CellOffset': 'ii',    # ai_refresh.cpp: dy, dx
     'Vector3': 'fff', 'Quaternion': 'ffff', 'FogTile': 'ffff',   # effects.h
     'IsaacRandom': 'I' * 0x205,   # random.h: seeded, count, results[256], memory[256], a, b, c
     'WeatherNoiseCurve': 'f' * (128 + 128 * 4),   # weather_noise.h: the samples, then the segments

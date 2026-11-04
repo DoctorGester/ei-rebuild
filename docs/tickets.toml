@@ -7335,6 +7335,22 @@ depends = ["C78b"]
 note = "The rest of C78b: c78_components.txt (C78's audit) is no longer in build/reviews, so rerun the rename audit first (C78's note: rename the members, WSL gcc -fsyntax-only -fmax-errors=0), and do the Windows-only files (platform/win32, tests/verify, tools) by hand. Then the ~100 'x and y only' functions of build/reviews/c74c_components.txt (ground-plane maths, map cells, 2D turns) with judgement: Vector2 / XY / WithZ / DistanceSquaredXY where both components get the same operation in the same order, a one-line reason where the terms differ. Goldens the same."
 
 [[ticket]]
+id = "C85a"
+title = "Animation databases and key frames as typed records, not views of the file data"
+group = "cleanup"
+model = "opus"
+depends = ["C85"]
+note = "C85 left (4): AnimationDatabase::Of (figure_bones.cpp) and unit_client_update.cpp find the database by index arithmetic back from an entry (container_of over a file blob). The animations Play gets do not all come from the object's own database (UiModel::Stop and the main menu use objectManager->FindAnimation), so the owner cannot be taken from the object. Plan: parse <figure>.adb at its GetFile into AnimationDatabase {start, length, end, std::vector<FigureAnimation>} with a back pointer in each entry, cached per manager by name or dropped when the archive frees the file (MappedResource::CloseFile / FreeAllFiles / CloseResource); the three GetFile sites (Object3D::Animations, MapObjectManager::FindAnimation, BaseManager::FindFigureAnimation) take the parsed one. Same ticket: AnimationTrack::LoadKeyFrames keeps float pointers into the .anm data at any alignment (map_object_animation.cpp): own vectors of Quaternion / Vector3 instead. Goldens the same."
+
+[[ticket]]
+id = "C85b"
+title = "Renderer mesh records typed: texture coordinates and corners, FIG bounds reads"
+group = "cleanup"
+model = "sonnet"
+depends = ["C85"]
+note = "C85 left: world_client_shadow_casters.cpp hands render::ShadowMesh the TexCoord and MeshCorner arrays as float* / uint16_t* (MeshDraw takes the same from device_mesh); give src/render its own TexCoord / MeshCorner records (layout-identical, static_asserted where they meet) so no array of structs is read as scalars. figure_manager.cpp LoadFigureBounds passes the .fig data at +0x28 / +8 to MorphFigureBounds as const float*: read the versions with lib::LoadBytes into locals. Goldens the same."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"

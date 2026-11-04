@@ -53,13 +53,13 @@ void MissileImpact(SpellEffect* e, int particleType, const char* sound, bool arr
     Vector3 velocity;
     if (arrow) {
         Vector3 rise{0.0f, 0.0f, LightRise(e)};
-        velocity = rise * ConstAt(worlddata::RiseScale());
+        velocity = rise * worlddata::RiseScale();
     } else {
         velocity = {0.0f, 0.0f, LightRiseScaled(e, worlddata::RiseScale())};
     }
     float range = PrototypeRange(e);
     Vector3 color = PrototypeColor(e);
-    e->CreatePointLight(at, color, range * ConstAt(worlddata::RiseScale()), velocity);
+    e->CreatePointLight(at, color, range * worlddata::RiseScale(), velocity);
     e->timer = 0x23;
     e->state = 2;
 }
@@ -89,7 +89,7 @@ void FireballFlight(SpellEffect* e) {
         Vector3 velocity{0.0f, 0.0f, LightRiseScaled(e, worlddata::RiseScale())};
         float range = PrototypeRange(e);
         Vector3 color = PrototypeColor(e);
-        e->CreatePointLight(at, color, range * ConstAt(worlddata::RiseScale()), velocity);
+        e->CreatePointLight(at, color, range * worlddata::RiseScale(), velocity);
         if (IsUnit(e->caster)) {
             e->world->aiMap.events.Noise(ControllerOf(e->caster), kExplosionLoudness, FtolOf(ConstPtr(worlddata::NoiseKind())), e->targetPoint);
         }
@@ -136,7 +136,7 @@ void LightStrikeEcho(SpellEffect* e) {
     e->ReleaseVisual();
     if (e->timer == 5) {
         Vector3 top = e->position;
-        top.z += ConstAt(worlddata::StrikeHeight());
+        top.z += worlddata::StrikeHeight();
         auto* bolt = CreateObject<EffectLightning>(e, ClassId::EffectLightning);
         bolt->SetEnds(top, e->position, kStrikeWidthImmediate);
         e->SetVisual(bolt);
@@ -229,7 +229,7 @@ void Fireworks(SpellEffect* e) {
     int ticks = e->timer - 1;
     e->timer = ticks;
     if (ticks >= 0) {
-        float wake = e->HeldSpell()->radius + ConstAt(worlddata::ImpactWakeMargin());
+        float wake = e->HeldSpell()->radius + worlddata::ImpactWakeMargin();
         e->world->WakeUnitsAround(e->position, wake);
         for (Unit* unit : e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->HeldSpell()->radius)) {
             int duration = static_cast<int>(e->HeldSpell()->duration);
@@ -257,7 +257,7 @@ void Clairvoyance(SpellEffect* e) {
             for (Unit* unit : e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->HeldSpell()->radius))
                 group->Insert(unit);
         }
-        float wake = e->HeldSpell()->radius + ConstAt(worlddata::ImpactWakeMargin());
+        float wake = e->HeldSpell()->radius + worlddata::ImpactWakeMargin();
         e->world->WakeUnitsAround(e->position, wake);
     }
     int ticks = e->timer - 1;

@@ -8,9 +8,12 @@
 #include "ui_screens.h"   // MpHeroRecord (the party outside a game)
 #include "unit.h"
 #include "player_manager.h"
+#include "lib/bytes.h"
 #include "lib/containers.h"
 
+#include <cstddef>
 #include <cstdint>
+#include <span>
 
 namespace {
 
@@ -24,9 +27,14 @@ constexpr int kGuardedBytes = 0x704;   // a party record's stats (PartyUnitRecor
 
 static_assert(sizeof(UnitStats) == kGuardedBytes);
 
+// Every dword of the stats' bytes XORed with `key`.
 void XorRange(UnitStats* stats, std::uint32_t key) {
-    auto* p = reinterpret_cast<std::uint32_t*>(stats);
-    for (std::uint32_t* end = p + kGuardedBytes / 4; p < end; ++p) *p ^= key;
+    std::span<std::byte> bytes = std::as_writable_bytes(std::span(stats, 1));
+    for (std::size_t at = 0; at < bytes.size(); at += 4) {
+        std::uint32_t word;
+        lib::LoadBytes(word, &bytes[at]);
+        lib::StoreBytes(&bytes[at], word ^ key);
+    }
 }
 
 } // namespace

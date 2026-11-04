@@ -33,14 +33,6 @@ T Read(char*& p) {
     return v;
 }
 
-// `count` elements of the file data at the cursor, kept in place (the mesh points into them); the cursor moves past them.
-template <typename T>
-T* InFile(char** cursor, int count) {
-    T* at = reinterpret_cast<T*>(*cursor);
-    *cursor += count * static_cast<int>(sizeof(T));
-    return at;
-}
-
 Vector3 Load(const float* p) { return {p[0], p[1], p[2]}; }
 
 // One morphed vector from 8 corner versions (`v` points at 8 Vector3s):
@@ -280,14 +272,17 @@ void SharedFigureMesh::LoadFig(char** cursor) {
         std::memcpy(normals.data(), *cursor, static_cast<std::size_t>(header.normalCount) * sizeof(NormalPacket));
         *cursor += header.normalCount * 0x40;
     }
-    // The rest stays in the file data.
-    buffers.texCoords = InFile<TexCoord>(cursor, header.texCoordCount);
+    LoadArray(texCoords, cursor, header.texCoordCount);
+    LoadArray(indices, cursor, header.indexCount);
+    LoadArray(corners, cursor, header.cornerCount);
+    LoadArray(words, cursor, header.wordCount);
+    buffers.texCoords = texCoords.data();
     buffers.texCoordCount = header.texCoordCount;
-    buffers.indices = InFile<std::uint16_t>(cursor, header.indexCount);
+    buffers.indices = indices.data();
     buffers.indexCount = header.indexCount;
-    buffers.corners = InFile<MeshCorner>(cursor, header.cornerCount);
+    buffers.corners = corners.data();
     buffers.cornerCount = header.cornerCount;
-    buffers.words = InFile<std::uint32_t>(cursor, header.wordCount);
+    buffers.words = words.data();
     buffers.wordCount = header.wordCount;
 
     BuffersChanged();
@@ -332,16 +327,19 @@ void PlainFigureMesh::LoadOld(char** cursor) {
 void SharedFigureMesh::LoadOld(char** cursor) {
     // Unlike the other three loaders, this one does not test the loaded flag.
     LoadOldCommon(this, cursor);
-    // The rest stays in the file data.
-    buffers.texCoordCount = ReadCount(cursor);
-    buffers.texCoords = InFile<TexCoord>(cursor, buffers.texCoordCount);
+    LoadArray(texCoords, cursor, ReadCount(cursor));
     SkipRecords34(cursor);
-    buffers.cornerCount = ReadCount(cursor);
-    buffers.corners = InFile<MeshCorner>(cursor, buffers.cornerCount);
-    buffers.wordCount = ReadCount(cursor);
-    buffers.words = InFile<std::uint32_t>(cursor, buffers.wordCount);
-    buffers.indexCount = ReadCount(cursor);
-    buffers.indices = InFile<std::uint16_t>(cursor, buffers.indexCount);
+    LoadArray(corners, cursor, ReadCount(cursor));
+    LoadArray(words, cursor, ReadCount(cursor));
+    LoadArray(indices, cursor, ReadCount(cursor));
+    buffers.texCoords = texCoords.data();
+    buffers.texCoordCount = lib::Count(texCoords);
+    buffers.corners = corners.data();
+    buffers.cornerCount = lib::Count(corners);
+    buffers.words = words.data();
+    buffers.wordCount = lib::Count(words);
+    buffers.indices = indices.data();
+    buffers.indexCount = lib::Count(indices);
 
     BuffersChanged();
     buffers.vertices = vertices.data();
@@ -624,6 +622,10 @@ void PlainFigureMesh::Destroy() {
 void SharedFigureMesh::Destroy() {
     vertices.clear();
     normals.clear();
+    texCoords.clear();
+    indices.clear();
+    corners.clear();
+    words.clear();
     Clear();
 }
 

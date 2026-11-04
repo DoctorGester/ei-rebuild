@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <map>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -192,12 +193,12 @@ public:
     // Sets the morph coefficients.
     void SetMorph(float s, float t, float u);
 
-    // Appends a part: false when `name` is already a part; otherwise each array grows by its count and
-    // gets the elements, and the part's ranges are recorded; true.
-    bool AddPart(const std::string* name, const VertexPacket* vertices, int vertexCount, const NormalPacket* normals,
-                int normalCount, const TexCoord* texCoords, int texCoordCount, const MeshCorner* corners,
-                int cornerCount, const std::uint32_t* words, int wordCount, const std::uint16_t* indices,
-                int indexCount);
+    // Appends a part: false when `name` is already a part; otherwise each array grows by the elements given, and
+    // the part's ranges are recorded; true.
+    bool AddPart(const std::string* name, std::span<const VertexPacket> newVertices,
+                 std::span<const NormalPacket> newNormals, std::span<const TexCoord> newTexCoords,
+                 std::span<const MeshCorner> newCorners, std::span<const std::uint32_t> newWords,
+                 std::span<const std::uint16_t> newIndices);
 
     Rect screenRect;
     float morphWeights[3];            // the morph coefficients (s, t, u) the figure was loaded with

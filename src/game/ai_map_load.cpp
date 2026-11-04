@@ -9,6 +9,7 @@
 #include "unit_ai.h"
 #include "world_data.h"
 
+#include "lib/bytes.h"
 #include "lib/maths.h"
 #include "lib/rounding.h"
 #include "lib/containers.h"
@@ -321,10 +322,14 @@ void StampSector(AIMap& map, const MapDescription& description, const void* file
         }
     }
 
-    const auto* tiles = reinterpret_cast<const std::uint16_t*>(reinterpret_cast<const std::uint8_t*>(ground) +
-                                                                (hasWater ? 2 : 1) * kVertexBytes);
-    const std::uint16_t* waterTiles = tiles + kTiles * kTiles;
-    const std::uint16_t* waterMaterials = waterTiles + kTiles * kTiles;
+    // The tile words after the vertex layers: the tiles, the water tiles, the water materials (unaligned: the header
+    // is 5 bytes).
+    const auto* tileWords = static_cast<const std::uint8_t*>(file) + sizeof(SectorHeader) + (hasWater ? 2 : 1) * kVertexBytes;
+    auto tileWord = [tileWords](int layer, int tx, int ty) {
+        std::uint16_t word;
+        lib::LoadBytes(word, tileWords + 2 * ((layer * kTiles + ty) * kTiles + tx));
+        return word;
+    };
     // Calls `visit(cell, occluder word)` for the 4 x 4 cells of tile (tx, ty).
     auto forTileCells = [&](int tx, int ty, auto visit) {
         for (int j = 0; j < kCellsPerTile; ++j)
@@ -335,13 +340,13 @@ void StampSector(AIMap& map, const MapDescription& description, const void* file
     };
     for (int ty = 0; ty < kTiles; ++ty)
         for (int tx = 0; tx < kTiles; ++tx) {
-            const std::uint32_t type = TileType(description, tiles[ty * kTiles + tx]);
+            const std::uint32_t type = TileType(description, tileWord(0, tx, ty));
             forTileCells(tx, ty, [type](AIMapCell&, std::uint32_t& occluder) { occluder = occluder::WithType(occluder, type); });
         }
     if (hasWater)
         for (int ty = 0; ty < kTiles; ++ty)
             for (int tx = 0; tx < kTiles; ++tx) {
-                const std::uint16_t material = waterMaterials[ty * kTiles + tx];
+                const std::uint16_t material = tileWord(2, tx, ty);
                 bool liquid = false;
                 if (material != kNoTile) {
                     const int kind = description.materials[material].kind;
@@ -355,7 +360,7 @@ void StampSector(AIMap& map, const MapDescription& description, const void* file
     if (hasWaterTiles)
         for (int ty = 0; ty < kTiles; ++ty)
             for (int tx = 0; tx < kTiles; ++tx) {
-                const std::uint16_t tile = waterTiles[ty * kTiles + tx];
+                const std::uint16_t tile = tileWord(1, tx, ty);
                 if (tile == kNoTile) continue;
                 const std::uint32_t type = TileType(description, tile);
                 forTileCells(tx, ty, [type](AIMapCell& cell, std::uint32_t& occluder) {

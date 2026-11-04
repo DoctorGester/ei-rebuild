@@ -113,8 +113,7 @@ inline constexpr float kHearingScale = 2.0f;   // the units' perception scale (S
 inline constexpr float kWakeMargin = 20.0f;     // added to it when units wake others
 
 // ---- Effect constants (spell_effect_*.cpp, world_effect_*.cpp) -----------------------------------
-// References, so the effects read them through a volatile (ConstAt) or pass their address (ConstPtr),
-// one object per value (no Rebirth patch writes these cells).
+// References, one object per value: some effects pass their address (ConstPtr).
 template <float V>
 inline constexpr float kFloatConstant = V;
 inline const float& OneRef() { return kFloatConstant<1.0f>; }

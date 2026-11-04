@@ -7,6 +7,7 @@
 #include "net_coder.h"
 #include "object.h"
 #include "save_versions.h"
+#include "lib/bytes.h"
 
 #include <cstring>
 
@@ -30,11 +31,11 @@ void SeekTo(GrowingBuffer& buffer, std::int32_t at) {
 }
 
 std::uint32_t Checksum(const std::uint8_t* data, std::int32_t size) {
-    auto* p = reinterpret_cast<const std::uint32_t*>(data);
-    auto* end = p + (size >> 2);
     std::uint32_t h = 0;
-    for (; p < end; ++p) {
-        h ^= *p;
+    for (std::int32_t at = 0; at < (size >> 2) * 4; at += 4) {
+        std::uint32_t word;
+        lib::LoadBytes(word, data + at);
+        h ^= word;
         h *= (h & 0xFC) | 3;
     }
     return h;
@@ -69,8 +70,7 @@ void SaveFileWrite(ByteStream* file, unsigned magic, MemoryStream* data) {
             decoder.Decompress(&packed.b, &check.b);
             UpdateHigh(check.b);
             std::int32_t size = static_cast<std::int32_t>(data->Size());
-            bool same = check.b.base - reinterpret_cast<std::intptr_t>(check.b.begin) +
-                                reinterpret_cast<std::intptr_t>(check.b.high) == size;
+            bool same = check.b.base + (check.b.high - check.b.begin) == size;
             if (same) {
                 std::uint8_t* original = data->data.data();
                 same = std::memcmp(original, check.b.begin, static_cast<std::size_t>(data->Size())) == 0;

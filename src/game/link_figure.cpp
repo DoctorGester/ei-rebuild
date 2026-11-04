@@ -12,6 +12,7 @@
 
 #include <cstring>
 #include <new>
+#include <span>
 #include <vector>
 
 namespace {
@@ -26,18 +27,20 @@ T Read(const char** cursor) {
     return value;
 }
 
-// The array of T the file data holds at `at` (unaligned records the loaders copy).
+// The `count` elements of T the file data holds at `at`, copied out (the records lie at any alignment).
 template <typename T>
-const T* FileArray(const char* at) {
-    return reinterpret_cast<const T*>(at);
+std::vector<T> FileArray(const char* at, int count) {
+    std::vector<T> out(static_cast<std::size_t>(count));
+    if (count != 0) std::memcpy(out.data(), at, out.size() * sizeof(T));
+    return out;
 }
 
-// Appends `count` elements to an array; returns where they start.
+// Appends `from` to an array; returns the range they take.
 template <typename T>
-int Append(std::vector<T>& array, const T* from, int count) {
+LinkPartRanges::Range Append(std::vector<T>& array, std::span<const T> from) {
     const int start = static_cast<int>(std::ssize(array));
-    array.insert(array.end(), from, from + count);
-    return start;
+    array.insert(array.end(), from.begin(), from.end());
+    return {start, static_cast<int>(std::ssize(from))};
 }
 
 float Lerp(float from, float to, float f) { return (to - from) * f + from; }
@@ -65,7 +68,8 @@ void SetW(VertexPacket& packet) {
 // past it), morphed by s, t, u; w = 1.
 void MorphFig8Packet(VertexPacket& packet, const char** cursor, float s, float t, float u) {
     for (int b = 0; b < 3; ++b) {
-        const float* versions = FileArray<float>(*cursor);
+        float versions[0x80 / 4];
+        std::memcpy(versions, *cursor, sizeof(versions));
         for (int k = 0; k < 4; ++k) packet.block[b][k] = Morph8(versions + k, s, t, u);
         *cursor += 0x80;
     }
@@ -75,7 +79,8 @@ void MorphFig8Packet(VertexPacket& packet, const char** cursor, float s, float t
 // The same for the older records (3 blocks of 6 versions).
 void MorphOldPacket(VertexPacket& packet, const char** cursor, float s, float t, float u) {
     for (int b = 0; b < 3; ++b) {
-        const float* versions = FileArray<float>(*cursor);
+        float versions[0x60 / 4];
+        std::memcpy(versions, *cursor, sizeof(versions));
         for (int k = 0; k < 4; ++k) packet.block[b][k] = Morph6(versions + k, s, t, u);
         *cursor += 0x60;
     }
@@ -110,26 +115,21 @@ LinkMesh::~LinkMesh() {
     render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps
 }
 
-bool LinkMesh::AddPart(const std::string* newName, const VertexPacket* newVertices, int vertexCount,
-                        const NormalPacket* newNormals, int normalCount, const TexCoord* newTexCoords, int texCoordCount,
-                        const MeshCorner* newCorners, int cornerCount, const std::uint32_t* newWords, int wordCount,
-                        const std::uint16_t* newIndices, int indexCount) {
+bool LinkMesh::AddPart(const std::string* newName, std::span<const VertexPacket> newVertices,
+                       std::span<const NormalPacket> newNormals, std::span<const TexCoord> newTexCoords,
+                       std::span<const MeshCorner> newCorners, std::span<const std::uint32_t> newWords,
+                       std::span<const std::uint16_t> newIndices) {
     render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps
     if (ranges.find(*newName) != ranges.end()) return false;
 
     LinkPartRanges newRanges{};
-    newRanges.vertices = {Append(vertices, newVertices, vertexCount), vertexCount};
-    newRanges.normals = {Append(normals, newNormals, normalCount), normalCount};
-    newRanges.texCoords = {Append(texCoords, newTexCoords, texCoordCount), texCoordCount};
-
-    int start = lib::Count(corners);
-    corners.resize(start + cornerCount);
-    std::memcpy(corners.data() + start, newCorners, static_cast<std::size_t>(cornerCount) * sizeof(MeshCorner));
-    newRanges.corners = {start, cornerCount};
-
+    newRanges.vertices = Append(vertices, newVertices);
+    newRanges.normals = Append(normals, newNormals);
+    newRanges.texCoords = Append(texCoords, newTexCoords);
+    newRanges.corners = Append(corners, newCorners);
     // The out-of-line SetSize(n, -1) for these two.
-    newRanges.words = {Append(words, newWords, wordCount), wordCount};
-    newRanges.indices = {Append(indices, newIndices, indexCount), indexCount};
+    newRanges.words = Append(words, newWords);
+    newRanges.indices = Append(indices, newIndices);
 
     ranges[*newName] = newRanges;
     return true;
@@ -168,9 +168,9 @@ void LinkFigureLoader::LoadFigPart(LinkMesh* mesh, const std::string* name, cons
     const char* corners = indices + fig.indexCount * 2;
     const char* words = corners + fig.cornerCount * static_cast<int>(sizeof(MeshCorner));
     *cursor = words + fig.wordCount * 4;
-    mesh->AddPart(name, packets.data(), count, FileArray<NormalPacket>(normals), fig.normalCount,
-                  FileArray<TexCoord>(texCoords), fig.texCoordCount, FileArray<MeshCorner>(corners), fig.cornerCount,
-                  FileArray<std::uint32_t>(words), fig.wordCount, FileArray<std::uint16_t>(indices), fig.indexCount);
+    mesh->AddPart(name, packets, FileArray<NormalPacket>(normals, fig.normalCount),
+                  FileArray<TexCoord>(texCoords, fig.texCoordCount), FileArray<MeshCorner>(corners, fig.cornerCount),
+                  FileArray<std::uint32_t>(words, fig.wordCount), FileArray<std::uint16_t>(indices, fig.indexCount));
 }
 
 void LinkFigureLoader::LoadOldPart(LinkMesh* mesh, const std::string* name, const char** cursor, float s, float t,
@@ -204,9 +204,9 @@ void LinkFigureLoader::LoadOldPart(LinkMesh* mesh, const std::string* name, cons
     int indexCount = Read<int>(cursor);
     const char* indices = *cursor;
     *cursor += indexCount * 2;
-    mesh->AddPart(name, packets.data(), count, FileArray<NormalPacket>(normals), normalCount,
-                  FileArray<TexCoord>(texCoords), texCoordCount, FileArray<MeshCorner>(corners), cornerCount,
-                  FileArray<std::uint32_t>(words), wordCount, FileArray<std::uint16_t>(indices), indexCount);
+    mesh->AddPart(name, packets, FileArray<NormalPacket>(normals, normalCount),
+                  FileArray<TexCoord>(texCoords, texCoordCount), FileArray<MeshCorner>(corners, cornerCount),
+                  FileArray<std::uint32_t>(words, wordCount), FileArray<std::uint16_t>(indices, indexCount));
 }
 
 // ---- Morphing a loaded part again -----------------------------------------------------------------

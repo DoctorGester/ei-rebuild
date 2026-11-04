@@ -164,7 +164,7 @@ int WorldClient::CollectVisible(MapObject* object, const Matrix4* view, float an
         matrix[12] = 0.0f;
         matrix[15] = 1.0f;
         PushStackMatrix(device, TransformPipeline::kClipStack, matrix);
-        int where = g_sceneRenderer.pipeline->ClipTest(reinterpret_cast<const ClipBounds*>(&o3d->bounds.flags));
+        int where = g_sceneRenderer.pipeline->ClipTest(&o3d->bounds);
         device->PopMatrix(TransformPipeline::kClipStack);
 
         MapObject* const& entry = object;

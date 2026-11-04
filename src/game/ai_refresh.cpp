@@ -69,9 +69,9 @@ void Occlude(CellMarkState* s, OccluderKind type, int lowest, int highest, bool 
 struct CellOffset {
     int dy, dx;
 };
-constexpr int kSteepOffsets[34] = /*007916BC*/ {
-    0, 1, 0, -1, 1, 0, -1, 0, 0, 2, -1, 1, 0, 1, 1, 1, -2, 0, -1, 0, 0, 0, 1, 0, 2, 0, -1, -1, 0, -1, 1, -1, 0, -2};
-const CellOffset* SteepOffsets() { return reinterpret_cast<const CellOffset*>(kSteepOffsets); }
+constexpr CellOffset kSteepOffsets[17] = /*007916BC*/ {
+    {0, 1}, {0, -1}, {1, 0}, {-1, 0}, {0, 2}, {-1, 1}, {0, 1}, {1, 1},
+    {-2, 0}, {-1, 0}, {0, 0}, {1, 0}, {2, 0}, {-1, -1}, {0, -1}, {1, -1}, {0, -2}};
 
 // The largest climbable step of a climb table: the run of non-negative costs from the middle, less one.
 int MaxStep(const std::vector<int>& table) {
@@ -239,7 +239,7 @@ void AIMap::LimitSteepCells(int x0, int x1, int y0, int y1) {
     if (cells.height - 3 < y1) y1 = cells.height - 3;
     int maxLarge = MaxStep(climbLarge);
     int maxSmall = MaxStep(climbSmall);
-    const CellOffset* offsets = SteepOffsets();
+    const CellOffset* offsets = kSteepOffsets;
     for (int y = y0; y <= y1; ++y)
         for (int x = x0; x <= x1; ++x) {
             int here = cells[y][x].groundLevel;

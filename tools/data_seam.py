@@ -1,6 +1,6 @@
-"""The data seam (S18): every use of game.exe's data by its original address goes through
-ei::GameData / GamePointer / DataId (src/game/game_data.h) or the harness's ExeTableId, so that no code of the
-image reads game.exe's data by a raw cast (docs/notes/standalone.md, "Own data").
+"""The data seam (S18): no code names game.exe's data by its original address, but the harness's ExeTableId (a
+table kept as an id, never read; src/'s GameData / GamePointer / DataId had no users left and went), so that no code
+of the image reads game.exe's data by a raw cast (docs/notes/standalone.md, "Own data").
 
 A literal of the exe's data range (0073B000-007D7000: the import address table, .rdata, .data, its
 zero-filled tail .bss, .rsrc) in src/ or tests/ is one of:
@@ -389,8 +389,8 @@ def report(scan):
 
 def check(scan):
     raw, _ = scan.counts()
-    problems = [f'{path}: {n} raw use(s) of {sec} (python tools/data_seam.py --list {sec}): use ei::GameData / '
-                f'GamePointer (src/game/game_data.h), or in tests/ ExeTableId (tests/verify/harness_digest.cpp)'
+    problems = [f'{path}: {n} raw use(s) of {sec} (python tools/data_seam.py --list {sec}): name the data (tools/named_data.py), '
+                f'or in tests/ use ExeTableId (tests/verify/harness_digest.cpp)'
                 for (path, sec), n in sorted(raw.items()) if n]
     for p in problems:
         print('data_seam:', p)

@@ -77,8 +77,7 @@ int EffectSoundSeq::Unpack(int update, DeltaField* field) {
     Vector3 position;
     position = field->ReadPosition();
     name = field->ReadString();
-    // The count is read into the storage of `field` (ReadDelta always stores it).
-    int count = static_cast<int>(reinterpret_cast<std::uintptr_t>(field));
+    int count = 0;   // ReadDelta always stores all four bytes
     field->ReadDelta(&count, 4);
     std::vector<std::string>& others = names;
     others.resize(static_cast<std::size_t>(count));

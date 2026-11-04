@@ -22,7 +22,7 @@ struct Pending {
     bool active = false;
     bool built = false;
     MeshDraw mesh{};
-    char* device = nullptr;
+    const TextureDevice* device = nullptr;
     int matrix = 0;
     int firstIndex = 0;
     int indexCount = 0;
@@ -135,7 +135,7 @@ gpu::Pipeline Pipeline(const PassState& s, bool lines, bool cached) {
 
 namespace detail {
 
-PassState ReadPassState(char* device) {
+PassState ReadPassState(const TextureDevice* device) {
     const RenderState& d = g_renderState;
     PassState s;
     s.blend = d.blend;
@@ -169,7 +169,7 @@ PassState ReadPassState(char* device) {
         st.addressV = static_cast<std::uint8_t>(from.addressV);
         // The surface holder the game bound to the stage.
         if (!device) continue;
-        const void* holder = reinterpret_cast<const TextureDevice*>(device)->stageSurfaces[stage];
+        const void* holder = device->stageSurfaces[stage];
         st.hasTexture = holder != nullptr;
         st.texture = SurfaceView(holder);
         if (stage == 0) s.patch = PatchOf(holder);
@@ -393,7 +393,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
 
 } // namespace detail
 
-void BeginMesh(void* device, const MeshDraw& mesh) {
+void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {
     g_pending = Pending{};
     NoteMeshDraw(mesh);
     if (!device || !mesh.matrix) return;
@@ -417,7 +417,7 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
     }
     g_pending.active = true;
     g_pending.mesh = mesh;
-    g_pending.device = static_cast<char*>(device);
+    g_pending.device = device;
     g_pending.matrix = AddMatrix(clip);
     g_pending.caster = CurrentCaster();
     // A caster's box (its point shadows), and a unit's: taken in MeshPass (a kept mesh keeps it).
@@ -436,7 +436,7 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
     }
     // The distance fog's range: the pipeline's (its start and 255 / length).
     g_pending.distanceFog = mesh.distanceFog;
-    if (const TransformPipeline* pipeline = reinterpret_cast<const TextureDevice*>(g_pending.device)->pipeline) {
+    if (const TransformPipeline* pipeline = g_pending.device->pipeline) {
         g_pending.fogNear = pipeline->fogStart;
         g_pending.fogScale = pipeline->fogScale;
     } else {
@@ -444,7 +444,7 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
     }
 }
 
-void MeshPass(void* device) {
+void MeshPass(const TextureDevice* device) {
     // Not handed over (BeginMesh logged why) or given up after a failed Build.
     if (!g_pending.active || device != g_pending.device) return;
     StatsTimer timer(&FrameStats::handOverMs);
@@ -507,7 +507,7 @@ void MeshPass(void* device) {
 
 void EndMesh() { g_pending = Pending{}; }
 
-void TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
+void TlDraw(const TextureDevice* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
             Primitive primitive) {
     if (!device || !vertices || vertexCount <= 0) return;   // nothing to draw
     Start();
@@ -557,7 +557,7 @@ void TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const 
         batch.matrix = AddMatrix(clip);
         batch.firstIndex = firstIndex;
         batch.indexCount = drawn;
-        batch.state = ReadPassState(static_cast<char*>(device));
+        batch.state = ReadPassState(device);
         batch.unclipped = true;
         batch.zScale = 1.0f;
         batch.lines = lines;
@@ -568,7 +568,7 @@ void TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const 
     }
 }
 
-void ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std::uint16_t* indices, int indexCount) {
+void ScreenDraw(const TextureDevice* device, const ScreenVertex* vertices, int count, const std::uint16_t* indices, int indexCount) {
     if (!device || !vertices || count <= 0) return;   // nothing to draw
     Start();
     StatsTimer timer(&FrameStats::handOverMs);
@@ -604,7 +604,7 @@ void ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std
         batch.matrix = AddMatrix(clip);
         batch.firstIndex = firstIndex;
         batch.indexCount = drawn;
-        batch.state = ReadPassState(static_cast<char*>(device));
+        batch.state = ReadPassState(device);
         batch.unclipped = true;
         batch.zScale = 1.0f;
         batch.lines = lines;

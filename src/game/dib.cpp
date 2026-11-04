@@ -3,6 +3,7 @@
 #include "dib.h"
 
 #include "app.h"
+#include "lib/bytes.h"
 #include "lib/crt.h"
 #include "platform/platform.h"
 
@@ -50,23 +51,18 @@ void Dib::Create(int width, int height, int bitCount, std::uint32_t red, std::ui
     header->coloursImportant = colourCount;
     if (HasMasks(bitCount)) {
         header->compression = kDibBitFields;
-        auto* masks = reinterpret_cast<std::uint32_t*>(header + 1);
-        masks[0] = red;
-        masks[1] = green;
-        masks[2] = blue;
+        const std::uint32_t masks[3] = {red, green, blue};
+        lib::StoreBytes(header + 1, masks);
     } else {
         header->compression = kDibRgb;
     }
     imageSize = ImageSize(header);
-    colours = reinterpret_cast<DibColour*>(header + 1);
-    std::memset(colours, 0, static_cast<std::size_t>(colourCount) * sizeof(DibColour));
 }
 
 void Dib::Empty() {
     ::operator delete(header);
     bits = std::vector<std::uint8_t>();
     header = nullptr;
-    colours = nullptr;
     colourCount = 0;
     imageSize = 0;
     maskBytes = 0;
@@ -129,7 +125,6 @@ int Dib::Read(platform::File* input) {
         header = static_cast<DibHeader*>(::operator new(headerBytes));
         input->Read(header, headerBytes);
         imageSize = DibImageSize(header);
-        colours = reinterpret_cast<DibColour*>(header + 1);
         bits.resize(imageSize);
         input->Read(bits.data(), imageSize);
     } catch (const platform::FileError&) {

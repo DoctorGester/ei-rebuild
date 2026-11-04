@@ -27,9 +27,6 @@ namespace effect {
 
 inline std::uint8_t FrameCounter() { return static_cast<std::uint8_t>(g_serverWorld.tick); }
 
-// Constants read from memory, as the original does, so that nothing is folded.
-inline float ConstAt(const float& constant) { return *reinterpret_cast<const volatile float*>(&constant); }
-
 // A float's bits.
 inline std::uint32_t Bits(const float& f) {
     std::uint32_t u;
