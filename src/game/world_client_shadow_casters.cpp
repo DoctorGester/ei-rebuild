@@ -117,7 +117,7 @@ void HandOverParts(Object3D* object, Object3DClientSpecific* half, const Matrix4
         objectMatrix = Multiply(world, s);
     }
     LinkMesh* figure = object->figure;
-    for (TextureParts* set : half->partSets) {
+    for (const std::unique_ptr<TextureParts>& set : half->partSets) {
         if (!set) continue;
         const void* holder = set->texture ? set->texture->surface.Get() : nullptr;
         for (int g = 0; g < std::ssize(set->groups); ++g) {

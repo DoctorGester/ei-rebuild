@@ -19,9 +19,7 @@
 #include "lib/float_select.h"
 #include "lib/str.h"
 
-#include <bit>
 #include <cmath>
-#include <cstring>
 #include <new>
 #include <string>
 #include <vector>
@@ -193,24 +191,17 @@ void EffectArrow::Load(ByteStream* s) {
 }
 
 void EffectArrow::Save(ByteStream* s) {
-    std::uint32_t copy;
     s->WriteValue(localPosition);
-    std::memcpy(&copy, &targetId, 4);
-    s->WriteValue(copy);
+    s->WriteValue(targetId);
     s->WriteValue(velocity);
-    std::memcpy(&copy, &arrived, 4);
-    s->WriteValue(copy);
+    s->WriteValue(arrived);
     s->WriteString(soundName);
     s->WriteValue(lightColor);
-    copy = std::bit_cast<std::uint32_t>(lightRange);
-    s->WriteValue(copy);
+    s->WriteValue(lightRange);
     s->WriteValue(particleType);
-    copy = std::bit_cast<std::uint32_t>(particleSize);
-    s->WriteValue(copy);
-    std::memcpy(&copy, &casterId, 4);
-    s->WriteValue(copy);
-    std::uint8_t flag = fromCaster;
-    s->WriteValue(flag);
+    s->WriteValue(particleSize);
+    s->WriteValue(casterId);
+    s->WriteValue(fromCaster);
 }
 
 EffectArrow::EffectArrow() { Reset(); }
@@ -320,19 +311,14 @@ void EffectArrowFigure::Load(ByteStream* s) {
 }
 
 void EffectArrowFigure::Save(ByteStream* s) {
-    std::uint32_t copy;
     s->WriteValue(localPosition);
-    std::memcpy(&copy, &targetId, 4);
-    s->WriteValue(copy);
-    std::memcpy(&copy, &casterId, 4);
-    s->WriteValue(copy);
+    s->WriteValue(targetId);
+    s->WriteValue(casterId);
     s->WriteValue(velocity);
-    std::memcpy(&copy, &arrived, 4);
-    s->WriteValue(copy);
+    s->WriteValue(arrived);
     s->WriteId(figure);
     s->WriteValue(hit);
-    std::uint8_t flag = fromCaster;
-    s->WriteValue(flag);
+    s->WriteValue(fromCaster);
 }
 
 EffectArrowFigure::EffectArrowFigure() {

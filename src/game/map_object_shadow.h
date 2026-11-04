@@ -131,7 +131,7 @@ public:
 
     // The two part sets DrawParts walks: the first has the skin texture (its colour key is the shadow colour key),
     // the second a hero's simple skin (UnitClientSpecific).
-    TextureParts* partSets[2];
+    std::unique_ptr<TextureParts> partSets[2];
     std::vector<HeldRef<Texture>> textures;     // the sets' textures
     std::vector<HeldRef<Material>> materials;   // the groups' materials: fade-in, tints
     bool shadowMade;                // the sphere fitted since Create / ClearShadow

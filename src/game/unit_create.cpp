@@ -112,7 +112,6 @@ Unit::Unit() {
     m->Clear();
     m->speedScale = kTenth;
     m->baseTurnRate = kTenth;
-    controller = nullptr;
     player = nullptr;
     Reset();
 }
@@ -127,13 +126,9 @@ void Unit::Reset() {
     relationsA = 0;
     relationsB = 0xFFFFFFFFu;
     side = 0;
-    if (controller) {
-        controller->unit = nullptr;
-        controller->Release();
-    }
+    SetController(nullptr);
     animationEntry = -1;
     secondEntry = -1;
-    controller = nullptr;
     player = nullptr;
     actionSound = 0;
     animationStart = 0;

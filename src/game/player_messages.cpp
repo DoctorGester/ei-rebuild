@@ -30,8 +30,6 @@ void VariableSet(NamedFloatTable* table, std::string_view name, std::uint32_t bi
 void Write(MemoryStream* out, const void* data, std::uint32_t size) { out->Write(data, size); }
 void WriteDword(MemoryStream* out, std::uint32_t value) { Write(out, &value, 4); }
 
-std::uint32_t ObjectId(const EngineObject* object) { return static_cast<std::uint32_t>(object->id); }
-
 
 // The world player's party variables (a NamedFloatTable, object_tables.h).
 NamedFloatTable* Variables(Player* player) { return &player->GetParty()->variables; }
@@ -143,7 +141,7 @@ void PlayerServer::ItemsTaken() { WriteType(&out, ServerMessage::QuestItemsChang
 
 void PlayerServer::ItemTaken(EngineObject* object) {
     WriteType(&out, ServerMessage::ItemRemoved);
-    WriteDword(&out, ObjectId(object));
+    out.WriteId(object);
 }
 
 void PlayerServer::SendWeaponRemoved(std::uint32_t unitId, std::uint32_t index) {
@@ -155,7 +153,7 @@ void PlayerServer::SendWeaponRemoved(std::uint32_t unitId, std::uint32_t index) 
 // The item's charge goes as its float's bits (the client's 0x0C / 0x14 handlers store it there).
 void PlayerServer::ItemUsed(Item* item) {
     WriteType(&out, ServerMessage::ItemValue);
-    WriteDword(&out, ObjectId(item));
+    out.WriteId(item);
     WriteDword(&out, std::bit_cast<std::uint32_t>(item->charge));
 }
 
@@ -178,13 +176,13 @@ void PlayerServer::SendExperience(std::uint32_t unitId, std::uint32_t value) {
 void PlayerServer::SendUnitDied(const EngineObject* object) {
     if (object == nullptr) return;
     WriteType(&out, ServerMessage::UnitDied);
-    WriteDword(&out, ObjectId(object));
+    out.WriteId(object);
 }
 
 void PlayerServer::SendUnitSpeech(const EngineObject* object, AckKind kind) {
-    std::uint32_t payload[2] = {ObjectId(object), static_cast<std::uint32_t>(kind)};
     WriteType(&out, ServerMessage::UnitSpeech);
-    Write(&out, payload, 8);
+    out.WriteId(object);
+    out.WriteValue(static_cast<std::uint32_t>(kind));
 }
 
 void PlayerServer::SendWorldValue(std::uint32_t value) {
@@ -255,8 +253,7 @@ void PlayerServer::SendPathMessage(EngineObject* unit, PathOrder* path, const Ve
     out.WriteValue(kind);
     out.WriteValue(flag);
     out.WriteValue(XY(point));
-    int unitId = unit->id;
-    out.WriteValue(unitId);
+    out.WriteId(unit);
     out.WriteValue(limit);
     if (kind == kPathKindNoPath) return;
     DeltaField field;

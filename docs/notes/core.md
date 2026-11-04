@@ -55,7 +55,7 @@ check (`app.md`).
 - Ids in saves: `stream->WriteId(object)` writes the id (kNoObjectId, -1: none), `LoadRef(ref, stream, world)` looks it
   up.
 - A side half is held by its owner's Ref and points back at it; one setter per owner swaps it (`Object3D::SetHalf`,
-  `MapObject::SetCompanion`, `Object3D::SetAnimationState`, `FigureMesh::SetDrawer`): the old half's back pointer
+  `MapObject::SetCompanion`, `Unit::SetController`, `TorchObject::SetSpec`, `Object3D::SetAnimationState`, `FigureMesh::SetDrawer`): the old half's back pointer
   is cleared before its release, the new one's set after it is taken.
 
 ## Object manager

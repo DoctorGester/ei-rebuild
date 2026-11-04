@@ -104,7 +104,7 @@ int Object3DClientSpecific::DrawParts(SceneRenderer* context, Rect* dirty) {
     const bool wasStatic = lib::Has(object->flags, MapObjectFlag::Static);
     Rect partRect;
     for (int k = 0; k < 2; ++k) {
-        TextureParts* set = partSets[k];
+        TextureParts* set = partSets[k].get();
         if (!set) continue;
         if (!context->SetTexture(0, set->texture)) {
             return game::FatalError("CObject3DClientSpecific::Draw.\n SetTexture failed.\n");
@@ -112,7 +112,6 @@ int Object3DClientSpecific::DrawParts(SceneRenderer* context, Rect* dirty) {
         // The first set takes the wounds material as stage 0's texture.
         WoundsMaterial* wounds = woundsMaterial;
         g_sceneRenderer.device->SetMaterial(k == 0 ? wounds : nullptr);
-        set = partSets[k];
         for (int g = 0; g < std::ssize(set->groups); ++g) {
             for (int p = 0; p < std::ssize(set->groups[g]->parts); ++p) {
                 FigureMesh* part = set->groups[g]->parts[p];
@@ -124,7 +123,7 @@ int Object3DClientSpecific::DrawParts(SceneRenderer* context, Rect* dirty) {
                 pipeline->PushMatrix(m.m, TransformPipeline::kClipStack);
                 pipeline->PushMatrix(m.m, TransformPipeline::kWorldStack);
                 if (pushed) pipeline->PushMatrixProduct(m, TransformPipeline::kObjectStack);
-                TextureParts* current = partSets[k];
+                TextureParts* current = partSets[k].get();
                 int drawn = context->DrawFigureLit(part, &list, current->groups[g]->material, static_cast<int>(lit),
                                                    dirty ? &partRect : nullptr, nullptr, nullptr);
                 if (!drawn) {

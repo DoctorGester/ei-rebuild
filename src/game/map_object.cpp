@@ -329,9 +329,7 @@ void Unit::Create() {
 
 void TorchObject::Create() {
     MapObject::Create();
-    TorchObjectSpec* old = spec;
-    spec = nullptr;
-    if (old) old->Release();
+    spec.Reset();
     DeltaState* state = &netState;
     state->SetFieldCount(kTorchNetFields);
     state->Reset();

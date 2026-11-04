@@ -360,7 +360,6 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    void ReleaseBones();
     void Reset();
     // The first bone named `boneName` (_mbscmp), or null.
     FigureBone* FindBone(std::string_view boneName);
@@ -402,7 +401,7 @@ public:
 
     Object3D* owner;
     FigureBone* root;               // the skeleton's root bone (FindRoot)
-    std::vector<FigureBone*> bones;   // LinkBone adds
+    std::vector<HeldRef<FigureBone>> bones;   // LinkBone adds
     FigureAnimation* current;       // the animation playing, or null
     // The animations queued after it (the client update keeps fewer than 3).
     std::deque<FigureAnimation*> queue;

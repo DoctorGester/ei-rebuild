@@ -20,7 +20,7 @@ namespace {
 
 // The first part set's texture of a drawn object's model, null without one.
 const Texture* RankTexture(Object3DClientSpecific* model) {
-    const TextureParts* rank = model->partSets[0];
+    const TextureParts* rank = model->partSets[0].get();
     return rank ? rank->texture : nullptr;
 }
 

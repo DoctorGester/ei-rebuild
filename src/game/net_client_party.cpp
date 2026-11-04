@@ -24,11 +24,6 @@ namespace net {
 
 namespace {
 
-void WriteDword(ByteStream* stream, std::uint32_t* scratch, std::uint32_t value) {
-    *scratch = value;
-    stream->Write(scratch, 4u);
-}
-
 // The first element in [first, last) whose member stream holds the same bytes as
 // `message`'s (sizes, then a byte compare).
 using MemberList = std::vector<HeldRef<PartyMemberMessage>>;
@@ -63,23 +58,20 @@ void ClientSession::PublishParty() {
     party->members.clear();
     party->money = static_cast<std::uint32_t>(own->money);
 
-    std::uint32_t scratch = 0;
     for (Item* item : own->items) {
         auto* message = new PartyMemberMessage();
         HeldRef<PartyMemberMessage> ref(message);
         ByteStream* stream = &message->stream;
         stream->Clear();
         Spell* spell = item->spell;
+        stream->WriteId(spell);
         if (spell) {
-            WriteDword(stream, &scratch, static_cast<std::uint32_t>(spell->id));
-            WriteDword(stream, &scratch, static_cast<std::uint32_t>(spell->type));
-            WriteDword(stream, &scratch, spell->prototypeId);
+            stream->WriteValue(spell->type);
+            stream->WriteValue(spell->prototypeId);
             spell->Save(stream);
-        } else {
-            WriteDword(stream, &scratch, 0xFFFFFFFFu);
         }
-        WriteDword(stream, &scratch, static_cast<std::uint32_t>(item->type));
-        WriteDword(stream, &scratch, item->prototypeId);
+        stream->WriteValue(item->type);
+        stream->WriteValue(item->prototypeId);
         item->Save(stream);
 
         auto same = FindSameMessage(previous.begin(), previous.end(), message);
@@ -138,9 +130,8 @@ void ClientSession::ApplyParty() {
     for (const auto& member : remote->members) {
         ByteStream* stream = &member->stream;
         stream->Seek(0);
-        std::int32_t id;
+        const int id = stream->ReadId();
         std::uint32_t type, packedId;
-        stream->ReadValue(id);
         if (id > 0) {
             stream->ReadValue(type);
             stream->ReadValue(packedId);

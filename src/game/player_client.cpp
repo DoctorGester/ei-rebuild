@@ -294,8 +294,7 @@ bool PlayerClient::OnNewItemsAndSpells() {
 }
 
 bool PlayerClient::OnItemRemoved() {
-    int objectId;
-    in.ReadValue(objectId);
+    const int objectId = in.ReadId();
     player->TakeItem(objectId);
     RefreshQuestLog();
     return true;
@@ -319,9 +318,8 @@ bool PlayerClient::OnExperienceAll() {
 }
 
 bool PlayerClient::OnExperience() {
-    int objectId;
+    const int objectId = in.ReadId();
     float amount;
-    in.ReadValue(objectId);
     in.ReadValue(amount);
     auto* unit = g_clientWorld.FindUnit(objectId);
     if (unit != nullptr) g_clientWorld.ShowNumber(objectId, ScaledExperience(unit, amount), kNumberExperience);
@@ -339,8 +337,7 @@ bool PlayerClient::OnItemsReceived() {
     in.ReadValue(flag);
     bool complete = true;
     for (;;) {
-        int objectId;
-        in.ReadValue(objectId);
+        const int objectId = in.ReadId();
         if (objectId == -1) break;
         if (!in.ok) {
             complete = false;
@@ -403,8 +400,7 @@ bool PlayerClient::OnPathMarker() {
     Vector2 xy{0.0f, 0.0f};
     in.ReadValue(xy);
     Vector3 at = WithZ(xy, 0.0f);
-    int unitId;
-    in.ReadValue(unitId);
+    const int unitId = in.ReadId();
     float value;
     in.ReadValue(value);
     if (kind != kKindNoPath) {
