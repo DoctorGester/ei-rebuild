@@ -3,7 +3,7 @@
 // the GPU (render::MeshLighting) takes its diffuse colour from `figure_light` instead of the vertex colour (whose
 // alpha it keeps), its ambient light darkened by the screen's ambient occlusion in the world (ambient_occlusion.hlsli).
 // The world's meshes take the weather on their faces (weathered_mesh), a unit's figure on its smoothed normals
-// (weathered_unit).
+// (weathered_unit). A ground print is darkened by the shadows as the ground under it (ground_shade).
 #include "bindings.hlsli"
 #include "depth_copy.hlsli"
 struct VsIn {
@@ -32,7 +32,8 @@ struct MeshVsParams {
     float4 shift;               // xy: the half-pixel shift (render_internal.h); z: depth scale
     row_major float4x4 light;   // model space to the shadow map
     float4 uvOffset;            // xy: added to the texture coordinates (a mesh kept on the GPU)
-    float4 normalOffset;        // x: how far along its normal a receiver's point is looked up in the map
+    float4 normalOffset;        // x: how far along its normal a receiver's point is looked up in the map; y: a ground
+                                // print's (no vertex normals): along the landscape's up
     float4 landscape[3];        // model space to the landscape's: rows (point shadows)
 };
 ConstantBuffer<MeshVsParams> vs : VS_BLOCK(0);
@@ -53,8 +54,9 @@ VsOut vs_main(VsIn i) {
         o.spec.a = min(o.spec.a, 1.0 - min((o.pos.w - vs.distanceFog.y) * vs.distanceFog.z, 1.0));
     o.uv = i.uv + vs.uvOffset.xy;
     // The normal offset: the point looked up in the map moved along its normal (a figure part's).
-    float len = length(i.normal);
-    float4 q = len > 1e-6 ? float4(i.pos + i.normal * (vs.normalOffset.x / len), 1.0) : p;
+    float3 normal = vs.normalOffset.y > 0.5 ? float3(0.0, 0.0, 1.0) : i.normal;
+    float len = length(normal);
+    float4 q = len > 1e-6 ? float4(i.pos + normal * (vs.normalOffset.x / len), 1.0) : p;
     o.shadow = float4(dot(vs.light[0], q), dot(vs.light[1], q), dot(vs.light[2], q), 1.0);
     o.model = i.pos;
     o.normal = i.normal;
@@ -99,14 +101,16 @@ struct MeshFsParams {
 };
 ConstantBuffer<MeshFsParams> fs : FS_BLOCK(0);
 // A figure part lit on the GPU (render_lighting.cpp, MeshLightUniforms): the sun and lights in the part's model space.
+// A ground print's (GroundDecalLight): the scene's in the landscape's space, which its positions are in.
 struct MeshLightParams {
-    float4 on;               // x: lit here, z: the lights
+    float4 on;               // x: lit here, y: a ground print (ground_shade), z: the lights
     float4 sun;              // xyz: towards the sun in model space
     float4 sunColour;        // rgb: the sun's lit colour
     float4 ambient;          // rgb
     float4 emissive;         // rgb
     float4 pointAt[8];       // per light: model-space position xyz, w: 1 / range squared
     float4 pointColour[8];   // per light: lit colour rgb, w: its point shadow's map + 1, 0 none
+    float4 mapSun;           // a ground print's: xyz the direction the shadow map's light travels (unit)
 };
 ConstantBuffer<MeshLightParams> lighting : FS_BLOCK(2);
 Texture2D<float4> tex0 : FS_TEXTURE(0);
@@ -145,6 +149,33 @@ float3 figure_light(float3 p, float3 n, float3 land, float3 face, float2 turn, f
     }
     float3 c = min(1.0, lit + lighting.emissive.rgb);
     return c;
+}
+// How much of its light a ground print keeps in the shadows, per channel: the light of the ground under it
+// (scene_lighting.hlsli's ground_light on dry ground: no material colour, all of the ambient light) with the sun map,
+// the clouds and the point shadows over the same light without them. The print is blended over that ground, which
+// they darkened alike; its own colour is unlit (the sun's when it was made, or white). `p`: the point (the
+// landscape's space), `n`: the ground's normal, `hidden`: the share of the sun the map and the clouds hide.
+float3 ground_shade(float3 p, float3 n, float hidden, float2 turn) {
+    float3 ambient = lighting.ambient.rgb;
+    float facing = dot(lighting.sun.xyz, n);
+    float3 sunlit = max(facing > 0.0 ? min(1.0, facing * lighting.sunColour.rgb) : 0.0, ambient);
+    float shade = 1.0 - hidden * shadow.on.y * saturate(-dot(lighting.mapSun.xyz, n) * 6.0);
+    float3 lit = min(lerp(sunlit, min(1.0, ambient), hidden), sunlit * shade);
+    float3 open = sunlit;
+    int count = (int)lighting.on.z;
+    for (int k = 0; k < count; ++k) {
+        float4 at = lighting.pointAt[k], colour = lighting.pointColour[k];
+        float3 d = at.xyz - p;
+        float distance2 = dot(d, d);
+        float falloff = 1.0 - distance2 * at.w;
+        if (falloff < 0.0) continue;
+        float c = dot(n, d * rsqrt(max(distance2, 1e-12)));
+        float3 v = (c <= 0.0 ? c + 1.0 : 1.0) * falloff * colour.rgb;
+        float seen = colour.w > 0.5 ? point_seen((int)colour.w - 1, p, n, kNoPointFront, turn) : 1.0;
+        lit = max(lit, min(1.0, v * seen) * shade);
+        open = max(open, min(1.0, v));
+    }
+    return lerp(1.0, saturate(min(1.0, lit) / max(open, 1e-3)), step(1e-3, open));
 }
 float4 arg(int a, float4 current, float4 diffuse, float4 texel, float4 spec) {
     int sel = a & 15;
@@ -277,10 +308,12 @@ float4 Shade(VsOut i) {
     // many static meshes lean far from their faces: a plank's top read sideways). The clouds' alike. Every mesh is
     // darkened by it alike, the colour lit here or by the game, the lamps' light and the ambient light with the sun's
     // (as before: in the towns the ambient light is nearly the sun's).
+    // A ground print takes it as the ground does (ground_shade).
     bool unit = fs.shadowFigure.x > 0.5;
+    bool groundPrint = lighting.on.y > 0.5;
     float hidden = with_clouds(shadow_amount(i.shadow.xyz, dsx, dsy, i.pos.xy, unit ? fs.shadowFigure.y : 2.0),
                                i.shadow.xy);
-    if (!unit && hidden > 0.0) hidden *= shadow_facing(i.shadow.xyz, dsx, dsy);
+    if (!unit && !groundPrint && hidden > 0.0) hidden *= shadow_facing(i.shadow.xyz, dsx, dsy);
     float4 diffuse = i.col;
     float occlusion = ambient_occlusion(i.pos.xy, i.pos.z, fs.occlusion, fs.occlusionMap);
     if (lighting.on.x > 0.5) diffuse.rgb = figure_light(i.model, i.normal, i.land, face, pixel_turn(i.pos.xy), occlusion);
@@ -309,7 +342,12 @@ float4 Shade(VsOut i) {
         else
             rgb = weathered_mesh(rgb, diffuse.rgb, i.shadow.xyz, dsx, dsy, unit, hidden);
     }
-    rgb *= 1.0 - hidden * shadow.on.y;
+    if (groundPrint) {
+        float3 up = face.z < 0.0 ? -face : face;   // the ground's, turned up
+        rgb *= ground_shade(i.land, up, hidden, pixel_turn(i.pos.xy));
+    } else {
+        rgb *= 1.0 - hidden * shadow.on.y;
+    }
     if (fs.switches.y != 0) rgb = lerp(fs.fogColour.rgb, rgb, i.spec.a);
     return float4(rgb, current.a);
 }

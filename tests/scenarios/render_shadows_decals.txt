@@ -1,0 +1,85 @@
+# R52: ground prints in the shadows (docs/notes/renderer.md section 13, item 10). Blood splats, footprints and scorch
+# marks are flat geometry laid on the ground (ground_print.cpp) and blended over it; they took none of the shadows,
+# so a blood splat under a tree showed sunlit on the darkened ground. Now they are darkened as the ground under them
+# (the sun map, the clouds, the point shadows; mesh.hlsl's ground_shade). In gz2g's forest at noon eight wolves die
+# around the hero (their death blood) and are taken off the map; frozen: the frame and the shadow alone ("shadowview
+# on": white lit, black fully shadowed), each with the prints and without them ("decals off"). shadowcheck requires
+# every print to sample the map; the shadow alone with the prints matches it without them (a print shows the
+# ground's shade, not its own colour: before the fix the blood showed red there), while the frames differ (the
+# prints are drawn). Then the same at night under a point light.
+render checkall
+msaa 8
+timeout 120
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+
+zone gz2g 0
+waitzone 20 gz2g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @FixWorldTime(12)
+console @GodMode(0,1)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+console @AddUnitToServer("D1","WolfTutor","D1",Add(GSGetVar(0,"hx"),4),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("D2","WolfTutor","D2",Sub(GSGetVar(0,"hx"),4),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("D3","WolfTutor","D3",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),4),0)
+console @AddUnitToServer("D4","WolfTutor","D4",GSGetVar(0,"hx"),Sub(GSGetVar(0,"hy"),4),0)
+console @AddUnitToServer("D5","WolfTutor","D5",Add(GSGetVar(0,"hx"),7),Add(GSGetVar(0,"hy"),5),0)
+console @AddUnitToServer("D6","WolfTutor","D6",Sub(GSGetVar(0,"hx"),7),Add(GSGetVar(0,"hy"),5),0)
+console @AddUnitToServer("D7","WolfTutor","D7",Add(GSGetVar(0,"hx"),7),Sub(GSGetVar(0,"hy"),5),0)
+console @AddUnitToServer("D8","WolfTutor","D8",Sub(GSGetVar(0,"hx"),7),Sub(GSGetVar(0,"hy"),5),0)
+waitfor 10 IsAlive(GetObjectByName("D8"))
+console @InflictDamage(GetObjectByName("D1"),100000)
+console @InflictDamage(GetObjectByName("D2"),100000)
+console @InflictDamage(GetObjectByName("D3"),100000)
+console @InflictDamage(GetObjectByName("D4"),100000)
+console @InflictDamage(GetObjectByName("D5"),100000)
+console @InflictDamage(GetObjectByName("D6"),100000)
+console @InflictDamage(GetObjectByName("D7"),100000)
+console @InflictDamage(GetObjectByName("D8"),100000)
+wait 3000
+console @RemoveUnitFromServer(GetObjectByName("D1"))
+console @RemoveUnitFromServer(GetObjectByName("D2"))
+console @RemoveUnitFromServer(GetObjectByName("D3"))
+console @RemoveUnitFromServer(GetObjectByName("D4"))
+console @RemoveUnitFromServer(GetObjectByName("D5"))
+console @RemoveUnitFromServer(GetObjectByName("D6"))
+console @RemoveUnitFromServer(GetObjectByName("D7"))
+console @RemoveUnitFromServer(GetObjectByName("D8"))
+wait 1000
+move 400 20
+frames 5
+freeze
+capture decals
+shadowcheck 4
+shadowview on
+capture decals_view
+decals off
+capture bare_view
+shadowview off
+capture bare
+decals on
+unfreeze
+samecapture decals_view bare_view 24 0.0005
+diffcapture decals bare 0.002 0.2
+
+# At night with a script point light right of the hero (render_shadows_trees' light): the prints in the light's
+# point shadows lose its light as the ground does. Frames only.
+console @FixWorldTime(1)
+console @CreatePointLight(7,Add(GetX(GetLeader()),3),Sub(GetY(GetLeader()),1),Add(GetZ(GetLeader()),2),12,255,230,180)
+wait 3000
+move 400 20
+frames 5
+freeze
+capture night
+decals off
+capture night_bare
+decals on
+unfreeze
+report
+quit

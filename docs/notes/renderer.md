@@ -803,9 +803,22 @@ vertices: a run wholly inside the view (widened by 5% at its sides) by its box's
 every second vertex inside them, tested against the planes it crosses only. The casters' model meshes (first pass of
 each; alpha-tested or blended passes cut out by stage 0's alpha read from the texture's level 0: a smaller level seen
 from the sun at a grazing angle averages fronds away) go into it in a depth-only pass. Receivers: the ground pages (not
-water: the ground under it) and the world's model meshes after the ground (not the sky, the flat geometry or additive
-passes) sample it (`shaders/shadow_receiver.hlsli`) and darken by up to half (the old decal's alpha 0x80) before fog. The
-map is the only shadow look.
+water: the ground under it), the world's model meshes after the ground (not the sky, the selection markers or additive
+passes) and the ground prints sample it (`shaders/shadow_receiver.hlsli`) and darken by up to half (the old decal's alpha
+0x80) before fog. The map is the only shadow look.
+- **Ground prints** (R52; blood, footprints, scorch marks: flat geometry, `MeshDraw::groundDecal`, `MeshBatch::decal`)
+  are blended over the ground, which the map, the clouds and the point shadows darken; a print took none of them, so a
+  blood splat in a tree's shadow showed sunlit (the old game drew its shadow decals over the prints). A print is
+  darkened as the ground under it: mesh.hlsl's `ground_shade` works the ground's light at the pixel as ground_light
+  does on dry ground (no material colour, all of the ambient light; the face normal turned up) with the shadows and
+  without them, and multiplies the print by their ratio per channel. Its light (`GroundDecalLight`, in the mesh
+  shader's MeshLightParams with `on` y 1, as SDL_GPU's four uniform slots per stage are taken): the scene's sun,
+  ambient and the 8 point lights nearest its box that reach it, with their point shadows, and the map's light
+  (`mapSun`); its positions are the landscape's (identity landscape rows), its map lookup lifted along the
+  landscape's up (no vertex normals). No weather on prints. The selection marker stays unshaded (the old game drew it
+  after the shadows; it is a mark of the interface). Check: render_shadows_decals (shadowcheck: every print samples
+  the map; with `shadowview on` the frame with the prints matches it without them, `decals off`, while the frames
+  differ; then at night under a point light).
 - **Soft edges** (PCSS, contact-hardening; the user wanted the old decals' softness). After the casters two small passes
   make the map's depth range per 16 x 16-texel cell (`shaders/shadow_reduce.hlsl`: nearest and farthest texel;
   `shadow_dilate.hlsl`: the same over the cells within the widest filter's reach and one cell more, plus the cell's own
@@ -908,8 +921,8 @@ hour 4 and after 20, rising to 1 at 6, falling from 18; 0 in a cave), the rain o
   = 1 - (1 - map) x (1 - cloud), through the shadow's rules (item 9: the ground goes 0.55 of the way to its light in
   the shade, at least 27% darker on faces turned to the sun; a mesh 27% darker on faces turned to it, a unit on every
   face). The water
-  takes the clouds alone (`ShadowParams::on` 0: `cloudParams`). Not under clouds: the sky, flat geometry (ground prints,
-  markers) and additive passes, as for the map.
+  takes the clouds alone (`ShadowParams::on` 0: `cloudParams`). Not under clouds: the sky, the selection markers and
+  additive passes, as for the map (the ground prints are, as the ground under them).
 - Check: render_clouds (zone1 at noon: the frame and the shadow view at one frozen moment and five seconds later,
   `diffcapture` between the views; rain: `cloudcheck` with the cover at 0.7 .. 0.8; night and the cave gz5g:
   `cloudcheck 0 0`). `cloudcheck <least> <most> [<least cover> <most cover>]` reads ShadowInfo's `cloudLight` and
@@ -1555,6 +1568,13 @@ evenly over -1 .. 1; 0.6 of the way). The shadow map darkens it after (mesh_fs).
 reaches `land` (the point in the landscape's space; `face`: its face normal there, turned to the camera): a unit's mesh
 compares from the unit's nearest distance to the light, on every face; any other only on faces turned to the light (by
 `face`), looked up moved along `face`.
+
+### shaders/mesh.hlsl: ground_shade
+
+A ground print's share of its light the shadows leave, per channel (section 13, item 10, "Ground prints"): the
+ground's light at the point `p` with the normal `n` as ground_light works it on dry ground (`m` and `mp` 0, `loss` 0,
+`occlusion` 1), once with `hidden` and the point shadows and once without, the first over the second (1 where the
+second is black). The lights are MeshLightParams' (GroundDecalLight): the scene's in the landscape's space.
 
 ### shaders/scene_lighting.hlsli: ground_light
 

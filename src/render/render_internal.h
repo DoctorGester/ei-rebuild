@@ -145,6 +145,8 @@ struct MeshBatch {
     bool lines;               // a line list (else triangles)
     bool model = false;       // a model's mesh (BeginMesh .. MeshPass), not pre-transformed vertices
     bool flat = false;        // the flat geometry (decals, markers), no corners
+    bool decal = false;       // flat: a ground print (MeshDraw::groundDecal), shaded as the ground under it; `box` its
+                              // positions' box in the landscape's space
     const void* caster = nullptr;   // render::BeginCaster's object, if any
     int light = -1;           // index into Frame::shadow.lights: it samples the shadow map
 // A unit's mesh: its corners' box in model space (low xyz, high xyz), and the nearest map depth of its
@@ -237,6 +239,8 @@ Matrix4 Product(const Matrix4& a, const Matrix4& b);
 constexpr int kMostMeshLights = 8;
 static_assert(std::size(MeshLightParams{}.pointAt) == kMostMeshLights);
 void MeshLightUniforms(const MeshLighting& lighting, MeshLightParams* params);
+// Harness build: the ground prints drawn (SetGroundDecals).
+bool GroundDecalsDrawn();
 
 // Point-light shadows (shaders/point_shadow.hlsli): the receivers' fragment uniforms, the same for the frame. Each
 // light with a map has six faces of kPointFaceTexels in one row of the atlas.
@@ -625,6 +629,10 @@ void PreparePointShadows(Frame& frame);
 void DrawPointShadows(Frame& frame);
 void BindPointShadows(int slot);
 int PointShadowSlot(const Frame& frame, int sceneLight);
+// A ground print's light (MeshBatch::decal; mesh.hlsl's ground_shade, `on` y 1): the scene's sun, ambient light and
+// the kMostMeshLights point lights nearest its box (in the landscape's space, low xyz, high xyz) that reach it, each
+// light's pointColour w its point shadow + 1 (0 none), and the shadow map's light.
+void GroundDecalLight(const Frame& frame, const float box[6], MeshLightParams* params);
 // The object whose meshes are being handed over. ShadowFrameDone: the frame is presented.
 const void* CurrentCaster();
 bool CurrentCasterFigure();

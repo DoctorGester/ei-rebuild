@@ -37,7 +37,7 @@ class TextureDevice final : public RendererBase {
 public:
     int SetMaterial(DeviceMaterial* material);
     int DrawFlatBlocks(const VertexPacket* positions, const render::TexCoord* uvs, int blocks, const std::uint16_t* indices,
-                       int indexCount, std::uint32_t colour, std::uint32_t specular);
+                       int indexCount, std::uint32_t colour, std::uint32_t specular, bool groundPrint);
     int DrawMeshBlocks2(Surface* firstTexture, Surface* secondTexture, const VertexPacket* positions, int blocks,
                   const NormalPacket* normals, int colourCount, std::uint32_t* colours, std::uint32_t* speculars,
                   const render::TexCoord* uvs, int unused10, const render::MeshCorner* corners, int cornerCount,

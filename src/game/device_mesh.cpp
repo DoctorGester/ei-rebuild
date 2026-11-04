@@ -221,9 +221,9 @@ TextureDevice::~TextureDevice() {
 
 // --- Device shadow -----------------------------------------------------------------------------------
 
-// The device's draw of flat-coloured textured geometry, used for object shadows: the positions are projected by
-// the pipeline (the visibility verdict); the renderer gets one colour / specular pair, each vertex's texture
-// coordinate and a z scale, and clips what crosses the screen edges. See docs/notes/models.md ("Mesh draws").
+// The device's draw of flat-coloured textured geometry (the ground prints, the selection marker): the positions are
+// projected by the pipeline (the visibility verdict); the renderer gets one colour / specular pair, each vertex's
+// texture coordinate and a z scale, and clips what crosses the screen edges. See docs/notes/models.md ("Mesh draws").
 
 namespace {
 
@@ -235,7 +235,7 @@ using devicebuffers::g_projected;
 // The new renderer (src/render) gets the geometry in model space with the screen stack's matrix
 // (kScreenStack); each pass the indexed draw then makes hands over the device's state.
 void HandOver(TextureDevice* device, const VertexPacket* positions, const TexCoord* uvs, int count,
-              const std::uint16_t* indices, int indexCount, const std::uint32_t* colours, bool clipped) {
+              const std::uint16_t* indices, int indexCount, const std::uint32_t* colours, bool clipped, bool groundPrint) {
     render::MeshDraw m{};
     m.positions = positions;
     m.positionCount = count;
@@ -251,11 +251,12 @@ void HandOver(TextureDevice* device, const VertexPacket* positions, const TexCoo
     m.clipped = clipped;
     m.distanceFog = false;   // no fog pass here
     m.zScale = 1.0f;   // multiplies z (1: none)
+    m.groundDecal = groundPrint;
     render::BeginMesh(device, m);
 }
 
 int DrawFlat(TextureDevice* device, const VertexPacket* positions, const TexCoord* uvs, int blocks,
-             const std::uint16_t* indices, int indexCount, std::uint32_t colour, std::uint32_t specular) {
+             const std::uint16_t* indices, int indexCount, std::uint32_t colour, std::uint32_t specular, bool groundPrint) {
     TransformPipeline* pipeline = device->pipeline;
     int count = blocks * 4;
     std::uint32_t colours[2] = {colour, specular};
@@ -264,7 +265,7 @@ int DrawFlat(TextureDevice* device, const VertexPacket* positions, const TexCoor
     // The verdict: 0 on screen, 1 crossing, 2 outside.
     int visibility = pipeline->ProjectBlocks(positions, g_projected.data(), g_outcodes.data(), blocks, nullptr);
     if (visibility == 2) return 2;
-    HandOver(device, positions, uvs, count, indices, indexCount, colours, visibility == 1);
+    HandOver(device, positions, uvs, count, indices, indexCount, colours, visibility == 1, groundPrint);
     device->DrawIndexed();
     return 0;
 }
@@ -272,13 +273,13 @@ int DrawFlat(TextureDevice* device, const VertexPacket* positions, const TexCoor
 } // namespace
 
 // `positions` blocks of four vertices (`blocks` of them), `uvs` one per vertex,
-// `indices` / `indexCount` the triangles, `colour` and `specular` for every vertex. Returns 2 when
-// nothing is visible, else 0.
+// `indices` / `indexCount` the triangles, `colour` and `specular` for every vertex; `groundPrint`: a print laid on
+// the ground, the positions the landscape's (render::MeshDraw::groundDecal). Returns 2 when nothing is visible, else 0.
 int TextureDevice::DrawFlatBlocks(const VertexPacket* positions, const TexCoord* uvs, int blocks,
                                    const std::uint16_t* indices, int indexCount, std::uint32_t fillColour,
-                                   std::uint32_t specular) {
+                                   std::uint32_t specular, bool groundPrint) {
     render::BeginFlatDrawTime(blocks * 4);
-    int result = DrawFlat(this, positions, uvs, blocks, indices, indexCount, fillColour, specular);
+    int result = DrawFlat(this, positions, uvs, blocks, indices, indexCount, fillColour, specular, groundPrint);
     render::EndMesh();
     render::EndFlatDrawTime();
     return result;

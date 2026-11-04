@@ -7440,6 +7440,13 @@ model = "sonnet"
 note = "User 2026-11-04: the units' rain/snow look (R17c2, mesh.hlsl weathered_unit) does not show on the figure in the HUD unit panel. Interface figure draws (NoEdgeFade: HUD panel, camp and hero-screen previews, UiModel) get no MeshFsParams::weather. Give the HUD unit panel's draw of a world unit the same weather as the unit in the world (it is the same unit, out in the rain); the camp and hero-screen previews stay dry (indoors / not in the world). After R17c3 (per-unit wetness) take that unit's own value. Check: a capture of the panel in rain."
 
 [[ticket]]
+id = "R52a"
+title = "Ground prints follow the time of day"
+group = "renderer"
+depends = ["R52"]
+note = "R52 found: a print's colour is unlit (blood keeps the sun colour of the moment it was made, footprints are white), so prints made by day stay bright red / white on the ground at night (render_shadows_decals' night frame). The shadows now darken them (mesh.hlsl ground_shade); light them as the ground under them is lit (ground_light's light over a daylight reference), keeping the game's look by day."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
