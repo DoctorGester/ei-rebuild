@@ -463,10 +463,10 @@ struct TerrainGroup {
 };
 bool CreateTerrainShader();
 // The water's ripple map (render_water.cpp), made at the start (false: it could not be), bound with every terrain
-// batch; RippleOffsets, its two layers' offsets at the client time (TerrainFsParams::ripples).
+// batch; RippleOffsets, its two layers' offsets at the client time (TerrainFsParams::ripples, slowRipples).
 bool MakeRippleMap();
 gpu::TextureBinding RippleMap();
-void RippleOffsets(float out[4]);
+void RippleOffsets(float water[4], float swamp[4]);
 void UploadTerrain(const Frame& frame);
 void DrawTerrainBatch(const Frame& frame, const TerrainBatch& batch);
 std::span<const TerrainGroup> TerrainPieceGroups(const TerrainPiece& piece);

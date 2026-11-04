@@ -54,17 +54,17 @@ std::unordered_map<const SectorData*, SectorChanges> g_changes;
 // --- Pages kept on the GPU ----------------------------------------------------------------------
 
 // A page vertex's geometry; its colours (colour, specular) are a stream of their own. The record's
-// normal and, on the ground layer, the light lost under the water (-1 on the water layer) and the ground's own
-// occlusion of the ambient light (GroundOcclusion; 1 on the water layer); the GPU lights both layers. On the water
-// layer the depth over the ground (the ground record's: negative where the ground is above the water), 0 on the ground
-// layer.
+// normal and, on the ground layer, the light lost under the water (-1 on the water layer); the GPU lights both layers.
+// On the water layer the depth over the ground (the ground record's: negative where the ground is above the water), 0
+// on the ground layer. `extra`: on the ground layer the ground's own occlusion of the ambient light (GroundOcclusion),
+// on the water layer the water's kind (WaterKind).
 struct PageVertex {
     Vector3 position;
     float u, v;
     Vector3 normal;
     float loss;
     float depth;
-    float occlusion;
+    float extra;
 };
 static_assert(sizeof(PageVertex) == 44);
 
@@ -77,15 +77,26 @@ const SectorVertex* WaterAbove(const SectorData* s, int index) {
     return &water;
 }
 
+// The kind of water a material is (terrain.hlsl's Water): 0 water, 1 a swamp, 2 lava. The map's materials tell them
+// apart only by their colour: the water's blue, the swamps' green and the lava's red (which also lights itself).
+float WaterKind(const terrain::TerrainMaterial& m) {
+    const Vector3& c = m.waveColour;
+    if (c.x > c.y && c.x > c.z) return 2.0f;
+    return c.y > c.z ? 1.0f : 0.0f;
+}
+
 // `occlusion`: the sector's ground occlusion per ground record (GroundOcclusion).
 PageVertex MakeVertex(const SectorData* s, int index, const TileVertex& e, const float* occlusion) {
     const SectorVertex& record = s->records[index];
-    PageVertex v{s->vertices[index], e.u, e.v, record.normal, -1.0f, 0.0f, 1.0f};
+    PageVertex v{s->vertices[index], e.u, e.v, record.normal, -1.0f, 0.0f, 0.0f};
     if (index >= kWaterRecords) {
         v.depth = s->records[index - kWaterRecords].depth;
+        const terrain::Terrain* owner = s->owner;
+        if (owner && record.waterMaterial < std::ssize(owner->materials))
+            v.extra = WaterKind(owner->materials[record.waterMaterial]);
     } else {
         v.loss = 0.0f;
-        v.occlusion = occlusion[index];
+        v.extra = occlusion[index];
         if (const SectorVertex* water = WaterAbove(s, index)) {
             const terrain::Terrain* owner = s->owner;
             if (owner && water->waterMaterial < std::ssize(owner->materials)) {
@@ -543,7 +554,7 @@ gpu::PipelineDesc TerrainDesc(const PassState& s, int samples) {
     p.attributes[4] = {program::kAttrNormal, 0, gpu::VertexFormat::Float3, 20};
     p.attributes[5] = {program::kAttrLoss, 0, gpu::VertexFormat::Float, 32};
     p.attributes[6] = {program::kAttrDepth, 0, gpu::VertexFormat::Float, 36};
-    p.attributes[7] = {program::kAttrOcclusion, 0, gpu::VertexFormat::Float, 40};
+    p.attributes[7] = {program::kAttrExtra, 0, gpu::VertexFormat::Float, 40};
     ApplyPassState(p, s);
     p.samples = samples;
     AddDepthCopy(p);
@@ -791,7 +802,7 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     fs.fog[2] = (f.fogColour & 0xFF) / 255.0f;
     fs.flags[0] = mode;
     fs.flags[1] = f.fogEnabled ? 1.0f : 0.0f;
-    RippleOffsets(fs.ripples);
+    RippleOffsets(fs.ripples, fs.slowRipples);
     OcclusionUniforms(batch.occluded && mode < 1.5f, fs.occlusion, fs.occlusionMap);
     SceneLightParams light;
     LightUniforms(&light);

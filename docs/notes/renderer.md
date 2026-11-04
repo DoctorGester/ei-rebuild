@@ -913,7 +913,7 @@ colour, the meshes the game lights, the water, the interface's previews) is touc
 - **The ground's own** (render_terrain.cpp, `GroundOcclusion`): per sector, once, from the height field (a cell a
   unit): per ground vertex in the grid's eight directions the highest rise within 8 cells above the vertex's own
   tangent plane (sines, the plane's taken off, faded by 1 - (d / 8)^2), the mean of the eight; the vertex keeps 1 -
-  0.7 x that (`PageVertex::occlusion`, an attribute of the page's geometry). The heights around the sector come from the
+  0.7 x that (`PageVertex::extra`, an attribute of the page's geometry). The heights around the sector come from the
   neighbours the landscape holds (`Terrain::CachedSector`, so nothing is loaded for it); a neighbour not held continues
   the sector's edge, and the sector's occlusion is worked out again when one comes (its version in the page's source:
   the pages read their vertices again). Large shapes: valleys, the foot of cliffs and walls of rock.
@@ -1390,26 +1390,42 @@ a fixed generator of its own (the same map on every run and system, nothing draw
 40 waves along x and y, b the foam's pattern (the height of 24 finer waves), each wave a whole number of cycles across
 the map so it repeats without a seam. The terrain batches bind it with a repeating, linearly mipmapped sampler
 (anisotropy 8); RippleOffsets gives its two layers' offsets at the client's time (SceneLights::clientTicks: the client
-world's tick and the fraction of the next one it has had), so the ripples hold still under `freeze` and move with the
-game's clock.
+world's tick and the fraction of the next one it has had), and the swamps' a fifth as fast, so the ripples hold still
+under `freeze` and move with the game's clock.
 
 ### shaders/terrain.hlsl: the water
 
 The water pages keep the game's look underneath: the page texture lit by ground_light from the vertex normal with the
 game's crests (the vertex waves, the water levels and the crests' specular stay the game's: SectorData::AnimateWaves),
-alpha the material's opacity, fog as for the ground. `Water` then, per pixel:
-- **Ripples**: two layers of the ripple map, one repeating every 9 landscape units and one every 5 turned against it,
-  drifting apart; their slopes (calmer within half a unit of the shore) turn the vertex normal. The rippled normal lights
-  the layer up to 30% more or 25% less as it turns to the sun or away (kRippleShade, by the sun's share of the light).
+alpha the material's opacity, fog as for the ground. Each water vertex carries its water's kind (PageVertex::extra,
+render_terrain.cpp's WaterKind): the maps' water materials (kind 3 in the .mp file) tell water, swamps and lava apart only
+by their colour, so blue is water, green (zone1's, zone2's, zone7's swamps: 0.19, 0.54, 0.36, opacity 0.7) a swamp and
+red (0.8, 0, 0, lit by itself) lava; the kind is interpolated, so where a swamp meets water the looks blend. `Water`
+then, per pixel:
+- **Ripples**: two layers of the ripple map, one repeating every 9 landscape units and one every 5 turned against it (at
+  0.45 of A's weight), drifting apart; their slopes (0.15 at the steepest texel, calmer within half a unit of the shore)
+  turn the vertex normal. The rippled normal lights the layer up to 30% more or 25% less as it turns to the sun or away
+  (kRippleShade 2, by the sun's share of the light not under a cloud).
 - **Depth** (`depth`, PageVertex's: the water's depth over the ground at the vertex, from the ground record,
   interpolated): the share 1 - e^(-0.5 depth) of the depth's look: from half the material's opacity at the shore to 1.15
   times it in deep water, and up to 15% darker.
 - **Reflection**: Schlick's Fresnel term (0.02 head-on) of the rippled normal towards the camera (SceneLightParams::camera)
   blends in the sky, taken as the fog's colour at the horizon and 0.75 of it overhead (no sky texture or screen-space
   reflection yet); the reflected part is opaque, so the water hides more of the ground at a grazing view.
-- **Sun glints**: a sharp and a broad Blinn-Phong lobe of the sun's colour on the rippled normal, gone as the sun sets.
+- **Sun glints**: a sharp (0.25) and a broad Blinn-Phong lobe of the sun's colour on the rippled normal, gone as the sun
+  sets and under a cloud (the clouds' share hidden, cloud_hidden: the water's ShadowParams are the clouds alone).
 - **Foam**: within half a unit of the shore, the ripple map's foam pattern above a threshold, lit by the ambient and sun
-  light, at most 0.4 opaque.
+  light, at most 0.35 opaque.
+- **The shore line**: the water fades in over the first 0.25 units of depth, so where its surface meets the ground there
+  is no edge. Before, the water at the shore line was already half its opacity and more at a grazing view (the
+  reflection), and it ended in a hard line along the triangles where the ground rose out of it (the seams seen on the
+  ground pieces at the shore). The water layer's tiles themselves never end over ground under the water (zone1:
+  of 1203 vertices on the edge of the water tiles, 3 lie under it, by at most 0.07).
+- **A swamp**: the ripples at 0.3 of the slope, drifting at a fifth of the speed (TerrainFsParams::slowRipples); murkier
+  (0.95 of the opacity at the shore, 1.35 deep, down to 0.6 of the light deep), a Fresnel term at 0.45 and the sky at 0.7,
+  the broad glint only; no foam, but scum: patches of dull olive (at most 0.6 opaque) where the cloud map at 1/17 a unit
+  and the ripple pattern sum above a threshold, a little more within 1.5 units of the shore.
+- **Lava** keeps the game's look (its texture lit by its own colour, the material's opacity).
 
 The depth is per vertex (one unit apart), so the foam's band follows the triangles near the shore. The water still
 receives no sun shadows (the ground under it does), so glints show in a shadow too. Cost (R17a, 3840x2009, msaa 8,
@@ -1417,7 +1433,9 @@ frame GPU time on a quiet machine, frozen frames of render_water's scenes): the 
 sea shore, lake by day, lake at night: frames without its draws against with them), and the look above adds nothing
 measurable to it (within 0.03 ms of the game's plain water shading). Check: scenario `render_water`
 (frozen moments on zone1: the beach at the west sea, the sea, the lake in the middle, the river with stones, the river
-and the lake at night; samecapture of a frozen moment drawn twice, diffcapture that the ripples move).
+and the lake at night; samecapture of a frozen moment drawn twice, diffcapture that the ripples move) and
+`render_water_looks` (1440x1080 by day: the beach, a shore across a sector border, the sea, the lake, the swamp and its
+edge, the beach's shore line nearer).
 
 ### render_perf.h: the performance overlay
 
