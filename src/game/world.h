@@ -120,7 +120,7 @@ public:
     World();
     ~World() override;
 
-    // Folders, managers, the ISAAC generator and the countdowns set up. Returns 1.
+    // Folders, managers, the ISAAC generator and the countdowns set up.
     void Create() override;
     // Every object of the spell manager gets ClearState, then the managers are deleted whatever their counts.
     void Destroy() override;
@@ -160,7 +160,6 @@ public:
     virtual TextureManager* GetTextureManager() { return nullptr; }
     virtual BaseManager* ClientLightManager() { return nullptr; }
     virtual ParticleManager* ClientParticleManager() { return nullptr; }
-    virtual int Unused39() { return 0; }
     virtual MapObject* ObjectWithId(int id);
     // `object` moves to `position` (the client's sector map).
     virtual void MoveObject(MapObject*, const float*) {}
@@ -242,7 +241,7 @@ public:
     ~WorldServer() override;
 
     // The managers, the messages registry, the Hoover, the wind (1, 0, 0; strength 0.4) and the zone state
-    // set up. Returns 1, or FatalError's result when the managers or the registry fail.
+    // set up (FatalError when the managers or the registry fail).
     void Create() override;
     void Destroy() override;
     // One world update: drops disconnected players and lets the others' units wake what they hear, accepts
@@ -269,9 +268,10 @@ public:
     MapObject* ObjectWithId(int objectId) override { return FindObject(static_cast<unsigned>(objectId)); }
 
     MapObject* FindObject(unsigned id);
-    // Creates the object a .mob record describes (base.kind): map objects and units (1, 5, 8, 9; 6 with a
-    // figure and maybe a campfire; 7) go into the object maps, the update map and the sector map; sounds (3),
-    // lights (2) and kind 4 become timed objects. Returns the new id, -1 when refused or for an unknown kind (the
+    // Creates the object a .mob record describes (base.kind): map objects, units and levers; flames (with a
+    // figure and maybe a campfire) and traps go into the object maps (FileMapObject; the flames, traps and levers into
+    // the update map too, all but the traps into the sector map); sounds, lights and particle sources become timed
+    // objects. Returns the new id, -1 when refused or for an unknown kind (the
     // original returned the message's address there; no caller reads it). Rebirth's FixAddMapObject takes index 0 for a unit without a prototype record.
     int CreateObject(mapspec::Spec* message);
     // Removes object `id` from the server: out of the sector map, the id maps and the command queues,
@@ -300,6 +300,9 @@ public:
     void AddTimedObject(Effect* object);
     void RemoveTimedObject(unsigned id);
     void AddToUpdateMap(MapObject* unit);
+    // Files a map object CreateObject made: the object maps (the other-objects map for all but units), the update map
+    // when `updated`, the sector map when `inSectorMap`; then writes its changed state when one is pending.
+    void FileMapObject(MapObject* object, bool updated, bool inSectorMap);
     // The updates an object stays in the update map before it may sleep (updateCountdown): 0x80 plus
     // 0..15, which the game takes from bits 5..8 of the object's address (in several functions), so it
     // follows the heap's layout. Ours takes the low 4 bits of the object's id instead, so that every run
@@ -480,7 +483,7 @@ public:
     void CreateUnits(Player* player, std::vector<PartyUnitRecord*>* records, const Vector3& position, Quaternion rotation,
                      std::vector<UnitPlacement>* placements);
     // A quick item (potion) is used by `unit`: the effect object "st.tr.130" (model "unhuma", type 9, flags 0x3010)
-    // is created at the unit's position and flagged new (flags |= 0x180000). `item` is not used.
+    // is created at the unit's position and flagged new (flags |= 0x180000).
     void UseQuickItem(Unit* unit);
 
     // Brings `player`'s view up to date (once per world update): the zone when it changed, weather, time, wind and
@@ -510,7 +513,7 @@ public:
     std::uint8_t keepsState;
     std::string zoneName;                // the zone's map database name
     std::vector<std::string> mobFiles;     // .mob files loaded in this zone (LoadMobFile)
-    int gameResult;                       // 0 while the game runs
+    int gameResult;                       // 0 until SetGameResult; 1 playing, 2 a network game, 4 main menu (world_game.cpp)
     std::uint32_t lastRainBoltTick;       // the tick of the last bolt in the rain (one per 20 ticks); saved
     Hoover* hoover;                      // counted; made by Setup, deleted by Teardown
     // The server's messages: the login handler reads "SrvErrMsg" / "WrongClientVersion" from it.
@@ -546,6 +549,13 @@ public:
     std::vector<EngineObject*> counted; // counted references (released on clear)
     std::vector<SharedObject> sharedObjects;
 };
+
+// SyncPlayer's difference of two object sets (world_object_sets.cpp; instantiated for MapObject and Effect). Sorts
+// `current`, then fills `added` (only in `current`, referenced once more), `gone` (only in `sent`, released) and `same`
+// (in both); when anything differs `sent` becomes a copy of `current`.
+template <class T>
+void DiffObjectSets(std::vector<T*>* sent, std::vector<T*>* current, std::vector<T*>* added, std::vector<T*>* gone,
+                    std::vector<T*>* same);
 
 // One walkable platform (bridge, deck) the client tests positions against.
 struct Platform {
@@ -711,15 +721,12 @@ VisibilityFog* VisFogManagerAdd(ClientArrayManager* manager);
 
 // The bits of EngineObject::flags on the client world (the constructor sets the draw bits).
 enum class WorldClientFlag : std::uint32_t {
-    NoCamOption = 0x8,      // cleared by the command line's "-nocam"; nothing sets or reads it
     RecordingCamera = 0x10, // a camera file is being recorded (Camera::OpenFile; the command line's camera options
                             // are skipped meanwhile)
-    MoviePathOption = 0x20, // cleared by the command line's "-moviepath_"; nothing sets or reads it
     DrawObjects = 0x40,     // the objects but units
     DrawUnits = 0x80,       // the units and the selection markers
     DrawTerrain = 0x100,    // the ground and the water
     DrawEffects = 0x400,    // the alpha pass: the client arrays, the particles, the lightning lists, the rain and snow
-    Draw800 = 0x800,        // set by the constructor; nothing reads it
     DrawSky = 0x1000,
     DrawNumbers = 0x2000,   // the flying hit numbers
 };
@@ -751,7 +758,7 @@ public:
     ~WorldClient() override;
 
     // Sets the client world up: the managers, the lights table (LightsGipat.ini), the terrain, the session,
-    // the rain and snow layer, the platforms and both sector grids. Returns 1.
+    // the rain and snow layer, the platforms and both sector grids.
     void Create() override;
     // Tears the client world down in the reverse order, then deletes the owned objects (counted ones dropped first).
     void Destroy() override;
@@ -773,7 +780,6 @@ public:
     BaseManager* ClientLightManager() override;
     ParticleManager* ClientParticleManager() override;
     void MoveObject(MapObject* object, const float* position) override;
-    virtual void MoveObject2(MapObject* object, const float* position);   // the second grid's move
 
     void BuildUnitSkins(std::vector<FiguredUnitRecord>* others, std::vector<DressedUnitRecord>* dressed);
     // Draws the world view, the whole map's terrain clip-tested. Returns 1.
@@ -812,7 +818,6 @@ public:
     // Takes `camera` as the view camera: the old one loses a reference (it is not released at zero), the
     // new one gains one; either may be null.
     void SetCamera(Camera* camera);
-    void SetWorldValue(int value);
     // Message 0x73: the water levels read from `stream` and applied to the terrain. Returns 1.
     int ReadWaterLevels(ByteStream* stream);
     // FALSE without a local view or while the local player's controller is busy.
@@ -981,7 +986,7 @@ public:
     int lastLineListKey;                  // the last line list key handed out; 0 from the constructor
     SectorGrid objectGrid;                // the objects by sector (MoveObject moves them)
     std::uint32_t rangeFirstX, rangeFirstY, rangeLastX, rangeLastY, rangeX, rangeY;
-    SectorGrid secondGrid;                // (MoveObject2 moves objects in it)
+    SectorGrid secondGrid;
     terrain::Terrain* terrain;            // counted
     // The zone's allod in lower case ("gipath" after Setup; the zone load takes it from the map
     // database's record of the local player's zone, "gipat" without one). It names the terrain's
@@ -1017,12 +1022,9 @@ public:
     LightColour ambient[24];
     LightColour sky[24];
     // This frame's light (UpdateLighting): the ambient colour (the table's, or 0.8 x the sunlight when
-    // the table's is black; its fourth float is never written), a copy of it (four floats, the sky's
-    // ambient) and the sunlight (its fourth float is whatever the original's stack held).
+    // the table's is black; its fourth float is never written) and the sunlight (its fourth float is whatever the original's stack held).
     LightColour frameAmbient;
-    LightColour skyAmbient;
     LightColour frameSun;
-    int lightingMark;                     // 0 after Setup, 0x80 once UpdateLighting runs outside a cave; never read
     // 1: a cave zone (the map's flag: LightsCave.ini, the sky "Sky01", light fixed at hour 0;
     // EnvironmentFlag::Cave instead of Outdoors).
     int cave;
@@ -1033,13 +1035,6 @@ public:
     // prints' wet look and an environment flag.
     RainSnow rainSnow;
     std::vector<int> selectedIds;            // the selected objects' ids
-    int worldValue;                       // -1; message 0x12 sets it (SetWorldValue); the exe never reads it
-    // The window's names, set by the constructor and freed by the destructor only: "EvilIslands",
-    // "EvilIslandsClass", "EvilIslands", "EvilIslands Paused".
-    std::string appName;
-    std::string windowClass;
-    std::string windowTitle;
-    std::string pausedTitle;
 };
 
 // Orders screen entries (their objects by objectId) by distance along the view's depth axis; dead and

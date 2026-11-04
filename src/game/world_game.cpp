@@ -264,13 +264,11 @@ std::uint32_t ValueBits(const net::VariableMessage* record) {
 }
 
 constexpr const char* kQuestFilePattern = "*.mq";
-// The map names of the allods (Gipat, Ingos, Suslanger, and a fourth list nothing reads), each list ended by an
-// empty name.
-constexpr const char* kAllodMaps[4][10] = /*00790270*/ {
+// The map names of the allods (Gipat, Ingos, Suslanger), each list ended by an empty name.
+constexpr const char* kAllodMaps[3][10] = /*00790270*/ {
     {"zone2", "zone3", "zone3obr", "zone4", "zone5", "zone6", "zone7", "zone8", "zone9", ""},
     {"zone12", "zone13", "", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr},
-    {"zone17", "zone18", "", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr},
-    {"zone19", "", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}
+    {"zone17", "zone18", "", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}
 };
 constexpr int kGipat = 0, kIngos = 1, kSuslanger = 2;
 
@@ -1026,7 +1024,7 @@ void GameFlow::ProcessRequest() {
         LoadGame(requestTarget);
         break;
     case kStateNewGame:
-        // The same steps as the matching start function (inlined here), Rebirth's AutoExec #3 included.
+        // The same steps as the matching start function, Rebirth's AutoExec #3 included.
         StartNewGame();
         break;
     case kStateZone:
@@ -1209,7 +1207,6 @@ void GameFlow::UpdateFromServer() {
 // The local player's variables are replaced by the server's; "constr.current" and the "gvar." ones survive (Rebirth's
 // PersistentGlobalVars).
     float construction = variables->Get(kConstructionVariable);
-    NamedFloatTable unusedCopy(*variables);
     ClearVariablesKeepingGlobals(variables);
     variables->Set(kConstructionVariable, construction);
     if (net::MapMessage* map = net::g_gameClient->map) {
@@ -1289,7 +1286,6 @@ void GameFlow::UpdateFromServer() {
         for (const auto& variable : net::g_gameClient->variables) {
             const net::VariableMessage* record = variable.Get();
             if (g_serverStamp <= record->serial) g_serverStamp = record->serial;
-            std::string name = record->name.data();
             VariableSetBits(variables, record->name.data(), ValueBits(record));
         }
         g_appliedStamp = 0;

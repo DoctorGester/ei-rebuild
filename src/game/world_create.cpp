@@ -121,9 +121,9 @@ namespace {
 
 // The client's flags after construction: the draws.
 constexpr WorldClientFlag kClientFlags = WorldClientFlag::DrawObjects | WorldClientFlag::DrawUnits | WorldClientFlag::DrawTerrain |
-                                         WorldClientFlag::DrawEffects | WorldClientFlag::Draw800 | WorldClientFlag::DrawSky |
+                                         WorldClientFlag::DrawEffects | WorldClientFlag::DrawSky |
                                          WorldClientFlag::DrawNumbers;
-static_assert(lib::Bits(kClientFlags) == 0x3DC0);
+static_assert(lib::Bits(kClientFlags) == 0x35C0);
 
 } // namespace
 
@@ -143,7 +143,6 @@ WorldClient::WorldClient() {
     secondGrid.allocatedHeight = 1;
     secondGrid.Allocate();
     flags |= kClientFlags;
-    worldValue = -1;
     camera = nullptr;
     materialManager = nullptr;
     particleManager = nullptr;
@@ -157,10 +156,6 @@ WorldClient::WorldClient() {
     session = nullptr;
     skyDome = nullptr;
     bird = nullptr;
-    appName = "EvilIslands";
-    windowClass = "EvilIslandsClass";
-    windowTitle = "EvilIslands";
-    pausedTitle = "EvilIslands Paused";
 }
 
 // ---- The two worlds -------------------------------------------------------------------------------
@@ -173,11 +168,9 @@ WorldServer g_serverWorld;
 
 // --- World destructors -------------------------------------------------------------------------------
 
-// The destructors the compiler wrote for the world's classes: the bodies the exe's vtables reach through the
-// scalar deleting destructors, the members destroyed last to first. The worlds' own teardown (Destroy) is not
-// repeated: EmptyWorlds (app_main.cpp) has emptied both before their destructors run, which also keeps them from
-// touching the camera and the scene renderer, plain globals that may be destroyed first. The containers are std's.
-// See docs/notes/standalone.md.
+// The worlds' own teardown (Destroy) is not repeated in the destructors: EmptyWorlds (app_main.cpp) has emptied both
+// before they run, which also keeps them from touching the camera and the scene renderer, plain globals that may be
+// destroyed first. See docs/notes/standalone.md.
 
 World::~World() {
     DestroyOwned(netSession);

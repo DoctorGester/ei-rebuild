@@ -1,4 +1,4 @@
-// The zone file's unit records (kind 5; map_spec.h) with their five behaviour records (0x4C bytes: patrols of
+// The zone file's unit records (SpecKind::Unit; map_spec.h) with their five behaviour records (0x4C bytes: patrols of
 // waypoints and the guard settings), the small chunk classes that read those (waypoint, patrol,
 // behaviour) and the patrol array's copy. See docs/notes/objects.md, "Zone files and unit records".
 #include "ai_map.h"
@@ -137,7 +137,7 @@ void BehaviourChunk::OnChunk() {
 
 UnitSpec::UnitSpec() {
     record.applyStats = 0;
-    kind = 5;
+    kind = SpecKind::Unit;
     prototype = "none";
     behaviours = 0;
     behaviour[0].enabled = 1;

@@ -432,9 +432,6 @@ ParticleManager* WorldClient::ClientParticleManager() { return particleManager; 
 void WorldClient::MoveObject(MapObject* object, const float* position) {
     objectGrid.Move(object, position);
 }
-void WorldClient::MoveObject2(MapObject* object, const float* position) {
-    secondGrid.Move(object, position);
-}
 
 Texture* WorldClient::NewTexture(int textureType) {
     if (!textureManager) return nullptr;
@@ -451,8 +448,6 @@ void WorldClient::SetCamera(Camera* newCamera) {
     camera = newCamera;
     if (newCamera) newCamera->AddRef();
 }
-
-void WorldClient::SetWorldValue(int value) { worldValue = value; }
 
 int WorldClient::ReadWaterLevels(ByteStream* stream) {
     countdowns.Load(stream, terrain);

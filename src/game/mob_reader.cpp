@@ -39,8 +39,6 @@ constexpr std::uint32_t kChunkPlayers = 0xDDDDDDD1;
 constexpr std::uint32_t kChunkFlagOn = 0xC000;
 constexpr std::uint32_t kChunkFlagOff = 0xD000;
 
-constexpr int kKindUnit = 5;
-constexpr int kKindTrap = 7;
 constexpr int kRelationHostile = 2;
 constexpr int kBehaviourCount = 5;
 
@@ -150,7 +148,7 @@ bool MobFile::Load(int keepIds) {
     int done = 0;
     for (auto& node : records.byId) {
         Spec* spec = node.second;
-        if (spec->kind == kKindTrap) {
+        if (spec->kind == SpecKind::Trap) {
             auto* record = static_cast<TrapSpec*>(spec);
             record->trap.sides = 0;
             record->trap.position = spec->position;
@@ -159,7 +157,7 @@ bool MobFile::Load(int keepIds) {
                 record->trap.sides |= static_cast<std::uint32_t>(row[c] == kRelationHostile) << c;
         }
         g_serverWorld.CreateObject(spec);
-        if (spec->kind == kKindUnit) {
+        if (spec->kind == SpecKind::Unit) {
             auto* unitSpec = static_cast<UnitSpec*>(spec);
             Unit* unit = UnitOrNull(unitSpec->object);
             if (unit && (spec->id != 2 || str::Compare(unitSpec->texture, "unmoco2") != 0))

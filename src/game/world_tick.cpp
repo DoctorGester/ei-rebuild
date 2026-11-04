@@ -23,8 +23,7 @@
 
 namespace {
 
-// SectorMap, inlined here (bounds check and address only). The unit list of sector (x, y), or null outside the
-// map.
+// The unit list of sector (x, y), or null outside the map.
 std::vector<Unit*>* SectorUnits(SectorMap* map, int x, int y) {
     if (x < 0 || y < 0 || x >= map->width || y >= map->height) return nullptr;
     return &map->sectors[map->width * y + x].units;

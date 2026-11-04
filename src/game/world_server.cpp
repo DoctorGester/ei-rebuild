@@ -62,8 +62,6 @@ void EraseId(Map& map, unsigned id) {
 
 } // namespace
 
-// ---- Id maps -------------------------------------------------------------------------------------
-
 // ---- Lookups -------------------------------------------------------------------------------------
 
 MapObject* WorldServer::FindObject(unsigned objectId) {
@@ -179,6 +177,16 @@ void WorldServer::AddToUpdateMap(MapObject* unit) {
     unit->updateCountdown = UpdateCountdownFor(unit);
     unsigned unitId = static_cast<unsigned>(unit->id);
     updateMap.Set(unitId, unit);
+}
+
+void WorldServer::FileMapObject(MapObject* object, bool updated, bool inSectorMap) {
+    const unsigned objectId = static_cast<unsigned>(object->id);
+    objects.Set(objectId, object);
+    mapObjects.Set(objectId, object);
+    if (object->GetClassId() != ClassId::Unit) otherMapObjects.Set(objectId, object);
+    if (updated) AddToUpdateMap(object);
+    if (inSectorMap) aiMap.sectorMap.Add(object);
+    if (object->flags & MapObjectFlag::Changed) object->WriteChangedState();
 }
 
 // ---- Removal ---------------------------------------------------------------------------------------

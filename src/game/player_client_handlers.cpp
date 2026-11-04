@@ -141,10 +141,7 @@ int PlayerClient::OnFreeCamera() {
 
 int PlayerClient::OnWorldValue() {
     std::uint8_t bytes[5];
-    in.Read(bytes, 5);
-    int value;
-    lib::LoadBytes(value, bytes + 1);
-    player->ClientWorld()->SetWorldValue(value);
+    in.Read(bytes, 5);   // the world value (bytes 1-4): nothing reads it
     return 1;
 }
 
