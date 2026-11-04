@@ -6368,6 +6368,20 @@ group = "harness"
 note = "Found in H51a (2026-11-04, main f85ee2bae): python -m unittest tools.test_work_sched fails one test every time, not only under load: the timing rows carry install 'standalone' (the run's install name) where the test expects 'vanilla' (the goldens' name). Decide which name the timing table keeps (work.expected_times is called with both in places) and make the scheduler and the test agree."
 
 [[ticket]]
+id = "H50a"
+title = "Linux: dzn the local default under WSL, and a shorter skip list there"
+group = "harness"
+depends = ["H50"]
+note = "H50 found dzn (Mesa's Vulkan on D3D12, ~/mesa-dzn with its one local change) stable: two image suites, the Rebirth set and the left-out set with no failure or retry but net_second_master and render_present_window. Decide with the user: run_all under WSL takes --dzn by itself when ~/mesa-dzn's manifest exists (lavapipe by EI_VK_ICD=system or a flag; CI stays lavapipe), and the local list of scenarios left out (camera_smooth, camera_spin, render_stats, zone_gz15h_tornado, the pairs, render_smooth, render_terrain_seams, ui_quicksave all pass on dzn). docs/notes/linux.md, The GPU under WSL."
+
+[[ticket]]
+id = "H50b"
+title = "Report dzn's libd3d12 unload under WSL upstream (Mesa)"
+group = "harness"
+depends = ["H50"]
+note = "H50: dzn_instance_destroy closes libd3d12 (util_dl_close), which unloads libd3d12core while one of its threads still runs; a program that makes and ends an instance before its real one (SDL_GPU's driver probe) crashes about 1 in 3 starts with a SIGSEGV in no module. Our ~/mesa-dzn build drops that close (linux.md, The GPU under WSL). File a Mesa issue (or merge request: keep d3d12_mod open as dxcore already is) so the local change can go; the user's call, nothing here posts by itself."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"

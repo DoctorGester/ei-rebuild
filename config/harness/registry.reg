@@ -124,7 +124,6 @@ Windows Registry Editor Version 5.00
 [HKEY_CURRENT_USER\Software\Nival Interactive\EvilIslands\Path Settings]
 "Work path"="F:\\games\\EvilIslands\\"
 "Resources path"=".\\res\\"
-"CD-ROM Path"="F:\\games\\EvilIslands\\"
 "FIRSTSTART"=dword:00000000
 
 [HKEY_CURRENT_USER\Software\Nival Interactive\EvilIslands\Shadow Settings]
@@ -258,7 +257,6 @@ Windows Registry Editor Version 5.00
 "Master Server Name"="a3master.nival.com"
 
 [HKEY_CURRENT_USER\Software\Gipat.Ru\EI_Starter\EvilIslands\Path Settings]
-"CD-ROM PATH"="F:\\games\\Evil Islands (Rebirth)\\"
 "WORK PATH"="F:\\games\\Evil Islands (Rebirth)\\"
 "RESOURCES PATH"=".\\res\\"
 "FIRSTSTART"=dword:00000000
@@ -292,7 +290,6 @@ Windows Registry Editor Version 5.00
 "MP console"=dword:00000000
 "MQ client"=dword:00000001
 "MP Speed-control"=dword:00000001
-"CD-ROM PATH"=""
 "Run"="1.046"
 "Default Master Server"="a3master.nival.com"
 "Xoptions Active"=dword:00000001

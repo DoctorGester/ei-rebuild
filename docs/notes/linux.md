@@ -85,8 +85,8 @@ Linux workflow builds it. Scenarios run with run_all.py as on Windows (`python3 
 into them, but WSL reads /mnt slowly), and `EI_HARNESS_SETTINGS=<checkout>/config/harness` when the build folder is not
 two levels below the checkout. run_all's machine slots are the system's own (lock files in its temp folder, Linux's
 /tmp under WSL): games in WSL do not count against Windows' 16, so under WSL run_all allows 6 at once by default (WSL's
-memory is capped at 16 GB; `EI_HARNESS_SLOTS` overrides it), and a local Linux suite runs only while no Windows suite
-does (hold slots on the Windows side for a few WSL games beside Windows work). Under WSL keep the checkout and the build in WSL's home
+memory is capped at 16 GB; `EI_HARNESS_SLOTS` overrides it), and a local Linux suite on lavapipe runs only while no
+Windows suite does; on dzn run_all holds Windows' slots itself ("The GPU under WSL"). Under WSL keep the checkout and the build in WSL's home
 (gcc over /mnt runs at a quarter of the speed).
 On Linux run_all starts one Xvfb itself (a free display number from :99 down, a 3840x2160 screen like the goldens' Windows desktop, DISPLAY of every game
 pointed at it, WAYLAND_DISPLAY unset; harness.md) unless `EI_SHOW_WINDOWS=1` is set, so a plain run opens no window on the desktop under
@@ -106,20 +106,19 @@ lib/maths.h (float-maths.md, "Maths functions"). What still differs, and why:
   size.
 - Time limits under load: llvmpipe draws a 4K frame in 40 ms and more, so with 4 games at once camera_drag_rate (120 s
   limit, 113 s used) is cut at its limit and levers_key and ui_widescreen (Rebirth) pass only on their retry (60 s limits); alone, camera_drag_rate takes 86 s. The retry is run_all's own.
-- settings_save compared the settings file's `CD-ROM Path` with the run's install folder; the line comes from
-  config/harness/registry.reg (F:\games\EvilIslands\), the Windows install's own path by chance. The expected file
-  now names it.
 - The pair scenarios (net_pair_*; net_pair_master's peer lists the server one poll sooner): llvmpipe draws a frame
   step in about 140 ms (6 ms on Windows' GPU), so a pair's run passes its frame waits and its time limit (about 190 s
   against Windows' 30 to 50 s) and the turns fall differently. Not run again: they exceed the 60 s game limit there.
+  On dzn ("The GPU under WSL") they take 6 to 56 s and all pass, six the same as their goldens.
 - net_second_master (both installs): a TCP connect to a closed loopback port is refused at once on Linux; Windows tries
   again for about a second, so the scenario's "the box is up, Esc cancels it" finds the box already gone.
 - render_present_window: `windowsize` resizes asynchronously under X11 / WSLg (SDL_SetWindowSize), so the clicks after it
   aim at a size the window does not have yet.
 - Frames, not digests: render_smooth and ui_quicksave's saved picture against the stored one (94% of the pixels
   differ: the read-back's orientation or format), render_terrain_seams' level steps on the vanilla data (0.9% against
-  at most 0.3%).
-- Over 60 s on llvmpipe, left out: camera_smooth, camera_spin, render_stats, zone_gz15h_tornado (not run in H47d).
+  at most 0.3%). On dzn all three pass: these are lavapipe's own.
+- Over 60 s on llvmpipe, left out: camera_smooth, camera_spin, render_stats, zone_gz15h_tornado (not run in H47d). On
+  dzn they take 7 to 22 s and are the same as their goldens.
 - The time zone. A save's info.sav keeps mktime of the harness's fixed date (2001-03-26 12:00), so it followed the
   machine's zone: the build machine's Europe/Prague (summer time that day, UTC+2) gave the goldens' 985600800, GitHub's
   runner (UTC) 985608000 in every save (H51). The harness sets the process's zone to a fixed UTC+2 (`TZ=EET-2`) with
@@ -127,6 +126,72 @@ lib/maths.h (float-maths.md, "Maths functions"). What still differs, and why:
   LC_ALL=C.UTF-8`, the runner's settings.
 
 Harness runs open no sound device; `EI_HARNESS_SOUND=1` keeps the real one (sound.md, "How the sound keeps up").
+
+### The GPU under WSL
+
+WSL gives Linux the GPU only as Direct3D 12 (/dev/dxg, the libraries in /usr/lib/wsl/lib); Ubuntu's Mesa has no Vulkan
+driver for it, so the games draw on lavapipe (the CPU, about 12 cores a game). Mesa's Dozen (dzn: Vulkan on D3D12)
+puts them on the Windows GPU. It is built from Mesa's release into `~/mesa-dzn` in the WSL home, never system-wide
+(Mesa 26.2.6, about 10 minutes with 8 jobs; the build tree `~/mesa-dzn-src` can go afterwards):
+
+```sh
+sudo apt-get install python3-mako python3-yaml python3-venv bison flex glslang-tools libdrm-dev libx11-xcb-dev \
+    libxcb-dri3-dev libxcb-present-dev libxcb-shm0-dev libxcb-xfixes0-dev libxcb-randr0-dev libxcb-sync-dev \
+    libxcb-keysyms1-dev libxshmfence-dev libxxf86vm-dev libexpat1-dev libzstd-dev libelf-dev zlib1g-dev vulkan-tools
+mkdir -p ~/mesa-dzn-src && cd ~/mesa-dzn-src
+curl -sSfLO https://archive.mesa3d.org/mesa-26.2.6.tar.xz && tar xf mesa-26.2.6.tar.xz
+python3 -m venv --system-site-packages venv && venv/bin/pip install meson   # 24.04's meson is too old
+cd mesa-26.2.6
+# The one local change: dzn keeps libd3d12 loaded when its instance ends (below).
+python3 -c "p = 'src/microsoft/vulkan/dzn_device.c'; s = open(p).read(); open(p, 'w').write(s.replace(
+    '   if (instance->d3d12_mod)\n      util_dl_close(instance->d3d12_mod);\n', '   /* kept loaded */\n', 1))"
+../venv/bin/meson setup build --prefix=$HOME/mesa-dzn --libdir=lib -Dbuildtype=release \
+    -Dvulkan-drivers=microsoft-experimental -Dgallium-drivers= -Dplatforms=x11 -Dllvm=disabled -Dopengl=false \
+    -Dglx=disabled -Degl=disabled -Dgbm=disabled -Dgles1=disabled -Dgles2=disabled -Dmicrosoft-clc=disabled \
+    -Dvideo-codecs= -Dvulkan-layers= -Dtools= -Dbuild-tests=false
+ninja -C build -j 8 && ninja -C build install
+```
+
+The driver's manifest is `~/mesa-dzn/share/vulkan/icd.d/dzn_icd.x86_64.json`; `VK_DRIVER_FILES` set to it puts any
+program on dzn (`vulkaninfo --summary`: "Microsoft Direct3D12 (NVIDIA GeForce RTX 4070 Ti SUPER)", Vulkan 1.2, driver
+Dozen; every program prints "dzn is not a conformant Vulkan implementation, testing use only"). The gallium d3d12
+driver (OpenGL on D3D12) is not built: the game draws through SDL_GPU's Vulkan only.
+
+`run_all.py --dzn` (or `EI_VK_ICD=dzn`; `EI_VK_ICD=<manifest>` names any driver) points the games at it; lavapipe
+stays the default and CI's reference. Those games draw on Windows' GPU, so under WSL run_all then also holds as many
+of Windows' machine slots as it can run games at once (`hold_windows_slots()`: Windows' python.exe through WSL's
+interop runs run_all.py `--hold-slots N`, which takes N of the lock files in Windows' temp folder, the same as
+Windows' suites and work.py's scheduler, until the run ends), so Windows' and WSL's games together stay within
+Windows' 16. It waits for them while Windows suites hold them.
+
+Checked (2026-11-04, the machine of "The harness" above, RTX 4070 Ti SUPER):
+- The port checks under xvfb-run on dzn: port_render 21 checks, port_shaders 24 programs / 31 pipelines, port_gpu 132
+  checks, all passing. SDL_GPU lacks nothing it uses: 4 samples at most (8 asked gives 4, as on lavapipe), BC
+  textures, anisotropy, the three present modes (vsync, immediate, mailbox); no logicOp or wide lines, which SDL_GPU
+  does not use.
+- The image suite less LINUX_SKIP and the four slow ones (139 runs, as above): the same goldens on dzn as on lavapipe
+  (133 the same, 6 without a golden). With 4 jobs: lavapipe 427 s (camera_drag_rate cut at its 120 s limit, as
+  before) and 607 s beside a Windows suite; dzn 138 to 209 s. With 6 jobs dzn 91 to 112 s. Summed game time over the
+  139 runs: 2117 s on lavapipe, 810 s on dzn, the longest dzn run 10 s (camera_drag_rate). The Rebirth set less the
+  pairs (19 runs, 4 jobs): lavapipe 115 s, dzn 19 to 32 s, all the same.
+- What LINUX_SKIP and the slow list leave out, on dzn: camera_smooth, camera_spin, render_stats, zone_gz15h_tornado,
+  the seven pairs (net_pair_master's golden differs as on lavapipe), render_smooth, render_terrain_seams and
+  ui_quicksave pass; net_second_master and render_present_window fail as on lavapipe (not the driver: the list above).
+
+Two faults showed only on dzn, both fixed:
+- Fences. The renderer kept every submission's fence while the frame timer was off; dzn refused new ones after a few
+  seconds of several games (`vkCreateFence` VK_ERROR_OUT_OF_DEVICE_MEMORY, then an abort). Now each goes back once
+  its submission has finished (renderer.md, "Fences"; gpu_check checks it).
+- libd3d12 unloaded under its own thread. SDL_GPU's driver probe makes a Vulkan instance and ends it before the real
+  one; dzn's instance end closed libd3d12, which took libd3d12core with it while one of its threads still ran: a
+  SIGSEGV at an address in no module, in a thread other than the main one, before "gpu: vulkan device" (7 of 18 runs
+  of ui_widescreen, _dialogue and _hud; preloading libd3d12.so instead crashes every program at its start). The local
+  change in the build above keeps it loaded, as dzn already keeps libdxcore: 18 of 18 then.
+
+With both: the image suite twice and the Rebirth set and the left-out set once each, with 4 jobs, Windows' slots held,
+no failure and no retry but net_second_master and render_present_window (93 and 128 s for the image suite, 41 s for
+the Rebirth set). Stable enough to be the local default under WSL; it is not one yet (lavapipe needs no Mesa build and
+takes none of Windows' slots).
 
 ### Sound under WSLg
 

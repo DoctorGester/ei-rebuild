@@ -679,6 +679,28 @@ void CheckSwapchain() {
     SDL_DestroyWindow(window);
 }
 
+// Many submissions with the frame timer off: their fences go back once they have finished (they were all kept,
+// and Dozen on WSL refused new fences after some thousands).
+void CheckFencesReleased() {
+    g::Texture target = g::MakeTexture({4, 4, 1, 1, g::Format::Rgba8, g::kColourTarget | g::kSampled, "fences"});
+    for (int k = 0; k < 300; ++k) {
+        g::PassDesc p;
+        p.colour.texture = target;
+        p.colour.load = g::Load::Clear;
+        g::BeginPass(p);
+        g::EndPass();
+        g::Submit();
+    }
+    g::Ticket last = g::Download(target, 0, {0, 0, 1, 1});
+    const bool waited = g::Wait(last);
+    g::Submit();
+    const std::size_t held = g::SubmissionsHeld();
+    Check(waited && held <= 2, "finished submissions' fences released without the frame timer");
+    std::printf("gpu_check: %s: %zu of 302 submissions held after the last finished\n", g_driver.c_str(), held);
+    g::Release(last);
+    g::Release(target);
+}
+
 void CheckFrameTiming() {
     const int w = 512, h = 512;
     g::Texture target = g::MakeTexture({w, h, 1, 1, g::Format::Rgba8, g::kColourTarget | g::kSampled, "timed"});
@@ -738,6 +760,7 @@ bool CheckDriver(const char* driver) {
     CheckUploadRing();
     CheckCaches();
     CheckSwapchain();
+    CheckFencesReleased();
     CheckFrameTiming();
     CheckMisuse();
     Check(g::Problems() - problems == g_misuses && ei::g_logLines - logged == g_misuses,
