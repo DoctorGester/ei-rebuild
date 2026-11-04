@@ -22,7 +22,6 @@ namespace {
 // Ticks left before the weather may change again.
 int g_weatherDelay = /*007C2DFC*/ {};
 
-// Constants read from the exe (rule 9).
 constexpr float kMapScale = 512.0f * 0x1p-32f;        // a random word to map coordinates (0..512)
 constexpr float kOffsetScale = 140.0f * 0x1p-32f;     // a random word to 0..140
 constexpr float kOffsetCentre = 70.0f;

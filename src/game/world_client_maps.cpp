@@ -183,8 +183,7 @@ T* NewCounted() {
     return object;
 }
 
-// The grid set to 4 x 4 cells, reallocated unless its storage already has that size (the second
-// resize inlined).
+// The grid set to 4 x 4 cells, reallocated unless its storage already has that size.
 void GridToFour(SectorGrid& grid) {
     grid.Resize(1, 1);
     grid.width = 4;
@@ -619,7 +618,7 @@ void PlatformSet::AddBox(int newId, const FootprintPart* item, const Vector3& po
         if (!AddFace(corners[i + 1], corners[i], corners[i + 2], normals[i], &record)) continue;
         record->id = newId;
         record->centre = TransformColumnNormal(m, pivot + offset) + position;
-        record->radius = item->bounds.radius;   // a dword move
+        record->radius = item->bounds.radius;
     }
 }
 
@@ -723,7 +722,6 @@ void WorldClient::Create() {
         texturePath = path;
     }
     LoadLights(worlddata::LightsTableText());
-    lightingMark = 0;
     sounds = NewCounted<SoundManager>();
 
     texts = new TextManager();
@@ -929,7 +927,6 @@ int WorldClient::LoadZone(ByteStream* block) {
         map = MapsFolder() + map;
     }
     currentTerrain->ClearMap();
-    // The texture manager is fetched for both calls; the first does not use it.
     ForgetComposedTextures();
     GetTextureManager()->FreeCache();
     ShowLoadingMovie(kProgressMapFreed);

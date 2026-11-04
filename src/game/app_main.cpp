@@ -118,9 +118,8 @@ void LoadSystemMessages(std::vector<std::string>& messages) {
 
 std::string Tail(const std::string& argument, int prefixLength) { return str::Right(argument, static_cast<int>(argument.size()) - prefixLength); }
 
-// The command line: "-moviepath_<folder>" (the client's WorldClientFlag::MoviePathOption off), "-nocam" (NoCamOption
-// off; only while not RecordingCamera), a ".cam", ".scr", ".mob" or ".mpr" file. (The
-// original's "-benchmark_<frames>" set statistics nothing reads; it is ignored.)
+// The command line: "-moviepath_<folder>", a ".cam" file (only while not RecordingCamera), a ".scr", ".mob" or ".mpr"
+// file. ("-nocam" and the original's "-benchmark_<frames>" set nothing anything reads; they are ignored.)
 void ReadCommandLine(const char* commandLine) {
     std::vector<std::string> arguments = text::Split(commandLine, ' ');
     g_cameraFile = ".\\camera.cam";
@@ -130,7 +129,6 @@ void ReadCommandLine(const char* commandLine) {
     WorldClient* client = &g_clientWorld;
     for (std::size_t i = 0; i < arguments.size(); ++i) {
         if (str::Find(arguments[i], "-moviepath_") == 0) {
-            client->flags &= ~WorldClientFlag::MoviePathOption;
             {
                 std::string folder = Tail(arguments[i], 11);
                 g_movieFolder = folder;
@@ -138,16 +136,9 @@ void ReadCommandLine(const char* commandLine) {
             if (g_movieFolder.back() != '\\') g_movieFolder += '\\';
             continue;
         }
-        if (!(client->flags & WorldClientFlag::RecordingCamera)) {
-            if (text::CompareIgnoringCase(arguments[i],
-                                "-nocam") == 0) {
-                client->flags &= ~WorldClientFlag::NoCamOption;
-                continue;
-            }
-            if (!(client->flags & WorldClientFlag::RecordingCamera) && str::Find(arguments[i], ".cam") != -1) {
-                g_cameraFile = arguments[i].c_str();
-                continue;
-            }
+        if (!(client->flags & WorldClientFlag::RecordingCamera) && str::Find(arguments[i], ".cam") != -1) {
+            g_cameraFile = arguments[i].c_str();
+            continue;
         }
         if (str::Find(arguments[i], ".scr") != -1) {
             g_commandLineScript = arguments[i].c_str();

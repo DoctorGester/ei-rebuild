@@ -23,13 +23,9 @@
 #include <memory>
 #include <vector>
 
-template <class T>
-void DiffObjectSets(std::vector<T*>* sent, std::vector<T*>* current, std::vector<T*>* added, std::vector<T*>* gone,
-                    std::vector<T*>* same);
-
 namespace {
 
-// Distance limits, read from the exe's memory (rule 9).
+// Distance limits.
 constexpr float kViewRange = 100.0f;        // objects seen around the camera
 constexpr float kHearingScale = 2.0f;     // unit perception scale
 constexpr float kHearingMargin = 5.0f;    // added to it
@@ -45,13 +41,6 @@ constexpr int kModeGone = 4;
 constexpr int kKindSinglePlayer = 1;         // WorldServer::sessionKind
 constexpr int kKindNoRangeTest = 3;
 
-// Compares the ids in `known` with the objects in `current`; fills `added`, `kept` and `removed`.
-template <class T>
-void DiffSets(std::vector<T*>* known, std::vector<T*>* current, std::vector<T*>* added, std::vector<T*>* kept,
-              std::vector<T*>* removed) {
-    ::DiffObjectSets(known, current, added, kept, removed);
-}
-
 // Whether `point` lies outside the camera's view range around the player's last position, in the ground plane; NaN
 // counts as inside.
 bool OutOfView(const Vector3& point, const PlayerServer* state) {
@@ -60,40 +49,40 @@ bool OutOfView(const Vector3& point, const PlayerServer* state) {
 
 // The map objects a player should know: around its camera (or all of them), its own units, the
 // objects named in scripts, and every unit within hearing range of one of its units. `out` is the
-// write cursor into the collected array.
-MapObject** CollectMapObjects(WorldServer* world, Player* player, PlayerServer* state, MapObject** out) {
+// objects are appended to `out`.
+void CollectMapObjects(WorldServer* world, Player* player, PlayerServer* state, std::vector<MapObject*>& out) {
     if (world->sessionKind == kKindSinglePlayer && options::g_options.drawVisibleOnly == 0) {
         // Every map object near the camera, and the player's units anywhere; nothing else.
         for (auto node = world->mapObjects.map.begin(); node != world->mapObjects.map.end() && node->second; ++node) {
             MapObject* object = node->second;
             if (object->MapType() == kTypeNoSync) continue;
             if (!OutOfView(object->localPosition, state)) {
-                *out++ = object;
+                out.push_back(object);
                 continue;
             }
-            if (Unit* unit = UnitOrNull(object); unit && unit->player == player) *out++ = object;
+            if (Unit* unit = UnitOrNull(object); unit && unit->player == player) out.push_back(object);
         }
-        return out;
+        return;
     }
 
     MapObjectIdMap& source = world->sessionKind == kKindSinglePlayer ? world->otherMapObjects : world->mapObjects;
     if (world->sessionKind == kKindNoRangeTest) {
         for (auto node = source.map.begin(); node != source.map.end() && node->second; ++node) {
             MapObject* object = node->second;
-            if (object->MapType() != kTypeNoSync && !(object->flags & MapObjectFlag::Invisible)) *out++ = object;
+            if (object->MapType() != kTypeNoSync && !(object->flags & MapObjectFlag::Invisible)) out.push_back(object);
         }
     } else {
         for (auto node = source.map.begin(); node != source.map.end() && node->second; ++node) {
             MapObject* object = node->second;
-            if (object->MapType() != kTypeNoSync && !OutOfView(object->localPosition, state)) *out++ = object;
+            if (object->MapType() != kTypeNoSync && !OutOfView(object->localPosition, state)) out.push_back(object);
         }
     }
-    if (world->sessionKind != kKindSinglePlayer) return out;
+    if (world->sessionKind != kKindSinglePlayer) return;
 
     // The units always sent.
-    for (const ScriptObjectRef& unit : state->partyUnits) *out++ = unit.object;
+    for (const ScriptObjectRef& unit : state->partyUnits) out.push_back(unit.object);
     for (auto node = world->namedObjects.map.begin(); node != world->namedObjects.map.end() && node->second; ++node)
-        *out++ = node->second;
+        out.push_back(node->second);
 
     // The units each of the player's units can hear: max(perception * factor, minimum) * scale +
     // margin around it (the server half's movement factor 3 and statistics B0 values 0 and 2).
@@ -105,23 +94,21 @@ MapObject** CollectMapObjects(WorldServer* world, Player* player, PlayerServer* 
         float minimum = controller->stats.perception[2].current;
         float range = MaxKeepB(perception, minimum);   // branch-free select
         float radius = range * kHearingScale + kHearingMargin;
-        for (Unit* heard : world->aiMap.sectorMap.FindUnitsInRadius(unit->localPosition, radius)) *out++ = heard;
+        for (Unit* heard : world->aiMap.sectorMap.FindUnitsInRadius(unit->localPosition, radius)) out.push_back(heard);
     }
-    return out;
 }
 
 // The timed objects (spells, effects) a player should know: those whose reach (a virtual, squared) covers its
 // camera.
-Effect** CollectTimedObjects(WorldServer* world, PlayerServer* state, Effect** out) {
+void CollectTimedObjects(WorldServer* world, PlayerServer* state, std::vector<Effect*>& out) {
     for (auto node = world->timedObjects.map.begin(); node != world->timedObjects.map.end() && node->second; ++node) {
         Effect* timed = node->second;
         const Vector3* position = timed->Position(&state->partyUnits);
         float distance = DistanceSquaredXY(*position, state->lastPosition);
         float reach = timed->Radius();
         float reach2 = timed->Radius() * reach;
-        if (reach2 > distance) *out++ = timed;
+        if (reach2 > distance) out.push_back(timed);
     }
-    return out;
 }
 
 } // namespace
@@ -154,30 +141,26 @@ int WorldServer::SyncPlayer(Player* player) {
         }
         if (player->dirty & PlayerDirty::Countdowns) state->SendState73(&countdowns);
 
-        // Map objects: room for seven entries per world object.
+        // Map objects.
         std::vector<MapObject*> collected;
         std::vector<MapObject*> added;
-        std::vector<MapObject*> kept;
-        std::vector<MapObject*> removed;
-        collected.resize(static_cast<int>(objects.map.size()) * 7);
-        MapObject** end = CollectMapObjects(this, player, state, collected.data());
-        collected.resize(static_cast<int>(end - collected.data()));
-        DiffSets(&state->sentObjects, &collected, &added, &kept, &removed);
-        state->SendObjectsRemoved(&kept);
+        std::vector<MapObject*> gone;
+        std::vector<MapObject*> same;
+        CollectMapObjects(this, player, state, collected);
+        DiffObjectSets(&state->sentObjects, &collected, &added, &gone, &same);
+        state->SendObjectsRemoved(&gone);
         state->SendObjectsAdded(&added);
-        state->SendObjectsChanged(&removed);
+        state->SendObjectsChanged(&same);
 
         std::vector<Effect*> timed;
         std::vector<Effect*> timedAdded;
-        std::vector<Effect*> timedKept;
-        std::vector<Effect*> timedRemoved;
-        timed.resize(static_cast<int>(timedObjects.map.size()));
-        Effect** timedEnd = CollectTimedObjects(this, state, timed.data());
-        timed.resize(static_cast<int>(timedEnd - timed.data()));
-        DiffSets(&state->sentTimed, &timed, &timedAdded, &timedKept, &timedRemoved);
-        state->SendTimedRemoved(&timedKept);
+        std::vector<Effect*> timedGone;
+        std::vector<Effect*> timedSame;
+        CollectTimedObjects(this, state, timed);
+        DiffObjectSets(&state->sentTimed, &timed, &timedAdded, &timedGone, &timedSame);
+        state->SendTimedRemoved(&timedGone);
         state->SendTimedAdded(&timedAdded);
-        state->SendTimedChanged(&timedRemoved);
+        state->SendTimedChanged(&timedSame);
 
         if (sessionKind == kKindSinglePlayer && IsMultiplayerClient()) {
             int& timer = state->refreshTimer;

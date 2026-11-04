@@ -164,7 +164,6 @@ int WorldClient::UpdateLighting() {
             frameAmbient.g = ambient[0].g;
             frameAmbient.b = ambient[0].b;
         }
-        skyAmbient = frameAmbient;
         Light* light = display->sun;
         light->color[0] = sun.r;
         light->color[1] = sun.g;
@@ -189,7 +188,6 @@ int WorldClient::UpdateLighting() {
     const float hour = now;
     const int index = HourIndex(now);
     pipeline->SetDepthRange(FogStart(hour), options::g_options.farClipDistance);
-    lightingMark = 0x80;
     if (g_lastLitHour > hour) g_lastLitHour = -1.0f;
 
     const float elevation = SunElevation(hour) * kRadiansPerDegree;
@@ -218,7 +216,6 @@ int WorldClient::UpdateLighting() {
         frameAmbient.g = ambientColour.g;
         frameAmbient.b = ambientColour.b;
     }
-    skyAmbient = frameAmbient;
     Light* light = display->sun;
     light->color[0] = sun.r;
     light->color[1] = sun.g;
@@ -228,7 +225,7 @@ int WorldClient::UpdateLighting() {
     const LightColour skyColour = Lerp(sky[index], sky[next], fraction);
     display->SetFogColour(skyColour.r, skyColour.g, skyColour.b);
     if (skyDome) {
-        const SkyColour ambientColour = {skyAmbient.r, skyAmbient.g, skyAmbient.b, skyAmbient.a};
+        const SkyColour ambientColour = {frameAmbient.r, frameAmbient.g, frameAmbient.b, frameAmbient.a};
         const SkyColour sunColour = {frameSun.r, frameSun.g, frameSun.b, frameSun.a};
         skyDome->ApplyLight(direction, ambientColour, sunColour);
     }

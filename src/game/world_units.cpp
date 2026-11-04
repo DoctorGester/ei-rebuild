@@ -32,13 +32,14 @@
 #include "world_data.h"
 #include "world_effect.h"
 
+#include "lib/bytes.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
-#include <bit>
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -51,6 +52,7 @@ namespace {
 
 using mapspec::ObjectSpec;
 using mapspec::Spec;
+using mapspec::SpecKind;
 using mapspec::UnitSpec;
 
 constexpr int kKindSinglePlayer = 1;
@@ -122,24 +124,17 @@ Item* MakeItem(WorldServer* world, Item* itemRecord) {
     return item;
 }
 
-constexpr int kQuickEffectType = 9;
 constexpr std::uint32_t kQuickEffectFlags = 0x3010;
 constexpr std::uint32_t kFlagsNewEffect = 0x180000;
 
 // The timed objects' types (world_effect.h).
 constexpr int kTimedAmbientSound = 0x49, kTimedSound = 0x48, kTimedLight = 0x4B, kTimedParticle = 0x4A;
-constexpr std::uint32_t kGrey = 0x3F4CCCCD, kOne = 0x3F800000;
 constexpr std::uint32_t kTorchLightKind = static_cast<std::uint32_t>(ParticleType::CampFire);   // the torch's smoke particles
-
-
-// Copies n bytes.
-void Copy(void* to, const void* from, std::size_t n) { std::memcpy(to, from, n); }
 
 } // namespace
 
 void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* records, const Vector3& position, Quaternion rotation,
                                std::vector<UnitPlacement>* placements) {
-    // Destroyed after the two strings (declared after it); its destructor is inlined.
     UnitSpec spec;
     UnitSpec* message = &spec;
     std::string script;
@@ -161,8 +156,8 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
         message->behaviour[0].type = 4;
         message->behaviour[0].enabled = 1;
         message->behaviour[0].flags = 0;
-        message->kind = 5;
-        std::memcpy(&message->scale, &record->scaleX, 12);
+        message->kind = SpecKind::Unit;
+        message->scale = {record->scaleX, record->scaleY, record->height};
         message->visible = 1;
         message->side = 0;
         message->parentIname = record->texts[3];
@@ -187,8 +182,8 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
             }
         }
         if (placement) {
-            std::memcpy(&message->position, placement->position, 12);
-            std::memcpy(&message->rotation, placement->rotation, 16);
+            lib::LoadBytes(message->position, placement->position);
+            lib::LoadBytes(message->rotation, placement->rotation);
         } else {
             PlaceInLine(message, position, rotation, i);
         }
@@ -272,7 +267,7 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
 void WorldServer::UseQuickItem(Unit* unit) {
     // An object record (a class of its own with the same virtuals).
     ObjectSpec message;
-    message.kind = kQuickEffectType;
+    message.kind = SpecKind::QuickEffect;
     message.texture = worlddata::QuickEffectPrototype();
     message.id = -1;
     message.parentIname = worlddata::QuickEffectModel();
@@ -286,9 +281,8 @@ void WorldServer::UseQuickItem(Unit* unit) {
 }
 
 int WorldServer::CreateObject(mapspec::Spec* message) {
-    // Every kind starts with the base record (Spec); kinds 1, 5-9 are object records (ObjectSpec), 5 a unit
-    // record, 6 a flame, 7 a magic trap, 8 a lever; 2 a light, 3 a sound, 4 a particle source. `spec` is set
-    // by the object kinds' cases.
+    // Every kind starts with the base record (Spec); the object, unit, flame, trap, lever and quick effect kinds are
+    // object records (ObjectSpec). `spec` is set by the object kinds' cases.
     ObjectSpec* spec = nullptr;
     Spec& base = *message;
     // The object of the spec's class (parentId), as the class the kind makes.
@@ -310,7 +304,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
     };
     auto race = [&spec](MapObject* object) {
         object->AddRef();
-        const std::string_view prototype = spec->kind == 5 ? std::string_view(static_cast<UnitSpec*>(spec)->prototype)
+        const std::string_view prototype = spec->kind == SpecKind::Unit ? std::string_view(static_cast<UnitSpec*>(spec)->prototype)
                                                            : std::string_view(spec->primaryTexture);
         object->TakePrototype(prototype);
         object->WriteFullState();
@@ -322,18 +316,11 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         object->localPosition = spec->position;
         object->localRotation = spec->rotation;
     };
-    auto timed = [this](Effect* object) {
-        object->startTick = tick;
-        object->AddRef();
-        object->MarkChanged();
-        timedObjects.Set(static_cast<unsigned>(object->id), object);
-        return object->id;
-    };
     BaseManager* timedManager = timedObjectManager;
     MapObjectManager* newObjectManager = GetMapObjectManager();
 
     switch (base.kind) {
-    case 6: {   // a torch (flame) with its state object (a campfire when it stands on the ground)
+    case SpecKind::Flame: {   // a torch (flame) with its state object (a campfire when it stands on the ground)
         auto* flame = static_cast<mapspec::FlameSpec*>(message);
         spec = flame;
         TorchObject* object = created(std::type_identity<TorchObject>{});
@@ -359,8 +346,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         companionTexts(companion);
         race(object);
         torch->SetLightSlot(kTorchLightKind, &flame->offset.x, flame->volume);
-        const float colour[4] = {std::bit_cast<float>(kGrey), std::bit_cast<float>(kGrey), std::bit_cast<float>(kGrey),
-                                 std::bit_cast<float>(kOne)};
+        const float colour[4] = {0.8f, 0.8f, 0.8f, 1.0f};
         float radius = flame->volume * worlddata::kTorchLightScale;
         torch->SetFlameSlot(&flame->offset.x, radius, colour);
         torch->SetNameSlot(flame->sound.c_str());
@@ -371,18 +357,10 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         newObjectManager->GiveDefaults(object);
         if (Unit* unit = UnitOrNull(object)) unit->ServerController()->ResyncWithUnit();
         object->SetUpAnimatedFigure(spec->texture);
-        objectId = object->id;
-        objects.Set(static_cast<unsigned>(objectId), object);
-        mapObjects.Set(static_cast<unsigned>(object->id), object);
-        if (object->GetClassId() != ClassId::Unit) otherMapObjects.Set(static_cast<unsigned>(object->id), object);
-        object->updateCountdown = WorldServer::UpdateCountdownFor(object);
-        updateMap.Set(static_cast<unsigned>(object->id), object);
-        aiMap.sectorMap.Add(object);
-        int result = object->id;
-        if (object->flags & MapObjectFlag::Changed) object->WriteChangedState();
-        return result;
+        FileMapObject(object, true, true);
+        return object->id;
     }
-    case 7: {   // a magic trap: updated every tick (no texts, not in the sector map)
+    case SpecKind::Trap: {   // a magic trap: updated every tick (no texts, not in the sector map)
         auto* trap = static_cast<mapspec::TrapSpec*>(message);
         spec = trap;
         MagicTrap* object = created(std::type_identity<MagicTrap>{});
@@ -395,27 +373,21 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         object->WriteFullState();
         object->MarkChanged(2);
         object->flags |= MapObjectFlag::Hidden;
-        objects.Set(static_cast<unsigned>(object->id), object);
-        mapObjects.Set(static_cast<unsigned>(object->id), object);
-        if (object->GetClassId() != ClassId::Unit) otherMapObjects.Set(static_cast<unsigned>(object->id), object);
-        object->updateCountdown = WorldServer::UpdateCountdownFor(object);
-        updateMap.Set(static_cast<unsigned>(object->id), object);
-        int result = object->id;
-        if (object->flags & MapObjectFlag::Changed) object->WriteChangedState();
+        FileMapObject(object, true, false);
         object->SetUp(&trap->trap);
-        return result;
+        return object->id;
     }
-    case 1:
-    case 5:
-    case 8:
-    case 9: {   // map objects, units (5) and levers (8)
+    case SpecKind::Object:
+    case SpecKind::Unit:
+    case SpecKind::Lever:
+    case SpecKind::QuickEffect: {
         spec = static_cast<ObjectSpec*>(message);
         Unit* unit = nullptr;
         Lever* lever = nullptr;
         MapObject* object;
-        if (base.kind == 5)
+        if (base.kind == SpecKind::Unit)
             object = unit = created(std::type_identity<Unit>{});
-        else if (base.kind == 8)
+        else if (base.kind == SpecKind::Lever)
             object = lever = created(std::type_identity<Lever>{});
         else
             object = created(std::type_identity<MapObject>{});
@@ -434,8 +406,8 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         companionTexts(companion);
         race(object);
         object->ScaleEffectChanged(false);
-        int baseKind = base.kind;
-        if (baseKind == 5) {
+        const SpecKind baseKind = base.kind;
+        if (baseKind == SpecKind::Unit) {
             auto* unitSpec = static_cast<UnitSpec*>(message);
             unit->SetPlayer(nullptr);
             unit->SetSide(spec->side);
@@ -455,11 +427,11 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
             // No prototype record: model 0 (Rebirth's FixAddMapObject; the original read through the null record).
             const unsigned index = prototype ? static_cast<unsigned>(prototype->modelIndex) : 0;
             auto* model = unitdb::ModelRecord(index);
-            std::memcpy(unit->actionSpeeds, model->actionSpeeds, 24);
+            std::copy_n(model->actionSpeeds, 6, unit->actionSpeeds);
             object->MarkChanged(5);
             object->MarkChanged(6);
             object->MarkChanged(0xB);
-        } else if (baseKind == 8) {
+        } else if (baseKind == SpecKind::Lever) {
             lever->SetUp(&static_cast<mapspec::LeverSpec*>(message)->lever);
             object->MarkChanged(5);
         } else {
@@ -474,31 +446,23 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         object->SetUpAnimatedFigure(spec->texture);
         object->UpdateSizeClasses();
         if (Unit* asUnit = UnitOrNull(object)) asUnit->ServerController()->ResyncWithUnit();
-        objects.Set(static_cast<unsigned>(object->id), object);
-        mapObjects.Set(static_cast<unsigned>(object->id), object);
-        if (object->GetClassId() != ClassId::Unit) otherMapObjects.Set(static_cast<unsigned>(object->id), object);
-        aiMap.sectorMap.Add(object);
-        int result = object->id;
-        if (object->flags & MapObjectFlag::Changed) object->WriteChangedState();
-        if (baseKind >= 8 && baseKind <= 9) {
-            object->updateCountdown = WorldServer::UpdateCountdownFor(object);
-            updateMap.Set(static_cast<unsigned>(object->id), object);
-        }
+        FileMapObject(object, baseKind == SpecKind::Lever || baseKind == SpecKind::QuickEffect, true);
         if (!object->name2.empty()) namedObjects.Set(static_cast<unsigned>(object->id), object);
-        return result;
+        return object->id;
     }
-    case 3: {   // a sound
+    case SpecKind::Sound: {
         if (!loadedFresh) return -1;
         auto* sound = static_cast<mapspec::SoundSpec*>(message);
         if (sound->ambient) {
             auto* ambient = timedManager->CreateObjectAs<EffectAmbientSound>(kTimedAmbientSound, base.id);
             ambient->names = sound->sounds;
-            Copy(&ambient->localPosition, &base.position, 12);
+            ambient->localPosition = base.position;
             ambient->volume = static_cast<float>(sound->volume);
             ambient->radius = static_cast<float>(sound->radius);
             ambient->minInterval = sound->minInterval;
             ambient->maxInterval = sound->maxInterval;
-            return timed(ambient);
+            AddTimedObject(ambient);
+            return ambient->id;
         }
         auto* plain = timedManager->CreateObjectAs<EffectSound>(kTimedSound, base.id);
         if (sound->sounds.empty()) {
@@ -506,28 +470,31 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         } else {
             str::CopyInto(plain->name, sound->sounds[0]);
         }
-        Copy(&plain->localPosition, &base.position, 12);
+        plain->localPosition = base.position;
         plain->volume = static_cast<float>(sound->volume);
         plain->radius = static_cast<float>(sound->radius);
-        return timed(plain);
+        AddTimedObject(plain);
+        return plain->id;
     }
-    case 2: {   // a light
+    case SpecKind::Light: {
         if (!loadedFresh) return -1;
         auto* lightSpec = static_cast<mapspec::LightSpec*>(message);
         auto* light = timedManager->CreateObjectAs<EffectPointLight>(kTimedLight, base.id);
-        Copy(&light->localPosition, &base.position, 12);
-        Copy(&light->range, &lightSpec->radius, 4);
-        Copy(&light->color, &lightSpec->colour, 12);
-        return timed(light);
+        light->localPosition = base.position;
+        light->range = lightSpec->radius;
+        light->color = lightSpec->colour;
+        AddTimedObject(light);
+        return light->id;
     }
-    case 4: {   // a particle source
+    case SpecKind::Particle: {
         if (!loadedFresh) return -1;
         auto* particleSpec = static_cast<mapspec::ParticleSpec*>(message);
         auto* particle = timedManager->CreateObjectAs<EffectParticle>(kTimedParticle, base.id);
-        Copy(&particle->localPosition, &base.position, 12);
-        Copy(&particle->type, &particleSpec->type, 4);
-        Copy(&particle->size, &particleSpec->scale, 4);
-        return timed(particle);
+        particle->localPosition = base.position;
+        particle->type = particleSpec->type;
+        particle->size = particleSpec->scale;
+        AddTimedObject(particle);
+        return particle->id;
     }
     default:
         return -1;

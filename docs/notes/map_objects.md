@@ -106,4 +106,4 @@ records with a script name; units, levers, traps, torches answer 1; SendFreshObj
 of the map-object maps), 39 `IsDirectUseBlocked` (levers; a plain click uses an object only when 38 IsUsable is set and
 39 is 0), 43 `KeepsMapFlag` (levers); MapObjectCompanion 14 `Unused14`; UnitController 15 / 17 `Unused*`, 36
 `HasOtherArmour` (server: armour slots 3..6, client: any weapon model; they differ); World 37 / 38 `ClientManager194` /
-`ClientManager198` (not identified), 39 `Unused39`; Object3DSpecific 25 `Unused25`.
+`ClientManager198` (not identified); Object3DSpecific 25 `Unused25`.

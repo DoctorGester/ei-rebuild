@@ -37,7 +37,6 @@ Script* CommandScript() { return g_serverWorld.SecondScript(); }
 
 
 const char kConstructionVariable[] = "constr.current";
-// Every window closes before the next input message or by the next pass (CloseAllPending, Activate, Draw).
 const char* DefaultMusic() { return options::kDefaultStreamingSound; }
 
 } // namespace
@@ -73,8 +72,6 @@ void PlayerZeroVariables(const char* prefix, NamedFloatTable* out) {
 void StoreStartFolder() {
     g_startFolder = platform::CurrentFolder() + '\\';
 }
-
-// ---- A-W13: the rest of the glue -----------------------------------------------------------------
 
 void GameSetConstructionVariable(std::uint32_t value) {
     Player* player = g_serverWorld.GetPlayer(0);

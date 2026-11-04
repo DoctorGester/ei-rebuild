@@ -100,6 +100,10 @@ struct Behaviour {
     std::uint32_t alarm = 0;     // the reaction modes 0..3 (4 while reading: unset)
 };
 
+// Which record a Spec is. QuickEffect is an object record no zone file holds: the effect object a quick item makes
+// (WorldServer::UseQuickItem).
+enum class SpecKind : std::int32_t { Base, Object, Light, Sound, Particle, Unit, Flame, Trap, Lever, QuickEffect };
+
 // The base record. The records are read chunk by chunk (no record is a block of file bytes).
 class Spec : public Chunk {
 public:
@@ -114,8 +118,7 @@ public:
     std::string name;
     std::string comment;
     std::int32_t spareId;        // (-1) only set and copied (ObjectSpec::Assign)
-    std::int32_t kind;           // which record this is: 0 the base, 1 an object, 2 a light, 3 a sound,
-                                 // 4 a particle source, 5 a unit, 6 a flame, 7 a magic trap, 8 a lever
+    SpecKind kind;
 };
 
 // An object record (chunk B001).
@@ -197,7 +200,7 @@ protected:
 // A particle source (chunk DD01).
 class ParticleSpec : public EffectSpec {
 public:
-    ParticleSpec();                 // Kind 4, no type, scale 1.
+    ParticleSpec();                 // Kind Particle, no type, scale 1.
     ~ParticleSpec() override;
 
     void OnChunk() override;
@@ -209,7 +212,7 @@ public:
 // A light (chunk AA01).
 class LightSpec : public EffectSpec {
 public:
-    LightSpec();                    // Kind 2, white, shadows, radius 10.
+    LightSpec();                    // Kind Light, white, shadows, radius 10.
     ~LightSpec() override;
 
     void OnChunk() override;
@@ -222,7 +225,7 @@ public:
 // A sound (chunk CC01).
 class SoundSpec : public EffectSpec {
 public:
-    SoundSpec();                    // Kind 3, no sounds, volume 10, radius 15, pauses 1500-3000.
+    SoundSpec();                    // Kind Sound, no sounds, volume 10, radius 15, pauses 1500-3000.
     ~SoundSpec() override;
 
     void OnChunk() override;

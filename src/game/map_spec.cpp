@@ -42,7 +42,7 @@ Spec::Spec() : Chunk(nullptr) {
     spareId = -1;
     position = {0.0f, 0.0f, 0.0f};
     rotation = {1.0f, 0.0f, 0.0f, 0.0f};
-    kind = 0;
+    kind = SpecKind::Base;
     name = none;
     comment = none;
 }
@@ -51,7 +51,7 @@ Spec::~Spec() = default;
 
 ObjectSpec::ObjectSpec() {
     std::string none("none");
-    kind = 1;
+    kind = SpecKind::Object;
     parentId = 0;
     model = game::kEmptyText;
     texture = none;
@@ -97,7 +97,7 @@ void ObjectSpec::OnChunk() {
 
 FlameSpec::FlameSpec() {
     offset = {0.0f, 0.0f, 0.0f};
-    kind = 6;
+    kind = SpecKind::Flame;
     volume = 0.7f;
     sound = "nature\\fire\\small.wav";
 }
@@ -119,7 +119,7 @@ void FlameSpec::OnChunk() {
 TrapSpec::TrapSpec() {
     trap.sides = ~0u;
     trap.period = 15;
-    kind = 7;
+    kind = SpecKind::Trap;
 }
 
 TrapSpec::~TrapSpec() = default;
@@ -162,7 +162,7 @@ LeverSpec::LeverSpec() {
     lever.directUseBlocked = 0;
     lever.keepsMapFlag = 0;
     lever.cycling = 0;
-    kind = 8;
+    kind = SpecKind::Lever;
 }
 
 LeverSpec::~LeverSpec() = default;
@@ -202,7 +202,7 @@ ZoneDiplomacy::ZoneDiplomacy() {
 
 // --- Effect ------------------------------------------------------------------------------------------
 
-// The zone file's effect records: particle sources (kind 4), lights (kind 2) and sounds (kind 3) on their base
+// The zone file's effect records: particle sources, lights and sounds on their base
 // (map_spec.h). They keep the world object they made and its effect, are kept above the terrain when moved,
 // and save as chunks DD01 / AA01 / CC01. See docs/notes/objects.md, "Zone files and unit records".
 
@@ -219,7 +219,7 @@ LightSpec::~LightSpec() = default;
 
 ParticleSpec::ParticleSpec() {
     type = 0;
-    kind = 4;
+    kind = SpecKind::Particle;
     scale = 1.0f;
 }
 
@@ -239,7 +239,7 @@ void ParticleSpec::OnChunk() {
 LightSpec::LightSpec() {
     colour = {1.0f, 1.0f, 1.0f};
     shadows = 1;
-    kind = 2;
+    kind = SpecKind::Light;
     radius = 10.0f;
 }
 
@@ -258,7 +258,7 @@ void LightSpec::OnChunk() {
 }
 
 SoundSpec::SoundSpec() {
-    kind = 3;
+    kind = SpecKind::Sound;
     volume = 10;
     radius = 15;
     minInterval = 1500;

@@ -28,7 +28,6 @@
 
 namespace {
 
-// Values read from the exe's memory (rule 9).
 constexpr float kFacingOffset = /*007AFED8*/ 1.5707964f;   // pi / 2
 
 constexpr int kKindSinglePlayer = 1;
@@ -118,7 +117,6 @@ void WorldServer::RestorePlayerItems(Player* player) {
             taken.clear();
         }
     }
-    // The list's inline destructor.
     taken.clear();
 }
 
@@ -184,7 +182,6 @@ void WorldServer::Redeploy(Player* player, std::vector<UnitPlacement>* placement
 // ---- CopyItem ---------------------------------------------------------------------------------
 
 Item* WorldServer::CopyItem(Item* source) {
-    // The game also builds and frees two empty CPtrLists here, unused.
     std::uint32_t packed = source->prototypeId;
     ItemKind itemKind = source->Kind();
     ItemManager* factory = ItemFactory();
@@ -200,7 +197,6 @@ Item* WorldServer::CopyItem(Item* source) {
 
 // ---- Items and spells by name -------------------------------------------------------------------
 
-// As in CopyItem, the game also builds and frees two empty CPtrLists around the call.
 Item* WorldServer::CreateItemNamed(const char* name) { return g_serverWorld.itemManager->CreateItem(name); }
 
 Item* WorldServer::CreateSpellNamed(const char* name) {

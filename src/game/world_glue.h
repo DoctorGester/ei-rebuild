@@ -49,8 +49,6 @@ void GameSetConstructionVariable(std::uint32_t value);
 float GameServerTimeOfDay();
 // The players' times move on by `offset` (WorldServer::UpdatePlayerTimes) unless it is negative or a NaN.
 void GamePassTime(float offset);
-// The memory stream of the local server's pending messages (the client's state block hands it over).
-class MemoryStream;
 // The server unit with id `id` moves to height `z` (its sector map entry follows, part 2 marked changed)
 // unless it is there already (or NaN).
 void GameSetUnitHeight(int id, float z);
