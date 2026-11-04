@@ -806,7 +806,7 @@ class SchedTest(unittest.TestCase):
                 self.assertIsNone(run_all.vulkan_driver(choice, env, wsl=wsl))
                 self.assertNotIn('VK_DRIVER_FILES', env)
             self.assertEqual(run_all.vulkan_driver('dzn', {}, wsl=False), manifest)
-            self.assertIn('net_second_master', run_all.linux_left_out(manifest))
+            self.assertIn('net_pair_master', run_all.linux_left_out(manifest))
             self.assertNotIn('camera_smooth', run_all.linux_left_out(manifest))
             self.assertIn('camera_smooth', run_all.linux_left_out(None))
         with mock.patch.object(run_all, 'DZN_ICD', manifest), quiet:
