@@ -104,7 +104,7 @@ void NameSkinTextures(const UnitClientSpecific* self, int detailed, SkinRequest&
     if (!detailed) {
         unitKey = std::format("mo{}s", id);
         prototypeKey = std::format("prot{}s", static_cast<int>(unit->prototypeId));
-        request.flags = kFlagSimple;
+        request.side = kFlagSimple;
         if (self->armourIds[0] != kNoItemId) AddArmourTexture(request, unit, texture, self->armourIds[0]);
         std::uint32_t hand = unit->activeWeapon;
         if (hand < 4 && self->weaponIds[hand] != kNoItemId) {
@@ -116,7 +116,7 @@ void NameSkinTextures(const UnitClientSpecific* self, int detailed, SkinRequest&
     }
     unitKey = std::format("mo{}p", id);
     prototypeKey = std::format("prot{}p", static_cast<int>(unit->prototypeId));
-    request.flags = kFlagDetailed;
+    request.side = kFlagDetailed;
     const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(static_cast<std::uint32_t>(unit->prototypeId));
     if (prototype)
         texture = str::Format("%sskin_%.2d.mmp", unit->name, prototype->skin);
@@ -393,7 +393,7 @@ bool UnitClientSpecific::ComposeSkin(int detailed, std::string* target) {
         request.layers.resize(bytes);
         std::memcpy(request.layers.data(), layers.data(), static_cast<std::size_t>(bytes));
         NameSkinTextures(this, detailed, request, unitKey, prototypeKey, texture);
-        result = textureManager->Compose(target, &request, &unitKey, &prototypeKey, 3, 0x5551) != 0;
+        result = textureManager->Compose(target, &request, &unitKey, &prototypeKey, 3, kMmpFormat1555) != 0;
         lib::FreeStorage(request.layers);
     }
     return result;
@@ -583,7 +583,6 @@ constexpr std::uint32_t kNoArmour = 0xFFFFFFFF;
 constexpr int kHeroTextureSize = 0x80;
 constexpr int kTextureSize = 0x40;
 constexpr int kMipCount = 3;
-constexpr int kFormat = 0x4444;
 constexpr const char* kWoundTexture = "%s%sw%d.mmp";
 constexpr const char* kWoundCacheName = "mo%dw";
 // The parts' texture names of a hero and of other units, each list ended by an empty name.
@@ -659,7 +658,7 @@ int UnitClientSpecific::ComposeWoundsTexture() {
         std::uint8_t* levels = request.layers.data();
         if (WoundLevels(&levels)) {
             bool hero = unit->MapType() == MapObjectType::Hero;
-            request.flags = hero ? kHeroTextureSize : kTextureSize;
+            request.side = hero ? kHeroTextureSize : kTextureSize;
             for (int i = 0; i < kBodyParts; ++i) {
                 std::uint8_t level = request.layers[i];
                 if (!level) continue;
@@ -668,7 +667,7 @@ int UnitClientSpecific::ComposeWoundsTexture() {
                 request.textures.push_back(name);
             }
             name = str::Format(kWoundCacheName, unit->id);
-            result = g_clientWorld.textureManager->Compose(&out, &request, &name, &name, kMipCount, kFormat);
+            result = g_clientWorld.textureManager->Compose(&out, &request, &name, &name, kMipCount, kMmpFormat4444);
         }
     }
     return result;

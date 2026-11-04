@@ -22,14 +22,13 @@ namespace {
 const std::string& GameRoot() { return options::g_options.workPath; }
 
 constexpr std::uint32_t kDxtCode = 'D' | ('X' << 8) | ('T' << 16);   // a DXT format's code without its digit
-constexpr std::uint32_t kFormat565 = 0x5650, kFormat1555 = 0x5551, kFormat4444 = 0x4444, kFormat8888 = 0x8888;
 
 // Texture format of a .bmp texture, by texture kind.
 std::uint32_t BmpFormatFor(int type) {
     switch (type) {
-    case 1: case 2: case 3: case 4: case 8: return 0x5551;   // 1-bit alpha
-    case 6: case 13: return 0x4444;                         // 4-bit alpha
-    default: return 0x5650;                                 // no alpha
+    case 1: case 2: case 3: case 4: case 8: return kMmpFormat1555;   // 1-bit alpha
+    case 6: case 13: return kMmpFormat4444;                          // 4-bit alpha
+    default: return kMmpFormat565;                                   // no alpha
     }
 }
 
@@ -39,17 +38,17 @@ std::uint32_t BmpFormatFor(int type) {
 // without it no format is found, LoadTexture fails (Rebirth's DisableExitOnCrashReport goes on), the battle screen
 // misses a texture and its sprites bind garbage.
 bool IsTextureFormat(std::uint32_t id) {
-    if (id == kFormat565 || id == kFormat1555 || id == kFormat4444 || id == kFormat8888) return true;
+    if (id == kMmpFormat565 || id == kMmpFormat1555 || id == kMmpFormat4444 || id == kMmpFormat8888) return true;
     const std::uint32_t digit = id >> 24;
     return (id & 0x00FFFFFF) == kDxtCode && digit >= '1' && digit <= '5';
 }
 
 render::PixelFormat TextureFormat(std::uint32_t id) {
     switch (id) {
-    case kFormat565: return render::PixelFormat{16, 0xF800, 0x07E0, 0x001F, 0};
-    case kFormat1555: return render::PixelFormat{16, 0x7C00, 0x03E0, 0x001F, 0x8000};
-    case kFormat4444: return render::PixelFormat{16, 0x0F00, 0x00F0, 0x000F, 0xF000};
-    case kFormat8888: return render::PixelFormat{32, 0xFF0000, 0xFF00, 0xFF, 0xFF000000u};
+    case kMmpFormat565: return render::PixelFormat{16, 0xF800, 0x07E0, 0x001F, 0};
+    case kMmpFormat1555: return render::PixelFormat{16, 0x7C00, 0x03E0, 0x001F, 0x8000};
+    case kMmpFormat4444: return render::PixelFormat{16, 0x0F00, 0x00F0, 0x000F, 0xF000};
+    case kMmpFormat8888: return render::PixelFormat{32, 0xFF0000, 0xFF00, 0xFF, 0xFF000000u};
     default: return render::PixelFormat{};
     }
 }
@@ -58,10 +57,10 @@ std::uint32_t MmpHeader::HeldFormat() const {
     if (IsTextureFormat(format)) return format;
     if ((format & 0x00FFFFFF) != kDxtCode) return 0;
     // A DXT code outside the list: the RGB format its channel bit counts name (the loader decodes into it).
-    if (redBits == 5 && greenBits == 6 && blueBits == 5 && alphaKind == 0) return kFormat565;
-    if (redBits == 5 && greenBits == 5 && blueBits == 5 && alphaKind == 1) return kFormat1555;
-    if (redBits == 4 && greenBits == 4 && blueBits == 4 && alphaKind == 4) return kFormat4444;
-    if (redBits == 8 && greenBits == 8 && blueBits == 8 && alphaKind == 8) return kFormat8888;
+    if (redBits == 5 && greenBits == 6 && blueBits == 5 && alphaKind == 0) return kMmpFormat565;
+    if (redBits == 5 && greenBits == 5 && blueBits == 5 && alphaKind == 1) return kMmpFormat1555;
+    if (redBits == 4 && greenBits == 4 && blueBits == 4 && alphaKind == 4) return kMmpFormat4444;
+    if (redBits == 8 && greenBits == 8 && blueBits == 8 && alphaKind == 8) return kMmpFormat8888;
     return 0;
 }
 
@@ -133,33 +132,36 @@ EngineObject* TextureManager::NewObject(int textureType) {
 
 // --- The texture's own virtuals (destructor, Create, Destroy), the manager's small entry points (find or
 // create by name, reload after a lost device, the cache's size limit) and the .mmp header's pixel format
-// presets.
+// layouts.
 
-void MmpHeader::SetNoFormat() {
+void MmpHeader::SetFormat(std::uint32_t id) {
+    struct Channel {
+        std::uint32_t mask, shift, bits;
+    };
+    struct Layout {
+        std::uint32_t id;
+        Channel alpha, red, green, blue;
+    };
+    static constexpr Layout kLayouts[] = {
+        {kMmpFormat565, {0, 0, 0}, {0xF800, 11, 5}, {0x07E0, 5, 6}, {0x001F, 0, 5}},
+        {kMmpFormat1555, {0x8000, 15, 1}, {0x7C00, 10, 5}, {0x03E0, 5, 5}, {0x001F, 0, 5}},
+        {kMmpFormat4444, {0xF000, 12, 4}, {0x0F00, 8, 4}, {0x00F0, 4, 4}, {0x000F, 0, 4}},
+    };
     alphaMask = alphaKind = alphaShift = 0;
     redMask = redBits = redShift = 0;
     greenMask = greenBits = greenShift = 0;
     blueMask = blueBits = blueShift = 0;
     bitsPerPixel = 0;
     format = 0;
-}
-
-void MmpHeader::SetFormat5551() {
-    alphaMask = 0x8000, alphaKind = 1, alphaShift = 15;
-    redMask = 0x7C00, redBits = 5, redShift = 10;
-    greenMask = 0x03E0, greenBits = 5, greenShift = 5;
-    blueMask = 0x001F, blueBits = 5, blueShift = 0;
-    bitsPerPixel = 16;
-    format = 0x5551;
-}
-
-void MmpHeader::SetFormat4444() {
-    alphaMask = 0xF000, alphaKind = 4, alphaShift = 12;
-    redMask = 0x0F00, redBits = 4, redShift = 8;
-    greenMask = 0x00F0, greenBits = 4, greenShift = 4;
-    blueMask = 0x000F, blueBits = 4, blueShift = 0;
-    bitsPerPixel = 16;
-    format = 0x4444;
+    for (const Layout& layout : kLayouts) {
+        if (layout.id != id) continue;
+        alphaMask = layout.alpha.mask, alphaShift = layout.alpha.shift, alphaKind = layout.alpha.bits;
+        redMask = layout.red.mask, redShift = layout.red.shift, redBits = layout.red.bits;
+        greenMask = layout.green.mask, greenShift = layout.green.shift, greenBits = layout.green.bits;
+        blueMask = layout.blue.mask, blueShift = layout.blue.shift, blueBits = layout.blue.bits;
+        bitsPerPixel = 16;
+        format = id;
+    }
 }
 
 namespace {

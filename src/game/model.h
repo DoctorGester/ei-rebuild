@@ -401,6 +401,11 @@ FigureModel* OpenFigureModel(std::string_view name, GetFile&& getFile, Discard&&
     return model;
 }
 
+// The three coefficients (s, t, u) a link figure's parts are morphed by.
+struct Morph {
+    float s, t, u;
+};
+
 // Loads .lnk link files and the figures they name (created at startup with figures.res and menus.res). A
 // figure is a LinkMesh of parts morphed by three coefficients (s, t, u); the loader keeps every mesh it made
 // in a multimap by name (a counted reference each) and hands out a cached one whose coefficients are within
@@ -415,13 +420,13 @@ public:
     ~LinkFigureLoader();
     // Figure `name` with the parts `parts`: the first cached mesh of that name with close coefficients, given the
     // parts it lacks; otherwise a new one (MakeFigure). No reference is added for the caller.
-    LinkMesh* LoadFigure(std::string_view name, const std::vector<std::string>& parts, float s, float t, float u);
+    LinkMesh* LoadFigure(std::string_view name, const std::vector<std::string>& parts, Morph morph);
     // The same for a .lnk figure: a cached one, or LoadLinkFile.
-    LinkMesh* LoadLink(std::string_view name, float s, float t, float u);
+    LinkMesh* LoadLink(std::string_view name, Morph morph);
     void ClearCache();
     // `mesh` with new coefficients: a mesh others also hold (more than two references) is looked up again by
-    // its name; otherwise its parts are morphed in place (SetMorph, then per part). Null stays null.
-    LinkMesh* Remorph(LinkMesh* mesh, float s, float t, float u);
+    // its name; otherwise its parts are morphed in place (the mesh takes the new coefficients, then each part). Null stays null.
+    LinkMesh* Remorph(LinkMesh* mesh, Morph morph);
 
     void AddRef() { ++refCount; }
     // Drops a reference; the last one deletes the loader.
@@ -436,34 +441,36 @@ public:
     // name is already open. Returns 1 on success or when already open.
     int AddArchive(const std::string& path);
     // Reads a FIG / FIG8 part record at *cursor (moved past it) into `mesh` as part `name`: its header (two
-    // dwords, bounds fitted to the vertices morphed by s, t, u) and its elements (LinkMesh::AddPart).
-    void LoadFigPart(LinkMesh* mesh, const std::string& name, const char** cursor, float s, float t, float u);
+    // dwords, bounds fitted to the vertices morphed by `morph`) and its elements (LinkMesh::AddPart).
+    void LoadFigPart(LinkMesh* mesh, const std::string& name, const char** cursor, Morph morph);
     // The same for the older record without a FIG header (6 morph corners).
-    void LoadOldPart(LinkMesh* mesh, const std::string& name, const char** cursor, float s, float t, float u);
+    void LoadOldPart(LinkMesh* mesh, const std::string& name, const char** cursor, Morph morph);
 
     // A new mesh from .lnk file `name` (from the figure set, else the archives' "<name>.lnk"): a count, then
     // per part its name and a second, unused name (an empty name keeps the previous one). Cached (one
     // reference). No link file: FatalError's result (0) is returned and the new mesh leaked.
-    LinkMesh* LoadLinkFile(std::string_view name, float s, float t, float u);
+    LinkMesh* LoadLinkFile(std::string_view name, Morph morph);
     // A new mesh `name` with the parts `parts`, loaded as LoadLinkFile does (a part missing from the figure
     // set is skipped); cached.
-    LinkMesh* MakeFigure(std::string_view name, const std::vector<std::string>& parts, float s, float t, float u);
-    // Part `name` of `mesh` (its own coefficients) unless it has it: from its figure set (false when the set
-    // lacks it) or the archives (LoadArchivePart's result).
+    LinkMesh* MakeFigure(std::string_view name, const std::vector<std::string>& parts, Morph morph);
+    // Part `name` of `mesh` (its own coefficients) unless it has it: from its figure set or the archives; false
+    // without a record.
     bool LoadPartInto(LinkMesh* mesh, const std::string& name);
-    // Part `name` of `mesh` from the first open archive that has "<mesh name><name>.fig".
-    int LoadArchivePart(LinkMesh* mesh, const std::string& name, float s, float t, float u);
+    // The record of part `name` of `mesh`: in the figure set's model, else "<mesh name><name>.fig" in the first
+    // open archive that has it; null without one.
+    const char* FindPartData(const LinkMesh* mesh, FigureModel* set, const std::string& name);
+    // Part `name` loaded into `mesh` from its record (FindPartData): false without one.
+    bool LoadPart(LinkMesh* mesh, FigureModel* set, const std::string& name, Morph morph);
     // Figure `name`'s own archive set: the cached one, else (when an open archive has "<name>.mod") a new set
     // stored under the name and loaded from the first archives with "<name>.mod" / ".bon" / ".anm"; null
     // without a .mod.
     FigureModel* FindFigureSet(std::string_view name);
-    // Part `name` of `mesh` morphed again by s, t, u from its record (the figure set's model, else
-    // "<mesh name><name>.fig" in the archives): false without one.
-    bool RemorphPart(LinkMesh* mesh, FigureModel* set, const std::string& name, float s, float t, float u);
+    // Part `name` of `mesh` morphed again by `morph` from its record (FindPartData): false without one.
+    bool RemorphPart(LinkMesh* mesh, FigureModel* set, const std::string& name, Morph morph);
     // The record at *cursor (moved past the vertices) morphed into the part's vertex packets and its header's
     // bounds refitted. The FIG one reads every record as FIG8 (header, bounds and vertices).
-    void RemorphFigPart(LinkMesh* mesh, const std::string& name, const char** cursor, float s, float t, float u);
-    void RemorphOldPart(LinkMesh* mesh, const std::string& name, const char** cursor, float s, float t, float u);
+    void RemorphFigPart(LinkMesh* mesh, const std::string& name, const char** cursor, Morph morph);
+    void RemorphOldPart(LinkMesh* mesh, const std::string& name, const char** cursor, Morph morph);
 
     int refCount = 0;
     std::vector<LinkArchive> archives;
