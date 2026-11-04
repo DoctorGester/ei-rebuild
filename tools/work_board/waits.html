@@ -23,7 +23,8 @@
   .scroll { overflow-x: auto }
   table.w { min-width: 720px }
   table.w td { padding: 4px 10px 4px 0; vertical-align: middle; border-top: 1px solid var(--line) }
-  table.w td.bar { width: 38% }
+  table.w td.bar { width: 38%; min-width: 220px }
+  table.w td.bar > div { width: 100% }
   table.w tr.live td:first-child::after { content: " ●"; color: var(--good); font-size: 10px }
   details summary { cursor: pointer; color: var(--muted); font-size: 12px }
   .calls { font-family: var(--mono); font-size: 11.5px; color: var(--muted); display: grid; gap: 1px; margin-top: 4px }
@@ -87,12 +88,11 @@ function render(d) {
   <section class="panel"><h2>Workers <span class="n">${ws.length}</span></h2>
     <div class="legend"><span><i class="k-reasoning"></i>reasoning</span><span><i class="k-builds"></i>builds</span><span><i class="k-tests"></i>tests</span><span><i class="k-other"></i>the rest</span></div>
     <div class="scroll"><table class="w"><thead><tr><th>Tickets</th><th>Started</th><th class="num">Wall</th><th>Split</th><th class="num">Builds</th><th class="num">Suites</th><th></th></tr></thead><tbody>`;
-  const maxWall = Math.max(...ws.map(w => w.wall), 1);
   for (const w of ws.slice(0, 80)) {
     const rest = Math.max(0, w.wall - w.model - w.build_seconds - w.test_seconds);
     const calls = [...w.builds.map(c => ({...c, k: 'build'})), ...w.tests.map(c => ({...c, k: 'test'}))].sort((a, b) => a.t - b.t);
     h += `<tr class="${w.live ? 'live' : ''}"><td class="mono">${esc(w.tickets.join(' / '))}</td><td>${when(w.start)}</td><td class="num">${min(w.wall)}</td>
-      <td class="bar"><div style="width:${(100 * w.wall / maxWall).toFixed(1)}%">${stack([['reasoning', w.model], ['builds', w.build_seconds], ['tests', w.test_seconds], ['other', rest]], w.wall || 1)}</div></td>
+      <td class="bar"><div>${stack([['reasoning', w.model], ['builds', w.build_seconds], ['tests', w.test_seconds], ['other', rest]], w.wall || 1)}</div></td>
       <td class="num">${w.builds.length} · ${min(w.build_seconds)}</td><td class="num">${w.suite_count}</td>
       <td>${calls.length ? `<details><summary>${calls.length} calls</summary><div class="calls">${calls.map(c =>
         `<span>${new Date(c.t * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} ${c.k} ${esc(c.what)} ${sec(c.s)}${c.bg ? '' : ' (fg)'}</span>`).join('')}</div></details>` : ''}</td></tr>`;
