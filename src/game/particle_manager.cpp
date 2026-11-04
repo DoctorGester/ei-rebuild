@@ -266,12 +266,11 @@ int ParticleManager::DrawAll(SceneRenderer* renderer) {
         ParticleSource* s = order[i].source;
         if (s->flags & ParticleSourceFlag::NotDrawn) continue;
         if (AttachedToHiddenUnit(s)) continue;
-        const int blend = std::bit_cast<std::int32_t>(s->additiveBlend);
-        if (blend == 1 && !additive) {
+        if (s->additiveBlend && !additive) {
             renderer->SetBlend(render::Blend::SourceAlpha, render::Blend::One);
             additive = true;
         }
-        if (blend == 0 && additive) {
+        if (!s->additiveBlend && additive) {
             renderer->SetBlend(render::Blend::SourceAlpha, render::Blend::InvSourceAlpha);
             additive = false;
         }
@@ -291,8 +290,6 @@ int ParticleManager::DrawAll(SceneRenderer* renderer) {
 // arrays to the renderer. Names are provisional.
 
 namespace {
-
-#define EI_ONE 1.0f
 
 // The draw's work arrays, reused by every source.
 std::vector<SpritePoint> g_vertices;
@@ -338,7 +335,7 @@ int ParticleSource::Draw(SceneRenderer* renderer) {
 
     ParticleSprite* sprite = g_sprites.data();
     SpritePoint* vertex = g_vertices.data();
-    float u = EI_ONE - t;
+    float u = 1.0f - t;
     for (const Particle* p : particles) {
         vertex->position = u * p->prevPos + t * p->pos;
         vertex->size = u * p->prevSize + t * p->size;
@@ -352,7 +349,7 @@ int ParticleSource::Draw(SceneRenderer* renderer) {
         ++sprite;
         ++vertex;
     }
-    return renderer->DrawSprites(std::bit_cast<std::int32_t>(additiveBlend) != 0, &g_vertices, &g_sprites);
+    return renderer->DrawSprites(additiveBlend, &g_vertices, &g_sprites);
 }
 
 // --- Particle tick -----------------------------------------------------------------------------------
@@ -364,12 +361,6 @@ int ParticleSource::Draw(SceneRenderer* renderer) {
 
 namespace {
 
-// Constants the original reads from memory at run time.
-#define EI_ONE 1.0f
-#define EI_HALF 0.5f
-#define EI_STILL 0.001f   // below this the source is not moving
-#define EI_DEGENERATE 1e-10f
-
 constexpr float kFar = 100000.0f;
 constexpr float kNear = -100000.0f;
 
@@ -377,7 +368,7 @@ void SetBits(float& f, std::uint32_t bits) { f = std::bit_cast<float>(bits); }
 
 // v *= 1 / length.
 void Normalize(Vector3& v, float length) {
-    float scale = EI_ONE / length;
+    float scale = 1.0f / length;
     v *= scale;
 }
 
@@ -424,7 +415,7 @@ void BuildBasis(ParticleSource& s) {
     const Vector3& m = s.motion;
     float distance = Length(m);
     s.distance = distance;
-    if (distance <= EI_STILL) {
+    if (distance <= 0.001f) {
         s.side = {};
         s.up = {};
         return;
@@ -432,7 +423,7 @@ void BuildBasis(ParticleSource& s) {
     // (0 - m.x, not -m.x: the same value, but +0 for m.x = 0.)
     s.side = {m.y, 0.0f - m.x, 0.0f};
     float length = Length(s.side);
-    if (length < EI_DEGENERATE) {
+    if (length < 1e-10f) {
         s.side = {m.y - m.z, -m.x, m.x};
         length = Length(s.side);
     }
@@ -499,7 +490,7 @@ void Emit(ParticleSource& s) {
 
 // Centre and half extents of the bounds.
 void FinishBounds(ParticleSource& s) {
-    s.clip.center = (s.boundsMax + s.boundsMin) * EI_HALF;
+    s.clip.center = (s.boundsMax + s.boundsMin) * 0.5f;
     s.clip.boxMin = s.boundsMin - s.clip.center;
     s.clip.boxMax = s.boundsMax - s.clip.center;
     s.clip.flags |= 2;

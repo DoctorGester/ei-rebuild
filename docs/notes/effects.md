@@ -25,11 +25,17 @@ Code: `particle_manager.cpp`, `particle_create.cpp`, `particle_emitters.cpp`, `p
 - The world's script particle source (class 0x4A, script `CreateParticleSource`) makes its `ParticleSource` on its
   first tick and every tick copies the position and calls `ScaleSize(size / baseSize)`.
 - Floating point: `double` for values the original kept on the FPU stack, a store to float where it stored one; every
-  "below" / "equal" test takes the unordered case the original's way. The random-range constants (~2^-32, ~2^-33) carry
-  a stray mantissa bit; used as is.
+  "below" / "equal" test takes the unordered case the original's way.
+- Random draws (all from `g_clientRandom`): the original stored word * k + lo with k = (hi - lo) * 2^-32; where k is
+  exactly a float's (hi - lo) times 2^-32 the code calls `Range(lo, hi)`, the same value bit for bit (a check:
+  `float(hi - lo) * 2^-32 == k` and the low end the same float). Seven scales carry a stray low bit (k is no round
+  number's): they stay `WordToFloat(Next()) * kWordTo...` (`particle_common.h`, each with its bits asserted).
 
 Kept:
 - `Tick` unlinks and pools a particle the previous update rejected, then still updates it and counts it in the bounds.
+- Tables read past their data where the original read zeros: Modifier markers by their element's tick (to 25),
+  AcidRay's spread and size (to 16), ClayRing's alpha at the first ticks (12, 13), Modifier's fade (10), FireBlast's
+  frame (to 16), 0x202F's column alpha in the update after death; the tables carry the zeros or the reads are guarded.
 - An update that counts the life down then reads its life table at index -1 (Shower, Casting, CastSwirl, Orbit,
   ZoneExit; ClayRing its countdown table): the original read the previous table's last entry; `ByLife` (effects.h) gives
   that value. FireBlast's flame frame can step to 16 (read as alpha 0); Link sparks are emitted on a frame up to

@@ -615,12 +615,12 @@ public:
     float turnCos;                  // \ cos / sin of the emitter's turn (a zone exit's
     float turnSin;                  // / angle)
     float baseSize;
-    float emitState;                // int bits: emitted count or a one-shot flag, per type
+    int emitState;                  // per type: the emitted count or a one-shot flag
     Vector3 extent;
     int attachPoint;
     Vector3 windDirection;          // copied from the world every tick
     float windStrength;
-    float additiveBlend;            // int bits: 1 draws with additive blending
+    bool additiveBlend;             // drawn with additive blending
     std::vector<ParticleElement> elements;   // per type
     Vector3 boundsMin;              // over the particles, rebuilt every tick
     Vector3 boundsMax;

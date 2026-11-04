@@ -18,7 +18,6 @@
 
 namespace {
 
-constexpr float kRandomScale = 2.3283064e-10f;   // 2^-32: a random word to a fraction
 constexpr float kPointThree = 0.3f;
 constexpr float kCloudAlpha = 4.5f;
 constexpr float kSmokeGrowth = 1.06f;
@@ -131,19 +130,17 @@ int ParticleSource::EmitSmoke(Particle* p, int) {
     }
     float hi = extra + spreadMax.x;
     float lo = spreadMin.x - extra;
-    p->velocity.x = WordToFloat(g_clientRandom.Next()) * (hi - lo) * kRandomScale + lo;
+    p->velocity.x = g_clientRandom.Range(lo, hi);
     hi = extra + spreadMax.y;
     lo = spreadMin.y - extra;
-    std::uint32_t r = g_clientRandom.Next();
     p->velocity.z = 0.0f;
-    p->velocity.y = WordToFloat(r) * (hi - lo) * kRandomScale + lo;
+    p->velocity.y = g_clientRandom.Range(lo, hi);
     p->velocity *= 0.5f;
     p->pos.x = origin.x + p->velocity.x;
     p->pos.y = origin.y + p->velocity.y;
-    r = g_clientRandom.Next();
     p->drift.x = 0.0f;
     p->drift.y = 0.0f;
-    p->pos.z = WordToFloat(r) * height * kRandomScale + origin.z;
+    p->pos.z = g_clientRandom.Range(0.0f, height) + origin.z;
     p->drift.z = height;
     return 1;
 }

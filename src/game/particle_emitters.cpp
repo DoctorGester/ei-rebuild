@@ -1,10 +1,10 @@
 // Particle emit callbacks (of a ParticleSource) and the element array allocator.
 #include "effects.h"
 #include "map_object_figures.h"   // Object3D
+#include "particle_common.h"
 
 #include "random.h"
 
-#include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/maths.h"
@@ -13,32 +13,13 @@
 #include "game_singletons.h"
 #include "lib/float_select.h"
 
-#include <bit>
 #include <cmath>
-#include <cstring>
 
 namespace {
 
 // --- LightningBlast (0x2030) ----------------------------------------------------------------------
 
 constexpr float kTwoPi = 6.28318f;
-#define EI_POINT_THREE 0.3f
-#define EI_QUARTER 0.25f
-#define EI_ONE 1.0f
-#define EI_HALF 0.5f
-#define EI_POINT_FOUR 0.4f
-#define EI_POINT_TWO 0.2f
-#define EI_TENTH 0.1f
-#define EI_THREE 3.0f
-#define EI_NINE 9.0f
-#define EI_TWO 2.0f
-#define EI_SPARK_SIZE 0.06f
-#define EI_SCALE_0_9 2.0954757e-10f   // ~0.9 * 2^-32
-#define EI_SCALE_1 2.3283064e-10f   // ~2^-32
-#define EI_SCALE_ANGLE 1.4621765e-09f   // ~2 pi * 2^-32
-#define EI_SCALE_2 4.656613e-10f   // ~2^-31
-#define EI_SCALE_0_04 9.3132255e-12f   // ~0.04 * 2^-32
-#define EI_SCALE_0_01 2.3283064e-12f   // ~0.01 * 2^-32
 
 // One point of a new bolt: a random offset (none for point 0) around the source, on the ground,
 // with a fork direction.
@@ -47,16 +28,16 @@ void PlaceBoltPoint(ParticleSource* s, int i, Vector3& dir) {
     float angle = g_clientRandom.Range(0.0f, kTwoPi);
     dir = {lib::Sin(angle) * radius, lib::Cos(angle) * radius, 0.0f};
     if (i == 0) dir = {};
-    Vector3 point = s->size * dir * EI_POINT_THREE + s->origin;
-    point.z = g_clientWorld.RawSurfaceHeightAt(point.x, point.y) + EI_POINT_THREE;
+    Vector3 point = s->size * dir * 0.3f + s->origin;
+    point.z = g_clientWorld.RawSurfaceHeightAt(point.x, point.y) + 0.3f;
     ParticleElement* points = s->elements.data();
     points[i].pos = point;
     points[i].bolt.base = point;
 
-    float inverse = EI_ONE / std::sqrt(LengthSquared2D(dir.y, dir.x) + EI_QUARTER);
+    float inverse = 1.0f / std::sqrt(LengthSquared2D(dir.y, dir.x) + 0.25f);
     dir *= inverse;
-    dir.z = inverse * EI_HALF;
-    points[i].bolt.fork = dir * EI_HALF;
+    dir.z = inverse * 0.5f;
+    points[i].bolt.fork = dir * 0.5f;
     points[i].bolt.emitted = 0;
     points[i].ticks = 0;   // bursts
 }
@@ -74,10 +55,9 @@ int EmitAlongBolt(ParticleSource* s, Particle* p, ParticleElement* points) {
     p->aux.x = 0.1f;     // 0.1
     ++points[0].bolt.emitted;
     if (p->frameTimer == 0) return 1;
-    std::uint32_t roll = g_clientRandom.Next();
-    p->aux.x = (WordToFloat(roll) * EI_SCALE_0_9 + EI_HALF) * s->size * EI_POINT_TWO;
+    p->aux.x = g_clientRandom.Range(0.5f, 1.4f) * s->size * 0.2f;
     p->frame = static_cast<int>((g_clientRandom.Next() & 3) + 12);
-    if (index == 0) p->aux.x = s->size * EI_POINT_FOUR;
+    if (index == 0) p->aux.x = s->size * 0.4f;
     p->size = p->aux.x;
     return 1;
 }
@@ -88,28 +68,28 @@ int EmitBurst(ParticleSource* s, Particle* p, ParticleElement* points) {
     p->color = 0x40FFFFFF;
     p->frame = 8;
     g_clientRandom.Next();   // draw kept
-    float u = WordToFloat(g_clientRandom.Next()) * EI_SCALE_1;
-    float spread = EI_ONE - u * u;
-    float angle = WordToFloat(g_clientRandom.Next()) * EI_SCALE_ANGLE;
+    float u = g_clientRandom.Range(0.0f, 1.0f);
+    float spread = 1.0f - u * u;
+    float angle = g_clientRandom.Range(0.0f, 6.28f);
     // A random point of the unit disc (ten tries) that nothing uses; draws kept.
     for (int tries = 10;;) {
-        float vx = WordToFloat(g_clientRandom.Next()) * EI_SCALE_2 - EI_ONE;
+        float vx = g_clientRandom.Range(-1.0f, 1.0f);
         float vy = g_clientRandom.Range(-1.0f, 1.0f);
-        if (LengthSquared2D(vy, vx) < EI_ONE) break;   // random: never NaN
+        if (LengthSquared2D(vy, vx) < 1.0f) break;   // random: never NaN
         if (!(--tries > 0)) break;
     }
     p->drift = {lib::Cos(angle) * spread, lib::Sin(angle) * spread, 0.0f};
-    p->drift *= s->size * EI_POINT_THREE;
+    p->drift *= s->size * 0.3f;
     p->drift.z = 0.0f;
     p->pos.x = points[0].pos.x + p->drift.x;
     p->pos.y = points[0].pos.y + p->drift.y;
-    float rise = (EI_ONE - spread) * s->size * EI_TENTH + points[0].pos.z;
+    float rise = (1.0f - spread) * s->size * 0.1f + points[0].pos.z;
     p->size = 0.0f;
     p->pos.z = rise;
     p->frameTimer = 0;
-    p->life = std::lround(EI_NINE - spread * EI_THREE);
-    float roll = WordToFloat(g_clientRandom.Next()) * EI_SCALE_0_04 + EI_TENTH;
-    p->aux.x = roll * (EI_TWO - spread) * s->size;
+    p->life = std::lround(9.0f - spread * 3.0f);
+    float roll = g_clientRandom.Range(0.1f, 0.14f);
+    p->aux.x = roll * (2.0f - spread) * s->size;
     return 1;
 }
 
@@ -118,11 +98,11 @@ int EmitSpark(ParticleSource* s, Particle* p) {
     std::uint32_t count = static_cast<std::uint32_t>(std::ssize(s->elements));
     std::uint32_t index = g_clientRandom.Next() % count;
     p->frame = 1;
-    p->aux.x = WordToFloat(g_clientRandom.Next()) * EI_SCALE_0_01 * EI_THREE + EI_SPARK_SIZE;
+    p->aux.x = g_clientRandom.Range(0.0f, 0.01f) * 3.0f + 0.06f;
     p->life = 6;
     p->frameTimer = 1;
-    float u = WordToFloat(g_clientRandom.Next()) * EI_SCALE_1;
-    float w = EI_ONE - u;
+    float u = g_clientRandom.Range(0.0f, 1.0f);
+    float w = 1.0f - u;
     ParticleElement* points = s->elements.data();
     p->pos = points[index].pos;
     p->size = 0.0f;
@@ -133,13 +113,8 @@ int EmitSpark(ParticleSource* s, Particle* p) {
 
 // --- Modifier1-12 (0x201B-0x2026) ---------------------------------------------------------------
 
-#define EI_TEN 10.0f
-#define EI_ZERO 0.0f
-#define EI_SMALL_RING 0.04347826f   // 1/23
-#define EI_JITTER 0.04f
-#define EI_SCALE_0_08 1.8626451e-11f   // ~0.08 * 2^-32
-
-constexpr std::int32_t kFadeAlpha[35] = /*0078A774*/ {0, 32, 64, 128, 255, 207, 159, 111, 63, 15};
+// By point 0's fade step; entry 10 (0): the last emitting tick, past the 10 (the original's zero tail).
+constexpr std::int32_t kFadeAlpha[11] = /*0078A774*/ {0, 32, 64, 128, 255, 207, 159, 111, 63, 15, 0};
 const char* NoCarrierMessage() { return "Particle effect Modifier without carrier\n"; }
 
 // The axis the points are spread around (their offsets are perpendicular to it); some types also
@@ -152,11 +127,11 @@ Vector3 ModifierAxis(ParticleSource* s, float twiceRadius) {
         break;
     case 1:
     case 2:
-        s->spreadMin.x = twiceRadius * EI_POINT_FOUR + s->spreadMin.x;
+        s->spreadMin.x = twiceRadius * 0.4f + s->spreadMin.x;
         axis.z = 1.0f;
         break;
     case 3:
-        s->spreadMin.x -= twiceRadius * EI_POINT_FOUR;
+        s->spreadMin.x -= twiceRadius * 0.4f;
         axis.z = 1.0f;
         break;
     case 4:
@@ -186,14 +161,14 @@ void PlaceModifierPoints(ParticleSource* s) {
         Vector3 v;
         float lengthSq;
         for (;;) {
-            auto draw = [] { return WordToFloat(g_clientRandom.Next()) * EI_SCALE_2 - EI_ONE; };
-            v = {draw(), draw(), draw()};
+            v = {g_clientRandom.Range(-1.0f, 1.0f), g_clientRandom.Range(-1.0f, 1.0f),
+                 g_clientRandom.Range(-1.0f, 1.0f)};
             v -= axis * Dot(axis, v);
             lengthSq = LengthSquared(v);
             if (lengthSq != 0.0f) break;   // a NaN ends the search too
         }
         float scale = twice / std::sqrt(lengthSq);
-        if (s->size < EI_ZERO) scale = scale * EI_SMALL_RING;
+        if (s->size < 0.0f) scale = scale * 0.04347826f;   // 1/23
         ParticleElement& point = s->elements[i];
         point.ring.offset = scale * v;
         point.pos = point.ring.offset + s->origin;
@@ -202,38 +177,11 @@ void PlaceModifierPoints(ParticleSource* s) {
     }
 }
 
-#define EI_ZONE_EXIT_SPREAD 1.9f
-#define EI_SCALE_0_03 1.3969838e-10f   // ~0.03 * 2^-32
-#define EI_POINT_SEVEN 0.7f
-#define EI_TWENTIETH 0.05f
-#define EI_SCALE_0_4 9.3132266e-11f   // ~0.4 * 2^-32
-#define EI_ONE_AND_HALF 1.5f
-#define EI_ONE_POINT_TWO 1.2f
-#define EI_PORTAL_GROWTH 1.03f
-#define EI_EIGHT 8.0f
-#define EI_TWO_HUNDRED 200.0f
-#define EI_POINT_EIGHT 0.8f
-#define EI_SPARK_SCALE 0.55f
-#define EI_POINT_SIX 0.6f
-#define EI_POINT_NINE 0.9f
-#define EI_PI 3.1415927f
-#define EI_FEEBLE_SPEED 0.05f   // 0.05
-#define EI_SCALE_0_2 4.656614e-11f   // ~0.2 * 2^-32
-#define EI_FEEBLE_SIZE 0.035f
-#define EI_FEET_DENSITY 8.0f
-#define EI_FEET_RISE 1.2f
-#define EI_BYTE 255.0f
-#define EI_DUST_GROWTH 1.05f
-#define EI_TRANS_GROWTH 0.02f
-
 // Alpha tables indexed by the ticks left.
 constexpr std::int32_t kSparkAlpha[8] = /*0078AB98*/ {0, 64, 128, 255, 255, 255, 255, 255};
 constexpr float kGlowAlpha[16] = /*0078AA78*/ {0.0f, 0.15f, 0.3f, 0.45f, 0.6f, 0.75f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
                                             1.0f, 1.0f};
 constexpr std::int32_t kDustAlpha[16] = /*0078AAD8*/ {0, 64, 144, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 128, 64};
-
-// One random draw in [-1, 1) through the ISAAC results: Next() * ~2^-31 - 1.
-float Signed(std::uint32_t roll) { return WordToFloat(roll) * EI_SCALE_2 - EI_ONE; }
 
 } // namespace
 
@@ -266,7 +214,7 @@ int ParticleSource::EmitModifier(Particle* p, int index) {
             game::DebugLog(NoCarrierMessage());
             return 0;
         }
-        int count = static_cast<int>(AbsBits(size) * EI_TEN);
+        int count = static_cast<int>(AbsBits(size) * 10.0f);
         if (count < 1) count = 1;
         elements.resize(count);
         PlaceModifierPoints(this);
@@ -279,26 +227,23 @@ int ParticleSource::EmitModifier(Particle* p, int index) {
         if (kind <= 11) p->frame = static_cast<int>(kind);
         p->state = index;
         p->pos = points[index].pos;
-        lib::StoreBytes(&p->size, size >= EI_ZERO ? 0x3E000000u : 0x3E4CCCCDu);   // 0.125 / 0.2
+        p->size = size >= 0.0f ? 0.125f : 0.2f;
         p->life = 25;
         return 1;
     }
 
     std::uint32_t count = static_cast<std::uint32_t>(std::ssize(elements));
     std::uint32_t pick = g_clientRandom.Next() % count;
-    float u = WordToFloat(g_clientRandom.Next()) * EI_SCALE_1;
+    float u = g_clientRandom.Range(0.0f, 1.0f);
     std::uint32_t frameRoll = g_clientRandom.Next();
-    float w = EI_ONE - u;
+    float w = 1.0f - u;
     p->life = 5;
     p->frame = static_cast<int>((frameRoll & 3) + 12);
     const ParticleElement& e = elements[pick];
     p->velocity = u * e.pos + w * e.ring.start;
-    std::uint32_t ra = g_clientRandom.Next();
-    std::uint32_t rb = g_clientRandom.Next();
-    std::uint32_t rc = g_clientRandom.Next();
-    float jx = WordToFloat(rc) * EI_SCALE_0_08 - EI_JITTER;
-    float jy = WordToFloat(rb) * EI_SCALE_0_08 - EI_JITTER;
-    float jz = WordToFloat(ra) * EI_SCALE_0_08 - EI_JITTER;
+    float jz = g_clientRandom.Range(-0.04f, 0.04f);
+    float jy = g_clientRandom.Range(-0.04f, 0.04f);
+    float jx = g_clientRandom.Range(-0.04f, 0.04f);
     p->aux = {jx, jy, jz};
     p->pos = elements[pick].ring.start;
     p->size = 0.06f;   // 0.06
@@ -319,18 +264,18 @@ int ParticleSource::EmitZoneExit(Particle* p, int) {
     p->life = 15;
     p->frameTimer = 1;
     p->state = 0;
-    float a = Signed(g_clientRandom.Next());
-    float b = Signed(g_clientRandom.Next());
-    float falloff = (EI_ZONE_EXIT_SPREAD - a * a) - b * b;
+    float a = g_clientRandom.Range(-1.0f, 1.0f);
+    float b = g_clientRandom.Range(-1.0f, 1.0f);
+    float falloff = (1.9f - a * a) - b * b;
     float x = (a * alpha * turnCos + origin.x) - b * turnSin * typeParam;
     float y = (turnSin * alpha * a + b * turnCos * typeParam) + origin.y;
     float ground = g_clientWorld.RawSurfaceHeightAt(x, y);
     p->pos.x = x;
     p->pos.y = y;
     p->size = 0.0f;
-    p->pos.z = ground + EI_TENTH;
-    float roll = WordToFloat(g_clientRandom.Next()) * EI_SCALE_0_03 + EI_POINT_SEVEN;
-    p->velocity.x = roll * falloff * EI_TWENTIETH;
+    p->pos.z = ground + 0.1f;
+    float roll = WordToFloat(g_clientRandom.Next()) * kWordTo0_6 + 0.7f;
+    p->velocity.x = roll * falloff * 0.05f;
     return 1;
 }
 
@@ -339,7 +284,7 @@ int ParticleSource::EmitZoneExit(Particle* p, int) {
 int ParticleSource::UpdateGlow(Particle* p) {
     if (p->life == -10) p->life = p->frameTimer * 8 / lib::Count(particles) + 7;
     if (--p->life < 0) return 0;
-    int opacity = std::lround(kGlowAlpha[p->life] * EI_BYTE);
+    int opacity = std::lround(kGlowAlpha[p->life] * 255.0f);
     p->color = (p->color & 0xFFFFFF) + (static_cast<std::uint32_t>(opacity) << 24);
     return 1;
 }
@@ -350,13 +295,13 @@ int ParticleSource::UpdateGroundDust(Particle* p) {
     if (--p->life < 0) return 0;
     p->color = (static_cast<std::uint32_t>(kDustAlpha[p->life]) << 24) + (p->color & 0xFFFFFF);
     p->pos += p->velocity;
-    float lifted = g_clientWorld.RawSurfaceHeightAt(p->pos.x, p->pos.y) + EI_TENTH;
+    float lifted = g_clientWorld.RawSurfaceHeightAt(p->pos.x, p->pos.y) + 0.1f;
     const auto& plane = elements[0].plane;
     float along = (p->pos.x - origin.x) * plane.normal.x + (p->pos.y - origin.y) * plane.normal.y;
-    float onPlane = plane.height - along * plane.normal.z + EI_TENTH;
+    float onPlane = plane.height - along * plane.normal.z + 0.1f;
     p->pos.z = SelectLess(lifted, onPlane, onPlane, lifted);
     p->size = p->aux.x;
-    p->velocity *= EI_DUST_GROWTH;
+    p->velocity *= 1.05f;
     p->aux.x = p->aux.y * p->aux.x;
     return 1;
 }
@@ -369,7 +314,7 @@ void ParticleSource::TickGroundPlane(ParticleElement* e) {
         const PlatformSet::SurfacePlaneResult surface = g_clientWorld.platforms.SurfacePlane(origin.x, origin.y);
         plane.normal = surface.normal;
         plane.height = surface.height;
-        if (plane.normal.z != 0.0f) plane.normal.z = EI_ONE / plane.normal.z;   // a NaN stays the same NaN
+        if (plane.normal.z != 0.0f) plane.normal.z = 1.0f / plane.normal.z;   // a NaN stays the same NaN
     }
     if (++e->ticks > 1) flags &= ~ParticleSourceFlag::Emitting;
 }
@@ -379,11 +324,11 @@ void ParticleSource::TickGroundPlane(ParticleElement* e) {
 int ParticleSource::UpdatePortal(Particle* p) {
     if (p->state != 0) {
         if (!(flags & ParticleSourceFlag::Emitting)) return 0;
-        if (size < EI_ONE) {
+        if (size < 1.0f) {
             p->size = 0.0f;
             return 1;
         }
-        p->size = WordToFloat(g_clientRandom.Next()) * EI_SCALE_0_4 * EI_ONE_AND_HALF + EI_ONE_POINT_TWO;
+        p->size = WordToFloat(g_clientRandom.Next()) * kWordTo0_4 * 1.5f + 1.2f;
         return 1;
     }
     if (p->life == 0) return 0;
@@ -398,21 +343,21 @@ int ParticleSource::UpdatePortal(Particle* p) {
     float rise = size * p->velocity.z;
     p->frameTimer = timer;
     p->pos.z = rise + p->pos.z;
-    p->velocity.z *= EI_PORTAL_GROWTH;
+    p->velocity.z *= 1.03f;
     if (timer == 0) {
         if (++p->frame == 4) p->frame = 0;
         if (p->frame == 15) p->frame = 4;
         p->frameTimer = frameDelay;
     }
     float climb = p->pos.z - origin.z;
-    if (climb > EI_EIGHT) {
+    if (climb > 8.0f) {
         p->size = 0.0f;
         p->life = 0;
         p->color = 0x00FFFFFF;
         return 1;
     }
     p->size = p->aux.z;
-    float fade = (EI_EIGHT - climb) * (EI_TWO_HUNDRED / EI_EIGHT);
+    float fade = (8.0f - climb) * (200.0f / 8.0f);
     int opacity = (std::lround(fade) + 0x37) >> 2;
     if (opacity >= 0x40) opacity = 0x40;
     p->color = (static_cast<std::uint32_t>(opacity) << 24) | 0xFFFFFF;
@@ -420,22 +365,21 @@ int ParticleSource::UpdatePortal(Particle* p) {
 }
 
 // Portal: |size| * 10 tries per tick (truncated by the game's _ftol).
-void ParticleSource::TickPortal(ParticleElement*) { emitCount = static_cast<int>(size * EI_TEN); }
+void ParticleSource::TickPortal(ParticleElement*) { emitCount = static_cast<int>(size * 10.0f); }
 
 // Sparks: the spare ones (state set) get a random size once and are dropped after; the
 // rest fly along their drift, shrinking and slowing, with the alpha from kSparkAlpha.
 int ParticleSource::UpdateSparks(Particle* p) {
     if (p->state != 0) {
         if (p->size != 0.0f) return 0;
-        p->size = (WordToFloat(g_clientRandom.Next()) * EI_SCALE_0_4 + EI_POINT_EIGHT) * size *
-                        EI_SPARK_SCALE;
+        p->size = (WordToFloat(g_clientRandom.Next()) * kWordTo0_4 + 0.8f) * size * 0.55f;
         return 1;
     }
     if (--p->life < 0) return 0;
     p->color = (static_cast<std::uint32_t>(kSparkAlpha[p->life]) << 24) | 0xFFFFFF;
     p->pos += p->drift;
-    p->size *= EI_POINT_NINE;
-    p->drift *= EI_POINT_SIX;
+    p->size *= 0.9f;
+    p->drift *= 0.6f;
     ++p->frame;
     return 1;
 }
@@ -449,15 +393,13 @@ int ParticleSource::EmitFeebleMind(Particle* p, int) {
     p->pos = origin;
     p->size = 0.0f;
     p->life = 20;
-    float twoPi = EI_PI + EI_PI;
-    std::uint32_t roll = g_clientRandom.Next();
+    float twoPi = kPi + kPi;
     p->velocity.z = 0.0f;
-    float angle = WordToFloat(roll) * twoPi * EI_SCALE_1;
-    p->velocity.x = lib::Cos(angle) * EI_FEEBLE_SPEED;
-    p->velocity.y = lib::Sin(angle) * EI_FEEBLE_SPEED;
+    float angle = g_clientRandom.Range(0.0f, twoPi);
+    p->velocity.x = lib::Cos(angle) * 0.05f;
+    p->velocity.y = lib::Sin(angle) * 0.05f;
     p->pos += p->velocity;
-    float grow = (WordToFloat(g_clientRandom.Next()) * EI_SCALE_0_2 + EI_POINT_NINE) * size *
-                       EI_FEEBLE_SIZE;
+    float grow = (WordToFloat(g_clientRandom.Next()) * kWordTo0_2 + 0.9f) * size * 0.035f;
     p->aux.z = grow;
     return 1;
 }
@@ -465,7 +407,7 @@ int ParticleSource::EmitFeebleMind(Particle* p, int) {
 // FeetCloud: size * 8 tries per tick; a puff at one of the two feet (the element's position once it is
 // tracked, else the source), drifting in a random direction inside the unit disc, rising.
 int ParticleSource::EmitFeetCloud(Particle* p, int) {
-    emitCount = std::lround(size * EI_FEET_DENSITY);
+    emitCount = std::lround(size * 8.0f);
     p->color = 0x00FFFFFF;
     p->frame = static_cast<int>(g_clientRandom.Next() & 15);
     int foot = static_cast<int>(g_clientRandom.Next() & 1);
@@ -476,18 +418,18 @@ int ParticleSource::EmitFeetCloud(Particle* p, int) {
     p->size = 0.0f;
     float x, y;
     for (int tries = 10;;) {
-        x = Signed(g_clientRandom.Next());
-        y = Signed(g_clientRandom.Next());
-        if (LengthSquared2D(y, x) < EI_ONE) break;   // integer-sourced: never NaN
+        x = g_clientRandom.Range(-1.0f, 1.0f);
+        y = g_clientRandom.Range(-1.0f, 1.0f);
+        if (LengthSquared2D(y, x) < 1.0f) break;   // integer-sourced: never NaN
         if (!(--tries > 0)) break;
     }
     float scale = e.foot.radius;
-    p->drift = Vector3{x, y, 0.0f} * EI_TENTH * scale * size;
+    p->drift = Vector3{x, y, 0.0f} * 0.1f * scale * size;
     p->aux = {};
     p->velocity.y = 1.0f;
     p->life = 10;
-    p->velocity.x = size * e.foot.radius * EI_POINT_FOUR;
-    p->pos.z = p->velocity.x * EI_FEET_RISE + p->pos.z;
+    p->velocity.x = size * e.foot.radius * 0.4f;
+    p->pos.z = p->velocity.x * 1.2f + p->pos.z;
     return 1;
 }
 
@@ -498,8 +440,8 @@ void ParticleSource::TickStartTrans(ParticleElement* e) {
     if (ticks < 0) {
         Stop();
     }
-    e->trans.scale = size * EI_TRANS_GROWTH + e->trans.scale;
-    elements[0].trans.count += EI_POINT_FOUR;
+    e->trans.scale = size * 0.02f + e->trans.scale;
+    elements[0].trans.count += 0.4f;
     int count = std::lround(elements[0].trans.count);
     emitCount = count;
     if (!(count < 8)) emitCount = 8;
