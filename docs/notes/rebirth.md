@@ -98,8 +98,10 @@ The five mod-folder patches (Maps, ResOverride, MoviesPatch, CameraPatch, Stream
   choice stays until the next site.
 - CameraPatch (Camera::LoadPath), MoviesPatch (every movie open), StreamPatch (the music stream's path): the mod's
   `Camera\`, `Movies\` or `Stream\` file of that name when it exists.
-- Check: `tests/scenarios/rebirth_mod_folders.txt`, with a mod `tools/make_test_mod.py` writes into the run's folder and
-  the harness step `addonpath`. Stream and Movies have no scenario. Not reproduced: Rebirth's own override folders, the
+- Check: `tests/scenarios/rebirth_mod_folders.txt` (S19b), with a mod `tools/make_test_mod.py` writes into the run's
+  folder and the harness step `addonpath`; `rebirth_mod_stream_movies`, `rebirth_mod_archives`, `rebirth_mod_maps` and
+  `rebirth_mod_zone_table` (S19d, mods from `tools/make_mod_s19d.py`: Stream, Movies, arrays and `-` entries, extra
+  figure and texture archives, every Maps site). Not reproduced: Rebirth's own override folders, the
   mod's [CONFIG] / [DEV] / SavesPath.
 - NivalRegistry (the starter's registry root) is dropped: one settings file serves both installs (standalone.md,
   "Settings file").

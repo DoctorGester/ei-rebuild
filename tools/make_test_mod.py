@@ -27,7 +27,7 @@ S19B_TEXT = b'S19b mod archive file\r\n'   # 23 bytes: the scenario's "modfile g
 
 REGISTRY_MAGIC = 0x45AB3EFB
 RES_MAGIC = 0x019CE23C
-REG_INT, REG_STRING = 0, 2
+REG_INT, REG_STRING, REG_ARRAY = 0, 2, 0x80
 
 
 def home_slot(name, slots):
@@ -67,7 +67,11 @@ def text(value):
 
 
 def key_record(name, value):
+    """A key's record: an int, a string, or (a list of strings) an array of them."""
     raw = name.encode('cp1251')
+    if isinstance(value, list):
+        head = struct.pack('<BH', REG_ARRAY | REG_STRING, len(raw)) + raw
+        return head + struct.pack('<H', len(value)) + b''.join(text(v) for v in value)
     head = struct.pack('<BH', REG_INT if isinstance(value, int) else REG_STRING, len(raw)) + raw
     return head + (struct.pack('<I', value) if isinstance(value, int) else text(value))
 

@@ -1,0 +1,13 @@
+{
+  "scenario": "rebirth_mod_stream_movies",
+  "install": "rebirth",
+  "recorded": "2026-11-04",
+  "commit": "a50e35c24",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 3,
+  "reason": "S19d: StreamPatch and MoviesPatch scenario, first golden",
+  "source": "image",
+  "saves": "not kept: save savea/mission.sav: 269 fields in 50 records differ: obj 267, world 1, player 1 / obj: 267 fields in 48 records; first obj1766 controller.queue.extra: 662 in the first run, 511 in r2; largest numeric d 1.34e+03 at obj1937 controller.motion.smoothing: 19573 -> 18233 / world: 1 fields in 1 records; first world tick: 680 in the first run, 545 in r2 (d 135)"
+}

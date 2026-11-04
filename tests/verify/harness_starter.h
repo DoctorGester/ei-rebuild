@@ -47,8 +47,25 @@ void Install(const char* savesDir);
 
 // The step "modfile <archive> <file> <bytes>": the game's archive <archive> in the text resources' folder opened
 // as the game opens it and <file> read through its GetFile (which looks in the mod's archives first, as Rebirth's
-// ResOverride did): its size must be <bytes> (0: not found). An error message, empty when it matches.
+// ResOverride did): its size must be <bytes> (0: not found; "!<n>": anything but <n>; "+": found). An error message,
+// empty when it matches.
 std::string ModFileStep(const std::string& argument);
+// "modlist <archive> <pattern> <count>": the same archive's ListFiles(pattern) gives that many names (the mod's
+// archives' and the archive's own, none of the archive's when the mod ignores it).
+std::string ModListStep(const std::string& argument);
+// "modarchive figures|links|textures <file> <bytes>": the size of <file> in the figure manager's, the link figure
+// loader's or the texture manager's archives, in their order (the mod's extra archives among them); needs a game.
+std::string ModArchiveStep(const std::string& argument);
+// "playstream <name>": the music stream is asked for <name> (an .mp3 of the stream folder, with its extension), as the main
+// menu's music is; a real-time thread opens it, so a scenario waits for it with "waitread" (harness_modtrace.h) at the main
+// menu, where no world update counts the passes the wait takes.
+std::string PlayStreamStep(const std::string& argument);
+// "mapfile exists <name> yes|no" / "mapfile write <name>": the maps folder's MapFileExists, and WriteMapFile with five
+// bytes, as the client's shared-file handler calls them (the folder follows Rebirth's Maps: the mod's or the game's).
+std::string MapFileStep(const std::string& argument);
+
+// The mod folder the scenario's "addonpath" step names, in full (empty without one).
+std::string AddonPath();
 
 // Whether this run plays the Rebirth install: the image runs with Rebirth flags (rebirth_profile::SettingsOnly; S19).
 // Scenario lines "vanilla ..." / "rebirth ..." and the digest's and the UI census's install follow it.

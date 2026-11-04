@@ -6819,6 +6819,13 @@ depends = ["S23"]
 note = "After S23 the play build is one exe, still named ei_standalone.exe, and it writes ei_hook.log beside itself (named after the DLL S23 removed). Ask the user for the names a player sees (e.g. EvilIslands.exe; ei.log or a logs folder) and rename through what reads them (run_all, resolve_crash, randtrace, profile_report, ei_launch, play.cmd, launch-vanilla.cmd, the harness's OutputPath readers, the docs). Goldens unchanged. User 2026-10-29: ei-rebuild.exe and ei-rebuild.log. Done 2026-10-29 (user's names): ei_standalone.exe/.map/.pdb and CMake target -> ei-rebuild; ei_hook.log -> ei-rebuild.log (shared code log.cpp, so game.exe's harness runs write it too); ei::OwnModuleName 'ei-rebuild' (log addresses ei-rebuild+offset; resolve_crash still reads older ei_standalone+/ei_hook+); ei_harness.dll and its name kept. Read through run_all, resolve_crash, profile_report, check_x87, check_signatures, coverage, game_load_sample.ps1, ei_launch (incl. --drop-in), play.cmd, launch-vanilla.cmd, harness, settings text, docs/notes, README. verify+release green, checks 0, dropin_boot/dropin_profile pass, --no-hooks suite 127 runs ALL PASS."
 
 [[ticket]]
+id = "S19d1"
+title = "rebirth_mod_stream_movies on the virtual-clock stream (SV5d6)"
+group = "standalone"
+depends = ["S19d"]
+note = "S19d's rebirth_mod_stream_movies waits for the music stream thread in real seconds (waitread) at the main menu with 'digest off', then 'digest 20' in the game, because the world updates the wait takes differed from run to run. SV5d6 (merged after S19d's base) steps the stream on the virtual clock: check whether the wait is then the same every run, and if so drop the digest guard and let the stream steps follow the game (also PlayMusic's jingle path in a zone)."
+
+[[ticket]]
 id = "R35c"
 title = "Drawn view: no backward jerk after a slow frame, no zoom pulse on fast spins"
 group = "renderer"
