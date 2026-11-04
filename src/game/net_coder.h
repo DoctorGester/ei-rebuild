@@ -121,6 +121,9 @@ struct BufferCursor {
     std::uint8_t bits;         // number of pending bits
     GameBuffer* sink;          // the buffer `p` is committed to at the end (or null)
     std::uint8_t* start;       // `p` when the cursor began
+    // Reading: one past the last byte there is to read (BeginRead's size, a packet's end); null where not known.
+    // Bounds the texts read (net_messages' TakeString), which the original read up to a zero byte wherever it was.
+    const std::uint8_t* limit = nullptr;
 
     // Appends the low `count` bits of `value` (writing).
     void PutBits(std::uint32_t value, std::uint8_t count);

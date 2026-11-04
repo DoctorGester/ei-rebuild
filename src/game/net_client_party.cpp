@@ -147,18 +147,20 @@ void ClientApplyParty(ClientSession* self) {
             stream->ReadValue(type);
             stream->ReadValue(packedId);
             EngineObject* spell = party->GetSpellManager()->CreateObject(static_cast<int>(type), id);
+            if (!spell) break;   // a type the factory does not know: the rest of the offer cannot be read
             spell->prototypeId = packedId;
             spell->Load(stream);
         }
         stream->ReadValue(type);
         stream->ReadValue(packedId);
         auto* item = party->ItemFactory()->CreateObjectAs<Item>(static_cast<int>(type), -1);
+        if (!item) break;
         item->prototypeId = packedId;
         item->Load(stream);
-        if (item) item->AddRef();
+        item->AddRef();
         items.push_back(item);
     }
-    for (std::uint32_t i = 0; i < count(); ++i) party->AddItem(items[i], 1, 1);
+    for (Item* item : items) party->AddItem(item, 1, 1);
 
     std::int32_t revision = static_cast<std::int32_t>(remote->revision);
     std::list<TradeRecord>& records = self->tradeRecords;

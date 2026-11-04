@@ -116,6 +116,7 @@ void BufferCursor::BeginRead(GameBuffer* buffer, std::int32_t size) {
     if (buffer->cur + size > buffer->end) buffer->ReserveRead(size);
     start = buffer->cur;
     p = buffer->cur;
+    limit = p + size;
     bits = 0;
     bytePtr = nullptr;
 }

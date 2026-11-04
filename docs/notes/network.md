@@ -113,6 +113,10 @@ idle.
 - Kept: `SendUpdate`'s entry that overflows the budget stays in the packet uncounted, the rest of that priority
   waits, lower priorities are still tried. `ReadRecord`'s skip path creates a throwaway object. `ClientApplyParty`
   creates and drops a member's object with a positive id.
+- Undefined in the original, defined in ours: a new connection's `roundTripSquare` starts at 0 (the original squared
+  what the memory held); an object of no registered type is tracked unreliable (the original read `reliable[-1]`); a
+  packet's texts end at the packet's end when the zero byte is missing (`BufferCursor::limit`, set by `BeginRead` and
+  for a received datagram); `ClientApplyParty` stops at a spell or item type its factory does not know.
 
 ## Compression
 

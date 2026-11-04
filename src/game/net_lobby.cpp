@@ -219,9 +219,9 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
     if (((magicNumber ^ magic) & 0xFFFFFF00u) != 0) return;
     auto node = FindServer(this, from);
     CreateEntry(&entry);
-    entry.Get()->Read(cursor);
     if (!entry) return;
     ServerEntry* e = entry.Get();
+    e->Read(cursor);
     e->address = *from;
     e->foreign = magicNumber != magic;     // another version (low byte differs): Connect refuses it
     bool local = socket.IsLocal(from);
