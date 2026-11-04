@@ -135,6 +135,69 @@ void CodecClose(SoundManager* m) {
     m->streamFile = nullptr;
 }
 
+constexpr const char* kClassName = "CSoundManager";
+
+constexpr unsigned kMaxRate = 44100;
+
+constexpr int kStreamRate = 44100;
+constexpr int kStreamChannels = 2;
+
+// The stream thread's (StreamThread).
+constexpr std::uint32_t kStreamPeriodMs = 100;
+constexpr int kNoHalfReady = -1;
+
+constexpr std::uint32_t kSwitchHoldMs = 4000;
+constexpr int kNeverSwitch = -1;
+constexpr int kCentrePan = 0x40;
+const char* const kLoopMarkers = "Markers2";
+const char* const kSwitchMarkers = "Markers1";
+
+// 16-bit samples are signed: silence is zero bytes.
+void Silence(std::uint8_t* to, int bytes) {
+    std::memset(to, 0, static_cast<std::uint32_t>(bytes));
+}
+// `bytes` of the file; what it does not give is silence.
+void ReadOrSilence(SoundManager* m, std::uint8_t* to, int bytes) {
+    int got = audio::DecodeMp3(m->streamFile, to, bytes);
+    if (got < bytes) Silence(to + got, bytes - got);
+}
+
+// The next file takes over: `bytes` of it (or silence) to `to`.
+void SwitchStream(SoundManager* m, std::uint8_t* to, int bytes) {
+    m->streamState = StreamState::Idle;
+    // Rebirth's StreamPatch: the mod's Stream\ folder when it has the file.
+    const bool modStream = ei::rebirth::Enabled(ei::rebirth::Patch::StreamPatch) && modfolders::StreamInMod(m->nextName);
+    std::string path = (modStream ? modfolders::StreamFolder() : m->soundPath) + m->nextName;
+    CodecClose(m);
+    std::string file;
+    if (!m->nextName.empty() && platform::ReadWholeFile(path, &file)) m->streamFile = audio::OpenMp3(std::move(file));
+    if (m->streamFile == nullptr) {
+        Silence(to, bytes);
+        m->endAfterSwitch = false;
+        std::lock_guard guard(m->nameLock);
+        m->streamName.clear();
+        return;
+    }
+    m->streamState = StreamState::Playing;
+    {
+        std::lock_guard guard(m->nameLock);
+        m->streamName = m->nextName;
+    }
+    m->soundRegistry.GetIntArray(m->streamName.c_str(), kSwitchMarkers, &m->markers);
+    m->soundRegistry.GetIntArray(m->streamName.c_str(), kLoopMarkers, &m->markers2);
+    m->streamLoopAt = !m->markers2.empty() ? m->markers2[0] : kNoPosition;
+    m->streamSwitchAt = kNeverSwitch;
+    const int channels = audio::Mp3Channels(m->streamFile);
+    audio::SetStreamFormat(m->streamSample, audio::Mp3Rate(m->streamFile), channels);
+    audio::SetStreamVolume(m->streamSample, kMaxLevel);
+    audio::SetStreamPan(m->streamSample, kCentrePan);
+    m->streamFrameBytes = channels * static_cast<std::int32_t>(sizeof(std::int16_t));
+    m->streamBufferFrames = m->streamBufferSize / m->streamFrameBytes;
+    m->streamPosition = 0;
+    ReadOrSilence(m, to, bytes);
+    if (m->endAfterSwitch.exchange(false)) m->MakeStop(StreamSwitch::AtEnd);
+}
+
 } // namespace
 
 // --- Shared pieces ------------------------------------------------------------------------------
@@ -845,74 +908,8 @@ bool SoundManager::LoadSample(SoundSlot* slot, std::string_view name, bool compr
     return true;
 }
 
-// --- The engine object's virtuals, the wave sources and sound folder, the music stream's file reading,
-// the lifetime and the output's setup Open / Close / Reset.
-
-namespace {
-constexpr const char* kClassName = "CSoundManager";
-
-constexpr unsigned kMaxRate = 44100;
-
-constexpr int kStreamRate = 44100;
-constexpr int kStreamChannels = 2;
-
-// The stream thread's (StreamThread).
-constexpr std::uint32_t kStreamPeriodMs = 100;
-constexpr int kNoHalfReady = -1;
-
-constexpr std::uint32_t kSwitchHoldMs = 4000;
-constexpr int kNeverSwitch = -1;
-constexpr int kCentrePan = 0x40;
-const char* const kLoopMarkers = "Markers2";
-const char* const kSwitchMarkers = "Markers1";
-
-// 16-bit samples are signed: silence is zero bytes.
-void Silence(std::uint8_t* to, int bytes) {
-    std::memset(to, 0, static_cast<std::uint32_t>(bytes));
-}
-// `bytes` of the file; what it does not give is silence.
-void ReadOrSilence(SoundManager* m, std::uint8_t* to, int bytes) {
-    int got = audio::DecodeMp3(m->streamFile, to, bytes);
-    if (got < bytes) Silence(to + got, bytes - got);
-}
-
-// The next file takes over: `bytes` of it (or silence) to `to`.
-void SwitchStream(SoundManager* m, std::uint8_t* to, int bytes) {
-    m->streamState = StreamState::Idle;
-    // Rebirth's StreamPatch: the mod's Stream\ folder when it has the file.
-    const bool modStream = ei::rebirth::Enabled(ei::rebirth::Patch::StreamPatch) && modfolders::StreamInMod(m->nextName);
-    std::string path = (modStream ? modfolders::StreamFolder() : m->soundPath) + m->nextName;
-    CodecClose(m);
-    std::string file;
-    if (!m->nextName.empty() && platform::ReadWholeFile(path, &file)) m->streamFile = audio::OpenMp3(std::move(file));
-    if (m->streamFile == nullptr) {
-        Silence(to, bytes);
-        m->endAfterSwitch = false;
-        std::lock_guard guard(m->nameLock);
-        m->streamName.clear();
-        return;
-    }
-    m->streamState = StreamState::Playing;
-    {
-        std::lock_guard guard(m->nameLock);
-        m->streamName = m->nextName;
-    }
-    m->soundRegistry.GetIntArray(m->streamName.c_str(), kSwitchMarkers, &m->markers);
-    m->soundRegistry.GetIntArray(m->streamName.c_str(), kLoopMarkers, &m->markers2);
-    m->streamLoopAt = !m->markers2.empty() ? m->markers2[0] : kNoPosition;
-    m->streamSwitchAt = kNeverSwitch;
-    const int channels = audio::Mp3Channels(m->streamFile);
-    audio::SetStreamFormat(m->streamSample, audio::Mp3Rate(m->streamFile), channels);
-    audio::SetStreamVolume(m->streamSample, kMaxLevel);
-    audio::SetStreamPan(m->streamSample, kCentrePan);
-    m->streamFrameBytes = channels * static_cast<std::int32_t>(sizeof(std::int16_t));
-    m->streamBufferFrames = m->streamBufferSize / m->streamFrameBytes;
-    m->streamPosition = 0;
-    ReadOrSilence(m, to, bytes);
-    if (m->endAfterSwitch.exchange(false)) m->MakeStop(StreamSwitch::AtEnd);
-}
-
-} // namespace
+// --- The engine object's virtuals, the wave sources and sound folder, the lifetime and the output's setup Open /
+// Close / Reset.
 
 const char* SoundManager::ClassName() { return kClassName; }
 ClassId SoundManager::GetClassId() { return ClassId::SoundManager; }

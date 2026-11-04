@@ -738,7 +738,7 @@ std::vector<std::string> PickZones(int id, const char* exclude) {
 }
 
 int LoadMission(ByteStream* file) {
-    g_clientWorld.sounds->StopAll(1);
+    g_clientWorld.sounds->StopAll(true);
     MemoryStream mission;
     if (!SaveFileRead(&mission, kMagicMission, file))
         return 0;

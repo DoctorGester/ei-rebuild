@@ -6,6 +6,8 @@
 // which the movie's own rate decides on a real-time clock (not the game's: the blocking player's loop does not move
 // the harness's virtual clock). Frames are numbered from 1.
 
+#include <cstdint>
+
 namespace video {
 
 struct Movie;
@@ -23,16 +25,18 @@ unsigned NextFrameNumber(const Movie* movie);
 // The frame decoded last (0 before the first).
 unsigned DecodedFrameNumber(const Movie* movie);
 
-// True while the next frame is not due yet.
-bool Waiting(Movie* movie);
+// Hands the sound decoded so far to the audio output as its stream frees a half, then says whether the next frame
+// is due. A player calls it on every pass, also while it waits.
+bool Pump(Movie* movie);
 // Decodes the next frame (it becomes the decoded one).
 void DecodeFrame(Movie* movie);
-// The decoded frame as R, G, B, X bytes, Width x Height, rows `pitch` bytes apart.
-void CopyFrame(const Movie* movie, void* to, int pitch);
+// The decoded frame as R, G, B, X bytes, Width x Height, rows Width * 4 bytes apart: the movie's own buffer, good
+// until the next call.
+const std::uint8_t* FramePixels(Movie* movie);
 // Moves on a frame; after the last, back to the first.
 void Advance(Movie* movie);
 // The frame decoded next becomes `frame` (at most the last).
 void GoToFrame(Movie* movie, unsigned frame);
-void SetVolume(Movie* movie, int volume);   // 0..32768
+void SetVolume(Movie* movie, int volume);   // 0..127
 
 } // namespace video

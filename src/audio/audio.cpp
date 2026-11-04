@@ -38,20 +38,10 @@
 
 namespace audio {
 
-// An MP3 file's whole frames: their samples per channel, the first frame's rate and channels.
-struct Mp3Layout {
-    std::uint32_t frames = 0;
-    std::uint32_t samples = 0;
-    unsigned rate = 0;
-    int channels = 0;
-};
-
 namespace {
 
 // The chunks a wave can have before its data are short; a size past this is not a wave.
 constexpr std::uint32_t kLongestHeader = 1u << 20;
-
-} // namespace
 
 // Bytes a second of the wave takes: for IMA ADPCM the rate times the block size over the samples a block holds (4
 // bytes of header per channel, then two samples a byte), truncated; 0 when the header makes no sense.
@@ -63,6 +53,60 @@ std::uint32_t WaveBytesPerSecond(const WaveInfo& info) {
     }
     return info.rate * static_cast<std::uint32_t>(info.channels * info.bits) / 8;
 }
+
+// An MP3 file's whole frames: their samples per channel, the first frame's rate and channels.
+struct Mp3Layout {
+    std::uint32_t frames = 0;
+    std::uint32_t samples = 0;
+    unsigned rate = 0;
+    int channels = 0;
+};
+
+// Layer 3 bit rates in kbit/s by the header's index: MPEG-1, then MPEG-2 and 2.5.
+constexpr int kBitRates[2][16] = {
+    {0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0},
+    {0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0},
+};
+// Sample rates by the header's index: MPEG-1, MPEG-2, MPEG-2.5.
+constexpr unsigned kRates[3][3] = {{44100, 48000, 32000}, {22050, 24000, 16000}, {11025, 12000, 8000}};
+
+// The layout of the MPEG audio layer 3 frames in `data` (an ID3v2 tag at the start skipped; bytes that are not a
+// frame header passed over a byte at a time; a frame cut short by the file's end not counted). No frames: zeros.
+Mp3Layout ScanMp3(const void* data, std::size_t size) {
+    const auto* p = static_cast<const std::uint8_t*>(data);
+    std::size_t at = 0;
+    if (size >= 10 && std::memcmp(p, "ID3", 3) == 0)
+        at = 10 + (static_cast<std::size_t>(p[6] & 0x7F) << 21 | static_cast<std::size_t>(p[7] & 0x7F) << 14 |
+                   static_cast<std::size_t>(p[8] & 0x7F) << 7 | (p[9] & 0x7F));
+    Mp3Layout layout;
+    while (at + 4 <= size) {
+        const std::uint32_t h = static_cast<std::uint32_t>(p[at]) << 24 | static_cast<std::uint32_t>(p[at + 1]) << 16 |
+                                static_cast<std::uint32_t>(p[at + 2]) << 8 | p[at + 3];
+        const unsigned version = h >> 19 & 3;   // 3 MPEG-1, 2 MPEG-2, 0 MPEG-2.5
+        const unsigned layer = h >> 17 & 3;     // 1 layer 3
+        const unsigned rateIndex = h >> 12 & 15;
+        const unsigned sampleIndex = h >> 10 & 3;
+        if ((h >> 21) != 0x7FF || layer != 1 || version == 1 || rateIndex == 0 || rateIndex == 15 || sampleIndex == 3) {
+            ++at;
+            continue;
+        }
+        const bool mpeg1 = version == 3;
+        const unsigned rate = kRates[mpeg1 ? 0 : version == 2 ? 1 : 2][sampleIndex];
+        const unsigned kbps = static_cast<unsigned>(kBitRates[mpeg1 ? 0 : 1][rateIndex]);
+        const std::size_t length = (mpeg1 ? 144000u : 72000u) * kbps / rate + (h >> 9 & 1);
+        if (at + length > size) break;
+        if (layout.frames == 0) {
+            layout.rate = rate;
+            layout.channels = (h >> 6 & 3) == 3 ? 1 : 2;
+        }
+        ++layout.frames;
+        layout.samples += mpeg1 ? 1152 : 576;
+        at += length;
+    }
+    return layout;
+}
+
+} // namespace
 
 WaveInfo ReadWaveInfo(const void* wave, std::size_t size) {
     WaveInfo info;
@@ -105,59 +149,7 @@ std::uint32_t WaveMilliseconds(const WaveInfo& info) {
     return static_cast<std::uint32_t>(static_cast<std::uint64_t>(info.dataLength) * 1000 / rate);
 }
 
-namespace {
-
-// Layer 3 bit rates in kbit/s by the header's index: MPEG-1, then MPEG-2 and 2.5.
-constexpr int kBitRates[2][16] = {
-    {0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0},
-    {0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0},
-};
-// Sample rates by the header's index: MPEG-1, MPEG-2, MPEG-2.5.
-constexpr unsigned kRates[3][3] = {{44100, 48000, 32000}, {22050, 24000, 16000}, {11025, 12000, 8000}};
-
-} // namespace
-
-// The layout of the MPEG audio layer 3 frames in `data` (an ID3v2 tag at the start skipped; bytes that are not a
-// frame header passed over a byte at a time; a frame cut short by the file's end not counted). No frames: zeros.
-Mp3Layout ScanMp3(const void* data, std::size_t size) {
-    const auto* p = static_cast<const std::uint8_t*>(data);
-    std::size_t at = 0;
-    if (size >= 10 && std::memcmp(p, "ID3", 3) == 0)
-        at = 10 + (static_cast<std::size_t>(p[6] & 0x7F) << 21 | static_cast<std::size_t>(p[7] & 0x7F) << 14 |
-                   static_cast<std::size_t>(p[8] & 0x7F) << 7 | (p[9] & 0x7F));
-    Mp3Layout layout;
-    while (at + 4 <= size) {
-        const std::uint32_t h = static_cast<std::uint32_t>(p[at]) << 24 | static_cast<std::uint32_t>(p[at + 1]) << 16 |
-                                static_cast<std::uint32_t>(p[at + 2]) << 8 | p[at + 3];
-        const unsigned version = h >> 19 & 3;   // 3 MPEG-1, 2 MPEG-2, 0 MPEG-2.5
-        const unsigned layer = h >> 17 & 3;     // 1 layer 3
-        const unsigned rateIndex = h >> 12 & 15;
-        const unsigned sampleIndex = h >> 10 & 3;
-        if ((h >> 21) != 0x7FF || layer != 1 || version == 1 || rateIndex == 0 || rateIndex == 15 || sampleIndex == 3) {
-            ++at;
-            continue;
-        }
-        const bool mpeg1 = version == 3;
-        const unsigned rate = kRates[mpeg1 ? 0 : version == 2 ? 1 : 2][sampleIndex];
-        const unsigned kbps = static_cast<unsigned>(kBitRates[mpeg1 ? 0 : 1][rateIndex]);
-        const std::size_t length = (mpeg1 ? 144000u : 72000u) * kbps / rate + (h >> 9 & 1);
-        if (at + length > size) break;
-        if (layout.frames == 0) {
-            layout.rate = rate;
-            layout.channels = (h >> 6 & 3) == 3 ? 1 : 2;
-        }
-        ++layout.frames;
-        layout.samples += mpeg1 ? 1152 : 576;
-        at += length;
-    }
-    return layout;
-}
-
-} // namespace audio
-
 // ==== The backend ====================================================================================================
-
-namespace audio {
 
 namespace {
 
@@ -912,6 +904,8 @@ struct Half {
     bool queued = false;
 };
 
+std::vector<Stream*> g_streams;   // in the order they were made
+
 } // namespace
 
 // Two halves played one after the other (under g_mix). Without a device the playing half advances on the game's clock
@@ -977,10 +971,6 @@ struct Stream {
         }
     }
 };
-
-namespace {
-std::vector<Stream*> g_streams;
-} // namespace
 
 Stream* CreateStream() {
     if (!g_open) return nullptr;
@@ -1144,19 +1134,6 @@ struct Mp3Close {
 };
 using Mp3Decoder = std::unique_ptr<drmp3, Mp3Close>;
 
-} // namespace
-
-struct Mp3Stream {
-    std::string file;
-    Mp3Layout layout;
-    Mp3Decoder decoder;              // null unless dr_mp3 opened the file with the layout's channels
-    std::uint64_t given = 0;         // frames
-    std::vector<std::int16_t> samples;
-};
-
-namespace {
-
-
 // dr_mp3 on the MP3 file in memory (16-bit samples), when it decodes the layout's channels; null otherwise.
 Mp3Decoder OpenMp3Decoder(const void* data, std::size_t size, const Mp3Layout& layout) {
     Mp3Decoder decoder(new drmp3);
@@ -1175,7 +1152,17 @@ void DecodeFrames(drmp3* decoder, int channels, std::uint64_t frames, std::vecto
     std::memcpy(to, samples->data(), samples->size() * sizeof(std::int16_t));
 }
 
+void PutTag(std::uint8_t* p, std::string_view tag) { std::copy(tag.begin(), tag.end(), p); }
+
 } // namespace
+
+struct Mp3Stream {
+    std::string file;
+    Mp3Layout layout;
+    Mp3Decoder decoder;              // null unless dr_mp3 opened the file with the layout's channels
+    std::uint64_t given = 0;         // frames
+    std::vector<std::int16_t> samples;
+};
 
 Mp3Stream* OpenMp3(std::string file) {
     auto mp3 = std::make_unique<Mp3Stream>();
@@ -1204,10 +1191,6 @@ void RewindMp3(Mp3Stream* mp3) {
     mp3->given = 0;
     if (mp3->decoder) drmp3_seek_to_pcm_frame(mp3->decoder.get(), 0);
 }
-
-namespace {
-void PutTag(std::uint8_t* p, std::string_view tag) { std::copy(tag.begin(), tag.end(), p); }
-} // namespace
 
 bool DecodeMp3File(const void* data, std::size_t size, std::vector<std::uint8_t>* wave) {
     const Mp3Layout layout = ScanMp3(data, size);
