@@ -23,12 +23,19 @@ console filter all on
 console @GodMode(0,1)
 console @GSSetVar(0,"hx",GetX(GetLeader()))
 console @GSSetVar(0,"hy",GetY(GetLeader()))
+# Each spawned creature takes the textures the maps place its kind with ("skin": AddUnitToServer names none, R49).
 console @AddUnitToServer("S1","WolfTutor","S1",Add(GSGetVar(0,"hx"),12),Add(GSGetVar(0,"hy"),1),0)
+skin S1 Wolf00 GoblinAxeBag00
 console @AddUnitToServer("S2","GoblinF1","S2",Add(GSGetVar(0,"hx"),14),Add(GSGetVar(0,"hy"),4),0)
+skin S2 Goblin00 GoblinAxeBag00
 console @AddUnitToServer("S3","BoarTutor","S3",Add(GSGetVar(0,"hx"),12),Add(GSGetVar(0,"hy"),7),0)
+skin S3 Boar00 default0
 console @AddUnitToServer("S4","WolfTutor","S4",Sub(GSGetVar(0,"hx"),8),Add(GSGetVar(0,"hy"),8),0)
+skin S4 Wolf00 GoblinAxeBag00
 console @AddUnitToServer("S5","GoblinF1","S5",Sub(GSGetVar(0,"hx"),10),Add(GSGetVar(0,"hy"),7),0)
+skin S5 Goblin00 GoblinAxeBag00
 console @AddUnitToServer("S6","BoarTutor","S6",Sub(GSGetVar(0,"hx"),7),Add(GSGetVar(0,"hy"),10),0)
+skin S6 Boar00 default0
 wait 3000
 freeze
 capture light_slope
@@ -42,11 +49,17 @@ console @RemoveUnitFromServer(GetObjectByName("S6"))
 
 # A fight: creatures around the hero, who cannot die.
 console @AddUnitToServer("F1","WolfTutor","F1",Add(GSGetVar(0,"hx"),4),GSGetVar(0,"hy"),0)
+skin F1 Wolf00 GoblinAxeBag00
 console @AddUnitToServer("F2","WolfTutor","F2",Sub(GSGetVar(0,"hx"),4),GSGetVar(0,"hy"),0)
+skin F2 Wolf00 GoblinAxeBag00
 console @AddUnitToServer("F3","GoblinF1","F3",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),4),0)
+skin F3 Goblin00 GoblinAxeBag00
 console @AddUnitToServer("F4","BoarTutor","F4",GSGetVar(0,"hx"),Sub(GSGetVar(0,"hy"),4),0)
+skin F4 Boar00 default0
 console @AddUnitToServer("F5","SkeletonF2","F5",Add(GSGetVar(0,"hx"),5),Add(GSGetVar(0,"hy"),5),0)
+skin F5 Skeleton00 default0
 console @AddUnitToServer("F6","GoblinF1","F6",Sub(GSGetVar(0,"hx"),5),Add(GSGetVar(0,"hy"),5),0)
+skin F6 Goblin00 GoblinAxeBag00
 waitfor 15 IsAlive(GetObjectByName("F6"))
 console @SetPlayer(GetObjectByName("F1"),6)
 console @SetPlayer(GetObjectByName("F2"),6)
@@ -82,7 +95,9 @@ unfreeze
 # The hero carries his own light at night; a goblin and a wolf beside him, which it lights but must not
 # shadow (an object's own light casts no point shadow).
 console @AddUnitToServer("N1","GoblinF1","N1",Add(GetX(GetLeader()),2),Add(GetY(GetLeader()),1),0)
+skin N1 Goblin00 GoblinAxeBag00
 console @AddUnitToServer("N2","WolfTutor","N2",Sub(GetX(GetLeader()),2),Add(GetY(GetLeader()),1),0)
+skin N2 Wolf00 GoblinAxeBag00
 waitfor 15 IsAlive(GetObjectByName("N2"))
 wait 1500
 freeze

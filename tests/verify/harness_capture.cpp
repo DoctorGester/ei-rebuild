@@ -324,6 +324,31 @@ bool HueShares(const char* name, double shares[4], const char** why) {
     return true;
 }
 
+bool MeanColour(const char* name, int left, int top, int right, int bottom, double bgr[3], const char** why) {
+    Image image;
+    if (!ReadBmp(name, image)) {
+        *why = "the frame is missing or unreadable";
+        return false;
+    }
+    left = (std::max)(left, 0);
+    top = (std::max)(top, 0);
+    right = (std::min)(right, image.width);
+    bottom = (std::min)(bottom, image.height);
+    if (left >= right || top >= bottom) {
+        *why = "the rectangle is outside the frame";
+        return false;
+    }
+    unsigned long long sum[3] = {0, 0, 0};
+    for (int y = top; y < bottom; ++y) {
+        const std::uint8_t* row = image.bgr.data() + static_cast<std::size_t>(y) * image.width * 3;
+        for (int x = left; x < right; ++x)
+            for (int k = 0; k < 3; ++k) sum[k] += row[x * 3 + k];
+    }
+    const double count = static_cast<double>(right - left) * (bottom - top);
+    for (int k = 0; k < 3; ++k) bgr[k] = static_cast<double>(sum[k]) / count;
+    return true;
+}
+
 bool CompareFile(const char* path, const char* frame, int tolerance, double* differing, int* largest, std::string* how,
                  const char** why) {
     Image shot, captured;

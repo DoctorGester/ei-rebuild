@@ -45,18 +45,31 @@ console filter all on
 console @GodMode(0,1)
 console @GSSetVar(0,"hx",GetX(GetLeader()))
 console @GSSetVar(0,"hy",GetY(GetLeader()))
+# Each spawned creature takes the textures the maps place its kind with ("skin": AddUnitToServer names none, R49).
 console @AddUnitToServer("F1","WolfTutor","F1",Add(GSGetVar(0,"hx"),4),GSGetVar(0,"hy"),0)
+skin F1 Wolf00 GoblinAxeBag00
 console @AddUnitToServer("F2","WolfTutor","F2",Sub(GSGetVar(0,"hx"),4),GSGetVar(0,"hy"),0)
+skin F2 Wolf00 GoblinAxeBag00
 console @AddUnitToServer("F3","WolfTutor","F3",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),4),0)
+skin F3 Wolf00 GoblinAxeBag00
 console @AddUnitToServer("F4","WolfTutor","F4",GSGetVar(0,"hx"),Sub(GSGetVar(0,"hy"),4),0)
+skin F4 Wolf00 GoblinAxeBag00
 console @AddUnitToServer("F5","GoblinF1","F5",Add(GSGetVar(0,"hx"),5),Add(GSGetVar(0,"hy"),5),0)
+skin F5 Goblin00 GoblinAxeBag00
 console @AddUnitToServer("F6","GoblinF1","F6",Sub(GSGetVar(0,"hx"),5),Add(GSGetVar(0,"hy"),5),0)
+skin F6 Goblin00 GoblinAxeBag00
 console @AddUnitToServer("F7","BoarTutor","F7",Add(GSGetVar(0,"hx"),5),Sub(GSGetVar(0,"hy"),5),0)
+skin F7 Boar00 default0
 console @AddUnitToServer("F8","BoarTutor","F8",Sub(GSGetVar(0,"hx"),5),Sub(GSGetVar(0,"hy"),5),0)
+skin F8 Boar00 default0
 console @AddUnitToServer("F9","ToadTutor","F9",Add(GSGetVar(0,"hx"),7),GSGetVar(0,"hy"),0)
+skin F9 Toad00 GoblinAxeBag00
 console @AddUnitToServer("F10","SkeletonF2","F10",Sub(GSGetVar(0,"hx"),7),GSGetVar(0,"hy"),0)
+skin F10 Skeleton00 default0
 console @AddUnitToServer("F11","DeerF0","F11",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),7),0)
+skin F11 Deer01 default0
 console @AddUnitToServer("F12","WolfGreyF1","F12",GSGetVar(0,"hx"),Sub(GSGetVar(0,"hy"),7),0)
+skin F12 Wolf00 default0
 waitfor 15 IsAlive(GetObjectByName("F12"))
 console @SetPlayer(GetObjectByName("F1"),6)
 console @SetPlayer(GetObjectByName("F2"),6)

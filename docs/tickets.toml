@@ -7353,6 +7353,13 @@ depends = ["R45a"]
 note = "User 2026-11-04: the resolution row (R45/R45a, platform::DisplaySizes) uses the original's toggle control (click steps to the next value), which is a poor way to pick from a dozen sizes; the game has no drop-down of its own, so add one. A drop-down list widget in the native immediate-mode interface (docs/notes/ui-native.md section 3), drawn in the game's own look (its frame, font and highlight art; no foreign styling): the row shows the current size, a click opens a list below (or above near the screen bottom) with every size, the current one marked, a hover highlight, mouse wheel and a scroll bar when it doesn't fit, Up/Down/Home/End/Enter/Escape on the keyboard, a click outside closes it without a change. Choosing applies the same way the toggle's change did (R45's ChooseResolution path, confirm/revert as now). Make the widget general so other many-valued rows could use it later, but convert only the resolution row now. Harness: scenario steps to open the list, pick an entry by index and check the chosen size; captures of the list open in vanilla and Rebirth at 4:3 and widescreen; goldens of ui_options captures change only where the row's look changes (re-record those, name them)."
 
 [[ticket]]
+id = "R49a"
+title = "A creature party member made by AddUnitToParty draws untextured in the next zone (original bug?)"
+group = "renderer"
+files = ["src/game/party.cpp", "src/game/world_units.cpp"]
+note = "Found in R49: a party record made by Party::AddMember (AddUnitToParty, AddUnitToServer) has texts 3 and 4 (primary / secondary texture) empty, as the original's (0065F5F0, 006621F0); CreateUnits sends them as the unit's textures, so a non-hero unit created from such a record draws untextured (white lit). The campaign does this once: zone4hadagans' AddUnitToParty(0, \"DrPlen\", \"DragonkinGreenF3\") after AddUnitUnderControl; when the party next enters a zone (zone8 scripts name DrPlen) the dragon would be created from the record, untextured, in the original too. Check by a save after the lizard cage (or a scenario: AddUnitToParty of a placed creature, then zone change) whether it shows; a fix would keep the joining unit's texture names in its record (behaviour change: the save's texts 3 and 4), a user decision. docs/notes/world.md, \"A record's texture names\"."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"

@@ -51,7 +51,9 @@ frames 60
 
 # A fireball from the hero's place at a wolf twelve units north (a script cast: no caster, its light at height 0), then
 # the light rising from its blast (captures blast_*, a frame apart).
+# Each spawned creature takes the textures the maps place its kind with ("skin": AddUnitToServer names none, R49).
 console @AddUnitToServer("LitWolf","WolfTutor","LitWolf",GetX(GetLeader()),Add(GetY(GetLeader()),12),0)
+skin LitWolf Wolf00 GoblinAxeBag00
 waitfor 10 IsAlive(GetObjectByName("LitWolf"))
 console @BlockUnit(GetObjectByName("LitWolf"),1)
 frames 10

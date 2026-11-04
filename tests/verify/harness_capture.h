@@ -42,6 +42,11 @@ bool LevelSteps(const char* name, double* steps, long long* pairs, const char** 
 // 1.5 times blue and within a third of each other).
 bool HueShares(const char* name, double shares[4], const char** why);
 
+// The mean blue, green and red of frames\<name>.bmp's pixels in the rectangle `left`..`right` x `top`..`bottom`
+// (right and bottom excluded; cut to the frame) into `bgr`. False (with `why`) when the frame is missing or the
+// rectangle holds no pixel of it.
+bool MeanColour(const char* name, int left, int top, int right, int bottom, double bgr[3], const char** why);
+
 // The same for any .bmp file (the game's own: 16 or 32 bits with channel masks, or 24) against
 // frames\<frame>.bmp; `how` gets the file's size and format.
 bool CompareFile(const char* path, const char* frame, int tolerance, double* differing, int* largest, std::string* how,

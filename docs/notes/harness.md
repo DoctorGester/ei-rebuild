@@ -92,7 +92,10 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
 - `capture <name>` writes the next presented frame to `frames\<name>.bmp` in the run's folder; `freeze` / `unfreeze`
   hold the game's clocks and camera around captures; `samecapture <a> <b>` requires two captures to match,
   `diffcapture <a> <b> <least> <most>` that they differ in that share of the pixels; `blink faces|open|close` loads the
-  units' faces or shows every face's open / closed state (render_blink). `python tools\compare_frames.py A B` compares
+  units' faces or shows every face's open / closed state (render_blink). `skin <unit> <first> [<second>]` gives a
+  spawned unit's client figure the textures a map placement names (AddUnitToServer names none: untextured, world.md),
+  `unitcolour <frame> <a> <b> <least> <most>` compares two units' mean colours in a frozen capture (render_unit_skin;
+  the crowds of render_occlusion, render_lighting and render_stats are skinned). `python tools\compare_frames.py A B` compares
   two captures or two runs' frames with a tolerance (`--mask` restricts it to where two other frames differ). A
   finished run's frames are stored packed (`<name>.bmp.z`, tools/frame_store.py). `render <spec>` sets the renderer's
   options for the run (renderer.md).
