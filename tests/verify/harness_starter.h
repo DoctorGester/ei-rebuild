@@ -57,8 +57,8 @@ std::string ModListStep(const std::string& argument);
 // loader's or the texture manager's archives, in their order (the mod's extra archives among them); needs a game.
 std::string ModArchiveStep(const std::string& argument);
 // "playstream <name>": the music stream is asked for <name> (an .mp3 of the stream folder, with its extension), as the main
-// menu's music is; a real-time thread opens it, so a scenario waits for it with "waitread" (harness_modtrace.h) at the main
-// menu, where no world update counts the passes the wait takes.
+// menu's music is; the stream's steps run on the virtual clock, so a scenario waits for it with "waitread"
+// (harness_modtrace.h) and the wait takes the same world updates every run.
 std::string PlayStreamStep(const std::string& argument);
 // "mapfile exists <name> yes|no" / "mapfile write <name>": the maps folder's MapFileExists, and WriteMapFile with five
 // bytes, as the client's shared-file handler calls them (the folder follows Rebirth's Maps: the mod's or the game's).

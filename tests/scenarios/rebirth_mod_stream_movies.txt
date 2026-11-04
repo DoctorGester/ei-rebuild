@@ -8,9 +8,8 @@
 # same name: the mod's file touched and the game's not. The vanilla install has no mod loader: its runs open the
 # game's files, whether there or not.
 # - StreamPatch, at the main menu: "playstream" asks the music stream for a track as the menu's music does. The stream
-#   thread opens it in real time and a pass of the main loop takes no real time, so how many world updates the wait
-#   takes differs from run to run: "digest off" keeps those updates out of the golden's records, and "digest 20" (the
-#   goldens' period, run_all.GOLDEN_PERIOD) starts them again in the game. s19d.mp3 opens the mod's file; bravery.mp3
+#   steps run on the virtual clock (no device in a harness run, SV5d6), so the wait takes the same world updates every run
+#   and the goldens record them. s19d.mp3 opens the mod's file; bravery.mp3
 #   the mod's copy, not the game's; attack.mp3, which the mod does not have, the game's.
 # - MoviesPatch, in the game: PlayMovie("crdtfin.bik") plays the mod's movie (the console line returns when it ends;
 #   the mod's copy is progres.bik's, a short one); a movie the mod does not have comes from the game's folder.
@@ -18,7 +17,6 @@
 addonpath s19d_mod
 reject Script error
 waitmenu
-digest off
 playstream s19d.mp3
 rebirth waitread 15 mod Stream\s19d.mp3
 rebirth read game Stream\s19d.mp3 no
@@ -34,7 +32,6 @@ console thingamabob
 newgame
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
-digest 20
 console @PlayMovie("crdtfin.bik")
 rebirth read mod Movies\crdtfin.bik yes
 rebirth read game Movies\crdtfin.bik no

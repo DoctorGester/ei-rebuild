@@ -2,12 +2,16 @@
   "scenario": "rebirth_mod_stream_movies",
   "install": "rebirth",
   "recorded": "2026-11-04",
-  "commit": "a50e35c24",
+  "commit": "7cab5007e",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
-  "repeated_in": 3,
-  "reason": "S19d: StreamPatch and MoviesPatch scenario, first golden",
+  "repeated_in": 2,
+  "reason": "S19d1: no digest guard around the music stream wait: it takes the same world updates every run on the virtual clock, so the menu's updates are recorded too",
   "source": "image",
-  "saves": "not kept: save savea/mission.sav: 269 fields in 50 records differ: obj 267, world 1, player 1 / obj: 267 fields in 48 records; first obj1766 controller.queue.extra: 662 in the first run, 511 in r2; largest numeric d 1.34e+03 at obj1937 controller.motion.smoothing: 19573 -> 18233 / world: 1 fields in 1 records; first world tick: 680 in the first run, 545 in r2 (d 135)"
+  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "digest: digest: the new run has more records; the other ends before its record 1 (world update 40, frame 7, tick 40, zone -)",
+    "  digest: the new run has more records; the other ends before its record 1 (world update 40, frame 7, tick 40, zone -)"
+  ]
 }
