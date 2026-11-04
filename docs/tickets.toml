@@ -7277,6 +7277,13 @@ depends = ["R37e2"]
 note = "R37e2: in the town at night at 4K, msaa 8 the GPU takes 2.75 ms a frame on Direct3D 12 (2.8 with the crowd), the main thread 1.1 (2.1) ms: a harness frame without a limit waits for the GPU. 2.4 ms of it come after the shadow maps (the world's multisampled pass, its resolve, the composition and the present); D3D11 measured 2.05 for the whole frame. Split it with the submission timing (renderer.md section 13 item 1; probe in build/R37e2 of the main checkout) on a quiet machine, then decide (the user's 120 Hz frame has 8.3 ms, so low value until the GPU limits play)."
 
 [[ticket]]
+id = "R45a"
+title = "Options resolution list from the display's modes instead of a fixed list"
+group = "renderer"
+depends = ["R45"]
+note = "User 2026-11-04 asked why R45 hardcodes 19 sizes. List the sizes from the platform layer: platform::DisplaySizes() over SDL_GetFullscreenDisplayModes of the window's display (sizes only, deduped, largest first, none above the desktop size; full screen stays the desktop mode with the frame scaled, so the modes are only size choices), plus the current size when missing. The harness backend returns a fixed list so scenarios step it the same way on every machine. Remove the fixed list. Check: render_options_resolution the same, a unit check of the dedup and order, Linux builds."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
