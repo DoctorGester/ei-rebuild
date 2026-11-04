@@ -169,7 +169,7 @@ LinkMesh* LinkFigureLoader::LoadLinkFile(const std::string* name, float s, float
         data = FileData(set->mesh, name->data());
     } else {
         std::string file(*name);
-        file.append(".lnk", ".lnk" + 4);
+        file += ".lnk";
         data = FindInArchives(archives, file.data());
     }
     if (!data) {
@@ -213,7 +213,7 @@ int LinkFigureLoader::LoadArchivePart(LinkMesh* mesh, const std::string* name, f
     {
         std::string file = mesh->name;
         file.append(name->data(), name->data() + name->size());
-        file.append(".fig", ".fig" + 4);
+        file += ".fig";
         data = FindInArchives(archives, file.data());
     }
     if (!data) return 0;
@@ -262,7 +262,7 @@ bool LinkFigureLoader::RemorphPart(LinkMesh* mesh, FigureModel* set, const std::
     } else {
         std::string file = mesh->name;
         file.append(name->data(), name->data() + name->size());
-        file.append(".fig", ".fig" + 4);
+        file += ".fig";
         data = FindInArchives(archives, file.data());
     }
     if (!data) return false;

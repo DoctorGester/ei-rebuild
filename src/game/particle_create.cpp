@@ -211,6 +211,7 @@ void SetupWeather(ParticleSource* s) {
     case ParticleType::Shower2: s->elements[0].ticks = 13; break;
     case ParticleType::Shower3: s->elements[0].ticks = 14; break;
     case ParticleType::Shower4: s->elements[0].ticks = 15; break;
+    default: break;   // the other weather kinds keep their ticks
     }
 }
 
