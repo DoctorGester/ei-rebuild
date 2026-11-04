@@ -6372,7 +6372,7 @@ id = "H50a"
 title = "Linux: dzn the local default under WSL, and a shorter skip list there"
 group = "harness"
 depends = ["H50"]
-note = "H50 found dzn (Mesa's Vulkan on D3D12, ~/mesa-dzn with its one local change) stable: two image suites, the Rebirth set and the left-out set with no failure or retry but net_second_master and render_present_window. Decide with the user: run_all under WSL takes --dzn by itself when ~/mesa-dzn's manifest exists (lavapipe by EI_VK_ICD=system or a flag; CI stays lavapipe), and the local list of scenarios left out (camera_smooth, camera_spin, render_stats, zone_gz15h_tornado, the pairs, render_smooth, render_terrain_seams, ui_quicksave all pass on dzn). docs/notes/linux.md, The GPU under WSL."
+note = "H50 found dzn (Mesa's Vulkan on D3D12, ~/mesa-dzn with its one local change) stable: two image suites, the Rebirth set and the left-out set with no failure or retry but net_second_master and render_present_window. Decide with the user: run_all under WSL takes --dzn by itself when ~/mesa-dzn's manifest exists (lavapipe by EI_VK_ICD=system or a flag; CI stays lavapipe), and the local list of scenarios left out (camera_smooth, camera_spin, render_stats, zone_gz15h_tornado, the pairs, render_smooth, render_terrain_seams, ui_quicksave all pass on dzn). docs/notes/linux.md, The GPU under WSL. User 2026-11-04: give WSL runs more concurrency on dzn: default --jobs from the free shared game slots (the 16-game cap, --hold-slots), not lavapipe's 4; GitHub's runner stays as it is."
 
 [[ticket]]
 id = "H50b"
