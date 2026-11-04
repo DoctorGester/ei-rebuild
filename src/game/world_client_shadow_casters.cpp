@@ -134,9 +134,9 @@ void HandOverParts(Object3D* object, Object3DClientSpecific* half, const Matrix4
                     if (!r) continue;
                     positions = figure->vertices.data() + r->vertices.start;
                     packets = r->vertices.count;
-                    mesh.uvs = reinterpret_cast<const float*>(figure->texCoords.data() + r->texCoords.start);
+                    mesh.uvs = figure->texCoords.data() + r->texCoords.start;
                     mesh.uvCount = r->texCoords.count;
-                    mesh.corners = reinterpret_cast<const std::uint16_t*>(figure->corners.data() + r->corners.start);
+                    mesh.corners = figure->corners.data() + r->corners.start;
                     mesh.cornerCount = r->corners.count;
                     mesh.indices = figure->indices.data() + r->indices.start;
                     mesh.indexCount = r->indices.count;
@@ -144,9 +144,9 @@ void HandOverParts(Object3D* object, Object3DClientSpecific* half, const Matrix4
                     const MeshBuffers& b = part->buffers;
                     positions = b.vertices;
                     packets = b.vertexCount;
-                    mesh.uvs = &b.texCoords->u;
+                    mesh.uvs = b.texCoords;
                     mesh.uvCount = b.texCoordCount;
-                    mesh.corners = &b.corners->position;
+                    mesh.corners = b.corners;
                     mesh.cornerCount = b.cornerCount;
                     mesh.indices = b.indices;
                     mesh.indexCount = b.indexCount;

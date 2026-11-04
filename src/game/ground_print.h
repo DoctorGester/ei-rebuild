@@ -7,7 +7,7 @@
 // once (the decal projector) and draws it with an alpha that fades over the print's life. See
 // docs/notes/models.md.
 
-#include "ground_decal.h"   // DecalTexCoord
+#include "ground_decal.h"   // DecalBuilder
 
 #include "lib/vecmath.h"
 
@@ -81,7 +81,7 @@ public:
     std::uint32_t colour;           // its alpha byte is set from alpha every draw
     int lifetime;
     std::vector<VertexPacket> positions;      // the ground geometry (blocks of four)
-    std::vector<DecalTexCoord> texCoords;     // one per vertex
+    std::vector<TexCoord> texCoords;     // one per vertex
     std::vector<std::uint16_t> indices;
 };
 

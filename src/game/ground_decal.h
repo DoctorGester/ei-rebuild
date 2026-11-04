@@ -17,16 +17,12 @@ struct DecalVertex {
     float u, v;
 };
 
-struct DecalTexCoord {
-    float u, v;
-};
-
 class DecalBuilder {
 public:
     // Starts a decal: empties the arrays (keeping their buffers) and sets the projection up from the quad's
     // corners (3, 2 and 0 are the origin, the u and the v corner), the direction (normalised in the copy) and
     // the cut-off plane's point, `depth` * 0.33 back along it.
-    void Begin(std::vector<VertexPacket>* points, std::vector<DecalTexCoord>* texCoords,
+    void Begin(std::vector<VertexPacket>* points, std::vector<TexCoord>* texCoords,
                std::vector<std::uint16_t>* indices, const VertexPacket& quad, const Vector3& direction,
                const Vector3& point, float depth);
     // Whether a sphere around `center` can touch the decal: its u and v ranges widened by radius * the axis
@@ -48,7 +44,7 @@ public:
     std::uint16_t AddVertex(const DecalVertex* v);
 
     std::vector<VertexPacket>* points = nullptr;    // x[4], y[4], z[4] per packet (w untouched)
-    std::vector<DecalTexCoord>* texCoords = nullptr;
+    std::vector<TexCoord>* texCoords = nullptr;
     std::vector<std::uint16_t>* indices = nullptr;
     Vector3 uAxis;           // the u edge across the direction, over its squared length
     Vector3 vAxis;           // the same for v

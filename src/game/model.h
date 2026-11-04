@@ -4,6 +4,7 @@
 // databases read at startup (prints.db, acks.db). See docs/notes/models.md.
 
 #include "lib/vecmath.h"
+#include "render/mesh_records.h"
 #include "render/render_state.h"
 #include "renderer_base.h"
 #include "script.h"   // ScriptStream
@@ -337,13 +338,7 @@ Matrix4* ViewportMatrix(Matrix4* out, const Rect* rect);
 // Perspective projection; `fov` in radians (full angle).
 Matrix4* ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, float zFar);
 
-// A triangle corner of a figure part: the vertex (position) index, a second index (the normal's; the interface
-// sprites write 0) and the texture coordinate index.
-struct MeshCorner {
-    std::uint16_t position;
-    std::uint16_t normal;
-    std::uint16_t texCoord;
-};
+using MeshCorner = render::MeshCorner;
 
 class MappedResource;
 

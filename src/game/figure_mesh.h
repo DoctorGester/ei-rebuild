@@ -37,11 +37,8 @@ static_assert(sizeof(VertexPacket) == 0x40);
 struct NormalPacket {
     float block[4][4];
 };
-// A texture coordinate (u, v); the rasteriser scales them to fixed point.
-struct TexCoord {
-    float u, v;
-};
-static_assert(sizeof(NormalPacket) == 0x40 && sizeof(TexCoord) == 8 && sizeof(MeshCorner) == 6);
+using TexCoord = render::TexCoord;
+static_assert(sizeof(NormalPacket) == 0x40);
 
 // What the renderer draws from (FigureMesh::buffers): pointers and counts of the mesh's arrays (type 0x41
 // points the last four into the loaded file data instead).

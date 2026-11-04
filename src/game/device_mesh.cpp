@@ -85,8 +85,8 @@ void HandOver(TextureDevice* device, const MeshArgs& args) {
     m.positionCount = args.blocks * 4;
     m.colours = args.colours;
     m.speculars = args.speculars;
-    m.uvs = &args.uvs->u;
-    m.corners = &args.corners->position;
+    m.uvs = args.uvs;
+    m.corners = args.corners;
     m.cornerCount = args.cornerCount;
     m.indices = args.indices;
     m.indexCount = args.indexCount;
@@ -235,14 +235,14 @@ using devicebuffers::g_projected;
 
 // The new renderer (src/render) gets the geometry in model space with the screen stack's matrix
 // (kScreenStack); each pass the indexed draw then makes hands over the device's state.
-void HandOver(TextureDevice* device, const VertexPacket* positions, const void* uvs, int count,
+void HandOver(TextureDevice* device, const VertexPacket* positions, const TexCoord* uvs, int count,
               const std::uint16_t* indices, int indexCount, const std::uint32_t* colours, bool clipped) {
     render::MeshDraw m{};
     m.positions = &positions->block[0][0];
     m.positionCount = count;
     m.colours = &colours[0];
     m.speculars = &colours[1];
-    m.uvs = static_cast<const float*>(uvs);
+    m.uvs = uvs;
     m.corners = nullptr;
     m.cornerCount = count;
     m.indices = indices;
@@ -255,7 +255,7 @@ void HandOver(TextureDevice* device, const VertexPacket* positions, const void* 
     render::BeginMesh(device, m);
 }
 
-int DrawFlat(TextureDevice* device, const VertexPacket* positions, const void* uvs, int blocks,
+int DrawFlat(TextureDevice* device, const VertexPacket* positions, const TexCoord* uvs, int blocks,
              const std::uint16_t* indices, int indexCount, std::uint32_t colour, std::uint32_t specular) {
     TransformPipeline* pipeline = device->pipeline;
     int count = blocks * 4;
@@ -272,10 +272,10 @@ int DrawFlat(TextureDevice* device, const VertexPacket* positions, const void* u
 
 } // namespace
 
-// `positions` blocks of four vertices (`blocks` of them), `uvs` one (u, v) per vertex,
+// `positions` blocks of four vertices (`blocks` of them), `uvs` one per vertex,
 // `indices` / `indexCount` the triangles, `colour` and `specular` for every vertex. Returns 2 when
 // nothing is visible, else 0.
-int TextureDevice::DrawFlatBlocks(const VertexPacket* positions, const void* uvs, int blocks,
+int TextureDevice::DrawFlatBlocks(const VertexPacket* positions, const TexCoord* uvs, int blocks,
                                    const std::uint16_t* indices, int indexCount, std::uint32_t fillColour,
                                    std::uint32_t specular) {
     render::BeginFlatDrawTime(blocks * 4);

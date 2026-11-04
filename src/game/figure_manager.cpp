@@ -213,6 +213,12 @@ namespace {
 
 constexpr std::uint32_t kFigMagic = 0x474946;   // "FIG"
 
+// The bounds' floats (centre, box minimum, box maximum, radius): 8 versions of each in FIG8, one in another FIG,
+// 6 corner versions without a FIG header.
+constexpr int kFig8BoundsFloats = 8 * 10;
+constexpr int kFigBoundsFloats = 10;
+constexpr int kOldBoundsFloats = 6 * 10;
+
 } // namespace
 
 int FigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, std::string_view directory, std::string_view name, std::uint32_t s, std::uint32_t t, std::uint32_t u) {
@@ -232,12 +238,20 @@ int FigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, std::st
     if (!data) return 0;
     std::uint32_t magic;
     lib::LoadBytes(magic, data);
-    if ((magic & 0xFFFFFF) == kFigMagic)
-        MorphFigureBounds(out, reinterpret_cast<const float*>(data + 0x28), std::bit_cast<float>(s), std::bit_cast<float>(t),
-                          std::bit_cast<float>(u), magic);
-    else
-        MorphFigureBounds6(out, reinterpret_cast<const float*>(data + 8), std::bit_cast<float>(s), std::bit_cast<float>(t),
-                           std::bit_cast<float>(u));
+    const float weightS = std::bit_cast<float>(s), weightT = std::bit_cast<float>(t), weightU = std::bit_cast<float>(u);
+    if (magic == kFig8Magic) {
+        float versions[kFig8BoundsFloats];
+        lib::LoadBytes(versions, data + 0x28);
+        MorphFigureBounds(out, versions, weightS, weightT, weightU, magic);
+    } else if ((magic & 0xFFFFFF) == kFigMagic) {
+        float version[kFigBoundsFloats];
+        lib::LoadBytes(version, data + 0x28);
+        MorphFigureBounds(out, version, weightS, weightT, weightU, magic);
+    } else {
+        float corners[kOldBoundsFloats];
+        lib::LoadBytes(corners, data + 8);
+        MorphFigureBounds6(out, corners, weightS, weightT, weightU);
+    }
     if (model) model->mesh->CloseFile(data);
     else CloseFile(data);
     return 1;
