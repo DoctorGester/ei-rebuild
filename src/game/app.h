@@ -73,6 +73,9 @@ bool SetResolution(int width, int height);
 void RequestResolution(int width, int height);
 // At a main loop pass's start: the requested resolution taken.
 void TakeResolutionChange();
+// main's first step: SDL's video up and the renderer's device started on its thread, so that most of the device's time
+// passes while GameMain starts up.
+void StartVideo();
 // WinMain: the application's start-up, main loop and shutdown.
 int GameMain(char* commandLine);
 // A DirectX failure: the formatted text (1 KB), then "%s (0x%.8X) %s" with the result and its

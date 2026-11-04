@@ -158,10 +158,9 @@ void ReadCommandLine(const char* commandLine) {
     }
 }
 
-// The window system started; a game that runs already is brought to the front instead and this one exits.
-void StartWindowSystem() {
+// A game that runs already (its window found by class and title) is brought to the front instead and this one exits.
+void ExitIfGameRuns() {
     std::snprintf(g_windowTitle, sizeof(g_windowTitle), "%s", kWindowTitle);
-    platform::StartWindowSystem(kWindowClassName);
     if (!platform::BringOtherInstanceForward(kWindowClassName, g_windowTitle)) return;
     ei::Log("app: another game runs (its window's class and title \"%s\" the same): the one-instance check ends this "
             "game with exit code -1", g_windowTitle);
@@ -475,6 +474,15 @@ std::uint8_t g_recordingFrames = /*0079BC54*/ {};
 int g_showClientSpeed = /*0079BC60*/ {};
 const char* g_loadingMovieName = /*00791EE0*/ "progres.bik";
 
+void StartVideo() {
+    // The one-instance check first: a second game ends here, before it has a device thread to stop.
+    ExitIfGameRuns();
+    platform::StartWindowSystem(kWindowClassName);
+    // SDL's video is up now (the device needs it): the renderer's device and pipelines are made while the rest starts.
+    // The harness build's settings file lacks the render quality, as in TextureDevice's constructor.
+    render::PrepareDevice(render::QualitySettingsSupported() ? settings::GetInt(settings::kRenderer, "Msaa", render::kDefaultMsaa) : 1);
+}
+
 int GameMain(char* commandLine) {
     // What game.exe's static initialisers did beyond setting values, in their order: the exit functions go in the
     // game's order, not at our CRT's.
@@ -489,10 +497,6 @@ int GameMain(char* commandLine) {
     app::TypeRegistryRegister(&g_classRegistry, 1, CreateClassTemplate);
     app::TypeRegistryRegister(&g_classRegistry, 2, CreatePartyRecord);
     ReadCommandLine(commandLine);
-    StartWindowSystem();
-    // SDL's video is up now (the device needs it): the renderer's device and pipelines are made while the rest starts.
-    // The harness build's settings file lacks the render quality, as in TextureDevice's constructor.
-    render::PrepareDevice(render::QualitySettingsSupported() ? settings::GetInt(settings::kRenderer, "Msaa", render::kDefaultMsaa) : 1);
 
     GameOptions* options = &options::g_options;
     StoreStartFolder();
@@ -522,18 +526,20 @@ int GameMain(char* commandLine) {
     platform::ShowGameWindow(g_mainWindow);
     platform::SetCursor(nullptr);
 
-    CreateRenderer();
+    // What needs no device is done first: the renderer's start (CreateRenderer) takes the device from its thread, which
+    // has most of its ~260 ms still to go.
     if (options->audio) OpenSound();
+    LoadDatabases();
+    g_mapDatabase.LoadAll();
+    CreateRenderer();
 
     PlayMovies("Start", true);
     g_loadingMovieName = "Progres.bik";
     ShowLoadingMovie(0);
     CloseLoadingMovie();
-    LoadDatabases();
     g_clientWorld.SetUpGraphics(g_sceneRenderer.device);
     SetUpCursors(0);
     g_interface.Create(g_sceneRenderer.device);
-    g_mapDatabase.LoadAll();
     StartFirstMap();
     g_sceneRenderer.SetGamma(options->brightness, options->gamma);
 
