@@ -852,7 +852,7 @@ void SwitchResourceDatabases(const std::string& name) {
     UnitDatabase& units = g_unitDatabase;
     units = UnitDatabase();
     units.Load(ResourcesPath(), name);
-    units.CountSoundFiles(g_clientWorld.sounds);
+    units.CountSoundFiles(g_clientWorld.sounds.get());
     g_skillDatabase = SkillDatabase();
     g_skillDatabase.Load(ResourcesPath(), name);
     g_spellDatabase = itemdb::SpellDatabase();
@@ -1042,7 +1042,7 @@ void GameFlow::AfterServerStart() {
 
 void GameFlow::UpdateFromServer() {
     if (!IsLive(net::g_gameClient)) return;
-    if (TextManager* texts = g_clientWorld.texts) {
+    if (TextManager* texts = g_clientWorld.texts.get()) {
         for (const auto& file : g_questFiles) texts->RemoveSource(file);
         g_questFiles.clear();
     }

@@ -999,7 +999,7 @@ bool ScriptRun::Execute(Script* script) {
         }
         case ScriptFunction::FixItems: {   // FixItems: every item repaired
             ObjectListIteratorOf<Item> it;
-            for (Item* item = it.First(g_serverWorld.itemManager); item; item = it.Next()) item->Repair();
+            for (Item* item = it.First(g_serverWorld.itemManager.get()); item; item = it.Next()) item->Repair();
             break;
         }
 

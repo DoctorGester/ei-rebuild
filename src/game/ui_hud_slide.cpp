@@ -314,7 +314,7 @@ void HudUnitPanel::Setup(int newBodyPart, bool slid) {
     shownUnit = nullptr;
     hoverUnit = nullptr;
 
-    TextManager* clientWorldTexts = g_clientWorld.texts;
+    TextManager* clientWorldTexts = g_clientWorld.texts.get();
     std::string text;
     std::string key;
     for (int i = 0; i < kInfoTexts; ++i) {

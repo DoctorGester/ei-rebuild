@@ -206,7 +206,7 @@ Texture::~Texture() {
 }
 
 // The client world's (it has the one texture manager).
-TextureManager* Texture::Manager() const { return ClientWorld()->textureManager; }
+TextureManager* Texture::Manager() const { return ClientWorld()->textureManager.get(); }
 
 MmpFile::MmpFile(void* file) : data(file) {
     if (file) lib::LoadBytes(header, file);

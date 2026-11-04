@@ -33,7 +33,7 @@ void UiRegion::SetTip(int textId, int command) {
         return;
     }
     std::string text = str::Format(kTipText, textId);
-    TextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts.get();
     if (texts->Open(text)) text = texts->ReadToHash();
     delete tip;
     tip = NewTooltip(this, text, command);

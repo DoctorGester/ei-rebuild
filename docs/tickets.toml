@@ -8144,7 +8144,7 @@ title = "Lifetimes: default initialisers, Reset(), iterators that release"
 group = "cleanup"
 model = "opus"
 depends = ["C108"]
-note = "C112 (2026-11-04) already did the net Rebuild sites and RefCounted setting its own count; what is left here is AIMap::Reset's new (this) and the other items."
+note = "C112 (2026-11-04) already did the net Rebuild sites and RefCounted setting its own count; what is left here is AIMap::Reset's new (this) and the other items. C131 (2026-11-04) did the iterators tree-wide: ObjectListIterator drops its manager count in its destructor, PlayerIterator is an alias, no hand drops left."
 
 [[ticket]]
 id = "C125"

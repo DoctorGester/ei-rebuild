@@ -501,7 +501,7 @@ void SharedObject::Load(ByteStream* stream) {
     int count = ReadAs<int>(stream);
     for (int i = 0; i < count; ++i) {
         int id = ReadAs<int>(stream);
-        Item* object = FindItem(g_serverWorld.itemManager, id);
+        Item* object = FindItem(g_serverWorld.itemManager.get(), id);
         if (object) entry->objects.emplace_back(object);
     }
 }

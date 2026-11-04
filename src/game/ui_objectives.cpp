@@ -260,7 +260,7 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
 // --- The selected quest ------------------------------------------------------------------
 
 void ObjectivesWindow::ShowQuest() {
-    TextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts.get();
     std::string line;
     std::string part;
     std::string text;
@@ -520,7 +520,7 @@ void ObjectivesWindow::CreateScreen() {
     ui->OpenHelp(false);
 }
 void ObjectivesWindow::DrawQuestList() {
-    TextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts.get();
     std::string title;
     std::string variable;
     auto mesh = [this](int index) { return sceneObjects[index]; };

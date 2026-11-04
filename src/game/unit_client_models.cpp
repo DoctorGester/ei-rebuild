@@ -156,7 +156,7 @@ void UnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
     if (slot >= 7) return;
     if (armourIds[slot] == itemId) return;
     armourIds[slot] = itemId;
-    FigureManager* manager = g_clientWorld.figureManager;
+    FigureManager* manager = g_clientWorld.figureManager.get();
     int row = RowOfSlot(static_cast<int>(slot));
     if (row < 0) return;
 
@@ -392,7 +392,7 @@ std::vector<SkinLayer> UnitClientSpecific::BuildSkinLayers(int detailed) {
 }
 
 bool UnitClientSpecific::ComposeSkin(int detailed, std::string* target) {
-    TextureManager* textureManager = g_clientWorld.textureManager;
+    TextureManager* textureManager = g_clientWorld.textureManager.get();
     bool result;
     {
         std::string unitKey;

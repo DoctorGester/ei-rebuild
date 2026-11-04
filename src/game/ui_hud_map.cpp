@@ -254,12 +254,12 @@ float WheelZoomFactor(int delta) {
 
 void HudMap::BuildMarkers() {
     UiMesh* mesh = sceneObjects[2];
-    BaseManager* objectManager = g_clientWorld.objectManager;
+    BaseManager* objectManager = g_clientWorld.objectManager.get();
     // The local view: the ids of the units shown on the map (partyUnitIds) and, in multiplayer, of the other
     // players' units (otherUnitIds).
     PlayerClient* localView = g_clientWorld.LocalView();
     int unitCount = localView ? lib::Count(localView->partyUnitIds) : 0;
-    LightFactory* markers = g_clientWorld.lightFactory;
+    LightFactory* markers = g_clientWorld.lightFactory.get();
     const std::vector<int>& marked = markers->litIds;
     const int markedCount = static_cast<int>(marked.size());
     int exitCount = static_cast<int>(std::ssize(g_clientWorld.exits));

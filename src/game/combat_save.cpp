@@ -101,7 +101,7 @@ void LoadArmourSpells(std::vector<ArmourSpell>* list, ByteStream* stream) {
     list->clear();
     if (count > 0) list->resize(count, ArmourSpell{{}, 0, 0});
     for (ArmourSpell& entry : *list) {
-        entry.item.Assign(ReadItem(stream, g_serverWorld.itemManager));
+        entry.item.Assign(ReadItem(stream, g_serverWorld.itemManager.get()));
         stream->ReadValue(entry.countdown);
     }
 }
@@ -147,7 +147,7 @@ void UnitServer::Load(ByteStream* stream) {
     effectObject.Assign(ReadObject(stream, effects));
     LoadArmourSpells(&armourSpells, stream);
     stream->ReadValue(followsLeader);
-    followedLeader.Assign(ReadUnit(stream, g_serverWorld.objectManager));
+    followedLeader.Assign(ReadUnit(stream, g_serverWorld.objectManager.get()));
 
     if (stream->version < kVersionActingCheckTime) return;
     stream->ReadValue(actingCheckTime);

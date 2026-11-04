@@ -38,7 +38,7 @@ void Diplomacy::SetRelation(int player, int other, int relation) {
         break;
     }
     ObjectListIterator it;
-    for (EngineObject* object = it.First(g_serverWorld.objectManager); object; object = it.Next()) {
+    for (EngineObject* object = it.First(g_serverWorld.objectManager.get()); object; object = it.Next()) {
         Unit* unit = UnitOrNull(object);
         if (!unit) continue;
         if (unit->side != player) continue;

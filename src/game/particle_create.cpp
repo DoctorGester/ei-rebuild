@@ -772,7 +772,7 @@ ParticleSource::ParticleSource(int newType) {
 // takes the motion from it. The harness zeroes the game's sources alike.
 ParticleSource* NewParticleSource(int type) { return new (kZeroed) ParticleSource(type); }
 
-ParticleManager* ParticleSource::Manager() const { return ClientWorld()->particleManager; }
+ParticleManager* ParticleSource::Manager() const { return static_cast<ParticleManager*>(owner); }
 
 EngineObject* ParticleManager::NewObject(int objectType) {
     return NewParticleSource(objectType);

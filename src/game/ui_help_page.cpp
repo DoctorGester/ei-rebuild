@@ -110,7 +110,7 @@ void HelpWindow::ShowPage() {
     ClearRegions();
     ClearSceneObjects();
 
-    TextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts.get();
     std::vector<std::string> words;
     if (!texts->Open(std::string(kTutorialSection) + text)) {
         ui->SetPendingValue(0);

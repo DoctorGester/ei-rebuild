@@ -39,7 +39,7 @@ void EffectShowVisibility::SetUnits(int newObserverId, int newSeerId) {
 
 void EffectShowVisibility::Start(int update) {
     if (update == 0) {
-        fog.Assign(VisFogManagerAdd(g_clientWorld.arrayManager));
+        fog.Assign(VisFogManagerAdd(g_clientWorld.arrayManager.get()));
     }
     if (fog != nullptr) fog->Reveal(&grid);
 }

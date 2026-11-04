@@ -165,7 +165,7 @@ void OpenSound() {
     }
     {
         std::string effects = textFolder + "sfx.res";
-        SoundManager* sound = g_clientWorld.sounds;
+        SoundManager* sound = g_clientWorld.sounds.get();
         sound->ClearWaveSources();
         sound->AddWaveSource(effects);
     }
@@ -415,7 +415,7 @@ void ShutDown() {
     g_sceneRenderer.SetGamma(0.0f, 0.0f);
     g_sceneRenderer.DestroyRenderer();
     options::g_options.Save();
-    g_clientWorld.SetCamera(nullptr);
+    g_clientWorld.camera = nullptr;
     EmptyWorlds();
 }
 
@@ -464,7 +464,7 @@ int GameMain(char* commandLine) {
     g_serverWorld.Create();
     // The field of view: pi * 2 / 7 (51.4 degrees).
     g_camera.Init(options, options->nearClipDistance, options->farClipDistance, kPi * 2.0f / 7.0f);
-    g_clientWorld.SetCamera(&g_camera);
+    g_clientWorld.camera = &g_camera;
     if (!CheckDiskSpace()) return kExitDeclined;
     CreateFolders();
 

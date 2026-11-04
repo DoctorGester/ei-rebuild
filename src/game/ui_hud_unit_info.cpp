@@ -91,7 +91,7 @@ bool OutsideGroup(HudUnitPanel* self, Unit* unit) {
 } // namespace
 
 void HudUnitPanel::PaintUnitInfo(UiSurface& surface, Unit* unit) {
-    TextManager* clientWorldTexts = g_clientWorld.texts;
+    TextManager* clientWorldTexts = g_clientWorld.texts.get();
     UnitParams* params = &unit->params;
     std::string suffix;
     Panel panel;

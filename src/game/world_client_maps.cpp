@@ -102,37 +102,10 @@ Unit* FirstUnitHit(WorldClient* client, MapObject* object) {
 
 constexpr float kSteepest = 0.8f;   // the smallest normal z of a face added
 
-template <typename T>
-void DeleteOwned(T*& slot) {
-    if (EngineObject* object = slot) {
-        delete object;
-        slot = nullptr;
-    }
-}
-
-// A counted engine object: its count dropped (without a release), then deleted the same way.
-template <typename T>
-void DropAndDelete(T*& slot) {
-    if (slot) {
-        --slot->refCount;
-        EngineObject* object = slot;
-        if (object) delete object;
-        slot = nullptr;
-    }
-}
-
 // The selection highlight off: Selected and BoxMarked cleared, SetLit with 0 (its light goes off).
 void Unhighlight(MapObject* object) {
     object->flags &= ~(MapObjectFlag::Selected | MapObjectFlag::BoxMarked);
     object->attached->SetLit(false);
-}
-
-// A new object (its class's operator new and constructor), stored and referenced.
-template <typename T>
-T* NewCounted() {
-    T* object = new T();
-    object->AddRef();
-    return object;
 }
 
 // The grid set to 4 x 4 cells, reallocated unless its storage already has that size.
@@ -564,11 +537,9 @@ void PlatformSet::AddBox(int newId, const FootprintPart* item, const Vector3& po
 
 void WorldClient::Destroy() {
     g_camera.SetTarget(nullptr);
-    delete numbers;
-    numbers = nullptr;
-    delete skyDome;
-    skyDome = nullptr;
-    DeleteOwned(bird);
+    numbers.reset();
+    skyDome.reset();
+    bird.reset();
     ReleaseItemsAndSpells();
     exitMarkers.clear();
     bloodPrints.clear();
@@ -592,16 +563,18 @@ void WorldClient::Destroy() {
     }
     DestroyOwned(handle);
     World::Destroy();
-    DeleteOwned(listManager);
-    DeleteOwned(arrayManager);
-    DropAndDelete(particleManager);
-    DropAndDelete(terrain);
-    DropAndDelete(lightFactory);
-    DropAndDelete(materialManager);
-    DropAndDelete(textureManager);
-    DeleteOwned(music);
-    DropAndDelete(sounds);
-    DropAndDelete(texts);
+    // In this order: the timed objects (World::Destroy) and the terrain stop their sounds, the music its stream, and
+    // the textures and materials are released into their managers.
+    listManager.reset();
+    arrayManager.reset();
+    particleManager.reset();
+    terrain.reset();
+    lightFactory.reset();
+    materialManager.reset();
+    textureManager.reset();
+    music.reset();
+    sounds.reset();
+    texts.reset();
 }
 
 void WorldClient::ResetZoneObjects() {
@@ -657,27 +630,21 @@ void WorldClient::Create() {
     World::Create();
     texturePath = g_dataFolder + worlddata::TexturesFolderText();
     LoadLights(worlddata::LightsTableText());
-    sounds = NewCounted<SoundManager>();
-
-    texts = new TextManager();
-    texts->AddRef();
-    terrain = new terrain::Terrain();
-    terrain->AddRef();
+    sounds = std::make_unique<SoundManager>();
+    texts = std::make_unique<TextManager>();
+    terrain = std::make_unique<terrain::Terrain>();
     zoneName = worlddata::GipathText();
 
-    specificManager = NewCounted<ClientSpecificManager>();
+    specificManager = std::make_unique<ClientSpecificManager>();
     specificManager->Init(this);
-    textureManager = NewCounted<TextureManager>();
-    textureManager->BaseManager::Init(this);
-    materialManager = NewCounted<MaterialManager>();
+    textureManager = std::make_unique<TextureManager>();
+    textureManager->Init(this);
+    materialManager = std::make_unique<MaterialManager>();
     materialManager->Init(this);
-    lightFactory = NewCounted<LightFactory>();
+    lightFactory = std::make_unique<LightFactory>();
     lightFactory->Init(this);
-
-    auto* manager = new ParticleManager();
-    particleManager = manager;
-    manager->AddRef();
-    manager->Init(this);
+    particleManager = std::make_unique<ParticleManager>();
+    particleManager->Init(this);
 
     session = players->CreateSessionPlayer();
 
@@ -688,15 +655,12 @@ void WorldClient::Create() {
     texts->AddSource(g_textFolder + worlddata::TextsFileText());
     texts->AddSource(g_textFolder + worlddata::TextsLmpFileText());
 
-    auto* lists = new LightningManager();
-    listManager = lists;
-    lists->Init(this);
-    auto* arrays = new ClientArrayManager();
-    arrayManager = arrays;
-    arrays->Init(this);
-    auto* owned = new MusicSystem();
-    music = owned;
-    owned->Create();
+    listManager = std::make_unique<LightningManager>();
+    listManager->Init(this);
+    arrayManager = std::make_unique<ClientArrayManager>();
+    arrayManager->Init(this);
+    music = std::make_unique<MusicSystem>();
+    music->Create();
 
     rainSnow.PrepareBuffers();
     rainSnow.world = this;
@@ -850,7 +814,7 @@ int WorldClient::LoadZone(ByteStream* block) {
     ClientParticleManager()->ReleaseUnheld();
     session->sessionKind = 0;
     ShowLoadingMovie(kProgressZoneCleared);
-    terrain::Terrain* currentTerrain = terrain;
+    terrain::Terrain* currentTerrain = terrain.get();
     if (static_cast<int>(map.size()) > 1 && map[1] != ':') {
         modfolders::SelectMaps(map, modfolders::MapsSite::ClientLoadZone);
         map = MapsFolder() + map;

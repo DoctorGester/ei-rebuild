@@ -98,7 +98,7 @@ void FitShadowSphere(Object3DClientSpecific* self) {
     Vector3 sum;
     sum = kDefaultLight;
     ObjectListIteratorOf<Light> lights;
-    for (Light* light = lights.First(g_clientWorld.lightFactory); light; light = lights.Next()) {
+    for (Light* light = lights.First(g_clientWorld.lightFactory.get()); light; light = lights.Next()) {
         if ((light->flags & LightFlag::Off) || (light->flags & LightFlag::Hidden)) continue;
         Vector3 share;
         if (light->type == kLightTypePoint) {

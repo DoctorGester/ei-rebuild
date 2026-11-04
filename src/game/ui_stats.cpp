@@ -156,7 +156,7 @@ constexpr int kLayers = 3;
 // --- A labelled value ----------------------------------------------------------------------------
 
 void HeroStatsPanel::DrawRow(const Rect& area, std::string_view label, int value, int maximum) {
-    TextManager* clientWorldTexts = g_clientWorld.texts;
+    TextManager* clientWorldTexts = g_clientWorld.texts.get();
     std::string key = kPerkPrefix;
     key += label;
     std::string name;

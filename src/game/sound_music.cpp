@@ -163,7 +163,7 @@ void MusicSystem::PlayJingle(std::string_view name) {
 
 // Every world frame. Always 1.
 void MusicSystem::UpdateMusic() {
-    SoundManager* snd = g_clientWorld.sounds;
+    SoundManager* snd = g_clientWorld.sounds.get();
     // Nothing is chosen while a jingle or calm track waits for the stream thread: the stream still names the file
     // before it.
     if (state != 1 || holding == 1 || snd->StreamSwitchPending()) return;

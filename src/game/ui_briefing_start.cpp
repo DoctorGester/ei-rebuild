@@ -89,7 +89,7 @@ void BriefingScreen::StartDialogue(bool newImmediate, bool remember) {
     }
     person = nullptr;
     third = nullptr;
-    TextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts.get();
     std::string key = kBriefingSection;
     if (!texts->Open((key + topic))) {
         state = 0;

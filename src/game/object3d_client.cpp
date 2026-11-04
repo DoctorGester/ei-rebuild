@@ -454,7 +454,7 @@ WoundsMaterial::WoundsMaterial() {
 
 int Object3DClientSpecific::ShowWounds(const char* name) {
     if (!partSets[0]) return 0;
-    TextureManager* manager = g_clientWorld.textureManager;
+    TextureManager* manager = g_clientWorld.textureManager.get();
     if (!woundsTexture) {
         woundsTexture.Assign(manager->FindTypedTexture(kWoundsTextureKind, name));
         if (!woundsTexture) {

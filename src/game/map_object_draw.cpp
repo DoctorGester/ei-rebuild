@@ -65,7 +65,7 @@ int Object3DClientSpecific::Draw(SceneRenderer* context, Rect* dirty) {
     std::vector<Light*> list;
     list.reserve(0x10);
     ObjectListIteratorOf<Light> lights;
-    Light* light = lights.First(g_clientWorld.lightFactory);
+    Light* light = lights.First(g_clientWorld.lightFactory.get());
     for (; light; light = lights.Next()) {
         if (context->sun == light) continue;
         if (!InReach(object, light)) continue;
@@ -95,7 +95,7 @@ int Object3DClientSpecific::Draw(SceneRenderer* context, Rect* dirty) {
     }
     std::uint8_t lit = 0xFF;
     if (!(object->flags & MapObjectFlag::NoEdgeFade)) {
-        terrain::Terrain* terrain = ClientWorld()->terrain;
+        terrain::Terrain* terrain = ClientWorld()->terrain.get();
         lit = terrain->EdgeFade(at);   // AL as it is
     }
 

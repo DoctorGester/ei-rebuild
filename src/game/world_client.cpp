@@ -234,7 +234,7 @@ bool WorldClient::PartyInExit(const std::vector<PartyUnitRecord*>* records, int 
 // ---- The bird and quest variables ----------------------------------------------------------------
 
 void WorldClient::SummonBird() {
-    if (!bird) bird = new EffectMoshka();
+    if (!bird) bird = std::make_unique<EffectMoshka>();
     bird->Reset();
     auto* leader = session->GetParty()->members.data();
     bird->Follow(static_cast<int>(leader->unitId));
@@ -408,10 +408,10 @@ ClassId WorldClient::GetClassId() { return ClassId::WorldClient; }
 // material, the camera, the value of message 0x12 and the water levels of message 0x73 --------------------
 
 const char* WorldClient::TexturePath() { return texturePath.c_str(); }
-MaterialManager* WorldClient::GetMaterialManager() { return materialManager; }
-TextureManager* WorldClient::GetTextureManager() { return textureManager; }
-BaseManager* WorldClient::ClientLightManager() { return lightFactory; }
-ParticleManager* WorldClient::ClientParticleManager() { return particleManager; }
+MaterialManager* WorldClient::GetMaterialManager() { return materialManager.get(); }
+TextureManager* WorldClient::GetTextureManager() { return textureManager.get(); }
+BaseManager* WorldClient::ClientLightManager() { return lightFactory.get(); }
+ParticleManager* WorldClient::ClientParticleManager() { return particleManager.get(); }
 
 void WorldClient::MoveObject(MapObject* object, const float* position) {
     objectGrid.Move(object, position);
@@ -434,13 +434,7 @@ void WorldClient::PlayCameraPath(const char* name) {
     camera->timeOffset = (static_cast<float>(tick) + tickFraction) - camera->keys[0].time;
 }
 
-void WorldClient::SetCamera(Camera* newCamera) {
-    if (camera) --camera->refCount;
-    camera = newCamera;
-    if (newCamera) newCamera->AddRef();
-}
-
-void WorldClient::ReadWaterLevels(ByteStream* stream) { countdowns.Load(stream, terrain); }
+void WorldClient::ReadWaterLevels(ByteStream* stream) { countdowns.Load(stream, terrain.get()); }
 
 namespace {
 constexpr const char* kBridgeManagerName = "CBridgeManager";

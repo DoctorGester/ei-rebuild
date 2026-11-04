@@ -117,7 +117,7 @@ bool PlayerClient::OnObjectValues() {
         in.ReadValue(objectId);
         if (objectId == -1) return true;
         if (!in.ok) return false;
-        Item* item = FindItem(g_clientWorld.itemManager, static_cast<unsigned>(objectId));
+        Item* item = FindItem(g_clientWorld.itemManager.get(), static_cast<unsigned>(objectId));
         if (!item) continue;   // the value is then read as the next id (kept)
         float value;
         in.ReadValue(value);

@@ -95,6 +95,7 @@ void UnitServer::DropEffectObject() {
 
 bool UnitServer::RunTick() {
     Unit* self = unit;
+    WorldServer* world = ServerWorld();
     if (self->dead == 0) {
         if (self->Vitals().Regenerate(&stats, self, action.kind != UnitOrderKind::Idle ? 1 : 0)) {
             stats.Recompute(&unit->Vitals(), unit);
@@ -102,13 +103,13 @@ bool UnitServer::RunTick() {
             unit->MarkChanged(NetField::Stats);
         }
         // Every (speedClass + 1) updates the unit's step noise (it returns 0: no record).
-        if ((static_cast<std::uint32_t>(g_serverWorld.tick) & static_cast<std::uint32_t>(speedClass)) == 0) {
+        if ((static_cast<std::uint32_t>(world->tick) & static_cast<std::uint32_t>(speedClass)) == 0) {
             AIEventPresence*& presence = aiPresence;
             if (presence) {
                 presence->x = unit->localPosition.x;
                 presence->y = unit->localPosition.y;
             }
-            presence = g_serverWorld.aiMap.events.StepNoise(unit->localPosition, this);
+            presence = world->aiMap.events.StepNoise(unit->localPosition, this);
         }
         TickItemSpells();
         if (unit->player != nullptr) {
@@ -117,7 +118,7 @@ bool UnitServer::RunTick() {
             unit->MarkChanged(NetField::Exposure);
             int& bored = boredTicks;
             ++bored;
-            if (bored > kBoredTicks && BoredRemarkDue(g_serverWorld.tick, static_cast<std::uint32_t>(unit->id))) {
+            if (bored > kBoredTicks && BoredRemarkDue(world->tick, static_cast<std::uint32_t>(unit->id))) {
                 Player* player = unit->player;
                 if (!player || player->Server()->danger != PlayerServer::PartyDanger::Safe) {
                     bored = 0;
@@ -147,7 +148,6 @@ bool UnitServer::RunTick() {
 
     // Dead: the body sinks (accelerating) until it is at height 0; once the death animation is
     // over, the death is reported and the orders are dropped.
-    WorldServer* world = ServerWorld();
     if (self->localPosition.z > 0.0f) {
         float& sinking = sinkSpeed;
         sinking += kSinkAcceleration;
@@ -405,8 +405,7 @@ void UnitServer::TickAction() {
         // The action starts: its animation replaces the queue, and a cast shows its effect.
         PlaySteps(&plan.animation);
         if (plan.isCast != 0 && unit->GetPrototypeModel()->castEffect != 0) {
-            auto* objects = g_serverWorld.timedObjectManager;
-            auto* particle = objects->CreateObjectAs<EffectParticle>(ClassId::EffectParticle, -1);
+            auto* particle = world->timedObjectManager->CreateObjectAs<EffectParticle>(ClassId::EffectParticle, -1);
             static constexpr int kEffects[8] = {static_cast<int>(ParticleType::CastingFire), static_cast<int>(ParticleType::CastingElectricity), static_cast<int>(ParticleType::CastingAcid), static_cast<int>(ParticleType::CastingIllusion), static_cast<int>(ParticleType::CastingDivination), static_cast<int>(ParticleType::CastingEnchantment), static_cast<int>(ParticleType::CastingHealing), static_cast<int>(ParticleType::CastingDomination)};
             int kind = static_cast<int>(plan.castKind);
             particle->type = (kind >= 0 && kind <= 7) ? kEffects[kind] : static_cast<int>(ParticleType::Casting);

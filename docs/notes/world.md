@@ -29,6 +29,13 @@ added twice, three `RemoveObjectFromServer`, `load savea`, one more spawn), `par
   outside), each a list of counted object pointers. Platforms (`PlatformSet`): `SurfaceHeight` projects the point onto
   each plane along z and keeps the highest z (margin 0.5), `Contains` tests (x, y) (margin 0.1), `AddBox` keeps only
   faces with normal z >= 0.8. The bird is the EffectMoshka (effects.md).
+- Ownership: each world owns its managers (and the client its terrain, sounds, texts, music, sky, numbers and bird) as
+  `std::unique_ptr`s, made one way in `Create` (`make_unique`, then `Init`) and deleted by `Destroy` in a fixed order:
+  an object's teardown reaches managers deleted after its own (the timed effects and the terrain stop their sounds,
+  the music its stream, the client halves release their textures and materials). A `reset()` empties the pointer
+  before the delete, so an object must not reach its own manager through the world while that manager is deleted
+  (`ParticleSource::Manager` returns its owner for that reason). The managers' counts are not kept: nothing releases
+  a manager.
 - Time: the day is 24 hours; time of day = fmod(tick * secondsPerTick + base, 24); a speed s gives secondsPerTick = 1 /
   s / 15 (0: stopped, also for NaN; negative: the setting). The client's lighting (WorldClient::UpdateLighting) takes it
   at the drawn frame, the tick plus `tickFraction`, so the sun turns a little every frame (R25a). Wind: direction and

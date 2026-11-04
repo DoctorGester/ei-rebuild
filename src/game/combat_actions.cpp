@@ -297,8 +297,8 @@ void UnitServer::UseSkill(MapObject* target) {
     if (action.kind == UnitOrderKind::Use && action.Skill() == UseSource::SearchBody) {
         Unit* looted = UnitOrNull(target);
         if (!looted) return;
-        if (Player* player = unit->player) g_serverWorld.Loot(looted, player);
-        g_serverWorld.RemoveObject(target->id);
+        if (Player* player = unit->player) world->Loot(looted, player);
+        world->RemoveObject(target->id);
         float loudness = stats.conspicuity[3].current * kSkillNoiseScale;
         world->aiMap.events.Noise(this, loudness, AIBrain::kCallDelay, unit->localPosition);
         return;

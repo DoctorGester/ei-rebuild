@@ -351,7 +351,7 @@ bool PlayerClient::OnItemsReceived() {
             complete = false;
             break;
         }
-        auto* manager = g_clientWorld.itemManager;
+        auto* manager = g_clientWorld.itemManager.get();
         if (Item* item = FindItem(manager, static_cast<unsigned>(objectId))) items.insert(items.begin(), item);
     }
     if (complete) {

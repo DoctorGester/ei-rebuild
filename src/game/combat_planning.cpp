@@ -174,22 +174,22 @@ bool UnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
         if (!order->pointIsUseSpot) {
             AIPath path;
             MapObject* target = order->target;
+            AIMap* map = MapOf(ServerWorld());
             std::uint8_t savedFlag = 0;
             if (target) {
-                savedFlag = g_serverWorld.aiMap.refreshUnits;
-                g_serverWorld.aiMap.refreshUnits = false;
-                g_serverWorld.aiMap.sectorMap.Remove(target);
+                savedFlag = map->refreshUnits;
+                map->refreshUnits = false;
+                map->sectorMap.Remove(target);
             }
-            WorldServer* world = ServerWorld();
             path.mayExcludeRegions = unit->player == nullptr;
             std::uint32_t savedAltPassCosts = unit->altPassCosts;
             unit->altPassCosts = 1;
-            bool found = MapOf(world)->FindPath(unit, point, &path, kNoPathLimit, 0.0f);
+            bool found = map->FindPath(unit, point, &path, kNoPathLimit, 0.0f);
             unit->altPassCosts = savedAltPassCosts;
             if (!found) path.StandStill(unit);
             if (target) {
-                g_serverWorld.aiMap.sectorMap.Add(target);
-                g_serverWorld.aiMap.refreshUnits = savedFlag;
+                map->sectorMap.Add(target);
+                map->refreshUnits = savedFlag;
             }
             path.ToMotionOrder(&route);
             ok = actsFromDestination();

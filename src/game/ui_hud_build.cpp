@@ -37,7 +37,7 @@ constexpr int kMaxQuickItems = 8;
 // The tooltips' labels: the texts "infoitem_<id>" in order.
 template <int N>
 std::vector<std::string> Labels(const int (&ids)[N]) {
-    TextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts.get();
     std::vector<std::string> labels;
     std::string text;
     for (int id : ids) {

@@ -676,11 +676,11 @@ void UnitServer::Resettle() {
             DamageInfo hit;
             ResetDamageInfo(&hit);
             TakeHit(&hit, nullptr, nullptr);
-            g_serverWorld.aiMap.sectorMap.Add(unit);
+            map->sectorMap.Add(unit);
             return;
         }
     }
-    g_serverWorld.aiMap.sectorMap.Add(unit);
+    map->sectorMap.Add(unit);
 }
 
 void UnitServer::Create() {

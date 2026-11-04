@@ -561,7 +561,7 @@ void SSCCmd::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result) {
     }
     case ScriptFunction::GetPlayerUnits: { // GetPlayerUnits(player): the world's units whose player compares equal
         ObjectListIterator objects;
-        for (EngineObject* o = objects.First(g_serverWorld.objectManager); o; o = objects.Next()) {
+        for (EngineObject* o = objects.First(g_serverWorld.objectManager.get()); o; o = objects.Next()) {
             Unit* unit = UnitOrNull(o);
             if (unit && static_cast<float>(unit->side) == floatArgs[0]) (*result)->Insert(unit);
         }

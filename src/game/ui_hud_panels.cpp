@@ -154,7 +154,7 @@ void HudMovePanel::ToggleFlag() {
 
 void HudUnitPanel::PaintEffects(UiSurface& surface, Unit* unit) {
     constexpr int kLineHeight = 15;
-    TextManager* clientWorldTexts = g_clientWorld.texts;
+    TextManager* clientWorldTexts = g_clientWorld.texts.get();
     std::string text;
     Rect line{40, 35, 155, 50};
     // The unit's effects are the map object's records.
@@ -263,7 +263,7 @@ void HudTopPanel::ShowPage() {
 }
 
 void HudTopPanel::ShowItems() {
-    TextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts.get();
     // A local list of the world's copies.
     std::vector<Item*> merged{};
     Player* player = g_clientWorld.LocalView()->player;
