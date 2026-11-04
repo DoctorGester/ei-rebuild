@@ -74,13 +74,6 @@ public:
     // Sets the rotation, rotates the position by it (plus `offset`, copied to a member) and
     // rebuilds the rotation matrix from the stored quaternion.
     void UpdateWorld(const Quaternion& rotation, const Vector3& offset) override;
-    // Writes the mesh to a file: the name (length then characters), each buffer
-    // (buffers) as a count and its elements, a 0, then centre, box, radius and two trailing dwords.
-    // PlainFigureMesh::LoadTransform reads it back.
-    void SaveTransform(platform::File* file) override;
-    // Copies another mesh's transform, name, the shared buffer descriptors (texture coordinates, corners,
-    // words, indices) and the bounds.
-    virtual void CopyFigure(const FigureMesh* other);
     // Loads the mesh from memory at *cursor once (FigureMeshFlag::Loaded set afterwards): data whose first dword starts
     // with "FIG" through LoadFig, other data through LoadOld.
     virtual void LoadFromMemory(char** cursor);
@@ -197,7 +190,6 @@ public:
 
     // Clear: the mesh's own arrays emptied, then FigureMesh's Clear.
     void Destroy() override;
-    void LoadTransform(platform::File* file) override;
     // Loads a "FIG" mesh from memory at *cursor (advanced past it), the first of FIG8's 8 versions of every vertex; once only (flag
     // 0x20).
     void LoadFig(char** cursor) override;

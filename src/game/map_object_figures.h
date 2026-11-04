@@ -250,7 +250,6 @@ public:
     virtual int PartsIntersectRect(const Rect* rect);
     // Whether the point is in the screen rectangle of a part with flag 0x40 (PickAt2).
     virtual int PartsContainPoint(const std::int32_t* point);
-    virtual void Unused25(int) {}                   // empty in the base and the client
     virtual void SetLit(bool) {}                     // the object's light is on / off (client); base: nothing
 
     Object3D* object;              // the object it belongs to
@@ -442,8 +441,6 @@ public:
     void ClearState() override { RemoveAllEffectSources(); }
     // worldRotation = parent * localRotation.
     void CombineRotation(const Quaternion& parent) override;
-    void SaveTransform(platform::File* file) override;
-    void LoadTransform(platform::File* file) override;
     // Whether the object may play the animation entry (FigureAnimation); any here, Unit overrides it.
     virtual bool AcceptsAnimation(const FigureAnimation* animation);
     // AttachSpecific. MapObject and units override it.
@@ -523,9 +520,8 @@ public:
     // world transforms are updated and the bounds recomputed from their world boxes.
     void UpdatePartBounds();
     // Builds the figure of the model for the part names `partList` (none: the animation
-    // state's parts and the whole figure), then LoadParts and the bounds; flags 0x80 set unless both `arg`
-    // and the figure are 0. Returns 1.
-    int MakeFigure(std::string_view model, std::vector<std::string>* partList, std::uint32_t arg);
+    // state's parts and the whole figure), then LoadParts and the bounds; flags 0x80 set.
+    void MakeFigure(std::string_view model, std::vector<std::string>* partList);
     // The index of the part name equal to `partName` (_mbscmp), or -1.
     int FindPartIndex(std::string_view partName);
     // The box (FigureMesh::bounds) of part `index`.

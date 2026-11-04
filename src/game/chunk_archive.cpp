@@ -175,23 +175,19 @@ void ChunkArchive::LeaveChunk() {
     dataStream.Resize(static_cast<std::uint32_t>(parent->size + parent->offset));
 }
 
-// A string field, written with its terminator; read through an inlined assign (the empty
-// string when missing).
+// A string field, written with its terminator (the empty string when missing on a load).
 void ChunkArchive::StringField(int id, std::string* s) {
     if (!loading) {
         AppendChild(Current(), id, s->data(), static_cast<std::uint32_t>(std::strlen(s->data()) + 1));
         return;
     }
     ChunkArchive::Ref child;
-    // string::assign(text, text + strlen(text)), inlined: overwrite in place and
-    // cut the rest, or overwrite the whole string and append the remainder.
     if (FindField(this, id, &child)) s->assign(TextAt(dataStream.data.data() + child.offset));
     else s->assign(game::kEmptyText);
 }
 
-// A memory stream as chunk `id` (EnterChunk, inlined) holding its size (field 1) and its bytes
-// (field 2, inlined Field); loading clears the stream and sizes it first. The stream is rewound;
-// then the chunk is left (inlined LeaveChunk). A chunk missing while loading stays pushed, as with
+// A memory stream as chunk `id` holding its size (field 1) and its bytes (field 2); loading clears the stream and
+// sizes it first. The stream is rewound, then the chunk is left. A chunk missing while loading stays pushed, as with
 // EnterChunk.
 void ChunkArchive::StreamField(int id, MemoryStream* s) {
     if (!EnterChunk(id)) return;
@@ -329,13 +325,9 @@ void ChunkArchive::Open(ByteStream* stream, int newLoading, int newVersion) {
         std::uint32_t key = 0;
         Current()->occurrence = i;
         ChunkArchive::Ref* record = PushRecordChunk(this);
-        if (loading) {
-            ChunkArchive::Ref field;
-            field.Reset();
-            key = FindChild(record, 0, &field, record->occurrence) ? ValueAt<std::uint32_t>(dataStream.data.data() + field.offset) : 0;
-        } else {
-            AppendChild(record, 0, &key, 4);
-        }
+        ChunkArchive::Ref field;
+        field.Reset();
+        key = FindChild(record, 0, &field, record->occurrence) ? ValueAt<std::uint32_t>(dataStream.data.data() + field.offset) : 0;
         RefCounted* object = loaded[key];
         if (object && EnterChunk(1)) {
             object->Serialize(this);
@@ -382,12 +374,7 @@ void ChunkArchive::Close(ByteStream* stream) {
                 object->Serialize(this);
                 LeaveChunk();
             }
-            // LeaveChunk inlined, with pop_back and ResizeToCurrent.
-            ChunkArchive::Ref* chunk = Current();
-            const std::uint8_t* content = dataStream.data.data() + chunk->offset;
-            AppendChild(Parent(), chunk->id, content, static_cast<std::uint32_t>(chunk->size));
-            PopChunk();
-            ResizeToCurrent();
+            LeaveChunk();
         }
         Field(2, &version);
         WriteStreamChunk(stream, 0, index);

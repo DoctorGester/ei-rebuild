@@ -9,8 +9,8 @@ check (`app.md`).
 
 ## Transforms
 
-- `TransformObject` (EngineObject plus local / world position and rotation): CopyTransform, CombineRotation,
-  UpdateWorld, SaveTransform / LoadTransform (to a `platform::File`), WorldMatrix (row vectors), TiltTowards (the down
+- `TransformObject` (EngineObject plus local / world position and rotation): CombineRotation,
+  UpdateWorld, WorldMatrix (row vectors), TiltTowards (the down
   axis a tenth of the way to a target), TurnTowards, RollTowards, Rotate(axis, angle), TurnUpTowards, SetHeading
   (atan2 about +Z). The unit classes override CombineRotation (world rotation only).
 - `ClampUnit` gives -1 for NaN. The camera's quaternion products in `ApplyView` and `Update` add their terms in
@@ -39,7 +39,7 @@ check (`app.md`).
 ### Counted pointers
 
 - Every counted class has `AddRef()` / `Release()`: EngineObject (at 0 the owner's ReleaseObject), RefCounted (deleted
-  at 0), LinkMeshBase, LinkFigureLoader, DeviceMaterial, RenderPreset, RenderHelper, RendererBase. A site that keeps a
+  at 0), LinkMesh, LinkFigureLoader, DeviceMaterial, RenderPreset, RenderHelper, RendererBase. A site that keeps a
   raw pointer counts with these. The original's drops without the release at zero (the object-list iterators'
   manager, the constructor's handed-back item, a figure's parts) are `EngineObject::ForgetReference()`.
 - A counted field is a `Ref<T>` (src/game/ref.h): `Assign(p)` takes p's reference, then drops the old one; `Reset()`
@@ -50,8 +50,8 @@ check (`app.md`).
   so a reallocation takes and drops none). `HeldRef::Take()` hands a reference on without releasing (the shared
   objects' items given at loot: the original leaked them).
 - Ids in saves: `SaveRef(object, stream)` writes the id (-1: none), `LoadRef(ref, stream, world)` looks it up.
-- Object3D's `parts` hold references the original never releases through the vector (CopyFigure copies uncounted,
-  Destroy3D forgets each); the code keeps that.
+- Object3D's `parts` hold references the original never releases through the vector (Destroy3D forgets each); the code
+  keeps that.
 
 ## Object manager
 

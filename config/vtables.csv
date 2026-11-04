@@ -201,7 +201,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073D774,1,,game,004EEE30 004EF690 004EF7B0 004EFA60 004EFC60 004EFD20,004EF790,Surface,src/game/surface.h,the surface holder (CDXSurface; ours is Surface)
 0073D778,1,,game,004F0B90 004F0E10,004F0DF0,TransformPipeline,src/game/model.h,the transform pipeline (CTransformPipeline)
 0073D790,15,,game,004F2C00 004F2E40,004F2E20,LinkMesh,src/game/link_figure.h,a figure's mesh (the link loader 004F7480 / 004F7860)
-0073D7CC,15,,game,004F2C00 004F2D40 004F2E40,004F2E00,LinkMeshBase,src/game/link_figure.h,CLinkMesh's base (stored by its constructor and destructors 004F2C00 / 004F2D40 / 004F2E40)
+0073D7CC,15,,game,004F2C00 004F2D40 004F2E40,004F2E00,LinkMeshBase,-,LinkMesh's base class: stored by game.exe's constructor and destructors 004F2C00 / 004F2D40 / 004F2E40 (ours is LinkMesh alone)
 0073D808,7,,game,004F68C0 004F6BD0,004F6A30,LinkFigureLoader,src/game/model.h,the link figure loader (CLinkFigureLoader)
 0073D824,7,,game,004F68C0,004F6A00,CLinkFigureLoader's base,-,the figure loader's abstract base (slots 1-6 _purecall)
 0073D840,8,,game,004FCA60 004FCD50,004FCC20,RenderHelper,src/game/model.h,the renderer's helper (CRenderHelper)
@@ -326,7 +326,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073FADC,1,,game,0059DF90 005BFCD0 005C0600,0059E080,Sector,src/game/sector_map.h,a world sector
 0073FAE0,3,,game,0059DF90 0059E0A0 005BFCD0 005C0600,007005E3,SectorOccluderArrayClass,-,CArray (a sector's occluders; after the sector's one-slot table 0073FADC); stored only by game.exe (ours is a std::vector)
 0073FB10,13,,game,005A7010,005A7060,FigureMeshDrawer,src/game/link_figure.h,class 0x36 CFigureClientSpecific (the client-specific factory 0042D700)
-0073FB44,13,,game,005A7080 005A70C0,005A70A0,FigureDrawerBase,src/game/link_figure.h,the drawer's base (stored by its destructors 005A7080 / 005A70C0)
+0073FB44,13,,game,005A7080 005A70C0,005A70A0,FigureDrawerBase,-,the drawer's base class: stored by game.exe's destructors 005A7080 / 005A70C0 (ours is FigureMeshDrawer alone)
 0073FB88,26,,game,005AA070 005AA1C0,005AA1A0,FigureManager,src/game/figure_manager.h,
 0073FBF0,22,,game,005AA8E0,005AADA0,SharedFigureMesh,src/game/figure_mesh.h,class 0x41
 0073FC48,24,,game,005AA8E0 005AAD00,005AACE0,UiMesh,src/game/ui.h,class 0x43 (CI3DFigure)

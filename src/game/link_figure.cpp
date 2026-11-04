@@ -87,24 +87,11 @@ void MorphOldPacket(VertexPacket& packet, const char** cursor, float s, float t,
     SetW(packet);
 }
 
-// Removes [start, start + count): the elements after it move down (the capacity stays).
-template <typename T>
-void CloseGap(std::vector<T>& array, int start, int count) {
-    array.erase(array.begin() + start, array.begin() + start + count);
-}
-
-constexpr int kNoRect = 2000000000;
-
 } // namespace
 
 
-// No references is the base's.
-LinkMeshBase::LinkMeshBase(const std::string* newName) : refCount(0), name(*newName) {}
-
-LinkMeshBase::~LinkMeshBase() = default;
-
-LinkMesh::LinkMesh(LinkFigureLoader* newLoader, const std::string* name, float s, float t, float u)
-    : LinkMeshBase(name) {
+LinkMesh::LinkMesh(LinkFigureLoader* newLoader, const std::string* newName, float s, float t, float u)
+    : name(*newName) {
     morphWeights[0] = s;
     morphWeights[1] = t;
     morphWeights[2] = u;
@@ -235,12 +222,6 @@ void LinkFigureLoader::RemorphOldPart(LinkMesh* mesh, const std::string* name, c
     mesh->SetPartVertices(name, packets.data(), static_cast<unsigned>(count));
 }
 
-int LinkMesh::MemoryBytes() const {
-    const int parts = static_cast<int>(ranges.size());
-    const int inner = lib::Count(texCoords) + 8 * (lib::Count(vertices) + lib::Count(normals)) + 6 * parts;
-    return 2 * (lib::Count(indices) + 3 * lib::Count(corners) + 2 * (lib::Count(words) + 0x2C + 2 * inner));
-}
-
 bool LinkMesh::SetPartVertices(const std::string* newName, const VertexPacket* newVertices, unsigned count) {
     auto node = ranges.find(*newName);
     if (node == ranges.end()) return false;
@@ -259,17 +240,6 @@ void LinkMesh::SetMorph(float s, float t, float u) {
     morphWeights[2] = u;
 }
 
-void LinkMesh::UpdateScreenRect() {
-    Point topLeft{kNoRect, kNoRect}, bottomRight{-kNoRect, -kNoRect};
-    for (const auto& [part_name, header] : headers) {
-        const Rect& part = header.screen;
-        if (part.IsEmpty()) continue;
-        topLeft = Min(topLeft, part.TopLeft());
-        bottomRight = Max(bottomRight, part.BottomRight());
-    }
-    screenRect = Rect::FromCorners(topLeft, bottomRight);
-}
-
 bool LinkMesh::HasPart(const std::string* partName) { return ranges.find(*partName) != ranges.end(); }
 
 std::vector<std::string> LinkMesh::PartNames() {
@@ -279,32 +249,6 @@ std::vector<std::string> LinkMesh::PartNames() {
 }
 
 bool LinkMesh::LoadPart(const std::string* newName) { return loader->LoadPartInto(this, newName); }
-
-bool LinkMesh::RemovePart(const std::string* partName) {
-    auto node = ranges.find(*partName);
-    if (node == ranges.end()) return false;
-    render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps
-    LinkPartRanges removed = node->second;
-    ranges.erase(node);
-
-    CloseGap(vertices, removed.vertices.start, removed.vertices.count);
-    CloseGap(normals, removed.normals.start, removed.normals.count);
-    CloseGap(texCoords, removed.texCoords.start, removed.texCoords.count);
-    CloseGap(corners, removed.corners.start, removed.corners.count);
-    CloseGap(words, removed.words.start, removed.words.count);
-    CloseGap(indices, removed.indices.start, removed.indices.count);
-
-    for (auto& [part, r] : ranges) {
-        if (!(static_cast<std::uint32_t>(r.indices.start) > static_cast<std::uint32_t>(removed.indices.start))) continue;
-        r.vertices.start -= removed.vertices.start;
-        r.normals.start -= removed.normals.start;
-        r.texCoords.start -= removed.texCoords.start;
-        r.corners.start -= removed.corners.start;
-        r.words.start -= removed.words.start;
-        r.indices.start -= removed.indices.start;
-    }
-    return true;
-}
 
 bool LinkMesh::GetPartData(const std::string* partName, VertexPacket** outVertices, MeshCorner** outCorners,
                             std::uint16_t** outIndices, int* vertexCount, int* indexCount) {

@@ -546,7 +546,7 @@ int PlayerClient::OnNewObject() {
             break;
         }
     }
-    if (figure->MakeFigure(model, &parts, 1) == 0) return 0;   // the object is left made
+    figure->MakeFigure(model, &parts);
     if (Same(model, TextGoblin())) {
         RemovePartNamed(figure, TextAxePart());
         RemovePartNamed(figure, TextSwordPart());

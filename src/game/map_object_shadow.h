@@ -137,7 +137,6 @@ public:
     // without, each takes back the colour last pushed (if any).
     void SetMaterialsLit(bool lit);
     void SetLit(bool lit) override;
-    void Unused25(int) override {}
     // Drops the shadow's sphere (the next draw fits it again).
     void ClearShadow();
     // Whether the shadow can be seen: shadows are on and the half is flagged 0x20 or its sphere,

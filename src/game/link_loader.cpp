@@ -87,14 +87,6 @@ void ReleaseMesh(LinkMesh* mesh) {
 
 } // namespace
 
-int LinkFigureLoader::CacheSize() { return static_cast<int>(cache.size()); }
-
-int LinkFigureLoader::CacheBytes() {
-    int bytes = 0;
-    for (const auto& entry : cache) bytes += entry.second->MemoryBytes();
-    return bytes;
-}
-
 LinkMesh* LinkFigureLoader::LoadFigure(const std::string* name, const std::vector<std::string>* parts, float s,
                                      float t, float u) {
     LinkMesh* mesh = FindCached(cache, name, s, t, u);

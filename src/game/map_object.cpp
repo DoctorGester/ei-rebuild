@@ -233,11 +233,6 @@ constexpr std::uint16_t kVitalParts = 0x11;     // changed parts 0 and 4: the st
 
 // --- Slots that read the object ------------------------------------------------------------------------
 
-int MapObject::NotifyCompanion() {
-    companion->Unused14();
-    return 1;
-}
-
 void MapObject::TakePrototype(std::string_view prototype) {
     // Zeroed: the builder leaves the vitals alone when the prototype exists (it wants statistics too), and the
     // original then packed what its stack held (a determinism fix).

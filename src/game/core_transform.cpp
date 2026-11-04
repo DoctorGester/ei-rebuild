@@ -4,20 +4,11 @@
 #include "core_maths.h"
 #include "lib/crt.h"
 #include "lib/maths.h"
-#include "platform/platform.h"
 
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-
-TransformObject* TransformObject::CopyTransform(const TransformObject& other) {
-    localPosition = other.localPosition;
-    worldPosition = other.worldPosition;
-    localRotation = other.localRotation;
-    worldRotation = other.worldRotation;
-    return this;
-}
 
 void TransformObject::CombineRotation(const Quaternion& g) {
     worldRotation = g * localRotation;
@@ -27,16 +18,6 @@ void TransformObject::CombineRotation(const Quaternion& g) {
 void TransformObject::UpdateWorld(const Quaternion& q, const Vector3& p) {
     CombineRotation(q);
     worldPosition = q.Rotate(localPosition) + p;
-}
-
-void TransformObject::SaveTransform(platform::File* file) {
-    file->WriteValue(localPosition);
-    file->WriteValue(localRotation);
-}
-
-void TransformObject::LoadTransform(platform::File* file) {
-    file->ReadValue(localPosition);
-    file->ReadValue(localRotation);
 }
 
 void Camera::GroundPoint(Vector3* out) const {
