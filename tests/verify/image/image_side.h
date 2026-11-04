@@ -282,8 +282,9 @@ struct ObjectState {
     float frame = 0, blend = 1;
 };
 // The client world's object `id`, or with `id` 0 its first bow arrow (the figure "efar1"); `part` "" for the
-// object's origin, "light" for its own light (own: the light's localPosition, drawn: drawn::LightPosition). False
-// when there is none (or no such part).
+// object's origin, "light" for its own light (own: the light's localPosition, drawn: drawn::LightPosition),
+// "lastdraw" for where its last draw put it (both: its world matrix's place). False when there is none (or no such
+// part).
 bool ClientObject(int id, const char* part, ObjectState* out);
 // The client world's point light effect `id` (EffectPointLight), or with `id` 0 the first moving one (a spell's or a
 // missile's light): its light's own place and drawn one (drawn::LightPosition). False when there is none.

@@ -72,7 +72,8 @@ void NotePathChanged(Object3D* object);
 // The object's pose now.
 Pose OwnPose(const Object3D* object);
 // The pose the draw shows: its own less the part of its last tick's step not reached yet, or its own when it has no
-// step, the frame placed it, or nothing is left to take back; plus what is left of a path change's jump.
+// step, the frame placed it, or nothing is left to take back; plus what is left of a path change's jump. An
+// interface figure's (MapObjectFlag::NoEdgeFade during its draw) is its own: the interface placed it.
 Pose PoseOf(const Object3D* object);
 // PoseOf, once a frame where the world's draw places the object (CollectVisible): the place is kept as shown.
 Pose Show(Object3D* object);

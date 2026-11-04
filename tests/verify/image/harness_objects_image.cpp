@@ -525,7 +525,7 @@ bool ClientObject(int id, const char* part, ObjectState* out) {
         return true;
     }
     const FigureMesh* piece = nullptr;
-    if (part && *part) {
+    if (part && *part && std::strcmp(part, "lastdraw") != 0) {
         piece = found->FindPart(part);
         if (!piece) return false;
     }
@@ -536,6 +536,13 @@ bool ClientObject(int id, const char* part, ObjectState* out) {
         out->blend = state->blendLength != 0 ? static_cast<float>(platform::Milliseconds() - state->blendStart) /
                                                    static_cast<float>(state->blendLength)
                                              : 1.0f;
+    }
+    if (part && std::strcmp(part, "lastdraw") == 0) {
+        // Where its last draw put it: the translation of the world matrix the draw set (row-major, the place in the
+        // last column). After a frame, an interface figure's draw when one drew it last (the HUD unit panel's).
+        const float* m = found->worldMatrix.m;
+        out->own = out->drawn = ObjectPlace{m[3], m[7], m[11], 0.0f};
+        return true;
     }
     out->own = PlaceAt(piece, drawn::OwnPose(found));
     out->drawn = PlaceAt(piece, drawn::PoseOf(found));

@@ -30,8 +30,9 @@
 //                             then that one until it is gone, or "spelllight": the first moving point light
 //                             effect, a spell's or a missile's, likewise) or its part's place in the figure (e.g.
 //                             "rh3", the right hand: the pose alone, its blends) or "light", its own light (own: the
-//                             game's place, drawn: drawn::LightPosition); with "log" each frame's places go to the
-//                             log ("harness: objframe ...")
+//                             game's place, drawn: drawn::LightPosition) or "lastdraw", where its last draw put it
+//                             (both: its world matrix's place; after a frame the HUD unit panel's draw of the unit
+//                             it shows, R19b); with "log" each frame's places go to the log ("harness: objframe ...")
 //   objtrace stop <name>      keep the drawn place as <name> and the object's own as <name>.own (kinds pan:
 //                             the path on the map, turn: the yaw, height); camsame / camsteadier / camsmooth
 //                             check them

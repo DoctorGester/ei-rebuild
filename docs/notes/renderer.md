@@ -1097,6 +1097,10 @@ objects the server's updates move, a held unit (pathTimeShift 1, not placed on i
   little off where the unit was drawn (0.25-0.35 units when the hero sets off), so its placement jumps once. The jump
   from the place last shown (`drawn::Show`) fades out over 150 ms of real time (smoothstep), times the pass's spread
   (none at the harness's default pass), unless longer than the cut.
+- **Interface figures:** a unit the interface draws (the HUD unit panel's, top left; the camp's and hero screen's
+  previews; MapObjectFlag::NoEdgeFade during the draw) is placed by the interface in its own view, so `drawn::PoseOf`
+  gives it its own pose: the world's step and path change jump would move it there (the panel's figure jumped about
+  0.16 units up and right at each set-off, fading over the 150 ms, which looked like the animation switch's doing).
 - Lag: up to a tick's step; an arrow vanishes up to one step short of its target (it is removed in the tick it arrives,
   so the original never drew it there either).
 
@@ -1154,6 +1158,10 @@ blends the pose last placed into the new one's (map_object_animation.cpp, figure
   a second one walking (`cwalk05` into `uattack02`, no jump; captures `walk_attack_*`), and its arrow flies
   (`objtrace arrow`: drawn without a jump, own jerky, the same path within 25%). A hero standing after a walk in zone1
   keeps its walk animation until an idle starts (a few seconds).
+- `render_preview_blend` (vanilla), at 8 ms frames: the hero, standing, is sent off (a path change and an
+  idle into a cross); `objtrace start leader lastdraw` follows where the unit's last draw put it each frame (the HUD
+  unit panel's draw), which must stay still (`camsteadier panel walk pan 0.05`: its largest step against the walk's;
+  0.159 with the path change's jump in the panel, 0 without). Captures `panel_*`.
 - `camera_smooth` (vanilla and Rebirth): pan, turn (Ctrl), zoom (Page Down) and follow (Home, the hero walking).
   `camtrace` keeps each recording as the drawn view (`pan`) and the camera's own (`pan.camera`). `camsame` (3%): the drawn
   view covers what the camera does. `camsmooth`: the drawn view without a jump, the camera with (a jump is a frame whose
@@ -1167,8 +1175,8 @@ blends the pose last placed into the new one's (map_object_animation.cpp, figure
 - Harness: `keydown` / `keyup` (a key held over frames), `frametime <ms>`, `mousedrag <dx> <dy>`, `camtrace` / `camsame` /
   `camsteadier` / `camsmooth` (tests/verify/harness_camera.h; kinds pan, turn, zoom, height, reach); `objtrace start <who>
   [part|-] [log]` / `objtrace stop <name>` (an object's drawn and own place, or a part's place in the figure, or with
-  part `light` its own light's, or with who `spelllight` the first moving point light effect's, after each frame's
-  draw; the same checks), `animblend on|off`.
+  part `lastdraw` where its last draw put it, or with part `light` its own light's, or with who `spelllight` the first
+  moving point light effect's, after each frame's draw; the same checks), `animblend on|off`.
 
 ## 15. The performance overlay
 
