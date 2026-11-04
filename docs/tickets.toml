@@ -7291,6 +7291,15 @@ depends = ["R45"]
 note = "User 2026-11-04 asked why R45 hardcodes 19 sizes. List the sizes from the platform layer: platform::DisplaySizes() over SDL_GetFullscreenDisplayModes of the window's display (sizes only, deduped, largest first, none above the desktop size; full screen stays the desktop mode with the frame scaled, so the modes are only size choices), plus the current size when missing. The harness backend returns a fixed list so scenarios step it the same way on every machine. Remove the fixed list. Check: render_options_resolution the same, a unit check of the dedup and order, Linux builds."
 
 [[ticket]]
+id = "R17a1"
+title = "Water: reflect the sky dome and the objects, sun shadows on the water"
+group = "renderer"
+model = "opus"
+depends = ["R17a"]
+files = ["src/render/shaders/terrain.hlsl", "src/render/render_water.cpp"]
+note = "Found in R17a (renderer.md, 'shaders/terrain.hlsl: the water'): the reflection is a sky in the fog's colour only (the game's sky mesh and the objects on the shore are not reflected) and the water receives no sun shadow, so glints show inside a shadow. Options: a screen-space reflection from the world pass's colour and depth copy (needs the frame's colour before the water pass, so a copy or a split of the scene pass), or a low-resolution reflected sky pass; take the shadow map's hidden term on the water to dim the glints and the reflection. Measure with render_water's scenes (R17a's frame GPU time kit: 0.07-0.95 ms for the water pass at 3840x2009 msaa 8)."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
