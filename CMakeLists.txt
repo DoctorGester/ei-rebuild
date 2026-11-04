@@ -217,16 +217,38 @@ target_link_libraries(ei_platform PRIVATE SDL3::SDL3-static)
 
 # The game (docs/notes/standalone.md section 2): ei-rebuild.exe, an ordinary exe (S18k: ASLR as any exe, no read of
 # game.exe) with the whole game linked in (S23: no DLL; dropped into a game folder it plays from there). Its entry is
-# main (src/main.cpp, every system); on Windows its one resource is its version information (src/main.rc, C23):
-# game.exe's own resources are not used.
+# main (src/main.cpp, every system); on Windows its resources are its icon and version information (src/main.rc, C23,
+# C24): game.exe's own resources are not used. The icon is assets/icon: ei-rebuild.ico (16 to 256 px) for Windows,
+# ei-rebuild.png (1254 px) for the macOS bundle's .icns, made at build time with sips and iconutil.
 # The log is the program's, not ei_platform's: the offline checks that link the platform (tools/ui_check,
 # tools/perf_check) have their own ei::Log.
 set(EI_PROGRAM_SOURCES src/platform/log.cpp)
+if(APPLE)
+    set(icon_set ${CMAKE_BINARY_DIR}/icon/ei-rebuild.iconset)
+    set(EI_ICNS ${CMAKE_BINARY_DIR}/icon/ei-rebuild.icns)
+    set(icon_png ${CMAKE_SOURCE_DIR}/assets/icon/ei-rebuild.png)
+    set(icon_steps COMMAND ${CMAKE_COMMAND} -E rm -rf ${icon_set} COMMAND ${CMAKE_COMMAND} -E make_directory ${icon_set})
+    foreach(size 16 32 128 256 512)
+        math(EXPR double "${size} * 2")
+        list(APPEND icon_steps
+            COMMAND sips -z ${size} ${size} ${icon_png} --out ${icon_set}/icon_${size}x${size}.png
+            COMMAND sips -z ${double} ${double} ${icon_png} --out ${icon_set}/icon_${size}x${size}@2x.png)
+    endforeach()
+    add_custom_command(OUTPUT ${EI_ICNS} ${icon_steps} COMMAND iconutil -c icns ${icon_set} -o ${EI_ICNS}
+        DEPENDS ${icon_png} COMMENT "The bundle's icon (sips, iconutil)" VERBATIM)
+    set_source_files_properties(${EI_ICNS} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+    list(APPEND EI_RESOURCES ${EI_ICNS})
+endif()
 add_executable(ei-rebuild WIN32 src/main.cpp ${EI_PROGRAM_SOURCES} ${EI_RESOURCES})
-# On macOS an application bundle (ei-rebuild.app/Contents/MacOS/ei-rebuild; docs/notes/macos.md).
+if(WIN32)
+    set_property(SOURCE src/main.rc APPEND PROPERTY OBJECT_DEPENDS ${CMAKE_SOURCE_DIR}/assets/icon/ei-rebuild.ico)
+    set_property(SOURCE src/main.rc APPEND PROPERTY INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/assets/icon)
+endif()
+# On macOS an application bundle (ei-rebuild.app/Contents/MacOS/ei-rebuild; docs/notes/macos.md) with its icon.
 if(APPLE)
     set_target_properties(ei-rebuild PROPERTIES MACOSX_BUNDLE TRUE
-        MACOSX_BUNDLE_GUI_IDENTIFIER org.eirebuild.game MACOSX_BUNDLE_BUNDLE_NAME "Evil Islands")
+        MACOSX_BUNDLE_GUI_IDENTIFIER org.eirebuild.game MACOSX_BUNDLE_BUNDLE_NAME "Evil Islands"
+        MACOSX_BUNDLE_ICON_FILE ei-rebuild.icns)
 endif()
 target_include_directories(ei-rebuild PRIVATE src)
 target_link_libraries(ei-rebuild PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>")
