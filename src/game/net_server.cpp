@@ -7,7 +7,6 @@
 #include "net_classes.h"
 #include "net_coder.h"
 #include "net_connection.h"
-#include "net_handlers.h"
 #include "net_messages.h"
 #include "net_second_master.h"
 #include "options.h"
@@ -38,22 +37,6 @@ ServerBase::ServerBase() {
 ServerSession::ServerSession(std::uint32_t newKind) {
     masterAddress = NetAddress{};
     magic = kSessionMagic;
-    RegisterMessageTypes();
-
-    AddHandlerFor<LoginMessage>(0, AsHandler<ServerOnJoin>());
-    AddHandlerFor<LoginMessage>(1, AsHandler<ServerOnPlayerChanged>());
-    AddHandlerFor<LoginMessage>(2, AsHandler<ServerOnPlayerGone>());
-    AddHandlerFor<SayMessage>(0, AsHandler<ServerOnSay>());
-    AddHandlerFor<CommandMessage>(0, AsHandler<ServerOnCommand>());
-    AddHandlerFor<FileRequestMessage>(0, AsHandler<ServerOnObjectAdded>());
-
-    RegisterRequestHandler(2, AsHandler<ServerOnObjectRemoved>());
-    RegisterPartyHandler(0, AsHandler<ServerOnTradeOffer>());
-    RegisterPartyHandler(1, AsHandler<ServerOnTradeUpdate>());
-    RegisterPartyHandler(2, AsHandler<ServerOnTradeCancel>());
-    RegisterMemberHandler(0, AsHandler<ServerOnMemberChanged>());
-    RegisterMemberHandler(1, AsHandler<ServerOnMemberChanged>());
-
     nextLine = 0;
     kind = newKind;
     maxPlayers = 8;
@@ -64,51 +47,51 @@ ServerSession::ServerSession(std::uint32_t newKind) {
     std::memset(password, 0, sizeof(password));
 }
 
-// What the connection being updated receives: the players and the variables, its own binding (the binding
+// What `connection` receives: the players and the variables, its own binding (the binding
 // whose connection it is; hosting when its player is the host), the newer chat lines meant for everyone or
 // for it (numbered after the player's first line), every shared file with, for the one a request of this
 // connection names, its chunks (priority 1), the queued maps for the host, the host message and the map
 // message, the awards for this connection, the trade offers to the player whose members all exist (the offer
 // and its members), and the trades naming the player. Priority 2 unless noted.
-void ServerSession::CollectReplicated(std::vector<Replicated>** out) {
+void ServerSession::CollectReplicated(const Connection* connection, std::vector<Replicated>* out) {
     PlayerMessage* record = nullptr;
     bool hosting = false;
-    for (auto& n : players) PushReplicated(*out, n.Get(), 2);
-    for (auto& n : variables) PushReplicated(*out, n.Get(), 2);
+    for (auto& n : players) PushReplicated(out, n.Get(), 2);
+    for (auto& n : variables) PushReplicated(out, n.Get(), 2);
     if (!bindings.empty()) {
         for (auto& n : bindings) {
             auto* binding = n.Get();
-            if (binding->connection.Get() != g_currentConnection) continue;
+            if (binding->connection.Get() != connection) continue;
             record = binding->player.Get();
             if (record->host) hosting = true;
-            PushReplicated(*out, binding, 2);
+            PushReplicated(out, binding, 2);
         }
         if (record && !(record->flags7 & RefObject::kDetached)) {
             for (auto& n : lines) {
                 auto* line = n.Get();
                 RefObject* target = line->connection.Get();
-                if ((!target || target == g_currentConnection) &&
+                if ((!target || target == connection) &&
                     static_cast<std::int32_t>(line->number) > static_cast<std::int32_t>(record->firstLine))
-                    PushReplicated(*out, line, 2);
+                    PushReplicated(out, line, 2);
             }
         }
     }
     for (auto& n : files) {
-        PushReplicated(*out, n.Get(), 2);
+        PushReplicated(out, n.Get(), 2);
         for (auto& m : fileRequests) {
             auto* request = m.Get();
-            if (request->file.Get() != n.Get() || request->connection.Get() != g_currentConnection) continue;
-            for (const auto& chunk : n.Get()->chunks) PushReplicated(*out, chunk.Get(), 1);
+            if (request->file.Get() != n.Get() || request->connection.Get() != connection) continue;
+            for (const auto& chunk : n.Get()->chunks) PushReplicated(out, chunk.Get(), 1);
             break;
         }
     }
     if (hosting)
-        for (auto& n : queuedMaps) PushReplicated(*out, n.Get(), 2);
-    if (HostMessage* object = hostInfo.Get()) PushReplicated(*out, object, 2);
-    if (MapMessage* object = map.Get()) PushReplicated(*out, object, 2);
+        for (auto& n : queuedMaps) PushReplicated(out, n.Get(), 2);
+    if (HostMessage* object = hostInfo.Get()) PushReplicated(out, object, 2);
+    if (MapMessage* object = map.Get()) PushReplicated(out, object, 2);
     for (auto& n : awards) {
         AwardMessage* award = n.ref.Get();
-        if (award->connection.Get() == g_currentConnection) PushReplicated(*out, award, 2);
+        if (award->connection.Get() == connection) PushReplicated(out, award, 2);
     }
     for (auto& n : offers) {
         auto* offer = n.Get();
@@ -119,18 +102,18 @@ void ServerSession::CollectReplicated(std::vector<Replicated>** out) {
             if (!member || (member->flags7 & RefObject::kDetached)) complete = false;
         }
         if (!complete) continue;
-        PushReplicated(*out, offer, 2);
+        PushReplicated(out, offer, 2);
         const auto& members = n.Get()->members;
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(members.size()); ++i)
-            PushReplicated(*out, n.Get()->members[i].Get(), 2);
+            PushReplicated(out, n.Get()->members[i].Get(), 2);
     }
     for (auto& n : trades) {
         auto* trade = n.Get();
-        if (trade->player.Get() == record || trade->partner.Get() == record) PushReplicated(*out, trade, 2);
+        if (trade->player.Get() == record || trade->partner.Get() == record) PushReplicated(out, trade, 2);
     }
     for (auto& n : finishedTrades) {
         TradeMessage* trade = n.ref.Get();
-        if (trade->player.Get() == record || trade->partner.Get() == record) PushReplicated(*out, trade, 2);
+        if (trade->player.Get() == record || trade->partner.Get() == record) PushReplicated(out, trade, 2);
     }
 }
 
@@ -239,30 +222,64 @@ void ServerSession::OnMaster(const NetAddress* from, BufferCursor* cursor) {
     cursor->Take(masterToken);
 }
 
-// A chat line from the connection being read
-// (g_currentConnection; nothing when it is gone or detached): the first binding of that connection names the
-// player (nothing without one, or when the binding is detached), and the line is announced to
-// everybody as "^<number><name>^7: <text>".
-void ServerOnSay(ServerSession* server, SayMessage* message) {
-    Connection* connection = g_currentConnection;
-    if (!connection || (connection->flags7 & RefCounted::kDetached)) return;
-    const auto& bindings = server->bindings;
+// The clients' messages. A file request keeps its sender's connection while it is listed; a trade offer's
+// member moves its version on when created or changed, so the connections send it again.
+void ServerSession::OnMessage(Connection* from, MessageEvent event, Message* message) {
+    using enum MessageEvent;
+    switch (message->Type()) {
+    case LoginMessage::kType: {
+        auto* login = static_cast<LoginMessage*>(message);
+        if (event == Created) OnJoin(from, login);
+        if (event == Changed) OnPlayerChanged(login);
+        if (event == Removed) OnPlayerGone(login);
+        return;
+    }
+    case SayMessage::kType:
+        if (event == Created) OnSay(from, static_cast<SayMessage*>(message));
+        return;
+    case CommandMessage::kType:
+        if (event == Created) OnCommand(from, static_cast<CommandMessage*>(message));
+        return;
+    case FileRequestMessage::kType:
+        if (event == Created) {
+            auto* request = static_cast<FileRequestMessage*>(message);
+            request->connection.Assign(from);
+            fileRequests.emplace_back(request);
+        }
+        if (event == Removed) std::erase_if(fileRequests, [message](const auto& request) { return request.Get() == message; });
+        return;
+    case PartyMessage::kType: {
+        auto* offer = static_cast<PartyMessage*>(message);
+        if (event == Created) OnTradeOffer(offer);
+        if (event == Changed) OnTradeUpdate(offer);
+        if (event == Removed) OnTradeCancel(offer);
+        return;
+    }
+    case PartyMemberMessage::kType:
+        if (event != Removed) ++message->version;
+        return;
+    default:
+        return;   // the server's own messages
+    }
+}
+
+// A chat line from `from` (nothing when it is gone or detached): the first binding of that connection names the
+// player (nothing without one, or when the binding is detached), and the line is announced to everybody as
+// "^<number><name>^7: <text>".
+void ServerSession::OnSay(Connection* from, SayMessage* message) {
+    if (!from || (from->flags7 & RefCounted::kDetached)) return;
     for (auto& node : bindings) {
         auto* binding = node.Get();
-        if (binding->connection.Get() != connection) continue;
+        if (binding->connection.Get() != from) continue;
         // (The original also tests the binding for null here, after having read it.)
         if (binding->flags7 & RefCounted::kDetached) return;
         auto* player = binding->player.Get();
         std::string line;
         line = std::format("^{}{}^7: {}", player->number, player->name.data(), message->text.data());
-        server->Announce(line, nullptr);
+        Announce(line, nullptr);
         return;
     }
 }
-
-// The handler of the party members' channels 0 and 1 (ServerSession::Construct). The member message's version
-// moves on, so the connections send it again.
-void ServerOnMemberChanged(ServerSession*, Message* message) { ++message->version; }
 
 // --- Tick --------------------------------------------------------------------------------------------
 

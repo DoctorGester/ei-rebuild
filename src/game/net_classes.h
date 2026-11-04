@@ -1,14 +1,13 @@
 #pragma once
 
 // The multiplayer session classes and the message base; see docs/notes/network.md.
-// SessionBase holds the UDP socket, the connections, the message type
-// registry and the handler tables; ServerBase / ClientBase add the lobby side (pending joins, finding
-// servers) under ServerSession / ClientSession, the game server and client (g_gameServer, g_gameClient).
+// SessionBase holds the UDP socket and the connections and hands received messages to its OnMessage; ServerBase /
+// ClientBase add the lobby side (pending joins, finding servers) under ServerSession / ClientSession, the game server
+// and client (g_gameServer, g_gameClient).
 // Message (below) is the replicated object base, ServerEntry a server as the lobby lists it.
 
 #include "core_refcount.h"
 #include "party_storage.h"
-#include "lib/bytes.h"
 #include "lib/in_place.h"
 #include "net_coder.h"
 #include "platform/platform.h"
@@ -18,7 +17,6 @@
 #include <cstring>
 #include <list>
 #include <type_traits>
-#include <unordered_map>
 #include <vector>
 
 struct QuestBriefingRecord;
@@ -33,6 +31,8 @@ class BindingMessage;
 class HostMessage;
 class LoginMessage;
 class MapMessage;
+class SayMessage;
+class CommandMessage;
 class PartyMessage;
 class TradeMessage;
 class AwardMessage;
@@ -139,8 +139,6 @@ inline int g_gamePort = /*00783E30*/ {8888};
 inline console::Stream* g_netLog = /*0079B91C*/ {nullptr};
 // The session being updated (set by Tick / Receive and by the connection code).
 inline SessionBase* g_currentSession = /*0079B920*/ {nullptr};
-// The connection being updated or read (null outside the session code).
-inline Connection* g_currentConnection = /*0079B924*/ {nullptr};
 // The buffer every update packet is built in and the one datagrams are received into (net_session.cpp).
 extern GrowingBuffer g_sendBuffer;
 extern GrowingBuffer g_receiveBuffer;
@@ -151,6 +149,36 @@ inline Ref<ServerSession> g_gameServer = /*0079B5DC*/ {};
 
 // ---- The message base ---------------------------------------------------------------------------
 
+// The type of a message class (Message::Type, the classes' kType): the byte an update entry or an object reference
+// carries. The numbers are the wire format.
+enum class MessageType : std::uint8_t {
+    Player = 1,
+    Line = 2,
+    Host = 3,
+    Binding = 4,
+    Login = 5,
+    Say = 6,
+    Command = 7,
+    Zone = 8,
+    Map = 9,
+    Variable = 10,
+    File = 11,
+    FileChunk = 12,
+    FileRequest = 13,
+    Award = 14,
+    Party = 15,
+    PartyMember = 16,
+    Trade = 17,
+};
+constexpr int kMessageTypes = 0x100;   // the type byte's values
+
+// What happened to a received message (SessionBase::OnMessage).
+enum class MessageEvent : std::uint8_t {
+    Created,    // a new record
+    Changed,    // a newer version of a record
+    Removed,    // the record went away (the peer removed it or the connection closed)
+};
+
 // A replicated network object: a connection sends it again whenever its version differs from the one last
 // sent. OnShutdown resets the message (each class its own fields), Clone copies it.
 class Message : public RefObject {
@@ -158,8 +186,11 @@ public:
     ~Message() override;
     // Version 1 again, as constructed.
     void OnShutdown() override { version = 1; }
-    virtual void Write(BufferCursor* cursor) = 0;   // the fields at the cursor's byte position
-    virtual void Read(BufferCursor* cursor) = 0;
+    virtual MessageType Type() const = 0;
+    // The fields at the cursor's byte position; object references through `peer` (the connection sending or
+    // receiving the message).
+    virtual void Write(Connection* peer, BufferCursor* cursor) = 0;
+    virtual void Read(Connection* peer, BufferCursor* cursor) = 0;
 
     std::uint32_t version = 1;    // 1 when constructed; raised by every change
 
@@ -168,7 +199,8 @@ protected:
     Message(const Message& other) : RefObject(), version(other.version) {}
 };
 
-using MessageFactory = Message* (*)();
+// A new message of wire type `type` (no references), null for a type no class has.
+Message* CreateMessage(std::uint8_t type);
 
 // ---- The server entries of the lobby ------------------------------------------------------------
 
@@ -236,44 +268,6 @@ struct ClientQueries {
 
 // ---- The session base ---------------------------------------------------------------------------
 
-constexpr int kChannels = 3;          // handler channels: 0 created, 1 changed, 2 removed
-constexpr int kMessageTypes = 0x100;
-
-// A message handler as the session keeps it: its session and the message. The handlers themselves take their
-// own session class and message class (net_handlers.h); AsHandler<handler>() is a thunk that casts both down and
-// calls it.
-using MessageHandler = void(*)(SessionBase*, Message*);
-template <auto Handler>
-MessageHandler AsHandler() {
-    return [](SessionBase* session, Message* message) {
-        [&]<typename Session, typename MessageType>(void (*)(Session*, MessageType*)) {
-            Handler(static_cast<Session*>(session), static_cast<MessageType*>(message));
-        }(Handler);
-    };
-}
-
-// The message type registry of a session.
-struct TypeRegistry {
-
-    std::unordered_map<std::uintptr_t, std::uint32_t> byVtable;    // message vtable -> type id
-    std::unordered_map<std::uint32_t, MessageFactory> byType;         // type id -> factory
-
-    // The key of a message's class: its vtable (the object's first pointer).
-    static std::uintptr_t KeyOf(const RefObject* message) {
-        std::uintptr_t key;
-        lib::LoadBytes(key, message);   // read before any null check
-        return key;
-    }
-    // The type id of the message class whose key is *key, or -1.
-    int TypeOf(const std::uintptr_t* key) const;
-    // Registers `type`: makes a prototype with `factory` (to learn its vtable), maps the
-    // vtable to the type and the type to the factory, and releases the prototype.
-    void Register(std::uint32_t type, MessageFactory factory);
-    // A new message of `type` from its factory (operator[] on byType: an unknown type
-    // gets an empty entry), or null.
-    Message* Create(std::uint32_t type);
-};
-
 // The UDP socket of a session and the broadcast addresses of the host.
 struct SocketDriver {
     // Starts Winsock and notes the broadcast address of the host's first address.
@@ -338,16 +332,6 @@ inline void PushReplicated(std::vector<Replicated>* v, Message* object, std::uin
 // The datagrams of a session by PacketKind.
 class SessionBase : public RefCounted {
 public:
-    void RegisterTradeHandler(int channel, MessageHandler handler);
-    void RegisterAwardHandler(int channel, MessageHandler handler);
-    void RegisterChunkHandler(int channel, MessageHandler handler);
-    void RegisterFileHandler(int channel, MessageHandler handler);
-    void RegisterVariableHandler(int channel, MessageHandler handler);
-    void RegisterMapHandler(int channel, MessageHandler handler);
-    void RegisterMemberHandler(int channel, MessageHandler handler);
-    void RegisterPartyHandler(int channel, MessageHandler handler);
-    void RegisterRequestHandler(int channel, MessageHandler handler);
-
     // The count and the flags are the creator's.
     SessionBase();
     ~SessionBase() override;
@@ -362,24 +346,13 @@ public:
     virtual void OnMaster(const NetAddress* from, BufferCursor* cursor);      // PacketKind::Master (logs an error)
     virtual void OnClientLost(Connection*) {}                                 // timed out or a bad update
     virtual void OnClientLeft(Connection*) {}                                 // sent a leave packet
-    // Appends what the connection being updated (CurrentConnection) should have to **out.
-    virtual void CollectReplicated(std::vector<Replicated>**) = 0;
+    // Appends what `connection` should have to *out.
+    virtual void CollectReplicated(const Connection* connection, std::vector<Replicated>* out) = 0;
+    // A message `from` received, changed or lost.
+    virtual void OnMessage(Connection* from, MessageEvent event, Message* message) = 0;
     // Advances the session clock by `dt`, hands the waiting datagrams to the handlers, ticks the connections
     // (dropping timed-out ones) and counts the frame.
     virtual void Tick(double dt);
-
-    // Appends `handler` to the handlers of message `type` (low byte) on `channel` (0..2;
-    // other channels are ignored).
-    void AddHandler(int channel, std::uint32_t type, MessageHandler handler);
-    // Registers the factories of message types 1..17.
-    void RegisterMessageTypes();
-    // A handler registration as the session constructors do it: a prototype message T, held through a
-    // counted reference while its type id is looked up by its class, then AddHandler.
-    template <typename T>
-    void AddHandlerFor(int channel, MessageHandler handler) {
-        AddHandlerForPrototype(new T(), channel, handler);
-    }
-    void AddHandlerForPrototype(Message* prototype, int channel, MessageHandler handler);
 
     // The connection to `address` in clients, end() when none.
     std::list<SharedRef<Connection>>::iterator FindClient(const NetAddress* address);
@@ -403,9 +376,7 @@ public:
     // The connections. A list: OnUpdate keeps its connection's node while the update's handlers may remove
     // others (a kick, ServerOnCommand).
     std::list<SharedRef<Connection>> clients;
-    TypeRegistry types;
     SocketDriver socket;
-    std::vector<MessageHandler> handlers[kChannels][kMessageTypes];
 };
 
 constexpr std::uint32_t kSessionMagic = 0xDEC0AD07;
@@ -451,7 +422,9 @@ public:
     void OnMaster(const NetAddress* from, BufferCursor* cursor) override;
     void OnClientLost(Connection* connection) override;                       // text 4
     void OnClientLeft(Connection* connection) override;                       // text 1
-    void CollectReplicated(std::vector<Replicated>** out) override;
+    void CollectReplicated(const Connection* connection, std::vector<Replicated>* out) override;
+    // The clients' messages: logins, chat, commands, file requests, trade offers and their members.
+    void OnMessage(Connection* from, MessageEvent event, Message* message) override;
     void Tick(double dt) override;
     void Describe(Ref<ServerEntry>* out) override;
     bool Admit(const NetAddress* from, BufferCursor* password, RefusalReason* reason) override;
@@ -506,6 +479,20 @@ public:
     bool IsHostConnection(const Connection* connection);
     // Whether the player bound to `connection` is Connecting.
     bool IsConnecting(const Connection* connection);
+
+private:
+    // OnMessage's longer cases: a login created (a client joined), changed or removed (it left), a chat line, a
+    // command, a trade offer created, changed or removed.
+    void OnJoin(Connection* from, LoginMessage* msg);
+    void OnPlayerChanged(LoginMessage* message);
+    void OnPlayerGone(LoginMessage* message);
+    void OnSay(Connection* from, SayMessage* message);
+    void OnCommand(Connection* from, CommandMessage* message);
+    void OnTradeOffer(PartyMessage* message);
+    void OnTradeUpdate(PartyMessage* message);
+    void OnTradeCancel(PartyMessage* message);
+
+public:
 
     float announceTimer;                // seconds to the next announcement to the master server
     std::uint8_t announced;             // announced to the master server
@@ -628,7 +615,9 @@ public:
 
     ClientSession();
     ~ClientSession() override;
-    void CollectReplicated(std::vector<Replicated>** out) override;
+    void CollectReplicated(const Connection* connection, std::vector<Replicated>* out) override;
+    // The server's messages, kept in the lists below.
+    void OnMessage(Connection* from, MessageEvent event, Message* message) override;
     void Tick(double dt) override;
     void OnJoined() override;
     void CreateEntry(Ref<ServerEntry>* out) override;
@@ -640,6 +629,18 @@ public:
     // A command message ({kind, text}) for the server, kept 60 s.
     void SendCommand(CommandKind kind, std::string_view text);
 
+private:
+    // OnMessage's longer cases, each for a created message (OnTradeChanged a changed one).
+    void OnBinding(BindingMessage* message);
+    void OnMap(MapMessage* message);
+    void OnFile(FileMessage* message);
+    void OnFileChunk(FileChunkMessage* message);
+    void OnTrade(TradeMessage* message);
+    void OnTradeChanged(TradeMessage* message);
+    // The trade, the party description and the trade records dropped.
+    void EndTrade();
+
+public:
     std::vector<HeldRef<PlayerMessage>> players;
     std::vector<HeldRef<LineMessage>> lines;
     std::vector<HeldRef<FileMessage>> files;

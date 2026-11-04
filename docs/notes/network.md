@@ -62,22 +62,23 @@ and `net_pair_party` (an exchange offered, withdrawn, answered, left);
 
 ## Sessions and messages
 
-- `SessionBase : RefCounted`: frame, time (a double holding float sums), the connections, the type registry (message
-  class to type id to factory), the UDP socket driver, handler vectors per
-  channel (0 created, 1 changed, 2 removed) and type. `ServerBase` / `ClientBase` are the lobby layers;
-  `ServerSession` / `ClientSession` on top. +8 of both sessions is the magic 0xDEC0AD07.
+- `SessionBase : RefCounted`: frame, time (a double holding float sums), the connections and the UDP socket driver.
+  A connection hands each received message to its session's `OnMessage` (the connection, a `MessageEvent`: Created,
+  Changed or Removed, the message), one switch on the message's `Type()` per session. `ServerBase` / `ClientBase` are
+  the lobby layers; `ServerSession` / `ClientSession` on top. +8 of both sessions is the magic 0xDEC0AD07.
 - Packet kinds (first byte, `net::PacketKind`): Master (0xFF, -1), Update 0, Leave 1, (2 none), GetInfo 3, Login 4,
   Info 5, Accepted 6, Rejected 7 (the join id and a `RefusalReason`: Full 1, Banned 2, WrongPassword 3). The other
   numbers of the wire are enums too, in `net_classes.h`: `AwardKind`, `CommandKind`, `PlayerStatus` (the state of a
   client's login record: InZone 0, InBase 1, InCamp 2, Connecting 3, Fresh 4); the player link's message types are
   `ServerMessage` / `ClientMessage` (`player_messages.h`), the connection states `PlayerServer::State` /
   `PlayerClient::State`, a map object's delta fields `NetField` (`net_delta.h`). Values equal the old numbers; the
-  handler tables are keyed by the enums.
+  dispatch switches are on the enums.
 - Message types: client to server: Login (5), Say (6), Command (7, {kind, text}), FileRequest (13), Party (15, a trade
   offer), PartyMember (16, a MemoryStream); server to client: Player (1), Line (2, chat), Host (3, "host:port" + zone),
   Binding (4), Zone (8), Map (9), Variable (10), File (11), FileChunk (12), Award (14), Trade (17). Duplicate layouts
-  share a class: `TextMessage` (Say / Zone / Map); Binding and FileRequest hold their typed pair. Each class has its factory,
-  `OnShutdown`, Write and Read. `OnShutdown` (a still-shared message losing its owner) gives every field a constructor
+  share a class: `TextMessage` (Say / Zone / Map); Binding and FileRequest hold their typed pair. Each class has its `kType`
+  (`MessageType`, the wire's type byte) and `Type()`, `OnShutdown`, Write and Read (object references go through the
+  connection passed in); `CreateMessage` makes one by type. `OnShutdown` (a still-shared message losing its owner) gives every field a constructor
   sets its new value (version 1, references dropped); the fields a constructor leaves unset keep theirs, as the
   original's destroy-and-construct-in-place left them. Only the messages a second share of an object clones (Say, Command, FileChunk, Award, ServerEntry)
   have `Clone` and a copy constructor; `RefObject::Clone` of any other class is a fatal error, and `OnShutdown` is
@@ -123,7 +124,9 @@ connection a message still holds) restores a new connection's state (`Connection
   waits, lower priorities are still tried. `ReadRecord`'s skip path creates a throwaway object. `ClientSession::ApplyParty`
   creates and drops a member's object with a positive id.
 - Undefined in the original, defined in ours: a new connection's `roundTripSquare` starts at 0 (the original squared
-  what the memory held); an object of no registered type is tracked as type 0xFF (the original read `reliable[-1]`);
+  what the memory held); the original found a message's type by its vtable and an unknown one read `reliable[-1]`,
+  ours asks the message (`Type()`); a kick or ban inside an update left the original's current-connection global
+  null for the update's later entries (an object reference there read through null), ours passes the connection;
   every read through a `BufferCursor` stops at its `limit` (`BeginRead`'s size: a datagram's end, a compressed
   stream's end): bytes and bits past it read as zero and a text without its zero byte ends there (the original read on
   into whatever memory followed); `ClientSession::ApplyParty` stops at a spell or item type its factory does not know.

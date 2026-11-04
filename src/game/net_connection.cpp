@@ -25,12 +25,6 @@ void LogLine(const char* text) {
     if (console::Stream* log = g_netLog) console::EndLine(*log << text);
 }
 
-// The handlers registered for message `type` on `channel` (called with the session and the message).
-void CallHandlers(SessionBase* session, int channel, std::uint32_t type, Message* message) {
-    std::vector<MessageHandler>& v = session->handlers[channel][type & 0xFF];
-    for (auto& h : v) h(session, message);
-}
-
 // An object reference on the wire: a flag bit, the type and the id.
 struct WireId {
     std::uint32_t flag;
@@ -129,7 +123,7 @@ void Connection::AssignId(ReplicaEntry* entry) {
 }
 
 Message* Connection::CreateRecord(Record& record, std::uint8_t type, std::uint16_t objectId) {
-    Message* object = g_currentSession->types.Create(type);
+    Message* object = CreateMessage(type);
     if (!object) return nullptr;
     ShareAssignOwned(record.object, object);
     record.version = 0;
@@ -174,7 +168,7 @@ bool Connection::SendUpdate(int budget) {
                 if (entry->version == object->version) continue;
                 AssignId(entry);
                 PutWireId(&c, {1, entry->type, entry->id});
-                object->Write(&c);
+                object->Write(this, &c);
             } else {
                 if (entry->id == 0) continue;
                 if (object) {
@@ -229,7 +223,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
         }
         if (Message* object = found->second.object.Get()) {
             attached.erase(object);
-            CallHandlers(g_currentSession, 2, ref.type, object);
+            g_currentSession->OnMessage(this, MessageEvent::Removed, object);
         }
         DestroyOwned(found->second.object);
         found->second.version = version;
@@ -239,32 +233,30 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
     if (found != records.end() && found->second.version >= version) {
         // Older than what was applied: read it into a throwaway object to skip its bytes.
         LogLine(game::nettexts::SkipUpdate());
-        SharedRef<Message> scratch(g_currentSession->types.Create(ref.type));
-        scratch->Read(cursor);
+        SharedRef<Message> scratch(CreateMessage(ref.type));
+        scratch->Read(this, cursor);
         return true;
     }
 
-    // A new record or one without an object gets a new object (version 0: its handlers are the created ones).
+    // A new record or one without an object gets a new object (version 0: created).
     Record& record = found != records.end() ? found->second : records[key];
     if (!record.object.Get() && !CreateRecord(record, ref.type, ref.id)) return false;
     Message* object = record.object.Get();
-    object->Read(cursor);
-    const int channel = record.version == 0 ? 0 : 1;
+    object->Read(this, cursor);
+    const MessageEvent event = record.version == 0 ? MessageEvent::Created : MessageEvent::Changed;
     record.version = version;
-    CallHandlers(g_currentSession, channel, ref.type, object);
+    g_currentSession->OnMessage(this, event, object);
     return true;
 }
 
 void Connection::Track(const Replicated& item) {
     Message* object = item.object;
     if (!IsLive(object)) return;
-    const TypeRegistry& types = g_currentSession->types;
-    auto found = types.byVtable.find(TypeRegistry::KeyOf(object));
 
     // A new entry with no version and no id yet.
     auto* entry = new ReplicaEntry();
     entry->serial = ++entriesTracked;
-    entry->type = static_cast<std::uint8_t>(found != types.byVtable.end() ? found->second : 0xFF);
+    entry->type = static_cast<std::uint8_t>(object->Type());
     entry->priority = item.priority;
     entry->object.Assign(object);
     byObject[object] = entry;
@@ -273,8 +265,7 @@ void Connection::Track(const Replicated& item) {
 
 void Connection::CollectChanges() {
     std::vector<Replicated> items;
-    std::vector<Replicated>* target = &items;
-    g_currentSession->CollectReplicated(&target);
+    g_currentSession->CollectReplicated(this, &items);
     // The original sorts the list by the object's address and merges it with byObject (also by address), so
     // it tracks new objects, and its entries get their addresses, in address order. Ours goes by the list's
     // order (the session's lists), so entries are tracked, and their serials handed out, in an order no
@@ -418,7 +409,6 @@ void Connection::ProcessHeaders() {
 }
 
 bool Connection::ReadUpdate(BufferCursor* cursor) {
-    g_currentConnection = this;
     idleTime = 0.0f;
     std::uint16_t low;
     cursor->Take(low);
@@ -431,10 +421,7 @@ bool Connection::ReadUpdate(BufferCursor* cursor) {
         sequence += 0x10000;
         sequenceHigh += 0x10000;
     }
-    if (!Accept(sequence)) {
-        g_currentConnection = nullptr;
-        return true;
-    }
+    if (!Accept(sequence)) return true;
     ReadAcks(cursor);
     ReliableChunk header;
     cursor->ReadBytes(header.bytes, 3);
@@ -445,29 +432,17 @@ bool Connection::ReadUpdate(BufferCursor* cursor) {
     }
     std::uint8_t count;
     cursor->Take(count);
-    for (std::uint8_t i = 0; i < count; ++i) {
-        if (!ReadRecord(cursor, sequence)) {
-            g_currentConnection = nullptr;
-            return false;
-        }
-    }
-    g_currentConnection = nullptr;
+    for (std::uint8_t i = 0; i < count; ++i)
+        if (!ReadRecord(cursor, sequence)) return false;
     return true;
 }
 
 void Connection::Close() {
-    g_currentConnection = this;
     for (auto& it : records) {
         Ref<Message>* slot = &it.second.object;
-        if (Message* object = slot->Get()) {
-            SessionBase* session = g_currentSession;
-            auto found = session->types.byVtable.find(TypeRegistry::KeyOf(object));
-            std::uint32_t type = found != session->types.byVtable.end() ? found->second : 0xFFFFFFFFu;
-            CallHandlers(session, 2, type, object);
-        }
+        if (Message* object = slot->Get()) g_currentSession->OnMessage(this, MessageEvent::Removed, object);
         DestroyOwned(*slot);
     }
-    g_currentConnection = nullptr;
 }
 
 } // namespace net
