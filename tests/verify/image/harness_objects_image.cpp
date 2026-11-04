@@ -33,7 +33,6 @@
 #include "game/unit.h"
 #include "game/unit_client_models.h"
 #include "game/world.h"
-#include "game/world_data.h"
 #include "game/world_effect.h"
 #include "game/net_coder.h"
 #include "game/sound.h"
@@ -184,7 +183,7 @@ void RequestGameState(int id) {
 }
 void SetConstructionVariable(float value) { g_serverWorld.SetConstructionVariable(value); }
 void ObserveConsoleLines(void (*observer)(const char* line)) { console::g_consoleLineObserver = observer; }
-unsigned& UpdatePeriod() { return reinterpret_cast<unsigned&>(worlddata::g_updatePeriod); }
+unsigned& UpdatePeriod() { return reinterpret_cast<unsigned&>(app::g_updatePeriod); }
 const char* DataFolder() { return DataFolderText(); }
 void SetFixedSeed(void (*fill)(std::uint32_t* results)) {
     g_fill = fill;

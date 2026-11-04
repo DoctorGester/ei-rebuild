@@ -2,9 +2,9 @@
 // docs/notes/items_spells.md ("Materials").
 #include "material.h"
 
+#include "game_singletons.h"
 #include "game_strings.h"
 #include "mod_folders.h"
-#include "world_data.h"   // TextPathString
 
 #include "lib/bytes.h"
 #include "lib/crt.h"

@@ -29,7 +29,6 @@
 #include "unit_db.h"
 #include "unit_record.h"
 #include "world.h"
-#include "world_data.h"
 #include "world_effect.h"
 
 #include "lib/bytes.h"
@@ -50,6 +49,15 @@
 
 namespace {
 
+constexpr float kAxisEpsilon = 1e-8f;
+constexpr float kLineAngleOffset = 3.1415927f;
+constexpr float kLineSpacing = 1.2f;
+constexpr float kHeroStartX = 54.0f;        // the hero's start on zone1
+constexpr float kHeroStartY = 138.0f;
+constexpr float kHeroStartRadius2 = 300.0f;
+constexpr float kCampfireHeight = 0.7f;
+constexpr float kTorchLightScale = 10.0f;  // the flame's radius factor (10)
+
 using mapspec::ObjectSpec;
 using mapspec::Spec;
 using mapspec::SpecKind;
@@ -62,11 +70,11 @@ void FillHeroParts(UnitSpec* message, const char* prototypeName, std::string& sc
     int hairStyle = prototype ? prototype->hair : 1;
 
     std::vector<std::string>& parts = message->parts;
-    for (int n = 0; n < worlddata::kHeroPartCount; ++n) {
-        const char* part = worlddata::HeroPartText(n);
-        if (std::strcmp(part, worlddata::HairPartText()) == 0) {
+    for (int n = 0; n < kHeroPartCount; ++n) {
+        const char* part = kHeroFigureParts[n];
+        if (std::strcmp(part, "hr") == 0) {
             if (hairStyle != -1) {
-                scratch = str::Format(worlddata::HairFormat(), hairStyle);
+                scratch = str::Format("hr.%.2d", hairStyle);
                 parts.push_back(scratch.c_str());
             }
         } else {
@@ -80,7 +88,7 @@ void FillHeroParts(UnitSpec* message, const char* prototypeName, std::string& sc
 void PlaceInLine(UnitSpec* message, const Vector3& position, const Quaternion& rotation, int index) {
     float axis = LengthSquared(Vector3{rotation.x, rotation.y, rotation.z});
     float angle;
-    if (axis <= worlddata::kAxisEpsilon) {
+    if (axis <= kAxisEpsilon) {
         angle = 0.0f;
     } else {
         float arc = lib::Acos(rotation.w);
@@ -88,7 +96,7 @@ void PlaceInLine(UnitSpec* message, const Vector3& position, const Quaternion& r
         float sign = 1.0f / std::sqrt(axis) * rotation.z;
         if (sign < 0.0f) angle = -angle;
     }
-    angle += worlddata::kLineAngleOffset;
+    angle += kLineAngleOffset;
 
     Spec& spec = *message;
     spec.position = position;
@@ -96,7 +104,7 @@ void PlaceInLine(UnitSpec* message, const Vector3& position, const Quaternion& r
     float cosine = lib::Cos(angle);
     float sine = lib::Sin(angle);
     float step = static_cast<float>(index);
-    spec.position += Vector3{step * cosine * worlddata::kLineSpacing, sine * step * worlddata::kLineSpacing, 0.0f};
+    spec.position += Vector3{step * cosine * kLineSpacing, sine * step * kLineSpacing, 0.0f};
 }
 
 // An item from an item record, with its counted record holding the item record's id.
@@ -134,12 +142,12 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
 
     // A hero created next to the start of zone1 plays its arrival animation.
     bool atStart = false;
-    if (text::CompareIgnoringCase(mapName.c_str(), worlddata::StartZoneText(), 5) == 0) {
-        const Vector3 heroStart = {worlddata::kHeroStartX, worlddata::kHeroStartY, 0.0f};
+    if (text::CompareIgnoringCase(mapName.c_str(), "zone1", 5) == 0) {
+        const Vector3 heroStart = {kHeroStartX, kHeroStartY, 0.0f};
         float distance = LengthSquared(position - heroStart);
-        atStart = distance < worlddata::kHeroStartRadius2;
+        atStart = distance < kHeroStartRadius2;
     }
-    script = worlddata::ScriptBeginText();
+    script = "WorldScript(";
 
     for (int i = 0; i < std::ssize(*records); ++i) {
         auto* record = (*records)[i];
@@ -217,7 +225,7 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
         unit->UpdateSizeClasses();
         unit->ScaleEffectChanged(false);
         unit->SetSecondPrototypeByName(record->secondPrototype);
-        line = str::Format(worlddata::AddToHeroesFormat(), unit->id);
+        line = str::Format("AddObject( Heroes, GetObjectByID( \"%i\" ) )", unit->id);
         script += line;
         if (zoneMode == ZoneMode::Battle && !atStart) unit->moveMode2 = record->moveMode2;
         if (placement) {
@@ -246,8 +254,9 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
         }
     }
 
-    if (atStart && gameState != GameState::Network) script += worlddata::HeroArrivalText();
-    script += worlddata::ScriptEndText();
+    if (atStart && gameState != GameState::Network)
+        script += "PlayAnimation(GetObjectByName( \"hero\" ),\"uspecial25\")";
+    script += ")";
     if (player) MainScript()->Load(&script, 1);
 }
 
@@ -255,9 +264,9 @@ void WorldServer::UseQuickItem(Unit* unit) {
     // An object record (a class of its own with the same virtuals).
     ObjectSpec message;
     message.kind = SpecKind::QuickEffect;
-    message.texture = worlddata::QuickEffectPrototype();
+    message.texture = "st.tr.130";
     message.id = -1;
-    message.parentIname = worlddata::QuickEffectModel();
+    message.parentIname = "unhuma";
     message.parentId = static_cast<std::int32_t>(kQuickEffectFlags);
     message.scale.y = 0.0f;
     // At the unit's position, on the ground.
@@ -319,9 +328,9 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         float height = flame->offset.z + base.position.z;
         float sum = height;
         float level = AbsBits(sum);
-        if (level < worlddata::kCampfireHeight) {
+        if (level < kCampfireHeight) {
             Vector3 at = flame->offset + base.position;
-            Spell* spell = GetSpellManager()->CreateSpellFromText(worlddata::CampfireText());
+            Spell* spell = GetSpellManager()->CreateSpellFromText("campfire");
             if (spell) spell->AddRef();
             CastSpell(spell, nullptr, at, nullptr, at, 0);
             if (spell) spell->Release();
@@ -334,7 +343,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         race(object);
         torch->SetLightSlot(kTorchLightKind, &flame->offset.x, flame->volume);
         const float colour[4] = {0.8f, 0.8f, 0.8f, 1.0f};
-        float radius = flame->volume * worlddata::kTorchLightScale;
+        float radius = flame->volume * kTorchLightScale;
         torch->SetFlameSlot(&flame->offset.x, radius, colour);
         torch->SetNameSlot(flame->sound.c_str());
         place(object);
@@ -449,7 +458,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         }
         auto* plain = timedManager->CreateObjectAs<EffectSound>(kTimedSound, base.id);
         if (sound->sounds.empty()) {
-            app::ShowLibraryMessageBox(worlddata::NoWaveNameText());
+            app::ShowLibraryMessageBox("Adding sound without wave name");
         } else {
             str::CopyInto(plain->name, sound->sounds[0]);
         }

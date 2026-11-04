@@ -3,6 +3,8 @@
 
 #include <algorithm>
 
+#include "game_singletons.h"
+#include "options.h"
 #include "world.h"
 
 #include "clip.h"
@@ -16,7 +18,6 @@
 #include "texture.h"
 #include "ui.h"
 #include "unit.h"
-#include "world_data.h"
 
 #include "lib/containers.h"
 #include "platform/platform.h"
@@ -90,7 +91,7 @@ struct QuadBuffer {
 const Rect* UnitScreenRect(Unit* unit) {
     Object3D* object = unit->AsObject3D();
     FigureMesh* part = nullptr;
-    for (int i = 0; i < 3 && !part; ++i) part = object->FindPartByPrefix(worlddata::HeroPartText(i));
+    for (int i = 0; i < 3 && !part; ++i) part = object->FindPartByPrefix(kHeroFigureParts[i]);
     if (!part) return nullptr;
     if (part->flags & FigureMeshFlag::Drawn) return &part->drawer->screen;
     return &object->dirtyRect;

@@ -5,7 +5,6 @@
 
 #include "ai_unit_layer.h"
 #include "unit_ai.h"
-#include "world_data.h"
 #include "lib/crt.h"
 
 #include <cstddef>
@@ -168,7 +167,7 @@ AIEvent* g_freeEvents = /*007C53F0*/ {nullptr};
 namespace {
 
 // The mark table's rows are 16 wide; column 10 is the open-cell mark of a cost band.
-int OpenMark(int band) { return static_cast<int>(worlddata::kMarkTable[band * 16 + 10]); }
+int OpenMark(int band) { return static_cast<int>(kMarkTable[band * 16 + 10]); }
 
 // The cost bands: 0 or 1, 2, 3..9, 10..34, 35..70 (above: no mark).
 int CostBand(int cost) {

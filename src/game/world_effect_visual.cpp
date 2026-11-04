@@ -22,6 +22,12 @@
 #include <cmath>
 #include <cstring>
 
+namespace {
+
+constexpr float kScorchAlpha = 0.6f;
+
+} // namespace
+
 using namespace effect;
 
 namespace {
@@ -127,10 +133,10 @@ void EffectPointLight::Start(int update) {
         float change = std::fabs(shownRange - absRange);
         LightPosition(light) = localPosition;
         // A range not (nearly) the same is taken over.
-        if (!(change < worlddata::RangeEpsilon())) SetLightRange(light, std::fabs(range));
+        if (!(change < 0.001f)) SetLightRange(light, std::fabs(range));
     }
     // A negative range (or NaN) sets LightFlag::Off.
-    if (range >= worlddata::ZeroRef())
+    if (range >= 0.0f)
         LightFlags(light) &= ~LightFlag::Off;
     else
         LightFlags(light) |= LightFlag::Off;
@@ -177,7 +183,7 @@ void EffectPointLight::Save(ByteStream* stream) {
     stream->WriteValue(lightFlags);
 }
 
-float EffectPointLight::LightRadius() { return worlddata::DefaultRadius() + range; }
+float EffectPointLight::LightRadius() { return 100.0f + range; }
 
 
 void EffectParticle::Reset() {
@@ -273,13 +279,13 @@ void EffectParticle::Spawn() {
     }
 
     if (ParticleTypeOf(type) == ParticleType::FireBlast) {
-        float fadeAlpha = BelowOneOrOne(alpha * worlddata::ScorchAlpha());
+        float fadeAlpha = BelowOneOrOne(alpha * kScorchAlpha);
         float radius = typeParam;
         float angle = RandomAngle(g_random.Next());
         g_clientWorld.AddScorchMark(localPosition.x, localPosition.y, radius, radius, angle, fadeAlpha);
     }
     if (ParticleTypeOf(type) == ParticleType::LightningBlast) {
-        float fadeAlpha = BelowOneOrOne(alpha * worlddata::ScorchAlpha());
+        float fadeAlpha = BelowOneOrOne(alpha * kScorchAlpha);
         std::uint32_t random = g_random.Next();
         float radius = size;
         float angle = RandomAngle(random);
@@ -427,11 +433,11 @@ int EffectWall::Unpack(int update, DeltaReader& field) {
     if (source != nullptr) source->extent = direction;
     if (update == 0 && ParticleTypeOf(type) == ParticleType::Tendril) {
         // A scorch mark under the new wall: as long as the wall, as wide as half its size.
-        float fadeAlpha = BelowOneOrOne(alpha * worlddata::ScorchAlpha());
-        float half = size * worlddata::HalfRef();
+        float fadeAlpha = BelowOneOrOne(alpha * kScorchAlpha);
+        float half = size * 0.5f;
         float shape[2];   // angle, outer
         WallScorchShape(direction, &half, shape);
-        float inner = half + worlddata::ScorchMargin();
+        float inner = half + 0.3f;
         g_clientWorld.AddScorchMark(localPosition.x, localPosition.y, shape[1], inner, shape[0], fadeAlpha);
     }
     return 1;
@@ -481,7 +487,7 @@ void EffectLightning::UpdateEnds() {
     MapObject* target = OwningWorld()->ObjectWithId(toObject);
     if (target != nullptr) {
         to = target->localPosition;
-        to.z += worlddata::OneRef();
+        to.z += 1.0f;
     }
     Unit* source = UnitOrNull(OwningWorld()->ObjectWithId(fromObject));
     if (source != nullptr && OwningWorld()->IsServer() == 0) {
@@ -530,7 +536,7 @@ void EffectLightning::SetEnds(const Vector3& newFrom, const Vector3& newTo, floa
     from = newFrom;
     to = newTo;
     width = newWidth;
-    localPosition = (from + to) * worlddata::HalfRef();
+    localPosition = (from + to) * 0.5f;
     MarkChanged();
 }
 

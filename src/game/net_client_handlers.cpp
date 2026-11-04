@@ -8,7 +8,6 @@
 #include "net_messages.h"
 #include "party.h"
 #include "ui.h"
-#include "world_data.h"
 #include "world_map_files.h"
 
 #include "lib/crt.h"

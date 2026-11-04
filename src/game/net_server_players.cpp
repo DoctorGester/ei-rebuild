@@ -8,7 +8,6 @@
 #include "net_connection.h"
 #include "net_messages.h"
 #include "ui.h"
-#include "world_data.h"
 #include "lib/text_case.h"
 
 #include <bit>

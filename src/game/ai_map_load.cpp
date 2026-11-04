@@ -2,12 +2,12 @@
 // map archive".
 #include "ai_map.h"
 #include "console.h"
+#include "game_singletons.h"
 #include "map_file.h"
 #include "registry.h"
 #include "resource.h"
 #include "sector_map.h"
 #include "unit_ai.h"
-#include "world_data.h"
 
 #include "lib/bytes.h"
 #include "lib/maths.h"

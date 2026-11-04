@@ -1,6 +1,7 @@
 // WorldClient per-frame view code: filing visible objects into the frame's draw lists, sorting
 // those lists, and picking the ground point under the cursor. See world.h and docs/notes/world.md.
 #include "frame_lists.h"
+#include "game_singletons.h"
 #include "model.h"
 #include "options.h"
 #include "world.h"
@@ -20,7 +21,6 @@
 #include <vector>
 #include "lib/float_select.h"
 #include "lib/vecmath.h"
-#include "world_data.h"
 
 namespace {
 
@@ -64,7 +64,7 @@ template <typename Height>
 Vector3 PickPoint(WorldClient* world, int screenX, int screenY, Height height) {
     TransformPipeline* device = g_sceneRenderer.pipeline;
     if (device->stacks[TransformPipeline::kViewStack].count == 0) {
-        return worlddata::kOrigin;
+        return Vector3{0.0f, 0.0f, 0.0f};
     }
     PushStackMatrix(device, TransformPipeline::kPickStack, StackTop(device, TransformPipeline::kViewStack));
     const float* m = StackTop(g_sceneRenderer.pipeline, TransformPipeline::kPickStack);

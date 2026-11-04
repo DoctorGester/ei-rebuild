@@ -5,7 +5,6 @@
 #include "ai_unit_layer.h"
 #include "core_maths.h"
 #include "core_refcount.h"
-#include "world_data.h"
 
 #include "lib/containers.h"
 #include "lib/rounding.h"

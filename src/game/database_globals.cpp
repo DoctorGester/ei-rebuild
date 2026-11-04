@@ -5,7 +5,6 @@
 #include "item_db.h"
 #include "model.h"
 #include "quest_records.h"
-#include "world_data.h"
 
 
 itemdb::SpellDatabase g_spellDatabase;
@@ -13,6 +12,3 @@ itemdb::ItemDatabase g_itemDatabase;
 QuestDatabase g_questDatabase;
 PrintsDatabase g_printsDatabase;
 acks::AckDatabase g_ackDatabase;
-
-// The briefings by name (world_data.h): the database's briefing table's index.
-std::unordered_map<std::string, QuestBriefingRecord*>& worlddata::QuestBriefings() { return g_questDatabase.briefings.index; }

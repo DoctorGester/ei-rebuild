@@ -16,7 +16,6 @@
 #include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
-#include "world_data.h"
 
 #include "lib/vecmath.h"
 
@@ -25,6 +24,8 @@
 #include <cstring>
 
 namespace {
+
+constexpr float kQueueWaitLimit = 60.0f;   // squared distance a blocking ally may be away
 
 // --- Float helpers -------------------------------------------------------------------------------
 
@@ -162,7 +163,7 @@ int ResolveBlocker(UnitServer* c, Unit* blocker, bool* liftBlocker, int reason) 
                       blocker->sizeClass == self->sizeClass && other->state != UnitState::Acting;
     if (sameAttack) {
         MapObject* target = c->action.target;
-        sameAttack = FartherThan(&target->localPosition.x, &self->localPosition.x, &worlddata::QueueWaitLimitRef());
+        sameAttack = FartherThan(&target->localPosition.x, &self->localPosition.x, &kQueueWaitLimit);
     }
     if (sameAttack) {
         // Both go for the same target: wait behind the other unless the waiting would go round in a

@@ -47,7 +47,6 @@
 #include "lib/vecmath.h"
 #include "../platform/log.h"
 #include "game_singletons.h"
-#include "world_data.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -66,6 +65,8 @@ std::string g_commandLineMap;
 std::string g_commandLineMob;
 std::string g_commandLineScript;
 std::string g_cameraFile;
+
+int g_updatePeriod = /*0078FF34*/ 55;
 
 
 namespace {
@@ -221,7 +222,7 @@ static_assert(kRecordedFrameMs * kRecordedFramesPerSecond >= 1000 &&
               (kRecordedFrameMs - 1) * kRecordedFramesPerSecond < 1000);
 
 // The world tick's length in milliseconds, and milliseconds in the camera's time (times 1 / 55).
-std::uint32_t TickLength() { return static_cast<std::uint32_t>(worlddata::g_updatePeriod); }
+std::uint32_t TickLength() { return static_cast<std::uint32_t>(g_updatePeriod); }
 float CameraSeconds(std::uint32_t milliseconds) { return static_cast<float>(milliseconds) * 0.018181818f; }
 
 std::uint32_t TimeSinceLastPass() {

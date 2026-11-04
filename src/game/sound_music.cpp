@@ -10,7 +10,6 @@
 #include "registry.h"
 #include "sound.h"
 #include "world.h"
-#include "world_data.h"
 
 #include "lib/crt.h"
 #include "platform/platform.h"

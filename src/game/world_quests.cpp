@@ -5,6 +5,7 @@
 #include "core_refcount.h"
 #include "core_streams.h"
 #include "game_flow.h"
+#include "game_singletons.h"
 #include "game_strings.h"
 #include "item.h"
 #include "item_manager.h"
@@ -21,7 +22,6 @@
 #include "unit_ai.h"
 #include "unit_db.h"
 #include "world.h"
-#include "world_data.h"
 
 #include "lib/containers.h"
 #include "lib/float_select.h"
@@ -37,6 +37,10 @@
 #include <vector>
 
 namespace {
+
+// The zones where the ten mercenaries are briefed.
+constexpr const char* kMercZones[10] = /*007907AC*/ {"bz1g", "bz1g", "bz2g", "bz6g", "bz8k", "bz8k", "bz14h",
+                                                    "bz14h", "bz9k", "bz14h"};
 
 constexpr int kMercSlots = 10;
 
@@ -55,15 +59,15 @@ struct MercVariables {
 
 MercVariables MercVariablesOf(int slot) {
     MercVariables v;
-    v.merc = str::Format(worlddata::MercNameFormat(), slot);
-    v.briefed = str::Format(worlddata::MercVariableN8Format(), v.merc, slot);
-    v.firstHire = str::Format(worlddata::MercVariableN1Format(), v.merc, slot);
-    v.dismiss = str::Format(worlddata::MercVariableN2Format(), v.merc, slot);
-    v.rehire = str::Format(worlddata::MercVariableN3Format(), v.merc, slot);
-    v.partyFull = str::Format(worlddata::MercVariableN9Format(), v.merc, slot);
-    v.leave = str::Format(worlddata::MercVariableN10Format(), v.merc, slot);
-    v.offer = str::Format(worlddata::MercVariableN11Format(), v.merc, slot);
-    v.hired = str::Format(worlddata::MercHiredFormat(), slot);
+    v.merc = str::Format("merc%i", slot);
+    v.briefed = str::Format("b.%s.n8_%i", v.merc, slot);
+    v.firstHire = str::Format("b.%s.n1_%i", v.merc, slot);
+    v.dismiss = str::Format("b.%s.n2_%i", v.merc, slot);
+    v.rehire = str::Format("b.%s.n3_%i", v.merc, slot);
+    v.partyFull = str::Format("b.%s.n9_%i", v.merc, slot);
+    v.leave = str::Format("b.%s.n10_%i", v.merc, slot);
+    v.offer = str::Format("b.%s.n11_%i", v.merc, slot);
+    v.hired = str::Format("amerc_%i", slot);
     return v;
 }
 
@@ -298,7 +302,7 @@ void WorldServer::UpdateMercBriefings() {
             const MercVariables b = MercVariablesOf(slot);
             unsigned key = TextKeyFromName(b.merc);
             bool briefedHere = text::CompareIgnoringCase(zoneName,
-                                               worlddata::MercZoneName(slot - 1)) == 0;
+                                               kMercZones[slot - 1]) == 0;
             set(b.offer, 0.0f);
 
             bool inParty = false;
@@ -380,7 +384,7 @@ void WorldServer::CompleteBriefing(int playerId, std::string_view name) {
     QuestBriefingRecord* record = nullptr;
     if (parts.size() == 3) {
         std::string key(parts[2]);
-        record = worlddata::QuestBriefings()[key];
+        record = g_questDatabase.briefings.index[key];
     }
     Player* player = GetPlayer(playerId);
     if (player) {
@@ -392,7 +396,8 @@ void WorldServer::CompleteBriefing(int playerId, std::string_view name) {
 }
 
 void WorldServer::QueueBriefingScript(int playerId, std::string_view name) {
-    std::string script = str::Format(worlddata::BriefingCompleteScript(), playerId, std::string(name), playerId, std::string(name));
+    std::string script = str::Format("WorldScript( GSSetVar( %i,\"%s\",2 ) #OnBriefingComplete( %i, \"%s\" ) )", playerId,
+                                     std::string(name), playerId, std::string(name));
     MainScript()->Load(&script, 1);
     if (zoneMode == ZoneMode::Base)
         for (int i = 0; i < 5; ++i) MainScript()->Tick();
@@ -419,7 +424,8 @@ void WorldServer::ApplyMercBriefing(Player* player, std::string_view name) {
         // Hired (amerc_N = 2) and added to the party with its unit's prototype.
         if (is(v.firstHire) || is(v.rehire)) {
             state->SetVariable(v.hired, 2.0f);
-            const std::string_view prototype = unit ? std::string_view(unit->GetPrototype()->name) : std::string_view(worlddata::HumanHeroText());
+            const std::string_view prototype =
+                unit ? std::string_view(unit->GetPrototype()->name) : std::string_view("Human Hero");
             party->AddMember(v.merc, prototype, game::kEmptyText);
         }
     }

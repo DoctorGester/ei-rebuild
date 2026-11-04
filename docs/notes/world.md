@@ -11,7 +11,7 @@ added twice, three `RemoveObjectFromServer`, `load savea`, one more spawn), `par
   units), IsNight (time of day before 6 or from 22 h), the ground and surface heights (the server from its coarse grid,
   the client from the terrain; slots 29 / 30 combine platforms with them), `worldHandle`, the update count and
   countdowns. Virtual slots are named in world.h (map_objects.md has the low-confidence ones).
-- Globals are named in world_data.h / game_flow_data.h (the game server and multiplayer client session, the game clock,
+- Globals are declared in game_singletons.h (the game server and multiplayer client session, the game clock,
   the server tick, the game flow, the item and effect managers, the briefing texts).
 - `Player::dirty` (`PlayerDirty`): weather-like settings, time, a 0..1 value, countdowns; the named float variables
   ("gtime" ...); units; the party.

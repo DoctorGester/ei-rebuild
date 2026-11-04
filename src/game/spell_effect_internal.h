@@ -10,7 +10,6 @@
 #include "spell.h"
 #include "unit.h"
 #include "world.h"
-#include "world_data.h"
 #include "world_effect.h"
 
 #include "lib/crt.h"

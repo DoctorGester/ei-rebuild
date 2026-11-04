@@ -1,5 +1,6 @@
 // The battle screen's HUD panels: mouse handlers, per-frame updates and the small drawing
 // wrappers. See ui.h ("Battle screen and its HUD panels") and docs/notes/ui.md.
+#include "app.h"
 #include "camera.h"
 #include "console.h"
 #include "game_singletons.h"
@@ -18,7 +19,6 @@
 #include "ui_screens.h"
 #include "unit.h"
 #include "world.h"
-#include "world_data.h"
 
 #include "lib/containers.h"
 #include "lib/maths.h"
@@ -428,7 +428,7 @@ void HudClock::TogglePause() {
 
 void HudClock::SetSpeed(bool newFast) {
     fast = newFast;
-    worlddata::g_updatePeriod = newFast ? kFastPeriod : kNormalPeriod;
+    app::g_updatePeriod = newFast ? kFastPeriod : kNormalPeriod;
     ui->fastGame = newFast;
     ui->PlayInterfaceSound(kSoundClock);
 }

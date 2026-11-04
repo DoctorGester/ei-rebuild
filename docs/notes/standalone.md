@@ -80,7 +80,6 @@ The image holds nothing of game.exe's sections. Every value the code reads is on
   | an integer literal | the dword |
   | `/*addr f*/` | a float widened to double |
   | `(-1.0f /*addr*/)` | a negative value, in parentheses |
-  | `kFloatConstant<0.5f /*0073B86C*/>` | a reference result (effects take the constant's address) |
 
   The literals were checked against game.exe's bytes when they were made.
   - **Folds:** the compiler folds a product of constants where the original multiplied at run time on the main

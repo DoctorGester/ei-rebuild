@@ -11,7 +11,6 @@
 #include "net_messages.h"
 #include "net_second_master.h"
 #include "options.h"
-#include "world_data.h"
 #include "lib/rebirth.h"
 #include "lib/crt.h"
 
@@ -297,7 +296,7 @@ void ServerSession::Tick(double dt) {
     if (!announced) return;
     announceTimer -= step;
     if (announceTimer < 0.0f) {    // run out
-        announceTimer = worlddata::AnnouncePeriodRef();
+        announceTimer = 20.0f;
         const char* host = MasterHost();
         if (std::strcmp(host, game::kEmptyText) != 0) AnnounceToMaster();
     }

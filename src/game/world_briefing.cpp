@@ -3,7 +3,6 @@
 // seen ("b.<speaker>.<briefing>" or "b.elder.<briefing>"). See world.h and docs/notes/world.md.
 #include "console.h"
 #include "game_flow.h"
-#include "game_flow_data.h"
 #include "game_singletons.h"
 #include "game_strings.h"
 #include "text_manager.h"
@@ -91,7 +90,7 @@ std::string BriefingVariable(const std::string& briefing) {
     std::string speaker = BriefingSpeakerName(briefing);
     if (!IsEmpty(speaker)) {
         std::string prefix = game::briefingwords::VariablePrefix();
-        return prefix + speaker + flowdata::kDot + briefing;
+        return prefix + speaker + "." + briefing;
     }
     std::string prefix = game::briefingwords::ElderPrefix();
     return prefix + briefing;
@@ -154,7 +153,7 @@ bool LoadZoneQuests(std::string_view zone) {
 void GameFlow::OnVariableChanged(const net::VariableMessage* record) {
     std::string name = record->name.data();
     const float value = record->value;
-    bool quest = str::Compare(str::Left(name, 2), flowdata::kQuestVariablePrefix) == 0;
+    bool quest = str::Compare(str::Left(name, 2), "q.") == 0;
     if (quest) {
         g_interface.OnQuestVariable(name, value);
         g_clientWorld.OnQuestVariable(name, value);

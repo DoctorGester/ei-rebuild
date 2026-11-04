@@ -1076,6 +1076,13 @@ struct DepthLess {
     bool Less(const ScreenEntry* a, const ScreenEntry* b) const;
 };
 
+// The scene's camera while the world's draw runs (the scene stack's top it pushes first: projection x
+// view; world_client_draw.cpp), else null. The figure parts lit on the GPU take their model matrix from it.
+const Matrix4* SceneCamera();
+// The hour (floored) the terrain's sun was last set for (world_client_lights.cpp); -1 makes the next
+// UpdateLighting set it.
+extern float g_lastLitHour;
+
 bool IsMultiplayerClient();
 // Game clock: whole ticks + fraction.
 float GameTime();

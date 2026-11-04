@@ -1,5 +1,6 @@
 // The battle screen (BattleScreen): its creation, saved state and party events, and its every-frame update. See
 // docs/notes/ui.md ("Battle screen"). The input side: ui_battle_input.cpp.
+#include "app.h"
 #include "camera.h"
 
 #include "console.h"
@@ -30,7 +31,6 @@
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"
-#include "world_data.h"
 #include "sound.h"
 #include "terrain.h"
 #include "lib/containers.h"
@@ -261,7 +261,7 @@ constexpr int kPortraitSprites = 5;   // sprites per portrait; the fifth (4) is 
 
 void BattleScreen::CloseScreen() {
     g_camera.flags |= Camera::kFree;
-    worlddata::g_updatePeriod = kDefaultUpdatePeriod;
+    app::g_updatePeriod = kDefaultUpdatePeriod;
     g_cursor.SetHeld(0);
     g_clientWorld.sounds->StopAll(true);
     g_clientWorld.terrain->StopAmbience();
