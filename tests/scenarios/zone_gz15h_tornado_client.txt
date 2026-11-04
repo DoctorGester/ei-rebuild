@@ -1,0 +1,23 @@
+# The tornado on the client (H43b: world_effect_tornado.cpp's EffectTornado::Start, Unpack and
+# SnapshotReadToEnd were reached by no scenario). zone_gz15h_tornado.txt sees the server launch tornados in
+# gz15h (climate 3: a strike try every 64th tick), but none lands within 100 units of the hero, the reach
+# of a timed object to a player (CollectTimedObjects), in its 150 s of game time, so no tornado is sent to the
+# client. Twenty minutes of game time do (about 17 s of a run, the virtual clock): the client unpacks the
+# tornado, starts its particle source and sound (Start catches the source up by the ticks it missed) and
+# follows it with the delta stream. The golden's digest holds the effect (its position and ticks left) and
+# the client's state. The hero is in god mode. No `speed`, so a golden can be recorded.
+timeout 120
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 40 IsUnitBlocked(GetLeader())
+zone gz15h 0
+waitzone 30 gz15h
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @GodMode(0,1)
+wait 1200000
+check IsAlive(GetLeader())
+report
+quit

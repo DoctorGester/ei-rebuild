@@ -1,0 +1,79 @@
+  Activated!
+  Cannot open file autoexec.cfg for reading
+  0
+  Accepted player 0
+  party received on client
+  Unit 1936 new motivation Guard with power of 50
+  Unit 1937 new motivation Guard with power of 50
+  Unit 1000011214 new motivation Player with power of 10
+  Unit 1804 new motivation Patrol with power of 50
+  Unit 1890 new motivation Patrol with power of 50
+  Saved savea
+  1
+  1
+  party received on client
+  Unit 1000011214 new motivation Player with power of 10
+  1
+  Unit 1198600923 sees unit 1000011214 from 2.37171m distance
+  Unit 1198600923 new motivation Player with power of 10
+  Unit 1198600924 sees unit 1000011214 from 1.76777m distance
+  Unit 1198600924 new motivation Player with power of 10
+  Unit 1000011214 sees unit 1198600924 from 1.76777m distance
+  Unit 1000011214 sees unit 1198600923 from 2.37171m distance
+  1
+  1
+  Unit 1198600924 hear delayed sound: Unit 1198600923 claims that player 3 are enemies! Unit 1198600923 claims that player 4 are enemies! Unit 1198600923 claims that player 6 are enemies! Unit 1198600923 claims that player 7 are enemies! Unit 1198600923 claims that player 8 are enemies! 
+  0
+  0
+  0
+  0
+  0
+  0
+  Unit 1198600923 was attacked by 1000011214 skill=3.40282e+038 damage=8 destHL=all
+  electrical passed damage = 0.656814 HL is dead
+  electrical passed damage = 1.97044 HL is dead
+  electrical passed damage = 0.656814 HL is dead
+  electrical passed damage = 0.656814 HL is dead
+  electrical passed damage = 1.31363 HL is dead
+  electrical passed damage = 1.31363 HL is dead
+  Unit 1198600924 sees unit 1198600923 from 2.23607m distance
+  Unit 1000011214 has seen murder and is forced to see unit 1000011214
+  Unit 1198600923 sees unit 1198600924 from 2.23607m distance
+  Unit 1198600923 damaged to death
+  Unit 1198600924 sees corpse of unit 1198600923
+  Unit 1198600924 lost from sight unit 1198600923
+  Unit 1000011214 sees corpse of unit 1198600923
+  Unit 1000011214 lost from sight unit 1198600923
+  1
+  Unit 1000011214 is using skill stealing his_skill = 108 target_skill = 77.3333
+  Item has been stolen from
+  Unit 1198600925 sees corpse of unit 1198600923
+  Unit 1198600925 sees unit 1000011214 from 2.26385m distance
+  Unit 1198600925 new motivation Player with power of 10
+  Unit 1000011214 sees unit 1198600925 from 2.26385m distance
+  1
+  Unit 1936 acknowledges with idleSound = AAn4XyU
+  1
+  Unit 1198600924 sees unit 1198600925 from 2.91548m distance
+  Unit 1198600925 sees unit 1198600924 from 2.91548m distance
+  0
+  0
+  Unit 1198600925 was attacked by 1000011214 skill=3.40282e+038 damage=11.0398 destHL=LLeg
+  impaling passed damage = 11.0398 HL was crippled
+  Unit 1198600925 damaged to death
+  Unit 1198600924 sees corpse of unit 1198600925
+  Unit 1198600924 lost from sight unit 1198600925
+  Unit 1000011214 sees corpse of unit 1198600925
+  Unit 1000011214 lost from sight unit 1198600925
+  1
+  Terrain Coords 51.2617 144.151 13.8731
+  0
+  0
+  0
+  0
+  1
+  Terrain Coords 56.2709 133.605 11.92
+  Terrain Coords 56.2709 133.605 11.92
+  0
+  1
+  1

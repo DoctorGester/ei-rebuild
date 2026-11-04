@@ -80,7 +80,9 @@ draws ISAAC angles until the AI map's line of sight is above 0.5. No scenario ma
 ticks left, the launch tick. Launch (from the server weather) aims at a random speed 0.096..0.216 per tick, ticks =
 lrint(distance / speed). Tick moves it (source and sound follow), stops the source for the last 110 ticks, and on the
 server every 8th tick above 20 hands each player-owned unit within 5 a hit of 5 (weight 1 on type 6) through its
-controller's TakeHit. Start catches a new source up by at most 29 ticks. No scenario starts weather with a tornado yet.
+controller's TakeHit. Start catches a new source up by at most 29 ticks. `zone_gz15h_tornado` sees the server launch tornados; only twenty minutes of game time (`zone_gz15h_tornado_client`,
+17 s of a run) bring one within 100 units of the hero, the reach of a timed object to a player, so the client unpacks
+it (Start, Unpack). Load and Save need a save made while one flies.
 
 ## Scenario notes (spells_hero)
 

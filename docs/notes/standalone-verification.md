@@ -127,7 +127,7 @@ Which of src/'s functions and lines the suites reach: `python tools/coverage.py 
   (vanilla: the lobby without broadcasts asks the fake master three times, a bad size, a short record, the list it joins
   from; then `badupdate` gets it dropped as a bad client). Walks use `clickground` (the console's `#` / `@` commands do
   nothing on the multiplayer base), in the zone after a `lookat`.
-- Still unreached: TryTame, SuspectionMode Enter / Execute, patrol points, TrapObject::UpdateTrap, PickEnvironmentSpeech
+- Still unreached: SuspectionMode Enter / Execute, patrol points, TrapObject::UpdateTrap, PickEnvironmentSpeech
   (the bored remark, 1 in 1001 per update after 500 bored ticks).
 
 ## 4. Run time
