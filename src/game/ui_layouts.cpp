@@ -46,10 +46,6 @@ UiRegion* AddRect(UiWindow* window, int left, int top, int right, int bottom) {
     return region;
 }
 
-UiSurface* NewSurface(Interface3D* ui, int left, int top, int right, int bottom) {
-        return new UiSurface(ui, left, top, right, bottom, SurfaceBlend::Keyed, true);
-}
-
 UiScrollbar* NewScrollbar(Interface3D* ui, int left, int top, int right, int bottom) {
     return new UiScrollbar(ui, Rect{left, top, right, bottom}, 3.0f, 0, 1.0f);
 }
@@ -60,7 +56,7 @@ void Frame(UiWindow* window, float depth, float left, float top, float right, fl
 
 void Shade(UiWindow* window, float depth, float left, float top, float right, float bottom) {
     UiMesh* sprite = window->AddBlankSprite();
-    sprite->SetRectangle(depth, 100.0f, left, top, right, bottom, 0, 0, 0x100, 0x100);
+    sprite->SetRectangle(depth, 100.0f, left, top, right, bottom, 0, 0, kUiTextureSize, kUiTextureSize);
     sprite->texture = nullptr;
     sprite->flags |= FigureMeshFlag::Flat;
     sprite->flatColour = 0xA0000000;
@@ -104,19 +100,19 @@ void SaveLoadWindow::CreateScreen() {
     rect = Rect{0, 0, 800, 600};
     LoadTexture("saveload", TextureKind::Interface);
 
-    AddBlankSprite()->SetRectangle(3.0f, 100.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
-    AddBlankSprite()->SetRectangle(3.0f, 100.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
-    AddBlankSprite()->SetRectangle(3.0f, 100.0f, 363.0f, 526.0f, 437.0f, 574.0f, 2, 2, 0x4C, 0x32);
+    AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
+    AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
+    AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 363.0f, 526.0f, 437.0f, 574.0f, 2, 2, 0x4C, 0x32);
     AddRect(this, 163, 526, 237, 574)->SetTip(isSave ? 0xEAC4 : 0xEAC5);
     AddRect(this, 563, 526, 637, 574)->SetTip(0xEAC7);
     AddRect(this, 363, 526, 437, 574)->SetTip(0xEAC6);
 
     // The picture of the selected save (ShowPicture gives it its texture and texels).
     UiMesh* pictureSprite = AddBlankSprite();
-    pictureSprite->SetRectangle(3.0f, 100.0f, kPictureRect, 0, 0x100, 0x100, 0);
+    pictureSprite->SetRectangle(kDialogDepth, kSpriteScale, kPictureRect, 0, 0x100, 0x100, 0);
     pictureSprite->texture = nullptr;
     UiMesh* highlight = AddBlankSprite();
-    highlight->SetRectangle(3.0f, 100.0f, 108.0f, 108.0f, 370.0f, 132.0f, 0, 0, 0x100, 0x100);
+    highlight->SetRectangle(kDialogDepth, kSpriteScale, 108.0f, 108.0f, 370.0f, 132.0f, 0, 0, kUiTextureSize, kUiTextureSize);
     highlight->texture = nullptr;
     highlight->flatColour = 0xC8A06800;
     highlight->flags |= FigureMeshFlag::Flat;
@@ -129,7 +125,7 @@ void SaveLoadWindow::CreateScreen() {
 
     for (int top = 108; top < 492; top += 24) AddRect(this, 108, top, 370, top + 24);
 
-    UiSurface* list = NewSurface(ui, 100, 100, 700, 500);
+    UiSurface* list = NewSurface(ui, Rect{100, 100, 700, 500});
     AddSurface(list);
     list->PaintWith([this](UiSurface& out) { PaintList(out); });
     scrollbar = NewScrollbar(ui, 108, 108, 384, 492);
@@ -173,12 +169,12 @@ void OptionsWindow::CreateScreen() {
     LoadTexture("saveload", TextureKind::Interface);
     CreateTexture(0x100, 0x100, TextureKind::Blank565);
 
-    AddBlankSprite()->SetRectangle(3.0f, 100.0f, 213.0f, 526.0f, 287.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
-    AddBlankSprite()->SetRectangle(3.0f, 100.0f, 513.0f, 526.0f, 587.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
+    AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 213.0f, 526.0f, 287.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
+    AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 513.0f, 526.0f, 587.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
     AddRect(this, 213, 526, 287, 574)->SetTip(0x111D4);
     AddRect(this, 513, 526, 587, 574)->SetTip(0x111D5);
     UiMesh* highlight = AddBlankSprite();
-    highlight->SetRectangle(3.0f, 100.0f, 250.0f, 108.0f, 692.0f, 132.0f, 0, 0, 0x100, 0x100);
+    highlight->SetRectangle(kDialogDepth, kSpriteScale, 250.0f, 108.0f, 692.0f, 132.0f, 0, 0, kUiTextureSize, kUiTextureSize);
     highlight->texture = nullptr;
     highlight->flatColour = 0xC8A06800;
     highlight->flags |= FigureMeshFlag::Flat;
@@ -187,7 +183,7 @@ void OptionsWindow::CreateScreen() {
     std::string text;
     for (int k = 0, top = 156; k < kOptionGroups; ++k, top += 24) {
         UiRegion* region = AddRect(this, 100, top, 250, top + 24);
-        AddBlankSprite()->SetRectangle(3.0f, 100.0f, 110.0f, static_cast<float>(top + 2), 240.0f,
+        AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 110.0f, static_cast<float>(top + 2), 240.0f,
                                    static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
         text = std::format("tip option_group_{}", OptionGroupName(k));
         if (g_clientWorld.texts->Open(text) != 0) text = g_clientWorld.texts->ReadToHash();
@@ -203,7 +199,7 @@ void OptionsWindow::CreateScreen() {
     Frame(this, 2.0f, 95.0f, 95.0f, 705.0f, 505.0f);
     Shade(this, 5.0f, 100.0f, 100.0f, 700.0f, 500.0f);
     for (int top = 156; top < 492; top += 24) AddRect(this, 250, top, 520, top + 24);
-    UiSurface* surface = NewSurface(ui, 100, 100, 700, 500);
+    UiSurface* surface = NewSurface(ui, Rect{100, 100, 700, 500});
     AddSurface(surface);
     surface->PaintWith([this](UiSurface& out) { PaintRows(out); });
 
@@ -273,7 +269,7 @@ void EscMenu::LeftDown(Point point) {
         open = false;
         break;
     case 3: { // quit: the message box
-        opened = new MessageWindow(currentUi, "quit", "quit_msg", 0x10000, 3, 1);
+        opened = new MessageWindow(currentUi, "quit", "quit_msg", MessageQuestion::First, MessageButtons::OkCancel);
         break;
     }
     case 4: { // options
@@ -284,7 +280,7 @@ void EscMenu::LeftDown(Point point) {
         open = false;
         break;
     }
-    if (open) currentUi->PushWindow(opened, true, true);
+    if (open) currentUi->PushWindow(opened, WindowBackdrop::FirstWindow);
     UiContainer::LeftDown(point);
 }
 
@@ -297,12 +293,12 @@ void MainMenu::LeftDown(Point point) {
     case 0: {
         // A new game: the difficulty question (a message box with its own vtables).
         currentUi->PlayInterfaceSound(okSound);
-        currentUi->PushWindow(new DifficultyBox(currentUi), true, true);
+        currentUi->PushWindow(new DifficultyBox(currentUi), WindowBackdrop::FirstWindow);
         break;
     }
     case 1: {
         currentUi->PlayInterfaceSound(okSound);
-        currentUi->PushWindow(new SaveLoadWindow(currentUi, false, false), true, true);
+        currentUi->PushWindow(new SaveLoadWindow(currentUi, false, false), WindowBackdrop::FirstWindow);
         break;
     }
     case 2: {
@@ -315,7 +311,7 @@ void MainMenu::LeftDown(Point point) {
     }
     case 3: {
         currentUi->PlayInterfaceSound(okSound);
-        currentUi->PushWindow(new OptionsWindow(currentUi, false), true, true);
+        currentUi->PushWindow(new OptionsWindow(currentUi, false), WindowBackdrop::FirstWindow);
         break;
     }
     case 4: {
@@ -324,7 +320,7 @@ void MainMenu::LeftDown(Point point) {
         GameStopAmbience();
         currentUi->PlayInterfaceSound(okSound);
         ClearSurfaces();
-        currentUi->PushWindow(new CreditsScreen(currentUi, true, "Titles"), false, true);
+        currentUi->PushWindow(new CreditsScreen(currentUi, true, "Titles"), WindowBackdrop::None);
         break;
     }
     case 5: {
@@ -335,7 +331,7 @@ void MainMenu::LeftDown(Point point) {
         g_interface.ShowStatusText(text);
         GameSetServerPaused(1);
         currentUi->PlayInterfaceSound(okSound);
-        currentUi->PushWindow(new MpHeroScreen(currentUi), true, true);
+        currentUi->PushWindow(new MpHeroScreen(currentUi), WindowBackdrop::FirstWindow);
         break;
     }
     default:
@@ -348,29 +344,28 @@ void MainMenu::LeftDown(Point point) {
 
 void MessageWindow::CreateScreen() {
     LoadTexture("saveload", TextureKind::Interface);
-    UiSurface* surface = NewSurface(ui, 200, 50, 600, 500);
+    UiSurface* surface = NewSurface(ui, Rect{200, 50, 600, 500});
     AddSurface(surface)->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
     labels.clear();
-    int font = result != 0xFFFF0000u ? 2 : 1;
+    int font = question != MessageQuestion::Exit ? 2 : 1;
     // Measure the title (font 2) and the text (DT_CALCRECT | DT_WORDBREAK | DT_CENTER, 370 wide).
     Rect area = {15, 0, 385, 200};
-    int titleHeight = surface->DrawTextIn(title, &area, 2, 0, 0x411, 1);
+    int titleHeight = surface->DrawTextIn(title, area, TextStyle{2, 0, render::text::kCenter | render::text::kWordBreak | render::text::kCalcRect});
     area = Rect{15, 0, 385, 400};
-    int textHeight = surface->DrawTextIn(text, &area, font, 0, 0x411, 1);
+    int textHeight = surface->DrawTextIn(text, area, TextStyle{font, 0, render::text::kCenter | render::text::kWordBreak | render::text::kCalcRect});
     // An edit field takes one line of the font (the extent of "A").
-    if (flags & 4)
-        textHeight =
-            ui->TextExtent("A", font).h;
+    const bool editing = buttons == MessageButtons::OkCancelEdit;
+    if (editing) textHeight = ui->TextExtent("A", font).h;
     int height = titleHeight + textHeight;
     int top = (0x226 - (height + 0x3C)) / 2;   // the block centred in 550 pixels
-    labels.push_back({title, Rect{15, top - 35, 385, 450}, 2, 0x31B3FF, 0x11});
-    if (flags & 4) {
+    labels.push_back({title, Rect{15, top - 35, 385, 450}, {2, 0x31B3FF, render::text::kCenter | render::text::kWordBreak}});
+    if (editing) {
         edit = new UiEditField(ui, Rect{215, top + titleHeight + 30, 585, height + top + 30});
-        edit->SetLook(15, 0, font, 0x32, 0xA7D7E4, 0x31B3FF);
+        edit->SetLook(15, 0, font, 0x32, kUiTextColour, 0x31B3FF);
         edit->SetText(editText);
         AddChild(edit);
     } else {
-        labels.push_back({text, Rect{15, top + titleHeight - 20, 385, 450}, font, 0xA7D7E4, format | 0x10});
+        labels.push_back({text, Rect{15, top + titleHeight - 20, 385, 450}, {font, kUiTextColour, render::text::kCenter | render::text::kWordBreak}});
     }
 
     int bottom = top + height + 0x3C;
@@ -380,17 +375,17 @@ void MessageWindow::CreateScreen() {
     // The buttons, 48 high below the block: OK (texels 0x51..0x9B) and cancel (0xA0..0xEA).
     float buttonTop = static_cast<float>(bottom + 0x1A);
     float buttonBottom = static_cast<float>(bottom + 0x4A);
-    if ((flags & 2) && (flags & 1)) {
-        AddBlankSprite()->SetRectangle(3.0f, 100.0f, 263.0f, buttonTop, 337.0f, buttonBottom, 0x51, 2, 0x9B, 0x32);
-        AddBlankSprite()->SetRectangle(3.0f, 100.0f, 463.0f, buttonTop, 537.0f, buttonBottom, 0xA0, 2, 0xEA, 0x32);
+    if (buttons == MessageButtons::OkCancel || editing) {
+        AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 263.0f, buttonTop, 337.0f, buttonBottom, 0x51, 2, 0x9B, 0x32);
+        AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 463.0f, buttonTop, 537.0f, buttonBottom, 0xA0, 2, 0xEA, 0x32);
         AddRect(this, 263, bottom + 0x1A, 337, bottom + 0x4A)->SetTip(0xC3B4);
         AddRect(this, 463, bottom + 0x1A, 537, bottom + 0x4A)->SetTip(0xC3B5);
-    } else if (!(flags & 2) && (flags & 1)) {
-        AddBlankSprite()->SetRectangle(3.0f, 100.0f, 363.0f, buttonTop, 437.0f, buttonBottom, 0x51, 2, 0x9B, 0x32);
+    } else if (buttons == MessageButtons::Ok) {
+        AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 363.0f, buttonTop, 437.0f, buttonBottom, 0x51, 2, 0x9B, 0x32);
         AddRect(this, 363, bottom + 0x1A, 437, bottom + 0x4A)->SetTip(0xC3B4);
     } else {
         // Cancel only: region 0 stays empty, so the button is region 1 as with two buttons.
-        AddBlankSprite()->SetRectangle(3.0f, 100.0f, 363.0f, buttonTop, 437.0f, buttonBottom, 0xA0, 2, 0xEA, 0x32);
+        AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 363.0f, buttonTop, 437.0f, buttonBottom, 0xA0, 2, 0xEA, 0x32);
         AddRegion();
         AddRect(this, 363, bottom + 0x1A, 437, bottom + 0x4A)->SetTip(0xC3B5);
     }
@@ -400,24 +395,24 @@ void MessageWindow::CreateScreen() {
 
 void DifficultyBox::CreateScreen() {
     LoadTexture("saveload", TextureKind::Interface);
-    UiSurface* surface = NewSurface(ui, 200, 100, 600, 500);
+    UiSurface* surface = NewSurface(ui, Rect{200, 100, 600, 500});
     AddSurface(surface)->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
     labels.clear();
     // Measure the title (font 2) and the explanation (font 1, DT_CALCRECT | DT_WORDBREAK).
     Rect area = {15, 0, 385, 200};
-    int titleHeight = surface->DrawTextIn(title, &area, 2, 0, 0x411, 1);
+    int titleHeight = surface->DrawTextIn(title, area, TextStyle{2, 0, render::text::kCenter | render::text::kWordBreak | render::text::kCalcRect});
     std::string explanation;
     int textHeight = 0;
     if (g_clientWorld.texts->Open("tip option_difficulty") != 0) {
         explanation = g_clientWorld.texts->ReadToHash();
         str::TrimRight(explanation, "\r\n");
         area = Rect{15, 0, 385, 300};
-        textHeight = surface->DrawTextIn(explanation, &area, 1, 0, 0x410, 1);
+        textHeight = surface->DrawTextIn(explanation, area, TextStyle{1, 0, render::text::kWordBreak | render::text::kCalcRect});
     }
     int total = textHeight + titleHeight + 0x6C;
     int top = (0x226 - total) / 2;   // the block centred in 550 pixels
-    labels.push_back({title, Rect{15, top - 0x55, 385, 450}, 2, 0x31B3FF, 0x11});
-    labels.push_back({explanation, Rect{15, titleHeight + top - 7, 385, 450}, 1, 0xA7D7E4, 0x10});
+    labels.push_back({title, Rect{15, top - 0x55, 385, 450}, {2, 0x31B3FF, render::text::kCenter | render::text::kWordBreak}});
+    labels.push_back({explanation, Rect{15, titleHeight + top - 7, 385, 450}, {1, kUiTextColour, render::text::kWordBreak}});
 
     // The two choices, their labels centred on 430 (surface x 230) by their mean width.
     std::string newEasy;
@@ -428,18 +423,18 @@ void DifficultyBox::CreateScreen() {
     Size hardSize = ui->TextExtent(hard, 2);
     int half = ((easySize.w + hardSize.w) / 2 + 0x1E) / 2;
     int row = titleHeight + top + 0x1E;   // layout y of the easy row (the surface starts at 100)
-    labels.push_back({newEasy, Rect{0xE6 - half, row - 100, 385, 450}, 2, 0xA7D7E4, 0});
-    labels.push_back({hard, Rect{0xE6 - half, row - 0x4C, 385, 450}, 2, 0xA7D7E4, 0});
+    labels.push_back({newEasy, Rect{0xE6 - half, row - 100, 385, 450}, {2, kUiTextColour}});
+    labels.push_back({hard, Rect{0xE6 - half, row - 0x4C, 385, 450}, {2, kUiTextColour}});
     easy = 0;
 
     // The check boxes (texels 0xD1..0xE6 x 0x37..0x4C); the hard one checked (its texture shifted by
     // the sprite's U offset, as the button handler does).
     int boxLeft = 400 - half;
     int boxRight = 0x1A5 - half;
-    AddBlankSprite()->SetRectangle(2.5f, 100.0f, static_cast<float>(boxLeft), static_cast<float>(row),
+    AddBlankSprite()->SetRectangle(2.5f, kSpriteScale, static_cast<float>(boxLeft), static_cast<float>(row),
                                static_cast<float>(boxRight), static_cast<float>(row + 0x15), 0xD1, 0x37, 0xE6, 0x4C);
     UiMesh* hardBox = AddBlankSprite();
-    hardBox->SetRectangle(2.5f, 100.0f, static_cast<float>(boxLeft), static_cast<float>(row + 0x18),
+    hardBox->SetRectangle(2.5f, kSpriteScale, static_cast<float>(boxLeft), static_cast<float>(row + 0x18),
                           static_cast<float>(boxRight), static_cast<float>(row + 0x2D), 0xD1, 0x37, 0xE6, 0x4C);
     hardBox->textureOffsetU = kCheckedOffset;
 
@@ -448,8 +443,8 @@ void DifficultyBox::CreateScreen() {
     Frame(this, 3.0f, 195.0f, static_cast<float>(top - 5), 605.0f, static_cast<float>(bottom + 5));
     float buttonTop = static_cast<float>(bottom + 0x1A);
     float buttonBottom = static_cast<float>(bottom + 0x4A);
-    AddBlankSprite()->SetRectangle(3.0f, 100.0f, 263.0f, buttonTop, 337.0f, buttonBottom, 0x51, 2, 0x9B, 0x32);
-    AddBlankSprite()->SetRectangle(3.0f, 100.0f, 463.0f, buttonTop, 537.0f, buttonBottom, 0xA0, 2, 0xEA, 0x32);
+    AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 263.0f, buttonTop, 337.0f, buttonBottom, 0x51, 2, 0x9B, 0x32);
+    AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 463.0f, buttonTop, 537.0f, buttonBottom, 0xA0, 2, 0xEA, 0x32);
     AddRect(this, 263, bottom + 0x1A, 337, bottom + 0x4A)->SetTip(0xC3B4);
     AddRect(this, 463, bottom + 0x1A, 537, bottom + 0x4A)->SetTip(0xC3B5);
     AddRect(this, boxLeft, row, boxRight, row + 0x15);

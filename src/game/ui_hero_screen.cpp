@@ -48,14 +48,13 @@ constexpr int kCreateButton = 9;             // scene object of the create butto
 constexpr float kListDepth = 553.0f;
 constexpr float kNewHeroDepth = 400.0f;
 constexpr std::uint32_t kWhite = 0xFFFFFF;
-constexpr int kTextFormat = 1;
+constexpr int kFont = 1;
 
 const char* const kVoicesKey = "lmp_voices";
 // The voice rows' first y offset of the selection frame.
 constexpr float kVoiceFrameTop = 332.5f;
 constexpr int kSelectionFrame = 2;           // scene object
-constexpr std::uint32_t kListColour = 0xA7D7E4;
-constexpr int kListFormat = 0x800;
+constexpr std::uint32_t kListFormat = render::text::kNoPrefix;
 constexpr float kFrameDepth = 3.0f;
 
 const char* const kHeroName = "Hero";
@@ -84,12 +83,12 @@ void MpHeroScreen::DrawExperience() {
     std::string line;
     out.clear();
     levelText = g_clientWorld.texts->GetString(kLevelUpKey);
-    out.push_back({levelText, Rect{0, 130, 200, 150}, kTextFormat, kWhite, 1});
+    out.push_back({levelText, Rect{0, 130, 200, 150}, {kFont, kWhite, render::text::kCenter}});
     levelText = str::Format(kSignedFormat, -tradePanel->PurchaseCost());
-    out.push_back({levelText, Rect{0, 150, 200, 170}, kTextFormat, kWhite, 1});
+    out.push_back({levelText, Rect{0, 150, 200, 170}, {kFont, kWhite, render::text::kCenter}});
     levelText = g_clientWorld.texts->GetString(kCurrentExpKey);
     line = str::Format(kLabelFormat, levelText, tradePanel->Experience());
-    out.push_back({line, Rect{0, 110, 200, 130}, kTextFormat, kWhite, 1});
+    out.push_back({line, Rect{0, 110, 200, 130}, {kFont, kWhite, render::text::kCenter}});
 }
 
 void MpHeroScreen::Draw(SceneRenderer* pass) {
@@ -186,8 +185,7 @@ void MpHeroScreen::DrawHeroList() {
             frame->Place(240.0f, static_cast<float>(y), kFrameDepth);
         }
         // A hero record is a party; its name the first member's text 0.
-        labels[0].push_back({g_savedParties.Hero(static_cast<int>(index))->GetParty()->members[0].texts[0], area, 1, kListColour,
-                             kListFormat});
+        labels[0].push_back({g_savedParties.Hero(static_cast<int>(index))->GetParty()->members[0].texts[0], area, {1, kUiTextColour, kListFormat}});
         area.Offset(0, 24);
     }
 }
@@ -199,7 +197,7 @@ void MpHeroScreen::DrawVoices() {
     frame->visible = false;
     std::string title;
     title = g_clientWorld.texts->GetString(kVoicesKey);
-    out.push_back({title, Rect{10, 5, 190, 20}, 0, kWhite, 1});
+    out.push_back({title, Rect{10, 5, 190, 20}, {0, kWhite, render::text::kCenter}});
     Rect area = {20, 25, 175, 40};
     std::uint32_t index = static_cast<std::uint32_t>(voiceTop);
     for (int offset = 0; offset < 165; offset += 15, ++index) {
@@ -210,7 +208,7 @@ void MpHeroScreen::DrawVoices() {
             float y = offset + kVoiceFrameTop;
             frame->Place(97.5f, y, kFrameDepth);
         }
-        out.push_back({currentVoices[index].name, area, 0, kListColour, kListFormat});
+        out.push_back({currentVoices[index].name, area, {0, kUiTextColour, kListFormat}});
         area.Offset(0, 15);
     }
 }
@@ -304,7 +302,7 @@ void SetQuarter(MpHeroScreen* screen, int quarter, float left, float top, float 
 
 // The selection frame over a list's first row (the whole texture).
 void SetSelectionFrame(MpHeroScreen* screen, float left, float top, float right, float bottom) {
-    screen->sceneObjects[kSelectionFrame]->SetRectangle(kFrameDepth, kScale, left, top, right, bottom, 0, 0, 0x100, 0x100);
+    screen->sceneObjects[kSelectionFrame]->SetRectangle(kFrameDepth, kScale, left, top, right, bottom, 0, 0, kUiTextureSize, kUiTextureSize);
 }
 
 // The rows of a list as regions: `height` apart from `top` down to kRowsBottom.

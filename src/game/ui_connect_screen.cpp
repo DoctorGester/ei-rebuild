@@ -43,9 +43,7 @@ namespace {
 
 constexpr float kMenuTilt = /*007C7F40*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
-constexpr const char* kCancelSound = "buttons\\messbox\\cancel.wav";
 constexpr const char* kSelectSound = "buttons\\save\\select.wav";
-constexpr const char* kOkSound = "buttons\\messbox\\ok.wav";
 constexpr const char* kMessageSuffix = "_msg";
 constexpr const char* kWrongProtocolKey = "lmp_wrong_protocol";
 constexpr const char* kWrongProtocolTextKey = "lmp_wrong_protocol_msg";
@@ -79,18 +77,16 @@ constexpr int kSpriteUnlisted = 4, kSpritePassword = 5, kSpriteTabFirst = 6, kTa
 constexpr int kSurfaceConnecting = 1;
 constexpr int kTextPassword = 18, kTextAddress = 19, kTextMaster = 20;
 constexpr std::uint32_t kLeaveScreen = 0x1000001;
-constexpr std::uint32_t kAnswerOk = 1, kAnswerCancel = 2;
 constexpr int kNoPing = 9999;
 constexpr int kNewGameType = 4;
 constexpr int kStateAsked = 1;   // net::ServerEntryBase::kAsked
-constexpr int kBoxFlagsOk = 1, kBoxFlagsEdit = 7, kBoxFlagsCancel = 2, kBoxFormat = 1;
 constexpr std::uint32_t kBarColour = 0xFFA06800;
 
 void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(from) + 1); }
 
-void OpenBox(Interface3D* ui, std::string_view title, const char* text, std::uint32_t result, int flags) {
-    MessageWindow* box = new MessageWindow(ui, title, text, result, flags, kBoxFormat);
-    ui->PushWindow(box, true, true);
+void OpenBox(Interface3D* ui, std::string_view title, const char* text, MessageQuestion question, MessageButtons buttons) {
+    MessageWindow* box = new MessageWindow(ui, title, text, question, buttons);
+    ui->PushWindow(box, WindowBackdrop::FirstWindow);
 }
 
 
@@ -117,11 +113,6 @@ constexpr int kTextConnecting = 8;
 constexpr int kNameLength = 10;
 constexpr int kScrollbarObject = 1;   // objects: 0 "saveload", 1 "scrollbar"
 
-UiSurface* NewSurface(Interface3D* ui, int left, int top, int right, int bottom) {
-    UiSurface* surface = new UiSurface(ui, left, top, right, bottom, SurfaceBlend::Keyed, true);
-    return surface;
-}
-
 } // namespace
 
 void MpConnectScreen::Update() {
@@ -135,7 +126,7 @@ void MpConnectScreen::Update() {
             joining = false;
             std::string key = RefusalKey(client->refusal);
             std::string text = key + kMessageSuffix;
-            ui->PushWindow(new MessageWindow(ui, key, text.c_str(), kBoxNotice, kBoxFlagsOk, kBoxFormat), true, true);
+            ui->PushWindow(new MessageWindow(ui, key, text.c_str(), MpConnectScreen::kBoxNotice, MessageButtons::Ok), WindowBackdrop::FirstWindow);
             return;
         }
     }
@@ -172,20 +163,19 @@ void MpConnectScreen::Update() {
     if (renamed) DrawListVanilla();
 }
 
-void MpConnectScreen::MessageResult(int answer) {
-    const auto result = static_cast<std::uint32_t>(answer);
-    if (result == (kBoxMaster | kAnswerCancel)) {
+void MpConnectScreen::MessageResult(std::uint32_t result) {
+    if (result == BoxResult(kBoxMaster, MessageAnswer::Cancel)) {
         DrawListVanilla();
-    } else if (result == (kBoxAddress | kAnswerOk)) {
+    } else if (result == BoxResult(kBoxAddress, MessageAnswer::Ok)) {
         net::NetAddress address{};
         if (address.Parse(boxText, net::g_gamePort)) net::g_gameClient->Ask(&address);
         SaveAddressBook();
         DrawListVanilla();
-    } else if (result == (kBoxPassword | kAnswerOk) || result == (kBoxPassword | kAnswerCancel)) {
+    } else if (result == BoxResult(kBoxPassword, MessageAnswer::Ok) || result == BoxResult(kBoxPassword, MessageAnswer::Cancel)) {
         hostPassword = boxText;
         auto* sprite = sceneObjects[kSpritePassword];
         sprite->textureOffsetU = hostPassword.size() == 0 ? kFrameOff : kFrameOn;
-    } else if (result == (kBoxJoinPassword | kAnswerOk)) {
+    } else if (result == BoxResult(kBoxJoinPassword, MessageAnswer::Ok)) {
         g_gameFlow.JoinServer(&entries[selected].address, boxText);
         net::g_gameClient->gameType = entries[selected].gameType;
     }
@@ -200,7 +190,7 @@ void MpConnectScreen::LeftDown(Point point) {
         Connect();
         break;
     case kRegionBack:
-        ui->PlayInterfaceSound(kCancelSound);
+        ui->PlayInterfaceSound(game::CancelSoundText());
         SaveAddressBook();
         g_gameFlow.DropSessions();
         ui->SetPendingValue(kLeaveScreen);
@@ -220,7 +210,7 @@ void MpConnectScreen::LeftDown(Point point) {
     case kRegionPassword:
         if (hostPassword.size() == 0) {
             CopyText(boxText, hostPassword.c_str());
-            OpenBox(ui, texts[kTextPassword], boxText, kBoxPassword, kBoxFlagsEdit);
+            OpenBox(ui, texts[kTextPassword], boxText, kBoxPassword, MessageButtons::OkCancelEdit);
         } else {
             hostPassword.clear();
             sceneObjects[kSpritePassword]->textureOffsetU = 0.0f;
@@ -281,7 +271,7 @@ void MpConnectScreen::KeyDown(int key, int scan, bool repeat) {
         handled = true;
         return;
     case platform::kKeyEscape:
-        ui->PlayInterfaceSound(kCancelSound);
+        ui->PlayInterfaceSound(game::CancelSoundText());
         g_gameFlow.DropSessions();
         ui->SetPendingValue(kLeaveScreen);
         handled = true;
@@ -311,7 +301,7 @@ void MpConnectScreen::SelectAndScroll() {
 }
 
 void MpConnectScreen::Connect() {
-    ui->PlayInterfaceSound(kOkSound);
+    ui->PlayInterfaceSound(game::OkSoundText());
     int row = selected;
     if (row == 0) {
         const int players = playersSlider->TakePosition() + 1;
@@ -324,13 +314,13 @@ void MpConnectScreen::Connect() {
     }
     if (row < 0 || static_cast<unsigned>(row) >= entries.size()) return;
     if (entries[row].foreign) {
-        OpenBox(ui, kWrongProtocolKey, kWrongProtocolTextKey, kBoxNotice, kBoxFlagsOk);
+        OpenBox(ui, kWrongProtocolKey, kWrongProtocolTextKey, kBoxNotice, MessageButtons::Ok);
         return;
     }
     SaveAddressBook();
     if (entries[selected].password) {
         boxText[0] = '\0';
-        OpenBox(ui, texts[kTextPassword], boxText, kBoxJoinPassword, kBoxFlagsEdit);
+        OpenBox(ui, texts[kTextPassword], boxText, kBoxJoinPassword, MessageButtons::OkCancelEdit);
     }
     g_gameFlow.JoinServer(&entries[selected].address, kEmptyText);
     net::g_gameClient->gameType = entries[selected].gameType;
@@ -350,7 +340,7 @@ void MpConnectScreen::EditAddress() {
         std::string text = entry.address.ToString();
         CopyText(boxText, text.data());
     }
-    OpenBox(ui, texts[kTextAddress], boxText, kBoxAddress, kBoxFlagsEdit);
+    OpenBox(ui, texts[kTextAddress], boxText, kBoxAddress, MessageButtons::OkCancelEdit);
 }
 
 void MpConnectScreen::MasterRequest() {
@@ -363,8 +353,8 @@ void MpConnectScreen::MasterRequest() {
         master.Parse(options::g_options.masterServerName.c_str(), kMasterPort);
     net::ClientSession* client = net::g_gameClient;
     std::uint32_t extra = client ? client->queries.extra : 0;
-    ui->PushWindow(new MasterRequestBox(ui, texts[kTextMaster], boxText, kBoxMaster, &master, extra), true,
-                           true);
+    ui->PushWindow(new MasterRequestBox(ui, texts[kTextMaster], boxText, kBoxMaster, &master, extra),
+                   WindowBackdrop::FirstWindow);
 }
 
 void MpConnectScreen::SaveAddressBook() {
@@ -479,7 +469,7 @@ void MpConnectScreen::CreateScreen() {
 
     auto sprite = [this](float depth, float left, float top, float right, float bottom, int u0, int v0, int u1, int v1) {
         UiMesh* added = AddBlankSprite();
-        added->SetRectangle(depth, 100.0f, left, top, right, bottom, u0, v0, u1, v1);
+        added->SetRectangle(depth, kSpriteScale, left, top, right, bottom, u0, v0, u1, v1);
         return added;
     };
     auto plain = [](UiMesh* mesh, std::uint32_t colour) {
@@ -490,12 +480,12 @@ void MpConnectScreen::CreateScreen() {
     sprite(3.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
     sprite(3.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
     // The selection's right edge (Rebirth's ExtendedServerName; the original's 370).
-    plain(sprite(3.0f, 108.0f, 108.0f, kExtendedSelectionRight, 132.0f, 0, 0, 0x100, 0x100),
+    plain(sprite(3.0f, 108.0f, 108.0f, kExtendedSelectionRight, 132.0f, 0, 0, kUiTextureSize, kUiTextureSize),
           kSelectionColour);
     {
         UiMesh* arrow = AddBlankSprite();
         arrow->texture = objects[kScrollbarObject];
-        arrow->SetRectangle(4.0f, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
+        arrow->SetRectangle(4.0f, kSpriteScale, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
         arrow->visible = false;
     }
     sprite(4.0f, 440.0f, 346.0f, 461.0f, 367.0f, 0xD1, 0x37, 0xE6, 0x4C)->textureOffsetU = -kTabSelected;
@@ -520,12 +510,12 @@ void MpConnectScreen::CreateScreen() {
     AddBlankSprite()->SetFrame(2.0f, 100.0f, 95.0f, 95.0f, 395.0f, 505.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
     AddBlankSprite()->SetFrame(2.0f, 100.0f, 405.0f, 95.0f, 705.0f, 415.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
     AddBlankSprite()->SetFrame(2.0f, 100.0f, 405.0f, 425.0f, 705.0f, 505.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
-    plain(sprite(5.0f, 100.0f, 100.0f, 390.0f, 500.0f, 0, 0, 0x100, 0x100), kBackColour);
-    plain(sprite(5.0f, 410.0f, 100.0f, 700.0f, 410.0f, 0, 0, 0x100, 0x100), kBackColour);
-    plain(sprite(5.0f, 410.0f, 430.0f, 700.0f, 500.0f, 0, 0, 0x100, 0x100), kBackColour);
+    plain(sprite(5.0f, 100.0f, 100.0f, 390.0f, 500.0f, 0, 0, kUiTextureSize, kUiTextureSize), kBackColour);
+    plain(sprite(5.0f, 410.0f, 100.0f, 700.0f, 410.0f, 0, 0, kUiTextureSize, kUiTextureSize), kBackColour);
+    plain(sprite(5.0f, 410.0f, 430.0f, 700.0f, 500.0f, 0, 0, kUiTextureSize, kUiTextureSize), kBackColour);
     for (int top = 132; top < 492; top += 24) region(108, top, 370, top + 24, 0);   // the rows
 
-    AddSurface(NewSurface(ui, 100, 100, 700, 500))->PaintWith([this](UiSurface& out) { PaintList(out); });
+    AddSurface(NewSurface(ui, Rect{100, 100, 700, 500}))->PaintWith([this](UiSurface& out) { PaintList(out); });
     {
         scroll = new UiScrollbar(ui, Rect{108, 132, 384, 492}, 3.0f, 0, 1.0f);
         AddChild(scroll);
@@ -599,18 +589,18 @@ void MpConnectScreen::CreateScreen() {
     DrawListVanilla();
     ui->OpenHelp(false);
     refreshTimer = 0.0f;
-    UiSurface* note = AddSurface(NewSurface(ui, 0, 0, 300, 20));
+    UiSurface* note = AddSurface(NewSurface(ui, Rect{0, 0, 300, 20}));
     note->PaintWith([this](UiSurface& out) {
         Rect area{0, 0, 300, 20};
-        out.DrawTextIn(texts[kTextConnecting], &area, 2, g_connectTextColour, 0, 1);
+        out.DrawTextIn(texts[kTextConnecting], area, TextStyle{2, g_connectTextColour});
     });
 }
 
 // --- the master request box ----------------------------------------------------------------------
 
-MasterRequestBox::MasterRequestBox(Interface3D* ui, std::string_view titleKey, const char* textKey, std::uint32_t result,
+MasterRequestBox::MasterRequestBox(Interface3D* ui, std::string_view titleKey, const char* textKey, MessageQuestion question,
                                      const net::NetAddress* address, std::uint32_t extra)
-    : MessageWindow(ui, titleKey, textKey, result, kBoxFlagsCancel, kBoxFormat), link(address) {
+    : MessageWindow(ui, titleKey, textKey, question, MessageButtons::Cancel), link(address) {
     bar = AddBlankSprite();
     bar->texture = nullptr;
     bar->flags |= FigureMeshFlag::Flat;
@@ -620,8 +610,8 @@ MasterRequestBox::MasterRequestBox(Interface3D* ui, std::string_view titleKey, c
 
 void MasterRequestBox::Update() {
     float right = net::g_gameClient->BufferRatio(&link.in) * kBarWidth + kBarLeft;
-    bar->SetRectangle(2.5f, 100.0f, 220.0f, 280.0f, right, 300.0f, 0, 0, 0x100, 0x100);
+    bar->SetRectangle(2.5f, kSpriteScale, 220.0f, 280.0f, right, 300.0f, 0, 0, kUiTextureSize, kUiTextureSize);
     if (net::MasterLinkTick(&link) == net::MasterLink::kDone) net::g_gameClient->ReadServerList(&link.in);
     if (net::MasterLinkTick(&link) == net::MasterLink::kDone || net::MasterLinkTick(&link) == net::MasterLink::kClosed)
-        ui->SetPendingValue(MpConnectScreen::kBoxMaster | kAnswerCancel);
+        ui->SetPendingValue(BoxResult(MpConnectScreen::kBoxMaster, MessageAnswer::Cancel));
 }

@@ -128,8 +128,8 @@ namespace {
 // addon's 100234AB / 100235BA (the right edge's margin + 800.0 summed as a double).
 void ShapeCurtains(UiMesh* left, UiMesh* right) {
     const int margin = Get().margin;
-    left->SetRectangle(2.0f, 100.0f, static_cast<float>(-margin), 0.0f, 0.0f, 600.0f, 0xE3, 0x3E, 0x100, 0xB0);
-    right->SetRectangle(2.0f, 100.0f, 800.0f, 0.0f, margin + 800.0f, 600.0f, 0x100, 0xB0, 0xE3, 0x3E);
+    left->SetRectangle(2.0f, kSpriteScale, static_cast<float>(-margin), 0.0f, 0.0f, 600.0f, 0xE3, 0x3E, 0x100, 0xB0);
+    right->SetRectangle(2.0f, kSpriteScale, 800.0f, 0.0f, margin + 800.0f, 600.0f, 0x100, 0xB0, 0xE3, 0x3E);
 }
 
 } // namespace

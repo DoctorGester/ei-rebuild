@@ -35,11 +35,9 @@ constexpr float kMenuTilt = /*007C7F14*/ 1.5707964f;   // a static initialiser: 
 
 constexpr std::uint32_t kSelectionColour = 0xC8A06800;
 constexpr std::uint32_t kBackColour = 0xA0000000;
-constexpr std::uint32_t kRenameColour = 0xA7D7E4;
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr std::uint32_t kCaretColour = 0x31B3FF;
 constexpr int kNameLength = 10;
-constexpr int kTextFormat = 1;
 
 // objects: 0 "campinfo", 1 and 2 the item screen's (CreateBase), 3 "saveload", 4..7 the four
 // quarters of the frame around the figure.
@@ -103,7 +101,7 @@ void MpHeroScreen::CreateScreen() {
 
     auto sprite = [this](float depth, float left, float top, float right, float bottom, int u0, int v0, int u1, int v1) {
         UiMesh* added = AddBlankSprite();
-        added->SetRectangle(depth, 100.0f, left, top, right, bottom, u0, v0, u1, v1);
+        added->SetRectangle(depth, kSpriteScale, left, top, right, bottom, u0, v0, u1, v1);
         return added;
     };
     auto plain = [](UiMesh* mesh, std::uint32_t colour) {
@@ -116,7 +114,7 @@ void MpHeroScreen::CreateScreen() {
     sprite(3.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32)->texture = texture(kSaveLoadTexture);
     sprite(3.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32)->texture = texture(kSaveLoadTexture);
     {
-        UiMesh* frame = sprite(3.0f, 110.0f, 250.0f, 370.0f, 274.0f, 0, 0, 0x100, 0x100);
+        UiMesh* frame = sprite(3.0f, 110.0f, 250.0f, 370.0f, 274.0f, 0, 0, kUiTextureSize, kUiTextureSize);
         plain(frame, kSelectionColour);
         frame->visible = false;
     }
@@ -142,8 +140,8 @@ void MpHeroScreen::CreateScreen() {
     frame(95.0f, 95.0f, 395.0f, 225.0f);
     frame(95.0f, 235.0f, 395.0f, 505.0f);
     frame(405.0f, 95.0f, 705.0f, 505.0f);
-    plain(sprite(5.0f, 100.0f, 100.0f, 390.0f, 220.0f, 0, 0, 0x100, 0x100), kBackColour);
-    plain(sprite(5.0f, 100.0f, 240.0f, 390.0f, 500.0f, 0, 0, 0x100, 0x100), kBackColour);
+    plain(sprite(5.0f, 100.0f, 100.0f, 390.0f, 220.0f, 0, 0, kUiTextureSize, kUiTextureSize), kBackColour);
+    plain(sprite(5.0f, 100.0f, 240.0f, 390.0f, 500.0f, 0, 0, kUiTextureSize, kUiTextureSize), kBackColour);
     // 15-18: the four commands' buttons.
     for (int top = 115; top < 211; top += 24) {
         UiMesh* button = sprite(3.0f, 180.0f, static_cast<float>(top), 310.0f, static_cast<float>(top + 19), 0x7A, 0x6C,
@@ -254,7 +252,7 @@ void MpHeroScreen::CreateScreen() {
     // The edit windows: a listed hero's new name, and the new hero's name.
     renameEdit = new UiEditField(ui, Rect{558, 110, 695, 126});
     AddChild(renameEdit);
-    renameEdit->SetLook(3, 0, 1, kNameLength, kRenameColour, kCaretColour);
+    renameEdit->SetLook(3, 0, 1, kNameLength, kUiTextColour, kCaretColour);
     renameEdit->SetEnabled(false);
     renameEdit->SetFocused(false);
     nameEdit = new UiEditField(ui, Rect{0, 127, 200, 143});
@@ -291,7 +289,7 @@ void MpHeroScreen::CreateScreen() {
     int top = 16;
     for (const char* key : commandKeys) {
         line = texts->GetString(key);
-        commands.push_back({line, Rect{0, top, 290, top + 20}, 1, kWhite, kTextFormat});
+        commands.push_back({line, Rect{0, top, 290, top + 20}, {1, kWhite, render::text::kCenter}});
         top += 24;
     }
 

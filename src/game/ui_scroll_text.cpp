@@ -14,7 +14,6 @@
 
 namespace {
 constexpr int kFormatType = 1, kWordType = 2;
-constexpr std::uint32_t kDefaultColour = 0xA7D7E4;
 constexpr std::uint32_t kConstructedColour = 0x1C8DC;     // the format token constructor's colour
 constexpr int kDefaultFont = 1;
 constexpr char kEscape = '\a';
@@ -80,7 +79,7 @@ int UiScrollText::NextToken(const std::string& text, int pos, std::string* out) 
 void UiScrollText::Tokenize(const std::string& text) {
     std::string token;
     int font = kDefaultFont;
-    std::uint32_t colour = kDefaultColour;
+    std::uint32_t colour = kUiTextColour;
     int pos = 0;
     if (text.empty()) return;
     do {
@@ -152,7 +151,7 @@ void UiScrollText::PlaceWords(int scroll) {
 
     // The format in effect at the line: the last format token before it (the first token
     // itself and token 0 are not looked at), else font 1 in the default colour.
-    std::uint32_t colour = kDefaultColour;
+    std::uint32_t colour = kUiTextColour;
     int font = kDefaultFont;
     int first = lines[line]->firstToken;
     if (tokens[first]->type != kFormatType) {
@@ -223,7 +222,7 @@ void UiScrollText::PlaceWords(int scroll) {
 void UiScrollText::PaintWords(UiSurface& surface) const {
     for (const ShownWord& shown : shownWords) {
         Rect area = shown.rect;
-        surface.DrawTextIn(shown.text, &area, shown.font, shown.colour, 0, 1);
+        surface.DrawTextIn(shown.text, area, TextStyle{shown.font, shown.colour});
     }
 }
 

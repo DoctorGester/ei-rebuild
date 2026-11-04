@@ -109,17 +109,16 @@ std::string FirstLineOf(const char* prefix, const std::string& suffix) {
     return line;
 }
 
-constexpr const char* kSoundOk = "buttons\\messbox\\ok.wav";
 constexpr const char* kSoundDelete = "buttons\\save\\delete.wav";
-constexpr int kAskOverwrite = 0x20000, kAskDelete = 0x10000;            // the boxes' results (high word)
+constexpr MessageQuestion kAskOverwrite = MessageQuestion::Second, kAskDelete = MessageQuestion::First;
 constexpr const char* kFolderFormat = "%ssaves\\%s";
 constexpr const char* kEveryFile = "\\*.*";
 
 // A message box `name` / `text` on top of the interface (a failed allocation pushes null, as the
 // original does).
-void Ask(Interface3D* ui, const char* name, const char* text, int result) {
-    auto* box = new MessageWindow(ui, name, text, result, 3, 1);
-    ui->PushWindow(box, true, true);
+void Ask(Interface3D* ui, const char* name, const char* text, MessageQuestion question) {
+    auto* box = new MessageWindow(ui, name, text, question, MessageButtons::OkCancel);
+    ui->PushWindow(box, WindowBackdrop::FirstWindow);
 }
 
 } // namespace
@@ -179,8 +178,8 @@ void SaveLoadWindow::SaveGame() {
     if (space != 0.0) {
         int needed = CurrentSaveSize();
         if (static_cast<double>(needed) > space) {
-            auto* box = new MessageWindow(ui, game::savewords::NoSpace(), game::savewords::NoSpaceText(), 0x30000, 1, 1);
-            ui->PushWindow(box, true, true);
+            auto* box = new MessageWindow(ui, game::savewords::NoSpace(), game::savewords::NoSpaceText(), MessageQuestion::Third, MessageButtons::Ok);
+            ui->PushWindow(box, WindowBackdrop::FirstWindow);
             return;
         }
     }
@@ -188,7 +187,7 @@ void SaveLoadWindow::SaveGame() {
     std::string notice = g_clientWorld.texts->GetString(game::savewords::NotifySaving());
     g_interface.ShowStatusText(notice);
     g_gameFlow.SaveGameThunk(entry->folder);
-    g_cursor.SetShape(3);
+    g_cursor.SetShape(CursorShape::Wait);
 
     // info.sav: the new save's entry (the first) with the title being given.
     netlink::FileStream info;
@@ -224,7 +223,7 @@ void SaveLoadWindow::SaveGame() {
         shot.Write(newPicture.data(), static_cast<unsigned>(newPicture.size()));
         shot.Close();
     }
-    g_cursor.SetShape(0);
+    g_cursor.SetShape(CursorShape::Default);
     ui->SetPendingValue(kClosed);
 }
 
@@ -312,7 +311,7 @@ void QuickSave(const char* slot, bool stepFrame) {
     // A null surface (no memory) is used all the same, as in the original.
     UiSurface* surface = new UiSurface(&g_interface, 0, 0, kScreenWidth, kScreenHeight, SurfaceBlend::Opaque, true);
     surface->CaptureScreen();
-    g_cursor.SetShape(3);
+    g_cursor.SetShape(CursorShape::Wait);
     g_interface.serverFlag = static_cast<std::uint8_t>(g_serverWorld.paused);
     std::string notice = g_clientWorld.texts->GetString(game::savewords::NotifySaving());
     g_interface.ShowStatusText(notice);
@@ -346,7 +345,7 @@ void QuickSave(const char* slot, bool stepFrame) {
     if (surface != nullptr) {
         delete surface;
     }
-    g_cursor.SetShape(0);
+    g_cursor.SetShape(CursorShape::Default);
 }
 
 void QuickLoad(const char* slot) {
@@ -379,7 +378,7 @@ void SaveLoadWindow::Confirm() {
         LoadSelected();
         return;
     }
-    ui->PlayInterfaceSound(kSoundOk);
+    ui->PlayInterfaceSound(game::OkSoundText());
     if (selected == 0) {
         SaveGame();
         return;
@@ -400,7 +399,7 @@ void SaveLoadWindow::LoadSelected() {
     std::string notice = g_clientWorld.texts->GetString(kNotifyLoading);
     g_interface.ShowStatusText(notice);
     GameStopSounds(1);
-    ui->PlayInterfaceSound(kSoundOk);
+    ui->PlayInterfaceSound(game::OkSoundText());
     g_gameFlow.RequestLoad(entries.data()[selected].folder);
 }
 

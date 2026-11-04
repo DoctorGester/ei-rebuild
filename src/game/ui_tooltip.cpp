@@ -24,7 +24,6 @@ constexpr int kTextLeft = 6;
 constexpr int kTextTop = 4;
 constexpr std::uint32_t kBackground = 0x1C2B;
 constexpr std::uint32_t kTitleColour = 0x31B3FF;   // also the frame
-constexpr std::uint32_t kTextColour = 0xA7D7E4;
 
 // The exe's texts: "w" (an empty line's height is measured on it), "  ( " and " )" around the key.
 const char* EmptyLineSample() { return "w"; }
@@ -88,12 +87,12 @@ void UiTooltip::PaintLines(UiSurface& surface) const {
     int step = lineHeight;
     Rect row{kTextLeft, kTextTop, right - kTextLeft, step + kTextTop};
     for (int i = 0; i < static_cast<int>(lines.size()); ++i) {
-        std::uint32_t colour = i > 0 ? kTextColour : kTitleColour;
+        std::uint32_t colour = i > 0 ? kUiTextColour : kTitleColour;
         if (i == 0 && keyName) {
             std::string text = lines[0] + KeyOpen() + keyName + KeyClose();
-            surface.DrawTextIn(text, &row, kFont, colour, 0, 0);
+            surface.DrawTextIn(text, row, TextStyle{kFont, colour, render::text::kLeft, false});
         } else {
-            surface.DrawTextIn(lines[i], &row, kFont, colour, 0, 0);
+            surface.DrawTextIn(lines[i], row, TextStyle{kFont, colour, render::text::kLeft, false});
         }
         row.Offset(0, step);
     }

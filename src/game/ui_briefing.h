@@ -102,7 +102,7 @@ public:
     // 0x10001 leaves through exit; 0x20001 (game over: load) opens the load window; 0x20002, 0x90001,
     // 0x100001 close every window, drop the sessions and leave the game. A network client then shows its chat
     // window again.
-    void MessageResult(int result) override;
+    void MessageResult(std::uint32_t result) override;
     void UnitLeft(Unit* unit) override;
     // `unit` goes into party after the members whose unit records (the local player's) come before its record,
     // or last without one. The first record's unit becomes the leader, and the first "b.<zone>..." variable
@@ -141,7 +141,7 @@ public:
 
     // None leaves state 0; otherwise the leader stops (unless noWalk), "goodbye" is appended, state 1.
     void OpenTopics(EngineObject* person);
-    // "topic_prefix" text + " " + the topic's title, white for hoveredTopic, else 0xA7D7E4, into topicLabels.
+    // "topic_prefix" text + " " + the topic's title, white for hoveredTopic, else kUiTextColour, into topicLabels.
     void DrawTopics();
     // Every "b.<person>.<topic>" variable equal to 1 (bit compare), in the variable table's order (a network
     // client sorts them), and last the last "constr..." one found.

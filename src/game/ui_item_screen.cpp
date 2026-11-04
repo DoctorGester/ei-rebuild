@@ -46,18 +46,18 @@ void ItemIconWindow::Build() {
         sprite()->SetGrid(7.9f, 100.0f, left + 179.0f, 100.0f, right, 500.0f, 0xE9, 0x4C, 0xFE,
                         0xB0, 1, 4);
         float middle = left + 100.0f;
-        sprite()->SetRectangle(7.8f, 100.0f, left, 100.0f, middle, 130.0f, 0xFE, 2, 0x9A, 0x20);
-        sprite()->SetRectangle(7.8f, 100.0f, left, 470.0f, middle, 500.0f, 0xFE, 0x20, 0x9A, 2);
+        sprite()->SetRectangle(7.8f, kSpriteScale, left, 100.0f, middle, 130.0f, 0xFE, 2, 0x9A, 0x20);
+        sprite()->SetRectangle(7.8f, kSpriteScale, left, 470.0f, middle, 500.0f, 0xFE, 0x20, 0x9A, 2);
         float half = static_cast<float>(x + 100);
-        sprite()->SetRectangle(7.8f, 100.0f, half, 100.0f, right, 130.0f, 0x9A, 2, 0xFE, 0x20);
-        sprite()->SetRectangle(7.8f, 100.0f, half, 470.0f, right, 500.0f, 0x9A, 0x20, 0xFE, 2);
+        sprite()->SetRectangle(7.8f, kSpriteScale, half, 100.0f, right, 130.0f, 0x9A, 2, 0xFE, 0x20);
+        sprite()->SetRectangle(7.8f, kSpriteScale, half, 470.0f, right, 500.0f, 0x9A, 0x20, 0xFE, 2);
     }
-    sprite()->SetRectangle(7.8f, 100.0f, 0.0f, 380.0f, 100.0f, 420.0f, 0xFE, 0x22, 0x9A, 0x4A);
-    sprite()->SetRectangle(7.8f, 100.0f, 100.0f, 380.0f, 200.0f, 420.0f, 0x9A, 0x22, 0xFE, 0x4A);
-    sprite()->SetRectangle(7.8f, 100.0f, 600.0f, 380.0f, 700.0f, 420.0f, 0xFE, 0x22, 0x9A, 0x4A);
-    sprite()->SetRectangle(7.8f, 100.0f, 700.0f, 380.0f, 800.0f, 420.0f, 0x9A, 0x22, 0xFE, 0x4A);
-    sprite()->SetRectangle(7.8f, 100.0f, 200.0f, 280.0f, 300.0f, 320.0f, 0xFE, 0x22, 0x9A, 0x4A);
-    sprite()->SetRectangle(7.8f, 100.0f, 300.0f, 280.0f, 400.0f, 320.0f, 0x9A, 0x22, 0xFE, 0x4A);
+    sprite()->SetRectangle(7.8f, kSpriteScale, 0.0f, 380.0f, 100.0f, 420.0f, 0xFE, 0x22, 0x9A, 0x4A);
+    sprite()->SetRectangle(7.8f, kSpriteScale, 100.0f, 380.0f, 200.0f, 420.0f, 0x9A, 0x22, 0xFE, 0x4A);
+    sprite()->SetRectangle(7.8f, kSpriteScale, 600.0f, 380.0f, 700.0f, 420.0f, 0xFE, 0x22, 0x9A, 0x4A);
+    sprite()->SetRectangle(7.8f, kSpriteScale, 700.0f, 380.0f, 800.0f, 420.0f, 0x9A, 0x22, 0xFE, 0x4A);
+    sprite()->SetRectangle(7.8f, kSpriteScale, 200.0f, 280.0f, 300.0f, 320.0f, 0xFE, 0x22, 0x9A, 0x4A);
+    sprite()->SetRectangle(7.8f, kSpriteScale, 300.0f, 280.0f, 400.0f, 320.0f, 0x9A, 0x22, 0xFE, 0x4A);
 }
 
 // --- The first two bars moved ------------------------------------------------------------
@@ -67,9 +67,9 @@ void ItemIconWindow::PlaceBars(int y) {
     float top = static_cast<float>(y - 20);
     float bottom = static_cast<float>(y + 20);
     sceneObjects[kLeftBar]
-        ->SetRectangle(7.8f, 100.0f, 0.0f, top, 100.0f, bottom, 0xFE, 0x22, 0x9A, 0x4A);
+        ->SetRectangle(7.8f, kSpriteScale, 0.0f, top, 100.0f, bottom, 0xFE, 0x22, 0x9A, 0x4A);
     sceneObjects[kRightBar]
-        ->SetRectangle(7.8f, 100.0f, 100.0f, top, 200.0f, bottom, 0x9A, 0x22, 0xFE, 0x4A);
+        ->SetRectangle(7.8f, kSpriteScale, 100.0f, top, 200.0f, bottom, 0x9A, 0x22, 0xFE, 0x4A);
 }
 
 // --- The item screens' base Create ------------------------------------------------------

@@ -14,7 +14,7 @@ surface is drawn above every mesh, in stack and child order.
 | Primitive | Functions (file) | Path |
 |---|---|---|
 | Surface draw | `UiSurface::Blit` (`ui_surface.cpp`): its frame picture, then its window's paint at its rectangle | `render::ui::Solid` / `Glyphs` into the frame |
-| Text | `UiSurface::DrawTextIn` / `DrawTextPixels` (shadow first in 0x080808 at +1,+1), `DrawWrappedText` (`ui_text.cpp`); extents by `TextExtent` (`ui_font.h`) | glyph runs, laid out again when the font or rectangle changes |
+| Text | `UiSurface::DrawTextIn(text, const Rect&, TextStyle)` / `DrawTextPixels` (shadow first in 0x080808 at +1,+1), `DrawWrappedText` (`ui_text.cpp`); extents by `TextExtent` (`ui_font.h`) | glyph runs, laid out again when the font or rectangle changes |
 | Fill / Clear / FillRect / FrameRect | `ui_surface.cpp` (`render::ui::FrameRects`) | solid quads |
 | Lines and carets | `UiSurface::Line` (`render::ui::LineRects`: the 1-pixel pen's rule, end point left out): console, chat typed line, edit field, connect list, save / load list | solid quads |
 | Single pixel | `UiSurface::Dot`: the HUD map's marker | a solid quad |
@@ -118,7 +118,7 @@ tips and tints, the connection screen's text colour left for its note, the messa
 
 **Labels.** Where a window's texts come from reads that must stay where they ran (the text manager's open text, the
 owner's prices, the hero's statistics, the attack parameters), the window keeps the texts it worked out as `UiLabel`s
-(DrawTextIn's or DrawWrappedText's arguments: text, layout rectangle, font, colour, format, wrap lines) in a member
+(DrawTextIn's or DrawWrappedText's arguments: text, layout rectangle, `TextStyle` {font, colour, format, shadow}, wrap lines) in a member
 vector per surface, made where the draws were (a Clear empties it), and its paint is `PaintLabels`. A wrapped label is
 wrapped again at the current fonts.
 

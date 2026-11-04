@@ -39,12 +39,8 @@
 
 namespace {
 
-constexpr int kLeaveZoneYes = 0x10001;
-constexpr int kGameOverLoad = 0x20001;
-constexpr int kGameOverQuit = 0x20002;
-constexpr int kLeaveAnswer = 0x90001;
-constexpr int kLoadWindowClosed = 0x100001;
-constexpr int kGameOverResult = 0x20000;
+constexpr std::uint32_t kLeaveAnswer = 0x90001;
+constexpr std::uint32_t kLoadWindowClosed = 0x100001;
 
 constexpr const char* kZoneTopicFormat = "b.%s";
 constexpr int kTopicNameParts = 3;
@@ -59,13 +55,13 @@ void BriefingScreen::CloseScreen() {
     cameraFlags = (cameraFlags & ~(Camera::kBounded | Camera::kAlternate)) | Camera::kFree;
 }
 
-void BriefingScreen::MessageResult(int result) {
+void BriefingScreen::MessageResult(std::uint32_t result) {
     switch (result) {
     case kLeaveZoneYes:
         GameLeaveThroughExit(exit);
         break;
     case kGameOverLoad: {
-        ui->PushWindow(new SaveLoadWindow(ui, false, false), true, true);
+        ui->PushWindow(new SaveLoadWindow(ui, false, false), WindowBackdrop::FirstWindow);
         break;
     }
     case kGameOverQuit:
@@ -143,8 +139,8 @@ void BriefingScreen::UnitLeft(Unit* unit) {
 
 void BriefingScreen::GameOver(bool) {
     ui->PlayInterfaceSound("buttons\\gameover.wav");
-    MessageWindow* box = new MessageWindow(ui, "game_over", "game_over_msg", kGameOverResult, 3, 1);
-    ui->PushWindow(box, true, true);
+    MessageWindow* box = new MessageWindow(ui, "game_over", "game_over_msg", MessageQuestion::Second, MessageButtons::OkCancel);
+    ui->PushWindow(box, WindowBackdrop::FirstWindow);
 }
 
 void BriefingScreen::ShowBriefing(std::string_view name) {
@@ -315,7 +311,7 @@ void BriefingScreen::ShowItem(std::string_view name, int index) {
     UiMesh* frame = nullptr;
     if (index < kSlots) {
         back = AddBlankSprite();
-        back->SetRectangle(20.0f, 100.0f, x - kSlotBack, y - kSlotBack, x + kSlotBack, y + kSlotBack, 0, 0, 0x100, 0x100);
+        back->SetRectangle(20.0f, kSpriteScale, x - kSlotBack, y - kSlotBack, x + kSlotBack, y + kSlotBack, 0, 0, kUiTextureSize, kUiTextureSize);
         back->texture = nullptr;
         back->flags |= FigureMeshFlag::Flat;
         back->flatColour = kSlotBackdrop;

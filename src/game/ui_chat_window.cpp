@@ -94,7 +94,7 @@ void ChatWindow::AddPortrait(const std::string& model, std::string_view texture)
             *turn.SetAxisAngle(axis, 3.1415927f * 1.05f);
     } else {
         sprite = AddBlankSprite();
-        sprite->SetRectangle(7.0f, 100.0f, static_cast<float>(left), 0.0f, static_cast<float>(right), 60.0f, 0, 0, 0x80,
+        sprite->SetRectangle(7.0f, kSpriteScale, static_cast<float>(left), 0.0f, static_cast<float>(right), 60.0f, 0, 0, 0x80,
                              0x80);
     }
     sprite->textureOffsetU = u * 0.00390625f;
@@ -198,11 +198,11 @@ void ChatWindow::PaintStatus(UiSurface& surface) const {
     for (const StatusRow& row : statusRows) {
         if (row.status.size() != 0) {
             Rect line{row.left, 0, row.left + kFaceWidth, 0xF};
-            surface.DrawTextIn(row.status, &line, 0, kWhite, 1, 1);
+            surface.DrawTextIn(row.status, line, TextStyle{0, kWhite, render::text::kCenter});
         }
         if (row.offer.size() != 0) {
             Rect line{row.left, 0xF, row.left + kFaceWidth, 0x1E};
-            surface.DrawTextIn(row.offer, &line, 0, kWhite, 1, 1);
+            surface.DrawTextIn(row.offer, line, TextStyle{0, kWhite, render::text::kCenter});
         }
     }
 }
@@ -241,5 +241,5 @@ void ChatWindow::LeftDown(Point point) {
 void ChatWindow::MouseMove(Point point) {
     int index = RegionAt(point);
     int pick = briefing->chatActive;
-    if (pick != 0 && index >= 0 && static_cast<unsigned>(index) < players.size()) g_cursor.SetShape(0);
+    if (pick != 0 && index >= 0 && static_cast<unsigned>(index) < players.size()) g_cursor.SetShape(CursorShape::Default);
 }

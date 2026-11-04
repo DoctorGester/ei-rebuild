@@ -15,7 +15,7 @@
 namespace {
 
 constexpr int kFont = 1;
-constexpr std::uint32_t kTextColour = 0xA7D7E4;
+constexpr TextStyle kEntryText{kFont, kUiTextColour};
 constexpr int kLayoutHeight = 600;
 
 constexpr int kEntryHeight = 20;
@@ -47,7 +47,7 @@ enum Sprite { kArrow, kShade, kChosenMark, kActiveMark, kFrame };
 
 // A flat sprite (no texture) of `colour` over `area`.
 void Flat(UiMesh* sprite, float depth, const Rect& area, std::uint32_t colour) {
-    sprite->SetRectangle(depth, 100.0f, area, 0, 0, 0x100, 0x100);
+    sprite->SetRectangle(depth, kSpriteScale, area, 0, 0, kUiTextureSize, kUiTextureSize);
     sprite->texture = nullptr;
     sprite->flags |= FigureMeshFlag::Flat;
     sprite->flatColour = colour;
@@ -61,7 +61,7 @@ UiDropList::UiDropList(Interface3D* ui, UiContainer* newOwner, Rect newRow) : Ui
     LoadTexture("saveload", TextureKind::Interface);
     for (int i = 0; i <= kFrame; ++i) AddBlankSprite();
     const int middle = (row.top + row.bottom) / 2;
-    sceneObjects[kArrow]->SetRectangle(kRowDepth, 100.0f,
+    sceneObjects[kArrow]->SetRectangle(kRowDepth, kSpriteScale,
                                     Rect{row.right - kArrowWidth, middle - kArrowHeight / 2, row.right,
                                          middle + kArrowHeight / 2},
                                     0x28, 0x80, 0x50, 0xB0);
@@ -202,7 +202,7 @@ void UiDropList::PlaceMarks() {
 void UiDropList::PaintRow(UiSurface& surface) const {
     if (texts.empty()) return;
     const Rect area = row.Inset(0, 0, kArrowWidth + kGap, 0);
-    surface.DrawTextIn(texts[value], &area, kFont, kTextColour, 0, true);
+    surface.DrawTextIn(texts[value], area, kEntryText);
 }
 
 void UiDropList::PaintList(UiSurface& surface) const {
@@ -210,7 +210,7 @@ void UiDropList::PaintList(UiSurface& surface) const {
         const Rect entry = EntryRect(i);
         if (entry.IsEmpty()) continue;
         const Rect text = entry.Inset(kTextInset, 0, 0, 0);
-        surface.DrawTextIn(texts[i], &text, kFont, kTextColour, 0, true);
+        surface.DrawTextIn(texts[i], text, kEntryText);
     }
 }
 

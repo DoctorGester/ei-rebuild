@@ -18,7 +18,6 @@ namespace {
 
 constexpr int kFirstCellX = 50;     // the items' region starts here
 constexpr int kCellPixels = 100;    // one slot
-constexpr std::uint32_t kNumberColour = 0xA7D7E4;
 
 // The strip's eight cells in view that hold an item: the item and the cell's text rectangle (70 x 20 from 15 pixels
 // into the cell), the cells 100 pixels apart from the current tab's position less its whole slots.
@@ -41,7 +40,7 @@ void ForItemsInView(const UiItemStrip& strip, Each each) {
 void UiItemStrip::PaintCounts(UiSurface& surface) const {
     ForItemsInView(*this, [&](const Item* item, const Rect& area) {
         const int stackCount = static_cast<int>(item->count);
-        if (stackCount != 1) surface.DrawTextIn(str::Format("%d", stackCount), &area, 1, kNumberColour, 2, 1);
+        if (stackCount != 1) surface.DrawTextIn(str::Format("%d", stackCount), area, TextStyle{1, kUiTextColour, render::text::kRight});
     });
 }
 
@@ -49,7 +48,7 @@ void UiItemStrip::PaintPrices(UiSurface& surface) const {
     if (priceKind == PriceKind::None) return;
     ForItemsInView(*this, [&](Item* item, const Rect& area) {
         // Whether the strip's mode takes the item, then the number shown under it.
-        if (owner->CanEquip(item, mode)) surface.DrawTextIn(str::Format("%d", owner->Price(item, priceKind)), &area, 1, kNumberColour, 1, 1);
+        if (owner->CanEquip(item, mode)) surface.DrawTextIn(str::Format("%d", owner->Price(item, priceKind)), area, TextStyle{1, kUiTextColour, render::text::kCenter});
     });
 }
 
@@ -105,7 +104,7 @@ void UiItemStrip::Build(bool atTop) {
     }
     // The highlight frame (plain, colour 0xFF8B8B37), moved around later.
     UiMesh* frame = AddBlankSprite();
-    frame->Framed(scale * 0.9f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
+    frame->Framed(scale * 0.9f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, kUiTextureSize, kUiTextureSize);
     frame->flags |= FigureMeshFlag::Flat;
     frame->flatColour = 0xFF8B8B37;
     frame->texture = nullptr;

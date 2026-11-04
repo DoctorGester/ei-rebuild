@@ -113,7 +113,7 @@ public:
     // Esc opens the escape menu; an unused key whose action is '5' quick-saves ("saveq"), '6' quick-loads.
     void KeyDown(int key, int scan, bool repeat) override;
     // A window above closed.
-    void MessageResult(int result) override;
+    void MessageResult(std::uint32_t result) override;
     const char* HelpTopic() override { return noCamp ? "global_map_nocamp" : "global_map"; }
     // Ends a turn by a turn button.
     void LeftUp(Point point) override;
@@ -262,7 +262,7 @@ public:
     // deletes the constructors' part lists except the first of each.
     void CloseScreen() override;
     // 0x10001 takes the shown hero's first weapon back into the party's items.
-    void MessageResult(int result) override;
+    void MessageResult(std::uint32_t result) override;
     // What an item strip or a panel calls with its action mode: 0 off the hero, 1 PutOnFromStrip, 2 / 3 into
     // a constructor's slots, 4 / 5 out of a constructor's trade lists, 6 / 7 out of the makers' slots, 8 out
     // of itemExtra. Refused by CanEquip: the cancel sound.

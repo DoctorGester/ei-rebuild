@@ -161,11 +161,11 @@ Cursor::~Cursor() {
 // The cursor.
 Cursor g_cursor;
 
-int Cursor::SetShape(int newShape) {
+int Cursor::SetShape(CursorShape newShape) {
     const int previous = shape;
     if (previous == -1 || !enabled) return -1;
-    shape = newShape;
-    image = images[newShape];
+    shape = static_cast<int>(newShape);
+    image = images[shape];
     ShowFrame(this);
     return previous;
 }

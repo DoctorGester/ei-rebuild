@@ -25,14 +25,9 @@
 namespace {
 
 constexpr const char* kSoundClick = "buttons\\battle\\click.wav";
-constexpr std::uint32_t kTextColour = 0xA7D7E4;
+constexpr TextStyle kPanelText{0, kUiTextColour};
 constexpr char kNewLine[] = {'\n', '\0'};
 constexpr std::uint32_t kRed = 0x0000FF;                             // COLORREF
-
-// Text on the panel's surface (Rebirth-patched).
-void DrawPanelText(UiSurface& surface, std::string_view text, Rect rect, std::uint32_t colour, std::uint32_t format, int shadow) {
-    surface.DrawTextIn(text, &rect, 0, colour, format, shadow);
-}
 
 // Whether `unit` is one of the battle screen's party (its mana is shown).
 bool InParty(const BattleScreen* owner, const Unit* unit) {
@@ -86,10 +81,10 @@ void HudUnitPanel::ShowHealth(Unit* unit) {
 
 void HudUnitPanel::PaintHealth(UiSurface& surface, Unit* unit) {
     std::string health = std::format("{}", unit->packedVitals.hitPoints > 0 ? unit->packedVitals.hitPoints : 0);
-    DrawPanelText(surface, health, Rect{130, 185, 160, 200}, kTextColour, 0, 1);
+    surface.DrawTextIn(health, Rect{130, 185, 160, 200}, kPanelText);
     if (!InParty(owner, unit)) return;
     std::string mana = std::format("{}", static_cast<int>(unit->packedVitals.mana));
-    DrawPanelText(surface, mana, Rect{130, 200, 160, 215}, kTextColour, 0, 1);
+    surface.DrawTextIn(mana, Rect{130, 200, 160, 215}, kPanelText);
 }
 
 void HudUnitPanel::ShowParts(Unit* unit) {
@@ -126,8 +121,8 @@ void HudUnitPanel::PaintParts(UiSurface& surface, Unit* unit) {
                 break;
             }
         }
-        DrawPanelText(surface, name, Rect{kLabelX[i], kLabelY[i], kLabelX[i] + 60, kLabelY[i] + 15},
-                      part.kind == 1 ? kRed : kTextColour, 1, 1);
+        surface.DrawTextIn(name, Rect{kLabelX[i], kLabelY[i], kLabelX[i] + 60, kLabelY[i] + 15},
+                           TextStyle{0, part.kind == 1 ? kRed : kUiTextColour, render::text::kCenter});
     }
 }
 
@@ -170,9 +165,9 @@ void HudUnitPanel::PaintEffects(UiSurface& surface, Unit* unit) {
             // The texts' section "spell <code>": its first line is the spell's name.
             if (clientWorldTexts->TextManager::Open(std::string("spell ") + spell->code.c_str())) text = clientWorldTexts->ReadLine(true);
         }
-        surface.DrawTextIn(text, &line, 0, kTextColour, 0, 1);
+        surface.DrawTextIn(text, line, kPanelText);
         line.Offset(0, kLineHeight);
-        surface.DrawTextIn(std::format("{}", effects[i].ticksLeft / 15), &line, 0, kTextColour, 0, 1);
+        surface.DrawTextIn(std::format("{}", effects[i].ticksLeft / 15), line, kPanelText);
         line.Offset(0, kLineHeight);
     }
 }

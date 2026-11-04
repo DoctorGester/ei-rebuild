@@ -276,7 +276,7 @@ void ItemScreen::DrawItem(SceneRenderer* pass, const ItemCell& cell) {
         UiMesh* shade = AddBlankSprite();
         float half = 35.0f;
         shade->SetRectangle(depth, 100.0f, cell.x - half, cell.y - half,
-                            cell.x + half, cell.y + half, 0, 0, 0x100, 0x100);
+                            cell.x + half, cell.y + half, 0, 0, kUiTextureSize, kUiTextureSize);
         shade->texture = nullptr;
         shade->flags |= FigureMeshFlag::Flat;
         shade->flatColour = 0x82804040;
@@ -366,7 +366,7 @@ Texture* ItemFigureTexture(std::string_view name) {
     const MmpFile image(manager->GetFile(file, &size));
     if (!image.data) {
         // No picture: the whole texture white.
-        render::DrawIntoTexture(texture->surface, nullptr, 0, 0, 0x100, 0x100);
+        render::DrawIntoTexture(texture->surface, nullptr, 0, 0, kUiTextureSize, kUiTextureSize);
     } else {
         // The picture at the texture's bottom left.
         const int width = static_cast<int>(image.header.width), height = static_cast<int>(image.header.height);

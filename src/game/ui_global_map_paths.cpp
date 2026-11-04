@@ -129,7 +129,7 @@ void GlobalMap::LeftDown(Point point) {
             SearchWays(zone.name);
             auto* window = new ObjectivesWindow(ui);
             window->Setup(target, &arrivals, true, false);
-            ui->PushWindow(window, true, true);
+            ui->PushWindow(window, WindowBackdrop::FirstWindow);
             return;
         }
     }

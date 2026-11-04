@@ -19,8 +19,6 @@
 
 namespace {
 
-constexpr int kCursorNormal = 0;
-constexpr int kCursorCtrl = 1;
 constexpr int kAttackHow = 6;
 
 // The view's turn about x: 225 degrees.
@@ -89,12 +87,12 @@ void UnitPickInput::RightDown(Point) {
 
 void UnitPickInput::KeyDown(int key, int, bool) {
     if (key == platform::kKeyControl) {
-        g_cursor.SetShape(kCursorCtrl);
+        g_cursor.SetShape(CursorShape::Attack);
     } else if (key == platform::kKeySpace) {
         GameSetServerPaused(g_serverWorld.paused == 0);
     }
 }
 
 void UnitPickInput::KeyUp(int key, int) {
-    if (key == platform::kKeyControl) g_cursor.SetShape(kCursorNormal);
+    if (key == platform::kKeyControl) g_cursor.SetShape(CursorShape::Default);
 }

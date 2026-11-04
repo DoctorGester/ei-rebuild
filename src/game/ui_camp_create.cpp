@@ -55,10 +55,6 @@ constexpr int kFilterItems = 0, kFilterSpells = 1, kFilterArmour = 2;
 // unordered result (a NaN variable) as equal.
 bool PlayerSwitch(const char* name) { return LocalPlayerVariable(name) == 1.0f; }
 
-UiSurface* NewSurface(Interface3D* ui, int left, int top, int right, int bottom) {
-    return new UiSurface(ui, left, top, right, bottom, SurfaceBlend::Keyed, true);
-}
-
 // An item list of the constructors: made through its factory (not checked).
 Party* NewItemList() {
     Party* list = new Party();
@@ -128,7 +124,7 @@ void CampPages::BuildPages() {
     // The buttons' sprites, in the regions' order without the turn areas.
     auto button = [this](float left, float top, float right, float bottom, int u0, int v0, int u1, int v1) {
         UiMesh* sprite = AddBlankSprite();
-        sprite->SetRectangle(3.0f, 100.0f, left, top, right, bottom, u0, v0, u1, v1);
+        sprite->SetRectangle(kDialogDepth, kSpriteScale, left, top, right, bottom, u0, v0, u1, v1);
         return sprite;
     };
     button(12.0f, 450.0f, 52.0f, 490.0f, 0xA5, 0xAC, 0xCD, 0xD4);
@@ -153,8 +149,8 @@ void CampPages::BuildPages() {
     sprite->tint[2] = 0.5f;
 
     CreateBase();
-    AddSurface(NewSurface(ui, 0, 400, 200, 500))->PaintWith([this](UiSurface& out) { PaintLabels(out, actionLabels); });
-    AddSurface(NewSurface(ui, 600, 400, 800, 430))->PaintWith([this](UiSurface& out) { PaintLabels(out, titleLabels); });
+    AddSurface(NewSurface(ui, Rect{0, 400, 200, 500}))->PaintWith([this](UiSurface& out) { PaintLabels(out, actionLabels); });
+    AddSurface(NewSurface(ui, Rect{600, 400, 800, 430}))->PaintWith([this](UiSurface& out) { PaintLabels(out, titleLabels); });
 
     // The constructors' lists (the first of each is the class template's).
     spellParts[1] = NewItemList();

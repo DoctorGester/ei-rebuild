@@ -47,7 +47,7 @@ constexpr int kRegionFirstPage = 4;
 constexpr int kRegionLastPage = 11;
 constexpr int kEquipmentPage = 0;
 constexpr int kLeavePage = 7;
-constexpr std::uint32_t kAnswerYes = 0x10001;
+constexpr std::uint32_t kAnswerYes = BoxResult(MessageQuestion::First, MessageAnswer::Ok);
 
 } // namespace
 
@@ -101,8 +101,8 @@ void CampPages::KeyDown(int key, int scan, bool repeat) {
     UiContainer::KeyDown(key, scan, repeat);
 }
 
-void CampPages::MessageResult(int result) {
-    if (static_cast<std::uint32_t>(result) != kAnswerYes) return;
+void CampPages::MessageResult(std::uint32_t result) {
+    if (result != kAnswerYes) return;
     PartyUnitRecord* heroRecord = HeroRecord();
     if (heroRecord->weapons.empty()) return;
     Item* weapon = heroRecord->weapons[0];

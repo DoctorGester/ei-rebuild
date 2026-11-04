@@ -136,13 +136,13 @@ void BriefingScreen::CreateScreen() {
     // The backdrops: a dark one behind the topics with a frame, a lighter one behind the text
     // with a frame.
     UiMesh* sprite = AddBlankSprite();
-    sprite->SetRectangle(20.0f, 100.0f, 200.0f, 430.0f, 600.0f, 570.0f, 0, 0, 0x100, 0x100);
+    sprite->SetRectangle(20.0f, kSpriteScale, 200.0f, 430.0f, 600.0f, 570.0f, 0, 0, kUiTextureSize, kUiTextureSize);
     sprite->texture = nullptr;
     sprite->flags |= FigureMeshFlag::Flat;
     sprite->flatColour = kDarkBackdrop;
     AddBlankSprite()->SetFrame(10.0f, 100.0f, 195.0f, 425.0f, 605.0f, 575.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
     sprite = AddBlankSprite();
-    sprite->SetRectangle(20.0f, 100.0f, 155.0f, 416.0f, 645.0f, 580.0f, 0, 0, 0x100, 0x100);
+    sprite->SetRectangle(20.0f, kSpriteScale, 155.0f, 416.0f, 645.0f, 580.0f, 0, 0, kUiTextureSize, kUiTextureSize);
     sprite->texture = nullptr;
     sprite->flatColour = kTextBackdrop;
     sprite->flags |= FigureMeshFlag::Flat;

@@ -339,7 +339,7 @@ void HudPortraits::AddPortrait(const std::string& model, std::string_view pictur
         face->localRotation = slots[count].restA;
     } else {
         face = AddBlankSprite();
-        face->SetRectangle(7.0f, 100.0f, static_cast<float>(x), 510.0f, static_cast<float>(right), 580.0f, 0, 0, 0x80,
+        face->SetRectangle(7.0f, kSpriteScale, static_cast<float>(x), 510.0f, static_cast<float>(right), 580.0f, 0, 0, 0x80,
                            0x80);
         slots[count].restA = kHudRestRotation;
     }

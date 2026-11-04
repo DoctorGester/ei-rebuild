@@ -18,18 +18,11 @@
 namespace {
 
 // The sound system is handed the game's own string pointers.
-const char* OkSound() { return "buttons\\messbox\\ok.wav"; }
-const char* CancelSound() { return "buttons\\messbox\\cancel.wav"; }
 const char* ExitMovie() { return "Movies\\Exit.bik"; }
 
-// The result of the exit question: OK plays the exit movie and quits.
-constexpr std::uint32_t kExitResult = 0xFFFF0000;
-constexpr std::uint32_t kEditField = 4;
 // The callers' buffer for the edit field's text: every box with one is the connection screen's (its address and
 // password boxes, MpConnectScreen::boxText).
 constexpr std::size_t kEditTextSize = 0x80;
-constexpr std::uint32_t kAnswerOk = 1;
-constexpr std::uint32_t kAnswerCancel = 2;
 
 void PlayExitMovieAndQuit() {
     {
@@ -53,34 +46,34 @@ void MessageWindow::LeftDown(Point point) {
     UiContainer::LeftDown(point);
     int region = RegionAt(point);
     if (region == 0) {
-        if (result == kExitResult) {
+        if (question == MessageQuestion::Exit) {
             PlayExitMovieAndQuit();
             return;
         }
-        ui->PlayInterfaceSound(OkSound());
-        if (flags & kEditField) CopyEditText();
+        ui->PlayInterfaceSound(game::OkSoundText());
+        if (buttons == MessageButtons::OkCancelEdit) CopyEditText();
     } else if (region == 1) {
-        ui->PlayInterfaceSound(CancelSound());
+        ui->PlayInterfaceSound(game::CancelSoundText());
     } else if (region < 0) {
         return;
     }
-    ui->SetPendingValue(result | static_cast<std::uint32_t>(region + 1));
+    ui->SetPendingValue(BoxResult(question, static_cast<MessageAnswer>(region + 1)));
 }
 
 void MessageWindow::KeyDown(int key, int scan, bool repeat) {
     UiContainer::KeyDown(key, scan, repeat);
     if (handled) return;
     if (key == platform::kKeyReturn) {
-        if (result == kExitResult) {
+        if (question == MessageQuestion::Exit) {
             PlayExitMovieAndQuit();
         } else {
-            if (flags & kEditField) CopyEditText();
-            ui->PlayInterfaceSound(OkSound());
-            ui->SetPendingValue(result | kAnswerOk);
+            if (buttons == MessageButtons::OkCancelEdit) CopyEditText();
+            ui->PlayInterfaceSound(game::OkSoundText());
+            ui->SetPendingValue(BoxResult(question, MessageAnswer::Ok));
         }
     } else if (key == platform::kKeyEscape) {
-        ui->PlayInterfaceSound(CancelSound());
-        ui->SetPendingValue(result | kAnswerCancel);
+        ui->PlayInterfaceSound(game::CancelSoundText());
+        ui->SetPendingValue(BoxResult(question, MessageAnswer::Cancel));
     } else {
         return;
     }
@@ -93,12 +86,12 @@ void DifficultyBox::LeftDown(Point point) {
     switch (RegionAt(point)) {
     case 0:
         options::g_options.difficulty = easy;
-        ui->PlayInterfaceSound(OkSound());
-        ui->SetPendingValue(result | kAnswerOk);
+        ui->PlayInterfaceSound(game::OkSoundText());
+        ui->SetPendingValue(BoxResult(question, MessageAnswer::Ok));
         break;
     case 1:
-        ui->PlayInterfaceSound(CancelSound());
-        ui->SetPendingValue(result | kAnswerCancel);
+        ui->PlayInterfaceSound(game::CancelSoundText());
+        ui->SetPendingValue(BoxResult(question, MessageAnswer::Cancel));
         break;
     case 2:
         EasyBox()->textureOffsetU = kCheckedOffset;
@@ -120,11 +113,11 @@ void DifficultyBox::KeyDown(int key, int scan, bool repeat) {
     if (handled) return;
     if (key == platform::kKeyReturn) {
         options::g_options.difficulty = easy;
-        ui->PlayInterfaceSound(OkSound());
-        ui->SetPendingValue(result | kAnswerOk);
+        ui->PlayInterfaceSound(game::OkSoundText());
+        ui->SetPendingValue(BoxResult(question, MessageAnswer::Ok));
     } else if (key == platform::kKeyEscape) {
-        ui->PlayInterfaceSound(CancelSound());
-        ui->SetPendingValue(result | kAnswerCancel);
+        ui->PlayInterfaceSound(game::CancelSoundText());
+        ui->SetPendingValue(BoxResult(question, MessageAnswer::Cancel));
     } else {
         return;
     }

@@ -56,7 +56,7 @@ void SetShade(UiMesh* mesh, float shade) {
 
 // A white centred line of a surface's labels.
 void AddLine(std::vector<UiLabel>& labels, std::string_view text, const Rect& rect) {
-    labels.push_back({std::string(text), rect, 1, 0xFFFFFF, 1});
+    labels.push_back({std::string(text), rect, {1, 0xFFFFFF, render::text::kCenter}});
 }
 
 // The database records of the camp's loot items (the record index): spells, spell

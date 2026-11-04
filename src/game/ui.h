@@ -16,6 +16,7 @@
 #include "lib/containers.h"
 #include "lib/str.h"
 #include "lib/rect.h"
+#include "render/text_format.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -72,6 +73,13 @@ struct ScreenFade {
 // writes its digit, '2' for a pause and '3' ("reserved_03") for a resume (player_server_orders.cpp).
 extern char g_pauseMessageKey[12];
 
+// What a window pushed over the screen below keeps of it.
+enum class WindowBackdrop {
+    None,
+    Screen,         // the screen below is kept as the backdrop (backdrop mode 3)
+    FirstWindow,    // the same (mode 1) when only one window is open, else nothing
+};
+
 // The interface manager.
 class Interface3D {
 public:
@@ -103,10 +111,8 @@ public:
     // whether it was down already (the keyboard's repeat). The key under Esc toggles the console; Scroll Lock saves
     // "shot<nnnn>.bmp"; an unhandled ';' shows help.
     void OnKeyDown(int key, int scan, bool repeat);
-    // Opens `window` on top of the stack (null is fatal). The first window keeps the server flag. `behind`
-    // set and `pauseFrame` clear picks backdrop mode 3 (the screen below kept as the backdrop); both set
-    // do so as mode 1 when only one window is open.
-    void PushWindow(UiContainer* window, bool behind, bool pauseFrame);
+    // Opens `window` on top of the stack (null is fatal). The first window keeps the server flag.
+    void PushWindow(UiContainer* window, WindowBackdrop keep);
     // Closes and deletes every window, then opens `window` as PushWindow does.
     void Activate(UiContainer* window);
     // Reads the interface's saved state from `stream`: flags and two values; from save version 0x47 one
@@ -321,6 +327,18 @@ public:
 
 enum class SkillAnimation : int;   // map_object_figures.h
 
+// The pale blue the interface draws its texts, rows and numbers in.
+inline constexpr std::uint32_t kUiTextColour = 0xA7D7E4;
+
+// How a text is drawn: one of the interface's three fonts (Interface3D::fonts), its colour, DrawText's format bits
+// (render::text::Format) and whether a shadow is drawn first (the interface's texts have one, the tooltips none).
+struct TextStyle {
+    int font = 0;
+    std::uint32_t colour = 0;
+    std::uint32_t format = render::text::kLeft;
+    bool shadow = true;
+};
+
 // A rectangle of the interface a window draws into, drawn into the frame each frame by its Blit (ui_surface.cpp).
 // How a window surface's Blit draws it: every pixel, or with its background as the source colour key (the
 // pixels of that colour left out).
@@ -347,12 +365,11 @@ public:
     void MoveTo(Point at);
     // Word-wraps `text` to the width of `rect` (layout coordinates; breaks at spaces and '\n') and draws up
     // to `maxLines` lines one rect height apart with DrawTextIn. Returns the line count.
-    int DrawWrappedText(std::string_view text, const Rect* rect, int maxLines, int font, std::uint32_t colour, std::uint32_t format,
-                        bool shadow);
+    int DrawWrappedText(std::string_view text, const Rect& rect, int maxLines, const TextStyle& style);
     // Rebirth-patched (WideScreen). `rect` in layout coordinates (empty: the whole surface),
-    // grown by two pixels once scaled; `shadow` first draws the text in 0x080808 one pixel right and down.
+    // grown by two pixels once scaled; a style with `shadow` first draws the text in 0x080808 one pixel right and down.
     // Returns the drawn height in layout units, 0 without a surface.
-    int DrawTextIn(std::string_view text, const Rect* rect, int font, std::uint32_t colour, std::uint32_t format, bool shadow);
+    int DrawTextIn(std::string_view text, const Rect& rect, const TextStyle& style);
     // DrawText of `text` (UTF-8) in `font` in `rect` (surface pixels) by DrawText's `format` (render_text.h's
     // Layout), in `colour`, first in 0x080808 one pixel right and down when `shadow`. Returns DrawText's value
     // (the height laid out, pixels); 0 without a surface or font.
@@ -408,15 +425,16 @@ private:
                       bool shadow);
 };
 
+// A keyed surface over `area` (layout coordinates, scaled to the screen): what most windows draw on.
+inline UiSurface* NewSurface(Interface3D* ui, const Rect& area) { return new UiSurface(ui, area, SurfaceBlend::Keyed, true); }
+
 // A text a window shows on a painted surface, kept as the window's state where it drew it before: DrawTextIn's
 // arguments (layout units, one of the interface's fonts, with the shadow) or, with maxLines, DrawWrappedText's
 // (wrapped again at the current fonts when painted).
 struct UiLabel {
     std::string text;
     Rect area;
-    int font = 0;
-    std::uint32_t colour = 0;
-    std::uint32_t format = 0;
+    TextStyle style;
     int maxLines = 0;                // > 0: word-wrapped, at most this many lines
 };
 // A window's paint step: `labels` drawn in order.
@@ -839,6 +857,12 @@ public:
     std::vector<HudPortraitSlot> slots;    // one per portrait
 };
 
+// A sprite's depth in front of the interface camera for the dialog pieces (frames, shades, buttons), the layout
+// pixels one mesh unit spans (SetRectangle's `scale`) and the side of a whole interface texture in texels.
+inline constexpr float kDialogDepth = 3.0f;
+inline constexpr float kSpriteScale = 100.0f;
+inline constexpr int kUiTextureSize = 0x100;
+
 // The figure factory's class 0x43 ("CI3DFigure"): a plain figure mesh with the sprite's fields.
 class UiMesh : public PlainFigureMesh {
 public:
@@ -1158,7 +1182,7 @@ public:
     // The screens' virtuals the interface calls (Interface3D); the defaults do nothing.
     virtual void CreateScreen();
     virtual void CloseScreen();
-    virtual void MessageResult(int) {}                                 // the value a window above left pending when it closed
+    virtual void MessageResult(std::uint32_t) {}                                 // the value a window above left pending when it closed
     virtual void ItemsPicked(const std::vector<Item*>&, int, bool) {}   // items picked up (items, money, crippled)
     virtual void UnitJoined(Unit*) {}
     virtual void UnitLeft(Unit*) {}
@@ -1322,7 +1346,7 @@ public:
     void MarkPortrait(int index);
     // 0x10001 (the "leave_zone" question) leaves through pendingExit; 0x20001 (game over: load) opens the
     // load window; 0x20002, 0x90001 and 0x100001 leave the game.
-    void MessageResult(int result) override;
+    void MessageResult(std::uint32_t result) override;
     // Lost (`won` 0): the box "game_over" (result 0x20000); won: "end_of_game" (0xFFFF0000).
     void GameOver(bool won) override;
     // A portrait click picks a player while it is not 0.
@@ -1636,7 +1660,7 @@ public:
     void CloseScreen() override;
     void LeftDown(Point point) override;
     void LeftDouble(Point point) override;
-    void MessageResult(int result) override;
+    void MessageResult(std::uint32_t result) override;
 
     // A save window saves into the new save (row 0) or asks "overwrite" (message box 0x20000); a load
     // window loads.
@@ -1888,7 +1912,7 @@ public:
     const char* HelpTopic() override;
     void LeftDown(Point point) override;
     void LeftDouble(Point point) override;
-    void MessageResult(int result) override;
+    void MessageResult(std::uint32_t result) override;
     // Applies the settings whose bar or spin control changed (volumes, the display's gamma at once).
     void Update() override;
 
@@ -1974,16 +1998,47 @@ public:
     bool changed;
 };
 
-// The message box. Flags: 1 an OK button, 2 with 1 also a cancel button (neither: one cancel button), 4 an
-// edit field instead of the text (its initial text is the text key itself).
+// The buttons of a message box.
+enum class MessageButtons : std::uint32_t {
+    Ok = 1,
+    Cancel = 2,         // the cancel button alone (region 1; region 0 stays empty)
+    OkCancel = 3,
+    OkCancelEdit = 7,   // OK and cancel under an edit field instead of the text (its initial text is the text key itself)
+};
+
+// Which question a message box asks: the high half of what it leaves pending, so that the window below tells its
+// boxes apart (each window numbers its own, from First).
+enum class MessageQuestion : std::uint32_t {
+    First = 0x10000,
+    Second = 0x20000,
+    Third = 0x30000,
+    Fourth = 0x40000,
+    Fifth = 0x50000,
+    Disconnect = 0x990000,   // the multiplayer client lost its server
+    Exit = 0xFFFF0000,       // the end of the game: OK plays the exit movie and the game quits
+};
+
+// What was pressed: the region's number plus one.
+enum class MessageAnswer : std::uint32_t { Ok = 1, Cancel = 2 };
+
+// What a box of `question` leaves pending (Interface3D::SetPendingValue) for the window below: its MessageResult.
+constexpr std::uint32_t BoxResult(MessageQuestion question, MessageAnswer answer) {
+    return static_cast<std::uint32_t>(question) | static_cast<std::uint32_t>(answer);
+}
+
+// The answers the battle and briefing screens take from their boxes.
+inline constexpr std::uint32_t kLeaveZoneYes = BoxResult(MessageQuestion::First, MessageAnswer::Ok);     // "leave_zone"
+inline constexpr std::uint32_t kGameOverLoad = BoxResult(MessageQuestion::Second, MessageAnswer::Ok);    // "game_over"
+inline constexpr std::uint32_t kGameOverQuit = BoxResult(MessageQuestion::Second, MessageAnswer::Cancel);
+
+// The message box.
 class MessageWindow : public UiContainer {
 public:
-    // A missing text gives its key.
-    MessageWindow(Interface3D* ui, std::string_view titleKey, const char* textKey, std::uint32_t result, std::uint32_t flags,
-                std::uint32_t format);
+    // A missing text gives its key. The text is centred and word-wrapped.
+    MessageWindow(Interface3D* ui, std::string_view titleKey, const char* textKey, MessageQuestion question, MessageButtons buttons);
     void CreateScreen() override;
-    // Region 0 OK: for the exit question (result 0xFFFF0000) the exit movie and the game quits; otherwise
-    // the edit field's text into editText. Any region n then leaves result | (n + 1) pending.
+    // Region 0 OK: for the exit question the exit movie and the game quits; otherwise
+    // the edit field's text into editText. The region n pressed then leaves BoxResult(question, n + 1) pending.
     void LeftDown(Point point) override;
     // Unless a child used the key, Enter answers as region 0 and Esc as region 1.
     void KeyDown(int key, int scan, bool repeat) override;
@@ -1994,11 +2049,10 @@ public:
 
     std::string title;
     std::string text;
-    std::uint32_t result;            // 0xFFFF0000: the text in font 1, else 2
-    std::uint32_t flags;
-    std::uint32_t format;            // added to the text's DrawText format
+    MessageQuestion question;        // Exit: the text in font 1, else 2
+    MessageButtons buttons;
     std::vector<UiLabel> labels;     // the surface's paint: the title and the text (CreateScreen measures and places them)
-    UiEditField* edit;              // the edit field (flag 4)
+    UiEditField* edit;              // the edit field (OkCancelEdit)
     char* editText;                  // the edit field's first text; OK copies the typed one here
 };
 
@@ -2099,7 +2153,7 @@ public:
 // options::g_options.difficulty on OK.
 class DifficultyBox : public MessageWindow {
 public:
-    explicit DifficultyBox(Interface3D* ui) : MessageWindow(ui, "option_difficulty", game::kEmptyText, 0x20000, 3, 1) {}
+    explicit DifficultyBox(Interface3D* ui) : MessageWindow(ui, "option_difficulty", game::kEmptyText, MessageQuestion::Second, MessageButtons::OkCancel) {}
     // No container handler. Region 0 OK (easy to options::g_options.difficulty), 1 cancel, 2 / 3 check easy / hard.
     void LeftDown(Point point) override;
     // Unless a child used the key, Enter answers as OK and Esc as cancel.

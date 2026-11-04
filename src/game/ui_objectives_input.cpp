@@ -24,10 +24,8 @@
 namespace {
 
 constexpr const char* kOkSound = "buttons\\tutorial\\ok.wav";
-constexpr const char* kCancelSound = "buttons\\messbox\\cancel.wav";
 constexpr const char* kSelectSound = "buttons\\objectives\\select.wav";
 constexpr const char* kEnterSound = "buttons\\objectives\\enter.wav";
-constexpr const char* kMessageOkSound = "buttons\\messbox\\ok.wav";
 constexpr const char* kMapText = "map.txt";
 constexpr const char* kQuestHeader = "#quest %s";
 
@@ -71,7 +69,7 @@ void ObjectivesWindow::LeftDown(Point point) {
         return;
     case kRegionCancel:
         if (twoButtons) {
-            ui->PlayInterfaceSound(kCancelSound);
+            ui->PlayInterfaceSound(game::CancelSoundText());
             ui->SetPendingValue(0);
         }
         return;
@@ -106,7 +104,7 @@ void ObjectivesWindow::LeftDown(Point point) {
         SelectExit(exit);
         return;
     }
-    ui->PlayInterfaceSound(kCancelSound);
+    ui->PlayInterfaceSound(game::CancelSoundText());
 }
 
 void ObjectivesWindow::KeyDown(int key, int scan, bool repeat) {
@@ -126,7 +124,7 @@ void ObjectivesWindow::KeyDown(int key, int scan, bool repeat) {
         handled = true;
         break;
     case kKeyEsc:
-        ui->PlayInterfaceSound(!twoButtons ? kOkSound : kCancelSound);
+        ui->PlayInterfaceSound(!twoButtons ? kOkSound : game::CancelSoundText());
         ui->SetPendingValue(0);
         handled = true;
         break;
@@ -143,7 +141,7 @@ void ObjectivesWindow::KeyDown(int key, int scan, bool repeat) {
         handled = true;
     }
     if (!handled && g_keyActions[scan] == kActionObjectives && !twoButtons) {
-        ui->PlayInterfaceSound(kMessageOkSound);
+        ui->PlayInterfaceSound(game::OkSoundText());
         ui->SetPendingValue(0);
     }
 }

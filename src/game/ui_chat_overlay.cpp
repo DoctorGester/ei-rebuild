@@ -48,7 +48,7 @@ constexpr int kLineWidth = 0x30C;
 constexpr int kLineFont = 1;
 constexpr int kLineSurfaceHeight = 0x11, kLineSurfacePad = 3;
 constexpr int kLineDrawRight = 0x30F;
-constexpr std::uint32_t kLineDrawFormat = 0x800;   // DT_NOPREFIX
+constexpr std::uint32_t kLineDrawFormat = render::text::kNoPrefix;
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 const char* const kColourMark = "^";
 const char* const kDefaultColour = "7";
@@ -69,7 +69,7 @@ struct ChatPiece {
 void PaintPieces(UiSurface& surface, const std::vector<ChatPiece>& pieces) {
     for (const ChatPiece& piece : pieces) {
         Rect rect = {piece.x, 0, kLineDrawRight, kLineSurfaceHeight};
-        surface.DrawTextIn(piece.text, &rect, kLineFont, piece.colour, kLineDrawFormat, 1);
+        surface.DrawTextIn(piece.text, rect, TextStyle{kLineFont, piece.colour, kLineDrawFormat});
     }
 }
 
@@ -199,7 +199,7 @@ void ChatOverlay::ShowTyped() {
 void ChatOverlay::PaintTyped(UiSurface& surface) const {
     surface.Clear();
     Rect area{0, 0, kTypedTextRight, kTypedTextBottom};
-    surface.DrawTextIn(typed, &area, kTypedFont, kTypedColour, render::text::kNoPrefix, 1);
+    surface.DrawTextIn(typed, area, TextStyle{kTypedFont, kTypedColour, render::text::kNoPrefix});
     int width = ui->TextExtent(str::Left(typed, caret), kTypedFont).w;
     if (width < kMaxTypedWidth) {
         Point top{width, 0};

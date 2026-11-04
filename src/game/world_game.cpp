@@ -292,7 +292,7 @@ int GameFlow::SaveGame(const std::string& slot) {
     std::string currentFolder;
     if (g_serverWorld.gameResult != 1) return 0;
 
-    g_cursor.SetShape(3);
+    g_cursor.SetShape(CursorShape::Wait);
     slotFolder = str::Format(kSlotFolder, DataFolderText(), slot);
     currentFolder = str::Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(slotFolder);
@@ -347,7 +347,7 @@ int GameFlow::SaveGame(const std::string& slot) {
         file.Close();
     }
 
-    g_cursor.SetShape(0);
+    g_cursor.SetShape(CursorShape::Default);
     console::EndLine(console::g_consoleOut << kSaved << slot);
     return 1;
 }
@@ -876,7 +876,7 @@ bool NameInList(const char* const* list, std::string_view name) {
 }
 
 void GameFlow::StartZone(std::string_view zone, int mode) {
-    g_cursor.SetShape(3);
+    g_cursor.SetShape(CursorShape::Wait);
     MapRecord* zoneRecord = nullptr;
     g_interface.closeAll = 1;
     if (text::CompareIgnoringCase(zone, kEndOfGame) == 0) {
@@ -1066,7 +1066,7 @@ int GameFlow::LoadGame(const std::string& slot) {
     if (g_serverWorld.gameResult == 2 || g_serverWorld.gameResult == 3) return 0;
     console::RunAddonAutoExec();   // the settings' AutoExec lines first (Rebirth's AutoExec)
     console::Execute(kExecAutoexec);
-    g_cursor.SetShape(3);
+    g_cursor.SetShape(CursorShape::Wait);
     g_interface.closeAll = 1;
     FileStream file;
     std::string zone;

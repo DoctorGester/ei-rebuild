@@ -11,10 +11,8 @@
 
 namespace {
 
-constexpr int kTextFormat = 1;
-constexpr std::uint32_t kTextColour = 0xA7D7E4;
+constexpr int kFont = 1;
 
-const char* const kOkSound = "buttons\\messbox\\ok.wav";
 
 } // namespace
 
@@ -27,7 +25,7 @@ UiSpin::UiSpin(Interface3D* ui, Rect newRect, const char* text) : UiWindow(ui) {
     surface->PaintWith([this](UiSurface& out) {
         Rect area = layout;
         area.Offset(-layout.left, -layout.top);
-        out.DrawTextIn(texts[value], &area, kTextFormat, kTextColour, 0, 1);
+        out.DrawTextIn(texts[value], area, TextStyle{kFont, kUiTextColour});
     });
     texts.push_back(text ? text : game::kEmptyText);
     changed = false;
@@ -61,6 +59,6 @@ void UiSpin::Step(int by) {
 // --- A click steps the value ------------------------------------------------------------------------
 
 void UiSpin::LeftDown(Point) {
-    ui->PlayInterfaceSound(kOkSound);
+    ui->PlayInterfaceSound(game::OkSoundText());
     SetValue(value + 1);
 }

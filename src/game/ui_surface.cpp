@@ -121,17 +121,17 @@ void UiSurface::Dot(Point at, std::uint32_t colour) { FillRect(Rect::Sized(at, {
 // Layout). Rebirth's WideScreen patches the rectangle (scaled without the margin), which DrawTextIn reproduces for
 // every window (screen_layout.h). See docs/notes/ui-native.md, "Fonts and metrics".
 
-int UiSurface::DrawTextIn(std::string_view text, const Rect* area, int font, std::uint32_t colour, std::uint32_t format, bool shadow) {
+int UiSurface::DrawTextIn(std::string_view text, const Rect& area, const TextStyle& style) {
     Rect frame{0, 0, rect.Width(), rect.Height()};
-    if (!area->IsEmpty()) {
-        frame = *area;
+    if (!area.IsEmpty()) {
+        frame = area;
         // WideScreen (addon replaces the interface argument by 0): without the margin.
         ui->ScaleRectToScreenNoMargin(&frame);
         frame.right += kRectSlack;
         frame.bottom += kRectSlack;
     }
     // The original scales a point whose x is an unwritten local; only y is used.
-    Point extent{0, DrawTextFrame(ui->fonts[font], text, frame, format, colour, shadow)};
+    Point extent{0, DrawTextFrame(ui->fonts[style.font], text, frame, style.format, style.colour, style.shadow)};
     ui->ScalePointFromScreenNoMargin(&extent);
     return extent.y;
 }
@@ -171,9 +171,9 @@ void UiSurface::PaintWith(std::function<void(UiSurface&)> newPaint) { paint = st
 void PaintLabels(UiSurface& surface, const std::vector<UiLabel>& labels) {
     for (const UiLabel& label : labels) {
         if (label.maxLines > 0)
-            surface.DrawWrappedText(label.text, &label.area, label.maxLines, label.font, label.colour, label.format, true);
+            surface.DrawWrappedText(label.text, label.area, label.maxLines, label.style);
         else
-            surface.DrawTextIn(label.text, &label.area, label.font, label.colour, label.format, true);
+            surface.DrawTextIn(label.text, label.area, label.style);
     }
 }
 

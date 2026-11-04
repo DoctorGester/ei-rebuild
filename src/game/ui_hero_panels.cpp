@@ -30,7 +30,6 @@ void ShowFrom(UiWindow* window, int first, bool shown) {
     for (int i = first; i < std::ssize(window->sceneObjects); ++i) window->sceneObjects[i]->visible = shown;
 }
 
-constexpr std::uint32_t kBright = 0xA7D7E4;
 constexpr std::uint32_t kGrey = 0x828282;
 
 // The 4 x 4 cell grid over 200..600 x 100..500 shared by the trade and repair grids: a picture (textures 0-3 by quarter)
@@ -50,7 +49,7 @@ void BuildCellGrid(UiWindow* window, const std::vector<UiLabel>* labels) {
                                                 : (left <= 300 ? textures[2] : textures[3]);
             int right = left + 100;
             UiMesh* picture = window->AddBlankSprite();
-            picture->SetRectangle(pictureDepth, 100.0f, static_cast<float>(left), static_cast<float>(top),
+            picture->SetRectangle(pictureDepth, kSpriteScale, static_cast<float>(left), static_cast<float>(top),
                                   static_cast<float>(right), static_cast<float>(bottom), u, v, u + 100, v + 100);
             picture->texture = texture;
             UiMesh* frame = window->AddBlankSprite();
@@ -84,12 +83,12 @@ void AddMakerPictures(ConstructorPage* page) {
     const float quarters[4][4] = {{200, 100, 400, 300}, {400, 100, 600, 300}, {200, 300, 400, 500}, {400, 300, 600, 500}};
     for (int i = 0; i < 4; ++i) {
         UiMesh* picture = page->AddBlankSprite();
-        picture->SetRectangle(7.0f, 100.0f, quarters[i][0], quarters[i][1], quarters[i][2], quarters[i][3], 0x1C, 0x1C,
+        picture->SetRectangle(7.0f, kSpriteScale, quarters[i][0], quarters[i][1], quarters[i][2], quarters[i][3], 0x1C, 0x1C,
                               0xE4, 0xE4);
         picture->texture = page->objects[i];
     }
     UiMesh* frame = page->AddBlankSprite();
-    frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
+    frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, kUiTextureSize, kUiTextureSize);
     frame->flatColour = 0x96FFFFFF;
     frame->flags |= FigureMeshFlag::Flat;
     frame->texture = nullptr;
@@ -153,7 +152,7 @@ void HeroStatsPanel::ShowStats(int newPage) {
 
 void HeroStatsPanel::DrawStats() {
     labels.clear();
-    labels.push_back({title, Rect{0, 0x1B, 0xC8, 0x2B}, 1, 0xFFFFFF, 1});
+    labels.push_back({title, Rect{0, 0x1B, 0xC8, 0x2B}, {1, 0xFFFFFF, render::text::kCenter}});
 
     auto hero = [this]() { return owner->HeroRecord(); };
     UnitStats* stats = &hero()->stats;
@@ -190,13 +189,13 @@ void HeroStatsPanel::DrawStats() {
         for (int i = 0; i < 3; ++i) {
             float value = static_cast<float>(values[i]);
             storedStats[i] = value;
-            std::uint32_t colour = value > minimum ? kBright : kGrey;
-            labels.push_back({"-", area, 0, colour, 1});
+            std::uint32_t colour = value > minimum ? kUiTextColour : kGrey;
+            labels.push_back({"-", area, {0, colour, render::text::kCenter}});
             Down(&area);
         }
         Down(&area);
         Down(&area);
-        labels.push_back({"-", area, 0, points <= 0 ? kGrey : kBright, 1});
+        labels.push_back({"-", area, {0, points <= 0 ? kGrey : kUiTextColour, render::text::kCenter}});
 
         // "+": while below 35 and points are left.
         int left = static_cast<int>(75.0f - sumF);
@@ -204,17 +203,17 @@ void HeroStatsPanel::DrawStats() {
         float maximum = 35.0f;
         for (int i = 0; i < 3; ++i) {
             bool below = storedStats[i] < maximum;
-            std::uint32_t colour = below && left > 0 ? kBright : kGrey;
-            labels.push_back({"+", area, 0, colour, 1});
+            std::uint32_t colour = below && left > 0 ? kUiTextColour : kGrey;
+            labels.push_back({"+", area, {0, colour, render::text::kCenter}});
             Down(&area);
         }
         Down(&area);
         Down(&area);
-        labels.push_back({"+", area, 0, points >= 100 ? kGrey : kBright, 1});
+        labels.push_back({"+", area, {0, points >= 100 ? kGrey : kUiTextColour, render::text::kCenter}});
     } else if (page == 0) {
         area = Rect{0x14, 0x41, 0xAF, 0x50};
         text = clientWorldTexts->GetString("infoitem_25");
-        labels.push_back({text, area, 0, kBright, 0});
+        labels.push_back({text, area, {0, kUiTextColour}});
         Down(&area);
         DrawPart(area, "skull", 0);
         Down(&area);
@@ -228,30 +227,30 @@ void HeroStatsPanel::DrawStats() {
         if (hero()->weaponIndex == kNoWeaponSlot) {
             for (int i = 0; i < 5; ++i) Down(&area);
         } else {
-            labels.push_back({texts[3], area, 0, kBright, 0});
+            labels.push_back({texts[3], area, {0, kUiTextColour}});
             Down(&area);
             AttackParams info;
             unit->controller->GetAttackParams(&info);
             line = std::format("     {}", texts[0]);
-            labels.push_back({line, area, 0, kBright, 0});
+            labels.push_back({line, area, {0, kUiTextColour}});
             line = std::format("{}", info.attack);
-            labels.push_back({line, area, 0, kBright, 2});
+            labels.push_back({line, area, {0, kUiTextColour, render::text::kRight}});
             Down(&area);
             line = std::format("     {}", texts[1]);
-            labels.push_back({line, area, 0, kBright, 0});
+            labels.push_back({line, area, {0, kUiTextColour}});
             line = std::format("{}", info.defence);
-            labels.push_back({line, area, 0, kBright, 2});
+            labels.push_back({line, area, {0, kUiTextColour, render::text::kRight}});
             Down(&area);
             if (static_cast<std::uint32_t>(info.damageType) < 7) {
                 line = std::format("damage_{}", info.damageType);
                 text = clientWorldTexts->GetString(line);
             }
             line = std::format("     {} {}", texts[2], text);
-            labels.push_back({line, area, 0, kBright, 0});
+            labels.push_back({line, area, {0, kUiTextColour}});
             int high = static_cast<int>(info.damageMax);
             int low = static_cast<int>(info.damageMin);
             line = std::format("{}-{}", low, high);
-            labels.push_back({line, area, 0, kBright, 2});
+            labels.push_back({line, area, {0, kUiTextColour, render::text::kRight}});
             Down(&area);
             Down(&area);
         }
@@ -259,9 +258,9 @@ void HeroStatsPanel::DrawStats() {
         int capacity = static_cast<int>(stats->capacity);
         DrawRow(area, "Encumbrance", weight, capacity);
         Down(&area);
-        if (weight > capacity) labels.push_back({texts[4], area, 0, 0xFF, 2});
+        if (weight > capacity) labels.push_back({texts[4], area, {0, 0xFF, render::text::kRight}});
         Down(&area);
-        labels.push_back({texts[7], area, 0, kBright, 0});
+        labels.push_back({texts[7], area, {0, kUiTextColour}});
     } else {
         area = Rect{0x14, 0x41, 0xB4, 0x50};
         DrawRow(area, "Strength", static_cast<int>(stats->strength), -1);
@@ -290,7 +289,7 @@ void HeroStatsPanel::DrawStats() {
         int capacity = static_cast<int>(stats->capacity);
         DrawRow(area, "Encumbrance", weight, capacity);
         Down(&area);
-        if (weight > capacity) labels.push_back({texts[4], area, 0, 0xFF, 2});
+        if (weight > capacity) labels.push_back({texts[4], area, {0, 0xFF, render::text::kRight}});
         Down(&area);
     }
 }
@@ -304,7 +303,7 @@ void HeroEquipPanel::Build(bool withBody) {
     for (int x = 0; x < 800; x += 100) AddRect(this, Rect{x, 0, x + 100, 100});
     for (int i = 0; i < 2; ++i) {
         UiMesh* frame = AddBlankSprite();
-        frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
+        frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, kUiTextureSize, kUiTextureSize);
         frame->flags |= FigureMeshFlag::Flat;
         frame->flatColour = 0xFF8B8B37;
         frame->texture = nullptr;
@@ -328,7 +327,7 @@ void HeroEquipPanel::Build(bool withBody) {
         const float quarters[4][4] = {{200, 100, 400, 300}, {400, 100, 600, 300}, {200, 300, 400, 500}, {400, 300, 600, 500}};
         for (int i = 0; i < 4; ++i) {
             UiMesh* picture = AddBlankSprite();
-            picture->SetRectangle(7.0f, 100.0f, quarters[i][0], quarters[i][1], quarters[i][2], quarters[i][3], 0x1C,
+            picture->SetRectangle(7.0f, kSpriteScale, quarters[i][0], quarters[i][1], quarters[i][2], quarters[i][3], 0x1C,
                                   0x1C, 0xE4, 0xE4);
             picture->texture = objects[i + 1];
         }
@@ -343,14 +342,14 @@ void HeroStatsPanel::Build() {
     AddRect(this, Rect{0xAA, 0x7D, 200, 0x91});    // next hero
     AddSurface(new UiSurface(ui, 0, 100, 200, 400, SurfaceBlend::Keyed, true))
         ->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
-    AddBlankSprite()->SetRectangle(5.0f, 100.0f, 176.0f, 125.0f, 192.0f, 145.0f, 2, 0x81, 0x12, 0x95);
-    AddBlankSprite()->SetRectangle(5.0f, 100.0f, 8.0f, 125.0f, 24.0f, 145.0f, 0x12, 0x81, 2, 0x95);
-    AddBlankSprite()->SetRectangle(6.0f, 100.0f, 14.0f, 110.0f, 100.0f, 160.0f, 0xE7, 0x4C, 0x91, 0x88);
-    AddBlankSprite()->SetRectangle(6.0f, 100.0f, 100.0f, 110.0f, 186.0f, 160.0f, 0x91, 0x4C, 0xE7, 0x88);
+    AddBlankSprite()->SetRectangle(5.0f, kSpriteScale, 176.0f, 125.0f, 192.0f, 145.0f, 2, 0x81, 0x12, 0x95);
+    AddBlankSprite()->SetRectangle(5.0f, kSpriteScale, 8.0f, 125.0f, 24.0f, 145.0f, 0x12, 0x81, 2, 0x95);
+    AddBlankSprite()->SetRectangle(6.0f, kSpriteScale, 14.0f, 110.0f, 100.0f, 160.0f, 0xE7, 0x4C, 0x91, 0x88);
+    AddBlankSprite()->SetRectangle(6.0f, kSpriteScale, 100.0f, 110.0f, 186.0f, 160.0f, 0x91, 0x4C, 0xE7, 0x88);
     // The new hero page's -/+ buttons (scene objects 4-11, shown only there).
     const float buttons[8][4] = {{140, 165, 160, 180}, {140, 180, 160, 195}, {140, 195, 160, 210}, {140, 240, 160, 255},
                                  {160, 165, 180, 180}, {160, 180, 180, 195}, {160, 195, 180, 210}, {160, 240, 180, 255}};
-    for (const auto& b : buttons) AddBlankSprite()->SetRectangle(5.0f, 100.0f, b[0], b[1], b[2], b[3], 0x90, 0xB1, 0xA4, 0xC0);
+    for (const auto& b : buttons) AddBlankSprite()->SetRectangle(5.0f, kSpriteScale, b[0], b[1], b[2], b[3], 0x90, 0xB1, 0xA4, 0xC0);
     TextManager* clientWorldTexts = g_clientWorld.texts;
     std::string text;
     for (const char* key : {"infounit_3", "infounit_4", "infounit_9", "infounit_14", "infounit_17", "lmp_points_left",
@@ -418,7 +417,7 @@ void HeroQuickStrip::Build(bool top) {
     mode = 0;
     for (int x = 0; x < 800; x += 100) AddRect(this, Rect{x, y, x + 100, y + 100});
     UiMesh* frame = AddBlankSprite();
-    frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
+    frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, kUiTextureSize, kUiTextureSize);
     frame->flatColour = 0xFF8B8B37;
     frame->flags |= FigureMeshFlag::Flat;
     frame->texture = nullptr;

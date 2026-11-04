@@ -68,10 +68,6 @@ UiRegion* AddRect(UiWindow* window, int left, int top, int right, int bottom) {
     return region;
 }
 
-UiSurface* NewSurface(Interface3D* ui, int left, int top, int right, int bottom) {
-    return new UiSurface(ui, left, top, right, bottom, SurfaceBlend::Keyed, true);
-}
-
 
 // Layout constants (zone picture centre and size on the right half of the window).
 constexpr float kPictureCentreX = 580.0f;
@@ -121,7 +117,7 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
     int u1 = static_cast<int>(widthShare * kTexels);
     int v0 = static_cast<int>((1.0f - heightShare) * kTexels);
     UiMesh* picture = sceneObjects[3];
-    picture->SetRectangle(10.0f, 100.0f, kPictureCentreX - halfWidth, kPictureCentreY - halfHeight,
+    picture->SetRectangle(10.0f, kSpriteScale, kPictureCentreX - halfWidth, kPictureCentreY - halfHeight,
                           halfWidth + kPictureCentreX, halfHeight + kPictureCentreY, 0, v0, u1,
                           0x100);
     picture->texture = objects[2];
@@ -362,7 +358,7 @@ void ObjectivesWindow::ShowQuest() {
         float right = x + kMarkerHalfWidth;
         float top = y - kMarkerHalfWidth;
         float left = x - kMarkerHalfWidth;
-        marker->SetRectangle(5.0f, 100.0f, left, top, right, bottom, 0, 0, 0x80, 0x80);
+        marker->SetRectangle(5.0f, kSpriteScale, left, top, right, bottom, 0, 0, 0x80, 0x80);
         marker->texture = objects[1];
         std::memcpy(marker->tint, red, sizeof(red));
         UiRegion* region = AddRegion();
@@ -399,26 +395,26 @@ void ObjectivesWindow::CreateScreen() {
 
     LoadTexture("saveload", TextureKind::Interface);
     LoadTexture("cross", TextureKind::Interface);
-    AddSurface(NewSurface(ui, 50, 20, 390, 160))->PaintWith([this](UiSurface& out) { PaintQuestList(out); });
-    AddSurface(NewSurface(ui, 410, 380, 750, 520))->PaintWith([this](UiSurface& out) { PaintZone(out); });
-    AddSurface(NewSurface(ui, 280, 540, 520, 580));
+    AddSurface(NewSurface(ui, Rect{50, 20, 390, 160}))->PaintWith([this](UiSurface& out) { PaintQuestList(out); });
+    AddSurface(NewSurface(ui, Rect{410, 380, 750, 520}))->PaintWith([this](UiSurface& out) { PaintZone(out); });
+    AddSurface(NewSurface(ui, Rect{280, 540, 520, 580}));
 
     if (twoButtons)
-        AddBlankSprite()->SetRectangle(3.0f, 100.0f, 163.0f, 536.0f, 237.0f, 584.0f, 0x51, 2, 0x9B, 0x32);
+        AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 163.0f, 536.0f, 237.0f, 584.0f, 0x51, 2, 0x9B, 0x32);
     else
-        AddBlankSprite()->SetRectangle(3.0f, 100.0f, 363.0f, 536.0f, 437.0f, 584.0f, 0x51, 2, 0x9B, 0x32);
+        AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 363.0f, 536.0f, 437.0f, 584.0f, 0x51, 2, 0x9B, 0x32);
     UiMesh* second = AddBlankSprite();
-    second->SetRectangle(3.0f, 100.0f, 563.0f, 536.0f, 637.0f, 584.0f, 0xA0, 2, 0xEA, 0x32);
+    second->SetRectangle(kDialogDepth, kSpriteScale, 563.0f, 536.0f, 637.0f, 584.0f, 0xA0, 2, 0xEA, 0x32);
     if (!twoButtons) second->visible = false;
     UiMesh* highlight = AddBlankSprite();
-    highlight->SetRectangle(3.0f, 100.0f, 60.0f, 30.0f, 370.0f, 54.0f, 0, 0, 0x100, 0x100);
+    highlight->SetRectangle(kDialogDepth, kSpriteScale, 60.0f, 30.0f, 370.0f, 54.0f, 0, 0, kUiTextureSize, kUiTextureSize);
     highlight->texture = nullptr;
     highlight->flatColour = 0xC8A06800;
     highlight->flags |= FigureMeshFlag::Flat;
     highlight->visible = false;
     AddBlankSprite();   // object 3: the zone picture, set up by the zone page
     UiMesh* bottomShade = AddBlankSprite();
-    bottomShade->SetRectangle(15.0f, 100.0f, 285.0f, 541.0f, 515.0f, 579.0f, 0, 0, 0x100, 0x100);
+    bottomShade->SetRectangle(15.0f, kSpriteScale, 285.0f, 541.0f, 515.0f, 579.0f, 0, 0, kUiTextureSize, kUiTextureSize);
     bottomShade->texture = nullptr;
     bottomShade->flags |= FigureMeshFlag::Flat;
     bottomShade->flatColour = 0xA0000000;
@@ -429,7 +425,7 @@ void ObjectivesWindow::CreateScreen() {
                                 {410.0f, 380.0f, 750.0f, 520.0f}};
     for (const auto& s : shades) {
         UiMesh* shade = AddBlankSprite();
-        shade->SetRectangle(15.0f, 100.0f, s[0], s[1], s[2], s[3], 0, 0, 0x100, 0x100);
+        shade->SetRectangle(15.0f, kSpriteScale, s[0], s[1], s[2], s[3], 0, 0, kUiTextureSize, kUiTextureSize);
         shade->texture = nullptr;
         shade->flags |= FigureMeshFlag::Flat;
         shade->flatColour = 0xA0000000;
@@ -441,14 +437,14 @@ void ObjectivesWindow::CreateScreen() {
     for (const auto& f : frames)
         AddBlankSprite()->SetFrame(3.0f, 100.0f, f[0], f[1], f[2], f[3], 5.0f, 2, 0xFE, 0xB4, 0xF9);
     UiMesh* left = AddBlankSprite();
-    left->SetRectangle(3.0f, 100.0f, 414.0f, 384.0f, 443.0f, 404.0f, 2, 0x72, 0x1F, 0x86);
+    left->SetRectangle(kDialogDepth, kSpriteScale, 414.0f, 384.0f, 443.0f, 404.0f, 2, 0x72, 0x1F, 0x86);
     left->visible = false;
     UiMesh* right = AddBlankSprite();
-    right->SetRectangle(3.0f, 100.0f, 717.0f, 384.0f, 746.0f, 404.0f, 0x21, 0x72, 0x3E, 0x86);
+    right->SetRectangle(kDialogDepth, kSpriteScale, 717.0f, 384.0f, 746.0f, 404.0f, 0x21, 0x72, 0x3E, 0x86);
     right->visible = false;
     for (int top = 31; top < 151; top += 24) {
         UiMesh* mark = AddBlankSprite();
-        mark->SetRectangle(2.8f, 100.0f, 62.0f, static_cast<float>(top), 79.0f, static_cast<float>(top + 22), 4,
+        mark->SetRectangle(2.8f, kSpriteScale, 62.0f, static_cast<float>(top), 79.0f, static_cast<float>(top + 22), 4,
                            0xA4, 0x48, 0xFC);
         mark->visible = false;
         mark->texture = objects[1];
@@ -563,16 +559,16 @@ void ObjectivesWindow::PaintQuestList(UiSurface& surface) const {
     int y = 13;
     for (const std::string& title : questTitles) {
         Rect area{36, y, 320, y + 21};
-        surface.DrawTextIn(title, &area, 1, 0xA7D7E4, 0, 1);
+        surface.DrawTextIn(title, area, TextStyle{1, kUiTextColour});
         y += 24;
     }
 }
 
 void ObjectivesWindow::PaintZone(UiSurface& surface) const {
     Rect titleRect = {0, 5, 340, 25};
-    surface.DrawTextIn(zoneTitle, &titleRect, 1, 0x31B3FF, 1, 1);
+    surface.DrawTextIn(zoneTitle, titleRect, TextStyle{1, 0x31B3FF, render::text::kCenter});
     Rect textRect = {10, 25, 330, 140};
-    surface.DrawTextIn(zoneText, &textRect, 1, 0xA7D7E4, 0x11, 1);
+    surface.DrawTextIn(zoneText, textRect, TextStyle{1, kUiTextColour, render::text::kCenter | render::text::kWordBreak});
 }
 
 // --- What the window is opened for, and its help topic --------------------

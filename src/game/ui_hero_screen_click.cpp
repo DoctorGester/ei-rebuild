@@ -33,7 +33,6 @@
 
 namespace {
 
-const char* const kSoundOk = "buttons\\messbox\\ok.wav";
 const char* const kRenameSeparator = " | ";
 const char* const kRenameBar = "|";
 
@@ -61,7 +60,6 @@ std::string& MpHeroName(int index) {
 
 // The rename's title on surface 3: 130 x 16 pixels.
 constexpr Rect kRenameTitle = {0, 0, 0x82, 0x10};
-constexpr std::uint32_t kBright = 0xA7D7E4;
 
 constexpr std::uint32_t kVoiceFlags = 0x2282;
 
@@ -71,7 +69,7 @@ bool IsVoice(const acks::EnvironmentSpeech& entry) {
 }
 
 constexpr int kListRows = 10;
-constexpr int kAnswerOk = 0x10001;
+constexpr std::uint32_t kDeleteAnswerOk = BoxResult(MessageQuestion::First, MessageAnswer::Ok);
 
 // The highest number among the titles of the files matching `pattern` (atoi; 0 without any).
 int HighestFileNumber(std::string_view pattern) {
@@ -304,15 +302,15 @@ void MpHeroScreen::LeftDown(Point point) {
         // Delete: asks first ("lmp_deletepers").
         currentUi->PlayInterfaceSound(game::SelectSoundText());
         if (!IsHero(heroIndex)) return;
-        auto* box = new MessageWindow(currentUi, "lmp_deletepers", "lmp_deletepers_msg", 0x10000, 3, 1);
-        currentUi->PushWindow(box, true, true);
+        auto* box = new MessageWindow(currentUi, "lmp_deletepers", "lmp_deletepers_msg", MessageQuestion::First, MessageButtons::OkCancel);
+        currentUi->PushWindow(box, WindowBackdrop::FirstWindow);
         return;
     }
     case 8: {
         // The hero's inventory: the camp screen.
         currentUi->PlayInterfaceSound(game::SelectSoundText());
         if (!IsHero(heroIndex)) return;
-        ui->PushWindow(new CampPages(ui, true), false, true);
+        ui->PushWindow(new CampPages(ui, true), WindowBackdrop::None);
         return;
     }
     default:
@@ -343,7 +341,7 @@ void MpHeroScreen::Rename() {
         str::TrimRight(name);
     }
     surfaces[3]->Show();
-    labels[3] = {{name + kRenameSeparator, kRenameTitle, 1, kBright, 2}};
+    labels[3] = {{name + kRenameSeparator, kRenameTitle, 1, kUiTextColour, 2}};
 }
 
 // --- The voice's sound ----------------------------------------------------------------
@@ -387,14 +385,14 @@ void MpHeroScreen::PlayVoice() {
 
 void MpHeroScreen::Continue() {
     Interface3D* currentUi = ui;
-    currentUi->PlayInterfaceSound(kSoundOk);
+    currentUi->PlayInterfaceSound(game::OkSoundText());
     if (IsHero(heroIndex)) {
         g_savedParties.SaveAll();
-        currentUi->PushWindow(new MpConnectScreen(currentUi), true, true);
+        currentUi->PushWindow(new MpConnectScreen(currentUi), WindowBackdrop::FirstWindow);
         return;
     }
-    auto* box = new MessageWindow(currentUi, "lmp_no_pers", "lmp_no_pers_msg", 0x20000, 1, 1);
-    currentUi->PushWindow(box, true, true);
+    auto* box = new MessageWindow(currentUi, "lmp_no_pers", "lmp_no_pers_msg", MessageQuestion::Second, MessageButtons::Ok);
+    currentUi->PushWindow(box, WindowBackdrop::FirstWindow);
 }
 
 // --- The new hero's statistics and its creation --------------------------------------
@@ -425,7 +423,7 @@ void MpHeroScreen::CreateHero() {
         ui->PlayInterfaceSound(game::CancelSoundText());
         return;
     }
-    ui->PlayInterfaceSound(kSoundOk);
+    ui->PlayInterfaceSound(game::OkSoundText());
     ShowFirstEquipment();
     hero->texts[0] = name;
     statsPanel->SetHero(0, name);
@@ -479,8 +477,8 @@ void MpHeroScreen::RefreshHeroScroll() {
     }
 }
 
-void MpHeroScreen::MessageResult(int result) {
-    if (result == kAnswerOk) DeleteHero();
+void MpHeroScreen::MessageResult(std::uint32_t result) {
+    if (result == kDeleteAnswerOk) DeleteHero();
     if (IsHero(heroIndex)) {
         MpHeroRecord* hero = g_savedParties.Hero(heroIndex);
         hero->GetParty()->Assign(LocalPlayerData());
@@ -492,7 +490,7 @@ void MpHeroScreen::MessageResult(int result) {
 // --- The new hero added to the list --------------------------------------------------
 
 void MpHeroScreen::AddNewHero() {
-    ui->PlayInterfaceSound(kSoundOk);
+    ui->PlayInterfaceSound(game::OkSoundText());
     auto* hero = HeroRecord();
     // Only the chosen equipment stays (each list walked from its end; the count read once).
     for (int i = lib::Count(hero->weapons) - 1; i >= 0; --i)

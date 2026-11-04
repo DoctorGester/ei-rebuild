@@ -23,7 +23,6 @@
 
 namespace {
 const char* const kBuySound = "buttons\\camp\\buy.wav";
-const char* const kCancelSound = "buttons\\messbox\\cancel.wav";
 const char* const kTransitSound = "buttons\\globalmap\\transit.wav";
 constexpr int kAcceptRegion = 0, kTakeBackRegion = 1, kLeaveRegion = 2;
 
@@ -36,14 +35,8 @@ net::PartyMessage* LiveOffer() {
 constexpr int kStripActionTake = 1;
 constexpr int kGridMode = 5;
 
-// A text surface of the left column (x 0..200).
-UiSurface* NewSurface(Interface3D* ui, int top, int bottom) {
-    return new UiSurface(ui, 0, top, 200, bottom, SurfaceBlend::Keyed, true);
-}
-
 constexpr std::uint32_t kWhite = 0xFFFFFF;
-constexpr std::uint32_t kGrey = 0xA7D7E4;
-constexpr int kAlignLeft = 1;     // DrawText's format here
+constexpr int kFont = 1;
 constexpr int kWrapLines = 2;
 
 void SetTint(UiMesh* sprite, float value) {
@@ -95,13 +88,13 @@ void ExchangeScreen::LeftDown(Point point) {
             net::g_gameClient->RecordTrade(LocalPlayerData());
             return;
         }
-        ui->PlayInterfaceSound(kCancelSound);
+        ui->PlayInterfaceSound(game::CancelSoundText());
         return;
     }
     case kTakeBackRegion: {
         net::PartyMessage* offer = LiveOffer();
         if (offer && offer->accepted) {
-            ui->PlayInterfaceSound(kCancelSound);
+            ui->PlayInterfaceSound(game::CancelSoundText());
             net::ClientCommitParty(net::g_gameClient);
         }
         return;
@@ -140,13 +133,13 @@ void ExchangeScreen::CreateScreen() {
     region->SetRect(740, 460, 780, 490);
     region->SetTip(0xA02B);
     // The buttons: accept, take back, a hidden one, leave (shaded).
-    AddBlankSprite()->SetRectangle(3.0f, 100.0f, 12.0f, 450.0f, 52.0f, 490.0f, 0xA5, 0xAC, 0xCD, 0xD4);
-    AddBlankSprite()->SetRectangle(3.0f, 100.0f, 148.0f, 450.0f, 188.0f, 490.0f, 0xA5, 0xD6, 0xCD, 0xFE);
+    AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 12.0f, 450.0f, 52.0f, 490.0f, 0xA5, 0xAC, 0xCD, 0xD4);
+    AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 148.0f, 450.0f, 188.0f, 490.0f, 0xA5, 0xD6, 0xCD, 0xFE);
     UiMesh* sprite = AddBlankSprite();
-    sprite->SetRectangle(3.0f, 100.0f, 12.0f, 150.0f, 52.0f, 190.0f, 0xA5, 0xAC, 0xCD, 0xD4);
+    sprite->SetRectangle(kDialogDepth, kSpriteScale, 12.0f, 150.0f, 52.0f, 190.0f, 0xA5, 0xAC, 0xCD, 0xD4);
     sprite->visible = false;
     sprite = AddBlankSprite();
-    sprite->SetRectangle(3.0f, 100.0f, 740.0f, 460.0f, 780.0f, 490.0f, 0x7D, 0xE0, 0xA5, 0xFE);
+    sprite->SetRectangle(kDialogDepth, kSpriteScale, 740.0f, 460.0f, 780.0f, 490.0f, 0x7D, 0xE0, 0xA5, 0xFE);
     sprite->tint[0] = 0.5f;
     sprite->tint[1] = 0.5f;
     sprite->tint[2] = 0.5f;
@@ -192,7 +185,7 @@ void ExchangeScreen::CreateScreen() {
 
     const int tops[4] = {0x19A, 0x136, 0xD2, 0x6E}, bottoms[4] = {0x1C2, 0x15E, 0x10E, 0xAA};
     for (int i = 0; i < 4; ++i)
-        AddSurface(NewSurface(ui, tops[i], bottoms[i]))->PaintWith([this, i](UiSurface& out) { PaintLabels(out, labels[i]); });
+        AddSurface(NewSurface(ui, Rect{0, tops[i], 200, bottoms[i]}))->PaintWith([this, i](UiSurface& out) { PaintLabels(out, labels[i]); });
 }
 
 // --- Draw ----------------------------------------------------------------------------------------
@@ -220,31 +213,31 @@ void ExchangeScreen::Draw(SceneRenderer* pass) {
     // Surface 0: our money and the accept caption.
     text = texts->GetString("xch_current_money");
     line = std::format("{} {}", text, LocalPlayerData()->money);
-    labels[0].push_back({line, Rect{0, 0, 200, 0x14}, kAlignLeft, kWhite, 1});
+    labels[0].push_back({line, Rect{0, 0, 200, 0x14}, {kFont, kWhite, render::text::kCenter}});
     text = texts->GetString("xch_accept");
-    labels[0].push_back({text, Rect{0, 0x14, 200, 0x28}, kAlignLeft, kWhite, 1});
+    labels[0].push_back({text, Rect{0, 0x14, 200, 0x28}, {kFont, kWhite, render::text::kCenter}});
 
     // Surface 1: the money offer's caption.
     text = texts->GetString("xch_money_offer");
-    labels[1].push_back({text, Rect{0x14, 0, 0xB4, 0x14}, 1, kWhite, 1, kWrapLines});
+    labels[1].push_back({text, Rect{0x14, 0, 0xB4, 0x14}, {1, kWhite, render::text::kCenter}, kWrapLines});
 
     // Surface 2: the partner's money, while its offer pairs with ours.
     net::PartyMessage* partner = net::ClientFindParty(client);
     if (IsLive(partner)) {
         text = texts->GetString("xch_money_remote");
-        labels[2].push_back({text, Rect{0x14, 0, 0xB4, 0x14}, 1, kWhite, 1, kWrapLines});
+        labels[2].push_back({text, Rect{0x14, 0, 0xB4, 0x14}, {1, kWhite, render::text::kCenter}, kWrapLines});
         line = std::format("{}", partnerOffer->money);
-        labels[2].push_back({line, Rect{0, 0x28, 200, 0x3C}, kAlignLeft, kWhite, 1});
+        labels[2].push_back({line, Rect{0, 0x28, 200, 0x3C}, {kFont, kWhite, render::text::kCenter}});
     }
 
     // Surface 3: whether the partner accepted.
     partner = net::ClientFindParty(client);
     if (IsLive(partner)) {
         text = texts->GetString("xch_remote_header");
-        labels[3].push_back({text, Rect{0x14, 0, 0xB4, 0x14}, 1, kWhite, 1, kWrapLines});
+        labels[3].push_back({text, Rect{0x14, 0, 0xB4, 0x14}, {1, kWhite, render::text::kCenter}, kWrapLines});
         text = texts->GetString(net::ClientFindParty(client)->accepted ? "xch_remote_ok"
                                                               : "xch_remote_cancel");
-        labels[3].push_back({text, Rect{0, 0x28, 200, 0x3C}, kAlignLeft, kGrey, 1});
+        labels[3].push_back({text, Rect{0, 0x28, 200, 0x3C}, {kFont, kUiTextColour, render::text::kCenter}});
     }
 
     // The accept button greyed and take-back lit while our offer is accepted, else the reverse;

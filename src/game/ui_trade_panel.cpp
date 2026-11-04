@@ -49,23 +49,22 @@ std::string PerkBaseName(const SkillLevelRecord* record) {
 
 void Down(Rect* rect) { rect->Offset(0, 15); }
 
-constexpr std::uint32_t kBright = 0xA7D7E4;
 constexpr std::uint32_t kGrey = 0x828282;
-std::uint32_t PriceColour(int price, int experience) { return price > experience ? kGrey : kBright; }
+std::uint32_t PriceColour(int price, int experience) { return price > experience ? kGrey : kUiTextColour; }
 
 // The coin sprite after a price: texels (0x7C, 0x8A)-(0xA4, 0x99) between x `left` and `right`,
 // the row's height lower by 100 (the panel's layout offset).
 void PriceSprite(TradePanel* panel, const Rect& row, float left, float right) {
     UiMesh* sprite = panel->AddBlankSprite();
-    sprite->SetRectangle(6.0f, 100.0f, left, static_cast<float>(row.top + 100), right,
+    sprite->SetRectangle(6.0f, kSpriteScale, left, static_cast<float>(row.top + 100), right,
                          static_cast<float>(row.bottom + 100), 0x7C, 0x8A, 0xA4, 0x99);
 }
 
 void DrawSchool(TradePanel* panel, Rect* row, const TradeRow& school) {
-    panel->labels.push_back({school.name, *row, 0, kBright, 0});
+    panel->labels.push_back({school.name, *row, 0, kUiTextColour, 0});
     Rect levelRect = *row;
     levelRect.Offset(-40, 0);
-    panel->labels.push_back({std::format("{}", school.level), levelRect, 0, kBright, 2});
+    panel->labels.push_back({std::format("{}", school.level), levelRect, {0, kUiTextColour, render::text::kRight}});
     if (school.level < 100) {
         panel->labels.push_back({TradePanel::FormatPrice(school.price), *row, 0, PriceColour(school.price, panel->experience), 2});
         PriceSprite(panel, *row, 350.0f, 390.0f);
@@ -154,9 +153,9 @@ void TradePanel::DrawLists() {
     labels.clear();
     while (lib::Count(sceneObjects) > 4) RemoveSceneObjectAt(lib::Count(sceneObjects) - 1);
 
-    labels.push_back({texts[0], Rect{0, 10, 200, 25}, 0, 0xFFFFFF, 1});
-    labels.push_back({texts[1], Rect{0, 205, 200, 220}, 0, 0xFFFFFF, 1});
-    labels.push_back({texts[2], Rect{200, 10, 400, 25}, 0, 0xFFFFFF, 1});
+    labels.push_back({texts[0], Rect{0, 10, 200, 25}, {0, 0xFFFFFF, render::text::kCenter}});
+    labels.push_back({texts[1], Rect{0, 205, 200, 220}, {0, 0xFFFFFF, render::text::kCenter}});
+    labels.push_back({texts[2], Rect{200, 10, 400, 25}, {0, 0xFFFFFF, render::text::kCenter}});
 
     Rect row = {15, 35, 180, 50};
     for (unsigned i = 0; i < 6; ++i) {
@@ -175,9 +174,9 @@ void TradePanel::DrawLists() {
     unsigned index = static_cast<unsigned>(perkTop);
     for (int shown = 0; shown < 10 && index < perks.size(); ++shown, ++index) {
         const TradeRow& perk = perks[index];
-        labels.push_back({perk.name, row, 0, kBright, 0});
+        labels.push_back({perk.name, row, {0, kUiTextColour}});
         if (!perk.nextKey.empty()) {
-            labels.push_back({FormatPrice(perk.price), row, 0, PriceColour(perk.price, experience), 2});
+            labels.push_back({FormatPrice(perk.price), row, {0, PriceColour(perk.price, experience), render::text::kRight}});
             PriceSprite(this, row, 350.0f, 390.0f);
         }
         Down(&row);
@@ -190,11 +189,11 @@ void TradePanel::DrawLists() {
         std::uint32_t textColour = kGrey;
         std::uint32_t priceColour = kGrey;
         if (perk.learnable) {
-            textColour = kBright;
+            textColour = kUiTextColour;
             priceColour = PriceColour(perk.price, experience);
         }
-        labels.push_back({perk.name, row, 0, textColour, 0});
-        labels.push_back({FormatPrice(perk.price), row, 0, priceColour, 2});
+        labels.push_back({perk.name, row, {0, textColour}});
+        labels.push_back({FormatPrice(perk.price), row, {0, priceColour, render::text::kRight}});
         PriceSprite(this, row, 550.0f, 590.0f);
         Down(&row);
     }
@@ -226,10 +225,10 @@ void TradePanel::Build() {
     for (int y = 135; y < 480; y += 15) AddRegion()->SetRect(415, y, 585, y + 15);
     for (int y = 330; y < 480; y += 15) AddRegion()->SetRect(215, y, 385, y + 15);
 
-    AddBlankSprite()->SetRectangle(6.0f, 100.0f, 360.0f, 320.0f, 380.0f, 330.0f, 0x82, 3, 0x96, 0xD);
-    AddBlankSprite()->SetRectangle(6.0f, 100.0f, 360.0f, 480.0f, 380.0f, 490.0f, 0x82, 0xD, 0x96, 3);
-    AddBlankSprite()->SetRectangle(6.0f, 100.0f, 560.0f, 125.0f, 580.0f, 135.0f, 0x82, 3, 0x96, 0xD);
-    AddBlankSprite()->SetRectangle(6.0f, 100.0f, 560.0f, 480.0f, 580.0f, 490.0f, 0x82, 0xD, 0x96, 3);
+    AddBlankSprite()->SetRectangle(6.0f, kSpriteScale, 360.0f, 320.0f, 380.0f, 330.0f, 0x82, 3, 0x96, 0xD);
+    AddBlankSprite()->SetRectangle(6.0f, kSpriteScale, 360.0f, 480.0f, 380.0f, 490.0f, 0x82, 0xD, 0x96, 3);
+    AddBlankSprite()->SetRectangle(6.0f, kSpriteScale, 560.0f, 125.0f, 580.0f, 135.0f, 0x82, 3, 0x96, 0xD);
+    AddBlankSprite()->SetRectangle(6.0f, kSpriteScale, 560.0f, 480.0f, 580.0f, 490.0f, 0x82, 0xD, 0x96, 3);
 
     TextManager* clientWorldTexts = g_clientWorld.texts;
     std::string text;
@@ -477,7 +476,6 @@ void TradePanel::Update() {
 
 namespace {
 
-constexpr std::uint32_t kTextColour = 0xA7D7E4;
 
 // One list's items: cell i at column i % 4, row i / 4; `yOffset` and the sizes differ between the
 // bought (upper) and sold (lower) lists, as do the text rows.
@@ -491,11 +489,10 @@ void DrawItems(TradeGrid* grid, SceneRenderer* pass, const std::vector<Item*>& l
         grid->owner->DrawItem(pass, cell);
         int pieces = static_cast<int>(cell.item->count);
         if (pieces > 1) {
-            labels.push_back({std::format("{}", pieces), Rect{x + 15, y + countTop, x + 0x55, y + countTop + 20}, 1, kTextColour, 2});
+            labels.push_back({std::format("{}", pieces), Rect{x + 15, y + countTop, x + 0x55, y + countTop + 20}, {1, kUiTextColour, render::text::kRight}});
         }
         if (!grid->exchange) {
-            labels.push_back({std::format("{}", grid->owner->Price(cell.item, kind)),
-                              Rect{x + 15, y + priceTop, x + 0x55, y + priceTop + 20}, 1, kTextColour, 1});
+            labels.push_back({std::format("{}", grid->owner->Price(cell.item, kind)), Rect{x + 15, y + priceTop, x + 0x55, y + priceTop + 20}, {1, kUiTextColour, render::text::kCenter}});
         }
     }
 }
