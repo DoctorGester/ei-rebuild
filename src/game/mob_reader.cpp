@@ -184,8 +184,7 @@ std::string MobScriptDecoder::Decode() {
     const auto length = static_cast<unsigned>(input.size()) - 4;
     text.resize(length, zero);
     std::memcpy(text.data(), coded + 4, length);
-    std::uint32_t x;
-    lib::LoadBytes(x, coded);
+    std::uint32_t x = lib::Load<std::uint32_t>(coded);
     for (auto& p : text) {
         x = x * 0x343FDu + 0x269EC3u;
         p = static_cast<char>(p ^ static_cast<char>(x >> 16));

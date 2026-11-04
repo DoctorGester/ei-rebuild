@@ -58,7 +58,7 @@ bool MapObjectServer::RunTick() {
 }
 
 void MapObjectServer::SetData(const UnitVitals* data) {
-    lib::LoadBytes(vitals, data);
+    vitals = lib::Load<UnitVitals>(data);
     owner->MarkChanged(NetField::Vitals);
 }
 

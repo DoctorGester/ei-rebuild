@@ -166,36 +166,27 @@ void MagicTrap::Save(ByteStream* stream) { SaveTrap(stream); }
 
 void MagicTrap::SaveTrap(ByteStream* stream) {
     MapObject::Save(stream);
-    std::int32_t value = spell ? spell->id : -1;
-    stream->WriteValue(value);
-    value = lib::Count(area);
-    stream->WriteValue(value);
+    stream->WriteId(spell);
+    stream->WriteCount(area.size());
     for (int i = 0; i < std::ssize(area); ++i) stream->WriteValue(area[i]);
-    value = lib::Count(inside);
-    stream->WriteValue(value);
-    for (Unit* unit : inside) SaveRef(unit, stream);
-    value = lib::Count(points);
-    stream->WriteValue(value);
+    stream->WriteCount(inside.size());
+    for (Unit* unit : inside) stream->WriteId(unit);
+    stream->WriteCount(points.size());
     for (int i = 0; i < std::ssize(points); ++i) stream->WriteValue(points[i]);
     for (int i = 0; i < kTailFieldCount; ++i) {
-        lib::LoadBytes(value, TailFields(this, i));
-        stream->WriteValue(value);
+        stream->Write(TailFields(this, i), 4);
     }
 }
 
 void MagicTrap::LoadTrap(ByteStream* stream) {
     MapObject::Load(stream);
     SpellManager* manager = GetManagerContext()->GetSpellManager();
-    // The id and the two counts are read into one local: a read that fails leaves the previous value.
-    std::int32_t value = 0;
-    stream->ReadValue(value);
-    SetSpell(this, value == -1 ? nullptr : manager->FindObjectAs<Spell>(value));
-    stream->ReadValue(value);
-    area.resize(value);
+    const int spellId = stream->ReadId();
+    SetSpell(this, spellId == kNoObjectId ? nullptr : manager->FindObjectAs<Spell>(spellId));
+    area.resize(stream->ReadCount());
     for (int i = 0; i < std::ssize(area); ++i) stream->ReadValue(area[i]);
     CountedListLoad(&inside, stream, OwningWorld());
-    stream->ReadValue(value);
-    points.resize(value);
+    points.resize(stream->ReadCount());
     for (int i = 0; i < std::ssize(points); ++i) stream->ReadValue(points[i]);
     for (int i = 0; i < kTailFieldCount; ++i) stream->Read(TailFields(this, i), 4);
 }

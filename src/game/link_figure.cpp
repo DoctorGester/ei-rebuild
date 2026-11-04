@@ -197,8 +197,7 @@ void LinkFigureLoader::LoadOldPart(LinkMesh* mesh, const std::string& name, cons
 void LinkFigureLoader::RemorphFigPart(LinkMesh* mesh, const std::string& name, const char** cursor, float s,
                                        float t, float u) {
     LinkPartHeader* header = &mesh->headers[name];
-    FigHeader figHeader;
-    lib::LoadBytes(figHeader, *cursor);
+    FigHeader figHeader = lib::Load<FigHeader>(*cursor);
     // The header, two dwords and the FIG8 bounds (a plain FIG is read as FIG8 too).
     *cursor += fig::kHeaderBytes + fig::BoundsBytes(fig::kFig8Versions);
     int count = figHeader.vertexCount;

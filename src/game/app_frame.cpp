@@ -95,8 +95,7 @@ void TypeRegistryRegister(ChunkArchive::ClassRegistry* registry, std::uint32_t i
     registry->factories[id] = factory;
     if (!prototype) return;
     prototype->AddRef();
-    std::uintptr_t vtable;
-    lib::LoadBytes(vtable, prototype);
+    std::uintptr_t vtable = lib::Load<std::uintptr_t>(prototype);
     registry->classIds[vtable] = static_cast<std::int32_t>(id);
     prototype->Release();
 }

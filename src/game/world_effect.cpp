@@ -58,12 +58,8 @@ int Effect::Receive(int update, MemoryStream* reader) {
 void Effect::Reset() { ClearBase(this); }
 
 std::vector<std::string> ReadSavedStrings(ByteStream* stream) {
-    int count;
-    stream->ReadValue(count);
     std::vector<std::string> array;
-    for (int i = 0; i < count; ++i) {
-        array.push_back(stream->ReadString());
-    }
+    for (int count = stream->ReadCount(); count > 0; --count) array.push_back(stream->ReadString());
     return array;
 }
 

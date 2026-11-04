@@ -139,14 +139,11 @@ void AddUnique(std::vector<T*>& list, T* record) {
     if (record && std::find(list.begin(), list.end(), record) == list.end()) list.push_back(record);
 }
 
-// A record section: a count, then names lower-cased and looked up in `table`. `name` and `count` are the
-// caller's, reused for every section, so a failed read leaves the previous value.
+// A record section: a count, then names lower-cased and looked up in `table`.
 template <typename Record>
-void LoadRecords(ByteStream* stream, std::string& name, unsigned& count, itemdb::NamedRecordTable<Record>& table,
-                 std::vector<Record*>& list) {
-    stream->ReadValue(count);
-    for (unsigned i = 0; i < count; ++i) {
-        name = stream->ReadString();
+void LoadRecords(ByteStream* stream, itemdb::NamedRecordTable<Record>& table, std::vector<Record*>& list) {
+    for (int count = stream->ReadCount(); count > 0; --count) {
+        std::string name = stream->ReadString();
         str::MakeLower(name);
         AddUnique(list, table.Named(name));
     }
@@ -154,17 +151,15 @@ void LoadRecords(ByteStream* stream, std::string& name, unsigned& count, itemdb:
 
 // A map section: a count, then names (as read) looked up by name.
 template <typename Record, typename Map>
-void LoadMapped(ByteStream* stream, std::string& name, unsigned& count, Map& map, std::vector<Record*>& list) {
-    stream->ReadValue(count);
-    for (unsigned i = 0; i < count; ++i) {
-        name = stream->ReadString();
-        AddUnique(list, map[name]);
+void LoadMapped(ByteStream* stream, Map& map, std::vector<Record*>& list) {
+    for (int count = stream->ReadCount(); count > 0; --count) {
+        AddUnique(list, map[stream->ReadString()]);
     }
 }
 
 template <typename Record>
 void SaveItemRecords(ByteStream* stream, const std::vector<Record*>& list) {
-    stream->WriteValue(static_cast<std::uint32_t>(list.size()));
+    stream->WriteCount(list.size());
     for (const itemdb::ItemRecordHead* record : list) stream->WriteString(record->name);
 }
 
@@ -378,25 +373,22 @@ std::vector<HeldRef<Spell>> ItemStock::GenerateSpells(const float* levels, unsig
 // Original behaviour kept: a material entry is pushed even when its material is not found (null
 // record), and the two map lookups insert null entries for unknown names.
 void ItemStock::LoadLists(ByteStream* stream) {
-    std::string name;
-    unsigned count = 0;
     itemdb::ItemDatabase& items = g_itemDatabase;
-    LoadRecords(stream, name, count, items.armors, armors);
-    LoadRecords(stream, name, count, items.weapons, weapons);
-    LoadRecords(stream, name, count, items.quickItems, quickItems);
+    LoadRecords(stream, items.armors, armors);
+    LoadRecords(stream, items.weapons, weapons);
+    LoadRecords(stream, items.quickItems, quickItems);
 
-    // The three ints are reused for every entry, like the counts.
-    stream->ReadValue(count);
-    int values[3] = {0, 0, 0};
-    for (unsigned i = 0; i < count; ++i) {
-        name = stream->ReadString();
+    for (int count = stream->ReadCount(); count > 0; --count) {
+        std::string name = stream->ReadString();
         str::MakeLower(name);
-        for (int& v : values) stream->ReadValue(v);
-        materials.push_back(StockMaterial{items.materials.Named(name), values[0], values[1], values[2]});
+        const int minCount = stream->ReadAs<std::int32_t>();
+        const int maxCount = stream->ReadAs<std::int32_t>();
+        const int left = stream->ReadAs<std::int32_t>();
+        materials.push_back(StockMaterial{items.materials.Named(name), minCount, maxCount, left});
     }
 
-    LoadMapped(stream, name, count, g_spellDatabase.spells.byCode, spells);
-    LoadMapped(stream, name, count, g_spellDatabase.modifiers.byCode, modifiers);
+    LoadMapped(stream, g_spellDatabase.spells.byCode, spells);
+    LoadMapped(stream, g_spellDatabase.modifiers.byCode, modifiers);
 }
 
 void ItemStock::SaveLists(ByteStream* out) {
@@ -404,7 +396,7 @@ void ItemStock::SaveLists(ByteStream* out) {
     SaveItemRecords(out, weapons);
     SaveItemRecords(out, quickItems);
 
-    out->WriteValue(static_cast<std::uint32_t>(materials.size()));
+    out->WriteCount(materials.size());
     for (const StockMaterial& e : materials) {
         out->WriteString(e.record->key);
         out->WriteValue(static_cast<std::uint32_t>(e.minCount));
@@ -412,12 +404,12 @@ void ItemStock::SaveLists(ByteStream* out) {
         out->WriteValue(static_cast<std::uint32_t>(e.left));
     }
 
-    out->WriteValue(static_cast<std::uint32_t>(spells.size()));
+    out->WriteCount(spells.size());
     for (const itemdb::SpellRecord* p : spells) out->WriteString(p->code);
 
     // A modifier's code is up to four letters (the original adds an uninitialised stack byte after a four-letter
     // code; here the string stops after the four).
-    out->WriteValue(static_cast<std::uint32_t>(modifiers.size()));
+    out->WriteCount(modifiers.size());
     for (const itemdb::SpellModifierRecord* p : modifiers) out->WriteString(std::string(p->code, strnlen(p->code, 4)));
 }
 

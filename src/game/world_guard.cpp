@@ -31,9 +31,8 @@ static_assert(sizeof(UnitStats) == kGuardedBytes);
 void XorRange(UnitStats* stats, std::uint32_t key) {
     std::span<std::byte> bytes = std::as_writable_bytes(std::span(stats, 1));
     for (std::size_t at = 0; at < bytes.size(); at += 4) {
-        std::uint32_t word;
-        lib::LoadBytes(word, &bytes[at]);
-        lib::StoreBytes(&bytes[at], word ^ key);
+        std::uint32_t word = lib::Load<std::uint32_t>(&bytes[at]);
+        lib::Store(&bytes[at], word ^ key);
     }
 }
 

@@ -145,9 +145,8 @@ void Item::Load(ByteStream* stream) {
     stream->ReadValue(price);
     stream->ReadValue(unreadValue);
     SpellManager* spells = GetManagerContext()->GetSpellManager();
-    std::int32_t objectId = 0;
-    stream->ReadValue(objectId);
-    Spell* newSpell = objectId == kNoObjectId ? nullptr : spells->FindObjectAs<Spell>(static_cast<unsigned>(objectId));
+    const int spellId = stream->ReadId();
+    Spell* newSpell = spellId == kNoObjectId ? nullptr : spells->FindObjectAs<Spell>(static_cast<unsigned>(spellId));
     spell.Assign(newSpell);
     stream->ReadValue(count);
     stream->ReadValue(magicLevel);
@@ -163,8 +162,7 @@ void Item::Save(ByteStream* stream) {
     stream->WriteValue(weight);
     stream->WriteValue(price);
     stream->WriteValue(unreadValue);
-    std::int32_t spellId = spell != nullptr ? spell->id : kNoObjectId;
-    stream->WriteValue(spellId);
+    stream->WriteId(spell);
     stream->WriteValue(count);
     stream->WriteValue(magicLevel);
 }

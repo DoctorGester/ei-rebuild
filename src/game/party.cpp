@@ -502,24 +502,16 @@ namespace {
 
 // A list's count, then each item's id (-1 for an empty entry).
 void WriteItemIds(ByteStream* stream, const std::vector<Item*>& list) {
-    stream->WriteValue(static_cast<std::int32_t>(std::ssize(list)));
-    for (int i = 0; i < std::ssize(list); ++i) {
-        const Item* item = list[i];
-        stream->WriteValue(item != nullptr ? item->id : -1);
-    }
+    stream->WriteCount(list.size());
+    for (const Item* item : list) stream->WriteId(item);
 }
 
 // Releases what the list holds, then reads a count and that many ids, each resolved in `manager` and counted.
 void ReadItemIds(ByteStream* stream, std::vector<Item*>& list, BaseManager* manager) {
     for (int i = 0; i < std::ssize(list); ++i) list[i]->Release();
-    int count;
-    stream->ReadValue(count);
-    list.resize(count);
-    for (int i = 0; i < std::ssize(list); ++i) {
-        unsigned id;
-        stream->ReadValue(id);
-        Item* item = FindItem(manager, id);
-        list[i] = item;
+    list.resize(stream->ReadCount());
+    for (Item*& item : list) {
+        item = FindItem(manager, static_cast<unsigned>(stream->ReadId()));
         if (item != nullptr) item->AddRef();
     }
 }
@@ -605,10 +597,8 @@ void Party::LoadParty(ByteStream* stream, int loadVariables) {
     itemManager->LoadObjects(stream);
     spellManager->LoadObjects(stream);
     ReadItemIds(stream, items, ItemFactory());
-    int records;
-    stream->ReadValue(records);
-    members.resize(records);
-    for (int i = 0; i < records; ++i) members[i].Load(stream);
+    members.resize(stream->ReadCount());
+    for (PartyUnitRecord& member : members) member.Load(stream);
     if (loadVariables != 0) variables.Load(stream);
     g_loadingParty = nullptr;
     money = 0;
@@ -631,9 +621,8 @@ void Party::SaveParty(ByteStream* stream, int saveVariables) {
     itemManager->SaveObjects(stream);
     spellManager->SaveObjects(stream);
     WriteItemIds(stream, items);
-    int records = lib::Count(members);
-    stream->WriteValue(records);
-    for (int i = 0; i < records; ++i) members[i].Save(stream);
+    stream->WriteCount(members.size());
+    for (PartyUnitRecord& member : members) member.Save(stream);
     if (saveVariables != 0) variables.Save(stream);
     std::uint32_t key = g_random.Next();
     stream->WriteValue(money ^ key);

@@ -7,14 +7,10 @@
 #include "ai_motion.h"
 #include "core_streams.h"
 
-#include "lib/containers.h"
-
 #include <cstdint>
 
 void AIPath::LoadPath(ByteStream* stream) {
-    int count;
-    stream->ReadValue(count);
-    for (int i = 0; i < count; ++i) {
+    for (int count = stream->ReadCount(); count > 0; --count) {
         // The cell's second dword is uninitialised in the original; it is read over below.
         PathCell cell{0, 0, 0, 0};
         cells.push_back(cell);
@@ -28,8 +24,7 @@ void AIPath::LoadPath(ByteStream* stream) {
     stream->ReadValue(mayExcludeRegions);
     stream->ReadValue(firstSearch);
     std::vector<Point>* excluded = &excludedBlocks;
-    stream->ReadValue(count);
-    excluded->resize(count);
+    excluded->resize(stream->ReadCount());
     for (int i = 0; i < std::ssize(*excluded); ++i) {
         stream->ReadValue((*excluded)[i].x);
         stream->ReadValue((*excluded)[i].y);
@@ -38,8 +33,7 @@ void AIPath::LoadPath(ByteStream* stream) {
 }
 
 void AIPath::SavePath(ByteStream* stream) {
-    int count = lib::Count(cells);
-    stream->WriteValue(count);
+    stream->WriteCount(cells.size());
     for (const PathCell& cell : cells) stream->WriteValue(cell);
     SaveOrder(stream);
     stream->WriteValue(target);
@@ -49,8 +43,7 @@ void AIPath::SavePath(ByteStream* stream) {
     stream->WriteValue(mayExcludeRegions);
     stream->WriteValue(firstSearch);
     const std::vector<Point>* excluded = &excludedBlocks;
-    count = lib::Count(*excluded);
-    stream->WriteValue(count);
+    stream->WriteCount(excluded->size());
     for (int i = 0; i < std::ssize(*excluded); ++i) {
         int x = (*excluded)[i].x;
         stream->WriteValue(x);
@@ -70,15 +63,9 @@ void PathOrder::LoadOrder(ByteStream* stream) {
     stream->ReadValue(order->angle);
     stream->ReadValue(order->startTime);
     stream->Read(&order->arg5, 0xC);
-    int count = 0;   // left as it was when the read fails
-    stream->ReadValue(count);
     // The new step is {0, 0} and an uninitialised dword; every step is read over below.
-    for (int i = 0; i < count; ++i) steps.push_back(PathCell{0, 0, 0, 0});
-    for (auto node = steps.begin(); node != steps.end();) {
-        auto next = std::next(node);
-        stream->Read(&*node, 8);
-        node = next;
-    }
+    for (int count = stream->ReadCount(); count > 0; --count) steps.push_back(PathCell{0, 0, 0, 0});
+    for (PathCell& step : steps) stream->ReadValue(step);
 }
 
 void PathOrder::SaveOrder(ByteStream* stream) {
@@ -88,11 +75,6 @@ void PathOrder::SaveOrder(ByteStream* stream) {
     stream->WriteValue(order->angle);
     stream->WriteValue(order->startTime);
     stream->Write(&order->arg5, 0xC);
-    int count = lib::Count(steps);
-    stream->WriteValue(count);
-    for (auto node = steps.begin(); node != steps.end();) {
-        auto next = std::next(node);
-        stream->Write(&*node, 8);
-        node = next;
-    }
+    stream->WriteCount(steps.size());
+    for (const PathCell& step : steps) stream->WriteValue(step);
 }

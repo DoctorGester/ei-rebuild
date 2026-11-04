@@ -56,12 +56,8 @@ constexpr std::uint32_t kLoneHeroRecordId = 0x3B9AF5CE;   // 999999950
 // The unit list of the walk / attack orders: a count, then that many ids (missing units and units
 // flagged 0x800000 are left out).
 void ReadUnits(MemoryStream& in, std::vector<Unit*>* units) {
-    int count = 0;
-    in.ReadValue(count);
-    for (int i = 0; i < count; ++i) {
-        int id = 0;
-        in.ReadValue(id);
-        Unit* unit = g_serverWorld.FindUnit(id);
+    for (int count = in.ReadCount(); count > 0; --count) {
+        Unit* unit = g_serverWorld.FindUnit(in.ReadId());
         if (unit && !(unit->flags & MapObjectFlag::Blocked)) lib::SetAtGrow(*units, lib::Count(*units), unit);
     }
 }
@@ -155,12 +151,8 @@ void PlayerServer::LeaderDied() {
 
 bool PlayerServer::OnUseOrder() {
     std::vector<Unit*> units{};
-    int count = 0;
-    in.ReadValue(count);
-    for (int i = 0; i < count; ++i) {
-        int objectId = 0;
-        in.ReadValue(objectId);
-        Unit* unit = g_serverWorld.FindUnit(objectId);
+    for (int count = in.ReadCount(); count > 0; --count) {
+        Unit* unit = g_serverWorld.FindUnit(in.ReadId());
         if (unit && !(unit->flags & MapObjectFlag::Blocked)) lib::SetAtGrow(units, lib::Count(units), unit);
     }
     int flag = 0, value = 0, objectId = 0;

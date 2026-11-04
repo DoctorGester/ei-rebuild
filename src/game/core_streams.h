@@ -50,7 +50,25 @@ public:
         static_assert(lib::kFormatValue<T>, "a stream value is plain bytes of one size in every build");
         Write(&value, sizeof(T));
     }
+    // One value read as a T (zero when a stream that keeps the variable on a short read has nothing).
+    template <class T>
+    T ReadAs() {
+        T value{};
+        ReadValue(value);
+        return value;
+    }
+    // `size` bytes read and dropped (a field nothing uses any more).
+    void Skip(std::uint32_t size);
 
+    // The count in front of a list: four bytes, a negative one read as 0.
+    int ReadCount() {
+        const std::int32_t count = ReadAs<std::int32_t>();
+        return count > 0 ? count : 0;
+    }
+    void WriteCount(std::size_t count) { WriteValue(static_cast<std::int32_t>(count)); }
+    // An engine object by its id (four bytes), kNoObjectId for none; the reader looks the id up.
+    int ReadId() { return ReadAs<std::int32_t>(); }
+    void WriteId(const EngineObject* object) { WriteValue<std::int32_t>(object ? object->id : kNoObjectId); }
 
     // Text in the streams (the saves, the network's messages and recordings) is in the asset code page, as the
     // original's: converted to UTF-8 where it is read and back where it is written (asset_text.h).

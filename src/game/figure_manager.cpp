@@ -22,6 +22,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <cstring>
 #include <memory>
 #include <new>
 #include <string>
@@ -124,8 +125,7 @@ int FigureManager::LoadSkeletonLinks(FigureAnimationState* state, std::string_vi
     if (!data) return game::FatalError("Can't load skeleton file for \"%s\"\n", std::string(name));
 
     // A count, then that many (child, parent) names.
-    std::uint32_t links;
-    lib::LoadBytes(links, data);
+    std::uint32_t links = lib::Load<std::uint32_t>(data);
     const std::uint8_t* cursor = static_cast<const std::uint8_t*>(data) + sizeof(links);
     {
         std::string child, parent;
@@ -163,11 +163,11 @@ int FigureManager::LoadFigureBones(FigureModel* model, FigureBone* bone) {
     // data, or in the cube of eight points of any other size.
     if (bones.size == sizeof(float) * 3 * fig::kOldVersions) {
         float prism[3 * fig::kOldVersions];
-        lib::LoadBytes(prism, bones.data);
+        std::memcpy(prism, bones.data, sizeof(prism));
         bone->offset = fig::MorphPrism<Vector3>(prism, bone->morphS, bone->morphT, bone->morphU);
     } else {
         float cube[3 * fig::kFig8Versions];
-        lib::LoadBytes(cube, bones.data);
+        std::memcpy(cube, bones.data, sizeof(cube));
         bone->offset = fig::MorphCube<Vector3>(cube, bone->morphS, bone->morphT, bone->morphU);
     }
     return 1;
@@ -189,8 +189,7 @@ int FigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, std::st
         data = static_cast<std::uint8_t*>(GetFile(path, nullptr));
     }
     if (!data) return 0;
-    std::uint32_t magic;
-    lib::LoadBytes(magic, data);
+    std::uint32_t magic = lib::Load<std::uint32_t>(data);
     // The bounds' floats (centre, box minimum, box maximum, radius): 8 versions of each in FIG8, one in another FIG,
     // 6 corner versions without a FIG header.
     if (fig::IsFig(magic)) {
@@ -200,7 +199,7 @@ int FigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, std::st
         MorphFigureBounds(out, versions, weightS, weightT, weightU, magic);
     } else {
         float corners[fig::kBoundsFloats * fig::kOldVersions];
-        lib::LoadBytes(corners, data + fig::kMeshWordsBytes);
+        std::memcpy(corners, data + fig::kMeshWordsBytes, sizeof(corners));
         MorphFigureBounds6(out, corners, weightS, weightT, weightU);
     }
     if (model) model->mesh->CloseFile(data);

@@ -401,8 +401,7 @@ float AIAttackOption::Weight() const {
 void AIAttackOption::Load(ByteStream* stream) {
     if (stream->version < kVersionSpellOptions) {
         stream->ReadValue(part);
-        std::uint32_t dropped;
-        stream->ReadValue(dropped);
+        stream->Skip(4);
         stream->ReadValue(damage);
         kind = part >= 0 ? AIOptionKind::SpellAttack : AIOptionKind::Weapon;
         range = 1.0f;
@@ -507,9 +506,7 @@ void AIAttention::Build(Unit* unit) {
 
 // The count, the array sized to it (SetSize inlined), then each option.
 std::vector<AIAttackOption> LoadAttackOptions(ByteStream* stream) {
-    int count;
-    stream->ReadValue(count);
-    std::vector<AIAttackOption> options(count);
+    std::vector<AIAttackOption> options(stream->ReadCount());
     for (AIAttackOption& option : options) option.Load(stream);
     return options;
 }

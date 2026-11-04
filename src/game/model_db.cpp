@@ -100,14 +100,12 @@ bool WaterTweens::Tick() {
 }
 
 void WaterTweens::Save(ByteStream* stream) const {
-    stream->WriteValue(static_cast<int>(entries.size()));
+    stream->WriteCount(entries.size());
     for (const TweenEntry& e : entries) stream->WriteValue(e);
 }
 
 void WaterTweens::ReadEntries(ByteStream* stream) {
-    int count = 0;
-    stream->ReadValue(count);
-    entries.resize(count);
+    entries.resize(stream->ReadCount());
     for (TweenEntry& e : entries) stream->ReadValue(e);
 }
 
@@ -250,8 +248,7 @@ int AckDatabase::Load(const std::string& folder) {
 // A length-prefixed name in a model file's data. See model.h.
 
 void ReadPrefixedName(std::string* out, const std::uint8_t** cursor) {
-    std::int32_t length;
-    lib::LoadBytes(length, *cursor);
+    std::int32_t length = lib::Load<std::int32_t>(*cursor);
     *cursor += 4;
     if (length == 0) {
         out->clear();

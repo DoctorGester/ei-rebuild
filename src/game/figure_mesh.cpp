@@ -56,8 +56,7 @@ void LoadArray(std::vector<T>& array, char** cursor, int count) {
 }
 
 int ReadCount(char** cursor) {
-    int n;
-    lib::LoadBytes(n, *cursor);
+    int n = lib::Load<int>(*cursor);
     *cursor += 4;
     return n;
 }
@@ -123,8 +122,7 @@ void MorphFigureBounds6(ClipBounds* out, const float* data, float s, float t, fl
 }
 
 void FigureMesh::LoadFig(char** cursor) {
-    FigHeader header;
-    lib::LoadBytes(header, *cursor);
+    FigHeader header = lib::Load<FigHeader>(*cursor);
     *cursor += sizeof(header);
     materialValue = Read<std::uint32_t>(*cursor);
     meshType = Read<std::uint32_t>(*cursor);
@@ -236,8 +234,7 @@ void FigureMesh::BuffersChanged() { render::MeshChanged(this, render::MeshChange
 
 void FigureMesh::LoadFromMemory(char** cursor) {
     if (flags & FigureMeshFlag::Loaded) return;
-    std::uint32_t magic;
-    lib::LoadBytes(magic, *cursor);
+    std::uint32_t magic = lib::Load<std::uint32_t>(*cursor);
     if (fig::IsFig(magic)) LoadFig(cursor);
     else LoadOld(cursor);
 }

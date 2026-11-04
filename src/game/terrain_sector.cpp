@@ -115,8 +115,7 @@ const std::uint8_t* BuildRecords(SectorData& s) {
             record.position = vertex;
             s.records[ground].depth = vertex.z - s.vertices[ground].z;
         }
-        std::uint32_t normal;
-        lib::LoadBytes(normal, source + 4);
+        std::uint32_t normal = lib::Load<std::uint32_t>(source + 4);
         record.normal.z = static_cast<float>(normal >> kNormalZShift) * kNormalScale;
         record.normal.x = (static_cast<float>((normal >> kNormalXShift) & kNormalMask) - kNormalBias) * kNormalScale;
         record.normal.y = (static_cast<float>(normal & kNormalMask) - kNormalBias) * kNormalScale;
@@ -146,8 +145,7 @@ int CountTiles(SectorData& s, const std::uint8_t* words, TileCounts& counts) {
                     *out = -1;
                     continue;
                 }
-                std::uint16_t word;
-                lib::LoadBytes(word, source);
+                std::uint16_t word = lib::Load<std::uint16_t>(source);
                 if (layer == 0) s.tileRotation[tile] = static_cast<std::uint8_t>(word >> kTileRotationShift);
                 int texture = word & kTileTextureMask;
                 int page = SlotOf(texture, owner->perPage, owner->pages).page + layer * s.LayerPages();
@@ -171,8 +169,7 @@ void FillTiles(SectorData& s, const std::uint8_t* words, TileCounts& counts) {
         for (int row = 0; row < kSectorTiles; ++row) {
             for (int column = 0; column < kSectorTiles; ++column, source += 2) {
                 if (layer == 1 && s.waterTiles[row * kSectorTiles + column] == -1) continue;
-                std::uint16_t word;
-                lib::LoadBytes(word, source);
+                std::uint16_t word = lib::Load<std::uint16_t>(source);
                 if (word == kNoTile) continue;
                 int texture = word & kTileTextureMask;
                 int rotation = word >> kTileRotationShift;
@@ -257,8 +254,7 @@ int SectorData::Load(MappedResource* archive, int sectorX, int sectorY, const ch
     if (!file) return fail("Unable to locate resource: ");
     if (size < kSectorHeaderBytes) return fail("Wrong format resource: ");
 
-    std::uint32_t magic;
-    lib::LoadBytes(magic, file);
+    std::uint32_t magic = lib::Load<std::uint32_t>(file);
     std::uint8_t flags = file[4];
     data = file + kSectorHeaderBytes;
     if (magic != kSectorMagic) return fail("Wrong format resource: ");
@@ -276,8 +272,7 @@ int SectorData::Load(MappedResource* archive, int sectorX, int sectorY, const ch
         waterTiles.resize(kLayerTiles);
         const std::uint8_t* source = data + layers * kLayerBytes + tileLayers * kTileLayerBytes;
         for (int i = 0; i < kLayerTiles; ++i) {
-            std::uint16_t material;
-            lib::LoadBytes(material, source + i * 2);
+            std::uint16_t material = lib::Load<std::uint16_t>(source + i * 2);
             waterTiles[i] = material == 0xFFFF ? -1 : material;
         }
     } else {
@@ -298,8 +293,7 @@ int SectorData::Load(MappedResource* archive, int sectorX, int sectorY, const ch
         for (int row = 0; row < kSectorRow; ++row) {
             float x = x0;
             for (int column = 0; column < kSectorRow; ++column, ++vertex, source += kVertexBytes, ++out) {
-                std::uint16_t height;
-                lib::LoadBytes(height, source + 2);
+                std::uint16_t height = lib::Load<std::uint16_t>(source + 2);
                 out->z = static_cast<float>(height) * owner->heightRange * kHeightUnit;
                 if (layer == 0) {
                     out->x = 0.5f * static_cast<std::int8_t>(source[0]) * kOffsetScale + x;

@@ -113,6 +113,15 @@ bool ByteStream::FindTagged(std::uint32_t id, ByteStream* out) {
     return false;
 }
 
+void ByteStream::Skip(std::uint32_t size) {
+    std::uint8_t dropped[16];
+    while (size > 0) {
+        const std::uint32_t part = size < sizeof(dropped) ? size : static_cast<std::uint32_t>(sizeof(dropped));
+        Read(dropped, part);
+        size -= part;
+    }
+}
+
 void ByteStream::ReadText(char* buffer, int capacity) {
     char* at = buffer;
     // A failed read of a stream that does not zero-fill leaves the old byte.

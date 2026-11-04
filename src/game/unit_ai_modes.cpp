@@ -178,9 +178,7 @@ void PatrolMode::Detach() {
 PatrolPoint* PatrolMode::LastPoint() { return points.empty() ? nullptr : &points.back(); }
 
 void PatrolMode::Load(ByteStream* stream) {
-    int count;
-    stream->ReadValue(count);
-    points.resize(count);
+    points.resize(stream->ReadCount());
     for (PatrolPoint& point : points) {
         stream->ReadValue(point.position);
         point.looks = LoadLooks(stream);
@@ -189,7 +187,7 @@ void PatrolMode::Load(ByteStream* stream) {
 }
 
 void PatrolMode::Save(ByteStream* stream) {
-    stream->WriteValue(static_cast<std::int32_t>(points.size()));
+    stream->WriteCount(points.size());
     for (const PatrolPoint& point : points) {
         stream->WriteValue(point.position);
         SaveLooks(&point.looks, stream);
@@ -230,7 +228,7 @@ void FollowMode::OnObjectDeleted(EngineObject* object) {
 
 void FollowMode::Load(ByteStream* stream) { LoadRef(leader, stream, &g_serverWorld); }
 
-void FollowMode::Save(ByteStream* stream) { SaveRef(leader, stream); }
+void FollowMode::Save(ByteStream* stream) { stream->WriteId(leader); }
 
 // --- Suspection ----------------------------------------------------------------------------------
 
@@ -369,7 +367,7 @@ void AggressionMode::Load(ByteStream* stream) {
 }
 
 void AggressionMode::Save(ByteStream* stream) {
-    SaveRef(enemy, stream);
+    stream->WriteId(enemy);
     stream->WriteValue(fixed);
 }
 
@@ -570,8 +568,8 @@ void PlayerMode::Load(ByteStream* stream) {
 }
 
 void PlayerMode::Save(ByteStream* stream) {
-    SaveRef(target, stream);
-    SaveRef(leader, stream);
+    stream->WriteId(target);
+    stream->WriteId(leader);
     stream->WriteValue(point);
     stream->WriteValue(state);
 }

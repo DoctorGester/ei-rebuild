@@ -138,20 +138,13 @@ void SpellEffect::GetDamage(DamageInfo* out) {
 
 namespace {
 
-constexpr int kNoObject = -1;
-
-// One of the three counted effect objects by the id read (-1 none), looked up in the world's timed object
-// manager; `id` keeps what the previous read left.
+// One of the three counted effect objects by the id read (kNoObjectId none), looked up in the world's timed
+// object manager.
 template <class T>
-void LoadEffectObject(ByteStream* stream, World* world, std::uint32_t& id, Ref<T>& field) {
+void LoadEffectObject(ByteStream* stream, World* world, Ref<T>& field) {
     BaseManager* manager = world->TimedObjectManager();
-    stream->ReadValue(id);
-    field.Assign(static_cast<int>(id) == kNoObject ? nullptr : manager->FindObjectAs<T>(id));
-}
-
-void SaveEffectObject(ByteStream* stream, const EngineObject* object) {
-    int id = object ? object->id : kNoObject;
-    stream->WriteValue(id);
+    const int id = stream->ReadId();
+    field.Assign(id == kNoObjectId ? nullptr : manager->FindObjectAs<T>(id));
 }
 
 } // namespace
@@ -168,10 +161,9 @@ void SpellEffect::Load(ByteStream* stream) {
     stream->ReadValue(packed);
     HeldSpell()->prototypeId = packed;
     World* server = world;
-    std::uint32_t id = 0;
-    LoadEffectObject(stream, server, id, visual);
-    LoadEffectObject(stream, server, id, sound);
-    LoadEffectObject(stream, server, id, light);
+    LoadEffectObject(stream, server, visual);
+    LoadEffectObject(stream, server, sound);
+    LoadEffectObject(stream, server, light);
     stream->ReadValue(timer);
     stream->ReadValue(flags);
     stream->ReadValue(position);
@@ -180,15 +172,15 @@ void SpellEffect::Load(ByteStream* stream) {
 
 void SpellEffect::Save(ByteStream* stream) {
     stream->WriteValue(position);
-    SaveRef(caster, stream);
-    SaveRef(target, stream);
+    stream->WriteId(caster);
+    stream->WriteId(target);
     stream->WriteValue(targetPoint);
     stream->WriteValue(state);
     HeldSpell()->Save(stream);
     stream->WriteValue(HeldSpell()->prototypeId);
-    SaveEffectObject(stream, visual);
-    SaveEffectObject(stream, sound);
-    SaveEffectObject(stream, light);
+    stream->WriteId(visual);
+    stream->WriteId(sound);
+    stream->WriteId(light);
     stream->WriteValue(timer);
     stream->WriteValue(flags);
     stream->WriteValue(position);

@@ -157,7 +157,6 @@ public:
 
 // A counted engine object's id saved (-1: none) or read back: -1 resets `ref`, any other id is looked up in
 // `world`'s map object manager.
-void SaveRef(const EngineObject* object, ByteStream* stream);
 template <typename T>
 void LoadRef(Ref<T>& ref, ByteStream* stream, World* world);
 

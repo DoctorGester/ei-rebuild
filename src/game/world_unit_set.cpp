@@ -13,19 +13,16 @@
 
 namespace {
 
-void Put(ByteStream* stream, const void* data, std::uint32_t size) { stream->Write(data, size); }
-
-// vector<int>::resize(n, value), vector<string>::resize, the stream's string reader.
-
-void Get(ByteStream* stream, void* data, std::uint32_t size) { stream->Read(data, size); }
-
 // A counted dword array: the count, the vector resized (new entries 0), the data.
 void GetIds(ByteStream* stream, std::vector<std::uint32_t>& list) {
-    std::uint32_t n;
-    stream->ReadValue(n);
-    std::uint32_t zero = 0;
-    list.resize(n, zero);
-    Get(stream, list.data(), static_cast<std::uint32_t>(list.size()) << 2);
+    list.resize(stream->ReadCount(), 0u);
+    stream->Read(list.data(), static_cast<std::uint32_t>(list.size() * sizeof(std::uint32_t)));
+}
+
+// The mirror of GetIds.
+void PutIds(ByteStream* stream, const std::vector<std::uint32_t>& list) {
+    stream->WriteCount(list.size());
+    stream->Write(list.data(), static_cast<std::uint32_t>(list.size() * sizeof(std::uint32_t)));
 }
 
 } // namespace
@@ -33,10 +30,8 @@ void GetIds(ByteStream* stream, std::vector<std::uint32_t>& list) {
 void DressedUnitRecord::Write(ByteStream* stream) {
     std::int16_t word = static_cast<std::int16_t>(prototype);
     stream->WriteValue(word);
-    stream->WriteValue(static_cast<std::uint32_t>(items.size()));
-    Put(stream, items.data(), static_cast<std::uint32_t>(items.size() * sizeof(int)));
-    stream->WriteValue(static_cast<std::uint32_t>(extraWeapons.size()));
-    Put(stream, extraWeapons.data(), static_cast<std::uint32_t>(extraWeapons.size() * sizeof(int)));
+    PutIds(stream, items);
+    PutIds(stream, extraWeapons);
     std::uint8_t byte = static_cast<std::uint8_t>(extraWeapon);
     stream->WriteValue(byte);
     stream->WriteValue(static_cast<std::uint32_t>(modelNumber));
@@ -54,31 +49,19 @@ void UnitSet::Write(ByteStream* stream) {
             stream->WriteValue(record.morphS);
             stream->WriteValue(record.morphT);
             stream->WriteValue(record.morphU);
-            auto names = [&record](std::uint32_t i) -> const char* { return record.names[i].c_str(); };
-            auto nameCount = [&record] { return static_cast<std::uint32_t>(record.names.size()); };
-            stream->WriteValue(nameCount());
-            for (std::uint32_t i = 0; i < nameCount(); ++i) {
-                const char* text = names(i);
-                Put(stream, text, static_cast<std::uint32_t>(std::strlen(text) + 1));
-            }
+            stream->WriteCount(record.names.size());
+            for (const std::string& name : record.names)
+                stream->Write(name.c_str(), static_cast<std::uint32_t>(std::strlen(name.c_str()) + 1));
         }
     }
-    stream->WriteValue(static_cast<std::uint32_t>(dressed.size()));
+    stream->WriteCount(dressed.size());
 
     for (auto& [prototype, looks] : dressed) {
         DressedUnitRecord* record = &looks;
-        std::uint32_t key = record->prototype;   // two bytes written
-        Put(stream, &key, 2);
-        auto counted = [stream](const std::vector<std::uint32_t>& list) {
-            std::uint32_t n = static_cast<std::uint32_t>(list.size());
-            stream->WriteValue(n);
-            n = static_cast<std::uint32_t>(list.size());
-            Put(stream, list.data(), n << 2);
-        };
-        counted(record->items);
-        counted(record->extraWeapons);
-        std::uint32_t flag = static_cast<std::uint8_t>(record->extraWeapon);
-        Put(stream, &flag, 1);
+        stream->WriteValue(static_cast<std::uint16_t>(record->prototype));
+        PutIds(stream, record->items);
+        PutIds(stream, record->extraWeapons);
+        stream->WriteValue(static_cast<std::uint8_t>(record->extraWeapon));
         stream->WriteValue(static_cast<std::uint32_t>(record->modelNumber));
     }
 }
@@ -87,9 +70,7 @@ void UnitSet::Write(ByteStream* stream) {
 
 UnitLooks ReadUnitLooks(ByteStream* stream) {
     UnitLooks result;
-    std::uint32_t count;
-    stream->ReadValue(count);
-    result.figured.resize(count);
+    result.figured.resize(stream->ReadCount());
     for (FiguredUnitRecord& looks : result.figured) {
         FiguredUnitRecord* record = &looks;
         stream->ReadValue(record->prototype);
@@ -100,14 +81,10 @@ UnitLooks ReadUnitLooks(ByteStream* stream) {
         stream->ReadValue(record->morphS);
         stream->ReadValue(record->morphT);
         stream->ReadValue(record->morphU);
-        std::uint32_t names;
-        stream->ReadValue(names);
-        record->names.resize(names);
-        for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(record->names.size()); ++i)
-            record->names[i] = stream->ReadString();
+        record->names.resize(stream->ReadCount());
+        for (std::string& name : record->names) name = stream->ReadString();
     }
-    stream->ReadValue(count);
-    result.dressed.resize(count);
+    result.dressed.resize(stream->ReadCount());
     for (DressedUnitRecord& looks : result.dressed) {
         DressedUnitRecord* record = &looks;
         stream->ReadValue(record->prototype);

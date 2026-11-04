@@ -11,12 +11,6 @@
 
 namespace {
 
-std::uint32_t Word(const std::uint8_t* p) {
-    std::uint32_t w;
-    lib::LoadBytes(w, p);
-    return w;
-}
-
 // All of `data`: a 0 bit, then a 0 bit before every 4-byte word, then the remaining bytes.
 void WriteRaw(const std::uint8_t* data, std::uint32_t size, MemoryStream* out) {
     const std::uint32_t words = size / 4;
@@ -38,7 +32,7 @@ void WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t 
     out->PutBit(false);
     for (std::uint32_t i = 0; i < words; ++i) {
         const std::uint8_t* word = data + i * 4;
-        if (Word(old + i * 4) == Word(word)) {
+        if (lib::Load<std::uint32_t>(old + i * 4) == lib::Load<std::uint32_t>(word)) {
             out->PutBit(true);
         } else {
             out->PutBit(false);

@@ -98,7 +98,7 @@ template <class T>
 void LoadWithinFile(T& out, const std::uint8_t* data, std::uint32_t size, std::size_t offset) {
     std::uint8_t bytes[sizeof(T)] = {};
     if (offset < size) std::memcpy(bytes, data + offset, std::min<std::size_t>(sizeof(T), size - offset));
-    lib::LoadBytes(out, bytes);
+    out = lib::Load<T>(bytes);
 }
 
 // The database of an .adb file. Four of the game's (unmozozo, unmoco3, unmoco4, inmm1) are of an older, shorter

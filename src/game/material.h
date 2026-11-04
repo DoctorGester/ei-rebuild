@@ -104,8 +104,7 @@ struct MaterialKindFile {
 constexpr int kMagicMaterialKind = 0x17;
 // The colours a material file holds: after its name (a 16-bit length, then the text).
 inline const void* MaterialFileColors(const void* data) {
-    std::uint16_t nameLength;
-    lib::LoadBytes(nameLength, data);
+    std::uint16_t nameLength = lib::Load<std::uint16_t>(data);
     return static_cast<const char*>(data) + nameLength + 2;
 }
 

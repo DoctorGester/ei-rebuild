@@ -207,8 +207,7 @@ inline float VertexHeight(const SectorFileVertex& vertex, float maxZ) {
 struct SectorVertices {
     const std::uint8_t* bytes;
     SectorFileVertex operator[](int index) const {
-        SectorFileVertex vertex;
-        lib::LoadBytes(vertex, bytes + static_cast<std::size_t>(index) * sizeof(SectorFileVertex));
+        SectorFileVertex vertex = lib::Load<SectorFileVertex>(bytes + static_cast<std::size_t>(index) * sizeof(SectorFileVertex));
         return vertex;
     }
 };
@@ -274,8 +273,7 @@ std::uint32_t TileType(const MapDescription& map, std::uint16_t tile) {
 // Whether a sector file of `size` bytes is one: the magic, and the size its layers give.
 bool IsSector(const void* file, std::uint32_t size) {
     if (size < sizeof(SectorHeader)) return false;
-    SectorHeader header;
-    lib::LoadBytes(header, file);
+    SectorHeader header = lib::Load<SectorHeader>(file);
     if (header.magic != kSectorMagic) return false;
     std::size_t expected = sizeof(SectorHeader) + kVertexBytes + kTileBytes;
     if (header.layers & 1) expected += kVertexBytes + kTileBytes;
@@ -287,8 +285,7 @@ bool IsSector(const void* file, std::uint32_t size) {
 // over each cell (0 .. 63); the tiles' terrain types; the water flag of the cells with depth under a
 // tile of a water material; and the water tile's terrain type on the cells under water.
 void StampSector(AIMap& map, const MapDescription& description, const void* file, int x0, int y0) {
-    SectorHeader header;
-    lib::LoadBytes(header, file);
+    SectorHeader header = lib::Load<SectorHeader>(file);
     const bool hasWater = (header.layers & 1) != 0;
     const bool hasWaterTiles = (header.layers & 3) != 0;
     const SectorVertices ground{static_cast<const std::uint8_t*>(file) + sizeof(SectorHeader)};
@@ -320,8 +317,7 @@ void StampSector(AIMap& map, const MapDescription& description, const void* file
     // is 5 bytes).
     const std::uint8_t* tileWords = ground.bytes + (hasWater ? 2 : 1) * kVertexBytes;
     auto tileWord = [tileWords](int layer, int tx, int ty) {
-        std::uint16_t word;
-        lib::LoadBytes(word, tileWords + 2 * ((layer * kTiles + ty) * kTiles + tx));
+        std::uint16_t word = lib::Load<std::uint16_t>(tileWords + 2 * ((layer * kTiles + ty) * kTiles + tx));
         return word;
     };
     // Calls `visit(cell, occluder word)` for the 4 x 4 cells of tile (tx, ty).

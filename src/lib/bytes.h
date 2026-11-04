@@ -19,16 +19,21 @@ template <class T>
 inline constexpr bool kFormatValue = std::is_trivially_copyable_v<T> && !std::is_pointer_v<T> &&
                                      !std::is_member_pointer_v<T> && !(std::is_integral_v<T> && sizeof(T) > 4);
 
-// sizeof(T) bytes from `address` into `value`.
+// Every format is little-endian, as every build's host: a value's bytes are its memory image.
+static_assert(std::endian::native == std::endian::little, "the formats are little-endian images");
+
+// The T whose bytes are the sizeof(T) at `address`.
 template <class T>
-void LoadBytes(T& value, const void* address) {
+T Load(const void* address) {
     static_assert(std::is_trivially_copyable_v<T>, "plain values");
+    T value;
     std::memcpy(&value, address, sizeof(T));
+    return value;
 }
 
-// sizeof(T) bytes of `value` to `address`.
+// The sizeof(T) bytes of `value` to `address`.
 template <class T>
-void StoreBytes(void* address, const T& value) {
+void Store(void* address, const T& value) {
     static_assert(std::is_trivially_copyable_v<T>, "plain values");
     std::memcpy(address, &value, sizeof(T));
 }

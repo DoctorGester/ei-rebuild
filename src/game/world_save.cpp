@@ -57,13 +57,6 @@ constexpr int kProgressDone = 7;
 
 void ShowLoadProgress(int stage) { ShowLoadingMovie(stage); }
 
-template <typename T>
-T ReadAs(ByteStream* stream) {
-    T value;
-    stream->ReadValue(value);
-    return value;
-}
-
 // The units saved standing where they cannot move (a cell they cannot leave) are put on a free
 // cell nearby when they are scripted units (text-key ids), otherwise removed.
 void RelocateStrandedUnits(WorldServer* world) {
@@ -96,8 +89,8 @@ void LoadPlayers(WorldServer* world, ByteStream* stream) {
         stream->ReadValue(player->sessionKind);
         BaseManager* items = world->ItemFactory();
         for (;;) {
-            int id = ReadAs<int>(stream);
-            if (id == -1) break;
+            const int id = stream->ReadId();
+            if (id == kNoObjectId) break;
             Item* object = FindItem(items, id);
             if (!object) continue;
             player->items.push_back(object);
@@ -107,11 +100,10 @@ void LoadPlayers(WorldServer* world, ByteStream* stream) {
         if (stream->version >= kVersionPlayerLists) {
             // `count` zeros appended, then every id read from the head (those already listed too).
             std::vector<std::uint32_t>& ids = player->recharging;
-            int count = ReadAs<int>(stream);
-            for (int i = 0; i < count; ++i) ids.push_back(0);
+            for (int count = stream->ReadCount(); count > 0; --count) ids.push_back(0);
             for (std::uint32_t& id : ids) stream->ReadValue(id);
         }
-        if (stream->version < kVersionPlayerByte) ReadAs<std::uint8_t>(stream);
+        if (stream->version < kVersionPlayerByte) stream->Skip(1);
         if (stream->version < kVersionPlayerGroup) {
             ScriptGroup group;
             group.Load(stream);
@@ -128,11 +120,11 @@ void SavePlayers(WorldServer* world, ByteStream* stream) {
         stream->WriteValue(player->partyId);
         player->GetParty()->SaveParty(stream, 1);
         stream->WriteValue(player->sessionKind);
-        for (Item* item : player->items) stream->WriteValue(item->id);
-        stream->WriteValue(-1);
+        for (const Item* item : player->items) stream->WriteId(item);
+        stream->WriteValue(kNoObjectId);
         stream->WriteValue(player->godMode);
         const std::vector<std::uint32_t>& ids = player->recharging;
-        stream->WriteValue(static_cast<std::int32_t>(std::ssize(ids)));
+        stream->WriteCount(ids.size());
         for (std::uint32_t id : ids) stream->WriteValue(id);
     }
 }
@@ -175,13 +167,13 @@ void WorldServer::PassTime(float offset) {
 
 void WorldServer::LoadSavedMapObjects(ByteStream* stream) {
     for (;;) {
-        int objectId = ReadAs<int>(stream);
-        if (objectId == -1) return;
+        const int objectId = stream->ReadId();
+        if (objectId == kNoObjectId) return;
         MapObject* object = objectManager->FindMapObject(objectId);
         if (stream->version >= kVersionMapObjectName) object->TakePrototype(stream->ReadString());
         object->WriteFullState();
         object->Load(stream);
-        int changed = ReadAs<int>(stream);
+        int changed = stream->ReadAs<int>();
 
         object->AddRef();
         object->MarkChanged(NetField::None);
@@ -251,13 +243,13 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
     stream->ReadValue(tick);
     stream->ReadValue(weather);
     stream->ReadValue(weatherStrength);
-    const float time = ReadAs<float>(stream);
+    const float time = stream->ReadAs<float>();
     float speed;
     if (stream->version >= kVersionTimeSpeedFloat) {
         stream->ReadValue(speed);
         if (stream->version >= kVersionRainBoltTick) stream->ReadValue(lastRainBoltTick);
     } else {
-        speed = static_cast<float>(ReadAs<int>(stream));
+        speed = static_cast<float>(stream->ReadAs<int>());
     }
     stream->ReadValue(zoneMode);
 
@@ -271,11 +263,11 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
 
     // The map objects' identities: id, type and prototype id.
     for (;;) {
-        int objectId = ReadAs<int>(stream);
-        if (objectId == -1) break;
-        int objectType = ReadAs<int>(stream);
+        const int objectId = stream->ReadId();
+        if (objectId == kNoObjectId) break;
+        int objectType = stream->ReadAs<int>();
         EngineObject* object = objectManager->CreateObject(objectType, objectId);
-        object->prototypeId = ReadAs<std::uint32_t>(stream);
+        object->prototypeId = stream->ReadAs<std::uint32_t>();
     }
     timedObjectManager->Load(stream);
     spellManager->Load(stream);
@@ -289,8 +281,8 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
 
     // Timed objects (spells, effects) by id.
     for (;;) {
-        int objectId = ReadAs<int>(stream);
-        if (objectId == -1) break;
+        const int objectId = stream->ReadId();
+        if (objectId == kNoObjectId) break;
         auto* object = timedObjectManager->FindObjectAs<Effect>(objectId);
         object->AddRef();
         object->MarkChanged();
@@ -300,7 +292,7 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
     // Missiles: a byte 1 before each one, 0 at the end. They find the world through the global server while
     // they load.
     g_loadingProjectileWorld = this;
-    while (ReadAs<std::uint8_t>(stream)) {
+    while (stream->ReadAs<std::uint8_t>()) {
         auto* missile = new SpellEffect();
         missile->Load(stream);
         projectiles.emplace_back(missile);
@@ -316,7 +308,7 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
 
     // Counted references to items (added at the head of the list).
     for (;;) {
-        int objectId = ReadAs<int>(stream);
+        const int objectId = stream->ReadId();
         if (objectId < 0) break;
         EngineObject* item = itemManager->FindObject(objectId);
         if (!item) continue;
@@ -330,10 +322,9 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
     // The item manager's object records.
     if (stream->version >= kVersionPlayerLists) {
         for (;;) {
-            int objectId = -1;
-            stream->ReadValue(objectId);
-            if (objectId == -1) break;
-            std::uint32_t value = ReadAs<std::uint32_t>(stream);
+            const int objectId = stream->ReadId();
+            if (objectId == kNoObjectId) break;
+            const auto value = stream->ReadAs<std::uint32_t>();
             Item* object = FindItem(ItemFactory(), objectId);
             if (!object) continue;
             auto* record = new ItemLink();
@@ -353,15 +344,13 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
     RelocateStrandedUnits(this);
 
     if (stream->version >= kVersionMobFiles) {
-        int count = ReadAs<int>(stream);
-        for (int i = 0; i < count; ++i) mobFiles.push_back(stream->ReadString());
+        for (int count = stream->ReadCount(); count > 0; --count) mobFiles.push_back(stream->ReadString());
     } else {
         mobFiles.clear();
     }
 
     if (stream->version >= kVersionSharedObjects) {
-        const int count = ReadAs<int>(stream);
-        for (int i = 0; i < count; ++i) sharedObjects.emplace_back();
+        for (int count = stream->ReadCount(); count > 0; --count) sharedObjects.emplace_back();
         for (SharedObject& entry : sharedObjects) entry.Load(stream);
     }
 
@@ -407,7 +396,7 @@ void WorldServer::SaveWorld(ByteStream* stream) {
     // The map objects' identities (the walk stops at the first empty entry).
     for (auto node = mapObjects.map.begin(); node != mapObjects.map.end() && node->second; ++node) {
         EngineObject* object = node->second;
-        stream->WriteValue(object->id);
+        stream->WriteId(object);
         stream->WriteValue(object->type);
         stream->WriteValue(object->prototypeId);
     }
@@ -420,8 +409,8 @@ void WorldServer::SaveWorld(ByteStream* stream) {
     spellManager->SaveObjects(stream);
     itemManager->SaveObjects(stream);
 
-    for (auto& node : timedObjects.map) stream->WriteValue(node.second->id);
-    stream->WriteValue(-1);
+    for (auto& node : timedObjects.map) stream->WriteId(node.second);
+    stream->WriteValue(kNoObjectId);
 
     for (SpellEffect* missile : projectiles) {
         stream->WriteValue(static_cast<std::uint8_t>(1));
@@ -436,8 +425,8 @@ void WorldServer::SaveWorld(ByteStream* stream) {
     stream->WriteValue(cave);
     countdowns.Save(stream);
 
-    for (EngineObject* object : counted) stream->WriteValue(object->id);
-    stream->WriteValue(-1);
+    for (const EngineObject* object : counted) stream->WriteId(object);
+    stream->WriteValue(kNoObjectId);
 
     if (PlayerList()) SavePlayers(this, stream);
     stream->WriteValue(paused);
@@ -448,22 +437,22 @@ void WorldServer::SaveWorld(ByteStream* stream) {
         for (Item* item = it.First(ItemFactory()); item; item = it.Next()) {
             ItemLink* record = item->serverLink.Get();
             if (!record) continue;
-            stream->WriteValue(item->id);
+            stream->WriteId(item);
             stream->WriteValue(record->value);
         }
-        stream->WriteValue(-1);
+        stream->WriteValue(kNoObjectId);
     }
 
-    stream->WriteValue(static_cast<int>(mobFiles.size()));
+    stream->WriteCount(mobFiles.size());
     for (const std::string& file : mobFiles) stream->WriteString(file);
 
-    stream->WriteValue(static_cast<int>(sharedObjects.size()));
+    stream->WriteCount(sharedObjects.size());
     for (const SharedObject& entry : sharedObjects) {
         stream->WriteValue(entry.objectId);
         stream->WriteValue(entry.player);
         stream->WriteValue(entry.money);
-        stream->WriteValue(static_cast<int>(entry.objects.size()));
-        for (Item* object : entry.objects) stream->WriteValue(object->id);
+        stream->WriteCount(entry.objects.size());
+        for (const Item* object : entry.objects) stream->WriteId(object);
     }
 }
 
@@ -472,10 +461,8 @@ void SharedObject::Load(ByteStream* stream) {
     stream->ReadValue(entry->objectId);
     stream->ReadValue(entry->player);
     stream->ReadValue(entry->money);
-    int count = ReadAs<int>(stream);
-    for (int i = 0; i < count; ++i) {
-        int id = ReadAs<int>(stream);
-        Item* object = FindItem(g_serverWorld.itemManager.get(), id);
+    for (int count = stream->ReadCount(); count > 0; --count) {
+        Item* object = FindItem(g_serverWorld.itemManager.get(), stream->ReadId());
         if (object) entry->objects.emplace_back(object);
     }
 }

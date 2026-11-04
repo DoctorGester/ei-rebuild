@@ -238,7 +238,7 @@ void Behaviour::Write(ByteStream* stream) const {
     std::uint32_t value;
     for (const void* field : std::initializer_list<const void*>{&loop, &flags, &guardRadius, &alarmKind, &enabled,
                                                                  &callRadius}) {
-        lib::LoadBytes(value, field);
+        value = lib::Load<std::uint32_t>(field);
         StreamWrite(stream, &value, 4);
     }
     StreamWrite(stream, &alertMode, 4);

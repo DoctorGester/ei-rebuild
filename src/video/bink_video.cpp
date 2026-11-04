@@ -6,6 +6,8 @@
 // independent decoder (docs/notes/sound.md, "Movies").
 #include "video/bink_video.h"
 
+#include "lib/bytes.h"
+
 #include "video/bink_tables.h"
 #include "video/bit_reader.h"
 
@@ -638,11 +640,6 @@ void Allocate(Plane& plane, int width, int height) {
     plane.pixels.assign(static_cast<std::size_t>(plane.stride) * plane.height, 0);
 }
 
-std::uint32_t Read32(const std::uint8_t* p) {
-    return static_cast<std::uint32_t>(p[0]) | static_cast<std::uint32_t>(p[1]) << 8 |
-           static_cast<std::uint32_t>(p[2]) << 16 | static_cast<std::uint32_t>(p[3]) << 24;
-}
-
 } // namespace
 
 VideoDecoder::VideoDecoder(int width, int height) {
@@ -657,7 +654,7 @@ void VideoDecoder::Decode(const std::uint8_t* packet, std::size_t size) {
     for (int i = 0; i < 3; ++i) std::swap(current[i], previous[i]);
     if (size < 4) return;
     // The luma's bytes (from this word on), then luma, V and U, each from a word of its own.
-    const std::size_t lumaBytes = std::min<std::size_t>(Read32(packet), size);
+    const std::size_t lumaBytes = std::min<std::size_t>(lib::Load<std::uint32_t>(packet), size);
     std::size_t at = 4;
     for (int i : {0, 2, 1}) {
         const std::size_t start = std::min(at, size);

@@ -568,16 +568,11 @@ void UnitMotion::LimitSpeeds(float rate) {
 
 void UnitMotion::LoadState(ByteStream* stream) {
     segment = -1;
-    // Each count is read into its argument slot: a failed read leaves the stream pointer.
-    int count = 0;
-    stream->ReadValue(count);
-    points.resize(count);
+    points.resize(stream->ReadCount());
     for (int i = 0; i < std::ssize(points); ++i) stream->ReadValue(points[i]);
-    stream->ReadValue(count);
-    waypoints.resize(count);
+    waypoints.resize(stream->ReadCount());
     for (int i = 0; i < std::ssize(waypoints); ++i) stream->ReadValue(waypoints[i]);
-    stream->ReadValue(count);
-    stepSpeeds.resize(count);
+    stepSpeeds.resize(stream->ReadCount());
     for (float& step : stepSpeeds) stream->ReadValue(step);
     stream->ReadValue(speedScale);
     stream->ReadValue(baseTurnRate);
@@ -587,14 +582,11 @@ void UnitMotion::LoadState(ByteStream* stream) {
 }
 
 void UnitMotion::SaveState(ByteStream* stream) {
-    int count = lib::Count(points);
-    stream->WriteValue(count);
+    stream->WriteCount(points.size());
     for (int i = 0; i < std::ssize(points); ++i) stream->WriteValue(points[i]);
-    count = lib::Count(waypoints);
-    stream->WriteValue(count);
+    stream->WriteCount(waypoints.size());
     for (int i = 0; i < std::ssize(waypoints); ++i) stream->WriteValue(waypoints[i]);
-    count = lib::Count(stepSpeeds);
-    stream->WriteValue(count);
+    stream->WriteCount(stepSpeeds.size());
     for (const float& step : stepSpeeds) stream->WriteValue(step);
     // Copied bit for bit.
     const float* const fields[] = {&speedScale, &baseTurnRate, &turnRate, &startAngle, &turn};

@@ -312,15 +312,10 @@ void Interface3D::LoadState(ByteStream* stream) {
     if (Version(stream) < kVersionFastGame) return;
     stream->ReadValue(fastGame);
     if (Version(stream) < kVersionInterfaceList) return;
-    // An obsolete list: each name and value read and dropped (the last name is kept until the end, like
-    // the original's local string).
-    std::string last;
-    int count;
-    stream->ReadValue(count);
-    for (int i = 0; i < count; ++i) {
-        last = stream->ReadString();
-        int value;
-        stream->ReadValue(value);
+    // An obsolete list: each name and four-byte value read and dropped.
+    for (int count = stream->ReadCount(); count > 0; --count) {
+        stream->ReadString();
+        stream->Skip(4);
     }
     messageText = stream->ReadString();
     if (Version(stream) >= kVersionMessageFlag) {

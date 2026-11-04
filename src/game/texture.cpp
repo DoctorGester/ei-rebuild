@@ -209,7 +209,7 @@ Texture::~Texture() {
 TextureManager* Texture::Manager() const { return ClientWorld()->textureManager.get(); }
 
 MmpFile::MmpFile(void* file) : data(file) {
-    if (file) lib::LoadBytes(header, file);
+    if (file) header = lib::Load<MmpHeader>(file);
 }
 
 MmpFile TextureManager::GetFileData(std::string_view name) { return MmpFile(GetFile(name, nullptr)); }

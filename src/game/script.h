@@ -289,8 +289,6 @@ public:
     T* get() const { return object; }
     T* operator->() const { return object; }
     explicit operator bool() const { return object != nullptr; }
-    // The object's id as the savers write it (-1: none).
-    int SavedId() const { return object ? object->id : -1; }
 
 private:
     T* object = nullptr;

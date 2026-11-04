@@ -127,8 +127,7 @@ int WorldServer::SyncPlayer(Player* player) {
             state->SendTime(clock.hours, clock.speed);
         }
         if (player->dirty & PlayerDirty::Wind) {
-            Vector3 direction;
-            lib::LoadBytes(direction, windDirection);
+            Vector3 direction = lib::Load<Vector3>(windDirection);
             state->SendWind(direction.x, direction.y, direction.z, std::bit_cast<float>(windStrength));
         }
         if (player->dirty & PlayerDirty::Countdowns) state->SendCountdowns(&countdowns);

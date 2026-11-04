@@ -150,29 +150,22 @@ void SSCCmd::Clear() {
 
 void SSCCmd::Save(ByteStream* stream) const {
     stream->WriteValue(id);
-    int count = static_cast<int>(floatArgs.size());
-    stream->WriteValue(count);
+    stream->WriteCount(floatArgs.size());
     for (const float& value : floatArgs) stream->WriteValue(value);
 
-    count = static_cast<int>(stringArgs.size());
-    stream->WriteValue(count);
+    stream->WriteCount(stringArgs.size());
     for (const std::string& text : stringArgs) stream->WriteString(text);
 
     // Object and group arguments are only counted: they are re-bound on load.
-    count = static_cast<int>(objectArgs.size());
-    stream->WriteValue(count);
-    count = static_cast<int>(groupArgs.size());
-    stream->WriteValue(count);
+    stream->WriteCount(objectArgs.size());
+    stream->WriteCount(groupArgs.size());
 
-    count = static_cast<int>(localBindings.size());
-    stream->WriteValue(count);
+    stream->WriteCount(localBindings.size());
     for (const ScriptBinding& binding : localBindings) stream->WriteValue(binding);
-    count = static_cast<int>(globalBindings.size());
-    stream->WriteValue(count);
+    stream->WriteCount(globalBindings.size());
     for (const ScriptBinding& binding : globalBindings) stream->WriteValue(binding);
 
-    count = static_cast<int>(subCalls.size());
-    stream->WriteValue(count);
+    stream->WriteCount(subCalls.size());
     for (const ScriptSubCall& call : subCalls) {
         stream->WriteValue(call.type);
         stream->WriteValue(call.argIndex);

@@ -6,6 +6,7 @@
 // plays them; without a device (UseNoDevice, or none could be opened) as fast as they would play on the game's clock.
 #include "audio.h"
 
+#include "lib/bytes.h"
 #include "lib/maths.h"
 #include "platform/log.h"
 
@@ -45,12 +46,6 @@ struct Mp3Layout {
 
 namespace {
 
-std::uint32_t Read32(const std::uint8_t* p) {
-    return static_cast<std::uint32_t>(p[0]) | static_cast<std::uint32_t>(p[1]) << 8 |
-           static_cast<std::uint32_t>(p[2]) << 16 | static_cast<std::uint32_t>(p[3]) << 24;
-}
-std::uint16_t Read16(const std::uint8_t* p) { return static_cast<std::uint16_t>(p[0] | p[1] << 8); }
-
 // The chunks a wave can have before its data are short; a size past this is not a wave.
 constexpr std::uint32_t kLongestHeader = 1u << 20;
 
@@ -74,18 +69,18 @@ WaveInfo ReadWaveInfo(const void* wave, std::size_t size) {
     bool fact = false;
     for (std::uint64_t at = 12; at + 8 <= size && at < kLongestHeader;) {
         const std::uint8_t* chunk = p + at;
-        const std::uint32_t length = Read32(chunk + 4);
+        const std::uint32_t length = lib::Load<std::uint32_t>(chunk + 4);
         const std::uint64_t body = at + 8;
         if (std::memcmp(chunk, "fmt ", 4) == 0) {
             if (body + 16 > size) break;
-            info.format = Read16(chunk + 8);
-            info.channels = Read16(chunk + 10);
-            info.rate = Read32(chunk + 12);
-            info.blockSize = Read16(chunk + 20);
-            info.bits = Read16(chunk + 22);
+            info.format = lib::Load<std::uint16_t>(chunk + 8);
+            info.channels = lib::Load<std::uint16_t>(chunk + 10);
+            info.rate = lib::Load<std::uint32_t>(chunk + 12);
+            info.blockSize = lib::Load<std::uint16_t>(chunk + 20);
+            info.bits = lib::Load<std::uint16_t>(chunk + 22);
         } else if (std::memcmp(chunk, "fact", 4) == 0) {
             if (body + 4 > size) break;
-            info.samples = Read32(chunk + 8);
+            info.samples = lib::Load<std::uint32_t>(chunk + 8);
             fact = true;
         } else if (std::memcmp(chunk, "data", 4) == 0) {
             info.dataLength = static_cast<std::uint32_t>(std::min<std::uint64_t>(length, size - body));
@@ -1255,36 +1250,28 @@ void RewindMp3(Mp3Stream* mp3) {
 }
 
 namespace {
-void Put16(std::uint8_t* p, unsigned v) {
-    p[0] = static_cast<std::uint8_t>(v);
-    p[1] = static_cast<std::uint8_t>(v >> 8);
-}
-void Put32(std::uint8_t* p, std::uint32_t v) {
-    Put16(p, v & 0xFFFF);
-    Put16(p + 2, v >> 16);
-}
 void PutTag(std::uint8_t* p, std::string_view tag) { std::copy(tag.begin(), tag.end(), p); }
 } // namespace
 
 bool DecodeMp3File(const void* data, std::size_t size, std::vector<std::uint8_t>* wave) {
     const Mp3Layout layout = ScanMp3(data, size);
     if (layout.frames == 0) return false;
-    const unsigned frameBytes = static_cast<unsigned>(layout.channels) * 2;
+    const unsigned frameBytes = static_cast<std::uint16_t>(layout.channels) * 2;
     const std::uint32_t dataBytes = layout.samples * frameBytes;
     wave->assign(44 + static_cast<std::size_t>(dataBytes), 0);
     std::uint8_t* p = wave->data();
     PutTag(p, "RIFF");
-    Put32(p + 4, 36 + dataBytes);
+    lib::Store<std::uint32_t>(p + 4, 36 + dataBytes);
     PutTag(p + 8, "WAVEfmt ");
-    Put32(p + 16, 16);
-    Put16(p + 20, static_cast<unsigned>(kPcm));
-    Put16(p + 22, static_cast<unsigned>(layout.channels));
-    Put32(p + 24, layout.rate);
-    Put32(p + 28, layout.rate * frameBytes);
-    Put16(p + 32, frameBytes);
-    Put16(p + 34, 16);
+    lib::Store<std::uint32_t>(p + 16, 16);
+    lib::Store<std::uint16_t>(p + 20, static_cast<std::uint16_t>(kPcm));
+    lib::Store<std::uint16_t>(p + 22, static_cast<std::uint16_t>(layout.channels));
+    lib::Store<std::uint32_t>(p + 24, layout.rate);
+    lib::Store<std::uint32_t>(p + 28, layout.rate * frameBytes);
+    lib::Store<std::uint16_t>(p + 32, static_cast<std::uint16_t>(frameBytes));
+    lib::Store<std::uint16_t>(p + 34, 16);
     PutTag(p + 36, "data");
-    Put32(p + 40, dataBytes);
+    lib::Store<std::uint32_t>(p + 40, dataBytes);
     // Every whole frame's samples, as the original's decoder gave: what dr_mp3 decodes, cut or padded with silence to
     // that count.
     const Mp3Decoder decoder = OpenMp3Decoder(data, size, layout);
