@@ -7390,6 +7390,13 @@ model = "opus"
 note = "User 2026-11-04: many tooltips have an empty row under the text. N2's TextExtent gave an empty text the font's height; GDI's GetTextExtentPoint32 gives 0 x 0 (checked), and UiTooltip measures the empty line after a text's final line break that way (the original added nothing for it). Fixed in render_text.cpp TextExtent."
 
 [[ticket]]
+id = "R17c3"
+title = "Units sheltered from rain and snow: a roof test and a per-unit wetness"
+group = "renderer"
+depends = ["R17c2"]
+note = "R17c2 left the units on the world's weather state: neither the sun shadow map (cast along the sun, not straight up) nor the screen's occlusion tells a roof over a unit. A small top-down depth map of the casters around the camera (or a ray up against the casters' boxes per unit, on the client) would tell it; then a client-only per-unit wetness / snow (wets over time out of shelter, dries under one; renderer.md 11b, Units)."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
