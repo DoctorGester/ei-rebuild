@@ -20,6 +20,10 @@ using namespace detail;
 SceneLightParams g_params = {{0.0f, 0.0f, -1.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 0.0f}, {0.5f, 0.5f, 0.5f, 0.0f}};
 // Per kept point light: it casts point shadows (ScenePointLight::shadows).
 bool g_shadows[kMostSceneLights] = {};
+// The daylight colours (SceneLights::daySunColour, dayAmbientColour): until the first hand-over the sun's and the
+// ambient light's above.
+float g_daySunColour[3] = {1.0f, 1.0f, 1.0f};
+float g_dayAmbientColour[3] = {0.5f, 0.5f, 0.5f};
 double g_clientTicks = 0.0;
 
 } // namespace
@@ -33,6 +37,8 @@ void SceneLighting(const SceneLights& lights) {
         p.sun[k] = length > 1e-09f ? sun[k] / length : (k == 2 ? -1.0f : 0.0f);
         p.sunColour[k] = lights.sunColour[k];
         p.ambient[k] = lights.ambientColour[k];
+        g_daySunColour[k] = lights.daySunColour[k];
+        g_dayAmbientColour[k] = lights.dayAmbientColour[k];
     }
     p.camera[0] = lights.camera.x;
     p.camera[1] = lights.camera.y;
@@ -148,6 +154,8 @@ void GroundDecalLight(const Frame& frame, const float box[6], MeshLightParams* p
         p.sunColour[k] = scene.sunColour[k];
         p.ambient[k] = scene.ambient[k];
         p.mapSun[k] = scene.mapSun[k];
+        p.daySunColour[k] = g_daySunColour[k];
+        p.dayAmbient[k] = g_dayAmbientColour[k];
     }
     // The lights that reach the box's sphere, the nearest to their reach first.
     const Vector3 low{box[0], box[1], box[2]}, high{box[3], box[4], box[5]};

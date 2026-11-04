@@ -1,12 +1,13 @@
 # R52: ground prints in the shadows (docs/notes/renderer.md section 13, item 10). Blood splats, footprints and scorch
 # marks are flat geometry laid on the ground (ground_print.cpp) and blended over it; they took none of the shadows,
 # so a blood splat under a tree showed sunlit on the darkened ground. Now they are darkened as the ground under them
-# (the sun map, the clouds, the point shadows; mesh.hlsl's ground_shade). In gz2g's forest at noon eight wolves die
-# around the hero (their death blood) and are taken off the map; frozen: the frame and the shadow alone ("shadowview
+# (the sun map, the clouds, the point shadows; mesh.hlsl's ground_shade). In gz2g's forest at noon the hero walks
+# (footprints) and eight wolves die around him (their death blood) and are taken off the map; frozen: the frame and the shadow alone ("shadowview
 # on": white lit, black fully shadowed), each with the prints and without them ("decals off"). shadowcheck requires
 # every print to sample the map; the shadow alone with the prints matches it without them (a print shows the
 # ground's shade, not its own colour: before the fix the blood showed red there), while the frames differ (the
-# prints are drawn). Then the same at night under a point light.
+# prints are drawn; printlight: their brightness over the ground's under them). Then at night, and at night under a
+# point light.
 render checkall
 msaa 8
 timeout 120
@@ -25,6 +26,10 @@ console @FixWorldTime(12)
 console @GodMode(0,1)
 console @GSSetVar(0,"hx",GetX(GetLeader()))
 console @GSSetVar(0,"hy",GetY(GetLeader()))
+console @MoveToPoint(GetLeader(),Add(GSGetVar(0,"hx"),6),GSGetVar(0,"hy"))
+waitfor 20 IsGreater(GetX(GetLeader()),Add(GSGetVar(0,"hx"),5))
+console @MoveToPoint(GetLeader(),GSGetVar(0,"hx"),GSGetVar(0,"hy"))
+waitfor 20 IsLess(GetX(GetLeader()),Add(GSGetVar(0,"hx"),1))
 console @AddUnitToServer("D1","WolfTutor","D1",Add(GSGetVar(0,"hx"),4),GSGetVar(0,"hy"),0)
 console @AddUnitToServer("D2","WolfTutor","D2",Sub(GSGetVar(0,"hx"),4),GSGetVar(0,"hy"),0)
 console @AddUnitToServer("D3","WolfTutor","D3",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),4),0)
@@ -67,13 +72,12 @@ decals on
 unfreeze
 samecapture decals_view bare_view 24 0.0005
 diffcapture decals bare 0.002 0.2
+printlight decals bare 1.0 1.13
 
-# At night with a script point light right of the hero (render_shadows_trees' light): the prints in the light's
-# point shadows lose its light as the ground does. Frames only.
+# At night (R52a): the prints are lit as the ground under them, so they stand against it as by day (printlight: their
+# brightness over the ground's under them). The game's own colours are unlit: white footprints and scorch marks,
+# blood re-lit with a grey every 10 s.
 console @FixWorldTime(1)
-console @CreatePointLight(7,Add(GetX(GetLeader()),3),Sub(GetY(GetLeader()),1),Add(GetZ(GetLeader()),2),12,255,230,180)
-wait 3000
-move 400 20
 frames 5
 freeze
 capture night
@@ -81,5 +85,21 @@ decals off
 capture night_bare
 decals on
 unfreeze
+printlight night night_bare 0.95 1.2
+
+# With a script point light right of the hero (render_shadows_trees' light): the prints take its light as the ground
+# does (before R52a the blood kept its last re-lighting's grey: 0.87, darker than by day), and in its point shadows
+# lose it as the ground does.
+console @CreatePointLight(7,Add(GetX(GetLeader()),3),Sub(GetY(GetLeader()),1),Add(GetZ(GetLeader()),2),12,255,230,180)
+wait 3000
+move 400 20
+frames 5
+freeze
+capture lamp
+decals off
+capture lamp_bare
+decals on
+unfreeze
+printlight lamp lamp_bare 0.95 1.2
 report
 quit

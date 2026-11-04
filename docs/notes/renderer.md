@@ -811,14 +811,24 @@ passes) and the ground prints sample it (`shaders/shadow_receiver.hlsli`) and da
   blood splat in a tree's shadow showed sunlit (the old game drew its shadow decals over the prints). A print is
   darkened as the ground under it: mesh.hlsl's `ground_shade` works the ground's light at the pixel as ground_light
   does on dry ground (no material colour, all of the ambient light; the face normal turned up) with the shadows and
-  without them, and multiplies the print by their ratio per channel. Its light (`GroundDecalLight`, in the mesh
+  without them, and multiplies the print by the first over the second per channel. Prints follow the time of day
+  (R52a): the game's print colour is unlit (white footprints and scorch marks; blood a grey of the brightest of the
+  sun's luminance and the lights reaching it, re-lit only every 10 s), so footprints and scorch marks stayed white at
+  night, and blood kept the last grey for up to 10 s (dark under a lamp lit since, bright after nightfall); the
+  grey also ignored the night's blue. A print is drawn in its
+  colour under the daylight colours (`GroundPrint::DayColour`; `WorldClient::DaylightColours`: the light table's noon,
+  a cave's hour 0, handed over in SceneLights) and the second light is at least the ground's light in the daylight
+  colours (the same sun direction and normal): at noon, and all day where the table's sun is white (every zone's from
+  7 to 17), a print looks as in the game; at night it is as dark against its ground as by day, at dawn it takes the
+  ground's tint, under a lamp at night the lamp's light. Its light (`GroundDecalLight`, in the mesh
   shader's MeshLightParams with `on` y 1, as SDL_GPU's four uniform slots per stage are taken): the scene's sun,
   ambient and the 8 point lights nearest its box that reach it, with their point shadows, and the map's light
   (`mapSun`); its positions are the landscape's (identity landscape rows), its map lookup lifted along the
   landscape's up (no vertex normals). No weather on prints. The selection marker stays unshaded (the old game drew it
   after the shadows; it is a mark of the interface). Check: render_shadows_decals (shadowcheck: every print samples
   the map; with `shadowview on` the frame with the prints matches it without them, `decals off`, while the frames
-  differ; then at night under a point light).
+  differ; then at night under a point light; `printlight`: the prints' brightness over the ground's under them, by
+  day and at night).
 - **Soft edges** (PCSS, contact-hardening; the user wanted the old decals' softness). After the casters two small passes
   make the map's depth range per 16 x 16-texel cell (`shaders/shadow_reduce.hlsl`: nearest and farthest texel;
   `shadow_dilate.hlsl`: the same over the cells within the widest filter's reach and one cell more, plus the cell's own
@@ -1593,10 +1603,11 @@ compares from the unit's nearest distance to the light, on every face; any other
 
 ### shaders/mesh.hlsl: ground_shade
 
-A ground print's share of its light the shadows leave, per channel (section 13, item 10, "Ground prints"): the
-ground's light at the point `p` with the normal `n` as ground_light works it on dry ground (`m` and `mp` 0, `loss` 0,
-`occlusion` 1), once with `hidden` and the point shadows and once without, the first over the second (1 where the
-second is black). The lights are MeshLightParams' (GroundDecalLight): the scene's in the landscape's space.
+A ground print's light, per channel (section 13, item 10, "Ground prints"): the ground's light at the point `p` with
+the normal `n` as ground_light works it on dry ground (`m` and `mp` 0, `loss` 0, `occlusion` 1), once with `hidden`
+and the point shadows and once without, the first over the larger of the second and the same ground's light in the
+daylight colours (`daySunColour`, `dayAmbient`; the sun's direction of now), at most 1 (1 where that is black). The
+lights are MeshLightParams' (GroundDecalLight): the scene's in the landscape's space.
 
 ### shaders/scene_lighting.hlsli: ground_light
 

@@ -394,6 +394,41 @@ bool MeanColour(const char* name, int left, int top, int right, int bottom, doub
     return true;
 }
 
+bool DrawnOver(const char* with, const char* without, int tolerance, double over[3], double under[3], double* share,
+               const char** why) {
+    Image ia, ib;
+    if (!ReadBmp(with, ia) || !ReadBmp(without, ib)) {
+        *why = "a frame is missing or unreadable";
+        return false;
+    }
+    if (ia.width != ib.width || ia.height != ib.height) {
+        *why = "the frames differ in size";
+        return false;
+    }
+    unsigned long long sumOver[3] = {}, sumUnder[3] = {};
+    long long count = 0;
+    for (std::size_t i = 0; i < ia.bgr.size(); i += 3) {
+        int d = 0;
+        for (int c = 0; c < 3; ++c) d = (std::max)(d, std::abs(ia.bgr[i + c] - ib.bgr[i + c]));
+        if (d <= tolerance) continue;
+        ++count;
+        for (int c = 0; c < 3; ++c) {
+            sumOver[c] += ia.bgr[i + c];
+            sumUnder[c] += ib.bgr[i + c];
+        }
+    }
+    if (count == 0) {
+        *why = "no pixel differs";
+        return false;
+    }
+    for (int c = 0; c < 3; ++c) {
+        over[c] = static_cast<double>(sumOver[c]) / static_cast<double>(count);
+        under[c] = static_cast<double>(sumUnder[c]) / static_cast<double>(count);
+    }
+    *share = static_cast<double>(count) / (static_cast<double>(ia.width) * ia.height);
+    return true;
+}
+
 bool CompareFile(const char* path, const char* frame, int tolerance, double* differing, int* largest, std::string* how,
                  const char** why) {
     Image shot, captured;

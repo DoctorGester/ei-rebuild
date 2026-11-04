@@ -227,6 +227,14 @@ void HandOverSceneLights(WorldClient* world) {
     s.ambientColour[0] = world->frameAmbient.r;
     s.ambientColour[1] = world->frameAmbient.g;
     s.ambientColour[2] = world->frameAmbient.b;
+    LightColour daySun, dayAmbient;
+    world->DaylightColours(&daySun, &dayAmbient);
+    s.daySunColour[0] = daySun.r;
+    s.daySunColour[1] = daySun.g;
+    s.daySunColour[2] = daySun.b;
+    s.dayAmbientColour[0] = dayAmbient.r;
+    s.dayAmbientColour[1] = dayAmbient.g;
+    s.dayAmbientColour[2] = dayAmbient.b;
     if (world->camera) s.camera = camera::FrameView().position;
     s.points = points.data();
     s.pointCount = static_cast<int>(points.size());

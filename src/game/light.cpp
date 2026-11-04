@@ -122,14 +122,13 @@ EngineObject* LightFactory::CreateObject(int newType, int newId) {
 const char* LightFactory::ClassName() { return "CLightManager"; }
 ClassId LightFactory::GetClassId() { return ClassId::LightFactory; }
 
+float Light::Luminance(const float colour[3]) {
+    return colour[2] * kLumaBlue + colour[1] * kLumaGreen + colour[0] * kLumaRed;
+}
+
 float Light::GetIntensityAt(const Vector3& point) {
-    if (type != kLightPoint) {
-        return color[2] * kLumaBlue + color[1] * kLumaGreen + color[0] * kLumaRed;
-    }
+    if (type != kLightPoint) return Luminance(color);
     float distanceSquared = LengthSquared(point - localPosition);
-    if (distanceSquared < rangeSquared) {
-        return (color[2] * kLumaBlue + color[1] * kLumaGreen + color[0] * kLumaRed) *
-               (1.0f - distanceSquared * inverseRangeSquared);
-    }
+    if (distanceSquared < rangeSquared) return Luminance(color) * (1.0f - distanceSquared * inverseRangeSquared);
     return 0.0f;
 }

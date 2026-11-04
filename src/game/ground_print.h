@@ -50,9 +50,13 @@ public:
 
     // Draws the print when visible: the first time, lays the quad on the ground (z from the client world's
     // ground and platforms; the projector clips it to the terrain and the platforms under it) and turns its
-    // texture coordinates; then the flat draw with the colour's alpha from alpha and the lit flag as the
-    // specular alpha. Returns 1 when not visible, else the draw's result.
+    // texture coordinates; then the flat draw in DayColour with the colour's alpha from alpha and the lit flag as
+    // the specular alpha (the renderer lights it as the ground under it). Returns 1 when not visible, else the
+    // draw's result.
     int Draw();
+    // The print's colour in the client world's daylight colours (WorldClient::DaylightColours), rgb: its colour
+    // (white).
+    virtual std::uint32_t DayColour() const;
 
 protected:
     // The members the three constructors share before their own parts: everything cleared, the
@@ -77,7 +81,7 @@ public:
     std::uint8_t lit;               // the terrain's point test; the specular alpha
     float alpha;
     float alphaScale;
-    std::uint32_t colour;           // its alpha byte is set from alpha every draw
+    std::uint32_t colour;           // its alpha byte is set from alpha every draw; saved (drawn: DayColour)
     int lifetime;
     std::vector<VertexPacket> positions;      // the ground geometry (blocks of four)
     std::vector<TexCoord> texCoords;     // one per vertex
@@ -111,6 +115,9 @@ public:
     // While spreading (spreadTicks counts down) the geometry is made again every
     // tick, after that the growth stops; the angle turns by spin; then GroundPrint's tick.
     int Tick() override;
+    // The grey the client world's re-lighting (Segment) gives it in the daylight sun; its colour (the sun's at
+    // its making, then that grey by the light of the moment) is only saved.
+    std::uint32_t DayColour() const override;
     void Load(ByteStream* stream) override;   // GroundPrint's, then spin, spread, kind, fresh
     void Save(ByteStream* stream) override;
 

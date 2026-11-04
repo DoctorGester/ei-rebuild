@@ -417,6 +417,8 @@ class Light : public TransformObject {
 public:
     // Luminance of the colour, falling off with the squared distance for point lights.
     float GetIntensityAt(const Vector3& point);
+    // The luminance GetIntensityAt takes of an r, g, b colour.
+    static float Luminance(const float colour[3]);
 
     // The range is sqrt(FLT_MAX).
     Light();
