@@ -6560,6 +6560,13 @@ depends = ["H51c"]
 note = "Found in H51c: on the stub set render_water fails its own diffcapture water_shore water_shore_later: 0.9893% of the pixels differ against at least 1.0% (the install passes; vanilla). The textures of the shore (ground or water) are blank; find which ones by keeping or painting candidates as H51b/H51c did, keep the pack near 80 MB."
 
 [[ticket]]
+id = "H55"
+title = "compiler_cache.py: skip a port in a Windows excluded range"
+group = "harness"
+model = "sonnet"
+note = "Found by R19b (2026-11-04): in its worktree the release build's compiler-cache port (49841, tools/compiler_cache.py's crc32 port choice) fell inside a Windows excluded port range (49808-49907, netsh int ipv4 show excludedportrange), so sccache could not start and every compile failed even with SCCACHE_IGNORE_SERVER_IO_ERROR; the worker built with EI_COMPILER_CACHE=0. Make the port choice step past ports that fail to bind (WSAEACCES 10013) or sit in an excluded range, deterministically per worktree. Test: a unit test of the port choice with a fake excluded range."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"
