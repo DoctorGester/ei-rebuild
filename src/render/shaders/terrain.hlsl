@@ -227,10 +227,10 @@ float3 wet_ground(float3 c, VsOut i, float3 n, GroundWeather g, float hidden, fl
 // (alpha `opacity`, the material's) seen through small ripples, more opaque and darker with the depth, the sky and
 // the sun reflected by the rippled normal, and foam where the depth runs out at the shore; it fades in from the shore
 // line; in the rain (`rain`: the drops' share where it falls, none under a roof) the drops' rings and splashes and a
-// rougher surface. A swamp is still standing water: a dark
-// olive-brown body, opaque but at its very edge, faint slow ripples, a glossy sheen of the sky and the sun, sparse scum
-// in place of the foam (and a muddy rim on the ground: ground_weather); lava keeps the game's look. `clouded`: the
-// share of the sun the clouds hide, `footprint` the landscape units a pixel spans.
+// rougher surface. A swamp is still standing water: a dark olive-brown body, opaque but at its very edge, faint slow
+// ripples, a glossy sheen of the sky and the sun, sparse scum in place of the foam (and a muddy rim on the ground:
+// ground_weather); lava keeps the game's look. `clouded`: the share of the sun the clouds hide, `footprint` the
+// landscape units a pixel spans.
 static const float kRippleScaleA = 1.0 / 9.0;    // the ripple map's repeats per landscape unit, layer A
 static const float kRippleScaleB = 1.0 / 5.0;    // layer B, turned against A
 static const float kRippleSlope = 0.15;          // the slope at the map's steepest texel
