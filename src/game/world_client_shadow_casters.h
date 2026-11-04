@@ -8,8 +8,9 @@ class WorldClient;
 // shadow map (render::ShadowCasterMesh). Reads the game's objects only.
 void HandOverOutsideCasters(WorldClient* world);
 
-// The frame's light for the GPU lighting (render::SceneLighting), after UpdateLighting: the sun
-// (direction, colour), the frame's ambient colour and the landscape's point lights. Reads only.
+// The frame's light for the GPU lighting (render::SceneLighting), after UpdateLighting and the objects' placement
+// (DrawPass's CollectVisible): the sun (direction, colour), the frame's ambient colour and the landscape's point
+// lights where the draw shows them (drawn::LightPosition). Reads only the game's state.
 void HandOverSceneLights(WorldClient* world);
 
 // After the ground's draws, with the landscape's sun shadows on (flag 0x10): the loaded sectors

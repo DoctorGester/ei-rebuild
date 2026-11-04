@@ -26,9 +26,11 @@
 // The objects' drawn motion (drawn::PoseOf, R19; renderer.md section 14, "Objects") the same way, sampled after
 // each frame's draw (the main loop's frame step, taken over for this: TracedFrameStep):
 //   objtrace start <who> [part|-] [log]
-//                             follow `who` ("leader", a script name, or "arrow": the first bow arrow in flight,
-//                             then that one until it is gone) or its part's place in the figure (e.g. "rh3", the
-//                             right hand: the pose alone, its blends); with "log" each frame's places go to the
+//                             follow `who` ("leader", a script name, "arrow": the first bow arrow in flight,
+//                             then that one until it is gone, or "spelllight": the first moving point light
+//                             effect, a spell's or a missile's, likewise) or its part's place in the figure (e.g.
+//                             "rh3", the right hand: the pose alone, its blends) or "light", its own light (own: the
+//                             game's place, drawn: drawn::LightPosition); with "log" each frame's places go to the
 //                             log ("harness: objframe ...")
 //   objtrace stop <name>      keep the drawn place as <name> and the object's own as <name>.own (kinds pan:
 //                             the path on the map, turn: the yaw, height); camsame / camsteadier / camsmooth

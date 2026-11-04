@@ -160,6 +160,11 @@ int WorldClient::CollectVisible(MapObject* object, const Matrix4* view, float an
         Object3D* o3d = AsObject3D(object);
         drawn::Observe(o3d);
         const drawn::Pose shown = drawn::Show(o3d);
+        // An object's own light follows its drawn place (drawn::Carry; MapObjectClientSpecific::RunTick puts the
+        // game's there at each tick).
+        if (EngineObject* side = object->companion; side && side->GetClassId() == ClassId::MapObjectClientSpecific)
+            if (Light* light = object->ClientCompanion()->light)
+                drawn::Carry(light, shown.position + Vector3{0.0f, 0.0f, MapObjectClientSpecific::kLightHeight});
         float* matrix = o3d->worldMatrix.m;
         shown.rotation.ToMatrix(matrix);
         matrix[3] = shown.position.x;

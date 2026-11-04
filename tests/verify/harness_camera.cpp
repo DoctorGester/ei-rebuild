@@ -47,6 +47,7 @@ bool g_objectRecording = false;
 int g_objectId = 0;
 std::string g_objectPart;
 bool g_objectLost = false;
+bool g_objectLight = false;     // "spelllight": a point light effect, not an object
 bool g_logObjects = false;
 std::vector<Sample> g_objectSamples;      // the drawn place
 std::vector<Sample> g_objectOwnSamples;   // the object's own
@@ -123,7 +124,7 @@ Sample SampleOf(const image::ObjectPlace& place) { return Sample{place.x, place.
 void ObjectFrame() {
     if (!g_objectRecording || g_objectLost) return;
     image::ObjectState s;
-    if (!image::ClientObject(g_objectId, g_objectPart.c_str(), &s)) {
+    if (!(g_objectLight ? image::ClientLight(g_objectId, &s) : image::ClientObject(g_objectId, g_objectPart.c_str(), &s))) {
         if (!g_objectSamples.empty()) g_objectLost = true;
         return;
     }
@@ -154,10 +155,12 @@ void Step(const std::string& verb, const std::string& argument, std::vector<std:
         char what[16] = "", who[64] = "", part[32] = "", log[16] = "";
         std::sscanf(argument.c_str(), "%15s %63s %31s %15s", what, who, part, log);
         if (std::strcmp(what, "start") == 0 && who[0]) {
-            g_objectId = std::strcmp(who, "arrow") == 0    ? 0
+            g_objectLight = std::strcmp(who, "spelllight") == 0;
+            const bool first = g_objectLight || std::strcmp(who, "arrow") == 0;
+            g_objectId = first                                 ? 0
                          : std::strcmp(who, "leader") == 0 ? digest::LocalLeader()
                                                             : image::TextKey(who);
-            if (g_objectId < 0 || (g_objectId == 0 && std::strcmp(who, "arrow") != 0)) {
+            if (g_objectId < 0 || (g_objectId == 0 && !first)) {
                 failures->push_back(std::string("objtrace: no unit ") + who);
                 return;
             }

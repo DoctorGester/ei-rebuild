@@ -955,6 +955,29 @@ objects the server's updates move, a held unit (pathTimeShift 1, not placed on i
 - Lag: up to a tick's step; an arrow vanishes up to one step short of its target (it is removed in the tick it arrives,
   so the original never drew it there either).
 
+### Lights
+
+The lights an object carries move with what is drawn, not with their tick place (always on): `drawn::LightPosition`
+(drawn_motion.cpp) is the place the draw shows a light this pass; `Light::localPosition` stays the game's.
+- **Carried:** an object's own light (a party unit's at night, a quest light: `MapObjectClientSpecific::light`, which
+  RunTick puts kLightHeight above the object at each tick, so it stepped behind the unit drawn on its path) is drawn
+  kLightHeight above the object's drawn place: CollectVisible hands it over (`drawn::Carry`) right after `drawn::Show`.
+- **Free:** any other light (a spell's or a missile's EffectPointLight moving by its velocity each client tick, a
+  script's MovePointLight, a torch's) is drawn as an object moved in ticks: its own place less the part of its last tick's
+  step not reached (`Light::drawnStep`, the first look after a tick takes the step; one tick between looks, at most the
+  cut). None at the harness's default pass.
+- **Readers:** the GPU's point lights (`HandOverSceneLights`, the ground's and the point shadows') and the figure parts'
+  lights (`PartLighting`), which must agree to the bit: a mesh's light finds its point shadow by the scene light's place
+  (`SceneLightIndex`). So the scene's hand-over runs in DrawPass after the objects' placement (CollectVisible) and before
+  any mesh draw; the ground's draws read it when the frame is drawn. The game's own readers keep the game's place: which
+  lights reach an object (`InReach`, and with it the Static flag the digests read), the shadow sphere's light direction
+  (`FitShadowSphere`), the blood prints' grey, the map's light marks.
+- Check: `render_drawn_lights` (vanilla, 8 ms frames, zone1 at night): the hero walks with its light traced
+  (`objtrace start leader light`: drawn without a jump, own with one at each tick, and the light's largest drawn step at
+  most 1.1 of the unit's: 0.036 both; the game's place stepped 0.217 a tick), then a fireball's light and its blast's
+  rising one (`objtrace start spelllight`: drawn without a jump, largest step 0.097 against the own 0.667 in flight,
+  0.022 against 0.150 rising). A script cast's flight light stands at height 0 and lights nothing visible.
+
 ### Animation blends
 
 A switch from one animation to another (`FigureAnimationState::Play`, or SetTime passing into the next queued one)
@@ -998,8 +1021,9 @@ blends the pose last placed into the new one's (map_object_animation.cpp, figure
   visible and shadow lists, picking) must not reach the world's state.
 - Harness: `keydown` / `keyup` (a key held over frames), `frametime <ms>`, `mousedrag <dx> <dy>`, `camtrace` / `camsame` /
   `camsteadier` / `camsmooth` (tests/verify/harness_camera.h; kinds pan, turn, zoom, height, reach); `objtrace start <who>
-  [part|-] [log]` / `objtrace stop <name>` (an object's drawn and own place, or a part's place in the figure, after each
-  frame's draw; the same checks), `animblend on|off`.
+  [part|-] [log]` / `objtrace stop <name>` (an object's drawn and own place, or a part's place in the figure, or with
+  part `light` its own light's, or with who `spelllight` the first moving point light effect's, after each frame's
+  draw; the same checks), `animblend on|off`.
 
 ## 15. The performance overlay
 
