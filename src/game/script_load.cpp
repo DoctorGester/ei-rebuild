@@ -11,6 +11,8 @@
 #include "world.h"
 #include "save_versions.h"
 
+#include "lib/rounding.h"
+
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
@@ -133,7 +135,26 @@ void ScriptCall::Load(ByteStream* stream) {
     for (ScriptSubCall& call : subCalls) call.Load(stream);
 
     body = SavedScript()->FindBlock(stream->ReadAs<std::int32_t>());
-    if (!body && (id == kCmdFor || id == kCmdForIf)) Clear();
+    if (!body && (id == ScriptFunction::For || id == ScriptFunction::ForIf)) Clear();
+
+    // Assign / CallScript: the target out of its leading slots; the bindings and nested calls count past them.
+    const bool assign = id == ScriptFunction::Assign;
+    const bool callScript = id == ScriptFunction::CallScript;
+    if (!assign && !callScript) return;
+    const int leadFloats = assign ? 2 : 1;
+    const int leadTexts = callScript ? 1 : 0;
+    target = lib::Truncate(floatArgs[0]);
+    if (assign) targetType = static_cast<ScriptType>(lib::Truncate(floatArgs[1]) + 1);
+    else targetName = stringArgs[0];
+    floatArgs.erase(floatArgs.begin(), floatArgs.begin() + leadFloats);
+    stringArgs.erase(stringArgs.begin(), stringArgs.begin() + leadTexts);
+    auto argIndexPastLead = [&](ScriptType type, int* argIndex) {
+        if (type == kScriptFloat) *argIndex -= leadFloats;
+        else if (type == kScriptString) *argIndex -= leadTexts;
+    };
+    for (ScriptBinding& binding : localBindings) argIndexPastLead(binding.type, &binding.argIndex);
+    for (ScriptBinding& binding : globalBindings) argIndexPastLead(binding.type, &binding.argIndex);
+    for (ScriptSubCall& call : subCalls) argIndexPastLead(call.type, &call.argIndex);
 }
 
 void ScriptSubCall::Load(ByteStream* stream) {

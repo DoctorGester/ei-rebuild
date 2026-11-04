@@ -17,9 +17,6 @@ namespace scriptaddon {
 
 namespace {
 
-ScriptObjectRef* ObjectArg(Call* call, int i) { return call->cmd->objectArgs[i]; }
-
-
 // The filter of NearestUnit and UnitsNearPoint: units pass with flag 1,
 // other objects with flag 2, and with flag 4 any living object with a text-key id.
 bool PassesFilter(MapObject* object, bool units, bool others, bool living) {
@@ -39,7 +36,7 @@ void ForObjectsNear(float x, float y, float radius, Visit visit) {
 
 // A float field of the unit's data object, 0 and invalid arguments without one.
 bool DataField(Call* call, float UnitStats::* field, const char* function) {
-    auto* data = UnitData(ObjectArg(call, 0));
+    UnitServer* data = ScriptArgs(call->cmd).Object().ServerController();
     *call->result.number = 0.0f;
     if (!data) return InvalidArguments(function);
     *call->result.number = data->stats.*field;
@@ -58,7 +55,7 @@ void ForWorldObjects(Visit visit) {
 // The unit's party's player number; -1 without.
 bool GetPlayerOfUnit(Call* call) {
     *call->result.number = -1.0f;
-    MapObject* unit = ObjectArg(call, 0)->object;
+    MapObject* unit = ScriptArgs(call->cmd).Object().object;
     if (!unit) return Report("GetPlayerOfUnit", "Unit doesn't exists");
     Unit* asUnit = UnitOrNull(unit);
     if (!asUnit) return Report("GetPlayerOfUnit", "Object with ID %d must be a Unit", unit->id);
@@ -70,8 +67,9 @@ bool GetPlayerOfUnit(Call* call) {
 
 // GetUnitExp(unit, [what]): "max" (default), "spent", "penalty" or "real" (max + penalty).
 bool GetUnitExp(Call* call) {
-    auto* data = UnitData(ObjectArg(call, 0));
-    const char* what = std::ssize(call->cmd->stringArgs) == 0 ? "max" : call->cmd->stringArgs[0].c_str();
+    ScriptArgs args(call->cmd);
+    UnitServer* data = args.Object().ServerController();
+    const char* what = args.TextCount() == 0 ? "max" : args.Text().c_str();
     *call->result.number = 0.0f;
     if (!data) return InvalidArguments("GetUnitExp");
     float value;
@@ -94,10 +92,10 @@ bool GetUnitExp(Call* call) {
 // GetArmor(unit, kind, part): part 0..6; kind 0..5 sums the slot's three layers' absorb values for the part; a negative kind takes the part from the block
 // the unit's parameters compute.
 bool GetArmor(Call* call) {
-    auto* data = UnitData(ObjectArg(call, 0));
-    const float* f = call->cmd->floatArgs.data();
-    int kind = TruncateOrMin(f[0]);
-    int part = TruncateOrMin(f[1]);
+    ScriptArgs args(call->cmd);
+    UnitServer* data = args.Object().ServerController();
+    int kind = TruncateOrMin(args.Float());
+    int part = TruncateOrMin(args.Float());
     *call->result.number = 0.0f;
     if (static_cast<unsigned>(part) > 6 || kind > 5 || !data) return InvalidArguments("GetArmor");
     if (kind >= 0) {
@@ -116,9 +114,11 @@ bool GetArmor(Call* call) {
 // NearestUnit(x, y, radius, filter): the nearest object of the sector map's ones within radius
 // that passes the filter (strictly nearer each time).
 bool NearestUnit(Call* call) {
-    const float* f = call->cmd->floatArgs.data();
-    float x = f[0], y = f[1], radius = f[2];
-    int filter = lib::Truncate(f[3]);
+    ScriptArgs args(call->cmd);
+    float x = args.Float();
+    float y = args.Float();
+    float radius = args.Float();
+    int filter = lib::Truncate(args.Float());
     bool units = (filter & 1) != 0, others = ((filter >> 1) & 1) != 0, living = ((filter >> 2) & 1) != 0;
     MapObject* best = nullptr;
     ForObjectsNear(x, y, radius, [&](MapObject* object) {
@@ -137,9 +137,11 @@ bool NearestUnit(Call* call) {
 // UnitsNearPoint(x, y, radius, filter): every object of the sector map's ones within radius that
 // passes the filter.
 bool UnitsNearPoint(Call* call) {
-    const float* f = call->cmd->floatArgs.data();
-    float x = f[0], y = f[1], radius = f[2];
-    int filter = lib::Truncate(f[3]);
+    ScriptArgs args(call->cmd);
+    float x = args.Float();
+    float y = args.Float();
+    float radius = args.Float();
+    int filter = lib::Truncate(args.Float());
     bool units = (filter & 1) != 0, others = ((filter >> 1) & 1) != 0, living = ((filter >> 2) & 1) != 0;
     call->GroupResult()->Clear();
     ForObjectsNear(x, y, radius, [&](MapObject* object) {
@@ -151,7 +153,7 @@ bool UnitsNearPoint(Call* call) {
 // A member of the group, by the game generator's next value modulo its size (an empty group
 // leaves the result empty).
 bool RandObj(Call* call) {
-    ScriptGroup* group = call->cmd->groupArgs[0];
+    ScriptGroup* group = ScriptArgs(call->cmd).Group();
     if (!group->empty()) {
         std::uint32_t index = g_random.Next() % static_cast<std::uint32_t>(group->size());
         *call->ObjectResult() = (*group)[index];
@@ -160,7 +162,7 @@ bool RandObj(Call* call) {
 }
 
 bool PlayerExists(Call* call) {
-    *call->result.number = ScriptBool(g_serverWorld.GetPlayer(TruncateOrMin(call->cmd->floatArgs[0])) != nullptr);
+    *call->result.number = ScriptBool(g_serverWorld.GetPlayer(TruncateOrMin(ScriptArgs(call->cmd).Float())) != nullptr);
     return true;
 }
 
@@ -174,8 +176,9 @@ bool GetMaxEncumbrance(Call* call) { return DataField(call, &UnitStats::capacity
 
 // GetSkill(unit, name): a skill byte of the unit's data.
 bool GetSkill(Call* call) {
-    auto* data = UnitData(ObjectArg(call, 0));
-    const char* name = call->cmd->stringArgs[0].c_str();
+    ScriptArgs args(call->cmd);
+    UnitServer* data = args.Object().ServerController();
+    const char* name = args.Text().c_str();
     *call->result.number = 0.0f;
     if (!data) return InvalidArguments("GetSkill");
     static const struct {
@@ -194,8 +197,9 @@ bool GetSkill(Call* call) {
 
 // GetPerk(unit, name): a perk byte of the unit's data.
 bool GetPerk(Call* call) {
-    auto* data = UnitData(ObjectArg(call, 0));
-    const char* name = call->cmd->stringArgs[0].c_str();
+    ScriptArgs args(call->cmd);
+    UnitServer* data = args.Object().ServerController();
+    const char* name = args.Text().c_str();
     *call->result.number = 0.0f;
     if (!data) return InvalidArguments("GetPerk");
     static const char* const kPerks[] = {"sword", "axe", "dagger", "spear", "hammer", "bow", "crossbow",
@@ -213,7 +217,7 @@ bool GetPerk(Call* call) {
 
 // The unit's prototype name / race (no check that the unit has a prototype, as Rebirth's).
 bool GetPrototype(Call* call) {
-    auto* data = UnitData(ObjectArg(call, 0));
+    UnitServer* data = ScriptArgs(call->cmd).Object().ServerController();
     if (!data) return InvalidArguments("GetPrototype");
     const UnitPrototypeRecord* prototype = data->unit->GetPrototype();
     *call->result.text = prototype->name.c_str();
@@ -221,7 +225,7 @@ bool GetPrototype(Call* call) {
 }
 
 bool GetRace(Call* call) {
-    auto* data = UnitData(ObjectArg(call, 0));
+    UnitServer* data = ScriptArgs(call->cmd).Object().ServerController();
     if (!data) return InvalidArguments("GetRace");
     const UnitPrototypeRecord* prototype = data->unit->GetPrototype();
     *call->result.text = prototype->modelName.c_str();
@@ -231,7 +235,7 @@ bool GetRace(Call* call) {
 // The object's class id, -1 without an object.
 bool GetObjectTypeID(Call* call) {
     *call->result.number = -1.0f;
-    MapObject* object = ObjectArg(call, 0)->object;
+    MapObject* object = ScriptArgs(call->cmd).Object().object;
     if (object) *call->result.number = static_cast<float>(object->GetClassId());
     return true;
 }
@@ -250,8 +254,8 @@ bool GetObjectsOnMap(Call* call) {
             return;
         }
         int id = static_cast<int>(object->GetClassId());
-        for (int i = 0; i < std::ssize(call->cmd->floatArgs); ++i)
-            if (id == TruncateOrMin(call->cmd->floatArgs[i])) {
+        for (float wanted : classes)
+            if (id == TruncateOrMin(wanted)) {
                 call->GroupResult()->Insert(object);
                 return;
             }
@@ -262,7 +266,7 @@ bool GetObjectsOnMap(Call* call) {
 // A unit with a text-key id in a party.
 bool IsPlayer(Call* call) {
     *call->result.number = 0.0f;
-    MapObject* unit = ObjectArg(call, 0)->object;
+    MapObject* unit = ScriptArgs(call->cmd).Object().object;
     Unit* asUnit = UnitOrNull(unit);
     if (asUnit && asUnit->id >= 1000000000 && asUnit->player) *call->result.number = 1.0f;
     return true;
@@ -272,14 +276,14 @@ bool IsPlayer(Call* call) {
 // death state is 1 / 0.
 bool IsDead(Call* call) {
     *call->result.number = 0.0f;
-    MapObject* unit = ObjectArg(call, 0)->object;
+    MapObject* unit = ScriptArgs(call->cmd).Object().object;
     if (unit && IsUnit(unit)) *call->result.number = ScriptBool(unit->IsDead() == 1);
     return true;
 }
 
 bool IsAlive(Call* call) {
     *call->result.number = 0.0f;
-    MapObject* unit = ObjectArg(call, 0)->object;
+    MapObject* unit = ScriptArgs(call->cmd).Object().object;
     if (unit && IsUnit(unit)) *call->result.number = ScriptBool(unit->IsDead() == 0);
     return true;
 }

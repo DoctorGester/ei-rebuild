@@ -317,7 +317,7 @@ void ClassifyToken(const char* text, int* id, int* rest) {
     }
 }
 
-const char* FunctionSignature(int id, int type) {
+const char* FunctionSignature(int id, ScriptType type) {
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k) {
         if (static_cast<int>(k->id) != id || !k->function) continue;
         // The first letter is the result's type (F, G, O or S).

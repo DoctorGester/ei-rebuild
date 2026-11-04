@@ -6,7 +6,6 @@
 #include "net_classes.h"
 #include "random.h"
 #include "world.h"
-#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
@@ -23,28 +22,22 @@
 
 namespace scriptaddon {
 
-namespace {
-
-float* Floats(Call* call) { return call->cmd->floatArgs.data(); }
-int FloatCount(Call* call) { return lib::Count(call->cmd->floatArgs); }
-
-} // namespace
-
 bool Sin(Call* call) {
-    float x = Floats(call)[0];
+    float x = ScriptArgs(call->cmd).Float();
     *call->result.number = static_cast<float>(std::sin(x));
     return true;
 }
 
 bool Cos(Call* call) {
-    float x = Floats(call)[0];
+    float x = ScriptArgs(call->cmd).Float();
     *call->result.number = static_cast<float>(std::cos(x));
     return true;
 }
 
 bool Pow(Call* call) {
-    float x = Floats(call)[0];
-    float y = Floats(call)[1];
+    ScriptArgs args(call->cmd);
+    float x = args.Float();
+    float y = args.Float();
     *call->result.number = static_cast<float>(std::pow(x, y));
     return true;
 }
@@ -52,38 +45,38 @@ bool Pow(Call* call) {
 // The signature has two floats, but the handler reads four, as Rebirth's does: there the last two came from past the
 // end of the argument array (heap bytes, any value from run to run), here they are 0.
 bool DistancePointPoint(Call* call) {
+    ScriptArgs args(call->cmd);
     float f[4] = {};
-    const float* given = Floats(call);
-    for (int i = 0, n = std::min(FloatCount(call), 4); i < n; ++i) f[i] = given[i];
+    for (int i = 0, n = std::min(args.FloatCount(), 4); i < n; ++i) f[i] = args.Float();
     *call->result.number = Distance(f[0], f[1], f[2], f[3]);
     return true;
 }
 
 // Add / Mul of more than two: the sum / product in argument order; of two, the game's own (false).
 bool Add(Call* call) {
-    if (FloatCount(call) == 2) return false;
+    ScriptArgs args(call->cmd);
+    if (args.FloatCount() == 2) return false;
     float sum = 0.0f;
-    const float* f = Floats(call);
-    for (int i = 0, n = FloatCount(call); i < n; ++i) sum = f[i] + sum;
+    for (int i = 0, n = args.FloatCount(); i < n; ++i) sum = args.Float() + sum;
     *call->result.number = sum;
     return true;
 }
 
 bool Mul(Call* call) {
-    if (FloatCount(call) == 2) return false;
+    ScriptArgs args(call->cmd);
+    if (args.FloatCount() == 2) return false;
     float product = 1.0f;
-    const float* f = Floats(call);
-    for (int i = 0, n = FloatCount(call); i < n; ++i) product = f[i] * product;
+    for (int i = 0, n = args.FloatCount(); i < n; ++i) product = args.Float() * product;
     *call->result.number = product;
     return true;
 }
 
 // True unless an argument truncates to 0.
 bool And(Call* call) {
+    ScriptArgs args(call->cmd);
     float result = 1.0f;
-    const float* f = Floats(call);
-    for (int i = 0, n = FloatCount(call); i < n; ++i)
-        if (TruncateOrMin(f[i]) == 0) {
+    for (int i = 0, n = args.FloatCount(); i < n; ++i)
+        if (TruncateOrMin(args.Float()) == 0) {
             result = 0.0f;
             break;
         }
@@ -93,10 +86,10 @@ bool And(Call* call) {
 
 // True when an argument does not truncate to 0.
 bool Or(Call* call) {
+    ScriptArgs args(call->cmd);
     float result = 0.0f;
-    const float* f = Floats(call);
-    for (int i = 0, n = FloatCount(call); i < n; ++i)
-        if (TruncateOrMin(f[i]) != 0) {
+    for (int i = 0, n = args.FloatCount(); i < n; ++i)
+        if (TruncateOrMin(args.Float()) != 0) {
             result = 1.0f;
             break;
         }
@@ -106,27 +99,27 @@ bool Or(Call* call) {
 
 // An argument replaces the maximum unless it is (ordered) less: equal and NaN arguments do.
 bool Max(Call* call) {
-    const float* f = Floats(call);
-    float m = f[0];
-    for (int i = 1, n = FloatCount(call); i < n; ++i)
-        if (!(f[i] < m)) m = f[i];
+    ScriptArgs args(call->cmd);
+    float m = args.Float();
+    for (int i = 1, n = args.FloatCount(); i < n; ++i)
+        if (const float next = args.Float(); !(next < m)) m = next;
     *call->result.number = m;
     return true;
 }
 
 // An argument replaces the minimum unless it is (ordered) greater.
 bool Min(Call* call) {
-    const float* f = Floats(call);
-    float m = f[0];
-    for (int i = 1, n = FloatCount(call); i < n; ++i)
-        if (!(f[i] > m)) m = f[i];
+    ScriptArgs args(call->cmd);
+    float m = args.Float();
+    for (int i = 1, n = args.FloatCount(); i < n; ++i)
+        if (const float next = args.Float(); !(next > m)) m = next;
     *call->result.number = m;
     return true;
 }
 
 // Negated only when below 0 (so -0 and NaN stay).
 bool Abs(Call* call) {
-    float x = Floats(call)[0];
+    float x = ScriptArgs(call->cmd).Float();
     float result = x < 0.0f ? -x : x;
     *call->result.number = result;
     return true;
@@ -134,19 +127,19 @@ bool Abs(Call* call) {
 
 // floor(x + 0.5) from 0 up (and for NaN), ceil(x - 0.5) below; the sum is rounded to float first.
 bool Round(Call* call) {
-    float x = Floats(call)[0];
+    float x = ScriptArgs(call->cmd).Float();
     *call->result.number = x < 0.0f ? std::ceil(x - 0.5f) : std::floor(x + 0.5f);
     return true;
 }
 
 bool Ceil(Call* call) {
-    float x = Floats(call)[0];
+    float x = ScriptArgs(call->cmd).Float();
     *call->result.number = std::ceil(x);
     return true;
 }
 
 bool Floor(Call* call) {
-    float x = Floats(call)[0];
+    float x = ScriptArgs(call->cmd).Float();
     *call->result.number = std::floor(x);
     return true;
 }
@@ -154,9 +147,10 @@ bool Floor(Call* call) {
 // Random(max) stays the game's (the handler declines one argument); Random(min, max) is the game
 // generator's Range when max > min, else min.
 bool Random(Call* call) {
-    if (FloatCount(call) == 1) return false;
-    float low = Floats(call)[0];
-    float high = Floats(call)[1];
+    ScriptArgs args(call->cmd);
+    if (args.FloatCount() == 1) return false;
+    float low = args.Float();
+    float high = args.Float();
     if (high > low) {
         *call->result.number = g_random.Range(low, high);
     } else {
@@ -176,15 +170,11 @@ namespace scriptaddon {
 
 namespace {
 
-// Whether this is a network game.
-// Sends a chat line from the server (second argument 0).
-
-const std::string& Arg(Call* call, int i) { return call->cmd->stringArgs[i]; }
-
 // Every string argument appended in order (each by its length).
 std::string Joined(Call* call) {
+    ScriptArgs args(call->cmd);
     std::string text;
-    for (const std::string& part : call->cmd->stringArgs) text += part;
+    for (int i = 0, n = args.TextCount(); i < n; ++i) text += args.Text();
     return text;
 }
 
@@ -204,7 +194,7 @@ std::string CaseConverted(std::string_view text, bool upper) {
 
 // The object's id in decimal ("%I64d" of the sign-extended id).
 bool GetObjectStringID(Call* call) {
-    EngineObject* object = call->cmd->objectArgs[0]->object;
+    EngineObject* object = ScriptArgs(call->cmd).Object().object;
     if (!object) return InvalidArguments("GetObjectStringID");
     char text[64];
     std::snprintf(text, sizeof(text), "%d", object->id);
@@ -215,8 +205,9 @@ bool GetObjectStringID(Call* call) {
 // "%.<digits>f" (digits 3 by default, clamped to 0..8), then trailing zeros and a trailing '.'
 // cut. The scan stops at index 0 without looking at it, so "100" with no decimals becomes "1".
 bool FloatToStr(Call* call) {
-    float value = call->cmd->floatArgs[0];
-    int digits = std::ssize(call->cmd->floatArgs) >= 2 ? TruncateOrMin(call->cmd->floatArgs[1]) : 3;
+    ScriptArgs args(call->cmd);
+    float value = args.Float();
+    int digits = args.FloatCount() >= 2 ? TruncateOrMin(args.Float()) : 3;
     if (digits > 8) digits = 8;
     else if (digits < 0) digits = 0;
     std::string text = str::Format("%.*f", digits, static_cast<double>(value));
@@ -231,7 +222,7 @@ bool FloatToStr(Call* call) {
 }
 
 bool StrToFloat(Call* call) {
-    *call->result.number = str::ToFloat(Arg(call, 0));
+    *call->result.number = str::ToFloat(ScriptArgs(call->cmd).Text());
     return true;
 }
 
@@ -242,19 +233,23 @@ bool StrCat(Call* call) {
 
 // The length in characters (a UTF-8 sequence counts once).
 bool StrLen(Call* call) {
-    *call->result.number = static_cast<float>(text::CharacterCount(Arg(call, 0)));
+    *call->result.number = static_cast<float>(text::CharacterCount(ScriptArgs(call->cmd).Text()));
     return true;
 }
 
 // One of the strings, by the game generator's next value modulo their count.
 bool RandStr(Call* call) {
-    std::uint32_t index = g_random.Next() % static_cast<std::uint32_t>(call->cmd->stringArgs.size());
-    *call->result.text = Arg(call, static_cast<int>(index));
+    const std::vector<std::string>& texts = call->cmd->stringArgs;
+    std::uint32_t index = g_random.Next() % static_cast<std::uint32_t>(texts.size());
+    *call->result.text = texts[index];
     return true;
 }
 
 bool StrHas(Call* call) {
-    *call->result.number = ScriptBool(std::strstr(Arg(call, 0).c_str(), Arg(call, 1).c_str()) != nullptr);
+    ScriptArgs args(call->cmd);
+    const std::string& text = args.Text();
+    const std::string& part = args.Text();
+    *call->result.number = ScriptBool(std::strstr(text.c_str(), part.c_str()) != nullptr);
     return true;
 }
 
@@ -262,10 +257,11 @@ bool StrHas(Call* call) {
 // character), count 0 means the rest; a negative count leaves the result as it was. Start and count are
 // characters (the bytes of each character's UTF-8 sequence).
 bool StrMid(Call* call) {
-    const std::string& string = Arg(call, 0);
+    ScriptArgs args(call->cmd);
+    const std::string& string = args.Text();
     int length = text::CharacterCount(string);
-    int start = TruncateOrMin(call->cmd->floatArgs[0]);
-    int count = TruncateOrMin(call->cmd->floatArgs[1]);
+    int start = TruncateOrMin(args.Float());
+    int count = TruncateOrMin(args.Float());
     if (start < 0) start += length + 1;
     if (count == 0) count = length;
     else if (count < 0) return true;
@@ -284,12 +280,12 @@ bool StrMid(Call* call) {
 }
 
 bool StrLower(Call* call) {
-    Assign(call, CaseConverted(Arg(call, 0), false));
+    Assign(call, CaseConverted(ScriptArgs(call->cmd).Text(), false));
     return true;
 }
 
 bool StrUpper(Call* call) {
-    Assign(call, CaseConverted(Arg(call, 0), true));
+    Assign(call, CaseConverted(ScriptArgs(call->cmd).Text(), true));
     return true;
 }
 
@@ -307,7 +303,7 @@ bool Say(Call* call) {
 // ConsoleString(text, ...) (extends the game's one-argument command): the joined texts, "\n", flush. One text: the
 // game's own (false).
 bool ConsoleString(Call* call) {
-    if (call->cmd->stringArgs.size() == 1) return false;
+    if (ScriptArgs(call->cmd).TextCount() == 1) return false;
     std::string text = Joined(call);
     (console::g_consoleOut << text << "\n").Flush();
     return true;

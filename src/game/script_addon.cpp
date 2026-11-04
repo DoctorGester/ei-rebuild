@@ -181,10 +181,6 @@ int Stricmp(const char* a, const char* b) {
 
 bool IsUnit(EngineObject* object) { return object->GetClassId() == ClassId::Unit; }
 
-UnitServer* UnitData(const ScriptObjectRef* ref) {
-    return ref ? ref->ServerController() : nullptr;
-}
-
 bool Report(const char*, const char*, ...) { return true; }
 
 bool InvalidArguments(const char* function) {
@@ -196,7 +192,7 @@ bool InvalidArguments(const char* function) {
 const ScriptKeyword* Table() { return Build().table.data(); }
 
 bool Dispatch(Call* call) {
-    int id = call->cmd->id;
+    const int id = static_cast<int>(call->cmd->id);
     if (id < 0 || id >= kFirstNewId + kRecordCount) return false;
     int r = Build().recordById[id];
     if (r < 0 || !kRecords[r].handler) return false;

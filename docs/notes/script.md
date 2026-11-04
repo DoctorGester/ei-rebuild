@@ -14,9 +14,16 @@ run the scripts on Lua: `lua-scripting.md`.
   object deleted while referenced has bit 0 of `flags`. `ScriptGroup`: references kept sorted by object address
   (unsigned) without duplicates.
 - `ScriptVars`: per type a value array and a name array.
-- `ScriptCall` (a command): id; argument arrays per type (objects and groups point into variables or temporaries); local
-  and global variable bindings `{type, argIndex, varIndex}`; nested calls `{type, argIndex, ScriptCall*}`; a block (called
-  script, or a For / ForIf body).
+- `ScriptCall` (a command): id (`ScriptFunction`); for Assign and CallScript the target (`target`, `targetType`,
+  `targetName`); argument arrays per type (objects and groups point into variables or temporaries); local and global
+  variable bindings `{type, argIndex, varIndex}`; nested calls `{type, argIndex, ScriptCall*}`; the For / ForIf body.
+  A save keeps the target in leading argument slots, as the game did (Assign: float 0 the variable index, float 1 its
+  type - 1; CallScript: float 0 the definition index, string 0 its name; the saved bindings and nested calls count those
+  slots); `ScriptCall::Load` / `Save` move it in and out.
+- Commands and functions read their arguments through `ScriptArgs` (`Float()`, `Text()`, `Object()`, `Group()`,
+  `FindPlayer()`), in signature order, each type at its own position. One read per statement: a function call's
+  arguments are evaluated in no fixed order. The loops (For, ForIf, Every / Any / Sum) re-read their counter and
+  condition slots directly.
 - `ScriptDefinition`: index, qualified name, parameter type letters ("fso"), the if-then pairs {conditions block,
   commands block}, its variables. `ScriptRun`: block, index, ticks, sleep start, the kill flag (a pointer to the
   instance's flag; null for the WorldScript), a copy of the variables. Instances are copies of a definition whose first
@@ -59,8 +66,8 @@ loaded; lookups try the plain name then the qualified one; `FindScript` also ret
 console line can refer to a name from the previous console line only if that line failed (a scenario relies on it).
 Script bodies are `if(` float functions `)then(` commands `)` pairs. A command is a keyword with a command signature
 (For / ForIf are followed by `(` body `)` parsed into another block, which sees the enclosing locals), a declared script
-(command 8: float 0 = script index, string 0 = name), or `global = value` (command 0x78, float 0 = variable index,
-float 1 = type - 1). `LoadFunction` parses one call against a signature string (f float, s string, o object, g group, O
+(CallScript: the definition's index and name in the target), or `global = value` (Assign: the variable's index and type
+in the target; the value is the one argument). `LoadFunction` parses one call against a signature string (f float, s string, o object, g group, O
 loop counter = a global object variable); each parameter is a literal, a local variable, a global variable (plain or
 qualified) or a nested call of a function with the right result type.
 The parser reads the tokens through a `TokenReader` (`Next(&id)` takes a token and classifies it, `Expect(lexeme)` checks
@@ -99,7 +106,7 @@ same run (block, index, ticks and sleep start saved, set to body / 0 / 0 / -1, E
 the body ends the body for that member). A script call (command 8) adds an instance at the HEAD of the instance list and
 copies the arguments into its variables (FatalError "Wrong number of script %s float parameters" etc.); an instance
 started by a waiting run runs its pairs in the same tick, one started by another instance's commands from the next
-tick. Assignment (0x78) copies floats as bits, strings, objects (reference) or groups.
+tick. Assign (0x78) copies floats as bits, strings, objects (reference) or groups.
 
 The FX sources: CreateFXSource (0x16) makes the sound at once and clears `idle`; CreateRandomizedFXSource (0x18) keeps no
 sound and takes min delay, max delay (FISTP) and spread, countdown 0, idle 1. A negative id takes `nextFxId` (counted
