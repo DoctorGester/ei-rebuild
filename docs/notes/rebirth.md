@@ -195,8 +195,8 @@ sprites' Place; the builders put the battle screen's panels at the screen's edge
   centre at 700 + extra.
 - The axis swap's m[0] is `width43 / width` (`AxisScale`), so the 3D view at the full width keeps 4:3 proportions; the
   fonts' scale `width * 0.0075f / height` (the float 0.0075 widened to a double; `FontScale`); the backdrop at the
-  window's size; the camera's and the global map's drags scaled without the margin; the global map's pick picture read
-  at `x / 2 - margin / 2` (`PickShift`); curtains over the margins of the camp and the multiplayer hero screen
+  window's size; the camera's and the global map's drags scaled without the margin (addon's read of the global map's pick picture at
+  `x / 2 - margin / 2` went with the picture: the zone is found by its marker's faces at the mouse); curtains over the margins of the camp and the multiplayer hero screen
   (`AddCurtains`, `ShowHeroCurtains`: every mode but the hero list); the tutorial messages' frames moved to the edges
   (`TutorialFrameShift`: zt9:0, zt12:0, zt12:1, zt13:0, zt14:0, zt14:2, zt17:0, zt20:0, zt22:0 by `-extra`; zt3:2, zt4:0,
   zt4:1, zt7:0, zt10:0, zt10:1, zt18:0 by `+extra`).

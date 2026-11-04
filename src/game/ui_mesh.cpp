@@ -16,6 +16,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <optional>
 #include <vector>
 
 namespace {
@@ -357,6 +358,58 @@ void UiMesh::Place(float x, float y, float depth) {
     localPosition = {placedX, placedY, depth};
 }
 
+Matrix4 UiMesh::PlacementMatrix() const {
+    Matrix4 placement;
+    localRotation.ToMatrix(placement.m);
+    placement.m[3] = localPosition.x;
+    placement.m[7] = localPosition.y;
+    placement.m[11] = localPosition.z;
+    placement.m[12] = 0.0f;
+    placement.m[13] = 0.0f;
+    placement.m[14] = 0.0f;
+    placement.m[15] = kOne;
+    return placement;
+}
+
+// The positions (with their offsets) projected as the draw projects them; each triangle the clockwise cull keeps
+// (counter-clockwise on the screen, y down) that holds the point gives its depth there, interpolated across it.
+std::optional<float> UiMesh::DepthAt(const Matrix4& camera, Point at) const {
+    if (!visible || lib::Has(flags, FigureMeshFlag::Hidden)) return std::nullopt;
+    Matrix4 screen;
+    screen.Multiply(camera.m, PlacementMatrix().m);
+    screen.Multiply(screen.m, scaleMatrix.m);
+    std::vector<VertexPacket> positions(buffers.vertices, buffers.vertices + buffers.vertexCount);
+    for (int i = 0; i < std::ssize(offsets); ++i) {
+        float* lane[3] = {&positions[i >> 2].block[0][i & 3], &positions[i >> 2].block[1][i & 3],
+                          &positions[i >> 2].block[2][i & 3]};
+        *lane[0] = offsets[i].x + *lane[0];
+        *lane[1] = offsets[i].y + *lane[1];
+        *lane[2] = offsets[i].z + *lane[2];
+    }
+    std::vector<Vector4> projected(positions.size() * 4);
+    TransformPipeline::Project(screen, positions.data(), projected.data(), buffers.vertexCount);
+    const float x = static_cast<float>(at.x), y = static_cast<float>(at.y);
+    // Twice the signed area of (p, q, r) on the screen: negative when counter-clockwise.
+    auto area = [](float px, float py, float qx, float qy, float rx, float ry) {
+        return (qx - px) * (ry - py) - (qy - py) * (rx - px);
+    };
+    std::optional<float> nearest;
+    for (int t = 0; t + 2 < buffers.indexCount; t += 3) {
+        const Vector4& a = projected[buffers.corners[buffers.indices[t]].position];
+        const Vector4& b = projected[buffers.corners[buffers.indices[t + 1]].position];
+        const Vector4& c = projected[buffers.corners[buffers.indices[t + 2]].position];
+        const float whole = area(a.x, a.y, b.x, b.y, c.x, c.y);
+        if (!(whole < 0.0f)) continue;
+        const float wa = area(x, y, b.x, b.y, c.x, c.y) / whole;
+        const float wb = area(a.x, a.y, x, y, c.x, c.y) / whole;
+        const float wc = 1.0f - wa - wb;
+        if (wa < 0.0f || wb < 0.0f || wc < 0.0f) continue;
+        const float depth = wa * a.z + wb * b.z + wc * c.z;
+        if (!nearest || depth <= *nearest) nearest = depth;
+    }
+    return nearest;
+}
+
 // Nothing unless visible. Binds the texture to stage 0 (failure is fatal), builds the placement from the
 // orientation and position, pushes it on the view and world stacks, then the scale matrix on both (the view
 // stack's push inlined), draws the sprite as a figure in its tint (the renderer's colour put back after) with
@@ -369,16 +422,8 @@ void UiMesh::Draw(SceneRenderer* renderer) {
         return;
     }
 
-    localRotation.ToMatrix(worldMatrix.m);
-    worldMatrix.m[3] = localPosition.x;
-    worldMatrix.m[7] = localPosition.y;
-    worldMatrix.m[11] = localPosition.z;
-    worldMatrix.m[12] = 0.0f;
-    worldMatrix.m[13] = 0.0f;
-    worldMatrix.m[14] = 0.0f;
-    worldMatrix.m[15] = kOne;
-    Matrix4 placement;
-    std::memcpy(&placement, &worldMatrix, sizeof(placement));
+    worldMatrix = PlacementMatrix();
+    const Matrix4 placement = worldMatrix;
     pipeline->PushMatrix(placement.m, kStackView);
     pipeline->PushMatrix(placement.m, kStackWorld);
     pipeline->PushMatrix(scaleMatrix.m, kStackView);

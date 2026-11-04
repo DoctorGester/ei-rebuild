@@ -18,10 +18,9 @@ surface is drawn above every mesh, in stack and child order.
 | Fill / Clear / FillRect / FrameRect | `ui_surface.cpp` (`render::ui::FrameRects`) | solid quads |
 | Lines and carets | `UiSurface::Line` (`render::ui::LineRects`: the 1-pixel pen's rule, end point left out): console, chat typed line, edit field, connect list, save / load list | solid quads |
 | Single pixel | `UiSurface::Dot`: the HUD map's marker | a solid quad |
-| Screen copy into a surface | `CaptureScreen`: escape-menu backdrop, global-map pick picture | a frame picture (`render::ui::CapturePicture`, `ui_copy`) |
+| Screen copy into a surface | `CaptureScreen`: escape-menu backdrop, the save's copy | a frame picture (`render::ui::CapturePicture`, `ui_copy`) |
 | Greyscale, (2r+4g+b)/16 | `Greyscale`: escape-menu backdrop | the picture drawn through `ui_picture`'s grey option |
 | Save picture | `Rgb565Copy` -> `render::ui::ReadPictureRgb565`: the escape menu's 256x192 copy, QuickSave, SaveGame | GPU, 5:6:5 read back |
-| Pixel read | `PixelAt` -> `render::ui::ReadPicturePixel`: the global-map click and FindPaths (zone = (pixel>>4)&0xF - 1) | GPU read back of one pixel of the pick picture |
 | Show / hide | `UiSurface::Show` / `Hide` | the shown flag; what it holds is kept |
 | Titles' RTF text | `UiScrollingSurface::RenderText` (`render_rich_text.cpp` lays it out) | glyph runs |
 | Sprites, shapes, minimap, portraits | `UiMesh::Draw` -> `render::BeginMesh`; `ui_mesh.cpp` | GPU meshes |
@@ -135,15 +134,13 @@ partial fill drops the draws wholly inside it (a key-coloured partial fill over 
 More than 4096 kept draws are logged once (a window adding without clearing). The titles' scrolling surface keeps none:
 its Blit draws the laid-out rich text at the current offset.
 
-**Frame pictures.** A screen copy (`CaptureScreen`: the escape menu's and the camp's backdrops, the global map's pick
-picture, the save's copy) is state as data: what the frame looked like, which cannot be drawn again. It is a picture of
+**Frame pictures.** A screen copy (`CaptureScreen`: the escape menu's and the camp's backdrops, the save's copy) is state as data: what the frame looked like, which cannot be drawn again. It is a picture of
 the surface's size on the GPU (`render::ui::CapturePicture`: `source` of the frame drawn so far, nearest pixel, x *
 source / size; the copy runs at the next DrawPending, after the frame so far is drawn, `SplitFrame`), drawn at the
 surface's Blit stretched over its rectangle and greyed after `Greyscale` (`ui_picture`). A picture still drawn in the
 frame is released after it. A capture between frames reads the last frame (the quick save's key).
 
-**Readers.** `PixelAt` reads one pixel of the pick picture (`ReadPicturePixel`; the global-map pick must stay exact),
-`Rgb565Copy` the picture as 5:6:5 (`ReadPictureRgb565`; the escape-menu and QuickSave pictures only need to be within
+**Reader.** `Rgb565Copy` reads the picture as 5:6:5 (`ReadPictureRgb565`; the escape-menu and QuickSave pictures only need to be within
 tolerance). In-game screenshots come from render::ReadFrame (renderer.md).
 
 **Lost device.** A lost device ends the game (renderer.md, "No device-loss recovery").
@@ -161,7 +158,7 @@ zero-length 2-px line is one dot. The game uses only 1 and 2 px pens, horizontal
 prints each check) plays render.cpp's part itself with the frame of `tests/render/glyph_cases.{h,cpp}` (no platform
 code; `ei_render_check` runs the glyph cases on Vulkan or Metal). Fills, frames, lines and pixels drawn as solids are
 compared with GDI drawing into an 8:8:8 DIB section exactly; glyph runs with each quad's coverage blended in turn (one
-level a channel); the picture's copy, 5:6:5 reading, one-pixel reads and its plain and grey draws exactly. Any `ei::Log`
+level a channel); the picture's copy, 5:6:5 reading and its plain and grey draws exactly. Any `ei::Log`
 line (gpu.h's problems among them) fails. `ui_compare` opens the options and the help over them twice and requires the
 same frames.
 
@@ -182,8 +179,7 @@ doing the same; the frames are not in the golden: compare them with `tools/compa
 
 Not captured: the status surface ("saving" / "loading": drawn and gone inside one frame); the repair grid with an item in it
 (no script command or key wears one; ui.md section 5); a global-map link (travels at once); the exchange window (needs a
-second player; `net_pair_zone` reaches it); the global map's pick picture (never on screen; `ui_global_map_pick` reaches its
-reads). Rebirth's layout is covered by the WideScreen frames (`run_all --widescreen`).
+second player; `net_pair_zone` reaches it). Rebirth's layout is covered by the WideScreen frames (`run_all --widescreen`).
 
 ### The titles' rich text
 

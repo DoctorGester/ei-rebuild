@@ -5,7 +5,6 @@
 // hero screens").
 #include "ui_camp.h"
 
-#include "app.h"
 #include "console.h"
 #include "game_singletons.h"
 #include "model.h"
@@ -13,13 +12,11 @@
 #include "text_manager.h"
 #include "ui.h"
 #include "ui_screens.h"
-#include "screen_layout.h"
 #include "world.h"
 #include "world_glue.h"
 #include "lib/rebirth.h"
 #include "lib/containers.h"
 #include "lib/str.h"
-#include "render/render_state.h"
 
 #include <cstdint>
 #include <optional>
@@ -122,12 +119,8 @@ void GlobalMap::LeftDown(int, Point point) {
         ui->PlayInterfaceSound(kOkSound);
         link = region - kFirstLinkRegion;
     } else {
-        // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i; the window's 4:3
-        // part's margins come off (Rebirth's WideScreen took the margin off x).
-        const Point shift = screen_layout::PickShift();
-        const std::uint32_t pixel = backdrop->PixelAt(point / 2 - shift);
-        const int index = static_cast<int>((pixel >> 4) & 0xF) - 1;
-        if (index < 0 || index >= std::ssize(zones) || zones[index].state == 0) return;
+        const int index = ZoneAt(point);
+        if (index < 0 || zones[index].state == 0) return;
         ui->PlayInterfaceSound(kOkSound);
         GlobalMapZone& zone = zones[index];
         link = zone.link;
@@ -150,7 +143,7 @@ void GlobalMap::LeftDown(int, Point point) {
 // --- Ui global map places ----------------------------------------------------------------------------
 
 // The global map's (GlobalMap, ui_camp.h) places: the titles and positions of its allod, zones and quests
-// from the texts and map.txt, the zone selection's marker colours and the pick picture. See docs/notes/ui.md
+// from the texts and map.txt, the zone selection's marker colours and its refresh. See docs/notes/ui.md
 // ("Camp, global map, hero screens").
 
 namespace {
@@ -225,7 +218,7 @@ void GlobalMap::SelectZone(int index, bool isLink) {
     }
 }
 
-// --- the pick picture ----------------------------------------------------------------------------
+// --- the refresh ---------------------------------------------------------------------------------
 
 // Scene objects 0..2 (arrow, base, island) and everything after the zone markers (quests, links,
 // layers and the rest) shown or hidden.
@@ -234,27 +227,14 @@ void GlobalMap::ShowAllButZones(bool visible) {
     for (int i = lib::Count(zones) + 3; i < lib::Count(sceneObjects); ++i) SceneMesh(i)->visible = visible;
 }
 
+// What the original's pick picture step left behind (the click now finds the zone by its marker's faces, ZoneAt):
+// the tip hidden, the title shown, everything but the zone markers shown (the glow layer and a hidden camp button
+// too, as there), the tip's two sprites hidden, nothing selected.
 void GlobalMap::RefreshSelection() {
-    if (!backdrop) return;
-    for (int i = 0; i < std::ssize(zones); ++i) {
-        UiMesh* marker = Marker(i);
-        std::uint32_t level = 0x18u + 0x10u * static_cast<std::uint32_t>(i);
-        marker->texture = nullptr;
-        // Opaque grey (from the 16th zone on the level's ninth bit spills into the next channel, as in the original).
-        marker->flatColour = 0xFF000000u | level << 16 | level << 8 | level;
-        marker->flags |= FigureMeshFlag::Flat;
-    }
-    surfaces[1]->Hide(false);
     surfaces[0]->Hide(false);
-    ShowAllButZones(false);
-    std::uint32_t colour = g_sceneRenderer.fogColour;
-    g_sceneRenderer.fogColour = 0;
-    app::FrameStep(false, false);
-    g_sceneRenderer.fogColour = colour;
     surfaces[1]->Show();
     ShowAllButZones(true);
     SceneMesh(MarkerCount() + 6)->visible = false;
     SceneMesh(MarkerCount() + 7)->visible = false;
-    backdrop->CaptureScreen();
     SelectZone(-1, false);
 }

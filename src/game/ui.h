@@ -22,6 +22,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -335,7 +336,6 @@ public:
     // Into the frame, when shown.
     virtual void Blit();
 
-    std::uint32_t PixelAt(Point at);
     // Layout coordinates.
     void SetRect(int left, int top, int right, int bottom);
     void MoveTo(Point at);
@@ -913,6 +913,12 @@ public:
     void SetScaleYBits(std::uint32_t bits);
     // When visible.
     void Draw(SceneRenderer* renderer);
+    // Where Draw puts the sprite: its orientation's rotation with its position as column 3.
+    Matrix4 PlacementMatrix() const;
+    // The depth (z / w) of the sprite's nearest drawn face at screen point `at` as Draw would draw it after `camera`
+    // (the pipeline's screen stack's top before the draw), Direct3D 7's pixel centres at whole coordinates; none
+    // where no face is (hidden or not visible: none).
+    std::optional<float> DepthAt(const Matrix4& camera, Point at) const;
 
     // FigureMesh's fields as a sprite uses them: FigureMeshFlag::Flat draws in flatColour (ARGB),
     // flatSpecular the HUD buttons' highlight (0xFF404040 / 0xFF000000), textureOffsetU / V_ a frame of the

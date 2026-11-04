@@ -42,7 +42,5 @@ void DropPicture(const void* key);
 // The picture stretched to `width` x `height` (each pixel the one under its centre, (2 x + 1) * size / (2 width)) as
 // 5:6:5 pixels (each channel's top bits), rows from the top: the save's picture (shot.sav keeps 5:6:5).
 bool ReadPictureRgb565(const void* key, int width, int height, std::uint16_t* out);
-// The picture's pixel `at` as 0x00RRGGBB; false outside it or without one.
-bool ReadPicturePixel(const void* key, Point at, std::uint32_t* rgb);
 
 } // namespace render::ui

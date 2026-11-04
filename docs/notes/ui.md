@@ -152,8 +152,15 @@ offered, and no script command or key wears one). The map's camp button (region 
 
 **Global map** (`ui_global_map*.cpp`). Titles go through `PlaceTitle`, positions through `MapPosition` ((0, 0, 0) for a
 missing entry). `SetWeather` gives the three layers, the display colour and the clouds' ramp their final values once.
-`RefreshSelection` draws the zone markers alone in colours 0xFF181818 + 0x101010 i into the backdrop; the click reads the
-zone back from that pixel. `FindPaths` is a recursive way search; `arrivals` maps exit -> the shortest "#passtime" sum
+The zone under the mouse is `ZoneAt`: each zone marker's triangles projected as its draw projects them (the screen
+matrix the window's draw starts from, recorded by `GlobalMap::Draw`, times the marker's placement and scale), the faces the
+clockwise cull keeps, the nearest depth there and of equal ones the later marker (the depth test's LessEqual), at the
+mouse's pixel (Direct3D 7's pixel centres). The original drew the markers alone in grey levels into a half-size picture and
+read the clicked pixel back; a scratch run (P9d, 960x720, 12 zones) found ZoneAt equal to that picture at every one of its
+pixels, so the picks differ only by the picture's half resolution (it read the even pixel), within a pixel of a marker's
+edge. `RefreshSelection` keeps what that step left: the tip hidden, the title, every scene object but the zone markers
+shown (the glow layer and a hidden camp button too) but the tip's two sprites, nothing selected; a zone whose state is not
+0-2 keeps its own texture (the original left it in its pick grey). `FindPaths` is a recursive way search; `arrivals` maps exit -> the shortest "#passtime" sum
 (`ui_global_map_paths.cpp`). Right button drags; `KeyDown`: Esc menu, '5' / '6' quick save / load "saveq".
 - Positions are `centre + turn(local)` (centre = layout point (400, 280) at depth 10, each step stored; `turn` = the spin
   about z times a tilt of 0.8 pi about x, `TurnProduct` with its own operand order). Markers come from the player's
@@ -645,7 +652,7 @@ The interface surfaces' pixel work (UiSurface, ui.h): copying the screen into a 
 a given size (the save game's picture) and greying a surface in place ((2r + 4g + b) / 16; the escape menu's background).
 The escape menu's drawing runs all three when the menu opens. All three run on the GPU: the copy is a frame picture of the
 surface's size, the greying a shader option when it is drawn, and the 5:6:5 copy is drawn at its size and read back
-(renderer.md section 6, "Screen copies on the GPU"). PixelAt reads the picture's pixel from the GPU.
+(renderer.md section 6, "Screen copies on the GPU").
 
 ## 11. Behaviour moved out of header comments
 
@@ -722,22 +729,21 @@ first pass makes the pictures, "tutorial_<picture>" copied into referenced objec
 
 ### GlobalMap::MouseMove
 
-The mouse moved (WideScreen: the drag scaled without the margin, the pick picture's x without it). While dragging: the drag
+The mouse moved (WideScreen: the drag scaled without the margin). While dragging: the drag
 motion turns the map: angle += dx / 300 (layout units), taken mod kGlobalMapFullTurn, and turn = the tilt (pi * 0.8 about x)
 times the spin about z; the motion is cleared. Otherwise the zone or link under the mouse is selected (a link's region 3..;
-or, off every region, the zone read from the backdrop's pixel at half the point, on gipat its link when it has one; nothing
+or, off every region, the zone whose marker is under the point (`ZoneAt`), on gipat its link when it has one; nothing
 while a turn button is held) and its tip shown: the first surface with the title and the titles of the zone's quests, the
 last two sprites behind it; a zone in state 0 or nothing hides the tip. A new name plays "buttons\globalmap\zone.wav".
 Regions past the links do nothing.
 
 ### GlobalMap::LeftDown
 
-The left button pressed (nothing while dragging; WideScreen: the pick picture's x is read without the margin;
-ui_global_map_paths.cpp). Regions 0 / 1, the turn buttons: turning -1 / +1 and "buttons\globalmap\move.wav". Region 2, the
+The left button pressed (nothing while dragging; ui_global_map_paths.cpp). Regions 0 / 1, the turn buttons: turning -1 / +1 and "buttons\globalmap\move.wav". Region 2, the
 camp (unless noCamp is 1): "buttons\globalmap\transit.wav", the constructor 0 and screen 5 asked for. A link (regions 3..),
 or on gipat a zone that has one: "buttons\globalmap\ok.wav", the ways to the link's zone searched from the local player's
 zone and, when there is one, the time of arrival exit 0 passed and the zone asked for at entrance 0. Any other zone under
-the mouse (read from the backdrop's pixel at half the point; its state not 0): the sound, the search, and the objectives
+the mouse (`ZoneAt`; its state not 0): the sound, the search, and the objectives
 window opened over the map with the zone, the arrival times, two buttons and no zone list.
 
 ### CampPages::BuildPages

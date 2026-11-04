@@ -358,20 +358,6 @@ bool ReadPictureRgb565(const void* key, int width, int height, std::uint16_t* ou
     return read;
 }
 
-bool ReadPicturePixel(const void* key, Point at, std::uint32_t* rgb) {
-    const UiPicture* p = UiPictureOf(key);
-    if (!p || !Rect{0, 0, p->width, p->height}.Contains(at)) return false;
-    gpu::Ticket ticket;
-    gpu::Texels texels;
-    const bool read = ReadBack(p->image, Rect::Sized(at, {1, 1}), &ticket, &texels);
-    if (read) {
-        const std::uint8_t* q = texels.Row(0);   // RGBA8
-        *rgb = (static_cast<std::uint32_t>(q[0]) << 16) | (static_cast<std::uint32_t>(q[1]) << 8) | q[2];
-    }
-    gpu::Release(ticket);
-    return read;
-}
-
 } // namespace ui
 
 // ---- render.cpp's side ------------------------------------------------------------------------------------

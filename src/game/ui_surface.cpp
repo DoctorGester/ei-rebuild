@@ -347,7 +347,7 @@ void UiSurface::Blit() {
 
 // --- Pictures ----------------------------------------------------------------------------------------
 
-// The screen copied into a surface (the escape menu's backdrop, the global map's pick picture, the save's picture):
+// The screen copied into a surface (the escape menu's backdrop, the save's picture):
 // a frame picture of the surface's size, kept on the GPU (render_ui.h), which covers what the surface held.
 void UiSurface::CaptureScreen() {
     Cover({}, true);
@@ -362,11 +362,3 @@ std::vector<std::uint16_t> UiSurface::Rgb565Copy(int copyWidth, int copyHeight) 
 }
 
 void UiSurface::Greyscale() { greyed = true; }
-
-// The picture's pixel at `at` as 0x00RRGGBB; 0 outside the surface or without a picture.
-std::uint32_t UiSurface::PixelAt(Point at) {
-    if (at.x < 0 || at.y < 0 || at.x >= width || at.y >= height) return 0;
-    std::uint32_t rgb = 0;
-    if (!render::ui::ReadPicturePixel(this, at, &rgb)) return 0;
-    return rgb;
-}
