@@ -106,9 +106,12 @@ float SunElevation(float hour) {
     return night * kNightSpan + kBaseElevation;
 }
 
-// The time of day in hours (fmod of the game time by 24).
-float HourOfDay(const World* world) {
-    return std::fmod(world->tick * world->secondsPerTick + world->timeBase, kHoursPerDay);
+// The time of day in hours (fmod of the game time by 24), at the drawn frame: the tick plus the part of the next tick
+// the client has had (tickFraction, as the units' animation), so the sun turns a little every frame and the shadows
+// glide instead of stepping at each tick.
+float HourOfDay(const WorldClient* world) {
+    const float hours = world->tick * world->secondsPerTick + world->tickFraction * world->secondsPerTick;
+    return std::fmod(hours + world->timeBase, kHoursPerDay);
 }
 
 // The hour's row of the colour tables: the hour truncated, 0 for NaN.

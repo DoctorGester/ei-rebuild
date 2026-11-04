@@ -773,9 +773,11 @@ colours and ranges); what they light is done per pixel.
 direction), the object each figure draw's meshes belong to (`BeginCaster` / `EndCaster`) and the objects whose shadow the
 game draws this frame (`CastsShadow` after its option, class switch and visibility tests; a unit only once faded in to
 half). Once a frame before the first pass (`PrepareShadows`): the camera's matrix is the world's first ground batch's; its
-inverse times a mesh's clip matrix gives the mesh in the landscape's space; an orthographic view from the sun (tilted to
-at least 20 degrees) is fitted around the visible ground (x, y in steps of 8 units, origin on whole texels; along the
-light from the nearest caster that reaches it), 4096 x 4096 D32. The ground is taken in runs of 72 of a terrain piece's
+inverse times a mesh's clip matrix gives the mesh in the landscape's space; a view along the sun's light (tilted to at
+least 20 degrees; its x and y the landscape's where a point meets a level plane along the light, an oblique projection) is
+fitted around the visible ground (in steps of 8 units, the texels' corners on whole texels of the landscape at the plane's
+height, the visible ground's middle in steps of 8; along the light from the nearest caster that reaches it), 4096 x 4096
+D32. The ground is taken in runs of 72 of a terrain piece's
 vertices: a run wholly inside the view (widened by 5% at its sides) by its box's corners, one the view's sides cross by
 every second vertex inside them, tested against the planes it crosses only. The casters' model meshes (first pass of
 each; alpha-tested or blended passes cut out by stage 0's alpha read from the texture's level 0: a smaller level seen
@@ -788,7 +790,8 @@ map is the only shadow look.
   `shadow_dilate.hlsl`: the same over the cells within the widest filter's reach and one cell more, plus the cell's own
   nearest; one 256 x 256 RGBA32F image). Details: "shaders/shadow_receiver.hlsli" below. Radius = the mean blocker
   distance x `kSunSize` (0.01, about twice the real sun's angular radius), 1.5 texels to `kWidestRadius` (0.6 units); 8
-  (under 4 texels) or 16 bilinear comparisons on a Vogel disc, turned per pixel by interleaved gradient noise. First
+  (under 4 texels) or 16 bilinear comparisons on a Vogel disc across the light (drawn onto the map by `disc`), turned per
+  2 x 2 quad by interleaved gradient noise, each of the quad's pixels on its own quarter of the spiral. First
   tuned on the town gate at 0.025 (its edge about 125 px at 4K), which blurred a tree's crown, 8-12 units above the
   ground, by 20-30 texels: its cut-out leaves merged into one dark mass (the user's "blocky" tree shadows, R47; measured
   in gz2g: the cut-outs are right, a hard filter shows every leaf, no cut-out casts whole quads). A creature's shadow
@@ -809,17 +812,31 @@ map is the only shadow look.
   the pool (`KeepCasterMesh`) and read again only when the game says the part moved or was rebuilt.
 - **Faces turned away from the sun** have no sun light to lose (the GPU lights them by N.L), so a receiver darkens by its
   own facing with a normal-offset bias. Check: render_shadows_mound (the user's save in tests/saves/shadow_mound).
-- **Steady soft edges.** The sun turns every frame, the map's texel grid turns with it across the ground, and per-cell
-  reads of the range image made cell-sized squares and straight cuts in a penumbra that crawled (the user's shimmer). So
+- **Steady soft edges.** Per-cell reads of the range image made cell-sized squares and straight cuts in a penumbra that
+  crawled as the sun turned (the user's shimmer). So
   the range is read bilinearly between the four cells around the pixel (`range_at`: four `texelFetch` / `Load` and a lerp, clamped
   at the map's edges; no filtered RGBA32F read, which Vulkan does not promise), and the
   dilation reaches one cell more (`g_cellsAround`), so each of those four cells' bounds holds for all the pixel's taps and
   their weighted mean is still a bound; the search taps read the cells' own nearest filtered too; the searched radius is
   blended in from the bound between half a cell and a cell. The widest radius is capped to what `kMostCellsAround` cells
-  reach. Without a map a 1 x 1 RGBA32F stand-in is bound for the range. The grain of the turned taps still changes as the
-  sun turns (more taps or reuse across frames would calm it). Harness build: `shadowview on` shows the shadow alone
-  (white lit, black at full strength), `shadowshift <n>` moves the map's origin by n x n/2 whole texels. Check:
-  render_shadows_shimmer (the user's save in tests/saves/shadow_corrupt).
+  reach. Without a map a 1 x 1 RGBA32F stand-in is bound for the range.
+- **Calm penumbra grain** (R25a). The map's axes used to turn with the sun about the landscape's origin, so at every game
+  tick each soft edge's taps landed on other texels and its grain changed all at once (render_shadows_shimmer's shadow
+  view, frames at 8 ms: 3.3% of the frame by more than 8 between frames across a tick on Rebirth's data, 1.7% on the
+  vanilla data; 0.4% between the others, the torches' flames and the units' idle animations). Three changes: the map's
+  x and y are the ground's (above), so a texel stays on the ground while the sun turns; the lighting takes the time of
+  day at the drawn frame (tick + tickFraction, world_client_lights.cpp), so the sun turns a little every frame instead
+  of a step per tick; and a filter wider than a few pixels averages its 2 x 2 quad's four tap sets (each neighbour's
+  result moved to the pixel by its gradient, read with `ddx_fine` / `ddy_fine`; each neighbour at most 0.25 from the
+  pixel's own, since a helper lane past a silhouette or a fold extrapolates its triangle's plane into the air or into
+  the caster), 4 x the taps at the cost of the gradient. Now 0.6-1.0% (Rebirth) and 0.6-0.8% (vanilla) between every
+  pair of frames, no tick steps; without the quad average 0.8-1.3%. A filter is at least half a pixel wide (`foot`), so
+  a hard edge far away does not crawl from pixel to pixel. Not taken: reuse across frames (a history buffer and its
+  reprojection for a small gain), a prefiltered map (its blur loses the contact hardening). GPU cost (the town bz1g at
+  4K, msaa 8, day, night and night with a crowd of 12, four runs each interleaved with main's): within 0.01 ms of the
+  frame's 2.4-2.8 ms. Harness build: `shadowview on` shows the shadow alone (white lit, black at full strength),
+  `shadowshift <n>` moves the map's origin by n x n/2 whole texels. Check: render_shadows_shimmer (the user's save in
+  tests/saves/shadow_corrupt).
 - **The casters' draws** (both maps, `CasterDraws` in render_internal.h): a draw's own data (`CasterInstance`: the light x
   model matrix, the texture offsets, the alpha cut) goes into an instance-rate vertex buffer, read at the draw's first
   instance (`DrawIndexed`'s first instance; Direct3D's SV_InstanceID leaves the first instance out, an instance-step
@@ -1238,9 +1255,13 @@ the distance along the light to it times the sun's chosen size (soft.x), from so
 than half a cell, a blocker search narrows it: kSearchTaps points on a disc of the bound and the pixel's own give the mean
 distance from the receiver to the nearest caster around each that hides it, the radius that distance times soft.x (so a
 shadow is sharp where its caster meets the ground); from half a cell to a cell the searched radius is blended in from the
-bound. Then bilinear comparisons on a disc of the radius: kFilterTaps, or kFewTaps on a narrow one. Both discs are Vogel
-spirals turned per pixel (interleaved gradient noise). The search reads the small cell image, not the map: the map's
-texels far apart and turned per pixel cost far more.
+bound. Then bilinear comparisons on a disc of the radius: kFilterTaps, or kFewTaps on a narrow one, weighted 1 - r^2,
+with the result's gradient across the light from the same taps. Both discs lie across the light (the sun's own disc;
+`disc` / `discInverse` map them onto the oblique map and back) and are Vogel spirals turned per 2 x 2 quad (interleaved
+gradient noise), each quad pixel's taps on its own quarter of the spiral; a filter from 1.5 to 3 pixels wide blends in
+the quad's mean (the neighbours' results moved to the pixel by their gradients, each at most 0.25 from the pixel's own).
+The narrowest filter is the larger of soft.z and half the pixel's footprint. The search reads the small cell image, not
+the map: the map's texels far apart and turned per pixel cost far more.
 
 ### game/world_client_shadow_casters.cpp: casters outside the view
 
