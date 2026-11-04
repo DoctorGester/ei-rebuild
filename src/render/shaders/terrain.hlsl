@@ -86,14 +86,15 @@ SamplerState rippleSmp : FS_SAMPLER(4);
 
 // The water (docs/notes/renderer.md, "shaders/terrain.hlsl: the water"): the game's textured and lit layer `base`
 // (alpha `opacity`, the material's) seen through small ripples, more opaque and darker with the depth, the sky and
-// the sun reflected by the rippled normal, and foam where the depth runs out at the shore.
+// the sun reflected by the rippled normal, and foam where the depth runs out at the shore. `clouded`: the share of
+// the sun the clouds hide.
 static const float kRippleScaleA = 1.0 / 9.0;    // the ripple map's repeats per landscape unit, layer A
 static const float kRippleScaleB = 1.0 / 5.0;    // layer B, turned against A
 static const float kRippleSlope = 0.22;          // the slope at the map's steepest texel
 static const float kRippleShade = 3.0;           // how much the ripples' turn to the sun lightens or darkens
 static const float kClearDepth = 0.5;            // the depth's look reached at depth d: 1 - e^(-0.5 d)
 static const float kFoamDepth = 0.5;             // the foam's band, from the shore
-float3 Water(VsOut i, float3 base, float opacity, float3 n, out float alpha) {
+float3 Water(VsOut i, float3 base, float opacity, float3 n, float clouded, out float alpha) {
     float depth = max(i.depth, 0.0);
     float2 xy = i.world.xy;
     float4 a = ripples.Sample(rippleSmp, xy * kRippleScaleA + fs.ripples.xy);
@@ -113,7 +114,8 @@ float3 Water(VsOut i, float3 base, float opacity, float3 n, out float alpha) {
     float3 toSun = -scene.sun.xyz;
     float3 h = normalize(toSun + v);
     float nh = saturate(dot(rippled, h));
-    float sunUp = saturate(toSun.z * 4.0);
+    // The sun's glints and the ripples' sun shading, gone as the sun sets or a cloud hides it.
+    float sunUp = saturate(toSun.z * 4.0) * (1.0 - clouded);
     float3 glint = scene.sunColour.rgb * (pow(nh, 400.0) * 0.5 + pow(nh, 60.0) * 0.03) * sunUp;
     // The ripples turned to the sun or away from it, by the sun's share of the light.
     float sunShare = saturate(max(scene.sunColour.r, max(scene.sunColour.g, scene.sunColour.b))) * sunUp;
@@ -151,7 +153,7 @@ float4 Shade(VsOut i) {
     if (i.loss < 0.0) {
         float3 lit = ground_light(i.world, n, i.col.rgb, i.col.rgb, 0.0, hidden, shadow.on.y, false, 0.0, 1.0, spec);
         float seen;
-        c = Water(i, saturate(t.rgb * lit + max(spec, i.spec.rgb)), a, n, seen);
+        c = Water(i, saturate(t.rgb * lit + max(spec, i.spec.rgb)), a, n, hidden, seen);
         a = seen;
     } else {
         float occlusion = i.occlusion * ambient_occlusion(i.pos.xy, i.pos.z, fs.occlusion, fs.occlusionMap);
