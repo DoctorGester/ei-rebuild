@@ -1,0 +1,38 @@
+# Recorded by the harness from tests/scenarios/record/menu_newgame.txt (tests/verify/harness_record.h):
+# each input event and each step that acts on the game at the frame it came in.
+recorded
+at 4 event move 500 396
+at 4 event down left 500 396 1
+at 4 event up left 500 396 1
+at 7 event move 660 660
+at 7 event down left 660 660 1
+at 7 event up left 660 660 1
+at 10 event move 524 234
+at 10 event down left 524 234 1
+at 10 event up left 524 234 1
+at 13 event move 360 532
+at 13 event down left 360 532 1
+at 13 event up left 360 532 1
+at 28 event move 564 396 c
+at 28 event down left 564 396 1
+at 28 event up left 564 396 1
+at 68 event move 396 312 c
+at 68 event down left 396 312 1
+at 68 event up left 396 312 1
+at 68 event down left 396 312 2
+at 68 event up left 396 312 1
+at 108 event key down 0x25 0x14b 0
+at 123 event key up 0x25 0x14b 0
+at 123 event move 480 360
+at 123 event wheel 480 360 -1
+at 133 event move 480 360 c
+at 133 event down right 480 360 1
+at 133 event up right 480 360 1
+at 143 event key down 0x1b 0x1 0
+at 143 event key up 0x1b 0x1 0
+at 146 event key down 0x1b 0x1 0
+at 146 event key up 0x1b 0x1 0
+at 149 event move 504 456 c
+at 149 event down left 504 456 1
+at 149 event up left 504 456 1
+at 209 quit
