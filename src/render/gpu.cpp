@@ -12,6 +12,7 @@
 #include <chrono>
 #include <cstdarg>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <deque>
 #include <mutex>
@@ -787,8 +788,23 @@ int DeviceLimits::MaxSamples(Format colour, Format depth, int most) const {
     return MaxSamplesOn(device, colour, depth, most);
 }
 
+// The device thread joined and what it made released, when no Start or Stop took it: a joinable std::thread that is
+// destroyed calls std::terminate. Stop does this, and so does an exit function PrepareInBackground registers, for
+// every exit between the two (a declined disk-space prompt, a fatal error before the renderer starts, std::exit).
+void ReleasePrepared() {
+    if (!g_prepared.thread.joinable()) return;
+    g_prepared.thread.join();
+    if (g_prepared.device) {
+        ReleaseMade(g_prepared.device, g_prepared.pipelines, g_prepared.shaders);
+        SDL_DestroyGPUDevice(g_prepared.device);
+    }
+    g_prepared = Prepared{};
+}
+
 void PrepareInBackground(const DeviceOptions& options, PipelineLister lister) {
     if (g_device || g_prepared.thread.joinable()) return;
+    static const bool registered = (std::atexit(ReleasePrepared), true);
+    (void)registered;
     g_prepared.driver = options.driver ? options.driver : "";
     g_prepared.debug = options.debug;
     g_prepared.lister = std::move(lister);
@@ -839,14 +855,7 @@ bool Start(const DeviceOptions& options) {
 }
 
 void Stop() {
-    if (g_prepared.thread.joinable()) {
-        g_prepared.thread.join();
-        if (g_prepared.device) {
-            ReleaseMade(g_prepared.device, g_prepared.pipelines, g_prepared.shaders);
-            SDL_DestroyGPUDevice(g_prepared.device);
-        }
-        g_prepared = Prepared{};
-    }
+    ReleasePrepared();
     if (!g_device) return;
     SetFrameTiming(false);
     if (g_pass) EndPass();

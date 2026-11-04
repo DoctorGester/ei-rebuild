@@ -951,7 +951,10 @@ forward-declared handles, so the files include no SDL header. `ei_gpu_check` che
 - **Pipelines made ahead** (R43d1). `PrepareInBackground(options, lister)`: the thread that made the device calls the
   `PipelineLister` (descriptions appended to a vector; `DeviceLimits::MaxSamples` for the device-dependent ones) and
   makes each into its own cache and shader list, which nothing else touches; `Start` joins the thread and moves both
-  into the globals, so no lock is needed and the cache is the main thread's from then on. SDL_GPU's device-level
+  into the globals, so no lock is needed and the cache is the main thread's from then on. An exit between
+  `PrepareInBackground` and `Start` (a declined disk-space prompt, a fatal error, `std::exit`) still ends with its own
+  exit code: `PrepareInBackground` registers an exit function that joins the thread and releases what it made (a joinable
+  `std::thread` destroyed would call `std::terminate`). SDL_GPU's device-level
   creation calls (`SDL_CreateGPUShader`, `SDL_CreateGPUGraphicsPipeline`) are thread-safe by SDL's documentation, as
   device and resource creation are, and `ei_gpu_check` makes pipelines on the thread on Direct3D 12 and Vulkan. A
   description that cannot be made (a faulty one, a sample count the device lacks) is skipped without a message and
