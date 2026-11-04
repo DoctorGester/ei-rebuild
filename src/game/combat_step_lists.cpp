@@ -1,4 +1,4 @@
-// AnimationSteps, the step lists of the unit controller's animations (A-U5): appending steps and
+// AnimationSteps, the step lists of the unit controller's animations: appending steps and
 // emotes, flags, duration, comparison. See combat.h and docs/notes/combat.md.
 #include "combat.h"
 
@@ -22,10 +22,6 @@ void AnimationSteps::AddEmote(int emote) {
     AnimationStep& last = steps.back();
     last.variant = static_cast<std::uint8_t>(emote);
     last.duration = -1;
-}
-
-void AnimationSteps::SetStepFlags(int value) {
-    for (AnimationStep& step : steps) step.kind = value;
 }
 
 int AnimationSteps::Duration() const {

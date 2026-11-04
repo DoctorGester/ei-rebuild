@@ -17,9 +17,7 @@
 #include "save_versions.h"
 
 namespace {
-// Fields of UnitServer that combat.h leaves unnamed (offsets from the controller).
-
-constexpr int kSavedConstant = 2;             // written after +0x180, read back and dropped
+constexpr int kSavedConstant = 2;             // written between actingCheckTime and searchingTarget, read back and dropped
 
 int IdOrNone(const EngineObject* object) { return object ? object->id : -1; }
 
@@ -68,7 +66,7 @@ void LoadPlanFields(ByteStream* stream, OrderPlan* plan) {
     stream->ReadValue(plan->hitLocation);
     stream->ReadValue(plan->rangeSq);
     stream->ReadValue(plan->isCast);
-    stream->ReadValue(plan->notSkill);
+    stream->ReadValue(plan->calledShot);
     stream->ReadValue(plan->castKind);
     if (stream->version >= kVersionPlanDirection) stream->ReadValue(plan->direction);
 }
@@ -80,7 +78,7 @@ void SavePlanFields(ByteStream* stream, OrderPlan* plan) {
     stream->WriteValue(plan->hitLocation);
     stream->WriteValue(plan->rangeSq);   // the float's bits
     stream->WriteValue(plan->isCast);
-    stream->WriteValue(plan->notSkill);
+    stream->WriteValue(plan->calledShot);
     stream->WriteValue(plan->castKind);
     stream->WriteValue(plan->direction);
 }
@@ -107,7 +105,6 @@ void LoadArmourSpells(std::vector<ArmourSpell>* list, ByteStream* stream) {
 }
 
 void UnitServer::Load(ByteStream* stream) {
-    aiPresence = nullptr;
     stream->ReadValue(frozen);
     stream->ReadValue(animationHeld);
     queue.Load(stream);

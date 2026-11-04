@@ -50,8 +50,8 @@ constexpr std::uint32_t SkillKey(SkillAnimation skill) {
     return AnimationNumberBits(static_cast<int>(skill)) | kKeyAction;
 }
 
-// Hit locations picked for a skill order (source 6), uniformly from these 20.
-constexpr int kSkillLocations[20] = {0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5};
+// The part an attack on every body part (kAttackAllParts) aims at, picked uniformly from these 20.
+constexpr int kRandomPartTable[20] = {0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5};
 constexpr int kLocationBody = 1;
 constexpr int kLocationCount = 6;
 
@@ -128,16 +128,10 @@ std::uint32_t OrderKey(UnitServer* self, UnitOrderKind kind, std::uint32_t sourc
 // The height band (key bits) of a blow at height `h` on the attacker's body: low up to 0.4 of its
 // height, middle up to 0.8, high up to its top; anywhere else the key stays middle.
 std::uint32_t BandAt(float h, float base, float size, float top) {
-    if (h >= base) {
-        float low = size * kLowerPart + base;
-        if (h <= low) return kKeyLow;
-    }
     float low = size * kLowerPart + base;
-    if (h >= low) {
-        float middle = size * kUpperPart + base;
-        if (h <= middle) return kKeyMiddle;
-    }
     float middle = size * kUpperPart + base;
+    if (h >= base && h <= low) return kKeyLow;
+    if (h >= low && h <= middle) return kKeyMiddle;
     if (h >= middle && h <= top) return kKeyHigh;
     return kKeyMiddle;
 }
@@ -146,18 +140,15 @@ std::uint32_t BandAt(float h, float base, float size, float top) {
 // overlap [high, low), else `high`. The pick (a dword, exact) times 0.01 rounds once.
 float RandomHeight(float to, float from, float low, float high) {
     float span = (to - from) * kHundred;
-    if (lib::RoundEven(span) > 0) {
-        std::uint32_t steps = static_cast<std::uint32_t>(lib::RoundEven(span));
-        std::uint32_t pick = g_random.Next() % steps;
-        return (static_cast<float>(pick) * kPercent) + from;
+    float base = from;
+    if (lib::RoundEven(span) <= 0) {
+        span = (low - high) * kHundred;
+        base = high;
+        if (lib::RoundEven(span) <= 0) return high;
     }
-    float span2 = (low - high) * kHundred;
-    if (lib::RoundEven(span2) > 0) {
-        std::uint32_t steps = static_cast<std::uint32_t>(lib::RoundEven(span2));
-        std::uint32_t pick = g_random.Next() % steps;
-        return (static_cast<float>(pick) * kPercent) + high;
-    }
-    return high;
+    std::uint32_t steps = static_cast<std::uint32_t>(lib::RoundEven(span));
+    std::uint32_t pick = g_random.Next() % steps;
+    return (static_cast<float>(pick) * kPercent) + base;
 }
 
 constexpr std::uint32_t kKeyDeath = AnimationNumberBits(0x18);
@@ -301,7 +292,6 @@ void UnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, UnitOrderK
     AnimationStep& third = steps->steps.emplace_back();
     third.animation = AnimationStep::kNone;
     third.duration = rest;
-    steps->SetStepFlags(0);
     steps->steps[1].kind = 1;
     *duration = *duration + pause;
 }
@@ -319,7 +309,7 @@ void UnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* d
     // An attack order on the target, as ActionDistance sees it (the target is referenced).
     UnitAction order{};
     order.kind = UnitOrderKind::Attack;
-    order.source = 6;
+    order.source = kAttackAllParts;
     order.target.Assign(target);
 
     const Vector3 here = unit->localPosition;
@@ -334,12 +324,12 @@ void UnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* d
     float theirBase = victim->GroundHeight(aim.x, aim.y) + aim.z;
     float theirSize = victim->DoubleHeight();
 
-    // Where to hit: a skill picks at random, an attack its source location, else the body; the
-    // victim's stats move it to a part that can still be hit.
+    // Where to hit: an attack on every part picks at random, else the order's part (the body when it is no part);
+    // the victim's stats move it to a part that can still be hit.
     int location;
     std::uint32_t source = action.source;
-    if (source == 6) {
-        int around = kSkillLocations[g_random.Next() % 20];
+    if (source == kAttackAllParts) {
+        int around = kRandomPartTable[g_random.Next() % 20];
         location = victimStats->PickLocation(around);
     } else if (static_cast<int>(source) < 0 || static_cast<int>(source) >= kLocationCount) {
         location = victimStats->PickLocation(kLocationBody);

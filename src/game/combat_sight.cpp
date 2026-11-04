@@ -33,8 +33,6 @@ constexpr float kFrontCosine = 0.5f;
 constexpr float kUseSpotRange = 1e10f;     // point orders with pointIsUseSpot
 constexpr float kBestStart = 1e30f;
 
-constexpr std::uint32_t kSkillSource = 6;
-
 // a > b (false for a NaN).
 bool Greater(float a, float b) { return a > b; }
 
@@ -316,7 +314,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
                 plan->startTime = tick + now;
                 plan->endTime = tick + now + duration;
                 plan->animation = steps;
-                plan->notSkill = order->source != kSkillSource;
+                plan->calledShot = order->source != kAttackAllParts;
                 plan->direction = delta;
                 if (order->kind == UnitOrderKind::CastAt || order->kind == UnitOrderKind::CastOn) FillCastKind(plan, spell);
                 return true;

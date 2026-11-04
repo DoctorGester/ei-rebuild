@@ -1,4 +1,4 @@
-// Combat orders: the setters of the queued order (+0x1B4) that the AI and the player's commands use in a
+// Combat orders: the setters of the queued order that the AI and the player's commands use in a
 // fight (turn, move, attack, cast, stop) and the end of a cast. See combat.h and docs/notes/combat.md.
 #include "combat.h"
 #include "combat_internal.h"
@@ -29,7 +29,7 @@ void TellParty(Unit* unit, AckKind kind) {
 }
 
 // The spell checks OrderCastAt and OrderCast share: the spell behind `source`; for a party unit's own spell
-// (not an item) its skill requirement (+0x50) against the unit's skill. True when the order may be queued.
+// (not an item) its skill requirement against the unit's skill. True when the order may be queued.
 bool MayCast(UnitServer* self, std::uint32_t source) {
     Spell* spell = self->SpellOfSource(source);
     if (spell && self->unit->player && !(source & kQuickItemSource)) {

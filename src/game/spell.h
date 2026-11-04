@@ -15,6 +15,7 @@
 
 #include "lib/bit_flags.h"
 
+#include <array>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -27,6 +28,7 @@ struct MapEffect;
 class Effect;
 class EffectParticle;
 class EffectPointLight;
+enum class ParticleType : int;
 
 // The spell types: the spell prototype index (the order of the spell database in database.res, Spell's
 // prototypeId >> 16), also an active effect's type (MapEffect::type: a buff copies its spell's). Names from the
@@ -98,9 +100,29 @@ enum class SpellTargetFlag : std::uint32_t {
 template <> inline constexpr bool lib::kBitFlags<SpellTargetFlag> = true;
 inline constexpr std::uint32_t kSpellTargetRestrictions = 0xFFFF;   // the low 16 bits
 
+// The numbers of a spell that a copy takes along (Spell::CopyTo); the spell's first fields are an active effect
+// record (map_object.h), which a buff copies: its type, power, ticks (duration), value (damage) and strength
+// (radius).
+struct SpellValues {
+    std::uint8_t prototypeIndex = 0;
+    std::uint8_t effectPower = 0;   // the effect record's power, set to 0x10
+    std::uint32_t duration = 0;
+    float damage = 0.0f;
+    float radius = 0.0f;            // the prototype's area; Build makes it a radius
+    float speed = 0.0f;             // missile speed
+    float range = 0.0f;
+    std::uint32_t targetCount = 0;
+    std::uint32_t targetFlags = 0;  // SpellTargetFlag bits
+    float manaCost = 0.0f;
+    std::uint32_t complexity = 0;   // +1 per modifier
+    float price = 0.0f;
+    std::uint32_t castTime = 0;     // only loaded and saved
+    std::uint32_t skillNeeded = 1;  // the prototype's plus the modifiers'
+};
+
 // A spell instance ("CSpell", class id 0x4F). prototypeId of EngineObject is the packed id: spell
 // prototype index << 16.
-class Spell : public EngineObject {
+class Spell : public EngineObject, public SpellValues {
 public:
     Spell();
     ~Spell() override;
@@ -128,7 +150,7 @@ public:
     // "ic" or "it": the modifiers that set cast flags 0x20000 and 0x10000 when the spell is constructed.
     bool HasCastFlagModifier();
 
-    // The elemental damage type the spell deals (3, 4 or 5), 6 for none.
+    // The elemental damage type the spell deals (Fire, Lightning or Acid), Other for none.
     DamageType GetDamageType();
 
     // True for the attack spells (FireArrow to AcidFog, Lichdom, Stench, Stun, Weaken, Feeblemind, Slow, Charm,
@@ -138,32 +160,17 @@ public:
     // By the target flags in the low 16 bits of flags; either may be null.
     bool CanAffect(const Unit* caster, MapObject* target) const;
 
-    // `target`'s Destroy runs first.
+    // `target`'s Destroy runs first; then it takes the values, the modifiers up to the first 0, and the packed id.
     void CopyTo(Spell* target);
 
     Spell* Clone(class SpellManager* manager);
 
-    // The spell's first fields are an active effect record (map_object.h), which a buff copies: its type, power,
-    // ticks (duration), value (damage) and strength (radius). EffectRecord() builds the record, SetEffect() stores one
-    // (its `ending` is not kept).
+    // EffectRecord() builds the active effect record of the values' first fields, SetEffect() stores one (its
+    // `ending` is not kept).
     MapEffect EffectRecord() const;
     void SetEffect(const MapEffect& record);
 
-    std::uint8_t prototypeIndex;
-    std::uint8_t effectPower;       // the effect record's power, set to 0x10
-    std::uint32_t duration;
-    float damage;
-    float radius;                   // the prototype's area; Build makes it a radius
-    float speed;                    // missile speed
-    float range;
-    std::uint32_t targetCount;
-    std::uint32_t targetFlags;      // SpellTargetFlag bits
-    float manaCost;
-    std::uint32_t complexity;       // +1 per modifier
-    float price;
-    std::uint32_t castTime;   // only loaded and saved
-    std::uint32_t skillNeeded;      // the prototype's plus the modifiers'
-    std::int8_t modifiers[8];       // spell modifier index + 1 each, 0 ends the list
+    std::array<std::int8_t, 8> modifiers{};     // spell modifier index + 1 each, 0 ends the list
 };
 
 // The damage a hit deals, filled by the spell effects and the weapon code.
@@ -197,7 +204,8 @@ public:
     // flags bit 0 is set.
     void HitUnit(DamageInfo* hit, MapObject* unit);
 
-    // Every unit within `radius` of `position` that IsSpellTarget accepts and the spell may affect.
+    // Every unit within `radius` of `position` that area spells hit (units with a size class, and those whose
+    // prototype's height is below 0.5 or NaN) and the spell may affect.
     void HitUnitsInRadius();
 
     // The units within `radius` that lie within 1 of the vertical plane through `position` along
@@ -213,11 +221,11 @@ public:
     // Nothing without a visual or for other types.
     void UpdateFootprint(SpellType type, int stamp);
     // It becomes the visual.
-    void CreateArrow(const Vector3& from, EngineObject* target, int particleType, float power, const char* sound,
+    void CreateArrow(const Vector3& from, EngineObject* target, ParticleType particleType, float power, const char* sound,
                      const Vector3& color, float range);
     // Types 0x2010 and 0x2014 are walls. `keep`: it becomes the visual, else it is only added to the world's
     // timed objects.
-    EffectParticle* CreateParticle(int keep, int particleType, const Vector3& position, float size, float alpha,
+    EffectParticle* CreateParticle(int keep, ParticleType particleType, const Vector3& position, float size, float alpha,
                                     const Vector3& velocity, EngineObject* attachTo);
     // Nothing without a target; it becomes the visual.
     void CreateLightning(const Vector3& from, MapObject* target, EngineObject* source, float power, int flag);
@@ -273,10 +281,6 @@ public:
     const Spell* HeldSpell() const { return &spell; }
 };
 
-// Whether area spells hit `unit`: units with a size class, and those whose prototype's height is below 0.5
-// (or NaN).
-bool IsSpellTarget(Unit* unit);
-
 // A spell under construction (created by the spell manager as SpellObjectType::Container): a prototype, the modifiers added
 // so far, and the Spell that Build computes from them.
 class SpellContainer : public EngineObject {
@@ -312,17 +316,6 @@ public:
     std::string name;              // always empty
 };
 
-// The spell manager's "sequences" (keyed by the high half of a packed spell id): containers keyed by the low
-// half. Nothing in the game fills them, so only CreateSpellObject with an id whose low half is not 0 reaches
-// them (and then fails).
-struct SpellSequence {
-    // The containers released; the walk stops at the first entry without one.
-    ~SpellSequence();
-
-    std::unordered_map<std::uint32_t, SpellContainer*> containers;   // only empty entries ever: no order to keep
-    std::uint32_t maxLow;
-};
-
 // The spell manager's object types (CreateObject / type).
 enum class SpellObjectType : int {
     Spell = 0x3002,      // Spell
@@ -332,8 +325,8 @@ enum class SpellObjectType : int {
 // The spell manager; context gives the spell constructor.
 class SpellManager : public ResourceManager {
 public:
-    SpellManager();
-    ~SpellManager() override;
+    SpellManager() = default;
+    ~SpellManager() override = default;
     const char* ClassName() override;
     ClassId GetClassId() override;
     const char* GetFolderName() override;    // "spells"
@@ -341,12 +334,8 @@ public:
     SpellContainer* NewContainer();
 
     // For an id other than -1 the spell takes it as its packed id: low half 0 initialises it from prototype
-    // (id >> 16) (null when out of range); otherwise the sequence of the high half gives the container to
-    // copy the spell from (FatalError without a sequence; a new entry has no container, and the spell keeps only
-    // its id).
+    // (id >> 16) (null when out of range); another low half is a FatalError (the spell keeps only its id).
     Spell* CreateSpellObject(int id);
-    // The sequences' tables' bucket arrays leak.
-    void Destroy() override;
     // A Spell (0x3002) or SpellContainer (0x3003); else null.
     EngineObject* NewObject(int type) override;
 
@@ -362,11 +351,6 @@ public:
     // `this` is not used.
     std::vector<std::string> ListSpellNames();
     std::vector<std::string> ListModifierNames();
-
-    // By the high half of a packed id. Its entries are only the null ones CreateSpellObject's lookup adds, so the
-    // destructor's walk (which stops at a null entry) deletes nothing in any order.
-    std::unordered_map<std::uint32_t, SpellSequence*> sequences;
-    std::uint32_t maxSequenceKey;    // the largest key asked for
 };
 
 class SpellConstructor : public EngineObject {
@@ -477,5 +461,5 @@ public:
 };
 
 // Case-insensitive; null if none.
-char* SpellCodeByName(std::string_view name);
-char* SpellModifierCodeByName(std::string_view name);
+const char* SpellCodeByName(std::string_view name);
+const char* SpellModifierCodeByName(std::string_view name);

@@ -34,22 +34,23 @@ constexpr float kFifteen = 15.0f;
 constexpr float kArrived = 0.02f;
 constexpr float kMinClosing = 0.1f;   // the slowest closing speed
 
-constexpr int kAttackLead = 0x10;       // ticks a chase looks ahead
+constexpr int kAttackLead = 16;         // ticks a chase looks ahead
 constexpr int kChaseMinTicks = 2;
-constexpr int kChaseMaxTicks = 0x40;
+constexpr int kChaseMaxTicks = 64;
 
 
 
 bool IsCastKind(UnitOrderKind kind) { return kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn; }
-bool IsActionKind(UnitOrderKind kind) { return kind == UnitOrderKind::Attack || kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn || kind == UnitOrderKind::Use; }
+bool IsActionKind(UnitOrderKind kind) { return kind == UnitOrderKind::Attack || IsCastKind(kind) || kind == UnitOrderKind::Use; }
 
 void TellParty(Unit* unit, AckKind kind) {
     if (unit->player) unit->player->Server()->SendUnitSpeech(unit, kind);
 }
 
-// The common start of taking over the queued order: run (mode 2) unless the order can be carried
-// out at once, then the movement records and the frame stamp.
-void LeaveMoveMode(UnitServer* self) {
+// The common start of taking over the queued order: an order with the walk modifier moves a unit that is not walking
+// (lying, crawling, stopped) to MoveMode::Walk unless the order can be carried out at once; then the movement
+// records and the frame stamp.
+void SwitchToWalkForOrder(UnitServer* self) {
     UnitAction* order = &self->action;
     if (order->modifier && self->moveMode.mode != MoveMode::Walk) {
         UnitOrderKind kind = order->kind;
@@ -97,7 +98,6 @@ UnitAction* UnitAction::Assign(const UnitAction* from) {
     point = from->point;
     pointIsUseSpot = from->pointIsUseSpot;
     param = from->param;
-    param = from->param;   // copied twice, like the original
     modifier = from->modifier;
     return this;
 }
@@ -143,7 +143,7 @@ void UnitServer::StandIdle() {
         // The idle animation starts at a random phase (up to 50 ticks back) on an empty queue.
         if (queue.steps.empty() && queue.extra == -1) {
             int now = OwningWorld()->tick;
-            idle->extra = now - static_cast<int>(g_random.Next() % 0x33);
+            idle->extra = now - static_cast<int>(g_random.Next() % 51);
         }
         PlaySteps(idle);
     }
@@ -155,7 +155,7 @@ bool UnitServer::StartMove() {
     WorldServer* world = ServerWorld();
     orderStopped = 0;
     TakeOver(this);
-    LeaveMoveMode(this);
+    SwitchToWalkForOrder(this);
     if (ChangeMoveMode()) {
         return true;
     }
@@ -171,19 +171,12 @@ bool UnitServer::StartMove() {
     unit->altPassCosts = map->InWaterAt(unit->localPosition);
     bool found = PathTo(action.point, kNoPathLimit);
     for (Unit* other : lifted) world->aiMap.sectorMap.Add(other);
-    bool arrived = false;
     if (action.param) {
         action.param = 0;
-        bool close = false;
-        if (!found) {
-            close = DistanceSquaredXY(action.point, unit->localPosition) < kCloseEnoughSq;
-        }
-        if (close) arrived = true;
-        else ReportPath(&motion, found);
+        bool close = !found && DistanceSquaredXY(action.point, unit->localPosition) < kCloseEnoughSq;
+        if (!close) ReportPath(&motion, found);
     }
-    if (!arrived && found) {
-        return true;
-    }
+    if (found) return true;
     orderStopped = 1;
     EndCurrentOrder();
     StartQueuedOrder();
@@ -201,7 +194,7 @@ bool UnitServer::StartQueuedOrder() {
     case UnitOrderKind::Idle:
         action.Assign(&action2);
         action2.Reset();
-        LeaveMoveMode(this);
+        SwitchToWalkForOrder(this);
         if (state != UnitState::Turning) StandIdle();
         return true;
 
@@ -210,7 +203,7 @@ bool UnitServer::StartQueuedOrder() {
 
     case UnitOrderKind::Turn: {
         TakeOver(this);
-        LeaveMoveMode(this);
+        SwitchToWalkForOrder(this);
         int time = action.param;
         int now = OwningWorld()->tick;
         motion.StandAndTurn(now, unit, action.point, static_cast<std::uint32_t>(time));
@@ -226,14 +219,14 @@ bool UnitServer::StartQueuedOrder() {
     case UnitOrderKind::Use:
         orderStopped = 0;
         TakeOver(this);
-        LeaveMoveMode(this);
+        SwitchToWalkForOrder(this);
         stoodBlocked = 0;
         ExecuteOrder();
         return true;
 
     case UnitOrderKind::Animation: {
         TakeOver(this);
-        LeaveMoveMode(this);
+        SwitchToWalkForOrder(this);
         AnimationSteps steps;
         std::uint8_t animation = static_cast<std::uint8_t>(action.param);
         int duration = AnimationDuration(animation);
@@ -244,7 +237,7 @@ bool UnitServer::StartQueuedOrder() {
 
     case UnitOrderKind::Emote: {
         TakeOver(this);
-        LeaveMoveMode(this);
+        SwitchToWalkForOrder(this);
         AnimationSteps steps;
         steps.AddEmote(static_cast<std::uint8_t>(action.param));
         PlayEmoteOrder(steps);
@@ -253,7 +246,7 @@ bool UnitServer::StartQueuedOrder() {
 
     case UnitOrderKind::UseItem: {   // unreached in the shipped game: nothing sets the use-item order
         TakeOver(this);
-        LeaveMoveMode(this);
+        SwitchToWalkForOrder(this);
         AnimationSteps steps;
         int duration;
         BuildOrderSteps(&steps, &duration, UnitOrderKind::Use, 0);
@@ -273,7 +266,7 @@ bool UnitServer::StartQueuedOrder() {
             return false;
         }
         TakeOver(this);
-        LeaveMoveMode(this);
+        SwitchToWalkForOrder(this);
         if (state != UnitState::Turning) StandIdle();
         return true;
 
@@ -333,7 +326,8 @@ void UnitServer::ContinueAction() {
             }
         } else if (!action.target->IsDead()) {
             carryOn = true;
-        } else if (action.kind == UnitOrderKind::Use && (action.Skill() == UseSource::SearchBody || action.Skill() == UseSource::Use)) {
+        } else if (action.kind == UnitOrderKind::Use &&
+                   (action.Skill() == UseSource::SearchBody || action.Skill() == UseSource::Use)) {
             carryOn = true;   // talk to or study the dead
         }
     }
@@ -422,8 +416,7 @@ void UnitServer::ExecuteOrder() {
         }
     }
     if (!clear && !stop) {
-        int& nextAttack = nextAttackTime;
-        if (nextAttack > plan->startTime) {
+        if (nextAttackTime > plan->startTime) {
             if (action.kind == UnitOrderKind::Attack) {
                 ApproachTarget();
                 return;
@@ -431,8 +424,8 @@ void UnitServer::ExecuteOrder() {
         } else if (action.kind == UnitOrderKind::Attack) {
             int interval = AttackInterval(this, unit->ActiveWeapon());
             int next = interval + now;
-            if (nextAttack > next) next = nextAttack;
-            nextAttack = next;
+            if (nextAttackTime > next) next = nextAttackTime;
+            nextAttackTime = next;
         }
         if (IsCastKind(action.kind) && !CanCast(&action)) {
             TellParty(unit, (action.source & kQuickItemSource) ? AckKind::ScienceFailed : AckKind::NoMana);
@@ -445,7 +438,7 @@ void UnitServer::ExecuteOrder() {
             }
             bool missed = false;
             if (Unit* victim = action.kind == UnitOrderKind::Attack ? UnitOrNull(action.target) : nullptr) {
-                char calledShot = static_cast<char>(plan->notSkill);
+                char calledShot = static_cast<char>(plan->calledShot);
                 int location = plan->hitLocation;
                 auto* defender = victim->ServerController();
                 int backstab = unit->IsBehind(victim);
@@ -522,7 +515,7 @@ void UnitServer::ApproachTarget() {
         Unit* leader = followedLeader;
         auto* theirs = leader->ServerController();
         if (theirs->action.target == target &&
-            (theirs->action.kind == UnitOrderKind::Attack || theirs->action.kind == UnitOrderKind::CastAt || theirs->action.kind == UnitOrderKind::CastOn) &&
+            (theirs->action.kind == UnitOrderKind::Attack || IsCastKind(theirs->action.kind)) &&
             theirs->state != UnitState::Acting) {
             chased = leader;
         } else {

@@ -12,7 +12,6 @@
 #include <list>
 #include <vector>
 
-struct AIEventPresence;
 struct AIMemory;
 struct FogGrid;
 class AIMap;
@@ -41,8 +40,8 @@ struct AIViewer {
     // with console filter bit 0). The units' noises pass AIBrain::kCallDelay.
     void Noise(UnitServer* source, float loudness, int delay, const Vector3& at);
     // The noise of a moving unit: Noise (AIBrain::kCallDelay) at the unit, as loud as moveFactors[0] x conspicuity[3] x
-    // the noise of the ground at `position` (the AI map's terrain type). Returns 0 (no presence record).
-    AIEventPresence* StepNoise(const Vector3& position, UnitServer* source);
+    // the noise of the ground at `position` (the AI map's terrain type).
+    void StepNoise(const Vector3& position, UnitServer* source);
 
     AIMap* map = nullptr;
     int tick = 0;                   // the world's event table: its tick (AIEventTable::Advance)

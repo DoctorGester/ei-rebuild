@@ -180,7 +180,7 @@ AnimationSteps* UnitServer::NextAnimation() {
             // only).
             steps.AddEmote(step.variant);
         } else if (step.variant == AnimationStep::kNone) {
-            AnimationStep& last = steps.steps.emplace_back();   // padding 0, not a stack byte (the harness zeroes the original's)
+            AnimationStep& last = steps.steps.emplace_back();
             last.animation = step.animation;
             last.duration = step.duration;
         } else {
@@ -192,9 +192,9 @@ AnimationSteps* UnitServer::NextAnimation() {
 
 // --- Starting the planned action ---------------------------------------------------------------
 
-void UnitServer::StartAction(char follow, char stepFlags) {
+void UnitServer::StartAction(char follow, char missed) {
     OrderPlan& plan = currentPlan;
-    for (AnimationStep& step : plan.animation.steps) step.flags = static_cast<std::uint8_t>(stepFlags);
+    for (AnimationStep& step : plan.animation.steps) step.flags = static_cast<std::uint8_t>(missed);
     if (state != UnitState::Idle && state != UnitState::Moving && state != UnitState::Turning) {
         PlaySteps(IdleAnimation());
     }
@@ -234,9 +234,8 @@ void UnitServer::UpdateSneak() {
             sneakWait = 0;
             return;
         }
-        int& waited = sneakWait;
-        ++waited;
-        if (waited <= 5 && moveMode2.wasMode3 != 0) return;
+        ++sneakWait;
+        if (sneakWait <= 5 && moveMode2.wasMode3 != 0) return;
         moveMode.wasMode3 = 0;
         MoveMode mode = moveMode.mode;
         if (mode != unit->moveMode) {
@@ -324,11 +323,9 @@ bool UnitServer::PathTo(const Vector3& point, float range) {
     motionChanged = 0;
     stoodBlocked = 0;
     motion.Clear();
-    std::uint32_t keep = unit->altPassCosts;
     WorldServer* world = ServerWorld();
     motion.mayExcludeRegions = unit->player ? 0 : 1;
     std::uint32_t before = unit->altPassCosts;
-    unit->altPassCosts = keep;
     bool found = world->aiMap.FindPath(unit, point, &motion, range, 0.0f);
     unit->altPassCosts = before;
     if (!found) {
@@ -399,7 +396,6 @@ void UnitServer::ReportPath(AIPath* path, char partial) {
     if (!partial) {
         if (self->player) self->player->Server()->SendPathMessage(self, &end, goal, 3, 1, kNoPathLimit);
         if (brain.LeaderOrFollowed()) return;
-        self = unit;
         if (!self->player) return;
         message = AckKind::NoPath;
     } else {
@@ -411,7 +407,6 @@ void UnitServer::ReportPath(AIPath* path, char partial) {
         if (self->player)
             self->player->Server()->SendPathMessage(self, &end, goal, 0, stillFar ? 0 : 1, kNoPathLimit);
         if (brain.LeaderOrFollowed()) return;
-        self = unit;
         if (!self->player) return;
         message = stillFar ? AckKind::Move : AckKind::NoPath;
     }
@@ -466,7 +461,6 @@ void UnitServer::ResetController() {
     searchingTarget = 0;
     brain.Init();
     voice.Reset();
-    aiPresence = nullptr;
     for (float& factor : moveFactors) factor = 1.0f;
     stats.Reset();
     tameStage = 0;

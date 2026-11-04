@@ -28,7 +28,7 @@ namespace spellfx {
 
 constexpr std::uint32_t kPointLightFlags = lib::Bits(LightFlag::Specular | LightFlag::Strong);
 
-// Volumes and radii the casts pass as immediates.
+// The volumes and radii of the casts' sounds.
 constexpr float kVolume = 10.0f;
 constexpr float kHearing = 50.0f;
 constexpr float kLoud = 1000.0f;
@@ -135,23 +135,23 @@ inline float LightRise(SpellEffect* e) {
     return prototype->lightRange / MaxKeepB(1.0f, prototype->lightRiseDivisor);
 }
 
-// Every unit within the radius of the effect's position that IsSpellTarget accepts gets the
-// effect's damage (a list on the stack, walked node by node).
-inline void HitAreaTargets(SpellEffect* e) {
-    DamageInfo hit;
-    e->GetDamage(&hit);
-    for (Unit* unit : e->world->aiMap.sectorMap.FindUnitsInRadius(e->position, e->HeldSpell()->radius)) {
-        if (static_cast<std::uint8_t>(IsSpellTarget(unit))) e->HitUnit(&hit, unit);
-    }
-}
-
 // The light every lasting spell puts at its point, in the prototype's light colour.
 inline void PrototypeLight(SpellEffect* e, const Vector3& at, float range, const Vector3& velocity) {
     Vector3 color = Prototype(e)->lightColor;
     e->CreatePointLight(at, color, range, velocity);
 }
 
-enum class Next { Done, Set, Leave };   // state 3; state set by the case; leave the state alone
+// SpellEffect::state.
+constexpr int kStateCasting = 0;    // Start runs
+constexpr int kStateMissile = 1;    // the missile flies
+constexpr int kStateLasting = 2;    // the effect lasts, `timer` ticks
+constexpr int kStateEnded = 3;      // the effects' objects go and the spell effect is removed
+
+// The effect lasts for the spell's duration (the lasting spells that stand where they were cast).
+inline void EnterLasting(SpellEffect* e) {
+    e->state = kStateLasting;
+    e->timer = static_cast<int>(e->HeldSpell()->duration);
+}
 
 inline const Vector3 kZeroVector{0.0f, 0.0f, 0.0f};
 
