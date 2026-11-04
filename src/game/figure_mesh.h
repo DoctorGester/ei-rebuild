@@ -193,20 +193,24 @@ public:
     std::vector<NormalPacket> normals;
 };
 
-// Figure type 0x41: a part whose last four buffers point into the loaded file data (the figure manager's parts that
-// are not attached).
+// Figure type 0x41: the figure manager's parts that are not attached. The original pointed its last four buffers
+// into the loaded file data (records at any alignment); they are copied here.
 class SharedFigureMesh : public FigureMesh {
 public:
     SharedFigureMesh();
     ~SharedFigureMesh() override;
 
-    // Clear: the vertices and normals emptied, then FigureMesh's Clear.
+    // Clear: the mesh's own arrays emptied, then FigureMesh's Clear.
     void Destroy() override;
-    // The FIG loader. PlainFigureMesh's, but only the vertices and records are copied; the other
-    // buffers point into the file data.
+    // The FIG loader: PlainFigureMesh's.
     void LoadFig(char** cursor) override;
-    // The older-format loader. PlainFigureMesh's, the last four buffers pointing into the data.
+    // The older-format loader: PlainFigureMesh's.
     void LoadOld(char** cursor) override;
+
+    std::vector<TexCoord> texCoords;
+    std::vector<std::uint16_t> indices;
+    std::vector<MeshCorner> corners;
+    std::vector<std::uint32_t> words;
 };
 
 // Figure type 0x42: a mesh that owns all its arrays (the figure manager's attached parts). UiMesh (type 0x43, class id

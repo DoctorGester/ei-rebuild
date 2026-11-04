@@ -81,6 +81,14 @@ bool MappedResource::OpenResource(const std::string& path) {
     return game::FatalError("CMappedResource::OpenResource()\nUnable to read file \"" + path + "\"");
 }
 
+void MappedResource::CopyEntries(char* base) {
+    entryTable.resize(header.count);
+    if (header.count != 0)
+        std::memcpy(entryTable.data(), base + header.tableOffset, header.count * sizeof(ResEntry));
+    entries = entryTable.data();
+    names = base + header.tableOffset + header.count * sizeof(ResEntry);
+}
+
 bool MappedResource::OpenFromMemory(const void* memoryImage) {
     CloseResource();
     // GetFile hands out pointers into the image (writable through them).
@@ -92,8 +100,7 @@ bool MappedResource::OpenFromMemory(const void* memoryImage) {
         CloseResource();
         return false;
     }
-    entries = reinterpret_cast<ResEntry*>(base + header.tableOffset);
-    names = base + header.tableOffset + header.count * sizeof(ResEntry);
+    CopyEntries(base);
     return true;
 }
 
@@ -208,8 +215,7 @@ bool MMIOResource::OpenFromMemory(const void* memoryImage) {
         CloseResource();
         return false;
     }
-    entries = reinterpret_cast<ResEntry*>(base + header.tableOffset);
-    names = base + header.tableOffset + header.count * sizeof(ResEntry);
+    CopyEntries(base);
     return true;
 }
 
@@ -218,6 +224,7 @@ void MMIOResource::CloseResource() {
     file.Close();
     entries = nullptr;
     names = nullptr;
+    entryTable = {};
     mappedImage = nullptr;
     header = ResHeader{};
 }

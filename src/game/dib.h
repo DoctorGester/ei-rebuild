@@ -37,10 +37,6 @@ struct DibHeader {
 };
 static_assert(sizeof(DibHeader) == 40);
 
-struct DibColour {
-    std::uint8_t blue, green, red, reserved;
-};
-
 inline constexpr std::uint32_t kDibRgb = 0;         // the bits as they are
 inline constexpr std::uint32_t kDibBitFields = 3;   // the three channel masks after the header
 
@@ -75,7 +71,6 @@ public:
     // bytes of bits. A platform::FileError from the writes: a message box and 0. Returns 1.
     int Write(platform::File* file);
 
-    DibColour* colours = nullptr;            // after the header
     std::vector<std::uint8_t> bits;
     DibHeader* header = nullptr;             // with what follows it (::operator new), or null
     std::uint32_t imageSize = 0;             // bytes of bits
