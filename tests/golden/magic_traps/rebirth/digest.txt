@@ -7604,23 +7604,23 @@ client tick 80
 client ticksRun 52
 cunit1804 #place DF969219
 cunit1804 #unit 618078DC
-@ 4 update 100 frame 19 tick 100 zone gz1g hash 98915A38 n 840
+@ 4 update 100 frame 19 tick 100 zone gz1g hash B09057DD n 840
 world tick 100
 world updates 100
-random isaac.count 129
+random isaac.count 115
 random crt.rand 0xA87858AA
 obj699 #vitals A243F4AF
 obj702 #vitals A243F4AF
 obj1804 #ai 1F3470A8
 obj1804 #vitals FBE05ECC
 obj1884 #vitals A243F4AF
-obj1890 pos.x 54.1419411
-obj1890 pos.y 98.0031662
+obj1890 pos.x 54.1379967
+obj1890 pos.y 98.063797
 obj1890 #ai E37FEB13
-obj1890 #place 88524974
-obj1890 #unit BFCEC544
+obj1890 #place 204F6EE1
+obj1890 #unit F8B3D0FA
 obj1890 #vitals FBE05ECC
-obj1936 #ai 305120A3
+obj1936 #ai 5EDD3BE2
 obj1936 #vitals 024EBADD
 obj1937 #ai 4124E81E
 obj1937 #vitals 024EBADD
@@ -7633,14 +7633,14 @@ aievents tick 100
 client tick 100
 client ticksRun 72
 cunit1804 #place 0B0BC947
-@ 5 update 120 frame 23 tick 100 zone gz1g hash 8FE1BDA3 n 840
+@ 5 update 120 frame 23 tick 100 zone gz1g hash CC6F3230 n 840
 world updates 120
 world paused 1
 obj699 #unit 58199F9E
 obj702 #unit 29C54E57
 obj1804 #unit 14F78A26
 obj1884 #unit 6E84B1FD
-obj1890 #unit DF094CA1
+obj1890 #unit 9874591F
 obj1936 #unit 0D08731F
 obj1937 #unit C939FB55
 obj1000011214 #unit 503AA6E6
@@ -7649,19 +7649,19 @@ client tick 101
 client paused 1
 client ticksRun 92
 cunit1804 #place DCF94003
-@ 6 update 140 frame 27 tick 100 zone gz1g hash C1F61DCD n 840
+@ 6 update 140 frame 27 tick 100 zone gz1g hash 32D46755 n 840
 world updates 140
-random isaac.count 115
+random isaac.count 101
 player0 lastTick 100
 player0 var.gtime 6.08111143
 client ticksRun 112
-@ 7 update 160 frame 31 tick 101 zone gz1g hash C7A17E65 n 840
+@ 7 update 160 frame 31 tick 101 zone gz1g hash 3CF2FB2F n 840
 world tick 101
 world updates 162
 world paused 0
 world secondsPerTick 0.00111111137
 world updateMap 24
-random isaac.count 12
+random isaac.count 4
 random crt.rand 0xEE23F69E
 obj663 #unit 28A0C952
 obj666 #unit 2C8C561D
@@ -7682,11 +7682,11 @@ obj1846 # 1BE94EF4
 obj1873 # F9AB2A81
 obj1884 #unit 58199F9E
 obj1884 #vitals 3C27610C
-obj1890 pos.x 54.2729645
-obj1890 pos.y 98.0309525
+obj1890 pos.x 54.2719688
+obj1890 pos.y 98.0759277
 obj1890 #ai A41D4474
-obj1890 #place 64307700
-obj1890 #unit BFCEC544
+obj1890 #place A74F8C12
+obj1890 #unit F8B3D0FA
 obj1890 #vitals 6584CB6F
 obj1898 #unit 42411336
 obj1900 #unit 894EC982

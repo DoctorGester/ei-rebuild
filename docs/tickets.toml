@@ -6314,6 +6314,12 @@ depends = ["H51"]
 note = "Found in H51: render_blink, render_cursor_present and render_shadows_outside fail their own pixel checks on the stub set (Windows and Linux alike; they pass on the installs, lavapipe included), because every texture is blanked to 0: the faces' open and closed rectangles are the same black, the gate's shadow falls on black ground, the cursor is 1024 transparent pixels. Options: keep the pixels of the few textures these read (the cursor pictures, the briefing speakers' mouth textures, bz1g's ground) in tools/stub_data.py, or blank to a cheap non-uniform pattern that keeps every other frame check passing. Needs the user to rebuild, repack and push the stub set; then the Suites (Linux) job's comment drops the three."
 
 [[ticket]]
+id = "H51a1"
+title = "test_work_sched: test_scheduler_records_and_uses_timings fails (install 'standalone' recorded, 'vanilla' expected)"
+group = "harness"
+note = "Found in H51a (2026-11-04, main f85ee2bae): python -m unittest tools.test_work_sched fails one test every time, not only under load: the timing rows carry install 'standalone' (the run's install name) where the test expects 'vanilla' (the goldens' name). Decide which name the timing table keeps (work.expected_times is called with both in places) and make the scheduler and the test agree."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"

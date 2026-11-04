@@ -170,8 +170,9 @@ Scenarios that show the fixes: `rebirth_fixes` (the same buff eight times keeps 
 original kept 11), `rebirth_fixes_world` (FixCreateItem, FixMoveObject, FixRemoveMapObject), `rebirth_fixes_ui`
 (FixLeversActivate, FixPlaingBattleMusicFromAntimagic, FixSpellSelfCasting #1). Not reached: FixSpellSelfCasting #0
 (types 0x28 / 0x29 are not in vanilla spells.sdb), FixAddMapObject, FixRepairPrice, FixProgressNames, FixProcessLogin.
-Rebirth's data is a smoke set (`run_all --rebirth`; `config/rebirth_scenarios.csv` plus every scenario with a step for one
-install, rebirthflags, addonpath or widescreen); `--all-rebirth` runs every Rebirth golden.
+Rebirth's data runs the Rebirth set (`run_all --rebirth`; `config/rebirth_scenarios.csv`, every scenario with a step for one
+install, rebirthflags, addonpath or widescreen, and every scenario with a Rebirth golden); `--all-rebirth` runs every
+scenario.
 
 ### WideScreen
 

@@ -1,28 +1,17 @@
 {
   "scenario": "sandbox_actions",
   "install": "rebirth",
-  "recorded": "2026-11-03",
-  "commit": "56708991a",
+  "recorded": "2026-11-04",
+  "commit": "13def2600",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "H47c: game maths through lib/maths.h (each system's double function rounded to float), the same on Windows and Linux; UCRT's float sinf/cosf/... were an ulp off for some inputs",
+  "reason": "H51a: Rebirth goldens outside the old Rebirth set had gone stale behind golden-moving merges (C84d's no-point z 0 instead of 1e6 and its other fixes, H47c's game maths, C81's settings, and PL20/C84/C84b before them); main's runs are the same as a build of d31120f0e (C84d's goldens) and every vanilla twin moved at those merges",
   "source": "image",
   "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "console: differs from line 39: the old golden '0', the new run '1'",
-    "digest: 4 of 17 records differ, first at record 13 (world update 280, tick 280, frame 55, zone gz1g); outcomes CHANGED: deaths; max unit move 0.124 (obj1937, record 16); the digests have different numbers of records",
-    "  digest: the old golden has more records; the other ends before its record 17 (world update 360, frame 71, tick 360, zone gz1g)",
-    "  first difference at record 13 (world update 280, tick 280, frame 55, zone gz1g): 2 fields",
-    "    random (random) isaac.count: 134 in the old golden, 133 in the new run (d 1)",
-    "    random (random) crt.rand: 0x01AE9A50 in the old golden, 0x51E382D1 in the new run",
-    "  outcomes: CHANGED deaths; same: zone, spawns, money, quest variables, party and items, game result, script",
-    "    deaths: obj1000275419 dead: 0 in the old golden, 1 in the new run, from record 14 (+2 more)",
-    "  random: 1 of 1 differ",
-    "    crt: 1 generator, 4 records, from 13; e.g. random crt.rand: 0x01AE9A50 in the old golden, 0x51E382D1 in the new run",
-    "    isaac: 1 generator, 4 records, from 13; max |d| 13 at random isaac.count, record 16: 9 -> 22",
-    "  units: 4 of 54 differ",
-    "... 11 more lines"
+    "save savea/mission.sav: 6 fields in 3 records differ: obj 6",
+    "  obj: 6 fields in 3 records; first obj1804 controller.action.point.z: 1000000.0 in the old golden, 0.0 in the new run (d 1e+06)"
   ]
 }

@@ -1,21 +1,21 @@
 {
   "scenario": "net_pair_join",
   "install": "rebirth",
-  "recorded": "2026-11-03",
-  "commit": "56708991a",
+  "recorded": "2026-11-04",
+  "commit": "13def2600",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "H47c: game maths through lib/maths.h (each system's double function rounded to float), the same on Windows and Linux; UCRT's float sinf/cosf/... were an ulp off for some inputs",
+  "reason": "H51a: Rebirth goldens outside the old Rebirth set had gone stale behind golden-moving merges (C84d's no-point z 0 instead of 1e6 and its other fixes, H47c's game maths, C81's settings, and PL20/C84/C84b before them); main's runs are the same as a build of d31120f0e (C84d's goldens) and every vanilla twin moved at those merges",
   "side": "peer",
   "source": "image",
   "change": [
-    "digest: 1 of 62 records differ, first at record 50 (world update 1020, tick 577, frame 203, zone bz1mpg); outcomes the same; unit place differs (hash only: no numbers)",
-    "  first difference at record 50 (world update 1020, tick 577, frame 203, zone bz1mpg): 1 fields",
-    "    obj848411 (80 unanhopi \"\") #place: 2EEFB771 in the old golden, 0137F611 in the new run",
+    "digest: 14 of 62 records differ, first at record 48 (world update 980, tick 537, frame 195, zone bz1mpg); outcomes the same; no unit position differs",
+    "  first difference at record 48 (world update 980, tick 537, frame 195, zone bz1mpg): 1 fields",
+    "    random (random) isaac.count: 39 in the old golden, 55 in the new run (d 16)",
     "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  units: 1 of 27 differ",
-    "    #place: 1 unit, 1 record, from 50; hash only (no numbers kept)"
+    "  random: 1 of 1 differ",
+    "    isaac: 1 generator, 14 records, from 48; max |d| 180 at random isaac.count, record 51: 191 -> 11"
   ]
 }

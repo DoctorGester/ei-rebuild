@@ -1,25 +1,17 @@
 {
   "scenario": "render_cursor_present",
   "install": "rebirth",
-  "recorded": "2026-11-03",
-  "commit": "56708991a",
+  "recorded": "2026-11-04",
+  "commit": "13def2600",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "H47c: game maths through lib/maths.h (each system's double function rounded to float), the same on Windows and Linux; UCRT's float sinf/cosf/... were an ulp off for some inputs",
+  "reason": "H51a: Rebirth goldens outside the old Rebirth set had gone stale behind golden-moving merges (C84d's no-point z 0 instead of 1e6 and its other fixes, H47c's game maths, C81's settings, and PL20/C84/C84b before them); main's runs are the same as a build of d31120f0e (C84d's goldens) and every vanilla twin moved at those merges",
   "source": "image",
   "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 45 of 68 records differ, first at record 1 (world update 40, tick 40, frame 7, zone -); outcomes the same; max unit move 0.0556 (obj129, record 9)",
-    "  first difference at record 1 (world update 40, tick 40, frame 7, zone -): 1 fields",
-    "    cunit388 (80 unmoto \"\") #place: 7D666D45 in the old golden, CC64C5DC in the new run",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  client units: 2 of 10 differ",
-    "    #place: 2 client units, 43 records, from 1; hash only (no numbers kept)",
-    "    #unit: 1 client unit, 2 records, from 7; hash only (no numbers kept)",
-    "  units: 2 of 53 differ",
-    "    pos: 2 units, 4 records, from 7; moved 0.0556 at obj129 80 unanwibo \"\", record 9",
-    "    #place: 1 unit, 1 record, from 46; hash only (no numbers kept)"
+    "save savea/mission.sav: 4 fields in 2 records differ: obj 4",
+    "  obj: 4 fields in 2 records; first obj1804 controller.action.point.z: 1000000.0 in the old golden, 0.0 in the new run (d 1e+06)"
   ]
 }
