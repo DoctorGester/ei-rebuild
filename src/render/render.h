@@ -67,6 +67,16 @@ void SetPerfOverlay(bool on);
 // The sun for this frame's world view: the direction its light travels (z negative by day). Without it no
 // shadow map is made.
 void ShadowSun(const Vector3& direction);
+// The cloud shadows (renderer.md section 13, item 11): the client's weather for this frame's world view, handed over
+// with its light. `day` how much the clouds can hide of the sun (1 by day, 0 at night and in a cave), `rain` the rain's
+// or snow's strength (0 .. 1, as its layer fades it), `windX` / `windY` the wind (landscape units a tick), `time` the
+// world's time in ticks (the tick and its fraction). Without it a frame has no cloud shadows.
+struct CloudWeather {
+    float day = 0.0f, rain = 0.0f;
+    float windX = 0.0f, windY = 0.0f;
+    double time = 0.0;
+};
+void CloudShadows(const CloudWeather& weather);
 // The GPU lighting (renderer.md section 13). The world's draw hands over the frame's light, kept
 // until the next hand-over: the sun, the ambient colour, the point lights the landscape lights its ground
 // with (the nearest kMostSceneLights) and the camera. The terrain shader lights each pixel and SectorData::Light
@@ -146,7 +156,7 @@ void EndShadowWalk();
 enum class OffscreenCasters { View, All, Walked };
 void SetOffscreenCasters(OffscreenCasters mode);
 // Harness build shadow checks. SetShadowView ("shadowview on|off"): the receivers show only how much sun the
-// map hides. SetShadowShift ("shadowshift <texels>"): the map's origin moved by whole texels (half as many
+// map and the clouds hide. SetShadowShift ("shadowshift <texels>"): the map's origin moved by whole texels (half as many
 // along), to show a filter that depends on the range cells.
 void SetShadowView(bool on);
 void SetShadowShift(int texels);
@@ -161,6 +171,8 @@ struct ShadowInfo {
     int offScreen = 0, lost = 0;
     int outsideCasters = 0, outsideDraws = 0, outsideCorners = 0;
     int terrainCasters = 0;   // the ground's sectors drawn into the map
+    // The cloud shadows: how much of the sun a full cloud hid (0: none) and the share of the ground under clouds.
+    float cloudLight = 0.0f, cloudCover = 0.0f;
 };
 ShadowInfo ShadowState();
 

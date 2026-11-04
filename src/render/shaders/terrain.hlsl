@@ -54,8 +54,10 @@ VsOut vs_main(VsIn i) {
 #define SCENE_BLOCK_SLOT 2
 #define POINT_BLOCK_SLOT 3
 #define POINT_MAP_SLOT 3
+#define CLOUD_MAP_SLOT 4
 #include "shadow_receiver.hlsli"
 #include "point_shadow.hlsli"
+#include "cloud_shadow.hlsli"
 #include "scene_lighting.hlsli"
 struct TerrainFsParams {
     float4 fog;     // rgb: the fog colour
@@ -69,16 +71,16 @@ float4 Shade(VsOut i) {
     float3 dsx = ddx(i.shadow.xyz), dsy = ddy(i.shadow.xyz);
     float4 t = tex.Sample(smp, i.uv);
     if (fs.flags.x > 1.5) return float4(t.r, 90.0 / 255.0, 165.0 / 255.0, 1.0);
-    float hidden = 0.0;   // how much of the sun the map hides
-    if (shadow.on.x > 0.5) {
-        hidden = shadow_amount(i.shadow.xyz, dsx, dsy, i.pos.xy, 2.0);
-        if (shadow.on.z > 0.5) return float4((1.0 - hidden).xxx, 1.0);   // the harness's shadowview
-    }
+    // How much of the sun the map and the clouds hide (the water takes no map: the clouds only).
+    float hidden = shadow_amount(i.shadow.xyz, dsx, dsy, i.pos.xy, 2.0);
+    hidden = with_clouds(hidden, i.shadow.xy);
+    if (shadow.on.z > 0.5) return float4((1.0 - hidden).xxx, 1.0);   // the harness's shadowview
     float len = length(i.normal);
     float3 n = len > 1e-6 ? i.normal / len : float3(0.0, 0.0, 1.0);
     float3 spec, c;
-    if (i.loss < 0.0) {   // the water: no shadow test in the game's lighting; the crests or the specular lights
-        float3 lit = ground_light(i.world, n, i.col.rgb, i.col.rgb, 0.0, 0.0, 0.0, false, 0.0, spec);
+    // The water: the clouds' shade only (the map's falls on the ground under it); the crests or the specular lights.
+    if (i.loss < 0.0) {
+        float3 lit = ground_light(i.world, n, i.col.rgb, i.col.rgb, 0.0, hidden, shadow.on.y, false, 0.0, spec);
         c = saturate(t.rgb * lit + max(spec, i.spec.rgb));
     } else {
         float3 lit = ground_light(i.world, n, i.col.rgb, 0.0, i.loss, hidden, shadow.on.y, pointShadow.on.x > 0.5,

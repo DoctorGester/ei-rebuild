@@ -801,11 +801,14 @@ void PrepareShadows(Frame& f) {
     ShadowFrame& sh = f.shadow;
     sh.prepared = true;
     sh.on = false;
+    sh.clouds = false;
     sh.lights.clear();
     g_info = ShadowInfo{};
     PreparePointShadows(f);
-    if (!sh.haveSun || f.worldRanges.empty() || (sh.casters.empty() && g_outside.empty() && TerrainCasterCount() == 0))
-        return;
+    // The map is drawn with casters; the receivers' matrices into it are made for the clouds too.
+    const float cloudLight = PrepareClouds(sh);
+    const bool casters = !(sh.casters.empty() && g_outside.empty() && TerrainCasterCount() == 0);
+    if (!sh.haveSun || f.worldRanges.empty() || (!casters && cloudLight <= 0.0f)) return;
     StatsTimer timer(&FrameStats::shadowMs);
     if (!FitMap(f).ok) return;
     // Along the light from the nearest caster that reaches the map (the ground's near side without one).
@@ -891,7 +894,14 @@ void PrepareShadows(Frame& f) {
     // between the four cells around a pixel, each of which must hold the pixel's taps.
     const float reachTexels = widestTexels * stretch + 1.0f;
     g_cellsAround = std::min(kMostCellsAround, static_cast<int>(std::ceil(reachTexels / kRangeCell)) + 1);
+    CloudUniforms(fit.x0, fit.y0, extent, cloudLight, &p);
     sh.params = p;
+    sh.cloudParams = p;
+    sh.cloudParams.on[0] = 0.0f;
+    sh.clouds = cloudLight > 0.0f;
+    g_info.cloudLight = cloudLight;
+    g_info.cloudCover = sh.clouds ? CloudCover() : 0.0f;
+    if (!casters) return;
     sh.on = true;
     g_info.made = true;
     g_info.size = kMapSize;
@@ -1011,9 +1021,10 @@ void DrawShadowMap(Frame& f) {
     DrawPointShadows(f);
 }
 
-const ShadowParams& ShadowUniforms(const Frame& f, bool receives) {
+const ShadowParams& ShadowUniforms(const Frame& f, bool receives, bool clouded) {
     static const ShadowParams kNone{};
-    return receives && f.shadow.on ? f.shadow.params : kNone;
+    if (receives && f.shadow.on) return f.shadow.params;
+    return clouded && f.shadow.clouds ? f.shadow.cloudParams : kNone;
 }
 
 void BindShadowMap(int mapSlot) {

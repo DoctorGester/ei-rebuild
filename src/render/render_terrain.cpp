@@ -614,13 +614,15 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerTex, {&texture, 1});
     BindShadowMap(program::kSamplerShadowMap);
     BindPointShadows(program::kSamplerPointShadowMap);
+    BindCloudMap(program::kSamplerCloudMap);
     CountBindings(texture.texture);
-    // The ground receives the objects' shadows; the water does not (the ground under it does).
-    bool receives = !batch.water && mode < 1.5f && !f.shadow.lights.empty();
-    const ShadowParams& shadow = ShadowUniforms(f, receives);
+    // The ground receives the objects' shadows; the water does not (the ground under it does). Both take the clouds'.
+    const bool clouded = mode < 1.5f && !f.shadow.lights.empty();
+    const bool receives = clouded && !batch.water;
+    const ShadowParams& shadow = ShadowUniforms(f, receives, clouded);
     TerrainVsParams vs{};
     vs.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
-    vs.light = receives ? f.shadow.lights[0] : vs.matrix;
+    vs.light = clouded ? f.shadow.lights[0] : vs.matrix;
     vs.shift[0] = f.pixelShift[0];
     vs.shift[1] = f.pixelShift[1];
     vs.normalOffset[0] = ShadowNormalOffset(shadow);
