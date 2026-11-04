@@ -92,3 +92,9 @@ void SurfaceState(float* wet, float* puddles, float* snow) {
 }
 
 } // namespace render::detail
+
+namespace render {
+
+void LandscapeLoaded() { detail::g_surfaces.started = false; }
+
+} // namespace render

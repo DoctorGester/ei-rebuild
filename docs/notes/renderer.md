@@ -960,9 +960,12 @@ option). Client side only: driven by the weather the world's light hands over (`
 `snow` when the rain / snow layer's mode is snow), nothing the game simulates reads it, and the goldens hold no frames.
 - **State** (PrepareSurfaces, from PrepareShadows once a frame): the wetness and the puddles follow the rain's strength,
   the snow cover the snow's, each by the world's time with its own time constant (ticks for 1 - 1/e of the way): wet in
-  200 (about 11 s) and dry in 1600 (about 90 s), the puddles 450 / 2400, the snow 800 / 5500. A step of the world's time
-  back or over 64 ticks (a load, a zone change) and the first frame start from the weather as it is (wet in rain, covered
-  in snow). The game's rain and snow themselves grow over a minute or more and fade the same way after `SetWeather`, so
+  200 (about 11 s) and dry in 1600 (about 90 s), the puddles 450 / 2400, the snow 800 / 5500. A zone's landscape loaded
+  (`render::LandscapeLoaded`, from Terrain::LoadMap), a step of the world's time back or over 64 ticks (a load) and the
+  first frame start from the weather as it is (wet in rain, covered in snow): the world's time goes on over a zone change
+  (8 ticks), so before the landscape's call the ground of gz11k stayed as wet as zone1's (render_weather: 0.78 wet when
+  the rain had stopped, 0 on gz11k now). The client's rain layer itself goes on over a zone change (the game's), so a
+  zone entered in rain starts wet. The game's rain and snow themselves grow over a minute or more and fade the same way after `SetWeather`, so
   the state lags them (a minute into rain about 0.66 wet; still rising half a minute after it was stopped). The rain
   falling now (its strength, none in snow) drives the rings and splashes.
 - **Ground** (terrain.hlsl, `ground_weather`, `weathered`, `wet_ground`; nothing under the water, by `loss`): snow on
