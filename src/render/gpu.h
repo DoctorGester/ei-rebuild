@@ -78,6 +78,9 @@ enum class Format : std::uint8_t {
 // The most samples, up to `most` (a power of two), a target of `colour` with a `depth` buffer (None: without) is drawn
 // with; 1: none.
 int MaxSamples(Format colour, Format depth, int most);
+// Whether a target of `colour` with a `depth` buffer (None: without) is drawn with exactly `samples`: a device lists the
+// counts it has (lavapipe: 1 and 4, no 2), and a count it does not list is not drawn (a pass with it is invalid).
+bool SupportsSamples(Format colour, Format depth, int samples);
 
 enum TextureUse : std::uint8_t {
     kSampled = 1,   // not with an integer format (SDL_GPU samples none)
@@ -245,6 +248,7 @@ struct DeviceLimits {
     SDL_GPUDevice* device;
     // The most samples up to `most` (a power of two) that a target of `colour` and `depth` (None: without) takes.
     int MaxSamples(Format colour, Format depth, int most) const;
+    bool SupportsSamples(Format colour, Format depth, int samples) const;
 };
 
 // ---- Passes and draws ---------------------------------------------------------------------------------------------

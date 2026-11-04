@@ -8,7 +8,7 @@ Texture2D<float> depth : FS_TEXTURE(1);
 SamplerState depth_smp : FS_SAMPLER(1);
 struct PsOut {
     float4 colour : SV_Target0;
-    float depthCopy : SV_Target1;
+    float4 depthCopy : SV_Target1;   // four components, alpha 1 (depth_copy.hlsli)
     float depth : SV_Depth;
 };
 PsOut ps_main(float4 pos : SV_Position) {
@@ -16,7 +16,7 @@ PsOut ps_main(float4 pos : SV_Position) {
     PsOut o;
     o.depth = depth.Load(p);
     o.colour = colour.Load(p);
-    o.depthCopy = o.depth;
+    o.depthCopy = float4(o.depth, 0.0, 0.0, 1.0);
     return o;
 }
 #endif

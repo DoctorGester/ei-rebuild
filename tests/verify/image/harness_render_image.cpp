@@ -165,10 +165,11 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
                       100.0 * least, 100.0 * most);
         Log("harness: %s", text);
         frames->push_back(text);
-        // The levels asked for are what was drawn: as many samples as asked (at least 2: the suites' devices
-        // give 8), anisotropic world models exactly when asked.
+        // The levels asked for are what was drawn: as many samples as asked, or the device's next count above (a
+        // device without 2 draws 4) or its most (at least 2), anisotropic world models exactly when asked.
         const int samples = info.msaa < info.deviceSamples ? info.msaa : info.deviceSamples;
-        const bool drawn = info.msaa > 1 ? samples >= 2 && info.targetSamples == samples && info.multisampledPasses >= 1
+        const bool drawn = info.msaa > 1 ? samples >= 2 && info.targetSamples >= samples &&
+                                               info.targetSamples <= info.deviceSamples && info.multisampledPasses >= 1
                                          : info.targetSamples == 1 && info.multisampledPasses == 0;
         const bool sampled = info.anisotropy > 1 ? info.anisotropicModels >= 1 : info.anisotropicModels == 0;
         if (!compared) failures->push_back(std::string("smoothcheck ") + plain + " " + smooth + ": " + why);

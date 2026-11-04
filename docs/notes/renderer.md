@@ -529,8 +529,8 @@ with its own level.
   Anisotropy = 16    1 (off) .. 16
   ```
   Read once the renderer starts (`QualitySetting`, device_mesh.cpp); a value missing or not a number is written with its
-  default. `render::SetMsaa` rounds down to a power of two up to 8 (`kSmoothSamples`), and the target takes at most the
-  device's samples; `render::SetAnisotropy` clamps to 1..16. Both from the next frame; `Msaa()` / `Anisotropy()` read them.
+  default. `render::SetMsaa` rounds down to a power of two up to 8 (`kSmoothSamples`), and the target takes the device's
+  nearest count (`SamplesFor`: the least it lists at or above the asked one, else the most below: lavapipe lists 1 and 4); `render::SetAnisotropy` clamps to 1..16. Both from the next frame; `Msaa()` / `Anisotropy()` read them.
   **Never in a harness run**: `render::QualitySettingsSupported()` is false in the harness build, so a run starts with both
   off (1) and goldens and frame checks keep that look; the harness steps `msaa <samples>` / `anisotropy <level>` set them.
 - The world view (`WorldClient::Render` between `render::BeginWorld` / `EndWorld`: sky, terrain, objects, water, effects,
@@ -553,7 +553,9 @@ with its own level.
   the pixel centre (as without multisampling); an edge pixel the mean over its samples of each one's surface depth at
   the centre. Only draws after the world that test the depth see it. Chosen over drawing the world's depth again
   without multisampling (twice the world's draw calls) and over drawing the interface multisampled (its edges half
-  covered). The copy's target is never blended (`PipelineDesc::second`), so a blended draw stores its own depth there.
+  covered). The copy's target is never blended (`PipelineDesc::second`), so a blended draw stores its own depth there. Its
+  output has four components with alpha 1 (R32F keeps the red): lavapipe blends the second target with the first's state
+  whatever the pipeline says, and a one-component output has alpha 0 there (docs/notes/linux.md, "The harness").
 - Every pipeline drawing into the frame is made for the pass's sample count (`detail::PassSampleCount`): a pipeline's
   count must match its pass's targets. A change of the sample count remakes the targets at a frame's first pass.
 - Check (scenario `render_smooth`, vanilla and Rebirth): in zone1 at one frozen moment the frame with msaa 8 and
