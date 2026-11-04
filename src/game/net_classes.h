@@ -137,8 +137,6 @@ class ClientSession;
 inline int g_gamePort = /*00783E30*/ {8888};
 // The network log (the net stream; null when logging is off).
 inline console::Stream* g_netLog = /*0079B91C*/ {nullptr};
-// The session being updated (set by Tick / Receive and by the connection code).
-inline SessionBase* g_currentSession = /*0079B920*/ {nullptr};
 // The buffer every update packet is built in and the one datagrams are received into (net_session.cpp).
 extern GrowingBuffer g_sendBuffer;
 extern GrowingBuffer g_receiveBuffer;
@@ -367,10 +365,6 @@ public:
     std::uint32_t ClientCount() const;
 
     std::uint32_t magic;                // 0; the game server and client set kSessionMagic
-    std::int32_t timeout;               // 60: seconds of silence before a peer is dropped
-    std::int32_t maxRoundTrip;          // 5: a new connection's round trip estimate, the longest loss
-                                        // timeout and how long lost packets stay remembered (seconds)
-    std::int32_t idReuseTime;           // 75: seconds before a freed message id is reused
     std::uint32_t frame;                // 1; Tick counts its calls
     double time;                        // 0; Tick adds the elapsed time
     // The connections. A list: OnUpdate keeps its connection's node while the update's handlers may remove

@@ -84,13 +84,19 @@ struct AttachedId {
     std::uint8_t type;
 };
 
+// The connection timings (the original's session fields, which nothing changed), in seconds.
+constexpr float kPeerTimeout = 60.0f;    // silence before a peer is dropped
+// A new connection's round trip estimate, the longest loss timeout and how long lost packets stay remembered.
+constexpr float kMaxRoundTrip = 5.0f;
+constexpr float kIdReuseTime = 75.0f;    // before a freed message id is reused
+
 // The key of an object in records and bySentId: type << 16 | id.
 constexpr std::int32_t RecordKey(std::uint8_t type, std::uint16_t id) { return (type << 16) | id; }
 
 // Everything a connection holds apart from its count and flags: a new connection's state, which OnShutdown
 // restores (with id 0).
 struct ConnectionState {
-    // The send sequence starts at the tick count, the round trip at the session's maxRoundTrip (5 without a session).
+    // The send sequence starts at the tick count, the round trip at kMaxRoundTrip.
     explicit ConnectionState(std::uint32_t id);
 
     std::uint16_t sendSequence;
@@ -109,7 +115,7 @@ struct ConnectionState {
     double clock = 0.0;                 // seconds since the connection started
     std::uint32_t updateBudget = 220;   // bytes per update
     IdPool idPools[kMessageTypes];      // one per message type
-    std::vector<FreedId> freedOlder;    // ids returned to the pools at the next idReuseTime tick
+    std::vector<FreedId> freedOlder;    // ids returned to the pools at the next kIdReuseTime tick
     std::vector<FreedId> freedNewer;    // ids freed since the last one (the older batch after it)
     float freedTimer = 0.0f;
     std::map<std::int32_t, EntryRef> bySentId;     // RecordKey -> entry
@@ -134,10 +140,12 @@ struct ConnectionState {
 
 class Connection final : public RefObject, public ConnectionState {
 public:
-    explicit Connection(std::uint32_t id) : ConnectionState(id) {}
+    Connection(SessionBase& owner, std::uint32_t id) : ConnectionState(id), session(owner) {}
 
-    // Back to a new connection's state with id 0 (the count and the flags kept).
+    // Back to a new connection's state with id 0 (the count, the flags and the session kept).
     void OnShutdown() override;
+
+    SessionBase& session;    // the session whose clients list holds it: its socket, OnMessage and CollectReplicated
 
     // Builds and sends one update packet of at most `budget` entry bytes. False when entries had to be left
     // out (or the send failed).

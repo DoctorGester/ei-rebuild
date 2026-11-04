@@ -112,7 +112,10 @@ marks entries delivered or resends them. A reliable byte stream travels in front
 bytes; the entries themselves are never resent once delivered or superseded (the original's per-type "reliable" entry
 flag was never set, so its reliable-entry path is gone). The peer keeps received objects in `records` (`RecordKey`: type
 << 16 | id); an object reference in a message is a flag bit (1: an object the writer received from the reader), the
-type and the id. A connection is silent after 3 round trips idle. `Connection::OnShutdown` (the session dropped a
+type and the id. A connection holds its session (`session`, from AddClient: the socket it sends on, the OnMessage and
+CollectReplicated it calls; the original read a current-session global set during the session's Tick). Its timings are
+constants (`kPeerTimeout` 60 s, `kMaxRoundTrip` 5 s, `kIdReuseTime` 75 s; the original's session fields nothing
+changed). A connection is silent after 3 round trips idle. `Connection::OnShutdown` (the session dropped a
 connection a message still holds) restores a new connection's state (`ConnectionState`, id 0).
 - Within a priority the original sent entries in the order of their addresses, so send order and net ids followed the
   heap. Ours keys the priority maps by a serial handed out as `CollectChanges` walks the session's lists (players,

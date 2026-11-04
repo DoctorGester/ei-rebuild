@@ -199,7 +199,7 @@ bool Connection::SendUpdate(int budget) {
     }
     c.End();
 
-    if (g_currentSession->socket.SendTo(&address, out)) return complete;
+    if (session.socket.SendTo(&address, out)) return complete;
     // Not sent: undo what the history entry recorded and drop it.
     RollBack(&history.back());
     history.pop_back();
@@ -223,7 +223,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
         }
         if (Message* object = found->second.object.Get()) {
             attached.erase(object);
-            g_currentSession->OnMessage(this, MessageEvent::Removed, object);
+            session.OnMessage(this, MessageEvent::Removed, object);
         }
         DestroyOwned(found->second.object);
         found->second.version = version;
@@ -245,7 +245,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
     object->Read(this, cursor);
     const MessageEvent event = record.version == 0 ? MessageEvent::Created : MessageEvent::Changed;
     record.version = version;
-    g_currentSession->OnMessage(this, event, object);
+    session.OnMessage(this, event, object);
     return true;
 }
 
@@ -265,7 +265,7 @@ void Connection::Track(const Replicated& item) {
 
 void Connection::CollectChanges() {
     std::vector<Replicated> items;
-    g_currentSession->CollectReplicated(this, &items);
+    session.CollectReplicated(this, &items);
     // The original sorts the list by the object's address and merges it with byObject (also by address), so
     // it tracks new objects, and its entries get their addresses, in address order. Ours goes by the list's
     // order (the session's lists), so entries are tracked, and their serials handed out, in an order no
@@ -440,7 +440,7 @@ bool Connection::ReadUpdate(BufferCursor* cursor) {
 void Connection::Close() {
     for (auto& it : records) {
         Ref<Message>* slot = &it.second.object;
-        if (Message* object = slot->Get()) g_currentSession->OnMessage(this, MessageEvent::Removed, object);
+        if (Message* object = slot->Get()) session.OnMessage(this, MessageEvent::Removed, object);
         DestroyOwned(*slot);
     }
 }
