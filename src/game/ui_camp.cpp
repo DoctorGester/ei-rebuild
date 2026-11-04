@@ -54,9 +54,9 @@ void SetShade(UiMesh* mesh, float shade) {
     mesh->tint[2] = shade;
 }
 
-// A white centred line on a surface (Rebirth-patched).
-void DrawLine(UiSurface* surface, std::string_view text, const Rect& rect) {
-    surface->DrawTextIn(text, &rect, 1, 0xFFFFFF, 1, 1);
+// A white centred line of a surface's labels.
+void AddLine(std::vector<UiLabel>& labels, std::string_view text, const Rect& rect) {
+    labels.push_back({std::string(text), rect, 1, 0xFFFFFF, 1});
 }
 
 // The database records of the camp's loot items (the record index): spells, spell
@@ -240,9 +240,8 @@ void CampPages::ShowPage(int newPage) {
         page = newPage;
         statsPanel->ShowStats(newPage);
         trade->SelectHero(hero);
-        UiSurface* title = surfaces[1];
-        title->Clear();
-        DrawLine(title, pageTitles[page], Rect{0, 10, 200, 30});
+        titleLabels.clear();
+        AddLine(titleLabels, pageTitles[page], Rect{0, 10, 200, 30});
     }
 
     // The hero arrows (scene objects 0/1, regions 0/1) only where a hero can be chosen.
@@ -505,20 +504,19 @@ void CampPages::UpdateAction() {
     std::string text;
     std::string line;
     TextManager* texts = g_clientWorld.texts;
-    UiSurface* draw = surfaces[0];
-    draw->Clear();
+    actionLabels.clear();
     if (action.size() != 0) {
         text = texts->GetString(action);
-        DrawLine(draw, text, Rect{0, 30, 200, 50});
+        AddLine(actionLabels, text, Rect{0, 30, 200, 50});
         if (cost != 0)
             text = std::format("{:+}", -cost);
         else
             text = "0";
-        DrawLine(draw, text, Rect{0, 50, 200, 70});
+        AddLine(actionLabels, text, Rect{0, 50, 200, 70});
     }
     text = texts->GetString(label);
     line = std::format("{} {}", text, amount);
-    DrawLine(draw, line, Rect{0, 10, 200, 30});
+    AddLine(actionLabels, line, Rect{0, 10, 200, 30});
 
     SetShade(SceneMesh(0), actionEnabled ? 1.0f : 0.5f);
     SetShade(SceneMesh(1), actionShown ? 1.0f : 0.5f);

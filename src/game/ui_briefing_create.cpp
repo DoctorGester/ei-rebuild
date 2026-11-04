@@ -149,10 +149,10 @@ void BriefingScreen::CreateScreen() {
     AddBlankSprite()->SetFrame(20.0f, 100.0f, 150.0f, 411.0f, 650.0f, 585.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
 
     // Surface 0 the topic rows, 1 a person's label.
-    for (const Rect& area : {Rect{200, 430, 600, 570}, Rect{0, 0, 250, 30}}) {
-        UiSurface* surface = new UiSurface(ui, area, SurfaceBlend::Keyed, true);
-        AddSurface(surface);
-    }
+    AddSurface(new UiSurface(ui, Rect{200, 430, 600, 570}, SurfaceBlend::Keyed, true))
+        ->PaintWith([this](UiSurface& out) { PaintLabels(out, topicLabels); });
+    AddSurface(new UiSurface(ui, Rect{0, 0, 250, 30}, SurfaceBlend::Keyed, true))
+        ->PaintWith([this](UiSurface& out) { PaintLabels(out, personLabel); });
 
     topicBar = new UiScrollbar(ui, Rect{584, 440, 594, 560}, 3.0f, 0, 1.0f);
     AddChild(topicBar);

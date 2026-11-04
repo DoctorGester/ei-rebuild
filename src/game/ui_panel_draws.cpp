@@ -109,8 +109,7 @@ void RepairGrid::Draw(SceneRenderer* pass) {
     ClearUiDepth(0.0f, &screen, 1);
     ClearUiDepth(1.0f, &grid, 1);
 
-    UiSurface* surface = surfaces[0];
-    surface->Clear();
+    labels.clear();
     const std::vector<Item*>& list = *items;
     for (int i = 0; i < std::ssize(list); ++i) {
         int x = (i % 4) * 100;
@@ -123,11 +122,10 @@ void RepairGrid::Draw(SceneRenderer* pass) {
         owner->DrawItem(pass, cell);
         int pieces = static_cast<int>(item->count);    // the stack's count
         if (pieces > 1) {
-            Rect r{x + 0x0F, y + 0x0F, x + 0x55, y + 0x23};
-            surface->DrawTextIn(std::format("{}", pieces), &r, 1, kTextColour, 2, 1);
+            labels.push_back({std::format("{}", pieces), Rect{x + 0x0F, y + 0x0F, x + 0x55, y + 0x23}, 1, kTextColour, 2});
         }
-        Rect r{x + 0x0F, y + 0x41, x + 0x55, y + 0x55};
-        surface->DrawTextIn(std::format("{}", owner->Price(item, PriceKind::Repair)), &r, 1, kTextColour, 1, 1);
+        labels.push_back({std::format("{}", owner->Price(item, PriceKind::Repair)), Rect{x + 0x0F, y + 0x41, x + 0x55, y + 0x55}, 1,
+                          kTextColour, 1});
     }
     DrawBase(pass);
     ClearUiDepth(1.0f, &screen, 1);
@@ -177,20 +175,18 @@ void SpellMakerPage::Draw(SceneRenderer* pass) {
             }
         }
     }
-    UiSurface* surface = surfaces[0];
-    surface->Clear();
-    Rect first{10, 0, 200, 20};
-    Rect second{10, 20, 200, 40};
+    labels.clear();
+    const Rect first{10, 0, 200, 20};
+    const Rect second{10, 20, 200, 40};
     if (hasSpell) {
         PartySkill best = owner->BestPartySkill(school);
-        surface->DrawTextIn(str::Format(kCostFormat, texts[0], best.skill, needed), &first, 1, kTextColour, 0, 1);
+        labels.push_back({str::Format(kCostFormat, texts[0], best.skill, needed), first, 1, kTextColour, 0});
         // The larger of the two (the last spell's when the sum is smaller or unordered).
         float shown = MaxKeepB(manaSum, lastMana);
-        surface->DrawTextIn(str::Format(kCostFormat, texts[1], best.mana, static_cast<int>(shown)), &second, 1,
-                          kTextColour, 0, 1);
+        labels.push_back({str::Format(kCostFormat, texts[1], best.mana, static_cast<int>(shown)), second, 1, kTextColour, 0});
     } else {
-        surface->DrawTextIn(texts[0], &first, 1, kTextColour, 0, 1);
-        surface->DrawTextIn(texts[1], &second, 1, kTextColour, 0, 1);
+        labels.push_back({texts[0], first, 1, kTextColour, 0});
+        labels.push_back({texts[1], second, 1, kTextColour, 0});
     }
     DrawBase(pass);
 

@@ -44,14 +44,7 @@ void CreditsScreen::Draw(SceneRenderer* pass) {
             textSurface->Start(0.0f, false);
             if (line.scroll) {
                 textSurface->Start(line.speed, true);
-                headerSurface->Clear();
-                // Centred over the whole surface with its shadow, without smoothing: the original switched the
-                // system's font smoothing off for the titles.
-                const UiFont& font = ui->fonts[kHeaderFont];
-                const Rect& at = headerSurface->rect;
-                const Rect whole = {0, 0, at.Width(), at.Height()};
-                headerSurface->DrawTextPixels(UiFont{font.face, font.pixels, true}, line.text, whole, render::text::kCenter,
-                                               kHeaderColour, true);
+                header = line.text;
                 headerSurface->Show();
             } else {
                 nextLineAt = GameTime() + line.speed;
@@ -68,6 +61,14 @@ void CreditsScreen::Draw(SceneRenderer* pass) {
         return;
     }
     UiContainer::Draw(pass);
+}
+
+// Centred over the whole surface with its shadow, without smoothing: the original switched the system's font
+// smoothing off for the titles.
+void CreditsScreen::PaintHeader(UiSurface& surface) const {
+    const UiFont& font = ui->fonts[kHeaderFont];
+    const Rect whole = {0, 0, surface.rect.Width(), surface.rect.Height()};
+    surface.DrawTextPixels(UiFont{font.face, font.pixels, true}, header, whole, render::text::kCenter, kHeaderColour, true);
 }
 
 // --- the close -----------------------------------------------------------------------------------

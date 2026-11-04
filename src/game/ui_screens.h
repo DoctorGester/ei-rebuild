@@ -296,6 +296,9 @@ public:
     int voiceTop;
     int voiceIndex;
     int voiceSound;
+    // The four surfaces' paints: 0 the hero list, 1 the list's commands, 2 the voices or the experience lines, 3 the
+    // renamed hero's name.
+    std::vector<UiLabel> labels[4];
 };
 
 // --- Multiplayer connection screen --------------------------------------------------------------
@@ -510,9 +513,12 @@ public:
     void CloseScreen() override;
     // A window above closed: the movie player is closed.
     void MessageResult(int result) override;
+    // The header surface's paint: header.
+    void PaintHeader(UiSurface& surface) const;
 
     UiScrollingSurface* textSurface = nullptr;    // the scrolling text
     UiSurface* headerSurface = nullptr;
+    std::string header;        // the scrolling line's header text
     MappedResource archive;    // "outro.res"
     std::vector<TitleLine> lines;
     float nextLineAt = 0.0f;           // game time the current line ends (0 from Build and for scrolls)
@@ -611,4 +617,5 @@ public:
     TradeGrid* grid;                // the two offers (mode 5)
     UiEditField* moneyField;        // the money offered
     std::vector<std::string> names;            // the figure strip's names
+    std::vector<UiLabel> labels[4];            // the four surfaces' paints: what Draw found
 };

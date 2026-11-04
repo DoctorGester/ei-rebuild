@@ -271,4 +271,5 @@ public:
     int y = 0;
     std::vector<std::string> itemTexts;     // "infoitem_0" .. "infoitem_44"
     std::vector<std::string> skillTexts;    // "infoskill_0" .. "infoskill_24"
+    std::vector<UiLabel> labels;            // the surface's paint: the description DescribeItem and its callers wrote
 };

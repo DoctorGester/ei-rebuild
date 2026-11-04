@@ -303,6 +303,15 @@ void UiSurface::PaintWith(std::function<void(UiSurface&)> newPaint) {
     draws.clear();
 }
 
+void PaintLabels(UiSurface& surface, const std::vector<UiLabel>& labels) {
+    for (const UiLabel& label : labels) {
+        if (label.maxLines > 0)
+            surface.DrawWrappedText(label.text, &label.area, label.maxLines, label.font, label.colour, label.format, true);
+        else
+            surface.DrawTextIn(label.text, &label.area, label.font, label.colour, label.format, true);
+    }
+}
+
 // A shown surface's draw into the frame: its frame picture (stretched over its rectangle, greyed after Greyscale),
 // then its window's paint or its kept draws at its rectangle, clipped to it and to the screen; a keyed surface
 // leaves out what is in its background colour (a text's antialiased edges blend over the frame). See docs/notes/ui.md,

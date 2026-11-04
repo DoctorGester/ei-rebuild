@@ -61,13 +61,13 @@ void PriceSprite(TradePanel* panel, const Rect& row, float left, float right) {
                          static_cast<float>(row.bottom + 100), 0x7C, 0x8A, 0xA4, 0x99);
 }
 
-void DrawSchool(TradePanel* panel, UiSurface* draw, Rect* row, const TradeRow& school) {
-    draw->DrawTextIn(school.name, row, 0, kBright, 0, 1);
+void DrawSchool(TradePanel* panel, Rect* row, const TradeRow& school) {
+    panel->labels.push_back({school.name, *row, 0, kBright, 0});
     Rect levelRect = *row;
     levelRect.Offset(-40, 0);
-    draw->DrawTextIn(std::format("{}", school.level), &levelRect, 0, kBright, 2, 1);
+    panel->labels.push_back({std::format("{}", school.level), levelRect, 0, kBright, 2});
     if (school.level < 100) {
-        draw->DrawTextIn(TradePanel::FormatPrice(school.price), row, 0, PriceColour(school.price, panel->experience), 2, 1);
+        panel->labels.push_back({TradePanel::FormatPrice(school.price), *row, 0, PriceColour(school.price, panel->experience), 2});
         PriceSprite(panel, *row, 350.0f, 390.0f);
     }
 }
@@ -151,16 +151,12 @@ void TradePanel::BuildLists() {
 }
 
 void TradePanel::DrawLists() {
-    UiSurface* draw = surfaces[0];
-    draw->Clear();
+    labels.clear();
     while (lib::Count(sceneObjects) > 4) RemoveSceneObjectAt(lib::Count(sceneObjects) - 1);
 
-    Rect title = {0, 10, 200, 25};
-    draw->DrawTextIn(texts[0], &title, 0, 0xFFFFFF, 1, 1);
-    title = {0, 205, 200, 220};
-    draw->DrawTextIn(texts[1], &title, 0, 0xFFFFFF, 1, 1);
-    title = {200, 10, 400, 25};
-    draw->DrawTextIn(texts[2], &title, 0, 0xFFFFFF, 1, 1);
+    labels.push_back({texts[0], Rect{0, 10, 200, 25}, 0, 0xFFFFFF, 1});
+    labels.push_back({texts[1], Rect{0, 205, 200, 220}, 0, 0xFFFFFF, 1});
+    labels.push_back({texts[2], Rect{200, 10, 400, 25}, 0, 0xFFFFFF, 1});
 
     Rect row = {15, 35, 180, 50};
     for (unsigned i = 0; i < 6; ++i) {
@@ -169,19 +165,19 @@ void TradePanel::DrawLists() {
             Down(&row);
             continue;
         }
-        DrawSchool(this, draw, &row, schools[i]);
+        DrawSchool(this, &row, schools[i]);
         Down(&row);
     }
     row = {15, 65, 180, 80};
-    DrawSchool(this, draw, &row, science[0]);
+    DrawSchool(this, &row, science[0]);
 
     row = {15, 230, 180, 245};
     unsigned index = static_cast<unsigned>(perkTop);
     for (int shown = 0; shown < 10 && index < perks.size(); ++shown, ++index) {
         const TradeRow& perk = perks[index];
-        draw->DrawTextIn(perk.name, &row, 0, kBright, 0, 1);
+        labels.push_back({perk.name, row, 0, kBright, 0});
         if (!perk.nextKey.empty()) {
-            draw->DrawTextIn(FormatPrice(perk.price), &row, 0, PriceColour(perk.price, experience), 2, 1);
+            labels.push_back({FormatPrice(perk.price), row, 0, PriceColour(perk.price, experience), 2});
             PriceSprite(this, row, 350.0f, 390.0f);
         }
         Down(&row);
@@ -197,8 +193,8 @@ void TradePanel::DrawLists() {
             textColour = kBright;
             priceColour = PriceColour(perk.price, experience);
         }
-        draw->DrawTextIn(perk.name, &row, 0, textColour, 0, 1);
-        draw->DrawTextIn(FormatPrice(perk.price), &row, 0, priceColour, 2, 1);
+        labels.push_back({perk.name, row, 0, textColour, 0});
+        labels.push_back({FormatPrice(perk.price), row, 0, priceColour, 2});
         PriceSprite(this, row, 550.0f, 590.0f);
         Down(&row);
     }
@@ -206,7 +202,8 @@ void TradePanel::DrawLists() {
 
 void TradePanel::Build() {
     rect = Rect{200, 100, 600, 500};
-    AddSurface(new UiSurface(ui, 200, 100, 600, 500, SurfaceBlend::Keyed, true));
+    AddSurface(new UiSurface(ui, 200, 100, 600, 500, SurfaceBlend::Keyed, true))
+        ->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
 
     AddRegion()->SetRect(360, 320, 380, 330);
     AddRegion()->SetRect(360, 480, 380, 490);
@@ -484,7 +481,7 @@ constexpr std::uint32_t kTextColour = 0xA7D7E4;
 
 // One list's items: cell i at column i % 4, row i / 4; `yOffset` and the sizes differ between the
 // bought (upper) and sold (lower) lists, as do the text rows.
-void DrawItems(TradeGrid* grid, SceneRenderer* pass, const std::vector<Item*>& list, UiSurface* surface,
+void DrawItems(TradeGrid* grid, SceneRenderer* pass, const std::vector<Item*>& list, std::vector<UiLabel>& labels,
                float yOffset, float bigSize, float smallSize, int countTop, int priceTop, PriceKind kind) {
     for (int i = 0; i < std::ssize(list); ++i) {
         int x = (i % 4) * 100;
@@ -494,12 +491,11 @@ void DrawItems(TradeGrid* grid, SceneRenderer* pass, const std::vector<Item*>& l
         grid->owner->DrawItem(pass, cell);
         int pieces = static_cast<int>(cell.item->count);
         if (pieces > 1) {
-            Rect r{x + 15, y + countTop, x + 0x55, y + countTop + 20};
-            surface->DrawTextIn(std::format("{}", pieces), &r, 1, kTextColour, 2, 1);
+            labels.push_back({std::format("{}", pieces), Rect{x + 15, y + countTop, x + 0x55, y + countTop + 20}, 1, kTextColour, 2});
         }
         if (!grid->exchange) {
-            Rect r{x + 15, y + priceTop, x + 0x55, y + priceTop + 20};
-            surface->DrawTextIn(std::format("{}", grid->owner->Price(cell.item, kind)), &r, 1, kTextColour, 1, 1);
+            labels.push_back({std::format("{}", grid->owner->Price(cell.item, kind)),
+                              Rect{x + 15, y + priceTop, x + 0x55, y + priceTop + 20}, 1, kTextColour, 1});
         }
     }
 }
@@ -515,9 +511,8 @@ void TradeGrid::Draw(SceneRenderer* pass) {
     ClearUiDepth(1.0f, &grid, 1);
     DrawBase(pass);
 
-    UiSurface* surface = surfaces[0];
-    surface->Clear();
-    DrawItems(this, pass, *bought, surface, 150.0f, 48.0f, 24.0f, 0x0F, 0x41, buyKind);
-    DrawItems(this, pass, *sold, surface, 350.0f, 12.0f, 6.0f, 0xD7, 0x109, sellKind);
+    labels.clear();
+    DrawItems(this, pass, *bought, labels, 150.0f, 48.0f, 24.0f, 0x0F, 0x41, buyKind);
+    DrawItems(this, pass, *sold, labels, 350.0f, 12.0f, 6.0f, 0xD7, 0x109, sellKind);
     ClearUiDepth(1.0f, &screen, 1);
 }

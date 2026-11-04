@@ -168,9 +168,8 @@ void HeroStatsPanel::DrawRow(const Rect& area, std::string_view label, int value
     else
         name = label;
     std::string number = maximum >= 0 ? str::Format(kRangeFormat, value, maximum) : str::Format(kValueFormat, value);
-    UiSurface* surface = surfaces[0];
-    surface->DrawTextIn(name, &area, 0, kRowColour, kLeft, 1);
-    surface->DrawTextIn(number, &area, 0, kRowColour, kRight, 1);
+    labels.push_back({name, area, 0, kRowColour, kLeft});
+    labels.push_back({number, area, 0, kRowColour, kRight});
 }
 
 // --- A body part's armour ------------------------------------------------------------------------
@@ -195,8 +194,6 @@ void HeroStatsPanel::DrawPart(const Rect& area, std::string_view name, int part)
     key += name;
     std::string label = g_clientWorld.texts->TextManager::GetString(key);
     label = kPartIndent + label;
-    UiSurface* surface = surfaces[0];
-    surface->DrawTextIn(label, &area, 0, kRowColour, kLeft, 1);
-    surface->DrawTextIn(str::Format(kArmourFormat, PartArmour(part)), &area, 0, kRowColour,
-                        kRight, 1);
+    labels.push_back({label, area, 0, kRowColour, kLeft});
+    labels.push_back({str::Format(kArmourFormat, PartArmour(part)), area, 0, kRowColour, kRight});
 }
