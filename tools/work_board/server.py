@@ -7,6 +7,8 @@ git branches the open assignments point at, and serves the pages in this folder.
     GET /                      the page (index.html; #tickets and #runs are its two views)
     GET /tickets/              the ticket board (tools/tickets_board/index.html, the published page)
     GET /tickets/tickets.json  its data, live: tickets.py's tickets.json with the database's statuses now
+    GET /waits/                where the workers' time goes (waits.html; data from tools/worker_waits.py)
+    GET /waits/data.json       build/live/waits.json, regenerated when older than five minutes (in the background)
     GET /dashboard/            the progress dashboard (tools/dashboard/index.html, the published page)
     GET /dashboard/data.json   its data: build/dashboard/data.json of the main checkout
     GET /api/dashboard         whether a dashboard_data.py run is going, and how the last one ended
@@ -48,6 +50,36 @@ STATIC = {'/': ('index.html', 'text/html; charset=utf-8'), '/app.js': ('app.js',
           '/board.css': ('board.css', 'text/css; charset=utf-8')}
 TICKET_BOARD = os.path.join(TOOLS, 'tickets_board', 'index.html')    # the published ticket board's page
 DASHBOARD = os.path.join(TOOLS, 'dashboard', 'index.html')              # the published progress dashboard's page
+
+
+class WaitsData:
+    """build/live/waits.json from tools/worker_waits.py: served at once, refreshed in the background when stale."""
+
+    def __init__(self, main):
+        self.main = main
+        self.path = os.path.join(main, 'build', 'live', 'waits.json')
+        self.lock = threading.Lock()
+        self.running = False
+
+    def refresh(self):
+        try:
+            subprocess.run([sys.executable, os.path.join(self.main, 'tools', 'worker_waits.py'), '--out', self.path],
+                           cwd=self.main, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=600)
+        finally:
+            with self.lock:
+                self.running = False
+
+    def data(self):
+        stale = not os.path.exists(self.path) or time.time() - os.path.getmtime(self.path) > 300
+        with self.lock:
+            start = stale and not self.running
+            self.running = self.running or start
+        if start and not os.path.exists(self.path):
+            self.refresh()               # the first time: wait for it
+        elif start:
+            threading.Thread(target=self.refresh, daemon=True).start()
+        with open(self.path, 'rb') as f:
+            return f.read()
 
 
 class DashboardRun:
@@ -155,6 +187,7 @@ class Board:
         self.work = work
         self.main = work.main_checkout()
         self.dashboard = DashboardRun(self.main)
+        self.waits = WaitsData(self.main)
         self.tickets_py = None
         self.lock = threading.Lock()
         self.toml_cache = (None, None)       # (mtime/size key, (groups, tickets))
@@ -409,7 +442,12 @@ def make_handler(board):
                     name, ctype = STATIC[path]
                     with open(os.path.join(HERE, name), 'rb') as f:
                         return self.send(200, f.read(), ctype)
-                if path in ('/tickets', '/dashboard'):
+                if path == '/waits/':
+                    with open(os.path.join(HERE, 'waits.html'), 'rb') as f:
+                        return self.send(200, f.read(), 'text/html; charset=utf-8')
+                if path == '/waits/data.json':
+                    return self.send(200, board.waits.data(), 'application/json; charset=utf-8')
+                if path in ('/tickets', '/dashboard', '/waits'):
                     self.send_response(301)
                     self.send_header('Location', path + '/')
                     self.send_header('Content-Length', '0')

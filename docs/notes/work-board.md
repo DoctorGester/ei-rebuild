@@ -79,3 +79,13 @@ thread (the virtual clock never sleeps); at 16 games the GPU is 84-90% busy and 
 games mostly queue. Going above 16 needs the user's OK: measure with `tools/game_load.py run --games N ...` (it samples
 GPU memory, utilisation and TDR events and exits 2 on any), step to 20 only on an otherwise idle machine and go back to
 16 at any TDR event, GPU memory above 13 GB, a failure that passes at 16 or desktop stutter.
+
+## Waits
+
+`tools/worker_waits.py` (served at /waits/, refreshed every five minutes; `--print` for the console) reads the area
+workers' transcripts under ~/.claude/projects/<repo>/*/subagents (only agents with an assignment here) and this
+database. Per worker: wall time, reasoning (the gaps before assistant turns), foreground tool calls by kind, background
+jobs from launch to their task notification, and every build and test call. Findings, largest first: golden suites
+beyond image + Rebirth, more than three build calls, batches that queued over two minutes, scenarios averaging over
+40 s. Per-transcript results are cached in build/live/waits_cache.json. The coordinator looks at it after merges and
+acts on the largest avoidable wait (user 2026-11-04).

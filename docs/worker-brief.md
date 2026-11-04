@@ -37,6 +37,9 @@ only through `tools/tickets.py`, never by hand.
 - A change that should not alter behaviour keeps every golden the same. An intended change re-records the affected
   goldens and says why in the commit (`docs/notes/standalone-verification.md`, "Recording goldens").
 - Say how each change is checked: the scenario with a golden that reaches it, or the unit check (`tests/unit`).
+- Keep the waits short (the work board's Waits tab measures them): while iterating, build verify only and run the
+  scenarios that reach the change by name; build release and run the full image and Rebirth suites once, when the work
+  is done (again only if a fix follows). Read a failed build's first errors and fix them all before building again.
 - Long commands (builds, suites) run in the background under `python tools/limit.py SECONDS -- COMMAND...` (build
   900, `work.py test` 5400, else 600); wait for the completion notice, never poll. A timeout is a result: find out
   why.

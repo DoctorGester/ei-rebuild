@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Worker Waits</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600&display=swap">
+<link rel="stylesheet" href="/board.css">
+<style>
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px }
+  .tile .k { font-size: 12px; color: var(--muted) }
+  .tile .v { font-family: var(--display); font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums }
+  .tile .v small { font-family: var(--sans); font-size: 13px; font-weight: 400; color: var(--muted) }
+  .stack { display: flex; height: 14px; border-radius: 4px; overflow: hidden; background: var(--track); gap: 1px }
+  .stack span { display: block; min-width: 0 }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted) }
+  .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; vertical-align: -1px }
+  .k-reasoning { background: var(--blue) } .k-builds { background: var(--accent) } .k-tests { background: var(--good) }
+  .k-queue { background: var(--wait) } .k-other { background: var(--line) }
+  .find { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 4px 12px; font-size: 13px }
+  .find .m { font-family: var(--mono); text-align: right; color: var(--accent) }
+  .scroll { overflow-x: auto }
+  table.w { min-width: 720px }
+  table.w td { padding: 4px 10px 4px 0; vertical-align: middle; border-top: 1px solid var(--line) }
+  table.w td.bar { width: 38% }
+  table.w tr.live td:first-child::after { content: " ●"; color: var(--good); font-size: 10px }
+  details summary { cursor: pointer; color: var(--muted); font-size: 12px }
+  .calls { font-family: var(--mono); font-size: 11.5px; color: var(--muted); display: grid; gap: 1px; margin-top: 4px }
+  .hint { color: var(--muted); font-size: 12px; margin: 0 }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Worker waits</h1>
+    <div class="bar">
+      <div class="tabs">
+        <a class="tab" href="/">Work board</a>
+        <a class="tab" href="/tickets/">Ticket board</a>
+        <a class="tab" href="/dashboard/">Progress</a>
+        <span class="tab" aria-pressed="true">Waits</span>
+      </div>
+    </div>
+    <p class="sub">Where the area workers' time went: their transcripts (reasoning, tool calls, background builds and test runs from start to
+      finish) and the work database (slot queue, game times). <span id="asof" class="mono"></span></p>
+  </header>
+  <div id="view"><p class="hint">Loading…</p></div>
+  <footer>Local only (work.py serve). Data: tools/worker_waits.py, refreshed every five minutes.</footer>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+const min = s => s >= 5940 ? (s / 3600).toFixed(1) + ' h' : Math.round(s / 60) + ' min';
+const sec = s => s >= 90 ? (s / 60).toFixed(1) + ' min' : Math.round(s) + ' s';
+const when = t => new Date(t * 1000).toLocaleString([], {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'});
+
+function stack(parts, total) {
+  return '<div class="stack">' + parts.filter(p => p[1] > 0).map(([k, v]) =>
+    `<span class="k-${k}" style="width:${(100 * v / total).toFixed(2)}%" title="${k}: ${min(v)}"></span>`).join('') + '</div>';
+}
+
+function render(d) {
+  $('#asof').textContent = 'Last ' + d.days + ' days, as of ' + when(d.generated) + '.';
+  const ws = d.workers, done = ws.filter(w => !w.live);
+  const T = d.totals, other = Object.entries(T).filter(([k]) => !['reasoning', 'builds', 'tests'].includes(k)).reduce((a, [, v]) => a + v, 0);
+  const all = (T.reasoning || 0) + (T.builds || 0) + (T.tests || 0) + other;
+  const per = x => done.length ? x / done.length : 0;
+  const queue = d.batches.reduce((a, b) => a + b.queue, 0);
+  let h = `<section class="tiles">
+    <div class="tile"><div class="k">Workers</div><div class="v">${ws.length} <small>${min(per(all))} each</small></div></div>
+    <div class="tile"><div class="k">Builds per worker</div><div class="v">${min(per(T.builds || 0))} <small>median call ${sec(d.median_build || 0)}</small></div></div>
+    <div class="tile"><div class="k">Tests per worker</div><div class="v">${min(per(T.tests || 0))} <small>median suite ${sec(d.median_suite || 0)}</small></div></div>
+    <div class="tile"><div class="k">Slot queue (last ${d.batches.length} batches)</div><div class="v">${min(queue)}</div></div>
+    <div class="tile"><div class="k">Game time</div><div class="v">${min(d.game_seconds)} <small>${d.game_runs} games</small></div></div>
+  </section>
+  <section class="panel"><h2>Where the time goes</h2>
+    ${stack([['reasoning', T.reasoning || 0], ['builds', T.builds || 0], ['tests', T.tests || 0], ['other', other]], all)}
+    <div class="legend"><span><i class="k-reasoning"></i>reasoning ${min(T.reasoning || 0)}</span><span><i class="k-builds"></i>builds ${min(T.builds || 0)}</span>
+      <span><i class="k-tests"></i>tests (incl. queue) ${min(T.tests || 0)}</span><span><i class="k-other"></i>reading, shell, git, WSL, edits ${min(other)}</span></div>
+  </section>
+  <section class="panel"><h2>Worth acting on <span class="n">${d.findings.length}</span></h2>
+    <p class="hint">Largest first: extra golden suites (more than image + Rebirth), more than three build calls, batches that waited over two
+      minutes for game slots, scenarios that average over 40 s.</p>
+    <div class="find">${d.findings.slice(0, 20).map(f => `<span class="m">${min(f.seconds)}</span><span>${esc(f.what)}</span>`).join('')}</div>
+  </section>
+  <section class="panel"><h2>Workers <span class="n">${ws.length}</span></h2>
+    <div class="legend"><span><i class="k-reasoning"></i>reasoning</span><span><i class="k-builds"></i>builds</span><span><i class="k-tests"></i>tests</span><span><i class="k-other"></i>the rest</span></div>
+    <div class="scroll"><table class="w"><thead><tr><th>Tickets</th><th>Started</th><th class="num">Wall</th><th>Split</th><th class="num">Builds</th><th class="num">Suites</th><th></th></tr></thead><tbody>`;
+  const maxWall = Math.max(...ws.map(w => w.wall), 1);
+  for (const w of ws.slice(0, 80)) {
+    const rest = Math.max(0, w.wall - w.model - w.build_seconds - w.test_seconds);
+    const calls = [...w.builds.map(c => ({...c, k: 'build'})), ...w.tests.map(c => ({...c, k: 'test'}))].sort((a, b) => a.t - b.t);
+    h += `<tr class="${w.live ? 'live' : ''}"><td class="mono">${esc(w.tickets.join(' / '))}</td><td>${when(w.start)}</td><td class="num">${min(w.wall)}</td>
+      <td class="bar"><div style="width:${(100 * w.wall / maxWall).toFixed(1)}%">${stack([['reasoning', w.model], ['builds', w.build_seconds], ['tests', w.test_seconds], ['other', rest]], w.wall || 1)}</div></td>
+      <td class="num">${w.builds.length} · ${min(w.build_seconds)}</td><td class="num">${w.suite_count}</td>
+      <td>${calls.length ? `<details><summary>${calls.length} calls</summary><div class="calls">${calls.map(c =>
+        `<span>${new Date(c.t * 1000).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} ${c.k} ${esc(c.what)} ${sec(c.s)}${c.bg ? '' : ' (fg)'}</span>`).join('')}</div></details>` : ''}</td></tr>`;
+  }
+  h += `</tbody></table></div></section>
+  <section class="panel"><h2>Slowest scenarios</h2><p class="hint">Average game time over the period; the slowest set a suite's floor.</p>
+    <div class="scroll"><table class="w"><thead><tr><th>Scenario</th><th>Install</th><th class="num">Runs</th><th class="num">Average</th><th class="num">Longest</th><th class="num">Total</th></tr></thead><tbody>
+    ${d.slow.map(s => `<tr><td class="mono">${esc(s.scenario)}</td><td>${esc(s.install)}</td><td class="num">${s.n}</td><td class="num">${sec(s.avg)}</td><td class="num">${sec(s.max)}</td><td class="num">${min(s.avg * s.n)}</td></tr>`).join('')}
+    </tbody></table></div></section>
+  <section class="panel"><h2>Recent test batches</h2><p class="hint">Queue: from submission to the first game; run: first game to the last result.</p>
+    <div class="scroll"><table class="w"><thead><tr><th>Batch</th><th>Ticket</th><th class="num">Games</th><th class="num">Queue</th><th class="num">Run</th><th class="num">Retries</th><th>Args</th></tr></thead><tbody>
+    ${d.batches.slice().reverse().slice(0, 40).map(b => `<tr><td class="mono">${b.id}</td><td class="mono">${esc(b.ticket || '')}</td><td class="num">${b.games}</td>
+      <td class="num" style="${b.queue > 120 ? 'color:var(--wait)' : ''}">${sec(b.queue)}</td><td class="num">${b.run == null ? '…' : sec(b.run)}</td><td class="num">${b.retries}</td><td class="mono">${esc(b.args.join(' '))}</td></tr>`).join('')}
+    </tbody></table></div></section>`;
+  $('#view').innerHTML = h;
+}
+
+async function load() {
+  try {
+    const r = await fetch('/waits/data.json', {cache: 'no-store'});
+    render(await r.json());
+  } catch (e) { $('#view').innerHTML = `<p class="hint">Could not load: ${esc(e)}</p>`; }
+}
+load();
+setInterval(load, 60000);
+</script>
+</body>
+</html>
