@@ -493,7 +493,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 007432E0,7,,game,00671280 006714A0 006721D0 006722F0,006713A0,MappedResource,src/game/resource.h,
 007432FC,1,,game,006714A0 006722F0,00672040,MappedResource,src/game/resource.h,the tail of 007432E0 (its slot 7) and 00743300 (devirtualised calls of FreeAllFiles in 006714A0 / 006722F0)
 00743300,8,,game,006721D0 006722F0,006722D0,MMIOResource,src/game/resource.h,
-00743320,1,,game,00674280 006742C0,006742A0,ResourceStream,src/game/resource_stream.h,the sound system's file reader
+00743320,1,,game,00674280 006742C0,006742A0,ResourceStream,-,the sound system's file reader; stored only by game.exe (ours reads a music file whole with platform::ReadWholeFile)
 00743324,1,,game,00674790 006747C0 00674810,006747C0,ResourceBase,src/game/resource.h,the archive readers' base
 00743338,26,,game,00674D90 00674DF0,00674DD0,ResourceManager,src/game/resource_manager.h,"CResourceManager's own table (Construct / Destruct; slots 11, 12, 14, 25 _purecall)"
 007433EC,24,,game,00675DD0 006760A0 0067AE30 0067B1C0,00676080,EffectSound,src/game/world_effect.h,positional sound

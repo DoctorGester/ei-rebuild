@@ -42,13 +42,6 @@ constexpr float kFadeStep = 0.06666667f;              // 1/15
 constexpr std::int8_t kModeSpecialIdle = -2;          // the unit's +0x255
 constexpr int kIdleRestartBelow = 3;                  // FigureAnimationState::queue.count
 
-// Is sound `handle` still playing or waiting to play?
-bool SoundBusy(int handle) {
-    if (handle == -1) return false;
-    SoundManager* sounds = g_clientWorld.sounds.get();
-    return sounds->FindPlaying(handle) || sounds->FindDeferred(handle);
-}
-
 void SetTalking(const Unit* unit, bool talking) {
     EngineObject* serverUnit = g_serverWorld.FindUnit(unit->id);
     if (!serverUnit) return;
@@ -108,11 +101,11 @@ bool UnitClientSpecific::RunTick() {
         if (delay == 0) {
             if (first->talking) SetTalking(unit, true);
             if (first->kind == AckKind::Attack || first->kind == AckKind::DecidedToAttack) {
-                if (!SoundBusy(speechSound) && Speak(first)) speechSound = first->sound;
+                if (!g_clientWorld.sounds->IsPlaying(speechSound) && Speak(first)) speechSound = first->sound;
             } else {
                 Speak(first);
             }
-        } else if (delay < 0 && !SoundBusy(first->sound)) {
+        } else if (delay < 0 && !g_clientWorld.sounds->IsPlaying(first->sound)) {
             if (speech.front().talking) SetTalking(unit, false);
             speech.pop_front();
         }

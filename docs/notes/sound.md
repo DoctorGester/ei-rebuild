@@ -76,14 +76,13 @@ Only these reach game logic; volumes, pans, reverb, positions and the pixels and
   in the test, and keeps a hash of one mix of everything together, the same on Windows and Linux (basic float operations
   in a fixed order, `lib::Pow` for the reverb's feedback). Under 1 s. A change to the mix that moves the hash is intended
   or not: the check prints the new hash. Not reached: the trace (`NoteFrame`), the real device, the MP3 decoders.
-- The stream mixes straight from the caller's halves at each half's format; more than one stream can play (a movie's
-  sound takes its own). All mixer state is under one lock; the voices' clock fields are the main thread's.
+- A stream's halves are 16-bit; `QueueHalf` copies one with its format and the mixer plays the copy; more than one
+  stream can play (a movie's sound takes its own). All mixer state is under one lock; the voices' clock fields are the main thread's.
 
 ## How the sound keeps up (EI_AUDIO_TRACE)
 
 With `EI_AUDIO_TRACE=1` the log gets an `audio trace:` line a second: the passes of the main loop (and the longest),
-the game thread's time in the sound's calls a pass (mean and most) and its waits for the mixer's lock, its takes of
-and waits for the music's `streamLock` and the stream thread's longest hold of it, the device's
+the game thread's time in the sound's calls a pass (mean and most) and its waits for the mixer's lock, the device's
 requests and frames (the largest, the longest gap between two, the longest mix), how far the sound given runs ahead
 of real time (the device's buffer; a falling value is a device that takes less than real time), and the stream frames
 played as silence for want of a queued half. In a play run set it in the environment; in a harness run add
@@ -97,9 +96,10 @@ Measured 2026-11-03 (the game thread's sound time a pass; the device):
 - Before PlayStreamOnce, PlayJingle and the calm music spun on the main thread until the stream thread took the file:
   127 and 146 ms a request on Windows, 9 to 207 ms on WSLg with a working sink, 874 ms and then for good (the harness's
   60 s limit) once the sink had stalled.
-- The stream thread's longest hold of `streamLock` (2026-11-04, a realtime zone, a jingle every 2.5 s, no device):
-  while it decoded and opened under the lock 0.1 to 0.19 ms a half and 1.2 to 2.6 ms at a file's opening (Windows
-  and WSL alike, the files on a local disk), at most 0.007 ms since; no game-thread wait seen in either.
+- The stream thread's longest hold of `streamLock` (2026-11-04, a realtime zone, a jingle every 2.5 s, no device;
+  measured with lock counters the trace no longer has): while it decoded and opened under the lock 0.1 to 0.19 ms a
+  half and 1.2 to 2.6 ms at a file's opening (Windows and WSL alike, the files on a local disk), at most 0.007 ms
+  since; no game-thread wait seen in either.
 
 ## Game side
 
@@ -108,8 +108,10 @@ Measured 2026-11-03 (the game thread's sound time a pass; the device):
   sequences, the MP3 music stream and its thread. `Tick` runs every world frame.
 - `UpdatePositional` computes 3D sound itself and hands a 2D volume and pan (the pan mirrored when `panDirect` is 0,
   the "swap stereo" option); a one-shot at level 0 takes no voice; a NaN camera height keeps the full level.
-- Play2D / Play3D with no voice return -1 for a one-shot and make a deferred record for a looping sound. LoadSample's
-  4th argument means "the file is an MP3"; a cached MP3 loads nothing.
+- Play2D / Play3D with no voice return -1 for a one-shot and make a deferred record for a looping sound: the
+  sound's `SoundParams` (also its voice's while it plays) and its sample position, by handle in `deferred`.
+  `IsPlaying(handle)` is a voice or a deferred record. LoadSample's 4th argument means "the file is an MP3"; a cached
+  MP3 loads nothing. The music's files are read whole (`platform::ReadWholeFile`) and decoded from memory.
 - `MusicSystem` (reads `music.reg`): `UpdateMusic` every world frame. `RequestStream` takes a `StreamSwitch`: `AtEnd`
   stops after the current file, `AfterFade` stops with a fade (a fight ended), `AtMarker` switches at the next marker
   of the current file (combat), `Now` at the current position (calm; `StopStream(Now)` closes the file at once); the
@@ -161,8 +163,9 @@ binkw32.dll studied for what they leave out; FFmpeg's sources were never read (F
   clipped to 16 bits before the blend.
 - Playback: `DecodeFrame` decodes in order (after the last frame back to the first: the titles loop with their sound
   going on); a jump (`GoToFrame`) decodes from the keyframe at or before the frame, or on from the decoded one when
-  nearer. `Waiting` paces on std::chrono::steady_clock (the game's clock stands still while a blocking movie plays).
-  The sound goes to a stream in 87 ms halves as they free; `SetVolume` 0..32768 maps to 0..127. Video and sound keep
-  their own clocks.
+  nearer. `Pump` feeds the sound and says whether the next frame is due, on std::chrono::steady_clock (the game's
+  clock stands still while a blocking movie plays); a player calls it every pass. The sound goes to a stream in 87 ms
+  halves as they free; `SetVolume` takes 0..127 (the options' streaming volume times 127 / 100). `FramePixels`
+  converts the decoded frame into the movie's own RGBX buffer. Video and sound keep their own clocks.
 - Checked: on all 46 files every frame's YUV is identical to ffmpeg's (16113 frames); the sound within 1 of ffmpeg's
   s16 (ffmpeg blends before clipping). Cost: a 1920x816 frame about 4 ms on one core.

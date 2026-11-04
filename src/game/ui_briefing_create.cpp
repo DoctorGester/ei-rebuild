@@ -114,12 +114,6 @@ void StopTalking(Unit* speaker) {
     model->BlinkOpen(true);
 }
 
-// Whether the voice `handle` has ended (neither playing nor waiting).
-bool VoiceEnded(int handle) {
-    SoundManager* sounds = g_clientWorld.sounds.get();
-    return !sounds->FindPlaying(handle) && !sounds->FindDeferred(handle);
-}
-
 } // namespace
 
 void BriefingScreen::CreateScreen() {
@@ -271,7 +265,7 @@ void BriefingScreen::Update() {
         SetMeshesVisible(this, 1, kTextBackdropMesh);
         text->SetEnabled(true);
         if (voice != -1) {
-            if (VoiceEnded(voice)) NextPhrase(false);
+            if (!g_clientWorld.sounds->IsPlaying(voice)) NextPhrase(false);
         } else {
             phraseTime -= FrameTime();
             if (phraseTime < 0.0f) NextPhrase(false);
@@ -282,7 +276,7 @@ void BriefingScreen::Update() {
         SetMeshesVisible(this, 1, kTextBackdropMesh);
         text->SetEnabled(true);
         if (voice != -1) {
-            if (speaking && VoiceEnded(voice)) StopTalking(speaking);
+            if (speaking && !g_clientWorld.sounds->IsPlaying(voice)) StopTalking(speaking);
         } else {
             phraseTime -= FrameTime();
             if (speaking && phraseTime < 0.0f) StopTalking(speaking);

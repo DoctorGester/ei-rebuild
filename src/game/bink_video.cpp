@@ -41,15 +41,6 @@ video::Movie* OpenMovie(const char* name) {
 Rect g_loadingScreen = /*007C5520*/ {};
 video::Movie* g_loadingMovie = /*007C5550*/ {nullptr};
 
-// The decoded frame as 32-bit R, G, B, X pixels, for the new renderer.
-void CopyFrame(const video::Movie* movie, std::vector<std::uint8_t>* frame) {
-    int width = video::Width(movie), height = video::Height(movie);
-    frame->resize(static_cast<std::size_t>(width) * height * 4);
-    video::CopyFrame(movie, frame->data(), width * 4);
-}
-
-
-
 // A movie frame drawn outside the game's frame becomes a frame of the new renderer, shown by the present.
 void PresentMovieFrame() { DevicePresent(g_sceneRenderer.device); }
 
@@ -83,12 +74,9 @@ Rect MovieRect(int width, int height, bool centred) {
 unsigned BinkVideo::Frame() {
     if (!options::g_options.video) return 0;    // movies off
     if (!movie) return 0;
-    if (!video::Waiting(movie)) {
+    if (video::Pump(movie)) {
         video::DecodeFrame(movie);
-        // The new renderer gets the frame from a CPU buffer (32-bit R, G, B, X).
-        static std::vector<std::uint8_t> frame;
-        CopyFrame(movie, &frame);
-        render::MovieFrame(this, frame.data(), video::Width(movie), video::Height(movie));
+        render::MovieFrame(this, video::FramePixels(movie), video::Width(movie), video::Height(movie));
         video::Advance(movie);
     }
     render::MovieBlit(this, MovieRect(video::Width(movie), video::Height(movie), centred));
@@ -103,13 +91,13 @@ unsigned BinkVideo::Frame() {
 bool PlayMovie(const std::string& name, bool keysEnd, bool clearScreen, bool loadingStep) {
     if (!options::g_options.video) return true;
     const char* file = name.c_str();
-    if (loadingStep) g_clientWorld.sounds->StopAll(1);
+    if (loadingStep) g_clientWorld.sounds->StopAll(true);
     video::Movie* movie = OpenMovie(file);
     if (!movie) {
         game::DebugLog("Can't open (or bad format) video file %s.\n", file);
         return true;
     }
-    video::SetVolume(movie, options::g_options.audioStreaming * 0x7FF6 / 100);
+    video::SetVolume(movie, options::g_options.audioStreaming * 127 / 100);
     g_cursor.ShowImage(0);
     // (The game fills the primary black and clears the render target when `clearScreen`: the new
     // frames fill the screen themselves, render::Fill below.)
@@ -117,7 +105,6 @@ bool PlayMovie(const std::string& name, bool keysEnd, bool clearScreen, bool loa
     // Mode 2 as large as fits, otherwise centred at its size.
     const bool centred = options::g_options.video != 2;
     bool escaped = false;
-    std::vector<std::uint8_t> frame;
     for (;;) {
         if (const std::optional<platform::Event> event = platform::TakeEvent()) {
             if (event->type == platform::EventType::KeyDown) {
@@ -134,10 +121,9 @@ bool PlayMovie(const std::string& name, bool keysEnd, bool clearScreen, bool loa
             continue;
         }
         if (Ended(movie)) break;
-        if (video::Waiting(movie)) continue;
+        if (!video::Pump(movie)) continue;
         video::DecodeFrame(movie);
-        CopyFrame(movie, &frame);
-        render::MovieFrame(&g_movieKey, frame.data(), width, height);
+        render::MovieFrame(&g_movieKey, video::FramePixels(movie), width, height);
         if (clearScreen) render::Fill(g_sceneRenderer.device->screen, 0);
         render::MovieBlit(&g_movieKey, MovieRect(width, height, centred));
         PresentMovieFrame();
@@ -169,19 +155,17 @@ void ShowLoadingMovie(int progress) {
     int last = static_cast<int>(video::FrameCount(movie)) - 1;
     if (last < progress) progress = last;
     unsigned target = static_cast<unsigned>(progress) + 1;
-    static std::vector<std::uint8_t> frame;
     bool decoded = false;
     for (;;) {
         unsigned current = video::NextFrameNumber(movie);
         if (current >= target && current != 1) break;
         video::DecodeFrame(movie);
-        CopyFrame(movie, &frame);
         decoded = true;
         video::GoToFrame(movie, video::NextFrameNumber(movie) + 1);
         if (Ended(movie)) break;
     }
     const void* key = &g_loadingScreen;   // the loading movie in the new renderer
-    if (decoded) render::MovieFrame(key, frame.data(), video::Width(movie), video::Height(movie));
+    if (decoded) render::MovieFrame(key, video::FramePixels(movie), video::Width(movie), video::Height(movie));
     render::MovieBlit(key, g_loadingScreen);
     PresentMovieFrame();
 }
@@ -191,19 +175,19 @@ void ShowLoadingMovie(int progress) {
 // The titles' Create starts Titles.bik with it. The movie open before is closed, the loading screen steps when
 // asked, the movie's sound plays when the sound option is on; its place: movies mode 1 centred at the movie's size,
 // otherwise as large as fits (MovieRect).
-char BinkVideo::Open(const char* name, char loadingStep) {
+bool BinkVideo::Open(const char* name, bool loadingStep) {
     video::Close(movie);
     movie = nullptr;
-    if (!options::g_options.video) return 0;
-    if (loadingStep) g_clientWorld.sounds->StopAll(1);
+    if (!options::g_options.video) return false;
+    if (loadingStep) g_clientWorld.sounds->StopAll(true);
     movie = OpenMovie(name);
     if (!movie) {
         game::DebugLog("Can't open (or bad format) video file %s.\n", name);
-        return 0;
+        return false;
     }
     g_cursor.ShowImage(0);
     centred = options::g_options.video == 1;
-    return 1;
+    return true;
 }
 
 // --- Closing --------------------------------------------------------------------------------

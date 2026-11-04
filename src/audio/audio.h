@@ -7,9 +7,6 @@
 // (platform::FrameClock) and delivered from the main loop (DeliverEnds), whatever the device does: the harness's
 // runs stay deterministic (its virtual clock). Volumes and pans are the game's 0..127 scales.
 
-#include "platform/platform.h"
-
-#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -43,10 +40,9 @@ std::uint32_t WaveMilliseconds(const WaveInfo& info);
 
 // ---- The device ----
 
-// Opens the default output device for 16-bit stereo at `rate` (at most 44100), `reverb` making room for the voices'
-// reverb. False with the reason in `error` when it cannot; then no voice or stream can be made. A backend may also
-// go on without a device (UseNoDevice, or none to be had): the game then runs as with one, silently.
-bool OpenOutput(platform::NativeWindow window, unsigned rate, bool reverb, std::string* error);
+// Opens the output at `rate` (0: 44100) on the default device, or on none (UseNoDevice, or none to be had): the game
+// then runs as with one, silently. Voices and streams can be made from now on.
+void OpenOutput(unsigned rate);
 // From now on OpenOutput opens no device: nothing is heard, and what the game reads back keeps to the game's clock
 // as it does with one (the harness's runs: silent and the same on every machine).
 void UseNoDevice();
@@ -104,19 +100,18 @@ struct Stream;
 // A stream of the open device; null when none is open.
 Stream* CreateStream();
 void DestroyStream(Stream* stream);
-// The bytes a half should hold at least for the format to play without gaps.
-int MinimumHalfBytes(unsigned rate, int channels, int bits);
+// The bytes a half of 16-bit samples should hold at least for the format to play without gaps.
+int MinimumHalfBytes(unsigned rate, int channels);
 // Stopped and empty, both halves free.
 void ResetStream(Stream* stream);
-// The format of the halves queued from now on (16 bits signed, else 8 bits unsigned).
-void SetStreamFormat(Stream* stream, unsigned rate, int channels, int bits);
+// The format of the halves queued from now on (16-bit signed samples).
+void SetStreamFormat(Stream* stream, unsigned rate, int channels);
 void SetStreamVolume(Stream* stream, int volume);   // 0..127
 void SetStreamPan(Stream* stream, int pan);         // 0..127
 // The half to fill next (0 or 1), or -1 while both wait to play. Without a device the halves have played up to `now`
 // (platform::FrameClock, or a step's time); with one the device says what has played.
 int ReadyHalf(Stream* stream, std::uint32_t now);
-// Queues `bytes` of `data` in `half` (the one ReadyHalf just gave); the memory stays the caller's until the half is
-// ready again.
+// Queues a copy of `bytes` of `data` in `half` (the one ReadyHalf just gave).
 void QueueHalf(Stream* stream, int half, const void* data, int bytes);
 // Paused; Resume goes on.
 void StopStream(Stream* stream);
@@ -124,28 +119,18 @@ void ResumeStream(Stream* stream);
 
 // ---- MP3 ----
 
-// The music's decoder reads its file through `read`: `bytes` into `to`, from `offset` when it is not negative,
-// else from where the last read ended. Returns the bytes read.
-using ReadFn = int (*)(void* user, char* to, int bytes, int offset);
 struct Mp3Stream;
 
-// Opens the MP3 file `read` gives; null when it holds no MP3 frame.
-Mp3Stream* OpenMp3(ReadFn read, void* user);
+// The MP3 file `file` (its bytes) for decoding; null when it holds no MP3 frame.
+Mp3Stream* OpenMp3(std::string file);
 void CloseMp3(Mp3Stream* mp3);
-// The decoded samples' format.
+// The decoded samples' format (16-bit).
 unsigned Mp3Rate(const Mp3Stream* mp3);
 int Mp3Channels(const Mp3Stream* mp3);
-int Mp3Bits(const Mp3Stream* mp3);   // 16
 // Decodes up to `bytes` into `to`; the bytes written, fewer at the end of the file.
 int DecodeMp3(Mp3Stream* mp3, void* to, int bytes);
 // From the file's beginning again.
 void RewindMp3(Mp3Stream* mp3);
-
-// EI_AUDIO_TRACE and the game's music stream lock (SoundManager::streamLock): the game thread took it after waiting
-// `wait` for the stream thread (zero when it was free; other threads' calls are not counted); the stream thread held
-// it for `held`. The trace line counts the takes and the waits, the longest wait and the longest hold.
-void NoteStreamTaken(std::chrono::steady_clock::duration wait);
-void NoteStreamHeld(std::chrono::steady_clock::duration held);
 
 // An MP3 file decoded whole into a 16-bit PCM RIFF WAVE (44-byte header) at the file's rate and channels, with every
 // whole frame's samples (1152 a frame for MPEG-1, 576 for MPEG-2 and 2.5: what the original's decoder gave, so the

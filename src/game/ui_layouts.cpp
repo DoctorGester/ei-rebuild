@@ -455,7 +455,7 @@ void CreditsScreen::CreateScreen() {
     Interface3D* currentUi = ui;
     const std::string& currentName = name;
     if (!fromGame) {
-        g_clientWorld.sounds->StopAll(1);
+        g_clientWorld.sounds->StopAll(true);
         g_clientWorld.music->Stop();
     }
     g_cursor.ShowImage(0);
@@ -516,7 +516,6 @@ void CreditsScreen::CreateScreen() {
     if (fromGame) g_serverWorld.SetServerPaused(0);
     savedDisplay = static_cast<int>(g_sceneRenderer.fogColour);
     g_sceneRenderer.fogColour = 0;
-    player.Open((g_dataFolder + "Movies\\" + currentName + ".bik").c_str(),    // "<folder>Movies\<name>.bik"
-                                             0);
+    player.Open((g_dataFolder + "Movies\\" + currentName + ".bik").c_str(), false);
     finished = false;
 }

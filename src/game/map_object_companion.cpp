@@ -72,13 +72,9 @@ bool MapObjectClientSpecific::RunTick() {
             int left = --effect.ticksLeft;
             if (left >= kEndSoundTicks || effect.ending) continue;
             if (!IsTextKey(owner->id)) continue;
-            int handle = endSound;
-            SoundManager* soundSystem = g_clientWorld.sounds.get();
-            if (handle != -1 &&
-                (soundSystem->FindPlaying(handle) || soundSystem->FindDeferred(handle)))
-                continue;
+            if (g_clientWorld.sounds->IsPlaying(endSound)) continue;
             endSound = g_clientWorld.sounds->Play3D(kEndSoundName, 0, owner->localPosition,
-                                                  kEndSoundNear, kEndSoundFar, 0);
+                                                  kEndSoundNear, kEndSoundFar, false);
         }
     }
 
@@ -92,7 +88,7 @@ bool MapObjectClientSpecific::RunTick() {
             std::uint32_t variant = g_clientRandom.Next() % 3 + 1;
             const std::string name = str::Format(kStenchSoundFormat, variant);
             sound->timer = kStenchPeriod;
-            g_clientWorld.sounds->Play3D(name, 0, owner->localPosition, kStenchNear, kStenchFar, 0);
+            g_clientWorld.sounds->Play3D(name, 0, owner->localPosition, kStenchNear, kStenchFar, false);
         } else if (sound->kind == SpellType::Feeblemind && sound->handle != -1) {
             g_clientWorld.sounds->MoveSequence(sound->handle, owner->localPosition);
         }
