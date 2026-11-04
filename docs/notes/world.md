@@ -170,11 +170,14 @@ position, appends a counted copy into the new cell; out-of-grid cells are skippe
 ## Figure meshes
 
 `figure_mesh.h/.cpp`: the game-side figure part mesh (classes 0x41-0x44 of the figure factory).
-- `FigureMesh` (the base, the layout of class 0x42). Class 0x42 is `PlainFigureMesh`; 0x43 (`UiMesh`) and 0x44
-  (`SkyObject`) derive from it and share its loaders; class 0x41 (`SharedFigureMesh`) has its own loaders. Fields: flags
+- `FigureMesh` owns all its arrays; the figure manager's types 0x41 and 0x42 are plain `FigureMesh`es (loose and
+  attached parts); 0x43 (`UiMesh`) and 0x44 (`SkyObject`) derive from it and share its loaders. Fields: flags
   (0x20 loaded), `MeshBuffers` (pointer / count pairs the renderer draws from), vertex offsets, colour arrays (one per
   normal), header words, centre, box, radius, ClipBounds, vertex packets, normal packets, corners, corner indices (3 per
   triangle), texture coordinates. `VertexPacket`: x[4], y[4], z[4], w[4] = 1.0.
+- The `fig` block in figure_mesh.h holds the record format: `kFigMagic`, the version counts, the offsets derived from
+  `sizeof(FigHeader)` and `fig::BoundsBytes`, and `MorphCube` / `MorphPrism`, the one morph (bounds, link figure
+  vertices, bone cages).
 - The loader picks FIG data ("FIG" + version byte) or the older format by the first dword. FIG8 holds 8 versions of
   every bound and vertex block, the corners of a trilinear morph by the figure's three coefficients (models.md, "Link
   figures"); the old format has 6 versions and every array preceded by its count.

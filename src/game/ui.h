@@ -864,7 +864,7 @@ inline constexpr float kSpriteScale = 100.0f;
 inline constexpr int kUiTextureSize = 0x100;
 
 // The figure factory's class 0x43 ("CI3DFigure"): a plain figure mesh with the sprite's fields.
-class UiMesh : public PlainFigureMesh {
+class UiMesh : public FigureMesh {
 public:
     UiMesh();
     ~UiMesh() override;

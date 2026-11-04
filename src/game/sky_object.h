@@ -1,13 +1,13 @@
 #pragma once
 
 // The sky dome: SkyObject (0x230 bytes, figure class 0x44's constructor
-// in the figure factory) is a class 0x42 figure mesh (PlainFigureMesh, figure_mesh.h) with one more
+// in the figure factory) is a figure mesh (FigureMesh, figure_mesh.h) with one more
 // aligned array, and Sky, the world view's holder that lights and draws it.
 // sky_object.cpp. A real virtual class: the compiler makes its vtable.
 // Names from ClassName ("SkyObject"); the rest provisional.
 
 #include "core_transform.h"
-#include "figure_mesh.h"   // PlainFigureMesh
+#include "figure_mesh.h"   // FigureMesh
 #include "model.h"         // Matrix4, SceneRenderer
 
 #include <cstddef>
@@ -19,13 +19,11 @@ struct SkyColour {
     float r, g, b, a;
 };
 
-class SkyObject : public PlainFigureMesh {
+class SkyObject : public FigureMesh {
 public:
     SkyObject();
     ~SkyObject() override;
 
-    // The vtable: the class 0x42 mesh's (PlainFigureMesh) but for
-    // 0, 11 and 12.
     const char* ClassName() override;   // "SkyObject"
     ClassId GetClassId() override;
 

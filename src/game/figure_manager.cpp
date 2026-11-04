@@ -46,7 +46,7 @@ void FigureManager::Create() {
 }
 
 FigureMesh* FigureManager::NewPart(const std::string& modelName, std::string_view partName, std::uint32_t attached) {
-    auto* part = CreateObjectAs<FigureMesh>(attached ? FigureObjectType::PlainFigureMesh : FigureObjectType::SharedFigureMesh, -1);
+    auto* part = CreateObjectAs<FigureMesh>(attached ? FigureObjectType::AttachedPart : FigureObjectType::LoosePart, -1);
     part->name = partName;
     part->directory = modelName;
     return part;
@@ -185,15 +185,16 @@ int FigureManager::LoadFigureBones(FigureModel* model, FigureBone* bone) {
         bones.data = GetFile(path, &bones.size);
     }
     if (!bones.data) return 0;
-    // The bone's cage interpolation: 0x48-byte data (a prism of six points), or any other size (a cube of eight).
-    if (bones.size == 0x48) {
-        float prism[18];
+    // The bone's cage: `offset` becomes the point at (morphS, morphT, morphU) in the prism of six points of 0x48-byte
+    // data, or in the cube of eight points of any other size.
+    if (bones.size == sizeof(float) * 3 * fig::kOldVersions) {
+        float prism[3 * fig::kOldVersions];
         lib::LoadBytes(prism, bones.data);
-        bone->InterpolatePrism(prism);
+        bone->offset = fig::MorphPrism<Vector3>(prism, bone->morphS, bone->morphT, bone->morphU);
     } else {
-        float cube[24];
+        float cube[3 * fig::kFig8Versions];
         lib::LoadBytes(cube, bones.data);
-        bone->InterpolateCube(cube);
+        bone->offset = fig::MorphCube<Vector3>(cube, bone->morphS, bone->morphT, bone->morphU);
     }
     return 1;
 }
@@ -206,17 +207,6 @@ int FigureManager::LoadFigureBones(FigureModel* model, FigureBone* bone) {
 // 0x28-byte header to the FIG bounds morph with the full magic, any other past 8 bytes to the older-format
 // one, both with the morph weights. Returns 1. See figure_mesh.h and docs/notes/models.md.
 
-namespace {
-
-constexpr std::uint32_t kFigMagic = 0x474946;   // "FIG"
-
-// The bounds' floats (centre, box minimum, box maximum, radius): 8 versions of each in FIG8, one in another FIG,
-// 6 corner versions without a FIG header.
-constexpr int kFig8BoundsFloats = 8 * 10;
-constexpr int kFigBoundsFloats = 10;
-constexpr int kOldBoundsFloats = 6 * 10;
-
-} // namespace
 
 int FigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, std::string_view directory, std::string_view name, std::uint32_t s, std::uint32_t t, std::uint32_t u) {
     std::uint8_t* data;
@@ -230,17 +220,16 @@ int FigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, std::st
     std::uint32_t magic;
     lib::LoadBytes(magic, data);
     const float weightS = std::bit_cast<float>(s), weightT = std::bit_cast<float>(t), weightU = std::bit_cast<float>(u);
-    if (magic == kFig8Magic) {
-        float versions[kFig8BoundsFloats];
-        lib::LoadBytes(versions, data + 0x28);
+    // The bounds' floats (centre, box minimum, box maximum, radius): 8 versions of each in FIG8, one in another FIG,
+    // 6 corner versions without a FIG header.
+    if (fig::IsFig(magic)) {
+        float versions[fig::kBoundsFloats * fig::kFig8Versions];
+        const int count = fig::kBoundsFloats * fig::VersionsOf(magic);
+        std::memcpy(versions, data + fig::kHeaderBytes, count * sizeof(float));
         MorphFigureBounds(out, versions, weightS, weightT, weightU, magic);
-    } else if ((magic & 0xFFFFFF) == kFigMagic) {
-        float version[kFigBoundsFloats];
-        lib::LoadBytes(version, data + 0x28);
-        MorphFigureBounds(out, version, weightS, weightT, weightU, magic);
     } else {
-        float corners[kOldBoundsFloats];
-        lib::LoadBytes(corners, data + 8);
+        float corners[fig::kBoundsFloats * fig::kOldVersions];
+        lib::LoadBytes(corners, data + fig::kMeshWordsBytes);
         MorphFigureBounds6(out, corners, weightS, weightT, weightU);
     }
     if (model) model->mesh->CloseFile(data);
@@ -402,8 +391,7 @@ int FigureManager::LoadMenuRects(Rect* rects) {
 // --- Figure factory ----------------------------------------------------------------------------------
 
 // The figure object factory (virtual, `this` unused): creates a scene object of a class id. 0x41-0x43 are the
-// figure part meshes built on the common base: 0x41 with two empty arrays (SharedFigureMesh), 0x42 with four
-// more (PlainFigureMesh), 0x43 the same (UiMesh, ui.h); the original inlines their constructors. 0x44 and
+// figure part meshes: 0x41 and 0x42 are FigureMeshes, 0x43 a UiMesh (ui.h). 0x44 and
 // 0x300B-0x300D (AnimationTrack, FigureBone, FigureAnimationState) have their own. All are C++ classes,
 // allocated at the game's sizes. The new object's type gets the class id; an unknown id or a failed
 // allocation returns null. See docs/notes/models.md.
@@ -412,10 +400,9 @@ namespace {
 
 EngineObject* Create(int classId) {
     switch (static_cast<FigureObjectType>(classId)) {
-    case FigureObjectType::SharedFigureMesh:
-        return new SharedFigureMesh();
-    case FigureObjectType::PlainFigureMesh:
-        return new PlainFigureMesh();
+    case FigureObjectType::LoosePart:
+    case FigureObjectType::AttachedPart:
+        return new FigureMesh();
     case FigureObjectType::UiMesh:
         return new UiMesh();
     case FigureObjectType::SkyObject:

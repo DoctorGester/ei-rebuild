@@ -68,7 +68,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073C19C,3,,game,0044CFF0 00451EC0,007005E3,MeshCornerArrayClass,-,CArray (the scene meshes' corner records (IndexMeshCorners)); stored only by game.exe (ours is a std::vector)
 0073C1AC,3,,game,004509E0 004543E0 00454F80 004A20B0,007005E3,NodeItemsAClass,-,CArray (inside the scene loader's 0x120-byte node records (00454F80)); stored only by game.exe (ours is a std::vector)
 0073C1B8,3,,game,00450B90 004543E0 00454F80 004A20D0,007005E3,NodeItemsBClass,-,CArray (the scene loader's node records' 24-byte items); stored only by game.exe (ours is a std::vector)
-0073C1C4,24,,game,00453240 005AA8E0,004543A0,PlainFigureMesh,src/game/figure_mesh.h,class 0x42 (the factory and the scene's figure records 00453240)
+0073C1C4,24,,game,00453240 005AA8E0,004543A0,PlainFigureMesh,-,class 0x42: stored by game.exe's constructors (ours is FigureMesh; the factory's 0x41 and 0x42 share it)
 0073C224,20,,game,00453240 00476FB0 004A0350 004D9110 0059F030 005AABC0,00453470,FigureMesh,src/game/figure_mesh.h,the figures' base
 0073C274,18,,game,004545C0,00454810,SceneMesh,-,"CFakeFigure (the scene's meshes); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
 0073C2BC,3,,game,00454830 00454A50 00454CE0 0046F1F0 00471B10,007005E3,FaceGroupArrayClass,-,"CArray<FaceGroup> (a scene mesh's face groups); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
@@ -328,7 +328,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073FB10,13,,game,005A7010,005A7060,FigureMeshDrawer,src/game/link_figure.h,class 0x36 CFigureClientSpecific (the client-specific factory 0042D700)
 0073FB44,13,,game,005A7080 005A70C0,005A70A0,FigureDrawerBase,-,the drawer's base class: stored by game.exe's destructors 005A7080 / 005A70C0 (ours is FigureMeshDrawer alone)
 0073FB88,26,,game,005AA070 005AA1C0,005AA1A0,FigureManager,src/game/figure_manager.h,
-0073FBF0,22,,game,005AA8E0,005AADA0,SharedFigureMesh,src/game/figure_mesh.h,class 0x41
+0073FBF0,22,,game,005AA8E0,005AADA0,SharedFigureMesh,-,class 0x41: stored by game.exe's constructors (ours is FigureMesh)
 0073FC48,24,,game,005AA8E0 005AAD00,005AACE0,UiMesh,src/game/ui.h,class 0x43 (CI3DFigure)
 0073FCF0,3,,game,005B0600 005B19A0,007005E3,AiMapListClass,-,CList (the AI map's lists); stored only by game.exe (ours is a std::list)
 0073FCFC,3,,game,005B0600 005B0AF0 005B1810,007005E3,BlockCostListClass,-,CList (the AI's block cost lists); stored only by game.exe (ours is a std::list)

@@ -29,7 +29,6 @@ std::optional<std::string> ReadLinkString(const char** cursor) {
 
 namespace {
 
-constexpr std::uint32_t kFigTag = 0x474946;   // "FIG": a FIG / FIG8 record, else the older one
 constexpr float kSameMorph = 1e-5f;           // squared distance of the coefficients
 
 // A part record at `data` into `mesh`: FIG / FIG8 or the older kind.
@@ -38,7 +37,7 @@ void LoadPartRecord(LinkFigureLoader* loader, LinkMesh* mesh, const std::string*
     std::uint32_t tag;
     lib::LoadBytes(tag, data);
     const char* cursor = data;
-    if ((tag & 0xFFFFFF) == kFigTag)
+    if (fig::IsFig(tag))
         loader->LoadFigPart(mesh, name, &cursor, s, t, u);
     else
         loader->LoadOldPart(mesh, name, &cursor, s, t, u);
@@ -259,7 +258,7 @@ bool LinkFigureLoader::RemorphPart(LinkMesh* mesh, FigureModel* set, const std::
     std::uint32_t tag;
     lib::LoadBytes(tag, data);
     const char* cursor = data;
-    if ((tag & 0xFFFFFF) == kFigTag)
+    if (fig::IsFig(tag))
         RemorphFigPart(mesh, name, &cursor, s, t, u);
     else
         RemorphOldPart(mesh, name, &cursor, s, t, u);

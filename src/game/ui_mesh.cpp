@@ -481,7 +481,7 @@ void UiMesh::Create() {
 void UiMesh::Destroy() {
     material = nullptr;
     texture = nullptr;
-    PlainFigureMesh::Destroy();
+    FigureMesh::Destroy();
 }
 
 const char* UiMesh::ClassName() { return kClassName; }

@@ -14,12 +14,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 using TexCoord = render::TexCoord;
 
-// What the renderer draws from (FigureMesh::buffers): pointers and counts of the mesh's arrays (type 0x41
-// points the last four into the loaded file data instead).
+// What the renderer draws from (FigureMesh::buffers): pointers and counts of the mesh's arrays.
 struct MeshBuffers {
     VertexPacket* vertices;
     int vertexCount;    // packets
@@ -34,6 +34,75 @@ struct MeshBuffers {
     std::uint16_t* indices; // corner indices, 3 per triangle
     int indexCount;
 };
+
+// The header in front of a FIG mesh: the magic ("FIG8" = 0x38474946 morphs) and the element counts, then two
+// more dwords.
+struct FigHeader {
+    std::uint32_t magic;
+    int vertexCount;
+    int normalCount;
+    int texCoordCount;
+    int indexCount;
+    int cornerCount;
+    int wordCount;
+    std::uint32_t unused_1C;
+};
+static_assert(sizeof(FigHeader) == 0x20);
+
+// The FIG record format of a figure part (a figures.res file, or a part of a .lnk figure): a FigHeader, the material
+// value and the mesh type (dwords), the bounds, the vertex packets, then the normals, texture coordinates,
+// indices, corners and words. A FIG8 record holds 8 versions of every bound and vertex block (the corners of the
+// figure's morph), another FIG one version; the older records have no FigHeader and hold 6 versions, with a count
+// before every array.
+namespace fig {
+
+inline constexpr std::uint32_t kFigMagic = 0x474946;      // "FIG": the low three bytes of the magic
+inline constexpr std::uint32_t kFig8Magic = 0x38474946;   // "FIG8"
+inline constexpr int kFig8Versions = 8;
+inline constexpr int kFigVersions = 1;
+inline constexpr int kOldVersions = 6;
+
+inline bool IsFig(std::uint32_t magic) { return (magic & 0xFFFFFF) == kFigMagic; }
+inline int VersionsOf(std::uint32_t magic) { return magic == kFig8Magic ? kFig8Versions : kFigVersions; }
+
+// The bounds: the centre, the box minimum, the box maximum (3 floats each) and the radius, per version.
+inline constexpr int kBoundsFloats = 10;
+constexpr std::size_t BoundsBytes(int versions) { return kBoundsFloats * versions * sizeof(float); }
+// The material value and the mesh type, in front of the bounds (after the FigHeader of a FIG record).
+inline constexpr std::size_t kMeshWordsBytes = 2 * sizeof(std::uint32_t);
+// A FIG record up to its bounds.
+inline constexpr std::size_t kHeaderBytes = sizeof(FigHeader) + kMeshWordsBytes;
+// A vertex packet's blocks hold 4 floats, one set per version.
+inline constexpr int kBlockFloats = 4;
+// The older records' block of records between the texture coordinates and the corners that the loaders skip.
+inline constexpr int kSkippedRecordBytes = 0x34;
+
+// One element of a version (a float, or a Vector3 at 3 floats): `v` holds the versions one after the other.
+template <typename T>
+T Version(const float* v, int k) {
+    if constexpr (std::is_same_v<T, float>) return v[k];
+    else return T{v[3 * k], v[3 * k + 1], v[3 * k + 2]};
+}
+
+// A value morphed from 8 versions `v` (a float or Vector3 each) by the weights s, t, u:
+// lerp(lerp(lerp(v0, v1, s), lerp(v2, v3, s), t), lerp(lerp(v4, v5, s), lerp(v6, v7, s), t), u).
+template <typename T>
+T MorphCube(const float* v, float s, float t, float u) {
+    T lower = Lerp(Lerp(Version<T>(v, 0), Version<T>(v, 1), s), Lerp(Version<T>(v, 2), Version<T>(v, 3), s), t);
+    T upper = Lerp(Lerp(Version<T>(v, 4), Version<T>(v, 5), s), Lerp(Version<T>(v, 6), Version<T>(v, 7), s), t);
+    return Lerp(lower, upper, u);
+}
+
+// The older 6-version layout (a prism), also the bones' cage:
+// lerp(lerp(lerp(c0, c1, s), c2, t), lerp(lerp(c3, c4, s), c5, t), u).
+template <typename T>
+T MorphPrism(const float* v, float s, float t, float u) {
+    T lower = Lerp(Lerp(Version<T>(v, 0), Version<T>(v, 1), s), Version<T>(v, 2), t);
+    T upper = Lerp(Lerp(Version<T>(v, 3), Version<T>(v, 4), s), Version<T>(v, 5), t);
+    return Lerp(lower, upper, u);
+}
+
+} // namespace fig
 
 class Object3D;
 class FigureMesh;
@@ -62,24 +131,29 @@ enum class FigureMeshFlag : std::uint32_t {
 };
 template <> inline constexpr bool lib::kBitFlags<FigureMeshFlag> = true;
 
-// The figure meshes' base ("CFigure"): the parts of an object's figure (Object3D::parts). Derived (by the figure manager's type): 0x41
-// SharedFigureMesh, 0x42 PlainFigureMesh, 0x43 UiMesh (ui.h), 0x44 SkyObject (sky_object.h).
+// The figure meshes ("CFigure"): the parts of an object's figure (Object3D::parts), owning all their arrays. The figure
+// manager's types 0x41 (a loose part) and 0x42 (an attached part) are plain FigureMeshes; 0x43 UiMesh (ui.h) and
+// 0x44 SkyObject (sky_object.h) derive from it.
 class FigureMesh : public TransformObject {
 public:
+    FigureMesh();
+    ~FigureMesh() override;
+
     void Create() override;                 // CreateMesh (the derived classes' Create jumps to it)
-    void Destroy() override;               // Clear
+    // The arrays emptied, then Clear.
+    void Destroy() override;
     const char* GetName() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
     // Sets the rotation, rotates the position by it (plus `offset`, copied to a member) and
     // rebuilds the rotation matrix from the stored quaternion.
     void UpdateWorld(const Quaternion& rotation, const Vector3& offset) override;
-    // Loads the mesh from memory at *cursor once (FigureMeshFlag::Loaded set afterwards): data whose first dword starts
-    // with "FIG" through LoadFig, other data through LoadOld.
-    virtual void LoadFromMemory(char** cursor);
-    virtual void LoadFig(char** cursor) = 0;   // "FIG" data
-    virtual void LoadOld(char** cursor) = 0;   // the older format
-    // The deleting destructors free into the game's heap.
+    // Loads the mesh from memory at *cursor (advanced past it), once (FigureMeshFlag::Loaded set afterwards): data whose
+    // first dword starts with "FIG" through LoadFig, other data through LoadOld.
+    void LoadFromMemory(char** cursor);
+
+    // Points the buffer descriptor at the mesh's own arrays and sizes the colour arrays (one per normal).
+    void RefreshBuffers();
 
     // Reads the bounding volume (centre, box, radius) that follows the mesh header: "FIG8" files hold 8 versions
     // of each value (the morph's corners; the first is taken), other versions one. Sets the box and centre of
@@ -111,16 +185,17 @@ public:
     void SetDrawer(FigureMeshDrawer* drawer);
     void SetObject(TransformObject* owner);
 
-protected:
-    FigureMesh();
-    ~FigureMesh() override;
-
 private:
+    // A "FIG" mesh at *cursor, the first of FIG8's 8 versions of every bound and vertex (the meshes loaded here are
+    // never morphed).
+    void LoadFig(char** cursor);
+    // The older format without a FIG header: 6 versions of the bounds and of every vertex (the first taken), each
+    // array preceded by its count.
+    void LoadOld(char** cursor);
     void SetUpFigure();
     void TearDownFigure();
 
 public:
-
     // EngineObject: flags the FigureMeshFlag bits; type the figure manager's type (0x41-0x44; the class id is
     // ClassId::FigureMesh). TransformObject: localPosition relative to the object (a bone places it),
     // worldPosition UpdateWorld's moved position, localRotation and worldRotation.
@@ -159,73 +234,11 @@ public:
     FootprintPart box;                  // bounds and the part's position when it was loaded (cleared with the bounds)
     std::vector<VertexPacket> vertices;
     std::vector<NormalPacket> normals;
-};
-
-// Figure type 0x41: the figure manager's parts that are not attached. The original pointed its last four buffers
-// into the loaded file data (records at any alignment); they are copied here.
-class SharedFigureMesh : public FigureMesh {
-public:
-    SharedFigureMesh();
-    ~SharedFigureMesh() override;
-
-    // Clear: the mesh's own arrays emptied, then FigureMesh's Clear.
-    void Destroy() override;
-    // The FIG loader: PlainFigureMesh's.
-    void LoadFig(char** cursor) override;
-    // The older-format loader: PlainFigureMesh's.
-    void LoadOld(char** cursor) override;
-
     std::vector<TexCoord> texCoords;
-    std::vector<std::uint16_t> indices;
-    std::vector<MeshCorner> corners;
-    std::vector<std::uint32_t> words;
-};
-
-// Figure type 0x42: a mesh that owns all its arrays (the figure manager's attached parts). UiMesh (type 0x43, class id
-// 0x46, ui.h) and SkyObject (type 0x44, class id 0x20, sky_object.h) derive from it.
-class PlainFigureMesh : public FigureMesh {
-public:
-    PlainFigureMesh();
-    ~PlainFigureMesh() override;
-
-    // Clear: the mesh's own arrays emptied, then FigureMesh's Clear.
-    void Destroy() override;
-    // Loads a "FIG" mesh from memory at *cursor (advanced past it), the first of FIG8's 8 versions of every vertex; once only (flag
-    // 0x20).
-    void LoadFig(char** cursor) override;
-    // The older format without a FIG header, chosen by the LoadFromMemory virtual when the data does not start
-    // with "FIG": 6 versions of the bounds and of every vertex (the first taken), each array preceded by its count.
-    void LoadOld(char** cursor) override;
-    // Mirror the mesh in x / y (negates that component of every vertex and normal) and swap the first two corners
-    // of every triangle.
-    virtual void MirrorX();
-    virtual void MirrorY();
-
-    // Points the buffer descriptor at the mesh's own arrays and sizes the colour arrays (one per normal).
-    void RefreshBuffers();
-
     std::vector<MeshCorner> corners;
     std::vector<std::uint32_t> words;
     std::vector<std::uint16_t> indices;
-    std::vector<TexCoord> texCoords;
 };
-// The figure factory allocates the game's sizes.
-
-// The header in front of a FIG mesh: the magic ("FIG8" = 0x38474946 morphs) and the element counts, then two
-// more dwords.
-struct FigHeader {
-    std::uint32_t magic;
-    int vertexCount;
-    int normalCount;
-    int texCoordCount;
-    int indexCount;
-    int cornerCount;
-    int wordCount;
-    std::uint32_t unused_1C;
-};
-static_assert(sizeof(FigHeader) == 0x20);
-
-constexpr std::uint32_t kFig8Magic = 0x38474946;   // "FIG8"
 
 // The figure loader's bounding volume of a FIG figure part: `data` holds the centre, box minimum, box maximum
 // and radius, 8 versions each for FIG8 (blended trilinearly by the weights s, t and u) or one otherwise.

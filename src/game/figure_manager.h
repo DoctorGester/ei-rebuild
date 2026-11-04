@@ -13,8 +13,8 @@
 class UiMesh;
 
 enum class FigureObjectType : int {
-    SharedFigureMesh = 0x41,      // SharedFigureMesh: a part whose buffers point into the file data
-    PlainFigureMesh = 0x42,       // PlainFigureMesh: an attached part, owning its buffers
+    LoosePart = 0x41,             // FigureMesh: a part that is not attached
+    AttachedPart = 0x42,          // FigureMesh: an attached part
     UiMesh = 0x43,                // UiMesh: a whole figure (NewBlankFigure)
     SkyObject = 0x44,             // SkyObject
     AnimationTrack = 0x300B,      // AnimationTrack: a bone's animator

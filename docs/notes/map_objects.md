@@ -79,8 +79,8 @@ without a parent name.
 
 **Animation tracks and cages**: AnimationTrack::Evaluate uses the CRT's modf of the time rounded to an integer and
 `Quaternion::Slerp`; LoadKeyFrames copies the key frames (rotations, positions, the frames' vertex sets) out of the
-.anm entry into the track's own vectors. FigureBone::InterpolateCube / InterpolatePrism (the bone's cage: its offset at its morph
-coefficients) read point records from a stream advancing 0x60 / 0x48. UpdatePose evaluates the tracks at the frame,
+.anm entry into the track's own vectors. The bone's cage (`LoadFigureBones`: its offset at its morph
+coefficients) is `fig::MorphPrism` / `fig::MorphCube` (figure_mesh.h) over a 0x48-byte / other record. UpdatePose evaluates the tracks at the frame,
 then places the skeleton at AnimationFactor(scale.z) * defaultScale, one float factor for x, y and z.
 
 **Blends** (client side only): a switch of animation blends the pose last placed into the new one's over 100-250 ms
