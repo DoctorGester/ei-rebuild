@@ -8085,6 +8085,29 @@ depends = ["C106"]
 note = "Style review round 3 (2026-11-04, https://claude.ai/artifact/KKkymAu9dSoUWGGcbsLwPa, digests in build/style_review/round3/*.md; user: file the tickets). Patterns Y1-Y10 into the rewrite guide and the checks (beside C106's round-2 rules): documented UB is not a fix (rule 9); one little-endian reader and stream vocabulary, no p += outside a buffer's file; a field or parameter that holds a kind takes the enum; every field initialised, reset by Reset(); saved types pair Load/Save members; re-justify every parameter when a library is replaced; no current-object globals without a scope guard; Rebirth behaviour named by its flag or 'always on'; one helper per owner, unique names per subsystem, declare where initialised; never key on a code address. check_cleanup lists enums with no uses, (Send|On)\\w*[0-9A-F]{2} names, IsZero/1/255/server-running copies, literal-returning functions and scope blocks copying temporaries; comments.py bans 'installs in the vanilla launch', 'called through its address', 'verify wrapper', 'scalar deleting destructor', EAX, 'the new renderer'. Fix what the checks find outside the areas C109-C125 cover, or list it. Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes."
 
 [[ticket]]
+id = "C115"
+title = "Scripts style 1: comments, duplicates, TokenReader"
+group = "cleanup"
+model = "sonnet"
+note = "Style review round 3 (2026-11-04, https://claude.ai/artifact/KKkymAu9dSoUWGGcbsLwPa, digests in build/style_review/round3/*.md; user: file the tickets). Items S7, S5, S3. S7: no bare Rebirth tags (script_addon.h's 'behind a flag' that doesn't exist), unused lib/rebirth.h includes, verify-wrapper text, addon/game addresses and +0x, inlined-STL narration, 'Names are provisional', delete party_storage.h, fix wrong comments ('NaN counts as zero' script_exec_run.cpp:25, the FALSE/returns 0 comments on bools). S5: PrepareArguments called from Execute, condition sub-call scan once, find-by-id effects one way (ReadObject<T> = FindById<T>), one NewSound (3 copies), quest add once, ReadListInline = ReadStringList, party memory-stream and archive-as-stream once, NewRecord = CreatePartyRecord, ReleaseItems = ReleaseAll, the two Drops, the create/clone/append/drop loop once, ~25 forwarders (ForDepth, BrainOf, StatsOf, CrtSin/Cos/Pow, Begin/EndRedeploy). S3: a TokenReader with Expect (5 hand-inlined ExpectLexeme copies, script_parse_load.cpp:317,361,424,526,576), the next/copy/classify triple (14), an error-code enum, one type-letter mapping (6 copies); fix LoadConditions' EOF line -1. Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes."
+
+[[ticket]]
+id = "C116"
+title = "Scripts style 2: honest names, bool values, run position"
+group = "cleanup"
+model = "sonnet"
+depends = ["C115"]
+note = "Style review round 3 (2026-11-04, https://claude.ai/artifact/KKkymAu9dSoUWGGcbsLwPa, digests in build/style_review/round3/*.md; user: file the tickets). Items S4, S6. Renames: ScriptDefinition::index -> killed, calledScript -> body, SSCCmd -> ScriptCall, ScriptDecl -> ScriptBlock, GetUnitPerception named for the server controller (3 lookups once), Script::ScriptCreateFx and the class-prefixed members, the 7 free Script* functions as members; PartyUnitRecord::texts[7] as named members (76 uses, 19 files). S6: ScriptBool() for the 4 bool->float spellings; CalcFloat returns its value (23 presets through float*); bool parameters (Party::Clear(int,int), AddItem(keepCount, merge), RemoveItem(all), Load/SaveParty(int)); ScriptRunPosition for RunBody's 4 saved fields. Keep PartyAt's throwaway copies (they draw g_random) with a comment saying so. Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes."
+
+[[ticket]]
+id = "C117"
+title = "Scripts style 3: typed script arguments"
+group = "cleanup"
+model = "opus"
+depends = ["C116"]
+note = "Style review round 3 (2026-11-04, https://claude.ai/artifact/KKkymAu9dSoUWGGcbsLwPa, digests in build/style_review/round3/*.md; user: file the tickets). Items S1, S2 (Y5). A ScriptArgs cursor {Float(), Text(), Object(), Group()} read in signature order in script_exec, script_eval and the addon handlers, replacing f[i] (242), floatArgs[ (33), Floats(call) (32), Text(cmd,i), stringArgs[, objectArgs[, groupArgs[, the Truncate/RoundEven wrappers and the clashing Arg/ObjectArg helpers; UnitStateArg+break (30) and GetPlayer(Truncate(f[0])) (21) once. S2: SSCCmd::id as ScriptFunction (12 casts, kCmd* aliases), ScriptType fields typed (ScriptBinding, SubCall, VarRef, QuestObjective), target/targetType instead of the variable index and type code stored as float bits (script_parse_load.cpp:331-338) and CallScript's index in float 0; LoadFunction's positional 0,0/1,0 flags; DiplomacyRelation used. Save/Load keep the old float slots on disk. Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
