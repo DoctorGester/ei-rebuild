@@ -16,6 +16,8 @@
 #include "game_singletons.h"
 #include "options.h"
 #include "lib/str.h"
+#include "platform/display_sizes.h"
+#include "platform/platform.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -48,6 +50,7 @@ constexpr int kHighlightSprite = 2;     // scene object 2: the selected row's hi
 constexpr int kFirstGroupSprite = 3;    // scene objects 3-13: the group buttons
 constexpr int kDifficultySetting = 20;  // its spin control says hard / easy
 constexpr int kResolutionSetting = 21;
+constexpr int kConfineSetting = 22;     // the cursor kept in the window (app::UpdateCursorConfinement)
 constexpr int kSliderKind = 0;
 constexpr int kSpinKind = 1;
 constexpr int kResolutionKind = 2;
@@ -87,14 +90,7 @@ constexpr OptionDefinition kOptionDefinitions[kOptionDefinitionCount] = {
     {19, "reverse_stereo", 1, 2, 1, 4},
     {20, "difficulty", 1, 2, 3, 0},
     {21, "resolution", 2, 0, 0, 9},   // ours: the rendering resolution (app::ChooseResolution)
-};
-
-// The resolution setting's sizes (with the screen's own, when it is none of them): common monitor and window sizes
-// of 4:3, 5:4, 16:10, 16:9 and 21:9, the same list on every machine.
-constexpr Size kResolutions[] = {
-    {800, 600},   {1024, 768},  {1152, 864},  {1280, 720},  {1280, 800},  {1280, 960},  {1280, 1024},
-    {1366, 768},  {1440, 900},  {1600, 900},  {1600, 1200}, {1680, 1050}, {1920, 1080}, {1920, 1200},
-    {2560, 1080}, {2560, 1440}, {2560, 1600}, {3440, 1440}, {3840, 2160},
+    {22, "confine_cursor", 1, 2, 0, 10},   // ours: the cursor confined to the window
 };
 
 // The texts of what the rebuild adds to the options, which the game's texts lack: in Russian where the game's are
@@ -107,6 +103,8 @@ struct AddedText {
 constexpr AddedText kAddedTexts[] = {
     {"option_resolution", "Разрешение", "Resolution"},
     {"tip option_resolution", "Размер изображения игры", "The size of the game's picture"},
+    {"option_confine_cursor", "Курсор в окне", "Confine cursor"},
+    {"tip option_confine_cursor", "Курсор не выходит за пределы окна игры", "The cursor stays inside the game's window"},
 };
 
 std::optional<std::string> FindAddedText(std::string_view key) {
@@ -118,8 +116,6 @@ std::optional<std::string> FindAddedText(std::string_view key) {
     }
     return std::nullopt;
 }
-
-bool BySize(Size a, Size b) { return a.w != b.w ? a.w < b.w : a.h < b.h; }
 
 // The screen's size (the rendering resolution).
 Size ScreenSize() {
@@ -283,10 +279,8 @@ void OptionsWindow::BuildSettings() {
             AddChild(setting.spin);
             setting.bar = nullptr;
         } else if (definition->kind == kResolutionKind) {
-            resolutions.assign(std::begin(kResolutions), std::end(kResolutions));
-            const Size screen = ScreenSize();
-            if (std::find(resolutions.begin(), resolutions.end(), screen) == resolutions.end())
-                resolutions.insert(std::upper_bound(resolutions.begin(), resolutions.end(), screen, BySize), screen);
+            resolutions = platform::DisplaySizes(g_sceneRenderer.device->window);
+            platform::AddSize(resolutions, ScreenSize());
             std::vector<std::string> texts;
             for (const Size size : resolutions) texts.push_back(str::Format("%d x %d", size.w, size.h));
             setting.spin = new UiSpin(ui, Rect{530, top + 160, 690, top + 176}, texts[0].c_str());
@@ -379,6 +373,7 @@ void OptionsWindow::LoadSettings() {
     s[10].value = static_cast<int>((options::g_options.brightness + one) * fromStep);
     s[11].value = static_cast<int>((options::g_options.gamma + one) * fromStep);
     s[20].value = options::g_options.difficulty;
+    s[kConfineSetting].value = options::g_options.confineCursor;
     s[kResolutionSetting].value = static_cast<int>(
         std::find(resolutions.begin(), resolutions.end(), ScreenSize()) - resolutions.begin());
 
@@ -430,6 +425,8 @@ void OptionsWindow::Apply() {
     if (shadowsChanged) g_clientWorld.DropShadows();
     if (const Size chosen = resolutions[s[kResolutionSetting].value]; chosen != ScreenSize())
         app::ChooseResolution(chosen.w, chosen.h);
+    options::g_options.confineCursor = s[kConfineSetting].value;
+    app::UpdateCursorConfinement();
 }
 
 // --- The slider's virtual ------------------------------------------------------------------

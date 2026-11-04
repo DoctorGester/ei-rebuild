@@ -8,6 +8,7 @@
 #include "lib/str.h"
 
 #include "lib/rebirth.h"
+#include "platform/platform.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -232,6 +233,7 @@ void GameOptions::Load() {
         }
     }
     l.Read(kValues);
+    if (platform::CursorConfinementSupported()) confineCursor = GetBool(kVideo, "ConfineCursor", false) ? 1 : 0;
     l.ReadCameraFlip(cameraFlipX, "CameraFlipXAxis");
     l.ReadCameraFlip(cameraFlipY, "CameraFlipYAxis");
     l.Read(kCameraValues);
@@ -249,6 +251,7 @@ void GameOptions::Save() {
     s.Write(kPathValues);
     SetString(kVideo, "VideoResolution", std::format("{}x{}", resolutionX, resolutionY));
     s.Write(kValues);
+    if (platform::CursorConfinementSupported()) SetBool(kVideo, "ConfineCursor", confineCursor != 0);
     s.WriteCameraFlip(cameraFlipX, "CameraFlipXAxis");
     s.WriteCameraFlip(cameraFlipY, "CameraFlipYAxis");
     s.Write(kCameraValues);

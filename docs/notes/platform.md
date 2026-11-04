@@ -69,9 +69,9 @@ platform.h's sections (the sockets in `platform::net`):
 | Paths | `ProgramPath()` (the system's separators), `CurrentFolder()`, `SetCurrentFolder`, `UserDataFolder()`, `ArgumentsAfterSeparator` | GetModuleFileNameW, GetCurrentDirectoryW, SetCurrentDirectoryW, GetEnvironmentVariableW |
 | The machine | `FontSmoothing()`; `PrimaryDesktopSize`, `EnvironmentVariable`, `EndProcess` | SystemParametersInfoW (game_calls.cpp: the harness fixes smoothing off); the last three direct |
 | Files and folders | `CreateFolder`, `RemoveFolder`, `RemoveFile`, `RenameFile`, `CopyFileOver`, `PathExists`, `IsFile`, `FreeDiskSpace` (files.cpp, std::filesystem); `FolderEntries` (a folder search's `FolderEntry`s: name, path, size, folder); `ReadWholeFile` / `WriteWholeFile`; `File` (`FileMode` Read / Create / WriteExisting; also text lines: `WriteLine`), `MappedFile` (read only), `FileError` | every path through `SystemPath` (the harness's overlay, below); CreateFileW, FindFirstFileW, CreateFileMappingW direct; the file objects' writes through game_calls.cpp's `win32::WriteFile` (the harness's failed-write watch) |
-| The window and its events | `StartWindowSystem(name)`, the game window (`CreateGameWindow`, `ShowGameWindow`), `Event`s (keys with modifiers, UTF-8 text, a mouse button with its click count, the wheel in notches, the focus, the close request), the event queue (`EventWaits`, `NextEvent`, `TakeEvent`, `PostQuit`), screen / client points, `CoverMonitor`, `SetClientSize` | SDL; harness builds: the harness's backend on SDL (harness_platform.cpp) |
+| The window and its events | `StartWindowSystem(name)`, the game window (`CreateGameWindow`, `ShowGameWindow`), `Event`s (keys with modifiers, UTF-8 text, a mouse button with its click count, the wheel in notches, the focus, the close request), the event queue (`EventWaits`, `NextEvent`, `TakeEvent`, `PostQuit`), screen / client points, `CoverMonitor`, `SetClientSize`, `DisplaySizes` (the display's modes' sizes for the resolution row) | SDL; harness builds: the harness's backend on SDL (harness_platform.cpp) |
 | The other game | `BringOtherInstanceForward(name, title)`: another copy runs, its window brought forward | Windows in every build: FindWindowW and the foreground calls (game_calls.cpp: the harness finds none); POSIX a lock file |
-| The cursor | the game's shapes (`MakeCursor`, `FreeCursor`, `SetCursor`), the hold (`HoldCursor`), its position in game points (`MapCursorPoints` for the scaled frame) | SDL; harness builds: the same SDL cursors with their pixels kept for the checks, the harness's own mouse |
+| The cursor | the game's shapes (`MakeCursor`, `FreeCursor`, `SetCursor`), the hold (`HoldCursor`), its confinement to the window (`ConfineCursor`), its position in game points (`MapCursorPoints` for the scaled frame) | SDL; harness builds: the same SDL cursors with their pixels kept for the checks, the harness's own mouse |
 | The keyboard | `KeyName(scan)`, `ActivateKeyboardLayout(language, fallback)`, `IsLetter(character)` (the message box's edit field) | Windows in every build (SDL has no key names in the layout's language, no layout choice): GetKeyNameTextW, the keyboard layout calls, IsCharAlphaW |
 | The clipboard | `CopyText`, `ClipboardText` (Rebirth's console) | SDL; harness builds: direct |
 | Threads | `MakeThreadTimeCritical()` (the sound's stream thread); the threads are `std::thread`, their waits `std::condition_variable` or a join, locks `std::mutex` / `std::recursive_mutex` | SDL in every build (sdl_threads.cpp) |
@@ -206,7 +206,9 @@ What SDL's backend does (platform_sdl.cpp):
   screen). Windowed a decorated, resizable window centred in the primary display's usable bounds, its client area made
   smaller when it and the borders would not fit there (the harness's backend places its window the same way). `SetClientSize` (a resolution picked in the options, windowed) sizes
   and places it the same way in the usable bounds of the display it is on (restored first when maximised, in points on
-  macOS) and waits for the system (`SDL_SyncWindow`). Hints:
+  macOS) and waits for the system (`SDL_SyncWindow`). `DisplaySizes`: `SDL_GetFullscreenDisplayModes` of the window's display, each
+  mode's size in pixels (width times `pixel_density`), `platform::ChooseSizes` (display_sizes.h: deduped, narrowest
+  first, none under 800x600 or above `SDL_GetDesktopDisplayMode`'s size); the harness's backend lists 19 fixed sizes. Hints:
   Alt+F4 is the game's (`SDL_HINT_WINDOWS_CLOSE_ON_ALT_F4` 0), closing the window is a request
   (`SDL_HINT_QUIT_ON_LAST_WINDOW_CLOSE` 0), mouse events only over the window (`SDL_HINT_MOUSE_AUTO_CAPTURE` 0, as Windows
   gave them). SDL makes the process per-monitor DPI aware: its coordinates are pixels.
@@ -232,7 +234,9 @@ What SDL's backend does (platform_sdl.cpp):
   `SDL_ShowCursor`, hidden with `SDL_HideCursor` (null shape). The position is `SDL_GetGlobalMouseState`, placed with
   `SDL_WarpMouseGlobal`. `HoldCursor`: the window in relative mode with a one-pixel mouse rectangle at the point (the
   hints keep the cursor visible there, not centred, the motion scaled as the pointer's; the motion's fractions are
-  carried to the next event); `SetCursorPosition` lets it go before it warps, since SDL puts the pointer back where its
+  carried to the next event); `ConfineCursor`: `SDL_SetWindowMouseGrab` (the harness's backend only logs the request and
+  `CursorConfinementSupported` is false there, so the option is neither read nor written in a harness run; the game asks
+  at the option's changes and the focus's, app_confine.cpp); `SetCursorPosition` lets it go before it warps, since SDL puts the pointer back where its
   motion went when relative mode ends.
 - **The clocks**: both are `SDL_GetTicks` plus a day (`kClockStart`), so no read is near 0 (the game keeps 0 as
   "never" in times it compares with them, and the original ran on machines that had been up for a while).
