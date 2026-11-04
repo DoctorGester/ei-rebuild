@@ -150,9 +150,10 @@ Real play becomes a scenario with a golden (`tests/verify/harness_record.h`, `to
 suites play every scenario on the vanilla data). It builds the verify build and starts it on
 `tests/scenarios/record/live.txt` in a 960x720 window that is shown and takes the keyboard and mouse, from the main
 menu on (no sound; no movies: below). Play; close the window, or Exit from the main menu, to end it. The session
-becomes `tests/scenarios/rec_<name>.txt`. Keep it to about a minute (`recorded.py` warns past frame 3750): the replay
-runs faster than the play, but a run has 60 s. Then replay it twice and record its golden like any new scenario
-(standalone-verification.md, "Recording goldens"):
+becomes `tests/scenarios/rec_<name>.txt`. A session past 3000 frames (about 48 s of play; its replay takes about 25 s)
+is cut by the game into parts, `rec_<name>_1.txt`, `rec_<name>_2.txt`, ... ("Parts" below); a single part longer than 3750
+frames still draws a warning from `recorded.py`. Then replay it twice and record its golden like any new scenario
+(standalone-verification.md, "Recording goldens"; each part on its own):
 
     python tools\work.py test <ID> rec_<name> --golden --vanilla-only      (twice, golden.py snapshot after each)
     python tools\golden.py record --install vanilla --runs <pass1> <pass2> --reason "..." rec_<name>
@@ -178,6 +179,31 @@ time (`frametime 16`) held to the wall clock, so the game plays at its speed; fo
 stays active, as in every harness run). `realinput key|text|move|click|rclick` makes the same SDL events in a hidden
 run (tests/scenarios/record/real_input.txt).
 
+**Parts (H44a).** A replay has a run's 60 s, so a long recording is cut into parts, each starting from a save the
+recording made. `recordinput live cut <frames>` (live.txt) or the step `recordcut` (a driven recording,
+tests/scenarios/record/cut.txt) cuts: the run presses F5 (the quick save, slot `saveq`; `waitexpect Saved saveq`), the
+part's file ends with a `quit`, and the run loads the save at once (`load saveq`, `waitwindow 30 battle`, `origin`) while
+the next file, `recorded_2.txt`, begins as its replay will run: `# prepare: recorded_save.py {previous} saveq`,
+`waitmenu`, the kept settings (`frametime`, `speed`, `windowsize`, `screen`, `shadows`, `focus`: the last value each
+had), those three load steps, then its `at` lines. They count from the `origin` step (the frame where the loaded game
+settled: `record::Frame()` is the harness's frame less that origin), so a part's lines do not depend on how many frames
+the menu or the load took. `origin` also seeds the generators again (image::ReseedRandom: a save holds none, and a
+replay that begins at a load has drawn otherwise than the recording did), in the recording and in the replay alike. The automatic cut waits until the part has `cut` frames, the battle screen takes input and
+the player holds no key or button; the player's input between the cut and the origin is dropped. `recorded.py take <run>
+<name>` makes `rec_<name>_1.txt`, `rec_<name>_2.txt`, ... (`{previous}` becomes the part before). Saves are made by the
+game from its data, so none is committed: `tools/recorded_save.py` (the prepare tool) plays the part before once per
+verify build (its own prepare line first, so a chain plays each part once), keeps the slot in
+`build\verify\recorded_saves\<scenario>\` (key: the exe, the install and the chain's scenario files; one run at a time
+makes a save) and copies it into the run's `saves\`. Each part is replayed and gets its golden on its own; the first
+run after a build also plays the part before (up to a run's 60 s more, outside the part's own time), in the slot run_all
+holds for the run being prepared (`EI_PREPARE_IN_SLOT`, set by `prepare_scenario.prepare(in_slot=True)`; never a game beyond
+the machine's 16); called by hand the tool waits for a slot of its own. What a cut does
+not carry: console state (an unlocked script console), the camera and anything else a save does not hold; the driven
+check (cut.txt, 2 parts, `rec_cut_1`, `rec_cut_2`; cut_auto.txt, `recordinput cut 100`, 3 parts, `rec_cut_auto_1` to `_3`)
+found a part's replay equal to its recording from the cut on in every record's players, objects, timed, missiles, events,
+script and client hashes (not in the world hash, which holds the update counter, nor in `crt.rand`, whose draws only
+client code makes).
+
 **Movies**: a recording and a recorded scenario's run play none. PlayMovie (the new game's intro, the exit's, a
 script's) times its frames by the wall clock in a loop where the steps do not run, so the player's Esc would reach
 nothing and the replay would wait for the whole movie: their files read as missing there (harness.cpp PlayedMovie);
@@ -187,7 +213,8 @@ the loading screen's movie (app::g_loadingMovieName) is drawn by the load's prog
 The recordings in the suite and their sources (`python tools\recorded.py take <run folder> <name>` turns a run's
 recording into `rec_<name>.txt`): `rec_menu_newgame` (the main menu's clicks into a new game, a walk, camera keys and
 wheel, the escape menu), `rec_save_load` (a save and its load through the escape menu's windows), `rec_real_input`
-(`realinput` keys, text and clicks, the console, `focus off` / `on`), recorded from `tests/scenarios/record/*.txt`
+(`realinput` keys, text and clicks, the console, `focus off` / `on`), `rec_cut_*` (a recording cut in parts, above), recorded
+from `tests/scenarios/record/*.txt`
 (not in the suite; run by name, `record/<name>`). A change that moves a recording's game re-records its golden as any
 other; when the menus or the windows' timing change, the recording may miss what it clicked: record it again from
 its source.

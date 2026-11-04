@@ -26,11 +26,15 @@
 
 namespace ei::verify::record {
 
-// "recordinput [live]" (read before the game starts): this run is recorded; "live" takes the player's own keyboard and
-// mouse (play.cmd record), its frames paced to real time.
-void Ask(bool live);
+// "recordinput [live] [cut <frames>]" (read before the game starts): this run is recorded; "live" takes the player's own
+// keyboard and mouse (play.cmd record), its frames paced to real time; "cut": a part of this many frames is cut off
+// ("Parts" below).
+void Ask(bool live, unsigned cutFrames = 0);
 bool Asked();
 bool Live();
+
+// The frame the "at" lines count: the harness's frame count less the part's origin (the "origin" step).
+unsigned Frame();
 
 // The harness's frame count and mouse (client pixels, -1 before a step placed it), which the lines carry and replay sets.
 void Init(const unsigned* frames, std::atomic<int>* mouseX, std::atomic<int>* mouseY);
@@ -49,6 +53,21 @@ void Step(const std::string& verb, const std::string& argument);
 // The harness's input as it is queued (harness_platform.cpp's Queue and AddMotion).
 void Queued(const platform::Event& event, bool typesCharacter);
 void Motion(int dx, int dy);
+
+// Parts. A recording that runs long is cut into parts that each replay within a run's 60 s (docs/notes/harness.md,
+// "Recorded play"): at a cut the run presses F5 (the game's quick save, "saveq"), the part's file ends with a quit, and
+// the run loads the save at once (steps load, waitwindow battle, origin) while the next part's file, recorded_<n>.txt,
+// begins with the same lines, from the main menu: a "# prepare: recorded_save.py" line (the save made by the replay of
+// the part before), the kept settings, those steps. Its "at" lines count from the "origin" step, the frame where the
+// loaded game settled. Nothing is recorded between the cut and the origin (the player's input then is dropped).
+// A cut is due once the part is "cut" frames long and the player holds no key or button; the "recordcut" step cuts
+// where a scenario says.
+bool CutDue();
+bool Cutting();
+// The part's file ends (a quit line) and the next part's begins. The error, or "".
+std::string Part();
+// The "origin" step: the frames count from here. Ends a cut under way.
+void Origin();
 
 // The end of the pass after a frame: the harness's mouse written when it moved, the lines flushed; in live play the
 // frames held to real time (the game's virtual clock no faster than the wall clock).

@@ -20,13 +20,19 @@ def tools_of(scenario):
     return tools if os.path.isdir(tools) else TOOLS
 
 
-def prepare(scenario, saves):
+IN_SLOT = 'EI_PREPARE_IN_SLOT'
+
+
+def prepare(scenario, saves, in_slot=False):
+    """Runs the scenario's prepare tools. in_slot: the caller holds a machine game slot for the run (its game has not
+    started, so the slot is idle): a tool that plays a game (recorded_save.py) plays it in that slot, sets EI_PREPARE_IN_SLOT."""
+    env = dict(os.environ, **{IN_SLOT: '1'}) if in_slot else {k: v for k, v in os.environ.items() if k != IN_SLOT}
     for line in open(scenario, encoding='utf-8', errors='replace'):
         if not line.startswith(PREFIX):
             continue
         tool, *args = line[len(PREFIX):].split()
         subprocess.run([sys.executable, os.path.join(tools_of(scenario), tool), saves, *args], check=True,
-                       capture_output=True)
+                       capture_output=True, env=env)
 
 
 if __name__ == '__main__':

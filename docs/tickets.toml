@@ -6539,6 +6539,13 @@ files = ["tests/scenarios"]
 note = "Left from H43g: ServerSession::RaiseVariable, RemoveVariable and LeaderId are reached only by the multiplayer zone scripts' GSSetVarMax, GSDelVar and GetLeader (z6q3.mob raises q.z6q3.z6q3.1 when a hero stands within 7 of BoarCage; z7q1.mob, z18q1.mob and z19q3.mob do likewise). The console's script lines do nothing in a network game, so a pair scenario has to host, take the sheriff's topic whose quest map is one of those (the offer follows the game's random draws and differs between the vanilla and Rebirth data: net_pair_leave gets z6q1) and walk the leader to the trigger."
 
 [[ticket]]
+id = "H44a1"
+title = "Live check of the automatic recording cut"
+group = "harness"
+depends = ["H44a"]
+note = "H44a cuts a live recording at 3000 frames (live.txt: recordinput live cut 3000) where the battle screen takes input and no key or button is held; only the driven cuts (record/cut.txt, cut_auto.txt) ran in H44a, since a live session needs a player. Record a session of two minutes with play.cmd record <name> and check: the cut happens at a quiet moment, the player's input during the load is dropped without a hitch, each part replays and passes --golden twice. Not carried over a cut: console state (an unlocked script console), the camera; Rebirth's data (parts are vanilla-only like the other recordings)."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"

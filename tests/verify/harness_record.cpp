@@ -10,7 +10,9 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <climits>
 #include <cstring>
+#include <map>
 #include <set>
 #include <sstream>
 
@@ -23,8 +25,23 @@ using platform::MouseButton;
 
 bool g_asked = false;
 bool g_live = false;
+unsigned g_cutFrames = 0;   // "recordinput ... cut <frames>": a part is cut once it is this many frames long (0: never)
 FILE* g_file = nullptr;
 const unsigned* g_frames = nullptr;
+// The frame the lines count from: 0 for a recording's first part, the frame where the loaded save settled for each next
+// part (the "origin" step).
+unsigned g_origin = 0;
+// Parts: the one being written (1-based), the first part's header and source, the kept steps a next part repeats (the
+// last argument of each verb), and whether a cut is under way (from the end of one file to the next part's "origin"
+// step, where nothing is recorded: the steps there are the next part's own first lines).
+int g_part = 1;
+std::vector<std::string> g_header;
+std::string g_source;
+std::map<std::string, std::string> g_carried;
+bool g_cutting = false;
+// What the player holds: a cut waits until nothing is.
+int g_buttonsDown = 0;
+std::set<unsigned> g_keysDown;
 std::atomic<int>* g_mouseX = nullptr;
 std::atomic<int>* g_mouseY = nullptr;
 // The harness's mouse as the lines left it (the harness's own start, -1: the window's centre).
@@ -32,8 +49,6 @@ int g_writtenX = -1, g_writtenY = -1;
 // Live play's pacing: the game's clock and the wall clock when it began (rebased when the game ran ahead).
 bool g_paced = false;
 std::uint32_t g_gameStart = 0, g_realStart = 0;
-
-unsigned Frame() { return g_frames ? *g_frames : 0; }
 
 const char* ButtonName(MouseButton button) {
     switch (button) {
@@ -87,12 +102,13 @@ std::string Unescaped(const std::string& word) {
 }
 
 void Line(const std::string& text) {
-    if (g_file) std::fprintf(g_file, "at %u %s\n", Frame(), text.c_str());
+    if (g_file && !g_cutting) std::fprintf(g_file, "at %u %s\n", Frame(), text.c_str());
 }
 
 // The harness's mouse written when it moved since the lines last placed it; true when it now stands at `at`
 // (written with the event that brings it there).
 bool CursorTo(const Event* event) {
+    if (g_cutting) return false;
     const int x = g_mouseX ? g_mouseX->load() : -1, y = g_mouseY ? g_mouseY->load() : -1;
     if (x == g_writtenX && y == g_writtenY) return false;
     g_writtenX = x;
@@ -102,6 +118,8 @@ bool CursorTo(const Event* event) {
     return false;
 }
 
+const char* const kCutSave = "saveq";   // the game's quick save (F5), which a cut makes
+
 bool IsMouse(EventType type) {
     return type == EventType::MouseMove || type == EventType::MouseDown || type == EventType::MouseUp ||
            type == EventType::Wheel;
@@ -109,10 +127,13 @@ bool IsMouse(EventType type) {
 
 } // namespace
 
-void Ask(bool live) {
+void Ask(bool live, unsigned cutFrames) {
     g_asked = true;
     g_live = g_live || live;
+    if (cutFrames) g_cutFrames = cutFrames;
 }
+
+unsigned Frame() { return g_frames ? *g_frames - g_origin : 0; }
 bool Asked() { return g_asked; }
 bool Live() { return g_live; }
 
@@ -122,19 +143,27 @@ void Init(const unsigned* frames, std::atomic<int>* mouseX, std::atomic<int>* mo
     g_mouseY = mouseY;
 }
 
-std::string Begin(const std::vector<std::string>& header, const std::string& source) {
-    g_file = sys::OpenFile(ei::OutputPath("recorded.txt"), "w");
-    if (!g_file) return "recordinput: recorded.txt cannot be created in the run folder";
+// A part's file (recorded.txt, recorded_2.txt, ...) with its first lines: the marker "recorded" and the header.
+bool OpenPart(int part) {
+    g_file = sys::OpenFile(ei::OutputPath(part == 1 ? "recorded.txt" : ("recorded_" + std::to_string(part) + ".txt").c_str()), "w");
+    if (!g_file) return false;
     // The scenario's path from the checkout's tests folder on (no machine's folders in a committed file).
-    std::string shown = source;
+    std::string shown = g_source;
     std::replace(shown.begin(), shown.end(), '\\', '/');
     if (const std::size_t tests = shown.rfind("tests/scenarios/"); tests != std::string::npos) shown.erase(0, tests);
     std::fprintf(g_file,
-                 "# Recorded by the harness from %s (tests/verify/harness_record.h):\n"
+                 "# Recorded by the harness from %s (tests/verify/harness_record.h), part %d:\n"
                  "# each input event and each step that acts on the game at the frame it came in.\n"
                  "recorded\n",
-                 shown.c_str());
-    for (const std::string& line : header) std::fprintf(g_file, "%s\n", line.c_str());
+                 shown.c_str(), part);
+    for (const std::string& line : g_header) std::fprintf(g_file, "%s\n", line.c_str());
+    return true;
+}
+
+std::string Begin(const std::vector<std::string>& header, const std::string& source) {
+    g_header = header;
+    g_source = source;
+    if (!OpenPart(1)) return "recordinput: recorded.txt cannot be created in the run folder";
     std::fflush(g_file);
     Log("harness: recording the run's input into recorded.txt%s", g_live ? " (live play)" : "");
     return "";
@@ -150,7 +179,7 @@ StepKind Classify(const std::string& verb) {
     static const std::set<std::string> kSkip = {
         "wait", "frames", "waitmenu", "waitwindow", "waitdialogue", "talk", "waitunit", "waitidle", "walkto", "waitdead",
         "waitaward", "awardfrom", "waitline", "waitexpect", "waitfor", "waitzone", "waitpresent", "check", "expect",
-        "reject", "report", "groundview", "hudstate", "minimap", "consoleline"};
+        "reject", "report", "groundview", "hudstate", "minimap", "consoleline", "recordcut", "recordpart", "origin"};
     static const std::set<std::string> kKept = {
         "newgame", "load", "console", "zone", "screen", "speed", "frametime", "focus", "windowsize", "chat", "campputon",
         "freeze", "unfreeze", "digest", "dump", "quit", "shadows", "masterhost", "hit"};
@@ -161,13 +190,20 @@ StepKind Classify(const std::string& verb) {
 }
 
 void Step(const std::string& verb, const std::string& argument) {
-    if (!g_file) return;
+    if (!g_file || g_cutting) return;
+    // What a next part sets again before its load: the settings these steps leave, not the game (the save holds that).
+    static const std::set<std::string> kCarried = {"frametime", "speed", "windowsize", "screen", "shadows", "focus"};
+    if (kCarried.count(verb)) g_carried[verb] = argument;
     CursorTo(nullptr);
     Line(argument.empty() ? verb : verb + " " + argument);
 }
 
 void Queued(const Event& e, bool typesCharacter) {
-    if (!g_file) return;
+    if (!g_file || g_cutting) return;
+    if (e.type == EventType::MouseDown) ++g_buttonsDown;
+    if (e.type == EventType::MouseUp && g_buttonsDown > 0) --g_buttonsDown;
+    if (e.type == EventType::KeyDown) g_keysDown.insert(e.key);
+    if (e.type == EventType::KeyUp) g_keysDown.erase(e.key);
     const bool cursor = IsMouse(e.type) ? CursorTo(&e) : (CursorTo(nullptr), false);
     char text[160];
     switch (e.type) {
@@ -195,7 +231,7 @@ void Queued(const Event& e, bool typesCharacter) {
 }
 
 void Motion(int dx, int dy) {
-    if (g_file && (dx || dy)) Line("event motion " + std::to_string(dx) + " " + std::to_string(dy));
+    if (g_file && !g_cutting && (dx || dy)) Line("event motion " + std::to_string(dx) + " " + std::to_string(dy));
 }
 
 void EndPass() {
@@ -215,6 +251,43 @@ void EndPass() {
     const int ahead = static_cast<int>((game - g_gameStart) - (real - g_realStart));
     if (ahead > 0) sys::SleepMs(static_cast<unsigned>((std::min)(ahead, kMostWait)));
     if (ahead > kMostWait) g_realStart = real + kMostWait - (game - g_gameStart);
+}
+
+bool CutDue() {
+    return g_file && g_cutFrames && !g_cutting && Frame() >= g_cutFrames && !g_buttonsDown && g_keysDown.empty();
+}
+
+bool Cutting() { return g_cutting; }
+
+std::string Part() {
+    if (!g_file || g_cutting) return "";
+    Line("quit");
+    std::fclose(g_file);
+    ++g_part;
+    if (!OpenPart(g_part)) {
+        g_file = nullptr;
+        return "recordinput: recorded_" + std::to_string(g_part) + ".txt cannot be created in the run folder";
+    }
+    // The next part, as its replay runs it: a start from the main menu and the save (made by the replay of the part
+    // before, recorded_save.py), what the carried steps set, the load, and the origin of its frames. {previous}: the
+    // scenario of the part before (tools/recorded.py names it).
+    std::fprintf(g_file, "# prepare: recorded_save.py {previous} %s\nwaitmenu\n", kCutSave);
+    for (const auto& [verb, argument] : g_carried) std::fprintf(g_file, "%s %s\n", verb.c_str(), argument.c_str());
+    std::fprintf(g_file, "load %s\nwaitwindow 30 battle\norigin\n", kCutSave);
+    std::fflush(g_file);
+    g_cutting = true;
+    Log("harness: the recording is cut: part %d begins with a load of %s", g_part, kCutSave);
+    return "";
+}
+
+void Origin() {
+    g_origin = g_frames ? *g_frames : 0;
+    if (!g_cutting) return;
+    g_cutting = false;
+    g_writtenX = g_writtenY = INT_MIN;   // the next part sets the harness's mouse where it stands
+    g_buttonsDown = 0;
+    g_keysDown.clear();
+    Log("harness: part %d records from frame %u", g_part, g_origin);
 }
 
 void End() {

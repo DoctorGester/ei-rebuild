@@ -180,6 +180,12 @@ void SetFixedSeed(void (*fill)(std::uint32_t* results)) {
     g_fill = fill;
     IsaacRandom::SetSeedHook(&FixedSeed);
 }
+void ReseedRandom() {
+    g_random.seeded = 0;
+    g_random.Init();
+    g_clientRandom.seeded = 0;
+    g_clientRandom.InitFrom(g_random);
+}
 int TextKey(const char* name) { return TextKeyFromName(name); }
 void* LocalWorldPlayer(int player) { return g_serverWorld.GetPlayer(player); }
 std::string HitUnit(int target, int attacker, float amount) {

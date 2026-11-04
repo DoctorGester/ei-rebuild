@@ -693,7 +693,7 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
         return 'FAIL', 0.0, [f'the run folder could not be emptied ({", ".join(left[:5])} left: a file in it is still open)'], {}, []
     os.makedirs(out, exist_ok=True)
     try:
-        prepare_scenario.prepare(scenario, os.path.join(out, 'harness_saves'))   # "# prepare:" lines
+        prepare_scenario.prepare(scenario, os.path.join(out, 'harness_saves'), in_slot=not take_slot)   # "# prepare:" lines
     except subprocess.CalledProcessError as error:
         tail = (error.stderr or error.stdout or b'').decode('utf8', 'replace').strip().splitlines()[-3:]
         return 'FAIL', 0.0, [f'a "# prepare:" tool failed ({" ".join(str(a) for a in error.cmd[1:])}; exit code '
