@@ -936,9 +936,9 @@ void SoundFader::Recalc() {
     level = ClampLevel(lib::RoundEven(volume * factor * kLevelMax * kPercent));
 }
 
-// One step of the fade (the stream thread, every 100 ms, under the stream lock).
-void SoundFader::Update() {
-    if (holdUntil != 0 && platform::Milliseconds() >= holdUntil) {
+// One step of the fade at `now` (StepStream, every 100 ms, under the stream lock).
+void SoundFader::Update(std::uint32_t now) {
+    if (holdUntil != 0 && now >= holdUntil) {
         SetHold(0);
         return;
     }
@@ -1341,6 +1341,8 @@ void SoundManager::ResetStream() {
     streamState = 0;
     endAfterSwitch = false;
     streamBusy = false;
+    streamOnMainLoop = false;
+    streamSteppedAt = 0;
     lateRequests.clear();
     onceQueued = false;
     streamSample = nullptr;
@@ -1399,35 +1401,46 @@ void SoundManager::StreamThread() {
         std::uint32_t elapsed = now - last;
         last = now;
         if (elapsed < kStreamPeriodMs) platform::Sleep(kStreamPeriodMs - elapsed);
-
-        std::unique_lock<std::mutex> guard(streamLock);
-        auto heldFrom = std::chrono::steady_clock::now();
-        musicFader.Update();
-        audio::SetStreamVolume(streamSample, musicFader.level);
-        for (;;) {
-            int half = audio::ReadyHalf(streamSample);
-            if (half == kNoHalfReady) break;
-            // The spare buffer goes into that half; the one it played becomes the spare.
-            int buffer = streamSpareBuffer;
-            std::int32_t& playing = streamHalfBuffer[half == 0 ? 0 : 1];
-            streamSpareBuffer = playing;
-            playing = buffer;
-            streamPosition += streamBufferFrames;
-            audio::QueueHalf(streamSample, half, streamBuffers[buffer].data(), streamBufferSize);
-            // The spare buffer is filled without the lock; the requests made meanwhile follow, in order.
-            streamBusy = true;
-            audio::NoteStreamHeld(std::chrono::steady_clock::now() - heldFrom);
-            guard.unlock();
-            ReadStreamVanilla();
-            guard.lock();
-            heldFrom = std::chrono::steady_clock::now();
-            streamBusy = false;
-            for (const StreamRequest& request : lateRequests) MakeRequest(request);
-            lateRequests.clear();
-            onceQueued = false;
-        }
-        audio::NoteStreamHeld(std::chrono::steady_clock::now() - heldFrom);
+        StepStream(platform::Milliseconds());
     }
+}
+
+void SoundManager::FollowClock(std::uint32_t now) {
+    if (!streamOnMainLoop) return;
+    while (now - streamSteppedAt >= kStreamPeriodMs) {
+        streamSteppedAt += kStreamPeriodMs;
+        StepStream(streamSteppedAt);
+    }
+}
+
+void SoundManager::StepStream(std::uint32_t now) {
+    std::unique_lock<std::mutex> guard(streamLock);
+    auto heldFrom = std::chrono::steady_clock::now();
+    musicFader.Update(now);
+    audio::SetStreamVolume(streamSample, musicFader.level);
+    for (;;) {
+        int half = audio::ReadyHalf(streamSample, now);
+        if (half == kNoHalfReady) break;
+        // The spare buffer goes into that half; the one it played becomes the spare.
+        int buffer = streamSpareBuffer;
+        std::int32_t& playing = streamHalfBuffer[half == 0 ? 0 : 1];
+        streamSpareBuffer = playing;
+        playing = buffer;
+        streamPosition += streamBufferFrames;
+        audio::QueueHalf(streamSample, half, streamBuffers[buffer].data(), streamBufferSize);
+        // The spare buffer is filled without the lock; the requests made meanwhile follow, in order.
+        streamBusy = true;
+        audio::NoteStreamHeld(std::chrono::steady_clock::now() - heldFrom);
+        guard.unlock();
+        ReadStreamVanilla(now);
+        guard.lock();
+        heldFrom = std::chrono::steady_clock::now();
+        streamBusy = false;
+        for (const StreamRequest& request : lateRequests) MakeRequest(request);
+        lateRequests.clear();
+        onceQueued = false;
+    }
+    audio::NoteStreamHeld(std::chrono::steady_clock::now() - heldFrom);
 }
 
 // --- The stream's reader -----------------------------------------------------------------
@@ -1435,7 +1448,7 @@ void SoundManager::StreamThread() {
 // The game leaves "from the beginning again" (a local) unwritten when neither a loop point nor a switch
 // point is in the buffer, and reads it in one such case: a switch at the file's end (mode 1) when the file
 // ends in this buffer. Here that case is the switch, which is what the mode asks for.
-void SoundManager::ReadStreamVanilla() {
+void SoundManager::ReadStreamVanilla(std::uint32_t now) {
     std::uint8_t* const buffer = streamBuffers[streamSpareBuffer].data();
     const std::int32_t state = streamState;
     if (state == 0) {
@@ -1449,7 +1462,7 @@ void SoundManager::ReadStreamVanilla() {
     if (state == kStateSwitching && switchMode == kSwitchAfterFade && musicFader.finished != 0) {
         current = 0;
         rest = frames;
-        musicFader.SetHold(platform::Milliseconds() + kSwitchHoldMs);
+        musicFader.SetHold(now + kSwitchHoldMs);
     } else if ((state == 1 || (state == kStateSwitching && streamSwitchAt > streamLoopAt)) && streamLoopAt >= streamPosition &&
                streamLoopAt < streamPosition + frames) {
         again = true;
@@ -1501,10 +1514,18 @@ int SoundManager::Open(void* window, int useReverb, unsigned rate) {
         return 0;
     }
     if (OpenStream() != 0) {
-        streamThread = std::thread([this] {
-            platform::MakeThreadTimeCritical();
-            StreamThread();
-        });
+        // With a device the music plays in real time on its own thread. Without one nothing is heard, and the main
+        // loop steps it on the game's clock (FollowClock), so what UpdateMusic reads of it comes on the same frames
+        // in every run (the harness's virtual clock).
+        if (audio::HasDevice()) {
+            streamThread = std::thread([this] {
+                platform::MakeThreadTimeCritical();
+                StreamThread();
+            });
+        } else {
+            streamOnMainLoop = true;
+            streamSteppedAt = platform::Milliseconds();
+        }
     }
     slots = std::make_unique<SoundSlot[]>(kVoiceCount);
     for (int i = 0; i < kVoiceCount; ++i) {

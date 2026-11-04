@@ -225,9 +225,9 @@ always does the close instead of whichever real message came first.
   user's own play once set the music volume to 0, and 13 goldens differed in random draw counts. To change a setting for
   every run, edit the snapshot and re-record what it moves; `EI_HARNESS_SETTINGS=<folder>` runs with another snapshot
   folder. `settingsfile writable | defaults` check the product's own file paths instead.
-- **Music**: the stream thread plays in real time and the music system's random draws follow the track it reports (a
-  fight's combat track is picked only when the playing one is not it), so a scenario whose fights must draw the same
-  everywhere plays with `music 0` (net_pair_quest).
+- **Music**: harness runs open no sound device, so the music's stream has no thread: the main loop steps it on the
+  virtual clock, and the music system's random draws (a fight's combat track is picked only when the playing one is
+  not it) come on the same frames in every run (sound.md, "Non-determinism"). Scenarios play with the music on.
 
 ### No run writes into an install
 

@@ -292,8 +292,10 @@ std::uint32_t TimeSinceLastPass() {
         ei::mainloop::InSite site(ei::mainloop::Site::FrameTime);
         now = platform::Milliseconds();
     }
-    // The voices whose wave has played out by the frame's time end now (the sound manager's Tick frees them).
+    // The voices whose wave has played out by the frame's time end now (the sound manager's Tick frees them), and
+    // without a device the music's stream catches up to it.
     audio::DeliverEnds(now);
+    if (g_clientWorld.sounds != nullptr) g_clientWorld.sounds->FollowClock(now);
     const std::uint32_t elapsed = now - g_lastTime;
     g_lastTime += elapsed;
     return elapsed;

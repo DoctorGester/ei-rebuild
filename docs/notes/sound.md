@@ -14,8 +14,8 @@ Only these reach game logic; volumes, pans, reverb, positions and the pixels and
 - **Which voices are free**: `AllocateVoice` takes the first free voice, else steals the lowest priority below the
   request (a looping sound is deferred with its sample position); -1 only when all 15 voices play at the priority or
   above. A speech's Play2D (priority 1) then answers -1.
-- **The music stream's state** (`streamState`, `CurrentStreamName`), read by `UpdateMusic`: on real time (the stream
-  thread), see "Non-determinism".
+- **The music stream's state** (`streamState`, `CurrentStreamName`, the fader), read by `UpdateMusic`: with a device
+  on real time (the stream thread), without one on the game's clock (the main loop's steps), see "Non-determinism".
 - **A movie's frame numbers**: when a player ends (the blocking player after the last frame; the credits close once
   their text is done too; the loading screen's movie stops at its last frame).
 
@@ -32,16 +32,21 @@ Only these reach game logic; volumes, pans, reverb, positions and the pixels and
   stays mono), so the length and the cache's size are the original's. dr_mp3 gives fewer frames on about 40% of the
   voices (it drops the LAME info frame, the encoder's delay and padding); the backend pads with silence.
 - **The stream**: a half is free again once its frames have played: with a device when the mixer takes its last
-  frame, without one on `platform::Milliseconds` from the stream thread, counted to the frame (the game's 7680-frame
-  halves free at 175, 349, 523 ms). `MinimumHalfBytes` is 87 ms rounded up to 512 bytes (15360 for 44.1 kHz stereo).
+  frame, without one by the time `ReadyHalf` is given, counted to the frame (the game's 7680-frame halves free at 175,
+  349, 523 ms). `MinimumHalfBytes` is 87 ms rounded up to 512 bytes (15360 for 44.1 kHz stereo).
+- **The stream's steps** (`StepStream(now)`: a fader step, then every free half queued and the spare buffer refilled)
+  come every 100 ms: with a device from the stream thread on real time; without one (`audio::HasDevice` false at
+  `Open`) there is no thread and the main loop makes them right after `DeliverEnds` (`FollowClock(now)`), each at
+  its own time 100 ms after the last, as many as are due, so the music keeps pace with the game's clock even when a
+  frame is longer than the two halves.
 - **Harness runs open no device** (`UseNoDevice` when EI_HARNESS is set): silent and the same on every machine; ends
-  and the stream run on the harness's clocks exactly as with a device. `EI_HARNESS_SOUND=1` keeps the real device for
+  and the stream's steps run on the virtual clock, from the main thread. `EI_HARNESS_SOUND=1` keeps the real device for
   a run that measures the sound (with `EI_AUDIO_TRACE`, below); not for goldens.
 - **The game thread never waits for the device.** Its calls only take the mixer's lock (held for one mix of a device
   period); a one-off music file (`PlayStreamOnce`: PlayJingle, the calm music) is requested and its "silence after
   it" is the stream thread's to ask for as it switches (`endAfterSwitch`; any other request clears it), while
   `UpdateMusic` chooses nothing until then.
-- **The game thread never waits for the MP3 work.** `streamLock` guards the request state (state, names, switch
+- **The game thread never waits for the MP3 work** (with a device). `streamLock` guards the request state (state, names, switch
   point, markers, the fader); the stream thread holds it only to take a free half, queue it and step the fader, then
   fills the spare buffer without it (`streamBusy`: decoding, the next file's opening). A game-thread request in that
   time (RequestStream, StopStream, PlayStreamOnce, the fades, SetMusicVolume) goes to `lateRequests` and is made, in
@@ -122,12 +127,14 @@ Measured 2026-11-03 (the game thread's sound time a pass; the device):
 
 ## Non-determinism
 
-Sound draws from the game's ISAAC generator on the main thread (Tick's ambient emitters every 100 ms of game clock, the
-music's calm delay and track choices, random sequences, random start positions, terrain ambience), so the harness's
-virtual clock covers them. Not covered: `UpdateMusic` reads `CurrentStreamName`, which the stream thread changes in
-real time; a fight's start draws a combat track only when the playing one is not the last combat track, so in a run
-with fights the number of draws follows how far the stream got, i.e. the machine's load. Such scenarios play with
-`music 0` (the stream stays idle). A virtual-time stream thread would cover every run.
+Sound draws from the client effects' generator (`g_clientRandom`) on the main thread (Tick's ambient emitters every
+100 ms of game clock, the music's calm delay and track choices, random sequences, random start positions, terrain
+ambience), so the harness's virtual clock covers them. They still reach game logic through the sound: a speech
+variant's wave length is when its voice ends. `UpdateMusic` reads the stream's state (`CurrentStreamName`,
+`StreamSwitchPending`): a fight's start draws a combat track only when the playing one is not the last combat track.
+With a device the stream thread changes that state in real time, so the draws follow how far the stream got; without
+one (every harness run) the main loop steps the stream on the virtual clock and the draws come on the same frames in
+every run.
 
 ## Original bugs kept
 

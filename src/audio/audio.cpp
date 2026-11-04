@@ -577,6 +577,8 @@ void SDLCALL DeviceData(void*, SDL_AudioStream* stream, int additional, int) {
 
 void UseNoDevice() { g_noDevice = true; }
 
+bool HasDevice() { return g_deviceLive; }
+
 void NoteStreamTaken(Clock::duration wait) {
     if (!g_trace || std::this_thread::get_id() != g_mainThread) return;
     ++g_main.streamTakes;
@@ -1068,15 +1070,14 @@ void SetStreamPan(Stream* stream, int pan) {
     stream->gains = GainsOf(stream->volume, pan, 1.0f);
 }
 
-int ReadyHalf(Stream* stream) {
+int ReadyHalf(Stream* stream, std::uint32_t now) {
     MixHold hold;
-    stream->Pump(platform::Milliseconds());
+    stream->Pump(now);
     return stream->halves[stream->next].queued ? -1 : stream->next;
 }
 
 void QueueHalf(Stream* stream, int half, const void* data, int bytes) {
     MixHold hold;
-    stream->Pump(platform::Milliseconds());
     Half& h = stream->halves[half];
     const int frameBytes = std::max(1, stream->channels * stream->bits / 8);
     h.data = static_cast<const std::uint8_t*>(data);

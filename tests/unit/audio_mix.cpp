@@ -451,22 +451,22 @@ void Stream() {
     const Samples b = Tone(1000, 2, 110, 14000, 8);
     const Samples c = Tone(600, 2, 70, 14000, 9);
 
-    Check(audio::ReadyHalf(stream) == 0, "an empty stream asks for half 0");
+    Check(audio::ReadyHalf(stream, 0) == 0, "an empty stream asks for half 0");
     audio::QueueHalf(stream, 0, a.data(), static_cast<int>(a.size() * 2));
-    Check(audio::ReadyHalf(stream) == 1, "then half 1");
+    Check(audio::ReadyHalf(stream, 0) == 1, "then half 1");
     audio::QueueHalf(stream, 1, b.data(), static_cast<int>(b.size() * 2));
-    Check(audio::ReadyHalf(stream) == -1, "both queued: none is free");
+    Check(audio::ReadyHalf(stream, 0) == -1, "both queued: none is free");
 
     Frames got = Mix(500);
-    Check(audio::ReadyHalf(stream) == -1, "half 0 is still playing");
+    Check(audio::ReadyHalf(stream, 0) == -1, "half 0 is still playing");
     Frames part = Mix(500);
     got.insert(got.end(), part.begin(), part.end());
-    Check(audio::ReadyHalf(stream) == 0, "half 0 is free once it has played");
+    Check(audio::ReadyHalf(stream, 0) == 0, "half 0 is free once it has played");
     // A request that comes late: the next buffer is queued while half 1 plays, and the music goes on seamlessly.
     audio::QueueHalf(stream, 0, c.data(), static_cast<int>(c.size() * 2));
     part = Mix(1000);
     got.insert(got.end(), part.begin(), part.end());
-    Check(audio::ReadyHalf(stream) == 1, "half 1 is free after its frames");
+    Check(audio::ReadyHalf(stream, 0) == 1, "half 1 is free after its frames");
     part = Mix(600);
     got.insert(got.end(), part.begin(), part.end());
     Frames want = AsFrames(a, 2);
@@ -482,7 +482,7 @@ void Stream() {
     // Reset: both halves free again. A stream that has played keeps its last two frames in its resampler (a fresh
     // one starts on its data), so each case below is a stream of its own.
     audio::ResetStream(stream);
-    Check(audio::ReadyHalf(stream) == 0, "a reset stream asks for half 0");
+    Check(audio::ReadyHalf(stream, 0) == 0, "a reset stream asks for half 0");
     audio::DestroyStream(stream);
     stream = audio::CreateStream();
     audio::SetStreamFormat(stream, kRate, 2, 16);
@@ -578,7 +578,7 @@ void Everything() {
         if (period == 50) audio::Stop(vm);
         if (period == 60) audio::Resume(vm);
         if (period == 70) audio::SetReverb(va, 0.0f, 0.8f, 2.0f);
-        const int ready = audio::ReadyHalf(stream);
+        const int ready = audio::ReadyHalf(stream, 0);
         if (ready >= 0 && queued < 4) {
             const Samples& next = queued % 2 == 0 ? b : a;
             audio::QueueHalf(stream, ready, next.data(), static_cast<int>(next.size() * 2));

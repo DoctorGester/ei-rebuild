@@ -50,6 +50,9 @@ bool OpenOutput(platform::NativeWindow window, unsigned rate, bool reverb, std::
 // From now on OpenOutput opens no device: nothing is heard, and what the game reads back keeps to the game's clock
 // as it does with one (the harness's runs: silent and the same on every machine).
 void UseNoDevice();
+// Whether a device (or OpenOffline's caller) takes the mixed frames. Without one the streams' halves free on the
+// game's clock, as ReadyHalf is given it, and the game steps its music from the main loop (docs/notes/sound.md).
+bool HasDevice();
 // Closes the device; every voice and stream must be destroyed first.
 void CloseOutput();
 // An output for the offline checks (tests/unit/audio_mix.cpp) in place of OpenOutput: no device and no thread, the
@@ -109,9 +112,11 @@ void ResetStream(Stream* stream);
 void SetStreamFormat(Stream* stream, unsigned rate, int channels, int bits);
 void SetStreamVolume(Stream* stream, int volume);   // 0..127
 void SetStreamPan(Stream* stream, int pan);         // 0..127
-// The half to fill next (0 or 1), or -1 while both wait to play.
-int ReadyHalf(Stream* stream);
-// Queues `bytes` of `data` in `half`; the memory stays the caller's until the half is ready again.
+// The half to fill next (0 or 1), or -1 while both wait to play. Without a device the halves have played up to `now`
+// (platform::Milliseconds, or a step's time); with one the device says what has played.
+int ReadyHalf(Stream* stream, std::uint32_t now);
+// Queues `bytes` of `data` in `half` (the one ReadyHalf just gave); the memory stays the caller's until the half is
+// ready again.
 void QueueHalf(Stream* stream, int half, const void* data, int bytes);
 // Paused; Resume goes on.
 void StopStream(Stream* stream);
