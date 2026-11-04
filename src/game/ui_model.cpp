@@ -89,7 +89,7 @@ void UiModel::Load(const char* name, const char* from, const char* to) {
     newObject->localPosition = {0.0f, 0.0f, 3.0f};
     Object3DClientSpecific* specific = newObject->ClientSpecific();
     std::vector<std::string> parts;
-    newObject->MakeFigure(name, &parts, 1);
+    newObject->MakeFigure(name, &parts);
     specific->RegisterPartMaterials();
     newObject->PlayAnimation(nullptr);
     newObject->RestartPose();

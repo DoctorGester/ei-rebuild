@@ -122,7 +122,6 @@ bool SectorMap::Remove(MapObject* object) {
 
     bool cleared = aiMap->MarkFootprint(object, true);
     if (cleared) {
-        object->NotifyCompanion();
         object->sectorCellX = -1;
         object->sectorCellY = -1;
     }

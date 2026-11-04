@@ -383,8 +383,6 @@ public:
     // The figure and menu archives of `folder` opened (a failure is only logged).
     LinkFigureLoader(TextureDevice* renderer, const std::string* folder);
     virtual ~LinkFigureLoader();
-    virtual int CacheSize();
-    virtual int CacheBytes();
     // Figure `name` with the parts `parts`: unless `fresh`, the first cached mesh of that name with close
     // coefficients, given the parts it lacks; otherwise a new one (MakeFigure). No reference is added for the
     // caller.

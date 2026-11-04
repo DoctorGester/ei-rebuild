@@ -239,8 +239,6 @@ public:
     // SetVisibilityMode with mode 0 for `level` 0 (or NaN), 1 for 1, else 2.
     int SetVisibilityLevel(float level);
 
-    // The sector map's Remove. The companion's virtual (empty in both); returns 1.
-    int NotifyCompanion();
     // The network state written in full / only its changed parts (the statistics, repacked first when part 0 or 4
     // changed): the write mode, the write virtual, the state finished; flags bit 1 cleared.
     void WriteFullState();
@@ -288,7 +286,6 @@ public:
 
     // The object's effect list changed (`first`: it arrived with the object). The server's is empty.
     virtual void EffectsChanged(bool) {}
-    virtual void Unused14() {}       // empty in both
     // A hit of `damage` with the hit-kind bits `kind` (UnitStatsFlag Backstab, Head, Electrical). Server: empty;
     // client: for a living MapObjectFlag::InParty object, a message with the object's id.
     virtual void Hit(int, int) {}

@@ -213,7 +213,7 @@ void EffectMoshka::Follow(int objectId) {
     Vector3 perch = FindPerch(followed->localPosition);
     currentBird->localPosition = perch;
     std::vector<std::string> parts;
-    currentBird->MakeFigure(model, &parts, 1);
+    currentBird->MakeFigure(model, &parts);
     attached->RegisterPartMaterials();
     currentBird->PlayAnimation(nullptr);
     currentBird->RestartPose();

@@ -16,14 +16,6 @@
 #include <cstdint>
 #include <new>
 
-namespace {
-
-// from + (to - from) * s, per coordinate.
-Vector3 LerpPoint(const Vector3& from, const Vector3& to, float s) {
-    return {(to.x - from.x) * s + from.x, (to.y - from.y) * s + from.y, (to.z - from.z) * s + from.z};
-}
-} // namespace
-
 void AnimationTrack::Evaluate(float atTime) {
     float whole;
     float fraction = std::modf(atTime, &whole);
@@ -31,7 +23,7 @@ void AnimationTrack::Evaluate(float atTime) {
     int next = index + 1;
 
     if (next < std::ssize(positions)) {
-        position = LerpPoint(positions[index], positions[next], fraction);
+        position = Lerp(positions[index], positions[next], fraction);
     } else if (!positions.empty()) {
         position = positions.back();
     } else {
@@ -49,7 +41,7 @@ void AnimationTrack::Evaluate(float atTime) {
     if (next < frameCount) {
         const Vector3* from = FrameVertices(index);
         const Vector3* to = FrameVertices(next);
-        for (int v = 0; v < vertexCount; ++v) vertices[v] = LerpPoint(from[v], to[v], fraction);
+        for (int v = 0; v < vertexCount; ++v) vertices[v] = Lerp(from[v], to[v], fraction);
     } else if (frameCount != 0) {
         std::copy_n(FrameVertices(frameCount - 1), vertexCount, vertices.begin());
     }

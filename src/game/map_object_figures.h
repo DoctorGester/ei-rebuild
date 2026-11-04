@@ -250,7 +250,6 @@ public:
     virtual int PartsIntersectRect(const Rect* rect);
     // Whether the point is in the screen rectangle of a part with flag 0x40 (PickAt2).
     virtual int PartsContainPoint(const std::int32_t* point);
-    virtual void Unused25(int) {}                   // empty in the base and the client
     virtual void SetLit(bool) {}                     // the object's light is on / off (client); base: nothing
 
     Object3D* object;              // the object it belongs to
@@ -322,12 +321,6 @@ struct FigureBone : EngineObject {
     // below 1 a bone with an outgoing pose takes that much of the animator's (its turn slerped, the root's
     // position and the offsets lerped); at 1 the animator's alone.
     void Place(const Vector3& origin, float blend);
-    // The bone's cage (figure_bones.cpp): `offset` becomes the point at (morphS, morphT, morphU) in the cube of
-    // the 8 points `corners` (24 floats; edges 0-1 and 2-3 at morphS, between them at morphT; edges 4-5 and 6-7
-    // likewise; then between the two at morphU) or in the prism of 6 (18 floats; edge 0-1 at morphS, towards
-    // point 2 at morphT; edge 3-4 likewise towards point 5; then between the two at morphU).
-    void InterpolateCube(const float* corners);
-    void InterpolatePrism(const float* corners);
 };
 
 // The figure's animation state (Object3D's animation member): the skeleton's bones, the animation playing
@@ -442,8 +435,6 @@ public:
     void ClearState() override { RemoveAllEffectSources(); }
     // worldRotation = parent * localRotation.
     void CombineRotation(const Quaternion& parent) override;
-    void SaveTransform(platform::File* file) override;
-    void LoadTransform(platform::File* file) override;
     // Whether the object may play the animation entry (FigureAnimation); any here, Unit overrides it.
     virtual bool AcceptsAnimation(const FigureAnimation* animation);
     // AttachSpecific. MapObject and units override it.
@@ -523,9 +514,8 @@ public:
     // world transforms are updated and the bounds recomputed from their world boxes.
     void UpdatePartBounds();
     // Builds the figure of the model for the part names `partList` (none: the animation
-    // state's parts and the whole figure), then LoadParts and the bounds; flags 0x80 set unless both `arg`
-    // and the figure are 0. Returns 1.
-    int MakeFigure(std::string_view model, std::vector<std::string>* partList, std::uint32_t arg);
+    // state's parts and the whole figure), then LoadParts and the bounds; flags 0x80 set.
+    void MakeFigure(std::string_view model, std::vector<std::string>* partList);
     // The index of the part name equal to `partName` (_mbscmp), or -1.
     int FindPartIndex(std::string_view partName);
     // The box (FigureMesh::bounds) of part `index`.

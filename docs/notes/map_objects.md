@@ -79,8 +79,8 @@ without a parent name.
 
 **Animation tracks and cages**: AnimationTrack::Evaluate uses the CRT's modf of the time rounded to an integer and
 `Quaternion::Slerp`; LoadKeyFrames copies the key frames (rotations, positions, the frames' vertex sets) out of the
-.anm entry into the track's own vectors. FigureBone::InterpolateCube / InterpolatePrism (the bone's cage: its offset at its morph
-coefficients) read point records from a stream advancing 0x60 / 0x48. UpdatePose evaluates the tracks at the frame,
+.anm entry into the track's own vectors. The bone's cage (`LoadFigureBones`: its offset at its morph
+coefficients) is `fig::MorphPrism` / `fig::MorphCube` (figure_mesh.h) over a 0x48-byte / other record. UpdatePose evaluates the tracks at the frame,
 then places the skeleton at AnimationFactor(scale.z) * defaultScale, one float factor for x, y and z.
 
 **Blends** (client side only): a switch of animation blends the pose last placed into the new one's over 100-250 ms
@@ -104,6 +104,6 @@ weaken; heroes keep their height.
 Guesses to re-check when a caller needs them: MapObject 29 `IsSynchronised` (flags 0x20000, set by the zone loader for
 records with a script name; units, levers, traps, torches answer 1; SendFreshObjects moves the objects answering 0 out
 of the map-object maps), 39 `IsDirectUseBlocked` (levers; a plain click uses an object only when 38 IsUsable is set and
-39 is 0), 43 `KeepsMapFlag` (levers); MapObjectCompanion 14 `Unused14`; UnitController 15 / 17 `Unused*`, 36
+39 is 0), 43 `KeepsMapFlag` (levers); UnitController 15 / 17 `Unused*`, 36
 `HasOtherArmour` (server: armour slots 3..6, client: any weapon model; they differ); World 37 / 38 `ClientManager194` /
-`ClientManager198` (not identified); Object3DSpecific 25 `Unused25`.
+`ClientManager198` (not identified).

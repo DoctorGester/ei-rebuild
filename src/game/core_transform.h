@@ -12,19 +12,12 @@
 // The virtuals up to the class id are EngineObject's (CopyFrom, Release, empty Load/Save); the rest are defined in
 // The game's out-of-line constructor body (the base's fields and identity rotations) is
 // what the derived classes' constructors do; its destructor (deleting too) is EngineObject's.
-namespace platform {
-class File;
-}
-
 class TransformObject : public EngineObject {
 public:
-    virtual TransformObject* CopyTransform(const TransformObject& other);
     // WorldRotation = parent * localRotation. Overridden in units.
     virtual void CombineRotation(const Quaternion& parent);
     // Recomputes the world transform from the parent's rotation and position.
     virtual void UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition);
-    virtual void SaveTransform(platform::File* file);
-    virtual void LoadTransform(platform::File* file);
 
     Matrix4 WorldMatrix() const;                         // 4x4 world matrix
     void TiltTowards(const Vector3& target);             // down axis a tenth towards target

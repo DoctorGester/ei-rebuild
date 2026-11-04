@@ -427,13 +427,6 @@ void FigureMeshDrawer::Animate(float time) {
 
 // ---- Lifetime ---------------------------------------------------------------------------
 
-FigureDrawerBase::FigureDrawerBase() {
-    mesh = nullptr;
-}
-
-// The original's base clears the flags, then its inlined base part the mesh.
-FigureDrawerBase::~FigureDrawerBase() { mesh = nullptr; }
-
 FigureMeshDrawer::FigureMeshDrawer() = default;
 
 FigureMeshDrawer::~FigureMeshDrawer() { flags = 0; }

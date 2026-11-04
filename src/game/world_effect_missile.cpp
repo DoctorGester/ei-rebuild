@@ -282,7 +282,7 @@ void EffectArrowFigure::Start(int update) {
     Object3DClientSpecific* attached = currentFigure->ClientSpecific();
     currentFigure->localPosition = localPosition;
     std::vector<std::string> parts;
-    currentFigure->MakeFigure(model, &parts, 1);
+    currentFigure->MakeFigure(model, &parts);
     attached->RegisterPartMaterials();
     currentFigure->PlayAnimation(nullptr);
     currentFigure->RestartPose();

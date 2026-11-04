@@ -165,14 +165,10 @@ void DropAndDelete(T*& slot) {
     }
 }
 
-// The selection highlight off: Selected and BoxMarked cleared, the side half's empty virtual and SetLit
-// with 0 (its light goes off).
+// The selection highlight off: Selected and BoxMarked cleared, SetLit with 0 (its light goes off).
 void Unhighlight(MapObject* object) {
     object->flags &= ~(MapObjectFlag::Selected | MapObjectFlag::BoxMarked);
-    Object3DSpecific* half = object->attached;
-    half->Unused25(0);
-    half = object->attached;
-    half->SetLit(false);
+    object->attached->SetLit(false);
 }
 
 // A new object (its class's operator new and constructor), stored and referenced.
@@ -492,7 +488,7 @@ void WorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, c
         unit->prototypeId = static_cast<std::uint32_t>(prototype ? prototype - g_unitDatabase.prototypes.records.data() : -1);
         unit->SetSecondPrototypeByName(record->texts[6]);
         unit->flags |= MapObjectFlag::Preview;
-        if (!unit->MakeFigure(record->texts[2], &parts, 1)) return;
+        unit->MakeFigure(record->texts[2], &parts);
         Object3DClientSpecific* figure = unit->AsObject3D()->ClientSpecific();
         figure->RegisterPartMaterials();
         unit->PlayAnimation(nullptr);
@@ -691,7 +687,6 @@ void WorldClient::Select(MapObject* object) {
     if (!(object->flags & MapObjectFlag::Selected)) {
         if (!(object->flags & MapObjectFlag::BoxMarked)) object->attached->SetLit(true);
         object->flags |= MapObjectFlag::Selected;
-        object->attached->Unused25(1);
     }
     if (std::ranges::find(selectedIds, object->id) == selectedIds.end()) selectedIds.push_back(object->id);
 }

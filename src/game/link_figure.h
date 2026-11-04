@@ -18,23 +18,14 @@
 #include <string>
 #include <vector>
 
-// The figure mesh drawer's base (an engine object with the mesh it draws).
-// No object of the base alone exists.
-struct FigureDrawerBase : EngineObject {
-
-    FigureMesh* mesh;          // the mesh it draws
-
-protected:
-    FigureDrawerBase();
-    ~FigureDrawerBase() override;
-};
-
 // The drawer of a figure mesh (FigureMesh::drawer). It is an engine object of class 0x36,
 // "CFigureClientSpecific": the client-specific manager's factory makes one
 // for type 0x45 and FigureManager::CreateFigureObject gives it to every new figure. A real virtual
 // class. flags gets the bits
 // of the animated-mesh flag word when the mesh is animated.
-struct FigureMeshDrawer : FigureDrawerBase {
+struct FigureMeshDrawer : EngineObject {
+    FigureMesh* mesh = nullptr;   // the mesh it draws
+
     int DrawPlain(TextureDevice* device, Material*, int alpha, Rect* rect);
     int DrawLit(TextureDevice* device, const std::vector<Light*>* lights, Material* material, int alpha, Rect* rect,
                 Texture* textureA, Texture* textureB);
@@ -90,50 +81,14 @@ struct LinkPartRanges {
     Range indices;
 };
 
-// A figure's mesh's base (no object of the
-// base alone exists): the reference count, the name and the part headers.
-class LinkMeshBase {
+// A figure's mesh: the parts' elements concatenated in the arrays, with the reference count, the name and the
+// part headers. The draws go through the device (link_mesh_draw.cpp).
+class LinkMesh {
 public:
-
-    virtual ~LinkMeshBase();
-    // ScreenRect_ = the union of the parts' non-empty screen rectangles (inverted
-    // +-2000000000 when there is none).
-    virtual void UpdateScreenRect() = 0;
-    // Whether `name` is a part.
-    virtual bool HasPart(const std::string* name) = 0;
-    // The part names, in map order.
-    virtual std::vector<std::string> PartNames() = 0;
-    // The loader loads part `name` into this mesh.
-    virtual bool LoadPart(const std::string* name) = 0;
-    // Removes part `name`: false when there is none. The later elements of
-    // each array move down over its elements; parts whose index range starts after the removed
-    // one's get every start lowered by the removed part's starts (sic: not by its counts).
-    virtual bool RemovePart(const std::string* name) = 0;
-    // Part `name`'s first vertex packet, corner and index and its vertex
-    // and index counts; false (nothing written) when there is no such part.
-    virtual bool GetPartData(const std::string* name, VertexPacket** vertices, MeshCorner** corners,
-                             std::uint16_t** indices, int* vertexCount, int* indexCount) = 0;
-    // Draws (link_mesh_draw.cpp): a figure mesh's part `name` drawn through this figure
-    // (Object3D::figure): the first fills a flat part's colours and speculars, the second lights it
-    // (both: false when there is no such part), the next four draw it (with the mesh's per-vertex
-    // offsets: first / third; with two textures' surfaces: 11 / 12). The draws return 2 when nothing
-    // was drawn. `u`, `v` are members of the mesh.
-    virtual bool FlatColours(const std::string* name, std::uint32_t colour, std::uint32_t specular,
-                             std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) = 0;
-    virtual bool LightPart(const std::string* name, const std::vector<Light*>* lights, Material* material, int alpha,
-                           std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) = 0;
-    virtual int DrawPartMoved(const std::string* name, int flags, std::vector<std::uint32_t>* colours,
-                              std::vector<std::uint32_t>* speculars, std::vector<Vector3>* offsets,
-                              std::uint32_t u, std::uint32_t v) = 0;
-    virtual int DrawPart(const std::string* name, int flags, std::vector<std::uint32_t>* colours,
-                         std::vector<std::uint32_t>* speculars, std::uint32_t u, std::uint32_t v) = 0;
-    virtual int DrawPartMovedTextured(const std::string* name, int flags, Surface* first, Surface* second,
-                                      std::vector<std::uint32_t>* colours,
-                                      std::vector<std::uint32_t>* speculars,
-                                      std::vector<Vector3>* offsets, std::uint32_t u, std::uint32_t v) = 0;
-    virtual int DrawPartTextured(const std::string* name, int flags, Surface* first, Surface* second,
-                                 std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
-                                 std::uint32_t u, std::uint32_t v) = 0;
+    LinkMesh(LinkFigureLoader* loader, const std::string* name, float s, float t, float u);
+    ~LinkMesh();
+    LinkMesh(const LinkMesh&) = delete;
+    LinkMesh& operator=(const LinkMesh&) = delete;
 
     void AddRef() { ++refCount; }
     // Drops a reference; the last one deletes the mesh.
@@ -141,50 +96,36 @@ public:
         if (--refCount == 0) delete this;
     }
 
-    int refCount;
-    std::string name;
-    std::map<std::string, LinkPartHeader> headers;
-
-protected:
-    explicit LinkMeshBase(const std::string* name);
-    LinkMeshBase(const LinkMeshBase&) = delete;
-    LinkMeshBase& operator=(const LinkMeshBase&) = delete;
-};
-
-// A figure's mesh: the parts' elements concatenated in the arrays. A real virtual class.
-// The draws go through the device (link_mesh_draw.cpp).
-class LinkMesh : public LinkMeshBase {
-public:
-    LinkMesh(LinkFigureLoader* loader, const std::string* name, float s, float t, float u);
-    ~LinkMesh() override;
-
-    // Every slot of the base.
-    void UpdateScreenRect() override;   // link_figure.cpp
-    bool HasPart(const std::string* name) override;
-    std::vector<std::string> PartNames() override;
-    bool LoadPart(const std::string* name) override;
-    bool RemovePart(const std::string* name) override;
+    // Whether `name` is a part.
+    bool HasPart(const std::string* name);
+    // The part names, in map order.
+    std::vector<std::string> PartNames();
+    // The loader loads part `name` into this mesh.
+    bool LoadPart(const std::string* name);
+    // Part `name`'s first vertex packet, corner and index and its vertex
+    // and index counts; false (nothing written) when there is no such part.
     bool GetPartData(const std::string* name, VertexPacket** vertices, MeshCorner** corners,
-                     std::uint16_t** indices, int* vertexCount, int* indexCount) override;
+                     std::uint16_t** indices, int* vertexCount, int* indexCount);
+    // Draws (link_mesh_draw.cpp): a figure mesh's part `name` drawn through this figure
+    // (Object3D::figure): the first fills a flat part's colours and speculars, the second lights it
+    // (both: false when there is no such part), the next four draw it (with the mesh's per-vertex
+    // offsets: first / third; with two textures' surfaces: 11 / 12). The draws return 2 when nothing
+    // was drawn. `u`, `v` are members of the mesh.
     bool FlatColours(const std::string* name, std::uint32_t colour, std::uint32_t specular,
-                     std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) override;
+                     std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars);
     bool LightPart(const std::string* name, const std::vector<Light*>* lights, Material* material, int alpha,
-                   std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) override;
+                   std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars);
     int DrawPartMoved(const std::string* name, int flags, std::vector<std::uint32_t>* colours,
                       std::vector<std::uint32_t>* speculars, std::vector<Vector3>* offsets,
-                      std::uint32_t u, std::uint32_t v) override;
+                      std::uint32_t u, std::uint32_t v);
     int DrawPart(const std::string* name, int flags, std::vector<std::uint32_t>* colours,
-                 std::vector<std::uint32_t>* speculars, std::uint32_t u, std::uint32_t v) override;
+                 std::vector<std::uint32_t>* speculars, std::uint32_t u, std::uint32_t v);
     int DrawPartMovedTextured(const std::string* name, int flags, Surface* first, Surface* second,
                               std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
-                              std::vector<Vector3>* offsets, std::uint32_t u, std::uint32_t v) override;
+                              std::vector<Vector3>* offsets, std::uint32_t u, std::uint32_t v);
     int DrawPartTextured(const std::string* name, int flags, Surface* first, Surface* second,
                          std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
-                         std::uint32_t u, std::uint32_t v) override;
-
-    // An estimate of the mesh's bytes: 2 * (indices + 3 * corners + 2 * (words + 0x2C
-    // + 2 * (texture coordinates + 8 * (vertices + normals) + 6 * parts))), from the element counts.
-    int MemoryBytes() const;
+                         std::uint32_t u, std::uint32_t v);
 
     // Overwrites part `name`'s first min(its count, count) vertex
     // packets (unsigned) with `vertices`; false when there is no such part.
@@ -200,7 +141,9 @@ public:
                  std::span<const MeshCorner> newCorners, std::span<const std::uint32_t> newWords,
                  std::span<const std::uint16_t> newIndices);
 
-    Rect screenRect;
+    int refCount = 0;
+    std::string name;
+    std::map<std::string, LinkPartHeader> headers;
     float morphWeights[3];            // the morph coefficients (s, t, u) the figure was loaded with
     std::vector<VertexPacket> vertices;
     std::vector<NormalPacket> normals;

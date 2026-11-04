@@ -43,21 +43,13 @@ LinkPartRanges::Range Append(std::vector<T>& array, std::span<const T> from) {
     return {start, static_cast<int>(std::ssize(from))};
 }
 
-float Lerp(float from, float to, float f) { return (to - from) * f + from; }
-
-// A FIG8 value from its 8 versions (`v[c * 4]`, c = 0..7):
-// lerp(lerp(lerp(v0, v1, s), lerp(v2, v3, s), t), lerp(lerp(v4, v5, s), lerp(v6, v7, s), t), u).
-float Morph8(const float* v, float s, float t, float u) {
-    float lower = Lerp(Lerp(v[0], v[4], s), Lerp(v[8], v[12], s), t);
-    float upper = Lerp(Lerp(v[16], v[20], s), Lerp(v[24], v[28], s), t);
-    return Lerp(lower, upper, u);
-}
-
-// The older records' value from 6 versions: lerp(lerp(lerp(v0, v1, s), v2, t), lerp(lerp(v3, v4, s), v5, t), u).
-float Morph6(const float* v, float s, float t, float u) {
-    float lower = Lerp(Lerp(v[0], v[4], s), v[8], t);
-    float upper = Lerp(Lerp(v[12], v[16], s), v[20], t);
-    return Lerp(lower, upper, u);
+// One component of a vertex packet block from its `Versions` versions (`block[c * 4 + k]`, c = 0..Versions - 1):
+// the versions of component k gathered, then morphed by s, t, u.
+template <int Versions, float (*Morph)(const float*, float, float, float)>
+float MorphComponent(const float* block, int k, float s, float t, float u) {
+    float versions[Versions];
+    for (int c = 0; c < Versions; ++c) versions[c] = block[c * fig::kBlockFloats + k];
+    return Morph(versions, s, t, u);
 }
 
 void SetW(VertexPacket& packet) {
@@ -68,10 +60,11 @@ void SetW(VertexPacket& packet) {
 // past it), morphed by s, t, u; w = 1.
 void MorphFig8Packet(VertexPacket& packet, const char** cursor, float s, float t, float u) {
     for (int b = 0; b < 3; ++b) {
-        float versions[0x80 / 4];
+        float versions[fig::kBlockFloats * fig::kFig8Versions];
         std::memcpy(versions, *cursor, sizeof(versions));
-        for (int k = 0; k < 4; ++k) packet.block[b][k] = Morph8(versions + k, s, t, u);
-        *cursor += 0x80;
+        for (int k = 0; k < 4; ++k)
+            packet.block[b][k] = MorphComponent<fig::kFig8Versions, fig::MorphCube<float>>(versions, k, s, t, u);
+        *cursor += sizeof(versions);
     }
     SetW(packet);
 }
@@ -79,32 +72,20 @@ void MorphFig8Packet(VertexPacket& packet, const char** cursor, float s, float t
 // The same for the older records (3 blocks of 6 versions).
 void MorphOldPacket(VertexPacket& packet, const char** cursor, float s, float t, float u) {
     for (int b = 0; b < 3; ++b) {
-        float versions[0x60 / 4];
+        float versions[fig::kBlockFloats * fig::kOldVersions];
         std::memcpy(versions, *cursor, sizeof(versions));
-        for (int k = 0; k < 4; ++k) packet.block[b][k] = Morph6(versions + k, s, t, u);
-        *cursor += 0x60;
+        for (int k = 0; k < 4; ++k)
+            packet.block[b][k] = MorphComponent<fig::kOldVersions, fig::MorphPrism<float>>(versions, k, s, t, u);
+        *cursor += sizeof(versions);
     }
     SetW(packet);
 }
 
-// Removes [start, start + count): the elements after it move down (the capacity stays).
-template <typename T>
-void CloseGap(std::vector<T>& array, int start, int count) {
-    array.erase(array.begin() + start, array.begin() + start + count);
-}
-
-constexpr int kNoRect = 2000000000;
-
 } // namespace
 
 
-// No references is the base's.
-LinkMeshBase::LinkMeshBase(const std::string* newName) : refCount(0), name(*newName) {}
-
-LinkMeshBase::~LinkMeshBase() = default;
-
-LinkMesh::LinkMesh(LinkFigureLoader* newLoader, const std::string* name, float s, float t, float u)
-    : LinkMeshBase(name) {
+LinkMesh::LinkMesh(LinkFigureLoader* newLoader, const std::string* newName, float s, float t, float u)
+    : name(*newName) {
     morphWeights[0] = s;
     morphWeights[1] = t;
     morphWeights[2] = u;
@@ -140,37 +121,39 @@ bool LinkMesh::AddPart(const std::string* newName, std::span<const VertexPacket>
 void LinkFigureLoader::LoadFigPart(LinkMesh* mesh, const std::string* name, const char** cursor, float s, float t,
                                     float u) {
     LinkPartHeader* header = &mesh->headers[*name];
-    FigHeader fig = Read<FigHeader>(cursor);
+    FigHeader figHeader = Read<FigHeader>(cursor);
     header->materialValue = Read<std::uint32_t>(cursor);
     header->meshType = Read<std::uint32_t>(cursor);
     // The morphed bounds (8 or 1 versions) are not used here.
-    *cursor += fig.magic == kFig8Magic ? 0x140 : 0x28;
+    *cursor += fig::BoundsBytes(fig::VersionsOf(figHeader.magic));
 
-    int count = fig.vertexCount;
+    int count = figHeader.vertexCount;
     std::vector<VertexPacket> packets(static_cast<std::size_t>(count));
     for (int i = 0; i < count; ++i) {
         VertexPacket& packet = packets[i];
-        if (fig.magic == kFig8Magic) {
+        if (figHeader.magic == fig::kFig8Magic) {
             MorphFig8Packet(packet, cursor, s, t, u);
             continue;
         }
         for (int b = 0; b < 3; ++b) {
-            std::memcpy(packet.block[b], *cursor, 0x10);
-            *cursor += 0x10;
+            std::memcpy(packet.block[b], *cursor, sizeof(packet.block[b]));
+            *cursor += sizeof(packet.block[b]);
         }
         SetW(packet);
     }
     if (count) header->box.bounds.Fit(packets.data(), count);
 
     const char* normals = *cursor;
-    const char* texCoords = normals + fig.normalCount * static_cast<int>(sizeof(NormalPacket));
-    const char* indices = texCoords + fig.texCoordCount * static_cast<int>(sizeof(TexCoord));
-    const char* corners = indices + fig.indexCount * 2;
-    const char* words = corners + fig.cornerCount * static_cast<int>(sizeof(MeshCorner));
-    *cursor = words + fig.wordCount * 4;
-    mesh->AddPart(name, packets, FileArray<NormalPacket>(normals, fig.normalCount),
-                  FileArray<TexCoord>(texCoords, fig.texCoordCount), FileArray<MeshCorner>(corners, fig.cornerCount),
-                  FileArray<std::uint32_t>(words, fig.wordCount), FileArray<std::uint16_t>(indices, fig.indexCount));
+    const char* texCoords = normals + figHeader.normalCount * static_cast<int>(sizeof(NormalPacket));
+    const char* indices = texCoords + figHeader.texCoordCount * static_cast<int>(sizeof(TexCoord));
+    const char* corners = indices + figHeader.indexCount * 2;
+    const char* words = corners + figHeader.cornerCount * static_cast<int>(sizeof(MeshCorner));
+    *cursor = words + figHeader.wordCount * 4;
+    mesh->AddPart(name, packets, FileArray<NormalPacket>(normals, figHeader.normalCount),
+                  FileArray<TexCoord>(texCoords, figHeader.texCoordCount),
+                  FileArray<MeshCorner>(corners, figHeader.cornerCount),
+                  FileArray<std::uint32_t>(words, figHeader.wordCount),
+                  FileArray<std::uint16_t>(indices, figHeader.indexCount));
 }
 
 void LinkFigureLoader::LoadOldPart(LinkMesh* mesh, const std::string* name, const char** cursor, float s, float t,
@@ -178,7 +161,7 @@ void LinkFigureLoader::LoadOldPart(LinkMesh* mesh, const std::string* name, cons
     LinkPartHeader* header = &mesh->headers[*name];
     header->materialValue = Read<std::uint32_t>(cursor);
     header->meshType = Read<std::uint32_t>(cursor);
-    *cursor += 0xF0;   // the morphed bounds
+    *cursor += fig::BoundsBytes(fig::kOldVersions);   // the morphed bounds
     int count = Read<int>(cursor);
 
     std::vector<VertexPacket> packets(static_cast<std::size_t>(count));
@@ -194,7 +177,7 @@ void LinkFigureLoader::LoadOldPart(LinkMesh* mesh, const std::string* name, cons
     const char* texCoords = *cursor;
     *cursor += texCoordCount * static_cast<int>(sizeof(TexCoord));
     int skipped = Read<int>(cursor);
-    *cursor += skipped * 0x34;
+    *cursor += skipped * fig::kSkippedRecordBytes;
     int cornerCount = Read<int>(cursor);
     const char* corners = *cursor;
     *cursor += cornerCount * static_cast<int>(sizeof(MeshCorner));
@@ -214,10 +197,11 @@ void LinkFigureLoader::LoadOldPart(LinkMesh* mesh, const std::string* name, cons
 void LinkFigureLoader::RemorphFigPart(LinkMesh* mesh, const std::string* name, const char** cursor, float s,
                                        float t, float u) {
     LinkPartHeader* header = &mesh->headers[*name];
-    FigHeader fig;
-    lib::LoadBytes(fig, *cursor);
-    *cursor += 0x168;   // the header, two dwords and the FIG8 bounds (a plain FIG is read as FIG8 too)
-    int count = fig.vertexCount;
+    FigHeader figHeader;
+    lib::LoadBytes(figHeader, *cursor);
+    // The header, two dwords and the FIG8 bounds (a plain FIG is read as FIG8 too).
+    *cursor += fig::kHeaderBytes + fig::BoundsBytes(fig::kFig8Versions);
+    int count = figHeader.vertexCount;
     std::vector<VertexPacket> packets(static_cast<std::size_t>(count));
     for (int i = 0; i < count; ++i) MorphFig8Packet(packets[i], cursor, s, t, u);
     if (count) header->box.bounds.Fit(packets.data(), count);
@@ -227,18 +211,12 @@ void LinkFigureLoader::RemorphFigPart(LinkMesh* mesh, const std::string* name, c
 void LinkFigureLoader::RemorphOldPart(LinkMesh* mesh, const std::string* name, const char** cursor, float s,
                                        float t, float u) {
     LinkPartHeader* header = &mesh->headers[*name];
-    *cursor += 0xF8;   // two dwords and the morphed bounds
+    *cursor += fig::kMeshWordsBytes + fig::BoundsBytes(fig::kOldVersions);   // two dwords and the morphed bounds
     int count = Read<int>(cursor);
     std::vector<VertexPacket> packets(static_cast<std::size_t>(count));
     for (int i = 0; i < count; ++i) MorphOldPacket(packets[i], cursor, s, t, u);
     if (count) header->box.bounds.Fit(packets.data(), count);
     mesh->SetPartVertices(name, packets.data(), static_cast<unsigned>(count));
-}
-
-int LinkMesh::MemoryBytes() const {
-    const int parts = static_cast<int>(ranges.size());
-    const int inner = lib::Count(texCoords) + 8 * (lib::Count(vertices) + lib::Count(normals)) + 6 * parts;
-    return 2 * (lib::Count(indices) + 3 * lib::Count(corners) + 2 * (lib::Count(words) + 0x2C + 2 * inner));
 }
 
 bool LinkMesh::SetPartVertices(const std::string* newName, const VertexPacket* newVertices, unsigned count) {
@@ -259,17 +237,6 @@ void LinkMesh::SetMorph(float s, float t, float u) {
     morphWeights[2] = u;
 }
 
-void LinkMesh::UpdateScreenRect() {
-    Point topLeft{kNoRect, kNoRect}, bottomRight{-kNoRect, -kNoRect};
-    for (const auto& [part_name, header] : headers) {
-        const Rect& part = header.screen;
-        if (part.IsEmpty()) continue;
-        topLeft = Min(topLeft, part.TopLeft());
-        bottomRight = Max(bottomRight, part.BottomRight());
-    }
-    screenRect = Rect::FromCorners(topLeft, bottomRight);
-}
-
 bool LinkMesh::HasPart(const std::string* partName) { return ranges.find(*partName) != ranges.end(); }
 
 std::vector<std::string> LinkMesh::PartNames() {
@@ -279,32 +246,6 @@ std::vector<std::string> LinkMesh::PartNames() {
 }
 
 bool LinkMesh::LoadPart(const std::string* newName) { return loader->LoadPartInto(this, newName); }
-
-bool LinkMesh::RemovePart(const std::string* partName) {
-    auto node = ranges.find(*partName);
-    if (node == ranges.end()) return false;
-    render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps
-    LinkPartRanges removed = node->second;
-    ranges.erase(node);
-
-    CloseGap(vertices, removed.vertices.start, removed.vertices.count);
-    CloseGap(normals, removed.normals.start, removed.normals.count);
-    CloseGap(texCoords, removed.texCoords.start, removed.texCoords.count);
-    CloseGap(corners, removed.corners.start, removed.corners.count);
-    CloseGap(words, removed.words.start, removed.words.count);
-    CloseGap(indices, removed.indices.start, removed.indices.count);
-
-    for (auto& [part, r] : ranges) {
-        if (!(static_cast<std::uint32_t>(r.indices.start) > static_cast<std::uint32_t>(removed.indices.start))) continue;
-        r.vertices.start -= removed.vertices.start;
-        r.normals.start -= removed.normals.start;
-        r.texCoords.start -= removed.texCoords.start;
-        r.corners.start -= removed.corners.start;
-        r.words.start -= removed.words.start;
-        r.indices.start -= removed.indices.start;
-    }
-    return true;
-}
 
 bool LinkMesh::GetPartData(const std::string* partName, VertexPacket** outVertices, MeshCorner** outCorners,
                             std::uint16_t** outIndices, int* vertexCount, int* indexCount) {

@@ -414,8 +414,7 @@ int WorldClient::DrawPass() {
             }
             if (object->flags & MapObjectFlag::Selected) {
                 object->flags &= ~(MapObjectFlag::Selected | MapObjectFlag::BoxMarked);
-                // The side half's empty virtual and SetLit with 0: the marker light goes off.
-                object->attached->Unused25(0);
+                // SetLit with 0: the marker light goes off.
                 object->attached->SetLit(false);
             }
             return true;

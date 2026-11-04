@@ -223,11 +223,6 @@ void Object3D::RemoveEffectSource(ParticleSource* source) {
 // The same body as the base's.
 void Object3D::CombineRotation(const Quaternion& parent) { TransformObject::CombineRotation(parent); }
 
-// TransformObject's functions, called directly.
-void Object3D::SaveTransform(platform::File* file) { TransformObject::SaveTransform(file); }
-
-void Object3D::LoadTransform(platform::File* file) { TransformObject::LoadTransform(file); }
-
 void Object3D::AttachSpecific(EngineObject* half) {
     if (!half || SideTypeOf(half) != SideObjectType::Object3D) return;
     if (attached) {
@@ -566,7 +561,7 @@ int Object3D::LoadParts(std::string_view model, const std::vector<std::string>* 
 
 // --- Building the figure ----------------------------------------------------------------------
 
-int Object3D::MakeFigure(std::string_view model, std::vector<std::string>* names, std::uint32_t arg) {
+void Object3D::MakeFigure(std::string_view model, std::vector<std::string>* names) {
     name = model;
     if (animation) {
         animation->Rescale(scale.x, scale.y, scale.z);
@@ -593,7 +588,5 @@ int Object3D::MakeFigure(std::string_view model, std::vector<std::string>* names
         animation->UpdatePose();
     }
     ComputeBounds();
-    if (arg == 0 && !figure) flags &= ~MapObjectFlag::FiguresLoaded;
-    else flags |= MapObjectFlag::FiguresLoaded;
-    return 1;
+    flags |= MapObjectFlag::FiguresLoaded;
 }
