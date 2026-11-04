@@ -1,0 +1,37 @@
+# R17c1: the user's Rebirth save on zone 1's beach (tests/saves/shore_seams), at 1280x720 with msaa 8. Before R17c1
+# a dotted cyan line ran along the ground's triangle edges where the sand meets the sea: with multisampling an edge
+# pixel is shaded at its centre also for a triangle covering only some of its samples, with the attributes carried
+# past the triangle, and the ground's light lost under the water (0 on the dry sand, more under the water) went below
+# 0 there, which terrain.hlsl took for a water pixel (docs/notes/renderer.md, "shaders/terrain.hlsl: the water").
+# Frozen: the beach multisampled and plain; smoothedges requires the multisampled frame's pixels within the range of
+# their neighbours in the plain one: before the fix 463 of the frame's (0.05%; 280 in the beach's 500 x 100 below the
+# portrait), after it 5 on Rebirth's data and 19 on vanilla's (thin leaves, the hero's and the chicken's edges) and none
+# on the beach. On vanilla data the save loads the same zone. Frame checks only (image).
+# prepare: copy_save.py tests/saves/shore_seams save2
+render checkall
+resolution 1280x720
+msaa 8
+anisotropy 16
+timeout 90
+reject Script error
+waitmenu
+console thingamabob
+load save2
+waitwindow 30 battle
+waitfor 20 IsGreater(HP(GetLeader()),0)
+waitpresent 10
+wait 2000
+move 400 20
+frames 5
+freeze
+capture shore
+capture shore2
+msaa 1
+capture shore_plain
+msaa 8
+unfreeze
+samecapture shore shore2
+smoothedges shore_plain shore 8 0.00005
+smoothedges shore_plain shore 8 0.0001 150 230 650 330
+report
+quit

@@ -269,6 +269,51 @@ bool Compare(const char* a, const char* b, int tolerance, double* differing, int
     return CompareImages(ia, ib, tolerance, differing, largest, why);
 }
 
+bool OutsideNeighbours(const char* plain, const char* smooth, int tolerance, int left, int top, int right, int bottom,
+                       double* outside, long long* count, const char** why) {
+    Image ia, ib;
+    if (!ReadBmp(plain, ia) || !ReadBmp(smooth, ib)) {
+        *why = "a frame is missing or unreadable";
+        return false;
+    }
+    if (ia.width != ib.width || ia.height != ib.height || ia.width < 3 || ia.height < 3) {
+        *why = "the frames differ in size or are too small";
+        return false;
+    }
+    left = (std::max)(left, 1);
+    top = (std::max)(top, 1);
+    right = (std::min)(right, ia.width - 1);
+    bottom = (std::min)(bottom, ia.height - 1);
+    if (left >= right || top >= bottom) {
+        *why = "the rectangle holds no pixel of the frames";
+        return false;
+    }
+    const std::size_t row = static_cast<std::size_t>(ia.width) * 3;
+    long long found = 0;
+    for (int y = top; y < bottom; ++y) {
+        for (int x = left; x < right; ++x) {
+            const std::size_t i = static_cast<std::size_t>(y) * row + static_cast<std::size_t>(x) * 3;
+            for (int c = 0; c < 3; ++c) {
+                int low = 255, high = 0;
+                for (int dy = -1; dy <= 1; ++dy)
+                    for (int dx = -1; dx <= 1; ++dx) {
+                        const int v = ia.bgr[i + static_cast<std::ptrdiff_t>(dy) * static_cast<std::ptrdiff_t>(row) + dx * 3 + c];
+                        low = (std::min)(low, v);
+                        high = (std::max)(high, v);
+                    }
+                const int v = ib.bgr[i + c];
+                if (v > high + tolerance || v < low - tolerance) {
+                    ++found;
+                    break;
+                }
+            }
+        }
+    }
+    *count = found;
+    *outside = static_cast<double>(found) / (static_cast<double>(right - left) * (bottom - top));
+    return true;
+}
+
 bool LevelSteps(const char* name, double* steps, long long* pairs, const char** why) {
     Image image;
     if (!ReadBmp(name, image)) {

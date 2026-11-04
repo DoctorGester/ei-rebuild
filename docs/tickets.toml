@@ -7412,6 +7412,13 @@ model = "opus"
 note = "User 2026-11-04: decals such as blood splats render undarkened inside shadows. They are flat geometry drawn through mesh.hlsl (vs.shift.z depth scale), whose Shade() does apply hidden = shadow_amount(...) * shadow_facing(...); so the flat batch likely gets no receiver matrix (vs.light / shadow.scale 0: 'without the map's space none'), or the flat draws run before the shadow map is ready / outside the receivers' list, or alpha-blended prints skip it. Find which, darken decals like the ground under them (sun map, clouds, point shadows), keep the selection markers and light marks as they are if they are meant to glow. Capture a blood splat in a tree's shadow before/after; add a frame check."
 
 [[ticket]]
+id = "R17c4"
+title = "render_water_looks aimed on Rebirth's zone1 (a harness way to place the camera)"
+group = "renderer"
+depends = ["R17c1"]
+note = "From R17c1 (not done there): on Rebirth's zone1 at 1440x1080 lookat cannot aim the camera. Calibration (minimap clicks with 60 frames between, groundview after each): the hero starts at about (42, 138) near the map's west edge with the camera turned 90 degrees (screen right = world +y), the minimap's circle centre is about layout (701, 72) and north-up, but clicks move the camera erratically (20 px right: +48 x; 20 px left and up: nothing; the camera turns again after a click), so the 'rebirth minimap 726 80.6 3.75 2.7' numbers (made at 800x600) do not hold at 1440x1080 and the swamp views land at the map's edge. Wanted: a harness step that places the camera at a map point directly (camera.cpp's target / view, no minimap), then Rebirth's own swamp coordinates in render_water_looks (find them from the map's water materials: WaterKind 1). Also confirm R17c's note: where a swamp meets the sea the ground's swamp-depth attribute blends with -1 under the water (hidden by the opaque water?)."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"

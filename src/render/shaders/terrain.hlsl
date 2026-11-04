@@ -103,7 +103,7 @@ static const float kSnowScale = 1.0 / 11.0;     // the snow's edge pattern's rep
 static const float kPuddleScale = 1.0 / 7.0;    // the puddles' pattern's
 static const float kWetDark = 0.6;              // wet ground's albedo, of the dry
 static const float kPuddleDark = 0.55;          // a puddle's ground under the water, of the wet
-static const float3 kSnow = float3(0.82, 0.85, 0.92);
+static const float3 kSnow = float3(0.74, 0.76, 0.81);
 
 float3 hash3(float3 p) {
     p = frac(p * float3(0.1031, 0.1030, 0.0973));
@@ -159,11 +159,12 @@ GroundWeather ground_weather(VsOut i, float3 n) {
     GroundWeather g = (GroundWeather)0;
     float dry = 1.0 - saturate(i.loss * 50.0);   // under the water: none
     if (fs.weather.z > 0.0) {
-        // Snow settles on the flattest ground first, then on steeper; a little sooner higher up.
+        // Snow settles on the flattest ground first, then on steeper; a little sooner higher up. A dusting: at most
+        // 0.62 .. 0.87 of the ground (by the noise), so the texture shows through, with a soft edge.
         float noise = cloud_map.Sample(cloud_smp, i.world.xy * kSnowScale);
         float up = n.z + (noise - 0.5) * 0.3 + 0.1 * saturate(i.world.z / 30.0);
         float edge = lerp(1.15, 0.55, fs.weather.z);
-        g.snow = smoothstep(edge - 0.05, edge + 0.05, up) * dry;
+        g.snow = smoothstep(edge - 0.15, edge + 0.15, up) * (0.62 + 0.25 * noise) * dry;
     }
     g.wet = fs.weather.x * dry * (1.0 - g.snow);
     if (fs.weather.y > 0.0) {
@@ -181,9 +182,9 @@ GroundWeather ground_weather(VsOut i, float3 n) {
     return g;
 }
 
-// The ground's colour `albedo` under the weather; the snow keeps a little of the texture's light and dark.
+// The ground's colour `albedo` under the weather; the snow keeps some of the texture's light and dark.
 float3 weathered(float3 albedo, GroundWeather g) {
-    float shade = lerp(0.85, 1.05, saturate(dot(albedo, float3(0.3, 0.59, 0.11)) * 2.0));
+    float shade = lerp(0.72, 1.08, saturate(dot(albedo, float3(0.3, 0.59, 0.11)) * 2.0));
     float3 mud = dot(albedo, float3(0.3, 0.59, 0.11)) * kMud * 0.8;
     albedo = lerp(albedo, mud, g.mud * 0.8);
     return lerp(albedo, kSnow * shade, g.snow) * lerp(1.0, kWetDark, g.wet) * lerp(1.0, kPuddleDark, g.puddle);
@@ -313,14 +314,20 @@ float4 Shade(VsOut i) {
     float3 n = len > 1e-6 ? i.normal / len : float3(0.0, 0.0, 1.0);
     float footprint = length(fwidth(i.world.xy));
     float3 spec, c;
-    float a = fs.flags.x > 0.5 ? i.col.a : t.a;
+    // The layer is the batch's, not the interpolated `loss`'s sign: with multisampling a pixel on a triangle's edge is
+    // shaded at its centre, past the triangle, and there the ground's loss (0 on the dry ground, more under the water)
+    // fell below 0 at the shore, which drew the ground's edge pixels as water, nearly transparent: the sky showed
+    // through in a dotted line along the triangles (scenario render_shore_seams).
+    const bool water = fs.flags.x > 0.5;
+    float a = water ? i.col.a : t.a;
     // The water: the clouds' shade only (the map's falls on the ground under it); the crests or the specular lights.
-    if (i.loss < 0.0) {
+    if (water) {
         float3 lit = ground_light(i.world, n, i.col.rgb, i.col.rgb, 0.0, hidden, shadow.on.y, false, 0.0, 1.0, spec);
         float seen;
         c = Water(i, saturate(t.rgb * lit + max(spec, i.spec.rgb)), a, n, hidden, footprint, seen);
         a = seen;
     } else {
+        i.loss = max(i.loss, 0.0);   // past the triangle's edge (above) it can fall below 0
         float occlusion = i.occlusion * ambient_occlusion(i.pos.xy, i.pos.z, fs.occlusion, fs.occlusionMap);
         if (fs.occlusion.w > 0.5) return float4(occlusion.xxx, 1.0);   // the harness's occlusion view
         float3 lit = ground_light(i.world, n, i.col.rgb, 0.0, i.loss, hidden, shadow.on.y, pointShadow.on.x > 0.5,

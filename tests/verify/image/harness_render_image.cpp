@@ -175,6 +175,34 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         if (!compared) failures->push_back(std::string("smoothcheck ") + plain + " " + smooth + ": " + why);
         else if (!drawn || !sampled || differing < least || differing > most)
             failures->push_back(text);
+    } else if (verb == "smoothedges") {
+        char plain[64] = "", smooth[64] = "";
+        int tolerance = 0;
+        double most = 0;
+        int left = 0, top = 0, right = 1 << 30, bottom = 1 << 30;
+        const int read = std::sscanf(argument.c_str(), "%63s %63s %d %lf %d %d %d %d", plain, smooth, &tolerance, &most,
+                                     &left, &top, &right, &bottom);
+        if (read != 4 && read != 8) {
+            failures->push_back("smoothedges needs two frame names, a tolerance, a most fraction and maybe a rectangle");
+            return true;
+        }
+        double outside = 0;
+        long long count = 0;
+        const char* why = "";
+        if (!capture::OutsideNeighbours(plain, smooth, tolerance, left, top, right, bottom, &outside, &count, &why)) {
+            failures->push_back(std::string("smoothedges ") + plain + " " + smooth + ": " + why);
+            return true;
+        }
+        char area[64] = "the frame";
+        if (read == 8) std::snprintf(area, sizeof(area), "%d,%d-%d,%d", left, top, right, bottom);
+        char text[300];
+        std::snprintf(text, sizeof(text),
+                      "smoothedges %s %s in %s: %lld pixels (%.4f%%) outside their neighbours' range by more than %d "
+                      "(allowed %.4f%%)",
+                      plain, smooth, area, count, 100.0 * outside, tolerance, 100.0 * most);
+        Log("harness: %s", text);
+        frames->push_back(text);
+        if (outside > most) failures->push_back(text);
     } else if (verb == "smoothorder") {
         static render::SmoothOrder order = render::SmoothOrder::Game;
         if (argument == "game" || argument == "before" || argument == "split") {

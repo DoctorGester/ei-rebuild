@@ -1,7 +1,7 @@
 # R17c: the weather on the surfaces (docs/notes/renderer.md section 13, item 11b) at 1440x1080 by day. Zone1's start
 # dry, a few seconds into rain, after a minute of rain (wet ground and objects, puddles, the drops' rings), half a minute
-# after the rain stopped (drying), the sea in rain (rings and splashes); the snow map gz11k before and after two
-# minutes of snow. `weathercheck` reads how wet the ground is and the snow's cover; its ranges are wide, as the game's
+# after the rain stopped (drying), the sea in rain (rings and splashes); the snow map gz11k, entered with zone1's
+# ground still wet (R17c1: dry at once), before and after two minutes of snow. `weathercheck` reads how wet the ground is and the snow's cover; its ranges are wide, as the game's
 # rain grows and fades at its own pace (Rebirth's faster, and five minutes after SetWeather("clear") its ground is
 # still a little wet). Frames only (goldens hold none).
 render checkall
@@ -79,6 +79,12 @@ frames 5
 freeze
 capture weather_rain_shore
 unfreeze
+# The rain stopped, the ground still wet (it dries over minutes): a zone change starts the surfaces again from the
+# weather as it is (dry), not from zone1's wet ground.
+console @SetWeather("clear")
+wait 20000
+frames 5
+weathercheck 0.5 1 0 0
 
 # The snow map gz11k: before the snow and after two minutes of it.
 zone gz11k 0
@@ -90,14 +96,16 @@ wait 3000
 move 400 20
 frames 5
 freeze
-weathercheck 0 1 0 1
+weathercheck 0 0.05 0 1
 capture weather_snow_before
 unfreeze
 console @SetWeather("snow")
 wait 120000
 frames 5
 freeze
-weathercheck 0 1 0.65 1
+# Rebirth's snow layer grows slower from a clear sky (0.35 after two minutes; 0.88 when the zone was entered in rain).
+vanilla weathercheck 0 1 0.65 1
+rebirth weathercheck 0 1 0.3 1
 capture weather_snow
 unfreeze
 report

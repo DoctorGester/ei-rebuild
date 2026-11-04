@@ -81,6 +81,9 @@ struct CloudWeather {
     double time = 0.0;
 };
 void CloudShadows(const CloudWeather& weather);
+// A zone's landscape was loaded (terrain::Terrain::LoadMap): the weather on the surfaces starts again from the next
+// hand-over's, so the ground of a zone does not stay wet or snowy from the one before (the world's time goes on).
+void LandscapeLoaded();
 // The GPU lighting (renderer.md section 13). The world's draw hands over the frame's light, kept
 // until the next hand-over: the sun, the ambient colour, the point lights the landscape lights its ground
 // with (the nearest kMostSceneLights), the camera and the client's time (the water's ripples move by it). The terrain

@@ -20,6 +20,7 @@
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "lib/vecmath.h"
+#include "render/render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -381,6 +382,7 @@ int Terrain::LoadMap(std::string_view path, std::string_view zone, bool dungeon)
     CountAmbientVariants();
     landscapeFlags |= LandscapeFlag::All;
     waterLevels.assign(static_cast<std::size_t>(sectorsY * sectorsX) * materials.size(), 0.0f);
+    render::LandscapeLoaded();
     return 1;
 }
 

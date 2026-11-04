@@ -599,6 +599,11 @@ with its own level.
   smooth frame; the lower levels each against `plain`. The game never reaches the copy into every sample (its world view
   is a frame's first draw), so the harness build's `smoothorder before|split|check` draws the frozen frame's passes in
   other orders and requires the copies counted.
+- **Edge pixels shaded wrongly** (`smoothedges <plain> <smooth> <tolerance> <most> [<rectangle>]`): a multisampled
+  pixel mixes what its neighbours show at their centres, so it lies within the range of its 3 x 3 neighbourhood in the
+  same frozen moment drawn without multisampling; the step counts the pixels outside it by more than the tolerance.
+  Thin leaves and figures' edges leave a few (5 to 19 in 1280x720); the shore's seams left 463 (scenario
+  `render_shore_seams`).
 
 ### Frame capture
 
@@ -955,14 +960,19 @@ option). Client side only: driven by the weather the world's light hands over (`
 `snow` when the rain / snow layer's mode is snow), nothing the game simulates reads it, and the goldens hold no frames.
 - **State** (PrepareSurfaces, from PrepareShadows once a frame): the wetness and the puddles follow the rain's strength,
   the snow cover the snow's, each by the world's time with its own time constant (ticks for 1 - 1/e of the way): wet in
-  200 (about 11 s) and dry in 1600 (about 90 s), the puddles 450 / 2400, the snow 800 / 5500. A step of the world's time
-  back or over 64 ticks (a load, a zone change) and the first frame start from the weather as it is (wet in rain, covered
-  in snow). The game's rain and snow themselves grow over a minute or more and fade the same way after `SetWeather`, so
+  200 (about 11 s) and dry in 1600 (about 90 s), the puddles 450 / 2400, the snow 800 / 5500. A zone's landscape loaded
+  (`render::LandscapeLoaded`, from Terrain::LoadMap), a step of the world's time back or over 64 ticks (a load) and the
+  first frame start from the weather as it is (wet in rain, covered in snow): the world's time goes on over a zone change
+  (8 ticks), so before the landscape's call the ground of gz11k stayed as wet as zone1's (render_weather: 0.78 wet when
+  the rain had stopped, 0 on gz11k now). The client's rain layer itself goes on over a zone change (the game's), so a
+  zone entered in rain starts wet. The game's rain and snow themselves grow over a minute or more and fade the same way after `SetWeather`, so
   the state lags them (a minute into rain about 0.66 wet; still rising half a minute after it was stopped). The rain
   falling now (its strength, none in snow) drives the rings and splashes.
 - **Ground** (terrain.hlsl, `ground_weather`, `weathered`, `wet_ground`; nothing under the water, by `loss`): snow on
-  ground turned up: n.z against an edge falling from 1.15 to 0.55 with the cover, broken by the cloud map at 1/11 a unit
-  and a little sooner higher up, the albedo towards (0.82, 0.85, 0.92) (0.85 .. 1.05 of it by the texture's light). Wet
+  ground turned up: n.z against an edge falling from 1.15 to 0.55 with the cover (0.15 either side of it), broken by the
+  cloud map at 1/11 a unit and a little sooner higher up; a dusting, not a blanket (the user: the first look was too
+  harsh): at most 0.62 .. 0.87 of the ground by the same noise, the albedo towards a grey white (0.74, 0.76, 0.81),
+  0.72 .. 1.08 of it by the texture's light, so the texture shows through. Wet
   ground: the albedo down to 0.6 and a sheen of the sun (Blinn-Phong 40, 0.12). Puddles: on flat ground (n.z 0.86 ..
   0.96), where the cloud map at 1/7 a unit and the ground's own occlusion (low ground: valleys, the foot of slopes) sum
   above an edge falling with the puddles' share; the ground under them darker again (0.55), the sky reflected (the fog's
@@ -975,17 +985,18 @@ option). Client side only: driven by the weather the world's light hands over (`
   they add to the ripples, which the rain makes half again as rough; the splashes there are lit like the foam.
 - **Meshes** (mesh.hlsl, `weathered_mesh`): the world's meshes that receive the shadow map (`MeshBatch::light`) get
   `MeshFsParams::weather` (wetness, snow) and the sun; from the face normal (the map's clip space's derivatives taken to
-  the landscape's space, turned to the camera): snow on faces turned up (n.z from 1.1 .. 1.2 down to 0.6 .. 0.72 with the
-  cover), wet faces down to 0.65 with a sheen of the sun. Without a fitted map (no shadow space) none.
+  the landscape's space, turned to the camera): snow on faces turned up (n.z from 1.1 .. 1.3 down to 0.6 .. 0.85 with the
+  cover; at most 0.85 of the face, full cover from a third of it; (0.76, 0.78, 0.83), as grey as the ground's), wet faces down to 0.65 with a sheen of the sun. Without a fitted map (no shadow space) none.
 - **Units** (mesh.hlsl, `weathered_unit`; R17c2): a unit's figure part lit on the GPU (`MeshBatch::figure`,
   `MeshFsParams::weather.z`) takes the weather per pixel from its interpolated vertex normal instead (a low-poly figure's
   faces are too few and large for a face normal: a face's sheen flips on and off as it turns). The vertex shader takes the
   normal into the map's clip space by the receiver's matrix (`mapNormal`), the pixel back to the landscape's
   (`map_to_landscape`, as the face normal; right for the figures' rotations and even scales). Snow where the normal turns
-  up (n.z plus a noise of +-0.17 fixed to the part's model space, so it rides with the unit, against an edge falling from
-  0.95 .. 1.05 to 0.3 .. 0.6 with the cover; full from a third of the cover): the heads, shoulders, backs and the tops of
-  armour, the ground's snow colour times the pixel's light, 0.8 .. 1.0 of it by the texture's light and +-0.04 by the
-  noise (a covered back keeps some shape). Wet: down to 0.6, and a sheen: the sky the normal reflects (upward reflections only, so on the same tops; the
+  up (n.z plus a noise of +-0.17 fixed to the part's model space, so it rides with the unit, against a soft edge falling
+  from 0.95 .. 1.25 to 0.4 .. 0.9 with the cover; its most from half the cover): the heads, shoulders, backs and the tops
+  of armour dusted, at most 0.45 .. 0.8 of the part by the noise so its texture shows through (a wolf's back reads as
+  dusted, not a white blanket: the user), the meshes' snow colour times the pixel's light, 0.7 .. 1.0 of it by the
+  texture's light and +-0.04 by the noise. Wet: down to 0.6, and a sheen: the sky the normal reflects (upward reflections only, so on the same tops; the
   ambient light's colour plus 0.1, (r.z)^3 x (0.3 + Schlick's term) x 0.35) and the sun's highlight (Blinn-Phong 30,
   0.4, as hidden by the map and the clouds). A unit drawn without the GPU's lighting (none known) keeps the face path,
   only darker. Shelter: the units follow the world's state; neither the sun map (along the sun, not straight up) nor the
@@ -1481,9 +1492,18 @@ then, per pixel:
   light, at most 0.35 opaque.
 - **The shore line**: the water fades in over the first 0.25 units of depth, so where its surface meets the ground there
   is no edge. Before, the water at the shore line was already half its opacity and more at a grazing view (the
-  reflection), and it ended in a hard line along the triangles where the ground rose out of it (the seams seen on the
-  ground pieces at the shore). The water layer's tiles themselves never end over ground under the water (zone1:
+  reflection), and it ended in a hard line along the triangles where the ground rose out of it (not the shore's
+  seams: next item). The water layer's tiles themselves never end over ground under the water (zone1:
   of 1203 vertices on the edge of the water tiles, 3 lie under it, by at most 0.07).
+- **Which layer a pixel is** comes from the batch (`TerrainFsParams::flags.x`), never from an interpolated attribute.
+  With multisampling a pixel on a triangle's edge is shaded at its centre for each triangle covering any of its
+  samples, so the attributes are carried past the triangle; the ground's `loss` (0 on dry ground, more under the
+  water) fell below 0 there at the shore, terrain.hlsl took the sign for the water layer, and the ground's edge
+  samples got the water's look and its near-0 alpha at the shore line: the sky showed through in a dotted cyan line
+  along the ground's triangle edges where the sand meets the water (R17c1; R17a2's fade of the water's own edge was
+  another line). Not cracks: the vertices are shared and the frame without multisampling had none. A per-pixel test of
+  an attribute against a value its vertices sit at (0, -1) goes wrong the same way. Check: scenario `render_shore_seams`
+  (the user's save on zone 1's beach, msaa 8 against 1, `smoothedges`).
 - **A swamp** is standing water, distinct from the sea and darker than the grass around it: the ripples at 0.2 of the
   slope, drifting at a fifth of the speed (TerrainFsParams::slowRipples); a dark olive-brown body (half the lit texture
   blended 0.6 towards (0.13, 0.115, 0.05) of the light on it); a sheen of the sky whatever the angle (0.045 plus 0.75 of
