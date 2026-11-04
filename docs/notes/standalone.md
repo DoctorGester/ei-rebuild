@@ -471,7 +471,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
 
 ### U2: the system boundary
 
-- **Where:** src/platform/win32/platform_win32.h. The Windows backend (platform_win32.cpp, game_calls.cpp) calls the
+- **Where:** src/platform/win32/platform_win32.h. The Windows backend (src/platform/win32/*.cpp) calls the
   wide (UTF-16) functions wherever text crosses and converts with `text::Wide` / `text::Narrow`: file and folder names
   (create, find, delete, move, copy, attributes, mapping), the current folder and full paths, the program's path, the
   volume label, the key names, the other game window's class. The window, its title, the message box and typed text are
@@ -693,8 +693,8 @@ The harness (tests/verify) is linked into ei-rebuild.exe in the verify and asan 
   - the hook points: `ei::mainloop::g_harnessHooks` (main_loop.h), the settings
     file's read filters and pin, the random generators' draw observers and seed hook, the console line observer, the
     memory stream write observer;
-  - the platform calls it answers (harness_platform.cpp: the backend's input, window and clocks; game_calls.cpp's files,
-    folders, sockets, volume label and other windows: platform.md, "The harness's answers");
+  - the platform calls it answers (harness_platform.cpp: the backend's input, window and clocks; game_answers.cpp's
+    seams: paths, file writes, the isolated run; game_sockets.cpp's sockets: platform.md, "The harness's answers");
   - the data seam;
   - `ei::SetMissingCodeHandler`;
   - the log.

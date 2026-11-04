@@ -2,7 +2,7 @@
 
 The game builds on Linux (x86-64, gcc 13 or clang 18) from the same CMakeLists.txt as on Windows: the game and
 library code unchanged, SDL3 for the window, input, sound and threads, POSIX for the rest of the platform
-(src/platform/posix/platform_posix.cpp), and the renderer on SDL_GPU's Vulkan driver (src/render/gpu.cpp;
+(src/platform/posix, one file per area), and the renderer on SDL_GPU's Vulkan driver (src/render/gpu.cpp;
 docs/notes/renderer.md section 15c). The harness builds too (`-DEI_HARNESS=ON`, "The
 harness" below); the offline checks against Windows' drawing and keys stay Windows' only.
 
@@ -406,7 +406,7 @@ One-time setup (the user's; nothing here creates repositories or tokens):
 ## What differs from Windows
 
 - No lost context is looked for (it needs a robust context).
-- The keys (LX4; platform_posix.cpp, the same on macOS): there are no Windows layouts to give the virtual-key codes,
+- The keys (LX4; src/platform/posix/keyboard.cpp, the same on macOS): there are no Windows layouts to give the virtual-key codes,
   so `LayoutKey` takes them from what the key types in SDL's keymap (`SDL_GetKeyFromScancode`): on a layout whose
   letter keys type Latin letters a letter's or digit's code and the US punctuation characters' codes
   (`sdl_keys::KeyOfTyped`: AZERTY's M key VK_M, its comma key VK_OEM_COMMA), on another (Russian, Greek) the US codes,
