@@ -1,0 +1,161 @@
+  Activated!
+  Cannot open file autoexec.cfg for reading
+  0
+  Accepted player 0
+  party received on client
+  Unit 1936 new motivation Guard with power of 50
+  Unit 1937 new motivation Guard with power of 50
+  Unit 1000011214 new motivation Player with power of 10
+  Unit 1804 new motivation Patrol with power of 50
+  Unit 1890 new motivation Patrol with power of 50
+  Saved savea
+  1
+  1
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  1
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  1
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1008110175 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  electrical passed damage = 11.1658 HL was crippled
+  electrical passed damage = 33.4975 HL was crippled
+  electrical passed damage = 11.1658 HL was crippled
+  electrical passed damage = 11.1658 HL was crippled
+  electrical passed damage = 22.3317 HL was crippled
+  electrical passed damage = 22.3317 HL was crippled
+  Unit 1008110175 damaged to death
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  1
+  Unit 1000011214 sees corpse of unit 1008110175
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  0
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  0
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  0
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  0
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  0
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  0
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  0
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  0
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  0
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  0
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  0
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  0
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  0
+  0
+  0
+  0
+  0
+  1
+  Unit 1000011214 sees unit 702 from 12.9556m distance
+  Unit 1000011214 lost from sight unit 702
+  0
+  0
+  Unit 1936 acknowledges with idleSound = AAn4XyU
+  0
+  0
+  0
+  0
+  0
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  0
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  0
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  0
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  1
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1040550925 sees unit 1000011214 from 1.53276m distance
+  Unit 1040550925 sees corpse of unit 1008110175
+  Unit 1040550925 new motivation Player with power of 10
+  Unit 1000011214 sees unit 1040550925 from 1.6927m distance
+  1
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1040550925 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  electrical passed damage = 11.1658 HL was crippled
+  electrical passed damage = 33.4975 HL was crippled
+  electrical passed damage = 11.1658 HL was crippled
+  electrical passed damage = 11.1658 HL was crippled
+  electrical passed damage = 22.3317 HL was crippled
+  electrical passed damage = 22.3317 HL was crippled
+  Unit 1040550925 damaged to death
+  Unit 1000011214 sees corpse of unit 1040550925
+  Unit 1000011214 lost from sight unit 1040550925
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  1
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  Unit 1890 acknowledges with idleSound = AAn4XyU
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all
+  1
+  Unit 1000011214 was attacked by xz skill=3.40282e+038 damage=136 destHL=all

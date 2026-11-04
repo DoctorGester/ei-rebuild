@@ -6523,6 +6523,13 @@ files = ["tests/scenarios"]
 note = "H43c left WorldServer::AddSharedObject and SharedObject::Load unreached: they run when a hero dies in a multiplayer game (PlayerServer::OnLeaderDied's multiplayer branch drops the hero's items into a shared object) and when a save made then is loaded. A hosted game is a network client, so no @ line runs in it: the death needs a fight in a quest zone (net_pair_quest's) or a harness step that damages the leader; the load needs a multiplayer load. Golden scenario, 60 s."
 
 [[ticket]]
+id = "H43e1"
+title = "Scenario gaps left by H43e/H43f: HitWhileTurning, IsNearPath, StopSpeech"
+group = "harness"
+depends = ["H43e"]
+note = "Still unreached after H43e/H43f: unit_motion_tick.cpp HitWhileTurning (needs a hit with an attacker, so a direction, on a unit in Idle or Moving state at the turn of a path; fights put the hero in the Acting state and a script's InflictDamage has no direction), AIBrain::IsNearPath (LookAround with a healer in a mode that keeps AIMode::Execute), UnitClientSpecific::StopSpeech (only OnLeaderDied sends it; the single-player game-over box is already on top when it arrives, so Speech goes to the box: a net_pair scenario where a client's hero dies, or dead code), and dead code with no caller: TrapObject (no record kind creates one), mapspec::UnitSpec::Save/Apply and BehaviourChunk::Write."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"

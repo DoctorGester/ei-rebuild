@@ -1,0 +1,39 @@
+# A walk over a bridge, then the bridge removed (src/game/ai_bridges.cpp, AIMap::ApplyBridgeDecks, BridgeHeights,
+# AIMap::BridgeDeckAt; docs/notes/ai.md). Zone1's bridge 299 ("Bridge 00-299", model stbr1, building class) lies
+# at (168.2, 102.9) on the hero's way east, 115 units from the start. Units far from the hero hardly update, so
+# the hero itself walks there (MoveToPoint: the path planner takes the deck cells, 170 s of game time, a few
+# seconds of the run), stops on the deck and walks on to the far bank. Then the object is removed from the server:
+# its footprint is lifted (MarkFootprint remove: the deck cells go back to the saved ground, water depth and
+# terrain type: RestoreCell), and the walk back west finds no way over the gap. No `speed`, so
+# a golden can be recorded.
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+check IsEqual(GetObjectID(GetObject(299)),299)
+
+# Onto the deck.
+console @MoveToPoint(GetLeader(),168.2,102.9)
+waitfor 300 IsLess(DistanceUnitPoint(GetLeader(),168.2,102.9),3)
+check IsGreater(GetX(GetLeader()),163)
+# And over it: the far bank is 10 units east of the deck's middle.
+console @MoveToPoint(GetLeader(),178,102.9)
+waitfor 60 IsGreater(GetX(GetLeader()),176)
+check IsAlive(GetLeader())
+
+# The bridge goes; the deck cells are the ground again.
+console @RemoveObjectFromServer(GetObject(299))
+wait 1500
+check IsAlive(GetLeader())
+console @MoveToPoint(GetLeader(),160,103)
+wait 6000
+# The object is gone, and with the deck the way back: the hero is still on the far bank.
+check IsEqual(GetObjectID(GetObject(299)),0)
+check IsGreater(GetX(GetLeader()),175)
+check IsAlive(GetLeader())
+report
+quit
