@@ -504,8 +504,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         if (sound->sounds.empty()) {
             app::ShowLibraryMessageBox(worlddata::NoWaveNameText());
         } else {
-            const char* wave = sound->sounds[0].c_str();
-            std::memcpy(plain->name, wave, std::strlen(wave) + 1);
+            str::CopyInto(plain->name, sound->sounds[0]);
         }
         Copy(&plain->localPosition, &base.position, 12);
         plain->volume = static_cast<float>(sound->volume);

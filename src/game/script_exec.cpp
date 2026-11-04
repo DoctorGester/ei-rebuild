@@ -939,6 +939,7 @@ bool ScriptRun::Execute(Script* script) {
             std::string to = cmd->stringArgs[1];
             Party* fromRecords = PartyForScript(player, &from);
             Party* toRecords = PartyForScript(player, &to);
+            if (!fromRecords || !toRecords) break;   // a party name no record list has
             PartyUnitRecord* source = fromRecords->Find(TextKeyFromName(from));
             PartyUnitRecord* target = toRecords->Find(TextKeyFromName(to));
             if (source && target) {

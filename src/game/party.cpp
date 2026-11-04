@@ -315,10 +315,11 @@ float PartyUnitRecord::CarriedWeight() const {
 
 namespace {
 
-// A counted copy of `item` (Item::Clone with its context's spell manager); `item` is held
-// meanwhile and released after.
+// A counted copy of `item` (Item::Clone with its context's spell manager), null for none (a name the
+// item database lacks); `item` is held meanwhile and released after.
 Item* CountedClone(Item* item) {
-    if (item) item->AddRef();
+    if (!item) return nullptr;
+    item->AddRef();
     Item* copy = item->Clone(item->GetManagerContext()->GetSpellManager());
     copy->AddRef();
     return copy;
@@ -393,26 +394,20 @@ void Party::FillFromPrototype(PartyUnitRecord* record) {
     const std::vector<std::string>& armour = prototype->armourNames;
     for (int i = 0; i < static_cast<int>(armour.size()); ++i) {
         Item* item = ItemFactory()->CreateItem(armour.begin()[i]);
-        Item* copy = CountedClone(item);
-        lib::SetAtGrow(record->armor, lib::Count(record->armor), copy);
+        if (Item* copy = CountedClone(item)) lib::SetAtGrow(record->armor, lib::Count(record->armor), copy);
         Drop(item);
     }
     for (const auto* weapon : {&prototype->weaponName, &prototype->secondWeaponName}) {
         if (!Named((*weapon))) continue;
         Item* item = ItemFactory()->CreateItem(*weapon);
-        Item* copy = CountedClone(item);
-        lib::SetAtGrow(record->weapons, lib::Count(record->weapons), copy);
+        if (Item* copy = CountedClone(item)) lib::SetAtGrow(record->weapons, lib::Count(record->weapons), copy);
         Drop(item);
     }
     const std::vector<std::string>& spellNames = prototype->spellNames;
     for (int i = 0; i < static_cast<int>(spellNames.size()); ++i) {
         SpellManager* spellOwner = GetSpellManager();
         auto* spell = ItemFactory()->CreateSpellItem(spellNames.begin()[i], spellOwner);
-        Item* copy = CountedClone(spell);
-        std::vector<Item*>& list = record->spells;
-        int index = lib::Count(list);
-        list.resize(index + 1);
-        list[index] = copy;
+        if (Item* copy = CountedClone(spell)) record->spells.push_back(copy);
         Drop(spell);
     }
     record->texts[6] = record->texts[5];
@@ -433,21 +428,19 @@ bool Party::EquipFromPrototype(PartyUnitRecord* record) {
     for (unsigned i = 0; i < static_cast<unsigned>(spellNames.size()); ++i) {
         SpellManager* spellOwner = GetSpellManager();
         auto* spell = ItemFactory()->CreateSpellItem(spellNames.begin()[i], spellOwner);
-        record->spells.push_back(CountedClone(spell));
+        if (Item* copy = CountedClone(spell)) record->spells.push_back(copy);
         Drop(spell);
     }
     const std::vector<std::string>& quickNames = npc->startQuickItems;
     for (unsigned i = 0; i < static_cast<unsigned>(quickNames.size()); ++i) {
         Item* item = ItemFactory()->CreateItem(quickNames.begin()[i]);
-        Item* copy = CountedClone(item);
-        lib::SetAtGrow(record->quickItems, lib::Count(record->quickItems), copy);
+        if (Item* copy = CountedClone(item)) lib::SetAtGrow(record->quickItems, lib::Count(record->quickItems), copy);
         Drop(item);
     }
     const std::vector<std::string>& weaponNames = npc->startWeapons;
     for (unsigned i = 0; i < static_cast<unsigned>(weaponNames.size()); ++i) {
         Item* item = ItemFactory()->CreateItem(weaponNames.begin()[i]);
-        Item* copy = CountedClone(item);
-        lib::SetAtGrow(record->weapons, lib::Count(record->weapons), copy);
+        if (Item* copy = CountedClone(item)) lib::SetAtGrow(record->weapons, lib::Count(record->weapons), copy);
         Drop(item);
     }
     money += npc->startMoney;
