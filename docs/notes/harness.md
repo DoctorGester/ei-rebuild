@@ -140,7 +140,15 @@ Unit checks (`tests/unit`, `ei_unit_check.exe`, run by build.cmd): the settings 
 order, without the game.
 
 Timing runs: `EI_PROFILE=1` samples the main thread into the run's `profile.txt` (`python tools\profile_report.py <run
-folder>`: time per function between harness steps).
+folder>`: time per function between harness steps; names from the x64 `.map`; the log's stamps move to the run's zone,
+EET-2, once the harness sets TZ, and the report takes them back by whole hours). The stack is scanned, not walked, so a
+stretch's "total" list holds stale return addresses (free_base, string constructors at 80%): read "self" first.
+
+Save and load cost (PF4, `zone_gz19h_save_load`: the Portal zone gz19h, zone19, the largest map and .mob; wall time
+from the log, 2026-11-04, vanilla / Rebirth data): entering the zone 0.94 / 1.04 s, the F5 save 0.11 s (about 70% in
+the LZ coder's `CoderState::Compress`, mission.sav about 250 KB packed), F8 or `load` 0.35 / 0.39 s (`LoadSave`:
+`LoadSavedMapObjects` with the figures' skeleton links, the AI map's `RefreshArea` / `CellMark`). Fast in our build;
+the original's slow saves on this zone are not reproduced.
 
 ## Recorded play
 

@@ -1,0 +1,39 @@
+# Saving and loading on the Portal zone, gz19h (map.txt "## Portal": zone19.mpr / zone19.mob, the largest map and
+# .mob of the game; Suslanger's quest q72h "Портал"; ticket PF4). The user remembers it as the slowest zone to save
+# and load. From the new game in zone1 the "zone" step goes through exit 0, "To Pritown" (deploy 2 428 14 437); the
+# zone entry autosaves into savea (`waitexpect` looks only past the last `expect` or `waitexpect`). Then F5
+# quick-saves into saveq, and the quick save and the autosave are loaded back. EI_PROFILE=1 shows where the time
+# goes (docs/notes/harness.md, "Timing runs").
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitline 15 Saved savea
+expect Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+zone gz19h 0
+waitzone 30 gz19h
+waitexpect 20 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @GodMode(0,1)
+console @BlockUnit(GetLeader(),0)
+check IsLess(DistanceUnitPoint(GetLeader(),8,432.5),10)
+waitwindow 15 battle
+wait 500
+key f5
+waitexpect 20 Saved saveq
+wait 500
+key f8
+waitexpect 30 Loaded saveq
+waitfor 15 IsGreater(HP(GetLeader()),0)
+dump loaded_saveq
+wait 500
+load savea
+waitzone 30 gz19h
+waitfor 15 IsGreater(HP(GetLeader()),0)
+check IsLess(DistanceUnitPoint(GetLeader(),8,432.5),10)
+wait 500
+check IsAlive(GetLeader())
+report
+quit
