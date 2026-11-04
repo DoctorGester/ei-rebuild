@@ -4,12 +4,14 @@
 // ticks (a bow's arrow, an object or unit the server's updates move) is drawn less the part of its last tick's
 // step the frame has not reached yet, as the camera's drawn view is. Units placed on their path at the frame's
 // time already move smoothly and are drawn where they are. Only the draw reads it: the object's own pose (what
-// the game, the digests and the saves see) never changes.
+// the game, the digests and the saves see) never changes. The lights likewise: an object's own light is drawn by
+// its drawn place, any other light less the part of its last tick's step not reached; localPosition stays the game's.
 
 #include "lib/vecmath.h"
 
 #include <cstdint>
 
+class Light;
 class Object3D;
 
 namespace drawn {
@@ -35,6 +37,17 @@ struct ObjectStep {
     Vector3 correction{};
     float correctionShare = 0.0f;
     std::uint32_t correctionStart = 0;
+};
+
+// A light's last tick step as the frames observe it (Light::drawnStep), as ObjectStep's, and the place an object
+// carrying it gave it in the pass `carriedPass`.
+struct LightStep {
+    Vector3 from{};
+    Vector3 to{};
+    std::uint32_t seenTick = 0;
+    bool moving = false;
+    Vector3 carried{};
+    std::uint32_t carriedPass = 0;
 };
 
 // After each client tick (RunWorlds).
@@ -63,5 +76,13 @@ Pose OwnPose(const Object3D* object);
 Pose PoseOf(const Object3D* object);
 // PoseOf, once a frame where the world's draw places the object (CollectVisible): the place is kept as shown.
 Pose Show(Object3D* object);
+
+// The world's draw placed the object carrying `light` (an object's own light, MapObjectClientSpecific::light): the
+// light is drawn at `at` this pass.
+void Carry(Light* light, const Vector3& at);
+// The place the draw shows `light` at this pass: where its carrier put it (Carry), else its own less the part of its
+// last tick's step not reached (the first look after a tick takes the step, as Observe). Every reader of a pass gets
+// the same place (the GPU's point lights match the meshes' by it).
+Vector3 LightPosition(Light* light);
 
 } // namespace drawn

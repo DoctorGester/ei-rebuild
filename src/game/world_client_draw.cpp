@@ -150,11 +150,11 @@ int WorldClient::Render() {
     TransformPipeline* device = g_sceneRenderer.pipeline;
     UpdateLighting();
     // The sun the new renderer's shadow map is drawn from: the terrain's (Terrain::SetSun), as this
-    // frame's lighting turned it; the GPU lighting's sun, ambient and point lights.
+    // frame's lighting turned it. The GPU lighting's sun, ambient and point lights follow in DrawPass, once the
+    // objects carrying lights are placed.
     if (terrain && terrain->sun) {
         render::ShadowSun(terrain->sun->direction);
     }
-    HandOverSceneLights(this);
     Matrix4 view = view::ViewMatrix(drawn.position, drawn.rotation);
     PopMatrix(device->stacks[kStackView]);
     PushMatrix(device->stacks[kStackView], view.m);
@@ -251,7 +251,10 @@ int WorldClient::DrawLineLists() {
 int WorldClient::DrawPass() {
     render::RenderState& state = render::g_renderState;
     terrain::Terrain* currentTerrain = terrain;
-    if (!currentTerrain || !currentTerrain->mapLoaded) return 0;
+    if (!currentTerrain || !currentTerrain->mapLoaded) {
+        HandOverSceneLights(this);
+        return 0;
+    }
     TransformPipeline* device = g_sceneRenderer.pipeline;
     std::uint32_t now = platform::Milliseconds();
     const Matrix4* view = device->Top(kStackView);
@@ -288,6 +291,10 @@ int WorldClient::DrawPass() {
     for (MapObject* object : g_deferredUnits) touched += CollectVisible(object, view, animTime, now, 1, 0);
     g_deferredUnits.clear();
     for (MapObject* object : heroes) touched += CollectVisible(object, view, animTime, now, 1, 1);
+    // The GPU lighting's sun, ambient and point lights, the lights where the draw shows them (drawn::LightPosition):
+    // an object's own light by its place just given. Before any mesh draw (a mesh's lights find their point shadows
+    // by the scene's places); the ground's draws read them when the frame is drawn.
+    HandOverSceneLights(this);
 
     // Models in view stay loaded: the most recently used max(10, n / 8) lose MapObjectFlag::Static.
     std::vector<MapObject*>& models = FrameObjects(FrameList::TouchedModels);

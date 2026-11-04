@@ -208,10 +208,10 @@ void HandOverSceneLights(WorldClient* world) {
     points.clear();
     if (terrain && terrain->mapLoaded) {
         for (auto& node : terrain->lights) {
-            const Light* light = node.second;
+            Light* light = node.second;
             if (!light) continue;
             render::ScenePointLight p{};
-            p.position = light->localPosition;
+            p.position = drawn::LightPosition(light);
             p.inverseRangeSquared = light->inverseRangeSquared;
             for (int k = 0; k < 3; ++k) p.colour[k] = light->color[k];
             p.specular = lib::Has(light->flags, LightFlag::Specular);

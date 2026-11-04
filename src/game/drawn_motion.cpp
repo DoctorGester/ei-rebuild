@@ -2,6 +2,7 @@
 #include "drawn_motion.h"
 
 #include "map_object_figures.h"
+#include "spell.h"
 #include "platform/platform.h"
 
 #include <cstring>
@@ -14,6 +15,7 @@ constexpr float kCut = 8.0f;
 constexpr std::uint32_t kCorrectionFade = 150;
 
 std::uint32_t g_ticks = 0;      // client ticks run
+std::uint32_t g_passes = 1;     // passes that set the progress (LightStep::carriedPass of none: 0)
 float g_spread = 0.0f;          // the part of the last tick's step the frames spread, taken once after the tick
 bool g_spreadTaken = true;
 float g_back = 0.0f;            // drawn::Back
@@ -34,6 +36,7 @@ float drawn::PassSpread(float passTicks) {
 }
 
 void drawn::SetProgress(float reached, float passTicks) {
+    ++g_passes;
     if (!g_spreadTaken) {
         g_spread = PassSpread(passTicks);
         g_spreadTaken = true;
@@ -102,4 +105,26 @@ drawn::Pose drawn::Show(Object3D* object) {
     if (step.correctionShare > 0.0f && platform::Milliseconds() - step.correctionStart >= kCorrectionFade)
         step.correctionShare = 0.0f;
     return shown;
+}
+
+void drawn::Carry(Light* light, const Vector3& at) {
+    light->drawnStep.carried = at;
+    light->drawnStep.carriedPass = g_passes;
+}
+
+Vector3 drawn::LightPosition(Light* light) {
+    LightStep& step = light->drawnStep;
+    if (step.carriedPass == g_passes) return step.carried;
+    const Vector3 own = light->localPosition;
+    if (step.seenTick != g_ticks) {
+        const bool oneTick = step.seenTick != 0 && step.seenTick + 1 == g_ticks;
+        step.from = step.to;
+        step.to = own;
+        step.moving = oneTick && std::memcmp(&step.from, &step.to, sizeof(Vector3)) != 0 &&
+                      DistanceSquared(step.from, step.to) <= kCut * kCut;
+        step.seenTick = g_ticks;
+    }
+    if (step.moving && g_back > 0.0f && std::memcmp(&own, &step.to, sizeof(Vector3)) == 0)
+        return own - (step.to - step.from) * g_back;
+    return own;
 }

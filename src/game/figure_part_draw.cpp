@@ -16,6 +16,7 @@
 #include "texture.h"
 #include "world.h"
 #include "world_data.h"
+#include "drawn_motion.h"
 #include "lib/containers.h"
 #include "lib/rect.h"
 #include "lib/text_case.h"
@@ -98,7 +99,7 @@ void FlatColours(Part& part) {
 
 // The part's light for the GPU, every draw of a mesh that is not flat: the model matrix, the scene's sun, the
 // ambient colour (AmbientColour), the material's colours, the options' coefficient, the crown and the lights
-// within the object's reach.
+// within the object's reach, where the draw shows them (drawn::LightPosition, as the scene's).
 std::vector<render::MeshLightSource> g_partLights;
 render::MeshLighting g_partLighting;
 
@@ -132,8 +133,8 @@ const render::MeshLighting* PartLighting(const Part& part) {
     l.coefficient = options::kObjectsLightingCoeff;
     g_partLights.clear();
     for (int i = 0; part.lights && i < std::ssize(*part.lights); ++i) {
-        const Light* light = (*part.lights)[i];
-        g_partLights.push_back(render::MeshLightSource{light->localPosition, light->inverseRangeSquared,
+        Light* light = (*part.lights)[i];
+        g_partLights.push_back(render::MeshLightSource{drawn::LightPosition(light), light->inverseRangeSquared,
                                                        {light->color[0], light->color[1], light->color[2]}});
     }
     l.lights = g_partLights.data();
