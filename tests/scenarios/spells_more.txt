@@ -1,0 +1,100 @@
+# Spells the other scenarios leave out (H43b, coverage gaps of H43): fireworks cast by script at a point
+# (spell_effect.cpp's StartFirework, spell_effect_update.cpp's Fireworks: wakes the units around and
+# frightens the ones in the radius), then spells the hero casts from the battle screen: charm and link at a
+# wolf, teleport at a point on the ground (StartTeleport, Teleport: the hero is moved there when the effect's
+# timer comes down to the spell's duration). Charm and link start no effect: WorldServer::CastSpell returns for
+# charm, link and possession (cut from the original; docs/notes/items_spells.md), so the casts spend their mana
+# and the wolf stays an enemy (the checks). Their Start functions are reached by no cast; a saved projectile of
+# one of those types is the only way in.
+# The hero (skills and intelligence raised so that the camp puts the three containers on it, as spells_hero.txt
+# does) is unblocked and in god mode. Coordinates are the 800x600 layout. No `speed`, so a golden can be recorded.
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 40 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+
+# Fireworks at a point next to the hero; the effect lasts a few seconds and ends with its sound.
+console @CastSpellPoint("fireworks{d2}",GetX(GetLeader()),GetY(GetLeader()),Add(GetX(GetLeader()),6),GetY(GetLeader()))
+wait 6000
+check IsAlive(GetLeader())
+
+# The hero's spells: charm, link and teleport (the camp's magic page, as spells_hero.txt).
+console @GiveSkill(GetLeader(),"elemental",10)
+console @GiveSkill(GetLeader(),"sense",10)
+console @GiveSkill(GetLeader(),"astral",10)
+console @GiveIntelligence(GetLeader(),200)
+console @GiveItem(0,"spell container[charm]")
+frames 5
+console @GiveItem(0,"spell container[link]")
+frames 5
+console @GiveItem(0,"spell container[teleport]")
+frames 5
+screen 5
+waitwindow 15 camp
+clickregion 5
+wait 500
+campputon 3008 3
+frames 3
+key esc
+waitwindow 15 battle
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+click 400 560
+frames 3
+hudstate
+
+# Two wolves, enemies of the hero, standing blocked next to it.
+console @AddUnitToServer("MagicWolf0","WolfTutor","MagicWolf0",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("MagicWolf1","WolfTutor","MagicWolf1",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),3),0)
+waitfor 10 IsAlive(GetObjectByName("MagicWolf0"))
+waitfor 10 IsAlive(GetObjectByName("MagicWolf1"))
+console @SetPlayer(GetObjectByName("MagicWolf0"),6)
+console @SetPlayer(GetObjectByName("MagicWolf1"),6)
+console @BlockUnit(GetObjectByName("MagicWolf0"),1)
+console @BlockUnit(GetObjectByName("MagicWolf1"),1)
+waitunit 10 MagicWolf0
+waitunit 10 MagicWolf1
+check IsEnemy(GetObjectByName("MagicWolf0"),0)
+check IsEnemy(GetObjectByName("MagicWolf1"),0)
+
+# Charm (the third button from the bottom) on the first wolf, link (the second) on the second one; each
+# cast costs the hero mana.
+console #Mana(GetLeader())
+console @GSSetVar(0,"m0",Mana(GetLeader()))
+click 780 410
+wait 200
+clickunit MagicWolf0
+waitfor 25 IsLess(Mana(GetLeader()),GSGetVar(0,"m0"))
+wait 3000
+console #Mana(GetLeader())
+console @GSSetVar(0,"m0",Mana(GetLeader()))
+click 780 450
+wait 200
+clickunit MagicWolf1
+waitfor 25 IsLess(Mana(GetLeader()),GSGetVar(0,"m0"))
+wait 3000
+check IsAlive(GetObjectByName("MagicWolf0"))
+check IsAlive(GetObjectByName("MagicWolf1"))
+check IsEnemy(GetObjectByName("MagicWolf0"),0)
+check IsEnemy(GetObjectByName("MagicWolf1"),0)
+
+# Teleport (the last button), then a click on the ground: the hero arrives there a moment after the cast.
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+console @GSSetVar(0,"m0",Mana(GetLeader()))
+click 780 490
+wait 200
+move 560 260
+frames 3
+click 560 260
+waitfor 25 IsLess(Mana(GetLeader()),GSGetVar(0,"m0"))
+waitfor 20 IsGreater(DistanceUnitPoint(GetLeader(),GSGetVar(0,"hx"),GSGetVar(0,"hy")),5)
+check IsAlive(GetLeader())
+report
+quit

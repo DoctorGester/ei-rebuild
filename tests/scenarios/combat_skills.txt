@@ -1,0 +1,103 @@
+# Combat orders the player gives from the battle screen (H43a, coverage gaps of H43): a wand used on a
+# unit (CastOn with a quick item source: UnitServer::SpellCarrier, UseItemCharge), the science button on
+# a unit outside the party, which is a steal order (PlayerMode::CommandUse, UnitServer::OrderSteal, then
+# UseSkill: "Item has been stolen from" for a unit that carries a quest item), a run order given with a
+# double click, and a move order given while the game is paused (UnitServer::OrderMove plans the way at
+# once, PlanMove; PauseGame(0) pauses). Taming is not here: the original cut it (docs/notes/combat.md,
+# "Original bugs kept"), no order the interface gives reaches it.
+# The hero is unblocked (the server drops a blocked unit's orders) and in god mode; the wolves stand
+# blocked. Coordinates are the 800x600 layout. No `speed`, so a golden can be recorded.
+reject Script error
+waitmenu
+console thingamabob
+console filter all on
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+console @GiveSkill(GetLeader(),"science",100)
+console @GiveItem(0,"wand 3.iron[lightning]")
+frames 5
+
+# The wand goes on the hero in the camp (as ui_quick_items does).
+screen 5
+waitwindow 15 camp
+campputon 3006 1
+frames 3
+key esc
+waitwindow 15 battle
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+
+console @AddUnitToServer("SkillWolf0","WolfTutor","SkillWolf0",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("SkillWolf1","WolfTutor","SkillWolf1",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),3),0)
+waitfor 10 IsAlive(GetObjectByName("SkillWolf0"))
+waitfor 10 IsAlive(GetObjectByName("SkillWolf1"))
+console @BlockUnit(GetObjectByName("SkillWolf0"),1)
+console @BlockUnit(GetObjectByName("SkillWolf1"),1)
+console @GiveUnitQuestItem(GetObjectByName("SkillWolf1"),"SackofGold")
+waitunit 10 SkillWolf0
+waitunit 10 SkillWolf1
+
+# The hero's portrait selects it and shows its quick items.
+click 400 560
+frames 5
+hudstate 1
+
+# The wand (the first quick slot) on the first wolf: the wand's charge pays for the spell.
+console @GSSetVar(0,"w0",HP(GetObjectByName("SkillWolf0")))
+click 695 575
+frames 3
+clickunit SkillWolf0
+waitfor 15 IsLess(HP(GetObjectByName("SkillWolf0")),GSGetVar(0,"w0"))
+
+# The science button (the action column's second button), then the second wolf: the steal order.
+click 20 450
+frames 3
+clickunit SkillWolf1
+waitline 15 is using skill stealing
+waitexpect 10 Item has been stolen from
+
+# A run order: a double click on a unit (the first click, then the double click's second half) orders the
+# hero to run at it (the order's run flag; UnitServer::TakeQueuedOrder checks CanStillDo for it).
+console @AddUnitToServer("SkillWolf2","WolfTutor","SkillWolf2",Sub(GSGetVar(0,"hx"),5),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("SkillWolf2"))
+console @BlockUnit(GetObjectByName("SkillWolf2"),1)
+waitunit 10 SkillWolf2
+console @SetPlayer(GetObjectByName("SkillWolf2"),6)
+check IsEnemy(GetObjectByName("SkillWolf2"),0)
+clickunit SkillWolf2 dbl
+waitfor 15 IsDead(GetObjectByName("SkillWolf2"))
+
+# A move order while the game is paused (Space): the way is planned at once (OrderMove -> PlanMove), and
+# the hero walks it when the game goes on.
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+key space
+frames 5
+move 560 260
+frames 3
+click 560 260
+frames 5
+key space
+waitfor 15 IsGreater(DistanceUnitPoint(GetLeader(),GSGetVar(0,"hx"),GSGetVar(0,"hy")),2)
+
+# A run order on the ground (a double click), planned while the game is paused again: PlanMove for a runner
+# (it plans as walking when it may leave its cell that way).
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+key space
+frames 5
+move 260 340
+frames 3
+dblclick 260 340
+frames 5
+key space
+waitfor 15 IsGreater(DistanceUnitPoint(GetLeader(),GSGetVar(0,"hx"),GSGetVar(0,"hy")),2)
+
+check IsAlive(GetLeader())
+report
+quit

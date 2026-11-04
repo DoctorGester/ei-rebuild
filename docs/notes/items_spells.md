@@ -9,7 +9,7 @@ what they do not say. The HUD panels and windows are in `ui.md`; players and the
 | Item rules, construction, names | item, item_manager, item_names | items, ui_camp |
 | Item texts | text_manager | items |
 | Spell rules, construction | spell, spell_manager | spells |
-| Spell effects | spell_effect, spell_effect_update | spells, spells_cast |
+| Spell effects | spell_effect, spell_effect_update | spells, spells_cast, spells_more |
 | Quest database | quest_database, quest_records | any new game in zone1 |
 | Textures (mmp, composed) | texture_load, texture | all (skins at zone load) |
 | Registry files, ini | registry, ini_file, settings | all |
@@ -113,6 +113,11 @@ Kept: lightning builds its light at the target's position without checking the t
 target's class without a null check; arrow and acid ray impacts read the target after the hit unchecked; charm with a
 target or caster that is not a unit returns without changing state, so it restarts every tick; the light strike uses -7
 as bolt width factor; the walls compute the normal with a z of 0 * k.
+
+Cut spells (H43b): WorldServer::CastSpell returns for possession, link and charm, so StartPossession, StartLink,
+StartCharm and their updates (Possession, Link) run for no cast; `spells_more` casts charm and link from the hero and
+checks that the wolf stays an enemy (the cast spends mana). Fireworks (a script cast) and teleport (the hero, then a
+ground click) run in `spells_more`; the teleport moves the hero when the effect's timer comes down to the duration.
 
 ## Quest database
 

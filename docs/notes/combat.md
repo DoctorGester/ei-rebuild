@@ -3,7 +3,7 @@
 Code (layouts and per-function comments are in `combat.h` and `combat_plan.h`): `combat*.cpp` (queries and the hit in
 combat.cpp; actions, orders, order setters, save, sight, steps, step lists, tick, update, motion, planning, taming, stat
 slots, lifetime, spell sight), `unit_motion_tick.cpp`, `world_create.cpp`. Scenarios: `combat.txt`, `combat_more.txt`
-(kill, archer, heal), `movement.txt`, `unit_ai.txt`; every creature runs the update and animation code each tick.
+(kill, archer, heal), `combat_skills.txt` (wand, steal, run and paused move orders), `movement.txt`, `unit_ai.txt`; every creature runs the update and animation code each tick.
 
 `UnitServer` (class 0x3E) is the server-side unit controller; the AI brain (unit_ai.md) and the path (ai.md) hang off
 it.
@@ -131,6 +131,14 @@ which would make the saved boredTicks follow the frames.
 By design (user 2026-11-03): UseSkill returns for skill 2 (tame) before its switch, so the tame order does nothing
 (taming was cut from the original; TryTame is reached nowhere else) and OrderTame compares the target's prototype field
 (not type) with 0x32.
+
+Dead code by design (H43a): TryTame, UndoTaming and UndoIfTamedBy (their callers are UseSkill's tame case, which
+returns early, and the charm spell, which WorldServer::CastSpell refuses), OrderTame (the interface sends only kinds 0
+and 1), the UseItem order (no setter, so OrderPlan::TakeSteps and combat_tick.cpp's CanStillDo are not reached) and
+TellParty(OutOfReach). `combat_skills` reaches the rest of the order code: a wand on a unit (SpellCarrier,
+UseItemCharge), the science button on a unit outside the party (the steal order: OrderSteal, UseSkill, "Item has been
+stolen from"; the hero needs more science than the wolf's 77) and move orders given while the game is paused (Space:
+OrderMove plans at once, PlanMove; with a run flag too).
 
 ## Risks
 

@@ -1,0 +1,13 @@
+{
+  "scenario": "spells_more",
+  "install": "vanilla",
+  "recorded": "2026-11-04",
+  "commit": "4082bf394",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "New scenarios combat_skills, spells_more and zone_gz15h_tornado_client (H43a, H43b): first goldens.",
+  "source": "image",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
+}
