@@ -136,6 +136,18 @@ int RegionCount(void* window);
 bool Region(void* window, int index, RegionInfo* region);
 void ScaleToScreen(int* x, int* y);             // Interface3D::ScalePointToScreen
 void InterfaceSize(int* width, int* height);
+// The "droplist" steps: the first drop-down list (UiDropList) among `window`'s children, at any depth: open, the
+// chosen entry and its text, the entry count, the first shown, how many are shown, the active entry and the row
+// (layout); false without one. DropListEntry scrolls the open list to show entry `index` (UiDropList::ScrollTo) and
+// gives the entry's centre (layout); false when the list is closed or has no such entry.
+struct DropListInfo {
+    bool open = false;
+    int value = 0, count = 0, first = 0, shown = 0, active = 0;
+    std::string text;
+    Rect row{};
+};
+bool DropList(void* window, DropListInfo* info);
+bool DropListEntry(void* window, int index, Point* centre);
 bool SaveLoadSliding(void* window);
 bool OptionsSliding(void* window);
 int DialogueState(void* window);                // the base screen's dialogue state (BriefingScreen::state), else -1

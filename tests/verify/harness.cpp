@@ -96,6 +96,11 @@
 //                             the same at the centre of clickable region <n> of the window on top
 //                             of the interface (its regions as the screen's code numbers them;
 //                             placed with the game's own scaling, so Rebirth's widescreen layout too)
+//   droplist open | pick <n> | expect <text> | isopen <0|1>
+//                             the first drop-down list of the window on top (the options' resolution row):
+//                             click its row; click entry <n> of the open list (scrolled into view first);
+//                             fail unless the chosen entry reads <text> ("1280 x 720"); fail unless the
+//                             list is open (1) or closed (0)
 //   clickunit <name> [l|r|move|dbl] [ctrl]
 //                             left click (default), right click, the second half of a double click
 //                             (double click message and release: what follows a first click that
@@ -1595,20 +1600,9 @@ void PostWheel(int x, int y, int delta) {
     input::TurnWheel(delta, point);
 }
 
-// The centre of region `index` of the top interface window, posted as a mouse event. The region's
-// layout rectangle (plus the offset its hit test subtracts) goes through the game's layout-to-screen
-// scaling (005F7D20, patched by Rebirth) and then to the window's client size.
-void PostRegionMouse(const std::string& verb, int index) {
-    void* window = TopWindow();
-    const int regions = window ? WindowRegionCount(window) : 0;
-    image::RegionInfo region;
-    if (!window || index < 0 || index >= regions || !WindowRegion(window, index, &region)) {
-        Log("harness: %s %d: no such region (window %p, %d regions)", verb.c_str(), index, window, regions);
-        return;
-    }
-    Point point{(region.left + region.right) / 2 + region.offsetX, (region.top + region.bottom) / 2 + region.offsetY};
-    Log("harness: %s %d: window %p region (%d,%d)-(%d,%d) enabled %d", verb.c_str(), index, window, region.left, region.top,
-        region.right, region.bottom, region.enabled);
+// The mouse step `verb` (clickregion, rclickregion, dblclickregion or moveregion) at layout point `point`: through
+// the game's layout-to-screen scaling (patched by Rebirth), then to the window's client size.
+void PostLayoutMouse(const std::string& verb, Point point) {
     int width = 0, height = 0;
     image::ScaleToScreen(&point.x, &point.y);
     image::InterfaceSize(&width, &height);
@@ -1633,6 +1627,57 @@ void PostRegionMouse(const std::string& verb, int index) {
         input::PressButton(MouseButton::Left, at, 2);
         input::ReleaseButton(MouseButton::Left, at);
     }
+}
+
+// The centre of region `index` of the top interface window (its layout rectangle plus the offset its hit test
+// subtracts), posted as a mouse event.
+void PostRegionMouse(const std::string& verb, int index) {
+    void* window = TopWindow();
+    const int regions = window ? WindowRegionCount(window) : 0;
+    image::RegionInfo region;
+    if (!window || index < 0 || index >= regions || !WindowRegion(window, index, &region)) {
+        Log("harness: %s %d: no such region (window %p, %d regions)", verb.c_str(), index, window, regions);
+        return;
+    }
+    Point point{(region.left + region.right) / 2 + region.offsetX, (region.top + region.bottom) / 2 + region.offsetY};
+    Log("harness: %s %d: window %p region (%d,%d)-(%d,%d) enabled %d", verb.c_str(), index, window, region.left, region.top,
+        region.right, region.bottom, region.enabled);
+    PostLayoutMouse(verb, point);
+}
+
+// "droplist open | pick <n> | expect <text> | isopen <0|1>" on the first drop-down list of the window on top (the
+// options' resolution row): a click on its row; a click on entry <n> of the open list (scrolled into view first); the
+// chosen entry's text is <text>; the list is open or not. Each logs the list's state. "" or the failure.
+std::string DropListStep(const std::string& argument) {
+    void* window = TopWindow();
+    image::DropListInfo list;
+    if (!window || !image::DropList(window, &list)) return "droplist " + argument + ": no drop-down list in the window on top";
+    const std::size_t space = argument.find(' ');
+    const std::string word = argument.substr(0, space);
+    const std::string rest = space == std::string::npos ? std::string() : argument.substr(space + 1);
+    Log("harness: droplist %s: chosen %d '%s', %s, %d entries, %d shown from %d, active %d", argument.c_str(), list.value,
+        list.text.c_str(), list.open ? "open" : "closed", list.count, list.shown, list.first, list.active);
+    if (word == "open") {
+        if (list.open) return "droplist open: the list is open already";
+        PostLayoutMouse("clickregion", Point{(list.row.left + list.row.right) / 2, (list.row.top + list.row.bottom) / 2});
+        return "";
+    }
+    if (word == "pick") {
+        const int index = std::atoi(rest.c_str());
+        Point centre{};
+        if (!list.open) return "droplist pick " + rest + ": the list is not open";
+        if (!image::DropListEntry(window, index, &centre))
+            return "droplist pick " + rest + ": no such entry (" + std::to_string(list.count) + ")";
+        PostLayoutMouse("clickregion", centre);
+        return "";
+    }
+    if (word == "expect") return list.text == rest ? "" : "droplist expect " + rest + ": the list shows '" + list.text + "'";
+    if (word == "isopen") {
+        const bool wanted = rest == "1";
+        if (list.open == wanted) return "";
+        return "droplist isopen " + rest + ": the list is " + (list.open ? "open" : "closed");
+    }
+    return "droplist needs open, pick <n>, expect <text> or isopen <0|1>: " + argument;
 }
 
 // --- clickunit <name> [l|r|move] [mods] (ticket I8; the modifiers are HeldModifiers') -------------------------------------------
@@ -2030,7 +2075,7 @@ bool IsInputStep(const std::string& verb) {
     return verb == "key" || verb == "keydown" || verb == "keyup" || verb == "click" || verb == "rclick" || verb == "move" || verb == "wheel" ||
            verb == "dblclick" || verb == "rdblclick" || verb == "ldown" || verb == "lup" || verb == "rdown" || verb == "rup" ||
            verb == "clickregion" || verb == "rclickregion" || verb == "dblclickregion" || verb == "moveregion" ||
-           verb == "clickunit" ||
+           verb == "clickunit" || verb == "droplist" ||
            verb == "clickground" || verb == "lookat" || verb == "hold" || verb == "release" || verb == "focus" || verb == "windowsize" ||
            verb == "typeunicode";
 }
@@ -2704,6 +2749,12 @@ void RunSteps() {
                    s.verb == "moveregion") {
             HeldModifiers held(&s.argument);
             PostRegionMouse(s.verb, std::atoi(s.argument.c_str()));
+        } else if (s.verb == "droplist") {
+            const std::string error = DropListStep(s.argument);
+            if (!error.empty()) {
+                Log("harness: %s", error.c_str());
+                g_failures.push_back(error);
+            }
         } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "modfile" || s.verb == "modlist" ||
                    s.verb == "modarchive" || s.verb == "mapfile" || s.verb == "playstream" || s.verb == "folderprofile") {
             std::string error = s.verb == "hudstate" ? HudState(s.argument)

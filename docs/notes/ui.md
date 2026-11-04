@@ -72,7 +72,8 @@ sets the double-click flag; key down; char unless the console or a multiplayer c
 container's dispatchers are identical apart from the handler: the container's handled flag is cleared; each extra input
 side gets its flag cleared and the event, and one that sets its flag ends it; then each enabled child (mouse and wheel
 events also need the point inside it) the same, the child and the list's end re-read after each call. Deactivate goes to
-every side and child and touches no flag.
+every side and child and touches no flag. Ours: while a container has a `popup` (an open drop-down list, ui-native.md
+"The drop-down list"), every event goes to it alone and the container counts as handled.
 
 ## 3. Interface base: frame update, text, console window, cursor, chat
 
@@ -347,7 +348,7 @@ F1. `UiEditField::KeyDown` has no scenario that types into one. The titles' RTF 
 - `UiScrollText` (the battle message log and the quest log) tokenises every text added into format tokens (runs of "\n",
   BEL 'C' r g b, BEL 'F' digit) and word tokens (a string and its width).
 - **Options data**: rows are {OptionBinding*, OptionSetting*}; 22 option definitions (id, name, kind, maximum, group, row;
-  0-20 the original's, 21 our resolution row: renderer.md, "Resolution changes"),
+  0-20 the original's, 21 our resolution row, a drop-down list: renderer.md, "Resolution changes"),
   59 key actions; 14 rows, 11 groups. The slider (`UiSlider : UiScrollbar`): regions 0 (left, bottom - 10, left + 12,
   bottom), 1 (right - 12, bottom - 10, right, bottom), 2 (left, top, right, bottom - 10); the scroll bar's depth is 3.0. The
   edit field's keys: Backspace, End, Home, Left, Right, Delete. Key names are followed by "  |  ".
