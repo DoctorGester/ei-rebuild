@@ -3,7 +3,10 @@
 Code: `src/game/unit_ai.h` (layouts and per-function comments: the structure reference), `unit_ai*.cpp` (brain Think /
 lookups / actions in unit_ai.cpp; modes, senses, targets, save). Scenarios: `unit_ai.txt`, `unit_ai_fear.txt`,
 `unit_ai_attack_removed`, `script_exec` (UMClear, UM*, UMAg, Guard / Sentry), `combat_more` (a death), `world_load`,
-every spawn.
+every spawn; `unit_ai_flight` (an archer in Fear mode steps away from the hero: FindFlightPoint), `party_leader_switch`
+(PlayerMode::SetLeader through the battle screen's follow button, CommandGoTo with Ctrl, StaysWithParty, SeeCorpse of a
+party member), `unit_ai_bridge` (zone1's bridge 299: a walk over it, then RemoveObjectFromServer lifts its deck cells:
+RestoreCell, BridgeDeckAt).
 
 ## Structure
 
@@ -44,6 +47,19 @@ every spawn.
   900, decay -3; a corpse seen: 800 / -3; an enemy lost from sight: 1000 / -2), so the final add uses the new level and
   decay. AIMode::Enter draws a random decay in [0.8, 1.2]; AIMode::Evaluate gives 50; Aggression evaluates to 10000 with
   chosen = enemy, or -1000.
+
+## Scenario know-how (H43e)
+
+- Units far from the hero hardly update (UpdateCountdownFor): walk the hero there (`MoveToPoint(GetLeader(), x, y)`, then
+  `waitfor 300 ...`: 170 s of game time is 4 s of run) instead of spawning units at a distance.
+- A unit made by AddUnitToServer with player 0 is in the hero's party (a second portrait) with a Player mode; UMClear on
+  it removes that mode and with it every script move (`MoveToPoint` does nothing afterwards).
+- Battle screen buttons by layout position (vanilla; Rebirth's widescreen moves them): the action column's first button
+  (20, 470) is "follow" (pending action 7, with a unit selected; the next click on a unit sends the follow order of every
+  selected member), the second (20, 440) the hero's science (pending 8). Portraits: 360 and 440 at y 560 for two members.
+  `clickunit #<id>` finds a unit with an empty name. A Ctrl click on the ground is a go to (CommandGoTo).
+- GodMode of player 0 makes its units immune to damage (also the party's wolves); `InflictDamage` has no attacker and so
+  no direction of the blow (HitDirection None): it never starts a hit reaction in UpdateMotion.
 
 ## Original bugs kept
 

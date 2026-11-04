@@ -132,7 +132,13 @@ flag 0x10000000 and a trap with points) or at each unit, with caster 0. `ForgetO
 object (null included). The zone loader registers traps in no name map: scripts use `GetObject(id)`. `magic_traps.txt`
 loads `traps.mob`, written by `tools/make_trap_mob.py` into the run's folder (a `# prepare:` line), with
 `AddMob("..\saves\traps.mob")`: zone2's diplomacy table and its seven trap records renumbered 30001..30007 (zone2's own
-ids collide with zone1's). AddMob's name is relative to the maps folder.
+ids collide with zone1's). AddMob's name is relative to the maps folder. A trap's side mask reads 1 at run time (the hero's side; the record holds -1) and
+a unit that spawns beside it walks off before the first tick, so those two scenarios never put a
+victim in a circle (`magic_traps_victims` passes without UpdateVictims ever finding one). `magic_traps_fire` moves the
+circle to the hero's start with `make_trap_mob.py --circle X Y R` and fires a period 0 trap (units inside kept, dropped
+by StaysInside when they die or leave) and a period 3 one (FireAtOccupants) at the hero and at wolves, disarmed and
+armed again. The placed `TrapObject` (class 0x55) has no creator: no map record kind makes one (a kind 1, 5 or 8
+record's `parentId` would make it as a `MapObject`, `Lever` or `Unit`), so its RunTick, Disarm and Save never run.
 
 ## Original bugs kept
 

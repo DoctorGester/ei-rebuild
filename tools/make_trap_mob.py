@@ -8,6 +8,8 @@ usage: python tools/make_trap_mob.py <saves dir> [--source <zone2.mob>]
   --interval N  sets every trap's interval (field 0xBBAB0005; zone2's are 50 and 150). With 0 the
                 trap's update asks MagicTrap::UpdateVictims for newcomers instead of firing every tick
                 (magic_traps_victims.txt; none of the game's zones has such a trap).
+  --circle X Y R  moves every trap's first circle (its x, y and radius) to the point, so that a unit standing there
+                is inside it (magic_traps_fire.txt: the hero's start, 54 138).
   --kind K / --first-id N / --count C / --out NAME  copy the records of kind K (hex; B001 a plain map
                 object) instead, numbered from N, only the first C, into NAME (rebirth_fixes_world.txt:
                 one object with a zone1 id).
@@ -73,6 +75,17 @@ def set_interval(record, value):
     return bytes(record)
 
 
+def set_circle(record, x, y, radius):
+    """The magic trap record `record` with the x, y and radius of its first circle (chunk 0xBBAB0003: the count, then
+    12 bytes a circle) set."""
+    record = bytearray(record)
+    fields = [o for c, o, s in chunks(record, 8, len(record)) if c == 0xBBAB0003]
+    if len(fields) != 1 or struct.unpack_from('<I', record, fields[0] + 8)[0] < 1:
+        raise ValueError('no first circle')
+    struct.pack_into('<fff', record, fields[0] + 12, x, y, radius)
+    return bytes(record)
+
+
 def chunk(cid, body):
     return struct.pack('<II', cid, 8 + len(body)) + body
 
@@ -82,6 +95,8 @@ def main():
     parser.add_argument('saves')
     parser.add_argument('--source', default=None)
     parser.add_argument('--interval', type=int, default=None)
+    parser.add_argument('--circle', type=float, nargs=3, metavar=('X', 'Y', 'R'), default=None,
+                        help='the first circle of every trap moved to (X, Y) with radius R')
     parser.add_argument('--first-id', type=int, default=FIRST_ID, help='the first trap\'s object id (default 30001)')
     parser.add_argument('--count', type=int, default=None, help='keep only the first N traps')
     parser.add_argument('--kind', type=lambda v: int(v, 16), default=MAGIC_TRAP,
@@ -103,6 +118,8 @@ def main():
         traps = traps[:args.count]
     if args.interval is not None:
         traps = [set_interval(t, args.interval) for t in traps]
+    if args.circle is not None:
+        traps = [set_circle(t, *args.circle) for t in traps]
     if not diplomacy or not traps:
         sys.exit(f'{args.source}: no diplomacy chunk or no records of kind {args.kind:X}')
     out = chunk(ROOT_CHUNK, chunk(NO_DIPLOMACY, b'') + diplomacy + chunk(OBJECTS, b''.join(traps)))
