@@ -488,6 +488,29 @@ CameraState Camera(const void* camera) {
     return state;
 }
 
+CameraView ViewCamera() {
+    const ::Camera& c = g_camera;
+    const float degrees = 1.0f / ei::kRadiansPerDegree;
+    return CameraView{c.focus.x, c.focus.y, c.focus.z, 2.0f * std::atan2(c.viewRotation.z, c.viewRotation.w) * degrees,
+                      c.distance, c.pitch * degrees};
+}
+
+void SetClimate(int climate) { g_serverWorld.SetClimate(climate); }
+
+CameraView PlaceCamera(const CameraPlacement& placement) {
+    ::Camera& c = g_camera;
+    c.SetTargetId(-1);
+    c.flags &= ~::Camera::kFollowing;
+    c.panTarget = camera::kZeroVector;
+    c.panVelocity = camera::kZeroVector;
+    if (placement.setDistance) c.distance = placement.distance;
+    if (placement.setPitch) c.pitch = placement.pitch * ei::kRadiansPerDegree;
+    c.SetFocus(Vector3{placement.x, placement.y, 0.0f});
+    if (placement.setHeading) c.SetHeading(placement.heading * ei::kRadiansPerDegree);
+    else c.ApplyView();
+    return ViewCamera();
+}
+
 std::string HudState(void* screen, const std::string& argument) { return HudStateOf(screen, argument); }
 
 namespace {

@@ -271,6 +271,23 @@ struct CameraState {
 };
 CameraState Camera(const void* camera);
 
+// "camera" (harness.cpp): the view camera's place. Placing it stops its following of a unit and its pan, and looks at
+// map point (x, y) (Camera::SetFocus, ApplyView); a heading (degrees about z, 0 the camera's north), a distance and a
+// pitch (degrees) are set only where `set*` says. Returns the camera's pose after it.
+struct CameraPlacement {
+    float x = 0, y = 0;
+    bool setHeading = false, setDistance = false, setPitch = false;
+    float heading = 0, distance = 0, pitch = 0;
+};
+struct CameraView {
+    float focusX = 0, focusY = 0, focusZ = 0, heading = 0, distance = 0, pitch = 0;
+};
+CameraView PlaceCamera(const CameraPlacement& placement);
+CameraView ViewCamera();
+// "climate" (harness.cpp): the server world's climate (WorldServer::SetClimate: 0 none, 1 rain, 2 snow, 3 storms; the
+// weather cleared): with 0 no rain starts by chance (UpdateRain's rolls) during a scene's captures.
+void SetClimate(int climate);
+
 // What the object trace samples of a client world object (harness_camera.cpp): its id, its own place and the
 // place the draw shows (drawn::PoseOf), the yaw in radians (about z); with a part named, both the part's place in
 // the figure (what the pose and its blends move).

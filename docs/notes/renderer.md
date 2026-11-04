@@ -1641,6 +1641,12 @@ then, per pixel:
   depth over it (render_terrain.cpp's SwampDepth; -1 where the record's water is not a swamp), and within 0.6 units of
   its shore line (and under it) the ground is tinted brown (kMud), darkened and wet (ground_weather's `mud`, which
   counts as wet ground whatever the weather: wet_ground's sheen).
+  Where a swamp meets other water (zone1: material 1 against material 0 at (147, 87), (172, 94) and (122, 69), both
+  under water; the swamp's priority 0.5 is the lower, so the shared vertices are the swamp's) the ground's `depth`
+  runs from the swamp's depth to -1 across the triangle and crosses 0 under the water: a false shore line with its
+  muddy rim on the river's side. The opaque swamp hides its own half, the river (0.6 opaque) does not: a faint olive
+  band under the river by the bridge at (147, 87) (R17c4: the frame with the rim off differs there by 3 a channel on
+  average over the meet, 1626 of its 14400 pixels by more than 8). Open: R17c4a.
 - **Lava** keeps the game's look (its texture lit by its own colour, the material's opacity).
 
 The depth is per vertex (one unit apart), so the foam's band follows the triangles near the shore. The water still
@@ -1651,7 +1657,11 @@ measurable to it (within 0.03 ms of the game's plain water shading). Check: scen
 (frozen moments on zone1: the beach at the west sea, the sea, the lake in the middle, the river with stones, the river
 and the lake at night; samecapture of a frozen moment drawn twice, diffcapture that the ripples move) and
 `render_water_looks` (1440x1080 by day: the beach, a shore across a sector border, the sea, the lake, the swamp, its
-edge and the swamp east of it, the two swamp views at night, the beach's shore line nearer).
+edge and the swamp east of it, where the swamp meets the river at the two bridges, the two swamp views at night, the
+beach's shore line nearer; the camera placed by map point with the harness's `camera` step and the climate held dry,
+so the views are the same on Rebirth's data: zone1.mpr is the same file in both installs). zone1's water materials
+(kind 3): 0 and 2 water (0.19, 0.32, 0.65; 0 the lake and the river, 2 the sea), 1 the swamp; the swamp's tiles lie in
+x 123..193, y 3..93 (the big one around (158, 34), deepest (163, 47); the east one around (172, 70)).
 
 ### render_perf.h: the performance overlay
 

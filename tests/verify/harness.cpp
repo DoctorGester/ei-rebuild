@@ -118,6 +118,15 @@
 //   minimap <cx> <cy> <sx> <sy>, lookat <x> <y>
 //                             the minimap's centre (layout) and map units per pixel; lookat clicks the
 //                             minimap to bring the camera toward map point (x, y) (see LookAt)
+//   camera <x> <y> [<heading> [<distance> [<pitch>]]]
+//                             place the view camera to look at map point (x, y) at once, in WinMain's loop:
+//                             no unit followed, no pan; the heading (degrees about z, 0 the camera's north,
+//                             90 turned so that screen right is +y), distance and pitch (degrees) set when
+//                             given, else kept. Logs the pose after it ("camera" alone only logs it). The
+//                             game's limits still ease a distance outside them back (Camera::Update)
+//   climate <n>               the server world's climate (0 none, 1 rain, 2 snow, 3 storms; the weather
+//                             cleared): "climate 0" keeps rain from starting by chance (one roll in 101 every
+//                             64 ticks on zone1) while a scene is captured dry
 //   hold <mods>, release <mods>
 //                             press / release the modifier keys <mods> (ctrl, shift, alt; separated by
 //                             spaces, "+" or ","), held over frames and further steps. The game takes
@@ -2007,6 +2016,30 @@ std::string LookAt(const std::string& argument, bool* clicked = nullptr) {
     return "";
 }
 
+// --- camera <x> <y> [<heading> [<distance> [<pitch>]]] (R17c4) -----------------------------------------------
+// Places the view camera directly (image::PlaceCamera): a scene aimed by map point on any install, whatever its
+// minimap's layout or the heading its zone starts with (lookat's minimap clicks did not hold on Rebirth's zone1 at
+// 1440x1080). Without arguments it only logs the pose.
+std::string PlaceCamera(const std::string& argument) {
+    image::CameraPlacement placement;
+    const int given = std::sscanf(argument.c_str(), "%f %f %f %f %f", &placement.x, &placement.y, &placement.heading,
+                                  &placement.distance, &placement.pitch);
+    image::CameraView view;
+    if (given == EOF || given == 0) {
+        view = image::ViewCamera();
+    } else if (given == 1) {
+        return "camera needs <x> <y> [<heading> [<distance> [<pitch>]]]";
+    } else {
+        placement.setHeading = given >= 3;
+        placement.setDistance = given >= 4;
+        placement.setPitch = given >= 5;
+        view = image::PlaceCamera(placement);
+    }
+    Log("harness: camera: focus %.2f %.2f %.2f, heading %.1f, distance %.2f, pitch %.1f", view.focusX, view.focusY,
+        view.focusZ, view.heading, view.distance, view.pitch);
+    return "";
+}
+
 // --- walkto <seconds> <x> <y> [<frames>] (H53) --------------------------------------------------------
 // One pass of a walk's input, in a main loop pass: while aiming, the camera brought toward the point (a minimap
 // click, then two frames for it to move; at most two, as the camera stops at the map's edge), then the double
@@ -2612,7 +2645,8 @@ void RunSteps() {
         }
         // "quit" posts the quit request (platform::PostQuit) from the main loop's pass, where the loop ends on it at
         // once, not from a loading screen's message drain (app::PumpMessages), which leaves it for the main loop.
-        if (!g_winMainLoop && s.verb == "quit") {
+        // "camera" places the camera between the main loop's camera updates, never inside a loading screen's drain.
+        if (!g_winMainLoop && (s.verb == "quit" || s.verb == "camera")) {
             --g_next;
             return;
         }
@@ -2822,6 +2856,20 @@ void RunSteps() {
                 Log("harness: %s", g_failures.back().c_str());
             } else {
                 g_minimap = m;
+            }
+        } else if (s.verb == "camera") {
+            const std::string error = PlaceCamera(s.argument);
+            if (!error.empty()) {
+                Log("harness: %s", error.c_str());
+                g_failures.push_back(error);
+            }
+        } else if (s.verb == "climate") {
+            int climate = 0;
+            if (std::sscanf(s.argument.c_str(), "%d", &climate) == 1 && climate >= 0 && climate <= 3) {
+                image::SetClimate(climate);
+            } else {
+                g_failures.push_back("climate needs 0, 1, 2 or 3");
+                Log("harness: %s", g_failures.back().c_str());
             }
         } else if (s.verb == "lookat") {
             std::string error = LookAt(s.argument);

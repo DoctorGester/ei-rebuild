@@ -7468,6 +7468,13 @@ depends = ["R52a"]
 note = "R52a draws every ground print in its daylight colour (GroundPrint::DayColour) and lights it in mesh.hlsl's ground_shade, so BloodPrint::colour (the sun at its making, then Segment's grey re-lighting every 10 s, kLightingPeriod) is only saved. Drop the re-lighting loop in WorldClient::Segment and lightLevelsCountdown, keeping the saved field (write a fixed value) or changing the save with a golden re-record (ground_prints' saves); decide with the coordinator. Also check: specular point lights (script and spell lights) add to the ground after its texture, while ground_shade takes them as the other lights (a max), so a print under one need not match its ground exactly."
 
 [[ticket]]
+id = "R17c4a"
+title = "No false mud rim where a swamp meets other water"
+group = "renderer"
+depends = ["R17c4"]
+note = "R17c4 found it (renderer.md, the swamp item): where a swamp's vertices meet another water's, both under water (zone1 (147, 87), (172, 94), (122, 69)), the ground's depth attribute runs from the swamp's depth to -1 (SwampDepth) and crosses 0 under the water: terrain.hlsl draws a muddy rim along that false shore, faint but visible through the river (render_water_looks' looks_swamp_river; mean 3 a channel over the meet). No one scalar per vertex avoids the crossing; candidates: a ground vertex under non-swamp water that neighbours a swamp vertex gets a value above the swamps' range (say +3) that the shader fades the mud out over (1..2), sector-edge neighbours read from the next sector so both copies of an edge vertex agree; or a second attribute (under other water). Check: looks_swamp_river with the rim gone under the river and the real rims (looks_swamp_edge) the same."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
