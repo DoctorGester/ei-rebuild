@@ -120,10 +120,9 @@ bool Spell::IsOffensive() {
 bool Spell::CanAffect(const Unit* caster, MapObject* target) const {
     std::uint32_t restricted = targetFlags & kSpellTargetRestrictions;
     if (restricted == 0) return true;
-    if (!target || target->GetClassId() != ClassId::Unit) return false;
+    const Unit* unit = UnitOrNull(target);
+    if (!unit) return false;
 
-    // The target is a unit (tested above).
-    const Unit* unit = static_cast<const Unit*>(target);
     if (caster) {
         const Unit* source = caster;
         bool hostile = Regards(source, unit) || Regards(unit, source);

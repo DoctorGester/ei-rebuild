@@ -156,8 +156,8 @@ Vector3 ParticleSource::AttachmentPoint(Object3D* object) {
     if (!object) return {0.0f, 0.0f, 0.0f};
     if (!(flags & ParticleSourceFlag::OnPart)) return object->localPosition;
     const auto point = static_cast<std::uint32_t>(attachPoint);
-    if (object->GetClassId() == ClassId::Unit && point <= 12) {
-        if (point == 0) return static_cast<Unit*>(object)->EffectPoint();
+    if (Unit* unit = UnitOrNull(object); unit && point <= 12) {
+        if (point == 0) return unit->EffectPoint();
         Vector3 at = PartPoint(object, kPartNames[point]);
         if (point == 2) at.z = at.z + 1.0f;
         return at;

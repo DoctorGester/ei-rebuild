@@ -314,11 +314,11 @@ int AggressionMode::Evaluate(AIBrain* brain) {
         if (!enemy && seen && !brain->IsAlliedUnit(seen) && seen != self && !brain->memory.reports.Contains(seen))
             enemy.Assign(seen);
         if (!enemy) return kPriorityNone;
-        if (enemy->IsDead() || enemy->GetClassId() != ClassId::Unit) {
+        Unit* unit = enemy->IsDead() ? nullptr : UnitOrNull(enemy.Get());
+        if (!unit) {
             enemy.Reset();
             return kPriorityNone;
         }
-        auto* unit = static_cast<Unit*>(enemy.Get());
         if (!brain->memory.CanTrack(self, unit)) return kPriorityNone;
         chosen = {kWeaponPart, unit};
         return kPriorityFight;
@@ -813,10 +813,8 @@ constexpr float kNoRadius = -1.0f;
 // Whom a party unit follows: its Player mode's leader, or the unit it follows (action 6).
 Unit* LeaderOf(const Unit* unit) {
     AIBrain* brain = &unit->ServerController()->brain;
-    MapObject* leader = nullptr;
-    if (auto* mode = brain->FindModeOf<PlayerMode>()) leader = mode->leader;
-    if (!leader && brain->action == AIBrain::kActionFollow) leader = brain->target;
-    return static_cast<Unit*>(leader);
+    if (auto* mode = brain->FindModeOf<PlayerMode>(); mode && mode->leader) return mode->leader;
+    return brain->action == AIBrain::kActionFollow ? UnitOrNull(brain->target) : nullptr;
 }
 } // namespace
 
@@ -889,10 +887,8 @@ void PlayerMode::AddPartyTargets(AIBrain* brain, UnitList* targets) {
         ++node;
         if (other == unit || other->player != unit->player) continue;
         AIBrain* theirs = &other->ServerController()->brain;
-        auto* foe = static_cast<Unit*>(theirs->target.Get());
-        if (!foe || foe->player == unit->player || theirs->action != AIBrain::kActionAttack ||
-            foe->GetClassId() != ClassId::Unit)
-            continue;
+        Unit* foe = UnitOrNull(theirs->target.Get());
+        if (!foe || foe->player == unit->player || theirs->action != AIBrain::kActionAttack) continue;
         if (lib::Contains(*targets, foe)) continue;
         targets->push_back(foe);
     }
@@ -1081,7 +1077,14 @@ void AIBrain::UpdateFollow() {
     float farSq = g_logicSettings.followMaxDist * g_logicSettings.followMaxDist;
     Unit* self = owner->unit;
     float nearSq = g_logicSettings.followMinDist * g_logicSettings.followMinDist;
-    auto* leader = static_cast<Unit*>(target.Get());
+    // A script may name another object as the leader (Follow): it ends the following like a lost leader (the
+    // original read it as a unit).
+    Unit* leader = UnitOrNull(target.Get());
+    if (!leader) {
+        target.Reset();
+        action = kActionNone;
+        return;
+    }
     Vector3 toLeader = leader->localPosition - self->localPosition;
     int now = g_serverWorld.tick;
     float distance = std::sqrt(LengthSquared(toLeader));

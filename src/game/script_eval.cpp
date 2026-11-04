@@ -278,8 +278,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
     case ScriptFunction::GetLeverState: {
         EngineObject* o = objectArgs[0]->object;
         *result = 0.0f;
-        if (!o || o->GetClassId() != ClassId::Lever) return;
-        *result = static_cast<float>(static_cast<Lever*>(o)->state);
+        if (Lever* lever = LeverOrNull(o)) *result = static_cast<float>(lever->state);
         return;
     }
     case ScriptFunction::GetObjectID: {

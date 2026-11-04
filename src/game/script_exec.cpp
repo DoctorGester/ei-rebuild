@@ -75,8 +75,7 @@ UnitServer* UnitStateArg(const SSCCmd* cmd) {
 }
 
 Lever* LeverArg(const SSCCmd* cmd) {
-    EngineObject* object = Arg(cmd, 0);
-    return object && object->GetClassId() == ClassId::Lever ? static_cast<Lever*>(object) : nullptr;
+    return LeverOrNull(Arg(cmd, 0));
 }
 
 ScriptParticleSource* FindParticle(Script* script, int id) {
