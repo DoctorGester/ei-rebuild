@@ -169,8 +169,8 @@ void UnitServer::UseItemCharge(Item* item, float cost) {
 }
 
 bool UnitServer::Heal(float amount) {
-    stats.Heal(ServerStatsOf(unit), amount);
-    stats.Recompute(ServerStatsOf(unit), unit);
+    stats.Heal(&unit->Vitals(), amount);
+    stats.Recompute(&unit->Vitals(), unit);
     unit->MarkChanged(NetField::Vitals);
     unit->MarkChanged(NetField::Stats);
     console::EndLine(kCombatLog << "Unit " << static_cast<long>(unit->id) << " was healed");

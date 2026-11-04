@@ -71,7 +71,7 @@ void UnitServer::FinishCast() {
         UseItemCharge(carrier, cost);
     } else if (unit->player) {
         float cost = spell->manaCost;
-        UnitVitals* vitals = ServerStatsOf(unit);
+        UnitVitals* vitals = &unit->Vitals();
         float needed = stats.Period20() * cost;
         float maximum;
         maximum = vitals->maxMana;

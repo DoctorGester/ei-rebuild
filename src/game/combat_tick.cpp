@@ -26,13 +26,13 @@
 namespace {
 constexpr float kPointOne = 0.1f;
 constexpr float kNearPoint = 0.09f;
-constexpr float kShort = 0.999f;
-constexpr float kLong = 0.001f;
+constexpr float kBlendGoal = 0.999f;     // the chase point: this much of the goal ...
+constexpr float kBlendSelf = 0.001f;     // ... and this much of the unit's own place
+constexpr float kCloseEnoughSq = 0.001f;
 constexpr float kFive = 5.0f;
 constexpr float kFifteen = 15.0f;
 constexpr float kArrived = 0.02f;
 constexpr float kMinClosing = 0.1f;   // the slowest closing speed
-constexpr float kFar = 1000000.0f;                         // 1e6: no limit for a path
 
 constexpr int kModeStop = 4;
 constexpr int kModeWalk = 1;
@@ -172,14 +172,14 @@ bool UnitServer::StartMove() {
     std::vector<Unit*> lifted = LiftNearby(action.point, action.source != 0);
     AIMap* map = &ServerWorld()->aiMap;
     unit->altPassCosts = map->InWaterAt(unit->localPosition);
-    bool found = PathTo(action.point, kFar);
+    bool found = PathTo(action.point, kNoPathLimit);
     for (Unit* other : lifted) world->aiMap.sectorMap.Add(other);
     bool arrived = false;
     if (action.param) {
         action.param = 0;
         bool close = false;
         if (!found) {
-            close = DistanceSquaredXY(action.point, unit->localPosition) < kLong;
+            close = DistanceSquaredXY(action.point, unit->localPosition) < kCloseEnoughSq;
         }
         if (close) arrived = true;
         else ReportPath(&motion, found);
@@ -479,7 +479,7 @@ void UnitServer::ApproachTarget() {
         if (state == UnitState::Idle) {
             if (DistanceSquaredXY(goal, motion.goal) <= kNearPoint) return;
         }
-        if (PathTo(goal, kFar)) {
+        if (PathTo(goal, kNoPathLimit)) {
             const Vector3 heading = WithZ(kHalfScale * motion.target, 0.0f);
             if (DistanceSquaredXY(heading, goal) <= kNearPoint) return;
             if (CanReachAndPlanFrom(&action, heading)) return;
@@ -572,7 +572,7 @@ void UnitServer::ApproachTarget() {
     aiMap->refreshUnits = false;
 
     g_serverWorld.aiMap.sectorMap.Remove(chased);
-    const Vector3 point = WithZ(XY(unit->localPosition) * kLong + XY(goal) * kShort, goal.z);
+    const Vector3 point = WithZ(XY(unit->localPosition) * kBlendSelf + XY(goal) * kBlendGoal, goal.z);
     if (!PathTo(point, patience))
         stoodBlocked = 1;
     g_serverWorld.aiMap.sectorMap.Add(chased);

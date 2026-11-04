@@ -127,7 +127,7 @@ void UnitServer::StopAction() {
     state = UnitState::Stopped;
     unit->UpdateSizeClass();
     DropEffectObject();
-    OrderPlanReset(&currentPlan);   // SetSize(0, -1) instead of the free, like the original
+    currentPlan.Reset();   // SetSize(0, -1) instead of the free, like the original
     StandStill();
     action.Reset();
     action2.Reset();

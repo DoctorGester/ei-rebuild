@@ -77,6 +77,10 @@ struct AnimationSteps {
     int extra = -1;
 };
 
+// OrderPlan::rangeSq of no plan, and the limit of a path search that has none (SendPathMessage takes its bits).
+inline constexpr float kNoPlanRange = 1e38f;
+inline constexpr float kNoPathLimit = 1e6f;
+
 // The plan of an order: its animation, when it starts and ends, and what it aims at.
 struct OrderPlan {
     AnimationSteps animation;
@@ -87,16 +91,15 @@ struct OrderPlan {
     std::uint8_t isCast;
     int hitLocation;            // the body location the attack aims at (1 by default)
     std::uint8_t notSkill;      // order source != 6
-    int castKind;               // 8; for a cast: 1 (spell kind 0x28), 0 (0x29) or the
-                                // spell prototype's school
+    SpellSchool castKind;       // None; for a cast: Lightning (spell kind 0x28), Fire (0x29) or the spell
+                                // prototype's school
     Vector3 direction;          // from the unit to the target
 
-// Takes `steps` as the animation from `start` for `duration` ticks; the other fields are reset to
-// OrderPlanReset's values.
+    // The plan of nothing: no animation, target or range; the direction stays.
+    void Reset();
+    // Takes `steps` as the animation from `start` for `duration` ticks; the other fields are reset.
     void TakeSteps(AnimationSteps steps, int start, int duration);
 };
-
-void OrderPlanReset(OrderPlan* plan);
 
 class WorldServer;
 // Whether the spell may hit: spells whose prototype has needsSight need a line of sight of at least 0.1 from

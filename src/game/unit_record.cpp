@@ -40,7 +40,7 @@ void UnitRecord::ApplyTo(Unit* target) {
     }
 
     target->ReleaseAllItems();
-    UnitVitals& vitals = target->ServerCompanion()->vitals;
+    UnitVitals& vitals = target->Vitals();
     UnitStats& s = target->ServerController()->stats;
     vitals.hitPoints = static_cast<float>(r.hitPoints);
     vitals.maxHitPoints = static_cast<float>(r.maxHitPoints);

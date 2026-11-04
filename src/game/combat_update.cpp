@@ -33,8 +33,6 @@ void UpdateMotion(UnitServer*);
 namespace {
 
 constexpr std::uint32_t kFlagSeen8000 = 0x8000;       // Unit flags, cleared every update
-constexpr int kCastEffectKind = 0x4A;                 // the cast's particle effect
-constexpr float kNoRange = 1e38f;   // 1e38: OrderPlan.rangeSq of no plan
 constexpr int kBoredTicks = 500;                      // updates before a bored remark may come
 constexpr std::uint32_t kBoredChance = 0x3E9;         // one in 1001
 
@@ -98,8 +96,8 @@ void UnitServer::DropEffectObject() {
 bool UnitServer::RunTick() {
     Unit* self = unit;
     if (self->dead == 0) {
-        if (ServerStatsOf(self)->Regenerate(&stats, self, action.kind != UnitOrderKind::Idle ? 1 : 0)) {
-            stats.Recompute(ServerStatsOf(unit), unit);
+        if (self->Vitals().Regenerate(&stats, self, action.kind != UnitOrderKind::Idle ? 1 : 0)) {
+            stats.Recompute(&unit->Vitals(), unit);
             unit->MarkChanged(NetField::Vitals);
             unit->MarkChanged(NetField::Stats);
         }
@@ -392,7 +390,7 @@ void UnitServer::EndOrder(char abort) {
         }
         SetState(UnitState::Animating);
     }
-    OrderPlanReset(&currentPlan);
+    currentPlan.Reset();
     StandStill();
 }
 
@@ -408,9 +406,9 @@ void UnitServer::TickAction() {
         PlaySteps(&plan.animation);
         if (plan.isCast != 0 && unit->GetPrototypeModel()->castEffect != 0) {
             auto* objects = g_serverWorld.timedObjectManager;
-            auto* particle = objects->CreateObjectAs<EffectParticle>(kCastEffectKind, -1);
+            auto* particle = objects->CreateObjectAs<EffectParticle>(ClassId::EffectParticle, -1);
             static constexpr int kEffects[8] = {static_cast<int>(ParticleType::CastingFire), static_cast<int>(ParticleType::CastingElectricity), static_cast<int>(ParticleType::CastingAcid), static_cast<int>(ParticleType::CastingIllusion), static_cast<int>(ParticleType::CastingDivination), static_cast<int>(ParticleType::CastingEnchantment), static_cast<int>(ParticleType::CastingHealing), static_cast<int>(ParticleType::CastingDomination)};
-            int kind = plan.castKind;
+            int kind = static_cast<int>(plan.castKind);
             particle->type = (kind >= 0 && kind <= 7) ? kEffects[kind] : static_cast<int>(ParticleType::Casting);
             particle->size = 1.0f;
             particle->SetAttachedTo(unit->id);
@@ -427,15 +425,7 @@ void UnitServer::TickAction() {
         return;
     }
     FinishAction(plan.hitLocation);
-    plan.animation = {};
-    plan.targetId = -1;
-    plan.endTime = 0;
-    plan.startTime = 0;
-    plan.hitLocation = 1;
-    plan.rangeSq = kNoRange;
-    plan.isCast = 0;
-    plan.notSkill = 0;
-    plan.castKind = 8;
+    plan.Reset();
     if (state == UnitState::Acting) {
         state = UnitState::Animating;
         unit->UpdateSizeClass();

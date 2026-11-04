@@ -30,12 +30,10 @@ constexpr float kFifteen = 15.0f;
 constexpr float kPercent = 0.01f;
 constexpr float kNearSq = 10.0f;
 constexpr float kFrontCosine = 0.5f;
-constexpr float kNoRange = 1e10f;     // point orders with pointIsUseSpot
-constexpr float kFar = 1e38f;         // the plan's initial range
+constexpr float kUseSpotRange = 1e10f;     // point orders with pointIsUseSpot
 constexpr float kBestStart = 1e30f;
 
 constexpr std::uint32_t kSkillSource = 6;
-constexpr int kCastKindNone = 8;
 
 // a > b (false for a NaN).
 bool Greater(float a, float b) { return a > b; }
@@ -106,14 +104,15 @@ int CastValue(UnitServer* self, Spell* spell) {
 void FillCastKind(OrderPlan* plan, Spell* spell) {
     plan->isCast = 1;
     if (!spell) {
-        plan->castKind = kCastKindNone;
+        plan->castKind = SpellSchool::None;
         return;
     }
     if (spell->targetFlags & SpellTargetFlag::AtPoint) plan->targetId = -1;
     SpellType type = spell->Type();
-    if (type == SpellType::RickMagic) plan->castKind = 1;
-    else if (type == SpellType::CurseMagic) plan->castKind = 0;
-    else plan->castKind = spell->GetPrototype()->school;
+    // Rick magic (a fire arrow) casts as lightning and curse magic (lightning) as fire: kept as is, it may be a swap.
+    if (type == SpellType::RickMagic) plan->castKind = SpellSchool::Lightning;
+    else if (type == SpellType::CurseMagic) plan->castKind = SpellSchool::Fire;
+    else plan->castKind = static_cast<SpellSchool>(spell->GetPrototype()->school);
 }
 
 } // namespace
@@ -202,15 +201,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
         if (limitSq < apartSq) return false;
     }
 
-    plan->animation = {};
-    plan->hitLocation = 1;
-    plan->targetId = -1;
-    plan->rangeSq = kFar;
-    plan->endTime = 0;
-    plan->startTime = 0;
-    plan->isCast = 0;
-    plan->notSkill = 0;
-    plan->castKind = kCastKindNone;
+    plan->Reset();
 
     // The animation and its duration (the builders always set it; the original's is not initialised).
     int duration = 0;
@@ -228,7 +219,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     if (duration <= 0) duration = 1;
 
     float range = ActionDistance(order);
-    if (order->pointIsUseSpot) range = kNoRange;
+    if (order->pointIsUseSpot) range = kUseSpotRange;
 
     // The unit's heading and how many ticks a half turn takes.
     Vector3 axis = unit->localRotation.AxisY();

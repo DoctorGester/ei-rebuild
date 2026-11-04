@@ -32,15 +32,12 @@ namespace {
 constexpr int kModeRun = 2;
 constexpr std::uint32_t kKeyIdle = kAnimationSpecialIdleKey;
 constexpr std::uint8_t kEmoteStand = 0xFE;   // the idle "emote" of a walking hero
-constexpr float kNoRange = 1e38f;
-constexpr std::uint32_t kFarBits = 0x49742400u;                 // 1e6
+constexpr std::uint32_t kNoPathLimitBits = std::bit_cast<std::uint32_t>(kNoPathLimit);
 
 // --- Helpers --------------------------------------------------------------------------------------
 
 constexpr float kHalfCell = 0.5f;
 
-
-UnitVitals& ServerVitals(Unit* unit) { return unit->ServerCompanion()->vitals; }
 
 // The unit's movement mode from a record: 3 while it was mode 3 (`wasMode3`), else its mode.
 int UnitModeOf(const MoveModeState& state) { return (state.wasMode3 & 1) ? 3 : state.mode; }
@@ -269,7 +266,7 @@ void UnitServer::UpdateSneak() {
     }
     int allowed = unit->player ? unit->player->godMode : 1;
     if (moveMode.mode != kModeRun || moveMode2.wasMode3 == 0) return;
-    if (allowed == 0 && ServerVitals(unit).mana <= 0.0f) return;   // the breath
+    if (allowed == 0 && unit->Vitals().mana <= 0.0f) return;   // the breath
     if (!world->aiMap.StandsOnCheapCell(unit)) return;
     if (running != 0) return;
     sneakWait = 0;
@@ -417,7 +414,7 @@ void UnitServer::ReportPath(AIPath* path, char partial) {
     LocalMotionOrder end;
     AckKind message;
     if (!partial) {
-        if (self->player) self->player->Server()->SendPathMessage(self, &end, goal, 3, 1, kFarBits);
+        if (self->player) self->player->Server()->SendPathMessage(self, &end, goal, 3, 1, kNoPathLimitBits);
         if (brain.LeaderOrFollowed()) return;
         self = unit;
         if (!self->player) return;
@@ -429,7 +426,7 @@ void UnitServer::ReportPath(AIPath* path, char partial) {
         float left = LengthSquared2D(half * path->target - XY(goal));
         bool stillFar = reached * 0.010000001f > left;   // unordered: not far
         if (self->player)
-            self->player->Server()->SendPathMessage(self, &end, goal, 0, stillFar ? 0 : 1, kFarBits);
+            self->player->Server()->SendPathMessage(self, &end, goal, 0, stillFar ? 0 : 1, kNoPathLimitBits);
         if (brain.LeaderOrFollowed()) return;
         self = unit;
         if (!self->player) return;
@@ -463,16 +460,7 @@ void UnitServer::ResetController() {
     animationHeld = 0;
     queue = {};
     motion.Clear();
-    OrderPlan& plan = currentPlan;
-    plan.animation = {};
-    plan.targetId = -1;
-    plan.endTime = 0;
-    plan.startTime = 0;
-    plan.hitLocation = 1;
-    plan.rangeSq = kNoRange;
-    plan.isCast = 0;
-    plan.notSkill = 0;
-    plan.castKind = 8;
+    currentPlan.Reset();
     std::memset(&pendingHit, 0, 0x3C);
     pendingHit.multiplier = 1.0f;
     savedQueue = {};

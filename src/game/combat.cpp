@@ -75,7 +75,8 @@ constexpr float kIdleMode1Factor0 = kPointTwo;                      // 0.2
 constexpr float kIdleMode3Scale = 2.0f;
 constexpr float kIdleMode3Factor1 = 0.5f;
 constexpr float kCastingFactor2 = 1.5f;
-constexpr float kSpeedFast = kSizeMedium;                           // 1.2
+constexpr float kSpeedFast = 1.2f;
+constexpr float kSpeedMedium = kPointSix;                           // 0.6
 constexpr float kSpeedSlow = 0.15f;
 
 
@@ -83,8 +84,6 @@ float DifficultyAttackFactor() {
     int difficulty = options::g_options.difficulty;
     return g_logicSettings.attack[difficulty];
 }
-
-float ServerMana(const Unit* unit) { return unit->ServerCompanion()->vitals.mana; }
 
 std::uint8_t PlayerGodMode(const Player* player) { return player->godMode; }
 
@@ -222,7 +221,7 @@ bool UnitServer::CanCast(const AIOrder* order) {
     if (!spell) return false;
     if (unit->player != nullptr) {
         float cost = SpellCost(spell);
-        float mana = ServerMana(unit);
+        float mana = unit->Vitals().mana;
         float needed = stats.Period20() * cost;
         if (needed > mana) return false;
     }
@@ -488,7 +487,7 @@ void UnitServer::TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) {
         unit->MarkChanged(NetField::Stats);
         TriggerItemSpells(1);
         Item* weapon = attacker ? attacker->GetWeapon(attacker->activeWeapon) : nullptr;
-        if (stats.ApplyHit(unit, ServerStatsOf(unit), hit, weapon)) {
+        if (stats.ApplyHit(unit, &unit->Vitals(), hit, weapon)) {
             if (attacker && !HasElementalDamage(hit)) {
                 if (attacker->MapType() != MapObjectType::Hero) {
                     LastDamageSource(unit) = static_cast<std::int16_t>(attacker->prototypeId + 0x10);
@@ -501,7 +500,7 @@ void UnitServer::TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) {
             } else {
                 LastDamageSource(unit) = 7;
             }
-            stats.Recompute(ServerStatsOf(unit), unit);
+            stats.Recompute(&unit->Vitals(), unit);
             unit->MarkChanged(NetField::Vitals);
             unit->MarkChanged(NetField::Stats);
             if (!dead) {
@@ -579,7 +578,7 @@ void UnitServer::UpdateMoveFactors() {
     }
     float speed = unit->MoveSpeed();
     if (speed > kSpeedFast) speedClass = 0;
-    else if (speed > kSizeSmall) speedClass = 1;
+    else if (speed > kSpeedMedium) speedClass = 1;
     else if (speed > kPointThree) speedClass = 3;
     else if (speed > kSpeedSlow) speedClass = 7;
     else speedClass = 15;
@@ -587,7 +586,6 @@ void UnitServer::UpdateMoveFactors() {
 
 namespace {
 const char* const kServerName = "CUnitServer";
-constexpr float kNoRange = 1e38f;
 } // namespace
 
 // --- UnitServer's lifetime, class name and id -----------------------------------------------------
@@ -605,14 +603,21 @@ void UnitServer::MoveFactorsChanged() { UpdateMoveFactors(); }
 // --- OrderPlan ----------------------------------------------------------------------------------
 
 // Unreached in the shipped game: only the use-item order plans with it, and nothing sets that order.
-void OrderPlan::TakeSteps(AnimationSteps steps, int start, int duration) {
+void OrderPlan::Reset() {
+    animation = {};
     targetId = -1;
-    startTime = start;
+    endTime = 0;
+    startTime = 0;
     hitLocation = 1;
-    rangeSq = kNoRange;
+    rangeSq = kNoPlanRange;
     isCast = 0;
     notSkill = 0;
-    castKind = 8;
+    castKind = SpellSchool::None;
+}
+
+void OrderPlan::TakeSteps(AnimationSteps steps, int start, int duration) {
+    Reset();
+    startTime = start;
     endTime = start + duration;
     animation = std::move(steps);
 }
@@ -708,7 +713,6 @@ namespace {
 // The defence factor of units without a player, per difficulty (options::g_options.difficulty).
 inline const float* DefenceFactors() { return g_logicSettings.defence; }
 
-UnitVitals& VitalsOf(Unit* unit) { return unit->ServerCompanion()->vitals; }
 
 
 } // namespace
@@ -716,8 +720,8 @@ UnitVitals& VitalsOf(Unit* unit) { return unit->ServerCompanion()->vitals; }
 void UnitServer::RefreshVitals(bool withHitPoints) {
     int now = OwningWorld()->tick;
     float oldRate = stats.rate;
-    if (withHitPoints) stats.RecomputeHitPoints(&VitalsOf(unit), unit);
-    stats.Recompute(&VitalsOf(unit), unit);
+    if (withHitPoints) stats.RecomputeHitPoints(&unit->Vitals(), unit);
+    stats.Recompute(&unit->Vitals(), unit);
     if (nextAttackTime > now) {
         float scaled = (static_cast<float>(nextAttackTime - now) * oldRate) / stats.rate;
         nextAttackTime = lib::RoundEven(scaled) + now;
@@ -726,7 +730,7 @@ void UnitServer::RefreshVitals(bool withHitPoints) {
 }
 
 void UnitServer::UpdateProtection() {
-    stats.PackBodyProtection(unit, &VitalsOf(unit), &protection);
+    stats.PackBodyProtection(unit, &unit->Vitals(), &protection);
     float factor = unit->player ? 1.0f : DefenceFactors()[options::g_options.difficulty];
     ItemWeapon* weapon = unit->GetWeapon(unit->activeWeapon);
     if (unit->player && weapon) {

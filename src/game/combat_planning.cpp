@@ -28,7 +28,6 @@
 namespace {
 
 constexpr int kMotionPath = 2;                    // MotionOrder kind: follow the steps
-constexpr float kFar = 1000000.0f;   // 1e6
 constexpr int kNoSpot = 0x7FFFFFFF;
 
 // --- Helpers --------------------------------------------------------------------------------------
@@ -77,7 +76,7 @@ bool UnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
         for (int i = 0; i < std::ssize(spots); ++i) {
             spot = spots[i];
             path.Clear();
-            if (!map->FindPath(unit, spot, &path, kFar, 0.0f)) continue;
+            if (!map->FindPath(unit, spot, &path, kNoPathLimit, 0.0f)) continue;
             // The path must end within 0.2 of the spot.
             float half = kHalfCell;
             float limitSquared = 0.2f * 0.2f;   // rounded to 24 bits
@@ -149,20 +148,20 @@ float UnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder) 
 bool UnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
     Player* player = unit->player;
     if (order->kind != UnitOrderKind::Use && !player) return true;
-    float best = kFar;
+    float best = kNoPathLimit;
     LocalMotionOrder route;
     Vector3 point;
     if (!order->target) point = order->point;
     else point = order->target->AimPoint();
     bool ok;
     if (!FindUseSpot(order, &route)) {
-        PathMessage(unit, &route, point, 3, 1, kFar);
+        PathMessage(unit, &route, point, 3, 1, kNoPathLimit);
         ok = false;
     } else {
         if (!player) return true;
         if (CanReachAndPlan(order)) {
             // The action can be done from here.
-            PathMessage(unit, &route, point, 3, 0, kFar);
+            PathMessage(unit, &route, point, 3, 0, kNoPathLimit);
             if (IsShoutable(shout) && unit->player) PlayerMessage(unit->player->Server(), unit, shout);
             return true;
         }
@@ -186,7 +185,7 @@ bool UnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
             path.mayExcludeRegions = unit->player == nullptr;
             std::uint32_t savedAltPassCosts = unit->altPassCosts;
             unit->altPassCosts = 1;
-            bool found = MapOf(world)->FindPath(unit, point, &path, kFar, 0.0f);
+            bool found = MapOf(world)->FindPath(unit, point, &path, kNoPathLimit, 0.0f);
             unit->altPassCosts = savedAltPassCosts;
             if (!found) path.StandStill(unit);
             if (target) {
@@ -232,7 +231,7 @@ void UnitServer::PlanMove(const Vector3& point, int moving, int run) {
     path.mayExcludeRegions = unit->player == nullptr;
     std::uint32_t savedAltPassCosts = unit->altPassCosts;
     unit->altPassCosts = flag & 0xFF;
-    bool found = MapOf(world2)->FindPath(unit, point, &path, kFar, 0.0f);
+    bool found = MapOf(world2)->FindPath(unit, point, &path, kNoPathLimit, 0.0f);
     unit->altPassCosts = savedAltPassCosts;
     if (running) {
         sectors->Remove(unit);

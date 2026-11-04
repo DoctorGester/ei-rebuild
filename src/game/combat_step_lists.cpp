@@ -8,7 +8,6 @@
 
 namespace {
 constexpr std::uint8_t kNone = 0xFF;    // AnimationStep::animation / variant: none (a pause)
-constexpr std::uint32_t kNoRange = 0x7E967699u;   // 1e38: OrderPlan::rangeSq of no plan
 
 } // namespace
 
@@ -66,14 +65,3 @@ void AnimationSteps::Save(ByteStream* stream) const {
     stream->WriteValue(last);
 }
 
-void OrderPlanReset(OrderPlan* plan) {
-    plan->animation = {};
-    plan->targetId = -1;
-    plan->endTime = 0;
-    plan->startTime = 0;
-    plan->hitLocation = 1;
-    plan->rangeSq = std::bit_cast<float>(kNoRange);
-    plan->isCast = 0;
-    plan->notSkill = 0;
-    plan->castKind = 8;
-}

@@ -905,6 +905,7 @@ public:
     std::vector<std::string> strings;
 };
 inline MapObjectServer* MapObject::ServerCompanion() const { return companion ? companion->ServerSide() : nullptr; }
+inline UnitVitals& MapObject::Vitals() const { return ServerCompanion()->vitals; }
 
 class ParticleSource;
 
