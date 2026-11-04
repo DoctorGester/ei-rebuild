@@ -211,6 +211,8 @@ void LightUniforms(SceneLightParams* params);
 // The kept point lights (`counts[0]` of them in pointAt / pointColour). SceneLightIndex: the kept light at
 // `position` exactly (the same Light's), -1 none.
 const SceneLightParams& KeptSceneLight();
+// The client's time the scene's light was handed over with (SceneLights::clientTicks).
+double KeptClientTicks();
 // The kept light `k` casts point shadows (ScenePointLight::shadows: not an object's own light).
 bool SceneLightCastsShadows(int k);
 int SceneLightIndex(const Vector3& position);
@@ -450,6 +452,11 @@ struct TerrainGroup {
     std::uint32_t first, count;     // its vertices in the page's
 };
 bool CreateTerrainShader();
+// The water's ripple map (render_water.cpp), made at the start (false: it could not be), bound with every terrain
+// batch; RippleOffsets, its two layers' offsets at the client time (TerrainFsParams::ripples).
+bool MakeRippleMap();
+gpu::TextureBinding RippleMap();
+void RippleOffsets(float out[4]);
 void UploadTerrain(const Frame& frame);
 void DrawTerrainBatch(const Frame& frame, const TerrainBatch& batch);
 std::span<const TerrainGroup> TerrainPieceGroups(const TerrainPiece& piece);

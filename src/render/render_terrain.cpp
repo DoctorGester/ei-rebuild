@@ -54,14 +54,16 @@ std::unordered_map<const SectorData*, SectorChanges> g_changes;
 
 // A page vertex's geometry; its colours (colour, specular) are a stream of their own. The record's
 // normal and, on the ground layer, the light lost under the water (-1 on the water layer); the GPU lights
-// both layers.
+// both layers. On the water layer the depth over the ground (the ground record's: negative where the ground
+// is above the water), 0 on the ground layer.
 struct PageVertex {
     Vector3 position;
     float u, v;
     Vector3 normal;
     float loss;
+    float depth;
 };
-static_assert(sizeof(PageVertex) == 36);
+static_assert(sizeof(PageVertex) == 40);
 
 // The ground record `index` lies under the sector's water (a water material above it, the depth not negative):
 // its water record, else null.
@@ -74,8 +76,10 @@ const SectorVertex* WaterAbove(const SectorData* s, int index) {
 
 PageVertex MakeVertex(const SectorData* s, int index, const TileVertex& e) {
     const SectorVertex& record = s->records[index];
-    PageVertex v{s->vertices[index], e.u, e.v, record.normal, -1.0f};
-    if (index < kWaterRecords) {
+    PageVertex v{s->vertices[index], e.u, e.v, record.normal, -1.0f, 0.0f};
+    if (index >= kWaterRecords) {
+        v.depth = s->records[index - kWaterRecords].depth;
+    } else {
         v.loss = 0.0f;
         if (const SectorVertex* water = WaterAbove(s, index)) {
             const terrain::Terrain* owner = s->owner;
@@ -403,13 +407,14 @@ gpu::PipelineDesc TerrainDesc(const PassState& s, int samples) {
     p.bufferCount = 2;
     p.buffers[0].stride = sizeof(PageVertex);
     p.buffers[1].stride = kColourPairBytes;
-    p.attributeCount = 6;
+    p.attributeCount = 7;
     p.attributes[0] = {program::kAttrPos, 0, gpu::VertexFormat::Float3, 0};
     p.attributes[1] = {program::kAttrCol, 1, gpu::VertexFormat::UByte4Norm, 0};
     p.attributes[2] = {program::kAttrSpec, 1, gpu::VertexFormat::UByte4Norm, 4};
     p.attributes[3] = {program::kAttrUv, 0, gpu::VertexFormat::Float2, 12};
     p.attributes[4] = {program::kAttrNormal, 0, gpu::VertexFormat::Float3, 20};
     p.attributes[5] = {program::kAttrLoss, 0, gpu::VertexFormat::Float, 32};
+    p.attributes[6] = {program::kAttrDepth, 0, gpu::VertexFormat::Float, 36};
     ApplyPassState(p, s);
     p.samples = samples;
     AddDepthCopy(p);
@@ -614,6 +619,8 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerTex, {&texture, 1});
     BindShadowMap(program::kSamplerShadowMap);
     BindPointShadows(program::kSamplerPointShadowMap);
+    const gpu::TextureBinding ripples = RippleMap();
+    gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerRipples, {&ripples, 1});
     CountBindings(texture.texture);
     // The ground receives the objects' shadows; the water does not (the ground under it does).
     bool receives = !batch.water && mode < 1.5f && !f.shadow.lights.empty();
@@ -630,6 +637,7 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     fs.fog[2] = (f.fogColour & 0xFF) / 255.0f;
     fs.flags[0] = mode;
     fs.flags[1] = f.fogEnabled ? 1.0f : 0.0f;
+    RippleOffsets(fs.ripples);
     SceneLightParams light;
     LightUniforms(&light);
     gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockTerrainVsParams, vs);
