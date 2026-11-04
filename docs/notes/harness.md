@@ -91,7 +91,9 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
 - `speed <ms>` sets the real time per world update (game default 55); on the virtual clock it speeds nothing up.
 - `capture <name>` writes the next presented frame to `frames\<name>.bmp` in the run's folder; `freeze` / `unfreeze`
   hold the game's clocks and camera around captures; `samecapture <a> <b>` requires two captures to match,
-  `diffcapture <a> <b> <least> <most>` that they differ in that share of the pixels; `blink faces|open|close` loads the
+  `diffcapture <a> <b> <least> <most>` that they differ in that share of the pixels; `printlight <with> <without>
+  <least> <most>` bounds the brightness of what one capture draws over the other (the ground prints, `decals off`)
+  over that of what it covers (render_shadows_decals); `blink faces|open|close` loads the
   units' faces or shows every face's open / closed state (render_blink). `skin <unit> <first> [<second>]` gives a
   spawned unit's client figure the textures a map placement names (AddUnitToServer names none: untextured, world.md),
   `unitskins <unit> <first> <second>` requires the client unit's texture names (party_join_skin),
