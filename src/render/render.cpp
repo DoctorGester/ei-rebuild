@@ -17,6 +17,7 @@
 #include <xmmintrin.h>
 #endif
 
+#include <algorithm>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
@@ -88,11 +89,24 @@ int g_deviceSamples = 1;   // the most samples up to kSmoothSamples the device d
 unsigned g_mxcsr = 0;
 #endif
 
+// The largest power of two up to `samples`, at most kSmoothSamples.
+int MsaaLevel(int samples) {
+    int level = 1;
+    while (level * 2 <= samples && level * 2 <= kSmoothSamples) level *= 2;
+    return level;
+}
+
+// The most samples up to kSmoothSamples the device draws the frame with: the frame's formats and the depth copy's.
+// `maxSamples(colour, depth)`: the most a target of those formats takes (gpu::MaxSamples, or a DeviceLimits').
+template <class MaxSamples>
+int DeviceSamples(MaxSamples maxSamples) {
+    return (std::min)(maxSamples(kColourFormat, kDepthFormat), maxSamples(kDepthCopyFormat, gpu::Format::None));
+}
+
 bool CreateDevice() {
     if (!gpu::Start()) return false;
-    g_deviceSamples = gpu::MaxSamples(kColourFormat, kDepthFormat, kSmoothSamples);
-    const int copySamples = gpu::MaxSamples(kDepthCopyFormat, gpu::Format::None, kSmoothSamples);
-    if (copySamples < g_deviceSamples) g_deviceSamples = copySamples;
+    g_deviceSamples = DeviceSamples(
+        [](gpu::Format colour, gpu::Format depth) { return gpu::MaxSamples(colour, depth, kSmoothSamples); });
 #if defined(_M_X64) || defined(__x86_64__)
     g_mxcsr = _mm_getcsr() & 0xFFC0u;
 #endif
@@ -563,9 +577,33 @@ void Configure(const char* spec) {
     ParseSpec(combined.c_str());
 }
 
-void PrepareDevice() {
+// The pipelines the game always uses: with one sample for the frame target and the interface, with the world view's
+// samples (the render quality's `msaa`, fewer as the device draws) for the multisampled runs.
+void ListPipelines(const gpu::DeviceLimits& limits, int msaa, std::vector<gpu::PipelineDesc>& out) {
+    ListMeshPipelines(out, 1);
+    ListTerrainPipelines(out, 1);
+    ListBlitPipelines(out, 1);
+    ListUiPipelines(out, 1);
+    ListShadowPipelines(out);
+    ListComposePipelines(out);
+    ListPresentPipelines(out);
+    const int samples = (std::min)(msaa, DeviceSamples([&limits](gpu::Format colour, gpu::Format depth) {
+                                       return limits.MaxSamples(colour, depth, kSmoothSamples);
+                                   }));
+    if (samples > 1) {
+        ListMeshPipelines(out, samples);
+        ListTerrainPipelines(out, samples);
+        ListSmoothPipelines(out, samples);
+    }
+}
+
+void PrepareDevice(int msaa) {
     EnsureConfigured();
-    if (!g_started) gpu::PrepareInBackground();
+    if (g_started) return;
+    msaa = MsaaLevel(msaa);
+    gpu::PrepareInBackground({}, [msaa](const gpu::DeviceLimits& limits, std::vector<gpu::PipelineDesc>& out) {
+        ListPipelines(limits, msaa, out);
+    });
 }
 
 void BeginDeviceMeshTime() {
@@ -627,8 +665,7 @@ void EndShadowBuildTime() {
 void StartPresenting() { Start(); }
 
 void SetMsaa(int samples) {
-    int level = 1;   // the largest power of two up to `samples`, at most kSmoothSamples
-    while (level * 2 <= samples && level * 2 <= kSmoothSamples) level *= 2;
+    const int level = MsaaLevel(samples);
     if (level != g_msaa) ei::Log("render: msaa %d (asked %d)", level, samples);
     g_msaa = level;
 }

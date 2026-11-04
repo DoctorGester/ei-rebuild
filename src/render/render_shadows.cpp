@@ -195,7 +195,7 @@ void DepthOnly(gpu::PipelineDesc& p) {
     p.depthBiasSlope = 1.5f;
 }
 
-gpu::Pipeline CasterPipeline(bool cached) {
+gpu::PipelineDesc CasterDesc(bool cached) {
     namespace program = gpu_shaders::shadow_caster;
     gpu::PipelineDesc p;
     p.program = program::kIndex;
@@ -206,12 +206,12 @@ gpu::Pipeline CasterPipeline(bool cached) {
         p.attributes[p.attributeCount++] = {static_cast<std::uint8_t>(program::kAttrRow0 + k), kInstanceBuffer,
                                             gpu::VertexFormat::Float4, static_cast<std::uint16_t>(16 * k)};
     DepthOnly(p);
-    return gpu::MakePipeline(p, "ei-shadow-caster");
+    return p;
 }
 
 // The ground's casters: TerrainCasterVertex (position, normal), the light matrix in the vertex uniforms, the sun's
 // direction in the fragment ones.
-gpu::Pipeline TerrainCasterPipeline() {
+gpu::PipelineDesc TerrainCasterDesc() {
     namespace program = gpu_shaders::shadow_terrain;
     gpu::PipelineDesc p;
     p.program = program::kIndex;
@@ -221,26 +221,26 @@ gpu::Pipeline TerrainCasterPipeline() {
     p.attributes[0] = {program::kAttrPos, 0, gpu::VertexFormat::Float3, 0};
     p.attributes[1] = {program::kAttrNormal, 0, gpu::VertexFormat::Float3, 12};
     DepthOnly(p);
-    return gpu::MakePipeline(p, "ei-shadow-terrain");
+    return p;
 }
 
 // A full-screen pass into an RGBA32F texture (it reads its texture 0 with the point sampler).
-gpu::Pipeline RangePipeline(int program, const char* label) {
+gpu::PipelineDesc RangeDesc(int program) {
     gpu::PipelineDesc p;
     p.program = program;
     p.colour = gpu::Format::Rgba32Float;
-    return gpu::MakePipeline(p, label);
+    return p;
 }
 
 // The pipelines of the casters and the range passes, made at the first map (and tried once).
 bool MakeShadowPipelines() {
     if (!g_pipelinesTried) {
         g_pipelinesTried = true;
-        g_casterPipelines[0] = CasterPipeline(false);
-        g_casterPipelines[1] = CasterPipeline(true);
-        g_terrainCasterPipeline = TerrainCasterPipeline();
-        g_reducePipeline = RangePipeline(gpu_shaders::shadow_reduce::kIndex, "ei-shadow-cells");
-        g_dilatePipeline = RangePipeline(gpu_shaders::shadow_dilate::kIndex, "ei-shadow-range");
+        g_casterPipelines[0] = gpu::MakePipeline(CasterDesc(false), "ei-shadow-caster");
+        g_casterPipelines[1] = gpu::MakePipeline(CasterDesc(true), "ei-shadow-caster");
+        g_terrainCasterPipeline = gpu::MakePipeline(TerrainCasterDesc(), "ei-shadow-terrain");
+        g_reducePipeline = gpu::MakePipeline(RangeDesc(gpu_shaders::shadow_reduce::kIndex), "ei-shadow-cells");
+        g_dilatePipeline = gpu::MakePipeline(RangeDesc(gpu_shaders::shadow_dilate::kIndex), "ei-shadow-range");
         if (!g_casterPipelines[0] || !g_casterPipelines[1] || !g_terrainCasterPipeline || !g_reducePipeline ||
             !g_dilatePipeline)
             ei::Log("render: the shadow map's pipelines could not be created (see the gpu messages above)");
@@ -524,6 +524,15 @@ void FigureFronts(Frame& f) {
 // --- The hand-over ----------------------------------------------------------------------------------
 
 namespace detail {
+
+void ListShadowPipelines(std::vector<gpu::PipelineDesc>& out) {
+    out.push_back(CasterDesc(false));
+    out.push_back(CasterDesc(true));
+    out.push_back(TerrainCasterDesc());
+    out.push_back(RangeDesc(gpu_shaders::shadow_reduce::kIndex));
+    out.push_back(RangeDesc(gpu_shaders::shadow_dilate::kIndex));
+    out.push_back(PointShadowClearDesc());
+}
 
 bool WorldCamera(const Frame& f, Matrix4* clip, Vector3* eye) {
     const std::size_t firstGround = FirstGround(f);

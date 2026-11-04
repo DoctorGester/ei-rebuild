@@ -3,7 +3,7 @@
 // The renderer's GPU on SDL3's GPU API (docs/notes/renderer.md, "gpu.h"): the device (Direct3D 12 or Vulkan), the
 // window's swap chain, textures, buffers, samplers and pipelines, passes and draws, an upload ring for every write from
 // the CPU and downloads read once their commands are done. The renderer's files include this header and no SDL one.
-// Everything runs on the main thread but the device PrepareInBackground makes.
+// Everything runs on the main thread but the device PrepareInBackground makes and the pipelines made on it ahead.
 //
 // The commands go into one command buffer, the frame's, taken at the first command and sent by Submit (which presents
 // the swap chain's texture when one was taken). Writes and copies are recorded between passes, in order with the
@@ -14,9 +14,12 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <span>
+#include <vector>
 
 struct SDL_Window;
+struct SDL_GPUDevice;
 struct SDL_GPUTexture;
 struct SDL_GPUBuffer;
 struct SDL_GPUSampler;
@@ -31,10 +34,20 @@ struct DeviceOptions {
     const char* driver = nullptr;
     bool debug = false;   // the driver's validation layer, where the system has it
 };
+struct DeviceLimits;
+struct PipelineDesc;
+// Appends to `out` the descriptions the renderer always uses. Called once, on the thread that made the device, so it
+// touches nothing of the main thread's.
+using PipelineLister = std::function<void(const DeviceLimits& limits, std::vector<PipelineDesc>& out)>;
 // Starts making the device on a thread of its own; Start takes it. SDL's video is not started here (the platform
 // layer starts it after naming the window class): a driver that needs it (Vulkan) fails there without it, and Start
 // makes the device again on the calling thread.
-void PrepareInBackground(const DeviceOptions& options = {});
+// With a `lister`, the same thread makes the pipelines it names into the cache, shaders with them, before Start
+// returns (a first start otherwise pays for each at its first draw, hundreds of milliseconds in all). One that
+// cannot be made is skipped without a message: MakePipeline tries it again and says why. Nothing is shared with the
+// main thread: Start joins the thread, then takes the device and the pipelines (a device Start does not take, for
+// other options, goes with them).
+void PrepareInBackground(const DeviceOptions& options = {}, PipelineLister lister = nullptr);
 // The device made in the background, or one made now. False, with Error() saying why, when there is none.
 bool Start(const DeviceOptions& options = {});
 // Waits for the GPU, then releases the window, everything kept and the device. Handles released after it are ignored.
@@ -226,6 +239,13 @@ struct Pipeline {
 // shaders at its first use and kept until Stop. Empty (logged) when it cannot be made.
 Pipeline MakePipeline(const PipelineDesc& desc, const char* label = nullptr);
 int PipelineCount();
+
+// What a PipelineLister may ask of the device.
+struct DeviceLimits {
+    SDL_GPUDevice* device;
+    // The most samples up to `most` (a power of two) that a target of `colour` and `depth` (None: without) takes.
+    int MaxSamples(Format colour, Format depth, int most) const;
+};
 
 // ---- Passes and draws ---------------------------------------------------------------------------------------------
 

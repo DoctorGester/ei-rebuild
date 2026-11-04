@@ -34,20 +34,11 @@ bool g_debug = false;
 // Vulkan wants the level's own size there.
 bool g_wholeBlocks = false;
 bool g_videoStarted = false;   // SDL's video subsystem started here (SDL_GPU's Vulkan driver loads through it)
-int g_problems = 0;
-
-struct Prepared {
-    std::thread thread;
-    SDL_GPUDevice* device = nullptr;
-    std::string driver;
-    bool debug = false;
-    std::string error;
-};
-Prepared g_prepared;
+std::atomic<int> g_problems{0};   // also counted by the thread that makes pipelines ahead
 
 void Problem(const char* format, ...) SDL_PRINTF_VARARG_FUNC(1);
 void Problem(const char* format, ...) {
-    if (g_problems++ >= 50) return;
+    if (g_problems.fetch_add(1) >= 50) return;
     char text[512];
     va_list args;
     va_start(args, format);
@@ -533,15 +524,20 @@ void GiveBackDownloadBuffer(SDL_GPUTransferBuffer* buffer, std::uint32_t capacit
 
 // ---- Shaders, samplers and pipelines ------------------------------------------------------------------------------
 
-std::vector<SDL_GPUShader*> g_vertexShaders, g_fragmentShaders;   // by program, made at their first use
+// The programs' shaders by program, made at their first pipeline.
+struct ShaderPrograms {
+    std::vector<SDL_GPUShader*> vertex, fragment;
+};
+ShaderPrograms g_shaders;
 
-SDL_GPUShader* ProgramShader(int program, bool vertex) {
-    std::vector<SDL_GPUShader*>& shaders = vertex ? g_vertexShaders : g_fragmentShaders;
+// A made shader failing is a Problem unless `quiet`.
+SDL_GPUShader* ProgramShader(SDL_GPUDevice* device, ShaderPrograms& set, int program, bool vertex, bool quiet) {
+    std::vector<SDL_GPUShader*>& shaders = vertex ? set.vertex : set.fragment;
     shaders.resize(gpu_shaders::kProgramCount, nullptr);
     if (shaders[static_cast<std::size_t>(program)]) return shaders[static_cast<std::size_t>(program)];
     const gpu_shaders::Program& p = gpu_shaders::kPrograms[program];
     const gpu_shaders::Stage& s = vertex ? p.vertex : p.fragment;
-    const SDL_GPUShaderFormat formats = SDL_GetGPUShaderFormats(g_device);
+    const SDL_GPUShaderFormat formats = SDL_GetGPUShaderFormats(device);
     SDL_GPUShaderCreateInfo ci{};
     const gpu_shaders::Code* code = &s.spirv;
     ci.format = SDL_GPU_SHADERFORMAT_SPIRV;
@@ -558,8 +554,8 @@ SDL_GPUShader* ProgramShader(int program, bool vertex) {
     ci.stage = vertex ? SDL_GPU_SHADERSTAGE_VERTEX : SDL_GPU_SHADERSTAGE_FRAGMENT;
     ci.num_samplers = static_cast<Uint32>(s.samplers);
     ci.num_uniform_buffers = static_cast<Uint32>(s.uniformBlocks);
-    SDL_GPUShader* shader = SDL_CreateGPUShader(g_device, &ci);
-    if (!shader) Problem("the %s %s shader: %s", p.name, vertex ? "vertex" : "fragment", SDL_GetError());
+    SDL_GPUShader* shader = SDL_CreateGPUShader(device, &ci);
+    if (!shader && !quiet) Problem("the %s %s shader: %s", p.name, vertex ? "vertex" : "fragment", SDL_GetError());
     shaders[static_cast<std::size_t>(program)] = shader;
     return shader;
 }
@@ -621,6 +617,142 @@ const char* PipelineFault(const PipelineDesc& d) {
     return nullptr;
 }
 
+// `desc`'s pipeline made on `device` with `shaders`' programs; empty when it cannot be (a Problem unless `quiet`).
+// Touches nothing else, so the thread that made the device can run it before Start.
+Pipeline BuildPipeline(SDL_GPUDevice* device, ShaderPrograms& shaders, const PipelineDesc& desc, const char* label,
+                       bool quiet) {
+    if (const char* fault = PipelineFault(desc)) {
+        if (!quiet) Problem("pipeline %s: %s", label ? label : "", fault);
+        return {};
+    }
+    SDL_GPUShader* vs = ProgramShader(device, shaders, desc.program, true, quiet);
+    SDL_GPUShader* fs = ProgramShader(device, shaders, desc.program, false, quiet);
+    if (!vs || !fs) return {};
+    SDL_GPUVertexBufferDescription buffers[kMostVertexBuffers]{};
+    for (int i = 0; i < desc.bufferCount; ++i) {
+        buffers[i].slot = static_cast<Uint32>(i);
+        buffers[i].pitch = desc.buffers[i].stride;
+        buffers[i].input_rate =
+            desc.buffers[i].perInstance ? SDL_GPU_VERTEXINPUTRATE_INSTANCE : SDL_GPU_VERTEXINPUTRATE_VERTEX;
+    }
+    SDL_GPUVertexAttribute attributes[kMostVertexAttributes]{};
+    for (int i = 0; i < desc.attributeCount; ++i) {
+        const VertexAttribute& a = desc.attributes[i];
+        attributes[i] = {a.location, a.buffer, ToSdl(a.format), a.offset};
+    }
+    SDL_GPUGraphicsPipelineCreateInfo ci{};
+    ci.vertex_shader = vs;
+    ci.fragment_shader = fs;
+    ci.vertex_input_state = {buffers, static_cast<Uint32>(desc.bufferCount), attributes,
+                             static_cast<Uint32>(desc.attributeCount)};
+    ci.primitive_type = desc.primitive == Primitive::Lines ? SDL_GPU_PRIMITIVETYPE_LINELIST
+                                                           : SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+    ci.rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
+    ci.rasterizer_state.cull_mode = desc.cull == Cull::Back    ? SDL_GPU_CULLMODE_BACK
+                                    : desc.cull == Cull::Front ? SDL_GPU_CULLMODE_FRONT
+                                                               : SDL_GPU_CULLMODE_NONE;
+    ci.rasterizer_state.front_face =
+        desc.front == Winding::Clockwise ? SDL_GPU_FRONTFACE_CLOCKWISE : SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
+    ci.rasterizer_state.enable_depth_clip = true;
+    if (desc.depthBias != 0.0f || desc.depthBiasSlope != 0.0f) {
+        ci.rasterizer_state.enable_depth_bias = true;
+        ci.rasterizer_state.depth_bias_constant_factor = desc.depthBias;
+        ci.rasterizer_state.depth_bias_slope_factor = desc.depthBiasSlope;
+        ci.rasterizer_state.depth_bias_clamp = desc.depthBiasClamp;
+    }
+    ci.multisample_state.sample_count = SampleCount(desc.samples);
+    SDL_GPUColorTargetDescription colours[2]{};
+    if (desc.colour != Format::None) {
+        SDL_GPUColorTargetDescription& colour = colours[0];
+        colour.format = ToSdl(desc.colour);
+        SDL_GPUColorTargetBlendState& b = colour.blend_state;
+        b.enable_blend = desc.blend.on;
+        b.src_color_blendfactor = ToSdl(desc.blend.sourceColour);
+        b.dst_color_blendfactor = ToSdl(desc.blend.destColour);
+        b.color_blend_op = ToSdl(desc.blend.colourOp);
+        b.src_alpha_blendfactor = ToSdl(desc.blend.sourceAlpha);
+        b.dst_alpha_blendfactor = ToSdl(desc.blend.destAlpha);
+        b.alpha_blend_op = ToSdl(desc.blend.alphaOp);
+        b.enable_color_write_mask = true;
+        b.color_write_mask = static_cast<SDL_GPUColorComponentFlags>(desc.colourMask);
+        ci.target_info.color_target_descriptions = colours;
+        ci.target_info.num_color_targets = 1;
+    }
+    if (desc.second != Format::None) {
+        colours[1].format = ToSdl(desc.second);
+        colours[1].blend_state.enable_color_write_mask = true;
+        colours[1].blend_state.color_write_mask = static_cast<SDL_GPUColorComponentFlags>(desc.secondMask);
+        ci.target_info.num_color_targets = 2;
+    }
+    if (desc.depth != Format::None) {
+        ci.target_info.has_depth_stencil_target = true;
+        ci.target_info.depth_stencil_format = ToSdl(desc.depth);
+        ci.depth_stencil_state.enable_depth_test = true;
+        ci.depth_stencil_state.enable_depth_write = desc.depthWrite;
+        ci.depth_stencil_state.compare_op = ToSdl(desc.depthCompare);
+    }
+    Pipeline p{SDL_CreateGPUGraphicsPipeline(device, &ci)};
+    if (!p.pipeline) {
+        if (!quiet)
+            Problem("pipeline %s (%s, %d samples): %s", label ? label : "", gpu_shaders::kPrograms[desc.program].name,
+                    desc.samples, SDL_GetError());
+        return {};
+    }
+    return p;
+}
+
+// The device made in the background, and what the same thread made on it before Start: only that thread touches the
+// shaders and pipelines until Start has joined it, which hands them to the globals. No lock.
+struct Prepared {
+    std::thread thread;
+    SDL_GPUDevice* device = nullptr;
+    std::string driver;
+    bool debug = false;
+    std::string error;
+    PipelineLister lister;
+    ShaderPrograms shaders;
+    std::unordered_map<PipelineDesc, Pipeline, PipelineHash> pipelines;
+    int wanted = 0;      // descriptions listed
+    double madeMs = 0;   // the time the pipelines took
+};
+Prepared g_prepared;
+
+// A device's pipelines and shaders let go (the device's own release does not).
+void ReleaseMade(SDL_GPUDevice* device, std::unordered_map<PipelineDesc, Pipeline, PipelineHash>& pipelines,
+                 ShaderPrograms& shaders) {
+    for (auto& [desc, p] : pipelines) SDL_ReleaseGPUGraphicsPipeline(device, p.pipeline);
+    pipelines.clear();
+    for (std::vector<SDL_GPUShader*>* list : {&shaders.vertex, &shaders.fragment}) {
+        for (SDL_GPUShader* s : *list)
+            if (s) SDL_ReleaseGPUShader(device, s);
+        list->clear();
+    }
+}
+
+int MaxSamplesOn(SDL_GPUDevice* device, Format colour, Format depth, int most) {
+    for (int samples = most; samples > 1; samples /= 2) {
+        const SDL_GPUSampleCount count = SampleCount(samples);
+        if (colour != Format::None && !SDL_GPUTextureSupportsSampleCount(device, ToSdl(colour), count)) continue;
+        if (depth != Format::None && !SDL_GPUTextureSupportsSampleCount(device, ToSdl(depth), count)) continue;
+        return samples;
+    }
+    return 1;
+}
+
+// The pipelines the renderer listed, on the thread that made the device.
+void MakeAhead(Prepared& prepared) {
+    std::vector<PipelineDesc> descs;
+    prepared.lister(DeviceLimits{prepared.device}, descs);
+    prepared.wanted = static_cast<int>(descs.size());
+    const double start = NowMs();
+    for (const PipelineDesc& desc : descs) {
+        if (prepared.pipelines.contains(desc)) continue;
+        const Pipeline p = BuildPipeline(prepared.device, prepared.shaders, desc, nullptr, true);
+        if (p) prepared.pipelines.emplace(desc, p);
+    }
+    prepared.madeMs = NowMs() - start;
+}
+
 // ---- What the open pass has bound ---------------------------------------------------------------------------------
 
 constexpr int kMostSamplers = 16;
@@ -649,12 +781,18 @@ Bound g_bound;
 
 // ---- The device ---------------------------------------------------------------------------------------------------
 
-void PrepareInBackground(const DeviceOptions& options) {
+int DeviceLimits::MaxSamples(Format colour, Format depth, int most) const {
+    return MaxSamplesOn(device, colour, depth, most);
+}
+
+void PrepareInBackground(const DeviceOptions& options, PipelineLister lister) {
     if (g_device || g_prepared.thread.joinable()) return;
     g_prepared.driver = options.driver ? options.driver : "";
     g_prepared.debug = options.debug;
+    g_prepared.lister = std::move(lister);
     g_prepared.thread = std::thread([] {
         g_prepared.device = CreateDevice(g_prepared.driver, g_prepared.debug, &g_prepared.error);
+        if (g_prepared.device && g_prepared.lister) MakeAhead(g_prepared);
     });
 }
 
@@ -662,14 +800,22 @@ bool Start(const DeviceOptions& options) {
     if (g_device) return true;
     const std::string driver = options.driver ? options.driver : "";
     if (g_prepared.thread.joinable()) {
+        const double waitStart = NowMs();
         g_prepared.thread.join();
+        const double waited = NowMs() - waitStart;
         if (g_prepared.driver == driver && g_prepared.debug == options.debug) {
             g_device = g_prepared.device;
             g_error = g_prepared.error;
+            g_shaders = std::move(g_prepared.shaders);
+            g_pipelines = std::move(g_prepared.pipelines);
+            if (g_device && g_prepared.lister)
+                ei::Log("gpu: %d of %d pipelines made ahead in %.0f ms (the start waited %.0f ms for them)",
+                        static_cast<int>(g_pipelines.size()), g_prepared.wanted, g_prepared.madeMs, waited);
         } else if (g_prepared.device) {
+            ReleaseMade(g_prepared.device, g_prepared.pipelines, g_prepared.shaders);
             SDL_DestroyGPUDevice(g_prepared.device);
         }
-        g_prepared.device = nullptr;
+        g_prepared = Prepared{};
     }
     if (!g_device) {
         if (!SDL_WasInit(SDL_INIT_VIDEO)) {
@@ -693,8 +839,11 @@ bool Start(const DeviceOptions& options) {
 void Stop() {
     if (g_prepared.thread.joinable()) {
         g_prepared.thread.join();
-        if (g_prepared.device) SDL_DestroyGPUDevice(g_prepared.device);
-        g_prepared.device = nullptr;
+        if (g_prepared.device) {
+            ReleaseMade(g_prepared.device, g_prepared.pipelines, g_prepared.shaders);
+            SDL_DestroyGPUDevice(g_prepared.device);
+        }
+        g_prepared = Prepared{};
     }
     if (!g_device) return;
     SetFrameTiming(false);
@@ -727,15 +876,9 @@ void Stop() {
         SDL_ReleaseGPUTransferBuffer(g_device, g_ring.buffer);
     }
     g_ring = Ring{};
-    for (auto& [desc, p] : g_pipelines) SDL_ReleaseGPUGraphicsPipeline(g_device, p.pipeline);
-    g_pipelines.clear();
     for (auto& [desc, s] : g_samplers) SDL_ReleaseGPUSampler(g_device, s.sampler);
     g_samplers.clear();
-    for (std::vector<SDL_GPUShader*>* shaders : {&g_vertexShaders, &g_fragmentShaders}) {
-        for (SDL_GPUShader* s : *shaders)
-            if (s) SDL_ReleaseGPUShader(g_device, s);
-        shaders->clear();
-    }
+    ReleaseMade(g_device, g_pipelines, g_shaders);
     ReleaseWindow();
     SDL_DestroyGPUDevice(g_device);
     g_device = nullptr;
@@ -756,14 +899,7 @@ int Problems() { return g_problems; }
 // ---- Textures and samplers ----------------------------------------------------------------------------------------
 
 int MaxSamples(Format colour, Format depth, int most) {
-    if (!g_device) return 1;
-    for (int samples = most; samples > 1; samples /= 2) {
-        const SDL_GPUSampleCount count = SampleCount(samples);
-        if (colour != Format::None && !SDL_GPUTextureSupportsSampleCount(g_device, ToSdl(colour), count)) continue;
-        if (depth != Format::None && !SDL_GPUTextureSupportsSampleCount(g_device, ToSdl(depth), count)) continue;
-        return samples;
-    }
-    return 1;
+    return g_device ? MaxSamplesOn(g_device, colour, depth, most) : 1;
 }
 
 namespace {
@@ -1046,83 +1182,8 @@ Pipeline MakePipeline(const PipelineDesc& desc, const char* label) {
     if (!g_device) return {};
     auto it = g_pipelines.find(desc);
     if (it != g_pipelines.end()) return it->second;
-    if (const char* fault = PipelineFault(desc)) {
-        Problem("pipeline %s: %s", label ? label : "", fault);
-        return {};
-    }
-    SDL_GPUShader* vs = ProgramShader(desc.program, true);
-    SDL_GPUShader* fs = ProgramShader(desc.program, false);
-    if (!vs || !fs) return {};
-    SDL_GPUVertexBufferDescription buffers[kMostVertexBuffers]{};
-    for (int i = 0; i < desc.bufferCount; ++i) {
-        buffers[i].slot = static_cast<Uint32>(i);
-        buffers[i].pitch = desc.buffers[i].stride;
-        buffers[i].input_rate =
-            desc.buffers[i].perInstance ? SDL_GPU_VERTEXINPUTRATE_INSTANCE : SDL_GPU_VERTEXINPUTRATE_VERTEX;
-    }
-    SDL_GPUVertexAttribute attributes[kMostVertexAttributes]{};
-    for (int i = 0; i < desc.attributeCount; ++i) {
-        const VertexAttribute& a = desc.attributes[i];
-        attributes[i] = {a.location, a.buffer, ToSdl(a.format), a.offset};
-    }
-    SDL_GPUGraphicsPipelineCreateInfo ci{};
-    ci.vertex_shader = vs;
-    ci.fragment_shader = fs;
-    ci.vertex_input_state = {buffers, static_cast<Uint32>(desc.bufferCount), attributes,
-                             static_cast<Uint32>(desc.attributeCount)};
-    ci.primitive_type = desc.primitive == Primitive::Lines ? SDL_GPU_PRIMITIVETYPE_LINELIST
-                                                           : SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
-    ci.rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
-    ci.rasterizer_state.cull_mode = desc.cull == Cull::Back    ? SDL_GPU_CULLMODE_BACK
-                                    : desc.cull == Cull::Front ? SDL_GPU_CULLMODE_FRONT
-                                                               : SDL_GPU_CULLMODE_NONE;
-    ci.rasterizer_state.front_face =
-        desc.front == Winding::Clockwise ? SDL_GPU_FRONTFACE_CLOCKWISE : SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
-    ci.rasterizer_state.enable_depth_clip = true;
-    if (desc.depthBias != 0.0f || desc.depthBiasSlope != 0.0f) {
-        ci.rasterizer_state.enable_depth_bias = true;
-        ci.rasterizer_state.depth_bias_constant_factor = desc.depthBias;
-        ci.rasterizer_state.depth_bias_slope_factor = desc.depthBiasSlope;
-        ci.rasterizer_state.depth_bias_clamp = desc.depthBiasClamp;
-    }
-    ci.multisample_state.sample_count = SampleCount(desc.samples);
-    SDL_GPUColorTargetDescription colours[2]{};
-    if (desc.colour != Format::None) {
-        SDL_GPUColorTargetDescription& colour = colours[0];
-        colour.format = ToSdl(desc.colour);
-        SDL_GPUColorTargetBlendState& b = colour.blend_state;
-        b.enable_blend = desc.blend.on;
-        b.src_color_blendfactor = ToSdl(desc.blend.sourceColour);
-        b.dst_color_blendfactor = ToSdl(desc.blend.destColour);
-        b.color_blend_op = ToSdl(desc.blend.colourOp);
-        b.src_alpha_blendfactor = ToSdl(desc.blend.sourceAlpha);
-        b.dst_alpha_blendfactor = ToSdl(desc.blend.destAlpha);
-        b.alpha_blend_op = ToSdl(desc.blend.alphaOp);
-        b.enable_color_write_mask = true;
-        b.color_write_mask = static_cast<SDL_GPUColorComponentFlags>(desc.colourMask);
-        ci.target_info.color_target_descriptions = colours;
-        ci.target_info.num_color_targets = 1;
-    }
-    if (desc.second != Format::None) {
-        colours[1].format = ToSdl(desc.second);
-        colours[1].blend_state.enable_color_write_mask = true;
-        colours[1].blend_state.color_write_mask = static_cast<SDL_GPUColorComponentFlags>(desc.secondMask);
-        ci.target_info.num_color_targets = 2;
-    }
-    if (desc.depth != Format::None) {
-        ci.target_info.has_depth_stencil_target = true;
-        ci.target_info.depth_stencil_format = ToSdl(desc.depth);
-        ci.depth_stencil_state.enable_depth_test = true;
-        ci.depth_stencil_state.enable_depth_write = desc.depthWrite;
-        ci.depth_stencil_state.compare_op = ToSdl(desc.depthCompare);
-    }
-    Pipeline p{SDL_CreateGPUGraphicsPipeline(g_device, &ci)};
-    if (!p.pipeline) {
-        Problem("pipeline %s (%s, %d samples): %s", label ? label : "", gpu_shaders::kPrograms[desc.program].name,
-                desc.samples, SDL_GetError());
-        return {};
-    }
-    g_pipelines.emplace(desc, p);
+    const Pipeline p = BuildPipeline(g_device, g_shaders, desc, label, false);
+    if (p) g_pipelines.emplace(desc, p);
     return p;
 }
 

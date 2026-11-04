@@ -113,12 +113,7 @@ bool Build(Frame& f, Pending& p) {
 std::unordered_map<std::uint32_t, gpu::Pipeline> g_pipelines;
 GeometryStream g_geometry("ei-mesh", false);
 
-gpu::Pipeline Pipeline(const PassState& s, bool lines, bool cached) {
-    int samples = PassSampleCount();
-    std::uint32_t key = s.PipelineKey() | (lines ? 1u << 20 : 0u) | (cached ? 1u << 21 : 0u) |
-                        (static_cast<std::uint32_t>(samples) << 24);
-    auto it = g_pipelines.find(key);
-    if (it != g_pipelines.end()) return it->second;
+gpu::PipelineDesc MeshDesc(const PassState& s, bool lines, bool cached, int samples) {
     gpu::PipelineDesc p;
     p.program = gpu_shaders::mesh::kIndex;
     MeshLayout(p, cached, false);
@@ -126,7 +121,16 @@ gpu::Pipeline Pipeline(const PassState& s, bool lines, bool cached) {
     ApplyPassState(p, s);
     p.samples = samples;
     AddDepthCopy(p);
-    gpu::Pipeline pipeline = gpu::MakePipeline(p, "ei-mesh");
+    return p;
+}
+
+gpu::Pipeline Pipeline(const PassState& s, bool lines, bool cached) {
+    int samples = PassSampleCount();
+    std::uint32_t key = s.PipelineKey() | (lines ? 1u << 20 : 0u) | (cached ? 1u << 21 : 0u) |
+                        (static_cast<std::uint32_t>(samples) << 24);
+    auto it = g_pipelines.find(key);
+    if (it != g_pipelines.end()) return it->second;
+    gpu::Pipeline pipeline = gpu::MakePipeline(MeshDesc(s, lines, cached, samples), "ei-mesh");
     g_pipelines.emplace(key, pipeline);
     return pipeline;
 }
@@ -134,6 +138,37 @@ gpu::Pipeline Pipeline(const PassState& s, bool lines, bool cached) {
 } // namespace
 
 namespace detail {
+
+// The pass states every battle and menu draws meshes with (the pipelines a run makes, logged; the rare ones are made at
+// their first draw): D3DCULL, D3DBLEND, D3DCMP numbers as PassState keeps them.
+void ListMeshPipelines(std::vector<gpu::PipelineDesc>& out, int samples) {
+    struct Wanted {
+        std::uint8_t cull;
+        std::uint8_t sourceBlend, destBlend;   // 0: blending off
+        bool depthTest, depthWrite;
+        bool cached;
+    };
+    constexpr std::uint8_t kSourceAlpha = 5, kInvSourceAlpha = 6, kOne = 2;
+    static constexpr Wanted kWanted[] = {
+        {2, kSourceAlpha, kInvSourceAlpha, true, true, true},
+        {2, kSourceAlpha, kInvSourceAlpha, true, true, false},
+        {2, kSourceAlpha, kInvSourceAlpha, true, false, false},
+        {1, kSourceAlpha, kInvSourceAlpha, true, false, true},
+        {1, kSourceAlpha, kInvSourceAlpha, true, false, false},
+        {1, 0, 0, true, true, false},
+        {2, kSourceAlpha, kOne, true, false, false},
+        {2, kSourceAlpha, kInvSourceAlpha, false, false, false},
+    };
+    for (const Wanted& w : kWanted) {
+        PassState s;
+        s.cull = w.cull;
+        s.blend = w.sourceBlend != 0;
+        if (s.blend) s.sourceBlend = w.sourceBlend, s.destBlend = w.destBlend;
+        s.depthTest = w.depthTest;
+        s.depthWrite = w.depthWrite;
+        out.push_back(MeshDesc(s, false, w.cached, samples));
+    }
+}
 
 PassState ReadPassState(const TextureDevice* device) {
     const RenderState& d = g_renderState;

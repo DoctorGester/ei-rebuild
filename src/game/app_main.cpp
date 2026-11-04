@@ -22,12 +22,14 @@
 #include "ui.h"
 #include "ui_cursor.h"
 #include "screen_layout.h"
+#include "settings.h"
 #include "unit_db.h"
 #include "world.h"
 
 #include "main_loop.h"
 #include "lib/maths.h"
 #include "lib/rebirth.h"
+#include "render/render.h"
 #include "lib/crt.h"
 #include "platform/platform.h"
 #include "lib/text_case.h"
@@ -518,6 +520,9 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
     app::TypeRegistryRegister(&g_classRegistry, 2, CreatePartyRecord);
     ReadCommandLine(commandLine);
     RegisterWindowClass(instance);
+    // SDL's video is up now (the device needs it): the renderer's device and pipelines are made while the rest starts.
+    // The harness build's settings file lacks the render quality, as in TextureDevice's constructor.
+    render::PrepareDevice(render::QualitySettingsSupported() ? settings::GetInt(settings::kRenderer, "Msaa", render::kDefaultMsaa) : 1);
 
     GameOptions* options = &options::g_options;
     StoreStartFolder();
