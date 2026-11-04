@@ -30,6 +30,8 @@ using gpu_shaders::CloudParams;
 using gpu_shaders::MeshFsParams;
 using gpu_shaders::MeshLightParams;
 using gpu_shaders::MeshVsParams;
+using gpu_shaders::OcclusionBlurParams;
+using gpu_shaders::OcclusionParams;
 using gpu_shaders::PerfOverlayParams;
 using gpu_shaders::PointShadowParams;
 using gpu_shaders::PresentParams;
@@ -123,6 +125,7 @@ struct TerrainBatch {
     int firstPiece;           // into Frame::terrainPieces
     int pieceCount;
     PassState state;          // its textures not read
+    bool occluded = false;    // the ground of the world: it takes the ambient occlusion (DrawOcclusion)
 };
 
 struct CachedMesh;
@@ -157,6 +160,7 @@ struct MeshBatch {
     CachedMesh* cached = nullptr;   // the mesh kept on the GPU it draws, else the frame's stream
     float uOffset = 0.0f, vOffset = 0.0f;   // added to a cached mesh's texture coordinates (MeshDraw::moveUv)
     int lighting = -1;        // index into Frame::meshLights: lit on the GPU, else the vertex colours
+    bool occluded = false;    // a world mesh lit on the GPU: it takes the ambient occlusion (DrawOcclusion)
 };
 
 // The image is read at the blit.
@@ -219,6 +223,8 @@ int SceneLightIndex(const Vector3& position);
 bool MapLightDirection(const Vector3& sun, Vector3* travel);
 // `placed` (camera x model) without the camera. False when the camera has no inverse.
 bool UnderCamera(const Matrix4& camera, const Matrix4& placed, Matrix4* model);
+// `m`'s inverse (worked in double); false when it has none.
+bool InvertMatrix(const Matrix4& m, Matrix4* inverse);
 // a x b, both row-major.
 Matrix4 Product(const Matrix4& a, const Matrix4& b);
 // A figure part lit on the GPU (shaders/mesh.hlsl's MeshLightParams): the sun and lights in the part's model
@@ -457,6 +463,12 @@ const TerrainGroup& TerrainPieceWhole(const TerrainPiece& piece);
 void TerrainGroupPositions(const TerrainPiece& piece, const TerrainGroup& group, std::uint32_t step,
                            std::vector<Vector3>* out);
 void TerrainFrameDone();
+// The ambient occlusion's depth (DrawOcclusion): the ground pages of the frame's batches marked `occluded` drawn,
+// depth only, with TerrainDepthDesc's pipeline; the draws made. GroundOcclusionCounts: the sectors whose ground
+// occlusion is kept, and how often one was worked out (render::OcclusionInfo).
+gpu::PipelineDesc TerrainDepthDesc();
+int DrawTerrainDepth(const Frame& frame, gpu::Pipeline pipeline);
+void GroundOcclusionCounts(int* sectors, int* made);
 // The ground's casters (render::ShadowTerrainSector). DrawTerrainCasters draws with `pipeline` (vertex buffer
 // 0: TerrainCasterVertex, 32-bit indices) whose uniforms the caller applied.
 struct TerrainCasterVertex {
@@ -589,6 +601,16 @@ const void* CurrentCaster();
 bool CurrentCasterFigure();
 void NoteCasterPart(const void* part);
 void ShadowFrameDone();
+
+// The screen's ambient occlusion (docs/notes/renderer.md section 13, item 11). DrawOcclusion, once a frame after the
+// shadow maps: marks the receivers (TerrainBatch / MeshBatch::occluded), draws the world's depth at half size, the
+// occlusion in it and its blur. Receivers include shaders/ambient_occlusion.hlsli, take OcclusionUniforms (all zero,
+// none, unless `receives` and made) and bind the occlusion and its depth at `slot` with BindOcclusion (white
+// stand-ins without). OcclusionFrameDone: the frame is presented.
+void DrawOcclusion(Frame& frame);
+void OcclusionUniforms(bool receives, float on[4], float map[4]);
+void BindOcclusion(int slot);
+void OcclusionFrameDone();
 
 // The movies' blits, the depth clear in the middle of the pass and the movie player's fill.
 bool CreateBlitPipeline();
@@ -740,6 +762,7 @@ void ListSmoothPipelines(std::vector<gpu::PipelineDesc>& out, int samples);
 void ListShadowPipelines(std::vector<gpu::PipelineDesc>& out);
 void ListComposePipelines(std::vector<gpu::PipelineDesc>& out);
 void ListPresentPipelines(std::vector<gpu::PipelineDesc>& out);
+void ListOcclusionPipelines(std::vector<gpu::PipelineDesc>& out);
 gpu::PipelineDesc PointShadowClearDesc();
 // False (logged) when the copies could not be made: the world is then drawn without multisampling.
 bool PrepareSmoothCopies(int samples);

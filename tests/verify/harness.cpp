@@ -328,6 +328,12 @@
 //   shadowshift <texels>      with the shadow map, its origin moved by <texels> whole texels across and half
 //                             as many along (render::SetShadowShift, R25; 0 the default): the same shadow,
 //                             other range cells
+//   occlusion on|off|view|check
+//                             the image's ambient occlusion (render::SetOcclusion, R17b) on (the default), off,
+//                             or shown alone by its receivers (white none, black all), from the next frame;
+//                             check requires the last frame's made (the world's ground and models in its
+//                             depth, the ground and some meshes taking it) and the ground's own worked out
+//                             for some sectors
 //   terraincache on|off|check the image's terrain pages kept on the GPU (render::SetTerrainCache, R16c;
 //                             the default) or built and uploaded every frame (off), from the next
 //                             frame; check requires that no check of a kept page against a fresh build
@@ -1917,7 +1923,7 @@ std::string DescribeTopWindow() {
 
 // The image's renderer's steps (image::RenderStep).
 bool IsRenderStep(const std::string& verb) {
-    return verb == "terrainlevels" || verb == "levelsteps" || verb == "hues" || verb == "mmplevels" || verb == "msaa" || verb == "anisotropy" || verb == "smoothcheck" || verb == "smoothorder" || verb == "shadowcasters" || verb == "shadowview" || verb == "shadowshift" || verb == "terraincache" || verb == "meshcache" || verb == "shadowcheck" || verb == "renderstats";
+    return verb == "terrainlevels" || verb == "levelsteps" || verb == "hues" || verb == "mmplevels" || verb == "msaa" || verb == "anisotropy" || verb == "smoothcheck" || verb == "smoothorder" || verb == "shadowcasters" || verb == "shadowview" || verb == "shadowshift" || verb == "terraincache" || verb == "meshcache" || verb == "shadowcheck" || verb == "occlusion" || verb == "renderstats";
 }
 
 // The steps that post input messages to the game window.

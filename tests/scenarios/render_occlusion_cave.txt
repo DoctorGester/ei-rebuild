@@ -1,0 +1,49 @@
+# R17b: the ambient occlusion in a cave (docs/notes/renderer.md section 13, item 11): the Dragon's Cave gz5g
+# (zone5_1, "#sky cave": its light fixed, mostly ambient), where the occlusion shows most. Frozen at the party's
+# deploy point and with the camera turned: each frame with the occlusion, without it ("occlusion off") and the
+# occlusion alone ("occlusion view"). msaa 8 and anisotropy 16 (the user's). Frames only;
+# EI_RESOLUTION=3840x2160 gives the user's view.
+render checkall
+msaa 8
+anisotropy 16
+timeout 60
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+
+zone gz5g 0
+waitzone 25 gz5g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @GodMode(0,1)
+wait 2000
+move 400 20
+frames 5
+freeze
+capture cave
+occlusion check
+occlusion off
+capture cave_off
+occlusion view
+capture cave_view
+occlusion on
+unfreeze
+hold ctrl
+keydown left
+frames 40
+keyup left
+release ctrl
+frames 5
+freeze
+capture cave_turned
+occlusion off
+capture cave_turned_off
+occlusion view
+capture cave_turned_view
+occlusion on
+unfreeze
+report
+quit

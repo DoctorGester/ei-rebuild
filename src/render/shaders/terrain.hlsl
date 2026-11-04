@@ -1,6 +1,7 @@
 // The landscape's pages (render_terrain.cpp), lit here (scene_lighting.hlsli): the vertices carry the normal, the
-// material colour (colour word) and, on the ground, the light lost under the water (`loss`, 0 or more; below 0 on the
-// water layer, whose specular word carries the wave crests).
+// material colour (colour word), on the ground the light lost under the water (`loss`, 0 or more; below 0 on the
+// water layer, whose specular word carries the wave crests) and the ground's own occlusion of the ambient light
+// (`occlusion`, 1 none: render_terrain.cpp's height field), which the screen's (ambient_occlusion.hlsli) darkens more.
 #include "bindings.hlsli"
 #include "depth_copy.hlsli"
 struct VsIn {
@@ -10,6 +11,7 @@ struct VsIn {
     [[vk::location(3)]] float2 uv : TEXCOORD3;
     [[vk::location(4)]] float3 normal : TEXCOORD4;
     [[vk::location(5)]] float loss : TEXCOORD5;
+    [[vk::location(6)]] float occlusion : TEXCOORD6;
 };
 struct VsOut {
     [[vk::location(0)]] float4 col : TEXCOORD0;
@@ -19,6 +21,7 @@ struct VsOut {
     [[vk::location(4)]] float3 world : TEXCOORD4;
     [[vk::location(5)]] float3 normal : TEXCOORD5;
     [[vk::location(6)]] float loss : TEXCOORD6;
+    [[vk::location(7)]] float occlusion : TEXCOORD7;
     float4 pos : SV_Position;
 };
 
@@ -43,6 +46,7 @@ VsOut vs_main(VsIn i) {
     o.world = i.pos;
     o.normal = i.normal;
     o.loss = i.loss;
+    o.occlusion = i.occlusion;
     return o;
 }
 #endif
@@ -54,12 +58,17 @@ VsOut vs_main(VsIn i) {
 #define SCENE_BLOCK_SLOT 2
 #define POINT_BLOCK_SLOT 3
 #define POINT_MAP_SLOT 3
+#define OCCLUSION_MAP_SLOT 4
+#define OCCLUSION_DEPTH_SLOT 5
 #include "shadow_receiver.hlsli"
 #include "point_shadow.hlsli"
 #include "scene_lighting.hlsli"
+#include "ambient_occlusion.hlsli"
 struct TerrainFsParams {
-    float4 fog;     // rgb: the fog colour
-    float4 flags;   // x: water (alpha from the vertex colour; 2: the level map, render::TerrainLevels), y: fog on
+    float4 fog;            // rgb: the fog colour
+    float4 flags;          // x: water (alpha from the vertex colour; 2: the level map, render::TerrainLevels), y: fog on
+    float4 occlusion;      // ambient_occlusion's `on`
+    float4 occlusionMap;   // ... and `map`
 };
 ConstantBuffer<TerrainFsParams> fs : FS_BLOCK(0);
 Texture2D<float4> tex : FS_TEXTURE(0);
@@ -78,11 +87,13 @@ float4 Shade(VsOut i) {
     float3 n = len > 1e-6 ? i.normal / len : float3(0.0, 0.0, 1.0);
     float3 spec, c;
     if (i.loss < 0.0) {   // the water: no shadow test in the game's lighting; the crests or the specular lights
-        float3 lit = ground_light(i.world, n, i.col.rgb, i.col.rgb, 0.0, 0.0, 0.0, false, 0.0, spec);
+        float3 lit = ground_light(i.world, n, i.col.rgb, i.col.rgb, 0.0, 0.0, 0.0, false, 0.0, 1.0, spec);
         c = saturate(t.rgb * lit + max(spec, i.spec.rgb));
     } else {
+        float occlusion = i.occlusion * ambient_occlusion(i.pos.xy, i.pos.z, fs.occlusion, fs.occlusionMap);
+        if (fs.occlusion.w > 0.5) return float4(occlusion.xxx, 1.0);   // the harness's occlusion view
         float3 lit = ground_light(i.world, n, i.col.rgb, 0.0, i.loss, hidden, shadow.on.y, pointShadow.on.x > 0.5,
-                                  pixel_turn(i.pos.xy), spec);
+                                  pixel_turn(i.pos.xy), occlusion, spec);
         c = saturate(t.rgb * lit + spec);
     }
     float a = fs.flags.x > 0.5 ? i.col.a : t.a;

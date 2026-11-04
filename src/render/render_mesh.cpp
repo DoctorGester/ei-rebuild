@@ -346,6 +346,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerTex0, textures);
     BindShadowMap(program::kSamplerShadowMap);
     BindPointShadows(program::kSamplerPointShadowMap);
+    BindOcclusion(program::kSamplerOcclusionMap);
     CountBindings(textures[0].texture);
     MeshVsParams vs{};
     vs.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
@@ -385,6 +386,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
         fs.shadowFigure[1] = batch.front;
         vs.normalOffset[0] = 0.0f;
     }
+    OcclusionUniforms(batch.occluded, fs.occlusion, fs.occlusionMap);
     fs.fogColour[0] = ((s.fogColour >> 16) & 0xFF) / 255.0f;
     fs.fogColour[1] = ((s.fogColour >> 8) & 0xFF) / 255.0f;
     fs.fogColour[2] = (s.fogColour & 0xFF) / 255.0f;

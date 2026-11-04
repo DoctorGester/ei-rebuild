@@ -21,6 +21,7 @@ namespace {
 
 using namespace detail;
 using terrain::SectorData;
+using terrain::SectorPosition;
 using terrain::SectorVertex;
 using terrain::TileVertex;
 
@@ -53,15 +54,16 @@ std::unordered_map<const SectorData*, SectorChanges> g_changes;
 // --- Pages kept on the GPU ----------------------------------------------------------------------
 
 // A page vertex's geometry; its colours (colour, specular) are a stream of their own. The record's
-// normal and, on the ground layer, the light lost under the water (-1 on the water layer); the GPU lights
-// both layers.
+// normal and, on the ground layer, the light lost under the water (-1 on the water layer) and the ground's own
+// occlusion of the ambient light (GroundOcclusion; 1 on the water layer); the GPU lights both layers.
 struct PageVertex {
     Vector3 position;
     float u, v;
     Vector3 normal;
     float loss;
+    float occlusion;
 };
-static_assert(sizeof(PageVertex) == 36);
+static_assert(sizeof(PageVertex) == 40);
 
 // The ground record `index` lies under the sector's water (a water material above it, the depth not negative):
 // its water record, else null.
@@ -72,11 +74,13 @@ const SectorVertex* WaterAbove(const SectorData* s, int index) {
     return &water;
 }
 
-PageVertex MakeVertex(const SectorData* s, int index, const TileVertex& e) {
+// `occlusion`: the sector's ground occlusion per ground record (GroundOcclusion).
+PageVertex MakeVertex(const SectorData* s, int index, const TileVertex& e, const float* occlusion) {
     const SectorVertex& record = s->records[index];
-    PageVertex v{s->vertices[index], e.u, e.v, record.normal, -1.0f};
+    PageVertex v{s->vertices[index], e.u, e.v, record.normal, -1.0f, 1.0f};
     if (index < kWaterRecords) {
         v.loss = 0.0f;
+        v.occlusion = occlusion[index];
         if (const SectorVertex* water = WaterAbove(s, index)) {
             const terrain::Terrain* owner = s->owner;
             if (owner && water->waterMaterial < std::ssize(owner->materials)) {
@@ -116,6 +120,7 @@ struct PageSource {
     const terrain::AnimatedTile* animated = nullptr;
     int animatedCount = 0;
     SectorChanges changes;
+    std::uint32_t occlusion = 0;   // the ground occlusion's version (SectorOcclusion::version)
 
     // The same tiles of the same records: at most vertices and texture coordinates moved.
     bool SameTiles(const PageSource& o) const {
@@ -204,6 +209,127 @@ void BuildCaster(const SectorData* s, SectorCaster& c) {
     }
 }
 
+// --- The ground's own ambient occlusion ------------------------------------------------------------------
+
+// How much of the sky a ground vertex's surroundings hide, from the height field (the ground records' heights, a
+// cell a unit): in each of the grid's eight directions the highest rise of the ground within kOcclusionReach cells
+// above the vertex's own tangent plane, as a sine less the plane's own, faded with the distance (1 - (d / reach)^2);
+// the mean of the eight is how much is hidden, and 1 less kGroundOcclusion times that reaches the vertex. The heights
+// around the sector come from its neighbours the landscape holds (Terrain::CachedSector: nothing is loaded for it); a
+// neighbour it does not hold continues the sector's edge, and the occlusion is worked out again once it is held. Small
+// shapes (a unit, a step, the ground's facets) are the screen's (render_occlusion.cpp).
+constexpr int kOcclusionReach = 8;
+constexpr float kGroundOcclusion = 0.7f;
+struct SectorOcclusion {
+    const void* positions = nullptr;   // what it was worked out for: the sector's vertices, place and builds
+    int sx = -1, sy = -1;
+    std::uint32_t rebuilt = 0;
+    std::uint8_t neighbours = 0;       // the neighbours whose heights it read (bit k: kNeighbours[k])
+    std::uint32_t version = 0;         // a new one each time it is worked out
+    std::uint32_t seen = 0;            // FrameNumber() of its last use
+    std::vector<float> occlusion;      // per ground record
+};
+std::unordered_map<const SectorData*, SectorOcclusion> g_occlusion;
+std::uint32_t g_occlusionVersion = 0;   // the last given out; also how often one was worked out
+constexpr int kNeighbours[8][2] = {{-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1}};
+
+// The ground vertices' positions of the sector's neighbour `k`, if the landscape holds it.
+const SectorPosition* NeighbourVertices(const SectorData* s, int k) {
+    const terrain::Terrain* owner = s->owner;
+    if (!owner) return nullptr;
+    const int nx = s->sx + kNeighbours[k][0], ny = s->sy + kNeighbours[k][1];
+    if (nx < 0 || ny < 0 || nx >= owner->sectorsX || ny >= owner->sectorsY) return nullptr;
+    const SectorData* n = owner->CachedSector(nx, ny);
+    if (!n || !lib::Has(n->built, terrain::SectorStage::Loaded) || std::ssize(n->vertices) < kWaterRecords) return nullptr;
+    return n->vertices.data();
+}
+
+std::uint8_t HeldNeighbours(const SectorData* s) {
+    std::uint8_t held = 0;
+    for (int k = 0; k < 8; ++k)
+        if (NeighbourVertices(s, k)) held |= static_cast<std::uint8_t>(1u << k);
+    return held;
+}
+
+void WorkOutOcclusion(const SectorData* s, SectorOcclusion& o) {
+    using terrain::kLastVertex, terrain::kSectorCells, terrain::kSectorRow;
+    constexpr int kReach = kOcclusionReach, kRow = kSectorRow + 2 * kReach;
+    o.version = ++g_occlusionVersion;
+    if (std::ssize(s->vertices) < kWaterRecords) {
+        o.occlusion.assign(static_cast<std::size_t>(kWaterRecords), 1.0f);
+        return;
+    }
+    // The heights from kReach cells before the sector's first vertex to kReach after its last.
+    static std::vector<float> heights;
+    heights.assign(static_cast<std::size_t>(kRow) * kRow, 0.0f);
+    const SectorPosition* own = s->vertices.data();
+    const SectorPosition* around[8];
+    for (int k = 0; k < 8; ++k) around[k] = (o.neighbours >> k) & 1 ? NeighbourVertices(s, k) : nullptr;
+    for (int y = -kReach; y <= kLastVertex + kReach; ++y)
+        for (int x = -kReach; x <= kLastVertex + kReach; ++x) {
+            const int sideX = x < 0 ? -1 : x > kLastVertex ? 1 : 0, sideY = y < 0 ? -1 : y > kLastVertex ? 1 : 0;
+            const SectorPosition* from = own;
+            int lx = x, ly = y;
+            if (sideX != 0 || sideY != 0) {
+                int k = 0;
+                while (kNeighbours[k][0] != sideX || kNeighbours[k][1] != sideY) ++k;
+                if (around[k]) {
+                    from = around[k];
+                    lx -= sideX * kSectorCells;
+                    ly -= sideY * kSectorCells;
+                } else {
+                    lx = std::clamp(x, 0, kLastVertex);
+                    ly = std::clamp(y, 0, kLastVertex);
+                }
+            }
+            heights[static_cast<std::size_t>((y + kReach) * kRow + x + kReach)] = from[ly * kSectorRow + lx].z;
+        }
+    auto height = [&](int x, int y) { return heights[static_cast<std::size_t>((y + kReach) * kRow + x + kReach)]; };
+    o.occlusion.resize(static_cast<std::size_t>(kWaterRecords));
+    constexpr float kReachSquared = static_cast<float>(kReach * kReach);
+    for (int y = 0; y < kSectorRow; ++y)
+        for (int x = 0; x < kSectorRow; ++x) {
+            const float h = height(x, y);
+            const float slopeX = (height(x + 1, y) - height(x - 1, y)) * 0.5f;
+            const float slopeY = (height(x, y + 1) - height(x, y - 1)) * 0.5f;
+            float hidden = 0.0f;
+            for (const auto& d : kNeighbours) {
+                const float step = d[0] != 0 && d[1] != 0 ? 1.41421356f : 1.0f;
+                // The tangent plane's rise along the direction, as a sine.
+                const float plane = Dot2D(Vector2{slopeX, slopeY}, Vector2{static_cast<float>(d[0]), static_cast<float>(d[1])}) / step;
+                const float planeSine = plane / std::sqrt(1.0f + plane * plane);
+                float horizon = 0.0f;
+                for (int k = 1; k * step <= static_cast<float>(kReach); ++k) {
+                    const float distance = k * step;
+                    const float rise = (height(x + k * d[0], y + k * d[1]) - h) / distance;
+                    const float sine = rise / std::sqrt(1.0f + rise * rise);
+                    horizon = std::max(horizon, (sine - planeSine) * (1.0f - distance * distance / kReachSquared));
+                }
+                hidden += horizon;
+            }
+            o.occlusion[static_cast<std::size_t>(y * kSectorRow + x)] = 1.0f - kGroundOcclusion * std::min(1.0f, hidden / 8.0f);
+        }
+}
+
+// The sector's ground occlusion, worked out when it is new for the sector or a neighbour it continued is held now.
+const SectorOcclusion& GroundOcclusion(const SectorData* s) {
+    std::uint32_t rebuilt = 0;
+    if (auto it = g_changes.find(s); it != g_changes.end()) rebuilt = it->second.rebuilt;
+    SectorOcclusion& o = g_occlusion[s];
+    o.seen = FrameNumber();
+    const bool same = o.positions == s->vertices.data() && o.sx == s->sx && o.sy == s->sy && o.rebuilt == rebuilt &&
+                      !o.occlusion.empty();
+    const std::uint8_t held = HeldNeighbours(s);
+    if (same && (held & ~o.neighbours) == 0) return o;
+    o.positions = s->vertices.data();
+    o.sx = s->sx;
+    o.sy = s->sy;
+    o.rebuilt = rebuilt;
+    o.neighbours = same ? static_cast<std::uint8_t>(o.neighbours | held) : held;
+    WorkOutOcclusion(s, o);
+    return o;
+}
+
 } // namespace
 
 namespace detail {
@@ -259,8 +385,8 @@ void MakeGroups(CachedPage& p) {
 }
 
 // The tiles of `page`, every quarter's (culled or not), as DrawSectorPage builds them: positions, texture coordinates, the record of each
-// vertex and the triangles.
-void BuildPage(const SectorData* s, int page, CachedPage& out) {
+// vertex and the triangles; `occlusion` is the sector's GroundOcclusion.
+void BuildPage(const SectorData* s, int page, CachedPage& out, const float* occlusion) {
     out.vertices.clear();
     out.records.clear();
     out.entries.clear();
@@ -291,7 +417,7 @@ void BuildPage(const SectorData* s, int page, CachedPage& out) {
                         ok = false;
                         break;
                     }
-                    out.vertices.push_back(MakeVertex(s, static_cast<int>(index), e));
+                    out.vertices.push_back(MakeVertex(s, static_cast<int>(index), e, occlusion));
                     out.records.push_back(static_cast<std::uint16_t>(index));
                     out.entries.push_back(&e);
                 }
@@ -348,13 +474,14 @@ bool ReadColours(const SectorData* s, CachedPage& p, std::uint32_t from, std::ui
     return changed;
 }
 
-// Reads every vertex's position and texture coordinates of `p` again (the game moved some: the
-// tiles are the same); the changed ones are marked for upload. True when any changed.
-bool ReadVertices(const SectorData* s, CachedPage& p) {
+// Reads every vertex's position, texture coordinates and occlusion of `p` again (the game moved some, or the
+// occlusion was worked out again: the tiles are the same); the changed ones are marked for upload. True when any
+// changed.
+bool ReadVertices(const SectorData* s, CachedPage& p, const float* occlusion) {
     bool changed = false;
     for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(p.vertices.size()); ++i) {
         PageVertex& kept = p.vertices[i];
-        PageVertex now = MakeVertex(s, p.records[i], *p.entries[i]);
+        PageVertex now = MakeVertex(s, p.records[i], *p.entries[i], occlusion);
         if (std::memcmp(&kept, &now, sizeof(PageVertex)) == 0) continue;
         kept = now;
         MarkVertex(i, p.vertexFrom, p.vertexTo);
@@ -403,13 +530,14 @@ gpu::PipelineDesc TerrainDesc(const PassState& s, int samples) {
     p.bufferCount = 2;
     p.buffers[0].stride = sizeof(PageVertex);
     p.buffers[1].stride = kColourPairBytes;
-    p.attributeCount = 6;
+    p.attributeCount = 7;
     p.attributes[0] = {program::kAttrPos, 0, gpu::VertexFormat::Float3, 0};
     p.attributes[1] = {program::kAttrCol, 1, gpu::VertexFormat::UByte4Norm, 0};
     p.attributes[2] = {program::kAttrSpec, 1, gpu::VertexFormat::UByte4Norm, 4};
     p.attributes[3] = {program::kAttrUv, 0, gpu::VertexFormat::Float2, 12};
     p.attributes[4] = {program::kAttrNormal, 0, gpu::VertexFormat::Float3, 20};
     p.attributes[5] = {program::kAttrLoss, 0, gpu::VertexFormat::Float, 32};
+    p.attributes[6] = {program::kAttrOcclusion, 0, gpu::VertexFormat::Float, 36};
     ApplyPassState(p, s);
     p.samples = samples;
     AddDepthCopy(p);
@@ -460,6 +588,28 @@ gpu::Texture LevelView(const gpu::Texture& page) {
     return t;
 }
 #endif
+
+// The index runs of `batch`'s pieces placed in the pool, pieces that follow each other in it as one run:
+// `draw(first, count)` per run.
+template <class Draw>
+void ForPieceRuns(const Frame& f, const TerrainBatch& batch, Draw draw) {
+    std::uint32_t first = 0, count = 0;
+    for (int k = batch.firstPiece; k < batch.firstPiece + batch.pieceCount; ++k) {
+        const TerrainPiece& piece = f.terrainPieces[static_cast<std::size_t>(k)];
+        const CachedPage& p = *piece.page;
+        const QuarterRange& q = p.quarters[piece.quarter];
+        if (!g_pool.Placed(p.place) || q.indexCount == 0) continue;
+        std::uint32_t start = p.place.firstIndex + q.firstIndex;
+        if (count > 0 && first + count == start) {
+            count += q.indexCount;
+        } else {
+            if (count > 0) draw(first, count);
+            first = start;
+            count = q.indexCount;
+        }
+    }
+    if (count > 0) draw(first, count);
+}
 
 // --- The pool -------------------------------------------------------------------------------------------
 
@@ -523,8 +673,8 @@ void Write(CachedPage& p) {
 }
 
 CachedPage g_scratch;
-bool BuildAgain(const SectorData* s, int page, CachedPage& p) {
-    BuildPage(s, page, g_scratch);
+bool BuildAgain(const SectorData* s, int page, CachedPage& p, const float* occlusion) {
+    BuildPage(s, page, g_scratch, occlusion);
     if (SameGeometry(g_scratch, p)) return false;
     p.vertices.swap(g_scratch.vertices);
     p.records.swap(g_scratch.records);
@@ -614,6 +764,7 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerTex, {&texture, 1});
     BindShadowMap(program::kSamplerShadowMap);
     BindPointShadows(program::kSamplerPointShadowMap);
+    BindOcclusion(program::kSamplerOcclusionMap);
     CountBindings(texture.texture);
     // The ground receives the objects' shadows; the water does not (the ground under it does).
     bool receives = !batch.water && mode < 1.5f && !f.shadow.lights.empty();
@@ -630,6 +781,7 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     fs.fog[2] = (f.fogColour & 0xFF) / 255.0f;
     fs.flags[0] = mode;
     fs.flags[1] = f.fogEnabled ? 1.0f : 0.0f;
+    OcclusionUniforms(batch.occluded && mode < 1.5f, fs.occlusion, fs.occlusionMap);
     SceneLightParams light;
     LightUniforms(&light);
     gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockTerrainVsParams, vs);
@@ -638,28 +790,55 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockSceneLightParams, light);
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockPointShadowParams, f.shadow.point.params);
     std::size_t uniformBytes = sizeof(vs) + sizeof(fs) + sizeof(shadow) + sizeof(light) + sizeof(f.shadow.point.params);
-    std::uint32_t first = 0, count = 0;
-    auto draw = [&] {
-        if (count == 0) return;
+    ForPieceRuns(f, batch, [&](std::uint32_t first, std::uint32_t count) {
         gpu::DrawIndexed(first, count);
         CountDraw(uniformBytes);
         uniformBytes = 0;
-    };
-    for (int k = batch.firstPiece; k < batch.firstPiece + batch.pieceCount; ++k) {
-        const TerrainPiece& piece = f.terrainPieces[static_cast<std::size_t>(k)];
-        const CachedPage& p = *piece.page;
-        const QuarterRange& q = p.quarters[piece.quarter];
-        if (!g_pool.Placed(p.place) || q.indexCount == 0) continue;
-        std::uint32_t start = p.place.firstIndex + q.firstIndex;
-        if (count > 0 && first + count == start) {
-            count += q.indexCount;
-        } else {
-            draw();
-            first = start;
-            count = q.indexCount;
-        }
+    });
+}
+
+gpu::PipelineDesc TerrainDepthDesc() {
+    namespace program = gpu_shaders::shadow_terrain;
+    gpu::PipelineDesc p;
+    p.program = program::kIndex;
+    p.bufferCount = 1;
+    p.buffers[0].stride = sizeof(PageVertex);
+    p.attributeCount = 2;
+    p.attributes[0] = {program::kAttrPos, 0, gpu::VertexFormat::Float3, 0};
+    p.attributes[1] = {program::kAttrNormal, 0, gpu::VertexFormat::Float3, 20};
+    p.colour = gpu::Format::None;
+    p.depth = kDepthFormat;
+    p.depthCompare = gpu::Compare::LessEqual;
+    p.depthWrite = true;
+    return p;
+}
+
+// shadow_terrain.hlsl with the batch's clip matrix for the light and no sun (no face left out).
+int DrawTerrainDepth(const Frame& f, gpu::Pipeline pipeline) {
+    namespace program = gpu_shaders::shadow_terrain;
+    Geometry g;
+    g_pool.Bind(g);
+    g.vertexBuffers = 1;   // the colours: not read
+    if (!g.vertices[0].buffer) return 0;
+    gpu::ApplyPipeline(pipeline);
+    g.Bind();
+    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockShadowTerrainFsParams, ShadowTerrainFsParams{});
+    int draws = 0;
+    for (const TerrainBatch& batch : f.terrainBatches) {
+        if (!batch.occluded || batch.pieceCount <= 0) continue;
+        gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockShadowTerrainVsParams,
+                          ShadowTerrainVsParams{f.matrices[static_cast<std::size_t>(batch.matrix)]});
+        ForPieceRuns(f, batch, [&](std::uint32_t first, std::uint32_t count) {
+            gpu::DrawIndexed(first, count);
+            ++draws;
+        });
     }
-    draw();
+    return draws;
+}
+
+void GroundOcclusionCounts(int* sectors, int* made) {
+    *sectors = static_cast<int>(g_occlusion.size());
+    *made = static_cast<int>(g_occlusionVersion);
 }
 
 std::span<const TerrainGroup> TerrainPieceGroups(const TerrainPiece& piece) {
@@ -680,6 +859,10 @@ void TerrainFrameDone() {
     if (now % 64 != 0) return;
     for (auto it = g_pages.begin(); it != g_pages.end();) {
         if (!it->second.pending && now - it->second.lastUsed > kPageLife) it = g_pages.erase(it);
+        else ++it;
+    }
+    for (auto it = g_occlusion.begin(); it != g_occlusion.end();) {
+        if (now - it->second.seen > kPageLife) it = g_occlusion.erase(it);
         else ++it;
     }
 }
@@ -746,24 +929,28 @@ void TerrainPage(const SectorData* s, const SceneRenderer* renderer, int page) {
     auto [found, made] = g_pages.try_emplace(key);
     CachedPage& p = found->second;
     PageSource source = SourceOf(s, page);
+    const SectorOcclusion& occlusion = GroundOcclusion(s);
+    source.occlusion = occlusion.version;
+    const float* occluded = occlusion.occlusion.data();
     bool moved = false, upload = false;
     if (made) {
-        BuildPage(s, page, p);
+        BuildPage(s, page, p, occluded);
         upload = true;
 #if defined(EI_RENDER_VALIDATION)
     } else if (!g_cacheOn) {
-        moved = BuildAgain(s, page, p);   // off: all of it uploaded again, as before
+        moved = BuildAgain(s, page, p, occluded);   // off: all of it uploaded again, as before
         upload = true;
 #endif
     } else if (!p.source.SameTiles(source)) {
-        moved = upload = BuildAgain(s, page, p);
+        moved = upload = BuildAgain(s, page, p, occluded);
     } else if ((p.animatedTiles && p.source.changes.moved != source.changes.moved) ||
-               (p.readsWater && p.source.changes.waterMoved != source.changes.waterMoved)) {
-        moved = ReadVertices(s, p);
+               (p.readsWater && p.source.changes.waterMoved != source.changes.waterMoved) ||
+               p.source.occlusion != source.occlusion) {
+        moved = ReadVertices(s, p, occluded);
 #if defined(EI_RENDER_VALIDATION)
     } else if (FrameNumber() % kCheckEvery == 0) {
         ++g_checks;
-        if (BuildAgain(s, page, p)) {
+        if (BuildAgain(s, page, p, occluded)) {
             if (++g_stale <= 20)
                 ei::Log("render: a terrain page kept on the GPU was stale: sector (%d, %d) page %d",
                         s->sx, s->sy, page);

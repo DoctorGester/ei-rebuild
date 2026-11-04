@@ -872,6 +872,39 @@ map is the only shadow look.
   from the walk: the last matches the first, so the walk places, selects and cuts out meshes as the game's draws do; in the
   town with the camera moved the gate's long shadow is there with them and gone without them).
 
+**11. Ambient occlusion** (R17b; always on, no option). Two parts, both taken off the ambient light alone: the ground's
+`ambient` in ground_light and the figures' in figure_light (so in the sun, where the game's max() takes the sun's light,
+it hardly shows; in the shade, at night and in the caves it does). Nothing else (the sun, the point lights, the emissive
+colour, the meshes the game lights, the water, the interface's previews) is touched.
+- **The ground's own** (render_terrain.cpp, `GroundOcclusion`): per sector, once, from the height field (a cell a
+  unit): per ground vertex in the grid's eight directions the highest rise within 8 cells above the vertex's own
+  tangent plane (sines, the plane's taken off, faded by 1 - (d / 8)^2), the mean of the eight; the vertex keeps 1 -
+  0.7 x that (`PageVertex::occlusion`, an attribute of the page's geometry). The heights around the sector come from the
+  neighbours the landscape holds (`Terrain::CachedSector`, so nothing is loaded for it); a neighbour not held continues
+  the sector's edge, and the sector's occlusion is worked out again when one comes (its version in the page's source:
+  the pages read their vertices again). Large shapes: valleys, the foot of cliffs and walls of rock.
+- **The screen's** (render_occlusion.cpp, once a frame after the shadow maps, `DrawOcclusion`): the world's ground (not
+  the water) and its models after it that write the depth (cut out by alpha as the sun map's casters; not the sky, the
+  flat geometry or the added light) drawn depth only into a D32F target of half the frame's size, through the casters'
+  pipelines (`CasterDraws`, the batch's clip matrix as the instance's) and shadow_terrain.hlsl with the camera's matrix
+  (`DrawTerrainDepth`); then `occlusion.hlsl` per texel (the depth taken back into the landscape's space through the
+  camera's inverse; the normal from the nearer neighbour on each axis; in 4 directions on the screen, 4 steps each within
+  a radius of 1.5 units, at most 40 texels, the steepest rise above the surface's plane less 0.1, faded by 1 - (d /
+  1.5)^2; 1 less the mean), the directions turned and the steps shifted by a 4 x 4 pattern fixed to the screen, and
+  `occlusion_blur.hlsl` across and down (9 texels, Gaussian, texels of another depth, by 1/8 of the distance, left out),
+  which averages the pattern away: nothing crawls as the camera moves, no history is kept. R8 targets.
+- **The receivers** (`shaders/ambient_occlusion.hlsli`): the ground of the world (`TerrainBatch::occluded`) and its
+  meshes lit on the GPU after the ground (`MeshBatch::occluded`) read the 2 x 2 texels around their pixel (Gather) with
+  their depths, weighted bilinearly and by how near each depth lies to the pixel's own (1 / (1 + (50 x relative
+  difference)^2)); when even the nearest is 10-20% of the distance away the pixel's surface is none of theirs (a mesh
+  drawn without the depth, something in front) and takes none. The ground multiplies its own occlusion by it. Depths
+  compare as the clip w, from the depth by the camera's projection (`z = A + B / w`). The frame is drawn half a pixel
+  over (Direct3D 7's centres), the half-size depth is not: the lookup moves back by it.
+- Harness build: `occlusion on|off|view|check` (`render::SetOcclusion`; view: the receivers show the occlusion alone,
+  white none; check: made, ground and meshes in the depth and taking it, sectors worked out). Check: render_occlusion
+  (bz1g by day, at night, a crowd of 12 at night and by day: each on, off and alone; two captures of one moment match),
+  render_occlusion_cave (the Dragon's Cave gz5g, "#sky cave"); the frames in build/r17b of the R17b worktree.
+
 **12. Profiling the heaviest scenes.** The user's play settings: 3840 x 2160 windowed, msaa 8, anisotropy 16, flora
 shadows on, Rebirth's draw radii, `frametime 8`; zone1, zone7 (forest), zone11 (snow forest), zone19, the town bz1g, the
 camera at its default and tilted low, noon and night, the town at night with a crowd of 12 fighting. Findings: the main
@@ -1249,6 +1282,13 @@ and uploaded again is what the game says changed:
   build compares every kept mesh, box and caster with a fresh build every 16th frame (`meshcache check`); `meshcache off`
   builds every mesh into the frame's stream (and every caster again each frame).
 
+### render_occlusion.cpp: the screen's ambient occlusion
+
+Section 13, item 11: once a frame after the shadow maps the world's depth at half the frame's size (the ground and the
+models that write the depth), the occlusion found in it (occlusion.hlsl) and blurred (occlusion_blur.hlsl); the ground
+and the world's meshes lit on the GPU take it off their ambient light (shaders/ambient_occlusion.hlsli). The ground's own
+occlusion from the height field is render_terrain.cpp's.
+
 ### render_point_shadows.cpp: point-light shadows
 
 Section 13, item 9: the few strongest point lights in view get a cube of six depth faces each, drawn from the sun map's
@@ -1285,7 +1325,8 @@ the harness build never draws it.
 
 A figure part's colour as 3DfpFPU's LightMesh lit it (render.h, MeshLighting), at the model-space point `p` with the
 normal `n`: per channel the largest of the ambient colour, the sun's lit colour times the cosine to it and each light's
-lit colour times its cosine and falloff, plus the emissive colour, at most 1. The crown: pulled towards its average colour,
+lit colour times its cosine and falloff, plus the emissive colour, at most 1; the ambient colour times `occlusion`
+(section 13, item 11; 1 outside the world). The crown: pulled towards its average colour,
 taken as the average over every direction a normal can face (the mean of max(ambient, sun x cosine) for a cosine spread
 evenly over -1 .. 1; 0.6 of the way). The shadow map darkens it after (mesh_fs). A light with a point shadow adds only what
 reaches `land` (the point in the landscape's space; `face`: its face normal there, turned to the camera): a unit's mesh
@@ -1297,8 +1338,9 @@ compares from the unit's nearest distance to the light, on every face; any other
 The landscape lit as the game's vertex lighting lit each vertex, at a point `p` (the landscape's space) with the unit
 normal `n`: `m` the material colour the sun and ambient light start from (the water's; on the ground the water's above
 it, else black), `mp` the one the point lights start from (the record's own), `loss` the light lost under the water (0
-above it), `hidden` how much of the sun the shadow map hides at the point and `strength` the map's darkening
-(render_shadows.cpp kStrength). In the sun max(material + facing x sun, ambient), in the shade ambient + material, as the
+above it), `hidden` how much of the sun the shadow map hides at the point, `strength` the map's darkening
+(render_shadows.cpp kStrength) and `occlusion` how much of the ambient light reaches the point (section 13, item 11; the
+ambient colour is multiplied by it, 1 on the water). In the sun max(material + facing x sun, ambient), in the shade ambient + material, as the
 game lit them; but a shadow is never lighter than the sunlit light times 1 - strength (where the ambient light is nearly
 the sun's, as in the towns, the game's shade alone hardly shows), on faces turned to the map's light (a face turned away
 keeps its light). The point lights (each material + its light, at most 1 per channel, by its falloff and facing, dimmed

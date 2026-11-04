@@ -262,6 +262,24 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         if (!info.made || info.casters < least || info.receivingMeshes < 1 || info.receivingTerrain < 1 ||
             info.lost > 0 || info.outsideCasters < leastOutside)
             failures->push_back(text);
+    } else if (verb == "occlusion") {
+        if (argument == "on") render::SetOcclusion(render::OcclusionMode::On);
+        else if (argument == "off") render::SetOcclusion(render::OcclusionMode::Off);
+        else if (argument == "view") render::SetOcclusion(render::OcclusionMode::View);
+        else if (argument != "check") failures->push_back("occlusion needs on, off, view or check");
+        if (argument != "check") return true;
+        render::OcclusionInfo info = render::OcclusionState();
+        char text[300];
+        std::snprintf(text, sizeof(text),
+                      "occlusion check: %s (%dx%d), depth of %d ground and %d mesh draws, %d ground batches and %d "
+                      "meshes taking it; the ground's own kept for %d sectors, worked out %d times",
+                      info.made ? "made" : "not made", info.width, info.height, info.terrainDraws, info.meshDraws,
+                      info.receivingTerrain, info.receivingMeshes, info.groundSectors, info.groundMade);
+        Log("harness: %s", text);
+        frames->push_back(text);
+        if (!info.made || info.terrainDraws < 1 || info.meshDraws < 1 || info.receivingTerrain < 1 ||
+            info.receivingMeshes < 1 || info.groundSectors < 1)
+            failures->push_back(text);
     } else if (verb == "renderstats") {
         render::FrameStats t = render::TakeFrameStats();
         // The main thread's CPU time (its cycles, in milliseconds by the thread's CPU time so far, as the
