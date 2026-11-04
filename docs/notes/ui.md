@@ -97,7 +97,7 @@ every side and child and touches no flag.
   `Deactivate`, `Wheel` zooms. Keys map through the scan code to characters: 5-10 set a direction, 13-16 restore camera
   views 0-3 (saved with Ctrl or Alt held); while a direction is held the camera pans (with a modifier turns and tilts) at
   the option speeds.
-- Console window (`ui_console_window.cpp`): `DrawInput`, `DrawLines`, `OnKeyDown`, `OnChar` (Rebirth's ImproveConsole behind
+- Console window (`ui_console_window.cpp`): `PaintInput`, `PaintLines`, `OnKeyDown`, `OnChar` (Rebirth's ImproveConsole behind
   its flag); harness key names `grave`, `backspace`, `delete`, `home`, `end`, `pgup`, `pgdn`, `enterchar` (Enter plus its
   character, which the console needs); scenario `console.txt`.
 - Multiplayer-only windows (no scenario): `ChatWindow` (the base screen's chat, `ui_chat_window.cpp`: a vector of counted
@@ -495,7 +495,9 @@ the help topic, and surface 1 with text 8 ("connecting").
 
 ## MpConnectScreen::DrawListVanilla
 
-ui_connect_list.cpp (WideScreen, and Rebirth's ExtendedServerName behind its flag). The list drawn on surface 0. With row 0
+ui_connect_list.cpp (WideScreen, and Rebirth's ExtendedServerName behind its flag). The list painted on surface 0 each
+frame (`PaintList`); `DrawListVanilla` sets the controls, sprites and tips and leaves g_connectTextColour as the drawing
+did (the titles are drawn in the colour from before the call: `titleColour`). With row 0
 (the new game) selected its controls show: the player slider and the name edit enabled (and editing), sprites 4 and 5 and
 their regions' tips (0x9EA4 / 0x9EA5, set once: newGameTips); otherwise they are off and the tips empty. Texts 10 and 11 by
 the two buttons, the column titles (texts 12-15), the sort arrow (sprite 3: turned for an odd key, at its column while a key

@@ -110,37 +110,41 @@ void TurnQuarter(UiMesh* sprite) {
 } // namespace
 
 void OptionsWindow::RefreshRows() {
-    UiSurface* surface = surfaces[0];
-    surface->Clear();
     SceneMesh(kHighlightSprite)->visible = false;
-
-    Rect title = {10, 60, 140, 80};
     for (int groupIndex = 0; groupIndex < kOptionGroups; ++groupIndex) {
         UiMesh* button = SceneMesh(kFirstGroupSprite + groupIndex);
         float tint = groupIndex == group ? 1.0f : 0.5f;
         button->tint[0] = tint;
         button->tint[1] = tint;
         button->tint[2] = tint;
-        surface->DrawTextIn(groupNames[groupIndex], &title, 1, groupIndex == group ? kColourText : kColourDim, 1, 1);
-        title.Offset(0, 24);
     }
-    Rect heading = {0, 10, 600, 34};
-    surface->DrawTextIn(groupNames[group], &heading, 2, kColourText, 1, 1);
-
-    Rect name = {160, 60, 420, 80};
-    Rect keys = {430, 60, 590, 80};
     for (int row = 0, y = 168; y < 504; ++row, y += 24) {
         if (row == selectedRow) {
             UiMesh* highlight = SceneMesh(kHighlightSprite);
             highlight->visible = true;
             highlight->Place(471.0f, static_cast<float>(y), 3.0f);
         }
-        if (OptionBinding* binding = rows[row].binding) {
+    }
+}
+
+void OptionsWindow::PaintRows(UiSurface& surface) const {
+    Rect title = {10, 60, 140, 80};
+    for (int groupIndex = 0; groupIndex < kOptionGroups; ++groupIndex) {
+        surface.DrawTextIn(groupNames[groupIndex], &title, 1, groupIndex == group ? kColourText : kColourDim, 1, 1);
+        title.Offset(0, 24);
+    }
+    Rect heading = {0, 10, 600, 34};
+    surface.DrawTextIn(groupNames[group], &heading, 2, kColourText, 1, 1);
+
+    Rect name = {160, 60, 420, 80};
+    Rect keys = {430, 60, 590, 80};
+    for (int row = 0, y = 168; y < 504; ++row, y += 24) {
+        if (const OptionBinding* binding = rows[row].binding) {
             std::uint32_t colour = row == selectedRow && waitingForKey ? kColourWaiting : kColourText;
-            surface->DrawTextIn(binding->name, &name, 1, colour, 0, 1);
-            surface->DrawTextIn(binding->keysText, &keys, 1, colour, 0, 1);
-        } else if (OptionSetting* setting = rows[row].setting) {
-            surface->DrawTextIn(setting->text, &name, 1, kColourText, 0, 1);
+            surface.DrawTextIn(binding->name, &name, 1, colour, 0, 1);
+            surface.DrawTextIn(binding->keysText, &keys, 1, colour, 0, 1);
+        } else if (const OptionSetting* setting = rows[row].setting) {
+            surface.DrawTextIn(setting->text, &name, 1, kColourText, 0, 1);
         }
         name.Offset(0, 24);
         keys.Offset(0, 24);

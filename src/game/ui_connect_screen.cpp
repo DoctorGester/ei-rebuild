@@ -525,7 +525,7 @@ void MpConnectScreen::CreateScreen() {
     plain(sprite(5.0f, 410.0f, 430.0f, 700.0f, 500.0f, 0, 0, 0x100, 0x100), kBackColour);
     for (int top = 132; top < 492; top += 24) region(108, top, 370, top + 24, 0);   // the rows
 
-    AddSurface(NewSurface(ui, 100, 100, 700, 500));
+    AddSurface(NewSurface(ui, 100, 100, 700, 500))->PaintWith([this](UiSurface& out) { PaintList(out); });
     {
         scroll = new UiScrollbar(ui, Rect{108, 132, 384, 492}, 3.0f, 0, 1.0f);
         AddChild(scroll);

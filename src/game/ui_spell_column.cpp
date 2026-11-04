@@ -6,7 +6,6 @@
 #include "ui_float.h"
 
 #include <cstdint>
-#include <cstring>
 #include <string>
 #include "unit.h"
 #include "game_singletons.h"
@@ -18,12 +17,6 @@
 
 namespace {
 
-
-template <typename T> T Get(const void* base, int offset) {
-    T v;
-    std::memcpy(&v, static_cast<const std::uint8_t*>(base) + offset, sizeof(T));
-    return v;
-}
 
 // The unit's spell `index` (0..7) or null.
 // The next spell's sprite (model `model`, picture `image`; Rebirth-patched), counted in a member.
@@ -62,7 +55,7 @@ void HudSpellColumn::SetUnit(Unit* newUnit) {
             const std::vector<std::string>& currentLabels = labels;
             std::string line;
             tip += " \n";   // " \n"
-            line = std::format("{} {}  ", currentLabels[0], Truncate(Get<float>(data, 0x40)));
+            line = std::format("{} {}  ", currentLabels[0], Truncate(data->manaCost));
             tip += line;
             line = "Unknown";
             description = std::format("school_{}", SpellPrototypeOf(data)->castType);
@@ -72,27 +65,25 @@ void HudSpellColumn::SetUnit(Unit* newUnit) {
             if (SpellPrototypeOf(data)->allowedModifiers[3] == 0)
                 line = std::format("{} {}  ", currentLabels[2], currentLabels[12]);
             else
-                line = std::format("{} {}  ", currentLabels[2], Truncate(Get<float>(data, 0x24)));
+                line = std::format("{} {}  ", currentLabels[2], Truncate(data->damage));
             tip += line;
             const float one = 1.0f;
-            float duration = Get<float>(data, 0x30);
-            if (duration < one)
+            if (data->speed < one)
                 line = std::format("{} {} \n", currentLabels[3], currentLabels[8]);
             else
-                line = std::format("{} {} \n", currentLabels[3], Truncate(duration));
+                line = std::format("{} {} \n", currentLabels[3], Truncate(data->speed));
             tip += line;
-            line = std::format("{} {}{}  ", currentLabels[4], Truncate(Get<float>(data, 0x34)), currentLabels[10]);
+            line = std::format("{} {}{}  ", currentLabels[4], Truncate(data->range), currentLabels[10]);
             tip += line;
-            if (Get<std::uint32_t>(data, 0x3C) & 0x10000000) {
+            if (lib::Has(data->targetFlags, SpellTargetFlag::AtUnits)) {
                 line = std::format("{} {} \n", currentLabels[5], currentLabels[9]);
             } else {
                 // The area: radius squared times pi (a float).
-                float radius = Get<float>(data, 0x28);
-                float area = radius * radius * 3.1415927f;
+                float area = data->radius * data->radius * 3.1415927f;
                 line = str::Format("%s %.1f%s \n", currentLabels[5], area, currentLabels[10]);   // "%s %.1f%s \n"
             }
             tip += line;
-            std::uint32_t ticks = Get<std::uint32_t>(data, 0x20);
+            std::uint32_t ticks = data->duration;
             if (ticks < 2) {
                 line = std::format("{} {}  ", currentLabels[6], currentLabels[8]);
             } else {
@@ -101,7 +92,7 @@ void HudSpellColumn::SetUnit(Unit* newUnit) {
                 line = str::Format("%s %.1f%s  ", currentLabels[6], seconds, currentLabels[11]);
             }
             tip += line;
-            line = std::format("{} {} \n", currentLabels[7], Get<int>(data, 0x38));
+            line = std::format("{} {} \n", currentLabels[7], static_cast<int>(data->targetCount));
             tip += line;
         }
         // The region of the spell's index (the original does not count the missing ones).

@@ -37,7 +37,7 @@ void ConsoleWindow::SetRect(const Rect* newRect) {
 void ConsoleWindow::SetHistory(int newLines) {
     history = newLines;
     DropOldLines(newLines);
-    DrawLines();   // clamps the scroll position, draws the visible lines
+    ClampScroll();
 }
 
 void ConsoleWindow::DropOldLines(int count) {
@@ -55,7 +55,7 @@ void ConsoleWindow::AddText(std::string_view text) {
     lines.insert(lines.end(), pieces.begin() + 1, pieces.end());
     if (scroll != 0) scroll += static_cast<int>(pieces.size());
     DropOldLines(history);
-    DrawLines();   // clamps the scroll position, draws the visible lines
+    ClampScroll();
 }
 
 } // namespace console
@@ -89,7 +89,7 @@ ConsoleWindow::ConsoleWindow(Interface3D* newScreen) {
     SetRect(&area);
     history = kHistory;
     DropOldLines(kHistory);
-    DrawLines();
+    ClampScroll();
 }
 
 } // namespace console

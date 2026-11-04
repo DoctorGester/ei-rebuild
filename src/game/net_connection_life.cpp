@@ -4,7 +4,6 @@
 
 #include "core_streams.h"
 #include "net_connection.h"
-#include "lib/bytes.h"
 #include "lib/float_select.h"
 #include "platform/platform.h"
 
@@ -17,8 +16,6 @@
 namespace net {
 
 namespace {
-
-void Put32(void* object, std::size_t offset, std::uint32_t v) { lib::StoreBytes(static_cast<std::uint8_t*>(object) + offset, v); }
 
 // The std::vector<int> of received sequences given back to the pool.
 void FreeReceived(Connection* c) { std::destroy_at(&c->received); }
@@ -60,7 +57,7 @@ Connection::Connection(std::uint32_t newId) {
     }
     const float old = roundTripSquare;    // never written before: whatever the allocation held
     sendSequence = static_cast<std::uint16_t>(tick);
-    Put32(&sendInterval, 0, 0x3D23D70A);    // 0.04f
+    sendInterval = 0.04f;
     sendTimer = 0.0f;
     idleTime = 0.0f;
     updateBudget = 0xDC;
@@ -69,11 +66,10 @@ Connection::Connection(std::uint32_t newId) {
     sequenceHigh = 0x10000;
     freedIds.resize(2);
     id = newId;
-    Put32(&clock, 0, 0);
+    clock = 0.0;
     freedTimer = 0.0f;
     headerSequence = 0;
     incomingSequence = 0;
-    Put32(&clock, 4, 0);
     ackMask = 0;
     ackBase = 0;
 }

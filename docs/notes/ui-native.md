@@ -107,9 +107,15 @@ whose value sets layout (a text's height, a wrapped text's line count) is measur
 `TextExtent`), the paint draws only. A draw on a painted surface outside its paint draws nothing (a text still returns
 its value). Painted: the options' spins, the main menu's version line, the FPS and status surfaces, tooltips, the item
 strips' counts and prices, the HUD unit panel's texts and the HUD map's marker, the global map's zone tip and title,
-the help page's three surfaces, the edit field and the connection screen's note (P9a).
+the help page's three surfaces, the edit field and the connection screen's note (P9a); the console (its lines, scroll and
+input), the chat overlay's lines (each line's coloured pieces, measured when it is added) and typed line, the base
+screen's chat window (the players' statuses Update finds), the connection screen's list, the save / load list, the
+scrolling texts (the words `PlaceWords` placed when the position moved: the briefing, the objectives, the message log),
+the options' rows and the objectives' quest list and zone text (P9b). What a redraw did besides drawing stays where it
+ran: the console's and the lists' clamps, the sprites, tips and tints, the connection screen's text colour left for its
+note.
 
-**The draws a surface keeps (migration step).** The windows not converted yet (P9b, P9c) draw into their surfaces when
+**The draws a surface keeps (migration step).** The windows not converted yet (P9c) draw into their surfaces when
 something changes (ui.md), not each frame. Until a window paints its state each frame, its surface keeps the draws it was given
 (`UiSurface::draws`) in the coordinates they came in and Blit draws them again: a fill, frame or line in surface pixels
 with the size it was made at (scaled to the current size; whole-surface fills and frames follow the size), a
@@ -204,7 +210,7 @@ line's bottom (by EM_FORMATRANGE) and the height that fits the whole text with o
 ### Justified scroll text and the help page's block
 
 Both changed from the original on the user's playtest; layout and state are otherwise untouched.
-- **Justified lines** (`UiScrollText::DrawLines`, ui_scroll_text.cpp: the briefing, the objectives, the message log). The
+- **Justified lines** (`UiScrollText::PlaceWords`, ui_scroll_text.cpp: the briefing, the objectives, the message log). The
   original shared the room the words leave by the line's tokens less one, format tokens included, so a line holding a colour
   / font token stopped one gap short of the right edge; ours divides by the words less one. A wrapped line whose gaps would
   pass `kMaxStretch` (3) normal gaps stays left aligned (a cap of 2 left half the ordinary lines ragged). Lines still break

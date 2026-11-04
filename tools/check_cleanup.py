@@ -58,7 +58,13 @@ def count_vector_maths(text):
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASELINE = os.path.join(ROOT, 'config', 'cleanup_baseline.csv')
 PATTERNS = {
-    'offset access (At<>/Field<>)': re.compile(r'\b(?:At|Field)\s*<'),
+    # Also a file's own offset helper (a Get<T>(base, offset) once read Spell at the original's offsets after Spell
+    # had become a normal class): a typed call with a hex offset, `Get<float>(spell, 0x40)`, and a byte pointer plus
+    # an offset parameter, `static_cast<std::uint8_t*>(object) + offset`.
+    'offset access (At<>/Field<>)': re.compile(
+        r'\b(?:At|Field)\s*<'
+        r'|\b\w+\s*<\s*[\w:]+\s*\*?\s*>\s*\(\s*[^,();]+,\s*0x[0-9A-Fa-f]+\s*\)'
+        r'|(?:char|uint8_t|byte)\s*\*\s*>\s*\(\s*\w+\s*\)\s*\+\s*offset\b'),
     'VCall slot call': re.compile(r'\bVCall\b'),
     '__asm block': re.compile(r'\b__asm\b'),
     'float_control pragma': re.compile(r'#\s*pragma\s+float_control'),

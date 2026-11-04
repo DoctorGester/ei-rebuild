@@ -133,6 +133,7 @@ void SaveLoadWindow::CreateScreen() {
 
     UiSurface* list = NewSurface(ui, 100, 100, 700, 500);
     AddSurface(list);
+    list->PaintWith([this](UiSurface& out) { PaintList(out); });
     scrollbar = NewScrollbar(ui, 108, 108, 384, 492);
     AddChild(scrollbar);
 
@@ -205,6 +206,7 @@ void OptionsWindow::CreateScreen() {
     for (int top = 156; top < 492; top += 24) AddRect(this, 250, top, 520, top + 24);
     UiSurface* surface = NewSurface(ui, 100, 100, 700, 500);
     AddSurface(surface);
+    surface->PaintWith([this](UiSurface& out) { PaintRows(out); });
 
     UiModel* model = AddMenuModel(this, kOptionsTilt);
     model->SetScreenPosition(400.0f, 700.0f, 4.8f);

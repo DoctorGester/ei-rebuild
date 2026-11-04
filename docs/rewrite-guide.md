@@ -62,9 +62,9 @@ compare function pointers for identity.
 `build.cmd` runs `tools/check_cleanup.py`: per file, the counts of the patterns below may only go down
 (`config/cleanup_baseline.csv`; `--update` after lowering them).
 - Fields are members of the class's one declaration, named by what they mean: no offset accessors (`At<>`,
-  `Field<>`), no byte arithmetic on pointers, no member named after its offset (`field1B`). A format's field nothing
-  reads goes to the record's skip block (`unreadFields`, ...) with the format's ids; bytes a save or packet carries
-  as a block stay as padding (`reserved`).
+  `Field<>`, a file's own `Get<T>(base, 0x40)`), no byte arithmetic on pointers, no member named after its offset
+  (`field1B`). A format's field nothing reads goes to the record's skip block (`unreadFields`, ...) with the format's
+  ids; bytes a save or packet carries as a block stay as padding (`reserved`).
 - Virtual calls through named virtual functions; no `VCall`, no slot numbers.
 - Game globals are named variables; no literal addresses.
 - No one-line getter that only returns a field under another name; getters stay where they are virtual, compute or

@@ -59,8 +59,10 @@ public:
     // "unhufe".
     void ShowPlayers();
     // While the client has a live trade it asks for screen 9 (the exchange); otherwise each listed player's
-    // status (state 0..4: texts 0, 1, 2, 3, 3) and "we offer" or "they offer".
+    // status (state 0..4: texts 0, 1, 2, 3, 3) and "we offer" or "they offer" into statusRows.
     void Update() override;
+    // The surface's paint: statusRows under the faces.
+    void PaintStatus(UiSurface& surface) const;
     // With the active window's player pick 1 / 2 the player's serial goes to the server as command 4 / 5 and
     // the pick ends; otherwise, unless it is our own player, our offer to it is dropped when it is its partner,
     // else one is started.
@@ -71,6 +73,13 @@ public:
     int portraits = 0;
     std::vector<HeldRef<RefObject>> players;    // PlayerMessage records
     std::vector<std::string> texts;
+    // A listed player's texts as the last Update found them, under the face whose left edge is `left`.
+    struct StatusRow {
+        int left;
+        std::string status;
+        std::string offer;
+    };
+    std::vector<StatusRow> statusRows;
 };
 
 class BriefingScreen : public UiContainer {

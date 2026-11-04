@@ -1,5 +1,5 @@
-// The in-game chat overlay: its constructor, per-frame update and redraw, the chat line's opening and its
-// keys; the chat line's destructor. docs/notes/ui.md, section 3.
+// The in-game chat overlay: its constructor, per-frame update and redraw, the lines' and the typed line's
+// paints, the chat line's opening and its keys. docs/notes/ui.md, section 3.
 #include "asset_text.h"
 #include "console.h"
 #include "net_classes.h"
@@ -59,9 +59,18 @@ std::uint32_t MarkColour(char digit) {
     return ((bits & 1) ? 0xFF0000u : 0u) | ((bits & 2) ? 0xFF00u : 0u) | ((bits & 4) ? 0xFFu : 0u);
 }
 
-void DrawPiece(UiSurface* surface, std::string_view text, int x, std::uint32_t colour) {
-    Rect rect = {x, 0, kLineDrawRight, kLineSurfaceHeight};
-    surface->DrawTextIn(text, &rect, kLineFont, colour, kLineDrawFormat, 1);
+// A line's piece in one colour, `x` pixels from its start.
+struct ChatPiece {
+    std::string text;
+    int x;
+    std::uint32_t colour;
+};
+
+void PaintPieces(UiSurface& surface, const std::vector<ChatPiece>& pieces) {
+    for (const ChatPiece& piece : pieces) {
+        Rect rect = {piece.x, 0, kLineDrawRight, kLineSurfaceHeight};
+        surface.DrawTextIn(piece.text, &rect, kLineFont, piece.colour, kLineDrawFormat, 1);
+    }
 }
 
 constexpr int kTypedTextRight = 0x30F, kTypedTextBottom = 0x11;
@@ -139,23 +148,24 @@ void ChatOverlay::AddLine(const char* text) {
         added.time = now;
         const int width = ui->TextExtent(plain[i], kLineFont).w + kLineSurfacePad;
         added.surface = std::make_unique<UiSurface>(ui, 0, 0, width, kLineSurfaceHeight, SurfaceBlend::Keyed, true);
-        UiSurface* surface = added.surface.get();
-        surface->Clear();
+        // The pieces are measured here; a line does not change, so its paint keeps them.
         const std::string& codes = formatted[i];
+        std::vector<ChatPiece> pieces;
         std::string drawn;
         std::string piece;
         int x = 0;
         int start = 0;
         for (int at = str::Find(codes, kColourMark, 0); at != -1; at = str::Find(codes, kColourMark, start)) {
             piece = str::Mid(codes, start, at - start);
-            DrawPiece(surface, piece, x, colour);
+            pieces.push_back({piece, x, colour});
             drawn += piece;
             x = ui->TextExtent(drawn, kLineFont).w;
             colour = MarkColour(codes[at + 1]);
             start = at + 2;
         }
         piece = str::Mid(codes, start);
-        if (piece.size() != 0) DrawPiece(surface, piece, x, colour);
+        if (piece.size() != 0) pieces.push_back({piece, x, colour});
+        added.surface->PaintWith([pieces = std::move(pieces)](UiSurface& out) { PaintPieces(out, pieces); });
     }
 }
 
@@ -167,16 +177,16 @@ void ChatOverlay::SetOpen(bool open) {
         typed.clear();
         caret = 0;
     }
-    DrawTyped();
+    ShowTyped();
 }
 
 void ChatOverlay::ClearLines() {
     lines.clear();
 }
 
-// --- the typed line drawn (Rebirth-patched: WideScreen reproduced) -------------------------------
+// --- the typed line shown and painted (Rebirth-patched: WideScreen reproduced) --------------------
 
-void ChatOverlay::DrawTyped() {
+void ChatOverlay::ShowTyped() {
     if (!chatOpen) {
         surfaces[0]->Hide(false);
         return;
@@ -184,10 +194,12 @@ void ChatOverlay::DrawTyped() {
     surfaces[0]->Show();
     if (caret > static_cast<int>(typed.size())) caret = lib::Count(typed);
     if (caret < 0) caret = 0;
-    UiSurface* surface = surfaces[0];
-    surface->Clear();
+}
+
+void ChatOverlay::PaintTyped(UiSurface& surface) const {
+    surface.Clear();
     Rect area{0, 0, kTypedTextRight, kTypedTextBottom};
-    surface->DrawTextIn(typed, &area, kTypedFont, kTypedColour, render::text::kNoPrefix, 1);
+    surface.DrawTextIn(typed, &area, kTypedFont, kTypedColour, render::text::kNoPrefix, 1);
     int width = ui->TextExtent(str::Left(typed, caret), kTypedFont).w;
     if (width < kMaxTypedWidth) {
         Point top{width, 0};
@@ -195,7 +207,7 @@ void ChatOverlay::DrawTyped() {
         // WideScreen: without the margin.
         ui->ScalePointToScreenNoMargin(&top);
         ui->ScalePointToScreenNoMargin(&bottom);
-        surface->Line(top, bottom, 1, kTypedColour);
+        surface.Line(top, bottom, 1, kTypedColour);
     }
 }
 
@@ -238,7 +250,7 @@ void ChatOverlay::KeyDown(int key, int, int) {
     default:
         return;
     }
-    DrawTyped();
+    ShowTyped();
 }
 
 void ChatOverlay::Char(int key, int, int) {
@@ -253,7 +265,7 @@ void ChatOverlay::Char(int key, int, int) {
         typed = line;
         caret += text::TypedLength(key);
     }
-    DrawTyped();
+    ShowTyped();
 }
 
 // --- the constructor -----------------------------------------------------------------------------
@@ -262,9 +274,10 @@ void ChatOverlay::Char(int key, int, int) {
 ChatOverlay::ChatOverlay(Interface3D* ownerUi) : UiWindow(ownerUi) {
     UiSurface* newTyped = new UiSurface(ui, kTypedLeft, kTypedTop, kTypedRight, kTypedBottom, SurfaceBlend::Opaque, true);
     AddSurface(newTyped);
+    newTyped->PaintWith([this](UiSurface& out) { PaintTyped(out); });
     chatOpen = false;
     caret = 0;
-    DrawTyped();
+    ShowTyped();
 }
 
 void ChatOverlay::Update() {
