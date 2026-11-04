@@ -8347,6 +8347,13 @@ depends = ["C114"]
 note = "Found in C114. g_currentSession (net_classes.h) is set only for SessionBase::Tick; Connection reads it in SendUpdate (the socket), the OnMessage / CollectReplicated calls and Tick (maxRoundTrip, idReuseTime, timeout). Pass the session (a Connection member set at AddClient, or a parameter) the way C113 passed the connection. Care: ConnectionState's constructor takes roundTrip from it and falls back to 5.0 when it is null, and Connection::OnShutdown builds a ConnectionState(0) at whatever time the shutdown happens, so which value a reset connection gets depends on whether a Tick is running; keep that or decide it by judgement (net_pair_* reach it). Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes."
 
 [[ticket]]
+id = "C119a"
+title = "Message handlers' ids through ReadId / WriteId"
+group = "cleanup"
+depends = ["C119"]
+note = "C119 left: the network handlers still read object ids into zeroed locals (player_client_handlers.cpp ~10, player_client.cpp 298/324/343/408, player_server_handlers.cpp 163/374, player_server_orders.cpp 172: int objectId = 0; in.ReadValue(objectId)) and net_client_party.cpp writes ids through WriteDword(stream, &scratch, id); world_effect_missile.cpp saves targetId / casterId / arrived through memcpy into a uint32 copy (WriteValue writes the same bytes). Move them to ReadId / ReadAs / WriteId / WriteValue. QOI (lib/qoi.cpp) and the font tables (render_text.cpp ReadU16) keep their big-endian readers on purpose. Style only: wire and save bytes the same, goldens the same."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
