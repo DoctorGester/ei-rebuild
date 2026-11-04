@@ -96,26 +96,7 @@ void Pump() {
 
 // --- Base --------------------------------------------------------------------------------------------
 
-// The network session base class: construction, the message type registry and
-// the handler tables. See net_classes.h and docs/notes/network.md.
-
-int TypeRegistry::TypeOf(const std::uintptr_t* key) const {
-    auto node = byVtable.find(*key);
-    return node != byVtable.end() ? static_cast<int>(node->second) : -1;
-}
-
-void TypeRegistry::Register(std::uint32_t type, MessageFactory factory) {
-    Message* prototype = factory();
-    if (prototype) prototype->AddRef();
-    byVtable[KeyOf(prototype)] = type;
-    byType[type] = factory;
-    if (prototype) prototype->Release();
-}
-
-Message* TypeRegistry::Create(std::uint32_t type) {
-    MessageFactory factory = byType[type];
-    return factory ? factory() : nullptr;
-}
+// The network session base class.
 
 SessionBase::SessionBase() {
     time = 0.0;
@@ -124,31 +105,6 @@ SessionBase::SessionBase() {
     timeout = 60;
     maxRoundTrip = 5;
     idReuseTime = 75;
-}
-
-void SessionBase::AddHandler(int channel, std::uint32_t type, MessageHandler handler) {
-    if (channel < 0 || channel >= kChannels) return;
-    handlers[channel][type & 0xFF].push_back(handler);
-}
-
-void SessionBase::AddHandlerForPrototype(Message* prototype, int channel, MessageHandler handler) {
-    SharedRef<Message> ref(prototype);
-    const std::uintptr_t key = TypeRegistry::KeyOf(ref);
-    int type = types.TypeOf(&key);
-    AddHandler(channel, static_cast<std::uint32_t>(type), handler);
-}
-
-void SessionBase::RegisterMessageTypes() {
-    // The factories of message types 1..17 (each returns a new message with no references).
-    static constexpr MessageFactory kFactories[17] = {
-        PlayerMessage::Create, LineMessage::Create, HostMessage::Create, BindingMessage::Create,
-        LoginMessage::Create, SayMessage::Create, CommandMessage::Create, ZoneMessage::Create,
-        MapMessage::Create, VariableMessage::Create, FileMessage::Create, FileChunkMessage::Create,
-        FileRequestMessage::Create, AwardMessage::Create, PartyMessage::Create, PartyMemberMessage::Create,
-        TradeMessage::Create};
-    for (std::uint32_t type = 1; type <= 17; ++type) {
-        types.Register(type, kFactories[type - 1]);
-    }
 }
 
 std::uint32_t SessionBase::ClientCount() const { return static_cast<std::uint32_t>(clients.size()); }

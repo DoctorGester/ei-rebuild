@@ -35,7 +35,6 @@ void Connection::OnShutdown() { ConnectionState::operator=(ConnectionState(0)); 
 // older batch of freed ids returns to the id pools. False once the peer was silent for the session's
 // timeout or the reliable stream holds 32000 bytes.
 bool Connection::Tick(double dt) {
-    g_currentConnection = this;
     const float step = static_cast<float>(dt);
     idleTime += step;
     clock = static_cast<float>(clock) + step;
@@ -80,7 +79,6 @@ bool Connection::Tick(double dt) {
 
     bool alive = false;
     if (static_cast<float>(g_currentSession->timeout) > idleTime) alive = reliableOut.Size() < 32000;
-    g_currentConnection = nullptr;
     return alive;
 }
 

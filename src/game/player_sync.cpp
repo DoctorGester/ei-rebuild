@@ -79,7 +79,7 @@ void SaveListed(const std::vector<T*>* list, ByteStream* stream) {
 
 } // namespace
 
-void PlayerServer::SendItemsGiven(const std::vector<Item*>* items, int flag) {
+void PlayerServer::ItemsGiven(const std::vector<Item*>* items, int flag) {
     if (state != State::Joined) return;
     ItemsAndSpells gathered;
     for (Item* item : *items) gathered.Add(item);
@@ -200,11 +200,11 @@ void PlayerServer::SendTimedRemoved(const std::vector<Effect*>* effects) {
     }
 }
 
-// The original calls SendItemValue of this object for each item.
+// The original calls ItemUsed's message writer of this object for each item.
 void PlayerServer::SendItems() {
     for (unsigned objectId : player->recharging) {
         ResourceManager* items = player->GetParty()->ItemFactory();
-        if (Item* item = items->FindObjectAs<Item>(objectId)) SendItemValue(item);
+        if (Item* item = items->FindObjectAs<Item>(objectId)) ItemUsed(item);
     }
 }
 
@@ -276,11 +276,10 @@ void PlayerServer::SendParty() {
     refreshTimer = static_cast<int>(g_random.Next() % kRefreshSpread + kRefreshMinimum);
 }
 
-int PlayerServer::ReceiveMessages() {
+int PlayerServer::Receive() {
     if (state == State::Leaving) return 0;
     netlink::NetLink* link = player->link;
     if (link == nullptr) return 0;
-    MemoryStream& in = g_receivedMessages;
     while (link->HasIncoming()) {
         MemoryStream packet;
         if (!link->Receive(&packet)) return 0;
@@ -296,10 +295,35 @@ int PlayerServer::ReceiveMessages() {
             if (state == State::NotLoggedIn && messageType != static_cast<std::uint8_t>(ClientMessage::Login) &&
                 messageType != static_cast<std::uint8_t>(ClientMessage::NewParty))
                 break;
-            if (static_cast<int>(messageType) >= std::ssize(handlers)) return PlayerMessageError("Serv wrong packet ID prevID=%x curID=%x", previous, messageType);
-            auto handler = handlers[messageType];
-            if (handler == nullptr) return PlayerMessageError("Serv packet has no handler prevID=%x curID=%x", previous, messageType);
-            if (!(this->*handler)()) return PlayerMessageError("Serv error during parsing command prevID=%x curID=%x", previous, messageType);
+            bool handled;
+            switch (static_cast<ClientMessage>(messageType)) {
+            case ClientMessage::Login: handled = OnLogin(); break;
+            case ClientMessage::Leave: handled = OnLeave(); break;
+            case ClientMessage::RefreshParty: handled = OnRefreshParty(); break;
+            case ClientMessage::TakeExit: handled = OnTakeExit(); break;
+            case ClientMessage::GameStateRequest: handled = OnGameStateRequest(); break;
+            case ClientMessage::Joined: handled = OnJoined(); break;
+            case ClientMessage::LeaveToZone: handled = OnLeaveToZone(); break;
+            case ClientMessage::BriefingDone: handled = OnBriefingDone(); break;
+            case ClientMessage::NewParty: handled = OnNewParty(); break;
+            case ClientMessage::Resume: handled = OnResume(); break;
+            case ClientMessage::Pause: handled = OnPause(); break;
+            case ClientMessage::Walk: handled = OnWalk(); break;
+            case ClientMessage::Attack: handled = OnAttack(); break;
+            case ClientMessage::CastAtPoint: handled = OnCastAtPoint(); break;
+            case ClientMessage::CastAtObject: handled = OnCastAtObject(); break;
+            case ClientMessage::WantedWeapon: handled = OnWantedWeapon(); break;
+            case ClientMessage::MoveStyle: handled = OnMoveStyle(); break;
+            case ClientMessage::UseOrder: handled = OnUseOrder(); break;
+            case ClientMessage::UnitLookup: handled = OnUnitLookup(); break;
+            case ClientMessage::Follow: handled = OnFollow(); break;
+            case ClientMessage::GoTo: handled = OnGoTo(); break;
+            case ClientMessage::FightAtWill: handled = OnFightAtWill(); break;
+            case ClientMessage::LastPosition: handled = OnLastPosition(); break;
+            case ClientMessage::PartyUpdate: handled = OnPartyUpdate(); break;
+            default: return PlayerMessageError("Serv packet has no handler prevID=%x curID=%x", previous, messageType);
+            }
+            if (!handled) return PlayerMessageError("Serv error during parsing command prevID=%x curID=%x", previous, messageType);
             if (state == State::Leaving) return 0;
         }
     }

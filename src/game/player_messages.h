@@ -32,14 +32,14 @@ class NetLink;
 }
 
 // The messages a PlayerServer sends its client, by the type byte that starts each one (PlayerClient's
-// handler table is keyed by them). The numbers are the wire format.
+// DispatchMessages switches on them). The numbers are the wire format.
 enum class ServerMessage : std::uint8_t {
     LoginAccepted = 0x00,       // the player's id; answers ClientMessage::Login
     Disconnect = 0x01,          // our server writes it when a player leaves
     Zone = 0x02,
     ItemsAndSpells = 0x03,      // no sender here
     CameraPlacement = 0x04,
-    NewItemsAndSpells = 0x05,   // the states of the given items and spells (SendItemsGiven)
+    NewItemsAndSpells = 0x05,   // the states of the given items and spells (ItemsGiven)
     ItemsReceived = 0x06,
     GameState = 0x07,
     ZoneChange = 0x08,
@@ -77,7 +77,7 @@ enum class ServerMessage : std::uint8_t {
     PartyUpdate = 0x83,
 };
 
-// The messages a PlayerClient sends its server (PlayerServer's handler table is keyed by them). The numbers are
+// The messages a PlayerClient sends its server (PlayerServer::Receive switches on them). The numbers are
 // the wire format; 0x37 has no handler.
 enum class ClientMessage : std::uint8_t {
     Login = 0x00,
@@ -112,14 +112,6 @@ void WriteType(MemoryStream* out, Message type) {
     out->WriteValue(static_cast<std::uint8_t>(type));
 }
 
-// One row of the server's and the client's handler tables: a message type and its handler, a method of the
-// connection that reads the message from its stream.
-template <typename Connection, typename Message>
-struct HandlerEntry {
-    Message type;
-    int (Connection::*handler)();
-};
-
 // A unit placement: the unit's id, position, rotation and two unit values (WorldServer::StoreParty stores
 // them, CreateUnits restores them).
 struct UnitPlacement {
@@ -138,9 +130,6 @@ class PlayerConnection : public EngineObject {
 public:
     ~PlayerConnection() override;
 
-    // This connection as the server's or the client's: null on the other side.
-    virtual PlayerServer* ServerSide() { return nullptr; }
-    virtual PlayerClient* ClientSide() { return nullptr; }
     virtual void ForgetSentObjects() = 0;   // server (sent objects, party units); client empty
     virtual void UnitChanged(Unit*) {}     // client (the unit's controller); server empty
     virtual void ResetState() {}            // server and client versions
@@ -164,24 +153,36 @@ class PlayerServer final : public PlayerConnection {
 public:
     PlayerServer();
     ~PlayerServer() override;
-    PlayerServer* ServerSide() override { return this; }
 
-    void Create() override {
-        CreateServer();
-    }
-    void Destroy() override { ClearServerState(); }
+    void Create() override { ResetState(); }
+    void Destroy() override { ResetState(); }
     const char* ClassName() override;
     ClassId GetClassId() override;
-    void ForgetSentObjects() override { ReleaseSentObjects(); }
-    void ResetState() override { ClearServerState(); }
-    void Leave() override { LeaveAndFlush(); }
-    void ItemsGiven(const std::vector<Item*>* items, int flag) override { SendItemsGiven(items, flag); }
-    void ItemsTaken() override { SendQuestItemsChanged(); }
-    void ItemTaken(EngineObject* item) override { SendItemRemoved(item); }
-    void LeaderDied() override { OnLeaderDied(); }
-    void TickDone() override { ClearPossessedGroup(); }
-    void ItemUsed(Item* item) override { SendItemValue(item); }
-    int Receive() override { return ReceiveMessages(); }
+    // The sent objects and timed objects released, both unit groups emptied.
+    void ForgetSentObjects() override;
+    // Back to a new connection's state: the messages, the sent objects, NotLoggedIn, the groups, the placements and
+    // both coders; the next party refresh drawn (ISAAC).
+    void ResetState() override;
+    // A joined player collects its party when deployed (partyDeployed, then cleared) and, in a
+    // multiplayer game, sends it; then Leaving with message 0x01 unless already, and Flush.
+    void Leave() override;
+    // For a joined player (State::Joined): message 0x05, a stream with the given items' spells and then the items,
+    // and message 0x06: the party's money, the flag's low byte, the items' ids and -1.
+    void ItemsGiven(const std::vector<Item*>* items, int flag) override;
+    void ItemsTaken() override;                       // message 0x17
+    void ItemTaken(EngineObject* item) override;     // message 0x0A: the item's id
+    // The player's leader died. Outside a network game: messages 0x09 and 0x0B (the hero's id, 0xFF). In one,
+    // a party of one hero is revived: it loses a share of its money (into a shared object with the given
+    // items) and of its experience, gets a new record id, and is collected, sent and redeployed; its new
+    // brain knows the units the old one knew and the old hero.
+    void LeaderDied() override;
+    void TickDone() override;                         // possessedGroup emptied
+    void ItemUsed(Item* item) override;               // message 0x14: the item's id and charge
+    // Every packet waiting on the link is decompressed into `in` and its messages run through the handlers;
+    // before the player has logged in only types 0 and 8, the rest of such a packet is dropped. A read past the
+    // end, a type without a handler or a refusing handler ends in the fatal error (its result returned). 0 when
+    // leaving (State::Leaving, also after a handler) or without a link, else 1.
+    int Receive() override;
 
     void SetVariable(std::string_view name, float value);                // message 0x81
     void SetVariableMax(std::string_view name, float value);             // raises a variable, 0x81
@@ -194,10 +195,7 @@ public:
     void SendCountdowns(const WaterTweens* source);                    // message 0x73
     void SendCameraPlacement(const Vector3& at, std::uint32_t startValue, std::uint32_t sessionKind);   // message 0x04
     void SendFreeCamera(const Vector3& at, const Vector3& other, std::uint8_t flag);   // 0x0F
-    void SendQuestItemsChanged();
-    void SendItemRemoved(const EngineObject* object);                 // id
     void SendWeaponRemoved(std::uint32_t unitId, std::uint32_t index);
-    void SendItemValue(const Item* item);                 // the item's id and charge
     void SendJingle(const char* text);
     void SendExperienceAll(std::uint32_t value);
     void SendExperience(std::uint32_t unitId, std::uint32_t value);
@@ -226,11 +224,8 @@ public:
     // Objects gone from view: dropped from the player's map and released (0x42 / 0x52: id).
     void SendObjectsRemoved(const std::vector<MapObject*>* objects);
     void SendTimedRemoved(const std::vector<Effect*>* effects);
-    // Every item of the player's item list the party's item manager knows is sent (SendItemValue).
+    // Every item of the player's item list the party's item manager knows is sent (ItemUsed).
     void SendItems();
-    // For a joined player (State::Joined): message 0x05, a stream with the given items' spells and then the items,
-    // and message 0x06: the party's money, the flag's low byte, the items' ids and -1.
-    void SendItemsGiven(const std::vector<Item*>* items, int flag);
     // Message 0x60: the world's pause flag, possessedId, the party units (partyUnits) by id and the party's
     // danger (danger: EnemyNear when a unit of the player has an exposure at most 2, InDanger when a party unit
     // fights or is the enemy of a hostile neighbour), then the objects shared with a
@@ -243,80 +238,70 @@ public:
     // Message 0x80: the party saved (with its variables) as a sized block; the next refresh in 900..1800
     // updates (ISAAC).
     void SendParty();
-    // Every packet waiting on the link is decompressed into the received stream and its messages run through
-    // the handlers; before the player has logged in only types 0 and 8, the rest of such a packet is
-    // dropped. A read past the end, a type without a handler or a refusing handler ends in the fatal error
-    // (its result returned). 0 when leaving (State::Leaving, also after a handler) or without a link, else 1.
-    int ReceiveMessages();
     // The party units (partyUnits) recomputed: with possessedId at -1, possessedGroup plus the player's units,
     // the units they see and what they know (their brains' lists), and every brain then knows all of it;
     // otherwise partyUnits becomes a copy of possessedGroup and possessedId -1.
     void UpdatePartyUnits();
 
-    // The player's leader died. Outside a network game: messages 0x09 and 0x0B (the hero's id, 0xFF). In one,
-    // a party of one hero is revived: it loses a share of its money (into a shared object with the given
-    // items) and of its experience, gets a new record id, and is collected, sent and redeployed; its new
-    // brain knows the units the old one knew and the old hero.
-    void OnLeaderDied();
     // Message 0x36: unit ids (missing or blocked ones left out), a flag, a kind, a value and the target
     // object's id. Of several units, the nearest to the order's aim point first, the first whose controller
     // accepts the use order (CheckOrder, or CheckOrderAt where its path ends) does it, else the nearest; its
-    // brain's Player mode runs CommandUse. Returns 1.
-    int OnUseOrder();
+    // brain's Player mode runs CommandUse. Returns true.
+    bool OnUseOrder();
 
-    // The rest of the client's messages. Each returns 1, or 0 to refuse (the dispatcher's fatal error).
+    // The rest of the client's messages. Each returns true, or false to refuse (the dispatcher's fatal error).
     // The player leaves for zone `zone` at `entrance` (joined players only): in campaign modes 1 and 3 a dead
     // or missing leader first dies (outside a network game nothing more); the party is collected, handed to
     // the party manager (single player) or sent (multiplayer); then message 0x08 and a flush.
     void LeaveToZone(std::string_view zone, int entrance);
-    int OnRefreshParty();      // Message 0x02: ForgetKnownObjects, SendParty
-    int OnTakeExit();          // Message 0x03: exit index -> FindZoneExit -> LeaveToZone (0 when none)
+    bool OnRefreshParty();      // Message 0x02: ForgetKnownObjects, SendParty
+    bool OnTakeExit();          // Message 0x03: exit index -> FindZoneExit -> LeaveToZone (false when none)
     // Message 0x05: GameStateSent -> Joined, the session kind, Redeploy with the placements, PlayerDirty::GameState.
-    int OnJoined();
-    int OnLeaveToZone();       // Message 0x06: zone text, entrance -> LeaveToZone
-    int OnBriefingDone();      // Message 0x07: briefing name -> CompleteBriefing(player id)
+    bool OnJoined();
+    bool OnLeaveToZone();       // Message 0x06: zone text, entrance -> LeaveToZone
+    bool OnBriefingDone();      // Message 0x07: briefing name -> CompleteBriefing(player id)
     // Message 0x08: a party (LoadParty with variables); one of a single record gets a fresh party id
     // (PartyNextId into partyId), its record the next free object id (from 1000000013), and is stored in
     // the party manager's map. 0 for any other record count.
-    int OnNewParty();
-    int OnResume();            // Message 0x09: Disconnected -> Joined; Redeploy (no placements) unless deployed
+    bool OnNewParty();
+    bool OnResume();            // Message 0x09: Disconnected -> Joined; Redeploy (no placements) unless deployed
     // Messages 0x30 / 0x3A: unit ids (missing or blocked ones left out), a run flag and a point; each unit's
     // Player mode walks / goes (CommandWalk / CommandGoTo) to the point plus its formation offset.
-    int OnWalk();
-    int OnGoTo();
+    bool OnWalk();
+    bool OnGoTo();
     // Message 0x31: unit ids, two flags, an object id; each unit's Player mode attacks it.
-    int OnAttack();
-    int OnPartyUpdate();       // Message 0x50: a sized block loaded into the party (no variables)
+    bool OnAttack();
+    bool OnPartyUpdate();       // Message 0x50: a sized block loaded into the party (no variables)
     // "Able" units below: present, not blocked (flag 0x800000) and not dead.
-    int OnLeave();             // Message 0x01: the connection's Leave
-    // Message 0x04 (joined players, else 0): the game state into sessionKind, the party collected
+    bool OnLeave();             // Message 0x01: the connection's Leave
+    // Message 0x04 (joined players, else false): the game state into sessionKind, the party collected
     // (CollectParty with the placements) and sent, message 0x07 (the state and the world tick), dirty bit
     // 0x10 cleared, GameStateSent.
-    int OnGameStateRequest();
+    bool OnGameStateRequest();
     // Message 0x10: a pause byte. A multiplayer client that is also the attached game server, asking to
     // pause: only the session leader (its id the party's first record's unit) may, and its name is announced
     // (text 0xC); then the world's SetPaused(pause != 0).
-    int OnPause();
+    bool OnPause();
     // Messages 0x33 / 0x32: {spell, unit id, target id / point, flag byte}: an able unit with a Player mode
     // casts at the object / point (CommandCast / CommandCastAt).
-    int OnCastAtObject();
-    int OnCastAtPoint();
+    bool OnCastAtObject();
+    bool OnCastAtPoint();
     // Messages 0x34 / 0x35: {unit id, byte}: an able unit's wanted weapon slot / a living unit's movement
     // style (no blocked test).
-    int OnWantedWeapon();
-    int OnMoveStyle();
-    int OnUnitLookup();        // Message 0x38: two dwords, the first looked up as a unit (unused)
+    bool OnWantedWeapon();
+    bool OnMoveStyle();
+    bool OnUnitLookup();        // Message 0x38: two dwords, the first looked up as a unit (unused)
     // Message 0x39: {unit id, leader id}: a unit's Player mode follows the leader (may be null).
-    int OnFollow();
+    bool OnFollow();
     // Message 0x3B: a unit id, then a byte: Unit::SetFightAtWill(signed byte) when the unit exists.
-    int OnFightAtWill();
-    int OnLastPosition();      // Message 0x40: 8 bytes into lastPosition x, y
-    // Message 0x00: the login (PlayerLoginMessage); 0 unless the player is NotLoggedIn (after the read). A client version
-    // other than 0x64 gets message 0x11 ("WrongClientVersion") and Leaving (0); a name or password that is
-    // not printable text: 0. The party by game mode (1 the party manager's EndRedeploy; 2 / 3 the one stored
+    bool OnFightAtWill();
+    bool OnLastPosition();      // Message 0x40: 8 bytes into lastPosition x, y
+    // Message 0x00: the login (PlayerLoginMessage); false unless the player is NotLoggedIn (after the read). A client version
+    // other than 0x64 gets message 0x11 ("WrongClientVersion") and Leaving (false); a name or password that is
+    // not printable text: false. The party by game mode (1 the party manager's EndRedeploy; 2 / 3 the one stored
     // under partyId, 0 when there is none; 4 cleared), then message 0x00 with the player's id, SendParty,
     // Joined.
-    int OnLogin();
+    bool OnLogin();
     // Message 0x83: the party saved without its variables as a sized block.
     void SendPartyUpdate();
     // From the player state tick: a joined, deployed player's party is sent again (logged, the records
@@ -325,12 +310,6 @@ public:
     // From the briefing screen. Message 0x19: a byte and a dword.
     void SendUnitControl(std::uint8_t event, std::uint32_t subject);
 
-    void ClearServerState();
-    void ReleaseSentObjects();
-    void ClearPossessedGroup();
-    // A joined player collects its party when deployed (partyDeployed, then cleared) and, in a
-    // multiplayer game, sends it; then Leaving with message 0x01 unless already, and Flush.
-    void LeaveAndFlush();
     // Message 0x0E about a path of `unit` (nothing for null): kind, flag, the point's two dwords, the unit's
     // id and `limit`; except for kind 3 the path written through a delta field.
     void SendPathMessage(EngineObject* unit, PathOrder* path, const Vector3& point, int kind, int flag,
@@ -339,8 +318,6 @@ public:
     // -1, or the unit a Possession spell took (its id): the next party refresh then sends possessedGroup (the
     // target and what it sees) and sets it back to -1. Sent with message 0x60.
     std::uint32_t possessedId;
-    // ClearServerState, then the handler table: 256 entries, zeroed, and the 24 handlers by message type.
-    void CreateServer();
 
     // Where the client is in joining and leaving (the harness reads it).
     enum class State : int {
@@ -352,11 +329,10 @@ public:
     };
     State state;
 
-    using Handler = int (PlayerServer::*)();
-    std::vector<Handler> handlers;    // by message type (null: refused; 256 of them)
     Vector3 lastPosition;           // sent with 0x04 / 0x0F
+    MemoryStream in;                   // the client's messages being run (each received packet decompressed)
     MemoryStream out;                  // messages to the client
-    std::uint8_t partyDeployed;     // the party stands in the world: OnLeaderDied collects it when set, redeploys it when clear
+    std::uint8_t partyDeployed;     // the party stands in the world: LeaderDied collects it when set, redeploys it when clear
     std::vector<UnitPlacement> placements;
     CoderState compressor;          // for the messages sent (Flush)
     CoderState decompressor;        // for the messages received
@@ -472,7 +448,7 @@ public:
 
     Party* GetParty() { return &party; }
     // The connection as the server's view of it (a PlayerServer on the server world, null for none).
-    PlayerServer* Server() const { return connection ? connection->ServerSide() : nullptr; }
+    PlayerServer* Server() const { return dynamic_cast<PlayerServer*>(connection); }
 
     netlink::NetLink* link;                     // the connection to the player's client, null: none
     PlayerConnection* connection;              // PlayerServer / PlayerClient (counted)

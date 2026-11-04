@@ -201,25 +201,25 @@ void ServerSession::OnClientLeft(Connection* connection) { ReportDeparture(conne
 
 // --- Net server join ---------------------------------------------------------------------------------
 
-// The game server's handlers of the login message (LoginMessage, registered by the server constructor):
+// The game server's handlers of the login message (LoginMessage, from OnMessage):
 // a client joined (a player record and a connection binding for it), its record changed or it left. See
 // net_classes.h and docs/notes/network.md.
 
 // A client joined (a LoginMessage). Appends a player record (the login's texts and
 // values, the lowest free player number, the next serial, the server's next line number) and a
-// binding (the player and the current connection) the login keeps. The player is the host when
+// binding (the player and `from`) the login keeps. The player is the host when
 // the login asks (with a local client) or when it is the only binding. Announces the player's name.
-void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
+void ServerSession::OnJoin(Connection* from, LoginMessage* msg) {
     auto* player = new PlayerMessage();
-    self->players.emplace_back(player);
-    PlayerMessage* record = self->players.back().Get();
+    players.emplace_back(player);
+    PlayerMessage* record = players.back().Get();
 
     auto* binding = new BindingMessage();
-    self->bindings.emplace_back(binding);
-    BindingMessage* bound = self->bindings.back().Get();
+    bindings.emplace_back(binding);
+    BindingMessage* bound = bindings.back().Get();
 
-    std::string* name = &record->name;
-    *name = msg->name;
+    std::string* playerName = &record->name;
+    *playerName = msg->name;
     record->state = msg->state;
     record->text = msg->text;
     record->id = msg->id;
@@ -228,7 +228,7 @@ void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     int number = 1;
     for (;;) {
         bool used = false;
-        for (auto& it : self->players) {
+        for (auto& it : players) {
             if (it.Get()->number == number) {
                 used = true;
                 break;
@@ -240,9 +240,9 @@ void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     record->number = number;
     record->serial = static_cast<std::int32_t>(g_playerSerial);
     ++g_playerSerial;
-    record->firstLine = self->nextLine;
+    record->firstLine = nextLine;
     bound->player.Assign(record);
-    bound->connection.Assign(g_currentConnection);
+    bound->connection.Assign(from);
     msg->binding.Assign(bound);
 
     ClientSession* client = g_gameClient;
@@ -250,40 +250,40 @@ void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     if (client && !(client->flags7 & RefObject::kDetached)) {
         host = msg->host != 0;
     } else {
-        host = self->bindings.size() == 1;
+        host = bindings.size() == 1;
     }
     if (host) record->host = 1;
 
-    self->Announce(g_interface.MessageText(0, name->data()), nullptr);
+    Announce(g_interface.MessageText(0, playerName->data()), nullptr);
 }
 
-// Channel 1: the client's login changed: its player record takes the state and id, and its version goes up.
-void ServerOnPlayerChanged(ServerSession*, LoginMessage* message) {
+// The client's login changed: its player record takes the state and id, and its version goes up.
+void ServerSession::OnPlayerChanged(LoginMessage* message) {
     message->binding.Get()->player.Get()->state = message->state;
     message->binding.Get()->player.Get()->id = message->id;
     PlayerMessage* player = message->binding.Get()->player.Get();
     ++player->version;
 }
 
-// Channel 2: the client left. With a live binding: its live player is removed from the
+// The client left (its login removed). With a live binding: its live player is removed from the
 // players list, and when it was the host the first remaining player becomes the host (its version
 // goes up); then the binding is removed from the bindings list.
-void ServerOnPlayerGone(ServerSession* self, LoginMessage* message) {
+void ServerSession::OnPlayerGone(LoginMessage* message) {
     auto* binding = message->binding.Get();
     if (!IsLive(binding)) return;
     auto* player = binding->player.Get();
     if (IsLive(player)) {
         std::uint8_t wasHost = player->host;
-        EraseValue(self->players, player);
+        EraseValue(players, player);
         if (wasHost) {
-            if (!self->players.empty()) {
-                auto* first = self->players.front().Get();
+            if (!players.empty()) {
+                auto* first = players.front().Get();
                 first->host = 1;
                 ++first->version;
             }
         }
     }
-    EraseValue(self->bindings, message->binding.Get());
+    EraseValue(bindings, message->binding.Get());
 }
 
 // --- Net server chat ---------------------------------------------------------------------------------

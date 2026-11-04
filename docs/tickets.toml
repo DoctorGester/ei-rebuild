@@ -8331,6 +8331,15 @@ group = "cleanup"
 note = "C111 bounded every BufferCursor read by its limit; GameBuffer::ReadString (the master server list's GameInfoRecord texts, net_game_info.cpp) still takes its length from the packet and reads that many bytes in place, past the high mark (Reserve grows a growing buffer, a view reads past its end). Stop at the high mark with readPastEnd set, as GameBuffer::Read does; add the case to tests/unit/game_buffer.cpp. Also: GameFlow::StartServer and JoinServer (world_game.cpp) build the same 20-byte password hello twice."
 
 [[ticket]]
+id = "C113a"
+title = "Networking style 5a: player client order senders return nothing"
+group = "cleanup"
+model = "sonnet"
+depends = ["C113"]
+files = ["src/game/player_client.h", "src/game/player_client_orders.cpp", "src/game/world.h", "src/game/world_client_maps.cpp", "src/game/world_game.cpp"]
+note = "Found in C113 (review round 3, item A15). PlayerClient's order senders (SendWalk, SendGoTo, SendAttack, SendCastOnUnit, SendCastAtPoint, SendItemOnUnit, SendItemAtPoint, SetWeapon, SetMoveMode, SetUnitFightAtWill, SendFollow, SendPause, SendUseOrder, SendUseDead, SendPartyUpdate, SendResume) all return 1 and TakeExit / RequestZone / RequestGameState return the stream position; no caller reads either (WorldClient::SendPause and ::RequestZone only pass it on). Make them void. Style only: goldens the same."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"

@@ -316,7 +316,7 @@ void WorldServer::Destroy() {
         PlayerIterator it;
         for (Player* player = it.First(PlayerList()); player; player = it.Next()) {
             player->Disconnect();
-            PlayerList()->ReleasePlayer(player);
+            player->Release();
         }
     }
 
@@ -347,9 +347,9 @@ bool NoPendingPossession(const PlayerServer* state) { return static_cast<int>(st
 
 // Disconnects a player (its connection and units).
 // A player that lost its connection leaves the game.
-void DropPlayer(WorldServer* world, Player* player) {
+void DropPlayer(Player* player) {
     player->Disconnect();
-    world->PlayerList()->ReleasePlayer(player);
+    player->Release();
     console::EndLine(console::g_netLogOut << worlddata::DisconnectingPlayerText() << player->playerId);
 }
 
@@ -372,7 +372,7 @@ void WorldServer::Update() {
         if (link && link->Connected() && player->connection->Receive() != 0)
             WakeAroundUnits(this, player);
         else
-            DropPlayer(this, player);
+            DropPlayer(player);
     }
 
     if (WorldHandle* handle = worldHandle.Get()) {
@@ -417,7 +417,7 @@ void WorldServer::Update() {
     }
 
     for (Player* player = it.First(PlayerList()); player; player = it.Next())
-        if (!SyncPlayer(player)) DropPlayer(this, player);
+        if (!SyncPlayer(player)) DropPlayer(player);
 
     ++updateCount;
 }

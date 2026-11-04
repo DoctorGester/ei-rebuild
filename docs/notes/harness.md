@@ -322,7 +322,7 @@ routine: run it when wanted.
   GSDelVar (ServerSession::RemoveVariable): the only uncommented calls are in zone13.mob and zone2.mob behind
   variables of the single-player story that a multiplayer game never sets.
 - **Gap scenarios (H43c1, H43e1):** `net_host_death` (a hosted game's hero killed by a `hit` step in the game zone:
-  OnLeaderDied's multiplayer branch, AddSharedObject, StopSpeech on the host's own client; the zone left, saved and
+  LeaderDied's multiplayer branch, AddSharedObject, StopSpeech on the host's own client; the zone left, saved and
   entered again: SharedObject::Load), `unit_hit_turning` (a blow while the hero turns: HitWhileTurning),
   `unit_ai_healer` (bz2g's healing mercenary renumbered by make_trap_mob.py: only a unit whose id is no text key gets
   spell options, and no zone has one with a heal or protection, so IsNearPath runs on no shipped data). No caller at

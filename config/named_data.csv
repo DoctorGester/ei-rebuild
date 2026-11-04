@@ -123,7 +123,6 @@ address,size,name,file
 0079B848,136,g_lengthCodes,src/game/net_coder.cpp
 0079B91C,4,g_netLog,src/game/net_classes.h
 0079B920,4,g_currentSession,src/game/net_classes.h
-0079B924,4,g_currentConnection,src/game/net_classes.h
 0079BB24,256,g_windowTitle,src/game/app_main.cpp
 0079BC28,4,g_mainWindow,src/game/app_main.cpp
 0079BC54,1,g_recordingFrames,src/game/app_main.cpp

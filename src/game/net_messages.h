@@ -1,7 +1,7 @@
 #pragma once
 
-// The network message classes, types 1..17 (SessionBase::RegisterMessageTypes); see docs/notes/network.md.
-// Each has a factory (Create: a new message with no references); OnShutdown gives the fields a constructor sets their
+// The network message classes, types 1..17 (MessageType; CreateMessage makes one by type); see docs/notes/network.md.
+// OnShutdown gives the fields a constructor sets their
 // new values (references dropped; a field the constructor leaves unset keeps its value), Write / Read the fields at
 // the cursor. Clone (with the copy constructor) is only for the messages that are shared twice (RefObject::Clone).
 
@@ -31,10 +31,11 @@ public:
     ~LoginMessage() override;
 
     void OnShutdown() override;
-    void Write(BufferCursor* cursor) override;
-    void Read(BufferCursor* cursor) override;
+    void Write(Connection* peer, BufferCursor* cursor) override;
+    void Read(Connection* peer, BufferCursor* cursor) override;
 
-    static Message* Create();
+    static constexpr MessageType kType = MessageType::Login;
+    MessageType Type() const override { return kType; }
 
     std::string name;
     std::string text;
@@ -67,10 +68,11 @@ public:
     ~SayMessage() override {}
 
     SayMessage* Clone() override;
-    void Write(BufferCursor* cursor) override;
-    void Read(BufferCursor* cursor) override;
+    void Write(Connection* peer, BufferCursor* cursor) override;
+    void Read(Connection* peer, BufferCursor* cursor) override;
 
-    static Message* Create();
+    static constexpr MessageType kType = MessageType::Say;
+    MessageType Type() const override { return kType; }
 };
 
 // Type 7: a command for the server (ClientSession::SendCommand).
@@ -82,10 +84,11 @@ public:
 
     void OnShutdown() override;
     CommandMessage* Clone() override;
-    void Write(BufferCursor* cursor) override;
-    void Read(BufferCursor* cursor) override;
+    void Write(Connection* peer, BufferCursor* cursor) override;
+    void Read(Connection* peer, BufferCursor* cursor) override;
 
-    static Message* Create();
+    static constexpr MessageType kType = MessageType::Command;
+    MessageType Type() const override { return kType; }
 
     CommandKind kind;
     std::string text;
@@ -99,10 +102,11 @@ public:
     ~FileRequestMessage() override;
 
     void OnShutdown() override;
-    void Write(BufferCursor* cursor) override;
-    void Read(BufferCursor* cursor) override;
+    void Write(Connection* peer, BufferCursor* cursor) override;
+    void Read(Connection* peer, BufferCursor* cursor) override;
 
-    static Message* Create();
+    static constexpr MessageType kType = MessageType::FileRequest;
+    MessageType Type() const override { return kType; }
 
     Ref<FileMessage> file{};
     Ref<Connection> connection{};    // not sent
@@ -115,10 +119,11 @@ public:
     ~PartyMessage() override;
 
     void OnShutdown() override;
-    void Write(BufferCursor* cursor) override;
-    void Read(BufferCursor* cursor) override;
+    void Write(Connection* peer, BufferCursor* cursor) override;
+    void Read(Connection* peer, BufferCursor* cursor) override;
 
-    static Message* Create();
+    static constexpr MessageType kType = MessageType::Party;
+    MessageType Type() const override { return kType; }
 
     std::vector<HeldRef<PartyMemberMessage>> members;
     std::uint32_t money = 0;         // the offered party's money (Party::Money)
@@ -137,10 +142,11 @@ public:
     ~PartyMemberMessage() override {}
 
     void OnShutdown() override;
-    void Write(BufferCursor* cursor) override;
-    void Read(BufferCursor* cursor) override;
+    void Write(Connection* peer, BufferCursor* cursor) override;
+    void Read(Connection* peer, BufferCursor* cursor) override;
 
-    static Message* Create();
+    static constexpr MessageType kType = MessageType::PartyMember;
+    MessageType Type() const override { return kType; }
 
     MemoryStream stream;
 };
@@ -154,10 +160,11 @@ public:
     ~PlayerMessage() override {}
 
     void OnShutdown() override;
-    void Write(BufferCursor* cursor) override;
-    void Read(BufferCursor* cursor) override;
+    void Write(Connection* peer, BufferCursor* cursor) override;
+    void Read(Connection* peer, BufferCursor* cursor) override;
 
-    static Message* Create();
+    static constexpr MessageType kType = MessageType::Player;
+    MessageType Type() const override { return kType; }
 
     std::string name;
     std::string text;
@@ -176,10 +183,11 @@ public:
     ~LineMessage() override;
 
     void OnShutdown() override;
-    void Write(BufferCursor* cursor) override;
-    void Read(BufferCursor* cursor) override;
+    void Write(Connection* peer, BufferCursor* cursor) override;
+    void Read(Connection* peer, BufferCursor* cursor) override;
 
-    static Message* Create();
+    static constexpr MessageType kType = MessageType::Line;
+    MessageType Type() const override { return kType; }
 
     std::uint32_t number;
     std::string text;
@@ -193,10 +201,11 @@ public:
     ~HostMessage() override {}
 
     void OnShutdown() override;
-    void Write(BufferCursor* cursor) override;
-    void Read(BufferCursor* cursor) override;
+    void Write(Connection* peer, BufferCursor* cursor) override;
+    void Read(Connection* peer, BufferCursor* cursor) override;
 
-    static Message* Create();
+    static constexpr MessageType kType = MessageType::Host;
+    MessageType Type() const override { return kType; }
 
     std::string address;            // "host:port"
     std::string zone;
@@ -209,10 +218,11 @@ public:
     ~BindingMessage() override;
 
     void OnShutdown() override;
-    void Write(BufferCursor* cursor) override;
-    void Read(BufferCursor* cursor) override;
+    void Write(Connection* peer, BufferCursor* cursor) override;
+    void Read(Connection* peer, BufferCursor* cursor) override;
 
-    static Message* Create();
+    static constexpr MessageType kType = MessageType::Binding;
+    MessageType Type() const override { return kType; }
 
     Ref<PlayerMessage> player{};
     Ref<Connection> connection{};    // not sent
@@ -224,10 +234,11 @@ public:
     ZoneMessage();
     ~ZoneMessage() override {}
 
-    void Write(BufferCursor* cursor) override;
-    void Read(BufferCursor* cursor) override;
+    void Write(Connection* peer, BufferCursor* cursor) override;
+    void Read(Connection* peer, BufferCursor* cursor) override;
 
-    static Message* Create();
+    static constexpr MessageType kType = MessageType::Zone;
+    MessageType Type() const override { return kType; }
 };
 
 // Type 9: the map being played.
@@ -236,10 +247,11 @@ public:
     MapMessage() {}
     ~MapMessage() override {}
 
-    void Write(BufferCursor* cursor) override;
-    void Read(BufferCursor* cursor) override;
+    void Write(Connection* peer, BufferCursor* cursor) override;
+    void Read(Connection* peer, BufferCursor* cursor) override;
 
-    static Message* Create();
+    static constexpr MessageType kType = MessageType::Map;
+    MessageType Type() const override { return kType; }
 };
 
 // Type 10: a script variable.
@@ -249,10 +261,11 @@ public:
     ~VariableMessage() override {}
 
     void OnShutdown() override;
-    void Write(BufferCursor* cursor) override;
-    void Read(BufferCursor* cursor) override;
+    void Write(Connection* peer, BufferCursor* cursor) override;
+    void Read(Connection* peer, BufferCursor* cursor) override;
 
-    static Message* Create();
+    static constexpr MessageType kType = MessageType::Variable;
+    MessageType Type() const override { return kType; }
 
     std::string name;
     float value;
@@ -266,10 +279,11 @@ public:
     ~FileMessage() override;
 
     void OnShutdown() override;
-    void Write(BufferCursor* cursor) override;
-    void Read(BufferCursor* cursor) override;
+    void Write(Connection* peer, BufferCursor* cursor) override;
+    void Read(Connection* peer, BufferCursor* cursor) override;
 
-    static Message* Create();
+    static constexpr MessageType kType = MessageType::File;
+    MessageType Type() const override { return kType; }
 
     std::uint16_t chunkCount;
     std::int32_t size;           // in bytes
@@ -288,10 +302,11 @@ public:
 
     void OnShutdown() override;
     FileChunkMessage* Clone() override;
-    void Write(BufferCursor* cursor) override;
-    void Read(BufferCursor* cursor) override;
+    void Write(Connection* peer, BufferCursor* cursor) override;
+    void Read(Connection* peer, BufferCursor* cursor) override;
 
-    static Message* Create();
+    static constexpr MessageType kType = MessageType::FileChunk;
+    MessageType Type() const override { return kType; }
 
     Ref<FileMessage> file{};
     std::uint16_t index;
@@ -307,10 +322,11 @@ public:
 
     void OnShutdown() override;
     AwardMessage* Clone() override;
-    void Write(BufferCursor* cursor) override;
-    void Read(BufferCursor* cursor) override;
+    void Write(Connection* peer, BufferCursor* cursor) override;
+    void Read(Connection* peer, BufferCursor* cursor) override;
 
-    static Message* Create();
+    static constexpr MessageType kType = MessageType::Award;
+    MessageType Type() const override { return kType; }
 
     Ref<RefObject> connection{};         // the receiver (not sent)
     AwardKind kind;
@@ -325,10 +341,11 @@ public:
     ~TradeMessage() override;
 
     void OnShutdown() override;
-    void Write(BufferCursor* cursor) override;
-    void Read(BufferCursor* cursor) override;
+    void Write(Connection* peer, BufferCursor* cursor) override;
+    void Read(Connection* peer, BufferCursor* cursor) override;
 
-    static Message* Create();
+    static constexpr MessageType kType = MessageType::Trade;
+    MessageType Type() const override { return kType; }
 
     Ref<PlayerMessage> player{};        // the first offer's player (not sent)
     Ref<PlayerMessage> partner{};       // its partner (not sent)

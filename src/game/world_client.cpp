@@ -144,7 +144,7 @@ FootprintPart* Object3D::PartBox(int index) {
 }
 
 PlayerClient* WorldClient::LocalView() {
-    return session && session->connection ? session->connection->ClientSide() : nullptr;
+    return session ? dynamic_cast<PlayerClient*>(session->connection) : nullptr;
 }
 
 bool WorldClient::IsLocalViewSendingCamera() {

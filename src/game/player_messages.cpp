@@ -38,36 +38,6 @@ NamedFloatTable* Variables(Player* player) { return &player->GetParty()->variabl
 
 // Looks an object up by id (base_manager.cpp), through its game address.
 
-constexpr int kServerHandlerCount = 0x100;
-
-// The server's message handlers by type.
-constexpr HandlerEntry<PlayerServer, ClientMessage> kServerHandlers[] = {
-    {ClientMessage::Login, &PlayerServer::OnLogin},
-    {ClientMessage::Leave, &PlayerServer::OnLeave},
-    {ClientMessage::RefreshParty, &PlayerServer::OnRefreshParty},
-    {ClientMessage::TakeExit, &PlayerServer::OnTakeExit},
-    {ClientMessage::GameStateRequest, &PlayerServer::OnGameStateRequest},
-    {ClientMessage::Joined, &PlayerServer::OnJoined},
-    {ClientMessage::LeaveToZone, &PlayerServer::OnLeaveToZone},
-    {ClientMessage::BriefingDone, &PlayerServer::OnBriefingDone},
-    {ClientMessage::NewParty, &PlayerServer::OnNewParty},
-    {ClientMessage::Resume, &PlayerServer::OnResume},
-    {ClientMessage::Pause, &PlayerServer::OnPause},
-    {ClientMessage::Walk, &PlayerServer::OnWalk},
-    {ClientMessage::Attack, &PlayerServer::OnAttack},
-    {ClientMessage::CastAtPoint, &PlayerServer::OnCastAtPoint},
-    {ClientMessage::CastAtObject, &PlayerServer::OnCastAtObject},
-    {ClientMessage::WantedWeapon, &PlayerServer::OnWantedWeapon},
-    {ClientMessage::MoveStyle, &PlayerServer::OnMoveStyle},
-    {ClientMessage::UseOrder, &PlayerServer::OnUseOrder},
-    {ClientMessage::UnitLookup, &PlayerServer::OnUnitLookup},
-    {ClientMessage::Follow, &PlayerServer::OnFollow},
-    {ClientMessage::GoTo, &PlayerServer::OnGoTo},
-    {ClientMessage::FightAtWill, &PlayerServer::OnFightAtWill},
-    {ClientMessage::LastPosition, &PlayerServer::OnLastPosition},
-    {ClientMessage::PartyUpdate, &PlayerServer::OnPartyUpdate},
-};
-
 // The sent-object arrays emptied: every object released, the block freed.
 template <class T>
 void ReleaseAll(std::vector<T*>& objects) {
@@ -169,9 +139,9 @@ void PlayerServer::SendFreeCamera(const Vector3& at, const Vector3& other, std::
 
 // --- Simple messages -----------------------------------------------------------------------------
 
-void PlayerServer::SendQuestItemsChanged() { WriteType(&out, ServerMessage::QuestItemsChanged); }
+void PlayerServer::ItemsTaken() { WriteType(&out, ServerMessage::QuestItemsChanged); }
 
-void PlayerServer::SendItemRemoved(const EngineObject* object) {
+void PlayerServer::ItemTaken(EngineObject* object) {
     WriteType(&out, ServerMessage::ItemRemoved);
     WriteDword(&out, ObjectId(object));
 }
@@ -183,7 +153,7 @@ void PlayerServer::SendWeaponRemoved(std::uint32_t unitId, std::uint32_t index) 
 }
 
 // The item's charge goes as its float's bits (the client's 0x0C / 0x14 handlers store it there).
-void PlayerServer::SendItemValue(const Item* item) {
+void PlayerServer::ItemUsed(Item* item) {
     WriteType(&out, ServerMessage::ItemValue);
     WriteDword(&out, ObjectId(item));
     WriteDword(&out, std::bit_cast<std::uint32_t>(item->charge));
@@ -239,7 +209,7 @@ void PlayerServer::SetPartyDeployed(std::uint8_t value) { partyDeployed = value;
 
 // --- The server's Create ---------------------------------------------------------------
 
-void PlayerServer::ClearServerState() {
+void PlayerServer::ResetState() {
     out.Resize(0);
     ReleaseAll(sentObjects);
     ReleaseAll(sentTimed);
@@ -256,38 +226,27 @@ void PlayerServer::ClearServerState() {
     refreshTimer = static_cast<int>(g_random.Next() % 0x385u + 0x384u);
 }
 
-void PlayerServer::CreateServer() {
-    ClearServerState();
-    handlers.resize(kServerHandlerCount);
-    std::fill_n(handlers.data(), std::ssize(handlers), Handler{});
-    for (const auto& entry : kServerHandlers)
-        handlers[static_cast<std::uint8_t>(entry.type)] = entry.handler;
-}
-
 // --- The server's lifetime and virtuals ------------------------------------------------------
 
-// The stream and the coders are members (constructed before the body; the original builds them after the handler
-// table).
 PlayerServer::PlayerServer() {
-    ClearServerState();
+    ResetState();
 }
 
-// The stream and the coders are members, destroyed after the body (the original frees them before the handler table).
 PlayerServer::~PlayerServer() {
-    ClearServerState();
+    ResetState();
 }
 
 const char* PlayerServer::ClassName() { return "CPlayerServer"; }
 ClassId PlayerServer::GetClassId() { return ClassId::PlayerServer; }
 
-void PlayerServer::ReleaseSentObjects() {
+void PlayerServer::ForgetSentObjects() {
     ReleaseAll(sentObjects);
     ReleaseAll(sentTimed);
     possessedGroup.Clear();
     partyUnits.Clear();
 }
 
-void PlayerServer::ClearPossessedGroup() { possessedGroup.Clear(); }
+void PlayerServer::TickDone() { possessedGroup.Clear(); }
 
 void PlayerServer::SendPathMessage(EngineObject* unit, PathOrder* path, const Vector3& point, int kind, int flag,
                                     float limit) {

@@ -186,60 +186,53 @@ bool ServerSession::IsHostConnection(const Connection* connection) {
     return false;
 }
 
-// File requests: the request keeps its sender's connection and is listed on fileRequests (dropped again on
-// removal).
-void ServerOnObjectAdded(ServerSession* self, FileRequestMessage* message) {
-    message->connection.Assign(g_currentConnection);
-    self->fileRequests.emplace_back(message);
-}
-
-// Commands, from the connection being read; each needs the host's connection (IsHostConnection):
+// Commands from `from`; each needs the host's connection (IsHostConnection):
 //   PreviewMap: the world prepares map `text`;
 //   Zone: when a queued map message is named `text`, its suffix picks SetMap (_1),
 //      LeaveZone (_2) or CompleteZone (_3) with the name before it;
 //   KickByName / BanByName: every guest whose name starts with `text` is kicked / banned;
 //   KickBySerial / BanBySerial: the client with serial atoi(text) is kicked / banned.
-void ServerOnCommand(ServerSession* self, CommandMessage* message) {
+void ServerSession::OnCommand(Connection* from, CommandMessage* message) {
     std::string* text = &message->text;
     switch (message->kind) {
     case CommandKind::PreviewMap:
-        if (self->IsHostConnection(g_currentConnection)) g_gameFlow.SetNetworkZone(text->data());
+        if (IsHostConnection(from)) g_gameFlow.SetNetworkZone(text->data());
         return;
     case CommandKind::Zone: {
-        if (!self->IsHostConnection(g_currentConnection)) return;
-        auto node = self->queuedMaps.begin();
-        for (; node != self->queuedMaps.end(); ++node) {
+        if (!IsHostConnection(from)) return;
+        auto node = queuedMaps.begin();
+        for (; node != queuedMaps.end(); ++node) {
             auto* entry = node->Get();
             if (entry->text == *text) break;
         }
-        if (node == self->queuedMaps.end()) return;
+        if (node == queuedMaps.end()) return;
         const std::size_t cut = text->size() - 2;
         std::string suffix = text->substr(cut);
-        std::string name = text->substr(0, text->size() - 2);
-        if (Is(suffix, game::ZoneSuffix1Text())) self->SetMap(&name);
-        if (Is(suffix, game::ZoneSuffix2Text())) self->LeaveZone();
-        if (Is(suffix, game::ZoneSuffix3Text())) self->CompleteZone(&name);
+        std::string zone = text->substr(0, text->size() - 2);
+        if (Is(suffix, game::ZoneSuffix1Text())) SetMap(&zone);
+        if (Is(suffix, game::ZoneSuffix2Text())) LeaveZone();
+        if (Is(suffix, game::ZoneSuffix3Text())) CompleteZone(&zone);
         return;
     }
     case CommandKind::KickByName:
-        if (!self->IsHostConnection(g_currentConnection)) return;
+        if (!IsHostConnection(from)) return;
         for (;;) {
-            Connection* connection = self->FindGuestConnection(text);
+            Connection* connection = FindGuestConnection(text);
             if (!IsLive(connection)) return;
-            self->Kick(connection);
+            Kick(connection);
         }
     case CommandKind::BanByName:
-        if (!self->IsHostConnection(g_currentConnection)) return;
+        if (!IsHostConnection(from)) return;
         for (;;) {
-            Connection* connection = self->FindGuestConnection(text);
+            Connection* connection = FindGuestConnection(text);
             if (!IsLive(connection)) return;
-            self->Ban(connection);
+            Ban(connection);
         }
     case CommandKind::KickBySerial:
-        if (self->IsHostConnection(g_currentConnection)) self->Kick(self->FindConnectionBySerial(std::atoi(text->data())));
+        if (IsHostConnection(from)) Kick(FindConnectionBySerial(std::atoi(text->data())));
         return;
     case CommandKind::BanBySerial:
-        if (self->IsHostConnection(g_currentConnection)) self->Ban(self->FindConnectionBySerial(std::atoi(text->data())));
+        if (IsHostConnection(from)) Ban(FindConnectionBySerial(std::atoi(text->data())));
         return;
     default:
         return;

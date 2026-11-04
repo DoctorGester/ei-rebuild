@@ -1,7 +1,7 @@
 #pragma once
 
 // The client side of a player's connection: it sends the client's requests compressed to the server and runs
-// the server's messages through its handler table. The single-player game runs it next to PlayerServer over
+// the server's messages through their handlers (DispatchMessages). The single-player game runs it next to PlayerServer over
 // the loopback link. See docs/notes/objects.md.
 
 #include "player_messages.h"
@@ -14,19 +14,26 @@ class PlayerClient final : public PlayerConnection {
 public:
     PlayerClient();
     ~PlayerClient() override;
-    PlayerClient* ClientSide() override { return this; }
 
-    void Create() override {
-        CreateClient();
-    }
-    void Destroy() override { Clear(); }
-    bool RunTick() override { return Pump(); }
+    void Create() override { ResetState(); }
+    void Destroy() override { ResetState(); }
+    // Connecting: once the link is connected, the party (message 8, with the variables, when sendParty is set)
+    // and the login (message 0: version 100, "Tango", "Very top secret", the player's partyId) are queued,
+    // LoginSent, and everything is sent (SendToServer's result); without a connected link 1. LoginSent: 1.
+    // SendingCamera: the camera's anchor x, y as message 0x40, then sent. Other states: sent.
+    bool RunTick() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
     void ForgetSentObjects() override {}
-    void UnitChanged(Unit* unit) override { NotifyUnitChanged(unit); }
-    void ResetState() override { Clear(); }
-    int Receive() override { return ReceiveMessages(); }
+    // A unit joined (`player` set) or left the player: the interface is told; a multiplayer client whose party
+    // has one member, `unit`, puts its id (-1 when it left) in the login record and raises its version.
+    void UnitChanged(Unit* unit) override;
+    // Connecting, partyUnitIds freed, both streams emptied, localSession and sendParty cleared, both coders
+    // reset.
+    void ResetState() override;
+    // One packet from the link, decompressed into in and dispatched: 1 when there was none or it ran
+    // through, 0 without a link, when the receive failed or the dispatch returned 0.
+    int Receive() override;
 
     // The local view's orders, queued for the server (out), each a type byte and a payload; all return 1.
     // Units go as their ids (-1 for a null entry).
@@ -74,11 +81,6 @@ public:
     // 0x09 (resume).
     int SendResume();
 
-    // Connecting: once the link is connected, the party (message 8, with the variables, when sendParty is set)
-    // and the login (message 0: version 100, "Tango", "Very top secret", the player's partyId) are queued,
-    // LoginSent, and everything is sent (SendToServer's result); without a connected link 1. LoginSent: 1.
-    // SendingCamera: the camera's anchor x, y as message 0x40, then sent. Other states: sent.
-    bool Pump();
     // Compresses the queued requests and sends them on the link; the queue is emptied unless there is no
     // link. 1 without a link, 0 when it is not connected, else the send's result.
     bool SendToServer();
@@ -89,133 +91,122 @@ public:
     // The client world's frame, with the local server's stream. Appends the bytes of `source` (rewound) to
     // the received stream, whose pending bits are stored first; its read position stays.
     void AppendReceived(MemoryStream* source);
-    // One packet from the link, decompressed into in and dispatched: 1 when there was none or it ran
-    // through, 0 without a link, when the receive failed or the dispatch returned 0.
-    int ReceiveMessages();
 
-    // The message handlers; each returns 1 unless noted.
+    // The message handlers; each returns true unless noted (false: refused, the dispatcher's fatal error).
     // Message 0x81. A variable (name, value bits) set in the party's table (read first, the value dropped); a
     // quest variable ("q.", longer than 2) goes to the quest log and the client world too.
-    int OnSetVariable();
+    bool OnSetVariable();
     // Message 0x82. A variable (name) removed; a quest variable is announced with value 0.
-    int OnDeleteVariable();
+    bool OnDeleteVariable();
     // Message 0x08. The game flow changes zone (name, entrance).
-    int OnZoneChange();
+    bool OnZoneChange();
     // Message 0x0D. The music system plays a jingle (name).
-    int OnJingle();
+    bool OnJingle();
     // Message 0x02. The zone: the player cleared, then the client world loads the block read from the
-    // stream (Rebirth-patched). 0 when the block cannot be read.
-    int OnZone();
-    // Messages 0x03 / 0x05. A block for the client world's two readers; 0 when it cannot be read.
-    int OnItemsAndSpells();
-    int OnNewItemsAndSpells();
+    // stream (Rebirth-patched). False when the block cannot be read.
+    bool OnZone();
+    // Messages 0x03 / 0x05. A block for the client world's two readers; false when it cannot be read.
+    bool OnItemsAndSpells();
+    bool OnNewItemsAndSpells();
     // Message 0x0A. The player drops an item (id); the quest log is refreshed with an empty list.
-    int OnItemRemoved();
+    bool OnItemRemoved();
     // Message 0x17. A player update, then the quest log refreshed with an empty list.
-    int OnQuestItemsChanged();
+    bool OnQuestItemsChanged();
     // Messages 0x15 / 0x18. Experience shown over each of the player's units / over one unit (id): the
     // amount (a float) times 1.04 ^ (the unit's params.intelligence - 25), rounded through a float, kind 8.
-    int OnExperienceAll();
-    int OnExperience();
+    bool OnExperienceAll();
+    bool OnExperience();
     // Message 0x06. The party's money (read into it) and items by id (until -1; found in the client world's
     // item manager, gathered in reverse) with a flag byte: the player takes them and the quest log shows
-    // them with the money gained. 0 when the stream runs out.
-    int OnItemsReceived();
+    // them with the money gained. False when the stream runs out.
+    bool OnItemsReceived();
     // Message 0x80. The party: a sized block loaded into the player's party (with variables; a multiplayer
     // client keeps its own); the player's recharge list gets every item whose charge is below its maximum;
     // the client world applies the variables, "party received on client" is logged and the game flow's
     // ReturnLocalParty runs.
-    int OnParty();
+    bool OnParty();
     // Message 0x83. A sized block loaded into the party without its variables.
-    int OnPartyUpdate();
+    bool OnPartyUpdate();
     // Message 0x0E. A path shown as markers: kind (0..3), a flag, x, y, a unit id and a value. Except for
     // kind 3 a scratch unit (class 0x32) reads the path through a delta field and, with markers on, a
     // particle source 0x2039 (colour by kind, typeParam the value) runs one tick on it; with markers on, a
     // source 0x203A (0x203B with the flag) at (x, y, 0) and the first one go to the unit's client controller.
     // Neither source is released here.
-    int OnPathMarker();
+    bool OnPathMarker();
     // Message 0x40 (multiplayer). A map object the server announces: header (id, class, prototype index,
     // flags), scale, second name, model, two texture names, part names, script name, prototype value. The
     // world's object manager makes it; units get their model's height and action speeds; peasant heads get
-    // their prototype's hair ("hr.%.2d") or lose it; the figure is built (0 when that fails), a few models
+    // their prototype's hair ("hr.%.2d") or lose it; the figure is built (false when that fails), a few models
     // lose or gain parts or a particle source; the textures are swapped (units of class 0x32: "mo%dp" /
-    // "mo%ds" by id); the player keeps it (counted); its state is read (0 when that fails); it is filed in
+    // "mo%ds" by id); the player keeps it (counted); its state is read (false when that fails); it is filed in
     // the client world and its visibility level is the party variable its second name names.
-    int OnNewObject();
+    bool OnNewObject();
     // Message 0x13. A text run as the interface's string event.
-    int OnStringEvent();
+    bool OnStringEvent();
     // Message 0x60. The party state (PlayerServer::SendPartyState): the old party units lose
     // MapObjectFlag::InParty and their ids go into a set; the world's pause flag (byte); a dword (dropped); the new
     // party ids (partyUnitIds resized without keeping its contents), whose units get the flag and, when new to the
     // party, in a session of kind 1 without an owner and with a game-flow condition, their controller's
     // fade-in; the set emptied; the world's partyDanger; the other players' unit ids.
-    int OnPartyState();
-    // Clear's state, then the handler table: 256 entries, zeroed, and the 40 handlers by message type.
-    void CreateClient();
-    // Connecting, partyUnitIds freed, both streams emptied, localSession and sendParty cleared, both coders
-    // reset.
-    void Clear();
+    bool OnPartyState();
 
     // Message 0x00. Login accepted: a dword, SendingCamera, the player's owner gives the player that id
     // (PlayerManager::ChangeId).
-    int OnLoginAccepted();
+    bool OnLoginAccepted();
     // Message 0x01. The player disconnects (Player::Disconnect).
-    int OnDisconnect();
+    bool OnDisconnect();
     // Message 0x04. A point and two dwords (heading, mode): the client world centres on the point; in the
     // party's zone "gz20g" the camera takes distance 23 and a 30-degree pitch (SetDistancePitch), elsewhere
-    // view 6 (mode 3) or 7 (RestoreView); then SetHeading. Returns the last Read's byte count.
-    int OnCameraPlacement();
+    // view 6 (mode 3) or 7 (RestoreView); then SetHeading. False when the mode could not be read.
+    bool OnCameraPlacement();
     // Message 0x07. The game state and the world tick: the player's lastScreen keeps the old state. While
     // localSession is set only an Enter key-down goes to the interface; otherwise the state is stored, the
     // interface makes its screen, the tick is set, state 3 refreshes the client world's units, every unit
     // of the player goes through UnitChanged (the walk stops at a null one) and a multiplayer client
     // updates from the server.
-    int OnGameState();
+    bool OnGameState();
     // Message 0x09. The interface's OnGameLost.
-    int OnGameLost();
+    bool OnGameLost();
     // Message 0x0B. Two dwords to the interface's OnUnitSpeech.
-    int OnUnitSpeech();
+    bool OnUnitSpeech();
     // Message 0x0C. (id, float) pairs until id -1: the client world's item gets the float as its charge; an
-    // unknown id's float is not read (the next id is read from it). 0 when the stream fails.
-    int OnObjectValues();
+    // unknown id's float is not read (the next id is read from it). False when the stream fails.
+    bool OnObjectValues();
     // Message 0x0F. Two points and a byte: the camera looks from the first at the second (LookFrom) and
     // goes free or not (SetFree).
-    int OnFreeCamera();
+    bool OnFreeCamera();
     // Message 0x12. A byte and a dword: the dword to the player's world.
-    int OnWorldValue();
+    bool OnWorldValue();
     // Message 0x14. (id, float): the party's item gets the float as its charge, and the player's ItemUsed.
-    int OnItemValue();
+    bool OnItemValue();
     // Message 0x16. (unit id, index): the party member's weapon record `index` is removed (signed bound
     // check) and the client unit's controller shows no weapon.
-    int OnWeaponRemoved();
+    bool OnWeaponRemoved();
     // Message 0x19. A kind byte and a unit id: 0 the client world controls the unit, 1 / 2 set / clear its
-    // flag 0x100 and light (not with flag 0x10), 3 deselects; 0 for other kinds.
-    int OnUnitControl();
-    // Message 0x41. A known map object reads its delta; platforms (0x54, 0x5D) refresh. 0 when unknown or
+    // flag 0x100 and light (not with flag 0x10), 3 deselects; false for other kinds.
+    bool OnUnitControl();
+    // Message 0x41. A known map object reads its delta; platforms (0x54, 0x5D) refresh. False when unknown or
     // the read fails.
-    int OnObjectChanged();
+    bool OnObjectChanged();
     // Message 0x42. A known map object goes: a unit of the player leaves it, the entry is erased, the object
-    // flagged 1 and released, the client world removes the id. 0 when unknown.
-    int OnObjectRemoved();
+    // flagged 1 and released, the client world removes the id. False when unknown.
+    bool OnObjectRemoved();
     // Message 0x43. The object manager's unit (class 0x50) with this id: its controller's Died.
-    int OnUnitDied();
+    bool OnUnitDied();
     // Messages 0x50 / 0x51 / 0x52. A timed object: (id, type) made by the world's timed object manager, read
     // in full, filed (counted; the highest id kept) / read as a delta / erased, flagged 1 and released. 0
     // when it cannot be made, read or found.
-    int OnTimedObjectAdded();
-    int OnTimedObjectChanged();
-    int OnTimedObjectRemoved();
+    bool OnTimedObjectAdded();
+    bool OnTimedObjectChanged();
+    bool OnTimedObjectRemoved();
     // Message 0x70. The weather ("RainSnow"): its setter (kind byte, 16-bit strength as a float).
-    int OnWeather();
+    bool OnWeather();
     // Message 0x71. Two floats: the client world's time speed (second) and time (first), then its lighting.
-    int OnWorldTime();
+    bool OnWorldTime();
     // Message 0x72. A point and a dword to the client world.
-    int OnWind();
+    bool OnWind();
     // Message 0x73. The client world reads the stream.
-    int OnCountdowns();
-    // A unit joined (`player` set) or left the player: the interface is told; a multiplayer client whose party
-    // has one member, `unit`, puts its id (-1 when it left) in the login record and raises its version.
-    void NotifyUnitChanged(Unit* unit);
+    bool OnCountdowns();
 
     // Where the client is in joining and in changing zones (the harness reads it).
     enum class State : int {
@@ -226,8 +217,6 @@ public:
     };
     State state;
 
-    using Handler = int (PlayerClient::*)();
-    std::vector<Handler> handlers;    // by message type (null: refused; 256 of them)
     MemoryStream in;                   // the server's messages being run
     MemoryStream out;                  // requests for the server
     // A local session (GameStartLocalSession sets it): a unit's network owner becomes the local

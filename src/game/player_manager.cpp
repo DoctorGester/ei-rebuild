@@ -54,7 +54,6 @@ Player* PlayerManager::CreateSessionPlayer() {
     return player;
 }
 
-void PlayerManager::ReleasePlayer(EngineObject* player) { player->Release(); }
 
 void PlayerManager::ChangeId(EngineObject* object, int newId) {
     if (auto old = objects.find(static_cast<unsigned>(object->id)); old != objects.end()) objects.erase(old);

@@ -159,7 +159,7 @@ void WorldServer::TeardownZone() {
     for (Player* player = it.First(PlayerList()); player;
          player = it.First(PlayerList())) {
         player->Disconnect();
-        PlayerList()->ReleasePlayer(player);
+        player->Release();
         if (it.manager) --it.manager->refCount;
         it.manager = nullptr;
     }
@@ -217,7 +217,7 @@ void WorldServer::SendFreshObjects() {
     }
     state->SendObjectsAdded(&newObjects);
     state->WriteTo(header);
-    PlayerList()->ReleasePlayer(temporary);
+    temporary->Release();
     lib::FreeStorage(newObjects);
 }
 

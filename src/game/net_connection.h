@@ -30,7 +30,7 @@ class ReplicaEntry final : public RefObject {
 public:
     std::uint32_t version = 0;    // the object's version last sent (1: removal sent)
     std::uint16_t id = 0;         // 0 until first sent
-    std::uint8_t type = 0;        // message type of the object (0xFF: none registered)
+    std::uint8_t type = 0;        // the object's MessageType
     std::uint8_t priority = 0;    // 0..10: the priority map it is kept in
     Ref<Message> object;    // the object (null once it is gone)
     std::uint32_t serial = 0;    // the connection's count of tracked entries when this one was made: its key in priorities
@@ -142,14 +142,14 @@ public:
     // Builds and sends one update packet of at most `budget` entry bytes. False when entries had to be left
     // out (or the send failed).
     bool SendUpdate(int budget);
-    // Reads one entry of an update (created / changed or removed) into `records` and calls the session's
-    // handlers (channel 0 created, 1 changed, 2 removed). False when the object could not be created.
+    // Reads one entry of an update (created / changed or removed) into `records` and tells the session's
+    // OnMessage. False when the object could not be created.
     bool ReadRecord(BufferCursor* cursor, std::uint32_t version);
     // Writes a reference to `object`: a 0 bit, type and id for an object this side replicates (an id is
     // assigned on first use), a 1 bit, type and id for one received from the peer, or a 0 bit and zeros.
     void WriteObjectRef(BufferCursor* cursor, Message* object);
-    // Reads such a reference: the peer's replicated object (created from the type's factory when missing or
-    // detached) or one this side sent; null for none.
+    // Reads such a reference: the peer's replicated object (made by CreateMessage when missing or detached) or one
+    // this side sent; null for none.
     Message* ReadObjectRef(BufferCursor* cursor);
     // Writes the acknowledgements: the last sequence received and a mask of the 32 before it; forgets
     // sequences more than 32 old.
@@ -184,15 +184,15 @@ public:
     // Reads an update packet: sequence, acknowledgements, a reliable chunk and the entries. False when an
     // entry could not be read; true otherwise (also for a stale packet).
     bool ReadUpdate(BufferCursor* cursor);
-    // The peer goes away: every object received from it goes to the session's removal handlers (channel 2)
-    // and is released.
+    // The peer goes away: every object received from it goes to the session's OnMessage (Removed) and is
+    // released.
     void Close();
 
 private:
     // Gives `entry` an id from its type's pool (kept in bySentId) unless it has one.
     void AssignId(ReplicaEntry* entry);
-    // A new object of `type` from the session's factory into `record` (version 0), remembered as (type, objectId) in
-    // attached; null (the record left empty) for a type without a factory.
+    // A new object of `type` (CreateMessage) into `record` (version 0), remembered as (type, objectId) in attached;
+    // null (the record left empty) for a type no class has.
     Message* CreateRecord(Record& record, std::uint8_t type, std::uint16_t objectId);
 };
 } // namespace net

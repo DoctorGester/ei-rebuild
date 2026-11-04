@@ -240,8 +240,8 @@ std::uint32_t ObjectFlags(const void* object) { return static_cast<const EngineO
 void* PlayerConnection(void* player) { return static_cast<Player*>(player)->connection; }
 int ConnectionState(void* connection) {
     auto* base = static_cast<::PlayerConnection*>(connection);
-    if (PlayerServer* server = base->ServerSide()) return static_cast<int>(server->state);
-    return static_cast<int>(base->ClientSide()->state);
+    if (auto* server = dynamic_cast<PlayerServer*>(base)) return static_cast<int>(server->state);
+    return static_cast<int>(static_cast<PlayerClient*>(base)->state);
 }
 bool CampItems(void* camp, int* page, std::vector<void*>* items, std::vector<unsigned>* types) {
     auto* pages = static_cast<CampPages*>(static_cast<UiWindow*>(camp));

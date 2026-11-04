@@ -1,5 +1,5 @@
 // PlayerServer: what the server does for its player beyond the per-tick sync, the leader's death and the
-// client's messages (handlers by type, from the table CreateServer builds). See player_messages.h and
+// client's messages (handlers by type, Receive's switch). See player_messages.h and
 // docs/notes/objects.md ("Players").
 
 #include "ai_map.h"
@@ -41,9 +41,9 @@
 
 namespace {
 
-constexpr int kRevivedIdBase = 1001000000;            // OnLeaderDied: ids below it are moved up
+constexpr int kRevivedIdBase = 1001000000;            // LeaderDied: ids below it are moved up
 constexpr int kRevivedIdStep = 1000000;
-constexpr int kNoId = -1;                             // see OnLeaderDied: the original's uninitialised ids
+constexpr int kNoId = -1;                             // see LeaderDied: the original's uninitialised ids
 constexpr float kUnknownZ = -1313.0f;                 // lastPosition.z after a revival
 constexpr float kPathRange = 1000000.0f;              // FindPath's range for the use order
 constexpr float kFarAway = 1e30f;                     // the nearest-unit search's start
@@ -67,8 +67,7 @@ void ReadUnits(MemoryStream& in, std::vector<Unit*>* units) {
 }
 
 using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3&, bool, bool, const Vector3&);
-int MoveUnits(MoveCommand command) {
-    MemoryStream& in = g_receivedMessages;
+void MoveUnits(MemoryStream& in, MoveCommand command) {
     std::vector<Unit*> units{};
     std::vector<Vector3> offsets{};
     ReadUnits(in, &units);
@@ -82,7 +81,6 @@ int MoveUnits(MoveCommand command) {
         if (PlayerMode* mode = brain->FindModeOf<PlayerMode>())
             (mode->*command)(brain, to, std::ssize(units) > 1, run != 0, offsets[i]);
     }
-    return 1;
 }
 
 constexpr int kClientVersion = 0x64;
@@ -91,12 +89,9 @@ const char* const kResendingParty = "Resending party of player ";
 
 } // namespace
 
-// The stream the received packets are decompressed into.
-MemoryStream g_receivedMessages;
-
 // --- The leader died ----------------------------------------------------------------------
 
-void PlayerServer::OnLeaderDied() {
+void PlayerServer::LeaderDied() {
     Player* currentPlayer = player;
     Party* party = currentPlayer->GetParty();
     if (!IsMultiplayerClient()) {
@@ -158,8 +153,7 @@ void PlayerServer::OnLeaderDied() {
 
 // --- Message 0x36, a use order --------------------------------------------------------
 
-int PlayerServer::OnUseOrder() {
-    MemoryStream& in = g_receivedMessages;
+bool PlayerServer::OnUseOrder() {
     std::vector<Unit*> units{};
     int count = 0;
     in.ReadValue(count);
@@ -232,7 +226,7 @@ int PlayerServer::OnUseOrder() {
         if (PlayerMode* mode = brain->FindModeOf<PlayerMode>())
             mode->CommandUse(brain, object, kind, value, flag != 0);
     }
-    return 1;
+    return true;
 }
 
 // --- Zone changes, joining, party blocks, the walk / attack orders -------------------------
@@ -288,7 +282,7 @@ void PlayerServer::LeaveToZone(std::string_view zone, int entrance) {
     Flush();
 }
 
-void PlayerServer::LeaveAndFlush() {
+void PlayerServer::Leave() {
     if (state == State::Joined) {
         if (partyDeployed) {
             g_serverWorld.CollectParty(player, nullptr);
@@ -304,52 +298,52 @@ void PlayerServer::LeaveAndFlush() {
 }
 
 // Unreached in the shipped game: our client never sends message 0x02 (kept for a peer that does).
-int PlayerServer::OnRefreshParty() {
+bool PlayerServer::OnRefreshParty() {
     player->ForgetKnownObjects();
     SendParty();
-    return 1;
+    return true;
 }
 
-int PlayerServer::OnTakeExit() {
+bool PlayerServer::OnTakeExit() {
     int exit = 0;
-    g_receivedMessages.ReadValue(exit);
+    in.ReadValue(exit);
     const ZoneExit* taken = g_serverWorld.FindZoneExit(exit);
-    if (!taken) return 0;
+    if (!taken) return false;
     const std::string zone = taken->target;   // a copy: leaving may replace the exits
     LeaveToZone(zone, taken->entrance);
-    return 1;
+    return true;
 }
 
-int PlayerServer::OnJoined() {
-    if (state != State::GameStateSent) return 0;
+bool PlayerServer::OnJoined() {
+    if (state != State::GameStateSent) return false;
     state = State::Joined;
     Player* currentPlayer = player;
     currentPlayer->sessionKind = static_cast<int>(currentPlayer->ServerWorld()->zoneMode);
     g_serverWorld.Redeploy(currentPlayer, &placements, 1);
     currentPlayer->dirty |= PlayerDirty::GameState;
-    return 1;
+    return true;
 }
 
-int PlayerServer::OnLeaveToZone() {
-    std::string zone = g_receivedMessages.ReadString();
+bool PlayerServer::OnLeaveToZone() {
+    std::string zone = in.ReadString();
     int entrance = 0;
-    g_receivedMessages.ReadValue(entrance);
+    in.ReadValue(entrance);
     LeaveToZone(zone, entrance);
-    return 1;
+    return true;
 }
 
 // Unreached in the shipped game: our client never sends message 0x07 (kept for a peer that does).
-int PlayerServer::OnBriefingDone() {
-    std::string name = g_receivedMessages.ReadString();
+bool PlayerServer::OnBriefingDone() {
+    std::string name = in.ReadString();
     g_serverWorld.CompleteBriefing(player->playerId, name);
-    return 1;
+    return true;
 }
 
-int PlayerServer::OnNewParty() {
+bool PlayerServer::OnNewParty() {
     Party local;
     Party* party = &local;
-    party->LoadParty(&g_receivedMessages, 1);
-    if (std::ssize(party->members) != 1) return 0;
+    party->LoadParty(&in, 1);
+    if (std::ssize(party->members) != 1) return false;
     int* key = &player->partyId;
     *key = PartyNextId();
     int& next = g_nextRecordObjectId;
@@ -357,24 +351,29 @@ int PlayerServer::OnNewParty() {
     party->members[0].unitId = static_cast<std::uint32_t>(next);
     ++next;
     g_partyManager.StoreParty(key, party);
-    return 1;
+    return true;
 }
 
-int PlayerServer::OnResume() {
-    if (state != State::Disconnected) return 0;
+bool PlayerServer::OnResume() {
+    if (state != State::Disconnected) return false;
     state = State::Joined;
     if (!partyDeployed) {
         g_serverWorld.Redeploy(player, nullptr, 1);
         partyDeployed = 1;
     }
-    return 1;
+    return true;
 }
 
-int PlayerServer::OnWalk() { return MoveUnits(&PlayerMode::CommandWalk); }
-int PlayerServer::OnGoTo() { return MoveUnits(&PlayerMode::CommandGoTo); }
+bool PlayerServer::OnWalk() {
+    MoveUnits(in, &PlayerMode::CommandWalk);
+    return true;
+}
+bool PlayerServer::OnGoTo() {
+    MoveUnits(in, &PlayerMode::CommandGoTo);
+    return true;
+}
 
-int PlayerServer::OnAttack() {
-    MemoryStream& in = g_receivedMessages;
+bool PlayerServer::OnAttack() {
     std::vector<Unit*> units{};
     ReadUnits(in, &units);
     int ctrl = 0, how = 0, objectId = 0;
@@ -388,16 +387,15 @@ int PlayerServer::OnAttack() {
                 mode->CommandAttack(brain, object, how, ctrl != 0);
         }
     }
-    return 1;
+    return true;
 }
 
-int PlayerServer::OnPartyUpdate() {
+bool PlayerServer::OnPartyUpdate() {
     MemoryStream block;
-    MemoryStream& in = g_receivedMessages;
     in.ReadSized(&block);
     block.MemoryStream::Seek(0);
     if (in.ok) player->GetParty()->LoadParty(&block, 0);
-    return 1;
+    return true;
 }
 
 // --- The login -----------------------------------------------------------------------------
@@ -415,11 +413,11 @@ bool IsPrintableText(const char* text) {
     return true;
 }
 
-int PlayerServer::OnLogin() {
+bool PlayerServer::OnLogin() {
     PlayerLoginMessage login;
     login.partyId = 0;
-    g_receivedMessages.ReadValue(login);
-    if (state != State::NotLoggedIn) return 0;
+    in.ReadValue(login);
+    if (state != State::NotLoggedIn) return false;
     Player* currentPlayer = player;
     if (login.version != kClientVersion) {
         int length = 0x100;
@@ -430,10 +428,10 @@ int PlayerServer::OnLogin() {
         WriteType(&out, ServerMessage::Error);
         out.WriteString(text);
         state = State::Leaving;
-        return 0;
+        return false;
     }
-    if (!IsPrintableText(login.name)) return 0;
-    if (!IsPrintableText(login.password)) return 0;
+    if (!IsPrintableText(login.name)) return false;
+    if (!IsPrintableText(login.password)) return false;
     login.name[kLoginTextLength] = 0;
     login.password[kLoginTextLength] = 0;
     Party* party = currentPlayer->GetParty();
@@ -445,7 +443,7 @@ int PlayerServer::OnLogin() {
     case GameState::Network:
     case GameState::Network3:
         if (!g_partyManager.LoadParty(&currentPlayer->partyId, party))
-            return 0;
+            return false;
         break;
     case GameState::MainMenu:
         party->Clear(1, 0);
@@ -458,7 +456,7 @@ int PlayerServer::OnLogin() {
     out.WriteValue(playerId);
     SendParty();
     state = State::Joined;
-    return 1;
+    return true;
 }
 
 // --- Party resends, message 0x19 -----------------------------------------------------------

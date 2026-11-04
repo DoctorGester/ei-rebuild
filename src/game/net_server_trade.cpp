@@ -51,19 +51,14 @@ TradeMessage* ServerSession::FindTrade(const PartyMessage* offer, const PartyMes
     return nullptr;
 }
 
-// Removed file request: drops `message`.
-void ServerOnObjectRemoved(ServerSession* self, Message* message) {
-    std::erase_if(self->fileRequests, [message](const auto& request) { return request.Get() == message; });
-}
-
 // Offer created: lists the offer; when the partner's offer is listed, a trade of the two
 // is made (both marked paired), else the partner is told of the offer.
-void ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
-    self->offers.emplace_back(message);
+void ServerSession::OnTradeOffer(PartyMessage* message) {
+    offers.emplace_back(message);
 
-    PartyMessage* other = FindPartnerOffer(self->offers, message);
+    PartyMessage* other = FindPartnerOffer(offers, message);
     if (!other) {
-        TellPartner(self, message, 10);
+        TellPartner(this, message, 10);
         return;
     }
     auto* trade = new TradeMessage();
@@ -71,17 +66,17 @@ void ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
     trade->partnerOffer.Assign(other);
     trade->player.Assign(message->player.Get());
     trade->partner.Assign(message->partner.Get());
-    self->trades.emplace_back(trade);
+    trades.emplace_back(trade);
     message->trading = 1;
     other->trading = 1;
 }
 
 // Offer updated: the offer's version moves on; when both offers of its trade are live, accepted and agree
 // crosswise (each one accepted the other's current revision), the trade is done with the two revisions.
-void ServerOnTradeUpdate(ServerSession* self, PartyMessage* message) {
+void ServerSession::OnTradeUpdate(PartyMessage* message) {
     ++message->version;
-    PartyMessage* other = FindPartnerOffer(self->offers, message);
-    TradeMessage* trade = self->FindTrade(message, other);
+    PartyMessage* other = FindPartnerOffer(offers, message);
+    TradeMessage* trade = FindTrade(message, other);
     if (!IsLive(trade)) return;
     auto* first = trade->offer.Get();
     if (!IsLive(first)) return;
@@ -97,20 +92,20 @@ void ServerOnTradeUpdate(ServerSession* self, PartyMessage* message) {
 
 // Offer removed: drops the offer; an unpaired offer's partner is told it was withdrawn.
 // Its trade, when live, is dropped, a done one first kept on finishedTrades for 60 seconds.
-void ServerOnTradeCancel(ServerSession* self, PartyMessage* message) {
-    std::erase_if(self->offers, [message](const auto& offer) { return offer.Get() == message; });
-    PartyMessage* other = FindPartnerOffer(self->offers, message);
-    TradeMessage* trade = self->FindTrade(message, other);
-    if (!message->trading) TellPartner(self, message, 11);
+void ServerSession::OnTradeCancel(PartyMessage* message) {
+    std::erase_if(offers, [message](const auto& offer) { return offer.Get() == message; });
+    PartyMessage* other = FindPartnerOffer(offers, message);
+    TradeMessage* trade = FindTrade(message, other);
+    if (!message->trading) TellPartner(this, message, 11);
     if (!IsLive(trade)) return;
     if (trade->done) {
         HeldRef<TradeMessage> held(trade);
         TimedEntry<HeldRef<TradeMessage>> entry(kTimedEntryLifetime, held);
-        self->finishedTrades.push_back(entry);
+        finishedTrades.push_back(entry);
     }
     // remove(trade), the trade held meanwhile.
     HeldRef<RefObject> removing(trade);
-    std::erase_if(self->trades, [&removing](const auto& held) { return held.Get() == removing.Get(); });
+    std::erase_if(trades, [&removing](const auto& held) { return held.Get() == removing.Get(); });
 }
 
 // --- Net server awards -------------------------------------------------------------------------------

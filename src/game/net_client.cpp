@@ -5,7 +5,6 @@
 #include "game_singletons.h"
 #include "net_classes.h"
 #include "net_coder.h"
-#include "net_handlers.h"
 #include "net_messages.h"
 #include "party.h"
 #include "world.h"
@@ -38,39 +37,6 @@ ClientSession::ClientSession() {
     ShareOwned(player, new LoginMessage());
 
     magic = kSessionMagic;
-    RegisterMessageTypes();
-
-    AddHandlerFor<BindingMessage>(0, AsHandler<ClientOnBinding>());
-    AddHandlerFor<BindingMessage>(2, AsHandler<ClientOnBindingGone>());
-    AddHandlerFor<PlayerMessage>(0, AsHandler<ClientOnPlayer>());
-    AddHandlerFor<PlayerMessage>(1, AsHandler<ClientOnPlayerChanged>());
-    AddHandlerFor<PlayerMessage>(2, AsHandler<ClientOnPlayerGone>());
-    AddHandlerFor<LineMessage>(0, AsHandler<ClientOnLine>());
-    AddHandlerFor<LineMessage>(2, AsHandler<ClientOnLineGone>());
-    AddHandlerFor<HostMessage>(0, AsHandler<ClientOnInfo>());
-    AddHandlerFor<HostMessage>(2, AsHandler<ClientOnInfoGone>());
-    AddHandlerFor<ZoneMessage>(0, AsHandler<ClientOnZone>());
-    AddHandlerFor<ZoneMessage>(2, AsHandler<ClientOnZoneGone>());
-
-    RegisterMapHandler(0, AsHandler<ClientOnMap>());
-    RegisterMapHandler(2, AsHandler<ClientOnMapGone>());
-    RegisterVariableHandler(0, AsHandler<ClientOnVariable>());
-    RegisterVariableHandler(1, AsHandler<ClientOnVariableChanged>());
-    RegisterVariableHandler(2, AsHandler<ClientOnVariableGone>());
-    RegisterFileHandler(0, AsHandler<ClientOnFile>());
-    RegisterFileHandler(2, AsHandler<ClientOnFileGone>());
-    RegisterChunkHandler(0, AsHandler<ClientOnFileChunk>());   // patched by Rebirth: passed by address
-    RegisterChunkHandler(2, AsHandler<ClientOnObjectGone>());
-    RegisterAwardHandler(0, AsHandler<ClientOnAward>());
-    RegisterPartyHandler(0, AsHandler<ClientOnParty>());
-    RegisterPartyHandler(1, AsHandler<ClientOnPartyChanged>());
-    RegisterPartyHandler(2, AsHandler<ClientOnPartyGone>());
-    RegisterMemberHandler(0, AsHandler<ClientOnMember>());
-    RegisterMemberHandler(1, AsHandler<ClientOnMember>());
-    RegisterMemberHandler(2, AsHandler<ClientOnMember>());
-    RegisterTradeHandler(0, AsHandler<ClientOnTrade>());
-    RegisterTradeHandler(1, AsHandler<ClientOnTradeChanged>());
-    RegisterTradeHandler(2, AsHandler<ClientOnTradeGone>());
 
     parties[0]->Create();
     parties[1]->Create();
@@ -78,17 +44,16 @@ ClientSession::ClientSession() {
 
 // What the server receives from this client: the local player's login, the timed objects and the file
 // requests, and our trade offer with its members. All priority 1.
-void ClientSession::CollectReplicated(std::vector<Replicated>** out) {
-    ClientSession* self = this;
-    PushReplicated(*out, self->player.Get(), 1);
-    for (auto& n : self->timers) PushReplicated(*out, n.ref.Get(), 1);
-    for (auto& n : self->fileRequests) PushReplicated(*out, n.Get(), 1);
-    if (PartyMessage* group = self->party.Get()) {
-        PushReplicated(*out, group, 1);
+void ClientSession::CollectReplicated(const Connection*, std::vector<Replicated>* out) {
+    PushReplicated(out, player.Get(), 1);
+    for (auto& n : timers) PushReplicated(out, n.ref.Get(), 1);
+    for (auto& n : fileRequests) PushReplicated(out, n.Get(), 1);
+    if (PartyMessage* group = party.Get()) {
+        PushReplicated(out, group, 1);
         for (std::uint32_t i = 0;; ++i) {
-            const auto& members = self->party.Get()->members;
+            const auto& members = party.Get()->members;
             if (i >= static_cast<std::uint32_t>(members.size())) break;
-            PushReplicated(*out, members[i].Get(), 1);
+            PushReplicated(out, members[i].Get(), 1);
         }
     }
 }

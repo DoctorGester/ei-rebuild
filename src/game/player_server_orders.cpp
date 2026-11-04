@@ -54,16 +54,16 @@ static_assert(sizeof(CastAtObject) == 0xD && sizeof(CastAtPoint) == 0x15 && size
 } // namespace
 
 // Unreached in the shipped game: our client never sends message 0x01 (kept for a peer that does).
-int PlayerServer::OnLeave() {
+bool PlayerServer::OnLeave() {
     Leave();
-    return 1;
+    return true;
 }
 
-int PlayerServer::OnGameStateRequest() {
-    if (state != State::Joined) return 0;
+bool PlayerServer::OnGameStateRequest() {
+    if (state != State::Joined) return false;
     Player* currentPlayer = player;
     int gameState;
-    g_receivedMessages.ReadValue(gameState);
+    in.ReadValue(gameState);
     currentPlayer->sessionKind = gameState;
     g_serverWorld.CollectParty(currentPlayer, &placements);
     SendParty();
@@ -74,12 +74,12 @@ int PlayerServer::OnGameStateRequest() {
     out.WriteValue(value);
     currentPlayer->dirty &= ~PlayerDirty::GameState;
     state = State::GameStateSent;
-    return 1;
+    return true;
 }
 
-int PlayerServer::OnPause() {
+bool PlayerServer::OnPause() {
     std::uint8_t pause = 0;
-    g_receivedMessages.ReadValue(pause);
+    in.ReadValue(pause);
     net::ServerSession* server = net::g_gameServer;
     // EI_Plugin's Pause (the mode from its ini): 1 and 2 jump to bytes
     // which write the text key's digit and go on to announce resumes too; 2 also replaces the leader
@@ -93,18 +93,18 @@ int PlayerServer::OnPause() {
         if (mode == 2)
             leader = own;
         else if (own != leader)
-            return 1;
+            return true;
         net::PlayerMessage* record = server->FindPlayer(leader);
         if (IsLive(record) && mode != 3)
             server->AnnounceText(kTextPause, record->name.data(), nullptr);
     }
     player->ServerWorld()->SetServerPaused(pause != 0 ? 1 : 0);
-    return 1;
+    return true;
 }
 
-int PlayerServer::OnCastAtObject() {
+bool PlayerServer::OnCastAtObject() {
     CastAtObject message;
-    g_receivedMessages.ReadValue(message);
+    in.ReadValue(message);
     Player* currentPlayer = player;
     MapObject* target = currentPlayer->OwningWorld()->ObjectWithId(message.targetId);
     Unit* unit = currentPlayer->OwningWorld()->FindUnit(message.unitId);
@@ -113,12 +113,12 @@ int PlayerServer::OnCastAtObject() {
         if (PlayerMode* mode = brain->FindModeOf<PlayerMode>())
             mode->CommandCast(brain, message.spell, target);
     }
-    return 1;
+    return true;
 }
 
-int PlayerServer::OnCastAtPoint() {
+bool PlayerServer::OnCastAtPoint() {
     CastAtPoint message;
-    g_receivedMessages.ReadValue(message);
+    in.ReadValue(message);
     Unit* unit = player->OwningWorld()->FindUnit(message.unitId);
     if (Able(unit)) {
         AIBrain* brain = &unit->ServerController()->brain;
@@ -127,59 +127,59 @@ int PlayerServer::OnCastAtPoint() {
             mode->CommandCastAt(brain, message.spell, point);
         }
     }
-    return 1;
+    return true;
 }
 
-int PlayerServer::OnWantedWeapon() {
+bool PlayerServer::OnWantedWeapon() {
     UnitByte message;
-    g_receivedMessages.ReadValue(message);
+    in.ReadValue(message);
     Unit* unit = player->OwningWorld()->FindUnit(message.unitId);
     if (Able(unit)) unit->ServerController()->SetWantedWeapon(message.value);
-    return 1;
+    return true;
 }
 
-int PlayerServer::OnMoveStyle() {
+bool PlayerServer::OnMoveStyle() {
     UnitByte message;
-    g_receivedMessages.ReadValue(message);
+    in.ReadValue(message);
     Unit* unit = player->OwningWorld()->FindUnit(message.unitId);
     if (unit && !unit->IsDead()) unit->ServerController()->SetMoveStyle(static_cast<MoveMode>(message.value));
-    return 1;
+    return true;
 }
 
 // Unreached in the shipped game: our client never sends message 0x38 (kept for a peer that does).
-int PlayerServer::OnUnitLookup() {
+bool PlayerServer::OnUnitLookup() {
     int values[2];
-    g_receivedMessages.ReadValue(values[0]);
-    g_receivedMessages.ReadValue(values[1]);
+    in.ReadValue(values[0]);
+    in.ReadValue(values[1]);
     player->OwningWorld()->FindUnit(values[0]);
-    return 1;
+    return true;
 }
 
-int PlayerServer::OnFollow() {
+bool PlayerServer::OnFollow() {
     int ids[2];   // unit, leader
-    g_receivedMessages.Read(ids, 8);
+    in.Read(ids, 8);
     Player* currentPlayer = player;
     Unit* unit = currentPlayer->OwningWorld()->FindUnit(ids[0]);
-    if (!unit) return 1;
+    if (!unit) return true;
     Unit* leader = currentPlayer->OwningWorld()->FindUnit(ids[1]);
     AIBrain* brain = &unit->ServerController()->brain;
     if (PlayerMode* mode = brain->FindModeOf<PlayerMode>()) mode->SetLeader(brain, leader);
-    return 1;
+    return true;
 }
 
-int PlayerServer::OnFightAtWill() {
+bool PlayerServer::OnFightAtWill() {
     int objectId;
-    g_receivedMessages.ReadValue(objectId);
+    in.ReadValue(objectId);
     Unit* unit = player->OwningWorld()->FindUnit(objectId);
     std::int8_t value = 0;
-    g_receivedMessages.ReadValue(value);
+    in.ReadValue(value);
     if (unit) unit->SetFightAtWill(value);
-    return 1;
+    return true;
 }
 
-int PlayerServer::OnLastPosition() {
+bool PlayerServer::OnLastPosition() {
     Vector2 xy;   // bit for bit
-    g_receivedMessages.Read(&xy, 8);
+    in.Read(&xy, 8);
     lastPosition = WithZ(xy, lastPosition.z);
-    return 1;
+    return true;
 }
