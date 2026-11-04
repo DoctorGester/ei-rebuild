@@ -145,8 +145,7 @@ void ServerSession::ShareFile(const std::string* fileName, GameBuffer* data) {
 
     auto* file = NewCounted<FileMessage>();
 
-    BufferUpdateHigh(data);
-    std::int32_t size = data->PositionOf(data->high);
+    std::int32_t size = data->Size();
     std::int32_t chunkCount = (size + kChunkSize - 1) / kChunkSize;
     if (fileName != &file->name) file->name = *fileName;
     file->size = size;
@@ -163,15 +162,7 @@ void ServerSession::ShareFile(const std::string* fileName, GameBuffer* data) {
         piece->file.Assign(file);
         piece->index = static_cast<std::uint16_t>(i);
         unsigned n = static_cast<unsigned>(remaining > kChunkSize ? kChunkSize : remaining);
-        std::uint8_t* to = piece->data;
-        if (data->cur + n > data->high) {
-            data->ReadPastEnd(to, n);
-        } else if (data->cur + n > data->end) {
-            data->ReadMore(to, n);
-        } else {
-            std::memcpy(to, data->cur, n);
-            data->cur += n;
-        }
+        data->Read(piece->data, n);
         remaining -= kChunkSize;
     }
 

@@ -23,11 +23,6 @@ namespace {
 // The largest message Send takes (its stack buffer holds the length and the bytes).
 constexpr unsigned kMaxMessage = 0x7FFC;
 
-unsigned BufferFill(GameBuffer* buffer) {
-    if (buffer->cur > buffer->high) buffer->high = buffer->cur;
-    return static_cast<unsigned>(buffer->PositionOf(buffer->high));
-}
-
 } // namespace
 
 // FileStream
@@ -221,11 +216,11 @@ void DriverLink::Disconnect() {
     TakeAll(&pending);
     if (pending.size != 0 && IsLive(player.Get())) {
         pending.Seek(pending.size);
-        std::uint32_t count = BufferFill(&player.Get()->reliableIn);
+        std::uint32_t count = static_cast<std::uint32_t>(player.Get()->reliableIn.Size());
         ByteStream* stream = &pending;
         stream->Write(player.Get()->reliableIn.begin, count);
         player.Get()->reliableIn.Seek(0);
-        player.Get()->reliableIn.BufferWrite(pending.data.data(), pending.size);
+        player.Get()->reliableIn.Write(pending.data.data(), pending.size);
     }
     player.Reset();
 }
@@ -236,25 +231,23 @@ DriverLink::~DriverLink() {
 
 bool DriverLink::Connected() { return IsLive(player.Get()); }
 
-// The player's incoming reliable bytes appended to the inbox, and that stream emptied (flags 6).
+// The player's incoming reliable bytes appended to the inbox, and that stream emptied.
 void DriverLink::Pump() {
     net::Connection* newPlayer = player.Get();
     if (!IsLive(newPlayer)) return;
     GameBuffer* in = &newPlayer->reliableIn;
-    std::uint32_t count = BufferFill(in);
+    std::uint32_t count = static_cast<std::uint32_t>(in->Size());
     Append(in->begin, count);
-    in->flags = 6;
-    in->high = in->begin;
-    in->cur = in->begin;
+    in->Clear();
 }
 
 // `size` bytes written at the end of the player's outgoing reliable stream (when the player is
 // alive); whether the player is (still) alive.
 bool DriverLink::SendBytes(const void* data, std::uint32_t size) {
     if (IsLive(player.Get())) {
-        std::uint32_t fill = BufferFill(&player.Get()->reliableOut);
-        player.Get()->reliableOut.Seek(static_cast<std::int32_t>(fill));
-        player.Get()->reliableOut.BufferWrite(data, size);
+        GrowingBuffer& out = player.Get()->reliableOut;
+        out.Seek(out.Size());
+        out.Write(data, size);
     }
     return IsLive(player.Get());
 }

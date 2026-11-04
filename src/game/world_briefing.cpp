@@ -56,12 +56,7 @@ void ShareQuestFile(const std::string& path, const std::string& name) {
     std::string bytes;
     platform::ReadWholeFile(path, &bytes);
     GrowingBuffer data;
-    const auto size = static_cast<std::int32_t>(bytes.size());
-    data.Seek(0);
-    std::uint8_t* to = data.BeginWrite(size);
-    std::memcpy(to, bytes.data(), bytes.size());
-    data.cur = to + size;
-    data.Commit();
+    data.Write(bytes.data(), static_cast<std::uint32_t>(bytes.size()));
     std::string listed = name;
     net::g_gameServer->ShareFile(&listed, &data);
 }

@@ -119,15 +119,21 @@ idle.
   waits, lower priorities are still tried. `ReadRecord`'s skip path creates a throwaway object. `ClientApplyParty`
   creates and drops a member's object with a positive id.
 - Undefined in the original, defined in ours: a new connection's `roundTripSquare` starts at 0 (the original squared
-  what the memory held); an object of no registered type is tracked unreliable (the original read `reliable[-1]`); a
-  packet's texts end at the packet's end when the zero byte is missing (`BufferCursor::limit`, set by `BeginRead` and
-  for a received datagram); `ClientApplyParty` stops at a spell or item type its factory does not know.
+  what the memory held); an object of no registered type is tracked unreliable (the original read `reliable[-1]`);
+  every read through a `BufferCursor` stops at its `limit` (`BeginRead`'s size: a datagram's end, a compressed
+  stream's end): bytes and bits past it read as zero and a text without its zero byte ends there (the original read on
+  into whatever memory followed); `ClientApplyParty` stops at a spell or item type its factory does not know.
 
 ## Compression
 
 The LZ coder (`CoderState`, net_coder.h) over `GameBuffer`s: the growing buffer (grows to (used + n) * 2 + 0x40, new
 bytes zero) and fixed views over memory owned elsewhere. A `BufferCursor` writes bits LSB first and reserves a byte
 when a field starts in a new byte, so literal bytes and bit fields interleave.
+- The primitives (net_coder.h): a buffer's `Size` (the high mark raised to the cursor), `Unread`, `Clear`, `Write` /
+  `Read` and typed `Put` / `Get`, the growing buffer's `SetSize`; a cursor's `PutBits` / `GetBit(s)`, `WriteBytes` /
+  `ReadBytes`, typed `Put` / `Take`, `PutString` / `TakeString`, `End`. Packets and streams go through these only; a
+  buffer's one error flag is `readPastEnd` (a read past the high mark, a string over its limit). Unit checks:
+  tests/unit/game_buffer.cpp.
 - Format: int32 uncompressed size; per item a 0 bit + a literal byte, or a 1 bit, a length (2..0xE1: table codes up to
   0x22, else 0x17/5 bits + 6 bits, 0x3F/6 bits + 7 bits) and an offset - 1 in a 1 KB window (table codes below 0x22,
   then prefixes 2/3, 6/3, 3/2 with 6, 8, 10 bits). The compressor hashes (previous byte << 2) ^ byte into 0x400

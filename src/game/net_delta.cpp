@@ -25,23 +25,17 @@ std::uint32_t Word(const std::uint8_t* p) {
 // ReadStream refuses longer streams.
 constexpr std::uint32_t kMaxStreamLength = 100000;
 
-// The number of bytes in a buffer, its high-water mark raised to the cursor first (inlined).
-std::uint32_t BufferLength(GameBuffer& buffer) {
-    if (buffer.cur > buffer.high) buffer.high = buffer.cur;
-    return static_cast<std::uint32_t>(buffer.PositionOf(buffer.high));
-}
-
 // A fixed view over `self`'s bytes run through the coder into a growing buffer, whose bytes then replace
-// `out`'s (Resize, Seek 0, Write, Seek 0). The view is destroyed (its base vtable) before the buffer.
+// `out`'s (Resize, Seek 0, Write, Seek 0).
 void CodeStream(MemoryStream* self, CoderState* coder, MemoryStream* out, void (CoderState::*code)(GameBuffer*, GameBuffer*)) {
     GrowingBuffer result;
     std::uint8_t* data = self->data.data();
     std::uint8_t* last = data + self->Size();
     BufferView view(data, last);
     (coder->*code)(&view, &result);
-    out->Resize(BufferLength(result));
+    out->Resize(static_cast<std::uint32_t>(result.Size()));
     out->Seek(0);
-    std::uint32_t length = BufferLength(result);
+    std::uint32_t length = static_cast<std::uint32_t>(result.Size());
     out->Write(result.begin, length);
     out->Seek(0);
 }

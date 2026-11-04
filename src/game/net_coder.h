@@ -9,52 +9,63 @@
 #include <string>
 #include <vector>
 
-// A byte buffer: GrowingBuffer and BufferView (a fixed view over memory owned elsewhere).
+// A byte buffer: GrowingBuffer and BufferView (a fixed view over memory owned elsewhere). `cur` is where the next
+// byte is read or written; `high` is the highest position written, raised to `cur` lazily (Size). `cur` and `high`
+// never pass `end`.
 class GameBuffer {
 public:
     GameBuffer(const GameBuffer&) = delete;
     GameBuffer& operator=(const GameBuffer&) = delete;
-
-    virtual void ReserveRead(std::int32_t size) = 0;                // room for `size` more bytes to read
-    virtual void ReserveWrite(std::int32_t size) = 0;               // room for `size` more bytes to write
-    virtual std::uint32_t Commit() { return 0; }                    // no caller reads its result
-    virtual int ReadMore(void* to, std::uint32_t size) = 0;         // a read past the end (0 in both classes)
-    virtual int WriteMore(const void* from, std::uint32_t size) = 0;   // a write past the end
     virtual ~GameBuffer() {}
-    virtual void Seek(std::int32_t position) = 0;                   // the cursor to `position` bytes from the start
 
-    unsigned ReadBytes(void* to, unsigned size);
-    GameBuffer* CopyOut(void* to, unsigned size);
+    // Room for `size` more bytes from the cursor: the growing buffer grows, a view has what it has.
+    virtual void Reserve(std::int32_t size) = 0;
+    // A write of `size` bytes that do not fit before `end`: the growing buffer grows, a view drops them.
+    virtual void WriteMore(const void* from, std::uint32_t size) = 0;
+    // The cursor to `position` bytes from the start.
+    virtual void Seek(std::int32_t position) = 0;
+
+    // The bytes written so far (`high` raised to the cursor first).
+    std::int32_t Size() {
+        if (cur > high) high = cur;
+        return PositionOf(high);
+    }
+    // The bytes from the cursor to the end of what was written.
+    std::int32_t Unread() { return Size() - PositionOf(cur); }
+    // Emptied: the cursor and `high` at the start, no read error.
+    void Clear() {
+        cur = begin;
+        high = begin;
+        readPastEnd = false;
+    }
+
+    // `size` bytes at the cursor: in place when they fit before `end`, else through WriteMore.
+    void Write(const void* from, std::uint32_t size);
+    // `size` bytes from the cursor. Past `high`: readPastEnd set, `to` zeroed, then what is left before `high`
+    // read (the cursor ends at `high`).
+    void Read(void* to, std::uint32_t size);
+    template <typename T>
+    void Put(const T& value) {
+        Write(&value, sizeof(T));
+    }
+    template <typename T>
+    void Get(T& value) {
+        Read(&value, sizeof(T));
+    }
     // Length-prefixed strings: the length * 2 in one byte, or length * 2 + 1 in four bytes from 0x80 on.
-    // Reads one into `s` (assign): false with error bit 3 when it is longer than
-    // `maxLength` (> 0). The bytes are read in place (ReserveRead first when they run past `end`), then
-    // Commit.
+    // Reads one into `s`: false with readPastEnd set when it is longer than `maxLength` (> 0). The bytes are read
+    // in place (Reserve first when they run past `end`).
     bool ReadString(std::string* s, int maxLength);
-    // Writes `s`: in place when it fits before `end` (flags bit 0), else through WriteMore.
     void WriteString(const std::string* s);
-    // A read of `size` bytes past `high`: error bit 3 set, `to` zeroed, then what is left before `high`
-    // (through ReadMore when that crosses `end`); the cursor ends at `high`. Returns the bytes read.
-    std::uint32_t ReadPastEnd(void* to, std::uint32_t size);
-    // Before `size` bytes are written in place: flags bit 0 set, room made (ReserveWrite) when the block ends
-    // before them. Returns the cursor.
-    std::uint8_t* BeginWrite(std::int32_t size);
-    // Copies `size` bytes to the write position and moves it on (no room check).
-    GameBuffer* BufferWriteRaw(const void* from, unsigned size);
-    // Writes `size` bytes: in place (flags bit 0 set) when they fit before `end`, otherwise through WriteMore.
-    // Returns `size` or what WriteMore left.
-    unsigned BufferWrite(const void* from, unsigned size);
 
-    // The stream position of `at` in the block: base plus its offset from begin.
-    std::int32_t PositionOf(const std::uint8_t* at) const { return base + static_cast<std::int32_t>(at - begin); }
+    // The position of `at` from the start.
+    std::int32_t PositionOf(const std::uint8_t* at) const { return static_cast<std::int32_t>(at - begin); }
 
     std::uint8_t* begin;
     std::uint8_t* cur;
-    std::uint8_t* end;         // capacity
-    std::uint8_t* high;        // highest position written (updated lazily)
-    std::int32_t base;         // position of `begin` in the whole stream (0 for these)
-    std::uint32_t flags;       // kFlagWritten, kFlagReadPastEnd
-    static constexpr std::uint32_t kFlagWritten = 1;        // bit 0: written through a cursor
-    static constexpr std::uint32_t kFlagReadPastEnd = 8;    // bit 3: a read ran past the end
+    std::uint8_t* end;          // capacity
+    std::uint8_t* high;         // highest position written (raised lazily)
+    bool readPastEnd = false;   // a read ran past `high` (or a string past its limit)
 
 protected:
     GameBuffer() {}
@@ -65,34 +76,30 @@ protected:
 
 class GrowingBuffer final : public GameBuffer {
 public:
-    // Base 0, flags 6, a 0x20-byte block (cursor and high at its start).
+    // A 0x20-byte block (cursor and high at its start).
     GrowingBuffer();
-    // Base 0, then the assignment.
     GrowingBuffer(const GrowingBuffer& from);
-    // A block of `from`'s capacity with all of its bytes, the same cursor / high offsets and flags (base kept).
+    // A block of `from`'s capacity with all of its bytes, the same cursor / high offsets and read error.
     GrowingBuffer& operator=(const GrowingBuffer& from);
 
-    // Both always move the contents to a new block of (base - begin + cur + size) * 2 + 0x40 bytes (callers
-    // test the room first).
-    void ReserveRead(std::int32_t size) override;
-    void ReserveWrite(std::int32_t size) override;
-    int ReadMore(void*, std::uint32_t) override;
-    // Grows as ReserveWrite, then copies `size` bytes to the cursor; returns `size`.
-    int WriteMore(const void* from, std::uint32_t size) override;
+    // Always moves the contents to a new block of (cur + size) * 2 + 0x40 bytes (callers test the room first).
+    void Reserve(std::int32_t size) override;
+    // Grows as Reserve, then copies `size` bytes to the cursor.
+    void WriteMore(const void* from, std::uint32_t size) override;
     // `high` raised to the cursor, the cursor moved to begin + position; past `end` the contents move to a
-    // block of position * 2 + 0x40 bytes. Returns the cursor, or the new capacity when it grew.
+    // block of position * 2 + 0x40 bytes.
     void Seek(std::int32_t position) override;
-
-    // The block resized to `capacity` bytes (ResizeBlock).
-    void Reallocate(std::uint32_t capacity);
-    // The block resized to size * 2 + 0x40 bytes.
-    void Grow(std::uint32_t size);
+    // The cursor at the start and `size` bytes held (`high` after them); the block grows to size * 2 + 0x40 bytes
+    // when they pass its end.
+    void SetSize(std::uint32_t size);
 
 private:
+    void Reallocate(std::uint32_t capacity) { ResizeBlock(block, capacity); }
+
     std::vector<std::uint8_t> block;   // the bytes [begin, end)
 };
 
-// A fixed view (flags 2) over [first, last), as the coder's callers build it.
+// A fixed view over [first, last), all of it written.
 class BufferView final : public GameBuffer {
 public:
     BufferView(std::uint8_t* first, std::uint8_t* last) {
@@ -100,57 +107,57 @@ public:
         cur = first;
         end = last;
         high = last;
-        base = 0;
-        flags = 2;
     }
-    ~BufferView() override;
 
-    void ReserveRead(std::int32_t) override;    // nothing to reserve
-    void ReserveWrite(std::int32_t) override;
-    int ReadMore(void*, std::uint32_t) override;
-    int WriteMore(const void*, std::uint32_t) override;
-    // The cursor moved to `position` bytes from the start; returns it.
-    void Seek(std::int32_t position) override;
+    void Reserve(std::int32_t) override {}
+    void WriteMore(const void*, std::uint32_t) override {}
+    void Seek(std::int32_t position) override { cur = begin + position; }
 };
 
 // A cursor over a GameBuffer that reads and writes bytes and LSB-first bit fields. Bits are collected in
 // `acc`; a byte is reserved at `bytePtr` when a field starts in a new byte and stored there once more than 8
-// bits are pending (exactly 8 stay pending).
+// bits are pending (exactly 8 stay pending). Reads stop at `limit`: bytes and bits past it read as zero and `p`
+// stays at `limit`.
 struct BufferCursor {
-    std::uint8_t* p;           // next byte
-    std::uint8_t* bytePtr;     // the reserved byte the pending bits go to
-    std::uint32_t acc;         // pending bits
-    std::uint8_t bits;         // number of pending bits
-    GameBuffer* sink;          // the buffer `p` is committed to at the end (or null)
-    std::uint8_t* start;       // `p` when the cursor began
-    // Reading: one past the last byte there is to read (BeginRead's size, a packet's end); null where not known.
-    // Bounds the texts read (net_messages' TakeString), which the original read up to a zero byte wherever it was.
-    const std::uint8_t* limit = nullptr;
+    std::uint8_t* p = nullptr;           // next byte
+    std::uint8_t* bytePtr = nullptr;     // the reserved byte the pending bits go to
+    std::uint32_t acc = 0;               // pending bits
+    std::uint8_t bits = 0;               // number of pending bits
+    GameBuffer* sink = nullptr;          // the buffer `p` is committed to at the end (or null)
+    const std::uint8_t* limit = nullptr; // reading: one past the last byte there is to read
 
-    // Appends the low `count` bits of `value` (writing).
-    void PutBits(std::uint32_t value, std::uint8_t count);
-    // Appends one bit (`bit` is added unmasked).
-    void PutBit(std::uint32_t bit);
-    std::uint32_t GetBit();
-    // Next `count` bits (reading, 1..32), masked with kCoderBitMasks.
-    std::uint32_t GetBits(std::uint32_t count);
-    // Copies `size` bytes to `p`.
-    void WriteBytes(const void* from, std::uint32_t size);
-    // Copies `size` bytes from `p`.
-    void ReadBytes(void* to, std::uint32_t size);
-    // Starts reading at `at`.
-    void Reset();
-    // Stores the pending bits in the reserved byte.
-    void FlushBits();
-    // FlushBits, then commits `p` to the sink (which must exist) and drops it. Returns the commit's result.
-    std::uint32_t EndWrite();
-    // FlushBits, then commits `p` to the sink if any. Returns the commit's result, 0 without a sink.
-    std::uint32_t End();
-
-    // Bind the cursor to a buffer with room for `size` more bytes (ReserveRead / ReserveWrite when short):
-    // sink, start and p set, no pending bits (acc is left); the write variant first sets flags bit 0.
+    // Bind the cursor to a buffer with room for `size` more bytes (Reserve when short): sink and p set, no
+    // pending bits (acc is left); reading also sets the limit `size` bytes on.
     void BeginRead(GameBuffer* buffer, std::int32_t size);
     void BeginWrite(GameBuffer* buffer, std::int32_t size);
+    // Stores the pending bits in the reserved byte, then commits `p` to the sink if any and drops it.
+    void End();
+
+    // Appends the low `count` bits of `value` (`value` is added unmasked).
+    void PutBits(std::uint32_t value, std::uint8_t count);
+    std::uint32_t GetBit();
+    // Next `count` bits (1..32), masked with kCoderBitMasks.
+    std::uint32_t GetBits(std::uint32_t count);
+
+    void WriteBytes(const void* from, std::uint32_t size);
+    void ReadBytes(void* to, std::uint32_t size);
+    template <typename T>
+    void Put(const T& value) {
+        WriteBytes(&value, sizeof(T));
+    }
+    template <typename T>
+    void Take(T& value) {
+        ReadBytes(&value, sizeof(T));
+    }
+    // A zero-terminated text, in the asset code page on the wire (asset_text.h) as vanilla peers send it.
+    void PutString(const std::string& s);
+    // The text runs to its zero byte, or to the limit without one (the original read on past a packet's end
+    // until it met a zero byte).
+    void TakeString(std::string& s);
+
+private:
+    std::size_t Room() const { return p < limit ? static_cast<std::size_t>(limit - p) : 0; }
+    std::uint8_t NextByte() { return p < limit ? *p++ : 0; }
 };
 
 struct CoderState;
@@ -161,7 +168,6 @@ struct CoderState;
 struct CoderState {
     // Start's state (the window's other bytes are not written).
     CoderState() { Start(); }
-    // The output ended (out.End).
     ~CoderState() { out.End(); }
 
     std::uint8_t window[0x800];
@@ -179,7 +185,7 @@ struct CoderState {
     void Decompress(GameBuffer* in, GameBuffer* out);
     // Writes the match in progress (length and offset codes); ends it.
     void EncodeMatch(std::int32_t at);
-    // Ends the output (out.End: pending bits stored, the sink committed), then Start.
+    // Ends the output (pending bits stored, the sink committed), then Start.
     void Reset();
 
 private:

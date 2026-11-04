@@ -119,7 +119,7 @@ public:
     Message* ReadObjectRef(BufferCursor* cursor);
     // Writes the acknowledgements: the last sequence received and a mask of the 32 before it; forgets
     // sequences more than 32 old.
-    void WriteAcks(std::uint8_t** p);
+    void WriteAcks(BufferCursor* cursor);
     // Makes sure a reliable chunk is queued: a new one of up to min(budget, 255) bytes from the reliable
     // stream when none is waiting, else the oldest waiting one moves to the front.
     void QueueHeader(int budget);

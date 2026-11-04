@@ -12,7 +12,6 @@
 #include "net_link.h"
 #include "net_messages.h"
 #include "world.h"
-#include "lib/bytes.h"
 #include "lib/crt.h"
 #include "platform/platform.h"
 
@@ -169,9 +168,7 @@ void DriverSession::PumpDrivers(net::SessionBase* session) {
             }
         }
         if (known) continue;
-        GameBuffer* in = &node.Get()->reliableIn;
-        net::BufferUpdateHigh(in);
-        if (in->PositionOf(in->high) <= 0) continue;
+        if (node.Get()->reliableIn.Size() <= 0) continue;
         net::ServerSession* server = net::g_gameServer;
         if (!IsLive(server)) continue;
         if (!server->IsConnecting(node.Get())) continue;
@@ -233,11 +230,6 @@ void LogConnection(const char* before, Connection* connection, const char* after
 
 } // namespace
 
-// The buffer's highest written position follows the current one upwards.
-void BufferUpdateHigh(GameBuffer* buffer) {
-    if (buffer->cur > buffer->high) buffer->high = buffer->cur;
-}
-
 // An empty datagram is only logged; the current session is this one meanwhile.
 void SessionBase::Tick(double dt) {
     g_currentSession = this;
@@ -245,8 +237,7 @@ void SessionBase::Tick(double dt) {
     NetAddress from{};
     GrowingBuffer* buffer = &g_receiveBuffer;
     while (socket.Receive(&from, buffer)) {
-        BufferUpdateHigh(buffer);
-        if (buffer->PositionOf(buffer->high) == 0) {
+        if (buffer->Size() == 0) {
             if (g_netLog) {
                 std::string address = from.ToString();
                 const char* text = address.data();
@@ -255,15 +246,9 @@ void SessionBase::Tick(double dt) {
             continue;
         }
         std::uint8_t kind;
-        if (buffer->cur + 1 > buffer->high) buffer->ReadPastEnd(&kind, 1);
-        else if (buffer->cur + 1 > buffer->end) buffer->ReadMore(&kind, 1u);
-        else buffer->CopyOut(&kind, 1);
-        BufferUpdateHigh(buffer);
-        BufferCursor cursor{};
-        cursor.p = buffer->begin + 1;
-        cursor.limit = buffer->high;
-        cursor.bytePtr = nullptr;
-        cursor.bits = 0;
+        buffer->Get(kind);
+        BufferCursor cursor;
+        cursor.BeginRead(buffer, buffer->Unread());
         switch (static_cast<PacketKind>(kind)) {
         case PacketKind::Master: OnMaster(&from, &cursor); break;
         case PacketKind::Update: OnUpdate(&from, &cursor); break;
@@ -334,8 +319,7 @@ bool SessionBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
 // the client is reported and removed.
 void SessionBase::OnLeave(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t id;
-    lib::LoadBytes(id, cursor->p);
-    cursor->p += 4;
+    cursor->Take(id);
     auto node = FindClient(from);
     if (node != clients.end() && node->Get()->id == id) {
         OnClientLeft(node->Get());
@@ -368,24 +352,10 @@ std::uint32_t SessionBase::RateFor(const NetAddress* address) {
 }
 
 void SessionBase::SendLeave(const NetAddress* address, std::uint32_t id) {
-    GrowingBuffer storage;
-    auto* buffer = &storage;
-    std::uint8_t kind = static_cast<std::uint8_t>(PacketKind::Leave);
-    if (buffer->cur + 1 <= buffer->end) {
-        buffer->flags |= 1;
-        *buffer->cur = kind;
-        ++buffer->cur;
-    } else {
-        buffer->WriteMore(&kind, 1u);
-    }
-    if (buffer->cur + 4 <= buffer->end) {
-        buffer->flags |= 1;
-        lib::StoreBytes(buffer->cur, id);
-        buffer->cur += 4;
-    } else {
-        buffer->WriteMore(&id, 4u);
-    }
-    socket.SendTo(address, buffer);
+    GrowingBuffer buffer;
+    buffer.Put(static_cast<std::uint8_t>(PacketKind::Leave));
+    buffer.Put(id);
+    socket.SendTo(address, &buffer);
 }
 
 } // namespace net
@@ -395,21 +365,7 @@ namespace net {
 // Every client is sent a leave packet; the members then close the socket, free the type registry and release the
 // connections.
 SessionBase::~SessionBase() {
-    for (auto& node : clients) {
-        Connection* connection = node.Get();
-        std::uint32_t id = connection->id;
-        GrowingBuffer storage;
-        auto* buffer = &storage;
-        std::uint8_t kind = static_cast<std::uint8_t>(PacketKind::Leave);
-        buffer->BufferWrite(&kind, 1);
-        if (buffer->cur + 4 <= buffer->end) {
-            buffer->flags |= 1;
-            buffer->BufferWriteRaw(&id, 4);
-        } else {
-            buffer->WriteMore(&id, 4u);
-        }
-        socket.SendTo(&connection->address, buffer);
-    }
+    for (auto& node : clients) SendLeave(&node.Get()->address, node.Get()->id);
 }
 
 } // namespace net

@@ -528,9 +528,9 @@ bytes compared and copied whole. Display text was fixed.
     `ReadText` cuts to its buffer at a character's end.
   - **Fixed-size bytes:** what a stream writes as fixed-size bytes stays bytes (ASCII file names).
   - So a save written by the image is byte-identical to vanilla's.
-- **Network:** the same streams carry the world's messages. The session layer converts in net_messages.cpp's
-  `PutString` / `TakeString` and `GameBuffer::WriteString` / `ReadString`, so the update budget counts the original's
-  bytes.
+- **Network:** the same streams carry the world's messages. The session layer converts in
+  `BufferCursor::PutString` / `TakeString` and `GameBuffer::WriteString` / `ReadString`, so the update budget counts
+  the original's bytes.
 - **Colour escapes:** "\007C" and three raw colour bytes keep their five bytes; only the text between escapes is
   converted. Converting the whole string once left the top panel's text unconverted in the save.
 - **Harness digests:** the digest's reader converts each text to the asset code page (`Text`), so it hashes the

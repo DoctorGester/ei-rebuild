@@ -13,23 +13,6 @@
 
 namespace {
 
-// The growing buffer's Seek when it has to grow.
-inline void BufferSeek(GrowingBuffer* buffer, int at) { buffer->Grow(static_cast<std::uint32_t>(at)); }
-
-void UpdateHigh(GameBuffer& buffer) {
-    if (buffer.cur > buffer.high) buffer.high = buffer.cur;
-}
-std::int32_t Length(GameBuffer& buffer) {
-    UpdateHigh(buffer);
-    return buffer.PositionOf(buffer.high);
-}
-// Seek to `at` from the start, growing when past the end.
-void SeekTo(GrowingBuffer& buffer, std::int32_t at) {
-    UpdateHigh(buffer);
-    buffer.cur = buffer.begin + at;
-    if (buffer.cur > buffer.end) BufferSeek(&buffer, at);
-}
-
 std::uint32_t Checksum(const std::uint8_t* data, std::int32_t size) {
     std::uint32_t h = 0;
     for (std::int32_t at = 0; at < (size >> 2) * 4; at += 4) {
@@ -41,44 +24,35 @@ std::uint32_t Checksum(const std::uint8_t* data, std::int32_t size) {
     return h;
 }
 
-struct LocalBuffer {
-    GrowingBuffer b;
-};
-
 } // namespace
 
 void SaveFileWrite(ByteStream* file, unsigned magic, MemoryStream* data) {
     CoderState coder;
-    // A view over the data (flags 2).
     std::uint8_t* begin = data->data.data();
     std::uint8_t* last = begin + data->Size();
     BufferView view(begin, last);
     {
-        LocalBuffer packed;
+        GrowingBuffer packed;
         std::uint8_t compressed = 1;
-        coder.Compress(&view, &packed.b);
+        coder.Compress(&view, &packed);
         file->WriteHeader(magic, static_cast<std::uint32_t>(kSaveVersion));
         std::uint32_t sum = Checksum(data->data.data(), static_cast<std::int32_t>(data->Size()));
         file->WriteValue(sum);
         // Decompressed again; the packed data is used only when it gives the input back.
-        LocalBuffer check;
-        UpdateHigh(packed.b);
-        packed.b.cur = packed.b.begin;
-        if (packed.b.begin > packed.b.end) BufferSeek(&packed.b, 0);
+        GrowingBuffer check;
+        packed.Seek(0);
         {
             CoderState decoder;
-            decoder.Decompress(&packed.b, &check.b);
-            UpdateHigh(check.b);
+            decoder.Decompress(&packed, &check);
             std::int32_t size = static_cast<std::int32_t>(data->Size());
-            bool same = check.b.base + (check.b.high - check.b.begin) == size;
+            bool same = check.Size() == size;
             if (same) {
                 std::uint8_t* original = data->data.data();
-                same = std::memcmp(original, check.b.begin, static_cast<std::size_t>(data->Size())) == 0;
+                same = std::memcmp(original, check.begin, static_cast<std::size_t>(data->Size())) == 0;
             }
             if (same) {
                 file->WriteValue(compressed);
-                std::int32_t length = Length(packed.b);
-                file->Write(packed.b.begin, static_cast<std::uint32_t>(length));
+                file->Write(packed.begin, static_cast<std::uint32_t>(packed.Size()));
             } else {
                 compressed = 0;
                 file->WriteValue(compressed);
@@ -100,29 +74,28 @@ bool SaveFileRead(MemoryStream* out, unsigned magic, ByteStream* file) {
     } else {
         std::uint8_t compressed = 1;
         CoderState coder;
-        LocalBuffer packed;
-        LocalBuffer plain;
+        GrowingBuffer packed;
+        GrowingBuffer plain;
         std::uint32_t stored = 0;
         if (file->Version() > kVersionChecksum) file->ReadValue(stored);
         if (file->Version() > kVersionCompressedFlag) file->ReadValue(compressed);
         int start = static_cast<int>(file->Position());
         int size = static_cast<int>(file->Size()) - start;
         if (compressed) {
-            SeekTo(packed.b, size);
-            file->Read(packed.b.begin, static_cast<std::uint32_t>(size));
-            UpdateHigh(packed.b);
-            packed.b.cur = packed.b.begin;
-            if (packed.b.begin > packed.b.end) BufferSeek(&packed.b, 0);
-            coder.Decompress(&packed.b, &plain.b);
-            if (file->Version() > kVersionChecksum && Checksum(plain.b.begin, Length(plain.b)) != stored)
+            packed.Seek(size);
+            file->Read(packed.begin, static_cast<std::uint32_t>(size));
+            packed.Seek(0);
+            coder.Decompress(&packed, &plain);
+            if (file->Version() > kVersionChecksum && Checksum(plain.begin, plain.Size()) != stored)
                 return false;   // the buffers and the coder's cursor go on the way out
         } else {
-            SeekTo(plain.b, size);
-            file->Read(plain.b.begin, static_cast<std::uint32_t>(size));
+            plain.Seek(size);
+            file->Read(plain.begin, static_cast<std::uint32_t>(size));
         }
-        out->Resize(static_cast<std::uint32_t>(Length(plain.b)));
+        const auto length = static_cast<std::uint32_t>(plain.Size());
+        out->Resize(length);
         out->Seek(0);
-        out->Write(plain.b.begin, static_cast<std::uint32_t>(Length(plain.b)));
+        out->Write(plain.begin, length);
         out->Seek(0);
     }
     out->version = file->version;

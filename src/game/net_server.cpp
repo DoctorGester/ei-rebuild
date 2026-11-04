@@ -205,17 +205,6 @@ ServerBase::~ServerBase() {  }
 
 namespace net {
 
-namespace {
-// The next dword of the packet (read through the cursor's pointer, as the original inlines it).
-std::uint32_t TakeDword(BufferCursor* cursor) {
-    std::uint32_t value;
-    std::memcpy(&value, cursor->p, sizeof value);
-    cursor->p += sizeof value;
-    return value;
-}
-
-} // namespace
-
 // The record is built on the stack (two strings with room for 8 bytes first, as their
 // constructors make them), written into a growing buffer and sent from the session's socket to
 // the master's address; the result of the send is not looked at.
@@ -252,8 +241,10 @@ void ServerSession::OnMaster(const NetAddress* from, BufferCursor* cursor) {
     if (std::memcmp(from, &masterAddress, sizeof(NetAddress)) != 0 &&
         !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster))
         return;
-    if (TakeDword(cursor) != masterKey) return;
-    masterToken = TakeDword(cursor);
+    std::uint32_t key;
+    cursor->Take(key);
+    if (key != masterKey) return;
+    cursor->Take(masterToken);
 }
 
 // A chat line from the connection being read
@@ -352,18 +343,6 @@ bool ServerSession::IsConnecting(const Connection* connection) {
 
 namespace net {
 
-namespace {
-
-// A read the way the buffer helpers inline it: past the end through the overflow handler, beyond `end`
-// through the buffer's virtual read, else from memory.
-void ReadBytes(GameBuffer* buffer, void* to, unsigned size) {
-    if (buffer->cur + size > buffer->high) buffer->ReadPastEnd(to, size);
-    else if (buffer->cur + size > buffer->end) buffer->ReadMore(to, size);
-    else buffer->CopyOut(to, size);
-}
-
-} // namespace
-
 // Reads a server list reply from `in` (rewound): its size, then the LZ-compressed list.
 // Each item is a 16-byte address and a GameInfoRecord; it becomes a server entry with the record's
 // player counts, kind, password flag and texts, added to the client. A wrong size or
@@ -375,23 +354,18 @@ void ClientSession::ReadServerList(GameBuffer* in) {
     CoderState coder;
     in->Seek(0);
     std::uint32_t size;
-    ReadBytes(in, &size, 4);
-    if (in->cur > in->high) in->high = in->cur;
+    in->Get(size);
     bool complete = false;
-    if (size == static_cast<std::uint32_t>(in->PositionOf(in->high))) {
+    if (size == static_cast<std::uint32_t>(in->Size())) {
         coder.Decompress(in, &buffer);
-        BufferUpdateHigh(&buffer);
-        std::uint8_t* begin = buffer.begin;
-        buffer.cur = begin;
-        if (begin > buffer.end) buffer.Grow(0);
+        buffer.Seek(0);
         for (;;) {
-            if (buffer.cur > buffer.high) buffer.high = buffer.cur;
-            if (buffer.PositionOf(buffer.cur) >= buffer.PositionOf(buffer.high) || (buffer.flags & 8)) {
+            if (buffer.Unread() <= 0 || buffer.readPastEnd) {
                 complete = true;
                 break;
             }
             auto* entry = NewCounted<ServerEntry>();
-            ReadBytes(&buffer, &entry->address, 0x10);
+            buffer.Get(entry->address);
             if (!record->Read(&buffer)) break;
             entry->kind = record->kind;
             entry->password = record->hasPassword;

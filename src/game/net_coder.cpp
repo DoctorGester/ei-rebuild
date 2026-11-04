@@ -2,8 +2,6 @@
 // buffer view's slots. See net_coder.h and docs/notes/network.md.
 #include "net_coder.h"
 
-#include "lib/bytes.h"
-#include "lib/crt.h"
 
 #include <cstring>
 
@@ -127,7 +125,7 @@ void BufferCursor::PutBits(std::uint32_t value, std::uint8_t count) {
 
 std::uint32_t BufferCursor::GetBit() {
     if (bits < 1) {
-        acc = *p++;
+        acc = NextByte();
         bits = 8;
     }
     std::uint32_t bit = acc & 1;
@@ -138,9 +136,8 @@ std::uint32_t BufferCursor::GetBit() {
 
 std::uint32_t BufferCursor::GetBits(std::uint32_t count) {
     while (bits < count) {
-        acc += static_cast<std::uint32_t>(*p) << bits;
+        acc += static_cast<std::uint32_t>(NextByte()) << bits;
         bits = static_cast<std::uint8_t>(bits + 8);
-        ++p;
     }
     std::uint32_t value = acc & kCoderBitMasks[count - 1];
     acc >>= (count & 0x1F);
@@ -154,36 +151,21 @@ void BufferCursor::WriteBytes(const void* from, std::uint32_t size) {
 }
 
 void BufferCursor::ReadBytes(void* to, std::uint32_t size) {
-    std::memcpy(to, p, size);
-    p += size;
+    const std::size_t room = Room();
+    const std::size_t n = size < room ? size : room;
+    std::memcpy(to, p, n);
+    std::memset(static_cast<std::uint8_t*>(to) + n, 0, size - n);
+    p += n;
 }
 
-void BufferCursor::Reset() {
-    p = nullptr;
-    bits = 0;
-    bytePtr = nullptr;
-}
-
-void BufferCursor::FlushBits() {
+void BufferCursor::End() {
     if (bits != 0) {
         bits = 0;
         if (bytePtr) *bytePtr = static_cast<std::uint8_t>(acc);
     }
-}
-
-std::uint32_t BufferCursor::EndWrite() {
-    FlushBits();
+    if (!sink) return;
     sink->cur = p;
-    std::uint32_t result = sink->Commit();
     sink = nullptr;
-    return result;
-}
-
-std::uint32_t BufferCursor::End() {
-    FlushBits();
-    if (!sink) return 0;
-    sink->cur = p;
-    return sink->Commit();
 }
 
 // --- Code tables ----------------------------------------------------------------------------------
@@ -250,10 +232,7 @@ void InitCodeTables() {
 }
 
 void CoderState::Start() {
-    out.p = nullptr;
-    out.bits = 0;
-    out.bytePtr = nullptr;
-    out.sink = nullptr;
+    out = BufferCursor{};
     prev = 0;
     matchPos = -1;
     pos = 0;
@@ -305,18 +284,12 @@ void CoderState::EncodeMatch(std::int32_t at) {
 
 void CoderState::Compress(GameBuffer* in, GameBuffer* outBuffer) {
     BufferCursor reader;
-    reader.p = nullptr;
-    reader.bits = 0;
-    reader.bytePtr = nullptr;
-    reader.sink = nullptr;
     in->Seek(0);
-    if (in->cur > in->high) in->high = in->cur;
-    std::int32_t size = in->PositionOf(in->high);
+    std::int32_t size = in->Size();
     reader.BeginRead(in, size);
-    const std::uint8_t* end = reader.p + size;
+    const std::uint8_t* end = reader.limit;
     out.BeginWrite(outBuffer, size * 2 + 10);
-    lib::StoreBytes(out.p, size);
-    out.p += 4;
+    out.Put(size);
     if (size > 0) {
         const std::uint8_t* at = reader.p;
         std::uint8_t byte = *at;
@@ -341,7 +314,7 @@ void CoderState::Compress(GameBuffer* in, GameBuffer* outBuffer) {
                 if (!StartMatch(*this, cur, d, at)) {
                     // Literal: a 0 flag bit, then the previous byte.
                     out.PutBits(0, 1);
-                    *out.p++ = static_cast<std::uint8_t>(prev);
+                    out.Put(static_cast<std::uint8_t>(prev));
                 }
             } else if (matchLen < kMaxMatchLength &&
                        window[matchPos + matchLen] == byte) {
@@ -357,28 +330,24 @@ void CoderState::Compress(GameBuffer* in, GameBuffer* outBuffer) {
         } else {
             matchPos = -1;
             out.PutBits(0, 1);
-            out.WriteBytes(&prev, 1);
+            out.Put(static_cast<std::uint8_t>(prev));
         }
     }
-    out.EndWrite();
+    out.End();
     reader.End();
 }
 
 void CoderState::Decompress(GameBuffer* in, GameBuffer* outBuffer) {
     BufferCursor reader;
-    reader.Reset();
-    reader.sink = nullptr;
-    if (in->cur > in->high) in->high = in->cur;
-    reader.BeginRead(in, static_cast<std::int32_t>(in->high - in->cur));
+    reader.BeginRead(in, in->Unread());
     std::int32_t remaining;
-    lib::LoadBytes(remaining, reader.p);
-    reader.p += 4;
+    reader.Take(remaining);
     out.BeginWrite(outBuffer, remaining);
     while (remaining > 0) {
         if (!reader.GetBit()) {
             std::uint8_t byte;
-            reader.ReadBytes(&byte, 1);
-            out.WriteBytes(&byte, 1);
+            reader.Take(byte);
+            out.Put(byte);
             --remaining;
             window[pos] = byte;
             pos = (pos + 1) & kWindowMask;
@@ -389,22 +358,12 @@ void CoderState::Decompress(GameBuffer* in, GameBuffer* outBuffer) {
         if (!(length < remaining)) length = remaining;
         for (std::int32_t i = 0; i < length; ++i) {
             std::uint8_t byte = window[(pos - static_cast<std::uint32_t>(offset) - 1) & kWindowMask];
-            out.WriteBytes(&byte, 1);
+            out.Put(byte);
             window[pos] = byte;
             pos = (pos + 1) & kWindowMask;
         }
         remaining -= length;
     }
-    out.EndWrite();
+    out.End();
     reader.End();
 }
-
-// --- The fixed view and the buffer base (BufferView, GameBuffer; net_coder.h) ----------------------------
-
-// Nothing to reserve (the view's first two virtuals).
-void BufferView::ReserveRead(std::int32_t) {}
-void BufferView::ReserveWrite(std::int32_t) {}
-
-void BufferView::Seek(std::int32_t position) { cur = begin + position; }
-
-BufferView::~BufferView() {}
