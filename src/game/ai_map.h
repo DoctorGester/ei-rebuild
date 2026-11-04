@@ -409,11 +409,11 @@ struct RegionMap {
     // The block grids 1 x 1 (edges -1, representative cells zeroed) with both block searches attached to them.
     RegionMap();
 
-    // The region of cell (x, y) for a size class, the one most of the reachable 3x3 blocks around the cell belong
+    // The region of `cell` for a size class, the one most of the reachable 3x3 blocks around the cell belong
     // to (the first seen on a tie; 0 when none).
-    int DominantRegion(int sizeClass, int x, int y);
-    // Can cell (x, y) reach `region`? Caches the answers in `marks` (the AI map's, AIMap::marks: 1 yes, 2 no).
-    bool ReachesRegion(int sizeClass, int x, int y, int region, SearchGrid<std::int8_t>* marks);
+    int DominantRegion(int sizeClass, Point cell);
+    // Can `cell` reach `region`? Caches the answers in `marks` (the AI map's, AIMap::marks: 1 yes, 2 no).
+    bool ReachesRegion(int sizeClass, Point cell, int region, SearchGrid<std::int8_t>* marks);
     // Numbers the connected areas of blocks of every size class.
     void LabelRegions();
     // The per-direction block edge words: -1 out of the map, and each edge between two blocks the smaller of its
@@ -441,18 +441,18 @@ struct RegionMap {
     bool CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy);
     // Floods `label` over the blocks connected through open edges, breadth first from `frontier`.
     void FloodRegionFrom(int sizeClass, std::vector<Point>* frontier, std::vector<Point>* next, int label);
-    // The 3x3 blocks around cell (x, y) whose representative cell the local search reaches from it, as {block x,
+    // The 3x3 blocks around `cell` whose representative cell the local search reaches from it, as {block x,
     // block y, cost}.
-    std::vector<BlockCost> NearbyBlocks(int sizeClass, bool flag, int x, int y);
+    std::vector<BlockCost> NearbyBlocks(int sizeClass, bool flag, Point cell);
 
     // Re-measures blocks [x0, x1) x [y0, y1) (clamped to the grid): representative cells, then edges, row by
     // row (reporting progress), then the edge clamp, the two block searches and the regions.
     void UpdateBlocks(AIMap* map, int x0, int x1, int y0, int y1);
     void UpdateBlocksFor(AIMap* map, int x0, int x1, int y0, int y1);
     void AttachSearches();
-    // Seeds `search` with the blocks around cell (x, y) its representative cells are reached from
+    // Seeds `search` with the blocks around `cell` its representative cells are reached from
     // (NearbyBlocks), cost / 128; true when one was lowered.
-    bool SeedSearch(int sizeClass, bool flag, BlockSearch* search, int x, int y);
+    bool SeedSearch(int sizeClass, bool flag, BlockSearch* search, Point cell);
 
     // A progress report (0..1) during UpdateBlocks; cleared by it.
     using ProgressFn = void(*)(float);
@@ -662,12 +662,12 @@ public:
     bool MoveInSectors(MapObject* object, const Vector3& position);
     std::vector<Unit*> FindUnitsInRadius(const Vector3& position, float radius);
 
-    // Can `unit` stand on cell (x, y)? `reason` gets 0 (ok or not a unit), 1 (cell level
+    // Can `unit` stand on `cell`? `reason` gets 0 (ok or not a unit), 1 (cell level
     // too high) or 2 (water too deep).
-    bool CanStandAt(Unit* unit, int x, int y, int* reason);
+    bool CanStandAt(Unit* unit, Point cell, int* reason);
 
     // Like CanStandAt, but a cell no worse than the one the unit is on is also accepted.
-    bool CanStandAtFromHere(Unit* unit, int x, int y, int* reason);
+    bool CanStandAtFromHere(Unit* unit, Point cell, int* reason);
 
     // IsPassable at the cell of world `position`, with the unit's own footprint lifted
     // (the unit is taken out of the sector map and put back).
@@ -707,9 +707,9 @@ public:
     float LineOfSight(const Vector3& from, const Vector3& to);
 
     // Whether the cell is on the map.
-    bool InBounds(Point cell) const { return cell.x >= 0 && cell.y >= 0 && cell.x < cells.width && cell.y < cells.height; }
+    bool InBounds(Point cell) const { return cells.Contains(cell); }
 
-    float GroundHeight(int x, int y);
+    float GroundHeight(Point cell);
     // Terrain height plus the water's depth, at `position`.
     float TopHeightAt(const Vector3& position);
     // Largest height step to the 4 neighbours of the cell at `position` (0 at the edge).
@@ -717,15 +717,15 @@ public:
     // Is the cell at `position` under water (kCellWater)? False outside the map.
     bool InWaterAt(const Vector3& position);
     // Does a spell's wall or cloud (OccluderKind::SpellArea) stand on the cell? HasSpellAreaAt: false outside the map.
-    bool HasSpellArea(int x, int y);
+    bool HasSpellArea(Point cell);
     bool HasSpellAreaAt(const Vector3& position);
     // Material index (0..31) of the cell at `position`, -1 outside the map.
     int MaterialAt(const Vector3& position);
     void TurnObject(MapObject* object, const Quaternion* rotation);
     // The cell's terrain type (AITerrainType); the first one outside the map.
     AITerrainType* MaterialRecordAt(const Vector3& position);
-    // Has cell (x, y) a bridge occluder? `height` (optional) gets the highest deck.
-    bool BridgeDeckAt(int x, int y, int* height);
+    // Has `cell` a bridge occluder? `height` (optional) gets the highest deck.
+    bool BridgeDeckAt(Point cell, int* height);
 
     // Stamps (remove = false) or clears (remove = true) the object's footprint in the
     // grid; false if it does not fit. Units go to the unit occupancy layers instead.
@@ -768,16 +768,16 @@ public:
     float LargestStepAlong(const Vector3& from, const Vector3& to);
     // Joins the forward and backward local searches where they meet; false when they cannot.
     bool JoinLocalSearches(PathCells* cells, int* cost);
-    // The path to cell (x, y) walked back along the direction marks into `path` (emptied first).
-    void BuildCellsTo(int x, int y, PathCells* path);
+    // The path to `cell` walked back along the direction marks into `path` (emptied first).
+    void BuildCellsTo(Point cell, PathCells* path);
     // Adds (or lifts) the water depths around `position` as a pseudo unit of the small-unit layer.
     void StampWaterPatch(const Vector3& position, bool add);
     bool AddOccluderRecord(FootprintCell* cell);
     bool ClearOccluderRecord(FootprintCell* cell);
     void RefreshArea(int minX, int maxX, int minY, int maxY);
-    // The passability mark of cell (x, y) for a standing level from the terrain type, the water depth and the
+    // The passability mark of `cell` for a standing level from the terrain type, the water depth and the
     // occluders over the cell, looked up in the mark table. `scratch` keeps the column it measured.
-    std::uint32_t CellMark(CellMarkState* scratch, int level, int levelHeight, int x, int y);
+    std::uint32_t CellMark(CellMarkState* scratch, int level, int levelHeight, Point cell);
     // Refresh's second pass over [x0, x1] x [y0, y1] (kept 2 cells from the border): a cell whose step to a direct
     // neighbour exceeds what size class 0 can climb becomes impassable, one beyond the larger classes keeps only
     // class 0; either way nibbles 5-6 of one neighbour and nibble 7 of 13 cells around it are cleared.

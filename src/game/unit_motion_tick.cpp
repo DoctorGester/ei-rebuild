@@ -303,10 +303,10 @@ void UpdateMotion(UnitServer* c) {
     WorldServer* world = c->ServerWorld();
     int time = world->tick;
     MotionSample sample = c->unit->motion.Sample(world, &c->motion.motionOrder, TimeAsFloat(&time));
-    Vector3 position = {sample.x, sample.y, c->unit->localPosition.z};
+    Vector3 position = WithZ(sample.position, c->unit->localPosition.z);
     bool turning = sample.turning;
     Vector3 direction = sample.direction;
-    int cellX = sample.cellX, cellY = sample.cellY;
+    const Point cell = sample.cell;
     bool motionOver = !sample.alive;
     FromHalfCells(&position.x);
 
@@ -327,12 +327,12 @@ void UpdateMotion(UnitServer* c) {
     // the stack held there. Every value but kBlockedReplan and kBlockedWait acts alike; here it is 0
     // (docs/notes/combat.md).
     int blocked = 0;
-    if (cellX < 0) {
+    if (cell.x < 0) {
         canStand = true;
     } else {
         SectorMap* sectors = &world->aiMap.sectorMap;
         sectors->Remove(c->unit);
-        canStand = world->aiMap.CanStandAtFromHere(c->unit, cellX, cellY, &blocked);
+        canStand = world->aiMap.CanStandAtFromHere(c->unit, cell, &blocked);
         if (!canStand) {
             Unit* blocker = world->aiMap.BlockingUnitAt(c->unit, position);
             if (!blocker) {

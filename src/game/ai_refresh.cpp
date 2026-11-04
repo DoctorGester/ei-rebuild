@@ -102,7 +102,7 @@ void AIMap::RefreshArea(int x0, int x1, int y0, int y1) {
         for (int y = oy0; y <= oy1; ++y)
             for (int x = ox0; x <= ox1; ++x) {
                 std::int8_t* row = marks[y];
-                row[x] = static_cast<std::int8_t>(CellMark(&scratch, level, levelHeight, x, y));
+                row[x] = static_cast<std::int8_t>(CellMark(&scratch, level, levelHeight, {x, y}));
             }
         int shift = level * 4;
         std::uint32_t keep = ~(0xFu << shift);
@@ -159,9 +159,9 @@ void AIMap::RefreshArea(int x0, int x1, int y0, int y1) {
 
 // ---- CellMark ---------------------------------------------------------------------------------
 
-std::uint32_t AIMap::CellMark(CellMarkState* s, int level, int levelHeight, int x, int y) {
-    AIMapCell* cell = &cells[y][x];
-    std::uint32_t* occluder = &occluders[y][x];
+std::uint32_t AIMap::CellMark(CellMarkState* s, int level, int levelHeight, Point at) {
+    AIMapCell* cell = &cells[at];
+    std::uint32_t* occluder = &occluders[at];
     AITerrainType* terrain = &materials[occluder::Type(*occluder)];
     const int depth = cell->WaterDepth();   // the original reads the flags as a word and keeps the low six bits
     if ((*occluder & occluder::kNone) && depth == 0) return (terrain->openMarks >> (level * 4)) & kPassabilityMask;
@@ -201,7 +201,7 @@ std::uint32_t AIMap::CellMark(CellMarkState* s, int level, int levelHeight, int 
     std::uint32_t word = *occluder;
     if (!(word & occluder::kNone)) {
         if (word & occluder::kChained) {
-            const Sector& sector = sectorMap.sectors[(y / 32) * sectorMap.width + x / 32];
+            const Sector& sector = sectorMap.sectors[(at.y / 32) * sectorMap.width + at.x / 32];
             int index = occluder::Head(word);
             do {
                 const SectorOccluder& record = sector.occluders[index];

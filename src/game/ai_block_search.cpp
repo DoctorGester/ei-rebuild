@@ -104,9 +104,9 @@ void BlockSearch::Expand() {
     PickBest();
 }
 
-bool RegionMap::SeedSearch(int sizeClass, bool flag, BlockSearch* search, int x, int y) {
+bool RegionMap::SeedSearch(int sizeClass, bool flag, BlockSearch* search, Point cell) {
     bool seeded = false;
-    for (const BlockCost& node : NearbyBlocks(sizeClass, flag, x, y)) {
+    for (const BlockCost& node : NearbyBlocks(sizeClass, flag, cell)) {
         int cost = node.cost / 128;
         BlockRecord* record = &search->records[node.y][node.x];
         if (cost > record->cost) continue;

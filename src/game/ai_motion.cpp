@@ -17,7 +17,6 @@
 #include <bit>
 #include <concepts>
 #include <cstdint>
-#include <cstring>
 
 namespace {
 
@@ -90,7 +89,7 @@ void NormalizeTurn(UnitMotion* m, float turn) {
     }
 }
 
-MotionWaypoint Waypoint(float x, float y) { return {x, y, 0}; }
+MotionWaypoint Waypoint(float x, float y) { return {{x, y}, 0}; }
 
 } // namespace
 
@@ -234,8 +233,7 @@ MotionSample UnitMotion::Sample(World* world, MotionOrder* order, float time) {
     MotionSample sample;
     float start = static_cast<float>(order->startTime);
     time = time >= start ? time : start;
-    sample.x = order->x;
-    sample.y = order->y;
+    sample.position = {order->x, order->y};
 
     switch (static_cast<unsigned>(order->kind)) {
     case 0:
@@ -251,7 +249,7 @@ MotionSample UnitMotion::Sample(World* world, MotionOrder* order, float time) {
         return sample;
     }
     case 2:
-        return SamplePath(time - start, sample.x, sample.y);
+        return SamplePath(time - start, sample.position);
     case 3: {
         MapObject* object = world->ObjectWithId(static_cast<int>(order->arg5));
         if (!object) {
@@ -298,10 +296,9 @@ MotionSample UnitMotion::Sample(World* world, MotionOrder* order, float time) {
     }
 }
 
-MotionSample UnitMotion::SamplePath(float time, float startX, float startY) {
+MotionSample UnitMotion::SamplePath(float time, Vector2 start) {
     MotionSample sample;
-    sample.x = startX;
-    sample.y = startY;
+    sample.position = start;
     float end = 0.0f;
     int index = 0;
     bool found = false;
@@ -337,15 +334,15 @@ MotionSample UnitMotion::SamplePath(float time, float startX, float startY) {
         float saved = segmentStart;
         for (; index < std::ssize(points) - 1; ++index) {
             segmentStart = end;
-            const MotionPoint& from = points[index];
-            const MotionPoint& to = points[index + 1];
-            std::memcpy(&fromX, &from.x, 4 * sizeof(float));     // x, y, dirX, dirY
-            std::memcpy(&toX, &to.x, 4 * sizeof(float));
-            float dx = fromX - toX;
-            float dy = fromY - toY;
-            float distance = std::sqrt(LengthSquared2D(dy, dx));
+            const MotionPoint& first = points[index];
+            const MotionPoint& next = points[index + 1];
+            segmentFrom = first.position;
+            segmentFromDirection = first.direction;
+            segmentTo = next.position;
+            segmentToDirection = next.direction;
+            float distance = Length2D(segmentFrom - segmentTo);
             length = distance;
-            speed = from.speed;
+            speed = first.speed;
             end += distance / speed;
             if (time <= end) {
                 found = true;
@@ -357,15 +354,13 @@ MotionSample UnitMotion::SamplePath(float time, float startX, float startY) {
             const MotionPoint& last = points[std::ssize(points) - 1];
             sample.alive = false;
             sample.speed = 0.0f;
-            sample.x = last.x;
-            sample.y = last.y;
-            sample.direction = {last.dirX, last.dirY, 0.0f};
-            sample.cellX = last.cellX;
-            sample.cellY = last.cellY;
+            sample.position = last.position;
+            sample.direction = WithZ(last.direction, 0.0f);
+            sample.cell = last.cell;
             return sample;
         }
-        curveX.Fit(fromX, fromDirX, toX, toDirX, length);
-        curveY.Fit(fromY, fromDirY, toY, toDirY, length);
+        curveX.Fit(segmentFrom.x, segmentFromDirection.x, segmentTo.x, segmentToDirection.x, length);
+        curveY.Fit(segmentFrom.y, segmentFromDirection.y, segmentTo.y, segmentToDirection.y, length);
         segmentEnd = end;
         segment = index;
     }
@@ -373,12 +368,10 @@ MotionSample UnitMotion::SamplePath(float time, float startX, float startY) {
     sample.turning = false;
     sample.speed = speed;
     float u = (time - segmentStart) * speed;
-    sample.x = curveX.Value(u);
+    sample.position = {curveX.Value(u), curveY.Value(u)};
     sample.direction.x = curveX.Slope(u);
-    sample.y = curveY.Value(u);
     sample.direction.y = curveY.Slope(u);
-    sample.cellX = points[segment + 1].cellX;
-    sample.cellY = points[segment + 1].cellY;
+    sample.cell = points[segment + 1].cell;
     return sample;
 }
 
@@ -426,11 +419,7 @@ void UnitMotion::Build(PathOrder* path) {
 
     // Kind 2 (and anything else): waypoints at the start, at each corner of the steps and at the
     // target, then one trajectory point per path cell.
-    MotionWaypoint first;
-    first.x = order->x;
-    first.y = order->y;
-    first.cells = 0;
-    lib::SetAtGrow(waypoints, lib::Count(waypoints), first);
+    lib::SetAtGrow(waypoints, lib::Count(waypoints), Waypoint(order->x, order->y));
     int previous = 0;
     for (auto node = path->steps.begin(); node != path->steps.end();) {
         auto next = std::next(node);
@@ -491,11 +480,7 @@ void UnitMotion::Build(PathOrder* path) {
         node = next;
     }
 
-    MotionWaypoint last;
-    last.x = std::bit_cast<float>(order->arg5);
-    last.y = std::bit_cast<float>(order->arg6);
-    last.cells = 0;
-    waypoints.push_back(last);
+    waypoints.push_back(Waypoint(std::bit_cast<float>(order->arg5), std::bit_cast<float>(order->arg6)));
     Subdivide();
     LimitSpeeds(baseTurnRate);
 
@@ -507,19 +492,18 @@ void UnitMotion::Build(PathOrder* path) {
     }
     // Face the first point: no turn when it is within ~25 degrees of the current facing.
     MotionPoint* p = points.data();
-    if (lib::Cos(lib::Atan2(p->dirY, p->dirX) - startAngle) > 0.9f) {
+    if (lib::Cos(lib::Atan2(p->direction.y, p->direction.x) - startAngle) > 0.9f) {
         turn = 0.0f;
-        p->dirX = lib::Cos(startAngle);
-        points.data()->dirY = lib::Sin(startAngle);
+        p->direction = {lib::Cos(startAngle), lib::Sin(startAngle)};
         AssignCells(path);
         return;
     }
-    if (p->dirX == 0.0f && p->dirY == 0.0f) {
+    if (p->direction == Vector2{0.0f, 0.0f}) {
         turn = 0.0f;
         AssignCells(path);
         return;
     }
-    float angle = lib::Atan2(p->dirY, p->dirX);
+    float angle = lib::Atan2(p->direction.y, p->direction.x);
     turnRate = baseTurnRate;
     NormalizeTurn(this, angle - startAngle);
     AssignCells(path);
@@ -530,15 +514,10 @@ void UnitMotion::AssignCells(PathOrder* path) {
     int i = 0;
     for (auto node = head; node != path->steps.end(); ++node) {
         if (i >= std::ssize(points)) break;
-        points[i].cellX = node->x;
-        points[i].cellY = node->y;
+        points[i].cell = {node->x, node->y};
         ++i;
     }
-    if (std::ssize(path->steps) == 1) {
-        MotionPoint& last = points[std::ssize(points) - 1];
-        last.cellX = head->x;
-        last.cellY = head->y;
-    }
+    if (std::ssize(path->steps) == 1) points[std::ssize(points) - 1].cell = {head->x, head->y};
 }
 
 void UnitMotion::Subdivide() {
@@ -553,26 +532,21 @@ void UnitMotion::Subdivide() {
 
 void UnitMotion::SubdivideSegment(const MotionWaypoint* from, const MotionWaypoint* to, int cells, float startOffset,
                                   float endOffset, int* stepIndex) {
-    float dx = from->x - to->x;
-    float dy = from->y - to->y;
-    float distance = std::sqrt(LengthSquared2D(dy, dx));
+    const Vector2 a = from->position, b = to->position;
+    float distance = Length2D(a - b);
     if (distance == 0.0f) distance = kMinLength;
     MotionPoint p;
-    p.cellX = -1;
-    p.cellY = -1;
-    p.dirX = (to->x - from->x) / distance;
-    p.dirY = (to->y - from->y) / distance;
+    p.cell = {-1, -1};
+    p.direction = (b - a) / distance;
 
     if (startOffset != 0.0f && endOffset != 0.0f && cells == 1) {
-        p.x = from->x;
-        p.y = from->y;
+        p.position = a;
         int size = lib::Count(points);
         p.speed = stepSpeeds[*stepIndex] * speedScale * kSpeedUnit;
         points.resize(size + 1);
         points[size] = p;
         size = lib::Count(points);
-        p.x = to->x;
-        p.y = to->y;
+        p.position = b;
         points.resize(size + 1);
         points[size] = p;
         ++*stepIndex;
@@ -583,8 +557,8 @@ void UnitMotion::SubdivideSegment(const MotionWaypoint* from, const MotionWaypoi
     for (int k = 0; k < cells; ++k) {
         float f = (static_cast<float>(k) + startOffset + 0.5f) * inverse;
         float g = 1.0f - f;
-        p.x = f * to->x + g * from->x;
-        p.y = g * from->y + f * to->y;
+        // The two coordinates sum their terms in different orders.
+        p.position = {f * b.x + g * a.x, g * a.y + f * b.y};
         p.speed = stepSpeeds[*stepIndex] * speedScale * kSpeedUnit;
         int size = lib::Count(points);
         points.resize(size + 1);
@@ -597,10 +571,10 @@ void UnitMotion::LimitSpeeds(float rate) {
     const float twoPi = kPi + kPi;
     for (int i = 0; i < std::ssize(points) - 1; ++i) {
         MotionPoint* p = &points[i];
-        float angle = AbsBits(lib::Atan2(p[0].dirY, p[0].dirX) - lib::Atan2(p[1].dirY, p[1].dirX));
+        float angle = AbsBits(lib::Atan2(p[0].direction.y, p[0].direction.x) - lib::Atan2(p[1].direction.y, p[1].direction.x));
         while (angle > twoPi) angle = angle - twoPi;
         if (angle > kPi) angle = twoPi - angle;
-        float distance = std::sqrt(LengthSquared2D(p[0].x - p[1].x, p[0].y - p[1].y));
+        float distance = Length2D(p[0].position - p[1].position);
         float turnTime = angle / rate;
         float wayTime = distance / p[0].speed;
         if (turnTime > wayTime) p[0].speed = distance / turnTime;

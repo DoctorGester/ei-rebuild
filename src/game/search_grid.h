@@ -3,6 +3,8 @@
 // The game's grid template (the AI map's cells, occluders, water depths and marks, the local
 // searches' nodes, the region map's edges, the fog grids' marks).
 
+#include "lib/rect.h"
+
 #include <cstddef>
 #include <vector>
 
@@ -13,6 +15,10 @@ struct SearchGrid {
     // Row y (grid[y][x] is the cell at (x, y)).
     T* operator[](int y) { return data.data() + y * rowLength; }
     const T* operator[](int y) const { return data.data() + y * rowLength; }
+    // The cell itself, in a grid of one element per cell.
+    T& operator[](Point cell) { return (*this)[cell.y][cell.x]; }
+    const T& operator[](Point cell) const { return (*this)[cell.y][cell.x]; }
+    bool Contains(Point cell) const { return cell.x >= 0 && cell.y >= 0 && cell.x < width && cell.y < height; }
 
     // Unless the grid is width x height already: made again at that size, `perCell` elements per cell, each
     // `fill`. An owner's constructor sizes its empty grids with it.
