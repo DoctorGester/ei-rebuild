@@ -412,10 +412,13 @@ public:
     std::uint8_t changed;           // set when the frame, the animation or the bones changed
 
     // A switch from one animation to another blends the pose last placed into the new one's over a short time
-    // (client side only: what plays and its frame stay the game's): `blendStart` in the platform's milliseconds,
-    // `blendLength` in milliseconds, 0 while none runs.
+    // (client side only: what plays and its frame stay the game's). The blend runs from `placedAt`, when the
+    // outgoing pose was placed (the draw before the switch), so a draw a blend's length after it shows the new
+    // pose alone, as at the harness's default frames. In the platform's milliseconds; `blendLength` 0 while none
+    // runs.
     std::uint32_t blendStart;
     std::uint32_t blendLength;
+    std::uint32_t placedAt;
     // Before a switch from `from` to `to`: each bone keeps the pose last placed as the outgoing one and the blend
     // starts, as long as `to`'s kind asks (none when either is null; one running is cut short).
     void BeginBlend(const FigureAnimation* from, const FigureAnimation* to);

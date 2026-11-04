@@ -937,10 +937,15 @@ blends the pose last placed into the new one's (map_object_animation.cpp, figure
   outgoing pose; `FigureBone::Place(origin, blend)` slerps the turn and lerps the root's position and the morph offsets
   by the incoming share (at 1 the original's computation, bit for bit); `UpdatePose` places the skeleton again at every
   draw while a blend runs.
-- The share: smoothstep of the real time since the switch (platform milliseconds: a blend running also finishes in a
-  pause) over the length, by the incoming animation's kind: attack, cast and hit 100 ms (the blow's moment reads at
-  once), death 150, idle 250, the rest (walk, run, cross, special, map objects' None) 200. None from or into no
-  animation (a figure built anew, a fresh unit).
+- The share: smoothstep of the real time since the outgoing pose was placed (`placedAt`: the draw before the
+  switch; platform milliseconds, so a blend running also finishes in a pause) over the length, by the incoming
+  animation's kind: attack, cast and hit 100 ms (the blow's moment reads at once), death 150, idle 250, the rest
+  (walk, run, cross, special, map objects' None) 200. None from or into no animation (a figure built anew, a fresh
+  unit). An object not drawn for longer than the length switches at once.
+- Goldens: the harness's default frames are 275 ms apart, longer than any blend, so each draw shows the new pose
+  alone, as before. A blend counted from the switch itself drew the outgoing pose on the switch's frame: its parts'
+  clip tests then differed at the screen's edge, and with them a client unit's Static flag (all its parts lit),
+  which the digests read (zone_gz15h_tornado, net_pair_quest differed).
 - Client side only: what plays, its frame, the end callback, hit moments and the server's view are the game's. What
   reads the placed parts sees the blended pose, all on the client: the part rectangles picking tests (a click picks what
   the screen shows), PartWorldPosition (a hero's effect point, footprints, blood, attached particles).

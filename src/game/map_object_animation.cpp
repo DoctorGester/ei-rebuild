@@ -253,7 +253,7 @@ void FigureAnimationState::BeginBlend(const FigureAnimation* from, const FigureA
         else bone->fromOffsets.clear();
     }
     if (!blends || !g_blends) return;
-    blendStart = platform::Milliseconds();
+    blendStart = placedAt;
     blendLength = BlendMilliseconds(to);
 }
 

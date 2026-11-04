@@ -10,6 +10,7 @@
 #include "map_object_animation.h"
 #include "map_object_figures.h"
 #include "world.h"
+#include "platform/platform.h"
 
 #include <cstdint>
 #include <cstring>
@@ -29,6 +30,7 @@ void PlaceRoot(FigureAnimationState* state) {
     float factor = owner->AnimationFactor(owner->scale.z);
     Vector3 origin = factor * owner->defaultScale;
     state->root->Place(origin, state->BlendWeight());
+    state->placedAt = platform::Milliseconds();
 }
 
 // Inlines DestroyTrack's reset without the bone (the key frames' array emptied through its SetSize(0)).
@@ -93,6 +95,7 @@ void FigureAnimationState::Reset() {
     changed = 1;
     blendStart = 0;
     blendLength = 0;
+    placedAt = 0;
 }
 
 FigureBone* FigureAnimationState::FindBone(std::string_view boneName) {
