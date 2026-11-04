@@ -439,6 +439,8 @@ struct MainHealth {
     Clock::duration longest{};     // the most in one frame
     Clock::duration longestWait{};
     unsigned waits = 0;            // times g_mix was taken by the device
+    Clock::duration longestStreamWait{};
+    unsigned streamWaits = 0;      // times the game's stream lock was taken by the stream thread
     unsigned frames = 0;
     Clock::duration longestPass{};
     Clock::time_point passAt{};
@@ -528,11 +530,11 @@ void NoteFrame() {
     const double ahead = device.given == 0 ? 0.0 : static_cast<double>(device.given) * 1000.0 / g_rate - Ms(now - device.first);
     ei::Log("audio trace: %u frames (longest pass %.1f ms); the game thread in sound %.3f ms a frame, at most %.3f ms, "
             "%u lock waits (longest %.3f ms); the device %u requests, %llu frames (largest %u, longest gap %.1f ms, "
-            "mix at most %.2f ms), %.0f ms ahead; the stream starved %llu frames",
+            "mix at most %.2f ms), %.0f ms ahead; the stream starved %llu frames; %u stream lock waits (longest %.3f ms)",
             g_main.frames, Ms(g_main.longestPass), g_main.frames != 0 ? Ms(g_main.total) / g_main.frames : 0.0,
             Ms(g_main.longest), g_main.waits, Ms(g_main.longestWait), device.calls,
             static_cast<unsigned long long>(device.frames), device.largest, Ms(device.longestGap), Ms(device.longestMix),
-            ahead, static_cast<unsigned long long>(device.starved));
+            ahead, static_cast<unsigned long long>(device.starved), g_main.streamWaits, Ms(g_main.longestStreamWait));
     g_main = MainHealth{};
     g_main.passAt = now;
     g_main.reportedAt = now;
@@ -566,6 +568,13 @@ void SDLCALL DeviceData(void*, SDL_AudioStream* stream, int additional, int) {
 } // namespace
 
 void UseNoDevice() { g_noDevice = true; }
+
+void NoteStreamWait(Clock::duration wait) {
+    if (!g_trace || std::this_thread::get_id() != g_mainThread) return;
+    g_main.frame += wait;
+    g_main.longestStreamWait = std::max(g_main.longestStreamWait, wait);
+    ++g_main.streamWaits;
+}
 
 bool OpenOutput(platform::NativeWindow, unsigned rate, bool, std::string*) {
     g_open = true;

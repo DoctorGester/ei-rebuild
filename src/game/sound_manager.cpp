@@ -23,6 +23,7 @@
 #include "lib/vecmath.h"
 
 #include <bit>
+#include <chrono>
 #include <cmath>
 #include <concepts>
 #include <cstring>
@@ -33,6 +34,23 @@
 #include <vector>
 
 namespace {
+
+// The stream lock taken by a game-thread call; a wait for it counts in EI_AUDIO_TRACE's line.
+class StreamGuard {
+public:
+    explicit StreamGuard(std::recursive_mutex& lock) : lock(lock) {
+        if (lock.try_lock()) return;
+        const auto start = std::chrono::steady_clock::now();
+        lock.lock();
+        audio::NoteStreamWait(std::chrono::steady_clock::now() - start);
+    }
+    ~StreamGuard() { lock.unlock(); }
+    StreamGuard(const StreamGuard&) = delete;
+    StreamGuard& operator=(const StreamGuard&) = delete;
+
+private:
+    std::recursive_mutex& lock;
+};
 
 constexpr float kHeightFull = 30.0f;     // 2D height-faded sounds are full below
 constexpr float kHeightSilent = 70.0f;   // ... and silent above
@@ -304,7 +322,7 @@ void SoundManager::SetMusicVolume(int volume) {
     int v = volume < 0 ? 0 : (volume > 100 ? 100 : volume);
     if (enabled == 0) return;
     {
-        std::lock_guard<std::recursive_mutex> guard(streamLock);
+        StreamGuard guard(streamLock);
         musicFader.volume = v;
         musicFader.Recalc();
         if (streamSample != nullptr) audio::SetStreamVolume(streamSample, musicFader.level);
@@ -703,7 +721,7 @@ void SoundManager::Tick() {
 // Starts a fade of the stream.
 void SoundManager::FadeOutStream() {
     if (enabled == 0) return;
-    std::lock_guard<std::recursive_mutex> guard(streamLock);
+    StreamGuard guard(streamLock);
     musicFader.mode = 2;
     musicFader.finished = 0;
     musicFader.step = 0.0f;
@@ -713,7 +731,7 @@ void SoundManager::FadeOutStream() {
 
 void SoundManager::FadeInStream() {
     if (enabled == 0) return;
-    std::lock_guard<std::recursive_mutex> guard(streamLock);
+    StreamGuard guard(streamLock);
     musicFader.mode = 1;
     musicFader.finished = 0;
     musicFader.step = 0.0f;
@@ -729,7 +747,7 @@ int SoundManager::RequestStream(std::string_view name, int mode) {
     if (enabled == 0) return 1;
     if (musicFader.volume == 0) return 1;
     if (streamSample == nullptr) return 0;
-    std::lock_guard<std::recursive_mutex> guard(streamLock);
+    StreamGuard guard(streamLock);
     endAfterSwitch = false;
     int m = 4;
     if (streamState != 0) {
@@ -812,7 +830,7 @@ int SoundManager::RequestStream(std::string_view name, int mode) {
 // other modes request silence ("") the RequestStream way.
 void SoundManager::StopStream(int mode) {
     if (enabled == 0) return;
-    std::lock_guard<std::recursive_mutex> guard(streamLock);
+    StreamGuard guard(streamLock);
     endAfterSwitch = false;
     if (streamState != 0) {
         if (mode == 4) {
@@ -837,7 +855,7 @@ void SoundManager::StopStream(int mode) {
 // A request the stream thread has yet to take (state 2) gets its end-after request from SwitchStream; one it has
 // already taken or turned down gets it now.
 void SoundManager::PlayStreamOnce(std::string_view name) {
-    std::lock_guard<std::recursive_mutex> guard(streamLock);
+    StreamGuard guard(streamLock);
     RequestStream(name, 4);
     if (streamState == 2) endAfterSwitch = true;
     else StopStream(1);
