@@ -374,6 +374,10 @@ void Install() {
         folder = platform::ProgramPath();
         const std::size_t slash = folder.find_last_of("\\/");
         if (slash != std::string::npos) folder.resize(slash);
+        // macOS: the program is in build/<config>/ei-rebuild.app/Contents/MacOS; the folder is the bundle's.
+        const std::string bundle = ".app/Contents/MacOS";
+        if (folder.size() > bundle.size() && folder.compare(folder.size() - bundle.size(), bundle.size(), bundle) == 0)
+            folder = folder.substr(0, folder.find_last_of('/', folder.size() - bundle.size()));
         folder += "\\..\\..\\config\\harness";
     }
     Folder() = sys::FullPath(folder);

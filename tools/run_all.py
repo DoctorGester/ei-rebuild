@@ -342,7 +342,9 @@ def asan_failure(out):
 # or whose harness never started, ends both; the peer's result goes into the scenario's report (FAILED: peer: lines), so
 # a pair has one result.
 
-EXE = 'ei-rebuild.exe' if os.name == 'nt' else 'ei-rebuild'
+# On macOS the program is an application bundle's (docs/notes/macos.md).
+EXE = ('ei-rebuild.exe' if os.name == 'nt' else
+       os.path.join('ei-rebuild.app', 'Contents', 'MacOS', 'ei-rebuild') if sys.platform == 'darwin' else 'ei-rebuild')
 BREAKPOINT_CODES = (0x80000003, -5)   # an INT3: the Windows exception code, SIGTRAP
 
 

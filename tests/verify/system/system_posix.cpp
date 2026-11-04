@@ -12,7 +12,19 @@
 #include <dlfcn.h>
 #include <execinfo.h>
 #include <fcntl.h>
+#if defined(__APPLE__)
+#include <libproc.h>
+#include <mach-o/getsect.h>
+#include <mach-o/ldsyms.h>
+#include <mach/mach.h>
+#include <mach/mach_vm.h>
+#include <netinet/in.h>
+#include <os/os_sync_wait_on_address.h>
+#include <sys/proc_info.h>
+#include <sys/sysctl.h>
+#else
 #include <linux/futex.h>
+#endif
 #include <pthread.h>
 #include <signal.h>
 #include <sys/mman.h>
@@ -22,7 +34,9 @@
 #include <sys/syscall.h>
 #include <sys/times.h>
 #include <time.h>
-#include <ucontext.h>
+#if !defined(__APPLE__)
+#include <ucontext.h>   // Apple: sys/ucontext.h through signal.h
+#endif
 #include <unistd.h>
 
 #include <algorithm>
@@ -39,8 +53,10 @@
 #include <sstream>
 #include <thread>
 
+#if !defined(__APPLE__)
 extern "C" char __executable_start;
 extern "C" char _etext;
+#endif
 
 namespace ei::verify::sys {
 
@@ -110,10 +126,15 @@ std::string ErrorText(unsigned long code) { return std::strerror(static_cast<int
 std::string FileOfHandle(void* handle) {
     if (!handle) return {};
     const int fd = static_cast<int>(reinterpret_cast<std::intptr_t>(handle) - 1);   // platform_posix.cpp's handles
+#if defined(__APPLE__)
+    char path[MAXPATHLEN];
+    return fcntl(fd, F_GETPATH, path) == 0 ? std::string(path) : std::string();
+#else
     char link[64], target[4096];
     std::snprintf(link, sizeof(link), "/proc/self/fd/%d", fd);
     const ssize_t n = readlink(link, target, sizeof(target) - 1);
     return n > 0 ? std::string(target, static_cast<std::size_t>(n)) : std::string();
+#endif
 }
 
 bool WriteHandle(void* handle, const void* data, unsigned size, unsigned* written, unsigned long* error) {
@@ -146,7 +167,15 @@ void* OtherGameWindow(const char* className, const char* title) { return platfor
 
 std::uint32_t ProcessId() { return static_cast<std::uint32_t>(getpid()); }
 
-ThreadId CurrentThread() { return static_cast<ThreadId>(syscall(SYS_gettid)); }
+ThreadId CurrentThread() {
+#if defined(__APPLE__)
+    std::uint64_t id = 0;
+    pthread_threadid_np(nullptr, &id);
+    return static_cast<ThreadId>(id);
+#else
+    return static_cast<ThreadId>(syscall(SYS_gettid));
+#endif
+}
 
 void StartThread(void (*body)()) { std::thread(body).detach(); }
 
@@ -220,15 +249,30 @@ void ThisThreadCpu(double* ms, std::uint64_t* cycles) {
 
 void RememberMainThread() {
     g_mainThread = pthread_self();
-    g_mainThreadId = static_cast<pid_t>(syscall(SYS_gettid));
+    g_mainThreadId = static_cast<pid_t>(CurrentThread());
     g_mainKnown = true;
 }
 
 bool MainThreadCpu(double* ms, std::uint64_t* cycles) {
+#if defined(__APPLE__)
+    // No CPU clock of another thread here: Mach's thread_info (user and system time, microseconds).
+    if (!g_mainKnown) return false;
+    thread_basic_info_data_t info{};
+    mach_msg_type_number_t count = THREAD_BASIC_INFO_COUNT;
+    if (thread_info(pthread_mach_thread_np(g_mainThread), THREAD_BASIC_INFO, reinterpret_cast<thread_info_t>(&info),
+                    &count) != KERN_SUCCESS)
+        return false;
+    const std::uint64_t us = (static_cast<std::uint64_t>(info.user_time.seconds) + info.system_time.seconds) * 1000000ull +
+                             static_cast<std::uint64_t>(info.user_time.microseconds) + info.system_time.microseconds;
+    if (cycles) *cycles = us * 1000;
+    *ms = static_cast<double>(us) / 1000.0;
+    return true;
+#else
     clockid_t clock;
     if (!g_mainKnown || pthread_getcpuclockid(g_mainThread, &clock) != 0) return false;
     *ms = ClockMs(clock, cycles);
     return *ms >= 0;
+#endif
 }
 
 bool ProcessTimes(double* kernelMs, double* userMs, double* sinceStartMs) {
@@ -238,6 +282,18 @@ bool ProcessTimes(double* kernelMs, double* userMs, double* sinceStartMs) {
     *kernelMs = usage.ru_stime.tv_sec * 1000.0 + usage.ru_stime.tv_usec / 1000.0;
     // The process's start: field 22 of /proc/self/stat, in clock ticks since boot.
     *sinceStartMs = 0;
+#if defined(__APPLE__)
+    // The process's start from sysctl (wall-clock time).
+    int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()};
+    kinfo_proc info{};
+    std::size_t length = sizeof(info);
+    if (sysctl(mib, 4, &info, &length, nullptr, 0) == 0 && length > 0) {
+        timespec now{};
+        clock_gettime(CLOCK_REALTIME, &now);
+        const timeval& started = info.kp_proc.p_starttime;
+        *sinceStartMs = (now.tv_sec - started.tv_sec) * 1000.0 + now.tv_nsec / 1e6 - started.tv_usec / 1e3;
+    }
+#else
     std::ifstream stat("/proc/self/stat");
     std::string text((std::istreambuf_iterator<char>(stat)), std::istreambuf_iterator<char>());
     const std::size_t close = text.rfind(')');
@@ -252,13 +308,21 @@ bool ProcessTimes(double* kernelMs, double* userMs, double* sinceStartMs) {
                 *sinceStartMs = boot.tv_sec * 1000.0 + boot.tv_nsec / 1e6 - started;
             }
     }
+#endif
     return true;
 }
 
 // ==== Code addresses and stacks ======================================================================================
 
 Image SelfImage() {
+#if defined(__APPLE__)
+    // The executable's __TEXT segment, slid as loaded.
+    unsigned long size = 0;
+    const std::uint8_t* text = getsegmentdata(&_mh_execute_header, "__TEXT", &size);
+    return {reinterpret_cast<std::uintptr_t>(text), reinterpret_cast<std::uintptr_t>(text) + size};
+#else
     return {reinterpret_cast<std::uintptr_t>(&__executable_start), reinterpret_cast<std::uintptr_t>(&_etext)};
+#endif
 }
 
 std::string ModuleOf(std::uintptr_t address, std::uintptr_t* base) {
@@ -280,6 +344,9 @@ bool DescribeAddress(std::uintptr_t address, std::string* text) {
 }
 
 std::uintptr_t StackTop() {
+#if defined(__APPLE__)
+    return reinterpret_cast<std::uintptr_t>(pthread_get_stackaddr_np(pthread_self()));   // the stack's highest address
+#else
     pthread_attr_t attr;
     if (pthread_getattr_np(pthread_self(), &attr) != 0) return 0;
     void* low = nullptr;
@@ -287,9 +354,22 @@ std::uintptr_t StackTop() {
     pthread_attr_getstack(&attr, &low, &size);
     pthread_attr_destroy(&attr);
     return reinterpret_cast<std::uintptr_t>(low) + size;
+#endif
 }
 
 std::uintptr_t StackEnd(std::uintptr_t sp) {
+#if defined(__APPLE__)
+    // The region holding `sp` (Mach's region at or above it; 0 when it starts above sp).
+    mach_vm_address_t address = sp;
+    mach_vm_size_t size = 0;
+    vm_region_basic_info_data_64_t info{};
+    mach_msg_type_number_t count = VM_REGION_BASIC_INFO_COUNT_64;
+    mach_port_t object = MACH_PORT_NULL;
+    if (mach_vm_region(mach_task_self(), &address, &size, VM_REGION_BASIC_INFO_64, reinterpret_cast<vm_region_info_t>(&info),
+                       &count, &object) != KERN_SUCCESS || address > sp)
+        return 0;
+    return static_cast<std::uintptr_t>(address + size);
+#else
     // The mapping holding `sp` (/proc/self/maps: "low-high perms ...").
     FILE* maps = std::fopen("/proc/self/maps", "r");
     if (!maps) return 0;
@@ -304,6 +384,7 @@ std::uintptr_t StackEnd(std::uintptr_t sp) {
     }
     std::fclose(maps);
     return end;
+#endif
 }
 
 std::uintptr_t StackHere() { return reinterpret_cast<std::uintptr_t>(__builtin_frame_address(0)); }
@@ -392,6 +473,21 @@ void OnSignal(int signal, siginfo_t* info, void* context) {
                       static_cast<unsigned long long>(r[REG_RBP]), static_cast<unsigned long long>(r[REG_RSP]));
         fault.registers = registers;
     }
+#elif defined(__APPLE__) && defined(__aarch64__)
+    if (context) {
+        const auto* uc = static_cast<const ucontext_t*>(context);
+        const auto& s = uc->uc_mcontext->__ss;
+        fault.pc = static_cast<std::uintptr_t>(__darwin_arm_thread_state64_get_pc(s));
+        fault.sp = static_cast<std::uintptr_t>(__darwin_arm_thread_state64_get_sp(s));
+        char registers[256];
+        std::snprintf(registers, sizeof(registers), "x0=%llx x1=%llx x2=%llx x3=%llx fp=%llx lr=%llx sp=%llx",
+                      static_cast<unsigned long long>(s.__x[0]), static_cast<unsigned long long>(s.__x[1]),
+                      static_cast<unsigned long long>(s.__x[2]), static_cast<unsigned long long>(s.__x[3]),
+                      static_cast<unsigned long long>(__darwin_arm_thread_state64_get_fp(s)),
+                      static_cast<unsigned long long>(__darwin_arm_thread_state64_get_lr(s)),
+                      static_cast<unsigned long long>(fault.sp));
+        fault.registers = registers;
+    }
 #endif
     if (!fault.sp) fault.sp = StackHere();
     if (signal != SIGABRT && g_firstChance) g_firstChance(fault);
@@ -465,14 +561,24 @@ bool Signal::Open(const std::string&, std::uint32_t* shared) {
 
 void Signal::Raise() {
     __atomic_add_fetch(word, 1, __ATOMIC_RELEASE);
+#if defined(__APPLE__)
+    // The word is in memory the two games share (OpenSharedMemory): the shared form of the wait and wake.
+    os_sync_wake_by_address_any(word, sizeof(*word), OS_SYNC_WAKE_BY_ADDRESS_SHARED);
+#else
     syscall(SYS_futex, word, FUTEX_WAKE, 1, nullptr, nullptr, 0);
+#endif
 }
 
 bool Signal::Wait(unsigned ms) {
     std::uint32_t now = __atomic_load_n(word, __ATOMIC_ACQUIRE);
     if (now == seen) {
+#if defined(__APPLE__)
+        os_sync_wait_on_address_with_timeout(word, seen, sizeof(*word), OS_SYNC_WAIT_ON_ADDRESS_SHARED,
+                                             OS_CLOCK_MACH_ABSOLUTE_TIME, static_cast<std::uint64_t>(ms) * 1000000ull);
+#else
         timespec timeout{static_cast<time_t>(ms / 1000), static_cast<long>(ms % 1000) * 1000000L};
         syscall(SYS_futex, word, FUTEX_WAIT, seen, &timeout, nullptr, 0);
+#endif
         now = __atomic_load_n(word, __ATOMIC_ACQUIRE);
     }
     if (now == seen) return false;
@@ -533,9 +639,35 @@ void ScanTable(const char* file, const char* kind, bool listenersOnly, const std
 } // namespace
 
 void ScanEndpoints(void (*outside)(const std::string& endpoint)) {
+#if defined(__APPLE__)
+    // libproc's sockets of this process: its IPv4 UDP sockets and TCP listeners bound outside 127.x.
+    const pid_t pid = getpid();
+    const int bytes = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, nullptr, 0);
+    if (bytes <= 0) return;
+    std::vector<proc_fdinfo> fds(static_cast<std::size_t>(bytes) / sizeof(proc_fdinfo) + 16);
+    const int got = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, fds.data(), static_cast<int>(fds.size() * sizeof(proc_fdinfo)));
+    for (int i = 0; i < got / static_cast<int>(sizeof(proc_fdinfo)); ++i) {
+        if (fds[i].proc_fdtype != PROX_FDTYPE_SOCKET) continue;
+        socket_fdinfo info{};
+        if (proc_pidfdinfo(pid, fds[i].proc_fd, PROC_PIDFDSOCKETINFO, &info, sizeof(info)) != sizeof(info)) continue;
+        const socket_info& s = info.psi;
+        if (s.soi_family != AF_INET) continue;
+        const bool udp = s.soi_kind == SOCKINFO_IN && s.soi_protocol == IPPROTO_UDP;
+        const bool listener = s.soi_kind == SOCKINFO_TCP && s.soi_proto.pri_tcp.tcpsi_state == TSI_S_LISTEN;
+        if (!udp && !listener) continue;
+        const in_sockinfo& in = udp ? s.soi_proto.pri_in : s.soi_proto.pri_tcp.tcpsi_ini;
+        const auto* b = reinterpret_cast<const std::uint8_t*>(&in.insi_laddr.ina_46.i46a_addr4.s_addr);
+        if (b[0] == 127) continue;
+        char text[64];
+        std::snprintf(text, sizeof(text), "%s %u.%u.%u.%u:%u", udp ? "UDP" : "TCP listener", b[0], b[1], b[2], b[3],
+                      static_cast<unsigned>(ntohs(static_cast<std::uint16_t>(in.insi_lport))));
+        outside(text);
+    }
+#else
     const std::set<unsigned long> own = OwnSockets();
     ScanTable("/proc/net/udp", "UDP", false, own, outside);
     ScanTable("/proc/net/tcp", "TCP listener", true, own, outside);
+#endif
 }
 
 // ==== The game window ================================================================================================
