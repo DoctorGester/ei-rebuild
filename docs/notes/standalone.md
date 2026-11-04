@@ -596,8 +596,11 @@ through tools/compiler_cache.py.
   use into the main checkout's `build\third_party\sccache-0.19.0`, beside the shader toolchain.
 - **The cache:** `build\compiler_cache\<configuration>` in the main checkout (release, verify, debug, play, asan apart),
   2 GB each, shared by every worktree. Objects are stored compressed: one source state takes about 0.35 GB.
-- **The servers:** one per checkout and configuration, on a port taken from the checkout's path. A server ends after
-  10 idle minutes. tools/compiler_cache.py starts it with its output going nowhere: a server started by the first
+- **The servers:** one per checkout and configuration, on a port taken from the checkout's path (a crc32 into
+  42000-48999, below Windows' dynamic range, where Hyper-V and WSL reserve blocks). The choice steps up past ports in
+  `netsh int ipv4 show excludedportrange protocol=tcp` and past ports whose bind is refused (WSAEACCES 10013), so it
+  stays the same per checkout; a port in use is kept, it may be the checkout's own server
+  (tools/test_compiler_cache.py). A server ends after 10 idle minutes. tools/compiler_cache.py starts it with its output going nowhere: a server started by the first
   compile could hold the build's output pipe open. The checkout's folder is the server's base folder
   (SCCACHE_BASEDIRS), which is cut out of the paths before they are hashed, so one checkout's objects hit in another.
 - **The launcher (tools/compiler_cache_launcher.cpp):** CMake's compiler launcher, built once per version of its

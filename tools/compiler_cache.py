@@ -22,7 +22,7 @@ usage: python tools/compiler_cache.py CONFIGURATION
   (build.cmd, after vcvars64) prints EI_COMPILER_LAUNCHER=<CMake's launcher list> and EI_STEP_WRAPPER=<the step
   wrapper's list>, and starts this checkout's server
 """
-import os, subprocess, sys, zlib
+import errno, os, re, socket, subprocess, sys, zlib
 
 VERSION = '0.19.0'
 ARCHIVE = f'sccache-v{VERSION}-x86_64-pc-windows-msvc'
@@ -30,7 +30,9 @@ URL = f'https://github.com/mozilla/sccache/releases/download/v{VERSION}/{ARCHIVE
 SHA256 = '28be8c61f6b2c89b9eb2869f6af7f78e6f992e78a8abae0ce855fcc129cbeac1'
 CACHE_SIZE = '2G'        # per configuration (one verify build's objects take about 0.35 GB in it)
 IDLE_TIMEOUT = 600       # seconds before an unused server ends
-FIRST_PORT, PORTS = 42000, 8000
+# The server ports lie below 49152, where Windows' dynamic range begins (Hyper-V, WSL and Docker reserve blocks of
+# ports there that no program may bind). Ranges can still be excluded lower (5357, ...): see choose_port.
+FIRST_PORT, PORTS = 42000, 7000
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -47,12 +49,46 @@ def main_checkout():
     return ROOT
 
 
+def excluded_ranges():
+    """The (first, last) TCP ports Windows has excluded (netsh int ipv4 show excludedportrange); none elsewhere."""
+    if os.name != 'nt':
+        return []
+    try:
+        shown = subprocess.run(['netsh', 'int', 'ipv4', 'show', 'excludedportrange', 'protocol=tcp'],
+                               capture_output=True, text=True, check=True).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return []
+    return [(int(a), int(b)) for a, b in re.findall(r'^\s*(\d+)\s+(\d+)', shown, re.MULTILINE)]
+
+
+def bind_denied(port):
+    """True when binding port on the loopback is refused for lack of permission (WSAEACCES, 10013: a range that
+    netsh does not show). A port in use is not denied: it may be this checkout's own server."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(('127.0.0.1', port))
+    except OSError as e:
+        return e.errno in (errno.EACCES, 10013)
+    return False
+
+
+def choose_port(key, excluded, denied=bind_denied):
+    """The server port for key (the checkout and configuration): the same one every time, from a crc32 of key, stepping
+    up (wrapping inside FIRST_PORT..FIRST_PORT+PORTS) past ports in excluded ranges or that denied() refuses."""
+    start = zlib.crc32(key.encode()) % PORTS
+    for step in range(PORTS):
+        port = FIRST_PORT + (start + step) % PORTS
+        if not any(a <= port <= b for a, b in excluded) and not denied(port):
+            return port
+    return FIRST_PORT + start   # every port refused: the server fails to start and cl runs directly
+
+
 def server(main, config):
     """The variables of this checkout's server for config."""
     return {
         'SCCACHE_DIR': os.path.join(main, 'build', 'compiler_cache', config),
         'SCCACHE_BASEDIRS': ROOT,
-        'SCCACHE_SERVER_PORT': str(FIRST_PORT + zlib.crc32(f'{os.path.normcase(ROOT)}|{config}'.encode()) % PORTS),
+        'SCCACHE_SERVER_PORT': str(choose_port(f'{os.path.normcase(ROOT)}|{config}', excluded_ranges())),
         'SCCACHE_CACHE_SIZE': CACHE_SIZE,
         'SCCACHE_IDLE_TIMEOUT': str(IDLE_TIMEOUT),
         'SCCACHE_IGNORE_SERVER_IO_ERROR': '1',   # a server that cannot start: cl runs directly
