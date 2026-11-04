@@ -11,6 +11,7 @@ usage: python tools/stub_data.py build <install> <out folder> [--force]
           game's own). Every file the runs can read keeps its name, size and format, so the game opens it as it opens
           the install's (no loader path of its own):
             .mmp textures, loose .bmp pictures   the header (size, format, levels) and the extra block kept, the pixels 0
+                                                 (but KEPT below: the few whose pixels a frame check reads, whole)
             .wav sounds                          every chunk kept, the samples 0 (the same length: a voice ends by its
                                                  bytes over its byte rate; sound.md, "The rules the sound keeps")
             .mp3 speech and music                every frame header kept (the same frames: ScanMp3 counts them), the
@@ -31,7 +32,7 @@ usage: python tools/stub_data.py build <install> <out folder> [--force]
   check   whether every install file those runs read is in the stub set (the same relative path), and the stub
           set's files of the same size as the install's (all but the movies)
 """
-import argparse, collections, os, shutil, struct, sys, tarfile, time
+import argparse, collections, fnmatch, os, shutil, struct, sys, tarfile, time
 
 RES_MAGIC = 0x019CE23C
 RES_HEADER = struct.Struct('<IIII')        # magic, count, table offset, names size (src/game/resource.h)
@@ -44,6 +45,16 @@ PROGRAMS = ('.exe', '.dll', '.asi')        # stand-ins: empty files
 # dumps) and logs (a player's; a run starts its own).
 LEFT_OUT = ('saves', 'cache', 'uninstall', 'starter/dumps', 'starter/engine', 'starter/eirelements.db')
 LEFT_OUT_TYPES = ('.log',)
+# Textures kept whole, by their file or archive entry name (lower case, in any archive or folder): the few whose pixels
+# a frame check reads, which fail on blanks (H51b; Windows and Linux alike). Their pixels reach no golden. About 2 MB
+# packed of the vanilla set's and Rebirth's together, most of it Rebirth's 2048 x 2048 ground.
+KEPT = (
+    ('cursor_*.mmp', "render_cursor_present: a shape needs opaque and clear pixels, and must change with the gamma"),
+    ('sm_cursor_*.mmp', 'render_cursor_present: the same pictures when the small cursors are on'),
+    ('*mouth*.mmp', "render_blink: the faces' open and closed rectangles (the briefing speakers', the heroes')"),
+    ('basegipat00[01].mmp', "render_shadows_outside: bz1g's ground under most of the gate's shadow (000 and 001 "
+                            'take 85% of it; the shadow must lie on lit ground)'),
+)
 
 
 class Counts:
@@ -164,12 +175,20 @@ def stub_in_place(buf, start, size, name, counts, depth=0):
             counts.add('.res archives', size, 0)
         return
     ext = os.path.splitext(name)[1].lower()
+    if kept(name):
+        counts.add('kept', size, 0)
+        return
     kind = {'.mmp': stub_mmp, '.bmp': stub_bmp, '.wav': stub_wav, '.mp3': stub_mp3}.get(ext)
     cut = kind(buf, start, size) if kind else 0
     if ext == '.bik':
         counts.warnings.append(f'a movie inside an archive kept as it is: {name}')
     if depth == 0 or kind:
         counts.add(ext.lstrip('.') or '(none)', size, cut)
+
+
+def kept(name):
+    base = name.replace('\\', '/').rsplit('/', 1)[-1].lower()
+    return any(fnmatch.fnmatchcase(base, pattern) for pattern, _ in KEPT)
 
 
 def stub_bik(data):

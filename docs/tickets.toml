@@ -6546,6 +6546,13 @@ depends = ["H44a"]
 note = "H44a cuts a live recording at 3000 frames (live.txt: recordinput live cut 3000) where the battle screen takes input and no key or button is held; only the driven cuts (record/cut.txt, cut_auto.txt) ran in H44a, since a live session needs a player. Record a session of two minutes with play.cmd record <name> and check: the cut happens at a quiet moment, the player's input during the load is dropped without a hitch, each part replays and passes --golden twice. Not carried over a cut: console state (an unlocked script console), the camera; Rebirth's data (parts are vanilla-only like the other recordings)."
 
 [[ticket]]
+id = "H51c"
+title = "Stub set: render_smooth's anisotropy check"
+group = "harness"
+depends = ["H51b"]
+note = "Found in H51b: render_smooth still fails its own smoothcheck on the stub set (vanilla and Rebirth, Windows): with blank textures the msaa frames differ from the plain one in 0.03-0.04% of the pixels against at least 0.2%; with zone1's ground painted one colour per texture the msaa parts pass but 'anisotropy8' (models sampled anisotropically, msaa off) differs in 0.000% against at least 0.5%: the anisotropy reaches only the models, whose textures are blank. Options: add zone1's ground (vanilla zone1000-1002, 0.7 MB packed; Rebirth Zone1000-1007 2048x2048, 9 MB) and the textures of the models in view at zone1's start to stub_data.py's KEPT (find which by painting candidates one colour each, as H51b did for bz1g), or move render_smooth's checks to frames that do not need the textures. Keep the pack near 75-80 MB."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"
