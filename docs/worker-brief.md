@@ -31,6 +31,8 @@ only through `tools/tickets.py`, never by hand.
 - `build.cmd verify` (the image with the harness: what the runs use) and `build.cmd release` (the product), by full
   path, with no errors or warnings; both run the build checks (`tools/build_checks.py`), which must pass. Debug and asan builds are the coordinator's, at merge. `play.cmd` (the user plays with
   it) must keep working: change it with `build.cmd`'s arguments or outputs.
+- A fresh worktree's first build takes most objects from the compiler cache that every checkout shares
+  (`docs/notes/standalone.md`, "The compiler cache"). Debug information then names the first compiling checkout's paths.
 - Games only through `python tools/work.py test <ID> [run_all args]` (scenario names for a subset,
   `--rebirth-only`, `--golden`, at most `--jobs 4`): it queues on the machine's 16 game slots. Never call
   `tools/run_all.py` directly, never leave a game running. Equivalence sweeps stay under about 5 minutes per run.

@@ -27,11 +27,19 @@ if /i "%CFG%"=="asan" set HARNESS=ON
 if /i "%CFG%"=="asan" set ASAN=ON
 if /i "%CFG%"=="debug" set BUILDTYPE=Debug
 set OUT=%~dp0build\%CFG%
+rem The compiler cache (tools/compiler_cache.py: sccache; docs/notes/standalone.md, "The compiler cache"): its server
+rem started and EI_COMPILER_LAUNCHER, empty without it. A build folder's first build goes through it; later builds
+rem compile directly (EI_COMPILER_CACHE_DIRECT).
+set EI_COMPILER_CACHE_DIRECT=
+if exist "%OUT%\.ninja_log" set EI_COMPILER_CACHE_DIRECT=1
+set EI_COMPILER_LAUNCHER=
+for /f "delims=" %%L in ('python "%~dp0tools\compiler_cache.py" %CFG%') do set "%%L"
 
 rem A build folder configured with another compiler (a 32-bit one, before the x64-only build) is configured afresh.
 set FRESH=
 if exist "%OUT%\CMakeCache.txt" findstr /c:"Hostx64/x64/cl.exe" "%OUT%\CMakeCache.txt" >nul || set FRESH=--fresh
-cmake %FRESH% -S "%~dp0." -B "%OUT%" -G Ninja -DCMAKE_BUILD_TYPE=%BUILDTYPE% -DEI_HARNESS=%HARNESS% -DEI_ASAN=%ASAN% || exit /b 1
+cmake %FRESH% -S "%~dp0." -B "%OUT%" -G Ninja -DCMAKE_BUILD_TYPE=%BUILDTYPE% -DEI_HARNESS=%HARNESS% -DEI_ASAN=%ASAN% ^
+    "-DCMAKE_C_COMPILER_LAUNCHER=%EI_COMPILER_LAUNCHER%" "-DCMAKE_CXX_COMPILER_LAUNCHER=%EI_COMPILER_LAUNCHER%" || exit /b 1
 cmake --build "%OUT%" || exit /b 1
 rem The checks (tools/build_checks.py, side by side): the cleanup and comment counts, the data seam, the harness key,
 rem the generated and listed files, the unit checks (ei_unit_check), the interface canvases (ei_ui_check) and the
