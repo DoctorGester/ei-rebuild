@@ -5,7 +5,6 @@
 #include "mod_folders.h"
 #include "options.h"
 #include "world.h"
-#include "world_data.h"   // the text resources' folder
 #include "lib/bytes.h"
 #include "lib/crt.h"
 #include "lib/str.h"

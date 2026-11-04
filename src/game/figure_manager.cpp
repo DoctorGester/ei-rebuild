@@ -3,6 +3,7 @@
 
 #include "engine_object.h"   // EngineObject
 #include "figure_mesh.h"
+#include "game_singletons.h"
 #include "game_strings.h"
 #include "map_object_animation.h"
 #include "map_object_figures.h"
@@ -11,7 +12,6 @@
 #include "registry.h"
 #include "sky_object.h"
 #include "ui.h"   // UiMesh
-#include "world_data.h"
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"

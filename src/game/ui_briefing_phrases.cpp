@@ -20,7 +20,6 @@
 #include "unit_ai.h"
 #include "unit_client_models.h"
 #include "world.h"
-#include "world_data.h"
 #include "random.h"
 
 #include "lib/containers.h"
@@ -177,7 +176,7 @@ void BriefingScreen::NextPhrase(bool skip) {
         QuestBriefingRecord* record;
         {
             std::string key(topic);
-            record = worlddata::QuestBriefings()[key];
+            record = g_questDatabase.briefings.index[key];
         }
         if (record) {
             std::vector<std::string> parts;

@@ -9,6 +9,7 @@
 #include "map_object_figures.h"
 #include "party.h"
 #include "random.h"
+#include "saved_parties.h"
 #include "text_manager.h"
 #include "texture.h"
 #include "ui_camp.h"

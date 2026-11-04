@@ -24,6 +24,11 @@ constexpr std::uint32_t kPassabilityMask = 0xF;
 constexpr std::uint8_t kCellDepthMask = 0x3F;
 constexpr std::uint8_t kCellBridge = 0x40;   // under a bridge (its deck height in AIMap::bridgeHeights)
 constexpr std::uint8_t kCellWater = 0x80;    // under water (AIMap::InWaterAt)
+// The cell marks: 5 rows (cost bands) of 16 (ai_refresh.cpp, ai_block_search.cpp).
+inline constexpr std::uint32_t kMarkTable[80] = /*00791164*/ {
+    0, 0, 1, 1, 1, 1, 4, 7, 0xB, 0xC, 0xE, 0xE, 0xF, 0xF, 0xF, 0xF, 0, 0, 1, 1, 1, 1, 4, 7, 0xB, 0xC, 0xD, 0xD,
+    0xD, 0xD, 0xD, 0xD, 0, 0, 1, 1, 1, 1, 4, 7, 8, 9, 0xA, 0xA, 0xA, 0xA, 0xA, 0xA, 0, 0, 1, 1, 1, 1, 4, 5, 6, 6,
+    6, 6, 6, 6, 6, 6, 0, 0, 1, 1, 1, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3};
 
 // One AI map cell: a 4-bit passability per unit size class, then heights.
 struct AIMapCell {

@@ -4,6 +4,7 @@
 #include "ui.h"
 
 #include "console.h"
+#include "game_flow.h"
 #include "text_manager.h"
 #include "quest_records.h"
 #include "ui_screens.h"

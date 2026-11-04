@@ -20,7 +20,6 @@
 #include "spell.h"
 #include "world.h"
 #include "world_effect.h"
-#include "world_data.h"
 #include "world_map_files.h"
 #include "lib/containers.h"
 #include "lib/crt.h"

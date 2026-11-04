@@ -4,12 +4,12 @@
 // See docs/notes/ui.md.
 #include "ui.h"
 
+#include "app.h"
 #include "game_singletons.h"
 #include "text_manager.h"
 #include "ui_float.h"
 #include "screen_layout.h"
 #include "world.h"
-#include "world_data.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"
@@ -367,7 +367,7 @@ void HudClock::Setup(bool newFast) {
 
     fast = newFast;
     blink = 0.0f;
-    worlddata::g_updatePeriod = newFast ? kFastPeriod : kNormalPeriod;
+    app::g_updatePeriod = newFast ? kFastPeriod : kNormalPeriod;
     ui->fastGame = fast;
     highlight = false;
     dial = 0.0f;

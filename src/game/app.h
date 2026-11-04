@@ -22,6 +22,8 @@ extern std::string g_commandLineMap;
 extern std::string g_commandLineMob;
 extern std::string g_commandLineScript;
 extern std::string g_cameraFile;
+// The milliseconds of real time one world update takes (55; the speed-up key sets 27, the main loop reads it).
+extern int g_updatePeriod;
 
 // The application's flags and handles. The game window's title (from the string table); the window's activation as
 // its focus events leave it (the main loop's pass takes it into SceneRenderer::running); whether the interface shows a screen

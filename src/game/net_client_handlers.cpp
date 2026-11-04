@@ -2,13 +2,12 @@
 // interface or the game flow. The messages are declared in net_messages.h. See docs/notes/network.md.
 #include "core_refcount.h"
 #include "core_streams.h"
+#include "game_flow.h"
 #include "game_singletons.h"
 #include "game_strings.h"
 #include "net_messages.h"
 #include "party.h"
 #include "ui.h"
-#include "world.h"
-#include "world_data.h"
 #include "world_map_files.h"
 
 #include "lib/crt.h"

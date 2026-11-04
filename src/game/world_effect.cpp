@@ -83,7 +83,7 @@ void Effect::SetVelocity(const Vector3& newVelocity) {
 
 Vector3* Effect::Position(const ScriptGroup*) { return &localPosition; }
 
-float Effect::Radius() { return worlddata::DefaultRadius(); }
+float Effect::Radius() { return 100.0f; }
 
 
 void EffectSound::Reset() {

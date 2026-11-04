@@ -3,7 +3,7 @@
 // See net_classes.h and docs/notes/network.md.
 #include "core_refcount.h"
 
-#include "game_flow_data.h"
+#include "game_flow.h"
 #include "game_singletons.h"
 #include "game_strings.h"
 #include "net_coder.h"
@@ -11,8 +11,6 @@
 #include "net_messages.h"
 #include "quest_records.h"
 #include "ui.h"
-#include "world.h"
-#include "world_data.h"
 #include "lib/crt.h"
 
 #include <cstdlib>
@@ -64,7 +62,7 @@ void ServerSession::SetMap(const std::string* newName) {
     QuestBriefingRecord* entry;
     {
         std::string registryName = *newName + game::ZoneSuffix1Text();
-        entry = worlddata::QuestBriefings()[registryName];
+        entry = g_questDatabase.briefings.index[registryName];
     }
     if (!entry) return;
 
@@ -80,16 +78,16 @@ void ServerSession::SetMap(const std::string* newName) {
 
     // "<prefix><name>.<name>" and the same with the path suffix; the temporaries freed in reverse.
     {
-        std::string prefix(flowdata::kQuestVariablePrefix);
+        std::string prefix("q.");
         std::string a = prefix + *newName;
-        std::string b = a + flowdata::kDot;
+        std::string b = a + ".";
         std::string path = b + *newName;
         SetVariable(&path, 1.0f);
     }
     {
-        std::string prefix(flowdata::kQuestVariablePrefix);
+        std::string prefix("q.");
         std::string a = prefix + *newName;
-        std::string b = a + flowdata::kDot;
+        std::string b = a + ".";
         std::string c = b + *newName;
         std::string path = c + game::PathSuffixText();
         SetVariable(&path, 1.0f);

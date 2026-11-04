@@ -53,7 +53,8 @@ GAME_AREAS = [
     ('scripts', r'script.*|mob_.*'),
     ('network', r'net_.*|player_(client|server|sync|messages|source).*|acks?_.*|ack_kind'),
     ('world', r'world.*|map_object.*|object.*|party.*|quest.*|exit_area|player.*|lightning|map_database|map_file|'
-              r'map_spec|engine_object|game_flow_data|persistent.*|sector_map|search_grid|server_specific_manager'),
+              r'map_spec|engine_object|game_flow|saved_parties|save_file|frame_lists|persistent.*|sector_map|'
+              r'search_grid|server_specific_manager'),
     ('interface', r'ui_.*|ui|cursor_setup|screen_layout|present_window'),
     ('app', r'app.*|main_loop|options.*|settings.*|console.*|key_bindings|game_folders|mod_folders|rebirth_profile|'
             r'plugin_fixes|logic_settings'),

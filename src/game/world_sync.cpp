@@ -10,7 +10,6 @@
 #include "player_messages.h"
 #include "unit.h"
 #include "world.h"
-#include "world_data.h"
 #include "world_effect.h"
 
 #include "lib/bytes.h"
@@ -25,6 +24,8 @@
 #include <vector>
 
 namespace {
+
+constexpr float kHearingScale = 2.0f;   // the units' perception scale
 
 // Distance limits.
 constexpr float kViewRange = 100.0f;        // objects seen around the camera
@@ -105,7 +106,7 @@ float HearingRadius(Unit* unit, float margin) {
     float perception = controller->moveFactors[3] * controller->stats.perception[0].current;
     float minimum = controller->stats.perception[2].current;
     float range = MaxKeepB(perception, minimum);   // branch-free select
-    return range * worlddata::kHearingScale + margin;
+    return range * kHearingScale + margin;
 }
 
 int WorldServer::SyncPlayer(Player* player) {

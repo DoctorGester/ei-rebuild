@@ -16,7 +16,6 @@
 #include <initializer_list>
 #include <new>
 #include <string>
-#include "world_data.h"
 #include "game_singletons.h"
 #include "world.h"
 #include "save_versions.h"

@@ -5,7 +5,6 @@
 
 #include "core_maths.h"
 #include "sector_map.h"
-#include "world_data.h"
 
 #include <cstdint>
 
@@ -15,6 +14,10 @@
 #include <vector>
 
 namespace {
+
+// Per occluder type the cost added by full cover and the damping exponent.
+constexpr int kOccluderCosts[3] = /*007912A4*/ {290, 20};
+constexpr int kOccluderDamping[3] = /*007912B0*/ {7, 2};
 
 constexpr int kLevels = 8;
 
@@ -57,11 +60,11 @@ void Occlude(CellMarkState* s, OccluderKind type, int lowest, int highest, bool 
     int lo = lowest > s->bottom ? lowest : s->bottom;
     int hi = highest < s->top ? highest : s->top;
     float frac = static_cast<float>(hi - lo) / static_cast<float>(s->top - s->bottom);
-    float added = static_cast<float>(TableInt(worlddata::kOccluderCosts, static_cast<int>(type))) * frac;
+    float added = static_cast<float>(TableInt(kOccluderCosts, static_cast<int>(type))) * frac;
     s->cost += lib::RoundEven(added);
     float scale = g_dampScale;
-    s->passage = sectorOrder ? Damp(TableInt(worlddata::kOccluderDamping, static_cast<int>(type)), scale, frac, s->passage)
-                             : Damp(TableInt(worlddata::kOccluderDamping, static_cast<int>(type)), frac, scale, s->passage);
+    s->passage = sectorOrder ? Damp(TableInt(kOccluderDamping, static_cast<int>(type)), scale, frac, s->passage)
+                             : Damp(TableInt(kOccluderDamping, static_cast<int>(type)), frac, scale, s->passage);
 }
 
 // 17 cell offsets {dy, dx}; the first 4 the direct neighbours, the other 13 the cells
@@ -225,7 +228,7 @@ std::uint32_t AIMap::CellMark(CellMarkState* s, int level, int levelHeight, Poin
     if (cost >= 10) row = cost >= 0x23 ? 4 : 3;
     else if (cost >= 3) row = 2;
     else row = cost >= 2 ? 1 : 0;
-    return worlddata::kMarkTable[row * 16 + column];
+    return kMarkTable[row * 16 + column];
 }
 
 void AIMap::LimitSteepCells(Point first, Point last) {

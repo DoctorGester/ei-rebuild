@@ -8,6 +8,7 @@
 #include "core_streams.h"
 #include "lib/containers.h"
 #include "lib/text_case.h"
+#include "game_flow.h"
 #include "ui.h"
 #include "save_picture.h"
 #include "game_strings.h"
@@ -27,7 +28,6 @@
 #include <cstring>
 #include <string>
 #include "render/render.h"
-#include "game_flow_data.h"
 #include "sound.h"
 #include "game_singletons.h"
 #include "lib/str.h"
@@ -96,7 +96,7 @@ constexpr int kScreenWidth = 800, kScreenHeight = 600;   // the copy's layout re
 
 // The save folder saves\<slot>\ under the game's folder.
 std::string SlotFolder(const char* slot) {
-    std::string folder = str::Format(flowdata::kSlotFolder, DataFolderText(), slot);
+    std::string folder = str::Format("%ssaves\\%s\\", DataFolderText(), slot);
     return folder;
 }
 
@@ -136,7 +136,7 @@ void SaveLoadWindow::ShowPicture() {
         return;
     }
     // The file's picture, no larger than shown here.
-    std::string folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder);
+    std::string folder = str::Format("%ssaves\\%s\\", DataFolderText(), entry->folder);
     std::string bytes;
     if (!platform::ReadWholeFile(folder + game::savewords::ShotFile(), &bytes)) return;
     const Size size = ShownSize(ui);
@@ -183,7 +183,7 @@ void SaveLoadWindow::SaveGame() {
             return;
         }
     }
-    std::string folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder);
+    std::string folder = str::Format("%ssaves\\%s\\", DataFolderText(), entry->folder);
     std::string notice = g_clientWorld.texts->GetString(game::savewords::NotifySaving());
     g_interface.ShowStatusText(notice);
     g_gameFlow.SaveGame(entry->folder);

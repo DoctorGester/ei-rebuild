@@ -3,7 +3,6 @@
 #include "core_maths.h"
 #include "map_object.h"
 #include "sector_map.h"
-#include "world_data.h"
 
 #include "lib/containers.h"
 #include "lib/rounding.h"
@@ -14,6 +13,13 @@
 #include <cstring>
 #include <list>
 #include <vector>
+
+namespace {
+
+constexpr float kFixedPoint = 65536.0f;
+constexpr float kOutsideDistance = 100.0f;
+
+} // namespace
 
 int WorldToCell(float world) {
     float cell = 2.0f * world - 0.5f;
@@ -415,14 +421,14 @@ float AIMap::LargestStepAlong(const Vector3& from, const Vector3& to) {
     if (steps == 0.0f || steps != steps) return 1.0f;
     float inverse = 1.0f / steps;
     int count = lib::RoundEven(steps);
-    float fixed = worlddata::kFixedPoint;
+    float fixed = kFixedPoint;
     auto toFixed = [&](Vector2 value) {
         return Point{lib::RoundEven(value.x * fixed / 0.5f), lib::RoundEven(value.y * fixed / 0.5f)};
     };
     auto cellOf = [](Point fixedPoint) { return Point{fixedPoint.x >> 16, fixedPoint.y >> 16}; };
     const Point start = toFixed(XY(from)), step = toFixed(XY(d) * inverse);
     const Point first = cellOf(start), last = cellOf(step * count + start);
-    if (!cells.Contains(first) || !cells.Contains(last)) return worlddata::kOutsideDistance;
+    if (!cells.Contains(first) || !cells.Contains(last)) return kOutsideDistance;
 
     int previous = cells[first].groundLevel;
     int largest = 0;

@@ -8,6 +8,7 @@
 #include "core_maths.h"
 #include "core_streams.h"
 #include "core_transform.h"
+#include "game_flow.h"
 #include "game_singletons.h"
 #include "item_db.h"
 #include "lib/vecmath.h"

@@ -6,6 +6,7 @@
 #include "ui_camp.h"
 
 #include "console.h"
+#include "game_flow.h"
 #include "game_singletons.h"
 #include "model.h"
 #include "object_tables.h"

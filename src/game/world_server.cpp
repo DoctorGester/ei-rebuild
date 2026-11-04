@@ -1,5 +1,6 @@
 // WorldServer: object and player lookups, the coarse height grid, shared objects, dirty flags and
 // the id maps. See world.h.
+#include "game_singletons.h"
 #include "player_messages.h"
 
 #include "ai_map.h"
@@ -23,7 +24,6 @@
 #include "spell.h"
 #include "unit.h"
 #include "world.h"
-#include "world_data.h"
 #include "world_effect.h"
 #include "lib/rebirth.h"
 #include "lib/crt.h"
@@ -38,6 +38,8 @@
 #include <string>
 
 namespace {
+
+constexpr float kWakeMargin = 20.0f;     // added to the hearing radius when units wake others
 
 // The game server object of a multiplayer session (null or flagged inactive otherwise); its
 // FindPlayer is the player record with that id, or null.
@@ -344,7 +346,7 @@ bool NoPendingPossession(const PlayerServer* state) { return static_cast<int>(st
 void DropPlayer(Player* player) {
     player->Disconnect();
     player->Release();
-    console::EndLine(console::g_netLogOut << worlddata::DisconnectingPlayerText() << player->playerId);
+    console::EndLine(console::g_netLogOut << "Disconnecting player " << player->playerId);
 }
 
 // Every unit of a connected player wakes the units within its hearing range (as SyncPlayer computes it, with
@@ -353,7 +355,7 @@ void WakeAroundUnits(WorldServer* world, Player* player) {
     auto& units = player->units;
     for (auto node = units.begin(); node != units.end() && node->second; ++node) {
         Unit* unit = node->second;
-        world->WakeUnitsAround(unit->localPosition, HearingRadius(unit, worlddata::kWakeMargin));
+        world->WakeUnitsAround(unit->localPosition, HearingRadius(unit, kWakeMargin));
     }
 }
 
@@ -392,7 +394,7 @@ void WorldServer::Update() {
     ScriptVars& globals = MainScript()->globals;
     auto& names = globals.groups.names;
     for (std::size_t i = 0; i < names.size(); ++i) {
-        if (str::Compare(names[i], worlddata::HeroesGroupText()) == 0) {
+        if (str::Compare(names[i], "Heroes") == 0) {
             heroes = globals.groups.values[i];
             break;
         }

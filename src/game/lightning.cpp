@@ -10,7 +10,6 @@
 #include "core_streams.h"
 #include "texture.h"
 #include "world.h"
-#include "world_data.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"

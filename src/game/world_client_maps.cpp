@@ -9,12 +9,14 @@
 #include "core_streams.h"
 #include "effects.h"
 #include "figure_manager.h"
+#include "game_flow.h"
 #include "game_singletons.h"
 #include "game_strings.h"
 #include "ground_print.h"
 #include "hash_tables_400.h"
 #include "item.h"
 #include "item_manager.h"
+#include "options.h"
 #include "text_manager.h"
 #include "lightning.h"
 #include "map_object.h"
@@ -39,7 +41,6 @@
 #include "unit_db.h"
 #include "unit_looks.h"
 #include "world.h"
-#include "world_data.h"
 #include "world_effect.h"
 #include "world_map_files.h"
 
@@ -155,7 +156,7 @@ MapRecord* LocalZoneRecord() {
 }
 
 bool InFinalZone() {
-    return str::Compare(LocalPlayerZone(), worlddata::FinalZoneText()) == 0;
+    return str::Compare(LocalPlayerZone(), "gz20g") == 0;
 }
 
 } // namespace
@@ -396,20 +397,20 @@ std::vector<MapObject*> WorldClient::UnitsInBox(const Rect* rect) {
     return inside;
 }
 
-// The figure's part names (worlddata::HeroPartText): "hd", "bd", "hp", "hr" (the hair: "hr.%.2d"
+// The figure's part names (kHeroFigureParts): "hd", "bd", "hp", "hr" (the hair: "hr.%.2d"
 // with the prototype's number, or left out at -1), "lh1".."rl3".
 void WorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, char allArmour) {
     std::string hair;
     for (int i = 0; i < std::ssize(*party); ++i) {
         auto* record = (*party)[i];
         std::vector<std::string> parts;
-        for (int n = 0; n < worlddata::kHeroPartCount; ++n) {
-            const char* name = worlddata::HeroPartText(n);
-            if (std::string_view(name) == worlddata::HairPartText()) {
+        for (int n = 0; n < kHeroPartCount; ++n) {
+            const char* name = kHeroFigureParts[n];
+            if (std::string_view(name) == "hr") {
                 UnitPrototypeRecord* prototype = g_unitDatabase.prototypes.FindByName(std::string(record->prototype));
                 int number = prototype ? prototype->hair : 1;   // as the server's FillHeroParts
                 if (number != -1) {
-                    hair = str::Format(worlddata::HairFormat(), number);
+                    hair = str::Format("hr.%.2d", number);
                     parts.push_back(hair);
                 }
             } else {
@@ -628,12 +629,12 @@ void SectorGrid::Resize(int newWidth, int newHeight) {
 
 void WorldClient::Create() {
     World::Create();
-    texturePath = g_dataFolder + worlddata::TexturesFolderText();
-    LoadLights(worlddata::LightsTableText());
+    texturePath = g_dataFolder + "textures\\";
+    LoadLights("LightsGipat.ini");
     sounds = std::make_unique<SoundManager>();
     texts = std::make_unique<TextManager>();
     terrain = std::make_unique<terrain::Terrain>();
-    zoneName = worlddata::GipathText();
+    zoneName = "gipath";
 
     specificManager = std::make_unique<ClientSpecificManager>();
     specificManager->Init(this);
@@ -652,8 +653,8 @@ void WorldClient::Create() {
     terrain->Create();
     sounds->Create();
     texts->Create();
-    texts->AddSource(g_textFolder + worlddata::TextsFileText());
-    texts->AddSource(g_textFolder + worlddata::TextsLmpFileText());
+    texts->AddSource(g_textFolder + "texts.res");
+    texts->AddSource(g_textFolder + "textsLmp.res");
 
     listManager = std::make_unique<LightningManager>();
     listManager->Init(this);
@@ -825,11 +826,11 @@ int WorldClient::LoadZone(ByteStream* block) {
     // The allod of the local player's zone names the texture pages, the lights and the music.
     const MapRecord* zone = LocalZoneRecord();
     std::string& allod = zoneName;
-    allod = worlddata::DefaultAllodText();
+    allod = "gipat";
     if (zone) allod = zone->allod;
     str::MakeLower(allod);
     if (!currentTerrain->LoadMap(map, allod, newCave == kCave))
-        return game::FatalError(worlddata::CantLoadTerrainFormat(), map);
+        return game::FatalError("Can't load terrain or map file \"%s\".\n", map);
 
     FitGrid(objectGrid, currentTerrain);
     FitGrid(secondGrid, currentTerrain);
@@ -837,27 +838,27 @@ int WorldClient::LoadZone(ByteStream* block) {
     if (skyDome) {
         Ref<Texture>& skyColour = skyDome->texture;
         if (newCave == kCave) {
-            LoadNamedTexture(skyColour, kSkyTextureKind, worlddata::CaveSkyText());
+            LoadNamedTexture(skyColour, kSkyTextureKind, "Sky01");
             skyDome->turns = 0;
         } else {
-            LoadNamedTexture(skyColour, kSkyTextureKind, worlddata::OpenSkyText());
+            LoadNamedTexture(skyColour, kSkyTextureKind, "Sky00");
             skyDome->turns = 1;
         }
     }
-    std::string lights = worlddata::LightsPrefixText();
-    const bool effects = worlddata::AudioOption() && options::g_options.audioSfx;
+    std::string lights = "Lights";
+    const bool effects = options::g_options.audio && options::g_options.audioSfx;
     if (cave == kCave) {
-        lights += worlddata::CaveText();
+        lights += "Cave";
         if (effects) sounds->SetReverb(kCaveReverbRoom, kCaveReverbLevel, kCaveReverbTime);
     } else if (effects) {
         sounds->reverb[0] = 0.0f;
     }
-    LoadLights(lights + allod + worlddata::IniSuffixText());
+    LoadLights(lights + allod + ".ini");
     CreateExitMarkers();
-    worlddata::g_lastLitHour = -1.0f;
+    g_lastLitHour = -1.0f;
     UpdateLighting();
-    if (worlddata::AudioOption() && options::g_options.audioStreaming) {
-        if (InFinalZone()) music->SetZoneMode(worlddata::FinalMusicText(), cave == kCave);
+    if (options::g_options.audio && options::g_options.audioStreaming) {
+        if (InFinalZone()) music->SetZoneMode("final", cave == kCave);
         else music->SetZoneMode(allod, cave == kCave);
     }
 

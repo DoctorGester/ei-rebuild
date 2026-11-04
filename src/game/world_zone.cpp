@@ -4,6 +4,7 @@
 #include "bink_video.h"   // g_loadingMovieOff
 #include "chunk_stream.h"
 #include "core_refcount.h"
+#include "game_flow.h"
 #include "game_singletons.h"
 #include "game_strings.h"
 #include "map_object.h"

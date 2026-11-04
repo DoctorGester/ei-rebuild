@@ -1,6 +1,7 @@
 // The halves of a 3D object: the client half (Object3DClientSpecific, class id 0x37: its lifetime, the part sets, the
 // skin textures, the materials' lit state, the shadow state, the pulses, the wounds material), the base half's empty
 // slots and the server half (Object3DServer, class id 0x38). Layouts: map_object_shadow.h, map_object_figures.h.
+#include "game_singletons.h"
 #include "map_object_shadow.h"
 
 #include "core_refcount.h"
@@ -15,7 +16,6 @@
 #include "options.h"
 #include "texture.h"
 #include "world.h"
-#include "world_data.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/rect.h"

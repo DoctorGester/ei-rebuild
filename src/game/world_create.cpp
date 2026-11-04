@@ -20,6 +20,7 @@
 #include "net_link.h"   // netlink::NetLink: the world handle's pending link
 #include "object.h"     // Hoover
 #include "object_diplomacy.h"
+#include "options.h"
 #include "player_manager.h"
 #include "random.h"
 #include "registry.h"
@@ -36,7 +37,6 @@
 #include "unit.h"
 #include "unit_create.h"
 #include "world.h"
-#include "world_data.h"
 #include "world_effect.h"
 
 #include <cstdint>
@@ -47,8 +47,8 @@
 
 void World::Create() {
     paused = 0;
-    g_dataFolder = worlddata::ConfiguredDataPath();
-    g_textFolder = worlddata::ConfiguredTextPath();
+    g_dataFolder = options::g_options.workPath;
+    g_textFolder = options::g_options.resourcesPath;
     tick = 0;
     // The wind: along x, no strength.
     const float direction[3] = {1.0f, 0.0f, 0.0f};

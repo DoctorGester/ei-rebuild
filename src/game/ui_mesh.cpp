@@ -6,7 +6,6 @@
 #include "material.h"
 #include "model.h"
 #include "screen_layout.h"
-#include "world_data.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/maths.h"
@@ -20,6 +19,16 @@
 #include <vector>
 
 namespace {
+
+// The layout: half a texel (1 / 512) and a texel (1 / 256) of the 256-wide
+// interface textures; 1 / 800 and 1 / 400 of the layout's width; the view's
+// half width at depth 1 (0.48157); 0.75, the layout's height over its width.
+constexpr float kHalfTexel = 0.001953125f;
+constexpr float kTexel = 0.00390625f;
+constexpr float kLayoutX = 0.00125f;
+constexpr float kLayoutY = 0.0025f;
+constexpr float kViewHalfWidth = 0.48157462f;
+constexpr float kThreeQuarters = 0.75f;
 
 // The common start: one normal packet (four 0s, four 0s, four 1s, four 1s) and the two 4-entry arrays.
 void ResetVertexColours(UiMesh* mesh) {
@@ -54,7 +63,7 @@ void AppendByGrow(std::vector<std::uint16_t>* indices, UiMesh* mesh, int value) 
 
 // Half a texel towards the texture's inside on every coordinate, then the arrays to the renderer.
 void NudgeAndCommit(UiMesh* mesh) {
-    float half = worlddata::kHalfTexel;
+    float half = kHalfTexel;
     for (int i = 0; i < std::ssize(mesh->texCoords); ++i) {
         mesh->texCoords[i].u += half;
         mesh->texCoords[i].v -= half;
@@ -64,7 +73,7 @@ void NudgeAndCommit(UiMesh* mesh) {
 
 // The scale every builder sets: 0.48157 * depth * scale * 0.0025, in the three scale fields.
 void SetBuildScale(UiMesh* mesh, float depth, float scale) {
-    float s = worlddata::kInterfaceView * depth * scale * worlddata::kLayoutY;
+    float s = kViewHalfWidth * depth * scale * kLayoutY;
     mesh->ScaleX() = s;
     mesh->ScaleY() = s;
     mesh->ScaleZ() = s;
@@ -73,8 +82,8 @@ void SetBuildScale(UiMesh* mesh, float depth, float scale) {
 // The position from a layout point: ((x * 2/1600 - 1) * 0.48157 * depth, (y / 400 - 0.75) *
 // 0.48157 * depth, depth) (the rectangle builder adds the two edges first).
 void SetPosition(UiMesh* mesh, float x, float y, float depth) {
-    mesh->localPosition = {(x - 1.0f) * worlddata::kInterfaceView * depth,
-                           (y - worlddata::kThreeQuarters) * worlddata::kInterfaceView * depth, depth};
+    mesh->localPosition = {(x - 1.0f) * kViewHalfWidth * depth,
+                           (y - kThreeQuarters) * kViewHalfWidth * depth, depth};
 }
 
 // --- Points on a circle ------------------------------------------------------------------------------
@@ -118,7 +127,7 @@ void UiMesh::Framed(float depth, float scale, float left, float top, float right
 
     // Texture coordinates: the outer corners, then the inner ones.
     SetUvCount(8);
-    float texel = worlddata::kTexel;
+    float texel = kTexel;
     float one = 1.0f;
     TexCoord* uv = texCoords.data();
     float outerV0 = one - v0 * texel;
@@ -185,7 +194,7 @@ void UiMesh::Framed(float depth, float scale, float left, float top, float right
     inner.y()[3] = innerY;
 
     // Placed at the rectangle's centre.
-    float layoutX = worlddata::kLayoutX;
+    float layoutX = kLayoutX;
     SetPosition(this, (left + right) * layoutX, (top + bottom) * layoutX, depth);
     SetBuildScale(this, depth, scale);
     NudgeAndCommit(this);
@@ -224,7 +233,7 @@ void UiMesh::Disc(float depth, float scale, float x, float y, float outerRadius,
     }
     // Placed by the sprite's own Place (Rebirth-patched), scaled through the sprite's scale.
     Place(x, y, depth);
-    float s = worlddata::kInterfaceView * depth * scale * worlddata::kLayoutY;
+    float s = kViewHalfWidth * depth * scale * kLayoutY;
     SetScale(s);
     NudgeAndCommit(this);
 }
@@ -246,7 +255,7 @@ void UiMesh::Ring(float depth, float scale, float x, float y, float outerRadius,
     corners[count * 4 - 1].position = 1;
 
     SetUvCount(4);
-    float texel = worlddata::kTexel;
+    float texel = kTexel;
     float one = 1.0f;
     float outerV0 = one - v0 * texel;
     texCoords[0].u = u0 * texel;
@@ -298,7 +307,7 @@ void UiMesh::Ring(float depth, float scale, float x, float y, float outerRadius,
         w[3] = 1.0f;
         ++j;
     }
-    float layoutY = worlddata::kLayoutY;
+    float layoutY = kLayoutY;
     SetPosition(this, x * layoutY, y * layoutY, depth);
     SetBuildScale(this, depth, scale);
     NudgeAndCommit(this);
@@ -512,13 +521,6 @@ void UiMesh::SetUvCount(int count) { texCoords.resize(count); }
 // these reproduce for every window. docs/notes/ui.md, section 9.
 
 namespace {
-
-// The layout: half a texel (1 / 512) and a texel (1 / 256) of the 256-wide
-// interface textures; 1 / 800 and 1 / 400 of the layout's width; the view's
-// half width at depth 1 (0.48157); 0.75, the layout's height over its width.
-constexpr float kTexel = 0.00390625f;
-constexpr float kHalfTexel = 0.001953125f;
-constexpr float kViewHalfWidth = 0.48157462f;
 
 // The two triangles of a quad whose corners are numbered down the left side, then down the right.
 constexpr std::uint16_t kQuadCorners[] = {0, 1, 2, 1, 3, 2};

@@ -1,4 +1,5 @@
 // WorldClient: terrain and platform height queries, unit and exit lookups. See world.h.
+#include "app.h"
 #include "camera.h"
 #include "core_maths.h"
 #include "effects.h"
@@ -12,6 +13,7 @@
 #include "net_classes.h"
 #include "net_link.h"
 #include "object_tables.h"
+#include "options.h"
 #include "party.h"
 #include "player_client.h"
 #include "player_messages.h"
@@ -22,7 +24,6 @@
 #include "ui.h"
 #include "unit.h"
 #include "world.h"
-#include "world_data.h"
 #include "world_effect.h"
 
 #include "lib/containers.h"
@@ -42,6 +43,12 @@
 #include <new>
 #include <string>
 #include <vector>
+
+namespace {
+
+constexpr float kColourScale = 255.0f;
+
+} // namespace
 
 // ---- Heights -------------------------------------------------------------------------------------
 
@@ -302,7 +309,7 @@ std::uint32_t WorldClient::EnvironmentFlags(Unit* unit) {
 bool WorldClient::RunTick() {
     int frames = ++ticksRun;
     if (frames == 10) {
-        g_interface.OnStringEvent(worlddata::AutosaveEventText());
+        g_interface.OnStringEvent("autosave");
         sounds->SetEffectsVolume(options::g_options.audioSfx);
         sounds->SetSpeechVolume(options::g_options.audioSpeech);
         sounds->SetMusicVolume(options::g_options.audioStreaming);
@@ -323,7 +330,7 @@ bool WorldClient::RunTick() {
             // The connection is gone. Rebirth's DisableExitOnCrashReport
             // keeps the session: only the error is reported.
             if (!ei::rebirth::Enabled(ei::rebirth::Patch::DisableExitOnCrashReport)) SessionDisconnect(session);
-            game::FatalError("%s", worlddata::SegmentDisconnectedText());
+            game::FatalError("%s", "CWorldClient::Segment().\nDisconnecting client due to packet parsing error.\n");
             return false;
         }
         view->RunTick();
@@ -364,14 +371,14 @@ bool WorldClient::RunTick() {
         RunEffects(bloodPrints);
         RunEffects(footprints);
         RunEffects(scorchMarks);
-        lightLevelsCountdown -= worlddata::g_updatePeriod;
+        lightLevelsCountdown -= app::g_updatePeriod;
         if (lightLevelsCountdown <= 0) {
             lightLevelsCountdown = options::kLightingPeriod;
             // Each blood print gets a grey level: the brightest of the sun at
             // the reference point and the lights whose range reaches the effect's point.
             Light* sun = g_sceneRenderer.sun;
             for (BloodPrint& effect : bloodPrints) {
-                float level = sun->GetIntensityAt(worlddata::kOrigin);
+                float level = sun->GetIntensityAt(Vector3{0.0f, 0.0f, 0.0f});
                 ObjectListIteratorOf<Light> lights;
                 for (Light* light = lights.First(ClientLightManager()); light; light = lights.Next()) {
                     if (light == sun || (light->flags & LightFlag::Hidden)) continue;
@@ -384,7 +391,7 @@ bool WorldClient::RunTick() {
                 }
                 float clamped = SelectLess(1.0f, level, 1.0f, level);
                 float floor = SelectLess(0.0f, clamped, clamped, 0.0f);
-                float scaled = floor * worlddata::kColourScale;
+                float scaled = floor * kColourScale;
                 std::uint32_t grey = static_cast<std::uint32_t>(lib::RoundEven(scaled));
                 std::uint32_t colour = ((((grey | 0xFFFFFF00u) << 8) | grey) << 8) | grey;
                 effect.colour = colour;

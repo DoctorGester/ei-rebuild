@@ -88,7 +88,7 @@ void ConsoleExecute(const char* text);
 void RequestGameState(int id);                       // GameRequestGameState: ask the server for interface screen `id`
 void SetConstructionVariable(float value);           // GameSetConstructionVariable
 void ObserveConsoleLines(void (*observer)(const char* line));
-unsigned& UpdatePeriod();                       // worlddata::g_updatePeriod
+unsigned& UpdatePeriod();                       // app::g_updatePeriod
 const char* DataFolder();                       // the data folder's text, may be empty
 // IsaacRandom's seed hook: rand() seeded with 12345 and the generator's results filled by `fill`.
 void SetFixedSeed(void (*fill)(std::uint32_t* results));

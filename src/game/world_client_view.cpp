@@ -1,5 +1,7 @@
 // WorldClient per-frame view code: filing visible objects into the frame's draw lists, sorting
 // those lists, and picking the ground point under the cursor. See world.h and docs/notes/world.md.
+#include "frame_lists.h"
+#include "game_singletons.h"
 #include "model.h"
 #include "options.h"
 #include "world.h"
@@ -19,7 +21,6 @@
 #include <vector>
 #include "lib/float_select.h"
 #include "lib/vecmath.h"
-#include "world_data.h"
 
 namespace {
 
@@ -63,7 +64,7 @@ template <typename Height>
 Vector3 PickPoint(WorldClient* world, int screenX, int screenY, Height height) {
     TransformPipeline* device = g_sceneRenderer.pipeline;
     if (device->stacks[TransformPipeline::kViewStack].count == 0) {
-        return worlddata::kOrigin;
+        return Vector3{0.0f, 0.0f, 0.0f};
     }
     PushStackMatrix(device, TransformPipeline::kPickStack, StackTop(device, TransformPipeline::kViewStack));
     const float* m = StackTop(g_sceneRenderer.pipeline, TransformPipeline::kPickStack);
@@ -185,28 +186,28 @@ int WorldClient::CollectVisible(MapObject* object, const Matrix4* view, float an
             o3d->worldPosition = TransformColumnNormal(*view, o3d->localPosition);
             switch (object->GetClassId()) {
             case ClassId::Unit:
-                PushBack(g_visibleUnits, entry);
-                PushBack(g_shadowUnits, entry);
+                PushBack(FrameObjects(FrameList::VisibleUnits), entry);
+                PushBack(FrameObjects(FrameList::ShadowUnits), entry);
                 break;
             case ClassId::Tree:
-                PushBack(g_visibleTrees, entry);
-                PushBack(g_shadowTrees, entry);
+                PushBack(FrameObjects(FrameList::VisibleTrees), entry);
+                PushBack(FrameObjects(FrameList::ShadowTrees), entry);
                 break;
             case ClassId::Building:
-                PushBack(g_visibleBuildings, entry);
-                PushBack(g_shadowBuildings, entry);
+                PushBack(FrameObjects(FrameList::VisibleBuildings), entry);
+                PushBack(FrameObjects(FrameList::ShadowBuildings), entry);
                 break;
             case ClassId::Lever:
-                PushBack(g_visibleLevers, entry);
-                PushBack(g_shadowLevers, entry);
+                PushBack(FrameObjects(FrameList::VisibleLevers), entry);
+                PushBack(FrameObjects(FrameList::ShadowLevers), entry);
                 break;
             default:
-                PushBack(g_visibleOther, entry);
-                PushBack(g_shadowOther, entry);
+                PushBack(FrameObjects(FrameList::VisibleOther), entry);
+                PushBack(FrameObjects(FrameList::ShadowOther), entry);
                 break;
             }
             if ((object->flags & MapObjectFlag::Stationary) && now - ModelOf(object)->touchTime > static_cast<std::uint32_t>(options::kLightingPeriod)) {
-                PushBack(g_touchedModels, entry);
+                PushBack(FrameObjects(FrameList::TouchedModels), entry);
                 ++touched;
             }
         } else {
@@ -215,11 +216,11 @@ int WorldClient::CollectVisible(MapObject* object, const Matrix4* view, float an
             if (ModelOf(object)->ShadowInView()) {
                 if (o3d->animation) o3d->animation->UpdatePose();
                 switch (object->GetClassId()) {
-                case ClassId::Unit: PushBack(g_shadowUnits, entry); break;
-                case ClassId::Tree: PushBack(g_shadowTrees, entry); break;
-                case ClassId::Building: PushBack(g_shadowBuildings, entry); break;
-                case ClassId::Lever: PushBack(g_shadowLevers, entry); break;
-                default: PushBack(g_shadowOther, entry); break;
+                case ClassId::Unit: PushBack(FrameObjects(FrameList::ShadowUnits), entry); break;
+                case ClassId::Tree: PushBack(FrameObjects(FrameList::ShadowTrees), entry); break;
+                case ClassId::Building: PushBack(FrameObjects(FrameList::ShadowBuildings), entry); break;
+                case ClassId::Lever: PushBack(FrameObjects(FrameList::ShadowLevers), entry); break;
+                default: PushBack(FrameObjects(FrameList::ShadowOther), entry); break;
                 }
             }
         }
@@ -241,18 +242,8 @@ Vector3 WorldClient::PickSurface(int x, int y) {
     });
 }
 
-// ---- The frame's draw lists (world.h) ------------------------------------------------------------
+// ---- The frame's draw lists (frame_lists.h) ------------------------------------------------------
 
 // Plain globals (constructed and destroyed by the C++ runtime).
-std::vector<MapObject*> g_touchedModels;
-std::vector<MapObject*> g_shadowTrees;
-std::vector<MapObject*> g_shadowUnits;
-std::vector<MapObject*> g_shadowLevers;
-std::vector<MapObject*> g_shadowOther;
-std::vector<MapObject*> g_shadowBuildings;
-std::vector<MapObject*> g_visibleTrees;
-std::vector<MapObject*> g_visibleUnits;
-std::vector<MapObject*> g_visibleLevers;
-std::vector<MapObject*> g_visibleOther;
-std::vector<MapObject*> g_visibleBuildings;
+std::vector<MapObject*> g_frameLists[static_cast<int>(FrameList::Count)];
 std::vector<HeldRef<MapObject>> g_deferredUnits;

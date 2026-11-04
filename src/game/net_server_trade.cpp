@@ -4,14 +4,13 @@
 #include "core_refcount.h"
 
 #include "core_streams.h"
+#include "game_flow.h"
 #include "game_singletons.h"
 #include "game_strings.h"
 #include "net_connection.h"
 #include "net_messages.h"
 #include "quest_records.h"
 #include "ui.h"
-#include "world.h"
-#include "world_data.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -160,7 +159,7 @@ void ServerSession::CompleteZone(const std::string* zone) {
     QuestBriefingRecord* entry;
     {
         std::string key = *zone + game::ZoneSuffix3Text();
-        entry = worlddata::QuestBriefings()[key];
+        entry = g_questDatabase.briefings.index[key];
     }
     if (entry) {
         int count = static_cast<int>(clients.size());
@@ -200,7 +199,7 @@ void ServerSession::LeaveZone() {
         {
             std::string key = holder->Get()->text + game::ZoneSuffix1Text();
             std::string lookup(key.data());
-            entry = worlddata::QuestBriefings()[lookup];
+            entry = g_questDatabase.briefings.index[lookup];
         }
         if (entry) AwardHost(entry, true);
     }

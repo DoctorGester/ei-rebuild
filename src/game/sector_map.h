@@ -16,7 +16,7 @@ class Unit;
 
 // The kind of an AI map occluder (the occluder word's bits 9-11, FootprintCell, SectorOccluder): a figure part's
 // comes from its name (BoundsFlag). Every occluder dims lines of sight by its transparency (AIMap::LineOfSight);
-// AIMap::CellMark charges by kind. Kind 1 (worlddata::kOccluderCosts / kOccluderDamping 20 and 2) is given by
+// AIMap::CellMark charges by kind. Kind 1 (kOccluderCosts / kOccluderDamping 20 and 2) is given by
 // no part.
 enum class OccluderKind : std::int8_t {
     Solid = 0,        // a plain part: adds kOccluderCosts[0] (290) to the cell's cost, damps its passage by 7

@@ -6,6 +6,7 @@
 #include "camera.h"
 #include "effects.h"
 #include "figure_manager.h"
+#include "frame_lists.h"
 #include "game_singletons.h"
 #include "ground_print.h"
 #include "lightning.h"
@@ -27,7 +28,6 @@
 #include "view_matrices.h"
 #include "world.h"
 #include "world_client_shadow_casters.h"
-#include "world_data.h"
 #include "world_effect.h"
 
 #include "lib/bytes.h"
@@ -51,7 +51,7 @@ constexpr int kStackScene2 = 2;
 constexpr int kStackWorld = 5;
 constexpr int kStackView = 9;
 
-// worlddata::SceneCamera: the scene stack's top when the world's draw pushed it, while that draw runs.
+// SceneCamera: the scene stack's top when the world's draw pushed it, while that draw runs.
 Matrix4 g_sceneCamera;
 bool g_haveSceneCamera = false;
 
@@ -124,7 +124,7 @@ void DrawLightEffects(std::vector<T>& prints) {
 
 } // namespace
 
-const Matrix4* worlddata::SceneCamera() { return g_haveSceneCamera ? &g_sceneCamera : nullptr; }
+const Matrix4* SceneCamera() { return g_haveSceneCamera ? &g_sceneCamera : nullptr; }
 
 int QueueScreenEntry(MapObject* object, std::vector<ScreenEntry>* queued) {
     if (!(object->flags & MapObjectFlag::Shown) || (object->flags & MapObjectFlag::NotDrawn)) return 0;

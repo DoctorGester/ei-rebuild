@@ -30,6 +30,10 @@ class SceneRenderer;
 
 // The figures' default scale (zeros).
 inline constexpr Vector3 kDefaultFigureScale = /*007AF1D0*/ {};
+// The figure parts of a hero, in the game's order; "hr" is the hair ("hr.%.2d" with the prototype's number).
+inline constexpr int kHeroPartCount = 16;
+inline constexpr const char* kHeroFigureParts[kHeroPartCount] = {
+    "hd", "bd", "hp", "hr", "lh1", "lh2", "lh3", "rh1", "rh2", "rh3", "ll1", "ll2", "ll3", "rl1", "rl2", "rl3"};
 class LinkMesh;
 
 // FigureAnimation::key, as the figures' animation databases (database.res, "<figure>.adb") give it, and the

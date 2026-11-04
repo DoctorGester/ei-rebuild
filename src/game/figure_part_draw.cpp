@@ -15,7 +15,6 @@
 #include "spell.h"
 #include "texture.h"
 #include "world.h"
-#include "world_data.h"
 #include "drawn_motion.h"
 #include "lib/containers.h"
 #include "lib/rect.h"
@@ -106,7 +105,7 @@ const render::MeshLighting* PartLighting(const Part& part) {
     // The world stack's top is the scene's camera times the part's placement for every part; the object
     // stack has the placement alone only for a part about to be lit on the CPU (a lit static part is
     // not pushed there). Outside the world's draw (the interface's figures) only the object stack.
-    if (const Matrix4* camera = worlddata::SceneCamera()) {
+    if (const Matrix4* camera = SceneCamera()) {
         l.model = *part.device->pipeline->Top(TransformPipeline::kWorldStack);
         l.camera = camera;
     } else {

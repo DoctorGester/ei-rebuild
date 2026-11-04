@@ -3,18 +3,19 @@
 #include "effects.h"
 
 #include "figure_mesh.h"   // VertexPacket, MeshCorner
+#include "game_singletons.h"
 #include "ground_decal.h"
 #include "link_figure.h"
 #include "map_object.h"           // MapObject (ObjectWithId)
 #include "map_object_figures.h"   // Object3D
 #include "model.h"
 #include "object_tables.h"
+#include "options.h"
 #include "party.h"
 #include "sky_object.h"
 #include "spell.h"
 #include "terrain.h"
 #include "world.h"
-#include "world_data.h"
 #include "lib/containers.h"
 #include "lib/maths.h"
 #include "lib/vecmath.h"
@@ -48,9 +49,6 @@ constexpr float kRadiansPerDegree = kPi * kPerDegree;
 constexpr float kPerHour = 0.041666668f;   // 1/24 (the sun turns once a day)
 // A cave's sun.
 const Vector3 kCaveSun = {0.5f, 0.5f, -0.707106f};
-
-// The hour (floored) the terrain's sun was last set for; -1 makes the next frame set it.
-using worlddata::g_lastLitHour;
 
 // Terrain::SetSun takes the ambient colour as a Vector4 (and copies it).
 Vector4 Ambient(const LightColour& c) { return {c.r, c.g, c.b, c.a}; }
@@ -134,6 +132,8 @@ void HandOverClouds(const WorldClient* world, float hour) {
 }
 
 } // namespace
+
+float g_lastLitHour = /*0078FF38*/ -1.0f;
 
 void WorldClient::UpdateLighting() {
     auto* display = &g_sceneRenderer;

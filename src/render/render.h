@@ -489,7 +489,7 @@ struct MeshLightSource {
 struct MeshLighting {
     Matrix4 model;                 // the part's model space to the landscape's (row-major); with `camera`, the
                                    // camera times that
-    const Matrix4* camera;         // the scene's camera (worlddata::SceneCamera), else null
+    const Matrix4* camera;         // the scene's camera (SceneCamera, world.h), else null
     bool sun;
     Vector3 sunDirection;          // the direction its light travels
     float sunColour[3];

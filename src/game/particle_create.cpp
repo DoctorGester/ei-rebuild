@@ -2,13 +2,13 @@
 // More: docs/notes/effects.md, "Particle sources".
 #include "core_transform.h"
 #include "effects.h"
+#include "game_singletons.h"
 #include "map_object_figures.h"
 #include "particle_common.h"
 #include "random.h"
 #include "spell.h"
 #include "texture.h"
 #include "world.h"
-#include "world_data.h"
 
 #include "lib/bytes.h"
 #include "lib/containers.h"
