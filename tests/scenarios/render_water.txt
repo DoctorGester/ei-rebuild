@@ -1,0 +1,102 @@
+# R17a: the water's look (docs/notes/renderer.md, "shaders/terrain.hlsl: the water"): small ripples from the ripple
+# map, the sky's reflection by Fresnel, colour and opacity from the depth, foam at the shore, the sun's glints. Frozen
+# moments on zone1 for the frame checks and the user's review: the beach at the west sea, the sea, the lake in the
+# middle, the river with stones, the river and the lake at night. Frames only (image); each frozen moment drawn twice
+# must match (samecapture), and the ripples move with the client's time (diffcapture).
+render checkall
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+waitpresent 10
+move 400 20
+frames 5
+vanilla minimap 701 81 2.8 2.8
+rebirth minimap 726 80.6 3.75 2.7
+
+# The beach.
+lookat 30 80
+frames 3
+lookat 30 80
+frames 3
+lookat 30 80
+frames 3
+move 400 20
+frames 2
+freeze
+capture water_shore
+capture water_shore_again
+unfreeze
+samecapture water_shore water_shore_again
+frames 10
+capture water_shore_later
+diffcapture water_shore water_shore_later 0.01 0.9
+
+# The sea.
+lookat 30 120
+frames 3
+lookat 30 120
+frames 3
+lookat 30 120
+frames 3
+move 400 20
+frames 2
+freeze
+capture water_sea
+unfreeze
+
+# The lake.
+lookat 110 120
+frames 3
+lookat 110 120
+frames 3
+lookat 110 120
+frames 3
+move 400 20
+frames 2
+freeze
+capture water_lake
+unfreeze
+
+# The river.
+lookat 150 120
+frames 3
+lookat 150 120
+frames 3
+lookat 150 120
+frames 3
+move 400 20
+frames 2
+freeze
+capture water_river
+unfreeze
+
+# Night (the hour held at 1).
+console @FixWorldTime(1)
+wait 3000
+lookat 150 120
+frames 3
+lookat 150 120
+frames 3
+move 400 20
+frames 2
+freeze
+capture water_river_night
+unfreeze
+lookat 110 120
+frames 3
+lookat 110 120
+frames 3
+lookat 110 120
+frames 3
+move 400 20
+frames 2
+freeze
+capture water_lake_night
+unfreeze
+report
+quit

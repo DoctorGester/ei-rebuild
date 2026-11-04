@@ -220,8 +220,8 @@ std::uint32_t g_commits = 0;
 
 } // namespace
 
-// The device, the first pipelines and the white texture (written here, outside any pass) at the first use. The game
-// cannot run without them: a failure ends it.
+// The device, the first pipelines, the white texture and the water's ripple map (written here, outside any pass) at the
+// first use. The game cannot run without them: a failure ends it.
 void detail::Start() {
     EnsureConfigured();
     if (g_started) return;
@@ -230,6 +230,7 @@ void detail::Start() {
     if (!CreateMeshShader()) Fatal("Can't start the renderer: the mesh pipeline could not be made.");
     if (!CreateBlitPipeline()) Fatal("Can't start the renderer: the blit pipeline could not be made.");
     if (!WhiteView()) Fatal("Can't start the renderer: the white texture could not be made.");
+    if (!MakeRippleMap()) Fatal("Can't start the renderer: the water's ripple map could not be made.");
     g_started = true;
 }
 

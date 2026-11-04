@@ -229,6 +229,7 @@ void HandOverSceneLights(WorldClient* world) {
     if (world->camera) s.camera = camera::FrameView().position;
     s.points = points.data();
     s.pointCount = static_cast<int>(points.size());
+    s.clientTicks = world->tick + static_cast<double>(world->tickFraction);
     render::SceneLighting(s);
 }
 

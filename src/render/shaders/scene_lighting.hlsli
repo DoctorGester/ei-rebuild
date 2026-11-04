@@ -10,6 +10,7 @@ struct SceneLightParams {
     float4 pointAt[16];       // per point light: position xyz, w: 1 / range squared
     float4 pointColour[16];   // per point light: colour rgb, w: 1 specular
     float4 shadowSlots[4];    // per point light (4 a vector): its point shadow's map + 1, 0 none
+    float4 camera;            // xyz: the camera (the landscape's space)
 };
 ConstantBuffer<SceneLightParams> scene : FS_BLOCK(SCENE_BLOCK_SLOT);
 

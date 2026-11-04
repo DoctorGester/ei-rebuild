@@ -69,8 +69,8 @@ void SetPerfOverlay(bool on);
 void ShadowSun(const Vector3& direction);
 // The GPU lighting (renderer.md section 13). The world's draw hands over the frame's light, kept
 // until the next hand-over: the sun, the ambient colour, the point lights the landscape lights its ground
-// with (the nearest kMostSceneLights) and the camera. The terrain shader lights each pixel and SectorData::Light
-// writes only the edge fade.
+// with (the nearest kMostSceneLights), the camera and the client's time (the water's ripples move by it). The terrain
+// shader lights each pixel and SectorData::Light writes only the edge fade.
 struct ScenePointLight {
     Vector3 position;   // the landscape's space
     float inverseRangeSquared;
@@ -85,6 +85,7 @@ struct SceneLights {
     Vector3 camera;
     const ScenePointLight* points;
     int pointCount;
+    double clientTicks;   // the client world's tick and the fraction of the next one it has had
 };
 constexpr int kMostSceneLights = 16;
 void SceneLighting(const SceneLights& lights);

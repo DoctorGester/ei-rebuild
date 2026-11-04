@@ -94,7 +94,7 @@ DisableExitOnCrashReport. The cases:
 - no device at the start (the first use): "Can't start the renderer: <gpu::Error()>." (no Direct3D 12 or Vulkan
   device: "no Direct3D 12 or Vulkan device (...)");
 - a pipeline or texture the start makes: "Can't start the renderer: the terrain pipeline / the mesh pipeline / the
-  blit pipeline / the white texture could not be made.";
+  blit pipeline / the white texture / the water's ripple map could not be made.";
 - a pass that cannot begin: "The renderer cannot draw the frame." (the shadow map's and the point shadows' passes name
   themselves);
 - no swap chain, or a swap chain texture SDL refuses (render_window.cpp): "The renderer cannot present on the game
@@ -1200,6 +1200,42 @@ every visible sector page; it hands the page here. The page's tiles are turned i
 nine vertices and eight triangles, the full detail at any distance), with the vertex records' normals and material
 colours, the tile texture coordinates and the page's texture; the clip matrix is the pipeline's. The GPU clips. The pages
 stay on the GPU (section 13, item 3).
+
+### render_water.cpp: the ripple map
+
+The water's small ripples (R17a): a 256 x 256 RGBA8 map with its levels down to 1 x 1, made at the start (section 1) from
+a fixed generator of its own (the same map on every run and system, nothing drawn from the game's): r, g the slopes of
+40 waves along x and y, b the foam's pattern (the height of 24 finer waves), each wave a whole number of cycles across
+the map so it repeats without a seam. The terrain batches bind it with a repeating, linearly mipmapped sampler
+(anisotropy 8); RippleOffsets gives its two layers' offsets at the client's time (SceneLights::clientTicks: the client
+world's tick and the fraction of the next one it has had), so the ripples hold still under `freeze` and move with the
+game's clock.
+
+### shaders/terrain.hlsl: the water
+
+The water pages keep the game's look underneath: the page texture lit by ground_light from the vertex normal with the
+game's crests (the vertex waves, the water levels and the crests' specular stay the game's: SectorData::AnimateWaves),
+alpha the material's opacity, fog as for the ground. `Water` then, per pixel:
+- **Ripples**: two layers of the ripple map, one repeating every 9 landscape units and one every 5 turned against it,
+  drifting apart; their slopes (calmer within half a unit of the shore) turn the vertex normal. The rippled normal lights
+  the layer up to 30% more or 25% less as it turns to the sun or away (kRippleShade, by the sun's share of the light).
+- **Depth** (`depth`, PageVertex's: the water's depth over the ground at the vertex, from the ground record,
+  interpolated): the share 1 - e^(-0.5 depth) of the depth's look: from half the material's opacity at the shore to 1.15
+  times it in deep water, and up to 15% darker.
+- **Reflection**: Schlick's Fresnel term (0.02 head-on) of the rippled normal towards the camera (SceneLightParams::camera)
+  blends in the sky, taken as the fog's colour at the horizon and 0.75 of it overhead (no sky texture or screen-space
+  reflection yet); the reflected part is opaque, so the water hides more of the ground at a grazing view.
+- **Sun glints**: a sharp and a broad Blinn-Phong lobe of the sun's colour on the rippled normal, gone as the sun sets.
+- **Foam**: within half a unit of the shore, the ripple map's foam pattern above a threshold, lit by the ambient and sun
+  light, at most 0.4 opaque.
+
+The depth is per vertex (one unit apart), so the foam's band follows the triangles near the shore. The water still
+receives no sun shadows (the ground under it does), so glints show in a shadow too. Cost (R17a, 3840x2009, msaa 8,
+frame GPU time on a quiet machine, frozen frames of render_water's scenes): the water pass takes 0.07-0.95 ms (river,
+sea shore, lake by day, lake at night: frames without its draws against with them), and the look above adds nothing
+measurable to it (within 0.03 ms of the game's plain water shading). Check: scenario `render_water`
+(frozen moments on zone1: the beach at the west sea, the sea, the lake in the middle, the river with stones, the river
+and the lake at night; samecapture of a frozen moment drawn twice, diffcapture that the ripples move).
 
 ### render_perf.h: the performance overlay
 
