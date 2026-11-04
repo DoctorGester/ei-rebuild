@@ -85,9 +85,8 @@ const Draw kDraws[] = {
     {"shadow_terrain", kNone, true, 1},
     {"shadow_reduce", SDL_GPU_TEXTUREFORMAT_R32G32B32A32_FLOAT, false, 1},
     {"shadow_dilate", SDL_GPU_TEXTUREFORMAT_R32G32B32A32_FLOAT, false, 1},
-    // The interface's frame pictures (render_ui.cpp): the copy into an RGBA8 picture and the save's picture R16_UINT.
+    // The interface's frame pictures (render_ui.cpp): the copy into an RGBA8 picture.
     {"ui_copy", kRgba8, false, 1},
-    {"ui_rgb565", SDL_GPU_TEXTUREFORMAT_R16_UINT, false, 1},
 };
 
 int ProgramIndex(const char* name) {

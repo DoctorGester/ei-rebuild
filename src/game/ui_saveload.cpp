@@ -1,7 +1,7 @@
-// The save / load window's saving, its entry list and the selected save's picture (ui.h, SaveLoadWindow). The window shows
-// two 256x256 5:6:5 textures; a 256x192 picture (0x18000 bytes, 5:6:5) is drawn into the top of one on the GPU
-// (render::DrawIntoTexture), from shot.sav or the escape menu's copy of the screen, which the window keeps for the
-// save's shot.sav. See docs/notes/ui.md, "Save / load window pictures", and docs/notes/renderer.md, section 6.
+// The save / load window's saving, its entry list and the selected save's picture (ui.h, SaveLoadWindow). A picture
+// (shot.sav's, or the new save's made from the escape menu's copy of the screen) is a texture of its own size drawn
+// over the window's picture rectangle. See docs/notes/ui.md, "Save / load window pictures", and docs/notes/renderer.md,
+// section 6.
 #include "app.h"
 #include "app_helpers.h"
 #include "lib/calendar.h"
@@ -9,6 +9,7 @@
 #include "lib/containers.h"
 #include "lib/text_case.h"
 #include "ui.h"
+#include "save_picture.h"
 #include "game_strings.h"
 
 #include "console.h"
@@ -38,8 +39,6 @@
 
 namespace {
 
-constexpr std::uint32_t kShotBytes = 0x18000;        // 256 x 192 pixels, 16 bits
-constexpr int kShotWidth = 256, kShotHeight = 192;
 constexpr unsigned kInfoMagic = 0x111;
 constexpr unsigned kInfoVersion = 3;
 constexpr std::uint32_t kClosed = 0x100002;          // pending value after saving
@@ -47,11 +46,40 @@ constexpr int kVisibleRows = 16;
 
 // --- Helpers -------------------------------------------------------------------------------------
 
-// The 256x192 5:6:5 picture `pixels` (`bytes` of it: whole rows) drawn into the top of `texture`.
-void DrawPicture(Texture* texture, const void* pixels, std::uint32_t bytes) {
-    const int rows = static_cast<int>(bytes / (kShotWidth * 2));
-    const render::TextureImage picture{pixels, bytes, kShotWidth, rows, render::ImageLayout::Rgb565};
-    if (rows > 0) render::DrawIntoTexture(texture->surface, &picture, 0, 0, kShotWidth, rows);
+// The window's picture rectangle on this screen, in pixels: the size a save's picture is kept at and shown at.
+Size ShownSize(const Interface3D* ui) {
+    Rect shown = SaveLoadWindow::kPictureRect;
+    ui->ScaleRectToScreen(&shown);
+    return shown.Extent();
+}
+
+// The shot.sav bytes of the screen `surface` copied: the old picture from the whole copy, the trailer's shrunk to the
+// window's picture rectangle.
+std::vector<std::uint8_t> ShotOf(const UiSurface& surface, const Interface3D* ui) {
+    const save_picture::Picture screen = surface.ReadPicture();
+    const Size size = ShownSize(ui);
+    return save_picture::ShotFile(screen, save_picture::Shrink(screen, size.w, size.h));
+}
+
+// A texture of `picture`'s size holding it (one reference), or null.
+Texture* PictureTexture(const save_picture::Picture& picture) {
+    if (picture.Empty()) return nullptr;
+    Texture* texture = g_clientWorld.textureManager->NewTexture(picture.width, picture.height, TextureKind::Blank565);
+    if (!texture) return nullptr;
+    texture->AddRef();
+    const render::TextureImage image{picture.rgba.data(), static_cast<std::uint32_t>(picture.rgba.size()), picture.width,
+                                     picture.height, render::ImageLayout::Rgba};
+    render::DrawIntoTexture(texture->surface, &image, 0, 0, picture.width, picture.height);
+    return texture;
+}
+
+// The picture sprite showing the whole of `texture`, its texels nudged half a texel as SetRectangle's are.
+void ShowTexture(UiMesh* sprite, Texture* texture) {
+    const float du = 0.5f / static_cast<float>(texture->width), dv = 0.5f / static_cast<float>(texture->height);
+    sprite->texCoords = {{du, -dv}, {du, 1.0f - dv}, {1.0f + du, -dv}, {1.0f + du, 1.0f - dv}};
+    sprite->RefreshBuffers();
+    sprite->texture = texture;
+    sprite->visible = true;
 }
 
 constexpr const char* kQuickFolder = "saveq";
@@ -105,25 +133,20 @@ void SaveLoadWindow::ShowPicture() {
     if (entry->broken) return;
     if (isSave && currentSelected == 0) {
         // The new save: the game's picture.
-        if (!dialog) return;
-        SceneMesh(3)->visible = true;
-        SceneMesh(3)->texture = dialog;
+        if (dialog) ShowTexture(SceneMesh(3), dialog);
         return;
     }
+    // The file's picture, no larger than shown here.
     std::string folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder);
-    if (!platform::PathExists(folder + game::savewords::ShotFile())) return;
-    // The file's picture (the rows a short file has; the rest keeps the last picture's, as the original's read).
-    std::vector<std::uint8_t> picture(kShotBytes);
-    platform::File file;
-    {
-        std::string path = folder + game::savewords::ShotFile();
-        file.Open(path, platform::FileMode::Read);
-    }
-    const unsigned read = file.Read(picture.data(), kShotBytes);
-    file.Close();
-    DrawPicture(objects[1], picture.data(), read);
-    SceneMesh(3)->visible = true;
-    SceneMesh(3)->texture = objects[1];
+    std::string bytes;
+    if (!platform::ReadWholeFile(folder + game::savewords::ShotFile(), &bytes)) return;
+    const Size size = ShownSize(ui);
+    const auto* data = reinterpret_cast<const std::uint8_t*>(bytes.data());
+    Texture* made = PictureTexture(save_picture::Fit(save_picture::ReadShot(data, bytes.size()), size.w, size.h));
+    if (!made) return;
+    if (picture) picture->Release();
+    picture = made;
+    ShowTexture(SceneMesh(3), picture);
 }
 
 void SaveEntry::MakeTitle() {
@@ -198,7 +221,7 @@ void SaveLoadWindow::SaveGame() {
             std::string path = folder + game::savewords::ShotFile();
             shot.Open(path, platform::FileMode::Create);
         }
-        shot.Write(newPicture.data(), kShotBytes);
+        shot.Write(newPicture.data(), static_cast<unsigned>(newPicture.size()));
         shot.Close();
     }
     g_cursor.SetShape(0);
@@ -259,18 +282,12 @@ void SaveLoadWindow::FillEntries() {
         entry->MakeTitle();
         entry->broken = false;
 
-        // The game's picture: a new texture drawn from the escape menu's copy of the screen, the copy kept for shot.sav.
+        // The game's picture: the new save's shot.sav made from the escape menu's copy of the screen, and its texture.
         if (dialog) dialog->Release();
         dialog = nullptr;
-        // The escape menu's 256x192 5:6:5 copy of the screen, or null.
-        if (!ui->screenCopy.empty()) {
-            const auto* copy = reinterpret_cast<const std::uint8_t*>(ui->screenCopy.data());
-            Texture* shot = CreateTexture(0x100, 0x100, TextureKind::Blank565);
-            dialog = shot;
-            shot->AddRef();
-            RemoveObjectAt(lib::Count(objects) - 1);
-            newPicture.assign(copy, copy + kShotBytes);
-            DrawPicture(dialog, newPicture.data(), kShotBytes);
+        if (ui->screenCopy) {
+            newPicture = ShotOf(*ui->screenCopy, ui);
+            dialog = PictureTexture(save_picture::ReadShot(newPicture.data(), newPicture.size()));
         }
     }
 
@@ -320,11 +337,11 @@ void QuickSave(const char* slot, bool stepFrame) {
     info.WriteString(title);
     info.Close();
 
-    // shot.sav: the copied screen at 256x192.
-    const std::vector<std::uint16_t> pixels = surface->Rgb565Copy(kShotWidth, kShotHeight);
+    // shot.sav: the copied screen.
+    const std::vector<std::uint8_t> bytes = ShotOf(*surface, &g_interface);
     platform::File shot;
     shot.Open(folder + game::savewords::ShotFile(), platform::FileMode::Create);
-    shot.Write(pixels.data(), kShotBytes);
+    shot.Write(bytes.data(), static_cast<unsigned>(bytes.size()));
     shot.Close();
     if (surface != nullptr) {
         delete surface;

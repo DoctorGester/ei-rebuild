@@ -67,10 +67,9 @@ void Texture::TakeBlankHolder(TextureDevice* device, int newWidth, int newHeight
 }
 
 int Texture::CreateBlank(TextureDevice* device, const MmpHeader* header) {
-    // A square of header->width (the height is not read). The atlases keep one level, as the original's every blank
-    // texture (a level below would mix neighbouring cells); the others get their levels made after each draw.
-    const auto size = static_cast<int>(header->width);
-    TakeBlankHolder(device, size, size, format != kAtlasFormat);
+    // The atlases keep one level, as the original's every blank texture (a level below would mix neighbouring cells);
+    // the others get their levels made after each draw.
+    TakeBlankHolder(device, static_cast<int>(header->width), static_cast<int>(header->height), format != kAtlasFormat);
     // The original meant bits * width * height / 8 but took the bits from a field its channel split never writes.
     uploadResult = 0;
     return 1;

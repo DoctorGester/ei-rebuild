@@ -186,7 +186,8 @@ void Interface3D::Update() {
         if (std::ssize(stack) == 1) {
             delete backdrop;
             backdrop = nullptr;
-            screenCopy = {};
+            delete screenCopy;
+            screenCopy = nullptr;
             backdropMode = 0;
             if (!IsMultiplayerClient()) GameSetServerPaused(serverFlag);
             serverFlag = 0;
@@ -501,7 +502,8 @@ void Interface3D::DrawOverlays() {
         // A window opens over the screen: the screen greyed behind it.
         if (!backdrop) MakeBackdrop(this);
         backdrop->CaptureScreen();
-        screenCopy = backdrop->Rgb565Copy(0x100, 0xC0);
+        if (!screenCopy) screenCopy = new UiSurface(this, 0, 0, width, height, SurfaceBlend::Opaque, false);
+        screenCopy->CaptureScreen();
         backdrop->Greyscale();
         backdropMode = 2;
     } else if (backdropMode == 3) {

@@ -625,11 +625,30 @@ functions return double), so no rounding happens in between.
 ## Save / load window pictures
 
 The save / load window's saving, its entry list and the selected save's picture (ui.h, SaveLoadWindow; renderer.md sections
-6 and 7). The window shows two 256x256 5:6:5 textures: objects[1], into which ShowPicture draws the selected save's shot.sav
-(256x192 pixels), and dialog, which FillEntries draws from the escape menu's 256x192 copy of the screen for the new save of a
-save window. Both are drawn into on the GPU (render::DrawIntoTexture, the 0x18000 bytes as stored: 5:6:5 rows of 512 bytes,
-at the texture's top; the rows a short shot.sav lacks keep the last picture's). The window keeps the copy (newPicture),
-which SaveGame writes to the new save's shot.sav, so the file's bytes are the original's.
+6 and 7).
+
+**shot.sav** (`save_picture.h`). The original's file is 256x192 5:6:5 pixels (0x18000 bytes, rows from the top, no header),
+and the original game reads exactly those bytes. Ours writes them first, then a trailer the original never reads: "EIPC",
+version 1, width, height, the length of a QOI file (`src/lib/qoi.h`, 8 bits a channel, 3 channels) and the file
+(numbers little-endian 32 bits). Our loader takes the trailer's picture when its magic, version and QOI file are whole,
+else the 5:6:5 one (an old save's, the original game's); a short file's missing rows are black. So one file serves both
+games and old saves keep their pictures. The trailer at 4K is about 1 MB (the free-space check's 1 MB margin is not
+grown for it).
+
+**Sizes.** A picture is kept at the size the window's picture rectangle (`SaveLoadWindow::kPictureRect`, 290x220 layout
+units) has on the screen it was made on: 290x220 at 800x600, 1044x792 at 3840x2160. The 5:6:5 picture is the copy's pixel
+under each 256x192 centre ((2x + 1) * size / 512, each channel's top bits: the original's); the trailer's is the copy
+shrunk to the rectangle, each pixel the average of the copy's pixels it covers. Both come from one copy of the screen:
+the escape menu's (`Interface3D::screenCopy`: the whole window, as the backdrop) for the save window, the 800x600
+layout's rectangle for QuickSave (the screen with the interface, as the original's).
+
+**Showing.** ShowPicture reads the selected save's shot.sav, shrinks a picture larger than the rectangle is here to fit it
+(a 4K save shown at 800x600) and makes a texture of the picture's own size (`picture`; a 5:6:5 picture is 256x192); the
+sprite shows the whole texture (`ShowTexture`: the texels half a texel in, as SetRectangle's) over the rectangle, linear
+filtered by the stages' filters, so a smaller picture is stretched smoothly. The save window's new save is `newPicture`
+(the shot.sav bytes FillEntries makes from the escape menu's copy), shown as `dialog`; SaveGame writes those bytes.
+Checked by ui_saveload, ui_quicksave (checksave compares both pictures with the frame; `oldshot` cuts savea's file to
+the original's and the Load window shows it) and the unit checks (tests/unit/save_picture.cpp).
 
 ## Surface blit
 

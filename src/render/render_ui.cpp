@@ -123,7 +123,6 @@ struct UiPicture {
 std::unordered_map<const void*, UiPicture> g_uiPictures;
 // Pictures given up: released once the frames that drew them are done.
 std::vector<gpu::Texture> g_retired;
-gpu::Texture g_rgb565;   // ReadPictureRgb565's target, as large as the largest asked for
 
 struct UiCopy {
     gpu::Texture image;
@@ -132,8 +131,7 @@ struct UiCopy {
 };
 std::vector<UiCopy> g_copies;   // frame copies waiting for the next DrawPending (or a read)
 
-static_assert(gpu_shaders::ui_picture::kBlockUiParams == 0 && gpu_shaders::ui_copy::kBlockUiParams == 0 &&
-              gpu_shaders::ui_rgb565::kBlockUiParams == 0);
+static_assert(gpu_shaders::ui_picture::kBlockUiParams == 0 && gpu_shaders::ui_copy::kBlockUiParams == 0);
 void ApplyFs(const UiParams& fs) { gpu::PushUniforms(gpu::Stage::Fragment, 0, fs); }
 
 gpu::Pipeline TargetPipeline(int program, gpu::Format format, const char* label) {
@@ -323,37 +321,19 @@ void DropPicture(const void* key) {
     g_uiPictures.erase(it);
 }
 
-bool ReadPictureRgb565(const void* key, int width, int height, std::uint16_t* out) {
-    if (!out || width < 1 || height < 1 || width > kMostPicture || height > kMostPicture) return false;
+bool ReadPicture(const void* key, int* width, int* height, std::vector<std::uint8_t>* rgba) {
     const UiPicture* p = UiPictureOf(key);
     if (!p) return false;
-    if (!g_rgb565 || g_rgb565.width < width || g_rgb565.height < height) {
-        const int w = std::max(width, g_rgb565.width), h = std::max(height, g_rgb565.height);
-        gpu::Release(g_rgb565);
-        // Read back only (an integer format is not sampled).
-        g_rgb565 = gpu::MakeTexture({w, h, 1, 1, gpu::Format::R16Uint, gpu::kColourTarget, "ei-ui-rgb565"});
-        if (!g_rgb565) return false;
-    }
-    const gpu::Pipeline pipeline = TargetPipeline(gpu_shaders::ui_rgb565::kIndex, gpu::Format::R16Uint, "ei-ui-rgb565");
-    if (!pipeline || !BeginTargetPass(g_rgb565, false, "ei-ui-rgb565")) return false;
-    gpu::SetViewport({0, 0, width, height});
-    gpu::ApplyPipeline(pipeline);
-    BindTexture(p->image);
-    ApplyRect(Rect{0, 0, width, height}, width, height);
-    UiParams fs{};
-    fs.source[2] = p->width;
-    fs.source[3] = p->height;
-    fs.dest[0] = width;
-    fs.dest[1] = height;
-    ApplyFs(fs);
-    gpu::Draw(0, 6);
-    gpu::EndPass();
     gpu::Ticket ticket;
     gpu::Texels texels;
-    const bool read = ReadBack(g_rgb565, Rect{0, 0, width, height}, &ticket, &texels);
-    for (int y = 0; read && y < height; ++y)
-        std::memcpy(out + static_cast<std::size_t>(y) * static_cast<std::size_t>(width), texels.Row(y),
-                    static_cast<std::size_t>(width) * sizeof(std::uint16_t));
+    const bool read = ReadBack(p->image, Rect{0, 0, p->width, p->height}, &ticket, &texels);
+    if (read) {
+        const std::size_t row = static_cast<std::size_t>(p->width) * 4;
+        rgba->resize(row * static_cast<std::size_t>(p->height));
+        for (int y = 0; y < p->height; ++y) std::memcpy(rgba->data() + row * static_cast<std::size_t>(y), texels.Row(y), row);
+        *width = p->width;
+        *height = p->height;
+    }
     gpu::Release(ticket);
     return read;
 }

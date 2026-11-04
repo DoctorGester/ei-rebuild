@@ -39,8 +39,7 @@ void CapturePicture(const void* key, const Rect& source, int width, int height);
 bool HasPicture(const void* key);
 void DrawPicture(const void* key, const Rect& destination, bool grey);
 void DropPicture(const void* key);
-// The picture stretched to `width` x `height` (each pixel the one under its centre, (2 x + 1) * size / (2 width)) as
-// 5:6:5 pixels (each channel's top bits), rows from the top: the save's picture (shot.sav keeps 5:6:5).
-bool ReadPictureRgb565(const void* key, int width, int height, std::uint16_t* out);
+// The picture as it is: its size and its RGBA8 pixels, rows from the top (read back now, a stall): the save's picture.
+bool ReadPicture(const void* key, int* width, int* height, std::vector<std::uint8_t>* rgba);
 
 } // namespace render::ui

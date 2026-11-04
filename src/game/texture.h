@@ -195,8 +195,8 @@ public:
     void MarkLoaded(const MmpHeader* header);
     // With its alpha from "a_<file>" beside it. 1 without loading when this texture is loaded and named `path`.
     int LoadBmp(TextureDevice* device, const char* path);
-    // A square texture header->width wide (the height is not read) the game draws into on the GPU (TakeBlankHolder).
-    // Returns 1.
+    // A header->width x header->height texture the game draws into on the GPU (TakeBlankHolder; the original made a
+    // square of the width, and every texture but the save pictures is square). Returns 1.
     int CreateBlank(TextureDevice* device, const MmpHeader* header);
     // A new holder in surface of a `width` x `height` texture the game draws into on the GPU (render::BlankTexture),
     // keeping what format keeps of the alpha; with `mipmapped` its levels made after each draw. The game's error for

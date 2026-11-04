@@ -8,6 +8,7 @@
 #include "engine_object.h"
 #include "game_strings.h"   // game::kEmptyText
 #include "object_tables.h"   // g_keyActions
+#include "save_picture.h"
 #include "texture.h"   // TextureKind
 #include "ui_font.h"
 #include "unit.h"   // LockKey
@@ -230,7 +231,7 @@ public:
     int backdropMode = 0;            // the backdrop is drawn in modes 2, 3 and 4 (PushWindow sets 3 / 1)
     UiSurface* backdrop = nullptr;
     UiSurface* secondBackdrop = nullptr;
-    std::vector<std::uint16_t> screenCopy;   // the 256x192 5:6:5 copy of the screen the escape menu saves with (SavePicture)
+    UiSurface* screenCopy = nullptr;   // never shown: the screen under the first window, the escape menu's save picture
     std::uint8_t serverFlag = 0;     // the server flag kept for the first window (PushWindow)
     UiSurface* statusSurface = nullptr;    // only while ShowStatusText runs
     Point mouse;
@@ -353,10 +354,10 @@ public:
     // Show: shown. Hide: not shown (its frame picture is kept).
     void Show();
     void Hide();
-    // CaptureScreen: the screen under the surface copied into it (a frame picture). Rgb565Copy returns width *
-    // height 5:6:5 pixels (the picture stretched). Greyscale: the picture drawn as (2 r + 4 g + b) / 16 per channel.
+    // CaptureScreen: the screen under the surface copied into it (a frame picture). ReadPicture: that picture's
+    // pixels (empty without one). Greyscale: the picture drawn as (2 r + 4 g + b) / 16 per channel.
     void CaptureScreen();
-    std::vector<std::uint16_t> Rgb565Copy(int width, int height);
+    save_picture::Picture ReadPicture() const;
     void Greyscale();
 
     bool Shown() const { return shown; }
@@ -1551,7 +1552,7 @@ struct SaveEntry {
 
 // The quick and automatic saves (`slot` the save folder's name). Nothing for a multiplayer client or when
 // the disc lacks the space a save needs (0 free space: not checked). Writes info.sav (the "gtime" variable,
-// the zone's map, the zone, the time, an empty title) and shot.sav (the screen as 256x192 5:6:5 pixels).
+// the zone's map, the zone, the time, an empty title) and shot.sav (the screen's picture, save_picture.h).
 void QuickSave(const char* slot, bool stepFrame);
 // Not for a multiplayer client; only when saves\<slot>\ exists.
 void QuickLoad(const char* slot);
@@ -1587,11 +1588,11 @@ public:
     // Saves into the selected entry's folder, then info.sav and shot.sav (newPicture); a message
     // box when the disc is full.
     void SaveGame();
-    // The selected save's shot.sav (drawn into objects[1]), or dialog for a save window's new save; hidden
-    // for none or a broken save.
+    // The selected save's shot.sav (as `picture`, no larger than shown), or dialog for a save window's new save;
+    // hidden for none or a broken save.
     void ShowPicture();
-    // Reads saves\save*\info.sav and sorts the list; a save window's new save goes first (dialog drawn from
-    // the escape menu's 256x192 copy of the screen, kept in newPicture).
+    // Reads saves\save*\info.sav and sorts the list; a save window's new save goes first (newPicture made from the
+    // escape menu's copy of the screen, shown as dialog).
     void FillEntries();
 
     void CreateScreen() override;
@@ -1617,8 +1618,11 @@ public:
     bool sliding;                    // sliding in; input is ignored meanwhile
     float slide;                     // 0..1
     UiScrollbar* scrollbar;
+    // The selected save's picture in layout coordinates (CreateScreen's sprite).
+    static constexpr Rect kPictureRect{410, 100, 700, 320};
+    Texture* picture = nullptr;     // the selected save's picture (ShowPicture)
     Texture* dialog;                // the save window's picture of the game for the new save
-    std::vector<std::uint8_t> newPicture;    // dialog's pixels (256x192 5:6:5), written to the new save's shot.sav
+    std::vector<std::uint8_t> newPicture;    // the new save's shot.sav bytes (save_picture.h), dialog's picture
     std::string name;               // the save name being edited
     bool nameTyped;
     int cursor;                      // caret position in name (bytes, at a character's start: U4)

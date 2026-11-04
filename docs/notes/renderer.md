@@ -215,7 +215,7 @@ two blend factors (the particles' additive / normal switch). The line strip (`re
 
 **Interface windows drawn each frame.** A window surface has no pixels of its own: each frame its Blit draws its quads and
 glyph runs into the frame (`render::ui::Solid` / `Glyphs`, `render_ui.cpp`, ui-native.md section 3), and a screen copy is
-a frame picture on the GPU (`CapturePicture` / `DrawPicture`). The reader: the save picture (`ReadPictureRgb565`). Each surface keeps the layout rectangle it was given and is in a registry of live surfaces,
+a frame picture on the GPU (`CapturePicture` / `DrawPicture`). The reader: the save picture (`ReadPicture`). Each surface keeps the layout rectangle it was given and is in a registry of live surfaces,
 so a resolution change places them all again (`UiSurface::RelayoutAll`, "Resolution changes").
 
 **Holders** are our own `Surface` (surface.h: width, height, bits per pixel); no holder has pixels in memory: the
@@ -225,24 +225,22 @@ pixels (`ChannelLayout::ToNative` to the screen's format, ui_cursor.cpp); the re
 (`render::PictureFromMmp`). Scenarios: render_present, render_titles_present, render_movie_present, ui_compare,
 ui_saveload.
 
-**Save / load screen's pictures** (`ui_saveload.cpp`; ui.md, "Save / load window pictures"): two 256x256 5:6:5 textures,
-the selected save's shot.sav and the new save's picture (from the escape menu's 256x192 copy), both drawn into on the
-GPU (section 7). The new folder is "save<n>", n one more than the highest number after "save". Checked by ui_saveload.
+**Save / load screen's pictures** (`ui_saveload.cpp`; ui.md, "Save / load window pictures"): the selected save's picture
+and the new save's (from the escape menu's copy of the screen), each a texture of the picture's own size drawn into on
+the GPU (section 7). The new folder is "save<n>", n one more than the highest number after "save". Checked by ui_saveload.
 
 **Screen copies between frames.** The quick save (F5 "saveq") and the autosaves copy the screen with CaptureScreen and
-stretch it to 256x192 for shot.sav. The new game's autosave draws the interface first (a frame step without a present:
+make shot.sav from it (ui.md, "Save / load window pictures"). The new game's autosave draws the interface first (a frame step without a present:
 the copy comes from that frame); the quick save key copies between frames, before the next frame's first draw. The
 renderer's target then still holds the last frame: the copy (`render::ui::CapturePicture`, which draws the frame so far
 first, SplitFrame) reads it as it is when nothing of the frame is drawn or queued yet. A pass there would clear it first
-(the save's picture was once the plain clear colour). Checked by ui_quicksave (`checksave saveq world`: the picture
-against a capture of the same frozen moment as 8x8 block averages).
+(the save's picture was once the plain clear colour). Checked by ui_quicksave (`checksave saveq world`: both pictures
+against a capture of the same frozen moment as 32x24 block averages).
 
 **Screen copies on the GPU.** A surface the screen is copied into (the escape menu's and the camp's backdrops, the
 quick save's copy) gets a frame picture of its size (`ui_copy` from the frame target, x *
-source / size, as DirectDraw's Blt picked), drawn by its Blit (`ui_picture`, greyed after Greyscale). Rgb565Copy draws the
-picture into an R16_UINT target of the wanted size (`ui_rgb565`: the pixel under each centre, (2x+1) * source / (2 *
-size), each channel's top bits) and reads only that back (`render::ui::ReadPictureRgb565`): the escape menu's 256x192
-`screenCopy` and the quick save's shot.sav keep their 5:6:5 format. Checked by ui_quicksave, the gallery's escmenu / map_escmenu frames, ui_compare and
+source / size, as DirectDraw's Blt picked), drawn by its Blit (`ui_picture`, greyed after Greyscale). ReadPicture reads a
+picture back at its size (`render::ui::ReadPicture`, RGBA8); the save's pictures are made from it on the CPU. Checked by ui_quicksave, the gallery's escmenu / map_escmenu frames, ui_compare and
 `ei_ui_check`.
 
 ## 7. Textures
@@ -302,9 +300,8 @@ transparent texture (one level), and `render::DrawIntoTexture(holder, image, x, 
 picture's rectangle (or white, without the file) into it, replacing what was there: blending off, alpha cut to one bit
 (at least half: opaque, else 0). The picture is the file's
 pixels right after the header (the extra block not skipped, as the original read them). Colours are 8-bit.
-- The save / load pictures: a 256x192 5:6:5 picture (shot.sav's bytes as stored, or the escape menu's `screenCopy`) is
-  drawn into a 5:6:5 texture's top (`ImageLayout::Rgb565`); the save window keeps the copy (`SaveLoadWindow::newPicture`)
-  and writes shot.sav from it, so the file's bytes are as before.
+- The save / load pictures: a blank texture of the picture's size into which its RGBA8 pixels are drawn
+  (`ImageLayout::Rgba`; the 5:6:5 ones decoded on the CPU, `save_picture.h`).
 - The global map's clouds (`GlobalMapClouds`, global_map_clouds.cpp): the CPU keeps only the three random words of each
   of a frame's four layers (`render::CloudFrame`: the game's random numbers are drawn as before), and `render::DrawClouds`
   each frame draws the 4:4:4:4 texture from two frames, the blend and the 256-entry alpha ramp (texture_clouds.hlsl:

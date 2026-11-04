@@ -18,9 +18,9 @@ surface is drawn above every mesh, in stack and child order.
 | Fill / Clear / FillRect / FrameRect | `ui_surface.cpp` (`render::ui::FrameRects`) | solid quads |
 | Lines and carets | `UiSurface::Line` (`render::ui::LineRects`: the 1-pixel pen's rule, end point left out): console, chat typed line, edit field, connect list, save / load list | solid quads |
 | Single pixel | `UiSurface::Dot`: the HUD map's marker | a solid quad |
-| Screen copy into a surface | `CaptureScreen`: escape-menu backdrop, the save's copy | a frame picture (`render::ui::CapturePicture`, `ui_copy`) |
+| Screen copy into a surface | `CaptureScreen`: escape-menu backdrop, the escape menu's save copy (`screenCopy`), the quick save's copy | a frame picture (`render::ui::CapturePicture`, `ui_copy`) |
 | Greyscale, (2r+4g+b)/16 | `Greyscale`: escape-menu backdrop | the picture drawn through `ui_picture`'s grey option |
-| Save picture | `Rgb565Copy` -> `render::ui::ReadPictureRgb565`: the escape menu's 256x192 copy, QuickSave, SaveGame | GPU, 5:6:5 read back |
+| Save picture | `UiSurface::ReadPicture` -> `render::ui::ReadPicture`: the copy read back at its size, made into shot.sav on the CPU (`save_picture.h`): FillEntries, QuickSave | GPU read back, CPU |
 | Show / hide | `UiSurface::Show` / `Hide` | the shown flag; its frame picture is kept |
 | Titles' RTF text | `UiScrollingSurface::RenderText` (`render_rich_text.cpp` lays it out) | glyph runs |
 | Sprites, shapes, minimap, portraits | `UiMesh::Draw` -> `render::BeginMesh`; `ui_mesh.cpp` | GPU meshes |
@@ -130,8 +130,10 @@ source / size; the copy runs at the next DrawPending, after the frame so far is 
 surface's Blit stretched over its rectangle and greyed after `Greyscale` (`ui_picture`). A picture still drawn in the
 frame is released after it. A capture between frames reads the last frame (the quick save's key).
 
-**Reader.** `Rgb565Copy` reads the picture as 5:6:5 (`ReadPictureRgb565`; the escape-menu and QuickSave pictures only need to be within
-tolerance). In-game screenshots come from render::ReadFrame (renderer.md).
+**Reader.** `UiSurface::ReadPicture` reads the picture back as it is (`render::ui::ReadPicture`, RGBA8 at the picture's size,
+a stall): only when a save's picture is made (the save window's FillEntries, QuickSave). The escape menu keeps its own
+copy of the screen for that (`Interface3D::screenCopy`, a surface never shown, captured beside the backdrop) and reads it
+only when a save window opens. In-game screenshots come from render::ReadFrame (renderer.md).
 
 **Lost device.** A lost device ends the game (renderer.md, "No device-loss recovery").
 
@@ -148,7 +150,7 @@ zero-length 2-px line is one dot. The game uses only 1 and 2 px pens, horizontal
 prints each check) plays render.cpp's part itself with the frame of `tests/render/glyph_cases.{h,cpp}` (no platform
 code; `ei_render_check` runs the glyph cases on Vulkan or Metal). Fills, frames, lines and pixels drawn as solids are
 compared with GDI drawing into an 8:8:8 DIB section exactly; glyph runs with each quad's coverage blended in turn (one
-level a channel); the picture's copy, 5:6:5 reading and its plain and grey draws exactly. Any `ei::Log`
+level a channel); the picture's copy, its read back and its plain and grey draws exactly. Any `ei::Log`
 line (gpu.h's problems among them) fails. `ui_compare` opens the options and the help over them twice and requires the
 same frames.
 
@@ -271,14 +273,13 @@ The interface drawn into the frame (render_ui.h; section 3). `Solid` and `Glyphs
 the vertices and the atlases on the GPU before the frame's passes and `DrawUiBatch` draws a batch with `ui_quad`. The
 frame pictures: `CapturePicture` makes a render target of the picture's size and queues the frame copy (`ui_copy`), run
 at the start of the next DrawPending (`RunCanvasCommands`) or of a read (`RunCanvasesNow`); `DrawPicture` records a
-`Command::Picture` (`ui_picture`, nearest texel, greyed on request); the 5:6:5 read draws the picture into an R16_UINT
-target and reads only that back. The GDI pen and frame rules as rectangles (`LineRects`, `FrameRects`). render.cpp's
+`Command::Picture` (`ui_picture`, nearest texel, greyed on request); `ReadPicture` reads a picture back as it is. The GDI pen and frame rules as rectangles (`LineRects`, `FrameRects`). render.cpp's
 part: the two commands, `UploadUi`, `UiFrameDone` after the present; tools/ui_check plays it itself.
 
 ### render_ui.h
 
 The interface drawn into the frame (section 3): solid rectangles and glyph runs at the point of the call in screen pixels,
-the frame pictures (copies of the frame kept as data, drawn stretched and optionally grey, read as 5:6:5),
+the frame pictures (copies of the frame kept as data, drawn stretched and optionally grey, read back),
 and the GDI pen rules. Single-threaded: the thread that draws the interface.
 
 ### render_text.h
