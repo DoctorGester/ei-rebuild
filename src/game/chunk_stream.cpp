@@ -5,7 +5,6 @@
 #include "asset_text.h"
 #include "console.h"
 
-#include "lib/containers.h"
 #include "platform/platform.h"
 #include "mob_script_decoder.h"
 #include "lib/str.h"
@@ -22,18 +21,7 @@ namespace {
 constexpr int kHeader = 8;
 
 std::uint32_t FileRead(platform::File* file, void* data, std::uint32_t size) { return file->Read(data, size); }
-void FileWrite(platform::File* file, const void* data, std::uint32_t size) { file->Write(data, size); }
 void FileSeek(platform::File* file, std::int32_t offset, platform::SeekFrom from) { file->Seek(offset, from); }
-
-// A chunk holding one value: header, then the value (counted with the header).
-void WriteValueChunk(Chunk* chunk, std::uint32_t id, const void* value, std::uint32_t valueSize) {
-    int size = kHeader + static_cast<int>(valueSize);
-    FileWrite(chunk->File(), &id, 4);
-    FileWrite(chunk->File(), &size, 4);
-    if (chunk->parent) chunk->parent->Advance(size);
-    chunk->consumed += size;
-    FileWrite(chunk->File(), value, valueSize);
-}
 
 void ReadCounted(Chunk* chunk, void* data, std::uint32_t size) {
     FileRead(chunk->File(), data, size);
@@ -53,69 +41,6 @@ void Chunk::Advance(int bytes) {
 void Chunk::OnChunk() {}
 
 platform::File* Chunk::File() { return parent ? parent->File() : nullptr; }
-
-// --- Writing -----------------------------------------------------------------------------------
-
-void Chunk::BeginWrite(std::uint32_t newId) {
-    FileWrite(File(), &newId, 4);
-    start = File()->Position();
-    FileWrite(File(), &size, 4);
-    consumed = 0;
-    if (parent) parent->Advance(kHeader);
-    consumed += kHeader;
-}
-
-void Chunk::EndWrite() {
-    std::uint32_t end = File()->Position();
-    FileSeek(File(), static_cast<std::int32_t>(start), platform::SeekFrom::Begin);
-    FileWrite(File(), &consumed, 4);
-    FileSeek(File(), static_cast<std::int32_t>(end), platform::SeekFrom::Begin);
-}
-
-void Chunk::WriteHeader(std::uint32_t chunkId, int payload) {
-    int chunkSize = payload + kHeader;
-    FileWrite(File(), &chunkId, 4);
-    FileWrite(File(), &chunkSize, 4);
-    if (parent) parent->Advance(chunkSize);
-    consumed += chunkSize;
-}
-
-void Chunk::WriteFloat(std::uint32_t chunkId, std::uint32_t valueBits) { WriteValueChunk(this, chunkId, &valueBits, 4); }
-
-void Chunk::WriteInt(std::uint32_t chunkId, int value) { WriteValueChunk(this, chunkId, &value, 4); }
-
-void Chunk::WriteByte(std::uint32_t chunkId, std::uint8_t value) { WriteValueChunk(this, chunkId, &value, 1); }
-
-// The three values are written one by one from the arguments.
-void Chunk::WriteVector3(std::uint32_t chunkId, std::uint32_t x, std::uint32_t y, std::uint32_t z) {
-    int chunkSize = 0x14;
-    FileWrite(File(), &chunkId, 4);
-    FileWrite(File(), &chunkSize, 4);
-    if (parent) parent->Advance(chunkSize);
-    consumed += chunkSize;
-    FileWrite(File(), &x, 4);
-    FileWrite(File(), &y, 4);
-    FileWrite(File(), &z, 4);
-}
-
-// The four values are written as one 16-byte block.
-void Chunk::WriteQuaternion(std::uint32_t chunkId, Quaternion value) {
-    int chunkSize = 0x18;
-    FileWrite(File(), &chunkId, 4);
-    FileWrite(File(), &chunkSize, 4);
-    if (parent) parent->Advance(chunkSize);
-    consumed += chunkSize;
-    FileWrite(File(), &value, 0x10);
-}
-
-void Chunk::WriteBlob(std::uint32_t chunkId, const void* data, int byteCount) {
-    int total = byteCount + kHeader;
-    FileWrite(File(), &chunkId, 4);
-    FileWrite(File(), &total, 4);
-    if (parent) parent->Advance(total);
-    consumed += total;
-    FileWrite(File(), data, static_cast<std::uint32_t>(byteCount));
-}
 
 // --- Reading -----------------------------------------------------------------------------------
 
@@ -220,20 +145,6 @@ std::string Chunk::ReadEncodedString() {
     return text;
 }
 
-// A chunk holding the characters (no terminator), in the asset code page as ReadString reads them. The buffer is
-// taken after the file (GetBuffer(0)).
-void Chunk::WriteString(std::uint32_t chunkId, std::string text) {
-    text = text::ToAssetText(text);
-    int chunkSize = static_cast<int>(text.size()) + kHeader;
-    FileWrite(File(), &chunkId, 4);
-    FileWrite(File(), &chunkSize, 4);
-    if (parent) parent->Advance(chunkSize);
-    consumed += chunkSize;
-    int length = lib::Count(text);
-    platform::File* file = File();
-    FileWrite(file, text.data(), static_cast<std::uint32_t>(length));
-}
-
 // `count` string chunks read through a child chunk (its constructor inlined). The count is unsigned.
 std::vector<std::string> Chunk::ReadStringArray() {
     std::uint32_t count;
@@ -245,30 +156,6 @@ std::vector<std::string> Chunk::ReadStringArray() {
         array.push_back(child.ReadString());
     }
     return array;
-}
-
-// The size covers the count and every element's chunk. The texts in the asset code page, as WriteString writes them.
-void Chunk::WriteStringArray(std::uint32_t arrayId, const std::vector<std::string>* texts) {
-    std::vector<std::string> converted;
-    for (const std::string& text : *texts) converted.push_back(text::ToAssetText(text));
-    const std::vector<std::string>* array = &converted;
-    int count = static_cast<int>(array->size());
-    int characters = 0;
-    for (const std::string& text : *array) characters += static_cast<int>(text.size());
-    std::uint32_t chunkId = arrayId;
-    int chunkSize = characters + count * 8 + 0xC;
-    FileWrite(File(), &chunkId, 4);
-    FileWrite(File(), &chunkSize, 4);
-    if (parent) parent->Advance(chunkSize);
-    consumed += chunkSize;
-    int n = count;
-    FileWrite(File(), &n, 4);
-    for (const std::string& text : *array) {
-        int elementSize = static_cast<int>(text.size()) + kHeader;
-        FileWrite(File(), &arrayId, 4);
-        FileWrite(File(), &elementSize, 4);
-        FileWrite(File(), text.data(), static_cast<std::uint32_t>(text.size()));
-    }
 }
 
 // --- The root chunk ------------------------------------------------------------------------------

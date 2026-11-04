@@ -1,5 +1,5 @@
 // The zone file's unit records (kind 5; map_spec.h) with their five behaviour records (0x4C bytes: patrols of
-// waypoints and the guard settings), the small chunk classes that read and write those (waypoint, patrol,
+// waypoints and the guard settings), the small chunk classes that read those (waypoint, patrol,
 // behaviour) and the patrol array's copy. See docs/notes/objects.md, "Zone files and unit records".
 #include "ai_map.h"
 #include "map_object.h"
@@ -12,7 +12,6 @@
 #include "lib/bytes.h"
 #include "lib/containers.h"
 
-#include <bit>
 #include <cstring>
 #include <initializer_list>
 #include <new>
@@ -25,8 +24,7 @@
 namespace mapspec {
 
 
-// The small chunk classes: a Chunk and the value it reads or writes (the target is set after the
-// constructor). OnChunk is the first virtual; the behaviour record's writer is called directly.
+// The small chunk classes: a Chunk and the value it reads (the target is set after the constructor).
 template <typename T>
 class TargetChunk : public Chunk {
 public:
@@ -48,18 +46,9 @@ class BehaviourChunk : public TargetChunk<Behaviour> {
 public:
     using TargetChunk::TargetChunk;
     void OnChunk() override;
-    void Write();
 };
 
 namespace {
-
-std::uint32_t Bits(float f) {
-    std::uint32_t b;
-    b = std::bit_cast<std::uint32_t>(f);
-    return b;
-}
-
-void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(id, Bits(v.x), Bits(v.y), Bits(v.z)); }
 
 void StreamRead(ByteStream* stream, void* data, unsigned size) { stream->Read(data, size); }
 void StreamWrite(ByteStream* stream, const void* data, unsigned size) { stream->Write(data, size); }
@@ -146,45 +135,6 @@ void BehaviourChunk::OnChunk() {
     }
 }
 
-// Writes the behaviour record (chunk BBBC0000), each patrol a BBBD0000 chunk with its
-// waypoints as BBBE0000 chunks.
-void BehaviourChunk::Write() {
-    Chunk& c = *this;
-    Behaviour* b = target;
-    c.BeginWrite(0xBBBC0000);
-    c.WriteByte(0xBBBC000B, static_cast<std::uint8_t>(b->alertMode));
-    c.WriteFloat(0xBBBC000C, std::bit_cast<std::uint32_t>(b->callRadius));
-    c.WriteByte(0xBBBC0002, static_cast<std::uint8_t>(b->loop));
-    c.WriteByte(0xBBBC000E, static_cast<std::uint8_t>(b->alarm));
-    c.WriteByte(0xBBBC000D, static_cast<std::uint8_t>(lib::Has(b->flags, BehaviourFlag::AlwaysUpdated)));
-    c.WriteInt(0xBBBC0003, b->type);
-    c.WriteFloat(0xBBBC0004, Bits(b->guardRadius));
-    c.WriteFloat(0xBBBC000A, Bits(b->unreadChunk));
-    WriteVector(c, 0xBBBC0005, b->guard);
-    c.WriteByte(0xBBBC0007, static_cast<std::uint8_t>(b->enabled));
-    c.WriteByte(0xBBBC0006, static_cast<std::uint8_t>(b->alarmKind));
-    PatrolChunk patrolChunk(this);
-    for (int i = 0; i < std::ssize(target->patrols); ++i) {
-        Patrol* p = &target->patrols[i];
-        patrolChunk.target = p;
-        patrolChunk.BeginWrite(0xBBBD0000);
-        WriteVector(patrolChunk, 0xBBBD0001, p->position);
-        WaypointChunk waypointChunk(&patrolChunk);
-        for (int j = 0; j < std::ssize(p->waypoints); ++j) {
-            Waypoint* w = &p->waypoints[j];
-            waypointChunk.target = w;
-            waypointChunk.BeginWrite(0xBBBE0000);
-            WriteVector(waypointChunk, 0xBBBE0001, w->position);
-            waypointChunk.WriteInt(0xBBBE0002, w->lookWait);
-            waypointChunk.WriteFloat(0xBBBE0003, Bits(w->time));
-            waypointChunk.WriteByte(0xBBBE0004, static_cast<std::uint8_t>(w->stopFirst));
-            waypointChunk.EndWrite();
-        }
-        patrolChunk.EndWrite();
-    }
-    c.EndWrite();
-}
-
 UnitSpec::UnitSpec() {
     record.applyStats = 0;
     kind = 5;
@@ -215,23 +165,6 @@ void UnitSpec::Apply() {
     else flags &= ~8u;
     unit->ServerController()->ResyncWithUnit();
     unit->MarkChanged(1);
-}
-
-// The unit's fields, the common ones, then the five behaviour records (each given the unit's position first).
-void UnitSpec::Save() {
-    BeginWrite(0xBBBB0000);
-    WriteByte(0xBBBB000A, static_cast<std::uint8_t>(record.applyStats));
-    WriteString(0xBBBB0002, prototype);
-    for (int i = 4; i >= 0; --i) WriteStringArray(0xBBBB0005 + i, &record.lists[i]);
-    WriteBlob(0xBBBB0004, &record.stats, sizeof(record.stats));
-    ObjectSpec::WriteFields();
-    BehaviourChunk writer(this);
-    for (Behaviour& each : behaviour) {
-        each.guard = position;
-        writer.target = &each;
-        writer.Write();
-    }
-    EndWrite();
 }
 
 // A behaviour record chunk fills the next record (not bounded, as in the original); an alarm level

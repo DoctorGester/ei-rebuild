@@ -238,7 +238,8 @@ routine: run it when wanted.
 - **Measured (H43, 2026-11-04):** the 258 runs (270 games with the pairs' peers) took 68 s, as on the verify
   build (the `_penter` patch), with every golden the same (252 the same, 6 without one); functions 7973 of 12292
   reached (64.9%), lines 66862 of 76533 (87.4%). The report itself takes under 10 s (dumpbin and dbghelp; then
-  `static.pickle`). The mixer (src/audio) is never reached: harness runs open no sound device.
+  `static.pickle`). The mixer (src/audio) is never reached: harness runs open no sound device; the unit check
+  `tests/unit/audio_mix.cpp` drives it on an offline output (sound.md, "The mixer").
 - **False gaps:** a lambda that a template calls (`LoadList(.., [](..){..})`, `ForWorldObjects`) is inlined at `/Ob1`; its
   out-of-line copy is never entered, so the report lists it as an unreached function while its lines run
   (script_load.cpp's `LoadInstances` lambda, script_addon_units.cpp's `GetObjectsOnMap` lambda).
@@ -246,8 +247,8 @@ routine: run it when wanted.
   fire wall's sound in flight, F8), `script_file` (`execs`: a mission script file with `#define`s, effects and a sleeping
   script saved and loaded; GameOverMsg, AddMobEx, RedeployParty, GetObjectsOnMap), `gvar_hosted` (a prepared hero with
   `gvar.` variables hosts a game: the AddonStringMap), `ambient_sounds` (tools/make_ambient_mob.py: no zone of the game has
-  an ambient sound). Left: SharedObject (a multiplayer hero's death, H43c1) and the `Chunk` writers, whose only callers
-  are the map specs' `Save` methods, which nothing calls (H43c2).
+  an ambient sound). Left: SharedObject (a multiplayer hero's death, H43c1). The map specs' `Save`
+  methods and the `Chunk` writers they alone called are deleted (H43c2): the .mob writer is the editor's.
 
 ## What a run leaves alone
 
