@@ -7111,6 +7111,13 @@ model = "opus"
 note = "User 2026-11-04: add animation blending. Today a unit (and a map object) switches from one animation to the next at once, so poses snap. Blend the outgoing pose into the incoming one over a short time (per bone, quaternion slerp of rotations and lerp of positions and morph weights; ~0.1-0.25 s, tuned per transition kind), client side only: game state (animation timing, hit frames, the server's view of what a unit is doing) stays as it is. Watch out: picking uses the drawn meshes (R35a), so a blended pose could change what a click hits; keep picking on the unblended pose or show it changes no golden. Check: captures of a walk-to-attack and an idle-to-run transition, goldens the same, frame time on the crowd scene. Folded into R19 (smooth world) at the user's word, 2026-11-04."
 
 [[ticket]]
+id = "R43d2"
+title = "Video start before GameMain so the device thread overlaps the game's start-up"
+group = "renderer"
+depends = ["R43d1"]
+note = "From R43d1. The background device and pipelines can only start after SDL's video (platform::RegisterWindowClass: SDL_RegisterApp, then InitSubSystem VIDEO), which GameMain does a few dozen ms before the renderer's start, so Start waits 270-390 ms for the thread. Split the platform call (class name and instance only) and call it from main() before render::PrepareDevice to hide most of the device's ~300 ms; keep the one-instance check and the handler where they are. Check the start-up from the work board's timing runs."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
