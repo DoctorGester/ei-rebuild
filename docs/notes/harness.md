@@ -378,9 +378,10 @@ program reads the registry; the settings are a file, harness_settings.h). The ha
 `.github/workflows/suites.yml` builds and plays the goldens on the self-hosted runner (Kirill's machine, labels
 `self-hosted`, `ei-game`), which has the game installs and a GPU. Cloud sessions have no compiler or game data and test
 through it.
-- **Trigger**: a push to main or any `claude/**` branch, or by hand (Actions > Suites > Run workflow, or the API) with
-  `ref` and `suites` = `full` | `quick` (quick: the verify and release builds plus the image suite; full: also the
-  Rebirth suite, and on main the debug, asan and play builds). Never on pull_request.
+- **Trigger**: by hand only (Actions > Suites > Run workflow, or the API) with `ref` and `suites` = `full` | `quick`
+  (both build verify and release; quick plays the image suite, full also the Rebirth suite). Pushes stopped starting it
+  on 2026-11-04: the runner is not always up and pushed runs queued for days. Debug, asan and play are built only by the
+  local merge routine. Never on pull_request. Pushes get the Linux suites (suites-linux.yml) instead.
 - **Reading results**: the run's summary page has each suite's goldens block; a failing build prints its last 40 log
   lines in the step log. From a session: `gh run list --workflow suites.yml`, `gh run view <id> --log-failed`, or the REST
   API (`/repos/DoctorGester/ei-rebuild/actions/runs/<id>/jobs`, then `/actions/jobs/<id>/logs`). To wait for a run, poll
@@ -393,8 +394,7 @@ through it.
   main): two passes that must agree, `tools/golden.py record`, and the goldens pushed to the branch as a commit of their
   own. That push starts no run, so dispatch a run on the branch after it.
 - **Limits**: one run at a time (concurrency group `ei-game`); games share the machine's 16 slots with local work
-  (through its scheduler); the runner is only up while Kirill is logged in; a push to a `claude/**` branch costs a full
-  run (about 20 to 30 minutes), so batch commits.
+  (through its scheduler); the runner is only up while Kirill is logged in.
 - **Without the runner** a session can run the Python tools' own tests (`python -m unittest` in `tools/`) and the text
   checks that read only the source: `tools/check_cleanup.py`, `tools/comments.py check`, `tools/tickets.py`,
   `tools/data_seam.py --check`, `tools/named_data.py --check`, `tools/check_platform.py`,

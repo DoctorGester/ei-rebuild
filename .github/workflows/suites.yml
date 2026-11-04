@@ -1,6 +1,7 @@
 # Suites: builds and plays the goldens on the self-hosted runner (Kirill's machine, label ei-game), which has the game
-# installs (F:\games\EvilIslands, the Rebirth one) and a GPU. Runs on pushes to main and claude/** branches (cloud
-# sessions; docs/notes/harness.md, "The Suites workflow") and by hand (Actions > Suites > Run workflow). Never on pull_request: a fork's workflow must not reach this machine.
+# installs (F:\games\EvilIslands, the Rebirth one) and a GPU. By hand only (Actions > Suites > Run workflow;
+# docs/notes/harness.md, "The Suites workflow"): pushes no longer start it (2026-11-04), since the runner is not
+# always up and its pushed runs queued for days. Never on pull_request: a fork's workflow must not reach this machine.
 # Games go through the machine's one scheduler (WORK_DB is the main checkout's), so they share its 16 game slots with
 # local work. The runs read the installs' data where tools/run_all.py's install_dir() finds them.
 # By hand with "record" set, it re-records the goldens from the image instead (H40; tools/golden.py record) and pushes
@@ -8,8 +9,6 @@
 name: Suites
 
 on:
-  push:
-    branches: [main, "claude/**"]
   workflow_dispatch:
     inputs:
       ref:
@@ -17,7 +16,7 @@ on:
         required: false
         default: main
       suites:
-        description: "full: every merge build and suite; quick: verify + release, the image suite"
+        description: "full: the image and Rebirth suites; quick: the image suite only (both build verify + release)"
         type: choice
         options: [full, quick]
         default: full
@@ -87,9 +86,8 @@ jobs:
         run: |
           rm -f suite_*.txt build_*.log
           git clean -ffdq -e build/   # untracked files of an earlier ref, but not the build folders
+          # only the builds the suites play; debug / asan / play stay with the local merge routine
           builds="verify release"
-          # debug / asan / play (the merge builds) on main only; a branch push gets the ones the suites use
-          [ "$SUITES" = full ] && [ "$GITHUB_REF_NAME" = main ] && builds="verify release debug asan play"
           fail=0
           for c in $builds; do
             echo "$(date +%H:%M:%S) building $c"

@@ -56,7 +56,7 @@ from a clone in the WSL home, not under /mnt/e (9P is slow).
   Xvfb or setxkbmap (x11-xkb-utils, which Xvfb's packages bring). `ei_input_check --print` prints what each layout
   gives: the hand check of another layout (add it to the list, compare with what its keys type).
 
-The Linux workflow (.github/workflows/linux.yml) runs them on GitHub's Ubuntu runner for every push.
+The Linux workflow's build job (.github/workflows/suites-linux.yml) runs them on GitHub's Ubuntu runner for every push.
 
 ## Run
 
@@ -355,19 +355,21 @@ to each other. Against xz -9 with a 256 MB window: 65.0 MB, but 7 to 9 s to unpa
 
 ### The CI job
 
-`.github/workflows/suites-linux.yml` ("Suites (Linux)") builds the harness on GitHub's Ubuntu runner, checks out the
-private repository with a read-only token, unpacks the stub set into the runner's temp folder, removes the checkout
-and plays both suites under xvfb on llvmpipe, less `LINUX_SKIP` (the scenarios that do not match on llvmpipe yet, "The
-harness" above); it fails when a golden differs. It runs on pushes to main and `claude/**`, on pull requests from this
-repository's own branches (a fork's gets no secrets and the job is skipped) and by hand; it uploads nothing, and the
-data is outside every cached path. It is off until the variable below is set.
+`.github/workflows/suites-linux.yml` ("Linux") has two parts. Its build job builds the game and the harness with
+warnings as errors and runs ctest (above), with no game data; it saves its compiler cache under the commit. Then eight
+suites jobs in parallel each restore that cache (the harness build is all hits and a link), check out the private
+repository with a read-only token, unpack the stub set into the runner's temp folder, remove the checkout and play
+every eighth scenario of the sorted list (both suites, one game at a time) under xvfb on llvmpipe, less `LINUX_SKIP`;
+a job fails when a golden differs. It runs on pushes to main and `claude/**` (not docs-only ones), on pull requests
+from this repository's own branches (a fork's gets no secrets and the suites are skipped) and by hand; it uploads
+nothing, and the data is outside every cached path. The suites are off until the variable below is set.
 
-The runner (4 cores, one game at a time) plays the image suite in about 37 minutes and the Rebirth set's marked and
-stepped scenarios (`rebirth_scenarios(goldens=False)`, not every Rebirth golden as on Windows) in 6. Its first
-run (2026-11-03) cut camera_drag_rate, camera_smooth and camera_spin at their 120 s limit even alone (hundreds of 8 ms
-frames at 4K on llvmpipe; camera_drag_rate takes 86 s alone on the 32-core build machine), so `LINUX_SKIP` lists them;
-Its differences are fixed: settings_save and the ui_widescreen_* digests (H47d), and
-the time in every save (the runner's time zone, "The harness" above).
+`LINUX_SKIP` holds what cannot match on llvmpipe yet: every two-game scenario (net_pair_*, net_zone_leader,
+net_zone_vars: their frames stall past the harness's 16 s frame wait), those that draw too much to finish in their
+time limit on the runner's 4 cores (the camera ones, render_terrain_seams, render_drawn_*, the ui_widescreen ones,
+ui_minimap_edges, unit_ai_bridge, zone_gz15h_tornado_client) and render_smooth (llvmpipe gives 4 samples whatever is
+asked). Before the split (2026-11-04) one job played the image suite in 83 minutes and the Rebirth set in 39, and
+those scenarios made all its 18 failures (14 timeouts, 4 pair frame stalls).
 
 One-time setup (the user's; nothing here creates repositories or tokens):
 1. Build and pack on the machine with the installs:

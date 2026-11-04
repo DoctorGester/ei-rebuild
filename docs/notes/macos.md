@@ -31,7 +31,7 @@ tools/shader_toolchain), as on the other systems. The result is `build/macos/ei-
 release.yml's `macos` job (beside Windows and Linux; Actions > Release > Run workflow) builds on GitHub's arm64
 `macos-15` runner: pip's cmake 3.31 and ninja, DXC copied out of the LunarG Vulkan SDK (`VULKAN_SDK_VERSION`,
 installed with its installer's command line, then only `lib/libdxcompiler*.dylib` and `include/dxc` kept in
-`~/dxc-macos`, cached by the version and named by `-DEI_DXC_ROOT`), and the shader toolchain cached as in linux.yml.
+`~/dxc-macos`, cached by the version and named by `-DEI_DXC_ROOT`), and the shader toolchain cached as in suites-linux.yml.
 The build is Release, universal (`-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"`: one configure, SDL3 builds both
 slices; the shader toolchain stays the runner's arm64) for macOS 13.3 and later (`-DCMAKE_OSX_DEPLOYMENT_TARGET`;
 Apple's libc++ has float `std::to_chars`, which settings_document.cpp and std::format's floats use, from 13.3). Then

@@ -47,8 +47,9 @@ only through `tools/tickets.py`, never by hand.
 - Long commands (builds, suites) run in the background under `python tools/limit.py SECONDS -- COMMAND...` (build
   900, `work.py test` 5400, else 600); wait for the completion notice, never poll. A timeout is a result: find out
   why.
-- Cloud sessions (no compiler, no game data) build and test through the Suites workflow on the self-hosted runner
-  (`docs/notes/harness.md`, "The Suites workflow").
+- Cloud sessions (no compiler, no game data) get the Linux workflow on every push (build, warnings, ctest, the
+  goldens on the stub data; `docs/notes/linux.md`, "The CI job"). The Windows Suites workflow on the self-hosted runner
+  runs by hand only (`docs/notes/harness.md`, "The Suites workflow").
 
 ## Rules
 

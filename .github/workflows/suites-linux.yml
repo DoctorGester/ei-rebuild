@@ -1,16 +1,24 @@
-# Suites (Linux): the harness's goldens on GitHub's Ubuntu runner, on the stub game data (H41; tools/stub_data.py,
-# docs/notes/linux.md, "The stub data"): the harness build, the stub set fetched from a private repository with a
-# read-only token, both suites under a virtual display on Mesa's software OpenGL.
+# Linux: on GitHub's Ubuntu runners (docs/notes/linux.md). One build job, then the suites split over parallel jobs.
 #
-# Off until the repository variable EI_STUB_DATA_REPO names the private repository (owner/name) and the secret
-# EI_STUB_DATA_TOKEN holds a fine-grained token that reads it (linux.md has the one-time setup). EI_STUB_DATA_KEY, a
-# second secret, decrypts the stub set when it is stored encrypted.
+# build: the game and its harness build (-DEI_HARNESS=ON, tests/verify) with gcc, a compiler warning failing the build
+# (CMAKE_COMPILE_WARNING_AS_ERROR; Linux only, not the Windows builds), and the game's checks under a virtual display
+# on Mesa's software rendering (ctest: the POSIX platform's checks, the interface canvases' glyph cases). No game data.
+# Its compiler cache is saved under this commit's key, so each suites job rebuilds the harness from it in about a
+# minute instead of compiling it again (the same flags: ccache matches the whole command line).
+#
+# suites: the harness's goldens on the stub game data (H41; tools/stub_data.py, linux.md, "The stub data"): the stub set
+# fetched from a private repository with a read-only token, both suites under a virtual display on llvmpipe, the
+# scenarios dealt round the SHARDS jobs (one game at a time each: llvmpipe draws on the runner's 4 cores).
+#
+# The suites are off until the repository variable EI_STUB_DATA_REPO names the private repository (owner/name) and the
+# secret EI_STUB_DATA_TOKEN holds a fine-grained token that reads it (linux.md has the one-time setup). EI_STUB_DATA_KEY,
+# a second secret, decrypts the stub set when it is stored encrypted.
 #
 # The data never leaves the runner: it is fetched into the runner's temp folder, outside every cached path, and the
-# job uploads nothing (no artifacts: run folders hold saves and frames made from the data). The token and the key are
+# jobs upload nothing (no artifacts: run folders hold saves and frames made from the data). The token and the key are
 # given only to pushes and to pull requests from branches of this repository (a fork's pull request gets no secrets,
-# and the job does not run for one).
-name: Suites (Linux)
+# and the suites do not run for one).
+name: Linux
 
 on:
   push:
@@ -24,38 +32,35 @@ on:
         required: false
         default: ""
 
+# Every push to main gets its own run; on other branches a newer push cancels the older run.
 concurrency:
-  group: suites-linux-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
+  group: linux-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
+env:
+  CCACHE_MAXSIZE: 2G
+  PACKAGES: >-
+    ninja-build ccache libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev libxss-dev libxfixes-dev
+    libxtst-dev libxkbcommon-dev libgl-dev libegl-dev libasound2-dev libpulse-dev xvfb mesa-utils libgl1-mesa-dri
+    mesa-vulkan-drivers zstd
+  HARNESS_CONFIGURE: >-
+    cmake -S . -B build/linux-harness -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+    -DEI_HARNESS=ON -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
 jobs:
-  suites:
-    if: >-
-      vars.EI_STUB_DATA_REPO != '' &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+  build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 330
-    env:
-      CCACHE_MAXSIZE: 2G
-      # Scenarios that cannot match on llvmpipe yet (linux.md, "The harness"; H47b): the pairs (about 190 s a run
-      # there) and render_terrain_seams (its level steps), and the camera scenarios that draw hundreds of 8 ms frames
-      # (camera_drag_rate, camera_smooth, camera_spin: past their 120 s limit on the runner's 4 cores even alone).
-      LINUX_SKIP: >-
-        net_pair_join net_pair_kick net_pair_leave net_pair_master net_pair_quest net_pair_speed net_pair_zone
-        render_terrain_seams
-        camera_drag_rate camera_smooth camera_spin
     steps:
       - uses: actions/checkout@v5
       - name: Packages
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q ninja-build ccache libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev \
-            libxss-dev libxfixes-dev libxtst-dev libxkbcommon-dev libgl-dev libegl-dev libasound2-dev libpulse-dev \
-            xvfb mesa-utils libgl1-mesa-dri mesa-vulkan-drivers zstd
-      # The same caches as linux.yml's: the shader toolchain and the compiler's objects, no game data.
+          sudo apt-get install -y -q $PACKAGES
+      # The shader toolchain (shadercross, spirv-cross, DXC: tools/shader_toolchain), built at configure time, by its
+      # pins; and ccache's objects of both builds, the newest run's (ccache checks every hit against the source).
       - name: Shader toolchain cache
         uses: actions/cache@v5
         with:
@@ -65,12 +70,72 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/.cache/ccache
-          key: ccache-harness-${{ runner.os }}-${{ github.sha }}
-          restore-keys: ccache-harness-${{ runner.os }}-
+          key: ccache-${{ runner.os }}-${{ github.sha }}
+          restore-keys: ccache-${{ runner.os }}-
+      - name: Build
+        run: |
+          cmake -S . -B build/linux -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          cmake --build build/linux
       - name: Build the harness
         run: |
-          cmake -S . -B build/linux-harness -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEI_HARNESS=ON -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          $HARNESS_CONFIGURE
           cmake --build build/linux-harness --target ei-rebuild
+          ccache --show-stats
+      - name: Checks
+        run: |
+          cd build/linux
+          xvfb-run -a -s "-screen 0 1280x1024x24" ctest --output-on-failure
+
+  suites:
+    needs: build
+    if: >-
+      vars.EI_STUB_DATA_REPO != '' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    env:
+      SHARDS: 8
+      # Scenarios that cannot match on llvmpipe yet (linux.md, "The harness"; H47b):
+      # - every net_pair_* (two games at once: their frames stall past the harness's 16 s wait) and the two-game zone
+      #   scenarios net_zone_leader / net_zone_vars;
+      # - those that draw too much to finish inside their time limit on software rendering: render_terrain_seams (its
+      #   level steps), the camera ones (hundreds of 8 ms frames at 4K), the drawn-frame and widescreen ones,
+      #   ui_minimap_edges, unit_ai_bridge, zone_gz15h_tornado_client (all cut at their limit on 2026-11-04);
+      # - render_smooth (llvmpipe's multisampling gives 4 samples whatever is asked, and edges too few pixels).
+      LINUX_SKIP: >-
+        net_pair_join net_pair_kick net_pair_leave net_pair_lobby net_pair_master net_pair_party net_pair_password
+        net_pair_quest net_pair_speed net_pair_zone net_zone_leader net_zone_vars
+        render_terrain_seams camera_drag_rate camera_smooth camera_spin
+        render_drawn_lights render_drawn_motion render_smooth
+        ui_minimap_edges ui_widescreen ui_widescreen_dialogue ui_widescreen_hud ui_widescreen_more ui_widescreen_screens
+        unit_ai_bridge zone_gz15h_tornado_client
+    steps:
+      - uses: actions/checkout@v5
+      - name: Packages
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q $PACKAGES
+      - name: Shader toolchain cache
+        uses: actions/cache/restore@v5
+        with:
+          path: build/third_party
+          key: shader-toolchain-${{ runner.os }}-${{ hashFiles('tools/shader_toolchain/**') }}
+      # The build job's objects of this very commit: the harness build below is all cache hits and a link.
+      - name: Compiler cache
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.cache/ccache
+          key: ccache-${{ runner.os }}-${{ github.sha }}
+      - name: Build the harness
+        run: |
+          $HARNESS_CONFIGURE
+          cmake --build build/linux-harness --target ei-rebuild
+          ccache --show-stats
 
       # The private repository's files: ei-stub-data.tar.zst (or its parts, .tar.zst.00, .01, ..., when split under
       # GitHub's 100 MB a file), encrypted: the same names with .enc. Checked out with the token, which is not kept
@@ -106,23 +171,30 @@ jobs:
           [ -d "$DATA/vanilla" ] && [ -d "$DATA/rebirth" ] || { echo "::error::the stub data has no vanilla/ and rebirth/"; exit 1; }
           echo "stub data: $(du -sm "$DATA" | cut -f1) MB unpacked"
 
-      # One game at a time (a pair's two together): llvmpipe draws on the CPU, and four at once on the runner's four cores
-      # timed most runs out (2026-11-03); a full run takes hours, so the job may take up to 5.5 h. The summary prints run_all's
-      # table and the goldens block (scenario names, results, the digest's differences), never the data's files.
+      # This job's share of the scenarios (every SHARDS-th of the sorted list), one game at a time. The summary prints
+      # run_all's table and the goldens block (scenario names, results, the digest's differences), never the data's files.
       - name: Suites
         env:
           SCENARIOS: ${{ inputs.scenarios }}
+          SHARD: ${{ matrix.shard }}
         run: |
           export EI_BUILD_DIR=$PWD/build/linux-harness EI_GAME_VANILLA=$DATA/vanilla EI_GAME_REBIRTH=$DATA/rebirth
           names="$SCENARIOS"
           if [ -z "$names" ]; then
             names=$(ls tests/scenarios/*.txt | xargs -n1 basename | sed 's/\.txt$//' | grep -vxF -f <(tr ' ' '\n' <<< "$LINUX_SKIP"))
           fi
-          PYTHONUNBUFFERED=1 xvfb-run -a -s "-screen 0 3840x2160x24" python3 tools/run_all.py --golden --jobs 1 $names 2>&1 | tee suite_image.txt || true
-          rebirth=$(python3 -c "import sys; sys.path.insert(0, 'tools'); import run_all; print(' '.join(run_all.rebirth_scenarios(sys.argv[1:], goldens=False)))" $names)
-          PYTHONUNBUFFERED=1 xvfb-run -a -s "-screen 0 3840x2160x24" python3 tools/run_all.py --rebirth-only --golden --jobs 1 $rebirth 2>&1 | tee suite_rebirth.txt || true
+          names=$(tr ' ' '\n' <<< "$names" | grep . | sort | awk -v n="$SHARDS" -v s="$SHARD" '(NR - 1) % n == s' | tr '\n' ' ')
+          echo "shard $SHARD of $SHARDS: $names"
+          : > suite_image.txt; : > suite_rebirth.txt
+          if [ -n "${names// }" ]; then
+            PYTHONUNBUFFERED=1 xvfb-run -a -s "-screen 0 3840x2160x24" python3 tools/run_all.py --golden --jobs 1 $names 2>&1 | tee suite_image.txt || true
+            rebirth=$(python3 -c "import sys; sys.path.insert(0, 'tools'); import run_all; print(' '.join(run_all.rebirth_scenarios(sys.argv[1:], goldens=False)))" $names)
+            if [ -n "${rebirth// }" ]; then
+              PYTHONUNBUFFERED=1 xvfb-run -a -s "-screen 0 3840x2160x24" python3 tools/run_all.py --rebirth-only --golden --jobs 1 $rebirth 2>&1 | tee suite_rebirth.txt || true
+            fi
+          fi
           for f in suite_image.txt suite_rebirth.txt; do
-            echo "### ${f%.txt}" | tee -a $GITHUB_STEP_SUMMARY
+            echo "### shard $SHARD ${f%.txt}" | tee -a $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
             sed -n '/^not passed:/,/^$/p; /^goldens (tests\/golden)/,$p' "$f" | head -400 | tee -a $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY

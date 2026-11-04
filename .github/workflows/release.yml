@@ -74,7 +74,7 @@ jobs:
 
   # The renderer's compiled shaders for the Linux job (CMakeLists.txt's ei_shaders target: shaders/gpu_shaders.h and
   # .cpp), built on the runner itself: DXC's Linux release, which the shader toolchain links, needs glibc 2.38, newer
-  # than the container's. The packages and the toolchain's cache are linux.yml's.
+  # than the container's. The packages and the toolchain's cache are suites-linux.yml's.
   linux-shaders:
     needs: version
     runs-on: ubuntu-24.04
@@ -228,7 +228,7 @@ jobs:
           test -f ~/dxc-macos/lib/libdxcompiler.dylib
           otool -L ~/dxc-macos/lib/libdxcompiler.dylib
       # The shader toolchain (shadercross, spirv-cross: tools/shader_toolchain), built at configure time for the
-      # runner's own arm64, by its pins, cached as in linux.yml.
+      # runner's own arm64, by its pins, cached as in suites-linux.yml.
       - name: Shader toolchain cache
         uses: actions/cache@v5
         with:
