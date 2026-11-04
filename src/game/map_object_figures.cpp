@@ -552,12 +552,12 @@ FigureMesh* Object3D::LoadPart(std::string_view partName) {
 
 int Object3D::LoadParts(std::string_view model, const std::vector<std::string>* names) {
     FigureManager* manager = FigureManagerOf(this);
+    name = model;
+    if (!manager) return game::FatalError(kNoFigureManager);
     {
         std::string key(model);
         manager->FindModel(&key);   // loads and caches the model
     }
-    name = model;
-    if (!manager) return game::FatalError(kNoFigureManager);
     for (const std::string& part : *names) {
         if (!LoadPart(part)) game::DebugLog(kCantCreatePart, name, part);
     }

@@ -135,6 +135,9 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
                 }
                 if (!spaceSkips) continue;
                 start = platform::Milliseconds() - frameTime * 2;
+            } else if (event.type == platform::EventType::Quit) {   // the movie ends; the main loop ends on it
+                platform::PostQuit(event.quitCode);
+                break;
             } else {
                 app::HandleWindowEvent(event);
             }

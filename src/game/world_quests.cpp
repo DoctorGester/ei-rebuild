@@ -238,10 +238,11 @@ void SyncRecord(Party* party, PartyUnitRecord* record, Unit* unit) {
         auto* item = unit->GetQuickItem(slot);
         if (!item || static_cast<int>(item->count) <= 0) continue;
         Item* entry = PartyCopy(party, item);
-        entry->count = item->count;     // before the null test
-        if (entry) entry->AddRef();
+        if (!entry) continue;
+        entry->count = item->count;
+        entry->AddRef();
         EngineObject* added = (EngineObject*)record->AddQuickItem(entry);
-        if (entry) entry->Release();
+        entry->Release();
         ItemLink* link = new ItemLink();
         link->value = static_cast<std::uint32_t>(added->id);
         item->serverLink.Assign(link);
@@ -268,14 +269,12 @@ void StoreRecord(WorldServer* world, Party* party, PartyUnitRecord* record, Unit
         auto* item = unit->GetQuickItem(slot);
         if (!item || static_cast<int>(item->count) <= 0) continue;
         Item* entry = PartyCopy(party, item);
-        std::uint32_t amount = item->count;
-        std::uint32_t maximum;
-        maximum = std::bit_cast<std::uint32_t>(entry->chargeMax);    // before the null test
-        entry->count = amount;
-        entry->charge = std::bit_cast<float>(maximum);
-        if (entry) entry->AddRef();
+        if (!entry) continue;
+        entry->count = item->count;
+        entry->charge = entry->chargeMax;
+        entry->AddRef();
         record->AddQuickItem(entry);
-        if (entry) entry->Release();
+        entry->Release();
     }
     for (int slot = 0; slot < kSpellSlots; ++slot)
         if (Item* spell = unit->GetSpell(slot)) AddToRecord<&PartyUnitRecord::AddSpell>(party, record, spell);

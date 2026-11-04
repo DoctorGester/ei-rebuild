@@ -31,13 +31,6 @@ namespace {
 constexpr const char* kFiguresArchive = "figures.res";
 constexpr const char* kMenusArchive = "menus.res";
 
-// Copies `text` with its terminator to `end`; returns the new end (at the terminator).
-char* Append(char* end, const char* text) {
-    std::size_t length = std::strlen(text);
-    std::memcpy(end, text, length + 1);
-    return end + length;
-}
-
 } // namespace
 
 void FigureManager::Create() {
@@ -80,11 +73,7 @@ UiMesh* FigureManager::NewFigure(std::string_view name) {
 
 int FigureManager::LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator, const char* animation) {
     if (!animation) return 0;
-    char path[0x200];
-    char* end = Append(path, bone->name3.c_str());
-    end = Append(end, bone->GetName());
-    end = Append(end, animation);
-    Append(end, game::AstExtensionText());
+    const std::string path = bone->name3 + bone->GetName() + animation + game::AstExtensionText();
     void* data = GetFile(path, nullptr);
     if (!data) return 0;
     auto* cursor = static_cast<std::uint8_t*>(data);
@@ -234,14 +223,8 @@ int FigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, std::st
     if (model) {
         data = static_cast<std::uint8_t*>(model->mesh->GetFile(name, nullptr));
     } else {
-        // The strcpy / strcat into a 0x200-byte buffer (no bounds check, like the original).
-        char path[0x200];
-        std::size_t length = directory.size();
-        std::memcpy(path, directory.data(), length);
-        std::size_t nameLength = name.size();
-        std::memcpy(path + length, name.data(), nameLength);
-        std::memcpy(path + length + nameLength, ".fig", 5);
-        data = static_cast<std::uint8_t*>(GetFile(std::string_view(path, length + nameLength + 4), nullptr));
+        const std::string path = std::string(directory) + std::string(name) + ".fig";
+        data = static_cast<std::uint8_t*>(GetFile(path, nullptr));
     }
     if (!data) return 0;
     std::uint32_t magic;
@@ -295,19 +278,15 @@ FigureManager::~FigureManager() {
 
 // The model named `name`, loaded on first use. The models are cached in FigureManager::models (nodes {next,
 // key, value}; the key hashed h = h * 5 + c). A missing model opens "<name>.mod", ".bon" and ".anm" through
-// the manager's GetFile; without the .mod nothing is created and null is returned. Otherwise a FigureModel is
-// stored under the name, its mesh, bones and animation archives load from the files (OpenFromMemory; the .bon
-// and .anm only when they opened), and the cached entry is looked up again. See docs/notes/models.md.
+// the manager's GetFile; without the .mod nothing is created (the others are closed) and null is returned.
+// Otherwise a FigureModel is stored under the name, its mesh, bones and animation archives load from the files
+// (OpenFromMemory; the .bon and .anm only when they opened), and the cached entry is looked up again. See
+// docs/notes/models.md.
 
 namespace {
 
 void* OpenPart(FigureManager* manager, const std::string* name, const char* suffix) {
-    char path[0x200];
-    std::size_t length = std::strlen(name->data());
-    std::memcpy(path, name->data(), length);
-    const char* tail = suffix;
-    std::memcpy(path + length, tail, std::strlen(tail) + 1);
-    return manager->GetFile(path, nullptr);
+    return manager->GetFile(*name + suffix, nullptr);
 }
 
 FigureModel** ModelSlot(std::unordered_map<std::string, FigureModel*>* map, const std::string* name) { return &(*map)[*name]; }
@@ -322,7 +301,11 @@ FigureModel* FigureManager::FindModel(const std::string* name) {
     void* mesh = OpenPart(this, name, ".mod");
     void* bones = OpenPart(this, name, ".bon");
     void* animation = OpenPart(this, name, ".anm");
-    if (!mesh) return nullptr;
+    if (!mesh) {
+        if (bones) CloseFile(bones);
+        if (animation) CloseFile(animation);
+        return nullptr;
+    }
 
     auto* model = new FigureModel();
     *ModelSlot(map, name) = model;

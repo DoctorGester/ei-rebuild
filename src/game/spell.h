@@ -340,7 +340,8 @@ public:
 
     // For an id other than -1 the spell takes it as its packed id: low half 0 initialises it from prototype
     // (id >> 16) (null when out of range); otherwise the sequence of the high half gives the container to
-    // copy the spell from (FatalError without a sequence; a new entry has no container and faults).
+    // copy the spell from (FatalError without a sequence; a new entry has no container, and the spell keeps only
+    // its id).
     Spell* CreateSpellObject(int id);
     // The sequences' tables' bucket arrays leak.
     void Destroy() override;

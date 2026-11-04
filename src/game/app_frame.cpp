@@ -121,12 +121,13 @@ namespace app {
 void TypeRegistryRegister(ChunkArchive::ClassRegistry* registry, std::uint32_t id,
                           ChunkArchive::Factory factory) {
     RefCounted* prototype = factory();
-    if (prototype) prototype->AddRef();
+    registry->factories[id] = factory;
+    if (!prototype) return;
+    prototype->AddRef();
     std::uintptr_t vtable;
     lib::LoadBytes(vtable, prototype);
     registry->classIds[vtable] = static_cast<std::int32_t>(id);
-    registry->factories[id] = factory;
-    if (prototype) prototype->Release();
+    prototype->Release();
 }
 
 } // namespace app

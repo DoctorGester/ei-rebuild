@@ -198,8 +198,8 @@ int Object3DClientSpecific::OnPartAdded(FigureMesh* part) {
     int textureKind = static_cast<int>(part->meshType);
     bool known = false;
     for (int i = 0; i < std::ssize(textures); ++i) {
-        if (textures[i]->type != textureKind) continue;
-        known = textures[i] != nullptr;
+        if (!textures[i] || textures[i]->type != textureKind) continue;
+        known = true;
         break;
     }
     if (!known) FindOrAddTexture(textureKind);
@@ -341,12 +341,9 @@ void Object3DClientSpecific::ClearShadow() {
 bool Object3DClientSpecific::ShadowInView() {
     if (!options::g_options.shadows) return false;
     if (flags & kHalfShown) return true;
-    const Vector3& at = object->localPosition;
-    sphere.center += at;
-    int side = g_sceneRenderer.pipeline->ClipTest(&sphere);
-    const Vector3& back = object->localPosition;
-    sphere.center -= back;
-    return side != kOutsideView;
+    auto placed = sphere;
+    placed.center += object->localPosition;
+    return g_sceneRenderer.pipeline->ClipTest(&placed) != kOutsideView;
 }
 
 // --- The base half's empty slots (the server half keeps them) ---------------------------------------

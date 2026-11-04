@@ -80,7 +80,7 @@ void MemoryStream::Clear() {
 bool ByteStream::ReadTagged(std::uint32_t* tag, ByteStream* out) {
     std::uint32_t size = 0;
     if (!Read(tag, 4)) return false;
-    if (!Read(&size, 4)) return false;
+    if (!Read(&size, 4) || size < 8) return false;   // the size counts the tag and itself
     size -= 8;
     out->Clear();
     out->reading = 0;

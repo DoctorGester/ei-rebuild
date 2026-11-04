@@ -40,9 +40,13 @@ void MissileImpact(SpellEffect* e, int particleType, const char* sound, bool arr
     e->ReleaseSound();
     e->ReleaseLight();
 
-    // The game takes the missile's target as a unit without a class test (or a null check): the fire arrow and
-    // the acid ray are cast at units.
-    auto* target = static_cast<Unit*>(e->target.Get());
+    // The splash, the sound and the light at the target, a unit (the fire arrow and the acid ray are cast at
+    // units); without one the effect ends.
+    Unit* target = UnitOrNull(e->target);
+    if (!target) {
+        e->state = 3;
+        return;
+    }
     e->targetPoint = target->localPosition;
     Vector3 at;
     at = target->localPosition;
@@ -120,7 +124,7 @@ void Linger(SpellEffect* e) {
 
 void RiseLight(SpellEffect* e) {
     Vector3 rise{0.0f, 0.0f, LightRise(e)};
-    e->light->SetVelocity(rise);   // no null check
+    if (e->light) e->light->SetVelocity(rise);
 }
 
 // Lightning / CurseMagic: the bolt and sound go when the timer reaches 0, the light rises away.
@@ -280,7 +284,7 @@ void Possession(SpellEffect* e) {
         return;
     }
     auto* player = e->caster->player;
-    if (player && e->target->GetClassId() == ClassId::Unit) {   // no null check on the target
+    if (player && IsUnit(e->target)) {
         MapObject* target = e->target;
         UnitServer* server = ControllerOf(UnitOrNull(target));
         ScriptGroup* group = &player->Server()->possessedGroup;

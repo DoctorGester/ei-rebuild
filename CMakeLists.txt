@@ -360,11 +360,13 @@ if(WIN32)
     target_link_options(ei-rebuild PRIVATE /ENTRY:mainCRTStartup)
 
     # The unit checks (tests/unit): the settings file's format, lib::HashMap's walk order, the .ini reader,
-    # lib::ParseIpv4, lib/maths.h, the save pictures and the bounded text reads, without the game. build.cmd runs it.
+    # lib::ParseIpv4, lib/maths.h, the save pictures, the bounded text reads and the tagged stream blocks, without the
+    # game. build.cmd runs it.
     add_executable(ei_unit_check tests/unit/unit_check.cpp tests/unit/settings_file.cpp tests/unit/hash_map.cpp
                    tests/unit/ini_file.cpp tests/unit/ipv4.cpp tests/unit/maths.cpp tests/unit/save_picture.cpp
-                   tests/unit/audio_mix.cpp tests/unit/display_sizes.cpp tests/unit/bounded_text.cpp src/audio/audio.cpp
-                   src/game/settings_document.cpp src/game/ini_file.cpp
+                   tests/unit/audio_mix.cpp tests/unit/display_sizes.cpp tests/unit/bounded_text.cpp
+                   tests/unit/tagged_stream.cpp
+                   src/audio/audio.cpp src/game/settings_document.cpp src/game/core_streams.cpp src/game/ini_file.cpp
                    src/game/save_picture.cpp src/lib/qoi.cpp src/game/asset_text.cpp src/lib/hash_map.cpp src/lib/ipv4.cpp
                    src/lib/text_case.cpp src/lib/calendar.cpp ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_unit_check PRIVATE src third_party)

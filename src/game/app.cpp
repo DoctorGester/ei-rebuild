@@ -207,7 +207,13 @@ void DispatchInput(const platform::Event& received) {
 
 void PumpMessages() {
     platform::Event event;
-    while (platform::TakeEvent(&event)) HandleWindowEvent(event);
+    while (platform::TakeEvent(&event)) {
+        if (event.type == EventType::Quit) {   // left for the main loop, which ends on it
+            platform::PostQuit(event.quitCode);
+            return;
+        }
+        HandleWindowEvent(event);
+    }
 }
 
 int StartFirstMap() {

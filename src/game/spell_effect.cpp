@@ -216,7 +216,7 @@ Next StartLightning(SpellEffect* e, SpellType type, const Vector3& from) {
     e->CreateSound("magic\\lightning\\start.wav", e->position, kZeroVector, kVolume, kHearing);
     float range = PrototypeRange(e);
     Vector3 color = PrototypeColor(e);
-    e->CreatePointLight(e->target->EyePoint(), color, range, kZeroVector);   // no null check
+    if (e->target) e->CreatePointLight(e->target->EyePoint(), color, range, kZeroVector);
     DamageInfo hit;
     e->GetDamage(&hit);
     if (IsUnit(e->target)) e->HitUnit(&hit, e->target);
@@ -251,7 +251,7 @@ Next StartFireball(SpellEffect* e, const Vector3& from) {
 
     float size = PowerScaled(e, worlddata::FireballScale());
     EffectParticle* particle = e->CreateParticle(1, static_cast<int>(ParticleType::FireBall), from, size, 1.0f, velocity, nullptr);   // the visual
-    if (e->caster) particle->unitId = e->caster->id;     // the particle's unit (no null check)
+    if (e->caster) particle->unitId = e->caster->id;     // the particle's unit
     e->targetPoint.z = GroundPlus(e, kRawSurfaceHeight, e->targetPoint, ConstPtr(worlddata::OneRef()));
     particle->SetTarget(e->targetPoint);
     if (speed * worlddata::FireballNear() > distance) {
@@ -429,7 +429,7 @@ Next StartVisionFog(SpellEffect* e) {
 // Healing. Heals the target's controller by the effect value; the sound and the light only
 // when the target is not at full health (or +0xA4 is clear).
 Next StartHealing(SpellEffect* e) {
-    if (e->target->GetClassId() != ClassId::Unit) return Next::Done;   // no null check
+    if (!IsUnit(e->target)) return Next::Done;
     // Controller Heal (the amount's bits are pushed, MOV/PUSH).
     Unit* unit = UnitOrNull(e->target);
     unit->controller->Heal(e->HeldSpell()->damage);
@@ -492,7 +492,7 @@ Next StartTeleport(SpellEffect* e) {
 // +0x1C, +0x24C) agree; a failed attempt makes the caster complain (0x1A).
 // Unreached in the shipped game: CastSpell refuses charm, only a saved projectile of that type gets here.
 Next StartCharm(SpellEffect* e) {
-    if (e->target->GetClassId() != ClassId::Unit) return Next::Leave;   // no null check
+    if (!IsUnit(e->target)) return Next::Leave;
     if (!IsUnit(e->caster)) return Next::Leave;
     UnitServer* tamed = ControllerOf(UnitOrNull(e->target));
     UnitServer* tamer = ControllerOf(e->caster);

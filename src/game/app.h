@@ -45,7 +45,8 @@ extern const char* g_loadingMovieName;
 void HandleWindowEvent(const platform::Event& event);
 // Sends keyboard and mouse events to the interface; anything else goes to HandleWindowEvent.
 void DispatchInput(const platform::Event& event);
-// Takes every waiting event and passes it to HandleWindowEvent (input dropped).
+// Takes every waiting event and passes it to HandleWindowEvent (input dropped); a quit request stays for the main
+// loop.
 void PumpMessages();
 // Without a map on the command line opens the main menu; otherwise loads the map into the
 // world server and runs the command line's script file. Returns 1, or FatalError's result.

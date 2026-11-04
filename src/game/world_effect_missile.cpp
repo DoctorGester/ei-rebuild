@@ -17,6 +17,7 @@
 
 #include "lib/crt.h"
 #include "lib/float_select.h"
+#include "lib/str.h"
 
 #include <bit>
 #include <cmath>
@@ -141,8 +142,7 @@ void EffectArrow::Start(int update) {
     Vector3 drift{kLightDrift, 0.0f, 0.0f};
     light.SetVelocity(drift);
     light.lightFlags = kLightFlags;
-    const char* name = soundName.c_str();
-    std::memcpy(sound.name, name, std::strlen(name) + 1);     // unbounded, like the original
+    str::CopyInto(sound.name, soundName);
     sound.radius = kSoundRadius;
     sound.looping = 1;
     particle.Start(update);

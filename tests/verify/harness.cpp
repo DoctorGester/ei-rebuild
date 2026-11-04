@@ -2591,10 +2591,8 @@ void RunSteps() {
             --g_next;   // posted from the next main loop pass instead (see BeforeEvents)
             return;
         }
-        // "quit" posts WM_QUIT (PostQuitMessage) on this thread: only WinMain's loop ends the game on
-        // it. The interface's message drain (00458220, run when a window is activated, e.g. as the
-        // battle screen comes back after a load) dispatches every message and drops WM_QUIT, which
-        // left magic_traps running after its quit (ticket X23).
+        // "quit" posts the quit request (platform::PostQuit) from the main loop's pass, where the loop ends on it at
+        // once, not from a loading screen's message drain (app::PumpMessages), which leaves it for the main loop.
         if (!g_winMainLoop && s.verb == "quit") {
             --g_next;
             return;
