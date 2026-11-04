@@ -8242,10 +8242,10 @@ missile1 # 54B12C6D
 aievents tick 660
 client tick 660
 client ticksRun 632
-@ 33 update 680 frame 135 tick 680 zone gz1g hash 4BDB66DB n 832
+@ 33 update 680 frame 135 tick 680 zone gz1g hash 4749B074 n 832
 world tick 680
 world updates 680
-random isaac.count 160
+random isaac.count 176
 random crt.rand 0x7AD3D31A
 obj699 #vitals 52331592
 obj702 #vitals 52331592
@@ -8257,10 +8257,10 @@ missile1 # 75CD8FA6
 aievents tick 680
 client tick 680
 client ticksRun 652
-@ 34 update 700 frame 139 tick 700 zone gz1g hash 728B9449 n 832
+@ 34 update 700 frame 139 tick 700 zone gz1g hash 75151862 n 832
 world tick 700
 world updates 700
-random isaac.count 120
+random isaac.count 156
 random crt.rand 0xF1B8D786
 obj699 #vitals A243F4AF
 obj702 #vitals A243F4AF
@@ -8273,11 +8273,11 @@ missile1 # 99F61139
 aievents tick 700
 client tick 700
 client ticksRun 672
-@ 35 update 720 frame 143 tick 720 zone gz1g hash B8D72B9B n 832
+@ 35 update 720 frame 143 tick 720 zone gz1g hash D567113E n 832
 world tick 720
 world updates 720
 world lastRainBoltTick 707
-random isaac.count 74
+random isaac.count 130
 random crt.rand 0x1D5B5EF8
 player0 lastTick 707
 player0 var.gtime 6.75555658

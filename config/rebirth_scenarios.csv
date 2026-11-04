@@ -1,6 +1,7 @@
-# The Rebirth smoke set (SV9; tools/run_all.py rebirth_scenarios, --rebirth): scenarios marked 1 also run on Rebirth's
+# The Rebirth set (SV9; tools/run_all.py rebirth_scenarios, --rebirth): scenarios marked 1 also run on Rebirth's
 # data because its maps, scripts or resources decide what they check. Every scenario with a step for one install
-# ("rebirth ..." / "vanilla ..."), rebirthflags, addonpath or widescreen is in the set without a line here.
+# ("rebirth ..." / "vanilla ..."), rebirthflags, addonpath or widescreen, and every one with a Rebirth golden, is in the
+# set without a line here.
 scenario,rebirth,why
 world_load,1,Rebirth's zone 1 map and its objects
 frames_basic,1,Rebirth's textures and models drawn

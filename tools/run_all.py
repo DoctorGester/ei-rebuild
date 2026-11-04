@@ -9,10 +9,11 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                    install folder's own Rebirth profile as a player's exe does (EI_REBIRTH only when the caller sets
                    it). Installs: "standalone" the vanilla data (vanilla goldens), "standalone-rebirth" Rebirth's
                    (Rebirth goldens); the folders are EI_GAME_VANILLA and EI_GAME_REBIRTH (install_dir()). Every
-                   scenario runs on the vanilla data; Rebirth's data only on demand (SV9; before releases, not after
-                   every merge): --rebirth adds the smoke set (rebirth_scenarios(): config/rebirth_scenarios.csv's
-                   marks and every scenario with a step for one install, rebirthflags, addonpath or widescreen) or
-                   the named scenarios, --rebirth-only runs those alone, --all-rebirth every scenario on both.
+                   scenario runs on the vanilla data; Rebirth's data only on demand (SV9; main checks the Rebirth set
+                   after every merge with --rebirth-only): --rebirth adds the Rebirth set (rebirth_scenarios(): config/rebirth_scenarios.csv's
+                   marks, every scenario with a step for one install, rebirthflags, addonpath or widescreen, and
+                   every scenario with a Rebirth golden) or the named scenarios, --rebirth-only runs those alone,
+                   --all-rebirth every scenario on both.
   renderers        The image draws with our renderer (no DirectDraw device, its own swap chain, no display mode
                    change), so its runs never need the machine to themselves. EI_RENDER reaches no run: a scenario's
                    "render" step sets the image's renderer options (EI_RENDER_EXTRA adds words to them).
@@ -912,9 +913,10 @@ def widescreen_check(jobs, out=None, root=ROOT, build=BUILD):
 REBIRTH_LINE = re.compile(r'^\s*(?:rebirth|vanilla|rebirthflags|addonpath|widescreen)\s', re.M)
 
 
-def rebirth_scenarios(names, root=ROOT):
-    """The Rebirth smoke set among names (SV9: Rebirth's data only where it decides something): the scenarios
-    config/rebirth_scenarios.csv marks 1 (Rebirth's maps, scripts, resources) and those with a REBIRTH_LINE."""
+def rebirth_scenarios(names, root=ROOT, goldens=True):
+    """The Rebirth set among names (SV9: Rebirth's data only where it decides something): the scenarios
+    config/rebirth_scenarios.csv marks 1 (Rebirth's maps, scripts, resources), those with a REBIRTH_LINE and (goldens)
+    every one with a Rebirth golden (H51a: a golden no suite plays goes stale unseen after a golden-moving merge)."""
     path = os.path.join(root, 'config', 'rebirth_scenarios.csv')
     marked = set()
     with contextlib.suppress(OSError), open(path, encoding='utf-8') as f:
@@ -924,7 +926,7 @@ def rebirth_scenarios(names, root=ROOT):
                 marked.add(parts[0])
     smoke = set()
     for n in names:
-        if n in marked:
+        if n in marked or (goldens and has_golden(n, 'rebirth', root)):
             smoke.add(n)
             continue
         with contextlib.suppress(OSError):

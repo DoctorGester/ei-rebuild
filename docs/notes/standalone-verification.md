@@ -10,7 +10,8 @@ from real differences. Running scenarios and the steps: harness.md.
 - **A change is checked** by a golden scenario that reaches it, or by a unit check where no game is needed.
 - **The suite**: `python tools/work.py test <ID> --golden [run_all args]` plays install `standalone` (vanilla data,
   Rebirth's bug fixes on: the defaults) and compares every run that has a golden. Rebirth's data (`standalone-rebirth`,
-  `config/rebirth_profile.ini`'s patches) is a smoke set run on demand (`--rebirth`). GOLDENS THE SAME / GOLDENS DIFFER
+  the Rebirth folder's profile) runs the Rebirth set (`--rebirth-only`: every scenario with a Rebirth golden, the
+  marked and the stepped ones; harness.md), on main after every merge. GOLDENS THE SAME / GOLDENS DIFFER
   sets the exit code.
 - **Goldens are our own**: two runs of the build that agree (section 2). Until the switch every golden was the original
   game.exe's and the build matched all of them; the git tag `original-oracle` marks the last commit that recorded from

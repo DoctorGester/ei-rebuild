@@ -16,9 +16,13 @@ checks. Scenarios live in `tests/scenarios/`; the steps are listed at the top of
 default 16; the whole suite takes about 2 minutes); workers run it through `python tools/work.py test <ID> [run_all
 args]` (work-board.md). Each run writes to its own folder, `build\verify\runs\<scenario>-<install>` (`EI_OUT_DIR`): its
 `ei-rebuild.log`, report and `harness_saves`, emptied first. Installs: `standalone` (the vanilla data) and
-`standalone-rebirth` (the Rebirth data and goldens; only on demand: `--rebirth` adds the smoke set of
-config/rebirth_scenarios.csv and the scenarios with Rebirth-specific steps, `--rebirth-only` runs those alone,
-`--all-rebirth` every scenario). The installs' folders are `EI_GAME_VANILLA` and `EI_GAME_REBIRTH` (default
+`standalone-rebirth` (the Rebirth data and goldens; only on demand: `--rebirth` adds the Rebirth set,
+`--rebirth-only` runs it alone, `--all-rebirth` every scenario). The Rebirth set is config/rebirth_scenarios.csv's
+marks, the scenarios with Rebirth-specific steps and every scenario with a Rebirth golden (run_all.rebirth_scenarios),
+so main's `--rebirth-only --golden` after each merge compares every Rebirth golden there is: one outside the set went
+stale unseen after golden-moving merges (H51a found 66 of 102 behind C84b, H47c, C81 and C84d). A scenario gets a
+Rebirth golden only to be checked on Rebirth's data after every merge; 102 runs take about a minute on 16 slots. The
+Linux runner (linux.md) plays only the marked and stepped part (`rebirth_scenarios(goldens=False)`). The installs' folders are `EI_GAME_VANILLA` and `EI_GAME_REBIRTH` (default
 `F:\games\EvilIslands`, `F:\games\Evil Islands (Rebirth)`; run_all.install_dir, also play.cmd's and the tools that read
 game.exe, tools/exe_path.py); a `work.py test` batch carries the submitter's two, so a suite on the stub data
 (linux.md, "The stub data") goes through the scheduler too. `EI_BUILD_DIR` points run_all at another verify build.

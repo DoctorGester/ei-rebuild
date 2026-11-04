@@ -1,28 +1,17 @@
 {
   "scenario": "combat",
   "install": "rebirth",
-  "recorded": "2026-11-03",
-  "commit": "56708991a",
+  "recorded": "2026-11-04",
+  "commit": "13def2600",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "H47c: game maths through lib/maths.h (each system's double function rounded to float), the same on Windows and Linux; UCRT's float sinf/cosf/... were an ulp off for some inputs",
+  "reason": "H51a: Rebirth goldens outside the old Rebirth set had gone stale behind golden-moving merges (C84d's no-point z 0 instead of 1e6 and its other fixes, H47c's game maths, C81's settings, and PL20/C84/C84b before them); main's runs are the same as a build of d31120f0e (C84d's goldens) and every vanilla twin moved at those merges",
   "source": "image",
   "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "console: differs from line 37: the old golden 'Unit 1000275419 was attacked by 1000011214 skill=3.40282e+038 damage=12.1082 destHL=RHand', the new run 'Unit 1000275419 was attacked by 1000011214 skill=-3.40282e+038 damage=12.5461 destHL=RHand'",
-    "digest: 13 of 21 records differ, first at record 8 (world update 180, tick 180, frame 35, zone gz1g); outcomes CHANGED: deaths, spawns, quest variables, party and items; max unit move 0.557 (obj1000275420, record 14); the digests have different numbers of records",
-    "  digest: the old golden has more records; the other ends before its record 21 (world update 440, frame 87, tick 440, zone gz1g)",
-    "  first difference at record 8 (world update 180, tick 180, frame 35, zone gz1g): 3 fields",
-    "    random (random) isaac.count: 80 in the old golden, 71 in the new run (d 9)",
-    "    random (random) crt.rand: 0x1A3D81A5 in the old golden, 0x010C970A in the new run",
-    "    obj1000011214 (80 unhuma \"\") #place: CEF1188D in the old golden, 87A6EFCD in the new run",
-    "  outcomes: CHANGED deaths, spawns, quest variables, party and items; same: zone, money, game result, script",
-    "    deaths: obj1000275419 dead: 1 in the old golden, 0 in the new run, from record 9 (+3 more)",
-    "    spawns: obj1000275420 (80 unmogo \"Enemy2\") only in the old golden, from record 10 (+2 more)",
-    "    quest variables: 1 variables differ (hp0); first from record 10: player0 hp0: 38.7939034 in the old golden, (none) in the new run",
-    "    party and items: player0 objects: 10 in the old golden, 9 in the new run, from record 10 (+2 more)",
-    "... 31 more lines"
+    "save savea/mission.sav: 6 fields in 3 records differ: obj 6",
+    "  obj: 6 fields in 3 records; first obj1804 controller.action.point.z: 1000000.0 in the old golden, 0.0 in the new run (d 1e+06)"
   ]
 }

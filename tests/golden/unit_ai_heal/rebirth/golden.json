@@ -1,23 +1,28 @@
 {
   "scenario": "unit_ai_heal",
   "install": "rebirth",
-  "recorded": "2026-11-03",
-  "commit": "56708991a",
+  "recorded": "2026-11-04",
+  "commit": "13def2600",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "H47c: game maths through lib/maths.h (each system's double function rounded to float), the same on Windows and Linux; UCRT's float sinf/cosf/... were an ulp off for some inputs",
+  "reason": "H51a: Rebirth goldens outside the old Rebirth set had gone stale behind golden-moving merges (C84d's no-point z 0 instead of 1e6 and its other fixes, H47c's game maths, C81's settings, and PL20/C84/C84b before them); main's runs are the same as a build of d31120f0e (C84d's goldens) and every vanilla twin moved at those merges",
   "source": "image",
   "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 2 of 37 records differ, first at record 10 (world update 220, tick 220, frame 43, zone gz1g); outcomes the same; unit place differs (hash only: no numbers)",
-    "  first difference at record 10 (world update 220, tick 220, frame 43, zone gz1g): 1 fields",
-    "    cunit1000011214 (80 unhuma \"\") #place: 7A94CB20 in the old golden, 1CBEB07D in the new run",
+    "console: differs from line 129: the old golden 'Unit 1000011214 was attacked by 1804 skill=-3.40282e+038 damage=11.63 destHL=Head!', the new run 'Unit 1000011214 was attacked by 1804 skill=3.40282e+038 damage=12.69 destHL=RLeg'",
+    "digest: 32 of 37 records differ, first at record 3 (world update 80, tick 80, frame 15, zone gz1g); outcomes the same; max unit move 6.97 (obj1934, record 36)",
+    "  first difference at record 3 (world update 80, tick 80, frame 15, zone gz1g): 1 fields",
+    "    obj1804 (80 unanwiwo \"\") #unit: 8AFA2C32 in the old golden, 226AA445 in the new run",
     "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  client units: 1 of 14 differ",
-    "    #place: 1 client unit, 1 record, from 10; hash only (no numbers kept)",
-    "  units: 2 of 53 differ",
-    "    #place: 2 units, 1 record, from 36; hash only (no numbers kept)"
+    "  units: 48 of 53 differ",
+    "    #unit: 48 units, 31 records, from 3; hash only (no numbers kept)",
+    "    #ai: 3 units, 4 records, from 33; hash only (no numbers kept)",
+    "    pos: 1 unit, 3 records, from 34; moved 6.97 at obj1934 80 unmoto \"\", record 36",
+    "  random: 1 of 1 differ",
+    "    isaac: 1 generator, 4 records, from 33; max |d| 242 at random isaac.count, record 35: 249 -> 7",
+    "  world: 1 of 1 differ",
+    "... 6 more lines"
   ]
 }

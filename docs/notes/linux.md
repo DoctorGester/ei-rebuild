@@ -202,7 +202,8 @@ harness" above); it fails when a golden differs. It runs on pushes to main and `
 repository's own branches (a fork's gets no secrets and the job is skipped) and by hand; it uploads nothing, and the
 data is outside every cached path. It is off until the variable below is set.
 
-The runner (4 cores, one game at a time) plays the image suite in about 37 minutes and the Rebirth set in 6. Its first
+The runner (4 cores, one game at a time) plays the image suite in about 37 minutes and the Rebirth set's marked and
+stepped scenarios (`rebirth_scenarios(goldens=False)`, not every Rebirth golden as on Windows) in 6. Its first
 run (2026-11-03) cut camera_drag_rate, camera_smooth and camera_spin at their 120 s limit even alone (hundreds of 8 ms
 frames at 4K on llvmpipe; camera_drag_rate takes 86 s alone on the 32-core build machine), so `LINUX_SKIP` lists them;
 render_blink, render_cursor_present and render_shadows_outside fail their own pixel checks on the stub set (above) and
