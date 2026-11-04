@@ -42,24 +42,6 @@ constexpr float kHalfCell = 0.5f;
 
 UnitVitals& ServerVitals(Unit* unit) { return unit->ServerCompanion()->vitals; }
 
-void ShowHead(UnitServer* self) {
-    AnimationSteps& queue = self->queue;
-    if (queue.steps.empty()) return;
-    const AnimationStep& head = queue.steps[0];
-    if (!head.IsBlank()) self->unit->SetAnimationEntries(head.animation, head.variant, self->queue.extra, head.flags);
-}
-
-// The unit stops where it is, facing its direction (the motion restarted with the reversed Y axis of its
-// rotation), then stands (0) and is Stopped.
-void FaceAndStop(UnitServer* self) {
-    self->motion.Clear();
-    int now = self->OwningWorld()->tick;
-    Vector3 axis = self->unit->localRotation.AxisY();
-    if (self->motion.Start(self->unit->localPosition, -axis, now)) self->unit->RefreshMotion();
-    self->ClearStanding();
-    self->SetState(UnitState::Stopped);
-}
-
 // The unit's movement mode from a record: 3 while it was mode 3 (`wasMode3`), else its mode.
 int UnitModeOf(const MoveModeState& state) { return (state.wasMode3 & 1) ? 3 : state.mode; }
 
@@ -93,26 +75,9 @@ using PartyMap = Player::UnitMap;
 
 // The two variants differ only in the state they set.
 void Play(UnitServer* self, const AnimationSteps& steps, UnitState newState) {
-    self->state = newState;
-    self->unit->UpdateSizeClass();
-    self->DropEffectObject();
-    self->queue = steps;
-    self->StartQueueIfUnset();
-    self->PopFinishedSteps();
-    ShowHead(self);
-    self->motion.Clear();
-    int now = self->OwningWorld()->tick;
-    Vector3 axis = self->unit->localRotation.AxisY();
-    Vector3 back = -axis;
-    if (self->motion.Start(self->unit->localPosition, back, now)) self->unit->RefreshMotion();
-    WorldServer* world = self->ServerWorld();
-    if (self->unit->obstacle != 0) {
-        SectorMap* sectors = &world->aiMap.sectorMap;
-        sectors->Remove(self->unit);
-        self->unit->obstacle = 0;
-        sectors->Add(self->unit);
-        self->unit->MarkChanged(NetField::Motion);
-    }
+    self->SetState(newState);
+    self->PlaySteps(&steps);
+    self->StandStill();
 }
 
 // A movement record from the unit's mode: mode 3 is mode 2 with `wasMode3`.
@@ -144,8 +109,6 @@ void UnitServer::PlayEmoteOrder(const AnimationSteps& steps) { Play(this, steps,
 
 // --- Idle and movement animations --------------------------------------------------------------
 
-void UnitServer::BuildIdle(AnimationSteps* steps) { FillIdle(this, steps); }
-
 AnimationSteps* UnitServer::IdleAnimation() {
     std::uint32_t key = WeaponAndModeBits(this);
     if (idleKey == key) {
@@ -159,18 +122,7 @@ AnimationSteps* UnitServer::IdleAnimation() {
 
 void UnitServer::PlayIdle() {
     if (state == UnitState::Idle || state == UnitState::Moving || state == UnitState::Turning) return;
-    std::uint32_t key = WeaponAndModeBits(this);
-    if (idleKey == key) {
-        idleAnimation.extra = -1;
-    } else {
-        idleKey = key;
-        FillIdle(this, &idleAnimation);
-    }
-    // The idle list into the queue, started.
-    queue = idleAnimation;
-    StartQueueIfUnset();
-    PopFinishedSteps();
-    ShowHead(this);
+    PlaySteps(IdleAnimation());
 }
 
 void UnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
@@ -264,14 +216,7 @@ void UnitServer::StartAction(char follow, char stepFlags) {
     OrderPlan& plan = currentPlan;
     for (AnimationStep& step : plan.animation.steps) step.flags = static_cast<std::uint8_t>(stepFlags);
     if (state != UnitState::Idle && state != UnitState::Moving && state != UnitState::Turning) {
-        std::uint32_t key = WeaponTypeMask() | MoveModeMask(&moveMode);
-        if (idleKey == key) {
-            idleAnimation.extra = -1;
-        } else {
-            idleKey = key;
-            BuildIdle(&idleAnimation);
-        }
-        PlaySteps(&idleAnimation);
+        PlaySteps(IdleAnimation());
     }
     state = UnitState::Acting;
     actingCheckTime = OwningWorld()->tick + 10;
@@ -284,13 +229,7 @@ void UnitServer::StartAction(char follow, char stepFlags) {
         motion.StandAndTrack(now, unit, plan.targetId, until, plan.startTime);
     }
     unit->RefreshMotion();
-    WorldServer* world = ServerWorld();
-    if (unit->obstacle == 0) return;
-    SectorMap* sectors = &world->aiMap.sectorMap;
-    sectors->Remove(unit);
-    unit->obstacle = 0;
-    sectors->Add(unit);
-    unit->MarkChanged(NetField::Motion);
+    ClearStanding();
 }
 
 // --- Movement modes -----------------------------------------------------------------------------
@@ -375,7 +314,10 @@ bool UnitServer::ChangeMoveMode() {
         return false;
     }
     if (state == UnitState::Idle) {
-        if (modeChanged) FaceAndStop(this);
+        if (modeChanged) {
+            StandStill();
+            SetState(UnitState::Stopped);
+        }
         if (state == UnitState::Idle && !modeChanged) {
             unit->UpdateSizeClass();
             if (action2.kind == UnitOrderKind::None) action2.Assign(&action);
@@ -385,7 +327,8 @@ bool UnitServer::ChangeMoveMode() {
     if (action.kind != UnitOrderKind::Attack) {
         AnimationSteps transition;
         if (BuildTransition(&transition, &saved, &moveMode)) {
-            FaceAndStop(this);
+            StandStill();
+            SetState(UnitState::Stopped);
             PlayAnimationOrder(transition);   // the transition played as an animation order
         }
     }
@@ -421,18 +364,13 @@ bool UnitServer::PathTo(const Vector3& point, float range) {
     sneakWait = 0;
     unit->RefreshMotion();
     if (state != UnitState::Idle && state != UnitState::Moving && state != UnitState::Turning) PlaySteps(IdleAnimation());
-    state = UnitState::Idle;
-    unit->UpdateSizeClass();
-    DropEffectObject();
+    SetState(UnitState::Idle);
     if (movingAnimation != 0) {
         // Moving already: the movement animation goes on unless it is the same one-step loop.
         const AnimationSteps& moving = *NextAnimation();
         AnimationSteps& current = queue;
         if (current.steps.size() != 1 || moving.steps.size() != 1 || current.steps[0].variant != moving.steps[0].variant) {
-            current = moving;
-            StartQueueIfUnset();
-            PopFinishedSteps();
-            ShowCurrentStep();
+            PlaySteps(&moving);
         }
     }
     return true;
@@ -504,55 +442,23 @@ void UnitServer::ReportPath(AIPath* path, char partial) {
 
 void UnitServer::ResyncWithUnit() {
     action.Reset();
-    if (action2.kind != UnitOrderKind::Animation && action2.kind != UnitOrderKind::Emote) DropQueuedOrder();
+    Idle();
     RecordFromMode(&moveMode, unit->moveMode);
     RecordFromMode(&moveMode2, unit->moveMode2);
-    motion.Clear();
-    int now = OwningWorld()->tick;
-    Vector3 axis = unit->localRotation.AxisY();
-    if (motion.Start(unit->localPosition, -axis, now)) unit->RefreshMotion();
-    ClearStanding();
+    StandStill();
     SetState(UnitState::Stopped);
     unit->UpdateSizeClass();
     unit->pendingWeapon = 0;
     if (unit->pendingWeapon != static_cast<int>(unit->activeWeapon))
         unit->controller->ShowWeapon(static_cast<std::uint32_t>(unit->pendingWeapon));
-    std::uint32_t key = WeaponTypeMask() | MoveModeMask(&moveMode);
-    if (idleKey == key) {
-        idleAnimation.extra = -1;
-    } else {
-        idleKey = key;
-        BuildIdle(&idleAnimation);
-    }
-    if (!queue.SameAs(&idleAnimation)) {
-        // The idle animation starts at a random phase (up to 50 ticks back) on an empty queue.
-        if (queue.steps.empty() && queue.extra == -1)
-            idleAnimation.extra = OwningWorld()->tick - static_cast<int>(g_random.Next() % 0x33);
-        queue = idleAnimation;
-        StartQueueIfUnset();
-        PopFinishedSteps();
-        ShowCurrentStep();
-    }
-    StandStill();
-    SetState(UnitState::Turning);
+    StandIdle();
 }
 
 // --- Reset ---------------------------------------------------------------------------------------
 
 void UnitServer::ResetController() {
-    auto releaseRef = [](Ref<MapObject>& ref) {
-        ref.Reset();
-    };
-    action.kind = UnitOrderKind::None;
-    releaseRef(action.target);
-    action.pointIsUseSpot = false;
-    action.param = 0;
-    action.modifier = 0;
-    action2.kind = UnitOrderKind::None;
-    releaseRef(action2.target);
-    action2.pointIsUseSpot = false;
-    action2.param = 0;
-    action2.modifier = 0;
+    action.Reset();
+    action2.Reset();
     frozen = 0;
     animationHeld = 0;
     queue = {};
@@ -585,7 +491,6 @@ void UnitServer::ResetController() {
     effectObject.Reset();
     actingCheckTime = -1;
     action.kind = UnitOrderKind::Idle;
-    action2.kind = UnitOrderKind::None;
     nextAttackTime = 0;
     interceptTime = 0;
     orderStopped = 0;

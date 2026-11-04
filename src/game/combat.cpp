@@ -46,7 +46,6 @@ constexpr float kPointOne = 0.1f;
 constexpr float kPointTwo = 0.2f;
 constexpr float kPointThree = 0.3f;
 constexpr float kPointSix = 0.6f;
-constexpr float kOnePointFive = 1.5f;
 constexpr float kFive = 5.0f;
 constexpr float kTen = 10.0f;
 constexpr float kDistanceScale = 10.0f;
@@ -193,32 +192,22 @@ Item* UnitServer::SpellCarrier(std::uint32_t source) {
     return nullptr;
 }
 
-bool UnitServer::IsScrollSource(std::uint32_t source) {
+bool UnitServer::IsPotionSource(std::uint32_t source) {
     if (!(source & kQuickItemSource)) return false;
-    auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
-    if (!item || item->GetClassId() != ClassId::ItemQuick) return false;
-    if (item->GetCategory() != QuickItemCategory::Wand && item->GetCategory() != QuickItemCategory::Potion) return false;
-    return item->GetCategory() == QuickItemCategory::Potion;
+    Item* item = SpellCarrier(source);
+    return item && item->GetCategory() == QuickItemCategory::Potion;
 }
 
 Spell* UnitServer::SpellOfSource(std::uint32_t source) {
     if (!(source & kQuickItemSource)) return unit->GetSpellObject(source);
-    auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
-    if (!item || item->GetClassId() != ClassId::ItemQuick) return nullptr;
-    if (item->GetCategory() != QuickItemCategory::Wand && item->GetCategory() != QuickItemCategory::Potion) return nullptr;
-    return item->spell;
+    Item* carrier = SpellCarrier(source);
+    if (!carrier) return nullptr;
+    return carrier->spell;
 }
 
 bool UnitServer::IsFighting() {
     if (action.kind == UnitOrderKind::CastAt || action.kind == UnitOrderKind::CastOn) {
-        Spell* spell = nullptr;
-        if (action.source & kQuickItemSource) {
-            auto* item = unit->GetQuickItem(action.source & ~kQuickItemSource);
-            if (item && item->GetClassId() == ClassId::ItemQuick && (item->GetCategory() == QuickItemCategory::Wand || item->GetCategory() == QuickItemCategory::Potion))
-                spell = item->spell;
-        } else {
-            spell = unit->GetSpellObject(action.source);
-        }
+        Spell* spell = SpellOfSource(action.source);
         if (spell) {
             SpellType spellType = spell->Type();
             if (spellType <= SpellType::AcidFog) return true;
@@ -231,14 +220,11 @@ bool UnitServer::IsFighting() {
 bool UnitServer::CanCast(const AIOrder* order) {
     std::uint32_t source = order->source;
     if (source & kQuickItemSource) {
-        auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
-        if (!item || item->GetClassId() != ClassId::ItemQuick) return false;
-        if (item->GetCategory() != QuickItemCategory::Wand && item->GetCategory() != QuickItemCategory::Potion) return false;
-        Spell* spell = item->spell;
-        if (!spell) return false;
+        Item* item = SpellCarrier(source);
+        if (!item || !item->spell) return false;
         if (item->GetCategory() != QuickItemCategory::Wand) return true;
         // The charge against the cost: less (or unordered) refuses.
-        return item->charge >= SpellCost(spell);
+        return item->charge >= SpellCost(item->spell);
     }
     Spell* spell = unit->GetSpellObject(source);
     if (!spell) return false;
@@ -263,15 +249,7 @@ float UnitServer::ActionDistance(const AIOrder* order) {
     MapObject* target = order->target;
     if (kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn) {
         if (!unit->player && stats.naturalWeapon == kNoNaturalWeapon) return stats.combat[UnitStats::kReach];
-        std::uint32_t source = order->source;
-        Spell* spell;
-        if (source & kQuickItemSource) {
-            Item* carrier = SpellCarrier(source);
-            if (!carrier) return kTen;
-            spell = carrier->spell;
-        } else {
-            spell = unit->GetSpellObject(source);
-        }
+        Spell* spell = SpellOfSource(order->source);
         if (spell) return SpellRange(spell);
         return kTen;
     }
@@ -300,19 +278,14 @@ float UnitServer::ActionDistance(const AIOrder* order) {
     return (target->Radius() + own) + range;
 }
 
-bool UnitServer::CanReachTarget(const AIOrder* order) {
-    if (order->kind != UnitOrderKind::Attack && order->kind != UnitOrderKind::Use) return true;
+bool UnitServer::TooHighToReach(const AIOrder* order) {
+    if (order->kind != UnitOrderKind::Attack && order->kind != UnitOrderKind::Use) return false;
     Unit* other = UnitOrNull(order->target);
-    if (!other) return true;
-    if (other->IsDead() != 0) return true;
-    if (other->sizeClass != 0) return true;
-    if (order->kind == UnitOrderKind::Attack) {
-        ItemWeapon* weapon = unit->ActiveWeapon();
-        if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) return true;
-    }
-    float offset = other->GetPrototype()->height;
-    float height = offset + other->localPosition.z;
-    return height < kOnePointFive;
+    if (!other || other->IsDead()) return false;
+    if (other->sizeClass != 0) return false;
+    if (order->kind == UnitOrderKind::Attack && HasRangedWeapon()) return false;
+    float height = other->GetPrototype()->height + other->localPosition.z;
+    return height >= kMeleeReachHeight;
 }
 
 std::uint32_t UnitServer::WeaponTypeMask() {
@@ -690,11 +663,9 @@ bool UnitServer::TakeUpWeapon(int slot) {
 void UnitServer::OnObjectDeleted(EngineObject* object) {
     if (!object) return;
     if (action.target == object) {
-        action.Reset();
-        if (action2.kind == UnitOrderKind::None) Idle();
+        EndCurrentOrder();
     }
-    if (action2.target == object && action.kind != UnitOrderKind::Idle && action2.kind != UnitOrderKind::Animation && action2.kind != UnitOrderKind::Emote)
-        DropQueuedOrder();
+    if (action2.target == object) Idle();
     if (currentPlan.targetId == object->id) EndOrder(0);
     brain.OnObjectDeleted(object);
     if (followedLeader == object) {

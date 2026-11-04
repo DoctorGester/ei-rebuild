@@ -62,7 +62,7 @@ waitline 15 is using skill stealing
 waitexpect 10 Item has been stolen from
 
 # A run order: a double click on a unit (the first click, then the double click's second half) orders the
-# hero to run at it (the order's run flag; UnitServer::TakeQueuedOrder checks CanStillDo for it).
+# hero to run at it (the order's run flag; UnitServer's LeaveMoveMode checks CanReachAndPlan for it).
 console @AddUnitToServer("SkillWolf2","WolfTutor","SkillWolf2",Sub(GSGetVar(0,"hx"),5),GSGetVar(0,"hy"),0)
 waitfor 10 IsAlive(GetObjectByName("SkillWolf2"))
 console @BlockUnit(GetObjectByName("SkillWolf2"),1)

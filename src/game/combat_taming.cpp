@@ -68,18 +68,7 @@ bool UnitServer::TryTame(Unit* tamer, float roll) {
     }
     tamerSide = tamer->side;
     brain.StopAction();
-    if (action.kind != UnitOrderKind::Idle && action2.kind != UnitOrderKind::Animation && action2.kind != UnitOrderKind::Emote) {
-        action2.kind = UnitOrderKind::None;
-        action2.target.Reset();
-        action2.pointIsUseSpot = false;
-        action2.param = 0;
-        action2.modifier = 0;
-        action2.kind = UnitOrderKind::Idle;
-        if (action2.target) {
-            action2.target.Reset();
-        }
-        action2.modifier = 0;
-    }
+    Idle();
     return true;
 }
 

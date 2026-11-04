@@ -13,6 +13,9 @@
 #include <optional>
 #include <vector>
 
+// A melee target whose prototype height plus its z reaches this is too high to hit (TooHighToReach).
+constexpr float kMeleeReachHeight = 1.5f;
+
 // An order of the unit: an AIOrder and two more fields. The order checks (CanReachAndPlan and the planning
 // under it) take the AIOrder part only: the AI builds just that on the stack.
 struct UnitAction : AIOrder {
@@ -194,7 +197,8 @@ public:
     void GetSpellDamage(std::uint32_t source, DamageWords* out);
     // The quick item of `source` (high bit ignored) if it carries a spell (class 0x13, category 5 or 8).
     Item* SpellCarrier(std::uint32_t source);
-    bool IsScrollSource(std::uint32_t source);
+    // `source` is a quick item of category 8 (a potion: the AI brain does not take it for a cast).
+    bool IsPotionSource(std::uint32_t source);
     // A spell slot's spell, or a carrier item's.
     Spell* SpellOfSource(std::uint32_t source);
     // Does the current order count as fighting (for the battle music): an attack (kind 3), or a cast (4, 5) of a
@@ -208,9 +212,9 @@ public:
     // The point of the first move order (action, then action2). 0/1.
     std::optional<Vector3> GetMovePoint();
     float ActionDistance(const AIOrder* order);
-    // False only for a melee order (kind 3 without a ranged weapon, or 6) on a living unit of size class 0
-    // whose prototype height plus its z is 1.5 or more.
-    bool CanReachTarget(const AIOrder* order);
+    // True only for a melee order (kind 3 without a ranged weapon, or 6) on a living unit of size class 0
+    // whose prototype height plus its z is kMeleeReachHeight or more.
+    bool TooHighToReach(const AIOrder* order);
     // 1 << the weapon type (natural weapon types 7 and above: 0).
     std::uint32_t WeaponTypeMask();
     // Animation bits of a movement mode: 0 0x30000, 1 0x20000, 2 0x10000 (only with
@@ -278,6 +282,11 @@ public:
     // Drops the queued order unless it is of kind 7 or 8 or there is no current order; the queued order ends
     // up of kind 0 (sic).
     void Idle();
+    // The current order is over: reset, and Idle() unless another is queued.
+    void EndCurrentOrder() {
+        action.Reset();
+        if (action2.kind == UnitOrderKind::None) Idle();
+    }
     // Re-registers the unit on the sector map; dying also removes and releases effectObject.
     void SetDead(int dead);
 
@@ -293,7 +302,7 @@ public:
     // Kind 3 at body part `location` (6, all, unless the target's part kind is 3); modifier = `calledShot`.
     // Dropped when the target is out of reach (message 0x0C) or the planner refuses.
     void OrderAttack(MapObject* target, int location, int calledShot, AckKind planArg);
-    // Kind 4 (cast at a point). A scroll (quick item of category 8) is cast at once. A party unit needs the
+    // Kind 4 (cast at a point). A potion (quick item of category 8) is cast at once. A party unit needs the
     // spell's skill for a spell of its own; message 0x13 if not, or while flags has 0x10000000.
     void OrderCastAt(std::uint32_t source, const Vector3& point, int run);
     void OrderCast(std::uint32_t source, MapObject* target, int run);
@@ -402,8 +411,6 @@ public:
     void ApproachTarget();
     // moveMode / moveMode2 from the unit's modes and the order.
     void SyncMoveModes();
-    // StartQueuedOrder's common start.
-    void TakeQueuedOrder();
     void SetUnitMoveMode2(int mode);
 
     // --- The update and the animation queue.
@@ -428,6 +435,8 @@ public:
     void SetState(UnitState newState);
     // Clears the standing flag, re-registering the unit on the sector map.
     void ClearStanding();
+    // Stand: the idle animation (restarted at a random phase when nothing plays), StandStill, then Turning.
+    void StandIdle();
     // The unit stays where it is, facing its direction; standing 0.
     void StandStill();
     // The reaction to a hit from hitDirection (BuildDeathAnimation without dying), saving the queue in
@@ -450,9 +459,8 @@ public:
     // facing its direction.
     void PlayAnimationOrder(const AnimationSteps& steps);
     void PlayEmoteOrder(const AnimationSteps& steps);
-    // The emote 0xFE for a hero walking (mode 2 without onGuard), else the idle entry of the weapon and movement
-    // key (| 0x80580000), if any.
-    void BuildIdle(AnimationSteps* steps);
+    // The idle animation for the weapon and movement key, rebuilt when the key changed (the emote 0xFE for a hero
+    // walking, else the idle entry of the key | 0x80580000, if any).
     AnimationSteps* IdleAnimation();
     // Unless idle, moving or turning: the idle animation, rebuilt when needed, plays.
     void PlayIdle();

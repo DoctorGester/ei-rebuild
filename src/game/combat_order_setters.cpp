@@ -126,16 +126,12 @@ void UnitServer::PlayAnimation(const char* name) {
 void UnitServer::StopAction() {
     state = UnitState::Stopped;
     unit->UpdateSizeClass();
-    if (effectObject) {
-        g_serverWorld.RemoveTimedObject(effectObject->id);
-        effectObject.Reset();
-    }
+    DropEffectObject();
     OrderPlanReset(&currentPlan);   // SetSize(0, -1) instead of the free, like the original
     StandStill();
     action.Reset();
     action2.Reset();
-    // Idle, inlined: the current order is never of kind 0 here, the queued one is 9.
-    if (action.kind != UnitOrderKind::Idle && action2.kind != UnitOrderKind::Animation && action2.kind != UnitOrderKind::Emote) DropQueuedOrder();
+    Idle();
 }
 
 bool UnitServer::HasOtherArmour() {

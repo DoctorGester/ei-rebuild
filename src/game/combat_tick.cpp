@@ -30,7 +30,6 @@ constexpr float kShort = 0.999f;
 constexpr float kLong = 0.001f;
 constexpr float kFive = 5.0f;
 constexpr float kFifteen = 15.0f;
-constexpr float kHeightLimit = 1.5f;
 constexpr float kArrived = 0.02f;
 constexpr float kMinClosing = 0.1f;   // the slowest closing speed
 constexpr float kFar = 1000000.0f;                         // 1e6: no limit for a path
@@ -42,41 +41,14 @@ constexpr int kModeRun = 2;
 constexpr int kAttackLead = 0x10;       // ticks a chase looks ahead
 constexpr int kChaseMinTicks = 2;
 constexpr int kChaseMaxTicks = 0x40;
-constexpr int kWeaponBow = 5;
-constexpr int kWeaponCrossbow = 6;
 
 
 
-bool IsUnit(MapObject* object) { return object && object->GetClassId() == ClassId::Unit; }
 bool IsCastKind(UnitOrderKind kind) { return kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn; }
 bool IsActionKind(UnitOrderKind kind) { return kind == UnitOrderKind::Attack || kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn || kind == UnitOrderKind::Use; }
 
-float PrototypeHeight(Unit* unit) { return unit->GetPrototype()->height; }
-
 void TellParty(Unit* unit, AckKind kind) {
     if (unit->player) unit->player->Server()->SendUnitSpeech(unit, kind);
-}
-
-// UnitAction::Clear followed by the reset of its two extra fields, as callers inline it.
-void ClearAction(UnitAction* order) {
-    order->Clear();
-    order->param = 0;
-    order->modifier = 0;
-}
-
-// The melee reach test of CanReachTarget as an inlining caller has it: false when the target (a living unit
-// standing on its own) is too high to reach, else whether the action can be planned.
-bool CanStillDo(UnitServer* self, UnitAction* order) {
-    if (order->kind == UnitOrderKind::Attack || order->kind == UnitOrderKind::Use) {
-        Unit* other = UnitOrNull(order->target);
-        if (other && !other->IsDead()) {
-            if (other->sizeClass == 0 && !(order->kind == UnitOrderKind::Attack && self->HasRangedWeapon())) {
-                float height = PrototypeHeight(other) + other->localPosition.z;
-                if (height >= kHeightLimit) return false;
-            }
-        }
-    }
-    return self->CanPlanAction(order);
 }
 
 // The common start of taking over the queued order: run (mode 2) unless the order can be carried
@@ -89,21 +61,6 @@ void LeaveMoveMode(UnitServer* self) {
     }
     self->SyncMoveModes();
     self->waitFrame = g_serverWorld.tick;
-}
-
-// Stand: the idle animation (restarted at a random phase when nothing plays) and the motion
-// updates. Not while Turning.
-void StandIdle(UnitServer* self) {
-    AnimationSteps* idle = self->IdleAnimation();
-    if (!self->queue.SameAs(idle)) {
-        if (self->queue.steps.empty() && self->queue.extra == -1) {
-            int now = self->OwningWorld()->tick;
-            idle->extra = now - static_cast<int>(g_random.Next() % 0x33);
-        }
-        self->PlaySteps(idle);
-    }
-    self->StandStill();
-    self->SetState(UnitState::Turning);
 }
 
 // The queued order replaces the current one (copy, then reset of the queued order).
@@ -126,23 +83,6 @@ int AttackInterval(UnitServer* self, ItemWeapon* weapon) {
     }
     float scaled = static_cast<float>(base) * factor;
     return lib::RoundEven(scaled);
-}
-
-// As an inlining caller has it.
-void SetModeInline(Unit* unit, int mode) {
-    if (unit->moveMode2 == mode) return;
-    unit->moveMode2 = mode;
-    unit->MarkChanged(NetField::Modes);
-}
-
-bool OutOfReachUp(UnitServer* self, const AIOrder* order) {
-    if (order->kind != UnitOrderKind::Attack && order->kind != UnitOrderKind::Use) return false;
-    Unit* other = UnitOrNull(order->target);
-    if (!other || other->IsDead()) return false;
-    if (other->sizeClass != 0) return false;
-    if (order->kind == UnitOrderKind::Attack && self->HasRangedWeapon()) return false;
-    float height = PrototypeHeight(other) + other->localPosition.z;
-    return height >= kHeightLimit;
 }
 
 // Where the motion is heading: half its two members (as 0.5, the original's constant product).
@@ -199,34 +139,21 @@ void UnitServer::SyncMoveModes() {
     if (!unit->player && moveMode2.onGuard) moveMode2.wasMode3 |= 1;
 }
 
-void UnitServer::TakeQueuedOrder() {
-    action.kind = action2.kind;
-    action.source = action2.source;
-    MapObject* target = action2.target;
-    if (target != action.target) {
-        action.target.Assign(target);
-    }
-    action.point = action2.point;
-    action.pointIsUseSpot = action2.pointIsUseSpot;
-    action.param = action2.param;
-    action.param = action2.param;
-    action.modifier = action2.modifier;
-    action2.kind = UnitOrderKind::None;
-    action2.target.Reset();
-    action2.pointIsUseSpot = false;
-    action2.param = 0;
-    action2.modifier = 0;
-    if (action.modifier && moveMode.mode != kModeRun) {
-        if (!(IsActionKind(action.kind) && CanStillDo(this, &action)) && unit->moveMode2 != kModeRun) {
-            unit->moveMode2 = kModeRun;
-            unit->MarkChanged(NetField::Modes);
-        }
-    }
-    SyncMoveModes();
-    waitFrame = g_serverWorld.tick;
-}
-
 // --- Taking over the queued order ----------------------------------------------------------------
+
+void UnitServer::StandIdle() {
+    AnimationSteps* idle = IdleAnimation();
+    if (!queue.SameAs(idle)) {
+        // The idle animation starts at a random phase (up to 50 ticks back) on an empty queue.
+        if (queue.steps.empty() && queue.extra == -1) {
+            int now = OwningWorld()->tick;
+            idle->extra = now - static_cast<int>(g_random.Next() % 0x33);
+        }
+        PlaySteps(idle);
+    }
+    StandStill();
+    SetState(UnitState::Turning);
+}
 
 bool UnitServer::StartMove() {
     WorldServer* world = ServerWorld();
@@ -239,10 +166,8 @@ bool UnitServer::StartMove() {
     // Already there (in the plane: a move point's z is no height): the order is done and the next one starts.
     float lengthSq = DistanceSquaredXY(unit->localPosition, action.point);
     if (lengthSq < kArrived) {
-        action.Reset();
-        if (action2.kind == UnitOrderKind::None) Idle();
-        bool result = StartQueuedOrder();
-        return result;
+        EndCurrentOrder();
+        return StartQueuedOrder();
     }
     // Plan the way with the units near the goal lifted off the sector map.
     std::vector<Unit*> lifted = LiftNearby(action.point, action.source != 0);
@@ -264,8 +189,7 @@ bool UnitServer::StartMove() {
         return true;
     }
     orderStopped = 1;
-    action.Reset();
-    if (action2.kind == UnitOrderKind::None) Idle();
+    EndCurrentOrder();
     StartQueuedOrder();
     return false;
 }
@@ -280,9 +204,9 @@ bool UnitServer::StartQueuedOrder() {
     switch (action2.kind) {
     case UnitOrderKind::Idle:
         action.Assign(&action2);
-        ClearAction(&action2);
+        action2.Reset();
         LeaveMoveMode(this);
-        if (state != UnitState::Turning) StandIdle(this);
+        if (state != UnitState::Turning) StandIdle();
         return true;
 
     case UnitOrderKind::Move:
@@ -323,7 +247,8 @@ bool UnitServer::StartQueuedOrder() {
     }
 
     case UnitOrderKind::Emote: {
-        TakeQueuedOrder();
+        TakeOver(this);
+        LeaveMoveMode(this);
         AnimationSteps steps;
         steps.AddEmote(static_cast<std::uint8_t>(action.param));
         PlayEmoteOrder(steps);
@@ -331,7 +256,8 @@ bool UnitServer::StartQueuedOrder() {
     }
 
     case UnitOrderKind::UseItem: {   // unreached in the shipped game: nothing sets the use-item order
-        TakeQueuedOrder();
+        TakeOver(this);
+        LeaveMoveMode(this);
         AnimationSteps steps;
         int duration;
         BuildOrderSteps(&steps, &duration, UnitOrderKind::Use, 0);
@@ -347,13 +273,12 @@ bool UnitServer::StartQueuedOrder() {
             unit->moveMode2 = kModeStop;
             if (ChangeMoveMode()) return true;
             TellParty(unit, AckKind::Stopped);
-            action.Reset();
-            if (action2.kind == UnitOrderKind::None) Idle();
+            EndCurrentOrder();
             return false;
         }
         TakeOver(this);
         LeaveMoveMode(this);
-        if (state != UnitState::Turning) StandIdle(this);
+        if (state != UnitState::Turning) StandIdle();
         return true;
 
     default:
@@ -378,8 +303,7 @@ void UnitServer::UpdateOrders() {
             orderStopped = 1;
             if (!brain.LeaderOrFollowed() && unit->player) TellParty(unit, AckKind::NoPath);
         }
-        if (action.kind != UnitOrderKind::Idle && action2.kind != UnitOrderKind::Animation && action2.kind != UnitOrderKind::Emote)
-            DropQueuedOrder();
+        Idle();
         break;
     case UnitOrderKind::Attack:
     case UnitOrderKind::CastAt:
@@ -388,8 +312,7 @@ void UnitServer::UpdateOrders() {
         ContinueAction();
         return;
     case UnitOrderKind::Animation:
-        if (action.kind != UnitOrderKind::Idle && action2.kind != UnitOrderKind::Animation && action2.kind != UnitOrderKind::Emote)
-            DropQueuedOrder();
+        Idle();
         break;
     default:
         return;
@@ -437,24 +360,19 @@ void UnitServer::ContinueAction() {
         orderStopped = 1;
         TellParty(unit, AckKind::NoTarget);
     }
-    action.kind = UnitOrderKind::None;
-    action.target.Reset();
-    action.pointIsUseSpot = false;
-    action.param = 0;
-    action.modifier = 0;
-    if (action2.kind == UnitOrderKind::None && action.kind != UnitOrderKind::Idle) DropQueuedOrder();
+    EndCurrentOrder();
     EndOrder(0);
 }
 
 // --- Carrying out the current order ----------------------------------------------------------------
 
 bool UnitServer::CanReachAndPlan(const AIOrder* order) {
-    if (OutOfReachUp(this, order)) return false;
+    if (TooHighToReach(order)) return false;
     return CanPlanAction(order);
 }
 
 bool UnitServer::CanReachAndPlanFrom(const AIOrder* order, const Vector3& point) {
-    if (OutOfReachUp(this, order)) return false;
+    if (TooHighToReach(order)) return false;
     // The position is swapped bitwise, like the original.
     Vector3 saved;
     saved = unit->localPosition;
@@ -486,11 +404,11 @@ void UnitServer::ExecuteOrder() {
         if (action.kind != UnitOrderKind::Use) {
             if (IsCastKind(action.kind) && unit->MapType() == MapObjectType::Hero) {
                 if (moveMode.mode == 0) {
-                    SetModeInline(unit, kModeWalk);
+                    SetUnitMoveMode2(kModeWalk);
                     stop = true;
                 }
             } else if (moveMode.mode != kModeRun) {
-                SetModeInline(unit, kModeRun);
+                SetUnitMoveMode2(kModeRun);
                 stop = true;
             }
         }
@@ -502,7 +420,7 @@ void UnitServer::ExecuteOrder() {
     }
 
     if (!clear && !stop) {
-        if (OutOfReachUp(this, &action)) {
+        if (TooHighToReach(&action)) {
             TellParty(unit, AckKind::OutOfReach);
             clear = true;
         }
@@ -536,8 +454,7 @@ void UnitServer::ExecuteOrder() {
                 auto* defender = victim->ServerController();
                 int backstab = unit->IsBehind(victim);
                 if (victim->GetClassId() == ClassId::Unit && defender->moveMode2.onGuard) backstab = 0;
-                ItemWeapon* weapon = unit->ActiveWeapon();
-                if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) backstab = 0;
+                if (HasRangedWeapon()) backstab = 0;
                 BuildAttackHit(&pendingHit, backstab, location, calledShot);
                 if (!defender->ResolveHit(&pendingHit, unit)) missed = true;
             }
@@ -546,8 +463,7 @@ void UnitServer::ExecuteOrder() {
         }
     }
     if (stop) orderStopped = 1;
-    ClearAction(&action);
-    if (action2.kind == UnitOrderKind::None) Idle();
+    EndCurrentOrder();
 }
 
 // --- Closing in --------------------------------------------------------------------------------
@@ -567,17 +483,10 @@ void UnitServer::ApproachTarget() {
         if (PathTo(goal, kFar)) {
             const Vector3 heading = WithZ(kHalfScale * motion.target, 0.0f);
             if (DistanceSquaredXY(heading, goal) <= kNearPoint) return;
-            if (CanReachTarget(&action)) {
-                const Vector3 saved = unit->localPosition;
-                unit->localPosition = heading;
-                bool ok = CanPlanAction(&action);
-                unit->localPosition = saved;
-                if (ok) return;
-            }
+            if (CanReachAndPlanFrom(&action, heading)) return;
         }
         Shout(action.kind == UnitOrderKind::Attack ? AckKind::NoWayToAttack : AckKind::NoPath);
-        action.Reset();
-        if (action2.kind == UnitOrderKind::None) Idle();
+        EndCurrentOrder();
         orderStopped = 1;
         return;
     }
@@ -588,7 +497,7 @@ void UnitServer::ApproachTarget() {
         if (reach * reach >= DistanceSquaredXY(aim, unit->localPosition) &&
             CanActFrom(&action, aim, now)) {
             // In reach of a standing target: wait.
-            if (state != UnitState::Turning) StandIdle(this);
+            if (state != UnitState::Turning) StandIdle();
             return;
         }
     }
@@ -603,7 +512,7 @@ void UnitServer::ApproachTarget() {
                 float distance = Length(offset);
                 float ticks = (distance - reach) / closing;
                 if (static_cast<float>(lead) > ticks) {
-                    if (state != UnitState::Turning) StandIdle(this);
+                    if (state != UnitState::Turning) StandIdle();
                     return;
                 }
             }
@@ -673,19 +582,10 @@ void UnitServer::ApproachTarget() {
     aiMap->refreshUnits = savedFlag;
     if (reach * reach < LengthSquared2D(left)) {
         // The way leads elsewhere: stop, face along, and chase from here.
-        AIPath* path = &motion;
-        path->Clear();
-        int time = OwningWorld()->tick;
-        Vector3 axis = unit->localRotation.AxisY();
-        Vector3 back = -axis;
-        if (path->Start(unit->localPosition, back, time)) unit->RefreshMotion();
-        ClearStanding();
+        StandStill();
         state = UnitState::Stopped;
         unit->UpdateSizeClass();
-        if (effectObject) {
-            g_serverWorld.RemoveTimedObject(effectObject->id);
-            effectObject.Reset();
-        }
+        DropEffectObject();
         stoodBlocked = 1;
     }
     interceptTime = when;

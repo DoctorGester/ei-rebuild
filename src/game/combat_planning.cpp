@@ -28,7 +28,6 @@
 namespace {
 
 constexpr int kMotionPath = 2;                    // MotionOrder kind: follow the steps
-constexpr std::uint32_t kQuickItemSource = 0x80000000u;
 constexpr float kFar = 1000000.0f;   // 1e6
 constexpr int kNoSpot = 0x7FFFFFFF;
 
@@ -161,7 +160,7 @@ bool UnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
         ok = false;
     } else {
         if (!player) return true;
-        if (CanReachTarget(order) && CanPlanAction(order)) {
+        if (CanReachAndPlan(order)) {
             // The action can be done from here.
             PathMessage(unit, &route, point, 3, 0, kFar);
             if (IsShoutable(shout) && unit->player) PlayerMessage(unit->player->Server(), unit, shout);
@@ -169,28 +168,11 @@ bool UnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
         }
         int kind = order->kind == UnitOrderKind::Attack ? 2 : 1;
         if (order->kind == UnitOrderKind::CastAt || order->kind == UnitOrderKind::CastOn) {
-            std::uint32_t source = order->source;
-            Spell* spell = nullptr;
-            bool skip = false;
-            if (source & kQuickItemSource) {
-                Item* carrier = SpellCarrier(source);
-                if (!carrier) skip = true;
-                else spell = carrier->spell;
-            } else {
-                spell = unit->GetSpellObject(source);
-            }
-            if (!skip && spell && spell->GetPrototype()->castType == 0) kind = 2;
+            Spell* spell = SpellOfSource(order->source);
+            if (spell && spell->GetPrototype()->castType == 0) kind = 2;
         }
         // Where the unit would stand at the end of its way, and whether it could act from there.
-        auto actsFromDestination = [&]() {
-            Vector3 at = route.Destination();
-            if (!CanReachTarget(order)) return false;
-            const Vector3 saved = unit->localPosition;
-            unit->localPosition = at;
-            bool can = CanPlanAction(order);
-            unit->localPosition = saved;
-            return can;
-        };
+        auto actsFromDestination = [&]() { return CanReachAndPlanFrom(order, route.Destination()); };
         if (!order->pointIsUseSpot) {
             AIPath path;
             MapObject* target = order->target;
