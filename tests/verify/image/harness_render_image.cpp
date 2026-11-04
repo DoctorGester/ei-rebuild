@@ -241,6 +241,9 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
     } else if (verb == "decals") {
         if (argument == "on" || argument == "off") render::SetGroundDecals(argument == "on");
         else failures->push_back("decals needs on or off");
+    } else if (verb == "weatherparticles") {
+        if (argument == "on" || argument == "off") render::SetWeatherParticles(argument == "on");
+        else failures->push_back("weatherparticles needs on or off");
     } else if (verb == "terraincache") {
         if (argument == "on" || argument == "off") {
             render::SetTerrainCache(argument == "on");

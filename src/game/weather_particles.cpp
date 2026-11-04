@@ -1,9 +1,10 @@
 // The rain and snow draws of the world's rain / snow layer (effects_weather.cpp calls the one of the mode): both walk the 81 x 81
 // cells (half a unit apart) around the point the wind carries a particle to the camera from; a cell's place and the
 // world's time give its particle's cycle and fall, `density` of 64 cycles show one. See docs/notes/renderer.md, section 12.
-// Kept as the game has it: the vertices' colour and specular are never written (what the buffer held stays, the distance
-// fog only lowers the specular's alpha), the packets' w neither; the rain's height uses the snow's rise (kSnowRise; both
-// are 40); a height that is not a number would loop forever in the rain's wrap.
+// Each vertex is written whole every frame: white, its fog (the specular's alpha) full until the distance fog lowers it
+// (the vertex array is resized every frame, and a resize zero-fills: colours left to what it held come out
+// transparent). Kept as the game has it: the packets' w is never written; the rain's height uses the snow's rise (kSnowRise; both are 40); a height that is not a number would
+// loop forever in the rain's wrap.
 #include "ai_motion.h"
 #include "camera.h"
 #include "clip.h"
@@ -137,7 +138,12 @@ void Project(RainSnow& layer, SceneRenderer* renderer) {
                              layer.projected.data(), layer.outcodes.data(), lib::Count(layer.positions));
 }
 
-void SetCorner(TLVertex& vertex, const Vector4& projected) { std::memcpy(&vertex, &projected, sizeof(projected)); }
+// A corner at its projected place, white and not fogged.
+void SetCorner(TLVertex& vertex, const Vector4& projected) {
+    std::memcpy(&vertex, &projected, sizeof(projected));
+    vertex.color = 0xFFFFFFFFu;
+    vertex.specular = 0xFF000000u;
+}
 
 // The texture frame's coordinates on a particle's three vertices.
 void SetFrame(TLVertex* triangle, std::uint8_t frame, float top, float bottom) {
@@ -292,6 +298,7 @@ int RainSnow::BuildSnow(SceneRenderer* renderer) {
 }
 
 void RainSnow::DrawParticles(SceneRenderer* renderer, int vertexCount) {
+    if (!render::WeatherParticlesDrawn()) return;
     renderer->device->DrawTlTriangles(vertices.data(), lib::Count(vertices), indices.data(), vertexCount);
 }
 

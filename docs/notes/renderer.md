@@ -639,12 +639,22 @@ place gives a 16-bit number; with the world's time it gives the cycle the cell's
 ticks, a snowflake for 1000) and how far it has fallen. `density` of 64 cycles show a particle; the cycle also shifts it
 within the cell and picks one of the texture's four frames. Corners go to `ProjectClipped` in packets of four, the ones on
 screen through `ToScreen` and, with the device's fog flag, `FogVertices`, then `render::TlDraw`. Snow sways by five tables
-of cubics built at start. Checked by the goldens (rain in many scenarios, snow in rebirth_flags via `SetWeather`).
+of cubics built at start. Checked by the goldens (rain in many scenarios, snow in rebirth_flags via `SetWeather`) and
+for the look by `render_weather` (`weatherparticles off`: a frozen frame against the same without the particles; rain
+about 0.5% of a 1440x1080 frame on zone1, snow about 0.8% on gz11k).
 
-Original details kept: the rain's and snow's vertex colours and packet w are never written (what the buffer held stays,
-the fog pass only lowers the specular's alpha); the rain's height uses the snow's rise (`kSnowRise`, both 40); a height
-that is not a number would loop forever in the rain's wrap. Different in ours: a throw from the constructors does not free
-what was built; fields the original left as stack contents are zero.
+Every vertex is written whole each frame: white, its specular's alpha (the fog) full until `FogVertices` lowers it. The
+game wrote only the positions and the texture coordinates and left the colours to what the buffer held (white from its
+setup); the vertex array is resized every frame and a resize zero-fills, so in ours the particles came out with alpha 0
+and were never seen (R53; the snow too). Original details kept: the packets' w is never written; the rain's height uses
+the snow's rise (`kSnowRise`, both 40); a height that is not a number would loop forever in the rain's wrap. Different in
+ours: a throw from the constructors does not free what was built; fields the original left as stack contents are zero.
+
+The game's weather comes and goes by itself: WorldServer::UpdateWeather (every 64 ticks) stops rain or snow with a
+chance of 1 in 31 and starts it with 1 in 101, so a minute after `SetWeather("rain")` the rain has often stopped. A
+scenario that needs the weather to last asks for it again every 20 seconds (render_weather, render_weather_units).
+A layer's change fades over the message's strength in ticks (`SetWeather`: 20 for rain and clear, 40 for snow); from snow
+to rain the layer keeps drawing snow, its density from 0 up, and turns to rain at the end of the fade.
 
 ## 13. Data kept on the GPU, lighting and shadows
 
@@ -971,16 +981,22 @@ colour, the meshes the game lights, the water, the interface's previews) is touc
 **11b. Weather on the surfaces** (`render_weather.cpp`, `shaders/terrain.hlsl`, `shaders/mesh.hlsl`; R17c; always on, no
 option). Client side only: driven by the weather the world's light hands over (`render::CloudWeather`, item 11, with
 `snow` when the rain / snow layer's mode is snow), nothing the game simulates reads it, and the goldens hold no frames.
-- **State** (PrepareSurfaces, from PrepareShadows once a frame): the wetness and the puddles follow the rain's strength,
-  the snow cover the snow's, each by the world's time with its own time constant (ticks for 1 - 1/e of the way): wet in
-  200 (about 11 s) and dry in 1600 (about 90 s), the puddles 450 / 2400, the snow 800 / 5500. A zone's landscape loaded
-  (`render::LandscapeLoaded`, from Terrain::LoadMap), a step of the world's time back or over 64 ticks (a load) and the
-  first frame start from the weather as it is (wet in rain, covered in snow): the world's time goes on over a zone change
-  (8 ticks), so before the landscape's call the ground of gz11k stayed as wet as zone1's (render_weather: 0.78 wet when
-  the rain had stopped, 0 on gz11k now). The client's rain layer itself goes on over a zone change (the game's), so a
-  zone entered in rain starts wet. The game's rain and snow themselves grow over a minute or more and fade the same way after `SetWeather`, so
-  the state lags them (a minute into rain about 0.66 wet; still rising half a minute after it was stopped). The rain
-  falling now (its strength, none in snow) drives the rings and splashes.
+- **State** (PrepareSurfaces, from PrepareShadows once a frame): the wetness and the puddles follow the settled rain,
+  the snow cover the settled snow (`CloudWeather::settled`, the layer's `targetMode`: the last weather message's, not
+  its fade nor its mode, which stays snow through a fade from snow to rain), each by the world's time with its own time
+  constant (ticks for 1 - 1/e of the way): wet in 200 (about 11 s) and dry in 1600 (about 90 s), the puddles 450 /
+  2400, the snow 1600 (about half the cover in a minute, three quarters in two) and melting in 2400, in rain 900. The
+  time only goes forward: the drawn frame's tick fraction can run past the next tick while the client waits for the
+  server (app_main's backlog), so the time handed over steps back a little now and then. Any step back (or over 64
+  ticks) used to start the state again from the weather as it was, which in play made the snow and the wetness come at
+  once (R53). Only a zone's landscape loaded (`render::LandscapeLoaded`, from Terrain::LoadMap; a save's load goes
+  through it too) starts again: for the first 32 ticks after it the state is the settled weather as it is (the weather
+  message comes a tick or more after the zone's; a zone entered or loaded in snow is covered at once, in rain wet), then
+  it follows. The world's time goes on over a zone change (8 ticks), so without the landscape's call the ground of
+  gz11k stayed as wet as zone1's. The client's rain layer itself restarts from density 0 after a load (Clear) and fades
+  in over the message's 20 / 40 ticks (one or two seconds): nothing of it needs saving (the world saves `weather` and
+  `weatherStrength` and sends them with the zone). The rain falling now (the layer's density, none in snow) drives the
+  rings and splashes.
 - **Ground** (terrain.hlsl, `ground_weather`, `weathered`, `wet_ground`; nothing under the water, by `loss`): snow on
   ground turned up: n.z against an edge falling from 1.15 to 0.55 with the cover (0.15 either side of it), broken by the
   cloud map at 1/11 a unit and a little sooner higher up; a dusting, not a blanket (the user: the first look was too
@@ -992,10 +1008,14 @@ option). Client side only: driven by the weather the world's light hands over (`
   colour as on the water, Schlick's term plus 0.15) and a sharp glint, on the normal the rain's rings turn.
 - **Rings and splashes** (`rain_rings`): two layers of cells 0.8 units across, a drop in the share of the cells the rain's
   strength gives, each cell's ring at its own place and phase on the client's clock (`TerrainFsParams::rain`, the client
-  ticks modulo a whole number of both periods: 16 and 21 ticks), growing to a third of a cell and fading; the slope of a
-  Gaussian ring turns the normal, and a splash (a small bright spot) shows in the first 15% of a ring's time. They fade
-  out where a cell is under a few pixels across (`footprint`, the units a pixel spans). On the water (and the swamps)
-  they add to the ripples, which the rain makes half again as rough; the splashes there are lit like the foam.
+  ticks modulo a whole number of both periods: 16 and 21 ticks), its centre anywhere in the middle half of the cell,
+  growing to a quarter of a cell and fading; the slope of a Gaussian ring turns the normal, and (`rain_dimples`) the
+  ring's crest and a splash (a small soft spot in the first 12% of a ring's time) take up to 0.55 / 0.5 of a lighter
+  colour: the water's own towards the sky it reflects (never brighter than that sky). Seen from above, water reflects
+  little of the sky whatever the slope, so by the slope alone the rings did not show, and the splashes, once a disc of
+  the foam's light colour made opaque, read as isolated bright dots (R53). They fade out where a cell is under a few
+  pixels across (`footprint`, the units a pixel spans). On the water (and the swamps) they add to the ripples, which
+  the rain makes half again as rough; in a puddle they are blended by the puddle's share.
 - **Meshes** (mesh.hlsl, `weathered_mesh`): the world's meshes that receive the shadow map (`MeshBatch::light`) get
   `MeshFsParams::weather` (wetness, snow) and the sun; from the face normal (the map's clip space's derivatives taken to
   the landscape's space, turned to the camera): snow on faces turned up (n.z from 1.1 .. 1.3 down to 0.6 .. 0.85 with the
@@ -1020,9 +1040,10 @@ option). Client side only: driven by the weather the world's light hands over (`
   creatures beside him, frozen; the units' path and the face path alternated every 150 frames by a probe, 1200 frames
   each view; the kit and the captures in build/r17c2 of the main checkout): R17c's view 2.64-2.66 ms either way, zoomed in on the units
   2.60-2.61 ms either way; nothing above the noise.
-- Check: scenario `render_weather` (1440x1080, zone1 by day: dry, five seconds into rain, after a minute, half a minute
-  after it stopped, the sea and the beach in rain; gz11k before and after two minutes of snow; samecapture of a frozen
-  moment drawn twice); `render_weather_units` (3840x2009) close up on the hero with a wolf, a goblin, a boar and a
+- Check: scenario `render_weather` (1440x1080, zone1 by day: dry, five seconds into rain (with the particles' share),
+  after a minute, half a minute after it stopped, the sea and the beach in rain; gz11k before the snow, five seconds
+  into it (at most 0.15 of the cover, the flakes' share) and two minutes (0.5 .. 0.95), then a minute of rain (the cover
+  down to at most 0.35); samecapture of a frozen moment drawn twice); `render_weather_units` (3840x2009) close up on the hero with a wolf, a goblin, a boar and a
   skeleton (spawned, skinned, blocked) on zone1 dry and after a minute of rain, and on gz11k before and after two
   minutes of snow. `weathercheck <least wet> <most wet> [<least snow> <most snow>]` reads ShadowInfo's `wetness`,
   `puddles` and `snowCover`.

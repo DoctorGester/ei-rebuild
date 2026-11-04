@@ -72,17 +72,20 @@ void ShadowSun(const Vector3& direction);
 // The cloud shadows and the weather on the surfaces (renderer.md section 13, items 11 and 11b): the client's weather
 // for this frame's world view, handed over with its light. `day` how much the clouds can hide of the sun (1 by day, 0
 // at night and in a cave), `rain` the rain's or snow's strength (0 .. 1, as its layer fades it), `snow` whether it is
-// snow, `windX` / `windY` the wind (landscape units a tick), `time` the world's time in ticks (the tick and its
-// fraction). Without it a frame has no cloud shadows and its surfaces are dry.
+// snow, `settled` the weather the layer is heading to (the last SetWeather's: 0 clear, 1 rain, 2 snow), `windX` /
+// `windY` the wind (landscape units a tick), `time` the world's time in ticks (the tick and its fraction). Without it
+// a frame has no cloud shadows and its surfaces are dry.
 struct CloudWeather {
     float day = 0.0f, rain = 0.0f;
     bool snow = false;
+    int settled = 0;
     float windX = 0.0f, windY = 0.0f;
     double time = 0.0;
 };
 void CloudShadows(const CloudWeather& weather);
-// A zone's landscape was loaded (terrain::Terrain::LoadMap): the weather on the surfaces starts again from the next
-// hand-over's, so the ground of a zone does not stay wet or snowy from the one before (the world's time goes on).
+// A zone's landscape was loaded (terrain::Terrain::LoadMap; a save's load too): the weather on the surfaces starts again
+// from the settled weather of the next hand-overs, so the ground of a zone does not stay wet or snowy from the one
+// before (the world's time goes on) and a zone entered or loaded in snow is covered at once.
 void LandscapeLoaded();
 // The GPU lighting (renderer.md section 13). The world's draw hands over the frame's light, kept
 // until the next hand-over: the sun, the ambient colour, the point lights the landscape lights its ground
@@ -170,6 +173,10 @@ void SetShadowView(bool on);
 void SetShadowShift(int texels);
 // Harness build: the ground prints (MeshDraw::groundDecal) drawn (the default) or left out ("decals on|off").
 void SetGroundDecals(bool on);
+// Harness build: the rain and snow particles (RainSnow::DrawParticles) drawn (the default) or left out ("weatherparticles
+// on|off"), to measure what share of a frame they cover.
+void SetWeatherParticles(bool on);
+bool WeatherParticlesDrawn();
 // Harness build: the ambient occlusion on (the default), off, or shown alone by its receivers (white none, black
 // all; "occlusion on|off|view"). OcclusionState: the last presented frame's, with the ground's sectors whose
 // occlusion is kept and how often one was worked out since the start.
