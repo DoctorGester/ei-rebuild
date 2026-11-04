@@ -23,6 +23,7 @@
 #include "lib/vecmath.h"
 
 #include <bit>
+#include <chrono>
 #include <cmath>
 #include <concepts>
 #include <cstring>
@@ -33,6 +34,26 @@
 #include <vector>
 
 namespace {
+
+// The stream lock taken by a game-thread call; a wait for it counts in EI_AUDIO_TRACE's line.
+class StreamGuard {
+public:
+    explicit StreamGuard(std::mutex& lock) : lock(lock) {
+        if (lock.try_lock()) {
+            audio::NoteStreamTaken({});
+            return;
+        }
+        const auto start = std::chrono::steady_clock::now();
+        lock.lock();
+        audio::NoteStreamTaken(std::chrono::steady_clock::now() - start);
+    }
+    ~StreamGuard() { lock.unlock(); }
+    StreamGuard(const StreamGuard&) = delete;
+    StreamGuard& operator=(const StreamGuard&) = delete;
+
+private:
+    std::mutex& lock;
+};
 
 constexpr float kHeightFull = 30.0f;     // 2D height-faded sounds are full below
 constexpr float kHeightSilent = 70.0f;   // ... and silent above
@@ -303,13 +324,7 @@ void SoundManager::SetListener(const Vector3& position, const Vector3& axis) {
 void SoundManager::SetMusicVolume(int volume) {
     int v = volume < 0 ? 0 : (volume > 100 ? 100 : volume);
     if (enabled == 0) return;
-    {
-        std::lock_guard<std::recursive_mutex> guard(streamLock);
-        musicFader.volume = v;
-        musicFader.Recalc();
-        if (streamSample != nullptr) audio::SetStreamVolume(streamSample, musicFader.level);
-    }
-    if (v == 0) StopStream(4);
+    Submit({StreamRequest::Kind::Volume, v, {}});
 }
 
 // Reverb parameters for new voices (used when reverbOn).
@@ -703,33 +718,75 @@ void SoundManager::Tick() {
 // Starts a fade of the stream.
 void SoundManager::FadeOutStream() {
     if (enabled == 0) return;
-    std::lock_guard<std::recursive_mutex> guard(streamLock);
-    musicFader.mode = 2;
+    Submit({StreamRequest::Kind::FadeOut, 0, {}});
+}
+
+void SoundManager::FadeInStream() {
+    if (enabled == 0) return;
+    Submit({StreamRequest::Kind::FadeIn, 0, {}});
+}
+
+// MakeSwitch's result; 1 for a request kept for later (the output has a stream, as the stream thread runs).
+int SoundManager::RequestStream(std::string_view name, int mode) {
+    StreamGuard guard(streamLock);
+    if (!streamBusy) return MakeSwitch(name, mode);
+    lateRequests.push_back({StreamRequest::Kind::Switch, mode, std::string(name)});
+    return 1;
+}
+
+void SoundManager::StopStream(int mode) {
+    Submit({StreamRequest::Kind::Stop, mode, {}});
+}
+
+void SoundManager::PlayStreamOnce(std::string_view name) {
+    Submit({StreamRequest::Kind::PlayOnce, 0, std::string(name)});
+}
+
+void SoundManager::Submit(StreamRequest request) {
+    StreamGuard guard(streamLock);
+    if (!streamBusy) {
+        MakeRequest(request);
+        return;
+    }
+    if (request.kind == StreamRequest::Kind::PlayOnce) onceQueued = true;
+    lateRequests.push_back(std::move(request));
+}
+
+void SoundManager::MakeRequest(const StreamRequest& request) {
+    switch (request.kind) {
+    case StreamRequest::Kind::Switch: MakeSwitch(request.name, request.value); break;
+    case StreamRequest::Kind::Stop: MakeStop(request.value); break;
+    case StreamRequest::Kind::PlayOnce: MakePlayOnce(request.name); break;
+    case StreamRequest::Kind::FadeOut: MakeFade(2); break;
+    case StreamRequest::Kind::FadeIn: MakeFade(1); break;
+    case StreamRequest::Kind::Volume: MakeVolume(request.value); break;
+    }
+}
+
+// `mode` 2 fades out, 1 in.
+void SoundManager::MakeFade(int mode) {
+    musicFader.mode = mode;
     musicFader.finished = 0;
     musicFader.step = 0.0f;
     musicFader.step = lib::FloatFromBits(FadeStepBits());
     musicFader.holdUntil = 0;
 }
 
-void SoundManager::FadeInStream() {
-    if (enabled == 0) return;
-    std::lock_guard<std::recursive_mutex> guard(streamLock);
-    musicFader.mode = 1;
-    musicFader.finished = 0;
-    musicFader.step = 0.0f;
-    musicFader.step = lib::FloatFromBits(FadeStepBits());
-    musicFader.holdUntil = 0;
+void SoundManager::MakeVolume(int volume) {
+    musicFader.volume = volume;
+    musicFader.Recalc();
+    if (streamSample != nullptr) audio::SetStreamVolume(streamSample, musicFader.level);
+    if (volume == 0) MakeStop(4);
 }
 
 // Asks the stream thread to switch to `name` (an .mp3 path). `mode` says when:
 // 1 after the current file, 2 now with a fade out, 3 at the next marker of the current file,
 // 4 at the current buffer position; anything else is ignored. Repeating the playing file only
 // cancels a fade out. Returns 0 only when the output has no stream.
-int SoundManager::RequestStream(std::string_view name, int mode) {
+int SoundManager::MakeSwitch(std::string_view name, int mode) {
     if (enabled == 0) return 1;
     if (musicFader.volume == 0) return 1;
     if (streamSample == nullptr) return 0;
-    std::lock_guard<std::recursive_mutex> guard(streamLock);
     endAfterSwitch = false;
     int m = 4;
     if (streamState != 0) {
@@ -738,13 +795,7 @@ int SoundManager::RequestStream(std::string_view name, int mode) {
                             name) == 0 &&
             !name.empty()) {
             streamState = 1;
-            if (switchMode == 2) {
-                musicFader.mode = 1;
-                musicFader.finished = 0;
-                musicFader.step = 0.0f;
-                musicFader.step = lib::FloatFromBits(FadeStepBits());
-                musicFader.holdUntil = 0;
-            }
+            if (switchMode == 2) MakeFade(1);
             return 1;
         }
     }
@@ -757,11 +808,7 @@ int SoundManager::RequestStream(std::string_view name, int mode) {
     std::int32_t at;
     switch (m) {
     case 2:
-        musicFader.mode = 2;
-        musicFader.finished = 0;
-        musicFader.step = 0.0f;
-        musicFader.step = lib::FloatFromBits(FadeStepBits());
-        musicFader.holdUntil = 0;
+        MakeFade(2);
         at = 0x7FFFFFFF;
         break;
     case 3: {
@@ -810,9 +857,8 @@ int SoundManager::RequestStream(std::string_view name, int mode) {
 
 // Mode 4 stops the stream now (closing the file) and fades the volume back in over 2 s;
 // other modes request silence ("") the RequestStream way.
-void SoundManager::StopStream(int mode) {
+void SoundManager::MakeStop(int mode) {
     if (enabled == 0) return;
-    std::lock_guard<std::recursive_mutex> guard(streamLock);
     endAfterSwitch = false;
     if (streamState != 0) {
         if (mode == 4) {
@@ -829,18 +875,17 @@ void SoundManager::StopStream(int mode) {
             if (step == 0.0f) musicFader.step = lib::FloatFromBits(FadeStepBits());
             musicFader.SetHold(platform::Milliseconds() + 2000);
         } else {
-            RequestStream(game::kEmptyText, mode);
+            MakeSwitch(game::kEmptyText, mode);
         }
     }
 }
 
 // A request the stream thread has yet to take (state 2) gets its end-after request from SwitchStream; one it has
 // already taken or turned down gets it now.
-void SoundManager::PlayStreamOnce(std::string_view name) {
-    std::lock_guard<std::recursive_mutex> guard(streamLock);
-    RequestStream(name, 4);
+void SoundManager::MakePlayOnce(std::string_view name) {
+    MakeSwitch(name, 4);
     if (streamState == 2) endAfterSwitch = true;
-    else StopStream(1);
+    else MakeStop(1);
 }
 
 // --- Stopping everything, wave lengths -------------------------------------------------------
@@ -1182,7 +1227,7 @@ void SwitchStream(SoundManager* m, std::uint8_t* to, int bytes) {
     m->streamBufferFrames = m->streamBufferSize / m->streamFrameBytes;
     m->streamPosition = 0;
     ReadOrSilence(m, to, bytes);
-    if (m->endAfterSwitch.exchange(false)) m->StopStream(1);
+    if (m->endAfterSwitch.exchange(false)) m->MakeStop(1);
 }
 
 } // namespace
@@ -1295,6 +1340,9 @@ SoundManager::~SoundManager() {
 void SoundManager::ResetStream() {
     streamState = 0;
     endAfterSwitch = false;
+    streamBusy = false;
+    lateRequests.clear();
+    onceQueued = false;
     streamSample = nullptr;
     streamFile = nullptr;
     for (std::vector<std::uint8_t>& buffer : streamBuffers) buffer.clear();
@@ -1352,7 +1400,8 @@ void SoundManager::StreamThread() {
         last = now;
         if (elapsed < kStreamPeriodMs) platform::Sleep(kStreamPeriodMs - elapsed);
 
-        streamLock.lock();
+        std::unique_lock<std::mutex> guard(streamLock);
+        auto heldFrom = std::chrono::steady_clock::now();
         musicFader.Update();
         audio::SetStreamVolume(streamSample, musicFader.level);
         for (;;) {
@@ -1365,9 +1414,19 @@ void SoundManager::StreamThread() {
             playing = buffer;
             streamPosition += streamBufferFrames;
             audio::QueueHalf(streamSample, half, streamBuffers[buffer].data(), streamBufferSize);
+            // The spare buffer is filled without the lock; the requests made meanwhile follow, in order.
+            streamBusy = true;
+            audio::NoteStreamHeld(std::chrono::steady_clock::now() - heldFrom);
+            guard.unlock();
             ReadStreamVanilla();
+            guard.lock();
+            heldFrom = std::chrono::steady_clock::now();
+            streamBusy = false;
+            for (const StreamRequest& request : lateRequests) MakeRequest(request);
+            lateRequests.clear();
+            onceQueued = false;
         }
-        streamLock.unlock();
+        audio::NoteStreamHeld(std::chrono::steady_clock::now() - heldFrom);
     }
 }
 

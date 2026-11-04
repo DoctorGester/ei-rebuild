@@ -120,6 +120,15 @@ struct SoundSequence {
     int PlayNext(struct SoundManager* manager);
 };
 
+// A music request of the game thread (SoundManager::RequestStream, StopStream, PlayStreamOnce, FadeOutStream,
+// FadeInStream, SetMusicVolume): made at once, or kept while the stream thread fills a buffer (lateRequests).
+struct StreamRequest {
+    enum class Kind { Switch, Stop, PlayOnce, FadeOut, FadeIn, Volume };
+    Kind kind;
+    std::int32_t value = 0;   // the mode (Switch, Stop) or the volume
+    std::string name;         // Switch, PlayOnce
+};
+
 // Walked in STLport's order (the first of the highest priority plays).
 using DeferredMap = lib::HashMap<std::int32_t, DeferredSound*>;
 
@@ -175,7 +184,13 @@ struct SoundManager : EngineObject {
     std::int32_t switchMode;            // RequestStream's mode
     std::uint32_t streamFileSize;
     std::int32_t streamReadPosition;
-    std::recursive_mutex streamLock;    // guarding the stream and musicFader
+    // Guards the stream's state and musicFader, except while the stream thread fills the spare buffer (streamBusy):
+    // it then owns them without the lock (decoding, opening the next file), and the game thread's requests wait in
+    // lateRequests, made in order as it hands them back, so the game thread never waits for MP3 work.
+    std::mutex streamLock;
+    bool streamBusy;
+    std::vector<StreamRequest> lateRequests;
+    std::atomic<bool> onceQueued;       // a PlayStreamOnce among lateRequests
     // PlayStreamOnce's file waits for the stream thread, which asks for silence after it as it switches to it
     // (StopStream(1)); any other request clears it.
     std::atomic<bool> endAfterSwitch;
@@ -234,7 +249,7 @@ struct SoundManager : EngineObject {
     // stream thread makes the second request when it switches to the file, so the caller never waits for the device.
     void PlayStreamOnce(std::string_view name);
     // A PlayStreamOnce file the stream thread has not switched to yet.
-    bool StreamSwitchPending() const { return endAfterSwitch; }
+    bool StreamSwitchPending() const { return endAfterSwitch || onceQueued; }
 
     // Handles restart at 0; with `stopStream` the stream stops too.
     void StopAll(bool stopStream);
@@ -259,6 +274,16 @@ struct SoundManager : EngineObject {
 
     // Empty unless the stream plays or switches.
     std::string CurrentStreamName();
+
+    // The music requests' bodies, on the stream's state: under streamLock, or on the stream thread while it is busy.
+    void MakeRequest(const StreamRequest& request);
+    int MakeSwitch(std::string_view name, int mode);
+    void MakeStop(int mode);
+    void MakePlayOnce(std::string_view name);
+    void MakeFade(int mode);
+    void MakeVolume(int volume);
+    // `request` made now, or kept in lateRequests while the stream thread is busy.
+    void Submit(StreamRequest request);
 
     // Switch mode 4, the music fader at volume 100 with no fade.
     void ResetStream();

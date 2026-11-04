@@ -41,6 +41,12 @@ Only these reach game logic; volumes, pans, reverb, positions and the pixels and
   period); a one-off music file (`PlayStreamOnce`: PlayJingle, the calm music) is requested and its "silence after
   it" is the stream thread's to ask for as it switches (`endAfterSwitch`; any other request clears it), while
   `UpdateMusic` chooses nothing until then.
+- **The game thread never waits for the MP3 work.** `streamLock` guards the request state (state, names, switch
+  point, markers, the fader); the stream thread holds it only to take a free half, queue it and step the fader, then
+  fills the spare buffer without it (`streamBusy`: decoding, the next file's opening). A game-thread request in that
+  time (RequestStream, StopStream, PlayStreamOnce, the fades, SetMusicVolume) goes to `lateRequests` and is made, in
+  order, by the stream thread as soon as the buffer is full: the order the old lock gave, without the wait. A
+  PlayStreamOnce waiting there counts as a pending switch (`StreamSwitchPending`).
 
 ## The mixer
 
@@ -64,7 +70,8 @@ Only these reach game logic; volumes, pans, reverb, positions and the pixels and
 ## How the sound keeps up (EI_AUDIO_TRACE)
 
 With `EI_AUDIO_TRACE=1` the log gets an `audio trace:` line a second: the passes of the main loop (and the longest),
-the game thread's time in the sound's calls a pass (mean and most) and its waits for the mixer's lock, the device's
+the game thread's time in the sound's calls a pass (mean and most) and its waits for the mixer's lock, its takes of
+and waits for the music's `streamLock` and the stream thread's longest hold of it, the device's
 requests and frames (the largest, the longest gap between two, the longest mix), how far the sound given runs ahead
 of real time (the device's buffer; a falling value is a device that takes less than real time), and the stream frames
 played as silence for want of a queued half. In a play run set it in the environment; in a harness run add
@@ -78,6 +85,9 @@ Measured 2026-11-03 (the game thread's sound time a pass; the device):
 - Before PlayStreamOnce, PlayJingle and the calm music spun on the main thread until the stream thread took the file:
   127 and 146 ms a request on Windows, 9 to 207 ms on WSLg with a working sink, 874 ms and then for good (the harness's
   60 s limit) once the sink had stalled.
+- The stream thread's longest hold of `streamLock` (2026-11-04, a realtime zone, a jingle every 2.5 s, no device):
+  while it decoded and opened under the lock 0.1 to 0.19 ms a half and 1.2 to 2.6 ms at a file's opening (Windows
+  and WSL alike, the files on a local disk), at most 0.007 ms since; no game-thread wait seen in either.
 
 ## Game side
 

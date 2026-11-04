@@ -9,6 +9,7 @@
 
 #include "platform/platform.h"
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -128,6 +129,12 @@ int Mp3Bits(const Mp3Stream* mp3);   // 16
 int DecodeMp3(Mp3Stream* mp3, void* to, int bytes);
 // From the file's beginning again.
 void RewindMp3(Mp3Stream* mp3);
+
+// EI_AUDIO_TRACE and the game's music stream lock (SoundManager::streamLock): the game thread took it after waiting
+// `wait` for the stream thread (zero when it was free; other threads' calls are not counted); the stream thread held
+// it for `held`. The trace line counts the takes and the waits, the longest wait and the longest hold.
+void NoteStreamTaken(std::chrono::steady_clock::duration wait);
+void NoteStreamHeld(std::chrono::steady_clock::duration held);
 
 // An MP3 file decoded whole into a 16-bit PCM RIFF WAVE (44-byte header) at the file's rate and channels, with every
 // whole frame's samples (1152 a frame for MPEG-1, 576 for MPEG-2 and 2.5: what the original's decoder gave, so the
