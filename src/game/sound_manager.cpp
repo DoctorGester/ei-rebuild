@@ -24,7 +24,6 @@
 
 #include <algorithm>
 #include <bit>
-#include <chrono>
 #include <cmath>
 #include <concepts>
 #include <cstring>
@@ -37,26 +36,6 @@
 #include <vector>
 
 namespace {
-
-// The stream lock taken by a game-thread call; a wait for it counts in EI_AUDIO_TRACE's line.
-class StreamGuard {
-public:
-    explicit StreamGuard(std::mutex& lock) : lock(lock) {
-        if (lock.try_lock()) {
-            audio::NoteStreamTaken({});
-            return;
-        }
-        const auto start = std::chrono::steady_clock::now();
-        lock.lock();
-        audio::NoteStreamTaken(std::chrono::steady_clock::now() - start);
-    }
-    ~StreamGuard() { lock.unlock(); }
-    StreamGuard(const StreamGuard&) = delete;
-    StreamGuard& operator=(const StreamGuard&) = delete;
-
-private:
-    std::mutex& lock;
-};
 
 constexpr float kHeightFull = 30.0f;     // 2D height-faded sounds are full below
 constexpr float kHeightSilent = 70.0f;   // ... and silent above
@@ -615,7 +594,7 @@ void SoundManager::PlayStreamOnce(std::string_view name) {
 }
 
 void SoundManager::Submit(StreamRequest request) {
-    StreamGuard guard(streamLock);
+    std::lock_guard guard(streamLock);
     if (!streamBusy) {
         MakeRequest(request);
         return;
@@ -938,7 +917,6 @@ constexpr unsigned kMaxRate = 44100;
 
 constexpr int kStreamRate = 44100;
 constexpr int kStreamChannels = 2;
-constexpr int kStreamBits = 16;
 
 // The stream thread's (StreamThread).
 constexpr std::uint32_t kStreamPeriodMs = 100;
@@ -962,14 +940,13 @@ void ReadOrSilence(SoundManager* m, std::uint8_t* to, int bytes) {
 
 // The next file takes over: `bytes` of it (or silence) to `to`.
 void SwitchStream(SoundManager* m, std::uint8_t* to, int bytes) {
-    m->streamReadPosition = 0;
     m->streamState = StreamState::Idle;
     // Rebirth's StreamPatch: the mod's Stream\ folder when it has the file.
     const bool modStream = ei::rebirth::Enabled(ei::rebirth::Patch::StreamPatch) && modfolders::StreamInMod(m->nextName);
     std::string path = (modStream ? modfolders::StreamFolder() : m->soundPath) + m->nextName;
     CodecClose(m);
-    if (!m->nextName.empty() && m->streamReader.OpenFile(path, &m->streamFileSize) != 0)
-        m->streamFile = audio::OpenMp3(SoundStreamRead, m);
+    std::string file;
+    if (!m->nextName.empty() && platform::ReadWholeFile(path, &file)) m->streamFile = audio::OpenMp3(std::move(file));
     if (m->streamFile == nullptr) {
         Silence(to, bytes);
         m->endAfterSwitch = false;
@@ -986,13 +963,11 @@ void SwitchStream(SoundManager* m, std::uint8_t* to, int bytes) {
     m->soundRegistry.GetIntArray(m->streamName.c_str(), kLoopMarkers, &m->markers2);
     m->streamLoopAt = !m->markers2.empty() ? m->markers2[0] : kNoPosition;
     m->streamSwitchAt = kNeverSwitch;
-    const unsigned rate = audio::Mp3Rate(m->streamFile);
     const int channels = audio::Mp3Channels(m->streamFile);
-    const int bits = audio::Mp3Bits(m->streamFile);
-    audio::SetStreamFormat(m->streamSample, rate, channels, bits);
+    audio::SetStreamFormat(m->streamSample, audio::Mp3Rate(m->streamFile), channels);
     audio::SetStreamVolume(m->streamSample, kMaxLevel);
     audio::SetStreamPan(m->streamSample, kCentrePan);
-    m->streamFrameBytes = static_cast<std::int32_t>(static_cast<std::uint32_t>(bits * channels) >> 3);
+    m->streamFrameBytes = channels * static_cast<std::int32_t>(sizeof(std::int16_t));
     m->streamBufferFrames = m->streamBufferSize / m->streamFrameBytes;
     m->streamPosition = 0;
     ReadOrSilence(m, to, bytes);
@@ -1063,18 +1038,6 @@ std::string SoundManager::CurrentStreamName() {
     return {};
 }
 
-int SoundStreamRead(void* user, char* buffer, int size, int offset) {
-    auto* manager = static_cast<SoundManager*>(user);
-    if (offset >= 0) {
-        manager->streamReader.Seek(offset, 0);
-        manager->streamReadPosition = offset;
-    }
-    int left = static_cast<int>(manager->streamFileSize) - manager->streamReadPosition;
-    if (size > left) size = left;
-    if (manager->streamReader.Read(buffer, size) < 0) return 0;
-    manager->streamReadPosition += size;
-    return size;
-}
 
 // --- Constructor, destructor, stream reset ---------------------------------------------------
 
@@ -1096,20 +1059,15 @@ void SoundManager::ResetStream() {
     onceQueued = false;
     streamSample = nullptr;
     streamFile = nullptr;
-    for (std::vector<std::uint8_t>& buffer : streamBuffers) buffer.clear();
+    streamBuffer.clear();
     streamBufferSize = -1;
     streamBufferFrames = 0;   // the original left it unset until a file played: silence counts no frames
-    streamSpareBuffer = -1;
-    streamHalfBuffer[1] = -1;
-    streamHalfBuffer[0] = -1;
     streamPosition = -1;
     streamSwitchAt = -1;
     streamLoopAt = -1;
     streamFrameBytes = -1;
     streamName.clear();
     nextName.clear();
-    streamReadPosition = 0;
-    streamFileSize = 0;
     switchMode = StreamSwitch::Now;
     musicFader.volume = kFullVolume;
     musicFader.SetHold(0);
@@ -1130,15 +1088,12 @@ bool SoundManager::OpenStream() {
         return false;
     }
 
-    streamBufferSize = audio::MinimumHalfBytes(kStreamRate, kStreamChannels, kStreamBits) * 2;
-    for (std::vector<std::uint8_t>& buffer : streamBuffers) buffer.assign(static_cast<std::size_t>(streamBufferSize), 0);
+    streamBufferSize = audio::MinimumHalfBytes(kStreamRate, kStreamChannels) * 2;
+    streamBuffer.assign(static_cast<std::size_t>(streamBufferSize), 0);
     audio::ResetStream(streamSample);
-    audio::SetStreamFormat(streamSample, kStreamRate, kStreamChannels, kStreamBits);
+    audio::SetStreamFormat(streamSample, kStreamRate, kStreamChannels);
     audio::SetStreamVolume(streamSample, 0);
     audio::SetStreamPan(streamSample, 0);
-    streamHalfBuffer[0] = 0;
-    streamHalfBuffer[1] = 1;
-    streamSpareBuffer = 2;
     streamPosition = 0;
     streamState = StreamState::Idle;
     // No fade and no hold; the level from the music volume.
@@ -1167,32 +1122,23 @@ void SoundManager::FollowClock(std::uint32_t now) {
 
 void SoundManager::StepStream(std::uint32_t now) {
     std::unique_lock<std::mutex> guard(streamLock);
-    auto heldFrom = std::chrono::steady_clock::now();
     musicFader.Update(now);
     audio::SetStreamVolume(streamSample, musicFader.level);
     for (;;) {
         int half = audio::ReadyHalf(streamSample, now);
         if (half == kNoHalfReady) break;
-        // The spare buffer goes into that half; the one it played becomes the spare.
-        int buffer = streamSpareBuffer;
-        std::int32_t& playing = streamHalfBuffer[half == 0 ? 0 : 1];
-        streamSpareBuffer = playing;
-        playing = buffer;
         streamPosition += streamBufferFrames;
-        audio::QueueHalf(streamSample, half, streamBuffers[buffer].data(), streamBufferSize);
-        // The spare buffer is filled without the lock; the requests made meanwhile follow, in order.
+        audio::QueueHalf(streamSample, half, streamBuffer.data(), streamBufferSize);
+        // The next buffer is filled without the lock; the requests made meanwhile follow, in order.
         streamBusy = true;
-        audio::NoteStreamHeld(std::chrono::steady_clock::now() - heldFrom);
         guard.unlock();
         FillSpareBuffer(now);
         guard.lock();
-        heldFrom = std::chrono::steady_clock::now();
         streamBusy = false;
         for (const StreamRequest& request : lateRequests) MakeRequest(request);
         lateRequests.clear();
         onceQueued = false;
     }
-    audio::NoteStreamHeld(std::chrono::steady_clock::now() - heldFrom);
 }
 
 // --- The stream's reader -----------------------------------------------------------------
@@ -1201,7 +1147,7 @@ void SoundManager::StepStream(std::uint32_t now) {
 // point is in the buffer, and reads it in one such case: a switch at the file's end (mode AtEnd) when the file
 // ends in this buffer. Here that case is the switch, which is what the mode asks for.
 void SoundManager::FillSpareBuffer(std::uint32_t now) {
-    std::uint8_t* const buffer = streamBuffers[streamSpareBuffer].data();
+    std::uint8_t* const buffer = streamBuffer.data();
     const StreamState state = streamState;
     if (state == StreamState::Idle) {
         Silence(buffer, streamBufferSize);
@@ -1257,15 +1203,10 @@ void SoundManager::FillSpareBuffer(std::uint32_t now) {
 
 void SoundEndOfSample(void* slot) { static_cast<SoundSlot*>(slot)->finished = true; }
 
-bool SoundManager::Open(void* window, bool useReverb, unsigned rate) {
+void SoundManager::Open(bool useReverb, unsigned rate) {
     Destroy();   // Close
     reverbOn = useReverb;
-    rate = std::min(rate, kMaxRate);
-    std::string error;
-    if (!audio::OpenOutput(window, rate, useReverb, &error)) {
-        game::DebugLog("%s\n", error.c_str());
-        return false;
-    }
+    audio::OpenOutput(std::min(rate, kMaxRate));
     if (OpenStream()) {
         // With a device the music plays in real time on its own thread. Without one nothing is heard, and the main
         // loop steps it on the game's clock (FollowClock), so what UpdateMusic reads of it comes on the same frames
@@ -1295,7 +1236,6 @@ bool SoundManager::Open(void* window, bool useReverb, unsigned rate) {
         slot.voice = audio::CreateVoice();
     }
     enabled = true;
-    return true;
 }
 
 void SoundManager::Close() {
@@ -1316,7 +1256,6 @@ void SoundManager::Close() {
     cache.clear();
     if (enabled) audio::CloseOutput();
     ClearWaveSources();
-    streamReader.Close();
     soundRegistry.Close();
     Reset();
 }

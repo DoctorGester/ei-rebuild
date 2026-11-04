@@ -1,5 +1,4 @@
-// The rest of the resource code: the sound system's file reader and the archive name listing. See
-// resource_stream.h and docs/notes/models.md.
+// The rest of the resource code: the archive name listing. See resource_stream.h and docs/notes/models.md.
 
 #include "lib/str.h"
 #include "lib/text_case.h"
@@ -48,34 +47,6 @@ bool PartMatches(const char* name, const char* pattern) {
 
 } // namespace
 
-
-void ResourceStream::Close() { file.Close(); }
-
-bool ResourceStream::OpenFile(const std::string& name, std::uint32_t* size) {
-    Close();
-    if (!platform::PathExists(name)) return false;
-    if (!file.Open(name, platform::FileMode::Read)) return false;
-    if (size != nullptr) *size = file.Size();
-    return true;
-}
-
-long ResourceStream::Read(char* buffer, long size) {
-    if (!file.IsOpen()) return -1;
-    try {
-        return static_cast<long>(file.Read(buffer, static_cast<unsigned>(size)));
-    } catch (const platform::FileError&) {
-        return -1;
-    }
-}
-
-long ResourceStream::Seek(long offset, int origin) {
-    if (!file.IsOpen()) return -1;
-    try {
-        return file.Seek(offset, origin == 2 ? platform::SeekFrom::End : platform::SeekFrom::Begin);
-    } catch (const platform::FileError&) {
-        return -1;
-    }
-}
 
 // --- Archive listing -----------------------------------------------------------------------------
 

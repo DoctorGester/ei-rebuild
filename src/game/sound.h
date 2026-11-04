@@ -1,11 +1,11 @@
 #pragma once
 
-// Sound and music: the sound manager on the platform's audio output (platform/platform.h), its MP3 music stream thread,
-// and the music state machine. See docs/notes/sound.md.
+// Sound and music: the sound manager on our audio output (audio/audio.h), its MP3 music stream thread, and the music
+// state machine. See docs/notes/sound.md.
 
 #include "engine_object.h"
 #include "registry.h"
-#include "resource_stream.h"
+#include "resource.h"
 
 #include "lib/containers.h"
 #include "lib/hash_map.h"
@@ -181,7 +181,6 @@ struct SoundManager : EngineObject {
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    ResourceStream streamReader;       // reads the music stream's files
     std::string soundPath;             // ending in a backslash
     FileRegistry soundRegistry;
     std::vector<MappedResource*> waveSources;   // the archives LoadSample looks in
@@ -189,13 +188,10 @@ struct SoundManager : EngineObject {
     std::atomic<StreamState> streamState;   // Switching: to nextName
     audio::Stream* streamSample;
     audio::Mp3Stream* streamFile;   // the playing file's decoder
-    std::vector<std::uint8_t> streamBuffers[3];   // streamBufferSize bytes each
+    // The next half's bytes (streamBufferSize of them): queued as the output frees a half, then filled again.
+    std::vector<std::uint8_t> streamBuffer;
     std::int32_t streamBufferSize;      // twice the output's minimum half; -1 after ResetStream
     std::int32_t streamBufferFrames;    // frames in one buffer: streamBufferSize / streamFrameBytes; 0 before a file
-    // Which buffer each half of the stream plays (the first two) and the third one (taken next, and what the stream
-    // reader fills): -1 after ResetStream; 0, 1 and 2 after OpenStream.
-    std::int32_t streamHalfBuffer[2];
-    std::int32_t streamSpareBuffer;
     std::int32_t streamPosition;        // frames of the playing file queued so far
     std::int32_t streamSwitchAt;        // position at which nextName starts
     // The position at which the playing file starts again from its beginning (the first "Markers2" value of
@@ -210,8 +206,6 @@ struct SoundManager : EngineObject {
     std::vector<std::int32_t> markers2;
     std::recursive_mutex nameLock;      // guarding streamName
     StreamSwitch switchMode;            // RequestStream's mode
-    std::uint32_t streamFileSize;
-    std::int32_t streamReadPosition;
     // Guards the stream's state and musicFader, except while the stream thread fills the spare buffer (streamBusy):
     // it then owns them without the lock (decoding, opening the next file), and the game thread's requests wait in
     // lateRequests, made in order as it hands them back, so the game thread never waits for MP3 work.
@@ -330,7 +324,7 @@ struct SoundManager : EngineObject {
     void FollowClock(std::uint32_t now);
     // A step at `now`: a fader step, and every half the output has played out by then gets the spare buffer.
     void StepStream(std::uint32_t now);
-    // Fills the spare buffer: silence when idle; else the playing file up to its loop point or the switch point,
+    // Fills the next half's buffer: silence when idle; else the playing file up to its loop point or the switch point,
     // and the rest from the next file. No next file (or it does not open): silence, the stream idle. Details:
     // docs/notes/sound.md, "Game side".
     void FillSpareBuffer(std::uint32_t now);
@@ -339,9 +333,8 @@ struct SoundManager : EngineObject {
     // looping sound there is deferred). -1 when no voice can be had.
     int AllocateVoice(int priority);
 
-    // The default output device, 16-bit stereo at `rate` (at most 44100), with the voices' reverb when `useReverb`.
-    // False when the device cannot be opened.
-    bool Open(void* window, bool useReverb, unsigned rate);
+    // The output at `rate` (at most 44100), the voices in the cave's reverb when `useReverb`.
+    void Open(bool useReverb, unsigned rate);
     // Waits for the threads to quit and frees everything Open made, then Reset.
     void Close();
     // Volumes 100, sound off.
@@ -404,9 +397,6 @@ struct MusicSystem : EngineObject {
     // Credits / main menu / jingle / combat track "none".
     void ResetThemes();
 };
-// The MP3 decoder's read callback on the stream thread (`manager` the SoundManager): seeks to `offset` unless it is
-// negative. Returns the byte count (0 when the read fails).
-int SoundStreamRead(void* manager, char* buffer, int size, int offset);
 // A voice's end callback (`slot` its SoundSlot): the voice is marked finished.
 void SoundEndOfSample(void* slot);
 

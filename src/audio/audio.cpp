@@ -9,6 +9,7 @@
 #include "lib/bytes.h"
 #include "lib/maths.h"
 #include "platform/log.h"
+#include "platform/platform.h"
 
 // dr_wav and dr_mp3 (third_party/dr_libs, unmodified); their implementations are at the end of this file.
 #pragma warning(push, 0)
@@ -27,6 +28,7 @@
 #include <cstring>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <string_view>
 #include <thread>
 
@@ -436,17 +438,12 @@ struct MainHealth {
     Clock::duration longest{};     // the most in one frame
     Clock::duration longestWait{};
     unsigned waits = 0;            // times g_mix was taken by the device
-    Clock::duration longestStreamWait{};
-    unsigned streamTakes = 0;      // the game's stream lock
-    unsigned streamWaits = 0;      // ... found taken by the stream thread
     unsigned frames = 0;
     Clock::duration longestPass{};
     Clock::time_point passAt{};
     Clock::time_point reportedAt{};
 } g_main;
 
-// The longest time the stream thread held the game's stream lock since the last report, in nanoseconds.
-std::atomic<std::int64_t> g_longestStreamHold{0};
 
 // The device's side (under g_mix).
 struct DeviceHealth {
@@ -531,13 +528,11 @@ void NoteFrame() {
     const double ahead = device.given == 0 ? 0.0 : static_cast<double>(device.given) * 1000.0 / g_rate - Ms(now - device.first);
     ei::Log("audio trace: %u frames (longest pass %.1f ms); the game thread in sound %.3f ms a frame, at most %.3f ms, "
             "%u lock waits (longest %.3f ms); the device %u requests, %llu frames (largest %u, longest gap %.1f ms, "
-            "mix at most %.2f ms), %.0f ms ahead; the stream starved %llu frames; the stream lock taken %u times, %u "
-            "waits (longest %.3f ms), held by the stream thread at most %.3f ms",
+            "mix at most %.2f ms), %.0f ms ahead; the stream starved %llu frames",
             g_main.frames, Ms(g_main.longestPass), g_main.frames != 0 ? Ms(g_main.total) / g_main.frames : 0.0,
             Ms(g_main.longest), g_main.waits, Ms(g_main.longestWait), device.calls,
             static_cast<unsigned long long>(device.frames), device.largest, Ms(device.longestGap), Ms(device.longestMix),
-            ahead, static_cast<unsigned long long>(device.starved), g_main.streamTakes, g_main.streamWaits,
-            Ms(g_main.longestStreamWait), static_cast<double>(g_longestStreamHold.exchange(0)) / 1e6);
+            ahead, static_cast<unsigned long long>(device.starved));
     g_main = MainHealth{};
     g_main.passAt = now;
     g_main.reportedAt = now;
@@ -574,24 +569,7 @@ void UseNoDevice() { g_noDevice = true; }
 
 bool HasDevice() { return g_deviceLive; }
 
-void NoteStreamTaken(Clock::duration wait) {
-    if (!g_trace || std::this_thread::get_id() != g_mainThread) return;
-    ++g_main.streamTakes;
-    if (wait == Clock::duration{}) return;
-    g_main.frame += wait;
-    g_main.longestStreamWait = std::max(g_main.longestStreamWait, wait);
-    ++g_main.streamWaits;
-}
-
-void NoteStreamHeld(Clock::duration held) {
-    if (!g_trace) return;
-    const std::int64_t ns = std::chrono::duration_cast<std::chrono::nanoseconds>(held).count();
-    std::int64_t longest = g_longestStreamHold.load();
-    while (ns > longest && !g_longestStreamHold.compare_exchange_weak(longest, ns)) {
-    }
-}
-
-bool OpenOutput(platform::NativeWindow, unsigned rate, bool, std::string*) {
+void OpenOutput(unsigned rate) {
     g_open = true;
     g_rate = rate != 0 ? rate : kDefaultRate;
     g_trace = !platform::EnvironmentVariable("EI_AUDIO_TRACE").empty();
@@ -600,11 +578,11 @@ bool OpenOutput(platform::NativeWindow, unsigned rate, bool, std::string*) {
         std::lock_guard hold(g_mix);
         g_reverb.Open(g_rate);
     }
-    if (g_noDevice) return true;
+    if (g_noDevice) return;
     // The game goes on as with a device, silently, when none opens.
     if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) {
         ei::Log("audio: no audio (%s): silent", SDL_GetError());
-        return true;
+        return;
     }
     const SDL_AudioSpec spec{SDL_AUDIO_F32, kOutputChannels, static_cast<int>(g_rate)};
     g_device = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, DeviceData, nullptr);
@@ -613,7 +591,7 @@ bool OpenOutput(platform::NativeWindow, unsigned rate, bool, std::string*) {
         if (g_device) SDL_DestroyAudioStream(g_device);
         g_device = nullptr;
         SDL_QuitSubSystem(SDL_INIT_AUDIO);
-        return true;
+        return;
     }
     g_deviceLive = true;
     const SDL_AudioDeviceID device = SDL_GetAudioStreamDevice(g_device);
@@ -623,7 +601,6 @@ bool OpenOutput(platform::NativeWindow, unsigned rate, bool, std::string*) {
     SDL_GetAudioDeviceFormat(device, &deviceSpec, &deviceFrames);
     ei::Log("audio: %s through %s, %u Hz; the device %d Hz, %d frames a period", name ? name : "the default device",
             SDL_GetCurrentAudioDriver(), g_rate, deviceSpec.freq, deviceFrames);
-    return true;
 }
 
 bool OpenOffline(unsigned rate) {
@@ -925,14 +902,13 @@ void DeliverEnds(std::uint32_t now) {
 
 namespace {
 
-// A queued half: its bytes (the caller's) and their format.
+// A queued half: its 16-bit samples (QueueHalf's copy) and their format.
 struct Half {
-    const std::uint8_t* data = nullptr;
+    std::vector<std::int16_t> samples;
     std::uint32_t frames = 0;
     std::uint32_t next = 0;   // the frame played next
     unsigned rate = kDefaultRate;
     int channels = 2;
-    int bits = 16;
     bool queued = false;
 };
 
@@ -943,7 +919,6 @@ struct Half {
 struct Stream {
     unsigned rate = kDefaultRate;   // the format of the halves queued from now on
     int channels = 2;
-    int bits = 16;
     int volume = 127;
     int pan = 64;
     Gains gains;
@@ -975,16 +950,8 @@ struct Stream {
         started = true;
         Half& h = halves[playing];
         const std::size_t at = static_cast<std::size_t>(h.next) * h.channels;
-        for (int c = 0; c < 2; ++c) {
-            const std::size_t i = at + static_cast<std::size_t>(std::min(c, h.channels - 1));
-            if (h.bits == 16) {
-                std::int16_t sample;
-                std::memcpy(&sample, h.data + i * 2, sizeof(sample));
-                frame[c] = static_cast<float>(sample) * kSampleScale;
-            } else {
-                frame[c] = static_cast<float>(h.data[i] - 128) * (1.0f / 128.0f);
-            }
-        }
+        for (int c = 0; c < 2; ++c)
+            frame[c] = static_cast<float>(h.samples[at + static_cast<std::size_t>(std::min(c, h.channels - 1))]) * kSampleScale;
         ++h.next;
         return true;
     }
@@ -1031,9 +998,9 @@ void DestroyStream(Stream* stream) {
     delete stream;
 }
 
-int MinimumHalfBytes(unsigned rate, int channels, int bits) {
+int MinimumHalfBytes(unsigned rate, int channels) {
     // 87 ms rounded up to 512 bytes: what the original asked for 44.1 kHz 16-bit stereo through the wave mapper.
-    const std::uint64_t bytes = static_cast<std::uint64_t>(rate) * channels * bits / 8 * 87 / 1000;
+    const std::uint64_t bytes = static_cast<std::uint64_t>(rate) * channels * 2 * 87 / 1000;
     return static_cast<int>((bytes + 511) & ~std::uint64_t{511});
 }
 
@@ -1046,11 +1013,10 @@ void ResetStream(Stream* stream) {
     stream->stopped = false;
 }
 
-void SetStreamFormat(Stream* stream, unsigned rate, int channels, int bits) {
+void SetStreamFormat(Stream* stream, unsigned rate, int channels) {
     MixHold hold;
     stream->rate = rate;
     stream->channels = channels;
-    stream->bits = bits;
 }
 
 void SetStreamVolume(Stream* stream, int volume) {
@@ -1074,13 +1040,12 @@ int ReadyHalf(Stream* stream, std::uint32_t now) {
 void QueueHalf(Stream* stream, int half, const void* data, int bytes) {
     MixHold hold;
     Half& h = stream->halves[half];
-    const int frameBytes = std::max(1, stream->channels * stream->bits / 8);
-    h.data = static_cast<const std::uint8_t*>(data);
-    h.frames = static_cast<std::uint32_t>(std::max(bytes, 0) / frameBytes);
+    h.channels = std::max(1, stream->channels);
+    h.frames = static_cast<std::uint32_t>(std::max(bytes, 0) / (h.channels * static_cast<int>(sizeof(std::int16_t))));
+    h.samples.resize(static_cast<std::size_t>(h.frames) * h.channels);
+    std::memcpy(h.samples.data(), data, h.samples.size() * sizeof(std::int16_t));
     h.next = 0;
     h.rate = stream->rate;
-    h.channels = std::max(1, stream->channels);
-    h.bits = stream->bits;
     h.queued = true;
     stream->next = 1 - half;
     if (stream->playing < 0) stream->playing = half;
@@ -1182,7 +1147,7 @@ using Mp3Decoder = std::unique_ptr<drmp3, Mp3Close>;
 } // namespace
 
 struct Mp3Stream {
-    std::vector<char> file;
+    std::string file;
     Mp3Layout layout;
     Mp3Decoder decoder;              // null unless dr_mp3 opened the file with the layout's channels
     std::uint64_t given = 0;         // frames
@@ -1191,7 +1156,6 @@ struct Mp3Stream {
 
 namespace {
 
-constexpr int kReadStep = 0x10000;
 
 // dr_mp3 on the MP3 file in memory (16-bit samples), when it decodes the layout's channels; null otherwise.
 Mp3Decoder OpenMp3Decoder(const void* data, std::size_t size, const Mp3Layout& layout) {
@@ -1213,19 +1177,12 @@ void DecodeFrames(drmp3* decoder, int channels, std::uint64_t frames, std::vecto
 
 } // namespace
 
-Mp3Stream* OpenMp3(ReadFn read, void* user) {
+Mp3Stream* OpenMp3(std::string file) {
     auto mp3 = std::make_unique<Mp3Stream>();
-    std::vector<char>& file = mp3->file;
-    for (int offset = 0;; offset = -1) {
-        const std::size_t at = file.size();
-        file.resize(at + kReadStep);
-        const int got = read(user, file.data() + at, kReadStep, offset);
-        file.resize(at + static_cast<std::size_t>(std::max(got, 0)));
-        if (got <= 0) break;
-    }
-    mp3->layout = ScanMp3(file.data(), file.size());
+    mp3->file = std::move(file);
+    mp3->layout = ScanMp3(mp3->file.data(), mp3->file.size());
     if (mp3->layout.frames == 0) return nullptr;
-    mp3->decoder = OpenMp3Decoder(file.data(), file.size(), mp3->layout);
+    mp3->decoder = OpenMp3Decoder(mp3->file.data(), mp3->file.size(), mp3->layout);
     return mp3.release();
 }
 
@@ -1233,7 +1190,6 @@ void CloseMp3(Mp3Stream* mp3) { delete mp3; }
 
 unsigned Mp3Rate(const Mp3Stream* mp3) { return mp3->layout.rate; }
 int Mp3Channels(const Mp3Stream* mp3) { return mp3->layout.channels; }
-int Mp3Bits(const Mp3Stream*) { return 16; }
 
 int DecodeMp3(Mp3Stream* mp3, void* to, int bytes) {
     const int frameBytes = mp3->layout.channels * 2;

@@ -60,7 +60,6 @@ struct Movie {
     audio::Stream* stream = nullptr;
     std::vector<std::int16_t> pending;
     std::size_t pendingStart = 0;
-    std::vector<std::int16_t> halves[2];
     std::size_t halfSamples = 0;
 
     ~Movie() {
@@ -72,10 +71,9 @@ struct Movie {
         if (!stream) return;
         sound.emplace(file.AudioRate(), file.AudioChannels());
         const auto rate = static_cast<unsigned>(file.AudioRate());
-        audio::SetStreamFormat(stream, rate, file.AudioChannels(), 16);
+        audio::SetStreamFormat(stream, rate, file.AudioChannels());
         audio::SetStreamVolume(stream, 127);
-        halfSamples = static_cast<std::size_t>(audio::MinimumHalfBytes(rate, file.AudioChannels(), 16)) / 2;
-        for (auto& half : halves) half.reserve(halfSamples);
+        halfSamples = static_cast<std::size_t>(audio::MinimumHalfBytes(rate, file.AudioChannels())) / 2;
     }
 
     // Frame `number` (from 1) decoded, its sound appended unless `quiet`.
@@ -116,10 +114,8 @@ struct Movie {
             const int half = audio::ReadyHalf(stream, platform::Milliseconds());
             if (half < 0) break;
             const std::size_t take = std::min(available, halfSamples);
-            const auto from = pending.begin() + static_cast<std::ptrdiff_t>(pendingStart);
-            halves[half].assign(from, from + static_cast<std::ptrdiff_t>(take));
+            audio::QueueHalf(stream, half, pending.data() + pendingStart, static_cast<int>(take * sizeof(std::int16_t)));
             pendingStart += take;
-            audio::QueueHalf(stream, half, halves[half].data(), static_cast<int>(take * sizeof(std::int16_t)));
         }
         if (pendingStart > halfSamples) {
             pending.erase(pending.begin(), pending.begin() + static_cast<std::ptrdiff_t>(pendingStart));

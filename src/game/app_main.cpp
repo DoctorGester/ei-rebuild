@@ -157,7 +157,7 @@ void OpenSound() {
     GameOptions* options = &options::g_options;
     std::string textFolder = g_textFolder;
     std::string dataFolder = g_dataFolder;
-    g_clientWorld.sounds->Open(g_mainWindow, 1, 44100);
+    g_clientWorld.sounds->Open(true, 44100);
     {
         std::string registry = textFolder + "streamsn.reg";
         std::string folder = dataFolder + "stream\\";
