@@ -338,6 +338,10 @@ public:
     // Script AddUnitToServer: creates a unit of prototype `prototype` named `name`, with id `id` (the name's text
     // key), at `position`.
     void AddUnitToServer(unsigned id, const char* prototype, const char* name, const Vector3& position);
+    // Script AddUnitToParty: the record `record` (just made by AddMember) takes the texture names of the map unit
+    // with its id (the unit's server-side parentIname and skinTexture), so the unit is drawn textured when the
+    // party arrives in the next zone. No unit with that id: the names stay empty.
+    void TakeLookFromUnit(PartyUnitRecord* record);
     // Reads the objects of a .mob file (chunked). Returns 1, or what FatalError returns when the file
     // cannot be opened or read.
     int LoadMapObjects(std::string_view file, int keepIds);

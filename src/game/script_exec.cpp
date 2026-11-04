@@ -925,7 +925,7 @@ bool ScriptRun::Execute(Script* script) {
             Party* records = PartyForScript(player, &name);
             if (records) {
                 if (function == ScriptFunction::AddUnitToParty)
-                    records->AddMember(name, Text(cmd, 1), game::kEmptyText);
+                    g_serverWorld.TakeLookFromUnit(records->AddMember(name, Text(cmd, 1), game::kEmptyText));
                 else
                     records->RemoveMember(static_cast<unsigned>(TextKeyFromName(name)));
             }

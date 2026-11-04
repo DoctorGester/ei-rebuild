@@ -295,6 +295,9 @@
 //                             kept), as soon as it reaches the client: a unit made by AddUnitToServer has none
 //                             and draws untextured, as in the original. Client only; fails at the report when
 //                             the unit never came
+//   unitskins <unit> <first> <second>
+//                             the client's unit <unit> must have been given the texture names <first> and
+//                             <second> (what a map placement or a party record names; party_join_skin)
 //   unitcolour <frame> <a> <b> <least> <most>
 //                             while frozen: the mean colours of the middle half of units <a>'s and <b>'s
 //                             rectangles (this frame's screen list) in frames\<frame>.bmp; their largest channel
@@ -1846,6 +1849,17 @@ std::string SkinStep(const std::string& argument) {
     return "";
 }
 
+// unitskins <unit> <first> <second>: the texture names the client's unit holds.
+std::string UnitSkinsStep(const std::string& argument) {
+    char unit[64] = "", first[64] = "", second[64] = "";
+    if (std::sscanf(argument.c_str(), "%63s %63s %63s", unit, first, second) != 3) return "unitskins needs <unit> <first> <second>";
+    std::string haveFirst, haveSecond;
+    if (!image::ObjectSkins(UnitIdOf(unit), &haveFirst, &haveSecond)) return std::string("unitskins: ") + unit + " is not on the client";
+    Log("harness: unitskins %s: '%s' '%s'", unit, haveFirst.c_str(), haveSecond.c_str());
+    if (haveFirst == first && haveSecond == second) return "";
+    return std::string("unitskins ") + unit + ": has '" + haveFirst + "' '" + haveSecond + "', wanted '" + first + "' '" + second + "'";
+}
+
 // The mean colour of the middle half (each way) of unit `a`'s and unit `b`'s rectangles in this frame's screen list
 // (the parts drawn: frozen, the frame captured shows the same) in frames\<frame>.bmp; the largest channel difference
 // of the two means must lie within <least>..<most>. A spawned wolf with Wolf00 against zone1's LoneWolf: the same
@@ -3063,8 +3077,10 @@ void RunSteps() {
         } else if (s.verb == "blink") {
             std::string error = BlinkStep(s.argument);
             if (!error.empty()) g_failures.push_back(error);
-        } else if (s.verb == "skin" || s.verb == "unitcolour") {
-            std::string error = s.verb == "skin" ? SkinStep(s.argument) : UnitColourStep(s.argument);
+        } else if (s.verb == "skin" || s.verb == "unitcolour" || s.verb == "unitskins") {
+            std::string error = s.verb == "skin"         ? SkinStep(s.argument)
+                                : s.verb == "unitskins" ? UnitSkinsStep(s.argument)
+                                                        : UnitColourStep(s.argument);
             if (!error.empty()) g_failures.push_back(error);
         } else if (IsRenderStep(s.verb)) {
             // The image's renderer (image/harness_render_image.cpp).

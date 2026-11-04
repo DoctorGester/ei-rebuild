@@ -82,7 +82,11 @@ and releases gone ones (added / kept / removed).
   nowhere, so its figure draws untextured (white lit: pale in the light), the original's look. No map script of either
   install calls AddUnitToServer: the missions add units at run time with AddMob (21 calls: an extra .mob whose unit
   records name their textures, B007 / B008) or reveal placed hidden ones; zone4hadagans' AddUnitToParty("DrPlen",
-  "DragonkinGreenF3") makes such a record (R49a). The scenarios' AddUnitToServer spawns lack that step; the harness's
+  "DragonkinGreenF3") made such a record, so DrPlen came back untextured in the next zone (the original's bug, fixed:
+  R49a). AddUnitToParty now has `WorldServer::TakeLookFromUnit` copy the map unit's names (the server companion's
+  parentIname and skinTexture) into the record; the record's save and load carry them (`party_join_skin`: a placed
+  wolf joins, the party is saved and loaded, the zone changes, `unitskins` checks the client's names). A mercenary's
+  hire (`world_quests.cpp`, `AddMember` with the unit's prototype) still leaves them empty. The scenarios' AddUnitToServer spawns lack that step; the harness's
   `skin` step gives them the textures the maps place their kind with (render_unit_skin; a generated .mob through
   AddMob, as tools/make_trap_mob.py does for traps, would be the game's own way but moves the goldens).
 - **Saving** (`SaveGame`; autosave "savea" on zone entry when the option is on): saves\current files are copied into

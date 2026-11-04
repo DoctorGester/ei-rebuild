@@ -94,6 +94,7 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   `diffcapture <a> <b> <least> <most>` that they differ in that share of the pixels; `blink faces|open|close` loads the
   units' faces or shows every face's open / closed state (render_blink). `skin <unit> <first> [<second>]` gives a
   spawned unit's client figure the textures a map placement names (AddUnitToServer names none: untextured, world.md),
+  `unitskins <unit> <first> <second>` requires the client unit's texture names (party_join_skin),
   `unitcolour <frame> <a> <b> <least> <most>` compares two units' mean colours in a frozen capture (render_unit_skin;
   the crowds of render_occlusion, render_lighting and render_stats are skinned). `python tools\compare_frames.py A B` compares
   two captures or two runs' frames with a tolerance (`--mask` restricts it to where two other frames differ). A
