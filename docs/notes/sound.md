@@ -8,7 +8,7 @@ a 3D effect, a fight with combat music and the brain's "Delayed sound" lines).
 ## What the game reads back
 
 Only these reach game logic; volumes, pans, reverb, positions and the pixels and sound of movies are output only.
-- **A voice's end** (`SoundSlot::finished`): Tick frees the voice; `FindPlaying` reads it for a unit's talking flag
+- **A voice's end** (`audio::Ended`, set by `DeliverEnds`): Tick frees the voice; `FindPlaying` reads it for a unit's talking flag
   (unit_client_effects / unit_client_update, map_object_companion) and the briefing's next phrase; sequences start
   their next sound. The goldens depend on when it comes.
 - **Which voices are free**: `AllocateVoice` takes the first free voice, else steals the lowest priority below the
@@ -46,12 +46,21 @@ Only these reach game logic; volumes, pans, reverb, positions and the pixels and
   period); a one-off music file (`PlayStreamOnce`: PlayJingle, the calm music) is requested and its "silence after
   it" is the stream thread's to ask for as it switches (`endAfterSwitch`; any other request clears it), while
   `UpdateMusic` chooses nothing until then.
-- **The game thread never waits for the MP3 work** (with a device). `streamLock` guards the request state (state, names, switch
-  point, markers, the fader); the stream thread holds it only to take a free half, queue it and step the fader, then
-  fills the spare buffer without it (`streamBusy`: decoding, the next file's opening). A game-thread request in that
-  time (RequestStream, StopStream, PlayStreamOnce, the fades, SetMusicVolume) goes to `lateRequests` and is made, in
-  order, by the stream thread as soon as the buffer is full: the order the old lock gave, without the wait. A
-  PlayStreamOnce waiting there counts as a pending switch (`StreamSwitchPending`).
+- **The game thread never waits for the MP3 work** (with a device). One lock, `streamLock`, guards the stream's state
+  (state, names, switch point, markers, the fader, the pending PlayStreamOnce); the stream thread holds it only to take
+  a free half, queue it and step the fader, then fills the spare buffer without it (`streamBusy`: decoding, the next
+  file's opening), taking it again only to show the game thread a switch's result (state, name, the end-after
+  request) once the file has opened. A game-thread request in that time (RequestStream, StopStream, PlayStreamOnce,
+  the fades, SetMusicVolume) goes to `lateRequests` and is made, in order, by the stream thread as soon as the buffer
+  is full: the order the old lock gave, without the wait. A PlayStreamOnce waiting there counts as a pending switch
+  (`StreamSwitchPending`). While a file opens the game thread sees the switch still pending (the old file's name),
+  not an idle stream.
+- **Why the stream has its own thread** (C123, measured 2026-11-04 on WASAPI): loads hold the main loop in one pass
+  (a zone change 0.39 s warm, 2.7 s cold; a new game 0.22 s), and the thread keeps the music going through them (0
+  frames starved). Stepped from the main loop with the same two halves (174 ms each) the music broke for 97 ms at the
+  warm zone change and would for about 2.4 s at a cold one; a queue deep enough for a cold load (3 s or more) puts
+  every Now / AtMarker switch that much later (they land after the queued audio) and frees the no-device halves on
+  other frames (goldens). The request-to-switch time with the thread: 137 to 190 ms.
 
 ## The mixer
 

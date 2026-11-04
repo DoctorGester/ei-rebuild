@@ -1,0 +1,9 @@
+id = "C123a"
+title = "Music without its own thread: keep the stream fed through loads first"
+group = "cleanup"
+model = "opus"
+depends = ["C123"]
+files = ["src/game/sound_manager.cpp", "src/game/sound.h", "src/game/app_main.cpp"]
+note = "Left by C123 (2026-11-04; measurement in C123's note and docs/notes/sound.md, 'Why the stream has its own thread'). Stepping the music from the main loop breaks it whenever a pass is longer than the queued halves (~0.35 s): a zone change held the main loop 0.39 s warm (97 ms of silence measured) and 2.7 s cold. A deeper queue delays every Now / AtMarker switch by its depth and moves the no-device halves (goldens). The thread can go only if the long passes step the stream too: the zone load, the new game, saves and loads, and on Windows the window's move / size modal loop (SDL keeps the main loop out of it). Then one path (FollowClock) for device and no device, and streamBusy / lateRequests / threadsQuit / StreamThread go. Measure first which passes over 300 ms happen with music playing (EI_AUDIO_TRACE's longest pass); one or two short real-device runs at most (EI_HARNESS_SOUND plays aloud)."
+order = 1139
+status = "later"

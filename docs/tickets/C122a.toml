@@ -4,5 +4,5 @@ group = "cleanup"
 depends = ["C122"]
 note = "Left by C122 (2026-11-04). (1) bink_audio.cpp: std::lrint vs lib::RoundEven (same result in the default rounding mode, but one rounding helper), the unsigned/int casts, and a why for double(0.0664f) (the format's float constant widened as the decoders do?). (2) audio.cpp still has 7 anonymous namespace blocks (from 13): the voices' Remaining/StartTimer/StartSound and Mix need Voice/Stream complete; as Voice/Stream members the file could get down to one or two. (3) MappedResource::CloseFile on the base archive of a file that ResOverride's modfolders::GetFile returned from a mod archive misses it (DebugLog 'File already closed', the mod's copy stays loaded): LoadSample and C122's HasWaveFile both do it; close through the archive that gave the file. (4) Optional from the digest: the voice end callback could be an Ended flag. Style only: goldens the same."
 order = 1137
-status = "running"
+status = "review"
 started = "2026-11-04"

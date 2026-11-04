@@ -22,6 +22,16 @@ inline int RoundEven(float value) {
     return static_cast<int>((value + shift) - shift);
 }
 
+// The same for a double: from 2^52 on every double is whole, so the shift rounds every one in the int range.
+inline int RoundEven(double value) {
+    constexpr double kLimit = 2147483648.0;         // 2^31
+    constexpr double kWhole = 4503599627370496.0;   // 2^52
+    if (!(value >= -kLimit && value < kLimit)) return INT32_MIN;
+    const double shift =
+        std::bit_cast<double>(std::bit_cast<std::uint64_t>(kWhole) | (std::bit_cast<std::uint64_t>(value) & 0x8000000000000000u));
+    return static_cast<int>((value + shift) - shift);
+}
+
 // A float or double truncated as the original's _ftol does: through a 64-bit integer, keeping its low half. A NaN or
 // a value outside the 64-bit range gives 0 (the conversion's 0x8000000000000000 has a zero low half; a cast to int
 // gives 0x80000000).

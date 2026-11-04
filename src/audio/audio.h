@@ -2,8 +2,8 @@
 
 // The sound (docs/notes/sound.md): the output device, voices playing RIFF WAVE files from memory, the music's
 // double-buffered stream, and the MP3 decoders the music and the briefing voices go through; our mixer on SDL3's
-// audio device with the dr_wav / dr_mp3 decoders (audio.cpp). Game logic reads back only when a voice has ended (its
-// end callback), so that end is timed by the wave's length (WaveMilliseconds) on the game's clock
+// audio device with the dr_wav / dr_mp3 decoders (audio.cpp). Game logic reads back only when a voice has ended
+// (Ended), so that end is timed by the wave's length (WaveMilliseconds) on the game's clock
 // (platform::FrameClock) and delivered from the main loop (DeliverEnds), whatever the device does: the harness's
 // runs stay deterministic (its virtual clock). Volumes and pans are the game's 0..127 scales.
 
@@ -61,7 +61,6 @@ void MixOffline(float* out, std::uint32_t frames);
 // ---- Voices ----
 
 struct Voice;
-using EndCallback = void (*)(void* user);
 
 // A voice of the open device; null when none is open.
 Voice* CreateVoice();
@@ -84,12 +83,12 @@ void Start(Voice* voice);
 // Paused; Resume goes on from there (its end comes as much later).
 void Stop(Voice* voice);
 void Resume(Voice* voice);
-// Stopped for good: no end callback.
+// Stopped for good: it never ends.
 void End(Voice* voice);
-// `callback(user)` once the started wave has played (all its loops), from DeliverEnds.
-void SetEndCallback(Voice* voice, EndCallback callback, void* user);
-// Calls the end callbacks due at `now` (platform::FrameClock), in the order the voices were made. The main loop
-// calls it once a pass, right after reading the frame's time.
+// The started wave has played out (all its loops; DeliverEnds says so), until the voice starts again, ends or resets.
+bool Ended(const Voice* voice);
+// Ends the voices whose wave has played out by `now` (platform::FrameClock). The main loop calls it once a pass, right
+// after reading the frame's time.
 void DeliverEnds(std::uint32_t now);
 
 // ---- The music stream ----

@@ -20,6 +20,7 @@
 #include <map>
 #include <mutex>
 #include <set>
+#include <span>
 
 
 namespace modfolders {
@@ -138,18 +139,21 @@ ResTables& Tables() {
     return *tables;
 }
 
-// One lookup of 1002005E: the mod's archives for `res`, then `res` itself unless ignored.
-void* FindFile(MappedResource* res, std::string_view name, std::uint32_t* size) {
+// The mod's archives that come before `res` (none when the mod does not override it).
+std::span<MappedResource* const> ModArchivesOf(const MappedResource* res) {
     ResTables& tables = Tables();
     auto overridden = tables.overridden.find(res);
-    if (overridden != tables.overridden.end()) {
-        auto mods = tables.modArchives.find(overridden->second);
-        if (mods != tables.modArchives.end()) {
-            for (MappedResource* mod : mods->second)
-                if (void* data = mod->GetFilePlain(name, size)) return data;
-        }
-    }
-    if (tables.ignored.count(res) != 0) return nullptr;
+    if (overridden == tables.overridden.end()) return {};
+    auto mods = tables.modArchives.find(overridden->second);
+    if (mods == tables.modArchives.end()) return {};
+    return mods->second;
+}
+
+// One lookup of 1002005E: the mod's archives for `res`, then `res` itself unless ignored.
+void* FindFile(MappedResource* res, std::string_view name, std::uint32_t* size) {
+    for (MappedResource* mod : ModArchivesOf(res))
+        if (void* data = mod->GetFilePlain(name, size)) return data;
+    if (Tables().ignored.count(res) != 0) return nullptr;
     return res->GetFilePlain(name, size);
 }
 
@@ -249,21 +253,21 @@ void* GetFile(MappedResource* res, std::string_view name, std::uint32_t* size) {
 void ListFiles(const MappedResource* res, std::vector<std::string>* out, const char* pattern) {
     Lock lock;
     // 100201FD: each archive's listing is appended to `out`.
-    ResTables& tables = Tables();
-    auto overridden = tables.overridden.find(res);
-    if (overridden != tables.overridden.end()) {
-        auto mods = tables.modArchives.find(overridden->second);
-        if (mods != tables.modArchives.end()) {
-            for (const MappedResource* mod : mods->second) {
-                const std::vector<std::string> names = mod->ListFilesPlain(pattern);
-                out->insert(out->end(), names.begin(), names.end());
-            }
-        }
+    for (const MappedResource* mod : ModArchivesOf(res)) {
+        const std::vector<std::string> names = mod->ListFilesPlain(pattern);
+        out->insert(out->end(), names.begin(), names.end());
     }
-    if (tables.ignored.count(res) == 0) {
+    if (Tables().ignored.count(res) == 0) {
         const std::vector<std::string> names = res->ListFilesPlain(pattern);
         out->insert(out->end(), names.begin(), names.end());
     }
+}
+
+MappedResource* ArchiveHolding(const MappedResource* res, void* data) {
+    Lock lock;
+    for (MappedResource* mod : ModArchivesOf(res))
+        if (mod->filesByData.contains(data)) return mod;
+    return nullptr;
 }
 
 const std::vector<std::string>& FigureArchives() { return Config().figures; }

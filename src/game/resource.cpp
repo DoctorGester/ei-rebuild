@@ -146,6 +146,9 @@ bool MappedResource::CloseFile(void* data) {
 
     auto byData = filesByData.find(data);
     if (byData == filesByData.end()) {
+        // Rebirth's ResOverride: a file one of the mod's archives gave in this one's place goes back to it.
+        if (ei::rebirth::Enabled(ei::rebirth::Patch::ResOverride))
+            if (MappedResource* mod = modfolders::ArchiveHolding(this, data)) return mod->CloseFile(data);
         game::DebugLog("CMappedResource::CloseFile()\nFile already closed\n");
         return false;
     }

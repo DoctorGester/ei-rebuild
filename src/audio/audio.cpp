@@ -32,23 +32,32 @@
 #include <string_view>
 #include <thread>
 
-// ==== Waves and MP3 files, read without decoding =====================================================================
-
-// RIFF WAVE headers, the voices' length rule and the MP3 frame scan.
-
 namespace audio {
 
 namespace {
 
+// ==== Waves and MP3 files, read without decoding =====================================================================
+
+// RIFF WAVE headers, the voices' length rule and the MP3 frame scan.
+
 // The chunks a wave can have before its data are short; a size past this is not a wave.
 constexpr std::uint32_t kLongestHeader = 1u << 20;
 
-// Bytes a second of the wave takes: for IMA ADPCM the rate times the block size over the samples a block holds (4
-// bytes of header per channel, then two samples a byte), truncated; 0 when the header makes no sense.
+// The frames an IMA ADPCM block holds: 4 bytes of header a channel (its first sample), then two samples a byte; 0 when
+// the header makes no sense.
+std::uint32_t ImaFramesPerBlock(const WaveInfo& info) {
+    if (info.channels <= 0) return 0;
+    const auto channels = static_cast<std::uint32_t>(info.channels);
+    const std::uint32_t header = 4 * channels;
+    return info.blockSize > header ? (info.blockSize - header) * 2 / channels + 1 : 0;
+}
+
+// Bytes a second of the wave takes: for IMA ADPCM the rate times the block size over the frames a block holds,
+// truncated; 0 when the header makes no sense.
 std::uint32_t WaveBytesPerSecond(const WaveInfo& info) {
     if (info.format == kImaAdpcm) {
-        if (info.channels <= 0 || info.blockSize <= 4u * static_cast<std::uint32_t>(info.channels)) return 0;
-        const std::uint32_t perBlock = (info.blockSize - 4u * info.channels) * 8 / (4u * info.channels) + 1;
+        const std::uint32_t perBlock = ImaFramesPerBlock(info);
+        if (perBlock == 0) return 0;
         return static_cast<std::uint32_t>(static_cast<std::uint64_t>(info.rate) * info.blockSize / perBlock);
     }
     return info.rate * static_cast<std::uint32_t>(info.channels * info.bits) / 8;
@@ -106,52 +115,7 @@ Mp3Layout ScanMp3(const void* data, std::size_t size) {
     return layout;
 }
 
-} // namespace
-
-WaveInfo ReadWaveInfo(const void* wave, std::size_t size) {
-    WaveInfo info;
-    const auto* p = static_cast<const std::uint8_t*>(wave);
-    if (!p || size < 12 || std::memcmp(p, "RIFF", 4) != 0 || std::memcmp(p + 8, "WAVE", 4) != 0) return info;
-    bool fact = false;
-    for (std::uint64_t at = 12; at + 8 <= size && at < kLongestHeader;) {
-        const std::uint8_t* chunk = p + at;
-        const std::uint32_t length = lib::Load<std::uint32_t>(chunk + 4);
-        const std::uint64_t body = at + 8;
-        if (std::memcmp(chunk, "fmt ", 4) == 0) {
-            if (body + 16 > size) break;
-            info.format = lib::Load<std::uint16_t>(chunk + 8);
-            info.channels = lib::Load<std::uint16_t>(chunk + 10);
-            info.rate = lib::Load<std::uint32_t>(chunk + 12);
-            info.blockSize = lib::Load<std::uint16_t>(chunk + 20);
-            info.bits = lib::Load<std::uint16_t>(chunk + 22);
-        } else if (std::memcmp(chunk, "fact", 4) == 0) {
-            if (body + 4 > size) break;
-            info.samples = lib::Load<std::uint32_t>(chunk + 8);
-            fact = true;
-        } else if (std::memcmp(chunk, "data", 4) == 0) {
-            info.dataLength = static_cast<std::uint32_t>(std::min<std::uint64_t>(length, size - body));
-            info.data = chunk + 8;
-            break;
-        }
-        at = body + length + (length & 1);
-    }
-    if (!info.data) return WaveInfo{};
-    if (!fact || info.format != kImaAdpcm) {
-        const std::uint32_t bitsPerFrame = static_cast<std::uint32_t>(info.bits * info.channels);
-        info.samples = bitsPerFrame != 0 ? static_cast<std::uint32_t>(static_cast<std::uint64_t>(info.dataLength) * 8 / bitsPerFrame) : 0;
-    }
-    return info;
-}
-
-std::uint32_t WaveMilliseconds(const WaveInfo& info) {
-    const std::uint32_t rate = WaveBytesPerSecond(info);
-    if (!info.data || rate == 0) return 0;
-    return static_cast<std::uint32_t>(static_cast<std::uint64_t>(info.dataLength) * 1000 / rate);
-}
-
 // ==== The backend ====================================================================================================
-
-namespace {
 
 constexpr int kOutputChannels = 2;
 constexpr unsigned kDefaultRate = 44100;
@@ -228,14 +192,14 @@ std::uint64_t Step(unsigned sourceRate, unsigned outputRate) {
 class Reverb {
 public:
     // The lines for `rate`, long enough for the largest room.
-    void Open(unsigned rate) {
-        rate_ = rate;
+    void Open(unsigned outputRate) {
+        rate = outputRate;
         for (int side = 0; side < 2; ++side) {
-            for (int i = 0; i < kCombs; ++i) combs_[side][i].Open(DelayAt(kCombDelays[i], side, 1.0f));
-            for (int i = 0; i < kAllPasses; ++i) allPasses_[side][i].Open(DelayAt(kAllPassDelays[i], side, 1.0f));
+            for (int i = 0; i < kCombs; ++i) combs[side][i].Open(DelayAt(kCombDelays[i], side, 1.0f));
+            for (int i = 0; i < kAllPasses; ++i) allPasses[side][i].Open(DelayAt(kAllPassDelays[i], side, 1.0f));
         }
-        send_.assign(4096, 0.0f);
-        shaped_ = false;
+        send.assign(4096, 0.0f);
+        shaped = false;
         Clear();
     }
 
@@ -244,53 +208,53 @@ public:
     void Shape(float room, float time) {
         room = std::clamp(room, 0.0f, 1.0f);
         time = std::clamp(time, 0.1f, 20.0f);
-        if (shaped_ && room == room_ && time == time_) return;
-        if (!shaped_ || room != room_) {
+        if (shaped && room == shapedRoom && time == shapedTime) return;
+        if (!shaped || room != shapedRoom) {
             for (int side = 0; side < 2; ++side) {
-                for (int i = 0; i < kCombs; ++i) combs_[side][i].Resize(DelayAt(kCombDelays[i], side, room));
-                for (int i = 0; i < kAllPasses; ++i) allPasses_[side][i].Resize(DelayAt(kAllPassDelays[i], side, room));
+                for (int i = 0; i < kCombs; ++i) combs[side][i].Resize(DelayAt(kCombDelays[i], side, room));
+                for (int i = 0; i < kAllPasses; ++i) allPasses[side][i].Resize(DelayAt(kAllPassDelays[i], side, room));
             }
             Clear();
         }
-        room_ = room;
-        time_ = time;
-        shaped_ = true;
+        shapedRoom = room;
+        shapedTime = time;
+        shaped = true;
         // Each pass round a comb loses delay / (time * rate) of the 60 dB.
-        const float perFrame = -3.0f / (time * static_cast<float>(rate_));
+        const float perFrame = -3.0f / (time * static_cast<float>(rate));
         for (int side = 0; side < 2; ++side)
-            for (Comb& comb : combs_[side])
+            for (Comb& comb : combs[side])
                 comb.feedback = lib::Pow(10.0f, perFrame * static_cast<float>(comb.Length()));
-        tailFrames_ = static_cast<std::uint32_t>(2.0f * time * static_cast<float>(rate_)) + DelayAt(kCombDelays[kCombs - 1], 1, 1.0f);
+        tailFrames = static_cast<std::uint32_t>(2.0f * time * static_cast<float>(rate)) + DelayAt(kCombDelays[kCombs - 1], 1, 1.0f);
     }
 
     // The send for a mix of `frames`, silent: the voices add to it.
     float* Send(std::uint32_t frames) {
-        if (send_.size() < frames) send_.resize(frames);
-        std::fill_n(send_.data(), frames, 0.0f);
-        return send_.data();
+        if (send.size() < frames) send.resize(frames);
+        std::fill_n(send.data(), frames, 0.0f);
+        return send.data();
     }
 
     // The send through the network, added to `out` (interleaved stereo).
     void Process(float* out, std::uint32_t frames) {
         bool sent = false;
-        for (std::uint32_t i = 0; i < frames && !sent; ++i) sent = send_[i] != 0.0f;
+        for (std::uint32_t i = 0; i < frames && !sent; ++i) sent = send[i] != 0.0f;
         if (!sent) {
-            if (resting_) return;
-            quiet_ += frames;
-            if (quiet_ >= tailFrames_) {
+            if (resting) return;
+            quiet += frames;
+            if (quiet >= tailFrames) {
                 Clear();
                 return;
             }
         } else {
-            quiet_ = 0;
-            resting_ = false;
+            quiet = 0;
+            resting = false;
         }
         for (std::uint32_t i = 0; i < frames; ++i) {
-            const float in = send_[i] * kInputGain;
+            const float in = send[i] * kInputGain;
             for (int side = 0; side < 2; ++side) {
                 float wet = 0.0f;
-                for (Comb& comb : combs_[side]) wet += comb.Process(in);
-                for (AllPass& pass : allPasses_[side]) wet = pass.Process(wet);
+                for (Comb& comb : combs[side]) wet += comb.Process(in);
+                for (AllPass& pass : allPasses[side]) wet = pass.Process(wet);
                 out[2 * i + side] += wet;
             }
         }
@@ -365,29 +329,29 @@ private:
     // A tuning's delay at the output's rate in a room (0 the smallest: half the tuning, 1 one and a half).
     std::uint32_t DelayAt(std::uint32_t tuning, int side, float room) const {
         const float frames = static_cast<float>(tuning + (side != 0 ? kSpread : 0)) * (0.5f + room) *
-                             static_cast<float>(rate_) / static_cast<float>(kDefaultRate);
+                             static_cast<float>(rate) / static_cast<float>(kDefaultRate);
         return std::max<std::uint32_t>(1, static_cast<std::uint32_t>(frames));
     }
 
     void Clear() {
         for (int side = 0; side < 2; ++side) {
-            for (Comb& comb : combs_[side]) comb.Clear();
-            for (AllPass& pass : allPasses_[side]) pass.Clear();
+            for (Comb& comb : combs[side]) comb.Clear();
+            for (AllPass& pass : allPasses[side]) pass.Clear();
         }
-        quiet_ = 0;
-        resting_ = true;
+        quiet = 0;
+        resting = true;
     }
 
-    unsigned rate_ = kDefaultRate;
-    Comb combs_[2][kCombs];
-    AllPass allPasses_[2][kAllPasses];
-    std::vector<float> send_;
-    float room_ = 0.0f;
-    float time_ = 0.0f;
-    bool shaped_ = false;
-    bool resting_ = true;            // the lines are empty: nothing to run until something is sent
-    std::uint32_t quiet_ = 0;        // frames since the send last carried anything
-    std::uint32_t tailFrames_ = 0;   // two tails' fall (-120 dB) and the longest delay
+    unsigned rate = kDefaultRate;
+    Comb combs[2][kCombs];
+    AllPass allPasses[2][kAllPasses];
+    std::vector<float> send;
+    float shapedRoom = 0.0f;
+    float shapedTime = 0.0f;
+    bool shaped = false;
+    bool resting = true;            // the lines are empty: nothing to run until something is sent
+    std::uint32_t quiet = 0;        // frames since the send last carried anything
+    std::uint32_t tailFrames = 0;   // two tails' fall (-120 dB) and the longest delay
 };
 
 // The part of itself a voice gives up to the reverb at level 1 (Sound::UpdateGains).
@@ -435,7 +399,6 @@ struct MainHealth {
     Clock::time_point passAt{};
     Clock::time_point reportedAt{};
 } g_main;
-
 
 // The device's side (under g_mix).
 struct DeviceHealth {
@@ -530,32 +493,174 @@ void NoteFrame() {
     g_main.reportedAt = now;
 }
 
-void Mix(float* out, std::uint32_t frames);
+// The device wants more frames (the mixer, at the end).
+void SDLCALL DeviceData(void*, SDL_AudioStream* stream, int additional, int);
 
-// The device wants `additional` more bytes: that many frames mixed and put into its stream (the device's thread).
-void SDLCALL DeviceData(void*, SDL_AudioStream* stream, int additional, int) {
-    static std::vector<float> mixed;
-    const auto frames = static_cast<std::uint32_t>(additional / (kOutputChannels * static_cast<int>(sizeof(float))));
-    if (frames == 0) return;
-    mixed.resize(static_cast<std::size_t>(frames) * kOutputChannels);
-    const Clock::time_point start = g_trace ? Clock::now() : Clock::time_point{};
-    Mix(mixed.data(), frames);
-    SDL_PutAudioStreamData(stream, mixed.data(), static_cast<int>(mixed.size() * sizeof(float)));
-    if (!g_trace) return;
-    const Clock::time_point end = Clock::now();
-    std::lock_guard hold(g_mix);
-    DeviceHealth& h = g_deviceHealth;
-    if (h.given == 0) h.first = start;
-    else h.longestGap = std::max(h.longestGap, start - h.last);
-    h.last = start;
-    ++h.calls;
-    h.frames += frames;
-    h.given += frames;
-    h.largest = std::max(h.largest, frames);
-    h.longestMix = std::max(h.longestMix, end - start);
+// ---- Voices ----
+
+// A voice as the device plays it (under g_mix).
+struct Sound {
+    std::vector<std::int16_t> samples;   // the wave decoded, interleaved
+    int channels = 1;
+    unsigned rate = 0;
+    std::uint32_t frames = 0;
+    std::uint32_t next = 0;    // the frame Fetch gives next
+    int loopsLeft = 1;         // the plays still to come with this one, 0 for ever
+    bool playing = false;
+    bool paused = false;
+    bool primed = false;       // the resampler holds the frames at `next`
+    int volume = 127;
+    int pan = 64;
+    Gains gains;               // what the volume and pan ask for
+    Gains applied;             // what the last mix ended on: the next goes there smoothly
+    float reverb = 0.0f;       // the level it feeds the reverb at, 0 for none
+    Resampler resampler;
+
+    // The gains for the volume, the pan and the reverb: a voice in the reverb keeps less of itself (kReverbDryCut at
+    // level 1), so a loud one and its tail stay under full scale.
+    void UpdateGains() { gains = GainsOf(volume, pan, 1.0f - kReverbDryCut * reverb); }
+    bool Fetch(float frame[2]) {
+        if (next >= frames) {
+            if (frames == 0 || loopsLeft == 1) return false;
+            if (loopsLeft > 1) --loopsLeft;
+            next = 0;
+        }
+        const std::int16_t* f = &samples[static_cast<std::size_t>(next) * channels];
+        frame[0] = static_cast<float>(f[0]) * kSampleScale;
+        frame[1] = channels > 1 ? static_cast<float>(f[1]) * kSampleScale : frame[0];
+        ++next;
+        return true;
+    }
+};
+
+// A RIFF WAVE decoded to 16-bit samples by dr_wav (PCM and IMA ADPCM) at its rate and channels, at most `samples`
+// frames (WaveInfo's: dr_wav decodes IMA ADPCM's last block whole, past the fact chunk's count); no frames when it
+// cannot.
+void Decode(const void* wave, std::size_t size, std::uint32_t samples, Sound* sound) {
+    drwav decoder;
+    if (!wave || !drwav_init_memory(&decoder, wave, size, nullptr)) return;
+    if (decoder.channels > 0 && decoder.totalPCMFrameCount < (1u << 28)) {
+        const auto frames = std::min<drwav_uint64>(decoder.totalPCMFrameCount, samples);
+        const auto channels = static_cast<int>(decoder.channels);
+        sound->channels = channels;
+        sound->rate = decoder.sampleRate;
+        sound->samples.resize(static_cast<std::size_t>(frames) * channels);
+        const drwav_uint64 got = drwav_read_pcm_frames_s16(&decoder, frames, sound->samples.data());
+        sound->frames = static_cast<std::uint32_t>(got);
+        sound->samples.resize(static_cast<std::size_t>(got) * channels);
+    }
+    drwav_uninit(&decoder);
 }
 
+// The frame `bytes` into the wave's data points at.
+std::uint32_t FrameAt(const WaveInfo& wave, std::int32_t bytes) {
+    if (bytes <= 0 || wave.blockSize == 0 || wave.channels <= 0) return 0;
+    const auto at = static_cast<std::uint32_t>(bytes);
+    if (wave.format != kImaAdpcm) return at / wave.blockSize;
+    const std::uint32_t perBlock = ImaFramesPerBlock(wave);
+    if (perBlock == 0) return 0;
+    const auto channels = static_cast<std::uint32_t>(wave.channels);
+    const std::uint32_t header = 4 * channels;
+    const std::uint32_t rest = at % wave.blockSize;
+    return at / wave.blockSize * perBlock + (rest > header ? (rest - header) * 2 / channels : 0);
+}
+
+std::vector<Voice*> g_voices;   // in the order they were made
+
+// Bytes a second of the voice's wave, at least 1.
+std::uint64_t BytesPerSecond(const WaveInfo& wave) { return std::max<std::uint32_t>(1, WaveBytesPerSecond(wave)); }
+
+// ---- The music stream ----
+
+// A queued half: its 16-bit samples (QueueHalf's copy) and their format.
+struct Half {
+    std::vector<std::int16_t> samples;
+    std::uint32_t frames = 0;
+    std::uint32_t next = 0;   // the frame played next
+    unsigned rate = kDefaultRate;
+    int channels = 2;
+    bool queued = false;
+};
+
+std::vector<Stream*> g_streams;   // in the order they were made
+
+// ---- MP3 ----
+
+// An opened dr_mp3 decoder, closed and freed with its owner.
+struct Mp3Close {
+    void operator()(drmp3* decoder) const {
+        drmp3_uninit(decoder);
+        delete decoder;
+    }
+};
+using Mp3Decoder = std::unique_ptr<drmp3, Mp3Close>;
+
+// dr_mp3 on the MP3 file in memory (16-bit samples), when it decodes the layout's channels; null otherwise.
+Mp3Decoder OpenMp3Decoder(const void* data, std::size_t size, const Mp3Layout& layout) {
+    Mp3Decoder decoder(new drmp3);
+    if (!data || !drmp3_init_memory(decoder.get(), data, size, nullptr)) {
+        delete decoder.release();
+        return nullptr;
+    }
+    if (decoder->channels != static_cast<drmp3_uint32>(layout.channels)) decoder.reset();
+    return decoder;
+}
+
+// `frames` frames of `decoder` (null: none) into `to` (16-bit, `channels` a frame), silence where it gives fewer.
+void DecodeFrames(drmp3* decoder, int channels, std::uint64_t frames, std::vector<std::int16_t>* samples, std::uint8_t* to) {
+    samples->assign(static_cast<std::size_t>(frames) * channels, 0);
+    if (decoder) drmp3_read_pcm_frames_s16(decoder, frames, samples->data());
+    std::memcpy(to, samples->data(), samples->size() * sizeof(std::int16_t));
+}
+
+void PutTag(std::uint8_t* p, std::string_view tag) { std::copy(tag.begin(), tag.end(), p); }
+
 } // namespace
+
+// ==== The interface (audio.h) ======================================================================================
+
+WaveInfo ReadWaveInfo(const void* wave, std::size_t size) {
+    WaveInfo info;
+    const auto* p = static_cast<const std::uint8_t*>(wave);
+    if (!p || size < 12 || std::memcmp(p, "RIFF", 4) != 0 || std::memcmp(p + 8, "WAVE", 4) != 0) return info;
+    bool fact = false;
+    for (std::uint64_t at = 12; at + 8 <= size && at < kLongestHeader;) {
+        const std::uint8_t* chunk = p + at;
+        const std::uint32_t length = lib::Load<std::uint32_t>(chunk + 4);
+        const std::uint64_t body = at + 8;
+        if (std::memcmp(chunk, "fmt ", 4) == 0) {
+            if (body + 16 > size) break;
+            info.format = lib::Load<std::uint16_t>(chunk + 8);
+            info.channels = lib::Load<std::uint16_t>(chunk + 10);
+            info.rate = lib::Load<std::uint32_t>(chunk + 12);
+            info.blockSize = lib::Load<std::uint16_t>(chunk + 20);
+            info.bits = lib::Load<std::uint16_t>(chunk + 22);
+        } else if (std::memcmp(chunk, "fact", 4) == 0) {
+            if (body + 4 > size) break;
+            info.samples = lib::Load<std::uint32_t>(chunk + 8);
+            fact = true;
+        } else if (std::memcmp(chunk, "data", 4) == 0) {
+            info.dataLength = static_cast<std::uint32_t>(std::min<std::uint64_t>(length, size - body));
+            info.data = chunk + 8;
+            break;
+        }
+        at = body + length + (length & 1);
+    }
+    if (!info.data) return WaveInfo{};
+    if (!fact || info.format != kImaAdpcm) {
+        const std::uint32_t bitsPerFrame = static_cast<std::uint32_t>(info.bits * info.channels);
+        info.samples = bitsPerFrame != 0 ? static_cast<std::uint32_t>(static_cast<std::uint64_t>(info.dataLength) * 8 / bitsPerFrame) : 0;
+    }
+    return info;
+}
+
+std::uint32_t WaveMilliseconds(const WaveInfo& info) {
+    const std::uint32_t rate = WaveBytesPerSecond(info);
+    if (!info.data || rate == 0) return 0;
+    return static_cast<std::uint32_t>(static_cast<std::uint64_t>(info.dataLength) * 1000 / rate);
+}
+
+// ---- The device ----
 
 void UseNoDevice() { g_noDevice = true; }
 
@@ -632,78 +737,6 @@ void CloseOutput() {
 
 // ---- Voices ----
 
-namespace {
-
-// A voice as the device plays it (under g_mix).
-struct Sound {
-    std::vector<std::int16_t> samples;   // the wave decoded, interleaved
-    int channels = 1;
-    unsigned rate = 0;
-    std::uint32_t frames = 0;
-    std::uint32_t next = 0;    // the frame Fetch gives next
-    int loopsLeft = 1;         // the plays still to come with this one, 0 for ever
-    bool playing = false;
-    bool paused = false;
-    bool primed = false;       // the resampler holds the frames at `next`
-    int volume = 127;
-    int pan = 64;
-    Gains gains;               // what the volume and pan ask for
-    Gains applied;             // what the last mix ended on: the next goes there smoothly
-    float reverb = 0.0f;       // the level it feeds the reverb at, 0 for none
-    Resampler resampler;
-
-    // The gains for the volume, the pan and the reverb: a voice in the reverb keeps less of itself (kReverbDryCut at
-    // level 1), so a loud one and its tail stay under full scale.
-    void UpdateGains() { gains = GainsOf(volume, pan, 1.0f - kReverbDryCut * reverb); }
-    bool Fetch(float frame[2]) {
-        if (next >= frames) {
-            if (frames == 0 || loopsLeft == 1) return false;
-            if (loopsLeft > 1) --loopsLeft;
-            next = 0;
-        }
-        const std::int16_t* f = &samples[static_cast<std::size_t>(next) * channels];
-        frame[0] = static_cast<float>(f[0]) * kSampleScale;
-        frame[1] = channels > 1 ? static_cast<float>(f[1]) * kSampleScale : frame[0];
-        ++next;
-        return true;
-    }
-};
-
-// A RIFF WAVE decoded to 16-bit samples by dr_wav (PCM and IMA ADPCM) at its rate and channels, at most `samples`
-// frames (WaveInfo's: dr_wav decodes IMA ADPCM's last block whole, past the fact chunk's count); no frames when it
-// cannot.
-void Decode(const void* wave, std::size_t size, std::uint32_t samples, Sound* sound) {
-    drwav decoder;
-    if (!wave || !drwav_init_memory(&decoder, wave, size, nullptr)) return;
-    if (decoder.channels > 0 && decoder.totalPCMFrameCount < (1u << 28)) {
-        const auto frames = std::min<drwav_uint64>(decoder.totalPCMFrameCount, samples);
-        const auto channels = static_cast<int>(decoder.channels);
-        sound->channels = channels;
-        sound->rate = decoder.sampleRate;
-        sound->samples.resize(static_cast<std::size_t>(frames) * channels);
-        const drwav_uint64 got = drwav_read_pcm_frames_s16(&decoder, frames, sound->samples.data());
-        sound->frames = static_cast<std::uint32_t>(got);
-        sound->samples.resize(static_cast<std::size_t>(got) * channels);
-    }
-    drwav_uninit(&decoder);
-}
-
-// The frame `bytes` into the wave's data points at.
-std::uint32_t FrameAt(const WaveInfo& wave, std::int32_t bytes) {
-    if (bytes <= 0 || wave.blockSize == 0 || wave.channels <= 0) return 0;
-    const auto at = static_cast<std::uint32_t>(bytes);
-    if (wave.format != kImaAdpcm) return at / wave.blockSize;
-    // A block: 4 bytes of header a channel (its first sample), then two samples a byte.
-    const auto channels = static_cast<std::uint32_t>(wave.channels);
-    const std::uint32_t header = 4 * channels;
-    if (wave.blockSize <= header) return 0;
-    const std::uint32_t perBlock = (wave.blockSize - header) * 2 / channels + 1;
-    const std::uint32_t rest = at % wave.blockSize;
-    return at / wave.blockSize * perBlock + (rest > header ? (rest - header) * 2 / channels : 0);
-}
-
-} // namespace
-
 struct Voice {
     // What the game reads back, on the game's clock (the main thread's).
     WaveInfo wave;
@@ -715,49 +748,37 @@ struct Voice {
     std::uint32_t startedAt = 0;
     std::uint32_t end = 0;
     std::uint32_t left = 0;
-    EndCallback callback = nullptr;
-    void* user = nullptr;
+    bool ended = false;          // its wave has played out (DeliverEnds) since it started
     // What the device plays.
     Sound sound;
+
+    // The milliseconds it still plays from its position, all its loops.
+    std::uint32_t Remaining() const {
+        const std::uint32_t total = WaveMilliseconds(wave);
+        const std::uint32_t current =
+            static_cast<std::uint32_t>(static_cast<std::uint64_t>(std::max(position, 0)) * 1000 / BytesPerSecond(wave));
+        std::uint32_t rest = total > current ? total - current : 0;
+        if (loops > 1) rest += total * static_cast<std::uint32_t>(loops - 1);
+        return rest;
+    }
+    void StartTimer() {
+        running = true;
+        stopped = false;
+        ended = false;
+        forever = loops == 0;
+        startedAt = platform::FrameClock();
+        end = startedAt + Remaining();
+    }
+    // The device plays the wave from its position, with its loops.
+    void StartSound() {
+        MixHold hold;
+        sound.next = FrameAt(wave, position);
+        sound.loopsLeft = loops;
+        sound.playing = true;
+        sound.paused = false;
+        sound.primed = false;
+    }
 };
-
-namespace {
-
-std::vector<Voice*> g_voices;   // in the order they were made
-
-// Bytes a second of the voice's wave, at least 1.
-std::uint64_t BytesPerSecond(const WaveInfo& wave) { return std::max<std::uint32_t>(1, WaveBytesPerSecond(wave)); }
-
-// The milliseconds the voice still plays from its position, all its loops.
-std::uint32_t Remaining(const Voice& v) {
-    const std::uint32_t total = WaveMilliseconds(v.wave);
-    const std::uint32_t current =
-        static_cast<std::uint32_t>(static_cast<std::uint64_t>(std::max(v.position, 0)) * 1000 / BytesPerSecond(v.wave));
-    std::uint32_t rest = total > current ? total - current : 0;
-    if (v.loops > 1) rest += total * static_cast<std::uint32_t>(v.loops - 1);
-    return rest;
-}
-
-void StartTimer(Voice& v) {
-    v.running = true;
-    v.stopped = false;
-    v.forever = v.loops == 0;
-    v.startedAt = platform::FrameClock();
-    v.end = v.startedAt + Remaining(v);
-}
-
-// The device plays the voice's wave from its position, with its loops.
-void StartSound(Voice& v) {
-    MixHold hold;
-    Sound& s = v.sound;
-    s.next = FrameAt(v.wave, v.position);
-    s.loopsLeft = v.loops;
-    s.playing = true;
-    s.paused = false;
-    s.primed = false;
-}
-
-} // namespace
 
 Voice* CreateVoice() {
     if (!g_open) return nullptr;
@@ -827,7 +848,7 @@ void SetPositionMs(Voice* voice, std::uint32_t ms) {
 // A voice moved while it plays goes on from there.
 void SetPosition(Voice* voice, std::int32_t bytes) {
     voice->position = bytes;
-    if (voice->running && !voice->stopped) StartTimer(*voice);
+    if (voice->running && !voice->stopped) voice->StartTimer();
     MixHold hold;
     voice->sound.next = FrameAt(voice->wave, bytes);
     voice->sound.primed = false;
@@ -840,8 +861,8 @@ std::int32_t Position(const Voice* voice) {
 }
 
 void Start(Voice* voice) {
-    StartTimer(*voice);
-    StartSound(*voice);
+    voice->StartTimer();
+    voice->StartSound();
     if (g_voicesStarted++ == 0 && g_device) ei::Log("audio: the first voice plays");
 }
 
@@ -870,43 +891,23 @@ void Resume(Voice* voice) {
 
 void End(Voice* voice) {
     voice->running = false;
+    voice->ended = false;
     MixHold hold;
     voice->sound.playing = false;
 }
 
-void SetEndCallback(Voice* voice, EndCallback callback, void* user) {
-    voice->callback = callback;
-    voice->user = user;
-}
+bool Ended(const Voice* voice) { return voice->ended; }
 
 void DeliverEnds(std::uint32_t now) {
     if (g_trace) NoteFrame();
-    std::vector<Voice*> due;
     for (Voice* v : g_voices) {
         if (!v->running || v->stopped || v->forever || static_cast<std::int32_t>(now - v->end) < 0) continue;
         v->running = false;
-        if (v->callback) due.push_back(v);
+        v->ended = true;
     }
-    for (Voice* v : due) v->callback(v->user);
 }
 
 // ---- The music stream ----
-
-namespace {
-
-// A queued half: its 16-bit samples (QueueHalf's copy) and their format.
-struct Half {
-    std::vector<std::int16_t> samples;
-    std::uint32_t frames = 0;
-    std::uint32_t next = 0;   // the frame played next
-    unsigned rate = kDefaultRate;
-    int channels = 2;
-    bool queued = false;
-};
-
-std::vector<Stream*> g_streams;   // in the order they were made
-
-} // namespace
 
 // Two halves played one after the other (under g_mix). Without a device the playing half advances on the game's clock
 // (`pumpedAt`, the milliseconds times the rate kept to the frame in `carry`).
@@ -1054,7 +1055,72 @@ void ResumeStream(Stream* stream) {
     stream->pumpedAt = platform::FrameClock();
 }
 
-// ---- The mixer ----
+// ---- MP3 ----
+
+struct Mp3Stream {
+    std::string file;
+    Mp3Layout layout;
+    Mp3Decoder decoder;              // null unless dr_mp3 opened the file with the layout's channels
+    std::uint64_t given = 0;         // frames
+    std::vector<std::int16_t> samples;
+};
+
+Mp3Stream* OpenMp3(std::string file) {
+    auto mp3 = std::make_unique<Mp3Stream>();
+    mp3->file = std::move(file);
+    mp3->layout = ScanMp3(mp3->file.data(), mp3->file.size());
+    if (mp3->layout.frames == 0) return nullptr;
+    mp3->decoder = OpenMp3Decoder(mp3->file.data(), mp3->file.size(), mp3->layout);
+    return mp3.release();
+}
+
+void CloseMp3(Mp3Stream* mp3) { delete mp3; }
+
+unsigned Mp3Rate(const Mp3Stream* mp3) { return mp3->layout.rate; }
+int Mp3Channels(const Mp3Stream* mp3) { return mp3->layout.channels; }
+
+int DecodeMp3(Mp3Stream* mp3, void* to, int bytes) {
+    const int frameBytes = mp3->layout.channels * 2;
+    const std::uint64_t frames =
+        std::min<std::uint64_t>(static_cast<std::uint64_t>(std::max(bytes, 0) / frameBytes), mp3->layout.samples - mp3->given);
+    DecodeFrames(mp3->decoder.get(), mp3->layout.channels, frames, &mp3->samples, static_cast<std::uint8_t*>(to));
+    mp3->given += frames;
+    return static_cast<int>(frames) * frameBytes;
+}
+
+void RewindMp3(Mp3Stream* mp3) {
+    mp3->given = 0;
+    if (mp3->decoder) drmp3_seek_to_pcm_frame(mp3->decoder.get(), 0);
+}
+
+bool DecodeMp3File(const void* data, std::size_t size, std::vector<std::uint8_t>* wave) {
+    const Mp3Layout layout = ScanMp3(data, size);
+    if (layout.frames == 0) return false;
+    const unsigned frameBytes = static_cast<std::uint16_t>(layout.channels) * 2;
+    const std::uint32_t dataBytes = layout.samples * frameBytes;
+    wave->assign(44 + static_cast<std::size_t>(dataBytes), 0);
+    std::uint8_t* p = wave->data();
+    PutTag(p, "RIFF");
+    lib::Store<std::uint32_t>(p + 4, 36 + dataBytes);
+    PutTag(p + 8, "WAVEfmt ");
+    lib::Store<std::uint32_t>(p + 16, 16);
+    lib::Store<std::uint16_t>(p + 20, static_cast<std::uint16_t>(kPcm));
+    lib::Store<std::uint16_t>(p + 22, static_cast<std::uint16_t>(layout.channels));
+    lib::Store<std::uint32_t>(p + 24, layout.rate);
+    lib::Store<std::uint32_t>(p + 28, layout.rate * frameBytes);
+    lib::Store<std::uint16_t>(p + 32, static_cast<std::uint16_t>(frameBytes));
+    lib::Store<std::uint16_t>(p + 34, 16);
+    PutTag(p + 36, "data");
+    lib::Store<std::uint32_t>(p + 40, dataBytes);
+    // Every whole frame's samples, as the original's decoder gave: what dr_mp3 decodes, cut or padded with silence to
+    // that count.
+    const Mp3Decoder decoder = OpenMp3Decoder(data, size, layout);
+    std::vector<std::int16_t> samples;
+    DecodeFrames(decoder.get(), layout.channels, layout.samples, &samples, p + 44);
+    return true;
+}
+
+// ==== The mixer (the device's thread) ==============================================================================
 
 namespace {
 
@@ -1119,105 +1185,30 @@ void Mix(float* out, std::uint32_t frames) {
     g_peak = peak;
 }
 
-} // namespace
-
-// ---- MP3 ----
-
-namespace {
-
-// An opened dr_mp3 decoder, closed and freed with its owner.
-struct Mp3Close {
-    void operator()(drmp3* decoder) const {
-        drmp3_uninit(decoder);
-        delete decoder;
-    }
-};
-using Mp3Decoder = std::unique_ptr<drmp3, Mp3Close>;
-
-// dr_mp3 on the MP3 file in memory (16-bit samples), when it decodes the layout's channels; null otherwise.
-Mp3Decoder OpenMp3Decoder(const void* data, std::size_t size, const Mp3Layout& layout) {
-    Mp3Decoder decoder(new drmp3);
-    if (!data || !drmp3_init_memory(decoder.get(), data, size, nullptr)) {
-        delete decoder.release();
-        return nullptr;
-    }
-    if (decoder->channels != static_cast<drmp3_uint32>(layout.channels)) decoder.reset();
-    return decoder;
+// The device wants `additional` more bytes: that many frames mixed and put into its stream (the device's thread).
+void SDLCALL DeviceData(void*, SDL_AudioStream* stream, int additional, int) {
+    static std::vector<float> mixed;
+    const auto frames = static_cast<std::uint32_t>(additional / (kOutputChannels * static_cast<int>(sizeof(float))));
+    if (frames == 0) return;
+    mixed.resize(static_cast<std::size_t>(frames) * kOutputChannels);
+    const Clock::time_point start = g_trace ? Clock::now() : Clock::time_point{};
+    Mix(mixed.data(), frames);
+    SDL_PutAudioStreamData(stream, mixed.data(), static_cast<int>(mixed.size() * sizeof(float)));
+    if (!g_trace) return;
+    const Clock::time_point end = Clock::now();
+    std::lock_guard hold(g_mix);
+    DeviceHealth& h = g_deviceHealth;
+    if (h.given == 0) h.first = start;
+    else h.longestGap = std::max(h.longestGap, start - h.last);
+    h.last = start;
+    ++h.calls;
+    h.frames += frames;
+    h.given += frames;
+    h.largest = std::max(h.largest, frames);
+    h.longestMix = std::max(h.longestMix, end - start);
 }
-
-// `frames` frames of `decoder` (null: none) into `to` (16-bit, `channels` a frame), silence where it gives fewer.
-void DecodeFrames(drmp3* decoder, int channels, std::uint64_t frames, std::vector<std::int16_t>* samples, std::uint8_t* to) {
-    samples->assign(static_cast<std::size_t>(frames) * channels, 0);
-    if (decoder) drmp3_read_pcm_frames_s16(decoder, frames, samples->data());
-    std::memcpy(to, samples->data(), samples->size() * sizeof(std::int16_t));
-}
-
-void PutTag(std::uint8_t* p, std::string_view tag) { std::copy(tag.begin(), tag.end(), p); }
 
 } // namespace
-
-struct Mp3Stream {
-    std::string file;
-    Mp3Layout layout;
-    Mp3Decoder decoder;              // null unless dr_mp3 opened the file with the layout's channels
-    std::uint64_t given = 0;         // frames
-    std::vector<std::int16_t> samples;
-};
-
-Mp3Stream* OpenMp3(std::string file) {
-    auto mp3 = std::make_unique<Mp3Stream>();
-    mp3->file = std::move(file);
-    mp3->layout = ScanMp3(mp3->file.data(), mp3->file.size());
-    if (mp3->layout.frames == 0) return nullptr;
-    mp3->decoder = OpenMp3Decoder(mp3->file.data(), mp3->file.size(), mp3->layout);
-    return mp3.release();
-}
-
-void CloseMp3(Mp3Stream* mp3) { delete mp3; }
-
-unsigned Mp3Rate(const Mp3Stream* mp3) { return mp3->layout.rate; }
-int Mp3Channels(const Mp3Stream* mp3) { return mp3->layout.channels; }
-
-int DecodeMp3(Mp3Stream* mp3, void* to, int bytes) {
-    const int frameBytes = mp3->layout.channels * 2;
-    const std::uint64_t frames =
-        std::min<std::uint64_t>(static_cast<std::uint64_t>(std::max(bytes, 0) / frameBytes), mp3->layout.samples - mp3->given);
-    DecodeFrames(mp3->decoder.get(), mp3->layout.channels, frames, &mp3->samples, static_cast<std::uint8_t*>(to));
-    mp3->given += frames;
-    return static_cast<int>(frames) * frameBytes;
-}
-
-void RewindMp3(Mp3Stream* mp3) {
-    mp3->given = 0;
-    if (mp3->decoder) drmp3_seek_to_pcm_frame(mp3->decoder.get(), 0);
-}
-
-bool DecodeMp3File(const void* data, std::size_t size, std::vector<std::uint8_t>* wave) {
-    const Mp3Layout layout = ScanMp3(data, size);
-    if (layout.frames == 0) return false;
-    const unsigned frameBytes = static_cast<std::uint16_t>(layout.channels) * 2;
-    const std::uint32_t dataBytes = layout.samples * frameBytes;
-    wave->assign(44 + static_cast<std::size_t>(dataBytes), 0);
-    std::uint8_t* p = wave->data();
-    PutTag(p, "RIFF");
-    lib::Store<std::uint32_t>(p + 4, 36 + dataBytes);
-    PutTag(p + 8, "WAVEfmt ");
-    lib::Store<std::uint32_t>(p + 16, 16);
-    lib::Store<std::uint16_t>(p + 20, static_cast<std::uint16_t>(kPcm));
-    lib::Store<std::uint16_t>(p + 22, static_cast<std::uint16_t>(layout.channels));
-    lib::Store<std::uint32_t>(p + 24, layout.rate);
-    lib::Store<std::uint32_t>(p + 28, layout.rate * frameBytes);
-    lib::Store<std::uint16_t>(p + 32, static_cast<std::uint16_t>(frameBytes));
-    lib::Store<std::uint16_t>(p + 34, 16);
-    PutTag(p + 36, "data");
-    lib::Store<std::uint32_t>(p + 40, dataBytes);
-    // Every whole frame's samples, as the original's decoder gave: what dr_mp3 decodes, cut or padded with silence to
-    // that count.
-    const Mp3Decoder decoder = OpenMp3Decoder(data, size, layout);
-    std::vector<std::int16_t> samples;
-    DecodeFrames(decoder.get(), layout.channels, layout.samples, &samples, p + 44);
-    return true;
-}
 
 } // namespace audio
 

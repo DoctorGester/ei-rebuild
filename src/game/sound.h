@@ -86,7 +86,6 @@ struct SoundSlot {
     audio::Voice* voice = nullptr;
     bool playing = false;
     bool looping = false;             // kept as a deferred record when the voice is stolen
-    bool finished = false;            // set by the voice's end callback (SoundEndOfSample)
     std::int32_t handle = kNoSound;   // sound handle (kNoSound: free)
 };
 
@@ -178,8 +177,15 @@ struct SoundManager : EngineObject {
     std::string soundPath;             // ending in a backslash
     FileRegistry soundRegistry;
     std::vector<MappedResource*> waveSources;   // the archives LoadSample looks in
-    // The MP3 music stream, filled on the stream thread.
-    std::atomic<StreamState> streamState{StreamState::Idle};   // Switching: to nextName
+    // The MP3 music stream, filled on the stream thread. Its state below is guarded by streamLock, except while the
+    // stream thread fills the spare buffer (streamBusy): the thread then owns it without the lock (decoding, opening
+    // the next file), taking the lock only to change what the game thread reads (streamState, streamName,
+    // endAfterSwitch), and the game thread's requests wait in lateRequests, made in order as it hands the state back,
+    // so the game thread never waits for MP3 work.
+    std::mutex streamLock;
+    bool streamBusy = false;
+    std::vector<StreamRequest> lateRequests;
+    StreamState streamState = StreamState::Idle;   // Switching: to nextName
     audio::Stream* streamSample = nullptr;
     audio::Mp3Stream* streamFile = nullptr;   // the playing file's decoder
     // The next half's bytes (streamBufferSize of them): queued as the output frees a half, then filled again.
@@ -198,18 +204,10 @@ struct SoundManager : EngineObject {
     std::string nextName;                   // requested
     std::vector<std::int32_t> markers;      // switch points ("Markers1/2" in the file)
     std::vector<std::int32_t> markers2;
-    std::mutex nameLock;                    // guarding streamName
     StreamSwitch switchMode = StreamSwitch::Now;   // RequestStream's mode
-    // Guards the stream's state and musicFader, except while the stream thread fills the spare buffer (streamBusy):
-    // it then owns them without the lock (decoding, opening the next file), and the game thread's requests wait in
-    // lateRequests, made in order as it hands them back, so the game thread never waits for MP3 work.
-    std::mutex streamLock;
-    bool streamBusy = false;
-    std::vector<StreamRequest> lateRequests;
-    std::atomic<bool> onceQueued{false};    // a PlayStreamOnce among lateRequests
     // PlayStreamOnce's file waits for the stream thread, which asks for silence after it as it switches to it
     // (StopStream(AtEnd)); any other request clears it.
-    std::atomic<bool> endAfterSwitch{false};
+    bool endAfterSwitch = false;
     std::thread streamThread;               // started when the MP3 stream opened with a device, joined by Close
     // Without a device the main loop steps the stream (FollowClock); the last step's time.
     bool streamOnMainLoop = false;
@@ -272,8 +270,8 @@ struct SoundManager : EngineObject {
     // `name` from the current position (RequestStream mode 4), then silence once it has played (StopStream(1)): the
     // stream thread makes the second request when it switches to the file, so the caller never waits for the device.
     void PlayStreamOnce(std::string_view name);
-    // A PlayStreamOnce file the stream thread has not switched to yet.
-    bool StreamSwitchPending() const { return endAfterSwitch || onceQueued; }
+    // A PlayStreamOnce file the stream thread has not switched to yet (also one waiting in lateRequests).
+    bool StreamSwitchPending();
 
     // Handles restart at 0; with `stopStream` the stream stops too.
     void StopAll(bool stopStream);
@@ -393,6 +391,4 @@ struct MusicSystem : EngineObject {
     // Credits / main menu / jingle / combat track "none".
     void ResetThemes();
 };
-// A voice's end callback (`slot` its SoundSlot): the voice is marked finished.
-void SoundEndOfSample(void* slot);
 

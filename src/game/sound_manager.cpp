@@ -89,7 +89,6 @@ SoundSequence* SequenceForId(SoundManager* m, std::uint32_t id) {
 int StartLoaded(SoundManager* m, SoundSlot* slot, bool loop) {
     if (loop) audio::SetLoopCount(slot->voice, 0);
     m->ApplyVolumePan(slot);
-    audio::SetEndCallback(slot->voice, SoundEndOfSample, slot);
     if (m->reverbOn) audio::SetReverb(slot->voice, m->reverb[0], m->reverb[1], m->reverb[2]);
     if (m->randomStart != 0) {
         std::uint32_t range = static_cast<std::uint32_t>(m->randomStart) + 1;
@@ -162,9 +161,9 @@ void ReadOrSilence(SoundManager* m, std::uint8_t* to, int bytes) {
     if (got < bytes) Silence(to + got, bytes - got);
 }
 
-// The next file takes over: `bytes` of it (or silence) to `to`.
+// The next file takes over: `bytes` of it (or silence) to `to`. On the stream thread while it is busy: the file opens
+// without the lock, which it takes to show the game thread the new state.
 void SwitchStream(SoundManager* m, std::uint8_t* to, int bytes) {
-    m->streamState = StreamState::Idle;
     // Rebirth's StreamPatch: the mod's Stream\ folder when it has the file.
     const bool modStream = ei::rebirth::Enabled(ei::rebirth::Patch::StreamPatch) && modfolders::StreamInMod(m->nextName);
     std::string path = (modStream ? modfolders::StreamFolder() : m->soundPath) + m->nextName;
@@ -173,14 +172,15 @@ void SwitchStream(SoundManager* m, std::uint8_t* to, int bytes) {
     if (!m->nextName.empty() && platform::ReadWholeFile(path, &file)) m->streamFile = audio::OpenMp3(std::move(file));
     if (m->streamFile == nullptr) {
         Silence(to, bytes);
+        std::lock_guard guard(m->streamLock);
+        m->streamState = StreamState::Idle;
         m->endAfterSwitch = false;
-        std::lock_guard guard(m->nameLock);
         m->streamName.clear();
         return;
     }
-    m->streamState = StreamState::Playing;
     {
-        std::lock_guard guard(m->nameLock);
+        std::lock_guard guard(m->streamLock);
+        m->streamState = StreamState::Playing;
         m->streamName = m->nextName;
     }
     m->soundRegistry.GetIntArray(m->streamName.c_str(), kSwitchMarkers, &m->markers);
@@ -195,7 +195,10 @@ void SwitchStream(SoundManager* m, std::uint8_t* to, int bytes) {
     m->streamBufferFrames = m->streamBufferSize / m->streamFrameBytes;
     m->streamPosition = 0;
     ReadOrSilence(m, to, bytes);
-    if (m->endAfterSwitch.exchange(false)) m->MakeStop(StreamSwitch::AtEnd);
+    std::lock_guard guard(m->streamLock);
+    if (!m->endAfterSwitch) return;
+    m->endAfterSwitch = false;
+    m->MakeStop(StreamSwitch::AtEnd);
 }
 
 } // namespace
@@ -229,7 +232,6 @@ void SoundManager::EndSlot(SoundSlot* slot) {
     --cache[slot->params.name]->uses;
     audio::End(slot->voice);
     slot->playing = false;
-    slot->finished = false;
     slot->handle = kNoSound;
 }
 
@@ -336,7 +338,7 @@ SoundSlot* SoundManager::FindPlaying(int handle) {
     if (!enabled) return nullptr;
     SoundSlot* slot = SlotForHandle(handle);
     if (slot == nullptr) return nullptr;
-    if (!slot->finished) return slot;
+    if (!audio::Ended(slot->voice)) return slot;
     EndSlot(slot);
     return nullptr;
 }
@@ -517,7 +519,7 @@ void SoundManager::RemoveSequence(std::uint32_t sequenceId) {
 void SoundManager::Tick() {
     if (!enabled) return;
     for (SoundSlot& slot : std::span(slots.get(), kVoiceCount))
-        if (slot.finished) EndSlot(&slot);
+        if (audio::Ended(slot.voice)) EndSlot(&slot);
 
     for (int i = 0; i < kVoiceCount; ++i) {
         if (deferred.empty()) break;
@@ -541,7 +543,6 @@ void SoundManager::Tick() {
             slot->handle = handle;
             audio::SetLoopCount(slot->voice, 0);
             ApplyVolumePan(slot);
-            audio::SetEndCallback(slot->voice, SoundEndOfSample, slot);
             if (reverbOn) audio::SetReverb(slot->voice, reverb[0], reverb[1], reverb[2]);
             audio::SetPosition(slot->voice, rec.samplePosition);
             audio::Start(slot->voice);
@@ -623,8 +624,14 @@ void SoundManager::Submit(StreamRequest request) {
         MakeRequest(request);
         return;
     }
-    if (request.kind == StreamRequest::Kind::PlayOnce) onceQueued = true;
     lateRequests.push_back(std::move(request));
+}
+
+bool SoundManager::StreamSwitchPending() {
+    std::lock_guard guard(streamLock);
+    return endAfterSwitch || std::ranges::any_of(lateRequests, [](const StreamRequest& request) {
+        return request.kind == StreamRequest::Kind::PlayOnce;
+    });
 }
 
 void SoundManager::MakeRequest(const StreamRequest& request) {
@@ -976,7 +983,7 @@ bool SoundManager::SetPath(std::string_view folder, const std::string& registryP
 }
 
 std::string SoundManager::CurrentStreamName() {
-    std::lock_guard guard(nameLock);
+    std::lock_guard guard(streamLock);
     if (streamState == StreamState::Playing || streamState == StreamState::Switching) return streamName;
     return {};
 }
@@ -999,7 +1006,6 @@ void SoundManager::ResetStream() {
     streamOnMainLoop = false;
     streamSteppedAt = 0;
     lateRequests.clear();
-    onceQueued = false;
     streamSample = nullptr;
     streamFile = nullptr;
     streamBuffer.clear();
@@ -1080,7 +1086,6 @@ void SoundManager::StepStream(std::uint32_t now) {
         streamBusy = false;
         for (const StreamRequest& request : lateRequests) MakeRequest(request);
         lateRequests.clear();
-        onceQueued = false;
     }
 }
 
@@ -1143,8 +1148,6 @@ void SoundManager::FillSpareBuffer(std::uint32_t now) {
     }
     SwitchStream(this, buffer + currentBytes, restBytes);
 }
-
-void SoundEndOfSample(void* slot) { static_cast<SoundSlot*>(slot)->finished = true; }
 
 void SoundManager::Open(bool useReverb, unsigned rate) {
     Destroy();   // Close

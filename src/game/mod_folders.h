@@ -33,6 +33,9 @@ void LoadModArchives();
 // MappedResource::GetFile through addon: the mod's archives for this archive first, then the
 // archive itself unless the mod ignores it, then "t\" / "s\" names once more without the prefix.
 void* GetFile(MappedResource* res, std::string_view name, std::uint32_t* size);
+// MappedResource::CloseFile of a file GetFile took from one of the mod's archives in `res`'s place: that archive (null
+// when none of them holds `data`). Addon left such a file loaded and the game's archive logged "File already closed".
+MappedResource* ArchiveHolding(const MappedResource* res, void* data);
 // MappedResource::ListFiles through addon: appends the mod's archives' names and the archive's own
 // (unless ignored) to `out`.
 void ListFiles(const MappedResource* res, std::vector<std::string>* out, const char* pattern);
