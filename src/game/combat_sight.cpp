@@ -4,7 +4,6 @@
 #include "ai_map.h"
 #include "combat.h"
 #include "combat_plan.h"
-
 #include "item.h"
 #include "spell.h"
 #include "unit.h"
@@ -12,10 +11,10 @@
 #include "world.h"
 
 #include "lib/bytes.h"
+#include "lib/float_select.h"
 #include "lib/maths.h"
 #include "lib/rounding.h"
 #include "lib/vecmath.h"
-#include "lib/float_select.h"
 
 #include <bit>
 #include <cstring>
@@ -72,10 +71,7 @@ bool OutOfSightRange(UnitServer* self, const Vector3& point) {
     float rangeValue = range;
     float chosen = MaxKeepB(rangeValue, limit);
     float reach = chosen * kRangeSlack;
-    Unit* unit = self->unit;
-    float dy = unit->localPosition.y - point.y;
-    float dx = unit->localPosition.x - point.x;
-    return reach * reach < LengthSquared2D(dx, dy);
+    return reach * reach < DistanceSquaredXY(self->unit->localPosition, point);
 }
 
 // A melee or skill order fails when a living unit other than the target stands between the unit
@@ -85,7 +81,7 @@ bool SomeoneInTheWay(UnitServer* self, const AIOrder* order, const Vector3& poin
     Unit* unit = self->unit;
     Vector3 d = point - unit->localPosition;
     Vector3 u = d / LengthSquared(d);
-    float side = std::sqrt(LengthSquared2D(u.x, u.y));
+    float side = Length2D(XY(u));
     Vector3 v = Vector3{u.y, -u.x, 0.0f} / side;
 
     // The units the brain lists as nearby.
@@ -212,8 +208,7 @@ bool UnitServer::CanActFrom(const AIOrder* order, const Vector3& point, int time
 
 bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     AnimationSteps steps;
-    Vector3 origin;
-    std::memcpy(&origin, &unit->localPosition.x, sizeof(origin));
+    const Vector3 origin = unit->localPosition;
     int now = OwningWorld()->tick;
     Spell* spell = nullptr;
 
@@ -317,7 +312,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
             aim = order->target->PositionAt(tick + castDelay + duration + now);
             delta = aim - origin;
         }
-        float squared = LengthSquared2D(delta.y, delta.x);
+        float squared = LengthSquared2D(XY(delta));
         bool tryHere = true;
         if (Greater(squared, reach)) {
             // Out of reach: wait while the target comes closer, give up once it moves off.
@@ -328,8 +323,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
             }
         }
         if (tryHere) {
-            bool facingIt = (delta.x == 0.0f && delta.y == 0.0f) ||
-                            (targetUnit && targetUnit->id == unit->id);
+            bool facingIt = XY(delta) == Vector2{0.0f, 0.0f} || (targetUnit && targetUnit->id == unit->id);
             int turnTicks = -1;
             if (!facingIt) {
                 float turn = lib::Atan2(delta.y, delta.x) - heading;

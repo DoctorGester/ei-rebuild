@@ -10,10 +10,10 @@
 #include "unit_db.h"
 #include "world.h"
 
+#include "lib/rounding.h"
 
 #include <cstdint>
 #include <type_traits>
-#include "lib/rounding.h"
 
 namespace scriptaddon {
 
@@ -130,7 +130,7 @@ bool NearestUnit(Call* call) {
     ForObjectsNear(x, y, radius, [&](EngineObject* object) {
         if (!PassesFilter(object, units, others, living)) return;
         const Vector3& at = ObjectSlots(object)->localPosition;
-        float distance = Distance(at.x, at.y, x, y);
+        float distance = Length2D(Vector2{x, y} - XY(at));
         if (distance < radius) {   // ordered: a NaN distance never wins
             best = object;
             radius = distance;

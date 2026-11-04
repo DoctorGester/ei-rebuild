@@ -1,18 +1,17 @@
 // ParticleSource's per-type callbacks (emit, update, element tick); each names the source types using it.
-#include "particle_common.h"
-
 #include "angles.h"
 #include "core_maths.h"
+#include "game_singletons.h"
 #include "map_object_figures.h"
+#include "particle_common.h"
 #include "unit.h"
+#include "world.h"
 
 #include "lib/containers.h"
+#include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"
 #include "lib/vecmath.h"
-#include "lib/crt.h"
-#include "game_singletons.h"
-#include "world.h"
 
 #include <bit>
 #include <cmath>
@@ -620,9 +619,8 @@ const char* NoCarrierGas() { return "Particle effect Link without carrier\n"; }
 #define EI_FUNNEL_ONE 1.0f
 #define EI_FUNNEL_BEND 0.4f
 
-// The funnel's centre at height h (0..1): between ring k and k+1 (h * 5 rings), with the x and y blends in the
-// original's two orders; returns y.
-float FunnelCentre(const ParticleSource* s, float h, float& x) {
+// The funnel's centre (x, y) at height h (0..1): between ring k and k+1 (h * 5 rings).
+Vector2 FunnelCentre(const ParticleSource* s, float h) {
     int k = static_cast<int>(h);
     if (k >= lib::Count(s->elements) - 2) k = lib::Count(s->elements) - 2;
     float f = h - k;
@@ -630,8 +628,7 @@ float FunnelCentre(const ParticleSource* s, float h, float& x) {
     float u = EI_P_ONE - t;
     const ParticleElement& a = s->elements[k];
     const ParticleElement& b = s->elements[k + 1];
-    x = t * b.pos.x + u * a.pos.x;
-    return u * a.pos.y + t * b.pos.y;
+    return t * XY(b.pos) + u * XY(a.pos);
 }
 
 #define EI_CYL_TURN 0.3f
@@ -1966,15 +1963,14 @@ int ParticleSource::UpdateTornado(Particle* p) {
     p->drift.z += EI_FUNNEL_RISE;
     if (p->aux.x > 1.0f) return 0;
     float scaled = p->aux.x * EI_FUNNEL_PI_F;
-    float cx;
-    float cy = FunnelCentre(this, scaled, cx);
+    const Vector2 centre = FunnelCentre(this, scaled);
     p->velocity.x += p->drift.x;
     p->drift.x *= EI_FUNNEL_SPIN_UP;
     float angle = p->velocity.x;
     p->velocity.y = p->drift.y * p->velocity.y;
     float radius = p->velocity.y;
-    p->pos.x = lib::Sin(angle) * radius + origin.x + cx;
-    p->pos.y = lib::Cos(angle) * radius + origin.y + cy;
+    p->pos.x = lib::Sin(angle) * radius + origin.x + centre.x;
+    p->pos.y = lib::Cos(angle) * radius + origin.y + centre.y;
     float base = elements[0].pos.z + origin.z;
     p->pos.z = base;
     p->pos.z = elements[0].funnel.height * p->aux.x + base;

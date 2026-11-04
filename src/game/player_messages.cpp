@@ -301,11 +301,7 @@ void PlayerServer::SendPathMessage(EngineObject* unit, PathOrder* path, const Ve
     out.WriteValue(messageType);
     out.WriteValue(kind);
     out.WriteValue(flag);
-    std::uint32_t word;
-    word = std::bit_cast<std::uint32_t>(point.x);
-    out.WriteValue(word);
-    word = std::bit_cast<std::uint32_t>(point.y);
-    out.WriteValue(word);
+    out.WriteValue(XY(point));
     int unitId = unit->id;
     out.WriteValue(unitId);
     out.WriteValue(limitBits);

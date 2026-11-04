@@ -17,8 +17,6 @@
 // --titles  the titles' rich text against RichEdit (titles_check.cpp).
 // Without a mode switch all three run. The game's strings come from texts.res (read only).
 #define NOMINMAX
-#include <windows.h>
-
 #include "render/render_text.h"
 
 #include <algorithm>
@@ -32,10 +30,16 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <windows.h>
 
 using namespace render::text;
 
 namespace {
+
+// ---- GDI's rectangles ---------------------------------------------------------------------------------
+
+RECT ToGdi(const Rect& r) { return {r.left, r.top, r.right, r.bottom}; }
+Rect FromGdi(const RECT& r) { return {r.left, r.top, r.right, r.bottom}; }
 
 // ---- Text helpers -------------------------------------------------------------------------------------
 
@@ -734,13 +738,12 @@ void Work(const std::vector<TestString>& strings, const std::vector<FontSpec>& s
                     const Rect rect{7, 3, 7 + rectWidth, 3 + 100000};
                     if (options.gdi) {
                         // Return value and DT_CALCRECT.
-                        RECT gdiRect{rect.left, rect.top, rect.right, rect.bottom};
+                        RECT gdiRect = ToGdi(rect);
                         const int gdiResult = DrawTextA(measure.dc, test.bytes.c_str(), -1, &gdiRect, format | DT_CALCRECT);
                         TextLayout ours;
                         Layout(gdiFont, text, rect, format | kCalcRect, ours);
                         ++stats.layouts;
-                        const bool same = gdiResult == ours.result && gdiRect.left == ours.rect.left && gdiRect.top == ours.rect.top &&
-                                          gdiRect.right == ours.rect.right && gdiRect.bottom == ours.rect.bottom;
+                        const bool same = gdiResult == ours.result && FromGdi(gdiRect) == ours.rect;
                         if (!same) {
                             ++stats.layoutMismatches;
                             if (static_cast<int>(stats.examples.size()) < maxExamples) {
@@ -762,7 +765,7 @@ void Work(const std::vector<TestString>& strings, const std::vector<FontSpec>& s
                                 const Rect drawRect{8, 4, 8 + rectWidth, 4 + heights[h]};
                                 Dib gdi(rectWidth + 16, heights[h] + 8);
                                 SelectObject(gdi.dc, hfont);
-                                RECT drawGdi{drawRect.left, drawRect.top, drawRect.right, drawRect.bottom};
+                                RECT drawGdi = ToGdi(drawRect);
                                 const int drawnResult = DrawTextA(gdi.dc, test.bytes.c_str(), -1, &drawGdi, format);
                                 GdiFlush();
                                 TextLayout drawn;

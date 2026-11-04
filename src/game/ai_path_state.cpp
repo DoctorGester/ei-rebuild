@@ -38,7 +38,7 @@ void PathOrder::WriteState(DeltaField* field) {
     field->WriteDelta(&byte, 1);
     byte = static_cast<std::uint8_t>(std::ssize(steps));
     field->WriteDelta(&byte, 1);
-    field->WritePosition2D(&order->x);
+    field->WritePosition2D(order->position);
     const float limit = kOrderAngleLimit;
     field->WriteRanged(order->angle, -limit, limit);
     field->WriteDelta(&order->startTime, 4);
@@ -71,9 +71,7 @@ void PathOrder::ReadState(DeltaField* field) {
     field->ReadDelta(&high, 1);
     field->ReadDelta(&low, 1);
     const int count = (high << 8) + low;
-    const Vector2 start = field->ReadPosition2D();
-    order->x = start.x;
-    order->y = start.y;
+    order->position = field->ReadPosition2D();
     const float limit = kOrderAngleLimit;
     order->angle = field->ReadRanged(-limit, limit);
     field->ReadDelta(&order->startTime, 4);

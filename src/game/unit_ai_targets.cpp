@@ -4,9 +4,6 @@
 #include "ai_map.h"
 #include "combat.h"
 #include "game_singletons.h"
-#include "lib/containers.h"
-#include "lib/float_select.h"
-#include "lib/rounding.h"
 #include "map_object.h"
 #include "object_diplomacy.h"
 #include "object_tables.h"
@@ -16,6 +13,10 @@
 #include "unit_ai.h"
 #include "unit_db.h"
 #include "world.h"
+
+#include "lib/containers.h"
+#include "lib/float_select.h"
+#include "lib/rounding.h"
 
 #include <algorithm>
 #include <bit>
@@ -145,7 +146,7 @@ bool AIBrain::CanReach(const AITargetChoice* choice, bool fromHere) {
         // The target is lifted off the sector map so it does not block its own cell.
         server->aiMap.sectorMap.Remove(object);
         if (server->aiMap.FindPath(self, object->localPosition, &path, range, minDistance)) {
-            point = {0.5f * path.targetX, 0.5f * path.targetY, 0.0f};
+            point = path.TargetPoint();
         } else {
             point = self->localPosition;
         }
@@ -173,17 +174,14 @@ bool AIBrain::IsUsable(const AITargetChoice* choice) {
     Vector3 at = object->localPosition;
     for (auto& node : memory.nearby) {
         Unit* other = node;
-        float dy = at.y - other->localPosition.y;
-        float dx = at.x - other->localPosition.x;
-        if (LengthSquared2D(dx, dy) < kAllyNear2 && g_serverWorld.diplomacy.IsAllied(other->side, self->side)) {
+        if (DistanceSquaredXY(at, other->localPosition) < kAllyNear2 &&
+            g_serverWorld.diplomacy.IsAllied(other->side, self->side)) {
             if (other->sizeClass != 0) return false;
             if (other->GetPrototype()->height < kSmallHeight) return false;
         }
     }
-    float dy = self->localPosition.y - at.y;
-    float dx = self->localPosition.x - at.x;
     float radius = option->radius;
-    return radius * radius < LengthSquared2D(dx, dy);
+    return radius * radius < DistanceSquaredXY(self->localPosition, at);
 }
 
 namespace {

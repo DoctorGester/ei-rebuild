@@ -1,39 +1,38 @@
 // The battle screen's HUD panels: mouse handlers, per-frame updates and the small drawing
 // wrappers. See ui.h ("Battle screen and its HUD panels") and docs/notes/ui.md.
-#include "item.h"
-#include "texture.h"
-#include "ui.h"
-
-
 #include "camera.h"
 #include "console.h"
+#include "game_singletons.h"
 #include "game_strings.h"
-#include "lib/containers.h"
-#include "lib/maths.h"
-#include "lib/text_case.h"
+#include "item.h"
 #include "map_object.h"
 #include "net_classes.h"
 #include "net_messages.h"
 #include "player_client.h"
+#include "render/render_state.h"
+#include "screen_layout.h"
+#include "texture.h"
+#include "ui.h"
 #include "ui_briefing.h"
 #include "ui_cursor.h"
 #include "ui_screens.h"
-#include "screen_layout.h"
-#include "lib/vecmath.h"
-#include "render/render_state.h"
-#include <bit>
-#include <cstdint>
-#include <cstring>
-#include <string>
 #include "unit.h"
 #include "world.h"
+#include "world_data.h"
 
+#include "lib/containers.h"
+#include "lib/maths.h"
+#include "lib/text_case.h"
+#include "lib/vecmath.h"
+
+#include <bit>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <cstdio>
+#include <cstring>
+#include <string>
 #include <vector>
-#include "game_singletons.h"
-#include "world_data.h"
 
 namespace {
 constexpr const char* kSoundClick = "buttons\\battle\\click.wav";
@@ -327,10 +326,7 @@ void HudMap::LeftUp(int, Point point) {
             Camera* camera = &g_camera;
             camera->flags &= ~kCameraFollows;
             camera->SetTargetId(-1);
-            Vector3 focus = camera->focus;
-            focus.x = worldX;
-            focus.y = worldY;
-            camera->SetFocus(focus);
+            camera->SetFocus(WithZ(Vector2{worldX, worldY}, camera->focus.z));
         }
         handled = true;
         return;

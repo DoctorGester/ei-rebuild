@@ -1,12 +1,12 @@
 // Per-tick movement checks on the AI map: which unit blocks a moving unit, and the speed costs of
 // the steps a unit is about to walk.
 #include "ai_map.h"
-
 #include "ai_shape_cache.h"
 #include "ai_unit_layer.h"
 #include "core_maths.h"
 #include "core_refcount.h"
 #include "effects.h"
+
 #include "lib/crt.h"
 #include "lib/rounding.h"
 
@@ -326,10 +326,7 @@ bool AIMap::PlanLongPath(Unit* unit, Point from, Point to, AIPath* path, int ret
             to = best;
             path->failed = true;
             result = true;
-            float tx = static_cast<float>(best.x) + 0.5f;
-            path->targetX = tx;
-            float ty = static_cast<float>(best.y) + 0.5f;
-            path->targetY = ty;
+            path->target = {static_cast<float>(best.x) + 0.5f, static_cast<float>(best.y) + 0.5f};
         } else {
             search->Reset();
             bool retried = false;

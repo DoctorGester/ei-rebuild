@@ -14,7 +14,6 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-
 #include "lib/rounding.h"
 
 #include <cstdlib>
@@ -29,9 +28,6 @@ std::vector<Unit*>* SectorUnits(SectorMap* map, int x, int y) {
     if (x < 0 || y < 0 || x >= map->width || y >= map->height) return nullptr;
     return &map->sectors[map->width * y + x].units;
 }
-
-// Sector of a world coordinate: the AI map cell (half units, rounded through a float), / 32.
-int SectorOf(float world) { return lib::RoundEven(2.0f * world - 0.5f) / 32; }
 
 } // namespace
 
@@ -75,11 +71,10 @@ void WorldServer::WakeUnitsAround(const Vector3& position, float radius) {
     static SpiralCache cache{0, -1.0f};
     int count;
     const std::int16_t* offsets = cache.Get(radius * 0.03125f, &count);   // radius in sectors
-    int sx = SectorOf(position.x);
-    int sy = SectorOf(position.y);
+    const Point sector = WorldToCell(position) / 32;
     SectorMap* sectors = &aiMap.sectorMap;
     for (int i = 0; i < count; ++i, offsets += 2) {
-        auto* units = SectorUnits(sectors, offsets[0] + sx, offsets[1] + sy);
+        auto* units = SectorUnits(sectors, offsets[0] + sector.x, offsets[1] + sector.y);
         if (!units) continue;
         for (Unit* unit : *units) AddToUpdateMap(unit);
     }

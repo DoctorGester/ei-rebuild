@@ -27,7 +27,6 @@
 #include "lib/str.h"
 #include "lib/text_case.h"
 
-
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -97,13 +96,8 @@ void StepWalking(BriefingMover* node) {
 // A turning mover whose facing (the client unit's -y axis, flat) is near its direction is done.
 void StepTurning(BriefingMover* node) {
     const Unit* person = node->person;
-    Vector3 axis = person->localRotation.AxisY();
-    float facingX = -axis.x;
-    float facingY = -axis.y;
-    Vector3 direction = NormalisedUnlessZero(node->direction);
-    float dy = direction.y - facingY;
-    float dx = direction.x - facingX;
-    if (LengthSquared2D(dx, dy) >= kCloseEnough) return;
+    const Vector3 facing = -person->localRotation.AxisY();
+    if (DistanceSquaredXY(NormalisedUnlessZero(node->direction), facing) >= kCloseEnough) return;
     node->state = BriefingMover::kDone;
 }
 

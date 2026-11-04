@@ -4,11 +4,11 @@
 // These build paths on the stack: an AIPath and the motion order a path turns into, for the player's path
 // messages and the simulation of a unit's motion.
 #include "ai_map.h"
+#include "ai_motion.h"
 #include "combat.h"
 #include "combat_internal.h"
 #include "combat_plan.h"
-
-#include "ai_motion.h"
+#include "game_singletons.h"
 #include "item.h"
 #include "item_db.h"
 #include "map_object.h"
@@ -19,8 +19,6 @@
 #include "world.h"
 
 #include "lib/bytes.h"
-
-#include "game_singletons.h"
 
 #include <bit>
 #include <cstdint>
@@ -83,10 +81,8 @@ bool UnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
             if (!map->FindPath(unit, spot, &path, kFar, 0.0f)) continue;
             // The path must end within 0.2 of the spot.
             float half = kHalfCell;
-            float ey = half * path.targetY - spot.y;
-            float ex = half * path.targetX - spot.x;
             float limitSquared = 0.2f * 0.2f;   // rounded to 24 bits
-            if (LengthSquared2D(ex, ey) >= limitSquared) continue;
+            if (LengthSquared2D(half * path.target - XY(spot)) >= limitSquared) continue;
             if (path.smoothing >= best) continue;
             best = path.smoothing;
             bestSpot = spot;

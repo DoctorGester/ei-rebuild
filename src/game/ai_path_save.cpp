@@ -6,6 +6,7 @@
 #include "ai_map.h"
 #include "ai_motion.h"
 #include "core_streams.h"
+
 #include "lib/containers.h"
 
 #include <cstdint>
@@ -20,7 +21,7 @@ void AIPath::LoadPath(ByteStream* stream) {
     }
     for (PathCell& cell : cells) stream->ReadValue(cell);
     LoadOrder(stream);
-    stream->Read(&targetX, 8);
+    stream->ReadValue(target);
     stream->ReadValue(goal);
     stream->ReadValue(reached);
     stream->ReadValue(failed);
@@ -41,7 +42,7 @@ void AIPath::SavePath(ByteStream* stream) {
     stream->WriteValue(count);
     for (const PathCell& cell : cells) stream->WriteValue(cell);
     SaveOrder(stream);
-    stream->Write(&targetX, 8);
+    stream->WriteValue(target);
     stream->WriteValue(goal);
     stream->WriteValue(reached);
     stream->WriteValue(failed);
@@ -65,7 +66,7 @@ void AIPath::SavePath(ByteStream* stream) {
 void PathOrder::LoadOrder(ByteStream* stream) {
     MotionOrder* order = OrderOf(this);
     stream->ReadValue(order->kind);
-    stream->Read(&order->x, 8);
+    stream->ReadValue(order->position);
     stream->ReadValue(order->angle);
     stream->ReadValue(order->startTime);
     stream->Read(&order->arg5, 0xC);
@@ -83,7 +84,7 @@ void PathOrder::LoadOrder(ByteStream* stream) {
 void PathOrder::SaveOrder(ByteStream* stream) {
     MotionOrder* order = OrderOf(this);
     stream->WriteValue(order->kind);
-    stream->Write(&order->x, 8);
+    stream->WriteValue(order->position);
     stream->WriteValue(order->angle);
     stream->WriteValue(order->startTime);
     stream->Write(&order->arg5, 0xC);

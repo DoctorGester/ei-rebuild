@@ -2,16 +2,16 @@
 
 #include "ai_event_table.h"
 #include "engine_object.h"
-#include "lib/vecmath.h"
 #include "search_grid.h"
 #include "sector_map.h"
 #include "unit.h"
 
 #include "lib/containers.h"
+#include "lib/vecmath.h"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
-
 #include <list>
 #include <unordered_map>
 #include <variant>
@@ -174,7 +174,7 @@ struct RegionMap;
 // (x, y) and targets are in half-cell units (world * 2).
 struct MotionOrder {
     int kind;
-    float x, y;         // where the order starts
+    Vector2 position;   // where the order starts
     float angle;        // facing at the start
     int startTime;      // world time the order started
     std::uint32_t arg5; // float or object id, by kind
@@ -190,8 +190,8 @@ struct PathOrder {
     // Stand at world `position` facing `direction` from world time `time`; the steps are
     // emptied. False if the unit already stood there that way.
     bool Start(const Vector3& position, const Vector3& direction, int time);
-    // Follow the steps to (x, y) (half-cells).
-    void SetTarget(float x, float y);
+    // Follow the steps to `target` (half-cells).
+    void SetTarget(Vector2 target);
     // Turn to `direction` (kind 1 at `rateBits`, a float's bits kept as given; kind 4 until `until`).
     void SetTurn(const Vector3& direction, std::uint32_t rateBits);
     void SetTurnUntil(const Vector3& direction, int fromTime, int toTime);
@@ -240,11 +240,11 @@ struct AIPath : PathOrder {
     // follows steps (kind 2) the rest of the path appended, repeats removed, every step's speed 0x200 and the
     // target set.
     void ToMotionOrder(PathOrder* out) const;
-    // The search's target cell (targetX, targetY) in world units, z 0.
+    // The search's target cell (`target`) in world units, z 0.
     Vector3 TargetPoint() const;
 
     PathCells cells;         // the rest of the path
-    float targetX, targetY;     // in half-cells
+    Vector2 target;          // in half-cells
     Vector3 goal;               // world position asked for
     bool reached;               // no cells left
     std::uint8_t failed;        // 1: the last search failed; search again

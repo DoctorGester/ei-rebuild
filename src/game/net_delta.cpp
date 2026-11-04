@@ -3,17 +3,16 @@
 
 #include "core_maths.h"
 #include "net_coder.h"
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <string>
 
 #include "lib/bytes.h"
 #include "lib/rounding.h"
 
 #include <bit>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <memory>
-
+#include <string>
 
 namespace {
 
@@ -348,10 +347,10 @@ void DeltaField::WritePosition(const Vector3& position) {
     WriteDelta(&q, 2);
 }
 
-void DeltaField::WritePosition2D(const float* position) {
-    int q = Quantize(position[0], kWriteOffset2D, kWriteScale2D);
+void DeltaField::WritePosition2D(Vector2 position) {
+    int q = Quantize(position.x, kWriteOffset2D, kWriteScale2D);
     WriteDelta(&q, 2);
-    q = Quantize(position[1], kWriteOffset2D, kWriteScale2D);
+    q = Quantize(position.y, kWriteOffset2D, kWriteScale2D);
     WriteDelta(&q, 2);
 }
 

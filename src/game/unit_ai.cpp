@@ -9,18 +9,19 @@
 #include "core_refcount.h"
 #include "core_streams.h"
 #include "game_singletons.h"
-#include "lib/containers.h"
-#include "lib/crt.h"
-#include "lib/float_select.h"
-#include "lib/maths.h"
-#include "lib/rounding.h"
-#include "lib/str.h"
 #include "logic_settings.h"
 #include "map_spec.h"
 #include "net_classes.h"
 #include "object_diplomacy.h"
 #include "save_versions.h"
 #include "world.h"
+
+#include "lib/containers.h"
+#include "lib/crt.h"
+#include "lib/float_select.h"
+#include "lib/maths.h"
+#include "lib/rounding.h"
+#include "lib/str.h"
 
 #include <algorithm>
 #include <bit>
@@ -191,22 +192,16 @@ MapObject* AIBrain::AggressionEnemy() {
 
 bool AIBrain::IsNearPath(const Vector3& point, float radius) {
     float radiusSq = radius * radius;
-    float dx = position.x - point.x;
-    float dy = position.y - point.y;
-    if (LengthSquared2D(dy, dx) < radiusSq) return true;
+    if (DistanceSquaredXY(position, point) < radiusSq) return true;
     // The unit has not moved -> not near.
-    if (position.x == previousPosition.x && position.y == previousPosition.y) return false;
-    float pointX = point.x;
-    float pointY = point.y;
-    float segX = previousPosition.x - position.x;
-    float segY = previousPosition.y - position.y;
-    float t = ((pointX - position.x) * segX + (pointY - position.y) * segY) / LengthSquared2D(segY, segX);
+    if (XY(position) == XY(previousPosition)) return false;
+    const Vector2 here = XY(position), spot = XY(point);
+    const Vector2 seg = XY(previousPosition) - here;
+    float t = Dot2D(spot - here, seg) / LengthSquared2D(seg);
     // Clamp to [0, 1] with selects: a NaN t gives 1.
     float u = MaxKeepB(0.0f, t);
     u = MinKeepA(1.0f, u);
-    float ex = position.x - (pointX - u * segX);
-    float ey = position.y - (pointY - u * segY);
-    return LengthSquared2D(ey, ex) < radiusSq;
+    return LengthSquared2D(here - (spot - u * seg)) < radiusSq;
 }
 
 bool AIBrain::IsAlliedUnit(EngineObject* object) {
@@ -471,8 +466,7 @@ void AIMemory::Reset() {
     visible.clear();
     seenCorpses.clear();
     corpses.clear();
-    noticedX = 0.0f;
-    noticedY = 0.0f;
+    noticed = {0.0f, 0.0f};
     noticedLevel = 0;
     nearbyCountdown = 0;
     reports.Clear();
@@ -518,8 +512,7 @@ void AIBrain::CallAllies(const Vector3& point) {
 void AIMemory::Notice(const Vector3& point, int level, int decay) {
     if (level <= noticedLevel) return;
     noticedLevel = level;
-    noticedX = point.x;
-    noticedY = point.y;
+    noticed = XY(point);
     noticedDecay = decay;
 }
 
@@ -548,9 +541,8 @@ void AIHeardCalls::Update(Unit* unit, AIMemory* memory) {
             if (kNoticeCallLevel - memory->noticedLevel <= 100) {
                 changed = DistanceSquaredXY(call->point, memory->NoticedPoint()) > 10.0f;
             }
-            memory->noticedX = call->point.x;
+            memory->noticed = XY(call->point);
             memory->noticedLevel = kNoticeCallLevel;
-            memory->noticedY = call->point.y;
             memory->noticedDecay = kNoticeCallDecay;
             if (changed) console::EndLine(kAiLog << "Delayed sound: " << call->text);
         }
@@ -904,7 +896,7 @@ void AIMemory::Load(ByteStream* stream) {
     CountedListLoad(&visible, stream, &g_serverWorld);
     CountedListLoad(&seenCorpses, stream, &g_serverWorld);
     CountedListLoad(&corpses, stream, &g_serverWorld);
-    stream->Read(&noticedX, 8);         // x and y
+    stream->ReadValue(noticed);
     stream->ReadValue(noticedLevel);
     stream->ReadValue(nearbyCountdown);
     reports.Load(stream);
@@ -958,7 +950,7 @@ void AIMemory::Save(ByteStream* stream) {
     SaveObjectList(visible, stream);
     SaveObjectList(seenCorpses, stream);
     SaveObjectList(corpses, stream);
-    stream->Write(&noticedX, 8);        // x and y
+    stream->WriteValue(noticed);
     stream->WriteValue(noticedLevel);
     stream->WriteValue(nearbyCountdown);
     reports.Save(stream);

@@ -7,11 +7,12 @@
 // mirrors it through two globals set by BeginField in the read modes. See docs/notes/network.md.
 
 #include "core_streams.h"
+
 #include "lib/vecmath.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
-
 
 namespace delta {
 
@@ -81,7 +82,7 @@ struct DeltaField {
     // A changed value is also stored in snapshot[1].
     Vector3 ReadPosition();
     // The same for a 2D position: (v + 32) * 60.234375; q * 0.0166018 - 32.
-    void WritePosition2D(const float* position);
+    void WritePosition2D(Vector2 position);
     Vector2 ReadPosition2D();
     // A value in [min, max] as 16 bits: (v - min) * (65535 / (max - min)),
     // rounded through a float, then to nearest; read back as q * float((max - min) / 65535) + min.

@@ -9,6 +9,7 @@
 #include "core_refcount.h"
 #include "engine_object.h"
 #include "map_spec.h"
+
 #include "lib/vecmath.h"
 
 #include <cstdint>
@@ -589,12 +590,11 @@ struct AIMemory {
     void Load(ByteStream* stream);
     void Save(ByteStream* stream);
     // The noticed point at height 0 (the memory keeps no z).
-    Vector3 NoticedPoint() const { return {noticedX, noticedY, 0.0f}; }
+    Vector3 NoticedPoint() const { return WithZ(noticed, 0.0f); }
 
     SpiralCache spareCells{0, -1.0f};   // not read
     SpiralCache sightCells{0, -1.0f};   // the cells around the unit it looks for units in
-    float noticedX = 0.0f;
-    float noticedY = 0.0f;
+    Vector2 noticed = {0.0f, 0.0f};
     int noticedLevel = 0;
     int noticedDecay = 0;            // the decay: added to noticedLevel every update
     int nearbyCountdown = 0;        // updates until the nearby units are listed again
