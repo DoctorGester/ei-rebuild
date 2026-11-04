@@ -45,13 +45,6 @@ DamageInfo TornadoHit() {
     return hit;
 }
 
-// The snapshot read against was consumed to its end (Position and Size of the stream, in that order).
-bool SnapshotReadToEnd() {
-    MemoryStream* snapshot = delta::g_readSnapshot;
-    std::uint32_t position = snapshot->Position();
-    return position == snapshot->Size();
-}
-
 } // namespace
 
 EffectTornado::EffectTornado() {
@@ -111,24 +104,24 @@ bool EffectTornado::RunTick() {
     return framesLeft >= 0;
 }
 
-int EffectTornado::Unpack(int update, DeltaField* field) {
+int EffectTornado::Unpack(int update, DeltaReader& field) {
     Vector3 position;
-    field->ReadDelta(&position, 12);
-    field->ReadDelta(&framesLeft, 4);
-    field->ReadDelta(&velocity, 12);
+    field.ReadDelta(&position, 12);
+    field.ReadDelta(&framesLeft, 4);
+    field.ReadDelta(&velocity, 12);
     moving = effect::IsMoving(velocity);
-    if (!SnapshotReadToEnd()) return 0;
+    if (!field.SnapshotConsumed()) return 0;
     localPosition = position;
     Start(update);   // through the virtual
     return 1;
 }
 
-void EffectTornado::Pack(DeltaField* field) {
+void EffectTornado::Pack(DeltaWriter& field) {
     Vector3 position = localPosition;
-    field->WriteDelta(&position, 12);
+    field.WriteDelta(&position, 12);
     int ticks = framesLeft;
-    field->WriteDelta(&ticks, 4);
-    field->WriteDelta(&velocity, 12);
+    field.WriteDelta(&ticks, 4);
+    field.WriteDelta(&velocity, 12);
 }
 
 void EffectTornado::Start(int update) {

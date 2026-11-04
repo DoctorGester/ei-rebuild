@@ -15,7 +15,7 @@
 
 class ByteStream;
 class MapObject;
-struct DeltaField;
+class DeltaReader;
 
 class ServerSpecificManager : public BaseManager {
 public:
@@ -74,7 +74,7 @@ public:
     // values[0], values[1], values[2..5], both vectors and the name from `field`, then applies them
     // through the virtual setters (a client half rebuilds its effects there), shows the
     // effects and warms the particles up.
-    void ReadNetState(DeltaField* field);
+    void ReadNetState(DeltaReader& field);
 
     MapObject* torch;          // the torch it belongs to (set by the torch's attach); null when constructed
     std::uint32_t lightKind;    // the light's kind (SetLight; saved and sent)

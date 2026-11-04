@@ -13,8 +13,6 @@
 
 #include "lib/float_select.h"
 
-#include <bit>
-#include <concepts>
 #include <cstdint>
 #include <cstring>
 
@@ -27,19 +25,6 @@ namespace effect {
 
 inline std::uint8_t FrameCounter() { return static_cast<std::uint8_t>(g_serverWorld.tick); }
 
-// A float's bits.
-inline std::uint32_t Bits(const float& f) {
-    std::uint32_t u;
-    u = std::bit_cast<std::uint32_t>(f);
-    return u;
-}
-inline float FromBits(std::uint32_t u) {
-    float f;
-    f = std::bit_cast<float>(u);
-    return f;
-}
-// A float argument would convert to an integer first: callers pass raw bits only.
-template <std::floating_point T> inline float FromBits(T) = delete;
 // The inline test after every velocity change: moving unless all three components are 0.
 inline bool IsMoving(const Vector3& v) {
     return !(v.x == 0.0f && v.y == 0.0f && v.z == 0.0f);
@@ -52,23 +37,6 @@ inline float BelowOneOrOne(const float& value) {
 }
 
 // --- Engine objects ------------------------------------------------------------------------------
-
-// --- Replicated fields (net_delta.cpp) -----------------------------------------------------------
-
-// The four streams of a field emptied.
-inline void EmptyField(DeltaField* f) {
-    f->snapshot[0].Resize(0);
-    f->snapshot[1].Resize(0);
-    f->out[0].Resize(0);
-    f->out[1].Resize(0);
-}
-
-// Every Unpack ends by checking that the snapshot was read to its end (Position, then Size).
-inline bool SnapshotReadToEnd() {
-    MemoryStream* s = delta::g_readSnapshot;
-    std::uint32_t position = s->Position();
-    return position == s->Size();
-}
 
 // --- Save streams (the effects' Load / Save slots) -------------------------------------------------
 

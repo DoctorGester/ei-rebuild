@@ -231,4 +231,4 @@ void EffectMoshka::Follow(int objectId) {
     timer = kPerchedFrames;
 }
 
-int EffectMoshka::Unpack(int, DeltaField*) { return 1; }
+int EffectMoshka::Unpack(int, DeltaReader&) { return 1; }

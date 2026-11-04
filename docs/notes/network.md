@@ -154,16 +154,22 @@ when a field starts in a new byte, so literal bytes and bit fields interleave.
 
 The server writes every replicated object's dirty fields per player update (map objects, units in net_state.cpp); the
 client reads them back; single player too, through the loopback.
-- `DeltaField`: two snapshot streams (what channel 0 / 1 last sent) and two output streams. `DeltaState`: the fields,
-  three 16-bit masks (sent, last, written), the reader, the mode (0 write all, 1 write dirty, 2 / 3 read against
-  snapshot 0 / 1, 4 idle), two header streams. `Finish` after a delta write joins the written mask into the sent one
-  and rebuilds both headers (the mask as 2 bytes, then each field's output of that channel, byte aligned).
+- `DeltaField`: two snapshot streams (what channel 0 / 1 last sent) and two output streams. Channel 0 is written
+  against the last full write, channel 1 against the last write of any kind. `DeltaState`: the fields, three 16-bit
+  masks (sent, last, written), the reader, the `Mode` (write full, write changes, read against snapshot 0 / 1, idle),
+  two header streams. `Finish` after a write of the changes joins the written mask into the sent one and rebuilds
+  both headers (the mask as 2 bytes, then each field's output of that channel, byte aligned).
+- A field is written through a `DeltaWriter` and read through a `DeltaReader` (`DeltaState::WriteField` /
+  `ReadField`, none when the field is not in the mask; an effect's single field and the path marker construct them
+  directly); each carries what the original kept in four globals (which snapshots a write keeps, the snapshot read
+  against and the received stream) and ends with `End`. `DeltaWrite::Full` keeps both channels' snapshots,
+  `Changes` only channel 1's. `DeltaReader::SnapshotConsumed` is every reader's "the field ended where expected".
 - Format per value: an "all unchanged" bit, else a 0 bit and per 4-byte word an "unchanged" bit or 0 + the word, then
   the remaining bytes raw. Quantised: 3D position (x, y as (v + 16) * 120.47, z as (v + 32) * 341.33, 16 bits each),
   2D position ((v + 32) * 60.23), ranged ((v - min) * 65535 / (max - min)), 16-bit float (sign, exponent - 0x40 in 7
   bits, 8 rounded mantissa bits).
-- Kept: `PackFloat16`'s mantissa rounding past 8 bits wraps to 0 without raising the exponent; exponents below 0x40
-  give 0, above 0xBF wrap in 7 bits; `ReadDelta` / `ReadPosition` store a changed value in snapshot 1 even when
+- Kept: the 16-bit float's mantissa rounding past 8 bits wraps to 0 without raising the exponent; exponents below 0x40
+  give 0, above 0xBF wrap in 7 bits; `ReadDelta` (every reader's) stores a changed value in snapshot 1 even when
   reading against snapshot 0; `ReadText` leaves the buffer empty for a string of `size - 1` characters or more.
 
 ## Message links (net_link.h)

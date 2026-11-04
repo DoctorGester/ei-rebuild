@@ -34,20 +34,6 @@ constexpr float kLightDrift = 0.0001f;          // the light's velocity x (keeps
 constexpr float kSoundRadius = 30.0f;
 constexpr std::uint32_t kLightFlags = lib::Bits(LightFlag::Specular | LightFlag::Strong);
 
-std::uint32_t Bits(const float& f) {
-    std::uint32_t u;
-    u = std::bit_cast<std::uint32_t>(f);
-    return u;
-}
-
-// The snapshot read against was consumed to its end (Position and Size of the stream, in that order).
-bool SnapshotReadToEnd() {
-    MemoryStream* snapshot = delta::g_readSnapshot;
-    std::uint32_t position = snapshot->Position();
-    return position == snapshot->Size();
-}
-
-
 } // namespace
 
 
@@ -150,19 +136,19 @@ void EffectArrow::Start(int update) {
     sound.Start(update);
 }
 
-int EffectArrow::Unpack(int update, DeltaField* field) {
-    field->ReadDelta(&targetId, 4);
-    field->ReadDelta(&casterId, 4);
-    soundName = field->ReadString();
-    lightColor = field->ReadFloat16x3();
-    lightRange = field->ReadFloat16();
-    field->ReadDelta(&particleType, 4);
-    particleSize = field->ReadFloat16();
+int EffectArrow::Unpack(int update, DeltaReader& field) {
+    field.ReadDelta(&targetId, 4);
+    field.ReadDelta(&casterId, 4);
+    soundName = field.ReadString();
+    lightColor = field.ReadFloat16x3();
+    lightRange = field.ReadFloat16();
+    field.ReadDelta(&particleType, 4);
+    particleSize = field.ReadFloat16();
     Vector3 position;
-    position = field->ReadPosition();
-    velocity = field->ReadFloat16x3();
-    field->ReadDelta(&fromCaster, 1);
-    if (!SnapshotReadToEnd()) return 0;
+    position = field.ReadPosition();
+    velocity = field.ReadFloat16x3();
+    field.ReadDelta(&fromCaster, 1);
+    if (!field.SnapshotConsumed()) return 0;
     if (fromCaster != 0) {
         auto* caster = OwningWorld()->FindUnit(casterId);
         if (caster != nullptr) {
@@ -174,21 +160,21 @@ int EffectArrow::Unpack(int update, DeltaField* field) {
     return 1;
 }
 
-void EffectArrow::Pack(DeltaField* field) {
+void EffectArrow::Pack(DeltaWriter& field) {
     Steer();
     Vector3 position = localPosition;
     int value = targetId;
-    field->WriteDelta(&value, 4);
+    field.WriteDelta(&value, 4);
     value = casterId;
-    field->WriteDelta(&value, 4);
-    field->WriteStringBoth(soundName);
-    field->WriteFloat16x3(&lightColor.x);
-    field->WriteFloat16(Bits(lightRange));
-    field->WriteDelta(&particleType, 4);
-    field->WriteFloat16(Bits(particleSize));
-    field->WritePosition(position);
-    field->WriteFloat16x3(&velocity.x);
-    field->WriteDelta(&fromCaster, 1);
+    field.WriteDelta(&value, 4);
+    field.WriteStringBoth(soundName);
+    field.WriteFloat16x3(lightColor);
+    field.WriteFloat16(lightRange);
+    field.WriteDelta(&particleType, 4);
+    field.WriteFloat16(particleSize);
+    field.WritePosition(position);
+    field.WriteFloat16x3(velocity);
+    field.WriteDelta(&fromCaster, 1);
 }
 
 void EffectArrow::Load(ByteStream* s) {
@@ -290,15 +276,15 @@ void EffectArrowFigure::Start(int update) {
     g_clientWorld.AddObject(figure);
 }
 
-int EffectArrowFigure::Unpack(int update, DeltaField* field) {
+int EffectArrowFigure::Unpack(int update, DeltaReader& field) {
     fromCaster = 0;
-    field->ReadDelta(&targetId, 4);
-    field->ReadDelta(&casterId, 4);
+    field.ReadDelta(&targetId, 4);
+    field.ReadDelta(&casterId, 4);
     Vector3 position;
-    position = field->ReadPosition();
-    velocity = field->ReadFloat16x3();
-    field->ReadDelta(&fromCaster, 1);
-    if (!SnapshotReadToEnd()) return 0;
+    position = field.ReadPosition();
+    velocity = field.ReadFloat16x3();
+    field.ReadDelta(&fromCaster, 1);
+    if (!field.SnapshotConsumed()) return 0;
     if (fromCaster != 0) {
         auto* caster = OwningWorld()->FindUnit(casterId);
         if (caster != nullptr) {
@@ -310,16 +296,16 @@ int EffectArrowFigure::Unpack(int update, DeltaField* field) {
     return 1;
 }
 
-void EffectArrowFigure::Pack(DeltaField* field) {
+void EffectArrowFigure::Pack(DeltaWriter& field) {
     Steer();
     Vector3 position = localPosition;
     int value = targetId;
-    field->WriteDelta(&value, 4);
+    field.WriteDelta(&value, 4);
     value = casterId;
-    field->WriteDelta(&value, 4);
-    field->WritePosition(position);
-    field->WriteFloat16x3(&velocity.x);
-    field->WriteDelta(&fromCaster, 1);
+    field.WriteDelta(&value, 4);
+    field.WritePosition(position);
+    field.WriteFloat16x3(velocity);
+    field.WriteDelta(&fromCaster, 1);
 }
 
 void EffectArrowFigure::Load(ByteStream* s) {

@@ -8340,6 +8340,13 @@ files = ["src/game/player_client.h", "src/game/player_client_orders.cpp", "src/g
 note = "Found in C113 (review round 3, item A15). PlayerClient's order senders (SendWalk, SendGoTo, SendAttack, SendCastOnUnit, SendCastAtPoint, SendItemOnUnit, SendItemAtPoint, SetWeapon, SetMoveMode, SetUnitFightAtWill, SendFollow, SendPause, SendUseOrder, SendUseDead, SendPartyUpdate, SendResume) all return 1 and TakeExit / RequestZone / RequestGameState return the stream position; no caller reads either (WorldClient::SendPause and ::RequestZone only pass it on). Make them void. Style only: goldens the same."
 
 [[ticket]]
+id = "C114a"
+title = "Networking style 7: the session passed to connections instead of g_currentSession"
+group = "cleanup"
+depends = ["C114"]
+note = "Found in C114. g_currentSession (net_classes.h) is set only for SessionBase::Tick; Connection reads it in SendUpdate (the socket), the OnMessage / CollectReplicated calls and Tick (maxRoundTrip, idReuseTime, timeout). Pass the session (a Connection member set at AddClient, or a parameter) the way C113 passed the connection. Care: ConnectionState's constructor takes roundTrip from it and falls back to 5.0 when it is null, and Connection::OnShutdown builds a ConnectionState(0) at whatever time the shutdown happens, so which value a reset connection gets depends on whether a Tick is running; keep that or decide it by judgement (net_pair_* reach it). Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"

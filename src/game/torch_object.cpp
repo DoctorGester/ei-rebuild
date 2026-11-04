@@ -67,7 +67,7 @@ void TorchObject::AttachTorchObject(EngineObject* object) {
 
 void TorchObject::WriteNetState() {
     MapObject::WriteNetState();
-    DeltaField* field = netState.BeginField(NetField::TorchLight);
+    std::optional<DeltaWriter> field = netState.WriteField(NetField::TorchLight);
     if (!field) return;
     std::uint32_t value = spec->lightKind;
     field->WriteDelta(&value, 4);
@@ -76,16 +76,16 @@ void TorchObject::WriteNetState() {
     field->WriteDelta(spec->colours[0], 0xC);
     field->WriteDelta(spec->colours[1], 0xC);
     field->WriteStringBoth(spec->name);
-    field->EndField();
+    field->End();
 }
 
 bool TorchObject::ReadNetState(bool update) {
     bool complete = MapObject::ReadNetState(update);
-    DeltaField* field = netState.BeginField(NetField::TorchLight);
+    std::optional<DeltaReader> field = netState.ReadField(NetField::TorchLight);
     if (!field) return complete;
-    spec->ReadNetState(field);
-    complete &= delta::SnapshotConsumed();
-    field->EndField();
+    spec->ReadNetState(*field);
+    complete &= field->SnapshotConsumed();
+    field->End();
     return complete;
 }
 
@@ -161,16 +161,16 @@ void TorchObjectSpec::SetFlame(const float* colour, float value, const float* ne
 
 void TorchObjectSpec::SetName(const char* newName) { name = newName; }
 
-void TorchObjectSpec::ReadNetState(DeltaField* field) {
+void TorchObjectSpec::ReadNetState(DeltaReader& field) {
     std::uint32_t kind;
-    field->ReadDelta(&kind, 4);
+    field.ReadDelta(&kind, 4);
     lightKind = kind;
-    field->ReadDelta(&values[0], 4);
-    field->ReadDelta(&values[1], 4);
-    field->ReadDelta(&values[2], 0x10);
-    field->ReadDelta(colours[0], 0xC);
-    field->ReadDelta(colours[1], 0xC);
-    name = field->ReadString();
+    field.ReadDelta(&values[0], 4);
+    field.ReadDelta(&values[1], 4);
+    field.ReadDelta(&values[2], 0x10);
+    field.ReadDelta(colours[0], 0xC);
+    field.ReadDelta(colours[1], 0xC);
+    name = field.ReadString();
     SetLightSlot(lightKind, colours[0], values[0]);
     SetFlameSlot(colours[1], values[1], &values[2]);
     SetNameSlot(name.c_str());

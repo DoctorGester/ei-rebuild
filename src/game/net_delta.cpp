@@ -1,17 +1,12 @@
 // Delta replication of object state. See net_delta.h.
 #include "net_delta.h"
 
-#include "core_maths.h"
-#include "net_coder.h"
-
 #include "lib/bytes.h"
 #include "lib/rounding.h"
 
 #include <bit>
-#include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <memory>
 #include <string>
 
 namespace {
@@ -22,28 +17,68 @@ std::uint32_t Word(const std::uint8_t* p) {
     return w;
 }
 
-void RewindAndEmpty(DeltaField* field) {
-    field->snapshot[0].Seek(0);
-    field->snapshot[1].Seek(0);
-    field->out[0].Resize(0);
-    field->out[1].Resize(0);
-}
-
-void SetKeep(int channel1Only) {
-    if (!channel1Only) {
-        delta::g_keepSnapshot0 = 1;
-        delta::g_keepSnapshot1 = 1;
-    } else {
-        delta::g_keepSnapshot0 = 0;
-        delta::g_keepSnapshot1 = 1;
+// All of `data`: a 0 bit, then a 0 bit before every 4-byte word, then the remaining bytes.
+void WriteRaw(const std::uint8_t* data, std::uint32_t size, MemoryStream* out) {
+    const std::uint32_t words = size / 4;
+    out->PutBit(false);
+    for (std::uint32_t i = 0; i < words; ++i) {
+        out->PutBit(false);
+        out->Write(data + i * 4, 4);
     }
+    out->Write(data + words * 4, size - words * 4);
 }
 
-void StartRead(DeltaField* field, int second, MemoryStream* reader) {
-    field->snapshot[0].Seek(0);
-    field->snapshot[1].Seek(0);
-    delta::g_readSnapshot = second ? &field->snapshot[1] : &field->snapshot[0];
-    delta::g_received = reader;
+// The bits and changed words of `data` against `old`.
+void WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t size, MemoryStream* out) {
+    if (std::memcmp(old, data, size) == 0) {
+        out->PutBit(true);
+        return;
+    }
+    const std::uint32_t words = size / 4;
+    out->PutBit(false);
+    for (std::uint32_t i = 0; i < words; ++i) {
+        const std::uint8_t* word = data + i * 4;
+        if (Word(old + i * 4) == Word(word)) {
+            out->PutBit(true);
+        } else {
+            out->PutBit(false);
+            out->Write(word, 4);
+        }
+    }
+    out->Write(data + words * 4, size - words * 4);
+}
+
+// WriteDelta for one channel.
+void WriteChannel(MemoryStream* snapshot, const void* data, std::uint32_t size, bool keepSnapshot, MemoryStream* out) {
+    const auto* bytes = static_cast<const std::uint8_t*>(data);
+    const std::uint32_t at = snapshot->Position();
+    if (snapshot->Size() < at + size) {
+        WriteRaw(bytes, size, out);
+        snapshot->Write(data, size);
+        return;
+    }
+    std::uint8_t* current = snapshot->data.data() + at;
+    WriteDiff(current, bytes, size, out);
+    if (keepSnapshot) std::memcpy(current, data, size);
+    snapshot->Seek(at + size);
+}
+
+// Reads what WriteDiff wrote: `data` = `old` when nothing changed (returns false), otherwise the changed words
+// from `received` (returns true).
+bool ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, MemoryStream* received) {
+    if (received->GetBit()) {
+        std::memcpy(data, old, size);
+        return false;
+    }
+    auto* bytes = static_cast<std::uint8_t*>(data);
+    const std::uint32_t words = size / 4;
+    for (std::uint32_t i = 0; i < words; ++i) {
+        std::uint8_t* word = bytes + i * 4;
+        if (received->GetBit()) std::memcpy(word, old + i * 4, 4);
+        else received->Read(word, 4);
+    }
+    received->Read(bytes + words * 4, size - words * 4);
+    return true;
 }
 
 constexpr float kWriteOffsetXY = -16.0f;
@@ -66,6 +101,25 @@ float Dequantize(std::uint16_t q, float scale, float offset) { return static_cas
 constexpr float kRangeSteps = 65535.0f;
 constexpr float kRangeStep = 0.000015259022f;      // (1 / 65535)
 
+// The 16-bit float of WriteFloat16.
+std::uint16_t PackFloat16(float value) {
+    const auto bits = std::bit_cast<std::uint32_t>(value);
+    const std::uint32_t sign = bits >> 31;
+    const std::uint32_t exponent = (bits >> 23) & 0xFF;
+    const std::uint32_t packedExponent = exponent < 0x40 ? 0 : (exponent - 0x40) & 0x7F;
+    const std::uint32_t mantissa = (((bits & 0x7FFFFF) + 0x4000) >> 15) & 0xFF;
+    return static_cast<std::uint16_t>(sign << 15 | packedExponent << 8 | mantissa);
+}
+
+// The exponent is at most 0xBF, so the result is never a NaN.
+float UnpackFloat16(std::uint16_t packed) {
+    const std::uint32_t sign = packed >> 15;
+    const std::uint32_t exponent = (packed >> 8) & 0x7F;
+    const std::uint32_t mantissa = packed & 0xFF;
+    const std::uint32_t biased = exponent ? exponent + 0x40 : 0;
+    return std::bit_cast<float>(sign << 31 | biased << 23 | mantissa << 15);
+}
+
 // One channel's header: the mask, then the channel's output of every field in it.
 void RebuildHeader(DeltaState* state, int channel, std::uint16_t mask) {
     MemoryStream& header = state->header[channel];
@@ -76,190 +130,49 @@ void RebuildHeader(DeltaState* state, int channel, std::uint16_t mask) {
         MemoryStream& out = state->fields[i].out[channel];
         header.EndBits();
         out.Seek(0);
-        const std::uint8_t* data = out.data.data();
-        header.Write(data, out.Size());
+        header.Write(out.data.data(), out.Size());
     }
 }
 
 } // namespace
 
-// --- Channel writers ---------------------------------------------------------------------------
-
-void delta::WriteRaw(const std::uint8_t* data, std::uint32_t size, MemoryStream* out) {
-    const std::uint8_t* p = data;
-    std::uint32_t rest = size;
-    out->PutBit(false);
-    if (static_cast<int>(size) > 3) {
-        std::uint32_t words = size >> 2;
-        rest = size - words * 4;
-        do {
-            out->PutBit(false);
-            out->Write(p, 4);
-            p += 4;
-        } while (--words);
-    }
-    out->Write(p, rest);
+void DeltaField::Empty() {
+    snapshot[0].Resize(0);
+    snapshot[1].Resize(0);
+    out[0].Resize(0);
+    out[1].Resize(0);
 }
 
-void delta::WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t size, MemoryStream* out) {
-    if (std::memcmp(old, data, size) == 0) {
-        out->PutBit(true);
-        return;
-    }
-    out->PutBit(false);
-    const std::uint8_t* p = data;
-    std::uint32_t rest = size;
-    if (static_cast<int>(size) > 3) {
-        std::ptrdiff_t toOld = old - p;
-        std::uint32_t words = size >> 2;
-        rest = size - words * 4;
-        do {
-            if (Word(p + toOld) == Word(p)) {
-                out->PutBit(true);
-            } else {
-                out->PutBit(false);
-                out->Write(p, 4);
-            }
-            p += 4;
-        } while (--words);
-    }
-    out->Write(p, rest);
+// --- Writing -----------------------------------------------------------------------------------
+
+DeltaWriter::DeltaWriter(DeltaField& target, DeltaWrite kind) : field(&target), keepSnapshot0(kind == DeltaWrite::Full) {
+    target.snapshot[0].Seek(0);
+    target.snapshot[1].Seek(0);
+    target.out[0].Resize(0);
+    target.out[1].Resize(0);
 }
 
-// Without a snapshot to compare with (it is shorter than position + size) everything is sent and
-// appended to the snapshot. Otherwise a 1 bit means "all unchanged"; else a 0 bit and, per 4-byte
-// word, 1 (unchanged) or 0 and the word, then the remaining bytes as they are. With
-// `keepSnapshot` the snapshot is updated in place; it is advanced past the bytes either way.
-void delta::WriteDeltaChannel(MemoryStream* snapshot, const void* data, std::uint32_t size, int keepSnapshot,
-                                  MemoryStream* out) {
-    const auto* bytes = static_cast<const std::uint8_t*>(data);
-    std::uint32_t end = snapshot->Position() + size;
-    if (snapshot->Size() < end) {
-        WriteRaw(bytes, size, out);
-        snapshot->Write(data, size);
-        return;
-    }
-    std::uint8_t* buffer = snapshot->data.data();
-    std::uint8_t* current = buffer + snapshot->Position();
-    WriteDiff(current, bytes, size, out);
-    if (keepSnapshot) std::memcpy(current, data, size);
-    snapshot->Seek(snapshot->Position() + size);
+void DeltaWriter::WriteDelta(const void* data, std::uint32_t size) {
+    WriteChannel(&field->snapshot[0], data, size, keepSnapshot0, &field->out[0]);
+    WriteChannel(&field->snapshot[1], data, size, true, &field->out[1]);
 }
 
-DeltaField* DeltaField::BeginWriteB(int channel1Only) {
-    RewindAndEmpty(this);
-    SetKeep(channel1Only);
-    return this;
+void DeltaWriter::WriteBoth(const void* data, std::uint32_t size) {
+    field->out[0].Write(data, size);
+    field->out[1].Write(data, size);
 }
 
-bool delta::SnapshotConsumed() { return g_readSnapshot->Position() == g_readSnapshot->Size(); }
-
-DeltaField* DeltaField::BeginReadB(int second, MemoryStream* reader) {
-    StartRead(this, second, reader);
-    return this;
+void DeltaWriter::WriteStringBoth(std::string_view text) {
+    field->out[0].WriteString(text);
+    field->out[1].WriteString(text);
 }
 
-void DeltaField::EndField() {
-    if (delta::g_readSnapshot) {
-        delta::g_received->EndBits();
-        delta::g_readSnapshot = nullptr;
-        delta::g_received = nullptr;
-        return;
-    }
-    out[0].EndBits();
-    out[1].EndBits();
-    if (delta::g_keepSnapshot0) snapshot[0].Resize(snapshot[0].Position());
-    if (delta::g_keepSnapshot1) snapshot[1].Resize(snapshot[1].Position());
+void DeltaWriter::WriteStreamBoth(MemoryStream* from) {
+    field->out[0].WriteStream(from);
+    field->out[1].WriteStream(from);
 }
 
-void DeltaField::WriteDelta(const void* data, std::uint32_t size) {
-    delta::WriteDeltaChannel(&snapshot[0], data, size, delta::g_keepSnapshot0, &out[0]);
-    delta::WriteDeltaChannel(&snapshot[1], data, size, delta::g_keepSnapshot1, &out[1]);
-}
-
-// The bytes come from the snapshot read against (all unchanged, or per unchanged word) or from the
-// reader. When anything changed the result is also written to snapshot[1] at the same place.
-void DeltaField::ReadDelta(void* data, std::uint32_t size) {
-    std::uint32_t position = delta::g_readSnapshot->Position();
-    MemoryStream* reader = delta::g_received;
-    const std::uint8_t* current = delta::g_readSnapshot->data.data() + position;
-    auto* p = static_cast<std::uint8_t*>(data);
-    if (reader->GetBit()) {
-        std::memcpy(p, current, size);
-    } else {
-        std::uint32_t rest = size;
-        if (static_cast<int>(size) > 3) {
-            std::ptrdiff_t toCurrent = current - p;
-            std::uint32_t words = size >> 2;
-            rest = size - words * 4;
-            do {
-                if (reader->GetBit()) std::memcpy(p, p + toCurrent, 4);
-                else reader->Read(p, 4);
-                p += 4;
-            } while (--words);
-        }
-        reader->Read(p, rest);
-        snapshot[1].Seek(position);
-        snapshot[1].Write(data, size);
-    }
-    delta::g_readSnapshot->Seek(position + size);
-}
-
-void DeltaField::WriteBoth(const void* data, std::uint32_t size) {
-    out[0].Write(data, size);
-    out[1].Write(data, size);
-}
-
-void DeltaField::WriteStringBoth(std::string_view text) {
-    out[0].WriteString(text);
-    out[1].WriteString(text);
-}
-
-std::uint32_t DeltaField::ReadRaw(void* data, std::uint32_t size) { return delta::g_received->Read(data, size); }
-
-std::string DeltaField::ReadString() {
-    return delta::g_received->ReadString();
-}
-
-void DeltaField::WriteStreamBoth(MemoryStream* from) {
-    out[0].WriteStream(from);
-    out[1].WriteStream(from);
-}
-
-void DeltaField::ReadText(char* text, int size) {
-    std::string string = ReadString();
-    if (static_cast<int>(string.size()) < size - 1) {
-        const char* from = string.c_str();
-        std::memcpy(text, from, std::strlen(from) + 1);
-    } else {
-        text[0] = '\0';
-    }
-}
-
-int DeltaField::ReadStream(MemoryStream* to) { return delta::g_received->ReadStream(to); }
-
-bool delta::ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, MemoryStream* reader) {
-    if (reader->GetBit()) {
-        std::memcpy(data, old, size);
-        return false;
-    }
-    auto* p = static_cast<std::uint8_t*>(data);
-    std::uint32_t rest = size;
-    if (static_cast<int>(size) > 3) {
-        std::ptrdiff_t toOld = old - p;
-        std::uint32_t words = size >> 2;
-        rest = size - words * 4;
-        do {
-            if (reader->GetBit()) std::memcpy(p, p + toOld, 4);
-            else reader->Read(p, 4);
-            p += 4;
-        } while (--words);
-    }
-    reader->Read(p, rest);
-    return true;
-}
-
-void DeltaField::WritePosition(const Vector3& position) {
+void DeltaWriter::WritePosition(const Vector3& position) {
     int q = Quantize(position.x, kWriteOffsetXY, kWriteScaleXY);
     WriteDelta(&q, 2);
     q = Quantize(position.y, kWriteOffsetXY, kWriteScaleXY);
@@ -268,112 +181,95 @@ void DeltaField::WritePosition(const Vector3& position) {
     WriteDelta(&q, 2);
 }
 
-void DeltaField::WritePosition2D(Vector2 position) {
+void DeltaWriter::WritePosition2D(Vector2 position) {
     int q = Quantize(position.x, kWriteOffset2D, kWriteScale2D);
     WriteDelta(&q, 2);
     q = Quantize(position.y, kWriteOffset2D, kWriteScale2D);
     WriteDelta(&q, 2);
 }
 
-// One 16-bit value (unchanged: from the snapshot read against).
-std::uint16_t DeltaField::ReadWord() {
-    std::uint32_t at = delta::g_readSnapshot->Position();
-    MemoryStream* reader = delta::g_received;
-    const std::uint8_t* current = delta::g_readSnapshot->data.data() + at;
-    std::uint16_t q;
-    if (reader->GetBit()) {
-        std::memcpy(&q, current, 2);
-    } else {
-        reader->ReadValue(q);
-        snapshot[1].Seek(at);
-        snapshot[1].WriteValue(q);
+void DeltaWriter::WriteRanged(float value, float min, float max) {
+    int q = lib::RoundEven((value - min) * (kRangeSteps / (max - min)));
+    WriteDelta(&q, 2);
+}
+
+void DeltaWriter::WriteFloat16(float value) {
+    std::uint16_t packed = PackFloat16(value);
+    WriteDelta(&packed, 2);
+}
+
+void DeltaWriter::WriteFloat16x3(const Vector3& values) {
+    WriteFloat16(values.x);
+    WriteFloat16(values.y);
+    WriteFloat16(values.z);
+}
+
+void DeltaWriter::End() {
+    field->out[0].EndBits();
+    field->out[1].EndBits();
+    if (keepSnapshot0) field->snapshot[0].Resize(field->snapshot[0].Position());
+    field->snapshot[1].Resize(field->snapshot[1].Position());
+}
+
+// --- Reading -----------------------------------------------------------------------------------
+
+DeltaReader::DeltaReader(DeltaField& target, int channel, MemoryStream* from)
+    : field(&target), snapshot(&target.snapshot[channel ? 1 : 0]), received(from) {
+    target.snapshot[0].Seek(0);
+    target.snapshot[1].Seek(0);
+}
+
+void DeltaReader::ReadDelta(void* data, std::uint32_t size) {
+    const std::uint32_t at = snapshot->Position();
+    if (ReadDiff(snapshot->data.data() + at, data, size, received)) {
+        field->snapshot[1].Seek(at);
+        field->snapshot[1].Write(data, size);
     }
-    delta::g_readSnapshot->Seek(at + 2);
+    snapshot->Seek(at + size);
+}
+
+void DeltaReader::ReadRaw(void* data, std::uint32_t size) { received->Read(data, size); }
+
+std::string DeltaReader::ReadString() { return received->ReadString(); }
+
+void DeltaReader::ReadText(char* text, int size) {
+    std::string string = ReadString();
+    if (static_cast<int>(string.size()) < size - 1) std::memcpy(text, string.c_str(), string.size() + 1);
+    else text[0] = '\0';
+}
+
+int DeltaReader::ReadStream(MemoryStream* to) { return received->ReadStream(to); }
+
+std::uint16_t DeltaReader::ReadWord() {
+    std::uint16_t q;
+    ReadDelta(&q, 2);
     return q;
 }
 
-Vector3 DeltaField::ReadPosition() {
+Vector3 DeltaReader::ReadPosition() {
     Vector3 position;
     position.x = Dequantize(ReadWord(), kReadScaleXY, kReadOffsetXY);
     position.y = Dequantize(ReadWord(), kReadScaleXY, kReadOffsetXY);
-    // z goes through ReadDiff.
-    std::uint32_t at = delta::g_readSnapshot->Position();
-    MemoryStream* reader = delta::g_received;
-    std::uint16_t q;
-    if (delta::ReadDiff(delta::g_readSnapshot->data.data() + at, &q, 2, reader)) {
-        snapshot[1].Seek(at);
-        snapshot[1].WriteValue(q);
-    }
-    delta::g_readSnapshot->Seek(at + 2);
-    position.z = Dequantize(q, kReadScaleZ, kReadOffsetZ);
+    position.z = Dequantize(ReadWord(), kReadScaleZ, kReadOffsetZ);
     return position;
 }
 
-Vector2 DeltaField::ReadPosition2D() {
+Vector2 DeltaReader::ReadPosition2D() {
     Vector2 position;
     position.x = Dequantize(ReadWord(), kReadScale2D, kReadOffset2D);
     position.y = Dequantize(ReadWord(), kReadScale2D, kReadOffset2D);
     return position;
 }
 
-// Ranged values.
-
-void DeltaField::WriteRanged(float value, float min, float max) {
-    int q = lib::RoundEven((value - min) * (kRangeSteps / (max - min)));
-    WriteDelta(&q, 2);
-}
-
-float DeltaField::ReadRanged(float min, float max) {
+float DeltaReader::ReadRanged(float min, float max) {
     float step = (max - min) * kRangeStep;
     std::uint16_t q = ReadWord();
     return static_cast<float>(static_cast<int>(q)) * step + min;
 }
 
-// --- 16-bit floats -----------------------------------------------------------------------------
+float DeltaReader::ReadFloat16() { return UnpackFloat16(ReadWord()); }
 
-// Sign; exponent - 0x40 in 7 bits (0 when the exponent is below 0x40); the top 8 mantissa bits
-// rounded (a carry out of them is dropped, not added to the exponent).
-std::uint16_t delta::PackFloat16(std::uint32_t u) {
-    auto h = static_cast<std::uint16_t>(((u >> 31) << 15) | (u & 0x7FFF));
-    if ((u & 0x7F800000) < 0x20000000) {
-        h &= 0x80FF;
-    } else {
-        std::uint32_t exponent = ((u >> 23) & 0xFF) << 8;
-        h ^= static_cast<std::uint16_t>(((exponent - 0x3F01) ^ h) & 0x7F00);
-    }
-    std::uint32_t mantissa = ((u & 0x7FFFFF) + 0x4000) >> 15;
-    h ^= static_cast<std::uint16_t>((mantissa ^ (h & 0xFF)) & 0xFF);
-    return h;
-}
-
-std::uint32_t delta::UnpackFloat16(std::uint16_t q) {
-    std::uint32_t bits = q;
-    std::uint32_t a = ((bits & 0xFFFF8000u) << 16) | (bits & 0x7FFFFFFFu);
-    if (bits & 0x7F00) {
-        std::uint32_t exponent = (((bits >> 8) & 0x7F) + 0x40) << 23;
-        a ^= (exponent ^ a) & 0x7F800000;
-    } else {
-        a &= 0x807FFFFF;
-    }
-    return ((bits & 0xFF) << 15) | (a & 0xFF800000);
-}
-
-void DeltaField::WriteFloat16(std::uint32_t floatBits) {
-    std::uint16_t h = delta::PackFloat16(floatBits);
-    WriteDelta(&h, 2);
-}
-
-// The result is never a NaN (the exponent is at most 0xBF), so storing it is a plain copy.
-float DeltaField::ReadFloat16() { return std::bit_cast<float>(delta::UnpackFloat16(ReadWord())); }
-
-void DeltaField::WriteFloat16x3(const float* values) {
-    for (int i = 0; i < 3; ++i) {
-        std::uint16_t h = delta::PackFloat16(std::bit_cast<std::uint32_t>(values[i]));
-        WriteDelta(&h, 2);
-    }
-}
-
-Vector3 DeltaField::ReadFloat16x3() {
+Vector3 DeltaReader::ReadFloat16x3() {
     Vector3 values;
     values.x = ReadFloat16();
     values.y = ReadFloat16();
@@ -381,65 +277,54 @@ Vector3 DeltaField::ReadFloat16x3() {
     return values;
 }
 
+bool DeltaReader::SnapshotConsumed() const { return snapshot->Position() == snapshot->Size(); }
+
+void DeltaReader::End() { received->EndBits(); }
+
+// --- The state ---------------------------------------------------------------------------------
+
 void DeltaState::Reset() {
-    for (DeltaField& field : fields) {
-        field.snapshot[0].Resize(0);
-        field.snapshot[1].Resize(0);
-        field.out[0].Resize(0);
-        field.out[1].Resize(0);
-    }
+    for (DeltaField& field : fields) field.Empty();
     sentMask = 0;
     lastMask = 0;
     mask = 0;
     reader = nullptr;
-    mode = kIdle;
+    mode = Mode::Idle;
     header[0].Resize(0);
     header[1].Resize(0);
 }
 
-DeltaField* DeltaState::BeginField(NetField part) {
-    const int index = static_cast<int>(part);
-    if (!((1u << (index & 31)) & mask)) return nullptr;
-    DeltaField* field = &fields[index];
-    switch (mode) {
-    case kWriteFull:
-        RewindAndEmpty(field);
-        delta::g_keepSnapshot0 = 1;
-        delta::g_keepSnapshot1 = 1;
-        break;
-    case kWriteDelta:
-        RewindAndEmpty(field);
-        delta::g_keepSnapshot0 = 0;
-        delta::g_keepSnapshot1 = 1;
-        break;
-    case kRead0:
-    case kRead1:
-        StartRead(field, mode == kRead1, reader);
-        break;
-    default:
-        break;
-    }
-    return &fields[index];
-}
+void DeltaState::SetFieldCount(int count) { fields.resize(count); }
 
-void DeltaState::SetWriteMode(int deltaOnly) {
-    if (!deltaOnly) {
+void DeltaState::SetWriteMode(DeltaWrite kind) {
+    if (kind == DeltaWrite::Full) {
         mask = 0xFFFF;
-        mode = kWriteFull;
+        mode = Mode::WriteFull;
     } else {
-        mode = kWriteDelta;
+        mode = Mode::WriteChanges;
     }
 }
 
-int DeltaState::BeginRead(int second, MemoryStream* newReader) {
+void DeltaState::BeginRead(int channel, MemoryStream* newReader) {
     reader = newReader;
     newReader->ReadValue(mask);
-    mode = second ? kRead1 : kRead0;
-    return second;
+    mode = channel ? Mode::Read1 : Mode::Read0;
+}
+
+std::optional<DeltaWriter> DeltaState::WriteField(NetField index) {
+    const int i = static_cast<int>(index);
+    if (!((1u << (i & 31)) & mask)) return std::nullopt;
+    return DeltaWriter(fields[i], mode == Mode::WriteFull ? DeltaWrite::Full : DeltaWrite::Changes);
+}
+
+std::optional<DeltaReader> DeltaState::ReadField(NetField index) {
+    const int i = static_cast<int>(index);
+    if (!((1u << (i & 31)) & mask)) return std::nullopt;
+    return DeltaReader(fields[i], mode == Mode::Read1 ? 1 : 0, reader);
 }
 
 void DeltaState::Finish() {
-    if (mode == kWriteDelta) {
+    if (mode == Mode::WriteChanges) {
         std::uint16_t written = mask;
         sentMask |= written;
         lastMask = written;
@@ -447,21 +332,13 @@ void DeltaState::Finish() {
         RebuildHeader(this, 0, sentMask);
         RebuildHeader(this, 1, lastMask);
     }
-    if (mode == kWriteFull) {
+    if (mode == Mode::WriteFull) {
         header[0].Resize(0);
         header[1].Resize(0);
         sentMask = 0;
         lastMask = 0;
         mask = 0;
     }
-    mode = kIdle;
+    mode = Mode::Idle;
     reader = nullptr;
 }
-
-// --- The state's lifetime --------------------------------------------------------------------------
-
-DeltaState::DeltaState() { Reset(); }
-
-DeltaState::~DeltaState() = default;
-
-void DeltaState::SetFieldCount(int count) { fields.resize(count); }
