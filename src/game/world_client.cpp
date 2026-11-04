@@ -291,11 +291,12 @@ Vector2 WorldClient::ExitCentre(int index) {
 
 std::uint32_t WorldClient::EnvironmentFlags(Unit* unit) {
     std::uint32_t stateFlags = 0;
-    switch (static_cast<std::uint32_t>(unit->moveMode2)) {
-    case 0: stateFlags = lib::Bits(EnvironmentFlag::MoveMode0); break;
-    case 1: stateFlags = lib::Bits(EnvironmentFlag::Walk); break;
-    case 2: stateFlags = lib::Bits(EnvironmentFlag::Run); break;
-    case 3: stateFlags = lib::Bits(EnvironmentFlag::MoveMode3); break;
+    switch (unit->moveMode2) {
+    case MoveMode::Lie: stateFlags = lib::Bits(EnvironmentFlag::MoveMode0); break;
+    case MoveMode::Crawl: stateFlags = lib::Bits(EnvironmentFlag::Walk); break;
+    case MoveMode::Walk: stateFlags = lib::Bits(EnvironmentFlag::Run); break;
+    case MoveMode::Run: stateFlags = lib::Bits(EnvironmentFlag::MoveMode3); break;
+    case MoveMode::Stop: break;
     }
     if (str::Compare(zoneName, "gipat") == 0) stateFlags |= EnvironmentFlag::Gipat;
     else if (str::Compare(zoneName, "ingos") == 0) stateFlags |= EnvironmentFlag::Ingos;

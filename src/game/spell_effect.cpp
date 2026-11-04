@@ -93,17 +93,17 @@ void SpellEffect::GetDamage(DamageInfo* out) {
     const Spell* record = HeldSpell();
     switch (record->Type()) {
     case SpellType::FireArrow: case SpellType::Fireball: case SpellType::RickMagic:
-        out->typeWeights[3] = 1.0f; out->amount = record->damage; out->hitKind = 0; break;
+        out->Weight(DamageType::Fire) = 1.0f; out->amount = record->damage; out->hitKind = 0; break;
     case SpellType::Lightning: case SpellType::InvokeLightning: case SpellType::CurseMagic:
-        out->typeWeights[5] = 1.0f; out->amount = record->damage; out->hitKind = 0; break;
+        out->Weight(DamageType::Lightning) = 1.0f; out->amount = record->damage; out->hitKind = 0; break;
     case SpellType::AcidRay:
-        out->typeWeights[4] = 1.0f; out->amount = record->damage; out->hitKind = 0; break;
+        out->Weight(DamageType::Acid) = 1.0f; out->amount = record->damage; out->hitKind = 0; break;
     case SpellType::AcidColumn: case SpellType::AcidFog:
-        out->typeWeights[4] = 1.0f; out->amount = record->damage; out->hitKind = 1; break;
+        out->Weight(DamageType::Acid) = 1.0f; out->amount = record->damage; out->hitKind = 1; break;
     case SpellType::FireWall: case SpellType::Campfire:
-        out->typeWeights[3] = 1.0f; out->amount = record->damage; out->hitKind = 1; break;
+        out->Weight(DamageType::Fire) = 1.0f; out->amount = record->damage; out->hitKind = 1; break;
     case SpellType::LightningWall:
-        out->typeWeights[5] = 1.0f; out->amount = record->damage; out->hitKind = 1; break;
+        out->Weight(DamageType::Lightning) = 1.0f; out->amount = record->damage; out->hitKind = 1; break;
     default:
         break;
     }

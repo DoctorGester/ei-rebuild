@@ -169,7 +169,8 @@ std::uint32_t ResetDamageInfo(DamageInfo* info) {
 }
 
 bool HasElementalDamage(const DamageInfo* info) {
-    if (info->typeWeights[3] == 0.0f && info->typeWeights[4] == 0.0f && info->typeWeights[5] == 0.0f) {
+    if (info->Weight(DamageType::Fire) == 0.0f && info->Weight(DamageType::Acid) == 0.0f &&
+        info->Weight(DamageType::Lightning) == 0.0f) {
         return false;
     }
     return true;

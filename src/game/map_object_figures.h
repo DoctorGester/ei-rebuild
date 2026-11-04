@@ -95,13 +95,13 @@ inline constexpr bool lib::kBitFlags<AnimationKeyFlag> = true;
 constexpr std::uint32_t AnimationKeyOf(AnimationKeyFlag flag) { return static_cast<std::uint32_t>(flag); }
 
 // The movement mode's bits of the key (mask 0x38000; UnitServer::MoveModeMask and the transitions' bits), named by
-// the MoveModeState::mode they stand for. A hero's own walk (mode 2 without onGuard) has none.
+// the MoveMode they stand for. A hero's own walk (Walk without onGuard) has none.
 enum class AnimationMoveBits : std::uint32_t {
     None = 0,
-    Mode4 = 0x8000,
-    Mode2 = 0x10000,
-    Mode1 = 0x20000,
-    Mode0 = 0x30000,    // standing still
+    Stop = 0x8000,
+    Walk = 0x10000,
+    Crawl = 0x20000,
+    Lie = 0x30000,
 };
 inline constexpr std::uint32_t kAnimationMoveMask = 0x38000;
 constexpr std::uint32_t AnimationKeyOf(AnimationMoveBits bits) { return static_cast<std::uint32_t>(bits); }

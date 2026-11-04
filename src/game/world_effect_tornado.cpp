@@ -37,7 +37,7 @@ constexpr int kMaxCatchUp = 30;                // particle ticks a new source ma
 // The hit every unit within kHurtRadius takes (built on the stack).
 DamageInfo TornadoHit() {
     DamageInfo hit{};
-    hit.typeWeights[6] = 1.0f;
+    hit.Weight(DamageType::Other) = 1.0f;
     hit.attackRoll = 100.0f;
     hit.amount = 5.0f;
     hit.multiplier = 1.0f;

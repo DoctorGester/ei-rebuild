@@ -109,7 +109,7 @@ bool SpellHasLineOfSight(WorldServer* world, Spell* spell, Unit* caster, const V
                                     Unit* target, const Vector3& at);
 
 struct MoveModeState {
-    int mode;                   // 0..2 (3 is stored as 2 with `wasMode3`)
+    MoveMode mode;              // never Run: that is stored as Walk with `wasMode3`
     // Set while the unit attacks (SyncMoveModes) and by the AI's suspicion, aggression and fear modes (cleared
     // when they end): mode 2 then takes the guarded walk / cast animations (not a hero's own walk), the unit
     // cannot be backstabbed and does not fall asleep (moveMode2's, read by the hit code and the world update).
@@ -317,11 +317,11 @@ public:
 
     // Would the unit fit its cell in movement mode `mode` (3 counts as 2)? True at once for moveMode's mode;
     // else the unit's mode becomes `mode` for the test (off the sector map) and is put back.
-    bool FitsMoveMode(int mode);
+    bool FitsMoveMode(MoveMode mode);
     // The unit's wanted movement style (0 lie, 1 crawl, 2 walk, 3 run). When it fits, a party unit hears
     // message 9, unless running and out of breath. Other than walking and running the current order's run flag
     // is cleared.
-    void SetMoveStyle(int style);
+    void SetMoveStyle(MoveMode style);
     void SetWantedWeapon(int slot);
     // A skill or use order (kind 6) on `target`: stealing (source 1; a living other object), taming (2; a
     // living unit of another player, not a hero), use (0, spot = `spot`; any object) and searching a body
@@ -417,7 +417,7 @@ public:
     void ApproachTarget();
     // moveMode / moveMode2 from the unit's modes and the order.
     void SyncMoveModes();
-    void SetUnitMoveMode2(int mode);
+    void SetUnitMoveMode2(MoveMode mode);
 
     // --- The update and the animation queue.
     // Once per world update. A living unit runs its regeneration, AI, item spells, orders, state and animation;

@@ -129,7 +129,7 @@ public:
     bool HasCastFlagModifier();
 
     // The elemental damage type the spell deals (3, 4 or 5), 6 for none.
-    int GetDamageType();
+    DamageType GetDamageType();
 
     // True for the attack spells (FireArrow to AcidFog, Lichdom, Stench, Stun, Weaken, Feeblemind, Slow, Charm,
     // Shrink; with Rebirth's FixSpellSelfCasting also RickMagic and CurseMagic).
@@ -169,6 +169,8 @@ public:
 // The damage a hit deals, filled by the spell effects and the weapon code.
 struct DamageInfo {
     float typeWeights[7];       // one weight per damage type
+    float& Weight(DamageType type) { return typeWeights[static_cast<int>(type)]; }
+    float Weight(DamageType type) const { return typeWeights[static_cast<int>(type)]; }
     std::uint32_t weaponValue;  // 0 unarmed; not read here
     float attackRoll;           // against the defence; FLT_MAX for spells
     float amount;

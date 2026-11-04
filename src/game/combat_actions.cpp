@@ -33,7 +33,6 @@ namespace {
 constexpr float kHitNoiseScale = 2.0f;
 constexpr float kSkillNoiseScale = 1.5f;
 
-constexpr int kMissileObject = 0x5B;                    // object factory kind of a missile
 
 Diplomacy* DiplomacyOf(WorldServer* world) { return &world->diplomacy; }
 
@@ -107,7 +106,7 @@ void UnitServer::DeliverAttack(MapObject* target, DamageInfo* hit) {
     ItemWeapon* weapon = unit->GetWeapon(unit->activeWeapon);
     if (weapon && weapon->IsRanged()) {
         BaseManager* factory = world->TimedObjectManager();
-        auto* arrow = factory->CreateObjectAs<EffectArrowFigure>(kMissileObject, -1);
+        auto* arrow = factory->CreateObjectAs<EffectArrowFigure>(ClassId::EffectArrowFigure, -1);
         if (!arrow) return;
         arrow->localPosition = unit->EyePoint();
         arrow->SetTarget(target->id);

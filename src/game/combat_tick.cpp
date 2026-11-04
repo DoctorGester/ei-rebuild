@@ -34,9 +34,6 @@ constexpr float kFifteen = 15.0f;
 constexpr float kArrived = 0.02f;
 constexpr float kMinClosing = 0.1f;   // the slowest closing speed
 
-constexpr int kModeStop = 4;
-constexpr int kModeWalk = 1;
-constexpr int kModeRun = 2;
 constexpr int kAttackLead = 0x10;       // ticks a chase looks ahead
 constexpr int kChaseMinTicks = 2;
 constexpr int kChaseMaxTicks = 0x40;
@@ -54,9 +51,9 @@ void TellParty(Unit* unit, AckKind kind) {
 // out at once, then the movement records and the frame stamp.
 void LeaveMoveMode(UnitServer* self) {
     UnitAction* order = &self->action;
-    if (order->modifier && self->moveMode.mode != kModeRun) {
+    if (order->modifier && self->moveMode.mode != MoveMode::Walk) {
         UnitOrderKind kind = order->kind;
-        if (!(IsActionKind(kind) && self->CanReachAndPlan(order))) self->SetUnitMoveMode2(kModeRun);
+        if (!(IsActionKind(kind) && self->CanReachAndPlan(order))) self->SetUnitMoveMode2(MoveMode::Walk);
     }
     self->SyncMoveModes();
     self->waitFrame = g_serverWorld.tick;
@@ -113,7 +110,7 @@ void UnitAction::Reset() {
     modifier = 0;
 }
 
-void UnitServer::SetUnitMoveMode2(int mode) {
+void UnitServer::SetUnitMoveMode2(MoveMode mode) {
     if (mode == unit->moveMode2) return;
     unit->moveMode2 = mode;
     unit->MarkChanged(NetField::Modes);
@@ -124,17 +121,17 @@ void UnitServer::SyncMoveModes() {
     else if (unit->player) moveMode2.onGuard = 0;
     moveMode.wasMode3 = 0;
     moveMode.mode = unit->moveMode;
-    if (unit->moveMode == 3) {
-        moveMode.mode = kModeRun;
+    if (unit->moveMode == MoveMode::Run) {
+        moveMode.mode = MoveMode::Walk;
         moveMode.wasMode3 = 1;
     }
     moveMode2.wasMode3 = 0;
     moveMode2.mode = unit->moveMode2;
-    if (unit->moveMode2 == 3) {
-        moveMode2.mode = kModeRun;
+    if (unit->moveMode2 == MoveMode::Run) {
+        moveMode2.mode = MoveMode::Walk;
         moveMode2.wasMode3 = 1;
     }
-    if (action.modifier && moveMode.mode == kModeRun) moveMode2.wasMode3 |= 2;
+    if (action.modifier && moveMode.mode == MoveMode::Walk) moveMode2.wasMode3 |= 2;
     if (!unit->player && moveMode2.onGuard) moveMode2.wasMode3 |= 1;
 }
 
@@ -195,9 +192,9 @@ bool UnitServer::StartMove() {
 
 bool UnitServer::StartQueuedOrder() {
     if (action2.kind == UnitOrderKind::None) return false;
-    if (action2.kind != UnitOrderKind::Stop && moveMode.mode == kModeStop) {
-        moveMode2.mode = kModeRun;
-        unit->moveMode2 = kModeRun;
+    if (action2.kind != UnitOrderKind::Stop && moveMode.mode == MoveMode::Stop) {
+        moveMode2.mode = MoveMode::Walk;
+        unit->moveMode2 = MoveMode::Walk;
         if (ChangeMoveMode()) return true;
     }
     switch (action2.kind) {
@@ -267,9 +264,9 @@ bool UnitServer::StartQueuedOrder() {
     }
 
     case UnitOrderKind::Stop:
-        if (moveMode.mode != kModeStop) {
-            moveMode2.mode = kModeStop;
-            unit->moveMode2 = kModeStop;
+        if (moveMode.mode != MoveMode::Stop) {
+            moveMode2.mode = MoveMode::Stop;
+            unit->moveMode2 = MoveMode::Stop;
             if (ChangeMoveMode()) return true;
             TellParty(unit, AckKind::Stopped);
             EndCurrentOrder();
@@ -402,12 +399,12 @@ void UnitServer::ExecuteOrder() {
     } else {
         if (action.kind != UnitOrderKind::Use) {
             if (IsCastKind(action.kind) && unit->MapType() == MapObjectType::Hero) {
-                if (moveMode.mode == 0) {
-                    SetUnitMoveMode2(kModeWalk);
+                if (moveMode.mode == MoveMode::Lie) {
+                    SetUnitMoveMode2(MoveMode::Crawl);
                     stop = true;
                 }
-            } else if (moveMode.mode != kModeRun) {
-                SetUnitMoveMode2(kModeRun);
+            } else if (moveMode.mode != MoveMode::Walk) {
+                SetUnitMoveMode2(MoveMode::Walk);
                 stop = true;
             }
         }

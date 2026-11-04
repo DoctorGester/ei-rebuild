@@ -62,16 +62,16 @@ void RemoveFromSlots(Unit* unit, Item** slots, std::uint32_t slot) {
     unit->MarkChanged(NetField::Equipment);
 }
 
-// Speed byte of movement mode `mode` (0..4) times the base speed; the base speed for others.
-float ModeSpeedOf(const Unit* unit, std::uint32_t mode) {
+// Speed byte of movement mode `mode` times the base speed; the base speed for others.
+float ModeSpeedOf(const Unit* unit, MoveMode mode) {
     float base = static_cast<float>(unit->params.baseSpeed) * kSpeedByteScale;
     std::uint8_t speed;
     switch (mode) {
-    case 0: speed = unit->params.modeSpeeds[3]; break;
-    case 1: speed = unit->params.modeSpeeds[2]; break;
-    case 2:
-    case 4: speed = unit->params.modeSpeeds[1]; break;
-    case 3: speed = unit->params.modeSpeeds[0]; break;
+    case MoveMode::Lie: speed = unit->params.modeSpeeds[3]; break;
+    case MoveMode::Crawl: speed = unit->params.modeSpeeds[2]; break;
+    case MoveMode::Walk:
+    case MoveMode::Stop: speed = unit->params.modeSpeeds[1]; break;
+    case MoveMode::Run: speed = unit->params.modeSpeeds[0]; break;
     default: return base;
     }
     return base * (static_cast<float>(speed) * 2.0f) * kByteScale;
@@ -131,7 +131,7 @@ void Unit::SetPathTimeShift(int value) {
     MarkChanged(NetField::Motion);
 }
 
-void Unit::SetMoveModes(int mode, int mode2) {
+void Unit::SetMoveModes(MoveMode mode, MoveMode mode2) {
     moveMode = mode;
     moveMode2 = mode2;
     MarkChanged(NetField::Modes);
@@ -271,12 +271,12 @@ Unit::MoveSpeeds Unit::GetMoveSpeeds() {
     float base = static_cast<float>(params.baseSpeed) * kSpeedByteScale;
     MoveSpeeds speeds{base, base};
     std::uint8_t speed;
-    switch (static_cast<std::uint32_t>(moveMode)) {
-    case 0: speed = params.modeSpeeds[3]; break;
-    case 1: speed = params.modeSpeeds[2]; break;
-    case 3: speed = params.modeSpeeds[0]; break;
-    case 2:
-    case 4:
+    switch (moveMode) {
+    case MoveMode::Lie: speed = params.modeSpeeds[3]; break;
+    case MoveMode::Crawl: speed = params.modeSpeeds[2]; break;
+    case MoveMode::Run: speed = params.modeSpeeds[0]; break;
+    case MoveMode::Walk:
+    case MoveMode::Stop:
         speeds.turn = static_cast<float>(params.modeSpeeds[0]) * speeds.forward * 2.0f * kByteScale;
         speeds.forward = static_cast<float>(params.modeSpeeds[1]) * speeds.forward * 2.0f * kByteScale;
         speeds.turn = g_logicSettings.rotateSpeedMult * speeds.turn;
@@ -292,9 +292,9 @@ Unit::MoveSpeeds Unit::GetMoveSpeeds() {
     return speeds;
 }
 
-float Unit::MoveSpeed2() { return ModeSpeedOf(this, static_cast<std::uint32_t>(moveMode2)); }
+float Unit::MoveSpeed2() { return ModeSpeedOf(this, moveMode2); }
 
-float Unit::MoveSpeedFor(int mode) { return ModeSpeedOf(this, static_cast<std::uint32_t>(mode)); }
+float Unit::MoveSpeedFor(MoveMode mode) { return ModeSpeedOf(this, mode); }
 
 float Unit::ScaledValue(float value) {
     if (!player) return value * kThree + kTen;
@@ -312,8 +312,8 @@ float Unit::BaseSpeed() {
 
 float Unit::ModeSpeed() {
     float speed = BaseSpeed();
-    if (moveMode != 0 && IsDead() == 0) {
-        if (moveMode == 1) return speed * kSlowModeScale;
+    if (moveMode != MoveMode::Lie && IsDead() == 0) {
+        if (moveMode == MoveMode::Crawl) return speed * kSlowModeScale;
         return speed;
     }
     return speed * kIdleScale;

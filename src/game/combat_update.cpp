@@ -343,7 +343,7 @@ void UnitServer::StandStill() {
 
 void UnitServer::PlayHitReaction() {
     AnimationSteps reaction;
-    if (moveMode.mode == 0 && state == UnitState::Idle) return;
+    if (moveMode.mode == MoveMode::Lie && state == UnitState::Idle) return;
     BuildDeathAnimation(&reaction, hitDirection, 0, 0);
     int duration = reaction.Duration();
     if (action.kind == UnitOrderKind::Attack && state == UnitState::Turning &&

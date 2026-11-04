@@ -149,7 +149,7 @@ int UnitStats::DamageSlot(Unit* unit, UnitVitals* vitals, const DamageInfo* hit,
 int UnitStats::ApplyHit(Unit* unit, UnitVitals* vitals, const DamageInfo* hit, Item* weapon) {
     if (hit->location >= kLocations) return 0;
     if (hit->location == 0) flags |= UnitStatsFlag::Head;
-    if (hit->typeWeights[5] != 0.0f) flags |= UnitStatsFlag::Electrical;
+    if (hit->Weight(DamageType::Lightning) != 0.0f) flags |= UnitStatsFlag::Electrical;
     DamageInfo copy = *hit;
     if (copy.amount == 0.0f) return 0;
     float difficulty = unit->player ? 1.0f

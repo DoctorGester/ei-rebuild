@@ -542,7 +542,7 @@ void CopyThrough(Party* target, Party* source) {
 void PartyUnitRecord::Load(ByteStream* stream) {
     ClearItems();
     weaponIndex = 0;
-    moveMode2 = 2;
+    moveMode2 = MoveMode::Walk;
     leaderId = -1;
     selected = 0;
     fightAtWill = 1;

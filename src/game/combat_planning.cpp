@@ -214,14 +214,14 @@ void UnitServer::PlanMove(const Vector3& point, int moving, int run) {
     WorldServer* world = ServerWorld();
     AIPath path;
     std::vector<Unit*> lifted = LiftNearby(point, static_cast<char>(moving));
-    int mode = unit->moveMode;
+    MoveMode mode = unit->moveMode;
     SectorMap* sectors = &world->aiMap.sectorMap;
     AIMap* map = MapOf(world);
     bool running = static_cast<std::uint8_t>(run) != 0;
-    if (running && mode != 2 && mode != 3) {
+    if (running && mode != MoveMode::Walk && mode != MoveMode::Run) {
         // A runner plans as walking (mode 2) when it may leave its cell that way.
         sectors->Remove(unit);
-        unit->moveMode = 2;
+        unit->moveMode = MoveMode::Walk;
         unit->UpdateSizeClass();
         if (!map->CanLeaveCell(unit)) unit->moveMode = mode;
         sectors->Add(unit);

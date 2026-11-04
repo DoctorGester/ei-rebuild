@@ -54,7 +54,7 @@ constexpr int kLevelDifferenceLimit = 25;
 // The speed shown: the speed of the mode (mode 3) for a unit outside the group, else of the current one,
 // times 7.5.
 float ShownSpeed(Unit* unit, bool outsideGroup) {
-    const float speed = outsideGroup ? unit->MoveSpeedFor(3) : unit->MoveSpeed2();
+    const float speed = outsideGroup ? unit->MoveSpeedFor(MoveMode::Run) : unit->MoveSpeed2();
     return speed * 7.5f;
 }
 

@@ -595,7 +595,7 @@ bool ScriptRun::Execute(Script* script) {
             UnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             DamageInfo damage = {};
-            damage.typeWeights[5] = 1.0f;
+            damage.Weight(DamageType::Lightning) = 1.0f;
             damage.weaponValue = 0;
             damage.attackRoll = 100.0f;
             damage.amount = f[0];
@@ -754,8 +754,10 @@ bool ScriptRun::Execute(Script* script) {
         case ScriptFunction::Run: {
             UnitServer* state = UnitStateArg(cmd);
             if (!state) break;
-            int style = function == ScriptFunction::Lie ? 0 : function == ScriptFunction::Crawl ? 1 : function == ScriptFunction::Run ? 3 : 2;
-            state->SetMoveStyle(style);   // 0 lie, 1 crawl, 2 walk, 3 run
+            MoveMode style = function == ScriptFunction::Lie ? MoveMode::Lie
+                           : function == ScriptFunction::Crawl ? MoveMode::Crawl
+                           : function == ScriptFunction::Run ? MoveMode::Run : MoveMode::Walk;
+            state->SetMoveStyle(style);
             break;
         }
         case ScriptFunction::Rest: {   // Rest(unit)

@@ -99,7 +99,7 @@ void QueueNextAnimation(UnitServer* c) {
 // it fits. Returns from the tick.
 void HitWhileTurning(UnitServer* c) {
     AnimationSteps steps;
-    if (c->moveMode.mode != 0 || c->state != UnitState::Idle) {
+    if (c->moveMode.mode != MoveMode::Lie || c->state != UnitState::Idle) {
         c->BuildDeathAnimation(&steps, c->hitDirection, 0, 0);
         if (c->CanReactFor(steps.Duration())) {
             c->keepHitDirection = 1;
@@ -264,7 +264,7 @@ void Replan(UnitServer* c, WorldServer* world, bool liftBlocker, const Vector3& 
 void Exhaustion(UnitServer* c) {
     Unit* unit = c->unit;
     if (unit->obstacle == 0) return;
-    if (c->moveMode.mode != 2 || c->moveMode2.mode != 2) return;
+    if (c->moveMode.mode != MoveMode::Walk || c->moveMode2.mode != MoveMode::Walk) return;
     Player* player = unit->player;
     if (c->moveMode.wasMode3 && player && player->godMode == 0 && g_serverWorld.zoneMode != ZoneMode::Base) {
         UnitVitals& vitals = unit->Vitals();
@@ -274,7 +274,7 @@ void Exhaustion(UnitServer* c) {
         value = *stamina;
         if (value == 0.0f) {
             c->moveMode2.wasMode3 = 0;
-            int mode = (c->moveMode2.wasMode3 & 1) ? 3 : c->moveMode2.mode;
+            MoveMode mode = (c->moveMode2.wasMode3 & 1) ? MoveMode::Run : c->moveMode2.mode;
             if (mode != unit->moveMode2) {
                 unit->moveMode2 = mode;
                 c->unit->MarkChanged(NetField::Modes);
@@ -285,7 +285,7 @@ void Exhaustion(UnitServer* c) {
                     c->unit->player->Server()->SendUnitSpeech(c->unit, AckKind::OutOfStamina);
                 *stamina = 0.0f;
                 c->moveMode2.wasMode3 = 0;
-                int mode = (c->moveMode2.wasMode3 & 1) ? 3 : c->moveMode2.mode;
+                MoveMode mode = (c->moveMode2.wasMode3 & 1) ? MoveMode::Run : c->moveMode2.mode;
                 if (mode != c->unit->moveMode2) {
                     c->unit->moveMode2 = mode;
                     c->unit->MarkChanged(NetField::Modes);

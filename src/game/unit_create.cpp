@@ -139,8 +139,8 @@ void Unit::Reset() {
     animationStart = 0;
     motionMode = 0;
     pathTimeShift = 0;
-    moveMode = 2;
-    moveMode2 = 2;
+    moveMode = MoveMode::Walk;
+    moveMode2 = MoveMode::Walk;
     pendingWeapon = -1;
     dead = 0;
     obstacle = 0;

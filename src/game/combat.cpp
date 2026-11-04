@@ -169,8 +169,7 @@ void UnitServer::GetSpellDamage(std::uint32_t source, DamageWords* out) {
     *out = DamageWords{};
     if (spell) {
         auto value = static_cast<std::uint16_t>(lib::Truncate(SpellDamage(spell)));
-        int damageType = spell->GetDamageType();
-        out->words[1 + damageType] = value;
+        out->words[1 + static_cast<int>(spell->GetDamageType())] = value;
     }
     out->words[0] = 0x7FFF;
 }
@@ -287,13 +286,13 @@ std::uint32_t UnitServer::WeaponTypeMask() {
 }
 
 std::uint32_t UnitServer::MoveModeMask(const MoveModeState* mode) {
-    switch (static_cast<std::uint32_t>(mode->mode)) {
-    case 0: return AnimationKeyOf(AnimationMoveBits::Mode0);
-    case 1: return AnimationKeyOf(AnimationMoveBits::Mode1);
-    case 2:
-        if (mode->onGuard || unit->MapType() != MapObjectType::Hero) return AnimationKeyOf(AnimationMoveBits::Mode2);
+    switch (mode->mode) {
+    case MoveMode::Lie: return AnimationKeyOf(AnimationMoveBits::Lie);
+    case MoveMode::Crawl: return AnimationKeyOf(AnimationMoveBits::Crawl);
+    case MoveMode::Walk:
+        if (mode->onGuard || unit->MapType() != MapObjectType::Hero) return AnimationKeyOf(AnimationMoveBits::Walk);
         return 0;
-    case 4: return AnimationKeyOf(AnimationMoveBits::Mode4);
+    case MoveMode::Stop: return AnimationKeyOf(AnimationMoveBits::Stop);
     default: return 0;
     }
 }
@@ -551,16 +550,16 @@ void UnitServer::UpdateMoveFactors() {
     float sum = scaled + (1.0f - factor);
     moveFactors[3] = sum;
     moveFactors[3] = std::bit_cast<float>(world->weatherFactor) * sum;
-    if (unit->moveMode == 0) {
+    if (unit->moveMode == MoveMode::Lie) {
         moveFactors[2] = kMode0Factor2;
         moveFactors[3] = kMode0Factor3 * moveFactors[3];
-    } else if (unit->moveMode == 1) {
+    } else if (unit->moveMode == MoveMode::Crawl) {
         moveFactors[2] = kMode1Factor2;
     }
     if (state == UnitState::Idle) {
-        if (unit->moveMode == 0) moveFactors[0] = kIdleMode0Factor0;
-        else if (unit->moveMode == 1) moveFactors[0] = kIdleMode1Factor0;
-        if (unit->moveMode == 3) {
+        if (unit->moveMode == MoveMode::Lie) moveFactors[0] = kIdleMode0Factor0;
+        else if (unit->moveMode == MoveMode::Crawl) moveFactors[0] = kIdleMode1Factor0;
+        if (unit->moveMode == MoveMode::Run) {
             moveFactors[0] = kIdleMode3Scale * moveFactors[0];
             moveFactors[1] = kIdleMode3Factor1;
         }

@@ -122,6 +122,12 @@ static_assert(sizeof(UnitParams) == 0x108);   // sent as its 264 bytes
 struct PathOrder;
 struct SpeechRecord;
 class Unit;
+
+// A unit's movement mode (Unit::moveMode, the wanted moveMode2, the scripts' Lie / Crawl / Walk / Run style, the
+// movement modes' sectors of the interface): the numbers of the animation data. Run is 3 for the unit and the
+// style, and 2 with MoveModeState::wasMode3 in the controller's records; the order's run flag asks for Walk. Stop
+// is the controller's mode while it holds a path (the animation key bits of the Stop mode).
+enum class MoveMode : int { Lie = 0, Crawl = 1, Walk = 2, Run = 3, Stop = 4 };
 class UnitServer;
 class UnitClientSpecific;
 
@@ -261,7 +267,7 @@ public:
     void SetMotionMode(int mode);
     void SetPathTimeShift(int shift);
     // Marks part 6.
-    void SetMoveModes(int mode, int mode2);
+    void SetMoveModes(MoveMode mode, MoveMode mode2);
     // Shows the helmet (clears MapObjectFlag::HelmetHidden) or hides it (sets it); marks part 5.
     void ShowHelmet(bool show);
     // Sets (stunned) or clears flags bit 0x1000000. Returns the new flags.
@@ -284,7 +290,7 @@ public:
     MoveSpeeds GetMoveSpeeds();
     float MoveSpeed2();
     // The speed of movement mode `mode` (0..4; other values: the base speed).
-    float MoveSpeedFor(int mode);
+    float MoveSpeedFor(MoveMode mode);
     // 3 * value + 10 for units without a player and (value capped at 10) while MapObjectFlag::ChoosingTarget is
     // set, else 1000000.
     float ScaledValue(float value);
@@ -481,8 +487,8 @@ public:
     int animationStart;             // the world tick the animation started at (+1 per paused tick)
     int motionMode;                 // 0 plays, 1 paused (the start moves on), 2 scaled
     int pathTimeShift;              // 1: the client shifts its motion path's time each update
-    int moveMode;                   // 0..4
-    int moveMode2;
+    MoveMode moveMode;
+    MoveMode moveMode2;
     std::uint32_t activeWeapon;     // slot of the weapon in use
     int pendingWeapon;              // the weapon slot to take up (-1 none; TakeUpWeapon / ShowWeapon)
     int dead;
@@ -841,7 +847,7 @@ struct PartyUnitRecord {
     std::vector<Item*> quickItems;   // (an entry counts only with count > 0)
     std::vector<Item*> armor;
     std::vector<Item*> spells;
-    int moveMode2 = 2;                  // the unit's moveMode2
+    MoveMode moveMode2 = MoveMode::Walk;   // the unit's moveMode2
     std::uint32_t weaponIndex = 0;  // the weapon shown in the camp
     std::uint8_t selected = 0;          // the unit is selected (flags bit 4)
     int leaderId = -1;                  // the unit it follows (-1 none)
