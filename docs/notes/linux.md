@@ -165,8 +165,16 @@ lib/maths.h (float-maths.md, "Maths functions"). What still differs, and why:
 - Over 60 s on llvmpipe, left out: camera_smooth, camera_spin, render_stats, zone_gz15h_tornado (not run in H47d). On
   dzn they take 7 to 22 s and are the same as their goldens. CI run 41857898300 (8 shards, 2026-11-04) also cut
   camera_drawn and render_shadows_outside (frame waits), spells_more and levers_key (Rebirth) at their limit: all
-  six are in LINUX_SKIP. render_stats's run there also differed from step 63 on (an attack's skill +3.4e38 against
-  -3.4e38): H56 checks whether that is more than the cut.
+  six are in LINUX_SKIP. render_stats's run there also differed from record 63 on (an attack's skill +3.4e38 against
+  -3.4e38): only a consequence of its cut (H56). A `frames` step has a real-time limit, 10 s plus 100 ms a frame (16 s
+  for 60); past it the step fails and the scenario goes on with frames still to go, and as each frame is five world
+  updates, the steps after it (here the fight's spawns) land on earlier world updates and the world takes another
+  course. The skill is no unset value either: +-3.4e38 are a resolved hit's and miss's marks (combat.cpp, kHitMark /
+  kMissMark), so a sign follows the roll. In WSL on lavapipe render_stats is the same as its golden with all 32 CPUs
+  (62 s) and pinned to 4 (`taskset -c 0-3` on run_all, 106 s); pinned to 2 it is cut like the runner's (a frames step 18
+  frames short after 16 s, then its 120 s limit) and differs from the cut on; pinned to 2 with both limits raised in
+  the clone only (frames 10 min, the scenario 20 min) it is the same again in 173 s. It stays in LINUX_SKIP and
+  `LINUX_LEFT_OUT`: the runner draws too slowly for its 120 s, and alone on 32 CPUs it is just over 60 s.
 - The time zone. A save's info.sav keeps mktime of the harness's fixed date (2001-03-26 12:00), so it followed the
   machine's zone: the build machine's Europe/Prague (summer time that day, UTC+2) gave the goldens' 985600800, GitHub's
   runner (UTC) 985608000 in every save (H51). The harness sets the process's zone to a fixed UTC+2 (`TZ=EET-2`) with
