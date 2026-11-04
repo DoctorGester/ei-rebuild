@@ -39,10 +39,13 @@ namespace {
 class StreamGuard {
 public:
     explicit StreamGuard(std::recursive_mutex& lock) : lock(lock) {
-        if (lock.try_lock()) return;
+        if (lock.try_lock()) {
+            audio::NoteStreamTaken({});
+            return;
+        }
         const auto start = std::chrono::steady_clock::now();
         lock.lock();
-        audio::NoteStreamWait(std::chrono::steady_clock::now() - start);
+        audio::NoteStreamTaken(std::chrono::steady_clock::now() - start);
     }
     ~StreamGuard() { lock.unlock(); }
     StreamGuard(const StreamGuard&) = delete;
@@ -1371,6 +1374,7 @@ void SoundManager::StreamThread() {
         if (elapsed < kStreamPeriodMs) platform::Sleep(kStreamPeriodMs - elapsed);
 
         streamLock.lock();
+        const auto heldFrom = std::chrono::steady_clock::now();
         musicFader.Update();
         audio::SetStreamVolume(streamSample, musicFader.level);
         for (;;) {
@@ -1385,6 +1389,7 @@ void SoundManager::StreamThread() {
             audio::QueueHalf(streamSample, half, streamBuffers[buffer].data(), streamBufferSize);
             ReadStreamVanilla();
         }
+        audio::NoteStreamHeld(std::chrono::steady_clock::now() - heldFrom);
         streamLock.unlock();
     }
 }
