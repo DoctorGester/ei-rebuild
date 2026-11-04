@@ -25,11 +25,7 @@ constexpr int kMiddle = 8;
 // The unit shape cache.
 UnitShapeCache g_unitShapes;
 
-// No references, no flags.
 UnitShape::UnitShape(float newRadius) {
-    refs = 0;
-    flags6 = 0;
-    flags7 = 0;
     radius = newRadius;
     std::memset(levels, 0, sizeof(levels));
     for (int dy = -kMiddle; dy < kMiddle; ++dy) {
@@ -44,9 +40,6 @@ UnitShape::UnitShape(float newRadius) {
 }
 
 UnitShape::UnitShape() {
-    refs = 0;
-    flags6 = 0;
-    flags7 = 0;
     OnShutdown();
 }
 

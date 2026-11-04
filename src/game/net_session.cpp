@@ -42,7 +42,7 @@ void TickSession(net::SessionBase* session, std::uint32_t elapsed) {
 
 // A new driver for `player`, put at the end of the owning list (shared there).
 netlink::DriverLink* NewDriver(netlink::DriverSession* self, net::Connection* player) {
-    auto* driver = net::NewCounted<netlink::DriverLink>();
+    auto* driver = new netlink::DriverLink();
     driver->player.Assign(player);
     self->drivers.emplace_back(driver);
     return driver;
@@ -147,7 +147,6 @@ void SessionBase::RegisterMessageTypes() {
         FileRequestMessage::Create, AwardMessage::Create, PartyMessage::Create, PartyMemberMessage::Create,
         TradeMessage::Create};
     for (std::uint32_t type = 1; type <= 17; ++type) {
-        reliable[type] = 0;
         types.Register(type, kFactories[type - 1]);
     }
 }
@@ -295,7 +294,7 @@ void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rat
         LogAddress(game::nettexts::AddClient(), text);
     }
     RemoveClient(FindClient(address));
-    clients.emplace_back(NewCounted<Connection>(id));
+    clients.emplace_back(new Connection(id));
     Connection* added = clients.back().Get();
     added->address = *address;
     if (rate <= 500) rate = 500;

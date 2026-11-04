@@ -37,7 +37,7 @@ constexpr std::uint32_t kSayLifetime = 0x42700000;
 
 // A chat line for the server (SayMessage) carrying `text`, kept 60 s on the client's timers.
 void SendSay(const std::string& text) {
-    auto* say = net::NewCounted<net::SayMessage>();
+    auto* say = new net::SayMessage();
     // A failed allocation is not checked from here on.
     say->text = text;
     net::g_gameClient->AddTimed(say, kSayLifetime);

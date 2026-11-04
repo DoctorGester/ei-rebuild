@@ -92,7 +92,7 @@ void ClientSession::StartParty(PlayerMessage* partner) {
     BindingMessage* currentBinding = binding;
     if (!IsLive(currentBinding)) return;
     if (!IsLive(currentBinding->player.Get())) return;
-    ShareAssignOwned(party, NewCounted<PartyMessage>());
+    ShareAssignOwned(party, new PartyMessage());
     party->player.Assign(binding->player.Get());
     party->partner.Assign(partner);
 }
@@ -158,7 +158,7 @@ void ClientOnVariableGone(ClientSession* self, Message* message) {
 void ClientOnFile(ClientSession* self, FileMessage* message) {
     Append(self->files, message);
     if (MapFileExists(message->name.data())) return;
-    auto* request = NewCounted<FileRequestMessage>();
+    auto* request = new FileRequestMessage();
     request->file.Assign(message);
     Append(self->fileRequests, request);
 }

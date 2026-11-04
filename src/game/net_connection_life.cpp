@@ -1,42 +1,19 @@
-// A connection's construction, reset, clone and destruction, the id pools' copy and the replica entries'
-// slots. See net_connection.h and docs/notes/network.md.
-#include "net_coder.h"
-
-#include "core_streams.h"
+// A connection's state and reset, its tick (clocks, lost packets, sending, delayed id reuse, the timeout) and what a
+// delivered packet does. See net_connection.h and docs/notes/network.md. The clocks are doubles holding float
+// values: their sums are float sums, as the original's were.
 #include "net_connection.h"
+
 #include "lib/float_select.h"
 #include "platform/platform.h"
 
 #include <cmath>
-#include <cstring>
 #include <iterator>
-#include <memory>
+#include <utility>
 #include <vector>
 
 namespace net {
 
 namespace {
-
-// The std::vector<int> of received sequences given back to the pool.
-void FreeReceived(Connection* c) { std::destroy_at(&c->received); }
-
-// Every container destroyed in the destructor's order (Reset's teardown).
-void DestroyForReset(Connection* c) {
-    c->reliableIn.~GrowingBuffer();
-    c->reliableOut.~GrowingBuffer();
-    std::destroy_at(&c->incoming);
-    std::destroy_at(&c->headers);
-    std::destroy_at(&c->attached);
-    std::destroy_at(&c->records);
-    std::destroy_at(&c->acknowledged);
-    std::destroy_at(&c->history);
-    std::destroy_at(&c->priorities);
-    std::destroy_at(&c->byObject);
-    std::destroy_at(&c->bySentId);
-    std::destroy_at(&c->freedIds);
-    for (int i = kMessageTypes; i-- > 0;) std::destroy_at(&c->idPools[i].free);    // the last first
-    FreeReceived(c);
-}
 
 // The time from `then` to `now` on a connection's clock (doubles holding float values).
 float Age(double now, double then) { return static_cast<float>(now) - static_cast<float>(then); }
@@ -45,70 +22,17 @@ constexpr float kRttKeep = 0.93f;   // the share of the old average kept per sam
 
 } // namespace
 
-// The constructor (id). The containers are members, built before the body (the original builds the reliable
-// streams last); then: the send sequence starts at the tick count, the round trip at the session's
-// maxRoundTrip (or a constant without a session), its square average 0 (the original squared whatever the memory
-// held, so the first loss timeouts were the memory's), send interval 0.04, budget 220.
-Connection::Connection(std::uint32_t newId) {
-    address = NetAddress{};
-    for (IdPool& pool : idPools) pool.next = 0;
-    std::uint32_t tick = platform::TickCount();
-    id = 0;
-    SessionBase* session = g_currentSession;
-    if (session) {
-        roundTrip = static_cast<float>(session->maxRoundTrip);
-    } else {
-        roundTrip = 5.0f;
-    }
-    sendSequence = static_cast<std::uint16_t>(tick);
-    sendInterval = 0.04f;
-    sendTimer = 0.0f;
-    idleTime = 0.0f;
-    updateBudget = 220;
-    roundTripSquare = 0.0f;
-    lastReceived = 0;
-    sequenceHigh = 0x10000;
-    freedIds.resize(2);
-    id = newId;
-    clock = 0.0;
-    freedTimer = 0.0f;
-    headerSequence = 0;
-    incomingSequence = 0;
-    ackMask = 0;
-    ackBase = 0;
-}
+ConnectionState::ConnectionState(std::uint32_t newId)
+    : sendSequence(static_cast<std::uint16_t>(platform::TickCount())), id(newId),
+      roundTrip(g_currentSession ? static_cast<float>(g_currentSession->maxRoundTrip) : 5.0f) {}
 
-// Tears every container down (in the destructor's order)
-// and constructs the connection again with id 0 (the count and the flags kept).
-void Connection::OnShutdown() {
-    DestroyForReset(this);
-    new (this) Connection(0);
-}
-
-// The members are destroyed in the original's order (the reliable streams first, then the lists and maps
-// from the last).
-Connection::~Connection() = default;
-
-// ---- Id pools and replica entries ---------------------------------------------------------------------
-
-ReplicaEntry::ReplicaEntry() {
-    version = 0;
-    id = 0;
-}
-
-ReplicaEntry::~ReplicaEntry() {}
-
-// --- Net connection tick -----------------------------------------------------------------------------
-
-// A connection's tick: clocks, lost-packet detection, sending, delayed id reuse and the
-// timeout. See net_connection.h and docs/notes/network.md. The clocks are doubles holding float values: their
-// sums are float sums, as the original's were.
+void Connection::OnShutdown() { ConnectionState::operator=(ConnectionState(0)); }
 
 // Advances the idle time and the clock by `dt`. Packets older than the loss timeout (3 standard deviations
 // above the average round trip, at least 0.1, at most the session's maxRoundTrip) are rolled back and move
 // to the acknowledged list, where they stay for maxRoundTrip seconds. Sends an update every sendInterval
 // (stopping early once the reliable stream and the header queue are empty). Every idReuseTime seconds the
-// oldest batch of freed ids returns to the id pools. False once the peer was silent for the session's
+// older batch of freed ids returns to the id pools. False once the peer was silent for the session's
 // timeout or the reliable stream holds 32000 bytes.
 bool Connection::Tick(double dt) {
     g_currentConnection = this;
@@ -149,15 +73,9 @@ bool Connection::Tick(double dt) {
     freedTimer += step;
     if (freedTimer > static_cast<float>(g_currentSession->idReuseTime)) {
         freedTimer = 0.0f;
-        std::vector<FreedId>& oldest = freedIds.front();
-        for (auto& e : oldest) {
-            auto entryId = static_cast<std::uint16_t>(e.id);
-            std::vector<std::uint16_t>& pool = idPools[e.type].free;
-            pool.push_back(entryId);
-        }
-        oldest.clear();
-        freedIds.erase(freedIds.begin());
-        freedIds.emplace_back();
+        for (const FreedId& freed : freedOlder) idPools[freed.type].free.push_back(freed.id);
+        freedOlder = std::move(freedNewer);
+        freedNewer.clear();
     }
 
     bool alive = false;
@@ -170,29 +88,15 @@ void Connection::Delivered(SentPacket* packet) {
     const float sample = Age(clock, packet->time);
     roundTrip = (1.0f - kRttKeep) * sample + kRttKeep * roundTrip;
     roundTripSquare = (1.0f - kRttKeep) * sample * sample + kRttKeep * roundTripSquare;
-    for (SentItem& sent : packet->items) {
-        SentItem* item = &sent;
-        auto action = static_cast<std::int32_t>(item->action);
-        if (action == SentItem::kChangedReliable) {
-            std::uint32_t version = item->version;
-            if (item->entry->version > version) version = item->entry->version;
-            item->entry->version = version;
-        } else if (action > 1 && action < 4) {
-            ReplicaEntry* entry = item->entry;
-            std::map<std::uint32_t, EntryRef>& tree = priorities[entry->flags >> 1];
-            auto found = tree.find(entry->serial);
-            if (found != tree.end()) {
-                entry = item->entry;
-                std::int32_t key = (static_cast<std::int32_t>(entry->type) << 16) + entry->id;
-                bySentId.erase(key);
-                FreedId value{};
-                value.id = entry->id;
-                value.type = entry->type;
-                std::vector<FreedId>& batch = freedIds.back();    // the newest batch
-                batch.push_back(value);
-                tree.erase(found);
-            }
-        }
+    for (const SentItem& item : packet->items) {
+        if (item.action != SentItem::Action::Removed) continue;
+        ReplicaEntry* entry = item.entry;
+        std::map<std::uint32_t, EntryRef>& tree = priorities[entry->priority];
+        auto found = tree.find(entry->serial);
+        if (found == tree.end()) continue;
+        bySentId.erase(RecordKey(entry->type, entry->id));
+        freedNewer.push_back({entry->id, entry->type});
+        tree.erase(found);
     }
 }
 

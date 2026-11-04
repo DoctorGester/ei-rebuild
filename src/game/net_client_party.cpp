@@ -65,7 +65,7 @@ void ClientSession::PublishParty() {
 
     std::uint32_t scratch = 0;
     for (Item* item : own->items) {
-        auto* message = NewCounted<PartyMemberMessage>();
+        auto* message = new PartyMemberMessage();
         HeldRef<PartyMemberMessage> ref(message);
         ByteStream* stream = &message->stream;
         stream->Clear();

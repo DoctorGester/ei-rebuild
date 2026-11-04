@@ -142,7 +142,7 @@ void ServerSession::CollectReplicated(std::vector<Replicated>** out) {
 // Makes `*out` a new server entry: the name, the kind, the current map's title as the description when a map
 // message is held (else empty), the number of clients, the maximum and whether a password is set.
 void ServerSession::Describe(Ref<ServerEntry>* out) {
-    auto* entry = NewCounted<ServerEntry>();
+    auto* entry = new ServerEntry();
     entry->name = name;
     entry->kind = kind;
     std::string* description = &entry->description;
@@ -327,7 +327,7 @@ void ClientSession::ReadServerList(GameBuffer* in) {
                 complete = true;
                 break;
             }
-            auto* entry = NewCounted<ServerEntry>();
+            auto* entry = new ServerEntry();
             buffer.Get(entry->address);
             if (!record->Read(&buffer)) break;
             entry->kind = record->kind;

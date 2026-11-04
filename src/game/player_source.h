@@ -16,11 +16,7 @@ class NetLink;
 
 class PlayerSource : public RefObject {
 public:
-    PlayerSource() {
-        refs = 0;
-        flags6 = 0;
-        flags7 = 0;
-    }
+    PlayerSource() = default;
     ~PlayerSource() override;   // The destructor; the base has no fields
 
     // New connections appended to the list.

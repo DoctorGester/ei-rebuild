@@ -42,9 +42,6 @@ void WorldServer::CreateMissile(Spell* spell, Unit* caster, Vector3 from, MapObj
     if (caster) from = caster->localPosition;
 
     auto* missile = new SpellEffect();
-    missile->refs = 0;    // the count and flags are cleared before the null test
-    missile->flags6 = 0;
-    missile->flags7 = 0;
     missile->Init(this, spell, caster, from, target, end, static_cast<std::uint8_t>(extra));
     if (missile->Update()) {
         projectiles.emplace_back(missile);

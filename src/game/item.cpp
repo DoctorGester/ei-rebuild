@@ -190,11 +190,7 @@ LockKey Item::GetUse() { return LockKey{0, 0, 0}; }
 
 // --- ItemLink -----------------------------------------------------------------------------------
 
-ItemLink::ItemLink() {
-    refs = 0;
-    flags6 = 0;
-    flags7 = 0;
-}
+ItemLink::ItemLink() = default;
 
 void ItemLink::OnShutdown() {}
 

@@ -45,12 +45,12 @@ void ServerSession::SetMap(const std::string* newName) {
 
     {
         std::string messageName = *newName + game::ZoneSuffix2Text();
-        auto* message = NewCounted<ZoneMessage>();
+        auto* message = new ZoneMessage();
         message->text = messageName;
         queuedMaps.emplace_back(message);
     }
 
-    auto* mapMessage = NewCounted<MapMessage>();
+    auto* mapMessage = new MapMessage();
     ShareAssignOwned(map, mapMessage);
     MapMessage* current = map.Get();
     if (newName != &current->text) current->text = *newName;
@@ -104,7 +104,7 @@ void ServerSession::QueueMapList() {
     for (auto& zone : PickZones(kind, mapName.data())) {
         {
             std::string key = zone + game::ZoneSuffix1Text();
-            auto* message = NewCounted<ZoneMessage>();
+            auto* message = new ZoneMessage();
             message->text = key;
             queuedMaps.emplace_back(message);
         }
@@ -125,7 +125,7 @@ bool ServerSession::FinishMap(const std::string* mapFile) {
     queuedMaps.clear();
 
     std::string messageName = *mapFile + game::ZoneSuffix3Text();
-    auto* message = NewCounted<ZoneMessage>();
+    auto* message = new ZoneMessage();
     message->text = messageName;
     queuedMaps.emplace_back(message);
     return true;
@@ -144,7 +144,7 @@ void ServerSession::ShareFile(const std::string* fileName, GameBuffer* data) {
     for (auto node = files.begin(); node != files.end(); ++node)
         if (node->Get()->name == *fileName) return;
 
-    auto* file = NewCounted<FileMessage>();
+    auto* file = new FileMessage();
 
     std::int32_t size = data->Size();
     std::int32_t chunkCount = (size + kChunkSize - 1) / kChunkSize;
@@ -154,7 +154,7 @@ void ServerSession::ShareFile(const std::string* fileName, GameBuffer* data) {
 
     // Filled with shares of one chunk: each element a clone of it (it is marked copy-on-share by the first share).
     auto& chunks = file->chunks;
-    chunks.resize(static_cast<std::size_t>(chunkCount), SharedRef<FileChunkMessage>(NewCounted<FileChunkMessage>()));
+    chunks.resize(static_cast<std::size_t>(chunkCount), SharedRef<FileChunkMessage>(new FileChunkMessage()));
 
     data->Seek(0);
     std::int32_t remaining = size;

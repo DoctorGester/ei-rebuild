@@ -146,11 +146,7 @@ public:
 // An item's turning state in the item views: made by the item draw and the moves.
 class ItemTurn final : public RefObject {
 public:
-    ItemTurn() {
-        refs = 0;
-        flags6 = 0;
-        flags7 = 0;
-    }
+    ItemTurn() = default;
     void OnShutdown() override;
     ItemTurn* Clone() override;
 

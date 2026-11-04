@@ -19,7 +19,6 @@ public:
         kDetached = 0x80,       // flags7: shut down by its owner; not shared any more
     };
 
-    // The count and the flags are the creator's to set (a class rebuilt in place keeps them).
     RefCounted() = default;
     RefCounted(const RefCounted&) = delete;
     RefCounted& operator=(const RefCounted&) = delete;
@@ -32,9 +31,10 @@ public:
         if (--refs == 0) delete this;
     }
 
-    std::int16_t refs;
-    std::uint8_t flags6;
-    std::uint8_t flags7;
+    // A new object has no references and no flags.
+    std::int16_t refs = 0;
+    std::uint8_t flags6 = 0;
+    std::uint8_t flags7 = 0;
 };
 
 // The test the network code inlines before using a counted object: set and not detached.

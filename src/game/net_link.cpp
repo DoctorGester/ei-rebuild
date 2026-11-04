@@ -46,9 +46,9 @@ LoopbackLink::LoopbackLink() = default;
 // releasing the previous one does not touch it, so it is `first`.)
 LoopbackLink* LoopbackLink::CreatePair(WorldHandle* player) {
     if (!player) return nullptr;
-    LoopbackLink* first = net::NewCounted<LoopbackLink>();
+    LoopbackLink* first = new LoopbackLink();
     player->pendingLink.Assign(first);
-    LoopbackLink* second = net::NewCounted<LoopbackLink>();
+    LoopbackLink* second = new LoopbackLink();
     first->peer.Assign(second);
     second->peer.Assign(first);
     return second;
