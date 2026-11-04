@@ -532,6 +532,8 @@ int CachedIndexCount(const CachedMesh& mesh) { return static_cast<int>(mesh.indi
 
 int CachedVertexCount(const CachedMesh& mesh) { return static_cast<int>(mesh.vertices.size()); }
 
+Vector3 CachedCorner(const CachedMesh& mesh, int k) { return mesh.vertices[mesh.indices[static_cast<std::size_t>(k)]].position; }
+
 std::uint32_t CachedMeshVersion(const CachedMesh& mesh) { return mesh.version; }
 
 void UploadCachedMeshes(const Frame& f) {

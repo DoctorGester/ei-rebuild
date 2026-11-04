@@ -295,6 +295,12 @@ bool ObjectSkins(int id, std::string* first, std::string* second) {
     return false;
 }
 
+const void* ClientObject(int id) {
+    for (MapObject* object : g_clientWorld.objects)
+        if (object && object->id == id) return object;
+    return nullptr;
+}
+
 int RegionCount(void* window) { return static_cast<int>(std::ssize(static_cast<UiWindow*>(window)->regions)); }
 bool Region(void* window, int index, RegionInfo* region) {
     const UiRegion* found = static_cast<UiWindow*>(window)->regions[index];
