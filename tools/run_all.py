@@ -83,6 +83,10 @@ GOLDEN_PERIOD = 20   # world updates between the digest records of the suite's g
 # the default is 6 (WSL's memory is capped at 16 GB; docs/notes/linux.md, "The harness"). EI_HARNESS_SLOTS overrides
 # both.
 def under_wsl():
+    # Linux only: Windows' Python started from WSL (hold_windows_slots()) works in a \\wsl.localhost folder, where
+    # /proc/version is WSL's (it took 6 of Windows' 16 slots as the most, H50a).
+    if not sys.platform.startswith('linux'):
+        return False
     with contextlib.suppress(OSError), open('/proc/version', encoding='utf-8', errors='replace') as f:
         return 'microsoft' in f.read().lower()
     return False
@@ -1214,13 +1218,13 @@ DZN_ICD = os.path.join('~', 'mesa-dzn', 'share', 'vulkan', 'icd.d', 'dzn_icd.x86
 
 # Linux, no scenario names given: the scenarios left out (docs/notes/linux.md, "The harness" and "The GPU under WSL").
 # On the system's driver (lavapipe, the CPU): CI's LINUX_SKIP (.github/workflows/suites-linux.yml) and two more that
-# pass 60 s on llvmpipe. On a GPU (dzn) the two that fail on any Linux: a closed port is refused at once, and
-# SDL_SetWindowSize resizes asynchronously under X11.
+# pass 60 s on llvmpipe. On a GPU (dzn) the three that differ on any Linux: a closed port is refused at once,
+# SDL_SetWindowSize resizes asynchronously under X11, and net_pair_master's peer lists the server one poll sooner.
 LINUX_LEFT_OUT = {
     'system': ('net_pair_join', 'net_pair_kick', 'net_pair_leave', 'net_pair_master', 'net_pair_quest', 'net_pair_speed',
                'net_pair_zone', 'net_second_master', 'render_present_window', 'render_smooth', 'render_terrain_seams',
                'ui_quicksave', 'camera_drag_rate', 'camera_smooth', 'camera_spin', 'render_stats', 'zone_gz15h_tornado'),
-    'gpu': ('net_second_master', 'render_present_window'),
+    'gpu': ('net_pair_master', 'net_second_master', 'render_present_window'),
 }
 
 # Under WSL on Windows' GPU (dzn), games at once by default: the Windows game slots free when the run starts, at most

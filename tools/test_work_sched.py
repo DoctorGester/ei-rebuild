@@ -768,11 +768,14 @@ class SchedTest(unittest.TestCase):
                 self.assertIsNone(run_all.vulkan_driver(choice, env, wsl=wsl))
                 self.assertNotIn('VK_DRIVER_FILES', env)
             self.assertEqual(run_all.vulkan_driver('dzn', {}, wsl=False), manifest)
-            self.assertEqual(run_all.linux_left_out(manifest), ('net_second_master', 'render_present_window'))
+            self.assertIn('net_second_master', run_all.linux_left_out(manifest))
+            self.assertNotIn('camera_smooth', run_all.linux_left_out(manifest))
             self.assertIn('camera_smooth', run_all.linux_left_out(None))
         with mock.patch.object(run_all, 'DZN_ICD', manifest), quiet:
             self.assertIsNone(run_all.vulkan_driver(None, {}, wsl=True))      # not Linux: nothing to choose
             self.assertEqual(run_all.linux_left_out(None), ())
+            with mock.patch.object(sys, 'platform', 'win32'):
+                self.assertFalse(run_all.under_wsl())          # Windows' side of hold_windows_slots(), H50a
         with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
             run_all.parse_args(['--dzn', '--lavapipe'])
 
