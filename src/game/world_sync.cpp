@@ -110,26 +110,23 @@ int WorldServer::SyncPlayer(Player* player) {
     if (state->state == PlayerServer::State::Joined && zoneLoaded != 0) {
         std::uint32_t dirty = player->dirty;
         if (dirty & PlayerDirty::Zone) {
-            int sent = SendZone(player);
-            if (!sent) return sent;
+            SendZone(player);
             state->SetDisconnect();
             state->SendItems();
             return state->Flush();
         }
         if (dirty & PlayerDirty::Weather) {
             int strength = lib::RoundEven(weatherStrength);
-            if (!state->SendWeather(static_cast<std::uint8_t>(weather), static_cast<std::uint16_t>(strength))) return 0;
+            state->SendWeather(static_cast<std::uint8_t>(weather), static_cast<std::uint16_t>(strength));
         }
         if (player->dirty & PlayerDirty::Time) {
             const Clock clock = GetTime();
-            if (!state->SendTime(std::bit_cast<std::uint32_t>(clock.hours), std::bit_cast<std::uint32_t>(clock.speed))) return 0;
+            state->SendTime(clock.hours, clock.speed);
         }
         if (player->dirty & PlayerDirty::Wind) {
             Vector3 direction;
             lib::LoadBytes(direction, windDirection);
-            if (!state->SendWind(std::bit_cast<std::uint32_t>(direction.x), std::bit_cast<std::uint32_t>(direction.y),
-                                    std::bit_cast<std::uint32_t>(direction.z), windStrength))
-                return 0;
+            state->SendWind(direction.x, direction.y, direction.z, std::bit_cast<float>(windStrength));
         }
         if (player->dirty & PlayerDirty::Countdowns) state->SendCountdowns(&countdowns);
 
@@ -171,32 +168,26 @@ int WorldServer::SyncPlayer(Player* player) {
     return state->Flush();
 }
 
-int WorldServer::SendZone(Player* player) {
-    MemoryStream message;
-
+void WorldServer::SendZone(Player* player) {
     PlayerServer* state = player->Server();
-    int result;
-    if (state->state != PlayerServer::State::Joined) {
-        result = 1;
-    } else {
-        ByteStream* stream = &message;
-        auto write = [&](const void* data, unsigned size) { stream->Write(data, size); };
-        int previousTick = tick - 1;
-        write(&previousTick, 4);
-        write(mapName.c_str(), static_cast<unsigned>(mapName.size() + 1));
-        write(mobName.c_str(), static_cast<unsigned>(mobName.size() + 1));
-        int exitCount = static_cast<int>(std::ssize(exits));
-        write(&exitCount, 4);
-        for (const ZoneExit& exit : exits) exit.Write(&message);
-        write(&cave, 4);
+    if (state->state != PlayerServer::State::Joined) return;
+    MemoryStream message;
+    ByteStream* stream = &message;
+    auto write = [&](const void* data, unsigned size) { stream->Write(data, size); };
+    int previousTick = tick - 1;
+    write(&previousTick, 4);
+    write(mapName.c_str(), static_cast<unsigned>(mapName.size() + 1));
+    write(mobName.c_str(), static_cast<unsigned>(mobName.size() + 1));
+    int exitCount = static_cast<int>(std::ssize(exits));
+    write(&exitCount, 4);
+    for (const ZoneExit& exit : exits) exit.Write(&message);
+    write(&cave, 4);
 
-        UnitSet units;
-        for (auto node = mapObjects.map.begin(); node != mapObjects.map.end() && node->second; ++node)
-            if (Unit* unit = UnitOrNull(node->second)) units.Add(unit);
-        units.Write(&message);
+    UnitSet units;
+    for (auto node = mapObjects.map.begin(); node != mapObjects.map.end() && node->second; ++node)
+        if (Unit* unit = UnitOrNull(node->second)) units.Add(unit);
+    units.Write(&message);
 
-        result = state->SendZone(&message);
-        if (result != 0) player->connection->ItemsGiven(&player->items, 0);
-    }
-    return result;
+    state->SendZone(&message);
+    player->connection->ItemsGiven(&player->items, 0);
 }

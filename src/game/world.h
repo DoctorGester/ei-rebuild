@@ -526,7 +526,7 @@ public:
     int SyncPlayer(Player* player);
     // Sends `player` the zone to load (tick, map and .mob names, exits, the zone's units) and, for a new
     // game, where it starts. 0 when the player state refused it.
-    int SendZone(Player* player);
+    void SendZone(Player* player);
 
     // WorldDayTime's value: the script's IsNight reads it, the units' movement factors scale by it.
     float nightLevel;

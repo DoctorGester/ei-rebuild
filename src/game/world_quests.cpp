@@ -491,8 +491,8 @@ void WorldServer::StoreParty(std::vector<PartyUnitRecord*>* list, Party* party, 
         if (placements) {
             UnitPlacement entry;
             entry.id = unit->id;
-            std::memcpy(entry.position, &unit->localPosition.x, sizeof(entry.position));
-            std::memcpy(entry.rotation, &unit->localRotation, sizeof(entry.rotation));
+            entry.position = unit->localPosition;
+            entry.rotation = unit->localRotation;
             entry.moveMode = static_cast<std::uint32_t>(unit->moveMode2);
             entry.weapon = unit->activeWeapon;
             placements->push_back(entry);

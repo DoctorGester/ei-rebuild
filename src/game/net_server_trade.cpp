@@ -22,8 +22,6 @@ namespace net {
 
 namespace {
 
-constexpr std::uint32_t kFinishedDelay = 0x42700000;   // 60.0f
-
 // The offer of `offer`'s partner (its player is our partner and its partner our player), or null.
 PartyMessage* FindPartnerOffer(const std::vector<HeldRef<PartyMessage>>& list, PartyMessage* offer) {
     for (auto& node : list) {
@@ -39,8 +37,6 @@ void TellPartner(ServerSession* self, PartyMessage* offer, int text) {
     const char* name = offer->player.Get()->name.data();
     self->Announce(g_interface.MessageText(text, name), partner);
 }
-
-constexpr std::uint32_t kAwardDelay = 0x42700000;   // 60.0f
 
 } // namespace
 
@@ -109,7 +105,7 @@ void ServerOnTradeCancel(ServerSession* self, PartyMessage* message) {
     if (!IsLive(trade)) return;
     if (trade->done) {
         HeldRef<TradeMessage> held(trade);
-        TimedEntry<HeldRef<TradeMessage>> entry(kFinishedDelay, held);
+        TimedEntry<HeldRef<TradeMessage>> entry(kTimedEntryLifetime, held);
         self->finishedTrades.push_back(entry);
     }
     // remove(trade), the trade held meanwhile.
@@ -136,7 +132,7 @@ void ServerSession::QueueAward(RefObject* connection, AwardKind awardKind, float
     // Shared three times over: the list keeps a clone of the entry's clone (each share marks the object
     // copy-on-share); the entry's and then the first share are destroyed.
     SharedRef<AwardMessage> shared(award);
-    TimedEntry<SharedRef<AwardMessage>> entry(kAwardDelay, shared);
+    TimedEntry<SharedRef<AwardMessage>> entry(kTimedEntryLifetime, shared);
     awards.push_back(entry);
 }
 
@@ -144,29 +140,15 @@ void ServerSession::QueueAward(RefObject* connection, AwardKind awardKind, float
 // when its connection is live, queues an Item award for each item name of `entry` (its given items)
 // and, with `withFinal`, a QuestReset award with an empty text.
 void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) {
-    auto sentinel = bindings.end();
-    auto node = bindings.begin();
-    for (;;) {
-        if (node == sentinel) return;
-        auto* binding = node->Get();
-        auto* player = binding->player.Get();
-        if (IsLive(player) && player->host) break;
-        ++node;
-    }
-    RefObject* connection = node->Get()->connection.Get();
+    auto host = std::find_if(bindings.begin(), bindings.end(), [](const auto& binding) {
+        auto* player = binding.Get()->player.Get();
+        return IsLive(player) && player->host;
+    });
+    if (host == bindings.end()) return;
+    RefObject* connection = host->Get()->connection.Get();
     if (!IsLive(connection)) return;
 
-    const std::vector<std::string>& items = entry->lists[0];   // the items given
-    auto count = [&items] { return static_cast<std::uint32_t>(items.end() - items.begin()); };
-    if (count() != 0) {
-        std::uint32_t i = 0;
-        if (count() != 0) {
-            do {
-                QueueAward(connection, AwardKind::Item, 0.0f, items.begin()[i]);
-                ++i;
-            } while (i < count());
-        }
-    }
+    for (const std::string& item : entry->lists[0]) QueueAward(connection, AwardKind::Item, 0.0f, item);   // the items given
     if (withFinal) QueueAward(connection, AwardKind::QuestReset, 0.0f, std::string(game::kEmptyText));
 }
 

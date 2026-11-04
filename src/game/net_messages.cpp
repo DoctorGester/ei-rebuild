@@ -13,10 +13,9 @@ namespace net {
 namespace {
 
 // The empty text the server entry's reset assigns.
-const char* EmptyText() { return "?"; }
 
 void AssignEmptyText(std::string& s) {
-    const char* text = EmptyText();
+    const char* text = "?";
     s.assign(text, text + std::strlen(text));
 }
 

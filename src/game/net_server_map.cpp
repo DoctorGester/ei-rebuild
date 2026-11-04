@@ -27,8 +27,6 @@ namespace {
 
 constexpr std::int32_t kChunkSize = static_cast<std::int32_t>(FileChunkMessage::kDataSize);
 
-std::size_t StringNpos() { return 0xFFFFFFFFu; }
-
 bool Is(const std::string& s, const char* t) {
     std::size_t length = std::strlen(t);
     return s.size() == length && std::memcmp(s.data(), t, length) == 0;
@@ -216,7 +214,7 @@ void ServerOnCommand(ServerSession* self, CommandMessage* message) {
         }
         if (node == self->queuedMaps.end()) return;
         const std::size_t cut = text->size() - 2;
-        std::string suffix = text->substr(cut, StringNpos());
+        std::string suffix = text->substr(cut);
         std::string name = text->substr(0, text->size() - 2);
         if (Is(suffix, game::ZoneSuffix1Text())) self->SetMap(&name);
         if (Is(suffix, game::ZoneSuffix2Text())) self->LeaveZone();

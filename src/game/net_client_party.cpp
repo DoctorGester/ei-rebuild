@@ -248,16 +248,7 @@ void ClientSession::ApplyAwards() {
 void ClientSession::Tick(double dt) {
     ClientSession* self = this;
     self->ClientBase::Tick(dt);
-    const float step = static_cast<float>(dt);
-    for (auto node = self->timers.begin(); node != self->timers.end();) {
-        float& seconds = node->seconds;
-        seconds -= step;
-        if (seconds < 0.0f) {
-            node = self->timers.erase(node);
-        } else {
-            ++node;
-        }
-    }
+    CountDown(self->timers, static_cast<float>(dt));
     if (self->awards.begin() == self->awards.end() || g_serverWorld.zoneMode != ZoneMode::Base) return;
     Player* localPlayer = LocalPlayer();
     if (!localPlayer || localPlayer->Server()->state != PlayerServer::State::Joined || !g_serverWorld.zoneLoaded) return;

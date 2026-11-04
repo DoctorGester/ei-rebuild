@@ -179,8 +179,8 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
             }
         }
         if (placement) {
-            lib::LoadBytes(message->position, placement->position);
-            lib::LoadBytes(message->rotation, placement->rotation);
+            message->position = placement->position;
+            message->rotation = placement->rotation;
         } else {
             PlaceInLine(message, position, rotation, i);
         }

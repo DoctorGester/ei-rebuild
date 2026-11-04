@@ -372,9 +372,8 @@ void MpConnectScreen::SaveAddressBook() {
 
 void MpConnectScreen::RebuildList() {
     entries.clear();
-    unsigned index = 0;
-    for (net::ServerEntry* server = net::g_gameClient->ServerAt(0); server;
-         server = net::g_gameClient->ServerAt(static_cast<int>(++index))) {
+    for (const auto& listed : net::g_gameClient->servers) {
+        const net::ServerEntry* server = listed.Get();
         MpAddressEntry& entry = entries.emplace_back();
         entry.address = server->address;
         entry.gameType = static_cast<int>(server->kind);

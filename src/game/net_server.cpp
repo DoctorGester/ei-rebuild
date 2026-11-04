@@ -28,20 +28,6 @@ namespace {
 
 const char* MasterHost() { return options::g_options.masterServerName.c_str(); }    // the master server's host name
 
-// Timed entries {seconds left (float), object}: each loses `dt`; those below zero are erased.
-template <typename List>
-void CountDown(List& list, float dt) {
-    for (auto node = list.begin(); node != list.end();) {
-        float& seconds = node->seconds;
-        float left = seconds - dt;
-        seconds = left;
-        if (left < 0.0f) {
-            node = list.erase(node);
-        } else {
-            ++node;
-        }
-    }
-}
 
 } // namespace
 

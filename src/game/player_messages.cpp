@@ -91,17 +91,12 @@ void PlayerServer::SetVariable(std::string_view name, std::uint32_t value) {
 }
 
 void PlayerServer::SetVariableMax(std::string_view name, float value) {
-    float stored = Variables(player)->Get(name);
-    float current = stored;
-    std::uint32_t currentBits, valueBits;
-    currentBits = std::bit_cast<std::uint32_t>(current);
-    valueBits = std::bit_cast<std::uint32_t>(value);
+    float current = Variables(player)->Get(name);
     // The larger value; the current one when the new one is not above it (or either is NaN).
-    std::uint32_t resultBits = value >= current ? valueBits : currentBits;
-    float result;
-    result = std::bit_cast<float>(resultBits);
+    float result = value >= current ? value : current;
     // Nothing to do when it compares equal.
     if (result == current) return;
+    const std::uint32_t resultBits = std::bit_cast<std::uint32_t>(result);
     VariableSet(Variables(player), name, resultBits);
     WriteType(&out, ServerMessage::SetVariable);
     out.WriteString(name);
@@ -122,36 +117,32 @@ void PlayerServer::SendGameTime() {
     player->dirty &= ~PlayerDirty::GameState;
 }
 
-int PlayerServer::SendZone(MemoryStream* zone) {
+void PlayerServer::SendZone(MemoryStream* zone) {
     player->dirty &= ~PlayerDirty::Zone;
     WriteType(&out, ServerMessage::Zone);
     out.WriteStream(zone);
-    return 1;
 }
 
-int PlayerServer::SendWeather(std::uint8_t weather, std::uint16_t strength) {
+void PlayerServer::SendWeather(std::uint8_t weather, std::uint16_t strength) {
     player->dirty &= ~PlayerDirty::Weather;
     std::uint8_t payload[3] = {weather, static_cast<std::uint8_t>(strength), static_cast<std::uint8_t>(strength >> 8)};
     WriteType(&out, ServerMessage::Weather);
     Write(&out, payload, 3);
-    return 1;
 }
 
-int PlayerServer::SendTime(std::uint32_t time, std::uint32_t speed) {
+void PlayerServer::SendTime(float hours, float speed) {
     player->dirty &= ~PlayerDirty::Time;
-    std::uint32_t payload[2] = {time, speed};
+    float payload[2] = {hours, speed};
     WriteType(&out, ServerMessage::Time);
     Write(&out, payload, 8);
-    return 1;
 }
 
-int PlayerServer::SendWind(std::uint32_t x, std::uint32_t y, std::uint32_t z, std::uint32_t w) {
+void PlayerServer::SendWind(float x, float y, float z, float strength) {
     player->dirty &= ~PlayerDirty::Wind;
     WriteType(&out, ServerMessage::Wind);
-    std::uint32_t xyz[3] = {x, y, z};
-    Write(&out, xyz, 12);
-    WriteDword(&out, w);
-    return 1;
+    const Vector3 direction{x, y, z};
+    Write(&out, &direction, 12);
+    Write(&out, &strength, 4);
 }
 
 void PlayerServer::SendCountdowns(const WaterTweens* source) {
@@ -160,25 +151,20 @@ void PlayerServer::SendCountdowns(const WaterTweens* source) {
     player->dirty &= ~PlayerDirty::Countdowns;
 }
 
-int PlayerServer::SendCameraPlacement(const Vector3& at, std::uint32_t startValue, std::uint32_t sessionKind) {
+void PlayerServer::SendCameraPlacement(const Vector3& at, std::uint32_t startValue, std::uint32_t sessionKind) {
     WriteType(&out, ServerMessage::CameraPlacement);
     Write(&out, &at, 12);
     WriteDword(&out, startValue);
     WriteDword(&out, sessionKind);
     lastPosition = at;
-    return 1;
 }
 
-std::uint32_t PlayerServer::SendFreeCamera(const Vector3& at, const Vector3& other, std::uint8_t flag) {
+void PlayerServer::SendFreeCamera(const Vector3& at, const Vector3& other, std::uint8_t flag) {
     WriteType(&out, ServerMessage::FreeCamera);
     Write(&out, &at, 12);
     Write(&out, &other, 12);
     Write(&out, &flag, 1);
     lastPosition = at;
-    // EAX is left holding the position's z.
-    std::uint32_t z;
-    z = std::bit_cast<std::uint32_t>(at.z);
-    return z;
 }
 
 // --- Simple messages -----------------------------------------------------------------------------
@@ -259,7 +245,6 @@ void PlayerServer::ClearServerState() {
     ReleaseAll(sentTimed);
     state = State::NotLoggedIn;
     lastPosition = {};
-    spare = -1;
     possessedGroup.Clear();
     partyUnits.Clear();
     possessedId = 0xFFFFFFFFu;
