@@ -317,17 +317,18 @@ constexpr float kNoSkill = 0.0f;
 } // namespace
 
 // The skill bonus byte of the weapon prototype `itemId >> 16`: skillBonus[0] for weapon types 0-4 and 8,
-// skillBonus[1] for 5 and 6. An unknown prototype reads its type from address 0x0C (it faults),
-// other types index 0x7FFFFFFF bytes on (kept).
+// skillBonus[1] for 5 and 6. The original faulted on an unknown prototype (it read the type through null) and read
+// 0x7FFFFFFF bytes past the record for any other type; both go to the DebugLog and give no bonus.
 float WeaponPrototypeSkillBonus(std::uint32_t itemId) {
-    const auto* weapon =
-        itemdb::WeaponAt(itemId >> 16);
-    int type = weapon ? weapon->type : *reinterpret_cast<const volatile int*>(std::uintptr_t{0x0C});   // faults like the game
-    int skill = 0x7FFFFFFF;
-    if (type < 5 || type == 8) skill = 0;
-    else if (type == 5 || type == 6) skill = 1;
-    if (!weapon) return kNoSkill;
-    return weapon->skillBonus[skill];
+    const auto* weapon = itemdb::WeaponAt(itemId >> 16);
+    if (!weapon) {
+        game::DebugLog("No weapon prototype %d for a skill bonus.\n", static_cast<int>(itemId >> 16));
+        return kNoSkill;
+    }
+    if (weapon->type < 5 || weapon->type == 8) return weapon->skillBonus[0];
+    if (weapon->type == 5 || weapon->type == 6) return weapon->skillBonus[1];
+    game::DebugLog("Weapon prototype %d of type %d has no skill bonus.\n", static_cast<int>(itemId >> 16), weapon->type);
+    return kNoSkill;
 }
 
 float UnitParams::VisionRange(float daylight) {
