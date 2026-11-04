@@ -1,7 +1,9 @@
 # R17c: the weather on the surfaces (docs/notes/renderer.md section 13, item 11b) at 1440x1080 by day. Zone1's start
 # dry, a few seconds into rain, after a minute of rain (wet ground and objects, puddles, the drops' rings), half a minute
 # after the rain stopped (drying), the sea in rain (rings and splashes); the snow map gz11k before and after two
-# minutes of snow. `weathercheck` reads how wet the ground is and the snow's cover. Frames only (goldens hold none).
+# minutes of snow. `weathercheck` reads how wet the ground is and the snow's cover; its ranges are wide, as the game's
+# rain grows and fades at its own pace (Rebirth's faster, and five minutes after SetWeather("clear") its ground is
+# still a little wet). Frames only (goldens hold none).
 render checkall
 resolution 1440x1080
 reject Script error
@@ -22,7 +24,7 @@ rebirth minimap 726 80.6 3.75 2.7
 wait 300000
 frames 5
 freeze
-weathercheck 0 0.05 0 0
+weathercheck 0 0.25 0 0
 capture weather_dry
 unfreeze
 
@@ -31,7 +33,7 @@ console @SetWeather("rain")
 wait 5000
 frames 5
 freeze
-weathercheck 0.02 0.5 0 0
+weathercheck 0.02 0.7 0 0
 capture weather_rain_start
 unfreeze
 wait 60000
