@@ -21,7 +21,7 @@ void SetOn(bool on);
 
 // What the frame's draws go to: the sun's shadow map with its range passes, the point lights' shadow faces, the
 // ground and water pages, the models that cast shadows (objects and units), the rest of the world view (the other
-// models, effects, decals, pre-transformed draws), the interface (with the canvases' queued drawing at the frame's
+// models, effects, decals, pre-transformed draws), the interface (with its pictures' frame copies at the frame's
 // start), and the present's pass (the frame onto the window, this overlay).
 enum class Pass : int { Sun, Point, Terrain, Objects, Other, Ui, Present, Count };
 constexpr int kPasses = static_cast<int>(Pass::Count);

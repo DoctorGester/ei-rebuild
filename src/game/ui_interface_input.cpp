@@ -182,7 +182,6 @@ void Interface3D::Update() {
             secondBackdrop = nullptr;
             backdrop = next;
             backdropMode = next ? 2 : 0;
-            if (next) next->SwapContents(true);
         }
         if (std::ssize(stack) == 1) {
             delete backdrop;
@@ -193,7 +192,6 @@ void Interface3D::Update() {
             serverFlag = 0;
         }
         if (!stack.empty()) {
-            stack.back()->Show(true);
             ScreenOf(stack.back())->MessageResult(static_cast<int>(pendingValue));
         }
         if (pendingValue == kLeaveGame) {
@@ -497,7 +495,6 @@ void Interface3D::DrawOverlays() {
         backdropMode = 2;
     } else if (backdropMode == 3) {
         // A window opens over a window: the screen as it is, the old backdrop put aside.
-        if (backdrop) backdrop->SwapContents(false);
         secondBackdrop = backdrop;
         MakeBackdrop(this);
         backdrop->CaptureScreen();

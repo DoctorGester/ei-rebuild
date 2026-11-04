@@ -214,8 +214,6 @@ void BattleScreen::LayoutChanged() {
     else portraits->Rebuild(false);
     RefreshSelection();
     SetPendingAction(mode, slot, item);
-    // Under another window the panels' surfaces stay put aside, as the screen's own are.
-    if (ui->GetActiveWindow() != this) Show(false);
 }
 
 void BattleScreen::Draw(SceneRenderer* pass) {

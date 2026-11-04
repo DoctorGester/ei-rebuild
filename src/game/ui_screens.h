@@ -458,19 +458,19 @@ public:
     virtual ~UiScrollingSurface();
     // Loads the text file `name` of `archive` into the surface (LoadRtf); whether it was found.
     bool Load(MappedResource* archive, const char* name);
-    // Reads the RTF block and lays it out at the surface's width (render_rich_text.h), the offset 0, the text
-    // rendered.
+    // Reads the RTF block and lays it out at the surface's width (render_rich_text.h), the offset 0.
     void LoadRtf(const void* data, std::uint32_t size);
-    // While the speed is not 0 the offset moves by the game time passed times the speed (truncated) and the
-    // text is rendered again; then the surface's own draw.
+    // While the speed is not 0 the offset moves by the game time passed times the speed (truncated) and FindEnd
+    // runs; then, shown, the text is drawn into the frame (not in the background colour, the key), its top
+    // `offset` twips above the surface's.
     void Blit() override;
     // Starts the text at `speed` (0: still), from below the surface when `fromBelow` (the offset minus the surface's height in
     // twips); the end offset 0, the start time the game time.
     void Start(float speed, bool fromBelow);
-    // Draws the text onto the canvas, white first, its top `offset` twips above the surface's. The first time the whole
-    // text fits above 1000 twips below the surface the offset is kept; once the offset has moved 1000 twips plus the
-    // height past it, the speed and the kept offset become 0 (RichEdit's EM_FORMATRANGE end in the original).
-    void RenderText();
+    // The first time the whole text fits above 1000 twips below the surface the offset is kept; once the offset has
+    // moved 1000 twips plus the height past it, the speed and the kept offset become 0 (RichEdit's EM_FORMATRANGE
+    // end in the original).
+    void FindEnd();
 
     float startTime = 0.0f;
     int offsetX = 0;            // twips

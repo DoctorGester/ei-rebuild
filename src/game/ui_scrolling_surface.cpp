@@ -1,5 +1,5 @@
 // The titles' scrolling text surface (UiScrollingSurface, ui_screens.h): a window surface holding an RTF text
-// (outro.rtf), laid out once by render_rich_text as RichEdit 2.0 placed it and drawn onto the surface's canvas as
+// (outro.rtf), laid out once by render_rich_text as RichEdit 2.0 placed it and drawn into the frame each frame as
 // glyph runs at a scroll offset that moves with the game time. Twips and font sizes go to pixels at a DPI taken from
 // the window's size, as the interface's fonts are sized (TitlesDpi), not from the system's (docs/notes/ui-native.md,
 // "The titles' rich text"). See docs/notes/items_spells.md.
@@ -75,18 +75,13 @@ void UiScrollingSurface::LoadRtf(const void* data, std::uint32_t size) {
     text = std::make_unique<render::text::RichLayout>(render::text::LayoutRichText(
         render::text::ReadRtf(std::string_view(static_cast<const char*>(data), size)), rectWidth, dpi, false));
     offset = 0;
-    RenderText();
+    FindEnd();
 }
 
-void UiScrollingSurface::RenderText() {
-    if (!holder || !text) return;
+void UiScrollingSurface::FindEnd() {
+    if (!text) return;
     const int dpi = TitlesDpi(this);
-    const Rect page{0, 0, width, height};
-    render::ui::Fill(holder, page, background);
     const int top = render::text::TwipsToPixels(-offset, dpi);
-    for (const render::text::RichDraw& draw :
-         render::text::RichDraws(*text, render::text::TwipsToPixels(-offsetX, dpi), top, Rect{0, 0, width, height}))
-        render::ui::GlyphRun(holder, *draw.font, draw.layout, draw.colour);
     const int textHeight = HeightInTwips(this);
     if (endOffset > 0) {
         if (offset > endOffset + kExtraTwipsBelow + textHeight) {
@@ -103,9 +98,16 @@ void UiScrollingSurface::Blit() {
         const float now = GameTime();
         offset = static_cast<int>((now - startTime) * speed + offset);
         startTime = now;
-        RenderText();
+        FindEnd();
     }
-    UiSurface::Blit();
+    if (!shown || !text) return;
+    const Rect clip = Rect{0, 0, ui->width, ui->height}.Intersection(rect);
+    if (clip.IsEmpty()) return;
+    const int dpi = TitlesDpi(this);
+    const int top = render::text::TwipsToPixels(-offset, dpi);
+    for (const render::text::RichDraw& draw :
+         render::text::RichDraws(*text, render::text::TwipsToPixels(-offsetX, dpi), top, Rect{0, 0, width, height}))
+        if (draw.colour != background) render::ui::Glyphs(*draw.font, draw.layout, rect.TopLeft(), draw.colour, clip);
 }
 
 void UiScrollingSurface::Start(float newSpeed, bool fromBelow) {

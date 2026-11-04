@@ -66,8 +66,10 @@ const Draw kDraws[] = {
     {"terrain", kRgba8, true, 4, -1, true},
     {"mesh", kRgba8, true, 1},
     {"mesh", kRgba8, true, 4, -1, true},
-    {"ui_blit", kRgba8, true, 1},   // an interface canvas onto the frame
-    {"ui_blit", kRgba8, true, 4, -1, true},
+    {"ui_quad", kRgba8, true, 1},   // the interface's quads and glyphs
+    {"ui_quad", kRgba8, true, 4, -1, true},
+    {"ui_picture", kRgba8, true, 1},   // a frame picture onto the frame
+    {"ui_picture", kRgba8, true, 4, -1, true},
     {"into_multisampled", kRgba8, true, 4, -1, true},
     {"depth_from_resolved", kRgba8, true, 1},
     // The window's back buffer.
@@ -83,15 +85,9 @@ const Draw kDraws[] = {
     {"shadow_terrain", kNone, true, 1},
     {"shadow_reduce", SDL_GPU_TEXTUREFORMAT_R32G32B32A32_FLOAT, false, 1},
     {"shadow_dilate", SDL_GPU_TEXTUREFORMAT_R32G32B32A32_FLOAT, false, 1},
-    // The interface canvases (render_ui.cpp): RGBA8, the glyphs' coverage R8 and the save's picture R16_UINT.
-    {"ui_solid", kRgba8, false, 1},
-    {"ui_glyph", SDL_GPU_TEXTUREFORMAT_R8_UNORM, false, 1},
-    {"ui_compose", kRgba8, false, 1},
-    {"ui_grey", kRgba8, false, 1},
+    // The interface's frame pictures (render_ui.cpp): the copy into an RGBA8 picture and the save's picture R16_UINT.
     {"ui_copy", kRgba8, false, 1},
-    {"ui_move", kRgba8, false, 1},
     {"ui_rgb565", SDL_GPU_TEXTUREFORMAT_R16_UINT, false, 1},
-    {"ui_blit", kRgba8, false, 1},
 };
 
 int ProgramIndex(const char* name) {

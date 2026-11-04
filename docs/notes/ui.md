@@ -2,8 +2,8 @@
 
 Screens, windows and the battle HUD (`src/game/ui*.cpp`). Layouts and per-function behaviour are in the headers (`ui.h`,
 `ui_camp.h`, `ui_screens.h`, `ui_item_info.h`, `ui_cursor.h`, `console.h`) and the code; this note holds how the pieces fit,
-which scenarios reach them and the facts the code does not say. How the interface's pixels are made (canvases, text, the
-glyph atlas) is ui-native.md.
+which scenarios reach them and the facts the code does not say. How the interface's pixels are made (the surfaces drawn
+each frame, text, the glyph atlas) is ui-native.md.
 
 ## 1. Conventions shared by every screen
 
@@ -625,26 +625,24 @@ which SaveGame writes to the new save's shot.sav, so the file's bytes are the or
 ## Surface blit
 
 A window surface's draw (UiSurface::Blit; called by UiWindow's surface pass and the interface's draw for the backdrop and
-the frame rate surface): when the surface exists and is shown, the part of its screen rectangle inside the screen is drawn
-from the surface's canvas (render::ui::DrawCanvas), keyed when its blend is SurfaceBlend::Keyed. Every surface is opaque or
-keyed; the original's stretch bit was never set. See renderer.md section 6 and ui-native.md.
+the frame rate surface): when the surface is shown, its frame picture and its draws are drawn into the frame at its
+rectangle, clipped to it and the screen; a keyed surface (SurfaceBlend::Keyed) leaves out what is in its background colour.
+Every surface is opaque or keyed; the original's stretch bit was never set. See ui-native.md section 3.
 
 ## Surface construction
 
 The window surface's constructors and destructor (UiSurface): one taking (interface, layout left, top, right, bottom, blend,
 scale flag) and one taking (interface, layout rectangle, blend; always scaled). Both scale the rectangle to the screen
-(where WideScreen sits), make a surface holder of its size, add height * pitch to the surface-bytes total and set the shown
-flag. The holder has no memory: the surface's pixels are its canvas on the GPU, made black with it (UiSurface::MakeCanvas).
-An allocation failure ends the game.
+(where WideScreen sits) and set the shown flag; an empty rectangle ends the game ("Can't create DDSurface", as the
+original's holder did). A new surface is black (a whole fill of 0, which a surface keyed on black leaves out).
 
 ## Surface pixel work
 
 The interface surfaces' pixel work (UiSurface, ui.h): copying the screen into a surface, a 16-bit 5:6:5 copy of a surface at
 a given size (the save game's picture) and greying a surface in place ((2r + 4g + b) / 16; the escape menu's background).
-The escape menu's drawing runs all three when the menu opens. All three run on the GPU: the copy is drawn into the surface's
-canvas, the greying is a pass on it, and the 5:6:5 copy is drawn at its size and read back (renderer.md section 6, "Screen
-copies on the GPU"). PixelAt reads the surface's pixel from the GPU and SwapContents puts its canvas aside on the GPU. A
-surface without a holder is left alone.
+The escape menu's drawing runs all three when the menu opens. All three run on the GPU: the copy is a frame picture of the
+surface's size, the greying a shader option when it is drawn, and the 5:6:5 copy is drawn at its size and read back
+(renderer.md section 6, "Screen copies on the GPU"). PixelAt reads the picture's pixel from the GPU.
 
 ## 11. Behaviour moved out of header comments
 

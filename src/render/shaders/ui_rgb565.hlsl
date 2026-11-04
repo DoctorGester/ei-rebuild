@@ -1,6 +1,6 @@
-// A canvas (tex0) stretched over an R16_UINT target as 5:6:5 pixels, each channel's top bits: the save's picture
-// (ui_canvas.hlsli). Each pixel takes the canvas pixel under its centre, (2 x + 1) * canvas size / (2 * target size).
-#include "ui_canvas.hlsli"
+// A picture (tex0) stretched over an R16_UINT target as 5:6:5 pixels, each channel's top bits: the save's picture
+// (ui_params.hlsli). Each pixel takes the picture's pixel under its centre, (2 x + 1) * picture size / (2 * target size).
+#include "ui_params.hlsli"
 #ifdef EI_FRAGMENT
 Texture2D<float4> tex0 : FS_TEXTURE(0);
 SamplerState smp : FS_SAMPLER(0);

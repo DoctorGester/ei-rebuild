@@ -208,7 +208,7 @@ void RegisterAddonCommands() {
 
 void ApplyAddonGuiVisibility(UiContainer* screen) {
     if (!g_applyGui) return;
-    for (int i = 0; i < std::ssize(screen->children); ++i) screen->children[i]->SetEnabled(g_guiShown, false);
+    for (int i = 0; i < std::ssize(screen->children); ++i) screen->children[i]->SetEnabled(g_guiShown);
     g_applyGui = !g_guiShown;
 }
 

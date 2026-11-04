@@ -111,9 +111,6 @@ void Interface3D::PushWindow(UiWindow* window, bool behind, bool pauseFrame) {
     rightDown = false;
     doubleClick = false;
     if (!stack.empty()) stack.back()->Input()->Deactivate();
-    if (!stack.empty()) {
-        stack.back()->Show(false);
-    }
     if (!window) game::FatalError("Cannot activate NULL interface screen\n");
     OpenOnTop(this, window);
 }

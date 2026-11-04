@@ -333,7 +333,7 @@ enum class Primitive { LineStrip, TriangleList };
 void TlDraw(const TextureDevice* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
             Primitive primitive);
 
-// A pixel format (the screen's, a texture's, an interface canvas's): 16 or 32 bits a pixel with the channels at their
+// A pixel format (the screen's, a texture's): 16 or 32 bits a pixel with the channels at their
 // masks (`alphaMask` 0: no alpha). All zero: no format (a compressed texture's).
 struct PixelFormat {
     int bitsPerPixel = 0;

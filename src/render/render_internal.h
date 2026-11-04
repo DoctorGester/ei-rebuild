@@ -20,6 +20,10 @@
 
 class TextureDevice;
 
+namespace render::text {
+class GlyphAtlas;
+} // namespace render::text
+
 namespace render::detail {
 
 using gpu_shaders::BlitParams;
@@ -175,19 +179,30 @@ struct FillBatch {
     std::uint32_t colour;     // D3DCOLOR, alpha ignored
 };
 
-// render::ui::DrawCanvas; the canvas is looked up by its holder when drawn.
-struct CanvasBatch {
-    const void* holder;
+// The interface's quads (render::ui::Solid / Glyphs): a corner in frame pixels, its atlas texels (u < 0: full
+// coverage) and its colour's bytes R, G, B, A.
+struct UiVertex {
+    float x, y, u, v;
+    std::uint32_t colour;
+};
+// A run of the frame's uiVertices drawn with one atlas (null: solids only), scissored to `scissor`.
+struct UiBatch {
+    std::uint32_t first, count;
+    const text::GlyphAtlas* atlas;
+    Rect scissor;
+};
+// render::ui::DrawPicture.
+struct PictureBatch {
+    gpu::Texture texture;
+    int width, height;
     Rect destination;
-    Rect source;
-    bool keyed;
-    std::uint32_t key;        // 0x00RRGGBB as the canvas holds it
+    bool grey;
 };
 
 struct Command {
-    enum Kind : std::uint8_t { Terrain, Mesh, Blit, ClearDepth, Fill, Canvas };
+    enum Kind : std::uint8_t { Terrain, Mesh, Blit, ClearDepth, Fill, Ui, Picture };
     Kind kind;
-    int index;                // into terrainBatches / meshBatches / blitBatches / clears / fills / canvasBatches
+    int index;                // into terrainBatches / meshBatches / blitBatches / clears / fills / uiBatches / pictureBatches
 };
 
 // The scene's light as kept by render::SceneLighting, for the terrain shader (shaders/scene_lighting.hlsli), with
@@ -249,7 +264,9 @@ struct Frame {
     std::vector<BlitBatch> blitBatches;
     std::vector<ClearBatch> clears;
     std::vector<FillBatch> fills;
-    std::vector<CanvasBatch> canvasBatches;
+    std::vector<UiVertex> uiVertices;
+    std::vector<UiBatch> uiBatches;
+    std::vector<PictureBatch> pictureBatches;
     std::vector<Command> commands;
 // The world view's commands (render::BeginWorld .. EndWorld), the last range open (end SIZE_MAX) while the
 // world view draws. The render quality draws them multisampled and their models anisotropically.
@@ -293,7 +310,8 @@ inline void StoreRect(const Rect& r, float (&out)[4]) {
 
 // `r` on a `width` x `height` target as the rectangle programs' vertex uniforms (shaders/rect_vs.hlsli): block 0
 // of every one of them.
-static_assert(gpu_shaders::blit::kBlockRectParams == 0 && gpu_shaders::ui_blit::kBlockRectParams == 0 &&
+static_assert(gpu_shaders::blit::kBlockRectParams == 0 && gpu_shaders::ui_picture::kBlockRectParams == 0 &&
+              gpu_shaders::ui_quad::kBlockRectParams == 0 &&
               gpu_shaders::texture_compose::kBlockRectParams == 0 && gpu_shaders::texture_mip::kBlockRectParams == 0);
 inline void ApplyRect(const Rect& r, int width, int height) {
     RectParams vs{{}, {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
@@ -612,12 +630,14 @@ void CountUpload(FrameStats::Upload kind, std::size_t bytes);
 // page 0).
 void CountReuse(bool terrain, const void* key, int page, const Vertex* vertices, std::size_t count);
 
-// The interface canvases (render_ui.cpp). RunCanvasCommands draws the queued canvas commands outside any pass
-// (at the start of DrawPending, under the present's lock); CanvasBlitsDrawn: the commands recorded so far are
-// drawn.
+// The interface (render_ui.cpp). RunCanvasCommands takes the frame copies waiting for the pictures (at the start
+// of DrawPending, outside any pass); UploadUi puts the frame's quads and the atlases they need on the GPU (before
+// the passes); UiFrameDone after the present.
 void RunCanvasCommands();
-void CanvasBlitsDrawn();
-void DrawCanvasBatch(const CanvasBatch& batch, int width, int height);
+void UploadUi(const Frame& frame);
+void UiFrameDone();
+void DrawUiBatch(const UiBatch& batch, int width, int height);
+void DrawPictureBatch(const PictureBatch& batch, int width, int height);
 // SplitFrame draws the commands recorded so far (a pass split; not between frames); RunCanvasesNow runs
 // RunCanvasCommands at once.
 void SplitFrame();
