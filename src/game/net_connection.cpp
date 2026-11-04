@@ -25,11 +25,31 @@ void LogLine(const char* text) {
     if (console::Stream* log = g_netLog) console::EndLine(*log << text);
 }
 
-// The handlers registered for message `type` on `channel` (called with the session and the message). The end
-// is read again after each call.
+// The handlers registered for message `type` on `channel` (called with the session and the message).
 void CallHandlers(SessionBase* session, int channel, std::uint32_t type, Message* message) {
     std::vector<MessageHandler>& v = session->handlers[channel][type & 0xFF];
     for (auto& h : v) h(session, message);
+}
+
+// An object reference on the wire: a flag bit, the type and the id.
+struct WireId {
+    std::uint32_t flag;
+    std::uint8_t type;
+    std::uint16_t id;
+};
+
+void PutWireId(BufferCursor* cursor, const WireId& ref) {
+    cursor->PutBits(ref.flag, 1);
+    cursor->Put(ref.type);
+    cursor->Put(ref.id);
+}
+
+WireId TakeWireId(BufferCursor* cursor) {
+    WireId ref{};
+    ref.flag = cursor->GetBit();
+    cursor->Take(ref.type);
+    cursor->Take(ref.id);
+    return ref;
 }
 
 } // namespace
@@ -95,22 +115,26 @@ void Connection::QueueHeader(int budget) {
 void Connection::RollBack(SentPacket* packet) {
     if (packet->rolledBack) return;
     for (SentItem& item : packet->items) {
-        // Unreliable sends are forgotten (the entry is sent again); a reliable change only when
-        // the entry still carries the version this packet sent.
-        if (item.action == SentItem::kChanged) {
-            if (item.entry->version == item.version) item.entry->version = 0;
-        } else if (item.action == SentItem::kRemoved) {
-            item.entry->version = 0;
-        }
+        // The entry is sent again: a removal always, a change unless a later packet sent a newer version.
+        if (item.action == SentItem::Action::Removed || item.entry->version == item.version) item.entry->version = 0;
     }
     if (packet->header.Size() != 0) headers.push_back(packet->header);
     packet->rolledBack = 1;
 }
 
-void Connection::AttachRecord(RefObject* object, std::uint32_t type, std::int32_t key) {
-    AttachedId& newAttached = attached[object];
-    newAttached.id = static_cast<std::uint16_t>(key);
-    newAttached.type = static_cast<std::uint8_t>(type);
+void Connection::AssignId(ReplicaEntry* entry) {
+    if (entry->id != 0) return;
+    entry->id = idPools[entry->type].Allocate();
+    bySentId[RecordKey(entry->type, entry->id)] = entry;
+}
+
+Message* Connection::CreateRecord(Record& record, std::uint8_t type, std::uint16_t objectId) {
+    Message* object = g_currentSession->types.Create(type);
+    if (!object) return nullptr;
+    ShareAssignOwned(record.object, object);
+    record.version = 0;
+    attached[object] = {objectId, type};
+    return object;
 }
 
 bool Connection::SendUpdate(int budget) {
@@ -144,33 +168,22 @@ bool Connection::SendUpdate(int budget) {
         std::map<std::uint32_t, EntryRef>& map = priorities[priority];
         for (auto& it : map) {
             ReplicaEntry* entry = it.second.Get();
-            Message* object = entry->Object();
-            bool alive;
-            if (object && !(object->flags7 & RefObject::kDetached)) {
-                alive = true;
+            Message* object = entry->object.Get();
+            const bool alive = IsLive(object);
+            if (alive) {
                 if (entry->version == object->version) continue;
-                if (entry->id == 0) {
-                    entry->id = idPools[entry->type].Allocate();
-                    std::int32_t key = (static_cast<std::int32_t>(entry->type) << 16) + entry->id;
-                    bySentId[key] = entry;
-                }
-                c.PutBits(1, 1);
-                c.Put(entry->type);
-                c.Put(entry->id);
-                entry->Object()->Write(&c);
+                AssignId(entry);
+                PutWireId(&c, {1, entry->type, entry->id});
+                object->Write(&c);
             } else {
-                alive = false;
                 if (entry->id == 0) continue;
-                if (entry->object.Get()) {
-                    RefObject* key = entry->object.Get();
-                    byObject.erase(key);
-                    entry->object.Assign(nullptr);
+                if (object) {
+                    byObject.erase(object);
+                    entry->object.Reset();
                     entry->version = 0;
                 }
                 if (entry->version != 0) continue;
-                c.PutBits(0, 1);
-                c.Put(entry->type);
-                c.Put(entry->id);
+                PutWireId(&c, {0, entry->type, entry->id});
             }
             if (budget < static_cast<int>(c.p - payload)) {
                 // Over the budget: this priority's other entries wait (the entry just written
@@ -181,20 +194,12 @@ bool Connection::SendUpdate(int budget) {
             ++*count;
             SentItem& item = sent.items.emplace_back();
             item.entry = entry;
-            if (entry->flags & 1) {
-                if (alive) {
-                    item.action = SentItem::kChangedReliable;
-                    item.version = entry->Object()->version;
-                } else {
-                    item.action = SentItem::kRemovedReliable;
-                }
-            } else if (alive) {
-                entry->version = entry->Object()->version;
-                item.action = SentItem::kChanged;
-                item.version = entry->Object()->version;
+            if (alive) {
+                entry->version = object->version;
+                item.version = object->version;
             } else {
                 entry->version = 1;
-                item.action = SentItem::kRemoved;
+                item.action = SentItem::Action::Removed;
             }
         }
     }
@@ -208,16 +213,11 @@ bool Connection::SendUpdate(int budget) {
 }
 
 bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
-    std::uint32_t created = cursor->GetBit();
-    std::uint32_t type = 0;
-    cursor->ReadBytes(&type, 1);
-    std::uint32_t objectId = 0;
-    cursor->ReadBytes(&objectId, 2);
-    std::int32_t key = static_cast<std::int32_t>(((type & 0xFF) << 16) + (objectId & 0xFFFF));
+    const WireId ref = TakeWireId(cursor);
+    const std::int32_t key = RecordKey(ref.type, ref.id);
     auto found = records.find(key);
-    SessionBase* session = g_currentSession;
 
-    if (!created) {
+    if (!ref.flag) {
         // Removal.
         if (found == records.end()) {
             records[key].version = version;
@@ -227,77 +227,48 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
             LogLine(game::nettexts::SkipRemove());
             return true;
         }
-        Ref<Message>* slot = &found->second.object;
-        if (slot->Get()) {
-            Message* object = slot->Get();
+        if (Message* object = found->second.object.Get()) {
             attached.erase(object);
-            object = slot->Get();
-            session = g_currentSession;
-            CallHandlers(session, 2, type, object);
+            CallHandlers(g_currentSession, 2, ref.type, object);
         }
-        DestroyOwned(*slot);
+        DestroyOwned(found->second.object);
         found->second.version = version;
         return true;
     }
 
-    if (found == records.end()) {
-        // A new object.
-        Record& record = records[key];
-        Message* object = session->types.Create(type & 0xFF);
-        if (!object) return false;
-        ShareAssignOwned(record.object, object);
-        record.version = 0;
-        AttachRecord(object, type, key);
-        object->Read(cursor);
-        record.version = version;
-        CallHandlers(g_currentSession, 0, type, object);
-        return true;
-    }
-
-    if (found->second.version >= version) {
+    if (found != records.end() && found->second.version >= version) {
         // Older than what was applied: read it into a throwaway object to skip its bytes.
         LogLine(game::nettexts::SkipUpdate());
-        SharedRef<Message> scratch(g_currentSession->types.Create(type & 0xFF));
+        SharedRef<Message> scratch(g_currentSession->types.Create(ref.type));
         scratch->Read(cursor);
         return true;
     }
 
-    Ref<Message>* slot = &found->second.object;
-    if (!slot->Get()) {
-        Message* object = g_currentSession->types.Create(type & 0xFF);
-        if (object) {
-            ShareAssignOwned(*slot, object);
-            found->second.version = 0;
-            AttachRecord(object, type, key);
-        }
-        ShareAssignOwned(*slot, object);
-        if (!slot->Get()) return false;
-    }
-    slot->Get()->Read(cursor);
-    Message* object = slot->Get();
-    CallHandlers(g_currentSession, found->second.version == 0 ? 0 : 1, type, object);
-    found->second.version = version;
+    // A new record or one without an object gets a new object (version 0: its handlers are the created ones).
+    Record& record = found != records.end() ? found->second : records[key];
+    if (!record.object.Get() && !CreateRecord(record, ref.type, ref.id)) return false;
+    Message* object = record.object.Get();
+    object->Read(cursor);
+    const int channel = record.version == 0 ? 0 : 1;
+    record.version = version;
+    CallHandlers(g_currentSession, channel, ref.type, object);
     return true;
 }
 
-void Connection::Track(Replicated* item) {
-    Message* object = item->object;
-    if (!object || (object->flags7 & RefObject::kDetached)) return;
-    auto found = g_currentSession->types.byVtable.find(TypeRegistry::KeyOf(object));
-    std::int32_t type = found != g_currentSession->types.byVtable.end() ? static_cast<std::int32_t>(found->second) : -1;
+void Connection::Track(const Replicated& item) {
+    Message* object = item.object;
+    if (!IsLive(object)) return;
+    const TypeRegistry& types = g_currentSession->types;
+    auto found = types.byVtable.find(TypeRegistry::KeyOf(object));
 
     // A new entry with no version and no id yet.
-    auto* entry = NewCounted<ReplicaEntry>();
-
+    auto* entry = new ReplicaEntry();
     entry->serial = ++entriesTracked;
-    byObject[item->object] = entry;
-    priorities[static_cast<std::int8_t>(item->priority)][entry->serial] = entry;
-    entry->type = static_cast<std::uint8_t>(type);
-    entry->object.Assign(item->object);
-    entry->flags = static_cast<std::uint8_t>((entry->flags & 1) | (item->priority << 1));
-    // An object of no registered type (-1) is not sent reliably (the original read the byte before the table).
-    std::uint8_t reliable = type >= 0 ? g_currentSession->reliable[type] : 0;
-    entry->flags = static_cast<std::uint8_t>(((reliable ^ entry->flags) & 1) ^ entry->flags);
+    entry->type = static_cast<std::uint8_t>(found != types.byVtable.end() ? found->second : 0xFF);
+    entry->priority = item.priority;
+    entry->object.Assign(object);
+    byObject[object] = entry;
+    priorities[entry->priority][entry->serial] = entry;
 }
 
 void Connection::CollectChanges() {
@@ -309,7 +280,7 @@ void Connection::CollectChanges() {
     // order (the session's lists), so entries are tracked, and their serials handed out, in an order no
     // allocation decides. An object listed twice would be tracked once (the original's merge tracks the second
     // listing again); the sessions list each object once.
-    std::unordered_set<RefObject*> listed;
+    std::unordered_set<Message*> listed;
     for (const Replicated& item : items) listed.insert(item.object);
 
     // Tracked but no longer listed: never sent -> forgotten; sent -> marked gone. In serial order.
@@ -320,83 +291,47 @@ void Connection::CollectChanges() {
     for (ReplicaEntry* entry : gone) {
         auto node = byObject.find(entry->object.Get());
         if (entry->id == 0) {
-            priorities[entry->flags >> 1].erase(entry->serial);
+            priorities[entry->priority].erase(entry->serial);
         } else {
-            entry->object.Assign(nullptr);
+            entry->object.Reset();
             entry->version = 0;
         }
         byObject.erase(node);
     }
 
-    for (Replicated& item : items)
-        if (!byObject.contains(item.object)) Track(&item);
+    for (const Replicated& item : items)
+        if (!byObject.contains(item.object)) Track(item);
 }
 
-void Connection::WriteObjectRef(BufferCursor* cursor, RefObject* object) {
+// The flag says whose id it is: 0 this side's (or none), 1 the peer's.
+void Connection::WriteObjectRef(BufferCursor* cursor, Message* object) {
     if (IsLive(object)) {
-        auto found = byObject.find(object);
-        if (found != byObject.end()) {
+        if (auto found = byObject.find(object); found != byObject.end()) {
             ReplicaEntry* entry = found->second.Get();
-            if (entry->id == 0) {
-                entry->id = idPools[entry->type].Allocate();
-                std::int32_t key = (static_cast<std::int32_t>(entry->type) << 16) + entry->id;
-                bySentId[key] = entry;
-            }
-            cursor->PutBits(0, 1);
-            cursor->Put(entry->type);
-            cursor->Put(entry->id);
+            AssignId(entry);
+            PutWireId(cursor, {0, entry->type, entry->id});
             return;
         }
-        auto node = attached.find(object);
-        if (node != attached.end()) {
-            cursor->PutBits(1, 1);
-            cursor->Put(node->second.type);
-            cursor->Put(node->second.id);
+        if (auto node = attached.find(object); node != attached.end()) {
+            PutWireId(cursor, {1, node->second.type, node->second.id});
             return;
         }
     }
-    cursor->PutBits(0, 1);
-    cursor->Put(std::uint8_t{0});
-    cursor->Put(std::uint16_t{0});
+    PutWireId(cursor, {0, 0, 0});
 }
 
-// The original reads the type and id into dwords whose upper bytes it masks off (and passes the
-// type dword on to AttachRecord, which keeps only its low byte in use); they start as zero here.
+// The flag of a reference is the writer's: 1 names an object this side sent.
 Message* Connection::ReadObjectRef(BufferCursor* cursor) {
-    std::uint32_t sent = cursor->GetBit();
-    std::uint32_t type = 0;
-    cursor->ReadBytes(&type, 1);
-    std::uint32_t objectId = 0;
-    cursor->ReadBytes(&objectId, 2);
-    std::int32_t key = static_cast<std::int32_t>(((type & 0xFF) << 16) + (objectId & 0xFFFF));
-    if ((objectId & 0xFFFF) == 0) return nullptr;
-    if (sent) {
+    const WireId ref = TakeWireId(cursor);
+    if (ref.id == 0) return nullptr;
+    const std::int32_t key = RecordKey(ref.type, ref.id);
+    if (ref.flag) {
         auto node = bySentId.find(key);
-        if (node == bySentId.end()) return nullptr;
-        return node->second->object.Get();
+        return node != bySentId.end() ? node->second->object.Get() : nullptr;
     }
-    auto found = records.find(key);
-    if (found == records.end()) {
-        Record* record = &records[key];
-        Message* object = g_currentSession->types.Create(type & 0xFF);
-        if (!object) return nullptr;
-        ShareAssignOwned(record->object, object);
-        record->version = 0;
-        AttachRecord(object, type & 0xFF, key);
-        return object;
-    }
-    if (IsLive(found->second.object.Get())) return found->second.object.Get();
-    std::uint32_t typeKey = type & 0xFF;
-    MessageFactory factory = g_currentSession->types.byType[typeKey];
-    Message* object = factory ? factory() : nullptr;
-    if (!object) return nullptr;
-    Ref<Message>* slot = &found->second.object;
-    ShareAssignOwned(*slot, object);
-    found->second.version = 0;
-    AttachedId* attachedId = &attached[object];
-    attachedId->id = static_cast<std::uint16_t>(key);
-    attachedId->type = static_cast<std::uint8_t>(type);
-    return object;
+    Record& record = records[key];
+    if (IsLive(record.object.Get())) return record.object.Get();
+    return CreateRecord(record, ref.type, ref.id);
 }
 
 void Connection::Acknowledge(std::uint16_t sequence) {

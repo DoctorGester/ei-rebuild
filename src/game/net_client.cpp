@@ -35,7 +35,7 @@ ClientSession::ClientSession() {
     PartyConstruct(&parties[1]);
 
     // The local player's login.
-    ShareOwned(player, NewCounted<LoginMessage>());
+    ShareOwned(player, new LoginMessage());
 
     magic = kSessionMagic;
     RegisterMessageTypes();
@@ -139,7 +139,7 @@ void ClientSession::AddTimed(Message* object, float seconds) {
 
 // Sends the server a command message, kept 60 seconds on the timers list.
 void ClientSession::SendCommand(CommandKind kind, std::string_view text) {
-    auto* command = NewCounted<CommandMessage>();
+    auto* command = new CommandMessage();
     command->kind = kind;
     // The assign of a C string: copied over the current characters, the rest cut (the
     // terminator moved down) or appended.
@@ -148,7 +148,7 @@ void ClientSession::SendCommand(CommandKind kind, std::string_view text) {
 }
 
 // Makes `*out` an empty server entry (no name or description, no kind, no players).
-void ClientSession::CreateEntry(Ref<ServerEntry>* out) { ShareAssignOwned(*out, NewCounted<ServerEntry>()); }
+void ClientSession::CreateEntry(Ref<ServerEntry>* out) { ShareAssignOwned(*out, new ServerEntry()); }
 
 // The game flow begins the multiplayer game.
 void ClientSession::OnJoined() { g_gameFlow.BeginMultiplayerGame(); }

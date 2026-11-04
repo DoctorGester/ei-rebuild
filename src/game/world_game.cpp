@@ -153,7 +153,7 @@ void AnnounceHost(const char* zone) {
     net::NetAddress address{};
     address.Parse(host, kHostPort);
     std::string formatted = address.ToString();
-    net::HostMessage* record = net::NewCounted<net::HostMessage>();
+    net::HostMessage* record = new net::HostMessage();
     ShareAssignOwned(net::g_gameServer->hostInfo, record);
     net::HostMessage* shared = net::g_gameServer->hostInfo.Get();
     shared->address = formatted;
@@ -500,7 +500,7 @@ void GameFlow::RequestBriefing(std::string_view briefing) {
 
 void GameFlow::RecreateClientSession() {
     net::g_gameClient.Reset();
-    net::g_gameClient.Assign(net::NewCounted<net::ClientSession>());
+    net::g_gameClient.Assign(new net::ClientSession());
 }
 
 int RequestZone(std::string_view zone, int entrance) {
@@ -667,8 +667,8 @@ void GameFlow::StartServer(const char* name, int maxPlayers, int gameType, const
                            int masterKey) {
     BuildZoneTable();
     net::g_netLog = &console::g_netLogOut;
-    net::g_gameServer.Assign(net::NewCounted<net::ServerSession>(gameType));
-    net::g_gameClient.Assign(net::NewCounted<net::ClientSession>());
+    net::g_gameServer.Assign(new net::ServerSession(gameType));
+    net::g_gameClient.Assign(new net::ClientSession());
     // The local client connects to the local server.
     net::NetAddress address = {};
     address.Parse(kLocalHost, net::g_gamePort);
@@ -687,7 +687,7 @@ void GameFlow::StartServer(const char* name, int maxPlayers, int gameType, const
 void GameFlow::StartClient() {
     net::g_netLog = &console::g_netLogOut;
     net::g_gameServer.Reset();
-    net::g_gameClient.Assign(net::NewCounted<net::ClientSession>());
+    net::g_gameClient.Assign(new net::ClientSession());
     AfterServerStart();
 }
 

@@ -1,9 +1,9 @@
 #pragma once
 
 // The network message classes, types 1..17 (SessionBase::RegisterMessageTypes); see docs/notes/network.md.
-// Each has a factory (Create: a new message with no references); OnShutdown resets the message in place (its
-// result is undefined), Write / Read the fields at the cursor. Clone (with the copy constructor) is only for the
-// messages that are shared twice (RefObject::Clone).
+// Each has a factory (Create: a new message with no references); OnShutdown gives the fields a constructor sets their
+// new values (references dropped; a field the constructor leaves unset keeps its value), Write / Read the fields at
+// the cursor. Clone (with the copy constructor) is only for the messages that are shared twice (RefObject::Clone).
 
 #include "net_classes.h"
 #include "core_refcount.h"
@@ -47,6 +47,8 @@ public:
 // One string: the base of SayMessage, ZoneMessage and MapMessage, which differ only in their classes.
 class TextMessage : public Message {
 public:
+    void OnShutdown() override;
+
     std::string text;
 
 protected:
@@ -64,7 +66,6 @@ public:
     SayMessage(const SayMessage& other) : TextMessage(other) {}
     ~SayMessage() override {}
 
-    void OnShutdown() override;
     SayMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
@@ -223,7 +224,6 @@ public:
     ZoneMessage();
     ~ZoneMessage() override {}
 
-    void OnShutdown() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
@@ -236,7 +236,6 @@ public:
     MapMessage() {}
     ~MapMessage() override {}
 
-    void OnShutdown() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 

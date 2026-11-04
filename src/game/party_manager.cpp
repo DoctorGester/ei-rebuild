@@ -229,21 +229,9 @@ void PartyManager::Save(MemoryStream* to) {
 // --- The class registry's creators: id 1 a class template, id 2 a named party record (made when a saved
 // party manager is loaded) --------------------------------------------------------------------------------
 
-RefCounted* CreatePartyRecord() {
-    auto* record = new PartyRecord();
-    record->refs = 0;
-    record->flags6 = 0;
-    record->flags7 = 0;
-    return record;
-}
+RefCounted* CreatePartyRecord() { return new PartyRecord(); }
 
-RefCounted* CreateClassTemplate() {
-    auto* created = new ClassTemplate();
-    created->refs = 0;
-    created->flags6 = 0;
-    created->flags7 = 0;
-    return created;
-}
+RefCounted* CreateClassTemplate() { return new ClassTemplate(); }
 
 // --- The party record ------------------------------------------------------------------------------
 
@@ -270,13 +258,7 @@ const char* const kGameTime = "gtime";
 constexpr float kSix = 6.0f;
 
 // A new record with no references.
-PartyRecord* NewRecord() {
-    auto* record = new PartyRecord();
-    record->refs = 0;
-    record->flags6 = 0;
-    record->flags7 = 0;
-    return record;
-}
+PartyRecord* NewRecord() { return new PartyRecord(); }
 
 // The party stored under `key` (find, inlined), null if none. Not const: the parties' copies read their source
 // non-const.

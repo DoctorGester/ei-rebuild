@@ -35,9 +35,6 @@ constexpr float kZeroWeights[9] = {};
 void AddTemplate(std::vector<HeldRef<ClassTemplate>>* v, int type, std::uint8_t sellsItems, std::uint8_t sellsSpells,
                  const float (&weights)[9]) {
     auto* t = new ClassTemplate();
-    t->refs = 0;
-    t->flags6 = 0;
-    t->flags7 = 0;
     t->type = type;
     t->sellsItems = sellsItems;
     t->sellsSpells = sellsSpells;

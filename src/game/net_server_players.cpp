@@ -210,11 +210,11 @@ void ServerSession::OnClientLeft(Connection* connection) { ReportDeparture(conne
 // binding (the player and the current connection) the login keeps. The player is the host when
 // the login asks (with a local client) or when it is the only binding. Announces the player's name.
 void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
-    auto* player = NewCounted<PlayerMessage>();
+    auto* player = new PlayerMessage();
     self->players.emplace_back(player);
     PlayerMessage* record = self->players.back().Get();
 
-    auto* binding = NewCounted<BindingMessage>();
+    auto* binding = new BindingMessage();
     self->bindings.emplace_back(binding);
     BindingMessage* bound = self->bindings.back().Get();
 
@@ -294,7 +294,7 @@ void ServerOnPlayerGone(ServerSession* self, LoginMessage* message) {
 // Appends a line (the next line number, the text, the connection of `player`'s binding,
 // null for the server's own lines) and drops the oldest past 50.
 void ServerSession::Announce(std::string_view text, RefObject* player) {
-    auto* line = NewCounted<LineMessage>();
+    auto* line = new LineMessage();
     lines.emplace_back(line);
 
     auto* added = lines.back().Get();
@@ -340,7 +340,7 @@ std::vector<SharedRef<VariableMessage>>::iterator ServerSession::FindOrAddVariab
     auto node = FindVariable(variableName);
     if (node != variables.end()) return node;
 
-    auto first = variables.emplace(variables.begin(), NewCounted<VariableMessage>());
+    auto first = variables.emplace(variables.begin(), new VariableMessage());
 
     std::string* to = &first->Get()->name;
     if (variableName != to) *to = *variableName;

@@ -1,7 +1,7 @@
 #pragma once
 
-// A connection of a network session to one peer (constructor created by SessionBase::AddClient)
-// and the object replication it runs.
+// A connection of a network session to one peer (created by SessionBase::AddClient) and the object replication it
+// runs.
 // More: docs/notes/network.md, "Replication".
 #include "core_refcount.h"
 #include "net_classes.h"
@@ -19,7 +19,7 @@ namespace net {
 // A free-list of message ids for one message type: returned ids, then the next new id.
 struct IdPool {
     std::vector<std::uint16_t> free;   // the ids returned
-    std::uint16_t next;        // the last id handed out new
+    std::uint16_t next = 0;    // the last id handed out new
 
     // A returned id (the last one) if any, else ++next.
     std::uint16_t Allocate();
@@ -28,15 +28,10 @@ struct IdPool {
 // The tracking record of one replicated object.
 class ReplicaEntry final : public RefObject {
 public:
-    ReplicaEntry();
-    ~ReplicaEntry() override;
-
-    Message* Object() const { return object.Get(); }
-
-    std::uint32_t version;     // the object's version last sent (1: removal sent)
-    std::uint16_t id;          // 0 until first sent
-    std::uint8_t type;         // message type of the object
-    std::uint8_t flags;        // bit 0 reliable; bits 1..7 priority (0..10)
+    std::uint32_t version = 0;    // the object's version last sent (1: removal sent)
+    std::uint16_t id = 0;         // 0 until first sent
+    std::uint8_t type = 0;        // message type of the object (0xFF: none registered)
+    std::uint8_t priority = 0;    // 0..10: the priority map it is kept in
     Ref<Message> object;    // the object (null once it is gone)
     std::uint32_t serial = 0;    // the connection's count of tracked entries when this one was made: its key in priorities
 };
@@ -47,15 +42,10 @@ using EntryRef = HeldRef<ReplicaEntry>;
 
 // One item of a history entry: what a packet carried for one entry.
 struct SentItem {
-    enum Action : std::uint32_t {
-        kChanged = 0,
-        kChangedReliable = 1,
-        kRemoved = 2,
-        kRemovedReliable = 3,
-    };
+    enum class Action : std::uint8_t { Changed, Removed };
 
-    std::uint32_t action = 0;    // Action
-    std::uint32_t version = 0;   // the object's version sent
+    Action action = Action::Changed;
+    std::uint32_t version = 0;   // the object's version sent (a change)
     EntryRef entry;
 };
 
@@ -76,7 +66,7 @@ struct SentPacket {
     std::uint8_t rolledBack = 0;
 };
 
-// A batch of freed ids (an element of freedIds).
+// An id freed by a delivered removal, returned to its pool later (freedOlder, freedNewer).
 struct FreedId {
     std::uint16_t id;
     std::uint8_t type;
@@ -94,13 +84,59 @@ struct AttachedId {
     std::uint8_t type;
 };
 
-class Connection final : public RefObject {
+// The key of an object in records and bySentId: type << 16 | id.
+constexpr std::int32_t RecordKey(std::uint8_t type, std::uint16_t id) { return (type << 16) | id; }
+
+// Everything a connection holds apart from its count and flags: a new connection's state, which OnShutdown
+// restores (with id 0).
+struct ConnectionState {
+    // The send sequence starts at the tick count, the round trip at the session's maxRoundTrip (5 without a session).
+    explicit ConnectionState(std::uint32_t id);
+
+    std::uint16_t sendSequence;
+    std::uint32_t lastReceived = 0;     // sequence of the newest packet received
+    std::uint32_t sequenceHigh = 0x10000;    // the upper bits of the received sequences
+    std::vector<std::int32_t> received;    // sequences received recently
+    std::uint32_t id;                   // the connection id (sent with a leave packet)
+    float roundTrip;                    // average round trip (seconds)
+    // The average of its square. The original's started as whatever the memory held, so the first loss timeouts
+    // were the memory's.
+    float roundTripSquare = 0.0f;
+    NetAddress address{};               // the peer
+    float sendInterval = 0.04f;         // AddClient sets it from the rate
+    float sendTimer = 0.0f;
+    float idleTime = 0.0f;              // seconds since the peer was last heard
+    double clock = 0.0;                 // seconds since the connection started
+    std::uint32_t updateBudget = 220;   // bytes per update
+    IdPool idPools[kMessageTypes];      // one per message type
+    std::vector<FreedId> freedOlder;    // ids returned to the pools at the next idReuseTime tick
+    std::vector<FreedId> freedNewer;    // ids freed since the last one (the older batch after it)
+    float freedTimer = 0.0f;
+    std::map<std::int32_t, EntryRef> bySentId;     // RecordKey -> entry
+    // Lookups only; nothing walks it. The original keys both by address (an ordered map each); the priority
+    // maps are walked to send, so ours key them by the entry's serial (the order entries were tracked in).
+    std::unordered_map<Message*, EntryRef> byObject;      // object -> entry
+    std::array<std::map<std::uint32_t, EntryRef>, 11> priorities;           // per priority: entry serial -> entry
+    std::uint32_t entriesTracked = 0;    // the last serial handed out
+    std::vector<SentPacket> history;       // packets sent, waiting for an acknowledgement (the oldest first)
+    std::vector<SentPacket> acknowledged;  // lost packets, kept a while for late acknowledgements
+    std::map<std::int32_t, Record> records;                  // objects received (RecordKey)
+    std::unordered_map<Message*, AttachedId> attached;    // received object -> (type, id); lookups only
+    std::uint16_t headerSequence = 0;       // sequence of the next reliable chunk sent
+    std::uint16_t incomingSequence = 0;     // sequence of the next reliable chunk expected
+    std::vector<ReliableChunk> headers;     // reliable chunks waiting to be sent
+    std::vector<ReliableChunk> incoming;    // reliable chunks received ahead of their turn
+    std::uint32_t ackMask = 0;              // bit k: packet ackBase - 1 - k acknowledged already
+    std::uint16_t ackBase = 0;              // the peer's newest acknowledged sequence
+    GrowingBuffer reliableOut;
+    GrowingBuffer reliableIn;
+};
+
+class Connection final : public RefObject, public ConnectionState {
 public:
+    explicit Connection(std::uint32_t id) : ConnectionState(id) {}
 
-    explicit Connection(std::uint32_t id);
-    ~Connection() override;
-
-    // Torn down and built again with id 0.
+    // Back to a new connection's state with id 0 (the count and the flags kept).
     void OnShutdown() override;
 
     // Builds and sends one update packet of at most `budget` entry bytes. False when entries had to be left
@@ -109,11 +145,9 @@ public:
     // Reads one entry of an update (created / changed or removed) into `records` and calls the session's
     // handlers (channel 0 created, 1 changed, 2 removed). False when the object could not be created.
     bool ReadRecord(BufferCursor* cursor, std::uint32_t version);
-    // Remembers which (type, id) the received object has (attached).
-    void AttachRecord(RefObject* object, std::uint32_t type, std::int32_t key);
     // Writes a reference to `object`: a 0 bit, type and id for an object this side replicates (an id is
     // assigned on first use), a 1 bit, type and id for one received from the peer, or a 0 bit and zeros.
-    void WriteObjectRef(BufferCursor* cursor, RefObject* object);
+    void WriteObjectRef(BufferCursor* cursor, Message* object);
     // Reads such a reference: the peer's replicated object (created from the type's factory when missing or
     // detached) or one this side sent; null for none.
     Message* ReadObjectRef(BufferCursor* cursor);
@@ -123,21 +157,20 @@ public:
     // Makes sure a reliable chunk is queued: a new one of up to min(budget, 255) bytes from the reliable
     // stream when none is waiting, else the oldest waiting one moves to the front.
     void QueueHeader(int budget);
-    // A packet was lost: entries it sent unreliably are marked unsent again and its reliable chunk goes back
-    // to the front of the queue (once). `packet` is a history node's data.
+    // A packet was lost: what it carried is sent again and its reliable chunk goes back to the front of the
+    // queue (once). `packet` is a history node's data.
     void RollBack(SentPacket* packet);
     // Brings the tracked entries up to date: the session's CollectReplicated lists what this connection
     // should have; entries whose object is no longer listed are dropped (never sent) or marked gone (sent),
     // then new objects get an entry (Track) in the list's order.
     void CollectChanges();
-    // Starts tracking `item` (an {object, priority} pair): a new entry for the object (the next serial),
-    // kept in byObject and its priority map.
-    void Track(Replicated* item);
+    // Starts tracking `item`'s object: a new entry (the next serial), kept in byObject and its priority map.
+    void Track(const Replicated& item);
     // Clocks, lost packets, sending, delayed id reuse; false when the peer timed out or the reliable stream
     // overflowed.
     bool Tick(double dt);
-    // A packet arrived: the round-trip averages take its age; reliable changes it carried count as delivered,
-    // removals it carried end their entries (the id goes to the newest freed-id batch).
+    // A packet arrived: the round-trip averages take its age; removals it carried end their entries (the id
+    // goes to freedNewer).
     void Delivered(SentPacket* packet);
     // The packet `sequence` (in the history or the acknowledged list) was acknowledged: Delivered, and it
     // leaves its list.
@@ -155,39 +188,11 @@ public:
     // and is released.
     void Close();
 
-    std::uint16_t sendSequence;         // starts at GetTickCount()
-    std::uint32_t lastReceived;         // sequence of the newest packet received
-    std::uint32_t sequenceHigh;         // 0x10000: the upper bits of the received sequences
-    std::vector<std::int32_t> received;    // sequences received recently
-    std::uint32_t id;                   // the connection id (sent with a leave packet)
-    float roundTrip;                    // average round trip (seconds)
-    float roundTripSquare;              // average of its square
-    NetAddress address;                 // the peer
-    float sendInterval;                 // 0.04
-    float sendTimer;
-    float idleTime;                     // seconds since the peer was last heard
-    double clock;                       // seconds since the connection started
-    std::uint32_t updateBudget;         // 220: bytes per update
-    IdPool idPools[kMessageTypes];      // one per message type
-    std::vector<std::vector<FreedId>> freedIds;    // two batches of ids returned to the pools later, the older first
-    float freedTimer;
-    std::map<std::int32_t, EntryRef> bySentId;     // type << 16 | id -> entry
-    // Lookups only; nothing walks it. The original keys both by address (an ordered map each); the priority
-    // maps are walked to send, so ours key them by the entry's serial (the order entries were tracked in).
-    std::unordered_map<RefObject*, EntryRef> byObject;      // object -> entry
-    std::array<std::map<std::uint32_t, EntryRef>, 11> priorities;           // per priority: entry serial -> entry
-    std::uint32_t entriesTracked = 0;    // the last serial handed out
-    std::vector<SentPacket> history;       // packets sent, waiting for an acknowledgement (the oldest first)
-    std::vector<SentPacket> acknowledged;  // lost packets, kept a while for late acknowledgements
-    std::map<std::int32_t, Record> records;                  // objects received (key type << 16 | id)
-    std::unordered_map<RefObject*, AttachedId> attached;    // received object -> (type, id); lookups only
-    std::uint16_t headerSequence;       // sequence of the next reliable chunk sent
-    std::uint16_t incomingSequence;     // sequence of the next reliable chunk expected
-    std::vector<ReliableChunk> headers;     // reliable chunks waiting to be sent
-    std::vector<ReliableChunk> incoming;    // reliable chunks received ahead of their turn
-    std::uint32_t ackMask;              // bit k: packet ackBase - 1 - k acknowledged already
-    std::uint16_t ackBase;              // the peer's newest acknowledged sequence
-    GrowingBuffer reliableOut;
-    GrowingBuffer reliableIn;
+private:
+    // Gives `entry` an id from its type's pool (kept in bySentId) unless it has one.
+    void AssignId(ReplicaEntry* entry);
+    // A new object of `type` from the session's factory into `record` (version 0), remembered as (type, objectId) in
+    // attached; null (the record left empty) for a type without a factory.
+    Message* CreateRecord(Record& record, std::uint8_t type, std::uint16_t objectId);
 };
 } // namespace net

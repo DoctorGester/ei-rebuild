@@ -70,6 +70,18 @@ MemoryStream::MemoryStream(MemoryStream&& other) noexcept
     version = other.version;
 }
 
+MemoryStream& MemoryStream::operator=(MemoryStream&& other) noexcept {
+    bits = other.bits;
+    bitMask = other.bitMask;
+    bitsIndex = other.bitsIndex;
+    data = std::exchange(other.data, {});
+    position = std::exchange(other.position, 0);
+    size = std::exchange(other.size, 0);
+    ok = other.ok;
+    version = other.version;
+    return *this;
+}
+
 void MemoryStream::Clear() {
     data = {};
     position = 0;

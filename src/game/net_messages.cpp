@@ -42,9 +42,15 @@ Message::~Message() {}
 LoginMessage::LoginMessage() {}
 LoginMessage::~LoginMessage() {}
 
-Message* LoginMessage::Create() { return NewCounted<LoginMessage>(); }
+Message* LoginMessage::Create() { return new LoginMessage(); }
 void LoginMessage::OnShutdown() {
-    Rebuild(this);
+    Message::OnShutdown();
+    name.clear();
+    text.clear();
+    host = 0;
+    state = PlayerStatus::Fresh;
+    id = -1;
+    binding.Reset();
 }
 void LoginMessage::Write(BufferCursor* cursor) {
     cursor->PutString(name);
@@ -68,28 +74,23 @@ TextMessage::TextMessage(const TextMessage& other) : Message(other), text(other.
 TextMessage::~TextMessage() {}
 void TextMessage::WriteText(BufferCursor* cursor) { cursor->PutString(text); }
 void TextMessage::ReadText(BufferCursor* cursor) { cursor->TakeString(text); }
+void TextMessage::OnShutdown() {
+    Message::OnShutdown();
+    text.clear();
+}
 
 SayMessage::SayMessage() {}
-Message* SayMessage::Create() { return NewCounted<SayMessage>(); }
-SayMessage* SayMessage::Clone() { return NewCounted<SayMessage>(*this); }
-void SayMessage::OnShutdown() {
-    Rebuild(this);
-}
+Message* SayMessage::Create() { return new SayMessage(); }
+SayMessage* SayMessage::Clone() { return new SayMessage(*this); }
 void SayMessage::Write(BufferCursor* cursor) { WriteText(cursor); }
 void SayMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
 
 ZoneMessage::ZoneMessage() {}
-Message* ZoneMessage::Create() { return NewCounted<ZoneMessage>(); }
-void ZoneMessage::OnShutdown() {
-    Rebuild(this);
-}
+Message* ZoneMessage::Create() { return new ZoneMessage(); }
 void ZoneMessage::Write(BufferCursor* cursor) { WriteText(cursor); }
 void ZoneMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
 
-Message* MapMessage::Create() { return NewCounted<MapMessage>(); }
-void MapMessage::OnShutdown() {
-    Rebuild(this);
-}
+Message* MapMessage::Create() { return new MapMessage(); }
 void MapMessage::Write(BufferCursor* cursor) { WriteText(cursor); }
 void MapMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
 
@@ -98,10 +99,11 @@ void MapMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
 CommandMessage::CommandMessage() {}
 CommandMessage::CommandMessage(const CommandMessage& other) : Message(other), kind(other.kind), text(other.text) {}
 
-Message* CommandMessage::Create() { return NewCounted<CommandMessage>(); }
-CommandMessage* CommandMessage::Clone() { return NewCounted<CommandMessage>(*this); }
+Message* CommandMessage::Create() { return new CommandMessage(); }
+CommandMessage* CommandMessage::Clone() { return new CommandMessage(*this); }
 void CommandMessage::OnShutdown() {
-    Rebuild(this);
+    Message::OnShutdown();
+    text.clear();
 }
 void CommandMessage::Write(BufferCursor* cursor) {
     cursor->Put(kind);
@@ -114,18 +116,22 @@ void CommandMessage::Read(BufferCursor* cursor) {
 
 BindingMessage::BindingMessage() {}
 BindingMessage::~BindingMessage() {}
-Message* BindingMessage::Create() { return NewCounted<BindingMessage>(); }
+Message* BindingMessage::Create() { return new BindingMessage(); }
 void BindingMessage::OnShutdown() {
-    Rebuild(this);
+    Message::OnShutdown();
+    player.Reset();
+    connection.Reset();
 }
 void BindingMessage::Write(BufferCursor* cursor) { PutObject(cursor, player); }
 void BindingMessage::Read(BufferCursor* cursor) { TakeObject(cursor, player); }
 
 FileRequestMessage::FileRequestMessage() {}
 FileRequestMessage::~FileRequestMessage() {}
-Message* FileRequestMessage::Create() { return NewCounted<FileRequestMessage>(); }
+Message* FileRequestMessage::Create() { return new FileRequestMessage(); }
 void FileRequestMessage::OnShutdown() {
-    Rebuild(this);
+    Message::OnShutdown();
+    file.Reset();
+    connection.Reset();
 }
 void FileRequestMessage::Write(BufferCursor* cursor) { PutObject(cursor, file); }
 void FileRequestMessage::Read(BufferCursor* cursor) { TakeObject(cursor, file); }
@@ -134,9 +140,16 @@ void FileRequestMessage::Read(BufferCursor* cursor) { TakeObject(cursor, file); 
 
 PlayerMessage::PlayerMessage() {}
 
-Message* PlayerMessage::Create() { return NewCounted<PlayerMessage>(); }
+Message* PlayerMessage::Create() { return new PlayerMessage(); }
 void PlayerMessage::OnShutdown() {
-    Rebuild(this);
+    Message::OnShutdown();
+    name.clear();
+    text.clear();
+    state = PlayerStatus::InBase;
+    host = 0;
+    id = -1;
+    serial = -1;
+    number = -1;
 }
 void PlayerMessage::Write(BufferCursor* cursor) {
     cursor->PutString(name);
@@ -160,9 +173,11 @@ void PlayerMessage::Read(BufferCursor* cursor) {
 LineMessage::LineMessage() {}
 LineMessage::~LineMessage() {}
 
-Message* LineMessage::Create() { return NewCounted<LineMessage>(); }
+Message* LineMessage::Create() { return new LineMessage(); }
 void LineMessage::OnShutdown() {
-    Rebuild(this);
+    Message::OnShutdown();
+    text.clear();
+    connection.Reset();
 }
 void LineMessage::Write(BufferCursor* cursor) {
     cursor->Put(number);
@@ -177,9 +192,11 @@ void LineMessage::Read(BufferCursor* cursor) {
 
 HostMessage::HostMessage() {}
 
-Message* HostMessage::Create() { return NewCounted<HostMessage>(); }
+Message* HostMessage::Create() { return new HostMessage(); }
 void HostMessage::OnShutdown() {
-    Rebuild(this);
+    Message::OnShutdown();
+    address.clear();
+    zone.clear();
 }
 void HostMessage::Write(BufferCursor* cursor) {
     cursor->PutString(address);
@@ -194,9 +211,10 @@ void HostMessage::Read(BufferCursor* cursor) {
 
 VariableMessage::VariableMessage() {}
 
-Message* VariableMessage::Create() { return NewCounted<VariableMessage>(); }
+Message* VariableMessage::Create() { return new VariableMessage(); }
 void VariableMessage::OnShutdown() {
-    Rebuild(this);
+    Message::OnShutdown();
+    name.clear();
 }
 void VariableMessage::Write(BufferCursor* cursor) {
     cursor->PutString(name);
@@ -214,9 +232,11 @@ void VariableMessage::Read(BufferCursor* cursor) {
 FileMessage::FileMessage() {}
 FileMessage::~FileMessage() {}
 
-Message* FileMessage::Create() { return NewCounted<FileMessage>(); }
+Message* FileMessage::Create() { return new FileMessage(); }
 void FileMessage::OnShutdown() {
-    Rebuild(this);
+    Message::OnShutdown();
+    name.clear();
+    chunks.clear();
 }
 void FileMessage::Write(BufferCursor* cursor) {
     cursor->Put(chunkCount);
@@ -238,10 +258,11 @@ FileChunkMessage::FileChunkMessage(const FileChunkMessage& other) : Message(othe
 }
 FileChunkMessage::~FileChunkMessage() {}
 
-Message* FileChunkMessage::Create() { return NewCounted<FileChunkMessage>(); }
-FileChunkMessage* FileChunkMessage::Clone() { return NewCounted<FileChunkMessage>(*this); }
+Message* FileChunkMessage::Create() { return new FileChunkMessage(); }
+FileChunkMessage* FileChunkMessage::Clone() { return new FileChunkMessage(*this); }
 void FileChunkMessage::OnShutdown() {
-    Rebuild(this);
+    Message::OnShutdown();
+    file.Reset();
 }
 void FileChunkMessage::Write(BufferCursor* cursor) {
     PutObject(cursor, file);
@@ -263,10 +284,12 @@ AwardMessage::AwardMessage(const AwardMessage& other) : Message(other), kind(oth
 }
 AwardMessage::~AwardMessage() {}
 
-Message* AwardMessage::Create() { return NewCounted<AwardMessage>(); }
-AwardMessage* AwardMessage::Clone() { return NewCounted<AwardMessage>(*this); }
+Message* AwardMessage::Create() { return new AwardMessage(); }
+AwardMessage* AwardMessage::Clone() { return new AwardMessage(*this); }
 void AwardMessage::OnShutdown() {
-    Rebuild(this);
+    Message::OnShutdown();
+    connection.Reset();
+    text.clear();
 }
 void AwardMessage::Write(BufferCursor* cursor) {
     cursor->Put(kind);
@@ -283,9 +306,16 @@ void AwardMessage::Read(BufferCursor* cursor) {
 
 TradeMessage::~TradeMessage() {}
 
-Message* TradeMessage::Create() { return NewCounted<TradeMessage>(); }
+Message* TradeMessage::Create() { return new TradeMessage(); }
 void TradeMessage::OnShutdown() {
-    Rebuild(this);
+    Message::OnShutdown();
+    player.Reset();
+    partner.Reset();
+    offer.Reset();
+    partnerOffer.Reset();
+    done = 0;
+    revision = 0;
+    partnerRevision = 0;
 }
 void TradeMessage::Write(BufferCursor* cursor) {
     PutObject(cursor, offer);
@@ -305,9 +335,10 @@ void TradeMessage::Read(BufferCursor* cursor) {
 // PartyMemberMessage.
 
 
-Message* PartyMemberMessage::Create() { return NewCounted<PartyMemberMessage>(); }
+Message* PartyMemberMessage::Create() { return new PartyMemberMessage(); }
 void PartyMemberMessage::OnShutdown() {
-    Rebuild(this);
+    Message::OnShutdown();
+    stream = MemoryStream();
 }
 void PartyMemberMessage::Write(BufferCursor* cursor) {
     ByteStream* currentStream = &stream;
@@ -327,9 +358,17 @@ void PartyMemberMessage::Read(BufferCursor* cursor) {
 PartyMessage::PartyMessage() {}
 PartyMessage::~PartyMessage() {}
 
-Message* PartyMessage::Create() { return NewCounted<PartyMessage>(); }
+Message* PartyMessage::Create() { return new PartyMessage(); }
 void PartyMessage::OnShutdown() {
-    Rebuild(this);
+    Message::OnShutdown();
+    members.clear();
+    money = 0;
+    accepted = 0;
+    acceptedRevision = 0;
+    revision = 1;
+    player.Reset();
+    partner.Reset();
+    trading = 0;
 }
 void PartyMessage::Write(BufferCursor* cursor) {
     std::int32_t count = static_cast<std::int32_t>(members.size());
@@ -377,7 +416,7 @@ ServerEntry::ServerEntry(const ServerEntry& other)
     : ServerEntryBase(other), name(other.name), kind(other.kind), description(other.description),
       players(other.players), maxPlayers(other.maxPlayers), password(other.password) {}
 
-ServerEntry* ServerEntry::Clone() { return NewCounted<ServerEntry>(*this); }
+ServerEntry* ServerEntry::Clone() { return new ServerEntry(*this); }
 void ServerEntry::Write(BufferCursor* cursor) {
     cursor->PutString(name);
     cursor->Put(kind);

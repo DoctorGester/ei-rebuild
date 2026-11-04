@@ -63,7 +63,7 @@ and `net_pair_party` (an exchange offered, withdrawn, answered, left);
 ## Sessions and messages
 
 - `SessionBase : RefCounted`: frame, time (a double holding float sums), the connections, the type registry (message
-  class to type id to factory), the UDP socket driver, one "reliable" byte per message type, handler vectors per
+  class to type id to factory), the UDP socket driver, handler vectors per
   channel (0 created, 1 changed, 2 removed) and type. `ServerBase` / `ClientBase` are the lobby layers;
   `ServerSession` / `ClientSession` on top. +8 of both sessions is the magic 0xDEC0AD07.
 - Packet kinds (first byte, `net::PacketKind`): Master (0xFF, -1), Update 0, Leave 1, (2 none), GetInfo 3, Login 4,
@@ -77,8 +77,9 @@ and `net_pair_party` (an exchange offered, withdrawn, answered, left);
   offer), PartyMember (16, a MemoryStream); server to client: Player (1), Line (2, chat), Host (3, "host:port" + zone),
   Binding (4), Zone (8), Map (9), Variable (10), File (11), FileChunk (12), Award (14), Trade (17). Duplicate layouts
   share a class: `TextMessage` (Say / Zone / Map); Binding and FileRequest hold their typed pair. Each class has its factory,
-  reset, Write and Read; a reset ends with the inlined placement new's null test of `this` in the original, which
-  ours leaves out. Only the messages a second share of an object clones (Say, Command, FileChunk, Award, ServerEntry)
+  `OnShutdown`, Write and Read. `OnShutdown` (a still-shared message losing its owner) gives every field a constructor
+  sets its new value (version 1, references dropped); the fields a constructor leaves unset keep theirs, as the
+  original's destroy-and-construct-in-place left them. Only the messages a second share of an object clones (Say, Command, FileChunk, Award, ServerEntry)
   have `Clone` and a copy constructor; `RefObject::Clone` of any other class is a fatal error, and `OnShutdown` is
   empty unless a class overrides it (H43g1 cut the clones the coverage runs never reached).
 - Command kinds (host only, `CommandKind`): PreviewMap, Zone ("_1" enter, "_2" leave, "_3" finish), KickByName /
@@ -107,8 +108,11 @@ A connection to one peer tracks every replicated object (a Message, whose versio
 version differs from the one last sent (a 1 bit, type, id, the object's Write) or whose object went away (a 0 bit,
 type, id). Every packet is remembered in the send history with what it carried, so an acknowledgement or its absence
 marks entries delivered or resends them. A reliable byte stream travels in front of the entries in chunks of up to 255
-bytes. The peer keeps received objects in `records` (key type << 16 | id). A connection is silent after 3 round trips
-idle.
+bytes; the entries themselves are never resent once delivered or superseded (the original's per-type "reliable" entry
+flag was never set, so its reliable-entry path is gone). The peer keeps received objects in `records` (`RecordKey`: type
+<< 16 | id); an object reference in a message is a flag bit (1: an object the writer received from the reader), the
+type and the id. A connection is silent after 3 round trips idle. `Connection::OnShutdown` (the session dropped a
+connection a message still holds) restores a new connection's state (`ConnectionState`, id 0).
 - Within a priority the original sent entries in the order of their addresses, so send order and net ids followed the
   heap. Ours keys the priority maps by a serial handed out as `CollectChanges` walks the session's lists (players,
   variables, the binding, chat lines, files), so they follow the lists; the goldens hold no net ids or send order.
@@ -119,7 +123,7 @@ idle.
   waits, lower priorities are still tried. `ReadRecord`'s skip path creates a throwaway object. `ClientSession::ApplyParty`
   creates and drops a member's object with a positive id.
 - Undefined in the original, defined in ours: a new connection's `roundTripSquare` starts at 0 (the original squared
-  what the memory held); an object of no registered type is tracked unreliable (the original read `reliable[-1]`);
+  what the memory held); an object of no registered type is tracked as type 0xFF (the original read `reliable[-1]`);
   every read through a `BufferCursor` stops at its `limit` (`BeginRead`'s size: a datagram's end, a compressed
   stream's end): bytes and bits past it read as zero and a text without its zero byte ends there (the original read on
   into whatever memory followed); `ClientSession::ApplyParty` stops at a spell or item type its factory does not know.
@@ -167,7 +171,7 @@ client reads them back; single player too, through the loopback.
   `FramedLink` (abstract): the received bytes in a memory stream, each message a 4-byte length and its bytes; Send
   frames the message (a 0x8000-byte buffer). `DriverLink`: a framed link over a connection's reliable streams; its
   disconnect writes unread bytes back over the incoming stream. `DriverSession` keeps a driver link per remote player.
-  Links are created with `net::NewCounted`.
+  Counted objects start with no references and no flags (`RefCounted`'s initialisers).
 - The player sources hand new links over as `JoinedLinks` (`std::list<netlink::NetLink*>`, TakeNew).
 
 ## Unreached in the shipped game

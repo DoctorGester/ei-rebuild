@@ -66,7 +66,7 @@ void ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
         TellPartner(self, message, 10);
         return;
     }
-    auto* trade = NewCounted<TradeMessage>();
+    auto* trade = new TradeMessage();
     trade->offer.Assign(message);
     trade->partnerOffer.Assign(other);
     trade->player.Assign(message->player.Get());
@@ -121,7 +121,7 @@ void ServerOnTradeCancel(ServerSession* self, PartyMessage* message) {
 // Queues an award message for `connection` on the pending awards with a 60 second delay. `text` is the
 // caller's string (made in the argument slot), destroyed here as the callee destroys a by-value argument.
 void ServerSession::QueueAward(RefObject* connection, AwardKind awardKind, float value, std::string text) {
-    auto* award = NewCounted<AwardMessage>();
+    auto* award = new AwardMessage();
     award->connection.Assign(connection);
     award->kind = awardKind;
     award->value = value;

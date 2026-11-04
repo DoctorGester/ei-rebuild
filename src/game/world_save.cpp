@@ -319,9 +319,6 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
                 std::uint8_t more = ReadAs<std::uint8_t>(stream);
                 if (!more) break;
                 auto* missile = new SpellEffect();
-                missile->refs = 0;    // the count and flags are cleared before the null test
-                missile->flags6 = 0;
-                missile->flags7 = 0;
                 missile->Load(stream);
                 projectiles.emplace_back(missile);
             }

@@ -94,25 +94,6 @@ enum class PlayerStatus : std::uint32_t {
     Fresh = 4,          // a new record (shown as connecting too)
 };
 
-// A new counted object of the network code: no references and no flags, or null without memory.
-template <typename T, typename... Args>
-T* NewCounted(const Args&... args) {
-    T* object = new T(args...);
-    if (object) {
-        object->refs = 0;
-        object->flags6 = 0;
-        object->flags7 = 0;
-    }
-    return object;
-}
-
-// `self` destroyed and built again in place (the count and the flags kept): OnShutdown of the messages.
-template <typename T>
-void Rebuild(T* self) {
-    self->T::~T();
-    new (self) T();
-}
-
 // An IPv4 address and port (the platform's: sockaddr_in's 16 bytes), as the messages carry it.
 struct NetAddress : platform::net::Address {
     // This address from "host[:port]" (an IPv4 number or a host name looked up); `defaultPort` unless the
@@ -171,10 +152,12 @@ inline Ref<ServerSession> g_gameServer = /*0079B5DC*/ {};
 // ---- The message base ---------------------------------------------------------------------------
 
 // A replicated network object: a connection sends it again whenever its version differs from the one last
-// sent. OnShutdown resets the message (destroyed and built again in place), Clone copies it.
+// sent. OnShutdown resets the message (each class its own fields), Clone copies it.
 class Message : public RefObject {
 public:
     ~Message() override;
+    // Version 1 again, as constructed.
+    void OnShutdown() override { version = 1; }
     virtual void Write(BufferCursor* cursor) = 0;   // the fields at the cursor's byte position
     virtual void Read(BufferCursor* cursor) = 0;
 
@@ -388,13 +371,13 @@ public:
     // Appends `handler` to the handlers of message `type` (low byte) on `channel` (0..2;
     // other channels are ignored).
     void AddHandler(int channel, std::uint32_t type, MessageHandler handler);
-    // Clears the reliable flags of message types 1..17 and registers their factories.
+    // Registers the factories of message types 1..17.
     void RegisterMessageTypes();
     // A handler registration as the session constructors do it: a prototype message T, held through a
     // counted reference while its type id is looked up by its class, then AddHandler.
     template <typename T>
     void AddHandlerFor(int channel, MessageHandler handler) {
-        AddHandlerForPrototype(NewCounted<T>(), channel, handler);
+        AddHandlerForPrototype(new T(), channel, handler);
     }
     void AddHandlerForPrototype(Message* prototype, int channel, MessageHandler handler);
 
@@ -422,7 +405,6 @@ public:
     std::list<SharedRef<Connection>> clients;
     TypeRegistry types;
     SocketDriver socket;
-    std::uint8_t reliable[kMessageTypes];    // per message type: its objects are sent reliably
     std::vector<MessageHandler> handlers[kChannels][kMessageTypes];
 };
 
