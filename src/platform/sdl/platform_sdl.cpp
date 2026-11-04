@@ -375,7 +375,13 @@ NativeWindow CreateGameWindow(NativeInstance, const char* title, int width, int 
     SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_Y_NUMBER, 0);
     SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, width);
     SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, height);
+#if defined(__APPLE__)
+    // Full screen is SDL's desktop full screen below (a Space of its own): a titled window, whose title bar the
+    // Space hides and which comes back when the player leaves the Space.
+    SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_BORDERLESS_BOOLEAN, false);
+#else
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_BORDERLESS_BOOLEAN, fullScreen);
+#endif
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, !fullScreen);
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_HIDDEN_BOOLEAN, true);
 #if defined(__APPLE__)
@@ -385,6 +391,13 @@ NativeWindow CreateGameWindow(NativeInstance, const char* title, int width, int 
     g_window = SDL_CreateWindowWithProperties(properties);
     SDL_DestroyProperties(properties);
     if (!g_window) return nullptr;
+#if defined(__APPLE__)
+    // A borderless window over the display's bounds stays under the menu bar and the Dock: full screen on macOS is
+    // SDL's desktop full screen, a Space of its own (as the window's green button makes), entered when the window is
+    // shown. macOS hides the menu bar and the Dock there; on a display with a notch the window is the part below it.
+    if (fullScreen && !SDL_SetWindowFullscreen(g_window, true))
+        ei::Log("platform: the window cannot go full screen: %s", SDL_GetError());
+#endif
     SDL_Rect work{};
     if (!fullScreen && SDL_GetDisplayUsableBounds(SDL_GetPrimaryDisplay(), &work)) {
         int top = 0, left = 0, bottom = 0, right = 0;   // the borders and the title bar (none where SDL cannot tell)
@@ -431,6 +444,11 @@ void ClientToScreen(NativeWindow window, Point* point) {
 }
 
 bool CoverMonitor(NativeWindow window, Rect* was, Rect* monitor) {
+#if defined(__APPLE__)
+    // SDL's full screen covers the display (CreateGameWindow); a window the player took out of its Space stays so.
+    (void)window, (void)was, (void)monitor;
+    return false;
+#endif
     SDL_Window* w = WindowOf(window);
     if (!w || Minimized()) return false;
     SDL_Rect bounds{};
