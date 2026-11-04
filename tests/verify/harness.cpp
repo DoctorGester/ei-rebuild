@@ -528,7 +528,7 @@ void ConsoleExecute(const char* text) { image::ConsoleExecute(text); }
 // Interface3D::CreateScreen: 1 battle, 3 briefing, 4 global map, 5 camp).
 void RequestScreen(int id) { image::RequestGameState(id); }
 // GameSetConstructionVariable: sets player 0's "constr_current" (the constructor the camp opens with).
-void SetCurrentConstructor(float constructor) { image::SetConstructionVariable(std::bit_cast<std::uint32_t>(constructor)); }
+void SetCurrentConstructor(float constructor) { image::SetConstructionVariable(constructor); }
 
 // 0066F310 (RET 8): PlayerServer::LeaveToZone(zone, exit), what a zone exit (00670C20) and the
 // LeaveToZone script command (0x8A) do. Only in state 1 (+0x20: in the world); in campaign mode 1 or 3
@@ -1730,7 +1730,7 @@ constexpr std::uint32_t kPickableUnit = 0x400000;   // the flag 00638B30 require
 // Where a click finds the unit with script name `name` in this frame (client coordinates) and the
 // unit the game's pick returns there; "" or why there is no such point. `what` names the step in
 // the log and the error (null: nothing logged).
-// WorldClient::PickAt2 and UnitAt.
+// WorldClient::Pick (by the parts) and UnitAt.
 void* HarnessPickAt2(void* world, const Point* p) { return image::PickAt2(world, p->x, p->y); }
 void* HarnessUnitAt(void* world, const Point* p) { return image::UnitAt(world, p->x, p->y); }
 // The client world's rectangle of object `id` in this frame's screen list (the last entry for it): 1, 0 when it is

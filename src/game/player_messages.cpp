@@ -83,11 +83,11 @@ constexpr int kPathKindNoPath = 3;
 
 // --- Variables and state -------------------------------------------------------------------------
 
-void PlayerServer::SetVariable(std::string_view name, std::uint32_t value) {
-    VariableSet(Variables(player), name, value);
+void PlayerServer::SetVariable(std::string_view name, float value) {
+    Variables(player)->Set(name, value);
     WriteType(&out, ServerMessage::SetVariable);
     out.WriteString(name);
-    WriteDword(&out, value);
+    WriteDword(&out, std::bit_cast<std::uint32_t>(value));
 }
 
 void PlayerServer::SetVariableMax(std::string_view name, float value) {

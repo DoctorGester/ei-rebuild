@@ -54,7 +54,6 @@ class MaterialManager;
 namespace terrain { class Terrain; }
 class Camera;
 class Material;
-struct LineBatch;
 class Spell;
 class SpellEffect;
 class ParticleManager;
@@ -258,6 +257,10 @@ enum class ZoneMode {
 };
 inline bool IsSinglePlayerMode(ZoneMode mode) { return mode == ZoneMode::Battle || mode == ZoneMode::Base; }
 
+// How far a unit hears: max(perception * movement factor 3, the minimum perception) * 2 + `margin` (the server half's
+// statistics B0 values 0 and 2). SyncPlayer sends the units in range, the wake-up wakes them.
+float HearingRadius(class Unit* unit, float margin);
+
 class WorldServer : public World {
 public:
     WorldServer();
@@ -343,6 +346,9 @@ public:
     void TickSleepingEffects();
     // Puts every unit in the sectors within `radius` of `position` (x, y) in the update map.
     void WakeUnitsAround(const Vector3& position, float radius);
+    // Takes `unit` out of the sector map, puts it on the free cell nearest to its own place (in the region of
+    // `from`; it stays when there is none), and files it again.
+    void MoveToFreeCell(class Unit* unit, const Vector3& from);
     // Raises alarm `index` (0..4) at `point` unless it is already raised (`force` raises it again; alarm 0 with
     // `force` clears all five first), tells every AI unit without a player and wakes those that react. Script
     // InvokeAlarm.
@@ -393,7 +399,7 @@ public:
     // The players' times move on by `offset` (UpdatePlayerTimes) unless it is negative or a NaN.
     void PassTime(float offset);
     // Player 0's connection, when there is one, sends "constr.current" = `value`.
-    void SetConstructionVariable(std::uint32_t value);
+    void SetConstructionVariable(float value);
     // The unit with id `id` moves to height `z` (its sector map entry follows, its placement is marked changed)
     // unless it is there already (or NaN).
     void SetUnitHeight(int unitId, float z);
@@ -507,7 +513,7 @@ public:
     // spells), with its count; one below its maximum goes on counted once.
     Item* CopyItem(Item* item);
     void AddCounted(EngineObject* item);
-    Item* CreateItemNamed(const char* name);
+    Item* CreateItemNamed(std::string_view name);
     Item* CreateSpellNamed(const char* name);
 
     // Creates a unit for each record of `records` (an existing object with the record's id is removed first), at its
@@ -664,6 +670,11 @@ struct UnitSet {
 // Both vectors have the counts' sizes.
 UnitLooks ReadUnitLooks(ByteStream* stream);
 
+// A block of sector cells, both corners included.
+struct CellRange {
+    std::uint32_t x0, y0, x1, y1;
+};
+
 struct SectorGrid {
     // Nothing adds to a cell while it is walked (CollectVisible files one object; a first pass only appends
     // units to the deferred vector); Move erases from one cell and appends to another.
@@ -682,6 +693,13 @@ struct SectorGrid {
     // changes, out of the old cell and to the end of the new one's (cells outside the grid are
     // skipped).
     void Move(MapObject* object, const float* position);
+    // Calls visit(MapObject*) for every object of the cells x0..x1, y0..y1 (inclusive), row by row.
+    template <class Visit>
+    void ForEachObject(const CellRange& range, Visit&& visit) {
+        for (std::uint32_t y = range.y0; y <= range.y1; ++y)
+            for (std::uint32_t x = range.x0; x <= range.x1; ++x)
+                for (MapObject* object : rows[y][x]) visit(object);
+    }
 };
 
 // The worlds' counted helpers: player sources (player_source.h; Query false, the client's Segment calls Pump every
@@ -718,16 +736,8 @@ struct ScreenEntry {
 // rectangle at the end of `queued`.
 int QueueScreenEntry(MapObject* object, std::vector<ScreenEntry>* queued);
 
-// The functor of the for_each over the screen entries: CollectBounds / CollectParts push to `hits` every entry of
-// `entries` whose rectangle holds (x, y) and whose object (found in `manager`) answers the bounds virtual
-// (CollectBounds) or 24 (CollectParts) for the point.
-struct HitCollector {
-    HitCollector* CollectBounds(const std::vector<ScreenEntry>& entries, std::vector<ScreenEntry>* hits, std::int32_t x, std::int32_t y,
-                                MapObjectManager* manager);
-    HitCollector* CollectParts(const std::vector<ScreenEntry>& entries, std::vector<ScreenEntry>* hits, std::int32_t x, std::int32_t y,
-                               MapObjectManager* manager);
-    std::vector<ScreenEntry>* hits;
-};
+// What a screen pick tests an object's side half with: its bounds or its drawn parts.
+enum class HitTest { Bounds, Parts };
 
 class LightningManager;
 // The visibility fog's manager ("CVisFogManager", class id 0x60): a counted object and a list.
@@ -814,8 +824,8 @@ public:
     void MoveObject(MapObject* object, const float* position) override;
 
     void BuildUnitSkins(std::vector<FiguredUnitRecord>* others, std::vector<DressedUnitRecord>* dressed);
-    // Draws the world view, the whole map's terrain clip-tested. Returns 1.
-    int Render();
+    // Draws the world view, the whole map's terrain clip-tested.
+    void Render();
     // The object passes over every sector of the map, the objects clip-tested. Returns 0 without terrain, else 1.
     int DrawPass();
     float ClampedGroundHeight(float x, float y);
@@ -853,12 +863,12 @@ public:
     // Takes `camera` as the view camera: the old one loses a reference (it is not released at zero), the
     // new one gains one; either may be null.
     void SetCamera(Camera* camera);
-    // Message 0x73: the water levels read from `stream` and applied to the terrain. Returns 1.
-    int ReadWaterLevels(ByteStream* stream);
+    // Message 0x73: the water levels read from `stream` and applied to the terrain.
+    void ReadWaterLevels(ByteStream* stream);
     // FALSE without a local view or while the local player's controller is busy.
     bool IsLocalPlayerIdle();
     // Index of the exit whose area contains `point` and that leads somewhere.
-    bool FindExitAt(const Vector3& point, int* index);
+    std::optional<int> FindExitAt(const Vector3& point);
     Vector2 ExitCentre(int index);
     // One ZoneExit particle source (0x2038) per exit that leads somewhere, in exitMarkers at the exit's index (the old
     // markers released), then UpdateExitMarkers.
@@ -896,8 +906,8 @@ public:
     // Files an object in the client's maps (objects, objectGrid, heroes for heroes with a text-key id; the
     // dynamic lists for IsSynchronised objects; platform items for classes 0x54 / 0x5D); units fade in
     // through their controller in a multiplayer session of kind 1. An id already filed is only referenced and
-    // released. Returns 1.
-    int AddObject(MapObject* object);
+    // released.
+    void AddObject(MapObject* object);
     // When an object with `object`'s id is filed (objects): its platform faces are removed and, for
     // classes 0x54 / 0x5D, its platform items added again where it now stands (as AddObject).
     void RefreshPlatforms(MapObject* object);
@@ -910,7 +920,6 @@ public:
     // Adds `object` (not null) to the selection list: its part bounds refreshed, the highlight on when it was off,
     // and its id appended unless it is listed already.
     void Select(MapObject* object);
-    int DrawLineLists();
     // One more reference on every item and, when the item factory exists, on every spell.
     void ReferenceItemsAndSpells();
     // The reverse, used by the teardown: every item and spell released, each manager emptied.
@@ -942,17 +951,15 @@ public:
     int PumpIncomingCount();
     // The local view's owner disconnects. Without a session it reads through null, like the original.
     void DisconnectLocalPlayer();
-    // The object at screen point `point`: the screen entries that contain it and whose object answers CollectBounds
-    // or CollectParts go to hits, sorted front to back; the first entry whose object still exists wins (hitCursor
-    // is left on it). Null if none.
-    MapObject* PickAt(const Point* point);
-    MapObject* PickAt2(const Point* point);
-    // The unit at screen point `point`: from PickAt2's object on, the first unit among the sorted hits
-    // (hitCursor moves past the others and those whose object is gone); failing that the same from
-    // PickAt's. Null if none.
-    Unit* UnitAt(const Point* point);
-    // The same from PickAt2's object only (no second pick).
-    Unit* UnitAt2(const Point* point);
+    // The object at screen point `point`: the screen entries that contain it and whose object passes `test` go to
+    // hits, sorted front to back; the first entry whose object still exists wins (hitCursor is left on it). Null
+    // if none.
+    MapObject* Pick(const Point& point, HitTest test);
+    // The unit at screen point `point`: from the picked object on, the first unit among the sorted hits
+    // (hitCursor moves past the others and those whose object is gone). Null if none.
+    Unit* UnitAt(const Point& point, HitTest test);
+    // The same by the parts, failing that by the bounds.
+    Unit* UnitAt(const Point& point);
     // Every object of the frame's window list that still exists and whose side half has a drawn part
     // meeting the screen rectangle `rect`.
     std::vector<MapObject*> UnitsInBox(const Rect* rect);
@@ -970,28 +977,26 @@ public:
     void RemoveUnitsOf(const std::vector<PartyUnitRecord*>* records);
     int SendPause(int value);
     // The camera looks at the point (x, y) at its own focus height, with its view applied and kept above
-    // the objects. Returns 1.
-    int CentreOn(const Vector3& point);
+    // the objects.
+    void CentreOn(const Vector3& point);
 
     // Creates the party's heroes from their records: the figure from the part names (the hair "hr.%.2d" by the
     // prototype's number), items, player; each unit is filed with AddObject. Armour of type 0 is put on only with
     // `allArmour`. Stops at the first unit that cannot be created or given a figure.
     void CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, char allArmour);
     // Every object of the sector grid's cells around `point` whose (x, y) lies within radius +
-    // hypot(rangeX, rangeY) of the point. The cell range (truncated
-    // and clamped to the terrain) and the walk's cursor are left in rangeFirstX .. rangeY. The
+    // hypot(rangeX, rangeY) of the point (the cells' range truncated and clamped to the terrain). The
     // original's z difference is the point's z minus itself (0, kept).
     std::vector<Object3D*> ObjectsInRange(const Vector3& point, float radius);
     // Reads the light colours from config\<file> (an .ini, LightsGipat.ini): each key of [sunlight],
     // [ambient] and [sky] names its hour in characters 4..5 ("hour07") and holds "r, g, b" (0..255,
     // scaled by 1/255, alpha 1); the hours between two keys in file order are filled by linear steps
-    // from the earlier key (the first from hour 0). Hours are not range-checked. Returns 1.
-    int LoadLights(const std::string& file);
+    // from the earlier key (the first from hour 0). Hours are not range-checked.
+    void LoadLights(const std::string& file);
     // The frame's light from the time of day: fog, sun direction and the sunlight, ambient and sky colours
     // interpolated between the hour's table entries; once per new hour the terrain's sun. A cave takes hour
-    // 0's colours and a fixed sun. Returns 1 when a new hour began (or the renderer's flag bit 0 is clear:
-    // nothing done), else 0; no caller reads it.
-    int UpdateLighting();
+    // 0's colours and a fixed sun. Does nothing when the renderer's flag bit 0 is clear.
+    void UpdateLighting();
     // With one marker per exit (exitMarkers, ZoneExit particle sources): a marker whose target zone's
     // party variable "z.<zone>" is 1 (or NaN) gets extent (1, 0, 0) (its particles turn red), the
     // others (0, 0, 0).
@@ -1015,12 +1020,9 @@ public:
     std::unordered_map<std::uint32_t, std::list<MapObject*>::iterator> dynamicNodes;   // id -> its node in dynamicObjects
     int dynamicMaxId;
     std::vector<ScreenEntry> screenEntries;  // the window rectangles of the frame
-    std::vector<ScreenEntry> hits;                      // the entries under the point (PickAt)
-    ScreenEntry* hitCursor;               // PickAt's walk, left on the entry it returns
-    lib::HashMap<unsigned, LineBatch*> lineLists;    // line lists by key (DrawLineLists: drawn in STLport's order)
-    int lastLineListKey;                  // the last line list key handed out; 0 from the constructor
+    std::vector<ScreenEntry> hits;                      // the entries under the point (Pick)
+    ScreenEntry* hitCursor;               // Pick's walk, left on the entry it returns
     SectorGrid objectGrid;                // the objects by sector (MoveObject moves them)
-    std::uint32_t rangeFirstX, rangeFirstY, rangeLastX, rangeLastY, rangeX, rangeY;
     SectorGrid secondGrid;
     terrain::Terrain* terrain;            // counted
     // The zone's allod in lower case ("gipath" after Setup; the zone load takes it from the map

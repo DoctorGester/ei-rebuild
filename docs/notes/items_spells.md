@@ -130,7 +130,7 @@ ground click) run in `spells_more`; the teleport moves the hero when the effect'
 
 `StartCharm`, `StartLink`, `StartPossession` (spell_effect.cpp) and the Link and Possession updates
 (spell_effect_update.cpp) stay with a one-line comment: `WorldServer::CastSpell` returns for those three types, so
-only a saved projectile of one would start them. `GiveBriefingRewards` and `CreateNamedItem` (world_quests.cpp) stay
+only a saved projectile of one would start them. `GiveBriefingRewards` (world_quests.cpp, creating items with `CreateItemNamed`) stays
 too: `CompleteBriefing` returns before them in any network game (the host is a client too) and a single-player game
 never holds a briefing record.
 

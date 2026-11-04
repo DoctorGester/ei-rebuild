@@ -69,7 +69,6 @@ constexpr unsigned kMagicMission = 0x102;
 
 MapRecord* ZoneRecords() { return g_mapDatabase.maps.data(); }
 int ZoneRecordCount() { return static_cast<int>(g_mapDatabase.maps.size()); }
-MapRecord* FindZone(std::string_view name) { return g_mapDatabase.FindMap(name); }
 
 using netlink::FileStream;
 
@@ -109,11 +108,7 @@ int RestoreZone(Party* records, MapRecord* zoneRecord, const std::string& zone, 
     NamedFloatTable* variables = &records->variables;
     folder = str::Format(kCurrentFolder, DataFolderText());
     std::string fileName = zone + kSaveExtension;
-    bool opened;
-    {
-        std::string path = folder + fileName;
-        opened = file.Open(path, platform::FileMode::Read);
-    }
+    bool opened = file.Open(folder + fileName, platform::FileMode::Read);
     if (!opened) {
         failed = true;
         return 0;
@@ -130,12 +125,7 @@ int RestoreZone(Party* records, MapRecord* zoneRecord, const std::string& zone, 
     int entrance = records->entrance;
     if (entrance >= 0 && entrance < std::ssize(zoneRecord->exits)) {
         float now = variables->Get(kGTime);
-        float left;
-        {
-            std::string prefix = kLeftPrefix;
-            std::string variable = prefix + zone;
-            left = variables->Get(variable);
-        }
+        float left = variables->Get(std::string(kLeftPrefix) + zone);
         int ticks = lib::Truncate((now - left) * 100.0f);
         if (ticks >= kMaxCatchUpTicks) ticks = kMaxCatchUpTicks;
         else if (ticks <= 0) return result;
@@ -276,16 +266,12 @@ int GameFlow::SaveGame(const std::string& slot) {
     Party records;
     g_partyManager.EndRedeploy(&records);
     std::string currentMap;
-    currentMap = FindZone(records.zone)->allod;
+    currentMap = g_mapDatabase.FindMap(records.zone)->allod;
 
     CopyVisitedZones(currentFolder, slotFolder, currentMap, &records.variables);
     g_partyManager.BeginRedeploy(&records);
 
-    bool opened;
-    {
-        std::string path = slotFolder + kScenarioFile;
-        opened = file.Open(path, platform::FileMode::Create);
-    }
+    bool opened = file.Open(slotFolder + kScenarioFile, platform::FileMode::Create);
     if (!opened) {
         StartZone(kMainMenu, ZoneMode::MainMenu);
         return 0;
@@ -305,12 +291,9 @@ int GameFlow::SaveGame(const std::string& slot) {
     file.Close();
 
     // mission.sav: the world, except in zones without one (kind 1: cutscenes).
-    int kind = FindZone(records.zone)->kind;
+    int kind = g_mapDatabase.FindMap(records.zone)->kind;
     if (kind == 0 || kind == 2) {
-        {
-            std::string path = slotFolder + kMissionFile;
-            opened = file.Open(path, platform::FileMode::Create);
-        }
+        opened = file.Open(slotFolder + kMissionFile, platform::FileMode::Create);
         if (!opened) return 0;
         MemoryStream mission;
         mission.version = static_cast<std::uint32_t>(kSaveVersion);
@@ -332,17 +315,14 @@ int EnterZone(Party* records) {
     int result = 1;
     std::string folder;
     std::string zone(records->zone);
-    MapRecord* zoneRecord = FindZone(zone);
+    MapRecord* zoneRecord = g_mapDatabase.FindMap(zone);
     if (!zoneRecord) return 0;
 
     NamedFloatTable* variables = &records->variables;
     if (lib::Truncate(variables->Get(kMovieVariable)) == 1) {
         if (str::Compare(zone,
                             kMovieZone) != 0) {
-            {
-                std::string movie = g_dataFolder + kMovieFile;
-                PlayMovie(movie, 0, 1, 1, 1, 1);
-            }
+            PlayMovie(g_dataFolder + kMovieFile, 0, 1, 1, 1, 1);
             variables->Remove(kMovieVariable);
         }
     } else {
@@ -358,13 +338,7 @@ int EnterZone(Party* records) {
             mapOverride = kFrozenMap;
             if (frozen == 0.0f) mapOverride = kThawedMap;
         }
-        bool visited;
-        {
-            std::string prefix = kVisitedPrefix;
-            std::string variable = prefix + zone;
-            float value = variables->Get(variable);
-            visited = value != 0.0f;
-        }
+        bool visited = variables->Get(std::string(kVisitedPrefix) + zone) != 0.0f;
         if (visited) {
             bool failed = false;
             result = RestoreZone(records, zoneRecord, zone, folder, mapOverride, file, failed);
@@ -372,13 +346,9 @@ int EnterZone(Party* records) {
         } else {
             std::string map = zoneRecord->map + kMapExtension;
             if (mapOverride) map = mapOverride;
-            bool loaded;
-            {
-                std::string mob = zoneRecord->mob + kMobExtension;
-                loaded = g_serverWorld.NewZone(map, mob, zoneRecord->name) != 0;
-            }
+            bool loaded = g_serverWorld.NewZone(map, zoneRecord->mob + kMobExtension, zoneRecord->name) != 0;
             if (!loaded) return 0;
-            zoneRecord = FindZone(zone);
+            zoneRecord = g_mapDatabase.FindMap(zone);
             g_serverWorld.SetTime(kStartTime);
         }
         if (zoneRecord->kind == 2) {
@@ -398,19 +368,14 @@ int EnterZone(Party* records) {
 // game server, announces the host and loads the zone's .mob. Returns 1, 0 on failure.
 int StartNetworkZone(const std::string& zone) {
     g_interface.closeAll = 1;
-    MapRecord* zoneRecord = FindZone(zone);
+    MapRecord* zoneRecord = g_mapDatabase.FindMap(zone);
     if (!zoneRecord || zoneRecord->kind != 0) return 0;
     g_serverWorld.TeardownZone();
 
     std::string folder;
     FileStream file;
     folder = str::Format(kCurrentFolder, DataFolderText());
-    bool opened;
-    {
-        std::string path = folder + zone;
-        std::string fileName = path + kSaveExtension;
-        opened = file.Open(fileName, platform::FileMode::Read);
-    }
+    bool opened = file.Open(folder + zone + kSaveExtension, platform::FileMode::Read);
     if (opened) {
         MemoryStream data;
         bool loaded = SaveFileRead(&data, kMagicMission, &file) &&
@@ -418,12 +383,7 @@ int StartNetworkZone(const std::string& zone) {
         if (loaded) file.Close();
         if (!loaded) return 0;
     } else {
-        bool loaded;
-        {
-            std::string mob = zoneRecord->mob + kMobExtension;
-            std::string map = zoneRecord->map + kMapExtension;
-            loaded = g_serverWorld.NewZone(map, mob, zone) != 0;
-        }
+        bool loaded = g_serverWorld.NewZone(zoneRecord->map + kMapExtension, zoneRecord->mob + kMobExtension, zone) != 0;
         if (!loaded) return 0;
         g_serverWorld.SetTime(kStartTime);
     }
@@ -458,10 +418,7 @@ int LeaveZone(Party* records) {
     if (g_serverWorld.zoneMode == ZoneMode::Battle) g_camera.SaveView(7);
     else if (g_serverWorld.zoneMode == ZoneMode::Base) g_camera.SaveView(6);
     path = str::Format(kCurrentFolder, DataFolderText());
-    {
-        std::string fileName = zone + kSaveExtension;
-        path += fileName;
-    }
+    path += zone + kSaveExtension;
     if (!file.Open(path, platform::FileMode::Create)) {
         game::FatalError(kCantWrite, path);
         return 0;
@@ -474,17 +431,9 @@ int LeaveZone(Party* records) {
     file.Close();
 
     NamedFloatTable* variables = &records->variables;
-    {
-        std::string prefix = kVisitedPrefix;
-        std::string variable = prefix + zone;
-        variables->Set(variable, 1.0f);
-    }
+    variables->Set(std::string(kVisitedPrefix) + zone, 1.0f);
     float now = variables->Get(kGTime);
-    {
-        std::string prefix = kLeftPrefix;
-        std::string variable = prefix + zone;
-        variables->Set(variable, now);
-    }
+    variables->Set(std::string(kLeftPrefix) + zone, now);
     return 1;
 }
 
@@ -617,37 +566,24 @@ int WorldServer::ReadAIGraph(std::string_view map, std::string_view mob, ByteStr
     FileStream mobFile;
     int found = 0;
     // The graph chunk of the .mob file.
-    {
-        std::string path = MapPath(mob);
-        mobFile.Open(path, platform::FileMode::Read);
-    }
+    mobFile.Open(MapPath(mob), platform::FileMode::Read);
     if (mobFile.FindTagged(kGraphChunk, out)) found = 1;
     mobFile.Close();
     if (found) return found;
     // Otherwise <map without extension>.grp.
     std::string base = MapPath(map);
     int dot = str::ReverseFind(base, '.');
-    if (dot > 0) {
-        std::string cut = str::Left(base, dot);
-        base = cut;
-    }
-    {
-        FileStream graph;
-        bool opened;
-        {
-            std::string path = base + kGraphExtension;
-            opened = graph.Open(path, platform::FileMode::Read);
-        }
-        if (opened) {
-            out->CopyFrom(&graph);
-            found = 1;
-            graph.Close();
-        }
+    if (dot > 0) base = str::Left(base, dot);
+    FileStream graph;
+    if (graph.Open(base + kGraphExtension, platform::FileMode::Read)) {
+        out->CopyFrom(&graph);
+        found = 1;
+        graph.Close();
     }
     return found;
 }
 
-void WorldServer::SetConstructionVariable(std::uint32_t value) {
+void WorldServer::SetConstructionVariable(float value) {
     if (Player* player = GetPlayer(0)) player->Server()->SetVariable(kConstructionVariable, value);
 }
 
@@ -666,10 +602,7 @@ void WorldServer::LoadZoneScripts(std::string_view mob) {
     MemoryStream scripts;
     MemoryStream text;
     MobScriptDecoder decoder;
-    {
-        std::string path = MapPath(mob);
-        file.Open(path, platform::FileMode::Read);
-    }
+    file.Open(MapPath(mob), platform::FileMode::Read);
     file.FindTagged(kScriptsChunk, &scripts);
     if (scripts.FindTagged(kScriptEncoded, &text)) {
         const std::uint8_t* data = text.data.data();
@@ -841,7 +774,7 @@ void GameFlow::StartZone(std::string_view zone, ZoneMode mode) {
     if (text::CompareIgnoringCase(zone, kEndOfGame) == 0) {
         mode = ZoneMode::EndOfGame;
     } else {
-        zoneRecord = FindZone(zone);
+        zoneRecord = g_mapDatabase.FindMap(zone);
     }
     g_serverWorld.TeardownZone();
 
@@ -947,16 +880,15 @@ void GameFlow::UseResources(bool network) {
 }
 
 void GameFlow::ProcessRequest() {
-    int& currentState = state;
-    if (currentState == 0) return;
+    if (state == 0) return;
     // The zone being left is saved (single player campaigns 1 and 3, or the host in campaign 1).
-    if (g_serverWorld.gameState == GameState::Playing && IsSinglePlayerMode(g_serverWorld.zoneMode) && currentState == kStateZone) {
+    if (g_serverWorld.gameState == GameState::Playing && IsSinglePlayerMode(g_serverWorld.zoneMode) && state == kStateZone) {
         Party records;
         g_partyManager.EndRedeploy(&records);
         ::LeaveZone(&records);
         g_partyManager.BeginRedeploy(&records);
     }
-    if (g_serverWorld.gameState == GameState::Network && g_serverWorld.zoneMode == ZoneMode::Battle && currentState == kStateZone) {
+    if (g_serverWorld.gameState == GameState::Network && g_serverWorld.zoneMode == ZoneMode::Battle && state == kStateZone) {
         Party records;
         ::LeaveZone(&records);
     }
@@ -964,18 +896,17 @@ void GameFlow::ProcessRequest() {
     g_serverWorld.TeardownZone();
     UseResources(IsLive(net::g_gameClient));
 
-    auto* clientWorld = &g_clientWorld;
-    switch (currentState) {
+    switch (state) {
     case kStateMainMenu:
         StartZone(kMainMenu, ZoneMode::MainMenu);
         break;
     case kStateLoad:
-        clientWorld->SetPlayer(g_serverWorld.worldHandle.Get());
-        clientWorld->LocalView()->sendParty = 0;
+        g_clientWorld.SetPlayer(g_serverWorld.worldHandle.Get());
+        g_clientWorld.LocalView()->sendParty = 0;
         g_serverWorld.SetGameState(GameState::Playing);
-        clientWorld->RunTick();
+        g_clientWorld.RunTick();
         g_serverWorld.Update();
-        clientWorld->RunTick();
+        g_clientWorld.RunTick();
         g_serverWorld.Update();
         LoadGame(requestTarget);
         break;
@@ -987,31 +918,31 @@ void GameFlow::ProcessRequest() {
         StartZone(requestTarget, ZoneMode::None);
         break;
     case kStatePartyZone: {
-        Player* player = clientWorld->LocalView()->player;
+        Player* player = g_clientWorld.LocalView()->player;
         player->AssignParty(RequestParty());
         g_serverWorld.TeardownZone();
-        if (!clientWorld->JoinGameClient()) {
+        if (!g_clientWorld.JoinGameClient()) {
             if (IsLive(net::g_gameClient)) {
                 BeginMultiplayerGame();
             } else {
                 StartZone(kMainMenu, ZoneMode::MainMenu);
             }
         }
-        clientWorld->LocalView()->sendParty = 1;
+        g_clientWorld.LocalView()->sendParty = 1;
         break;
     }
     case kStateNetworkZone: {
         StartNetworkZone(requestTarget);
-        Player* player = clientWorld->LocalView()->player;
+        Player* player = g_clientWorld.LocalView()->player;
         player->AssignParty(RequestParty());
-        clientWorld->SetPlayer(g_serverWorld.worldHandle.Get());
-        clientWorld->LocalView()->sendParty = 1;
+        g_clientWorld.SetPlayer(g_serverWorld.worldHandle.Get());
+        g_clientWorld.LocalView()->sendParty = 1;
         break;
     }
     default:
         break;
     }
-    currentState = 0;
+    state = 0;
     net::Pump();
 }
 
@@ -1027,11 +958,7 @@ int GameFlow::LoadGame(const std::string& slot) {
     slotFolder = str::Format(kSlotFolder, DataFolderText(), slot);
     currentFolder = str::Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(currentFolder);
-    bool opened;
-    {
-        std::string path = slotFolder + kScenarioFile;
-        opened = file.Open(path, platform::FileMode::Read);
-    }
+    bool opened = file.Open(slotFolder + kScenarioFile, platform::FileMode::Read);
     if (!opened) {
         StartZone(kMainMenu, ZoneMode::MainMenu);
         return 0;
@@ -1060,20 +987,17 @@ int GameFlow::LoadGame(const std::string& slot) {
     Party records;
     g_partyManager.EndRedeploy(&records);
     std::string currentMap;
-    currentMap = FindZone(records.zone)->allod;
+    currentMap = g_mapDatabase.FindMap(records.zone)->allod;
     CopyVisitedZones(slotFolder, currentFolder, currentMap, &records.variables);
     g_partyManager.BeginRedeploy(&records);
 
     // The zone: kinds 0 and 2 come back from mission.sav, the others start afresh.
-    MapRecord* zoneRecord = FindZone(records.zone);
+    MapRecord* zoneRecord = g_mapDatabase.FindMap(records.zone);
     int kind = zoneRecord->kind;
     if (kind != 0 && kind != 2) {
         StartZone(records.zone, ZoneMode::None);
     } else {
-        {
-            std::string path = slotFolder + kMissionFile;
-            opened = file.Open(path, platform::FileMode::Read);
-        }
+        opened = file.Open(slotFolder + kMissionFile, platform::FileMode::Read);
         if (!opened) return 0;
         LoadMission(&file);
         file.Close();
@@ -1124,8 +1048,7 @@ void GameFlow::UpdateFromServer() {
         for (const auto& file : g_questFiles) texts->RemoveSource(file);
         g_questFiles.clear();
     }
-    auto* clientWorld = &g_clientWorld;
-    Player* player = clientWorld->LocalView()->player;
+    Player* player = g_clientWorld.LocalView()->player;
     NamedFloatTable* variables = &player->GetParty()->variables;
 // The local player's variables are replaced by the server's; "constr.current" and the "gvar." ones survive (Rebirth's
 // PersistentGlobalVars).
@@ -1160,12 +1083,7 @@ void GameFlow::UpdateFromServer() {
     // The quest variables ("q.<folder>.<name>") register their quest folders.
     for (const auto& variable : net::g_gameClient->variables) {
         std::string name = variable.Get()->name.data();
-        bool quest;
-        {
-            std::string prefix = str::Left(name, 2);
-            quest = str::Compare(prefix,
-                                    kQuestVariablePrefix) == 0;
-        }
+        bool quest = str::Compare(str::Left(name, 2), kQuestVariablePrefix) == 0;
         if (!quest) continue;
         std::string rest = str::Right(name, static_cast<int>(name.size()) - 2);
         int dot = str::Find(rest, kDot);
@@ -1176,7 +1094,7 @@ void GameFlow::UpdateFromServer() {
     }
 
     // The server's variables, by stamp.
-    if (clientWorld->LocalView()->player->sessionKind == 1) {
+    if (g_clientWorld.LocalView()->player->sessionKind == 1) {
         unsigned previous = g_appliedStamp;
         if (g_serverStamp > g_appliedStamp + 2) g_appliedStamp = g_serverStamp + 1;
         std::vector<const net::VariableMessage*> changed;
@@ -1235,7 +1153,7 @@ void SavedParties::Reload() {
 
 void GameFlow::BuildZoneTable() {
     std::vector<ZoneEntry>& table = g_zoneTable;
-    if (table.end() != table.begin()) return;
+    if (!table.empty()) return;
     modfolders::SelectMaps(kQuestFilePattern, modfolders::MapsSite::ZoneTable);
     for (const platform::FolderEntry& found : platform::FolderEntries(MapsFolder() + kQuestFilePattern)) {
         std::string name = found.Title();
@@ -1243,7 +1161,7 @@ void GameFlow::BuildZoneTable() {
         RegisterQuests(name);
         UnloadQuestTexts();
         std::string map;
-        if (MapRecord* record = FindZone(name)) {
+        if (MapRecord* record = g_mapDatabase.FindMap(name)) {
             map = record->map;
             const int allod = AllodOfMap(map);
             ZoneEntry& entry = table.emplace_back();

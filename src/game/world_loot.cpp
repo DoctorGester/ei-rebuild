@@ -66,17 +66,7 @@ bool WorldServer::Loot(Unit* unit, Player* player) {
     }
     if (IsMultiplayerClient()) {
         // Quest items go to player 0.
-        Player* first = nullptr;
-        {
-            PlayerIterator it;
-            for (Player* p = it.First(PlayerList()); p; p = it.Next()) {
-                if (p->playerId == 0) {
-                    first = p;
-                    break;
-                }
-            }
-        }
-        if (first) {
+        if (Player* first = GetPlayer(0)) {
             std::vector<Item*> quest;
             std::erase_if(items, [&quest](Item* item) {
                 if (item->GetClassId() != ClassId::ItemQuest) return false;
@@ -102,15 +92,7 @@ bool WorldServer::Loot(Unit* unit, Player* player) {
 void WorldServer::LootDeadUnits() {
     // The walk starts before the player is looked up; unlike most walks it does not stop at an empty entry.
     auto node = objects.map.begin();
-    Player* local = nullptr;
-    {
-        PlayerIterator it;
-        for (Player* player = it.First(PlayerList()); player; player = it.Next())
-            if (player->playerId == 0) {
-                local = player;
-                break;
-            }
-    }
+    Player* local = GetPlayer(0);
     if (!local) return;
 
     std::vector<unsigned> dead;

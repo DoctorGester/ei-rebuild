@@ -184,7 +184,7 @@ void RequestGameState(int id) {
     g_interface.closeAll = 1;
     g_clientWorld.LocalView()->RequestGameState(id);
 }
-void SetConstructionVariable(std::uint32_t value) { g_serverWorld.SetConstructionVariable(value); }
+void SetConstructionVariable(float value) { g_serverWorld.SetConstructionVariable(value); }
 void ObserveConsoleLines(void (*observer)(const char* line)) { console::g_consoleLineObserver = observer; }
 unsigned& UpdatePeriod() { return reinterpret_cast<unsigned&>(worlddata::g_updatePeriod); }
 const char* DataFolder() { return DataFolderText(); }
@@ -223,11 +223,11 @@ const char* LoadingMovieName() { return app::g_loadingMovieName; }
 
 void* PickAt2(void* world, int x, int y) {
     const Point p{x, y};
-    return static_cast<WorldClient*>(world)->PickAt2(&p);
+    return static_cast<WorldClient*>(world)->Pick(p, HitTest::Parts);
 }
 void* UnitAt(void* world, int x, int y) {
     const Point p{x, y};
-    return static_cast<EngineObject*>(static_cast<WorldClient*>(world)->UnitAt(&p));
+    return static_cast<EngineObject*>(static_cast<WorldClient*>(world)->UnitAt(p));
 }
 int ScreenRect(void* world, int id, Rect* rect) {
     int found = 0;

@@ -141,7 +141,7 @@ texturing. Textures have the .mmp file's own mip levels and no others (section 7
   picking and rubber band, particle sources, the shadow lists, client animation to game time, pending figure changes,
   model LRU). **Visibility only gates client-side animation, figure changes and picking, never server state or timing.**
 - **Picking** uses screen rectangles written during the object draw from projected positions (copied into node and
-  figure pieces; `WorldClient::UnitAt` / `PickAt2` test the parts' rectangles only). Whatever draws the objects must still
+  figure pieces; `WorldClient::UnitAt` / `Pick` (HitTest::Parts) test the parts' rectangles only). Whatever draws the objects must still
   produce them. The rule (`device_draw.cpp` `BoundsOfProjected`, one path for every mesh): the bounds of the projected
   positions, clamped to the screen. The projection leaves screen positions when the whole mesh is on screen and
   clip-space ones when it crosses the view's edges; those count when inside the depth range (nothing behind the camera or

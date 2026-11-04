@@ -572,10 +572,7 @@ void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
     auto unitDead = [](Unit* u) { return u->IsDead(); };
     auto pick = [mouse]() { return g_clientWorld.PickSurface(mouse.x, mouse.y); };
     auto unitPosition = [](Unit* u) { return u->localPosition; };
-    auto objectAt = [mouse]() {
-        Point point = mouse;
-        return g_clientWorld.PickAt2(&point);
-    };
+    auto objectAt = [mouse]() { return g_clientWorld.Pick(mouse, HitTest::Parts); };
     // The portrait of member `index` nods after a short random delay.
     auto flash = [this](int index) { portraits->Wobble(index, kWobbleNod); };
     auto order = [this, ctrl](Unit* first, MapObject* target, int kind, int value) {
@@ -771,9 +768,8 @@ void BattleScreen::OrderAt(Vector3 point, bool goTo, bool run) {
     // A point on a zone exit that is open ("z.<zone>" not 1; "none" is no zone): remembered for the
     // update to ask about leaving (exitPending and the exit).
     exitPending = false;
-    int exit;
-    if (g_clientWorld.FindExitAt(point, &exit) && selected > 0) {
-        std::string name = g_clientWorld.ExitTarget(exit);
+    if (std::optional<int> exit = g_clientWorld.FindExitAt(point); exit && selected > 0) {
+        std::string name = g_clientWorld.ExitTarget(*exit);
         if (text::CompareIgnoringCase(name,
                             game::NoneText()) != 0) {
             name = std::string(game::ZoneVariablePrefixText()) + name;   // "z."
@@ -782,7 +778,7 @@ void BattleScreen::OrderAt(Vector3 point, bool goTo, bool run) {
             // Equal skips.
             if (value != one) {
                 exitPending = true;
-                pendingExit = exit;
+                pendingExit = *exit;
             }
         }
     }

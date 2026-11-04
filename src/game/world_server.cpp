@@ -227,13 +227,11 @@ void WorldServer::RemoveObject(unsigned objectId) {
         // 0 when the missile's owner left (the missile is then dropped).
         if (!(*current)->Forget(object)) projectiles.erase(current);
     }
-    {
-        PlayerIterator playerIt;
-        for (Player* player = playerIt.First(PlayerList()); player; player = playerIt.Next())
-            player->Server()->ForgetObject(object);
-        object->Release();
-        object->Release();
-    }
+    PlayerIterator playerIt;
+    for (Player* player = playerIt.First(PlayerList()); player; player = playerIt.Next())
+        player->Server()->ForgetObject(object);
+    object->Release();
+    object->Release();
 }
 
 float WorldServer::RawSurfaceHeightAt(float x, float y) {
@@ -283,11 +281,7 @@ void WorldServer::Create() {
     Destroy();
     World::Create();
     std::string folder = g_textFolder;
-    bool opened;
-    {
-        std::string path = folder + kMessagesFileName;
-        opened = messages.Open(path);
-    }
+    bool opened = messages.Open(folder + kMessagesFileName);
     if (!opened) {
         game::FatalError(CantOpenText());
         return;
@@ -360,17 +354,12 @@ void DropPlayer(WorldServer* world, Player* player) {
 }
 
 // Every unit of a connected player wakes the units within its hearing range (as SyncPlayer computes it, with
-// another margin: the server half's movement factor 3 and statistics B0 values 0 and 2).
+// another margin).
 void WakeAroundUnits(WorldServer* world, Player* player) {
     auto& units = player->units;
     for (auto node = units.begin(); node != units.end() && node->second; ++node) {
         Unit* unit = node->second;
-        auto* controller = unit->ServerController();
-        float perception = controller->moveFactors[3] * controller->stats.perception[0].current;
-        float minimum = controller->stats.perception[2].current;
-        float range = MaxKeepB(perception, minimum);   // the branch-free select
-        float radius = range * worlddata::kHearingScale + worlddata::kWakeMargin;
-        world->WakeUnitsAround(unit->localPosition, radius);
+        world->WakeUnitsAround(unit->localPosition, HearingRadius(unit, worlddata::kWakeMargin));
     }
 }
 

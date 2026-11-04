@@ -21,16 +21,6 @@
 #include <cstring>
 #include <vector>
 
-namespace {
-
-// The unit list of sector (x, y), or null outside the map.
-std::vector<Unit*>* SectorUnits(SectorMap* map, int x, int y) {
-    if (x < 0 || y < 0 || x >= map->width || y >= map->height) return nullptr;
-    return &map->sectors[map->width * y + x].units;
-}
-
-} // namespace
-
 void WorldServer::Tick(char force) {
     ++tick;
     if ((tick & 0x3F) == 3) UpdateWeather();
@@ -74,7 +64,7 @@ void WorldServer::WakeUnitsAround(const Vector3& position, float radius) {
     const Point sector = WorldToCell(position) / 32;
     SectorMap* sectors = &aiMap.sectorMap;
     for (int i = 0; i < count; ++i, offsets += 2) {
-        auto* units = SectorUnits(sectors, offsets[0] + sector.x, offsets[1] + sector.y);
+        auto* units = sectors->UnitsAt(offsets[0] + sector.x, offsets[1] + sector.y);
         if (!units) continue;
         for (Unit* unit : *units) AddToUpdateMap(unit);
     }

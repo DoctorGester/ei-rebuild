@@ -51,7 +51,7 @@ World::Clock World::GetTime() {
     Clock clock;
     clock.hours = TimeOfDay();
     // 1 / (seconds per tick * 15), the product formed first.
-    volatile float perSecond = secondsPerTick * 15.0f;
+    const float perSecond = secondsPerTick * 15.0f;
     clock.speed = 1.0f / perSecond;
     return clock;
 }

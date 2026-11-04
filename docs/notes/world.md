@@ -151,7 +151,7 @@ in view, a pending figure change applied and the object goes on the shadow list.
 
 **Picking**: `PickGround` / `PickSurface` invert the view for pixel (x, y) giving the ray x = a z + b, y = c z + d,
 iterate z = height(x, y) from half the terrain's height range up to 100 times until |dz| <= 0.01, then up to 100
-bisection steps; x, y clamp at 0. `PickSurface` uses the platforms, `PickGround` `Terrain::HeightAt`. `PickAt` / `PickAt2`
+bisection steps; x, y clamp at 0. `PickSurface` uses the platforms, `PickGround` `Terrain::HeightAt`. `Pick` (by bounds or by parts)
 sort the screen entries with `DepthLess`.
 
 **Sorts**: `lib::IntroSort` (lib/intro_sort.h) reproduces STLport (median of three, unguarded Hoare partition, recursion

@@ -385,8 +385,7 @@ void BattleScreen::MouseMove(Point point) {
         UiContainer::MouseMove(point);
         if (handled) return;
     }
-    // The (x, y) pair is read back through its address.
-    Unit* unit = g_clientWorld.UnitAt(&point);
+    Unit* unit = g_clientWorld.UnitAt(point);
     HoverUnit(unit, point);
 }
 
@@ -443,10 +442,7 @@ bool IsZero(float value) {
 void BattleScreen::HoverUnit(Unit* unit, Point mouse) {
     auto unitDead = [](Unit* u) { return u->IsDead(); };
     auto pick = [mouse]() { return g_clientWorld.PickSurface(mouse.x, mouse.y); };
-    auto objectAt = [mouse]() {
-        Point point = mouse;
-        return g_clientWorld.PickAt2(&point);
-    };
+    auto objectAt = [mouse]() { return g_clientWorld.Pick(mouse, HitTest::Parts); };
     auto unitPosition = [](Unit* u) {
         Vector3 at;
         at = u->localPosition;
@@ -484,8 +480,7 @@ void BattleScreen::HoverUnit(Unit* unit, Point mouse) {
     CursorShape shape = CursorShape::Default;
     if (ui->altDown) {
         Vector3 at = pick();
-        int exit;
-        if (!g_clientWorld.FindExitAt(at, &exit)) return;
+        if (!g_clientWorld.FindExitAt(at)) return;
         g_cursor.SetShape(CursorShape::Move);
         return;
     }
@@ -522,9 +517,9 @@ void BattleScreen::HoverUnit(Unit* unit, Point mouse) {
             // Over a zone exit: the exit cursor unless the zone's "z.<name>" variable is 1 ("none"
             // is asked as is).
             Vector3 at = pick();
-            int exit;
-            if (!g_clientWorld.FindExitAt(at, &exit)) return;
-            std::string name = g_clientWorld.ExitTarget(exit);
+            std::optional<int> exit = g_clientWorld.FindExitAt(at);
+            if (!exit) return;
+            std::string name = g_clientWorld.ExitTarget(*exit);
             if (text::CompareIgnoringCase(name,
                                 game::NoneText()) != 0) {
                 name = std::string("z.") + name;

@@ -56,11 +56,7 @@ int WorldServer::LoadMap(std::string_view map, std::string_view mob, ByteStream*
     if (text::CompareIgnoringCase(mapName, map) != 0) {
         currentAiMap->Reset();
         currentAiMap->BeginRefresh();
-        bool failed;
-        {
-            std::string path = MapPath(map);
-            failed = currentAiMap->Load(path.c_str()) == 0;
-        }
+        bool failed = currentAiMap->Load(MapPath(map).c_str()) == 0;
         if (failed) return 0;
         mapName = map;
         mobName = game::kEmptyText;
@@ -289,11 +285,8 @@ bool MapFileExists(const char* name) {
 
 void WriteMapFile(const char* name, GameBuffer* buffer) {
     netlink::FileStream file;
-    {
-        modfolders::SelectMaps(name, modfolders::MapsSite::WriteFile);
-        std::string path = MapsFolder() + name;
-        file.Open(path, platform::FileMode::Create);
-    }
+    modfolders::SelectMaps(name, modfolders::MapsSite::WriteFile);
+    file.Open(MapsFolder() + name, platform::FileMode::Create);
     file.Write(buffer->begin, static_cast<std::uint32_t>(buffer->Size()));
     file.Close();
 }

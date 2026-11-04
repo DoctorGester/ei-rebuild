@@ -89,7 +89,7 @@ void BriefingScreen::LeftDown(Point point) {
     if (handled) return;
     switch (state) {
     case 0: {
-        Unit* object = g_clientWorld.UnitAt2(&point);
+        Unit* object = g_clientWorld.UnitAt(point, HitTest::Parts);
         if (IsPerson(object)) {
             if (CanTalk(object)) {
                 ui->PlayInterfaceSound(kClickSound);
@@ -145,7 +145,7 @@ void BriefingScreen::MouseMove(Point point) {
     }
     if (ui->rightDown || state != 0) return;
 
-    Unit* object = g_clientWorld.UnitAt2(&point);
+    Unit* object = g_clientWorld.UnitAt(point, HitTest::Parts);
     if (IsPerson(object)) {
         int objectId = object->id;
         if (IsMultiplayerClient() && leader && leader->id == objectId) return;
@@ -163,8 +163,7 @@ void BriefingScreen::MouseMove(Point point) {
         return;
     }
     Vector3 ground = g_clientWorld.PickSurface(point.x, point.y);
-    int newExit = 0;
-    if (!g_clientWorld.FindExitAt(ground, &newExit)) return;
+    if (!g_clientWorld.FindExitAt(ground)) return;
     std::string zone = g_clientWorld.ExitTarget(exit);
     if (text::CompareIgnoringCase(zone,
                         kNoZone) == 0)
@@ -183,7 +182,7 @@ void BriefingScreen::LeftDouble(Point point) {
         Input()->LeftDown(point);
         return;
     }
-    Unit* object = g_clientWorld.UnitAt2(&point);
+    Unit* object = g_clientWorld.UnitAt(point, HitTest::Parts);
     if (IsPerson(object)) {
         for (const BriefingMover& mover : movers)
             if (mover.person->id == object->id) return;

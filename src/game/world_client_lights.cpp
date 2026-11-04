@@ -46,7 +46,7 @@ constexpr float kNightSpan = 45.0f, kBaseElevation = 30.0f;
 constexpr float kPerDegree = 1.0f / 180.0f;
 constexpr float kRadiansPerDegree = kPi * kPerDegree;
 constexpr float kPerHour = 0.041666668f;   // 1/24 (the sun turns once a day)
-// A cave's sun: (0.5, 0.5, -0.70710677).
+// A cave's sun.
 const Vector3 kCaveSun = {0.5f, 0.5f, -0.707106f};
 
 // The hour (floored) the terrain's sun was last set for; -1 makes the next frame set it.
@@ -61,11 +61,8 @@ bool IsZero(float value) {
 }
 bool IsBlack(const LightColour& c) { return IsZero(c.r) && IsZero(c.g) && IsZero(c.b); }
 
-// (b - a) * t + a, stored as a float.
-float Lerp(float from, float to, float t) {
-    float value = (to - from) * t + from;
-    return value;
-}
+// (b - a) * t + a.
+float Lerp(float from, float to, float t) { return (to - from) * t + from; }
 LightColour Lerp(const LightColour& from, const LightColour& to, float t) {
     LightColour c;
     c.r = Lerp(from.r, to.r, t);
@@ -73,10 +70,6 @@ LightColour Lerp(const LightColour& from, const LightColour& to, float t) {
     c.b = Lerp(from.b, to.b, t);
     c.a = 0.0f;
     return c;
-}
-float Scaled(float value, float scale) {
-    float result = value * scale;
-    return result;
 }
 
 float FogStart(float hour) {
@@ -142,82 +135,61 @@ void HandOverClouds(const WorldClient* world, float hour) {
 
 } // namespace
 
-int WorldClient::UpdateLighting() {
+void WorldClient::UpdateLighting() {
     auto* display = &g_sceneRenderer;
-    if (!(display->flags & 1)) return 1;
+    if (!(display->flags & 1)) return;
     UpdateExitMarkers();
-    const float now = HourOfDay(this);
-    HandOverClouds(this, now);
+    const float hour = HourOfDay(this);
+    HandOverClouds(this, hour);
     TransformPipeline* pipeline = display->pipeline;
-
-    if (cave == 1) {
-        const float hour = now;
-        if (g_lastLitHour > hour) g_lastLitHour = -1.0f;
-        pipeline->SetDepthRange(options::kFogDayStartDistance, options::g_options.farClipDistance);
-        const LightColour sun = sunlight[0];
-        frameSun.r = sun.r;
-        frameSun.g = sun.g;
-        frameSun.b = sun.b;
-        if (IsBlack(ambient[0])) {
-            frameAmbient.r = Scaled(sun.r, kAmbientFromSun);
-            frameAmbient.g = Scaled(sun.g, kAmbientFromSun);
-            frameAmbient.b = Scaled(sun.b, kAmbientFromSun);
-        } else {
-            frameAmbient.r = ambient[0].r;     // the table's hour 0
-            frameAmbient.g = ambient[0].g;
-            frameAmbient.b = ambient[0].b;
-        }
-        Light* light = display->sun;
-        light->color[0] = sun.r;
-        light->color[1] = sun.g;
-        light->color[2] = sun.b;
-        light->direction = kCaveSun;
-        display->SetSunAndAmbient(light, frameAmbient.r, frameAmbient.g, frameAmbient.b);
-        const LightColour& skyColour = sky[0];
-        display->SetFogColour(skyColour.r, skyColour.g, skyColour.b);
-        if (skyDome) {
-            const SkyColour black = {0.0f, 0.0f, 0.0f, 1.0f};
-            skyDome->ApplyLight(kCaveSun, black, black);
-        }
-        if (hour - g_lastLitHour < 1.0f) return 0;
-        g_lastLitHour = std::floor(hour);
-        if (terrain) {
-            const Vector4 ambientColour = Ambient(frameAmbient);
-            terrain->SetSun(light, &ambientColour);
-        }
-        return 1;
-    }
-
-    const float hour = now;
-    const int index = HourIndex(now);
-    pipeline->SetDepthRange(FogStart(hour), options::g_options.farClipDistance);
     if (g_lastLitHour > hour) g_lastLitHour = -1.0f;
 
-    const float elevation = SunElevation(hour) * kRadiansPerDegree;
-    const float turn = hour * kPerHour;
-    const float azimuth = (turn + turn) * kPi;
-    const float cosElevation = lib::Cos(elevation);
+    // The cave's light is the table's hour 0 and a fixed sun; outside it is the hour's colours between two rows.
+    LightColour sun, ambientColour = {}, skyColour;
+    bool blackAmbient;
     Vector3 direction;
-    {
-        direction = {lib::Cos(azimuth) * cosElevation, lib::Sin(azimuth) * cosElevation, -lib::Sin(elevation)};
-    }
-    float whole;
-    const float fraction = std::modf(hour, &whole);
-    const int next = (index + 1) % kHours;
+    if (cave == 1) {
+        pipeline->SetDepthRange(options::kFogDayStartDistance, options::g_options.farClipDistance);
+        sun = sunlight[0];
+        ambientColour = ambient[0];     // the table's hour 0
+        blackAmbient = IsBlack(ambient[0]);
+        skyColour = sky[0];
+        direction = kCaveSun;
+    } else {
+        const int index = HourIndex(hour);
+        pipeline->SetDepthRange(FogStart(hour), options::g_options.farClipDistance);
 
-    const LightColour sun = Lerp(sunlight[index], sunlight[next], fraction);
+        const float elevation = SunElevation(hour) * kRadiansPerDegree;
+        const float turn = hour * kPerHour;
+        const float azimuth = (turn + turn) * kPi;
+        const float cosElevation = lib::Cos(elevation);
+        direction = {lib::Cos(azimuth) * cosElevation, lib::Sin(azimuth) * cosElevation, -lib::Sin(elevation)};
+        float whole;
+        const float fraction = std::modf(hour, &whole);
+        const int next = (index + 1) % kHours;
+
+        sun = Lerp(sunlight[index], sunlight[next], fraction);
+        blackAmbient = IsBlack(ambient[index]);
+        if (!blackAmbient) ambientColour = Lerp(ambient[index], ambient[next], fraction);
+        skyColour = Lerp(sky[index], sky[next], fraction);
+    }
+
     frameSun.r = sun.r;
     frameSun.g = sun.g;
     frameSun.b = sun.b;
-    if (IsBlack(ambient[index])) {
-        frameAmbient.r = Scaled(sun.r, kAmbientFromSun);
-        frameAmbient.g = Scaled(sun.g, kAmbientFromSun);
-        frameAmbient.b = Scaled(sun.b, kAmbientFromSun);
+    if (blackAmbient) {
+        frameAmbient.r = sun.r * kAmbientFromSun;
+        frameAmbient.g = sun.g * kAmbientFromSun;
+        frameAmbient.b = sun.b * kAmbientFromSun;
     } else {
-        const LightColour ambientColour = Lerp(ambient[index], ambient[next], fraction);
         frameAmbient.r = ambientColour.r;
         frameAmbient.g = ambientColour.g;
         frameAmbient.b = ambientColour.b;
+    }
+    SkyColour domeAmbient = {0.0f, 0.0f, 0.0f, 1.0f}, domeSun = domeAmbient;   // a cave's sky dome is black
+    if (cave != 1) {
+        domeAmbient = {frameAmbient.r, frameAmbient.g, frameAmbient.b, frameAmbient.a};
+        domeSun = {frameSun.r, frameSun.g, frameSun.b, frameSun.a};
     }
     Light* light = display->sun;
     light->color[0] = sun.r;
@@ -225,29 +197,23 @@ int WorldClient::UpdateLighting() {
     light->color[2] = sun.b;
     light->direction = direction;
     display->SetSunAndAmbient(light, frameAmbient.r, frameAmbient.g, frameAmbient.b);
-    const LightColour skyColour = Lerp(sky[index], sky[next], fraction);
     display->SetFogColour(skyColour.r, skyColour.g, skyColour.b);
-    if (skyDome) {
-        const SkyColour ambientColour = {frameAmbient.r, frameAmbient.g, frameAmbient.b, frameAmbient.a};
-        const SkyColour sunColour = {frameSun.r, frameSun.g, frameSun.b, frameSun.a};
-        skyDome->ApplyLight(direction, ambientColour, sunColour);
-    }
-    if (hour - g_lastLitHour < 1.0f) return 0;
+    if (skyDome) skyDome->ApplyLight(direction, domeAmbient, domeSun);
+    if (hour - g_lastLitHour < 1.0f) return;
     g_lastLitHour = std::floor(hour);
     if (terrain) {
-        const Vector4 ambientColour = Ambient(frameAmbient);
-        terrain->SetSun(light, &ambientColour);
+        const Vector4 terrainAmbient = Ambient(frameAmbient);
+        terrain->SetSun(light, &terrainAmbient);
     }
-    return 1;
 }
 
 void WorldClient::DaylightColours(LightColour* sun, LightColour* ambientColour) const {
     const int hour = cave == 1 ? 0 : kNoon;
     *sun = sunlight[hour];
     if (IsBlack(ambient[hour])) {
-        ambientColour->r = Scaled(sun->r, kAmbientFromSun);
-        ambientColour->g = Scaled(sun->g, kAmbientFromSun);
-        ambientColour->b = Scaled(sun->b, kAmbientFromSun);
+        ambientColour->r = sun->r * kAmbientFromSun;
+        ambientColour->g = sun->g * kAmbientFromSun;
+        ambientColour->b = sun->b * kAmbientFromSun;
         ambientColour->a = 0.0f;
     } else {
         *ambientColour = ambient[hour];
@@ -318,10 +284,8 @@ struct PartData {
 
 void AddPartTriangles(TransformPipeline* pipeline, LinkMesh* figure, FigureMesh* part, PartData& data) {
     const Matrix4* top = pipeline->Top(TransformPipeline::kDecalStack);
-    {
-        std::string name(part->GetName());
-        figure->GetPartData(&name, &data.vertices, &data.corners, &data.indices, &data.blocks, &data.indexCount);
-    }
+    std::string name(part->GetName());
+    figure->GetPartData(&name, &data.vertices, &data.corners, &data.indices, &data.blocks, &data.indexCount);
     std::vector<Vector4>& points = g_partPoints;
     points.resize(data.blocks * 4);
     for (int i = 0; i < data.blocks * 4; ++i) {

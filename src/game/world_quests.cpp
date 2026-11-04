@@ -39,19 +39,36 @@ namespace {
 
 constexpr int kMercSlots = 10;
 
-// The briefing variables of one mercenary slot (declared so that they are destroyed in the
-// original's order: n11, amerc, n10, n2, n8, n9, n3, n1).
-struct Briefing {
-    std::string n1, n3, n9, n8, n2, n10, hired, n11;
+// The names of one mercenary slot's variables: the scripts' "b.<merc>.nK_<slot>" (K in the comments) and "amerc_<slot>".
+struct MercVariables {
+    std::string merc;
+    std::string firstHire;    // n1: hired for the first time
+    std::string rehire;       // n3: hired again
+    std::string partyFull;    // n9: hired, but two other mercenaries are alive
+    std::string briefed;      // n8
+    std::string dismiss;      // n2: leaves the party
+    std::string leave;        // n10: leaves the party and the world
+    std::string offer;        // n11: not hired and not briefed (1), else 0
+    std::string hired;        // amerc_<slot>: 1 hired, 2 hired and in the party
 };
+
+MercVariables MercVariablesOf(int slot) {
+    MercVariables v;
+    v.merc = str::Format(worlddata::MercNameFormat(), slot);
+    v.briefed = str::Format(worlddata::MercVariableN8Format(), v.merc, slot);
+    v.firstHire = str::Format(worlddata::MercVariableN1Format(), v.merc, slot);
+    v.dismiss = str::Format(worlddata::MercVariableN2Format(), v.merc, slot);
+    v.rehire = str::Format(worlddata::MercVariableN3Format(), v.merc, slot);
+    v.partyFull = str::Format(worlddata::MercVariableN9Format(), v.merc, slot);
+    v.leave = str::Format(worlddata::MercVariableN10Format(), v.merc, slot);
+    v.offer = str::Format(worlddata::MercVariableN11Format(), v.merc, slot);
+    v.hired = str::Format(worlddata::MercHiredFormat(), slot);
+    return v;
+}
 
 Party* PartyOf(Player* player) { return player->GetParty(); }
 PartyUnitRecord& MercRecord(Player* player, int index) { return player->GetParty()->members[index]; }
 
-
-// The item named `name` (the game builds two unused temporary lists around the creation).
-// Unreached in the shipped game, like GiveBriefingRewards.
-Item* CreateNamedItem(std::string_view name) { return g_serverWorld.itemManager->CreateItem(name); }
 
 // Unreached in the shipped game: CompleteBriefing returns first in a network game and no single-player game holds a
 // briefing record.
@@ -64,13 +81,13 @@ void GiveBriefingRewards(WorldServer* world, Player* player, QuestBriefingRecord
 
     std::vector<Item*> items;
     for (const std::string& name : record->lists[QuestBriefingRecord::kGiveItems]) {
-        Item* item = CreateNamedItem(name);
+        Item* item = world->CreateItemNamed(name);
         if (item) items.push_back(item);
     }
     if (!items.empty()) player->GiveItems(&items, 0);
 
     for (const std::string& name : record->lists[QuestBriefingRecord::kRemoveItems]) {
-        Item* item = CreateNamedItem(name);
+        Item* item = world->CreateItemNamed(name);
         if (!item) continue;
         item->AddRef();
         if (item->GetClassId() == ClassId::ItemQuest)
@@ -82,20 +99,14 @@ void GiveBriefingRewards(WorldServer* world, Player* player, QuestBriefingRecord
     for (const std::string& name : record->lists[QuestBriefingRecord::kGiveQuests])
         state->SetVariableMax(name, 1.0f);
     for (const std::string& name : record->lists[QuestBriefingRecord::kCompleteQuests])
-        state->SetVariable(name, std::bit_cast<std::uint32_t>(2.0f));
+        state->SetVariable(name, 2.0f);
     for (const std::string& name : record->lists[QuestBriefingRecord::kAvailableZones])
         state->SetVariableMax(name, 1.0f);
     for (const std::string& name : record->lists[QuestBriefingRecord::kCompleteZones])
-        state->SetVariable(name, std::bit_cast<std::uint32_t>(2.0f));
+        state->SetVariable(name, 2.0f);
 
     items.clear();
 }
-
-// One slot's names, declared so that they are destroyed in the game's order: amerc, n10, n2, n8, n9, n3,
-// n1, merc.
-struct MercNames {
-    std::string merc, n1, n3, n9, n8, n2, n10, hired;
-};
 
 constexpr float kMinimumWeight = 0.01f;
 
@@ -128,8 +139,6 @@ void ShareAmongSoloPlayers(WorldServer* world, float amount) {
         if (!controller) continue;
         list.push_back({controller, 0.0f});
         total = Weight(controller) + total;
-        float stored = total;   // stored into the float total
-        total = stored;
     }
     float minimum;
     minimum = kMinimumWeight;
@@ -137,9 +146,8 @@ void ShareAmongSoloPlayers(WorldServer* world, float amount) {
 
     for (Share& entry : list) {
         float share = Weight(entry.controller) * amount / divisor;
-        float stored = share;
-        entry.share = stored;
-        entry.controller->AddExperience(stored);
+        entry.share = share;
+        entry.controller->AddExperience(share);
     }
     auto cursor = list.begin();
     for (Player* p = it.First(world->PlayerList()); p; p = it.Next()) {
@@ -166,15 +174,11 @@ void ShareAmongHeroes(WorldServer* world, Player* player, float amount) {
         Unit* unit = node->second;
         if (unit->IsDead() != 0 || unit->MapType() != MapObjectType::Hero) continue;
         int id = unit->id;
-        int index = lib::Count(heroes);
-        heroes.resize(index + 1);
-        heroes[index] = id;
+        heroes.push_back(id);
     }
     int count = lib::Count(heroes);
     if (count >= 1) {
         float share = amount / static_cast<float>(count);
-        float stored = share;
-        share = stored;
         for (int i = 0; i < std::ssize(heroes); ++i) {
             Unit* unit = world->FindUnit(heroes[i]);
             unit->ServerController()->AddExperience(share);
@@ -292,23 +296,14 @@ void WorldServer::UpdateMercBriefings() {
     for (Player* player = it.First(PlayerList()); player; player = it.Next()) {
         PlayerServer* state = player->Server();
         int otherMercs = CountLivingMercs(player->playerId);
-        auto set = [&](const std::string& name, float value) { state->SetVariable(name, std::bit_cast<std::uint32_t>(value)); };
+        auto set = [&](const std::string& name, float value) { state->SetVariable(name, value); };
 
         for (int slot = 1; slot <= kMercSlots; ++slot) {
-            std::string merc = str::Format(worlddata::MercNameFormat(), slot);
-            unsigned key = TextKeyFromName(merc);
+            const MercVariables b = MercVariablesOf(slot);
+            unsigned key = TextKeyFromName(b.merc);
             bool briefedHere = text::CompareIgnoringCase(zoneName,
                                                worlddata::MercZoneName(slot - 1)) == 0;
-            Briefing b;
-            b.n8 = str::Format(worlddata::MercVariableN8Format(), merc, slot);
-            b.n1 = str::Format(worlddata::MercVariableN1Format(), merc, slot);
-            b.n2 = str::Format(worlddata::MercVariableN2Format(), merc, slot);
-            b.n3 = str::Format(worlddata::MercVariableN3Format(), merc, slot);
-            b.n9 = str::Format(worlddata::MercVariableN9Format(), merc, slot);
-            b.n10 = str::Format(worlddata::MercVariableN10Format(), merc, slot);
-            b.n11 = str::Format(worlddata::MercVariableN11Format(), merc, slot);
-            b.hired = str::Format(worlddata::MercHiredFormat(), slot);
-            set(b.n11, 0.0f);
+            set(b.offer, 0.0f);
 
             bool inParty = false;
             for (int i = 0; i < std::ssize(player->GetParty()->members); ++i) {
@@ -318,59 +313,57 @@ void WorldServer::UpdateMercBriefings() {
                 }
             }
             NamedFloatTable* variables = &player->GetParty()->variables;
-            float left = variables->Get(b.n10);
+            float left = variables->Get(b.leave);
             if (inParty) {
                 if (left != 0.0f) {
-                    set(b.n8, 0.0f);
-                    set(b.n1, 0.0f);
-                    set(b.n2, 0.0f);
-                    set(b.n3, 0.0f);
-                    set(b.n9, 0.0f);
+                    set(b.briefed, 0.0f);
+                    set(b.firstHire, 0.0f);
+                    set(b.dismiss, 0.0f);
+                    set(b.rehire, 0.0f);
+                    set(b.partyFull, 0.0f);
                 } else {
-                    set(b.n8, 0.0f);
-                    set(b.n1, 0.0f);
-                    set(b.n3, 0.0f);
-                    set(b.n9, 0.0f);
-                    set(b.n2, briefedHere ? 1.0f : 0.0f);
+                    set(b.briefed, 0.0f);
+                    set(b.firstHire, 0.0f);
+                    set(b.rehire, 0.0f);
+                    set(b.partyFull, 0.0f);
+                    set(b.dismiss, briefedHere ? 1.0f : 0.0f);
                 }
             } else if (left != 0.0f) {
-                set(b.n8, 0.0f);
-                set(b.n1, 0.0f);
-                set(b.n2, 0.0f);
-                set(b.n3, 0.0f);
-                set(b.n9, 0.0f);
-                set(b.n10, 0.0f);
+                set(b.briefed, 0.0f);
+                set(b.firstHire, 0.0f);
+                set(b.dismiss, 0.0f);
+                set(b.rehire, 0.0f);
+                set(b.partyFull, 0.0f);
+                set(b.leave, 0.0f);
                 set(b.hired, 0.0f);
             } else {
-                float hiredValue = variables->Get(b.hired);
-                float hired = hiredValue;
-                float hiredStored = hired;
-                float briefed = variables->Get(b.n8);
-                if (hiredValue != 0.0f) {
+                float hired = variables->Get(b.hired);
+                float briefed = variables->Get(b.briefed);
+                if (hired != 0.0f) {
                     if (briefed != 1.0f) {
                         if (otherMercs < 2) {
-                            bool firstTime = hiredStored == 1.0f;
-                            set(b.n1, firstTime ? 1.0f : 0.0f);
-                            set(b.n3, firstTime ? 0.0f : 1.0f);
-                            set(b.n8, 0.0f);
-                            set(b.n2, 0.0f);
-                            set(b.n9, 0.0f);
+                            bool firstTime = hired == 1.0f;
+                            set(b.firstHire, firstTime ? 1.0f : 0.0f);
+                            set(b.rehire, firstTime ? 0.0f : 1.0f);
+                            set(b.briefed, 0.0f);
+                            set(b.dismiss, 0.0f);
+                            set(b.partyFull, 0.0f);
                         } else {
-                            set(b.n1, 0.0f);
-                            set(b.n3, 0.0f);
-                            set(b.n8, 0.0f);
-                            set(b.n2, 0.0f);
-                            set(b.n9, 1.0f);
+                            set(b.firstHire, 0.0f);
+                            set(b.rehire, 0.0f);
+                            set(b.briefed, 0.0f);
+                            set(b.dismiss, 0.0f);
+                            set(b.partyFull, 1.0f);
                         }
                     } else {
-                        set(b.n1, 0.0f);
-                        set(b.n2, 0.0f);
-                        set(b.n3, 0.0f);
-                        set(b.n9, 0.0f);
-                        set(b.n10, 0.0f);
+                        set(b.firstHire, 0.0f);
+                        set(b.dismiss, 0.0f);
+                        set(b.rehire, 0.0f);
+                        set(b.partyFull, 0.0f);
+                        set(b.leave, 0.0f);
                     }
                 } else if (briefed != 1.0f) {
-                    set(b.n11, 1.0f);
+                    set(b.offer, 1.0f);
                 }
             }
         }
@@ -393,16 +386,7 @@ void WorldServer::CompleteBriefing(int playerId, std::string_view name) {
         std::string key(parts[2]);
         record = worlddata::QuestBriefings()[key];
     }
-    Player* player = nullptr;
-    {
-        PlayerIterator it;
-        for (Player* p = it.First(PlayerList()); p; p = it.Next()) {
-            if (p->playerId == playerId) {
-                player = p;
-                break;
-            }
-        }
-    }
+    Player* player = GetPlayer(playerId);
     if (player) {
         ApplyMercBriefing(player, name);
         if (record) GiveBriefingRewards(this, player, record);
@@ -426,28 +410,19 @@ void WorldServer::ApplyMercBriefing(Player* player, std::string_view name) {
                                name) == 0;
     };
     for (int slot = 1; slot <= kMercSlots; ++slot) {
-        MercNames v;
-        v.merc = str::Format(worlddata::MercNameFormat(), slot);
+        const MercVariables v = MercVariablesOf(slot);
         unsigned key = TextKeyFromName(v.merc);
-        v.n8 = str::Format(worlddata::MercVariableN8Format(), v.merc, slot);
-        v.n1 = str::Format(worlddata::MercVariableN1Format(), v.merc, slot);
-        v.n2 = str::Format(worlddata::MercVariableN2Format(), v.merc, slot);
-        v.n3 = str::Format(worlddata::MercVariableN3Format(), v.merc, slot);
-        v.n9 = str::Format(worlddata::MercVariableN9Format(), v.merc, slot);
-        v.n10 = str::Format(worlddata::MercVariableN10Format(), v.merc, slot);
-        v.hired = str::Format(worlddata::MercHiredFormat(), slot);
         Unit* unit = FindUnit(key);
 
-        if (is(v.n8)) state->SetVariable(v.n8, std::bit_cast<std::uint32_t>(0.0f));
-        // n10: the mercenary leaves the party and the world; n2: the party.
-        if (is(v.n10)) {
+        if (is(v.briefed)) state->SetVariable(v.briefed, 0.0f);
+        if (is(v.leave)) {
             party->RemoveMember(key);
             RemoveObject(key);
         }
-        if (is(v.n2)) party->RemoveMember(key);
-        // n1 / n3: hired (amerc_N = 2) and added to the party with its unit's prototype.
-        if (is(v.n1) || is(v.n3)) {
-            state->SetVariable(v.hired, std::bit_cast<std::uint32_t>(2.0f));
+        if (is(v.dismiss)) party->RemoveMember(key);
+        // Hired (amerc_N = 2) and added to the party with its unit's prototype.
+        if (is(v.firstHire) || is(v.rehire)) {
+            state->SetVariable(v.hired, 2.0f);
             const std::string_view prototype = unit ? std::string_view(unit->GetPrototype()->name) : std::string_view(worlddata::HumanHeroText());
             party->AddMember(v.merc, prototype, game::kEmptyText);
         }
@@ -465,7 +440,7 @@ void WorldServer::SyncPartyRecords(Player* player) {
     Party* party = PartyOf(player);
     for (Item* item : player->items) party->AddItem(item, 1, 1);
     std::vector<PartyUnitRecord*> list{};
-    for (int i = 0; i < lib::Count(player->GetParty()->members); ++i) lib::SetAtGrow(list, lib::Count(list), &MercRecord(player, i));
+    for (int i = 0; i < lib::Count(player->GetParty()->members); ++i) list.push_back(&MercRecord(player, i));
     for (int i = 0; i < std::ssize(list); ++i) {
         auto* record = list[i];
         Unit* unit = FindUnit(static_cast<int>(record->unitId));
@@ -521,9 +496,7 @@ void WorldServer::CollectParty(Player* player, std::vector<UnitPlacement>* place
         --i;
     }
     for (int i = 0; i < std::ssize(player->GetParty()->members); ++i) {
-        int index = lib::Count(list);
-        list.resize(index + 1);
-        list[index] = &MercRecord(player, i);
+        list.push_back(&MercRecord(player, i));
     }
     StoreParty(&list, PartyOf(player), placements);
 }

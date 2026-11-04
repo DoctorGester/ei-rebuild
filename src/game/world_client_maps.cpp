@@ -77,27 +77,6 @@ void RemoveHeld(List& list, MapObject* object) {
     std::erase_if(list, [object](const HeldRef<MapObject>& held) { return held.Get() == object; });
 }
 
-// The hit test of the object's side half for the point: CollectBounds or CollectParts.
-using HitTest = int (Object3DSpecific::*)(const std::int32_t* point);
-
-// The screen entries whose rectangle holds (x, y) and whose object still exists and answers `test` go
-// to `hits`.
-HitCollector* CollectHits(HitCollector* out, const std::vector<ScreenEntry>& entries, std::vector<ScreenEntry>* hits, std::int32_t x,
-                          std::int32_t y, MapObjectManager* manager, HitTest test) {
-    for (const ScreenEntry& entry : entries) {
-        Point pt = {x, y};
-        if (!entry.rect.Contains(pt)) continue;
-        MapObject* object = manager->FindMapObject(entry.objectId);
-        if (!object) continue;
-        std::int32_t point[2] = {x, y};
-        Object3DSpecific* half = object->AsObject3D()->attached;
-        if (!(half->*test)(point)) continue;
-        hits->push_back(entry);
-    }
-    out->hits = hits;
-    return out;
-}
-
 void SessionPlayerClear(Player* session) { session->Clear(); }
 
 // The grid cell of the object's position, null outside the grid.
@@ -106,27 +85,6 @@ std::vector<HeldRef<MapObject>>* CellFor(SectorGrid& grid, MapObject* object) {
     std::uint32_t y = CellOf(object->localPosition.y);
     if (x >= grid.width || y >= grid.height) return nullptr;
     return &grid.rows[y][x];
-}
-
-using Collect = HitCollector* (HitCollector::*)(const std::vector<ScreenEntry>&, std::vector<ScreenEntry>*, std::int32_t, std::int32_t, MapObjectManager*);
-MapObject* Pick(WorldClient* client, const Point* point, Collect collect) {
-    std::vector<ScreenEntry>& hits = client->hits;
-    hits.clear();
-    MapObjectManager* manager = client->GetMapObjectManager();
-    HitCollector functor;
-    (functor.*collect)(client->screenEntries, &hits, point->x, point->y, manager);
-    if (hits.empty()) return nullptr;
-
-    // Front to back (DepthLess with the top of the view stack); hits at the same depth keep the game's sort's
-    // order, and the first that takes the click wins.
-    DepthLess depth{g_sceneRenderer.pipeline->Top(TransformPipeline::kViewStack)->m, client->GetMapObjectManager()};
-    lib::IntroSort(hits.data(), hits.data() + hits.size(),
-                   [depth](const ScreenEntry& a, const ScreenEntry& b) { return depth.Less(&a, &b); });
-    ScreenEntry*& cursor = client->hitCursor;
-    for (cursor = hits.data(); cursor != hits.data() + hits.size(); ++cursor) {
-        if (MapObject* object = manager->FindMapObject(cursor->objectId)) return object;
-    }
-    return nullptr;
 }
 
 // From a picked object on: the first unit of the sorted hits. The cursor moves past entries whose
@@ -141,8 +99,6 @@ Unit* FirstUnitHit(WorldClient* client, MapObject* object) {
     }
     return unit;
 }
-
-bool SameText(std::string_view a, std::string_view b) { return a == b; }
 
 constexpr float kSteepest = 0.8f;   // the smallest normal z of a face added
 
@@ -248,22 +204,12 @@ void SectorGrid::Move(MapObject* object, const float* position) {
     if (newX < width && newY < height) rows[newY][newX].emplace_back(object);
 }
 
-HitCollector* HitCollector::CollectBounds(const std::vector<ScreenEntry>& entries, std::vector<ScreenEntry>* found, std::int32_t x, std::int32_t y,
-                                          MapObjectManager* manager) {
-    return CollectHits(this, entries, found, x, y, manager, &Object3DSpecific::BoundsContainPoint);
-}
-
-HitCollector* HitCollector::CollectParts(const std::vector<ScreenEntry>& entries, std::vector<ScreenEntry>* found, std::int32_t x, std::int32_t y,
-                                         MapObjectManager* manager) {
-    return CollectHits(this, entries, found, x, y, manager, &Object3DSpecific::PartsContainPoint);
-}
-
-int WorldClient::AddObject(MapObject* object) {
+void WorldClient::AddObject(MapObject* object) {
     for (MapObject* filed : objects) {
         if (filed->id == object->id) {
             object->AddRef();
             object->Release();
-            return 1;
+            return;
         }
     }
     auto entry = dynamicNodes.find(static_cast<std::uint32_t>(object->id));
@@ -293,7 +239,6 @@ int WorldClient::AddObject(MapObject* object) {
     if (auto* cell = CellFor(objectGrid, object)) RemoveHeld(*cell, object);
     if (auto* cell = CellFor(objectGrid, object)) cell->emplace_back(object);
     if (object->MapType() == MapObjectType::Hero && IsTextKey(object->id)) heroes.emplace_back(object);
-    return 1;
 }
 
 void WorldClient::RefreshPlatforms(MapObject* object) {
@@ -333,13 +278,12 @@ void WorldClient::ApplyWind(const Vector3& direction, float strength) {
     rainSnow.SetWind(direction, strength);
 }
 
-int WorldClient::CentreOn(const Vector3& point) {
+void WorldClient::CentreOn(const Vector3& point) {
     Vector3 focus = point;
     focus.z = camera->focus.z;
     camera->SetFocus(focus);
     camera->ApplyView();
     camera->ClampAboveObjects();
-    return 1;
 }
 
 float WorldClient::GroundHeightAt(float x, float y) {
@@ -434,20 +378,40 @@ void WorldClient::ClearMaps() {
     specificManager->FreeSpares();
 }
 
-MapObject* WorldClient::PickAt(const Point* point) { return Pick(this, point, &HitCollector::CollectBounds); }
-MapObject* WorldClient::PickAt2(const Point* point) { return Pick(this, point, &HitCollector::CollectParts); }
-
-Unit* WorldClient::UnitAt(const Point* point) {
-    if (MapObject* picked = PickAt2(point)) {
-        if (Unit* unit = FirstUnitHit(this, picked)) return unit;
+MapObject* WorldClient::Pick(const Point& point, HitTest test) {
+    hits.clear();
+    MapObjectManager* manager = GetMapObjectManager();
+    // The screen entries whose rectangle holds the point and whose object still exists and passes the test.
+    for (const ScreenEntry& entry : screenEntries) {
+        if (!entry.rect.Contains(point)) continue;
+        MapObject* object = manager->FindMapObject(entry.objectId);
+        if (!object) continue;
+        const std::int32_t xy[2] = {point.x, point.y};
+        Object3DSpecific* half = object->AsObject3D()->attached;
+        if (!(test == HitTest::Bounds ? half->BoundsContainPoint(xy) : half->PartsContainPoint(xy))) continue;
+        hits.push_back(entry);
     }
-    MapObject* picked = PickAt(point);
+    if (hits.empty()) return nullptr;
+
+    // Front to back (DepthLess with the top of the view stack); hits at the same depth keep the game's sort's
+    // order, and the first that takes the click wins.
+    DepthLess depth{g_sceneRenderer.pipeline->Top(TransformPipeline::kViewStack)->m, manager};
+    lib::IntroSort(hits.data(), hits.data() + hits.size(),
+                   [depth](const ScreenEntry& a, const ScreenEntry& b) { return depth.Less(&a, &b); });
+    for (hitCursor = hits.data(); hitCursor != hits.data() + hits.size(); ++hitCursor) {
+        if (MapObject* object = manager->FindMapObject(hitCursor->objectId)) return object;
+    }
+    return nullptr;
+}
+
+Unit* WorldClient::UnitAt(const Point& point, HitTest test) {
+    MapObject* picked = Pick(point, test);
     return picked ? FirstUnitHit(this, picked) : nullptr;
 }
 
-Unit* WorldClient::UnitAt2(const Point* point) {
-    MapObject* picked = PickAt2(point);
-    return picked ? FirstUnitHit(this, picked) : nullptr;
+Unit* WorldClient::UnitAt(const Point& point) {
+    if (Unit* unit = UnitAt(point, HitTest::Parts)) return unit;
+    return UnitAt(point, HitTest::Bounds);
 }
 
 std::vector<MapObject*> WorldClient::UnitsInBox(const Rect* rect) {
@@ -470,7 +434,7 @@ void WorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, c
         std::vector<std::string> parts;
         for (int n = 0; n < worlddata::kHeroPartCount; ++n) {
             const char* name = worlddata::HeroPartText(n);
-            if (SameText(name, worlddata::HairPartText())) {
+            if (std::string_view(name) == worlddata::HairPartText()) {
                 UnitPrototypeRecord* prototype = g_unitDatabase.prototypes.FindByName(std::string(record->texts[5]));
                 int number = prototype ? prototype->hair : 1;   // as the server's FillHeroParts
                 if (number != -1) {
@@ -494,13 +458,12 @@ void WorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, c
         unit->PlayAnimation(nullptr);
         unit->RestartPose();
         const std::string& skin = record->texts[4];
-        figure->SetSkins(game::NoneText(), (SameText(skin, game::NoneText()) ? std::nullopt : std::optional<std::string_view>(skin)));
+        figure->SetSkins(game::NoneText(), (skin == game::NoneText() ? std::nullopt : std::optional<std::string_view>(skin)));
         unit->WriteFullState();
-        MapObject* slots = unit;
-        slots->SetStats(&record->stats);
+        unit->SetStats(&record->stats);
         unit->SetFigureScale({record->scaleX, record->scaleY, record->height});
         std::memcpy(&unit->AsMapObject()->baseScale, &record->scaleX, 12);
-        slots->ApplyBaseScale();
+        unit->ApplyBaseScale();
         unit->ReleaseAllItems();
         for (int j = 0; j < std::ssize(record->weapons); ++j)
             unit->AddWeapon(record->weapons[j]);
@@ -514,7 +477,7 @@ void WorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, c
             unit->AddQuickItem(record->quickItems[j]);
         unit->controller->RefreshEquipment();
         unit->controller->RefreshModel();
-        slots->SetScriptName(record->texts[0]);
+        unit->SetScriptName(record->texts[0]);
         AddObject(unit);
     }
 }
@@ -527,38 +490,21 @@ std::vector<Object3D*> WorldClient::ObjectsInRange(const Vector3& point, float r
     float x1 = MinKeepB(MaxKeepA(0.0f, point.x + radius), maxX);
     float y0 = MaxKeepA(0.0f, MinKeepB(MaxKeepA(0.0f, point.y - radius), maxY));
     float x0 = MaxKeepA(0.0f, MinKeepB(MaxKeepA(0.0f, point.x - radius), maxX));
-    std::uint32_t& firstX = rangeFirstX;
-    std::uint32_t& firstY = rangeFirstY;
-    std::uint32_t& lastX = rangeLastX;
-    std::uint32_t& lastY = rangeLastY;
-    std::uint32_t& x = rangeX;
-    std::uint32_t& y = rangeY;
-    firstX = x = static_cast<std::uint32_t>(static_cast<int>(x0)) >> 4;
-    firstY = y = static_cast<std::uint32_t>(static_cast<int>(y0)) >> 4;
-    lastX = static_cast<std::uint32_t>(static_cast<int>(x1)) >> 4;
-    lastY = static_cast<std::uint32_t>(static_cast<int>(y1)) >> 4;
-
-    SectorGrid& grid = objectGrid;
-    for (auto* cell = &grid.rows[y][x]; cell;) {
-        for (MapObject* object : *cell) {
-            float pz = point.z;
-            float ox = object->localPosition.x + object->bounds.center.x;
-            float oy = object->localPosition.y + object->bounds.center.y;
-            float reach = lib::Hypot(object->bounds.boxMax.x, object->bounds.boxMax.y) + radius;
-            float dx = ox - point.x;
-            float dy = oy - point.y;
-            float dz = pz - point.z;
-            float distance = LengthSquared(Vector3{dx, dy, dz});
-            float limit = reach * reach;
-            // Skipped when the limit is below (or unordered).
-            if (limit >= distance) found.push_back(object);
-        }
-        if (++x > lastX) {
-            x = firstX;
-            if (++y > lastY) return found;
-        }
-        cell = &grid.rows[y][x];
-    }
+    const CellRange cells = {static_cast<std::uint32_t>(static_cast<int>(x0)) >> 4, static_cast<std::uint32_t>(static_cast<int>(y0)) >> 4,
+                             static_cast<std::uint32_t>(static_cast<int>(x1)) >> 4, static_cast<std::uint32_t>(static_cast<int>(y1)) >> 4};
+    objectGrid.ForEachObject(cells, [&](MapObject* object) {
+        float pz = point.z;
+        float ox = object->localPosition.x + object->bounds.center.x;
+        float oy = object->localPosition.y + object->bounds.center.y;
+        float reach = lib::Hypot(object->bounds.boxMax.x, object->bounds.boxMax.y) + radius;
+        float dx = ox - point.x;
+        float dy = oy - point.y;
+        float dz = pz - point.z;
+        float distance = LengthSquared(Vector3{dx, dy, dz});
+        float limit = reach * reach;
+        // Skipped when the limit is below (or unordered).
+        if (limit >= distance) found.push_back(object);
+    });
     return found;
 }
 
@@ -712,10 +658,7 @@ void SectorGrid::Resize(int newWidth, int newHeight) {
 
 void WorldClient::Create() {
     World::Create();
-    {
-        std::string path = g_dataFolder + worlddata::TexturesFolderText();
-        texturePath = path;
-    }
+    texturePath = g_dataFolder + worlddata::TexturesFolderText();
     LoadLights(worlddata::LightsTableText());
     sounds = NewCounted<SoundManager>();
 
@@ -745,14 +688,8 @@ void WorldClient::Create() {
     terrain->Create();
     sounds->Create();
     texts->Create();
-    {
-        std::string path = g_textFolder + worlddata::TextsFileText();
-        texts->AddSource(path);
-    }
-    {
-        std::string path = g_textFolder + worlddata::TextsLmpFileText();
-        texts->AddSource(path);
-    }
+    texts->AddSource(g_textFolder + worlddata::TextsFileText());
+    texts->AddSource(g_textFolder + worlddata::TextsLmpFileText());
 
     auto* lists = new LightningManager();
     listManager = lists;
@@ -956,11 +893,7 @@ int WorldClient::LoadZone(ByteStream* block) {
     } else if (effects) {
         sounds->reverb[0] = 0.0f;
     }
-    {
-        std::string table = lights + allod;
-        std::string file = table + worlddata::IniSuffixText();
-        LoadLights(file);
-    }
+    LoadLights(lights + allod + worlddata::IniSuffixText());
     CreateExitMarkers();
     worlddata::g_lastLitHour = -1.0f;
     UpdateLighting();

@@ -78,17 +78,12 @@ const char* SkyFigureFile() { return "nask0sky.fig"; }
 
 } // namespace
 
-int WorldClient::LoadLights(const std::string& file) {
+void WorldClient::LoadLights(const std::string& file) {
     IniFile ini;
-    {
-        std::string folder = g_dataFolder + ConfigFolder();
-        std::string path = folder + file;
-        ini.SetPath(path);
-    }
+    ini.SetPath(g_dataFolder + ConfigFolder() + file);
     ReadTable(ini, SunlightSection(), sunlight);
     ReadTable(ini, AmbientSection(), ambient);
     ReadTable(ini, SkySection(), sky);
-    return 1;
 }
 
 void WorldClient::SetUpGraphics(TextureDevice* device) {
@@ -101,11 +96,8 @@ void WorldClient::SetUpGraphics(TextureDevice* device) {
         GetTextureManager()->LoadTexture(texture);
         texture->flags |= TextureFlag::Keep;
     }
-    LinkFigureLoader* loader;
-    {
-        std::string resource(FiguresResource());
-        loader = new LinkFigureLoader(g_sceneRenderer.device, &resource);
-    }
+    std::string resource(FiguresResource());
+    LinkFigureLoader* loader = new LinkFigureLoader(g_sceneRenderer.device, &resource);
     figureLoader.Assign(loader);
     g_unitDatabase.CountSoundFiles(sounds);
 }

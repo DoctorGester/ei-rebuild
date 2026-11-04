@@ -80,7 +80,7 @@ void BriefingScreen::StartDialogue(bool newImmediate, bool remember) {
     if (text::CompareIgnoringCase(str::Left(topic, kConstructorPrefix), kConstructorTopic) == 0) {
         int constructor = str::ToInt(str::Mid(topic, kConstructorNumber));
         if (g_partyManager.templates.Find(constructor)) {
-            g_serverWorld.SetConstructionVariable(std::bit_cast<std::uint32_t>(static_cast<float>(constructor)));
+            g_serverWorld.SetConstructionVariable(static_cast<float>(constructor));
             g_interface.closeAll = 1;
             g_clientWorld.LocalView()->RequestGameState(kCampScreen);
         }

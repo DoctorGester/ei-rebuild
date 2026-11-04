@@ -59,8 +59,7 @@ float WorldClient::ClampedGroundHeight(float x, float y) {
 float WorldClient::RawSurfaceHeightAt(float x, float y) { return terrain->SurfaceHeight(x, y); }
 
 const char* WorldClient::AmbienceTimeOfDay() const {
-    float time = (static_cast<float>(tick) * secondsPerTick) + timeBase;
-    float hour = std::fmod(time, 24.0f);
+    const float hour = TimeOfDay();
     if (!(hour < 6.0f || hour > 18.0f)) return "day";   // also NaN
     if (hour >= 22.0f || hour <= 2.0f) return "night";
     return hour < 6.0f ? "morning" : "evening";
@@ -165,14 +164,13 @@ bool WorldClient::IsLocalPlayerIdle() {
 
 // ---- Exits ---------------------------------------------------------------------------------------
 
-bool WorldClient::FindExitAt(const Vector3& point, int* index) {
+std::optional<int> WorldClient::FindExitAt(const Vector3& point) {
     for (int i = 0; i < std::ssize(exits); ++i) {
         if (!exits[i].Contains(point.x, point.y)) continue;
         if (str::Compare(exits[i].target, "none") == 0) continue;
-        if (index) *index = i;
-        return true;
+        return i;
     }
-    return false;
+    return std::nullopt;
 }
 
 namespace {
@@ -231,14 +229,11 @@ bool WorldClient::PartyInExit(const std::vector<PartyUnitRecord*>* records, int 
             FindUnit(static_cast<int>(record->unitId));
         if (!found || found->IsDead() != 0) continue;
         ++living;
-        int index = 0;
-        if (!FindExitAt(found->localPosition, &index) || index != exit) {
+        if (FindExitAt(found->localPosition) != exit) {
             result = 0;
             continue;
         }
-        const int last = lib::Count(*inExit);
-        inExit->resize(last + 1);
-        (*inExit)[last] = record;
+        inExit->push_back(record);
     }
     return living != 0 ? result : 0;
 }
@@ -457,10 +452,7 @@ void WorldClient::SetCamera(Camera* newCamera) {
     if (newCamera) newCamera->AddRef();
 }
 
-int WorldClient::ReadWaterLevels(ByteStream* stream) {
-    countdowns.Load(stream, terrain);
-    return 1;
-}
+void WorldClient::ReadWaterLevels(ByteStream* stream) { countdowns.Load(stream, terrain); }
 
 namespace {
 constexpr const char* kBridgeManagerName = "CBridgeManager";
