@@ -375,6 +375,7 @@
 #include "harness_capture.h"
 #include "harness_address_order.h"
 #include "harness_clock.h"
+#include "harness_coverage.h"
 #include "harness_crash.h"
 #include "harness_digest.h"
 #include "harness_digest_read.h"   // the class ids
@@ -1011,6 +1012,7 @@ int HeldClientSegment(void* client) {
 void WriteReport() {
     clock::FlushRandomTrace();
     digest::Flush();
+    coverage::Write();
     FILE* f = sys::OpenFile(g_reportPath, "w");
     if (!f) return;
     if (!g_capturedFrames.empty()) std::fprintf(f, "\nframes captured:\n");

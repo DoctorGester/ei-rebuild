@@ -112,8 +112,8 @@ the right panels (2.7 pixels) fails.
 
 ## 3. Coverage
 
-None is measured now: the game.exe-address coverage (tools/coverage.py, tests/coverage) went with the original's runs;
-H43 measures our source's coverage.
+Which of src/'s functions and lines the suites reach: `python tools/coverage.py run <ticket>` on the coverage build
+(harness.md, "Source coverage"), a command run when wanted, not after each merge.
 - Not reachable from a scenario: WinMain's second-instance exit, the low-disk-space box, Dib's error handlers (a failing
   disk). Dib::Read runs only for a loose `textures\<name>.bmp`.
 - Dead: the fake unit (class 0x39): no shipped data makes one; the map object factory makes nothing for class 0x39
