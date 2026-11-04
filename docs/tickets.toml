@@ -2746,7 +2746,7 @@ group = "cleanup"
 size = 3
 model = "sonnet"
 files = ["src/game", "src/lib", "config/cleanup_baseline.csv", "tools/check_cleanup.py"]
-note = "Batch 35 (last): reinterpret_cast lines in src (without src/hook, src/standalone) 336 -> 328. Done: script_parse StringOps / Ops views removed (CString members used directly; LockBuffer through mfc::ImplOf); ScriptRun killFlag = &instance->index; CScript::Field removed; CAIMap::Events is a real member (AIEventTable, AIViewer, AIEvent moved to ai_event_table.h; world.h AIEvents() returns aiMap_.Events()). Already gone: ui_trade_panel_input TextLength, UnitSoundBank, FakeUnit SkinOwner. Kept as legitimate: the batch 34 list (src/hook, src/standalone, byte and pixel parsers, Win32 / socket / DDraw types, pointer-as-integer sic values, containerof, library storage views). Still open, owned elsewhere: console / console_streams / text_split CString views (C14a holds them); ListAbi / ArrayAbi views (world_destructors, script_exec_helpers quest objectives; C31b); base_manager FreeSpares CObject deleting call (C27-C29); ui_briefing_people speakers_ InsertOverflow view; brain / trap lists (C21); ScriptNamedValues views of the ScriptVars value-and-name pairs (script.h NamedValues, game_lists, script_cleanup, script_construct, script_load; ScriptVars would hold ScriptNamedValues members, about 300 uses) and script_array Raw. C15 closes after the console batch lands. Checks: build verify and release clean, check_x87 / check_signatures / check_stolen / check_cleanup 0; image suite 145 runs ALL PASS, goldens 121 the same, 0 differ."
+note = "Recounted 2026-11-04: reinterpret_cast in src 48 (the note's 328 counted the hook and standalone dirs, which are gone). Every one is in a kept category: byte and pixel parsers (chunk_archive, core_streams, net_delta, game_buffer_strings, figure_manager, model_db, mod_folders, net_messages, net_second_master, ui_cursor, texture_load, ui_saveload, world_game, registry; the 3-byte length reads into a uint32), char/unsigned char views of strings (text_case, TextAt, Chars), socket and fd types in src/platform, pointer-as-integer (hash_map, render keys), storage for StatsTimer (render.cpp) and two record-index byte distances (item_db.h IndexOf, unit_db.h PrototypeByteOffset: a null record gives a defined distance, typed subtraction would be undefined). The owned-elsewhere views (CString, ListAbi/ArrayAbi, FreeSpares, InsertOverflow, brain / trap lists, ScriptNamedValues, script_array Raw) are all gone: C14a, C31b, C21, C27-C29 removed them. No code change needed."
 
 [[ticket]]
 id = "C12a"
@@ -4323,7 +4323,7 @@ title = "Short getters as named members"
 group = "standalone"
 size = 0.5
 files = ["src/game/short_functions.cpp", "tools/gen_short_functions.py"]
-note = "30 LoadDword<n> / MemberAddress<n> / LoadFloat<n> / ReturnThis uses left that read objects as dwords. Where the class is declared in src/game, give it a named member getter and call that instead. (Registrations no longer matter: C20e made short_functions.cpp all EI_REWRITTEN.)"
+note = "Nothing left: C35e deleted short_functions.cpp and tools/gen_short_functions.py, and no LoadDword / MemberAddress / LoadFloat / ReturnThis template or use remains in src, tools or tests (recounted 2026-11-04: 0)."
 
 [[ticket]]
 id = "S3a"
