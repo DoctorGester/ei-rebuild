@@ -1,15 +1,10 @@
-// Rebirth's AddNewScriptCommands (addon.dll v0.12.4.2): the extended keyword table, the dispatch of
-// addon's script functions and commands, and the parser changes. See script_addon.h and
-// docs/notes/rebirth.md. The handlers are in script_addon_*.cpp.
-// How addon installs it: a std::vector of 300 entries gets the game's keywords (script.h's
-// kScriptKeywords, without the terminator); then each of its 69 command records (0x40 bytes: name,
-// signature, handler, flags) is registered: a name already in the table (stricmp) with
-// an id below 300 keeps its id and gets the record's signature as its function signature (the
-// first letter is one of "FGOS") or command signature (both cleared first); a new name is appended
-// with id 300 + the number of records registered before it. The terminator is appended, the vector
-// shrunk to fit, and the loader's (and the dumper's) references to the keyword table are
-// pointed at it. The records also go into a hash map by id that the hooks look the command up in
-// before the game's own switch.
+// Rebirth's extra script commands and functions (addon.dll's AddNewScriptCommands, v0.12.4.2): the extended keyword
+// table, the dispatch to the handlers (script_addon_*.cpp) and the parser's '?' / '+' signature letters. See
+// script_addon.h and docs/notes/rebirth.md.
+// The table is the game's keywords (script.h's kScriptKeywords) plus the 69 records (name, signature, handler):
+// a name already in the table (case-insensitive) keeps its id and gets the record's signature as its function
+// signature (the first letter is one of "FGOS") or command signature (both cleared first); a new name is appended
+// with id 300 + the record's index. A map by id finds the record before the game's own switch runs.
 #include "script_addon.h"
 #include "script_addon_handlers.h"
 
@@ -29,8 +24,7 @@ namespace scriptaddon {
 
 namespace {
 
-// A command record (100BA738): flags are 0 for every record, so the first letter alone makes a
-// signature a function's.
+// A command record: the first letter alone makes a signature a function's.
 struct Record {
     const char* name;
     const char* signature;
@@ -178,7 +172,6 @@ const Built& Build() {
 
 // ---- Helpers for the handlers -------------------------------------------------------------------
 
-// CVTTSD2SI (addon.dll's conversion): truncation; NaN and values outside the int range give INT_MIN.
 int TruncateOrMin(float value) {
     const double wide = value;
     if (!(wide > -2147483649.0 && wide < 2147483648.0)) return INT32_MIN;

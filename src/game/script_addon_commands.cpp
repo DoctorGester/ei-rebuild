@@ -1,5 +1,4 @@
-// AddNewScriptCommands: addon's commands, plus GSGetPlayerVar and IsFileExists. The game
-// functions they call are the rewritten members.
+// Rebirth's extra script commands, plus GSGetPlayerVar and IsFileExists.
 #include "bink_video.h"   // g_loadingMovieOff
 #include "camera.h"
 #include "combat.h"
@@ -168,7 +167,7 @@ bool GameOverMsg(Call* call) {
 // that is "..", contains "/../", starts with "../" or ends with "/.." is refused (the result is
 // then left alone).
 bool IsFileExists(Call* call) {
-    std::string path = modfolders::ModPath();   // addon's mod folder (100BD184)
+    std::string path = modfolders::ModPath();
     std::string name = Text(call, 0);
     for (char& c : name)
         if (c == '\\') c = '/';

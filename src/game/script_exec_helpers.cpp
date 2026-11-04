@@ -80,10 +80,9 @@ void Script::CreatePointLight(const SSCCmd* cmd) {
     slot->removeWhenDone = 0;
     slot->object = ScriptEffect<EffectPointLight>(g_serverWorld.timedObjectManager->CreateObjectAs<EffectPointLight>(0x4B, -1));
     EffectPointLight* object = slot->object.get();
-    const float scale = 0.003921569f;   // 1 / 255
-    float red = f[5] * scale;
-    float green = f[6] * scale;
-    float blue = f[7] * scale;
+    float red = f[5] * kScriptColourScale;
+    float green = f[6] * kScriptColourScale;
+    float blue = f[7] * kScriptColourScale;
     object->color = {red, green, blue};
     object->localPosition = {f[1], f[2], f[3]};
     object->range = f[4];    // radius
@@ -128,9 +127,7 @@ void Script::DeletePointLight(const SSCCmd* cmd) {
 void ScriptQuestFinish(Script* script) {
     std::string text;
     for (int i = 0; i < QuestObjectiveCount() + 1; ++i) {
-        std::string line;
-        line = std::format("DeclareScript Su{}()\n", i);
-        text += line;
+        text += std::format("DeclareScript Su{}()\n", i);
     }
     for (int i = 0; i < QuestObjectiveCount(); ++i) {
         std::string head;
@@ -141,7 +138,7 @@ void ScriptQuestFinish(Script* script) {
         head = std::format("Script Su{}(if(\n", i);
         then = std::format("\n)then(\nKillScript()\nSu{}()\nGSSetVar(0,\"q.{}.{}.{}\",2)\n", i + 1, quest, quest, i + 1);
         if (i == QuestObjectiveCount() - 1) {
-            tail = ")\n)\n";                                   // ")\n)\n"
+            tail = ")\n)\n";
         } else {
             tail = std::format("GSSetVar(0,\"q.{}.{}.{}\",1)\n)\n)\n", quest, quest, i + 2);
         }
@@ -180,9 +177,9 @@ void ScriptQuestFinish(Script* script) {
         last = std::format("Script Su{}(if()then(KillScript()\nQuestComplete(0,\"{}\")\nGSSetVar(0,\"q.{}.{}\", 2)\n)\n)\n", QuestObjectiveCount(), quest, quest, quest);
         text += last;
     }
-    text += "WorldScript( Su0() )\n";   // "WorldScript( Su0() )\n"
-    script->Load(&text, 1);
-    g_scriptQuestName = game::kEmptyText;   // the empty string constant
+    text += "WorldScript( Su0() )\n";
+    script->Load(&text, true);
+    g_scriptQuestName = game::kEmptyText;
 }
 
 // ---- The quest's objectives and name (script.h) --------------------------------------------------------------------
@@ -192,8 +189,8 @@ std::string g_scriptQuestName;
 
 // --- Script text file --------------------------------------------------------------------------------
 
-// The script loader's text file reader: the whole file as one text, its "\r\n" line ends made "\n" (a text-mode
-// read's). A file that does not open or read gives a result of 0 and an empty text.
+// The script loader's text file reader: the whole file as one text, its "\r\n" line ends made "\n". A file that does
+// not open or read gives a result of 0 and an empty text.
 
 namespace scriptparse {
 

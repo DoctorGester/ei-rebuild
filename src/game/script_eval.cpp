@@ -1,5 +1,5 @@
-// Evaluation of script functions: SSCCmd::CalcParameters, CalcFloat, CalcObject and CalcGroup. Rebirth's
-// AddNewScriptCommands dispatches to addon's functions first.
+// Evaluation of script functions: SSCCmd::CalcParameters, CalcFloat, CalcObject and CalcGroup. Rebirth's functions
+// (script_addon.h) are tried first.
 // Floating point: the comparisons are plain (a NaN argument compares as IEEE says, where the
 // old x87 compare counted it as equal and less).
 #include "ai_map.h"
@@ -22,7 +22,6 @@
 #include "world.h"
 #include "camera.h"
 
-#include "lib/rebirth.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 
@@ -62,13 +61,6 @@ float FromBool(bool value) { return static_cast<float>(value ? 1 : 0); }
 
 
 
-// The game server session when one runs and is not shut down.
-net::ServerSession* ActiveServer() {
-    net::ServerSession* server = net::g_gameServer;
-    if (server && !(server->flags7 & RefCounted::kDetached)) return server;
-    return nullptr;
-}
-
 WorldAlarm& Alarm(int index) { return g_serverWorld.alarms[index]; }
 
 // GetWorldTime: (time * scale + offset) mod 24 (the tick loaded whole; fmod is exact).
@@ -95,13 +87,19 @@ void SSCCmd::PrepareArguments(Script* script, ScriptVars* vars) {
     for (int i = 0; i < std::ssize(subCalls); ++i) CalcParameters(script, vars, &subCalls[i]);
 }
 
+const ScriptSubCall* SSCCmd::ConditionCall() const {
+    for (const ScriptSubCall& call : subCalls)
+        if (call.type == kScriptFloat) return &call;
+    return nullptr;
+}
+
 void SSCCmd::CalcParameters(Script* script, ScriptVars* vars, const ScriptSubCall* call) {
     switch (call->type) {
     case kScriptFloat:
         call->cmd->CalcFloat(script, vars, &floatArgs[call->argIndex]);
         return;
     case kScriptString: {
-        // Rebirth's AddNewScriptCommands' string functions (the game's had none: a fatal error).
+        // Only Rebirth's functions return strings.
         scriptaddon::CalcString(call->cmd.get(), script, vars, &stringArgs[call->argIndex]);
         return;
     }
@@ -119,7 +117,7 @@ void SSCCmd::CalcParameters(Script* script, ScriptVars* vars, const ScriptSubCal
 void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
     PrepareArguments(script, vars);
     {
-        scriptaddon::Call call{this, script, result, nullptr, nullptr};   // Rebirth's AddNewScriptCommands
+        scriptaddon::Call call{this, script, result, nullptr, nullptr};
         if (scriptaddon::Dispatch(&call)) return;
     }
     const float* f = floatArgs.data();
@@ -319,12 +317,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
     case ScriptFunction::Every:
     case ScriptFunction::Any:
     case ScriptFunction::Sum: {
-        const ScriptSubCall* condition = nullptr;
-        for (int i = 0; i < std::ssize(subCalls); ++i)
-            if (subCalls[i].type == kScriptFloat) {
-                condition = &subCalls[i];
-                break;
-            }
+        const ScriptSubCall* condition = ConditionCall();
         if (!condition) {
             if (function == ScriptFunction::Every) *result = floatArgs[0];
             else if (function == ScriptFunction::Any) {
@@ -380,10 +373,9 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         *result = static_cast<float>(g_serverWorld.CountLivingMercs(lib::Truncate(f[0])));
         return;
     case ScriptFunction::GSGetVar: { // GSGetVar(player, name): from the game server in multiplayer, else the player's
-        net::ServerSession* server = IsMultiplayerClient() ? ActiveServer() : nullptr;
-        if (server) {
+        if (IsMultiplayerClient() && IsLive(net::g_gameServer)) {
             std::string key = stringArgs[0];
-            *result = static_cast<float>(server->GetVariable(&key));
+            *result = static_cast<float>(net::g_gameServer->GetVariable(&key));
             return;
         }
         *result = 0.0f;
@@ -467,7 +459,7 @@ void SSCCmd::CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** resu
     PrepareArguments(script, vars);
     *result = script->NewTempObject();
     {
-        scriptaddon::Call call{this, script, result, nullptr, nullptr};   // Rebirth's AddNewScriptCommands
+        scriptaddon::Call call{this, script, result, nullptr, nullptr};
         if (scriptaddon::Dispatch(&call)) return;
     }
     const ScriptFunction function = static_cast<ScriptFunction>(id);
@@ -508,8 +500,8 @@ void SSCCmd::CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** resu
     }
     case ScriptFunction::GetLeader: { // GetLeader: the server's leader in multiplayer, else player 0's first unit
         int unitId;
-        if (net::ServerSession* server = ActiveServer()) {
-            unitId = server->LeaderId();
+        if (IsLive(net::g_gameServer)) {
+            unitId = net::g_gameServer->LeaderId();
         } else {
             unitId = 0x3B9AF5CE;
             Player* player = g_serverWorld.GetPlayer(0);
@@ -531,7 +523,7 @@ void SSCCmd::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result) {
     PrepareArguments(script, vars);
     *result = &script->tempGroups.emplace_back();
     ScriptGroup* group = *result;
-    scriptaddon::Call call{this, script, result, nullptr, nullptr};   // Rebirth's AddNewScriptCommands
+    scriptaddon::Call call{this, script, result, nullptr, nullptr};
     const bool done = scriptaddon::Dispatch(&call);
     switch (done ? ScriptFunction::None : static_cast<ScriptFunction>(id)) {
     case ScriptFunction::None:

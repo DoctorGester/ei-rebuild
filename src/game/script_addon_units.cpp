@@ -1,6 +1,4 @@
-// AddNewScriptCommands: addon's functions about units, objects and players (handlers 10010E4F-
-// 10010F81, 10011308-100115AB, 10011AD3, 10011D8A, 10011F44-100124B8, 100126E0-100127CD,
-// 10012C7C-10012CC6). A unit's data object is its +0x240 (addon's 10010E2D).
+// Rebirth's script functions about units, objects and players. A unit's data is its server-side controller.
 #include "combat.h"
 #include "game_singletons.h"
 #include "map_object.h"
@@ -19,13 +17,10 @@ namespace scriptaddon {
 
 namespace {
 
-// The unit's parameters: the 7-value block filled from the unit's +0x17C (the
-// last argument: the id is a text key, >= 1000000000).
-
 ScriptObjectRef* ObjectArg(Call* call, int i) { return call->cmd->objectArgs[i]; }
 
 
-// The filter of NearestUnit and UnitsNearPoint (10011421, 10013076): units pass with flag 1,
+// The filter of NearestUnit and UnitsNearPoint: units pass with flag 1,
 // other objects with flag 2, and with flag 4 any living object with a text-key id.
 bool PassesFilter(MapObject* object, bool units, bool others, bool living) {
     bool unit = IsUnit(object);
@@ -51,8 +46,7 @@ bool DataField(Call* call, float UnitStats::* field, const char* function) {
     return true;
 }
 
-// The server world's object map (an STLport hash table by object id) in bucket order (addon's iterator 1001B02C /
-// 1001B058).
+// The server world's object map in its iteration order (the order GetObjectsOnMap returns).
 template <typename Visit>
 void ForWorldObjects(Visit visit) {
     auto& objects = g_serverWorld.objects.map;
@@ -198,7 +192,7 @@ bool GetSkill(Call* call) {
     return InvalidArguments("GetSkill");
 }
 
-// GetPerk(unit, name): a perk byte of the unit's data (+0x8B3 + the perk's index).
+// GetPerk(unit, name): a perk byte of the unit's data.
 bool GetPerk(Call* call) {
     auto* data = UnitData(ObjectArg(call, 0));
     const char* name = call->cmd->stringArgs[0].c_str();
@@ -217,7 +211,7 @@ bool GetPerk(Call* call) {
     return InvalidArguments("GetPerk");
 }
 
-// The unit's prototype name / race (no check that the unit has a prototype, as in addon).
+// The unit's prototype name / race (no check that the unit has a prototype, as Rebirth's).
 bool GetPrototype(Call* call) {
     auto* data = UnitData(ObjectArg(call, 0));
     if (!data) return InvalidArguments("GetPrototype");

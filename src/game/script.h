@@ -256,6 +256,13 @@ struct ScriptArea {
 template <class T>
 void ScriptDropEffect(T* object);
 
+// A sound made at once and added to the world's timed objects (CreateFX, CreateFXSource and the respawns of the
+// FX sources).
+EffectSound* ScriptNewSound(const Vector3& position, float volume, float radius, const std::string& name, bool looping);
+
+// A colour channel in 0..255 scaled to 0..1 (1 / 255).
+inline constexpr float kScriptColourScale = 0.003921569f;
+
 // The effect object of one of them: made from a pointer it takes a reference of its own; reset, assigned over or
 // destroyed, it drops the effect. Move-only. Made and read only where the effect classes are complete
 // (world_effect.h).
@@ -307,6 +314,7 @@ struct ScriptPointLight {
 struct ScriptParticleSource {
     // As the point light's.
     void Save(ByteStream* stream) const;
+    void Load(ByteStream* stream);
 
     ScriptEffect<EffectParticle> object;
     int id = 0;
@@ -341,6 +349,7 @@ struct ScriptFxSource {
 struct ScriptLightning {
     // As the point light's.
     void Save(ByteStream* stream) const;
+    void Load(ByteStream* stream);
 
     ScriptEffect<EffectLightning> object;
     int id = -1;
@@ -397,6 +406,9 @@ public:
     void CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result);
 
     void PrepareArguments(Script* script, ScriptVars* vars);
+    // The nested call that computes a float: the condition of Every / Any / Sum / ForIf. Null when there is none
+    // (the condition is then the constant in float 0).
+    const ScriptSubCall* ConditionCall() const;
 
     // Every argument, binding and nested call dropped; id and calledScript become 0.
     void Clear();
@@ -449,10 +461,12 @@ struct ScriptIfThen {
 struct ScriptDefinition {
     // Name and parameter string (terminators included), the if-then pairs (block ids), the variables.
     void Save(ByteStream* stream) const;
+    // Reads what Save wrote; if-then pairs naming a block the saved script lacks are dropped.
+    void Load(ByteStream* stream);
     // A script call's arguments (all but the first float and string, which name the script) into the
     // instance's variables; FatalError when a type's count does not match.
     void BindCall(const SSCCmd* call);
-    // FALSE when the name is taken.
+    // False when the name is taken.
     bool AddParameter(const std::string* name, int type);
     // Emptied (Script::Load before each `Script` section).
     void Reset();
@@ -473,8 +487,8 @@ struct ScriptRun {
     // Block id, index, ticks, sleep start, the index of its instance in g_streamedScript's instance list (-1
     // when absent), the variables.
     void Save(ByteStream* stream) const;
-    // Rebirth patches it. Runs commands from `index` until one waits (Sleep, WaitSegment, SleepUntil,
-    // SleepUntilIdle) or the block ends. Returns 0 when the block had already ended on entry, else 1.
+    // Runs commands from `index` until one waits (Sleep, WaitSegment, SleepUntil, SleepUntilIdle) or the block
+    // ends. Returns false when the block had already ended on entry.
     bool Execute(Script* script);
 
     ScriptDecl* block = nullptr;    // the commands
@@ -884,15 +898,15 @@ void AddDefine(std::vector<ScriptDefine>* defines, const ScriptDefine* define);
 // Each define in list order.
 void ApplyDefines(std::string* line, const std::vector<ScriptDefine>* defines);
 
-// Rebirth patches it. *id = number (7A), string (7B, closed quote) or the id of the longest keyword the text
+// *id = number (7A), string (7B, closed quote) or the id of the longest keyword the text
 // starts with (case-insensitive; 0 if none), *rest = characters after the matched part. Either may be null.
 void ClassifyToken(const char* text, int* id, int* rest);
 inline void ClassifyToken(const std::string& text, int* id, int* rest) { ClassifyToken(text.c_str(), id, rest); }
-// Rebirth patches it. Null unless function `id` returns `type`.
+// Null unless function `id` returns `type`.
 const char* FunctionSignature(int id, int type);
-// Rebirth patches it. "Unknown command" if none.
+// "Unknown command" if none.
 const char* KeywordName(int id);
-// Rebirth's extended table (scriptaddon::Table(): kScriptKeywords and AddNewScriptCommands' additions).
+// The keyword table with Rebirth's additions (scriptaddon::Table()).
 const ScriptKeyword* KeywordTable();
 
 // Outside For loops; keeps one empty group and one released object reference.
