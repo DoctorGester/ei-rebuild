@@ -6935,7 +6935,7 @@ id = "R37e2"
 title = "The GPU's 0.4-0.5 ms wait inside the crowd's sun map: its cause"
 group = "renderer"
 depends = ["R37e1"]
-note = "R37e1: the sun map's draws cost about 0.05 ms of GPU time in the town crowd, but one point of the command stream (a different place by draw count in the town at night and the crowd, holding different meshes) shows a 0.4-0.5 ms gap between two stamps; a Flush after the casters changes nothing, uploads are 8 KB a frame. Likely the GPU idle waiting for the driver's next batch while the main thread is the limit (renderer.md, render_shadows.cpp's R37e1 paragraph). Measured on D3D11 before R43e: first check the gap still shows on SDL_GPU (D3D12 / Vulkan). Low value while the main thread is the limit: confirm with a GPU capture (PIX / Nsight) only if the GPU becomes the limit or the overlay's passes mislead. Kit: build/R37e1."
+note = "R37e1: the sun map's draws cost about 0.05 ms of GPU time in the town crowd, but one point of the command stream (a different place by draw count in the town at night and the crowd, holding different meshes) shows a 0.4-0.5 ms gap between two stamps; a Flush after the casters changes nothing, uploads are 8 KB a frame. Likely the GPU idle waiting for the driver's next batch while the main thread is the limit (renderer.md, render_shadows.cpp's R37e1 paragraph). Measured on D3D11 before R43e: first check the gap still shows on SDL_GPU (D3D12 / Vulkan). Low value while the main thread is the limit: confirm with a GPU capture (PIX / Nsight) only if the GPU becomes the limit or the overlay's passes mislead. Kit: build/R37e1. Done: the wait is gone on SDL_GPU; it was the D3D11 driver's timeline (the frame recorded while the GPU ran its batches). Times by submission (probe in build/R37e2 of the main checkout), town bz1g at night 4K msaa 8, quiet runs: sun map 0.154 / 0.155 ms without / with the crowd on Direct3D 12 (D3D11 0.088 / 0.584), 0.155-0.17 on Vulkan; casters 0.06, the map's end-of-pass barrier 0.09 (no casters 0.092; clear left out 0.094; optimised clear value 1.0 no change), range passes 0.116. Whole frame 2.75 / 2.81 ms (D3D11 2.05 / 2.66). PIX capture: one command list a frame, one clear, one barrier after the casters. No change to the renderer: nothing in our code waits."
 
 [[ticket]]
 id = "R38"
@@ -7144,6 +7144,13 @@ title = "Exit with the device thread still running: no std::terminate"
 group = "renderer"
 model = "sonnet"
 note = "From R43d2. render::PrepareDevice starts a std::thread kept in g_prepared; Start joins it. Any exit between the two (a declined disk-space prompt, a fatal error before CreateRenderer, std::exit paths) leaves a joinable thread and std::terminate runs at exit. Join (or detach safely) on every exit path, e.g. a destructor or an atexit hook that waits for the thread, and check the harness_disk_full scenario and a forced early exit end with the normal exit code."
+
+[[ticket]]
+id = "R37e3"
+title = "The world pass's GPU time at 4K msaa 8 on SDL_GPU: where 2.4 ms go"
+group = "renderer"
+depends = ["R37e2"]
+note = "R37e2: in the town at night at 4K, msaa 8 the GPU takes 2.75 ms a frame on Direct3D 12 (2.8 with the crowd), the main thread 1.1 (2.1) ms: a harness frame without a limit waits for the GPU. 2.4 ms of it come after the shadow maps (the world's multisampled pass, its resolve, the composition and the present); D3D11 measured 2.05 for the whole frame. Split it with the submission timing (renderer.md section 13 item 1; probe in build/R37e2 of the main checkout) on a quiet machine, then decide (the user's 120 Hz frame has 8.3 ms, so low value until the GPU limits play)."
 
 [[ticket]]
 id = "C30e16"

@@ -617,6 +617,14 @@ against the last frame's (same / relit / moved / new). The harness step `renders
 the last one into the report, with the main thread's CPU and wall time per frame; scenario `render_stats` measures the
 main menu, zone1, a fight of twelve creatures, the camp, the base bz1g (a town), the global map and its escape menu.
 `EI_PROFILE=1` gives the game side (tools/profile_report.py).
+A part of the frame's GPU time (SDL_GPU has no timestamp queries): submit the command buffer before and after the part
+and time each submission by its fence, from a thread that polls without sleeping at time-critical priority; a submission
+made while the GPU still runs the one before is timed from that one's end. Only on a quiet machine: another build or
+game makes the poller late, and its times mean nothing then (a run's main-thread CPU time above its quiet value says
+so). The kit (a probe patch, its scenario and runner, the logs): build/R37e2 in the main checkout. PIX (installed) takes
+a GPU capture from a run (the probe loads WinPixGpuCapturer.dll before the device and calls its `CaptureNextFrame`), but
+its timing needs the Performance Log Users group (or an administrator), which the runs lack; its event list shows the
+command stream.
 
 **2. Where the time goes.** The main thread is the frame's limit (1.7-3.8 ms a frame in the zones and the town at 4K,
 5.9-7.4 ms with a crowd; the GPU frame 1.5-2.6 ms); draws (a few hundred) and state changes are cheap, and triangles are
@@ -627,6 +635,10 @@ fight. So these were measured and not built, each worth well under 0.2 ms a fram
 the vertex shader (about 0.03 ms; the game reads the water heights anyway); a GPU ground decal path (under 0.07 ms).
 Figure animation stays on the CPU: creatures animate by their bones (each part's matrix, which the GPU applies), the
 per-vertex morph is almost unused, and its result is read by game code (projection for picking).
+On SDL_GPU (R37e2, times by submission) the town at night at 4K, msaa 8 takes the GPU 2.75 ms a frame (2.8 with the
+crowd) and the main thread 1.1 (2.1) ms of CPU, so there a frame without a limit waits for the GPU (every submission
+found the one before still running); 2.4 ms of it is after the shadow maps (the world's pass, its resolve and the
+present).
 
 **3. Terrain pages kept on the GPU** (`render_terrain.cpp`). Each sector page is built once, all four quarters, into a
 pool of buffers written in place, only the changed ranges (gpu.h's `Write` with `Keep`): positions, texture
@@ -780,8 +792,17 @@ map is the only shadow look.
   instance (`DrawIndexed`'s first instance; Direct3D's SV_InstanceID leaves the first instance out, an instance-step
   attribute does not), so a
   draw applies no uniforms. The draws are sorted by what they bind, and the pipeline and bindings are applied only when
-  these change: a depth-only map with LESS_EQUAL keeps the nearest depth whatever the order. The sun map's GPU span in a
-  crowd is mostly a wait at one point of the command stream, not its draws (the main thread is the frame's limit).
+  these change: a depth-only map with LESS_EQUAL keeps the nearest depth whatever the order.
+- **The map's GPU time** (R37e2: the town bz1g at night at 4K, msaa 8, with and without a crowd of 12 fighting; times by
+  submission, section 13 item 1): 0.155 ms on Direct3D 12 and 0.155-0.17 on Vulkan, the same with the crowd as without.
+  Of it the casters' draws are about 0.06 (drawn twice: +0.05); the pass without casters takes 0.09, the same with the
+  clear left out (so the clear costs nothing) and with an optimised clear value of 1.0 given to SDL, so it is most
+  likely the map's turn from depth target to sampled texture at the pass's end (SDL's barrier, a pass over the 64 MB
+  map); the range passes after it 0.12 (the reduction reads the whole map). The 0.4-0.5 ms wait inside the crowd's map
+  that R37e1 measured was the D3D11 driver's: its timeline followed the batches the driver sent while the main thread
+  was still recording the frame. On SDL_GPU the frame is one command buffer, submitted whole at its end (a GPU capture
+  shows one command list: one clear, the casters' draws, one barrier, the two range passes), so the GPU never waits
+  inside it.
 - How the map's look differs from the old decals: every object whose shadow the game draws and which can reach the view
   casts; the decals of overlapping objects stacked and were laid on the terrain under objects standing higher; a decal's
   direction was the sum of the sun and the point lights in reach, the map's is the sun's alone (the point lights have
