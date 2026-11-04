@@ -4,5 +4,6 @@ group = "harness"
 model = "sonnet"
 note = "User 2026-11-04 asked whether ticket-file conflicts justify splitting. Since 2026-10-28, 70 of 341 merges hit a conflict in docs/tickets.toml (two branches each appending a new ticket at the end, or editing a nearby note); every merge also has to throw away docs/tickets.md and docs/ticket_status.tsv, which tickets.py regenerates. Move each ticket to docs/tickets/<ID>.toml (group headers to docs/tickets/groups.toml), keeping tickets.py's commands and output the same; make docs/tickets.md and docs/ticket_status.tsv build outputs (gitignored, written to build/tickets/) unless something outside tickets.py needs them in git, and say what. Update tools/test_tickets.py, the brief and notes (worker-brief.md, any doc naming docs/tickets.toml) and the area-worker agent text if it names the file. Check: tickets.py output identical before and after (tickets.json byte-equal), test_tickets.py passes. User 2026-11-04 (follow-up): tickets.md and ticket_status.tsv both leave git; statuses go into each ticket's own file (DB stays the live source)."
 order = 845
-status = "review"
+status = "done"
 started = "2026-11-04"
+done = "2026-11-04"
