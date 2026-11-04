@@ -10,8 +10,9 @@
 
 #include "game_singletons.h"
 
+#include "lib/str.h"
+
 #include <cstdint>
-#include <cstring>
 
 namespace {
 
@@ -51,8 +52,7 @@ void RespawnFxSources(Script* script) {
         sound->volume = fx.volume;
         sound->radius = fx.radius;
         fx.object = ScriptEffect<EffectSound>(sound);
-        const char* name = fx.name.c_str();
-        std::memcpy(sound->name, name, std::strlen(name) + 1);
+        str::CopyInto(sound->name, fx.name);
         g_serverWorld.AddTimedObject(sound);
     }
 }

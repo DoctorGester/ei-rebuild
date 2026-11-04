@@ -7,7 +7,9 @@
 #include "net_connection.h"
 
 #include "lib/crt.h"
+#include "lib/str.h"
 
+#include <cstdint>
 #include <cstring>
 
 namespace net {
@@ -46,12 +48,16 @@ void PutString(BufferCursor* cursor, const std::string& s) {
     const std::string bytes = text::ToAssetText(std::string_view(s.c_str()));
     PutBytes(cursor, bytes.c_str(), bytes.size() + 1);
 }
+// The text runs to its zero byte, or to the end of the bytes read (the cursor's limit) without one; the original
+// read on past a packet's end until it met a zero byte.
 void TakeString(BufferCursor* cursor, std::string& s) {
     const char* text = reinterpret_cast<const char*>(cursor->p);
-    std::size_t length = std::strlen(text);
+    std::size_t room = SIZE_MAX;
+    if (cursor->limit) room = cursor->p < cursor->limit ? static_cast<std::size_t>(cursor->limit - cursor->p) : 0;
+    const std::size_t length = room == SIZE_MAX ? std::strlen(text) : str::BoundedLength(text, room);
     s.assign(text, text + length);
     text::FromAssetText(&s);
-    cursor->p += length + 1;
+    cursor->p += length < room ? length + 1 : length;
 }
 // Object references through the connection being written or read.
 template <typename T>

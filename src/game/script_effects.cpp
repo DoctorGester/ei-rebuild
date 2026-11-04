@@ -9,11 +9,11 @@
 #include "game_singletons.h"
 
 #include "lib/rounding.h"
+#include "lib/str.h"
 #include "lib/text_case.h"
 
 #include <climits>
 #include <cmath>
-#include <cstring>
 #include <memory>
 #include <string>
 
@@ -100,8 +100,6 @@ ScriptEffect<T> ReadObject(ByteStream* stream) {
     return ScriptEffect<T>(g_serverWorld.timedObjectManager->FindObjectAs<T>(id));
 }
 
-std::size_t Length(const char* s) { return std::strlen(s); }
-
 // The first element of `list` with the id, null when none.
 template <typename T>
 T* FindId(std::vector<T>& list, int id) {
@@ -131,8 +129,7 @@ void Script::ScriptCreateFx(const SSCCmd* cmd) {
     sound->volume = f[3];
     sound->radius = f[4];
     sound->looping = 0;
-    const char* name = cmd->stringArgs[0].c_str();
-    std::memcpy(sound->name, name, Length(name) + 1);
+    str::CopyInto(sound->name, cmd->stringArgs[0]);
     g_serverWorld.AddTimedObject(sound);
 }
 
@@ -172,8 +169,7 @@ void Script::ScriptCreateFxSource(const SSCCmd* cmd) {
     sound->localPosition = source->position;
     sound->volume = source->volume;
     sound->radius = source->radius;
-    const char* name = source->name.c_str();
-    std::memcpy(sound->name, name, Length(name) + 1);
+    str::CopyInto(sound->name, source->name);
     g_serverWorld.AddTimedObject(sound);
     source->idle = 0;
 }

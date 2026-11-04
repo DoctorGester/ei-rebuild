@@ -321,7 +321,8 @@ void Connection::Track(Replicated* item) {
     entry->type = static_cast<std::uint8_t>(type);
     entry->object.Assign(item->object);
     entry->flags = static_cast<std::uint8_t>((entry->flags & 1) | (item->priority << 1));
-    std::uint8_t reliable = g_currentSession->reliable[type];
+    // An object of no registered type (-1) is not sent reliably (the original read the byte before the table).
+    std::uint8_t reliable = type >= 0 ? g_currentSession->reliable[type] : 0;
     entry->flags = static_cast<std::uint8_t>(((reliable ^ entry->flags) & 1) ^ entry->flags);
 }
 

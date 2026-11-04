@@ -162,7 +162,7 @@ void* MappedResource::GetFilePlain(std::string_view name, std::uint32_t* size) {
         return file->data;
     }
 
-    // Read failed. file->data leaks here (kept).
+    ::operator delete(file->data);
     delete file;
     return nullptr;
 }

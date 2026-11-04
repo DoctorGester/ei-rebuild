@@ -223,15 +223,12 @@ int LinkFigureLoader::LoadArchivePart(LinkMesh* mesh, const std::string* name, f
 
 FigureModel* LinkFigureLoader::FindFigureSet(const std::string* name) {
     if (auto found = figureSets.find(*name); found != figureSets.end()) return found->second;
-    // "<name>" plus each suffix in a 512-byte buffer (strcpy / strcat, no length check).
-    char path[512];
+    // "<name>" (up to a zero byte) plus each suffix.
     const char* files[3];
     const char* const suffixes[3] = {".mod", ".bon", ".anm"};
-    const std::size_t length = std::strlen(name->data());
     for (int i = 0; i < 3; ++i) {
-        std::memcpy(path, name->data(), length);
-        std::memcpy(path + length, suffixes[i], 5);
-        files[i] = FindInArchives(archives, path);
+        const std::string path = std::string(name->c_str()) + suffixes[i];
+        files[i] = FindInArchives(archives, path.c_str());
     }
     if (!files[0]) return nullptr;
     auto* set = new FigureModel();
@@ -244,8 +241,9 @@ FigureModel* LinkFigureLoader::FindFigureSet(const std::string* name) {
 
 LinkFigureLoader::~LinkFigureLoader() {
     for (LinkArchive& archive : archives) {
+        if (!archive.resource) continue;
         archive.resource->CloseResource();
-        if (archive.resource) delete archive.resource;
+        delete archive.resource;
     }
     for (auto& [name, set] : figureSets) {
         delete set;

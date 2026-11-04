@@ -261,6 +261,7 @@ void SessionBase::Tick(double dt) {
         BufferUpdateHigh(buffer);
         BufferCursor cursor{};
         cursor.p = buffer->begin + 1;
+        cursor.limit = buffer->high;
         cursor.bytePtr = nullptr;
         cursor.bits = 0;
         switch (kind) {

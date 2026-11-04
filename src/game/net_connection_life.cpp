@@ -42,8 +42,8 @@ void DestroyForReset(Connection* c) {
 
 // The constructor (id). The containers are members, built before the body (the original builds the reliable
 // streams last); then: the send sequence starts at the tick count, the round trip at the session's
-// maxRoundTrip (or a constant without a session), its square average is the square of what the memory held,
-// send interval 0.04, budget 220.
+// maxRoundTrip (or a constant without a session), its square average 0 (the original squared whatever the memory
+// held, so the first loss timeouts were the memory's), send interval 0.04, budget 220.
 Connection::Connection(std::uint32_t newId) {
     address = NetAddress{};
     for (IdPool& pool : idPools) pool.next = 0;
@@ -55,13 +55,12 @@ Connection::Connection(std::uint32_t newId) {
     } else {
         roundTrip = 5.0f;
     }
-    const float old = roundTripSquare;    // never written before: whatever the allocation held
     sendSequence = static_cast<std::uint16_t>(tick);
     sendInterval = 0.04f;
     sendTimer = 0.0f;
     idleTime = 0.0f;
     updateBudget = 0xDC;
-    roundTripSquare = old * old;
+    roundTripSquare = 0.0f;
     lastReceived = 0;
     sequenceHigh = 0x10000;
     freedIds.resize(2);

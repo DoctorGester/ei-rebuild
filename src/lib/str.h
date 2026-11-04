@@ -16,6 +16,7 @@
 #include "printf_args.h"
 
 #include <cstdarg>
+#include <cstddef>
 #include <cstdlib>
 #include <string>
 #include <string_view>
@@ -80,5 +81,24 @@ std::vector<std::string> Lines(std::string_view text);
 void CutAtNull(std::string& s);
 // The text resized to `length` characters; the characters to write into.
 char* SetLength(std::string& s, int length);
+
+// The length of the zero-terminated text at `text`, at most `room` bytes (the whole room when no zero byte is in
+// it): text from a file or a packet, where nothing promises the terminator.
+inline std::size_t BoundedLength(const char* text, std::size_t room) {
+    const std::size_t zero = std::string_view(text, room).find('\0');
+    return zero == std::string_view::npos ? room : zero;
+}
+
+// `text` up to its first zero byte copied into the fixed buffer `to` of `size` bytes (size > 0), cut to fit with
+// its terminator.
+inline void CopyInto(char* to, std::size_t size, std::string_view text) {
+    const std::size_t length = BoundedLength(text.data(), text.size() < size ? text.size() : size - 1);
+    text.copy(to, length);
+    to[length] = '\0';
+}
+template <std::size_t N>
+void CopyInto(char (&to)[N], std::string_view text) {
+    CopyInto(to, N, text);
+}
 
 } // namespace str

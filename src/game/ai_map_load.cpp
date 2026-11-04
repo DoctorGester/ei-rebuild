@@ -176,7 +176,7 @@ int ReadTerrainTypes(AIMap& map) {
     map.materials.resize(kTerrainTypes);
     for (int i = 0; i < std::ssize(map.materials); ++i) {
         AITerrainType& type = map.materials[i];
-        type.name[0] = '\0';
+        type.name.clear();
         type.cost = 1;
         type.speed = -1;
         type.look = 1.0f;
@@ -186,12 +186,9 @@ int ReadTerrainTypes(AIMap& map) {
     for (const std::string& sectionName : sections) {
         const char* const section = sectionName.c_str();
         const int index = std::atoi(section);
-        {
-            std::string name = registry.GetString(section, "Name", std::string(""));
-            const char* text = name.c_str();
-            std::memcpy(map.materials[index].name, text, std::strlen(text) + 1);
-        }
+        if (index < 0 || index >= std::ssize(map.materials)) continue;   // the original wrote past the table
         AITerrainType& type = map.materials[index];
+        type.name = registry.GetString(section, "Name", std::string(""));
         type.cost = registry.GetInt(section, "CostMul", -1);
         type.speed = registry.GetInt(section, "Speed", -1);
         type.look = static_cast<float>(registry.GetInt(section, "StepLook", 100)) * kHundredth;
@@ -390,6 +387,7 @@ int AIMap::LoadTerrain(const char* path) {
     if (!archive.Open(full)) return 0;
     std::vector<std::string> maps;
     archive.Get()->ListFiles(&maps, "*.mp");
+    if (maps.empty()) return 0;   // no map in the archive (the original read the first of none)
     std::string name = str::Left(maps[0], str::Find(maps[0], '.'));
 
     MapDescription description;

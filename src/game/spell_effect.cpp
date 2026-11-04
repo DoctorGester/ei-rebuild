@@ -661,7 +661,7 @@ void SpellEffect::CreateSound(const char* name, const Vector3& at, const Vector3
     effect->noFade = 1;
     effect->radius = hearing;
     effect->volume = volume;
-    std::memcpy(effect->name, name, std::strlen(name) + 1);
+    str::CopyInto(effect->name, name);
     effect->SetVelocity(velocity);
     effect->looping = 0;
     world->AddTimedObject(effect);
