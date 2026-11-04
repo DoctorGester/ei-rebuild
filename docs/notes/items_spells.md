@@ -112,6 +112,9 @@ prototypes (0x16 shapechange and 0x23 comprehend start nothing).
 "Power": `pow(clamp(damage / prototype effect, 1, 8), 0.33) - 0.2`, or 1 when the prototype's effect compares equal to 0
 (NaN included); the clamps let NaN through. The fireball blast uses the same curve on `(r*r*pi) / prototype area`.
 
+Lights: the prototype's fields 23-27 are its light (`lightColor`, `lightRange`, `lightRiseDivisor`); the lights rise at
+`lightRange / max(lightRiseDivisor, 1)` a tick, the impact lights 1.5 times faster and further.
+
 Hits: HitUnit skips units the spell may not affect (only checked with a caster) and calls the controller's TakeHit;
 HitUnitsInRadius (fireball) and HitUnitsAlong (fire wall, every 4th tick) hit units IsSpellTarget accepts (size class
 set, or the prototype's value below 0.5); the wall only those within 0.5 of the vertical plane along its direction.

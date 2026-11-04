@@ -15,7 +15,6 @@
 #include "lib/float_select.h"
 
 #include <algorithm>
-#include <bit>
 #include <cstdint>
 #include <cstring>
 
@@ -68,13 +67,6 @@ float LevelValueOf(const UnitStats* stats, int skill) {
     const SkillLevelRecord* record = unitdb::SkillLevelAt(static_cast<std::uint32_t>(skill * 3 - 1 + level));
     if (!record) return 0.0f;
     return record->Value();
-}
-
-MapEffect EffectAt(const Unit* unit, int index) { return unit->effects[index]; }
-float EffectValueField(const MapEffect& effect) {
-    float value;
-    value = std::bit_cast<float>(effect.value);
-    return value;
 }
 
 UnitVitals* ServerVitals(Unit* unit) {
@@ -351,11 +343,10 @@ void UnitStats::Recompute(UnitVitals* vitals, Unit* unit) {
     for (UnitStatPair& protection : vitals->protection) protection.current = protection.base;
 
     float strongest[kEffectTypes] = {};
-    for (int i = 0; i < std::ssize(unit->effects); ++i) {
-        MapEffect effect = EffectAt(unit, i);   // copies the whole record
+    for (const MapEffect& effect : unit->effects) {
         std::uint32_t type = effect.type;
         if (type >= static_cast<std::uint32_t>(kEffectTypes)) continue;
-        float value = EffectValueField(effect);
+        float value = effect.value;
         float old = strongest[type];
         strongest[type] = SelectLess(old, value, value, old);
     }

@@ -12,12 +12,10 @@
 #include "unit.h"     // MapObjectServer
 #include "unit_create.h"
 #include "world.h"    // World
-#include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
 
-#include <bit>
 #include <concepts>
 #include <cstdint>
 #include <cstring>
@@ -43,10 +41,10 @@ void RemoveOutdatedEffects(MapObject* object, const MapEffect* effect) {
         MapEffect* e = &object->effects[i];
         bool outdated = e->type == effect->type && e->ticksLeft <= effect->ticksLeft && e->ending == effect->ending;
         if (outdated) {
-            outdated = !(lib::FloatFromBits(effect->value) < lib::FloatFromBits(e->value));
+            outdated = !(effect->value < e->value);
         }
         if (outdated) {
-            float difference = lib::FloatFromBits(e->strength) - lib::FloatFromBits(effect->strength);
+            float difference = e->strength - effect->strength;
             outdated = std::fabs(difference) < kSameStrength;
         }
         if (outdated) object->effects.erase(object->effects.begin() + i);
@@ -110,7 +108,7 @@ float MapObject::EffectValue(SpellType spellType) {
     for (int i = 0; i < std::ssize(effects); ++i) {
         MapEffect effect = effects[i];   // the record is copied twice
         if (effect.Type() != spellType) continue;   // the record's first dword & 0xFF
-        best = MaxKeepB(best, std::bit_cast<float>(effect.value));   // a NaN takes the value
+        best = MaxKeepB(best, effect.value);   // a NaN takes the value
     }
     return best;
 }

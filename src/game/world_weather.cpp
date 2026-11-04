@@ -12,7 +12,6 @@
 
 #include "lib/str.h"
 
-#include <bit>
 #include <cstring>
 #include <string>
 
@@ -126,7 +125,7 @@ void WorldServer::UpdateWeather() {
         }
         if (weather == kRaining && tick > static_cast<int>(lastRainBoltTick) + 20) ShowRainBolt(this);
     }
-    weatherFactor = std::bit_cast<std::uint32_t>(weather == 0 ? kDayFactorDry : kDayFactorRain);
+    weatherFactor = weather == 0 ? kDayFactorDry : kDayFactorRain;
 
     for (auto& node : objects.map) node.second->UpdateMoveFactors();    // the weather changed
     if (IsSinglePlayerMode(zoneMode)) UpdatePlayerTimes(0.0f);

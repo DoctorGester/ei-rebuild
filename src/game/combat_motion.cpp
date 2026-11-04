@@ -23,15 +23,12 @@
 
 #include "lib/vecmath.h"
 
-#include <bit>
 #include <cstdint>
-#include <cstring>
 
 namespace {
 
 constexpr std::uint32_t kKeyIdle = kAnimationSpecialIdleKey;
 constexpr std::uint8_t kEmoteStand = 0xFE;   // the idle "emote" of a walking hero
-constexpr std::uint32_t kNoPathLimitBits = std::bit_cast<std::uint32_t>(kNoPathLimit);
 
 // --- Helpers --------------------------------------------------------------------------------------
 
@@ -400,7 +397,7 @@ void UnitServer::ReportPath(AIPath* path, char partial) {
     LocalMotionOrder end;
     AckKind message;
     if (!partial) {
-        if (self->player) self->player->Server()->SendPathMessage(self, &end, goal, 3, 1, kNoPathLimitBits);
+        if (self->player) self->player->Server()->SendPathMessage(self, &end, goal, 3, 1, kNoPathLimit);
         if (brain.LeaderOrFollowed()) return;
         self = unit;
         if (!self->player) return;
@@ -412,7 +409,7 @@ void UnitServer::ReportPath(AIPath* path, char partial) {
         float left = LengthSquared2D(half * path->target - XY(goal));
         bool stillFar = reached * 0.010000001f > left;   // unordered: not far
         if (self->player)
-            self->player->Server()->SendPathMessage(self, &end, goal, 0, stillFar ? 0 : 1, kNoPathLimitBits);
+            self->player->Server()->SendPathMessage(self, &end, goal, 0, stillFar ? 0 : 1, kNoPathLimit);
         if (brain.LeaderOrFollowed()) return;
         self = unit;
         if (!self->player) return;
@@ -441,14 +438,14 @@ void UnitServer::ResyncWithUnit() {
 
 void UnitServer::ResetController() {
     action.Reset();
+    action.kind = UnitOrderKind::Idle;
     action2.Reset();
     frozen = 0;
     animationHeld = 0;
     queue = {};
     motion.Clear();
     currentPlan.Reset();
-    std::memset(&pendingHit, 0, 0x3C);
-    pendingHit.multiplier = 1.0f;
+    pendingHit = {.multiplier = 1.0f};
     savedQueue = {};
     state = UnitState::Stopped;
     hitDirection = kNoHitDirection;
@@ -456,15 +453,10 @@ void UnitServer::ResetController() {
     stoodBlocked = 0;
     motionChanged = 0;
     movingAnimation = 0;
-    moveMode.mode = MoveMode::Walk;
-    moveMode.onGuard = 0;
-    moveMode.wasMode3 = 0;
-    moveMode2.mode = MoveMode::Walk;
-    moveMode2.onGuard = 0;
-    moveMode2.wasMode3 = 0;
+    moveMode = {MoveMode::Walk, 0, 0};
+    moveMode2 = {MoveMode::Walk, 0, 0};
     effectObject.Reset();
     actingCheckTime = -1;
-    action.kind = UnitOrderKind::Idle;
     nextAttackTime = 0;
     interceptTime = 0;
     orderStopped = 0;
@@ -475,20 +467,17 @@ void UnitServer::ResetController() {
     brain.Init();
     voice.Reset();
     aiPresence = nullptr;
-    moveFactors[0] = 1.0f;
-    moveFactors[2] = 1.0f;
-    moveFactors[3] = 1.0f;
-    moveFactors[1] = 1.0f;
+    for (float& factor : moveFactors) factor = 1.0f;
     stats.Reset();
     tameStage = 0;
     ownSide = -1;
     tamerSide = -1;
-    speedClass = 0xF;
+    speedClass = 15;
     claimedHostile = 0;
     sinkSpeed = 0.0f;
-    moveAnimationKey = 0x666DEAD;
+    moveAnimationKey = kNoAnimationKey;
     moveAnimation = {};
-    idleKey = 0x666DEAD;
+    idleKey = kNoAnimationKey;
     idleAnimation = {};
     boredTicks = 0;
     armourSpells.clear();   // each element's item released

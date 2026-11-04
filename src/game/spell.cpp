@@ -6,7 +6,6 @@
 #include "lib/bytes.h"
 #include "lib/text_case.h"
 
-#include <bit>
 #include <cfloat>
 #include <cstdint>
 #include <cstring>
@@ -171,8 +170,8 @@ MapEffect Spell::EffectRecord() const {
     record.type = prototypeIndex;
     record.power = effectPower;
     record.ticksLeft = static_cast<int>(duration);
-    record.value = std::bit_cast<std::uint32_t>(damage);
-    record.strength = std::bit_cast<std::uint32_t>(radius);
+    record.value = damage;
+    record.strength = radius;
     return record;
 }
 
@@ -180,8 +179,8 @@ void Spell::SetEffect(const MapEffect& record) {
     prototypeIndex = record.type;
     effectPower = record.power;
     duration = static_cast<std::uint32_t>(record.ticksLeft);
-    damage = std::bit_cast<float>(record.value);
-    radius = std::bit_cast<float>(record.strength);
+    damage = record.value;
+    radius = record.strength;
 }
 
 Spell::Spell() {

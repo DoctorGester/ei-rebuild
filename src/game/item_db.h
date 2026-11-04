@@ -5,6 +5,8 @@
 // callers then read a field of the record without checking for null, so an index out of range faults, as in the
 // game.
 
+#include "lib/vecmath.h"
+
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -92,7 +94,7 @@ namespace itemdb {
 // A spell prototype: the fields the camp's spell maker reads.
 struct SpellRecord {
     // Fields 0-2 the strings, 3-15 price..needsSight (not school), 16 / 17 the id lists, 18 icon, 19 school,
-    // 20 allowedModifiers, 21 skill, 22 classMask, 23-27 extraValues.
+    // 20 allowedModifiers, 21 skill, 22 classMask, 23-27 the light.
     void Serialize(ChunkArchive* ar);
 
     std::string name;
@@ -119,7 +121,11 @@ struct SpellRecord {
     std::vector<int> unreadIdListA;    // archive chunk 16; nothing reads it
     std::vector<int> unreadIdListB;    // archive chunk 17; nothing reads it
     std::uint32_t icon;                 // the number of its picture and figure ("spell%04d", "prototype%04d")
-    std::uint32_t extraValues[5];       // fields 23-27 (nothing reads them)
+    // The light the spell's effects put up: its colour, range and the divisor of its rise speed (the light rises
+    // at lightRange / max(lightRiseDivisor, 1) a tick).
+    Vector3 lightColor;
+    float lightRange;
+    float lightRiseDivisor;
     // which modifiers it accepts, one byte per kind by code letter: 'r', 't', 'a', 'e', 'd'; the item info
     // shows the level when the 'e' byte is set.
     std::uint8_t allowedModifiers[5];
