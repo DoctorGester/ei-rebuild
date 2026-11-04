@@ -3754,8 +3754,7 @@ bool MousePosition(Point* at) {
     int width = 0, height = 0;
     if (!window || !ClientSize(&width, &height)) return false;
     Point p = g_mouseX < 0 ? Point{width / 2, height / 2} : Point{g_mouseX, g_mouseY};
-    platform::ClientToScreen(window, &p);
-    *at = p;
+    *at = platform::ClientToScreen(window, p);
     return true;
 }
 

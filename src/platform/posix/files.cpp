@@ -217,13 +217,13 @@ void File::WriteLine(std::string_view line) {
     Write("\r\n", 2);
 }
 
-long File::Seek(long offset, SeekFrom from) {
+std::uint32_t File::Seek(std::int32_t offset, SeekFrom from) {
     const off_t n = lseek(Descriptor(handle), offset,
                           from == SeekFrom::Begin ? SEEK_SET
                           : from == SeekFrom::End ? SEEK_END
                                                   : SEEK_CUR);
     if (n < 0 || n > UINT32_MAX) FileFailure(path);
-    return static_cast<long>(n);
+    return static_cast<std::uint32_t>(n);
 }
 
 std::uint32_t File::Position() const {
@@ -238,10 +238,10 @@ std::uint32_t File::Size() const {
     return static_cast<std::uint32_t>(s.st_size);
 }
 
-bool File::ReadAt(long offset, void* buffer, unsigned count) {
+bool File::ReadAt(std::uint32_t position, void* buffer, unsigned count) {
     // Preserve the stream-position side effect of the Windows implementation.
     try {
-        Seek(offset, SeekFrom::Begin);
+        Seek(static_cast<std::int32_t>(position), SeekFrom::Begin);
         return Read(buffer, count) == count;
     } catch (const FileError&) {
         return false;

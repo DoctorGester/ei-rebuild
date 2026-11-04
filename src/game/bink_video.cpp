@@ -124,22 +124,21 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
     std::uint32_t start = platform::FrameClock() - frameTime;
     bool escaped = false;
     std::vector<std::uint8_t> frame;
-    platform::Event event;
     for (;;) {
-        if (platform::TakeEvent(&event)) {
-            if (event.type == platform::EventType::KeyDown) {
-                if (event.key != platform::kKeyEscape && event.key != platform::kKeySpace) continue;
+        if (const std::optional<platform::Event> event = platform::TakeEvent()) {
+            if (event->type == platform::EventType::KeyDown) {
+                if (event->key != platform::kKeyEscape && event->key != platform::kKeySpace) continue;
                 if (keysEnd) {
-                    if (event.key == platform::kKeyEscape) escaped = true;
+                    if (event->key == platform::kKeyEscape) escaped = true;
                     break;
                 }
                 if (!spaceSkips) continue;
                 start = platform::FrameClock() - frameTime * 2;
-            } else if (event.type == platform::EventType::Quit) {   // the movie ends; the main loop ends on it
-                platform::PostQuit(event.quitCode);
+            } else if (event->type == platform::EventType::Quit) {   // the movie ends; the main loop ends on it
+                platform::PostQuit(event->quitCode);
                 break;
             } else {
-                app::HandleWindowEvent(event);
+                app::HandleWindowEvent(*event);
             }
             continue;
         }

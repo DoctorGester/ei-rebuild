@@ -7,6 +7,7 @@
 #include "platform/platform.h"
 
 #include <cstring>
+#include <string>
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -105,17 +106,19 @@ int Select(SocketGroup* read, SocketGroup* write, SocketGroup* failed, std::int3
     return ready;
 }
 
-bool HostName(char* name, int size) {
+std::string HostName() {
     Start();
-    return gethostname(name, size) == 0;
+    char name[256];   // the longest a host name gets
+    return gethostname(name, sizeof(name)) == 0 ? name : "";
 }
 
-bool LookUp(const char* name, std::uint32_t* ip) {
+std::optional<std::uint32_t> LookUp(const char* name) {
     Start();
     const hostent* host = gethostbyname(name);
-    if (!host || !host->h_addr_list[0]) return false;
-    std::memcpy(ip, host->h_addr_list[0], sizeof(*ip));
-    return true;
+    if (!host || !host->h_addr_list[0]) return std::nullopt;
+    std::uint32_t ip;
+    std::memcpy(&ip, host->h_addr_list[0], sizeof(ip));
+    return ip;
 }
 
 } // namespace platform::net

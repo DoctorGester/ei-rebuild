@@ -55,7 +55,15 @@ constexpr int kActionCount = 60;
 void LoadKeyBindings() {
     for (int i = 0; i < kKeyCount; ++i) {
         UiKeyName& k = g_keyNames[i];
-        if (!platform::KeyName(k.scan, k.name, 0x1F)) k.name[0] = 0;
+        // At most 30 bytes (GetKeyNameTextA's 31 with the terminator), cut at a character's start.
+        const std::string name = platform::KeyName(k.scan);
+        std::size_t n = name.size();
+        if (n > 30) {
+            n = 30;
+            while (n > 0 && (static_cast<unsigned char>(name[n]) & 0xC0) == 0x80) --n;
+        }
+        std::memcpy(k.name, name.data(), n);
+        k.name[n] = '\0';
     }
     std::vector<std::string> words;
     std::string bytes;

@@ -158,11 +158,11 @@ void File::WriteLine(std::string_view line) {
     Write(text.data(), static_cast<unsigned>(text.size()));
 }
 
-long File::Seek(long offset, SeekFrom from) {
+std::uint32_t File::Seek(std::int32_t offset, SeekFrom from) {
     const DWORD method = from == SeekFrom::Begin ? FILE_BEGIN : from == SeekFrom::Current ? FILE_CURRENT : FILE_END;
     const DWORD position = ::SetFilePointer(Native(handle), offset, nullptr, method);
     if (position == INVALID_SET_FILE_POINTER) ThrowLastError(path);
-    return static_cast<long>(position);
+    return position;
 }
 
 std::uint32_t File::Position() const {
@@ -177,9 +177,10 @@ std::uint32_t File::Size() const {
     return size;
 }
 
-bool File::ReadAt(long offset, void* buffer, unsigned count) {
+bool File::ReadAt(std::uint32_t position, void* buffer, unsigned count) {
     DWORD read = 0;
-    return ::SetFilePointer(Native(handle), offset, nullptr, FILE_BEGIN) != INVALID_SET_FILE_POINTER &&
+    return ::SetFilePointer(Native(handle), static_cast<LONG>(position), nullptr, FILE_BEGIN) !=
+               INVALID_SET_FILE_POINTER &&
            ::ReadFile(Native(handle), buffer, count, &read, nullptr) && read == count;
 }
 

@@ -176,9 +176,8 @@ void Cursor::SetHeld(bool newHeld) {
         pollTime = platform::FrameClock();
         pollCount = 0;
         dragGiven = true;
-        Point at{};
-        if (platform::CursorPosition(&at)) {
-            heldPosition = Min(Max(at, Point{}), bounds.BottomRight());
+        if (const std::optional<Point> at = platform::CursorPosition()) {
+            heldPosition = Min(Max(*at, Point{}), bounds.BottomRight());
             position = heldPosition;
         }
     }
@@ -252,9 +251,7 @@ bool Cursor::UpdatePosition() {
     if (held) {
         point = heldPosition;
     } else {
-        Point at{};
-        platform::CursorPosition(&at);
-        point = at;
+        point = platform::CursorPosition().value_or(Point{});
         heldPosition = point;
     }
     point = Min(Max(point, Point{}), bounds.BottomRight());

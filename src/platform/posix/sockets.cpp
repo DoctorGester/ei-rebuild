@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cerrno>
 #include <cstdint>
+#include <string>
 
 namespace platform::net {
 
@@ -161,17 +162,20 @@ int Select(SocketGroup* read, SocketGroup* write, SocketGroup* failed, std::int3
     return ready;
 }
 
-bool HostName(char* name, int size) { return size > 0 && gethostname(name, size) == 0; }
+std::string HostName() {
+    char name[256] = {};   // the longest a host name gets, and a terminator gethostname may leave out
+    return gethostname(name, sizeof(name) - 1) == 0 ? name : "";
+}
 
-bool LookUp(const char* name, std::uint32_t* ip) {
+std::optional<std::uint32_t> LookUp(const char* name) {
     addrinfo hint{};
     hint.ai_family = AF_INET;
     hint.ai_socktype = SOCK_DGRAM;
     addrinfo* found = nullptr;
-    if (getaddrinfo(name, nullptr, &hint, &found) || !found) return false;
-    *ip = reinterpret_cast<sockaddr_in*>(found->ai_addr)->sin_addr.s_addr;
+    if (getaddrinfo(name, nullptr, &hint, &found) || !found) return std::nullopt;
+    const std::uint32_t ip = reinterpret_cast<sockaddr_in*>(found->ai_addr)->sin_addr.s_addr;
     freeaddrinfo(found);
-    return true;
+    return ip;
 }
 
 } // namespace platform::net

@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <ctime>
 #include <deque>
+#include <optional>
 #include <string>
 
 namespace ei::verify::harnessplatform {
@@ -88,15 +89,16 @@ void Pump() {
     }
 }
 
-bool TakeWaiting(platform::Event* event, bool* typesCharacter = nullptr) {
-    if (g_waiting.empty()) return false;
-    *event = g_waiting.front().event;
-    if (typesCharacter) *typesCharacter = g_waiting.front().typesCharacter;
-    g_waiting.pop_front();
-    return true;
-}
-
-platform::Event QuitEvent() {
+// The next event taken from us: the first waiting (with whether a key press types its character), else PostQuit's
+// request (once), else none.
+std::optional<platform::Event> PopEvent(bool* typesCharacter = nullptr) {
+    if (!g_waiting.empty()) {
+        platform::Event event = std::move(g_waiting.front().event);
+        if (typesCharacter) *typesCharacter = g_waiting.front().typesCharacter;
+        g_waiting.pop_front();
+        return event;
+    }
+    if (!g_quitPosted) return std::nullopt;
     platform::Event quit;
     quit.type = platform::EventType::Quit;
     quit.quitCode = g_quitCode;
@@ -342,34 +344,31 @@ void ShowGameWindow(NativeWindow window) {
 
 bool IsMinimized(NativeWindow window) { return hp::WindowOf(window) && hp::Minimized(); }
 
-void ScreenToClient(NativeWindow window, Point* point) {
+Point ScreenToClient(NativeWindow window, Point point) {
     int left = 0, top = 0;
     if (SDL_Window* w = hp::WindowOf(window)) SDL_GetWindowPosition(w, &left, &top);
-    point->x -= left;
-    point->y -= top;
+    return Point{point.x - left, point.y - top};
 }
 
-void ClientToScreen(NativeWindow window, Point* point) {
+Point ClientToScreen(NativeWindow window, Point point) {
     int left = 0, top = 0;
     if (SDL_Window* w = hp::WindowOf(window)) SDL_GetWindowPosition(w, &left, &top);
-    point->x += left;
-    point->y += top;
+    return Point{point.x + left, point.y + top};
 }
 
-bool CoverMonitor(NativeWindow window, Rect* was, Rect* monitor) {
+std::optional<MonitorCover> CoverMonitor(NativeWindow window) {
     SDL_Window* w = hp::WindowOf(window);
-    if (!w || hp::Minimized()) return false;
+    if (!w || hp::Minimized()) return std::nullopt;
     SDL_Rect bounds{};
-    if (!SDL_GetDisplayBounds(SDL_GetDisplayForWindow(w), &bounds)) return false;
+    if (!SDL_GetDisplayBounds(SDL_GetDisplayForWindow(w), &bounds)) return std::nullopt;
     int left = 0, top = 0, width = 0, height = 0;
     SDL_GetWindowPosition(w, &left, &top);
     SDL_GetWindowSize(w, &width, &height);
-    if (left == bounds.x && top == bounds.y && width == bounds.w && height == bounds.h) return false;
-    *was = Rect{left, top, left + width, top + height};
-    *monitor = Rect{bounds.x, bounds.y, bounds.x + bounds.w, bounds.y + bounds.h};
+    if (left == bounds.x && top == bounds.y && width == bounds.w && height == bounds.h) return std::nullopt;
     SDL_SetWindowPosition(w, bounds.x, bounds.y);
     SDL_SetWindowSize(w, bounds.w, bounds.h);
-    return true;
+    return MonitorCover{Rect{left, top, left + width, top + height},
+                        Rect{bounds.x, bounds.y, bounds.x + bounds.w, bounds.y + bounds.h}};
 }
 
 // As the game's on Windows: borderless and unsizeable, or decorated and (outside live play) resizable again.
@@ -381,10 +380,12 @@ void SetFullScreen(NativeWindow window, bool fullScreen) {
     SDL_SetWindowResizable(w, !fullScreen && !hp::g_live);
 }
 
-bool WindowPixelSize(NativeWindow window, int* width, int* height) {
+std::optional<Size> WindowPixelSize(NativeWindow window) {
     SDL_Window* w = hp::WindowOf(window);
-    if (!w || hp::Minimized() || !SDL_GetWindowSizeInPixels(w, width, height)) return false;
-    return *width > 0 && *height > 0;
+    int width = 0, height = 0;
+    if (!w || hp::Minimized() || !SDL_GetWindowSizeInPixels(w, &width, &height) || width <= 0 || height <= 0)
+        return std::nullopt;
+    return Size{width, height};
 }
 
 void SetClientSize(NativeWindow window, int width, int height) {
@@ -417,11 +418,11 @@ bool EventWaits() {
     return !hp::g_waiting.empty() || hp::g_quitPosted;
 }
 
-bool NextEvent(Event* event) {
+Event NextEvent() {
     for (;;) {
         hp::Pump();
-        bool typesCharacter = true;
-        if (hp::TakeWaiting(event, &typesCharacter)) {
+        bool typesCharacter = false;
+        if (std::optional<Event> event = hp::PopEvent(&typesCharacter)) {
             if (event->type == EventType::KeyDown && typesCharacter)
                 if (const int character = hp::TypedCharacter(event->key)) {
                     Event typed;
@@ -430,23 +431,16 @@ bool NextEvent(Event* event) {
                     typed.text = std::string(1, static_cast<char>(character));
                     hp::g_waiting.push_back({typed, true});
                 }
-            return true;
-        }
-        if (hp::g_quitPosted) {
-            *event = hp::QuitEvent();
-            return false;
+            return *std::move(event);
         }
         SDL_WaitEventTimeout(nullptr, 1);
     }
 }
 
-bool TakeEvent(Event* event) {
-    if (!hp::BeforeEvents()) return false;
+std::optional<Event> TakeEvent() {
+    if (!hp::BeforeEvents()) return std::nullopt;
     hp::Pump();
-    if (hp::TakeWaiting(event)) return true;
-    if (!hp::g_quitPosted) return false;
-    *event = hp::QuitEvent();
-    return true;
+    return hp::PopEvent();
 }
 
 void PostQuit(int code) {
@@ -500,19 +494,12 @@ void SetCursor(CursorShape shape) {
 
 // The harness's mouse moves only by its steps: a hold is only recorded, a move ends it. In real play the pointer is
 // held as the game's backend holds it (platform_sdl.cpp): relative mode, a one-pixel mouse rectangle at the point.
-void HoldCursor(const Point* at) {
+void HoldCursor(Point at) {
     const bool was = hp::g_holding;
-    hp::g_holding = at != nullptr;
-    if (at) hp::g_held = *at;
+    hp::g_holding = true;
+    hp::g_held = at;
     if (!hp::g_live || !hp::g_window) return;
-    if (!at) {
-        if (!was) return;
-        SDL_SetWindowMouseRect(hp::g_window, nullptr);
-        SDL_SetWindowRelativeMouseMode(hp::g_window, false);
-        return;
-    }
-    Point screen = *at;
-    if (hp::g_toScreen) hp::g_toScreen(&screen);
+    const Point screen = hp::g_toScreen ? hp::g_toScreen(at) : at;
     int left = 0, top = 0;
     SDL_GetWindowPosition(hp::g_window, &left, &top);
     const SDL_Rect place{screen.x - left, screen.y - top, 1, 1};
@@ -522,23 +509,29 @@ void HoldCursor(const Point* at) {
     hp::g_heldRect = place;
 }
 
+void ReleaseCursor() {
+    const bool was = hp::g_holding;
+    hp::g_holding = false;
+    if (!hp::g_live || !hp::g_window || !was) return;
+    SDL_SetWindowMouseRect(hp::g_window, nullptr);
+    SDL_SetWindowRelativeMouseMode(hp::g_window, false);
+}
+
 void MapCursorPoints(PointMap toGame, PointMap toScreen) {
     hp::g_toGame = toGame;
     hp::g_toScreen = toScreen;
 }
 
-bool CursorPosition(Point* at) {
+std::optional<Point> CursorPosition() {
     Point point{};
-    if (!hp::MousePosition(&point)) return false;
-    if (hp::g_toGame) hp::g_toGame(&point);
-    *at = point;
-    return true;
+    if (!hp::MousePosition(&point)) return std::nullopt;
+    return hp::g_toGame ? hp::g_toGame(point) : point;
 }
 
 void SetCursorPosition(Point at) {
-    HoldCursor(nullptr);
+    ReleaseCursor();
     if (!hp::g_live) return;
-    if (hp::g_toScreen) hp::g_toScreen(&at);
+    if (hp::g_toScreen) at = hp::g_toScreen(at);
     SDL_WarpMouseGlobal(static_cast<float>(at.x), static_cast<float>(at.y));
 }
 

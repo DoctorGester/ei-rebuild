@@ -219,10 +219,7 @@ std::string Hex(int value) {
     return text;
 }
 
-std::string Name(int scan, int size = 64) {
-    char name[64] = {};
-    return platform::KeyName(scan, name, size) ? name : "";
-}
+std::string Name(int scan) { return platform::KeyName(scan); }
 
 void Check(const Layout& layout, bool print) {
     const std::vector<int> scans = MovedScans();
@@ -260,9 +257,6 @@ void Check(const Layout& layout, bool print) {
         return;
     }
     for (const FixedName& fixed : kFixedNames) Expect(Name(fixed.scan) == fixed.name, layout.name, fixed.scan, "name", Name(fixed.scan), fixed.name);
-    // A name cut to its buffer at a character's start: one byte left for 2-byte "х" is none, for "Q" the letter.
-    if (std::string(layout.name) == "ru") Expect(Name(0x1A, 2).empty(), layout.name, 0x1A, "name in 2 bytes", Name(0x1A, 2), "");
-    Expect(Name(0x10, 2).size() == 1, layout.name, 0x10, "name in 2 bytes", Name(0x10, 2), "one letter");
 }
 
 } // namespace

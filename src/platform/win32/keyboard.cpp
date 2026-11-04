@@ -6,25 +6,14 @@
 #include "platform/win32/platform_win32.h"
 
 #include <cstdio>
-#include <cstring>
 #include <string>
 
 namespace platform {
 
-// The name in UTF-8, cut at a character's start to fit `size` bytes with the terminator.
-bool KeyName(int scan, char* name, int size) {
-    if (!name || size <= 0) return false;
+std::string KeyName(int scan) {
     wchar_t wide[64] = {};
     const int length = GetKeyNameTextW(scan << 16, wide, 64);
-    const std::string utf8 = text::Narrow(std::wstring_view(wide, static_cast<std::size_t>(length > 0 ? length : 0)));
-    std::size_t n = utf8.size();
-    if (n >= static_cast<std::size_t>(size)) {
-        n = static_cast<std::size_t>(size) - 1;
-        while (n > 0 && (static_cast<unsigned char>(utf8[n]) & 0xC0) == 0x80) --n;
-    }
-    std::memcpy(name, utf8.data(), n);
-    name[n] = '\0';
-    return n != 0;
+    return text::Narrow(std::wstring_view(wide, static_cast<std::size_t>(length > 0 ? length : 0)));
 }
 
 // What Windows' layout maps the scan code to (the key messages' code).

@@ -16,16 +16,15 @@ bool FontSmoothing() {
     return smoothing != FALSE;
 }
 
-void PrimaryDesktopSize(int* width, int* height) {
+std::optional<Size> PrimaryDesktopSize() {
     MONITORINFOEXW monitor{};
     monitor.cbSize = sizeof(monitor);
     DEVMODEW mode{};
     mode.dmSize = sizeof(mode);
-    if (GetMonitorInfoW(MonitorFromPoint(POINT{0, 0}, MONITOR_DEFAULTTOPRIMARY), &monitor) &&
-        EnumDisplaySettingsW(monitor.szDevice, ENUM_CURRENT_SETTINGS, &mode)) {
-        *width = static_cast<int>(mode.dmPelsWidth);
-        *height = static_cast<int>(mode.dmPelsHeight);
-    }
+    if (!GetMonitorInfoW(MonitorFromPoint(POINT{0, 0}, MONITOR_DEFAULTTOPRIMARY), &monitor) ||
+        !EnumDisplaySettingsW(monitor.szDevice, ENUM_CURRENT_SETTINGS, &mode))
+        return std::nullopt;
+    return Size{static_cast<std::int32_t>(mode.dmPelsWidth), static_cast<std::int32_t>(mode.dmPelsHeight)};
 }
 
 std::string EnvironmentVariable(const char* name) {

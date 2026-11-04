@@ -165,7 +165,8 @@ void ShowFrameCursor() {
     Show(made);
     DropStale();
     const bool held = made && g_frameCursor.held;
-    platform::HoldCursor(held ? &g_frameCursor.heldAt : nullptr);
+    if (held) platform::HoldCursor(g_frameCursor.heldAt);
+    else platform::ReleaseCursor();
     if (held) ++g_info.presentsHeld;
     else if (made) ++g_info.presentsShown;
     else ++g_info.presentsHidden;

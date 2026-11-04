@@ -12,6 +12,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -70,9 +71,9 @@ std::string ArgumentsAfterSeparator(int argc, char** argv);
 
 // Whether the desktop smooths the edges of text; true when it cannot tell.
 bool FontSmoothing();
-// The size in pixels of the primary monitor's current mode (whatever the process's DPI awareness); both stay as they
-// are when it cannot tell.
-void PrimaryDesktopSize(int* width, int* height);
+// The size in pixels of the primary monitor's current mode (whatever the process's DPI awareness); none when it cannot
+// tell.
+std::optional<Size> PrimaryDesktopSize();
 // The value of the environment variable `name`; empty when it is not set (or empty).
 std::string EnvironmentVariable(const char* name);
 
@@ -175,13 +176,13 @@ public:
     }
     // `line` and "\r\n" (a text file's line end on disk).
     void WriteLine(std::string_view line);
-    // The new position.
-    long Seek(long offset, SeekFrom from);
+    // Positions and sizes are bytes from the start (a file is under 4 GB); Seek's offset counts from `from` and returns
+    // the new position.
+    std::uint32_t Seek(std::int32_t offset, SeekFrom from);
     std::uint32_t Position() const;
     std::uint32_t Size() const;
-    // `count` bytes at `offset` from the start: false when the seek or the read fails or fewer bytes were read (nothing
-    // throws).
-    bool ReadAt(long offset, void* buffer, unsigned count);
+    // `count` bytes at `position`: false when the seek or the read fails or fewer bytes were read (nothing throws).
+    bool ReadAt(std::uint32_t position, void* buffer, unsigned count);
 
 private:
     std::intptr_t handle = -1;   // the system's file handle or descriptor; -1: none
@@ -281,17 +282,22 @@ NativeWindow CreateGameWindow(const char* title, int width, int height, bool ful
 void ShowGameWindow(NativeWindow window);
 bool IsMinimized(NativeWindow window);
 // A point of the screen as one of the window's client area, and back.
-void ScreenToClient(NativeWindow window, Point* point);
-void ClientToScreen(NativeWindow window, Point* point);
+Point ScreenToClient(NativeWindow window, Point point);
+Point ClientToScreen(NativeWindow window, Point point);
+// Where CoverMonitor moved a window from, and the monitor it now covers.
+struct MonitorCover {
+    Rect was;
+    Rect monitor;
+};
 // Full screen without a display mode change: the window moved over the whole monitor it is on, unless minimised or
-// there already. True when it moved; `was` and `monitor` then hold its old place and the monitor's.
-bool CoverMonitor(NativeWindow window, Rect* was, Rect* monitor);
+// there already; none when it did not move.
+std::optional<MonitorCover> CoverMonitor(NativeWindow window);
 // The window switched to full screen (borderless, unsizeable: CoverMonitor puts it over its monitor at the next present;
 // on macOS SDL's desktop full screen) or back to a decorated, resizable window (SetClientSize then places it). Never a
 // display mode change.
 void SetFullScreen(NativeWindow window, bool fullScreen);
-// The window's client area in pixels (what the renderer draws into); false when it has none (minimised).
-bool WindowPixelSize(NativeWindow window, int* width, int* height);
+// The window's client area in pixels (what the renderer draws into); none when it has none (minimised).
+std::optional<Size> WindowPixelSize(NativeWindow window);
 // A window that is not full screen: its client area `width` x `height` pixels, placed as CreateGameWindow places it
 // (made smaller when it and its borders would not fit in the usable bounds of the display it is on, centred there); a
 // maximised window is restored first. Returns once the system has applied it (X11 resizes asynchronously).
@@ -308,10 +314,10 @@ void ConfineCursor(NativeWindow window, bool confined);
 
 // Whether an event waits in the queue (it stays there).
 bool EventWaits();
-// Waits for the next event and takes it. False at the quit request (`event` is then a Quit event).
-bool NextEvent(Event* event);
-// Takes the next waiting event; false when none waits.
-bool TakeEvent(Event* event);
+// Waits for the next event and takes it: a Quit event at the quit request.
+Event NextEvent();
+// Takes the next waiting event (a Quit event at the quit request); none when none waits.
+std::optional<Event> TakeEvent();
 // Asks the loop to end: NextEvent gives a Quit event with `code` once the waiting events are taken.
 void PostQuit(int code);
 
@@ -354,16 +360,17 @@ CursorShape MakeCursor(const std::uint8_t* rgba, int width, int height, int hotX
 void FreeCursor(CursorShape shape);
 CursorShape CurrentCursor();
 void SetCursor(CursorShape shape);
-// With `at` (a game point) the cursor stays there while the mouse's motion still reaches the game (TakeMouseMotion:
-// the camera turned with the right button); null lets it move again. SetCursorPosition lets it go first.
-void HoldCursor(const Point* at);
+// The cursor stays at `at` (a game point) while the mouse's motion still reaches the game (TakeMouseMotion: the camera
+// turned with the right button), until ReleaseCursor lets it move again. SetCursorPosition lets it go first.
+void HoldCursor(Point at);
+void ReleaseCursor();
 
 // How the game's points relate to the screen's (the frame scaled into the window): `toGame` turns a screen point into
 // the game's, `toScreen` the other way. Without (the start), the game's points are the screen's.
-using PointMap = void (*)(Point* point);
+using PointMap = Point (*)(Point point);
 void MapCursorPoints(PointMap toGame, PointMap toScreen);
-// The cursor's position as a game point; false (and `at` unchanged) when the system could not tell.
-bool CursorPosition(Point* at);
+// The cursor's position as a game point; none when the system could not tell.
+std::optional<Point> CursorPosition();
 // Moves the cursor to the game point `at`.
 void SetCursorPosition(Point at);
 
@@ -372,8 +379,8 @@ void SetCursorPosition(Point at);
 // The keys' names, the layout typed characters come from and what kind of character one is.
 
 // The name the system gives the key with the scan code `scan` (bit 8 for an extended key) in the active layout's
-// language, UTF-8 into `name` (`size` bytes with the terminator, cut at a character). False when it has none.
-bool KeyName(int scan, char* name, int size);
+// language, UTF-8; empty when it has none.
+std::string KeyName(int scan);
 // Activates the keyboard layout of `language` (a Windows language id), else one of `fallback`, else keeps the one in
 // use. Each installed layout is active for a moment on the way (only the active one tells its language).
 void ActivateKeyboardLayout(std::uint32_t language, std::uint32_t fallback);
@@ -471,11 +478,11 @@ struct SocketGroup {
 // sockets, 0 at the timeout, or -1 on an error, which includes asking only empty groups.
 int Select(SocketGroup* read, SocketGroup* write, SocketGroup* failed, std::int32_t microseconds);
 
-// This host's name (gethostname) into `name`, `size` bytes with the terminator; false when it fails or does not fit.
-bool HostName(char* name, int size);
-// The first IPv4 address of the host `name` (gethostbyname: a name or an IPv4 number) in network order into `ip`;
-// false when the host is unknown. Blocks while the name is looked up.
-bool LookUp(const char* name, std::uint32_t* ip);
+// This host's name; empty when the system cannot tell.
+std::string HostName();
+// The first IPv4 address of the host `name` (a name or an IPv4 number) in network order; none when the host is
+// unknown. Blocks while the name is looked up.
+std::optional<std::uint32_t> LookUp(const char* name);
 
 } // namespace net
 

@@ -5,8 +5,8 @@
 #include "platform/sdl/sdl_keys.h"
 
 #include <SDL3/SDL.h>
-#include <cstring>
 #include <cwctype>
+#include <string>
 #include <locale.h>
 
 namespace platform {
@@ -84,10 +84,8 @@ int sdl_keys::LayoutControlCharacter(int key, int scan) {
 
 // As Windows' GetKeyNameTextW names them: a letter key by its code's letter (Russian's Й key "Q"), another key layouts
 // move by what it types (Russian's х key "х", a French digit row its characters), the other keys by Windows' US names
-// (the system has no names in the layout's language). The name in UTF-8, cut at a character's start to fit `size`
-// bytes with the terminator.
-bool KeyName(int scan, char* name, int size) {
-    if (!name || size <= 0) return false;
+// (the system has no names in the layout's language).
+std::string KeyName(int scan) {
     char text[8] = {};
     const char* chosen = UsName(scan);
     if (sdl_keys::LayoutMoves(scan)) {
@@ -101,14 +99,7 @@ bool KeyName(int scan, char* name, int size) {
             chosen = text;
         }
     }
-    std::size_t n = chosen ? std::strlen(chosen) : 0;
-    if (n >= static_cast<std::size_t>(size)) {
-        n = static_cast<std::size_t>(size) - 1;
-        while (n > 0 && (static_cast<unsigned char>(chosen[n]) & 0xC0) == 0x80) --n;
-    }
-    if (n) std::memcpy(name, chosen, n);
-    name[n] = '\0';
-    return n != 0;
+    return chosen ? chosen : "";
 }
 
 } // namespace platform
