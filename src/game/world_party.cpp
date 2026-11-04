@@ -30,7 +30,7 @@ namespace {
 
 constexpr float kFacingOffset = /*007AFED8*/ 1.5707964f;   // pi / 2
 
-constexpr std::uint32_t kNoStart = 0xC4A42000;   // -1313.0f as the state's last z: no start position
+constexpr float kNoStartZ = -1313.0f;   // the state's last z: no start position
 
 bool NamesZone(const itemdb::QuestItemRecord* info, const char* zone) {
     bool found = false;
@@ -149,9 +149,7 @@ void WorldServer::Redeploy(Player* player, std::vector<UnitPlacement>* placement
     CreateUnits(player, &records, start, rotation, placements);
     if (placements) placements->clear();
     PlayerServer* state = player->Server();
-    std::uint32_t lastZ;
-    lastZ = std::bit_cast<std::uint32_t>(state->lastPosition.z);
-    if (lastZ != kNoStart) {
+    if (state->lastPosition.z != kNoStartZ) {
         state->lastPosition = start;
         state->SendCameraPlacement(start, startValue, static_cast<std::uint32_t>(zoneMode));
     }

@@ -290,7 +290,7 @@ void PlayerServer::ReleaseSentObjects() {
 void PlayerServer::ClearPossessedGroup() { possessedGroup.Clear(); }
 
 void PlayerServer::SendPathMessage(EngineObject* unit, PathOrder* path, const Vector3& point, int kind, int flag,
-                                    std::uint32_t limitBits) {
+                                    float limit) {
     if (!unit) return;
     WriteType(&out, ServerMessage::PathMarker);
     out.WriteValue(kind);
@@ -298,7 +298,7 @@ void PlayerServer::SendPathMessage(EngineObject* unit, PathOrder* path, const Ve
     out.WriteValue(XY(point));
     int unitId = unit->id;
     out.WriteValue(unitId);
-    out.WriteValue(limitBits);
+    out.WriteValue(limit);
     if (kind == kPathKindNoPath) return;
     DeltaField field;
     DeltaField* delta = field.BeginWriteB(0);

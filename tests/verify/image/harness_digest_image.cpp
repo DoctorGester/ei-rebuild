@@ -21,6 +21,8 @@
 
 #include "lib/crt.h"
 
+#include <bit>
+#include <cstdint>
 #include <typeinfo>
 
 namespace ei::verify::digest::image_side {
@@ -97,7 +99,7 @@ void ReadWorld(WorldServer* w, Builder& b) {
     b.Float("wind.z", wind[2]);
     b.Bits("windStrength", w->windStrength);
     b.Bits("nightLevel", std::bit_cast<std::uint32_t>(w->nightLevel));
-    b.Bits("weatherFactor", w->weatherFactor);
+    b.Bits("weatherFactor", std::bit_cast<std::uint32_t>(w->weatherFactor));
     for (int i = 0; i < 5; ++i) {
         const auto& a = w->alarms[i];
         b.Unsigned("alarm#.active", a.active, i);
@@ -161,8 +163,8 @@ void ReadEffects(MapObject* m, Builder& b) {
         b.Unsigned("effect#.type", e.type, i);
         b.Unsigned("effect#.power", e.power, i);
         b.Int("effect#.ticksLeft", e.ticksLeft, i);
-        b.Bits("effect#.value", e.value, i);
-        b.Bits("effect#.strength", e.strength, i);
+        b.Bits("effect#.value", std::bit_cast<std::uint32_t>(e.value), i);
+        b.Bits("effect#.strength", std::bit_cast<std::uint32_t>(e.strength), i);
     }
 }
 

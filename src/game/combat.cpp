@@ -549,7 +549,7 @@ void UnitServer::UpdateMoveFactors() {
     moveFactors[1] = 1.0f;
     float sum = scaled + (1.0f - factor);
     moveFactors[3] = sum;
-    moveFactors[3] = std::bit_cast<float>(world->weatherFactor) * sum;
+    moveFactors[3] = world->weatherFactor * sum;
     if (unit->moveMode == MoveMode::Lie) {
         moveFactors[2] = kMode0Factor2;
         moveFactors[3] = kMode0Factor3 * moveFactors[3];

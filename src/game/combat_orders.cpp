@@ -14,13 +14,12 @@
 #include "lib/float_select.h"
 #include "lib/rounding.h"
 
-#include <bit>
 #include <cstring>
 
 namespace {
 constexpr float kCastNoiseScale = 2.0f;
 constexpr std::uint32_t kNoSource = 0xFFFFFFFFu;
-constexpr std::uint32_t kNoPointZ = 0xC4A42000u;    // -1313.0f: "no point"
+constexpr float kNoPointZ = -1313.0f;    // a move order's "no point"
 
 
 
@@ -108,7 +107,7 @@ void UnitServer::OrderMove(const Vector3& point, int run, int walk) {
     action2.source = static_cast<std::uint8_t>(walk) != 0 ? 1 : 0;
     action2.modifier = static_cast<std::uint8_t>(run);
     if (!unit->player) return;
-    if (std::bit_cast<std::uint32_t>(point.z) == kNoPointZ) return;
+    if (point.z == kNoPointZ) return;
     if (world->paused == 0) {
         action2.param = 1;
         return;

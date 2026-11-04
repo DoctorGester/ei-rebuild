@@ -20,7 +20,6 @@
 
 #include "lib/bytes.h"
 
-#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <list>
@@ -54,7 +53,7 @@ struct LocalUnitMotion {
 
 
 void PathMessage(Unit* unit, PathOrder* motion, const Vector3& point, int kind, int flag, float limit) {
-    if (unit->player) unit->player->Server()->SendPathMessage(unit, motion, point, kind, flag, std::bit_cast<std::uint32_t>(limit));
+    if (unit->player) unit->player->Server()->SendPathMessage(unit, motion, point, kind, flag, limit);
 }
 
 } // namespace

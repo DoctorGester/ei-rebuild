@@ -55,8 +55,8 @@ void MissileImpact(SpellEffect* e, int particleType, const char* sound) {
     e->CreateSound(sound, at, kZeroVector, kVolume, kHearing);
 
     Vector3 velocity{0.0f, 0.0f, LightRise(e) * kRiseScale};
-    float range = PrototypeRange(e);
-    Vector3 color = PrototypeColor(e);
+    float range = Prototype(e)->lightRange;
+    Vector3 color = Prototype(e)->lightColor;
     e->CreatePointLight(at, color, range * kRiseScale, velocity);
     e->timer = 0x23;
     e->state = 2;
@@ -84,8 +84,8 @@ void FireballFlight(SpellEffect* e) {
         blast->SetColors(alpha, radius);
         e->CreateSound("magic\\fireball\\end.wav", at, kZeroVector, kVolume, kHearing);
         Vector3 velocity{0.0f, 0.0f, LightRise(e) * kRiseScale};
-        float range = PrototypeRange(e);
-        Vector3 color = PrototypeColor(e);
+        float range = Prototype(e)->lightRange;
+        Vector3 color = Prototype(e)->lightColor;
         e->CreatePointLight(at, color, range * kRiseScale, velocity);
         if (IsUnit(e->caster)) {
             e->world->aiMap.events.Noise(ControllerOf(e->caster), kExplosionLoudness, kExplosionNoiseDelay, e->targetPoint);
@@ -408,8 +408,8 @@ void SpellEffect::UpdateLasting(SpellType type) {
     }
 }
 
-void SpellEffect::ReleaseVisual() { Assign<Effect>(this, &visual, nullptr); }
+void SpellEffect::ReleaseVisual() { Hold(this, visual, nullptr); }
 
-void SpellEffect::ReleaseSound() { Assign<Effect>(this, &sound, nullptr); }
+void SpellEffect::ReleaseSound() { Hold(this, sound, nullptr); }
 
-void SpellEffect::ReleaseLight() { Assign<EffectPointLight>(this, &light, nullptr); }
+void SpellEffect::ReleaseLight() { Hold(this, light, nullptr); }

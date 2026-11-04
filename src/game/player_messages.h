@@ -332,9 +332,9 @@ public:
     // multiplayer game, sends it; then Leaving with message 0x01 unless already, and Flush.
     void LeaveAndFlush();
     // Message 0x0E about a path of `unit` (nothing for null): kind, flag, the point's two dwords, the unit's
-    // id and `limitBits`; except for kind 3 the path written through a delta field.
+    // id and `limit`; except for kind 3 the path written through a delta field.
     void SendPathMessage(EngineObject* unit, PathOrder* path, const Vector3& point, int kind, int flag,
-                         std::uint32_t limitBits);
+                         float limit);
 
     // -1, or the unit a Possession spell took (its id): the next party refresh then sends possessedGroup (the
     // target and what it sees) and sets it back to -1. Sent with message 0x60.

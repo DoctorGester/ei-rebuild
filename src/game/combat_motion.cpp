@@ -23,7 +23,6 @@
 
 #include "lib/vecmath.h"
 
-#include <bit>
 #include <cstdint>
 #include <cstring>
 
@@ -31,7 +30,6 @@ namespace {
 
 constexpr std::uint32_t kKeyIdle = kAnimationSpecialIdleKey;
 constexpr std::uint8_t kEmoteStand = 0xFE;   // the idle "emote" of a walking hero
-constexpr std::uint32_t kNoPathLimitBits = std::bit_cast<std::uint32_t>(kNoPathLimit);
 
 // --- Helpers --------------------------------------------------------------------------------------
 
@@ -400,7 +398,7 @@ void UnitServer::ReportPath(AIPath* path, char partial) {
     LocalMotionOrder end;
     AckKind message;
     if (!partial) {
-        if (self->player) self->player->Server()->SendPathMessage(self, &end, goal, 3, 1, kNoPathLimitBits);
+        if (self->player) self->player->Server()->SendPathMessage(self, &end, goal, 3, 1, kNoPathLimit);
         if (brain.LeaderOrFollowed()) return;
         self = unit;
         if (!self->player) return;
@@ -412,7 +410,7 @@ void UnitServer::ReportPath(AIPath* path, char partial) {
         float left = LengthSquared2D(half * path->target - XY(goal));
         bool stillFar = reached * 0.010000001f > left;   // unordered: not far
         if (self->player)
-            self->player->Server()->SendPathMessage(self, &end, goal, 0, stillFar ? 0 : 1, kNoPathLimitBits);
+            self->player->Server()->SendPathMessage(self, &end, goal, 0, stillFar ? 0 : 1, kNoPathLimit);
         if (brain.LeaderOrFollowed()) return;
         self = unit;
         if (!self->player) return;

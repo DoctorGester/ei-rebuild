@@ -259,15 +259,15 @@ public:
     Vector3 targetPoint;
     int state;                  // 0 casting, 1 missile, 2 lasting, else ends
     Spell spell;
-    Effect* visual = nullptr;            // particle source, wall, lightning or missile (counted)
-    Effect* sound = nullptr;             // a sound or a sound sequence (counted)
-    EffectPointLight* light = nullptr;   // counted
+    Ref<Effect> visual;              // particle source, wall, lightning or missile
+    Ref<Effect> sound;               // a sound or a sound sequence
+    Ref<EffectPointLight> light;
     std::uint8_t footprintStamped = 0;
     int timer = 0;                        // ticks left in the next state
     std::uint8_t silentEnd = 0;           // copied into the buff record; healing: skip when at full health
 
     // The visual as the effect class its spell type creates.
-    template <class T> T* Visual() const { return static_cast<T*>(visual); }
+    template <class T> T* Visual() const { return static_cast<T*>(visual.Get()); }
 
     Spell* HeldSpell() { return &spell; }
     const Spell* HeldSpell() const { return &spell; }

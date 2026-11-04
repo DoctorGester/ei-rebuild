@@ -28,7 +28,6 @@
 #include "lib/text_case.h"
 #include "platform/platform.h"
 
-#include <bit>
 #include <memory>
 #include <new>
 #include <string>
@@ -239,7 +238,7 @@ void WorldServer::ResetState() {
     }
     zoneMode = ZoneMode::None;
     startPosition = {};
-    weatherFactor = std::bit_cast<std::uint32_t>(1.0f);
+    weatherFactor = 1.0f;
     loaded = 0;
     lastRainBoltTick = 0;
 }

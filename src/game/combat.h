@@ -77,7 +77,7 @@ struct AnimationSteps {
     int extra = -1;
 };
 
-// OrderPlan::rangeSq of no plan, and the limit of a path search that has none (SendPathMessage takes its bits).
+// OrderPlan::rangeSq of no plan, and the limit of a path search that has none.
 inline constexpr float kNoPlanRange = 1e38f;
 inline constexpr float kNoPathLimit = 1e6f;
 

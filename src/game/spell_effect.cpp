@@ -127,14 +127,10 @@ constexpr int kNoObject = -1;
 // One of the three counted effect objects by the id read (-1 none), looked up in the world's timed object
 // manager; `id` keeps what the previous read left.
 template <class T>
-void LoadEffectObject(ByteStream* stream, World* world, std::uint32_t& id, T*& field) {
+void LoadEffectObject(ByteStream* stream, World* world, std::uint32_t& id, Ref<T>& field) {
     BaseManager* manager = world->TimedObjectManager();
     stream->ReadValue(id);
-    T* object = static_cast<int>(id) == kNoObject ? nullptr : manager->FindObjectAs<T>(id);
-    T* old = field;
-    field = object;
-    if (object) object->AddRef();
-    if (old) old->Release();
+    field.Assign(static_cast<int>(id) == kNoObject ? nullptr : manager->FindObjectAs<T>(id));
 }
 
 void SaveEffectObject(ByteStream* stream, const EngineObject* object) {
@@ -200,8 +196,8 @@ namespace {
 Next StartFireArrow(SpellEffect* e, SpellType type, const Vector3& from) {
     if (!IsUnit(e->target)) return Next::Done;
     e->timer = 0x96;
-    float range = PrototypeRange(e);
-    Vector3 color = PrototypeColor(e);
+    float range = Prototype(e)->lightRange;
+    Vector3 color = Prototype(e)->lightColor;
     float power = Power(e);
     e->CreateArrow(from, e->target, type == SpellType::FireArrow ? static_cast<int>(ParticleType::FireArrow) : static_cast<int>(ParticleType::RikArrowSmoke), power, "magic\\Firearrow\\circle.wav", color, range);
     e->CreateSound("magic\\Firearrow\\start.wav", e->position, kZeroVector, kVolume, kHearing);
@@ -214,8 +210,8 @@ Next StartLightning(SpellEffect* e, SpellType type, const Vector3& from) {
     float power = Power(e);
     e->CreateLightning(from, e->target, e->caster, power, type == SpellType::CurseMagic ? 1 : 0);
     e->CreateSound("magic\\lightning\\start.wav", e->position, kZeroVector, kVolume, kHearing);
-    float range = PrototypeRange(e);
-    Vector3 color = PrototypeColor(e);
+    float range = Prototype(e)->lightRange;
+    Vector3 color = Prototype(e)->lightColor;
     if (e->target) e->CreatePointLight(e->target->EyePoint(), color, range, kZeroVector);
     DamageInfo hit;
     e->GetDamage(&hit);
@@ -229,8 +225,8 @@ Next StartLightning(SpellEffect* e, SpellType type, const Vector3& from) {
 Next StartAcidRay(SpellEffect* e, const Vector3& from) {
     if (!IsUnit(e->target)) return Next::Done;
     e->timer = 0x96;
-    float range = PrototypeRange(e);
-    Vector3 color = PrototypeColor(e);
+    float range = Prototype(e)->lightRange;
+    Vector3 color = Prototype(e)->lightColor;
     float power = Power(e) * kAcidRayScale;
     e->CreateArrow(from, e->target, static_cast<int>(ParticleType::AcidRay), power, "magic\\Acidray\\circle.wav", color, range);
     e->CreateSound("magic\\Acidray\\start.wav", e->position, kZeroVector, kVolume, kHearing);
@@ -258,8 +254,8 @@ Next StartFireball(SpellEffect* e, const Vector3& from) {
     } else {
         e->CreateSoundSequence(e->position, velocity, "magic\\Fireball\\start.wav", "magic\\Fireball\\circle.wav", -1);
     }
-    float range = PrototypeRange(e);
-    Vector3 color = PrototypeColor(e);
+    float range = Prototype(e)->lightRange;
+    Vector3 color = Prototype(e)->lightColor;
     e->CreatePointLight(from, color, range, velocity);
     e->state = 1;
     return Next::Set;
@@ -281,7 +277,7 @@ Next StartLightStrike(SpellEffect* e) {
     e->CreateSound("magic\\InvokeLight\\start.wav", e->position, kZeroVector, kLoud, kLoud);
     e->targetPoint.z += kLightAbove;
     Vector3 rise{0.0f, 0.0f, LightRise(e)};
-    PrototypeLight(e, e->targetPoint, PrototypeRange(e), rise);
+    PrototypeLight(e, e->targetPoint, Prototype(e)->lightRange, rise);
 
     HitAreaTargets(e);
     e->timer = 7;
@@ -295,7 +291,7 @@ Next StartAcidColumn(SpellEffect* e) {
     e->CreateParticle(0, static_cast<int>(ParticleType::Nuke), e->targetPoint, 1.0f, 1.0f, kZeroVector, nullptr);
     e->CreateSound("magic\\Acidcolumn\\start.wav", e->targetPoint, kZeroVector, kVolume, kHearing);
     Vector3 rise{0.0f, 0.0f, LightRise(e)};
-    PrototypeLight(e, e->targetPoint, PrototypeRange(e), rise);
+    PrototypeLight(e, e->targetPoint, Prototype(e)->lightRange, rise);
     e->timer = 0x1E;
     e->state = 2;
     return Next::Set;
@@ -323,7 +319,7 @@ Next StartFireWall(SpellEffect* e, const Vector3& from) {
     e->state = 2;
     centre.z = e->world->GridHeightAt(centre.x, centre.y) + 1.0f;
     float radius = e->HeldSpell()->radius;
-    float range = PrototypeRange(e);
+    float range = Prototype(e)->lightRange;
     PrototypeLight(e, centre, radius + range, kZeroVector);
     e->CreateSoundSequence(centre, kZeroVector, "magic\\Firewall\\start.wav", "magic\\Firewall\\circle.wav", -1);
     return Next::Set;
@@ -347,7 +343,7 @@ Next StartLightWall(SpellEffect* e, const Vector3& from) {
     e->state = 2;
     centre.z = e->world->GridHeightAt(centre.x, centre.y) + 1.0f;
     float radius = e->HeldSpell()->radius;
-    float range = PrototypeRange(e);
+    float range = Prototype(e)->lightRange;
     PrototypeLight(e, centre, radius + range, kZeroVector);
     e->CreateSoundSequence(centre, kZeroVector, game::kEmptyText, "magic\\Lightwall\\circle.wav", -1);
     return Next::Set;
@@ -361,7 +357,7 @@ Next StartPoisonCloud(SpellEffect* e) {
     e->CreateParticle(1, static_cast<int>(ParticleType::PoisonFog), centre, e->HeldSpell()->radius, alpha, kZeroVector, nullptr);
     e->CreateSoundSequence(centre, kZeroVector, "magic\\poison\\start.wav", "magic\\poison\\circle.wav", -1);
     float radius = e->HeldSpell()->radius;
-    float range = PrototypeRange(e);
+    float range = Prototype(e)->lightRange;
     PrototypeLight(e, centre, radius + range, kZeroVector);
     e->position = centre;
     return Next::Set;   // state 2, timer = duration (the shared tail)
@@ -384,7 +380,7 @@ Next StartFirework(SpellEffect* e) {
     centre.z = e->world->GridHeightAt(centre.x, centre.y) + 1.0f;
     float size = Power(e);
     e->CreateParticle(1, static_cast<int>(ParticleType::Geyser), centre, size, 1.0f, kZeroVector, nullptr);
-    PrototypeLight(e, centre, PrototypeRange(e), kZeroVector);
+    PrototypeLight(e, centre, Prototype(e)->lightRange, kZeroVector);
     e->CreateSoundSequence(centre, kZeroVector, game::kEmptyText, "magic\\Firework\\%i.wav", 5);
     e->position = centre;
     return Next::Set;
@@ -435,8 +431,8 @@ Next StartHealing(SpellEffect* e) {
     if (e->silentEnd == 0 || !full) {
         e->CreateSound("magic\\Healing\\start.wav", unit->localPosition, kZeroVector, kVolume, kHearing);
         Vector3 rise{0.0f, 0.0f, LightRise(e)};
-        float range = PrototypeRange(e);
-        Vector3 color = PrototypeColor(e);
+        float range = Prototype(e)->lightRange;
+        Vector3 color = Prototype(e)->lightColor;
         e->CreatePointLight(e->targetPoint, color, -range, rise);
     }
     e->timer = 0x1E;
@@ -476,7 +472,7 @@ Next StartTeleport(SpellEffect* e) {
     point.z = e->world->GridHeightAt(point.x, point.y) - kTeleportDepth;
     e->CreateParticle(0, static_cast<int>(ParticleType::Teleport), point, -1.0f, 1.0f, kZeroVector, nullptr);
     e->CreateSound("magic\\Teleport\\start.wav", point, kZeroVector, kVolume, kHearing);
-    PrototypeLight(e, point, PrototypeRange(e), kZeroVector);
+    PrototypeLight(e, point, Prototype(e)->lightRange, kZeroVector);
     int duration = static_cast<int>(e->HeldSpell()->duration);
     if (duration < 1) duration = 1;
     e->state = 2;
@@ -566,7 +562,7 @@ void SpellEffect::Start(SpellType type) {
 }
 
 void SpellEffect::SetVisual(Effect* object) {
-    Assign(this, &visual, object);
+    Hold(this, visual, object);
     world->AddTimedObject(visual);
 }
 
@@ -614,8 +610,7 @@ void SpellEffect::CreateArrow(const Vector3& from, EngineObject* missileTarget, 
         arrow->fromCaster = 1;
         arrow->casterId = caster->id;
     }
-    Assign<Effect>(this, &visual, arrow);
-    world->AddTimedObject(visual);
+    SetVisual(arrow);
 }
 
 EffectParticle* SpellEffect::CreateParticle(int keep, int particleType, const Vector3& at, float size, float alpha,
@@ -629,8 +624,7 @@ EffectParticle* SpellEffect::CreateParticle(int keep, int particleType, const Ve
     particle->alpha = alpha;
     if (attachTo) particle->SetAttachedTo(attachTo->id);
     if (keep) {
-        Assign<Effect>(this, &visual, particle);
-        world->AddTimedObject(visual);
+        SetVisual(particle);
     } else {
         world->AddTimedObject(particle);
     }
@@ -646,8 +640,7 @@ void SpellEffect::CreateLightning(const Vector3& from, MapObject* boltTarget, En
     bolt->SetEnds(from, to, power * kBoltWidthScale);
     bolt->SetObjects(source ? source->id : -1, boltTarget->id);
     bolt->SetFlag(static_cast<unsigned char>(flag));
-    Assign<Effect>(this, &visual, bolt);
-    world->AddTimedObject(visual);
+    SetVisual(bolt);
 }
 
 void SpellEffect::CreateSound(const char* name, const Vector3& at, const Vector3& velocity, float volume, float hearing) {
@@ -681,7 +674,7 @@ void SpellEffect::CreateSoundSequence(const Vector3& at, const Vector3& velocity
             names.push_back(name);
         }
     }
-    Assign<Effect>(this, &sound, effect);
+    Hold(this, sound, effect);
     world->AddTimedObject(effect);
 }
 
@@ -692,31 +685,17 @@ void SpellEffect::CreatePointLight(const Vector3& at, const Vector3& color, floa
     effect->range = range;
     effect->SetVelocity(velocity);
     effect->lightFlags = kPointLightFlags;
-    Assign(this, &light, effect);
+    Hold(this, light, effect);
     world->AddTimedObject(effect);
 }
 
 // --- The cast spell's lifetime, start values and the object it forgets ----------------------------
 
-namespace {
-
-// A counted pointer's destructor and the counted pointer assignment of null: the old object loses a
-// reference.
-template <class T>
-void Drop(T*& field) {
-    T* old = field;
-    field = nullptr;
-    if (old) old->Release();
-}
-
-} // namespace
-
 SpellEffect::SpellEffect() = default;
 
 SpellEffect::~SpellEffect() {
     if (footprintStamped) UpdateFootprint(HeldSpell()->Type(), 0);
-    if (visual) world->RemoveTimedObject(static_cast<unsigned>(visual->id));
-    Drop(visual);
+    ReleaseVisual();
     ReleaseSound();
     ReleaseLight();
 }

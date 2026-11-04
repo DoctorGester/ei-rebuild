@@ -12,12 +12,11 @@
 #include "unit.h"
 #include "unit_ai.h"
 
-#include <bit>
 #include <cstring>
 
 namespace {
 
-constexpr std::uint32_t kFarAway = 0x7E967699;           // 1e38f
+constexpr float kFarAway = 1e38f;
 
 // Whether the spell type turns the target against the caster.
 bool IsHostileType(SpellType type) {
@@ -95,7 +94,7 @@ void WorldServer::CastSpell(Spell* spell, Unit* caster, const Vector3& from, Map
         if (units.empty()) break;
         Unit* best = nullptr;
         std::ptrdiff_t bestIndex = 0;
-        std::uint32_t bestBits = kFarAway;
+        float bestDistance = kFarAway;
         for (std::ptrdiff_t i = 0; i < std::ssize(units);) {
             Unit* unit = units[i];
             if (unit->IsDead()) {
@@ -107,10 +106,8 @@ void WorldServer::CastSpell(Spell* spell, Unit* caster, const Vector3& from, Map
                 break;
             } else {
                 float distance = LengthSquared(to - unit->localPosition);
-                float bestDistance;
-                bestDistance = std::bit_cast<float>(bestBits);
                 if (distance < bestDistance) {
-                    bestBits = std::bit_cast<std::uint32_t>(distance);
+                    bestDistance = distance;
                     best = unit;
                     bestIndex = i;
                 }

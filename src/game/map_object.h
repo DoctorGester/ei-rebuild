@@ -29,8 +29,8 @@ struct MapEffect {
     std::uint8_t type = 0;          // the spell's SpellType (spell.h)
     std::uint8_t power = 0;
     int ticksLeft = 0;              // counted down once per world update; removed at 0
-    std::uint32_t value = 0;        // a float (EffectValue) or a sound handle
-    std::uint32_t strength = 0;     // a float (saved; Rebirth compares it)
+    float value = 0.0f;             // the spell's damage (EffectValue)
+    float strength = 0.0f;          // the spell's radius (saved; Rebirth compares it)
     std::uint8_t ending = 0;        // the client plays no end sound when set
 
     SpellType Type() const { return static_cast<SpellType>(type); }

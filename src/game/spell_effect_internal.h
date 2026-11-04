@@ -19,9 +19,8 @@
 #include "lib/rounding.h"
 #include "lib/vecmath.h"
 
-#include <bit>
 #include <cstdint>
-#include <cstring>
+#include <type_traits>
 
 namespace spellfx {
 
@@ -114,43 +113,26 @@ T* CreateObject(SpellEffect* e, ClassId classId) {
     return e->world->TimedObjectManager()->CreateObjectAs<T>(classId, -1);
 }
 
-// The counted-pointer assignment the helpers repeat: the old object leaves the world's timed
-// objects and is released, the new one is counted.
+// `slot` holds `object`; the object it held leaves the world's timed objects and is released.
 template <class T>
-void Assign(SpellEffect* e, T** slot, T* object) {
-    if (*slot) e->world->RemoveTimedObject((*slot)->id);
-    T* old = *slot;
-    *slot = object;
-    if (object) object->AddRef();
-    if (old) old->Release();
+void Hold(SpellEffect* e, Ref<T>& slot, std::type_identity_t<T>* object) {
+    if (slot) e->world->RemoveTimedObject(slot->id);
+    slot.Assign(object);
 }
 
 inline void SetPosition(TransformObject* object, const Vector3& position) {
     object->localPosition = position;
 }
 
-// The fields of the spell prototype the casts read.
+// The spell's prototype.
 inline const itemdb::SpellRecord* Prototype(SpellEffect* e) { return e->HeldSpell()->GetPrototype(); }
-inline Vector3 PrototypeColor(SpellEffect* e) {
-    Vector3 color;
-    std::memcpy(&color, &Prototype(e)->extraValues[0], 12);
-    return color;
-}
-inline float PrototypeRange(SpellEffect* e) {
-    float range;
-    range = std::bit_cast<float>(Prototype(e)->extraValues[3]);
-    return range;
-}
 
 inline float Power(SpellEffect* e) { return PowerFactor(e->HeldSpell()->damage, Prototype(e)->damage); }
 
-// The lights' rise speed: range / max(extraValues[4], 1) (the larger picked on C0: 1 < v or NaN).
+// The lights' rise speed: lightRange / max(lightRiseDivisor, 1), a NaN divisor kept.
 inline float LightRise(SpellEffect* e) {
-    float value;
-    value = std::bit_cast<float>(Prototype(e)->extraValues[4]);
-    float range = PrototypeRange(e);
-    float divisor = MaxKeepB(1.0f, value);
-    return range / divisor;
+    const itemdb::SpellRecord* prototype = Prototype(e);
+    return prototype->lightRange / MaxKeepB(1.0f, prototype->lightRiseDivisor);
 }
 
 // Every unit within the radius of the effect's position that IsSpellTarget accepts gets the
@@ -163,9 +145,9 @@ inline void HitAreaTargets(SpellEffect* e) {
     }
 }
 
-// The light every lasting spell puts at its point: the prototype's colour and range.
+// The light every lasting spell puts at its point, in the prototype's light colour.
 inline void PrototypeLight(SpellEffect* e, const Vector3& at, float range, const Vector3& velocity) {
-    Vector3 color = PrototypeColor(e);
+    Vector3 color = Prototype(e)->lightColor;
     e->CreatePointLight(at, color, range, velocity);
 }
 

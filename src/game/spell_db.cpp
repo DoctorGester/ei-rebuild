@@ -71,7 +71,11 @@ void SpellRecord::Serialize(ChunkArchive* ar) {
     ar->Field(20, allowedModifiers, 5);
     ar->Field(21, &skill);
     ar->Field(22, &classMask);
-    for (int i = 0; i < 5; ++i) ar->Field(23 + i, &extraValues[i]);
+    ar->Field(23, &lightColor.x);
+    ar->Field(24, &lightColor.y);
+    ar->Field(25, &lightColor.z);
+    ar->Field(26, &lightRange);
+    ar->Field(27, &lightRiseDivisor);
 }
 
 void SpellModifierRecord::Serialize(ChunkArchive* ar) {
