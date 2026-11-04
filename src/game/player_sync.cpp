@@ -79,7 +79,7 @@ void SaveListed(const std::vector<T*>* list, ByteStream* stream) {
 
 } // namespace
 
-void PlayerServer::SendItemsGiven(const std::vector<Item*>* items, int flag) {
+void PlayerServer::ItemsGiven(const std::vector<Item*>* items, int flag) {
     if (state != State::Joined) return;
     ItemsAndSpells gathered;
     for (Item* item : *items) gathered.Add(item);
@@ -200,11 +200,11 @@ void PlayerServer::SendTimedRemoved(const std::vector<Effect*>* effects) {
     }
 }
 
-// The original calls SendItemValue of this object for each item.
+// The original calls ItemUsed's message writer of this object for each item.
 void PlayerServer::SendItems() {
     for (unsigned objectId : player->recharging) {
         ResourceManager* items = player->GetParty()->ItemFactory();
-        if (Item* item = items->FindObjectAs<Item>(objectId)) SendItemValue(item);
+        if (Item* item = items->FindObjectAs<Item>(objectId)) ItemUsed(item);
     }
 }
 
@@ -276,7 +276,7 @@ void PlayerServer::SendParty() {
     refreshTimer = static_cast<int>(g_random.Next() % kRefreshSpread + kRefreshMinimum);
 }
 
-int PlayerServer::ReceiveMessages() {
+int PlayerServer::Receive() {
     if (state == State::Leaving) return 0;
     netlink::NetLink* link = player->link;
     if (link == nullptr) return 0;

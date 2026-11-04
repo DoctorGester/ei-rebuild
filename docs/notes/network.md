@@ -52,7 +52,7 @@ and `net_pair_party` (an exchange offered, withdrawn, answered, left);
 - **A lost client**: the server drops it after the session timeout (60 s; text 4 to both); its own game shows the
   lost server box and returns to the main menu.
 - The console's "@" commands do nothing in a network game (the harness's `hit` step acts on the world instead).
-- **A hero's death** (PlayerServer::OnLeaderDied, the multiplayer branch: a party of one hero): StopSpeech to its
+- **A hero's death** (PlayerServer::LeaderDied, the multiplayer branch: a party of one hero): StopSpeech to its
   client, the money times `lostMoney` and all the player's items left in a shared object (WorldServer::AddSharedObject,
   saved with the zone and read back by SharedObject::Load when the zone is entered again), the party collected,
   experience times `lostXp` taken, and the hero redeployed under a new id (below 1001000000 moved up). The host's own
@@ -186,6 +186,6 @@ coverage runs of H43 never reached them:
 - Handlers for messages our own peer never sends, kept for a vanilla peer: `PlayerClient::OnDisconnect` (0x01) and
   `OnObjectValues` (0x0C); `PlayerServer::OnLeave` (0x01), `OnRefreshParty` (0x02), `OnBriefingDone` (0x07),
   and `OnUnitLookup` (ClientMessage::UnitLookup, 0x38, reads and drops; 0x37 has no handler). The other handlers H43g1 listed (`SendGoTo`, `SendFollow`,
-  `TakeExit`, `OnGoTo`, `OnFollow`, `OnTakeExit`, `OnWeaponRemoved`, `SendQuestItemsChanged`, `SendItemRemoved`, `SendWeaponRemoved`) have
+  `TakeExit`, `OnGoTo`, `OnFollow`, `OnTakeExit`, `OnWeaponRemoved`, `ItemsTaken`, `ItemTaken`, `SendWeaponRemoved`) have
   callers in play (the hud's orders, a broken weapon, taken loot); the scenarios just do not click them.
 - The `SessionBase` handlers of the packet kinds a session does not serve log an error and are not empty.

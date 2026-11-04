@@ -119,7 +119,7 @@ int ReadDword(MemoryStream* in) {
 
 } // namespace
 
-bool PlayerClient::Pump() {
+bool PlayerClient::RunTick() {
     netlink::NetLink* link = player->link;
     switch (state) {
     case State::Connecting: {
@@ -228,7 +228,7 @@ int PlayerClient::DispatchMessages() {
     }
 }
 
-int PlayerClient::ReceiveMessages() {
+int PlayerClient::Receive() {
     netlink::NetLink* link = player->link;
     if (link == nullptr) return 0;
     if (!link->HasIncoming()) return 1;
@@ -572,18 +572,7 @@ bool PlayerClient::OnNewObject() {
 
 // --- Clearing the connection ---------------------------------------------------------------
 
-void PlayerClient::CreateClient() {
-    state = State::Connecting;
-    partyUnitIds.clear();
-    in.Resize(0);
-    out.Resize(0);
-    localSession = 0;
-    sendParty = 0;
-    compressor.Reset();
-    decompressor.Reset();
-}
-
-void PlayerClient::Clear() {
+void PlayerClient::ResetState() {
     state = State::Connecting;
     partyUnitIds.clear();
     in.Resize(0);
@@ -603,11 +592,11 @@ PlayerConnection::PlayerConnection() {
 PlayerConnection::~PlayerConnection() { player = nullptr; }
 
 PlayerClient::PlayerClient() {
-    Clear();
+    ResetState();
 }
 
 PlayerClient::~PlayerClient() {
-    Clear();
+    ResetState();
 }
 
 const char* PlayerClient::ClassName() { return "CPlayerClient"; }

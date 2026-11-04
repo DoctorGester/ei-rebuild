@@ -139,9 +139,9 @@ void PlayerServer::SendFreeCamera(const Vector3& at, const Vector3& other, std::
 
 // --- Simple messages -----------------------------------------------------------------------------
 
-void PlayerServer::SendQuestItemsChanged() { WriteType(&out, ServerMessage::QuestItemsChanged); }
+void PlayerServer::ItemsTaken() { WriteType(&out, ServerMessage::QuestItemsChanged); }
 
-void PlayerServer::SendItemRemoved(const EngineObject* object) {
+void PlayerServer::ItemTaken(EngineObject* object) {
     WriteType(&out, ServerMessage::ItemRemoved);
     WriteDword(&out, ObjectId(object));
 }
@@ -153,7 +153,7 @@ void PlayerServer::SendWeaponRemoved(std::uint32_t unitId, std::uint32_t index) 
 }
 
 // The item's charge goes as its float's bits (the client's 0x0C / 0x14 handlers store it there).
-void PlayerServer::SendItemValue(const Item* item) {
+void PlayerServer::ItemUsed(Item* item) {
     WriteType(&out, ServerMessage::ItemValue);
     WriteDword(&out, ObjectId(item));
     WriteDword(&out, std::bit_cast<std::uint32_t>(item->charge));
@@ -209,7 +209,7 @@ void PlayerServer::SetPartyDeployed(std::uint8_t value) { partyDeployed = value;
 
 // --- The server's Create ---------------------------------------------------------------
 
-void PlayerServer::ClearServerState() {
+void PlayerServer::ResetState() {
     out.Resize(0);
     ReleaseAll(sentObjects);
     ReleaseAll(sentTimed);
@@ -226,29 +226,27 @@ void PlayerServer::ClearServerState() {
     refreshTimer = static_cast<int>(g_random.Next() % 0x385u + 0x384u);
 }
 
-void PlayerServer::CreateServer() { ClearServerState(); }
-
 // --- The server's lifetime and virtuals ------------------------------------------------------
 
 PlayerServer::PlayerServer() {
-    ClearServerState();
+    ResetState();
 }
 
 PlayerServer::~PlayerServer() {
-    ClearServerState();
+    ResetState();
 }
 
 const char* PlayerServer::ClassName() { return "CPlayerServer"; }
 ClassId PlayerServer::GetClassId() { return ClassId::PlayerServer; }
 
-void PlayerServer::ReleaseSentObjects() {
+void PlayerServer::ForgetSentObjects() {
     ReleaseAll(sentObjects);
     ReleaseAll(sentTimed);
     possessedGroup.Clear();
     partyUnits.Clear();
 }
 
-void PlayerServer::ClearPossessedGroup() { possessedGroup.Clear(); }
+void PlayerServer::TickDone() { possessedGroup.Clear(); }
 
 void PlayerServer::SendPathMessage(EngineObject* unit, PathOrder* path, const Vector3& point, int kind, int flag,
                                     std::uint32_t limitBits) {

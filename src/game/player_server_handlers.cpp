@@ -1,5 +1,5 @@
 // PlayerServer: what the server does for its player beyond the per-tick sync, the leader's death and the
-// client's messages (handlers by type, ReceiveMessages' switch). See player_messages.h and
+// client's messages (handlers by type, Receive's switch). See player_messages.h and
 // docs/notes/objects.md ("Players").
 
 #include "ai_map.h"
@@ -41,9 +41,9 @@
 
 namespace {
 
-constexpr int kRevivedIdBase = 1001000000;            // OnLeaderDied: ids below it are moved up
+constexpr int kRevivedIdBase = 1001000000;            // LeaderDied: ids below it are moved up
 constexpr int kRevivedIdStep = 1000000;
-constexpr int kNoId = -1;                             // see OnLeaderDied: the original's uninitialised ids
+constexpr int kNoId = -1;                             // see LeaderDied: the original's uninitialised ids
 constexpr float kUnknownZ = -1313.0f;                 // lastPosition.z after a revival
 constexpr float kPathRange = 1000000.0f;              // FindPath's range for the use order
 constexpr float kFarAway = 1e30f;                     // the nearest-unit search's start
@@ -91,7 +91,7 @@ const char* const kResendingParty = "Resending party of player ";
 
 // --- The leader died ----------------------------------------------------------------------
 
-void PlayerServer::OnLeaderDied() {
+void PlayerServer::LeaderDied() {
     Player* currentPlayer = player;
     Party* party = currentPlayer->GetParty();
     if (!IsMultiplayerClient()) {
@@ -282,7 +282,7 @@ void PlayerServer::LeaveToZone(std::string_view zone, int entrance) {
     Flush();
 }
 
-void PlayerServer::LeaveAndFlush() {
+void PlayerServer::Leave() {
     if (state == State::Joined) {
         if (partyDeployed) {
             g_serverWorld.CollectParty(player, nullptr);

@@ -25,8 +25,6 @@ public:
     // taken, player number 0 (Rebirth's PlayerNumbers: the server world's highest other + 1). Null
     // when the player cannot be made (the connection is not checked).
     Player* CreateSessionPlayer();
-    // `player`'s Release; `this` is not used.
-    void ReleasePlayer(EngineObject* player);
     // Called for the client's message 0x00 and the server's player id. `object` is filed
     // under `id`: its old id's entry erased, its id set, maxId raised, the table entry set
     // (positions and the object list are left alone).

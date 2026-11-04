@@ -2,7 +2,7 @@
 # alone (its own client joins its server, as in every hosted game) with a new hero, takes the sheriff's second topic
 # (z3q2, as net_pair_zone) and walks out through the base's gate into the zone.
 # - The death: the console's "@" commands do nothing in a network game, so the harness's "hit" step deals the leader a
-#   killing blow. PlayerServer::OnLeaderDied's multiplayer branch (src/game/player_server_handlers.cpp): the hero's
+#   killing blow. PlayerServer::LeaderDied's multiplayer branch (src/game/player_server_handlers.cpp): the hero's
 #   speech stopped (StopSpeech to its client, UnitClientSpecific::StopSpeech), part of its money and all its items
 #   left in a shared object (WorldServer::AddSharedObject), the party collected and redeployed under a new id.
 # - The zone saved: back out through exit 1 (remove rectangle 0 130 20 147, beside the deploy rectangle where the

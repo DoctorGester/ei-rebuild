@@ -79,11 +79,14 @@ the items.
   0x34 wanted weapon, 0x35 movement style, 0x36 use order (the nearest unit, checked from its path end), 0x39 follow,
   0x3A go to, 0x3B fight at will, 0x40 the camera anchor, 0x50 party update (SaveParty draws an ISAAC key). Orders
   are refused for a unit flagged 0x800000 (blocked) or dead.
+- **Dispatch**: each side runs a received packet's messages through a switch on the type byte (`PlayerServer::Receive`
+  over its own stream `in`, `PlayerClient::DispatchMessages`); a type without a case or a handler returning false is
+  the fatal error.
 - **Client handlers** of note: 0x04 places the camera (`SetDistancePitch` with 23 m and 30 degrees in zone gz20g, else
   RestoreView 6 or 7); 0x0C reads (id, float) pairs until id -1 (an unknown id leaves its float to be read as the next
   id, kept); 0x19 by kind: control a unit, set / clear its flag 0x100, clear the selection; 0x60 old party ids lose
   `MapObjectFlag::InParty`, new ones gain it and fade in, the pause byte goes to the client world.
-- `OnLeaderDied` (single player 0x09 + 0x0B); a network game revives a one-hero party (money / experience shares, a new
+- `LeaderDied` (single player 0x09 + 0x0B); a network game revives a one-hero party (money / experience shares, a new
   id, the party redeployed).
 - The login's text buffers and 0x06's flag byte went out with stack garbage in the original; ours sends zeros.
 

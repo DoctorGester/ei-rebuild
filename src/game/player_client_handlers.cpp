@@ -303,7 +303,7 @@ bool PlayerClient::OnCountdowns() {
     return true;
 }
 
-void PlayerClient::NotifyUnitChanged(Unit* unit) {
+void PlayerClient::UnitChanged(Unit* unit) {
     if (unit->player) g_interface.OnUnitJoined(unit);
     else g_interface.OnUnitLeft(unit);
     if (!IsMultiplayerClient()) return;
