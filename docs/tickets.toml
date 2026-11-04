@@ -6422,6 +6422,13 @@ depends = ["H52"]
 note = "After H52 a fresh worktree's first build takes every object from sccache, but sccache runs cl -EP before each lookup (its direct mode is gcc / clang only): about 0.5 s of CPU per object, 330-470 CPU-s per verify build, which is most of a warm first build's 20-30 s and grows under load. Measure which headers make the preprocessed size (cl /E | wc per object, the heaviest includes: windows.h through src/platform, <format>, the big game headers) and cut includes where a forward declaration or a narrower header serves; check that the warm first build and a plain compile both get faster."
 
 [[ticket]]
+id = "H47b1"
+title = "render_smooth's split pass differs on lavapipe"
+group = "harness"
+depends = ["H47b"]
+note = "On lavapipe (not dzn) render_smooth's samecapture smooth smooth_split fails: 37% of the pixels differ, the whole world view darker and greyer (docs/notes/linux.md, The harness). The split draws the world view's first run, resolves it, copies the frame into every sample (into_multisampled) and draws the rest; smooth_before (the same copy after a cleared frame) matches. Find whether the copy's depth/colour sampling, the resolved-depth copy back (depth_from_resolved) or lavapipe is wrong; then render_smooth can run on lavapipe. render_terrain_seams' level steps (0.9% against 0.3%) stay lavapipe's sampler unless the check can name the cause."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"

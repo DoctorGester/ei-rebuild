@@ -124,7 +124,17 @@ void ShowMinimized(bool minimized) {
 }
 
 void ResizeClient(int width, int height) {
-    if (g_window) SDL_SetWindowSize(g_window, width, height);
+    if (!g_window) return;
+    SDL_SetWindowSize(g_window, width, height);
+    // X11 resizes asynchronously: the steps after this one must see the new size (events are only pumped, the game
+    // takes them from SDL's queue as ever). A size the system does not give ends the wait after two seconds.
+    SDL_SyncWindow(g_window);
+    for (int waited = 0; waited < 2000; ++waited) {
+        int now = 0, high = 0;
+        if (!SDL_GetWindowSizeInPixels(g_window, &now, &high) || (now == width && high == height)) break;
+        SDL_PumpEvents();
+        SDL_Delay(1);
+    }
 }
 
 std::string WindowTitle() {

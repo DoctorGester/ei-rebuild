@@ -32,10 +32,11 @@ frames 10
 key enter
 waitwindow 15 mpconnect
 
-# The master request: the probe (1 s), the fallback's link; then cancelled.
+# The master request: the probe (1 s), the fallback's link; then cancelled. Windows keeps the box up for seconds (a
+# connect to a closed port is retried); Linux and macOS refuse at once and the box closes itself.
 clickregion 2
 wait 2500
-key esc
+ifwindow masterbox key esc
 waitwindow 5 mpconnect
 
 # Public, row 0 (the new game), host; the first announcement (before the host's player is bound: no names)

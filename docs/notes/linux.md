@@ -101,7 +101,7 @@ default (WSL's memory is capped at 16 GB; `EI_HARNESS_SLOTS` overrides it), and 
 only while no Windows suite does; on dzn, the default under WSL once it is installed, run_all holds Windows' slots
 itself and takes its games at once from them ("The GPU under WSL"). Without scenario names a Linux run leaves out the
 scenarios its driver cannot match (run_all's `LINUX_LEFT_OUT`: on lavapipe CI's `LINUX_SKIP` and render_stats and
-zone_gz15h_tornado, on dzn three; the list below says why). Under WSL keep the checkout and the build in WSL's home
+zone_gz15h_tornado and the two frame checks below, on dzn net_pair_master; the list below says why). Under WSL keep the checkout and the build in WSL's home
 (gcc over /mnt runs at a quarter of the speed).
 On Linux run_all starts one Xvfb itself (a free display number from :99 down, a 3840x2160 screen like the goldens' Windows desktop, DISPLAY of every game
 pointed at it, WAYLAND_DISPLAY unset; harness.md) unless `EI_SHOW_WINDOWS=1` is set, so a plain run opens no window on the desktop under
@@ -125,13 +125,23 @@ lib/maths.h (float-maths.md, "Maths functions"). What still differs, and why:
   step in about 140 ms (6 ms on Windows' GPU), so a pair's run passes its frame waits and its time limit (about 190 s
   against Windows' 30 to 50 s) and the turns fall differently. Not run again: they exceed the 60 s game limit there.
   On dzn ("The GPU under WSL") they take 6 to 56 s and all pass, six the same as their goldens.
-- net_second_master (both installs): a TCP connect to a closed loopback port is refused at once on Linux; Windows tries
-  again for about a second, so the scenario's "the box is up, Esc cancels it" finds the box already gone.
-- render_present_window: `windowsize` resizes asynchronously under X11 / WSLg (SDL_SetWindowSize), so the clicks after it
-  aim at a size the window does not have yet.
-- Frames, not digests: render_smooth and ui_quicksave's saved picture against the stored one (94% of the pixels
-  differ: the read-back's orientation or format), render_terrain_seams' level steps on the vanilla data (0.9% against
-  at most 0.3%). On dzn all three pass: these are lavapipe's own.
+- Frames, not digests (both differ on lavapipe only; on dzn they pass, so they stay in `LINUX_LEFT_OUT` for lavapipe).
+  render_terrain_seams: the level steps on the vanilla data, 0.91% and 0.72% against at most 0.3% (the same with the
+  stub set, 0.89% and 0.72%): the terrain's sampler is anisotropic at 16 with linear mips and lavapipe's level choice
+  steps more often than a GPU's. render_smooth: its saved picture now matches (see below), but the split pass's frame
+  (`smoothorder split`, a draw order the game never reaches: the world view's first run ends in the middle, the frame
+  is copied into every sample and the rest drawn over it) differs from the smooth frame in 37% of the pixels, the whole
+  world view darker and greyer, not its edges; `smoothorder before` and the other captures match. Not found yet (H47b1).
+- The saved picture (render_smooth, ui_quicksave: "94% of the pixels differ" under GL, H47): gone since SDL_GPU. On
+  lavapipe `checksave` passes in both, with the real data and the stub set; ui_quicksave runs in the suites again.
+- A refused connect (net_second_master): a TCP connect to a closed loopback port is refused at once on Linux, Windows
+  tries again for about a second, so the connection screen's master request box (MasterRequestBox, "masterbox") closes
+  by itself before the scenario cancels it. The scenario's Esc is now `ifwindow masterbox key esc`: pressed only while
+  the box is on top (Windows), skipped otherwise; the goldens are the same either way. (The `wait 2500` before it
+  stays: it runs on the harness's clock.)
+- render_present_window: `windowsize` resized asynchronously under X11 (SDL_SetWindowSize returns before the window
+  has its size; SDL_SyncWindow does not wait there either), so the clicks after it aimed at a window that had not
+  changed yet. The step (harnessplatform::ResizeClient) now pumps events until the window has the size, at most 2 s.
 - Over 60 s on llvmpipe, left out: camera_smooth, camera_spin, render_stats, zone_gz15h_tornado (not run in H47d). On
   dzn they take 7 to 22 s and are the same as their goldens.
 - The time zone. A save's info.sav keeps mktime of the harness's fixed date (2001-03-26 12:00), so it followed the
@@ -203,8 +213,13 @@ Checked (2026-11-04, the machine of "The harness" above, RTX 4070 Ti SUPER):
   pairs (19 runs, 4 jobs): lavapipe 115 s, dzn 19 to 32 s, all the same.
 - What LINUX_SKIP and the slow list leave out, on dzn: camera_smooth, camera_spin, render_stats, zone_gz15h_tornado,
   the seven pairs (net_pair_master's golden differs as on lavapipe), render_smooth, render_terrain_seams and
-  ui_quicksave pass; net_second_master and render_present_window fail as on lavapipe (not the driver: the list above).
-  These three are run_all's `LINUX_LEFT_OUT` on dzn.
+  ui_quicksave pass (net_second_master and render_present_window failed on both drivers until H47b: the list above).
+  Only net_pair_master is run_all's `LINUX_LEFT_OUT` on dzn.
+
+After H47b (2026-11-04, dzn, 8 slots): `run_all.py --golden` 155 runs in 114 s, all passing, 149 the same, 6 without a
+golden (every scenario but net_pair_master); the Rebirth set 102 of 102 the same, in 126 s. On lavapipe (real data and
+the stub set) net_second_master, render_present_window and ui_quicksave pass; render_smooth and render_terrain_seams
+are the two left out.
 
 Two faults showed only on dzn, both fixed:
 - Fences. The renderer kept every submission's fence while the frame timer was off; dzn refused new ones after a few
