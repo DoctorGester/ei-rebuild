@@ -103,13 +103,10 @@ int WorldServer::LoadMobFile(std::string_view file) {
     for (const std::string& mobFile : mobFiles)
         if (str::Compare(mobFile, file) == 0) return 1;
     g_loadingMovieOff = 1;
-    {
-        int loadedCount = LoadMapObjects(file, 0);
-        if (loadedCount == 0) {
-            g_loadingMovieOff = 0;
-            zoneLoaded = 0;
-            return game::FatalError(game::zonetexts::CantLoadMob(), std::string(file));
-        }
+    if (LoadMapObjects(file, 0) == 0) {
+        g_loadingMovieOff = 0;
+        zoneLoaded = 0;
+        return game::FatalError(game::zonetexts::CantLoadMob(), std::string(file));
     }
     g_loadingMovieOff = 0;
     mobFiles.push_back(std::string(file));

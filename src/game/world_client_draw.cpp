@@ -137,7 +137,7 @@ int QueueScreenEntry(MapObject* object, std::vector<ScreenEntry>* queued) {
     return 1;
 }
 
-int WorldClient::Render() {
+void WorldClient::Render() {
     render::RenderState& state = render::g_renderState;
     // The world view for the new renderer's render quality (multisampled, models sampled
     // anisotropically); the interface draws after it.
@@ -226,7 +226,6 @@ int WorldClient::Render() {
     }
     state.stages[0].combiner = kSceneStage;
     net::Pump();
-    DrawLineLists();
     PopMatrix(device->stacks[kStackWorld]);
     PopMatrix(device->stacks[kStackScene2]);
     PopMatrix(device->stacks[kStackScene1]);
@@ -240,12 +239,6 @@ int WorldClient::Render() {
         state.depthTest = true;
     }
     render::EndWorld();
-    return 1;
-}
-
-int WorldClient::DrawLineLists() {
-    for (auto& node : lineLists) node.second->Draw(g_sceneRenderer.pipeline, g_sceneRenderer.device);
-    return 1;
 }
 
 int WorldClient::DrawPass() {
@@ -271,23 +264,10 @@ int WorldClient::DrawPass() {
     // in CollectVisible passes. The game took the sectors within 100 units of the camera; Rebirth's ObjectsDrawRadius
     // widened that to the whole map.
     currentTerrain = terrain;
-    rangeFirstX = rangeX = 0;
-    rangeFirstY = rangeY = 0;
-    rangeLastX = static_cast<std::uint32_t>(lib::Truncate(terrain->width - kMapEdgeMargin)) >> 4;
-    rangeLastY = static_cast<std::uint32_t>(lib::Truncate(terrain->height - kMapEdgeMargin)) >> 4;
-
+    const CellRange wholeMap = {0, 0, static_cast<std::uint32_t>(lib::Truncate(terrain->width - kMapEdgeMargin)) >> 4,
+                                static_cast<std::uint32_t>(lib::Truncate(terrain->height - kMapEdgeMargin)) >> 4};
     int touched = 0;
-    auto* sector = &objectGrid.rows[0][0];
-    while (sector) {
-        for (MapObject* object : *sector) touched += CollectVisible(object, view, animTime, now, 0, 0);
-        std::uint32_t x = ++rangeX;
-        if (x > rangeLastX) {
-            rangeX = rangeFirstX;
-            std::uint32_t y = ++rangeY;
-            if (y > rangeLastY) break;
-        }
-        sector = &objectGrid.rows[rangeY][rangeX];
-    }
+    objectGrid.ForEachObject(wholeMap, [&](MapObject* object) { touched += CollectVisible(object, view, animTime, now, 0, 0); });
     for (MapObject* object : g_deferredUnits) touched += CollectVisible(object, view, animTime, now, 1, 0);
     g_deferredUnits.clear();
     for (MapObject* object : heroes) touched += CollectVisible(object, view, animTime, now, 1, 1);

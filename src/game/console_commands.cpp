@@ -298,7 +298,7 @@ void LoadVar(const CommandArgs& args) {
         if (parts.size() > 1) {
             const std::string& name = parts[0];
             float value = str::ToFloat(parts[1]);
-            state->SetVariable(name, std::bit_cast<std::uint32_t>(value));
+            state->SetVariable(name, value);
         }
     }
 }

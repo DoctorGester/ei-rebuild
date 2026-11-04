@@ -704,8 +704,7 @@ void BattleScreen::LeftUp(Point point) {
     viewPressed = false;
     WorldClient* world = &g_clientWorld;
     if (!boxSelecting || IsMultiplayerClient()) {
-        // The (x, y) pair is read back through its address.
-        Unit* unit = world->UnitAt(&point);
+        Unit* unit = world->UnitAt(point);
         if (unit && !(unit->flags & MapObjectFlag::InParty)) unit = nullptr;
         SelectUnit(unit, point);
         return;

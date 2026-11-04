@@ -32,16 +32,6 @@ constexpr float kFacingOffset = /*007AFED8*/ 1.5707964f;   // pi / 2
 
 constexpr std::uint32_t kNoStart = 0xC4A42000;   // -1313.0f as the state's last z: no start position
 
-const MapRecord* FindZone(const std::string& name) {
-    return g_mapDatabase.FindMap(name);
-}
-
-bool Contains(const std::vector<int>& ids, int id) {
-    for (int i = 0; i < std::ssize(ids); ++i)
-        if (ids[i] == id) return true;
-    return false;
-}
-
 bool NamesZone(const itemdb::QuestItemRecord* info, const char* zone) {
     bool found = false;
     for (unsigned i = 0; i < static_cast<unsigned>(info->zones.size()); ++i)
@@ -69,7 +59,7 @@ std::vector<Item*> WorldServer::TakeZoneQuestItems(std::vector<Item*>* items) {
         MapObject* object = node->second;
         if (!object->IsUsable()) continue;
         int objectId = object->KeyId();
-        if (!Contains(wanted, objectId)) lib::SetAtGrow(wanted, lib::Count(wanted), objectId);
+        if (!lib::Contains(wanted, objectId)) wanted.push_back(objectId);
     }
 
     // Quest items move from the array to the list: in single player only those whose
@@ -80,7 +70,7 @@ std::vector<Item*> WorldServer::TakeZoneQuestItems(std::vector<Item*>* items) {
         itemdb::QuestItemRecord* info = itemdb::RecordAs<itemdb::QuestItemRecord>(item->GetPrototype());
         if (zoneMode == ZoneMode::Battle && !IsMultiplayerClient()) {
             bool here = info && NamesZone(info, zoneName.c_str());
-            if (!here && !Contains(wanted, static_cast<int>(item->AsQuest()->questItemId))) continue;
+            if (!here && !lib::Contains(wanted, static_cast<int>(item->AsQuest()->questItemId))) continue;
         }
         taken.push_back(ItemAt(items, i));
         items->erase(items->begin() + i);
@@ -124,9 +114,7 @@ void WorldServer::Redeploy(Player* player, std::vector<UnitPlacement>* placement
     Party* party = player->GetParty();
     std::vector<PartyUnitRecord*> records{};
     for (int i = 0; i < std::ssize(party->members); ++i) {
-        int index = lib::Count(records);
-        records.resize(index + 1);
-        records[index] = &party->members[i];
+        records.push_back(&party->members[i]);
     }
     // A lost game sends the party back to this zone's first exit.
     if (gameState == GameState::Network) {
@@ -144,7 +132,7 @@ void WorldServer::Redeploy(Player* player, std::vector<UnitPlacement>* placement
     Vector3 start{0.0f, 0.0f, 0.0f};
     std::uint32_t startValue = 0;
     const ZoneExit* exit = nullptr;
-    const MapRecord* zone = FindZone(party->zone);
+    const MapRecord* zone = g_mapDatabase.FindMap(party->zone);
     int entrance = static_cast<int>(party->entrance);
     if (zone && entrance >= 0 && entrance < std::ssize(zone->exits)) {
         exit = &zone->exits[entrance];
@@ -193,12 +181,9 @@ Item* WorldServer::CopyItem(Item* source) {
 
 // ---- Items and spells by name -------------------------------------------------------------------
 
-Item* WorldServer::CreateItemNamed(const char* name) { return g_serverWorld.itemManager->CreateItem(name); }
+Item* WorldServer::CreateItemNamed(std::string_view name) { return itemManager->CreateItem(name); }
 
-Item* WorldServer::CreateSpellNamed(const char* name) {
-    ItemManager* manager = g_serverWorld.itemManager;    // read first
-    return manager->CreateSpellItem(name, GetSpellManager());
-}
+Item* WorldServer::CreateSpellNamed(const char* name) { return itemManager->CreateSpellItem(name, GetSpellManager()); }
 
 void WorldServer::AddCounted(EngineObject* item) {
     if (!item || lib::Contains(counted, item)) return;

@@ -86,7 +86,7 @@ void* SceneDevice();                            // the scene renderer's device, 
 
 void ConsoleExecute(const char* text);
 void RequestGameState(int id);                       // GameRequestGameState: ask the server for interface screen `id`
-void SetConstructionVariable(std::uint32_t value);   // GameSetConstructionVariable
+void SetConstructionVariable(float value);           // GameSetConstructionVariable
 void ObserveConsoleLines(void (*observer)(const char* line));
 unsigned& UpdatePeriod();                       // worlddata::g_updatePeriod
 const char* DataFolder();                       // the data folder's text, may be empty
@@ -103,7 +103,7 @@ std::string HitUnit(int target, int attacker, float amount);
 void* WorldHandle();                          // the server world's worldHandle
 const char* ServerZoneName();                   // the server world's zone, may be null
 const char* LoadingMovieName();                 // app::g_loadingMovieName: the loading screen's movie file
-void* PickAt2(void* world, int x, int y);       // WorldClient::PickAt2, as its EngineObject
+void* PickAt2(void* world, int x, int y);       // WorldClient::Pick by the parts, as its EngineObject
 void* UnitAt(void* world, int x, int y);        // WorldClient::UnitAt, as its EngineObject
 // The client world's rectangle of object `id` in this frame's screen list (screenEntries; the last entry for it):
 // 1, 0 when it is not drawn, -1 without a list.

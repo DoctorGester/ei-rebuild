@@ -887,7 +887,7 @@ bool ScriptRun::Execute(Script* script) {
                 break;
             }
             Player* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
-            if (player) player->Server()->SetVariable(Text(cmd, 0), std::bit_cast<std::uint32_t>(f[1]));   // the float bits
+            if (player) player->Server()->SetVariable(Text(cmd, 0), f[1]);
             break;
         }
         case ScriptFunction::GSSetVarMax:     // GSSetVarMax(player, name, value)

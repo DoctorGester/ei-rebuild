@@ -19,7 +19,7 @@
 #include "lib/float_select.h"
 #include "lib/maths.h"
 
-#include <bit>
+#include <cmath>
 #include <cstring>
 
 using namespace effect;
@@ -38,8 +38,8 @@ void ClearBase(Effect* e) {
 }
 
 // The light's range fields: range, range^2 and 1 / range^2.
-void SetLightRange(Light* light, std::uint32_t rangeBits) {
-    light->range = std::bit_cast<float>(rangeBits);
+void SetLightRange(Light* light, float range) {
+    light->range = range;
     const float square = light->range * light->range;
     light->rangeSquared = square;
     light->inverseRangeSquared = 1.0f / square;
@@ -78,17 +78,6 @@ bool IsOneShotType(int type) {
 // The scorch mark's angle: a random word to [0, 6.3).
 float RandomAngle(std::uint32_t random) { return static_cast<float>(random) * (6.3f * 0x1p-32f); }
 
-// The ISAAC Next the 0x2030 scorch inlines.
-std::uint32_t InlineRandom() {
-    IsaacRandom& random = g_random;
-    std::uint32_t index = random.count--;
-    if (index == 0) {
-        random.Refill();
-        random.count = 0xFF;
-    }
-    return random.results[random.count];
-}
-
 // The fire wall's scorch mark: angle = atan2(direction.y, direction.x) and outer =
 // sqrt(x*x + y*y) + half + 0.3.
 void WallScorchShape(const Vector3& direction, const float* half, float* angleAndOuter) {
@@ -124,7 +113,7 @@ void EffectPointLight::Start(int update) {
         Vector3 position = localPosition;
         Vector3 tint = color;
         light->SetPoint(tint, position);
-        SetLightRange(light, Bits(range) & 0x7FFFFFFFu);
+        SetLightRange(light, std::fabs(range));
         LightFlags(light) |= lightFlags;
         g_clientWorld.terrain->AddLight(light);
         if (moving != 0) LightFlags(light) |= LightFlag::Moving;
@@ -132,13 +121,13 @@ void EffectPointLight::Start(int update) {
         light->color[0] = color.x;
         light->color[1] = color.y;
         light->color[2] = color.z;
-        float absRange = FromBits(Bits(range) & 0x7FFFFFFFu);
+        float absRange = std::fabs(range);
         float shownRange;
         shownRange = light->range;
-        float change = FromBits(Bits(shownRange - absRange) & 0x7FFFFFFFu);
+        float change = std::fabs(shownRange - absRange);
         LightPosition(light) = localPosition;
         // A range not (nearly) the same is taken over.
-        if (!(change < worlddata::RangeEpsilon())) SetLightRange(light, Bits(range) & 0x7FFFFFFFu);
+        if (!(change < worlddata::RangeEpsilon())) SetLightRange(light, std::fabs(range));
     }
     // A negative range (or NaN) sets LightFlag::Off.
     if (range >= worlddata::ZeroRef())
@@ -286,12 +275,12 @@ void EffectParticle::Spawn() {
     if (ParticleTypeOf(type) == ParticleType::FireBlast) {
         float fadeAlpha = BelowOneOrOne(alpha * worlddata::ScorchAlpha());
         float radius = typeParam;
-        float angle = RandomAngle(((&g_random))->Next());
+        float angle = RandomAngle(g_random.Next());
         g_clientWorld.AddScorchMark(localPosition.x, localPosition.y, radius, radius, angle, fadeAlpha);
     }
     if (ParticleTypeOf(type) == ParticleType::LightningBlast) {
         float fadeAlpha = BelowOneOrOne(alpha * worlddata::ScorchAlpha());
-        std::uint32_t random = InlineRandom();
+        std::uint32_t random = g_random.Next();
         float radius = size;
         float angle = RandomAngle(random);
         g_clientWorld.AddScorchMark(localPosition.x, localPosition.y, radius, radius, angle, fadeAlpha);

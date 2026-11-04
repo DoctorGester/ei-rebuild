@@ -244,11 +244,11 @@ public:
     // After LoadFigures: the client gives the parts the world's materials, then the skin texture. The base does
     // nothing.
     virtual void ApplyMaterials() {}
-    // Screen picking: whether the point (x, y) is in the object's dirtyRect (PickAt).
+    // Screen picking: whether the point (x, y) is in the object's dirtyRect (Pick with HitTest::Bounds).
     virtual int BoundsContainPoint(const std::int32_t* point);
     // Whether the screen rectangle (a RECT) meets a drawn part's rectangle.
     virtual int PartsIntersectRect(const Rect* rect);
-    // Whether the point is in the screen rectangle of a part with flag 0x40 (PickAt2).
+    // Whether the point is in the screen rectangle of a part with flag 0x40 (Pick with HitTest::Parts).
     virtual int PartsContainPoint(const std::int32_t* point);
     virtual void SetLit(bool) {}                     // the object's light is on / off (client); base: nothing
 

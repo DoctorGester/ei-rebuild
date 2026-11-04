@@ -58,10 +58,7 @@ using mapspec::UnitSpec;
 
 // The hero's figure parts, "hr" replaced by its numbered style (none when the style is -1).
 void FillHeroParts(UnitSpec* message, const char* prototypeName, std::string& scratch) {
-    UnitPrototypeRecord* prototype;
-    {
-        prototype = g_unitDatabase.prototypes.FindByName(prototypeName);
-    }
+    UnitPrototypeRecord* prototype = g_unitDatabase.prototypes.FindByName(prototypeName);
     int hairStyle = prototype ? prototype->hair : 1;
 
     std::vector<std::string>& parts = message->parts;
@@ -81,35 +78,25 @@ void FillHeroParts(UnitSpec* message, const char* prototypeName, std::string& sc
 // The place of the `index`th unit when no placement is given: a line from `position` along the
 // rotation's heading.
 void PlaceInLine(UnitSpec* message, const Vector3& position, const Quaternion& rotation, int index) {
-    float rx, ry, rz, rw;
-    rx = rotation.w;
-    ry = rotation.x;
-    rz = rotation.y;
-    rw = rotation.z;
-    float axis = LengthSquared(Vector3{ry, rz, rw});
+    float axis = LengthSquared(Vector3{rotation.x, rotation.y, rotation.z});
     float angle;
     if (axis <= worlddata::kAxisEpsilon) {
         angle = 0.0f;
     } else {
-        float arc = lib::Acos(rx);
+        float arc = lib::Acos(rotation.w);
         angle = arc + arc;
-        float sign = 1.0f / std::sqrt(axis) * rw;
+        float sign = 1.0f / std::sqrt(axis) * rotation.z;
         if (sign < 0.0f) angle = -angle;
     }
     angle += worlddata::kLineAngleOffset;
 
     Spec& spec = *message;
-    float zStep = 0.0f;
     spec.position = position;
     spec.rotation = rotation;
     float cosine = lib::Cos(angle);
     float sine = lib::Sin(angle);
     float step = static_cast<float>(index);
-    float dy = sine * step;
-    float dx = step * cosine;
-    float dz = zStep * worlddata::kLineSpacing;
-    dy *= worlddata::kLineSpacing;
-    spec.position += Vector3{dx * worlddata::kLineSpacing, dy, dz};
+    spec.position += Vector3{step * cosine * worlddata::kLineSpacing, sine * step * worlddata::kLineSpacing, 0.0f};
 }
 
 // An item from an item record, with its counted record holding the item record's id.
@@ -129,6 +116,14 @@ constexpr int kTimedAmbientSound = 0x49, kTimedSound = 0x48, kTimedLight = 0x4B,
 constexpr std::uint32_t kTorchLightKind = static_cast<std::uint32_t>(ParticleType::CampFire);   // the torch's smoke particles
 
 } // namespace
+
+void WorldServer::MoveToFreeCell(Unit* unit, const Vector3& from) {
+    aiMap.sectorMap.Remove(unit);
+    Vector3 free = unit->localPosition;
+    aiMap.FindFreeCellNear(unit, from, &free);
+    unit->localPosition = free;
+    aiMap.sectorMap.Add(unit);
+}
 
 void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* records, const Vector3& position, Quaternion rotation,
                                std::vector<UnitPlacement>* placements) {
@@ -187,7 +182,6 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
 
         Unit* unit = FindUnit(CreateObject(message));
         if (!unit) continue;
-        MapObject* slots = unit;
 
         // A player-controlled AI, standing on a free cell near the requested position.
         UnitServer* controller = unit->ServerController();
@@ -195,17 +189,13 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
         brain->ClearModes();
         brain->AddMode(std::make_unique<PlayerMode>());
         brain->StopAction();
-        aiMap.sectorMap.Remove(unit);
-        Vector3 free = unit->localPosition;
-        aiMap.FindFreeCellNear(unit, position, &free);
-        unit->localPosition = free;
-        aiMap.sectorMap.Add(unit);
+        MoveToFreeCell(unit, position);
 
         unit->SetPlayer(player);
-        slots->SetScriptName(record->texts[0]);
+        unit->SetScriptName(record->texts[0]);
         unit->SetFightAtWill(static_cast<std::uint32_t>(record->fightAtWill));
         unit->ClearProtectionBases();
-        slots->SetStats(&record->stats);
+        unit->SetStats(&record->stats);
         unit->ReleaseAllItems();
 
         // Equipment: weapons, then the controller's ShowWeapon(0), armour, quick items (two fields copied from the
@@ -224,8 +214,8 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
         for (int n = 0; n < std::ssize(record->spells); ++n)
             unit->AddSpell(MakeItem(this, record->spells[n]));
 
-        slots->UpdateSizeClasses();
-        slots->ScaleEffectChanged(false);
+        unit->UpdateSizeClasses();
+        unit->ScaleEffectChanged(false);
         unit->SetSecondPrototypeByName(record->texts[6]);
         line = str::Format(worlddata::AddToHeroesFormat(), unit->id);
         script += line;
@@ -416,11 +406,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
             unitSpec->record.ApplyTo(unit);
             // The model's six values (UnitModelRecord) go to the unit.
             const char* prototypeName = unitSpec->prototype.c_str();
-            UnitPrototypeRecord* prototype;
-            {
-                std::string key(prototypeName);
-                prototype = g_unitDatabase.prototypes.FindByName(key);
-            }
+            UnitPrototypeRecord* prototype = g_unitDatabase.prototypes.FindByName(std::string(prototypeName));
             // No prototype record: model 0 (Rebirth's FixAddMapObject; the original read through the null record).
             const unsigned index = prototype ? static_cast<unsigned>(prototype->modelIndex) : 0;
             auto* model = unitdb::ModelRecord(index);

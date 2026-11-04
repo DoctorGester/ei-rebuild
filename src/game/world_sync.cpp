@@ -10,6 +10,7 @@
 #include "player_messages.h"
 #include "unit.h"
 #include "world.h"
+#include "world_data.h"
 #include "world_effect.h"
 
 #include "lib/bytes.h"
@@ -27,8 +28,7 @@ namespace {
 
 // Distance limits.
 constexpr float kViewRange = 100.0f;        // objects seen around the camera
-constexpr float kHearingScale = 2.0f;     // unit perception scale
-constexpr float kHearingMargin = 5.0f;    // added to it
+constexpr float kHearingMargin = 5.0f;    // added to the units' hearing radius when a player is synced
 
 constexpr MapObjectType kTypeNoSync = MapObjectType::MagicTrap;   // never sent
 
@@ -76,17 +76,12 @@ void CollectMapObjects(WorldServer* world, Player* player, PlayerServer* state, 
     for (auto node = world->namedObjects.map.begin(); node != world->namedObjects.map.end() && node->second; ++node)
         out.push_back(node->second);
 
-    // The units each of the player's units can hear: max(perception * factor, minimum) * scale +
-    // margin around it (the server half's movement factor 3 and statistics B0 values 0 and 2).
+    // The units each of the player's units can hear.
     auto& units = player->units;
     for (auto node = units.begin(); node != units.end() && node->second; ++node) {
         Unit* unit = node->second;
-        auto* controller = unit->ServerController();
-        float perception = controller->moveFactors[3] * controller->stats.perception[0].current;
-        float minimum = controller->stats.perception[2].current;
-        float range = MaxKeepB(perception, minimum);   // branch-free select
-        float radius = range * kHearingScale + kHearingMargin;
-        for (Unit* heard : world->aiMap.sectorMap.FindUnitsInRadius(unit->localPosition, radius)) out.push_back(heard);
+        for (Unit* heard : world->aiMap.sectorMap.FindUnitsInRadius(unit->localPosition, HearingRadius(unit, kHearingMargin)))
+            out.push_back(heard);
     }
 }
 
@@ -104,6 +99,14 @@ void CollectTimedObjects(WorldServer* world, PlayerServer* state, std::vector<Ef
 }
 
 } // namespace
+
+float HearingRadius(Unit* unit, float margin) {
+    auto* controller = unit->ServerController();
+    float perception = controller->moveFactors[3] * controller->stats.perception[0].current;
+    float minimum = controller->stats.perception[2].current;
+    float range = MaxKeepB(perception, minimum);   // branch-free select
+    return range * worlddata::kHearingScale + margin;
+}
 
 int WorldServer::SyncPlayer(Player* player) {
     PlayerServer* state = player->Server();

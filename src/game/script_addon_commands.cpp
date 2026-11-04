@@ -66,7 +66,7 @@ bool GSSetPlayerVar(Call* call) {
     const char* name = Text(call, 0);
     Player* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("GSSetPlayerVar", "There is no player with number %d", number);
-    player->Server()->SetVariable(name, Bits(value));
+    player->Server()->SetVariable(name, value);
     return true;
 }
 

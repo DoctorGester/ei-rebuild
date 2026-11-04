@@ -52,7 +52,7 @@ void ViewScreen::CloseScreen() { g_camera.flags |= Camera::kFree; }
 
 void UnitPickInput::LeftDown(Point point) {
     WorldClient* world = &g_clientWorld;
-    Unit* unit = world->UnitAt2(&point);
+    Unit* unit = world->UnitAt(point, HitTest::Parts);
     if (!ui->ctrlDown) {
         if (unit) {
             int n = lib::Count(picked);

@@ -110,7 +110,7 @@ void GlobalMap::LeftDown(Point point) {
     if (region == kRegionCamp) {
         if (noCamp) return;
         ui->PlayInterfaceSound(kTransitSound);
-        g_serverWorld.SetConstructionVariable(std::bit_cast<std::uint32_t>(0.0f));
+        g_serverWorld.SetConstructionVariable(0.0f);
         g_interface.closeAll = 1;
         g_clientWorld.LocalView()->RequestGameState(kCampScreen);
         return;

@@ -183,7 +183,7 @@ public:
     void ItemUsed(Item* item) override { SendItemValue(item); }
     int Receive() override { return ReceiveMessages(); }
 
-    void SetVariable(std::string_view name, std::uint32_t value);        // message 0x81
+    void SetVariable(std::string_view name, float value);                // message 0x81
     void SetVariableMax(std::string_view name, float value);             // raises a variable, 0x81
     void DeleteVariable(const char* name);                          // message 0x82
     void SendGameTime();                                            // message 0x07

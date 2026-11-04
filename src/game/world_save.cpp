@@ -73,20 +73,12 @@ void RelocateStrandedUnits(WorldServer* world) {
         Unit* unit = UnitOrNull(node.second);
         if (!unit) continue;
         if (world->aiMap.CanLeaveCell(unit)) continue;
-        int id = unit->id;
-        int index = lib::Count(stranded);
-        stranded.resize(index + 1);
-        stranded[index] = id;
+        stranded.push_back(unit->id);
     }
     for (int i = 0; i < std::ssize(stranded); ++i) {
         Unit* unit = world->FindUnit(stranded[i]);
         if (unit && unit->id > kTextKeyIdMin) {
-            world->aiMap.sectorMap.Remove(unit);
-            Vector3 from = unit->localPosition;
-            Vector3 to = unit->localPosition;
-            world->aiMap.FindFreeCellNear(unit, from, &to);
-            unit->localPosition = to;
-            world->aiMap.sectorMap.Add(unit);
+            world->MoveToFreeCell(unit, unit->localPosition);
             unit->ServerController()->ResyncWithUnit();
         } else {
             world->RemoveObject(stranded[i]);
@@ -174,7 +166,7 @@ void WorldServer::UpdatePlayerTimes(float offset) {
         if (elapsed < 0) elapsed = 0;
         float current = player->GetParty()->variables.Get(name);
         float value = (static_cast<float>(elapsed) * secondsPerTick) + offset + current;
-        player->Server()->SetVariable(name, std::bit_cast<std::uint32_t>(value));
+        player->Server()->SetVariable(name, value);
     }
 }
 
