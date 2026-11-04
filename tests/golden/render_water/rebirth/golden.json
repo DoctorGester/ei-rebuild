@@ -1,0 +1,13 @@
+{
+  "scenario": "render_water",
+  "install": "rebirth",
+  "recorded": "2026-11-04",
+  "commit": "37b5cab12",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "R17a: render_water on Rebirth's data (new scenario)",
+  "source": "image",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
+}
