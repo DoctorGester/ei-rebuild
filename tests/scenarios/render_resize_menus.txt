@@ -1,0 +1,72 @@
+# R46: the main menu's windows drawn again after a resolution change (docs/notes/renderer.md, "Resolution changes"):
+# windowed at 1280x720, the options over the main menu's greyed copy resized to 1000x800 while open, then closed and
+# opened again at that size; then their help page (a help window over the options' ungreyed copy: the backdrop of
+# mode 4 over that of mode 2) resized back to 1280x720 and opened again. The frame after each resize is the frame of
+# the windows opened at that size (samecapture; the game's clocks held from the resize to the second capture). The
+# main menu itself at 1280x720 and 1000x800. Captures to look at: menu_wide, menu_narrow, options_narrow,
+# help_wide (and the _fresh twins).
+render checkall
+resolution 1280x720
+fullscreen 0
+timeout 60
+reject Script error
+waitmenu
+move 400 300
+frames 5
+freeze
+capture menu_wide
+unfreeze
+
+# The options (region 3) over the main menu's greyed copy.
+clickregion 3
+waitwindow 10 options
+frames 5
+freeze
+windowsize 1000 800
+waitpresent 10
+frames 5
+expectlog Resolution: 1000x800 (was 1280x720)
+capture options_narrow
+key esc
+waitwindow 10 menu
+frames 5
+clickregion 3
+waitwindow 10 options
+frames 5
+capture options_narrow_fresh
+unfreeze
+samecapture options_narrow options_narrow_fresh
+
+# Their help page (H) over the options' copy, resized back to 1280x720.
+key h
+waitwindow 10 help
+frames 10
+freeze
+windowsize 1280 720
+waitpresent 10
+frames 5
+expectlog Resolution: 1280x720 (was 1000x800)
+capture help_wide
+key esc
+waitwindow 10 options
+frames 5
+key h
+waitwindow 10 help
+frames 10
+capture help_wide_fresh
+unfreeze
+samecapture help_wide help_wide_fresh
+key esc
+waitwindow 10 options
+key esc
+waitwindow 10 menu
+
+# The main menu at 1000x800.
+windowsize 1000 800
+waitpresent 10
+frames 5
+freeze
+capture menu_narrow
+unfreeze
+report
+quit

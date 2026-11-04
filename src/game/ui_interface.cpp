@@ -21,6 +21,7 @@
 #include "lib/str.h"
 #include "platform/platform.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -160,6 +161,31 @@ void Interface3D::Resize(const screen_layout::Layout& before) {
     UiSurface::RelayoutAll(before);
     // (A window's LayoutChanged may replace its children, never the stack.)
     for (UiWindow* window : stack) ScreenOf(window)->LayoutChanged();
+    RetakeBackdrops();
+}
+
+void Interface3D::RetakeBackdrops() {
+    if (backdropMode != 2 && backdropMode != 4) return;
+    const std::vector<UiWindow*> windows = stack;
+    UiSurface* over = nullptr;   // mode 4's copy, of the windows under a help window
+    if (backdropMode == 4) {
+        over = backdrop;
+        backdrop = secondBackdrop;
+        secondBackdrop = nullptr;
+    }
+    backdropMode = 0;
+    if (backdrop) {   // the bottom window greyed, and the save copy (DrawOverlays' mode 1, into mode 2)
+        stack.resize(1);
+        backdropMode = 1;
+        app::FrameStep(false, true);
+    }
+    if (over) {   // the windows under the help window over that (mode 3, into mode 4)
+        delete over;
+        stack.assign(windows.begin(), windows.begin() + std::min(backdropWindows, windows.size()));
+        backdropMode = 3;
+        app::FrameStep(false, true);
+    }
+    stack = windows;
 }
 
 Rect Interface3D::PictureRect() const {

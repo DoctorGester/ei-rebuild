@@ -60,6 +60,14 @@ void Update(TextureDevice* device) {
     if (changed && !device->fullScreen) app::RequestResolution(width, height);
 }
 
+void SizeClient(TextureDevice* device, int width, int height) {
+    if (!device || !device->window || device->fullScreen) return;
+    platform::SetClientSize(device->window, width, height);
+    if (!platform::WindowPixelSize(device->window, &g_clientWidth, &g_clientHeight)) g_clientWidth = g_clientHeight = 0;
+    ei::Log("present: the window's client area sized to %dx%d (asked %dx%d)", g_clientWidth, g_clientHeight, width,
+            height);
+}
+
 bool MouseToGame(platform::Event* event) {
     using platform::EventType;
     if (event->type != EventType::MouseMove && event->type != EventType::MouseDown &&

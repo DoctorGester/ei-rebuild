@@ -95,6 +95,7 @@ void Interface3D::PushWindow(UiWindow* window, bool behind, bool pauseFrame) {
     g_cursor.SetShape(3);
     if (behind && !pauseFrame) {
         backdropMode = 3;
+        backdropWindows = stack.size();
         app::FrameStep(false, true);
     }
     if (stack.size() == 1) {    // one window open

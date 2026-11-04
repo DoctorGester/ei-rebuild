@@ -2,6 +2,8 @@
 // (ui.h: OptionsWindow, UiSlider; docs/notes/ui.md "Objectives, save/load, options").
 #include "ui.h"
 
+#include "app.h"
+#include "texture.h"
 #include "text_manager.h"
 #include "lib/vecmath.h"
 #include "world.h"
@@ -15,8 +17,12 @@
 #include "options.h"
 #include "lib/str.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <new>
+#include <optional>
+#include <string_view>
+#include <vector>
 
 // --- Helpers -----------------------------------------------------------------------------------
 
@@ -41,8 +47,10 @@ constexpr int kFirstRowRegion = 13;     // regions 13-26: the rows
 constexpr int kHighlightSprite = 2;     // scene object 2: the selected row's highlight
 constexpr int kFirstGroupSprite = 3;    // scene objects 3-13: the group buttons
 constexpr int kDifficultySetting = 20;  // its spin control says hard / easy
+constexpr int kResolutionSetting = 21;
 constexpr int kSliderKind = 0;
 constexpr int kSpinKind = 1;
+constexpr int kResolutionKind = 2;
 
 constexpr std::uint32_t kColourText = 0xA7D7E4;
 constexpr std::uint32_t kColourDim = 0xA0A0A0;
@@ -78,18 +86,60 @@ constexpr OptionDefinition kOptionDefinitions[kOptionDefinitionCount] = {
     {18, "camera_reverse_y", 1, 2, 2, 7},
     {19, "reverse_stereo", 1, 2, 1, 4},
     {20, "difficulty", 1, 2, 3, 0},
+    {21, "resolution", 2, 0, 0, 9},   // ours: the rendering resolution (app::ChooseResolution)
 };
 
-// The text `key` up to the next '#', or the key itself without one.
+// The resolution setting's sizes (with the screen's own, when it is none of them): common monitor and window sizes
+// of 4:3, 5:4, 16:10, 16:9 and 21:9, the same list on every machine.
+constexpr Size kResolutions[] = {
+    {800, 600},   {1024, 768},  {1152, 864},  {1280, 720},  {1280, 800},  {1280, 960},  {1280, 1024},
+    {1366, 768},  {1440, 900},  {1600, 900},  {1600, 1200}, {1680, 1050}, {1920, 1080}, {1920, 1200},
+    {2560, 1080}, {2560, 1440}, {2560, 1600}, {3440, 1440}, {3840, 2160},
+};
+
+// The texts of what the rebuild adds to the options, which the game's texts lack: in Russian where the game's are
+// (the video group's title holds letters beyond ASCII), else in English. A text the game's files have wins.
+struct AddedText {
+    const char* key;
+    const char* russian;
+    const char* english;
+};
+constexpr AddedText kAddedTexts[] = {
+    {"option_resolution", "Разрешение", "Resolution"},
+    {"tip option_resolution", "Размер изображения игры", "The size of the game's picture"},
+};
+
+std::optional<std::string> FindAddedText(std::string_view key) {
+    for (const AddedText& added : kAddedTexts) {
+        if (key != added.key) continue;
+        const std::string title = g_clientWorld.texts->GetString("option_group_video");
+        const bool russian = std::any_of(title.begin(), title.end(), [](char c) { return (c & 0x80) != 0; });
+        return russian ? added.russian : added.english;
+    }
+    return std::nullopt;
+}
+
+bool BySize(Size a, Size b) { return a.w != b.w ? a.w < b.w : a.h < b.h; }
+
+// The screen's size (the rendering resolution).
+Size ScreenSize() {
+    const Rect& screen = g_sceneRenderer.device->screen;
+    return Size{screen.right, screen.bottom};
+}
+
+// The text `key` up to the next '#', else an added text, or the key itself without one.
 std::string TipText(const std::string& key) {
     std::string tip = key;
     if (g_clientWorld.texts->TextManager::Open(key.c_str())) tip = g_clientWorld.texts->ReadToHash();
+    else if (std::optional<std::string> added = FindAddedText(key)) tip = *added;
     return tip;
 }
 
-// The text `prefix` + `name`, or the name itself without one.
+// The text `prefix` + `name`, else an added text, or the name itself without one.
 std::string ShownName(const char* prefix, const char* name) {
-    return g_clientWorld.texts->FindString(std::string(prefix) + name).value_or(name);
+    const std::string key = std::string(prefix) + name;
+    if (std::optional<std::string> text = g_clientWorld.texts->FindString(key)) return *text;
+    return FindAddedText(key).value_or(name);
 }
 
 void RebuildKeysText(OptionBinding& binding) {
@@ -232,6 +282,17 @@ void OptionsWindow::BuildSettings() {
             setting.spin->AddText(text);
             AddChild(setting.spin);
             setting.bar = nullptr;
+        } else if (definition->kind == kResolutionKind) {
+            resolutions.assign(std::begin(kResolutions), std::end(kResolutions));
+            const Size screen = ScreenSize();
+            if (std::find(resolutions.begin(), resolutions.end(), screen) == resolutions.end())
+                resolutions.insert(std::upper_bound(resolutions.begin(), resolutions.end(), screen, BySize), screen);
+            std::vector<std::string> texts;
+            for (const Size size : resolutions) texts.push_back(str::Format("%d x %d", size.w, size.h));
+            setting.spin = new UiSpin(ui, Rect{530, top + 160, 690, top + 176}, texts[0].c_str());
+            for (std::size_t k = 1; k < texts.size(); ++k) setting.spin->AddText(texts[k]);
+            AddChild(setting.spin);
+            setting.bar = nullptr;
         }
     }
 }
@@ -318,6 +379,8 @@ void OptionsWindow::LoadSettings() {
     s[10].value = static_cast<int>((options::g_options.brightness + one) * fromStep);
     s[11].value = static_cast<int>((options::g_options.gamma + one) * fromStep);
     s[20].value = options::g_options.difficulty;
+    s[kResolutionSetting].value = static_cast<int>(
+        std::find(resolutions.begin(), resolutions.end(), ScreenSize()) - resolutions.begin());
 
     for (int i = 0; i < kOptionDefinitionCount; ++i) {
         if (s[i].bar)
@@ -365,6 +428,8 @@ void OptionsWindow::Apply() {
         options::g_options.difficulty = s[20].value;
     }
     if (shadowsChanged) g_clientWorld.DropShadows();
+    if (const Size chosen = resolutions[s[kResolutionSetting].value]; chosen != ScreenSize())
+        app::ChooseResolution(chosen.w, chosen.h);
 }
 
 // --- The slider's virtual ------------------------------------------------------------------

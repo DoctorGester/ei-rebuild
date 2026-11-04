@@ -80,9 +80,6 @@ constexpr float kSlingOutY = 83.0f;             // y otherwise
 
 void HudClock::Update() {
     ui->fastGame = fast;
-    float hours = TimeOfDay();
-    EngineObject** scene = sceneObjects.data();
-    EngineObject* face = scene[0];
 
     // The blink phase runs from 0 to 1 once a second.
     float blinkAt = UiContainer::FrameTime() + blink;
@@ -94,25 +91,9 @@ void HudClock::Update() {
             blink = next;
         } while (next >= 1.0f);
     }
-    float pulse = lib::Cos(kHudFullTurn * blink) * kPulseAmplitude + kPulseMiddle;
-
-    float handAngle;
-    if (GamePaused()) {
-        SetTint(face, kBlinkBase - pulse);
-        handAngle = kPi * kPausedHand;
-        AsUiMesh(scene[1])->visible = blink > 0.5f;
-    } else {
-        SetTint(face, 1.0f);
-        float step;
-        if (fast != 0) {
-            handAngle = kPi * kFastHand;
-            step = UiContainer::FrameTime();
-        } else {
-            handAngle = kPi * kNormalHand;
-            step = UiContainer::FrameTime() * 0.5f;
-        }
+    if (!GamePaused()) {
+        const float step = fast != 0 ? UiContainer::FrameTime() : UiContainer::FrameTime() * 0.5f;
         dial = step + dial;
-        AsUiMesh(scene[1])->visible = true;
     }
 
     // The dial turns by whole notches' worth and wraps.
@@ -124,6 +105,25 @@ void HudClock::Update() {
             dial = next;
             notch = kPi * kDialStep;
         } while (next > notch);
+    }
+    Show();
+}
+
+void HudClock::Show() {
+    float hours = TimeOfDay();
+    EngineObject** scene = sceneObjects.data();
+    EngineObject* face = scene[0];
+    float pulse = lib::Cos(kHudFullTurn * blink) * kPulseAmplitude + kPulseMiddle;
+
+    float handAngle;
+    if (GamePaused()) {
+        SetTint(face, kBlinkBase - pulse);
+        handAngle = kPi * kPausedHand;
+        AsUiMesh(scene[1])->visible = blink > 0.5f;
+    } else {
+        SetTint(face, 1.0f);
+        handAngle = fast != 0 ? kPi * kFastHand : kPi * kNormalHand;
+        AsUiMesh(scene[1])->visible = true;
     }
 
     // The hand (object 1) about -z, placed on its circle.

@@ -193,9 +193,13 @@ void BattleScreen::BuildPanels(float mapZoom) {
 }
 
 void BattleScreen::LayoutChanged() {
-    // What the panels hold that outlives them: the map's zoom, the top panel's texts, the pending action. The slides,
-    // the unit panel's body part, the top panel's page and the clock's speed the interface keeps every frame.
+    // What the panels hold that outlives them: the map's zoom, the top panel's texts, the clock's blink, dial and
+    // highlight, the pending action. The slides, the unit panel's body part, the top panel's page and the clock's
+    // speed the interface keeps every frame. The clock and the movement panel show their state at once (a window
+    // over the battle screen keeps its Update from running: the backdrop taken again shows them).
     const float mapZoom = map->zoom;
+    const float blink = clock->blink, dial = clock->dial;
+    const bool highlight = clock->highlight;
     const std::string pageTexts[2] = {topPanel->pageTexts[0], topPanel->pageTexts[1]};
     const PendingAction mode = pendingAction;
     const int slot = pendingSlot, item = pendingItem;
@@ -214,6 +218,11 @@ void BattleScreen::LayoutChanged() {
     else portraits->Rebuild(false);
     RefreshSelection();
     SetPendingAction(mode, slot, item);
+    clock->blink = blink;
+    clock->dial = dial;
+    clock->highlight = highlight;
+    clock->Show();
+    movePanel->Update();
 }
 
 void BattleScreen::Draw(SceneRenderer* pass) {

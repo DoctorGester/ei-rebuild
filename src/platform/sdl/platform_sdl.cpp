@@ -183,6 +183,25 @@ Event QuitEvent() {
 
 // ---- The window --------------------------------------------------------------------------------------------------
 
+namespace {
+
+// A decorated window's client area `width` x `height` (in SDL's window units), made smaller when it and the borders
+// would not fit in `display`'s usable bounds, centred there. False (nothing done) when SDL cannot tell the bounds.
+bool PlaceInUsableBounds(SDL_Window* window, SDL_DisplayID display, int width, int height) {
+    SDL_Rect work{};
+    if (!SDL_GetDisplayUsableBounds(display, &work)) return false;
+    int top = 0, left = 0, bottom = 0, right = 0;   // the borders and the title bar (none where SDL cannot tell)
+    SDL_GetWindowBordersSize(window, &top, &left, &bottom, &right);
+    width = std::min(width, work.w - left - right);
+    height = std::min(height, work.h - top - bottom);
+    SDL_SetWindowSize(window, width, height);
+    SDL_SetWindowPosition(window, work.x + left + (work.w - left - right - width) / 2,
+                          work.y + top + (work.h - top - bottom - height) / 2);
+    return true;
+}
+
+} // namespace
+
 void StartWindowSystem(const char* name) {
     SDL_SetHint(SDL_HINT_WINDOWS_CLOSE_ON_ALT_F4, "0");      // the game takes Alt+F4 itself
     SDL_SetHint(SDL_HINT_QUIT_ON_LAST_WINDOW_CLOSE, "0");    // closing the window is a request (CloseRequested)
@@ -240,16 +259,7 @@ NativeWindow CreateGameWindow(const char* title, int width, int height, bool ful
     if (fullScreen && !SDL_SetWindowFullscreen(g_window, true))
         ei::Log("platform: the window cannot go full screen: %s", SDL_GetError());
 #endif
-    SDL_Rect work{};
-    if (!fullScreen && SDL_GetDisplayUsableBounds(SDL_GetPrimaryDisplay(), &work)) {
-        int top = 0, left = 0, bottom = 0, right = 0;   // the borders and the title bar (none where SDL cannot tell)
-        SDL_GetWindowBordersSize(g_window, &top, &left, &bottom, &right);
-        width = std::min(width, work.w - left - right);
-        height = std::min(height, work.h - top - bottom);
-        SDL_SetWindowSize(g_window, width, height);
-        SDL_SetWindowPosition(g_window, work.x + left + (work.w - left - right - width) / 2,
-                              work.y + top + (work.h - top - bottom - height) / 2);
-    }
+    if (!fullScreen) PlaceInUsableBounds(g_window, SDL_GetPrimaryDisplay(), width, height);
 #if defined(_WIN32)
     g_native = SDL_GetPointerProperty(SDL_GetWindowProperties(g_window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
 #else
@@ -304,6 +314,18 @@ bool WindowPixelSize(NativeWindow window, int* width, int* height) {
     SDL_Window* w = WindowOf(window);
     if (!w || Minimized() || !SDL_GetWindowSizeInPixels(w, width, height)) return false;
     return *width > 0 && *height > 0;
+}
+
+void SetClientSize(NativeWindow window, int width, int height) {
+    SDL_Window* w = WindowOf(window);
+    if (!w) return;
+    if (SDL_GetWindowFlags(w) & SDL_WINDOW_MAXIMIZED) SDL_RestoreWindow(w);
+    // SDL sizes the window in points (on Retina two pixels a point).
+    const float density = PixelsPerPoint();
+    width = static_cast<int>(std::lround(static_cast<float>(width) / density));
+    height = static_cast<int>(std::lround(static_cast<float>(height) / density));
+    if (!PlaceInUsableBounds(w, SDL_GetDisplayForWindow(w), width, height)) SDL_SetWindowSize(w, width, height);
+    SDL_SyncWindow(w);
 }
 
 // ---- Events ------------------------------------------------------------------------------------------------------

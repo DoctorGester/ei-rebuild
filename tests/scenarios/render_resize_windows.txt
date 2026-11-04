@@ -1,0 +1,161 @@
+# R46: the windows over a zone drawn again after a resolution change (docs/notes/renderer.md, "Resolution changes"):
+# each open windowed at 1280x720 or 1000x800, the window resized to the other size while it is open, then closed and
+# opened again at that size: the frame after the resize is the frame of the window opened at that size (samecapture;
+# the game's clocks held from the resize to the second capture, so the animated portrait and minimap are the same; a
+# window opened while they are held keeps its own pulses and fades at their start: the objectives' quest markers and
+# map are let differ in 3% of the pixels, the tutorial's pulsing frames by up to 130 a channel, which a frame left at
+# the old edge exceeds).
+# The screen copies behind the windows are taken again at the new size (Interface3D::RetakeBackdrops: the Esc menu's
+# greyed one, the help window's), the zone tutorial's frames follow the battle screen's panels to the new edges
+# (HelpWindow::LayoutChanged). Windows: the Esc menu, the save window over it (resized only: it slides in), the
+# objectives, the zone tutorial "zt4" (frames at the right panels), the camp's inventory and trade pages, the global
+# map. The hero is blocked, the server paused under the windows; the mouse stays off the edges (no edge pan).
+# Captures to look at: <window>_wide / _narrow (after the resize) and their _fresh twins, save_wide, camp_narrow,
+# map_narrow.
+render checkall
+resolution 1280x720
+fullscreen 0
+timeout 60
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+console @GSSetVar(0,"q.gz1g.q0g",1)
+waitfor 5 IsEqual(GSGetVar(0,"q.gz1g.q0g"),1)
+waitwindow 15 battle
+move 400 300
+frames 5
+
+# The Esc menu over its greyed backdrop, resized to 1000x800.
+key esc
+waitwindow 10 escmenu
+frames 5
+freeze
+windowsize 1000 800
+waitpresent 10
+frames 5
+expectlog Resolution: 1000x800 (was 1280x720)
+capture esc_narrow
+key esc
+waitwindow 10 battle
+frames 5
+key esc
+waitwindow 10 escmenu
+frames 5
+capture esc_narrow_fresh
+unfreeze
+samecapture esc_narrow esc_narrow_fresh
+
+# The save window over the Esc menu (the same backdrop), resized back to 1280x720.
+click 395 120
+waitwindow 10 saveload
+move 400 300
+frames 5
+windowsize 1280 720
+waitpresent 10
+frames 5
+expectlog Resolution: 1280x720 (was 1000x800)
+freeze
+capture save_wide
+unfreeze
+key esc
+waitwindow 10 battle
+frames 5
+
+# The objectives (TAB), resized to 1000x800.
+key tab
+waitwindow 10 objectives
+frames 5
+freeze
+windowsize 1000 800
+waitpresent 10
+frames 5
+capture objectives_narrow
+key esc
+waitwindow 10 battle
+frames 5
+key tab
+waitwindow 10 objectives
+frames 5
+capture objectives_narrow_fresh
+unfreeze
+samecapture objectives_narrow objectives_narrow_fresh 8 0.03
+key esc
+waitwindow 10 battle
+frames 5
+
+# The zone tutorial "zt4" (its frames at the right panels; the help key opens the message queued) over the battle
+# screen's ungreyed copy, resized back to 1280x720 (the frames move out to the edge).
+console @SendStringEvent(0,"tutorial zt4")
+frames 10
+key h
+waitwindow 10 help
+frames 10
+freeze
+windowsize 1280 720
+waitpresent 10
+frames 5
+capture zt4_wide
+clickregion 1
+waitwindow 10 battle
+frames 5
+key h
+waitwindow 10 help
+frames 10
+capture zt4_wide_fresh
+unfreeze
+samecapture zt4_wide zt4_wide_fresh 130
+clickregion 1
+waitwindow 10 battle
+frames 5
+
+# The camp (trader class 1): the inventory resized to 1000x800, then the trade page (region 6) resized back.
+screen 5 1
+waitwindow 15 camp
+frames 5
+windowsize 1000 800
+waitpresent 10
+frames 5
+freeze
+capture camp_narrow
+unfreeze
+clickregion 6
+wait 500
+frames 5
+freeze
+windowsize 1280 720
+waitpresent 10
+frames 5
+capture trade_wide
+unfreeze
+key esc
+waitwindow 15 battle
+waitfor 10 IsGreater(HP(GetLeader()),0)
+screen 5 1
+waitwindow 15 camp
+clickregion 6
+wait 500
+frames 5
+freeze
+capture trade_wide_fresh
+unfreeze
+samecapture trade_wide trade_wide_fresh
+key esc
+waitwindow 15 battle
+waitfor 10 IsGreater(HP(GetLeader()),0)
+
+# The global map, resized to 1000x800.
+screen 4
+waitwindow 15 map
+frames 5
+windowsize 1000 800
+waitpresent 10
+frames 5
+freeze
+capture map_narrow
+unfreeze
+report
+quit

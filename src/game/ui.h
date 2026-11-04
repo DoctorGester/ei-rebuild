@@ -204,8 +204,13 @@ public:
     void Create(TextureDevice* device);
     // The device's screen took another size (app::SetResolution, between frames; `before`: the layout it had): the
     // interface's size and fonts, every surface placed again (UiSurface::RelayoutAll), then each window on the stack,
-    // the bottom one first, built again where its layout depends on the window's shape (UiContainer::LayoutChanged).
+    // the bottom one first, built again where its layout depends on the window's shape (UiContainer::LayoutChanged),
+    // and the backdrops taken again (RetakeBackdrops).
     void Resize(const screen_layout::Layout& before);
+    // The screen copies behind the windows (modes 2 and 4) taken again at the screen's size: frame steps without a
+    // present with the stack cut back to the windows each copy showed (the bottom one, greyed, with the escape menu's
+    // save copy; then those under a help window over it), as PushWindow took them.
+    void RetakeBackdrops();
     // Where the game's picture is on the screen: the whole screen, less the letterbox bars while they are shown.
     // Presses outside it are not passed on (app.cpp's input dispatch) and the camera's edge pan works at its edges.
     Rect PictureRect() const;
@@ -232,6 +237,7 @@ public:
     int backdropMode = 0;            // the backdrop is drawn in modes 2, 3 and 4 (PushWindow sets 3 / 1)
     UiSurface* backdrop = nullptr;
     UiSurface* secondBackdrop = nullptr;
+    std::size_t backdropWindows = 0;   // mode 4: the windows its backdrop shows (the stack's size when mode 3 was set)
     UiSurface* screenCopy = nullptr;   // never shown: the screen under the first window, the escape menu's save picture
     std::uint8_t serverFlag = 0;     // the server flag kept for the first window (PushWindow)
     UiSurface* statusSurface = nullptr;    // only while ShowStatusText runs
@@ -1051,8 +1057,11 @@ public:
     // speed (not on a network client: update period 55 / 27 ms); 3 opens the objectives.
     void LeftUp(Point point) override;
     void MouseMove(Point point) override;
-    // Every frame: the face turns with the time of day, the hand and dial; blinks while paused.
+    // Every frame: the blink and the dial step on (the dial only while the game runs), then Show.
     void Update() override;
+    // The face turned to the time of day, the hand and the dial's marks placed; the face and the hand blink while
+    // paused.
+    void Show();
     // The objectives window of the current zone (one button, no exits, no zone list).
     void OpenObjectives();
     // The pause button and its key: the clock sound, then the server flag 10 flipped (pause / resume).
@@ -1524,6 +1533,8 @@ public:
     int TakeValue();
     // 0 when not below the text count (a negative one is kept).
     void SetValue(int value);
+    // The value `by` steps on, wrapping both ways.
+    void Step(int by);
     // The next value, wrapping.
     void LeftDown(Point point) override;
     void LeftDouble(Point) override {}
@@ -1632,12 +1643,12 @@ public:
 struct OptionDefinition {
     int id;
     const char* name;                // "option_" + name is its text key (else the name is shown)
-    int kind;                        // 0 a slider, 1 an on / off spin control
+    int kind;                        // 0 a slider, 1 an on / off spin control, 2 the resolutions' spin control
     int maximum;                     // the slider's range
     int group;                       // the option group (0-10) it is shown in
     int row;                         // its row there
 };
-constexpr int kOptionDefinitionCount = 21;
+constexpr int kOptionDefinitionCount = 22;
 
 struct ActionDefinition {
     int id;                          // the action (the key code in the key table)
@@ -1830,10 +1841,10 @@ public:
     // Clamped to 0-10; the first filled row selected (or row 0), the key wait cleared.
     void ShowGroup(int group);
     // OK: the key table and every setting into the game's option globals (the difficulty only outside a
-    // multiplayer client); a shadow switch (settings 7-9) turned off drops those shadows. The options have
-    // no resolution.
+    // multiplayer client); a shadow switch (settings 7-9) turned off drops those shadows; another resolution is
+    // chosen (app::ChooseResolution).
     void Apply();
-    // A slider (kind 0) or an on / off spin control (kind 1) per setting.
+    // A slider (kind 0), an on / off spin control (kind 1) or the resolutions' spin control (kind 2) per setting.
     void BuildSettings();
     void LoadSettings();
     // The keys' text is the first key name of a scan code bound to the action.
@@ -1847,7 +1858,7 @@ public:
     void CreateScreen() override;
 
     // Esc cancels, Enter starts a key binding or steps a spin row, Up / Down select rows, PgUp / PgDn switch
-    // groups, Left / Right move a bar. While a binding waits, the next key is bound (Esc gives up); a key
+    // groups, Left / Right move a bar or step a spin row back or on. While a binding waits, the next key is bound (Esc gives up); a key
     // bound to another action asks first.
     void KeyDown(int key, int scan, bool repeat) override;
 
@@ -1865,6 +1876,7 @@ public:
     std::vector<std::string> groupNames;    // the option groups' titles
     bool shadowsChanged;             // the shadows switch (setting 7) changed
     const UiKeyName* pressedKey;     // the key pressed for a binding row
+    std::vector<Size> resolutions;   // the resolution setting's sizes, the screen's among them
 };
 
 // The message box's edit field.
@@ -1953,6 +1965,8 @@ public:
     // (200, 50)-(600, 560) or "#position", one pulsing frame per "#rectangle" line, one entry per "#text"
     // line. Details: docs/notes/ui.md, "Behaviour moved out of header comments".
     void ShowPage();
+    // The page built again: its pulsing frames follow the battle screen's panels to the window's new edges.
+    void LayoutChanged() override;
     // The surfaces' paints: the page's and the topic's titles; the texts; the neighbouring pages' titles and the
     // help key's name.
     void PaintHeader(UiSurface& surface) const;

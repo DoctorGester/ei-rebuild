@@ -19,6 +19,11 @@ namespace present_window {
 // rendering resolution (app::RequestResolution); the frame is scaled into the window until the next pass takes it.
 void Update(TextureDevice* device);
 
+// A window that is not full screen: its client area sized to `width` x `height` (platform::SetClientSize: made smaller
+// when it would not fit, the frame then scaled into it), taken as the window's own size, so the next present asks for
+// no resolution.
+void SizeClient(TextureDevice* device, int width, int height);
+
 // A mouse event's position (in the window) as frame pixels, a point beyond the frame (over the bars of a window of
 // another shape) put on its nearest pixel. Returns whether the point was on the frame; other events are unchanged
 // (true).

@@ -1,0 +1,81 @@
+# R45: a resolution picked in the options window under a zone (docs/notes/renderer.md, "Resolution changes"). Its
+# display group's last row steps through the common sizes and the screen's own (Enter or a click steps on, Left /
+# Right back and on); OK asks for it at the next main loop pass (app::ChooseResolution -> app::SetResolution) and,
+# windowed, sizes the window's client area to it (platform::SetClientSize), so the present that follows asks for
+# nothing and the frame is the window's size. Windowed at 800x600: the options from the Esc menu, 1280x720 picked
+# (wider than 4:3: the battle screen's panels at the edges), OK (which closes the Esc menu too); then 1280x1024
+# (narrower than 4:3). Captures to look at: picked (the row showing 1280 x 720), wide, narrow_options, narrow (each at
+# its size).
+render checkall
+resolution 800x600
+fullscreen 0
+timeout 60
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+move 400 300
+frames 5
+
+# The Esc menu's options (region 4), the display group (shown first), its last row (region 13 + 9).
+key esc
+waitwindow 10 escmenu
+clickregion 4
+waitwindow 10 options
+clickregion 22
+key right
+key right
+key right
+key right
+key left
+frames 5
+move 400 20
+frames 5
+freeze
+capture picked
+unfreeze
+clickregion 0
+waitwindow 10 battle
+waitpresent 10
+frames 5
+expectlog present: the window's client area sized to 1280x720 (asked 1280x720)
+expectlog Resolution: 1280x720 (was 800x600)
+expectlog Interface layout: 1280x720, 4:3 part 960x720, margins 160, 0 pixels (134 layout units)
+move 400 300
+frames 5
+freeze
+capture wide
+unfreeze
+
+# 1280x1024 (narrower than 4:3: the layout letterboxed in the 1280x960 part), from the row's 1280 x 720 three on.
+key esc
+waitwindow 10 escmenu
+clickregion 4
+waitwindow 10 options
+clickregion 22
+key right
+key right
+key right
+frames 5
+move 400 20
+frames 5
+freeze
+capture narrow_options
+unfreeze
+clickregion 0
+waitwindow 10 battle
+waitpresent 10
+frames 5
+expectlog present: the window's client area sized to 1280x1024 (asked 1280x1024)
+expectlog Resolution: 1280x1024 (was 1280x720)
+expectlog Interface layout: 1280x1024, 4:3 part 1280x960, margins 0, 32 pixels (0 layout units)
+move 400 300
+frames 5
+freeze
+capture narrow
+unfreeze
+report
+quit
