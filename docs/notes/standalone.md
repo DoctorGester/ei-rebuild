@@ -570,6 +570,56 @@ Every Windows build is x64 (release, verify, debug, asan, play; vcvars64).
     the install.
   - **DPI:** the exe is DPI-unaware. A script that clicks or captures its window calls SetProcessDPIAware first.
 
+### The compiler cache
+
+A build folder's first build (a fresh worktree's) compiles through sccache: it takes the objects that another checkout
+already compiled from the same source and flags. Later builds in that folder compile directly. build.cmd sets it up
+through tools/compiler_cache.py.
+- **Measured (H52: a fresh worktree's verify + release, alternating with main's build, on the shared machine):**
+  - The median of five pairs went from 170 s to 55 s. On a quiet machine it went from 101 s to 36 s.
+  - The verify build's median went from 90 s to 20 s, the release build's from 84 s to 33 s.
+  - With an empty cache a build takes about 5 s longer than without it.
+  - Incremental builds are as fast as before or faster (no ei_game archive). One changed .cpp file: 4.5-4.9 s of
+    ninja against 5.8-6.6 s. One header included by 291 objects: 26 s against 28 s.
+- **The program:** sccache 0.19.0, Mozilla's x64 Windows release, pinned with its sha256. It is downloaded on first
+  use into the main checkout's `build\third_party\sccache-0.19.0`, beside the shader toolchain.
+- **The cache:** `build\compiler_cache\<configuration>` in the main checkout (release, verify, debug, play, asan apart),
+  2 GB each, shared by every worktree. Objects are stored compressed: one source state takes about 0.35 GB.
+- **The servers:** one per checkout and configuration, on a port taken from the checkout's path. A server ends after
+  10 idle minutes. tools/compiler_cache.py starts it with its output going nowhere: a server started by the first
+  compile could hold the build's output pipe open. The checkout's folder is the server's base folder
+  (SCCACHE_BASEDIRS), which is cut out of the paths before they are hashed, so one checkout's objects hit in another.
+- **The launcher (tools/compiler_cache_launcher.cpp):** CMake's compiler launcher, built once per version of its
+  source into the main checkout's `build\third_party`. It runs each compile through sccache, or directly when build.cmd
+  sets EI_COMPILER_CACHE_DIRECT (the folder has a .ninja_log). A cached object comes with the compiler output of the
+  checkout that compiled it first, so its /showIncludes lines name that checkout's headers. Ninja keeps those lines as
+  the object's dependencies, so a header changed here would have rebuilt nothing. The launcher changes every other
+  checkout's folder in the output to this one's. Python was too slow for this (0.2 s to start, per compile).
+- **Why only the first build:** sccache runs the preprocessor before every compile (its direct mode is for gcc and
+  clang only), about 0.5 s of CPU per object. That makes a miss slower than a plain compile.
+- **Off:** set `EI_COMPILER_CACHE=0` and cl runs without the launcher (the changed command lines rebuild everything
+  once). A server that cannot start makes sccache run cl itself (SCCACHE_IGNORE_SERVER_IO_ERROR).
+- **What the cache needs from the build (CMakeLists.txt):**
+  - **Debug information in each object (/Z7, CMP0141):** with /Zi every compile writes one shared PDB, which the cache
+    cannot store.
+  - **No precompiled header:** SDL's own is off (CMAKE_DISABLE_PRECOMPILE_HEADERS). Objects that use one are not
+    cached.
+  - **ei_game an object library:** its archive grew from 0.3 GB to 1.1 GB with /Z7. The archive was rewritten on every
+    change, which took 3-5 s; now there is none.
+- **Two configure savings that do not depend on the cache:** a fresh configure went from 11 s to 3 s.
+  - SDL's configure checks that MSVC for x64 always answers the same way are preseeded.
+  - FindPython is handed the `python` on the PATH, which saves its 2 s search.
+- **Sizes:** a /Z7 object holds its own copy of the types it uses, so a verify build's objects grow from 0.35 GB to
+  1.2 GB. With no ei_game archive, a verify or release build folder grows from 0.9 GB to 1.4 GB. ei-rebuild.exe stays
+  the same size, and ei-rebuild.pdb about the same (55-60 MB).
+- **Debugging:**
+  - The debugger resolves symbols and lines as before (checked with cdb). resolve_crash.py reads the .map, which is
+    unchanged.
+  - An object taken from the cache names the source path of the checkout that compiled it first, which may be another
+    worktree. If that worktree is gone, point the debugger at this checkout: WinDbg's `.srcpath` matches the path's
+    tail, and Visual Studio asks for the file once.
+  - Only a build folder's first build takes cached objects; anything compiled later names this checkout.
+
 ### The harness in the image
 
 The harness (tests/verify) is linked into ei-rebuild.exe in the verify and asan builds (EI_HARNESS), with its image side

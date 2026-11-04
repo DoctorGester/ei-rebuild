@@ -1,8 +1,14 @@
 cmake_minimum_required(VERSION 3.24)
+# MSVC's debug information inside each object (/Z7, CMAKE_MSVC_DEBUG_INFORMATION_FORMAT below) instead of one PDB per
+# target that every compile writes into (/Zi): the compiler cache (build.cmd, tools/compiler_cache.py) keeps such objects.
+if(POLICY CMP0141)
+    cmake_policy(SET CMP0141 NEW)
+endif()
 # Three systems: Windows with MSVC (build.cmd: the release and verify builds, x64), Linux with gcc or clang
 # (docs/notes/linux.md: the game on SDL3, POSIX and Vulkan) and macOS with Apple Clang (docs/notes/macos.md: SDL3,
 # POSIX and Metal). The offline checks against Windows' drawing and keys build on Windows.
 project(EvilIslands CXX)
+set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # MSVC's runtime linked statically (only MSVC reads it), set before SDL so that its library takes the same.
@@ -26,6 +32,19 @@ endforeach()
 set(SDL_GPU ON CACHE BOOL "" FORCE)
 set(SDL_VULKAN ON CACHE BOOL "" FORCE)
 set(SDL_STATIC ON CACHE BOOL "" FORCE)
+# SDL's configure checks whose results MSVC for x64 with the Windows 10 SDK always gives, taken as known (a check skips a
+# result already in the cache), as SDL's own SDL_PRESEED does for others: they took 6 s of each fresh configure.
+if(MSVC)
+    foreach(check SSE SSE2 SSE3 SSE4_1 SSE4_2 AVX AVX2 AVX512F)
+        set(COMPILER_SUPPORTS_${check} 1 CACHE INTERNAL "")
+    endforeach()
+    set(COMPILER_SUPPORTS_MMX "" CACHE INTERNAL "")
+    foreach(check LIBC_HAS__COPYSIGN LIBC_HAS__FSEEKI64 HAVE_DXGI1_5_H HAVE_DXGI1_6_H HAVE_MFAPI_H)
+        set(${check} 1 CACHE INTERNAL "")
+    endforeach()
+endif()
+# No precompiled header (SDL's own): the compiler cache does not keep objects compiled with one.
+set(CMAKE_DISABLE_PRECOMPILE_HEADERS ON)
 add_subdirectory(third_party/SDL EXCLUDE_FROM_ALL SYSTEM)
 
 # Every string inside the game is UTF-8 (docs/notes/standalone.md section 4, src/game/asset_text.h): asset, save and
@@ -72,10 +91,11 @@ else()
 endif()
 
 # The game code, with its sound (src/audio: our mixer on SDL3's audio device, the dr_wav / dr_mp3 decoders;
-# docs/notes/sound.md) and its movies (src/video: our Bink 1 decoder): a library linked whole (every object, as if
-# listed: the static objects' initialisers too), ahead of the renderer and the platform it calls.
+# docs/notes/sound.md) and its movies (src/video: our Bink 1 decoder): an object library, every object linked in (the
+# static objects' initialisers too) ahead of the renderer and the platform it calls. No archive of them: with the
+# debug information inside each object it was 1.1 GB, rewritten on every change.
 file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp src/audio/*.cpp src/video/*.cpp)
-add_library(ei_game STATIC ${EI_GAME_SOURCES})
+add_library(ei_game OBJECT ${EI_GAME_SOURCES})
 target_include_directories(ei_game PRIVATE src third_party)
 target_link_libraries(ei_game PUBLIC ei_render ei_platform PRIVATE SDL3::SDL3-static)
 
@@ -105,6 +125,11 @@ if(EI_PREBUILT_SHADERS)
     endforeach()
 else()
     include(tools/shader_toolchain/toolchain.cmake)
+    # On Windows the interpreter build.cmd runs (python on the PATH): FindPython's search of every PATH folder for every
+    # versioned name took 2 s of each fresh configure.
+    if(WIN32)
+        find_program(Python3_EXECUTABLE python)
+    endif()
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     file(GLOB EI_HLSL_PROGRAMS CONFIGURE_DEPENDS src/render/shaders/*.hlsl)
     file(GLOB EI_HLSL_SOURCES CONFIGURE_DEPENDS src/render/shaders/*.hlsl src/render/shaders/*.hlsli)
@@ -251,7 +276,7 @@ if(APPLE)
         MACOSX_BUNDLE_ICON_FILE ei-rebuild.icns)
 endif()
 target_include_directories(ei-rebuild PRIVATE src)
-target_link_libraries(ei-rebuild PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>")
+target_link_libraries(ei-rebuild PRIVATE ei_game)
 # The Rebirth install's profile, which an exe takes in a Rebirth folder (src/game/rebirth_profile.cpp):
 # config/rebirth_profile.ini's patches as a spec (rebirth::ApplySpec: none, then each name), written at configure time
 # into config/rebirth_profile.inc in the build folder.
@@ -349,7 +374,7 @@ else()
     add_executable(ei_render_check tests/port/render_check.cpp tests/render/glyph_cases.cpp ${EI_PROGRAM_SOURCES}
                    ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_render_check PRIVATE src tests ${CMAKE_BINARY_DIR})
-    target_link_libraries(ei_render_check PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,ei_game>" SDL3::SDL3-static)
+    target_link_libraries(ei_render_check PRIVATE ei_game SDL3::SDL3-static)
     if(NOT APPLE)
         find_package(X11 REQUIRED)
         target_link_libraries(ei_render_check PRIVATE X11::X11)
