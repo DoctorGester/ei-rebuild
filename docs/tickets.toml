@@ -7300,6 +7300,14 @@ files = ["src/render/shaders/terrain.hlsl", "src/render/render_water.cpp"]
 note = "Found in R17a (renderer.md, 'shaders/terrain.hlsl: the water'): the reflection is a sky in the fog's colour only (the game's sky mesh and the objects on the shore are not reflected) and the water receives no sun shadow, so glints show inside a shadow. Options: a screen-space reflection from the world pass's colour and depth copy (needs the frame's colour before the water pass, so a copy or a split of the scene pass), or a low-resolution reflected sky pass; take the shadow map's hidden term on the water to dim the glints and the reflection. Measure with render_water's scenes (R17a's frame GPU time kit: 0.07-0.95 ms for the water pass at 3840x2009 msaa 8)."
 
 [[ticket]]
+id = "R19a"
+title = "Lights carried by objects follow the drawn position"
+group = "renderer"
+model = "opus"
+depends = ["R19"]
+note = "Found 2026-11-04 (user asked). R19 draws objects between ticks (drawn::PoseOf), but every light a unit or object carries stays at its tick position, so it steps along behind the smoothly drawn unit: a party unit's night light and a quest light (MapObjectClientSpecific::CreateLight, moved each tick in map_object_companion.cpp ~line 106), spell and missile lights (spell_effect_update.cpp CreatePointLight with velocity), torches that move. The renderer reads light->localPosition in world_client_shadow_casters.cpp HandOverSceneLights (terrain + point lights), figure_part_draw.cpp g_partLights (mesh lighting), map_object_draw.cpp and map_object_shadow.cpp. Hand the renderer the light's drawn position (the owner's drawn pose plus the same offset, or the light's own position drawn between ticks the way R19 draws missiles) without touching light->localPosition, which the game reads. Client side only; goldens stay the same. Check: captures of a lit unit walking at night at 8 ms frames, the light's drawn step against the unit's."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
