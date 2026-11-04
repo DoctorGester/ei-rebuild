@@ -1,0 +1,93 @@
+# The peer of net_pair_lobby: on the connection screen it asks the host's address directly (the address box:
+# Ask pings it; the host's entry is then marked asked), forgets it (a listed server asked directly is forgotten by
+# the same button), asks again and leaves the screen (the address book is saved with the query), comes back (the
+# book is read: SetQueries lists the server from its saved reply) and joins by a double click on the host's row.
+timeout 180
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key p
+frames 3
+key e
+frames 3
+key e
+frames 3
+key r
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 mpconnect
+
+peerwait 90 hosted
+wait 4000
+netstate
+
+# Row 1 (found by the broadcast ping), the address box: the address as the row has it, Enter asks it.
+clickregion 15
+frames 5
+clickregion 3
+frames 10
+key enter
+frames 30
+wait 1500
+netstate
+expect state 1 kind 0
+
+# Asked directly now: the same button forgets it (Forget); the next refresh lists it again from the broadcast.
+clickregion 15
+frames 5
+clickregion 3
+frames 10
+wait 1500
+netstate
+
+# Asked again, then the sort columns, then Esc (the address book is saved with the query).
+clickregion 15
+frames 5
+clickregion 3
+frames 10
+key enter
+frames 30
+wait 1500
+clickregion 6
+frames 5
+clickregion 6
+frames 5
+clickregion 7
+frames 5
+clickregion 8
+frames 5
+clickregion 9
+frames 5
+key esc
+waitwindow 15 heroes
+frames 10
+clickregion 1
+frames 10
+waitwindow 15 mpconnect
+wait 1500
+netstate
+expect state 1 kind 0
+
+# Back: the book is read; the host's row, a double click joins.
+clickregion 15
+frames 5
+dblclickregion 15
+waitwindow 40 briefing
+peersignal joined
+frames 60
+netstate
+expect join state 2
+peersignal leaving
+frames 2
+report
+quit

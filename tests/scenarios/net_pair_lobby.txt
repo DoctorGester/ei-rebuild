@@ -1,0 +1,44 @@
+# H43g: the lobby's direct queries and the address book (a pair of games, harness_pair.h). This game hosts as
+# net_pair_join does and waits; the peer (peer/net_pair_lobby.txt) works the connection screen's address box on
+# it (ClientBase::Ask, Forget, MpConnectScreen::EditAddress, the address book file and its reload), then joins by a
+# double click on the row (MpConnectScreen::LeftDouble) and leaves.
+timeout 180
+peer net_pair_lobby
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key h
+frames 3
+key o
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 mpconnect
+
+clickregion 14
+frames 5
+clickregion 0
+waitwindow 25 briefing
+peersignal hosted
+
+peerwait 120 joined
+frames 60
+netstate
+expect the server has 2 connections
+peerwait 60 leaving
+frames 100
+report
+quit

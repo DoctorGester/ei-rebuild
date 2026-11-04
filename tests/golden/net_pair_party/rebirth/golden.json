@@ -1,0 +1,12 @@
+{
+  "scenario": "net_pair_party",
+  "install": "rebirth",
+  "recorded": "2026-11-04",
+  "commit": "f822583f5",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "net_pair_party runs on Rebirth's data (its vanilla / rebirth face clicks): first golden.",
+  "source": "image"
+}

@@ -1,0 +1,27 @@
+# H43h: the objectives window opened from the base screen (ui_briefing_input.cpp's OpenObjectives; ui_objectives is
+# the battle screen's). bz1g is a base zone with a quest of its allod held ("q.gz1g.q0g" = 1, the zone1 quest of
+# ui_objectives): the objectives key (TAB, action 4) lists the quests of the zone's allod and opens the window. OK
+# closes it. A second quest of another allod (gz2g's q.gz2g.q1g) is held too and is not the zone's, so the loop in
+# OpenObjectives passes it by.
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 40 IsUnitBlocked(GetLeader())
+zone bz1g 0
+waitzone 20 bz1g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @GSSetVar(0,"q.gz2g.q1g",1)
+console @GSSetVar(0,"q.gz1g.q0g",1)
+waitfor 5 IsEqual(GSGetVar(0,"q.gz1g.q0g"),1)
+waitwindow 15 briefing
+key tab
+waitwindow 10 objectives
+clickregion 4
+frames 5
+clickregion 0
+waitwindow 10 briefing
+check IsAlive(GetLeader())
+report
+quit

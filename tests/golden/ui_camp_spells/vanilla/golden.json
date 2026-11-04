@@ -1,0 +1,28 @@
+{
+  "scenario": "ui_camp_spells",
+  "install": "vanilla",
+  "recorded": "2026-11-04",
+  "commit": "f822583f5",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "ui_camp_spells opens the camp with trader class 3, the one with a spell trade page (class 1 left the item page on top and StockSpells unreached).",
+  "source": "image",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "digest: 8 of 15 records differ, first at record 7 (world update 160, tick 142, frame 31, zone gz1g); outcomes CHANGED: money, quest variables, party and items; no unit position differs",
+    "  first difference at record 7 (world update 160, tick 142, frame 31, zone gz1g): 8 fields",
+    "    random (random) isaac.count: 128 in the old golden, 91 in the new run (d 37)",
+    "    random (random) isaac.a: 0xBF01EE41 in the old golden, 0xAF371F0D in the new run",
+    "    random (random) isaac.b: 0xEC7AF5D6 in the old golden, 0x77EF5226 in the new run",
+    "    ... 5 more",
+    "  outcomes: CHANGED money, quest variables, party and items; same: zone, deaths, spawns, game result, script",
+    "    money: player0 money: 0 in the old golden, 5020250 in the new run, from record 14",
+    "    quest variables: 1 variables differ (constr.current); first from record 7: player0 constr.current: 1.0 in the old golden, 3.0 in the new run",
+    "    party and items: player0 partyItems: 3 in the old golden, 0 in the new run, from record 14",
+    "  random: 1 of 1 differ",
+    "    crt: 1 generator, 8 records, from 7; e.g. random crt.rand: 0x2777BA8B in the old golden, 0x35B00169 in the new run",
+    "... 5 more lines"
+  ]
+}

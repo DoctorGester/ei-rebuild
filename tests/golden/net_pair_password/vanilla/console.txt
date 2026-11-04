@@ -1,0 +1,2 @@
+  netstate: the server has 2 connections
+  netstate: the client's join state 2, 0 servers listed
