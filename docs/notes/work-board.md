@@ -93,3 +93,13 @@ jobs from launch to their task notification, and every build and test call. Find
 beyond image + Rebirth, more than three build calls, batches that queued over two minutes, scenarios averaging over
 40 s. Per-transcript results are cached in build/live/waits_cache.json. The coordinator looks at it after merges and
 acts on the largest avoidable wait (user 2026-11-04).
+
+The page picks its window (WB19): length buttons 6 h, 1 day, 3 days, 7 days, 30 days, Earlier / Later / Now (steps of one
+window length), kept in the URL hash as `#w-<length>-<steps back>` (`#w-7d-0`, `#w-1d-2`). `waits.json` therefore holds
+timestamped rows over the last 30 days (about 1.3 MB): per worker its times, fg/bg seconds per kind and its build and
+test calls; per submitted batch [id, ticket, submitted, queue, run, games, retries, args]; game time per hour, and per
+hour for the 100 slowest standalone scenarios (the slowest table lists 25). waits.html totals a window client-side
+(the block between its `the model` markers); `worker_waits.view()` is the same computation for `--print [--window-days N]`,
+and tools/test_waits.py checks the two against each other (node) and that adjacent windows partition the rows. Window
+edges are whole hours; a worker belongs to the window where it finished (or still runs), a batch to where it was
+submitted, game time to the hour it was played.
