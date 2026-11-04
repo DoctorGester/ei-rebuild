@@ -7812,3 +7812,11 @@ model = "sonnet"
 depends = ["PL20a"]
 files = ["src/game/ui_global_map_input.cpp", "ui_camera_input.cpp", "other drag handlers"]
 note = "User 2026-11-03: in general controls should be window size independent, so the global map needs fixing as well. PL20a made the battle camera's turn, tilt and pan per mouse count fixed (kLayoutPerCount = 800/2880, calibrated to the user's 4K at 200%: width43 2880). GlobalMap::MouseMove still scales the drag to the window. Do the same there (same calibration, so 4K at 200% feels unchanged), then sweep for other controls whose response per mouse count or wheel step scales with the window (scroll bars dragged by motion rather than position, the briefing / village camera, the wheel zoom, edge-scroll speed if it uses pixels) and fix those the same way; pointing and clicking at positions stay as they are (positions must scale). List what you checked. Share one constant/helper with ui_camera_input.cpp rather than a second copy. Measure two window sizes with EI_CAMERA_TRACE or the scenario's own checks. Goldens the same, or re-record only drag scenarios with --reason."
+
+[[ticket]]
+id = "PL19a"
+title = "macOS app: find the game folder without EI_GAME_ROOT, log outside the bundle"
+group = "port"
+depends = ["PL19"]
+files = ["src/main.cpp", "src/platform/log.cpp", "src/platform/posix/platform_posix.cpp", ".github/workflows/release.yml", "docs/notes/macos.md"]
+note = "From PL19. A double-clicked ei-rebuild.app looks for the game data beside its executable (Contents/MacOS) and writes ei-rebuild.log there, so the release's README has players start it from Terminal with EI_GAME_ROOT. Pick one uniform rule for Apple: the folder holding the .app when it holds the game's data, else a folder picker (SDL_ShowOpenFolderDialog; SDL_DIALOG is off now) remembered in ~/Library/Application Support/ei-rebuild; the log in ~/Library/Logs/ei-rebuild (or the game folder). A quarantined app runs translocated (a read-only random path), so beside-the-.app works only after xattr -dr. Update the zip's README.txt and macos.md. Touches main.cpp (every system): build verify + release and --golden."

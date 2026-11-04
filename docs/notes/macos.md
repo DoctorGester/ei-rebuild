@@ -26,6 +26,31 @@ The configure step builds the shader toolchain once (shadercross and spirv-cross
 tools/shader_toolchain), as on the other systems. The result is `build/macos/ei-rebuild.app/Contents/MacOS/ei-rebuild`
 (CMakeLists.txt makes ei-rebuild a bundle on Apple).
 
+## Release
+
+release.yml's `macos` job (beside Windows and Linux; Actions > Release > Run workflow) builds on GitHub's arm64
+`macos-15` runner: pip's cmake 3.31 and ninja, DXC copied out of the LunarG Vulkan SDK (`VULKAN_SDK_VERSION`,
+installed with its installer's command line, then only `lib/libdxcompiler*.dylib` and `include/dxc` kept in
+`~/dxc-macos`, cached by the version and named by `-DEI_DXC_ROOT`), and the shader toolchain cached as in linux.yml.
+The build is Release, universal (`-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"`: one configure, SDL3 builds both
+slices; the shader toolchain stays the runner's arm64) for macOS 13.3 and later (`-DCMAKE_OSX_DEPLOYMENT_TARGET`;
+Apple's libc++ has float `std::to_chars`, which settings_document.cpp and std::format's floats use, from 13.3). Then
+ctest's four checks, the x86_64 slice's `ei_port_check` under Rosetta where the runner has it, a check that the
+executable has both slices and links only system libraries, the release's version into Info.plist, an ad-hoc
+signature (`codesign -s -`: arm64 code must carry one) and `ei-rebuild-macos.zip` (ditto) with the app, a README.txt
+and third_party_notices.txt.
+
+The app is not Developer ID signed or notarised (that needs an Apple Developer account: the user's call), so a
+downloaded copy is quarantined and Gatekeeper refuses it: `xattr -dr com.apple.quarantine ei-rebuild.app` once, or
+Control-click > Open (macOS 15 and later: open it once, then System Settings > Privacy & Security > Open Anyway). It
+does not find the game folder by itself yet: started without `EI_GAME_ROOT` it looks beside its executable, inside
+the bundle, and its log goes there too, so the README says to start
+`EI_GAME_ROOT=... ./ei-rebuild.app/Contents/MacOS/ei-rebuild` from Terminal.
+
+Not run yet (2026-11-04): the job as a whole. Its weakest guesses are the Vulkan SDK's download name and installer
+command line, ctest's GPU checks on the runner's virtual Metal device, and a universal Release build at 13.3 (the
+Mac builds so far were the user's arm64 RelWithDebInfo at the SDK's own target).
+
 ## Run
 
 For normal play, from the repository:

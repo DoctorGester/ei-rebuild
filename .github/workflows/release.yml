@@ -1,7 +1,8 @@
 # Release: run by hand (Actions > Release > Run workflow) with a version such as v0.1.0. It builds ei-rebuild.exe for
-# x64 (build.cmd release, the build checks included) and the Linux build (ei-rebuild-linux-x64.tar.gz: built in an
-# Ubuntu 22.04 container for an old glibc, its port checks run), then tags the chosen commit, pushes the tag and
-# publishes a GitHub release with both. The goldens need the game's data and are not run here.
+# x64 (build.cmd release, the build checks included), the Linux build (ei-rebuild-linux-x64.tar.gz: built in an
+# Ubuntu 22.04 container for an old glibc, its port checks run) and the macOS app (ei-rebuild-macos.zip: a universal
+# arm64 + x86_64 ei-rebuild.app, ad-hoc signed only, its port checks run), then tags the chosen commit, pushes the tag
+# and publishes a GitHub release with the three. The goldens need the game's data and are not run here.
 name: Release
 
 on:
@@ -143,8 +144,124 @@ jobs:
           path: dist/ei-rebuild-linux-x64.tar.gz
           if-no-files-found: error
 
+  # macOS (docs/notes/macos.md): Apple Clang on GitHub's arm64 runner builds one universal ei-rebuild.app, its arm64
+  # and x86_64 slices from one configure (CMAKE_OSX_ARCHITECTURES; the vendored SDL3 builds both). Deployment target
+  # 13.3: Apple's libc++ has float std::to_chars (settings_document.cpp, std::format's floats) from 13.3 on. DXC for the
+  # shader toolchain is the LunarG Vulkan SDK's (Microsoft ships no macOS DXC): its libdxcompiler.dylib and headers
+  # are copied out of the installed SDK into ~/dxc-macos, cached by the SDK's version, and named by EI_DXC_ROOT. The
+  # app is ad-hoc signed (codesign -s -: arm64 code must carry a signature) but neither Developer ID signed nor
+  # notarised, so Gatekeeper refuses it until the quarantine flag is cleared (the zip's README.txt, the release notes).
+  macos:
+    needs: version
+    runs-on: macos-15
+    env:
+      VULKAN_SDK_VERSION: 1.4.363.1
+      MACOSX_TARGET: "13.3"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      # cmake 3.31 as in the Linux job, and ninja, from pip.
+      - name: Tools
+        run: pip install cmake==3.31.6 ninja
+      - name: DXC cache
+        id: dxc-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/dxc-macos
+          key: dxc-macos-${{ env.VULKAN_SDK_VERSION }}
+      - name: DXC from the Vulkan SDK
+        if: steps.dxc-cache.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/vulkansdk.zip" \
+            "https://sdk.lunarg.com/sdk/download/$VULKAN_SDK_VERSION/mac/vulkansdk-macos-$VULKAN_SDK_VERSION.zip"
+          echo "Vulkan SDK $VULKAN_SDK_VERSION: sha256 $(shasum -a 256 "$RUNNER_TEMP/vulkansdk.zip" | cut -d' ' -f1)" \
+            | tee -a $GITHUB_STEP_SUMMARY
+          unzip -q "$RUNNER_TEMP/vulkansdk.zip" -d "$RUNNER_TEMP/vulkansdk"
+          set -- "$RUNNER_TEMP"/vulkansdk/*.app/Contents/MacOS/*
+          sudo "$1" --root "$RUNNER_TEMP/VulkanSDK" --accept-licenses --default-answer --confirm-command install
+          sdk="$RUNNER_TEMP/VulkanSDK/macOS"
+          mkdir -p ~/dxc-macos/lib ~/dxc-macos/include
+          cp -a "$sdk"/lib/libdxcompiler*.dylib ~/dxc-macos/lib/
+          cp -a "$sdk/include/dxc" ~/dxc-macos/include/
+          test -f ~/dxc-macos/include/dxc/dxcapi.h
+          test -f ~/dxc-macos/lib/libdxcompiler.dylib
+          otool -L ~/dxc-macos/lib/libdxcompiler.dylib
+      # The shader toolchain (shadercross, spirv-cross: tools/shader_toolchain), built at configure time for the
+      # runner's own arm64, by its pins, cached as in linux.yml.
+      - name: Shader toolchain cache
+        uses: actions/cache@v5
+        with:
+          path: build/third_party
+          key: shader-toolchain-${{ runner.os }}-${{ runner.arch }}-${{ env.VULKAN_SDK_VERSION }}-${{ hashFiles('tools/shader_toolchain/**') }}
+      - name: Build
+        run: |
+          cmake -S . -B build/macos -G Ninja -DCMAKE_BUILD_TYPE=Release "-DEI_DXC_ROOT=$HOME/dxc-macos" \
+            "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64" "-DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOSX_TARGET"
+          cmake --build build/macos
+      - name: Checks
+        run: |
+          ctest --test-dir build/macos --output-on-failure
+          # The x86_64 slice's platform checks under Rosetta, where the runner has it.
+          if arch -x86_64 /usr/bin/true 2>/dev/null; then
+            (cd build/macos && arch -x86_64 ./ei_port_check)
+          else
+            echo "No Rosetta on the runner: the x86_64 slice's checks were not run" | tee -a $GITHUB_STEP_SUMMARY
+          fi
+      - name: Package
+        run: |
+          app=build/macos/ei-rebuild.app
+          exe=$app/Contents/MacOS/ei-rebuild
+          archs=$(lipo -archs $exe)
+          case " $archs " in *" arm64 "*" x86_64 "*|*" x86_64 "*" arm64 "*) ;; *) echo "not universal: $archs"; exit 1;; esac
+          # otool's library lines start with a tab, its "(architecture ...)" headers do not.
+          if otool -L $exe | grep -E '^[[:space:]]' | grep -v -E '^[[:space:]]*(/System/Library/|/usr/lib/)'; then
+            echo "ei-rebuild links a library outside the system"; exit 1
+          fi
+          version="${{ inputs.version }}"
+          plutil -replace CFBundleShortVersionString -string "${version#v}" $app/Contents/Info.plist
+          plutil -replace CFBundleVersion -string "${version#v}" $app/Contents/Info.plist
+          codesign --force --deep --sign - $app
+          codesign --verify --deep --strict $app
+          echo "ei-rebuild.app: $archs, macOS $MACOSX_TARGET or newer" | tee -a $GITHUB_STEP_SUMMARY
+          mkdir -p dist/ei-rebuild-macos
+          cp -R $app build/macos/third_party_notices.txt dist/ei-rebuild-macos/
+          cat > dist/ei-rebuild-macos/README.txt <<EOF
+          Evil Islands rebuild ${{ inputs.version }} for macOS (Apple silicon and Intel, macOS $MACOSX_TARGET or newer)
+
+          ei-rebuild.app plays an installed Evil Islands 1.06 (the GOG or the Rebirth edition, its folder copied from
+          a Windows install); the game's data is not in this archive.
+
+          The app is not signed with an Apple Developer ID nor notarised, so macOS refuses to open it as downloaded.
+          Clear the download's quarantine flag once, in Terminal in this folder:
+
+              xattr -dr com.apple.quarantine ei-rebuild.app
+
+          (or Control-click the app > Open and confirm; on macOS 15 and later open it once, then System Settings >
+          Privacy & Security > Open Anyway).
+
+          The app does not ask for the game folder yet: start it from Terminal with the folder named:
+
+              EI_GAME_ROOT="/path/to/Evil Islands" ./ei-rebuild.app/Contents/MacOS/ei-rebuild
+
+          The settings are the game folder's ei_settings.ini (EI_SETTINGS_PATH names another file) and the game
+          writes its saves there, so use a copy of the install if you want the original kept as it is. The log is
+          ei-rebuild.log beside the program, in ei-rebuild.app/Contents/MacOS (EI_OUT_DIR names another folder).
+
+          third_party_notices.txt holds the licences of the code and fonts built in.
+          EOF
+          ditto -c -k --keepParent dist/ei-rebuild-macos dist/ei-rebuild-macos.zip
+      - uses: actions/upload-artifact@v6
+        with:
+          name: macos
+          path: dist/ei-rebuild-macos.zip
+          if-no-files-found: error
+
   publish:
-    needs: [windows, linux]
+    needs: [windows, linux, macos]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
@@ -167,5 +284,14 @@ jobs:
         run: |
           flags=""
           if [ "${{ inputs.prerelease }}" = "true" ]; then flags="--prerelease"; fi
+          # The downloads' notes, above GitHub's generated list of changes.
+          cat > notes.md <<'EOF'
+          - **Windows** (x64): `ei-rebuild.exe`, copied into the game folder (GOG or Rebirth, 1.06).
+          - **Linux** (x86-64): `ei-rebuild-linux-x64.tar.gz`; its README.txt says how to name the game folder.
+          - **macOS** (Apple silicon and Intel): `ei-rebuild-macos.zip`, an app neither Developer ID signed nor
+            notarised: clear the quarantine flag once (`xattr -dr com.apple.quarantine ei-rebuild.app`, or
+            Control-click > Open; on macOS 15 and later System Settings > Privacy & Security > Open Anyway), then
+            start it with the game folder named; its README.txt has the commands.
+          EOF
           gh release create "${{ inputs.version }}" dist/ei-rebuild.exe dist/ei-rebuild-linux-x64.tar.gz \
-            --title "${{ inputs.version }}" --generate-notes $flags
+            dist/ei-rebuild-macos.zip --title "${{ inputs.version }}" --notes-file notes.md --generate-notes $flags
