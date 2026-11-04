@@ -229,11 +229,6 @@ bool MapObject::ReadState(bool update, MemoryStream* reader) {
     return complete;
 }
 
-std::string* MapObject::SetSecondName(const char* text) {
-    name2 = text;
-    return &name2;
-}
-
 // --- The virtuals a plain object answers -------------------------------------------------------------------
 
 bool MapObject::InvisibleSlot() { return lib::Has(flags, MapObjectFlag::Invisible); }

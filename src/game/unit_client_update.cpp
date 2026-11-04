@@ -88,7 +88,7 @@ bool UnitClientSpecific::RunTick() {
         fadeIn = MinKeepA(next, 1.0f);   // the select keeps a NaN
     }
     if (flashCountdown > 0 && --flashCountdown == 0)
-        unit->AsObject3D()->ClientSpecific()->SetMaterialsLit(false);
+        unit->AsObject3D()->ClientSpecific()->SetLit(false);
 
     if (blinks) {
         if (blinkTimer > 0) {

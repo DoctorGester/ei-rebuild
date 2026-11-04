@@ -84,8 +84,8 @@ void MorphOldPacket(VertexPacket& packet, const char** cursor, float s, float t,
 } // namespace
 
 
-LinkMesh::LinkMesh(LinkFigureLoader* newLoader, const std::string* newName, float s, float t, float u)
-    : name(*newName) {
+LinkMesh::LinkMesh(LinkFigureLoader* newLoader, std::string_view newName, float s, float t, float u)
+    : name(newName) {
     morphWeights[0] = s;
     morphWeights[1] = t;
     morphWeights[2] = u;
@@ -96,12 +96,12 @@ LinkMesh::~LinkMesh() {
     render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the renderer keeps
 }
 
-bool LinkMesh::AddPart(const std::string* newName, std::span<const VertexPacket> newVertices,
+bool LinkMesh::AddPart(const std::string& newName, std::span<const VertexPacket> newVertices,
                        std::span<const NormalPacket> newNormals, std::span<const TexCoord> newTexCoords,
                        std::span<const MeshCorner> newCorners, std::span<const std::uint32_t> newWords,
                        std::span<const std::uint16_t> newIndices) {
     render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the renderer keeps
-    if (ranges.find(*newName) != ranges.end()) return false;
+    if (ranges.find(newName) != ranges.end()) return false;
 
     LinkPartRanges newRanges{};
     newRanges.vertices = Append(vertices, newVertices);
@@ -112,15 +112,15 @@ bool LinkMesh::AddPart(const std::string* newName, std::span<const VertexPacket>
     newRanges.words = Append(words, newWords);
     newRanges.indices = Append(indices, newIndices);
 
-    ranges[*newName] = newRanges;
+    ranges[newName] = newRanges;
     return true;
 }
 
 // ---- Part loaders ---------------------------------------------------------------------------------
 
-void LinkFigureLoader::LoadFigPart(LinkMesh* mesh, const std::string* name, const char** cursor, float s, float t,
+void LinkFigureLoader::LoadFigPart(LinkMesh* mesh, const std::string& name, const char** cursor, float s, float t,
                                     float u) {
-    LinkPartHeader* header = &mesh->headers[*name];
+    LinkPartHeader* header = &mesh->headers[name];
     FigHeader figHeader = Read<FigHeader>(cursor);
     header->materialValue = Read<std::uint32_t>(cursor);
     header->meshType = Read<std::uint32_t>(cursor);
@@ -156,9 +156,9 @@ void LinkFigureLoader::LoadFigPart(LinkMesh* mesh, const std::string* name, cons
                   FileArray<std::uint16_t>(indices, figHeader.indexCount));
 }
 
-void LinkFigureLoader::LoadOldPart(LinkMesh* mesh, const std::string* name, const char** cursor, float s, float t,
+void LinkFigureLoader::LoadOldPart(LinkMesh* mesh, const std::string& name, const char** cursor, float s, float t,
                                     float u) {
-    LinkPartHeader* header = &mesh->headers[*name];
+    LinkPartHeader* header = &mesh->headers[name];
     header->materialValue = Read<std::uint32_t>(cursor);
     header->meshType = Read<std::uint32_t>(cursor);
     *cursor += fig::BoundsBytes(fig::kOldVersions);   // the morphed bounds
@@ -194,9 +194,9 @@ void LinkFigureLoader::LoadOldPart(LinkMesh* mesh, const std::string* name, cons
 
 // ---- Morphing a loaded part again -----------------------------------------------------------------
 
-void LinkFigureLoader::RemorphFigPart(LinkMesh* mesh, const std::string* name, const char** cursor, float s,
+void LinkFigureLoader::RemorphFigPart(LinkMesh* mesh, const std::string& name, const char** cursor, float s,
                                        float t, float u) {
-    LinkPartHeader* header = &mesh->headers[*name];
+    LinkPartHeader* header = &mesh->headers[name];
     FigHeader figHeader;
     lib::LoadBytes(figHeader, *cursor);
     // The header, two dwords and the FIG8 bounds (a plain FIG is read as FIG8 too).
@@ -208,9 +208,9 @@ void LinkFigureLoader::RemorphFigPart(LinkMesh* mesh, const std::string* name, c
     mesh->SetPartVertices(name, packets.data(), static_cast<unsigned>(count));
 }
 
-void LinkFigureLoader::RemorphOldPart(LinkMesh* mesh, const std::string* name, const char** cursor, float s,
+void LinkFigureLoader::RemorphOldPart(LinkMesh* mesh, const std::string& name, const char** cursor, float s,
                                        float t, float u) {
-    LinkPartHeader* header = &mesh->headers[*name];
+    LinkPartHeader* header = &mesh->headers[name];
     *cursor += fig::kMeshWordsBytes + fig::BoundsBytes(fig::kOldVersions);   // two dwords and the morphed bounds
     int count = Read<int>(cursor);
     std::vector<VertexPacket> packets(static_cast<std::size_t>(count));
@@ -219,8 +219,8 @@ void LinkFigureLoader::RemorphOldPart(LinkMesh* mesh, const std::string* name, c
     mesh->SetPartVertices(name, packets.data(), static_cast<unsigned>(count));
 }
 
-bool LinkMesh::SetPartVertices(const std::string* newName, const VertexPacket* newVertices, unsigned count) {
-    auto node = ranges.find(*newName);
+bool LinkMesh::SetPartVertices(std::string_view newName, const VertexPacket* newVertices, unsigned count) {
+    auto node = ranges.find(newName);
     if (node == ranges.end()) return false;
     const LinkPartRanges& r = node->second;
     unsigned n = static_cast<unsigned>(r.vertices.count) < count ? static_cast<unsigned>(r.vertices.count) : count;
@@ -237,7 +237,7 @@ void LinkMesh::SetMorph(float s, float t, float u) {
     morphWeights[2] = u;
 }
 
-bool LinkMesh::HasPart(const std::string* partName) { return ranges.find(*partName) != ranges.end(); }
+bool LinkMesh::HasPart(std::string_view partName) { return ranges.find(partName) != ranges.end(); }
 
 std::vector<std::string> LinkMesh::PartNames() {
     std::vector<std::string> names;
@@ -245,11 +245,9 @@ std::vector<std::string> LinkMesh::PartNames() {
     return names;
 }
 
-bool LinkMesh::LoadPart(const std::string* newName) { return loader->LoadPartInto(this, newName); }
-
-bool LinkMesh::GetPartData(const std::string* partName, VertexPacket** outVertices, MeshCorner** outCorners,
+bool LinkMesh::GetPartData(std::string_view partName, VertexPacket** outVertices, MeshCorner** outCorners,
                             std::uint16_t** outIndices, int* vertexCount, int* indexCount) {
-    auto node = ranges.find(*partName);
+    auto node = ranges.find(partName);
     if (node == ranges.end()) return false;
     const LinkPartRanges& r = node->second;
     *outVertices = vertices.data() + r.vertices.start;

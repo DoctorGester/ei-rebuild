@@ -26,11 +26,7 @@ bool IsTextKey(int id) {
 }
 
 float NamedFloatTable::Get(std::string_view name) {
-    const_iterator node;
-    {
-        std::string key(name);
-        node = find(key);
-    }
+    const auto node = find(std::string(name));
     return node != end() ? node->second : 0.0f;
 }
 
@@ -44,10 +40,7 @@ void NamedFloatTable::Set(std::string_view name, float value) {
     (*this)[key] = value;
 }
 
-void NamedFloatTable::Remove(std::string_view name) {
-    std::string key(name);
-    erase(key);
-}
+void NamedFloatTable::Remove(std::string_view name) { erase(std::string(name)); }
 
 void NamedFloatTable::CopyPrefixed(std::string_view prefix, NamedFloatTable* out) {
     out->clear();

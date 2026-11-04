@@ -56,7 +56,7 @@ void ObjectWorldMatrix(const Quaternion* orientation, const Vector3& position, M
     out->m[15] = 1.0f;
 }
 
-int Object3DClientSpecific::Draw(SceneRenderer* context, Rect* dirty) {
+int Object3DClientSpecific::DrawParts(SceneRenderer* context, Rect* dirty) {
     if (object->flags & MapObjectFlag::NotDrawn) return 1;
     bool anyDrawn = false;
     TransformPipeline* pipeline = context->pipeline;

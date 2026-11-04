@@ -145,8 +145,8 @@ public:
     // Save: the same fields (names with their terminators; the base scale always).
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
-    // An object of type SideObjectType::MapObject becomes the companion (AttachObject sets its owner); null and others go to Object3D's (which
-    // takes SideObjectType::Object3D). Units override it.
+    // An object of type SideObjectType::MapObject becomes the companion (SetCompanion); null and others go to
+    // Object3D's (which takes SideObjectType::Object3D). Units override it.
     void AttachObject(EngineObject* object) override;
     bool InvisibleSlot() override;
     // Resets the scale and grows or shrinks it by 0.4 per net level of enlarge/shrink (x, y, z) or, without
@@ -256,7 +256,6 @@ public:
     void WriteChangedState();
     // The network state read from `reader`: BeginRead, ReadNetState with `first`, the state finished.
     bool ReadState(bool update, MemoryStream* reader);
-    std::string* SetSecondName(const char* text);
 
     Object3D* AsObject3D() { return this; }
 

@@ -91,13 +91,7 @@ void Object3D::SetFigureScale(const Vector3& newScale) {
         figure.Assign(rebuilt);
         for (int i = 0; i < std::ssize(parts); ++i) {
             FigureMesh* part = parts[i];
-            const char* pieceName = part->GetName();
-            std::map<std::string, LinkPartHeader>::const_iterator piece;
-            {
-                std::string key(pieceName);
-                piece = figure->headers.find(key);
-            }
-            part = parts[i];
+            auto piece = figure->headers.find(std::string_view(part->GetName()));
             const ClipBounds& fitted = piece->second.box.bounds;
             part->box.bounds.center = fitted.center;
             part->box.bounds.boxMin = fitted.boxMin;
@@ -111,10 +105,7 @@ void Object3D::SetFigureScale(const Vector3& newScale) {
 
 void Object3D::LoadFigures() {
     if (flags & MapObjectFlag::FiguresLoaded) return;
-    {
-        std::string key(name);
-        FigureManagerOf(this)->FindModel(&key);
-    }
+    FigureManagerOf(this)->FindModel(name);
     if (GetClassId() != ClassId::Unit) {
         for (int i = 0; i < std::ssize(parts); ++i) parts[i]->flags |= FigureMeshFlag::Stationary;
         flags |= MapObjectFlag::Stationary;
@@ -190,9 +181,6 @@ void Object3D::RemoveEffectSource(ParticleSource* source) {
 
 // --- Virtuals shared by every map object: the world rotation, copying a figure, the side half, the effect
 // sources and the drawing slots.
-
-// The same body as the base's.
-void Object3D::CombineRotation(const Quaternion& parent) { TransformObject::CombineRotation(parent); }
 
 void Object3D::RemoveAllEffectSources() {
     while (!effectSources.empty()) RemoveEffectSource(effectSources.front());
@@ -360,11 +348,7 @@ void Object3D::SetUpAnimatedFigure(std::string_view model) {
         partBoxes.resize(count);   // new boxes are all zero; the old ones are kept
         partNames.resize(animation->bones.size());
 
-        FigureModel* figureModel;
-        {
-            std::string modelName(model);
-            figureModel = manager->FindModel(&modelName);
-        }
+        FigureModel* figureModel = manager->FindModel(model);
         int index = 0;
         for (FigureBone* bone : animation->bones) {
             FootprintPart* box = &partBoxes[index];
@@ -445,16 +429,11 @@ FigureMesh* Object3D::LoadPart(std::string_view partName) {
     }
     if (LinkMesh* current = figure) {
         // The figure gets the piece (it loads it unless it has it).
-        bool loaded;
-        {
-            std::string key(partName);
-            loaded = current->LoadPart(&key);
-        }
-        if (!loaded) {
+        if (!current->loader->LoadPartInto(current, std::string(partName))) {
             manager->ReleaseObject(part);
             return nullptr;
         }
-        const LinkPartHeader& piece = current->headers.find(std::string(partName))->second;
+        const LinkPartHeader& piece = current->headers.find(partName)->second;
         part->materialValue = piece.materialValue;
         part->meshType = piece.meshType;
         // The box and the pivot.
@@ -480,15 +459,12 @@ FigureMesh* Object3D::LoadPart(std::string_view partName) {
     return part;
 }
 
-int Object3D::LoadParts(std::string_view model, const std::vector<std::string>* names) {
+int Object3D::LoadParts(std::string_view model, const std::vector<std::string>& names) {
     FigureManager* manager = FigureManagerOf(this);
     name = model;
     if (!manager) return game::FatalError(kNoFigureManager);
-    {
-        std::string key(model);
-        manager->FindModel(&key);   // loads and caches the model
-    }
-    for (const std::string& part : *names) {
+    manager->FindModel(model);   // loads and caches the model
+    for (const std::string& part : names) {
         if (!LoadPart(part)) game::DebugLog(kCantCreatePart, name, part);
     }
     return 1;
@@ -502,21 +478,14 @@ void Object3D::MakeFigure(std::string_view model, std::vector<std::string>* name
         animation->Rescale(scale.x, scale.y, scale.z);
         animation->SetModel(model);
     }
+    LinkFigureLoader* loader = GetManagerContext()->FigureLoader();
     if (names->empty() && animation) {
         *names = animation->BoneNames();
-        std::string key(model);
-        LinkMesh* made = GetManagerContext()->FigureLoader()->LoadLink(&key, scale.x, scale.y, scale.z);
-        figure.Assign(made);
+        figure.Assign(loader->LoadLink(model, scale.x, scale.y, scale.z));
     } else {
-        // The piece names as the loader's LoadFigure reads them.
-        std::vector<std::string> pieces = *names;
-        {
-            std::string key(model);
-            LinkMesh* made = GetManagerContext()->FigureLoader()->LoadFigure(&key, &pieces, scale.x, scale.y, scale.z);
-            figure.Assign(made);
-        }
+        figure.Assign(loader->LoadFigure(model, *names, scale.x, scale.y, scale.z));
     }
-    LoadParts(model, names);
+    LoadParts(model, *names);
     ClassId classId = GetClassId();
     if ((classId == ClassId::Building || GetClassId() == ClassId::Unit) && animation) {
         animation->Play(nullptr);

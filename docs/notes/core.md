@@ -50,8 +50,9 @@ check (`app.md`).
   so a reallocation takes and drops none). `HeldRef::Take()` hands a reference on without releasing (the shared
   objects' items given at loot: the original leaked them).
 - Ids in saves: `SaveRef(object, stream)` writes the id (-1: none), `LoadRef(ref, stream, world)` looks it up.
-- Object3D's `parts` hold references the original never releases through the vector (Destroy3D forgets each); the code
-  keeps that.
+- A side half is held by its owner's Ref and points back at it; one setter per owner swaps it (`Object3D::SetHalf`,
+  `MapObject::SetCompanion`, `Object3D::SetAnimationState`, `FigureMesh::SetDrawer`): the old half's back pointer
+  is cleared before its release, the new one's set after it is taken.
 
 ## Object manager
 

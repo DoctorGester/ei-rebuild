@@ -181,13 +181,12 @@ void MainMenu::MessageResult(std::uint32_t result) {
 void MainMenu::MouseMove(Point point) {
     if (auto* stones = g_clientWorld.objectManager->FindObjectAs<Object3D>(kStonesObject)) {
         int region = RegionAt(point);
-        std::string name(stones->name);
         if (region != hovered) {
             FigureAnimation* animation;
             if (region >= 0 && region < 6)
                 animation = stones->FindSkillAnimation(kStoneAnimation[region]);
             else
-                animation = g_clientWorld.objectManager->FindAnimation(&name, kRestPoseKind);
+                animation = g_clientWorld.objectManager->FindAnimation(stones->name, kRestPoseKind);
             stones->PlayAnimation(animation);
             ui->PlayInterfaceSound(kStoneSound);
         }

@@ -244,9 +244,6 @@ public:
     ~Object3DSpecific() override;
 
     virtual int OnPartAdded(FigureMesh* part) = 0;   // server: 0
-    // (name): the client takes the part named (FindPart) out of the drawn part sets and releases it; returns it
-    // or null. The server returns null.
-    virtual FigureMesh* RemoveFromPartSets(const char* name) = 0;
     virtual int OnPartRemoved(FigureMesh* part) = 0;      // server: 0
     virtual FigureMesh* FindPart(std::string_view name) = 0;   // a part by name (client); server: null
     virtual FigureMesh* FindPartOfType(int type) = 0;     // a part by type (client); server: null
@@ -279,7 +276,6 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
     int OnPartAdded(FigureMesh* part) override;
-    FigureMesh* RemoveFromPartSets(const char* name) override;
     int OnPartRemoved(FigureMesh* part) override;
     FigureMesh* FindPart(std::string_view name) override;
     FigureMesh* FindPartOfType(int type) override;
@@ -293,9 +289,9 @@ struct FigureBone : EngineObject {
     std::string modelName;                 // the figure's model name (LinkBone)
     FigureBone* parent;                     // null for the root
     std::vector<FigureBone*> children;
-    FigureMesh* mesh;                      // the part the bone places, or null
+    Ref<FigureMesh> mesh;                   // the part the bone places, or null
     AnimationTrack* pose;                   // the animator whose values place the bone
-    AnimationTrack* animator;               // counted, made on first use; Play copies it to `pose`
+    Ref<AnimationTrack> animator;           // made on first use; Play copies it to `pose`
     Vector3 offset;                         // the place relative to the parent
     float morphS;                           // the figure's morph coefficients
     float morphT;
@@ -318,14 +314,13 @@ struct FigureBone : EngineObject {
     FigureBone();
     ~FigureBone() override;
 
+    // The names "none"; no parent, children, mesh, animator or pose; the default place.
     void Create() override;
+    // The mesh and the animator released, then Create.
     void Destroy() override;
     const char* GetName() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
-
-    void CreateBone();
-    void DestroyBone();
 
     // Places this bone and, recursively, its children: a child turns its offset by the parent's
     // rotation ((w^2 - u.u) o + 2w (u x o) + 2 (u.o) u, the scaled terms rounded) onto the parent's position and
@@ -360,11 +355,11 @@ public:
     ~FigureAnimationState() override;
 
     void Create() override;
+    // The bones released, then Reset.
     void Destroy() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    void DestroyState();
     void ReleaseBones();
     void Reset();
     // The first bone named `boneName` (_mbscmp), or null.
@@ -448,8 +443,6 @@ public:
     // The figure, the effect sources, the animation state, the parts and the side half let go.
     void Destroy() override;
     void ClearState() override { RemoveAllEffectSources(); }
-    // worldRotation = parent * localRotation.
-    void CombineRotation(const Quaternion& parent) override;
     // Whether the object may play the animation entry (FigureAnimation); any here, Unit overrides it.
     virtual bool AcceptsAnimation(const FigureAnimation* animation);
     // A side half (SideObjectType::Object3D) becomes the attached one (SetHalf); other objects (and null) are
@@ -525,7 +518,7 @@ public:
     FigureMesh* LoadPart(std::string_view partName);
     // The object's figure becomes `model` and each name of `partList` is loaded by LoadPart
     // (failures logged). Without a figure manager: FatalError. Returns 1.
-    int LoadParts(std::string_view model, const std::vector<std::string>* partList);
+    int LoadParts(std::string_view model, const std::vector<std::string>& partList);
     // When a unit becomes the controlled one (world client): with the figure loaded (flags 0x80) the parts'
     // world transforms are updated and the bounds recomputed from their world boxes.
     void UpdatePartBounds();

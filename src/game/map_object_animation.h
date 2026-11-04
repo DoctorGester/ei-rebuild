@@ -29,7 +29,9 @@ struct AnimationTrack : EngineObject {
     AnimationTrack();
     ~AnimationTrack() override;
 
-    void Create() override;
+    void Create() override;   // as Destroy
+    // No animation, bone or key frames, the default position and rotation (kTrackDefaultPosition /
+    // kTrackDefaultRotation), no morphed vertices, time 0.
     void Destroy() override;
     const char* ClassName() override;   // "CAnimationTrack" (map_object_animation.cpp)
     ClassId GetClassId() override;
@@ -42,10 +44,7 @@ struct AnimationTrack : EngineObject {
     const Vector3* FrameVertices(int frame) const {
         return frames.data() + static_cast<std::size_t>(frame) * static_cast<std::size_t>(vertexCount);
     }
-    // No animation, bone or key frames (the vertex sets' block freed), the
-    // default position and rotation (kTrackDefaultPosition / kTrackDefaultRotation), no morphed vertices (freed), time 0.
-    void DestroyTrack();
-    // DestroyTrack's reset except for the bone: the animation, key frames, morphed vertices and time.
+    // Destroy's reset except for the bone: the animation, key frames, morphed vertices and time.
     void ClearKeys();
 
     const FigureAnimation* animation;   // the animation playing (null: none)

@@ -168,7 +168,7 @@ std::optional<float> ShadowCastStrength(Object3D* object) {
     return 1.0f;
 }
 
-int Object3DClientSpecific::DrawShadow() {
+int Object3DClientSpecific::DrawPartsShadow(SceneRenderer*) {
     // The game shows this object's shadow: in the renderer's shadow map its meshes cast, a unit as strongly as it
     // has faded in. No shadow texture or decal is drawn.
     const std::optional<float> strength = ShadowCastStrength(object);

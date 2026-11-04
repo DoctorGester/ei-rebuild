@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -23,25 +24,16 @@
 // `position` as column 3, the last row (0, 0, 0, 1).
 void ObjectWorldMatrix(const Quaternion* orientation, const Vector3& position, Matrix4* out);
 
-// The parts of a figure drawn with one material (a part set's group).
+// The parts of a figure drawn with one material (a part set's group). The parts are released before the material.
 struct PartGroup {
-    int ReleaseParts();
-
-    Material* material;                    // counted
-    std::vector<FigureMesh*> parts;   // counted
+    Ref<Material> material;
+    std::vector<HeldRef<FigureMesh>> parts;
 };
 
 // A part set of a 3D object's client half: a texture and the groups of parts drawn with it, one per material.
 struct TextureParts {
-    TextureParts() = default;
-    // The groups deleted (their parts and materials released); the texture is only forgotten (the half's
-    // `textures` holds its reference).
-    ~TextureParts();
-    TextureParts(const TextureParts&) = delete;
-    TextureParts& operator=(const TextureParts&) = delete;
-
-    Texture* texture;
-    std::vector<PartGroup*> groups;   // owned
+    Texture* texture = nullptr;   // the half's `textures` holds its reference
+    std::vector<std::unique_ptr<PartGroup>> groups;
 };
 
 struct WoundsMaterial;
@@ -62,22 +54,18 @@ public:
     void Destroy() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
-    // `context` is the scene renderer.
-    int DrawParts(SceneRenderer* context, Rect* dirty) override { return Draw(context, dirty); }
-    int DrawPartsShadow(SceneRenderer* /*context*/) override { return DrawShadow(); }
-    int PartsIntersectRect(const Rect* rect) override { return PartRectsMeet(rect); }
     // The object's shadow when shadows are on for its kind and the object is shown: its meshes cast into the
     // renderer's shadow map (render::CastsShadow, units as strongly as they have faded in). Unless the shadow is
     // still valid, the lights reaching the object give a direction (at least 20 degrees above the ground) and the
     // object's bounding sphere swept along it to the ground gives `sphere` (the original projected the
     // figure's parts and a decal under them); no shadow texture or decal draw. Returns 1.
-    int DrawShadow();
+    int DrawPartsShadow(SceneRenderer* context) override;
 
     // Draws the object (`dirty` receives the screen rectangle the parts flagged 0x40 covered, or null): its
     // state and animation updated, the lights within their range + 10 collected, and every part of the two
     // part sets within sqrt(1e9) drawn with those lights. A figure whose parts are all static (part flags 0x10)
     // becomes static (object flags 0x400, flags bit 8). Returns 1, or a fatal error's result.
-    int Draw(SceneRenderer* context, Rect* dirty);
+    int DrawParts(SceneRenderer* context, Rect* dirty) override;
 
     // The pulse of an invisible or stunned unit: the clock moves on by `frames`, its phase fmod(clock, 30)
     // folded at 15 gives 0.2..0.7. Every drawn part takes it as its alpha / its tint (pulse, 0, 0) and flags
@@ -103,7 +91,7 @@ public:
     // whether `rect` meets such a part's rectangle.
     int BoundsContainPoint(const std::int32_t* point) override;
     int PartsContainPoint(const std::int32_t* point) override;
-    int PartRectsMeet(const Rect* rect);
+    int PartsIntersectRect(const Rect* rect) override;
     FigureMesh* FindPart(std::string_view name) override;
     FigureMesh* FindPartOfType(int type) override;
 
@@ -112,9 +100,6 @@ public:
     // `part` joins the group of its material in the set of its texture, both made on first use; referenced
     // unless already there. 0 when no set has the texture, else 1.
     int OnPartAdded(FigureMesh* part) override;
-    // The part named `name` leaves its group and is released. Returns it, or null when there is none or no group
-    // holds it.
-    FigureMesh* RemoveFromPartSets(const char* name) override;
     // `part` leaves its group and is released: 1, or 0 when no group holds it.
     int OnPartRemoved(FigureMesh* part) override;
     // The texture of kind `kind`: one of `textures`, else a new one of the client world for a new part set,
@@ -137,7 +122,6 @@ public:
     void ApplyMaterials() override;
     // With `lit` every material's emissive colour is pushed on its stack and set to white (alpha kept);
     // without, each takes back the colour last pushed (if any).
-    void SetMaterialsLit(bool lit);
     void SetLit(bool lit) override;
     // Drops the shadow's sphere (the next draw fits it again).
     void ClearShadow();
@@ -145,14 +129,14 @@ public:
     // moved to the object, is not outside the view (not fitted yet: listed).
     bool ShadowInView();
 
-    // The two part sets Draw walks: the first has the skin texture (its colour key is the shadow colour key),
+    // The two part sets DrawParts walks: the first has the skin texture (its colour key is the shadow colour key),
     // the second a hero's simple skin (UnitClientSpecific).
     TextureParts* partSets[2];
-    std::vector<Texture*> textures;     // the sets' textures (counted)
-    std::vector<Material*> materials;   // the groups' materials (counted): fade-in, tints
+    std::vector<HeldRef<Texture>> textures;     // the sets' textures
+    std::vector<HeldRef<Material>> materials;   // the groups' materials: fade-in, tints
     bool shadowMade;                // the sphere fitted since Create / ClearShadow
     ClipBounds sphere;              // the object and its shadow (box and sphere), the centre relative to the object
-    Rect drawnRect;                 // the screen area of the dirty parts Draw drew
+    Rect drawnRect;                 // the screen area of the dirty parts DrawParts drew
     Ref<Texture> woundsTexture;    // the wounds texture (ShowWounds loads it)
     Ref<WoundsMaterial> woundsMaterial;  // the material drawing it (counted)
     std::string skinName;          // the first set's texture name (SetSkins)
