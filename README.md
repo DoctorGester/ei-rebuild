@@ -1,6 +1,6 @@
 # Evil Islands (Проклятые Земли) rebuild
 
-Readable C++ source for the Russian `game.exe` 1.06 of Evil Islands, rebuilt with modern MSVC for 64-bit Windows. The goal is
+Readable C++ source for the Russian `game.exe` 1.06 of Evil Islands, rebuilt with modern C++ for 64-bit Windows, Linux and macOS. The goal is
 identical game behaviour, not identical bytes: the same world, saves and network play as the original, with a new
 renderer and the Rebirth edition's fixes on top.
 
@@ -10,8 +10,9 @@ harness's reference until the goldens became our own (H40, git tag `original-ora
 
 ## Status
 
-The whole game runs on the rebuilt code and is playable in single player and over the network. Every scenario in the
-test suite plays out exactly as on the original: the same world state and the same save files.
+The whole game runs on the rebuilt code and is playable in single player and over the network, on Windows, Linux and
+macOS. The test suite (about 200 scenarios on the GOG data and 110 on Rebirth's) compares every run's world state and save
+files with goldens that were the same as the original game's runs when the harness stopped running it.
 
 ## What you get
 
@@ -22,7 +23,10 @@ test suite plays out exactly as on the original: the same world state and the sa
 - **A 64-bit exe** with the original's behaviour.
 - **A new renderer** on Direct3D 12 or Vulkan (SDL3's GPU API): per-pixel lighting, soft sun and moon shadows, MSAA and anisotropic filtering,
   a smooth camera, vsync, and an optional performance overlay.
-- **Widescreen** at any resolution, with the interface scaled to the window.
+- **Widescreen** at any resolution, with the interface scaled to the window. The options window picks the resolution from
+  the display's own sizes; full screen never changes the display mode (the picture is scaled to the monitor), and a
+  window can be resized freely.
+- **The cursor can be kept inside the window** (an option, off by default).
 - **The Rebirth edition's fixes built in**, including its bug fixes and options, on both the GOG and Rebirth data.
 - **A new interface layer** drawn by the renderer, with sharp text at any size.
 - **New sound and video code:** sound plays through SDL3 with our own mixer, caves get their reverb back, and the game's
@@ -74,9 +78,10 @@ naming the game folder (the zip's README.txt).
 ## Play
 
 ```
-play.cmd            builds the UTF-8 release and plays it on the Rebirth install's data, every option on
+play.cmd            builds the release and plays it on the Rebirth install's data, every option on
 play.cmd vanilla    the same on the GOG install's data, with Rebirth's bug fixes and widescreen
 launch-vanilla.cmd  plays the last release build on the GOG install's data, default options
+play.cmd record <name>   plays the test build with your input recorded as a scenario (docs/notes/harness.md)
 ```
 
 Or copy `build\release\ei-rebuild.exe` into the game's folder and start it there: it writes `ei_settings.ini`
@@ -116,11 +121,13 @@ installs' (`tools/exe_path.py`).
 
 ## Layout
 
-- `src/game/` the game code. Each function names the original function it replaces.
+- `src/game/` the game code.
 - `src/lib/` small shared pieces: the CRT parts behaviour depends on (formatting, the game CRT's pow / acos / asin / hypot), file and text helpers, byte copies.
 - `src/render/` the renderer (SDL3's GPU API through `src/render/gpu.h`; `docs/notes/renderer.md`).
-- `src/standalone/` the exe's start-up and the generated parts of the image.
-- `tests/verify/` the harness; `tests/unit/` checks of our code without the game; `tests/scenarios/`.
+- `src/platform/` the window, input, files and threads on SDL3 (`docs/notes/platform.md`); `src/audio/` the mixer;
+  `src/video/` the movie player; `src/main.cpp` the exe's start.
+- `tests/verify/` the harness; `tests/unit/` checks of our code without the game; `tests/port/` the Linux and macOS
+  checks; `tests/scenarios/` and their goldens in `tests/golden/`.
 - `tools/` the launcher, build checks, test runner, ticket and progress tools.
 - `docs/` how to work on the code (`worker-brief.md`, `rewrite-guide.md`, `comment-guide.md`), the tickets, and one
   note per area in `docs/notes/` (index: `docs/notes/README.md`).
