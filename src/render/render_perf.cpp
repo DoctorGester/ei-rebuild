@@ -9,10 +9,19 @@
 #include "../platform/log.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <deque>
 
 namespace render {
+
+namespace detail {
+
+static_assert(std::chrono::steady_clock::period::num == 1 && std::chrono::steady_clock::period::den == 1'000'000'000,
+              "kMsPerTick is for a nanosecond clock");
+long long Ticks() { return std::chrono::steady_clock::now().time_since_epoch().count(); }
+
+} // namespace detail
 
 namespace perf {
 

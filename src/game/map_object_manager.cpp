@@ -41,13 +41,18 @@ std::optional<SideObjectType> ThirdHalfOf(MapObjectType type) {
     return std::nullopt;
 }
 
+void DeleteAnimationDatabases(std::unordered_map<std::string, AnimationDatabase*>& databases) {
+    for (auto& entry : databases) delete entry.second;
+    databases.clear();
+}
+
 } // namespace
 
 // --- Lifetime and class slots ---------------------------------------------------------------------
 
 MapObjectManager::MapObjectManager() {}
 
-MapObjectManager::~MapObjectManager() {}
+MapObjectManager::~MapObjectManager() { DeleteAnimationDatabases(animationDatabases); }
 
 const char* MapObjectManager::GetFolderName() { return kFolderName; }
 const char* MapObjectManager::ClassName() { return kClassName; }
@@ -79,7 +84,7 @@ EngineObject* MapObjectManager::CreateMapObject(int newType, int newId) {
 
 void MapObjectManager::Destroy() {
     ResourceManager::Destroy();
-    animationDatabases.clear();
+    DeleteAnimationDatabases(animationDatabases);
 }
 
 // --- Animation databases --------------------------------------------------------------------------
@@ -128,13 +133,13 @@ std::unique_ptr<AnimationDatabase> ReadAnimationDatabase(const std::uint8_t* dat
 
 AnimationDatabase* MapObjectManager::AnimationDatabaseOf(const std::string& figure) {
     std::string file = figure + ".adb";
-    if (auto found = animationDatabases.find(file); found != animationDatabases.end()) return found->second.get();
+    if (auto found = animationDatabases.find(file); found != animationDatabases.end()) return found->second;
     std::uint32_t size = 0;
     void* data = GetFile(file, &size);
     if (!data) return nullptr;
     auto database = ReadAnimationDatabase(static_cast<const std::uint8_t*>(data), size);
     CloseFile(data);
-    return animationDatabases.emplace(std::move(file), std::move(database)).first->second.get();
+    return animationDatabases.emplace(std::move(file), database.release()).first->second;
 }
 
 FigureAnimation* MapObjectManager::FindAnimation(const std::string* figure, std::uint32_t key) {

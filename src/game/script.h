@@ -9,7 +9,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <list>
-#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -292,7 +291,7 @@ struct ScriptSubCall {
 
     int type = 0;       // ScriptType of the result
     int argIndex = 0;
-    std::unique_ptr<SSCCmd> cmd;
+    SSCCmd* cmd;        // owned (not a unique_ptr: <memory> would cost every includer of this header 0.3 MB)
 };
 
 // One function or command call in a script. Object and group arguments point at the
@@ -331,18 +330,28 @@ public:
     ScriptDecl* calledScript = nullptr;         // called script, or a For / ForIf body block, or null
 };
 
-inline ScriptSubCall::ScriptSubCall() : cmd(std::make_unique<SSCCmd>()) {}
+inline ScriptSubCall::ScriptSubCall() : cmd(new SSCCmd()) {}
 inline ScriptSubCall::ScriptSubCall(const ScriptSubCall& other)
-    : type(other.type), argIndex(other.argIndex), cmd(std::make_unique<SSCCmd>(*other.cmd)) {}
-inline ScriptSubCall::ScriptSubCall(ScriptSubCall&& other) noexcept = default;
+    : type(other.type), argIndex(other.argIndex), cmd(new SSCCmd(*other.cmd)) {}
+inline ScriptSubCall::ScriptSubCall(ScriptSubCall&& other) noexcept
+    : type(other.type), argIndex(other.argIndex), cmd(std::exchange(other.cmd, nullptr)) {}
 inline ScriptSubCall& ScriptSubCall::operator=(const ScriptSubCall& other) {
     type = other.type;
     argIndex = other.argIndex;
-    cmd = std::make_unique<SSCCmd>(*other.cmd);
+    SSCCmd* copy = new SSCCmd(*other.cmd);
+    delete cmd;
+    cmd = copy;
     return *this;
 }
-inline ScriptSubCall& ScriptSubCall::operator=(ScriptSubCall&& other) noexcept = default;
-inline ScriptSubCall::~ScriptSubCall() = default;
+inline ScriptSubCall& ScriptSubCall::operator=(ScriptSubCall&& other) noexcept {
+    if (this == &other) return *this;
+    type = other.type;
+    argIndex = other.argIndex;
+    delete cmd;
+    cmd = std::exchange(other.cmd, nullptr);
+    return *this;
+}
+inline ScriptSubCall::~ScriptSubCall() { delete cmd; }
 
 // A command block the loader creates for a then-section or a For body.
 struct ScriptDecl {

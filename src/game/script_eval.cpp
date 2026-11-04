@@ -102,7 +102,7 @@ void SSCCmd::CalcParameters(Script* script, ScriptVars* vars, const ScriptSubCal
         return;
     case kScriptString: {
         // Rebirth's AddNewScriptCommands' string functions (the game's had none: a fatal error).
-        scriptaddon::CalcString(call->cmd.get(), script, vars, &stringArgs[call->argIndex]);
+        scriptaddon::CalcString(call->cmd, script, vars, &stringArgs[call->argIndex]);
         return;
     }
     case kScriptObject:

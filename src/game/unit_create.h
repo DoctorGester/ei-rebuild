@@ -9,7 +9,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -130,8 +129,9 @@ struct MapObjectManager : ResourceManager {
     // ScaleEffectChanged(false), index 0 and a debug message.
     void ApplyPrototype(MapObject* object, const std::string& name);
 
-    // The animation databases read, by file name.
-    std::unordered_map<std::string, std::unique_ptr<AnimationDatabase>> animationDatabases;
+    // The animation databases read, by file name. Owned (deleted by Destroy and the destructor; not unique_ptrs,
+    // whose <memory> would cost every includer of this header 0.3 MB of preprocessing).
+    std::unordered_map<std::string, AnimationDatabase*> animationDatabases;
 };
 
 inline MapObjectManager* MapObjectManagerOf(const EngineObject* object) {
