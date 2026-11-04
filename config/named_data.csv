@@ -32,7 +32,6 @@ address,size,name,file
 00783E34,4,g_remoteRate,src/game/net_session.cpp
 00783E38,4,g_localRate,src/game/net_session.cpp
 00784750,1,g_interfaceHasScreen,src/game/app_main.cpp
-00784751,1,g_quitAllowed,src/game/app_main.cpp
 007857B0,6336,g_keyNames,src/game/key_bindings.cpp
 00787070,960,kActionDefinitions,src/game/ui.h
 00787C8C,48,kBranchFrequencies,src/game/lightning.cpp

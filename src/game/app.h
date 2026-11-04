@@ -26,7 +26,7 @@ extern std::string g_cameraFile;
 // The application's flags and handles. The game window's title (from the string table); the window's activation as
 // its focus events leave it (the main loop's pass takes it into SceneRenderer::running); whether the interface shows a screen
 // (set when a screen is activated, cleared when every window is closed: the main loop runs its frames only
-// while it is set); whether QuitGame may post the quit message (cleared while a timed movie plays); a movie of
+// while it is set); a movie of
 // the frames being written (the loop then runs a fixed time a frame); the console's switch that prints the
 // client speed; what the video memory allows (little memory besides the textures, little texture memory) and
 // whether a device was named on the command line; the loading screen's movie file. g_mainWindow is the game window.
@@ -34,7 +34,6 @@ extern char g_windowTitle[256];
 extern platform::NativeWindow g_mainWindow;
 extern std::uint8_t g_active;
 extern std::uint8_t g_interfaceHasScreen;
-extern std::uint8_t g_quitAllowed;
 extern std::uint8_t g_recordingFrames;
 extern int g_showClientSpeed;
 extern const char* g_loadingMovieName;

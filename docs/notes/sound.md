@@ -110,15 +110,17 @@ Measured 2026-11-03 (the game thread's sound time a pass; the device):
   the "swap stereo" option); a one-shot at level 0 takes no voice; a NaN camera height keeps the full level.
 - Play2D / Play3D with no voice return -1 for a one-shot and make a deferred record for a looping sound. LoadSample's
   4th argument means "the file is an MP3"; a cached MP3 loads nothing.
-- `MusicSystem` (reads `music.reg`): `UpdateMusic` every world frame. `RequestStream` modes: 1 stop after the current
-  file, 2 stop with a fade (a fight ended), 3 switch at the next marker of the current file (combat), 4 switch at the
-  current position (calm); the calm music is due 120..180 s after a jingle or fight. The stream thread's reader fills
-  the spare buffer from the playing file up to its loop point or the switch point (mode 2: the whole buffer once the
-  fade has finished, held 4 s; mode 1: where the file ends), then from the next file (its markers from the sound
-  registry); no next file: silence, the stream idle and its name empty.
+- `MusicSystem` (reads `music.reg`): `UpdateMusic` every world frame. `RequestStream` takes a `StreamSwitch`: `AtEnd`
+  stops after the current file, `AfterFade` stops with a fade (a fight ended), `AtMarker` switches at the next marker
+  of the current file (combat), `Now` at the current position (calm; `StopStream(Now)` closes the file at once); the
+  calm music is due 120..180 s after a jingle or fight. `FillSpareBuffer` fills the spare buffer from the playing file
+  up to its loop point or the switch point (`AfterFade`: the whole buffer once the fade has finished, held 4 s;
+  `AtEnd`: where the file ends), then from the next file (its markers from the sound registry); no next file:
+  silence, the stream idle and its name empty. Play2D takes its loop / height fade / speech / MP3 flags as a
+  `Play2DOptions`.
 - **Floating point**: what reaches game state is whether a voice is taken, which follows from Play3D's level and the
   emitters' distances and intervals: basic float operations in the original's order (exact against its 24-bit
-  results; checked on 30 M random cases). The pans (acos), the listener axis, the fader and the wave lengths only
+  results; checked on 30 M random cases). The pans (acos), the listener axis and the fader only
   reach the output.
 - **AI hearing** ("Delayed sound") is not sound code: the brain's perception memory holds delayed sounds (a position
   or a unit, a countdown of 26 or 30 brain ticks, a text) from `AIBrain::CallAllies` and

@@ -425,7 +425,6 @@ char g_windowTitle[256] = /*0079BB24*/ {""};
 platform::NativeWindow g_mainWindow = /*0079BC28*/ {};
 std::uint8_t g_active = /*0079BC5C*/ {};
 std::uint8_t g_interfaceHasScreen = /*00784750*/ 1;
-std::uint8_t g_quitAllowed = /*00784751*/ 1;
 std::uint8_t g_recordingFrames = /*0079BC54*/ {};
 int g_showClientSpeed = /*0079BC60*/ {};
 const char* g_loadingMovieName = /*00791EE0*/ "progres.bik";

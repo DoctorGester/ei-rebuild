@@ -302,9 +302,9 @@ void MainMenu::LeftDown(Point point) {
     case 2: {
         {
             std::string path = g_dataFolder + "Movies\\Exit.bik";
-            PlayMovie(path, 0, false, false, true, true);
+            PlayMovie(path, false, true, true);
         }
-        app::QuitGame(0);
+        platform::PostQuit(0);
         break;
     }
     case 3: {

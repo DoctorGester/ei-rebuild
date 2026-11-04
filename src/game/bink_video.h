@@ -14,10 +14,9 @@
 extern std::uint8_t g_loadingMovieOff;
 
 void ShowLoadingMovie(int progress);
-// Plays a movie in a message loop of its own (name, the time per frame or 0, Esc / Space end it, Space skips
-// frames, the screen cleared first, a loading screen step first). Returns false when Esc ended it.
-bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool spaceSkips, bool clearScreen,
-               bool loadingStep);
+// Plays a movie at its own rate in a message loop of its own (name, Esc / Space end it, the screen cleared first, a
+// loading screen step first). Returns false when Esc ended it.
+bool PlayMovie(const std::string& name, bool keysEnd, bool clearScreen, bool loadingStep);
 // Closes the loading screen's movie once loading is over (game start and zone load): the handle closed, the cursor
 // shown again.
 void CloseLoadingMovie();

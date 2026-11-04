@@ -229,12 +229,13 @@ void Terrain::PlayAmbience() {
             sounds->SetSoundVolume(vote.sound, vote.volume, vote.pan);
         } else {
             const std::string name = std::format("ambient\\{}\\{}\\circle.wav", ambientSet, kAmbientSounds[vote.soundClass].name);
-            vote.sound = sounds->Play2D(name, 1000, vote.volume, vote.pan, 1, 1, 0, 0);
+            vote.sound = sounds->Play2D(name, 1000, vote.volume, vote.pan, {.loop = true, .heightFade = true});
         }
     }
     for (AmbientLoop& loop : ambientLoops) {
         if (loop.soundClass < 0) continue;
-        loop.sound = sounds->StopSound(loop.sound);
+        sounds->StopSound(loop.sound);
+        loop.sound = kNoSound;
         loop.soundClass = -1;
     }
     for (int i = 0; i < heard; ++i) ambientLoops[i] = {votes[i].sound, votes[i].soundClass};
@@ -247,7 +248,8 @@ void Terrain::StopAmbience() {
 
 void Terrain::StopAmbientLoops() {
     for (AmbientLoop& loop : ambientLoops) {
-        loop.sound = g_clientWorld.sounds->StopSound(loop.sound);
+        g_clientWorld.sounds->StopSound(loop.sound);
+        loop.sound = kNoSound;
         loop.soundClass = -1;
     }
 }

@@ -62,8 +62,8 @@ void EffectSoundSeq::Start(int update) {
     if (withFirst) list.push_back(first);
     Chooser chooser = ChooserFor(static_cast<int>(others.size()), withFirst);
     for (const std::string& other : others) list.push_back(other);
-    sound = sounds->AddSequence(&list, noFade != 0 ? 1000 : 0,
-                                 localPosition, volume, radius, 0, -1, chooser);
+    sound = sounds->AddSequence(list, noFade != 0 ? 1000 : 0,
+                                 localPosition, volume, radius, false, -1, chooser);
 }
 
 int EffectSoundSeq::Unpack(int update, DeltaReader& field) {

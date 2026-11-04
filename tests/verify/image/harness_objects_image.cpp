@@ -436,7 +436,7 @@ long ModManagerFile(const char* which, const char* name) {
     return -4;
 }
 
-void PlayStream(const char* name) { g_clientWorld.sounds->RequestStream(name, 4); }
+void PlayStream(const char* name) { g_clientWorld.sounds->RequestStream(name, StreamSwitch::Now); }
 
 bool MapsFileExists(const char* name) { return MapFileExists(name); }
 

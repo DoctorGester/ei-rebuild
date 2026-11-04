@@ -151,8 +151,8 @@ void PlayEffectSound(bool play, EffectSoundRecord* record, const Vector3& positi
     if (kind == SpellType::Feeblemind) {
         if (record->handle == -1) {
             std::vector<std::string> names{"magic\\FeebleMind\\start.wav", "magic\\FeebleMind\\circle.wav"};
-            record->handle = sounds->AddSequence(&names, 0, position,
-                                                 kSoundNear, kSoundFar, 0, -1, FeebleMindChooser);
+            record->handle = sounds->AddSequence(names, 0, position,
+                                                 kSoundNear, kSoundFar, false, -1, FeebleMindChooser);
             // The sequence plays start.wav once, then circle.wav.
         } else {
             sounds->RemoveSequence(record->handle);

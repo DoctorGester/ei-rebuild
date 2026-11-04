@@ -117,7 +117,7 @@ void StopTalking(Unit* speaker) {
 // Whether the voice `handle` has ended (neither playing nor waiting).
 bool VoiceEnded(int handle) {
     SoundManager* sounds = g_clientWorld.sounds.get();
-    return !sounds->FindPlaying(handle) && !sounds->FindDeferred(static_cast<std::uint32_t>(handle));
+    return !sounds->FindPlaying(handle) && !sounds->FindDeferred(handle);
 }
 
 } // namespace

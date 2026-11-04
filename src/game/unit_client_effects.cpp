@@ -288,7 +288,7 @@ void Shake(Unit* unit) {
 bool SoundBusy(int handle) {
     if (handle == -1) return false;
     SoundManager* sounds = g_clientWorld.sounds.get();
-    return sounds->FindPlaying(handle) || sounds->FindDeferred(static_cast<std::uint32_t>(handle));
+    return sounds->FindPlaying(handle) || sounds->FindDeferred(handle);
 }
 
 } // namespace
@@ -583,7 +583,7 @@ void UnitClientSpecific::StopSpeech() {
 bool UnitClientSpecific::Speak(ClientSpeech* said) {
     std::uint32_t now = platform::Milliseconds();
     if (lastSpeech == said->id && now - lastSpeechTime < kRepeatAfter) return false;
-    said->sound = g_clientWorld.sounds->Play2D(said->id->sound.data(), kSpeechPriority, kSpeechVolume, 0, 0, 0, 1, 0);
+    said->sound = g_clientWorld.sounds->Play2D(said->id->sound.data(), kSpeechPriority, kSpeechVolume, 0, {.speech = true});
     lastSpeech = said->id;
     lastSpeechTime = now;
     return true;
