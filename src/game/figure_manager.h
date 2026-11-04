@@ -10,6 +10,8 @@
 #include <unordered_map>
 
 // The figure manager's object types (CreateObject / type), named after their classes.
+class UiMesh;
+
 enum class FigureObjectType : int {
     SharedFigureMesh = 0x41,      // SharedFigureMesh: a part whose buffers point into the file data
     PlainFigureMesh = 0x42,       // PlainFigureMesh: an attached part, owning its buffers
@@ -60,9 +62,9 @@ public:
 
     // (The interface's model manager too.) A figure object, loaded from "<name>.fig" when named (released and null
     // when the file is missing); the empty object without a name.
-    FigureMesh* NewFigure(std::string_view name);
+    UiMesh* NewFigure(std::string_view name);
     // The empty figure object (no file read).
-    FigureMesh* NewBlankFigure();
+    UiMesh* NewBlankFigure();
     // Object3D::LoadPart. A new figure part (class 0x42 when `attached`, else 0x41) named
     // `partName`; a null part faults, as in the original.
     FigureMesh* NewPart(const std::string& modelName, std::string_view partName, std::uint32_t attached);

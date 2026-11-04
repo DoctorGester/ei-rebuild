@@ -370,10 +370,10 @@ void TradePanel::ClampScroll() {
     if (perkTop < 0) perkTop = 0;
     if (learnableTop > static_cast<int>(learnable.size()) - kLearnableRows) learnableTop = static_cast<int>(learnable.size()) - kLearnableRows;
     if (learnableTop < 0) learnableTop = 0;
-    SceneMesh(0)->visible = perkTop > 0;
-    SceneMesh(1)->visible = perkTop < static_cast<int>(perks.size()) - kHeldRows;
-    SceneMesh(2)->visible = learnableTop > 0;
-    SceneMesh(3)->visible = learnableTop < static_cast<int>(learnable.size()) - kLearnableRows;
+    sceneObjects[0]->visible = perkTop > 0;
+    sceneObjects[1]->visible = perkTop < static_cast<int>(perks.size()) - kHeldRows;
+    sceneObjects[2]->visible = learnableTop > 0;
+    sceneObjects[3]->visible = learnableTop < static_cast<int>(learnable.size()) - kLearnableRows;
     DrawLists();
 }
 

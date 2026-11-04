@@ -62,8 +62,8 @@ constexpr float kMarkerRise = 60.0f;
 constexpr float kMarkerDepth = 10.0f;
 
 // A bar: its right edge (x of vertices 2 and 3) moves with the fraction, its texture follows.
-void SetBar(EngineObject* object, float fraction, std::uint32_t v0, std::uint32_t v1) {
-    UiMesh* bar = AsUiMesh(object);
+void SetBar(UiMesh* object, float fraction, std::uint32_t v0, std::uint32_t v1) {
+    UiMesh* bar = object;
     float u = ((fraction * kBarTexels + kBarStart) * kTexel) + kHalfTexel;
     float right = fraction - 0.5f;
     bar->vertices[0].x()[2] = right;
@@ -94,7 +94,7 @@ void HudPortraits::Wobble(int index, int kind) {
 
 void HudPortraits::Update() {
     float dt = GamePaused() ? 0.0f : UiContainer::FrameTime();
-    SceneMesh(0)->visible = false;    // the selection marker
+    sceneObjects[0]->visible = false;    // the selection marker
 
     for (int i = 0; i < std::ssize(owner->party); ++i) {
         if (i >= count) continue;
@@ -128,14 +128,14 @@ void HudPortraits::Update() {
             slot.flash -= dt;
         }
         slot.flash = MaxKeepB(slot.flash, 0.0f);
-        EngineObject* flash = object(5);
+        UiMesh* flash = object(5);
         if (slot.flash > 0.0f) {
-            AsUiMesh(flash)->visible = true;
+            flash->visible = true;
             int alpha = static_cast<int>(slot.flash * kFlashAlpha);
             std::uint32_t colour = static_cast<std::uint32_t>(alpha) << 24 | 0xFF0000u;
-            AsUiMesh(flash)->flatColour = colour;
+            flash->flatColour = colour;
         } else {
-            AsUiMesh(flash)->visible = false;
+            flash->visible = false;
         }
 
         // The face picture: a timed one (hit, mode 1) while it lasts, else low mana or normal.
@@ -239,13 +239,13 @@ void HudPortraits::Update() {
             face = rest;
         slot.current = face;
         if (slot.wobbleKind != 0) face = face * wobble;
-        AsUiMesh(object(1))->localRotation = face;
+        object(1)->localRotation = face;
 
         // The selection marker (object 0) sits above the selected unit's portrait (object 5i+4).
         if (g_camera.targetId == unit->id) {
-            SceneMesh(0)->visible = true;
-            const UiMesh::Placement placed = AsUiMesh(object(4))->GetPlacement();
-            SceneMesh(0)->Place(placed.x, placed.y - kMarkerRise, kMarkerDepth);
+            sceneObjects[0]->visible = true;
+            const UiMesh::Placement placed = object(4)->GetPlacement();
+            sceneObjects[0]->Place(placed.x, placed.y - kMarkerRise, kMarkerDepth);
         }
     }
 }
@@ -378,7 +378,7 @@ void HudPortraits::AddPortrait(const std::string& model, std::string_view pictur
     flash->flags |= FigureMeshFlag::Flat;
     flash->visible = false;
 
-    AsUiMesh(sceneObjects[column * 5 + 4])->visible = false;     // the column's frame
+    sceneObjects[column * 5 + 4]->visible = false;     // the column's frame
     slots[column].restB = kHudRestRotation;
     ++count;
     AddRegion()->SetRect(x, 510, right, 600);
@@ -415,7 +415,7 @@ void HudPortraits::Rebuild(bool wide) {
         AddPortrait(model, picture, wide, false);
 
         if (owner->party[i]->flags & MapObjectFlag::Selected) {
-            AsUiMesh(sceneObjects[i * 5 + 4])->visible = true;
+            sceneObjects[i * 5 + 4]->visible = true;
             Quaternion turn;
             slots[i].restB = *turn.SetAxisAngle(Vector3{-1.0f, 0.0f, 0.0f}, kHudQuarterTurn * kSeventh);
         }

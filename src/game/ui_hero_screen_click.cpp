@@ -304,7 +304,7 @@ void MpHeroScreen::LeftDown(Point point) {
         // Delete: asks first ("lmp_deletepers").
         currentUi->PlayInterfaceSound(game::SelectSoundText());
         if (!IsHero(heroIndex)) return;
-        UiWindow* box = new MessageWindow(currentUi, "lmp_deletepers", "lmp_deletepers_msg", 0x10000, 3, 1);
+        auto* box = new MessageWindow(currentUi, "lmp_deletepers", "lmp_deletepers_msg", 0x10000, 3, 1);
         currentUi->PushWindow(box, true, true);
         return;
     }
@@ -393,7 +393,7 @@ void MpHeroScreen::Continue() {
         currentUi->PushWindow(new MpConnectScreen(currentUi), true, true);
         return;
     }
-    UiWindow* box = new MessageWindow(currentUi, "lmp_no_pers", "lmp_no_pers_msg", 0x20000, 1, 1);
+    auto* box = new MessageWindow(currentUi, "lmp_no_pers", "lmp_no_pers_msg", 0x20000, 1, 1);
     currentUi->PushWindow(box, true, true);
 }
 

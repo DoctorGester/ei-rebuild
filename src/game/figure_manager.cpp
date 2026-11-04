@@ -59,9 +59,9 @@ FigureMesh* FigureManager::NewPart(const std::string& modelName, std::string_vie
     return part;
 }
 
-FigureMesh* FigureManager::NewBlankFigure() { return CreateObjectAs<FigureMesh>(FigureObjectType::UiMesh, -1); }
+UiMesh* FigureManager::NewBlankFigure() { return CreateObjectAs<UiMesh>(FigureObjectType::UiMesh, -1); }
 
-FigureMesh* FigureManager::NewFigure(std::string_view name) {
+UiMesh* FigureManager::NewFigure(std::string_view name) {
     auto* figure = NewBlankFigure();
     figure->name = name;
     figure->directory = game::kEmptyText;

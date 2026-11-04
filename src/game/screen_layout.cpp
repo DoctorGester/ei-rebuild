@@ -146,8 +146,8 @@ int AddCurtains(UiWindow* window, int visible) {
 
 void PlaceCurtains(UiWindow* window, int first) {
     if (first < 0 || first + 1 >= std::ssize(window->sceneObjects)) return;
-    UiMesh* left = window->SceneMesh(first);
-    UiMesh* right = window->SceneMesh(first + 1);
+    UiMesh* left = window->sceneObjects[first];
+    UiMesh* right = window->sceneObjects[first + 1];
     const int visible = left->visible;
     ShapeCurtains(left, right);
     SetCurtainLook(left, visible);
@@ -157,8 +157,8 @@ void PlaceCurtains(UiWindow* window, int first) {
 void ShowHeroCurtains(UiWindow* window, int mode) {
     if (std::ssize(window->sceneObjects) != kHeroScreenSprites) return;
     const int shown = mode != kHeroListMode ? 1 : 0;
-    window->SceneMesh(kHeroCurtains)->visible = shown;
-    window->SceneMesh(kHeroCurtains + 1)->visible = shown;
+    window->sceneObjects[kHeroCurtains]->visible = shown;
+    window->sceneObjects[kHeroCurtains + 1]->visible = shown;
 }
 
 // addon's apply function: 0x320 + extra written at one operand, -0x320 - extra at the other.

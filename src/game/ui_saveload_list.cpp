@@ -56,7 +56,7 @@ bool SameFolder(std::string_view folder, std::string_view name) {
 void SaveLoadWindow::RefreshListVanilla() {
     if (cursor > static_cast<int>(name.size())) cursor = lib::Count(name);
     if (cursor < 0) cursor = 0;
-    UiMesh* marker = SceneMesh(kMarkerSprite);
+    UiMesh* marker = sceneObjects[kMarkerSprite];
     marker->visible = false;
     int y = kFirstRowY;
     for (unsigned index = static_cast<unsigned>(firstVisible); index < static_cast<unsigned>(EntryCount()); ++index) {

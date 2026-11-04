@@ -153,7 +153,7 @@ void MpHeroScreen::Update() {
     bool equal = points == target;
     bool ready = equal && !name.empty();
     float shade = ready ? 1.0f : 0.5f;
-    auto* button = SceneMesh(kCreateButton);
+    auto* button = sceneObjects[kCreateButton];
     button->tint[0] = shade;
     button->tint[1] = shade;
     button->tint[2] = shade;
@@ -174,7 +174,7 @@ void MpHeroScreen::CloseScreen() {
 
 void MpHeroScreen::DrawHeroList() {
     labels[0].clear();
-    UiMesh* frame = SceneMesh(kSelectionFrame);
+    UiMesh* frame = sceneObjects[kSelectionFrame];
     frame->visible = false;
     Rect area = {12, 13, 265, 33};
     const auto count = static_cast<std::uint32_t>(g_savedParties.Count());
@@ -195,7 +195,7 @@ void MpHeroScreen::DrawHeroList() {
 void MpHeroScreen::DrawVoices() {
     std::vector<UiLabel>& out = labels[2];
     out.clear();
-    UiMesh* frame = SceneMesh(kSelectionFrame);
+    UiMesh* frame = sceneObjects[kSelectionFrame];
     frame->visible = false;
     std::string title;
     title = g_clientWorld.texts->GetString(kVoicesKey);
@@ -294,17 +294,17 @@ constexpr float kQuarterDepth = 7.0f;
 constexpr float kScale = 100.0f;
 
 void ShowSprites(MpHeroScreen* screen, int first, int end, int visible) {
-    for (int i = first; i < end; ++i) screen->SceneMesh(i)->visible = visible;
+    for (int i = first; i < end; ++i) screen->sceneObjects[i]->visible = visible;
 }
 
 // A quarter of the frame around the figure: texels (u0, 0x1C)-(u1, 0xE4).
 void SetQuarter(MpHeroScreen* screen, int quarter, float left, float top, float right, float bottom, int u0, int u1) {
-    screen->SceneMesh(kFirstQuarter + quarter)->SetRectangle(kQuarterDepth, kScale, left, top, right, bottom, u0, 0x1C, u1, 0xE4);
+    screen->sceneObjects[kFirstQuarter + quarter]->SetRectangle(kQuarterDepth, kScale, left, top, right, bottom, u0, 0x1C, u1, 0xE4);
 }
 
 // The selection frame over a list's first row (the whole texture).
 void SetSelectionFrame(MpHeroScreen* screen, float left, float top, float right, float bottom) {
-    screen->SceneMesh(kSelectionFrame)->SetRectangle(kFrameDepth, kScale, left, top, right, bottom, 0, 0, 0x100, 0x100);
+    screen->sceneObjects[kSelectionFrame]->SetRectangle(kFrameDepth, kScale, left, top, right, bottom, 0, 0, 0x100, 0x100);
 }
 
 // The rows of a list as regions: `height` apart from `top` down to kRowsBottom.

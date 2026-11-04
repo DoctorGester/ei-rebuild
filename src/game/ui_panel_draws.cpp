@@ -83,7 +83,7 @@ const itemdb::ItemRecordHead* PartRecord(const ItemLoot* part) {
 
 void HeroQuickStrip::Draw(SceneRenderer* pass) {
     PartyUnitRecord* hero = owner->HeroRecord();
-    auto* frame = SceneMesh(0);
+    auto* frame = sceneObjects[0];
     int count = lib::Count(hero->spells);
     if (selected >= 0 && selected < count) {
         frame->visible = true;
@@ -190,7 +190,7 @@ void SpellMakerPage::Draw(SceneRenderer* pass) {
     }
     DrawBase(pass);
 
-    UiMesh* highlight = SceneMesh(kHighlight);
+    UiMesh* highlight = sceneObjects[kHighlight];
     highlight->visible = true;
     Pulse beat = Advance(this);
     if (!hasContainer) {
@@ -248,7 +248,7 @@ void ConstructorPage::Draw(SceneRenderer* pass) {
             }
         }
     }
-    UiMesh* highlight = SceneMesh(kHighlight);
+    UiMesh* highlight = sceneObjects[kHighlight];
     highlight->visible = true;
     Pulse beat = Advance(this);
     highlight->flatColour = Colour(beat.alpha, beat.high, beat.low);

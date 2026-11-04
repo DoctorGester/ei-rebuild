@@ -51,7 +51,7 @@ void MainMenu::Draw(SceneRenderer* pass) { ScreenDraw(this, pass, false); }
 // the shown weapon and the selected quick item.
 void HeroEquipPanel::Draw(SceneRenderer* pass) {
     PartyUnitRecord* hero = owner->HeroRecord();
-    auto frame = [this](int i) { return SceneMesh(i); };
+    auto frame = [this](int i) { return sceneObjects[i]; };
     std::uint32_t shown = hero->weaponIndex;
     if (shown < static_cast<std::uint32_t>(std::ssize(hero->weapons))) {
         frame(0)->visible = true;

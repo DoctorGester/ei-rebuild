@@ -146,8 +146,6 @@ UnitSpec::UnitSpec() {
 
 UnitSpec::~UnitSpec() = default;
 
-Unit* ObjectSpec::MadeUnit() const { return static_cast<Unit*>(object); }
-
 // A behaviour record chunk fills the next record (not bounded, as in the original); an alarm level
 // left unset (4) becomes 0.
 void UnitSpec::OnChunk() {

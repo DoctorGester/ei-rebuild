@@ -345,8 +345,8 @@ ItemHoverInfo HeroStatsPanel::HoverInfo(Point at) {
 
 void HeroStatsPanel::SetHero(int newHeroIndex, std::optional<std::string_view> newTitle) {
     bool party = std::ssize(LocalPlayerData()->members) > 1;
-    SceneMesh(0)->visible = party;
-    SceneMesh(1)->visible = party;
+    sceneObjects[0]->visible = party;
+    sceneObjects[1]->visible = party;
     regions[0]->SetTip(party ? kTipPreviousHero : 0);
     regions[1]->SetTip(party ? kTipNextHero : 0);
     heroIndex = newHeroIndex;

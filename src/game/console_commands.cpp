@@ -78,7 +78,7 @@ void KickOrBan(std::vector<std::string>* args, int windowMode, int command) {
             // Our binding's player record: only the host gets the window.
             net::BindingMessage* binding = server->binding;
             if (binding->player.Get()->host)
-                ScreenOf(g_interface.GetActiveWindow())->PlayerList(windowMode);
+                g_interface.GetActiveWindow()->PlayerList(windowMode);
             return;
         }
     }
@@ -292,7 +292,7 @@ void Give(std::vector<std::string>* args) {
         return state->SendParty();
     }
     if (ArgIs(args, 1, "assortment")) {
-        ScreenOf(g_interface.GetActiveWindow())->DebugFill();
+        g_interface.GetActiveWindow()->DebugFill();
         return;
     }
     PrintLine("Give what?");

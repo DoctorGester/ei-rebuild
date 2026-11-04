@@ -256,7 +256,7 @@ void EscMenu::LeftDown(Point point) {
         currentUi->PlayInterfaceSound("buttons\\menu\\ok.wav");
         handled = true;
     }
-    UiWindow* opened = nullptr;
+    UiContainer* opened = nullptr;
     bool open = true;
     switch (region) {
     case 0:   // save

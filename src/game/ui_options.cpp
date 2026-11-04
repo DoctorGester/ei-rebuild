@@ -152,9 +152,9 @@ void TurnQuarter(UiMesh* sprite) {
 } // namespace
 
 void OptionsWindow::RefreshRows() {
-    SceneMesh(kHighlightSprite)->visible = false;
+    sceneObjects[kHighlightSprite]->visible = false;
     for (int groupIndex = 0; groupIndex < kOptionGroups; ++groupIndex) {
-        UiMesh* button = SceneMesh(kFirstGroupSprite + groupIndex);
+        UiMesh* button = sceneObjects[kFirstGroupSprite + groupIndex];
         float tint = groupIndex == group ? 1.0f : 0.5f;
         button->tint[0] = tint;
         button->tint[1] = tint;
@@ -162,7 +162,7 @@ void OptionsWindow::RefreshRows() {
     }
     for (int row = 0, y = 168; y < 504; ++row, y += 24) {
         if (row == selectedRow) {
-            UiMesh* highlight = SceneMesh(kHighlightSprite);
+            UiMesh* highlight = sceneObjects[kHighlightSprite];
             highlight->visible = true;
             highlight->Place(471.0f, static_cast<float>(y), 3.0f);
         }
@@ -429,23 +429,23 @@ void UiSlider::SetRect(const Rect* newRect) {
     const Rect bar = newRect->BottomStrip(10);   // the arrows at both ends, the track between them
     track = bar.Inset(26, 0);
 
-    UiMesh* trackMesh = SceneMesh(0);
+    UiMesh* trackMesh = sceneObjects[0];
     trackMesh->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 6.0f, static_cast<float>(newRect->Width() - 8), 8, 4, 0x20,
                         0xFC);
     trackMesh->Place((newRect->right + newRect->left) * 0.5f,
                  static_cast<float>(newRect->bottom - 5), depth);
     TurnQuarter(trackMesh);
 
-    UiMesh* thumbMesh = SceneMesh(1);
+    UiMesh* thumbMesh = sceneObjects[1];
     thumbMesh->SetRectangle(depth - kThumbLift, 100.0f, 0.0f, 0.0f, 10.0f, 30.0f, 0x28, 8, 0x50, 0x78);
     TurnQuarter(thumbMesh);
 
-    UiMesh* right = SceneMesh(2);
+    UiMesh* right = sceneObjects[2];
     right->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0xB0, 0x50, 0x80);
     right->Place(static_cast<float>(newRect->right - 6), static_cast<float>(newRect->bottom - 5), depth);
     TurnQuarter(right);
 
-    UiMesh* left = SceneMesh(3);
+    UiMesh* left = sceneObjects[3];
     left->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
     left->Place(static_cast<float>(newRect->left + 6), static_cast<float>(newRect->bottom - 5), depth);
     TurnQuarter(left);

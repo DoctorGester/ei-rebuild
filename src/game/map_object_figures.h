@@ -371,13 +371,13 @@ public:
     int LinkBone(FigureModel* model, FigureBone* bone);
     // The bone named as `part` carries it as its mesh (referenced, the old one released): the part takes the
     // bone's position and rotation. 0 when no bone has the name, else 1. `changed` set.
-    int AttachMesh(EngineObject* part);
+    int AttachMesh(FigureMesh* part);
     // The root becomes the first bone without a parent name. 1, or 0 when none.
     int FindRoot();
     // The figure manager links the skeleton of `model` into this state; `changed` set. Returns its result.
     int SetModel(std::string_view model);
     // The first bone carrying `part` lets it go (released). 1, or 0 when none.
-    int DetachMesh(EngineObject* part);
+    int DetachMesh(FigureMesh* part);
     // Every bone lets its mesh go (released). `changed` set. Returns 1.
     int DetachMeshes();
     // When `changed`: cleared, and the root (if any) places the skeleton at the owner's time factor (at its scale
@@ -563,7 +563,7 @@ public:
     // The animation state (if any) plays `animation`.
     void PlayAnimation(FigureAnimation* animation);
     // The animation state's bone named as `part` carries it (AttachMesh); 0 without a state.
-    int AttachPartMesh(EngineObject* part);
+    int AttachPartMesh(FigureMesh* part);
     // The animation state (if any) goes to frame 0 and places the skeleton.
     void RestartPose();
 

@@ -118,7 +118,7 @@ public:
     // Ends a turn by a turn button.
     void LeftUp(Point point) override;
     // Zones, then quests, then links, then the three layers.
-    UiMesh* Marker(int index) const { return SceneMesh(3 + index); }
+    UiMesh* Marker(int index) const { return sceneObjects[3 + index]; }
     // The surfaces' paints: the zone tip; the allod's title and the clock.
     void PaintTip(UiSurface& surface) const;
     void PaintTitle(UiSurface& surface) const;

@@ -104,7 +104,7 @@ void StepTurning(BriefingMover* node) {
 // Meshes `first` onwards shown or hidden.
 void SetMeshesVisible(UiWindow* window, int visible, int first = 0) {
     for (int i = first; i < std::ssize(window->sceneObjects); ++i)
-        window->SceneMesh(i)->visible = visible;
+        window->sceneObjects[i]->visible = visible;
 }
 
 // The speaker's lips stop (UnitClientSpecific's blink: eyes open).
@@ -241,8 +241,8 @@ void BriefingScreen::Update() {
     switch (state) {
     case kChoosing: {
         surfaces[kTopicsSurface]->Show();
-        SceneMesh(kTopicBackdrop)->visible = true;
-        SceneMesh(kTopicFrame)->visible = true;
+        sceneObjects[kTopicBackdrop]->visible = true;
+        sceneObjects[kTopicFrame]->visible = true;
         topicBar->SetEnabled(true);
         if (topicBar->TakeMoved()) {
             topicTop = topicBar->Position();

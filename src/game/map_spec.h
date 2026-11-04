@@ -17,8 +17,6 @@
 class ByteStream;
 class EngineObject;
 class MapObject;
-class TransformObject;
-class Unit;
 
 // ---- The world objects' parts of the trap and lever records ---------------------------------------
 // The fields after a record's ObjectSpec, which the world object's SetUp reads in place.
@@ -108,13 +106,9 @@ public:
     Spec();
 
     void OnChunk() override {}
-    // The world object with the record's id.
-    virtual void* WorldObject();
     virtual ~Spec();
 
-
     std::int32_t id;             // the object's id (-1)
-    EngineObject* object;       // the world object made from the record (null: none)
     Vector3 position;
     Quaternion rotation;         // (1, 0, 0, 0)
     std::string name;
@@ -132,10 +126,7 @@ public:
 
     void OnChunk() override;                                 // the chunk just read, by its id
 
-    // The world object an object record makes is a map object (a unit for a unit record).
-    MapObject* MadeMapObject() const;
-    Unit* MadeUnit() const;
-
+    MapObject* object = nullptr;   // the map object made from the record (a unit for a unit record; null: none)
     std::string model;          // (empty)
     std::int32_t parentId;
     std::string texture;
@@ -199,19 +190,8 @@ class EffectSpec : public Spec {
 public:
     ~EffectSpec() override;
 
-    // Effects are managed under -3001 - id.
-    void* WorldObject() override;
-    // Shows or hides the world object (flag 0x40 hides).
-    virtual void SetVisible(std::uint8_t newVisible);
-
-    // The world object an effect record makes (the effect's carrier: a transform object).
-    TransformObject* Transform() const;
-
-    void* effect;                // the effect the world object runs
-    std::uint8_t visible;
-
 protected:
-    EffectSpec() : effect(nullptr), visible(1) {}
+    EffectSpec() = default;
 };
 
 // A particle source (chunk DD01).

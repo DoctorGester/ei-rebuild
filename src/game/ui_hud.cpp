@@ -41,8 +41,8 @@ constexpr const char* kSoundWeapon = "buttons\\battle\\weapon.wav";
 
 // Scene objects of the panels (sprites, UiMesh) are tinted through their three tint floats (the
 // original stores the constants as dwords).
-void SetTint(EngineObject* object, std::uint32_t bits) {
-    float* tint = AsUiMesh(object)->tint;
+void SetTint(UiMesh* object, std::uint32_t bits) {
+    float* tint = object->tint;
     tint[0] = std::bit_cast<float>(bits);
     tint[1] = std::bit_cast<float>(bits);
     tint[2] = std::bit_cast<float>(bits);
@@ -480,10 +480,10 @@ void HudMovePanel::MouseMove(Point point) {
 void HudMovePanel::ShowMode(int newMode) {
     screen_layout::EnterLeftPanel();    // addon's handler; another at the end
     mode = newMode;
-    auto* marker = SceneMesh(0);
+    auto* marker = sceneObjects[0];
     marker->visible = newMode >= 0;
     for (int i = 0; i < 4; ++i) {
-        EngineObject* button = sceneObjects[1 + i];
+        UiMesh* button = sceneObjects[1 + i];
         if (mode != i) {
             SetTint(button, kTintDim);
             continue;
@@ -495,7 +495,7 @@ void HudMovePanel::ShowMode(int newMode) {
         marker->localRotation = *turn.SetAxisAngle(axis, angle);
         const float y = kMarkerCentreY - (lib::Sin(angle) * kMarkerRadius);
         const float x = lib::Cos(angle) * kMarkerRadius;
-        SceneMesh(0)->Place(x, y, kMarkerDepth);
+        sceneObjects[0]->Place(x, y, kMarkerDepth);
         SetTint(button, kTintOn);
     }
     screen_layout::LeavePanel();
@@ -524,7 +524,7 @@ void HudMovePanel::Update() {
     flag = newFlag;
     // Scene object 5 shows the flag through its texture offset (textureOffsetU).
     std::uint32_t bits = newFlag == 0 ? 0x3EAC0000u : newFlag == 1 ? 0u : 0x3EF60000u;
-    SceneMesh(5)->textureOffsetU = std::bit_cast<float>(bits);
+    sceneObjects[5]->textureOffsetU = std::bit_cast<float>(bits);
 }
 
 // --- Top panel ---------------------------------------------------------------------------------

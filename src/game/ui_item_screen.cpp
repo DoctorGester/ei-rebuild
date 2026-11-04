@@ -66,9 +66,9 @@ void ItemIconWindow::PlaceBars(int y) {
     constexpr int kLeftBar = 25, kRightBar = 26;   // after the cell strip and the 4 x 6 column pieces
     float top = static_cast<float>(y - 20);
     float bottom = static_cast<float>(y + 20);
-    SceneMesh(kLeftBar)
+    sceneObjects[kLeftBar]
         ->SetRectangle(7.8f, 100.0f, 0.0f, top, 100.0f, bottom, 0xFE, 0x22, 0x9A, 0x4A);
-    SceneMesh(kRightBar)
+    sceneObjects[kRightBar]
         ->SetRectangle(7.8f, 100.0f, 100.0f, top, 200.0f, bottom, 0x9A, 0x22, 0xFE, 0x4A);
 }
 
@@ -177,9 +177,9 @@ constexpr int kTexels = 0x80;
 UiMesh* ItemModel(std::string_view name) {
     FigureManager* manager = g_clientWorld.figureManager;
     // The interface's model manager makes class 0x43 objects: interface sprites.
-    UiMesh* model = AsUiMesh(manager->NewFigure(name));
+    UiMesh* model = manager->NewFigure(name);
     if (!model) {
-        model = AsUiMesh(manager->NewBlankFigure());
+        model = manager->NewBlankFigure();
         model->SetRectangle(kDepth, kScale, 0.0f, kSize, kSize, 0.0f, 0, 0, kTexels, kTexels);
         model->FitVertexBounds();
     }

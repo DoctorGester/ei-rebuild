@@ -314,7 +314,7 @@ void Object3D::PlayAnimation(FigureAnimation* figureAnimation) {
     if (animation) animation->Play(figureAnimation);
 }
 
-int Object3D::AttachPartMesh(EngineObject* part) {
+int Object3D::AttachPartMesh(FigureMesh* part) {
     if (!animation) return 0;
     return animation->AttachMesh(part);
 }

@@ -185,7 +185,7 @@ void ObjectivesWindow::LoadQuestPlaces(std::string_view name) {
 void ObjectivesWindow::SelectExit(int index) {
     nearestExit = index;
     for (int i = 0; i < std::ssize(exits); ++i) {
-        UiMesh* marker = SceneMesh(kFirstExitSprite + i);
+        UiMesh* marker = sceneObjects[kFirstExitSprite + i];
         if (i == index) {
             marker->SetScale(markerScale * kNearestScale);
             marker->textureOffsetU = 0.0f;
@@ -195,8 +195,8 @@ void ObjectivesWindow::SelectExit(int index) {
             marker->textureOffsetU = exits[i].flag ? 0.0f : kOtherExitU;
         }
     }
-    SceneMesh(4)->visible = false;
-    SceneMesh(5)->visible = false;
+    sceneObjects[4]->visible = false;
+    sceneObjects[5]->visible = false;
 }
 
 void ObjectivesWindow::RefreshQuests() {
@@ -225,12 +225,12 @@ void ObjectivesWindow::Update() {
     const std::uint32_t fast =
         static_cast<std::uint32_t>((lib::Cos(blinkTime * kFastRate) * kFastAmplitude + kFastBase) * kAlphaScale);
     for (int i = lib::Count(exits) + kFirstExitSprite; i < lib::Count(sceneObjects); ++i) {
-        UiMesh* place = SceneMesh(i);
+        UiMesh* place = sceneObjects[i];
         place->flags |= FigureMeshFlag::Flat;
         place->flatColour = fast << 24 | 0xFF0000u;
     }
     for (int i = 0; i < std::ssize(exits); ++i) {
-        UiMesh* marker = SceneMesh(kFirstExitSprite + i);
+        UiMesh* marker = sceneObjects[kFirstExitSprite + i];
         marker->flags |= FigureMeshFlag::Flat;
         marker->flatColour = i == nearestExit ? fast << 24 | 0xFFFFFFu : slow << 24 | 0xC8C8C8u;
     }

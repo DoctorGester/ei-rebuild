@@ -246,19 +246,19 @@ void CampPages::ShowPage(int newPage) {
 
     // The hero arrows (scene objects 0/1, regions 0/1) only where a hero can be chosen.
     if (page == 0 && (!itemConstructor || noConstructor)) {
-        SceneMesh(0)->visible = false;
-        SceneMesh(1)->visible = false;
+        sceneObjects[0]->visible = false;
+        sceneObjects[1]->visible = false;
         regions[0]->SetTip(0);
         regions[1]->SetTip(0);
     } else {
-        SceneMesh(0)->visible = true;
-        SceneMesh(1)->visible = true;
+        sceneObjects[0]->visible = true;
+        sceneObjects[1]->visible = true;
         regions[0]->SetTip(0x4EE8);
         regions[1]->SetTip(0x4EE9);
     }
     // The page buttons (scene objects 2-9) half bright, the current one full.
-    for (int i = 2; i < 10; ++i) SetShade(SceneMesh(i), 0.5f);
-    SetShade(SceneMesh(page + 2), 1.0f);
+    for (int i = 2; i < 10; ++i) SetShade(sceneObjects[i], 0.5f);
+    SetShade(sceneObjects[page + 2], 1.0f);
     ui->OpenHelp(false);
 }
 
@@ -518,8 +518,8 @@ void CampPages::UpdateAction() {
     line = std::format("{} {}", text, amount);
     AddLine(actionLabels, line, Rect{0, 10, 200, 30});
 
-    SetShade(SceneMesh(0), actionEnabled ? 1.0f : 0.5f);
-    SetShade(SceneMesh(1), actionShown ? 1.0f : 0.5f);
+    SetShade(sceneObjects[0], actionEnabled ? 1.0f : 0.5f);
+    SetShade(sceneObjects[1], actionShown ? 1.0f : 0.5f);
 }
 
 void CampPages::Draw(SceneRenderer* pass) {

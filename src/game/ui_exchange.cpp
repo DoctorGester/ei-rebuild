@@ -250,10 +250,10 @@ void ExchangeScreen::Draw(SceneRenderer* pass) {
     // The accept button greyed and take-back lit while our offer is accepted, else the reverse;
     // the third one lit while the partner accepted.
     bool accepted = LiveAccepted(client->party.Get());
-    SetTint(SceneMesh(0), accepted ? 0.5f : 1.0f);
-    SetTint(SceneMesh(1), accepted ? 1.0f : 0.5f);
+    SetTint(sceneObjects[0], accepted ? 0.5f : 1.0f);
+    SetTint(sceneObjects[1], accepted ? 1.0f : 0.5f);
     bool partnerAccepted = LiveAccepted(net::ClientFindParty(client));
-    SetTint(SceneMesh(2), partnerAccepted ? 0.5f : 1.0f);
+    SetTint(sceneObjects[2], partnerAccepted ? 0.5f : 1.0f);
 
     UiContainer::Draw(pass);
 }

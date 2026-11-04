@@ -121,10 +121,10 @@ void SetMarkerRegion(UiRegion* region, const UiMesh* sprite) {
 }
 
 // A layer's texture frame: the fractional part of time * rate (stored).
-void SetFrameFraction(EngineObject* layer, float time, float rate) {
+void SetFrameFraction(UiMesh* layer, float time, float rate) {
     float v = time * rate;
     float fraction = v - static_cast<float>(lib::Truncate(v));
-    AsUiMesh(layer)->textureOffsetU = fraction;
+    layer->textureOffsetU = fraction;
 }
 
 } // namespace
@@ -363,10 +363,10 @@ void GlobalMap::Update() {
             turn.y = -turn.y;
             turn.z = -turn.z;
         }
-        SceneMesh(1)->localPosition = builder.ModelPoint(position);
-        builder.Turn(SceneMesh(1));
-        builder.Turn(SceneMesh(2));
-        for (int k = 3; k < 6; ++k) builder.Turn(SceneMesh(MarkerCount() + k));
+        sceneObjects[1]->localPosition = builder.ModelPoint(position);
+        builder.Turn(sceneObjects[1]);
+        builder.Turn(sceneObjects[2]);
+        for (int k = 3; k < 6; ++k) builder.Turn(sceneObjects[MarkerCount() + k]);
         for (int i = 0; i < std::ssize(zones); ++i) builder.Turn(Marker(i));
         for (int i = 0; i < std::ssize(quests); ++i) {
             UiMesh* sprite = Marker(lib::Count(zones) + i);
@@ -385,7 +385,7 @@ void GlobalMap::Update() {
     bobTime = time;
     float bob = 0.5f - (lib::Cos(time * 5.0f) * 0.2f);
     Vector3 above = {position.x, position.y, bob + position.z};
-    SceneMesh(0)->localPosition = builder.ModelPoint(above);
+    sceneObjects[0]->localPosition = builder.ModelPoint(above);
     SetFrameFraction(sceneObjects[MarkerCount() + 3], bobTime, 0.01f);
     SetFrameFraction(sceneObjects[MarkerCount() + 4], bobTime, 0.016666668f);
     SetFrameFraction(sceneObjects[MarkerCount() + 5], bobTime, 0.033333335f);

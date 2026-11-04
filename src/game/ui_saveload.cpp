@@ -118,7 +118,7 @@ constexpr const char* kEveryFile = "\\*.*";
 // A message box `name` / `text` on top of the interface (a failed allocation pushes null, as the
 // original does).
 void Ask(Interface3D* ui, const char* name, const char* text, int result) {
-    UiWindow* box = new MessageWindow(ui, name, text, result, 3, 1);
+    auto* box = new MessageWindow(ui, name, text, result, 3, 1);
     ui->PushWindow(box, true, true);
 }
 
@@ -126,14 +126,14 @@ void Ask(Interface3D* ui, const char* name, const char* text, int result) {
 
 
 void SaveLoadWindow::ShowPicture() {
-    SceneMesh(3)->visible = false;
+    sceneObjects[3]->visible = false;
     int currentSelected = selected;
     if (currentSelected < 0 || static_cast<unsigned>(currentSelected) >= static_cast<unsigned>(EntryCount())) return;
     SaveEntry* entry = entries.data() + currentSelected;
     if (entry->broken) return;
     if (isSave && currentSelected == 0) {
         // The new save: the game's picture.
-        if (dialog) ShowTexture(SceneMesh(3), dialog);
+        if (dialog) ShowTexture(sceneObjects[3], dialog);
         return;
     }
     // The file's picture, no larger than shown here.
@@ -146,7 +146,7 @@ void SaveLoadWindow::ShowPicture() {
     if (!made) return;
     if (picture) picture->Release();
     picture = made;
-    ShowTexture(SceneMesh(3), picture);
+    ShowTexture(sceneObjects[3], picture);
 }
 
 void SaveEntry::MakeTitle() {
@@ -179,7 +179,7 @@ void SaveLoadWindow::SaveGame() {
     if (space != 0.0) {
         int needed = CurrentSaveSize();
         if (static_cast<double>(needed) > space) {
-            UiWindow* box = new MessageWindow(ui, game::savewords::NoSpace(), game::savewords::NoSpaceText(), 0x30000, 1, 1);
+            auto* box = new MessageWindow(ui, game::savewords::NoSpace(), game::savewords::NoSpaceText(), 0x30000, 1, 1);
             ui->PushWindow(box, true, true);
             return;
         }

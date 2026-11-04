@@ -253,7 +253,7 @@ float WheelZoomFactor(int delta) {
 } // namespace
 
 void HudMap::BuildMarkers() {
-    UiMesh* mesh = SceneMesh(2);
+    UiMesh* mesh = sceneObjects[2];
     BaseManager* objectManager = g_clientWorld.objectManager;
     // The local view: the ids of the units shown on the map (partyUnitIds) and, in multiplayer, of the other
     // players' units (otherUnitIds).
@@ -362,9 +362,9 @@ void HudMap::UpdateView() {
     Vector3 up = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
     turn.SetAxisAngle(up, angle);
-    SceneMesh(10)->localRotation = turn;
+    sceneObjects[10]->localRotation = turn;
 
-    auto* area = SceneMesh(1);
+    auto* area = sceneObjects[1];
     std::vector<Vector2>& points = visibleArea;
     int count = lib::Count(viewPolygon);
     points.resize(count);   // the original inlines the same code
@@ -461,7 +461,7 @@ void HudMap::UpdateView() {
     }
     area->RefreshBuffers();
 
-    auto* bounds = SceneMesh(0);
+    auto* bounds = sceneObjects[0];
     float left = -centre.x * scale;
     float top = -(-centre.y * scale);
     float right = (worldWidth - centre.x) * scale;

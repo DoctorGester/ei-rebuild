@@ -99,8 +99,8 @@ void GlobalMap::MouseMove(Point point) {
     SelectZone(index, isLink);
     if (index == -1 || (!isLink && zones[index].state == 0)) {
         surfaces[0]->Hide();
-        SceneMesh(MarkerCount() + kTipBack)->visible = false;
-        SceneMesh(MarkerCount() + kTipFrame)->visible = false;
+        sceneObjects[MarkerCount() + kTipBack]->visible = false;
+        sceneObjects[MarkerCount() + kTipFrame]->visible = false;
         shownName.clear();
         return;
     }
@@ -117,10 +117,10 @@ void GlobalMap::MouseMove(Point point) {
             if (quest.zone == index) tipQuests.push_back(quest.title);
     }
     const int lines = static_cast<int>(tipQuests.size());
-    UiMesh* back = SceneMesh(MarkerCount() + kTipBack);
+    UiMesh* back = sceneObjects[MarkerCount() + kTipBack];
     back->SetRectangle(3.0f, 100.0f, 400.0f, 20.0f, 780.0f, static_cast<float>(lines * kTipLine + 75), 0, 0, 0x100, 0x100);
     back->visible = true;
-    UiMesh* frame = SceneMesh(MarkerCount() + kTipFrame);
+    UiMesh* frame = sceneObjects[MarkerCount() + kTipFrame];
     frame->SetFrame(3.0f, 100.0f, 395.0f, 15.0f, 785.0f, static_cast<float>((lines * 5 + 20) * 4), 5.0f, 2, 0xFE, 0xB4,
                     0xF9);
     frame->visible = true;

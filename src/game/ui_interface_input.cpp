@@ -124,7 +124,7 @@ void Interface3D::CloseAll() {
     g_cursor.SetShape(kCursorWait);
     while (!stack.empty()) {
         stack.back()->Input()->Deactivate();
-        ScreenOf(stack.back())->CloseScreen();
+        stack.back()->CloseScreen();
         delete stack.back();
         stack.pop_back();
     }
@@ -170,7 +170,7 @@ void Interface3D::Update() {
         doubleClick = false;
         if (!stack.empty()) stack.back()->Input()->Deactivate();
         if (!stack.empty()) {
-            ScreenOf(stack.back())->CloseScreen();
+            stack.back()->CloseScreen();
             delete stack.back();
             stack.pop_back();
         }
@@ -192,7 +192,7 @@ void Interface3D::Update() {
             serverFlag = 0;
         }
         if (!stack.empty()) {
-            ScreenOf(stack.back())->MessageResult(static_cast<int>(pendingValue));
+            stack.back()->MessageResult(static_cast<int>(pendingValue));
         }
         if (pendingValue == kLeaveGame) {
             closeAll = true;
@@ -202,13 +202,13 @@ void Interface3D::Update() {
         mouseCapture = nullptr;
         g_cursor.SetShape(0);
     }
-    if (pollTop && !stack.empty()) pollTop = !ScreenOf(stack.back())->ReadyToStopPolling();
+    if (pollTop && !stack.empty()) pollTop = !stack.back()->ReadyToStopPolling();
     if (closeAll) {
         closeAll = false;
         g_cursor.SetShape(3);
         while (!stack.empty()) {
             stack.back()->Input()->Deactivate();
-            ScreenOf(stack.back())->CloseScreen();
+            stack.back()->CloseScreen();
             delete stack.back();
             stack.pop_back();
         }
@@ -258,17 +258,17 @@ void Interface3D::OnStringEvent(std::string_view event) {
         int number = words.size() > 2 ? TextKeyFromName(words[2]) : 0;
         AckKind kind = str::Compare(words[0], "say_block") != 0 ? AckKind::Scenario : AckKind::ScenarioTalking;
         if (!stack.empty())
-            ScreenOf(top())->Speech(number, kind, const_cast<char*>(words[1].c_str()));
+            top()->Speech(number, kind, const_cast<char*>(words[1].c_str()));
     } else if (str::Compare(words[0], "tutorial") == 0) {   // queued
         if (words.size() < 2) return;
         messages.push_back(words[1]);
     } else if (str::Compare(words[0], "briefing") == 0) {
         if (words.size() < 2 || stack.empty()) return;
-        ScreenOf(top())->ShowBriefing(words[1]);
+        top()->ShowBriefing(words[1]);
     } else if (str::Compare(words[0], "autosave") == 0) {
         pollTop = true;
     } else if (str::Compare(words[0], "endofgame") == 0) {
-        if (!stack.empty()) ScreenOf(top())->GameOver(true);
+        if (!stack.empty()) top()->GameOver(true);
     }
 }
 
@@ -331,7 +331,7 @@ void Interface3D::ShowFps(bool on) {
 }
 
 void Interface3D::OnQuestVariable(std::string_view name, float value) {
-    if (!stack.empty()) ScreenOf(stack.back())->QuestVariable(name, value);
+    if (!stack.empty()) stack.back()->QuestVariable(name, value);
     std::vector<std::string> parts;
     if (value != 1.0f) return;
     parts = text::SplitWords(name, '.');
@@ -341,27 +341,27 @@ void Interface3D::OnQuestVariable(std::string_view name, float value) {
 // --- News for the top window -------------------------------------
 
 void Interface3D::OnItemsPicked(const std::vector<Item*>& items, int money, bool crippled) {
-    if (!stack.empty()) ScreenOf(stack.back())->ItemsPicked(items, money, crippled);
+    if (!stack.empty()) stack.back()->ItemsPicked(items, money, crippled);
 }
 
 void Interface3D::OnUnitJoined(Unit* unit) {
-    if (!stack.empty()) ScreenOf(stack.back())->UnitJoined(unit);
+    if (!stack.empty()) stack.back()->UnitJoined(unit);
 }
 
 void Interface3D::OnUnitLeft(Unit* unit) {
-    if (!stack.empty()) ScreenOf(stack.back())->UnitLeft(unit);
+    if (!stack.empty()) stack.back()->UnitLeft(unit);
 }
 
 void Interface3D::OnGameLost() {
-    if (!stack.empty()) ScreenOf(stack.back())->GameOver(false);
+    if (!stack.empty()) stack.back()->GameOver(false);
 }
 
 void Interface3D::OnUnitSpeech(int id, AckKind kind) {
-    if (!stack.empty()) ScreenOf(stack.back())->Speech(id, kind, kNoExtra);
+    if (!stack.empty()) stack.back()->Speech(id, kind, kNoExtra);
 }
 
 void Interface3D::OnPlayersChanged(int added) {
-    if (!stack.empty()) ScreenOf(stack.back())->PlayersChanged(added);
+    if (!stack.empty()) stack.back()->PlayersChanged(added);
 }
 
 void Interface3D::OnChatLine(const char* text) {
@@ -369,12 +369,12 @@ void Interface3D::OnChatLine(const char* text) {
 }
 
 void Interface3D::OnExchangeDone(Party* partyB, Party* partyA, Party* partyC) {
-    if (!stack.empty()) ScreenOf(stack.back())->ExchangeDone(partyB, partyA, partyC);
+    if (!stack.empty()) stack.back()->ExchangeDone(partyB, partyA, partyC);
 }
 
 // The bottom window, not the top one (a save is made from the battle screen under the save window).
 void Interface3D::SaveWindowState() {
-    if (!stack.empty()) ScreenOf(stack[0])->SaveState();
+    if (!stack.empty()) stack[0]->SaveState();
 }
 
 void Interface3D::ShowStatusText(std::string_view text) {

@@ -89,7 +89,7 @@ void UiItemStrip::SetTab(int newTab) {
     tab = newTab;
     for (int i = 0; i < 6; ++i) {
         float shade = i == newTab ? 1.0f : 0.5f;
-        float* color = SceneMesh(i + 2)->tint;
+        float* color = sceneObjects[i + 2]->tint;
         color[0] = shade;
         color[1] = shade;
         color[2] = shade;
@@ -115,7 +115,7 @@ void UiItemStrip::SetFilter(int newFilter) {
     default: return;
     }
     for (int i = 2; i < 8; ++i) {
-        SceneMesh(i)->textureOffsetU = std::bit_cast<float>(column);
+        sceneObjects[i]->textureOffsetU = std::bit_cast<float>(column);
         regions[i]->SetTip(tipBase + i);
     }
 }
