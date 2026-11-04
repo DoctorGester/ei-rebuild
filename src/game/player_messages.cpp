@@ -267,6 +267,7 @@ void PlayerServer::CreateServer() {
         handlers[entry.type] = entry.handler;
 }
 
+// Unreached in the shipped game: our client never sends message 0x37.
 int PlayerServer::OnMessage37() { return 0; }
 
 // --- The server's lifetime and virtuals ------------------------------------------------------

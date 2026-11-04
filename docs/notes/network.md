@@ -72,8 +72,10 @@ and `net_pair_party` (an exchange offered, withdrawn, answered, left);
   offer), PartyMember (16, a MemoryStream); server to client: Player (1), Line (2, chat), Host (3, "host:port" + zone),
   Binding (4), Zone (8), Map (9), Variable (10), File (11), FileChunk (12), Award (14), Trade (17). Duplicate layouts
   share a class: `TextMessage` (Say / Zone / Map), `PairMessage` (Binding / FileRequest). Each class has its factory,
-  reset, clone, Write and Read; a reset ends with the inlined placement new's null test of `this` in the original,
-  which ours leaves out.
+  reset, Write and Read; a reset ends with the inlined placement new's null test of `this` in the original, which
+  ours leaves out. Only the messages a second share of an object clones (Say, Command, FileChunk, Award, ServerEntry)
+  have `Clone` and a copy constructor; `RefObject::Clone` of any other class is a fatal error, and `OnShutdown` is
+  empty unless a class overrides it (H43g1 cut the clones the coverage runs never reached).
 - Command kinds (host only): 0 preview a map, 1 zone command ("_1" enter, "_2" leave, "_3" finish), 2 / 3 kick / ban
   by name, 4 / 5 by serial.
 - Rates: 12500 local / 2500 otherwise, clamped 500..50000. Say is announced as "^<number><name>^7: <text>".
@@ -152,4 +154,16 @@ client reads them back; single player too, through the loopback.
   disconnect writes unread bytes back over the incoming stream. `DriverSession` keeps a driver link per remote player.
   Links are created with `net::NewCounted`.
 - The player sources hand new links over as `JoinedLinks` (`std::list<netlink::NetLink*>`, TakeNew).
-- Kept: the driver's clone reads into the source's buffer where a write was meant.
+
+## Unreached in the shipped game
+
+Kept on purpose (they carry a game action or the protocol), each with a one-line comment at the definition; the
+coverage runs of H43 never reached them:
+- `ServerSession::RemoveVariable` (GSDelVar's multiplayer branch in `script_exec.cpp`): the only live GSDelVar calls
+  (zone13.mob, zone2.mob) sit behind single-player story variables.
+- Handlers for messages our own peer never sends, kept for a vanilla peer: `PlayerClient::OnDisconnect` (0x01) and
+  `OnObjectValues` (0x0C); `PlayerServer::OnLeave` (0x01), `OnRefreshParty` (0x02), `OnBriefingDone` (0x07),
+  `OnMessage37` and `OnUnitLookup` (0x38, reads and drops). The other handlers H43g1 listed (`SendGoTo`, `SendFollow`,
+  `TakeExit`, `OnGoTo`, `OnFollow`, `OnTakeExit`, `OnWeaponRemoved`, `Send17`, `SendObject0A`, `SendPair16`) have
+  callers in play (the hud's orders, a broken weapon, taken loot); the scenarios just do not click them.
+- The `SessionBase` handlers of the packet kinds a session does not serve log an error and are not empty.

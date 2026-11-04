@@ -111,6 +111,14 @@ The original's branch-free `max(0, v)` picks v when 0 < v or NaN (`MaxZero`; als
 ActionDistance); `TEST AH,0x40` skips on equal or unordered (`x < 0 || x > 0`); random draws `random % (n + 1)` with n =
 FISTP, then the zero-extended remainder (`Unsigned`).
 
+## Unreached in the shipped game
+
+Kept because they could be re-enabled, each with a one-line comment: taming (`TryTame`, `UndoTaming`, `UndoIfTamedBy`
+in combat_taming.cpp, `OrderTame`: the taming skill returns before its use case, `WorldServer::CastSpell` refuses
+charm and the interface sends only the use and steal kinds) and the use-item order (`OrderPlan::TakeSteps` and the
+UseItem cases of `FinishAction` and the tick: nothing sets that order). `CanStillDo` and the two `TellParty(OutOfReach)`
+calls are live code that needs a target too high to reach, which the coverage runs lacked.
+
 ## Original bugs kept
 
 Visible behaviour of the original kept until the user decides (rewrite-guide rule 9; C84 triaged the list, with a

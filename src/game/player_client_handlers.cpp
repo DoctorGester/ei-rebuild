@@ -51,6 +51,7 @@ int PlayerClient::OnLoginAccepted() {
     return 1;
 }
 
+// Unreached in the shipped game: our server never sends message 0x01 (kept for a peer that does).
 int PlayerClient::OnDisconnect() {
     player->Disconnect();
     return 1;
@@ -111,6 +112,7 @@ int PlayerClient::OnUnitSpeech() {
     return 1;
 }
 
+// Unreached in the shipped game: our server never sends message 0x0C (kept for a peer that does).
 int PlayerClient::OnObjectValues() {
     for (;;) {
         int objectId;
