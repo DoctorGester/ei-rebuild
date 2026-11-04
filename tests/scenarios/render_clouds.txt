@@ -1,0 +1,67 @@
+# R17d: the cloud shadows (docs/notes/renderer.md section 13, item 11). A repeating cloud map drifts with the wind,
+# projected along the shadow map's light onto the ground, objects and water, and hides part of the sun's light
+# (more cover in rain, none at night or in a cave). Zone1 at noon: the frame and the sun hidden alone ("shadowview
+# on": the map's shadows with the clouds) at one frozen moment and again a few seconds later, the clouds moved; in
+# rain, more of the ground under them; at night and in the cave gz5g none. Frames only (goldens hold none).
+render checkall
+timeout 120
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+console @FixWorldTime(12)
+wait 3000
+move 400 20
+frames 5
+freeze
+cloudcheck 0.5 0.6 0.35 0.45
+capture day
+shadowview on
+capture day_view
+shadowview off
+unfreeze
+wait 5000
+frames 5
+freeze
+shadowview on
+capture day_view_later
+shadowview off
+capture day_later
+unfreeze
+diffcapture day_view day_view_later 0.02 0.9
+
+# Rain: the cover follows the weather over a few seconds.
+console @SetWeather("rain")
+wait 20000
+frames 5
+freeze
+cloudcheck 0.5 0.6 0.7 0.8
+capture rain
+shadowview on
+capture rain_view
+shadowview off
+unfreeze
+console @SetWeather("clear")
+
+# At night none.
+console @FixWorldTime(1)
+wait 2000
+frames 5
+cloudcheck 0 0
+capture night
+
+# The cave: none.
+zone gz5g 0
+waitzone 20 gz5g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @FixWorldTime(12)
+wait 2000
+move 400 20
+frames 5
+cloudcheck 0 0
+capture cave
+report
+quit

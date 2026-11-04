@@ -843,7 +843,7 @@ map is the only shadow look.
   a hard edge far away does not crawl from pixel to pixel. Not taken: reuse across frames (a history buffer and its
   reprojection for a small gain), a prefiltered map (its blur loses the contact hardening). GPU cost (the town bz1g at
   4K, msaa 8, day, night and night with a crowd of 12, four runs each interleaved with main's): within 0.01 ms of the
-  frame's 2.4-2.8 ms. Harness build: `shadowview on` shows the shadow alone (white lit, black at full strength),
+  frame's 2.4-2.8 ms. Harness build: `shadowview on` shows the shadow alone (with the clouds; white lit, black at full strength),
   `shadowshift <n>` moves the map's origin by n x n/2 whole texels. Check: render_shadows_shimmer (the user's save in
   tests/saves/shadow_corrupt).
 - **The casters' draws** (both maps, `CasterDraws` in render_internal.h): a draw's own data (`CasterInstance`: the light x
@@ -871,6 +871,40 @@ map is the only shadow look.
   render_shadows_outside (`shadowcasters all|view|walked`: with the outside casters, without them, and with every caster
   from the walk: the last matches the first, so the walk places, selects and cuts out meshes as the game's draws do; in the
   town with the camera moved the gate's long shadow is there with them and gone without them).
+
+**11. Cloud shadows** (`render_cloud_shadows.cpp`, `shaders/cloud_shadow.hlsli`; R17d). Soft cloud patches drift over
+the land by day; client side only, nothing the game simulates reads them, always on (no option). The world's light
+(WorldClient::UpdateLighting) hands over the client's weather each frame (`render::CloudShadows`): `day` (0 before
+hour 4 and after 20, rising to 1 at 6, falling from 18; 0 in a cave), the rain or snow's strength as its layer fades it
+(`RainSnow::density` / 64 while its mode is on), the wind (`RainSnow::wind`, units a tick) and the world's time (tick
++ tickFraction).
+- **The map**: 256 x 256 R8, repeating, made once on the CPU at the first frame (no data file): gradient noise over
+  five octaves (4 to 64 cells across), each texel replaced by its rank, so the values are spread evenly over 0 .. 1.
+- **Two layers** of it: one repeating every 176 units, one every 109 turned by (0.8, 0.6), weighted 0.65 / 0.35. Each
+  drifts with the wind (0.11 and 0.15 times the wind a tick: about 0.8 units a second at the default wind of 0.4), the
+  second faster, so the patches change their shape as they go. The drift is summed from the world's time between
+  frames (a step back or over 64 ticks moves nothing: a load), kept within each layer's repeat in double.
+- **Cover**: the share of the ground under clouds, 0.4 clear and 0.8 in full rain or snow, followed over about 150
+  ticks; the threshold the layers' sum exceeds on that share comes from the sum's spread (a trapezoid for two even
+  spreads, `CoverThreshold`), with a soft edge of 0.09 either side.
+- **Projection**: the shadow map's (item 10): its clip x and y are the landscape's x and y where a point meets a level
+  plane along the map's light, so a receiver's cloud uv is its shadow coordinate times a scale plus a shift
+  (`ShadowParams::clouds` / `cloudShift`, from the map's fit). The clouds lie on the ground, seen from the sun: a high
+  point takes them from where the light came through the plane. PrepareShadows fits the map and gives the receivers
+  their matrices for the clouds even when nothing casts (the map is then not drawn, `on` 0).
+- **Light**: a full cloud hides 0.55 of the sun (times `day`); the receivers take it as more of the sun hidden: hidden
+  = 1 - (1 - map) x (1 - cloud), through the shadow's rules (item 9: the ground goes 0.55 of the way to its light in
+  the shade, at least 27% darker on faces turned to the sun; a mesh 27% darker on faces turned to it, a unit on every
+  face). The water
+  takes the clouds alone (`ShadowParams::on` 0: `cloudParams`). Not under clouds: the sky, flat geometry (ground prints,
+  markers) and additive passes, as for the map.
+- Check: render_clouds (zone1 at noon: the frame and the shadow view at one frozen moment and five seconds later,
+  `diffcapture` between the views; rain: `cloudcheck` with the cover at 0.7 .. 0.8; night and the cave gz5g:
+  `cloudcheck 0 0`). `cloudcheck <least> <most> [<least cover> <most cover>]` reads ShadowInfo's `cloudLight` and
+  `cloudCover`; `shadowview on` shows the clouds with the map's shadows.
+- GPU cost (the town bz1g by day at 3840 x 2160, msaa 8, alone and with a crowd of 12; whole-frame times by submission,
+  item 1; five rounds interleaved with the clouds switched off by a probe): none measurable, the medians 2.21-2.35 ms
+  with them and 2.27-2.40 without (the machine's noise is larger than two R8 reads a pixel).
 
 **12. Profiling the heaviest scenes.** The user's play settings: 3840 x 2160 windowed, msaa 8, anisotropy 16, flora
 shadows on, Rebirth's draw radii, `frametime 8`; zone1, zone7 (forest), zone11 (snow forest), zone19, the town bz1g, the
@@ -1266,6 +1300,13 @@ map's depth range per cell. Objects the game does not draw whose shadow can reac
 prepared and drawn from here, inside the shadow map's time. Space: the meshes' matrices are clip matrices, the terrain's
 the same for the landscape's space, in which the map is fitted.
 
+### render_cloud_shadows.cpp: cloud shadows
+
+Section 13, item 11. CloudShadows keeps the frame's weather; PrepareClouds (from PrepareShadows, outside a pass) makes the
+cloud map at the first frame and moves the layers' drift and the cover on by the world's time; CloudUniforms writes
+the receivers' part of ShadowParams for the map's fit; BindCloudMap binds the map (bilinear, repeating) for the terrain
+and mesh programs.
+
 ### render_terrain.cpp: the terrain
 
 The game's terrain passes (ground pages, water pages) call DrawSectorPage (SectorData::DrawPage, src/game/terrain.cpp) for
@@ -1341,6 +1382,13 @@ keeps its light). The point lights (each material + its light, at most 1 per cha
 under the water by the light's vertical part) take the largest per channel, darkened by the same shade, the specular ones
 apart (`spec`, added after the texture as the specular word was). A light with a point shadow adds only what reaches the
 point; the ground casts none, so the point is looked up moved along its own normal.
+
+### shaders/cloud_shadow.hlsli: cloud_hidden
+
+The share of the sun the clouds hide at a receiver from its point in the map's clip space `s`: the two layers of the
+cloud map at `s` times their scale plus their shift (the second turned by (0.8, 0.6)), 0.65 a + 0.35 b, smoothstep
+around the cover's threshold, times the light a full cloud hides. `with_clouds` adds it to the map's share as a
+second, independent occluder.
 
 ### shaders/shadow_receiver.hlsli: the receivers and the soft edges
 

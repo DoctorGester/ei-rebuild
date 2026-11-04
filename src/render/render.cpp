@@ -867,6 +867,8 @@ void Present() {
     g_frame.commands.clear();
     g_frame.worldRanges.clear();
     g_frame.shadow.haveSun = false;
+    g_frame.shadow.haveClouds = false;
+    g_frame.shadow.clouds = false;
     g_frame.shadow.casters.clear();
     g_frame.shadow.prepared = false;
     g_frame.shadow.on = false;

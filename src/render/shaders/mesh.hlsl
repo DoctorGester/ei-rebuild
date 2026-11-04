@@ -66,8 +66,10 @@ VsOut vs_main(VsIn i) {
 #define SHADOW_RANGE_SLOT 4
 #define POINT_BLOCK_SLOT 3
 #define POINT_MAP_SLOT 5
+#define CLOUD_MAP_SLOT 6
 #include "shadow_receiver.hlsli"
 #include "point_shadow.hlsli"
+#include "cloud_shadow.hlsli"
 struct MeshFsParams {
     float4 fogColour;      // rgb
     float4 factor;         // TEXTUREFACTOR
@@ -193,15 +195,13 @@ float4 Shade(VsOut i) {
     // How much of the sun the shadow map hides. A unit's mesh: the shadows other objects cast, on every face (none of
     // its own: its sun side is shaded by the lighting's N.L; by face it flipped triangle by triangle on a low-poly
     // creature). Any other mesh: on faces turned to the sun only, by their face normal (the smoothed vertex normals of
-    // many static meshes lean far from their faces: a plank's top read sideways). Every mesh is darkened by it alike,
-    // the colour lit here or by the game, the lamps' light and the ambient light with the sun's (as before: in the
-    // towns the ambient light is nearly the sun's).
-    float hidden = 0.0;
-    if (shadow.on.x > 0.5) {
-        bool unit = fs.shadowFigure.x > 0.5;
-        hidden = shadow_amount(i.shadow.xyz, dsx, dsy, i.pos.xy, unit ? fs.shadowFigure.y : 2.0);
-        if (!unit) hidden *= shadow_facing(i.shadow.xyz, dsx, dsy);
-    }
+    // many static meshes lean far from their faces: a plank's top read sideways). The clouds' alike. Every mesh is
+    // darkened by it alike, the colour lit here or by the game, the lamps' light and the ambient light with the sun's
+    // (as before: in the towns the ambient light is nearly the sun's).
+    bool unit = fs.shadowFigure.x > 0.5;
+    float hidden = with_clouds(shadow_amount(i.shadow.xyz, dsx, dsy, i.pos.xy, unit ? fs.shadowFigure.y : 2.0),
+                               i.shadow.xy);
+    if (!unit && hidden > 0.0) hidden *= shadow_facing(i.shadow.xyz, dsx, dsy);
     float4 diffuse = i.col;
     if (lighting.on.x > 0.5) diffuse.rgb = figure_light(i.model, i.normal, i.land, face, pixel_turn(i.pos.xy));
     float4 current = diffuse;
@@ -221,10 +221,8 @@ float4 Shade(VsOut i) {
     if (fs.switches.z != 0 && !passes(fs.switches.z, current.a, fs.switches.w)) discard;
     float3 rgb = current.rgb;
     if (fs.switches.x != 0) rgb = saturate(rgb + i.spec.rgb);
-    if (shadow.on.x > 0.5) {
-        if (shadow.on.z > 0.5) return float4((1.0 - hidden).xxx, current.a);   // the harness's shadowview
-        rgb *= 1.0 - hidden * shadow.on.y;
-    }
+    if (shadow.on.z > 0.5) return float4((1.0 - hidden).xxx, current.a);   // the harness's shadowview
+    rgb *= 1.0 - hidden * shadow.on.y;
     if (fs.switches.y != 0) rgb = lerp(fs.fogColour.rgb, rgb, i.spec.a);
     return float4(rgb, current.a);
 }

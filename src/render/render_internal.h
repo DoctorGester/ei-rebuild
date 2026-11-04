@@ -249,8 +249,12 @@ struct ShadowFrame {
     std::vector<std::pair<const void*, float>> casters;   // object, strength (render::CastsShadow)
     bool prepared = false;
     bool on = false;          // the map is made this frame: receivers sample it
+    bool haveClouds = false;  // render::CloudShadows handed over
+    CloudWeather weather{};
+    bool clouds = false;      // the cloud shadows are shown this frame (`lights` made for them too)
     std::vector<Matrix4> lights;   // each receiving mesh's model space to the map's clip space; [0]: the terrain's
     ShadowParams params{};
+    ShadowParams cloudParams{};    // the clouds alone (on[0] 0): for the water, and when no map is drawn
     PointShadowFrame point;
 };
 
@@ -521,8 +525,17 @@ Vector3 CornerNormal(const MeshDraw& mesh, int index);
 // bind the map (or a cleared 1 x 1 one) at `mapSlot` and its depth range per cell after it with BindShadowMap.
 void PrepareShadows(Frame& frame);
 void DrawShadowMap(Frame& frame);
-const ShadowParams& ShadowUniforms(const Frame& frame, bool receives);
+const ShadowParams& ShadowUniforms(const Frame& frame, bool receives, bool clouded);
 void BindShadowMap(int mapSlot);
+// The cloud shadows (render_cloud_shadows.cpp, shaders/cloud_shadow.hlsli), in the receivers' ShadowParams: a batch
+// with a light matrix takes them (`clouded` in ShadowUniforms), the water too. PrepareClouds, from PrepareShadows
+// once a frame outside a pass: the cloud map made at the first, the drift and the cover moved on by the world's time;
+// returns how much of the sun a full cloud hides this frame (0: no clouds). CloudUniforms: their part of `params`
+// for the map's fit (the landscape's x0, y0 at its clip space's -1, its extent). BindCloudMap: the map at `slot`.
+float PrepareClouds(const ShadowFrame& shadow);
+float CloudCover();
+void CloudUniforms(float x0, float y0, float extent, float light, ShadowParams* params);
+void BindCloudMap(int slot);
 // How far along its normal a receiver's point is moved before it is looked up in the map: 1.5 of the map's texels,
 // in world units (0 without the map).
 inline float ShadowNormalOffset(const ShadowParams& shadow) {

@@ -262,6 +262,25 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         if (!info.made || info.casters < least || info.receivingMeshes < 1 || info.receivingTerrain < 1 ||
             info.lost > 0 || info.outsideCasters < leastOutside)
             failures->push_back(text);
+    } else if (verb == "cloudcheck") {
+        // cloudcheck <least light> <most light> [<least cover> <most cover>]
+        float least = 0.0f, most = 0.0f, leastCover = 0.0f, mostCover = 1.0f;
+        if (std::sscanf(argument.c_str(), "%f %f %f %f", &least, &most, &leastCover, &mostCover) < 2) {
+            failures->push_back("cloudcheck needs the least and the most light");
+            return true;
+        }
+        render::ShadowInfo info = render::ShadowState();
+        char text[200];
+        std::snprintf(text, sizeof(text),
+                      "cloudcheck: a full cloud hid %.3f of the sun (%.3f .. %.3f), cover %.3f (%.3f .. %.3f)",
+                      static_cast<double>(info.cloudLight), static_cast<double>(least), static_cast<double>(most),
+                      static_cast<double>(info.cloudCover), static_cast<double>(leastCover),
+                      static_cast<double>(mostCover));
+        Log("harness: %s", text);
+        frames->push_back(text);
+        if (info.cloudLight < least || info.cloudLight > most || info.cloudCover < leastCover ||
+            info.cloudCover > mostCover)
+            failures->push_back(text);
     } else if (verb == "renderstats") {
         render::FrameStats t = render::TakeFrameStats();
         // The main thread's CPU time (its cycles, in milliseconds by the thread's CPU time so far, as the

@@ -323,8 +323,12 @@
 //                             casting into it, the ground and some meshes sampling it, and every object
 //                             whose shadow the game draws and that was drawn casting into it (render::
 //                             ShadowState)
-//   shadowview on|off         with the shadow map, the receivers show only the sun the map hides (white lit,
-//                             black fully shadowed; render::SetShadowView, R25), from the next frame
+//   cloudcheck <least> <most> [<least cover> <most cover>]
+//                             require the last frame's cloud shadows to hide between <least> and <most> of
+//                             the sun under a full cloud (0 0: none) and cover that share of the ground
+//                             (render::ShadowState, R17d)
+//   shadowview on|off         with the shadow map, the receivers show only the sun the map and the clouds hide
+//                             (white lit, black fully shadowed; render::SetShadowView, R25), from the next frame
 //   shadowshift <texels>      with the shadow map, its origin moved by <texels> whole texels across and half
 //                             as many along (render::SetShadowShift, R25; 0 the default): the same shadow,
 //                             other range cells
@@ -1917,7 +1921,7 @@ std::string DescribeTopWindow() {
 
 // The image's renderer's steps (image::RenderStep).
 bool IsRenderStep(const std::string& verb) {
-    return verb == "terrainlevels" || verb == "levelsteps" || verb == "hues" || verb == "mmplevels" || verb == "msaa" || verb == "anisotropy" || verb == "smoothcheck" || verb == "smoothorder" || verb == "shadowcasters" || verb == "shadowview" || verb == "shadowshift" || verb == "terraincache" || verb == "meshcache" || verb == "shadowcheck" || verb == "renderstats";
+    return verb == "terrainlevels" || verb == "levelsteps" || verb == "hues" || verb == "mmplevels" || verb == "msaa" || verb == "anisotropy" || verb == "smoothcheck" || verb == "smoothorder" || verb == "shadowcasters" || verb == "shadowview" || verb == "shadowshift" || verb == "terraincache" || verb == "meshcache" || verb == "shadowcheck" || verb == "cloudcheck" || verb == "renderstats";
 }
 
 // The steps that post input messages to the game window.
