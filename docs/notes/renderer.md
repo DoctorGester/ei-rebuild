@@ -734,6 +734,18 @@ colours and ranges); what they light is done per pixel.
   units' idle animations redraw the faces holding them every frame. PreparePointShadows keeps its working lists across
   frames, makes one sphere per mesh (`BoxSphere`) and compares squared distances (`NotFurther` takes a root only where a
   test is too close to tell).
+- **Units over a kept still layer: measured, not built** (R37a1; SDL_GPU on Direct3D 12, the town bz1g at night at 4K,
+  msaa 8, alone and with a crowd of 12; times by submission on a quiet machine, section 13 item 1; the kit, with the
+  tried code as a patch, is build/R37a1 in the main checkout). Tried: the faces as layers of two 2D depth arrays, the
+  still casters in one (cleared by the pass's load op), each face a whole-layer GPU copy of its still layer with its
+  units drawn over it, a pass per layer. Point draws fell from 135 to 97 (town) and 414 to 377 (crowd), but the point
+  pass's GPU time rose from 0.044 to 0.048 ms and 0.052 to 0.057 ms (against the sun map's 0.25 ms: 0.18 -> 0.19 and
+  0.21 -> 0.23), and DrawPointShadows' CPU from 0.032 to 0.040 and 0.064 to 0.073 ms; with the passes repeated 20
+  times a frame the gap is plain (0.19 -> 0.44 and 0.26 -> 0.57 ms). A layer's pass, copy and barriers cost more than
+  the small meshes they save drawing into a 512 x 512 face. Drawing every face every frame instead costs 0.057 / 0.061
+  ms, so keeping faces saves about 0.01 ms; on SDL_GPU the point pass is about a fifth of the sun map's time (D3D11's
+  timestamps had 0.55). SDL_GPU took what was tried on Direct3D 12 and Vulkan: 2D array depth textures drawn layer by
+  layer and sampled as a Texture2DArray, a depth layer copied whole (Direct3D 12 copies a depth subresource only whole).
 - Check: render_lighting (zone1's start, creatures on slopes, a fight, zone1 at night, the hero's light at night with a
   goblin and a wolf beside him and running, the town by day and at night with its campfire), render_shadows*,
   render_scene, render_stats.
