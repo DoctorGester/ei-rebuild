@@ -1,7 +1,7 @@
 # R17a2: the water's looks (docs/notes/renderer.md, "shaders/terrain.hlsl: the water") at 1440x1080 on zone1 by
-# day: the beach at the west sea and a shore across a sector border, the sea, the lake, the swamp north of the river
-# and its edge (water material 1: no foam, calm, murky, scum), the beach's shore line from nearer (where the water
-# meets the sand). Frames only (goldens hold none).
+# day: the beach at the west sea and a shore across a sector border, the sea, the lake, the swamp north of the river,
+# its edge and the swamp east of it (water material 1: dark, still, glossy, scum, a muddy rim), the two swamp views at
+# night, the beach's shore line from nearer (where the water meets the sand). Frames only (goldens hold none).
 render checkall
 resolution 1440x1080
 reject Script error
@@ -92,6 +92,44 @@ frames 2
 freeze
 capture looks_swamp_edge
 unfreeze
+lookat 172 78
+frames 3
+lookat 172 78
+frames 3
+lookat 172 78
+frames 3
+move 400 20
+frames 2
+freeze
+capture looks_swamp_east
+unfreeze
+# The swamps at night (the hour held at 1), then the day again.
+console @FixWorldTime(1)
+wait 3000
+lookat 148 74
+frames 3
+lookat 148 74
+frames 3
+lookat 148 74
+frames 3
+move 400 20
+frames 2
+freeze
+capture looks_swamp_edge_night
+unfreeze
+lookat 172 78
+frames 3
+lookat 172 78
+frames 3
+lookat 172 78
+frames 3
+move 400 20
+frames 2
+freeze
+capture looks_swamp_east_night
+unfreeze
+console @FixWorldTime(12)
+wait 3000
 # The beach's shore line seen from nearer, where the water meets the sand (the seams the water's edge made).
 lookat 30 80
 frames 3

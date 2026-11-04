@@ -55,9 +55,10 @@ std::unordered_map<const SectorData*, SectorChanges> g_changes;
 
 // A page vertex's geometry; its colours (colour, specular) are a stream of their own. The record's
 // normal and, on the ground layer, the light lost under the water (-1 on the water layer); the GPU lights both layers.
-// On the water layer the depth over the ground (the ground record's: negative where the ground is above the water), 0
-// on the ground layer. `extra`: on the ground layer the ground's own occlusion of the ambient light (GroundOcclusion),
-// on the water layer the water's kind (WaterKind).
+// On the water layer the depth over the ground (the ground record's: negative where the ground is above the water); on
+// the ground layer the same where the record's water is a swamp (terrain.hlsl's muddy rim), else -1. `extra`: on the
+// ground layer the ground's own occlusion of the ambient light (GroundOcclusion), on the water layer the water's kind
+// (WaterKind).
 struct PageVertex {
     Vector3 position;
     float u, v;
@@ -85,6 +86,18 @@ float WaterKind(const terrain::TerrainMaterial& m) {
     return c.y > c.z ? 1.0f : 0.0f;
 }
 
+// The depth of the swamp over ground record `index`, -1 .. 1 (negative where the ground is above it), or -1 where its
+// water record is not a swamp's.
+float SwampDepth(const SectorData* s, int index) {
+    if (!s->hasWater || index + kWaterRecords >= std::ssize(s->records) || !s->owner) return -1.0f;
+    const SectorVertex& water = s->records[index + kWaterRecords];
+    const terrain::Terrain& owner = *s->owner;
+    if (water.waterMaterial == SectorVertex::kNoWaterMaterial || water.waterMaterial >= std::ssize(owner.materials) ||
+        WaterKind(owner.materials[water.waterMaterial]) != 1.0f)
+        return -1.0f;
+    return std::clamp(s->records[index].depth, -1.0f, 1.0f);
+}
+
 // `occlusion`: the sector's ground occlusion per ground record (GroundOcclusion).
 PageVertex MakeVertex(const SectorData* s, int index, const TileVertex& e, const float* occlusion) {
     const SectorVertex& record = s->records[index];
@@ -96,6 +109,7 @@ PageVertex MakeVertex(const SectorData* s, int index, const TileVertex& e, const
             v.extra = WaterKind(owner->materials[record.waterMaterial]);
     } else {
         v.loss = 0.0f;
+        v.depth = SwampDepth(s, index);
         v.extra = occlusion[index];
         if (const SectorVertex* water = WaterAbove(s, index)) {
             const terrain::Terrain* owner = s->owner;

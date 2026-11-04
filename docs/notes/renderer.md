@@ -1457,10 +1457,19 @@ then, per pixel:
   reflection), and it ended in a hard line along the triangles where the ground rose out of it (the seams seen on the
   ground pieces at the shore). The water layer's tiles themselves never end over ground under the water (zone1:
   of 1203 vertices on the edge of the water tiles, 3 lie under it, by at most 0.07).
-- **A swamp**: the ripples at 0.3 of the slope, drifting at a fifth of the speed (TerrainFsParams::slowRipples); murkier
-  (0.95 of the opacity at the shore, 1.35 deep, down to 0.6 of the light deep), a Fresnel term at 0.45 and the sky at 0.7,
-  the broad glint only; no foam, but scum: patches of dull olive (at most 0.6 opaque) where the cloud map at 1/17 a unit
-  and the ripple pattern sum above a threshold, a little more within 1.5 units of the shore.
+- **A swamp** is standing water, distinct from the sea and darker than the grass around it: the ripples at 0.2 of the
+  slope, drifting at a fifth of the speed (TerrainFsParams::slowRipples); a dark olive-brown body (half the lit texture
+  blended 0.6 towards (0.13, 0.115, 0.05) of the light on it); a sheen of the sky whatever the angle (0.045 plus 0.75 of
+  Schlick's term, the sky at 0.85) and a glossy lobe of the sun (Blinn-Phong 150, 0.12) in place of the sharp glint; no
+  foam, but sparse scum: patches of dull olive (at most 0.45 opaque) where the cloud map at 1/17 a unit and the ripple
+  pattern sum above a threshold, a little more within 1.5 units of the shore. Its edge goes by the distance from the
+  shore line (`shore_distance`: the depth over its slope across the landscape, from the pixel's derivatives), not by
+  the depth: it fades in over 0.25 units, is 0.35 opaque there and fully opaque 1.2 units in (or half a unit deep).
+  The swamps are shallow and their shores flat, so the water's fade by 0.25 of depth (R17a2's first try) faded whole
+  pools out and left them the grass's green. On the ground a muddy wet rim: the ground layer's `depth` is the swamp's
+  depth over it (render_terrain.cpp's SwampDepth; -1 where the record's water is not a swamp), and within 0.6 units of
+  its shore line (and under it) the ground is tinted brown (kMud), darkened and wet (ground_weather's `mud`, which
+  counts as wet ground whatever the weather: wet_ground's sheen).
 - **Lava** keeps the game's look (its texture lit by its own colour, the material's opacity).
 
 The depth is per vertex (one unit apart), so the foam's band follows the triangles near the shore. The water still
@@ -1470,8 +1479,8 @@ sea shore, lake by day, lake at night: frames without its draws against with the
 measurable to it (within 0.03 ms of the game's plain water shading). Check: scenario `render_water`
 (frozen moments on zone1: the beach at the west sea, the sea, the lake in the middle, the river with stones, the river
 and the lake at night; samecapture of a frozen moment drawn twice, diffcapture that the ripples move) and
-`render_water_looks` (1440x1080 by day: the beach, a shore across a sector border, the sea, the lake, the swamp and its
-edge, the beach's shore line nearer).
+`render_water_looks` (1440x1080 by day: the beach, a shore across a sector border, the sea, the lake, the swamp, its
+edge and the swamp east of it, the two swamp views at night, the beach's shore line nearer).
 
 ### render_perf.h: the performance overlay
 
