@@ -8283,7 +8283,7 @@ title = "Combat style 4: names, comments, spell effect protocol, construction, d
 group = "cleanup"
 model = "sonnet"
 depends = ["C137"]
-note = "Style review round 4 (2026-11-04, https://claude.ai/artifact/BzXaX58kMcB9E2dwRuhN2U, reviewer reports in build/style_review/round4/<area>.md; user: file them all). Items K5, K6, K7 (combat.md A8, A12, A13, A14, A16, A17). notSkill -> calledShot, kSkillSource -> kSourceAllParts, kSkillLocations -> kRandomPartTable; delete SetStepFlags; StartAction's parameter named missed; LeaveMoveMode named for what it does. Start* functions enter the lasting state themselves and return void; CountDown used (13 copies); a named FireWall/LightWall/PoisonCloud skeleton (keep their end orders); tick counts decimal; IsSpellTarget/HitUnit forwarders, HitAreaTargets, a GetDamage table, multiplier * amount (exact). Spell construction once (Build/InitFromPrototype, Spell()/Create, ~SpellManager/Destroy), std::sort, delete SpellSequence, Spell::CopyTo via a SpellValues member (no memcpy over a class). Dead stores and the exact tidies (BandAt, RandomHeight, attack roll, AbsBits, 1.0f * x). Comments: offsets, instructions, inlining, wrong ones, 33 numbers in combat.h. Style only: goldens the same, float operation order untouched (any float rewrite exact and said why), no new forwarders, normal C++ classes; gameplay code stays (technical dead code goes)."
+note = "Left for later (C139 hand-back): savefile_unit.py still reads the plan field as notSkill (rename = one golden re-record of 156); CreateSpell plumbing; IsUnit Ref null tests in spell_effect_update.cpp."
 
 [[ticket]]
 id = "C140"
