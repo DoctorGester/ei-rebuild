@@ -434,7 +434,10 @@ void WorldClient::PlayCameraPath(const char* name) {
     camera->timeOffset = (static_cast<float>(tick) + tickFraction) - camera->keys[0].time;
 }
 
-void WorldClient::ReadWaterLevels(ByteStream* stream) { countdowns.Load(stream, terrain.get()); }
+void WorldClient::ReadWaterLevels(ByteStream* stream) {
+    countdowns.Load(stream);
+    countdowns.ApplyTo(terrain.get());
+}
 
 namespace {
 constexpr const char* kBridgeManagerName = "CBridgeManager";

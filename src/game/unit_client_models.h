@@ -67,11 +67,11 @@ struct SkinLayer {
 };
 
 // What the texture manager composes a skin from: the layers as bytes in 32-byte aligned storage, the layer
-// texture names, and a flag (0x100 detailed, 0x80 simple).
+// texture names, and the side of the square texture in texels (0x100 detailed, 0x80 simple).
 struct SkinRequest {
     std::vector<std::uint8_t> layers;
     std::vector<std::string> textures;
-    int flags;
+    int side;
 };
 
 struct AttackParams;

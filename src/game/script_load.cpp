@@ -22,12 +22,11 @@ namespace {
 // ids resolve in its lists whatever script is loaded.
 const Script* SavedScript() { return g_serverWorld.MainScript(); }
 
-void LoadVariables(ScriptVars* vars, ByteStream* stream) {
-    vars->floats.Load(stream);
-    vars->strings.Load(stream);
-    vars->objects.Load(stream);
-    vars->groups.Load(stream);
-}
+// ScriptNamedValues::Load reads a value by the overload for its type.
+void ReadOne(ByteStream* stream, float& value) { stream->ReadValue(value); }
+void ReadOne(ByteStream* stream, std::string& value) { value = stream->ReadString(); }
+void ReadOne(ByteStream* stream, ScriptObjectRef& value) { value.Load(stream); }   // the world's object of the id
+void ReadOne(ByteStream* stream, ScriptGroup& value) { value.Load(stream); }       // missing objects stay null
 
 // The commands of a block (its id is read by the caller): count, then each SSCCmd.
 void LoadBlockCommands(ScriptDecl* block, ByteStream* stream) {
@@ -54,27 +53,6 @@ void DropUnresolvedPairs(std::vector<ScriptIfThen>* pairs) {
     std::erase_if(*pairs, [](const ScriptIfThen& pair) { return !pair.conditions || !pair.commands; });
 }
 
-// Runs: block id, index, ticks, sleep start, the index of its instance in the loading script's instance list
-// (-1 or out of range: none), vars.
-void LoadRuns(std::list<ScriptRun>* list, ByteStream* stream) {
-    LoadList(list, stream, [stream](ScriptRun& run) {
-        run.block = SavedScript()->FindBlock(stream->ReadAs<std::int32_t>());
-        stream->ReadValue(run.index);
-        stream->ReadValue(run.ticks);
-        stream->ReadValue(run.sleepStart);
-        const int instanceIndex = stream->ReadAs<std::int32_t>();
-        run.killFlag = nullptr;
-        int k = 0;
-        for (ScriptDefinition& instance : g_streamedScript->instances) {
-            if (k++ == instanceIndex) {
-                run.killFlag = &instance.index;   // an instance's index is its killed flag
-                break;
-            }
-        }
-        run.vars.Load(stream);
-    });
-}
-
 } // namespace
 
 // Killed flag, name, parameter types, if-then pairs, variables.
@@ -88,46 +66,43 @@ void ScriptDefinition::Load(ByteStream* stream) {
     vars.Load(stream);
 }
 
-template <> void ScriptNamedValues<float>::Load(ByteStream* stream) {
+template <typename T>
+void ScriptNamedValues<T>::Load(ByteStream* stream) {
     const int count = stream->ReadCount();
     values.resize(count);
     names.resize(count);
     for (int i = 0; i < count; ++i) {
-        stream->ReadValue(values[i]);
+        ReadOne(stream, values[i]);
         names[i] = stream->ReadString();
     }
 }
+template void ScriptNamedValues<float>::Load(ByteStream*);
+template void ScriptNamedValues<std::string>::Load(ByteStream*);
+template void ScriptNamedValues<ScriptObjectRef>::Load(ByteStream*);
+template void ScriptNamedValues<ScriptGroup>::Load(ByteStream*);
 
-template <> void ScriptNamedValues<std::string>::Load(ByteStream* stream) {
-    const int count = stream->ReadCount();
-    values.resize(count);
-    names.resize(count);
-    for (int i = 0; i < count; ++i) {
-        values[i] = stream->ReadString();
-        names[i] = stream->ReadString();
-    }
+void ScriptVars::Load(ByteStream* stream) {
+    floats.Load(stream);
+    strings.Load(stream);
+    objects.Load(stream);
+    groups.Load(stream);
 }
 
-// An object variable: the world's object with the saved id (FindObject), -1 = none.
-template <> void ScriptNamedValues<ScriptObjectRef>::Load(ByteStream* stream) {
-    const int count = stream->ReadCount();
-    values.resize(count);
-    names.resize(count);
-    for (int i = 0; i < count; ++i) {
-        values[i].Load(stream);
-        names[i] = stream->ReadString();
+void ScriptRun::Load(ByteStream* stream) {
+    block = SavedScript()->FindBlock(stream->ReadAs<std::int32_t>());
+    stream->ReadValue(index);
+    stream->ReadValue(ticks);
+    stream->ReadValue(sleepStart);
+    const int instanceIndex = stream->ReadAs<std::int32_t>();
+    killFlag = nullptr;
+    int k = 0;
+    for (ScriptDefinition& instance : g_streamedScript->instances) {
+        if (k++ == instanceIndex) {
+            killFlag = &instance.index;   // an instance's index is its killed flag
+            break;
+        }
     }
-}
-
-// A group variable: its size, the member ids (missing objects stay null), then sorted.
-template <> void ScriptNamedValues<ScriptGroup>::Load(ByteStream* stream) {
-    const int count = stream->ReadCount();
-    values.resize(count);
-    names.resize(count);
-    for (int i = 0; i < count; ++i) {
-        values[i].Load(stream);
-        names[i] = stream->ReadString();
-    }
+    vars.Load(stream);
 }
 
 // ---- SSCCmd::Load -----------------------------------------------------------------------------------
@@ -183,13 +158,6 @@ ScriptDecl* Script::FindBlock(int id) const {
     return nullptr;
 }
 
-// ---- ScriptVars::Load ------------------------------------------------------------------------------
-
-// The variable loaders' format for all four kinds; group members read with ScriptObjectRef::Load.
-void ScriptVars::Load(ByteStream* stream) {
-    LoadVariables(this, stream);
-}
-
 // ---- Script::LoadState ---------------------------------------------------------------------------
 
 // Reads what SaveState wrote, in the same order. Sets the script pointer the loaders use to the
@@ -220,15 +188,15 @@ void Script::LoadState(ByteStream* stream) {
     definitions.resize(stream->ReadCount());
     for (ScriptDefinition& definition : definitions) definition.Load(stream);
 
-    LoadVariables(&globals, stream);
+    globals.Load(stream);
     LoadEach(&instances, stream);
-    LoadRuns(&runs, stream);
+    LoadEach(&runs, stream);
     std::erase_if(runs, [](const ScriptRun& run) { return !run.block; });
     stream->ReadValue(loaded);
     stream->ReadValue(fileCount);
     g_streamedScript = nullptr;
 
-    if (stream->Version() < kVersionScriptAreas) return;
+    if (stream->version < kVersionScriptAreas) return;
     areas.resize(stream->ReadCount());
     for (ScriptArea& area : areas) {
         stream->ReadValue(area.id);

@@ -118,7 +118,15 @@ inline constexpr render::StageCombiner kTerrainStage = {render::TextureOp::Modul
 // Once a frame: the new renderer's frame shown.
 void DevicePresent(TextureDevice* device);
 
-constexpr std::uint32_t kMmpFormatPnt3 = 0x33544E50;   // "PNT3"
+// The pixel format ids of .mmp files and textures (MmpHeader::format, Texture::format): the RGB ones and the item
+// pictures' PNT3. The compressed DXT1 .. DXT5 have their four-character codes.
+enum MmpFormat : std::uint32_t {
+    kMmpFormat565 = 0x5650,     // 5:6:5
+    kMmpFormat1555 = 0x5551,    // 1:5:5:5; the item pictures and image atlases too
+    kMmpFormat4444 = 0x4444,
+    kMmpFormat8888 = 0x8888,
+    kMmpFormatPnt3 = 0x33544E50,    // "PNT3"
+};
 
 // Header of an .mmp file; the extra block follows it, then the mips. Each channel: its mask, the shift of its
 // lowest bit and its bit count.
@@ -127,7 +135,7 @@ struct MmpHeader {
     std::uint32_t width;
     std::uint32_t height;
     std::uint32_t mipCount;
-    std::uint32_t format;       // pixel format id (0x8888, 0x4444, 0x5551, 0x5650, ...)
+    std::uint32_t format;       // pixel format id (MmpFormat, or a DXT code)
     std::uint32_t bitsPerPixel;
     std::uint32_t alphaMask;
     std::uint32_t alphaShift;
@@ -152,9 +160,8 @@ struct MmpHeader {
     // texture's size): per level width x height times the bits written, / 8 (the file's own bits, 16 for a DXT file
     // held in an RGB format); 32-bit arithmetic.
     std::uint32_t FilledBytes(std::uint32_t heldFormat, unsigned mip, unsigned levels) const;
-    void SetNoFormat();
-    void SetFormat5551();
-    void SetFormat4444();
+    // The channel layout of the RGB format `id` (16 bits per pixel; the 32-bit one is not made); all zero for another.
+    void SetFormat(std::uint32_t id);
 };
 static_assert(offsetof(MmpHeader, alphaKind) == 0x20);
 static_assert(offsetof(MmpHeader, blueBits) == 0x44);
@@ -324,7 +331,7 @@ public:
     // The composed texture `name` (`fallback` when `name` has none) made of the request's layers, the name used
     // into `out`: 1 when it was made of them already or is now, 0 when there is nothing to draw.
     int Compose(std::string* out, const SkinRequest* request, const std::string* name,
-                const std::string* fallback, unsigned mipCount, std::uint32_t format);
+                const std::string* fallback, unsigned mipCount, MmpFormat format);
     // The composed texture `name` (any case), or null.
     const ComposedTexture* FindComposed(std::string_view name);
 

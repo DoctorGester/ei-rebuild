@@ -155,7 +155,7 @@ void Camera::Load(ByteStream* stream) {
     stream->ReadValue(savedFlags);
     int target = 0;
     stream->ReadValue(target);
-    if (stream->Version() < kVersionCameraViews) stream->ReadValue(views);
+    if (stream->version < kVersionCameraViews) stream->ReadValue(views);
     else stream->Read(&views[4], kSavedViews * sizeof(CameraView));
     if (static_cast<std::uint8_t>(savedFlags) & kFollowing) {
         if (target != -1) flags |= kFollowing;

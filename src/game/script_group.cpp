@@ -195,3 +195,8 @@ void ScriptGroup::Load(ByteStream* stream) {
     for (ScriptObjectRef& slot : members) slot.Load(stream);
     Sort();
 }
+
+void ScriptGroup::Save(ByteStream* stream) const {
+    stream->WriteCount(members.size());
+    for (const ScriptObjectRef& member : members) member.Save(stream);
+}

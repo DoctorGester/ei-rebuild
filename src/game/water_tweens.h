@@ -27,13 +27,10 @@ struct WaterTweens {
     bool Tick();
     // The count, then the entries (identical copies).
     void Save(ByteStream* stream) const;
-    // Reads the array and applies each entry's value to `terrain`.
-    void Load(ByteStream* stream, terrain::Terrain* terrain);
-    // Reads the array only (the resize of another array instantiation).
-    void LoadEntries(ByteStream* stream);
-    // The read part of both loads: the count (0 if the stream writes nothing), the array resized to it, then
-    // the entries.
-    void ReadEntries(ByteStream* stream);
+    // The count, the array resized to it, then the entries.
+    void Load(ByteStream* stream);
+    // Sets each entry's value as `terrain`'s water level.
+    void ApplyTo(terrain::Terrain* terrain) const;
 
     std::vector<TweenEntry> entries;
 };

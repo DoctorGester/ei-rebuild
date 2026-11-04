@@ -21,15 +21,13 @@
 
 namespace {
 
-constexpr std::uint32_t kFormat8888 = 0x8888;
-
 // The holder takes the picture's size and the screen's pixel size (the original filled memory of that size with the
 // picture; the cursor builds its mask from the file's pixels instead). 1 when done; otherwise the result of the fatal
 // error report (nonzero when the player goes on).
 int LoadPicture(Surface* holder, const MmpFile& file) {
     if (!file.data) return game::FatalError("Can't load picture from NULL pointer.\n");
     const MmpHeader* picture = &file.header;
-    if (picture->format != kFormat8888) return game::FatalError("Can't load picture from non-8888 format.\n");
+    if (picture->format != kMmpFormat8888) return game::FatalError("Can't load picture from non-8888 format.\n");
     const int width = static_cast<int>(picture->width), height = static_cast<int>(picture->height);
     if (width <= 0 || height <= 0)
         return game::FatalError("Can't create surface to load picture %d:%d:%d.\n", picture->width, picture->height,

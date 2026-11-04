@@ -58,12 +58,12 @@ int Diplomacy::GetHostileMask(int player) const {
     return -1;
 }
 
-void Diplomacy::ReadFrom(ByteStream* stream) {
+void Diplomacy::Load(ByteStream* stream) {
     stream->Read(allied, sizeof(allied));
     stream->Read(hostile, sizeof(hostile));
 }
 
-void Diplomacy::WriteTo(ByteStream* stream) {
+void Diplomacy::Save(ByteStream* stream) const {
     stream->Write(allied, sizeof(allied));
     stream->Write(hostile, sizeof(hostile));
 }

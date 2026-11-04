@@ -64,9 +64,6 @@ namespace {
 
 using namespace flowdata;
 
-constexpr unsigned kMagicScenario = 0xDEAD;
-constexpr unsigned kMagicMission = 0x102;
-
 MapRecord* ZoneRecords() { return g_mapDatabase.maps.data(); }
 int ZoneRecordCount() { return static_cast<int>(g_mapDatabase.maps.size()); }
 
@@ -277,7 +274,7 @@ int GameFlow::SaveGame(const std::string& slot) {
 
     // scenario.sav: the party, the input state, the scripts and the globals.
     MemoryStream scenario;
-    scenario.version = static_cast<std::uint32_t>(kSaveVersion);
+    scenario.version = kSaveVersion;
     g_partyManager.Save(&scenario);
     g_interface.SaveState(&scenario);
     ScriptsReset(&g_saveStream);
@@ -294,7 +291,7 @@ int GameFlow::SaveGame(const std::string& slot) {
         opened = file.Open(slotFolder + kMissionFile, platform::FileMode::Create);
         if (!opened) return 0;
         MemoryStream mission;
-        mission.version = static_cast<std::uint32_t>(kSaveVersion);
+        mission.version = kSaveVersion;
         g_serverWorld.SaveWorld(&mission);
         SaveFileWrite(&file, kMagicMission, &mission);
         file.Close();
@@ -423,7 +420,7 @@ int LeaveZone(Party* records) {
     }
     g_serverWorld.PrepareSave();
     MemoryStream data;
-    data.version = static_cast<std::uint32_t>(kSaveVersion);
+    data.version = kSaveVersion;
     g_serverWorld.SaveWorld(&data);
     SaveFileWrite(&file, kMagicMission, &data);
     file.Close();
@@ -742,9 +739,9 @@ int LoadMission(ByteStream* file) {
     MemoryStream mission;
     if (!SaveFileRead(&mission, kMagicMission, file))
         return 0;
-    int version = static_cast<int>(mission.version);
+    int version = mission.version;
     if (version < kVersionScenarioGlobals) g_camera.Load(&mission);
-    if (static_cast<int>(mission.version) < kVersionScenarioInput) {
+    if (mission.version < kVersionScenarioInput) {
         // Old saves: the input state, then the rest goes to the save stream.
         g_saveStream.Resize(0);
         g_interface.LoadState(&mission);
@@ -969,13 +966,13 @@ int GameFlow::LoadGame(const std::string& slot) {
         return 0;
     }
     g_partyManager.Load(&scenario);
-    int version = static_cast<int>(scenario.version);
+    int version = scenario.version;
     if (version >= kVersionScenarioInput) {
         ScriptsReset(&g_saveStream);
         g_interface.LoadState(&scenario);
         (&scenario)->ReadSized(&g_saveStream);
-        version = static_cast<int>(scenario.version);
-        g_saveStream.version = static_cast<std::uint32_t>(version);
+        version = scenario.version;
+        g_saveStream.version = version;
     }
     if (version >= kVersionScenarioGlobals) g_camera.Load(&scenario);
     file.Close();

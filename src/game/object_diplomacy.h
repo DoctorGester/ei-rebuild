@@ -31,8 +31,8 @@ struct Diplomacy {
     int GetHostileMask(int player) const;
 
     // Both tables read from / written to a stream, 0x80 bytes each.
-    void ReadFrom(ByteStream* stream);
-    void WriteTo(ByteStream* stream);
+    void Load(ByteStream* stream);
+    void Save(ByteStream* stream) const;
 
     // `attacker` attacked `victim`: unless the victim's player is allied with the
     // attacker's, the victim, then the members of the victim's party up to the first empty entry,

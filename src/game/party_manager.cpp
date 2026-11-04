@@ -156,7 +156,7 @@ void PartyRecord::Serialize(ChunkArchive* ar) {
         ar->StreamField(2, &local);
     } else {
         ar->StreamField(2, &local);
-        local.version = static_cast<std::uint32_t>(ar->version);
+        local.version = ar->version;
         p->LoadParty(&local, 1);
     }
 }
@@ -177,7 +177,7 @@ void ClassTemplate::Serialize(ChunkArchive* ar) {
         ar->StreamField(5, &local);
     } else {
         ar->StreamField(5, &local);
-        local.version = static_cast<std::uint32_t>(ar->version);
+        local.version = ar->version;
         itemsParty->LoadParty(&local, 0);
         spellsParty->LoadParty(&local, 0);
         allowed.LoadLists(&local);
@@ -211,7 +211,7 @@ void PartyManager::Load(MemoryStream* from) {
     from->ReadSized(&local);
     local.MemoryStream::Seek(0);
     ChunkArchive archive;
-    archive.Open(&local, 1, static_cast<int>(from->version));
+    archive.Open(&local, 1, from->version);
     ArchiveManager(this, &archive);
     archive.Close(&local);
 }
@@ -219,7 +219,7 @@ void PartyManager::Load(MemoryStream* from) {
 void PartyManager::Save(MemoryStream* to) {
     MemoryStream local;
     ChunkArchive archive;
-    archive.Open(&local, 0, static_cast<int>(to->version));
+    archive.Open(&local, 0, to->version);
     ArchiveManager(this, &archive);
     archive.Close(&local);
     to->WriteSized(&local);

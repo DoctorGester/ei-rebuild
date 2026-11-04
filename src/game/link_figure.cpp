@@ -45,11 +45,11 @@ LinkPartRanges::Range Append(std::vector<T>& array, std::span<const T> from) {
 
 // One component of a vertex packet block from its `Versions` versions (`block[c * 4 + k]`, c = 0..Versions - 1):
 // the versions of component k gathered, then morphed by s, t, u.
-template <int Versions, float (*Morph)(const float*, float, float, float)>
-float MorphComponent(const float* block, int k, float s, float t, float u) {
+template <int Versions, float (*Blend)(const float*, float, float, float)>
+float MorphComponent(const float* block, int k, Morph morph) {
     float versions[Versions];
     for (int c = 0; c < Versions; ++c) versions[c] = block[c * fig::kBlockFloats + k];
-    return Morph(versions, s, t, u);
+    return Blend(versions, morph.s, morph.t, morph.u);
 }
 
 void SetW(VertexPacket& packet) {
@@ -58,24 +58,24 @@ void SetW(VertexPacket& packet) {
 
 // One vertex packet from its FIG8 record at *cursor (3 blocks of 8 versions; moved
 // past it), morphed by s, t, u; w = 1.
-void MorphFig8Packet(VertexPacket& packet, const char** cursor, float s, float t, float u) {
+void MorphFig8Packet(VertexPacket& packet, const char** cursor, Morph morph) {
     for (int b = 0; b < 3; ++b) {
         float versions[fig::kBlockFloats * fig::kFig8Versions];
         std::memcpy(versions, *cursor, sizeof(versions));
         for (int k = 0; k < 4; ++k)
-            packet.block[b][k] = MorphComponent<fig::kFig8Versions, fig::MorphCube<float>>(versions, k, s, t, u);
+            packet.block[b][k] = MorphComponent<fig::kFig8Versions, fig::MorphCube<float>>(versions, k, morph);
         *cursor += sizeof(versions);
     }
     SetW(packet);
 }
 
 // The same for the older records (3 blocks of 6 versions).
-void MorphOldPacket(VertexPacket& packet, const char** cursor, float s, float t, float u) {
+void MorphOldPacket(VertexPacket& packet, const char** cursor, Morph morph) {
     for (int b = 0; b < 3; ++b) {
         float versions[fig::kBlockFloats * fig::kOldVersions];
         std::memcpy(versions, *cursor, sizeof(versions));
         for (int k = 0; k < 4; ++k)
-            packet.block[b][k] = MorphComponent<fig::kOldVersions, fig::MorphPrism<float>>(versions, k, s, t, u);
+            packet.block[b][k] = MorphComponent<fig::kOldVersions, fig::MorphPrism<float>>(versions, k, morph);
         *cursor += sizeof(versions);
     }
     SetW(packet);
@@ -84,11 +84,8 @@ void MorphOldPacket(VertexPacket& packet, const char** cursor, float s, float t,
 } // namespace
 
 
-LinkMesh::LinkMesh(LinkFigureLoader* newLoader, std::string_view newName, float s, float t, float u)
-    : name(newName) {
-    morphWeights[0] = s;
-    morphWeights[1] = t;
-    morphWeights[2] = u;
+LinkMesh::LinkMesh(LinkFigureLoader* newLoader, std::string_view newName, Morph newMorph)
+    : name(newName), morph(newMorph) {
     loader = newLoader;
 }
 
@@ -118,8 +115,7 @@ bool LinkMesh::AddPart(const std::string& newName, std::span<const VertexPacket>
 
 // ---- Part loaders ---------------------------------------------------------------------------------
 
-void LinkFigureLoader::LoadFigPart(LinkMesh* mesh, const std::string& name, const char** cursor, float s, float t,
-                                    float u) {
+void LinkFigureLoader::LoadFigPart(LinkMesh* mesh, const std::string& name, const char** cursor, Morph morph) {
     LinkPartHeader* header = &mesh->headers[name];
     FigHeader figHeader = Read<FigHeader>(cursor);
     header->materialValue = Read<std::uint32_t>(cursor);
@@ -132,7 +128,7 @@ void LinkFigureLoader::LoadFigPart(LinkMesh* mesh, const std::string& name, cons
     for (int i = 0; i < count; ++i) {
         VertexPacket& packet = packets[i];
         if (figHeader.magic == fig::kFig8Magic) {
-            MorphFig8Packet(packet, cursor, s, t, u);
+            MorphFig8Packet(packet, cursor, morph);
             continue;
         }
         for (int b = 0; b < 3; ++b) {
@@ -156,8 +152,7 @@ void LinkFigureLoader::LoadFigPart(LinkMesh* mesh, const std::string& name, cons
                   FileArray<std::uint16_t>(indices, figHeader.indexCount));
 }
 
-void LinkFigureLoader::LoadOldPart(LinkMesh* mesh, const std::string& name, const char** cursor, float s, float t,
-                                    float u) {
+void LinkFigureLoader::LoadOldPart(LinkMesh* mesh, const std::string& name, const char** cursor, Morph morph) {
     LinkPartHeader* header = &mesh->headers[name];
     header->materialValue = Read<std::uint32_t>(cursor);
     header->meshType = Read<std::uint32_t>(cursor);
@@ -165,7 +160,7 @@ void LinkFigureLoader::LoadOldPart(LinkMesh* mesh, const std::string& name, cons
     int count = Read<int>(cursor);
 
     std::vector<VertexPacket> packets(static_cast<std::size_t>(count));
-    for (int i = 0; i < count; ++i) MorphOldPacket(packets[i], cursor, s, t, u);
+    for (int i = 0; i < count; ++i) MorphOldPacket(packets[i], cursor, morph);
     if (count) header->box.bounds.Fit(packets.data(), count);
 
     // Each array is a count and its elements; a block of 0x34-byte records between the texture
@@ -194,26 +189,24 @@ void LinkFigureLoader::LoadOldPart(LinkMesh* mesh, const std::string& name, cons
 
 // ---- Morphing a loaded part again -----------------------------------------------------------------
 
-void LinkFigureLoader::RemorphFigPart(LinkMesh* mesh, const std::string& name, const char** cursor, float s,
-                                       float t, float u) {
+void LinkFigureLoader::RemorphFigPart(LinkMesh* mesh, const std::string& name, const char** cursor, Morph morph) {
     LinkPartHeader* header = &mesh->headers[name];
     FigHeader figHeader = lib::Load<FigHeader>(*cursor);
     // The header, two dwords and the FIG8 bounds (a plain FIG is read as FIG8 too).
     *cursor += fig::kHeaderBytes + fig::BoundsBytes(fig::kFig8Versions);
     int count = figHeader.vertexCount;
     std::vector<VertexPacket> packets(static_cast<std::size_t>(count));
-    for (int i = 0; i < count; ++i) MorphFig8Packet(packets[i], cursor, s, t, u);
+    for (int i = 0; i < count; ++i) MorphFig8Packet(packets[i], cursor, morph);
     if (count) header->box.bounds.Fit(packets.data(), count);
     mesh->SetPartVertices(name, packets.data(), static_cast<unsigned>(count));
 }
 
-void LinkFigureLoader::RemorphOldPart(LinkMesh* mesh, const std::string& name, const char** cursor, float s,
-                                       float t, float u) {
+void LinkFigureLoader::RemorphOldPart(LinkMesh* mesh, const std::string& name, const char** cursor, Morph morph) {
     LinkPartHeader* header = &mesh->headers[name];
     *cursor += fig::kMeshWordsBytes + fig::BoundsBytes(fig::kOldVersions);   // two dwords and the morphed bounds
     int count = Read<int>(cursor);
     std::vector<VertexPacket> packets(static_cast<std::size_t>(count));
-    for (int i = 0; i < count; ++i) MorphOldPacket(packets[i], cursor, s, t, u);
+    for (int i = 0; i < count; ++i) MorphOldPacket(packets[i], cursor, morph);
     if (count) header->box.bounds.Fit(packets.data(), count);
     mesh->SetPartVertices(name, packets.data(), static_cast<unsigned>(count));
 }
@@ -229,12 +222,6 @@ bool LinkMesh::SetPartVertices(std::string_view newName, const VertexPacket* new
 }
 
 // ---- LinkMesh's slots ----------------------------------------------------------------------------
-
-void LinkMesh::SetMorph(float s, float t, float u) {
-    morphWeights[0] = s;
-    morphWeights[1] = t;
-    morphWeights[2] = u;
-}
 
 bool LinkMesh::HasPart(std::string_view partName) { return ranges.find(partName) != ranges.end(); }
 

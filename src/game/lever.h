@@ -93,8 +93,6 @@ public:
 
     // The save record: the map object part, then state, count, cycling, the lock (three dwords) and
     // both flag bytes.
-    void LoadLever(ByteStream* stream);
-    void SaveLever(ByteStream* stream);
 
     // The zone loader's set-up: the record's state, count, cycling, lock and flags; the shown position
     // is state / (count - 1) (0 for one state).

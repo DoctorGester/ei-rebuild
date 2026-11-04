@@ -28,28 +28,15 @@
 namespace {
 
 constexpr std::uint32_t kMmpMagic = 0x504D4D;   // "MMP"
-constexpr std::uint32_t kAtlasFormat = 0x5551;   // the item pictures and image atlases
 
-// The formats of the texture kinds: the texture format and the channels it writes into the header (mask, shift,
-// bits; the header's other fields stay zero).
-struct Channel {
-    std::uint32_t mask, shift, bits;
-};
-struct BlankFormat {
-    TextureKind kind;
-    std::uint32_t id;
-    Channel alpha, red, green, blue;
-};
-constexpr BlankFormat kBlankFormats[] = {
-    {TextureKind::Blank565, 0x5650, {0, 0, 0}, {0xF800, 11, 5}, {0x7E0, 5, 6}, {0x1F, 0, 5}},
-    {TextureKind::Blank1555, 0x5551, {0x8000, 15, 1}, {0x7C00, 10, 5}, {0x3E0, 5, 5}, {0x1F, 0, 5}},
-    {TextureKind::Blank4444, 0x4444, {0xF000, 12, 4}, {0xF00, 8, 4}, {0xF0, 4, 4}, {0xF, 0, 4}},
-};
-
-const BlankFormat* FormatOfKind(TextureKind kind) {
-    for (const BlankFormat& f : kBlankFormats)
-        if (f.kind == kind) return &f;
-    return nullptr;
+// The format of a blank texture of `kind`; 0 for another kind.
+std::uint32_t BlankFormatOf(TextureKind kind) {
+    switch (kind) {
+    case TextureKind::Blank565: return kMmpFormat565;
+    case TextureKind::Blank1555: return kMmpFormat1555;
+    case TextureKind::Blank4444: return kMmpFormat4444;
+    default: return 0;
+    }
 }
 
 } // namespace
@@ -69,7 +56,7 @@ void Texture::TakeBlankHolder(TextureDevice* device, int newWidth, int newHeight
 int Texture::CreateBlank(TextureDevice* device, const MmpHeader* header) {
     // The atlases keep one level, as the original's every blank texture (a level below would mix neighbouring cells);
     // the others get their levels made after each draw.
-    TakeBlankHolder(device, static_cast<int>(header->width), static_cast<int>(header->height), format != kAtlasFormat);
+    TakeBlankHolder(device, static_cast<int>(header->width), static_cast<int>(header->height), format != kMmpFormat1555);
     // The original meant bits * width * height / 8 but took the bits from a field its channel split never writes.
     uploadResult = 0;
     return 1;
@@ -77,26 +64,12 @@ int Texture::CreateBlank(TextureDevice* device, const MmpHeader* header) {
 
 Texture* TextureManager::NewTexture(int width, int height, TextureKind kind) {
     Texture* texture = NewTextureOfType(static_cast<int>(kind));
-    MmpHeader header;
-    std::memset(&header, 0, sizeof(header));
+    MmpHeader header{};
     texture->width = static_cast<std::uint32_t>(width);
     texture->height = static_cast<std::uint32_t>(height);
-    if (const BlankFormat* f = FormatOfKind(kind)) {
-        texture->format = f->id;
-        header.alphaMask = f->alpha.mask;
-        header.alphaShift = f->alpha.shift;
-        header.alphaKind = f->alpha.bits;
-        header.redMask = f->red.mask;
-        header.redShift = f->red.shift;
-        header.redBits = f->red.bits;
-        header.greenMask = f->green.mask;
-        header.greenShift = f->green.shift;
-        header.greenBits = f->green.bits;
-        header.blueMask = f->blue.mask;
-        header.blueShift = f->blue.shift;
-        header.blueBits = f->blue.bits;
-        header.bitsPerPixel = 16;
-        header.format = f->id;
+    if (const std::uint32_t blankFormat = BlankFormatOf(kind)) {
+        texture->format = blankFormat;
+        header.SetFormat(blankFormat);
     }
     header.magic = kMmpMagic;
     header.width = static_cast<std::uint32_t>(width);
@@ -364,13 +337,6 @@ bool SameRequest(const ComposedTexture& composed, const SkinRequest* request) {
     return composed.extra == request->layers;
 }
 
-// The header of a composed texture in `format` (0x4444 or 0x5551, what the callers ask for).
-void SetPixelFormat(MmpHeader& header, std::uint32_t format) {
-    if (format == 0x4444) header.SetFormat4444();
-    else if (format == 0x5551) header.SetFormat5551();
-    else header.SetNoFormat();
-}
-
 } // namespace
 
 void ForgetComposedTextures() { g_composed.clear(); }
@@ -400,10 +366,10 @@ int TextureManager::FindLayers(const std::vector<std::string>* names, int width,
 
 // `out` receives the name of the texture used; `name` is the composed texture to use, `fallback` another one tried
 // when `name` has none. One made from the request's layer bytes is reused (1). Otherwise, without layer textures,
-// the composed texture is forgotten (0); else it is made anew (`request->flags` texels square, `mipCount` levels in
+// the composed texture is forgotten (0); else it is made anew (`request->side` texels square, `mipCount` levels in
 // `format`) from the layer textures found (1; 0 when none is).
 int TextureManager::Compose(std::string* out, const SkinRequest* request, const std::string* name,
-                             const std::string* fallback, unsigned mipCount, std::uint32_t format) {
+                             const std::string* fallback, unsigned mipCount, MmpFormat format) {
     std::string key = *name;
     *out = *name;
     if (const ComposedTexture* composed = FindComposed(*name)) {
@@ -423,14 +389,13 @@ int TextureManager::Compose(std::string* out, const SkinRequest* request, const 
         return 0;
     }
     ComposedTexture composed{};
-    if (FindLayers(&request->textures, request->flags, &composed.layers) == 0) return 0;
+    if (FindLayers(&request->textures, request->side, &composed.layers) == 0) return 0;
 
     MmpHeader& header = composed.header;
-    std::memset(&header, 0, sizeof(header));
     header.magic = kMmpMagic;
-    SetPixelFormat(header, format);
-    header.width = static_cast<std::uint32_t>(request->flags);
-    header.height = static_cast<std::uint32_t>(request->flags);
+    header.SetFormat(format);
+    header.width = static_cast<std::uint32_t>(request->side);
+    header.height = static_cast<std::uint32_t>(request->side);
     header.mipCount = mipCount;
     header.extraSize = static_cast<std::uint32_t>(request->layers.size());
     composed.extra = request->layers;

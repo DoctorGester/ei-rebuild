@@ -30,17 +30,6 @@ namespace {
 
 constexpr float kSameMorph = 1e-5f;           // squared distance of the coefficients
 
-// A part record at `data` into `mesh`: FIG / FIG8 or the older kind.
-void LoadPartRecord(LinkFigureLoader* loader, LinkMesh* mesh, const std::string& name, const char* data, float s,
-                    float t, float u) {
-    std::uint32_t tag = lib::Load<std::uint32_t>(data);
-    const char* cursor = data;
-    if (fig::IsFig(tag))
-        loader->LoadFigPart(mesh, name, &cursor, s, t, u);
-    else
-        loader->LoadOldPart(mesh, name, &cursor, s, t, u);
-}
-
 // The bytes of file `name` in `archive`, or null.
 const char* FileData(MappedResource* archive, std::string_view name) {
     return static_cast<const char*>(archive->GetFile(name, nullptr));
@@ -53,73 +42,58 @@ const char* FindInArchives(const std::vector<LinkArchive>& archives, std::string
     return nullptr;
 }
 
-// Whether `mesh`'s coefficients are close enough to (s, t, u) to share it.
-bool SameMorph(const LinkMesh* mesh, float s, float t, float u) {
-    float ds = mesh->morphWeights[0] - s;
-    float dt = mesh->morphWeights[1] - t;
-    float du = mesh->morphWeights[2] - u;
+// Whether `mesh`'s coefficients are close enough to `morph` to share it.
+bool SameMorph(const LinkMesh* mesh, Morph morph) {
+    float ds = mesh->morph.s - morph.s;
+    float dt = mesh->morph.t - morph.t;
+    float du = mesh->morph.u - morph.u;
     const float distance = ds * ds + dt * dt + du * du;
     return distance < kSameMorph;
 }
 
 // The first cached mesh named `name` with close coefficients, or null.
 LinkMesh* FindCached(const std::multimap<std::string, HeldRef<LinkMesh>, std::less<>>& cache, std::string_view name,
-                     float s, float t, float u) {
+                     Morph morph) {
     auto [first, last] = cache.equal_range(name);
     for (auto n = first; n != last; ++n)
-        if (SameMorph(n->second, s, t, u)) return n->second;
+        if (SameMorph(n->second, morph)) return n->second;
     return nullptr;
 }
 
-
 } // namespace
 
-LinkMesh* LinkFigureLoader::LoadFigure(std::string_view name, const std::vector<std::string>& parts, float s, float t,
-                                       float u) {
-    LinkMesh* mesh = FindCached(cache, name, s, t, u);
-    if (!mesh) return MakeFigure(name, parts, s, t, u);
+LinkMesh* LinkFigureLoader::LoadFigure(std::string_view name, const std::vector<std::string>& parts, Morph morph) {
+    LinkMesh* mesh = FindCached(cache, name, morph);
+    if (!mesh) return MakeFigure(name, parts, morph);
     FigureModel* set = FindFigureSet(mesh->name);
-    for (const std::string& part : parts) {
-        if (mesh->HasPart(part)) continue;
-        const float ms = mesh->morphWeights[0], mt = mesh->morphWeights[1], mu = mesh->morphWeights[2];
-        if (!set) {
-            LoadArchivePart(mesh, part, ms, mt, mu);
-        } else if (const char* data = FileData(set->mesh, part)) {
-            LoadPartRecord(this, mesh, part, data, ms, mt, mu);
-        }
-    }
+    for (const std::string& part : parts)
+        if (!mesh->HasPart(part)) LoadPart(mesh, set, part, mesh->morph);
     return mesh;
 }
 
-LinkMesh* LinkFigureLoader::LoadLink(std::string_view name, float s, float t, float u) {
-    LinkMesh* mesh = FindCached(cache, name, s, t, u);
-    return mesh ? mesh : LoadLinkFile(name, s, t, u);
+LinkMesh* LinkFigureLoader::LoadLink(std::string_view name, Morph morph) {
+    LinkMesh* mesh = FindCached(cache, name, morph);
+    return mesh ? mesh : LoadLinkFile(name, morph);
 }
 
 void LinkFigureLoader::ClearCache() { cache.clear(); }
 
 bool LinkFigureLoader::LoadPartInto(LinkMesh* mesh, const std::string& name) {
     if (mesh->HasPart(name)) return true;
-    FigureModel* set = FindFigureSet(mesh->name);
-    const float s = mesh->morphWeights[0], t = mesh->morphWeights[1], u = mesh->morphWeights[2];
-    if (!set) return LoadArchivePart(mesh, name, s, t, u) != 0;
-    const char* data = FileData(set->mesh, name);
-    if (!data) return false;
-    LoadPartRecord(this, mesh, name, data, s, t, u);
-    return true;
+    return LoadPart(mesh, FindFigureSet(mesh->name), name, mesh->morph);
 }
 
-LinkMesh* LinkFigureLoader::Remorph(LinkMesh* mesh, float s, float t, float u) {
-    if (mesh && mesh->refCount > 2) return LoadLink(mesh->name, s, t, u);
+LinkMesh* LinkFigureLoader::Remorph(LinkMesh* mesh, Morph morph) {
+    if (mesh && mesh->refCount > 2) return LoadLink(mesh->name, morph);
     if (!mesh) return nullptr;
     std::vector<std::string> names = mesh->PartNames();
-    mesh->SetMorph(s, t, u);
+    mesh->morph = morph;
     FigureModel* set = FindFigureSet(mesh->name);
-    for (const std::string& part : names) RemorphPart(mesh, set, part, s, t, u);
+    for (const std::string& part : names) RemorphPart(mesh, set, part, morph);
     return mesh;
 }
 
-LinkMesh* LinkFigureLoader::LoadLinkFile(std::string_view name, float s, float t, float u) {
+LinkMesh* LinkFigureLoader::LoadLinkFile(std::string_view name, Morph morph) {
     FigureModel* set = FindFigureSet(name);
     const char* data;
     if (set) {
@@ -131,43 +105,40 @@ LinkMesh* LinkFigureLoader::LoadLinkFile(std::string_view name, float s, float t
         game::FatalError("Can't find link file for \"%s\"\n", std::string(name));
         return nullptr;
     }
-    auto* mesh = new LinkMesh(this, name, s, t, u);
+    auto* mesh = new LinkMesh(this, name, morph);
     std::uint32_t count = lib::Load<std::uint32_t>(data);
     const char* cursor = data + 4;
     std::string part;
     for (; count != 0; --count) {
         if (std::optional<std::string> read = ReadLinkString(&cursor)) part = std::move(*read);
         ReadLinkString(&cursor);   // unused
-        if (!set) {
-            LoadArchivePart(mesh, part, s, t, u);
-        } else if (const char* record = FileData(set->mesh, part)) {
-            LoadPartRecord(this, mesh, part, record, s, t, u);
-        }
+        LoadPart(mesh, set, part, morph);
     }
     cache.emplace(name, mesh);
     return mesh;
 }
 
-LinkMesh* LinkFigureLoader::MakeFigure(std::string_view name, const std::vector<std::string>& parts, float s, float t,
-                                       float u) {
-    auto* mesh = new LinkMesh(this, name, s, t, u);
+LinkMesh* LinkFigureLoader::MakeFigure(std::string_view name, const std::vector<std::string>& parts, Morph morph) {
+    auto* mesh = new LinkMesh(this, name, morph);
     FigureModel* set = FindFigureSet(name);
-    for (const std::string& part : parts) {
-        if (!set) {
-            LoadArchivePart(mesh, part, s, t, u);
-        } else if (const char* data = FileData(set->mesh, part)) {
-            LoadPartRecord(this, mesh, part, data, s, t, u);
-        }
-    }
+    for (const std::string& part : parts) LoadPart(mesh, set, part, morph);
     cache.emplace(name, mesh);
     return mesh;
 }
 
-int LinkFigureLoader::LoadArchivePart(LinkMesh* mesh, const std::string& name, float s, float t, float u) {
-    const char* data = FindInArchives(archives, mesh->name + name + ".fig");
-    if (!data) return 0;
-    LoadPartRecord(this, mesh, name, data, s, t, u);
-    return 1;
+const char* LinkFigureLoader::FindPartData(const LinkMesh* mesh, FigureModel* set, const std::string& name) {
+    return set ? FileData(set->mesh, name) : FindInArchives(archives, mesh->name + name + ".fig");
+}
+
+bool LinkFigureLoader::LoadPart(LinkMesh* mesh, FigureModel* set, const std::string& name, Morph morph) {
+    const char* data = FindPartData(mesh, set, name);
+    if (!data) return false;
+    const char* cursor = data;
+    if (fig::IsFig(lib::Load<std::uint32_t>(data)))
+        LoadFigPart(mesh, name, &cursor, morph);
+    else
+        LoadOldPart(mesh, name, &cursor, morph);
+    return true;
 }
 
 FigureModel* LinkFigureLoader::FindFigureSet(std::string_view name) {
@@ -191,20 +162,13 @@ LinkFigureLoader::~LinkFigureLoader() {
     LinkFigureLoader::ClearCache();
 }
 
-bool LinkFigureLoader::RemorphPart(LinkMesh* mesh, FigureModel* set, const std::string& name, float s, float t,
-                                    float u) {
-    const char* data;
-    if (set) {
-        data = FileData(set->mesh, name);
-    } else {
-        data = FindInArchives(archives, mesh->name + name + ".fig");
-    }
+bool LinkFigureLoader::RemorphPart(LinkMesh* mesh, FigureModel* set, const std::string& name, Morph morph) {
+    const char* data = FindPartData(mesh, set, name);
     if (!data) return false;
-    std::uint32_t tag = lib::Load<std::uint32_t>(data);
     const char* cursor = data;
-    if (fig::IsFig(tag))
-        RemorphFigPart(mesh, name, &cursor, s, t, u);
+    if (fig::IsFig(lib::Load<std::uint32_t>(data)))
+        RemorphFigPart(mesh, name, &cursor, morph);
     else
-        RemorphOldPart(mesh, name, &cursor, s, t, u);
+        RemorphOldPart(mesh, name, &cursor, morph);
     return true;
 }

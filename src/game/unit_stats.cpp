@@ -195,13 +195,13 @@ std::uint16_t MaxDamage(const std::uint16_t* damage) {
 
 // --- Io ----------------------------------------------------------------------------------------------
 
-// UnitStats::LoadFrom / SaveTo: the statistics block in saved games (the
+// UnitStats::Load / Save: the statistics block in saved games (the
 // server controller's copy, combat_save.cpp; the party's records, party.cpp). See unit.h.
 
 namespace {
 } // namespace
 
-int UnitStats::LoadFrom(ByteStream* stream) {
+void UnitStats::Load(ByteStream* stream) {
     pendingExperience = 0.0f;
     int version = stream->version;
     unsigned size;
@@ -209,10 +209,10 @@ int UnitStats::LoadFrom(ByteStream* stream) {
     else if (version < kVersionFixedMaxHitPoints) size = offsetof(UnitStats, fixedMaxHitPoints);
     else if (version < kVersionPendingExperience) size = offsetof(UnitStats, pendingExperience);
     else size = sizeof(UnitStats);
-    return stream->Read(this, size);
+    stream->Read(this, size);
 }
 
-void UnitStats::SaveTo(ByteStream* stream) { stream->Write(this, sizeof(UnitStats)); }
+void UnitStats::Save(ByteStream* stream) const { stream->Write(this, sizeof(UnitStats)); }
 
 // --- Pack --------------------------------------------------------------------------------------------
 

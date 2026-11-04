@@ -70,19 +70,7 @@ struct ResConfig {
 // The strings of a [Res] value (a string or an array of them).
 std::vector<std::string> ResValues(FileRegistry& registry, const char* key) {
     std::vector<std::string> values;
-    int isScalar = 0;
-    const std::uint8_t* value = registry.FindData("Res", key, kRegArray | kRegString, &isScalar);
-    if (!value) return values;
-    int count = 1;
-    if (!isScalar) {
-        count = value[0] | (value[1] << 8);
-        value += 2;
-    }
-    for (int i = 0; i < count; ++i) {
-        int length = value[0] | (value[1] << 8);
-        values.emplace_back(reinterpret_cast<const char*>(value + 2), static_cast<std::size_t>(length));
-        value += length + 2;
-    }
+    registry.GetStringArray("Res", key, &values);
     return values;
 }
 
@@ -96,7 +84,7 @@ ResConfig ReadResConfig() {
 
     FileRegistry registry;
     const std::string file = mod + "config.reg";
-    if (!registry.Open(file) || (registry.data[4] | (registry.data[5] << 8)) == 0) {
+    if (!registry.Open(file) || registry.SectionNames().empty()) {
         return config;
     }
     // The game's archives addon knows (its table at 10009100): an archive's mod entries override it,

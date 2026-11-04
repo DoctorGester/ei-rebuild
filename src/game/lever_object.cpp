@@ -70,17 +70,17 @@ bool Lever::RunTick() {
     return false;
 }
 
-void Lever::LoadLever(ByteStream* stream) {
+void Lever::Load(ByteStream* stream) {
     MapObject::Load(stream);
     stream->ReadValue(state);
     stream->ReadValue(stateCount);
     stream->ReadValue(cycling);
-    lock.ReadFrom(stream);
+    lock.Load(stream);
     stream->ReadValue(directUseBlocked);
     stream->ReadValue(keepsMapFlag);
 }
 
-void Lever::SaveLever(ByteStream* stream) {
+void Lever::Save(ByteStream* stream) {
     MapObject::Save(stream);
     std::uint32_t value = static_cast<std::uint32_t>(state);
     stream->WriteValue(value);
@@ -88,24 +88,22 @@ void Lever::SaveLever(ByteStream* stream) {
     stream->WriteValue(value);
     value = static_cast<std::uint32_t>(cycling);
     stream->WriteValue(value);
-    lock.WriteTo(stream);
+    lock.Save(stream);
     std::uint8_t byte = directUseBlocked;
     stream->WriteValue(byte);
     byte = keepsMapFlag;
     stream->WriteValue(byte);
 }
 
-void Lever::Load(ByteStream* stream) { LoadLever(stream); }
-void Lever::Save(ByteStream* stream) { SaveLever(stream); }
 bool Lever::ApplyScience(const LockKey* key, EngineObject*) { return ApplyKey(key); }
 
-void LockKey::ReadFrom(ByteStream* stream) {
+void LockKey::Load(ByteStream* stream) {
     stream->ReadValue(mask);
     stream->ReadValue(id);
     stream->ReadValue(level);
 }
 
-void LockKey::WriteTo(ByteStream* stream) const {
+void LockKey::Save(ByteStream* stream) const {
     for (std::uint32_t word : {mask, id, level}) stream->WriteValue(word);
 }
 

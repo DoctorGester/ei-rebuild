@@ -80,7 +80,7 @@ const char* SkyFigureFile() { return "nask0sky.fig"; }
 
 void WorldClient::LoadLights(const std::string& file) {
     IniFile ini;
-    ini.SetPath(g_dataFolder + ConfigFolder() + file);
+    ini.Load(g_dataFolder + ConfigFolder() + file);
     ReadTable(ini, SunlightSection(), sunlight);
     ReadTable(ini, AmbientSection(), ambient);
     ReadTable(ini, SkySection(), sky);

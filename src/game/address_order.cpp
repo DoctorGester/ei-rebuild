@@ -14,6 +14,7 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
+#include <utility>
 
 namespace {
 
@@ -36,10 +37,11 @@ int CompareFigures(const LinkMesh* a, const LinkMesh* b) {
     if (!a || !b) return (a != nullptr) - (b != nullptr);
     if (a->name < b->name) return -1;
     if (b->name < a->name) return 1;
-    for (int i = 0; i < 3; ++i) {
-        const auto wa = std::bit_cast<std::uint32_t>(a->morphWeights[i]);
-        const auto wb = std::bit_cast<std::uint32_t>(b->morphWeights[i]);
-        if (wa != wb) return wa < wb ? -1 : 1;
+    for (const auto [wa, wb] : {std::pair{a->morph.s, b->morph.s}, std::pair{a->morph.t, b->morph.t},
+                                std::pair{a->morph.u, b->morph.u}}) {
+        const auto bitsA = std::bit_cast<std::uint32_t>(wa);
+        const auto bitsB = std::bit_cast<std::uint32_t>(wb);
+        if (bitsA != bitsB) return bitsA < bitsB ? -1 : 1;
     }
     return 0;
 }
