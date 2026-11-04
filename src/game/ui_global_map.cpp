@@ -54,6 +54,11 @@ constexpr int kAllodIsland = 3;        // the island model
 // A zone of the map database (MapRecord): its figure is its marker on the global map (may be empty), its
 // kind 0 a game zone and 2 a way between zones here.
 
+// The pipeline's stack a sprite's draw pushes its placement on (UiMesh::Draw) and the mesh draw projects with.
+constexpr int kScreenStack = 1;
+// What an empty stack's first push amounts to.
+constexpr Matrix4 kIdentity = {{{1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}}};
+
 void SetWhite(UiMesh* sprite) {
     for (float& tint : sprite->tint) tint = 1.0f;
 }
@@ -254,10 +259,6 @@ void GlobalMap::CreateScreen() {
     }
 
     {
-        backdrop = new UiSurface(ui, 0, 0, 400, 300, SurfaceBlend::Keyed, true);
-        backdrop->SetRect(0, 0, 800, 600);
-    }
-    {
         UiMesh* shade = AddBlankSprite();
         shade->texture = nullptr;
         shade->flags |= FigureMeshFlag::Flat;
@@ -271,7 +272,7 @@ void GlobalMap::CreateScreen() {
         UiSurface* info = new UiSurface(ui, 400, 20, 780, 300, SurfaceBlend::Keyed, true);
         AddSurface(info);
         info->PaintWith([this](UiSurface& out) { PaintTip(out); });
-        info->Hide(false);
+        info->Hide();
     }
     {
         UiMesh* shade = AddBlankSprite();
@@ -406,5 +407,21 @@ void GlobalMap::Draw(SceneRenderer* pass) {
     state.sourceBlend = render::Blend::SourceAlpha;
     state.destBlend = render::Blend::InvSourceAlpha;
     state.alphaReference = 1;
+    const MatrixStack& screen = pass->pipeline->stacks[kScreenStack];
+    markerCamera = screen.count != 0 ? screen.matrices[screen.count - 1] : kIdentity;
     UiContainer::Draw(pass);
+}
+
+int GlobalMap::ZoneAt(Point point) const {
+    if (!markerCamera) return -1;
+    int zone = -1;
+    float nearest = 0.0f;
+    for (int i = 0; i < std::ssize(zones); ++i) {
+        const std::optional<float> faceDepth = Marker(i)->DepthAt(*markerCamera, point);
+        if (faceDepth && (zone < 0 || *faceDepth <= nearest)) {
+            zone = i;
+            nearest = *faceDepth;
+        }
+    }
+    return zone;
 }

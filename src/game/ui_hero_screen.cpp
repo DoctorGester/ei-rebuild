@@ -332,7 +332,7 @@ void MpHeroScreen::SetMode(int newMode) {
     voiceScroll->SetEnabled(false);
     iconWindow->SetEnabled(false);
     ShowSprites(this, 0, static_cast<int>(std::ssize(sceneObjects)), 0);
-    for (int i = 0; i < std::ssize(surfaces); ++i) surfaces[i]->Hide(true);
+    for (int i = 0; i < std::ssize(surfaces); ++i) surfaces[i]->Hide();
     while (std::ssize(regions) > kFixedRegions) RemoveRegionAt(kFixedRegions);
     for (int i = 0; i < std::ssize(regions); ++i) regions[i]->SetTip(0);
 

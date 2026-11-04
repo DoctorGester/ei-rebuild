@@ -215,8 +215,7 @@ two blend factors (the particles' additive / normal switch). The line strip (`re
 
 **Interface windows drawn each frame.** A window surface has no pixels of its own: each frame its Blit draws its quads and
 glyph runs into the frame (`render::ui::Solid` / `Glyphs`, `render_ui.cpp`, ui-native.md section 3), and a screen copy is
-a frame picture on the GPU (`CapturePicture` / `DrawPicture`). The readers: PixelAt (`ReadPicturePixel`), the save
-picture (`ReadPictureRgb565`). Each surface keeps the layout rectangle it was given and is in a registry of live surfaces,
+a frame picture on the GPU (`CapturePicture` / `DrawPicture`). The reader: the save picture (`ReadPictureRgb565`). Each surface keeps the layout rectangle it was given and is in a registry of live surfaces,
 so a resolution change places them all again (`UiSurface::RelayoutAll`, "Resolution changes").
 
 **Holders** are our own `Surface` (surface.h: width, height, bits per pixel); no holder has pixels in memory: the
@@ -239,12 +238,11 @@ first, SplitFrame) reads it as it is when nothing of the frame is drawn or queue
 against a capture of the same frozen moment as 8x8 block averages).
 
 **Screen copies on the GPU.** A surface the screen is copied into (the escape menu's and the camp's backdrops, the
-global map's pick picture, the quick save's copy) gets a frame picture of its size (`ui_copy` from the frame target, x *
+quick save's copy) gets a frame picture of its size (`ui_copy` from the frame target, x *
 source / size, as DirectDraw's Blt picked), drawn by its Blit (`ui_picture`, greyed after Greyscale). Rgb565Copy draws the
 picture into an R16_UINT target of the wanted size (`ui_rgb565`: the pixel under each centre, (2x+1) * source / (2 *
 size), each channel's top bits) and reads only that back (`render::ui::ReadPictureRgb565`): the escape menu's 256x192
-`screenCopy` and the quick save's shot.sav keep their 5:6:5 format. PixelAt reads one pixel of the picture
-(`ReadPicturePixel`: the pick picture's zone colours exact). Checked by ui_quicksave, ui_global_map_pick, the gallery's escmenu / map_escmenu frames, ui_compare and
+`screenCopy` and the quick save's shot.sav keep their 5:6:5 format. Checked by ui_quicksave, the gallery's escmenu / map_escmenu frames, ui_compare and
 `ei_ui_check`.
 
 ## 7. Textures

@@ -1,6 +1,6 @@
-# The global map's pick picture and the frame rate surface: the map's
-# mouse move off its regions reads the zone under the mouse from the pick picture (CGlobalMap's
-# backdrop, drawn by RefreshSelection) with CUiSurface::PixelAt 005FD240 (ui_global_map_input.cpp);
+# The global map's zone pick and the frame rate surface: the map's mouse move off its regions finds
+# the zone under the mouse by its marker's faces (GlobalMap::ZoneAt, ui_global_map.cpp; the original
+# read it from a pick picture, CUiSurface::PixelAt 005FD240);
 # "fps on" (a public console command) makes the interface's frame rate surface (ShowFps 005F5700),
 # redrawn every 400 ms by DrawOverlays 005F5320 ("FPS:" and the rate), "fps off" frees it. The map's
 # frame (its clouds drawn on the GPU, render::DrawClouds) is captured for frame comparisons.

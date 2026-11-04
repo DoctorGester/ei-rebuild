@@ -124,7 +124,7 @@ void SaveLoadWindow::Draw(SceneRenderer* pass) {
         UiContainer::Draw(pass);
         return;
     }
-    surfaces[0]->Hide(false);
+    surfaces[0]->Hide();
     float e = Ease(slide);
     UiModel* model = models[0];
     if (!model) return;
@@ -234,7 +234,7 @@ void OptionsWindow::Draw(SceneRenderer* pass) {
         UiContainer::Draw(pass);
         return;
     }
-    surfaces[0]->Hide(false);
+    surfaces[0]->Hide();
     float e = Ease(slide);
     UiModel* model = models[0];
     if (!model) return;

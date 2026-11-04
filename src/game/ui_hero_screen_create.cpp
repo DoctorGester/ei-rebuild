@@ -275,7 +275,7 @@ void MpHeroScreen::CreateScreen() {
     for (int i = 0; i < 4; ++i)
         AddSurface(new UiSurface(ui, areas[i], SurfaceBlend::Keyed, true))
             ->PaintWith([this, i](UiSurface& out) { PaintLabels(out, labels[i]); });
-    surfaces[kSurfaceRename]->Hide(false);
+    surfaces[kSurfaceRename]->Hide();
 
     // The list's four commands.
     std::string line;

@@ -81,9 +81,6 @@ float AxisScale();
 float AxisScaleY();
 // What a 75-point font's pixel height is multiplied by for the interface fonts' scale (fontScale).
 float FontScale();
-// The global map's pick picture is read at (x / 2, y / 2) less this: the 4:3 part's margins halved (addon's patch of
-// the map's mouse move and click took margin / 2 off x).
-Point PickShift();
 
 // After the camp's and the multiplayer hero screen's Creates: two more sprites of `window` over the window's left and
 // right margins, the left one the layout rectangle (-margin, 0)-(0, 600) showing texels (0xE3, 0x3E)-(0x100, 0xB0),

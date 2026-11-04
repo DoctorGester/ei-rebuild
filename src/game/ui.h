@@ -22,6 +22,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -41,7 +42,6 @@ struct Surface;
 class Texture;
 class TextureDevice;
 class UiSurface;
-struct UiSurfaceDraw;
 class ItemScreen;
 namespace screen_layout {
 struct Layout;
@@ -320,7 +320,7 @@ enum class SurfaceBlend : bool { Opaque, Keyed };
 
 class UiSurface {
 public:
-    // A surface of the layout rectangle drawn with `blend`, scaled to the screen with `scale`: shown, black.
+    // A surface of the layout rectangle drawn with `blend`, scaled to the screen with `scale`: shown.
     UiSurface(Interface3D* ui, int left, int top, int right, int bottom, SurfaceBlend blend, bool scale);
     UiSurface(Interface3D* ui, const Rect& rect, SurfaceBlend blend, bool scale);
     // Over the layout rectangle `rect` (always scaled).
@@ -335,9 +335,7 @@ public:
     // Into the frame, when shown.
     virtual void Blit();
 
-    std::uint32_t PixelAt(Point at);
     // Layout coordinates.
-    void SetRect(int left, int top, int right, int bottom);
     void MoveTo(Point at);
     // Word-wraps `text` to the width of `rect` (layout coordinates; breaks at spaces and '\n') and draws up
     // to `maxLines` lines one rect height apart with DrawTextIn. Returns the line count.
@@ -352,9 +350,9 @@ public:
     // (the height laid out, pixels); 0 without a surface or font.
     int DrawTextPixels(const UiFont& font, std::string_view text, const Rect& rect, std::uint32_t format, std::uint32_t colour,
                        bool shadow);
-    // Show: shown. Hide: not shown (what it holds is kept).
+    // Show: shown. Hide: not shown (its frame picture is kept).
     void Show();
-    void Hide(bool release);
+    void Hide();
     // CaptureScreen: the screen under the surface copied into it (a frame picture). Rgb565Copy returns width *
     // height 5:6:5 pixels (the picture stretched). Greyscale: the picture drawn as (2 r + 4 g + b) / 16 per channel.
     void CaptureScreen();
@@ -363,13 +361,13 @@ public:
 
     bool Shown() const { return shown; }
 
-    // With a surface: a one-pixel frame of `colour` around `rect` (layout coordinates; empty: the whole
+    // A one-pixel frame of `colour` around `rect` (layout coordinates; empty: the whole
     // surface).
     void FrameRect(const Rect* rect, std::uint32_t colour);
     // The whole surface; Clear fills with background.
     void Fill(std::uint32_t colour);
     void Clear();
-    // In surface pixels, with a surface: `rect` filled (CDC::FillSolidRect); a solid pen's line of `width`
+    // In surface pixels: `rect` filled (CDC::FillSolidRect); a solid pen's line of `width`
     // pixels from `from` to `to` (MoveTo, LineTo: the game's 1 and 2 pixel pens, render_ui.h's Line); one
     // pixel (SetPixel).
     void FillRect(const Rect& rect, std::uint32_t colour);
@@ -388,12 +386,9 @@ public:
     Rect layoutRect;                 // what rect is scaled from (layout coordinates); screen pixels when not `scaled`
     bool scaled = true;              // made over a layout rectangle (not the screen's pixels)
     std::uint32_t background = 0;         // the colour Clear fills with
-    // What it was asked to draw, drawn again each frame (a surface its window does not paint yet).
-    std::vector<UiSurfaceDraw> draws;
 
     // Its window paints it each frame: Blit calls `paint` after the frame picture, and what paint draws goes
-    // straight into the frame. Such a surface keeps no draws; a draw on it outside paint draws nothing (a text
-    // still returns its value).
+    // straight into the frame. A draw outside the paint draws nothing (a text still returns its value).
     void PaintWith(std::function<void(UiSurface&)> paint);
 
 private:
@@ -401,12 +396,8 @@ private:
     bool painting = false;           // inside paint
     Rect paintClip;                  // Blit's clip while painting
     bool Transparent(std::uint32_t colour) const;
-    void Keep(UiSurfaceDraw&& draw);
-    void Cover(const Rect& area, bool whole);
-    void AddFill(const Rect& area, bool whole, std::uint32_t colour);
-    int AddText(UiSurfaceDraw&& draw, std::string_view text, std::uint32_t format, std::uint32_t colour, bool shadow);
-    bool LayOut(UiSurfaceDraw& draw);
-    void DrawLaidText(const UiSurfaceDraw& draw, const Rect& clip) const;
+    int DrawTextFrame(const UiFont& font, std::string_view text, const Rect& frame, std::uint32_t format, std::uint32_t colour,
+                      bool shadow);
 };
 
 // A text a window shows on a painted surface, kept as the window's state where it drew it before: DrawTextIn's
@@ -913,6 +904,12 @@ public:
     void SetScaleYBits(std::uint32_t bits);
     // When visible.
     void Draw(SceneRenderer* renderer);
+    // Where Draw puts the sprite: its orientation's rotation with its position as column 3.
+    Matrix4 PlacementMatrix() const;
+    // The depth (z / w) of the sprite's nearest drawn face at screen point `at` as Draw would draw it after `camera`
+    // (the pipeline's screen stack's top before the draw), Direct3D 7's pixel centres at whole coordinates; none
+    // where no face is (hidden or not visible: none).
+    std::optional<float> DepthAt(const Matrix4& camera, Point at) const;
 
     // FigureMesh's fields as a sprite uses them: FigureMeshFlag::Flat draws in flatColour (ARGB),
     // flatSpecular the HUD buttons' highlight (0xFF404040 / 0xFF000000), textureOffsetU / V_ a frame of the

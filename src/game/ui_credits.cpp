@@ -34,8 +34,8 @@ void CreditsScreen::MessageResult(int) { player.Close(); }
 void CreditsScreen::Draw(SceneRenderer* pass) {
     if (GameTime() > nextLineAt && textSurface->speed == 0.0f) {
         nextLineAt = 0.0f;
-        textSurface->Hide(false);
-        headerSurface->Hide(false);
+        textSurface->Hide();
+        headerSurface->Hide();
         if (nextLine >= lines.size()) {
             finished = true;
         } else {

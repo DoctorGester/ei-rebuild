@@ -102,7 +102,7 @@ clickregion 1
 waitwindow 10 battle
 wait 1000
 
-# The global map (screen 4): the mouse over it (the zone under it read from the pick picture), then
+# The global map (screen 4): the mouse over it (the zone under it found by its marker, ZoneAt), then
 # the right button held while the mouse moves (the map turns) and let go. Not captured.
 screen 4
 waitwindow 15 map

@@ -281,14 +281,6 @@ void CheckPicture() {
         for (int x = 0; x < pw; ++x)
             picture[static_cast<std::size_t>(y) * pw + static_cast<std::size_t>(x)] =
                 frame[static_cast<std::size_t>(source.top + y * source.Height() / ph) * w + static_cast<std::size_t>(source.left + x * source.Width() / pw)];
-    // One-pixel reads.
-    int wrong = 0;
-    for (Point at : {Point{0, 0}, Point{39, 26}, Point{17, 9}, Point{3, 22}}) {
-        std::uint32_t rgb = 0;
-        if (!ui::ReadPicturePixel(&key, at, &rgb) || rgb != picture[static_cast<std::size_t>(at.y) * pw + static_cast<std::size_t>(at.x)]) ++wrong;
-    }
-    std::uint32_t outside = 0;
-    Check(wrong == 0 && !ui::ReadPicturePixel(&key, {pw, 0}, &outside), "one-pixel reads of the picture: " + std::to_string(wrong) + " wrong");
     // The 5:6:5 picture at its own size and at about half of it.
     for (Size size : {Size{pw, ph}, Size{19, 13}}) {
         std::vector<std::uint16_t> got(static_cast<std::size_t>(size.w) * size.h), want(got.size());

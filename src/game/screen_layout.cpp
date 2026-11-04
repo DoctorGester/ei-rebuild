@@ -123,11 +123,6 @@ float AxisScaleY() { return Get().axisScaleY; }
 
 float FontScale() { return Get().fontScale; }
 
-Point PickShift() {
-    const Layout& l = Get();
-    return Point{l.margin / 2, l.marginY / 2};
-}
-
 namespace {
 
 // addon's 100234AB / 100235BA (the right edge's margin + 800.0 summed as a double).

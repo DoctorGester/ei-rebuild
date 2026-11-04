@@ -90,12 +90,7 @@ void GlobalMap::MouseMove(int, Point point) {
             isLink = true;
         }
         if (region < 0) {
-            // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i; the window's 4:3
-            // part's margins come off (Rebirth's WideScreen took the margin off x).
-            const Point shift = screen_layout::PickShift();
-            std::uint32_t pixel = backdrop->PixelAt(point / 2 - shift);
-            index = static_cast<int>((pixel >> 4) & 0xF) - 1;
-            if (index >= std::ssize(zones)) index = -1;
+            index = ZoneAt(point);
             if (gipat && index >= 0 && zones[index].link >= 0) {
                 isLink = true;
                 index = zones[index].link;
@@ -104,7 +99,7 @@ void GlobalMap::MouseMove(int, Point point) {
     }
     SelectZone(index, isLink);
     if (index == -1 || (!isLink && zones[index].state == 0)) {
-        surfaces[0]->Hide(false);
+        surfaces[0]->Hide();
         SceneMesh(MarkerCount() + kTipBack)->visible = false;
         SceneMesh(MarkerCount() + kTipFrame)->visible = false;
         shownName.clear();
@@ -179,8 +174,6 @@ void GlobalMap::LeftUp(int, Point) {
 void GlobalMap::CloseScreen() {
     delete weather;
     weather = nullptr;
-    delete backdrop;
-    backdrop = nullptr;
     ui->StopSound(windSound);
 }
 

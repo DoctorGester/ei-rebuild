@@ -13,16 +13,15 @@ surface is drawn above every mesh, in stack and child order.
 
 | Primitive | Functions (file) | Path |
 |---|---|---|
-| Surface draw | `UiSurface::Blit` (`ui_surface.cpp`): its frame picture, then its window's paint (or its kept draws) at its rectangle | `render::ui::Solid` / `Glyphs` into the frame |
+| Surface draw | `UiSurface::Blit` (`ui_surface.cpp`): its frame picture, then its window's paint at its rectangle | `render::ui::Solid` / `Glyphs` into the frame |
 | Text | `UiSurface::DrawTextIn` / `DrawTextPixels` (shadow first in 0x080808 at +1,+1), `DrawWrappedText` (`ui_text.cpp`); extents by `TextExtent` (`ui_font.h`) | glyph runs, laid out again when the font or rectangle changes |
 | Fill / Clear / FillRect / FrameRect | `ui_surface.cpp` (`render::ui::FrameRects`) | solid quads |
 | Lines and carets | `UiSurface::Line` (`render::ui::LineRects`: the 1-pixel pen's rule, end point left out): console, chat typed line, edit field, connect list, save / load list | solid quads |
 | Single pixel | `UiSurface::Dot`: the HUD map's marker | a solid quad |
-| Screen copy into a surface | `CaptureScreen`: escape-menu backdrop, global-map pick picture | a frame picture (`render::ui::CapturePicture`, `ui_copy`) |
+| Screen copy into a surface | `CaptureScreen`: escape-menu backdrop, the save's copy | a frame picture (`render::ui::CapturePicture`, `ui_copy`) |
 | Greyscale, (2r+4g+b)/16 | `Greyscale`: escape-menu backdrop | the picture drawn through `ui_picture`'s grey option |
 | Save picture | `Rgb565Copy` -> `render::ui::ReadPictureRgb565`: the escape menu's 256x192 copy, QuickSave, SaveGame | GPU, 5:6:5 read back |
-| Pixel read | `PixelAt` -> `render::ui::ReadPicturePixel`: the global-map click and FindPaths (zone = (pixel>>4)&0xF - 1) | GPU read back of one pixel of the pick picture |
-| Show / hide | `UiSurface::Show` / `Hide` | the shown flag; what it holds is kept |
+| Show / hide | `UiSurface::Show` / `Hide` | the shown flag; its frame picture is kept |
 | Titles' RTF text | `UiScrollingSurface::RenderText` (`render_rich_text.cpp` lays it out) | glyph runs |
 | Sprites, shapes, minimap, portraits | `UiMesh::Draw` -> `render::BeginMesh`; `ui_mesh.cpp` | GPU meshes |
 | 3D previews and models | `UiModel::Draw`, the hero preview, the container draws, `render::ClearDepth` | GPU meshes |
@@ -31,9 +30,8 @@ surface is drawn above every mesh, in stack and child order.
 | Movies | `bink_video.cpp` -> `MovieFrame` / `MovieBlit` | GPU draw of the CPU-decoded frame |
 | Textures the interface writes | `CopyImage` (portraits, HUD icons, help pictures), `ItemFigureTexture`, the save / load pictures, the global-map clouds (noise and blend in shaders) | GPU |
 
-What is left on the CPU per frame: the quads of every shown surface, the text layout of every painted surface's texts (a
-kept text is laid out again only when its font or its pixel rectangle changed), the mesh path's projection for picking
-bounds, and the Bink decode.
+What is left on the CPU per frame: the quads of every shown surface, the text layout of every painted surface's texts,
+the mesh path's projection for picking bounds, and the Bink decode.
 
 ## 2. Text
 
@@ -97,15 +95,15 @@ surface draws into the frame at the point of its Blit (`render::ui::Solid` and `
 pixels at its rectangle, clipped to it and to the screen. One program (`ui_quad`) draws both: vertices in frame pixels,
 the atlas's coverage (or full coverage for solids and underlines), alpha-blended; consecutive quads with one atlas and
 one clip rectangle are one draw. A keyed surface leaves out its draws in its background colour (the key), so what is
-behind it shows; an opaque one draws them. A new surface is black.
+behind it shows; an opaque one draws them. A surface draws only its frame picture and its window's paint.
 
 **Painted surfaces.** A window paints its surface each frame: `UiSurface::PaintWith` gives the surface a paint (the
 window's `Paint...` function), which Blit calls after the frame picture; the fills, frames, lines, dots and texts it makes
 go straight into the frame (laid out each time, at the current size and fonts), and the surface keeps nothing. What
 the paint draws is the window's state (members), so a change shows from the next frame without a redraw call; a draw
 whose value sets layout (a text's height, a wrapped text's line count) is measured where it ran before (`WrapText`,
-`TextExtent`), the paint draws only. A draw on a painted surface outside its paint draws nothing (a text still returns
-its value). Painted: the options' spins, the main menu's version line, the FPS and status surfaces, tooltips, the item
+`TextExtent`), the paint draws only. A draw outside a surface's paint draws nothing (a text still returns its
+value), so the surface keeps no draws. Painted: the options' spins, the main menu's version line, the FPS and status surfaces, tooltips, the item
 strips' counts and prices, the HUD unit panel's texts and the HUD map's marker, the global map's zone tip and title,
 the help page's three surfaces, the edit field and the connection screen's note (P9a); the console (its lines, scroll and
 input), the chat overlay's lines (each line's coloured pieces, measured when it is added) and typed line, the base
@@ -124,33 +122,22 @@ owner's prices, the hero's statistics, the attack parameters), the window keeps 
 vector per surface, made where the draws were (a Clear empties it), and its paint is `PaintLabels`. A wrapped label is
 wrapped again at the current fonts.
 
-**The draws a surface keeps (migration step, P9e removes it).** Every window paints its surfaces now; a surface without
-a paint would keep the draws it was given
-(`UiSurface::draws`) in the coordinates they came in and Blit draws them again: a fill, frame or line in surface pixels
-with the size it was made at (scaled to the current size; whole-surface fills and frames follow the size), a
-`DrawTextIn` in layout units with the interface font's index, a `DrawTextPixels` in pixels with its own font. A text is
-laid out again when its font or pixel rectangle changed, so after a resize it is laid out at the new size in the new
-fonts (sharp; scenario `ui_resize_text`). A fill covers the draws inside it: Clear (a whole fill) empties the list, a
-partial fill drops the draws wholly inside it (a key-coloured partial fill over part of a draw cannot erase that part).
-More than 4096 kept draws are logged once (a window adding without clearing). The titles' scrolling surface keeps none:
-its Blit draws the laid-out rich text at the current offset.
+The titles' scrolling surface has no paint: its Blit draws the laid-out rich text at the current offset.
 
-**Frame pictures.** A screen copy (`CaptureScreen`: the escape menu's and the camp's backdrops, the global map's pick
-picture, the save's copy) is state as data: what the frame looked like, which cannot be drawn again. It is a picture of
+**Frame pictures.** A screen copy (`CaptureScreen`: the escape menu's and the camp's backdrops, the save's copy) is state as data: what the frame looked like, which cannot be drawn again. It is a picture of
 the surface's size on the GPU (`render::ui::CapturePicture`: `source` of the frame drawn so far, nearest pixel, x *
 source / size; the copy runs at the next DrawPending, after the frame so far is drawn, `SplitFrame`), drawn at the
 surface's Blit stretched over its rectangle and greyed after `Greyscale` (`ui_picture`). A picture still drawn in the
 frame is released after it. A capture between frames reads the last frame (the quick save's key).
 
-**Readers.** `PixelAt` reads one pixel of the pick picture (`ReadPicturePixel`; the global-map pick must stay exact),
-`Rgb565Copy` the picture as 5:6:5 (`ReadPictureRgb565`; the escape-menu and QuickSave pictures only need to be within
+**Reader.** `Rgb565Copy` reads the picture as 5:6:5 (`ReadPictureRgb565`; the escape-menu and QuickSave pictures only need to be within
 tolerance). In-game screenshots come from render::ReadFrame (renderer.md).
 
 **Lost device.** A lost device ends the game (renderer.md, "No device-loss recovery").
 
 **Resolution changes.** Each surface keeps the layout rectangle it was given and is in a registry of live surfaces, so a
-resolution change places them all again (`UiSurface::RelayoutAll`); their draws are drawn at the new size from the next
-frame, texts laid out again (renderer.md, "Resolution changes"). A frame picture is stretched to the new rectangle.
+resolution change places them all again (`UiSurface::RelayoutAll`); their paints draw at the new size from the next
+frame, texts laid out in the new fonts (sharp; scenario `ui_resize_text`; renderer.md, "Resolution changes"). A frame picture is stretched to the new rectangle.
 
 **GDI rules the quads follow** (measured on Windows 10; `ei_ui_check` holds them): FrameRect draws a 1-px border inside the
 rectangle (`FrameRects`). A 1-px pen leaves out the end point (`LineRects`). A 2-px pen (round ends) draws both end points;
@@ -161,7 +148,7 @@ zero-length 2-px line is one dot. The game uses only 1 and 2 px pens, horizontal
 prints each check) plays render.cpp's part itself with the frame of `tests/render/glyph_cases.{h,cpp}` (no platform
 code; `ei_render_check` runs the glyph cases on Vulkan or Metal). Fills, frames, lines and pixels drawn as solids are
 compared with GDI drawing into an 8:8:8 DIB section exactly; glyph runs with each quad's coverage blended in turn (one
-level a channel); the picture's copy, 5:6:5 reading, one-pixel reads and its plain and grey draws exactly. Any `ei::Log`
+level a channel); the picture's copy, 5:6:5 reading and its plain and grey draws exactly. Any `ei::Log`
 line (gpu.h's problems among them) fails. `ui_compare` opens the options and the help over them twice and requires the
 same frames.
 
@@ -182,8 +169,7 @@ doing the same; the frames are not in the golden: compare them with `tools/compa
 
 Not captured: the status surface ("saving" / "loading": drawn and gone inside one frame); the repair grid with an item in it
 (no script command or key wears one; ui.md section 5); a global-map link (travels at once); the exchange window (needs a
-second player; `net_pair_zone` reaches it); the global map's pick picture (never on screen; `ui_global_map_pick` reaches its
-reads). Rebirth's layout is covered by the WideScreen frames (`run_all --widescreen`).
+second player; `net_pair_zone` reaches it). Rebirth's layout is covered by the WideScreen frames (`run_all --widescreen`).
 
 ### The titles' rich text
 
@@ -292,7 +278,7 @@ part: the two commands, `UploadUi`, `UiFrameDone` after the present; tools/ui_ch
 ### render_ui.h
 
 The interface drawn into the frame (section 3): solid rectangles and glyph runs at the point of the call in screen pixels,
-the frame pictures (copies of the frame kept as data, drawn stretched and optionally grey, read as 5:6:5 or one pixel),
+the frame pictures (copies of the frame kept as data, drawn stretched and optionally grey, read as 5:6:5),
 and the GDI pen rules. Single-threaded: the thread that draws the interface.
 
 ### render_text.h

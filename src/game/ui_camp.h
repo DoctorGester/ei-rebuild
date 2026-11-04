@@ -72,7 +72,7 @@ class GlobalMap : public UiContainer {
 public:
     using UiContainer::UiContainer;
     void Draw(SceneRenderer* pass) override;   // the container's, blended
-    // The clouds and the backdrop freed, the wind stopped.
+    // The clouds freed, the wind stopped.
     void CloseScreen() override;
     // One zero dword.
     void SaveState() override;
@@ -89,8 +89,8 @@ public:
     static std::optional<Vector3> MapPosition(std::string_view prefix, std::string_view name, bool positionLine);
     // On gipat a zone and its link are selected together. -1 selects nothing.
     void SelectZone(int index, bool isLink);
-    // Renders the pick picture (the zone markers alone in plain colours 0xFF181818 + 0x101010 * i) into the
-    // backdrop; a click reads the zone back from its pixel. Nothing without a backdrop.
+    // The tip hidden, the title, scene objects 0..2 and those after the zone markers shown but the tip's two sprites,
+    // nothing selected.
     void RefreshSelection();
     // The way search, recursive: arrivals keeps the shortest time per exit into target; the way goes on
     // through a zone the player may pass ("z.<zone>" 2 for a game zone, not 1 for an edge, not 0 for a brief
@@ -103,12 +103,11 @@ public:
     void RightUp(int, Point) override { Deactivate(); }
     // The drag ends, the cursor goes back to where it began; the selection is refreshed.
     void Deactivate() override;
-    // Rebirth-patched (WideScreen: the drag and the pick picture's point without the margins).
+    // Rebirth-patched (WideScreen: the drag scaled without the margins).
     // Dragging turns the map by dx / 300 layout units; otherwise the zone or link under the mouse is
     // selected. Details: docs/notes/ui.md, "Behaviour moved out of header comments".
     void MouseMove(int buttons, Point point) override;
-    // Rebirth's WideScreen patch reproduced (the pick picture's point without the margins). Nothing while
-    // dragging; a zone also opens the objectives window. Details: docs/notes/ui.md, "Behaviour moved out of
+    // Nothing while dragging; a zone also opens the objectives window. Details: docs/notes/ui.md, "Behaviour moved out of
     // header comments".
     void LeftDown(int buttons, Point point) override;
     // Esc opens the escape menu; an unused key whose action is '5' quick-saves ("saveq"), '6' quick-loads.
@@ -120,11 +119,12 @@ public:
     void LeftUp(int buttons, Point point) override;
     // Zones, then quests, then links, then the three layers.
     UiMesh* Marker(int index) const { return SceneMesh(3 + index); }
-    // Scene objects 0..2 and those after the zone markers.
-    void ShowAllButZones(bool visible);
     // The surfaces' paints: the zone tip; the allod's title and the clock.
     void PaintTip(UiSurface& surface) const;
     void PaintTitle(UiSurface& surface) const;
+    // The zone whose marker is drawn at screen point `point`: the nearest marker face there, of equal ones the later
+    // marker's (the depth test's LessEqual), state 0 zones included; -1 for none or before the first draw.
+    int ZoneAt(Point point) const;
     // Zones + quests + links: the layers and the rest follow them.
     int MarkerCount() const { return static_cast<int>(zones.size() + quests.size() + links.size()); }
 
@@ -149,7 +149,8 @@ public:
     float centreX = 400.0f;          // layout
     float centreY = 280.0f;
     bool selectPending = false;      // the zone selection is refreshed on the next update
-    UiSurface* backdrop = nullptr; // a full-screen surface (not in the surface list)
+    // The pipeline's screen matrix the markers' draws start from (recorded by Draw), for ZoneAt.
+    std::optional<Matrix4> markerCamera;
     GlobalMapClouds* weather = nullptr;
     bool dragging = false;           // the map is turned with the mouse
     Point dragStart{};               // where the drag began (layout)

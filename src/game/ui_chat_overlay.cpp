@@ -188,7 +188,7 @@ void ChatOverlay::ClearLines() {
 
 void ChatOverlay::ShowTyped() {
     if (!chatOpen) {
-        surfaces[0]->Hide(false);
+        surfaces[0]->Hide();
         return;
     }
     surfaces[0]->Show();
