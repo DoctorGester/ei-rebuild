@@ -1643,10 +1643,16 @@ then, per pixel:
   counts as wet ground whatever the weather: wet_ground's sheen).
   Where a swamp meets other water (zone1: material 1 against material 0 at (147, 87), (172, 94) and (122, 69), both
   under water; the swamp's priority 0.5 is the lower, so the shared vertices are the swamp's) the ground's `depth`
-  runs from the swamp's depth to -1 across the triangle and crosses 0 under the water: a false shore line with its
-  muddy rim on the river's side. The opaque swamp hides its own half, the river (0.6 opaque) does not: a faint olive
-  band under the river by the bridge at (147, 87) (R17c4: the frame with the rim off differs there by 3 a channel on
-  average over the meet, 1626 of its 14400 pixels by more than 8). Open: R17c4a.
+  runs from the swamp's depth to -1 across the triangle and crosses 0 under the water: a false shore line. No one
+  scalar per vertex avoids that crossing (a sentinel above the swamps' range only moves it one triangle into the
+  river), so the ground carries a second value, `otherWater` (PageVertex, beside `depth` in one float2 attribute: the
+  terrain pipeline has all 8 of its attributes): 1 where it lies under water that is not a swamp. The rim fades out
+  over its first quarter (kMudOther), so it ends near the swamp's vertices, under the swamp's own near-opaque water;
+  only triangles with both a swamp vertex and ground under other water change (every other ground vertex has 0). R17c4a,
+  looks_swamp_river: the false band under the river (an olive strip by the bridge, a 40 x 140 strip at (680, 540))
+  differed from the frame with the rim off by 2.3 a channel on average, 745 of its 5600 pixels by more than 8; now
+  0.13 and 22. The real shores (looks_shore, looks_shore_near, looks_swamp, looks_swamp_east and the swamp edge's own
+  shores) are the same to the pixel.
 - **Lava** keeps the game's look (its texture lit by its own colour, the material's opacity).
 
 The depth is per vertex (one unit apart), so the foam's band follows the triangles near the shore. The water still

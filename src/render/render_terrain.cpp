@@ -56,18 +56,20 @@ std::unordered_map<const SectorData*, SectorChanges> g_changes;
 // A page vertex's geometry; its colours (colour, specular) are a stream of their own. The record's
 // normal and, on the ground layer, the light lost under the water (-1 on the water layer); the GPU lights both layers.
 // On the water layer the depth over the ground (the ground record's: negative where the ground is above the water); on
-// the ground layer the same where the record's water is a swamp (terrain.hlsl's muddy rim), else -1. `extra`: on the
-// ground layer the ground's own occlusion of the ambient light (GroundOcclusion), on the water layer the water's kind
-// (WaterKind).
+// the ground layer the same where the record's water is a swamp (terrain.hlsl's muddy rim), else -1. `otherWater`: on
+// the ground layer 1 where it lies under water that is not a swamp (no muddy rim where a swamp meets it), else 0.
+// `extra`: on the ground layer the ground's own occlusion of the ambient light (GroundOcclusion), on the water layer the
+// water's kind (WaterKind).
 struct PageVertex {
     Vector3 position;
     float u, v;
     Vector3 normal;
     float loss;
     float depth;
+    float otherWater;
     float extra;
 };
-static_assert(sizeof(PageVertex) == 44);
+static_assert(sizeof(PageVertex) == 48);
 
 // The ground record `index` lies under the sector's water (a water material above it, the depth not negative):
 // its water record, else null.
@@ -101,7 +103,7 @@ float SwampDepth(const SectorData* s, int index) {
 // `occlusion`: the sector's ground occlusion per ground record (GroundOcclusion).
 PageVertex MakeVertex(const SectorData* s, int index, const TileVertex& e, const float* occlusion) {
     const SectorVertex& record = s->records[index];
-    PageVertex v{s->vertices[index], e.u, e.v, record.normal, -1.0f, 0.0f, 0.0f};
+    PageVertex v{s->vertices[index], e.u, e.v, record.normal, -1.0f, 0.0f, 0.0f, 0.0f};
     if (index >= kWaterRecords) {
         v.depth = s->records[index - kWaterRecords].depth;
         const terrain::Terrain* owner = s->owner;
@@ -114,8 +116,9 @@ PageVertex MakeVertex(const SectorData* s, int index, const TileVertex& e, const
         if (const SectorVertex* water = WaterAbove(s, index)) {
             const terrain::Terrain* owner = s->owner;
             if (owner && water->waterMaterial < std::ssize(owner->materials)) {
-                float absorption = owner->materials[water->waterMaterial].absorption;
-                v.loss = terrain::kWaterFalloff * absorption * record.depth * record.depth;
+                const terrain::TerrainMaterial& m = owner->materials[water->waterMaterial];
+                v.loss = terrain::kWaterFalloff * m.absorption * record.depth * record.depth;
+                v.otherWater = WaterKind(m) != 1.0f ? 1.0f : 0.0f;
             }
         }
     }
@@ -567,8 +570,8 @@ gpu::PipelineDesc TerrainDesc(const PassState& s, int samples) {
     p.attributes[3] = {program::kAttrUv, 0, gpu::VertexFormat::Float2, 12};
     p.attributes[4] = {program::kAttrNormal, 0, gpu::VertexFormat::Float3, 20};
     p.attributes[5] = {program::kAttrLoss, 0, gpu::VertexFormat::Float, 32};
-    p.attributes[6] = {program::kAttrDepth, 0, gpu::VertexFormat::Float, 36};
-    p.attributes[7] = {program::kAttrExtra, 0, gpu::VertexFormat::Float, 40};
+    p.attributes[6] = {program::kAttrDepth, 0, gpu::VertexFormat::Float2, 36};   // depth, otherWater
+    p.attributes[7] = {program::kAttrExtra, 0, gpu::VertexFormat::Float, 44};
     ApplyPassState(p, s);
     p.samples = samples;
     AddDepthCopy(p);
