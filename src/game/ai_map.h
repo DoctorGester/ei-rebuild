@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <list>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 // AIMapCell::passable holds a 4-bit passability per size class at bit 4 * sizeClass.
@@ -545,15 +546,7 @@ struct PathSmoother {
 };
 
 // Who stamped a layer node: a unit, or a water patch by its cell key (AIMap::StampWaterPatch).
-struct UnitLayerOwner {
-    const Unit* unit = nullptr;
-    int key = 0;
-    bool isKey = false;
-    UnitLayerOwner() = default;
-    UnitLayerOwner(const Unit* byUnit) : unit(byUnit) {}
-    UnitLayerOwner(int byKey) : key(byKey), isKey(true) {}
-    bool operator==(const UnitLayerOwner&) const = default;
-};
+using UnitLayerOwner = std::variant<const Unit*, int>;
 
 // A 4x4-cell block of one owner's levels.
 struct UnitLayerNode {

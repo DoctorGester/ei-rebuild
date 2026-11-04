@@ -19,9 +19,9 @@ How to write and change the game's code (fixes, cleanup, new features). Every ru
 - `tests/unit/`: checks of our code without the game. `tests/verify/`: the harness.
 
 Includes: a header that only passes a rectangle, point or size includes `lib/rect.h`; only a file that calls the
-system includes its headers. A widely included header names no `<algorithm>`, `<memory>`, `<chrono>`, `<variant>`,
-`<format>` or `<filesystem>` without a member that needs it (each costs 0.3-2 MB per object; docs/notes/standalone.md,
-"The compiler cache"). An include change can change how MSVC inlines `std::basic_string` members; a precompiled
+system includes its headers. A widely included header names no `<algorithm>`, `<chrono>`, `<format>` or
+`<filesystem>` without a need of its own (each costs 0.3-2 MB per object; docs/notes/standalone.md, "The compiler
+cache"). An include change can change how MSVC inlines `std::basic_string` members; a precompiled
 header was measured (-18% clean build) and not adopted for that reason. The exe links with `/OPT:ICF`, so never
 compare function pointers for identity.
 

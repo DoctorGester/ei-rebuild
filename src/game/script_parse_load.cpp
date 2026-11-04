@@ -220,7 +220,7 @@ bool Script::LoadFunction(SSCCmd* cmd, std::vector<ScriptToken>::const_iterator*
                 sub.type = local.type;
                 const char* nested = FunctionSignature(tokenId, local.type);
                 if (!nested) return Error(this, token.line, 7, "Parameter of type %s expected", typeName);
-                if (!LoadFunction(sub.cmd, pos, tokens, tokenId, locals, nested, 0, 0)) return false;
+                if (!LoadFunction(sub.cmd.get(), pos, tokens, tokenId, locals, nested, 0, 0)) return false;
                 cmd->subCalls.push_back(sub);
             }
         }

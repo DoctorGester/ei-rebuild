@@ -13,6 +13,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <string>
 #include <type_traits>
 #include <utility>
