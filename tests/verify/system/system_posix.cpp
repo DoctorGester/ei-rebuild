@@ -191,6 +191,11 @@ Date LocalDate() {
             static_cast<int>(now.tv_nsec / 1000000)};
 }
 
+void SetTimeZone(const char* rule) {
+    setenv("TZ", rule, 1);
+    tzset();
+}
+
 namespace {
 
 pthread_t g_mainThread{};

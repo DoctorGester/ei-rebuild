@@ -120,6 +120,11 @@ lib/maths.h (float-maths.md, "Maths functions"). What still differs, and why:
   differ: the read-back's orientation or format), render_terrain_seams' level steps on the vanilla data (0.9% against
   at most 0.3%).
 - Over 60 s on llvmpipe, left out: camera_smooth, camera_spin, render_stats, zone_gz15h_tornado (not run in H47d).
+- The time zone. A save's info.sav keeps mktime of the harness's fixed date (2001-03-26 12:00), so it followed the
+  machine's zone: the build machine's Europe/Prague (summer time that day, UTC+2) gave the goldens' 985600800, GitHub's
+  runner (UTC) 985608000 in every save (H51). The harness sets the process's zone to a fixed UTC+2 (`TZ=EET-2`) with
+  the fixed date (harness_clock.cpp), so it is the same in any zone; checked on the stub set in WSL under `TZ=UTC
+  LC_ALL=C.UTF-8`, the runner's settings.
 
 Harness runs open no sound device; `EI_HARNESS_SOUND=1` keeps the real one (sound.md, "How the sound keeps up").
 
@@ -167,7 +172,9 @@ What of them reaches game state, and so what the stubs keep:
 Checked (2026-11-03, the read-traced install runs against the stub runs): on Windows the image suite on the stub set
 149 the same / 5 without a golden and the Rebirth suite 28 the same, as on the installs. Four scenarios fail their own
 pixel checks on blank textures, their goldens the same: render_blink, render_cursor_present, render_shadows_outside,
-render_smooth. `stub_data.py check <stub> <install> <runs>` confirms every file the runs read is in the stub set at
+render_smooth. On Linux the same: in WSL on lavapipe the first three fail on the stub set exactly as on GitHub's runner
+(open and closed faces alike, the gate's shadow on black ground, a cursor of 1024 transparent pixels) and pass on the
+install copies (H51), so it is the data, not the renderer. `stub_data.py check <stub> <install> <runs>` confirms every file the runs read is in the stub set at
 the install's size (the movies aside). In WSL (the packed set unpacked as the CI job does)
 each run on the stub set against the same run on the install copies, digest for digest (golden.py diff): the image
 suite less the pairs 142 of 142 comparable runs the same (4 of them only once rerun on a quiet machine: under load
@@ -194,6 +201,13 @@ and plays both suites under xvfb on llvmpipe, less `LINUX_SKIP` (the scenarios t
 harness" above); it fails when a golden differs. It runs on pushes to main and `claude/**`, on pull requests from this
 repository's own branches (a fork's gets no secrets and the job is skipped) and by hand; it uploads nothing, and the
 data is outside every cached path. It is off until the variable below is set.
+
+The runner (4 cores, one game at a time) plays the image suite in about 37 minutes and the Rebirth set in 6. Its first
+run (2026-11-03) cut camera_drag_rate, camera_smooth and camera_spin at their 120 s limit even alone (hundreds of 8 ms
+frames at 4K on llvmpipe; camera_drag_rate takes 86 s alone on the 32-core build machine), so `LINUX_SKIP` lists them;
+render_blink, render_cursor_present and render_shadows_outside fail their own pixel checks on the stub set (above) and
+still run for their goldens. Its other differences are fixed: settings_save and the ui_widescreen_* digests (H47d), and
+the time in every save (the runner's time zone, "The harness" above).
 
 One-time setup (the user's; nothing here creates repositories or tokens):
 1. Build and pack on the machine with the installs:

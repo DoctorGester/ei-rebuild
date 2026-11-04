@@ -36,7 +36,8 @@ void SetFrameTime(unsigned ms);
 // a jump.
 void InstallHeld();
 
-// The game's date from now on: 2001-03-26 12:00 (game.exe's build date; the main menu's time of day, save dates).
+// The game's date from now on: 2001-03-26 12:00 at UTC+2 (game.exe's build date; the main menu's time of day, save
+// dates). The process's time zone becomes UTC+2, the log's times of day with it.
 void FixDate();
 
 // What the game reads and waits on: the virtual or held clocks, else the system's (sys::Milliseconds, TickCount,

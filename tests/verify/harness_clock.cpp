@@ -259,7 +259,13 @@ void InstallHeld() {
     g_heldTickCount.base = &sys::TickCount;
 }
 
-void FixDate() { g_fixedDate = true; }
+// The zone is the one the goldens were recorded in on that day (Central European summer time, UTC+2), without its
+// daylight saving: a save's time (info.sav: mktime of the local date) is the goldens' 985600800 on a machine in any
+// zone, not 985608000 in UTC.
+void FixDate() {
+    g_fixedDate = true;
+    sys::SetTimeZone("EET-2");
+}
 
 std::uint32_t Milliseconds() {
     if (g_tracing) Record(kTimeGetTime, EI_HARNESS_CALLER(), 0, false);

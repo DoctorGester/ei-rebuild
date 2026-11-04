@@ -160,6 +160,11 @@ Date LocalDate() {
     return {t.wYear, t.wMonth, t.wDayOfWeek, t.wDay, t.wHour, t.wMinute, t.wSecond, t.wMilliseconds};
 }
 
+void SetTimeZone(const char* rule) {
+    _putenv_s("TZ", rule);
+    _tzset();
+}
+
 namespace {
 
 double FileTimeMs(const FILETIME& t) {
