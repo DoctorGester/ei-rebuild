@@ -814,6 +814,8 @@ void PrepareShadows(Frame& f) {
     PreparePointShadows(f);
     // The map is drawn with casters; the receivers' matrices into it are made for the clouds too.
     const float cloudLight = PrepareClouds(sh);
+    PrepareSurfaces(sh);
+    SurfaceState(&g_info.wetness, &g_info.puddles, &g_info.snowCover);
     const bool casters = !(sh.casters.empty() && g_outside.empty() && TerrainCasterCount() == 0);
     if (!sh.haveSun || f.worldRanges.empty() || (!casters && cloudLight <= 0.0f)) return;
     StatsTimer timer(&FrameStats::shadowMs);

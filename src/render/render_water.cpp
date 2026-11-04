@@ -149,13 +149,15 @@ gpu::TextureBinding RippleMap() {
 }
 
 // The layers drift apart in two directions, in map widths per client tick (about 55 ms): A about 0.27 landscape
-// units a second at its scale, B about 0.2 (terrain.hlsl's kRippleScaleA / B).
-void RippleOffsets(float out[4]) {
+// units a second at its scale, B about 0.2 (terrain.hlsl's kRippleScaleA / B); a swamp's a fifth as fast.
+void RippleOffsets(float water[4], float swamp[4]) {
     constexpr double kDrift[4] = {0.0016, 0.0010, -0.0012, 0.0019};
+    constexpr double kSwampDrift = 0.2;
     const double ticks = KeptClientTicks();
     for (int k = 0; k < 4; ++k) {
-        const double moved = ticks * kDrift[k];
-        out[k] = static_cast<float>(moved - std::floor(moved));
+        const double moved = ticks * kDrift[k], slow = moved * kSwampDrift;
+        water[k] = static_cast<float>(moved - std::floor(moved));
+        swamp[k] = static_cast<float>(slow - std::floor(slow));
     }
 }
 

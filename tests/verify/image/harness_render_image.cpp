@@ -281,6 +281,24 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         if (info.cloudLight < least || info.cloudLight > most || info.cloudCover < leastCover ||
             info.cloudCover > mostCover)
             failures->push_back(text);
+    } else if (verb == "weathercheck") {
+        // weathercheck <least wet> <most wet> [<least snow> <most snow>]
+        float least = 0.0f, most = 0.0f, leastSnow = 0.0f, mostSnow = 1.0f;
+        if (std::sscanf(argument.c_str(), "%f %f %f %f", &least, &most, &leastSnow, &mostSnow) < 2) {
+            failures->push_back("weathercheck needs the least and the most wetness");
+            return true;
+        }
+        render::ShadowInfo info = render::ShadowState();
+        char text[200];
+        std::snprintf(text, sizeof(text),
+                      "weathercheck: wetness %.3f (%.3f .. %.3f), puddles %.3f, snow %.3f (%.3f .. %.3f)",
+                      static_cast<double>(info.wetness), static_cast<double>(least), static_cast<double>(most),
+                      static_cast<double>(info.puddles), static_cast<double>(info.snowCover),
+                      static_cast<double>(leastSnow), static_cast<double>(mostSnow));
+        Log("harness: %s", text);
+        frames->push_back(text);
+        if (info.wetness < least || info.wetness > most || info.snowCover < leastSnow || info.snowCover > mostSnow)
+            failures->push_back(text);
     } else if (verb == "occlusion") {
         if (argument == "on") render::SetOcclusion(render::OcclusionMode::On);
         else if (argument == "off") render::SetOcclusion(render::OcclusionMode::Off);

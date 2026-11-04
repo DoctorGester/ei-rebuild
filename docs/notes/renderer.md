@@ -920,7 +920,7 @@ colour, the meshes the game lights, the water, the interface's previews) is touc
 - **The ground's own** (render_terrain.cpp, `GroundOcclusion`): per sector, once, from the height field (a cell a
   unit): per ground vertex in the grid's eight directions the highest rise within 8 cells above the vertex's own
   tangent plane (sines, the plane's taken off, faded by 1 - (d / 8)^2), the mean of the eight; the vertex keeps 1 -
-  0.7 x that (`PageVertex::occlusion`, an attribute of the page's geometry). The heights around the sector come from the
+  0.7 x that (`PageVertex::extra`, an attribute of the page's geometry). The heights around the sector come from the
   neighbours the landscape holds (`Terrain::CachedSector`, so nothing is loaded for it); a neighbour not held continues
   the sector's edge, and the sector's occlusion is worked out again when one comes (its version in the page's source:
   the pages read their vertices again). Large shapes: valleys, the foot of cliffs and walls of rock.
@@ -949,6 +949,42 @@ colour, the meshes the game lights, the water, the interface's previews) is touc
   occlusion passes submitted apart and timed by their fences, on and off alternated twice, 200 frames each): the
   passes 0.30 ms a frame in both (p10-p90 0.29-0.31), the rest of the frame (about 1.9-2.0 ms) no dearer with the
   lookups; the ground's own occlusion costs only when a sector is first held.
+
+**11b. Weather on the surfaces** (`render_weather.cpp`, `shaders/terrain.hlsl`, `shaders/mesh.hlsl`; R17c; always on, no
+option). Client side only: driven by the weather the world's light hands over (`render::CloudWeather`, item 11, with
+`snow` when the rain / snow layer's mode is snow), nothing the game simulates reads it, and the goldens hold no frames.
+- **State** (PrepareSurfaces, from PrepareShadows once a frame): the wetness and the puddles follow the rain's strength,
+  the snow cover the snow's, each by the world's time with its own time constant (ticks for 1 - 1/e of the way): wet in
+  200 (about 11 s) and dry in 1600 (about 90 s), the puddles 450 / 2400, the snow 800 / 5500. A step of the world's time
+  back or over 64 ticks (a load, a zone change) and the first frame start from the weather as it is (wet in rain, covered
+  in snow). The game's rain and snow themselves grow over a minute or more and fade the same way after `SetWeather`, so
+  the state lags them (a minute into rain about 0.66 wet; still rising half a minute after it was stopped). The rain
+  falling now (its strength, none in snow) drives the rings and splashes.
+- **Ground** (terrain.hlsl, `ground_weather`, `weathered`, `wet_ground`; nothing under the water, by `loss`): snow on
+  ground turned up: n.z against an edge falling from 1.15 to 0.55 with the cover, broken by the cloud map at 1/11 a unit
+  and a little sooner higher up, the albedo towards (0.82, 0.85, 0.92) (0.85 .. 1.05 of it by the texture's light). Wet
+  ground: the albedo down to 0.6 and a sheen of the sun (Blinn-Phong 40, 0.12). Puddles: on flat ground (n.z 0.86 ..
+  0.96), where the cloud map at 1/7 a unit and the ground's own occlusion (low ground: valleys, the foot of slopes) sum
+  above an edge falling with the puddles' share; the ground under them darker again (0.55), the sky reflected (the fog's
+  colour as on the water, Schlick's term plus 0.15) and a sharp glint, on the normal the rain's rings turn.
+- **Rings and splashes** (`rain_rings`): two layers of cells 0.8 units across, a drop in the share of the cells the rain's
+  strength gives, each cell's ring at its own place and phase on the client's clock (`TerrainFsParams::rain`, the client
+  ticks modulo a whole number of both periods: 16 and 21 ticks), growing to a third of a cell and fading; the slope of a
+  Gaussian ring turns the normal, and a splash (a small bright spot) shows in the first 15% of a ring's time. They fade
+  out where a cell is under a few pixels across (`footprint`, the units a pixel spans). On the water (and the swamps)
+  they add to the ripples, which the rain makes half again as rough; the splashes there are lit like the foam.
+- **Meshes** (mesh.hlsl, `weathered_mesh`): the world's meshes that receive the shadow map (`MeshBatch::light`) get
+  `MeshFsParams::weather` (wetness, snow) and the sun; from the face normal (the map's clip space's derivatives taken to
+  the landscape's space, turned to the camera): snow on faces turned up (n.z from 1.1 .. 1.2 down to 0.6 .. 0.72 with the
+  cover; not on units), wet faces down to 0.65 and, but on units (few large faces), a sheen of the sun. Without a fitted
+  map (no shadow space) none.
+- Check: scenario `render_weather` (1440x1080, zone1 by day: dry, five seconds into rain, after a minute, half a minute
+  after it stopped, the sea and the beach in rain; gz11k before and after two minutes of snow; samecapture of a frozen
+  moment drawn twice). `weathercheck <least wet> <most wet> [<least snow> <most snow>]` reads ShadowInfo's `wetness`,
+  `puddles` and `snowCover`.
+- Cost (R17c, RTX 4070 Ti SUPER, Direct3D 12, 3840x2009 msaa 8 anisotropy 16, zone1 a minute into rain, a frozen
+  frame; the uniforms zeroed and set again in turn, 150 frames each): the frame's GPU time 2.59 .. 2.61 ms with the
+  weather and 2.59 .. 2.63 ms without, at the start and at the shore; no difference above the noise.
 
 **12. Profiling the heaviest scenes.** The user's play settings: 3840 x 2160 windowed, msaa 8, anisotropy 16, flora
 shadows on, Rebirth's draw radii, `frametime 8`; zone1, zone7 (forest), zone11 (snow forest), zone19, the town bz1g, the
@@ -1397,26 +1433,51 @@ a fixed generator of its own (the same map on every run and system, nothing draw
 40 waves along x and y, b the foam's pattern (the height of 24 finer waves), each wave a whole number of cycles across
 the map so it repeats without a seam. The terrain batches bind it with a repeating, linearly mipmapped sampler
 (anisotropy 8); RippleOffsets gives its two layers' offsets at the client's time (SceneLights::clientTicks: the client
-world's tick and the fraction of the next one it has had), so the ripples hold still under `freeze` and move with the
-game's clock.
+world's tick and the fraction of the next one it has had), and the swamps' a fifth as fast, so the ripples hold still
+under `freeze` and move with the game's clock.
 
 ### shaders/terrain.hlsl: the water
 
 The water pages keep the game's look underneath: the page texture lit by ground_light from the vertex normal with the
 game's crests (the vertex waves, the water levels and the crests' specular stay the game's: SectorData::AnimateWaves),
-alpha the material's opacity, fog as for the ground. `Water` then, per pixel:
-- **Ripples**: two layers of the ripple map, one repeating every 9 landscape units and one every 5 turned against it,
-  drifting apart; their slopes (calmer within half a unit of the shore) turn the vertex normal. The rippled normal lights
-  the layer up to 30% more or 25% less as it turns to the sun or away (kRippleShade, by the sun's share of the light).
+alpha the material's opacity, fog as for the ground. Each water vertex carries its water's kind (PageVertex::extra,
+render_terrain.cpp's WaterKind): the maps' water materials (kind 3 in the .mp file) tell water, swamps and lava apart only
+by their colour, so blue is water, green (zone1's, zone2's, zone7's swamps: 0.19, 0.54, 0.36, opacity 0.7) a swamp and
+red (0.8, 0, 0, lit by itself) lava; the kind is interpolated, so where a swamp meets water the looks blend. `Water`
+then, per pixel:
+- **Ripples**: two layers of the ripple map, one repeating every 9 landscape units and one every 5 turned against it (at
+  0.45 of A's weight), drifting apart; their slopes (0.15 at the steepest texel, calmer within half a unit of the shore)
+  turn the vertex normal. The rippled normal lights the layer up to 30% more or 25% less as it turns to the sun or away
+  (kRippleShade 2, by the sun's share of the light not under a cloud).
 - **Depth** (`depth`, PageVertex's: the water's depth over the ground at the vertex, from the ground record,
   interpolated): the share 1 - e^(-0.5 depth) of the depth's look: from half the material's opacity at the shore to 1.15
   times it in deep water, and up to 15% darker.
 - **Reflection**: Schlick's Fresnel term (0.02 head-on) of the rippled normal towards the camera (SceneLightParams::camera)
   blends in the sky, taken as the fog's colour at the horizon and 0.75 of it overhead (no sky texture or screen-space
   reflection yet); the reflected part is opaque, so the water hides more of the ground at a grazing view.
-- **Sun glints**: a sharp and a broad Blinn-Phong lobe of the sun's colour on the rippled normal, gone as the sun sets.
+- **Sun glints**: a sharp (0.25) and a broad Blinn-Phong lobe of the sun's colour on the rippled normal, gone as the sun
+  sets and under a cloud (the clouds' share hidden, cloud_hidden: the water's ShadowParams are the clouds alone).
 - **Foam**: within half a unit of the shore, the ripple map's foam pattern above a threshold, lit by the ambient and sun
-  light, at most 0.4 opaque.
+  light, at most 0.35 opaque.
+- **The shore line**: the water fades in over the first 0.25 units of depth, so where its surface meets the ground there
+  is no edge. Before, the water at the shore line was already half its opacity and more at a grazing view (the
+  reflection), and it ended in a hard line along the triangles where the ground rose out of it (the seams seen on the
+  ground pieces at the shore). The water layer's tiles themselves never end over ground under the water (zone1:
+  of 1203 vertices on the edge of the water tiles, 3 lie under it, by at most 0.07).
+- **A swamp** is standing water, distinct from the sea and darker than the grass around it: the ripples at 0.2 of the
+  slope, drifting at a fifth of the speed (TerrainFsParams::slowRipples); a dark olive-brown body (half the lit texture
+  blended 0.6 towards (0.13, 0.115, 0.05) of the light on it); a sheen of the sky whatever the angle (0.045 plus 0.75 of
+  Schlick's term, the sky at 0.85) and a glossy lobe of the sun (Blinn-Phong 150, 0.12) in place of the sharp glint; no
+  foam, but sparse scum: patches of dull olive (at most 0.45 opaque) where the cloud map at 1/17 a unit and the ripple
+  pattern sum above a threshold, a little more within 1.5 units of the shore. Its edge goes by the distance from the
+  shore line (`shore_distance`: the depth over its slope across the landscape, from the pixel's derivatives), not by
+  the depth: it fades in over 0.25 units, is 0.35 opaque there and fully opaque 1.2 units in (or half a unit deep).
+  The swamps are shallow and their shores flat, so the water's fade by 0.25 of depth (R17a2's first try) faded whole
+  pools out and left them the grass's green. On the ground a muddy wet rim: the ground layer's `depth` is the swamp's
+  depth over it (render_terrain.cpp's SwampDepth; -1 where the record's water is not a swamp), and within 0.6 units of
+  its shore line (and under it) the ground is tinted brown (kMud), darkened and wet (ground_weather's `mud`, which
+  counts as wet ground whatever the weather: wet_ground's sheen).
+- **Lava** keeps the game's look (its texture lit by its own colour, the material's opacity).
 
 The depth is per vertex (one unit apart), so the foam's band follows the triangles near the shore. The water still
 receives no sun shadows (the ground under it does), so glints show in a shadow too. Cost (R17a, 3840x2009, msaa 8,
@@ -1424,7 +1485,9 @@ frame GPU time on a quiet machine, frozen frames of render_water's scenes): the 
 sea shore, lake by day, lake at night: frames without its draws against with them), and the look above adds nothing
 measurable to it (within 0.03 ms of the game's plain water shading). Check: scenario `render_water`
 (frozen moments on zone1: the beach at the west sea, the sea, the lake in the middle, the river with stones, the river
-and the lake at night; samecapture of a frozen moment drawn twice, diffcapture that the ripples move).
+and the lake at night; samecapture of a frozen moment drawn twice, diffcapture that the ripples move) and
+`render_water_looks` (1440x1080 by day: the beach, a shore across a sector border, the sea, the lake, the swamp, its
+edge and the swamp east of it, the two swamp views at night, the beach's shore line nearer).
 
 ### render_perf.h: the performance overlay
 
