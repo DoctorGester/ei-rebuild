@@ -7315,6 +7315,14 @@ depends = ["R17d"]
 note = "R17d's clouds reach the water through ground_light's hidden term (terrain.hlsl's water branch passes the cloud share). R17a's Water() adds a sun glint and the ripples' sun shading straight from scene.sunColour, so they still shine under a cloud. After both merge: scale the glint and the ripples' sun share by (1 - cloud_hidden(i.shadow.xy)) (the water's ShadowParams are the clouds-only cloudParams). Also: both tickets took terrain fragment texture slot 4 (R17a ripples, R17d CLOUD_MAP_SLOT); the merge moves one to 5. Check: render_clouds' day and rain frames over zone1's sea."
 
 [[ticket]]
+id = "R15b"
+title = "Cursor confined whenever edge pan is available; no ConfineCursor option"
+group = "renderer"
+model = "sonnet"
+depends = ["R15"]
+note = "User 2026-11-04: drop the ConfineCursor option and always confine the cursor to the window while edge pan is available: the window is active, the camera's edge pan is on (options cameraBorderScrollArea > 0, ui_camera_input.cpp) and the view the camera input serves is up (the world / battle view, not the menus, the escape menu or a modal window, where the cursor goes free). Remove GameOptions::confineCursor, its [video] ConfineCursor read/write (options.cpp), settings_catalog.inc and docs/settings.md, the options window's display-group row (ui_options.cpp kConfineSetting) and the notes (platform.md, renderer.md, app.h); a stale ConfineCursor line in an existing ei_settings.ini is ignored. app_confine.cpp's UpdateCursorConfinement keeps the focus-lost ResetInput. Rework ui_options_confine.txt into a scenario that checks confined in the world view, released in a menu and on focus loss, released when cameraBorderScrollArea is 0 (the harness backend logs the requests). Goldens: ui_options captures change only by the removed row; re-record what changes and say which."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
