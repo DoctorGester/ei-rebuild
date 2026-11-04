@@ -9,12 +9,13 @@
 #include <type_traits>
 #include <utility>
 
-// Marks a printf-style function: its format is parameter `format` (from 1), its arguments start at `first`. gcc and
-// clang check each call's arguments against a literal format (-Wformat); MSVC checks formats only under /analyze.
+// Marks a printf-style function: its format is parameter `formatIndex` (from 1), its arguments start at
+// `firstArg`. gcc and clang check each call's arguments against a literal format (-Wformat); MSVC checks formats
+// only under /analyze.
 #if defined(__GNUC__)
-#define EI_PRINTF_FORMAT(format, first) [[gnu::format(printf, format, first)]]
+#define EI_PRINTF_FORMAT(formatIndex, firstArg) [[gnu::format(printf, formatIndex, firstArg)]]
 #else
-#define EI_PRINTF_FORMAT(format, first)
+#define EI_PRINTF_FORMAT(formatIndex, firstArg)
 #endif
 
 namespace libprintf {
