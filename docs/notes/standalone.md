@@ -342,7 +342,7 @@ Most of the C runtime is the host's. What stays the game's, and why:
 | Kept | Where | Why |
 |---|---|---|
 | `libcrt::Rand` / `Srand` | crt.cpp | VC6's LCG (seed * 214013 + 2531011, bits 16-30) on a thread_local seed. The game's draws are the game's: the host's rand would change every golden that draws. |
-| `libcrt::Qsort` | crt.cpp | VC6's quicksort (middle pivot, selection sort up to 8, smaller part first). It orders equal elements its own way, and two callers show that order: the sector spiral's cells by distance and the ambience's class votes by weight. Where equal elements are identical, callers use std::sort. |
+| `libcrt::Qsort` | crt.h (a template over the element type, typed comparator) | VC6's quicksort (middle pivot, selection sort up to 8, smaller part first). It orders equal elements its own way, and two callers show that order: the sector spiral's cells by distance and the ambience's class votes by weight. Where equal elements are identical, callers use std::sort. |
 | `libcrt::Format` | crt_format.cpp | VC6's `_output` state machine. A malformed conversion prints as VC6 did, and the host never sees one: the UCRT's invalid-parameter handler would end the game on a run-time format from the game's texts. |
 
 **Formatting** (`libcrt::Format`, behind `str::Format` / `str::FormatV`):

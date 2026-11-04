@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <utility>
 
 // The game CRT's own functions (docs/notes/standalone.md section 2). Its string, case and class functions are the
 // host CRT's (std::strcmp and so on) or text_case.h's (UTF-8: no lead bytes, no class past ASCII).
@@ -18,8 +19,73 @@ namespace libcrt {
 // MSVC 6's quicksort (middle element as the pivot, selection sort up to 8 elements, the smaller part first):
 // equal elements end up in the same order as in the game (the host's qsort changed 105 image goldens). For the sorts
 // whose elements can compare equal and differ (the sector spiral's distances, the ambience's class weights); the
-// others are std::sort (standalone.md, "The CRT").
-void Qsort(void* base, std::size_t count, std::size_t width, int (*compare)(const void*, const void*));
+// others are std::sort (standalone.md, "The CRT"). `compare(a, b)` is below 0, 0 or above 0 as a sorts before,
+// with or after b.
+template <class T, class Compare>
+void Qsort(T* base, std::size_t count, Compare compare) {
+    constexpr std::size_t kShortSort = 8;
+    if (count < 2) return;
+    // The largest of [lo, hi] (the first of equals) goes to hi, then the range shrinks.
+    auto shortSort = [&compare](T* lo, T* hi) {
+        for (; lo < hi; --hi) {
+            T* largest = lo;
+            for (T* p = lo + 1; p <= hi; ++p)
+                if (compare(*p, *largest) > 0) largest = p;
+            std::swap(*largest, *hi);
+        }
+    };
+    T* loStack[30];
+    T* hiStack[30];
+    int stacked = 0;
+    T* lo = base;
+    T* hi = base + (count - 1);
+    for (;;) {
+        const std::size_t size = static_cast<std::size_t>(hi - lo) + 1;
+        if (size <= kShortSort) {
+            shortSort(lo, hi);
+        } else {
+            std::swap(lo[size / 2], *lo);
+            T* loGuy = lo;
+            T* hiGuy = hi + 1;
+            for (;;) {
+                do {
+                    ++loGuy;
+                } while (loGuy <= hi && compare(*loGuy, *lo) <= 0);
+                do {
+                    --hiGuy;
+                } while (hiGuy > lo && compare(*hiGuy, *lo) >= 0);
+                if (hiGuy < loGuy) break;
+                std::swap(*loGuy, *hiGuy);
+            }
+            std::swap(*lo, *hiGuy);
+            // The larger part is pushed, the smaller one sorted next.
+            if (hiGuy - 1 - lo >= hi - loGuy) {
+                if (lo + 1 < hiGuy) {
+                    loStack[stacked] = lo;
+                    hiStack[stacked] = hiGuy - 1;
+                    ++stacked;
+                }
+                if (loGuy < hi) {
+                    lo = loGuy;
+                    continue;
+                }
+            } else {
+                if (loGuy < hi) {
+                    loStack[stacked] = loGuy;
+                    hiStack[stacked] = hi;
+                    ++stacked;
+                }
+                if (lo + 1 < hiGuy) {
+                    hi = hiGuy - 1;
+                    continue;
+                }
+            }
+        }
+        if (--stacked < 0) return;
+        lo = loStack[stacked];
+        hi = hiStack[stacked];
+    }
+}
 
 // rand / srand: seed * 214013 + 2531011, bits 16-30. The seed is per thread (the game CRT's _tiddata::_holdrand),
 // a thread_local starting at 1. The harness's random trace (tests/verify) sees every draw through the observer: the
