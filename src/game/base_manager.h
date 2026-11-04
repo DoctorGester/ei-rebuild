@@ -14,7 +14,6 @@
 #include <unordered_map>
 
 
-struct FigureAnimation;
 class ManagerContext;
 
 // Base of every engine manager (textures, figures, objects, lightning, ...): creates objects by type, registers
@@ -22,10 +21,6 @@ class ManagerContext;
 // for reuse.
 class BaseManager : public EngineObject {
 public:
-    // The animation `name` (case-insensitive) in the database "<figure>.adb" of this manager (the world's map
-    // object manager), or null; a missing database is reported to the debug log.
-    FigureAnimation* FindFigureAnimation(const std::string& figure, const char* name);
-
     // The objects and the spares are walked in STLport's order; the positions and spare counts are only looked up.
     // Kept order: Destroy / DestroyAll destroy and release the objects in it (each Destroy changes game state).
     using ObjectMap = lib::HashMap<unsigned, EngineObject*>;

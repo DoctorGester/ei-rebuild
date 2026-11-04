@@ -9,10 +9,12 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
+struct AnimationDatabase;
 struct FigureAnimation;
 class Unit;
 class MapObject;
@@ -78,6 +80,8 @@ struct MapObjectManager : ResourceManager {
     MapObjectManager();
     ~MapObjectManager() override;
     void Create() override;
+    // ResourceManager's, then the animation databases dropped.
+    void Destroy() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
     // A new object of the factory's type `type` (a MapObjectType), constructed; null for other ids.
@@ -98,6 +102,12 @@ struct MapObjectManager : ResourceManager {
     // and, of the low bits, none of the key's missing (a key without low bits takes only an entry without). Null
     // (with a debug message when there is no database).
     FigureAnimation* FindAnimation(const std::string* figure, std::uint32_t key);
+    // The animation `name` (case-insensitive) in the database "<figure>.adb", or null; a missing database is
+    // reported to the debug log.
+    FigureAnimation* FindFigureAnimation(const std::string& figure, const char* name);
+    // The animation database "<figure>.adb", read from the archive on first use and kept until Destroy; null when
+    // there is no such file.
+    AnimationDatabase* AnimationDatabaseOf(const std::string& figure);
     // The defaults of an object without a prototype (SetDefaults): a unit (class 0x50) gets the statistics
     // (SetStats), any other object the vitals (SetServerData); then ScaleEffectChanged(false) and no prototype
     // index.
@@ -119,6 +129,9 @@ struct MapObjectManager : ResourceManager {
     // ApplyBaseScale) and second prototype; every object its prototype index. Without a prototype: defaults,
     // ScaleEffectChanged(false), index 0 and a debug message.
     void ApplyPrototype(MapObject* object, const std::string& name);
+
+    // The animation databases read, by file name.
+    std::unordered_map<std::string, std::unique_ptr<AnimationDatabase>> animationDatabases;
 };
 
 inline MapObjectManager* MapObjectManagerOf(const EngineObject* object) {

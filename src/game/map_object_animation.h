@@ -35,23 +35,25 @@ struct AnimationTrack : EngineObject {
     const char* ClassName() override;   // "CAnimationTrack" (map_object_animation.cpp)
     ClassId GetClassId() override;
 
-    // The key frames from the model entry at *cursor (advanced past them): the rotations (a count, then that
-    // many quaternions; none: null), the positions (likewise, three floats each), the frame count and the
-    // vertex count; the frame array is sized to the frames and the vertices to the vertex count (both without
-    // keeping their contents), and each frame points at its vertex set, which follow one after another.
+    // The key frames copied from the model entry at *cursor (advanced past them): the rotations (a count, then
+    // that many quaternions, w first), the positions (likewise, three floats each), the frame count, the vertex
+    // count and the frames' vertex sets one after another; the morphed vertices sized to the vertex count.
     void LoadKeyFrames(std::uint8_t** cursor);
+    // Key frame `frame`'s vertex set (vertexCount vertices).
+    const Vector3* FrameVertices(int frame) const {
+        return frames.data() + static_cast<std::size_t>(frame) * static_cast<std::size_t>(vertexCount);
+    }
     // No animation, bone or key frames (the vertex sets' block freed), the
     // default position and rotation (kTrackDefaultPosition / kTrackDefaultRotation), no morphed vertices (freed), time 0.
     void DestroyTrack();
 
     const FigureAnimation* animation;   // the animation playing (null: none)
     FigureBone* bone;               // the bone it animates
-    int positionCount;
-    const float* positions;         // three floats each
-    int rotationCount;
-    const float* rotations;         // quaternions
+    std::vector<Vector3> positions;      // key frames
+    std::vector<Quaternion> rotations;   // key frames
     int vertexCount;
-    std::vector<float*> frames;   // vertex sets (three floats per vertex), one per key frame
+    int frameCount;
+    std::vector<Vector3> frames;   // the key frames' vertex sets (FrameVertices), one after another
     float time;                     // (0 when the animation changes)
     Vector3 position;
     Quaternion rotation;

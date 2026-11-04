@@ -18,7 +18,7 @@ void FigureBone::Place(const Vector3& origin) {
         rotation = pose->rotation * parent->rotation;
     } else if (pose) {
         if (pose->animation) {
-            float factor = AnimationDatabase::Of(pose->animation)->TimeFactor(morphU);
+            float factor = pose->animation->database->TimeFactor(morphU);
             position = {factor * pose->position.x, factor * pose->position.y, factor * pose->position.z};
         } else {
             position = pose->position;

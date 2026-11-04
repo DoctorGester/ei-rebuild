@@ -161,8 +161,9 @@ enum class BlowSide : std::uint32_t {
 inline constexpr std::uint32_t kBlowSideMask = 0x1C00000;
 constexpr std::uint32_t AnimationKeyOf(BlowSide side) { return static_cast<std::uint32_t>(side); }
 
-// One animation of a figure's animation database.
-struct FigureAnimation {
+// One animation of a figure's animation database as "<figure>.adb" holds it (MapObjectManager::AnimationDatabaseOf
+// reads the file).
+struct FigureAnimationRecord {
     AnimationKind Kind() const { return AnimationKindOf(key); }
     int Number() const { return AnimationNumber(key); }
     BlowSide Side() const { return static_cast<BlowSide>(flags & kBlowSideMask); }
@@ -183,35 +184,36 @@ struct FigureAnimation {
     int soundFrame;                 // the frame of the action's sound (0: none)
     std::uint32_t sounds[4];        // sound numbers to pick from (0 ends the list)
 };
-static_assert(offsetof(FigureAnimation, arrowFrom) == 0x28);
-static_assert(offsetof(FigureAnimation, soundFrame) == 0x44);
-static_assert(sizeof(FigureAnimation) == 0x58);
+static_assert(offsetof(FigureAnimationRecord, arrowFrom) == 0x28);
+static_assert(offsetof(FigureAnimationRecord, soundFrame) == 0x44);
+static_assert(sizeof(FigureAnimationRecord) == 0x58);
 
-// A figure's animation database: the data of "<figure name>.adb" as the object's manager returns it
-// (BaseManager::GetFile), kept in Object3D::animations.
+struct AnimationDatabase;
+
+// An animation: an entry of its database. What an object plays need not come from its own database (the rest
+// pose of UiModel and of the main menu's stones comes from MapObjectManager::FindAnimation).
+struct FigureAnimation : FigureAnimationRecord {
+    const AnimationDatabase* database;   // the database it is an entry of
+};
+
+// A figure's animation database, read from "<figure name>.adb" by MapObjectManager::AnimationDatabaseOf (which
+// keeps it), kept in Object3D::animations.
 struct AnimationDatabase {
-    std::uint8_t unused_00[4];
-    std::uint32_t count;            // animations
-    std::uint8_t unused_08[0x20 - 0x08];
-    float start;                    // \ the animation time factor maps t to
-    float length;                   // | (start + (end - start) * t) / length
-    float end;                      // /
-    FigureAnimation animations[1];  // `count` of them
+    AnimationDatabase() = default;
+    AnimationDatabase(const AnimationDatabase&) = delete;   // the entries point back at it
+    AnimationDatabase& operator=(const AnimationDatabase&) = delete;
 
-    // The database `animation` is an entry of (entries know their index).
-    static const AnimationDatabase* Of(const FigureAnimation* animation) {
-        const FigureAnimation* first = animation - animation->index;
-        return reinterpret_cast<const AnimationDatabase*>(reinterpret_cast<const char*>(first) -
-                                                          offsetof(AnimationDatabase, animations));
-    }
     // (start + (end - start) * t) / length; 1 for a length of 0.
     float TimeFactor(float t) const {
         if (length == 0.0f) return 1.0f;
         return ((end - start) * t + start) / length;
     }
+
+    float start = 0.0f;             // \ the animation time factor maps t to
+    float length = 0.0f;            // | (start + (end - start) * t) / length
+    float end = 0.0f;               // /
+    std::vector<FigureAnimation> animations;
 };
-static_assert(offsetof(AnimationDatabase, start) == 0x20);
-static_assert(offsetof(AnimationDatabase, animations) == 0x2C);
 
 // The side-specific half of a 3D object (Object3D::attached): Object3DClientSpecific (class id 0x37) on
 // the client, Object3DServer (0x38, stubs) on the server.
@@ -454,7 +456,7 @@ public:
     // object's position.
     Vector3 PartWorldPosition(const FigureMesh* part);
 
-    // The animation database, loaded on first use through the owner's GetFile ("<name>.adb"; nothing without
+    // The animation database, loaded on first use from the owner (AnimationDatabaseOf "<name>"; nothing without
     // an owner). Null when there is none.
     AnimationDatabase* Animations();
     // Animation `key & 0xFF` of the database, or null (no database, or beyond its count).

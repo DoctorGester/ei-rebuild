@@ -10,23 +10,17 @@
 #include "lib/bytes.h"
 #include "lib/rounding.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <cstring>
 #include <new>
 
 namespace {
 
 // from + (to - from) * s, per coordinate.
-void LerpPoint(float* out, const float* from, const float* to, float s) {
-    out[0] = (to[0] - from[0]) * s + from[0];
-    out[1] = (to[1] - from[1]) * s + from[1];
-    out[2] = (to[2] - from[2]) * s + from[2];
+Vector3 LerpPoint(const Vector3& from, const Vector3& to, float s) {
+    return {(to.x - from.x) * s + from.x, (to.y - from.y) * s + from.y, (to.z - from.z) * s + from.z};
 }
-
-// The key frame at `p`: a position's three floats, a rotation's four (w first).
-Vector3 KeyPosition(const float* p) { return {p[0], p[1], p[2]}; }
-Quaternion KeyRotation(const float* p) { return {p[0], p[1], p[2], p[3]}; }
 } // namespace
 
 void AnimationTrack::Evaluate(float atTime) {
@@ -35,27 +29,28 @@ void AnimationTrack::Evaluate(float atTime) {
     int index = lib::RoundEven(whole);
     int next = index + 1;
 
-    if (next < positionCount) {
-        LerpPoint(&position.x, positions + 3 * index, positions + 3 * next, fraction);
-    } else if (positionCount != 0) {
-        position = KeyPosition(positions + 3 * (positionCount - 1));
+    if (next < std::ssize(positions)) {
+        position = LerpPoint(positions[index], positions[next], fraction);
+    } else if (!positions.empty()) {
+        position = positions.back();
     } else {
         position = kTrackDefaultPosition;
     }
 
-    if (next < rotationCount) {
-        rotation.Slerp(fraction, KeyRotation(rotations + 4 * index), KeyRotation(rotations + 4 * next));
-    } else if (rotationCount != 0) {
-        rotation = KeyRotation(rotations + 4 * (rotationCount - 1));
+    if (next < std::ssize(rotations)) {
+        rotation.Slerp(fraction, rotations[index], rotations[next]);
+    } else if (!rotations.empty()) {
+        rotation = rotations.back();
     } else {
         rotation = kTrackDefaultRotation;
     }
 
-    if (next < std::ssize(frames)) {
-        for (int v = 0; v < vertexCount; ++v)
-            LerpPoint(&vertices[v].x, frames[index] + 3 * v, frames[next] + 3 * v, fraction);
-    } else if (!frames.empty()) {
-        std::memcpy(vertices.data(), frames[std::ssize(frames) - 1], static_cast<std::size_t>(vertexCount) * 12);
+    if (next < frameCount) {
+        const Vector3* from = FrameVertices(index);
+        const Vector3* to = FrameVertices(next);
+        for (int v = 0; v < vertexCount; ++v) vertices[v] = LerpPoint(from[v], to[v], fraction);
+    } else if (frameCount != 0) {
+        std::copy_n(FrameVertices(frameCount - 1), vertexCount, vertices.begin());
     }
     time = atTime;
 }
@@ -72,6 +67,17 @@ int ReadCount(std::uint8_t** cursor) {
     return value;
 }
 
+// `count` values from *cursor (advanced past them).
+template <class T>
+std::vector<T> ReadKeys(std::uint8_t** cursor, int count) {
+    std::vector<T> keys(count);
+    for (T& key : keys) {
+        lib::LoadBytes(key, *cursor);
+        *cursor += sizeof(T);
+    }
+    return keys;
+}
+
 } // namespace
 
 AnimationTrack::AnimationTrack() {
@@ -82,11 +88,10 @@ AnimationTrack::AnimationTrack() {
 void AnimationTrack::DestroyTrack() {
     animation = nullptr;
     bone = nullptr;
-    positionCount = 0;
-    positions = nullptr;
-    rotationCount = 0;
-    rotations = nullptr;
+    positions.clear();
+    rotations.clear();
     vertexCount = 0;
+    frameCount = 0;
     frames.clear();
     position = kTrackDefaultPosition;
     rotation = kTrackDefaultRotation;
@@ -102,21 +107,12 @@ void AnimationTrack::Create() { DestroyTrack(); }
 void AnimationTrack::Destroy() { DestroyTrack(); }
 
 void AnimationTrack::LoadKeyFrames(std::uint8_t** cursor) {
-    rotationCount = ReadCount(cursor);
-    rotations = rotationCount ? reinterpret_cast<const float*>(*cursor) : nullptr;
-    *cursor += rotationCount * static_cast<int>(sizeof(Quaternion));
-    positionCount = ReadCount(cursor);
-    positions = positionCount ? reinterpret_cast<const float*>(*cursor) : nullptr;
-    *cursor += positionCount * static_cast<int>(sizeof(Vector3));
-    int frameCount = ReadCount(cursor);
-    vertexCount = frameCount;   // vertexCount holds the frame count until the vertex count is read
-    frames.resize(frameCount);
+    rotations = ReadKeys<Quaternion>(cursor, ReadCount(cursor));
+    positions = ReadKeys<Vector3>(cursor, ReadCount(cursor));
+    frameCount = ReadCount(cursor);
     vertexCount = ReadCount(cursor);
     vertices.resize(vertexCount);
-    for (int i = 0; i < std::ssize(frames); ++i) {
-        frames[i] = reinterpret_cast<float*>(*cursor);
-        *cursor += vertexCount * static_cast<int>(sizeof(Vector3));
-    }
+    frames = ReadKeys<Vector3>(cursor, frameCount * vertexCount);
 }
 
 namespace {
