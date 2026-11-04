@@ -38,6 +38,10 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                    every run that has a golden (tests/golden/<scenario>/<install>, tools/golden.py) with it:
                    the console, the digest records, the dumps and the saves. The image's runs on the vanilla data
                    compare with the vanilla golden, on Rebirth's with the Rebirth golden
+  --dzn            Linux: the games draw on Dozen, Mesa's Vulkan on D3D12 (WSL's GPU), from ~/mesa-dzn, instead of
+                   the system's driver (lavapipe without a GPU, CI's reference); EI_VK_ICD=dzn says the same,
+                   EI_VK_ICD=<manifest .json> names any Vulkan driver (vulkan_driver(); docs/notes/linux.md, "The GPU
+                   under WSL")
 exit code: 0 when every run passed
 
 A run that outlives the scenario's time limit ("timeout <seconds>", default 60 s) is reported as TIMEOUT: the
@@ -175,7 +179,7 @@ def install_environment(environ=None):
 # a game.
 NOT_GAME_ENV = ('EI_BUILD_DIR', 'EI_HARNESS_SLOTS', 'EI_OUT_DIR', 'EI_HARNESS', 'EI_WIDESCREEN_DIR', 'EI_PAIR',
                 'EI_GAME_ROOT', 'EI_INSTALL_ROOTS', 'EI_GAME_VANILLA', 'EI_GAME_REBIRTH',
-                'EI_SHOW_WINDOWS')
+                'EI_SHOW_WINDOWS', 'EI_VK_ICD')
 
 
 def peer_scenario(scenario):
@@ -947,6 +951,7 @@ def parse_args(argv=None):
     ap.add_argument('--retries', type=int, default=1)
     ap.add_argument('--clock')
     ap.add_argument('--jobs', type=int, default=16)
+    ap.add_argument('--dzn', action='store_true')
     return ap.parse_args(argv)
 
 
@@ -1187,11 +1192,34 @@ def start_headless_display(environ=None):
     return proc
 
 
+# Dozen's driver manifest where the Mesa build of linux.md installs it (docs/notes/linux.md, "The GPU under WSL").
+DZN_ICD = os.path.join('~', 'mesa-dzn', 'share', 'vulkan', 'icd.d', 'dzn_icd.x86_64.json')
+
+
+def vulkan_driver(dzn=False, environ=None):
+    """Linux: points the games' Vulkan loader at one driver manifest (VK_DRIVER_FILES, and VK_ICD_FILENAMES for older
+    loaders): Dozen's (DZN_ICD) for --dzn or EI_VK_ICD=dzn, the file EI_VK_ICD names, else nothing is set and the
+    system's drivers are used. Returns the manifest or None; exits when the one asked for is missing."""
+    environ = os.environ if environ is None else environ
+    choice = 'dzn' if dzn else environ.get('EI_VK_ICD', '')
+    if not choice:
+        return None
+    if not sys.platform.startswith('linux'):
+        sys.exit('--dzn / EI_VK_ICD choose the Vulkan driver of the Linux games only')
+    manifest = os.path.expanduser(DZN_ICD if choice == 'dzn' else choice)
+    if not os.path.isfile(manifest):
+        sys.exit(f'no Vulkan driver manifest {manifest} (docs/notes/linux.md, "The GPU under WSL")')
+    environ['VK_DRIVER_FILES'] = environ['VK_ICD_FILENAMES'] = manifest
+    print(f'Vulkan driver: {manifest}')
+    return manifest
+
+
 def main():
     args = parse_args()
     if args.golden:
         os.environ['EI_DIGEST'] = str(GOLDEN_PERIOD)
     start_headless_display()
+    vulkan_driver(args.dzn)
     jobs = plan(args)
     build = BUILD
     db = timing_db()
