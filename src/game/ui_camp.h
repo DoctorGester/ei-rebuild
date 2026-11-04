@@ -99,24 +99,24 @@ public:
     // The ways from the local player's zone to `target`, the earlier results dropped.
     void SearchWays(const std::string& target);
     // The right button drags the map round; letting it go ends the drag as a deactivation does.
-    void RightDown(int buttons, Point point) override;
-    void RightUp(int, Point) override { Deactivate(); }
+    void RightDown(Point point) override;
+    void RightUp(Point) override { Deactivate(); }
     // The drag ends, the cursor goes back to where it began; the selection is refreshed.
     void Deactivate() override;
     // Rebirth-patched (WideScreen: the drag scaled without the margins).
     // Dragging turns the map by dx / 300 layout units; otherwise the zone or link under the mouse is
     // selected. Details: docs/notes/ui.md, "Behaviour moved out of header comments".
-    void MouseMove(int buttons, Point point) override;
+    void MouseMove(Point point) override;
     // Nothing while dragging; a zone also opens the objectives window. Details: docs/notes/ui.md, "Behaviour moved out of
     // header comments".
-    void LeftDown(int buttons, Point point) override;
+    void LeftDown(Point point) override;
     // Esc opens the escape menu; an unused key whose action is '5' quick-saves ("saveq"), '6' quick-loads.
-    void KeyDown(int key, int repeat, int flags) override;
+    void KeyDown(int key, int scan, bool repeat) override;
     // A window above closed.
     void MessageResult(int result) override;
     const char* HelpTopic() override { return noCamp ? "global_map_nocamp" : "global_map"; }
     // Ends a turn by a turn button.
-    void LeftUp(int buttons, Point point) override;
+    void LeftUp(Point point) override;
     // Zones, then quests, then links, then the three layers.
     UiMesh* Marker(int index) const { return SceneMesh(3 + index); }
     // The surfaces' paints: the zone tip; the allod's title and the clock.
@@ -227,9 +227,9 @@ public:
     void ClampScroll();
     // Regions 0-3 scroll; from 4 a purchase the experience covers (a school or science row is then held),
     // the record marked bought.
-    void LeftDown(int buttons, Point point) override;
+    void LeftDown(Point point) override;
     // Releases the mouse unconditionally and ends a hold.
-    void LeftUp(int buttons, Point point) override;
+    void LeftUp(Point point) override;
     // From 250 ms of a hold on (750 ms after the press), every frame buys the row's next level again (the
     // record is not marked bought) until it cannot. The hold time is not reset after a purchase.
     void Update() override;
@@ -319,10 +319,10 @@ public:
     // The unit's own name, else the text of "pers <record name>".
     void ShowHero();
     // Regions 0 / 1 the deals, 2 / 3 turn the hero on the equipment page, 4-11 show page region - 4.
-    void LeftDown(int buttons, Point point) override;
-    void LeftUp(int buttons, Point point) override;
+    void LeftDown(Point point) override;
+    void LeftUp(Point point) override;
     // Esc shows page 7 (leaves); on a network client Backspace and Enter go to the chat line.
-    void KeyDown(int key, int repeat, int flags) override;
+    void KeyDown(int key, int scan, bool repeat) override;
     const char* HelpTopic() override;
     // By page: 0 repairs the hero's weapons and armour, 1 settles the trade (the money is left alone), 2 / 4
     // a constructor buys its third list, 3 / 5 the made spell / item (or the parts while deconstructing),
@@ -402,12 +402,12 @@ public:
     void SetHero(int heroIndex, std::optional<std::string_view> title);
     // On page 10 a -/+ button (regions 6-13) steps a point and is held; elsewhere region 0 / 1 show the
     // owner's previous / next hero.
-    void LeftDown(int buttons, Point point) override;
+    void LeftDown(Point point) override;
     // A held -/+ button repeats every frame from 750 ms after the press until it can step no more; the owner
     // is refreshed on every attempt.
     void Update() override;
     // Lets the mouse go unconditionally and ends the hold.
-    void LeftUp(int buttons, Point point) override;
+    void LeftUp(Point point) override;
     // Regions 6-8 take a point from strength, dexterity, intelligence (above 15), 9 the height down
     // (points >= 1), 10-12 give one (below 35, while the three add up to under 75), 13 the height up
     // (points <= 99; height = points * 0.01). True when it changed something.
@@ -443,7 +443,7 @@ public:
     void ShowQuickItem(Item* item);
     // On the camp's body: a right click on a filled weapon slot (of the first four) shows that weapon. The
     // event is not marked used.
-    void RightDown(int buttons, Point point) override;
+    void RightDown(Point point) override;
     // Regions 0-3 the weapons (topic 2), 4-7 the quick items from the right (3), body regions 8-14 the armour
     // worn at body part region - 8 (topic region - 4).
     Item* ItemAt(Point point, int* topic) override;

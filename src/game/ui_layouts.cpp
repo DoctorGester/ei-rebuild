@@ -249,7 +249,7 @@ void EscMenu::CreateScreen() {
 
 // --- Esc menu clicks -------------------------------------------------------------------
 
-void EscMenu::LeftDown(int buttons, Point point) {
+void EscMenu::LeftDown(Point point) {
     Interface3D* currentUi = ui;
     int region = RegionAt(point);
     if (region >= 0) {
@@ -285,12 +285,12 @@ void EscMenu::LeftDown(int buttons, Point point) {
         break;
     }
     if (open) currentUi->PushWindow(opened, true, true);
-    UiContainer::LeftDown(buttons, point);
+    UiContainer::LeftDown(point);
 }
 
 // --- Main menu clicks ------------------------------------------------------------
 
-void MainMenu::LeftDown(int buttons, Point point) {
+void MainMenu::LeftDown(Point point) {
     Interface3D* currentUi = ui;
     const char* okSound = "buttons\\menu\\ok.wav";
     switch (RegionAt(point)) {
@@ -341,7 +341,7 @@ void MainMenu::LeftDown(int buttons, Point point) {
     default:
         break;
     }
-    UiContainer::LeftDown(buttons, point);
+    UiContainer::LeftDown(point);
 }
 
 // --- Message box -----------------------------------------------------------------------

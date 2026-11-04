@@ -49,8 +49,8 @@ void MessageWindow::CopyEditText() {
     text::CopyFitting(editText, kEditTextSize, edit->text);
 }
 
-void MessageWindow::LeftDown(int buttons, Point point) {
-    UiContainer::LeftDown(buttons, point);
+void MessageWindow::LeftDown(Point point) {
+    UiContainer::LeftDown(point);
     int region = RegionAt(point);
     if (region == 0) {
         if (result == kExitResult) {
@@ -67,8 +67,8 @@ void MessageWindow::LeftDown(int buttons, Point point) {
     ui->SetPendingValue(result | static_cast<std::uint32_t>(region + 1));
 }
 
-void MessageWindow::KeyDown(int key, int repeat, int modifiers) {
-    UiContainer::KeyDown(key, repeat, modifiers);
+void MessageWindow::KeyDown(int key, int scan, bool repeat) {
+    UiContainer::KeyDown(key, scan, repeat);
     if (handled) return;
     if (key == platform::kKeyReturn) {
         if (result == kExitResult) {
@@ -89,7 +89,7 @@ void MessageWindow::KeyDown(int key, int repeat, int modifiers) {
 
 // --- DifficultyBox ------------------------------------------------------------------------------
 
-void DifficultyBox::LeftDown(int, Point point) {
+void DifficultyBox::LeftDown(Point point) {
     switch (RegionAt(point)) {
     case 0:
         options::g_options.difficulty = easy;
@@ -115,8 +115,8 @@ void DifficultyBox::LeftDown(int, Point point) {
     }
 }
 
-void DifficultyBox::KeyDown(int key, int repeat, int modifiers) {
-    UiContainer::KeyDown(key, repeat, modifiers);
+void DifficultyBox::KeyDown(int key, int scan, bool repeat) {
+    UiContainer::KeyDown(key, scan, repeat);
     if (handled) return;
     if (key == platform::kKeyReturn) {
         options::g_options.difficulty = easy;

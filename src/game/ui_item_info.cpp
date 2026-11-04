@@ -846,11 +846,11 @@ void ItemInfoPanel::Describe(Item* item) {
 
 // --- Input side: the input virtuals (mouse, key down, key up) ------------------
 
-void ItemInfoPanel::KeyDown(int key, int, int modifiers) {
-    if (key == platform::kKeyControl && !(modifiers & 0x4000) && FirstItem()) DescribeItem();
+void ItemInfoPanel::KeyDown(int key, int, bool repeat) {
+    if (key == platform::kKeyControl && !repeat && FirstItem()) DescribeItem();
 }
 
-void ItemInfoPanel::KeyUp(int key, int, int) {
+void ItemInfoPanel::KeyUp(int key, int) {
     if (key == platform::kKeyControl && FirstItem()) DescribeItem();
 }
 

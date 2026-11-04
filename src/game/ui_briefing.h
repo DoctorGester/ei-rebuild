@@ -66,8 +66,8 @@ public:
     // With the active window's player pick 1 / 2 the player's serial goes to the server as command 4 / 5 and
     // the pick ends; otherwise, unless it is our own player, our offer to it is dropped when it is its partner,
     // else one is started.
-    void LeftDown(int buttons, Point point) override;
-    void MouseMove(int buttons, Point point) override;
+    void LeftDown(Point point) override;
+    void MouseMove(Point point) override;
 
     int listed = 0;
     int portraits = 0;
@@ -123,15 +123,15 @@ public:
     // (controller command 0 or 0xB and next command 9) opens its topics, else the leader walks to the picked
     // ground point (not when noWalk); 1 a topic row starts that topic; 3 the next phrase; 4 the rewards are
     // taken.
-    void LeftDown(int buttons, Point point) override;
+    void LeftDown(Point point) override;
     // A person who is not one of the moving ones, or with the dialogue running, is handled as a click; on the
     // ground the leader runs there.
-    void LeftDouble(int buttons, Point point) override;
+    void LeftDouble(Point point) override;
     // See docs/notes/ui.md, "Behaviour moved out of header comments".
-    void MouseMove(int buttons, Point point) override;
+    void MouseMove(Point point) override;
     // With the chat window active only Esc, which gives the input back. See docs/notes/ui.md, "Behaviour moved
     // out of header comments".
-    void KeyDown(int key, int repeat, int flags) override;
+    void KeyDown(int key, int scan, bool repeat) override;
 
     // None leaves state 0; otherwise the leader stops (unless noWalk), "goodbye" is appended, state 1.
     void OpenTopics(EngineObject* person);

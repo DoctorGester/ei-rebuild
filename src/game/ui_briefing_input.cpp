@@ -87,12 +87,12 @@ static void WalkLeaderTo(BriefingScreen* screen, int x, int y, bool run) {
     unit->ServerController()->brain.Walk(point, run);
 }
 
-void BriefingScreen::LeftDown(int buttons, Point point) {
+void BriefingScreen::LeftDown(Point point) {
     if (chatActive) {
-        if (chat) chat->Input()->LeftDown(buttons, point);
+        if (chat) chat->Input()->LeftDown(point);
         return;
     }
-    UiContainer::LeftDown(buttons, point);
+    UiContainer::LeftDown(point);
     if (handled) return;
     switch (state) {
     case 0: {
@@ -129,14 +129,14 @@ void BriefingScreen::LeftDown(int buttons, Point point) {
     }
 }
 
-void BriefingScreen::MouseMove(int buttons, Point point) {
+void BriefingScreen::MouseMove(Point point) {
     if (chatActive) {
         g_cursor.SetShape(kCursorChat);
-        if (chat) chat->Input()->MouseMove(buttons, point);
+        if (chat) chat->Input()->MouseMove(point);
         return;
     }
     g_cursor.SetShape(kCursorNormal);
-    UiContainer::MouseMove(buttons, point);
+    UiContainer::MouseMove(point);
     if (state == 1) {
         int region = RegionAt(point);
         int hovered = -1;
@@ -182,19 +182,19 @@ void BriefingScreen::MouseMove(int buttons, Point point) {
     if (visited != 1.0f) g_cursor.SetShape(kCursorExit);
 }
 
-void BriefingScreen::LeftDouble(int buttons, Point point) {
+void BriefingScreen::LeftDouble(Point point) {
     if (chatActive) return;
-    UiContainer::LeftDouble(buttons, point);
+    UiContainer::LeftDouble(point);
     if (handled) return;
     if (state != 0) {
-        Input()->LeftDown(buttons, point);
+        Input()->LeftDown(point);
         return;
     }
     Unit* object = g_clientWorld.UnitAt2(&point);
     if (IsPerson(object)) {
         for (const BriefingMover& mover : movers)
             if (mover.person->id == object->id) return;
-        Input()->LeftDown(buttons, point);
+        Input()->LeftDown(point);
         return;
     }
     if (!noWalk) WalkLeaderTo(this, point.x, point.y, true);
@@ -247,7 +247,6 @@ namespace {
 constexpr const char* kQuickSaveName = "saveq";
 constexpr const char* kQuestPrefix = "q.";
 
-constexpr int kScanCodeMask = 0x1FF;
 constexpr int kActionObjectives = 4;
 constexpr int kActionLeader = 0xB;
 constexpr int kActionQuickSave = '5';
@@ -277,12 +276,12 @@ void OpenObjectives(Interface3D* ui) {
 
 } // namespace
 
-void BriefingScreen::KeyDown(int key, int repeat, int modifiers) {
+void BriefingScreen::KeyDown(int key, int scan, bool repeat) {
     if (chatActive) {
         if (key == platform::kKeyEscape) chatActive = 0;
         return;
     }
-    UiContainer::KeyDown(key, repeat, modifiers);
+    UiContainer::KeyDown(key, scan, repeat);
     switch (key) {
     case platform::kKeyBack:
         if (IsMultiplayerClient()) {
@@ -335,7 +334,7 @@ void BriefingScreen::KeyDown(int key, int repeat, int modifiers) {
         break;
     }
     if (state != 0) return;
-    switch (g_keyActions[modifiers & kScanCodeMask]) {
+    switch (g_keyActions[scan]) {
     case kActionObjectives:
         OpenObjectives(ui);
         break;

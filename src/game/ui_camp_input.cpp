@@ -51,8 +51,8 @@ constexpr std::uint32_t kAnswerYes = 0x10001;
 
 } // namespace
 
-void CampPages::LeftDown(int buttons, Point point) {
-    UiContainer::LeftDown(buttons, point);
+void CampPages::LeftDown(Point point) {
+    UiContainer::LeftDown(point);
     int region = RegionAt(point);
     switch (region) {
     case kRegionAction:
@@ -78,13 +78,13 @@ void CampPages::LeftDown(int buttons, Point point) {
     }
 }
 
-void CampPages::LeftUp(int buttons, Point point) {
-    UiContainer::LeftUp(buttons, point);
+void CampPages::LeftUp(Point point) {
+    UiContainer::LeftUp(point);
     ReleaseMouse();
     turning = 0;
 }
 
-void CampPages::KeyDown(int key, int repeat, int modifiers) {
+void CampPages::KeyDown(int key, int scan, bool repeat) {
     if (key == platform::kKeyEscape) {
         ShowPage(kLeavePage);
         handled = true;
@@ -98,7 +98,7 @@ void CampPages::KeyDown(int key, int repeat, int modifiers) {
         handled = true;
         return;
     }
-    UiContainer::KeyDown(key, repeat, modifiers);
+    UiContainer::KeyDown(key, scan, repeat);
 }
 
 void CampPages::MessageResult(int result) {

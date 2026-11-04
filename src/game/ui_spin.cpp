@@ -55,7 +55,7 @@ void UiSpin::SetValue(int newValue) {
 
 // --- A click steps the value ------------------------------------------------------------------------
 
-void UiSpin::LeftDown(int, Point) {
+void UiSpin::LeftDown(Point) {
     ui->PlayInterfaceSound(kOkSound);
     SetValue(value + 1);
 }

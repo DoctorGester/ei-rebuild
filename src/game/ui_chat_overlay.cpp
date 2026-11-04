@@ -213,7 +213,7 @@ void ChatOverlay::PaintTyped(UiSurface& surface) const {
 
 // --- the chat line's keys -------------------------------------------------------------------------
 
-void ChatOverlay::KeyDown(int key, int, int) {
+void ChatOverlay::KeyDown(int key, int, bool) {
     if (!chatOpen) return;
     handled = true;
     switch (key) {
@@ -253,7 +253,7 @@ void ChatOverlay::KeyDown(int key, int, int) {
     ShowTyped();
 }
 
-void ChatOverlay::Char(int key, int, int) {
+void ChatOverlay::Char(int key, int) {
     if (!chatOpen) return;
     if (key == platform::kKeyBack || key == platform::kKeyTab || key == platform::kKeyReturn || key == platform::kKeyEscape) return;
     std::string line = text::Typed(str::Left(typed, caret), key) + str::Mid(typed, caret);

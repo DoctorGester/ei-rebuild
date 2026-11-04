@@ -77,7 +77,7 @@ void ConsoleWindow::Show(bool newShown) {
 // Ctrl, PgUp/PgDn scroll by a page and Home/End go to the first/last page, otherwise PgUp/PgDn
 // scroll by a line and Home/End/Left/Right move the caret (Shift keeps the selection's anchor);
 // Up/Down step through the entered commands; Delete removes the selection or the next character.
-void ConsoleWindow::OnKeyDown(int key, int, int) {
+void ConsoleWindow::OnKeyDown(int key, int, bool) {
     switch (key) {
     case platform::kKeyShift:
         shift = true;
@@ -164,7 +164,7 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
 // clears the line, Tab does nothing; other characters replace the selection, except while Ctrl is
 // held. Rebirth's ImproveConsole skips the history for a line equal to the last one and adds
 // Ctrl+A / C / X / V (select all, copy, cut, paste: the first line of the clipboard).
-void ConsoleWindow::OnChar(int key, int, int) {
+void ConsoleWindow::OnChar(int key, int) {
     int low = caret < anchor ? caret : anchor;
     int high = anchor > caret ? anchor : caret;
     switch (key) {

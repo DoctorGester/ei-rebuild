@@ -123,8 +123,8 @@ void MpHeroScreen::FinishRename() {
     ShowHero(heroIndex);
 }
 
-void MpHeroScreen::KeyDown(int key, int repeat, int modifiers) {
-    UiContainer::KeyDown(key, repeat, modifiers);
+void MpHeroScreen::KeyDown(int key, int scan, bool repeat) {
+    UiContainer::KeyDown(key, scan, repeat);
     if (handled) return;
     Interface3D* currentUi = ui;
     bool renaming = renameEdit->focused;
@@ -190,9 +190,9 @@ void MpHeroScreen::KeyDown(int key, int repeat, int modifiers) {
     handled = true;
 }
 
-void MpHeroScreen::LeftDown(int modifiers, Point point) {
+void MpHeroScreen::LeftDown(Point point) {
     if (renameEdit->focused) return;
-    UiContainer::LeftDown(modifiers, point);
+    UiContainer::LeftDown(point);
     if (handled) return;
     Interface3D* currentUi = ui;
     int region = RegionAt(point);

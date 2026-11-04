@@ -64,9 +64,9 @@ void SaveLoadWindow::ShowSelection() {
     ShowPicture();
 }
 
-void SaveLoadWindow::KeyDown(int key, int repeat, int modifiers) {
+void SaveLoadWindow::KeyDown(int key, int scan, bool repeat) {
     if (sliding) return;
-    UiContainer::KeyDown(key, repeat, modifiers);
+    UiContainer::KeyDown(key, scan, repeat);
     int step = 0;
     switch (key) {
     case kKeyEnter:
@@ -145,7 +145,7 @@ void SaveLoadWindow::KeyDown(int key, int repeat, int modifiers) {
     handled = true;
 }
 
-void SaveLoadWindow::Char(int key, int repeat, int modifiers) {
+void SaveLoadWindow::Char(int key, int scan) {
     if (!isSave) return;
     switch (key) {
     case kKeyBack:
@@ -178,15 +178,14 @@ void SaveLoadWindow::Char(int key, int repeat, int modifiers) {
         break;
     }
     }
-    UiContainer::Char(key, repeat, modifiers);
+    UiContainer::Char(key, scan);
 }
 
-void OptionsWindow::KeyDown(int key, int repeat, int modifiers) {
+void OptionsWindow::KeyDown(int key, int scan, bool repeat) {
     if (sliding) return;
-    UiContainer::KeyDown(key, repeat, modifiers);
+    UiContainer::KeyDown(key, scan, repeat);
     if (waitingForKey) {
         // The key for the selected binding row, by scan code.
-        int scan = modifiers & 0x1FF;
         handled = true;
         if (scan == kScanEsc) {
             waitingForKey = false;

@@ -99,7 +99,7 @@ void GlobalMap::FindPaths(MapRecord* from) {
     }
 }
 
-void GlobalMap::LeftDown(int, Point point) {
+void GlobalMap::LeftDown(Point point) {
     if (dragging) return;
     const int region = RegionAt(point);
     if (region == kRegionTurnLeft || region == kRegionTurnRight) {

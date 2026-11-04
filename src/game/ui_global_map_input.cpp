@@ -28,7 +28,6 @@ constexpr const char* kQuickSaveSlot = "saveq";
 
 constexpr int kActionQuickSave = '5';
 constexpr int kActionQuickLoad = '6';
-constexpr int kScanCodeMask = 0x1FF;
 
 // The tip of the zone under the mouse: regions 3.. are the links; the text's font, colour and
 // DrawText format; the two sprites behind it follow the markers and the three layers.
@@ -53,7 +52,7 @@ void GlobalMap::Deactivate() {
     platform::SetCursorPosition(home);
 }
 
-void GlobalMap::RightDown(int, Point point) {
+void GlobalMap::RightDown(Point point) {
     dragStart = point;
     dragging = true;
     turning = 0;
@@ -62,7 +61,7 @@ void GlobalMap::RightDown(int, Point point) {
     g_cursor.SetHeld(1);
 }
 
-void GlobalMap::MouseMove(int, Point point) {
+void GlobalMap::MouseMove(Point point) {
     if (dragging) {
         Point drag = g_cursor.motion;
         console::EndLine(console::g_graphicsLogOut << static_cast<int>(drag.x) << ':' << static_cast<int>(drag.y));
@@ -145,14 +144,14 @@ void GlobalMap::PaintTitle(UiSurface& surface) const {
     surface.DrawTextIn(clock, &line2, 2, 0xA7D7E4, 0x25, 1);
 }
 
-void GlobalMap::KeyDown(int key, int repeat, int modifiers) {
-    UiContainer::KeyDown(key, repeat, modifiers);
+void GlobalMap::KeyDown(int key, int scan, bool repeat) {
+    UiContainer::KeyDown(key, scan, repeat);
     if (key == platform::kKeyEscape) {
         ui->PushWindow(new EscMenu(ui), true, true);
         handled = true;
     }
     if (handled) return;
-    int action = g_keyActions[modifiers & kScanCodeMask];
+    int action = g_keyActions[scan];
     if (action == kActionQuickSave)
         ::QuickSave(kQuickSaveSlot, false);
     else if (action == kActionQuickLoad)
@@ -163,10 +162,10 @@ void GlobalMap::MessageResult(int) {
     turning = 0;
     dragging = false;
     selectPending = true;
-    Input()->MouseMove(0, g_cursor.position);
+    Input()->MouseMove(g_cursor.position);
 }
 
-void GlobalMap::LeftUp(int, Point) {
+void GlobalMap::LeftUp(Point) {
     if (turning != 0) selectPending = true;
     turning = 0;
 }

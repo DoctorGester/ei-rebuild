@@ -338,8 +338,8 @@ void FigureStrip::Draw(SceneRenderer* pass) {
 
 void FigureStrip::RebuildList() { count = static_cast<int>(figures->size()); }
 
-void FigureStrip::LeftDown(int buttons, Point point) {
-    UiItemStrip::LeftDown(buttons, point);
+void FigureStrip::LeftDown(Point point) {
+    UiItemStrip::LeftDown(point);
     if (RegionAt(point) != 8) return;
     ui->ScalePointFromScreen(&point);
     int index = SlotAt(point.x);

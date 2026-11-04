@@ -54,10 +54,10 @@ void BattleScreen::Deactivate() {
 
 // --- a double click on the battle screen ---------------------------------------------------------
 
-void BattleScreen::LeftDouble(int buttons, Point point) {
+void BattleScreen::LeftDouble(Point point) {
     if (portraitMode != 0) return;
     if (!viewPressed) {
-        UiContainer::LeftDouble(buttons, point);
+        UiContainer::LeftDouble(point);
         if (handled) return;
     }
     viewPressed = true;
@@ -67,25 +67,25 @@ void BattleScreen::LeftDouble(int buttons, Point point) {
 
 // --- a key released on the battle screen ---------------------------------------------------------
 
-void BattleScreen::KeyUp(int key, int repeat, int modifiers) {
+void BattleScreen::KeyUp(int key, int scan) {
     if (portraitMode != 0) return;
-    UiContainer::KeyUp(key, repeat, modifiers);
-    int action = g_keyActions[modifiers & 0x1FF] - kFirstOrderKeyAction;
+    UiContainer::KeyUp(key, scan);
+    int action = g_keyActions[scan] - kFirstOrderKeyAction;
     if (action >= 0 && action < 6) orderKeys[kOrderKeyOfAction[action]] = 0;
 }
 
 // --- the wheel on the battle screen --------------------------------------------------------------
 
-void BattleScreen::Wheel(int modifiers, int delta, Point point) {
+void BattleScreen::Wheel(int delta, Point point) {
     if (portraitMode != 0) return;
     UiWindow* const panels[4] = {map, unitPanel, messageLog, topPanel};
     for (UiWindow* panel : panels) {
         panel->handled = false;
-        panel->Input()->Wheel(modifiers, delta, point);
+        panel->Input()->Wheel(delta, point);
         if (panel->handled) return;
     }
     for (UiWindow* panel : panels) panel->SetEnabled(false);
-    UiContainer::Wheel(modifiers, delta, point);
+    UiContainer::Wheel(delta, point);
     for (UiWindow* panel : panels) panel->SetEnabled(true);
 }
 
@@ -107,9 +107,6 @@ constexpr const char* kSoundWeapon = "buttons\\battle\\weapon.wav";
 constexpr const char* kSoundSling = "buttons\\battle\\sling.wav";
 constexpr const char* kSoundOnOff = "buttons\\battle\\on_off.wav";
 constexpr const char* kQuickSaveName = "saveq";
-
-constexpr int kKeyRepeated = 0x4000;            // the key was already down
-constexpr int kScanCodeMask = 0x1FF;
 
 // The key actions (the key table's values).
 enum KeyAction {
@@ -165,7 +162,7 @@ void SlideKey(Panel* panel, int& shown, int choice, Show show) {
 
 } // namespace
 
-void BattleScreen::KeyDown(int key, int repeat, int modifiers) {
+void BattleScreen::KeyDown(int key, int scan, bool repeat) {
     if (portraitMode != 0) {
         if (key == platform::kKeyEscape) portraitMode = 0;
         return;
@@ -183,9 +180,9 @@ void BattleScreen::KeyDown(int key, int repeat, int modifiers) {
             return;
         }
     }
-    UiContainer::KeyDown(key, repeat, modifiers);
+    UiContainer::KeyDown(key, scan, repeat);
     if (handled) return;
-    if (modifiers & kKeyRepeated) return;
+    if (repeat) return;
 
     if (key == platform::kKeyEscape) {
         if (pendingAction != kPendingNone) {
@@ -198,7 +195,7 @@ void BattleScreen::KeyDown(int key, int repeat, int modifiers) {
         return;
     }
 
-    const int action = g_keyActions[modifiers & kScanCodeMask];
+    const int action = g_keyActions[scan];
     Camera* camera = &g_camera;
     switch (action) {
     case kActionPause: {
@@ -371,10 +368,10 @@ int Distance(int a, int b) { return a < b ? b - a : a - b; }
 
 // --- the mouse moved over the battle screen ------------------------------------------------------
 
-void BattleScreen::MouseMove(int buttons, Point point) {
+void BattleScreen::MouseMove(Point point) {
     if (portraitMode != 0) {
         g_cursor.SetShape(kCursorPickPlayer);
-        if (portraits) portraits->Input()->MouseMove(buttons, point);
+        if (portraits) portraits->Input()->MouseMove(point);
         return;
     }
     g_cursor.SetShape(kCursorArrow);
@@ -388,7 +385,7 @@ void BattleScreen::MouseMove(int buttons, Point point) {
             return;
         }
     } else {
-        UiContainer::MouseMove(buttons, point);
+        UiContainer::MouseMove(point);
         if (handled) return;
     }
     // The (x, y) pair is read back through its address.
@@ -398,13 +395,13 @@ void BattleScreen::MouseMove(int buttons, Point point) {
 
 // --- the left button went down on the battle screen ----------------------------------------------
 
-void BattleScreen::LeftDown(int buttons, Point point) {
+void BattleScreen::LeftDown(Point point) {
     if (portraitMode != 0) {
-        if (portraits) portraits->Input()->LeftDown(buttons, point);
+        if (portraits) portraits->Input()->LeftDown(point);
         return;
     }
     if (!viewPressed) {
-        UiContainer::LeftDown(buttons, point);
+        UiContainer::LeftDown(point);
         if (handled) return;
     }
     viewPressed = true;

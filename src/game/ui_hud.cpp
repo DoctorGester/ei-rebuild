@@ -84,14 +84,14 @@ bool IsZero(float value) {
 
 // --- Weapon bar --------------------------------------------------------------------------------
 
-void HudWeaponBar::LeftDown(int, Point point) {
+void HudWeaponBar::LeftDown(Point point) {
     int region = RegionAt(point);
     if (region < 0 || region >= count) return;
     handled = true;
     CaptureMouse();
 }
 
-void HudWeaponBar::LeftUp(int, Point point) {
+void HudWeaponBar::LeftUp(Point point) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(point);
     if (region < 0 || region >= count) return;
@@ -106,7 +106,7 @@ void HudWeaponBar::LeftUp(int, Point point) {
     if (Unit* currentUnit = unit) g_clientWorld.LocalView()->SetWeapon(currentUnit, region);
 }
 
-void HudWeaponBar::MouseMove(int, Point point) {
+void HudWeaponBar::MouseMove(Point point) {
     int region = RegionAt(point);
     if (region >= 0 && region < count) handled = true;
 }
@@ -140,19 +140,19 @@ void HudActionColumn::Draw(SceneRenderer* pass) { DrawWithSpecular(this, pass); 
 
 // --- Quick items -------------------------------------------------------------------------------
 
-void HudQuickItems::LeftDown(int, Point point) {
+void HudQuickItems::LeftDown(Point point) {
     if (RegionItem(RegionAt(point)) < 0) return;
     handled = true;
     CaptureMouse();
 }
 
-void HudQuickItems::LeftDouble(int, Point point) {
+void HudQuickItems::LeftDouble(Point point) {
     if (RegionItem(RegionAt(point)) < 0) return;
     handled = true;
     CaptureMouse();
 }
 
-void HudQuickItems::MouseMove(int, Point point) {
+void HudQuickItems::MouseMove(Point point) {
     if (RegionItem(RegionAt(point)) >= 0) handled = true;
 }
 
@@ -167,14 +167,14 @@ void HudQuickItems::Update() {
 
 // --- Spell column ------------------------------------------------------------------------------
 
-void HudSpellColumn::LeftDown(int, Point point) {
+void HudSpellColumn::LeftDown(Point point) {
     int region = RegionAt(point);
     if (region < 0 || region >= count) return;
     handled = true;
     CaptureMouse();
 }
 
-void HudSpellColumn::LeftUp(int, Point point) {
+void HudSpellColumn::LeftUp(Point point) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(point);
     if (region < 0 || region >= count) return;
@@ -185,21 +185,21 @@ void HudSpellColumn::LeftUp(int, Point point) {
         Click(region);
 }
 
-void HudSpellColumn::MouseMove(int, Point point) {
+void HudSpellColumn::MouseMove(Point point) {
     int region = RegionAt(point);
     if (region >= 0 && region < count) handled = true;
 }
 
 // --- Action column -----------------------------------------------------------------------------
 
-void HudActionColumn::LeftDown(int, Point point) {
+void HudActionColumn::LeftDown(Point point) {
     int region = RegionAt(point);
     if (region < 0 || region >= count) return;
     handled = true;
     CaptureMouse();
 }
 
-void HudActionColumn::LeftUp(int, Point point) {
+void HudActionColumn::LeftUp(Point point) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(point);
     if (region < 0 || region >= count) return;
@@ -207,7 +207,7 @@ void HudActionColumn::LeftUp(int, Point point) {
     Select(region);
 }
 
-void HudActionColumn::MouseMove(int, Point point) {
+void HudActionColumn::MouseMove(Point point) {
     int region = RegionAt(point);
     if (region >= 0 && region < count) handled = true;
 }
@@ -217,7 +217,7 @@ void HudActionColumn::MouseMove(int, Point point) {
 // The portraits read the portrait mode of the interface's active screen (the battle screen while they get
 // input).
 
-void HudPortraits::LeftDown(int, Point point) {
+void HudPortraits::LeftDown(Point point) {
     int region = RegionAt(point);
     const int mode = ui->ActiveWindowAs<BattleScreen>()->portraitMode;
     if (mode == 0) {
@@ -253,7 +253,7 @@ void HudPortraits::LeftDown(int, Point point) {
     ui->ActiveWindowAs<BattleScreen>()->portraitMode = 0;
 }
 
-void HudPortraits::LeftUp(int, Point point) {
+void HudPortraits::LeftUp(Point point) {
     if (ui->ActiveWindowAs<BattleScreen>()->portraitMode != 0) return;
     if (!ReleaseMouse()) return;
     int region = RegionAt(point);
@@ -264,7 +264,7 @@ void HudPortraits::LeftUp(int, Point point) {
     if (region < std::ssize(currentOwner->party)) currentOwner->SelectUnit(currentOwner->party[region], {});
 }
 
-void HudPortraits::MouseMove(int, Point point) {
+void HudPortraits::MouseMove(Point point) {
     int region = RegionAt(point);
     if (ui->ActiveWindowAs<BattleScreen>()->portraitMode == 0) {
         if (region < 0) return;
@@ -278,7 +278,7 @@ void HudPortraits::MouseMove(int, Point point) {
 
 // --- Map ---------------------------------------------------------------------------------------
 
-void HudMap::LeftDown(int, Point point) {
+void HudMap::LeftDown(Point point) {
     int region = RegionAt(point);
     if (region >= 0) {
         handled = true;
@@ -292,7 +292,7 @@ void HudMap::LeftDown(int, Point point) {
         SetTint(sceneObjects[6 + i], view == i + 1 ? kTintOn : kTintOff);
 }
 
-void HudMap::LeftUp(int, Point point) {
+void HudMap::LeftUp(Point point) {
     if (!ReleaseMouse()) return;
     if (view != 0) {
         // A view button was held: the zoom stops and both buttons go dim.
@@ -343,19 +343,19 @@ void HudMap::LeftUp(int, Point point) {
     }
 }
 
-void HudMap::MouseMove(int, Point point) {
+void HudMap::MouseMove(Point point) {
     if (RegionAt(point) >= 0) handled = true;
 }
 
 // --- Unit panel --------------------------------------------------------------------------------
 
-void HudUnitPanel::LeftDown(int, Point point) {
+void HudUnitPanel::LeftDown(Point point) {
     if (RegionAt(point) < 0) return;
     handled = true;
     CaptureMouse();
 }
 
-void HudUnitPanel::LeftUp(int, Point point) {
+void HudUnitPanel::LeftUp(Point point) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(point);
     if (region == 0) {
@@ -374,23 +374,23 @@ void HudUnitPanel::LeftUp(int, Point point) {
     if (region >= 0) handled = true;
 }
 
-void HudUnitPanel::MouseMove(int, Point point) {
+void HudUnitPanel::MouseMove(Point point) {
     if (RegionAt(point) >= 0) handled = true;
 }
 
-void HudUnitPanel::Wheel(int, int, Point point) {
+void HudUnitPanel::Wheel(int, Point point) {
     if (RegionAt(point) >= 0) handled = true;
 }
 
 // --- Clock -------------------------------------------------------------------------------------
 
-void HudClock::LeftDown(int, Point point) {
+void HudClock::LeftDown(Point point) {
     if (RegionAt(point) < 0) return;
     handled = true;
     CaptureMouse();
 }
 
-void HudClock::LeftUp(int, Point point) {
+void HudClock::LeftUp(Point point) {
     if (!ReleaseMouse()) return;
     const int region = RegionAt(point);
     switch (region) {
@@ -416,7 +416,7 @@ void HudClock::LeftUp(int, Point point) {
     }
 }
 
-void HudClock::MouseMove(int, Point point) {
+void HudClock::MouseMove(Point point) {
     if (RegionAt(point) >= 0) handled = true;
 }
 
@@ -443,13 +443,13 @@ void HudClock::OpenObjectives() {
 
 // --- Movement panel ----------------------------------------------------------------------------
 
-void HudMovePanel::LeftDown(int, Point point) {
+void HudMovePanel::LeftDown(Point point) {
     if (RegionAt(point) < 0) return;
     handled = true;
     CaptureMouse();
 }
 
-void HudMovePanel::LeftUp(int, Point point) {
+void HudMovePanel::LeftUp(Point point) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(point);
     if (region == -1) return;
@@ -473,7 +473,7 @@ void HudMovePanel::SetMode(int newMode) {
     ShowMode(newMode);
 }
 
-void HudMovePanel::MouseMove(int, Point point) {
+void HudMovePanel::MouseMove(Point point) {
     if (RegionAt(point) >= 0) handled = true;
 }
 
@@ -529,13 +529,13 @@ void HudMovePanel::Update() {
 
 // --- Top panel ---------------------------------------------------------------------------------
 
-void HudTopPanel::LeftDown(int, Point point) {
+void HudTopPanel::LeftDown(Point point) {
     if (RegionAt(point) < 0) return;
     handled = true;
     CaptureMouse();
 }
 
-void HudTopPanel::LeftUp(int, Point point) {
+void HudTopPanel::LeftUp(Point point) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(point);
     switch (region) {
@@ -558,11 +558,11 @@ void HudTopPanel::LeftUp(int, Point point) {
     }
 }
 
-void HudTopPanel::MouseMove(int, Point point) {
+void HudTopPanel::MouseMove(Point point) {
     if (RegionAt(point) >= 0) handled = true;
 }
 
-void HudTopPanel::Wheel(int, int, Point point) {
+void HudTopPanel::Wheel(int, Point point) {
     if (RegionAt(point) >= 0) handled = true;
 }
 
@@ -734,7 +734,7 @@ void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
 
 // --- The quick item panel's button release -------------------------------------------
 
-void HudQuickItems::LeftUp(int, Point point) {
+void HudQuickItems::LeftUp(Point point) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(point);
     // Unchecked, like the original (region -1 reads a neighbouring field).

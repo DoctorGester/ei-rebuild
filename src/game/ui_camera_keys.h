@@ -17,18 +17,18 @@ public:
 
     // A direction key (actions 5-10 of g_keyActions) sets its axis; actions 13-16 restore camera view 0-3,
     // or save it with Ctrl / Alt. Then, when used, the camera's motion is set from the axes as KeyUp does.
-    void KeyDown(int key, int repeat, int flags) override;
+    void KeyDown(int key, int scan, bool repeat) override;
     // A direction key released clears its axis and marks the key used; then, when used, the camera's motion
     // is set again from the axes: without Ctrl / Alt it pans along (y, -x) at the pan speed (the speed
     // options multiplied, stored as float), turns and tilts not, and climbs at the climb speed * z; with one
     // it does not pan, turns at the turn speed * y, climbs, and tilts at the tilt speed * x.
-    void KeyUp(int key, int repeat, int flags) override;
+    void KeyUp(int key, int scan) override;
     // The right button went down: the point kept in screen and layout coordinates, turning set, the cursor held
     // (its motion so far dropped); the button used.
-    void RightDown(int buttons, Point point) override;
+    void RightDown(Point point) override;
     // Released: turning cleared, the camera stops turning, tilting and panning, the cursor let go and put back
     // at the mouse position; used.
-    void RightUp(int buttons, Point point) override;
+    void RightUp(Point point) override;
     // Rebirth-patched (WideScreen: the drag scaled without the margin). While turning: the cursor's drag (its
     // speed as a 60 Hz frame's motion, Cursor::TakeDrag; in layout units) turns the camera at the turn speed *
     // (dx / 400) * 10 and tilts it at the tilt speed * (dy / 300) * 500 (not tilting when it is at rest and
@@ -37,11 +37,11 @@ public:
     // cursor within the margin of an edge of the picture (Interface3D::PictureRect) pans that way (with the keys'
     // pan added unless Ctrl / Alt is held) under the edge's arrow cursor, the event used when at an edge; the
     // point is kept.
-    void MouseMove(int buttons, Point point) override;
+    void MouseMove(Point point) override;
     // The input loses the screen: no turning, the axes cleared, the cursor let go and the camera stopped.
     void Deactivate() override;
     // The wheel zooms the camera by the zoom speed * (the delta's low word) * the step size.
-    void Wheel(int flags, int delta, Point point) override;
+    void Wheel(int delta, Point point) override;
 
     Point pressScreen;               // where the right button went down (screen)
     Point pressLayout;               // the same in layout coordinates
