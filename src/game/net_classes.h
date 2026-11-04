@@ -216,11 +216,16 @@ constexpr int kChannels = 3;          // handler channels: 0 created, 1 changed,
 constexpr int kMessageTypes = 0x100;
 
 // A message handler as the session keeps it: its session and the message. The handlers themselves take their
-// own session class and message class (net_handlers.h); AsHandler is the one place they become this.
+// own session class and message class (net_handlers.h); AsHandler<handler>() is a thunk that casts both down and
+// calls it.
 using MessageHandler = void(*)(SessionBase*, RefObject*);
-template <typename Session, typename MessageType>
-MessageHandler AsHandler(void(*handler)(Session*, MessageType*)) {
-    return reinterpret_cast<MessageHandler>(handler);
+template <auto Handler>
+MessageHandler AsHandler() {
+    return [](SessionBase* session, RefObject* message) {
+        [&]<typename Session, typename MessageType>(void (*)(Session*, MessageType*)) {
+            Handler(static_cast<Session*>(session), static_cast<MessageType*>(message));
+        }(Handler);
+    };
 }
 
 // The message type registry of a session.
