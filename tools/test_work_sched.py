@@ -512,24 +512,24 @@ class SchedTest(unittest.TestCase):
 
     def test_expected_seconds_fallbacks(self):
         e = lambda *a, **k: work.expected_seconds(self.db, *a, **k)
-        self.assertIsNone(e('s', 'vanilla', 'r1'))
-        self.assertEqual(e('s', 'vanilla', 'r1', fallback=42), 42)                      # run_times.json
-        self.add_timing('s', 'vanilla', 'old', 100, 100, 100)
-        self.assertEqual(e('s', 'vanilla', 'r1', fallback=42), 100)                     # other rev beats run_times.json
-        self.assertEqual(e('s', 'rebirth', 'r1', fallback=42), 42)                      # other install does not
-        self.add_timing('s', 'vanilla', 'r1', 10, 12)
-        self.assertEqual(e('s', 'vanilla', 'r1', fallback=42), 11)                      # this rev only, median
-        self.add_timing('s', 'vanilla', 'r1', 50, 14, 16, 18, 20)                       # the last 5 count: 50 14 16 18 20
-        self.assertEqual(e('s', 'vanilla', 'r1'), 18)
-        self.assertEqual(e('s', 'vanilla', 'r1+dirty'), 18)                             # uncommitted: any rev, last 5 overall
-        self.assertEqual(e('s', 'vanilla', 'r2'), 18)                                   # a changed scenario: latest rows at any rev
-        self.add_timing('s', 'vanilla', 'r2', 3)
-        self.assertEqual(e('s', 'vanilla', 'r2'), 3)                                    # ...until it has its own
-        self.assertEqual(e('s', 'vanilla', 'r1'), 18)
-        self.assertEqual(e('s', 'vanilla', 'r2+dirty'), 16)                             # any rev: 14 16 18 20 3
-        times = work.expected_times(self.db, self.tmp, [('s', 'vanilla'), ('t', 'vanilla')], {'t-vanilla': 7})
-        self.assertEqual(times[('t', 'vanilla')], 7)       # not a repository: rev '' -> any rev -> run_times.json
-        self.assertEqual(times[('s', 'vanilla')], 16)
+        self.assertIsNone(e('s', 'standalone', 'r1'))
+        self.assertEqual(e('s', 'standalone', 'r1', fallback=42), 42)                      # run_times.json
+        self.add_timing('s', 'standalone', 'old', 100, 100, 100)
+        self.assertEqual(e('s', 'standalone', 'r1', fallback=42), 100)                     # other rev beats run_times.json
+        self.assertEqual(e('s', 'standalone-rebirth', 'r1', fallback=42), 42)  # other install does not
+        self.add_timing('s', 'standalone', 'r1', 10, 12)
+        self.assertEqual(e('s', 'standalone', 'r1', fallback=42), 11)                      # this rev only, median
+        self.add_timing('s', 'standalone', 'r1', 50, 14, 16, 18, 20)                       # the last 5 count: 50 14 16 18 20
+        self.assertEqual(e('s', 'standalone', 'r1'), 18)
+        self.assertEqual(e('s', 'standalone', 'r1+dirty'), 18)                             # uncommitted: any rev, last 5 overall
+        self.assertEqual(e('s', 'standalone', 'r2'), 18)                                   # a changed scenario: latest rows at any rev
+        self.add_timing('s', 'standalone', 'r2', 3)
+        self.assertEqual(e('s', 'standalone', 'r2'), 3)                                    # ...until it has its own
+        self.assertEqual(e('s', 'standalone', 'r1'), 18)
+        self.assertEqual(e('s', 'standalone', 'r2+dirty'), 16)                             # any rev: 14 16 18 20 3
+        times = work.expected_times(self.db, self.tmp, [('s', 'standalone'), ('t', 'standalone')], {'t-standalone': 7})
+        self.assertEqual(times[('t', 'standalone')], 7)       # not a repository: rev '' -> any rev -> run_times.json
+        self.assertEqual(times[('s', 'standalone')], 16)
 
     def test_scenario_revs_follow_the_last_commit(self):
         repo = os.path.join(self.tmp, 'repo')
@@ -561,8 +561,8 @@ class SchedTest(unittest.TestCase):
         self.drive(self.sched(fake))
         rows = self.db.execute('SELECT scenario, install, scenario_rev, seconds, batch FROM timing ORDER BY id').fetchall()
         self.assertEqual(sorted(r['scenario'] for r in rows), ['f', 'p'])    # a run that errored is no time
-        self.assertTrue(all(r['batch'] == a and r['install'] == 'vanilla' and r['scenario_rev'] == '' and r['seconds'] >= 0 for r in rows))
-        self.assertEqual(work.expected_times(self.db, self.tmp, [('p', 'vanilla')])[('p', 'vanilla')],
+        self.assertTrue(all(r['batch'] == a and r['install'] == 'standalone' and r['scenario_rev'] == '' and r['seconds'] >= 0 for r in rows))
+        self.assertEqual(work.expected_times(self.db, self.tmp, [('p', 'standalone')])[('p', 'standalone')],
                          self.db.execute("SELECT seconds FROM timing WHERE scenario = 'p'").fetchone()[0])
 
     # ---- WB6: leaving for new scheduler code
