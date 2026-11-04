@@ -113,8 +113,8 @@ void UnitServer::FinishCast() {
         float capped = MinKeepA(left, maximum);
         float result = MaxKeepB(0.0f, capped);
         *mana = result;
-        unit->companion->owner->MarkChanged(0);
-        unit->MarkChanged(0);
+        unit->companion->owner->MarkChanged(NetField::Vitals);
+        unit->MarkChanged(NetField::Vitals);
     }
     world->CastSpell(spell, unit, unit->localPosition, action.target, at, 0);
     if (spell->GetPrototype()->castType != 1) {

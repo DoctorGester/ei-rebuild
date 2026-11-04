@@ -200,8 +200,6 @@ int ServerPlayerCount() { return static_cast<int>(g_serverWorld.players->objects
 
 constexpr std::uint32_t kMultiplayerHeroId = 0x3B9AF5CE;   // the only record's unit id
 
-constexpr int kCommandBriefing = 1;
-constexpr int kRequestDone = 3;   // the client's game state request: answered
 
 constexpr std::uint32_t kGraphChunk = 0x31415926;         // the AI graph chunk in a .mob file
 
@@ -211,8 +209,8 @@ constexpr std::uint32_t kScriptPlain = 0xACCEECCA;       // in it: the script te
 
 constexpr int kServerDropClient = 9;
 
-// The client's game state request: `kind`, a new version.
-void RequestKind(int kind) {
+// The client player's new status, a new version.
+void ReportStatus(net::PlayerStatus kind) {
     net::g_gameClient->player.Get()->state = kind;
     ++net::g_gameClient->player.Get()->version;
 }
@@ -548,7 +546,7 @@ void GameFlow::BeginMultiplayerGame() {
     state = 4;    // load the zone
     requestTarget = MultiplayerZone();
     zoneSwitchStarted = 0;
-    net::g_gameClient->player.Get()->state = 1;
+    net::g_gameClient->player.Get()->state = net::PlayerStatus::InBase;
     ++net::g_gameClient->player.Get()->version;
     g_interface.disconnected = 1;
 }
@@ -569,14 +567,14 @@ void GameFlow::ReturnLocalParty() {
 void GameFlow::UpdateAndAcknowledge() {
     if (!IsLive(net::g_gameClient)) return;
     UpdateFromServer();
-    if (net::g_gameClient->player.Get()->state != kRequestDone) return;
-    net::g_gameClient->player.Get()->state = 0;
+    if (net::g_gameClient->player.Get()->state != net::PlayerStatus::Connecting) return;
+    net::g_gameClient->player.Get()->state = net::PlayerStatus::InZone;
     ++net::g_gameClient->player.Get()->version;
 }
 
 void GameFlow::RequestBriefing(std::string_view briefing) {
     net::ClientSession* client = net::g_gameClient;
-    if (IsLive(client)) client->SendCommand(kCommandBriefing, briefing);
+    if (IsLive(client)) client->SendCommand(net::CommandKind::Zone, briefing);
 }
 
 void GameFlow::RecreateClientSession() {
@@ -703,7 +701,7 @@ void WorldServer::LoadZoneScripts(std::string_view mob) {
 void GameFlow::SwitchMultiplayerZone() {
     if (zoneSwitchStarted) {
         // A switch is pending: ask for the start zone again.
-        RequestKind(1);
+        ReportStatus(net::PlayerStatus::InBase);
         bool host = IsLive(net::g_gameServer);
         {
             g_interface.closeAll = 1;
@@ -741,7 +739,7 @@ void GameFlow::SwitchMultiplayerZone() {
         records.Assign(GlobalParty());
     }
     records.zone = multiplayerZone;
-    RequestKind(3);
+    ReportStatus(net::PlayerStatus::Connecting);
     if (IsLive(net::g_gameServer)) {
         state = 6;
         requestTarget = multiplayerZone;
@@ -1192,7 +1190,7 @@ void GameFlow::AfterServerStart() {
         net::g_gameClient->player.Get()->text.assign(kDefaultHeroName);
         net::g_gameClient->player.Get()->name.assign(kDefaultPartyName);
     }
-    net::g_gameClient->player.Get()->state = 1;
+    net::g_gameClient->player.Get()->state = net::PlayerStatus::InBase;
 }
 
 void GameFlow::UpdateFromServer() {

@@ -51,11 +51,11 @@ constexpr const char* kNewGameText = "??";    // the new game entry's name and d
 constexpr const char* kDefaultGameName = "?";
 constexpr const char* kEmptyText = "";
 constexpr const char* kAddressBookFile = "config\\addrbook.ini";
-const char* RefusalKey(int refusal) {
+const char* RefusalKey(net::RefusalReason refusal) {
     switch (refusal) {
-    case 1: return "lmp_server_full";
-    case 2: return "lmp_you_are_banned";
-    case 3: return "lmp_wrong_password";
+    case net::RefusalReason::Full: return "lmp_server_full";
+    case net::RefusalReason::Banned: return "lmp_you_are_banned";
+    case net::RefusalReason::WrongPassword: return "lmp_wrong_password";
     default: return "lmp_cannot_connect";
     }
 }

@@ -96,7 +96,7 @@ void GameSetUnitHeight(int id, float z) {
     if (unit->localPosition.z == z) return;
     Vector3 target = {unit->localPosition.x, unit->localPosition.y, z};
     world->aiMap.sectorMap.Move(unit, target);
-    unit->MarkChanged(2);
+    unit->MarkChanged(NetField::Placement);
 }
 
 void GameSetServerPaused(int paused) { g_serverWorld.SetServerPaused(static_cast<std::uint8_t>(paused)); }

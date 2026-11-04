@@ -245,11 +245,11 @@ void HudPortraits::LeftDown(Point point) {
     }
     char text[128];
     std::snprintf(text, sizeof(text), "%d", playerId);
-    // ClientSession::SendCommand: the server commands 4 and 5.
+    // ClientSession::SendCommand: kick / ban by serial.
     if (mode == 1)
-        net::g_gameClient->SendCommand(4, text);
+        net::g_gameClient->SendCommand(net::CommandKind::KickBySerial, text);
     else if (mode == 2)
-        net::g_gameClient->SendCommand(5, text);
+        net::g_gameClient->SendCommand(net::CommandKind::BanBySerial, text);
     owner->portraitMode = 0;
 }
 

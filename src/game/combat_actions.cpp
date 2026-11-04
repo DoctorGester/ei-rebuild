@@ -181,8 +181,8 @@ void UnitServer::UseItemCharge(Item* item, float cost) {
 bool UnitServer::Heal(float amount) {
     stats.Heal(ServerStatsOf(unit), amount);
     stats.Recompute(ServerStatsOf(unit), unit);
-    unit->MarkChanged(0);
-    unit->MarkChanged(4);
+    unit->MarkChanged(NetField::Vitals);
+    unit->MarkChanged(NetField::Stats);
     console::EndLine(kCombatLog << "Unit " << static_cast<long>(unit->id) << " was healed");
     return true;
 }
@@ -401,5 +401,5 @@ void UnitServer::SetDead(int dead) {
         world->RemoveTimedObject(effectObject->id);
         effectObject.Reset();
     }
-    unit->MarkChanged(7);
+    unit->MarkChanged(NetField::Motion);
 }

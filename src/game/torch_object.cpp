@@ -24,7 +24,6 @@
 
 namespace {
 const char* const kTorchClassName = "CTorchObject";
-constexpr int kTorchField = 4;
 } // namespace
 
 TorchObject::TorchObject() { spec = nullptr; }
@@ -68,7 +67,7 @@ void TorchObject::AttachTorchObject(EngineObject* object) {
 
 void TorchObject::WriteTorchNetState() {
     MapObject::WriteNetState();
-    DeltaField* field = netState.BeginField(kTorchField);
+    DeltaField* field = netState.BeginField(NetField::TorchLight);
     if (!field) return;
     std::uint32_t value = spec->lightKind;
     field->WriteDelta(&value, 4);
@@ -82,7 +81,7 @@ void TorchObject::WriteTorchNetState() {
 
 std::uint32_t TorchObject::ReadTorchNetState(int first) {
     std::uint32_t complete = MapObject::ReadNetState(first);
-    DeltaField* field = netState.BeginField(kTorchField);
+    DeltaField* field = netState.BeginField(NetField::TorchLight);
     if (!field) return complete;
     spec->ReadNetState(field);
     std::uint32_t readTo = delta::g_readSnapshot->Position();

@@ -44,6 +44,56 @@ class PlayerMessage;
 class VariableMessage;
 class ZoneMessage;
 
+// The first byte of a session datagram; each kind goes to its handler slot of the session (SessionBase::OnUpdate
+// ...) with the sender and a cursor after that byte. The numbers are the wire format; 2 is unused.
+enum class PacketKind : std::uint8_t {
+    Master = 0xFF,      // -1: the master server's answer
+    Update = 0,         // a connection's update
+    Leave = 1,          // a client leaves: its connection id follows
+    GetInfo = 3,        // a ping: the sender's time follows
+    Login = 4,          // a join request
+    Info = 5,           // a server's description
+    Accepted = 6,       // the join id follows
+    Rejected = 7,       // the join id and a RefusalReason follow
+};
+
+// Why a server refuses a join (the byte after the join id of a Rejected packet; ClientBase::refusal).
+enum class RefusalReason : std::uint8_t {
+    None = 0,           // no refusal received
+    Full = 1,
+    Banned = 2,
+    WrongPassword = 3,
+};
+
+// The kind of an award message (AwardMessage::kind; ClientSession::ApplyAwards).
+enum class AwardKind : std::uint32_t {
+    Experience = 0,
+    Gold = 1,
+    Item = 2,           // the item named by the text
+    RemoveItem = 3,
+    QuestReset = 4,     // the party's quest items removed
+};
+
+// The kind of a command for the server (CommandMessage::kind; ServerOnCommand).
+enum class CommandKind : std::uint32_t {
+    PreviewMap = 0,     // the host shows a map
+    Zone = 1,           // the host picks a queued map message: "<zone>_1" / "_2" / "_3"
+    KickByName = 2,
+    BanByName = 3,
+    KickBySerial = 4,
+    BanBySerial = 5,
+};
+
+// Where a multiplayer client's player is, kept as the state of its login record (LoginMessage::state; the server's
+// PlayerMessage::state copies it; the chat window shows it as the player's status text).
+enum class PlayerStatus : std::uint32_t {
+    InZone = 0,
+    InBase = 1,
+    InCamp = 2,
+    Connecting = 3,     // the client's party goes to the server; InZone again once answered
+    Fresh = 4,          // a new record (shown as connecting too)
+};
+
 // A new counted object of the network code: no references and no flags, or null without memory.
 template <typename T, typename... Args>
 T* NewCounted(const Args&... args) {
@@ -179,7 +229,8 @@ public:
     void Read(BufferCursor* cursor) override;
 
     std::string name;
-    std::uint32_t kind;           // the game kind (4: none)
+    static constexpr std::uint32_t kNoKind = 4;
+    std::uint32_t kind;           // the game kind (kNoKind: none)
     std::string description;         // the current map's title
     std::uint8_t players;
     std::uint8_t maxPlayers;
@@ -297,8 +348,7 @@ inline void PushReplicated(std::vector<Replicated>* v, Message* object, std::uin
     v->push_back({object, priority});
 }
 
-// Packets (the datagram's first byte): -1 master, 0 update, 1 leave, 3 get info (ping), 4 login, 5 info, 6
-// accepted, 7 rejected; each goes to its handler slot with the sender and a cursor after that byte.
+// The datagrams of a session by PacketKind.
 class SessionBase : public RefCounted {
 public:
     void RegisterTradeHandler(int channel, MessageHandler handler);
@@ -315,14 +365,14 @@ public:
     SessionBase();
     ~SessionBase() override;
     virtual void RemoveClient(std::list<SharedRef<Connection>>::iterator node);                     // end() is ignored
-    virtual bool OnUpdate(const NetAddress* from, BufferCursor* cursor);      // kind 0
-    virtual void OnGetInfo(const NetAddress* from, BufferCursor* cursor);     // kind 3 (logs an error)
-    virtual void OnLogin(const NetAddress* from, BufferCursor* cursor);       // kind 4 (logs an error)
-    virtual void OnLeave(const NetAddress* from, BufferCursor* cursor);       // kind 1
-    virtual void OnInfo(const NetAddress* from, BufferCursor* cursor);        // kind 5 (logs an error)
-    virtual void OnAccepted(const NetAddress* from, BufferCursor* cursor);    // kind 6 (logs an error)
-    virtual void OnRejected(const NetAddress* from, BufferCursor* cursor);    // kind 7 (logs an error)
-    virtual void OnMaster(const NetAddress* from, BufferCursor* cursor);      // kind -1 (logs an error)
+    virtual bool OnUpdate(const NetAddress* from, BufferCursor* cursor);      // PacketKind::Update
+    virtual void OnGetInfo(const NetAddress* from, BufferCursor* cursor);     // PacketKind::GetInfo (logs an error)
+    virtual void OnLogin(const NetAddress* from, BufferCursor* cursor);       // PacketKind::Login (logs an error)
+    virtual void OnLeave(const NetAddress* from, BufferCursor* cursor);       // PacketKind::Leave
+    virtual void OnInfo(const NetAddress* from, BufferCursor* cursor);        // PacketKind::Info (logs an error)
+    virtual void OnAccepted(const NetAddress* from, BufferCursor* cursor);    // PacketKind::Accepted (logs an error)
+    virtual void OnRejected(const NetAddress* from, BufferCursor* cursor);    // PacketKind::Rejected (logs an error)
+    virtual void OnMaster(const NetAddress* from, BufferCursor* cursor);      // PacketKind::Master (logs an error)
     virtual void OnClientLost(Connection*) {}                                 // timed out or a bad update
     virtual void OnClientLeft(Connection*) {}                                 // sent a leave packet
     // Appends what the connection being updated (CurrentConnection) should have to **out.
@@ -352,7 +402,7 @@ public:
     bool Send(const NetAddress* address, GameBuffer* buffer);
     // The send rate for a peer: g_localRate on the local network, else g_remoteRate.
     std::uint32_t RateFor(const NetAddress* address);
-    // Sends a leave packet (kind 1, then the connection id) to `address`.
+    // Sends a leave packet (PacketKind::Leave, then the connection id) to `address`.
     void SendLeave(const NetAddress* address, std::uint32_t id);
     std::uint32_t ClientCount() const;
 
@@ -398,8 +448,8 @@ public:
     void Tick(double dt) override;
     virtual void Describe(Ref<ServerEntry>* out) = 0;   // this server's entry into *out
     // Whether a client from `from` may join: `*password` (the login cursor's next byte,
-    // moved past the password when one is checked) and `*reason` (1 full, 2 banned, 3 bad password).
-    virtual bool Admit(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason) = 0;
+    // moved past the password when one is checked) and `*reason`.
+    virtual bool Admit(const NetAddress* from, std::uint8_t** password, RefusalReason* reason) = 0;
 
     // Answers a ping from `address` with this server's description (5, the echoed time,
     // the magic and the entry).
@@ -419,7 +469,7 @@ public:
     void CollectReplicated(std::vector<Replicated>** out) override;
     void Tick(double dt) override;
     void Describe(Ref<ServerEntry>* out) override;
-    bool Admit(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason) override;
+    bool Admit(const NetAddress* from, std::uint8_t** password, RefusalReason* reason) override;
 
     // Switches the server to map `name`.
     void SetMap(const std::string* name);
@@ -444,7 +494,7 @@ public:
     // Queues the host's item awards of the briefing `entry` (and, with `withFinal`, the final award).
     void AwardHost(const QuestBriefingRecord* entry, bool withFinal);
     // Queues an award message for `connection` (60 s delay); destroys `text`.
-    void QueueAward(RefObject* connection, int kind, float value, std::string text);
+    void QueueAward(RefObject* connection, AwardKind awardKind, float value, std::string text);
     // Lists `data` under `name` (unless listed) as a file message with 64-byte chunk messages.
     void ShareFile(const std::string* name, GameBuffer* data);
     // Whether the server is announced to the master server (port 28004).
@@ -469,8 +519,8 @@ public:
     void Ban(Connection* connection);
     void ReportDeparture(Connection* connection, int text);
     bool IsHostConnection(const Connection* connection);
-    // Whether the player bound to `connection` is in state 3.
-    bool PlayerStateIs3(const Connection* connection);
+    // Whether the player bound to `connection` is Connecting.
+    bool IsConnecting(const Connection* connection);
 
     float announceTimer;                // seconds to the next announcement to the master server
     std::uint8_t announced;             // announced to the master server
@@ -522,9 +572,9 @@ public:
     virtual void OnJoined() = 0;
     virtual void CreateEntry(Ref<ServerEntry>* out) = 0;   // a new server entry into *out
 
-    // A ping (3, the session time) to `address`.
+    // A ping (PacketKind::GetInfo, the session time) to `address`.
     void SendPing(const NetAddress* address);
-    // A join request (4, magic, join id, the send rate for the host, then `data`).
+    // A join request (PacketKind::Login, magic, join id, the send rate for the host, then `data`).
     void SendJoin(const NetAddress* address, GameBuffer* data);
     // Pings every broadcast address, then the first waiting address, or else the next
     // query in turn (and the always-asked address is queued again when set).
@@ -548,7 +598,7 @@ public:
     GrowingBuffer joinData;             // sent with every join request
     std::uint32_t joinId;               // rand() << 16 | tick count
     std::uint32_t joinState;
-    std::uint8_t refusal;               // the reason the host gave
+    RefusalReason refusal;              // the reason the host gave
     float retryTimer;                   // seconds to the next join request
     float retryInterval;                // doubles with every request (0.1 first)
     std::vector<SharedRef<ServerEntry>> servers;
@@ -598,7 +648,7 @@ public:
     // Keeps `object` on the timers list for `seconds`.
     void AddTimed(Message* object, std::uint32_t seconds);
     // A command message ({kind, text}) for the server, kept 60 s.
-    void SendCommand(int kind, std::string_view text);
+    void SendCommand(CommandKind kind, std::string_view text);
 
     std::vector<HeldRef<PlayerMessage>> players;
     std::vector<HeldRef<LineMessage>> lines;

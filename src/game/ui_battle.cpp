@@ -531,7 +531,7 @@ void RebuildClientParty(BattleScreen* screen) {
         net::PlayerMessage* player = node.Get();
         const int unitId = player->id;
         const int playerId = player->serial;
-        if (player->state == 0 && unitId >= 0) {
+        if (player->state == net::PlayerStatus::InZone && unitId >= 0) {
             if (!g_clientWorld.FindUnit(unitId)) {
                 ids.without.push_back(playerId);
                 continue;

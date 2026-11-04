@@ -351,8 +351,8 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         torch->SetFlameSlot(&flame->offset.x, radius, colour);
         torch->SetNameSlot(flame->sound.c_str());
         place(object);
-        object->MarkChanged(2);
-        object->MarkChanged(4);
+        object->MarkChanged(NetField::Placement);
+        object->MarkChanged(NetField::Stats);
         if (spec->visible == 0) object->flags |= MapObjectFlag::Hidden;
         newObjectManager->GiveDefaults(object);
         if (Unit* unit = UnitOrNull(object)) unit->ServerController()->ResyncWithUnit();
@@ -371,7 +371,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         spec->object = object;
         object->AddRef();
         object->WriteFullState();
-        object->MarkChanged(2);
+        object->MarkChanged(NetField::Placement);
         object->flags |= MapObjectFlag::Hidden;
         FileMapObject(object, true, false);
         object->SetUp(&trap->trap);
@@ -428,20 +428,20 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
             const unsigned index = prototype ? static_cast<unsigned>(prototype->modelIndex) : 0;
             auto* model = unitdb::ModelRecord(index);
             std::copy_n(model->actionSpeeds, 6, unit->actionSpeeds);
-            object->MarkChanged(5);
-            object->MarkChanged(6);
-            object->MarkChanged(0xB);
+            object->MarkChanged(NetField::Equipment);
+            object->MarkChanged(NetField::Modes);
+            object->MarkChanged(NetField::Relations);
         } else if (baseKind == SpecKind::Lever) {
             lever->SetUp(&static_cast<mapspec::LeverSpec*>(message)->lever);
-            object->MarkChanged(5);
+            object->MarkChanged(NetField::LeverState);
         } else {
             newObjectManager->GiveDefaults(object);
         }
         place(object);
-        object->MarkChanged(2);
-        object->MarkChanged(6);
-        object->MarkChanged(7);
-        object->MarkChanged(8);
+        object->MarkChanged(NetField::Placement);
+        object->MarkChanged(NetField::Modes);
+        object->MarkChanged(NetField::Motion);
+        object->MarkChanged(NetField::Animation);
         if (spec->visible == 0) object->flags |= MapObjectFlag::Hidden;
         object->SetUpAnimatedFigure(spec->texture);
         object->UpdateSizeClasses();

@@ -12,8 +12,6 @@
 #include <cstdint>
 
 namespace {
-constexpr int kPartRelations = 11;                          // MarkChanged parts
-constexpr int kPartPath = 10;
 
 template <typename Item>
 void ReleaseSlots(Item** slots, int count) {
@@ -28,7 +26,7 @@ void Unit::SetHostileMask(std::uint32_t mask) {
     relationsA = mask;
     controller->HostileMaskChanged();
     flags |= MapObjectFlag::RelationsChanged;
-    MarkChanged(kPartRelations);
+    MarkChanged(NetField::Relations);
 }
 
 void Unit::RefreshMotion() {
@@ -41,7 +39,7 @@ void Unit::RefreshMotion() {
     unitMotion->speedScale = speed;
     unitMotion->baseTurnRate = turnRate;
     unitMotion->Build(path);
-    MarkChanged(kPartPath);
+    MarkChanged(NetField::Path);
 }
 
 void Unit::SetPlayer(Player* newPlayer) {
@@ -50,7 +48,7 @@ void Unit::SetPlayer(Player* newPlayer) {
     player = newPlayer;
     if (old) old->RemoveUnit(this);
     if (player) player->AddUnit(this);
-    MarkChanged(kPartRelations);
+    MarkChanged(NetField::Relations);
     if (controller) controller->PlayerChanged(newPlayer);
 }
 

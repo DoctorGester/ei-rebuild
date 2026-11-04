@@ -44,7 +44,7 @@ bool MapObjectServer::RunTick() {
             owner->effects.erase(owner->effects.begin() + i);
             bool scaleEffect = IsScaleEffect(spellType);
             if (scaleEffect) owner->RecomputeScale();
-            owner->MarkChanged(3);
+            owner->MarkChanged(NetField::Effects);
             owner->ScaleEffectChanged(scaleEffect);
             --i;
             owner->EffectsChanged();
@@ -59,7 +59,7 @@ bool MapObjectServer::RunTick() {
 
 void MapObjectServer::SetData(const UnitVitals* data) {
     lib::LoadBytes(vitals, data);
-    owner->MarkChanged(0);
+    owner->MarkChanged(NetField::Vitals);
 }
 
 bool MapObjectClientSpecific::RunTick() {

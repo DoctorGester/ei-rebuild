@@ -194,7 +194,7 @@ void WorldServer::LoadSavedMapObjects(ByteStream* stream) {
         if (!object) continue;   // (the object was already used above)
 
         object->AddRef();
-        object->MarkChanged(-1);
+        object->MarkChanged(NetField::None);
         if (object->MapType() != MapObjectType::MagicTrap) {
             object->SetUpAnimatedFigure(object->name);
             aiMap.sectorMap.Add(object);
@@ -218,7 +218,7 @@ void WorldServer::LoadSavedMapObjects(ByteStream* stream) {
         // `changed & bit`).
         int parts = static_cast<int>(std::ssize(object->netState.fields));
         for (int i = 0; i < parts; ++i)
-            if (changed != 0 && (1u << (i & 31)) != 0) object->MarkChanged(i);
+            if (changed != 0 && (1u << (i & 31)) != 0) object->MarkChanged(static_cast<NetField>(i));
 
         Unit* unit = UnitOrNull(object);
         if (unit && !unit->ServerController()->brain.alwaysUpdated)

@@ -188,9 +188,9 @@ public:
     // Units keep `name` as their script name; empty here.
     virtual void SetScriptName(std::string_view name);
 
-    // Records that part `part` (0..15; negative: none) of the object changed, marks it dirty (flags bit 1) and
+    // Records that field `part` of the object changed (NetField::None: none), marks it dirty (flags bit 1) and
     // stamps it with the world's change counter.
-    void MarkChanged(int part);
+    void MarkChanged(NetField part);
     // Has the object an active effect of type `type` (compared with MapEffect::type)?
     bool HasEffect(SpellType type);
 

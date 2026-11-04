@@ -157,7 +157,7 @@ void ServerSession::Describe(Ref<ServerEntry>* out) {
 // When announced, the master's address is set from the host name and port 28004.
 void ServerSession::SetPublic(bool announce) {
     announced = announce;
-    if (announce) masterAddress.Parse(options::g_options.masterServerName.c_str(), 0x6D64);
+    if (announce) masterAddress.Parse(options::g_options.masterServerName.c_str(), 28004);
 }
 
 } // namespace net
@@ -244,7 +244,7 @@ void ServerSession::AnnounceToMaster() {
 
 }
 
-// A packet of kind -1: only from the master server's address (all 16 bytes compared; from any address with
+// A PacketKind::Master packet: only from the master server's address (all 16 bytes compared; from any address with
 // EI_Plugin's NewMaster, which NOPs a jump so the answer of its second master server counts). Its first dword
 // must be the session's +0x25FC; the second is then kept (the next announcement sends it back). The first
 // dword is consumed either way.
@@ -328,9 +328,9 @@ void ServerSession::Tick(double dt) {
     }
 }
 
-// Whether the player bound to `connection` (its first binding) is in state 3.
+// Whether the player bound to `connection` (its first binding) is Connecting.
 // False for a dead connection, binding or player.
-bool ServerSession::PlayerStateIs3(const Connection* connection) {
+bool ServerSession::IsConnecting(const Connection* connection) {
     if (!IsLive(connection)) return false;
     for (auto& node : bindings) {
         auto* binding = node.Get();
@@ -338,7 +338,7 @@ bool ServerSession::PlayerStateIs3(const Connection* connection) {
         if (!IsLive(binding)) return false;
         auto* player = binding->player.Get();
         if (!IsLive(player)) return false;
-        return player->state == 3;
+        return player->state == PlayerStatus::Connecting;
     }
     return false;
 }

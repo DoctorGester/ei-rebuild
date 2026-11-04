@@ -407,7 +407,7 @@ ServerEntryBase::~ServerEntryBase() {}
 
 ServerEntry::ServerEntry() {
     AssignEmptyText(name);
-    kind = 4;
+    kind = kNoKind;
     AssignEmptyText(description);
     players = 0;
     maxPlayers = 0;

@@ -119,7 +119,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
         map->MoveInSectors(object, point);
         if (Unit* unit = UnitOrNull(object)) unit->ServerController()->ResyncWithUnit();
         map->SetRefreshUnits(1);
-        object->MarkChanged(2);
+        object->MarkChanged(NetField::Placement);
         return;
     }
     float oldZ = Position(object)->z;
@@ -127,7 +127,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     map->MoveInSectors(object, point);
     if (Unit* unit = UnitOrNull(object)) {
         unit->ServerController()->ResyncWithUnit();
-        if (oldZ != Position(object)->z) object->MarkChanged(2);
+        if (oldZ != Position(object)->z) object->MarkChanged(NetField::Placement);
         return;
     }
     // Other objects: the units around the new place are taken off the sector map, moved off cells
@@ -145,7 +145,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
         }
         map->AddToSectors(unit);
     }
-    object->MarkChanged(2);
+    object->MarkChanged(NetField::Placement);
 }
 
 void GiveSkill(const SSCCmd* cmd) {

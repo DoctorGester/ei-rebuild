@@ -46,11 +46,11 @@ int ServerSession::LeaderId() {
     return -1;
 }
 
-// Whether a client from `from` may join. Refused when the address is banned (reason 2), when a password is
-// set and the 20 bytes at `*password` differ (reason 3; the pointer moves past them either way), or when the
-// clients and the pending joins reach the maximum (reason 1).
-bool ServerSession::Admit(const NetAddress* from, std::uint8_t** passwordOut, std::uint8_t* reason) {
-    *reason = 2;
+// Whether a client from `from` may join. Refused when the address is banned (Banned), when a password is
+// set and the 20 bytes at `*password` differ (WrongPassword; the pointer moves past them either way), or when the
+// clients and the pending joins reach the maximum (Full).
+bool ServerSession::Admit(const NetAddress* from, std::uint8_t** passwordOut, RefusalReason* reason) {
+    *reason = RefusalReason::Banned;
     // find_if over the banned addresses: the host compared, not the port.
     auto newBanned = banned.begin();
     while (newBanned != banned.end() && newBanned->ip != from->ip) ++newBanned;
@@ -58,13 +58,13 @@ bool ServerSession::Admit(const NetAddress* from, std::uint8_t** passwordOut, st
 
     const char* stored = password;
     if (stored[0]) {
-        *reason = 3;
+        *reason = RefusalReason::WrongPassword;
         std::uint8_t given[kPasswordSize] = {};
         std::memcpy(given, *passwordOut, kPasswordSize);
         *passwordOut += kPasswordSize;
         if (std::memcmp(given, stored, kPasswordSize) != 0) return false;
     }
-    *reason = 1;
+    *reason = RefusalReason::Full;
     std::uint32_t clientCount = ClientCount();
     const auto pending = static_cast<std::uint32_t>(joins.size());
     return pending + clientCount < maxPlayers;

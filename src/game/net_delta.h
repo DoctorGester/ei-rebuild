@@ -42,6 +42,29 @@ std::uint16_t PackFloat16(std::uint32_t floatBits);
 std::uint32_t UnpackFloat16(std::uint16_t packed);
 } // namespace delta
 
+// The numbered fields of a map object's DeltaState (MapObject::MarkChanged, DeltaState::BeginField): the
+// object's own, then the unit's. The numbers are the wire format. A lever and a torch have fields of their own
+// at the same numbers.
+enum class NetField : int {
+    None = -1,          // MarkChanged: no field, only the object's changed flag
+    Vitals = 0,         // the packed hit points and statistics
+    Scale = 1,
+    Placement = 2,      // the hidden flag, position and rotation
+    Effects = 3,
+    Stats = 4,          // a unit's parameters
+    Equipment = 5,      // a unit's equipment ids
+    Modes = 6,          // the movement modes and the active weapon
+    Motion = 7,         // obstacle, dead, path time shift and motion mode bits
+    Animation = 8,
+    ScriptName = 9,
+    Path = 10,
+    Relations = 11,     // the hostility mask, side and player
+    Exposure = 12,
+    FightAtWill = 13,
+    TorchLight = 4,     // a torch's field
+    LeverState = 5,     // a lever's field
+};
+
 // One numbered field of a DeltaState.
 struct DeltaField {
     MemoryStream snapshot[2];   // per channel, the bytes last sent
@@ -124,7 +147,7 @@ struct DeltaState {
     // recordarrays::DeltaFields).
     void SetFieldCount(int count);
     // Prepares field `index` for the current mode; null when it is not in mask.
-    DeltaField* BeginField(int index);
+    DeltaField* BeginField(NetField index);
     // Writing: 0 writes every field (mask = 0xFFFF), anything else only the dirty ones.
     void SetWriteMode(int deltaOnly);
     // Reading: takes the field mask from `reader`; returns `second`.

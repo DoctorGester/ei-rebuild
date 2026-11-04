@@ -154,10 +154,10 @@ void ClientSession::AddTimed(Message* object, std::uint32_t seconds) {
 }
 
 // Sends the server a command message, kept 60 seconds on the timers list.
-void ClientSession::SendCommand(int kind, std::string_view text) {
+void ClientSession::SendCommand(CommandKind kind, std::string_view text) {
     ClientSession* self = this;
     auto* command = NewCounted<CommandMessage>();
-    command->kind = static_cast<std::uint32_t>(kind);
+    command->kind = kind;
     // The assign of a C string: copied over the current characters, the rest cut (the
     // terminator moved down) or appended.
     command->text.assign(text);
@@ -167,7 +167,7 @@ void ClientSession::SendCommand(int kind, std::string_view text) {
     self->timers.push_back(entry);
 }
 
-// Makes `*out` an empty server entry (no name or description, kind 4, no players).
+// Makes `*out` an empty server entry (no name or description, no kind, no players).
 void ClientSession::CreateEntry(Ref<ServerEntry>* out) { ShareAssignOwned(*out, NewCounted<ServerEntry>()); }
 
 // The game flow begins the multiplayer game.

@@ -26,8 +26,6 @@ constexpr float kSlowModeScale = 0.7f;
 constexpr float kIdleScale = 0.2f;
 constexpr float kOverkill = -5.0f;
 
-constexpr int kPartRelations = 11;
-constexpr int kPartEquipment = 5;
 
 float ItemWeight(const Item* item) { return item->Weight(); }
 
@@ -49,7 +47,7 @@ int AddToSlots(Unit* unit, Item** slots, std::uint32_t count, Item* item) {
         if (!slots[i]) {
             slots[i] = item;
             item->AddRef();
-            unit->MarkChanged(kPartEquipment);
+            unit->MarkChanged(NetField::Equipment);
             return static_cast<int>(i);
         }
     }
@@ -61,7 +59,7 @@ void RemoveFromSlots(Unit* unit, Item** slots, std::uint32_t slot) {
     Item* item = slots[slot];
     slots[slot] = nullptr;
     if (item) item->Release();
-    unit->MarkChanged(kPartEquipment);
+    unit->MarkChanged(NetField::Equipment);
 }
 
 // Speed byte of movement mode `mode` (0..4) times the base speed; the base speed for others.
@@ -88,18 +86,18 @@ void Unit::AddHostileMask(std::uint32_t mask) {
     if (relationsA == merged) return;
     relationsA = merged;
     flags |= MapObjectFlag::RelationsChanged;
-    MarkChanged(kPartRelations);
+    MarkChanged(NetField::Relations);
 }
 
 void Unit::SetRelationsB(std::uint32_t mask) {
     relationsB = mask;
-    MarkChanged(kPartRelations);
+    MarkChanged(NetField::Relations);
 }
 
 void Unit::SetSide(int value) {
     side = value;
     flags |= MapObjectFlag::RelationsChanged;
-    if (controller) MarkChanged(kPartRelations);
+    if (controller) MarkChanged(NetField::Relations);
 }
 
 bool Unit::IsHostileTo(const Unit* other) {
@@ -110,7 +108,7 @@ bool Unit::IsHostileTo(const Unit* other) {
 
 void Unit::SetFightAtWill(int value) {
     fightAtWill = value;
-    MarkChanged(13);
+    MarkChanged(NetField::FightAtWill);
 }
 
 void Unit::SetAnimationEntries(std::int8_t entry, std::int8_t second, int start, std::int8_t sound) {
@@ -118,25 +116,25 @@ void Unit::SetAnimationEntries(std::int8_t entry, std::int8_t second, int start,
     secondEntry = second;
     actionSound = sound;
     animationStart = start;
-    MarkChanged(8);
+    MarkChanged(NetField::Animation);
 }
 
 void Unit::SetMotionMode(int value) {
     if (motionMode == value) return;
     motionMode = value;
-    MarkChanged(7);
+    MarkChanged(NetField::Motion);
 }
 
 void Unit::SetPathTimeShift(int value) {
     if (pathTimeShift == value) return;
     pathTimeShift = value;
-    MarkChanged(7);
+    MarkChanged(NetField::Motion);
 }
 
 void Unit::SetMoveModes(int mode, int mode2) {
     moveMode = mode;
     moveMode2 = mode2;
-    MarkChanged(6);
+    MarkChanged(NetField::Modes);
 }
 
 void Unit::ShowHelmet(bool show) {
@@ -145,7 +143,7 @@ void Unit::ShowHelmet(bool show) {
     } else {
         flags |= MapObjectFlag::HelmetHidden;
     }
-    MarkChanged(5);
+    MarkChanged(NetField::Equipment);
 }
 
 std::uint32_t Unit::SetStunned(int on) {

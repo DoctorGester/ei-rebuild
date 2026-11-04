@@ -62,7 +62,7 @@ void Lever::SetState(int wanted, float duration) {
     }
     scale.y = travel;   // the shown position
     SetUpAnimatedFigure(name);
-    MarkChanged(5);
+    MarkChanged(NetField::LeverState);
     sectors->Add(this);
     map->EndRefresh();
     map->refreshUnits = true;

@@ -59,7 +59,7 @@ void SetStandingFlag(UnitServer* self, int standing) {
     sectors->Remove(unit);
     self->unit->obstacle = static_cast<std::uint32_t>(standing);
     sectors->Add(self->unit);
-    self->unit->MarkChanged(7);
+    self->unit->MarkChanged(NetField::Motion);
 }
 
 // A UnitAction emptied as the original inlines it: kind 9, the target released, flags cleared.
@@ -117,8 +117,8 @@ bool UnitServer::RunTick() {
     if (self->dead == 0) {
         if (ServerStatsOf(self)->Regenerate(&stats, self, action.kind != UnitOrderKind::Idle ? 1 : 0)) {
             stats.Recompute(ServerStatsOf(unit), unit);
-            unit->MarkChanged(0);
-            unit->MarkChanged(4);
+            unit->MarkChanged(NetField::Vitals);
+            unit->MarkChanged(NetField::Stats);
         }
         // Every (speedClass + 1) updates the unit's step noise (it returns 0: no record).
         if ((static_cast<std::uint32_t>(g_serverWorld.tick) & static_cast<std::uint32_t>(speedClass)) == 0) {
@@ -133,7 +133,7 @@ bool UnitServer::RunTick() {
         if (unit->player != nullptr) {
             // A party unit: its perception memory, and now and then a bored remark.
             unit->exposure = brain.memory.MeasureExposure(this);
-            unit->MarkChanged(0xC);
+            unit->MarkChanged(NetField::Exposure);
             int& bored = boredTicks;
             ++bored;
             if (bored > kBoredTicks && BoredRemarkDue(g_serverWorld.tick, static_cast<std::uint32_t>(unit->id))) {
@@ -173,7 +173,7 @@ bool UnitServer::RunTick() {
         self->localPosition.z -= sinking;
         float z = unit->localPosition.z;
         unit->localPosition.z = MaxKeepB(0.0f, z);    // a NaN z is kept
-        unit->MarkChanged(2);
+        unit->MarkChanged(NetField::Placement);
     }
     std::uint8_t& reported = deathReported;
     if (reported == 0 && queue.steps.empty()) {

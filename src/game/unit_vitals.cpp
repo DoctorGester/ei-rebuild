@@ -457,9 +457,9 @@ void UnitStats::RaiseStrength(int amount, Unit* unit) {
     vitals->hitPoints = Reduce(vitals->maxHitPoints);
     unit->baseScale.x += kPointTwo;
     unit->scale.x += kPointTwo;
-    unit->MarkChanged(1);
+    unit->MarkChanged(NetField::Scale);
     Recompute(vitals, unit);
-    unit->MarkChanged(4);
+    unit->MarkChanged(NetField::Stats);
 }
 
 void UnitStats::RaiseDexterity(int amount, Unit* unit) {
@@ -484,9 +484,9 @@ void UnitStats::RaiseDexterity(int amount, Unit* unit) {
     lowered = unit->scale.y - kPointTwo;
     l = lowered;
     unit->scale.y = SelectLess(0.0f, l, l, 0.0f);
-    unit->MarkChanged(1);
+    unit->MarkChanged(NetField::Scale);
     Recompute(vitals, unit);
-    unit->MarkChanged(4);
+    unit->MarkChanged(NetField::Stats);
 }
 
 void UnitStats::RaiseIntelligence(int amount, Unit* unit) {

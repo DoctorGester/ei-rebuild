@@ -221,7 +221,7 @@ bool GiveUnitWeapon(Call* call) {
         stats.attackCategory = static_cast<float>(weapon->category);
         stats.naturalWeapon = made->GetType();
         for (int i = 0; i < 7; ++i) stats.damageWeights[i] = weapon->damageTypes[i];
-        unit->MarkChanged(0);
+        unit->MarkChanged(NetField::Vitals);
     }
     unit->controller->RefreshModel();
     unit->controller->RefreshEquipment();
@@ -275,7 +275,7 @@ bool GiveUnitArmor(Call* call) {
             value = prototype->protectionScale + sum;
             protection[c].current = value;
         }
-        unit->MarkChanged(0);
+        unit->MarkChanged(NetField::Vitals);
     }
     unit->controller->RefreshEquipment();
     return true;

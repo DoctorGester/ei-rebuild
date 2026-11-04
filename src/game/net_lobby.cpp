@@ -92,10 +92,10 @@ void AppendServer(ClientBase* self, Ref<ServerEntry>& entry) {
     self->servers.emplace_back(raw);
 }
 
-// "Accepted" (packet 6) with the join's id, to `to`.
+// PacketKind::Accepted with the join's id, to `to`.
 void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
     GrowingBuffer b;
-    std::uint8_t kind = 6;
+    std::uint8_t kind = static_cast<std::uint8_t>(PacketKind::Accepted);
     b.BufferWrite(&kind, 1);
     b.BufferWrite(&id, 4);
     self->Send(to, &b);
@@ -128,7 +128,7 @@ Query::~Query() {}
 
 void ClientBase::SendPing(const NetAddress* address) {
     GrowingBuffer b;
-    std::uint8_t kind = 3;
+    std::uint8_t kind = static_cast<std::uint8_t>(PacketKind::GetInfo);
     Put(&b, &kind, 1);
     float seconds = static_cast<float>(time);
     Put(&b, &seconds, 4);
@@ -138,7 +138,7 @@ void ClientBase::SendPing(const NetAddress* address) {
 void ClientBase::SendJoin(const NetAddress* address, GameBuffer* data) {
     std::uint32_t rate = RateFor(address);
     GrowingBuffer b;
-    std::uint8_t kind = 4;
+    std::uint8_t kind = static_cast<std::uint8_t>(PacketKind::Login);
     Put(&b, &kind, 1);
     Put(&b, &magic, 4);
     Put(&b, &joinId, 4);
@@ -199,7 +199,7 @@ void ClientBase::OnRejected(const NetAddress* from, BufferCursor* cursor) {
         return;
     }
     if (joinState == kAsking) {
-        refusal = *p;
+        refusal = static_cast<RefusalReason>(*p);
         ++cursor->p;
         joinState = kNotJoined;
     } else {
@@ -335,14 +335,14 @@ void ClientBase::SetQueries(const ClientQueries* from) {
     }
 }
 
-// A new query is added and pinged (3, the session time); the server is listed (an empty entry) or
+// A new query is added and pinged (the session time); the server is listed (an empty entry) or
 // marked as asked.
 void ClientBase::Ask(const NetAddress* address) {
     std::vector<Query>& v = queries.list;
     if (FindQuery(queries, address) == v.end()) {
         v.emplace_back().address = *address;
         GrowingBuffer b;
-        std::uint8_t kind = 3;
+        std::uint8_t kind = static_cast<std::uint8_t>(PacketKind::GetInfo);
         b.BufferWrite(&kind, 1);
         float seconds = static_cast<float>(time);
         b.BufferWrite(&seconds, 4);
@@ -398,7 +398,7 @@ void ClientBase::Join(const NetAddress* address, const GrowingBuffer* data) {
     joinState = kAsking;
     retryTimer = 0.0f;
     retryInterval = kFirstRetry;
-    refusal = 0;
+    refusal = RefusalReason::None;
     joinData = *data;
 }
 
@@ -456,7 +456,7 @@ void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
     SharedRef<ServerEntry> entry;
     Describe(&entry);
     if (entry.Get()) {
-        std::uint8_t kind = 5;
+        std::uint8_t kind = static_cast<std::uint8_t>(PacketKind::Info);
         if (b.cur + 1 <= b.end) {
             b.flags |= 1;
             b.BufferWriteRaw(&kind, 1);
@@ -557,7 +557,7 @@ void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
         return;
     }
 
-    std::uint8_t reason;
+    RefusalReason reason;
     if (Admit(from, &cursor->p, &reason)) {   // the password at the cursor
         LogAddressLine("Accepting client from ", from);
         PendingJoin join;
@@ -571,7 +571,7 @@ void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
     }
 
     GrowingBuffer b;
-    std::uint8_t kind = 7;
+    std::uint8_t kind = static_cast<std::uint8_t>(PacketKind::Rejected);
     b.BufferWrite(&kind, 1);
     b.BufferWrite(&id, 4);
     b.BufferWrite(&reason, 1);

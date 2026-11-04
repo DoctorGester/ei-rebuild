@@ -480,7 +480,8 @@ void DeltaState::Reset() {
     header[1].Resize(0);
 }
 
-DeltaField* DeltaState::BeginField(int index) {
+DeltaField* DeltaState::BeginField(NetField part) {
+    const int index = static_cast<int>(part);
     if (!((1u << (index & 31)) & mask)) return nullptr;
     DeltaField* field = &fields[index];
     switch (mode) {

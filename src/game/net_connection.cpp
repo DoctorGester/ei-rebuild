@@ -139,7 +139,7 @@ bool Connection::SendUpdate(int budget) {
     out->Seek(0);
     c.BeginWrite(out, budget + 0x400);
 
-    *c.p = 0;   // packet kind: update
+    *c.p = static_cast<std::uint8_t>(PacketKind::Update);
     std::uint8_t* payload = c.p + 1;
     std::uint16_t sequence = sendSequence++;
     c.p = payload;

@@ -39,7 +39,7 @@ public:
     std::string name;
     std::string text;
     std::uint8_t host = 0;          // asks to host (honoured with a local client)
-    std::uint32_t state = 4;        // the player record's state
+    PlayerStatus state = PlayerStatus::Fresh;     // where the player is
     std::int32_t id = -1;           // the player record's id
     Ref<BindingMessage> binding{};    // the server's binding for this login (not sent)
 };
@@ -86,7 +86,7 @@ public:
 
     static Message* Create();
 
-    std::uint32_t kind;
+    CommandKind kind;
     std::string text;
 };
 
@@ -160,7 +160,7 @@ public:
 
     std::string name;
     std::string text;
-    std::uint32_t state = 1;        // from the login
+    PlayerStatus state = PlayerStatus::InBase;    // from the login
     std::uint8_t host = 0;          // the hosting player
     std::int32_t id = -1;           // from the login
     std::int32_t serial = -1;       // from the server's player serial (not sent)
@@ -314,7 +314,7 @@ public:
     static Message* Create();
 
     Ref<RefObject> connection{};         // the receiver (not sent)
-    std::uint32_t kind;          // 0 experience, 1 gold, 2 item, 3 remove item, 4 quest reset
+    AwardKind kind;
     float value;
     std::string text;            // the item's name
 };
