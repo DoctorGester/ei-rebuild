@@ -9,6 +9,7 @@
 #include "game/console.h"
 #include "game/core_streams.h"
 #include "game/drawn_motion.h"
+#include "game/game_flow.h"
 #include "game/game_singletons.h"
 #include "game/figure_manager.h"
 #include "game/item.h"

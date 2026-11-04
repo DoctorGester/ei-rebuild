@@ -3,6 +3,7 @@
 // the request stream; blocks the original writes in one piece are written in one piece here too.
 #include "player_client.h"
 
+#include "game_flow.h"
 #include "item.h"
 #include "party.h"
 #include "unit.h"

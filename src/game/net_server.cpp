@@ -3,6 +3,7 @@
 #include "core_streams.h"
 
 #include "core_refcount.h"
+#include "game_flow.h"
 #include "game_strings.h"
 #include "net_classes.h"
 #include "net_coder.h"
@@ -10,7 +11,6 @@
 #include "net_messages.h"
 #include "net_second_master.h"
 #include "options.h"
-#include "world.h"
 #include "world_data.h"
 #include "lib/rebirth.h"
 #include "lib/crt.h"

@@ -8,6 +8,7 @@
 #include "core_streams.h"
 #include "lib/containers.h"
 #include "lib/text_case.h"
+#include "game_flow.h"
 #include "ui.h"
 #include "save_picture.h"
 #include "game_strings.h"

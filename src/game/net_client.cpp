@@ -2,12 +2,12 @@
 // net_classes.h and docs/notes/network.md.
 #include "core_refcount.h"
 
+#include "game_flow.h"
 #include "game_singletons.h"
 #include "net_classes.h"
 #include "net_coder.h"
 #include "net_messages.h"
 #include "party.h"
-#include "world.h"
 
 #include <cstring>
 

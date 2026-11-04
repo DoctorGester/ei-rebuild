@@ -4,6 +4,7 @@
 
 #include "console.h"
 #include "core_streams.h"
+#include "game_flow.h"
 #include "game_singletons.h"
 #include "game_strings.h"
 #include "item.h"

@@ -4,6 +4,7 @@
 #include "console.h"
 #include "core_refcount.h"
 #include "core_streams.h"
+#include "game_flow.h"
 #include "game_singletons.h"
 #include "game_strings.h"
 #include "net_classes.h"
@@ -11,7 +12,6 @@
 #include "net_connection.h"
 #include "net_link.h"
 #include "net_messages.h"
-#include "world.h"
 #include "lib/crt.h"
 #include "platform/platform.h"
 

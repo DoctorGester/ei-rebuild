@@ -1,6 +1,6 @@
 # World server, world client and game flow
 
-Files: `world.h` (layouts), `world_*.cpp` (server, client, tick, zone / map, save, sync, units, game flow in
+Files: `world.h` (layouts), `game_flow.h`, `saved_parties.h`, `save_file.h`, `frame_lists.h`, `world_*.cpp` (server, client, tick, zone / map, save, sync, units, game flow in
 `world_game.cpp`, quests, party, briefing, guard, weather, loot, spells), `figure_mesh*.cpp`, `party_manager.cpp`,
 `class_templates.cpp`. Scenarios: `world`, `world_client`, `world_load` (new game, eight `AddUnitToServer` wolves, one name
 added twice, three `RemoveObjectFromServer`, `load savea`, one more spawn), `party_records`, `sandbox_*`.
@@ -61,7 +61,7 @@ and releases gone ones (added / kept / removed).
 
 ## Zone loading, saving, loading, game flow
 
-- **State machine** (`GameFlow`, world.h: state, request target, request party, multiplayer zone, zone switch started):
+- **State machine** (`GameFlow`, game_flow.h: state, request target, request party, multiplayer zone, zone switch started):
   every request first runs `TeardownZone` (views reset, lists, `.mob` list, script state, `ClearMapObjects`, missiles,
   timed objects). Kind 3 (new game) empties saves\current (`ClearSaveFolder`) and starts zone1; kind 2 loads. Requests
   acted on by the flow's update: 2 load, 3, 4 go to a zone (also BeginMultiplayerGame), 5 / 6 with a party copy.
@@ -236,5 +236,5 @@ as its owner at exit: a fault there shows as a crash on quit.
 
 ## Known points
 
-- world.h's SaveFileRead parameters `minimum` / `maximum` are swapped in meaning (ReadHeader takes newest, oldest).
+- save_file.h's SaveFileRead parameters `minimum` / `maximum` are swapped in meaning (ReadHeader takes newest, oldest).
 - The torch's slot 16 takes `float` (flame->volume), so a signalling NaN could be quietened.

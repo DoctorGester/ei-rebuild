@@ -9,6 +9,7 @@
 #include "class_templates.h"
 #include "console.h"
 #include "drawn_motion.h"
+#include "game_flow.h"
 #include "item_db.h"
 #include "lever.h"
 #include "logic_settings.h"

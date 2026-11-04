@@ -2,9 +2,11 @@
 // See docs/notes/ui.md, section 5.
 #include "acks_db.h"
 #include "console.h"
+#include "game_flow.h"
 #include "game_singletons.h"
 #include "game_strings.h"
 #include "item.h"
+#include "saved_parties.h"
 #include "text_manager.h"
 #include "map_object_figures.h"
 #include "party.h"

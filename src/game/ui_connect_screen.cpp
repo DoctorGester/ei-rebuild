@@ -2,6 +2,7 @@
 // address list's vector members. See ui_screens.h and docs/notes/ui.md, section 3. Multiplayer only. Its Create
 // reproduces addon's ExtendedServerName sites and EI_Plugin's NPlayers, as the list draw (ui_connect_list.cpp) does
 // its patches.
+#include "game_flow.h"
 #include "net_classes.h"
 #include "options.h"
 #include "asset_text.h"

@@ -3,6 +3,7 @@
 // RECT. The click is in ui_layouts.cpp. See docs/notes/ui.md, section 4.
 #include "app.h"
 #include "app_helpers.h"
+#include "game_flow.h"
 #include "options.h"
 #include "sound.h"
 #include "ui.h"

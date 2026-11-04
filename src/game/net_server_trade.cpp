@@ -4,13 +4,13 @@
 #include "core_refcount.h"
 
 #include "core_streams.h"
+#include "game_flow.h"
 #include "game_singletons.h"
 #include "game_strings.h"
 #include "net_connection.h"
 #include "net_messages.h"
 #include "quest_records.h"
 #include "ui.h"
-#include "world.h"
 #include "world_data.h"
 #include "lib/crt.h"
 

@@ -9,6 +9,7 @@
 #include "core_streams.h"
 #include "effects.h"
 #include "figure_manager.h"
+#include "game_flow.h"
 #include "game_singletons.h"
 #include "game_strings.h"
 #include "ground_print.h"

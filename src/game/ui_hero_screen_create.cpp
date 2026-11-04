@@ -2,7 +2,9 @@
 // screen's margins (screen_layout::AddCurtains), which this does after the original's body; EI_Plugin.asi
 // patches it too (EiPluginFixes, reproduced: the figures' sex test). See ui_screens.h and docs/notes/ui.md,
 // section 5. Scenarios ui_hero_screen, ui_hero_stats and ui_hero_delete open the screen.
+#include "game_flow.h"
 #include "party.h"
+#include "saved_parties.h"
 #include "ui.h"
 #include "ui_screens.h"
 

@@ -2,6 +2,7 @@
 // briefing (its "#show" lines in the briefing text) and the variable that marks the briefing as
 // seen ("b.<speaker>.<briefing>" or "b.elder.<briefing>"). See world.h and docs/notes/world.md.
 #include "console.h"
+#include "game_flow.h"
 #include "game_flow_data.h"
 #include "game_singletons.h"
 #include "game_strings.h"

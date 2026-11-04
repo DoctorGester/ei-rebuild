@@ -1,6 +1,7 @@
 // Application helpers around WinMain: the window's events, the input dispatcher, the event pump and the start of the
 // first map. See app.h.
 #include "app.h"
+#include "game_flow.h"
 #include "player_client.h"
 #include "sound.h"
 #include "ui_cursor.h"

@@ -8,6 +8,7 @@
 #include "camera.h"
 #include "console.h"
 #include "effects.h"
+#include "game_flow.h"
 #include "game_singletons.h"
 #include "item.h"
 #include "item_manager.h"
