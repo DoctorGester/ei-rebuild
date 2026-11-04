@@ -99,7 +99,7 @@ public:
     }
 
 private:
-    GlobalMap* map;
+    GlobalMap* map = nullptr;
 };
 
 void AddTipRegion(UiWindow* window, int left, int top, int right, int bottom, int tip) {

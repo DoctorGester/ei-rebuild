@@ -30,11 +30,11 @@ enum class OccluderKind : std::int8_t {
 // An AI map cell with more than one occluder chains 8-byte records of its sector
 // (ai_occluders.cpp); the sector recycles them through a free list.
 struct SectorOccluder {
-    std::int16_t top;
-    std::int16_t bottom;
-    OccluderKind kind;
-    std::int8_t transparency;
-    std::int16_t next;          // the cell's next record, or the next free one; negative ends
+    std::int16_t top = 0;
+    std::int16_t bottom = 0;
+    OccluderKind kind = {};
+    std::int8_t transparency = 0;
+    std::int16_t next = 0;      // the cell's next record, or the next free one; negative ends
 };
 
 struct Sector {
@@ -73,7 +73,7 @@ struct RadiusTree {
 
 // A sector offset of the spiral.
 struct SpiralOffset {
-    std::int16_t x, y;
+    std::int16_t x = 0, y = 0;
 };
 // The sector spiral's tables: the 441 offsets of a 21 x 21 square of sectors ordered by distance, the number of
 // offsets within each distinct distance and the tree that finds a distance's place among them.

@@ -62,12 +62,12 @@ std::unordered_map<const SectorData*, SectorChanges> g_changes;
 // water's kind (WaterKind).
 struct PageVertex {
     Vector3 position;
-    float u, v;
+    float u = 0.0f, v = 0.0f;
     Vector3 normal;
-    float loss;
-    float depth;
-    float otherWater;
-    float extra;
+    float loss = 0.0f;
+    float depth = 0.0f;
+    float otherWater = 0.0f;
+    float extra = 0.0f;
 };
 static_assert(sizeof(PageVertex) == 48);
 
@@ -525,8 +525,8 @@ bool ReadVertices(const SectorData* s, CachedPage& p, const float* occlusion) {
 }
 
 struct PageKey {
-    const SectorData* sector;
-    int page;
+    const SectorData* sector = nullptr;
+    int page = 0;
     bool operator==(const PageKey& o) const { return sector == o.sector && page == o.page; }
 };
 struct PageKeyHash {

@@ -39,9 +39,9 @@ bool ArgIs(const CommandArgs& args, int i, const char* text) {
 }
 // A log category's name for the filter command and its label in the list of shown ones.
 struct LogName {
-    const char* name;
-    const char* label;
-    LogCategory category;
+    const char* name = nullptr;
+    const char* label = nullptr;
+    LogCategory category = {};
 };
 constexpr LogName kLogNames[] = {
     {"ai", "AI: ", kLogAi},
@@ -74,8 +74,8 @@ std::int64_t DaysFromCivil(int year, int month, int day) {
 
 // A console position: its name, its letter and the window's rectangle (800x600 coordinates).
 struct ConsolePosition {
-    const char* name;
-    const char* letter;
+    const char* name = nullptr;
+    const char* letter = nullptr;
     Rect rect;
 };
 constexpr ConsolePosition kPositions[] = {

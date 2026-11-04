@@ -471,8 +471,8 @@ namespace {
 // The glow's work arrays: the sprite records (zero filled) and the 16-byte points.
 
 struct SpriteRecord {   // 8 bytes: colour, texture rectangle
-    std::uint32_t colour;
-    const float* rect;
+    std::uint32_t colour = 0;
+    const float* rect = nullptr;
 };
 std::vector<SpriteRecord> g_sprites;
 std::vector<SpritePoint> g_glowPoints;

@@ -32,11 +32,11 @@ public:
     // harness's seed hook instead, when set.
     void Seed();
 
-    std::uint32_t seeded;           // non-zero once seeded from results
-    std::uint32_t count;            // results left (randcnt)
-    std::uint32_t results[256];     // randrsl
-    std::uint32_t memory[256];      // randmem
-    std::uint32_t aa, bb, cc;       // randa, randb, randc
+    std::uint32_t seeded = 0;       // non-zero once seeded from results
+    std::uint32_t count = 0;        // results left (randcnt)
+    std::uint32_t results[256] = {};  // randrsl
+    std::uint32_t memory[256] = {};  // randmem
+    std::uint32_t aa = 0, bb = 0, cc = 0;  // randa, randb, randc
 
 private:
     // Init after the seed: the reference randinit(ctx, TRUE) over results and the first Refill.

@@ -38,14 +38,14 @@ void Fill(std::vector<std::uint32_t>& array, std::uint32_t value) {
 
 // What a draw needs of the mesh: a part's ranges, resolved to the device's mesh draw arguments.
 struct PartDraw {
-    LinkMesh* mesh;
+    LinkMesh* mesh = nullptr;
     const LinkPartRanges& r;
-    const VertexPacket* positions;
-    std::vector<std::uint32_t>* colours;
-    std::vector<std::uint32_t>* speculars;
-    float u;
-    float v;
-    int flags;
+    const VertexPacket* positions = nullptr;
+    std::vector<std::uint32_t>* colours = nullptr;
+    std::vector<std::uint32_t>* speculars = nullptr;
+    float u = 0.0f;
+    float v = 0.0f;
+    int flags = 0;
 
     // TextureDevice::DrawMeshBlocks / 2.
     int Draw(TextureDevice* device, Surface* first, Surface* second, bool textured) const {

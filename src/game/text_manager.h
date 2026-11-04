@@ -22,7 +22,7 @@ class MappedResource;
 // An archive the texts are looked up in.
 struct TextSource {
     std::string name;
-    MappedResource* source;
+    MappedResource* source = nullptr;
 };
 
 // The archive list (TextManager::sources).
@@ -121,7 +121,7 @@ public:
     std::vector<std::string> ListKeys(const char* pattern);
 
     TextSources sources;
-    const char* cursor;     // read position in the current text
-    const char* text;       // start of the current text (null: none)
-    std::uint32_t length;   // size of the current text, written by GetFile
+    const char* cursor = nullptr;  // read position in the current text
+    const char* text = nullptr;  // start of the current text (null: none)
+    std::uint32_t length = 0;  // size of the current text, written by GetFile
 };

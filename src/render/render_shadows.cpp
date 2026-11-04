@@ -60,7 +60,7 @@ static_assert(kMapSize == 4096 && kRangeCell == 16,
 // are double (a float inverse moves still objects by the camera's rounding, render_point_shadows.cpp's
 // kKeptPlace); everything else is float.
 struct M4 {
-    double m[16];
+    double m[16] = {};
 };
 
 M4 FromMatrix(const Matrix4& a) {
@@ -136,12 +136,12 @@ ShadowInfo g_info, g_lastInfo;
 // part (KeepCasterMesh) and its texture offsets.
 struct OutsideCaster {
     Matrix4 model;
-    const CachedMesh* mesh;
-    float uOffset, vOffset;
+    const CachedMesh* mesh = nullptr;
+    float uOffset = 0.0f, vOffset = 0.0f;
     gpu::Texture texture;
-    bool hasTexture;
-    const void* object;
-    bool unit;
+    bool hasTexture = false;
+    const void* object = nullptr;
+    bool unit = false;
 };
 std::vector<OutsideCaster> g_outside;
 // More casters than this in one frame (no present for a long time) are dropped.
@@ -160,8 +160,8 @@ int g_shadowShift = 0;     // SetShadowShift: texels
 // one whose texture was not drawn yet cuts below one half (a texture with alpha is drawn alpha-tested
 // or blended; without alpha nothing is cut).
 struct AlphaCut {
-    bool cut;
-    float least;
+    bool cut = false;
+    float least = 0.0f;
 };
 std::unordered_map<const void*, AlphaCut> g_cuts;
 constexpr std::size_t kMostCuts = 8192;
@@ -299,7 +299,7 @@ void EnsureDummy() {
 
 // A half-space of the landscape's space: a x + b y + c z + d >= 0.
 struct Plane {
-    float a, b, c, d;
+    float a = 0.0f, b = 0.0f, c = 0.0f, d = 0.0f;
     float Side(const Vector3& at) const { return a * at.x + b * at.y + c * at.z + d; }
 };
 

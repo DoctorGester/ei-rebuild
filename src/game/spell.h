@@ -175,18 +175,18 @@ public:
 
 // The damage a hit deals, filled by the spell effects and the weapon code.
 struct DamageInfo {
-    float typeWeights[7];       // one weight per damage type
+    float typeWeights[7] = {};  // one weight per damage type
     float& Weight(DamageType type) { return typeWeights[static_cast<int>(type)]; }
     float Weight(DamageType type) const { return typeWeights[static_cast<int>(type)]; }
     std::uint32_t weaponValue;  // 0 unarmed; not read here
-    float attackRoll;           // against the defence; FLT_MAX for spells
-    float amount;
-    float multiplier;
-    int location;               // the body part aimed at; 6 (all) for spells
-    int hitKind;                // 0/1 by spell; non-zero: no hit direction (OnDamaged)
-    float backstabFactor;       // above 1.0 for a backstab, else 1.0
-    std::uint8_t calledShot;
-    std::uint8_t unused_39[3];
+    float attackRoll = 0.0f;    // against the defence; FLT_MAX for spells
+    float amount = 0.0f;
+    float multiplier = 0.0f;
+    int location = 0;           // the body part aimed at; 6 (all) for spells
+    int hitKind = 0;            // 0/1 by spell; non-zero: no hit direction (OnDamaged)
+    float backstabFactor = 0.0f;  // above 1.0 for a backstab, else 1.0
+    std::uint8_t calledShot = 0;
+    std::uint8_t unused_39[3] = {};
 };
 
 // A spell being applied (created by WorldServer::CastSpell): the world server's missiles. It embeds the
@@ -265,7 +265,7 @@ public:
     Ref<MapObject> target; // a unit or another map object
     Ref<Unit> caster;      // null for traps and scripts
     Vector3 targetPoint;
-    int state;                  // 0 casting, 1 missile, 2 lasting, else ends
+    int state = 0;              // 0 casting, 1 missile, 2 lasting, else ends
     Spell spell;
     Ref<Effect> visual;              // particle source, wall, lightning or missile
     Ref<Effect> sound;               // a sound or a sound sequence
@@ -309,7 +309,7 @@ public:
     void Build();
 
 
-    const itemdb::SpellRecord* prototype;
+    const itemdb::SpellRecord* prototype = nullptr;
     std::vector<itemdb::SpellModifierRecord*> modifiers;
     std::string codes;              // modifier index + 1 per modifier
     Spell spell;
@@ -377,7 +377,7 @@ public:
     // Rebuilds when the prototype accepts it.
     bool AddModifier(itemdb::SpellModifierRecord* modifier);
 
-    SpellManager* manager;         // counted but never released
+    SpellManager* manager = nullptr;  // counted but never released
     Ref<SpellContainer> container;
 };
 
@@ -432,11 +432,11 @@ public:
     float color[3] = {};            // r, g, b
     Vector3 pointPosition = {};     // SetPoint's position
     Vector3 direction = {};         // a directional light's (the sun's) direction
-    float range;
-    float rangeSquared;
-    float inverseRangeSquared;
+    float range = 0.0f;
+    float rangeSquared = 0.0f;
+    float inverseRangeSquared = 0.0f;
     Vector3 localDirection;         // direction in the space of the mesh being lit
-    float litColors[2][4];
+    float litColors[2][4] = {};
     drawn::LightStep drawnStep;     // client: where the draw shows it (drawn::LightPosition)
 };
 

@@ -80,7 +80,7 @@ compare function pointers for identity.
   (`BaseManager::CreateObjectAs<T>` / `FindObjectAs<T>`, `itemdb::RecordAs<T>`). A counted pointer field is a
   `Ref<T>` (src/game/ref.h), a container element holding a reference a `HeldRef<T>`; a counted object is tested with
   `IsLive(object)`. A record that starts with another's fields derives from it.
-- Lifetimes: every field has a default initialiser. An embedded object is a plain member: the compiler builds and
+- Lifetimes: every field has a default initialiser (counted: a scalar, pointer or enum field without one). An embedded object is a plain member: the compiler builds and
   destroys it, and the member order gives the teardown order (no constructor or destructor called by hand). A
   reset assigns the fields (`Reset()`), never destroys and builds the object again in place.
 

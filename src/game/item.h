@@ -114,18 +114,18 @@ public:
     Ref<ItemTurn> turn;
     // the condition and its maximum (both from the prototype's; -1.0 until then): at 0 or below (rounded) the
     // item is broken.
-    float condition;
-    float conditionMax;
-    float charge;
-    float chargeMax;              // the prototype's charge
-    float chargeRate;             // 0.001 by default
-    float weight;                 // the prototype's weight
-    float price;                  // includes the attached spell's price
-    float unreadValue;            // the prototype's unreadValue; only saved, loaded and compared by IsSameAs
+    float condition = 0.0f;
+    float conditionMax = 0.0f;
+    float charge = 0.0f;
+    float chargeMax = 0.0f;       // the prototype's charge
+    float chargeRate = 0.0f;      // 0.001 by default
+    float weight = 0.0f;          // the prototype's weight
+    float price = 0.0f;           // includes the attached spell's price
+    float unreadValue = 0.0f;     // the prototype's unreadValue; only saved, loaded and compared by IsSameAs
     // the level of spell the item can hold (the prototype's magicLevel plus the material's; MagicCapacityOf).
-    std::uint32_t magicLevel;
+    std::uint32_t magicLevel = 0;
     Ref<Spell> spell;            // the spell carried by the item (scrolls, wands)
-    std::uint32_t count;          // the stack's count
+    std::uint32_t count = 0;      // the stack's count
 };
 
 // The record an item's link (Item::link) points at as the world server makes it: a counted value holding
@@ -140,7 +140,7 @@ public:
     // A new link with this one's value and no references; null without memory.
     ItemLink* Clone() override;
 
-    std::uint32_t value;
+    std::uint32_t value = 0;
 };
 
 // An item's turning state in the item views: made by the item draw and the moves.
@@ -189,10 +189,10 @@ public:
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
 
-    std::uint32_t actionValue;          // 0 after construction; UnitServer::ScaledItemValue scales it by 15 / the rate, the hit takes it
-    float damage;
-    float damageSpread;
-    float reach;            // prototype reach: the wielder's reach
+    std::uint32_t actionValue = 0;      // 0 after construction; UnitServer::ScaledItemValue scales it by 15 / the rate, the hit takes it
+    float damage = 0.0f;
+    float damageSpread = 0.0f;
+    float reach = 0.0f;     // prototype reach: the wielder's reach
 };
 
 class ItemArmor : public Item {
@@ -247,7 +247,7 @@ public:
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
 
-    std::uint32_t actionValue;          // the record's actionValue (UnitServer::ScaledItemValue)
+    std::uint32_t actionValue = 0;      // the record's actionValue (UnitServer::ScaledItemValue)
 };
 
 class ItemQuest : public Item {
@@ -269,7 +269,7 @@ public:
 
     // the quest item's id (the prototype's category): RemoveQuestItem(unit, id), the
     // player's quest items, the zone's wanted list.
-    std::uint32_t questItemId;
+    std::uint32_t questItemId = 0;
 };
 
 // A scroll, a spell container: a quick item with its own names, class name and id.
@@ -310,9 +310,9 @@ public:
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
 
-    LootKind kind;
-    LootRecordType recordType;    // for LootKind::Record
-    std::uint32_t index;        // record index
+    LootKind kind = {};
+    LootRecordType recordType = {};  // for LootKind::Record
+    std::uint32_t index = 0;    // record index
 };
 
 // Weapon stats from a packed id. Each faults if the prototype index is out of range; an out-of-range

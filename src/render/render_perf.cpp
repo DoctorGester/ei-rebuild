@@ -85,8 +85,8 @@ void Collect() {
 // ---- The font ------------------------------------------------------------------------------------------------
 
 struct Glyph {
-    char c;
-    const char* rows[kGlyphHeight];
+    char c = 0;
+    const char* rows[kGlyphHeight] = {};
 };
 // clang-format off
 const Glyph kFont[] = {

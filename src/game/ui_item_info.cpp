@@ -118,7 +118,7 @@ public:
     std::string line;
 
 private:
-    ItemInfoPanel* panel;
+    ItemInfoPanel* panel = nullptr;
 
 public:
     Rect rect;

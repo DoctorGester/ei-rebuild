@@ -32,7 +32,7 @@ public:
     int type = -1;                  // class 1..5; bit (type - 1) of the records' class masks
     std::uint8_t sellsItems = 0;    // the constructor's trader sells items (ClassTemplateGenerateItems)
     std::uint8_t sellsSpells = 0;   // and spells (ClassTemplateGenerateMagic)
-    float weights[9];
+    float weights[9] = {};
     std::uint8_t weightsTail[4] = {};   // field 4's tenth dword (archived with weights)
     std::uint8_t restockDue = 1;    // set by the constructor and by a quest completion; the camp restocks and clears it
     // the party objects (ItemsParty / SpellsParty).

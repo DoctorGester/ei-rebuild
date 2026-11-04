@@ -30,7 +30,7 @@ bool AnyLevel(const UnitLayerNode* node) {
 
 // The part of a block's 4x4 cells that lies in the map: its first cell and the columns and rows inside.
 struct BlockArea {
-    int x, y, columns, rows;
+    int x = 0, y = 0, columns = 0, rows = 0;
 };
 
 // Whether the block's first cell lies in the map (keys are signed 16-bit halves; the comparisons are unsigned, so

@@ -22,10 +22,10 @@ class ByteStream;
 // A material entry: the material record, the count range of a material stack, and the units left for weapons
 // and armors (their generation takes the prototype's materialUnits from it).
 struct StockMaterial {
-    itemdb::MaterialRecordHead* record;   // (soundName its class name, unitPrice its unit price)
-    int minCount;
-    int maxCount;
-    int left;
+    itemdb::MaterialRecordHead* record = nullptr;  // (soundName its class name, unitPrice its unit price)
+    int minCount = 0;
+    int maxCount = 0;
+    int left = 0;
 };
 
 // The recipe map (ItemStock::spellMap): recipe lists by spell name, walked in STLport's order (the spells are
@@ -54,8 +54,8 @@ struct ItemStock {
     std::vector<itemdb::SpellModifierRecord*> modifiers;
     StockRecipeMap spellMap;        // recipes by spell name
     std::unordered_map<std::string, itemdb::SpellModifierRecord*> modifierMap;      // modifiers by kind key
-    float baseLevels[kSchoolCount];     // per school; set with scrollLevels (SetLevels)
-    float scrollLevels[kSchoolCount];   // the spell level per school for the scrolls
+    float baseLevels[kSchoolCount] = {};  // per school; set with scrollLevels (SetLevels)
+    float scrollLevels[kSchoolCount] = {};  // the spell level per school for the scrolls
 
     // `record` appended to the armors / weapons / quick items / spells / modifiers unless null or already
     // there.

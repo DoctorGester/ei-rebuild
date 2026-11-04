@@ -23,33 +23,33 @@ class MapObject;
 
 // A circle of a trap's area.
 struct TrapCircle {
-    float x;
-    float y;
-    float radius;
+    float x = 0.0f;
+    float y = 0.0f;
+    float radius = 0.0f;
 };
 static_assert(sizeof(TrapCircle) == 0xC);   // saved as its 12 bytes
 
 
 // The MagicTrap part of a zone object record (mapspec::TrapSpec::trap; passed to MagicTrap::SetUp).
 struct MagicTrapRecord {
-    std::uint32_t sides;        // (-1); the zone loader makes it the players the
+    std::uint32_t sides = 0;    // (-1); the zone loader makes it the players the
                                 // owner is hostile to (relation 2), one bit each
     std::string spell;         // the spell's text
     Vector3 position;           // the position when the zone loaded
     std::vector<TrapCircle> area;
     std::vector<Vector2> points;
-    std::int32_t period;
-    std::uint8_t singleTarget;
+    std::int32_t period = 0;
+    std::uint8_t singleTarget = 0;
 };
 
 // The lever part of a zone object record (mapspec::LeverSpec::lever), what Lever::SetUp reads.
 struct LeverSetup {
     LockKey lock;                   // ({1, 0, 0}; chunk BBAC0006, a 12-byte blob)
-    std::int32_t state;             // (chunk BBAC0002, a byte)
-    std::int32_t stateCount;        // (2; chunk BBAC0003, a byte)
-    std::uint8_t directUseBlocked;  // (chunk BBAC0007)
-    std::uint8_t keepsMapFlag;      // (chunk BBAC0008)
-    std::uint8_t cycling;           // (chunk BBAC0004)
+    std::int32_t state = 0;         // (chunk BBAC0002, a byte)
+    std::int32_t stateCount = 0;    // (2; chunk BBAC0003, a byte)
+    std::uint8_t directUseBlocked = 0;  // (chunk BBAC0007)
+    std::uint8_t keepsMapFlag = 0;  // (chunk BBAC0008)
+    std::uint8_t cycling = 0;       // (chunk BBAC0004)
 };
 
 // The bits of mapspec::Behaviour::flags. Before format 0x53 (kVersionUnitAlarm) the reaction (Behaviour::alarm) was
@@ -68,9 +68,9 @@ namespace mapspec {
 // A waypoint of a unit record's patrol.
 struct Waypoint {
     Vector3 position;
-    float time;                  // the look's turning time (AILook::time; chunk BBBE0003)
-    std::int16_t lookWait;       // the wait after the look (AILook::wait; chunk BBBE0002)
-    std::uint16_t stopFirst;     // bit 0: AILook::stopFirst (chunk BBBE0004)
+    float time = 0.0f;           // the look's turning time (AILook::time; chunk BBBE0003)
+    std::int16_t lookWait = 0;   // the wait after the look (AILook::wait; chunk BBBE0002)
+    std::uint16_t stopFirst = 0;  // bit 0: AILook::stopFirst (chunk BBBE0004)
 };
 static_assert(sizeof(Waypoint) == 0x14);   // saved as its 20 bytes
 
@@ -112,13 +112,13 @@ public:
     void OnChunk() override {}
     virtual ~Spec();
 
-    std::int32_t id;             // the object's id (-1)
+    std::int32_t id = 0;         // the object's id (-1)
     Vector3 position;
     Quaternion rotation;         // (1, 0, 0, 0)
     std::string name;
     std::string comment;
-    std::int32_t spareId;        // (-1) only set and copied (ObjectSpec::Assign)
-    SpecKind kind;
+    std::int32_t spareId = 0;    // (-1) only set and copied (ObjectSpec::Assign)
+    SpecKind kind = {};
 };
 
 // An object record (chunk B001).
@@ -131,14 +131,14 @@ public:
 
     MapObject* object = nullptr;   // the map object made from the record (a unit for a unit record; null: none)
     std::string model;          // (empty)
-    std::int32_t parentId;
+    std::int32_t parentId = 0;
     std::string texture;
     std::string primaryTexture;
-    std::int32_t player;         // (-1); the type name formats it
+    std::int32_t player = 0;     // (-1); the type name formats it
     Vector3 scale;               // (0.5 each; read y, x, z)
-    std::uint8_t shadow;
-    std::uint8_t visible;
-    std::uint8_t side;           // the owner's player number (chunk B011; Unit::SetSide, the traps' hostile players)
+    std::uint8_t shadow = 0;
+    std::uint8_t visible = 0;
+    std::uint8_t side = 0;       // the owner's player number (chunk B011; Unit::SetSide, the traps' hostile players)
     std::string parentIname;
     std::string skinTexture;    // (chunk B008) the texture swapped onto the figure ("none": none)
     std::vector<std::string> parts;
@@ -152,7 +152,7 @@ public:
 
     void OnChunk() override;
 
-    float volume;                // (0.7)
+    float volume = 0.0f;         // (0.7)
     Vector3 offset;
     std::string sound;          // ("nature\fire\small.wav")
 };
@@ -184,7 +184,7 @@ public:
 struct ZoneDiplomacy {
     ZoneDiplomacy();
 
-    std::int32_t relations[32][32];
+    std::int32_t relations[32][32] = {};
     std::vector<std::string> names;
 };
 
@@ -205,8 +205,8 @@ public:
 
     void OnChunk() override;
 
-    std::int32_t type;           // (0: none made)
-    float scale;
+    std::int32_t type = 0;       // (0: none made)
+    float scale = 0.0f;
 };
 
 // A light (chunk AA01).
@@ -218,8 +218,8 @@ public:
     void OnChunk() override;
 
     Vector3 colour;              // (1, 1, 1)
-    std::uint8_t shadows;
-    float radius;
+    std::uint8_t shadows = 0;
+    float radius = 0.0f;
 };
 
 // A sound (chunk CC01).
@@ -231,12 +231,12 @@ public:
     void OnChunk() override;
 
     std::vector<std::string> sounds;   // (none made without any)
-    std::int32_t volume;         // (10; chunk CC04) the sound's volume
-    std::int32_t radius;         // (15; chunk CC0B) the sound's radius
-    std::int32_t minInterval;    // (1500; chunk CC06) an ambient sound's shortest pause
-    std::int32_t maxInterval;    // (3000; chunk CC07) and longest
-    std::uint8_t ambient;        // (chunk CC0D) set: an ambient sound (class 0x49), else a plain one (0x48)
-    std::uint8_t unreadChunk;    // chunk CC0E; only read and written with the record
+    std::int32_t volume = 0;     // (10; chunk CC04) the sound's volume
+    std::int32_t radius = 0;     // (15; chunk CC0B) the sound's radius
+    std::int32_t minInterval = 0;  // (1500; chunk CC06) an ambient sound's shortest pause
+    std::int32_t maxInterval = 0;  // (3000; chunk CC07) and longest
+    std::uint8_t ambient = 0;    // (chunk CC0D) set: an ambient sound (class 0x49), else a plain one (0x48)
+    std::uint8_t unreadChunk = 0;  // chunk CC0E; only read and written with the record
 };
 
 // A unit record (chunk BBBB0000). The world server's CreateUnits fills one for each unit it creates.
@@ -247,7 +247,7 @@ public:
 
     void OnChunk() override;        // the chunk just read, by its id
 
-    std::int32_t behaviours;     // records read so far
+    std::int32_t behaviours = 0;  // records read so far
     Behaviour behaviour[5];
     std::string prototype;      // ("none")
     unitrecord::UnitRecord record;   // the statistics and item lists (applied to the unit by the world server)
@@ -256,7 +256,7 @@ public:
 // The records of a .mob file by id (a local of the zone loader) and the largest id read.
 struct MobRecords {
     lib::HashMap<std::int32_t, Spec*> byId;   // walked in STLport's order: the objects are created in it
-    std::int32_t maxId;
+    std::int32_t maxId = 0;
 };
 
 // A .mob file's root chunk (WorldServer::LoadMapObjects opens it).

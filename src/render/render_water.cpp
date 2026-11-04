@@ -31,8 +31,8 @@ struct MapRandom {
 
 // A wave of the map: whole cycles across it in x and y (so the map repeats without a seam), its height and phase.
 struct Wave {
-    int kx, ky;
-    float amplitude, cosPhase, sinPhase;
+    int kx = 0, ky = 0;
+    float amplitude = 0.0f, cosPhase = 0.0f, sinPhase = 0.0f;
 };
 
 // `count` waves in random directions, from `longest` to `shortest` cycles across the map, the heights falling as

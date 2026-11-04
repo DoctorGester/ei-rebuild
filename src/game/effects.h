@@ -123,20 +123,20 @@ inline ParticleType ParticleTypeOf(int type) { return static_cast<ParticleType>(
 // comments name the types written here.
 struct Particle {
     Vector3 pos;
-    float size;
+    float size = 0.0f;
     Vector3 prevPos;
-    float prevSize;
+    float prevSize = 0.0f;
     Vector3 velocity;           // smoke: initial offset; spheres: orbit offset
     Vector3 aux;                // per-type scratch the emitter and update callbacks share (angles, speeds, growth, steps)
     Vector3 drift;              // smoke: rise in z; debris: speed; spheres: x = size factor
-    int frame;                  // texture frame
-    int prevFrame;
-    int frameTimer;             // ticks until the next frame
-    int life;                   // ticks left
-    int state;                  // debris: landed
-    std::uint32_t color;        // ARGB
-    std::uint32_t prevColor;
-    int dead;                   // set by the tick when the update returned 0
+    int frame = 0;              // texture frame
+    int prevFrame = 0;
+    int frameTimer = 0;         // ticks until the next frame
+    int life = 0;               // ticks left
+    int state = 0;              // debris: landed
+    std::uint32_t color = 0;    // ARGB
+    std::uint32_t prevColor = 0;
+    int dead = 0;               // set by the tick when the update returned 0
 };
 
 // A table read by a particle's remaining life, unchecked as the original reads it. The tick updates a particle
@@ -153,7 +153,7 @@ constexpr T ByLife(const T (&table)[N], int life, T before) {
 struct ParticleElement {
     Vector3 pos;
     union {
-        float value[10];
+        float value[10] = {};
         std::int32_t word[10];  // the same slots as dwords (the set-ups clear some the type never reads)
         // Lightning (EmitLightning, particle_emitters.cpp): a point of the bolt, on the ground;
         // LightningBlast's heads (TickLightning) move by fork and remember their position in base.
@@ -335,7 +335,7 @@ struct ParticleElement {
             std::uint32_t color;    // by the alpha field
         } glow;
     };
-    int ticks;                  // (lightning point 0: bursts; modifier point 0: the fade step)
+    int ticks = 0;              // (lightning point 0: bursts; modifier point 0: the fade step)
 };
 
 class ParticleSource;
@@ -379,19 +379,19 @@ public:
 
     std::deque<Particle*> freeParticles;   // taken from the front, returned to the back
     HeldMap held;                                   // id -> source holding a reference
-    int maxHeldId;                                  // highest key of held
-    int quietStart;                                 // see CreateSource; never set non-zero in src
+    int maxHeldId = 0;                              // highest key of held
+    int quietStart = 0;                             // see CreateSource; never set non-zero in src
 };
 
 // One entry of the draw order: the source's depth along the camera's view axis.
 struct ParticleDepth {
-    float depth;
-    ParticleSource* source;
+    float depth = 0.0f;
+    ParticleSource* source = nullptr;
 };
 
 // One texture frame's UV rectangle.
 struct SourceFrame {
-    float u0, v0, u1, v1;
+    float u0 = 0.0f, v0 = 0.0f, u1 = 0.0f, v1 = 0.0f;
 };
 
 // The bits of EngineObject::flags on a particle source (the types' setups in particle_create.cpp set them).
@@ -558,7 +558,7 @@ public:
     // and 0.1 when there is none.
     struct Attachment {
         Vector3 offset;
-        float radius;
+        float radius = 0.0f;
     };
     Attachment AttachmentOffset();
 
@@ -591,37 +591,37 @@ public:
 
     // EngineObject's flags: the ParticleSourceFlag bits; type 0x2000.. (the effect names in the type name
     // table).
-    MapObject* attachedTo;         // the object followed, null: none
+    MapObject* attachedTo = nullptr;  // the object followed, null: none
     Vector3 origin;                 // world emission point
     Vector3 motion;                 // movement since the last tick
     Vector3 side;                   // unit, motion x (0, 0, 1) (zero while still)
     Vector3 up;                     // unit, motion x side
-    float distance;                 // length of motion
-    int emitChance;                 // percent per try
-    int emitCount;                  // tries per tick
-    float emitSpacing;
-    int maxParticles;
-    int frameCount;
-    int frameColumns;               // columns of the texture's frame grid
-    int frameDelay;                 // (Tornado, CurseHolder: the particle colour)
-    int hiddenTicks;                // draws skipped off screen (the tick idles past 0x38 with IdlesOffScreen)
-    int lifetime;
+    float distance = 0.0f;          // length of motion
+    int emitChance = 0;             // percent per try
+    int emitCount = 0;              // tries per tick
+    float emitSpacing = 0.0f;
+    int maxParticles = 0;
+    int frameCount = 0;
+    int frameColumns = 0;           // columns of the texture's frame grid
+    int frameDelay = 0;             // (Tornado, CurseHolder: the particle colour)
+    int hiddenTicks = 0;            // draws skipped off screen (the tick idles past 0x38 with IdlesOffScreen)
+    int lifetime = 0;
     Vector3 spreadMin;
     Vector3 spreadMax;
-    float size;
-    float height;
-    float growth;
-    float alpha;
-    float typeParam;                // per type: rate, count or size (1.0 after Reset)
-    float turnCos;                  // \ cos / sin of the emitter's turn (a zone exit's
-    float turnSin;                  // / angle)
-    float baseSize;
-    int emitState;                  // per type: the emitted count or a one-shot flag
+    float size = 0.0f;
+    float height = 0.0f;
+    float growth = 0.0f;
+    float alpha = 0.0f;
+    float typeParam = 0.0f;         // per type: rate, count or size (1.0 after Reset)
+    float turnCos = 0.0f;           // \ cos / sin of the emitter's turn (a zone exit's
+    float turnSin = 0.0f;           // / angle)
+    float baseSize = 0.0f;
+    int emitState = 0;              // per type: the emitted count or a one-shot flag
     Vector3 extent;
-    int attachPoint;
+    int attachPoint = 0;
     Vector3 windDirection;          // copied from the world every tick
-    float windStrength;
-    bool additiveBlend;             // drawn with additive blending
+    float windStrength = 0.0f;
+    bool additiveBlend = false;     // drawn with additive blending
     std::vector<ParticleElement> elements;   // per type
     Vector3 boundsMin;              // over the particles, rebuilt every tick
     Vector3 boundsMax;
@@ -642,8 +642,8 @@ ParticleSource* NewParticleSource(int type);
 // The particle renderer's shared arrays: one SpritePoint (position and size, interpolated between the last two
 // ticks) and one sprite (colour, texture frame) per particle.
 struct ParticleSprite {
-    std::uint32_t color;            // ARGB
-    const SourceFrame* frame;       // the particle's frame among its source's frames
+    std::uint32_t color = 0;        // ARGB
+    const SourceFrame* frame = nullptr;  // the particle's frame among its source's frames
 };
 
 // The world's rain/snow layer.
@@ -682,7 +682,7 @@ public:
 
     Ref<Texture> texture;            // "RainSnow"
     class WorldClient* world;      // the client world (set after construction)
-    int sound;                      // rain loop handle in the sound manager (0: none)
+    int sound = 0;                  // rain loop handle in the sound manager (0: none)
     // The draws' work arrays.
     std::vector<Vector4> projected;       // the positions projected (four per packet)
     std::vector<VertexPacket> positions;  // the particles' corners (w not written)
@@ -691,32 +691,32 @@ public:
     std::vector<TLVertex> vertices;       // what is drawn
     std::vector<std::uint16_t> indices;   // 0, 1, 2, ... (filled elsewhere)
     std::vector<int> offsets;             // the grid's 81 cell offsets (filled elsewhere)
-    int particleCount;              // positions built by the last draw
+    int particleCount = 0;          // positions built by the last draw
     Vector3 wind;
-    int mode;                       // 0 off, 1 rain, 2 snow
-    int targetMode;
-    int density;                    // 0..64
-    float fadeStart;                // world time
-    float fadeDuration;             // 0: no fade running
+    int mode = 0;                   // 0 off, 1 rain, 2 snow
+    int targetMode = 0;
+    int density = 0;                // 0..64
+    float fadeStart = 0.0f;         // world time
+    float fadeDuration = 0.0f;      // 0: no fade running
 };
 
 // A fog cell (the hash_map value; the key is (y << 16) + x of the map square).
 struct FogCell {
-    std::int16_t x;                 // map square
-    std::int16_t y;
+    std::int16_t x = 0;             // map square
+    std::int16_t y = 0;
     Vector3 pos;                    // jittered centre, z = ground + 0.5
-    float alpha;
-    std::uint8_t visible;
-    std::int8_t frame;              // 0..14, picks the texture tile
+    float alpha = 0.0f;
+    std::uint8_t visible = 0;
+    std::int8_t frame = 0;          // 0..14, picks the texture tile
 };
 
 // The texture coordinates of the fog texture's 4 x 4 tiles (16 records; the fog manager's Create fills them,
 // the fog's draw hands them to the renderer): a tile's u range, and its v range counted down from 1 a row.
 struct FogTile {
-    float u0;   // column / 4
-    float v1;   // v0 + 1/4
-    float u1;   // u0 + 1/4
-    float v0;   // 1 - (row + 1) / 4
+    float u0 = 0.0f;  // column / 4
+    float v1 = 0.0f;  // v0 + 1/4
+    float u1 = 0.0f;  // u0 + 1/4
+    float v0 = 0.0f;  // 1 - (row + 1) / 4
 };
 inline FogTile g_fogTiles[16] = /*007ABA58*/ {};
 
@@ -730,8 +730,8 @@ struct FogGrid {
     // clears it.
     void Grow(int x, int y, int n);
 
-    int x0;                         // map cell of cells[0][0]; 0x7FFFFFFF before the first Grow
-    int y0;
+    int x0 = 0;                     // map cell of cells[0][0]; 0x7FFFFFFF before the first Grow
+    int y0 = 0;
     SearchGrid<std::uint8_t> cells; // width * height bytes and the row table (operator new)
 };
 

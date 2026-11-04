@@ -9,7 +9,7 @@
 // An archive opened by a resource manager, kept in open order.
 struct ArchiveEntry {
     std::string name;                // path passed to AddArchive
-    MappedResource* resource;
+    MappedResource* resource = nullptr;
 };
 
 // Base of the managers that load their data from archives (TextureManager, FigureManager, ...):

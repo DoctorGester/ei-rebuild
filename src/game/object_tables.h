@@ -121,9 +121,9 @@ inline std::int8_t g_keyActions[512] = /*0079BF70*/ {};
 // The keys (0x48 bytes each, 88 of them; key_bindings.cpp's g_keyNames): the options window lists them, and
 // the bindings file names them.
 struct UiKeyName {
-    int scan;                        // scan code, the index into g_keyActions
-    const char* file;                // the bindings file's name ("TAB", "Q", ...)
-    char name[0x40];                 // GetKeyNameTextA's text (up to 31 bytes; LoadKeyBindings)
+    int scan = 0;                    // scan code, the index into g_keyActions
+    const char* file = nullptr;      // the bindings file's name ("TAB", "Q", ...)
+    char name[0x40] = {};            // GetKeyNameTextA's text (up to 31 bytes; LoadKeyBindings)
 };
 constexpr int kUiKeyNameCount = 88;
 extern UiKeyName g_keyNames[kUiKeyNameCount];

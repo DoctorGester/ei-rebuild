@@ -22,31 +22,31 @@ using TexCoord = render::TexCoord;
 
 // What the renderer draws from (FigureMesh::buffers): pointers and counts of the mesh's arrays.
 struct MeshBuffers {
-    VertexPacket* vertices;
-    int vertexCount;    // packets
-    NormalPacket* normals;
-    int normalCount;
-    TexCoord* texCoords;
-    int texCoordCount;
-    MeshCorner* corners;
-    int cornerCount;
-    std::uint32_t* words;   // 4-byte elements, unknown
-    int wordCount;
-    std::uint16_t* indices; // corner indices, 3 per triangle
-    int indexCount;
+    VertexPacket* vertices = nullptr;
+    int vertexCount = 0;  // packets
+    NormalPacket* normals = nullptr;
+    int normalCount = 0;
+    TexCoord* texCoords = nullptr;
+    int texCoordCount = 0;
+    MeshCorner* corners = nullptr;
+    int cornerCount = 0;
+    std::uint32_t* words = nullptr;  // 4-byte elements, unknown
+    int wordCount = 0;
+    std::uint16_t* indices = nullptr; // corner indices, 3 per triangle
+    int indexCount = 0;
 };
 
 // The header in front of a FIG mesh: the magic ("FIG8" = 0x38474946 morphs) and the element counts, then two
 // more dwords.
 struct FigHeader {
-    std::uint32_t magic;
-    int vertexCount;
-    int normalCount;
-    int texCoordCount;
-    int indexCount;
-    int cornerCount;
-    int wordCount;
-    std::uint32_t unused_1C;
+    std::uint32_t magic = 0;
+    int vertexCount = 0;
+    int normalCount = 0;
+    int texCoordCount = 0;
+    int indexCount = 0;
+    int cornerCount = 0;
+    int wordCount = 0;
+    std::uint32_t unused_1C = 0;
 };
 static_assert(sizeof(FigHeader) == 0x20);
 
@@ -179,8 +179,8 @@ public:
     // again (render::MeshChanged).
     void BuffersChanged();
     struct OffsetSpan {
-        const Vector3* data;
-        int count;
+        const Vector3* data = nullptr;
+        int count = 0;
     };
     void SetOffsets(const OffsetSpan* offsets);
 
@@ -207,16 +207,16 @@ public:
     // ObjectWorldMatrix in map_object_shadow.h).
     Matrix4 worldMatrix;
     Ref<FigureMeshDrawer> drawer;      // (SetDrawer)
-    TransformObject* object;           // the owner whose figure may draw the mesh: a Object3D, or an interface window (UiWindow)
+    TransformObject* object = nullptr;  // the owner whose figure may draw the mesh: a Object3D, or an interface window (UiWindow)
     MeshBuffers buffers;
     // passed to the draws after the buffers (as their bits): the texture offset (u, v) an animated mesh's
     // drawer sets per frame (FigureMeshDrawer::Animate); an interface sprite's frame of its sprite sheet.
-    float textureOffsetU;
-    float textureOffsetV;
+    float textureOffsetU = 0.0f;
+    float textureOffsetV = 0.0f;
     // every colour / specular of a flat mesh (FigureMeshFlag::Flat); set for every part of an object by
     // Object3D::SetPartsFlatColour / SetPartsFlatSpecular (the interface's model view).
-    std::uint32_t flatColour;
-    std::uint32_t flatSpecular;
+    std::uint32_t flatColour = 0;
+    std::uint32_t flatSpecular = 0;
     // the pose matrix (row-major): UpdateWorld's rotation, its translation row the moved position.
     Matrix4 poseMatrix;
     std::string name;
@@ -226,12 +226,12 @@ public:
     std::vector<std::uint32_t> colorsB;    // one per normal
     // from the file header (before meshType): the material value of the mesh (the number in its
     // material group's name). An object's part takes both from its piece's LinkPartHeader (Object3D::LoadPart).
-    std::uint32_t materialValue;
-    std::uint32_t meshType;             // from the file header; 13..16: animated
+    std::uint32_t materialValue = 0;
+    std::uint32_t meshType = 0;         // from the file header; 13..16: animated
     Vector3 center;
     Vector3 boxMin;
     Vector3 boxMax;
-    float radius;
+    float radius = 0.0f;
     // the part's box: a FootprintPart, copied whole from the piece's LinkPartHeader
     // (Object3D::LoadPart). Flags 4 loaded, 0x400 "BASE", 0x90 "CROWN" / "EMPTY", 0x800 "EMPTY"; the centre
     // is the piece's place in the figure, the radius the blood's size.

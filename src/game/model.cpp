@@ -79,7 +79,7 @@ private:
     const Matrix4& m;
     Vector3 reach[6];   // |coefficient| of p.x, p.y, p.z in each plane
     Vector3 scale;      // |x| + |y| + |z| + |w| of the columns of p.x, p.y, p.z: bounds every plane's coefficient
-    float scaleW;       // the same of the translation column
+    float scaleW = 0.0f;  // the same of the translation column
 };
 
 } // namespace

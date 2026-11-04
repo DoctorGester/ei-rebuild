@@ -49,15 +49,15 @@ constexpr float kMarkerWidth = 32.0f, kMarkerHeight = 10.0f;
 constexpr float kNumberInset = 1.0f / 512, kMarkerInset = 1.0f / 256;
 
 struct LabelRow {
-    std::uint32_t flag;
-    float top, bottom;   // texture v
+    std::uint32_t flag = 0;
+    float top = 0.0f, bottom = 0.0f;  // texture v
 };
 constexpr LabelRow kLabelRows[3] = {
     {kLabelA, 0.5390625f, 0.390625f}, {kLabelB, 0.390625f, 0.2421875f}, {kLabelC, 0.2421875f, 0.09375f}};
 
 struct QuadBuffer {
     TLVertex vertices[kMaxQuads * 4];
-    std::uint16_t indices[kMaxQuads * 6];
+    std::uint16_t indices[kMaxQuads * 6] = {};
     int vertexCount = 0;
     int indexCount = 0;
 

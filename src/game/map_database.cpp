@@ -44,9 +44,9 @@ private:
     void AddExit();
     void ExitLine(const char* word);
 
-    MapDatabase* db;
-    TextManager* reader;
-    int map;           // the current map (starts at the last one already loaded)
+    MapDatabase* db = nullptr;
+    TextManager* reader = nullptr;
+    int map = 0;       // the current map (starts at the last one already loaded)
     int exit = -1;     // the current exit of the current map
     std::vector<std::string> words;
 };

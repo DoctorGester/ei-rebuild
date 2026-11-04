@@ -62,9 +62,9 @@ public:
     std::int32_t PositionOf(const std::uint8_t* at) const { return static_cast<std::int32_t>(at - begin); }
 
     std::uint8_t* begin;
-    std::uint8_t* cur;
-    std::uint8_t* end;          // capacity
-    std::uint8_t* high;         // highest position written (raised lazily)
+    std::uint8_t* cur = nullptr;
+    std::uint8_t* end = nullptr;  // capacity
+    std::uint8_t* high = nullptr;  // highest position written (raised lazily)
     bool readPastEnd = false;   // a read ran past `high` (or a string past its limit)
 
 protected:
@@ -171,13 +171,13 @@ struct CoderState {
     ~CoderState() { out.End(); }
 
     std::uint8_t window[0x800];
-    std::int32_t chain[0x400];       // distance to the previous position with the same hash
-    std::int32_t head[0x400];        // last position per hash ((previous byte << 2) ^ byte)
+    std::int32_t chain[0x400] = {};  // distance to the previous position with the same hash
+    std::int32_t head[0x400] = {};   // last position per hash ((previous byte << 2) ^ byte)
     BufferCursor out;
-    std::uint32_t pos;               // window position
-    std::int32_t matchPos;           // -1: no match in progress
-    std::int32_t matchLen;
-    std::uint32_t prev;              // the previous input byte
+    std::uint32_t pos = 0;           // window position
+    std::int32_t matchPos = 0;       // -1: no match in progress
+    std::int32_t matchLen = 0;
+    std::uint32_t prev = 0;          // the previous input byte
 
     // Compresses everything in `in` (from its start) to `out` at its cursor.
     void Compress(GameBuffer* in, GameBuffer* out);

@@ -58,11 +58,11 @@ struct CursorImage {
     CursorImage(const CursorImage&) = delete;
     CursorImage& operator=(const CursorImage&) = delete;
 
-    Surface* holder;
-    std::int32_t width;                      // a frame's width
-    std::int32_t height;
-    int frames;                      // frames side by side (the picture's width / height)
-    int frame;                       // the frame shown (stepped every 125 ms)
+    Surface* holder = nullptr;
+    std::int32_t width = 0;                  // a frame's width
+    std::int32_t height = 0;
+    int frames = 0;                  // frames side by side (the picture's width / height)
+    int frame = 0;                   // the frame shown (stepped every 125 ms)
     Point hot;                       // the hot spot, scaled to the cursor's size
     std::vector<std::uint8_t> saved; // the mask over the whole picture: all ones where the picture is black, else 0
 };

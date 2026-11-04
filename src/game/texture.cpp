@@ -136,10 +136,10 @@ EngineObject* TextureManager::NewObject(int textureType) {
 
 void MmpHeader::SetFormat(std::uint32_t id) {
     struct Channel {
-        std::uint32_t mask, shift, bits;
+        std::uint32_t mask = 0, shift = 0, bits = 0;
     };
     struct Layout {
-        std::uint32_t id;
+        std::uint32_t id = 0;
         Channel alpha, red, green, blue;
     };
     static constexpr Layout kLayouts[] = {

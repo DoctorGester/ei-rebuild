@@ -101,35 +101,35 @@ struct SpellRecord {
     // the spell's code (the trader stock's spell instructions).
     std::string code;
     std::string unreadText;             // archive field 2; nothing reads it
-    float price;                        // a loot item's price when it stands for the spell (ItemLoot::GetPrice)
-    int castType;                       // 1: cast without noise and without slowing the caster; 0: planned as kind 2; the item info shows it
-    int school;
-    float mana;
+    float price = 0.0f;                 // a loot item's price when it stands for the spell (ItemLoot::GetPrice)
+    int castType = 0;                   // 1: cast without noise and without slowing the caster; 0: planned as kind 2; the item info shows it
+    int school = 0;
+    float mana = 0.0f;
     // fields 6-14: what Spell::InitFromPrototype / SpellContainer::Build copy into the spell, and the item
     // info shows.
-    std::uint32_t complexity;           // +1 per modifier in the spell
-    float speed;                        // missile speed (the item info's "power")
-    float range;
-    float area;                         // the spell's radius (sqrt(area / pi) once built with modifiers)
-    float damage;                       // the effect's power (the item info's level)
-    std::uint32_t targetKind;           // 'u' a unit, 't' a point (target flags 0x10000000 / 0x20000000)
-    std::uint32_t targetCount;
-    std::uint32_t duration;             // ticks
-    std::uint32_t castTime;             // Spell::castTime (UnitServer::CastValue: ticks of the cast animation)
-    int needsSight;                    // needs a line of sight to its target
-    int skill;                          // the school skill it needs
+    std::uint32_t complexity = 0;       // +1 per modifier in the spell
+    float speed = 0.0f;                 // missile speed (the item info's "power")
+    float range = 0.0f;
+    float area = 0.0f;                  // the spell's radius (sqrt(area / pi) once built with modifiers)
+    float damage = 0.0f;                // the effect's power (the item info's level)
+    std::uint32_t targetKind = 0;       // 'u' a unit, 't' a point (target flags 0x10000000 / 0x20000000)
+    std::uint32_t targetCount = 0;
+    std::uint32_t duration = 0;         // ticks
+    std::uint32_t castTime = 0;         // Spell::castTime (UnitServer::CastValue: ticks of the cast animation)
+    int needsSight = 0;                // needs a line of sight to its target
+    int skill = 0;                      // the school skill it needs
     std::vector<int> unreadIdListA;    // archive chunk 16; nothing reads it
     std::vector<int> unreadIdListB;    // archive chunk 17; nothing reads it
-    std::uint32_t icon;                 // the number of its picture and figure ("spell%04d", "prototype%04d")
+    std::uint32_t icon = 0;             // the number of its picture and figure ("spell%04d", "prototype%04d")
     // The light the spell's effects put up: its colour, range and the divisor of its rise speed (the light rises
     // at lightRange / max(lightRiseDivisor, 1) a tick).
     Vector3 lightColor;
-    float lightRange;
-    float lightRiseDivisor;
+    float lightRange = 0.0f;
+    float lightRiseDivisor = 0.0f;
     // which modifiers it accepts, one byte per kind by code letter: 'r', 't', 'a', 'e', 'd'; the item info
     // shows the level when the 'e' byte is set.
-    std::uint8_t allowedModifiers[5];
-    std::uint32_t classMask;            // bit (class - 1): the class templates that may use it
+    std::uint8_t allowedModifiers[5] = {};
+    std::uint32_t classMask = 0;        // bit (class - 1): the class templates that may use it
 };
 
 // The spell database's three lists of 0x34-byte records (chunks 3-5 of spells.sdb): the spell recipes of
@@ -143,7 +143,7 @@ struct SpellListRecord {
     std::vector<std::string> required;     // modifier names
     std::vector<std::string> optional;     // modifier names
     std::string repeated;                   // the modifier repeated while it fits
-    std::uint32_t classMask;                // bit per ItemStock::classIndex
+    std::uint32_t classMask = 0;            // bit per ItemStock::classIndex
 };
 
 // A spell modifier prototype.
@@ -154,14 +154,14 @@ struct SpellModifierRecord {
     std::string name;
     // the modifier's code inline; its first one or two letters are the kind the trader stock keys it by (a, d,
     // e, m, r, t; fi, ii).
-    char code[4];
-    float price;                        // a loot item's price when it stands for the modifier (ItemLoot::GetPrice)
-    std::uint32_t kind;
-    float mana;                         // added to the spell's
-    float strength;                     // the trader stock keeps the strongest per kind; kind 'm' scales the cost
-    int skill;                          // added to the spell's
+    char code[4] = {};
+    float price = 0.0f;                 // a loot item's price when it stands for the modifier (ItemLoot::GetPrice)
+    std::uint32_t kind = 0;
+    float mana = 0.0f;                  // added to the spell's
+    float strength = 0.0f;              // the trader stock keeps the strongest per kind; kind 'm' scales the cost
+    int skill = 0;                      // added to the spell's
     std::string unreadText;             // archive field 7; nothing reads it
-    std::uint32_t classMask;            // bit (class - 1): the class templates that may use it
+    std::uint32_t classMask = 0;        // bit (class - 1): the class templates that may use it
 };
 
 // The fields every item prototype starts with (weapons, armours, quick, quest and loot items). price..condition
@@ -178,28 +178,28 @@ public:
 
     std::string name;                   // the name the tables file the record under
     std::string family;                 // the item's family ("wand", "scroll"; what the trader stock skips by)
-    int type;                           // weapon / armour class
+    int type = 0;                       // weapon / armour class
     // the class of material it is made of ("none": a potion, without a material).
     std::string materialClass;
-    std::uint32_t unreadHeadField;      // archive field 4 (4 bytes); nothing reads it
-    int number;                         // the number in the item's text keys and names ("item%04d")
-    int variant;                        // the model variant
-    float price;                        // Item::price (plus materialUnits times the material's unitPrice)
+    std::uint32_t unreadHeadField = 0;  // archive field 4 (4 bytes); nothing reads it
+    int number = 0;                     // the number in the item's text keys and names ("item%04d")
+    int variant = 0;                    // the model variant
+    float price = 0.0f;                 // Item::price (plus materialUnits times the material's unitPrice)
     // Item::weight, times the material's weightFactor; also what WeaponWeight returns, which the unit's attack
     // info shows as the weapon's speed.
-    float weight;
-    float unreadValue;                  // Item::unreadValue (archive field 9, nothing else reads it)
-    float charge;                       // item charge and maximum
-    std::uint32_t magicLevel;           // Item::magicLevel (plus the material's)
-    float condition;                    // item condition and maximum (times the material's conditionFactor)
-    std::uint32_t materialUnits;        // units of material (the price; the trader stock takes them)
-    std::uint32_t classMask;            // bit (class - 1): the class templates that may use it
+    float weight = 0.0f;
+    float unreadValue = 0.0f;           // Item::unreadValue (archive field 9, nothing else reads it)
+    float charge = 0.0f;                // item charge and maximum
+    std::uint32_t magicLevel = 0;       // Item::magicLevel (plus the material's)
+    float condition = 0.0f;             // item condition and maximum (times the material's conditionFactor)
+    std::uint32_t materialUnits = 0;    // units of material (the price; the trader stock takes them)
+    std::uint32_t classMask = 0;        // bit (class - 1): the class templates that may use it
     // archive field 15, 1 after construction: 0 keeps the item out of the camp's item
     // constructor (IsBuildable).
-    std::uint8_t buildable;
+    std::uint8_t buildable = 0;
     // the category (QuickItemCategory), a quest
     // item's id, a loot item's kind; an armour's first absorption factor (float bits).
-    std::uint32_t category;
+    std::uint32_t category = 0;
 
 protected:
     ItemRecordHead() : buildable(1) {}
@@ -223,15 +223,15 @@ struct WeaponRecord : ItemRecordHead {
     // The head, then fields 0x15-0x1E.
     void Serialize(ChunkArchive* ar);
 
-    std::uint8_t unreadFields[11];      // archive fields 0x16 (8 bytes) and 0x1B (3); nothing reads them
+    std::uint8_t unreadFields[11] = {};  // archive fields 0x16 (8 bytes) and 0x1B (3); nothing reads them
     std::uint8_t skillBonus[2] = {};    // the wielder's weapon skill bonus (skill 0 / 1)
     std::uint8_t unused_7D[0x84 - 0x7D] = {};
-    float attackBonus;                  // added to the wielder's attack (WeaponAttackBonus)
-    float defenceBonus;                 // added to the wielder's defence (WeaponDefenceBonus; 0 for types 5, 6)
-    float reach;                        // ItemWeapon::reach
-    float damage;                       // minimum damage (times the material's damageFactor)
-    float damageSpread;                 // maximum damage = damage + spread
-    float damageTypes[kDamageTypeCount];   // weight of each damage type
+    float attackBonus = 0.0f;           // added to the wielder's attack (WeaponAttackBonus)
+    float defenceBonus = 0.0f;          // added to the wielder's defence (WeaponDefenceBonus; 0 for types 5, 6)
+    float reach = 0.0f;                 // ItemWeapon::reach
+    float damage = 0.0f;                // minimum damage (times the material's damageFactor)
+    float damageSpread = 0.0f;          // maximum damage = damage + spread
+    float damageTypes[kDamageTypeCount] = {};  // weight of each damage type
 };
 
 // An armour prototype: the two absorption rows ItemArmor takes.
@@ -246,13 +246,13 @@ struct ArmorRecord : ItemRecordHead {
     // per damage type (each times the row's factor and the material's absorbFactors) and flags
     // (the material's armourFlags or'ed in).
     float absorbFirst[kDamageTypeCount];   // item absorb[0]
-    std::uint32_t firstFlags;
-    float othersFactor;
-    float absorbOthers[kDamageTypeCount];  // item absorb[1]
-    std::uint32_t othersFlags;
-    std::uint8_t showsWounds;           // 0: the piece hides the wounds of the parts it covers
-    std::uint32_t layer;                // the lower one's texture goes first (ArmorLayer)
-    std::uint8_t unreadFields[11];      // archive fields 0x19 (3 bytes) and 0x1A (8); nothing reads them
+    std::uint32_t firstFlags = 0;
+    float othersFactor = 0.0f;
+    float absorbOthers[kDamageTypeCount] = {};  // item absorb[1]
+    std::uint32_t othersFlags = 0;
+    std::uint8_t showsWounds = 0;       // 0: the piece hides the wounds of the parts it covers
+    std::uint32_t layer = 0;            // the lower one's texture goes first (ArmorLayer)
+    std::uint8_t unreadFields[11] = {};  // archive fields 0x19 (3 bytes) and 0x1A (8); nothing reads them
 };
 
 // A quick item prototype (potions, wands, scrolls).
@@ -263,9 +263,9 @@ struct QuickItemRecord : ItemRecordHead {
     // (0x1A) and unreadFields (0x1B).
     void Serialize(ChunkArchive* ar);
 
-    std::uint32_t actionValue;              // ItemQuick::actionValue
+    std::uint32_t actionValue = 0;          // ItemQuick::actionValue
     // archive fields 0x17 (4 bytes), 0x18 (4) and 0x1B (8); nothing reads them
-    std::uint8_t unreadFields[16];
+    std::uint8_t unreadFields[16] = {};
     std::string spellText;                // the spell text of a QuickItemCategory::Potion item (ItemConstructor::FillItem)
     std::uint8_t attributeBonus[3] = {};   // per attribute (UnitStats::AttributeWithItems)
 };
@@ -291,7 +291,7 @@ struct LootItemRecord : ItemRecordHead {
     LootKind Stands() const { return static_cast<LootKind>(category); }
 
     std::uint32_t recordType;
-    std::uint32_t index;
+    std::uint32_t index = 0;
 };
 
 // The start of a material record.
@@ -299,19 +299,19 @@ struct MaterialRecordHead {
     std::string key;                   // (the camp's "material.<key>" loot items)
     std::string soundName;             // the material of hit sounds ("Metal", "Bone", ...)
     std::string name;
-    std::uint32_t number;               // its index (the packed item id's low half; loot kind 1)
+    std::uint32_t number = 0;           // its index (the packed item id's low half; loot kind 1)
     // the price per unit of the prototype's materialUnits (the trader stock's material draw); a material loot
     // item's price.
-    float unitPrice;
-    float weightFactor;                     // multiplies the prototype's weight (WeaponWeight)
-    float magicPower;                   // added to the prototype's charge (MagicCapacityOf)
-    std::uint32_t magicLevel;           // added to the prototype's magicLevel
-    float conditionFactor;              // multiplies the prototype's condition
-    std::uint32_t unreadField;          // archive field 9 (4 bytes); nothing reads it
-    float damageFactor;                 // multiplies a weapon's damage and spread
-    float absorbFactors[kDamageTypeCount]; // multiply an armour's absorption per damage type (one field)
-    std::uint32_t armourFlags;          // or'ed into the flag dwords of an armour's rows
-    std::uint32_t classMask;            // bit (class - 1): the class templates that may use it
+    float unitPrice = 0.0f;
+    float weightFactor = 0.0f;              // multiplies the prototype's weight (WeaponWeight)
+    float magicPower = 0.0f;            // added to the prototype's charge (MagicCapacityOf)
+    std::uint32_t magicLevel = 0;       // added to the prototype's magicLevel
+    float conditionFactor = 0.0f;       // multiplies the prototype's condition
+    std::uint32_t unreadField = 0;      // archive field 9 (4 bytes); nothing reads it
+    float damageFactor = 0.0f;          // multiplies a weapon's damage and spread
+    float absorbFactors[kDamageTypeCount] = {}; // multiply an armour's absorption per damage type (one field)
+    std::uint32_t armourFlags = 0;      // or'ed into the flag dwords of an armour's rows
+    std::uint32_t classMask = 0;        // bit (class - 1): the class templates that may use it
 
     // The three strings, then number..classMask.
     void Serialize(ChunkArchive* ar);

@@ -310,8 +310,8 @@ float ArcSin(float angle) { return lib::Sin(angle); }
 
 // The point at `turn` steps on the circle of `radius` about the origin, truncated (_ftol).
 struct ArcPoint {
-    int across;
-    int up;
+    int across = 0;
+    int up = 0;
 };
 ArcPoint OnArc(int turn, float step, float radius) {
     const float angle = ArcAngle(turn, step);

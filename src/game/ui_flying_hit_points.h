@@ -11,13 +11,13 @@
 class SceneRenderer;
 
 struct FlyingHitPoint {
-    int target;                 // nonzero: the unit's id
-    int amount;                 // 0 or more
+    int target = 0;             // nonzero: the unit's id
+    int amount = 0;             // 0 or more
     // Bits 0, 1, 3: a label row under the number (the texture's rows at v 0.39..0.54, 0.24..0.39,
     // 0.09..0.24), bit 3 also a cyan number started 0.5 s later; bit 31: drawn as a marker over the unit (no
     // number), erased after one drawing.
-    std::uint32_t flags;
-    std::uint32_t time;         // timeGetTime when it starts
+    std::uint32_t flags = 0;
+    std::uint32_t time = 0;     // timeGetTime when it starts
 };
 
 class FlyingHitPoints {

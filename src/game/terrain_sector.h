@@ -27,15 +27,15 @@ constexpr int kLayerTiles = kSectorTiles * kSectorTiles;
 
 // The tiles (of the sector's 16 x 16) that share a vertex; only the first `count` are set.
 struct VertexTiles {
-    int count;
-    int tiles[4];
+    int count = 0;
+    int tiles[4] = {};
 };
 
 // A tile's texture coordinates: its 3 x 3 vertices row by row, u then v.
 struct TileUv {
     static constexpr int kVertices = 9;
-    float u[kVertices];
-    float v[kVertices];
+    float u[kVertices] = {};
+    float v[kVertices] = {};
 };
 
 // Texture pages: the map's `pages` pages hold `perPage` tile textures each, then come kExtraPages pages
@@ -60,32 +60,32 @@ constexpr std::uint16_t kNoTile = 0xFFFF;
 #pragma pack(push, 1)
 // Per-vertex record (packed).
 struct SectorVertex {
-    std::uint32_t specular;             // edge fade << 24; on the water the wave crests' R G B (Animate)
+    std::uint32_t specular = 0;         // edge fade << 24; on the water the wave crests' R G B (Animate)
     Vector3 position;                   // water layer: the vertex position
     static constexpr std::uint16_t kNoWaterMaterial = 0xFFFF;
-    std::uint16_t waterMaterial;        // water layer: material index, or kNoWaterMaterial
-    float depth;                        // ground layer: water z - ground z
+    std::uint16_t waterMaterial = 0;    // water layer: material index, or kNoWaterMaterial
+    float depth = 0.0f;                 // ground layer: water z - ground z
     Vector3 normal;
     Vector3 materialColour;             // the water material's colour
-    std::uint8_t materialByte;          // the water material's opacityByte, 0xFF none
+    std::uint8_t materialByte = 0;      // the water material's opacityByte, 0xFF none
 };
 #pragma pack(pop)
 
 // A tile entry vertex: the record it uses and its texture coordinates.
 struct TileVertex {
-    SectorVertex* vertex;
-    float u;
-    float v;
+    SectorVertex* vertex = nullptr;
+    float u = 0.0f;
+    float v = 0.0f;
 };
 
 // An animated tile (texture with several frames).
 struct AnimatedTile {
-    TileVertex* vertices;   // the tile's 9 entries
-    int rotation;
-    int frameBase;          // index of the texture within its page
-    int frame;              // random start frame
-    int frames;
-    int speed;              // from the speed table by texture class
+    TileVertex* vertices = nullptr;  // the tile's 9 entries
+    int rotation = 0;
+    int frameBase = 0;      // index of the texture within its page
+    int frame = 0;          // random start frame
+    int frames = 0;
+    int speed = 0;          // from the speed table by texture class
 };
 
 using SectorBox = ClipBounds;
@@ -176,15 +176,15 @@ struct SectorData {
 
 struct TerrainMaterial {
     static constexpr int kKeepsGroundXY = 4;   // the kind of water whose vertices keep the ground's x, y
-    int kind;
+    int kind = 0;
     Vector3 waveColour;                 // specular of the wave crests (Animate)
-    float opacity;                      // as the map file has it
-    float absorption;                   // light lost per squared depth under water (lighting): 1 / (1 - opacity)
-    std::uint8_t opacityByte;           // opacity * 255
+    float opacity = 0.0f;               // as the map file has it
+    float absorption = 0.0f;            // light lost per squared depth under water (lighting): 1 / (1 - opacity)
+    std::uint8_t opacityByte = 0;       // opacity * 255
     Vector3 colour;                     // waveColour * the file's light factor, each capped at 1
-    float priority;                     // lowest wins where water materials meet; also scales the waves
-    float warpSpeed;                    // from the map file; nothing reads it
-    float level;                        // water level offset
+    float priority = 0.0f;              // lowest wins where water materials meet; also scales the waves
+    float warpSpeed = 0.0f;             // from the map file; nothing reads it
+    float level = 0.0f;                 // water level offset
 };
 
 } // namespace terrain

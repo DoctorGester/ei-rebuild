@@ -33,7 +33,7 @@ Party* PartyAt(PartyMap& parties, int key);
 struct PartyManager {
     PartyMap parties;                           // (LoadParty / StoreParty)
     std::vector<PartyManagerEntry> entries;
-    int unreadField;                    // archive field 3 (4 bytes); nothing reads it
+    int unreadField = 0;                // archive field 3 (4 bytes); nothing reads it
     NamedPartyRecords records;
     TemplateTable templates;
 

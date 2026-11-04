@@ -115,11 +115,11 @@ void WriteType(MemoryStream* out, Message type) {
 // A unit placement: the unit's id, position, rotation and two unit values (WorldServer::StoreParty stores
 // them, CreateUnits restores them).
 struct UnitPlacement {
-    int id;
+    int id = 0;
     Vector3 position;
     Quaternion rotation;
-    std::uint32_t moveMode;         // the unit's moveMode2
-    std::uint32_t weapon;           // its active weapon (pendingWeapon on restore)
+    std::uint32_t moveMode = 0;     // the unit's moveMode2
+    std::uint32_t weapon = 0;       // its active weapon (pendingWeapon on restore)
 };
 
 class PlayerClient;
@@ -142,7 +142,7 @@ public:
     virtual void ItemUsed(Item*) {}    // server (message 0x14); client empty
     virtual int Receive() = 0;              // server and client versions
 
-    Player* player;    // the owner (set by Player::SetConnection)
+    Player* player = nullptr;  // the owner (set by Player::SetConnection)
 
 protected:
     PlayerConnection();
@@ -317,7 +317,7 @@ public:
 
     // -1, or the unit a Possession spell took (its id): the next party refresh then sends possessedGroup (the
     // target and what it sees) and sets it back to -1. Sent with message 0x60.
-    std::uint32_t possessedId;
+    std::uint32_t possessedId = 0;
 
     // Where the client is in joining and leaving (the harness reads it).
     enum class State : int {
@@ -327,12 +327,12 @@ public:
         Leaving = 3,
         Disconnected = 4,       // SetDisconnect; ClientMessage::Resume brings it back
     };
-    State state;
+    State state = {};
 
     Vector3 lastPosition;           // sent with 0x04 / 0x0F
     MemoryStream in;                   // the client's messages being run (each received packet decompressed)
     MemoryStream out;                  // messages to the client
-    std::uint8_t partyDeployed;     // the party stands in the world: LeaderDied collects it when set, redeploys it when clear
+    std::uint8_t partyDeployed = 0;  // the party stands in the world: LeaderDied collects it when set, redeploys it when clear
     std::vector<UnitPlacement> placements;
     CoderState compressor;          // for the messages sent (Flush)
     CoderState decompressor;        // for the messages received
@@ -342,16 +342,16 @@ public:
     ScriptGroup partyUnits;         // units always sent (message 0x60)
     // How much danger the party is in (SendPartyState; the script's IsPlayerInDanger / IsPlayerInSafety).
     enum class PartyDanger : int { Safe = 0, EnemyNear = 1, InDanger = 2 };
-    PartyDanger danger;
-    int refreshTimer;               // updates until the party is sent again
+    PartyDanger danger = {};
+    int refreshTimer = 0;           // updates until the party is sent again
 };
 
 // The client's login message to the world server (not net::LoginMessage; 0x88 bytes, read whole by PlayerServer::OnLogin).
 struct PlayerLoginMessage {
-    int version;                    // 0x64
-    char name[0x40];
-    char password[0x40];
-    std::uint32_t partyId;          // the client player's partyId (cleared before the read)
+    int version = 0;                // 0x64
+    char name[0x40] = {};
+    char password[0x40] = {};
+    std::uint32_t partyId = 0;      // the client player's partyId (cleared before the read)
 };
 static_assert(sizeof(PlayerLoginMessage) == 0x88);   // sent as its bytes
 
@@ -451,24 +451,24 @@ public:
     PlayerServer* Server() const { return dynamic_cast<PlayerServer*>(connection); }
 
     netlink::NetLink* link;                     // the connection to the player's client, null: none
-    PlayerConnection* connection;              // PlayerServer / PlayerClient (counted)
-    int playerId;                               // player number (0 = the local player)
+    PlayerConnection* connection = nullptr;    // PlayerServer / PlayerClient (counted)
+    int playerId = 0;                           // player number (0 = the local player)
     MapObjectMap knownObjects;                  // map objects sent to the client
-    int maxObjectId;                            // highest id put in knownObjects
+    int maxObjectId = 0;                        // highest id put in knownObjects
     UnitMap units;                              // the player's units by id (counted)
-    int maxUnitId;                              // highest id put in units
+    int maxUnitId = 0;                          // highest id put in units
     TimedObjectMap knownTimed;                  // timed objects (effects) sent to the client
-    int maxTimedId;
+    int maxTimedId = 0;
     Party party;
     std::vector<Item*> items;          // items given to the player (counted)
-    int partyId;                                // the party's key in the party manager; sent with the client's login
-    int sessionKind;                         // 3: the client runs a setup on the controllers of new units
-    std::uint32_t lastScreen;                   // the session kind before the last game-state message (5: the camp)
-    std::uint8_t godMode;                       // the script's GodMode(player, on); the combat code tests it
-    int logTraffic;                             // logs the size of every flush
-    int lastTick;                               // -1 after Create; the world tick last saved or restored for the player
+    int partyId = 0;                            // the party's key in the party manager; sent with the client's login
+    int sessionKind = 0;                     // 3: the client runs a setup on the controllers of new units
+    std::uint32_t lastScreen = 0;               // the session kind before the last game-state message (5: the camp)
+    std::uint8_t godMode = 0;                   // the script's GodMode(player, on); the combat code tests it
+    int logTraffic = 0;                         // logs the size of every flush
+    int lastTick = 0;                           // -1 after Create; the world tick last saved or restored for the player
     std::vector<std::uint32_t> recharging;     // ids of items recharging (saved with the world from version 0x55)
-    std::uint32_t dirty;                        // PlayerDirty bits
+    std::uint32_t dirty = 0;                    // PlayerDirty bits
 };
 
 // The message dispatchers' fatal error: `format` with the previous and the current message type (their low

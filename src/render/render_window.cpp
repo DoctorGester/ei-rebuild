@@ -37,7 +37,7 @@ gpu::PresentMode g_presentMode = gpu::PresentMode::Vsync;   // the mode it gave 
 // identity until the game sets one.
 gpu::Texture g_rampImage;
 struct Ramp {
-    std::uint8_t entries[256 * 4];
+    std::uint8_t entries[256 * 4] = {};
     Ramp() {
         for (int i = 0; i < 256; ++i) {
             entries[i * 4 + 0] = entries[i * 4 + 1] = entries[i * 4 + 2] = static_cast<std::uint8_t>(i);

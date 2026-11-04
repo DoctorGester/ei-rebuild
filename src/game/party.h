@@ -124,8 +124,8 @@ public:
     SpellConstructor* spellConstructor = nullptr;
     std::vector<PartyUnitRecord> members;
     std::vector<Item*> items;
-    int money;                  // the party's money (money; cleared by Clear, saved masked)
+    int money = 0;              // the party's money (money; cleared by Clear, saved masked)
     NamedFloatTable variables;    // named variables (the script's "gtime" and the like)
     std::string zone;            // the zone name ("gz1g" after a new game)
-    std::uint32_t entrance;       // the zone exit the party arrives by (cleared by Clear)
+    std::uint32_t entrance = 0;   // the zone exit the party arrives by (cleared by Clear)
 };

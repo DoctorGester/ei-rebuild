@@ -21,31 +21,31 @@ class Object3D;
 // Zoom distance limits of one camera mode. Inside [min, max] the distance moves freely; between
 // max and hardMax (min and hardMin) it eases back; beyond the hard limits it is cut.
 struct CameraLimits {
-    float min;
-    float max;
-    float hardMin;
-    float hardMax;
+    float min = 0.0f;
+    float max = 0.0f;
+    float hardMin = 0.0f;
+    float hardMax = 0.0f;
 };
 
 struct CameraView {
-    float distance;
+    float distance = 0.0f;
     Quaternion rotation;
-    float pitch;
+    float pitch = 0.0f;
 };
 
 // A shake of the camera (Camera::shakes).
 struct CameraShake {
-    float elapsed;
-    float duration;
-    float amplitude;
-    float decay;
+    float elapsed = 0.0f;
+    float duration = 0.0f;
+    float amplitude = 0.0f;
+    float decay = 0.0f;
 };
 
 // A key of a recorded camera path (camera\*.cam, played by PlayCamera), and a frame of the file
 // being recorded (the dword at +4 is never written by the recorder: stack bytes there, zero here).
 struct CameraKey {
-    float time;
-    std::uint32_t reserved; // 0 here (see above)
+    float time = 0.0f;
+    std::uint32_t reserved = 0; // 0 here (see above)
     Vector3 position;
     Quaternion rotation;
 };
@@ -55,9 +55,9 @@ static_assert(sizeof(CameraKey) == 0x24);   // read as the camera file's records
 // [p.x - halfX, p.x + halfX] x [p.y - halfY, p.y + halfY] (points off the map skipped; the centre
 // counts once more).
 struct TerrainSample {
-    float average;
-    float minimum;
-    float maximum;
+    float average = 0.0f;
+    float minimum = 0.0f;
+    float maximum = 0.0f;
 };
 TerrainSample SampleTerrain(const Vector3& p, float step, float halfX, float halfY);
 
@@ -212,7 +212,7 @@ struct ViewPose {
     Quaternion rotation;    // TransformObject::localRotation
     Vector3 focus;          // focus, heading viewRotation and distance: what the harness's camtrace reads
     Quaternion heading;
-    float distance;
+    float distance = 0.0f;
 };
 // Around a client tick's camera update: the pose before it, then the step it made.
 void NoteViewBeforeTick(const Camera* camera);

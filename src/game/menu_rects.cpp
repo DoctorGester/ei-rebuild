@@ -18,10 +18,10 @@ namespace {
 
 // The entries in the order the original reads them: section, name, error, the RECT's index.
 struct MenuRect {
-    const char* section;
-    const char* name;
-    const char* error;
-    int index;
+    const char* section = nullptr;
+    const char* name = nullptr;
+    const char* error = nullptr;
+    int index = 0;
 };
 constexpr MenuRect kRects[] = {
     {"MainMenu", "NewGame", "Can't get rect for MM NewGame\n", 0},

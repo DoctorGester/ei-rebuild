@@ -26,9 +26,9 @@ private:
     void DecodeFrame(BitReader& bits);
     void InverseTransform();
 
-    int frameSize;   // the values of one transform, the channels interleaved
-    int overlap;     // the samples of a frame blended into the next one's start
-    float scale;     // from the transform's values to samples
+    int frameSize = 0;  // the values of one transform, the channels interleaved
+    int overlap = 0;  // the samples of a frame blended into the next one's start
+    float scale = 0.0f;  // from the transform's values to samples
     std::vector<int> bands;   // the quantiser bands' first coefficient pairs, and the end
     std::vector<std::int16_t> values;             // the coefficients as read, before their quantisers
     std::vector<float> coefficients;

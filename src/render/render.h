@@ -105,21 +105,21 @@ UnitWeather UnitWeatherState(const void* object);
 // over the ground's light in them (mesh.hlsl's ground_shade).
 struct ScenePointLight {
     Vector3 position;   // the landscape's space
-    float inverseRangeSquared;
-    float colour[3];
-    bool specular;      // light flag 0x40
-    bool shadows;       // casts point shadows: not an object's own light (LightFlag::Off)
+    float inverseRangeSquared = 0.0f;
+    float colour[3] = {};
+    bool specular = false;  // light flag 0x40
+    bool shadows = false;  // casts point shadows: not an object's own light (LightFlag::Off)
 };
 struct SceneLights {
     Vector3 sunDirection;
-    float sunColour[3];
-    float ambientColour[3];
-    float daySunColour[3];
-    float dayAmbientColour[3];
+    float sunColour[3] = {};
+    float ambientColour[3] = {};
+    float daySunColour[3] = {};
+    float dayAmbientColour[3] = {};
     Vector3 camera;
-    const ScenePointLight* points;
-    int pointCount;
-    double clientTicks;   // the client world's tick and the fraction of the next one it has had
+    const ScenePointLight* points = nullptr;
+    int pointCount = 0;
+    double clientTicks = 0.0;  // the client world's tick and the fraction of the next one it has had
 };
 constexpr int kMostSceneLights = 16;
 void SceneLighting(const SceneLights& lights);
@@ -152,34 +152,34 @@ void CastsShadow(const void* object, float strength);
 // not called for `object` this frame. SetOffscreenCasters (harness "shadowcasters view|all|walked"): View,
 // only what the game draws casts; Walked, every caster comes from the walk.
 struct ShadowCasterRect {
-    float x0, y0, x1, y1;
+    float x0 = 0.0f, y0 = 0.0f, x1 = 0.0f, y1 = 0.0f;
 };
 bool ShadowCasterArea(float highestTop, float widest, ShadowCasterRect* area);
 struct ShadowCasterSphere {
-    float x, y, z, radius;
+    float x = 0.0f, y = 0.0f, z = 0.0f, radius = 0.0f;
 };
 bool ShadowCasterReaches(const ShadowCasterSphere& sphere);
 bool CasterPartDrawn(const void* part);
 float CasterStrength(const void* object);
 struct ShadowMesh {
-    const VertexPacket* positions;     // as MeshDraw's
-    int positionCount;
-    const TexCoord* uvs;
-    int uvCount;
-    const MeshCorner* corners;
-    int cornerCount;
-    const std::uint16_t* indices;      // a triangle list over the corners
-    int indexCount;
-    float uOffset, vOffset;            // added to the texture coordinates
+    const VertexPacket* positions = nullptr;  // as MeshDraw's
+    int positionCount = 0;
+    const TexCoord* uvs = nullptr;
+    int uvCount = 0;
+    const MeshCorner* corners = nullptr;
+    int cornerCount = 0;
+    const std::uint16_t* indices = nullptr;  // a triangle list over the corners
+    int indexCount = 0;
+    float uOffset = 0.0f, vOffset = 0.0f;  // added to the texture coordinates
     Matrix4 model;                     // model space to the landscape's, row-major: out = M * (x, y, z, 1)
-    const void* texture;               // stage 0's surface holder, or null
+    const void* texture = nullptr;     // stage 0's surface holder, or null
     // The part (MeshSource::owner) and its link figure (MeshSource::shared, else null), and whether the
     // positions are a copy with the per-vertex offsets added (MeshSource::moved): the renderer keeps the
     // corners on the GPU by part, read again when MeshChanged says so.
-    const void* owner;
-    const void* shared;
-    bool moved;
-    bool unit;   // a unit's part: no roof over the weather (render_weather.cpp's roof map)
+    const void* owner = nullptr;
+    const void* shared = nullptr;
+    bool moved = false;
+    bool unit = false;  // a unit's part: no roof over the weather (render_weather.cpp's roof map)
 };
 void ShadowCasterMesh(const void* object, const ShadowMesh& mesh);
 // The walk's time counts as the shadow map's CPU time.
@@ -316,33 +316,33 @@ bool Vsync();
 // old path projects it with. Every pass the old path draws between BeginMesh and EndMesh calls MeshPass,
 // which takes the old device's state. A mesh the renderer refuses is lost (logged).
 struct MeshDraw {
-    const VertexPacket* positions;     // vertex i is lane i % 4 of packet i / 4 (w unused)
-    int positionCount;                 // vertices
-    const std::uint32_t* colours;      // D3DCOLOR, by the corners' normal index
-    const std::uint32_t* speculars;
-    const TexCoord* uvs;               // by the corners' texture index
-    const MeshCorner* corners;         // null (the flat geometry draw): vertex i is position i with uv i and
-                                       // colours[0] / speculars[0]
-    int cornerCount;                   // without corners: the vertex count
-    const std::uint16_t* indices;      // a triangle list over the corners
-    int indexCount;
-    float uOffset, vOffset;            // added to the texture coordinates when `moveUv`
-    bool moveUv;
-    const Matrix4* matrix;             // row-major, out = M * (x, y, z, 1)
-    bool screenMatrix;                 // `matrix` gives screen pixels after the divide, else clip space
-    bool clipped;                      // else only projected: the depth is not cut at the near / far planes
-    bool distanceFog;
-    float zScale;                      // 0 taken as 1
-    bool coloursWritten;               // the draw set every colour to the device's (flag 4)
-    bool groundDecal;                  // flat geometry laid on the ground (a print: blood, footprints, scorch marks),
+    const VertexPacket* positions = nullptr;  // vertex i is lane i % 4 of packet i / 4 (w unused)
+    int positionCount = 0;             // vertices
+    const std::uint32_t* colours = nullptr;  // D3DCOLOR, by the corners' normal index
+    const std::uint32_t* speculars = nullptr;
+    const TexCoord* uvs = nullptr;     // by the corners' texture index
+    const MeshCorner* corners = nullptr;  // null (the flat geometry draw): vertex i is position i with uv i and
+                                          // colours[0] / speculars[0]
+    int cornerCount = 0;               // without corners: the vertex count
+    const std::uint16_t* indices = nullptr;  // a triangle list over the corners
+    int indexCount = 0;
+    float uOffset = 0.0f, vOffset = 0.0f;  // added to the texture coordinates when `moveUv`
+    bool moveUv = false;
+    const Matrix4* matrix = nullptr;   // row-major, out = M * (x, y, z, 1)
+    bool screenMatrix = false;         // `matrix` gives screen pixels after the divide, else clip space
+    bool clipped = false;              // else only projected: the depth is not cut at the near / far planes
+    bool distanceFog = false;
+    float zScale = 0.0f;               // 0 taken as 1
+    bool coloursWritten = false;       // the draw set every colour to the device's (flag 4)
+    bool groundDecal = false;          // flat geometry laid on the ground (a print: blood, footprints, scorch marks),
                                        // its positions in the landscape's space: shaded by the shadows as the ground
 // A figure mesh lit on the GPU (MeshSource::lighting), else null: the normals (packets of four as the
 // positions) and the words (a position index in the low half, a normal index in the high half, by the corners'
 // colour index).
-    const NormalPacket* normals;
-    int normalCount;                   // normals
-    const std::uint32_t* words;
-    int wordCount;
+    const NormalPacket* normals = nullptr;
+    int normalCount = 0;               // normals
+    const std::uint32_t* words = nullptr;
+    int wordCount = 0;
 };
 
 // A texture's .mmp file in memory: the levels from `mip` on that the game loads for `holder`, decoded and
@@ -365,10 +365,10 @@ enum class ImageLayout : std::uint8_t {
 // An image the game has drawn into a texture on the GPU (ComposeTexture, DrawIntoTexture): an .mmp file's pixels after
 // its header and extra block, or another file's picture, rows from the top.
 struct TextureImage {
-    const void* pixels;
-    std::uint32_t bytes;   // the pixels' bytes in the file
-    int width, height;
-    ImageLayout layout;
+    const void* pixels = nullptr;
+    std::uint32_t bytes = 0;  // the pixels' bytes in the file
+    int width = 0, height = 0;
+    ImageLayout layout = {};
 };
 // The texture of `holder` composed on the GPU: `size` x `size` texels of transparent black, each image (`size`
 // square) drawn over the last (premultiplied: what is there x (1 - the image's alpha) + the image), the levels
@@ -390,7 +390,7 @@ void DrawIntoTexture(const void* holder, const TextureImage* image, int x, int y
 // One frame of the global map's clouds (DrawClouds): 256 x 256 grey levels of value noise summed from four 32 x 32
 // layers, each made from three random words (GlobalMapClouds, global_map_clouds.cpp).
 struct CloudFrame {
-    std::uint32_t words[4][3];   // each layer's a, b, c
+    std::uint32_t words[4][3] = {};  // each layer's a, b, c
 };
 // The whole 256 x 256 texture of `holder` (BlankTexture) made the clouds: each texel white with the alpha `ramp`[g],
 // g = (frame `to`'s grey level x `blend` + `from`'s x (256 - `blend`)) / 256.
@@ -403,8 +403,8 @@ void EndMesh();
 // Pre-transformed vertices (FVF 0xC4, rhw taken as 1): the rectangle fill and outline. A triangle list over
 // `indices`, or a line strip when `indices` is null. A draw it refuses is lost (logged).
 struct ScreenVertex {
-    float x, y, z, rhw;
-    std::uint32_t colour, specular;
+    float x = 0.0f, y = 0.0f, z = 0.0f, rhw = 0.0f;
+    std::uint32_t colour = 0, specular = 0;
 };
 void ScreenDraw(const TextureDevice* device, const ScreenVertex* vertices, int count, const std::uint16_t* indices, int indexCount);
 
@@ -483,32 +483,32 @@ TerrainCacheInfo TerrainCacheState();
 // and sun are taken into the part's model space.
 struct MeshLightSource {
     Vector3 position;              // the landscape's space
-    float inverseRangeSquared;
-    float colour[3];
+    float inverseRangeSquared = 0.0f;
+    float colour[3] = {};
 };
 struct MeshLighting {
     Matrix4 model;                 // the part's model space to the landscape's (row-major); with `camera`, the
                                    // camera times that
-    const Matrix4* camera;         // the scene's camera (worlddata::SceneCamera), else null
-    bool sun;
+    const Matrix4* camera = nullptr;  // the scene's camera (worlddata::SceneCamera), else null
+    bool sun = false;
     Vector3 sunDirection;          // the direction its light travels
-    float sunColour[3];
-    float ambientColour[3];        // SceneRenderer::SetColour's last
-    float diffuseColour[4];        // the material's
-    float emissiveColour[3];
-    float coefficient;             // the options' objects lighting coefficient (Light::SetLitColors)
-    const MeshLightSource* lights;   // the lights within the object's reach (its draw's list)
-    int lightCount;
+    float sunColour[3] = {};
+    float ambientColour[3] = {};   // SceneRenderer::SetColour's last
+    float diffuseColour[4] = {};   // the material's
+    float emissiveColour[3] = {};
+    float coefficient = 0.0f;      // the options' objects lighting coefficient (Light::SetLitColors)
+    const MeshLightSource* lights = nullptr;  // the lights within the object's reach (its draw's list)
+    int lightCount = 0;
 };
 
 // The figure mesh the next mesh draws draw, set by the figure part draws around the device's draw. The
 // renderer keeps its corners on the GPU under `owner` and rebuilds only what changed: the colours when the
 // draw wrote them, the positions on MeshChanged. A mesh draw without one is built every frame.
 struct MeshSource {
-    const void* owner;     // the figure mesh (FigureMesh) drawn
-    const void* shared;    // the link figure (LinkMesh) whose part it draws, else null
-    bool moved;            // the positions handed over are a copy with the per-vertex offsets added
-    bool coloursWritten;   // this draw wrote the mesh's colour arrays (lit, flat colours)
+    const void* owner = nullptr;  // the figure mesh (FigureMesh) drawn
+    const void* shared = nullptr;  // the link figure (LinkMesh) whose part it draws, else null
+    bool moved = false;    // the positions handed over are a copy with the per-vertex offsets added
+    bool coloursWritten = false;  // this draw wrote the mesh's colour arrays (lit, flat colours)
     const MeshLighting* lighting = nullptr;   // lit on the GPU (the draw's colours: only their alpha)
 };
 void SetMeshSource(const MeshSource* source);

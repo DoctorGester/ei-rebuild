@@ -42,10 +42,10 @@ public:
     std::string ReadEncodedString();
     std::vector<std::string> ReadStringArray();
 
-    std::uint32_t id;
-    std::int32_t consumed;   // bytes of the chunk read so far, header included
-    std::int32_t size;       // size from the header, header included
-    Chunk* parent;
+    std::uint32_t id = 0;
+    std::int32_t consumed = 0;  // bytes of the chunk read so far, header included
+    std::int32_t size = 0;   // size from the header, header included
+    Chunk* parent = nullptr;
 };
 
 // The root chunk of a file: File() returns its file.

@@ -58,7 +58,7 @@ void DrawSolid(PipelineKind kind, const Rect& r, float z, std::uint32_t colour, 
 // frame is presented.
 struct LetGo {
     gpu::Texture image;
-    std::uint32_t frame;
+    std::uint32_t frame = 0;
 };
 std::vector<LetGo> g_letGo;
 

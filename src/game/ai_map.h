@@ -27,10 +27,10 @@ constexpr std::uint8_t kCellWater = 0x80;    // under water (AIMap::InWaterAt)
 
 // One AI map cell: a 4-bit passability per unit size class, then heights.
 struct AIMapCell {
-    std::uint32_t passable;     // per size class (Passability): 0 not passable, else the index into its cost table
-    std::uint16_t groundLevel;  // terrain height in AI height units; blocks lines of sight
-    std::uint8_t flags;         // the water's depth, kCellBridge, kCellWater
-    std::uint8_t level;         // compared with the unit's standing level
+    std::uint32_t passable = 0;  // per size class (Passability): 0 not passable, else the index into its cost table
+    std::uint16_t groundLevel = 0;  // terrain height in AI height units; blocks lines of sight
+    std::uint8_t flags = 0;     // the water's depth, kCellBridge, kCellWater
+    std::uint8_t level = 0;     // compared with the unit's standing level
 
     // The passability of the size class whose field starts at bit `shift` (4 * size class; its low 5 bits count):
     // 0 not passable, else the index into PassCostContext::costs.
@@ -82,14 +82,14 @@ inline std::uint32_t WithHead(std::uint32_t word, int head) {
 
 // A cell an object's footprint covers, collected by AIMap::MarkFootprint before it is applied to the grid.
 struct FootprintCell {
-    int x, y;
-    int low;                    // lowest bottom-face height (AI height units), 0x7FFFFFFF if none
-    int high;                   // highest top-face height, 0 if none
-    OccluderKind kind;          // the part's (FootprintPart); BridgeDeck once applied
-    std::int8_t transparency;   // index into the transparency table (the part's)
-    std::uint8_t edge;          // lies on the outline of one of the part's faces
-    std::uint8_t padding;               // zeroed by AddCell (uninitialised in the original)
-    int next;                   // next index in the same hash bucket, -1 ends
+    int x = 0, y = 0;
+    int low = 0;                // lowest bottom-face height (AI height units), 0x7FFFFFFF if none
+    int high = 0;               // highest top-face height, 0 if none
+    OccluderKind kind = {};     // the part's (FootprintPart); BridgeDeck once applied
+    std::int8_t transparency = 0;  // index into the transparency table (the part's)
+    std::uint8_t edge = 0;      // lies on the outline of one of the part's faces
+    std::uint8_t padding = 0;           // zeroed by AddCell (uninitialised in the original)
+    int next = 0;               // next index in the same hash bucket, -1 ends
 };
 
 // A growable array of FootprintCell with a 16-bucket hash on (x + y).
@@ -117,12 +117,12 @@ struct FootprintCellSet {
 
 // The passability cost tables of one size class, filled by AIMap::CostContext.
 struct PassCostContext {
-    const int* costs;       // cost per passability nibble
-    const int* climb;       // middle of the climb table of the size class
-    int shift;              // size class * 4: the nibble in AIMapCell::passable
-    float backwardSpeed;    // 0.1, or the unit's (CostContextFor)
-    float turnScale;                    // 10: scales the turn cost of a path step
-    float forwardSpeed;     // 0.1, or the unit's
+    const int* costs = nullptr;  // cost per passability nibble
+    const int* climb = nullptr;  // middle of the climb table of the size class
+    int shift = 0;          // size class * 4: the nibble in AIMapCell::passable
+    float backwardSpeed = 0.0f;  // 0.1, or the unit's (CostContextFor)
+    float turnScale = 0.0f;             // 10: scales the turn cost of a path step
+    float forwardSpeed = 0.0f;  // 0.1, or the unit's
 };
 
 // The passability cost tables, indexed by a cell's passability nibble (entry 0, impassable, is -1): the cost per
@@ -140,9 +140,9 @@ class DeltaReader;
 class DeltaWriter;
 
 struct PathCell {
-    std::int16_t x, y;
-    std::uint16_t flags;        // 0x200 on a path that is a single cell
-    std::uint16_t terrainBits;          // bit 0 the cell is in water, bit 1 a costly cell (path state bits 4-5)
+    std::int16_t x = 0, y = 0;
+    std::uint16_t flags = 0;    // 0x200 on a path that is a single cell
+    std::uint16_t terrainBits = 0;      // bit 0 the cell is in water, bit 1 a costly cell (path state bits 4-5)
 
     // The neighbour in direction 1..8 (1 = y - 1, then clockwise towards -x: 2 =
     // (-1, -1), 3 = (-1, 0), 4 = (-1, +1), 5 = (0, +1), 6 = (+1, +1), 7 = (+1, 0), 8 = (+1, -1)) into
@@ -171,7 +171,7 @@ void PathCellsRemoveRepeats(PathCells* list);
 
 // A block a search reaches.
 struct BlockCost {
-    int x, y, cost;
+    int x = 0, y = 0, cost = 0;
 };
 
 struct RegionMap;
@@ -184,13 +184,13 @@ struct RegionMap;
 // 4 turn to direction `arg5`.
 // (x, y) and targets are in half-cell units (world * 2).
 struct MotionOrder {
-    int kind;
+    int kind = 0;
     Vector2 position;   // where the order starts
-    float angle;        // facing at the start
-    int startTime;      // world time the order started
-    std::uint32_t arg5; // float or object id, by kind
-    std::uint32_t arg6;
-    std::uint32_t arg7;
+    float angle = 0.0f;  // facing at the start
+    int startTime = 0;  // world time the order started
+    std::uint32_t arg5 = 0; // float or object id, by kind
+    std::uint32_t arg6 = 0;
+    std::uint32_t arg7 = 0;
 };
 
 // A motion order with the steps it walks next: the first part of a unit's path (AIPath) and all the client's
@@ -257,15 +257,15 @@ struct AIPath : PathOrder {
     PathCells cells;         // the rest of the path
     Vector2 target;          // in half-cells
     Vector3 goal;               // world position asked for
-    bool reached;               // no cells left
-    std::uint8_t failed;        // 1: the last search failed; search again
+    bool reached = false;       // no cells left
+    std::uint8_t failed = 0;    // 1: the last search failed; search again
     // FindPath lets the long-range plan exclude a region it failed in and plan again (PlanLongPath's `retry`)
     // when either is set: mayExcludeRegions for units without a player (set by their planners), firstSearch
     // from Clear until the first search ends.
-    bool mayExcludeRegions, firstSearch;
+    bool mayExcludeRegions = false, firstSearch = false;
     // the blocks the long-range plan avoids (PlanLongPath adds the region it failed in).
     std::vector<Point> excludedBlocks;
-    int smoothing;              // set by the smoother (how much longer the path is than the way)
+    int smoothing = 0;          // set by the smoother (how much longer the path is than the way)
 };
 
 class AIMap;
@@ -276,22 +276,22 @@ class UnitShape;
 // section of tileDesc.reg in aiinfo.res, named by the type's number.
 struct AITerrainType {
     std::string name;           // "Name"
-    int speed;                  // "Speed" (-1 without one)
-    int cost;                   // "CostMul": what a cell of it costs (CellMark's starting cost)
-    float look;                 // "StepLook" in hundredths
-    float smell;                // "StepSmell" in hundredths
-    float noise;                // "StepSound" in hundredths: how loud steps on it are (AIViewer::StepNoise)
-    std::uint32_t openMarks;    // per size class nibble: the mark of a cell with nothing on it
+    int speed = 0;              // "Speed" (-1 without one)
+    int cost = 0;               // "CostMul": what a cell of it costs (CellMark's starting cost)
+    float look = 0.0f;          // "StepLook" in hundredths
+    float smell = 0.0f;         // "StepSmell" in hundredths
+    float noise = 0.0f;         // "StepSound" in hundredths: how loud steps on it are (AIViewer::StepNoise)
+    std::uint32_t openMarks = 0;  // per size class nibble: the mark of a cell with nothing on it
 };
 
 struct SearchNode {
-    int cost;                   // 0x7FFFFFFF until reached
-    SearchNode* next;           // in its bucket, or in the settled list
-    SearchNode* prev;           // in its bucket
-    std::int16_t x, y;          // window coordinates (0..33)
-    bool usable;                // false on the window's border and outside a rectangle
-    bool settled;               // expanded, or the start
-    std::int8_t direction;      // 1..8: the way back to the cell it was reached from; 0 none
+    int cost = 0;               // 0x7FFFFFFF until reached
+    SearchNode* next = nullptr;  // in its bucket, or in the settled list
+    SearchNode* prev = nullptr;  // in its bucket
+    std::int16_t x = 0, y = 0;  // window coordinates (0..33)
+    bool usable = false;        // false on the window's border and outside a rectangle
+    bool settled = false;       // expanded, or the start
+    std::int8_t direction = 0;  // 1..8: the way back to the cell it was reached from; 0 none
 };
 
 // The local search (the AI map's forward and backward ones, and the region map's): Dijkstra over a 34 x 34
@@ -374,12 +374,12 @@ inline constexpr int kDirectionDy[9] = /*0079112C*/ {0, -1, -1, 0, 1, 1, 1, 0, -
 // A block of a block search: open records wait in sorted doubly linked buckets; a settled one moves to the
 // search's `touched` chain (through `next`).
 struct BlockRecord {
-    int cost;                   // 0x7FFFFFFF unreached, -1 excluded
-    BlockRecord* next;
-    BlockRecord* prev;
-    std::int16_t x, y;          // block coordinates
-    int backDirection;          // 1..8: the way back to the block it was reached from; 0 none
-    bool settled;
+    int cost = 0;               // 0x7FFFFFFF unreached, -1 excluded
+    BlockRecord* next = nullptr;
+    BlockRecord* prev = nullptr;
+    std::int16_t x = 0, y = 0;  // block coordinates
+    int backDirection = 0;      // 1..8: the way back to the block it was reached from; 0 none
+    bool settled = false;
 };
 
 // Dijkstra over the blocks of one size class (the region map's forward and backward search):
@@ -489,34 +489,34 @@ struct RegionMap {
 // The path smoother's trellis: per path cell nine states, one per direction the unit leaves the cell in (index
 // direction - 1; index 8 unused), each the cheapest cost so far and its back-pointer chain.
 struct SmoothNode {
-    int direction;              // the way back to the previous cell (1..8)
-    SmoothNode* prev;
+    int direction = 0;          // the way back to the previous cell (1..8)
+    SmoothNode* prev = nullptr;
 };
 struct SmoothState {
-    int cost;                   // 0x7FFFFFFF unreachable
-    SmoothNode* node;
+    int cost = 0;               // 0x7FFFFFFF unreachable
+    SmoothNode* node = nullptr;
 };
 // A transition table entry: state `from` of the previous cell carries over to state `to`.
 struct SmoothCopy {
-    int from, to;
+    int from = 0, to = 0;
 };
 // A transition table step: from state `from` to state `to`, a step of `factor`
 // between the cells at (dx, dy) and (dx + stepX, dy + stepY) from the current cell, with `turn`
 // eighths of a turn; the reached state's node gets `direction`.
 struct SmoothStep {
-    int from, to;
-    int dx, dy;
-    int stepX, stepY;
-    int turn;
-    int factor;
-    int direction;
+    int from = 0, to = 0;
+    int dx = 0, dy = 0;
+    int stepX = 0, stepY = 0;
+    int turn = 0;
+    int factor = 0;
+    int direction = 0;
 };
 // A state of the smoother's trellis as the tables' builder sees it: a move between two cells
 // around a path cell, from (x0, y0) to (x1, y1) relative to it. `index` is its place among the cell's states.
 struct SmoothEdge {
-    int x0, y0;
-    int x1, y1;
-    int index;
+    int x0 = 0, y0 = 0;
+    int x1 = 0, y1 = 0;
+    int index = 0;
 };
 
 // One of the 81 transition tables (previous direction * 9 + next direction; 0 at the path's end).
@@ -556,10 +556,10 @@ struct PathSmoother {
     void Advance(const SmoothState* from, SmoothState* to, const SmoothTable* table);
     void Relax(const SmoothStep* step, const SmoothState* from, SmoothState* to);
 
-    std::uint8_t level;             // standing level
-    int sizeClass;
-    AIMap* map;
-    int x, y;                       // the current cell
+    std::uint8_t level = 0;         // standing level
+    int sizeClass = 0;
+    AIMap* map = nullptr;
+    int x = 0, y = 0;               // the current cell
     PassCostContext costs;
 };
 
@@ -568,9 +568,9 @@ using UnitLayerOwner = std::variant<const Unit*, int>;
 
 // A 4x4-cell block of one owner's levels.
 struct UnitLayerNode {
-    UnitLayerNode* next;        // next in the bucket, or in the free list
-    int key;                    // (block y << 16) + block x, blocks of 4 cells
-    std::int8_t levels[16];     // rows of 4
+    UnitLayerNode* next = nullptr;  // next in the bucket, or in the free list
+    int key = 0;                // (block y << 16) + block x, blocks of 4 cells
+    std::int8_t levels[16] = {};  // rows of 4
     UnitLayerOwner owner;
 };
 
@@ -618,7 +618,7 @@ public:
 // A level's special area (AIMap::areaLists, ClearUnmarkedArea): the offset {dx, dy} of the cell
 // whose mark decides.
 struct AreaOffset {
-    int dx, dy;
+    int dx = 0, dy = 0;
 };
 
 // The cells under a bridge (AIMap::bridgeHeights): what each cell was before a bridge deck covered it.
@@ -651,12 +651,12 @@ struct AIDirtyRect {
 // The column AIMap::CellMark measures against a cell's occluders; a cell with no occluder and no water leaves it
 // untouched.
 struct CellMarkState {
-    int bottom;
-    int top;
-    int passage;            // 0x400 open, damped by occluders; negative: blocked
-    int cost;
-    int ceiling;            // the room above the bottom (0x7F8 on open ground)
-    std::uint8_t doubled;   // the cost counts twice (OccluderKind::SpellArea)
+    int bottom = 0;
+    int top = 0;
+    int passage = 0;        // 0x400 open, damped by occluders; negative: blocked
+    int cost = 0;
+    int ceiling = 0;        // the room above the bottom (0x7F8 on open ground)
+    std::uint8_t doubled = 0;  // the cost counts twice (OccluderKind::SpellArea)
 };
 
 // The navigation grid of the current map (Rebirth patches Load).
@@ -866,8 +866,8 @@ struct SpiralCache {
     // The offsets, with `length` set to how many lie within `radius` (cached for the last radius asked).
     const std::int16_t* Get(float radius, int* length);
 
-    int length;
-    float radius;
+    int length = 0;
+    float radius = 0.0f;
 };
 
 // World coordinate to AI map cell (half-unit cells), as every AI map function computes it: rounded to float,

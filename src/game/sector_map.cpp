@@ -191,7 +191,7 @@ constexpr float kBeyondSpiral = 1.0e30f;                            // 7149F2CA:
 // A sector of the square and how far it is: the gap between the sectors, in sectors.
 struct SpiralCell {
     SpiralOffset offset;
-    float distance;
+    float distance = 0.0f;
 };
 
 // The sort's comparison: by distance, ascending.

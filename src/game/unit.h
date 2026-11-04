@@ -47,7 +47,7 @@ struct DamageInfo;
 // Eight damage or protection words (an AI attack option's damage, a combat controller's
 // protection): word 0 apart, words 1..7 per damage type.
 struct DamageWords {
-    std::uint16_t words[8];
+    std::uint16_t words[8] = {};
 
     // The sum over words 1..7 of what exceeds the matching protection word (a difference with its top bit set
     // counts 0), as 16 bits.
@@ -57,15 +57,15 @@ static_assert(sizeof(DamageWords) == 0x10);
 
 // A body slot as UnitParams keeps it (UnitStatSlot rounded).
 struct UnitParamsSlot {
-    int type;
-    std::uint8_t vitalMask;
-    std::uint8_t unused_05;
-    std::int16_t protection[7];     // the three layers' absorb values summed, per damage type
+    int type = 0;
+    std::uint8_t vitalMask = 0;
+    std::uint8_t unused_05 = 0;
+    std::int16_t protection[7] = {};  // the three layers' absorb values summed, per damage type
     // The part's state as the unit panel shows it: 0 none (not shown), 1 drawn in red, 3 with a bar of
     // current / maximum.
-    int kind;
-    std::int16_t current;
-    std::uint16_t maximum;
+    int kind = 0;
+    std::int16_t current = 0;
+    std::uint16_t maximum = 0;
 };
 static_assert(sizeof(UnitParamsSlot) == 0x1C);
 
@@ -78,31 +78,32 @@ struct UnitParams {
     // record `weapon` (or null).
     float WeaponSkillBonus(WeaponType type, const itemdb::WeaponRecord* weapon);
 
-    std::uint8_t unused_00[4];
-    int experience;
-    int unspentExperience;          // experience + pending - spent
-    std::uint8_t strength;
-    std::uint8_t dexterity;
-    std::uint8_t intelligence;        // (UnitStats::intelligence rounded)
-    std::uint8_t movementKind;      // 2: moves on the water surface
+    std::uint8_t unused_00[4] = {};
+    int experience = 0;
+    int unspentExperience = 0;      // experience + pending - spent
+    std::uint8_t strength = 0;
+    std::uint8_t dexterity = 0;
+    std::uint8_t intelligence = 0;    // (UnitStats::intelligence rounded)
+    std::uint8_t movementKind = 0;  // 2: moves on the water surface
     // Speed bytes of movement modes 3 (and 2's backward), 2, 1, 0 (UnitStats mode speeds * 255 / 2, at most 255).
-    std::uint8_t modeSpeeds[4];
-    std::uint8_t baseSpeed;         // (UnitStats::speed * 25.5, at most 255)
-    std::uint8_t rate;
-    std::int16_t capacity;
-    std::uint8_t combat[5];         // reach, attack, attack spread, defence, speed
-    std::uint8_t damage;            // (truncated)
-    std::uint8_t damageSpread;      // (truncated)
-    std::uint8_t naturalWeapon;
-    std::int16_t lastHitSource;         // what last damaged the unit (7 after Reset)
-    std::uint8_t perception[6];     // UnitStats::perception[i].current ([0] night sight range, [1] its day percentage)
-    std::uint8_t conspicuity[6];    // UnitStats::conspicuity[i].current
-    std::uint8_t unused_2E[2];
+    std::uint8_t modeSpeeds[4] = {};
+    std::uint8_t baseSpeed = 0;     // (UnitStats::speed * 25.5, at most 255)
+    std::uint8_t rate = 0;
+    std::int16_t capacity = 0;
+    std::uint8_t combat[5] = {};    // reach, attack, attack spread, defence, speed
+    std::uint8_t damage = 0;        // (truncated)
+    std::uint8_t damageSpread = 0;  // (truncated)
+    std::uint8_t naturalWeapon = 0;
+    std::int16_t lastHitSource = 0;     // what last damaged the unit (7 after Reset)
+    // UnitStats::perception[i].current ([0] night sight range, [1] its day percentage)
+    std::uint8_t perception[6] = {};
+    std::uint8_t conspicuity[6] = {};  // UnitStats::conspicuity[i].current
+    std::uint8_t unused_2E[2] = {};
     UnitParamsSlot slots[6];
-    std::uint8_t attributes[3];
-    std::uint8_t skills[8];
-    std::uint8_t skillLevels[0x24];
-    std::uint8_t flags;             // UnitStatsFlag bits (UnitStats::flags, low byte)
+    std::uint8_t attributes[3] = {};
+    std::uint8_t skills[8] = {};
+    std::uint8_t skillLevels[0x24] = {};
+    std::uint8_t flags = 0;         // UnitStatsFlag bits (UnitStats::flags, low byte)
 
     // The sight range at `daylight` (0 night .. 1 day):
     // perception[0] x ((1 - daylight) + perception[1] x daylight x 0.01).
@@ -289,8 +290,8 @@ public:
 
     // Movement speeds for the current movement mode; `backward` scaled by the global.
     struct MoveSpeeds {
-        float forward;
-        float turn;   // the turn rate
+        float forward = 0.0f;
+        float turn = 0.0f;  // the turn rate
     };
     MoveSpeeds GetMoveSpeeds();
     float MoveSpeed2();
@@ -478,45 +479,45 @@ public:
     MapObject* AsMapObject() { return this; }
 
     std::string scriptName;        // network field 9
-    int secondPrototype;              // a second prototype index (-1 none)
+    int secondPrototype = 0;          // a second prototype index (-1 none)
     // `controller` (or null) replaces the side half: the old one is detached and released, the new one points
     // back here and gains a reference.
     void SetController(UnitController* controller);
     Ref<UnitController> controller;    // the side half (the script code calls it the perception object)
-    std::uint32_t relationsA;       // \ a unit regards side s as hostile when both have
-    std::uint32_t relationsB;       // / bit s set
-    Player* player;
-    int side;
+    std::uint32_t relationsA = 0;   // \ a unit regards side s as hostile when both have
+    std::uint32_t relationsB = 0;   // / bit s set
+    Player* player = nullptr;
+    int side = 0;
     // The animation entries (FigureAnimation::index) the unit shows: -1 none; the second -2 for the special idle. The
     // client's RestartAnimation plays them.
-    std::int8_t animationEntry;
-    std::int8_t secondEntry;
-    std::int8_t actionSound;        // a hero's action sound (UnitClientSpecific's sounds)
-    int animationStart;             // the world tick the animation started at (+1 per paused tick)
-    int motionMode;                 // 0 plays, 1 paused (the start moves on), 2 scaled
-    int pathTimeShift;              // 1: the client shifts its motion path's time each update
-    MoveMode moveMode;
-    MoveMode moveMode2;
-    std::uint32_t activeWeapon;     // slot of the weapon in use
-    int pendingWeapon;              // the weapon slot to take up (-1 none; TakeUpWeapon / ShowWeapon)
-    int dead;
-    std::uint32_t obstacle;             // the unit blocks others on the sector map
+    std::int8_t animationEntry = 0;
+    std::int8_t secondEntry = 0;
+    std::int8_t actionSound = 0;    // a hero's action sound (UnitClientSpecific's sounds)
+    int animationStart = 0;         // the world tick the animation started at (+1 per paused tick)
+    int motionMode = 0;             // 0 plays, 1 paused (the start moves on), 2 scaled
+    int pathTimeShift = 0;          // 1: the client shifts its motion path's time each update
+    MoveMode moveMode = {};
+    MoveMode moveMode2 = {};
+    std::uint32_t activeWeapon = 0;  // slot of the weapon in use
+    int pendingWeapon = 0;          // the weapon slot to take up (-1 none; TakeUpWeapon / ShowWeapon)
+    int dead = 0;
+    std::uint32_t obstacle = 0;         // the unit blocks others on the sector map
     UnitMotion motion;
-    float heightOffset;             // height above the water surface (PlaceOnGround)
-    int sizeClass;                  // selects the 4-bit passability field in each AI map cell
-    float unitRadius;               // 0.75 after Reset
-    float standingHeight;           // deeper water or higher ground than (2 - height) * 16 blocks it
+    float heightOffset = 0.0f;      // height above the water surface (PlaceOnGround)
+    int sizeClass = 0;              // selects the 4-bit passability field in each AI map cell
+    float unitRadius = 0.0f;        // 0.75 after Reset
+    float standingHeight = 0.0f;    // deeper water or higher ground than (2 - height) * 16 blocks it
     // The parameter block (UnitStats rounded): the attack rate, the movement kind (2 moves on the water surface), the
     // mode and base speeds and the six body slots (the unit panel's parts are their kind / current / maximum).
     UnitParams params;
-    int fightAtWill;                    // 1: a party unit attacks on its own (the move panel's flag; PlayerMode::UpdateCombat), 0 not
-    std::uint32_t altPassCosts;         // set: path searches use the AI map's alternative cost table
+    int fightAtWill = 0;                // 1: a party unit attacks on its own (the move panel's flag; PlayerMode::UpdateCombat), 0 not
+    std::uint32_t altPassCosts = 0;     // set: path searches use the AI map's alternative cost table
     Item* weapons[4] = {};
     Item* quickItems[4] = {};
     Item* spells[8] = {};
     ItemArmor* armor[7] = {};           // a piece per armour type
     std::vector<Item*> carried;    // further items, each holding a reference
-    float actionSpeeds[6];          // per action kind (ActionSpeed; from the model record)
+    float actionSpeeds[6] = {};     // per action kind (ActionSpeed; from the model record)
     std::array<float, 5> exposure;             // any at most 2 (or NaN) asks for a party refresh
 };
 
@@ -542,31 +543,31 @@ inline constexpr float kSlotWeights[kSlotTypes] = /*0073E0FC*/ {10.0f, 30.0f, 15
 // One of the three protection layers of a body slot: what each of the seven damage types loses to it.
 struct UnitStatLayer {
 
-    int layerMask;                      // the layer mask bits of the pieces added (AddArmourLayer)
-    float absorb[7];                // per damage type
-    float spareAbsorb[7];               // zeroed by ClearOuterLayers only; nothing reads it
-    int state;                      // > 1: the layer is there
-    int reserved[2];                    // zeroed by the builders, saved with the stats; nothing reads them
+    int layerMask = 0;                  // the layer mask bits of the pieces added (AddArmourLayer)
+    float absorb[7] = {};           // per damage type
+    float spareAbsorb[7] = {};          // zeroed by ClearOuterLayers only; nothing reads it
+    int state = 0;                  // > 1: the layer is there
+    int reserved[2] = {};               // zeroed by the builders, saved with the stats; nothing reads them
 };
 
 // One of the six body slots of UnitStats (0 head, 1 body, 2/3 hands, 4/5 legs, as the hit locations).
 struct UnitStatSlot {
 
-    int type;                       // 2 arms, 3 legs; reset to 4
-    std::uint32_t vitalMask;        // damage types whose full hit severs the slot
+    int type = 0;                   // 2 arms, 3 legs; reset to 4
+    std::uint32_t vitalMask = 0;    // damage types whose full hit severs the slot
     UnitStatLayer layers[3];
-    int kind;                       // 0 unused, 1 severed, 2 disabled, 3 working (> 1: counts)
-    float current;                  // its hit points
-    float maximum;
-    float share;                        // the model slot's share of the hit points
-    float factor;                   // its share of the unit's hit points
+    int kind = 0;                   // 0 unused, 1 severed, 2 disabled, 3 working (> 1: counts)
+    float current = 0.0f;           // its hit points
+    float maximum = 0.0f;
+    float share = 0.0f;                 // the model slot's share of the hit points
+    float factor = 0.0f;            // its share of the unit's hit points
 };
 static_assert(offsetof(UnitStatSlot, kind) == 0xE0);
 
 // A value and what it currently is after modifiers.
 struct UnitStatPair {
-    float base;
-    float current;
+    float base = 0.0f;
+    float current = 0.0f;
 };
 static_assert(offsetof(UnitStatPair, current) == 4);
 
@@ -580,14 +581,14 @@ struct UnitVitals {
     // The values rounded to nearest into `out`.
     void Pack(UnitVitalsPacked* out);
 
-    int builtFlags;                     // bit 0 set when built from the prototype
-    int regenTicks;                 // counts 1..15
-    float hitPoints;
-    float maxHitPoints;
-    float hitPointRegen;            // fraction of the maximum per regeneration
-    float mana;
-    float maxMana;
-    float manaRegen;
+    int builtFlags = 0;                 // bit 0 set when built from the prototype
+    int regenTicks = 0;             // counts 1..15
+    float hitPoints = 0.0f;
+    float maxHitPoints = 0.0f;
+    float hitPointRegen = 0.0f;     // fraction of the maximum per regeneration
+    float mana = 0.0f;
+    float maxMana = 0.0f;
+    float manaRegen = 0.0f;
     UnitStatPair protection[7];     // per damage type (current: what a hit loses to it)
 };
 
@@ -741,41 +742,41 @@ struct UnitStats {
     // or 5 (5-7), plus the level value of skill school + 7, plus intelligence - 25.
     float SpellSchoolSkill(int school);
 
-    std::uint32_t builtFlags;           // bit 0 set when built from the prototype
-    float experience;
-    float spentExperience;
-    float strengthBase;
-    float strength;                 // 's'
-    float dexterityBase;
-    float dexterity;                // 'd'
-    float intelligenceBase;
-    float intelligence;             // 'i'
-    float speedBase;
-    float speed;                    // speedBase * loadFactor
-    float rateBase;                 // 15, or dexterity * 0.2 + 10 for text-key units
-    float rate;                     // at least 1
-    float modeSpeeds[4];
-    float sightCone;                    // cosine of half the sight angle (-2 for text-key units: all around)
-    float peripheralRange;              // the AI's peripheral sight range
-    float sideCone;                     // cos(90 degrees) from the builders; nothing reads it
-    float load;                     // carried weight
-    float capacity;
-    float loadFactor;               // LegsFactor when movementKind is 1, else 1
-    float armsFactor;
-    int movementKind;                   // the model's: 1 legs (load factor), 2 on the water (no size classes)
+    std::uint32_t builtFlags = 0;       // bit 0 set when built from the prototype
+    float experience = 0.0f;
+    float spentExperience = 0.0f;
+    float strengthBase = 0.0f;
+    float strength = 0.0f;          // 's'
+    float dexterityBase = 0.0f;
+    float dexterity = 0.0f;         // 'd'
+    float intelligenceBase = 0.0f;
+    float intelligence = 0.0f;      // 'i'
+    float speedBase = 0.0f;
+    float speed = 0.0f;             // speedBase * loadFactor
+    float rateBase = 0.0f;          // 15, or dexterity * 0.2 + 10 for text-key units
+    float rate = 0.0f;              // at least 1
+    float modeSpeeds[4] = {};
+    float sightCone = 0.0f;             // cosine of half the sight angle (-2 for text-key units: all around)
+    float peripheralRange = 0.0f;       // the AI's peripheral sight range
+    float sideCone = 0.0f;              // cos(90 degrees) from the builders; nothing reads it
+    float load = 0.0f;              // carried weight
+    float capacity = 0.0f;
+    float loadFactor = 0.0f;        // LegsFactor when movementKind is 1, else 1
+    float armsFactor = 0.0f;
+    int movementKind = 0;               // the model's: 1 legs (load factor), 2 on the water (no size classes)
     // The combat values.
-    float reachHeightScale;         // from the model: a non-hero strikes low when the target's
+    float reachHeightScale = 0.0f;  // from the model: a non-hero strikes low when the target's
                                     // standing height plus (this + 1) x its own radius passes the distance
-    std::int16_t sizeClass;         // 1..4 by size, 5/6 when loaded above 0.85, 7 above 1.5
-    std::int16_t unused_06A;
-    std::int16_t sizeClass20;       // the same for 0.2 times the size
-    std::int16_t sizeClass60;       // and for 0.6 times the size
-    float combat[5];                // reach, attack, attack spread, defence, speed (the prototype's)
-    float damage;
-    float damageSpread;
-    float attackCategory;           // the natural attack's category (UnitPrototypeRecord::attackCategory)
-    float damageWeights[7];         // the natural attack's, per damage type
-    WeaponType naturalWeapon;       // weapon type of the natural attack (SpellsOnly: none)
+    std::int16_t sizeClass = 0;     // 1..4 by size, 5/6 when loaded above 0.85, 7 above 1.5
+    std::int16_t unused_06A = 0;
+    std::int16_t sizeClass20 = 0;   // the same for 0.2 times the size
+    std::int16_t sizeClass60 = 0;   // and for 0.6 times the size
+    float combat[5] = {};           // reach, attack, attack spread, defence, speed (the prototype's)
+    float damage = 0.0f;
+    float damageSpread = 0.0f;
+    float attackCategory = 0.0f;    // the natural attack's category (UnitPrototypeRecord::attackCategory)
+    float damageWeights[7] = {};    // the natural attack's, per damage type
+    WeaponType naturalWeapon = {};  // weapon type of the natural attack (SpellsOnly: none)
     // What the unit senses (the AI's sight and hearing): [0] sight range at night, [1] its percentage by day, [2] the
     // range it senses at, whatever the light, [3] hearing.
     UnitStatPair perception[6];
@@ -783,12 +784,12 @@ struct UnitStats {
     // [3] how loud it is (the noise it makes).
     UnitStatPair conspicuity[6];
     UnitStatSlot slots[6];
-    std::uint8_t attributes[3];
-    std::uint8_t skills[8];
-    std::uint8_t skillLevels[0x25]; // 1-based level per skill, 0 none
-    std::uint32_t flags;            // UnitStatsFlag bits; RepackStats clears them
-    float fixedMaxHitPoints;        // the maximum of units without a text key
-    float pendingExperience;
+    std::uint8_t attributes[3] = {};
+    std::uint8_t skills[8] = {};
+    std::uint8_t skillLevels[0x25] = {}; // 1-based level per skill, 0 none
+    std::uint32_t flags = 0;        // UnitStatsFlag bits; RepackStats clears them
+    float fixedMaxHitPoints = 0.0f;  // the maximum of units without a text key
+    float pendingExperience = 0.0f;
 };
 static_assert(offsetof(UnitStats, strengthBase) == 0x0C && offsetof(UnitStats, strength) == 0x10);
 static_assert(offsetof(UnitStats, dexterityBase) == 0x14 && offsetof(UnitStats, dexterity) == 0x18);
@@ -1011,12 +1012,12 @@ public:
     // How far above the object its light stands.
     static constexpr float kLightHeight = 2.0f;
 
-    std::uint32_t lightStateA;          // cleared by Construct, Create and Destroy; nothing reads it
-    std::uint32_t lightStateB;          // the same
+    std::uint32_t lightStateA = 0;      // cleared by Construct, Create and Destroy; nothing reads it
+    std::uint32_t lightStateB = 0;      // the same
     std::vector<ParticleRecord> particles;  // the effect particles
     std::vector<EffectSoundRecord> sounds;        // the looping effect sounds
     Ref<Light> light;       // counted
-    int endSound;           // the end sound's handle (-1 none)
+    int endSound = 0;       // the end sound's handle (-1 none)
 };
 inline MapObjectClientSpecific* MapObject::ClientCompanion() const { return companion ? companion->ClientSide() : nullptr; }
 

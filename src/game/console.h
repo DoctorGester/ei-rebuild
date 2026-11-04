@@ -56,11 +56,11 @@ private:
     // Moves the put area (and `c`, unless EOF) into the line when this streambuf's category is shown.
     void Overflow(int c);
 
-    LogCategory category;      // kLogConsole: always shown
+    LogCategory category = {};  // kLogConsole: always shown
     std::string line;
     std::size_t putEnd = 0;    // the put area's size: 0 until the first overflow while shown
     std::size_t putNext = 0;   // characters in the put area
-    char buffer[0x400];
+    char buffer[0x400] = {};
 };
 
 // One of the console's eight output streams (MSVC 6's ostream as the game used it: no width, flags,
@@ -81,7 +81,7 @@ public:
     Stream& Flush();
 
 private:
-    ConsoleStreambuf* buffer;
+    ConsoleStreambuf* buffer = nullptr;
 };
 
 // The streams, one per message filter (each on its own streambuf, console.cpp): the console itself, then all, unitacks (the AI
@@ -139,27 +139,27 @@ public:
     // Keeps the last `count` lines.
     void DropOldLines(int count);
 
-    Interface3D* screen;            // the 3D interface (its width and height in pixels)
-    UiSurface* surface;             // while shown
+    Interface3D* screen = nullptr;  // the 3D interface (its width and height in pixels)
+    UiSurface* surface = nullptr;   // while shown
     UiFont font;                     // the console's text
     std::vector<std::string> commands;    // commands entered (input history), the newest first
-    int commandIndex;                // the one shown by up/down (-1 or size: none)
+    int commandIndex = 0;            // the one shown by up/down (-1 or size: none)
     std::string input;               // the line being typed
-    int caret;                       // caret position (bytes, at a character's start: U4)
-    int anchor;                      // other end of the selection (== caret: none)
-    int width;                       // pixels, at least 76
-    int height;                      // pixels, at least 69
+    int caret = 0;                   // caret position (bytes, at a character's start: U4)
+    int anchor = 0;                  // other end of the selection (== caret: none)
+    int width = 0;                   // pixels, at least 76
+    int height = 0;                  // pixels, at least 69
     Rect rect;                       // the window in 800x600 coordinates (after clamping)
     Rect screenRect;                 // the window in pixels
     Rect requestedRect;              // the window as last asked for (800x600 coordinates, before clamping)
-    float scale;                     // screen pixels per layout pixel
+    float scale = 0.0f;              // screen pixels per layout pixel
     std::vector<std::string> lines;
-    int history;                     // lines kept
-    int visibleLines;
-    int scroll;                      // lines scrolled back (0 = at the end)
-    bool ctrl;                       // Ctrl held (set by key down 0x11)
-    bool shift;                      // Shift held (0x10): the selection grows
-    bool shown;
+    int history = 0;                 // lines kept
+    int visibleLines = 0;
+    int scroll = 0;                  // lines scrolled back (0 = at the end)
+    bool ctrl = false;               // Ctrl held (set by key down 0x11)
+    bool shift = false;              // Shift held (0x10): the selection grows
+    bool shown = false;
 };
 using CommandArgs = std::vector<std::string>;
 using CommandHandler = void(*)(const CommandArgs& args);
@@ -172,8 +172,8 @@ CommandHandler FindCommand(const CommandMap& map, const std::string& key);
 
 // A command: the map it goes in (those after the cheat word, or those always available), its name and handler.
 struct CommandRegistration {
-    bool cheat;
-    const char* name;
+    bool cheat = false;
+    const char* name = nullptr;
     CommandHandler handler;
 };
 extern const CommandRegistration kCommandRegistrations[25];

@@ -28,7 +28,7 @@ constexpr char kDecimalPoint = '.';
 // multiply's sum, the digit generator): the dwords at w[0], w[2], w[4].
 
 struct Ld12 {
-    std::uint16_t w[6];
+    std::uint16_t w[6] = {};
 };
 
 std::uint32_t Get32(const Ld12& x, int i) { return x.w[i] | static_cast<std::uint32_t>(x.w[i + 1]) << 16; }
@@ -212,9 +212,9 @@ void MultiplyByPowerOfTen(Ld12& x, int power) {
 
 // FOS, $I10_OUTPUT's result: the decimal exponent, the sign (' ' or '-') and the digits.
 struct DigitString {
-    std::int16_t exponent;
-    char sign;
-    char digits[24];
+    std::int16_t exponent = 0;
+    char sign = 0;
+    char digits[24] = {};
 };
 
 void PutZeroDigits(DigitString& out) {
@@ -300,9 +300,9 @@ void TenByteToDigits(std::uint32_t low, std::uint32_t high, std::uint16_t expone
 
 // STRFLT: the sign, the decimal exponent (digits before the point), the digits.
 struct Decimal {
-    int sign;
-    int point;
-    char* digits;
+    int sign = 0;
+    int point = 0;
+    char* digits = nullptr;
 };
 
 // _fltout2: __dtold to 80 bits (a zero of either sign becomes +0; a denormal is normalised), then 17 digits.

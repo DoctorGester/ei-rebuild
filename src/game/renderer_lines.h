@@ -16,15 +16,15 @@ using VertexPacket = render::VertexPacket;
 
 // A pre-transformed vertex (FVF 0xC4: XYZRHW | DIFFUSE | SPECULAR).
 struct LineVertex {
-    float x, y, z, rhw;
-    std::uint32_t colour, specular;
+    float x = 0.0f, y = 0.0f, z = 0.0f, rhw = 0.0f;
+    std::uint32_t colour = 0, specular = 0;
 };
 static_assert(sizeof(LineVertex) == 0x18);
 
 // The projected points: x, y, z, rhw each (the transform pipeline's output).
 struct ProjectedPoints {
-    const Vector4* points;
-    int count;
+    const Vector4* points = nullptr;
+    int count = 0;
 };
 
 // The vertex buffer of the projected line strips.
@@ -34,8 +34,8 @@ extern std::vector<LineVertex> g_lineVertices;
 // four to a packet; the unused points of the last packet repeat the last point.
 struct LineBatch {
     std::vector<VertexPacket> packets;       // four points each
-    int count;                               // points
-    std::uint32_t colour;
+    int count = 0;                           // points
+    std::uint32_t colour = 0;
 
     // Appends the point (x, y, z; w 1), with a new packet when the last one is
     // full, and repeats it through the rest of its packet. Returns the new count.

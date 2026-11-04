@@ -316,14 +316,14 @@ public:
     void SetTip(int textId, int command = 0);
     void SetTipString(std::string_view text, int command = 0);
 
-    Interface3D* ui;
+    Interface3D* ui = nullptr;
     std::vector<Point> points;    // polygon vertices
     Rect bounds;
-    bool rectOnly;
-    bool enabled;
-    int offsetX;                     // subtracted from tested points
-    int offsetY;
-    UiTooltip* tip;
+    bool rectOnly = false;
+    bool enabled = false;
+    int offsetX = 0;                 // subtracted from tested points
+    int offsetY = 0;
+    UiTooltip* tip = nullptr;
 };
 
 enum class SkillAnimation : int;   // map_object_figures.h
@@ -402,8 +402,8 @@ public:
     // RelayoutAll's step for this surface.
     void Relayout(const screen_layout::Layout& before);
 
-    Interface3D* ui;
-    SurfaceBlend blend;
+    Interface3D* ui = nullptr;
+    SurfaceBlend blend = {};
     bool shown = true;               // set by Show, cleared by Hide
     int width = 0;
     int height = 0;
@@ -496,7 +496,7 @@ struct UiInputSide {
     virtual bool PansAtEdges() const { return false; }
 
     Interface3D* ui;
-    bool handled;                    // set by a handler that used the event
+    bool handled = false;            // set by a handler that used the event
 };
 
 // The extra input side whose handlers do nothing: the battle screen's, the briefing's, the main menu's and
@@ -623,14 +623,14 @@ struct UiTooltip : UiWindow {
     bool Shown() const { return state != State::Idle && state != State::Hovered; }
 
     std::vector<std::string> lines; // the text's lines (none for an empty text)
-    int lineHeight;                  // the last line's height: the rows' step
-    int keyWidth;                    // the first line with the key name, + 12
-    int extra;                       // a command whose key is shown
-    const char* keyName;             // that key's name, or null
-    UiRegion* region;               // the region it belongs to
-    int width;                       // widest line + 12 (a text only)
-    int height;                      // the lines' heights + 8
-    float timer;                     // seconds in the current state
+    int lineHeight = 0;              // the last line's height: the rows' step
+    int keyWidth = 0;                // the first line with the key name, + 12
+    int extra = 0;                   // a command whose key is shown
+    const char* keyName = nullptr;   // that key's name, or null
+    UiRegion* region = nullptr;     // the region it belongs to
+    int width = 0;                   // widest line + 12 (a text only)
+    int height = 0;                  // the lines' heights + 8
+    float timer = 0.0f;              // seconds in the current state
     State state = State::Idle;
 };
 
@@ -649,8 +649,8 @@ public:
     // the owner's help handler. The event is not marked used.
     void LeftDown(Point point) override;
 
-    int mode;                        // the action mode handed to the owner (ItemCell::mode)
-    ItemScreen* owner;
+    int mode = 0;                    // the action mode handed to the owner (ItemCell::mode)
+    ItemScreen* owner = nullptr;
 };
 
 // The in-game key bindings' size (g_keyActions).
@@ -693,10 +693,10 @@ public:
     // A sprite (Rebirth-patched) and a tooltip per weapon, then the unit's current weapon highlighted.
     void SetUnit(Unit* unit);
 
-    BattleScreen* owner;
-    int count;                       // slots in use
-    int selected;
-    Unit* unit;
+    BattleScreen* owner = nullptr;
+    int count = 0;                   // slots in use
+    int selected = 0;
+    Unit* unit = nullptr;
     std::vector<std::string> labels;    // the tooltip's labels
 };
 
@@ -741,17 +741,17 @@ public:
     void SetUnit(Unit* unit);
 
     struct Entry {
-        bool own;                    // one of the unit's quick items (else the player's)
-        int id;                      // the item's id
-        Item* item;
+        bool own = false;            // one of the unit's quick items (else the player's)
+        int id = 0;                  // the item's id
+        Item* item = nullptr;
     };
 
-    BattleScreen* owner;
-    int shownCount;                  // sprites added (the shown entries)
-    int selected;
-    Unit* unit;
+    BattleScreen* owner = nullptr;
+    int shownCount = 0;              // sprites added (the shown entries)
+    int selected = 0;
+    Unit* unit = nullptr;
     std::vector<Entry> entries;
-    int regionItem[8];
+    int regionItem[8] = {};
     std::vector<std::string> labels;    // the tooltip's labels
 };
 
@@ -779,10 +779,10 @@ public:
     // A sprite (Rebirth-patched) and a tooltip per spell slot that holds one.
     void SetUnit(Unit* unit);
 
-    BattleScreen* owner;
-    int count;                       // sprites added
-    int selected;
-    Unit* unit;
+    BattleScreen* owner = nullptr;
+    int count = 0;                   // sprites added
+    int selected = 0;
+    Unit* unit = nullptr;
     std::vector<std::string> labels;    // the tooltip's labels
 };
 
@@ -805,10 +805,10 @@ public:
     // With `extra` first a "skill0011" button; with a unit the science button.
     void SetUnit(Unit* unit, bool extra);
 
-    BattleScreen* owner;
-    int count;                       // buttons added
-    int selected;
-    Unit* unit;
+    BattleScreen* owner = nullptr;
+    int count = 0;                   // buttons added
+    int selected = 0;
+    Unit* unit = nullptr;
     std::vector<std::uint32_t> actions;            // the buttons' actions (0 science, -1 follow)
     std::vector<std::string> labels;    // the tooltip's labels
 };
@@ -816,24 +816,24 @@ public:
 // A portrait's state, one per portrait: the last hit points seen, the face (rest orientation, current
 // orientation and a random wobble), the face picture and model, and the slot's network player.
 struct HudPortraitSlot {
-    int lastHitPoints;               // lowest hit points seen (a drop flashes the portrait)
-    float flash;                     // 1 after a hit, fading out
+    int lastHitPoints = 0;           // lowest hit points seen (a drop flashes the portrait)
+    float flash = 0.0f;              // 1 after a hit, fading out
     Quaternion restA{1.0f, 0.0f, 0.0f, 0.0f};      // the face's rest orientation is restA * restB
     Quaternion current{1.0f, 0.0f, 0.0f, 0.0f};    // the face's orientation, eased towards the rest one
     Quaternion restB{1.0f, 0.0f, 0.0f, 0.0f};
-    int wobbleKind;                  // 0 none, 1 nod (about x), 2 shake (y), 3 turn to target
-    float wobbleTime;                // starts negative (a delay)
+    int wobbleKind = 0;              // 0 none, 1 nod (about x), 2 shake (y), 3 turn to target
+    float wobbleTime = 0.0f;         // starts negative (a delay)
     std::string faceName;
-    int faceState;                   // picture shown (0 normal, 2 hit, 3 low mana, ...)
-    int faceMode;                    // 1 / 2: a timed picture, 0 none
-    float faceTimer;
+    int faceState = 0;               // picture shown (0 normal, 2 hit, 3 low mana, ...)
+    int faceMode = 0;                // 1 / 2: a timed picture, 0 none
+    float faceTimer = 0.0f;
     std::string modelPrefix;        // the face model is prefix + build + suffix,
     std::string modelSuffix;        // build "th", "me" or "fa"
-    float build;                     // the unit's build the model was chosen for
+    float build = 0.0f;              // the unit's build the model was chosen for
     Quaternion wobbleTarget{1.0f, 0.0f, 0.0f, 0.0f};
-    float wobbleSpeed;
-    bool hasPlayer;                  // a multiplayer player without a unit here (no bars)
-    int playerId;                    // that player's serial, else -1
+    float wobbleSpeed = 0.0f;
+    bool hasPlayer = false;          // a multiplayer player without a unit here (no bars)
+    int playerId = 0;                // that player's serial, else -1
 };
 
 // Party portraits (250..550 x 440..600).
@@ -857,8 +857,8 @@ public:
 
     HudPortraits(Interface3D* ui, BattleScreen* owner);
 
-    BattleScreen* owner;
-    int count;
+    BattleScreen* owner = nullptr;
+    int count = 0;
     std::vector<HudPortraitSlot> slots;    // one per portrait
 };
 
@@ -889,7 +889,7 @@ public:
     // corners x, y, z, w), corners (MeshCorner per vertex), texCoords, indices.
     // Where Place put the sprite (the layout point and the depth; each stored as float).
     struct Placement {
-        float x, y, depth;
+        float x = 0.0f, y = 0.0f, depth = 0.0f;
     };
     Placement GetPlacement() const;
     // The shapes, Rebirth-patched: with Rebirth's WideScreen every shape's layout x is moved
@@ -951,16 +951,16 @@ public:
     // FigureMesh's fields as a sprite uses them: FigureMeshFlag::Flat draws in flatColour (ARGB),
     // flatSpecular the HUD buttons' highlight (0xFF404040 / 0xFF000000), textureOffsetU / V_ a frame of the
     // sprite sheet, localRotation the HUD face models' turn.
-    bool visible;
-    float tint[3];                   // colour factors (the HUD: 1 selected, 0.5 not)
-    float tintSpare[3];              // nothing reads it
+    bool visible = false;
+    float tint[3] = {};              // colour factors (the HUD: 1 selected, 0.5 not)
+    float tintSpare[3] = {};         // nothing reads it
     // Applied after the placement; the diagonal is SetScale's scale.
     Matrix4 scaleMatrix;
     float& ScaleX() { return scaleMatrix.m[0]; }
     float& ScaleY() { return scaleMatrix.m[5]; }
     float& ScaleZ() { return scaleMatrix.m[10]; }
     Material* material;             // the window's black material
-    Texture* texture;               // one of the window's referenced textures
+    Texture* texture = nullptr;     // one of the window's referenced textures
 };
 
 // Map (615..800 x 0..165). Regions: 0 the sling button, 1 the round map, 2 the map area, 3 and 4 the two
@@ -992,25 +992,25 @@ public:
     // starts the slide at its far end.
     void Setup(float zoom, bool slid);
 
-    BattleScreen* owner;
+    BattleScreen* owner = nullptr;
     Vector2 centre;                  // world point at the map's centre (the camera's)
     Vector2 facing;                  // view direction (normalised by the camera follow)
-    float worldWidth;                // the zone's extent (clipping rectangle 0..width)
-    float worldHeight;
-    float textureSize;               // world units per map texture (texture coordinates)
-    float scale;                     // world units to map units
-    float zoom;                      // 1 .. zoomMax (the view buttons change it)
-    float zoomMax;
-    float halfSide;                  // 80: half the map's side in layout units (a click's offset over it)
+    float worldWidth = 0.0f;         // the zone's extent (clipping rectangle 0..width)
+    float worldHeight = 0.0f;
+    float textureSize = 0.0f;        // world units per map texture (texture coordinates)
+    float scale = 0.0f;              // world units to map units
+    float zoom = 0.0f;               // 1 .. zoomMax (the view buttons change it)
+    float zoomMax = 0.0f;
+    float halfSide = 0.0f;           // 80: half the map's side in layout units (a click's offset over it)
     std::vector<Vector2> viewPolygon;        // the round map's outline in map units (the disc's corners)
     std::vector<Vector2> visibleArea;        // the outline in world units, clipped to the world
-    bool sliding;                    // set when the sling button (or its key) starts the slide
-    int offset;                      // current slide offset in pixels (to the right)
-    int travel;                      // full slide distance
-    float slide;                     // 0..1: how far the panel has slid (offset = travel eased)
-    float slideDirection;            // +1 / -1
-    int view;                        // 1 or 2 while a view button is held (scene objects 6 and 7), else 0
-    float northTime;                 // 0.5 when "camera north" turns the camera, then counts down
+    bool sliding = false;            // set when the sling button (or its key) starts the slide
+    int offset = 0;                  // current slide offset in pixels (to the right)
+    int travel = 0;                  // full slide distance
+    float slide = 0.0f;              // 0..1: how far the panel has slid (offset = travel eased)
+    float slideDirection = 0.0f;     // +1 / -1
+    int view = 0;                    // 1 or 2 while a view button is held (scene objects 6 and 7), else 0
+    float northTime = 0.0f;          // 0.5 when "camera north" turns the camera, then counts down
 };
 
 // Unit panel (0..185 x 0..225). Regions: 0 the sling button, 1-4 the body parts, 5 the whole panel.
@@ -1055,21 +1055,21 @@ public:
     // its bars (the texts are PaintTexts').
     void Draw(SceneRenderer* pass) override;
 
-    BattleScreen* owner;
-    Unit* shownUnit;                // the first selected unit (RefreshSelection), or null
-    Unit* hoverUnit;                // the unit under the mouse (HoverUnit), or null
+    BattleScreen* owner = nullptr;
+    Unit* shownUnit = nullptr;      // the first selected unit (RefreshSelection), or null
+    Unit* hoverUnit = nullptr;      // the unit under the mouse (HoverUnit), or null
     // The model's view for the selected unit [0] and the hover unit [1], from the units' prototypes (the
     // battle screen copies them as dwords).
-    float viewHeight[2];             // how far up the panel the model stands, in units of its size
-    float viewSize[2];               // the model's size: it is drawn 1 / size (times its animation's ratio)
+    float viewHeight[2] = {};        // how far up the panel the model stands, in units of its size
+    float viewSize[2] = {};          // the model's size: it is drawn 1 / size (times its animation's ratio)
     std::string strings[2];         // the selected and the hover unit's names
-    bool sliding;                    // set when the sling button starts the slide
-    int offset;                      // current slide offset in pixels (to the left)
-    int travel;                      // full slide distance
-    float slide;                     // 0..1: how far the panel has slid (offset = travel eased)
-    float slideDirection;            // +1 / -1
-    int bodyPart;                    // selected body part 0-3 (scene objects 3-6)
-    int effectIcons[6];              // the spell pictures in the icon texture's six places
+    bool sliding = false;            // set when the sling button starts the slide
+    int offset = 0;                  // current slide offset in pixels (to the left)
+    int travel = 0;                  // full slide distance
+    float slide = 0.0f;              // 0..1: how far the panel has slid (offset = travel eased)
+    float slideDirection = 0.0f;     // +1 / -1
+    int bodyPart = 0;                // selected body part 0-3 (scene objects 3-6)
+    int effectIcons[6] = {};         // the spell pictures in the icon texture's six places
     std::vector<std::string> texts; // "infounit_0".."infounit_17": the info lines' labels
     std::vector<std::string> partLabels;    // four: the shown names of "skull", "torso", "leg", "arm"
 };
@@ -1098,11 +1098,11 @@ public:
     // pause, normal and fast sectors, 3 the objectives quarter disc.
     void Setup(bool fast);
 
-    BattleScreen* owner;            // the clock does not read it
-    float blink;                     // 0..1, the pause blink phase
-    float dial;                      // speed dial angle (wraps at pi / 6)
-    bool fast;                       // fast game speed (copied to Interface3D::fastGame)
-    bool highlight;                  // the pause button pulses (scene object 6)
+    BattleScreen* owner = nullptr;  // the clock does not read it
+    float blink = 0.0f;              // 0..1, the pause blink phase
+    float dial = 0.0f;               // speed dial angle (wraps at pi / 6)
+    bool fast = false;               // fast game speed (copied to Interface3D::fastGame)
+    bool highlight = false;          // the pause button pulses (scene object 6)
 };
 
 // Movement panel (0..80 x 520..600). Region 0 toggles the units' flag, regions 1-4 set their movement mode 0-3.
@@ -1124,9 +1124,9 @@ public:
     // Rebirth-patched (WideScreen: the panel at the screen's left edge).
     void Build() override;
 
-    BattleScreen* owner;
-    int mode;                        // the shown movement mode (-1, -2: none, mixed)
-    int flag;                        // the selected units' common flag (-1, -2: none, mixed)
+    BattleScreen* owner = nullptr;
+    int mode = 0;                    // the shown movement mode (-1, -2: none, mixed)
+    int flag = 0;                    // the selected units' common flag (-1, -2: none, mixed)
 };
 
 // Top panel (180..620 x 0..100). Regions: 0 the sling button, 1 and 2 the two page buttons, 3 the whole panel.
@@ -1153,13 +1153,13 @@ public:
     // The same with the money ("format_money"), for money > 0.
     void AddMoney(int money);
 
-    BattleScreen* owner;
-    bool sliding;
-    int offset;                      // current slide offset in pixels
-    int travel;                      // full slide distance
-    float slide;                     // 0 (out) .. 1 (in)
-    float slideDirection;
-    int page;
+    BattleScreen* owner = nullptr;
+    bool sliding = false;
+    int offset = 0;                  // current slide offset in pixels
+    int travel = 0;                  // full slide distance
+    float slide = 0.0f;              // 0 (out) .. 1 (in)
+    float slideDirection = 0.0f;
+    int page = 0;
     std::string pageTexts[2];       // the message log's text of pages 0 and 1
 };
 
@@ -1363,47 +1363,47 @@ public:
         bool Equals(const PartyIds& other) const;
 
         std::vector<int> withUnit;
-        int camera;
+        int camera = 0;
         std::vector<int> without;
     };
 
-    int spare;                       // nothing reads it
+    int spare = 0;                   // nothing reads it
     std::vector<Unit*> party;       // shown as portraits
     // The pending action: what the next click on the view does (SelectUnit), its spell, quick item
     // or action button, and the player's item id (mode 6) or the action (7, 8).
-    PendingAction pendingAction;
-    int pendingSlot;
-    int pendingItem;
+    PendingAction pendingAction = {};
+    int pendingSlot = 0;
+    int pendingItem = 0;
     // A zone exit OrderAt found under the clicked point; the update asks about leaving while exitPending is
     // set. Saved with the game (version 0x62).
-    int pendingExit;
-    bool exitPending;
+    int pendingExit = 0;
+    bool exitPending = false;
     // Key actions 0x11..0x16 held; AttackUnit's order kind is the first one set.
-    std::uint8_t orderKeys[6];
-    HudWeaponBar* weaponBar;
-    HudQuickItems* quickItems;
-    HudSpellColumn* spellColumn;
-    HudActionColumn* actionColumn;
-    HudPortraits* portraits;
-    HudUnitPanel* unitPanel;
-    HudMap* map;
-    HudClock* clock;
-    HudMovePanel* movePanel;
-    UiScrollText* messageLog;
-    HudTopPanel* topPanel;
-    bool viewPressed;                // the left button went down on the view
-    bool boxSelecting;               // a selection box is being dragged
+    std::uint8_t orderKeys[6] = {};
+    HudWeaponBar* weaponBar = nullptr;
+    HudQuickItems* quickItems = nullptr;
+    HudSpellColumn* spellColumn = nullptr;
+    HudActionColumn* actionColumn = nullptr;
+    HudPortraits* portraits = nullptr;
+    HudUnitPanel* unitPanel = nullptr;
+    HudMap* map = nullptr;
+    HudClock* clock = nullptr;
+    HudMovePanel* movePanel = nullptr;
+    UiScrollText* messageLog = nullptr;
+    HudTopPanel* topPanel = nullptr;
+    bool viewPressed = false;        // the left button went down on the view
+    bool boxSelecting = false;       // a selection box is being dragged
     Point press;                     // where the button went down on the view (screen)
     Rect selectionBox;               // the box
     std::vector<std::uint32_t> heroes;             // ids of the heroes shown (saved with the game)
     std::map<int, std::string> personTexts;       // the "pers" texts by person
-    int questSound;                  // the quest sound to play (1 quest, 2 part done, 3 done)
-    bool hasHero;                    // a hero id was added (new game)
+    int questSound = 0;              // the quest sound to play (1 quest, 2 part done, 3 done)
+    bool hasHero = false;            // a hero id was added (new game)
     PartyIds clientParty;            // the client's party ids last built
     // The key a player's item gives when it starts mode 6; SelectUnit and the hover hand it to the target's
     // AcceptsKey.
     LockKey itemUseKey = {1, 0, 0};
-    int portraitMode;                // 1, 2: the next portrait click picks a player for a server command (4, 5)
+    int portraitMode = 0;            // 1, 2: the next portrait click picks a player for a server command (4, 5)
 };
 
 // A scroll bar (the battle screen's message log derives from it). Regions: 0 the up arrow, 1 the down arrow,
@@ -1433,18 +1433,18 @@ public:
     virtual void SetRect(const Rect* rect);
     // Negative: 0. The sprites show only for a maximum above 0; the position is set again as SetRect does.
     void SetMaximum(int maximum);
-    int maxPosition;
-    float speed;                     // lines per second while an arrow is held (/16)
-    int position;
+    int maxPosition = 0;
+    float speed = 0.0f;              // lines per second while an arrow is held (/16)
+    int position = 0;
     // Layout coordinates (the options slider: left + 26 .. right - 26 over the bottom 10 pixels).
     Rect track;
     Rect thumb;                      // layout coordinates
-    int grabX;                       // mouse offset from the thumb centre while dragging
-    int grabY;
-    float depth;                     // the sprites' depth
-    bool moved;
-    int state;                       // 0 idle, 1 dragging the thumb, 2 up, 3 down
-    float accumulated;               // scrolled amount not yet applied
+    int grabX = 0;                   // mouse offset from the thumb centre while dragging
+    int grabY = 0;
+    float depth = 0.0f;              // the sprites' depth
+    bool moved = false;
+    int state = 0;                   // 0 idle, 1 dragging the thumb, 2 up, 3 down
+    float accumulated = 0.0f;        // scrolled amount not yet applied
 };
 
 // The options window's horizontal slider, laid out along the bottom of its rectangle. Regions 0 the left
@@ -1480,8 +1480,8 @@ struct UiFormatToken : UiTextToken {
     const UiFormatToken* AsFormat() const override { return this; }
 
     bool newline;                    // a newline token, or a font change after the first token
-    int font;                        // interface font
-    std::uint32_t colour;
+    int font = 0;                    // interface font
+    std::uint32_t colour = 0;
 };
 struct UiWordToken : UiTextToken {
     UiWordToken() : UiTextToken(2), width(0) {}
@@ -1489,12 +1489,12 @@ struct UiWordToken : UiTextToken {
     UiWordToken* AsWord() override { return this; }
 
     std::string text;
-    int width;                       // its width in the token's font
+    int width = 0;                   // its width in the token's font
 };
 // A laid out line of a scrolling text: the fields PlaceWords reads.
 struct UiTextLine {
-    int height;                      // pixels
-    int firstToken;                  // index in the token array
+    int height = 0;                  // pixels
+    int firstToken = 0;              // index in the token array
 };
 
 // A scroll bar showing tokenised text: the battle screen's message log and the objectives window's quest
@@ -1531,13 +1531,13 @@ public:
     Rect textRect;                   // the text's rectangle (surface coordinates)
     std::vector<UiTextToken*> tokens;
     std::vector<UiTextLine*> lines; // the laid out lines
-    int align;                       // 1: left aligned (else justified)
+    int align = 0;                   // 1: left aligned (else justified)
     // A word as PlaceWords placed it: its rectangle (surface layout units), font and colour.
     struct ShownWord {
         std::string text;
         Rect rect;
-        int font;
-        std::uint32_t colour;
+        int font = 0;
+        std::uint32_t colour = 0;
     };
     std::vector<ShownWord> shownWords;
 
@@ -1568,8 +1568,8 @@ public:
     void LeftDouble(Point) override {}
 
     std::vector<std::string> texts;
-    int value;
-    bool changed;
+    int value = 0;
+    bool changed = false;
     Rect layout;                     // the constructor's rectangle
 };
 
@@ -1611,12 +1611,12 @@ public:
     int value = 0;                   // the chosen entry
     bool changed = false;
     int active = 0;                  // the highlighted entry while open
-    UiContainer* owner;
+    UiContainer* owner = nullptr;
     Rect row;                        // layout coordinates
     Rect frame;                      // the open list's frame (layout); entries inside its 5-pixel border
     bool open = false;
     int shown = 0;                   // entries shown at once
-    UiScrollbar* scroll;
+    UiScrollbar* scroll = nullptr;
     std::vector<UiWindow*> covered;  // the owner's children not drawn while open (under the list)
 
 private:
@@ -1640,11 +1640,11 @@ struct SaveEntry {
 
     std::string title;
     std::string folder;             // under saves\ ("saveq" quick, "savea" / "saveb" automatic, "save<n>")
-    std::int32_t savedAt;            // time() when it was saved (info.sav version 2 and up)
-    float gameTime;                  // the "gtime" variable
+    std::int32_t savedAt = 0;        // time() when it was saved (info.sav version 2 and up)
+    float gameTime = 0.0f;           // the "gtime" variable
     std::string map;                // the map of the zone
     std::string zone;
-    bool broken;                     // no info.sav: titled "Error Save", no picture
+    bool broken = false;             // no info.sav: titled "Error Save", no picture
 };
 
 // The quick and automatic saves (`slot` the save folder's name). Nothing for a multiplayer client or when
@@ -1709,38 +1709,38 @@ public:
     bool IsReservedSave(int index);
 
     std::vector<SaveEntry> entries;
-    int selected;
-    int firstVisible;                // list scroll position
-    bool isSave;                     // save (not load) window
-    bool sliding;                    // sliding in; input is ignored meanwhile
-    float slide;                     // 0..1
-    UiScrollbar* scrollbar;
+    int selected = 0;
+    int firstVisible = 0;            // list scroll position
+    bool isSave = false;             // save (not load) window
+    bool sliding = false;            // sliding in; input is ignored meanwhile
+    float slide = 0.0f;              // 0..1
+    UiScrollbar* scrollbar = nullptr;
     // The selected save's picture in layout coordinates (CreateScreen's sprite).
     static constexpr Rect kPictureRect{410, 100, 700, 320};
     Texture* picture = nullptr;     // the selected save's picture (ShowPicture)
-    Texture* dialog;                // the save window's picture of the game for the new save
+    Texture* dialog = nullptr;      // the save window's picture of the game for the new save
     std::vector<std::uint8_t> newPicture;    // the new save's shot.sav bytes (save_picture.h), dialog's picture
     std::string name;               // the save name being edited
-    bool nameTyped;
-    int cursor;                      // caret position in name (bytes, at a character's start: U4)
+    bool nameTyped = false;
+    int cursor = 0;                  // caret position in name (bytes, at a character's start: U4)
 };
 
 struct OptionDefinition {
-    int id;
-    const char* name;                // "option_" + name is its text key (else the name is shown)
-    int kind;                        // 0 a slider, 1 an on / off spin control, 2 the resolutions' drop-down list, 3 a
+    int id = 0;
+    const char* name = nullptr;      // "option_" + name is its text key (else the name is shown)
+    int kind = 0;                    // 0 a slider, 1 an on / off spin control, 2 the resolutions' drop-down list, 3 a
                                      // spin control over a choice list (ui_options.cpp's)
-    int maximum;                     // the slider's range
-    int group;                       // the option group (0-10) it is shown in
-    int row;                         // its row there
+    int maximum = 0;                 // the slider's range
+    int group = 0;                   // the option group (0-10) it is shown in
+    int row = 0;                     // its row there
 };
 constexpr int kOptionDefinitionCount = 27;
 
 struct ActionDefinition {
-    int id;                          // the action (the key code in the key table)
-    const char* name;                // "action" + name is its text key
-    int group;
-    int row;
+    int id = 0;                      // the action (the key code in the key table)
+    const char* name = nullptr;      // "action" + name is its text key
+    int group = 0;
+    int row = 0;
 };
 constexpr int kActionDefinitionCount = 59;
 // The key actions (a table of 60; the first is a blank id 0): the key bindings file's names and the options
@@ -1810,23 +1810,23 @@ inline constexpr ActionDefinition kActionDefinitions[60] = /*00787070*/ {
 
 // The rows of the shown group point at them.
 struct OptionSetting {
-    const OptionDefinition* definition;
-    int value;
-    UiScrollbar* bar;               // a UiSlider, or null
-    UiSpin* spin;                   // or null
-    UiDropList* list;               // the resolutions' drop-down list, or null
+    const OptionDefinition* definition = nullptr;
+    int value = 0;
+    UiScrollbar* bar = nullptr;     // a UiSlider, or null
+    UiSpin* spin = nullptr;         // or null
+    UiDropList* list = nullptr;     // the resolutions' drop-down list, or null
     std::string text;               // the shown name
 };
 
 // An exit shown on the objectives window's zone picture.
 struct ObjectiveExit {
-    bool flag;                       // a known distance (global map), or the zone variable is not 1
-    int exit;                        // index in the zone's exit list
-    float distance;
-    float x;                         // centre of the exit rectangle (world units)
-    float y;
-    float mapX;                      // on the picture (layout)
-    float mapY;
+    bool flag = false;               // a known distance (global map), or the zone variable is not 1
+    int exit = 0;                    // index in the zone's exit list
+    float distance = 0.0f;
+    float x = 0.0f;                  // centre of the exit rectangle (world units)
+    float y = 0.0f;
+    float mapX = 0.0f;               // on the picture (layout)
+    float mapY = 0.0f;
 };
 
 // The objectives window (TAB in a zone opens it for the current zone). Left: the quests of the zone (rows),
@@ -1869,32 +1869,32 @@ public:
 
     std::vector<std::string> zones;    // the zones listed
     std::string zoneName;           // the zone it was opened for
-    bool twoButtons;                 // OK on the left and a second button (else OK centred)
+    bool twoButtons = false;         // OK on the left and a second button (else OK centred)
     std::map<int, float>* exitDistances = nullptr;    // exit -> distance, or null
-    bool listZones;                  // list the zones of the zone's allod with quests
-    int zoneIndex;
+    bool listZones = false;          // list the zones of the zone's allod with quests
+    int zoneIndex = 0;
     std::string shownZone;
     std::vector<ObjectiveExit> exits;
-    int nearestExit;
-    int selectedQuest;               // row of the quest named by the current-quest global
-    int shownQuest;                  // the row ShowQuest last showed (-1: none)
+    int nearestExit = 0;
+    int selectedQuest = 0;           // row of the quest named by the current-quest global
+    int shownQuest = 0;              // the row ShowQuest last showed (-1: none)
     std::vector<std::string> quests;
     UiScrollText* questText = nullptr;   // the selected quest's text column (a child)
-    UiScrollbar* bar;
-    int firstRow;                    // the first quest row shown (the bar's position)
-    float markerScale;
-    float blinkTime;                 // seconds since the exit was selected (the markers' blink)
+    UiScrollbar* bar = nullptr;
+    int firstRow = 0;                // the first quest row shown (the bar's position)
+    float markerScale = 0.0f;
+    float blinkTime = 0.0f;          // seconds since the exit was selected (the markers' blink)
     std::vector<Vector2> questPlaces;    // the selected quest's places
     std::vector<std::string> objectiveTexts;    // obj_0..obj_2
     std::vector<std::string> questTitles;    // the shown rows' titles (DrawQuestList)
     std::string zoneTitle;          // the last zone with a text: its title and description (ShowZone)
     std::string zoneText;
-    std::uint8_t savedAlphaRef;
+    std::uint8_t savedAlphaRef = 0;
 };
 
 // A key binding row of the options window.
 struct OptionBinding {
-    const ActionDefinition* action;
+    const ActionDefinition* action = nullptr;
     // The keys bound to the action (BuildBindings keeps at most one).
     std::vector<const UiKeyName*> keys;
     std::string name;               // the action's shown name
@@ -1903,8 +1903,8 @@ struct OptionBinding {
 
 // A row of the options window: a key binding or a setting.
 struct OptionRow {
-    OptionBinding* binding;
-    OptionSetting* setting;
+    OptionBinding* binding = nullptr;
+    OptionSetting* setting = nullptr;
 };
 
 // The options window. Regions: 0 OK, 1 cancel, 2-12 the option groups (100..250 x 156..420), 13.. the rows of
@@ -1955,17 +1955,17 @@ public:
     OptionRow& RegionRow(int region) { return rows[region - 13]; }
 
     signed char keyOfScan[0x200];    // the key code bound to each scan code
-    int selectedRow;
-    int group;                       // the option group shown
+    int selectedRow = 0;
+    int group = 0;                   // the option group shown
     std::vector<OptionBinding> bindings;
     std::vector<OptionSetting> settings;
     OptionRow rows[14];
-    bool waitingForKey;              // a key binding row waits for the new key
-    bool sliding;
-    float slide;
+    bool waitingForKey = false;      // a key binding row waits for the new key
+    bool sliding = false;
+    float slide = 0.0f;
     std::vector<std::string> groupNames;    // the option groups' titles
-    bool shadowsChanged;             // the shadows switch (setting 7) changed
-    const UiKeyName* pressedKey;     // the key pressed for a binding row
+    bool shadowsChanged = false;     // the shadows switch (setting 7) changed
+    const UiKeyName* pressedKey = nullptr;  // the key pressed for a binding row
     std::vector<Size> resolutions;   // the resolution setting's sizes, the screen's among them
 };
 
@@ -1993,17 +1993,17 @@ public:
     void SetFocused(bool focused);
 
     Rect area;                       // the surface's layout rectangle
-    std::uint32_t charClasses;       // classes Char takes (1 digits, 2 letters / space, 4 others, 8 '.' ':')
-    std::uint8_t centred;            // SetLook's mode
-    int font;                        // interface font
-    int maxLength;
-    std::uint32_t colour;                 // the text's colour
-    std::uint32_t caretColour;            // SetLook's last argument (0xFF from the constructor)
+    std::uint32_t charClasses = 0;   // classes Char takes (1 digits, 2 letters / space, 4 others, 8 '.' ':')
+    std::uint8_t centred = 0;        // SetLook's mode
+    int font = 0;                    // interface font
+    int maxLength = 0;
+    std::uint32_t colour = 0;             // the text's colour
+    std::uint32_t caretColour = 0;        // SetLook's last argument (0xFF from the constructor)
     std::string text;
-    int caret;                       // caret position in text (bytes, at a character's start: U4)
-    bool editing;                    // an edit key was pressed (the first one sets it)
-    bool focused;                    // keys are taken only while set
-    bool changed;
+    int caret = 0;                   // caret position in text (bytes, at a character's start: U4)
+    bool editing = false;            // an edit key was pressed (the first one sets it)
+    bool focused = false;            // keys are taken only while set
+    bool changed = false;
 };
 
 // The buttons of a message box.
@@ -2057,11 +2057,11 @@ public:
 
     std::string title;
     std::string text;
-    MessageQuestion question;        // Exit: the text in font 1, else 2
-    MessageButtons buttons;
+    MessageQuestion question = {};   // Exit: the text in font 1, else 2
+    MessageButtons buttons = {};
     std::vector<UiLabel> labels;     // the surface's paint: the title and the text (CreateScreen measures and places them)
-    UiEditField* edit;              // the edit field (OkCancelEdit)
-    char* editText;                  // the edit field's first text; OK copies the typed one here
+    UiEditField* edit = nullptr;    // the edit field (OkCancelEdit)
+    char* editText = nullptr;        // the edit field's first text; OK copies the typed one here
 };
 
 // The help / message window (Interface3D::ShowMessage and OpenHelp). Its pages come from the texts:
@@ -2093,14 +2093,14 @@ public:
     void PaintBody(UiSurface& surface) const;
     void PaintFooter(UiSurface& surface) const;
 
-    bool message;                        // a message window (ShowMessage), not help
+    bool message = false;                // a message window (ShowMessage), not help
     std::string text;                   // the message, or the help topic
     std::string title;
     std::vector<std::string> lines;      // the pages' texts
-    int page;                            // the page shown (the topic's or message's saved page)
+    int page = 0;                        // the page shown (the topic's or message's saved page)
     std::vector<UiMesh*> pulsing;      // sprites whose plain colour pulses (Update)
     std::vector<UiMesh*> pictures;     // the entries' picture sprites
-    float pulseTime;
+    float pulseTime = 0.0f;
     // What ShowPage keeps for the paints: the page's width (layout), the texts with their first rows, and the help
     // key's hint ("<show_tutorial_key> <key>"; empty without a key).
     struct HelpText {
@@ -2151,9 +2151,9 @@ public:
     void Redraw() override;
 
     std::vector<ChatLine> lines;
-    bool chatOpen;                   // a multiplayer client's chat line is open (it takes the keys)
+    bool chatOpen = false;           // a multiplayer client's chat line is open (it takes the keys)
     std::string typed;
-    int caret;                       // in the typed line (a byte offset at a character's start: U4)
+    int caret = 0;                   // in the typed line (a byte offset at a character's start: U4)
 };
 
 // The new game's difficulty question (the main menu's region 0): a message box ("option_difficulty", OK and
@@ -2175,7 +2175,7 @@ public:
     // Hard checked first.
     void CreateScreen() override;
 
-    int easy;                        // 1 easy, 0 hard (the default)
+    int easy = 0;                    // 1 easy, 0 hard (the default)
 };
 
 // config\keyboard.ini.

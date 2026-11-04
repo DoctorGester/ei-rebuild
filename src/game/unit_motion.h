@@ -21,7 +21,7 @@ struct PathOrder;
 struct MotionPoint {
     Vector2 position;   // half-cell units
     Vector2 direction;  // unit direction of travel
-    float speed;        // half-cells per tick
+    float speed = 0.0f;  // half-cells per tick
     Point cell;         // path cell the point belongs to (-1, -1 none)
 };
 static_assert(sizeof(MotionPoint) == 0x1C);   // saved as its 28 bytes
@@ -29,13 +29,13 @@ static_assert(sizeof(MotionPoint) == 0x1C);   // saved as its 28 bytes
 // A corner of the path the trajectory is built from: `cells` path cells lead to it.
 struct MotionWaypoint {
     Vector2 position;
-    int cells;
+    int cells = 0;
 };
 static_assert(sizeof(MotionWaypoint) == 0x0C);   // saved as its 12 bytes
 
 // c0 + c1 u + c2 u^2 + c3 u^3: one coordinate of a trajectory segment.
 struct MotionCubic {
-    float c0, c1, c2, c3;
+    float c0 = 0.0f, c1 = 0.0f, c2 = 0.0f, c3 = 0.0f;
 
     // Hermite fit: value p0 / slope d0 at u = 0, value p1 / slope d1 at u = length.
     void Fit(float p0, float d0, float p1, float d1, float length);
@@ -83,18 +83,18 @@ struct UnitMotion {
     std::vector<MotionPoint> points;
     std::vector<MotionWaypoint> waypoints;
     std::vector<float> stepSpeeds;            // per step: AIPath step speed (1/512 units)
-    float speedScale;
-    float baseTurnRate;                     // radians per tick
-    float turnRate;
-    float startAngle;
-    float turn;                             // turn to make before moving, in [-pi, pi]
+    float speedScale = 0.0f;
+    float baseTurnRate = 0.0f;              // radians per tick
+    float turnRate = 0.0f;
+    float startAngle = 0.0f;
+    float turn = 0.0f;                      // turn to make before moving, in [-pi, pi]
     Vector2 segmentFrom, segmentFromDirection;  // current segment: its first and last point
     Vector2 segmentTo, segmentToDirection;
-    float length;
-    float speed;
+    float length = 0.0f;
+    float speed = 0.0f;
     MotionCubic curveX;
     MotionCubic curveY;
-    float segmentStart;                     // time the current segment starts / ends
-    float segmentEnd;
-    int segment;                            // index of its first point, -1 none
+    float segmentStart = 0.0f;              // time the current segment starts / ends
+    float segmentEnd = 0.0f;
+    int segment = 0;                        // index of its first point, -1 none
 };

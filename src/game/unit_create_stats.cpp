@@ -187,7 +187,7 @@ bool NamesRequirement(const std::string& text) {
 const ::SkillLevelRecord* LevelRecordAt(std::uint32_t index) { return unitdb::SkillLevelAt(index); }
 
 struct FactoryEntry {
-    MapObjectType type;
+    MapObjectType type = {};
     EngineObject* (*create)();
 };
 // The class's entry: its id and a new object of it.

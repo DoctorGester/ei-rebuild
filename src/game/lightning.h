@@ -20,8 +20,8 @@
 // A random noise key: two rows of the noise table (0..15) and their weights, scaled together to a
 // fixed length.
 struct NoiseKey {
-    std::uint32_t index[2];
-    float weight[2];
+    std::uint32_t index[2] = {};
+    float weight[2] = {};
 
     // Picks two random rows and two random weights in [-1, 1), then rescales the weights
     // to length `amplitude`.
@@ -37,9 +37,9 @@ struct LightningSegment {
     Vector3 step;               // (end - start) / point count
     NoiseKey sideKeys[3];       // newest first (the noise along `side`)
     NoiseKey upKeys[3];         // (the noise along `up`)
-    float noiseTime;            // time of the newest keys
+    float noiseTime = 0.0f;     // time of the newest keys
     std::vector<Vector3> points;
-    float width;                // passed to the renderer
+    float width = 0.0f;         // passed to the renderer
 
     // Straight segment between two points: start, step and point count (48 below 10 units, 72 above 15, 5 per
     // unit in between, a multiple of 4), the displacement axes scaled to the length (at most 15).
@@ -93,9 +93,9 @@ public:
     ClipBounds bounds;
     LightningSegment main;
     LightningSegment branches[6];
-    float branchPos[6];                 // where each branch leaves the main segment (0..1)
-    float power;                        // sign selects the look (0: parallel bolts)
-    float amplitude;                    // noise amplitude of the branch sway
+    float branchPos[6] = {};            // where each branch leaves the main segment (0..1)
+    float power = 0.0f;                 // sign selects the look (0: parallel bolts)
+    float amplitude = 0.0f;             // noise amplitude of the branch sway
 };
 
 // The noise table, 32 rows of 400 floats (rows 0..15 for the stored keys, 16..31 for the

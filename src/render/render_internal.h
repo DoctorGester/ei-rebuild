@@ -54,9 +54,9 @@ using gpu_shaders::UiParams;
 // A vertex: world (terrain) or model (meshes) position.
 struct Vertex {
     Vector3 position;
-    std::uint32_t colour;     // D3DCOLOR (bytes B, G, R, A)
-    std::uint32_t specular;   // D3DCOLOR; its alpha is the fog factor (255 no fog)
-    float u, v;
+    std::uint32_t colour = 0;  // D3DCOLOR (bytes B, G, R, A)
+    std::uint32_t specular = 0;  // D3DCOLOR; its alpha is the fog factor (255 no fog)
+    float u = 0.0f, v = 0.0f;
     Vector3 normal;           // model space (a figure mesh lit on the GPU), else zero
 };
 static_assert(sizeof(Vertex) == 40);
@@ -115,16 +115,16 @@ void ApplyPassState(gpu::PipelineDesc& p, const PassState& s);
 // A terrain page kept on the GPU and one quarter of it drawn in a frame.
 struct CachedPage;
 struct TerrainPiece {
-    CachedPage* page;
-    int quarter;
+    CachedPage* page = nullptr;
+    int quarter = 0;
 };
 
 struct TerrainBatch {
-    const ::Texture* texture;   // the landscape's page texture
-    bool water;               // the water pass (alpha from the vertex colour)
-    int matrix;               // index into Frame::matrices
-    int firstPiece;           // into Frame::terrainPieces
-    int pieceCount;
+    const ::Texture* texture = nullptr;  // the landscape's page texture
+    bool water = false;       // the water pass (alpha from the vertex colour)
+    int matrix = 0;           // index into Frame::matrices
+    int firstPiece = 0;       // into Frame::terrainPieces
+    int pieceCount = 0;
     PassState state;          // its textures not read
     bool occluded = false;    // the ground of the world: it takes the ambient occlusion (DrawOcclusion)
 };
@@ -133,16 +133,16 @@ struct CachedMesh;
 
 constexpr float kNoFront = 1e30f;
 struct MeshBatch {
-    int matrix;
-    int firstIndex;           // into the frame's mesh stream, or (cached) the mesh's own indices
-    int indexCount;
+    int matrix = 0;
+    int firstIndex = 0;       // into the frame's mesh stream, or (cached) the mesh's own indices
+    int indexCount = 0;
     PassState state;
-    bool distanceFog;
-    float fogNear;            // the pipeline's fog start
-    float fogScale;           // 255 / (end - start)
-    bool unclipped;           // the old path projected it without clipping
-    float zScale;             // the depth is multiplied by it (1: unchanged)
-    bool lines;               // a line list (else triangles)
+    bool distanceFog = false;
+    float fogNear = 0.0f;     // the pipeline's fog start
+    float fogScale = 0.0f;    // 255 / (end - start)
+    bool unclipped = false;   // the old path projected it without clipping
+    float zScale = 0.0f;      // the depth is multiplied by it (1: unchanged)
+    bool lines = false;       // a line list (else triangles)
     bool model = false;       // a model's mesh (BeginMesh .. MeshPass), not pre-transformed vertices
     bool flat = false;        // the flat geometry (decals, markers), no corners
     bool decal = false;       // flat: a ground print (MeshDraw::groundDecal), shaded as the ground under it; `box` its
@@ -171,46 +171,46 @@ struct MeshBatch {
 // The image is read at the blit.
 struct BlitBatch {
     gpu::Texture texture;
-    int textureWidth, textureHeight;
+    int textureWidth = 0, textureHeight = 0;
     Rect destination;
     Rect source;
 };
 
 struct ClearBatch {
-    float z;
+    float z = 0.0f;
     Rect rect;                // screen pixels; right 0: the whole frame
 };
 
 // render::Fill.
 struct FillBatch {
     Rect rect;                // screen pixels
-    std::uint32_t colour;     // D3DCOLOR, alpha ignored
+    std::uint32_t colour = 0;  // D3DCOLOR, alpha ignored
 };
 
 // The interface's quads (render::ui::Solid / Glyphs): a corner in frame pixels, its atlas texels (u < 0: full
 // coverage) and its colour's bytes R, G, B, A.
 struct UiVertex {
-    float x, y, u, v;
-    std::uint32_t colour;
+    float x = 0.0f, y = 0.0f, u = 0.0f, v = 0.0f;
+    std::uint32_t colour = 0;
 };
 // A run of the frame's uiVertices drawn with one atlas (null: solids only), scissored to `scissor`.
 struct UiBatch {
-    std::uint32_t first, count;
-    const text::GlyphAtlas* atlas;
+    std::uint32_t first = 0, count = 0;
+    const text::GlyphAtlas* atlas = nullptr;
     Rect scissor;
 };
 // render::ui::DrawPicture.
 struct PictureBatch {
     gpu::Texture texture;
-    int width, height;
+    int width = 0, height = 0;
     Rect destination;
-    bool grey;
+    bool grey = false;
 };
 
 struct Command {
     enum Kind : std::uint8_t { Terrain, Mesh, Blit, ClearDepth, Fill, Ui, Picture };
-    Kind kind;
-    int index;                // into terrainBatches / meshBatches / blitBatches / clears / fills / uiBatches / pictureBatches
+    Kind kind = {};
+    int index = 0;            // into terrainBatches / meshBatches / blitBatches / clears / fills / uiBatches / pictureBatches
 };
 
 // The scene's light as kept by render::SceneLighting, for the terrain shader (shaders/scene_lighting.hlsli), with
@@ -289,7 +289,7 @@ struct Frame {
 // The world view's commands (render::BeginWorld .. EndWorld), the last range open (end SIZE_MAX) while the
 // world view draws. The render quality draws them multisampled and their models anisotropically.
     struct Range {
-        std::size_t first, end;
+        std::size_t first = 0, end = 0;
     };
     std::vector<Range> worldRanges;
     bool haveFog = false;
@@ -386,8 +386,8 @@ public:
     const gpu::Buffer& Buffer() const { return buffer; }
 
 private:
-    bool index;
-    const char* label;
+    bool index = false;
+    const char* label = nullptr;
     gpu::Buffer buffer;
     std::size_t used = 0;                 // appended since the last commit
     std::uint32_t commit = 0xFFFFFFFFu;   // CommitNumber() of the last append
@@ -412,7 +412,7 @@ public:
 
 private:
     StreamBuffer vertices, indices;
-    bool terrain;
+    bool terrain = false;
     std::uint32_t frame = 0xFFFFFFFFu;
     std::size_t vertexCount = 0, indexCount = 0;
     int vertexOffset = -1, indexOffset = -1;
@@ -450,9 +450,9 @@ private:
         void Write(std::size_t offset, const void* data, std::size_t bytes) const;
         void Drop();   // kept by the GPU until the commands using it are done
     };
-    std::size_t geometryStride;
-    std::uint32_t leastVertices, leastIndices;
-    const char* label;
+    std::size_t geometryStride = 0;
+    std::uint32_t leastVertices = 0, leastIndices = 0;
+    const char* label = nullptr;
     Buffer geometry, colours, indices;
     std::uint32_t vertexCapacity = 0, indexCapacity = 0;
     std::uint32_t usedVertices = 0, usedIndices = 0;
@@ -466,7 +466,7 @@ private:
 // drawn for a long time.
 struct TerrainGroup {
     Vector3 low, high;              // the box of its positions in the landscape's space
-    std::uint32_t first, count;     // its vertices in the page's
+    std::uint32_t first = 0, count = 0;  // its vertices in the page's
 };
 bool CreateTerrainShader();
 // The water's ripple map (render_water.cpp), made at the start (false: it could not be), bound with every terrain
@@ -602,8 +602,8 @@ const gpu::Texture& NoShadowTexture();
 // drawn in) and the pipeline and bindings are applied only when they change.
 struct CasterInstance {
     Matrix4 light;       // model space -> the map's clip space
-    float uvOffset[2];   // a kept mesh's texture offsets (MeshBatch::uOffset, vOffset)
-    float alpha[2];      // cut out (1) where stage 0's alpha is below [1]
+    float uvOffset[2] = {};  // a kept mesh's texture offsets (MeshBatch::uOffset, vOffset)
+    float alpha[2] = {};  // cut out (1) where stage 0's alpha is below [1]
 };
 static_assert(sizeof(CasterInstance) == 80, "the instance layout in CasterDraws' pipelines");
 class CasterDraws {
@@ -626,9 +626,9 @@ private:
     struct Entry {
         gpu::BufferBinding vertices, indices;   // the positions (MeshLayout's buffer 0; the colours are not read)
         gpu::TextureBinding texture;
-        int kept;
-        int firstIndex, indexCount;
-        int instance;   // in instanceData
+        int kept = 0;
+        int firstIndex = 0, indexCount = 0;
+        int instance = 0;  // in instanceData
     };
     // What a draw binds: the order Sort puts the draws in, the same key for draws with the same bindings.
     static auto BindingKey(const Entry& e) {
@@ -698,9 +698,9 @@ public:
     StatsTimer& operator=(const StatsTimer&) = delete;
 
 private:
-    double FrameStats::* field;
-    long long start;
-    StatsTimer* outer;
+    double FrameStats::* field = nullptr;
+    long long start = 0;
+    StatsTimer* outer = nullptr;
 };
 // CountPipeline: a change when it differs from the last one applied in the frame; CountBindings: a texture change
 // when the first texture bound differs from the last.

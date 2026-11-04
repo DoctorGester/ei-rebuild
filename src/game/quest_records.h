@@ -23,11 +23,11 @@ struct QuestRecord {
     void Serialize(ChunkArchive* ar);
 
     std::string name;
-    float exp;
-    std::uint32_t unreadField;      // archive field 2 (4 bytes; 0 when loaded from the quests); nothing reads it
-    float money;
-    int zone;                       // the zone index
-    int order;
+    float exp = 0.0f;
+    std::uint32_t unreadField = 0;  // archive field 2 (4 bytes; 0 when loaded from the quests); nothing reads it
+    float money = 0.0f;
+    int zone = 0;                   // the zone index
+    int order = 0;
     std::vector<float> places;     // x and y in turn
     std::string text;
 };
@@ -42,13 +42,13 @@ struct QuestBriefingRecord {
     enum ListKind { kGiveItems, kRemoveItems, kGiveQuests, kCompleteQuests, kAvailableZones, kCompleteZones };
 
     std::string name;
-    float exp;
-    float money;
+    float exp = 0.0f;
+    float money = 0.0f;
     std::vector<std::string> lists[6];   // by ListKind
     std::string text;
     // +0x68 archive field 10 (0 when loaded from the quests): the briefing's specials, text
     // "brief_get_specials_<n>" when above 0 (the dialogue's rewards).
-    std::int32_t specials;
+    std::int32_t specials = 0;
 };
 
 // The quest database's briefings (its +0x20): the records and their index by name.

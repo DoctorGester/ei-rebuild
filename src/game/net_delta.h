@@ -89,8 +89,8 @@ public:
     void End();
 
 private:
-    DeltaField* field;
-    bool keepSnapshot0;   // channel 1 always keeps what it sends
+    DeltaField* field = nullptr;
+    bool keepSnapshot0 = false;  // channel 1 always keeps what it sends
 };
 
 // Reads one field from a received stream against the snapshots of the channel it was written for.
@@ -129,9 +129,9 @@ private:
     // One 16-bit value (ReadDelta of 2 bytes).
     std::uint16_t ReadWord();
 
-    DeltaField* field;
-    MemoryStream* snapshot;   // the one read against
-    MemoryStream* received;
+    DeltaField* field = nullptr;
+    MemoryStream* snapshot = nullptr;  // the one read against
+    MemoryStream* received = nullptr;
 };
 
 // The fields of one object.

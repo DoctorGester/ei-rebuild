@@ -108,12 +108,12 @@ bool SpellHasLineOfSight(WorldServer* world, Spell* spell, Unit* caster, const V
                                     Unit* target, const Vector3& at);
 
 struct MoveModeState {
-    MoveMode mode;              // never Run: that is stored as Walk with `wasMode3`
+    MoveMode mode = {};         // never Run: that is stored as Walk with `wasMode3`
     // Set while the unit attacks (SyncMoveModes) and by the AI's suspicion, aggression and fear modes (cleared
     // when they end): Walk then takes the guarded walk / cast animations (not a hero's own walk), the unit
     // cannot be backstabbed and does not fall asleep (moveMode2's, read by the hit code and the world update).
-    std::uint8_t onGuard;
-    std::uint8_t wasMode3;
+    std::uint8_t onGuard = 0;
+    std::uint8_t wasMode3 = 0;
 };
 
 // AttackParams::damageType of a natural attack whose damage weights are all zero.
@@ -124,14 +124,14 @@ struct AttackParams {
     // Unless `keyed`: attack and defence times the difficulty's factors, truncated.
     void ScaleForDifficulty(int keyed);
 
-    WeaponType weaponType;      // ItemWeapon::GetType, or the natural weapon
-    int damageType;             // 0..6, or kNoDamageType
-    float speed;                // the weapon's, or the natural attack's
-    float damageMin;            // scaled by the stats' damage scale
-    float damageMax;            // damage + spread, scaled likewise
-    float attackSpread;         // random range of the attack roll
-    int attack;                 // attack skill (truncated)
-    int defence;                // defence skill (truncated; 0 for ranged weapons)
+    WeaponType weaponType = {};  // ItemWeapon::GetType, or the natural weapon
+    int damageType = 0;         // 0..6, or kNoDamageType
+    float speed = 0.0f;         // the weapon's, or the natural attack's
+    float damageMin = 0.0f;     // scaled by the stats' damage scale
+    float damageMax = 0.0f;     // damage + spread, scaled likewise
+    float attackSpread = 0.0f;  // random range of the attack roll
+    int attack = 0;             // attack skill (truncated)
+    int defence = 0;            // defence skill (truncated; 0 for ranged weapons)
 };
 
 // An entry of the armour spell list: the item (a counted reference), its countdown and whether it is still
@@ -143,8 +143,8 @@ struct ArmourSpell {
     void Save(ByteStream* stream) const;
 
     HeldRef<Item> item;
-    int countdown;
-    std::uint8_t worn;
+    int countdown = 0;
+    std::uint8_t worn = 0;
 };
 
 // What a unit controller is doing (UnitServer::state).

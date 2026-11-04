@@ -42,9 +42,9 @@ constexpr std::uint32_t kNoRecordField = 0xFFFFFFFFu;
 // The vector UnitTextureRecords fills: 12-byte texture records (copied into the set as bytes): a kind (0x32
 // the body, ItemKind::Armor an armour piece, ItemKind::Weapon a weapon), the item id and the item record's type.
 struct TextureRecord {
-    std::uint32_t kind;
-    std::uint32_t id;
-    std::uint32_t itemType;   // the item record's type
+    std::uint32_t kind = 0;
+    std::uint32_t id = 0;
+    std::uint32_t itemType = 0;  // the item record's type
 };
 } // namespace
 

@@ -1,9 +1,7 @@
 #pragma once
 
-// The unit occupancy layers at AIMap + 0x27C (small units) and + 0x12A4 (large units): every unit
-// on the map is stamped as a 20x20-cell block of levels (its UnitShape, 16x16, at the unit's cell
-// offset within a 4-cell block), stored as 4x4-cell nodes in a 1024-bucket hash keyed by block.
-// Names provisional; layout static_asserted below.
+// The unit occupancy layers' helpers (the layers are AIMap::unitLayerSmall and unitLayerLarge, declared in
+// ai_map.h): the shape cache's creator and the block hash.
 
 #include "ai_map.h"
 #include "ai_shape_cache.h"

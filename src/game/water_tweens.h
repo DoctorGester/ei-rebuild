@@ -10,10 +10,10 @@ namespace terrain { class Terrain; }
 // A gradual change of one water level (script SetWaterLevel(index, level, time)): `value` moves
 // by `step` per world update for `steps` updates.
 struct TweenEntry {
-    int key;        // water index
-    int steps;      // updates left
-    float value;
-    float step;
+    int key = 0;    // water index
+    int steps = 0;  // updates left
+    float value = 0.0f;
+    float step = 0.0f;
 };
 static_assert(sizeof(TweenEntry) == 16);   // saved as its 16 bytes
 

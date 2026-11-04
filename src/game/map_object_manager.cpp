@@ -84,12 +84,12 @@ namespace {
 
 // The header of "<figure>.adb"; `count` FigureAnimationRecords follow.
 struct AdbHeader {
-    char magic[4];                  // "ADB"
-    std::uint32_t count;
-    char unreadName[0x18];          // the database's name ("Zombie00")
-    float start;
-    float length;
-    float end;
+    char magic[4] = {};             // "ADB"
+    std::uint32_t count = 0;
+    char unreadName[0x18] = {};     // the database's name ("Zombie00")
+    float start = 0.0f;
+    float length = 0.0f;
+    float end = 0.0f;
 };
 static_assert(sizeof(AdbHeader) == 0x2C);
 

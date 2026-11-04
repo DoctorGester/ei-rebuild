@@ -85,10 +85,10 @@ struct AIOrder {
 
 // One remembered look direction of the current move.
 struct AILook {
-    float angle;
-    float time;                     // turning time
-    float wait;                     // wait afterwards (game ticks)
-    bool stopFirst;
+    float angle = 0.0f;
+    float time = 0.0f;              // turning time
+    float wait = 0.0f;              // wait afterwards (game ticks)
+    bool stopFirst = false;
 };
 
 // The looks from / to a save: the count, then angle, time and wait of each and (from version 0x44) the stop
@@ -289,7 +289,7 @@ public:
     void Save(ByteStream* stream) override;
 
     Ref<MapObject> enemy;
-    bool fixed;                     // enemy set by the script (no searching)
+    bool fixed = false;             // enemy set by the script (no searching)
     AITargetChoice chosen;          // the enemy chosen this tick
 };
 
@@ -335,7 +335,7 @@ public:
     Vector3 fleePoint{};            // a checked flight point (z 1.0 while pending, else 0)
     // Notices player units within `distance` and keeps noticed levels above 500 (UMFear's argument, the
     // fearful reactions).
-    bool watchful;
+    bool watchful = false;
 };
 
 // Player: the party's units.
@@ -431,8 +431,8 @@ inline constexpr console::Stream& kAiLog = console::g_aiLogOut;
 // A call the perception memory heard.
 struct AICallRecord {
     Vector3 point;
-    int delay;                          // updates until the call is heard (counts down below 0)
-    int hostileMask;                    // sides the hearer turns hostile to (0 for a plain call)
+    int delay = 0;                      // updates until the call is heard (counts down below 0)
+    int hostileMask = 0;                // sides the hearer turns hostile to (0 for a plain call)
     std::string text;
 };
 
@@ -466,7 +466,7 @@ private:
 // choice and the enemy searches leave out until the report runs out.
 struct AIReport {
     HeldRef<MapObject> object;
-    int ticksLeft;                  // updates the report lasts (dropped below 0)
+    int ticksLeft = 0;              // updates the report lasts (dropped below 0)
 };
 
 class AIReports {
@@ -519,12 +519,12 @@ struct AIAttackOption {
     void Load(ByteStream* stream);
     void Save(ByteStream* stream) const;
 
-    AIOptionKind kind;
-    int part;                       // kWeaponPart, else the spell
-    float range;
-    int maxCount;                   // cap on the group-size bonus
-    float radius;                   // the area of an area attack, the healing of AIOptionKind::Heal
-    int effect;                     // see AIOptionKind
+    AIOptionKind kind = {};
+    int part = 0;                   // kWeaponPart, else the spell
+    float range = 0.0f;
+    int maxCount = 0;               // cap on the group-size bonus
+    float radius = 0.0f;            // the area of an area attack, the healing of AIOptionKind::Heal
+    int effect = 0;                 // see AIOptionKind
 
     // The spell type `effect` holds for a curse, protection or enhancement.
     SpellType EffectSpell() const { return static_cast<SpellType>(effect); }
@@ -545,7 +545,7 @@ struct AIAttention {
 
     std::vector<AIAttackOption> weapons;
     std::vector<AIAttackOption> spells;
-    float healWeight;               // the largest Weight of the weapons (Build); kind 7 scores with it
+    float healWeight = 0.0f;        // the largest Weight of the weapons (Build); kind 7 scores with it
 };
 
 // The noticed levels and their decays (added to the level every update; AIMemory::Notice): something seen or a

@@ -41,23 +41,23 @@ enum DrawFlag : int {
 // The arguments of a mesh draw. A corner's position indexes the projected vertices, its normal the colour and specular
 // arrays (one colour per normal) and its texCoord the texture coordinates.
 struct MeshArgs {
-    const VertexPacket* positions;   // a block of four vertices each
-    int blocks;
-    const NormalPacket* normals;     // blocks of four as the positions
-    int colourCount;              // the colour arrays hold four times this (and so many normal blocks)
-    std::uint32_t* colours;
-    std::uint32_t* speculars;
-    const render::TexCoord* uvs;
-    const render::MeshCorner* corners;
-    int cornerCount;
-    const std::uint32_t* words;   // (position, normal) index pairs, by colour index
-    int wordCount;
-    std::uint16_t* indices;       // into the corners
-    int indexCount;
-    float uOffset;                // compared with 0 and added to the texture coordinates
-    float vOffset;
-    int alpha;                    // the low byte, with flag 4
-    int flags;                    // DrawFlag bits
+    const VertexPacket* positions = nullptr;  // a block of four vertices each
+    int blocks = 0;
+    const NormalPacket* normals = nullptr;  // blocks of four as the positions
+    int colourCount = 0;          // the colour arrays hold four times this (and so many normal blocks)
+    std::uint32_t* colours = nullptr;
+    std::uint32_t* speculars = nullptr;
+    const render::TexCoord* uvs = nullptr;
+    const render::MeshCorner* corners = nullptr;
+    int cornerCount = 0;
+    const std::uint32_t* words = nullptr;  // (position, normal) index pairs, by colour index
+    int wordCount = 0;
+    std::uint16_t* indices = nullptr;  // into the corners
+    int indexCount = 0;
+    float uOffset = 0.0f;         // compared with 0 and added to the texture coordinates
+    float vOffset = 0.0f;
+    int alpha = 0;                // the low byte, with flag 4
+    int flags = 0;                // DrawFlag bits
 };
 
 // The device object: the screen (its window, size and colour depth), the transform pipeline, the texture stages' holders and the
@@ -131,25 +131,25 @@ enum MmpFormat : std::uint32_t {
 // Header of an .mmp file; the extra block follows it, then the mips. Each channel: its mask, the shift of its
 // lowest bit and its bit count.
 struct MmpHeader {
-    std::uint32_t magic;        // "MMP"
-    std::uint32_t width;
-    std::uint32_t height;
-    std::uint32_t mipCount;
-    std::uint32_t format;       // pixel format id (MmpFormat, or a DXT code)
-    std::uint32_t bitsPerPixel;
-    std::uint32_t alphaMask;
-    std::uint32_t alphaShift;
-    std::uint32_t alphaKind;    // the alpha bit count: 0, 1, 4 or 8 (TextureFlag::Alpha0..Alpha8)
-    std::uint32_t redMask;
-    std::uint32_t redShift;
-    std::uint32_t redBits;
-    std::uint32_t greenMask;
-    std::uint32_t greenShift;
-    std::uint32_t greenBits;
-    std::uint32_t blueMask;
-    std::uint32_t blueShift;
-    std::uint32_t blueBits;
-    std::uint32_t extraSize;
+    std::uint32_t magic = 0;    // "MMP"
+    std::uint32_t width = 0;
+    std::uint32_t height = 0;
+    std::uint32_t mipCount = 0;
+    std::uint32_t format = 0;   // pixel format id (MmpFormat, or a DXT code)
+    std::uint32_t bitsPerPixel = 0;
+    std::uint32_t alphaMask = 0;
+    std::uint32_t alphaShift = 0;
+    std::uint32_t alphaKind = 0;  // the alpha bit count: 0, 1, 4 or 8 (TextureFlag::Alpha0..Alpha8)
+    std::uint32_t redMask = 0;
+    std::uint32_t redShift = 0;
+    std::uint32_t redBits = 0;
+    std::uint32_t greenMask = 0;
+    std::uint32_t greenShift = 0;
+    std::uint32_t greenBits = 0;
+    std::uint32_t blueMask = 0;
+    std::uint32_t blueShift = 0;
+    std::uint32_t blueBits = 0;
+    std::uint32_t extraSize = 0;
 
     // After the header: the extra block plus the sizes of the larger levels (32-bit arithmetic).
     std::uint32_t MipOffset(unsigned mip) const;
@@ -171,7 +171,7 @@ static_assert(sizeof(MmpHeader) == 0x4C);
 // mips after it. A null file reads as a zero header.
 struct MmpFile {
     explicit MmpFile(void* file);
-    void* data;             // the file as GetFile returned it (CloseFile takes it back), or null
+    void* data = nullptr;   // the file as GetFile returned it (CloseFile takes it back), or null
     MmpHeader header{};
     // The bytes after the header: the extra block, then the mips (header.MipOffset).
     const std::uint8_t* Body() const { return static_cast<const std::uint8_t*>(data) + sizeof(MmpHeader); }
@@ -256,11 +256,11 @@ public:
     ClassId GetClassId() override;
 
     std::string name;
-    std::uint32_t width;
-    std::uint32_t height;
-    int uploadResult;           // the surface fill's byte count (MmpHeader::FilledBytes); 0 after CreateBlank
+    std::uint32_t width = 0;
+    std::uint32_t height = 0;
+    int uploadResult = 0;       // the surface fill's byte count (MmpHeader::FilledBytes); 0 after CreateBlank
     std::vector<std::uint8_t> extra;        // the .mmp file's extra block
-    std::uint32_t format;       // the texture format it is held in (TextureFormat); 0 none
+    std::uint32_t format = 0;   // the texture format it is held in (TextureFormat); 0 none
     Ref<Surface> surface;
 
     TextureManager* Manager() const;
@@ -348,9 +348,9 @@ public:
     void TrimCache();
 
     std::vector<Texture*> cache;  // released textures kept for reuse, the oldest first
-    int cachedBytes;            // the cached textures' Texture::uploadResult
-    TextureDevice* device;
-    std::uint16_t mipLevel;     // first mip level to load
-    int limitTo512;             // nonzero: textures are loaded at most 511 pixels wide and high
+    int cachedBytes = 0;        // the cached textures' Texture::uploadResult
+    TextureDevice* device = nullptr;
+    std::uint16_t mipLevel = 0;  // first mip level to load
+    int limitTo512 = 0;         // nonzero: textures are loaded at most 511 pixels wide and high
 };
 

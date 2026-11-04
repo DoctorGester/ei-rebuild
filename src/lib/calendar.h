@@ -11,12 +11,12 @@ namespace lib {
 
 // A local date and time of day.
 struct DateTime {
-    int year;     // in full
-    int month;    // 1-12
-    int day;      // 1-31
-    int hour;     // 0-23
-    int minute;
-    int second;
+    int year = 0;  // in full
+    int month = 0;  // 1-12
+    int day = 0;  // 1-31
+    int hour = 0;  // 0-23
+    int minute = 0;
+    int second = 0;
 };
 
 // The local date and time of `seconds` since 1970 UTC; all zero when the C library has none.

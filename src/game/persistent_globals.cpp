@@ -22,7 +22,7 @@ class AddonStringMap {
 public:
     struct Element {
         std::string key;
-        float value;
+        float value = 0.0f;
     };
 
     AddonStringMap() { Init(kMinBuckets); }

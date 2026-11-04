@@ -107,7 +107,7 @@ void AddCell(FootprintCellSet* set, int x, int y) {
 }
 
 struct Bounds {
-    int x0, x1, y0, y1;
+    int x0 = 0, x1 = 0, y0 = 0, y1 = 0;
 };
 
 // The cells within the radius' square, rounded outwards by one and clamped to the map (the upper

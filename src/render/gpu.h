@@ -224,7 +224,7 @@ struct PipelineDesc {
     Winding front = Winding::CounterClockwise;
     Format colour = Format::Rgba8;   // None: depth only
     std::uint8_t colourMask = kWriteAll;
-    Blend blend;
+    Blend blend = {};
     Format second = Format::None;    // a second colour target (PassDesc::second), never blended
     std::uint8_t secondMask = kWriteAll;
     Format depth = Format::None;     // None: without a depth buffer
@@ -245,7 +245,7 @@ int PipelineCount();
 
 // What a PipelineLister may ask of the device.
 struct DeviceLimits {
-    SDL_GPUDevice* device;
+    SDL_GPUDevice* device = nullptr;
     // The most samples up to `most` (a power of two) that a target of `colour` and `depth` (None: without) takes.
     int MaxSamples(Format colour, Format depth, int most) const;
     bool SupportsSamples(Format colour, Format depth, int samples) const;

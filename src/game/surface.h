@@ -39,7 +39,7 @@ struct Surface final : RendererBase {
     Surface(TextureDevice* device, const MmpFile& picture);
     ~Surface() override;
 
-    TextureDevice* device;
+    TextureDevice* device = nullptr;
     int width = 0;
     int height = 0;
     int bitsPerPixel = 0;

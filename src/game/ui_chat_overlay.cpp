@@ -62,8 +62,8 @@ std::uint32_t MarkColour(char digit) {
 // A line's piece in one colour, `x` pixels from its start.
 struct ChatPiece {
     std::string text;
-    int x;
-    std::uint32_t colour;
+    int x = 0;
+    std::uint32_t colour = 0;
 };
 
 void PaintPieces(UiSurface& surface, const std::vector<ChatPiece>& pieces) {

@@ -37,8 +37,8 @@ enum BlockType {
 
 // For each of the 16 codes, indexed by the next 7 bits: the symbol index and its code's length.
 struct CodeEntry {
-    std::uint8_t index;
-    std::uint8_t length;
+    std::uint8_t index = 0;
+    std::uint8_t length = 0;
 };
 struct CodeTables {
     CodeEntry entries[16][128];

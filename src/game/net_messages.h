@@ -173,7 +173,7 @@ public:
     std::int32_t id = -1;           // from the login
     std::int32_t serial = -1;       // from the server's player serial (not sent)
     std::int32_t number = -1;       // the lowest number free when joining (not sent)
-    std::uint32_t firstLine;        // the first chat line it receives (not sent)
+    std::uint32_t firstLine = 0;    // the first chat line it receives (not sent)
 };
 
 // Type 2: a chat or system line.
@@ -268,8 +268,8 @@ public:
     MessageType Type() const override { return kType; }
 
     std::string name;
-    float value;
-    std::uint32_t serial;        // from g_variableSerial
+    float value = 0.0f;
+    std::uint32_t serial = 0;    // from g_variableSerial
 };
 
 // Type 11: a shared file.
@@ -286,7 +286,7 @@ public:
     MessageType Type() const override { return kType; }
 
     std::uint16_t chunkCount;
-    std::int32_t size;           // in bytes
+    std::int32_t size = 0;       // in bytes
     std::string name;
     std::vector<SharedRef<FileChunkMessage>> chunks;    // not sent
 };
@@ -309,8 +309,8 @@ public:
     MessageType Type() const override { return kType; }
 
     Ref<FileMessage> file{};
-    std::uint16_t index;
-    std::uint8_t data[kDataSize];
+    std::uint16_t index = 0;
+    std::uint8_t data[kDataSize] = {};
 };
 
 // Type 14: an award for one connection (the server queues it with a delay; ClientSession::ApplyAwards).
@@ -329,8 +329,8 @@ public:
     MessageType Type() const override { return kType; }
 
     Ref<RefObject> connection{};         // the receiver (not sent)
-    AwardKind kind;
-    float value;
+    AwardKind kind = {};
+    float value = 0.0f;
     std::string text;            // the item's name
 };
 

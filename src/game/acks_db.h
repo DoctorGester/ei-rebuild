@@ -29,7 +29,7 @@ struct Speeches {
 // (WorldClient::EnvironmentFlags) include all of `environment`.
 struct EnvironmentSpeech {
     SpeechRecord speech;
-    std::uint32_t environment;
+    std::uint32_t environment = 0;
 };
 
 struct EnvironmentSpeeches {

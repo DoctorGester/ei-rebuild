@@ -55,16 +55,16 @@ void Fill(std::vector<std::uint32_t>& values, std::uint32_t value) {
 // --- The part --------------------------------------------------------------------------------------
 
 struct Part {
-    FigureMeshDrawer* node;
-    TextureDevice* device;
-    const std::vector<Light*>* lights;
-    Material* material;
-    int alpha;
-    Rect* rect;
-    Texture* textureA;
-    Texture* textureB;
-    LinkMesh* figure;        // the mesh owner's figure (Object3D::figure), or null
-    int drawFlags;            // DrawFlag bits
+    FigureMeshDrawer* node = nullptr;
+    TextureDevice* device = nullptr;
+    const std::vector<Light*>* lights = nullptr;
+    Material* material = nullptr;
+    int alpha = 0;
+    Rect* rect = nullptr;
+    Texture* textureA = nullptr;
+    Texture* textureB = nullptr;
+    LinkMesh* figure = nullptr;  // the mesh owner's figure (Object3D::figure), or null
+    int drawFlags = 0;        // DrawFlag bits
     bool coloursWritten = false;   // this draw filled or lit the colour arrays (render::MeshSource)
     const render::MeshLighting* lighting = nullptr;   // lit on the GPU (not a flat mesh)
 

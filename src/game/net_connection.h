@@ -51,7 +51,7 @@ struct SentItem {
 
 // A chunk of the reliable stream: {uint16 sequence, uint8 size, size bytes}.
 struct ReliableChunk {
-    std::uint8_t bytes[0x104];
+    std::uint8_t bytes[0x104] = {};
 
     std::uint16_t Sequence() const { return static_cast<std::uint16_t>(bytes[0] | bytes[1] << 8); }
     std::uint8_t Size() const { return bytes[2]; }
@@ -68,8 +68,8 @@ struct SentPacket {
 
 // An id freed by a delivered removal, returned to its pool later (freedOlder, freedNewer).
 struct FreedId {
-    std::uint16_t id;
-    std::uint8_t type;
+    std::uint16_t id = 0;
+    std::uint8_t type = 0;
 };
 
 // An object received from the peer (the value of records): its share (copied with Share, released as its owner).
@@ -80,8 +80,8 @@ struct Record {
 
 // The (type, id) a received object came with (the value of attached).
 struct AttachedId {
-    std::uint16_t id;
-    std::uint8_t type;
+    std::uint16_t id = 0;
+    std::uint8_t type = 0;
 };
 
 // The connection timings (the original's session fields, which nothing changed), in seconds.
@@ -99,12 +99,12 @@ struct ConnectionState {
     // The send sequence starts at the tick count, the round trip at kMaxRoundTrip.
     explicit ConnectionState(std::uint32_t id);
 
-    std::uint16_t sendSequence;
+    std::uint16_t sendSequence = 0;
     std::uint32_t lastReceived = 0;     // sequence of the newest packet received
     std::uint32_t sequenceHigh = 0x10000;    // the upper bits of the received sequences
     std::vector<std::int32_t> received;    // sequences received recently
-    std::uint32_t id;                   // the connection id (sent with a leave packet)
-    float roundTrip;                    // average round trip (seconds)
+    std::uint32_t id = 0;               // the connection id (sent with a leave packet)
+    float roundTrip = 0.0f;             // average round trip (seconds)
     // The average of its square. The original's started as whatever the memory held, so the first loss timeouts
     // were the memory's.
     float roundTripSquare = 0.0f;

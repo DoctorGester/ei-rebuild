@@ -46,24 +46,24 @@ const CubeFace kCubeFaces[kFaces] = {
 
 struct Sphere {
     Vector3 centre;
-    float radius;
+    float radius = 0.0f;
 };
 
 // A caster's mesh this frame: its batch, its object and its bounding sphere in the landscape's space.
 struct Caster {
-    const MeshBatch* batch;
-    int object;   // into g_objects
+    const MeshBatch* batch = nullptr;
+    int object = 0;  // into g_objects
     Sphere sphere;
-    int model;   // PointShadowFrame::models
-    float distance;   // squared, to the light being mapped
+    int model = 0;  // PointShadowFrame::models
+    float distance = 0.0f;  // squared, to the light being mapped
 };
 
 // A unit's mesh this frame, its model matrix (-1: none under the camera) and its sphere once made.
 struct UnitMesh {
-    MeshBatch* batch;
-    int object;   // into g_objects
-    int model;    // PointShadowFrame::models
-    bool haveSphere;
+    MeshBatch* batch = nullptr;
+    int object = 0;  // into g_objects
+    int model = 0;  // PointShadowFrame::models
+    bool haveSphere = false;
     Sphere sphere;
 };
 
@@ -71,7 +71,7 @@ struct UnitMesh {
 // handed over), whether it holds the light being mapped, and a unit's nearest distance to each light mapped.
 constexpr float kNoStrength = -1.0f;
 struct FrameObject {
-    float strength;
+    float strength = 0.0f;
     bool holds = false;
     bool hasFront = false;
     float front[kMostPointShadows] = {};   // per g_mapped entry
@@ -79,17 +79,17 @@ struct FrameObject {
 
 // A light in view that casts (not an object's own).
 struct Candidate {
-    int scene;
+    int scene = 0;
     Vector3 at;
-    float range, strength;
+    float range = 0.0f, strength = 0.0f;
 };
 
 // A light given a map this frame: its scene light, its row of the atlas, and the casters each of its faces draws.
 struct MappedLight {
-    int scene;
-    int row;
+    int scene = 0;
+    int row = 0;
     Vector3 at;
-    float range;
+    float range = 0.0f;
     std::vector<int> faces[kFaces];   // indices into g_casters
 };
 
@@ -107,14 +107,14 @@ int g_mappedCount = 0;
 
 // A caster as drawn into a face: what its depth there depends on besides the face's light.
 struct FaceCaster {
-    const CachedMesh* mesh;   // null: the frame's stream (never taken as unchanged)
-    std::uint32_t version;    // CachedMeshVersion
-    int firstIndex, indexCount;
+    const CachedMesh* mesh = nullptr;  // null: the frame's stream (never taken as unchanged)
+    std::uint32_t version = 0;  // CachedMeshVersion
+    int firstIndex = 0, indexCount = 0;
     Matrix4 model;
     gpu::Texture texture;
     gpu::Sampler sampler;
-    float alpha[2];   // CasterInstance's
-    float uv[2];
+    float alpha[2] = {};  // CasterInstance's
+    float uv[2] = {};
 };
 
 // A model matrix into the landscape's space is the camera's inverse times the game's matrix under the camera
@@ -233,10 +233,10 @@ bool Unchanged(const PointShadowFrame& ps, const AtlasFace& face, const std::vec
 // drawn again this frame: each one's place in the atlas, whether it is cleared first, and its range.
 CasterDraws g_faceDraws("ei-point-shadow-casters");
 struct RedrawnFace {
-    AtlasFace* face;
-    int x, y;
-    bool clear;
-    std::size_t from, to;
+    AtlasFace* face = nullptr;
+    int x = 0, y = 0;
+    bool clear = false;
+    std::size_t from = 0, to = 0;
 };
 std::vector<RedrawnFace> g_redrawn;   // kept across frames for its room
 // A face cleared alone (shaders/solid.hlsl: a rectangle at a depth, written whatever is there).

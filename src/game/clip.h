@@ -10,10 +10,10 @@
 #include <cstdint>
 
 struct TLVertex {
-    float x, y, z, rhw;
-    std::uint32_t color;      // ARGB
-    std::uint32_t specular;   // ARGB
-    float u, v;
+    float x = 0.0f, y = 0.0f, z = 0.0f, rhw = 0.0f;
+    std::uint32_t color = 0;  // ARGB
+    std::uint32_t specular = 0;  // ARGB
+    float u = 0.0f, v = 0.0f;
 };
 static_assert(sizeof(TLVertex) == 0x20);
 static_assert(offsetof(TLVertex, color) == 0x10);

@@ -272,8 +272,8 @@ namespace {
 // game's defaults are placeholders: a camera turning about 7 and pitching about 700 times as fast). The camera's
 // whole section:
 struct InstallFloat {
-    const char* name;
-    float value;
+    const char* name = nullptr;
+    float value = 0.0f;
 };
 constexpr InstallFloat kInstallCamera[] = {
     {"CameraMinHeight", 3.0f},

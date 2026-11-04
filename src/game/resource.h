@@ -22,21 +22,21 @@
 
 #pragma pack(push, 1)
 struct ResHeader {
-    std::uint32_t magic;        // kResMagic
-    std::uint32_t count;        // number of entries (also the hash table size)
-    std::uint32_t tableOffset;  // file offset of the entry table
-    std::uint32_t namesSize;    // bytes of name data after the table
+    std::uint32_t magic = 0;    // kResMagic
+    std::uint32_t count = 0;    // number of entries (also the hash table size)
+    std::uint32_t tableOffset = 0;  // file offset of the entry table
+    std::uint32_t namesSize = 0;  // bytes of name data after the table
 };
 static_assert(sizeof(ResHeader) == 16);
 
 struct ResEntry {
     static constexpr std::int32_t kChainEnd = -1;
-    std::int32_t next;          // next entry in the hash chain, or kChainEnd
-    std::uint32_t size;         // data size in bytes
-    std::uint32_t offset;       // data offset from the start of the archive
-    std::uint32_t time;         // modification time (time_t)
-    std::uint16_t nameLength;
-    std::uint32_t nameOffset;   // offset into the names block
+    std::int32_t next = 0;      // next entry in the hash chain, or kChainEnd
+    std::uint32_t size = 0;     // data size in bytes
+    std::uint32_t offset = 0;   // data offset from the start of the archive
+    std::uint32_t time = 0;     // modification time (time_t)
+    std::uint16_t nameLength = 0;
+    std::uint32_t nameOffset = 0;  // offset into the names block
 };
 static_assert(sizeof(ResEntry) == 22);
 #pragma pack(pop)
@@ -47,8 +47,8 @@ constexpr std::uint32_t kResMagic = 0x019CE23C;
 struct LoadedFile {
     std::string name;                   // name as requested
     std::vector<std::uint8_t> bytes;    // contents (at least one byte, so that an empty file still has an address)
-    std::uint32_t size;
-    int refCount;                       // GetFile calls not yet matched by CloseFile
+    std::uint32_t size = 0;
+    int refCount = 0;                   // GetFile calls not yet matched by CloseFile
 };
 
 // The base of the archive readers (ResourceBaseClass in the game's messages): the archive header and tables. (The game's index table from numbers to

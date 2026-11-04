@@ -24,25 +24,25 @@ const char* const kWrongType = "CFileRegistry::FindData().\nWrong type of entry.
 #pragma pack(push, 1)
 // The file starts with this; the section table's slots follow.
 struct RegistryHeader {
-    std::uint32_t magic;                // kRegistryMagic
-    std::uint16_t sectionSlots;
+    std::uint32_t magic = 0;            // kRegistryMagic
+    std::uint16_t sectionSlots = 0;
 };
 // A table slot: the next slot of the chain (0xFFFF: the end) and the entry's offset (a section's from the file
 // start, a key's from its section record).
 struct RegistrySlot {
-    std::uint16_t next;
-    std::uint32_t offset;
+    std::uint16_t next = 0;
+    std::uint32_t offset = 0;
 };
 // A section record: the name's characters follow, then the key table (its slots).
 struct RegistrySection {
-    std::uint16_t keySlots;
-    std::uint16_t nameLength;
+    std::uint16_t keySlots = 0;
+    std::uint16_t nameLength = 0;
 };
 // A key's entry in a section: the name's characters follow, then the value (an int or a float; a string or an
 // array with its 16-bit length or count first).
 struct RegistryKey {
-    std::uint8_t type;                  // RegistryType
-    std::uint16_t nameLength;
+    std::uint8_t type = 0;              // RegistryType
+    std::uint16_t nameLength = 0;
 };
 #pragma pack(pop)
 static_assert(sizeof(RegistryHeader) == 6 && sizeof(RegistrySlot) == 6 && sizeof(RegistrySection) == 4 &&

@@ -56,8 +56,8 @@ struct Surface;
 struct LinkPartHeader {
     // The second / first dword after the FIG header: the part's FigureMesh::meshType and
     // materialValue (an object's part copies them and the box, Object3D::LoadPart).
-    std::uint32_t meshType;
-    std::uint32_t materialValue;
+    std::uint32_t meshType = 0;
+    std::uint32_t materialValue = 0;
     FootprintPart box;          // the bounds fitted to the part's morphed vertices, the part's position when loaded
     Rect screen;                // where the part was last drawn (empty: not drawn)
 };
@@ -65,8 +65,8 @@ struct LinkPartHeader {
 // Where a part's elements lie in the mesh's arrays (the ranges map: map<string, LinkPartRanges>).
 struct LinkPartRanges {
     struct Range {
-        int start;
-        int count;
+        int start = 0;
+        int count = 0;
     };
     Range vertices;
     Range normals;
@@ -142,7 +142,7 @@ public:
     std::vector<std::uint32_t> words;
     std::vector<std::uint16_t> indices;
     std::map<std::string, LinkPartRanges, std::less<>> ranges;
-    LinkFigureLoader* loader;
+    LinkFigureLoader* loader = nullptr;
 };
 
 // A length-prefixed string of a .lnk file (a four-byte length, then the characters) at *cursor: the characters

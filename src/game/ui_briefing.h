@@ -24,10 +24,10 @@ class PlayerMessage;
 struct BriefingMover {
     Vector3 target;
     Vector3 direction;               // the facing at the target
-    int state;                       // kDone, kWalking or kTurning
-    Unit* person;                   // the client unit
-    bool waited;                     // the dialogue waits for this one
-    float time;                      // seconds on the way (Update gives up after 30)
+    int state = 0;                   // kDone, kWalking or kTurning
+    Unit* person = nullptr;         // the client unit
+    bool waited = false;             // the dialogue waits for this one
+    float time = 0.0f;               // seconds on the way (Update gives up after 30)
 
     static constexpr int kDone = 0;
     static constexpr int kWalking = 1;
@@ -36,7 +36,7 @@ struct BriefingMover {
 
 // A person taking part in the dialogue.
 struct BriefingSpeaker {
-    Unit* unit;                     // the client unit
+    Unit* unit = nullptr;           // the client unit
     std::string name;               // as the dialogue's commands give it
 };
 
@@ -44,9 +44,9 @@ struct BriefingSpeaker {
 // objects; the item's texture is one of its referenced objects.
 struct BriefingShownItem {
     std::string name;
-    UiMesh* item;
-    EngineObject* back;
-    EngineObject* frame;
+    UiMesh* item = nullptr;
+    EngineObject* back = nullptr;
+    EngineObject* frame = nullptr;
 };
 
 // A network client's player list on the base screen: the players' faces along the top right, a surface under
@@ -73,14 +73,14 @@ public:
     void LeftDown(Point point) override;
     void MouseMove(Point point) override;
 
-    BriefingScreen* briefing;   // the screen whose chat this is (its child; its chatActive is the pick mode)
+    BriefingScreen* briefing = nullptr;  // the screen whose chat this is (its child; its chatActive is the pick mode)
     int listed = 0;
     int portraits = 0;
     std::vector<HeldRef<net::PlayerMessage>> players;
     std::vector<std::string> texts;
     // A listed player's texts as the last Update found them, under the face whose left edge is `left`.
     struct StatusRow {
-        int left;
+        int left = 0;
         std::string status;
         std::string offer;
     };
@@ -228,7 +228,7 @@ public:
     std::vector<int> people;        // ids of the local player's objects that are text keys
     float markPhase = 0.0f;                 // kept below 1
     std::vector<BriefingSpeaker> speakers;
-    int chatActive;                  // the chat window takes the input
+    int chatActive = 0;              // the chat window takes the input
 };
 // What a speaker's controller calls when its dialogue animation has finished (its actionDone).
 void SpeakerAnimationDone(Unit* serverUnit);

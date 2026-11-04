@@ -27,12 +27,12 @@ namespace {
 // A sound class (indexed by the sectors' texture classes), in the layout of game.exe's table. Its one-shots are
 // counted per map (Terrain::ambientVariants).
 struct AmbientSoundClass {
-    const char* name;       // the folder ("Grass", "water", ...)
-    int unused_04;          // the original's per-map one-shot count
-    float weight;           // per texture of the class in a sector
-    int unused_0C;          // the class whose vote it adds to: -1 (its own) in every entry
-    float panLimit;
-    int chance;             // percent per frame for a one-shot
+    const char* name = nullptr;  // the folder ("Grass", "water", ...)
+    int unused_04 = 0;      // the original's per-map one-shot count
+    float weight = 0.0f;    // per texture of the class in a sector
+    int unused_0C = 0;      // the class whose vote it adds to: -1 (its own) in every entry
+    float panLimit = 0.0f;
+    int chance = 0;         // percent per frame for a one-shot
 };
 constexpr int kClasses = Terrain::kSoundClasses;
 constexpr AmbientSoundClass kAmbientSounds[kClasses] = /*007969D0*/ {
@@ -56,21 +56,21 @@ constexpr AmbientSoundClass kAmbientSounds[kClasses] = /*007969D0*/ {
 
 // One of the 3x3 sectors around the listener.
 struct Cell {
-    int soundClass;         // -1 where the sector is missing
-    float weight;           // 100 at the listener .. 0 at the radius
-    float x, y, z;          // the sector's centre; z the higher of ground and water
+    int soundClass = 0;     // -1 where the sector is missing
+    float weight = 0.0f;    // 100 at the listener .. 0 at the radius
+    float x = 0.0f, y = 0.0f, z = 0.0f;  // the sector's centre; z the higher of ground and water
     Vector3 offset;         // from the listener
 };
 
 // A sound class's votes, sorted by weight.
 struct ClassVotes {
-    int soundClass;
+    int soundClass = 0;
     Vector3 offset;         // the last voting cell's offset, then the weighted offsets added
-    float weightSum;        // sum of the cells' squared weights
-    int volume;
-    int pan;
-    int count;
-    int sound;
+    float weightSum = 0.0f;  // sum of the cells' squared weights
+    int volume = 0;
+    int pan = 0;
+    int count = 0;
+    int sound = 0;
 };
 
 constexpr float kRadiusCells = 48.0f;

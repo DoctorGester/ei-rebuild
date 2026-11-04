@@ -21,7 +21,7 @@ struct MaterialColors {
     Vector4 ambient;
     Vector4 specular;
     Vector4 emissive;
-    float power;
+    float power = 0.0f;
 };
 
 // An element of the material's entries (16 bytes): an emissive colour kept while the object's light
@@ -98,8 +98,8 @@ public:
 
 // A kind the manager's Create enters and its file (material.cpp's kMaterialKindFiles).
 struct MaterialKindFile {
-    int kind;
-    const char* file;
+    int kind = 0;
+    const char* file = nullptr;
 };
 constexpr int kMagicMaterialKind = 0x17;
 // The colours a material file holds: after its name (a 16-bit length, then the text).

@@ -59,9 +59,9 @@ std::uint32_t GroupExcess(const AIAttackOption* option, UnitList* group, Unit* c
 
 // A scored {part, object} the choice keeps.
 struct Scored {
-    int part;
-    Unit* object;
-    float score;
+    int part = 0;
+    Unit* object = nullptr;
+    float score = 0.0f;
 };
 
 // Whether the controller's order check lets the unit act on `choice` from `from`: an attack for the weapon part,

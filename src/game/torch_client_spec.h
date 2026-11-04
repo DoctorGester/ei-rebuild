@@ -64,6 +64,6 @@ public:
     void SetSound(const char* name);
 
     Ref<Light> light;
-    ParticleSource* particles;     // counted
-    int sound;                      // the looping sound's handle, kNoSound when none
+    ParticleSource* particles = nullptr;  // counted
+    int sound = 0;                  // the looping sound's handle, kNoSound when none
 };

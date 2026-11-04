@@ -47,14 +47,14 @@ struct AnimationTrack : EngineObject {
     // Destroy's reset except for the bone: the animation, key frames, morphed vertices and time.
     void ClearKeys();
 
-    const FigureAnimation* animation;   // the animation playing (null: none)
-    FigureBone* bone;               // the bone it animates
+    const FigureAnimation* animation = nullptr;  // the animation playing (null: none)
+    FigureBone* bone = nullptr;     // the bone it animates
     std::vector<Vector3> positions;      // key frames
     std::vector<Quaternion> rotations;   // key frames
-    int vertexCount;
-    int frameCount;
+    int vertexCount = 0;
+    int frameCount = 0;
     std::vector<Vector3> frames;   // the key frames' vertex sets (FrameVertices), one after another
-    float time;                     // (0 when the animation changes)
+    float time = 0.0f;              // (0 when the animation changes)
     Vector3 position;
     Quaternion rotation;
     // the morphed vertices ({data, size} is what a bone gives).

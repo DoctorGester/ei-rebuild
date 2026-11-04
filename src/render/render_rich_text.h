@@ -64,10 +64,10 @@ RichText ReadRtf(std::string_view rtf);
 int TwipsToPixels(int twips, int dpi);
 
 struct RichGlyph {
-    TextFont* font;
-    std::uint32_t colour;        // a COLORREF
-    char32_t ch;
-    int x;                       // the pen from the page's left, pixels
+    TextFont* font = nullptr;
+    std::uint32_t colour = 0;    // a COLORREF
+    char32_t ch = 0;
+    int x = 0;                   // the pen from the page's left, pixels
 };
 
 struct RichLine {
@@ -96,8 +96,8 @@ TextFont* BoldFont(std::string_view face, int pixels, bool smoothing);
 
 // What one glyph run draws (render::ui::Glyphs): the glyphs of one font and colour.
 struct RichDraw {
-    TextFont* font;
-    std::uint32_t colour;
+    TextFont* font = nullptr;
+    std::uint32_t colour = 0;
     TextLayout layout;
 };
 

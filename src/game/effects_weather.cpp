@@ -222,8 +222,8 @@ namespace {
 
 // A cell's sprite: its colour and its tile of the fog texture.
 struct FogSprite {
-    std::uint32_t colour;
-    const FogTile* tile;
+    std::uint32_t colour = 0;
+    const FogTile* tile = nullptr;
 };
 
 // The draw's work arrays: the sprites' centres and sizes and their records.

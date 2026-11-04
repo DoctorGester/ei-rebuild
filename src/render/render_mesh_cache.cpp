@@ -17,7 +17,7 @@ using namespace detail;
 // A corner's geometry; its colours (colour, specular) are a stream of their own.
 struct MeshVertex {
     Vector3 position;
-    float u, v;
+    float u = 0.0f, v = 0.0f;
     Vector3 normal;   // CornerNormal
 };
 static_assert(sizeof(MeshVertex) == kCachedVertexBytes);

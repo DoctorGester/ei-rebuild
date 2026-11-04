@@ -51,8 +51,8 @@ std::vector<std::string> Labels(const int (&ids)[N]) {
 // Where the n-th 64 x 64 picture goes in a panel's texture: four down a column, the columns from
 // `firstColumn`.
 struct IconPlace {
-    int x;
-    int y;
+    int x = 0;
+    int y = 0;
 };
 IconPlace IconAt(int n, int firstColumn) { return {firstColumn + (n / 4) * kIconSize, (n % 4) * kIconSize}; }
 

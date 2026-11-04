@@ -68,8 +68,8 @@ constexpr int kArmourColumns[3] = {2, 0, 1};
 
 // The figure part and the particle attach point of each hit location.
 struct HitPart {
-    const char* name;
-    int attachPoint;
+    const char* name = nullptr;
+    int attachPoint = 0;
 };
 constexpr HitPart kHitParts[6] = {{"hd", 1}, {"bd", 7}, {"lh2", 3}, {"rh2", 4}, {"ll2", 5}, {"rl2", 6}};
 

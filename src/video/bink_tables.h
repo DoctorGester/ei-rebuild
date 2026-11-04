@@ -7,8 +7,8 @@
 namespace bink {
 
 struct HuffmanCode {
-    std::uint8_t bits;     // the code, its first bit lowest
-    std::uint8_t length;   // 1..7
+    std::uint8_t bits = 0;  // the code, its first bit lowest
+    std::uint8_t length = 0;  // 1..7
 };
 
 // The 16 prefix codes a bundle's symbols are coded with, per tree the code of each symbol index.

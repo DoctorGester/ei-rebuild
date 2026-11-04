@@ -14,29 +14,29 @@ constexpr std::uint32_t kMapMagic = 0xCE4AF672;
 
 #pragma pack(push, 1)
 struct MapHeader {
-    std::uint32_t magic;            // kMapMagic
-    float heightRange;              // the highest point: a vertex's altitude is a fraction of it
-    std::int32_t sectorsX;
-    std::int32_t sectorsY;
-    std::int32_t pages;             // texture pages of 64 tile textures each
-    std::int32_t pageSize;          // a page's side in pixels
-    std::int32_t textures;          // tile textures: the class words that follow the materials
-    std::int32_t tileSize;          // a tile's side in pixels
-    std::uint16_t materials;
-    std::uint32_t animated;         // animated texture entries
+    std::uint32_t magic = 0;        // kMapMagic
+    float heightRange = 0.0f;       // the highest point: a vertex's altitude is a fraction of it
+    std::int32_t sectorsX = 0;
+    std::int32_t sectorsY = 0;
+    std::int32_t pages = 0;         // texture pages of 64 tile textures each
+    std::int32_t pageSize = 0;      // a page's side in pixels
+    std::int32_t textures = 0;      // tile textures: the class words that follow the materials
+    std::int32_t tileSize = 0;      // a tile's side in pixels
+    std::uint16_t materials = 0;
+    std::uint32_t animated = 0;     // animated texture entries
 };
 #pragma pack(pop)
 static_assert(sizeof(MapHeader) == 0x26);
 
 // A material: water when its kind is 2 or 3.
 struct MapMaterial {
-    int kind;
+    int kind = 0;
     Vector3 colour;
-    float opacity;
-    float light;                    // scales the colour
-    float priority;
-    float warpSpeed;                // (the name modding notes give it); copied, nothing reads it
-    std::uint8_t reserved[0xC];     // not read
+    float opacity = 0.0f;
+    float light = 0.0f;             // scales the colour
+    float priority = 0.0f;
+    float warpSpeed = 0.0f;         // (the name modding notes give it); copied, nothing reads it
+    std::uint8_t reserved[0xC] = {};  // not read
 };
 static_assert(sizeof(MapMaterial) == 0x2C);
 
