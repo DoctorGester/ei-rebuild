@@ -985,6 +985,9 @@ public:
 
     Unit* OwnerUnit() const { return static_cast<Unit*>(owner); }
 
+    // How far above the object its light stands.
+    static constexpr float kLightHeight = 2.0f;
+
     std::uint32_t lightStateA;          // cleared by Construct, Create and Destroy; nothing reads it
     std::uint32_t lightStateB;          // the same
     std::vector<ParticleRecord> particles;  // the effect particles

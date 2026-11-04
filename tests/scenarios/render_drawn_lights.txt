@@ -1,0 +1,91 @@
+# The lights objects carry drawn where the objects are drawn (R19a; docs/notes/renderer.md section 14, "Lights"). At
+# a fixed frame time of 8 ms (a 120 Hz screen's frames on the virtual clock), zone1 at night:
+# - the hero walks west (its drawn place traced: "unit"), then back east with its own light traced ("light": where
+#   the draw shows it, drawn::LightPosition; "light.own": the game's place, which the companion's tick moves, the
+#   only one drawn before); captures lit_* one frame apart, within a tick: the light stays over the hero;
+# - a fireball flies at a wolf twelve units off, then its blast's light rises: each light moves only in client ticks
+#   (its velocity), the draw spreads each tick's step ("fireball", "blast" and their .own; captures blast_*).
+timeout 60
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+waitwindow 15 battle
+console @FixWorldTime(1)
+wait 3000
+move 400 300
+frametime 8
+frames 60
+
+# The hero's first order starts late (the zone's start): a walk six units east first, then back west with its place
+# traced, then east again with its light traced.
+console @GSSetVar(0,"x0",GetX(GetLeader()))
+console @MoveToPoint(GetLeader(),Add(GetX(GetLeader()),6),GetY(GetLeader()))
+waitfor 20 IsGreater(GetX(GetLeader()),Add(GSGetVar(0,"x0"),5))
+frames 60
+objtrace start leader - log
+console @MoveToPoint(GetLeader(),GSGetVar(0,"x0"),GetY(GetLeader()))
+frames 420
+objtrace stop unit
+objtrace start leader light log
+console @MoveToPoint(GetLeader(),Add(GSGetVar(0,"x0"),6),GetY(GetLeader()))
+frames 40
+capture lit_0
+frames 1
+capture lit_1
+frames 1
+capture lit_2
+frames 1
+capture lit_3
+frames 1
+capture lit_4
+frames 1
+capture lit_5
+frames 375
+objtrace stop light
+frames 60
+
+# A fireball from the hero's place at a wolf twelve units north (a script cast: no caster, its light at height 0), then
+# the light rising from its blast (captures blast_*, a frame apart).
+console @AddUnitToServer("LitWolf","WolfTutor","LitWolf",GetX(GetLeader()),Add(GetY(GetLeader()),12),0)
+waitfor 10 IsAlive(GetObjectByName("LitWolf"))
+console @BlockUnit(GetObjectByName("LitWolf"),1)
+frames 10
+objtrace start spelllight - log
+console @CastSpellUnit("fireball{e2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("LitWolf"))
+frames 140
+objtrace stop fireball
+objtrace start spelllight - log
+frames 8
+capture blast_0
+frames 1
+capture blast_1
+frames 1
+capture blast_2
+frames 1
+capture blast_3
+frames 1
+capture blast_4
+frames 1
+capture blast_5
+frames 150
+objtrace stop blast
+
+camsmooth unit pan
+camsmooth light pan
+camsmooth light.own pan jerky
+camsame light light.own pan 0.03
+camsteadier light unit pan 1.1
+camsmooth fireball pan
+camsmooth fireball.own pan jerky
+camsame fireball fireball.own pan 0.25
+camsmooth blast height
+camsmooth blast.own height jerky
+frametime 0
+check IsAlive(GetLeader())
+report
+quit

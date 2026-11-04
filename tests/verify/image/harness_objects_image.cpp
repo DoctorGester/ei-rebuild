@@ -32,6 +32,7 @@
 #include "game/unit_client_models.h"
 #include "game/world.h"
 #include "game/world_data.h"
+#include "game/world_effect.h"
 #include "game/net_coder.h"
 #include "game/world_glue.h"
 #include "game/world_map_files.h"
@@ -439,6 +440,9 @@ ObjectPlace PlaceAt(const FigureMesh* part, const drawn::Pose& pose) {
     return ObjectPlace{pose.position.x, pose.position.y, pose.position.z, 2.0f * std::atan2(q.z, q.w)};
 }
 
+// A light's place (no yaw).
+ObjectPlace LightPlace(const Vector3& at) { return ObjectPlace{at.x, at.y, at.z, 0.0f}; }
+
 } // namespace
 
 void SetAnimationBlends(bool on) { FigureAnimationState::SetBlends(on); }
@@ -453,6 +457,17 @@ bool ClientObject(int id, const char* part, ObjectState* out) {
         }
     }
     if (!found) return false;
+    if (part && std::strcmp(part, "light") == 0) {
+        MapObjectClientSpecific* side = found->companion && found->companion->GetClassId() == ClassId::MapObjectClientSpecific
+                                            ? found->ClientCompanion()
+                                            : nullptr;
+        Light* light = side ? static_cast<Light*>(side->light) : nullptr;
+        if (!light) return false;
+        out->id = found->id;
+        out->own = LightPlace(light->localPosition);
+        out->drawn = LightPlace(drawn::LightPosition(light));
+        return true;
+    }
     const FigureMesh* piece = nullptr;
     if (part && *part) {
         piece = found->FindPart(part);
@@ -469,6 +484,23 @@ bool ClientObject(int id, const char* part, ObjectState* out) {
     out->own = PlaceAt(piece, drawn::OwnPose(found));
     out->drawn = PlaceAt(piece, drawn::PoseOf(found));
     return true;
+}
+
+bool ClientLight(int id, ObjectState* out) {
+    bool found = false;
+    ObjectListIterator walk{nullptr, {}};
+    for (EngineObject* object = walk.First(g_clientWorld.TimedObjectManager()); object && !found; object = walk.Next()) {
+        if (object->GetClassId() != ClassId::EffectPointLight) continue;
+        auto* effect = static_cast<EffectPointLight*>(object);
+        Light* light = effect->light;
+        if (!light || (id != 0 ? effect->id != id : effect->moving == 0)) continue;
+        out->id = effect->id;
+        out->own = LightPlace(light->localPosition);
+        out->drawn = LightPlace(drawn::LightPosition(light));
+        found = true;
+    }
+    if (walk.manager) walk.manager->ForgetReference();
+    return found;
 }
 
 } // namespace ei::verify::image

@@ -6359,7 +6359,7 @@ id = "H51b"
 title = "Stub set: textures the three frame checks need"
 group = "harness"
 depends = ["H51"]
-note = "Found in H51: render_blink, render_cursor_present and render_shadows_outside fail their own pixel checks on the stub set (Windows and Linux alike; they pass on the installs, lavapipe included), because every texture is blanked to 0: the faces' open and closed rectangles are the same black, the gate's shadow falls on black ground, the cursor is 1024 transparent pixels. Options: keep the pixels of the few textures these read (the cursor pictures, the briefing speakers' mouth textures, bz1g's ground) in tools/stub_data.py, or blank to a cheap non-uniform pattern that keeps every other frame check passing. Needs the user to rebuild, repack and push the stub set; then the Suites (Linux) job's comment drops the three."
+note = "Found in H51: render_blink, render_cursor_present and render_shadows_outside fail their own pixel checks on the stub set (Windows and Linux alike; they pass on the installs, lavapipe included), because every texture is blanked to 0: the faces' open and closed rectangles are the same black, the gate's shadow falls on black ground, the cursor is 1024 transparent pixels. Options: keep the pixels of the few textures these read (the cursor pictures, the briefing speakers' mouth textures, bz1g's ground) in tools/stub_data.py, or blank to a cheap non-uniform pattern that keeps every other frame check passing. Needs the user to rebuild, repack and push the stub set; then the Suites (Linux) job's comment drops the three. User 2026-11-04: the coordinator may update the stub data repository (E:\\workspace\\ei-rebuild-stub-data, plain ei-stub-data.tar.zst, not encrypted). The worker changes tools/stub_data.py, rebuilds and repacks into its build/stub, checks the three scenarios and the rest of both suites on the new set; the coordinator commits and pushes the pack after the merge."
 
 [[ticket]]
 id = "H51a1"
@@ -7291,6 +7291,30 @@ depends = ["R45"]
 note = "User 2026-11-04 asked why R45 hardcodes 19 sizes. List the sizes from the platform layer: platform::DisplaySizes() over SDL_GetFullscreenDisplayModes of the window's display (sizes only, deduped, largest first, none above the desktop size; full screen stays the desktop mode with the frame scaled, so the modes are only size choices), plus the current size when missing. The harness backend returns a fixed list so scenarios step it the same way on every machine. Remove the fixed list. Check: render_options_resolution the same, a unit check of the dedup and order, Linux builds."
 
 [[ticket]]
+id = "R17a1"
+title = "Water: reflect the sky dome and the objects, sun shadows on the water"
+group = "renderer"
+model = "opus"
+depends = ["R17a"]
+files = ["src/render/shaders/terrain.hlsl", "src/render/render_water.cpp"]
+note = "Found in R17a (renderer.md, 'shaders/terrain.hlsl: the water'): the reflection is a sky in the fog's colour only (the game's sky mesh and the objects on the shore are not reflected) and the water receives no sun shadow, so glints show inside a shadow. Options: a screen-space reflection from the world pass's colour and depth copy (needs the frame's colour before the water pass, so a copy or a split of the scene pass), or a low-resolution reflected sky pass; take the shadow map's hidden term on the water to dim the glints and the reflection. Measure with render_water's scenes (R17a's frame GPU time kit: 0.07-0.95 ms for the water pass at 3840x2009 msaa 8)."
+
+[[ticket]]
+id = "R19a"
+title = "Lights carried by objects follow the drawn position"
+group = "renderer"
+model = "opus"
+depends = ["R19"]
+note = "Found 2026-11-04 (user asked). R19 draws objects between ticks (drawn::PoseOf), but every light a unit or object carries stays at its tick position, so it steps along behind the smoothly drawn unit: a party unit's night light and a quest light (MapObjectClientSpecific::CreateLight, moved each tick in map_object_companion.cpp ~line 106), spell and missile lights (spell_effect_update.cpp CreatePointLight with velocity), torches that move. The renderer reads light->localPosition in world_client_shadow_casters.cpp HandOverSceneLights (terrain + point lights), figure_part_draw.cpp g_partLights (mesh lighting), map_object_draw.cpp and map_object_shadow.cpp. Hand the renderer the light's drawn position (the owner's drawn pose plus the same offset, or the light's own position drawn between ticks the way R19 draws missiles) without touching light->localPosition, which the game reads. Client side only; goldens stay the same. Check: captures of a lit unit walking at night at 8 ms frames, the light's drawn step against the unit's."
+
+[[ticket]]
+id = "R17d1"
+title = "Water's sun glint under the cloud shadows (after R17a and R17d merge)"
+group = "renderer"
+depends = ["R17d"]
+note = "R17d's clouds reach the water through ground_light's hidden term (terrain.hlsl's water branch passes the cloud share). R17a's Water() adds a sun glint and the ripples' sun shading straight from scene.sunColour, so they still shine under a cloud. After both merge: scale the glint and the ripples' sun share by (1 - cloud_hidden(i.shadow.xy)) (the water's ShadowParams are the clouds-only cloudParams). Also: both tickets took terrain fragment texture slot 4 (R17a ripples, R17d CLOUD_MAP_SLOT); the merge moves one to 5. Check: render_clouds' day and rain frames over zone1's sea."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
@@ -7673,6 +7697,13 @@ model = "sonnet"
 depends = ["H43j"]
 files = ["src/game"]
 note = "Found while writing the lobby, party, base screen and camp scenarios (coverage run of 2026-11-04, every function below unreached after them; read the callers before cutting). Network: the Clone methods and copy constructors of the messages (net_messages.cpp: LoginMessage, ZoneMessage, MapMessage, BindingMessage, FileRequestMessage, PlayerMessage, LineMessage, HostMessage, VariableMessage, FileMessage, TradeMessage, PartyMemberMessage, PartyMessage, PairMessage's), Connection::Clone and its copy constructor and constructor with an id (net_connection_life.cpp:47, 98), ReplicaEntry's copy constructor, Clone and OnShutdown, LoopbackLink and DriverLink's copy constructors, Clone and OnShutdown (net_link.cpp), NetLink and FileStream's constructor, Restart and Clear, Query::operator=, Message's copy constructor, TradeRecord's constructors, ServerEntry::OnShutdown, TypeRegistry::KeyOf, PushReplicated, CollectReplicated, ServerBase::Admit and SessionBase's six empty handlers (net_session.cpp:346), ClientBase::OnJoined, BufferView::ReserveRead and ReserveWrite, ReliableChunk's Sequence and Size. World: GiveBriefingRewards and CreateNamedItem (world_quests.cpp:54, 56): CompleteBriefing returns before them in any network game (the host is a client too) and a single-player game never holds a briefing record (the .mq files' records come from hosting; the quit to the menu drops the text sources, so the dialogue cannot start: tried in a scratch scenario). Interface: BriefingScreen::GameOver, ShowBriefing and SaveState (ui_briefing.cpp:144-159) and PlaceMover, StopTalking, SpeakerAnimationDone, Facing and DropMover (ui_briefing_create.cpp, _dialogue.cpp, _start.cpp), HudClock::LeftDown and LeftUp (ui_hud.cpp:387, 393). Player link handlers: PlayerClient::OnDisconnect, SendGoTo, SendFollow, TakeExit, OnObjectValues, OnWeaponRemoved; PlayerServer::Send17, SendObject0A, SendPair16, OnMessage37, OnRefreshParty, OnTakeExit, OnBriefingDone, OnGoTo, OnLeave, OnUnitLookup, OnFollow. Decide per item as H43j does; check: build checks, image and Rebirth suites with every golden the same. User 2026-11-04: delete tech code (message Clone methods and copy constructors, Connection / ReplicaEntry / link / FileStream / Query copies, the empty virtuals, unused BriefingScreen / HudClock functions); keep gameplay code that could be re-enabled (GiveBriefingRewards, CreateNamedItem, any PlayerClient / PlayerServer handler that carries a game action) with a note that it is unreached."
+
+[[ticket]]
+id = "C86"
+title = "Pointer static_casts: check every one, type or remove the unjustified"
+group = "cleanup"
+model = "opus"
+note = "User 2026-11-04 asked whether all 216 static_casts to a pointer type (progress.py's count; list: build/ptrcasts.txt from the coordinator's scratch ptrcasts.py) are legitimate. A first pass: (1) fine: byte views of void* buffers (SDL transfer buffers, sockets, audio, CRT, movie), callback user data (SDL, sound callbacks), qsort comparators (could become std::sort with typed lambdas: sector_map SpiralCell, terrain_ambience ClassVotes), downcasts right after a class test (IsUnit then Unit*). (2) typing debt: downcasts justified only by a comment contract (item.h AsWeapon/AsArmor/AsLoot/AsQuick/AsQuest, ui_objectives children[0] as UiScrollText, ui.h's token and window casts, unit_ai FindMode(type) as PatrolMode/PlayerMode/AggressionMode, world_units' spec message kinds, mob_reader spec kinds), and void* or base-typed owner/context fields cast back (EngineObject::owner as FigureManager/TextureManager/ParticleManager/LightningManager/MapObjectManager/PlayerManager, BaseManager::context as World, companion/controller fields as Unit*/UnitServer/MapObjectServer/client specifics). Type the field or the container, give the base the virtual or the typed accessor, or keep a checked cast where the type is really dynamic. (3) wrong: file or archive bytes viewed as structs through static_cast from void* (MmpHeader in texture.cpp, texture_load.cpp, ui_item_view.cpp, render_textures.cpp; SectorHeader in ai_map_load.cpp; figure_manager.cpp's uint32_t* and const float* over file data; dib.cpp's DibHeader over raw operator new without constructing): read them through lib's byte reader / memcpy into a value. Report the count by class before and after; aim for only class (1) left, each with a one-line why where it isn't obvious. Normal C++ classes rule (memory normal-cpp-classes): no fake vtables, no forwarders added just to hide a cast. Goldens must stay the same."
 
 [[ticket]]
 id = "PL6b"

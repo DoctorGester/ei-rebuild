@@ -55,15 +55,18 @@ std::unordered_map<const SectorData*, SectorChanges> g_changes;
 
 // A page vertex's geometry; its colours (colour, specular) are a stream of their own. The record's
 // normal and, on the ground layer, the light lost under the water (-1 on the water layer) and the ground's own
-// occlusion of the ambient light (GroundOcclusion; 1 on the water layer); the GPU lights both layers.
+// occlusion of the ambient light (GroundOcclusion; 1 on the water layer); the GPU lights both layers. On the water
+// layer the depth over the ground (the ground record's: negative where the ground is above the water), 0 on the ground
+// layer.
 struct PageVertex {
     Vector3 position;
     float u, v;
     Vector3 normal;
     float loss;
+    float depth;
     float occlusion;
 };
-static_assert(sizeof(PageVertex) == 40);
+static_assert(sizeof(PageVertex) == 44);
 
 // The ground record `index` lies under the sector's water (a water material above it, the depth not negative):
 // its water record, else null.
@@ -77,8 +80,10 @@ const SectorVertex* WaterAbove(const SectorData* s, int index) {
 // `occlusion`: the sector's ground occlusion per ground record (GroundOcclusion).
 PageVertex MakeVertex(const SectorData* s, int index, const TileVertex& e, const float* occlusion) {
     const SectorVertex& record = s->records[index];
-    PageVertex v{s->vertices[index], e.u, e.v, record.normal, -1.0f, 1.0f};
-    if (index < kWaterRecords) {
+    PageVertex v{s->vertices[index], e.u, e.v, record.normal, -1.0f, 0.0f, 1.0f};
+    if (index >= kWaterRecords) {
+        v.depth = s->records[index - kWaterRecords].depth;
+    } else {
         v.loss = 0.0f;
         v.occlusion = occlusion[index];
         if (const SectorVertex* water = WaterAbove(s, index)) {
@@ -530,14 +535,15 @@ gpu::PipelineDesc TerrainDesc(const PassState& s, int samples) {
     p.bufferCount = 2;
     p.buffers[0].stride = sizeof(PageVertex);
     p.buffers[1].stride = kColourPairBytes;
-    p.attributeCount = 7;
+    p.attributeCount = 8;
     p.attributes[0] = {program::kAttrPos, 0, gpu::VertexFormat::Float3, 0};
     p.attributes[1] = {program::kAttrCol, 1, gpu::VertexFormat::UByte4Norm, 0};
     p.attributes[2] = {program::kAttrSpec, 1, gpu::VertexFormat::UByte4Norm, 4};
     p.attributes[3] = {program::kAttrUv, 0, gpu::VertexFormat::Float2, 12};
     p.attributes[4] = {program::kAttrNormal, 0, gpu::VertexFormat::Float3, 20};
     p.attributes[5] = {program::kAttrLoss, 0, gpu::VertexFormat::Float, 32};
-    p.attributes[6] = {program::kAttrOcclusion, 0, gpu::VertexFormat::Float, 36};
+    p.attributes[6] = {program::kAttrDepth, 0, gpu::VertexFormat::Float, 36};
+    p.attributes[7] = {program::kAttrOcclusion, 0, gpu::VertexFormat::Float, 40};
     ApplyPassState(p, s);
     p.samples = samples;
     AddDepthCopy(p);
@@ -764,14 +770,18 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerTex, {&texture, 1});
     BindShadowMap(program::kSamplerShadowMap);
     BindPointShadows(program::kSamplerPointShadowMap);
+    const gpu::TextureBinding ripples = RippleMap();
+    gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerRipples, {&ripples, 1});
+    BindCloudMap(program::kSamplerCloudMap);
     BindOcclusion(program::kSamplerOcclusionMap);
     CountBindings(texture.texture);
-    // The ground receives the objects' shadows; the water does not (the ground under it does).
-    bool receives = !batch.water && mode < 1.5f && !f.shadow.lights.empty();
-    const ShadowParams& shadow = ShadowUniforms(f, receives);
+    // The ground receives the objects' shadows; the water does not (the ground under it does). Both take the clouds'.
+    const bool clouded = mode < 1.5f && !f.shadow.lights.empty();
+    const bool receives = clouded && !batch.water;
+    const ShadowParams& shadow = ShadowUniforms(f, receives, clouded);
     TerrainVsParams vs{};
     vs.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
-    vs.light = receives ? f.shadow.lights[0] : vs.matrix;
+    vs.light = clouded ? f.shadow.lights[0] : vs.matrix;
     vs.shift[0] = f.pixelShift[0];
     vs.shift[1] = f.pixelShift[1];
     vs.normalOffset[0] = ShadowNormalOffset(shadow);
@@ -781,6 +791,7 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     fs.fog[2] = (f.fogColour & 0xFF) / 255.0f;
     fs.flags[0] = mode;
     fs.flags[1] = f.fogEnabled ? 1.0f : 0.0f;
+    RippleOffsets(fs.ripples);
     OcclusionUniforms(batch.occluded && mode < 1.5f, fs.occlusion, fs.occlusionMap);
     SceneLightParams light;
     LightUniforms(&light);

@@ -346,6 +346,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerTex0, textures);
     BindShadowMap(program::kSamplerShadowMap);
     BindPointShadows(program::kSamplerPointShadowMap);
+    BindCloudMap(program::kSamplerCloudMap);
     BindOcclusion(program::kSamplerOcclusionMap);
     CountBindings(textures[0].texture);
     MeshVsParams vs{};
@@ -363,7 +364,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     vs.uvOffset[0] = batch.uOffset;
     vs.uvOffset[1] = batch.vOffset;
     MeshFsParams fs{};
-    const ShadowParams& shadow = ShadowUniforms(f, batch.light >= 0);
+    const ShadowParams& shadow = ShadowUniforms(f, batch.light >= 0, batch.light >= 0);
     vs.normalOffset[0] = ShadowNormalOffset(shadow);
     MeshLightParams lighting{};   // unlit: on[0] 0
     if (batch.lighting >= 0) {

@@ -94,7 +94,7 @@ DisableExitOnCrashReport. The cases:
 - no device at the start (the first use): "Can't start the renderer: <gpu::Error()>." (no Direct3D 12 or Vulkan
   device: "no Direct3D 12 or Vulkan device (...)");
 - a pipeline or texture the start makes: "Can't start the renderer: the terrain pipeline / the mesh pipeline / the
-  blit pipeline / the white texture could not be made.";
+  blit pipeline / the white texture / the water's ripple map could not be made.";
 - a pass that cannot begin: "The renderer cannot draw the frame." (the shadow map's and the point shadows' passes name
   themselves);
 - no swap chain, or a swap chain texture SDL refuses (render_window.cpp): "The renderer cannot present on the game
@@ -843,7 +843,7 @@ map is the only shadow look.
   a hard edge far away does not crawl from pixel to pixel. Not taken: reuse across frames (a history buffer and its
   reprojection for a small gain), a prefiltered map (its blur loses the contact hardening). GPU cost (the town bz1g at
   4K, msaa 8, day, night and night with a crowd of 12, four runs each interleaved with main's): within 0.01 ms of the
-  frame's 2.4-2.8 ms. Harness build: `shadowview on` shows the shadow alone (white lit, black at full strength),
+  frame's 2.4-2.8 ms. Harness build: `shadowview on` shows the shadow alone (with the clouds; white lit, black at full strength),
   `shadowshift <n>` moves the map's origin by n x n/2 whole texels. Check: render_shadows_shimmer (the user's save in
   tests/saves/shadow_corrupt).
 - **The casters' draws** (both maps, `CasterDraws` in render_internal.h): a draw's own data (`CasterInstance`: the light x
@@ -872,7 +872,41 @@ map is the only shadow look.
   from the walk: the last matches the first, so the walk places, selects and cuts out meshes as the game's draws do; in the
   town with the camera moved the gate's long shadow is there with them and gone without them).
 
-**11. Ambient occlusion** (R17b; always on, no option). Two parts, both taken off the ambient light alone: the ground's
+**11. Cloud shadows** (`render_cloud_shadows.cpp`, `shaders/cloud_shadow.hlsli`; R17d). Soft cloud patches drift over
+the land by day; client side only, nothing the game simulates reads them, always on (no option). The world's light
+(WorldClient::UpdateLighting) hands over the client's weather each frame (`render::CloudShadows`): `day` (0 before
+hour 4 and after 20, rising to 1 at 6, falling from 18; 0 in a cave), the rain or snow's strength as its layer fades it
+(`RainSnow::density` / 64 while its mode is on), the wind (`RainSnow::wind`, units a tick) and the world's time (tick
++ tickFraction).
+- **The map**: 256 x 256 R8, repeating, made once on the CPU at the first frame (no data file): gradient noise over
+  five octaves (4 to 64 cells across), each texel replaced by its rank, so the values are spread evenly over 0 .. 1.
+- **Two layers** of it: one repeating every 176 units, one every 109 turned by (0.8, 0.6), weighted 0.65 / 0.35. Each
+  drifts with the wind (0.11 and 0.15 times the wind a tick: about 0.8 units a second at the default wind of 0.4), the
+  second faster, so the patches change their shape as they go. The drift is summed from the world's time between
+  frames (a step back or over 64 ticks moves nothing: a load), kept within each layer's repeat in double.
+- **Cover**: the share of the ground under clouds, 0.4 clear and 0.8 in full rain or snow, followed over about 150
+  ticks; the threshold the layers' sum exceeds on that share comes from the sum's spread (a trapezoid for two even
+  spreads, `CoverThreshold`), with a soft edge of 0.09 either side.
+- **Projection**: the shadow map's (item 10): its clip x and y are the landscape's x and y where a point meets a level
+  plane along the map's light, so a receiver's cloud uv is its shadow coordinate times a scale plus a shift
+  (`ShadowParams::clouds` / `cloudShift`, from the map's fit). The clouds lie on the ground, seen from the sun: a high
+  point takes them from where the light came through the plane. PrepareShadows fits the map and gives the receivers
+  their matrices for the clouds even when nothing casts (the map is then not drawn, `on` 0).
+- **Light**: a full cloud hides 0.55 of the sun (times `day`); the receivers take it as more of the sun hidden: hidden
+  = 1 - (1 - map) x (1 - cloud), through the shadow's rules (item 9: the ground goes 0.55 of the way to its light in
+  the shade, at least 27% darker on faces turned to the sun; a mesh 27% darker on faces turned to it, a unit on every
+  face). The water
+  takes the clouds alone (`ShadowParams::on` 0: `cloudParams`). Not under clouds: the sky, flat geometry (ground prints,
+  markers) and additive passes, as for the map.
+- Check: render_clouds (zone1 at noon: the frame and the shadow view at one frozen moment and five seconds later,
+  `diffcapture` between the views; rain: `cloudcheck` with the cover at 0.7 .. 0.8; night and the cave gz5g:
+  `cloudcheck 0 0`). `cloudcheck <least> <most> [<least cover> <most cover>]` reads ShadowInfo's `cloudLight` and
+  `cloudCover`; `shadowview on` shows the clouds with the map's shadows.
+- GPU cost (the town bz1g by day at 3840 x 2160, msaa 8, alone and with a crowd of 12; whole-frame times by submission,
+  item 1; five rounds interleaved with the clouds switched off by a probe): none measurable, the medians 2.21-2.35 ms
+  with them and 2.27-2.40 without (the machine's noise is larger than two R8 reads a pixel).
+
+**11a. Ambient occlusion** (R17b; always on, no option). Two parts, both taken off the ambient light alone: the ground's
 `ambient` in ground_light and the figures' in figure_light (so in the sun, where the game's max() takes the sun's light,
 it hardly shows; in the shade, at night and in the caves it does). Nothing else (the sun, the point lights, the emissive
 colour, the meshes the game lights, the water, the interface's previews) is touched.
@@ -992,6 +1026,29 @@ objects the server's updates move, a held unit (pathTimeShift 1, not placed on i
 - Lag: up to a tick's step; an arrow vanishes up to one step short of its target (it is removed in the tick it arrives,
   so the original never drew it there either).
 
+### Lights
+
+The lights an object carries move with what is drawn, not with their tick place (always on): `drawn::LightPosition`
+(drawn_motion.cpp) is the place the draw shows a light this pass; `Light::localPosition` stays the game's.
+- **Carried:** an object's own light (a party unit's at night, a quest light: `MapObjectClientSpecific::light`, which
+  RunTick puts kLightHeight above the object at each tick, so it stepped behind the unit drawn on its path) is drawn
+  kLightHeight above the object's drawn place: CollectVisible hands it over (`drawn::Carry`) right after `drawn::Show`.
+- **Free:** any other light (a spell's or a missile's EffectPointLight moving by its velocity each client tick, a
+  script's MovePointLight, a torch's) is drawn as an object moved in ticks: its own place less the part of its last tick's
+  step not reached (`Light::drawnStep`, the first look after a tick takes the step; one tick between looks, at most the
+  cut). None at the harness's default pass.
+- **Readers:** the GPU's point lights (`HandOverSceneLights`, the ground's and the point shadows') and the figure parts'
+  lights (`PartLighting`), which must agree to the bit: a mesh's light finds its point shadow by the scene light's place
+  (`SceneLightIndex`). So the scene's hand-over runs in DrawPass after the objects' placement (CollectVisible) and before
+  any mesh draw; the ground's draws read it when the frame is drawn. The game's own readers keep the game's place: which
+  lights reach an object (`InReach`, and with it the Static flag the digests read), the shadow sphere's light direction
+  (`FitShadowSphere`), the blood prints' grey, the map's light marks.
+- Check: `render_drawn_lights` (vanilla, 8 ms frames, zone1 at night): the hero walks with its light traced
+  (`objtrace start leader light`: drawn without a jump, own with one at each tick, and the light's largest drawn step at
+  most 1.1 of the unit's: 0.036 both; the game's place stepped 0.217 a tick), then a fireball's light and its blast's
+  rising one (`objtrace start spelllight`: drawn without a jump, largest step 0.097 against the own 0.667 in flight,
+  0.022 against 0.150 rising). A script cast's flight light stands at height 0 and lights nothing visible.
+
 ### Animation blends
 
 A switch from one animation to another (`FigureAnimationState::Play`, or SetTime passing into the next queued one)
@@ -1035,8 +1092,9 @@ blends the pose last placed into the new one's (map_object_animation.cpp, figure
   visible and shadow lists, picking) must not reach the world's state.
 - Harness: `keydown` / `keyup` (a key held over frames), `frametime <ms>`, `mousedrag <dx> <dy>`, `camtrace` / `camsame` /
   `camsteadier` / `camsmooth` (tests/verify/harness_camera.h; kinds pan, turn, zoom, height, reach); `objtrace start <who>
-  [part|-] [log]` / `objtrace stop <name>` (an object's drawn and own place, or a part's place in the figure, after each
-  frame's draw; the same checks), `animblend on|off`.
+  [part|-] [log]` / `objtrace stop <name>` (an object's drawn and own place, or a part's place in the figure, or with
+  part `light` its own light's, or with who `spelllight` the first moving point light effect's, after each frame's
+  draw; the same checks), `animblend on|off`.
 
 ## 15. The performance overlay
 
@@ -1288,7 +1346,7 @@ and uploaded again is what the game says changed:
 
 ### render_occlusion.cpp: the screen's ambient occlusion
 
-Section 13, item 11: once a frame after the shadow maps the world's depth at half the frame's size (the ground and the
+Section 13, item 11a: once a frame after the shadow maps the world's depth at half the frame's size (the ground and the
 models that write the depth), the occlusion found in it (occlusion.hlsl) and blurred (occlusion_blur.hlsl); the ground
 and the world's meshes lit on the GPU take it off their ambient light (shaders/ambient_occlusion.hlsli). The ground's own
 occlusion from the height field is render_terrain.cpp's.
@@ -1310,6 +1368,13 @@ map's depth range per cell. Objects the game does not draw whose shadow can reac
 prepared and drawn from here, inside the shadow map's time. Space: the meshes' matrices are clip matrices, the terrain's
 the same for the landscape's space, in which the map is fitted.
 
+### render_cloud_shadows.cpp: cloud shadows
+
+Section 13, item 11. CloudShadows keeps the frame's weather; PrepareClouds (from PrepareShadows, outside a pass) makes the
+cloud map at the first frame and moves the layers' drift and the cover on by the world's time; CloudUniforms writes
+the receivers' part of ShadowParams for the map's fit; BindCloudMap binds the map (bilinear, repeating) for the terrain
+and mesh programs.
+
 ### render_terrain.cpp: the terrain
 
 The game's terrain passes (ground pages, water pages) call DrawSectorPage (SectorData::DrawPage, src/game/terrain.cpp) for
@@ -1317,6 +1382,42 @@ every visible sector page; it hands the page here. The page's tiles are turned i
 nine vertices and eight triangles, the full detail at any distance), with the vertex records' normals and material
 colours, the tile texture coordinates and the page's texture; the clip matrix is the pipeline's. The GPU clips. The pages
 stay on the GPU (section 13, item 3).
+
+### render_water.cpp: the ripple map
+
+The water's small ripples (R17a): a 256 x 256 RGBA8 map with its levels down to 1 x 1, made at the start (section 1) from
+a fixed generator of its own (the same map on every run and system, nothing drawn from the game's): r, g the slopes of
+40 waves along x and y, b the foam's pattern (the height of 24 finer waves), each wave a whole number of cycles across
+the map so it repeats without a seam. The terrain batches bind it with a repeating, linearly mipmapped sampler
+(anisotropy 8); RippleOffsets gives its two layers' offsets at the client's time (SceneLights::clientTicks: the client
+world's tick and the fraction of the next one it has had), so the ripples hold still under `freeze` and move with the
+game's clock.
+
+### shaders/terrain.hlsl: the water
+
+The water pages keep the game's look underneath: the page texture lit by ground_light from the vertex normal with the
+game's crests (the vertex waves, the water levels and the crests' specular stay the game's: SectorData::AnimateWaves),
+alpha the material's opacity, fog as for the ground. `Water` then, per pixel:
+- **Ripples**: two layers of the ripple map, one repeating every 9 landscape units and one every 5 turned against it,
+  drifting apart; their slopes (calmer within half a unit of the shore) turn the vertex normal. The rippled normal lights
+  the layer up to 30% more or 25% less as it turns to the sun or away (kRippleShade, by the sun's share of the light).
+- **Depth** (`depth`, PageVertex's: the water's depth over the ground at the vertex, from the ground record,
+  interpolated): the share 1 - e^(-0.5 depth) of the depth's look: from half the material's opacity at the shore to 1.15
+  times it in deep water, and up to 15% darker.
+- **Reflection**: Schlick's Fresnel term (0.02 head-on) of the rippled normal towards the camera (SceneLightParams::camera)
+  blends in the sky, taken as the fog's colour at the horizon and 0.75 of it overhead (no sky texture or screen-space
+  reflection yet); the reflected part is opaque, so the water hides more of the ground at a grazing view.
+- **Sun glints**: a sharp and a broad Blinn-Phong lobe of the sun's colour on the rippled normal, gone as the sun sets.
+- **Foam**: within half a unit of the shore, the ripple map's foam pattern above a threshold, lit by the ambient and sun
+  light, at most 0.4 opaque.
+
+The depth is per vertex (one unit apart), so the foam's band follows the triangles near the shore. The water still
+receives no sun shadows (the ground under it does), so glints show in a shadow too. Cost (R17a, 3840x2009, msaa 8,
+frame GPU time on a quiet machine, frozen frames of render_water's scenes): the water pass takes 0.07-0.95 ms (river,
+sea shore, lake by day, lake at night: frames without its draws against with them), and the look above adds nothing
+measurable to it (within 0.03 ms of the game's plain water shading). Check: scenario `render_water`
+(frozen moments on zone1: the beach at the west sea, the sea, the lake in the middle, the river with stones, the river
+and the lake at night; samecapture of a frozen moment drawn twice, diffcapture that the ripples move).
 
 ### render_perf.h: the performance overlay
 
@@ -1330,7 +1431,7 @@ the harness build never draws it.
 A figure part's colour as 3DfpFPU's LightMesh lit it (render.h, MeshLighting), at the model-space point `p` with the
 normal `n`: per channel the largest of the ambient colour, the sun's lit colour times the cosine to it and each light's
 lit colour times its cosine and falloff, plus the emissive colour, at most 1; the ambient colour times `occlusion`
-(section 13, item 11; 1 outside the world). The crown: pulled towards its average colour,
+(section 13, item 11a; 1 outside the world). The crown: pulled towards its average colour,
 taken as the average over every direction a normal can face (the mean of max(ambient, sun x cosine) for a cosine spread
 evenly over -1 .. 1; 0.6 of the way). The shadow map darkens it after (mesh_fs). A light with a point shadow adds only what
 reaches `land` (the point in the landscape's space; `face`: its face normal there, turned to the camera): a unit's mesh
@@ -1343,14 +1444,21 @@ The landscape lit as the game's vertex lighting lit each vertex, at a point `p` 
 normal `n`: `m` the material colour the sun and ambient light start from (the water's; on the ground the water's above
 it, else black), `mp` the one the point lights start from (the record's own), `loss` the light lost under the water (0
 above it), `hidden` how much of the sun the shadow map hides at the point, `strength` the map's darkening
-(render_shadows.cpp kStrength) and `occlusion` how much of the ambient light reaches the point (section 13, item 11; the
-ambient colour is multiplied by it, 1 on the water). In the sun max(material + facing x sun, ambient), in the shade ambient + material, as the
-game lit them; but a shadow is never lighter than the sunlit light times 1 - strength (where the ambient light is nearly
+(render_shadows.cpp kStrength) and `occlusion` how much of the ambient light reaches the point (section 13, item 11a; the
+ambient colour is multiplied by it, 1 on the water). In the sun max(material + facing x sun, ambient), in the shade
+ambient + material, as the game lit them; but a shadow is never lighter than the sunlit light times 1 - strength (where the ambient light is nearly
 the sun's, as in the towns, the game's shade alone hardly shows), on faces turned to the map's light (a face turned away
 keeps its light). The point lights (each material + its light, at most 1 per channel, by its falloff and facing, dimmed
 under the water by the light's vertical part) take the largest per channel, darkened by the same shade, the specular ones
 apart (`spec`, added after the texture as the specular word was). A light with a point shadow adds only what reaches the
 point; the ground casts none, so the point is looked up moved along its own normal.
+
+### shaders/cloud_shadow.hlsli: cloud_hidden
+
+The share of the sun the clouds hide at a receiver from its point in the map's clip space `s`: the two layers of the
+cloud map at `s` times their scale plus their shift (the second turned by (0.8, 0.6)), 0.65 a + 0.35 b, smoothstep
+around the cover's threshold, times the light a full cloud hides. `with_clouds` adds it to the map's share as a
+second, independent occluder.
 
 ### shaders/shadow_receiver.hlsli: the receivers and the soft edges
 

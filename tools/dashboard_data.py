@@ -7,7 +7,7 @@ files, in groups (GROUP_VERSION below):
     structs, scenarios;
   - standalone: the single-byte text sites a UTF-8 switch has to visit (docs/notes/standalone.md);
   - track: tools/progress.py's counts over all of src/ (casts, anonymous namespaces, struct names defined twice);
-  - goals: the counts of what the code is moving to: pc24 uses, ordered-sum vector helpers, render::ui canvas calls.
+  - goals: the counts of what the code is moving to: pc24 uses, ordered-sum vector helpers.
 The series that reached 0 for good (the hook era: offset access, VCall, __asm, MFC / STLport / CRT uses, raw and data
 addresses, code cells, shims, retired vtables ...) are not measured any more; the build checks hold them at 0.
 
@@ -71,8 +71,6 @@ GOALS = [
     ('pc24_uses', re.compile(r'\bpc24::\w+'), ('src/lib/pc24.',)),
     # The ordered-sum vector helpers of lib/vecmath.h: DotZYX, LengthSquaredXYZ, Sum3::ZXY, DotUnrounded ...
     ('ordered_sums', re.compile(r'\b\w+(?:XYZ|ZYX|ZXY|Unrounded)\b|\bSum3::\w+'), ('src/lib/vecmath.h',)),
-    # The game's calls into the native interface canvases (render_ui.h).
-    ('ui_canvas_calls', re.compile(r'\brender::ui::\w+'), ('src/render/',)),
 ]
 
 # The keys each group keeps in data.json; a history point's other keys (the retired series) are dropped.

@@ -117,6 +117,25 @@ float HourOfDay(const WorldClient* world) {
 // The hour's row of the colour tables: the hour truncated, 0 for NaN.
 int HourIndex(float hour) { return std::isnan(hour) ? 0 : static_cast<int>(hour); }
 
+// The cloud shadows' weather (render::CloudShadows), read from the client's state only: by day (from none at the
+// sunrise to full at the day's start, back to none from the day's end to the sunset; none in a cave), the rain's or
+// snow's strength as its layer fades it, the wind and the world's time at the drawn frame.
+void HandOverClouds(const WorldClient* world, float hour) {
+    render::CloudWeather w;
+    if (!world->cave && !std::isnan(hour)) {
+        if (hour <= kSunrise || hour >= kSunset) w.day = 0.0f;
+        else if (hour < kDayStart) w.day = (hour - kSunrise) / (kDayStart - kSunrise);
+        else if (hour > kDayEnd) w.day = (kSunset - hour) / (kSunset - kDayEnd);
+        else w.day = 1.0f;
+    }
+    const RainSnow& layer = world->rainSnow;
+    w.rain = layer.mode != 0 ? static_cast<float>(layer.density) / 64.0f : 0.0f;
+    w.windX = layer.wind.x;
+    w.windY = layer.wind.y;
+    w.time = static_cast<double>(world->tick) + static_cast<double>(world->tickFraction);
+    render::CloudShadows(w);
+}
+
 } // namespace
 
 int WorldClient::UpdateLighting() {
@@ -124,6 +143,7 @@ int WorldClient::UpdateLighting() {
     if (!(display->flags & 1)) return 1;
     UpdateExitMarkers();
     const float now = HourOfDay(this);
+    HandOverClouds(this, now);
     TransformPipeline* pipeline = display->pipeline;
 
     if (cave == 1) {

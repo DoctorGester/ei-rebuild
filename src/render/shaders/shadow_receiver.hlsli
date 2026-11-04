@@ -13,6 +13,9 @@ struct ShadowParams {
                      // across the light is stretched on the map
     float4 disc;     // a disc across the light onto the map: uv = (x * a + y * b, x * c + y * d) (xyzw: a b c d)
     float4 discInverse;   // the same back from uv
+    float4 clouds;        // the cloud shadows (cloud_shadow.hlsli): x, y the map's clip space to the two layers' uv,
+                          // z the cover's threshold, w how much of the sun a full cloud hides (0: none)
+    float4 cloudShift;    // xy, zw: the two layers' uv at the map's clip origin
 };
 ConstantBuffer<ShadowParams> shadow : FS_BLOCK(SHADOW_BLOCK_SLOT);
 Texture2D<float> shadow_map : FS_TEXTURE(SHADOW_MAP_SLOT);

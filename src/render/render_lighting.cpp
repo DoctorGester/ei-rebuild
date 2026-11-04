@@ -20,6 +20,7 @@ using namespace detail;
 SceneLightParams g_params = {{0.0f, 0.0f, -1.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 0.0f}, {0.5f, 0.5f, 0.5f, 0.0f}};
 // Per kept point light: it casts point shadows (ScenePointLight::shadows).
 bool g_shadows[kMostSceneLights] = {};
+double g_clientTicks = 0.0;
 
 } // namespace
 
@@ -33,6 +34,10 @@ void SceneLighting(const SceneLights& lights) {
         p.sunColour[k] = lights.sunColour[k];
         p.ambient[k] = lights.ambientColour[k];
     }
+    p.camera[0] = lights.camera.x;
+    p.camera[1] = lights.camera.y;
+    p.camera[2] = lights.camera.z;
+    g_clientTicks = lights.clientTicks;
     // The nearest point lights: by how far the camera is outside each one's reach.
     static std::vector<std::pair<float, int>> order;
     order.clear();
@@ -134,6 +139,8 @@ void MeshLightUniforms(const MeshLighting& l, MeshLightParams* params) {
 }
 
 const SceneLightParams& KeptSceneLight() { return g_params; }
+
+double KeptClientTicks() { return g_clientTicks; }
 
 bool SceneLightCastsShadows(int k) { return k >= 0 && k < kMostSceneLights && g_shadows[k]; }
 

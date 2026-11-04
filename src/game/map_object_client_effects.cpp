@@ -132,7 +132,6 @@ bool OtherRecordOfType(const std::vector<ParticleRecord>& particles, int index, 
 // A new light's flags (ShowLight then clears Hidden).
 constexpr LightFlag kLightNew = LightFlag::Hidden | LightFlag::Moving | LightFlag::Off;
 constexpr int kPointLight = 0x31;
-constexpr float kLightHeight = 2.0f;
 
 // The default light of mode 1 (r, g, b, radius).
 const float* DefaultLightColour() { return &options::kQuestLight.red; }

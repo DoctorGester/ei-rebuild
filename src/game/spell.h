@@ -6,6 +6,7 @@
 #include "base_manager.h"
 #include "core_refcount.h"
 #include "core_transform.h"
+#include "drawn_motion.h"
 #include "engine_object.h"
 #include "game_singletons.h"
 #include "item_db.h"
@@ -443,6 +444,7 @@ public:
     float inverseRangeSquared;
     Vector3 localDirection;         // direction in the space of the mesh being lit
     float litColors[2][4];
+    drawn::LightStep drawnStep;     // client: where the draw shows it (drawn::LightPosition)
 };
 
 // The light factory ("CLightManager"): lights of class 0x2E (the renderer's default light) and 0x31 (point
