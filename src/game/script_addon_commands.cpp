@@ -109,7 +109,7 @@ bool StartCameraSave(Call* call) {
 }
 
 bool StopCameraSave(Call*) {
-    CameraCloseFile(g_clientWorld.camera);
+    g_clientWorld.camera->CloseFile();
     g_clientWorld.flags &= ~WorldClientFlag::RecordingCamera;
     return true;
 }
