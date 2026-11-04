@@ -116,7 +116,7 @@ FISTP, then the zero-extended remainder (`Unsigned`).
 Kept because they could be re-enabled, each with a one-line comment: taming (`TryTame`, `UndoTaming`, `UndoIfTamedBy`
 in combat_taming.cpp, `OrderTame`: the taming skill returns before its use case, `WorldServer::CastSpell` refuses
 charm and the interface sends only the use and steal kinds) and the use-item order (`OrderPlan::TakeSteps` and the
-UseItem cases of `FinishAction` and the tick: nothing sets that order). `CanStillDo` and the two `TellParty(OutOfReach)`
+UseItem cases of `FinishAction` and the tick: nothing sets that order). `TooHighToReach` and the two `TellParty(OutOfReach)`
 calls are live code that needs a target too high to reach, which the coverage runs lacked.
 
 ## Original bugs kept
@@ -145,7 +145,7 @@ By design (user 2026-11-03): UseSkill returns for skill 2 (tame) before its swit
 
 Dead code by design (H43a): TryTame, UndoTaming and UndoIfTamedBy (their callers are UseSkill's tame case, which
 returns early, and the charm spell, which WorldServer::CastSpell refuses), OrderTame (the interface sends only kinds 0
-and 1), the UseItem order (no setter, so OrderPlan::TakeSteps and combat_tick.cpp's CanStillDo are not reached) and
+and 1), the UseItem order (no setter, so OrderPlan::TakeSteps is not reached) and
 TellParty(OutOfReach). `combat_skills` reaches the rest of the order code: a wand on a unit (SpellCarrier,
 UseItemCharge), the science button on a unit outside the party (the steal order: OrderSteal, UseSkill, "Item has been
 stolen from"; the hero needs more science than the wolf's 77) and move orders given while the game is paused (Space:

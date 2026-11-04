@@ -21,31 +21,10 @@ namespace {
 constexpr float kCastNoiseScale = 2.0f;
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
 constexpr std::uint32_t kNoSource = 0xFFFFFFFFu;
-constexpr int kWeaponBow = 5;
-constexpr int kWeaponCrossbow = 6;
 constexpr std::uint32_t kNoPointZ = 0xC4A42000u;    // -1313.0f: "no point"
-constexpr float kReachHeight = 1.5f;
 
 
 
-
-// The reset of an order: kind 9, target released, pointIsUseSpot / +0x1C / +0x20 cleared.
-void ResetOrder(UnitAction* order) {
-    order->kind = UnitOrderKind::None;
-    order->target.Reset();
-    order->pointIsUseSpot = false;
-    order->param = 0;
-    order->modifier = 0;
-}
-
-void ReleaseTarget(UnitAction* order) {
-    order->target.Reset();
-}
-
-void SetTarget(UnitAction* order, MapObject* target) {
-    if (target == order->target) return;
-    order->target.Assign(target);
-}
 
 void TellParty(Unit* unit, AckKind kind) {
     if (unit->player) PlayerMessage(unit->player->Server(), unit, kind);
@@ -54,14 +33,7 @@ void TellParty(Unit* unit, AckKind kind) {
 // The spell checks OrderCastAt and OrderCast share: the spell behind `source`; for a party unit's own spell
 // (not an item) its skill requirement (+0x50) against the unit's skill. True when the order may be queued.
 bool MayCast(UnitServer* self, std::uint32_t source) {
-    Spell* spell;
-    if (source & kQuickItemSource) {
-        Item* carrier = self->SpellCarrier(source);
-        if (!carrier) return !(self->unit->flags & MapObjectFlag::NoCasting);
-        spell = carrier->spell;
-    } else {
-        spell = self->unit->GetSpellObject(source);
-    }
+    Spell* spell = self->SpellOfSource(source);
     if (spell && self->unit->player && !(source & kQuickItemSource)) {
         int needed = static_cast<int>(spell->skillNeeded);
         float skill = self->stats.SpellSchoolSkill(spell->GetPrototype()->school);
@@ -78,11 +50,9 @@ void UnitServer::FinishCast() {
     Item* carrier = nullptr;
     Spell* spell;
     if (source & kQuickItemSource) {
-        auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
-        if (!item || item->GetClassId() != ClassId::ItemQuick) return;
-        if (item->GetCategory() != QuickItemCategory::Wand && item->GetCategory() != QuickItemCategory::Potion) return;
-        carrier = item;
-        spell = item->spell;
+        carrier = SpellCarrier(source);
+        if (!carrier) return;
+        spell = carrier->spell;
     } else {
         spell = unit->GetSpellObject(source);
     }
@@ -125,23 +95,19 @@ void UnitServer::FinishCast() {
 }
 
 void UnitServer::OrderTurn(const Vector3& direction, std::uint32_t time) {
-    ResetOrder(&action2);
+    action2.Reset();
     action2.kind = UnitOrderKind::Turn;
     action2.point = direction;
-    ReleaseTarget(&action2);
-    action2.modifier = 0;
     action2.param = static_cast<int>(time);
 }
 
 void UnitServer::OrderMove(const Vector3& point, int run, int walk) {
     const World* world = OwningWorld();
-    ResetOrder(&action2);
+    action2.Reset();
     action2.kind = UnitOrderKind::Move;
     action2.point = point;
-    ReleaseTarget(&action2);
     action2.source = static_cast<std::uint8_t>(walk) != 0 ? 1 : 0;
     action2.modifier = static_cast<std::uint8_t>(run);
-    action2.param = 0;
     if (!unit->player) return;
     if (std::bit_cast<std::uint32_t>(point.z) == kNoPointZ) return;
     if (world->paused == 0) {
@@ -158,52 +124,30 @@ void UnitServer::OrderAttack(MapObject* target, int location, int calledShot, Ac
         UnitServer* controller = victim->ServerController();
         if (controller->stats.slots[location].kind != 3) location = 6;
     }
-    ResetOrder(&action2);
+    action2.Reset();
     action2.kind = UnitOrderKind::Attack;
-    SetTarget(&action2, target);
+    action2.Retarget(target);
     action2.source = static_cast<std::uint32_t>(location);
     action2.modifier = static_cast<std::uint8_t>(calledShot);
-    // CanReachTarget inlined on the queued order.
-    if (action2.kind == UnitOrderKind::Attack || action2.kind == UnitOrderKind::Use) {
-        Unit* other = UnitOrNull(action2.target);
-        if (other && other->IsDead() == 0 && other->sizeClass == 0) {
-            bool ranged = false;
-            if (action2.kind == UnitOrderKind::Attack) {
-                ItemWeapon* weapon = unit->GetWeapon(unit->activeWeapon);
-                ranged = weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow);
-            }
-            if (!ranged) {
-                float height = std::bit_cast<float>(other->GetPrototype()->height) + other->localPosition.z;
-                if (height >= kReachHeight) {
-                    TellParty(unit, AckKind::OutOfReach);
-                    action2.kind = UnitOrderKind::None;
-                    ReleaseTarget(&action2);
-                    action2.pointIsUseSpot = false;
-                    action2.param = 0;
-                    action2.modifier = 0;
-                    return;
-                }
-            }
-        }
+    if (TooHighToReach(&action2)) {
+        TellParty(unit, AckKind::OutOfReach);
+        action2.Reset();
+        return;
     }
-    if (!PlanOrderRoute(&action2, planArg)) ResetOrder(&action2);
+    if (!PlanOrderRoute(&action2, planArg)) action2.Reset();
 }
 
 void UnitServer::OrderCastAt(std::uint32_t source, const Vector3& point, int run) {
     Vector3 at;
     at = point;
     if (source & kQuickItemSource) {
-        std::uint32_t slot = source & ~kQuickItemSource;
-        auto* item = unit->GetQuickItem(slot);
         // A potion acts at once (the original's test names wands too, then wants a potion).
-        if (item && item->GetClassId() == ClassId::ItemQuick && item->GetCategory() == QuickItemCategory::Potion) {
+        Item* potion = SpellCarrier(source);
+        if (potion && potion->GetCategory() == QuickItemCategory::Potion) {
             WorldServer* world = ServerWorld();
-            auto* scroll = unit->GetQuickItem(slot);
-            if (!scroll || !scroll->count) return;
-            Item* carrier = SpellCarrier(source);
-            if (!carrier || !carrier->spell) return;
-            world->CastSpell(carrier->spell, unit, unit->localPosition, nullptr, point, 0);
-            world->UseItemUp(unit, scroll);
+            if (!potion->count || !potion->spell) return;
+            world->CastSpell(potion->spell, unit, unit->localPosition, nullptr, point, 0);
+            world->UseItemUp(unit, potion);
             return;
         }
     }
@@ -211,31 +155,22 @@ void UnitServer::OrderCastAt(std::uint32_t source, const Vector3& point, int run
         TellParty(unit, AckKind::SpellTooComplex);
         return;
     }
-    action2.kind = UnitOrderKind::None;
-    ReleaseTarget(&action2);
-    action2.pointIsUseSpot = false;
-    action2.param = 0;
-    action2.modifier = 0;
+    action2.Reset();
     action2.kind = UnitOrderKind::CastAt;
-    if (action2.target) ReleaseTarget(&action2);
     action2.source = source;
     action2.point = at;
     action2.modifier = static_cast<std::uint8_t>(run);
-    if (!PlanOrderRoute(&action2, CanCast(&action2) ? AckKind::Cast : AckKind::None)) ResetOrder(&action2);
+    if (!PlanOrderRoute(&action2, CanCast(&action2) ? AckKind::Cast : AckKind::None)) action2.Reset();
 }
 
 void UnitServer::OrderCast(std::uint32_t source, MapObject* target, int run) {
     if (source & kQuickItemSource) {
-        Item* carrier = SpellCarrier(source);
-        if (carrier && carrier->GetCategory() == QuickItemCategory::Potion) {
+        Item* potion = SpellCarrier(source);
+        if (potion && potion->GetCategory() == QuickItemCategory::Potion) {
             WorldServer* world = ServerWorld();
-            auto* scroll = unit->GetQuickItem(source & ~kQuickItemSource);
-            if (!scroll || !scroll->count) return;
-            Item* spellCarrier = SpellCarrier(source);
-            if (!spellCarrier || !spellCarrier->spell) return;
-            world->CastSpell(spellCarrier->spell, unit, unit->localPosition, target,
-                                   target->localPosition, 0);
-            world->UseItemUp(unit, scroll);
+            if (!potion->count || !potion->spell) return;
+            world->CastSpell(potion->spell, unit, unit->localPosition, target, target->localPosition, 0);
+            world->UseItemUp(unit, potion);
             return;
         }
     }
@@ -243,19 +178,17 @@ void UnitServer::OrderCast(std::uint32_t source, MapObject* target, int run) {
         TellParty(unit, AckKind::SpellTooComplex);
         return;
     }
-    ResetOrder(&action2);
+    action2.Reset();
     action2.kind = UnitOrderKind::CastOn;
-    SetTarget(&action2, target);
+    action2.Retarget(target);
     action2.source = source;
     action2.point = {};
     action2.modifier = static_cast<std::uint8_t>(run);
-    if (!PlanOrderRoute(&action2, CanCast(&action2) ? AckKind::Cast : AckKind::None)) ResetOrder(&action2);
+    if (!PlanOrderRoute(&action2, CanCast(&action2) ? AckKind::Cast : AckKind::None)) action2.Reset();
 }
 
 void UnitServer::StopQueued() {
     if (action.kind == UnitOrderKind::Stop) return;
-    ResetOrder(&action2);
+    action2.Reset();
     action2.kind = UnitOrderKind::Stop;
-    ReleaseTarget(&action2);
-    action2.modifier = 0;
 }

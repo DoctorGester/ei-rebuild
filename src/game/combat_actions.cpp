@@ -95,21 +95,13 @@ void UnitServer::FinishAction(int location) {
             g_serverWorld.UseQuickItem(unit);
             item->Release();
         }
-        action.kind = UnitOrderKind::None;
-        action.target.Reset();
-        action.pointIsUseSpot = false;
-        action.param = 0;
-        action.modifier = 0;
-        if (action2.kind == UnitOrderKind::None && action.kind != UnitOrderKind::Idle) DropQueuedOrder();
+        EndCurrentOrder();
         return;
     }
     default:
         return;
     }
-    action.Clear();
-    action.param = 0;
-    action.modifier = 0;
-    if (action2.kind == UnitOrderKind::None) Idle();
+    EndCurrentOrder();
 }
 
 void UnitServer::DeliverAttack(MapObject* target, DamageInfo* hit) {
@@ -397,9 +389,6 @@ void UnitServer::SetDead(int dead) {
     units->Remove(unit);
     unit->dead = dead;
     units->Add(unit);
-    if (dead && effectObject) {
-        world->RemoveTimedObject(effectObject->id);
-        effectObject.Reset();
-    }
+    if (dead) DropEffectObject();
     unit->MarkChanged(NetField::Motion);
 }

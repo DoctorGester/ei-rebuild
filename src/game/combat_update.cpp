@@ -62,23 +62,6 @@ void SetStandingFlag(UnitServer* self, int standing) {
     self->unit->MarkChanged(NetField::Motion);
 }
 
-// A UnitAction emptied as the original inlines it: kind 9, the target released, flags cleared.
-void EmptyAction(UnitAction* order) {
-    order->kind = UnitOrderKind::None;
-    order->target.Reset();
-    order->pointIsUseSpot = false;
-    order->param = 0;
-    order->modifier = 0;
-}
-
-// The queue replaced by `steps`, then started.
-void TakeQueue(UnitServer* self, const AnimationSteps* steps) {
-    self->queue = *steps;
-    self->StartQueueIfUnset();
-    self->PopFinishedSteps();
-    self->ShowCurrentStep();
-}
-
 bool HasOpenStep(const AnimationSteps& steps) {
     for (const AnimationStep& step : steps.steps)
         if (step.duration < 0) return true;
@@ -187,8 +170,8 @@ bool UnitServer::RunTick() {
             brain.Reset();
             voice.Reset();
         }
-        EmptyAction(&action);
-        EmptyAction(&action2);
+        action.Reset();
+        action2.Reset();
     }
     AdvanceAnimation();
     return true;
@@ -212,10 +195,7 @@ void UnitServer::UpdateState() {
             hitDirection = kNoHitDirection;
             return;
         }
-        queue = savedQueue;
-        StartQueueIfUnset();
-        PopFinishedSteps();
-        ShowCurrentStep();
+        PlaySteps(&savedQueue);
         keepHitDirection = 0;
     }
     switch (state) {
@@ -283,8 +263,7 @@ void UnitServer::AdvanceAnimation() {
             unit->SetMotionMode(0);
             return;
         }
-        const AnimationStep& head = queue.steps[0];
-        if (!head.IsBlank()) unit->SetAnimationEntries(head.animation, head.variant, queue.extra, head.flags);
+        ShowCurrentStep();
     }
     if (queue.steps.empty()) {
         unit->SetMotionMode(0);
@@ -336,9 +315,7 @@ void UnitServer::PlaySteps(const AnimationSteps* steps) {
     queue = *steps;
     StartQueueIfUnset();
     PopFinishedSteps();
-    if (queue.steps.empty()) return;
-    const AnimationStep& head = queue.steps[0];
-    if (!head.IsBlank()) unit->SetAnimationEntries(head.animation, head.variant, queue.extra, head.flags);
+    ShowCurrentStep();
 }
 
 // --- States -------------------------------------------------------------------------------------
@@ -376,10 +353,7 @@ void UnitServer::PlayHitReaction() {
         return;
     keepHitDirection = 1;
     savedQueue = queue;
-    queue = reaction;
-    StartQueueIfUnset();
-    PopFinishedSteps();
-    ShowCurrentStep();
+    PlaySteps(&reaction);
     animationHeld = 1;
 }
 
@@ -399,7 +373,7 @@ void UnitServer::EndOrder(char abort) {
                     rest.extra = now - rest.steps[0].duration;
                     rest.steps[0].duration += rest.steps[2].duration;
                     rest.steps.resize(1);
-                    TakeQueue(this, &rest);
+                    PlaySteps(&rest);
                 }
             } else if (queue.steps.size() == 3) {
                 AnimationSteps rest = currentPlan.animation;
@@ -407,7 +381,7 @@ void UnitServer::EndOrder(char abort) {
                     rest.steps[0].duration += rest.steps[2].duration;
                     rest.extra = queue.extra;
                     rest.steps.resize(1);
-                    TakeQueue(this, &rest);
+                    PlaySteps(&rest);
                 } else {
                     rest.extra = queue.extra;
                     rest.steps[1] = rest.steps[2];   // the middle step dropped (three steps here)
@@ -431,10 +405,7 @@ void UnitServer::TickAction() {
     OrderPlan& plan = currentPlan;
     if (now == plan.startTime) {
         // The action starts: its animation replaces the queue, and a cast shows its effect.
-        queue = plan.animation;
-        StartQueueIfUnset();
-        PopFinishedSteps();
-        ShowCurrentStep();
+        PlaySteps(&plan.animation);
         if (plan.isCast != 0 && unit->GetPrototypeModel()->castEffect != 0) {
             auto* objects = g_serverWorld.timedObjectManager;
             auto* particle = objects->CreateObjectAs<EffectParticle>(kCastEffectKind, -1);
@@ -470,12 +441,7 @@ void UnitServer::TickAction() {
         unit->UpdateSizeClass();
         DropEffectObject();
     }
-    motion.Clear();
-    int time = OwningWorld()->tick;
-    Vector3 axis = unit->localRotation.AxisY();
-    Vector3 backwards = -axis;
-    if (motion.Start(unit->localPosition, backwards, time)) unit->RefreshMotion();
-    ClearStanding();
+    StandStill();
 }
 
 // --- Checks -------------------------------------------------------------------------------------

@@ -413,7 +413,7 @@ def read_controller(r, text_key):
                 r.i16(str(i))
         r.i32('boredTicks')
         read_damage_info(r, 'pendingHit')
-        r.i32('waitFrame')   # SV7d3: the controller starts zeroed; TakeQueuedOrder / LeaveMoveMode stamp it
+        r.i32('waitFrame')   # SV7d3: the controller starts zeroed; LeaveMoveMode stamps it
     return motion_kind
 
 

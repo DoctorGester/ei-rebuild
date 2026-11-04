@@ -34,7 +34,6 @@ constexpr float kNoRange = 1e10f;     // point orders with pointIsUseSpot
 constexpr float kFar = 1e38f;         // the plan's initial range
 constexpr float kBestStart = 1e30f;
 
-constexpr std::uint32_t kQuickItemSource = 0x80000000u;
 constexpr std::uint32_t kSkillSource = 6;
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
@@ -48,19 +47,6 @@ bool IsUnit(EngineObject* object) { return object && object->GetClassId() == Cla
 // The missile spell's delay in ticks: _ftol(sqrt(distanceSq) * 15 / flight - 3).
 int CastDelayTicks(float distanceSq, float flight) {
     return lib::Truncate(std::sqrt(distanceSq) * 15.0f / flight - 3.0f);
-}
-
-// The spell a cast order's source names: a quick item's spell, or the unit's own. The boolean is false when a
-// quick item source has no carrier (the original returns there).
-bool OrderSpell(UnitServer* self, std::uint32_t source, Spell** spell) {
-    if (source & kQuickItemSource) {
-        Item* carrier = self->SpellCarrier(source);
-        if (!carrier) return false;
-        *spell = carrier->spell;
-        return true;
-    }
-    *spell = self->unit->GetSpellObject(source);
-    return true;
 }
 
 // AI units only act on a target within 1.05 times their sight range: the larger of a stats value and the
@@ -143,8 +129,8 @@ bool UnitServer::FindSightTarget(const AIOrder* order, SightTarget* out) {
     MapObject* target = order->target;
 
     if (order->kind == UnitOrderKind::CastAt || order->kind == UnitOrderKind::CastOn) {
-        Spell* spell;
-        if (!OrderSpell(this, order->source, &spell) || !spell) return false;
+        Spell* spell = SpellOfSource(order->source);
+        if (!spell) return false;
         if (spell->GetPrototype()->needsSight == 0) return false;
         out->point = {};
         out->minDistanceSq = 0.0f;
@@ -295,9 +281,8 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
             targetUnit->IsLargeUnit()) {
             // A moving target of a missile spell: aim where it will be when the spell arrives.
             predict = true;
-            Spell* missile;
-            if (OrderSpell(this, order->source, &missile) && missile &&
-                (missile->targetFlags & SpellTargetFlag::AtPoint)) {
+            Spell* missile = SpellOfSource(order->source);
+            if (missile && (missile->targetFlags & SpellTargetFlag::AtPoint)) {
                 float flight = missile->speed;
                 if (Greater(flight, 0.0f)) castDelay = CastDelayTicks(distanceSq, flight);
             }

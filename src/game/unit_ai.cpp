@@ -329,13 +329,13 @@ void AIBrain::TurnTowards(const Vector3& direction, float time) {
 }
 
 void AIBrain::CastAt(int spell, const Vector3& point, int run) {
-    if (!owner->IsScrollSource(spell)) action = kActionCast;
+    if (!owner->IsPotionSource(spell)) action = kActionCast;
     actionTime = spell;
     owner->OrderCastAt(spell, point, run);
 }
 
 void AIBrain::CastOn(int spell, MapObject* object, int run) {
-    if (!owner->IsScrollSource(spell)) action = kActionCast;
+    if (!owner->IsPotionSource(spell)) action = kActionCast;
     target.Assign(object);
     actionTime = spell;
     owner->OrderCast(spell, object, run);
