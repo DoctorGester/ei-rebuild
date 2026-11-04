@@ -227,7 +227,12 @@ async function loadGames(id) {
   render();
 }
 function batchWhat(b) {
-  const t = data.tickets.find(t => t.id === b.ticket);
+  // The batch's name is the scratch prefix the worker chose (C123, C123R for the Rebirth half, R17C4A): match it to a
+  // ticket ignoring case and a trailing R, else take the ticket assigned to the batch's worktree.
+  const name = String(b.ticket || '').toLowerCase(), base = p => String(p || '').split(/[\\/]/).pop().toLowerCase();
+  const t = data.tickets.find(t => t.id === b.ticket) || data.tickets.find(t => t.id.toLowerCase() === name) ||
+    data.tickets.find(t => name.endsWith('r') && t.id.toLowerCase() === name.slice(0, -1)) ||
+    data.tickets.find(t => t.assignment && t.assignment.open && base(t.assignment.worktree) === base(b.worktree));
   return `<span class="bwhat" title="${esc(b.worktree)}">${esc(t ? t.title : String(b.worktree || '').split(/[\\/]/).pop())}</span>`;
 }
 function batchPanel(b, pos) {
