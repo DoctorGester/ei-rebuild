@@ -1,0 +1,39 @@
+# Back to a zone that was left (src/game/world_game.cpp RestoreZone; H43c). From the new game in zone1 (gz1g) a wolf is
+# placed and the party leaves for gz2g: the zone is stored in saves\current\gz1g.sav and its "visited" variable set.
+# Time passes in gz2g, then the party goes back to gz1g (exit 0): the zone is read from that file, not made anew from
+# its map (RestoreZone), the units standing in it come back where they were, and the world catches up with the time
+# spent away (one tick per elapsed unit, waking the units around the entrance).
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+console @GSSetVar(0,"zr.x",GetX(GetLeader())) GSSetVar(0,"zr.y",GetY(GetLeader()))
+console @AddUnitToServer("ReturnWolf","WolfTutor","ReturnWolf",Add(GSGetVar(0,"zr.x"),9),Add(GSGetVar(0,"zr.y"),9),0)
+waitfor 10 IsAlive(GetObjectByName("ReturnWolf"))
+console @GSSetVar(0,"zr.wolf",GetObjectID(GetObjectByName("ReturnWolf")))
+console @GSSetVar(0,"zr.wx",GetX(GetObjectByName("ReturnWolf"))) GSSetVar(0,"zr.wy",GetY(GetObjectByName("ReturnWolf")))
+
+zone gz2g 0
+waitzone 25 gz2g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @GodMode(0,1)
+# gz2g is a different map: the wolf is not here, the first zone's party variables are.
+check Not(IsAlive(GetObjectByName("ReturnWolf")))
+check IsLess(DistanceUnitPoint(GetLeader(),67,15),8)
+check IsGreater(GSGetVar(0,"zr.wolf"),0)
+wait 3000
+
+# Back to zone1: restored from the file.
+zone gz1g 0
+waitzone 25 gz1g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @GodMode(0,1)
+check IsAlive(GetObjectByName("ReturnWolf"))
+check IsEqual(GetObjectID(GetObjectByName("ReturnWolf")),GSGetVar(0,"zr.wolf"))
+check IsLess(DistanceUnitPoint(GetObjectByName("ReturnWolf"),GSGetVar(0,"zr.wx"),GSGetVar(0,"zr.wy")),6)
+wait 1500
+check IsAlive(GetLeader())
+report
+quit

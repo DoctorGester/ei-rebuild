@@ -37,8 +37,11 @@ run the scripts on Lua: `lua-scripting.md`.
 
 `Script::Load(text, runWorldScript)` is the entry for mission files (`LoadFile` reads a file first), quest scripts and
 the console. The console (cheat word required) turns `@x` into `WorldScript(x)`, `#x` into `WorldScript( ConsoleFloat(
-x ))` and `$x` into `WorldScript( ConsoleString( x ))`, loads it into the mission script and runs one script tick; on
-failure it prints `Script error: <error text>`.
+x ))` and `$x` into `WorldScript( ConsoleString( x ))`, loads it into the world's second script (`CommandScript()`, not the mission script) and runs one script tick; on
+failure it prints `Script error: <error text>`. The second script is not in a save: effects, instances and definitions made by `@` lines are gone after a save
+and load. Rebirth's `execs <file>` loads into the mission script (the saved one), with the path as the game opens it (
+`.\saves\gaps.txt` is the run's `harness_saves`; tools/make_gap_script.py, script_file.txt). A multiplayer client (a hosted
+game too) cannot run `@` lines at all.
 1. Reset the error state ("No errors found"). 2. Preprocess line by line: `#define name value` lines are collected (and
 become empty lines); in every other line each define's name is replaced by its value (in list order, restarting after
 each replacement; `AddDefine` inserts before the first shorter name else before the last define; a value containing its
