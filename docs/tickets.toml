@@ -6294,6 +6294,20 @@ depends = ["H47d"]
 note = "User 2026-11-04: WSL runs draw on lavapipe (CPU), about 12 cores a game and up to 190 s for a pair scenario. WSL exposes the GPU only as D3D12 (/dev/dxg, /usr/lib/wsl/lib); Ubuntu's Mesa has no dzn ICD. Build Mesa with -Dvulkan-drivers=microsoft-experimental (and the d3d12 gallium driver if useful) into ~/mesa-dzn in WSL home, never system-wide; point runs at it with VK_ICD_FILENAMES (an opt-in, e.g. EI_VK_ICD or a run_all --gpu-dzn flag; lavapipe stays the default and CI's reference). Check: SDL_GPU starts on dzn (ei_gpu_check, port_render), the image suite's goldens the same as on lavapipe, and the time of a full Linux image suite on dzn against lavapipe at the same --jobs. Say which SDL_GPU features dzn lacks, if any, and whether it is stable enough to be the local default. Document in docs/notes/linux.md."
 
 [[ticket]]
+id = "H50a"
+title = "Linux: dzn the local default under WSL, and a shorter skip list there"
+group = "harness"
+depends = ["H50"]
+note = "H50 found dzn (Mesa's Vulkan on D3D12, ~/mesa-dzn with its one local change) stable: two image suites, the Rebirth set and the left-out set with no failure or retry but net_second_master and render_present_window. Decide with the user: run_all under WSL takes --dzn by itself when ~/mesa-dzn's manifest exists (lavapipe by EI_VK_ICD=system or a flag; CI stays lavapipe), and the local list of scenarios left out (camera_smooth, camera_spin, render_stats, zone_gz15h_tornado, the pairs, render_smooth, render_terrain_seams, ui_quicksave all pass on dzn). docs/notes/linux.md, The GPU under WSL."
+
+[[ticket]]
+id = "H50b"
+title = "Report dzn's libd3d12 unload under WSL upstream (Mesa)"
+group = "harness"
+depends = ["H50"]
+note = "H50: dzn_instance_destroy closes libd3d12 (util_dl_close), which unloads libd3d12core while one of its threads still runs; a program that makes and ends an instance before its real one (SDL_GPU's driver probe) crashes about 1 in 3 starts with a SIGSEGV in no module. Our ~/mesa-dzn build drops that close (linux.md, The GPU under WSL). File a Mesa issue (or merge request: keep d3d12_mod open as dxcore already is) so the local change can go; the user's call, nothing here posts by itself."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"
