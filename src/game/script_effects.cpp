@@ -128,18 +128,21 @@ EffectSound* ScriptNewSound(const Vector3& position, float volume, float radius,
 }
 
 // CreateFX(x, y, z, volume, radius, name), a sound played once.
-void Script::CreateFx(const ScriptCall* cmd) {
-    const float* f = cmd->floatArgs.data();
-    ScriptNewSound({f[0], f[1], f[2]}, f[3], f[4], cmd->stringArgs[0], false);
+void Script::CreateFx(ScriptArgs args) {
+    const float x = args.Float();
+    const float y = args.Float();
+    const float z = args.Float();
+    const float volume = args.Float();
+    const float radius = args.Float();
+    ScriptNewSound({x, y, z}, volume, radius, args.Text(), false);
 }
 
 // CreateFXSource / CreateRandomizedFXSource (script.h). A new source is appended empty. Every field
 // is written below except, for CreateFXSource, spread, the delays and the countdown (stack residue in the
 // game): the tick counts such a source down and replaces its sound at zero, so a zero countdown would
 // replace the sound on every tick; INT_MAX keeps the sound, as a positive residue does.
-void Script::CreateFxSource(const ScriptCall* cmd) {
-    const float* f = cmd->floatArgs.data();
-    int id = lib::RoundEven(f[0]);
+void Script::CreateFxSource(ScriptArgs args, bool randomized) {
+    int id = lib::RoundEven(args.Float());
     if (id < 0) id = nextFxId--;
 
     ScriptFxSource* source = FindId(fxSources, id);
@@ -151,16 +154,19 @@ void Script::CreateFxSource(const ScriptCall* cmd) {
     }
 
     source->id = id;
-    source->position = {f[1], f[2], f[3]};
-    source->volume = f[4];
-    source->radius = f[5];
-    source->name = cmd->stringArgs[0];
+    const float x = args.Float();
+    const float y = args.Float();
+    const float z = args.Float();
+    source->position = {x, y, z};
+    source->volume = args.Float();
+    source->radius = args.Float();
+    source->name = args.Text();
 
-    if (cmd->id != static_cast<int>(ScriptFunction::CreateFXSource)) {
-        source->minDelay = lib::RoundEven(f[6]);
-        source->maxDelay = lib::RoundEven(f[7]);
+    if (randomized) {
+        source->minDelay = lib::RoundEven(args.Float());
+        source->maxDelay = lib::RoundEven(args.Float());
         source->countdown = 0;
-        source->spread = f[8];
+        source->spread = args.Float();
         source->idle = 1;
         return;
     }
@@ -171,25 +177,37 @@ void Script::CreateFxSource(const ScriptCall* cmd) {
 
 // CreateLightning(id, x1, y1, z1, x2, y2, z2, width). A negative (or NaN) id takes the
 // next automatic one; others are truncated. The bolt is always added, even when the id exists.
-void Script::CreateLightning(const ScriptCall* cmd) {
+void Script::CreateLightning(ScriptArgs args) {
+    const float id = args.Float();
+    const float fromX = args.Float();
+    const float fromY = args.Float();
+    const float fromZ = args.Float();
+    const float toX = args.Float();
+    const float toY = args.Float();
+    const float toZ = args.Float();
+    const float width = args.Float();
     ScriptLightning& newLightning = lightning.emplace_back();
 
-    const float* f = cmd->floatArgs.data();
-    if (f[0] >= 0.0f) newLightning.id = lib::Truncate(f[0]);
+    if (id >= 0.0f) newLightning.id = lib::Truncate(id);
     else newLightning.id = nextParticleId--;    // also NaN
 
     auto* bolt = g_serverWorld.timedObjectManager->CreateObjectAs<EffectLightning>(ClassId::EffectLightning, -1);
     newLightning.object = ScriptEffect<EffectLightning>(bolt);
-    Vector3 to{f[4], f[5], f[6]};
-    Vector3 from{f[1], f[2], f[3]};
-    bolt->SetEnds(from, to, f[7]);
+    Vector3 to{toX, toY, toZ};
+    Vector3 from{fromX, fromY, fromZ};
+    bolt->SetEnds(from, to, width);
     g_serverWorld.AddTimedObject(bolt);
 }
 
 // CreateParticleSource(id, x, y, z, size, type name). Unknown type names make nothing. A
 // negative id takes the next automatic one; an existing source with the id gets the new effect.
-void Script::CreateParticleSource(const ScriptCall* cmd) {
-    std::string name = cmd->stringArgs[0];
+void Script::CreateParticleSource(ScriptArgs args) {
+    const int requestedId = lib::RoundEven(args.Float());
+    const float x = args.Float();
+    const float y = args.Float();
+    const float z = args.Float();
+    const float size = args.Float();
+    std::string name = args.Text();
     const ScriptParticleType* type = nullptr;
     for (int i = 0; i < kScriptParticleTypeCount; ++i) {
         if (text::CompareIgnoringCase(kScriptParticleTypes[i].name, name) == 0) {
@@ -201,8 +219,7 @@ void Script::CreateParticleSource(const ScriptCall* cmd) {
     int particleType = type->type;
     int lifetime = type->lifetime;
 
-    const float* f = cmd->floatArgs.data();
-    int id = lib::RoundEven(f[0]);
+    int id = requestedId;
     if (id < 0) id = nextParticleId--;
 
     ScriptParticleSource* source = FindId(particles, id);
@@ -211,9 +228,9 @@ void Script::CreateParticleSource(const ScriptCall* cmd) {
 
     auto* newParticles = g_serverWorld.timedObjectManager->CreateObjectAs<EffectParticle>(ClassId::EffectParticle, -1);
     newParticles->type = particleType;
-    newParticles->localPosition = {f[1], f[2], f[3]};
+    newParticles->localPosition = {x, y, z};
     source->object = ScriptEffect<EffectParticle>(newParticles);
-    newParticles->size = f[4];
+    newParticles->size = size;
     g_serverWorld.AddTimedObject(newParticles);
 
     source->id = id;
@@ -226,16 +243,21 @@ void Script::CreateParticleSource(const ScriptCall* cmd) {
 
 // MoveParticleSource(id, x, y, z, steps, delete when done). The source moves towards the
 // point in `steps` equal steps (one per tick); nothing when no source has the id.
-void Script::MoveParticleSource(const ScriptCall* cmd) {
-    const float* f = cmd->floatArgs.data();
-    ScriptParticleSource* source = FindId(particles, lib::RoundEven(f[0]));
+void Script::MoveParticleSource(ScriptArgs args) {
+    const int id = lib::RoundEven(args.Float());
+    const float x = args.Float();
+    const float y = args.Float();
+    const float z = args.Float();
+    const int steps = lib::RoundEven(args.Float());
+    const int deleteAfterMove = lib::RoundEven(args.Float());
+    ScriptParticleSource* source = FindId(particles, id);
     if (!source) return;
     source->moving = 1;
-    source->deleteAfterMove = lib::RoundEven(f[5]);
-    source->steps = lib::RoundEven(f[4]);
+    source->deleteAfterMove = deleteAfterMove;
+    source->steps = steps;
     const Vector3& at = source->object->localPosition;
     float inverse = 1.0f / static_cast<float>(source->steps);
-    source->step = (Vector3{f[1], f[2], f[3]} - at) * inverse;
+    source->step = (Vector3{x, y, z} - at) * inverse;
 }
 
 

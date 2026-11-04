@@ -48,7 +48,7 @@ void Diplomacy::SetRelation(int player, int other, int relation) {
     }
 }
 
-int Diplomacy::GetRelation(int player, int other) const {
+DiplomacyRelation Diplomacy::GetRelation(int player, int other) const {
     if (IsAllied(player, other)) return kRelationAllied;
     return (hostile[player] & Bit(other)) != 0 ? kRelationHostile : kRelationNeutral;
 }

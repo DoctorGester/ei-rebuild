@@ -21,8 +21,6 @@ float Distance(float x0, float y0, float x1, float y1);
 int Stricmp(const char* a, const char* b);
 // The object's class is a unit's.
 bool IsUnit(EngineObject* object);
-// A unit's server-side data, null for a missing reference, object or non-unit.
-UnitServer* UnitData(const ScriptObjectRef* ref);
 // Rebirth reports a handler's problem as a "Scripts" error ("<function>: <message>") in its console log only when the
 // mod setting EnableShowingScriptErrors is on, which no mod sets, so nothing is shown. Returns true: the call counts
 // as done.

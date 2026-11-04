@@ -181,10 +181,6 @@ int Stricmp(const char* a, const char* b) {
 
 bool IsUnit(EngineObject* object) { return object->GetClassId() == ClassId::Unit; }
 
-UnitServer* UnitData(const ScriptObjectRef* ref) {
-    return ref ? ref->ServerController() : nullptr;
-}
-
 bool Report(const char*, const char*, ...) { return true; }
 
 bool InvalidArguments(const char* function) {

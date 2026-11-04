@@ -25,7 +25,7 @@ struct Diplomacy {
     void SetRelation(int player, int other, int relation);
 
     // 0 if `player` is allied with `other`, else 2 if hostile, else 1.
-    int GetRelation(int player, int other) const;
+    DiplomacyRelation GetRelation(int player, int other) const;
 
     // Row `player` of the hostile table; -1 outside 0..31.
     int GetHostileMask(int player) const;

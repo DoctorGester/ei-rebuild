@@ -31,10 +31,6 @@ namespace scriptaddon {
 namespace {
 
 
-const float* Floats(Call* call) { return call->cmd->floatArgs.data(); }
-const char* Text(Call* call, int i) { return call->cmd->stringArgs[i].c_str(); }
-MapObject* ObjectArg(Call* call, int i) { return call->cmd->objectArgs[i]->object; }
-
 // The float bits of `value` as the dword the player messages take.
 std::uint32_t Bits(float value) {
     std::uint32_t bits;
@@ -60,9 +56,10 @@ bool EndsWith(const std::string& text, const char* suffix) {
 
 // GSSetPlayerVar(player, name, value): the player's server-side variable.
 bool GSSetPlayerVar(Call* call) {
-    int number = TruncateOrMin(Floats(call)[0]);
-    float value = Floats(call)[1];
-    const char* name = Text(call, 0);
+    ScriptArgs args(call->cmd);
+    int number = TruncateOrMin(args.Float());
+    const char* name = args.Text().c_str();
+    float value = args.Float();
     Player* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("GSSetPlayerVar", "There is no player with number %d", number);
     player->Server()->SetVariable(name, value);
@@ -72,8 +69,9 @@ bool GSSetPlayerVar(Call* call) {
 // GSGetPlayerVar(player, name): the player's variable; the result is left alone without the
 // player.
 bool GSGetPlayerVar(Call* call) {
-    int number = TruncateOrMin(Floats(call)[0]);
-    const char* name = Text(call, 0);
+    ScriptArgs args(call->cmd);
+    int number = TruncateOrMin(args.Float());
+    const char* name = args.Text().c_str();
     Player* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("GSGetPlayerVar", "There is no player with number %d", number);
     *call->result.number = player->GetParty()->variables.Get(name);
@@ -83,27 +81,30 @@ bool GSGetPlayerVar(Call* call) {
 // GiveExp(player, value): the world's experience award of `value` to the player (no check that
 // the player exists: null takes the multiplayer path).
 bool GiveExp(Call* call) {
-    Player* player = g_serverWorld.GetPlayer(TruncateOrMin(Floats(call)[0]));
-    g_serverWorld.AwardExperience(player, Floats(call)[1]);
+    ScriptArgs args(call->cmd);
+    Player* player = g_serverWorld.GetPlayer(TruncateOrMin(args.Float()));
+    g_serverWorld.AwardExperience(player, args.Float());
     return true;
 }
 
 // GiveUnitExp(unit, value): the unit's data gains the experience; a unit in a party with a
 // server-side player also sends it (the value's bits) with the unit's id.
 bool GiveUnitExp(Call* call) {
-    auto* data = UnitData(call->cmd->objectArgs[0]);
+    ScriptArgs args(call->cmd);
+    UnitServer* data = args.Object().ServerController();
     if (!data) return InvalidArguments("GiveUnitExp");
-    data->AddExperience(Floats(call)[0]);
+    const float experience = args.Float();
+    data->AddExperience(experience);
     Unit* unit = data->unit;
     if (auto* party = unit->player)
         if (PlayerServer* state = party->Server())
-            state->SendExperience(static_cast<std::uint32_t>(unit->id), Bits(Floats(call)[0]));
+            state->SendExperience(static_cast<std::uint32_t>(unit->id), Bits(experience));
     return true;
 }
 
 bool StartCameraSave(Call* call) {
     g_clientWorld.flags |= WorldClientFlag::RecordingCamera;
-    g_clientWorld.camera->OpenFile(Text(call, 0));
+    g_clientWorld.camera->OpenFile(ScriptArgs(call->cmd).Text().c_str());
     return true;
 }
 
@@ -116,7 +117,7 @@ bool StopCameraSave(Call*) {
 // ResetTarget(unit) (replaces the game's): the brain's alarm record at the brain's alarm slot
 // byte is applied again, after the perception memory is emptied.
 bool ResetTarget(Call* call) {
-    Unit* unit = UnitOrNull(ObjectArg(call, 0));   // IsUnit's test
+    Unit* unit = ScriptArgs(call->cmd).Object().AsUnit();   // IsUnit's test
     if (!unit) return InvalidArguments("ResetTarget");
     AIBrain* brain = &unit->ServerController()->brain;
     int index = brain->alarmSlot;
@@ -127,7 +128,7 @@ bool ResetTarget(Call* call) {
 }
 
 bool SendCurrentParty(Call* call) {
-    int number = TruncateOrMin(Floats(call)[0]);
+    int number = TruncateOrMin(ScriptArgs(call->cmd).Float());
     Player* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("SendCurrentParty", "There is no player with number %d", number);
     player->Server()->ResendParty();
@@ -136,10 +137,11 @@ bool SendCurrentParty(Call* call) {
 
 // Loot(player, unit): the player loots the dead unit, which is then removed.
 bool Loot(Call* call) {
-    int number = TruncateOrMin(Floats(call)[0]);
+    ScriptArgs args(call->cmd);
+    int number = TruncateOrMin(args.Float());
     Player* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("Loot", "There is no player with number %d", number);
-    MapObject* object = ObjectArg(call, 0);
+    MapObject* object = args.Object().object;
     if (!object) return Report("Loot", "Object doesn't exist");
     Unit* unit = UnitOrNull(object);   // IsUnit's test
     if (!unit) return Report("Loot", "Object must be a unit");
@@ -157,7 +159,10 @@ bool GameOver(Call*) {
 
 bool GameOverMsg(Call* call) {
     if (PlayerServer* state = FirstPlayerState()) {
-        std::string text = std::string("gameover ") + Text(call, 0) + " " + Text(call, 1);
+        ScriptArgs args(call->cmd);
+        const std::string& title = args.Text();
+        const std::string& message = args.Text();
+        std::string text = "gameover " + title + " " + message;
         state->SendStringEvent(text);
     }
     return true;
@@ -168,7 +173,7 @@ bool GameOverMsg(Call* call) {
 // then left alone).
 bool IsFileExists(Call* call) {
     std::string path = modfolders::ModPath();
-    std::string name = Text(call, 0);
+    std::string name = ScriptArgs(call->cmd).Text();
     for (char& c : name)
         if (c == '\\') c = '/';
     bool forbidden = name == ".." || name.find("/../") != std::string::npos || name.compare(0, 3, "../") == 0 ||
@@ -182,7 +187,7 @@ bool IsFileExists(Call* call) {
 // GSListPlayerVars(player): "<name> = <value>" for each of the player's variables, in the
 // table's order (no check for the player).
 bool GSListPlayerVars(Call* call) {
-    Player* player = g_serverWorld.GetPlayer(TruncateOrMin(Floats(call)[0]));
+    Player* player = g_serverWorld.GetPlayer(TruncateOrMin(ScriptArgs(call->cmd).Float()));
     const NamedFloatTable& variables = player->GetParty()->variables;
     for (auto& node : variables) {
         std::string line;
@@ -195,12 +200,13 @@ bool GSListPlayerVars(Call* call) {
 // GiveUnitWeapon(unit, item, override) / GiveUnitArmor: the item made from its name goes to the
 // unit; with override 1 (only for units without a text-key id) the unit's stats are set from it.
 bool GiveUnitWeapon(Call* call) {
-    MapObject* object = ObjectArg(call, 0);
-    bool override = Equals(1.0f, Floats(call)[0]);
+    ScriptArgs args(call->cmd);
+    MapObject* object = args.Object().object;
+    const char* name = args.Text().c_str();
+    bool override = Equals(1.0f, args.Float());
     if (!object) return Report("GiveUnitWeapon", "Unit doesn't exists");
     Unit* unit = UnitOrNull(object);   // IsUnit's test
     if (!unit) return Report("GiveUnitWeapon", "Object with ID %d must be a Unit", object->id);
-    const char* name = Text(call, 0);
     Item* item = g_serverWorld.CreateItemNamed(name);
     if (override && unit->id >= 1000000000) override = false;    // (a warning with EnableShowingScriptErrors)
     if (!item) return Report("GiveUnitWeapon", "Can't create item \"%s\"", name);
@@ -233,12 +239,13 @@ bool GiveUnitWeapon(Call* call) {
 // 1, 3 and 6 second block) + 0.3 * (armour slots 2, 4, 5), each plus the prototype's protection
 // scale, into both halves of the unit's server-side protection pair c.
 bool GiveUnitArmor(Call* call) {
-    MapObject* object = ObjectArg(call, 0);
-    bool override = Equals(1.0f, Floats(call)[0]);
+    ScriptArgs args(call->cmd);
+    MapObject* object = args.Object().object;
+    const char* name = args.Text().c_str();
+    bool override = Equals(1.0f, args.Float());
     if (!object) return Report("GiveUnitArmor", "Unit doesn't exists");
     Unit* unit = UnitOrNull(object);   // IsUnit's test
     if (!unit) return Report("GiveUnitArmor", "Object with ID %d must be a Unit", object->id);
-    const char* name = Text(call, 0);
     Item* item = g_serverWorld.CreateItemNamed(name);
     if (override && unit->id >= 1000000000) override = false;
     if (!item) return Report("GiveUnitArmor", "Can't create item \"%s\"", name);
@@ -284,21 +291,20 @@ bool GiveUnitArmor(Call* call) {
 
 // ShowAllUnits(0) sets the "draw all" flag, anything else clears it.
 bool ShowAllUnits(Call* call) {
-    options::g_options.drawVisibleOnly = Equals(0.0f, Floats(call)[0]) ? 1 : 0;
+    options::g_options.drawVisibleOnly = Equals(0.0f, ScriptArgs(call->cmd).Float()) ? 1 : 0;
     return true;
 }
 
 // PauseGame(value): outside network games, the client's pause request with (value == 0).
 bool PauseGame(Call* call) {
-    if (!IsMultiplayerClient()) g_clientWorld.SendPause(Equals(0.0f, Floats(call)[0]) ? 1 : 0);
+    if (!IsMultiplayerClient()) g_clientWorld.SendPause(Equals(0.0f, ScriptArgs(call->cmd).Float()) ? 1 : 0);
     return true;
 }
 
 // SetWeather("rain" | "clear" | "snow"): kind 1 / 0 / 2 with strength 20 / 20 / 40; anything
 // else is clear at 20.
 bool SetWeather(Call* call) {
-    std::string name;
-    name = Text(call, 0);
+    std::string name = ScriptArgs(call->cmd).Text();
     int kind = 0;
     float strength = 20.0f;
     if (str::Compare(name, "rain") == 0) kind = 1;
@@ -315,9 +321,9 @@ bool SetWeather(Call* call) {
 // addon pushes its byte flag as a 4-byte value whose upper bytes are left over on its stack; here it is
 // 0 or 1.
 bool AddMobEx(Call* call) {
-    std::string file;
-    file = Text(call, 0);
-    bool keepIds = std::ssize(call->cmd->floatArgs) != 0 && Equals(1.0f, Floats(call)[0]);
+    ScriptArgs args(call->cmd);
+    std::string file = args.Text();
+    bool keepIds = args.FloatCount() != 0 && Equals(1.0f, args.Float());
     g_loadingMovieOff = 1;
     int loaded = g_serverWorld.LoadMapObjects(file, keepIds ? 1 : 0);
     g_loadingMovieOff = 0;

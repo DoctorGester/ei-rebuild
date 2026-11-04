@@ -57,9 +57,15 @@ void Script::DeleteArea(int id) {
 
 // ---- Point lights -------------------------------------------------------------------------------
 
-void Script::CreatePointLight(const ScriptCall* cmd) {
-    const float* f = cmd->floatArgs.data();
-    int id = lib::RoundEven(f[0]);
+void Script::CreatePointLight(ScriptArgs args) {
+    const int id = lib::RoundEven(args.Float());
+    const float x = args.Float();
+    const float y = args.Float();
+    const float z = args.Float();
+    const float radius = args.Float();
+    const float red = args.Float() * kScriptColourScale;
+    const float green = args.Float() * kScriptColourScale;
+    const float blue = args.Float() * kScriptColourScale;
     // The light with this id is replaced, else the first free slot is used (one with the id after
     // a free slot is not found).
     int i = 0;
@@ -76,20 +82,21 @@ void Script::CreatePointLight(const ScriptCall* cmd) {
     slot->removeWhenDone = 0;
     slot->object = ScriptEffect<EffectPointLight>(g_serverWorld.timedObjectManager->CreateObjectAs<EffectPointLight>(0x4B, -1));
     EffectPointLight* object = slot->object.get();
-    float red = f[5] * kScriptColourScale;
-    float green = f[6] * kScriptColourScale;
-    float blue = f[7] * kScriptColourScale;
     object->color = {red, green, blue};
-    object->localPosition = {f[1], f[2], f[3]};
-    object->range = f[4];    // radius
+    object->localPosition = {x, y, z};
+    object->range = radius;
     g_serverWorld.AddTimedObject(object);
     slot->step = {};
     slot->steps = 0;
 }
 
-void Script::MovePointLight(const ScriptCall* cmd) {
-    const float* f = cmd->floatArgs.data();
-    int id = lib::RoundEven(f[0]);
+void Script::MovePointLight(ScriptArgs args) {
+    const int id = lib::RoundEven(args.Float());
+    const float x = args.Float();
+    const float y = args.Float();
+    const float z = args.Float();
+    const int steps = lib::RoundEven(args.Float());
+    const int removeWhenDone = lib::RoundEven(args.Float());
     int i = 0;
     for (;; ++i) {
         if (i >= std::ssize(pointLights)) return;
@@ -98,13 +105,13 @@ void Script::MovePointLight(const ScriptCall* cmd) {
     }
     ScriptPointLight* light = &pointLights[i];
     light->moving = 1;
-    light->removeWhenDone = lib::RoundEven(f[5]);
-    light->steps = lib::RoundEven(f[4]);
-    LightStep(light, {f[1], f[2], f[3]}, light->object->localPosition);
+    light->removeWhenDone = removeWhenDone;
+    light->steps = steps;
+    LightStep(light, {x, y, z}, light->object->localPosition);
 }
 
-void Script::DeletePointLight(const ScriptCall* cmd) {
-    int id = lib::RoundEven(cmd->floatArgs[0]);
+void Script::DeletePointLight(ScriptArgs args) {
+    const int id = lib::RoundEven(args.Float());
     for (ScriptPointLight& light : pointLights) {
         if (!light.object || light.id != id) continue;
         light.object.reset();

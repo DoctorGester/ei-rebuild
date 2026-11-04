@@ -20,6 +20,7 @@
 
 
 class MapObject;
+class Player;
 class Unit;
 class UnitServer;
 class EffectPointLight;
@@ -433,6 +434,32 @@ inline ScriptSubCall& ScriptSubCall::operator=(const ScriptSubCall& other) {
 inline ScriptSubCall& ScriptSubCall::operator=(ScriptSubCall&& other) noexcept = default;
 inline ScriptSubCall::~ScriptSubCall() = default;
 
+// A call's arguments read in signature order: each type keeps its own position, so the second Float() is the
+// signature's second 'f' whatever letters come between. Each read is a statement of its own (a named local): the
+// order of a function call's arguments is unspecified, so two reads never share one call.
+class ScriptArgs {
+public:
+    explicit ScriptArgs(const ScriptCall* call) : call(call) {}
+
+    float Float() { return call->floatArgs[floats++]; }
+    const std::string& Text() { return call->stringArgs[texts++]; }
+    const ScriptObjectRef& Object() { return *call->objectArgs[objects++]; }
+    ScriptGroup* Group() { return call->groupArgs[groups++]; }
+    // The player whose number is the next float (truncated), null when there is none.
+    Player* FindPlayer();
+
+    // How many there are in all (Rebirth's '?' and '+' signature letters make them vary).
+    int FloatCount() const { return static_cast<int>(call->floatArgs.size()); }
+    int TextCount() const { return static_cast<int>(call->stringArgs.size()); }
+
+private:
+    const ScriptCall* call;
+    std::size_t floats = 0;
+    std::size_t texts = 0;
+    std::size_t objects = 0;
+    std::size_t groups = 0;
+};
+
 // A command block the loader creates for a then-section or a For body.
 struct ScriptBlock {
     // Its id, the command count, each command.
@@ -532,9 +559,9 @@ public:
     void DeleteArea(int id);
     // Point lights (256 slots): create (id, x, y, z, radius, r, g, b), move (id, x, y, z, steps, remove when
     // done), delete (id).
-    void CreatePointLight(const ScriptCall* cmd);
-    void MovePointLight(const ScriptCall* cmd);
-    void DeletePointLight(const ScriptCall* cmd);
+    void CreatePointLight(ScriptArgs args);
+    void MovePointLight(ScriptArgs args);
+    void DeletePointLight(ScriptArgs args);
     // Runs `block` once in a new ScriptRun (a copy of the instance's variable values); an unfinished run goes
     // to the head of the run list.
     void RunCommands(ScriptBlock* block, ScriptDefinition* instance);
@@ -549,21 +576,21 @@ public:
 
     // ---- Effect commands ----
     // CreateFX(x, y, z, volume, radius, name): a sound the script keeps nothing of.
-    void CreateFx(const ScriptCall* cmd);
-    // CreateFXSource(id, x, y, z, volume, radius, name) and CreateRandomizedFXSource (the same, then min
-    // delay, max delay, spread): a negative id takes nextFxId; an existing source has its sound dropped.
-    // CreateFXSource (command 0x16) makes the sound at once; the other waits (idle 1). For a new id
+    void CreateFx(ScriptArgs args);
+    // CreateFXSource(id, x, y, z, volume, radius, name) and CreateRandomizedFXSource (`randomized`: the same, then
+    // min delay, max delay, spread): a negative id takes nextFxId; an existing source has its sound dropped.
+    // CreateFXSource makes the sound at once; the other waits (idle 1). For a new id
     // CreateFXSource leaves spread, the delays and the countdown as stack residue in the original; here they
     // are 0, 0, 0 and INT_MAX (docs/notes/script.md).
-    void CreateFxSource(const ScriptCall* cmd);
+    void CreateFxSource(ScriptArgs args, bool randomized);
     // CreateLightning(id, from xyz, to xyz, width): a negative or NaN id takes nextParticleId; existing ids
     // are not looked up.
-    void CreateLightning(const ScriptCall* cmd);
+    void CreateLightning(ScriptArgs args);
     // CreateParticleSource(id, x, y, z, size, type name): the type by name (case-insensitive; nothing for an
     // unknown one); a negative id takes nextParticleId; an existing source has its effect dropped.
-    void CreateParticleSource(const ScriptCall* cmd);
+    void CreateParticleSource(ScriptArgs args);
     // MoveParticleSource(id, x, y, z, steps, delete when done).
-    void MoveParticleSource(const ScriptCall* cmd);
+    void MoveParticleSource(ScriptArgs args);
 
     // ---- Loader and parser ----
     // Every Load* function returns true on success; on failure it returns what Error returned (false) after
