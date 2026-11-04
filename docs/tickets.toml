@@ -6567,6 +6567,13 @@ model = "sonnet"
 note = "Found by R19b (2026-11-04): in its worktree the release build's compiler-cache port (49841, tools/compiler_cache.py's crc32 port choice) fell inside a Windows excluded port range (49808-49907, netsh int ipv4 show excludedportrange), so sccache could not start and every compile failed even with SCCACHE_IGNORE_SERVER_IO_ERROR; the worker built with EI_COMPILER_CACHE=0. Make the port choice step past ports that fail to bind (WSAEACCES 10013) or sit in an excluded range, deterministically per worktree. Test: a unit test of the port choice with a fake excluded range."
 
 [[ticket]]
+id = "H56"
+title = "render_stats on Linux: an attack's skill sign differs (+3.4e38 against -3.4e38)"
+group = "harness"
+model = "opus"
+note = "CI run 41857898300 shard 1 (2026-11-04): render_stats on llvmpipe timed out (frame waits), and its console differed at line 76: golden 'Unit 1000011214 was attacked by 1000000400 skill=3.40282e+038 damage=11.02 destHL=Body', run 'skill=-3.40282e+038 damage=11 destHL=RLeg'; digest differs from record 63 (world update 1280, gz1g). Logs in build/ci_logs_41857898300. Check whether a slow frame rate alone changes the world (it should not: the digest is by world update) or whether a skill of -FLT_MAX comes from an x64/clang difference (an uninitialised value, a sign of an unset 'no skill'). Run render_stats in WSL on llvmpipe with a raised timeout; compare with the Windows run. If real, fix and take render_stats out of LINUX_SKIP."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"

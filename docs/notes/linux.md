@@ -163,7 +163,10 @@ lib/maths.h (float-maths.md, "Maths functions"). What still differs, and why:
   has its size; SDL_SyncWindow does not wait there either), so the clicks after it aimed at a window that had not
   changed yet. The step (harnessplatform::ResizeClient) now pumps events until the window has the size, at most 2 s.
 - Over 60 s on llvmpipe, left out: camera_smooth, camera_spin, render_stats, zone_gz15h_tornado (not run in H47d). On
-  dzn they take 7 to 22 s and are the same as their goldens.
+  dzn they take 7 to 22 s and are the same as their goldens. CI run 41857898300 (8 shards, 2026-11-04) also cut
+  camera_drawn and render_shadows_outside (frame waits), spells_more and levers_key (Rebirth) at their limit: all
+  six are in LINUX_SKIP. render_stats's run there also differed from step 63 on (an attack's skill +3.4e38 against
+  -3.4e38): H56 checks whether that is more than the cut.
 - The time zone. A save's info.sav keeps mktime of the harness's fixed date (2001-03-26 12:00), so it followed the
   machine's zone: the build machine's Europe/Prague (summer time that day, UTC+2) gave the goldens' 985600800, GitHub's
   runner (UTC) 985608000 in every save (H51). The harness sets the process's zone to a fixed UTC+2 (`TZ=EET-2`) with

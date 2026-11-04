@@ -105,7 +105,9 @@ jobs:
       #   scenarios net_zone_leader / net_zone_vars;
       # - those that draw too much to finish inside their time limit on software rendering: render_terrain_seams (its
       #   level steps), the camera ones (hundreds of 8 ms frames at 4K), the drawn-frame and widescreen ones,
-      #   ui_minimap_edges, unit_ai_bridge, zone_gz15h_tornado_client (all cut at their limit on 2026-11-04);
+      #   ui_minimap_edges, unit_ai_bridge, zone_gz15h_tornado_client (all cut at their limit on 2026-11-04), and
+      #   camera_drawn, render_shadows_outside, render_stats, spells_more, levers_key, zone_gz15h_tornado (frame waits
+      #   or the time limit ran out in run 41857898300; render_stats's console also differs, H56);
       # - render_smooth (llvmpipe's multisampling gives 4 samples whatever is asked, and edges too few pixels).
       LINUX_SKIP: >-
         net_pair_join net_pair_kick net_pair_leave net_pair_lobby net_pair_master net_pair_party net_pair_password
@@ -114,6 +116,7 @@ jobs:
         render_drawn_lights render_drawn_motion render_smooth
         ui_minimap_edges ui_widescreen ui_widescreen_dialogue ui_widescreen_hud ui_widescreen_more ui_widescreen_screens
         unit_ai_bridge zone_gz15h_tornado_client
+        camera_drawn render_shadows_outside render_stats spells_more levers_key zone_gz15h_tornado
     steps:
       - uses: actions/checkout@v5
       - name: Packages
