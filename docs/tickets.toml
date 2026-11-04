@@ -7139,6 +7139,13 @@ depends = ["R43d1"]
 note = "From R43d1. The background device and pipelines can only start after SDL's video (platform::RegisterWindowClass: SDL_RegisterApp, then InitSubSystem VIDEO), which GameMain does a few dozen ms before the renderer's start, so Start waits 270-390 ms for the thread. Split the platform call (class name and instance only) and call it from main() before render::PrepareDevice to hide most of the device's ~300 ms; keep the one-instance check and the handler where they are. Check the start-up from the work board's timing runs."
 
 [[ticket]]
+id = "R43d3"
+title = "Exit with the device thread still running: no std::terminate"
+group = "renderer"
+model = "sonnet"
+note = "From R43d2. render::PrepareDevice starts a std::thread kept in g_prepared; Start joins it. Any exit between the two (a declined disk-space prompt, a fatal error before CreateRenderer, std::exit paths) leaves a joinable thread and std::terminate runs at exit. Join (or detach safely) on every exit path, e.g. a destructor or an atexit hook that waits for the thread, and check the harness_disk_full scenario and a forced early exit end with the normal exit code."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
