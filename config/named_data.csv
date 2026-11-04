@@ -32,7 +32,6 @@ address,size,name,file
 00783E34,4,g_remoteRate,src/game/net_session.cpp
 00783E38,4,g_localRate,src/game/net_session.cpp
 00784750,1,g_interfaceHasScreen,src/game/app_main.cpp
-00784751,1,g_quitAllowed,src/game/app_main.cpp
 007857B0,6336,g_keyNames,src/game/key_bindings.cpp
 00787070,960,kActionDefinitions,src/game/ui.h
 00787C8C,48,kBranchFrequencies,src/game/lightning.cpp
@@ -122,7 +121,6 @@ address,size,name,file
 0079B7C0,136,g_lengthBits,src/game/net_coder.cpp
 0079B848,136,g_lengthCodes,src/game/net_coder.cpp
 0079B91C,4,g_netLog,src/game/net_classes.h
-0079B920,4,g_currentSession,src/game/net_classes.h
 0079BB24,256,g_windowTitle,src/game/app_main.cpp
 0079BC28,4,g_mainWindow,src/game/app_main.cpp
 0079BC54,1,g_recordingFrames,src/game/app_main.cpp

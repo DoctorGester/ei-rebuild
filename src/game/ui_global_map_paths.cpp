@@ -158,7 +158,7 @@ constexpr const char* kMissingNumber = "0";
 // --- titles and positions ------------------------------------------------------------------------
 
 std::string GlobalMap::PlaceTitle(std::string_view prefix, std::string_view name) {
-    TextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts.get();
     std::string title;
     std::string key(prefix);
     key += name;
@@ -167,7 +167,7 @@ std::string GlobalMap::PlaceTitle(std::string_view prefix, std::string_view name
 }
 
 std::optional<Vector3> GlobalMap::MapPosition(std::string_view prefix, std::string_view name, bool positionLine) {
-    TextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts.get();
     std::string key;
     std::vector<std::string> words;
     texts->Open(kMapText);

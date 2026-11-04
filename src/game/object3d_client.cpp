@@ -41,47 +41,7 @@ constexpr int kPrimaryKinds[] = {1, 3, 4, 6, 7, 8, 9, 0xB, 0xD, 0xE, 0xF, 0x10};
 // Whether a texture of `kind` belongs to the first part set.
 bool IsPrimaryKind(int kind) { return std::ranges::find(kPrimaryKinds, kind) != std::end(kPrimaryKinds); }
 
-// `part` taken out of the group that holds it (the tail moved down) and released: true, or false
-// when no group of either set holds it.
-bool RemoveFromGroups(Object3DClientSpecific* self, FigureMesh* part) {
-    for (int k = 0; k < 2; ++k) {
-        TextureParts* set = self->partSets[k];
-        if (!set) continue;
-        for (int g = 0; g < std::ssize(set->groups); ++g) {
-            PartGroup* group = set->groups[g];
-            for (int i = 0; i < std::ssize(group->parts); ++i) {
-                if (group->parts[i] != part) continue;
-                group->parts.erase(group->parts.begin() + i);
-                part->Release();
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
 } // namespace
-
-// --- Part sets ------------------------------------------------------------------------------------
-
-int PartGroup::ReleaseParts() {
-    for (int i = 0; i < std::ssize(parts); ++i) {
-        if (!parts[i]) continue;
-        parts[i]->Release();
-        parts[i] = nullptr;
-    }
-    lib::FreeStorage(parts);
-    return 1;
-}
-
-TextureParts::~TextureParts() {
-    for (PartGroup* group : groups) {
-        if (!group) continue;
-        group->ReleaseParts();
-        if (group->material) group->material->Release();
-        delete group;
-    }
-}
 
 Object3DClientSpecific::Object3DClientSpecific() {
     shadowMade = false;
@@ -111,11 +71,7 @@ void Object3DClientSpecific::Destroy() {
     }
     partSets[0] = nullptr;
     partSets[1] = nullptr;
-    for (Texture* texture : textures)
-        if (texture) texture->Release();
     textures.clear();
-    for (Material* material : materials)
-        if (material) material->Release();
     materials.clear();
     object = nullptr;
     touchTime = 0;
@@ -135,8 +91,7 @@ Texture* Object3DClientSpecific::FindOrAddTexture(int kind) {
         set = new TextureParts();
         set->texture = ClientWorld()->NewTexture(kind);
         partSets[k] = set;
-        textures.push_back(set->texture);
-        set->texture->AddRef();
+        textures.emplace_back(set->texture);
     } else {
         if (k == 0) game::DebugLog(kSecondPrimarySetText, object->name, object->id);
         partSets[k]->texture->type = kind;
@@ -150,10 +105,8 @@ Material* Object3DClientSpecific::FindMaterial(int textureKind, int materialKind
     for (int k = 0; k < 2; ++k) {
         TextureParts* set = partSets[k];
         if (!set || !set->texture || set->texture->type != textureKind) continue;
-        for (int g = 0; g < std::ssize(set->groups); ++g) {
-            Material* material = set->groups[g]->material;
-            if (material && material->type == materialKind) return material;
-        }
+        for (const std::unique_ptr<PartGroup>& group : set->groups)
+            if (group->material && group->material->type == materialKind) return group->material;
     }
     return nullptr;
 }
@@ -164,17 +117,11 @@ Material* Object3DClientSpecific::FindOrAddMaterial(int textureKind, int materia
         if (++k > 1) return nullptr;
     }
     TextureParts* set = partSets[k];
-    for (int g = 0; g < std::ssize(set->groups); ++g) {
-        Material* material = set->groups[g]->material;
-        if (material && material->type == materialKind) return material;
-    }
-    PartGroup* group = new PartGroup();
+    for (const std::unique_ptr<PartGroup>& group : set->groups)
+        if (group->material && group->material->type == materialKind) return group->material;
     Material* material = ClientWorld()->NewMaterial(materialKind);
-    group->material = material;
-    material->AddRef();
-    set->groups.push_back(group);
-    materials.push_back(material);
-    material->AddRef();
+    set->groups.emplace_back(std::make_unique<PartGroup>())->material.Assign(material);
+    materials.emplace_back(material);
     return material;
 }
 
@@ -193,25 +140,26 @@ int Object3DClientSpecific::OnPartAdded(FigureMesh* part) {
     while (!partSets[k] || partSets[k]->texture->type != textureKind) {
         if (++k >= 2) return 0;
     }
-    TextureParts* set = partSets[k];
-    for (int g = 0; g < std::ssize(set->groups); ++g) {
-        PartGroup* group = set->groups[g];
+    for (const std::unique_ptr<PartGroup>& group : partSets[k]->groups) {
         if (!group->material || group->material->type != materialKind) continue;
-        for (int i = 0; i < std::ssize(group->parts); ++i)
-            if (group->parts[i] == part) return 1;
-        group->parts.push_back(part);
-        part->AddRef();
+        if (std::ranges::find(group->parts, part, &Ref<FigureMesh>::Get) == group->parts.end())
+            group->parts.emplace_back(part);
         return 1;
     }
     return 1;
 }
 
-int Object3DClientSpecific::OnPartRemoved(FigureMesh* part) { return RemoveFromGroups(this, part) ? 1 : 0; }
-
-FigureMesh* Object3DClientSpecific::RemoveFromPartSets(const char* name) {
-    FigureMesh* part = FindPart(name);
-    if (!part) return nullptr;
-    return RemoveFromGroups(this, part) ? part : nullptr;
+int Object3DClientSpecific::OnPartRemoved(FigureMesh* part) {
+    for (TextureParts* set : partSets) {
+        if (!set) continue;
+        for (const std::unique_ptr<PartGroup>& group : set->groups) {
+            auto found = std::ranges::find(group->parts, part, &Ref<FigureMesh>::Get);
+            if (found == group->parts.end()) continue;
+            group->parts.erase(found);
+            return 1;
+        }
+    }
+    return 0;
 }
 
 Texture* Object3DClientSpecific::ReplaceTexture(Texture* replacement) {
@@ -220,9 +168,7 @@ Texture* Object3DClientSpecific::ReplaceTexture(Texture* replacement) {
     for (int i = 0; i < std::ssize(textures); ++i) {
         if (textures[i]->type != replacement->type) continue;
         old = textures[i];
-        textures[i] = replacement;
-        textures[i]->AddRef();
-        old->Release();
+        textures[i] = replacement;   // the replacement referenced, then the old one released
         break;
     }
     for (int k = 0; k < 2; ++k) {
@@ -268,7 +214,7 @@ void Object3DClientSpecific::ApplyMaterials() {
         SetSkins(skinName, secondSkinName);
 }
 
-void Object3DClientSpecific::SetMaterialsLit(bool lit) {
+void Object3DClientSpecific::SetLit(bool lit) {
     if (lit) {
         for (int i = 0; i < std::ssize(materials); ++i) {
             Material* material = materials[i];
@@ -284,8 +230,6 @@ void Object3DClientSpecific::SetMaterialsLit(bool lit) {
         material->entries.pop_back();
     }
 }
-
-void Object3DClientSpecific::SetLit(bool lit) { SetMaterialsLit(lit); }
 
 // --- The other halves --------------------------------------------------------------------------------
 
@@ -335,7 +279,6 @@ ClassId Object3DServer::GetClassId() { return ClassId::Object3DServer; }
 
 // The part virtuals: no parts; 0.
 int Object3DServer::OnPartAdded(FigureMesh*) { return 0; }
-FigureMesh* Object3DServer::RemoveFromPartSets(const char*) { return nullptr; }
 int Object3DServer::OnPartRemoved(FigureMesh*) { return 0; }
 FigureMesh* Object3DServer::FindPart(std::string_view) { return nullptr; }
 FigureMesh* Object3DServer::FindPartOfType(int) { return nullptr; }
@@ -378,7 +321,7 @@ int Object3DClientSpecific::PartsContainPoint(const std::int32_t* point) {
     return 0;
 }
 
-int Object3DClientSpecific::PartRectsMeet(const Rect* rect) {
+int Object3DClientSpecific::PartsIntersectRect(const Rect* rect) {
     Object3D* target = object;
     if (!(target->flags & MapObjectFlag::Shown)) return 0;
     for (int i = 0; i < std::ssize(target->parts); ++i) {
@@ -454,7 +397,7 @@ WoundsMaterial::WoundsMaterial() {
 
 int Object3DClientSpecific::ShowWounds(const char* name) {
     if (!partSets[0]) return 0;
-    TextureManager* manager = g_clientWorld.textureManager;
+    TextureManager* manager = g_clientWorld.textureManager.get();
     if (!woundsTexture) {
         woundsTexture.Assign(manager->FindTypedTexture(kWoundsTextureKind, name));
         if (!woundsTexture) {

@@ -159,7 +159,7 @@ void HeroStatsPanel::DrawStats() {
     Unit* unit = owner->HeroUnit(heroIndex);
     std::string line;
     std::string text;
-    TextManager* clientWorldTexts = g_clientWorld.texts;
+    TextManager* clientWorldTexts = g_clientWorld.texts.get();
     Rect area;
 
     if (page == 10) {
@@ -350,7 +350,7 @@ void HeroStatsPanel::Build() {
     const float buttons[8][4] = {{140, 165, 160, 180}, {140, 180, 160, 195}, {140, 195, 160, 210}, {140, 240, 160, 255},
                                  {160, 165, 180, 180}, {160, 180, 180, 195}, {160, 195, 180, 210}, {160, 240, 180, 255}};
     for (const auto& b : buttons) AddBlankSprite()->SetRectangle(5.0f, kSpriteScale, b[0], b[1], b[2], b[3], 0x90, 0xB1, 0xA4, 0xC0);
-    TextManager* clientWorldTexts = g_clientWorld.texts;
+    TextManager* clientWorldTexts = g_clientWorld.texts.get();
     std::string text;
     for (const char* key : {"infounit_3", "infounit_4", "infounit_9", "infounit_14", "infounit_17", "lmp_points_left",
                             "lmp_pers_tall", "magic_skills"}) {
@@ -441,7 +441,7 @@ void SpellMakerPage::BuildSpellMaker(Party* party) {
     AddMakerPictures(this);
     AddSurface(new UiSurface(ui, 200, 450, 400, 490, SurfaceBlend::Keyed, true))
         ->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
-    TextManager* clientWorldTexts = g_clientWorld.texts;
+    TextManager* clientWorldTexts = g_clientWorld.texts.get();
     std::string text;
     for (int key : {0x23, 0x24}) {
         text = std::format("infoitem_{}", key);

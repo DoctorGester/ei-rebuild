@@ -206,7 +206,7 @@ MessageWindow::MessageWindow(Interface3D* ui, std::string_view titleKey, const c
                              MessageButtons newButtons)
     : UiContainer(ui), question(newQuestion), buttons(newButtons) {
     std::string line;
-    TextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts.get();
     line = texts->GetString(titleKey);
     title = line;
     if (buttons == MessageButtons::OkCancelEdit) {

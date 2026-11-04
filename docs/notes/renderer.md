@@ -737,7 +737,7 @@ every mesh streamed every frame; check: every kept mesh drawn compared with a fr
 writer of a mesh's arrays in place that sends no signal; `meshcache check` reports it, and every stale mesh is logged ("a
 mesh kept on the GPU was stale") in any run of the harness build.
 
-**5. The game's shadow lists.** The game's own shadows (64 x 64 decals) are not ported; DrawShadow
+**5. The game's shadow lists.** The game's own shadows (64 x 64 decals) are not ported; DrawPartsShadow
 (map_object_shadow.cpp) fits the shadow's sphere from the object's bounds (map_objects.md, "Shadows": the bounding sphere
 swept along the light to the ground) for the shadow lists, which ShadowInView tests for objects out of view. The map's
 casters out of view come from the outside walk (item 10).
@@ -877,7 +877,7 @@ passes) and the ground prints sample it (`shaders/shadow_receiver.hlsli`) and da
   back towards the sun by the highest object's top over the ground (scanned every 32 frames) over the tangent of the
   sun's elevation, widened by the widest radius (`render::ShadowCasterArea`). The game's own filters stay (its object draw
   flags, a multiplayer spectator's hidden units, CastsShadow's tests). Each part is placed as
-  Object3DClientSpecific::Draw places it; a part the game drew this frame is left out (`render::CasterPartDrawn`). Cut out
+  Object3DClientSpecific::DrawParts places it; a part the game drew this frame is left out (`render::CasterPartDrawn`). Cut out
   by alpha as the on-screen meshes with the same texture were, else at alpha 0.5. A part's corners are kept on the GPU in
   the pool (`KeepCasterMesh`) and read again only when the game says the part moved or was rebuilt.
 - **Faces turned away from the sun** have no sun light to lose (the GPU lights them by N.L), so a receiver darkens by its
@@ -1205,7 +1205,7 @@ objects the server's updates move, a held unit (pathTimeShift 1, not placed on i
   only when one tick passed between the two looks, nothing placed the object at a frame's time between them
   (`drawn::NotePlaced` after a unit's AdvanceTime), it moved, and by at most 8 map units (the camera's cut). An object
   placed at the frame's time (pose no longer the step's end) is drawn where it is.
-- Read by the object's matrix in CollectVisible (the clip test) and `Object3DClientSpecific::Draw` (so picking's part
+- Read by the object's matrix in CollectVisible (the clip test) and `Object3DClientSpecific::DrawParts` (so picking's part
   rectangles follow what is drawn, as with the camera) and the outside shadow casters. The own pose (localPosition /
   localRotation: digests, saves, AI, sounds, PartWorldPosition) never changes.
 - **Path changes:** a unit's new client path (UnitClientSpecific::MotionChanged, from the server's update) can start a
@@ -1729,5 +1729,5 @@ the map: the map's texels far apart and turned per pixel cost far more.
 The casters of the shadow map that the game does not draw this frame (section 13, item 10). After the world's object
 draws every object standing where such a caster can stand (render::ShadowCasterArea, through the object grid's sectors)
 whose bounding sphere passes the map's test (render::ShadowCasterReaches) hands its undrawn parts to the map
-(render::ShadowCasterMesh), placed as Object3DClientSpecific::Draw places them. Everything here only reads the game's
+(render::ShadowCasterMesh), placed as Object3DClientSpecific::DrawParts places them. Everything here only reads the game's
 objects, so the game's logic and its goldens are those of a run without it.

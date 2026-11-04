@@ -455,7 +455,7 @@ UiMesh::UiMesh() {}
 UiMesh::~UiMesh() {}
 
 void UiMesh::Create() {
-    CreateMesh();
+    FigureMesh::Create();
     material = nullptr;
     texture = nullptr;
     std::memset(&scaleMatrix, 0, sizeof(scaleMatrix));

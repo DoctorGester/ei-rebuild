@@ -29,14 +29,9 @@
 
 namespace {
 
-// The iterator destructor: the manager's count drops without a release.
-void EndWalk(ObjectListIterator& it) {
-    if (it.manager) --it.manager->refCount;
-}
-
 template <typename Pick>
 void ReleaseHeld(ParticleManager* manager, Pick drop) {
-    ObjectListIterator it{nullptr, {}};
+    ObjectListIterator it;
     EngineObject* object = it.First(manager);
     std::vector<int> ids;
     for (; object; object = it.Next()) {
@@ -49,7 +44,6 @@ void ReleaseHeld(ParticleManager* manager, Pick drop) {
     for (auto& n : ids) {
         if (auto node = manager->held.find(n); node != manager->held.end()) manager->held.erase(node);
     }
-    EndWalk(it);
 }
 
 } // namespace

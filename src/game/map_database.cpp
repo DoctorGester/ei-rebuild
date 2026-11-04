@@ -198,7 +198,7 @@ void Loader::Line() {
 
 bool MapDatabase::Load(const char* fileName) {
     using namespace mapdb;
-    TextManager* reader = g_clientWorld.texts;
+    TextManager* reader = g_clientWorld.texts.get();
     Loader loader(this, reader);
     if (!reader->Open(fileName)) return false;
     while (reader->FindHeader()) loader.Line();

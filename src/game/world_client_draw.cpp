@@ -166,8 +166,7 @@ void WorldClient::Render() {
     g_haveSceneCamera = true;
 
     std::uint32_t currentFlags = flags;
-    void* skyColour = skyDome;
-    if ((currentFlags & WorldClientFlag::DrawSky) && skyColour) {
+    if ((currentFlags & WorldClientFlag::DrawSky) && skyDome) {
         state.alphaTest = false;
         state.stages[0].combiner = kSceneStage;
         state.depthWrite = false;
@@ -243,7 +242,7 @@ void WorldClient::Render() {
 
 int WorldClient::DrawPass() {
     render::RenderState& state = render::g_renderState;
-    terrain::Terrain* currentTerrain = terrain;
+    terrain::Terrain* currentTerrain = terrain.get();
     if (!currentTerrain || !currentTerrain->mapLoaded) {
         HandOverSceneLights(this);
         return 0;
@@ -263,7 +262,7 @@ int WorldClient::DrawPass() {
     // Every sector of the map's object grid (16-unit sectors up to size - 1): what is drawn is what the clip test
     // in CollectVisible passes. The game took the sectors within 100 units of the camera; Rebirth's ObjectsDrawRadius
     // widened that to the whole map.
-    currentTerrain = terrain;
+    currentTerrain = terrain.get();
     const CellRange wholeMap = {0, 0, static_cast<std::uint32_t>(lib::Truncate(terrain->width - kMapEdgeMargin)) >> 4,
                                 static_cast<std::uint32_t>(lib::Truncate(terrain->height - kMapEdgeMargin)) >> 4};
     int touched = 0;
@@ -374,7 +373,7 @@ int WorldClient::DrawPass() {
     if (!selected.empty() && options::g_options.selectionType == 1 && (flags & WorldClientFlag::DrawUnits)) {
         state.alphaTest = false;
         g_sceneRenderer.SetTexture(0, nullptr);
-        MapObjectManager* manager = objectManager;
+        MapObjectManager* manager = objectManager.get();
         // In order: a living object's marker drawn, a dead one unselected and its id erased.
         std::erase_if(selected, [manager](int objectId) {
             auto* object = manager->FindObjectAs<MapObject>(static_cast<unsigned>(objectId));

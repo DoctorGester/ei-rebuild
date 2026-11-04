@@ -121,7 +121,7 @@ void HandOverParts(Object3D* object, Object3DClientSpecific* half, const Matrix4
         if (!set) continue;
         const void* holder = set->texture ? set->texture->surface.Get() : nullptr;
         for (int g = 0; g < std::ssize(set->groups); ++g) {
-            const PartGroup* group = set->groups[g];
+            const PartGroup* group = set->groups[g].get();
             for (int p = 0; p < std::ssize(group->parts); ++p) {
                 FigureMesh* part = group->parts[p];
                 if (!part || (part->flags & FigureMeshFlag::Hidden)) continue;
@@ -202,7 +202,7 @@ const HighestObject& Highest(const WorldClient* world) {
 } // namespace
 
 void HandOverSceneLights(WorldClient* world) {
-    terrain::Terrain* terrain = world->terrain;
+    terrain::Terrain* terrain = world->terrain.get();
     Light* sun = terrain && terrain->sun ? terrain->sun : g_sceneRenderer.sun;
     if (!sun) return;
     static std::vector<render::ScenePointLight> points;
@@ -244,7 +244,7 @@ void HandOverSceneLights(WorldClient* world) {
 }
 
 void HandOverTerrainCasters(WorldClient* world) {
-    terrain::Terrain* terrain = world->terrain;
+    terrain::Terrain* terrain = world->terrain.get();
     if (!options::g_options.shadows || !terrain || !terrain->mapLoaded ||
         !lib::Has(terrain->landscapeFlags, terrain::LandscapeFlag::SunShadows) || terrain->sectorGrid.empty())
         return;

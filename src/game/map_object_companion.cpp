@@ -73,7 +73,7 @@ bool MapObjectClientSpecific::RunTick() {
             if (left >= kEndSoundTicks || effect.ending) continue;
             if (!IsTextKey(owner->id)) continue;
             int handle = endSound;
-            SoundManager* soundSystem = g_clientWorld.sounds;
+            SoundManager* soundSystem = g_clientWorld.sounds.get();
             if (handle != -1 &&
                 (soundSystem->FindPlaying(handle) || soundSystem->FindDeferred(handle)))
                 continue;

@@ -277,12 +277,12 @@ void FigureMesh::SetUpFigure() {
 
 FigureMesh::FigureMesh() {
     SetUpFigure();
-    CreateMesh();
+    FigureMesh::Create();
 }
 
-void FigureMesh::CreateMesh() {
+void FigureMesh::Create() {
     radius = 0.0f;
-    drawer = nullptr;
+    SetDrawer(nullptr);
     flags = 0;
     materialValue = 0;
     meshType = 0;
@@ -307,11 +307,7 @@ void FigureMesh::Clear() {
     std::memset(&buffers, 0, sizeof(buffers));
     materialValue = 0;
     meshType = 0;
-    if (drawer != nullptr) {
-        drawer->mesh = nullptr;
-        drawer->Release();
-    }
-    drawer = nullptr;
+    SetDrawer(nullptr);
     flags = 0;
 }
 
@@ -327,18 +323,10 @@ void FigureMesh::Destroy() {
 
 // --- Destruction --------------------------------------------------------------------------------
 
-void FigureMesh::TearDownFigure() {
-    Clear();
-    lib::FreeStorage(colorsB);
-    lib::FreeStorage(colorsA);
-    lib::FreeStorage(offsets);
-}
-
-FigureMesh::~FigureMesh() { TearDownFigure(); }
+FigureMesh::~FigureMesh() { Clear(); }
 
 // --- Small virtuals ----------------------------------------------------------------------------
 
-void FigureMesh::Create() { CreateMesh(); }
 const char* FigureMesh::GetName() { return name.c_str(); }
 const char* FigureMesh::ClassName() { return "CFigure"; }
 ClassId FigureMesh::GetClassId() { return ClassId::FigureMesh; }
@@ -346,15 +334,9 @@ ClassId FigureMesh::GetClassId() { return ClassId::FigureMesh; }
 // --- Drawer and owner ---------------------------------------------------------------------------
 
 void FigureMesh::SetDrawer(FigureMeshDrawer* newDrawer) {
-    if (drawer != nullptr) {
-        drawer->mesh = nullptr;
-        drawer->Release();
-    }
-    drawer = newDrawer;
-    if (newDrawer != nullptr) {
-        newDrawer->mesh = this;
-        drawer->AddRef();
-    }
+    if (drawer) drawer->mesh = nullptr;
+    drawer.Assign(newDrawer);
+    if (newDrawer) newDrawer->mesh = this;
 }
 
 void FigureMesh::SetObject(TransformObject* newObject) { object = newObject; }
@@ -364,10 +346,10 @@ void FigureMesh::SetObject(TransformObject* newObject) { object = newObject; }
 FigureManager::FigureManager() {}
 
 EngineObject* FigureManager::NewObject(int objectType) {
-    return ::CreateFigureObject(objectType);
+    return CreateFigureObject(objectType);
 }
 
-EngineObject* FigureManager::CreateFigureObject(int newType, int newId) {
+EngineObject* FigureManager::CreateObject(int newType, int newId) {
     EngineObject* object = BaseManager::CreateObject(newType, newId);
     const auto kind = static_cast<FigureObjectType>(newType);
     if (kind < FigureObjectType::LoosePart || kind > FigureObjectType::SkyObject || object == nullptr) return object;

@@ -246,7 +246,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
     case ScriptFunction::IsAlive:
     case ScriptFunction::IsDead: {
         MapObject* o = objectArgs[0]->object;
-        MapObjectCompanion* stats = o ? o->companion : nullptr;
+        MapObjectCompanion* stats = o ? o->companion.Get() : nullptr;
         *result = 0.0f;
         if (!stats) return;
         int state = stats->IsDead();
@@ -526,8 +526,6 @@ void SSCCmd::CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** resu
 }
 
 void SSCCmd::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result) {
-    ObjectListIterator objects;
-    objects.manager = nullptr;
     PrepareArguments(script, vars);
     *result = &script->tempGroups.emplace_back();
     ScriptGroup* group = *result;
@@ -562,7 +560,8 @@ void SSCCmd::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result) {
         break;
     }
     case ScriptFunction::GetPlayerUnits: { // GetPlayerUnits(player): the world's units whose player compares equal
-        for (EngineObject* o = objects.First(g_serverWorld.objectManager); o; o = objects.Next()) {
+        ObjectListIterator objects;
+        for (EngineObject* o = objects.First(g_serverWorld.objectManager.get()); o; o = objects.Next()) {
             Unit* unit = UnitOrNull(o);
             if (unit && static_cast<float>(unit->side) == floatArgs[0]) (*result)->Insert(unit);
         }
@@ -588,5 +587,4 @@ void SSCCmd::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result) {
         game::FatalError("Function does not return string at SSCCmd::CalcFunction");
         break;
     }
-    if (objects.manager) --objects.manager->refCount;    // the iterator's destructor
 }

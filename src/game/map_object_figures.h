@@ -244,9 +244,6 @@ public:
     ~Object3DSpecific() override;
 
     virtual int OnPartAdded(FigureMesh* part) = 0;   // server: 0
-    // (name): the client takes the part named (FindPart) out of the drawn part sets and releases it; returns it
-    // or null. The server returns null.
-    virtual FigureMesh* RemoveFromPartSets(const char* name) = 0;
     virtual int OnPartRemoved(FigureMesh* part) = 0;      // server: 0
     virtual FigureMesh* FindPart(std::string_view name) = 0;   // a part by name (client); server: null
     virtual FigureMesh* FindPartOfType(int type) = 0;     // a part by type (client); server: null
@@ -279,7 +276,6 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
     int OnPartAdded(FigureMesh* part) override;
-    FigureMesh* RemoveFromPartSets(const char* name) override;
     int OnPartRemoved(FigureMesh* part) override;
     FigureMesh* FindPart(std::string_view name) override;
     FigureMesh* FindPartOfType(int type) override;
@@ -293,9 +289,9 @@ struct FigureBone : EngineObject {
     std::string modelName;                 // the figure's model name (LinkBone)
     FigureBone* parent;                     // null for the root
     std::vector<FigureBone*> children;
-    FigureMesh* mesh;                      // the part the bone places, or null
+    Ref<FigureMesh> mesh;                   // the part the bone places, or null
     AnimationTrack* pose;                   // the animator whose values place the bone
-    AnimationTrack* animator;               // counted, made on first use; Play copies it to `pose`
+    Ref<AnimationTrack> animator;           // made on first use; Play copies it to `pose`
     Vector3 offset;                         // the place relative to the parent
     float morphS;                           // the figure's morph coefficients
     float morphT;
@@ -318,14 +314,13 @@ struct FigureBone : EngineObject {
     FigureBone();
     ~FigureBone() override;
 
+    // The names "none"; no parent, children, mesh, animator or pose; the default place.
     void Create() override;
+    // The mesh and the animator released, then Create.
     void Destroy() override;
     const char* GetName() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
-
-    void CreateBone();
-    void DestroyBone();
 
     // Places this bone and, recursively, its children: a child turns its offset by the parent's
     // rotation ((w^2 - u.u) o + 2w (u x o) + 2 (u.o) u, the scaled terms rounded) onto the parent's position and
@@ -360,11 +355,11 @@ public:
     ~FigureAnimationState() override;
 
     void Create() override;
+    // The bones released, then Reset.
     void Destroy() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    void DestroyState();
     void ReleaseBones();
     void Reset();
     // The first bone named `boneName` (_mbscmp), or null.
@@ -443,14 +438,15 @@ public:
     ~Object3D() override;
     // type as the map object factory's type.
     MapObjectType MapType() const { return static_cast<MapObjectType>(type); }
-    void Create() override { Create3D(); }
-    void Destroy() override { Destroy3D(); }
+    // Back to an empty object: no half, flags, figure or bounds.
+    void Create() override;
+    // The figure, the effect sources, the animation state, the parts and the side half let go.
+    void Destroy() override;
     void ClearState() override { RemoveAllEffectSources(); }
-    // worldRotation = parent * localRotation.
-    void CombineRotation(const Quaternion& parent) override;
     // Whether the object may play the animation entry (FigureAnimation); any here, Unit overrides it.
     virtual bool AcceptsAnimation(const FigureAnimation* animation);
-    // AttachSpecific. MapObject and units override it.
+    // A side half (SideObjectType::Object3D) becomes the attached one (SetHalf); other objects (and null) are
+    // ignored. MapObject and units override it.
     virtual void AttachObject(EngineObject* object);
     // Whether the object is invisible: false here; map objects override it.
     virtual bool InvisibleSlot();
@@ -522,7 +518,7 @@ public:
     FigureMesh* LoadPart(std::string_view partName);
     // The object's figure becomes `model` and each name of `partList` is loaded by LoadPart
     // (failures logged). Without a figure manager: FatalError. Returns 1.
-    int LoadParts(std::string_view model, const std::vector<std::string>* partList);
+    int LoadParts(std::string_view model, const std::vector<std::string>& partList);
     // When a unit becomes the controlled one (world client): with the figure loaded (flags 0x80) the parts'
     // world transforms are updated and the bounds recomputed from their world boxes.
     void UpdatePartBounds();
@@ -534,26 +530,18 @@ public:
     // The box (FigureMesh::bounds) of part `index`.
     FootprintPart* PartBox(int index);
 
-    // Create (named apart so it is no override): back to an empty object, the figure released.
-    void Create3D();
-    // Destroy: the figure, the effect sources, the animation state, the parts and the side half let go (the
-    // parts lose a reference without a release).
-    void Destroy3D();
     // Adds `source` (a particle source; it calls this from its Attach, attached to this object already) to the
     // effect sources unless it is there: referenced. (The game calls Attach(this) back, which then does nothing.)
     void AddEffectSource(ParticleSource* source);
     // Takes `source` out of the effect sources, detaches it and releases it. Nothing when not there.
     void RemoveEffectSource(ParticleSource* source);
 
-    // A side half (SideObjectType::Object3D) replaces the attached one as SetSpecific does; other objects (and null) are
-    // ignored.
-    void AttachSpecific(EngineObject* half);
     // The release-effects virtual: every effect source is taken out of the list, detached and released.
     void RemoveAllEffectSources();
 
-    // `half` (of any type, or null) replaces the attached half: the old one is detached and released, the new
-    // one points back here and gains a reference.
-    void SetSpecific(Object3DSpecific* half);
+    // `half` (or null) replaces the attached half: the old one is detached and released, the new one points back
+    // here and gains a reference.
+    void SetHalf(Object3DSpecific* half);
     // Every part's flags gains / loses the bits of `mask`.
     void SetPartFlags(std::uint32_t mask);
     void ClearPartFlags(std::uint32_t mask);
@@ -574,18 +562,18 @@ public:
     Object3DClientSpecific* ClientSpecific() const;
 
     Matrix4 worldMatrix;            // object -> world: the rotation, the position as column 3
-    Object3DSpecific* attached;    // the side half: AttachSpecific accepts (SideObjectType::Object3D)
-    FigureAnimationState* animation;   // the figure's animation state
+    Ref<Object3DSpecific> attached;    // the side half (SetHalf)
+    Ref<FigureAnimationState> animation;   // the figure's animation state (SetAnimationState)
     AnimationDatabase* animations;  // loaded on first use
     std::string name;               // the figure's name
     std::vector<HeldRef<ParticleSource>> effectSources;   // the particle sources attached to the object
     Vector3 scale;
-    // the figure's parts, each holding a reference (released by RemovePart and Destroy3D)
+    // the figure's parts, each holding a reference (released by RemovePart and Destroy)
     std::vector<HeldRef<FigureMesh>> parts;
     // the figure (counted; deleted at its last reference), made by the figure cache: the parts' piece headers
     // (LoadPart, SetFigureScale) and the meshes the parts draw and shadow through.
     Ref<LinkMesh> figure;
-    Vector3 defaultScale;           // kDefaultFigureScale (constructor, Create3D)
+    Vector3 defaultScale;           // kDefaultFigureScale (constructor, Create)
     Rect dirtyRect;              // the screen area the last DrawCollectDirty covered
     std::vector<std::string> partNames;    // the figure's part names, in the order of the part boxes
     ClipBounds bounds;              // flags 1 and 2: the sphere and the box are valid; the box is relative to the centre

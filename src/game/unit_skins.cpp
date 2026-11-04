@@ -175,11 +175,7 @@ void FigureUnit(WorldClient* self, FiguredUnitRecord* record) {
         first.insert(first.end(), parts.plain.begin(), parts.plain.end());
     }
 
-    {
-        std::string name(model->figureName.c_str());
-        // The figure loader's LoadFigure (not fresh).
-        self->figureLoader->LoadFigure(&name, &first, record->morphS, record->morphT, record->morphU);
-    }
+    self->figureLoader->LoadFigure(model->figureName.c_str(), first, record->morphS, record->morphT, record->morphU);
 }
 } // namespace
 

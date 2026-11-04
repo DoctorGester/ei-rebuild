@@ -35,51 +35,50 @@ public:
     // through, 0 without a link, when the receive failed or the dispatch returned 0.
     int Receive() override;
 
-    // The local view's orders, queued for the server (out), each a type byte and a payload; all return 1.
+    // The local view's orders, queued for the server (out), each a type byte and a payload.
     // Units go as their ids (-1 for a null entry).
     // 0x30 walk / 0x3A go to: the units, `run`, the point.
-    int SendWalk(const std::vector<Unit*>* units, const Vector3& to, int run);
-    int SendGoTo(const std::vector<Unit*>* units, const Vector3& to, int run);
+    void SendWalk(const std::vector<Unit*>* units, const Vector3& to, int run);
+    void SendGoTo(const std::vector<Unit*>* units, const Vector3& to, int run);
     // 0x31 attack: the units, `ctrl`, `how`, the target's id.
-    int SendAttack(const std::vector<Unit*>* units, EngineObject* target, int how, int ctrl);
+    void SendAttack(const std::vector<Unit*>* units, EngineObject* target, int how, int ctrl);
     // 0x33 / 0x32 cast spell `slot` of `caster` on `target` / at `point`, with the low byte of `ctrl`.
-    int SendCastOnUnit(int slot, Unit* caster, EngineObject* target, int ctrl);
-    int SendCastAtPoint(int slot, Unit* caster, const Vector3& point, int ctrl);
+    void SendCastOnUnit(int slot, Unit* caster, EngineObject* target, int ctrl);
+    void SendCastAtPoint(int slot, Unit* caster, const Vector3& point, int ctrl);
     // The same with quick item `slot` (slot | 0x80000000); a potion (category 8) with a count above 0 loses
     // one at once.
-    int SendItemOnUnit(int slot, Unit* user, EngineObject* target, int ctrl);
-    int SendItemAtPoint(int slot, Unit* user, const Vector3& point, int ctrl);
+    void SendItemOnUnit(int slot, Unit* user, EngineObject* target, int ctrl);
+    void SendItemAtPoint(int slot, Unit* user, const Vector3& point, int ctrl);
     // 0x34 weapon slot / 0x35 movement mode: the unit's id and the value's low byte; the unit keeps the value
     // (pendingWeapon / moveMode2).
-    int SetWeapon(Unit* unit, int slot);
-    int SetMoveMode(Unit* unit, int mode);
+    void SetWeapon(Unit* unit, int slot);
+    void SetMoveMode(Unit* unit, int mode);
     // Unit::SetFightAtWill(value), then 0x3B: the id and the value's low byte.
-    int SetUnitFightAtWill(Unit* unit, int value);
+    void SetUnitFightAtWill(Unit* unit, int value);
     // 0x39: the unit's id and the target's (-1 for none).
-    int SendFollow(Unit* unit, EngineObject* target);
+    void SendFollow(Unit* unit, EngineObject* target);
     // 0x10: whether `value` (a byte) is set.
-    int SendPause(std::uint8_t value);
+    void SendPause(std::uint8_t value);
     // 0x36 use order for one unit (count 1, its id or -1): `flag`, `kind`, `value`, the target's id
     // (PlayerServer::OnUseOrder).
-    int SendUseOrder(Unit* unit, EngineObject* target, int kind, int value, int flag);
+    void SendUseOrder(Unit* unit, EngineObject* target, int kind, int value, int flag);
     // 0x36 for `units` on a dead `target`: `flag`, kind UseSource::SearchBody, value -1.
-    int SendUseDead(const std::vector<Unit*>* units, EngineObject* target, int flag);
+    void SendUseDead(const std::vector<Unit*>* units, EngineObject* target, int flag);
     // 0x50: the player's party saved without its variables (Party::SaveParty, which draws an ISAAC key) as
     // a sized block.
-    int SendPartyUpdate();
+    void SendPartyUpdate();
     // The zone requests. When the client is between zones they first return the local party
-    // (GameFlow::ReturnLocalParty), send it (SendPartyUpdate) and the joined message 0x05 (SendingCamera). They
-    // return the stream position after the last write.
+    // (GameFlow::ReturnLocalParty), send it (SendPartyUpdate) and the joined message 0x05 (SendingCamera).
     // 0x03: take exit `exit`.
-    int TakeExit(int exit);
+    void TakeExit(int exit);
     // 0x06: go to `zone` (the text with its zero) at `entrance`.
-    int RequestZone(std::string_view zone, int entrance);
+    void RequestZone(std::string_view zone, int entrance);
     // Only the BetweenZones part (0x05 joined); nothing otherwise.
     void Rejoin();
-    // 0x04 and `value`; State::BetweenZones. Returns the stream position.
-    int RequestGameState(int value);
+    // 0x04 and `value`; State::BetweenZones.
+    void RequestGameState(int value);
     // 0x09 (resume).
-    int SendResume();
+    void SendResume();
 
     // Compresses the queued requests and sends them on the link; the queue is emptied unless there is no
     // link. 1 without a link, 0 when it is not connected, else the send's result.

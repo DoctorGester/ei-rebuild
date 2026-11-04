@@ -50,7 +50,7 @@ Chooser ChooserFor(int count, bool withFirst) {
 // like the original). A new start lists the first name (when not empty) and the others, and starts the
 // sequence with the chooser for their count.
 void EffectSoundSeq::Start(int update) {
-    SoundManager* sounds = g_clientWorld.sounds;
+    SoundManager* sounds = g_clientWorld.sounds.get();
     if (update != 0) {
         sounds->SetSoundPosition(sound, localPosition, volume, radius);
         return;
@@ -62,8 +62,8 @@ void EffectSoundSeq::Start(int update) {
     if (withFirst) list.push_back(first);
     Chooser chooser = ChooserFor(static_cast<int>(others.size()), withFirst);
     for (const std::string& other : others) list.push_back(other);
-    sound = sounds->AddSequence(&list, noFade != 0 ? 1000 : 0,
-                                 localPosition, volume, radius, 0, -1, chooser);
+    sound = sounds->AddSequence(list, noFade != 0 ? 1000 : 0,
+                                 localPosition, volume, radius, false, -1, chooser);
 }
 
 int EffectSoundSeq::Unpack(int update, DeltaReader& field) {

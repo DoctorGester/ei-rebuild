@@ -757,7 +757,7 @@ void BattleScreen::LeftUp(Point point) {
 // --- a quest variable's notice -------------------------------------------------------------------
 
 void BattleScreen::QuestVariable(std::string_view name, float value) {
-    TextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts.get();
     std::vector<std::string> parts;
     std::string text;
     std::string title;

@@ -346,7 +346,7 @@ bool PlayerClient::OnItemsReceived() {
             complete = false;
             break;
         }
-        auto* manager = g_clientWorld.itemManager;
+        auto* manager = g_clientWorld.itemManager.get();
         if (Item* item = FindItem(manager, static_cast<unsigned>(objectId))) items.insert(items.begin(), item);
     }
     if (complete) {
@@ -368,12 +368,11 @@ bool PlayerClient::OnParty() {
             party->LoadParty(&block, 1);
             std::vector<std::uint32_t>& recharging = player->recharging;
             recharging.clear();
-            ObjectListIteratorOf<Item> walk{};
+            ObjectListIteratorOf<Item> walk;
             for (Item* item = walk.First(party->ItemFactory()); item != nullptr; item = walk.Next()) {
                 if (item->chargeMax > item->charge)
                     recharging.push_back(static_cast<std::uint32_t>(item->id));
             }
-            if (walk.manager != nullptr) --walk.manager->refCount;    // the iterator's destructor
         }
         if (IsMultiplayerClient()) {
             // A multiplayer client keeps its variables.

@@ -210,7 +210,7 @@ void GSVarMultiplayer(const SSCCmd* cmd, bool setMax) {
 void PlayMovie(const SSCCmd* cmd) {
     std::string path = g_dataFolder + MoviesFolder();
     std::string file = path + cmd->stringArgs[0];
-    ::PlayMovie(file, 0, true, true, true, true);
+    ::PlayMovie(file, true, true, true);
 }
 
 void CastSpell(const SSCCmd* cmd, bool atUnit) {
@@ -998,14 +998,8 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::FixItems: {   // FixItems: every item repaired
-            auto* list = g_serverWorld.itemManager;
             ObjectListIteratorOf<Item> it;
-            it.manager = nullptr;
-            for (Item* item = it.First(list); item; item = it.Next()) item->Repair();
-            if (it.manager) {   // destructor
-                --it.manager->refCount;
-                it.manager = nullptr;
-            }
+            for (Item* item = it.First(g_serverWorld.itemManager.get()); item; item = it.Next()) item->Repair();
             break;
         }
 

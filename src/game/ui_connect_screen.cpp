@@ -488,7 +488,7 @@ void MpConnectScreen::CreateScreen() {
     sprite(4.0f, 440.0f, 346.0f, 461.0f, 367.0f, 0xD1, 0x37, 0xE6, 0x4C)->textureOffsetU = -kTabSelected;
     sprite(4.0f, 440.0f, 370.0f, 461.0f, 391.0f, 0xD1, 0x37, 0xE6, 0x4C);
 
-    TextManager* clientWorldTexts = g_clientWorld.texts;
+    TextManager* clientWorldTexts = g_clientWorld.texts.get();
     std::string text;
     for (int i = 0, top = 238; top < 334; top += 24, ++i) {
         text = str::Format(kAllodNameFormat, i);

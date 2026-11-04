@@ -91,13 +91,7 @@ void Object3D::SetFigureScale(const Vector3& newScale) {
         figure.Assign(rebuilt);
         for (int i = 0; i < std::ssize(parts); ++i) {
             FigureMesh* part = parts[i];
-            const char* pieceName = part->GetName();
-            std::map<std::string, LinkPartHeader>::const_iterator piece;
-            {
-                std::string key(pieceName);
-                piece = figure->headers.find(key);
-            }
-            part = parts[i];
+            auto piece = figure->headers.find(std::string_view(part->GetName()));
             const ClipBounds& fitted = piece->second.box.bounds;
             part->box.bounds.center = fitted.center;
             part->box.bounds.boxMin = fitted.boxMin;
@@ -111,10 +105,7 @@ void Object3D::SetFigureScale(const Vector3& newScale) {
 
 void Object3D::LoadFigures() {
     if (flags & MapObjectFlag::FiguresLoaded) return;
-    {
-        std::string key(name);
-        FigureManagerOf(this)->FindModel(&key);
-    }
+    FigureManagerOf(this)->FindModel(name);
     if (GetClassId() != ClassId::Unit) {
         for (int i = 0; i < std::ssize(parts); ++i) parts[i]->flags |= FigureMeshFlag::Stationary;
         flags |= MapObjectFlag::Stationary;
@@ -134,8 +125,6 @@ Object3D::Object3D() {
     localRotation.SetIdentity();
     worldRotation.SetIdentity();
     ClearBounds();
-    attached = nullptr;
-    animation = nullptr;
     scale = {};
     defaultScale = kDefaultFigureScale;
     // The original leaves the view position as the heap held it, and the draw sorts read it for an object listed
@@ -144,12 +133,7 @@ Object3D::Object3D() {
     worldPosition = {};
 }
 
-// The name is destroyed after the body, then EngineObject's part.
-Object3D::~Object3D() {
-    Destroy3D();
-    figure.Reset();
-    lib::FreeStorage(parts);
-}
+Object3D::~Object3D() { Object3D::Destroy(); }
 
 // --- Create / Destroy and the effect sources ------------------------------------------------------
 
@@ -158,10 +142,10 @@ namespace {
 constexpr Quaternion kIdentityOrientation = /*007AF1C0*/ {1.0f, 0.0f, 0.0f, 0.0f};   // a static initialiser
 } // namespace
 
-void Object3D::Create3D() {
+void Object3D::Create() {
     localPosition = {};
     localRotation = kIdentityOrientation;
-    SetSpecific(nullptr);
+    SetHalf(nullptr);
     flags = 0;
     animations = nullptr;
     scale = {};
@@ -171,20 +155,13 @@ void Object3D::Create3D() {
     std::vector<FootprintPart>().swap(partBoxes);
 }
 
-void Object3D::Destroy3D() {
+void Object3D::Destroy() {
     figure.Reset();
     RemoveAllEffectSources();
-    if (animation) {
-        animation->DetachMeshes();
-        if (animation) {
-            animation->owner = nullptr;
-            animation->Release();
-        }
-        animation = nullptr;
-    }
+    if (animation) animation->DetachMeshes();
+    SetAnimationState(nullptr);
     parts.clear();   // each part's reference released (the client half's part groups hold their own)
-    if (attached) attached->Release();
-    attached = nullptr;
+    attached.Reset();   // the half keeps its back pointer (its own Destroy clears it)
     animations = nullptr;
     flags = 0;
 }
@@ -205,20 +182,6 @@ void Object3D::RemoveEffectSource(ParticleSource* source) {
 // --- Virtuals shared by every map object: the world rotation, copying a figure, the side half, the effect
 // sources and the drawing slots.
 
-// The same body as the base's.
-void Object3D::CombineRotation(const Quaternion& parent) { TransformObject::CombineRotation(parent); }
-
-void Object3D::AttachSpecific(EngineObject* half) {
-    if (!half || SideTypeOf(half) != SideObjectType::Object3D) return;
-    if (attached) {
-        attached->object = nullptr;
-        attached->Release();
-    }
-    attached = static_cast<Object3DSpecific*>(half);   // the 3D object's side half
-    attached->object = this;
-    attached->AddRef();
-}
-
 void Object3D::RemoveAllEffectSources() {
     while (!effectSources.empty()) RemoveEffectSource(effectSources.front());
 }
@@ -236,7 +199,7 @@ int Object3D::DrawFigureShadow(SceneRenderer* context) { return attached ? attac
 
 bool Object3D::AcceptsAnimation(const FigureAnimation*) { return true; }
 void Object3D::AttachObject(EngineObject* object) {
-    AttachSpecific(object);
+    if (object && SideTypeOf(object) == SideObjectType::Object3D) SetHalf(static_cast<Object3DSpecific*>(object));
 }
 bool Object3D::InvisibleSlot() { return false; }
 void Object3D::AdvanceTime(float) {}
@@ -245,48 +208,34 @@ void Object3D::AdvanceTime(float) {}
 
 namespace {
 constexpr float kFirstFrame = 0.0f;
-
-FigureMesh* PartAt(const Object3D* object, int index) { return object->parts[index]; }
 } // namespace
 
-void Object3D::SetSpecific(Object3DSpecific* half) {
-    if (attached) {
-        attached->object = nullptr;
-        attached->Release();
-    }
-    attached = half;
-    if (half) {
-        half->object = this;
-        attached->AddRef();
-    }
+void Object3D::SetHalf(Object3DSpecific* half) {
+    if (attached) attached->object = nullptr;
+    attached.Assign(half);
+    if (half) half->object = this;
 }
 
 void Object3D::SetPartFlags(std::uint32_t mask) {
-    for (int i = 0; i < std::ssize(parts); ++i) PartAt(this, i)->flags |= mask;
+    for (FigureMesh* part : parts) part->flags |= mask;
 }
 
 void Object3D::ClearPartFlags(std::uint32_t mask) {
-    for (int i = 0; i < std::ssize(parts); ++i) PartAt(this, i)->flags &= ~mask;
+    for (FigureMesh* part : parts) part->flags &= ~mask;
 }
 
 void Object3D::SetPartsFlatColour(std::uint32_t value) {
-    for (int i = 0; i < std::ssize(parts); ++i) PartAt(this, i)->flatColour = value;
+    for (FigureMesh* part : parts) part->flatColour = value;
 }
 
 void Object3D::SetPartsFlatSpecular(std::uint32_t value) {
-    for (int i = 0; i < std::ssize(parts); ++i) PartAt(this, i)->flatSpecular = value;
+    for (FigureMesh* part : parts) part->flatSpecular = value;
 }
 
 void Object3D::SetAnimationState(FigureAnimationState* state) {
-    if (animation) {
-        animation->owner = nullptr;
-        animation->Release();
-    }
-    animation = state;
-    if (state) {
-        state->AddRef();
-        animation->owner = this;
-    }
+    if (animation) animation->owner = nullptr;
+    animation.Assign(state);
+    if (state) state->owner = this;
 }
 
 void Object3D::PlayAnimation(FigureAnimation* figureAnimation) {
@@ -399,11 +348,7 @@ void Object3D::SetUpAnimatedFigure(std::string_view model) {
         partBoxes.resize(count);   // new boxes are all zero; the old ones are kept
         partNames.resize(animation->bones.size());
 
-        FigureModel* figureModel;
-        {
-            std::string modelName(model);
-            figureModel = manager->FindModel(&modelName);
-        }
+        FigureModel* figureModel = manager->FindModel(model);
         int index = 0;
         for (FigureBone* bone : animation->bones) {
             FootprintPart* box = &partBoxes[index];
@@ -484,16 +429,11 @@ FigureMesh* Object3D::LoadPart(std::string_view partName) {
     }
     if (LinkMesh* current = figure) {
         // The figure gets the piece (it loads it unless it has it).
-        bool loaded;
-        {
-            std::string key(partName);
-            loaded = current->LoadPart(&key);
-        }
-        if (!loaded) {
+        if (!current->loader->LoadPartInto(current, std::string(partName))) {
             manager->ReleaseObject(part);
             return nullptr;
         }
-        const LinkPartHeader& piece = current->headers.find(std::string(partName))->second;
+        const LinkPartHeader& piece = current->headers.find(partName)->second;
         part->materialValue = piece.materialValue;
         part->meshType = piece.meshType;
         // The box and the pivot.
@@ -519,15 +459,12 @@ FigureMesh* Object3D::LoadPart(std::string_view partName) {
     return part;
 }
 
-int Object3D::LoadParts(std::string_view model, const std::vector<std::string>* names) {
+int Object3D::LoadParts(std::string_view model, const std::vector<std::string>& names) {
     FigureManager* manager = FigureManagerOf(this);
     name = model;
     if (!manager) return game::FatalError(kNoFigureManager);
-    {
-        std::string key(model);
-        manager->FindModel(&key);   // loads and caches the model
-    }
-    for (const std::string& part : *names) {
+    manager->FindModel(model);   // loads and caches the model
+    for (const std::string& part : names) {
         if (!LoadPart(part)) game::DebugLog(kCantCreatePart, name, part);
     }
     return 1;
@@ -541,21 +478,14 @@ void Object3D::MakeFigure(std::string_view model, std::vector<std::string>* name
         animation->Rescale(scale.x, scale.y, scale.z);
         animation->SetModel(model);
     }
+    LinkFigureLoader* loader = GetManagerContext()->FigureLoader();
     if (names->empty() && animation) {
         *names = animation->BoneNames();
-        std::string key(model);
-        LinkMesh* made = GetManagerContext()->FigureLoader()->LoadLink(&key, scale.x, scale.y, scale.z);
-        figure.Assign(made);
+        figure.Assign(loader->LoadLink(model, scale.x, scale.y, scale.z));
     } else {
-        // The piece names as the loader's LoadFigure reads them.
-        std::vector<std::string> pieces = *names;
-        {
-            std::string key(model);
-            LinkMesh* made = GetManagerContext()->FigureLoader()->LoadFigure(&key, &pieces, scale.x, scale.y, scale.z);
-            figure.Assign(made);
-        }
+        figure.Assign(loader->LoadFigure(model, *names, scale.x, scale.y, scale.z));
     }
-    LoadParts(model, names);
+    LoadParts(model, *names);
     ClassId classId = GetClassId();
     if ((classId == ClassId::Building || GetClassId() == ClassId::Unit) && animation) {
         animation->Play(nullptr);

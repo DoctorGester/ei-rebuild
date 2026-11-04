@@ -320,7 +320,7 @@ int EnterZone(Party* records) {
     if (lib::Truncate(variables->Get(kMovieVariable)) == 1) {
         if (str::Compare(zone,
                             kMovieZone) != 0) {
-            PlayMovie(g_dataFolder + kMovieFile, 0, 1, 1, 1, 1);
+            PlayMovie(g_dataFolder + kMovieFile, true, true, true);
             variables->Remove(kMovieVariable);
         }
     } else {
@@ -503,10 +503,10 @@ void GameFlow::RecreateClientSession() {
     net::g_gameClient.Assign(new net::ClientSession());
 }
 
-int RequestZone(std::string_view zone, int entrance) {
+void RequestZone(std::string_view zone, int entrance) {
     g_interface.closeAll = true;
     // The local view asks to go to a zone (name, entrance).
-    return g_clientWorld.LocalView()->RequestZone(zone, entrance);
+    g_clientWorld.LocalView()->RequestZone(zone, entrance);
 }
 
 void GameFlow::DropSessions() {
@@ -852,7 +852,7 @@ void SwitchResourceDatabases(const std::string& name) {
     UnitDatabase& units = g_unitDatabase;
     units = UnitDatabase();
     units.Load(ResourcesPath(), name);
-    units.CountSoundFiles(g_clientWorld.sounds);
+    units.CountSoundFiles(g_clientWorld.sounds.get());
     g_skillDatabase = SkillDatabase();
     g_skillDatabase.Load(ResourcesPath(), name);
     g_spellDatabase = itemdb::SpellDatabase();
@@ -1042,7 +1042,7 @@ void GameFlow::AfterServerStart() {
 
 void GameFlow::UpdateFromServer() {
     if (!IsLive(net::g_gameClient)) return;
-    if (TextManager* texts = g_clientWorld.texts) {
+    if (TextManager* texts = g_clientWorld.texts.get()) {
         for (const auto& file : g_questFiles) texts->RemoveSource(file);
         g_questFiles.clear();
     }

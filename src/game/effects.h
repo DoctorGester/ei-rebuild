@@ -418,7 +418,8 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    ParticleManager* Manager() const;   // the client world's (it has the one particle manager)
+    // The particle manager that made the source (the client world's): its own teardown still reaches it there.
+    ParticleManager* Manager() const;
     // Fills the shared vertex / sprite arrays and draws through the renderer. 1 when there is
     // nothing to draw or it is off screen.
     int Draw(SceneRenderer* renderer);

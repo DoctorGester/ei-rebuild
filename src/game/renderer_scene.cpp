@@ -132,7 +132,7 @@ int EnsureTextureLoaded(Texture* texture) {
 
 void LoadNamedTexture(Ref<Texture>& slot, int kind, const char* name) {
     slot.Reset();
-    auto* manager = g_clientWorld.textureManager;
+    auto* manager = g_clientWorld.textureManager.get();
     auto* found = manager->FindTypedTexture(kind, name);
     if (!found) found = manager->NewTextureOfType(kind);
     found->name = name;

@@ -89,7 +89,7 @@ void BriefingScreen::StartDialogue(bool newImmediate, bool remember) {
     }
     person = nullptr;
     third = nullptr;
-    TextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts.get();
     std::string key = kBriefingSection;
     if (!texts->Open((key + topic))) {
         state = 0;
@@ -184,7 +184,7 @@ void BriefingScreen::ClearShownItems() {
 void BriefingScreen::FinishDialogue() {
     if (voice != -1) g_clientWorld.sounds->StopSound(voice);
     voice = -1;
-    g_clientWorld.music->FadeIn();
+    g_clientWorld.sounds->FadeInStream();
     ClearShownItems();
 
     for (const BriefingSpeaker& speaker : speakers) {

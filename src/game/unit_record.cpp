@@ -30,7 +30,7 @@ void AddItems(const UnitRecord& record, Unit* unit, ItemManager* factory) {
 
 void UnitRecord::ApplyTo(Unit* target) {
     const UnitRecordStats& r = stats;
-    ItemManager* factory = g_serverWorld.itemManager;
+    ItemManager* factory = g_serverWorld.itemManager.get();
     Unit* unit = target;
     const float k0 = 0.0f;
     bool noStats = r.speed == k0 && r.maxHitPoints == 0 && r.rate == k0;
@@ -78,7 +78,7 @@ void UnitRecord::ApplyTo(Unit* target) {
     for (std::size_t i = 0; i < 6; ++i) s.conspicuity[i].base = s.conspicuity[i].current = r.conspicuity[i];
     std::memmove(s.attributes, r.attributes, sizeof r.attributes);
 
-    for (const std::string& name : lists[kSpells]) unit->AddSpell(factory->CreateSpellItem(name, g_serverWorld.spellManager));
+    for (const std::string& name : lists[kSpells]) unit->AddSpell(factory->CreateSpellItem(name, g_serverWorld.spellManager.get()));
     AddItems(*this, unit, factory);
     for (const std::string& name : lists[kArmour]) unit->EquipArmour(CreateItem(factory, name));
     for (const std::string& name : lists[kWeapons]) unit->AddWeapon(CreateItem(factory, name));

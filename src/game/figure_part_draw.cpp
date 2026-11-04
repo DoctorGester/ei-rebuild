@@ -83,10 +83,9 @@ struct Part {
 void FlatColours(Part& part) {
     part.coloursWritten = true;
     if (part.figure) {
-        const char* name = (part.node->mesh)->GetName();
-        std::string s(name);
         FigureMesh* mesh = part.node->mesh;
-        part.figure->FlatColours(&s, mesh->flatColour, mesh->flatSpecular, &part.Colours(), &part.Speculars());
+        part.figure->FlatColours(mesh->GetName(), mesh->flatColour, mesh->flatSpecular, &part.Colours(),
+                                 &part.Speculars());
         return;
     }
     part.Colours().resize(part.node->mesh->buffers.normalCount * 4);
@@ -145,9 +144,7 @@ const render::MeshLighting* PartLighting(const Part& part) {
 void LightFigurePart(Part& part) {
     part.coloursWritten = true;
     if (part.figure) {
-        const char* name = (part.node->mesh)->GetName();
-        std::string s(name);
-        part.figure->LightPart(&s, part.lights, part.material, part.alpha, &part.Colours(), &part.Speculars());
+        part.figure->LightPart(part.node->mesh->GetName(), part.lights, part.material, part.alpha, &part.Colours(), &part.Speculars());
     } else {
         Fill(part.Colours(), part.material->GpuLitColour());
     }
@@ -223,8 +220,7 @@ void DrawThroughDevice(Part& part) {
 void DrawThroughFigure(Part& part) {
     FigureMesh* mesh = part.node->mesh;
     bool moved = !mesh->offsets.empty();
-    const char* name = mesh->GetName();
-    std::string s(name);
+    const std::string_view name = mesh->GetName();
     const float u = mesh->textureOffsetU;
     const float v = mesh->textureOffsetV;
     std::vector<std::uint32_t>* colours = &part.Colours();
@@ -234,21 +230,20 @@ void DrawThroughFigure(Part& part) {
     render::SetMeshSource(&source);
     int result;
     if (moved && part.Textured()) {
-        result = part.figure->DrawPartMovedTextured(&s, part.drawFlags, part.textureA->surface,
+        result = part.figure->DrawPartMovedTextured(name, part.drawFlags, part.textureA->surface,
                                                     part.textureB->surface, colours, speculars, offsets, u, v);
     } else if (moved) {
-        result = part.figure->DrawPartMoved(&s, part.drawFlags, colours, speculars, offsets, u, v);
+        result = part.figure->DrawPartMoved(name, part.drawFlags, colours, speculars, offsets, u, v);
     } else if (part.Textured()) {
-        result = part.figure->DrawPartTextured(&s, part.drawFlags, part.textureA->surface,
+        result = part.figure->DrawPartTextured(name, part.drawFlags, part.textureA->surface,
                                                part.textureB->surface, colours, speculars, u, v);
     } else {
-        result = part.figure->DrawPart(&s, part.drawFlags, colours, speculars, u, v);
+        result = part.figure->DrawPart(name, part.drawFlags, colours, speculars, u, v);
     }
     render::SetMeshSource(nullptr);
 
     if (part.rect) {
-        std::string key((part.node->mesh)->GetName());
-        auto node = part.figure->headers.find(key);
+        auto node = part.figure->headers.find(name);
         Rect* own = &part.node->screen;
         *own = node->second.screen;
         *part.rect = *own;
@@ -394,14 +389,13 @@ void FigureMeshDrawer::Animate(float time) {
 
 FigureMeshDrawer::FigureMeshDrawer() = default;
 
-FigureMeshDrawer::~FigureMeshDrawer() { flags = 0; }
+FigureMeshDrawer::~FigureMeshDrawer() = default;
 
-void FigureMeshDrawer::DestroyDrawer() {
+void FigureMeshDrawer::Create() { flags = 0; }
+
+void FigureMeshDrawer::Destroy() {
     mesh = nullptr;
     flags = 0;
 }
-
-void FigureMeshDrawer::Create() { flags = 0; }
-void FigureMeshDrawer::Destroy() { DestroyDrawer(); }
 const char* FigureMeshDrawer::ClassName() { return "CFigureClientSpecific"; }
 ClassId FigureMeshDrawer::GetClassId() { return ClassId::FigureMeshDrawer; }

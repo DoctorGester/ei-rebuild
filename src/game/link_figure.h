@@ -16,11 +16,12 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 // The drawer of a figure mesh (FigureMesh::drawer). It is an engine object of class 0x36,
 // "CFigureClientSpecific": the client-specific manager's factory makes one
-// for type 0x45 and FigureManager::CreateFigureObject gives it to every new figure. A real virtual
+// for type 0x45 and FigureManager::CreateObject gives it to every new figure. A real virtual
 // class. flags gets the bits
 // of the animated-mesh flag word when the mesh is animated.
 struct FigureMeshDrawer : EngineObject {
@@ -35,12 +36,9 @@ struct FigureMeshDrawer : EngineObject {
     ~FigureMeshDrawer() override;
 
     void Create() override;
-    void Destroy() override;
+    void Destroy() override;   // no mesh, no flags
     const char* ClassName() override;   // "CFigureClientSpecific" (figure_part_draw.cpp)
     ClassId GetClassId() override;
-
-    // No mesh, no flags.
-    void DestroyDrawer();
 
     // The texture offset of an animated mesh (types 13..16, figure_part_draw.cpp) at `time` (truncated by _ftol):
     // type 13 cycles 8 frames over two rows (u = frame % 4 / 4, v = 0 or 0.5), 14 16 frames of a
@@ -82,7 +80,7 @@ struct LinkPartRanges {
 // part headers. The draws go through the device (link_mesh_draw.cpp).
 class LinkMesh {
 public:
-    LinkMesh(LinkFigureLoader* loader, const std::string* name, float s, float t, float u);
+    LinkMesh(LinkFigureLoader* loader, std::string_view name, float s, float t, float u);
     ~LinkMesh();
     LinkMesh(const LinkMesh&) = delete;
     LinkMesh& operator=(const LinkMesh&) = delete;
@@ -94,53 +92,51 @@ public:
     }
 
     // Whether `name` is a part.
-    bool HasPart(const std::string* name);
+    bool HasPart(std::string_view name);
     // The part names, in map order.
     std::vector<std::string> PartNames();
-    // The loader loads part `name` into this mesh.
-    bool LoadPart(const std::string* name);
     // Part `name`'s first vertex packet, corner and index and its vertex
     // and index counts; false (nothing written) when there is no such part.
-    bool GetPartData(const std::string* name, VertexPacket** vertices, MeshCorner** corners,
+    bool GetPartData(std::string_view name, VertexPacket** vertices, MeshCorner** corners,
                      std::uint16_t** indices, int* vertexCount, int* indexCount);
     // Draws (link_mesh_draw.cpp): a figure mesh's part `name` drawn through this figure
     // (Object3D::figure): the first fills a flat part's colours and speculars, the second lights it
     // (both: false when there is no such part), the next four draw it (with the mesh's per-vertex
     // offsets: first / third; with two textures' surfaces: 11 / 12). The draws return 2 when nothing
     // was drawn. `u`, `v` are members of the mesh.
-    bool FlatColours(const std::string* name, std::uint32_t colour, std::uint32_t specular,
+    bool FlatColours(std::string_view name, std::uint32_t colour, std::uint32_t specular,
                      std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars);
-    bool LightPart(const std::string* name, const std::vector<Light*>* lights, Material* material, int alpha,
+    bool LightPart(std::string_view name, const std::vector<Light*>* lights, Material* material, int alpha,
                    std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars);
-    int DrawPartMoved(const std::string* name, int flags, std::vector<std::uint32_t>* colours,
+    int DrawPartMoved(std::string_view name, int flags, std::vector<std::uint32_t>* colours,
                       std::vector<std::uint32_t>* speculars, std::vector<Vector3>* offsets,
                       float u, float v);
-    int DrawPart(const std::string* name, int flags, std::vector<std::uint32_t>* colours,
+    int DrawPart(std::string_view name, int flags, std::vector<std::uint32_t>* colours,
                  std::vector<std::uint32_t>* speculars, float u, float v);
-    int DrawPartMovedTextured(const std::string* name, int flags, Surface* first, Surface* second,
+    int DrawPartMovedTextured(std::string_view name, int flags, Surface* first, Surface* second,
                               std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
                               std::vector<Vector3>* offsets, float u, float v);
-    int DrawPartTextured(const std::string* name, int flags, Surface* first, Surface* second,
+    int DrawPartTextured(std::string_view name, int flags, Surface* first, Surface* second,
                          std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
                          float u, float v);
 
     // Overwrites part `name`'s first min(its count, count) vertex
     // packets (unsigned) with `vertices`; false when there is no such part.
-    bool SetPartVertices(const std::string* name, const VertexPacket* vertices, unsigned count);
+    bool SetPartVertices(std::string_view name, const VertexPacket* vertices, unsigned count);
 
     // Sets the morph coefficients.
     void SetMorph(float s, float t, float u);
 
     // Appends a part: false when `name` is already a part; otherwise each array grows by the elements given, and
     // the part's ranges are recorded; true.
-    bool AddPart(const std::string* name, std::span<const VertexPacket> newVertices,
+    bool AddPart(const std::string& name, std::span<const VertexPacket> newVertices,
                  std::span<const NormalPacket> newNormals, std::span<const TexCoord> newTexCoords,
                  std::span<const MeshCorner> newCorners, std::span<const std::uint32_t> newWords,
                  std::span<const std::uint16_t> newIndices);
 
     int refCount = 0;
     std::string name;
-    std::map<std::string, LinkPartHeader> headers;
+    std::map<std::string, LinkPartHeader, std::less<>> headers;
     float morphWeights[3];            // the morph coefficients (s, t, u) the figure was loaded with
     std::vector<VertexPacket> vertices;
     std::vector<NormalPacket> normals;
@@ -148,7 +144,7 @@ public:
     std::vector<MeshCorner> corners;             // 6-byte triangle corners (MeshCorner)
     std::vector<std::uint32_t> words;
     std::vector<std::uint16_t> indices;
-    std::map<std::string, LinkPartRanges> ranges;
+    std::map<std::string, LinkPartRanges, std::less<>> ranges;
     LinkFigureLoader* loader;
 };
 

@@ -7,6 +7,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <string_view>
 #include <unordered_map>
 
 // The figure manager's object types (CreateObject / type), named after their classes.
@@ -43,22 +45,20 @@ public:
     ClassId GetClassId() override;
     EngineObject* NewObject(int type) override;
     bool AddArchive(const std::string& path) override { return AddMmioArchive(path); }
-    EngineObject* CreateObject(int newType, int newId) override { return CreateFigureObject(newType, newId); }
+    // BaseManager::CreateObject; a new figure (classes 0x41-0x44) also gets a drawer: a class 0x45 object (id -1)
+    // of the context's specific manager.
+    EngineObject* CreateObject(int newType, int newId) override;
     const char* GetFolderName() override;
 
     int LoadSkeletonLinks(FigureAnimationState* state, std::string_view name);
     int LoadFigureBones(FigureModel* model, FigureBone* bone);
     int LoadFigureBounds(ClipBounds* out, FigureModel* model, std::string_view directory, std::string_view name, float s, float t, float u);
-    FigureModel* FindModel(const std::string* name);
+    FigureModel* FindModel(std::string_view name);
     // Sets the animation found by name in model `modelName` on `figure`; false when it cannot.
     bool SetFigureAnimation(FigureAnimationState* figure, const char* modelName, const FigureAnimation* animation);
     // The menus' button rectangles from "menus.reg" into `rects`; 1, or FatalError's result when the file or an
     // entry cannot be read.
     int LoadMenuRects(Rect* rects);
-
-    // BaseManager::CreateObject; a new figure (classes 0x41-0x44) also gets a drawer: a
-    // class 0x45 object (id -1) of the context's specific manager.
-    EngineObject* CreateFigureObject(int type, int id);
 
     // (The interface's model manager too.) A figure object, loaded from "<name>.fig" when named (released and null
     // when the file is missing); the empty object without a name.
@@ -72,7 +72,7 @@ public:
     // file. The data is not closed.
     int LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator, const char* animation);
 
-    std::unordered_map<std::string, FigureModel*> models;     // the cached models by name
+    std::unordered_map<std::string, FigureModel*, str::ViewHash, std::equal_to<>> models;   // the cached models by name
 };
 
 // The figure manager of `object`'s world: the one that made it (a world has one).

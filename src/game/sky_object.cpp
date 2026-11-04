@@ -40,11 +40,9 @@ constexpr float kSkyTurnRate = 1.0f / 3000.0f;   // radians per world tick
 
 } // namespace
 
-SkyObject::SkyObject() {
-    CreateMesh();
-}
+SkyObject::SkyObject() = default;
 
-SkyObject::~SkyObject() {  }
+SkyObject::~SkyObject() = default;
 
 const char* SkyObject::ClassName() { return kClassName; }
 ClassId SkyObject::GetClassId() { return ClassId::SkyObject; }

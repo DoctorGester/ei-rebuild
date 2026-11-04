@@ -45,8 +45,8 @@ constexpr int kIdleRestartBelow = 3;                  // FigureAnimationState::q
 // Is sound `handle` still playing or waiting to play?
 bool SoundBusy(int handle) {
     if (handle == -1) return false;
-    SoundManager* sounds = g_clientWorld.sounds;
-    return sounds->FindPlaying(handle) || sounds->FindDeferred(static_cast<std::uint32_t>(handle));
+    SoundManager* sounds = g_clientWorld.sounds.get();
+    return sounds->FindPlaying(handle) || sounds->FindDeferred(handle);
 }
 
 void SetTalking(const Unit* unit, bool talking) {
@@ -88,7 +88,7 @@ bool UnitClientSpecific::RunTick() {
         fadeIn = MinKeepA(next, 1.0f);   // the select keeps a NaN
     }
     if (flashCountdown > 0 && --flashCountdown == 0)
-        unit->AsObject3D()->ClientSpecific()->SetMaterialsLit(false);
+        unit->AsObject3D()->ClientSpecific()->SetLit(false);
 
     if (blinks) {
         if (blinkTimer > 0) {

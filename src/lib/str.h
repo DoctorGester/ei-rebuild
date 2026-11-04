@@ -33,6 +33,13 @@ struct MbsLess {
     bool operator()(const std::string& a, const std::string& b) const;
 };
 
+// The hash of std::unordered_map's std::string keys that also takes a std::string_view (lookups without a copy;
+// with std::equal_to<>). The same values as std::hash<std::string>, so the maps keep their order.
+struct ViewHash {
+    using is_transparent = void;
+    std::size_t operator()(std::string_view text) const { return std::hash<std::string_view>{}(text); }
+};
+
 // std::atoi / std::strtof of a std::string.
 inline int ToInt(const std::string& s) { return std::atoi(s.c_str()); }
 inline float ToFloat(const std::string& s) { return std::strtof(s.c_str(), nullptr); }

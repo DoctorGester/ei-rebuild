@@ -181,7 +181,7 @@ void Execute(const std::string& text) {
 
     str::MakeLower(command);
     if (str::Compare(command, "quit") == 0 || str::Compare(command, "exit") == 0) {
-        app::QuitGame(0);
+        platform::PostQuit(0);
         return;
     }
     if (CommandHandler handler = FindCommand(Maps().publicCommands, command)) {

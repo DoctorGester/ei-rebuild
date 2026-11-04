@@ -97,8 +97,8 @@ void FitShadowSphere(Object3DClientSpecific* self) {
     // The lights reaching the object.
     Vector3 sum;
     sum = kDefaultLight;
-    ObjectListIteratorOf<Light> lights{};
-    for (Light* light = lights.First(g_clientWorld.lightFactory); light; light = lights.Next()) {
+    ObjectListIteratorOf<Light> lights;
+    for (Light* light = lights.First(g_clientWorld.lightFactory.get()); light; light = lights.Next()) {
         if ((light->flags & LightFlag::Off) || (light->flags & LightFlag::Hidden)) continue;
         Vector3 share;
         if (light->type == kLightTypePoint) {
@@ -108,7 +108,6 @@ void FitShadowSphere(Object3DClientSpecific* self) {
         }
         sum += share;
     }
-    if (lights.manager) lights.manager->ForgetReference();
     Vector3 direction;
     LightDirection(sum, &direction);
     self->flags &= ~kHalfRedraw;
@@ -168,7 +167,7 @@ std::optional<float> ShadowCastStrength(Object3D* object) {
     return 1.0f;
 }
 
-int Object3DClientSpecific::DrawShadow() {
+int Object3DClientSpecific::DrawPartsShadow(SceneRenderer*) {
     // The game shows this object's shadow: in the renderer's shadow map its meshes cast, a unit as strongly as it
     // has faded in. No shadow texture or decal is drawn.
     const std::optional<float> strength = ShadowCastStrength(object);

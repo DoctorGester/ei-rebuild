@@ -504,7 +504,7 @@ void CampPages::UpdateAction() {
 
     std::string text;
     std::string line;
-    TextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts.get();
     actionLabels.clear();
     if (action.size() != 0) {
         text = texts->GetString(action);
@@ -971,7 +971,7 @@ void CampPages::PreviousHero() {
 
 void CampPages::ShowHero() {
     Unit* unit = heroes[hero];
-    TextManager* table = g_clientWorld.texts;
+    TextManager* table = g_clientWorld.texts.get();
     std::string name;
     std::string own = unit->GetName();
     if (own.size() == 0) {

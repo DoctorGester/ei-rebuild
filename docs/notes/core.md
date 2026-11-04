@@ -40,8 +40,11 @@ check (`app.md`).
 
 - Every counted class has `AddRef()` / `Release()`: EngineObject (at 0 the owner's ReleaseObject), RefCounted (deleted
   at 0), LinkMesh, LinkFigureLoader, DeviceMaterial, RenderPreset, RenderHelper, RendererBase. A site that keeps a
-  raw pointer counts with these. The original's drops without the release at zero (the object-list iterators'
-  manager, the constructor's handed-back item, a figure's parts) are `EngineObject::ForgetReference()`.
+  raw pointer counts with these. The original's drops without the release at zero (the constructor's handed-back
+  item, a figure's parts) are `EngineObject::ForgetReference()`; `ObjectListIterator` (and `PlayerIterator`) counts
+  its manager from `First` on and drops the count in its destructor, so the manager must outlive the iterator.
+- A manager has no owner, so its count never reaches a release: the worlds hold theirs as `std::unique_ptr`s, without
+  a count of their own.
 - A counted field is a `Ref<T>` (src/game/ref.h): `Assign(p)` takes p's reference, then drops the old one; `Reset()`
   nulls, then drops; `Take()` hands the reference on. There is no raw store. The destructor drops the reference, so
   an owner resets a Ref by hand only where the release must come before other work or in another order than the
@@ -51,8 +54,9 @@ check (`app.md`).
   objects' items given at loot: the original leaked them).
 - Ids in saves: `stream->WriteId(object)` writes the id (kNoObjectId, -1: none), `LoadRef(ref, stream, world)` looks it
   up.
-- Object3D's `parts` hold references the original never releases through the vector (Destroy3D forgets each); the code
-  keeps that.
+- A side half is held by its owner's Ref and points back at it; one setter per owner swaps it (`Object3D::SetHalf`,
+  `MapObject::SetCompanion`, `Object3D::SetAnimationState`, `FigureMesh::SetDrawer`): the old half's back pointer
+  is cleared before its release, the new one's set after it is taken.
 
 ## Object manager
 

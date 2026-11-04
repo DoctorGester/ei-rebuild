@@ -90,14 +90,12 @@ bool FigureManager::SetFigureAnimation(FigureAnimationState* figure, const char*
         figure->ClearBoneTracks();
         return true;
     }
-    std::string key(modelName);
-    FigureModel* model = FindModel(&key);
+    FigureModel* model = FindModel(modelName);
     if (!model) {
         game::DebugLog("Can't open model \"%s\"\n", modelName);
         return false;
     }
-    std::string name(animation->name);
-    MappedResource* found = model->FindAnimation(&name);
+    MappedResource* found = model->FindAnimation(animation->name);
     if (!found) {
         game::DebugLog("Can't open animation \"%s\" for model \"%s\"\n", animation->name, modelName);
         return false;
@@ -115,12 +113,7 @@ bool FigureManager::SetFigureAnimation(FigureAnimationState* figure, const char*
 // LinkPiece with the model; FindRoot finishes it. Returns 1. See docs/notes/models.md.
 
 int FigureManager::LoadSkeletonLinks(FigureAnimationState* state, std::string_view name) {
-    FigureModel* model;
-    {
-        std::string key(name);
-        model = FindModel(&key);
-    }
-
+    FigureModel* model = FindModel(name);
     void* data;
     if (model) {
         data = model->mesh->GetFile(name, nullptr);
@@ -237,25 +230,25 @@ FigureManager::~FigureManager() {
 // The model named `name`, loaded on first use from "<name>.mod", ".bon" and ".anm" through the manager's GetFile
 // and cached in FigureManager::models. Without the .mod nothing is created (the others are closed) and null is
 // returned. See docs/notes/models.md.
-FigureModel* FigureManager::FindModel(const std::string* name) {
-    if (auto found = models.find(*name); found != models.end()) return found->second;
+FigureModel* FigureManager::FindModel(std::string_view name) {
+    if (auto found = models.find(name); found != models.end()) return found->second;
     FigureModel* model = OpenFigureModel(
-        *name, [this](const std::string& path) { return GetFile(path, nullptr); },
+        name, [this](const std::string& path) { return GetFile(path, nullptr); },
         [this](void* data) {
             if (data) CloseFile(data);
         });
-    if (model) models[*name] = model;
+    if (model) models.emplace(name, model);
     return model;
 }
 
 // The model's animation of a name, loaded on first use from its animation archive (GetFile with the name) into
 // a new archive over that data (OpenFromMemory); without data nothing is created and null is returned.
-MappedResource* FigureModel::FindAnimation(const std::string* name) {
-    if (auto found = animationCache.find(*name); found != animationCache.end()) return found->second;
-    void* data = animations->GetFile(name->data(), nullptr);
+MappedResource* FigureModel::FindAnimation(std::string_view name) {
+    if (auto found = animationCache.find(name); found != animationCache.end()) return found->second;
+    void* data = animations->GetFile(name, nullptr);
     if (!data) return nullptr;
     MappedResource* animation = new MMIOResource();
-    animationCache[*name] = animation;
+    animationCache.emplace(name, animation);
     animation->OpenFromMemory(data);
     return animation;
 }

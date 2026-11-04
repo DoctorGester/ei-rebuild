@@ -433,7 +433,7 @@ void WorldServer::SaveWorld(ByteStream* stream) {
 
     // The item manager's object records.
     {
-        ObjectListIteratorOf<Item> it{};
+        ObjectListIteratorOf<Item> it;
         for (Item* item = it.First(ItemFactory()); item; item = it.Next()) {
             ItemLink* record = item->serverLink.Get();
             if (!record) continue;
@@ -441,7 +441,6 @@ void WorldServer::SaveWorld(ByteStream* stream) {
             stream->WriteValue(record->value);
         }
         stream->WriteValue(kNoObjectId);
-        if (it.manager) --it.manager->refCount;
     }
 
     stream->WriteCount(mobFiles.size());
@@ -463,7 +462,7 @@ void SharedObject::Load(ByteStream* stream) {
     stream->ReadValue(entry->player);
     stream->ReadValue(entry->money);
     for (int count = stream->ReadCount(); count > 0; --count) {
-        Item* object = FindItem(g_serverWorld.itemManager, stream->ReadId());
+        Item* object = FindItem(g_serverWorld.itemManager.get(), stream->ReadId());
         if (object) entry->objects.emplace_back(object);
     }
 }

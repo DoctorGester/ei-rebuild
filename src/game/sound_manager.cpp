@@ -6,7 +6,7 @@
 // silent one-shot no voice) and the ambient emitters' intervals (Tick: an emitter's Play2D takes a voice). With
 // every voice taken, a speech's Play2D answers -1, which keeps a unit's talking flag (unit_client_effects). Both are
 // basic operations on floats and small integers in the original's order, rounded to integers by lib::RoundEven
-// (docs/notes/sound.md, "Floating point"). The pans, the axis, the fader and the wave lengths only reach the output.
+// (docs/notes/sound.md, "Floating point"). The pans, the axis and the fader only reach the output.
 #include "game_strings.h"
 #include "mod_folders.h"
 #include "platform/platform.h"
@@ -22,14 +22,17 @@
 #include "lib/str.h"
 #include "lib/vecmath.h"
 
+#include <algorithm>
 #include <bit>
 #include <chrono>
 #include <cmath>
 #include <concepts>
 #include <cstring>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <new>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -64,22 +67,22 @@ constexpr float kPercent = 0.01f;
 constexpr float kEmitterMargin = 0.001f;
 constexpr float kEmitterMaxScale = 255.0f;
 
-// The fade step every fade request uses (1/96).
-std::uint32_t FadeStepBits() { return 0x3C2AAAABu; }
-// StopStream's fade-out step, loaded and tested as a float.
-constexpr float kStopFadeStep = 0.010416667f;
+constexpr int kFullVolume = 100;   // the volumes' top
+constexpr int kMaxLevel = 0x7F;    // the output's volume top
 
-// The slot of the wave's cache list node (its record's uses counts the voices playing it).
-std::list<WaveRecord>::iterator& CacheEntry(std::unordered_map<std::string, std::list<WaveRecord>::iterator>& cache, const SoundSlot* slot) { return cache[slot->name]; }
-// May rehash first.
-void SetDeferred(DeferredMap& deferred, std::int32_t handle, DeferredSound* rec) {
-    deferred[handle] = rec;
-}
-void FreeDeferred(DeferredSound* rec) {
-    delete rec;
-}
+// The step of every fade of the music (1/96 per stream step).
+constexpr float kFadeStep = 1.0f / 96.0f;
+static_assert(std::bit_cast<std::uint32_t>(kFadeStep) == 0x3C2AAAABu);
 
-int ClampLevel(int v) { return v < 0 ? 0 : (v > 0x7F ? 0x7F : v); }
+constexpr int kNoVoice = -1;
+
+// A deferred sound under a new handle; the handle.
+int AddDeferred(SoundManager* m, DeferredSound* rec) {
+    rec->handle = m->nextHandle;
+    ++m->nextHandle;
+    m->deferred[rec->handle] = rec;
+    return rec->handle;
+}
 
 // Heights between 30 and 70 fade 2D sounds flagged heightFade.
 float HeightFactor(float h) {
@@ -88,89 +91,40 @@ float HeightFactor(float h) {
 
 // The voice loop of the volume setters and SetListener.
 void RefreshVoices(SoundManager* m) {
-    SoundSlot* slot = m->slots.get();
-    for (int i = 0; i < 15; ++i, ++slot) {
-        if (slot->playing == 0) continue;
-        if (slot->flat == 0) m->UpdatePositional(slot);
-        else slot->volume = m->FlatVolume(slot->baseVolume, slot->heightFade, slot->speech);
-        m->ApplyVolumePan(slot);
+    for (SoundSlot& slot : std::span(m->slots.get(), kVoiceCount)) {
+        if (!slot.playing) continue;
+        if (!slot.flat) m->UpdatePositional(&slot);
+        else slot.volume = m->FlatVolume(slot.baseVolume, slot.heightFade, slot.speech);
+        m->ApplyVolumePan(&slot);
     }
 }
 
-// Deletes the deferred record of `handle`, if any (StopSound, RemoveSequence).
-void DropDeferred(SoundManager* m, int handle) {
-    auto node = m->deferred.find(handle);
-    if (node == m->deferred.end()) return;
-    DeferredSound* rec = node->second;
-    if (rec == nullptr) return;
-    m->deferred.erase(rec->handle);
-    FreeDeferred(rec);
-}
-
-// Emitter `index` as the game addresses it: index 16 is accepted (one past the array).
-SoundEmitter* EmitterAt(SoundManager* m, int index) {
-    return m->emitters + index;
-}
-
+// The sequence `id` names (its slot's generation must match), or null.
 SoundSequence* SequenceForId(SoundManager* m, std::uint32_t id) {
+    if ((id & 0xFF) >= kSequenceCount) return nullptr;
     SoundSequence* s = &m->sequences[id & 0xFF];
     return static_cast<std::uint32_t>(s->id) == id ? s : nullptr;
 }
 
-// Moves a sequence's current sound (MoveSequence / UpdateSequence).
-void MoveSequenceSound(SoundManager* m, int handle, const Vector3& position, float nearDist, float farDist) {
-    SoundSlot* slot = m->SlotForHandle(handle);
-    if (slot != nullptr) {
-        if (slot->finished != 0) {
-            if (slot->playing != 0) m->EndSlot(slot);
-        } else {
-            slot->position = position;
-            slot->flat = 0;
-            slot->nearDistance = nearDist;
-            slot->farDistance = farDist;
-            m->UpdatePositional(slot);
-            m->ApplyVolumePan(slot);
-            return;
-        }
-    }
-    if (m->enabled == 0) return;
-    auto node = m->deferred.find(handle);
-    if (node == m->deferred.end() || node->second == nullptr) return;
-    DeferredSound* rec = node->second;
-    rec->position = position;
-    rec->flat = 0;
-    rec->nearDistance = nearDist;
-    rec->farDistance = farDist;
-}
-
-constexpr int kVoiceCount = 15;
-constexpr int kNoVoice = -1;
-
 // No voice for a looping sound: it waits in the deferred map (silent, flat) until Tick restarts it.
-int DeferLooping(SoundManager* m, std::string_view name, int priority, int volume, int pan, int heightFade, int speech) {
+int DeferLooping(SoundManager* m, std::string_view name, int priority, int volume, int pan, const Play2DOptions& options) {
     auto* rec = new DeferredSound;
     rec->name.assign(name);
     rec->baseVolume = volume;
     rec->pan = pan;
     rec->priority = priority;
-    rec->speech = speech;
-    rec->flat = 1;
-    rec->volume = 0;
-    rec->length = 0.0f;
-    rec->heightFade = heightFade;
-    rec->handle = m->nextHandle;
-    ++m->nextHandle;
-    rec->samplePosition = 0;
-    SetDeferred(m->deferred, rec->handle, rec);
-    return rec->handle;
+    rec->speech = options.speech;
+    rec->flat = true;
+    rec->heightFade = options.heightFade;
+    return AddDeferred(m, rec);
 }
 
 // The common end of Play2D and Play3D once the wave is in the voice. Returns the voice's handle.
-int StartLoaded(SoundManager* m, SoundSlot* slot, int loop) {
-    if (loop != 0) audio::SetLoopCount(slot->voice, 0);
+int StartLoaded(SoundManager* m, SoundSlot* slot, bool loop) {
+    if (loop) audio::SetLoopCount(slot->voice, 0);
     m->ApplyVolumePan(slot);
     audio::SetEndCallback(slot->voice, SoundEndOfSample, slot);
-    if (m->reverbOn != 0) audio::SetReverb(slot->voice, m->reverb[0], m->reverb[1], m->reverb[2]);
+    if (m->reverbOn) audio::SetReverb(slot->voice, m->reverb[0], m->reverb[1], m->reverb[2]);
     if (m->randomStart != 0) {
         std::uint32_t range = static_cast<std::uint32_t>(m->randomStart) + 1;
         audio::SetPositionMs(slot->voice, g_clientRandom.Next() % range);
@@ -188,7 +142,6 @@ void UseCached(SoundManager* m, SoundSlot* slot, std::list<WaveRecord>::iterator
     WaveRecord& record = *node;
     record.lastUsed = platform::TickCount();
     record.uses += 1;
-    slot->length = m->WaveLength(record.data.data(), record.data.size());
     audio::SetWave(slot->voice, record.data.data(), record.data.size());
 }
 
@@ -210,46 +163,51 @@ void Evict(SoundManager* m, int incoming, std::uint32_t now) {
     }
 }
 
+void CodecClose(SoundManager* m) {
+    if (m->streamFile == nullptr) return;
+    audio::CloseMp3(m->streamFile);
+    m->streamFile = nullptr;
+}
+
 } // namespace
 
 // --- Shared pieces ------------------------------------------------------------------------------
 
-// The output's volume (0..127) of `level` (0..100, a 2D voice's base volume or a 3D voice's distance level), inlined in
-// every volume setter. A NaN camera height keeps the full level.
-int SoundManager::FlatVolume(int level, int fade, int isSpeech) const {
+// The output's volume (0..127) of `level` (0..100, a 2D voice's base volume or a 3D voice's distance level), as every
+// volume setter gives it. A NaN camera height keeps the full level.
+int SoundManager::FlatVolume(int level, bool fade, bool isSpeech) const {
     float v = static_cast<float>(level);
-    if (fade != 0) {
+    if (fade) {
         float h = listener.z;
         if (h >= kHeightSilent) v = 0.0f;
         else if (h > kHeightFull) v = v * HeightFactor(h);
     }
-    v *= (isSpeech != 0 ? speechVolume : effectsVolume);
+    v *= (isSpeech ? speechVolume : effectsVolume);
     v *= kOutputScale;
-    return ClampLevel(lib::RoundEven(v));
+    return std::clamp(lib::RoundEven(v), 0, kMaxLevel);
 }
 
 // Hands the slot's volume and pan to the output; the pan is mirrored unless panDirect.
 void SoundManager::ApplyVolumePan(SoundSlot* slot) const {
-    int direct = panDirect;
     audio::SetVolume(slot->voice, slot->volume);
     int p = slot->pan;
-    if (direct == 0) p = -p;
+    if (!panDirect) p = -p;
     audio::SetPan(slot->voice, (p + 100) * 0x7F / 200);
 }
 
-// Ends a voice: releases its cached wave, stops the voice and frees the slot.
 void SoundManager::EndSlot(SoundSlot* slot) {
-    --CacheEntry(cache, slot)->uses;
+    if (!slot->playing) return;
+    --cache[slot->name]->uses;
     audio::End(slot->voice);
-    slot->playing = 0;
-    slot->finished = 0;
-    slot->handle = -1;
+    slot->playing = false;
+    slot->finished = false;
+    slot->handle = kNoSound;
 }
 
-// The first voice whose handle matches, or null (free voices hold -1, which matches none).
+// The first voice whose handle matches, or null (free voices hold kNoSound, which matches none).
 SoundSlot* SoundManager::SlotForHandle(int handle) const {
-    if (handle == -1) return nullptr;
-    for (int i = 0; i < 15; ++i)
+    if (handle == kNoSound) return nullptr;
+    for (int i = 0; i < kVoiceCount; ++i)
         if (slots[i].handle == handle) return &slots[i];
     return nullptr;
 }
@@ -268,17 +226,13 @@ void SoundManager::UpdatePositional(SoundSlot* slot) {
         return;
     }
     float dist = std::sqrt(dist2);
-    int level = 100;
+    int level = kFullVolume;
     if (!(dist < slot->nearDistance))
-        level = 100 - lib::RoundEven((dist - slot->nearDistance) / (slot->farDistance - slot->nearDistance) * kHundred);
-    slot->volume = FlatVolume(level, 1, slot->speech);
+        level = kFullVolume - lib::RoundEven((dist - slot->nearDistance) / (slot->farDistance - slot->nearDistance) * kHundred);
+    slot->volume = FlatVolume(level, true, slot->speech);
 
     float ahead = AbsBits(Dot2D(d, XY(listenerAxis)));
-    if (ahead > dist) {
-        slot->pan = 0;
-        return;
-    }
-    if (dist == 0.0f) {
+    if (ahead > dist || dist == 0.0f) {
         slot->pan = 0;
         return;
     }
@@ -291,21 +245,21 @@ void SoundManager::UpdatePositional(SoundSlot* slot) {
 
 // Options: effects volume 0..100.
 void SoundManager::SetEffectsVolume(int volume) {
-    if (enabled == 0) return;
-    effectsVolume = volume < 0 ? 0 : (volume > 100 ? 100 : volume);
+    if (!enabled) return;
+    effectsVolume = std::clamp(volume, 0, kFullVolume);
     RefreshVoices(this);
 }
 
 // Options: speech volume 0..100.
 void SoundManager::SetSpeechVolume(int volume) {
-    if (enabled == 0) return;
-    speechVolume = volume < 0 ? 0 : (volume > 100 ? 100 : volume);
+    if (!enabled) return;
+    speechVolume = std::clamp(volume, 0, kFullVolume);
     RefreshVoices(this);
 }
 
 // The camera's position and direction (Camera::Update every frame).
 void SoundManager::SetListener(const Vector3& position, const Vector3& axis) {
-    if (enabled == 0) return;
+    if (!enabled) return;
     listener = position;
     listenerAxis = axis;
     float len = Length2D(XY(listenerAxis));
@@ -320,9 +274,8 @@ void SoundManager::SetListener(const Vector3& position, const Vector3& axis) {
 
 // Options: music volume 0..100 (0 stops the stream).
 void SoundManager::SetMusicVolume(int volume) {
-    int v = volume < 0 ? 0 : (volume > 100 ? 100 : volume);
-    if (enabled == 0) return;
-    Submit({StreamRequest::Kind::Volume, v, {}});
+    if (!enabled) return;
+    Submit({.kind = StreamRequest::Kind::Volume, .volume = std::clamp(volume, 0, kFullVolume)});
 }
 
 // Reverb parameters for new voices (used when reverbOn).
@@ -335,122 +288,93 @@ void SoundManager::SetReverb(float room, float level, float time) {
 // The game window lost / regained focus.
 void SoundManager::PauseAll() {
     if (slots != nullptr)
-        for (int i = 0; i < 15; ++i)
-            if (slots[i].playing != 0) audio::Stop(slots[i].voice);
-    if (enabled != 0 && streamSample != nullptr) audio::StopStream(streamSample);
+        for (SoundSlot& slot : std::span(slots.get(), kVoiceCount))
+            if (slot.playing) audio::Stop(slot.voice);
+    if (enabled && streamSample != nullptr) audio::StopStream(streamSample);
 }
 
 void SoundManager::ResumeAll() {
     if (slots != nullptr)
-        for (int i = 0; i < 15; ++i)
-            if (slots[i].playing != 0) audio::Resume(slots[i].voice);
-    if (enabled != 0 && streamSample != nullptr) audio::ResumeStream(streamSample);
+        for (SoundSlot& slot : std::span(slots.get(), kVoiceCount))
+            if (slot.playing) audio::Resume(slot.voice);
+    if (enabled && streamSample != nullptr) audio::ResumeStream(streamSample);
 }
 
 // --- Per-handle controls --------------------------------------------------------------------------
 
 // The voice playing `handle`; a voice whose sample ended is freed and gives null.
 SoundSlot* SoundManager::FindPlaying(int handle) {
-    if (enabled == 0) return nullptr;
+    if (!enabled) return nullptr;
     SoundSlot* slot = SlotForHandle(handle);
     if (slot == nullptr) return nullptr;
-    if (slot->finished == 0) return slot;
-    if (slot->playing != 0) EndSlot(slot);
+    if (!slot->finished) return slot;
+    EndSlot(slot);
     return nullptr;
 }
 
 // The deferred record of `handle`, or null.
-DeferredSound* SoundManager::FindDeferred(std::uint32_t handle) {
-    if (enabled == 0) return nullptr;
-    auto node = deferred.find(static_cast<std::int32_t>(handle));
+DeferredSound* SoundManager::FindDeferred(int handle) {
+    if (!enabled) return nullptr;
+    auto node = deferred.find(handle);
     return node != deferred.end() ? node->second : nullptr;
 }
 
-// Makes a sound 2D with the given volume (0..100) and pan.
-int SoundManager::SetSoundVolume(int handle, int volume, int pan) {
-    if (enabled != 0) {
-        SoundSlot* slot = SlotForHandle(handle);
-        if (slot != nullptr) {
-            if (slot->finished != 0) {
-                if (slot->playing != 0) EndSlot(slot);
-            } else {
-                slot->baseVolume = volume;
-                int level = FlatVolume(volume, slot->heightFade, slot->speech);
-                slot->volume = level;
-                slot->pan = pan;
-                slot->flat = 1;
-                ApplyVolumePan(slot);
-                return 1;
-            }
-        }
+bool SoundManager::SetSoundVolume(int handle, int volume, int pan) {
+    if (SoundSlot* slot = FindPlaying(handle)) {
+        slot->baseVolume = volume;
+        slot->volume = FlatVolume(volume, slot->heightFade, slot->speech);
+        slot->pan = pan;
+        slot->flat = true;
+        ApplyVolumePan(slot);
+        return true;
     }
-    if (enabled != 0) {
-        auto node = deferred.find(handle);
-        if (node != deferred.end() && node->second != nullptr) {
-            node->second->baseVolume = volume;
-            node->second->pan = pan;
-            node->second->flat = 1;
-            return 1;
-        }
+    if (DeferredSound* rec = FindDeferred(handle)) {
+        rec->baseVolume = volume;
+        rec->pan = pan;
+        rec->flat = true;
+        return true;
     }
-    return 0;
+    return false;
 }
 
-// Makes a sound 3D at `position`.
-int SoundManager::SetSoundPosition(int handle, const Vector3& position, float nearDist, float farDist) {
-    if (enabled != 0) {
-        SoundSlot* slot = SlotForHandle(handle);
-        if (slot != nullptr) {
-            if (slot->finished != 0) {
-                if (slot->playing != 0) EndSlot(slot);
-            } else {
-                slot->position = position;
-                slot->nearDistance = nearDist;
-                slot->farDistance = farDist;
-                slot->flat = 0;
-                UpdatePositional(slot);
-                ApplyVolumePan(slot);
-                return 1;
-            }
-        }
+bool SoundManager::SetSoundPosition(int handle, const Vector3& position, float nearDist, float farDist) {
+    if (SoundSlot* slot = FindPlaying(handle)) {
+        slot->position = position;
+        slot->nearDistance = nearDist;
+        slot->farDistance = farDist;
+        slot->flat = false;
+        UpdatePositional(slot);
+        ApplyVolumePan(slot);
+        return true;
     }
-    if (enabled != 0) {
-        auto node = deferred.find(handle);
-        if (node != deferred.end() && node->second != nullptr) {
-            DeferredSound* rec = node->second;
-            rec->position = position;
-            rec->flat = 0;
-            rec->nearDistance = nearDist;
-            rec->farDistance = farDist;
-            return 1;
-        }
+    if (DeferredSound* rec = FindDeferred(handle)) {
+        rec->position = position;
+        rec->flat = false;
+        rec->nearDistance = nearDist;
+        rec->farDistance = farDist;
+        return true;
     }
-    return 0;
+    return false;
 }
 
-// Stops a sound (or forgets its deferred record); always -1, the "no sound" handle.
-int SoundManager::StopSound(int handle) {
-    if (enabled != 0) {
-        SoundSlot* slot = SlotForHandle(handle);
-        if (slot != nullptr) {
-            if (slot->finished == 0) {
-                if (slot->playing != 0) EndSlot(slot);
-                return -1;
-            }
-            if (slot->playing != 0) EndSlot(slot);
-        }
+void SoundManager::StopSound(int handle) {
+    if (SoundSlot* slot = FindPlaying(handle)) {
+        EndSlot(slot);
+        return;
     }
-    if (enabled != 0) DropDeferred(this, handle);
-    return -1;
+    DeferredSound* rec = FindDeferred(handle);
+    if (rec == nullptr) return;
+    deferred.erase(handle);
+    delete rec;
 }
 
 // --- Ambient emitters -----------------------------------------------------------------------------
 
 void SoundManager::MoveEmitter(int index, const Vector3& position, float inner, float outer, int minInterval,
                                 int maxInterval) {
-    if (index < 0 || index >= 16) return;
-    SoundEmitter* e = EmitterAt(this, index);
-    if (e->active == 0) return;
+    if (index < 0 || index >= kEmitterCount) return;
+    SoundEmitter* e = &emitters[index];
+    if (!e->active) return;
     e->position = position;
     e->innerRadius = inner;
     e->outerRadius = outer;
@@ -458,74 +382,67 @@ void SoundManager::MoveEmitter(int index, const Vector3& position, float inner, 
     e->maxInterval = maxInterval;
 }
 
-// Returns the emitter index or -1.
-int SoundManager::AddEmitter(const std::vector<std::string>* names, const Vector3& position, float inner, float outer,
+int SoundManager::AddEmitter(const std::vector<std::string>& names, const Vector3& position, float inner, float outer,
                               int minInterval, int maxInterval) {
-    if (enabled == 0 || names->empty()) return -1;
+    if (!enabled || names.empty()) return -1;
     int i = 0;
-    while (i < 16 && emitters[i].active != 0) ++i;
-    if (i == 16) return -1;
+    while (i < kEmitterCount && emitters[i].active) ++i;
+    if (i == kEmitterCount) return -1;
     SoundEmitter* e = &emitters[i];
-    e->active = 1;
-    e->names = *names;
+    e->active = true;
+    e->names = names;
     MoveEmitter(i, position, inner, outer, minInterval, maxInterval);
     e->lastPlayed = platform::TickCount();
     return i;
 }
 
-// Always -1. The name list is kept.
-int SoundManager::RemoveEmitter(int index) {
-    if (index < 0 || index >= 16) return -1;
-    SoundEmitter* e = EmitterAt(this, index);
-    if (e->active == 0) return -1;
+void SoundManager::RemoveEmitter(int index) {
+    if (index < 0 || index >= kEmitterCount) return;
+    SoundEmitter* e = &emitters[index];
+    if (!e->active) return;
     e->position = {};
-    e->active = 0;
+    e->active = false;
     e->maxInterval = -1;
     e->minInterval = -1;
     e->outerRadius = 0.0f;
     e->innerRadius = 0.0f;
     e->lastPlayed = 0;
-    return -1;
 }
 
 // --- Sound sequences ------------------------------------------------------------------------------
 
-// Starts the sequence's next sound; false when it is over or the sound did not start.
-int SoundSequence::PlayNext(SoundManager* manager) {
+bool SoundSequence::PlayNext(SoundManager* manager) {
     if (chooser != nullptr) {
         int played = remaining;
         ++remaining;
         int next = chooser(index, played);
         index = next;
-        if (next < 0) return 0;
+        if (next < 0) return false;
         index = next & ~kSequenceLoop;
-        int h = manager->Play3D(names[index], priority, position, nearDistance, farDistance,
-                                next & kSequenceLoop);
-        handle = h;
-        return h != -1 ? 1 : 0;
+        handle = manager->Play3D(names[index], priority, position, nearDistance, farDistance, (next & kSequenceLoop) != 0);
+        return handle != kNoSound;
     }
-    if (remaining == 0) return 0;
-    if (random != 0) index = static_cast<std::int32_t>(g_clientRandom.Next() % static_cast<std::uint32_t>(names.size()));
-    int h = manager->Play3D(names[index], priority, position, nearDistance, farDistance, 0);
-    handle = h;
-    if (h == -1) return 0;
+    if (remaining == 0) return false;
+    if (random) index = static_cast<std::int32_t>(g_clientRandom.Next() % static_cast<std::uint32_t>(names.size()));
+    handle = manager->Play3D(names[index], priority, position, nearDistance, farDistance, false);
+    if (handle == kNoSound) return false;
     index = (index + 1) % static_cast<int>(names.size());
     if (remaining > 0) --remaining;
-    return 1;
+    return true;
 }
 
 // Returns the sequence id (generation << 8 | slot) or -1.
-int SoundManager::AddSequence(const std::vector<std::string>* names, int priority, const Vector3& position, float nearDist,
-                               float farDist, int randomOrder, int count, int(*chooser)(int, int)) {
-    if (enabled == 0 || names->empty()) return -1;
+int SoundManager::AddSequence(const std::vector<std::string>& names, int priority, const Vector3& position, float nearDist,
+                               float farDist, bool randomOrder, int count, int(*chooser)(int, int)) {
+    if (!enabled || names.empty()) return -1;
     int i = 0;
-    while (i < 8 && sequences[i].active != 0) ++i;
-    if (i == 8) return -1;
+    while (i < kSequenceCount && sequences[i].active) ++i;
+    if (i == kSequenceCount) return -1;
     SoundSequence* s = &sequences[i];
     ++s->generation;
     s->id = s->generation << 8 | i;
-    s->active = 1;
-    s->names = *names;
+    s->active = true;
+    s->names = names;
     s->position = position;
     s->nearDistance = nearDist;
     s->farDistance = farDist;
@@ -538,81 +455,56 @@ int SoundManager::AddSequence(const std::vector<std::string>* names, int priorit
         s->remaining = 0;
         s->index = -1;
     }
-    if (s->PlayNext(this) != 0) return s->id;
+    if (s->PlayNext(this)) return s->id;
     s->id = -1;
-    s->active = 0;
+    s->active = false;
     return -1;
 }
 
-int SoundManager::MoveSequence(std::uint32_t sequenceId, const Vector3& position) {
-    if (enabled == 0 || (sequenceId & 0xFF) >= 8) return 0;
+bool SoundManager::MoveSequence(std::uint32_t sequenceId, const Vector3& position) {
+    if (!enabled) return false;
     SoundSequence* s = SequenceForId(this, sequenceId);
-    if (s == nullptr) return 0;
+    if (s == nullptr) return false;
     s->position = position;
-    if (enabled != 0) MoveSequenceSound(this, s->handle, position, s->nearDistance, s->farDistance);
-    return 1;
+    SetSoundPosition(s->handle, position, s->nearDistance, s->farDistance);
+    return true;
 }
 
-int SoundManager::UpdateSequence(std::uint32_t sequenceId, const Vector3& position, float nearDist, float farDist, int count) {
-    if (enabled == 0 || (sequenceId & 0xFF) >= 8) return 0;
+bool SoundManager::UpdateSequence(std::uint32_t sequenceId, const Vector3& position, float nearDist, float farDist, int count) {
+    if (!enabled) return false;
     SoundSequence* s = SequenceForId(this, sequenceId);
-    if (s == nullptr) return 0;
+    if (s == nullptr) return false;
     s->position = position;
     s->nearDistance = nearDist;
     s->farDistance = farDist;
     s->remaining = count;
-    if (enabled != 0) MoveSequenceSound(this, s->handle, position, nearDist, farDist);
-    return 1;
+    SetSoundPosition(s->handle, position, nearDist, farDist);
+    return true;
 }
 
-// Always -1.
-int SoundManager::RemoveSequence(std::uint32_t sequenceId) {
-    if (enabled == 0 || (sequenceId & 0xFF) >= 8) return -1;
+void SoundManager::RemoveSequence(std::uint32_t sequenceId) {
+    if (!enabled) return;
     SoundSequence* s = SequenceForId(this, sequenceId);
-    if (s == nullptr) return -1;
-    int handle = s->handle;
-    s->active = 0;
+    if (s == nullptr) return;
+    s->active = false;
     s->id = -1;
-    if (enabled == 0) return -1;
-    SoundSlot* slot = SlotForHandle(handle);
-    if (slot != nullptr) {
-        if (slot->finished == 0) {
-            if (slot->playing != 0) EndSlot(slot);
-            return -1;
-        }
-        if (slot->playing != 0) EndSlot(slot);
-    }
-    if (enabled != 0) DropDeferred(this, handle);
-    return -1;
+    StopSound(s->handle);
 }
 
 // --- The per-frame tick ---------------------------------------------------------------------------
-
-// Ends the voice if it plays (the sequences' check in Tick).
-void SoundSlot::End(SoundManager* manager) {
-    if (playing == 0) return;
-    manager->EndSlot(this);
-}
 
 // Every world frame: frees the voices whose sample ended, restarts the highest-priority deferred sounds in
 // free voices, starts the next sound of every sequence whose sound is over, and every 100 ms (GetTickCount)
 // lets the ambient emitters near the listener play a random name of theirs. Emitters and random sequences
 // draw from the client effects' generator (g_clientRandom) on the wall clock's schedule.
 void SoundManager::Tick() {
-    if (enabled == 0) return;
-    for (int i = 0; i < 15; ++i) {
-        SoundSlot* slot = &slots[i];
-        if (slot->finished == 0 || slot->playing == 0) continue;
-        --CacheEntry(cache, slot)->uses;
-        audio::End(slot->voice);
-        slot->handle = -1;
-        slot->playing = 0;
-        slot->finished = 0;
-    }
+    if (!enabled) return;
+    for (SoundSlot& slot : std::span(slots.get(), kVoiceCount))
+        if (slot.finished) EndSlot(&slot);
 
-    for (int i = 0; i < 15; ++i) {
-        if (deferred.size() == 0) break;
-        if (slots[i].playing != 0) continue;
+    for (int i = 0; i < kVoiceCount; ++i) {
+        if (deferred.empty()) break;
+        if (slots[i].playing) continue;
         // The highest priority (the first one met on ties).
         std::int32_t best = deferred.begin()->second->priority;
         std::int32_t key = deferred.begin()->second->handle;
@@ -631,8 +523,7 @@ void SoundManager::Tick() {
         slot->pan = rec->pan;
         slot->priority = rec->priority;
         slot->speech = rec->speech;
-        slot->looping = 1;
-        slot->length = rec->length;
+        slot->looping = true;
         slot->flat = rec->flat;
         slot->heightFade = rec->heightFade;
         slot->position = rec->position;
@@ -640,37 +531,26 @@ void SoundManager::Tick() {
         slot->farDistance = rec->farDistance;
         audio::ResetVoice(slot->voice);
         // A flat sound's level is recomputed from its 0..100 base level.
-        if (slot->flat != 0) slot->volume = FlatVolume(slot->baseVolume, slot->heightFade, slot->speech);
+        if (slot->flat) slot->volume = FlatVolume(slot->baseVolume, slot->heightFade, slot->speech);
         else UpdatePositional(slot);
-        if (LoadSample(slot, rec->name.data(), 0) != 0) {
+        if (LoadSample(slot, rec->name, false)) {
             slot->handle = rec->handle;
             audio::SetLoopCount(slot->voice, 0);
             ApplyVolumePan(slot);
             audio::SetEndCallback(slot->voice, SoundEndOfSample, slot);
-            if (reverbOn != 0) audio::SetReverb(slot->voice, reverb[0], reverb[1], reverb[2]);
+            if (reverbOn) audio::SetReverb(slot->voice, reverb[0], reverb[1], reverb[2]);
             audio::SetPosition(slot->voice, rec->samplePosition);
             audio::Start(slot->voice);
         }
-        if (rec != nullptr) FreeDeferred(rec);
+        delete rec;
     }
 
-    for (int k = 0; k < 8; ++k) {
-        SoundSequence* s = &sequences[k];
-        if (s->active == 0) continue;
-        int handle = s->handle;
-        if (handle != -1) {
-            if (enabled != 0) {
-                SoundSlot* slot = SlotForHandle(handle);
-                if (slot != nullptr) {
-                    if (slot->finished == 0) continue;
-                    slot->End(this);
-                }
-            }
-            if (FindDeferred(static_cast<std::uint32_t>(handle)) != nullptr) continue;
-        }
-        if (s->PlayNext(this) == 0) {
-            s->id = -1;
-            s->active = 0;
+    for (SoundSequence& s : sequences) {
+        if (!s.active) continue;
+        if (FindPlaying(s.handle) != nullptr || FindDeferred(s.handle) != nullptr) continue;
+        if (!s.PlayNext(this)) {
+            s.id = -1;
+            s.active = false;
         }
     }
 
@@ -678,36 +558,34 @@ void SoundManager::Tick() {
     if (now - emitterTick < 100) return;
     emitterTick = now;
     IsaacRandom& random = g_clientRandom;
-    for (int k = 0; k < 16; ++k) {
-        SoundEmitter* e = &emitters[k];
-        if (e->active == 0) continue;
-        float dist = std::sqrt(DistanceSquaredXY(listener, e->position));
+    for (SoundEmitter& e : emitters) {
+        if (!e.active) continue;
+        float dist = std::sqrt(DistanceSquaredXY(listener, e.position));
         std::uint32_t minInterval, maxInterval;
-        if (dist < e->innerRadius) {
-            minInterval = static_cast<std::uint32_t>(e->minInterval);
-            maxInterval = static_cast<std::uint32_t>(e->maxInterval);
+        if (dist < e.innerRadius) {
+            minInterval = static_cast<std::uint32_t>(e.minInterval);
+            maxInterval = static_cast<std::uint32_t>(e.maxInterval);
         } else {
             // Out of earshot past outerRadius - 0.001.
-            if (e->outerRadius - kEmitterMargin < dist) continue;
-            float t = (e->outerRadius - e->innerRadius) / (e->outerRadius - dist);
+            if (e.outerRadius - kEmitterMargin < dist) continue;
+            float t = (e.outerRadius - e.innerRadius) / (e.outerRadius - dist);
             if (t > kEmitterMaxScale) continue;
             // The original's products while the intervals are below 2^24 ms (exact as floats).
-            minInterval = static_cast<std::uint32_t>(lib::RoundEven(e->minInterval * t));
-            maxInterval = static_cast<std::uint32_t>(lib::RoundEven(e->maxInterval * t));
+            minInterval = static_cast<std::uint32_t>(lib::RoundEven(e.minInterval * t));
+            maxInterval = static_cast<std::uint32_t>(lib::RoundEven(e.maxInterval * t));
         }
-        std::uint32_t elapsed = now - e->lastPlayed;
+        std::uint32_t elapsed = now - e.lastPlayed;
         if (elapsed < minInterval) continue;
         if (elapsed < maxInterval) {
             std::uint32_t span = (maxInterval - minInterval) / 100;
             if (span > 1 && random.Next() % span != 0) continue;
         }
-        e->lastPlayed = now;
+        e.lastPlayed = now;
         std::uint32_t index = 0;
-        if (e->names.size() > 1) index = random.Next() % static_cast<std::uint32_t>(e->names.size());
+        if (e.names.size() > 1) index = random.Next() % static_cast<std::uint32_t>(e.names.size());
         std::uint32_t panRoll = random.Next();
         std::uint32_t volumeRoll = random.Next();
-        Play2D(e->names[index], 1, static_cast<int>(volumeRoll % 51 + 50),
-               static_cast<int>(panRoll % 101), 0, 0, 0, 0);
+        Play2D(e.names[index], 1, static_cast<int>(volumeRoll % 51 + 50), static_cast<int>(panRoll % 101));
     }
 }
 
@@ -715,29 +593,25 @@ void SoundManager::Tick() {
 
 // Starts a fade of the stream.
 void SoundManager::FadeOutStream() {
-    if (enabled == 0) return;
-    Submit({StreamRequest::Kind::FadeOut, 0, {}});
+    if (!enabled) return;
+    Submit({.kind = StreamRequest::Kind::FadeOut});
 }
 
 void SoundManager::FadeInStream() {
-    if (enabled == 0) return;
-    Submit({StreamRequest::Kind::FadeIn, 0, {}});
+    if (!enabled) return;
+    Submit({.kind = StreamRequest::Kind::FadeIn});
 }
 
-// MakeSwitch's result; 1 for a request kept for later (the output has a stream, as the stream thread runs).
-int SoundManager::RequestStream(std::string_view name, int mode) {
-    StreamGuard guard(streamLock);
-    if (!streamBusy) return MakeSwitch(name, mode);
-    lateRequests.push_back({StreamRequest::Kind::Switch, mode, std::string(name)});
-    return 1;
+void SoundManager::RequestStream(std::string_view name, StreamSwitch mode) {
+    Submit({.kind = StreamRequest::Kind::Switch, .mode = mode, .name = std::string(name)});
 }
 
-void SoundManager::StopStream(int mode) {
-    Submit({StreamRequest::Kind::Stop, mode, {}});
+void SoundManager::StopStream(StreamSwitch mode) {
+    Submit({.kind = StreamRequest::Kind::Stop, .mode = mode});
 }
 
 void SoundManager::PlayStreamOnce(std::string_view name) {
-    Submit({StreamRequest::Kind::PlayOnce, 0, std::string(name)});
+    Submit({.kind = StreamRequest::Kind::PlayOnce, .name = std::string(name)});
 }
 
 void SoundManager::Submit(StreamRequest request) {
@@ -752,21 +626,18 @@ void SoundManager::Submit(StreamRequest request) {
 
 void SoundManager::MakeRequest(const StreamRequest& request) {
     switch (request.kind) {
-    case StreamRequest::Kind::Switch: MakeSwitch(request.name, request.value); break;
-    case StreamRequest::Kind::Stop: MakeStop(request.value); break;
+    case StreamRequest::Kind::Switch: MakeSwitch(request.name, request.mode); break;
+    case StreamRequest::Kind::Stop: MakeStop(request.mode); break;
     case StreamRequest::Kind::PlayOnce: MakePlayOnce(request.name); break;
-    case StreamRequest::Kind::FadeOut: MakeFade(2); break;
-    case StreamRequest::Kind::FadeIn: MakeFade(1); break;
-    case StreamRequest::Kind::Volume: MakeVolume(request.value); break;
+    case StreamRequest::Kind::FadeOut: MakeFade(FadeMode::Out); break;
+    case StreamRequest::Kind::FadeIn: MakeFade(FadeMode::In); break;
+    case StreamRequest::Kind::Volume: MakeVolume(request.volume); break;
     }
 }
 
-// `mode` 2 fades out, 1 in.
-void SoundManager::MakeFade(int mode) {
+void SoundManager::MakeFade(FadeMode mode) {
     musicFader.mode = mode;
-    musicFader.finished = 0;
-    musicFader.step = 0.0f;
-    musicFader.step = lib::FloatFromBits(FadeStepBits());
+    musicFader.finished = false;
     musicFader.holdUntil = 0;
 }
 
@@ -774,148 +645,94 @@ void SoundManager::MakeVolume(int volume) {
     musicFader.volume = volume;
     musicFader.Recalc();
     if (streamSample != nullptr) audio::SetStreamVolume(streamSample, musicFader.level);
-    if (volume == 0) MakeStop(4);
+    if (volume == 0) MakeStop(StreamSwitch::Now);
 }
 
-// Asks the stream thread to switch to `name` (an .mp3 path). `mode` says when:
-// 1 after the current file, 2 now with a fade out, 3 at the next marker of the current file,
-// 4 at the current buffer position; anything else is ignored. Repeating the playing file only
-// cancels a fade out. Returns 0 only when the output has no stream.
-int SoundManager::MakeSwitch(std::string_view name, int mode) {
-    if (enabled == 0) return 1;
-    if (musicFader.volume == 0) return 1;
-    if (streamSample == nullptr) return 0;
+// Asks the stream thread to switch to `name` (an .mp3 path); `mode` says when. Repeating the playing file only
+// cancels a fade out. Nothing happens with the music off (volume 0), without a stream, or for a marker switch with no
+// marker to take.
+void SoundManager::MakeSwitch(std::string_view name, StreamSwitch mode) {
+    if (!enabled || musicFader.volume == 0 || streamSample == nullptr) return;
     endAfterSwitch = false;
-    int m = 4;
-    if (streamState != 0) {
+    StreamSwitch m = StreamSwitch::Now;
+    if (streamState != StreamState::Idle) {
         m = mode;
-        if (str::Compare(streamName,
-                            name) == 0 &&
-            !name.empty()) {
-            streamState = 1;
-            if (switchMode == 2) MakeFade(1);
-            return 1;
+        if (str::Compare(streamName, name) == 0 && !name.empty()) {
+            streamState = StreamState::Playing;
+            if (switchMode == StreamSwitch::AfterFade) MakeFade(FadeMode::In);
+            return;
         }
     }
-    if (streamState == 2 &&
-        str::Compare(nextName,
-                        name) == 0 &&
-        switchMode >= m) {
-        return 1;
-    }
-    std::int32_t at;
+    if (streamState == StreamState::Switching && str::Compare(nextName, name) == 0 && switchMode >= m) return;
+    std::int32_t at = kNoPosition;   // AtEnd; AfterFade (the fade ends it)
     switch (m) {
-    case 2:
-        MakeFade(2);
-        at = 0x7FFFFFFF;
+    case StreamSwitch::AtEnd:
         break;
-    case 3: {
-        int n = lib::Count(markers);
-        if (n == 0) {
-            m = 1;
-            at = 0x7FFFFFFF;
+    case StreamSwitch::AfterFade:
+        MakeFade(FadeMode::Out);
+        break;
+    case StreamSwitch::AtMarker: {
+        if (markers.empty()) {
+            m = StreamSwitch::AtEnd;
             break;
         }
-        at = -1;
-        bool found = false;
-        if (n > 0) {
-            int pos = streamPosition + streamBufferFrames;
-            for (int i = 0; i < n; ++i) {
-                if (markers[i] >= pos) {
-                    at = markers[i];
-                    found = at != -1;
-                    break;
-                }
-            }
-        }
-        if (!found) at = markers[0];
-        if (at == -1) {
-            return 1;
-        }
+        const int pos = streamPosition + streamBufferFrames;
+        const auto next = std::ranges::find_if(markers, [pos](std::int32_t marker) { return marker >= pos; });
+        at = next != markers.end() && *next != -1 ? *next : markers[0];
+        if (at == -1) return;
         break;
     }
-    case 4:
+    case StreamSwitch::Now:
         at = streamPosition + streamBufferFrames;
-        if (at == -1) {
-            return 1;
-        }
+        if (at == -1) return;
         break;
-    case 1:
-        at = 0x7FFFFFFF;
-        break;
-    default:
-        return 1;
     }
-    streamState = 2;
+    streamState = StreamState::Switching;
     switchMode = m;
     nextName = name;
     streamSwitchAt = at;
-    return 1;
 }
 
-// Mode 4 stops the stream now (closing the file) and fades the volume back in over 2 s;
-// other modes request silence ("") the RequestStream way.
-void SoundManager::MakeStop(int mode) {
-    if (enabled == 0) return;
+// Mode Now stops the stream now (closing the file) and fades the volume back in over 2 s; other modes
+// request silence the RequestStream way.
+void SoundManager::MakeStop(StreamSwitch mode) {
+    if (!enabled) return;
     endAfterSwitch = false;
-    if (streamState != 0) {
-        if (mode == 4) {
-            if (streamFile != nullptr) {
-                audio::CloseMp3(streamFile);
-                streamFile = nullptr;
-            }
-            streamState = 0;
-            streamName = game::kEmptyText;
-            float step = kStopFadeStep;
-            musicFader.mode = 2;
-            musicFader.finished = 0;
-            musicFader.step = step;
-            if (step == 0.0f) musicFader.step = lib::FloatFromBits(FadeStepBits());
-            musicFader.SetHold(platform::Milliseconds() + 2000);
-        } else {
-            MakeSwitch(game::kEmptyText, mode);
-        }
+    if (streamState == StreamState::Idle) return;
+    if (mode != StreamSwitch::Now) {
+        MakeSwitch({}, mode);
+        return;
     }
+    CodecClose(this);
+    streamState = StreamState::Idle;
+    streamName.clear();
+    musicFader.mode = FadeMode::Out;
+    musicFader.finished = false;
+    musicFader.SetHold(platform::Milliseconds() + 2000);
 }
 
-// A request the stream thread has yet to take (state 2) gets its end-after request from SwitchStream; one it has
-// already taken or turned down gets it now.
+// A request the stream thread has yet to take (state Switching) gets its end-after request from SwitchStream; one it
+// has already taken or turned down gets it now.
 void SoundManager::MakePlayOnce(std::string_view name) {
-    MakeSwitch(name, 4);
-    if (streamState == 2) endAfterSwitch = true;
-    else MakeStop(1);
+    MakeSwitch(name, StreamSwitch::Now);
+    if (streamState == StreamState::Switching) endAfterSwitch = true;
+    else MakeStop(StreamSwitch::AtEnd);
 }
 
-// --- Stopping everything, wave lengths -------------------------------------------------------
+// --- Stopping everything ---------------------------------------------------------------------
 
 // Loading a game, leaving a zone, the main menu: every voice and deferred sound goes.
 void SoundManager::StopAll(bool stopStream) {
     if (slots != nullptr)
-        for (int i = 0; i < 15; ++i)
-            if (slots[i].playing != 0) EndSlot(&slots[i]);
+        for (SoundSlot& slot : std::span(slots.get(), kVoiceCount)) EndSlot(&slot);
     nextHandle = 0;
     DeleteDeferred();
-    if (stopStream) StopStream(4);
+    if (stopStream) StopStream(StreamSwitch::Now);
 }
 
-// StopAll's loop (Close's is the same with the map's clear() out of line).
 void SoundManager::DeleteDeferred() {
-    for (auto& [handle, rec] : deferred)
-        if (rec != nullptr) FreeDeferred(rec);
+    for (auto& [handle, rec] : deferred) delete rec;
     deferred.clear();
-}
-
-float SoundManager::WaveLength(const void* data, std::size_t size) {
-    const audio::WaveInfo info = audio::ReadWaveInfo(data, size);
-    std::uint32_t samples;
-    if (info.format == audio::kImaAdpcm) {
-        samples = info.samples;
-    } else {
-        std::uint32_t bitsPerFrame = static_cast<std::uint32_t>(info.bits * info.channels);
-        if (bitsPerFrame == 0) return 0.0f;
-        samples = (info.dataLength << 3) / bitsPerFrame;
-    }
-    return static_cast<float>(static_cast<std::int32_t>(samples)) / static_cast<float>(static_cast<std::int32_t>(info.rate));
 }
 
 // --- The volume envelope ----------------------------------------------------------------------------
@@ -925,13 +742,13 @@ void SoundFader::SetHold(std::uint32_t until) {
     holdUntil = until;
     if (until != 0) return;
     factor = 1.0f;
-    mode = 0;
-    finished = 0;
+    mode = FadeMode::None;
+    finished = false;
     Recalc();
 }
 
 void SoundFader::Recalc() {
-    level = ClampLevel(lib::RoundEven(volume * factor * kLevelMax * kPercent));
+    level = std::clamp(lib::RoundEven(volume * factor * kLevelMax * kPercent), 0, kMaxLevel);
 }
 
 // One step of the fade at `now` (StepStream, every 100 ms, under the stream lock).
@@ -941,24 +758,22 @@ void SoundFader::Update(std::uint32_t now) {
         return;
     }
     switch (mode) {
-    case 0:
+    case FadeMode::None:
         return;
-    case 1:
-        factor = step + factor;
+    case FadeMode::In:
+        factor = kFadeStep + factor;
         if (factor >= 1.0f) {
-            mode = 0;
+            mode = FadeMode::None;
             factor = 1.0f;
         }
         break;
-    case 2:
-        factor -= step;
+    case FadeMode::Out:
+        factor -= kFadeStep;
         if (factor <= 0.0f) {
-            mode = 0;
+            mode = FadeMode::None;
             factor = 0.0f;
-            finished = 1;
+            finished = true;
         }
-        break;
-    default:
         break;
     }
     Recalc();
@@ -967,10 +782,10 @@ void SoundFader::Update(std::uint32_t now) {
 // --- A voice for a new sound -----------------------------------------------------
 
 int SoundManager::AllocateVoice(int priority) {
-    int lowest = 0x7FFFFFFF;
+    int lowest = std::numeric_limits<int>::max();
     int index = 0;
     for (int i = 0; i < kVoiceCount; ++i) {
-        if (slots[i].playing == 0) return i;
+        if (!slots[i].playing) return i;
         if (slots[i].priority < lowest) {
             lowest = slots[i].priority;
             index = i;
@@ -978,7 +793,7 @@ int SoundManager::AllocateVoice(int priority) {
     }
     if (priority <= lowest) return kNoVoice;
     SoundSlot* slot = &slots[index];
-    if (slot->looping != 0) {
+    if (slot->looping) {
         // The stolen looping sound waits in the deferred map with its state and sample position.
         auto* rec = new DeferredSound;
         rec->name = slot->name;
@@ -987,7 +802,6 @@ int SoundManager::AllocateVoice(int priority) {
         rec->pan = slot->pan;
         rec->priority = slot->priority;
         rec->speech = slot->speech;
-        rec->length = slot->length;
         rec->flat = slot->flat;
         rec->heightFade = slot->heightFade;
         rec->position = slot->position;
@@ -995,9 +809,9 @@ int SoundManager::AllocateVoice(int priority) {
         rec->farDistance = slot->farDistance;
         rec->handle = slot->handle;
         rec->samplePosition = audio::Position(slot->voice);
-        SetDeferred(deferred, rec->handle, rec);
+        deferred[rec->handle] = rec;
     }
-    if (slot->playing != 0) EndSlot(slot);
+    EndSlot(slot);
     return index;
 }
 
@@ -1005,54 +819,46 @@ int SoundManager::AllocateVoice(int priority) {
 
 // Plays `name` without position: `volume` 0..100 (scaled by the effects or speech volume,
 // and with `heightFade` by the camera height), `pan` -100..100, `loop` endlessly, `compressed` an
-// MP3 to decompress (handed to the wave loader). Returns the sound handle, or -1 (sound off, no voice for a one-shot
-// sound, silent one-shot, or the wave did not load).
-int SoundManager::Play2D(std::string_view name, int priority, int volume, int pan, int loop, int heightFade, int speech,
-                          int compressed) {
-    if (enabled == 0) return -1;
+// MP3 to decompress (handed to the wave loader). Returns the sound handle, or kNoSound (sound off, no voice for a
+// one-shot sound, silent one-shot, or the wave did not load).
+int SoundManager::Play2D(std::string_view name, int priority, int volume, int pan, const Play2DOptions& options) {
+    if (!enabled) return kNoSound;
     int index = AllocateVoice(priority);
-    if (index == -1) {
-        if (loop == 0) return -1;
-        return DeferLooping(this, name, priority, volume, pan, heightFade, speech);
+    if (index == kNoVoice) {
+        if (!options.loop) return kNoSound;
+        return DeferLooping(this, name, priority, volume, pan, options);
     }
     SoundSlot* slot = &slots[index];
     audio::ResetVoice(slot->voice);
-    slot->looping = loop;
+    slot->looping = options.loop;
     slot->baseVolume = volume;
     slot->pan = pan;
     slot->priority = priority;
-    slot->flat = 1;
-    slot->heightFade = heightFade;
-    slot->speech = speech;
-    slot->volume = FlatVolume(volume, heightFade, speech);
-    if (volume == 0 && loop == 0) return -1;
-    if (LoadSample(slot, name, compressed) == 0) return -1;
-    return StartLoaded(this, slot, loop);
+    slot->flat = true;
+    slot->heightFade = options.heightFade;
+    slot->speech = options.speech;
+    slot->volume = FlatVolume(volume, options.heightFade, options.speech);
+    if (volume == 0 && !options.loop) return kNoSound;
+    if (!LoadSample(slot, name, options.compressed)) return kNoSound;
+    return StartLoaded(this, slot, options.loop);
 }
 
 // Plays `name` at `position`: full volume inside `nearDist`, silent beyond `farDist`, the pan from the
-// listener (UpdatePositional). Returns the handle or -1 as Play2D. A looping sound without a voice is
-// deferred; the record's volume, base volume, pan and length stay 0 (the original left them as operator new
-// returned them): a restart computes the volume and pan from the position, and nothing reads the others.
-int SoundManager::Play3D(std::string_view name, int priority, const Vector3& position, float nearDist, float farDist, int loop) {
-    if (enabled == 0) return -1;
+// listener (UpdatePositional). Returns the handle or kNoSound as Play2D. A looping sound without a voice is
+// deferred; the record's volume, base volume and pan stay 0 (the original left them as operator new returned them):
+// a restart computes the volume and pan from the position, and nothing reads the others.
+int SoundManager::Play3D(std::string_view name, int priority, const Vector3& position, float nearDist, float farDist, bool loop) {
+    if (!enabled) return kNoSound;
     int index = AllocateVoice(priority);
-    if (index == -1) {
-        if (loop == 0) return -1;
+    if (index == kNoVoice) {
+        if (!loop) return kNoSound;
         auto* rec = new DeferredSound;
         rec->name.assign(name);
         rec->position = position;
         rec->nearDistance = nearDist;
         rec->farDistance = farDist;
-        rec->flat = 0;
-        rec->heightFade = 0;
-        rec->speech = 0;
         rec->priority = priority;
-        rec->handle = nextHandle;
-        ++nextHandle;
-        rec->samplePosition = 0;
-        SetDeferred(deferred, rec->handle, rec);
-        return rec->handle;
+        return AddDeferred(this, rec);
     }
     SoundSlot* slot = &slots[index];
     audio::ResetVoice(slot->voice);
@@ -1060,45 +866,38 @@ int SoundManager::Play3D(std::string_view name, int priority, const Vector3& pos
     slot->position = position;
     slot->nearDistance = nearDist;
     slot->farDistance = farDist;
-    slot->flat = 0;
-    slot->heightFade = 0;
-    slot->speech = 0;
+    slot->flat = false;
+    slot->heightFade = false;
+    slot->speech = false;
     slot->priority = priority;
     UpdatePositional(slot);
-    if (slot->volume == 0 && loop == 0) return -1;
-    if (LoadSample(slot, name, 0) == 0) return -1;
+    if (slot->volume == 0 && !loop) return kNoSound;
+    if (!LoadSample(slot, name, false)) return kNoSound;
     return StartLoaded(this, slot, loop);
 }
 
 // Gives the voice wave `name`: a cached copy (unless `compressed`, which then leaves the
 // voice without a new wave), or the file from the first archive that has it, decoded
 // from MP3 when `compressed` (kept at the cache's old end), else copied after
-// making room (kept at its front). Sets the voice's length, name, playing flag and a new handle.
-// Returns 0 when no archive has the file or the decoding fails.
-int SoundManager::LoadSample(SoundSlot* slot, std::string_view name, int compressed) {
-    std::string key(name);    // freed on each return
+// making room (kept at its front). Sets the voice's name, playing flag and a new handle.
+// Returns false when no archive has the file or the decoding fails.
+bool SoundManager::LoadSample(SoundSlot* slot, std::string_view name, bool compressed) {
+    std::string key(name);
     auto cached = cache.find(key);
     if (cached != cache.end()) {
-        if (compressed == 0) UseCached(this, slot, cached->second);
+        if (!compressed) UseCached(this, slot, cached->second);
     } else {
         MappedResource* source = nullptr;
-        void* data = nullptr;
         std::uint32_t fileSize = 0;
-        for (auto n = waveSources.begin();;) {
-            if (n == waveSources.end()) return 0;
-            auto current = n;
-            ++n;
-            source = *current;
-            data = source->GetFile(name, &fileSize);
-            if (data != nullptr) break;
-        }
+        void* data = LoadWaveFile(name, &fileSize, &source);
+        if (data == nullptr) return false;
         int size = static_cast<int>(fileSize);
         std::uint32_t now = platform::TickCount();
         WaveRecord record;
-        if (compressed != 0) {
+        if (compressed) {
             const bool ok = audio::DecodeMp3File(data, fileSize, &record.data);
             source->CloseFile(data);
-            if (!ok) return 0;
+            if (!ok) return false;
             size = static_cast<int>(record.data.size());
         } else {
             Evict(this, size, now);
@@ -1112,7 +911,7 @@ int SoundManager::LoadSample(SoundSlot* slot, std::string_view name, int compres
         record.uses = 1;
         cacheBytes += size;
         std::list<WaveRecord>::iterator node;
-        if (compressed == 0) {
+        if (!compressed) {
             cacheList.push_front(std::move(record));
             node = cacheList.begin();
         } else {
@@ -1121,33 +920,19 @@ int SoundManager::LoadSample(SoundSlot* slot, std::string_view name, int compres
         }
         cache[key] = node;
         audio::SetWave(slot->voice, node->data.data(), node->data.size());
-        slot->length = WaveLength(node->data.data(), node->data.size());
     }
     slot->name = key;
-    slot->playing = 1;
+    slot->playing = true;
     slot->handle = nextHandle;
     ++nextHandle;
-    return 1;
+    return true;
 }
-
-void SoundManager::StreamNotify() {}
 
 // --- The engine object's virtuals, the wave sources and sound folder, the music stream's file reading,
 // the lifetime and the output's setup Open / Close / Reset.
 
 namespace {
-constexpr const char* kSoundManagerClassNameAddress = "CSoundManager";
-const char* const kBackslash = "\\";
-
-constexpr int kListBlockSize = 10;
-constexpr int kFullVolume = 100;
-constexpr int kNoSwitch = 4;   // RequestStream's "switch at the current position"
-
-void ConstructFader(SoundFader& fader) {
-    fader.volume = kFullVolume;
-    fader.Recalc();
-    fader.SetHold(0);
-}
+constexpr const char* kClassName = "CSoundManager";
 
 constexpr unsigned kMaxRate = 44100;
 
@@ -1160,78 +945,63 @@ constexpr std::uint32_t kStreamPeriodMs = 100;
 constexpr int kNoHalfReady = -1;
 
 constexpr std::uint32_t kSwitchHoldMs = 4000;
-constexpr int kNoLoop = 0x7FFFFFFF;
 constexpr int kNeverSwitch = -1;
-constexpr int kFullLevel = 0x7F;
 constexpr int kCentrePan = 0x40;
-constexpr std::uint8_t kSilence8 = 0x7F;
-constexpr int kStateSwitching = 2;
-constexpr int kSwitchAtEnd = 1;        // RequestStream's modes
-constexpr int kSwitchAfterFade = 2;
 const char* const kLoopMarkers = "Markers2";
 const char* const kSwitchMarkers = "Markers1";
 
-void CodecClose(SoundManager* m) {
-    if (m->streamFile == nullptr) return;
-    audio::CloseMp3(m->streamFile);
-    m->streamFile = nullptr;
-}
-void Silence(SoundManager* m, std::uint8_t* to, int bytes) {
-    std::memset(to, m->streamSilence, static_cast<std::uint32_t>(bytes));
+// 16-bit samples are signed: silence is zero bytes.
+void Silence(std::uint8_t* to, int bytes) {
+    std::memset(to, 0, static_cast<std::uint32_t>(bytes));
 }
 // `bytes` of the file; what it does not give is silence.
 void ReadOrSilence(SoundManager* m, std::uint8_t* to, int bytes) {
     int got = audio::DecodeMp3(m->streamFile, to, bytes);
-    if (got < bytes) Silence(m, to + got, bytes - got);
+    if (got < bytes) Silence(to + got, bytes - got);
 }
 
 // The next file takes over: `bytes` of it (or silence) to `to`.
 void SwitchStream(SoundManager* m, std::uint8_t* to, int bytes) {
     m->streamReadPosition = 0;
-    m->streamState = 0;
+    m->streamState = StreamState::Idle;
     // Rebirth's StreamPatch: the mod's Stream\ folder when it has the file.
     const bool modStream = ei::rebirth::Enabled(ei::rebirth::Patch::StreamPatch) && modfolders::StreamInMod(m->nextName);
     std::string path = (modStream ? modfolders::StreamFolder() : m->soundPath) + m->nextName;
     CodecClose(m);
-    if (str::Compare(m->nextName, game::kEmptyText) != 0 && m->streamReader.OpenFile(path, &m->streamFileSize) != 0)
+    if (!m->nextName.empty() && m->streamReader.OpenFile(path, &m->streamFileSize) != 0)
         m->streamFile = audio::OpenMp3(SoundStreamRead, m);
     if (m->streamFile == nullptr) {
-        Silence(m, to, bytes);
-        m->streamState = 0;
+        Silence(to, bytes);
         m->endAfterSwitch = false;
-        {
-            std::lock_guard<std::recursive_mutex> guard(m->nameLock);
-            m->streamName = game::kEmptyText;
-        }
+        std::lock_guard<std::recursive_mutex> guard(m->nameLock);
+        m->streamName.clear();
         return;
     }
-    m->streamState = 1;
+    m->streamState = StreamState::Playing;
     {
         std::lock_guard<std::recursive_mutex> guard(m->nameLock);
         m->streamName = m->nextName;
     }
     m->soundRegistry.GetIntArray(m->streamName.c_str(), kSwitchMarkers, &m->markers);
     m->soundRegistry.GetIntArray(m->streamName.c_str(), kLoopMarkers, &m->markers2);
-    m->streamLoopAt = !m->markers2.empty() ? m->markers2[0] : kNoLoop;
+    m->streamLoopAt = !m->markers2.empty() ? m->markers2[0] : kNoPosition;
     m->streamSwitchAt = kNeverSwitch;
     const unsigned rate = audio::Mp3Rate(m->streamFile);
     const int channels = audio::Mp3Channels(m->streamFile);
     const int bits = audio::Mp3Bits(m->streamFile);
-    // 16 bits are signed, 8 bits unsigned (silence at 0x7F).
-    m->streamSilence = bits == 16 ? 0 : kSilence8;
     audio::SetStreamFormat(m->streamSample, rate, channels, bits);
-    audio::SetStreamVolume(m->streamSample, kFullLevel);
+    audio::SetStreamVolume(m->streamSample, kMaxLevel);
     audio::SetStreamPan(m->streamSample, kCentrePan);
     m->streamFrameBytes = static_cast<std::int32_t>(static_cast<std::uint32_t>(bits * channels) >> 3);
     m->streamBufferFrames = m->streamBufferSize / m->streamFrameBytes;
     m->streamPosition = 0;
     ReadOrSilence(m, to, bytes);
-    if (m->endAfterSwitch.exchange(false)) m->MakeStop(1);
+    if (m->endAfterSwitch.exchange(false)) m->MakeStop(StreamSwitch::AtEnd);
 }
 
 } // namespace
 
-const char* SoundManager::ClassName() { return kSoundManagerClassNameAddress; }
+const char* SoundManager::ClassName() { return kClassName; }
 ClassId SoundManager::GetClassId() { return ClassId::SoundManager; }
 
 void SoundManager::Create() {
@@ -1244,24 +1014,21 @@ void SoundManager::ClearWaveSources() {
     waveSources.clear();
 }
 
-// Called at startup for the two sound archives. A failed allocation is not tested (the open call goes
-// through a null object).
-int SoundManager::AddWaveSource(const std::string& path) {
-    if (enabled == 0) return 1;
+// Called at startup for the two sound archives.
+bool SoundManager::AddWaveSource(const std::string& path) {
+    if (!enabled) return true;
     auto* source = new MappedResource();
     if (source->OpenResource(path) == 0) {
         delete source;
-        return 0;
+        return false;
     }
     waveSources.push_back(source);
-    return 1;
+    return true;
 }
 
 // From the map's ambient sounds.
-void* SoundManager::LoadWaveFile(const char* name, std::uint32_t* size, MappedResource** source) {
-    for (auto node = waveSources.begin(); node != waveSources.end();) {
-        MappedResource* current = *node;
-        ++node;
+void* SoundManager::LoadWaveFile(std::string_view name, std::uint32_t* size, MappedResource** source) {
+    for (MappedResource* current : waveSources) {
         void* data = current->GetFile(name, size);
         if (data != nullptr) {
             if (source != nullptr) *source = current;
@@ -1271,14 +1038,11 @@ void* SoundManager::LoadWaveFile(const char* name, std::uint32_t* size, MappedRe
     return nullptr;
 }
 
-// Rebirth redirects its ListFiles call; this is the vanilla body. From the unit database's sound counts, on
-// the game's main thread.
+// From the unit database's sound counts, on the game's main thread.
 std::vector<std::string> SoundManager::ListWaveFiles(const char* pattern) {
     std::vector<std::string> waves;
     std::vector<std::string> names;
-    for (auto node = waveSources.begin(); node != waveSources.end();) {
-        MappedResource* source = *node;
-        ++node;
+    for (MappedResource* source : waveSources) {
         source->ListFiles(&names, pattern);
         waves.insert(waves.end(), names.begin(), names.end());
     }
@@ -1286,24 +1050,17 @@ std::vector<std::string> SoundManager::ListWaveFiles(const char* pattern) {
 }
 
 // Called at startup.
-int SoundManager::SetPath(std::string_view folder, const std::string& registryPath) {
-    if (enabled == 0) return 1;
+bool SoundManager::SetPath(std::string_view folder, const std::string& registryPath) {
+    if (!enabled) return true;
     soundPath = folder;
-    bool missing;
-    {
-        std::string last = str::Right(soundPath, 1);
-        missing = str::Compare(last, kBackslash) != 0;
-    }
-    if (missing) soundPath += kBackslash;
-    return soundRegistry.Open(registryPath) != 0 ? 1 : 0;
+    if (!soundPath.ends_with('\\')) soundPath += '\\';
+    return soundRegistry.Open(registryPath);
 }
 
 std::string SoundManager::CurrentStreamName() {
     std::lock_guard<std::recursive_mutex> guard(nameLock);
-    std::string name;
-    if (streamState == 1 || streamState == 2) name = streamName;
-    else name = game::kEmptyText;
-    return name;
+    if (streamState == StreamState::Playing || streamState == StreamState::Switching) return streamName;
+    return {};
 }
 
 int SoundStreamRead(void* user, char* buffer, int size, int offset) {
@@ -1321,23 +1078,16 @@ int SoundStreamRead(void* user, char* buffer, int size, int offset) {
 
 // --- Constructor, destructor, stream reset ---------------------------------------------------
 
-// The stream reader, the strings and the archive are members the compiler constructs before the body.
 SoundManager::SoundManager() {
-    musicFader.volume = kFullVolume;
-    musicFader.Recalc();
-    musicFader.SetHold(0);
     Reset();
 }
 
-// The archive, the strings and the stream reader are destroyed after the body.
 SoundManager::~SoundManager() {
     Close();
-    cacheList.clear();
-    waveSources.clear();
 }
 
 void SoundManager::ResetStream() {
-    streamState = 0;
+    streamState = StreamState::Idle;
     endAfterSwitch = false;
     streamBusy = false;
     streamOnMainLoop = false;
@@ -1356,27 +1106,29 @@ void SoundManager::ResetStream() {
     streamSwitchAt = -1;
     streamLoopAt = -1;
     streamFrameBytes = -1;
-    streamSilence = 0;
-    streamName = game::kEmptyText;
-    nextName = game::kEmptyText;
+    streamName.clear();
+    nextName.clear();
     streamReadPosition = 0;
     streamFileSize = 0;
-    switchMode = kNoSwitch;
-    ConstructFader(musicFader);
+    switchMode = StreamSwitch::Now;
+    musicFader.volume = kFullVolume;
+    musicFader.SetHold(0);
 }
 
 // --- Open, Close, Reset ------------------------------------------------------------------
 
-int SoundManager::CloseStream() {
-    if (streamFile != nullptr) audio::CloseMp3(streamFile);
+void SoundManager::CloseStream() {
+    CodecClose(this);
     if (streamSample != nullptr) audio::DestroyStream(streamSample);
     ResetStream();
-    return 0;
 }
 
-int SoundManager::OpenStream() {
+bool SoundManager::OpenStream() {
     streamSample = audio::CreateStream();
-    if (streamSample == nullptr) return CloseStream();
+    if (streamSample == nullptr) {
+        CloseStream();
+        return false;
+    }
 
     streamBufferSize = audio::MinimumHalfBytes(kStreamRate, kStreamChannels, kStreamBits) * 2;
     for (std::vector<std::uint8_t>& buffer : streamBuffers) buffer.assign(static_cast<std::size_t>(streamBufferSize), 0);
@@ -1388,15 +1140,15 @@ int SoundManager::OpenStream() {
     streamHalfBuffer[1] = 1;
     streamSpareBuffer = 2;
     streamPosition = 0;
-    streamState = 0;
+    streamState = StreamState::Idle;
     // No fade and no hold; the level from the music volume.
     musicFader.SetHold(0);
-    return 1;
+    return true;
 }
 
 void SoundManager::StreamThread() {
     std::uint32_t last = platform::Milliseconds();
-    while (threadsQuit == 0) {
+    while (!threadsQuit) {
         std::uint32_t now = platform::Milliseconds();
         std::uint32_t elapsed = now - last;
         last = now;
@@ -1432,7 +1184,7 @@ void SoundManager::StepStream(std::uint32_t now) {
         streamBusy = true;
         audio::NoteStreamHeld(std::chrono::steady_clock::now() - heldFrom);
         guard.unlock();
-        ReadStreamVanilla(now);
+        FillSpareBuffer(now);
         guard.lock();
         heldFrom = std::chrono::steady_clock::now();
         streamBusy = false;
@@ -1446,29 +1198,30 @@ void SoundManager::StepStream(std::uint32_t now) {
 // --- The stream's reader -----------------------------------------------------------------
 
 // The game leaves "from the beginning again" (a local) unwritten when neither a loop point nor a switch
-// point is in the buffer, and reads it in one such case: a switch at the file's end (mode 1) when the file
+// point is in the buffer, and reads it in one such case: a switch at the file's end (mode AtEnd) when the file
 // ends in this buffer. Here that case is the switch, which is what the mode asks for.
-void SoundManager::ReadStreamVanilla(std::uint32_t now) {
+void SoundManager::FillSpareBuffer(std::uint32_t now) {
     std::uint8_t* const buffer = streamBuffers[streamSpareBuffer].data();
-    const std::int32_t state = streamState;
-    if (state == 0) {
-        Silence(this, buffer, streamBufferSize);
+    const StreamState state = streamState;
+    if (state == StreamState::Idle) {
+        Silence(buffer, streamBufferSize);
         return;
     }
+    const bool switching = state == StreamState::Switching;
     const int frames = streamBufferFrames;
     int current = frames;   // frames of the playing file as it goes
     int rest = 0;           // frames after its loop point or the switch point
     bool again = false;     // the rest is the playing file from its beginning
-    if (state == kStateSwitching && switchMode == kSwitchAfterFade && musicFader.finished != 0) {
+    if (switching && switchMode == StreamSwitch::AfterFade && musicFader.finished) {
         current = 0;
         rest = frames;
         musicFader.SetHold(now + kSwitchHoldMs);
-    } else if ((state == 1 || (state == kStateSwitching && streamSwitchAt > streamLoopAt)) && streamLoopAt >= streamPosition &&
+    } else if ((state == StreamState::Playing || (switching && streamSwitchAt > streamLoopAt)) && streamLoopAt >= streamPosition &&
                streamLoopAt < streamPosition + frames) {
         again = true;
         current = streamLoopAt - streamPosition;
         rest = frames - current;
-    } else if (state == kStateSwitching && streamSwitchAt >= streamPosition && streamSwitchAt < streamPosition + frames) {
+    } else if (switching && streamSwitchAt >= streamPosition && streamSwitchAt < streamPosition + frames) {
         current = streamSwitchAt - streamPosition;
         rest = frames - current;
     }
@@ -1481,7 +1234,7 @@ void SoundManager::ReadStreamVanilla(std::uint32_t now) {
     } else {
         int got = audio::DecodeMp3(streamFile, buffer, currentBytes);
         if (got < currentBytes) {
-            if (streamState == kStateSwitching && switchMode == kSwitchAtEnd) {
+            if (streamState == StreamState::Switching && switchMode == StreamSwitch::AtEnd) {
                 // The file ended: the next one from here.
                 currentBytes = got;
                 restBytes = streamBufferSize - got;
@@ -1502,18 +1255,18 @@ void SoundManager::ReadStreamVanilla(std::uint32_t now) {
     SwitchStream(this, buffer + currentBytes, restBytes);
 }
 
-void SoundEndOfSample(void* slot) { static_cast<SoundSlot*>(slot)->finished = 1; }
+void SoundEndOfSample(void* slot) { static_cast<SoundSlot*>(slot)->finished = true; }
 
-int SoundManager::Open(void* window, int useReverb, unsigned rate) {
+bool SoundManager::Open(void* window, bool useReverb, unsigned rate) {
     Destroy();   // Close
     reverbOn = useReverb;
-    if (rate >= kMaxRate) rate = kMaxRate;
+    rate = std::min(rate, kMaxRate);
     std::string error;
-    if (!audio::OpenOutput(window, rate, useReverb != 0, &error)) {
+    if (!audio::OpenOutput(window, rate, useReverb, &error)) {
         game::DebugLog("%s\n", error.c_str());
-        return 0;
+        return false;
     }
-    if (OpenStream() != 0) {
+    if (OpenStream()) {
         // With a device the music plays in real time on its own thread. Without one nothing is heard, and the main
         // loop steps it on the game's clock (FollowClock), so what UpdateMusic reads of it comes on the same frames
         // in every run (the harness's virtual clock).
@@ -1528,41 +1281,40 @@ int SoundManager::Open(void* window, int useReverb, unsigned rate) {
         }
     }
     slots = std::make_unique<SoundSlot[]>(kVoiceCount);
-    for (int i = 0; i < kVoiceCount; ++i) {
-        SoundSlot& slot = slots[i];
+    for (SoundSlot& slot : std::span(slots.get(), kVoiceCount)) {
         slot.volume = -1;
         slot.baseVolume = -1;
         slot.pan = -1;
         slot.priority = -1;
-        slot.playing = 0;
-        slot.looping = 0;
-        slot.speech = 0;
-        slot.finished = 0;
-        slot.heightFade = 0;
-        slot.handle = -1;
+        slot.playing = false;
+        slot.looping = false;
+        slot.speech = false;
+        slot.finished = false;
+        slot.heightFade = false;
+        slot.handle = kNoSound;
         slot.voice = audio::CreateVoice();
     }
-    enabled = 1;
-    return 1;
+    enabled = true;
+    return true;
 }
 
 void SoundManager::Close() {
     if (streamThread.joinable()) {
-        threadsQuit = 1;
+        threadsQuit = true;
         streamThread.join();
     }
     CloseStream();
     if (slots != nullptr) {
-        for (int i = 0; i < kVoiceCount; ++i) {
-            if (slots[i].playing != 0) EndSlot(&slots[i]);
-            if (slots[i].voice != nullptr) audio::DestroyVoice(slots[i].voice);
+        for (SoundSlot& slot : std::span(slots.get(), kVoiceCount)) {
+            EndSlot(&slot);
+            if (slot.voice != nullptr) audio::DestroyVoice(slot.voice);
         }
         slots.reset();
     }
     DeleteDeferred();
     cacheList.clear();
     cache.clear();
-    if (enabled != 0) audio::CloseOutput();
+    if (enabled) audio::CloseOutput();
     ClearWaveSources();
     streamReader.Close();
     soundRegistry.Close();
@@ -1571,11 +1323,11 @@ void SoundManager::Close() {
 
 void SoundManager::Reset() {
     ResetStream();
-    threadsQuit = 0;
+    threadsQuit = false;
     slots = nullptr;
     cacheBytes = 0;
     for (SoundEmitter& e : emitters) {
-        e.active = 0;
+        e.active = false;
         e.position = {};
         e.innerRadius = 0.0f;
         e.outerRadius = 0.0f;
@@ -1584,15 +1336,15 @@ void SoundManager::Reset() {
         e.lastPlayed = 0;
     }
     for (SoundSequence& q : sequences) {
-        q.active = 0;
-        q.handle = -1;
+        q.active = false;
+        q.handle = kNoSound;
         q.position = {};
         q.nearDistance = 0.0f;
         q.farDistance = 0.0f;
         q.remaining = -1;
         q.index = -1;
         q.priority = -1;
-        q.random = 0;
+        q.random = false;
         q.chooser = nullptr;
         q.id = -1;
     }
@@ -1600,11 +1352,10 @@ void SoundManager::Reset() {
     emitterTick = 0;
     speechVolume = kFullVolume;
     effectsVolume = kFullVolume;
-    enabled = 0;
-    spare = 0;
-    reverbOn = 0;
-    panDirect = 0;
+    enabled = false;
+    reverbOn = false;
+    panDirect = false;
     reverb[0] = reverb[1] = reverb[2] = 0.0f;
-    soundPath = game::kEmptyText;
+    soundPath.clear();
     randomStart = 0;
 }

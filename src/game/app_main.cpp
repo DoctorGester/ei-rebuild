@@ -165,7 +165,7 @@ void OpenSound() {
     }
     {
         std::string effects = textFolder + "sfx.res";
-        SoundManager* sound = g_clientWorld.sounds;
+        SoundManager* sound = g_clientWorld.sounds.get();
         sound->ClearWaveSources();
         sound->AddWaveSource(effects);
     }
@@ -415,7 +415,7 @@ void ShutDown() {
     g_sceneRenderer.SetGamma(0.0f, 0.0f);
     g_sceneRenderer.DestroyRenderer();
     options::g_options.Save();
-    g_clientWorld.SetCamera(nullptr);
+    g_clientWorld.camera = nullptr;
     EmptyWorlds();
 }
 
@@ -425,7 +425,6 @@ char g_windowTitle[256] = /*0079BB24*/ {""};
 platform::NativeWindow g_mainWindow = /*0079BC28*/ {};
 std::uint8_t g_active = /*0079BC5C*/ {};
 std::uint8_t g_interfaceHasScreen = /*00784750*/ 1;
-std::uint8_t g_quitAllowed = /*00784751*/ 1;
 std::uint8_t g_recordingFrames = /*0079BC54*/ {};
 int g_showClientSpeed = /*0079BC60*/ {};
 const char* g_loadingMovieName = /*00791EE0*/ "progres.bik";
@@ -464,7 +463,7 @@ int GameMain(char* commandLine) {
     g_serverWorld.Create();
     // The field of view: pi * 2 / 7 (51.4 degrees).
     g_camera.Init(options, options->nearClipDistance, options->farClipDistance, kPi * 2.0f / 7.0f);
-    g_clientWorld.SetCamera(&g_camera);
+    g_clientWorld.camera = &g_camera;
     if (!CheckDiskSpace()) return kExitDeclined;
     CreateFolders();
 

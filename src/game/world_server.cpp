@@ -287,11 +287,9 @@ void WorldServer::Create() {
         return;
     }
 
-    specificManager = new ServerSpecificManager();
-    specificManager->AddRef();    // the reference is counted without testing the pointer
+    specificManager = std::make_unique<ServerSpecificManager>();
     specificManager->SetContext(this);
-    hoover = new Hoover();
-    hoover->AddRef();
+    hoover = std::make_unique<Hoover>();
 
     // The wind: along x, no strength yet (three dwords), then 0.4.
     const float direction[3] = {1.0f, 0.0f, 0.0f};
@@ -320,11 +318,7 @@ void WorldServer::Destroy() {
         }
     }
 
-    if (hoover) {
-        --hoover->refCount;
-        if (hoover) delete hoover;     // the virtual destructor
-        hoover = nullptr;
-    }
+    hoover.reset();
     ScriptReset(MainScript());
     ScriptReset(SecondScript());
     ResetState();

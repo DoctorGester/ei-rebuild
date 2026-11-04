@@ -96,7 +96,7 @@ void RainSnow::Start(int newMode, float duration) {
         g_clientWorld.sounds->StopSound(sound);
         sound = 0;
     }
-    if (newMode == 1) sound = g_clientWorld.sounds->Play2D(RainSoundName(), kRainPriority, 0, 0, newMode, 0, 0, 0);
+    if (newMode == 1) sound = g_clientWorld.sounds->Play2D(RainSoundName(), kRainPriority, 0, 0, {.loop = true});
     targetMode = newMode;
     if (mode == 0) mode = newMode;
     fadeDuration = duration;

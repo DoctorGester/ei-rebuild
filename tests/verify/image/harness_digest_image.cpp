@@ -290,8 +290,8 @@ void ReadObject(EngineObject* o, bool mapObject, const std::map<const void*, int
     b.Int("cell.x", m->sectorCellX);
     b.Int("cell.y", m->sectorCellY);
     ReadEffects(m, b);
-    if (m->companion && ClassOf(m->companion) == kClassMapObjectServer) {
-        const auto& v = static_cast<MapObjectServer*>(m->companion)->vitals;
+    if (m->companion && ClassOf(m->companion.Get()) == kClassMapObjectServer) {
+        const auto& v = static_cast<MapObjectServer*>(m->companion.Get())->vitals;
         b.Float("hp", v.hitPoints);
         b.Float("maxHp", v.maxHitPoints);
         b.Float("mana", v.mana);
@@ -594,7 +594,7 @@ void ReadClientUnit(Unit* u, Builder& b) {
 // state, and per cached sector with water (by sx, sy) the vertices with a water material and hashes
 // of their positions and speculars.
 void ReadWater(State& state) {
-    const auto* t = ClientWorld()->terrain;
+    const auto* t = ClientWorld()->terrain.get();
     if (!t) return;
     Builder b;
     b.entity = &Slot(state, {kWater, -1});
@@ -650,7 +650,7 @@ void Read(void* server, Snapshot& s) {
 
     std::map<const void*, int> players;
     if (w->players) {
-        for (Player* p : PlayersOf(w->players)) {
+        for (Player* p : PlayersOf(w->players.get())) {
             players[p] = p->playerId;
             b.entity = &Slot(s.state, {kPlayer, p->playerId});
             b.entity->description = "player";
@@ -732,7 +732,7 @@ UnitNow UnitNowOf(void* server, int id) {
 int LocalLeader(void* server, unsigned* money) {
     auto* w = static_cast<WorldServer*>(server);
     if (!w->players) return -1;
-    for (Player* p : PlayersOf(w->players)) {
+    for (Player* p : PlayersOf(w->players.get())) {
         if (p->playerId != 0) continue;
         Party* party = p->GetParty();
         if (money) *money = party->money;

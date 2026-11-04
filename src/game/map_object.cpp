@@ -154,16 +154,16 @@ void MapObject::SetServerData(const UnitVitals* data) {
 
 void MapObject::AttachObject(EngineObject* object) {
     if (!object || SideTypeOf(object) != SideObjectType::MapObject) {
-        Object3D::AttachSpecific(object);   // the 3D object's attach virtual
+        Object3D::AttachObject(object);
         return;
     }
-    if (companion) {
-        companion->owner = nullptr;
-        companion->Release();
-    }
-    companion = static_cast<MapObjectCompanion*>(object);   // the map object's side half
-    companion->owner = this;
-    companion->AddRef();
+    SetCompanion(static_cast<MapObjectCompanion*>(object));
+}
+
+void MapObject::SetCompanion(MapObjectCompanion* newCompanion) {
+    if (companion) companion->owner = nullptr;
+    companion.Assign(newCompanion);
+    if (newCompanion) newCompanion->owner = this;
 }
 
 int MapObject::StatsChanged() {
@@ -177,7 +177,6 @@ bool MapObject::IsStunned() { return lib::Has(flags, MapObjectFlag::Stunned); }
 // --- Lifetime ------------------------------------------------------------------------------------
 
 MapObject::MapObject() {
-    companion = nullptr;
     packedVitals.Reset();
     sectorCellX = -1;
     sectorCellY = -1;
@@ -228,11 +227,6 @@ bool MapObject::ReadState(bool update, MemoryStream* reader) {
     bool complete = ReadNetState(update);
     netState.Finish();
     return complete;
-}
-
-std::string* MapObject::SetSecondName(const char* text) {
-    name2 = text;
-    return &name2;
 }
 
 // --- The virtuals a plain object answers -------------------------------------------------------------------
@@ -301,21 +295,13 @@ constexpr int kTorchNetFields = 5;
 constexpr int kMapObjectNetFields = 4;
 constexpr int kInitialCountdown = 5;      // MapObject::updateCountdown
 
-void DetachCompanion(MapObject* object) {
-    if (MapObjectCompanion* companion = object->companion) {
-        companion->owner = nullptr;
-        companion->Release();
-    }
-    object->companion = nullptr;
-}
-
 } // namespace
 
 // --- MapObject's Create / Destroy (A-U) ---------------------------------------------------------
 
 void MapObject::Create() {
-    Create3D();
-    DetachCompanion(this);
+    Object3D::Create();
+    SetCompanion(nullptr);
     packedVitals.Reset();
     animationSpeed = 1.0f;
     netState.SetFieldCount(kMapObjectNetFields);
@@ -329,8 +315,8 @@ void MapObject::Create() {
 
 void MapObject::Destroy() {
     SetEffectCount(0);
-    DetachCompanion(this);
-    Destroy3D();
+    SetCompanion(nullptr);
+    Object3D::Destroy();
 }
 
 // --- Units and torches -----------------------------------------------------------------------------

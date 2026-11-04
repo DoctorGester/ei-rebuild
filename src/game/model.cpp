@@ -171,18 +171,18 @@ Matrix4* ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, fl
     return out;
 }
 
-int LinkFigureLoader::AddArchive(const std::string* path) {
+int LinkFigureLoader::AddArchive(const std::string& path) {
     for (const LinkArchive& archive : archives)
-        if (archive.name == *path) return 1;
+        if (archive.name == path) return 1;
 
-    LinkArchive& archive = archives.emplace_back(*path);
+    LinkArchive& archive = archives.emplace_back(path);
     MappedResource* resource = new MMIOResource();
     archive.resource = resource;
-    if (resource->OpenResource(path->data())) return 1;
+    if (resource->OpenResource(path)) return 1;
 
     // Failure: drop the archive again (the resource object is leaked) and log. (The original passed STLport's
     // string object by value to "%s": its first word, the text pointer, is what printed.)
     archives.pop_back();
-    game::DebugLog("Can't open resource file \"%s\"\n", *path);
+    game::DebugLog("Can't open resource file \"%s\"\n", path);
     return 0;
 }

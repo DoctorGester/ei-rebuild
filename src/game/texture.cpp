@@ -206,7 +206,7 @@ Texture::~Texture() {
 }
 
 // The client world's (it has the one texture manager).
-TextureManager* Texture::Manager() const { return ClientWorld()->textureManager; }
+TextureManager* Texture::Manager() const { return ClientWorld()->textureManager.get(); }
 
 MmpFile::MmpFile(void* file) : data(file) {
     if (file) header = lib::Load<MmpHeader>(file);
@@ -366,7 +366,7 @@ Texture* TextureManager::TakeFromCache(int textureType, std::string_view name) {
 // Details kept: a texture taken back from the cache here is not subtracted from
 // cachedBytes (the by-type lookup does subtract it).
 Texture* TextureManager::FindTexture(std::string_view name) {
-    ObjectListIteratorOf<Texture> registered{};
+    ObjectListIteratorOf<Texture> registered;
     Texture* found = nullptr;
     for (Texture* texture = registered.First(this); texture; texture = registered.Next()) {
         if (texture->name == name) {
@@ -382,12 +382,11 @@ Texture* TextureManager::FindTexture(std::string_view name) {
             RegisterInstant(found);
         }
     }
-    if (registered.manager) --registered.manager->refCount;
     return found;
 }
 
 Texture* TextureManager::FindTypedTexture(int textureType, std::string_view name) {
-    ObjectListIteratorOf<Texture> registered{};
+    ObjectListIteratorOf<Texture> registered;
     Texture* found = nullptr;
     for (Texture* texture = registered.First(this); texture; texture = registered.Next()) {
         if (texture->type == textureType && texture->name == name) {
@@ -396,7 +395,6 @@ Texture* TextureManager::FindTypedTexture(int textureType, std::string_view name
         }
     }
     if (!found) found = TakeFromCache(textureType, name);
-    if (registered.manager) --registered.manager->refCount;
     return found;
 }
 

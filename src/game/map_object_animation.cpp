@@ -71,12 +71,11 @@ std::vector<T> ReadKeys(std::uint8_t** cursor, int count) {
 
 } // namespace
 
-AnimationTrack::AnimationTrack() {
-    rotation = {1.0f, 0.0f, 0.0f, 0.0f};
-    DestroyTrack();
-}
+AnimationTrack::AnimationTrack() { AnimationTrack::Destroy(); }
 
-void AnimationTrack::DestroyTrack() {
+void AnimationTrack::Create() { AnimationTrack::Destroy(); }
+
+void AnimationTrack::Destroy() {
     bone = nullptr;
     ClearKeys();
 }
@@ -94,12 +93,7 @@ void AnimationTrack::ClearKeys() {
     time = 0.0f;
 }
 
-AnimationTrack::~AnimationTrack() {
-    DestroyTrack();
-}
-
-void AnimationTrack::Create() { DestroyTrack(); }
-void AnimationTrack::Destroy() { DestroyTrack(); }
+AnimationTrack::~AnimationTrack() = default;
 
 void AnimationTrack::LoadKeyFrames(std::uint8_t** cursor) {
     rotations = ReadKeys<Quaternion>(cursor, ReadCount(cursor));
@@ -130,9 +124,8 @@ constexpr std::uint32_t kKeyLoops = AnimationKeyOf(AnimationKeyFlag::Looped);
 AnimationTrack* AnimatorOf(FigureBone* bone) {
     if (!bone->animator) {
         auto* made = bone->owner->CreateObjectAs<AnimationTrack>(FigureObjectType::AnimationTrack, -1);
-        bone->animator = made;
-        made->AddRef();
-        bone->animator->bone = bone;
+        bone->animator.Assign(made);
+        made->bone = bone;
     }
     return bone->animator;
 }

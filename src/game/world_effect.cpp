@@ -234,7 +234,10 @@ float EffectSoundSeq::Radius() { return radius; }
 
 void EffectAmbientSound::Reset() {
     ClearBase(this);
-    if (sound != -1) sound = g_clientWorld.sounds->RemoveEmitter(sound);
+    if (sound != -1) {
+        g_clientWorld.sounds->RemoveEmitter(sound);
+        sound = -1;
+    }
     names.clear();
     volume = 0.0f;
     radius = 0.0f;
@@ -244,7 +247,7 @@ void EffectAmbientSound::Reset() {
 
 void EffectAmbientSound::Start(int update) {
     if (update == 0) {
-        sound = g_clientWorld.sounds->AddEmitter(&names, localPosition, volume, radius,
+        sound = g_clientWorld.sounds->AddEmitter(names, localPosition, volume, radius,
                              minInterval, maxInterval);
         return;
     }

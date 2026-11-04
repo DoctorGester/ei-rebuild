@@ -41,9 +41,6 @@ video::Movie* OpenMovie(const char* name) {
 Rect g_loadingScreen = /*007C5520*/ {};
 video::Movie* g_loadingMovie = /*007C5550*/ {nullptr};
 
-// Cleared while a timed movie plays.
-void SetQuitAllowed(std::uint8_t value) { app::g_quitAllowed = value; }
-
 // The decoded frame as 32-bit R, G, B, X pixels, for the new renderer.
 void CopyFrame(const video::Movie* movie, std::vector<std::uint8_t>* frame) {
     int width = video::Width(movie), height = video::Height(movie);
@@ -100,11 +97,10 @@ unsigned BinkVideo::Frame() {
 
 // --- The movie players outside the frame -----------------------------------
 
-// `frameTime`: ms per frame, or 0 for the movie's own rate. Esc / Space end it (`keysEnd`), Space jumps to the
-// next frame when it does not; the screen is filled black first, a loading screen step first.
-// Plays the movie in a message loop of its own, each frame into its letterboxed rectangle. Returns false when Esc ended it.
-bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool spaceSkips, bool clearScreen,
-               bool loadingStep) {
+// Plays the movie at its own rate in a message loop of its own, each frame into its letterboxed rectangle. Esc / Space
+// end it (`keysEnd`); the screen is filled black first (`clearScreen`), a loading screen step first (`loadingStep`).
+// Returns false when Esc ended it.
+bool PlayMovie(const std::string& name, bool keysEnd, bool clearScreen, bool loadingStep) {
     if (!options::g_options.video) return true;
     const char* file = name.c_str();
     if (loadingStep) g_clientWorld.sounds->StopAll(1);
@@ -120,8 +116,6 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
     int width = video::Width(movie), height = video::Height(movie);
     // Mode 2 as large as fits, otherwise centred at its size.
     const bool centred = options::g_options.video != 2;
-    if (frameTime) SetQuitAllowed(0);
-    std::uint32_t start = platform::Milliseconds() - frameTime;
     bool escaped = false;
     std::vector<std::uint8_t> frame;
     platform::Event event;
@@ -129,12 +123,9 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
         if (platform::TakeEvent(&event)) {
             if (event.type == platform::EventType::KeyDown) {
                 if (event.key != platform::kKeyEscape && event.key != platform::kKeySpace) continue;
-                if (keysEnd) {
-                    if (event.key == platform::kKeyEscape) escaped = true;
-                    break;
-                }
-                if (!spaceSkips) continue;
-                start = platform::Milliseconds() - frameTime * 2;
+                if (!keysEnd) continue;
+                if (event.key == platform::kKeyEscape) escaped = true;
+                break;
             } else if (event.type == platform::EventType::Quit) {   // the movie ends; the main loop ends on it
                 platform::PostQuit(event.quitCode);
                 break;
@@ -143,16 +134,8 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
             }
             continue;
         }
-        std::uint32_t now = platform::Milliseconds();
-        if (Ended(movie)) {
-            if (frameTime == 0 || now - start >= frameTime) break;
-            continue;
-        }
-        if (frameTime == 0) {
-            if (video::Waiting(movie)) continue;
-        } else if (now - start < frameTime) {
-            continue;
-        }
+        if (Ended(movie)) break;
+        if (video::Waiting(movie)) continue;
         video::DecodeFrame(movie);
         CopyFrame(movie, &frame);
         render::MovieFrame(&g_movieKey, frame.data(), width, height);
@@ -160,10 +143,8 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
         render::MovieBlit(&g_movieKey, MovieRect(width, height, centred));
         PresentMovieFrame();
         if (!Ended(movie)) video::Advance(movie);
-        start = now;
     }
     video::Close(movie);
-    SetQuitAllowed(1);
     g_cursor.ShowImage(1);
     return !escaped;
 }

@@ -198,7 +198,7 @@ void UnitClientSpecific::Wound() {
     source->Attach(unit);
     source->attachPoint = kSparkAttach;
     auto* half = unit->AsObject3D()->ClientSpecific();
-    if (flashCountdown == 0) half->SetMaterialsLit(true);
+    if (flashCountdown == 0) half->SetLit(true);
     if (flashCountdown <= kMinFlashTicks) flashCountdown = kMinFlashTicks;
 }
 
@@ -287,8 +287,8 @@ void Shake(Unit* unit) {
 
 bool SoundBusy(int handle) {
     if (handle == -1) return false;
-    SoundManager* sounds = g_clientWorld.sounds;
-    return sounds->FindPlaying(handle) || sounds->FindDeferred(static_cast<std::uint32_t>(handle));
+    SoundManager* sounds = g_clientWorld.sounds.get();
+    return sounds->FindPlaying(handle) || sounds->FindDeferred(handle);
 }
 
 } // namespace
@@ -375,7 +375,7 @@ void UnitClientSpecific::PlayStepSounds() {
     }
     if (now == lastAnimationTime) return;   // the same frame
     if (!current) return;
-    SoundManager* sounds = g_clientWorld.sounds;
+    SoundManager* sounds = g_clientWorld.sounds.get();
     AnimationKind kind = current->Kind();
 
     bool action = false;     // ActionSound at `priority`
@@ -583,7 +583,7 @@ void UnitClientSpecific::StopSpeech() {
 bool UnitClientSpecific::Speak(ClientSpeech* said) {
     std::uint32_t now = platform::Milliseconds();
     if (lastSpeech == said->id && now - lastSpeechTime < kRepeatAfter) return false;
-    said->sound = g_clientWorld.sounds->Play2D(said->id->sound.data(), kSpeechPriority, kSpeechVolume, 0, 0, 0, 1, 0);
+    said->sound = g_clientWorld.sounds->Play2D(said->id->sound.data(), kSpeechPriority, kSpeechVolume, 0, {.speech = true});
     lastSpeech = said->id;
     lastSpeechTime = now;
     return true;

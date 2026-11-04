@@ -38,8 +38,7 @@ void Diplomacy::SetRelation(int player, int other, int relation) {
         break;
     }
     ObjectListIterator it;
-    it.manager = nullptr;
-    for (EngineObject* object = it.First(g_serverWorld.objectManager); object; object = it.Next()) {
+    for (EngineObject* object = it.First(g_serverWorld.objectManager.get()); object; object = it.Next()) {
         Unit* unit = UnitOrNull(object);
         if (!unit) continue;
         if (unit->side != player) continue;
@@ -47,7 +46,6 @@ void Diplomacy::SetRelation(int player, int other, int relation) {
         mask = relation == kRelationHostile ? mask | Bit(other) : mask & ~Bit(other);
         unit->SetHostileMask(mask);
     }
-    if (it.manager) it.manager->ForgetReference();
 }
 
 int Diplomacy::GetRelation(int player, int other) const {

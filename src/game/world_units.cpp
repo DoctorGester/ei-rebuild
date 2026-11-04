@@ -303,7 +303,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         object->localPosition = spec->position;
         object->localRotation = spec->rotation;
     };
-    BaseManager* timedManager = timedObjectManager;
+    BaseManager* timedManager = timedObjectManager.get();
     MapObjectManager* newObjectManager = GetMapObjectManager();
 
     switch (base.kind) {
@@ -389,7 +389,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         spec->object = object;
         auto* companion = object->ServerCompanion();
         object->name = spec->texture;
-        object->SetSecondName(spec->model.c_str());
+        object->name2 = spec->model;
         companionTexts(companion);
         race(object);
         object->ScaleEffectChanged(false);
