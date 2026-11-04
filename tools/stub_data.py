@@ -46,14 +46,20 @@ PROGRAMS = ('.exe', '.dll', '.asi')        # stand-ins: empty files
 LEFT_OUT = ('saves', 'cache', 'uninstall', 'starter/dumps', 'starter/engine', 'starter/eirelements.db')
 LEFT_OUT_TYPES = ('.log',)
 # Textures kept whole, by their file or archive entry name (lower case, in any archive or folder): the few whose pixels
-# a frame check reads, which fail on blanks (H51b; Windows and Linux alike). Their pixels reach no golden. About 2 MB
-# packed of the vanilla set's and Rebirth's together, most of it Rebirth's 2048 x 2048 ground.
+# a frame check reads, which fail on blanks (H51b, H51c; Windows and Linux alike). Their pixels reach no golden. Most of
+# it is Rebirth's 2048 x 2048 ground and tree.
 KEPT = (
     ('cursor_*.mmp', "render_cursor_present: a shape needs opaque and clear pixels, and must change with the gamma"),
     ('sm_cursor_*.mmp', 'render_cursor_present: the same pictures when the small cursors are on'),
     ('*mouth*.mmp', "render_blink: the faces' open and closed rectangles (the briefing speakers', the heroes')"),
     ('basegipat00[01].mmp', "render_shadows_outside: bz1g's ground under most of the gate's shadow (000 and 001 "
                             'take 85% of it; the shadow must lie on lit ground)'),
+    ('dgunbirdruins00.mmp', "render_smooth: the ruins in view at zone1's start (the msaa and anisotropy checks want "
+                            'pixels that change with the filter: blank ones give 0.03% against at least 0.2%)'),
+    ('dguntorchruins01.mmp', 'render_smooth: the same, the torch among the ruins'),
+    ('ruins00.mmp', 'render_smooth: the same, the ruins themselves'),
+    ('tree02.mmp', "render_smooth: the tree in view (Rebirth's is 2048 x 2048 DXT5, 5.4 MB; with the ruins alone Rebirth's "
+                   'anisotropy check reaches 0.47% against at least 0.5%, with the tree alone msaa 2 0.13% against 0.2%)'),
 )
 
 

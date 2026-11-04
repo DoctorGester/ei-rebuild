@@ -309,7 +309,15 @@ What of them reaches game state, and so what the stubs keep:
   2.18% (vanilla; the install 2.33%, allowed 0.3 to 5%). The kept textures are 2.3 MB of the vanilla set
   and 7.5 MB of Rebirth's (its ground is 2048 x 2048). A new frame check that fails on blanks adds its textures here
   the same way: a list, not a pattern (a pattern on every texture would move every other frame check's pixels and
-  thresholds; the list leaves them as they were checked). render_smooth's anisotropy check still fails: H51c.
+  thresholds; the list leaves them as they were checked).
+  render_smooth (H51c): its msaa and anisotropy checks want pixels that change with the filter; blank textures gave
+  0.03% against at least 0.2% (anisotropy 8: 0.000% against 0.5%). Kept, as the models in view at zone1's start use
+  them (found by logging the texture each mesh draw bound and joining it to the texture's name): `dgunbirdruins00`,
+  `dguntorchruins01`, `ruins00` and `tree02`. Then the stub set gives what the install does (smooth / msaa 2 /
+  anisotropy 8: vanilla 2.95 / 0.61 / 2.30% on the stubs against 3.03 / - / 2.31% on the install, Rebirth 1.41 / 0.47 /
+  0.90% against 1.41 / - / 0.91%). The ruins alone leave Rebirth's anisotropy check at 0.47% (its tree is 2048 x 2048
+  DXT5, 5.4 MB of the set), the tree alone leaves msaa 2 at 0.13%. The units' skins are composed textures (made from
+  the game's pieces) and cannot be kept; the ground needs no pixels for this scenario.
 - Sounds (.wav): every chunk; the samples 0. A voice ends by its data's bytes over its byte rate (sound.md).
 - MP3 (speech, music): every frame header (the game counts frames: ScanMp3), the frames' data 0, an info frame whole.
 - Movies (.bik): header and frame index (frame count, size, rate, keyframes); every frame emptied (no sound packet, no
@@ -323,7 +331,10 @@ render_smooth; on Linux (WSL's lavapipe, GitHub's runner) the first three the sa
 gate's shadow on black ground, a cursor of 1024 transparent pixels) and they passed on the install copies (H51): the
 data, not the renderer. With `KEPT` (2026-11-04, H51b) the three pass on both stub sets, and both suites on the
 stub set are the same as on the installs: image 195 the same / 8 without a golden, Rebirth 111 / 1 (306 / 9 together),
-render_smooth the one scenario that fails its own check (on both). `stub_data.py check <stub> <install> <runs>` confirms every file the runs read is in the stub set at
+render_smooth the one scenario that failed its own check. With H51c's textures (above) it passes too, and the suites on
+the stub set (2026-11-04): image 195 the same / 14 without a golden, Rebirth 111 / 4, every run passing but render_water
+(new since R17a: its diffcapture of the shore reaches 0.989% on the stubs against at least 1.0%; it passes on the
+install; H51d). `stub_data.py check <stub> <install> <runs>` confirms every file the runs read is in the stub set at
 the install's size (the movies aside). In WSL (the packed set unpacked as the CI job does)
 each run on the stub set against the same run on the install copies, digest for digest (golden.py diff): the image
 suite less the pairs 142 of 142 comparable runs the same (4 of them only once rerun on a quiet machine: under load
@@ -338,7 +349,7 @@ Sizes: the vanilla set 724 MB on disk (121 MB of it not zero: figures.res 53, th
 not zero): its high-resolution textures.res is 655 MB of blanked pixels and the LostInAstral mod 711 MB (its speech and
 sfx blanked; 119 MB of maps and figures that no run reads). The blanks cost next to nothing packed; truncating them
 would change the archives' layout and only save the runner's disk. `stub_data.py pack` (Python 3.14's zstd) puts both
-in one .tar.zst of 77.1 MB (74.5 MB before `KEPT`): level 22 with a 128 MB window and long matching, the two installs' copies of a file next
+in one .tar.zst of 79.3 MB (74.5 MB before `KEPT`, 77.1 before H51c): level 22 with a 128 MB window and long matching, the two installs' copies of a file next
 to each other. Against xz -9 with a 256 MB window: 65.0 MB, but 7 to 9 s to unpack against zstd's 1 s; zstd -19
 --long=27 76.3 MB. Leaving out LostInAstral would give 49 MB. Building takes about 20 s an install, packing 5 minutes.
 
@@ -355,7 +366,7 @@ The runner (4 cores, one game at a time) plays the image suite in about 37 minut
 stepped scenarios (`rebirth_scenarios(goldens=False)`, not every Rebirth golden as on Windows) in 6. Its first
 run (2026-11-03) cut camera_drag_rate, camera_smooth and camera_spin at their 120 s limit even alone (hundreds of 8 ms
 frames at 4K on llvmpipe; camera_drag_rate takes 86 s alone on the 32-core build machine), so `LINUX_SKIP` lists them;
-render_smooth fails its own anisotropy check on the stub set (above; H51c) and still runs for its golden. Its other differences are fixed: settings_save and the ui_widescreen_* digests (H47d), and
+Its differences are fixed: settings_save and the ui_widescreen_* digests (H47d), and
 the time in every save (the runner's time zone, "The harness" above).
 
 One-time setup (the user's; nothing here creates repositories or tokens):
