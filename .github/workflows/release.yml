@@ -216,7 +216,9 @@ jobs:
           app=build/macos/ei-rebuild.app
           exe=$app/Contents/MacOS/ei-rebuild
           archs=$(lipo -archs $exe)
-          case " $archs " in *" arm64 "*" x86_64 "*|*" x86_64 "*" arm64 "*) ;; *) echo "not universal: $archs"; exit 1;; esac
+          for a in arm64 x86_64; do
+            case " $archs " in *" $a "*) ;; *) echo "not universal: $archs"; exit 1;; esac
+          done
           # otool's library lines start with a tab, its "(architecture ...)" headers do not.
           if otool -L $exe | grep -E '^[[:space:]]' | grep -v -E '^[[:space:]]*(/System/Library/|/usr/lib/)'; then
             echo "ei-rebuild links a library outside the system"; exit 1
