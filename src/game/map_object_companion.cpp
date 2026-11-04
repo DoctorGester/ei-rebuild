@@ -89,12 +89,9 @@ bool MapObjectClientSpecific::RunTick() {
         if (sound->kind == SpellType::Stench) {
             --sound->timer;
             if (static_cast<std::int32_t>(sound->timer) >= 0) continue;
-            std::string name;
             std::uint32_t variant = g_clientRandom.Next() % 3 + 1;
-            if (sound->kind == SpellType::Stench) {
-                name = str::Format(kStenchSoundFormat, variant);
-                sound->timer = kStenchPeriod;
-            }
+            const std::string name = str::Format(kStenchSoundFormat, variant);
+            sound->timer = kStenchPeriod;
             g_clientWorld.sounds->Play3D(name, 0, owner->localPosition, kStenchNear, kStenchFar, 0);
         } else if (sound->kind == SpellType::Feeblemind && sound->handle != -1) {
             g_clientWorld.sounds->MoveSequence(sound->handle, owner->localPosition);
@@ -104,8 +101,7 @@ bool MapObjectClientSpecific::RunTick() {
     // The light follows the object, kLightHeight above it, aimed down at it.
     Light* lamp = light;
     if (lamp && !(lamp->flags & LightFlag::Hidden)) {
-        Vector3 lightPosition;
-        lib::LoadBytes(lightPosition, &lamp->localPosition.x);
+        const Vector3 lightPosition = lamp->localPosition;
         float lightZ = lightPosition.z - kLightHeight;   // stored as a float
         MapObject* followed = owner;
         float dx = lightPosition.x - followed->localPosition.x;
@@ -114,7 +110,8 @@ bool MapObjectClientSpecific::RunTick() {
         float distance2 = LengthSquared(Vector3{dx, dy, dz});
         if (distance2 != 0.0f) {
             Vector3& position = light->localPosition;
-            std::memcpy(&position, &followed->localPosition.x, 2 * sizeof(float));
+            position.x = followed->localPosition.x;
+            position.y = followed->localPosition.y;
             position.z = kLightHeight + followed->localPosition.z;
         }
     }
@@ -138,25 +135,7 @@ MapObjectClientSpecific::MapObjectClientSpecific() {
     lightStateB = 0;
 }
 
-MapObjectClientSpecific::~MapObjectClientSpecific() {
-    lightStateA = 0;
-    lightStateB = 0;
-    particles.clear();
-    if (light) {
-        light->flags &= ~LightFlag::Held;
-        if (Light* shown = light; shown && !(shown->flags & LightFlag::Hidden) && !(shown->flags & LightFlag::Held)) {
-            shown->flags |= LightFlag::Hidden;
-            g_clientWorld.terrain->RemoveLight(light);
-            if (owner) {
-                if (Object3DSpecific* half = owner->attached) half->SetLit(false);
-            }
-        }
-        int lightId = light->id;
-        std::erase(g_clientWorld.lightFactory->litIds, lightId);
-        light.Reset();
-    }
-    owner = nullptr;
-}
+MapObjectClientSpecific::~MapObjectClientSpecific() { MapObjectClientSpecific::Destroy(); }
 
 namespace {
 constexpr const char* kClientClassName = "CMapObjectClientSpecific";

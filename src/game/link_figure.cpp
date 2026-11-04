@@ -93,14 +93,14 @@ LinkMesh::LinkMesh(LinkFigureLoader* newLoader, const std::string* newName, floa
 }
 
 LinkMesh::~LinkMesh() {
-    render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps
+    render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the renderer keeps
 }
 
 bool LinkMesh::AddPart(const std::string* newName, std::span<const VertexPacket> newVertices,
                        std::span<const NormalPacket> newNormals, std::span<const TexCoord> newTexCoords,
                        std::span<const MeshCorner> newCorners, std::span<const std::uint32_t> newWords,
                        std::span<const std::uint16_t> newIndices) {
-    render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps
+    render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the renderer keeps
     if (ranges.find(*newName) != ranges.end()) return false;
 
     LinkPartRanges newRanges{};
@@ -225,7 +225,7 @@ bool LinkMesh::SetPartVertices(const std::string* newName, const VertexPacket* n
     const LinkPartRanges& r = node->second;
     unsigned n = static_cast<unsigned>(r.vertices.count) < count ? static_cast<unsigned>(r.vertices.count) : count;
     std::memcpy(vertices.data() + r.vertices.start, newVertices, static_cast<std::size_t>(n) * sizeof(VertexPacket));
-    render::MeshChanged(this, render::MeshChange::Positions);   // the parts the new renderer keeps
+    render::MeshChanged(this, render::MeshChange::Positions);   // the parts the renderer keeps
     return true;
 }
 

@@ -14,8 +14,6 @@
 
 namespace {
 
-constexpr int kLightDefault = 0x2E;
-constexpr int kLightPoint = 0x31;
 constexpr int kKindPoint = 1;
 constexpr int kKindDirectional = 3;
 constexpr float kLumaRed = 0.3f;
@@ -101,7 +99,7 @@ LightFactory::~LightFactory() {
 }
 
 EngineObject* LightFactory::NewObject(int objectType) {
-    if (objectType != kLightDefault && objectType != kLightPoint) {
+    if (objectType != kLightTypeDefault && objectType != kLightTypePoint) {
         game::DebugLog(kUnknownLightType, objectType);
         return nullptr;
     }
@@ -127,7 +125,7 @@ float Light::Luminance(const float colour[3]) {
 }
 
 float Light::GetIntensityAt(const Vector3& point) {
-    if (type != kLightPoint) return Luminance(color);
+    if (type != kLightTypePoint) return Luminance(color);
     float distanceSquared = LengthSquared(point - localPosition);
     if (distanceSquared < rangeSquared) return Luminance(color) * (1.0f - distanceSquared * inverseRangeSquared);
     return 0.0f;

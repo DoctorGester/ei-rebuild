@@ -28,8 +28,6 @@
 namespace {
 
 constexpr Vector3 kDefaultLight = /*007AF230*/ {};   // a static initialiser: zeros
-constexpr int kTypePointLight = 0x31;
-constexpr std::uint32_t kFlagRefresh = 8;           // this->flags: fit the shadow's sphere again
 // The least downward share of a direction LightDirection gives (sin 20 degrees is 0.342); below it (only NaN)
 // the sweep goes straight down.
 constexpr float kLeastDown = 0.3f;
@@ -103,7 +101,7 @@ void FitShadowSphere(Object3DClientSpecific* self) {
     for (Light* light = lights.First(g_clientWorld.lightFactory); light; light = lights.Next()) {
         if ((light->flags & LightFlag::Off) || (light->flags & LightFlag::Hidden)) continue;
         Vector3 share;
-        if (light->type == kTypePointLight) {
+        if (light->type == kLightTypePoint) {
             if (!PointLightShare(self->object, light, &share)) continue;
         } else {
             DirectionalShare(light, &share);
@@ -113,7 +111,7 @@ void FitShadowSphere(Object3DClientSpecific* self) {
     if (lights.manager) lights.manager->ForgetReference();
     Vector3 direction;
     LightDirection(sum, &direction);
-    self->flags &= ~kFlagRefresh;
+    self->flags &= ~kHalfRedraw;
 
     const Object3D* object = self->object;
     const ClipBounds& bounds = object->bounds;
@@ -180,7 +178,7 @@ int Object3DClientSpecific::DrawShadow() {
     // The shadow's sphere decides the object's shadow visibility (ShadowInView). Fitted the first time after
     // Create / ClearShadow, for an object not drawn static and when the half asks (flag 8).
     const bool drawnStatic = lib::Has(object->flags, MapObjectFlag::Stationary) && lib::Has(object->flags, MapObjectFlag::Static);
-    const bool gameBuilds = !shadowMade || !drawnStatic || (flags & kFlagRefresh);
+    const bool gameBuilds = !shadowMade || !drawnStatic || (flags & kHalfRedraw);
     shadowMade = true;
     if (gameBuilds) {
         render::BeginShadowBuildTime();

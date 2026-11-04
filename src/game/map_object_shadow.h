@@ -46,6 +46,12 @@ struct TextureParts {
 
 struct WoundsMaterial;
 
+// The client half's `flags` bits.
+enum ClientHalfFlag : std::uint32_t {
+    kHalfRedraw = 8,    // the static draw changed: the shadow's sphere is fitted again (the draw sets it, the fit clears it)
+    kHalfShown = 0x20,  // the object was shown: its shadow counts as in view
+};
+
 // The client's half of a 3D object (class id 0x37): the shadow, the part sets and the skins.
 class Object3DClientSpecific : public Object3DSpecific {
 public:
@@ -72,10 +78,6 @@ public:
     // part sets within sqrt(1e9) drawn with those lights. A figure whose parts are all static (part flags 0x10)
     // becomes static (object flags 0x400, flags bit 8). Returns 1, or a fatal error's result.
     int Draw(SceneRenderer* context, Rect* dirty);
-
-    // Walk the materials: the first (cursor 0; with none the cursor is -1) / the next; null at the end.
-    Material* FirstMaterial();
-    Material* NextMaterial();
 
     // The pulse of an invisible or stunned unit: the clock moves on by `frames`, its phase fmod(clock, 30)
     // folded at 15 gives 0.2..0.7. Every drawn part takes it as its alpha / its tint (pulse, 0, 0) and flags
@@ -148,7 +150,6 @@ public:
     TextureParts* partSets[2];
     std::vector<Texture*> textures;     // the sets' textures (counted)
     std::vector<Material*> materials;   // the groups' materials (counted): fade-in, tints
-    int materialCursor;             // the iteration's index, -1 when there are none
     bool shadowMade;                // the sphere fitted since Create / ClearShadow
     ClipBounds sphere;              // the object and its shadow (box and sphere), the centre relative to the object
     Rect drawnRect;                 // the screen area of the dirty parts Draw drew
@@ -162,7 +163,7 @@ public:
 };
 
 // Whether the game shows `object`'s shadow (shadows on for its kind, the object shown and not invisible) and,
-// when it does, how strongly it casts in the new renderer's shadow map (*strength: 1, a unit as far as it has
+// when it does, how strongly it casts in the renderer's shadow map (*strength: 1, a unit as far as it has
 // faded in). Reads only; the shadow draw and the casters outside the view share it.
 std::optional<float> ShadowCastStrength(Object3D* object);
 

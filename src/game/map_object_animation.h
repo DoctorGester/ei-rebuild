@@ -1,6 +1,6 @@
 #pragma once
 
-// Animation tracks of figure parts. Names provisional; see docs/notes/map_objects.md ("Animation tracks").
+// Animation tracks of figure parts. See docs/notes/map_objects.md ("Animation tracks").
 
 #include "engine_object.h"
 #include "lib/vecmath.h"
@@ -29,7 +29,6 @@ struct AnimationTrack : EngineObject {
     AnimationTrack();
     ~AnimationTrack() override;
 
-    // The vtable: EngineObject's but for 0, 2, 3, 11 and 12.
     void Create() override;
     void Destroy() override;
     const char* ClassName() override;   // "CAnimationTrack" (map_object_animation.cpp)
@@ -46,6 +45,8 @@ struct AnimationTrack : EngineObject {
     // No animation, bone or key frames (the vertex sets' block freed), the
     // default position and rotation (kTrackDefaultPosition / kTrackDefaultRotation), no morphed vertices (freed), time 0.
     void DestroyTrack();
+    // DestroyTrack's reset except for the bone: the animation, key frames, morphed vertices and time.
+    void ClearKeys();
 
     const FigureAnimation* animation;   // the animation playing (null: none)
     FigureBone* bone;               // the bone it animates

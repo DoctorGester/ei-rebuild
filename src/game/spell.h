@@ -411,7 +411,11 @@ enum class LightFlag : std::uint32_t {
 };
 template <> inline constexpr bool lib::kBitFlags<LightFlag> = true;
 
-// A light. type 0x31 is a point light. localPosition is the light's position (where a directional light is
+// The light factory's object types (Light::type): the default light and the point light.
+inline constexpr int kLightTypeDefault = 0x2E;
+inline constexpr int kLightTypePoint = 0x31;
+
+// A light. kLightTypePoint is a point light. localPosition is the light's position (where a directional light is
 // drawn from); worldPosition holds it in the space of the mesh being lit.
 class Light : public TransformObject {
 public:

@@ -1,7 +1,7 @@
 // LinkMesh's draw slots (link_figure.h): a part of a figure
 // coloured, lit, drawn through the device's mesh draws and, for its shadow, projected and rasterised. The
 // callers are the figure part draw (figure_part_draw.cpp) and the shadow
-// (map_object_shadow.cpp), through the vtable only. The old Direct3D 7 path: the two plain draws
+// (map_object_shadow.cpp). The old Direct3D 7 path: the two plain draws
 // turn the device's specular on around the draw for a material that keeps its speculars.
 #include "core_maths.h"
 #include "link_figure.h"
@@ -19,48 +19,19 @@
 
 namespace {
 
-constexpr int kDrawScreenRect = 1;    // draw flag: the part's screen rectangle is kept
-constexpr int kDrawSpecular = 8;      // draw flag: the material keeps its speculars
 constexpr std::uint8_t kMaterialKeepsSpecular = 0x10;
-constexpr int kOpaque = 0xFF;         // the alpha the draws pass (read with draw flag 4 only)
-constexpr int kNothingDrawn = 2;      // the device's result, also for a part the figure does not have
+constexpr int kOpaque = 0xFF;         // the alpha the draws pass (read with kDrawColours only)
+constexpr int kNothingDrawn = TransformPipeline::kClipOutside;   // the device's result, also for a part the figure does not have
 constexpr float kByteScale = 255.0f;
 
 // The original's _ftol: truncated through 64 bits, the low half (0 for a NaN or a value beyond the range).
 std::uint32_t Truncated(float value) { return static_cast<std::uint32_t>(static_cast<std::int64_t>(value)); }
-
-// The positions of a part moved by its per-vertex offsets (one work array for the draws and the shadow's
-// projection).
-std::vector<VertexPacket> g_movedPackets;
 
 // The screen rectangle of a part that was not drawn.
 constexpr Rect kNoScreen = /*0073D780*/ {0, 0, 0, 0};
 
 void Fill(std::vector<std::uint32_t>& array, std::uint32_t value) {
     for (int i = 0; i < std::ssize(array); ++i) array[i] = value;
-}
-
-// Vertex i of `packets` (component i & 3 of packet i >> 2), coordinate `axis`.
-float& Coordinate(VertexPacket* packets, int i, int axis) { return packets[i >> 2].block[axis][i & 3]; }
-
-// `source` (`packets` packets) with the offsets added, in the work array: a vertex beyond the
-// offsets is copied; the w row is not written.
-const VertexPacket* MovedPositions(const VertexPacket* source, int packets, const std::vector<Vector3>* offsets) {
-    auto& moved = g_movedPackets;
-    moved.resize(packets);
-    auto* from = const_cast<VertexPacket*>(source);
-    for (int i = 0; i < std::ssize(moved) * 4; ++i) {
-        if (i < std::ssize(*offsets)) {
-            const Vector3& offset = (*offsets)[i];
-            Coordinate(moved.data(), i, 0) = offset.x + Coordinate(from, i, 0);
-            Coordinate(moved.data(), i, 1) = offset.y + Coordinate(from, i, 1);
-            Coordinate(moved.data(), i, 2) = offset.z + Coordinate(from, i, 2);
-        } else {
-            for (int axis = 0; axis < 3; ++axis)
-                Coordinate(moved.data(), i, axis) = Coordinate(from, i, axis);
-        }
-    }
-    return moved.data();
 }
 
 // What a draw needs of the mesh: a part's ranges, resolved to the device's mesh draw arguments.
@@ -70,8 +41,8 @@ struct PartDraw {
     const VertexPacket* positions;
     std::vector<std::uint32_t>* colours;
     std::vector<std::uint32_t>* speculars;
-    std::uint32_t u;
-    std::uint32_t v;
+    float u;
+    float v;
     int flags;
 
     // TextureDevice::DrawMeshBlocks / 2: positions and
@@ -83,21 +54,19 @@ struct PartDraw {
         const auto* corners = mesh->corners.data() + r.corners.start;
         const auto* texCoords = mesh->texCoords.data() + r.texCoords.start;
         const auto* normals = mesh->normals.data() + r.normals.start;
-        const float uOffset = std::bit_cast<float>(u);
-        const float vOffset = std::bit_cast<float>(v);
         if (textured) {
             return device->DrawMeshBlocks2(first, second, positions, r.vertices.count, normals, r.normals.count,
                                            colours->data(), speculars->data(), texCoords, r.texCoords.count, corners,
-                                           r.corners.count, words, r.words.count, indices, r.indices.count, uOffset,
-                                           vOffset, kOpaque, flags);
+                                           r.corners.count, words, r.words.count, indices, r.indices.count, u,
+                                           v, kOpaque, flags);
         }
         return device->DrawMeshBlocks(positions, r.vertices.count, normals, r.normals.count, colours->data(),
                                       speculars->data(), texCoords, r.texCoords.count, corners, r.corners.count, words,
-                                      r.words.count, indices, r.indices.count, uOffset, vOffset, kOpaque, flags);
+                                      r.words.count, indices, r.indices.count, u, v, kOpaque, flags);
     }
 };
 
-// After a draw: the part's header takes the rectangle the device drew (draw flag 1, something
+// After a draw: the part's header takes the rectangle the device drew (kDrawScreenRect, something
 // drawn) or the empty one.
 void KeepScreen(LinkMesh* mesh, const std::string* name, int flags, int result) {
     if ((flags & kDrawScreenRect) && result != kNothingDrawn) {
@@ -109,15 +78,15 @@ void KeepScreen(LinkMesh* mesh, const std::string* name, int flags, int result) 
 }
 
 // The four draws: `offsets` (null: none asked) moves the positions when it has any; without
-// surfaces the device's specular is on around the draw for draw flag 8.
+// surfaces the device's specular is on around the draw for kDrawSpecular.
 int DrawPartCommon(LinkMesh* mesh, const std::string* name, int flags, Surface* first, Surface* second,
                    bool textured, std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
-                   const std::vector<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
+                   const std::vector<Vector3>* offsets, float u, float v) {
     auto node = mesh->ranges.find(*name);
     if (node == mesh->ranges.end()) return kNothingDrawn;
     const LinkPartRanges& r = node->second;
     const VertexPacket* positions = mesh->vertices.data() + r.vertices.start;
-    if (offsets && !offsets->empty()) positions = MovedPositions(positions, r.vertices.count, offsets);
+    if (offsets && !offsets->empty()) positions = MovedPositions(positions, r.vertices.count, *offsets);
 
     const bool specular = !textured && (flags & kDrawSpecular) != 0;
     if (specular) render::g_renderState.specular = true;
@@ -141,7 +110,7 @@ bool LinkMesh::FlatColours(const std::string* partName, std::uint32_t colour, st
     speculars->resize(node->second.normals.count * 4);
     Fill(*colours, colour);
     Fill(*speculars, specular);
-    render::MeshChanged(colours->data(), render::MeshChange::Colours);   // the colours the new renderer keeps
+    render::MeshChanged(colours->data(), render::MeshChange::Colours);   // the colours the renderer keeps
     return true;
 }
 
@@ -171,29 +140,29 @@ bool LinkMesh::LightPart(const std::string* partName, const std::vector<Light*>*
     } else {
         Fill(*speculars, alphaByte << 24);
     }
-    render::MeshChanged(colours->data(), render::MeshChange::Colours);   // the colours the new renderer keeps
+    render::MeshChanged(colours->data(), render::MeshChange::Colours);   // the colours the renderer keeps
     return true;
 }
 
 // ---- 9-12: the draws -------------------------------------------------------------------------------
 
 int LinkMesh::DrawPartMoved(const std::string* partName, int flags, std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
-                             std::vector<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
+                             std::vector<Vector3>* offsets, float u, float v) {
     return DrawPartCommon(this, partName, flags, nullptr, nullptr, false, colours, speculars, offsets, u, v);
 }
 
 int LinkMesh::DrawPart(const std::string* partName, int flags, std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
-                        std::uint32_t u, std::uint32_t v) {
+                        float u, float v) {
     return DrawPartCommon(this, partName, flags, nullptr, nullptr, false, colours, speculars, nullptr, u, v);
 }
 
 int LinkMesh::DrawPartMovedTextured(const std::string* partName, int flags, Surface* first, Surface* second,
                                      std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
-                                     std::vector<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
+                                     std::vector<Vector3>* offsets, float u, float v) {
     return DrawPartCommon(this, partName, flags, first, second, true, colours, speculars, offsets, u, v);
 }
 
 int LinkMesh::DrawPartTextured(const std::string* partName, int flags, Surface* first, Surface* second,
-                                std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars, std::uint32_t u, std::uint32_t v) {
+                                std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars, float u, float v) {
     return DrawPartCommon(this, partName, flags, first, second, true, colours, speculars, nullptr, u, v);
 }

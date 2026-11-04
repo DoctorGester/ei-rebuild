@@ -53,9 +53,5 @@ void FigureBone::Place(const Vector3& origin, float blend) {
         FigureMesh::OffsetSpan vertices{offsets->data(), static_cast<int>(lib::Count(*offsets))};
         mesh->SetOffsets(&vertices);
     }
-    for (auto node = children.begin(); node != children.end();) {
-        FigureBone* child = *node;
-        ++node;
-        child->Place(origin, blend);
-    }
+    for (FigureBone* child : children) child->Place(origin, blend);
 }

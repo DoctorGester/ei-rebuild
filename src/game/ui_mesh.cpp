@@ -317,8 +317,6 @@ namespace {
 
 constexpr float kColourScale = 255.0f;
 constexpr float kOne = 1.0f;
-constexpr int kStackWorld = 1;           // the transform pipeline's stacks the sprite is pushed on
-constexpr int kStackView = 2;
 
 // The identity orientation (w 1, x y z 0): a sprite's first orientation, and what the draw hands DrawFigure
 // as its second argument (not read on that path).
@@ -424,10 +422,10 @@ void UiMesh::Draw(SceneRenderer* renderer) {
 
     worldMatrix = PlacementMatrix();
     const Matrix4 placement = worldMatrix;
-    pipeline->PushMatrix(placement.m, kStackView);
-    pipeline->PushMatrix(placement.m, kStackWorld);
-    pipeline->PushMatrix(scaleMatrix.m, kStackView);
-    pipeline->PushMatrix(scaleMatrix.m, kStackWorld);
+    pipeline->PushMatrix(placement.m, TransformPipeline::kClipStack);
+    pipeline->PushMatrix(placement.m, TransformPipeline::kWorldStack);
+    pipeline->PushMatrix(scaleMatrix.m, TransformPipeline::kClipStack);
+    pipeline->PushMatrix(scaleMatrix.m, TransformPipeline::kWorldStack);
 
     const std::uint32_t saved = renderer->colour;
     const std::uint32_t red = ColourByte(tint[0]);
@@ -443,8 +441,8 @@ void UiMesh::Draw(SceneRenderer* renderer) {
         return;
     }
 
-    MatrixStack& view = pipeline->stacks[kStackView];
-    MatrixStack& world = pipeline->stacks[kStackWorld];
+    MatrixStack& view = pipeline->stacks[TransformPipeline::kClipStack];
+    MatrixStack& world = pipeline->stacks[TransformPipeline::kWorldStack];
     Pop(view);
     Pop(world);
     Pop(view);

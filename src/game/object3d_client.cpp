@@ -86,13 +86,11 @@ TextureParts::~TextureParts() {
 Object3DClientSpecific::Object3DClientSpecific() {
     shadowMade = false;
     std::memset(&sphere, 0, sizeof(sphere));
-    materialCursor = -1;
     ClearWoundsMaterial();
     pulseClock = 0.0f;
 }
 
 void Object3DClientSpecific::Create() {
-    materialCursor = -1;
     flags = 0;
     shadowMade = false;
     woundsTexture.Reset();
@@ -113,17 +111,11 @@ void Object3DClientSpecific::Destroy() {
     }
     partSets[0] = nullptr;
     partSets[1] = nullptr;
-    for (int i = 0; i < std::ssize(textures); ++i) {
-        if (!textures[i]) continue;
-        textures[i]->Release();
-        textures[i] = nullptr;
-    }
+    for (Texture* texture : textures)
+        if (texture) texture->Release();
     textures.clear();
-    for (int i = 0; i < std::ssize(materials); ++i) {
-        if (!materials[i]) continue;
-        materials[i]->Release();
-        materials[i] = nullptr;
-    }
+    for (Material* material : materials)
+        if (material) material->Release();
     materials.clear();
     object = nullptr;
     touchTime = 0;
@@ -143,9 +135,7 @@ Texture* Object3DClientSpecific::FindOrAddTexture(int kind) {
         set = new TextureParts();
         set->texture = ClientWorld()->NewTexture(kind);
         partSets[k] = set;
-        int count = lib::Count(textures);
-        textures.resize(count + 1);
-        textures[count] = set->texture;
+        textures.push_back(set->texture);
         set->texture->AddRef();
     } else {
         if (k == 0) game::DebugLog(kSecondPrimarySetText, object->name, object->id);
@@ -162,7 +152,7 @@ Material* Object3DClientSpecific::FindMaterial(int textureKind, int materialKind
         if (!set || !set->texture || set->texture->type != textureKind) continue;
         for (int g = 0; g < std::ssize(set->groups); ++g) {
             Material* material = set->groups[g]->material;
-            if (material && material->type == materialKind) return partSets[k]->groups[g]->material;
+            if (material && material->type == materialKind) return material;
         }
     }
     return nullptr;
@@ -176,21 +166,16 @@ Material* Object3DClientSpecific::FindOrAddMaterial(int textureKind, int materia
     TextureParts* set = partSets[k];
     for (int g = 0; g < std::ssize(set->groups); ++g) {
         Material* material = set->groups[g]->material;
-        if (material && material->type == materialKind) return set->groups[g]->material;
+        if (material && material->type == materialKind) return material;
     }
     PartGroup* group = new PartGroup();
     Material* material = ClientWorld()->NewMaterial(materialKind);
     group->material = material;
     material->AddRef();
-    set = partSets[k];
-    int count = lib::Count(set->groups);
-    set->groups.resize(count + 1);
-    set->groups[count] = group;
-    count = lib::Count(materials);
-    materials.resize(count + 1);
-    materials[count] = group->material;
-    group->material->AddRef();
-    return group->material;
+    set->groups.push_back(group);
+    materials.push_back(material);
+    material->AddRef();
+    return material;
 }
 
 int Object3DClientSpecific::OnPartAdded(FigureMesh* part) {
@@ -214,9 +199,7 @@ int Object3DClientSpecific::OnPartAdded(FigureMesh* part) {
         if (!group->material || group->material->type != materialKind) continue;
         for (int i = 0; i < std::ssize(group->parts); ++i)
             if (group->parts[i] == part) return 1;
-        int count = lib::Count(group->parts);
-        group->parts.resize(count + 1);
-        group->parts[count] = part;
+        group->parts.push_back(part);
         part->AddRef();
         return 1;
     }
@@ -269,7 +252,6 @@ int Object3DClientSpecific::SetSkins(std::optional<std::string_view> first, std:
                 continue;
             }
         }
-        set = partSets[k];
         if (!set || !set->texture) continue;
         Texture* skin = set->texture;
         skin->name = name;
@@ -279,18 +261,7 @@ int Object3DClientSpecific::SetSkins(std::optional<std::string_view> first, std:
 }
 
 void Object3DClientSpecific::ApplyMaterials() {
-    MaterialManager* manager = OwningWorld()->GetMaterialManager();
-    if (materials.empty()) {
-        materialCursor = -1;
-    } else {
-        materialCursor = 0;
-        for (Material* material = materials[0]; material;) {
-            manager->FillMaterial(material, static_cast<std::uint32_t>(material->type));
-            ++materialCursor;
-            if (std::ssize(materials) <= materialCursor) break;
-            material = materials[materialCursor];
-        }
-    }
+    RegisterPartMaterials();
     if (str::Compare(secondSkinName, kNoneText) == 0)
         SetSkins(skinName, std::nullopt);
     else
@@ -302,7 +273,6 @@ void Object3DClientSpecific::SetMaterialsLit(bool lit) {
         for (int i = 0; i < std::ssize(materials); ++i) {
             Material* material = materials[i];
             material->entries.push_back(MaterialEntry{material->colors.emissive});
-            material = materials[i];
             material->colors.emissive = {1.0f, 1.0f, 1.0f, material->colors.emissive.w};
         }
         return;
@@ -319,15 +289,9 @@ void Object3DClientSpecific::SetLit(bool lit) { SetMaterialsLit(lit); }
 
 // --- The other halves --------------------------------------------------------------------------------
 
-// The halves of a 3D object besides the client half's part sets: the client half's shadow state, the base
-// half's empty slots, the server half (Object3DServer, class id 0x38), the wounds material's destructor and
-// the copies of a named texture and a material stage. Layouts: map_object_shadow.h, map_object_figures.h.
-
 namespace {
 
 constexpr const char* kServerClassName = "CObject3DServer";
-constexpr std::uint32_t kHalfShown = 0x20;
-constexpr int kOutsideView = 2;
 
 } // namespace
 
@@ -343,7 +307,7 @@ bool Object3DClientSpecific::ShadowInView() {
     if (flags & kHalfShown) return true;
     auto placed = sphere;
     placed.center += object->localPosition;
-    return g_sceneRenderer.pipeline->ClipTest(&placed) != kOutsideView;
+    return g_sceneRenderer.pipeline->ClipTest(&placed) != TransformPipeline::kClipOutside;
 }
 
 // --- The base half's empty slots (the server half keeps them) ---------------------------------------
@@ -386,26 +350,15 @@ Vector3 Object3DClientSpecific::GetScale() { return {figureScale.x, figureScale.
 
 void Object3DClientSpecific::RegisterPartMaterials() {
     MaterialManager* manager = OwningWorld()->GetMaterialManager();
-    if (materials.empty()) return;
-    materialCursor = 0;
-    for (Material* material = materials[0]; material;) {
-        manager->FillMaterial(material, static_cast<std::uint32_t>(material->type));
-        ++materialCursor;
-        if (std::ssize(materials) <= materialCursor) break;
-        material = materials[materialCursor];
-    }
+    for (Material* material : materials) manager->FillMaterial(material, static_cast<std::uint32_t>(material->type));
 }
 
 // --- Screen picking, part lookups, class slots, the base half's destructor -----------------
 
 namespace {
-// "Object3DClientSpecific".
-const char* ClientClassName() { return "CObject3DClientSpecific"; }
 
 Point AsPoint(const std::int32_t* point) { return Point{point[0], point[1]}; }
 const Rect* PartRect(const FigureMesh* part) { return &part->drawer->screen; }
-
-constexpr float kNoScale = 1.0f;
 
 } // namespace
 
@@ -441,13 +394,13 @@ FigureMesh* Object3DClientSpecific::FindPart(std::string_view name) { return obj
 FigureMesh* Object3DClientSpecific::FindPartOfType(int partType) { return object->FindPartOfType(partType); }
 
 // The class name and id 0x37.
-const char* Object3DClientSpecific::ClassName() { return ClientClassName(); }
+const char* Object3DClientSpecific::ClassName() { return "CObject3DClientSpecific"; }
 ClassId Object3DClientSpecific::GetClassId() { return ClassId::Object3DClientSpecific; }
 
 // The base half's destructor (deleting form): the object forgotten.
 Object3DSpecific::~Object3DSpecific() { object = nullptr; }
 
-Vector3 Object3DSpecific::GetScale() { return {kNoScale, kNoScale, kNoScale}; }
+Vector3 Object3DSpecific::GetScale() { return {1.0f, 1.0f, 1.0f}; }
 
 namespace {
 constexpr float kPulsePeriod = 30.0f;
@@ -479,20 +432,6 @@ void Object3DClientSpecific::StunnedPulse(float frames) {
         part->colors.specular = {value, 0.0f, 0.0f, part->colors.specular.w};
         part->flags |= MaterialFlag::KeepSpecular;
     }
-}
-
-Material* Object3DClientSpecific::FirstMaterial() {
-    if (materials.empty()) {
-        materialCursor = -1;
-        return nullptr;
-    }
-    materialCursor = 0;
-    return materials[0];
-}
-
-Material* Object3DClientSpecific::NextMaterial() {
-    ++materialCursor;
-    return std::ssize(materials) > materialCursor ? materials[materialCursor] : nullptr;
 }
 
 namespace {
@@ -533,7 +472,6 @@ int Object3DClientSpecific::ShowWounds(const char* name) {
         if (!manager->LoadTexture(woundsTexture)) {
             woundsTexture.Reset();
             woundsMaterial.Reset();
-            lib::FreeStorage(extra);
             return 0;
         }
     }
@@ -544,6 +482,5 @@ int Object3DClientSpecific::ShowWounds(const char* name) {
         woundsMaterial->stages.push_back(MaterialStage(partSets[0]->texture));
         woundsMaterial->stages.push_back(MaterialStage(woundsTexture));
     }
-    lib::FreeStorage(extra);
     return 1;
 }

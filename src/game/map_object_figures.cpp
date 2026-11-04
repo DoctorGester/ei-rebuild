@@ -39,8 +39,6 @@
 namespace {
 constexpr std::uint32_t kBoundsValid = 1 | 2;
 
-constexpr float kNearSquared = 1e9f;                 // parts farther away are skipped
-
 // Animation state: rescale to x, y, z.
 void AnimationSetScale(FigureAnimationState* state, float x, float y, float z) { state->Rescale(x, y, z); }
 
@@ -67,7 +65,7 @@ void Object3D::ComputeBounds() {
     GrowingBox box;
     for (int i = 0; i < std::ssize(parts); ++i) {
         FigureMesh* part = parts[i];
-        if (DistanceSquared(part) > kNearSquared) continue;   // NaN distances count as near
+        if (DistanceSquared(part) > kPartsNearSquared) continue;   // NaN distances count as near
         AddPlacedPart(box, part);
     }
     if (parts.empty()) return;
@@ -204,8 +202,8 @@ void Object3D::RemoveEffectSource(ParticleSource* source) {
     if (source) source->Attach(nullptr);
 }
 
-// --- Virtuals shared by every map object's vtable: the world rotation, copying a figure, the side half, the
-// effect sources and the drawing slots.
+// --- Virtuals shared by every map object: the world rotation, copying a figure, the side half, the effect
+// sources and the drawing slots.
 
 // The same body as the base's.
 void Object3D::CombineRotation(const Quaternion& parent) { TransformObject::CombineRotation(parent); }
@@ -312,7 +310,6 @@ void Object3D::RestartPose() {
 // FindAnimation picks idle, attack and death animations with them). See map_object_figures.h.
 
 namespace {
-constexpr std::uint32_t kKeyKindBits = 0xFFFF8000;     // must match exactly
 
 // A draw below `n` (> 0) from `random`'s generator.
 int RandomBelow(AnimationRandom random, int n) {
@@ -325,13 +322,9 @@ FigureAnimation* Object3D::RandomAnimation(std::uint32_t key, AnimationRandom ra
     AnimationDatabase* database = Animations();
     if (!database) return nullptr;
     std::vector<FigureAnimation*> candidates{};
-    std::uint32_t wanted = key & kAnimationVariantBits;
     for (FigureAnimation& candidate : database->animations) {
         FigureAnimation* entry = &candidate;
-        std::uint32_t entryKey = entry->key;
-        bool variant =
-            wanted == 0 ? (entryKey & kAnimationVariantBits) == 0 : (~entryKey & key & kAnimationVariantBits) == 0;
-        if (!variant || ((entryKey ^ key) & kKeyKindBits) != 0) continue;
+        if (!AnimationKeyFits(entry->key, key)) continue;
         if (AcceptsAnimation(entry)) candidates.push_back(entry);
     }
     FigureAnimation** list = candidates.data();
@@ -359,7 +352,7 @@ FigureAnimation* Object3D::RandomAnimationOfKind(std::uint32_t key, AnimationRan
     std::vector<FigureAnimation*> candidates{};
     for (FigureAnimation& candidate : database->animations) {
         FigureAnimation* entry = &candidate;
-        if (((entry->key ^ key) & kKeyKindBits) != 0) continue;
+        if (((entry->key ^ key) & kAnimationKindBits) != 0) continue;
         if (!AcceptsAnimation(entry)) continue;
         int index = lib::Count(candidates);
         candidates.resize(index + 1);
@@ -412,20 +405,13 @@ void Object3D::SetUpAnimatedFigure(std::string_view model) {
             figureModel = manager->FindModel(&modelName);
         }
         int index = 0;
-        for (auto node = animation->bones.begin(); node != animation->bones.end(); ++index) {
-            FigureBone* bone = *node;
-            ++node;
+        for (FigureBone* bone : animation->bones) {
             FootprintPart* box = &partBoxes[index];
-            manager->LoadFigureBounds(&box->bounds, figureModel, model, bone->GetName(),
-                                            std::bit_cast<std::uint32_t>(scale.x),
-                                            std::bit_cast<std::uint32_t>(scale.y),
-                                            std::bit_cast<std::uint32_t>(scale.z));
-            box = &partBoxes[index];
+            manager->LoadFigureBounds(&box->bounds, figureModel, model, bone->GetName(), scale.x, scale.y, scale.z);
             box->pivot = bone->position;
             box->bounds.flags |= BoundsFlag::Loaded;
             partNames[index] = bone->GetName();
 
-            box = &partBoxes[index];
             high = MaxKeepB(high, box->pivot + box->bounds.boxMax + box->bounds.center);
             low = MinKeepA(box->pivot + box->bounds.boxMin + box->bounds.center, low);
 
@@ -433,6 +419,7 @@ void Object3D::SetUpAnimatedFigure(std::string_view model) {
             if (text::CompareIgnoringCase(partName.substr(0, 4), "BASE") == 0) box->bounds.flags |= BoundsFlag::Base;
             if (text::CompareIgnoringCase(partName.substr(0, 5), "CROWN") == 0) box->bounds.flags |= BoundsFlag::Crown;
             if (text::CompareIgnoringCase(partName.substr(0, 5), "EMPTY") == 0) box->bounds.flags |= BoundsFlag::NoFootprint | BoundsFlag::Crown;
+            ++index;
         }
         animation->ReleaseBones();
     }

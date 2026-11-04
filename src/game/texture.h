@@ -30,6 +30,14 @@ using VertexPacket = render::VertexPacket;
 using NormalPacket = render::NormalPacket;
 struct Vector4;
 
+// The flags of the device's mesh draws (DrawMeshBlocks, DrawMeshBlocks2).
+enum DrawFlag : int {
+    kDrawScreenRect = 1,   // keep the drawn screen rectangle (TextureDevice::drawnRect)
+    kDrawClipped = 2,      // the mesh crosses the view's edges: project it with the clip stack
+    kDrawColours = 4,      // the device colours the mesh (the alpha with it)
+    kDrawSpecular = 8,     // the material keeps its speculars
+};
+
 // The device object: the screen (its window, size and colour depth), the transform pipeline, the texture stages' holders and the
 // draws' state. Made once by the scene renderer's creation (renderer_init.cpp); the new renderer (src/render) draws
 // and presents. Held by the scene renderer and the texture manager.

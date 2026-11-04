@@ -3,7 +3,7 @@
 // The 3D library's figure meshes and their loading from .lnk link files. A LinkFigureLoader (model.h; one
 // per world view) loads a figure by name: its .lnk file lists the parts, each a FIG / FIG8 (or older
 // headerless) record in figures.res / menus.res, morphed by three coefficients and appended to one LinkMesh.
-// See docs/notes/models.md, "Link figures". Names provisional.
+// See docs/notes/models.md, "Link figures".
 
 #include "figure_mesh.h"   // VertexPacket, NormalPacket, TexCoord, MeshCorner, FigHeader
 #include "model.h"         // ClipBounds, TriangleIndexArray, LinkFigureLoader
@@ -34,7 +34,6 @@ struct FigureMeshDrawer : EngineObject {
     FigureMeshDrawer();
     ~FigureMeshDrawer() override;
 
-    // The vtable: EngineObject's but for 0, 2, 3, 11 and 12.
     void Create() override;
     void Destroy() override;
     const char* ClassName() override;   // "CFigureClientSpecific" (figure_part_draw.cpp)
@@ -43,8 +42,7 @@ struct FigureMeshDrawer : EngineObject {
     // No mesh, no flags.
     void DestroyDrawer();
 
-    // figure_part_draw.cpp; the draws call it through its address for the animated
-    // mesh types 13..16). The texture offset of an animated mesh at `time` (truncated by _ftol):
+    // The texture offset of an animated mesh (types 13..16, figure_part_draw.cpp) at `time` (truncated by _ftol):
     // type 13 cycles 8 frames over two rows (u = frame % 4 / 4, v = 0 or 0.5), 14 16 frames of a
     // 4 x 4 sheet, 16 32 frames of 8 x 4 (u = column / 4 or / 8, v = 1 - row / 4); 15 none.
     void Animate(float time);
@@ -56,8 +54,7 @@ class TextureDevice;
 
 struct Surface;
 
-// A part's header in the mesh's header map (map<string, LinkPartHeader>; 0x50 bytes, zeroed when the
-// map inserts it).
+// A part's header in the mesh's header map (map<string, LinkPartHeader>).
 struct LinkPartHeader {
     // The second / first dword after the FIG header: the part's FigureMesh::meshType and
     // materialValue (an object's part copies them and the box, Object3D::LoadPart).
@@ -117,15 +114,15 @@ public:
                    std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars);
     int DrawPartMoved(const std::string* name, int flags, std::vector<std::uint32_t>* colours,
                       std::vector<std::uint32_t>* speculars, std::vector<Vector3>* offsets,
-                      std::uint32_t u, std::uint32_t v);
+                      float u, float v);
     int DrawPart(const std::string* name, int flags, std::vector<std::uint32_t>* colours,
-                 std::vector<std::uint32_t>* speculars, std::uint32_t u, std::uint32_t v);
+                 std::vector<std::uint32_t>* speculars, float u, float v);
     int DrawPartMovedTextured(const std::string* name, int flags, Surface* first, Surface* second,
                               std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
-                              std::vector<Vector3>* offsets, std::uint32_t u, std::uint32_t v);
+                              std::vector<Vector3>* offsets, float u, float v);
     int DrawPartTextured(const std::string* name, int flags, Surface* first, Surface* second,
                          std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
-                         std::uint32_t u, std::uint32_t v);
+                         float u, float v);
 
     // Overwrites part `name`'s first min(its count, count) vertex
     // packets (unsigned) with `vertices`; false when there is no such part.

@@ -98,13 +98,19 @@ public:
     // and parts (WorldClient::ProjectDecal).
     static constexpr int kClipStack = 2;
     static constexpr int kDecalStack = 14;
+    // Stack 1 is the world's (the screen stack the draws project meshes with), 3 the object's: the placement
+    // alone, for a part about to be lit on the CPU.
+    static constexpr int kWorldStack = 1;
+    static constexpr int kObjectStack = 3;
     // Stack 0 is the picking's (the view matrix pushed onto it), 9 the view matrices.
     static constexpr int kPickStack = 0;
     static constexpr int kViewStack = 9;
 
+    // ClipTest's verdicts, also the result of the device's mesh draws.
+    enum ClipResult : int { kClipInside = 0, kClipCrossing = 1, kClipOutside = 2 };
     // Classifies `bounds` against the view volume of the current (top) matrix:
-    // 2 = entirely outside one clip plane, 0 = entirely inside, 1 = crossing or not decided.
-    // The cube (flag 0) is tried first, then the box (flag 1).
+    // kClipOutside = entirely outside one clip plane, kClipInside = entirely inside, kClipCrossing = crossing or
+    // not decided. The cube (flag 0) is tried first, then the box (flag 1).
     int ClipTest(const ClipBounds* bounds) const;
     // Pushes `m` onto stack `index`: an empty stack gets `m` itself, otherwise the new top is the old top
     // times `m` (no capacity check).
@@ -370,6 +376,23 @@ struct FigureModel {
     // .anm files (OpenFromMemory); a null image leaves its archive alone.
     void Open(const void* mod, const void* bon, const void* anm);
 };
+
+// The model `name`: the data of "<name>.mod", ".bon" and ".anm" from getFile(path), the .mod's first. Without a
+// .mod nothing is created, null is returned and the other two files' data go to `discard`.
+template <class GetFile, class Discard>
+FigureModel* OpenFigureModel(const std::string& name, GetFile&& getFile, Discard&& discard) {
+    auto mod = getFile(name + ".mod");
+    auto bon = getFile(name + ".bon");
+    auto anm = getFile(name + ".anm");
+    if (!mod) {
+        discard(bon);
+        discard(anm);
+        return nullptr;
+    }
+    auto* model = new FigureModel();
+    model->Open(mod, bon, anm);
+    return model;
+}
 
 // Loads .lnk link files and the figures they name (created at startup with figures.res and menus.res). A
 // figure is a LinkMesh of parts morphed by three coefficients (s, t, u); the loader keeps every mesh it made
