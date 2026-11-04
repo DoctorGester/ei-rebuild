@@ -7,8 +7,8 @@ section 15c), its programs' MSL from the HLSL (renderer.md, "Shader authoring").
 against the Russian game data on sokol's Metal backend (the animated menu, sound, the new-game dialog and the first
 campaign map); since MAC4 / R43h the Mac draws through SDL_GPU like the other systems, and nothing of the branch's
 Metal backend (graphics_metal.mm) is left. macOS cannot be built on the Windows machine: CMake's Apple parts are kept
-right by reading, and the Mac's own checks are below ("Checks on the Mac"). The scenario harness does not build on
-macOS.
+right by reading, and the Mac's own checks are below ("Checks on the Mac"). The scenario harness builds and plays
+the goldens (below, "The harness").
 
 ## Build
 
@@ -37,7 +37,10 @@ python3 tools/run_macos.py --play
 It runs until you quit and keeps `run/macos/` for saves, settings, a copied `Config` and the logs. The data defaults to
 `~/workspace/ei`; `--data` chooses it on the first run. `run/macos/ei_settings.ini` keeps the resolution and the other
 settings across launches. The start movies are left out unless `--intro` is given. `[video] FullScreen = false` is a
-centred window with the macOS title bar and controls; `true` a borderless window over the monitor.
+centred window with the macOS title bar and controls; `true` SDL's desktop full screen, a Space of its own as the
+green button makes (platform_sdl.cpp): the menu bar and the Dock hidden, on a display with a notch the part below it
+(1728x1080 points of 1728x1117 on a 14" MacBook Pro). A borderless window over the display's bounds, as on Windows,
+stays under the menu bar and the Dock there.
 
 Bounded runs (at most 60 s; exit 124 when the time ran out):
 
@@ -75,7 +78,36 @@ while it holds the links. The app started directly without those variables expec
   have matched them (port_check's "plain enum bit operations").
 - **Rendering**: SDL_GPU on Metal (gpu.cpp's driver `metal`, MSL code). The MSL is spirv-cross's with each resource
   at its SPIR-V binding, which gen_gpu_shaders.py checks on every system's build. Metal has no D24S8 (the renderer's
-  depth is D32F) and no Mailbox present mode (gpu.h's fallbacks take Vsync for it).
+  depth is D32F) and no Mailbox present mode (gpu.h's fallbacks take Vsync for it). SDL 3.4.18's Metal driver took
+  a texture upload's rows as packed, not at `pixels_per_row`, so gpu.cpp's 256-byte padded rows went up skewed (the
+  movies, port_gpu's read-backs); a local patch of the vendored SDL reads them (third_party/SDL/README.txt), upstream's
+  fix being SDL commit 32f9c098d5.
+
+## The harness
+
+`-DEI_HARNESS=ON` builds `ei-rebuild.app` with the harness (tests/verify; its system layer is system_posix.cpp, with
+macOS's calls where Linux's differ: `os_sync_wait_on_address` for a pair's shared wake-up, libproc for the network
+scan, Mach for the main thread's CPU time and the stack regions, the arm64 registers in a crash report). The harness
+finds `config/harness` from the bundle (two levels above the folder holding `ei-rebuild.app`), and run_all.py starts
+`ei-rebuild.app/Contents/MacOS/ei-rebuild`. The tools need a recent Python (golden_explain.py's f-strings: 3.12 or
+later; `brew install python@3.14`), not Xcode's 3.9:
+
+```sh
+cmake -S . -B build/macos-verify -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEI_HARNESS=ON
+cmake --build build/macos-verify
+EI_BUILD_DIR=$PWD/build/macos-verify EI_GAME_VANILLA=~/workspace/ei \
+    python3.14 tools/run_all.py --vanilla-only --golden --jobs 6        # or scenario names
+```
+
+No virtual display: every game opens its window on the desktop. Against the goldens (2026-11-04, M4 Pro, macOS 15.3,
+the vanilla install at ~/workspace/ei, a 3456x2234 display): 155 runs in 71 s at 6 at once, 144 the same, 6 without a
+golden, and these five differ:
+- ui_widescreen_dialogue, ui_widescreen_hud and render_present_fullscreen take the display's size (`resolution
+  desktop`, full screen); the goldens are a 3840x2160 desktop's, as on Linux (linux.md, "The harness").
+- net_pair_master: the peer lists the server one poll sooner, as on Linux.
+- net_second_master fails: a TCP connect to a closed loopback port is refused at once, as on Linux, so the box the
+  scenario cancels is already gone.
+The Rebirth suite was not run (no Rebirth install on the Mac).
 
 ## Checks on the Mac
 
@@ -85,10 +117,8 @@ platform::File, files and mappings, the .ini reader, the one-instance lock, UDP,
 the X11 present read-back is Linux's only), `port_shaders` (every program's MSL and its pipelines on Metal) and
 `port_gpu` (gpu.cpp on Metal).
 
-What has not been run on a Mac since MAC4 / R43h (the first Mac build must check it):
-- the configure and build: the shader toolchain against the Vulkan SDK's DXC, the MSL (spirv-cross), the bundle;
-- ctest's four checks, `port_shaders` and `port_gpu` first (Metal's compile of every MSL, the formats, downloads, the
-  swap chain's present modes);
+Run on the Mac since MAC4 / R43h (2026-11-04, M4 Pro, Vulkan SDK 1.4.363.1): the configure and build, and ctest's four
+checks (all pass with the SDL upload patch above). Not yet checked there:
 - a play run (`tools/run_macos.py --play`): the menu, a zone, the camera's right-button turn with the cursor visible
   at the press point, the cursor's shapes at 2x, full screen and windowed, a resize, a movie and the loading screen;
 - the shadows (the receivers' `shadow_range` is the texture shadercross's MSL had put at slot 0) and the smooth option
