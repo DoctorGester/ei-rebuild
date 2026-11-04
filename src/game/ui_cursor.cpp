@@ -72,15 +72,8 @@ CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY) {
 // the primary between frames, and the DirectDraw background saves are gone: the system moves the cursor. See
 // docs/notes/ui.md, "Cursor", and docs/notes/renderer.md section 9.
 
-namespace {
-
-// The renderer object; its flags' bit 0 is the software cursor display option.
-bool SoftwareCursor() { return (g_sceneRenderer.flags & 1) != 0; }
-
-} // namespace
-
 void CursorDrawFrame(Cursor* self) {
-    if (!SoftwareCursor()) return;
+    if (!g_sceneRenderer.running) return;
     if (!self->enabled) return;
     self->UpdatePosition();
     if (!self->imageShown) return;

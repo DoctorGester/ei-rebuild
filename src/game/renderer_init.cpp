@@ -179,7 +179,6 @@ void SceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     SetRenderState();
 
     frameTime = 0;
-    flags |= 2;
     lastFrameStart = platform::Milliseconds();
     AddDefaultLight(this);
 

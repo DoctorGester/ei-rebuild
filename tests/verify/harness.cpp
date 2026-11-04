@@ -1114,13 +1114,12 @@ std::string InstallFailure() {
 unsigned& TickLength() { return image::UpdatePeriod(); }
 unsigned g_heldTickLength = 0;
 
-// The main loop's calls of the server's update and the client's tick (EAX 0 stops the frame): the rewritten
-// loop's hooks (app_main.cpp).
-int HeldServerUpdate(void* server) {
-    int result;
+// The main loop's calls of the server's update and the client's tick (false stops the frame): the loop's hooks
+// (app_main.cpp).
+void HeldServerUpdate(::WorldServer* server) {
     {
         timing::Scope scope(timing::Server);
-        result = image::ServerUpdate(server);
+        image::ServerUpdate(server);
     }
     if (g_heldTickLength) TickLength() = g_heldTickLength;
     {
@@ -1129,10 +1128,9 @@ int HeldServerUpdate(void* server) {
     }
     watch::AfterWorldUpdate();          // EI_WATCH_CUNIT (harness_watch.h)
     watch::ScrubStack();                // EI_STACK_SCRUB (harness_watch.h)
-    return result;
 }
-int HeldClientSegment(void* client) {
-    int result;
+bool HeldClientSegment(::WorldClient* client) {
+    bool result;
     {
         timing::Scope scope(timing::Client);
         result = image::ClientSegment(client);
@@ -1211,7 +1209,7 @@ bool g_objectTraceUsed = false;
 
 // The main loop's per-frame camera update (Camera::Update, one float), taken over when the scenario freezes or
 // records the camera's motion (camtrace: sampled after the call).
-void HeldCameraUpdate(void* camera, float dt) {
+void HeldCameraUpdate(::Camera* camera, float dt) {
     if (clock::Frozen()) return;
     image::CameraUpdate(camera, dt);
     camera_trace::Frame(camera, dt);

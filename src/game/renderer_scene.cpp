@@ -23,7 +23,7 @@
 #include <cstring>
 
 int SceneRenderer::BeginScene() {
-    if (!(flags & 1)) return 0;
+    if (!running) return 0;
     std::uint32_t now = platform::Milliseconds();
     frameStart = now;
     frameTime = now - lastFrameStart;
@@ -96,7 +96,6 @@ SceneRenderer g_sceneRenderer;
 
 void SceneRenderer::DestroyRenderer() {
     ReleasePipeline();
-    flags &= ~2u;
     helper.Reset();
     device.Reset();
 }

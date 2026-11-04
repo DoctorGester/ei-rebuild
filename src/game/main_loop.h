@@ -5,6 +5,12 @@
 // The harness reaches the loop in two ways: it is told which call of the loop is being made (Site), and it may stand
 // in for a few of the loop's calls (HarnessHooks). Both are empty in the game itself.
 
+#include <functional>
+
+class Camera;
+class WorldClient;
+class WorldServer;
+
 namespace ei::mainloop {
 
 // The call of the loop that is being made, for the harness's platform seam: the loop's message peek and clock read go
@@ -28,22 +34,30 @@ struct InSite {
 };
 
 // Calls of the loop and the frame step that the harness replaces (tests/verify/harness.cpp, harness_capture.cpp). The
-// loop calls the hook instead of the function when one is set. A hook ends by calling the function it stands in for,
-// except beforePresent, which stands in for none. Null: the function itself.
+// loop calls the hook instead of the function when one is set (CallOr). A hook ends by calling the function it stands
+// in for, except beforePresent, which stands in for none. Null: the function itself.
 struct HarnessHooks {
-    using WorldUpdate = int (*)(void* world);   // 0 stops the frame
-    using CameraUpdate = void (*)(void* camera, float seconds);
-    using BeforePresent = void (*)();
-    using FrameStep = void (*)(bool draw);
-    WorldUpdate serverUpdate = nullptr;         // the server world's tick; the harness's "speed" hold follows it
-    WorldUpdate clientSegment = nullptr;        // the client world's tick; the "speed" hold follows it too
-    CameraUpdate frameCameraUpdate = nullptr;   // the pass's last camera update for the real time; "freeze" holds it still
-    BeforePresent beforePresent = nullptr;      // in the frame step, after the interface is drawn and before the cursor
-                                                // and the present: the frame capture reads the finished frame here
-    FrameStep frameStep = nullptr;              // a pass's frame step (draw): overlapping paired games hand
-                                                // over to each other before it
+    // The server world's tick; the harness's "speed" hold follows it.
+    void (*serverUpdate)(WorldServer* world) = nullptr;
+    // The client world's tick (false stops the frame); the "speed" hold follows it too.
+    bool (*clientSegment)(WorldClient* world) = nullptr;
+    // The pass's last camera update for the real time; "freeze" holds it still.
+    void (*frameCameraUpdate)(Camera* camera, float seconds) = nullptr;
+    // In the frame step, after the interface is drawn and before the cursor and the present: the frame capture reads
+    // the finished frame here.
+    void (*beforePresent)() = nullptr;
+    // A pass's frame step: overlapping paired games hand over to each other before it.
+    void (*frameStep)(bool draw) = nullptr;
 };
 
 inline HarnessHooks g_harnessHooks;
+
+// `hook` when the harness set it, else `call` (a function, or a member function with its object first) with the same
+// arguments.
+template <class Hook, class Call, class... Args>
+decltype(auto) CallOr(Hook hook, Call call, Args... args) {
+    if (hook) return hook(args...);
+    return std::invoke(call, args...);
+}
 
 } // namespace ei::mainloop

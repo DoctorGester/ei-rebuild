@@ -24,7 +24,7 @@ extern std::string g_commandLineScript;
 extern std::string g_cameraFile;
 
 // The application's flags and handles. The game window's title (from the string table); the window's activation as
-// its focus events leave it; whether the interface shows a screen
+// its focus events leave it (the main loop's pass takes it into SceneRenderer::running); whether the interface shows a screen
 // (set when a screen is activated, cleared when every window is closed: the main loop runs its frames only
 // while it is set); whether QuitGame may post the quit message (cleared while a timed movie plays); a movie of
 // the frames being written (the loop then runs a fixed time a frame); the console's switch that prints the
@@ -33,7 +33,6 @@ extern std::string g_cameraFile;
 extern char g_windowTitle[256];
 extern platform::NativeWindow g_mainWindow;
 extern std::uint8_t g_active;
-extern std::uint8_t g_activationChanged;
 extern std::uint8_t g_interfaceHasScreen;
 extern std::uint8_t g_quitAllowed;
 extern std::uint8_t g_recordingFrames;
@@ -49,8 +48,8 @@ void DispatchInput(const platform::Event& event);
 // loop.
 void PumpMessages();
 // Without a .mob on the command line opens the main menu; otherwise loads the map into the
-// world server and runs the command line's script file. Returns 1, or FatalError's result.
-int StartFirstMap();
+// world server and runs the command line's script file.
+void StartFirstMap();
 // One frame: the interface drawn and the scene presented, nothing while the application is inactive.
 void FrameStep(bool draw);
 // Plays the movies listed under `section` of config\movie.ini.

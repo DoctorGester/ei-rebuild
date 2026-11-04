@@ -5,14 +5,16 @@ window and input in `platform.md`.
 
 ## WinMain
 
-`app_main.cpp` (`app::GameMain`). Start-up order: the system messages (res\sysmsg.txt, two lines, built-in ones as
-a fallback), the command line ("-moviepath_", "-nocam", .cam / .scr / .mob / .mpr files), a second
-instance's hand-over (a running game is brought forward and this one exits), the settings (`ei_settings.ini`,
-`docs/settings.md`), the two worlds and the camera (field of view pi * 2 / 7), the free disk space (a 300 MB warning,
-`platform::FreeDiskSpace` of the data folder itself), the saves / mp /
-textures folders, the window, the renderer, the sound, the intro movies (list from the .ini), the databases, the
-cursors, the interface, the map list (`MapDatabase::LoadAll`: map.txt, then map-LMP.txt) and the first map or the main
-menu.
+`main.cpp` runs `app::StartVideo` (a second instance's hand-over: a running game is brought forward and this one
+exits; then SDL's video and the renderer's device on its thread) and then `app::GameMain` (`app_main.cpp`), one list
+in order: the original's static initialisers that do more than set values, the chunk archives' classes, the command
+line ("-moviepath_", "-nocam", .cam / .scr / .mob / .mpr files), the settings (`ei_settings.ini`, `docs/settings.md`),
+the two worlds and the camera (placed at the options' start focus; field of view pi * 2 / 7), the free disk space (a
+300 MB warning, `platform::FreeDiskSpace` of the data folder itself; its text is line 1 of res\sysmsg.txt, read only
+then, else a built-in one), the saves / mp / textures folders, the window, the sound, the databases, the map list
+(`MapDatabase::LoadAll`: map.txt, then map-LMP.txt), the renderer and its gamma, the intro movies (list from the .ini),
+the loading screen's first frame, the world's graphics, the cursors, the interface, the first map or the main menu,
+and the loop.
 
 There is no disc check and no "CD-ROM Path" setting: the movies (`Movies\`) and the voices (`res\speech.res`) are read
 under the data folder (`Work path`), the game's own folder.
@@ -27,9 +29,18 @@ from balance = waiting updates - fraction (e^(balance / 10) when negative, 1 up 
 kept within 0.1 .. 10; 1 in a local game), the camera for the real time of the pass, the camera file's record /
 playback, the interface and a frame (`FrameStep`). A waiting message goes to the interface's input.
 
-The harness's hook points (`src/game/main_loop.h`, `g_harnessHooks`) sit at the loop's calls: the frame capture
-between the interface draw and the cursor blit, "freeze" (the camera's update), "speed" (the server and client
-updates), and the loop's message peeks and clock reads named in `ei::mainloop::g_site`.
+A pass (`RunPass`) reads top to bottom: the window's activation taken into `SceneRenderer::running` (nothing more
+while the window is inactive), the resolution and cursor confinement, the clock (`LoopClock`: `TimeSinceLastPass`,
+`AdvanceClock`), the idle session's recovery, `net::Pump`, `RunWorlds`, the game flow's request and the tick
+fraction, `UpdateClientSpeed`, `UpdateCamera`, `DrawFrame`. The places of the `net::Pump` calls are behaviour.
+`SceneRenderer::running` is `g_active` as it was at the pass's start: a focus change handled inside the pass (a
+loading screen's `PumpMessages`) reaches the frame, the cursor, the client's lighting and the main menu's lightning
+only at the next pass.
+
+The harness's hook points (`src/game/main_loop.h`, `g_harnessHooks`, each called as `CallOr(hook, function,
+arguments...)`) sit at the loop's calls: the frame capture between the interface draw and the cursor blit, "freeze"
+(the camera's update), "speed" (the server and client updates), the frame step, and the loop's message peeks and
+clock reads named in `ei::mainloop::g_site`.
 
 Dropped on purpose: the original chose the interface or the window procedure for an event waiting before the first
 pass by the top byte of a reused stack slot (it hung depending on where a string lay); ours always gives it to the

@@ -126,7 +126,7 @@ void MainMenu::Update() {
         if (serverHour == kRainStartHour) g_serverWorld.SetWeather(kWeatherRain, kWeatherStrength);
         else if (serverHour == kRainEndHour) g_serverWorld.SetWeather(kWeatherClear, kWeatherStrength);
     }
-    if (!daylight && rain && serverHour < kLightningBeforeHour && (g_sceneRenderer.flags & 1) != 0) {
+    if (!daylight && rain && serverHour < kLightningBeforeHour && g_sceneRenderer.running) {
         std::uint32_t now = platform::TickCount();
         if (now > g_nextLightningTick) {
             g_nextLightningTick = now + 100;

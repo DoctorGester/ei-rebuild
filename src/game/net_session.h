@@ -12,3 +12,8 @@ namespace net {
 void Pump();
 
 } // namespace net
+
+// Start-up (GameMain, first): the game server's and the game client's counted pointers cleared and their exit
+// functions registered, so the sessions go in the game's exit order.
+void InitGameServerPointer();
+void InitGameClientPointer();
