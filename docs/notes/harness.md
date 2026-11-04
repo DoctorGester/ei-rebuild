@@ -65,7 +65,9 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   then idle for that many frames, default 20; clicked again when a fight stopped it short), `waitdead <seconds>
   <id>...` until those units are dead, `waitaward <seconds> [received]` until the leader's experience or money changes (from an
   earlier `awardfrom`; `net_pair_quest.txt`; `served`: instead until the game server's queued awards, each kept 60 s, are
-  gone, `net_pair_leave.txt`). On the base screen: `waitdialogue <seconds> <state>` waits for its
+  gone, `net_pair_leave.txt`). `hit <target> <attacker> <amount>` deals a server world unit a blow from another
+  (`leader`, `#<id>` or a script name; attacker `none` for none) through Unit::ReceiveHit, so the blow has a side and
+  works in a network game, where `@` commands do nothing (`net_host_death.txt`, `unit_hit_turning.txt`). On the base screen: `waitdialogue <seconds> <state>` waits for its
   dialogue state (1 a person's topics open: `clickregion` picks one), `talk <seconds>` clicks through the dialogue's
   phrases and rewards until it is over (`net_pair_leave.txt`).
 - `key <key>` and `click/rclick/move <x> <y>` send keyboard and mouse input to the game window (coordinates in the
@@ -247,7 +249,7 @@ routine: run it when wanted.
   fire wall's sound in flight, F8), `script_file` (`execs`: a mission script file with `#define`s, effects and a sleeping
   script saved and loaded; GameOverMsg, AddMobEx, RedeployParty, GetObjectsOnMap), `gvar_hosted` (a prepared hero with
   `gvar.` variables hosts a game: the AddonStringMap), `ambient_sounds` (tools/make_ambient_mob.py: no zone of the game has
-  an ambient sound). Left: SharedObject (a multiplayer hero's death, H43c1). The map specs' `Save`
+  an ambient sound). The map specs' `Save`
   methods and the `Chunk` writers they alone called are deleted (H43c2): the .mob writer is the editor's.
 - **Gap scenarios (H43g, H43h):** pairs `net_pair_lobby` (the peer asks the host's address in the connection screen's
   address box: ClientBase::Ask; the same button on an asked row forgets it; Esc saves the address book, the next visit
@@ -261,6 +263,12 @@ routine: run it when wanted.
   early in every network game, and the briefing records exist only after hosting, when the quit to the menu has dropped
   the text sources), the message clones and copy constructors. Left: the multiplayer zone scripts' GSSetVarMax / GSDelVar
   (H43g2).
+- **Gap scenarios (H43c1, H43e1):** `net_host_death` (a hosted game's hero killed by a `hit` step in the game zone:
+  OnLeaderDied's multiplayer branch, AddSharedObject, StopSpeech on the host's own client; the zone left, saved and
+  entered again: SharedObject::Load), `unit_hit_turning` (a blow while the hero turns: HitWhileTurning),
+  `unit_ai_healer` (bz2g's healing mercenary renumbered by make_trap_mob.py: only a unit whose id is no text key gets
+  spell options, and no zone has one with a heal or protection, so IsNearPath runs on no shipped data). No caller at
+  all: TrapObject (no record kind makes one) and mapspec::UnitSpec::Apply (H43j).
 
 ## What a run leaves alone
 

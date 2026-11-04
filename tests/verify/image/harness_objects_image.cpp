@@ -182,6 +182,23 @@ void SetFixedSeed(void (*fill)(std::uint32_t* results)) {
 }
 int TextKey(const char* name) { return TextKeyFromName(name); }
 void* LocalWorldPlayer(int player) { return g_serverWorld.GetPlayer(player); }
+std::string HitUnit(int target, int attacker, float amount) {
+    Unit* unit = g_serverWorld.FindUnit(target);
+    if (!unit) return "no unit " + std::to_string(target);
+    Unit* from = nullptr;
+    if (attacker) {
+        from = g_serverWorld.FindUnit(attacker);
+        if (!from) return "no attacker " + std::to_string(attacker);
+    }
+    DamageInfo damage = {};
+    damage.typeWeights[5] = 1.0f;
+    damage.attackRoll = 100.0f;
+    damage.amount = amount;
+    damage.multiplier = 1.0f;
+    damage.location = 1;
+    unit->ReceiveHit(&damage, from, from);
+    return "";
+}
 void* WorldHandle() { return g_serverWorld.worldHandle.Get(); }
 const char* ServerZoneName() { return g_serverWorld.zoneName.c_str(); }
 const char* LoadingMovieName() { return app::g_loadingMovieName; }

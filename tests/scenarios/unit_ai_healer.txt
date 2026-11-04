@@ -1,0 +1,27 @@
+# A guard that heals (H43e1): GuardMode::Execute keeps AIMode::Execute's LookAround, which chooses among the unit's
+# helping spells for itself and its allies in sight (AIBrain::Choose with allies only, src/game/unit_ai_targets.cpp);
+# a heal or protection it may use is then checked against its path (AIBrain::IsNearPath, src/game/unit_ai.cpp) before
+# the cast. Only a unit whose id is not a text key gets spell options (AIAttention::Build), so no unit a script adds
+# (AddUnitToServer names it) and none of the game's zones has such a healer: bz2g's mercenary has healing but a
+# text-key id. tools/make_trap_mob.py copies it into healer.mob as 30001, beside the hero's start (54 138). Without
+# enemies it keeps only a guard mode, and is wounded (InflictDamage), so its own heal scores.
+# prepare: make_trap_mob.py --zone bz2g --kind BBBB0000 --with healing --at 59 138 --out healer.mob
+reject Script error
+waitmenu
+console thingamabob
+console filter all on
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),1)
+console @GodMode(0,1)
+console @AddMob("..\saves\healer.mob")
+waitfor 10 IsEqual(GetObjectID(GetObject(30001)),30001)
+console @UMClear(GetObject(30001))
+console @UMGuard(GetObject(30001),59,138,3)
+wait 1000
+console @InflictDamage(GetObject(30001),15)
+wait 6000
+check IsAlive(GetObject(30001))
+report
+quit

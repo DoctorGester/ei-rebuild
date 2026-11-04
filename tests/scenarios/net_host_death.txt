@@ -1,0 +1,81 @@
+# A multiplayer hero's death and the game zone saved and loaded with what it left (H43c1, H43e1). This game hosts
+# alone (its own client joins its server, as in every hosted game) with a new hero, takes the sheriff's second topic
+# (z3q2, as net_pair_zone) and walks out through the base's gate into the zone.
+# - The death: the console's "@" commands do nothing in a network game, so the harness's "hit" step deals the leader a
+#   killing blow. PlayerServer::OnLeaderDied's multiplayer branch (src/game/player_server_handlers.cpp): the hero's
+#   speech stopped (StopSpeech to its client, UnitClientSpecific::StopSpeech), part of its money and all its items
+#   left in a shared object (WorldServer::AddSharedObject), the party collected and redeployed under a new id.
+# - The zone saved: back out through exit 1 (remove rectangle 0 130 20 147, beside the deploy rectangle where the
+#   revived hero stands) and the leave box's Enter: the flow's LeaveZone writes the zone into saves\current with
+#   its shared objects (WorldServer::SaveWorld).
+# - The zone loaded: out through the base's gate again with the map still set; StartNetworkZone restores the saved
+#   zone (WorldServer::LoadSave -> SharedObject::Load).
+timeout 120
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key h
+frames 3
+key o
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 mpconnect
+
+clickregion 14
+frames 5
+clickregion 0
+waitwindow 25 briefing
+frames 20
+
+# The sheriff's second topic picks the map (as in net_pair_zone).
+clickground 63 64 dblclick
+frames 60
+waitunit 10 Nsheriff
+clickunit Nsheriff
+waitdialogue 10 1
+clickregion 1
+talk 30
+
+# Out through the gate into the game zone.
+clickground 61 50 dblclick
+frames 60
+clickground 59 43 dblclick
+waitzone 40 z3q2
+frames 20
+
+# The leader's death; the hero comes back under a new id at the deploy rectangle.
+hit leader none 100000
+frames 100
+waitidle 30
+
+# Back out through exit 1 to the base: the zone is saved.
+clickground 15 138 dblclick
+frames 40
+clickground 8 138 dblclick
+waitwindow 30 msgbox
+key enter
+waitwindow 60 briefing
+frames 40
+
+# Out through the gate again: the saved zone is loaded.
+clickground 61 50 dblclick
+frames 60
+clickground 59 43 dblclick
+waitzone 40 z3q2
+frames 40
+report
+quit

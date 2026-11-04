@@ -1,0 +1,13 @@
+{
+  "scenario": "unit_hit_turning",
+  "install": "vanilla",
+  "recorded": "2026-11-04",
+  "commit": "219355b31",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "New H43c1/H43e1 gap scenarios: a hosted hero's death with the zone saved and loaded, a blow while turning, a healing guard.",
+  "source": "image",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
+}

@@ -19,7 +19,8 @@ Files: `net_classes.h` (sessions, lobby, message base), `net_session*.cpp`, `net
   (an exchange, the map choice, both into the zone), `net_pair_kick` (kick by serial, ban by name, a refused join),
   `net_pair_leave` (shared files, a peer lost in the zone, LeaveZone), `net_pair_quest` (a quest done, CompleteZone and
   its awards, a fake master), `net_pair_master` (the master's server list, a bad update), `net_second_master`, `net_pair_lobby` (direct queries, the address book), `net_pair_password` (a refused and an admitted join)
-and `net_pair_party` (an exchange offered, withdrawn, answered, left).
+and `net_pair_party` (an exchange offered, withdrawn, answered, left);
+  `net_host_death` (one hosted game: its hero killed in the game zone, the zone saved and entered again).
 
 ## The multiplayer game
 
@@ -49,7 +50,12 @@ and `net_pair_party` (an exchange offered, withdrawn, answered, left).
   only.
 - **A lost client**: the server drops it after the session timeout (60 s; text 4 to both); its own game shows the
   lost server box and returns to the main menu.
-- The console's "@" commands do nothing in a network game.
+- The console's "@" commands do nothing in a network game (the harness's `hit` step acts on the world instead).
+- **A hero's death** (PlayerServer::OnLeaderDied, the multiplayer branch: a party of one hero): StopSpeech to its
+  client, the money times `lostMoney` and all the player's items left in a shared object (WorldServer::AddSharedObject,
+  saved with the zone and read back by SharedObject::Load when the zone is entered again), the party collected,
+  experience times `lostXp` taken, and the hero redeployed under a new id (below 1001000000 moved up). The host's own
+  hero dies the same way: the host is a network client too.
 - Original bug: a guest joining while the host's briefing dialogue runs crashes the host in TextManager::PeekWord
   (NextPhrase -> FindLine).
 

@@ -13,6 +13,11 @@ usage: python tools/make_trap_mob.py <saves dir> [--source <zone2.mob>]
   --kind K / --first-id N / --count C / --out NAME  copy the records of kind K (hex; B001 a plain map
                 object) instead, numbered from N, only the first C, into NAME (rebirth_fixes_world.txt:
                 one object with a zone1 id).
+  --zone Z      the records from the install's Maps\\Z.mob instead of zone2's
+  --with TEXT   only the records whose bytes hold TEXT (e.g. a unit's spell name)
+  --at X Y      every record's position (field 0xB009) moved to (X, Y, 0): a unit then stands on the ground there
+                (unit_ai_healer.txt: bz2g's mercenary, the only unit of the game's zones with a healing spell, whose
+                text-key id keeps its spells out of its attack options until it is renumbered)
 
 The full zone2.mob stalls the original game when AddMob loads it into zone1 (one of its other
 objects or units). The .mob object reader (00481F00) walks the children of the root chunk 0xA000:
@@ -86,6 +91,16 @@ def set_circle(record, x, y, radius):
     return bytes(record)
 
 
+def set_position(record, x, y):
+    """The record `record` with its position (field 0xB009, three floats) set to (x, y, 0)."""
+    record = bytearray(record)
+    fields = [o for c, o, s in chunks(record, 8, len(record)) if c == 0xB009]
+    if len(fields) != 1:
+        raise ValueError(f'{len(fields)} position fields')
+    struct.pack_into('<fff', record, fields[0] + 8, x, y, 0.0)
+    return bytes(record)
+
+
 def chunk(cid, body):
     return struct.pack('<II', cid, 8 + len(body)) + body
 
@@ -102,8 +117,12 @@ def main():
     parser.add_argument('--kind', type=lambda v: int(v, 16), default=MAGIC_TRAP,
                         help='the record kind copied, hex (default BBAB0000, a magic trap; B001 a plain map object)')
     parser.add_argument('--out', default='traps.mob', help='the file name in <saves dir>')
+    parser.add_argument('--zone', default='zone2', help='the zone whose .mob in the install\'s Maps is read (default zone2)')
+    parser.add_argument('--with', dest='holding', default=None, help='only the records whose bytes hold this text')
+    parser.add_argument('--at', type=float, nargs=2, metavar=('X', 'Y'), default=None,
+                        help='every record\'s position moved to (X, Y, 0)')
     args = parser.parse_args()
-    data = open(args.source or exe_path.install_file('vanilla', 'Maps', 'zone2.mob'), 'rb').read()
+    data = open(args.source or exe_path.install_file('vanilla', 'Maps', args.zone + '.mob'), 'rb').read()
     root = next(c for c in chunks(data, 0, len(data)) if c[0] == ROOT_CHUNK)
     diplomacy = b''
     traps = []
@@ -112,7 +131,7 @@ def main():
             diplomacy = data[off:off + size]
         elif cid == OBJECTS:
             for c, o, s in chunks(data, off + 8, off + size):
-                if c == args.kind:
+                if c == args.kind and (args.holding is None or args.holding.encode('cp1251') in data[o:o + s]):
                     traps.append(renumber(data, o, s, args.first_id + len(traps)))
     if args.count is not None:
         traps = traps[:args.count]
@@ -120,6 +139,8 @@ def main():
         traps = [set_interval(t, args.interval) for t in traps]
     if args.circle is not None:
         traps = [set_circle(t, *args.circle) for t in traps]
+    if args.at is not None:
+        traps = [set_position(t, *args.at) for t in traps]
     if not diplomacy or not traps:
         sys.exit(f'{args.source}: no diplomacy chunk or no records of kind {args.kind:X}')
     out = chunk(ROOT_CHUNK, chunk(NO_DIPLOMACY, b'') + diplomacy + chunk(OBJECTS, b''.join(traps)))

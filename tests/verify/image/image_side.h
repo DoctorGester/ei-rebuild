@@ -94,6 +94,9 @@ const char* DataFolder();                       // the data folder's text, may b
 void SetFixedSeed(void (*fill)(std::uint32_t* results));
 int TextKey(const char* name);                  // TextKeyFromName
 void* LocalWorldPlayer(int player);             // WorldServer::GetPlayer
+// The "hit" step: the server world's unit `target` takes `amount` damage from unit `attacker` (0: none) as a blow lands
+// (Unit::ReceiveHit with the attacker as its source; the hit as InflictDamage's). "" or the error.
+std::string HitUnit(int target, int attacker, float amount);
 void* WorldHandle();                          // the server world's worldHandle
 const char* ServerZoneName();                   // the server world's zone, may be null
 const char* LoadingMovieName();                 // app::g_loadingMovieName: the loading screen's movie file
