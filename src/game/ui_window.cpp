@@ -353,7 +353,7 @@ ClassId UiWindow::GetClassId() { return ClassId::UiWindow; }
 // --- The destructor ---------------------------------------------------------------------------------
 
 UiWindow::~UiWindow() {
-    for (EngineObject** held : {&blackMaterial, &whiteMaterial, &heldObject}) {
+    for (Material** held : {&blackMaterial, &whiteMaterial}) {
         if (*held) (*held)->Release();
         *held = nullptr;
     }

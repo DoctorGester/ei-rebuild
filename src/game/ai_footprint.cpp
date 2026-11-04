@@ -201,9 +201,10 @@ bool AIMap::MarkFootprint(MapObject* object, bool remove) {
 
     if (Unit* unit = UnitOrNull(object)) {
         if (unit->IsDead()) return true;
-        auto* shape = static_cast<const UnitShape*>(ShapeForHeight(unit->standingHeight));
+        const UnitShape* shape = ShapeForHeight(unit->standingHeight);
         if (!shape) return true;
-        UnitLayer* layer = unit->IsLargeUnit() ? static_cast<UnitLayer*>(&unitLayerLarge) : &unitLayerSmall;
+        UnitLayer* layer = &unitLayerSmall;
+        if (unit->IsLargeUnit()) layer = &unitLayerLarge;
         const Point topLeft = cell - Point{8, 8};
         if (remove) layer->Remove(unit, topLeft);
         else layer->Add(unit, shape, topLeft);

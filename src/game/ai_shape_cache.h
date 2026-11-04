@@ -8,24 +8,43 @@
 #include <cstdint>
 #include <unordered_map>
 
-// A handle into the cache: the cache and the object it resolved to (one reference), or the height to look up. It
+// A unit's footprint on the occupancy layers (ai_unit_layer.h): 16 x 16 cell levels around the unit, shared by
+// radius through the cache below. Methods in ai_unit_shape.cpp.
+class UnitShape final : public RefObject {
+public:
+    // The levels of a disc: per cell (2 + radius - half its distance from the
+    // middle cell (8, 8)) x 16, rounded; cells where that is not above 0 stay 0. No references.
+    explicit UnitShape(float radius);
+    // An empty shape, as OnShutdown leaves one (the water patch, ai_water_patch.cpp). No references.
+    UnitShape();
+    // Constructed again empty: no levels, radius -1. Returns 0.
+    void OnShutdown() override;
+    UnitShape* Clone() override;
+
+    std::uint8_t levels[16][16];    // rows of 16
+    float radius;
+};
+
+class UnitShapeCache;
+
+// A handle into the cache: the cache and the shape it resolved to (one reference), or the height to look up. It
 // starts with nothing resolved: no reference, no cache.
 struct ShapeCacheHandle {
-    void* cache = nullptr;
-    Ref<RefObject> ref;
+    UnitShapeCache* cache = nullptr;
+    Ref<UnitShape> ref;
     float height = 0.0f;
 };
 
 class UnitShapeCache {
 public:
-    RefObject* Get(void* handleIn);
+    UnitShape* Get(ShapeCacheHandle* handle);
 
-    virtual RefObject* CreateShape(const ShapeCacheHandle* handle);
+    virtual UnitShape* CreateShape(const ShapeCacheHandle* handle);
 
     // The shape for the handle's height: the stored one, else a new one from CreateShape, stored for the height
     // (shared). The handle then holds it (one more reference) and this cache.
-    RefObject* Resolve(ShapeCacheHandle* handle) {
-        RefObject* shape;
+    UnitShape* Resolve(ShapeCacheHandle* handle) {
+        UnitShape* shape;
         auto found = shapes.find(handle->height);
         if (found != shapes.end()) {
             shape = found->second.Get();
@@ -40,7 +59,7 @@ public:
 
     // By standing height (the game hashed its bits; the heights are tenths, never NaN, so float equality is the
     // game's).
-    std::unordered_map<float, SharedRef<RefObject>> shapes;
+    std::unordered_map<float, SharedRef<UnitShape>> shapes;
 };
 
 // The cache (defined in ai_unit_shape.cpp).

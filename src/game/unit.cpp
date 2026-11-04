@@ -363,8 +363,8 @@ float Unit::ActionSpeed(const FigureAnimation* entry) {
 bool Unit::AcceptsAnimation(const FigureAnimation* entry) {
     if (MapType() != MapObjectType::Hero) return true;
     std::uint32_t required = 0;
-    if (Controller()->HasOtherArmour()) required = 0x10;
-    if (Controller()->HasMainArmour()) required |= 0x20;
+    if (controller->HasOtherArmour()) required = 0x10;
+    if (controller->HasMainArmour()) required |= 0x20;
     return (entry->flags & required) == required;
 }
 
@@ -379,18 +379,18 @@ bool MapObjectServer::IsDead() { return static_cast<std::int16_t>(lib::RoundEven
 
 bool MapObjectServer::IsOverkilled() { return vitals.maxHitPoints * kOverkill > vitals.hitPoints; }
 
-bool MapObjectClientSpecific::IsDead() { return OwnerUnit()->packedVitals.hitPoints <= 0; }
+bool MapObjectClientSpecific::IsDead() { return owner->packedVitals.hitPoints <= 0; }
 
 bool MapObjectClientSpecific::IsOverkilled() {
-    int maximum = OwnerUnit()->packedVitals.maxHitPoints;
-    return OwnerUnit()->packedVitals.hitPoints < -maximum * 4 - maximum;
+    int maximum = owner->packedVitals.maxHitPoints;
+    return owner->packedVitals.hitPoints < -maximum * 4 - maximum;
 }
 
 // --- The class name and id, the motion given its speeds, the player test, twice the height above the
 // centre and a worn armour piece.
 
 void Unit::SetMotionSpeeds(float speed, float turnRate) {
-    PathOrder* path = Controller()->Path();
+    PathOrder* path = controller->Path();
     path->ForgetObject(id);
     UnitMotion* unitMotion = &motion;
     unitMotion->segment = -1;
@@ -408,12 +408,12 @@ ItemArmor* Unit::WornItem(int slot) const { return armor[slot]; }
 // --- Hits, forgotten objects and the script name ----------------------------------------------------
 
 void Unit::ReceiveHit(DamageInfo* hit, Unit* attacker, Unit* caster) {
-    Controller()->TakeHit(hit, attacker, caster);
+    controller->TakeHit(hit, attacker, caster);
 }
 
 // Nothing reads the result.
 int Unit::ForgetObject(EngineObject* object) {
-    Controller()->ObjectDeleted(object);
+    controller->ObjectDeleted(object);
     return 0;
 }
 

@@ -237,12 +237,12 @@ void MpHeroScreen::MakePreview(bool allArmour) {
             int start = static_cast<int>(frames - static_cast<int>(random % 51));
             unit->SetAnimationEntries(-1, static_cast<std::int8_t>(animation->index), start, 0);
         }
-        UnitController* controller = unit->Controller();
+        UnitController* controller = unit->controller;
         controller->ShowWeapon(kNoWeaponSlot);
         controller->RefreshModel();
         controller->RestartAnimation(static_cast<float>(platform::Milliseconds() * kFramesPerMillisecond - 1.0));
         unit->SetFromStats(&player->members.data()->stats);
-        unit->Controller()->RefreshWounds();
+        unit->controller->RefreshWounds();
     }
 }
 
@@ -266,8 +266,8 @@ void MpHeroScreen::ShowHero(int index) {
     for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);
     for (int i = 0; i < std::ssize(hero->weapons); ++i) unit->AddWeapon(hero->weapons[i]);
     unit->SendEquipment();
-    unit->Controller()->ShowWeapon(hero->weaponIndex);
-    unit->Controller()->RefreshModel();
+    unit->controller->ShowWeapon(hero->weaponIndex);
+    unit->controller->RefreshModel();
     turn = 0.0f;
     DrawHeroList();
 }

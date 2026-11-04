@@ -253,7 +253,7 @@ Texture* Object3DClientSpecific::ReplaceTexture(Texture* replacement) {
 // --- Skins and materials --------------------------------------------------------------------------
 
 int Object3DClientSpecific::SetSkins(std::optional<std::string_view> first, std::optional<std::string_view> second) {
-    TextureManager* manager = WorldContext()->GetTextureManager();
+    TextureManager* manager = OwningWorld()->GetTextureManager();
     skinName = first.value_or("");   // (an absent name was the empty text)
     secondSkinName = second.value_or("");
     const std::optional<std::string_view> names[2] = {first, second};
@@ -279,7 +279,7 @@ int Object3DClientSpecific::SetSkins(std::optional<std::string_view> first, std:
 }
 
 void Object3DClientSpecific::ApplyMaterials() {
-    MaterialManager* manager = WorldContext()->GetMaterialManager();
+    MaterialManager* manager = OwningWorld()->GetMaterialManager();
     if (materials.empty()) {
         materialCursor = -1;
     } else {
@@ -388,7 +388,7 @@ WoundsMaterial::~WoundsMaterial() { preset.Reset(); }
 Vector3 Object3DClientSpecific::GetScale() { return {figureScale.x, figureScale.y, figureScale.z}; }
 
 void Object3DClientSpecific::RegisterPartMaterials() {
-    MaterialManager* manager = WorldContext()->GetMaterialManager();
+    MaterialManager* manager = OwningWorld()->GetMaterialManager();
     if (materials.empty()) return;
     materialCursor = 0;
     for (Material* material = materials[0]; material;) {

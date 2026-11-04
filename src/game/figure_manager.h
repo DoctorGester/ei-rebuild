@@ -21,7 +21,7 @@ enum class FigureObjectType : int {
 };
 
 // The figure factory: a new object of figure type `classId` with type set, or null for another type.
-void* CreateFigureObject(int classId);
+EngineObject* CreateFigureObject(int classId);
 
 // The menus' button rectangles (menus.reg): the main menu's six (new game, load, exit, options, credits,
 // multiplayer), then the Esc menu's five (save, load, resume, exit to the main menu, options).
@@ -73,11 +73,7 @@ public:
     std::unordered_map<std::string, FigureModel*> models;     // the cached models by name
 };
 
-// The figure manager of `object`'s world (every world's is a FigureManager).
+// The figure manager of `object`'s world: the one that made it (a world has one).
 inline FigureManager* FigureManagerOf(const EngineObject* object) {
-    return static_cast<FigureManager*>(object->WorldContext()->GetFigureManager());
-}
-// The figure manager that made `object` (a bone or an animation track, EngineObject::owner).
-inline FigureManager* OwningFigureManager(const EngineObject* object) {
-    return static_cast<FigureManager*>(object->owner);
+    return object->GetManagerContext()->GetFigureManager();
 }

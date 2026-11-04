@@ -133,6 +133,9 @@ public:
     UnitController() {
         unit = nullptr;
     }
+    // This controller as the server's or the client's: null on the other side.
+    virtual UnitServer* ServerSide() { return nullptr; }
+    virtual UnitClientSpecific* ClientSide() { return nullptr; }
     ~UnitController() override;
     void Create() override;
     void Destroy() override;
@@ -191,7 +194,7 @@ public:
     virtual void StopSpeech() {}
     virtual void MoveFactorsChanged() {}
 
-    Unit* unit;   // the unit it controls (Unit::AttachCompanion sets and clears it)
+    Unit* unit;   // the unit it controls (Unit::AttachObject sets and clears it)
 };
 
 // Items and the spells they carry, gathered in order.
@@ -459,14 +462,13 @@ public:
     // The object's release, the map object's Destroy, then Reset.
     void DestroyUnit();
 
-    UnitController* Controller() const { return static_cast<UnitController*>(controller); }
-    UnitServer* ServerController() const;
-    UnitClientSpecific* ClientController() const;
+    UnitServer* ServerController() const { return controller ? controller->ServerSide() : nullptr; }
+    UnitClientSpecific* ClientController() const { return controller ? controller->ClientSide() : nullptr; }
     MapObject* AsMapObject() { return this; }
 
     std::string scriptName;        // network field 9
     int secondPrototype;              // a second prototype index (-1 none)
-    EngineObject* controller;      // (the script code calls it the perception object)
+    UnitController* controller;    // the side half (the script code calls it the perception object)
     std::uint32_t relationsA;       // \ a unit regards side s as hostile when both have
     std::uint32_t relationsB;       // / bit s set
     Player* player;
@@ -877,6 +879,7 @@ public:
     ~MapObjectServer() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
+    MapObjectServer* ServerSide() override { return this; }
 
     // Hit points rounded to a 16-bit value are <= 0.
     bool IsDead() override;
@@ -901,7 +904,7 @@ public:
     std::string skinTexture;
     std::vector<std::string> strings;
 };
-inline MapObjectServer* MapObject::ServerCompanion() const { return static_cast<MapObjectServer*>(companion); }
+inline MapObjectServer* MapObject::ServerCompanion() const { return companion ? companion->ServerSide() : nullptr; }
 
 class ParticleSource;
 
@@ -942,6 +945,7 @@ public:
     ~MapObjectClientSpecific() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
+    MapObjectClientSpecific* ClientSide() override { return this; }
 
     bool IsDead() override;
     bool IsOverkilled() override;
@@ -983,7 +987,6 @@ public:
     // Everything released: particles, light, no object.
     void Destroy() override;
 
-    Unit* OwnerUnit() const { return static_cast<Unit*>(owner); }
 
     // How far above the object its light stands.
     static constexpr float kLightHeight = 2.0f;
@@ -995,5 +998,5 @@ public:
     Ref<Light> light;       // counted
     int endSound;           // the end sound's handle (-1 none)
 };
-inline MapObjectClientSpecific* MapObject::ClientCompanion() const { return static_cast<MapObjectClientSpecific*>(companion); }
+inline MapObjectClientSpecific* MapObject::ClientCompanion() const { return companion ? companion->ClientSide() : nullptr; }
 

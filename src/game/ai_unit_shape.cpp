@@ -73,13 +73,12 @@ UnitShape* CreateUnitShape(const ShapeCacheHandle* handle) { return new UnitShap
 // stored under the handle (the old value released as an owner and the new one shared), becomes the handle's
 // reference. Used for the unit shapes (ai_movement.cpp, which defines the cache).
 
-RefObject* UnitShapeCache::Get(void* handleIn) {
-    auto* handle = static_cast<ShapeCacheHandle*>(handleIn);
+UnitShape* UnitShapeCache::Get(ShapeCacheHandle* handle) {
     if (handle->cache == this && IsLive(handle->ref)) return handle->ref;
     return Resolve(handle);
 }
 
-RefObject* UnitShapeCache::CreateShape(const ShapeCacheHandle* handle) { return CreateUnitShape(handle); }
+UnitShape* UnitShapeCache::CreateShape(const ShapeCacheHandle* handle) { return CreateUnitShape(handle); }
 
 // --- Ai footprint shapes -----------------------------------------------------------------------------
 

@@ -4,6 +4,7 @@
 #include "game_singletons.h"
 #include "mod_folders.h"
 #include "options.h"
+#include "world.h"
 #include "world_data.h"   // the text resources' folder
 #include "lib/bytes.h"
 #include "lib/crt.h"
@@ -203,6 +204,9 @@ Texture::~Texture() {
     DropSurface(this);
     flags = 0;
 }
+
+// The client world's (it has the one texture manager).
+TextureManager* Texture::Manager() const { return ClientWorld()->textureManager; }
 
 MmpFile::MmpFile(void* file) : data(file) {
     if (file) lib::LoadBytes(header, file);

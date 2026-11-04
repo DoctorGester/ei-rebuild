@@ -14,6 +14,7 @@ class PlayerClient final : public PlayerConnection {
 public:
     PlayerClient();
     ~PlayerClient() override;
+    PlayerClient* ClientSide() override { return this; }
 
     void Create() override {
         CreateClient();

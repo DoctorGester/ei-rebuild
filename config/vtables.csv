@@ -333,7 +333,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073FCF0,3,,game,005B0600 005B19A0,007005E3,AiMapListClass,-,CList (the AI map's lists); stored only by game.exe (ours is a std::list)
 0073FCFC,3,,game,005B0600 005B0AF0 005B1810,007005E3,BlockCostListClass,-,CList (the AI's block cost lists); stored only by game.exe (ours is a std::list)
 0073FD58,1,,game,005B32E0,005B33D0,UnitShapeCache,src/game/ai_shape_cache.h,the unit shapes' cache (007C2F70)
-0073FD5C,4,,game,005B3440 005B34F0 005B3540 005B7EF0,005B3570,UnitShape,src/game/ai_unit_layer.h,a unit's footprint on the AI map's unit layers
+0073FD5C,4,,game,005B3440 005B34F0 005B3540 005B7EF0,005B3570,UnitShape,src/game/ai_shape_cache.h,a unit's footprint on the AI map's unit layers
 0073FD6C,2,,game,005B3C30,005B3B20,LargeUnitLayer,src/game/ai_map.h,the AI map's large-unit layer
 0073FD74,2,,game,005B3C30,005B39D0,SmallUnitLayer,src/game/ai_map.h,the AI map's small-unit layer
 0073FD7C,2,,game,005B4110,006E73EB,UnitLayer,src/game/ai_map.h,the AI map's unit layer base

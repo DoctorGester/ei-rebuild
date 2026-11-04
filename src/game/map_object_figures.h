@@ -225,6 +225,8 @@ public:
     Object3DSpecific() {
         object = nullptr;
     }
+    // This half as the client's: null on the server.
+    virtual Object3DClientSpecific* ClientSide() { return nullptr; }
     ~Object3DSpecific() override;
 
     virtual int OnPartAdded(FigureMesh* part) = 0;   // server: 0

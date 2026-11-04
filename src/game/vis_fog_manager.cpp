@@ -46,13 +46,13 @@ void ClientArrayManager::Create() {
 // The texture dropped (null, then released), every fog released, the list emptied.
 void VisFogManagerDestroy(ClientArrayManager* self) {
     self->texture.Reset();
-    for (EngineObject* fog : self->list) fog->Release();
+    for (VisibilityFog* fog : self->list) fog->Release();
     self->list.clear();
 }
 
 // Every fog's tick; one that returns false (no cells left) leaves the list and is released.
 bool ClientArrayManager::RunTick() {
-    std::erase_if(list, [](EngineObject* fog) {
+    std::erase_if(list, [](VisibilityFog* fog) {
         if (fog->RunTick()) return false;
         fog->Release();
         return true;
@@ -63,8 +63,8 @@ bool ClientArrayManager::RunTick() {
 void ClientArrayManager::Destroy() { VisFogManagerDestroy(this); }
 
 // A new fog (CreateObject(0, -1): registered and created), counted, at the list's end.
-EngineObject* VisFogManagerAdd(ClientArrayManager* self) {
-    EngineObject* fog = self->CreateObject(0, -1);
+VisibilityFog* VisFogManagerAdd(ClientArrayManager* self) {
+    auto* fog = self->CreateObjectAs<VisibilityFog>(0, -1);
     fog->AddRef();
     self->list.push_back(fog);
     return fog;
@@ -76,7 +76,7 @@ int ClientArrayManager::Draw(SceneRenderer* renderer) {
     if (list.empty()) return 1;
     EnsureTextureLoaded(texture);
     if (!renderer->SetTexture(0, texture)) return 0;
-    for (EngineObject* fog : list) static_cast<VisibilityFog*>(fog)->Draw(renderer);   // its result not read
+    for (VisibilityFog* fog : list) fog->Draw(renderer);   // its result not read
     return 1;
 }
 

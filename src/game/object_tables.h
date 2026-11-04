@@ -130,4 +130,4 @@ extern UiKeyName g_keyNames[kUiKeyNameCount];
 
 // The command bound to `key`: the text of the first key of g_keyNames whose scan code i (0..0x1FF)
 // has `key` in g_keyActions, or null.
-void* FindCommandByKey(int key);
+const char* FindCommandByKey(int key);

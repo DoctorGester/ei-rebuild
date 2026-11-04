@@ -283,7 +283,7 @@ void HelpWindow::ShowPage() {
     AddSurface(NewSurface(ui, pageArea.BottomStrip(kStripHeight)))->PaintWith([this](UiSurface& out) { PaintFooter(out); });
     if (page > 0) regions[0]->SetTip(0x7595);
     keyHint.clear();
-    if (const char* key = static_cast<const char*>(FindCommandByKey(kHelpAction))) {
+    if (const char* key = FindCommandByKey(kHelpAction)) {
         keyHint = texts->GetString(kHelpKeyText);
         keyHint += kSpace;
         keyHint += key;

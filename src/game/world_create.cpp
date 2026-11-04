@@ -284,7 +284,6 @@ const char* ItemManager::ClassName() { return kItemManagerName; }
 ClassId ItemManager::GetClassId() { return ClassId::ItemManager; }
 const char* ItemManager::GetFolderName() { return kItemsFolderName; }
 
-BaseManager* World::GetFigureManager() { return figureManager; }
 
 // --- World sessions ----------------------------------------------------------------------------------
 

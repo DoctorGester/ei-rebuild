@@ -49,11 +49,17 @@ struct UnitPlacement {
     std::uint32_t weapon;           // its active weapon (pendingWeapon on restore)
 };
 
+class PlayerClient;
+class PlayerServer;
+
 // A world player's connection to its client (Player::connection): PlayerServer or PlayerClient.
 class PlayerConnection : public EngineObject {
 public:
     ~PlayerConnection() override;
 
+    // This connection as the server's or the client's: null on the other side.
+    virtual PlayerServer* ServerSide() { return nullptr; }
+    virtual PlayerClient* ClientSide() { return nullptr; }
     virtual void ForgetSentObjects() = 0;   // server (sent objects, party units); client empty
     virtual void UnitChanged(Unit*) {}     // client (the unit's controller); server empty
     virtual void ResetState() {}            // server and client versions
@@ -78,6 +84,7 @@ class PlayerServer final : public PlayerConnection {
 public:
     PlayerServer();
     ~PlayerServer() override;
+    PlayerServer* ServerSide() override { return this; }
 
     void Create() override {
         CreateServer();
@@ -379,7 +386,7 @@ public:
 
     Party* GetParty() { return &party; }
     // The connection as the server's view of it (a PlayerServer on the server world, null for none).
-    PlayerServer* Server() const { return static_cast<PlayerServer*>(connection); }
+    PlayerServer* Server() const { return connection ? connection->ServerSide() : nullptr; }
 
     netlink::NetLink* link;                     // the connection to the player's client, null: none
     PlayerConnection* connection;              // PlayerServer / PlayerClient (counted)

@@ -37,7 +37,7 @@ ItemArmor* Unit::EquipArmour(Item* item) {
     ItemArmor* previous = armor[piece->GetType()];
     armor[piece->GetType()] = piece;
     piece->AddRef();
-    Controller()->ArmourPutOn(piece->prototypeId);
+    controller->ArmourPutOn(piece->prototypeId);
     if (previous) previous->Release();
     MarkChanged(kPartEquipment);
     return previous;
@@ -47,7 +47,7 @@ ItemArmor* Unit::UnequipArmour(int slot) {
     ItemArmor* item = armor[slot];
     armor[slot] = nullptr;
     if (item) {
-        Controller()->ArmourTakenOff(static_cast<std::uint32_t>(item->GetType()));
+        controller->ArmourTakenOff(static_cast<std::uint32_t>(item->GetType()));
         item->Release();
     }
     MarkChanged(kPartEquipment);
@@ -61,13 +61,13 @@ void Unit::ReleaseAllItems() {
         ItemArmor* item = slot;
         slot = nullptr;
         if (item) {
-            Controller()->ArmourTakenOff(static_cast<std::uint32_t>(item->GetType()));
+            controller->ArmourTakenOff(static_cast<std::uint32_t>(item->GetType()));
             item->Release();
         }
         MarkChanged(kPartEquipment);
         MarkChanged(kPartStats);
     }
-    Controller()->ClearOuterArmourLayers();
+    controller->ClearOuterArmourLayers();
     ReleaseSlots(this, quickItems, 4);
     ReleaseSlots(this, spells, 8);
     for (Item* item : carried) item->Release();
@@ -88,8 +88,8 @@ int Unit::RemoveCarried(int index) {
 
 void Unit::SendEquipment() {
     auto ids = GetEquipmentIds();   // 4 weapons, then 7 armour pieces (-1 for none)
-    Controller()->SetArmourModels(&ids[4]);
-    Controller()->SetWeaponModels(&ids[0]);
+    controller->SetArmourModels(&ids[4]);
+    controller->SetWeaponModels(&ids[0]);
 }
 
 std::uint32_t Unit::SetSecondPrototypeByName(std::string_view prototypeName) {

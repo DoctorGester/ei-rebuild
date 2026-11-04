@@ -92,7 +92,7 @@ public:
     template <class T>
     void Field(int id, T* value) {
         static_assert(lib::kFormatValue<T>, "a field is plain bytes of one size in every build");
-        Field(id, static_cast<void*>(value), sizeof(T));
+        Field(id, value, sizeof(T));
     }
     void StringField(int id, std::string* s);
     void StreamField(int id, MemoryStream* s);       // chunk `id` {1: size, 2: bytes}

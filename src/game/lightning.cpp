@@ -206,8 +206,7 @@ void Lightning::Destroy() {
 
 void Lightning::Create() {
     Destroy();
-    auto* manager = static_cast<LightningManager*>(owner);
-    manager->newBolts.push_back(this);
+    ClientWorld()->listManager->newBolts.push_back(this);
     ++refCount;
 }
 
@@ -415,7 +414,7 @@ LightningSegment::~LightningSegment() {
 }
 
 Lightning::Lightning() {
-    std::memset(static_cast<void*>(&bounds), 0, sizeof(bounds));
+    bounds = ClipBounds{};
     Lightning::Destroy();
 }
 

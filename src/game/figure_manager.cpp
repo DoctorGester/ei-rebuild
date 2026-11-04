@@ -427,7 +427,7 @@ int FigureManager::LoadMenuRects(Rect* rects) {
 
 namespace {
 
-void* Create(int classId) {
+EngineObject* Create(int classId) {
     switch (static_cast<FigureObjectType>(classId)) {
     case FigureObjectType::SharedFigureMesh:
         return new SharedFigureMesh();
@@ -450,9 +450,9 @@ void* Create(int classId) {
 
 } // namespace
 
-void* CreateFigureObject(int classId) {
-    void* object = Create(classId);
+EngineObject* CreateFigureObject(int classId) {
+    EngineObject* object = Create(classId);
     if (!object) return nullptr;
-    static_cast<EngineObject*>(object)->type = classId;
+    object->type = classId;
     return object;
 }

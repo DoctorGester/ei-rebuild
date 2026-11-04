@@ -163,6 +163,7 @@ class UnitServer : public UnitController {
 public:
     UnitServer();
     ~UnitServer() override;
+    UnitServer* ServerSide() override { return this; }
 
     void Create() override;
     void Destroy() override;
@@ -589,5 +590,5 @@ public:
     AIAlarm voice;                  // the voice / alarm
 };
 
-inline UnitServer* Unit::ServerController() const { return static_cast<UnitServer*>(controller); }
+
 

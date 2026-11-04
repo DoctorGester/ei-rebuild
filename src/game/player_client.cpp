@@ -454,7 +454,7 @@ int PlayerClient::OnPathMarker() {
         auto* marker = g_clientWorld.particleManager->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles);
         marker->localPosition = at;
         EngineObject* ownerObject = player;
-        Unit* unit = ownerObject->WorldContext()->FindUnit(unitId);
+        Unit* unit = ownerObject->OwningWorld()->FindUnit(unitId);
         if (unit != nullptr) unit->ClientController()->SetMarkers(pathSource, marker);
     }
     return 1;
@@ -496,7 +496,7 @@ int PlayerClient::OnNewObject() {
     int prototypeValue;
     in.ReadValue(prototypeValue);
 
-    auto* world = player->WorldContext();
+    auto* world = player->OwningWorld();
     MapObject* created = world->objectManager->CreateObjectAs<MapObject>(static_cast<MapObjectType>(header.type), header.id);
     if (created == nullptr) return 0;
     MapObject* object = created;
@@ -638,7 +638,7 @@ int PlayerClient::OnPartyState() {
     Player* currentPlayer = player;
     for (int i = 0; i < std::ssize(partyUnitIds); ++i) {
         g_partyIdSet.insert(partyUnitIds[i]);
-        Unit* unit = currentPlayer->WorldContext()->FindUnit(partyUnitIds[i]);
+        Unit* unit = currentPlayer->OwningWorld()->FindUnit(partyUnitIds[i]);
         if (unit != nullptr) unit->flags &= ~MapObjectFlag::InParty;
     }
 
@@ -652,12 +652,12 @@ int PlayerClient::OnPartyState() {
     for (int i = 0; i < count; ++i) {
         int objectId = ReadDword(&in);
         partyUnitIds[i] = objectId;
-        auto* unit = currentPlayer->WorldContext()->FindUnit(objectId);
+        auto* unit = currentPlayer->OwningWorld()->FindUnit(objectId);
         if (unit == nullptr) continue;
         unit->flags |= MapObjectFlag::InParty;
         if (!g_partyIdSet.contains(objectId) && currentPlayer->sessionKind == kSessionKindSingle && unit->player == nullptr &&
             g_clientWorld.ticksRun >= 1)
-            unit->Controller()->RestartFadeIn();
+            unit->controller->RestartFadeIn();
     }
     g_partyIdSet.clear();
 

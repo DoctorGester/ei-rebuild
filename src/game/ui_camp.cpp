@@ -716,9 +716,9 @@ Item* CampPages::TakeOff(Item* item) {
         if (heroes[hero]) {
             int armorType = AsArmor(item)->GetType();
             heroes[hero]->UnequipArmour(armorType);
-            heroes[hero]->Controller()->ShowWeapon(heroRecord->weaponIndex);
-            heroes[hero]->Controller()->RefreshModel();
-            heroes[hero]->Controller()->RefreshEquipment();
+            heroes[hero]->controller->ShowWeapon(heroRecord->weaponIndex);
+            heroes[hero]->controller->RefreshModel();
+            heroes[hero]->controller->RefreshEquipment();
         }
         heroRecord->RemoveArmor(item);
         RebuildArmourLayers(heroRecord);
@@ -759,7 +759,7 @@ void CampPages::PutOn(Item* item) {
         if (heroes[hero]) {
             Item* worn = heroRecord->AddArmor(item);
             heroes[hero]->EquipArmour(worn);
-            heroes[hero]->Controller()->RefreshEquipment();
+            heroes[hero]->controller->RefreshEquipment();
         }
         RebuildArmourLayers(heroRecord);
         break;
@@ -924,13 +924,13 @@ void CampPages::TakeItem(Item* item, int mode) {
 void CampPages::RefreshWeapons() {
     PartyUnitRecord* heroRecord = HeroRecord();
     Unit* unit = heroes[hero];
-    unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(-1));
+    unit->controller->ShowWeapon(static_cast<std::uint32_t>(-1));
     for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);
     for (int i = 0; i < std::ssize(heroRecord->weapons); ++i)
         unit->AddWeapon(heroRecord->weapons[i]);
     unit->SendEquipment();
-    unit->Controller()->ShowWeapon(heroRecord->weaponIndex);
-    unit->Controller()->RefreshModel();
+    unit->controller->ShowWeapon(heroRecord->weaponIndex);
+    unit->controller->RefreshModel();
     RefreshStats();
 }
 
@@ -938,7 +938,7 @@ void CampPages::RefreshStats() {
     if (heroes[hero]) {
         PartyUnitRecord* heroRecord = HeroRecord();
         heroes[hero]->SetFromStats(&heroRecord->stats);
-        heroes[hero]->Controller()->RefreshWounds();
+        heroes[hero]->controller->RefreshWounds();
     }
     statsPanel->DrawStats();
 }

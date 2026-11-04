@@ -274,7 +274,7 @@ void UnitServer::StartAction(char follow, char stepFlags) {
         PlaySteps(&idleAnimation);
     }
     state = UnitState::Acting;
-    actingCheckTime = WorldContext()->tick + 10;
+    actingCheckTime = OwningWorld()->tick + 10;
     if (plan.targetId == -1) {
         int now = OwningWorld()->tick;
         motion.StandAndTurnUntil(now, unit, plan.direction, plan.endTime, plan.startTime);
@@ -516,7 +516,7 @@ void UnitServer::ResyncWithUnit() {
     unit->UpdateSizeClass();
     unit->pendingWeapon = 0;
     if (unit->pendingWeapon != static_cast<int>(unit->activeWeapon))
-        unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(unit->pendingWeapon));
+        unit->controller->ShowWeapon(static_cast<std::uint32_t>(unit->pendingWeapon));
     std::uint32_t key = WeaponTypeMask() | MoveModeMask(&moveMode);
     if (idleKey == key) {
         idleAnimation.extra = -1;

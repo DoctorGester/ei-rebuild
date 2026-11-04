@@ -265,7 +265,7 @@ int UnitClientSpecific::ShowWeapon(std::uint32_t slot) {
         }
     }
     // RefreshModel after the change (the unit's controller is this object).
-    unit->Controller()->RefreshModel();
+    unit->controller->RefreshModel();
     return 1;
 }
 

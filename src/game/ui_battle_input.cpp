@@ -457,7 +457,7 @@ void BattleScreen::HoverUnit(Unit* unit, Point mouse) {
     auto pick = [mouse]() { return g_clientWorld.PickSurface(mouse.x, mouse.y); };
     auto objectAt = [mouse]() {
         Point point = mouse;
-        return static_cast<Unit*>(g_clientWorld.PickAt2(&point));
+        return g_clientWorld.PickAt2(&point);
     };
     auto unitPosition = [](Unit* u) {
         Vector3 at;
@@ -525,7 +525,7 @@ void BattleScreen::HoverUnit(Unit* unit, Point mouse) {
             break;
         }
         {
-            Unit* object = objectAt();
+            MapObject* object = objectAt();
             if (object && object->IsUsable() != 0 && object->IsDirectUseBlocked() == 0 &&
                 selected == 1) {
                 shape = kCursorUse;
@@ -581,12 +581,12 @@ void BattleScreen::HoverUnit(Unit* unit, Point mouse) {
         break;
     }
     case kPendingItemOnObject: {
-        Unit* target = unit ? unit : objectAt();
+        MapObject* target = unit ? unit : objectAt();
         shape = (target && first && target->IsUsable() != 0) ? kCursorUse : kCursorNo;
         break;
     }
     case kPendingKeyOnObject: {
-        Unit* target = unit ? unit : objectAt();
+        MapObject* target = unit ? unit : objectAt();
         shape = (target && first && target->IsUsable() != 0 && target->AcceptsKey(&itemUseKey) != 0)
                     ? kCursorUse
                     : kCursorNo;
@@ -604,7 +604,7 @@ void BattleScreen::HoverUnit(Unit* unit, Point mouse) {
             if (!member) shape = kCursorOrder;
             break;
         }
-        Unit* target = objectAt();
+        MapObject* target = objectAt();
         shape = (target && first && target->IsUsable() != 0) ? kCursorUse : kCursorNo;
         break;
     }

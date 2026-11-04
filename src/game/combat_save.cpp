@@ -143,7 +143,7 @@ void UnitServer::Load(ByteStream* stream) {
     stream->ReadValue(deathReported);
     stream->ReadValue(sinkSpeed);
 
-    BaseManager* effects = WorldContext()->TimedObjectManager();
+    BaseManager* effects = GetManagerContext()->TimedObjectManager();
     effectObject.Assign(ReadObject(stream, effects));
     LoadArmourSpells(&armourSpells, stream);
     stream->ReadValue(followsLeader);

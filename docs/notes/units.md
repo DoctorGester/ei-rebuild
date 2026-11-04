@@ -13,8 +13,11 @@ and every scenario that starts the game.
   skill level records; the skill (perk) database separately. The name lookups (`FindByName`) find; an unknown name gives null
   and adds nothing.
 - `Unit` (class 0x50) is a MapObject; `CreateUnit` is its Create (a member named Create would override EngineObject's
-  virtual). Its controller (`Unit::Controller()`) is `UnitServer` (combat.md) on the server and `UnitClientSpecific`
-  (class 0x3D) on the client, called through the `UnitController` interface.
+  virtual). Its controller (`Unit::controller`, a `UnitController`) is `UnitServer` (combat.md) on the server and
+  `UnitClientSpecific` (class 0x3D) on the client; `ServerController()` / `ClientController()` give it as either
+  through the controller's `ServerSide()` / `ClientSide()` virtuals (null on the other side). The map object's
+  companion (`MapObjectCompanion`), the 3D object's side half (`Object3DSpecific`) and the player's connection
+  (`PlayerConnection`) answer the same two virtuals.
 - Floats: Period20, Reduce, the curves, the speeds, TotalItemWeight, the world's heights (`GroundHeight`, `StandPoint`)
   and `MoveSpeed` are floats; `_ftol` of `Reduce` is the int64 truncation. The skill level values are floats
   (percentages and stat bonuses, exact below 2^24).

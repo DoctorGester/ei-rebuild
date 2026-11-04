@@ -248,7 +248,7 @@ void Player::ReleaseTamedUnits() {
     for (auto node = units.begin(); node != units.end() && node->second != nullptr;) {
         Unit* unit = node->second;
         ++node;
-        if (unit->Controller()->TamingStage() != 0) unit->SetPlayer(nullptr);
+        if (unit->controller->TamingStage() != 0) unit->SetPlayer(nullptr);
     }
 }
 

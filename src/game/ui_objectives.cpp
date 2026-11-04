@@ -273,7 +273,7 @@ void ObjectivesWindow::ShowQuest() {
     std::string variable;
     if (shownQuest == selectedQuest) return;
     shownQuest = selectedQuest;
-    static_cast<UiScrollText*>(children[0])->Clear();
+    questText->Clear();
     std::vector<std::string>& currentQuests = quests;
     if (selectedQuest < 0 || selectedQuest >= static_cast<int>(currentQuests.size())) return;
     g_lastQuest = currentQuests[selectedQuest];
@@ -342,7 +342,7 @@ void ObjectivesWindow::ShowQuest() {
         text += "\n \n ";
     }
     texts->Close();
-    static_cast<UiScrollText*>(children[0])->SetText(text);
+    questText->SetText(text);
 
     MapRecord* map = g_mapDatabase.FindMap(shownZone);
     if (!map) return;
@@ -392,8 +392,8 @@ void ObjectivesWindow::CreateScreen() {
     }
 
     // The text column.
-    UiScrollText* column = new UiScrollText(ui, game::kEmptyText, Rect{60, 190, 384, 510}, 10.0f);
-    AddChild(column);
+    questText = new UiScrollText(ui, game::kEmptyText, Rect{60, 190, 384, 510}, 10.0f);
+    AddChild(questText);
     bar = new UiScrollbar(ui, Rect{60, 30, 384, 150}, 3.0f, 0, 1.0f);
     AddChild(bar);
 

@@ -114,7 +114,7 @@ void UiTooltip::OnMouseMove(Point point) {
         // Shown: the first line is measured again with the key of the tooltip's command.
         keyWidth = 0;
         if (extra) {
-            keyName = static_cast<const char*>(FindCommandByKey(extra));
+            keyName = FindCommandByKey(extra);
             if (keyName) {
                 keyWidth = ui->TextExtent(lines[0] + KeyOpen() + keyName + KeyClose(), kFont).w + kPaddingX;
             }

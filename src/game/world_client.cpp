@@ -145,8 +145,7 @@ FootprintPart* Object3D::PartBox(int index) {
 }
 
 PlayerClient* WorldClient::LocalView() {
-    if (session) return static_cast<PlayerClient*>(session->connection);
-    return nullptr;
+    return session && session->connection ? session->connection->ClientSide() : nullptr;
 }
 
 bool WorldClient::IsLocalViewMode2() {

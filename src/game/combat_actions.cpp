@@ -260,7 +260,7 @@ void UnitServer::OnDamaged(Unit* attacker, int hitKind) {
         unit->flags |= MapObjectFlag::Removed;
         return;
     }
-    if (CompanionSlots(ServerObjectOf(unit))->IsDead() == 0) {
+    if (unit->companion->IsDead() == 0) {
         TriggerItemSpells(0);
         if (attacker && attacker->GetClassId() == ClassId::Unit) DiplomacyOf(world)->OnAttack(attacker, unit);
         brain.SetSeen(attacker);

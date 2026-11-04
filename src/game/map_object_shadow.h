@@ -51,6 +51,7 @@ class Object3DClientSpecific : public Object3DSpecific {
 public:
     Object3DClientSpecific();
     ~Object3DClientSpecific() override;
+    Object3DClientSpecific* ClientSide() override { return this; }
     void Create() override;
     void Destroy() override;
     const char* ClassName() override;
@@ -175,4 +176,4 @@ struct WoundsMaterial final : DeviceMaterial {
 
 inline void Object3DClientSpecific::ClearWoundsMaterial() { woundsMaterial.Reset(); }
 
-inline Object3DClientSpecific* Object3D::ClientSpecific() const { return static_cast<Object3DClientSpecific*>(attached); }
+inline Object3DClientSpecific* Object3D::ClientSpecific() const { return attached ? attached->ClientSide() : nullptr; }

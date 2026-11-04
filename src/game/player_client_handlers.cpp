@@ -47,7 +47,7 @@ int PlayerClient::OnLoginAccepted() {
     in.ReadValue(objectId);
     state = kStateLoggedIn;
     Player* currentPlayer = player;
-    static_cast<PlayerManager*>(currentPlayer->owner)->ChangeId(currentPlayer, objectId);
+    currentPlayer->GetManagerContext()->PlayerList()->ChangeId(currentPlayer, objectId);
     return 1;
 }
 
@@ -171,7 +171,7 @@ int PlayerClient::OnWeaponRemoved() {
     PartyUnitRecord* record = player->GetParty()->Find(unitId);
     if (record && std::ssize(record->weapons) > index)
         record->RemoveWeapon(record->weapons[index]);
-    if (Unit* unit = g_clientWorld.FindUnit(unitId)) unit->Controller()->ShowWeapon(0xFFFFFFFFu);
+    if (Unit* unit = g_clientWorld.FindUnit(unitId)) unit->controller->ShowWeapon(0xFFFFFFFFu);
     return 1;
 }
 
@@ -235,7 +235,7 @@ int PlayerClient::OnUnitDied() {
     int objectId;
     in.ReadValue(objectId);
     EngineObject* object = g_clientWorld.objectManager->FindObject(static_cast<unsigned>(objectId));
-    if (Unit* unit = UnitOrNull(object)) unit->Controller()->Died();
+    if (Unit* unit = UnitOrNull(object)) unit->controller->Died();
     return 1;
 }
 
@@ -244,7 +244,7 @@ int PlayerClient::OnTimedObjectAdded() {
     in.Read(message, 8);
     const int objectId = message[0];
     Player* currentPlayer = player;
-    BaseManager* manager = currentPlayer->WorldContext()->TimedObjectManager();
+    BaseManager* manager = currentPlayer->GetManagerContext()->TimedObjectManager();
     auto* object = manager->CreateObjectAs<Effect>(message[1], objectId);
     if (!object) return 0;
     if (!object->Receive(0, &in)) return 0;

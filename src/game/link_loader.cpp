@@ -9,6 +9,7 @@
 #include "lib/bytes.h"
 #include "lib/crt.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <map>
@@ -22,9 +23,8 @@ std::optional<std::string> ReadLinkString(const char** cursor) {
     *cursor += 4;
     if (length == 0) return std::nullopt;
     const char* text = *cursor;
-    const void* zero = std::memchr(text, 0, length);
     *cursor += length;
-    return std::string(text, zero ? static_cast<const char*>(zero) : text + length);
+    return std::string(text, std::find(text, text + length, '\0'));
 }
 
 namespace {

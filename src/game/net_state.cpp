@@ -89,7 +89,7 @@ void Unit::WriteNetState() {
         for (int i = 5; i < 11; ++i) PutWord(field, ids[i]);
         field->EndField();
         if (unit->controller->GetClassId() == ClassId::UnitServer)
-            unit->Controller()->RefreshEquipment();
+            unit->controller->RefreshEquipment();
     }
     if (DeltaField* field = state->BeginField(6)) {
         field->WriteDelta(&unit->moveMode, 4);
@@ -121,7 +121,7 @@ void Unit::WriteNetState() {
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(10)) {
-        PathOrder* path = unit->Controller()->Path();
+        PathOrder* path = unit->controller->Path();
         path->WriteState(field);
         field->EndField();
     }
@@ -219,12 +219,12 @@ std::uint32_t Unit::ReadNetState(int first) {
                 if (Exceeds(now - before[k])) any = true;
                 float change = before[k] - now;
                 if (Exceeds(change)) {
-                    unit->Controller()->StatChanged(k, change, unit->params.flags);
+                    unit->controller->StatChanged(k, change, unit->params.flags);
                 }
             }
-            if (any) unit->Controller()->RefreshWounds();
+            if (any) unit->controller->RefreshWounds();
         } else if (first == 0) {
-            unit->Controller()->RefreshWounds();
+            unit->controller->RefreshWounds();
         }
         float maxHp = static_cast<float>(unit->packedVitals.maxHitPoints);
         float hpNow = static_cast<float>(unit->packedVitals.hitPoints) / maxHp;
@@ -238,7 +238,7 @@ std::uint32_t Unit::ReadNetState(int first) {
             int damage = static_cast<int>(static_cast<std::int64_t>(lost * maxHp));   // _ftol
             unit->companion->Hit(damage, static_cast<int>(kind));
             if (kind & UnitStatsFlag::Electrical) {
-                unit->Controller()->Wound();
+                unit->controller->Wound();
             }
         }
         complete &= SnapshotConsumed();
@@ -260,7 +260,7 @@ std::uint32_t Unit::ReadNetState(int first) {
         field->ReadDelta(&value, 4);
         if (unit->activeWeapon != value) {
             changed = true;
-            unit->Controller()->ShowWeapon(value);
+            unit->controller->ShowWeapon(value);
         }
         unit->pendingWeapon = static_cast<int>(unit->activeWeapon);
         field->EndField();
@@ -281,7 +281,7 @@ std::uint32_t Unit::ReadNetState(int first) {
         field->ReadDelta(&unit->actionSound, 1);
         if (unit->motionMode == 1) --unit->animationStart;
         float time = static_cast<float>(unit->OwningWorld()->tick);
-        unit->Controller()->RestartAnimation(time);
+        unit->controller->RestartAnimation(time);
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(9)) {
@@ -290,10 +290,10 @@ std::uint32_t Unit::ReadNetState(int first) {
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(10)) {
-        PathOrder* path = unit->Controller()->Path();
+        PathOrder* path = unit->controller->Path();
         path->ReadState(field);
         if (unit->pathTimeShift == 1) path->ShiftTime(-1);
-        PathOrder* path2 = unit->Controller()->Path();
+        PathOrder* path2 = unit->controller->Path();
         path2->ForgetObject(unit->id);
         const Unit::MoveSpeeds speeds = unit->GetMoveSpeeds();
         const float walk = speeds.forward, run = speeds.turn;
@@ -303,7 +303,7 @@ std::uint32_t Unit::ReadNetState(int first) {
         walker->baseTurnRate = run;
         walker->Build(path2);
         unit->MarkChanged(10);
-        unit->Controller()->MotionChanged();
+        unit->controller->MotionChanged();
         complete &= SnapshotConsumed();
         field->EndField();
     }
@@ -320,7 +320,7 @@ std::uint32_t Unit::ReadNetState(int first) {
                 current->RemoveUnit(unit);
                 if (Player* now = unit->player) now->AddUnit(unit);
                 unit->MarkChanged(11);
-                if (unit->controller) unit->Controller()->PlayerChanged(nullptr);
+                if (unit->controller) unit->controller->PlayerChanged(nullptr);
             }
         } else if (!current || current->id != objectId) {
             PlayerClient* view = unit->ClientWorld()->LocalView();
@@ -331,7 +331,7 @@ std::uint32_t Unit::ReadNetState(int first) {
                 if (old) old->RemoveUnit(unit);
                 if (Player* now = unit->player) now->AddUnit(unit);
                 unit->MarkChanged(11);
-                if (unit->controller) unit->Controller()->PlayerChanged(local);
+                if (unit->controller) unit->controller->PlayerChanged(local);
             }
         }
         complete &= SnapshotConsumed();
@@ -351,11 +351,11 @@ std::uint32_t Unit::ReadNetState(int first) {
     }
     if (changed) {
         if (gotItems) {
-            unit->Controller()->SetArmourModels(ids7);
-            unit->Controller()->SetWeaponModels(ids4);
+            unit->controller->SetArmourModels(ids7);
+            unit->controller->SetWeaponModels(ids4);
         }
-        unit->Controller()->ShowWeapon(unit->activeWeapon);
-        unit->Controller()->RefreshEquipment();
+        unit->controller->ShowWeapon(unit->activeWeapon);
+        unit->controller->RefreshEquipment();
     }
     return complete;
 }

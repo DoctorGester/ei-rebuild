@@ -435,7 +435,7 @@ void UiMesh::Draw(SceneRenderer* renderer) {
     const std::uint32_t blue = ColourByte(tint[2]);
     renderer->SetColour((((red | 0xFFFFFF00u) << 8 | green) << 8) | blue);
     render::SetInterfaceDraw(true);   // the new renderer streams interface sprites
-    const int drawn = renderer->DrawFigure(this, static_cast<Material*>(material), 0xFF, nullptr);
+    const int drawn = renderer->DrawFigure(this, material, 0xFF, nullptr);
     render::SetInterfaceDraw(false);
     renderer->SetColour(saved);
     if (!drawn) {

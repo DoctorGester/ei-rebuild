@@ -123,7 +123,7 @@ void MagicTrap::CastAtUnits(std::vector<Unit*>* units) {
 
 void MagicTrap::SetUp(const MagicTrapRecord* record) {
     sides = record->sides;
-    SpellManager* manager = WorldContext()->GetSpellManager();
+    SpellManager* manager = GetManagerContext()->GetSpellManager();
     Spell* made = manager->CreateSpellFromText(record->spell);
     spell.Assign(made);
     std::memcpy(&localPosition.x, &record->position, sizeof(record->position));    // bit for bit
@@ -185,7 +185,7 @@ void MagicTrap::SaveTrap(ByteStream* stream) {
 
 void MagicTrap::LoadTrap(ByteStream* stream) {
     LoadMapObject(stream);
-    SpellManager* manager = WorldContext()->GetSpellManager();
+    SpellManager* manager = GetManagerContext()->GetSpellManager();
     // The id and the two counts are read into one local: a read that fails leaves the previous value.
     std::int32_t value = 0;
     stream->ReadValue(value);
@@ -193,7 +193,7 @@ void MagicTrap::LoadTrap(ByteStream* stream) {
     stream->ReadValue(value);
     area.resize(value);
     for (int i = 0; i < std::ssize(area); ++i) stream->ReadValue(area[i]);
-    CountedListLoad(&inside, stream, WorldContext());
+    CountedListLoad(&inside, stream, OwningWorld());
     stream->ReadValue(value);
     points.resize(value);
     for (int i = 0; i < std::ssize(points); ++i) stream->ReadValue(points[i]);
@@ -225,7 +225,7 @@ void MagicTrap::DestroyTrap() {
 
 bool MagicTrap::RunTick() {
     MapObject::Update();
-    auto* world = WorldContext();
+    auto* world = OwningWorld();
     if (!world->IsServer() || !spell) return true;
     if (period <= 0) {
         UpdateVictims();
@@ -277,7 +277,7 @@ void TrapObject::Create() {
 bool TrapObject::RunTick() {
     Update();
     if (!(flags & MapObjectFlag::Armed)) return false;
-    if (!WorldContext()->IsServer()) return false;
+    if (!OwningWorld()->IsServer()) return false;
     auto* world = ServerWorld();
     std::vector<Unit*> units = world->aiMap.sectorMap.FindUnitsInRadius(localPosition, kTriggerRadius);
     if (!units.empty()) {

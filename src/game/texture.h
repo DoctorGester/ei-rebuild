@@ -321,4 +321,4 @@ public:
     std::uint16_t mipLevel;     // first mip level to load
     int limitTo512;             // nonzero: textures are loaded at most 511 pixels wide and high
 };
-inline TextureManager* Texture::Manager() const { return static_cast<TextureManager*>(owner); }
+

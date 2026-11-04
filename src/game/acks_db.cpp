@@ -116,7 +116,7 @@ const SpeechRecord* EnvironmentSpeeches::Pick(std::uint32_t environment, int rol
 const SpeechRecord* SayAck(Unit* unit, AckKind kind) {
     if (!unit) return nullptr;
     if (kind == AckKind::StopSpeech) {
-        unit->Controller()->StopSpeech();
+        unit->controller->StopSpeech();
         return nullptr;
     }
     if (IsTextKey(unit->id) && unit->moveMode < 2) kind = PartyKind(kind);
@@ -172,7 +172,7 @@ const SpeechRecord* SayAck(Unit* unit, AckKind kind) {
     } else {
         speech = list->Pick(Roll());
     }
-    if (speech) unit->Controller()->Say(speech, kind);
+    if (speech) unit->controller->Say(speech, kind);
     return speech;
 }
 
@@ -185,7 +185,7 @@ const SpeechRecord* SayNamedAck(Unit* unit, const char* name, bool alternate) {
     std::size_t length = std::strlen(name);
     for (const SpeechRecord& s : record->namedSpeeches.records) {
         if (s.name.size() == length && std::memcmp(s.name.data(), name, length) == 0) {
-            unit->Controller()->Say(&s, alternate ? AckKind::ScenarioTalking : AckKind::Scenario);
+            unit->controller->Say(&s, alternate ? AckKind::ScenarioTalking : AckKind::Scenario);
             return &s;
         }
     }

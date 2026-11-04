@@ -47,7 +47,7 @@ EngineObject* PlayerManager::NewPlayer(int playerType) {
 Player* PlayerManager::CreateSessionPlayer() {
     auto* player = static_cast<Player*>(BaseManager::CreateObject(kPlayerType, -1));
     if (!player) return nullptr;
-    BaseManager* specific = ContextAsWorld()->SpecificManager();
+    BaseManager* specific = context->SpecificManager();
     player->SetConnection(specific->CreateObjectAs<PlayerConnection>(SideObjectType::Player, -1));
     player->AddRef();
     player->playerId = NextPlayerNumber(player, 0);   // Rebirth's PlayerNumbers (the original: SetPlayerId(0))

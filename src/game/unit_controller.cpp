@@ -26,13 +26,13 @@ void ReleaseSlots(Item** slots, int count) {
 
 void Unit::SetHostileMask(std::uint32_t mask) {
     relationsA = mask;
-    Controller()->HostileMaskChanged();
+    controller->HostileMaskChanged();
     flags |= MapObjectFlag::RelationsChanged;
     MarkChanged(kPartRelations);
 }
 
 void Unit::RefreshMotion() {
-    PathOrder* path = Controller()->Path();
+    PathOrder* path = controller->Path();
     path->ForgetObject(id);
     const MoveSpeeds speeds = GetMoveSpeeds();
     const float speed = speeds.forward, turnRate = speeds.turn;
@@ -51,7 +51,7 @@ void Unit::SetPlayer(Player* newPlayer) {
     if (old) old->RemoveUnit(this);
     if (player) player->AddUnit(this);
     MarkChanged(kPartRelations);
-    if (controller) Controller()->PlayerChanged(newPlayer);
+    if (controller) controller->PlayerChanged(newPlayer);
 }
 
 void Unit::ReleaseUnit() {

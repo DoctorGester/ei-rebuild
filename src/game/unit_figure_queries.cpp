@@ -79,7 +79,7 @@ Vector3 Unit::EffectPoint() {
     // The game leaves this uninitialised on the server and for a hero without a right hand, and turns
     // whatever the stack holds; zero gives the position there (docs/notes/units.md).
     Vector3 local = {0.0f, 0.0f, 0.0f};
-    auto* world = WorldContext();
+    auto* world = OwningWorld();
     if (!world->IsServer()) {
         if (MapType() == MapObjectType::Hero) {
             if (FigureMesh* hand = FindPartByPrefix(kRightHand)) {

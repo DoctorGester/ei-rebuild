@@ -748,7 +748,7 @@ public:
     void EndRefresh();
 
     // Occupancy shape for standing height `height` rounded up to tenths (cached; null at 0.2 or below).
-    void* ShapeForHeight(float standingHeight);
+    UnitShape* ShapeForHeight(float standingHeight);
     // The first unit near world `position` whose occupancy shape blocks `unit` there; null if none.
     Unit* BlockingUnitAt(Unit* unit, const Vector3& position);
     // Fills each step's speed word (cost table / climb cost, in 1/512) and flag word.

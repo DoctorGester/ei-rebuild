@@ -193,7 +193,8 @@ struct PatrolPoint {
 // Patrol: walk a list of points.
 class PatrolMode : public AIMode {
 public:
-    PatrolMode() : AIMode(AIModeType::Patrol) {}
+    static constexpr AIModeType kType = AIModeType::Patrol;
+    PatrolMode() : AIMode(kType) {}
     // kPriorityIdle; without points: FatalError "Unit %i has no patrol points, adding one at its position" (which
     // exits unless the Rebirth patch DisableExitOnCrashReport is on), a point at the unit's position, and kPriorityNone.
     int Evaluate(AIBrain* brain) override;
@@ -272,8 +273,9 @@ struct AITargetChoice {
 // Aggression: fight an enemy.
 class AggressionMode : public AIActionMode {
 public:
+    static constexpr AIModeType kType = AIModeType::Aggression;
     // No enemy, the whole unit as the part to hit; `fixed` (UMRevenge) says the script set the enemy.
-    explicit AggressionMode(bool isFixed = false) : AIActionMode(AIModeType::Aggression), fixed(isFixed) {}
+    explicit AggressionMode(bool isFixed = false) : AIActionMode(kType), fixed(isFixed) {}
     // kPriorityFight while there is an enemy to fight (the script's, or the best one in sight), else kPriorityNone.
     int Evaluate(AIBrain* brain) override;
     void Execute(AIBrain* brain) override;
@@ -341,8 +343,9 @@ class PlayerMode : public AIActionMode {
 public:
     enum { kStateFollow = 0, kStateCommand = 1, kStateMoveTo = 2 };
     static constexpr int kPriority = 10;
+    static constexpr AIModeType kType = AIModeType::Player;   // the type FindModeOf finds (not Tamed)
 
-    PlayerMode() : PlayerMode(AIModeType::Player) {}
+    PlayerMode() : PlayerMode(kType) {}
     int Evaluate(AIBrain*) override { return kPriority; }
 
     // State 0: follow the leader (unless the party is in danger) and fight (unless the leader carries out a
@@ -413,8 +416,9 @@ bool PartyInDanger(const Unit* unit);
 class TamedMode : public PlayerMode {
 public:
     static constexpr int kPriority = 100000000;
+    static constexpr AIModeType kType = AIModeType::Tamed;
 
-    TamedMode() : PlayerMode(AIModeType::Tamed) {}
+    TamedMode() : PlayerMode(kType) {}
     int Evaluate(AIBrain*) override { return kPriority; }
 };
 
@@ -630,8 +634,8 @@ struct AIBrain {
     void Think();
 
     AIMode* FindMode(AIModeType type);
-    PatrolMode* FindPatrolMode();
-    PlayerMode* FindPlayerMode();   // the first mode of type Player (not Tamed)
+    // The first mode of type Mode::kType as the Mode that type is made as, or null.
+    template <class Mode> Mode* FindModeOf() { return static_cast<Mode*>(FindMode(Mode::kType)); }
     MapObject* LeaderOrFollowed();
     // The enemy of the first Aggression mode while that mode is in charge, else null.
     MapObject* AggressionEnemy();

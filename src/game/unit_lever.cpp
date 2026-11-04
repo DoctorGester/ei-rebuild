@@ -37,7 +37,7 @@ void Lever::SetState(int wanted, float duration) {
     }
 
     auto* world = ServerWorld();
-    if (!world->IsServer()) return;
+    if (!world) return;   // on the client
     SectorMap* sectors = &world->aiMap.sectorMap;
     float reach = bounds.radius + 0.5f;
     std::vector<Unit*> around = sectors->FindUnitsInRadius(localPosition, reach);

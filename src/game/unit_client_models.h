@@ -80,6 +80,7 @@ class UnitClientSpecific : public UnitController {
 public:
     UnitClientSpecific();
     ~UnitClientSpecific() override;
+    UnitClientSpecific* ClientSide() override { return this; }
 
     // No sources, times, animation or motion order, weapon / arrow shown, heading snapped, fully faded in, no sounds,
     // speech, flash, footprint or blink, every armour and weapon model -1, the face texture released.
@@ -288,4 +289,4 @@ struct ArmourPartNames {
 ArmourPartNames CollectArmourPartNames(const UnitPrototypeRecord* prototype, const std::vector<std::uint32_t>& armourIds,
                                        const std::vector<std::uint32_t>& weaponIds);
 
-inline UnitClientSpecific* Unit::ClientController() const { return static_cast<UnitClientSpecific*>(controller); }
+

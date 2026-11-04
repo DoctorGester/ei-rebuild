@@ -66,19 +66,19 @@ void MapObjectServer::SetData(const UnitVitals* data) {
 bool MapObjectClientSpecific::RunTick() {
     // Effects count down here too (the server's list arrives over the network); an effect about
     // to end plays the end sound for text-key objects, unless it is still playing.
-    if (std::ssize(CompanionOwner(this)->effects) > 0) {
-        for (int i = 0; i < std::ssize(CompanionOwner(this)->effects); ++i) {
-            MapEffect& effect = CompanionOwner(this)->effects[i];
+    if (std::ssize(owner->effects) > 0) {
+        for (int i = 0; i < std::ssize(owner->effects); ++i) {
+            MapEffect& effect = owner->effects[i];
             if (effect.ticksLeft <= 0) continue;
             int left = --effect.ticksLeft;
             if (left >= kEndSoundTicks || effect.ending) continue;
-            if (!IsTextKey(CompanionOwner(this)->id)) continue;
+            if (!IsTextKey(owner->id)) continue;
             int handle = endSound;
             SoundManager* soundSystem = g_clientWorld.sounds;
             if (handle != -1 &&
                 (soundSystem->FindPlaying(handle) || soundSystem->FindDeferred(handle)))
                 continue;
-            endSound = g_clientWorld.sounds->Play3D(kEndSoundName, 0, CompanionOwner(this)->localPosition,
+            endSound = g_clientWorld.sounds->Play3D(kEndSoundName, 0, owner->localPosition,
                                                   kEndSoundNear, kEndSoundFar, 0);
         }
     }
@@ -96,9 +96,9 @@ bool MapObjectClientSpecific::RunTick() {
                 name = str::Format(kStenchSoundFormat, variant);
                 sound->timer = kStenchPeriod;
             }
-            g_clientWorld.sounds->Play3D(name, 0, CompanionOwner(this)->localPosition, kStenchNear, kStenchFar, 0);
+            g_clientWorld.sounds->Play3D(name, 0, owner->localPosition, kStenchNear, kStenchFar, 0);
         } else if (sound->kind == SpellType::Feeblemind && sound->handle != -1) {
-            g_clientWorld.sounds->MoveSequence(sound->handle, CompanionOwner(this)->localPosition);
+            g_clientWorld.sounds->MoveSequence(sound->handle, owner->localPosition);
         }
     }
 
@@ -108,7 +108,7 @@ bool MapObjectClientSpecific::RunTick() {
         Vector3 lightPosition;
         lib::LoadBytes(lightPosition, &lamp->localPosition.x);
         float lightZ = lightPosition.z - kLightHeight;   // stored as a float
-        MapObject* followed = CompanionOwner(this);
+        MapObject* followed = owner;
         float dx = lightPosition.x - followed->localPosition.x;
         float dy = lightPosition.y - followed->localPosition.y;
         float dz = lightZ - followed->localPosition.z;
@@ -148,8 +148,8 @@ MapObjectClientSpecific::~MapObjectClientSpecific() {
         if (Light* shown = light; shown && !(shown->flags & LightFlag::Hidden) && !(shown->flags & LightFlag::Held)) {
             shown->flags |= LightFlag::Hidden;
             g_clientWorld.terrain->RemoveLight(light);
-            if (Unit* unit = OwnerUnit()) {
-                if (Object3DSpecific* half = unit->AsObject3D()->attached) half->SetLit(false);
+            if (owner) {
+                if (Object3DSpecific* half = owner->attached) half->SetLit(false);
             }
         }
         int lightId = light->id;

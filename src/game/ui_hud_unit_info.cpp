@@ -128,7 +128,7 @@ void HudUnitPanel::PaintUnitInfo(UiSurface& surface, Unit* unit) {
     // The controller's attack parameters: attack, defence, the damage type (below 7 unsigned: "dmg_<n>" names
     // it) and range.
     AttackParams combat;
-    unit->Controller()->GetAttackParams(&combat);
+    unit->controller->GetAttackParams(&combat);
     panel.text = str::Format(kValue, panel.labels[3], combat.attack);
     panel.DrawLine();
     panel.text = str::Format(kValue, panel.labels[4], combat.defence);
