@@ -7365,7 +7365,7 @@ title = "Wetness resets on a zone change; render_water_looks aimed for Rebirth's
 group = "renderer"
 model = "opus"
 depends = ["R17c"]
-note = "From R17c/R17a2's hand-back: surface wetness from rain carries over a zone change (reset it when a zone loads). render_water_looks' minimap-based lookat misses on Rebirth's zone1 (its map differs), so the swamp views land past the map edge in fog and Rebirth's swamps are not visually checked: give Rebirth its own coordinates. Also check where a swamp meets the sea, the ground's swamp-depth attribute blends with -1 under the water (hidden by opaque water; confirm). Captures before/after for the captures page."
+note = "User 2026-11-04: shore seams NOT fixed on main (R17a2 only faded the water's edge). The user's save (tests/saves/user_seams, Rebirth zone 1 beach; scratch scenario tests/scenarios/scratch_seams.txt) shows a 1-px bright cyan dotted line along triangle edges where the sand meets the water, at 1280x720 msaa 8: build/seams/rebirth_crop.png (crop 150,230-650,330 of the frame). Likely cracks between the ground pieces next to the water (different vertex paths / T-junctions / water-layer ground) showing what is behind. Find the cause and close them; first priority of this ticket; commit the save and a render scenario with a frame check that would catch it."
 
 [[ticket]]
 id = "R17c2"
