@@ -65,7 +65,8 @@ add_compile_definitions(EI_ASSET_CODEPAGE=${EI_ASSET_CODEPAGE})
 if(WIN32)
     enable_language(RC)
     set(EI_RESOURCES src/main.rc)
-    add_compile_options(/W4 /utf-8)
+    # Not for MASM (the coverage build's harness_coverage_entry.asm), which knows neither.
+    add_compile_options("$<$<NOT:$<COMPILE_LANGUAGE:ASM_MASM>>:/W4;/utf-8>")
     # Inline expansion (R16c5): RelWithDebInfo's /Ob1 inlines only functions marked inline; /Ob2 also the compiler's
     # own picks (file-local helpers).
     string(REPLACE "/Ob1" "/Ob2" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
@@ -80,7 +81,19 @@ if(WIN32)
     # compares function pointers: H33c), so a crash or profile address names one of the functions folded there; the
     # debug build keeps the linker's default. /MAP: ei-rebuild.map resolves the harness's crash log
     # (ei-rebuild+offset) to functions.
-    add_link_options("$<$<NOT:$<CONFIG:Debug>>:/OPT:REF;/OPT:ICF>" /MAP)
+    # Source coverage (build.cmd coverage: the verify build with it, into build\coverage; docs/notes/harness.md,
+    # "Source coverage"; tools/coverage.py): src/ compiled with MSVC's SanitizerCoverage (a flag byte per edge) and /Gh
+    # (each function's entry calls tests/verify/harness_coverage_entry.asm's _penter), at /Ob1 so that file-local
+    # helpers stay functions of their own. It keeps every function (/OPT:NOREF), so the ones nothing calls count as
+    # unreached; only ei-rebuild is built.
+    option(EI_COVERAGE "Build src/ with source coverage (MSVC /fsanitize-coverage and /Gh)" OFF)
+    if(EI_COVERAGE)
+        string(REPLACE "/Ob2" "/Ob1" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+        add_link_options(/OPT:NOREF /OPT:NOICF /MAP)
+        enable_language(ASM_MASM)
+    else()
+        add_link_options("$<$<NOT:$<CONFIG:Debug>>:/OPT:REF;/OPT:ICF>" /MAP)
+    endif()
     # AddressSanitizer (build.cmd asan: the verify build with it, into build\asan; docs/notes/harness.md): every target
     # instrumented (the STL's container annotations must match across the libraries) and the runtime DLL copied beside
     # the executables. Its reports go to the run's
@@ -331,6 +344,15 @@ if(EI_HARNESS)
     target_include_directories(ei-rebuild PRIVATE tests/verify)
     target_link_libraries(ei-rebuild PRIVATE SDL3::SDL3-static)
     target_compile_definitions(ei_render PRIVATE EI_RENDER_VALIDATION)
+    if(EI_COVERAGE)
+        set(EI_COVERAGE_OPTIONS /fsanitize-coverage=inline-bool-flag /Gh)
+        foreach(target ei_game ei_render ei_platform)
+            target_compile_options(${target} PRIVATE ${EI_COVERAGE_OPTIONS})
+        endforeach()
+        set_property(SOURCE src/main.cpp ${EI_PROGRAM_SOURCES} APPEND PROPERTY COMPILE_OPTIONS ${EI_COVERAGE_OPTIONS})
+        target_sources(ei-rebuild PRIVATE tests/verify/harness_coverage_entry.asm)
+        set_property(SOURCE tests/verify/harness_coverage.cpp APPEND PROPERTY COMPILE_DEFINITIONS EI_COVERAGE)
+    endif()
 endif()
 
 if(WIN32)

@@ -151,6 +151,42 @@ about 6 to 8 minutes at `--jobs 4`; the scenarios that wait on real time (frame 
 `app_record`, `ui_compare`, the cursor and device-removed renders, the long pairs) run out of time there: judge those by
 their `asan.*` files, not their result.
 
+## Source coverage
+
+`python tools\coverage.py run <ticket>` builds `build.cmd coverage`, plays the image and Rebirth suites on it (`work.py
+test <ticket> --rebirth --golden`, with `EI_BUILD_DIR` at `build\coverage`; more run_all arguments pass through) and
+writes `build\coverage\report.md` (totals, a table per area with gameplay first, the ranked gaps, the biggest unreached
+functions, every file), the HTML view `build\coverage\html\index.html` (a page per file, its lines marked) and
+`coverage.json`. `python tools\coverage.py report` rewrites them from the runs already there. Not part of the merge
+routine: run it when wanted.
+- **The build** (CMakeLists.txt's EI_COVERAGE): the verify build's ei-rebuild.exe (only that target; no build checks)
+  with src/ compiled with MSVC's `/fsanitize-coverage=inline-bool-flag` (a flag byte set on each instrumented edge) and
+  `/Gh` (each function calls `_penter` once at its start: tests/verify/harness_coverage_entry.asm marks the function's
+  16-byte slot of the image, then turns the call into a 2-byte jump over it, so only a function's first entry costs),
+  at `/Ob1` and with `/OPT:NOREF` (functions nothing calls stay, as unreached). The harness writes the run's flags and
+  marked slots to `coverage.dat` in the run folder at each report and at exit (tests/verify/harness_coverage.cpp); a
+  pair's peer writes its own into `peer\`.
+- **Why MSVC's and not clang's:** the Build Tools here have no clang-cl (only clang-format and clang-tidy under
+  VC\Tools\Llvm), so llvm-cov's source-based coverage would need the "C++ Clang tools" component or an LLVM install;
+  MSVC's options need nothing and keep the compiler the goldens come from. Their limits, found with small test files:
+  `/fsanitize-coverage=pc-table` (the edges' addresses) and `no-prune` crash the compiler (C1001) on most of our files;
+  `func` and `edge` exclude each other (the last one wins); the default edge mode prunes so hard that a function whose
+  path was entry, one loop pass and the exit sets no flag, so entries come from `/Gh` instead.
+- **`_penter` keeps the flags:** MSVC places the call inside the prologue, sometimes between a `test` and the `cmov`
+  that reads it (terrain_sector.cpp's BuildRecords took the wrong layer count and crashed every run until `_penter`
+  saved them with pushfq).
+- **The report** (tools/coverage.py): dumpbin's disassembly of the exe gives each instrumented function (a label whose
+  code calls `_penter`), its basic blocks (cut at jumps, returns and jump targets) and which block each flag's `mov byte
+  ptr [flag],1` is in; dbghelp gives the PDB's line records. A function is reached when its slot was marked; a line when
+  its function was and some of its code is outside the blocks whose flags stayed clear. Blocks without a flag count with
+  their function, so the line numbers are an upper bound and the function numbers exact. Only src/ counts, by the part of
+  the PDB's path from `src/` on (the compiler cache's objects name the checkout that compiled them first); functions
+  marked inline are inlined at `/Ob1` and count in their callers. `static.pickle` keeps the exe's analysis.
+- **Measured (H43, 2026-11-04):** the 258 runs (270 games with the pairs' peers) took 68 s, as on the verify
+  build (the `_penter` patch), with every golden the same (252 the same, 6 without one); functions 7973 of 12292
+  reached (64.9%), lines 66862 of 76533 (87.4%). The report itself takes under 10 s (dumpbin and dbghelp; then
+  `static.pickle`). The mixer (src/audio) is never reached: harness runs open no sound device.
+
 ## What a run leaves alone
 
 Harness runs need no clicks and leave the install alone (standalone-verification.md, "No run writes into an install"):

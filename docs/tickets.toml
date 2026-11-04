@@ -6422,6 +6422,78 @@ depends = ["H52"]
 note = "After H52 a fresh worktree's first build takes every object from sccache, but sccache runs cl -EP before each lookup (its direct mode is gcc / clang only): about 0.5 s of CPU per object, 330-470 CPU-s per verify build, which is most of a warm first build's 20-30 s and grows under load. Measure which headers make the preprocessed size (cl /E | wc per object, the heaviest includes: windows.h through src/platform, <format>, the big game headers) and cut includes where a forward declaration or a narrower header serves; check that the warm first build and a plain compile both get faster."
 
 [[ticket]]
+id = "H43a"
+title = "Scenario: taming, stealing and the move planner (combat gaps from H43's coverage)"
+group = "harness"
+depends = ["H43"]
+files = ["tests/scenarios"]
+note = "H43's coverage report (build/coverage/report.md; python tools/coverage.py run <ticket>): no run enters combat_taming.cpp (UnitServer::TryTame, UndoTaming; OrderTame and the charm spell's TryTame path), UnitServer::OrderSteal (an AI thief's order, unit_ai.cpp), UnitServer::PlanMove (combat_planning.cpp, 28 lines), OrderPlan::TakeSteps, UseItemCharge or combat_tick.cpp's CanStillDo. A scenario with a golden that tames an animal, has a thief steal from the party and makes the planner plan a move; coverage.py report shows them reached."
+
+[[ticket]]
+id = "H43b"
+title = "Scenario: teleport, charm, link, fireworks and tornado spells (spell gaps from H43's coverage)"
+group = "harness"
+depends = ["H43"]
+files = ["tests/scenarios"]
+note = "H43's coverage report (build/coverage/report.md; python tools/coverage.py run <ticket>): no run enters spell_effect.cpp's StartTeleport, StartCharm and StartLink, spell_effect_update.cpp's Teleport, Link and Fireworks, or world_effect_tornado.cpp's EffectTornado::Start; spell.cpp has 32 of 186 lines unreached. A scenario with a golden that casts each of these spells at a unit; coverage.py report shows them reached."
+
+[[ticket]]
+id = "H43c"
+title = "Scenario: back to a visited zone, save and load with effects in flight (save gaps from H43's coverage)"
+group = "harness"
+depends = ["H43"]
+files = ["tests/scenarios"]
+note = "H43's coverage report (build/coverage/report.md; python tools/coverage.py run <ticket>): no run returns to a zone it left (world_game.cpp's RestoreZone, 34 lines: saves\\current\\<zone>.sav and the catch-up ticks), loads a save with an arrow, a sound sequence, an ambient sound or a script effect source alive (EffectArrow::Load, EffectSoundSeq::Load, EffectAmbientSound::Unpack, ScriptFxSource::Save and Load), loads shared objects (WorldServer::AddSharedObject, SharedObject::Load) or quick-loads (ui_saveload.cpp's QuickLoad). persistent_globals.cpp's AddonStringMap (1 of 12 functions) and Chunk::WriteString, WriteStringArray and WriteVector3 never run either. Scenarios with goldens: zone1, another zone and back; a save and load with a missile in the air; the quick load key."
+
+[[ticket]]
+id = "H43d"
+title = "Scenario: the script commands no run uses (script gaps from H43's coverage)"
+group = "harness"
+depends = ["H43"]
+files = ["tests/scenarios"]
+note = "H43's coverage report (build/coverage/report.md; python tools/coverage.py run <ticket>): no run calls scriptaddon::GameOverMsg, AddMobEx or GetObjectsOnMap's walk, script_exec.cpp's RedeployParty, script_parse.cpp's AddDefine, scriptparse::ReadTextFile or Script::LoadFile; script_addon_commands.cpp has 52 of 207 lines unreached, script_effects.cpp 40 of 159. A scenario with a golden that runs each through @-commands or a test mod's script (tools/make_test_mod.py)."
+
+[[ticket]]
+id = "H43e"
+title = "Scenario: AI flight, leader changes, corpses and bridges (AI gaps from H43's coverage)"
+group = "harness"
+depends = ["H43"]
+files = ["tests/scenarios"]
+note = "H43's coverage report (build/coverage/report.md; python tools/coverage.py run <ticket>): no run reaches unit_ai_modes.cpp's FindFlightPoint (a ranged unit stepping away from a melee enemy, 25 lines), PlayerMode::SetLeader and StaysWithParty (the party following a new leader), AIMemory::SeeCorpse, AIBrain::IsNearPath or the bridge cells (ai_bridges.cpp's BridgeHeights::RestoreCell, AIMap::BridgeDeckAt); unit_ai_modes.cpp has 135 of 748 lines unreached. A scenario with a golden for each: an archer attacked in melee, a leader switch in a party of two, a unit passing a corpse, a walk over a bridge."
+
+[[ticket]]
+id = "H43f"
+title = "Scenario: magic trap ticks, hits while turning, random item loss, speech stops (unit gaps from H43's coverage)"
+group = "harness"
+depends = ["H43"]
+files = ["tests/scenarios"]
+note = "H43's coverage report (build/coverage/report.md; python tools/coverage.py run <ticket>): no run ticks a magic trap (magic_trap.cpp's TrapObject::RunTick and StaysInside; 18 of 37 functions reached), hits a unit while it turns (unit_motion_tick.cpp's HitWhileTurning), takes a random item (Unit::TakeRandomItem) or stops a speech (UnitClientSpecific::StopSpeech); map_spec_unit.cpp's BehaviourChunk::Write, UnitSpec::Save and UnitSpec::Apply never run either. A scenario with a golden per gap."
+
+[[ticket]]
+id = "H43g"
+title = "Scenario: lobby queries, party, trade and file messages between two games (network gaps from H43's coverage)"
+group = "harness"
+depends = ["H43"]
+files = ["tests/scenarios"]
+note = "H43's coverage report (build/coverage/report.md; python tools/coverage.py run <ticket>): network has 891 of 1463 functions reached. No pair run sends net::PartyMessage, TradeMessage, FileMessage or PairMessage, asks or forgets a lobby server (net_lobby.cpp's ClientBase::Ask and Forget; 96 of 400 lines unreached), makes a net::Connection with net_connection_life.cpp:98's constructor (1.5 KB) or a LoopbackLink, or raises a server variable (ServerSession::RaiseVariable). Pair scenarios (peer steps) with goldens: a trade between the two heroes, a party join, the lobby list."
+
+[[ticket]]
+id = "H43h"
+title = "Scenario: briefing rewards, the base screen's objectives, the hero rename (world and interface gaps from H43's coverage)"
+group = "harness"
+depends = ["H43"]
+files = ["tests/scenarios"]
+note = "H43's coverage report (build/coverage/report.md; python tools/coverage.py run <ticket>): no run gives a quest's briefing rewards (world_quests.cpp's GiveBriefingRewards, 28 lines), opens the objectives from the base screen (ui_briefing_input.cpp's OpenObjectives, 2.2 KB), hides a speaker (BriefingScreen::HideSpeaker), renames a multiplayer hero (MpHeroScreen::Rename, FinishRename), edits the connect screen's address (MpConnectScreen::EditAddress) or shows the camp's spell stock (ui_camp_deals.cpp's StockSpells); ui_hud_map.cpp has 11 of 35 functions reached (the mini map's input). Scenarios with goldens per screen."
+
+[[ticket]]
+id = "H43i"
+title = "An offline check of the mixer: harness runs never reach src/audio's mixing"
+group = "harness"
+depends = ["H43"]
+files = ["src/audio/audio.cpp", "tests/unit"]
+note = "H43's coverage report (build/coverage/report.md; python tools/coverage.py run <ticket>): harness runs open no sound device (sound.md), so audio.cpp's Mix, Render, Reverb::Shape and Process, NoteFrame, DeviceData and Stream::Fetch run in no test (65 of 108 functions reached, 249 of 683 lines unreached). A unit check that feeds known voices and streams through the mixer and compares the samples, or a harness option that mixes into a buffer without a device."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"
