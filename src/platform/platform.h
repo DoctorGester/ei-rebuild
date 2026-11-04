@@ -297,10 +297,8 @@ void SetClientSize(NativeWindow window, int width, int height);
 // display's modes' sizes in pixels, none under 800x600 or above the desktop's: display_sizes.h). Sizes only: no display
 // mode is ever set, full screen scales the frame. The harness's backend returns a fixed list.
 std::vector<Size> DisplaySizes(NativeWindow window);
-// Whether ConfineCursor does anything (the harness's backend only notes the request).
-bool CursorConfinementSupported();
 // The cursor kept inside the window (the window grabs the mouse) or let go; a window that has no focus is let go by the
-// system, and the game asks again as it gets it back.
+// system, and the game asks again as it gets it back. The harness's backend only logs the request.
 void ConfineCursor(NativeWindow window, bool confined);
 
 // ---- Events ------------------------------------------------------------------------------------------------------

@@ -65,7 +65,6 @@ public:
     int resolutionY;
     int fullScreen;                  // FullScreen
     int video;
-    int confineCursor;               // [video] ConfineCursor (ours; read and written only where the cursor can be grabbed)
     int audio;
     int audioStreaming;
     int audioSfx;

@@ -198,6 +198,13 @@ Rect Interface3D::PictureRect() const {
     return picture;
 }
 
+bool Interface3D::EdgePanLive() const {
+    if (stack.empty()) return false;
+    for (const UiInputSide* side : ScreenOf(stack.back())->inputs)
+        if (side->PansAtEdges()) return true;
+    return false;
+}
+
 // --- Shutdown ----------------------------------------------------------------------------------------
 
 // The interface manager's end (Interface3D): the input reset after the windows close, the shutdown from the

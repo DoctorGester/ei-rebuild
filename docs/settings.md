@@ -29,7 +29,6 @@ ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, 
 | `Video` | `2` | 0, 1 or 2 | The game's movies: 0 none, 1 at their own size in the middle of the screen, 2 stretched to the screen's width. Loading screens show either way. |
 | `Brightness` | `0` | -1 .. 1 | Brightens (above 0) or darkens (below 0) the whole picture; 0 leaves it as it is. The options screen's slider sets it. |
 | `Gamma` | `0` | -1 .. 1 | Above 0 lightens the mid-tones, below 0 darkens them (black and white stay); 0 leaves the picture as it is. |
-| `ConfineCursor` | `false` | true / false | Keeps the cursor inside the game's window while it is the active one (the options' display group sets it). The cursor is let go when the window loses the focus. |
 
 ## [sound]
 

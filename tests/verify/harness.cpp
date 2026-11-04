@@ -248,6 +248,9 @@
 //                             this run; 0: no streamed music, so the music system's random draws do not
 //                             follow the real-time stream thread (harness_starter.h)
 //   expectlog <text>          require <text> in ei-rebuild.log so far (the code's own log lines, e.g. the WideScreen layout's)
+//   logmark                   the log's end now: the "new" log steps below look only at what comes after the last mark
+//   expectnewlog <text>       require <text> in ei-rebuild.log after the last mark (then the mark moves to the end)
+//   expectnonewlog <text>     require <text> NOT in ei-rebuild.log after the last mark (then the mark moves to the end)
 //   settingsfile writable|defaults
 //                             the image's settings file (ei_settings.ini in the run folder) is not read only:
 //                             "writable" starts from the snapshot's file with a probe section of odd values and lets
@@ -569,6 +572,18 @@ bool g_inputLoop = false;
 bool g_winMainLoop = false;
 
 std::vector<std::string> g_console;          // every console line so far
+std::size_t g_logMark = 0;                   // the log text's length at the last logmark / expectnewlog
+// The log without the harness's own echoes of its steps (the log is open for writing).
+std::string LogText() {
+    std::string text;
+    if (FILE* log = sys::OpenShared(ei::OutputPath("ei-rebuild.log"))) {
+        char line[4096];
+        while (std::fgets(line, sizeof(line), log))
+            if (!std::strstr(line, "harness: ")) text += line;
+        std::fclose(log);
+    }
+    return text;
+}
 std::size_t g_expectFrom = 0;                // first line "expect" looks at
 std::vector<std::string> g_rejected;         // texts that must not appear
 std::vector<std::string> g_failures;
@@ -2827,18 +2842,22 @@ void RunSteps() {
             if (!found) g_failures.push_back("expected console output '" + s.argument + "'");
             g_expectFrom = g_console.size();
         } else if (s.verb == "expectlog") {
-            const std::string logPath = ei::OutputPath("ei-rebuild.log");
-            std::string text;   // the log without the harness's own echoes of its steps
-            if (FILE* log = sys::OpenShared(logPath)) {   // the log is open for writing
-                char line[4096];
-                while (std::fgets(line, sizeof(line), log))
-                    if (!std::strstr(line, "harness: ")) text += line;
-                std::fclose(log);
-            }
+            const std::string text = LogText();
             const std::string& wanted = s.argument;
             const bool found = text.find(wanted) != std::string::npos;
             Log("harness: expectlog '%s': %s", wanted.c_str(), found ? "found" : "MISSING");
             if (!found) g_failures.push_back("expected ei-rebuild.log line '" + wanted + "'");
+        } else if (s.verb == "logmark") {
+            g_logMark = LogText().size();
+        } else if (s.verb == "expectnewlog" || s.verb == "expectnonewlog") {
+            const std::string text = LogText();
+            const std::string& wanted = s.argument;
+            const bool found = text.find(wanted, g_logMark) != std::string::npos;
+            const bool wantFound = s.verb == "expectnewlog";
+            g_logMark = text.size();
+            Log("harness: %s '%s': %s", s.verb.c_str(), wanted.c_str(), found == wantFound ? "ok" : "WRONG");
+            if (found != wantFound)
+                g_failures.push_back(std::string(wantFound ? "expected" : "unexpected") + " new ei-rebuild.log line '" + wanted + "'");
         } else if (s.verb == "capture") {
             // The name becomes a file name: letters, digits, '_', '-' and '.' only.
             bool valid = !s.argument.empty() && s.argument.size() < 64;
