@@ -4,7 +4,7 @@ usage: python tools/test_work_sched.py [-v]
 Each test has its own database and slot folder in a temporary directory (the machine's slots are not
 touched), so it can run beside real suites.
 """
-import contextlib, datetime, io, json, os, subprocess, sys, tempfile, threading, time, unittest
+import contextlib, datetime, io, json, os, shutil, subprocess, sys, tempfile, threading, time, unittest
 from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -717,6 +717,13 @@ class SchedTest(unittest.TestCase):
         stepped = self.scenario('stepped', 'waitmenu\nrebirth click 1 1\n')
         self.assertEqual(run_all.plan(run_all.parse_args(['--rebirth-only']), root=self.tmp), [('stepped', 'standalone-rebirth')])
         os.remove(stepped)
+        # and every scenario with a Rebirth golden (H51a)
+        os.makedirs(os.path.join(self.tmp, 'tests', 'golden', 'boot', 'rebirth'))
+        with open(os.path.join(self.tmp, 'tests', 'golden', 'boot', 'rebirth', 'golden.json'), 'w') as f:
+            f.write('{}')
+        self.assertEqual(run_all.plan(run_all.parse_args(['--rebirth-only']), root=self.tmp), [('boot', 'standalone-rebirth')])
+        self.assertEqual(run_all.rebirth_scenarios(['boot', 'wide'], root=self.tmp, goldens=False), set())
+        shutil.rmtree(os.path.join(self.tmp, 'tests', 'golden'))
         self.assertEqual(run_all.plan(run_all.parse_args(['--standalone', '--vanilla-only', 'wide']), root=self.tmp),
                          [('wide', 'standalone')])
         self.assertEqual(run_all.plan(run_all.parse_args(['--standalone', '--rebirth-only', 'wide']), root=self.tmp),
