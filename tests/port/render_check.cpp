@@ -168,13 +168,13 @@ void CheckCursorMotion(platform::NativeWindow window, int width, int height) {
     cursor.enabled = true;
     cursor.bounds = Rect{0, 0, width, height};
     cursor.motion = Point{9, -4};
-    platform::MapCursorPoints([](Point* at) { *at = {31, 47}; }, nullptr);
+    platform::MapCursorPoints([](Point) { return Point{31, 47}; }, nullptr);
     move();
     cursor.SetHeld(true);
     Point motion = platform::TakeMouseMotion();
     Check(cursor.motion.x == 0 && cursor.motion.y == 0 && motion.x == 0 && motion.y == 0,
           "holding discards movement from before the press");
-    platform::MapCursorPoints([](Point* at) { *at = {83, 96}; }, nullptr);
+    platform::MapCursorPoints([](Point) { return Point{83, 96}; }, nullptr);
     move();
     cursor.SetHeld(true);
     motion = platform::TakeMouseMotion();

@@ -125,7 +125,7 @@ bool SceneRenderer::RestoreSurfaces() { return device != nullptr; }
 // --- Texture holders -----------------------------------------------------------------------------
 
 int EnsureTextureLoaded(Texture* texture) {
-    if (!texture) return game::FatalError(NullTextureText());
+    if (!texture) return game::FatalError("%s", NullTextureText());
     if (texture->flags & TextureFlag::Loaded) return 1;
     return g_clientWorld.textureManager->LoadTexture(texture);
 }

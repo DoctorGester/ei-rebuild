@@ -242,7 +242,7 @@ SpellContainer* SpellManager::NewContainer() {
 
 Spell* SpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const std::vector<itemdb::SpellModifierRecord*>* modifiers) {
     SpellConstructor* constructor = context->GetSpellConstructor();
-    if (!constructor) return game::FatalErrorAs<Spell>(kNoSpellConstructor);
+    if (!constructor) return game::FatalErrorAs<Spell>("%s", kNoSpellConstructor);
     constructor->SetManager(this);
     if (!constructor->BeginConstruct(prototype))
         return game::FatalErrorAs<Spell>(kCantBegin, prototype->code.c_str());
@@ -252,7 +252,7 @@ Spell* SpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const std
         constructor->AddModifier(modifier);
         ++added;
     }
-    if (!constructor->EndConstruct()) return game::FatalErrorAs<Spell>(kCantEnd);
+    if (!constructor->EndConstruct()) return game::FatalErrorAs<Spell>("%s", kCantEnd);
     Spell* spell = constructor->container->spell.Clone(this);
     constructor->SetManager(nullptr);
     return spell;
@@ -354,7 +354,7 @@ Spell* SpellManager::CreateSpellFromText(std::string_view source) {
     ParseSpellText(text, codes);
 
     SpellConstructor* constructor = context->GetSpellConstructor();
-    if (!constructor) return game::FatalErrorAs<Spell>(kNoSpellConstructor);
+    if (!constructor) return game::FatalErrorAs<Spell>("%s", kNoSpellConstructor);
     constructor->SetManager(this);
 
     itemdb::SpellRecord* prototype;
@@ -370,7 +370,7 @@ Spell* SpellManager::CreateSpellFromText(std::string_view source) {
         constructor->AddModifier(FindModifier(code));
     }
 
-    if (!constructor->EndConstruct()) return game::FatalErrorAs<Spell>(kCantEnd);
+    if (!constructor->EndConstruct()) return game::FatalErrorAs<Spell>("%s", kCantEnd);
     Spell* spell = constructor->container->spell.Clone(this);
     constructor->SetManager(nullptr);
     return spell;

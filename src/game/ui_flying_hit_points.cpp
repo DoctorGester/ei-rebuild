@@ -112,7 +112,7 @@ void FlyingHitPoints::Draw(SceneRenderer* renderer) {
     const Rect& screen = renderer->device->screen;
     if (!texture) return;
     if (!renderer->SetTexture(0, texture)) {
-        game::FatalError(game::FlyingHitPointsTextureText());
+        game::FatalError("%s", game::FlyingHitPointsTextureText());
         return;
     }
 

@@ -267,7 +267,7 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
     MemoryStream graph;
     graph.ApplyDiff(&savedGraph, stream);
     ShowLoadProgress(kProgressZone);
-    if (!LoadMap(newMapName, newMobName, &graph, 1)) return game::FatalError(game::CantLoadSaveMapText());
+    if (!LoadMap(newMapName, newMobName, &graph, 1)) return game::FatalError("%s", game::CantLoadSaveMapText());
 
     // The map objects' identities: id, type and prototype id.
     for (;;) {
