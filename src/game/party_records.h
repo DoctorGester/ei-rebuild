@@ -52,7 +52,7 @@ struct NamedPartyRecords {
     // LoadParty through a memory stream); then every record's party gets `party`'s variables, zone name and
     // +0x6C.
     void BeginRedeploy(Party* party);
-    // `party` gets a copy of the record named requestedName, or is cleared (Clear(1, 0)) when
+    // `party` gets a copy of the record named requestedName, or is cleared (Clear(true, false)) when
     // there is none; then currentName = requestedName.
     void EndRedeploy(Party* party);
 };

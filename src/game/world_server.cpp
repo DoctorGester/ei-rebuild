@@ -215,8 +215,8 @@ void WorldServer::RemoveObject(unsigned objectId) {
     object->AddRef();   // held to the end, released twice there (with the maps' reference)
     if (unit) unit->SetPlayer(nullptr);
     object->flags |= MapObjectFlag::Removed;
-    ScriptPurgeDeletedObjects(MainScript());     // what refers to removed objects dropped
-    ScriptPurgeDeletedObjects(SecondScript());
+    MainScript()->PurgeDeletedObjects();     // what refers to removed objects dropped
+    SecondScript()->PurgeDeletedObjects();
 
     // Every world object forgets it (the walk stops at an entry without an object).
     for (auto node = objects.map.begin(); node != objects.map.end() && node->second; ++node)
@@ -319,8 +319,8 @@ void WorldServer::Destroy() {
     }
 
     hoover.reset();
-    ScriptReset(MainScript());
-    ScriptReset(SecondScript());
+    MainScript()->Reset();
+    SecondScript()->Reset();
     ResetState();
     messages.Close();
 

@@ -65,8 +65,8 @@ int WorldServer::LoadMap(std::string_view map, std::string_view mob, ByteStream*
 
     if (text::CompareIgnoringCase(mobName, mob) == 0) {
         // The same zone again: start over.
-        ScriptReset(MainScript());
-        ScriptReset(SecondScript());
+        MainScript()->Reset();
+        SecondScript()->Reset();
         diplomacy.Reset();
         ClearMapObjects();
         projectiles.clear();
@@ -93,7 +93,7 @@ int WorldServer::LoadMap(std::string_view map, std::string_view mob, ByteStream*
         int loadedCount = LoadMapObjects(mob, loadedFresh == 0);
         if (!loadedCount) return loadedCount;
         if (!loadedFresh) {
-            ScriptReset(MainScript());
+            MainScript()->Reset();
             diplomacy.Reset();
         }
         if (keepsState) SendFreshObjects();
@@ -114,8 +114,8 @@ void WorldServer::ResetZone() {
     mobFiles.clear();
     countdowns.entries.clear();
     exits.clear();
-    ScriptReset(MainScript());
-    ScriptReset(SecondScript());
+    MainScript()->Reset();
+    SecondScript()->Reset();
     projectiles.clear();
     ReleaseAndClear(counted);
 
@@ -160,8 +160,8 @@ void WorldServer::TeardownZone() {
     sharedObjects.clear();
     mobFiles.clear();
     aiMap.refreshUnits = false;    // refreshes off
-    ScriptReset(MainScript());
-    ScriptReset(SecondScript());
+    MainScript()->Reset();
+    SecondScript()->Reset();
     diplomacy.Reset();
     ClearMapObjects();
 
@@ -215,8 +215,8 @@ void WorldServer::ResetState() {
     ResetZone();
     mapName = game::kEmptyText;
     diplomacy.Reset();
-    ScriptReset(MainScript());
-    ScriptReset(SecondScript());
+    MainScript()->Reset();
+    SecondScript()->Reset();
     aiMap.Reset();
     zoneLoaded = 0;
     nightLevel = 0.0f;

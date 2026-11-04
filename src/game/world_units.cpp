@@ -143,8 +143,8 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
 
     for (int i = 0; i < std::ssize(*records); ++i) {
         auto* record = (*records)[i];
-        message->prototype = record->texts[5];
-        message->texture = record->texts[2];
+        message->prototype = record->prototype;
+        message->texture = record->figureName;
         message->behaviour[0].type = 4;
         message->behaviour[0].enabled = 1;
         message->behaviour[0].flags = 0;
@@ -152,10 +152,10 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
         message->scale = {record->scaleX, record->scaleY, record->height};
         message->visible = 1;
         message->side = 0;
-        message->parentIname = record->texts[3];
-        message->skinTexture = record->texts[4];
+        message->parentIname = record->parentIname;
+        message->skinTexture = record->skinTexture;
         message->parts.clear();
-        const char* prototypeName = record->texts[5].c_str();
+        const char* prototypeName = record->prototype.c_str();
         MapObjectType objectClass = PrototypeObjectClass(prototypeName);
         message->parentId = static_cast<int>(objectClass);
         if (objectClass == MapObjectType::Hero) FillHeroParts(message, prototypeName, line);
@@ -192,7 +192,7 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
         MoveToFreeCell(unit, position);
 
         unit->SetPlayer(player);
-        unit->SetScriptName(record->texts[0]);
+        unit->SetScriptName(record->scriptName);
         unit->SetFightAtWill(static_cast<std::uint32_t>(record->fightAtWill));
         unit->ClearProtectionBases();
         unit->SetStats(&record->stats);
@@ -216,7 +216,7 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
 
         unit->UpdateSizeClasses();
         unit->ScaleEffectChanged(false);
-        unit->SetSecondPrototypeByName(record->texts[6]);
+        unit->SetSecondPrototypeByName(record->secondPrototype);
         line = str::Format(worlddata::AddToHeroesFormat(), unit->id);
         script += line;
         if (zoneMode == ZoneMode::Battle && !atStart) unit->moveMode2 = record->moveMode2;

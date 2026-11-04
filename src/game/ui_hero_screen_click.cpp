@@ -50,11 +50,11 @@ void BackToMainMenu(Interface3D* ui) {
     ui->SetPendingValue(0);
 }
 
-// A multiplayer hero's name: the text 0 of its party's first member record (read through the members'
+// A multiplayer hero's name: the scriptName of its party's first member record (read through the members'
 // data pointer).
 std::string& MpHeroName(int index) {
     auto* hero = g_savedParties.Hero(index);
-    return hero->GetParty()->members.data()->texts[0];
+    return hero->GetParty()->members.data()->scriptName;
 }
 
 // The rename's title on surface 3: 130 x 16 pixels.
@@ -95,7 +95,7 @@ void MpHeroScreen::BackToNewHero() {
     labels[0].clear();
     tradePanel->Settle(false, false);
     SetMode(kModeNewHero);
-    nameEdit->SetText(HeroRecord()->texts[0]);
+    nameEdit->SetText(HeroRecord()->scriptName);
 }
 
 void MpHeroScreen::FinishRename() {
@@ -245,7 +245,7 @@ void MpHeroScreen::LeftDown(Point point) {
         currentUi->PlayInterfaceSound(game::SelectSoundText());
         voiceIndex = index;
         const std::string& file = currentVoices.begin()[index].file;
-        HeroRecord()->texts[6] = file;
+        HeroRecord()->secondPrototype = file;
         PlayVoice();
         DrawVoices();
         return;
@@ -351,7 +351,7 @@ void MpHeroScreen::PlayVoice() {
     auto* hero = HeroRecord();
     UnitPrototypeRecord* prototype;
     {
-        std::string key(hero->texts[6]);
+        std::string key(hero->secondPrototype);
         prototype = g_unitDatabase.prototypes.FindByName(key);
     }
     if (!prototype) return;
@@ -424,7 +424,7 @@ void MpHeroScreen::CreateHero() {
     }
     ui->PlayInterfaceSound(game::OkSoundText());
     ShowFirstEquipment();
-    hero->texts[0] = name;
+    hero->scriptName = name;
     statsPanel->SetHero(0, name);
     RefreshStats();
     SetMode(kModeStats);
@@ -506,7 +506,7 @@ void MpHeroScreen::AddNewHero() {
         auto* container = hero->spells[0];
         Spell* spell = container->spell;
         if (spell && !HeroCanUseSpell(&hero->stats, spell)) {
-            LocalPlayerData()->AddItem(container, 0, 1);
+            LocalPlayerData()->AddItem(container, false, true);
             hero->RemoveSpell(container);
         }
     }

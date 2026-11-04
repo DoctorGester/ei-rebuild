@@ -138,8 +138,8 @@ Item* ItemScreen::ReturnAll(Party* to, Party* from) {
     Item* moved = nullptr;
     while (!from->items.empty()) {
         Item* first = from->items[0];
-        moved = to->AddItem(first, 1, 1);
-        from->RemoveItem(first, 1);
+        moved = to->AddItem(first, true, true);
+        from->RemoveItem(first, true);
     }
     return moved;
 }

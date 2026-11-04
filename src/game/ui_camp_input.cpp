@@ -106,7 +106,7 @@ void CampPages::MessageResult(std::uint32_t result) {
     PartyUnitRecord* heroRecord = HeroRecord();
     if (heroRecord->weapons.empty()) return;
     Item* weapon = heroRecord->weapons[0];
-    Item* item = LocalPlayerData()->AddItem(weapon, 0, 1);
+    Item* item = LocalPlayerData()->AddItem(weapon, false, true);
     heroRecord->RemoveWeapon(weapon);   // the weapon list's Remove
     heroRecord->weaponIndex = kNoWeaponSlot;
     itemStrip->ScrollToItem(item);
@@ -128,7 +128,7 @@ constexpr std::uint32_t kMaterialCount = 20;
 // The list's copy of `item`: counted for the call, added (keeping its count, merged), released.
 void AddCounted(Party* list, Item* item) {
     item->AddRef();
-    list->AddItem(item, 1, 1);
+    list->AddItem(item, true, true);
     item->Release();
 }
 
@@ -165,7 +165,7 @@ void CampPages::DebugFill() {
     const int materialCount = static_cast<int>(materials.size());
 
     if (Party* items = itemParts[0]) {
-        items->Clear(1, 0);
+        items->Clear(true, false);
 
         names = g_clientWorld.itemManager->ListWeaponNames();
         for (int i = 0; i < static_cast<int>(names.size()); ++i) {
@@ -203,7 +203,7 @@ void CampPages::DebugFill() {
     }
 
     if (Party* spells = spellParts[0]) {
-        spells->Clear(1, 0);
+        spells->Clear(true, false);
         names = g_clientWorld.spellManager->ListModifierNames();
         for (int i = 0; i < static_cast<int>(names.size()); ++i)
             AddNamed(spells, "Rune", static_cast<std::uint32_t>(i), kInstructionCount);

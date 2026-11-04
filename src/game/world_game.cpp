@@ -353,7 +353,7 @@ int EnterZone(Party* records) {
             std::string scripts = zoneRecord->mob + kMobExtension;
             g_serverWorld.LoadZoneScripts(scripts);
         } else {
-            ScriptResetZone(g_serverWorld.MainScript());   // the scripts reset for a zone without its own
+            g_serverWorld.MainScript()->ResetZone();   // the scripts reset for a zone without its own
         }
     }
     g_serverWorld.SetZoneExits(&zoneRecord->exits);
@@ -589,7 +589,7 @@ int WorldServer::RunCommandScript(const std::string& text, bool run, ScriptError
     Script* script = SecondScript();
     std::string source = text;   // Script::Load preprocesses its text in place
     int ok = script->Load(&source, 1);
-    if (ok && run) ScriptTick(script);
+    if (ok && run) script->Tick();
     if (error) script->GetError(error);
     return ok;
 }
@@ -615,7 +615,7 @@ void WorldServer::LoadZoneScripts(std::string_view mob) {
         text.WriteValue(zero);
         script = reinterpret_cast<const char*>(text.data.data());
     }
-    ScriptReset(MainScript());
+    MainScript()->Reset();
     MainScript()->Load(&script, 1);
 }
 
@@ -1030,9 +1030,9 @@ void GameFlow::AfterServerStart() {
     GlobalParty()->RemoveQuestItems();
     // The client's player record gets the hero's and the party's names (or the defaults).
     if (std::ssize(GlobalParty()->members) == 1) {
-        const std::string* names = GlobalParty()->members.data()->texts;
-        net::g_gameClient->player.Get()->text.assign(names[5]);
-        net::g_gameClient->player.Get()->name.assign(names[0]);
+        const PartyUnitRecord& hero = GlobalParty()->members.front();
+        net::g_gameClient->player.Get()->text.assign(hero.prototype);
+        net::g_gameClient->player.Get()->name.assign(hero.scriptName);
     } else {
         net::g_gameClient->player.Get()->text.assign(kDefaultHeroName);
         net::g_gameClient->player.Get()->name.assign(kDefaultPartyName);

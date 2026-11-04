@@ -153,14 +153,14 @@ void ClassTemplate::Serialize(ChunkArchive* ar) {
     ar->StreamFieldOf(
         5,
         [&](MemoryStream* stream) {
-            itemsParty->SaveParty(stream, 0);
-            spellsParty->SaveParty(stream, 0);
+            itemsParty->SaveParty(stream, false);
+            spellsParty->SaveParty(stream, false);
             allowed.SaveLists(stream);
             magic.SaveLists(stream);
         },
         [&](MemoryStream* stream) {
-            itemsParty->LoadParty(stream, 0);
-            spellsParty->LoadParty(stream, 0);
+            itemsParty->LoadParty(stream, false);
+            spellsParty->LoadParty(stream, false);
             allowed.LoadLists(stream);
             magic.LoadLists(stream);
         });
@@ -181,7 +181,7 @@ void NamedPartyRecords::BeginRedeploy(Party* party) {
 
 void NamedPartyRecords::EndRedeploy(Party* party) {
     if (Party* found = Find(requestedName)) party->CopyFrom(found);
-    else party->Clear(1, 0);
+    else party->Clear(true, false);
     currentName = requestedName;
 }
 
@@ -307,20 +307,20 @@ int g_nextPartyId = /*0078B0E8*/ 1;
 
 int PartyNextId() { return g_nextPartyId++; }
 
-bool PartyManager::LoadParty(const int* key, Party* target) const {
-    if (*key == 0) {
-        target->Clear(1, 0);
+bool PartyManager::LoadParty(int key, Party* target) const {
+    if (key == 0) {
+        target->Clear(true, false);
         return true;
     }
-    Party* stored = FindParty(parties, *key);
+    Party* stored = FindParty(parties, key);
     if (!stored) return false;
     target->Assign(stored);
     return true;
 }
 
-void PartyManager::StoreParty(const int* key, Party* source) {
-    Party* value = FindParty(parties, *key);
-    if (!value) value = PartyAt(parties, *key);
+void PartyManager::StoreParty(int key, Party* source) {
+    Party* value = FindParty(parties, key);
+    if (!value) value = PartyAt(parties, key);
     value->Assign(source);
 }
 

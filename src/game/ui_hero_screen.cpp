@@ -183,8 +183,8 @@ void MpHeroScreen::DrawHeroList() {
             frame->visible = true;
             frame->Place(240.0f, static_cast<float>(y), kFrameDepth);
         }
-        // A hero record is a party; its name the first member's text 0.
-        labels[0].push_back({g_savedParties.Hero(static_cast<int>(index))->GetParty()->members[0].texts[0], area, {1, kUiTextColour, kListFormat}});
+        // A hero record is a party; its name the first member's scriptName.
+        labels[0].push_back({g_savedParties.Hero(static_cast<int>(index))->GetParty()->members[0].scriptName, area, {1, kUiTextColour, kListFormat}});
         area.Offset(0, 24);
     }
 }
@@ -218,7 +218,7 @@ void MpHeroScreen::MakePreview(bool allArmour) {
     previewModel = nullptr;
     auto* player = LocalPlayerData();
     if (player->members.empty()) {
-        player->Clear(1, 0);
+        player->Clear(true, false);
         player->AddMember(kHeroName, kHumanHero, game::kEmptyText);
     }
     const std::vector<PartyUnitRecord*> records{player->members.data()};

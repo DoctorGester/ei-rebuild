@@ -34,7 +34,7 @@ void WriteList(ByteStream* stream, const Container& list) {
 
 } // namespace
 
-void ScriptDecl::Save(ByteStream* stream) const {
+void ScriptBlock::Save(ByteStream* stream) const {
     stream->WriteValue(id);
     WriteList(stream, commands);
 }
@@ -75,7 +75,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Save(ByteStream* stream) const 
 
 // A definition (Script::definitions) or an instance (instances). The pairs' blocks are not null-checked.
 void ScriptDefinition::Save(ByteStream* stream) const {
-    stream->WriteValue(index);
+    stream->WriteValue<std::int32_t>(killed);
     stream->WriteString(name);
     stream->WriteString(params);
     stream->WriteCount(ifThen.size());
@@ -86,17 +86,17 @@ void ScriptDefinition::Save(ByteStream* stream) const {
     WriteVars(stream, &vars);
 }
 
-// A run (Script::runs). Its instance is found by the address of the killed flag (the instance's
-// index) in the list of the script being saved; the WorldScript's runs (no flag) write -1.
+// A run (Script::runs). Its instance is found by the address of the killed flag
+// in the list of the script being saved; the WorldScript's runs (no flag) write -1.
 void ScriptRun::Save(ByteStream* stream) const {
-    stream->WriteValue(block->id);
-    stream->WriteValue(index);
-    stream->WriteValue(ticks);
-    stream->WriteValue(sleepStart);
+    stream->WriteValue(position.block->id);
+    stream->WriteValue(position.index);
+    stream->WriteValue(position.ticks);
+    stream->WriteValue(position.sleepStart);
     int instance = 0;
     bool found = false;
     for (const ScriptDefinition& candidate : g_streamedScript->instances) {
-        if (killFlag == &candidate.index) {
+        if (killFlag == &candidate.killed) {
             found = true;
             break;
         }

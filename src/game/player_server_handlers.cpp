@@ -122,7 +122,7 @@ void PlayerServer::LeaderDied() {
         auto* stats = &record.stats;
         stats->RestoreSlots();
         float experience = stats->pendingExperience + stats->experience;
-        auto* npc = g_unitDatabase.npcs.FindByName(record.texts[5]);
+        auto* npc = g_unitDatabase.npcs.FindByName(record.prototype);
         if (npc) {
             float above = experience - npc->experienceFloor;
             experience = MaxKeepB(0.0f, above);   // a NaN is kept
@@ -334,15 +334,14 @@ bool PlayerServer::OnBriefingDone() {
 bool PlayerServer::OnNewParty() {
     Party local;
     Party* party = &local;
-    party->LoadParty(&in, 1);
+    party->LoadParty(&in, true);
     if (std::ssize(party->members) != 1) return false;
-    int* key = &player->partyId;
-    *key = PartyNextId();
+    player->partyId = PartyNextId();
     int& next = g_nextRecordObjectId;
     while (g_serverWorld.FindObject(static_cast<unsigned>(next)) != nullptr) ++next;
     party->members[0].unitId = static_cast<std::uint32_t>(next);
     ++next;
-    g_partyManager.StoreParty(key, party);
+    g_partyManager.StoreParty(player->partyId, party);
     return true;
 }
 
@@ -386,7 +385,7 @@ bool PlayerServer::OnPartyUpdate() {
     MemoryStream block;
     in.ReadSized(&block);
     block.MemoryStream::Seek(0);
-    if (in.ok) player->GetParty()->LoadParty(&block, 0);
+    if (in.ok) player->GetParty()->LoadParty(&block, false);
     return true;
 }
 
@@ -434,11 +433,11 @@ bool PlayerServer::OnLogin() {
         break;
     case GameState::Network:
     case GameState::Network3:
-        if (!g_partyManager.LoadParty(&currentPlayer->partyId, party))
+        if (!g_partyManager.LoadParty(currentPlayer->partyId, party))
             return false;
         break;
     case GameState::MainMenu:
-        party->Clear(1, 0);
+        party->Clear(true, false);
         break;
     default:
         break;
@@ -455,7 +454,7 @@ bool PlayerServer::OnLogin() {
 
 void PlayerServer::SendPartyUpdate() {
     MemoryStream block;
-    player->GetParty()->SaveParty(&block, 0);
+    player->GetParty()->SaveParty(&block, false);
     WriteType(&out, ServerMessage::PartyUpdate);
     out.WriteSized(&block);
 }

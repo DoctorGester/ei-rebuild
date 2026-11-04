@@ -123,7 +123,7 @@ void Addon(const CommandArgs& args) {
 void Execs(const CommandArgs& args) {
     if (args.empty()) return;
     if (TheMissionScript()->LoadFile(args[0])) {
-        ScriptTick(TheMissionScript());
+        TheMissionScript()->Tick();
         return;
     }
     SayFormat("Script error: line %d: %s", TheMissionScript()->errorLine, TheMissionScript()->errorText);

@@ -145,7 +145,7 @@ void MpHeroScreen::ChooseFigure(std::string_view prototype) {
         std::vector<PartyUnitRecord*> records{first};
         g_clientWorld.RemoveUnitsOf(&records);
     }
-    player->Clear(1, 0);
+    player->Clear(true, false);
     player->AddMember(kHeroName, prototype, prototype);
     player->EquipFromPrototype(player->members.data());
     PartyUnitRecord* hero = player->members.data();
@@ -181,7 +181,7 @@ void MpHeroScreen::ChooseFigure(std::string_view prototype) {
     voices = firstVoices ? &voiceLists[0] : &voiceLists[1];
     const std::vector<MpVoiceEntry>& currentVoices = *voices;
     // The first entry's file (the original read it even from an empty list; ours leaves the text then).
-    if (!currentVoices.empty()) hero->texts[6] = currentVoices.front().file;
+    if (!currentVoices.empty()) hero->secondPrototype = currentVoices.front().file;
     const int count = static_cast<int>(currentVoices.size());
     voiceScroll->SetMaximum(count > kVoiceRows ? count - kVoiceRows : 0);
     voiceScroll->SetPosition(0);

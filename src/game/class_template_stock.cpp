@@ -16,7 +16,7 @@ namespace {
 // Each listed item goes to `party` (keeping its count, merged with an equal one) and is released.
 void HandOver(const std::vector<Item*>& list, Party* party) {
     for (Item* item : list) {
-        party->AddItem(item, 1, 1);
+        party->AddItem(item, true, true);
         item->Release();
     }
 }
@@ -41,7 +41,7 @@ void ClassTemplate::SetLevels(const float* base, const float* scroll) {
 void ClassTemplateGenerateItems(ClassTemplate* t) {
     if (!t->sellsItems) return;
     std::vector<Item*> list;
-    t->ItemsParty()->Clear(1, 0);
+    t->ItemsParty()->Clear(true, false);
     ItemStock& stock = t->allowed;
     stock.classIndex = t->type - 1;
     stock.CopyMagic(&t->magic);
@@ -59,7 +59,7 @@ void ClassTemplateGenerateItems(ClassTemplate* t) {
 void ClassTemplateGenerateMagic(ClassTemplate* t) {
     if (!t->sellsSpells) return;
     std::vector<Item*> list;
-    t->SpellsParty()->Clear(1, 0);
+    t->SpellsParty()->Clear(true, false);
     ItemStock& stock = t->magic;
     stock.classIndex = t->type - 1;
     stock.GenerateScrolls(&list);

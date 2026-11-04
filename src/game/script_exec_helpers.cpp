@@ -57,7 +57,7 @@ void Script::DeleteArea(int id) {
 
 // ---- Point lights -------------------------------------------------------------------------------
 
-void Script::CreatePointLight(const SSCCmd* cmd) {
+void Script::CreatePointLight(const ScriptCall* cmd) {
     const float* f = cmd->floatArgs.data();
     int id = lib::RoundEven(f[0]);
     // The light with this id is replaced, else the first free slot is used (one with the id after
@@ -87,7 +87,7 @@ void Script::CreatePointLight(const SSCCmd* cmd) {
     slot->steps = 0;
 }
 
-void Script::MovePointLight(const SSCCmd* cmd) {
+void Script::MovePointLight(const ScriptCall* cmd) {
     const float* f = cmd->floatArgs.data();
     int id = lib::RoundEven(f[0]);
     int i = 0;
@@ -103,7 +103,7 @@ void Script::MovePointLight(const SSCCmd* cmd) {
     LightStep(light, {f[1], f[2], f[3]}, light->object->localPosition);
 }
 
-void Script::DeletePointLight(const SSCCmd* cmd) {
+void Script::DeletePointLight(const ScriptCall* cmd) {
     int id = lib::RoundEven(cmd->floatArgs[0]);
     for (ScriptPointLight& light : pointLights) {
         if (!light.object || light.id != id) continue;

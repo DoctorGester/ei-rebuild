@@ -132,7 +132,7 @@ void ClientSession::ApplyParty() {
     }
 
     Party* partner = parties[1].Get();
-    partner->Clear(1, 0);
+    partner->Clear(true, false);
     partner->money = static_cast<int>(remote->money);
     std::vector<Item*> items;   // each holds a reference
     for (const auto& member : remote->members) {
@@ -158,7 +158,7 @@ void ClientSession::ApplyParty() {
         item->AddRef();
         items.push_back(item);
     }
-    for (Item* item : items) partner->AddItem(item, 1, 1);
+    for (Item* item : items) partner->AddItem(item, true, true);
 
     std::int32_t revision = static_cast<std::int32_t>(remote->revision);
     for (auto record = tradeRecords.begin(); record != tradeRecords.end();)

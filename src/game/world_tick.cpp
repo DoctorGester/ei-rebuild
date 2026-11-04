@@ -52,8 +52,8 @@ void WorldServer::Tick(char force) {
         if ((*current)->Update() == 0) missiles.erase(current);   // the missile released
     }
 
-    if (scriptsActive != 0 || force) ScriptTick(MainScript());
-    ScriptTick(SecondScript());
+    if (scriptsActive != 0 || force) MainScript()->Tick();
+    SecondScript()->Tick();
     UpdateUnits();
 }
 

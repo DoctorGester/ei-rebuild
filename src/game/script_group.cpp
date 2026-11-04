@@ -42,7 +42,7 @@ Unit* ScriptObjectRef::AsUnit() const {
     return UnitOrNull(object);
 }
 
-UnitServer* ScriptObjectRef::GetUnitPerception() const {
+UnitServer* ScriptObjectRef::ServerController() const {
     Unit* unit = UnitOrNull(object);
     return unit ? unit->ServerController() : nullptr;
 }

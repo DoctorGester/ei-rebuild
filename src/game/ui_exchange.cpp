@@ -154,7 +154,7 @@ void ExchangeScreen::CreateScreen() {
     net::ClientSession* client = net::g_gameClient;
     ownOffer = client->parties[0].Get();
     partnerOffer = client->parties[1].Get();
-    ownOffer->Clear(1, 0);
+    ownOffer->Clear(true, false);
 
     // The description panel (its item list and text arrays constructed in place).
     descPanel = new ItemInfoPanel(ui, this);

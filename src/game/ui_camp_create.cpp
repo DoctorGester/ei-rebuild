@@ -265,13 +265,13 @@ void CampPages::BuildPages() {
     const int count = lib::Count(player->members);
     for (PartyUnitRecord& record : player->members) {
         record.unitId += kRecordBias;
-        if (PrototypeObjectClass(record.texts[5]) == MapObjectType::Hero) records.push_back(&record);
+        if (PrototypeObjectClass(record.prototype) == MapObjectType::Hero) records.push_back(&record);
     }
     g_clientWorld.CreatePartyUnits(&records, 1);
 
     heroes.assign(count, nullptr);
     for (int i = 0; i < count; ++i) {
-        if (PrototypeObjectClass(player->members[i].texts[5]) != MapObjectType::Hero) continue;
+        if (PrototypeObjectClass(player->members[i].prototype) != MapObjectType::Hero) continue;
         auto* unit = g_clientWorld.FindUnit(player->members[i].unitId);
         heroes[i] = unit;
         // The idle animation from a random frame (up to 50 back).

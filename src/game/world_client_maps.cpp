@@ -406,7 +406,7 @@ void WorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, c
         for (int n = 0; n < worlddata::kHeroPartCount; ++n) {
             const char* name = worlddata::HeroPartText(n);
             if (std::string_view(name) == worlddata::HairPartText()) {
-                UnitPrototypeRecord* prototype = g_unitDatabase.prototypes.FindByName(std::string(record->texts[5]));
+                UnitPrototypeRecord* prototype = g_unitDatabase.prototypes.FindByName(std::string(record->prototype));
                 int number = prototype ? prototype->hair : 1;   // as the server's FillHeroParts
                 if (number != -1) {
                     hair = str::Format(worlddata::HairFormat(), number);
@@ -419,16 +419,16 @@ void WorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, c
         auto* manager = GetMapObjectManager();
         auto* unit = manager->CreateObjectAs<Unit>(MapObjectType::Hero, static_cast<int>(record->unitId));
         if (!unit) return;   // (leaving the loop is the same as returning here)
-        UnitPrototypeRecord* prototype = g_unitDatabase.prototypes.FindByName(record->texts[5]);
+        UnitPrototypeRecord* prototype = g_unitDatabase.prototypes.FindByName(record->prototype);
         unit->prototypeId = static_cast<std::uint32_t>(prototype ? prototype - g_unitDatabase.prototypes.records.data() : -1);
-        unit->SetSecondPrototypeByName(record->texts[6]);
+        unit->SetSecondPrototypeByName(record->secondPrototype);
         unit->flags |= MapObjectFlag::Preview;
-        unit->MakeFigure(record->texts[2], &parts);
+        unit->MakeFigure(record->figureName, &parts);
         Object3DClientSpecific* figure = unit->AsObject3D()->ClientSpecific();
         figure->RegisterPartMaterials();
         unit->PlayAnimation(nullptr);
         unit->RestartPose();
-        const std::string& skin = record->texts[4];
+        const std::string& skin = record->skinTexture;
         figure->SetSkins(game::NoneText(), (skin == game::NoneText() ? std::nullopt : std::optional<std::string_view>(skin)));
         unit->WriteFullState();
         unit->SetStats(&record->stats);
@@ -448,7 +448,7 @@ void WorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, c
             unit->AddQuickItem(record->quickItems[j]);
         unit->controller->RefreshEquipment();
         unit->controller->RefreshModel();
-        unit->SetScriptName(record->texts[0]);
+        unit->SetScriptName(record->scriptName);
         AddObject(unit);
     }
 }

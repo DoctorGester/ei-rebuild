@@ -398,7 +398,7 @@ public:
     // unless it is there already (or NaN).
     void SetUnitHeight(int unitId, float z);
     // The console's script command: loads `text` into the second command script (Script::Load) and runs it
-    // (ScriptTick) when it loaded and `run` is set; the script's last error is copied into `error` when
+    // (Script::Tick) when it loaded and `run` is set; the script's last error is copied into `error` when
     // given. Returns Load's result.
     int RunCommandScript(const std::string& text, bool run, ScriptErrorInfo* error);
     // Puts a new entry at the head of the shared-object list: `id`, the session player's field for that id in a

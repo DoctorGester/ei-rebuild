@@ -175,7 +175,7 @@ bool IsFileExists(Call* call) {
                      EndsWith(name, "/..");
     if (forbidden) return Report("IsFileExists", "'..' string literal is forbidden");
     path += name;
-    *call->result.number = platform::IsFile(path) ? 1.0f : 0.0f;
+    *call->result.number = ScriptBool(platform::IsFile(path));
     return true;
 }
 

@@ -57,7 +57,7 @@ void ReleaseItems(std::vector<Item*>& list) {
 Party::Party() = default;
 
 Party::~Party() {
-    Clear(1, 1);
+    Clear(true, true);
     Party::Destroy();
 }
 
@@ -86,7 +86,7 @@ void Party::Create() {
     spellConstructor->AddRef();
     spellConstructor->Create();
 
-    Clear(1, 0);
+    Clear(true, false);
 }
 
 void Party::Destroy() {
@@ -98,15 +98,15 @@ void Party::Destroy() {
     DeleteCounted(spellManager);
 }
 
-void Party::Clear(int clearVariables, int keepSpells) {
+void Party::Clear(bool clearVariables, bool keepSpells) {
     ReleaseItems(items);
     if (itemManager != nullptr) itemManager->DestroyAll();
     if (spellManager != nullptr) {
         spellManager->Destroy();
-        if (keepSpells == 0) spellManager->Init(this);
+        if (!keepSpells) spellManager->Init(this);
     }
     members.clear();
-    if (clearVariables != 0) variables.clear();
+    if (clearVariables) variables.clear();
     zone = game::kEmptyText;
     entrance = 0;
     money = 0;
@@ -162,7 +162,7 @@ void MpHeroRecord::WriteFile(const std::string& folder) {
     {
         LocalStreams streams;
         streams.file.Open(InFolder(folder, file), platform::FileMode::Create);
-        GetParty()->SaveParty(&streams.data, 1);
+        GetParty()->SaveParty(&streams.data, true);
         SaveFileWrite(&streams.file, kPartyFileMagic, &streams.data);
     }
     platform::RemoveFile(TempFile(folder).c_str());
@@ -172,7 +172,7 @@ bool MpHeroRecord::ReadFile(const std::string& folder) {
     LocalStreams streams;
     streams.file.Open(InFolder(folder, file), platform::FileMode::Read);
     if (!SaveFileRead(&streams.data, kPartyFileMagic, &streams.file)) return false;
-    GetParty()->LoadParty(&streams.data, 1);
+    GetParty()->LoadParty(&streams.data, true);
     return streams.data.ok;
 }
 
@@ -197,9 +197,6 @@ SavedParties g_savedParties;
 // docs/notes/items_spells.md ("Party item lists").
 
 namespace {
-
-// A flag argument read as a byte.
-bool ByteFlag(int flag) { return static_cast<std::uint8_t>(flag) != 0; }
 
 Item* AddEntry(std::vector<Item*>& list, Item* item) {
     Item* entry = item->Clone(item->GetManagerContext()->GetSpellManager());
@@ -228,10 +225,10 @@ void AddListWeight(float& weight, const std::vector<Item*>& list) {
 
 // --- The party's items --------------------------------------------------------------------------
 
-Item* Party::AddItem(Item* item, int keepCount, int merge) {
+Item* Party::AddItem(Item* item, bool keepCount, bool merge) {
     if (!item) return nullptr;
-    int count = ByteFlag(keepCount) ? static_cast<int>(item->count) : 1;
-    if (ByteFlag(merge)) {
+    int count = keepCount ? static_cast<int>(item->count) : 1;
+    if (merge) {
         for (int i = 0; i < std::ssize(items); ++i) {
             Item* existing = items[i];
             if (!existing->IsSameAs(item)) continue;
@@ -246,11 +243,11 @@ Item* Party::AddItem(Item* item, int keepCount, int merge) {
     return copy;
 }
 
-Item* Party::RemoveItem(Item* item, int all) {
+Item* Party::RemoveItem(Item* item, bool all) {
     for (int i = 0; i < std::ssize(items); ++i) {
         if (items[i] != item) continue;
         Item* entry = items[i];
-        if (static_cast<int>(entry->count) > 1 && !ByteFlag(all)) {
+        if (static_cast<int>(entry->count) > 1 && !all) {
             --entry->count;
             return entry;
         }
@@ -264,7 +261,7 @@ Item* Party::RemoveItem(Item* item, int all) {
 void Party::RemoveQuestItems() {
     for (int i = lib::Count(items) - 1; i >= 0; --i) {
         Item* item = items[i];
-        if (item->GetClassId() == ClassId::ItemQuest) RemoveItem(item, 1);
+        if (item->GetClassId() == ClassId::ItemQuest) RemoveItem(item, true);
     }
 }
 
@@ -354,19 +351,19 @@ PartyUnitRecord* Party::AddMember(std::string_view name, std::string_view protot
     // defaults leave the statistics, which the game took from its stack and saved with the party (a
     // determinism fix).
     PartyUnitRecord* record = &members.emplace_back();
-    record->texts[1] = name;
+    record->name = name;
     record->unitId = name.empty() ? 0xFFFFFFFFu : static_cast<std::uint32_t>(TextKeyFromName(name));
-    record->texts[5] = prototype;
-    record->texts[0] = extra;
+    record->prototype = prototype;
+    record->scriptName = extra;
     FillFromPrototype(record);
     return record;
 }
 
 void Party::FillFromPrototype(PartyUnitRecord* record) {
-    auto* prototype = g_unitDatabase.prototypes.FindByName(record->texts[5]);
+    auto* prototype = g_unitDatabase.prototypes.FindByName(record->prototype);
     auto* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
-    record->texts[2] = model->figureName;
-    BuildNpcStats(&record->stats, record->texts[5]);
+    record->figureName = model->figureName;
+    BuildNpcStats(&record->stats, record->prototype);
     record->scaleY = prototype->scale.y;
     record->scaleX = prototype->scale.x;
     record->height = prototype->scale.z;
@@ -378,13 +375,13 @@ void Party::FillFromPrototype(PartyUnitRecord* record) {
     }
     for (const std::string& name : prototype->spellNames)
         AppendCopy(record->spells, ItemFactory()->CreateSpellItem(name, GetSpellManager()));
-    record->texts[6] = record->texts[5];
+    record->secondPrototype = record->prototype;
 }
 
 bool Party::EquipFromPrototype(PartyUnitRecord* record) {
     ReleaseItems(record->spells);
     ReleaseItems(record->weapons);
-    auto* npc = g_unitDatabase.npcs.FindByName(record->texts[5]);
+    auto* npc = g_unitDatabase.npcs.FindByName(record->prototype);
     if (!npc) return false;
 
     for (const std::string& name : npc->startSpells)
@@ -393,7 +390,7 @@ bool Party::EquipFromPrototype(PartyUnitRecord* record) {
     for (const std::string& name : npc->startWeapons) AppendCopy(record->weapons, ItemFactory()->CreateItem(name));
     money += npc->startMoney;
     record->stats.AddExperience(npc->experienceFloor);
-    record->texts[6] = record->texts[5];
+    record->secondPrototype = record->prototype;
     return true;
 }
 
@@ -474,12 +471,12 @@ void PartyUnitRecord::Load(ByteStream* stream) {
     leaderId = -1;
     selected = 0;
     fightAtWill = 1;
-    texts[0] = stream->ReadString();
-    texts[2] = stream->ReadString();
-    texts[3] = stream->ReadString();
-    texts[4] = stream->ReadString();
-    texts[5] = stream->ReadString();
-    texts[6] = texts[5];
+    scriptName = stream->ReadString();
+    figureName = stream->ReadString();
+    parentIname = stream->ReadString();
+    skinTexture = stream->ReadString();
+    prototype = stream->ReadString();
+    secondPrototype = prototype;
     stream->ReadValue(unitId);
     stats.LoadFrom(stream);
     stream->Read(&scaleX, 0xC);   // +0x728 and the height
@@ -487,7 +484,7 @@ void PartyUnitRecord::Load(ByteStream* stream) {
     ReadItemIds(stream, quickItems, g_loadingParty->ItemFactory());
     ReadItemIds(stream, armor, g_loadingParty->ItemFactory());
     ReadItemIds(stream, spells, g_loadingParty->ItemFactory());
-    texts[1] = stream->ReadString();
+    name = stream->ReadString();
     if (stream->Version() < kVersionRecordFlags) return;
     stream->ReadValue(moveMode2);
     stream->ReadValue(weaponIndex);
@@ -497,15 +494,15 @@ void PartyUnitRecord::Load(ByteStream* stream) {
     if (stream->Version() < kVersionRecord780) return;
     stream->ReadValue(fightAtWill);
     if (stream->Version() < kVersionRecordText6) return;
-    texts[6] = stream->ReadString();
+    secondPrototype = stream->ReadString();
 }
 
 void PartyUnitRecord::Save(ByteStream* stream) {
-    stream->WriteString(texts[0]);
-    stream->WriteString(texts[2]);
-    stream->WriteString(texts[3]);
-    stream->WriteString(texts[4]);
-    stream->WriteString(texts[5]);
+    stream->WriteString(scriptName);
+    stream->WriteString(figureName);
+    stream->WriteString(parentIname);
+    stream->WriteString(skinTexture);
+    stream->WriteString(prototype);
     stream->WriteValue(unitId);
     stats.SaveTo(stream);
     stream->Write(&scaleX, 0xC);
@@ -513,16 +510,16 @@ void PartyUnitRecord::Save(ByteStream* stream) {
     WriteItemIds(stream, quickItems);
     WriteItemIds(stream, armor);
     WriteItemIds(stream, spells);
-    stream->WriteString(texts[1]);
+    stream->WriteString(name);
     stream->WriteValue(moveMode2);
     stream->WriteValue(weaponIndex);
     stream->WriteValue(selected);
     stream->WriteValue(leaderId);
     stream->WriteValue(fightAtWill);
-    stream->WriteString(texts[6]);
+    stream->WriteString(secondPrototype);
 }
 
-void Party::LoadParty(ByteStream* stream, int loadVariables) {
+void Party::LoadParty(ByteStream* stream, bool loadVariables) {
     if (itemManager == nullptr) Create();
     g_loadingParty = this;
     Clear(loadVariables, 0);
@@ -535,7 +532,7 @@ void Party::LoadParty(ByteStream* stream, int loadVariables) {
     ReadItemIds(stream, items, ItemFactory());
     members.resize(stream->ReadCount());
     for (PartyUnitRecord& member : members) member.Load(stream);
-    if (loadVariables != 0) variables.Load(stream);
+    if (loadVariables) variables.Load(stream);
     g_loadingParty = nullptr;
     money = 0;
     stream->ReadValue(money);
@@ -548,7 +545,7 @@ void Party::LoadParty(ByteStream* stream, int loadVariables) {
     spellManager->ReleaseUnused();
 }
 
-void Party::SaveParty(ByteStream* stream, int saveVariables) {
+void Party::SaveParty(ByteStream* stream, bool saveVariables) {
     if (itemManager == nullptr) Create();
     stream->WriteString(zone);
     stream->WriteValue(entrance);
@@ -559,7 +556,7 @@ void Party::SaveParty(ByteStream* stream, int saveVariables) {
     WriteItemIds(stream, items);
     stream->WriteCount(members.size());
     for (PartyUnitRecord& member : members) member.Save(stream);
-    if (saveVariables != 0) variables.Save(stream);
+    if (saveVariables) variables.Save(stream);
     std::uint32_t key = g_random.Next();
     stream->WriteValue(money ^ key);
     stream->WriteValue(key);
@@ -567,13 +564,13 @@ void Party::SaveParty(ByteStream* stream, int saveVariables) {
 
 void Party::CopyFrom(Party* source) {
     MemoryStream copy;
-    source->SaveParty(&copy, 1);
+    source->SaveParty(&copy, true);
     copy.MemoryStream::Seek(0);
-    LoadParty(&copy, 1);
+    LoadParty(&copy, true);
 }
 
 Party* Party::Assign(Party* source) {
-    Clear(1, 0);
+    Clear(true, false);
     CopyFrom(source);
     return this;
 }
@@ -584,6 +581,6 @@ Party::Party(Party& source) : Party() { CopyFrom(&source); }
 
 void Party::ArchiveParty(ChunkArchive* ar, int field) {
     ar->StreamFieldOf(
-        field, [this](MemoryStream* stream) { SaveParty(stream, 1); },
-        [this](MemoryStream* stream) { LoadParty(stream, 1); });
+        field, [this](MemoryStream* stream) { SaveParty(stream, true); },
+        [this](MemoryStream* stream) { LoadParty(stream, true); });
 }

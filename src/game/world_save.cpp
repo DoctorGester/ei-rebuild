@@ -84,7 +84,7 @@ void LoadPlayers(WorldServer* world, ByteStream* stream) {
     for (Player* player = it.First(world->PlayerList()); player; player = it.Next()) {
         PlayerServer* state = player->Server();
         stream->ReadValue(player->partyId);
-        player->GetParty()->LoadParty(stream, 1);
+        player->GetParty()->LoadParty(stream, true);
         player->lastTick = world->tick;
         stream->ReadValue(player->sessionKind);
         BaseManager* items = world->ItemFactory();
@@ -118,7 +118,7 @@ void SavePlayers(WorldServer* world, ByteStream* stream) {
     PlayerIterator it;
     for (Player* player = it.First(world->PlayerList()); player; player = it.Next()) {
         stream->WriteValue(player->partyId);
-        player->GetParty()->SaveParty(stream, 1);
+        player->GetParty()->SaveParty(stream, true);
         stream->WriteValue(player->sessionKind);
         for (const Item* item : player->items) stream->WriteId(item);
         stream->WriteValue(kNoObjectId);

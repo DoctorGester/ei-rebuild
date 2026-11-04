@@ -45,8 +45,8 @@ struct PartyManager {
     void Save(MemoryStream* to);
     // Key 0 resets `target` (Reset(1, 0)); else the party stored under the key is copied into it. False when
     // the key is not stored. The login's name and password are not read.
-    bool LoadParty(const int* key, Party* target) const;
+    bool LoadParty(int key, Party* target) const;
     // Copies `source` into the party stored under the key (PartyAt creates it when missing; the copy
     // reads `source` non-const). True.
-    void StoreParty(const int* key, Party* source);
+    void StoreParty(int key, Party* source);
 };
