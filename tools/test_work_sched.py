@@ -512,24 +512,24 @@ class SchedTest(unittest.TestCase):
 
     def test_expected_seconds_fallbacks(self):
         e = lambda *a, **k: work.expected_seconds(self.db, *a, **k)
-        self.assertIsNone(e('s', 'vanilla', 'r1'))
-        self.assertEqual(e('s', 'vanilla', 'r1', fallback=42), 42)                      # run_times.json
-        self.add_timing('s', 'vanilla', 'old', 100, 100, 100)
-        self.assertEqual(e('s', 'vanilla', 'r1', fallback=42), 100)                     # other rev beats run_times.json
-        self.assertEqual(e('s', 'rebirth', 'r1', fallback=42), 42)                      # other install does not
-        self.add_timing('s', 'vanilla', 'r1', 10, 12)
-        self.assertEqual(e('s', 'vanilla', 'r1', fallback=42), 11)                      # this rev only, median
-        self.add_timing('s', 'vanilla', 'r1', 50, 14, 16, 18, 20)                       # the last 5 count: 50 14 16 18 20
-        self.assertEqual(e('s', 'vanilla', 'r1'), 18)
-        self.assertEqual(e('s', 'vanilla', 'r1+dirty'), 18)                             # uncommitted: any rev, last 5 overall
-        self.assertEqual(e('s', 'vanilla', 'r2'), 18)                                   # a changed scenario: latest rows at any rev
-        self.add_timing('s', 'vanilla', 'r2', 3)
-        self.assertEqual(e('s', 'vanilla', 'r2'), 3)                                    # ...until it has its own
-        self.assertEqual(e('s', 'vanilla', 'r1'), 18)
-        self.assertEqual(e('s', 'vanilla', 'r2+dirty'), 16)                             # any rev: 14 16 18 20 3
-        times = work.expected_times(self.db, self.tmp, [('s', 'vanilla'), ('t', 'vanilla')], {'t-vanilla': 7})
-        self.assertEqual(times[('t', 'vanilla')], 7)       # not a repository: rev '' -> any rev -> run_times.json
-        self.assertEqual(times[('s', 'vanilla')], 16)
+        self.assertIsNone(e('s', 'standalone', 'r1'))
+        self.assertEqual(e('s', 'standalone', 'r1', fallback=42), 42)                      # run_times.json
+        self.add_timing('s', 'standalone', 'old', 100, 100, 100)
+        self.assertEqual(e('s', 'standalone', 'r1', fallback=42), 100)                     # other rev beats run_times.json
+        self.assertEqual(e('s', 'standalone-rebirth', 'r1', fallback=42), 42)  # other install does not
+        self.add_timing('s', 'standalone', 'r1', 10, 12)
+        self.assertEqual(e('s', 'standalone', 'r1', fallback=42), 11)                      # this rev only, median
+        self.add_timing('s', 'standalone', 'r1', 50, 14, 16, 18, 20)                       # the last 5 count: 50 14 16 18 20
+        self.assertEqual(e('s', 'standalone', 'r1'), 18)
+        self.assertEqual(e('s', 'standalone', 'r1+dirty'), 18)                             # uncommitted: any rev, last 5 overall
+        self.assertEqual(e('s', 'standalone', 'r2'), 18)                                   # a changed scenario: latest rows at any rev
+        self.add_timing('s', 'standalone', 'r2', 3)
+        self.assertEqual(e('s', 'standalone', 'r2'), 3)                                    # ...until it has its own
+        self.assertEqual(e('s', 'standalone', 'r1'), 18)
+        self.assertEqual(e('s', 'standalone', 'r2+dirty'), 16)                             # any rev: 14 16 18 20 3
+        times = work.expected_times(self.db, self.tmp, [('s', 'standalone'), ('t', 'standalone')], {'t-standalone': 7})
+        self.assertEqual(times[('t', 'standalone')], 7)       # not a repository: rev '' -> any rev -> run_times.json
+        self.assertEqual(times[('s', 'standalone')], 16)
 
     def test_scenario_revs_follow_the_last_commit(self):
         repo = os.path.join(self.tmp, 'repo')
@@ -561,8 +561,8 @@ class SchedTest(unittest.TestCase):
         self.drive(self.sched(fake))
         rows = self.db.execute('SELECT scenario, install, scenario_rev, seconds, batch FROM timing ORDER BY id').fetchall()
         self.assertEqual(sorted(r['scenario'] for r in rows), ['f', 'p'])    # a run that errored is no time
-        self.assertTrue(all(r['batch'] == a and r['install'] == 'vanilla' and r['scenario_rev'] == '' and r['seconds'] >= 0 for r in rows))
-        self.assertEqual(work.expected_times(self.db, self.tmp, [('p', 'vanilla')])[('p', 'vanilla')],
+        self.assertTrue(all(r['batch'] == a and r['install'] == 'standalone' and r['scenario_rev'] == '' and r['seconds'] >= 0 for r in rows))
+        self.assertEqual(work.expected_times(self.db, self.tmp, [('p', 'standalone')])[('p', 'standalone')],
                          self.db.execute("SELECT seconds FROM timing WHERE scenario = 'p'").fetchone()[0])
 
     # ---- WB6: leaving for new scheduler code
@@ -701,6 +701,8 @@ class SchedTest(unittest.TestCase):
         both = [('boot', 'standalone'), ('boot', 'standalone-rebirth'), ('wide', 'standalone'), ('wide', 'standalone-rebirth')]
         self.assertEqual(run_all.plan(run_all.parse_args(['--standalone']), root=self.tmp), vanilla)
         self.assertEqual(run_all.plan(run_all.parse_args([]), root=self.tmp), vanilla)     # the default since S21
+        self.assertEqual(run_all.plan(run_all.parse_args([]), root=self.tmp, left_out=('wide',)), [('boot', 'standalone')])
+        self.assertEqual(run_all.plan(run_all.parse_args(['wide']), root=self.tmp, left_out=('wide',)), [('wide', 'standalone')])
         self.assertEqual(run_all.plan(run_all.parse_args(['--all-rebirth']), root=self.tmp), both)
         for gone in ('--hooked', '--native', '--dgvoodoo', '--verified-candidates',     # S21c
                      '--no-hooks', '--fresh', '--record'):                              # H40
@@ -751,6 +753,41 @@ class SchedTest(unittest.TestCase):
             self.assertEqual(run_all.install_dir('vanilla', {'EI_GAME_VANILLA': 'S'}), 'S')
             self.assertEqual(run_all.install_dir('rebirth', {}), run_all.DEFAULT_INSTALLS['rebirth'])
             self.assertEqual(run_all.install_environment(), {'EI_GAME_VANILLA': 'V'})
+
+    def test_linux_vulkan_driver(self):
+        """H50a: dzn the default under WSL when installed, the system's (lavapipe) elsewhere or when asked; the
+        scenarios left out without names follow the driver."""
+        manifest = os.path.join(self.tmp, 'dzn_icd.json')
+        open(manifest, 'w').close()
+        quiet = contextlib.redirect_stdout(io.StringIO())
+        with mock.patch.object(sys, 'platform', 'linux'), mock.patch.object(run_all, 'DZN_ICD', manifest), quiet:
+            env = {}
+            self.assertEqual(run_all.vulkan_driver(None, env, wsl=True), manifest)
+            self.assertEqual(env['VK_DRIVER_FILES'], manifest)
+            for choice, env, wsl in ((None, {}, False), ('system', {}, True), (None, {'EI_VK_ICD': 'system'}, True)):
+                self.assertIsNone(run_all.vulkan_driver(choice, env, wsl=wsl))
+                self.assertNotIn('VK_DRIVER_FILES', env)
+            self.assertEqual(run_all.vulkan_driver('dzn', {}, wsl=False), manifest)
+            self.assertIn('net_second_master', run_all.linux_left_out(manifest))
+            self.assertNotIn('camera_smooth', run_all.linux_left_out(manifest))
+            self.assertIn('camera_smooth', run_all.linux_left_out(None))
+        with mock.patch.object(run_all, 'DZN_ICD', manifest), quiet:
+            self.assertIsNone(run_all.vulkan_driver(None, {}, wsl=True))      # not Linux: nothing to choose
+            self.assertEqual(run_all.linux_left_out(None), ())
+            with mock.patch.object(sys, 'platform', 'win32'):
+                self.assertFalse(run_all.under_wsl())          # Windows' side of hold_windows_slots(), H50a
+        with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
+            run_all.parse_args(['--dzn', '--lavapipe'])
+
+    def test_machine_slots_up_to(self):
+        """hold_slots()'s most: as many slots as are free, up to most, once count are."""
+        with mock.patch.object(run_all, 'SLOT_DIR', self.slots), mock.patch.object(run_all, 'MACHINE_SLOTS', 4):
+            with run_all.machine_slot(count=1) as one:
+                self.assertEqual(one, 1)
+                with run_all.machine_slot(count=2, most=8) as free:
+                    self.assertEqual(free, 3)
+            with run_all.machine_slot(count=2) as two:
+                self.assertEqual(two, 2)
 
 
 if __name__ == '__main__':
