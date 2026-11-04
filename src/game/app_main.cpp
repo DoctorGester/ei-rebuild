@@ -8,6 +8,7 @@
 #include "camera.h"
 #include "class_templates.h"
 #include "console.h"
+#include "drawn_motion.h"
 #include "item_db.h"
 #include "lever.h"
 #include "logic_settings.h"
@@ -321,6 +322,7 @@ bool RunWorlds() {
             camera::NoteViewBeforeTick(&g_camera);
             g_camera.Update(CameraSeconds(tick));
             camera::NoteViewTick(&g_camera);
+            drawn::TickRan();
             net::Pump();
             continue;
         }
@@ -395,8 +397,11 @@ bool RunPass() {
         if (g_showClientSpeed) PrintClientSpeed(g_clientSpeed, balance);
 
         // The camera runs on the real time of the pass, a tick at a time; the draw spreads the last tick's
-        // step over the part of the next tick the client has had (camera::DrawnView).
-        camera::SetViewProgress(fraction, static_cast<float>(elapsed) / static_cast<float>(TickLength()));
+        // step over the part of the next tick the client has had (camera::DrawnView), and so the objects' steps
+        // (drawn::PoseOf).
+        const float passTicks = static_cast<float>(elapsed) / static_cast<float>(TickLength());
+        camera::SetViewProgress(fraction, passTicks);
+        drawn::SetProgress(fraction, passTicks);
         Camera* camera = &g_camera;
         std::uint32_t tick = TickLength();
         while (elapsed > tick) {

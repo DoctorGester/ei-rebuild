@@ -3,6 +3,7 @@
 #include "world_client_shadow_casters.h"
 
 #include "camera.h"
+#include "drawn_motion.h"
 #include "figure_mesh.h"
 #include "link_figure.h"
 #include "map_object.h"
@@ -288,7 +289,8 @@ void HandOverOutsideCasters(WorldClient* world) {
                 if (!(flags & (unit ? WorldClientFlag::DrawUnits : WorldClientFlag::DrawObjects))) continue;
                 if (unit && !allUnits && !(object->flags & MapObjectFlag::InParty)) continue;
                 Object3DClientSpecific* half = object->ClientSpecific();
-                const Matrix4 placement = Placement(object->localRotation, object->localPosition);
+                const drawn::Pose shown = drawn::PoseOf(object);
+                const Matrix4 placement = Placement(shown.rotation, shown.position);
                 render::ShadowCasterSphere sphere{};
                 if (!WorldSphere(object, placement, half->figureScale, &sphere)) continue;
                 if (!render::ShadowCasterReaches(sphere)) {

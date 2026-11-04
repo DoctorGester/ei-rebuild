@@ -1,0 +1,147 @@
+# The drawn motion of objects and the blend between animations (R19; docs/notes/renderer.md section 14, "Objects"
+# and "Animation blends"). At a fixed frame time of 8 ms (a 120 Hz screen's frames on the virtual clock):
+# - the hero walks (captures moving_*): a unit is placed on its path at each frame's time, so it is drawn where it
+#   is and moves without a jump, also over a new path's start (its own place jumps there once; the drawn one fades);
+# - vanilla: the hero, with a bow, shoots a wolf standing with the blends off (its right hand "rh3" jumps at the
+#   switch into the attack), then walks and shoots a second one with them on (captures walk_attack_*: no jump); the
+#   bow's arrow moves only in client ticks (its own place jumps at each one), the draw spreads each tick's step;
+# - the hero stands until an idle plays, then sets off (captures idle_run_*: idle, the cross into a walk, the walk;
+#   the hand without a jump).
+# Captures are 5 frames (40 ms) apart.
+timeout 60
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+vanilla console @GiveSkill(GetLeader(),"archery",5)
+vanilla console @GiveItem(0,"bone short bow.decayed bones")
+vanilla frames 5
+vanilla screen 5
+vanilla waitwindow 15 camp
+vanilla campputon 3004 1
+vanilla frames 3
+vanilla key esc
+vanilla waitwindow 15 battle
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+click 400 560
+frames 3
+vanilla click 140 560
+frames 3
+move 400 300
+frametime 8
+frames 60
+
+# The hero's first order starts late (the zone's start), so it walks six units east first; then back west, its place
+# traced (a new path's start can lie a little off where the unit was, and that jump fades).
+check Not(IsUnitBlocked(GetLeader()))
+console @GSSetVar(0,"x0",GetX(GetLeader()))
+console @MoveToPoint(GetLeader(),Add(GetX(GetLeader()),6),GetY(GetLeader()))
+waitfor 20 IsGreater(GetX(GetLeader()),Add(GSGetVar(0,"x0"),5))
+keydown pgup
+frames 60
+keyup pgup
+frames 30
+objtrace start leader - log
+console @MoveToPoint(GetLeader(),GSGetVar(0,"x0"),GetY(GetLeader()))
+capture moving_0
+frames 5
+capture moving_1
+frames 5
+capture moving_2
+frames 5
+capture moving_3
+frames 5
+capture moving_4
+frames 5
+capture moving_5
+frames 90
+objtrace stop run
+keydown pgdn
+frames 60
+keyup pgdn
+frames 30
+
+# Into an attack (vanilla only: under Rebirth the weapon bar's click misses, and on foot the hero does not reach the
+# wolf's place): a wolf eight units north, the hero ordered to shoot it, first standing with the blends off (the hand
+# jumps at the switch), then a second one while walking away from it, with them on.
+vanilla console @GSSetVar(0,"hx",GetX(GetLeader()))
+vanilla console @GSSetVar(0,"hy",GetY(GetLeader()))
+vanilla console @AddUnitToServer("SnapWolf","WolfTutor","SnapWolf",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),8),0)
+vanilla waitfor 10 IsAlive(GetObjectByName("SnapWolf"))
+vanilla console @SetPlayer(GetObjectByName("SnapWolf"),6)
+vanilla console @BlockUnit(GetObjectByName("SnapWolf"),1)
+vanilla waitunit 10 SnapWolf
+vanilla frames 10
+vanilla animblend off
+vanilla objtrace start leader rh3 log
+vanilla console @Attack(GetLeader(),GetObjectByName("SnapWolf"))
+vanilla frames 120
+vanilla objtrace stop snap
+vanilla animblend on
+vanilla waitfor 20 Not(IsAlive(GetObjectByName("SnapWolf")))
+vanilla frames 120
+vanilla console @AddUnitToServer("DrawnWolf","WolfTutor","DrawnWolf",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),8),0)
+vanilla waitfor 10 IsAlive(GetObjectByName("DrawnWolf"))
+vanilla console @SetPlayer(GetObjectByName("DrawnWolf"),6)
+vanilla console @BlockUnit(GetObjectByName("DrawnWolf"),1)
+vanilla waitunit 10 DrawnWolf
+vanilla frames 10
+vanilla objtrace start leader rh3 log
+vanilla console @MoveToPoint(GetLeader(),Sub(GSGetVar(0,"hx"),6),GSGetVar(0,"hy"))
+vanilla frames 100
+vanilla console @Attack(GetLeader(),GetObjectByName("DrawnWolf"))
+vanilla capture walk_attack_0
+vanilla frames 5
+vanilla capture walk_attack_1
+vanilla frames 5
+vanilla capture walk_attack_2
+vanilla frames 5
+vanilla capture walk_attack_3
+vanilla frames 5
+vanilla capture walk_attack_4
+vanilla frames 5
+vanilla capture walk_attack_5
+vanilla frames 200
+vanilla objtrace stop hand
+vanilla objtrace start arrow - log
+vanilla frames 300
+vanilla objtrace stop arrow
+
+# Idle into a walk: the hero stands until its idle plays, then sets off east (its right hand traced through the
+# blends).
+vanilla waitfor 20 Not(IsAlive(GetObjectByName("DrawnWolf")))
+frames 600
+objtrace start leader rh3 log
+console @MoveToPoint(GetLeader(),Add(GetX(GetLeader()),8),GetY(GetLeader()))
+capture idle_run_0
+frames 5
+capture idle_run_1
+frames 5
+capture idle_run_2
+frames 5
+capture idle_run_3
+frames 5
+capture idle_run_4
+frames 5
+capture idle_run_5
+frames 150
+objtrace stop setoff
+
+camsmooth run pan
+camsmooth run.own pan jerky
+camsame run run.own pan 0.01
+vanilla camsmooth hand pan
+camsmooth setoff pan
+vanilla camsmooth snap pan jerky
+vanilla camsmooth arrow pan
+vanilla camsmooth arrow.own pan jerky
+vanilla camsame arrow arrow.own pan 0.25
+frametime 0
+check IsAlive(GetLeader())
+report
+quit

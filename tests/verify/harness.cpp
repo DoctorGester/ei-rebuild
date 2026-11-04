@@ -1111,6 +1111,8 @@ bool g_randomTrace = false;
 bool g_freezeUsed = false;
 // The scenario records the camera's motion (camtrace, harness_camera.h): the same call is taken over.
 bool g_cameraTraceUsed = false;
+// The scenario records an object's drawn motion (objtrace): the frame step is taken over (TracedFrameStep).
+bool g_objectTraceUsed = false;
 
 // The main loop's per-frame camera update (Camera::Update, one float), taken over when the scenario freezes or
 // records the camera's motion (camtrace: sampled after the call).
@@ -1126,6 +1128,12 @@ void HeldCameraUpdate(void* camera, float dt) {
 void HandOffThenFrameStep(bool draw, bool cursor) {
     pair::HandOff();
     image::FrameStep(draw, cursor);
+}
+
+// The main loop's frame step, then the object trace's sample of what it drew (objtrace).
+void TracedFrameStep(bool draw, bool cursor) {
+    image::FrameStep(draw, cursor);
+    camera_trace::ObjectFrame();
 }
 
 // The ISAAC generator's seed: srand(timeGetTime()), then 0x400 bytes from a randomly chosen file under C:\ (!). In
@@ -2731,7 +2739,7 @@ void RunSteps() {
         } else if (s.verb == "frametime") {
             if (!clock::Virtual()) g_failures.push_back("frametime needs the virtual clock (deterministic)");
             else clock::SetFrameTime(std::strtoul(s.argument.c_str(), nullptr, 10));
-        } else if (camera_trace::UsedBy(s.verb)) {
+        } else if (camera_trace::UsedBy(s.verb) || camera_trace::ObjectsUsedBy(s.verb)) {
             camera_trace::Step(s.verb, s.argument, &g_failures, &g_capturedFrames);
         } else if (s.verb == "checktick") {
             const unsigned want = std::strtoul(s.argument.c_str(), nullptr, 10);
@@ -3334,6 +3342,7 @@ bool LoadScenario(const char* path) {
         if (last.verb == "freeze" || ((last.verb == "vanilla" || last.verb == "rebirth") && last.argument == "freeze"))
             g_freezeUsed = true;
         if (camera_trace::UsedBy(last.verb)) g_cameraTraceUsed = true;
+        if (camera_trace::ObjectsUsedBy(last.verb)) g_objectTraceUsed = true;
     }
     std::fclose(f);
     // EI_RENDER_EXTRA's words also reach a scenario without a "render" step (on top of EI_RENDER).
@@ -3428,6 +3437,7 @@ struct Harness {
         hooks.serverUpdate = &HeldServerUpdate;
         hooks.clientSegment = &HeldClientSegment;
         if (pair::Active() && pair::Overlap()) hooks.frameStep = &HandOffThenFrameStep;
+        else if (g_objectTraceUsed) hooks.frameStep = &TracedFrameStep;
 
         for (const Step& step : g_steps)
             if (step.verb == "capture") {

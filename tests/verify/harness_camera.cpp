@@ -1,6 +1,8 @@
-// The camera's motion frame by frame: the drawn view's checks (harness_camera.h; tickets R18, R35a).
+// The camera's and the objects' motion frame by frame: the drawn view's checks (harness_camera.h; tickets R18,
+// R35a, R19).
 #include "harness_camera.h"
 
+#include "harness_digest.h"
 #include "image/image_side.h"
 #include "../../src/platform/log.h"
 
@@ -38,6 +40,16 @@ std::vector<Sample> g_cameraSamples;   // the camera's own
 double g_frameTime = 0.0;   // the frames' last camera updates' time, summed (camera time: 1 a tick)
 unsigned g_flags = 0;       // the camera's flags at the last sample
 std::map<std::string, Recording> g_recordings;
+
+// The object trace: the object followed (0: the first arrow found, then its id), its part, whether it records and
+// whether the object is gone (the recording then ends).
+bool g_objectRecording = false;
+int g_objectId = 0;
+std::string g_objectPart;
+bool g_objectLost = false;
+bool g_logObjects = false;
+std::vector<Sample> g_objectSamples;      // the drawn place
+std::vector<Sample> g_objectOwnSamples;   // the object's own
 
 double Step(const Sample& a, const Sample& b, int kind) {
     switch (kind) {
@@ -106,13 +118,78 @@ void Frame(const void* camera, float seconds) {
     }
 }
 
+Sample SampleOf(const image::ObjectPlace& place) { return Sample{place.x, place.y, place.yaw, 0.0, place.z, 0.0}; }
+
+void ObjectFrame() {
+    if (!g_objectRecording || g_objectLost) return;
+    image::ObjectState s;
+    if (!image::ClientObject(g_objectId, g_objectPart.c_str(), &s)) {
+        if (!g_objectSamples.empty()) g_objectLost = true;
+        return;
+    }
+    g_objectId = s.id;
+    g_objectSamples.push_back(SampleOf(s.drawn));
+    g_objectOwnSamples.push_back(SampleOf(s.own));
+    if (g_logObjects)
+        Log("harness: objframe %d id %d own %.5f %.5f %.5f %.5f drawn %.5f %.5f %.5f %.5f animation %s %.3f blend %.3f",
+            static_cast<int>(g_objectSamples.size()), s.id, s.own.x, s.own.y, s.own.z, s.own.yaw, s.drawn.x, s.drawn.y, s.drawn.z,
+            s.drawn.yaw, s.animation.empty() ? "-" : s.animation.c_str(), s.frame, s.blend);
+}
+
 bool UsedBy(const std::string& verb) {
     return verb == "camtrace" || verb == "camsame" || verb == "camsteadier" || verb == "camsmooth";
 }
 
+bool ObjectsUsedBy(const std::string& verb) { return verb == "objtrace" || verb == "animblend"; }
+
 void Step(const std::string& verb, const std::string& argument, std::vector<std::string>* failures,
           std::vector<std::string>* lines) {
     char text[600];
+    if (verb == "animblend") {
+        if (argument != "on" && argument != "off") failures->push_back("animblend needs on or off");
+        else image::SetAnimationBlends(argument == "on");
+        return;
+    }
+    if (verb == "objtrace") {
+        char what[16] = "", who[64] = "", part[32] = "", log[16] = "";
+        std::sscanf(argument.c_str(), "%15s %63s %31s %15s", what, who, part, log);
+        if (std::strcmp(what, "start") == 0 && who[0]) {
+            g_objectId = std::strcmp(who, "arrow") == 0    ? 0
+                         : std::strcmp(who, "leader") == 0 ? digest::LocalLeader()
+                                                            : image::TextKey(who);
+            if (g_objectId < 0 || (g_objectId == 0 && std::strcmp(who, "arrow") != 0)) {
+                failures->push_back(std::string("objtrace: no unit ") + who);
+                return;
+            }
+            g_objectPart = std::strcmp(part, "-") == 0 ? "" : part;
+            g_logObjects = std::strcmp(log, "log") == 0;
+            g_objectSamples.clear();
+            g_objectOwnSamples.clear();
+            g_objectLost = false;
+            g_objectRecording = true;
+            return;
+        }
+        if (std::strcmp(what, "stop") != 0 || !who[0]) {
+            failures->push_back("objtrace needs start <who> [part|-] [log] or stop <name>");
+            return;
+        }
+        g_objectRecording = false;
+        for (const bool own : {false, true}) {
+            const std::vector<Sample>& samples = own ? g_objectOwnSamples : g_objectSamples;
+            const std::string kept = own ? std::string(who) + ".own" : std::string(who);
+            const Recording r = Measure(samples);
+            g_recordings[kept] = r;
+            std::snprintf(text, sizeof(text),
+                          "objtrace %s: %d frames (object %d%s); pan %.4f (largest step %.4f, %d jumps), turn %.5f (%.5f, %d), "
+                          "height %.4f (%.4f, %d)",
+                          kept.c_str(), r.frames, g_objectId, g_objectLost ? ", gone before the end" : "", r.total[Pan],
+                          r.largest[Pan], r.jumps[Pan], r.total[Turn], r.largest[Turn], r.jumps[Turn], r.total[Height],
+                          r.largest[Height], r.jumps[Height]);
+            Log("harness: %s", text);
+            lines->push_back(text);
+        }
+        return;
+    }
     if (verb == "camtrace") {
         char what[16] = "", name[64] = "";
         std::sscanf(argument.c_str(), "%15s %63s", what, name);

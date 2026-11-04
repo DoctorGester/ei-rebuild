@@ -7,6 +7,7 @@
 #include "ai_motion.h"
 #include "combat.h"   // AttackParams
 #include "core_transform.h"
+#include "drawn_motion.h"
 #include "game_singletons.h"
 #include "item.h"
 #include "item_db.h"
@@ -329,7 +330,10 @@ static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
 
 void UnitClientSpecific::PlaceOnPath(float time, float rate) { PlaceOnPathOf(this, time, rate); }
 
-void UnitClientSpecific::MotionChanged() { PlaceOnPath(lastTime, 0.0f); }
+void UnitClientSpecific::MotionChanged() {
+    drawn::NotePathChanged(unit);
+    PlaceOnPath(lastTime, 0.0f);
+}
 
 // --- The blink of the faces --------------------------------------------------------------------------
 

@@ -4,6 +4,7 @@
 
 #include "base_manager.h"
 #include "core_maths.h"
+#include "drawn_motion.h"
 #include "game_singletons.h"
 #include "map_object_figures.h"
 #include "sound.h"
@@ -138,8 +139,7 @@ void camera::ForgetViewStep() { g_viewStep = ViewStep{}; }
 void camera::SetViewProgress(float reached, float passTicks) {
     ViewStep& step = g_viewStep;
     if (!step.spreadTaken) {
-        const float spread = 2.0f - passTicks;
-        step.spread = spread > 0.0f ? (spread < 1.0f ? spread : 1.0f) : 0.0f;
+        step.spread = drawn::PassSpread(passTicks);
         step.spreadTaken = true;
     }
     reached = reached > 0.0f ? (reached < 1.0f ? reached : 1.0f) : 0.0f;

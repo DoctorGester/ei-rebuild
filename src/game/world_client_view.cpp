@@ -5,6 +5,7 @@
 #include "world.h"
 
 #include "core_maths.h"
+#include "drawn_motion.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
@@ -143,7 +144,10 @@ int WorldClient::CollectVisible(MapObject* object, const Matrix4* view, float an
         if (object->MapType() == MapObjectType::Hero && IsTextKey(object->id) && !withScripted) {
             process = false;
         } else if (animateUnits) {
+            drawn::Observe(object);
+            const drawn::Pose before = drawn::OwnPose(object);
             object->AdvanceTime(animTime);
+            drawn::NotePlaced(object, before);
             if (!drawAllUnits && !(object->flags & MapObjectFlag::InParty)) process = false;
         } else {
             // First pass: units wait on the deferred list (which holds a reference).
@@ -152,13 +156,15 @@ int WorldClient::CollectVisible(MapObject* object, const Matrix4* view, float an
         }
     }
     if (process) {
-        // Object -> world matrix: the rotation with the position as the last column.
+        // Object -> world matrix: the rotation with the position as the last column, at the pose the draw shows.
         Object3D* o3d = AsObject3D(object);
+        drawn::Observe(o3d);
+        const drawn::Pose shown = drawn::Show(o3d);
         float* matrix = o3d->worldMatrix.m;
-        static_cast<const Quaternion*>(&o3d->localRotation)->ToMatrix(matrix);
-        matrix[3] = o3d->localPosition.x;
-        matrix[7] = o3d->localPosition.y;
-        matrix[11] = o3d->localPosition.z;
+        shown.rotation.ToMatrix(matrix);
+        matrix[3] = shown.position.x;
+        matrix[7] = shown.position.y;
+        matrix[11] = shown.position.z;
         matrix[14] = 0.0f;
         matrix[13] = 0.0f;
         matrix[12] = 0.0f;
