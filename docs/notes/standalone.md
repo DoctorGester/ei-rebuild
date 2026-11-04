@@ -312,8 +312,9 @@ writes the registry.
   - **Left out:** everything else, which the game reads as absent and takes its own defaults for. The game's exit save
     then adds every option it keeps.
 - **Who uses it:** `settings::GetInt / GetBool / GetFloat / GetString / GetValues / GetLines` and the setters.
-  - **Writing:** the options loader and writer. `GameOptions::Save` ends with `settings::Save`, which writes the file
-    when a value changed, atomically through `ei_settings.ini.tmp`.
+  - **Writing:** the options loader and writer. `GameOptions::Save` (at exit and at the options window's OK) ends with
+    `settings::Save`, which writes the file when a value changed, atomically through `ei_settings.ini.tmp`. The options
+    window's graphics rows set `[renderer]` (renderer.md, "The graphics rows").
   - **Readers:** the AutoExec lines, the start-up's Rebirth patches, mod_folders, and device_mesh's renderer section
     (renderer.md sections 11, 15, 15a; that section is not read in the harness build).
 - **Read filters** change a value as it is read:

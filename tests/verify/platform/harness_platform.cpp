@@ -372,6 +372,15 @@ bool CoverMonitor(NativeWindow window, Rect* was, Rect* monitor) {
     return true;
 }
 
+// As the game's on Windows: borderless and unsizeable, or decorated and (outside live play) resizable again.
+void SetFullScreen(NativeWindow window, bool fullScreen) {
+    SDL_Window* w = hp::WindowOf(window);
+    if (!w) return;
+    if (SDL_GetWindowFlags(w) & SDL_WINDOW_MAXIMIZED) SDL_RestoreWindow(w);
+    SDL_SetWindowBordered(w, !fullScreen);
+    SDL_SetWindowResizable(w, !fullScreen && !hp::g_live);
+}
+
 bool WindowPixelSize(NativeWindow window, int* width, int* height) {
     SDL_Window* w = hp::WindowOf(window);
     if (!w || hp::Minimized() || !SDL_GetWindowSizeInPixels(w, width, height)) return false;

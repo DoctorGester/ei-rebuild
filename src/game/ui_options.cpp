@@ -15,7 +15,9 @@
 #include <string>
 #include "game_singletons.h"
 #include "options.h"
+#include "settings.h"
 #include "lib/str.h"
+#include "render/render.h"
 #include "platform/display_sizes.h"
 #include "platform/platform.h"
 
@@ -23,6 +25,7 @@
 #include <cstdint>
 #include <new>
 #include <optional>
+#include <span>
 #include <string_view>
 #include <vector>
 
@@ -50,9 +53,15 @@ constexpr int kHighlightSprite = 2;     // scene object 2: the selected row's hi
 constexpr int kFirstGroupSprite = 3;    // scene objects 3-13: the group buttons
 constexpr int kDifficultySetting = 20;  // its spin control says hard / easy
 constexpr int kResolutionSetting = 21;
+constexpr int kDisplayModeSetting = 22;
+constexpr int kVsyncSetting = 23;
+constexpr int kMsaaSetting = 24;
+constexpr int kAnisotropySetting = 25;
+constexpr int kPerfOverlaySetting = 26;
 constexpr int kSliderKind = 0;
 constexpr int kSpinKind = 1;
 constexpr int kResolutionKind = 2;
+constexpr int kChoiceKind = 3;
 
 constexpr std::uint32_t kColourDim = 0xA0A0A0;
 constexpr std::uint32_t kColourWaiting = 0x0000FF;   // a binding waiting for its key (red)
@@ -87,8 +96,36 @@ constexpr OptionDefinition kOptionDefinitions[kOptionDefinitionCount] = {
     {18, "camera_reverse_y", 1, 2, 2, 7},
     {19, "reverse_stereo", 1, 2, 1, 4},
     {20, "difficulty", 1, 2, 3, 0},
-    {21, "resolution", 2, 0, 0, 9},   // ours: the rendering resolution (app::ChooseResolution)
+    {21, "resolution", 2, 0, 0, 9},   // ours from here: the rendering resolution (app::ChooseResolution)
+    {22, "display_mode", 3, 0, 0, 8},
+    {23, "vsync", 1, 2, 0, 10},
+    {24, "msaa", 3, 0, 0, 11},
+    {25, "anisotropy", 3, 0, 0, 12},
+    {26, "perf_overlay", 1, 2, 0, 13},
 };
+
+// A choice row's steps (kind 3): each one's text key (else the text itself) and the value it stands for, ascending.
+struct Choice {
+    const char* text;
+    int value;
+};
+constexpr Choice kDisplayModes[] = {{"option_window", 0}, {"option_full_screen", 1}};
+constexpr Choice kMsaaLevels[] = {{kTextOptionOff, 1}, {"2x", 2}, {"4x", 4}, {"8x", 8}};
+constexpr Choice kAnisotropyLevels[] = {{kTextOptionOff, 1}, {"2x", 2}, {"4x", 4}, {"8x", 8}, {"16x", 16}};
+
+std::span<const Choice> ChoicesOf(int setting) {
+    if (setting == kMsaaSetting) return kMsaaLevels;
+    if (setting == kAnisotropySetting) return kAnisotropyLevels;
+    return kDisplayModes;
+}
+
+// The step of the last choice at or below `value` (the first when none is).
+int ChoiceIndex(std::span<const Choice> choices, int value) {
+    int index = 0;
+    for (int i = 0; i < static_cast<int>(choices.size()); ++i)
+        if (choices[i].value <= value) index = i;
+    return index;
+}
 
 // The texts of what the rebuild adds to the options, which the game's texts lack: in Russian where the game's are
 // (the video group's title holds letters beyond ASCII), else in English. A text the game's files have wins.
@@ -100,6 +137,25 @@ struct AddedText {
 constexpr AddedText kAddedTexts[] = {
     {"option_resolution", "Разрешение", "Resolution"},
     {"tip option_resolution", "Размер изображения игры", "The size of the game's picture"},
+    {"option_display_mode", "Режим экрана", "Display mode"},
+    {"tip option_display_mode", "Весь экран: окно без рамки на весь монитор, режим монитора не меняется. В окне: окно с "
+     "рамкой размером с разрешение",
+     "Full screen: a borderless window over the whole monitor, the display mode never changes. Window: a window of "
+     "the resolution's size"},
+    {"option_window", "В окне", "Window"},
+    {"option_full_screen", "Весь экран", "Full screen"},
+    {"option_vsync", "Вертикальная синхронизация", "Vertical sync"},
+    {"tip option_vsync", "Каждый кадр ждёт обновления монитора: без разрывов изображения",
+     "Each frame waits for the monitor's refresh: no tearing"},
+    {"option_msaa", "Сглаживание", "Antialiasing"},
+    {"tip option_msaa", "Гладкие края моделей и земли (мультисэмплинг)",
+     "Smoother edges on models and the ground (multisampling)"},
+    {"option_anisotropy", "Анизотропная фильтрация", "Anisotropic filtering"},
+    {"tip option_anisotropy", "Чёткие текстуры на поверхностях под углом, например на земле вдали",
+     "Sharper textures on surfaces seen at a slant, such as the ground into the distance"},
+    {"option_perf_overlay", "Счётчик производительности", "Performance overlay"},
+    {"tip option_perf_overlay", "Кадры в секунду, время кадра и число отрисовок поверх игры",
+     "Frames per second, frame times and draw counts over the game"},
 };
 
 std::optional<std::string> FindAddedText(std::string_view key) {
@@ -283,6 +339,12 @@ void OptionsWindow::BuildSettings() {
             AddChild(setting.list);
             setting.spin = nullptr;
             setting.bar = nullptr;
+        } else if (definition->kind == kChoiceKind) {
+            const std::span<const Choice> choices = ChoicesOf(i);
+            setting.spin = new UiSpin(ui, Rect{530, top + 160, 690, top + 176}, ShownName("", choices[0].text).c_str());
+            for (const Choice& choice : choices.subspan(1)) setting.spin->AddText(ShownName("", choice.text));
+            AddChild(setting.spin);
+            setting.bar = nullptr;
         }
     }
 }
@@ -371,6 +433,11 @@ void OptionsWindow::LoadSettings() {
     s[20].value = options::g_options.difficulty;
     s[kResolutionSetting].value = static_cast<int>(
         std::find(resolutions.begin(), resolutions.end(), ScreenSize()) - resolutions.begin());
+    s[kDisplayModeSetting].value = g_sceneRenderer.device->fullScreen ? 1 : 0;
+    s[kVsyncSetting].value = render::Vsync() ? 1 : 0;
+    s[kMsaaSetting].value = ChoiceIndex(kMsaaLevels, render::Msaa());
+    s[kAnisotropySetting].value = ChoiceIndex(kAnisotropyLevels, render::Anisotropy());
+    s[kPerfOverlaySetting].value = render::PerfOverlay() ? 1 : 0;
 
     for (int i = 0; i < kOptionDefinitionCount; ++i) {
         if (s[i].bar)
@@ -420,8 +487,31 @@ void OptionsWindow::Apply() {
         options::g_options.difficulty = s[20].value;
     }
     if (shadowsChanged) g_clientWorld.DropShadows();
+    // The display mode first: a window takes the chosen resolution's size after it.
+    if (const bool fullScreen = s[kDisplayModeSetting].value == 1; fullScreen != g_sceneRenderer.device->fullScreen)
+        app::ChooseFullScreen(fullScreen);
     if (const Size chosen = resolutions[s[kResolutionSetting].value]; chosen != ScreenSize())
         app::ChooseResolution(chosen.w, chosen.h);
+
+    // The renderer's switches, each from the next frame; a value the window left as it was is not written (the
+    // harness build's renderer ignores the VSync and overlay switches; they are still saved).
+    if (const bool vsync = s[kVsyncSetting].value == 1; vsync != render::Vsync()) {
+        render::SetVsync(vsync);
+        settings::SetBool(settings::kRenderer, "VSync", vsync);
+    }
+    if (const int samples = kMsaaLevels[s[kMsaaSetting].value].value; samples != render::Msaa()) {
+        render::SetMsaa(samples);
+        settings::SetInt(settings::kRenderer, "Msaa", samples);
+    }
+    if (const int level = kAnisotropyLevels[s[kAnisotropySetting].value].value; level != render::Anisotropy()) {
+        render::SetAnisotropy(level);
+        settings::SetInt(settings::kRenderer, "Anisotropy", level);
+    }
+    if (const bool overlay = s[kPerfOverlaySetting].value == 1; overlay != render::PerfOverlay()) {
+        render::SetPerfOverlay(overlay);
+        settings::SetBool(settings::kRenderer, "PerfOverlay", overlay);
+    }
+    options::g_options.Save();
 }
 
 // --- The slider's virtual ------------------------------------------------------------------

@@ -333,7 +333,7 @@ in 24 steps; options OK 213..287, Cancel 513..587, groups 100..250 x 156.. in 24
 Scenarios: save / load (`SaveLoadWindow`, `ui_saveload.cpp`) ui_hud, ui_saveload, ui_saveload_delete; options
 (`OptionsWindow`, `ui_options.cpp`) ui_hud (also clicks group 2), ui_main_menu (OK = Apply), key remapping ui_options_bind
 (Enter, a taken key's box, cancelled), ui_options_remap (Enter, `dblclickregion`, a taken key's box, OK, then the keys used
-in the game, the hero's moveMode in the digest) and ui_options_remap_load (the keyboard.ini ui_options_remap saves, written by
+in the game, the hero's moveMode in the digest), the graphics rows ui_options_graphics and ui_options_remap_load (the keyboard.ini ui_options_remap saves, written by
 `tools/make_keyboard_ini.py` into the overlay, loaded at start); objectives ui_hud's TAB, ui_objectives; help ui_help with
 F1. `UiEditField::KeyDown` has no scenario that types into one. The titles' RTF text is drawn as glyph runs
 (`UiScrollingSurface::RenderText`, render_rich_text; ui_main_menu, render_titles_present, ui_titles_scroll).
@@ -353,8 +353,10 @@ F1. `UiEditField::KeyDown` has no scenario that types into one. The titles' RTF 
   in both).
 - `UiScrollText` (the battle message log and the quest log) tokenises every text added into format tokens (runs of "\n",
   BEL 'C' r g b, BEL 'F' digit) and word tokens (a string and its width).
-- **Options data**: rows are {OptionBinding*, OptionSetting*}; 22 option definitions (id, name, kind, maximum, group, row;
-  0-20 the original's, 21 our resolution row, a drop-down list: renderer.md, "Resolution changes"),
+- **Options data**: rows are {OptionBinding*, OptionSetting*}; 27 option definitions (id, name, kind, maximum, group, row;
+  0-20 the original's, 21 our resolution row, a drop-down list: renderer.md, "Resolution changes"; 22-26 our graphics
+  rows in the display group's free rows 8 and 10-13, kind 3 a spin control over a list of choices: renderer.md, "The
+  graphics rows"; their labels and tips are added texts, Russian where the game's are),
   59 key actions; 14 rows, 11 groups. The slider (`UiSlider : UiScrollbar`): regions 0 (left, bottom - 10, left + 12,
   bottom), 1 (right - 12, bottom - 10, right, bottom), 2 (left, top, right, bottom - 10); the scroll bar's depth is 3.0. The
   edit field's keys: Backspace, End, Home, Left, Right, Delete. Key names are followed by "  |  ".

@@ -285,6 +285,10 @@ void ClientToScreen(NativeWindow window, Point* point);
 // Full screen without a display mode change: the window moved over the whole monitor it is on, unless minimised or
 // there already. True when it moved; `was` and `monitor` then hold its old place and the monitor's.
 bool CoverMonitor(NativeWindow window, Rect* was, Rect* monitor);
+// The window switched to full screen (borderless, unsizeable: CoverMonitor puts it over its monitor at the next present;
+// on macOS SDL's desktop full screen) or back to a decorated, resizable window (SetClientSize then places it). Never a
+// display mode change.
+void SetFullScreen(NativeWindow window, bool fullScreen);
 // The window's client area in pixels (what the renderer draws into); false when it has none (minimised).
 bool WindowPixelSize(NativeWindow window, int* width, int* height);
 // A window that is not full screen: its client area `width` x `height` pixels, placed as CreateGameWindow places it

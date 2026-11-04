@@ -375,4 +375,6 @@ bool PerfOverlaySupported() {
 
 void SetPerfOverlay(bool on) { perf::SetOn(on && PerfOverlaySupported()); }
 
+bool PerfOverlay() { return perf::On(); }
+
 } // namespace render

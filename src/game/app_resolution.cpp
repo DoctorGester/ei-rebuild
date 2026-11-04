@@ -49,6 +49,11 @@ void ChooseResolution(int width, int height) {
     present_window::SizeClient(g_sceneRenderer.device, width, height);
 }
 
+void ChooseFullScreen(bool fullScreen) {
+    options::g_options.fullScreen = fullScreen ? 1 : 0;
+    present_window::SetFullScreen(g_sceneRenderer.device, fullScreen);
+}
+
 void TakeResolutionChange() {
     if (!g_requestedWidth) return;
     SetResolution(g_requestedWidth, g_requestedHeight);

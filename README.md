@@ -26,7 +26,10 @@ files with goldens that were the same as the original game's runs when the harne
 - **Widescreen** at any resolution, with the interface scaled to the window. The options window picks the resolution from
   the display's own sizes; full screen never changes the display mode (the picture is scaled to the monitor), and a
   window can be resized freely.
-- **The cursor can be kept inside the window** (an option, off by default).
+- **Graphics options in the game's own options window:** full screen or a window, the resolution, antialiasing,
+  anisotropic filtering, vsync and the performance overlay, applied at once and saved to `ei_settings.ini`.
+- **The cursor stays inside the window** while the camera pans at the window's edges (battle, village and
+  briefing screens), and is free in the menus.
 - **The Rebirth edition's fixes built in**, including its bug fixes and options, on both the GOG and Rebirth data.
 - **A new interface layer** drawn by the renderer, with sharp text at any size.
 - **New sound and video code:** sound plays through SDL3 with our own mixer, caves get their reverb back, and the game's

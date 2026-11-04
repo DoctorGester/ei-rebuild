@@ -66,6 +66,7 @@ void SetSmoothOrder(SmoothOrder order);
 // The performance overlay (render_perf.h). Switched by the settings file; the harness build has none.
 bool PerfOverlaySupported();
 void SetPerfOverlay(bool on);
+bool PerfOverlay();
 // The sun for this frame's world view: the direction its light travels (z negative by day). Without it no
 // shadow map is made.
 void ShadowSun(const Vector3& direction);
@@ -296,6 +297,7 @@ void SetWaitForVsync(bool on);
 // interval 0 and, where supported, tearing. The harness build has no such switch.
 bool VsyncSwitchSupported();
 void SetVsync(bool on);
+bool Vsync();
 
 // An old-path mesh draw the game decided is visible, colours set: the mesh in model space and the matrix the
 // old path projects it with. Every pass the old path draws between BeginMesh and EndMesh calls MeshPass,
