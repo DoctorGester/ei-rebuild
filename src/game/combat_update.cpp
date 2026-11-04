@@ -95,6 +95,7 @@ void UnitServer::DropEffectObject() {
 
 bool UnitServer::RunTick() {
     Unit* self = unit;
+    WorldServer* world = ServerWorld();
     if (self->dead == 0) {
         if (self->Vitals().Regenerate(&stats, self, action.kind != UnitOrderKind::Idle ? 1 : 0)) {
             stats.Recompute(&unit->Vitals(), unit);
@@ -102,15 +103,15 @@ bool UnitServer::RunTick() {
             unit->MarkChanged(NetField::Stats);
         }
         // Every (speedClass + 1) updates the unit's step noise.
-        if ((static_cast<std::uint32_t>(g_serverWorld.tick) & static_cast<std::uint32_t>(speedClass)) == 0)
-            g_serverWorld.aiMap.events.StepNoise(unit->localPosition, this);
+        if ((static_cast<std::uint32_t>(world->tick) & static_cast<std::uint32_t>(speedClass)) == 0)
+            world->aiMap.events.StepNoise(unit->localPosition, this);
         TickItemSpells();
         if (unit->player != nullptr) {
             // A party unit: its perception memory, and now and then a bored remark.
             unit->exposure = brain.memory.MeasureExposure(this);
             unit->MarkChanged(NetField::Exposure);
             ++boredTicks;
-            if (boredTicks > kBoredTicks && BoredRemarkDue(g_serverWorld.tick, static_cast<std::uint32_t>(unit->id))) {
+            if (boredTicks > kBoredTicks && BoredRemarkDue(world->tick, static_cast<std::uint32_t>(unit->id))) {
                 Player* player = unit->player;
                 if (!player || player->Server()->danger != PlayerServer::PartyDanger::Safe) {
                     boredTicks = 0;
@@ -140,7 +141,6 @@ bool UnitServer::RunTick() {
 
     // Dead: the body sinks (accelerating) until it is at height 0; once the death animation is
     // over, the death is reported and the orders are dropped.
-    WorldServer* world = ServerWorld();
     if (self->localPosition.z > 0.0f) {
         sinkSpeed += kSinkAcceleration;
         self->localPosition.z -= sinkSpeed;

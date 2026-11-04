@@ -43,7 +43,7 @@ constexpr const char* kClassName = "Sorry, no other way.";
 
 // A new material of kind 0x16 (filled by the manager) glowing `value` in every channel, referenced.
 Material* NewGlowMaterial(float value) {
-    MaterialManager* materials = g_clientWorld.materialManager;
+    MaterialManager* materials = g_clientWorld.materialManager.get();
     Material* material = materials->NewMaterial(0x16);
     materials->FillMaterial(material, 0x16);
     material->colors.emissive = {value, value, value, material->colors.emissive.w};
@@ -237,7 +237,7 @@ void UiWindow::ClearSurfaces() {
 }
 
 Texture* UiWindow::LoadTexture(std::string_view name, TextureKind kind) {
-    TextureManager* manager = g_clientWorld.textureManager;
+    TextureManager* manager = g_clientWorld.textureManager.get();
     Texture* texture = manager->FindOrCreate(static_cast<int>(kind), name);
     if (!texture) return nullptr;
     int loaded = manager->LoadTexture(texture);

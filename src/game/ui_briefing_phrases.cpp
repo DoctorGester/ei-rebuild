@@ -86,7 +86,7 @@ void SetBlink(Unit* unit, std::uint8_t blinks) {
 
 void BriefingScreen::NextPhrase(bool skip) {
     std::vector<std::string> words;
-    TextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts.get();
     std::string speaker;
     std::string phrase;
     bool last = true;       // no "#phrase" follows this one

@@ -160,11 +160,6 @@ void ShareAmongSoloPlayers(WorldServer* world, float amount) {
         if (!state) continue;
         for (auto& node : list) state->SendExperience(node.controller->unit->id, std::bit_cast<std::uint32_t>(node.share));
     }
-    if (it.manager) {
-        --it.manager->refCount;
-        it.manager = nullptr;
-    }
-    list.clear();
 }
 
 // With a player: its living heroes share `amount` equally.

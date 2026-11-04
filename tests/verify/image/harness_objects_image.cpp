@@ -554,7 +554,7 @@ bool ClientObject(int id, const char* part, ObjectState* out) {
 
 bool ClientLight(int id, ObjectState* out) {
     bool found = false;
-    ObjectListIterator walk{nullptr, {}};
+    ObjectListIterator walk;
     for (EngineObject* object = walk.First(g_clientWorld.TimedObjectManager()); object && !found; object = walk.Next()) {
         if (object->GetClassId() != ClassId::EffectPointLight) continue;
         auto* effect = static_cast<EffectPointLight*>(object);
@@ -565,7 +565,6 @@ bool ClientLight(int id, ObjectState* out) {
         out->drawn = LightPlace(drawn::LightPosition(light));
         found = true;
     }
-    if (walk.manager) walk.manager->ForgetReference();
     return found;
 }
 

@@ -1,7 +1,7 @@
 // The world's managers created (the server's and the client's world both call it, and it is a virtual
 // of their base). See docs/notes/combat.md ("World managers").
-// The world's paths are taken from the command line globals; every manager is made, referenced and
-// attached to the world (ThisWorld with the world, or the base); a 0x0C-byte helper goes into a
+// The world's paths are taken from the command line globals; every manager is made and attached
+// to the world (ThisWorld with the world, or the base); a helper goes into a
 // counted pointer (worldHandle); then the ISAAC generator is seeded and countdowns set up.
 #include "item_manager.h"
 
@@ -14,8 +14,11 @@
 #include "game_singletons.h"
 #include "ground_print.h"
 #include "item.h"
+#include "lightning.h"
+#include "material.h"
 #include "model.h"   // TweenArray (countdowns)
 #include "net_link.h"   // netlink::NetLink: the world handle's pending link
+#include "object.h"     // Hoover
 #include "object_diplomacy.h"
 #include "player_manager.h"
 #include "random.h"
@@ -23,35 +26,24 @@
 #include "resource_manager.h"
 #include "script.h"
 #include "sector_map.h"
+#include "sky_object.h"
+#include "sound.h"
 #include "spell.h"
 #include "terrain.h"
+#include "text_manager.h"
 #include "texture.h"       // Texture: the fog texture (ClientArrayManager)
+#include "ui_flying_hit_points.h"
 #include "unit.h"
 #include "unit_create.h"
 #include "world.h"
 #include "world_data.h"
+#include "world_effect.h"
 
 #include <cstdint>
 #include <cstring>
 #include <initializer_list>
 #include <memory>
 #include <new>
-
-namespace {
-
-// A new object (its class's operator new and constructor), counted once: the reference is counted
-// without testing the pointer, like the original.
-template <class T>
-T* MakeNew() {
-    T* object = new T();
-    object->AddRef();
-    return object;
-}
-
-// A manager attached to the world, after the world holds it.
-void Attach(BaseManager* manager, World* world) { manager->Init(world); }
-
-} // namespace
 
 void World::Create() {
     paused = 0;
@@ -64,22 +56,22 @@ void World::Create() {
     updateCount = 0;
     windStrength = 0;
 
-    players = MakeNew<PlayerManager>();
-    Attach(players, this);
-    objectManager = MakeNew<MapObjectManager>();
-    Attach(objectManager, this);
-    figureManager = MakeNew<FigureManager>();
-    Attach(figureManager, this);
-    timedObjectManager = MakeNew<EffectManager>();
-    Attach(timedObjectManager, this);
-    spellConstructor = MakeNew<SpellConstructor>();
+    players = std::make_unique<PlayerManager>();
+    players->Init(this);
+    objectManager = std::make_unique<MapObjectManager>();
+    objectManager->Init(this);
+    figureManager = std::make_unique<FigureManager>();
+    figureManager->Init(this);
+    timedObjectManager = std::make_unique<EffectManager>();
+    timedObjectManager->Init(this);
+    spellConstructor = std::make_unique<SpellConstructor>();
     spellConstructor->Create();
-    spellManager = MakeNew<SpellManager>();
-    Attach(spellManager, this);
-    itemConstructor = MakeNew<ItemConstructor>();
+    spellManager = std::make_unique<SpellManager>();
+    spellManager->Init(this);
+    itemConstructor = std::make_unique<ItemConstructor>();
     itemConstructor->Create();
-    itemManager = MakeNew<ItemManager>();
-    Attach(itemManager, this);
+    itemManager = std::make_unique<ItemManager>();
+    itemManager->Init(this);
 
     ShareAssignOwned(worldHandle, new WorldHandle());
     g_random.Init();
@@ -87,19 +79,7 @@ void World::Create() {
     countdowns.entries.clear();
 }
 
-World::World() {
-    players = nullptr;
-    figureManager = nullptr;
-    objectManager = nullptr;
-    specificManager = nullptr;
-    timedObjectManager = nullptr;
-    spellManager = nullptr;
-    spellConstructor = nullptr;
-    itemManager = nullptr;
-    itemConstructor = nullptr;
-    timeBase = 0.0f;
-    secondsPerTick = 0.0f;
-}
+World::World() {}
 
 bool World::RunTick() { return true; }
 
@@ -133,7 +113,6 @@ WorldServer::WorldServer() {
 }
 
 WorldClient::WorldClient() {
-    dynamicMaxId = 0;
     // Both sector grids at 1 x 1 (Create makes them 4 x 4).
     objectGrid.allocatedWidth = 1;
     objectGrid.allocatedHeight = 1;
@@ -142,19 +121,6 @@ WorldClient::WorldClient() {
     secondGrid.allocatedHeight = 1;
     secondGrid.Allocate();
     flags |= kClientFlags;
-    camera = nullptr;
-    materialManager = nullptr;
-    particleManager = nullptr;
-    textureManager = nullptr;
-    lightFactory = nullptr;
-    listManager = nullptr;
-    arrayManager = nullptr;
-    sounds = nullptr;
-    texts = nullptr;
-    terrain = nullptr;
-    session = nullptr;
-    skyDome = nullptr;
-    bird = nullptr;
 }
 
 // ---- The two worlds -------------------------------------------------------------------------------
@@ -220,14 +186,6 @@ WorldServer::~WorldServer() {
 // and docs/notes/combat.md.
 
 namespace {
-// The world's reference is dropped and the manager deleted without testing the count.
-template <typename T>
-void DeleteManager(T*& manager) {
-    if (!manager) return;
-    --manager->refCount;
-    delete manager;
-    manager = nullptr;
-}
 
 constexpr const char* kPlayerManagerName = "CPlayerManager";
 constexpr const char* kEffectManagerName = "CEffectManager";
@@ -238,22 +196,22 @@ constexpr const char* kItemsFolderName = "items";
 
 void World::Destroy() {
     if (GetSpellManager()) {
-        ObjectListIterator objects{nullptr, {}};
+        ObjectListIterator objects;
         for (EngineObject* object = objects.First(GetSpellManager()); object; object = objects.Next()) object->ClearState();
-        if (objects.manager) --objects.manager->refCount;
     }
-    DeleteManager(players);
+    // In this order: an object's teardown may reach a manager deleted after its own.
+    players.reset();
     DestroyOwned(worldHandle);
     DestroyOwned(netSession);
-    DeleteManager(objectManager);
-    DeleteManager(figureManager);
+    objectManager.reset();
+    figureManager.reset();
     figureLoader.Reset();
-    DeleteManager(specificManager);
-    DeleteManager(itemConstructor);
-    DeleteManager(itemManager);
-    DeleteManager(spellConstructor);
-    DeleteManager(spellManager);
-    DeleteManager(timedObjectManager);
+    specificManager.reset();
+    itemConstructor.reset();
+    itemManager.reset();
+    spellConstructor.reset();
+    spellManager.reset();
+    timedObjectManager.reset();
 }
 
 // ---- The managers' own small virtuals -------------------------------------

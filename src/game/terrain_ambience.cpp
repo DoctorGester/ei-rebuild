@@ -139,7 +139,7 @@ void PlayOneShot(SoundManager* sounds, const Cell (&cells)[3][3], int soundClass
 } // namespace
 
 void Terrain::PlayAmbience() {
-    SoundManager* sounds = g_clientWorld.sounds;
+    SoundManager* sounds = g_clientWorld.sounds.get();
     Vector3 listener = sounds->listener;
     Vector3 axis = sounds->listenerAxis;
     int centreX = SectorOf(listener.x);

@@ -353,7 +353,7 @@ void ItemScreen::DrawHeroFace(SceneRenderer* pass, const HeroFaceCell& cell) {
 // --- An item's figure texture -------------------------------------------------------------
 
 Texture* ItemFigureTexture(std::string_view name) {
-    TextureManager* manager = g_clientWorld.textureManager;
+    TextureManager* manager = g_clientWorld.textureManager.get();
     Texture* texture = manager->NewTexture(0x100, 0x100, TextureKind::Blank1555);
     if (!texture) return nullptr;
     texture->AddRef();
@@ -377,7 +377,7 @@ Texture* ItemFigureTexture(std::string_view name) {
 
 bool UiWindow::CopyImage(Texture* texture, std::string_view name, int imageWidth, int imageHeight, int width,
                          int height, int x, int y) {
-    TextureManager* manager = g_clientWorld.textureManager;
+    TextureManager* manager = g_clientWorld.textureManager.get();
     const std::string file = std::string(name) + ".mmp";
     std::uint32_t size = 0;
     const MmpFile image(manager->GetFile(file, &size));

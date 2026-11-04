@@ -409,7 +409,7 @@ void BattleScreen::LeftDown(Point point) {
 
 // Each text is copied up to its first NUL.
 std::string BattleScreen::UnitName(Unit* unit) {
-    TextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts.get();
     std::string name = unit->GetName();
     if (name.size() != 0) return name.c_str();
     if (IsTextKey(unit->id)) {
@@ -748,7 +748,7 @@ void BattleScreen::UseAtPoint(Vector3 point, Unit* unit, bool quick) {
 // --- a unit's speech event -----------------------------------------------------------------------
 
 void BattleScreen::Speech(int unitId, AckKind kind, char* extra) {
-    Unit* unit = UnitWithId(g_clientWorld.objectManager, unitId);
+    Unit* unit = UnitWithId(g_clientWorld.objectManager.get(), unitId);
     if (!unit) return;
     const SpeechRecord* phrase = (kind == AckKind::Scenario || kind == AckKind::ScenarioTalking)
                                      ? acks::SayNamedAck(unit, extra, kind == AckKind::ScenarioTalking)
@@ -757,7 +757,7 @@ void BattleScreen::Speech(int unitId, AckKind kind, char* extra) {
         // The phrase's text.
         std::string text;
         std::string line = UnitName(unit) + ":\n";
-        TextManager* texts = g_clientWorld.texts;
+        TextManager* texts = g_clientWorld.texts.get();
         if (texts->Open(std::string("say ") + phrase->name.data())) {
             text = texts->ReadToHash();
             str::TrimRight(text, "\r\n");

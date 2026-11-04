@@ -287,7 +287,7 @@ void Shake(Unit* unit) {
 
 bool SoundBusy(int handle) {
     if (handle == -1) return false;
-    SoundManager* sounds = g_clientWorld.sounds;
+    SoundManager* sounds = g_clientWorld.sounds.get();
     return sounds->FindPlaying(handle) || sounds->FindDeferred(static_cast<std::uint32_t>(handle));
 }
 
@@ -375,7 +375,7 @@ void UnitClientSpecific::PlayStepSounds() {
     }
     if (now == lastAnimationTime) return;   // the same frame
     if (!current) return;
-    SoundManager* sounds = g_clientWorld.sounds;
+    SoundManager* sounds = g_clientWorld.sounds.get();
     AnimationKind kind = current->Kind();
 
     bool action = false;     // ActionSound at `priority`

@@ -87,7 +87,7 @@ GroundPrint::GroundPrint(std::uint8_t newVisible, int newLife, float newAlphaSca
 
 void GroundPrint::SetTexture(const char* name) {
     texture.name.assign(name, name + std::strlen(name));
-    TextureManager* textures = g_clientWorld.textureManager;
+    TextureManager* textures = g_clientWorld.textureManager.get();
     texture.texture.Assign(textures->FindTexture(name));
     if (texture.texture) return;
     texture.texture.Assign(textures->FindOrCreate(kTextureKind, name));

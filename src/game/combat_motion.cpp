@@ -380,7 +380,7 @@ std::vector<Unit*> UnitServer::LiftNearby(const Vector3& point, char moving) {
         if (!lift) lift = controller->brain.LeaderOrFollowed() == unit;
         if (!lift) continue;
         list.push_back(member);
-        g_serverWorld.aiMap.sectorMap.Remove(member);
+        world->aiMap.sectorMap.Remove(member);
     }
     return list;
 }

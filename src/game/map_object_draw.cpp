@@ -36,15 +36,6 @@ bool InReach(const Object3D* object, const Light* light) {
 bool PartTooFar(const FigureMesh* part) {
     return LengthSquared(part->localPosition) > kPartsNearSquared;
 }
-
-// The end of a draw: the iterator's reference to the light list and the light list itself.
-void Finish(ObjectListIterator& lights, std::vector<Light*>& list) {
-    if (lights.manager) {
-        lights.manager->ForgetReference();
-        lights.manager = nullptr;
-    }
-    lib::FreeStorage(list);
-}
 } // namespace
 
 void ObjectWorldMatrix(const Quaternion* orientation, const Vector3& position, Matrix4* out) {
@@ -73,8 +64,8 @@ int Object3DClientSpecific::DrawParts(SceneRenderer* context, Rect* dirty) {
     // The lights within reach (the list starts with room for 16).
     std::vector<Light*> list;
     list.reserve(0x10);
-    ObjectListIteratorOf<Light> lights{};
-    Light* light = lights.First(g_clientWorld.lightFactory);
+    ObjectListIteratorOf<Light> lights;
+    Light* light = lights.First(g_clientWorld.lightFactory.get());
     for (; light; light = lights.Next()) {
         if (context->sun == light) continue;
         if (!InReach(object, light)) continue;
@@ -104,7 +95,7 @@ int Object3DClientSpecific::DrawParts(SceneRenderer* context, Rect* dirty) {
     }
     std::uint8_t lit = 0xFF;
     if (!(object->flags & MapObjectFlag::NoEdgeFade)) {
-        terrain::Terrain* terrain = ClientWorld()->terrain;
+        terrain::Terrain* terrain = ClientWorld()->terrain.get();
         lit = terrain->EdgeFade(at);   // AL as it is
     }
 
@@ -116,9 +107,7 @@ int Object3DClientSpecific::DrawParts(SceneRenderer* context, Rect* dirty) {
         TextureParts* set = partSets[k];
         if (!set) continue;
         if (!context->SetTexture(0, set->texture)) {
-            int result = game::FatalError("CObject3DClientSpecific::Draw.\n SetTexture failed.\n");
-            Finish(lights, list);
-            return result;
+            return game::FatalError("CObject3DClientSpecific::Draw.\n SetTexture failed.\n");
         }
         // The first set takes the wounds material as stage 0's texture.
         WoundsMaterial* wounds = woundsMaterial;
@@ -139,9 +128,7 @@ int Object3DClientSpecific::DrawParts(SceneRenderer* context, Rect* dirty) {
                 int drawn = context->DrawFigureLit(part, &list, current->groups[g]->material, static_cast<int>(lit),
                                                    dirty ? &partRect : nullptr, nullptr, nullptr);
                 if (!drawn) {
-                    int result = game::FatalError("CObject3DClientSpecific::Draw.\n CFigure::Draw failed.\n");
-                    Finish(lights, list);
-                    return result;
+                    return game::FatalError("CObject3DClientSpecific::Draw.\n CFigure::Draw failed.\n");
                 }
                 anyDrawn = anyDrawn || lib::Has(part->flags, FigureMeshFlag::Drawn);
                 if (dirty && !partRect.IsEmpty() && (part->flags & FigureMeshFlag::Drawn)) {
@@ -179,6 +166,5 @@ int Object3DClientSpecific::DrawParts(SceneRenderer* context, Rect* dirty) {
     if (anyDrawn) object->flags |= MapObjectFlag::Shown;
     else object->flags &= ~MapObjectFlag::Shown;
     g_sceneRenderer.device->SetMaterial(nullptr);
-    Finish(lights, list);
     return 1;
 }

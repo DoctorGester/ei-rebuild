@@ -61,6 +61,8 @@ class VisibilityFog;
 class Hoover;
 class Effect;
 class EffectMoshka;
+struct MusicSystem;
+struct Sky;
 namespace mapspec { class Spec; }
 
 class WorldServer;
@@ -95,17 +97,8 @@ struct MapObjectIdMap {
     }
 };
 
-// Walks the world's player list; the list object is reference counted while an iterator holds it.
-struct PlayerIterator : ObjectListIteratorOf<Player> {
-    PlayerIterator() : ObjectListIteratorOf<Player>{{nullptr, {}}} {}
-    PlayerIterator(const PlayerIterator&) = delete;
-    PlayerIterator& operator=(const PlayerIterator&) = delete;
-
-    // Drops the list's count without releasing it (the list must outlive the iterator).
-    ~PlayerIterator() {
-        if (manager) --manager->refCount;
-    }
-};
+// Walks the world's player list.
+using PlayerIterator = ObjectListIteratorOf<Player>;
 
 class FlyingHitPoints;
 
@@ -121,20 +114,20 @@ public:
 
     // Folders, managers, the ISAAC generator and the countdowns set up.
     void Create() override;
-    // Every object of the spell manager gets ClearState, then the managers are deleted whatever their counts.
+    // Every object of the spell manager gets ClearState, then the managers are deleted.
     void Destroy() override;
     bool RunTick() override;
 
     World* ThisWorld() override { return this; }
-    BaseManager* TimedObjectManager() override { return timedObjectManager; }
-    FigureManager* GetFigureManager() override { return figureManager; }
-    ItemConstructor* GetItemConstructor() override { return itemConstructor; }
-    SpellConstructor* GetSpellConstructor() override { return spellConstructor; }
-    ItemManager* ItemFactory() override { return itemManager; }
-    MapObjectManager* GetMapObjectManager() override { return objectManager; }
-    PlayerManager* PlayerList() override { return players; }
-    BaseManager* SpecificManager() override { return specificManager; }
-    SpellManager* GetSpellManager() override { return spellManager; }
+    BaseManager* TimedObjectManager() override { return timedObjectManager.get(); }
+    FigureManager* GetFigureManager() override { return figureManager.get(); }
+    ItemConstructor* GetItemConstructor() override { return itemConstructor.get(); }
+    SpellConstructor* GetSpellConstructor() override { return spellConstructor.get(); }
+    ItemManager* ItemFactory() override { return itemManager.get(); }
+    MapObjectManager* GetMapObjectManager() override { return objectManager.get(); }
+    PlayerManager* PlayerList() override { return players.get(); }
+    BaseManager* SpecificManager() override { return specificManager.get(); }
+    SpellManager* GetSpellManager() override { return spellManager.get(); }
     LinkFigureLoader* FigureLoader() override { return figureLoader; }
 
     // The world's own virtuals; docs/notes/map_objects.md, "Virtual slot names".
@@ -186,28 +179,29 @@ public:
     void SetPaused(std::uint8_t value);
     void SetServerPaused(std::uint8_t value);
 
-    float timeBase;
-    float secondsPerTick;
-    std::uint8_t windDirection[12];       // three floats; saved and loaded as they are
-    std::uint32_t windStrength;           // float bits, 0..1; saved and loaded
+    float timeBase = 0.0f;
+    float secondsPerTick = 0.0f;
+    std::uint8_t windDirection[12] = {};  // three floats; saved and loaded as they are
+    std::uint32_t windStrength = 0;       // float bits, 0..1; saved and loaded
     Ref<LinkFigureLoader> figureLoader;    // the client's from SetUpGraphics; FigureLoader returns it
-    PlayerManager* players;
-    FigureManager* figureManager;       // FigureManager
-    MapObjectManager* objectManager;    // map objects by id (its NewObject creates one)
-    BaseManager* specificManager;       // SpecificManager
-    BaseManager* timedObjectManager;    // the timed objects (spells, effects; TimedObjectManager)
-    SpellManager* spellManager;         // the spells (SpellManager)
-    SpellConstructor* spellConstructor;    // SpellConstructor
-    ItemManager* itemManager;           // items (ItemFactory)
-    ItemConstructor* itemConstructor;   // ItemConstructor
+    // The managers (Create makes them, Destroy deletes them in its order).
+    std::unique_ptr<PlayerManager> players;
+    std::unique_ptr<FigureManager> figureManager;
+    std::unique_ptr<MapObjectManager> objectManager;    // map objects by id (its NewObject creates one)
+    std::unique_ptr<BaseManager> specificManager;       // the side halves (the client's or the server's)
+    std::unique_ptr<BaseManager> timedObjectManager;    // the timed objects (spells, effects)
+    std::unique_ptr<SpellManager> spellManager;
+    std::unique_ptr<SpellConstructor> spellConstructor;
+    std::unique_ptr<ItemManager> itemManager;
+    std::unique_ptr<ItemConstructor> itemConstructor;
     // A counted helper World::Create shares in.
     Ref<WorldHandle> worldHandle;
     Ref<netlink::DriverSession> netSession;    // the network session (OpenSession)
-    int tick;                             // game time in ticks
-    int updateCount;                      // world updates run (the server's Update)
+    int tick = 0;                         // game time in ticks
+    int updateCount = 0;                  // world updates run (the server's Update)
     // Paused: the server's Update skips the players and the tick while it is set; the client's Segment
     // skips its own ticks, and the client copies the server's flag from message 0x60, telling the HUD.
-    std::uint8_t paused;
+    std::uint8_t paused = 0;
     WaterTweens countdowns;
 };
 
@@ -535,32 +529,32 @@ public:
     void SendZone(Player* player);
 
     // WorldDayTime's value: the script's IsNight reads it, the units' movement factors scale by it.
-    float nightLevel;
-    float weatherFactor;                  // 1 dry, 0.9 in rain or snow (the units' fourth movement factor)
-    WorldAlarm alarms[5];
+    float nightLevel = 0.0f;
+    float weatherFactor = 1.0f;           // 1 dry, 0.9 in rain or snow (the units' fourth movement factor)
+    WorldAlarm alarms[5] = {};
     // The zone's weather kind (its record's climate): 3 storms with lightning strikes, 1 light rain,
     // other non-zero values heavier weather; 0 none. Single-player only.
-    int climate;
-    int cave;                             // the zone is a cave (its record's cave; sent with the zone)
-    int weather;                          // 0 clear, 1 rain, 2 snow (the script's SetWeather)
-    float weatherStrength;                // sent with the weather
+    int climate = 0;
+    int cave = 0;                         // the zone is a cave (its record's cave; sent with the zone)
+    int weather = 0;                      // 0 clear, 1 rain, 2 snow (the script's SetWeather)
+    float weatherStrength = 0.0f;         // sent with the weather
     std::vector<ZoneExit> exits;
-    std::uint8_t loaded;                  // 0 while LoadSave runs
+    std::uint8_t loaded = 0;              // 0 while LoadSave runs
     MapObjectIdMap updateMap;
     // CreateObject makes objects answering IsSynchronised, sounds, lights and particle sources only with
     // loadedFresh set, the other map objects only with keepsState set; a refused object is released.
-    std::uint8_t loadedFresh;             // the zone is not loaded from a save
-    std::uint8_t keepsState;
+    std::uint8_t loadedFresh = 0;         // the zone is not loaded from a save
+    std::uint8_t keepsState = 0;
     std::string zoneName;                // the zone's map database name
     std::vector<std::string> mobFiles;     // .mob files loaded in this zone (LoadMobFile)
-    GameState gameState;                  // None until SetGameState
-    std::uint32_t lastRainBoltTick;       // the tick of the last bolt in the rain (one per 20 ticks); saved
-    Hoover* hoover;                      // counted; made by Setup, deleted by Teardown
+    GameState gameState = GameState::None;    // None until SetGameState
+    std::uint32_t lastRainBoltTick = 0;   // the tick of the last bolt in the rain (one per 20 ticks); saved
+    std::unique_ptr<Hoover> hoover;       // made by Create, deleted by Destroy
     // The server's messages: the login handler reads "SrvErrMsg" / "WrongClientVersion" from it.
     FileRegistry messages;
-    int zoneLoaded;                       // set by LoadMap, cleared by the teardown and a .mob file that fails to load
-    int scriptsActive;                    // non-zero: Tick runs the zone's script (set by Redeploy)
-    Vector3 startPosition;                // where joining players start
+    int zoneLoaded = 0;                   // set by LoadMap, cleared by the teardown and a .mob file that fails to load
+    int scriptsActive = 0;                // non-zero: Tick runs the zone's script (set by Redeploy)
+    Vector3 startPosition = {};           // where joining players start
     AIMap aiMap;
     // Its globals hold the "Heroes" group.
     Script commandsA;
@@ -570,7 +564,7 @@ public:
     Diplomacy diplomacy;
     // The campaign mode: GameFlow::StartZone stores its mode here. Battle or Base: SaveWorld updates the
     // players' "gtime" first. Joining players take it (Player::sessionKind).
-    ZoneMode zoneMode;
+    ZoneMode zoneMode = ZoneMode::None;
     std::string mobName;                 // the zone's .mob file
     std::string mapName;                 // the zone's map
     MapObjectIdMap objects;               // every world object by id
@@ -857,9 +851,6 @@ public:
     // Loads the camera path file `name` and, when that works, plays it from now (Camera::kPlaying): the time offset
     // is the client time (tick + fraction) less the first key's, the key index 0.
     void PlayCameraPath(const char* name);
-    // Takes `camera` as the view camera: the old one loses a reference (it is not released at zero), the
-    // new one gains one; either may be null.
-    void SetCamera(Camera* camera);
     // Message 0x73: the water levels read from `stream` and applied to the terrain.
     void ReadWaterLevels(ByteStream* stream);
     // FALSE without a local view or while the local player's controller is busy.
@@ -1005,7 +996,7 @@ public:
     // "nask0sky.fig". Without the file the object is referenced and released again.
     void LoadSky();
 
-    int nextClientObjectId;               // -100000 after Setup; NextClientObjectId counts it down
+    int nextClientObjectId = 0;           // -100000 after Setup; NextClientObjectId counts it down
     std::vector<ZoneExit> exits;
     // The exits' particle markers, one per exit or null (counted; CreateExitMarkers / UpdateExitMarkers).
     std::vector<HeldRef<ParticleSource>> exitMarkers;
@@ -1015,60 +1006,61 @@ public:
     // in dynamicMaxId (Segment drops those whose update returns 0). A list: dynamicNodes keeps its iterators.
     std::list<MapObject*> dynamicObjects;
     std::unordered_map<std::uint32_t, std::list<MapObject*>::iterator> dynamicNodes;   // id -> its node in dynamicObjects
-    int dynamicMaxId;
+    int dynamicMaxId = 0;
     std::vector<ScreenEntry> screenEntries;  // the window rectangles of the frame
     std::vector<ScreenEntry> hits;                      // the entries under the point (Pick)
-    ScreenEntry* hitCursor;               // Pick's walk, left on the entry it returns
+    ScreenEntry* hitCursor = nullptr;     // Pick's walk, left on the entry it returns
     SectorGrid objectGrid;                // the objects by sector (MoveObject moves them)
     SectorGrid secondGrid;
-    terrain::Terrain* terrain;            // counted
+    // The client's own managers and parts (Create makes them, Destroy deletes them in its order).
+    std::unique_ptr<terrain::Terrain> terrain;
     // The zone's allod in lower case ("gipath" after Setup; the zone load takes it from the map
     // database's record of the local player's zone, "gipat" without one). It names the terrain's
     // texture pages, the lights table and the music theme.
     std::string zoneName;
-    MaterialManager* materialManager;    // counted
-    TextureManager* textureManager;      // counted
-    LightFactory* lightFactory;          // counted
-    ParticleManager* particleManager;         // counted
-    LightningManager* listManager;       // owned
-    ClientArrayManager* arrayManager;     // owned
-    struct MusicSystem* music;           // owned
-    struct Sky* skyDome;                 // the sky (owned)
-    EffectMoshka* bird;                  // the bird following the party (SummonBird), owned
-    FlyingHitPoints* numbers;            // owned
+    std::unique_ptr<MaterialManager> materialManager;
+    std::unique_ptr<TextureManager> textureManager;
+    std::unique_ptr<LightFactory> lightFactory;
+    std::unique_ptr<ParticleManager> particleManager;
+    std::unique_ptr<LightningManager> listManager;
+    std::unique_ptr<ClientArrayManager> arrayManager;
+    std::unique_ptr<MusicSystem> music;
+    std::unique_ptr<Sky> skyDome;                 // the sky (LoadSky)
+    std::unique_ptr<EffectMoshka> bird;           // the bird following the party (SummonBird)
+    std::unique_ptr<FlyingHitPoints> numbers;     // the damage numbers (SetUpGraphics)
     // Segment ticks the ground prints and colours the blood prints by the light.
     std::vector<BloodPrint> bloodPrints;
     std::vector<Footprint> footprints;
     std::vector<GroundPrint> scorchMarks;
-    int lightLevelsCountdown;             // time left before the blood prints are lit again (Segment); 0 after Setup
+    int lightLevelsCountdown = 0;         // time left before the blood prints are lit again (Segment); 0 after Setup
     Ref<ClientHandle> handle;       // the client's player source
-    SoundManager* sounds;                // the sound manager (owned; the client controller's hit sounds)
-    TextManager* texts;                  // the text resources (counted)
+    std::unique_ptr<SoundManager> sounds;   // the client controller's hit sounds too
+    std::unique_ptr<TextManager> texts;     // the text resources
     PlatformSet platforms;
     // The local session: the local Player; its connection is the local view (a PlayerClient), its
     // sessionKind 1 / 3 for kinds of multiplayer session.
-    Player* session;
-    Camera* camera;                      // the view camera (DrawPass, Render)
+    Player* session = nullptr;
+    Camera* camera = nullptr;             // the view camera (DrawPass, Render)
     std::string texturePath;             // <data path>textures\ (Setup)
     // The light colours by hour (0..23; r, g, b, 1) from the lights table's [sunlight], [ambient] and
     // [sky] sections (LoadLights).
-    LightColour sunlight[24];
-    LightColour ambient[24];
-    LightColour sky[24];
+    LightColour sunlight[24] = {};
+    LightColour ambient[24] = {};
+    LightColour sky[24] = {};
     // This frame's light (UpdateLighting): the ambient colour (the table's, or 0.8 x the sunlight when
     // the table's is black; its fourth float is never written) and the sunlight (its fourth float is whatever the original's stack held).
-    LightColour frameAmbient;
-    LightColour frameSun;
+    LightColour frameAmbient = {};
+    LightColour frameSun = {};
     // The daylight colours: the sun and ambient colour of the table's noon (a cave's hour 0, the light it keeps), the
     // ambient colour taken as UpdateLighting takes it. A ground print's own colour is its colour in them (by day the
     // game's); the renderer lights it by the ground's light over the ground's light in them.
     void DaylightColours(LightColour* sun, LightColour* ambientColour) const;
     // 1: a cave zone (the map's flag: LightsCave.ini, the sky "Sky01", light fixed at hour 0;
     // EnvironmentFlag::Cave instead of Outdoors).
-    int cave;
-    int partyDanger;                      // 0 after Setup; the party state's danger (message 0x60: 2 fighting)
-    int ticksRun;                         // Segment's count; AddObject fades units in when >= 1
-    float tickFraction;                   // added to the tick for the units' time (network client)
+    int cave = 0;
+    int partyDanger = 0;                  // the party state's danger (message 0x60: 2 fighting)
+    int ticksRun = 0;                     // Segment's count; AddObject fades units in when >= 1
+    float tickFraction = 0.0f;            // added to the tick for the units' time (network client)
     // The rain / snow layer, built and destroyed with the world. Its `mode` (1 rain, 2 snow) picks the ground
     // prints' wet look and an environment flag.
     RainSnow rainSnow;

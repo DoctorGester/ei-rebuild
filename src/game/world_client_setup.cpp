@@ -89,7 +89,7 @@ void WorldClient::LoadLights(const std::string& file) {
 void WorldClient::SetUpGraphics(TextureDevice* device) {
     GetTextureManager()->SetDevice(device);
     LoadSky();
-    numbers = new FlyingHitPoints();
+    numbers = std::make_unique<FlyingHitPoints>();
     auto* texture = GetTextureManager()->FindOrCreate(kNumbersKind, NumbersName());
     if (texture) {
         numbers->texture.Assign(texture);
@@ -98,14 +98,14 @@ void WorldClient::SetUpGraphics(TextureDevice* device) {
     }
     LinkFigureLoader* loader = new LinkFigureLoader(g_sceneRenderer.device, FiguresResource());
     figureLoader.Assign(loader);
-    g_unitDatabase.CountSoundFiles(sounds);
+    g_unitDatabase.CountSoundFiles(sounds.get());
 }
 
 // ---- The sky --------------------------------------------------------------------------
 
 void WorldClient::LoadSky() {
     if (skyDome) return;
-    skyDome = new Sky();
+    skyDome = std::make_unique<Sky>();
     auto* figures = GetFigureManager();
     auto* object = figures->CreateObjectAs<SkyObject>(FigureObjectType::SkyObject, kSkyObjectId);
     if (!object) return;

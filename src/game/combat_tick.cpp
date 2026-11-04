@@ -561,11 +561,11 @@ void UnitServer::ApproachTarget() {
     std::uint8_t savedFlag = aiMap->refreshUnits;
     aiMap->refreshUnits = false;
 
-    g_serverWorld.aiMap.sectorMap.Remove(chased);
+    aiMap->sectorMap.Remove(chased);
     const Vector3 point = WithZ(XY(unit->localPosition) * kBlendSelf + XY(goal) * kBlendGoal, goal.z);
     if (!PathTo(point, patience))
         stoodBlocked = 1;
-    g_serverWorld.aiMap.sectorMap.Add(chased);
+    aiMap->sectorMap.Add(chased);
 
     const Vector2 left = XY(goal) - kHalfScale * motion.target;
     aiMap->refreshUnits = savedFlag;

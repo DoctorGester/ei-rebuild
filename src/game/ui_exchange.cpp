@@ -207,7 +207,7 @@ void ExchangeScreen::Draw(SceneRenderer* pass) {
         descPanel->Describe(nullptr);
     }
 
-    TextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts.get();
     std::string text, line;
     net::ClientSession* client = net::g_gameClient;
 

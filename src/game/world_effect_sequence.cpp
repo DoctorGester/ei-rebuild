@@ -50,7 +50,7 @@ Chooser ChooserFor(int count, bool withFirst) {
 // like the original). A new start lists the first name (when not empty) and the others, and starts the
 // sequence with the chooser for their count.
 void EffectSoundSeq::Start(int update) {
-    SoundManager* sounds = g_clientWorld.sounds;
+    SoundManager* sounds = g_clientWorld.sounds.get();
     if (update != 0) {
         sounds->SetSoundPosition(sound, localPosition, volume, radius);
         return;

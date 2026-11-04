@@ -189,13 +189,6 @@ void RunEffects(std::vector<T>& prints) {
     std::erase_if(prints, [](T& print) { return print.Tick() == 0; });
 }
 
-void EndWalk(ObjectListIterator& it) {
-    if (it.manager) {
-        --it.manager->refCount;
-        it.manager = nullptr;
-    }
-}
-
 } // namespace
 
 void WorldClient::CreateExitMarkers() {
@@ -206,7 +199,7 @@ void WorldClient::CreateExitMarkers() {
                             game::NoneText()) == 0) {
             continue;
         }
-        auto* source = g_clientWorld.particleManager->CreateSource(kExitParticles);
+        auto* source = particleManager->CreateSource(kExitParticles);
         exitMarkers[i] = source;
         const ZoneExit& exit = exits[i];
         source->localPosition = {(exit.x2 + exit.x1) * kOneHalf, (exit.y2 + exit.y1) * kOneHalf, 0.0f};
@@ -241,7 +234,7 @@ bool WorldClient::PartyInExit(const std::vector<PartyUnitRecord*>* records, int 
 // ---- The bird and quest variables ----------------------------------------------------------------
 
 void WorldClient::SummonBird() {
-    if (!bird) bird = new EffectMoshka();
+    if (!bird) bird = std::make_unique<EffectMoshka>();
     bird->Reset();
     auto* leader = session->GetParty()->members.data();
     bird->Follow(static_cast<int>(leader->unitId));
@@ -307,14 +300,13 @@ std::uint32_t WorldClient::EnvironmentFlags(Unit* unit) {
 // ---- Segment --------------------------------------------------------------------------
 
 bool WorldClient::RunTick() {
-    ObjectListIterator objectsIt{nullptr, {}};
     int frames = ++ticksRun;
     if (frames == 10) {
         g_interface.OnStringEvent(worlddata::AutosaveEventText());
         sounds->SetEffectsVolume(options::g_options.audioSfx);
         sounds->SetSpeechVolume(options::g_options.audioSpeech);
         sounds->SetMusicVolume(options::g_options.audioStreaming);
-    } else if (frames == 90 || (frames < 90 && g_clientWorld.partyDanger == 2)) {
+    } else if (frames == 90 || (frames < 90 && partyDanger == 2)) {
         music->holding = 0;
     }
     if (terrain) terrain->RunTick();
@@ -332,7 +324,6 @@ bool WorldClient::RunTick() {
             // keeps the session: only the error is reported.
             if (!ei::rebirth::Enabled(ei::rebirth::Patch::DisableExitOnCrashReport)) SessionDisconnect(session);
             game::FatalError(worlddata::SegmentDisconnectedText());
-            EndWalk(objectsIt);
             return false;
         }
         view->RunTick();
@@ -351,7 +342,8 @@ bool WorldClient::RunTick() {
                 hash400::RemoveKey(dynamicNodes, key);
             }
         }
-        for (EngineObject* object = objectsIt.First(TimedObjectManager()); object; object = objectsIt.Next())
+        ObjectListIterator timed;
+        for (EngineObject* object = timed.First(TimedObjectManager()); object; object = timed.Next())
             object->RunTick();
         if (bird) bird->RunTick();
     }
@@ -380,7 +372,7 @@ bool WorldClient::RunTick() {
             Light* sun = g_sceneRenderer.sun;
             for (BloodPrint& effect : bloodPrints) {
                 float level = sun->GetIntensityAt(worlddata::kOrigin);
-                ObjectListIteratorOf<Light> lights{};
+                ObjectListIteratorOf<Light> lights;
                 for (Light* light = lights.First(ClientLightManager()); light; light = lights.Next()) {
                     if (light == sun || (light->flags & LightFlag::Hidden)) continue;
                     const Vector2 node = effect.position;
@@ -396,12 +388,10 @@ bool WorldClient::RunTick() {
                 std::uint32_t grey = static_cast<std::uint32_t>(lib::RoundEven(scaled));
                 std::uint32_t colour = ((((grey | 0xFFFFFF00u) << 8) | grey) << 8) | grey;
                 effect.colour = colour;
-                EndWalk(lights);
             }
         }
     }
     if (tick % 32 == 0) GetTextureManager()->TrimCache();
-    EndWalk(objectsIt);
     return true;
 }
 
@@ -418,10 +408,10 @@ ClassId WorldClient::GetClassId() { return ClassId::WorldClient; }
 // material, the camera, the value of message 0x12 and the water levels of message 0x73 --------------------
 
 const char* WorldClient::TexturePath() { return texturePath.c_str(); }
-MaterialManager* WorldClient::GetMaterialManager() { return materialManager; }
-TextureManager* WorldClient::GetTextureManager() { return textureManager; }
-BaseManager* WorldClient::ClientLightManager() { return lightFactory; }
-ParticleManager* WorldClient::ClientParticleManager() { return particleManager; }
+MaterialManager* WorldClient::GetMaterialManager() { return materialManager.get(); }
+TextureManager* WorldClient::GetTextureManager() { return textureManager.get(); }
+BaseManager* WorldClient::ClientLightManager() { return lightFactory.get(); }
+ParticleManager* WorldClient::ClientParticleManager() { return particleManager.get(); }
 
 void WorldClient::MoveObject(MapObject* object, const float* position) {
     objectGrid.Move(object, position);
@@ -444,13 +434,7 @@ void WorldClient::PlayCameraPath(const char* name) {
     camera->timeOffset = (static_cast<float>(tick) + tickFraction) - camera->keys[0].time;
 }
 
-void WorldClient::SetCamera(Camera* newCamera) {
-    if (camera) --camera->refCount;
-    camera = newCamera;
-    if (newCamera) newCamera->AddRef();
-}
-
-void WorldClient::ReadWaterLevels(ByteStream* stream) { countdowns.Load(stream, terrain); }
+void WorldClient::ReadWaterLevels(ByteStream* stream) { countdowns.Load(stream, terrain.get()); }
 
 namespace {
 constexpr const char* kBridgeManagerName = "CBridgeManager";

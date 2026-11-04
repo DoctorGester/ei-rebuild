@@ -303,7 +303,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         object->localPosition = spec->position;
         object->localRotation = spec->rotation;
     };
-    BaseManager* timedManager = timedObjectManager;
+    BaseManager* timedManager = timedObjectManager.get();
     MapObjectManager* newObjectManager = GetMapObjectManager();
 
     switch (base.kind) {

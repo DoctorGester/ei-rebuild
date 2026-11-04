@@ -70,7 +70,7 @@ std::string MapFilePath(const std::string& file) {
 } // namespace
 
 std::string BriefingSpeakerName(const std::string& briefing) {
-    TextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts.get();
     bool missing = texts->TextManager::Open(game::briefingwords::BriefingSection() + briefing) == 0;
     if (missing) return std::string();
     // The first "#show" line whose second word is not "Hero" names the speaker.
@@ -120,7 +120,7 @@ void GameFlow::ForgetBriefing(const char* briefing) {
 }
 
 void UnloadQuestTexts() {
-    TextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts.get();
     if (!texts) return;
     std::vector<std::string>& files = g_questFiles;
     for (auto& file : files) texts->RemoveSource(file);
@@ -131,7 +131,7 @@ void UnloadQuestTexts() {
 // ---- The quest file of a zone ---------------------------------------------------
 
 bool LoadZoneQuests(std::string_view zone) {
-    auto* texts = g_clientWorld.texts;
+    auto* texts = g_clientWorld.texts.get();
     if (!texts) return false;
     std::string file(zone);
     file += kQuestFileSuffix;
@@ -171,7 +171,7 @@ namespace {
 } // namespace
 
 void GameFlow::RegisterQuests(const std::string& folder) {
-    TextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts.get();
     if (!texts) return;
     if (!LoadZoneQuests(folder)) return;
     std::vector<std::string>& folders = g_questFolders;
@@ -199,7 +199,7 @@ std::string SessionMapName() {
         peer = server->map.Get();
     if (!peer) return std::string();
     name = peer->text.data();
-    TextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts.get();
     int found = texts->TextManager::Open(game::briefingwords::QuestSection() + name);
     if (found) name = texts->ReadLine(true);
     return name;

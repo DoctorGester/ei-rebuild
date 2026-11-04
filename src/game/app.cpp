@@ -41,7 +41,7 @@ void OnActivate(bool active, bool minimized) {
         UpdateCursorConfinement();
         return;
     }
-    auto* sounds = g_clientWorld.sounds;
+    auto* sounds = g_clientWorld.sounds.get();
     if (!active) {
         g_active = 0;
         g_cursor.ShowImage(0);

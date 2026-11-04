@@ -158,7 +158,7 @@ void ObjectivesWindow::LoadQuestPlaces(std::string_view name) {
     }
     std::string header;
     std::vector<std::string> words;
-    TextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts.get();
     texts->Open(kMapText);
     header = str::Format(kQuestHeader, std::string(name));
     if (texts->FindLine(header)) {

@@ -300,7 +300,7 @@ void CampPages::BuildPages() {
     NextHero();
 
     // The pages' titles.
-    TextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts.get();
     std::string title;
     const char* const titleKeys[] = {
         "mode_weapons",

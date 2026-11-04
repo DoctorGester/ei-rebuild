@@ -103,7 +103,7 @@ std::string SlotFolder(const char* slot) {
 // The first line of the text `prefix` + `suffix`, or empty when there is none.
 std::string FirstLineOf(const char* prefix, const std::string& suffix) {
     std::string line;
-    TextManager* texts = g_clientWorld.texts;
+    TextManager* texts = g_clientWorld.texts.get();
     bool found = texts->Open(std::string(prefix) + suffix);
     if (found) line = texts->ReadLine(true);
     return line;

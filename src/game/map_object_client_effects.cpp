@@ -142,7 +142,7 @@ void DropLight(MapObjectClientSpecific* self) {
 } // namespace
 
 void PlayEffectSound(bool play, EffectSoundRecord* record, const Vector3& position, const char* suffix) {
-    SoundManager* sounds = g_clientWorld.sounds;
+    SoundManager* sounds = g_clientWorld.sounds.get();
     const SpellType kind = record->kind;
     if (kind == SpellType::Stench) {
         record->timer = 0;

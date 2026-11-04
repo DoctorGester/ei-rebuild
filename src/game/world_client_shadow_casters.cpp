@@ -202,7 +202,7 @@ const HighestObject& Highest(const WorldClient* world) {
 } // namespace
 
 void HandOverSceneLights(WorldClient* world) {
-    terrain::Terrain* terrain = world->terrain;
+    terrain::Terrain* terrain = world->terrain.get();
     Light* sun = terrain && terrain->sun ? terrain->sun : g_sceneRenderer.sun;
     if (!sun) return;
     static std::vector<render::ScenePointLight> points;
@@ -244,7 +244,7 @@ void HandOverSceneLights(WorldClient* world) {
 }
 
 void HandOverTerrainCasters(WorldClient* world) {
-    terrain::Terrain* terrain = world->terrain;
+    terrain::Terrain* terrain = world->terrain.get();
     if (!options::g_options.shadows || !terrain || !terrain->mapLoaded ||
         !lib::Has(terrain->landscapeFlags, terrain::LandscapeFlag::SunShadows) || terrain->sectorGrid.empty())
         return;
