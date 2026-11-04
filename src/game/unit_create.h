@@ -87,22 +87,21 @@ struct MapObjectManager : ResourceManager {
     ClassId GetClassId() override;
     // A new object of the factory's type `type` (a MapObjectType), constructed; null for other ids.
     EngineObject* NewObject(int type) override;
+    // The base manager's CreateObject; a new object gets an animation state (the figure manager's) and its side
+    // halves from the world's specific manager: Object3D and MapObject, then Unit for the three unit types and
+    // Torch for the torch. Returns the object or null.
     EngineObject* CreateObject(int type, int id) override;
     const char* GetFolderName() override;                   // "map objects"
 
     // The starting equipment of prototype `name`: see docs/notes/units.md, "Creation helpers".
     int GiveStartingEquipment(Unit* unit, const std::string& name);
 
-    // The base manager's CreateObject; a new object gets an animation state (the figure manager's) and its side
-    // halves from the world's specific manager: Object3D and MapObject, then Unit for the three unit types and
-    // Torch for the torch. Returns the object or null.
-    EngineObject* CreateMapObject(int type, int id);
     // The object registered under `id` (null for none); the manager holds only map objects.
     MapObject* FindMapObject(unsigned id) const;
     // The entry of the animation database "<figure>.adb" matching `key`: the same bits above kAnimationVariantBits
     // and, of the low bits, none of the key's missing (a key without low bits takes only an entry without). Null
     // (with a debug message when there is no database).
-    FigureAnimation* FindAnimation(const std::string* figure, std::uint32_t key);
+    FigureAnimation* FindAnimation(const std::string& figure, std::uint32_t key);
     // The animation `name` (case-insensitive) in the database "<figure>.adb", or null; a missing database is
     // reported to the debug log.
     FigureAnimation* FindFigureAnimation(const std::string& figure, const char* name);

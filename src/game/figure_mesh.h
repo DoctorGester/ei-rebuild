@@ -6,6 +6,7 @@
 #include "core_transform.h"
 #include "lib/vecmath.h"
 #include "model.h"
+#include "ref.h"
 
 #include "lib/bit_flags.h"
 #include "lib/containers.h"
@@ -144,7 +145,9 @@ public:
     FigureMesh();
     ~FigureMesh() override;
 
-    void Create() override;                 // CreateMesh (the derived classes' Create jumps to it)
+    // The create virtual of every figure class (the derived ones call it): no drawer, flags, buffers or bounds;
+    // white flat colours.
+    void Create() override;
     // The arrays emptied, then Clear.
     void Destroy() override;
     const char* GetName() override;
@@ -181,9 +184,6 @@ public:
     };
     void SetOffsets(const OffsetSpan* offsets);
 
-    // The create virtual of every figure class: no drawer, flags, buffers or bounds; white flat colours.
-    // Returns 1.
-    void CreateMesh();
     // Names and colour arrays emptied, the buffer descriptor cleared, the drawer released, no flags.
     void Clear();
     // Lets the old drawer go (released) and takes `drawer` (one more reference, its mesh set).
@@ -198,7 +198,6 @@ private:
     // array preceded by its count.
     void LoadOld(char** cursor);
     void SetUpFigure();
-    void TearDownFigure();
 
 public:
     // EngineObject: flags the FigureMeshFlag bits; type the figure manager's type (0x41-0x44; the class id is
@@ -207,7 +206,7 @@ public:
     // The part -> object matrix: the rotation, the local position as column 3 (the draws build it,
     // ObjectWorldMatrix in map_object_shadow.h).
     Matrix4 worldMatrix;
-    FigureMeshDrawer* drawer;
+    Ref<FigureMeshDrawer> drawer;      // (SetDrawer)
     TransformObject* object;           // the owner whose figure may draw the mesh: a Object3D, or an interface window (UiWindow)
     MeshBuffers buffers;
     // passed to the draws after the buffers (as their bits): the texture offset (u, v) an animated mesh's

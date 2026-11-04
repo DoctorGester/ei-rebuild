@@ -284,8 +284,7 @@ struct PartData {
 
 void AddPartTriangles(TransformPipeline* pipeline, LinkMesh* figure, FigureMesh* part, PartData& data) {
     const Matrix4* top = pipeline->Top(TransformPipeline::kDecalStack);
-    std::string name(part->GetName());
-    figure->GetPartData(&name, &data.vertices, &data.corners, &data.indices, &data.blocks, &data.indexCount);
+    figure->GetPartData(part->GetName(), &data.vertices, &data.corners, &data.indices, &data.blocks, &data.indexCount);
     std::vector<Vector4>& points = g_partPoints;
     points.resize(data.blocks * 4);
     for (int i = 0; i < data.blocks * 4; ++i) {

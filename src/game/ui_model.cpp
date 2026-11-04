@@ -51,9 +51,7 @@ void UiModel::Play(SkillAnimation animation) {
 
 // The rest pose: the object named like the figure of kind 0x80590000 from the object manager, played.
 void UiModel::Stop() {
-    Object3D* currentObject = object;
-    std::string name(currentObject->name);
-    currentObject->PlayAnimation(g_clientWorld.objectManager->FindAnimation(&name, kRestPoseKind));
+    object->PlayAnimation(g_clientWorld.objectManager->FindAnimation(object->name, kRestPoseKind));
 }
 
 // The part named `name` shown or hidden (`show`'s low byte).

@@ -96,8 +96,7 @@ void WorldClient::SetUpGraphics(TextureDevice* device) {
         GetTextureManager()->LoadTexture(texture);
         texture->flags |= TextureFlag::Keep;
     }
-    std::string resource(FiguresResource());
-    LinkFigureLoader* loader = new LinkFigureLoader(g_sceneRenderer.device, &resource);
+    LinkFigureLoader* loader = new LinkFigureLoader(g_sceneRenderer.device, FiguresResource());
     figureLoader.Assign(loader);
     g_unitDatabase.CountSoundFiles(sounds);
 }

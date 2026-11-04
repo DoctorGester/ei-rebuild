@@ -37,21 +37,14 @@ FigureAnimationState::FigureAnimationState() {
     Reset();
 }
 
-FigureAnimationState::~FigureAnimationState() {
-    ReleaseBones();
-    Reset();
-    queue.clear();
-    bones.clear();
-}
-
-void FigureAnimationState::Destroy() { DestroyState(); }
+FigureAnimationState::~FigureAnimationState() { FigureAnimationState::Destroy(); }
 
 void FigureAnimationState::Create() {
     changed = true;
     Reset();
 }
 
-void FigureAnimationState::DestroyState() {
+void FigureAnimationState::Destroy() {
     ReleaseBones();
     Reset();
 }
@@ -128,14 +121,11 @@ int FigureAnimationState::AttachMesh(FigureMesh* part) {
         }
     }
     if (!bone) return 0;
-    FigureMesh* old = bone->mesh;
-    bone->mesh = part;
+    bone->mesh.Assign(part);
     if (part) {
-        part->AddRef();
-        bone->mesh->localPosition = bone->position;
-        bone->mesh->localRotation = bone->rotation;
+        part->localPosition = bone->position;
+        part->localRotation = bone->rotation;
     }
-    if (old) old->Release();
     return 1;
 }
 
@@ -159,9 +149,7 @@ int FigureAnimationState::DetachMesh(FigureMesh* part) {
     changed = true;
     for (FigureBone* bone : bones) {
         if (bone->mesh && bone->mesh == part) {
-            FigureMesh* old = bone->mesh;
-            bone->mesh = nullptr;
-            old->Release();
+            bone->mesh.Reset();
             return 1;
         }
     }
@@ -170,11 +158,7 @@ int FigureAnimationState::DetachMesh(FigureMesh* part) {
 
 void FigureAnimationState::DetachMeshes() {
     changed = true;
-    for (FigureBone* bone : bones) {
-        FigureMesh* old = bone->mesh;
-        bone->mesh = nullptr;
-        if (old) old->Release();
-    }
+    for (FigureBone* bone : bones) bone->mesh.Reset();
 }
 
 void FigureAnimationState::PlaceIfChanged() {
@@ -195,11 +179,7 @@ void FigureAnimationState::UpdatePose() {
 }
 
 void FigureAnimationState::Rescale(float s, float t, float u) {
-    FigureModel* model;
-    {
-        std::string key = owner->name;
-        model = FigureManagerOf(this)->FindModel(&key);
-    }
+    FigureModel* model = FigureManagerOf(this)->FindModel(owner->name);
     for (FigureBone* bone : bones) {
         bone->morphS = s;
         bone->morphT = t;
@@ -239,19 +219,19 @@ void FigureAnimationState::LoadBoneTracks(MappedResource* part, const FigureAnim
 
 FigureBone::FigureBone() {
     rotation = {1.0f, 0.0f, 0.0f, 0.0f};
-    CreateBone();
+    FigureBone::Create();
 }
 
-void FigureBone::CreateBone() {
+void FigureBone::Create() {
     // The original assigns "none" to all three names, not an empty string.
     name = "none";
     parentName = "none";
     modelName = "none";
     parent = nullptr;
     children.clear();
-    mesh = nullptr;
+    mesh.Reset();
     pose = nullptr;
-    animator = nullptr;
+    animator.Reset();
     position = kTrackDefaultPosition;
     rotation = kTrackDefaultRotation;
     matrices.clear();
@@ -268,23 +248,14 @@ void FigureBone::CreateBone() {
     blendedOffsets.clear();
 }
 
-void FigureBone::DestroyBone() {
-    FigureMesh* placed = mesh;
-    mesh = nullptr;
-    if (placed) placed->Release();
+void FigureBone::Destroy() {
+    mesh.Reset();
     pose = nullptr;
-    if (animator) animator->Release();
-    animator = nullptr;
-    CreateBone();
+    animator.Reset();
+    FigureBone::Create();
 }
 
-FigureBone::~FigureBone() {
-    DestroyBone();
-    children.clear();
-}
-
-void FigureBone::Create() { CreateBone(); }
-void FigureBone::Destroy() { DestroyBone(); }
+FigureBone::~FigureBone() { FigureBone::Destroy(); }
 
 namespace {
 constexpr const char* kBoneClassName = "CAnimationNode";

@@ -290,8 +290,8 @@ void ReadObject(EngineObject* o, bool mapObject, const std::map<const void*, int
     b.Int("cell.x", m->sectorCellX);
     b.Int("cell.y", m->sectorCellY);
     ReadEffects(m, b);
-    if (m->companion && ClassOf(m->companion) == kClassMapObjectServer) {
-        const auto& v = static_cast<MapObjectServer*>(m->companion)->vitals;
+    if (m->companion && ClassOf(m->companion.Get()) == kClassMapObjectServer) {
+        const auto& v = static_cast<MapObjectServer*>(m->companion.Get())->vitals;
         b.Float("hp", v.hitPoints);
         b.Float("maxHp", v.maxHitPoints);
         b.Float("mana", v.mana);

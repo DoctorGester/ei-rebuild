@@ -50,7 +50,6 @@ MapObjectManager::~MapObjectManager() {}
 const char* MapObjectManager::GetFolderName() { return kFolderName; }
 const char* MapObjectManager::ClassName() { return kClassName; }
 ClassId MapObjectManager::GetClassId() { return ClassId::MapObjectManager; }
-EngineObject* MapObjectManager::CreateObject(int newType, int newId) { return CreateMapObject(newType, newId); }
 
 void MapObjectManager::Create() {
     std::string folder = g_textFolder;
@@ -60,10 +59,9 @@ void MapObjectManager::Create() {
 
 MapObject* MapObjectManager::FindMapObject(unsigned objectId) const { return FindObjectAs<MapObject>(objectId); }
 
-EngineObject* MapObjectManager::CreateMapObject(int newType, int newId) {
+EngineObject* MapObjectManager::CreateObject(int newType, int newId) {
     ResourceManager* manager = this;
     const auto kind = static_cast<MapObjectType>(newType);
-    // The base's CreateObject, not the virtual (that one is this function's caller).
     auto* object = static_cast<MapObject*>(BaseManager::CreateObject(newType, newId));
     if (!object) return nullptr;
     FigureManager* figures = manager->context->GetFigureManager();
@@ -135,10 +133,10 @@ AnimationDatabase* MapObjectManager::AnimationDatabaseOf(const std::string& figu
     return animationDatabases.emplace(std::move(file), std::move(database)).first->second.get();
 }
 
-FigureAnimation* MapObjectManager::FindAnimation(const std::string* figure, std::uint32_t key) {
-    AnimationDatabase* database = AnimationDatabaseOf(*figure);
+FigureAnimation* MapObjectManager::FindAnimation(const std::string& figure, std::uint32_t key) {
+    AnimationDatabase* database = AnimationDatabaseOf(figure);
     if (!database) {
-        game::DebugLog(kNoDatabaseText, *figure);
+        game::DebugLog(kNoDatabaseText, figure);
         return nullptr;
     }
     for (FigureAnimation& entry : database->animations)

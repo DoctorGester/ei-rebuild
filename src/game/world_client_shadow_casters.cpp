@@ -121,7 +121,7 @@ void HandOverParts(Object3D* object, Object3DClientSpecific* half, const Matrix4
         if (!set) continue;
         const void* holder = set->texture ? set->texture->surface.Get() : nullptr;
         for (int g = 0; g < std::ssize(set->groups); ++g) {
-            const PartGroup* group = set->groups[g];
+            const PartGroup* group = set->groups[g].get();
             for (int p = 0; p < std::ssize(group->parts); ++p) {
                 FigureMesh* part = group->parts[p];
                 if (!part || (part->flags & FigureMeshFlag::Hidden)) continue;

@@ -8347,6 +8347,14 @@ depends = ["C114"]
 note = "Found in C114. g_currentSession (net_classes.h) is set only for SessionBase::Tick; Connection reads it in SendUpdate (the socket), the OnMessage / CollectReplicated calls and Tick (maxRoundTrip, idReuseTime, timeout). Pass the session (a Connection member set at AddClient, or a parameter) the way C113 passed the connection. Care: ConnectionState's constructor takes roundTrip from it and falls back to 5.0 when it is null, and Connection::OnShutdown builds a ConnectionState(0) at whatever time the shutdown happens, so which value a reset connection gets depends on whether a Tick is running; keep that or decide it by judgement (net_pair_* reach it). Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes."
 
 [[ticket]]
+id = "C135a"
+title = "Counted halves and virtual bodies left outside the objects area"
+group = "cleanup"
+model = "sonnet"
+depends = ["C135"]
+note = "Left by C135 (same pattern, other areas). Unit::controller (unit_update.cpp AttachObject: hand AddRef/Release) and TorchObject::spec (torch_object.cpp AttachTorchObject, TorchObject::Create) as Ref<T> with one setter each; TorchObject's Load/Save/Destroy/AttachObject bodies under their own names (LoadTorch, SaveTorch, DestroyTorch, AttachTorchObject: the body in the virtual, MapObject:: qualified). FigureAnimationState::bones (LinkBone AddRef, ReleaseBones) as std::vector<HeldRef<FigureBone>> where the release order stays; Object3DClientSpecific::partSets as std::unique_ptr<TextureParts>[2]. Style only: goldens the same."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"

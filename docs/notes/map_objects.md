@@ -13,8 +13,8 @@ MapObjectClientSpecific), `map_object_client_effects.cpp`, `map_object_manager.c
   `MapObjectClientSpecific`: looping effect sounds, effect particles, the light, the end sound) and the 3D object's
   side half (`Object3DSpecific`: `Object3DClientSpecific` draws, `Object3DServer` is all stubs; GetScale gives the
   client's scale or 1, 1, 1 on the server).
-- An Object3D's `parts` hold a reference each (LoadPart takes it, RemovePart and Destroy3D release it); the client
-  half's part groups hold their own. A server part goes back to the figure manager's spares at Destroy3D.
+- An Object3D's `parts` hold a reference each (LoadPart takes it, RemovePart and Destroy release it); the client
+  half's part groups hold their own. A server part goes back to the figure manager's spares at Destroy.
 - `Unit`'s update runs its controller's, then `MapObject::Update`, which runs the companion's.
 - Flags: 1 dead / destroyed, 2 dirty, 8 (network part 2), 0x10000 invisible, 0x40000 stunned (client,
   effect 0x19). A dead object has no effects.
@@ -36,7 +36,7 @@ MapObjectClientSpecific), `map_object_client_effects.cpp`, `map_object_manager.c
 
 ## Shadows
 
-The renderer's shadow map draws the shadow (renderer.md); `DrawShadow` hands the object over as a caster
+The renderer's shadow map draws the shadow (renderer.md); `DrawPartsShadow` hands the object over as a caster
 (`render::CastsShadow`) and fits the shadow's sphere, which `ShadowInView` tests for objects out of view
 (`CollectVisible` lists them for shadows and updates their pose). The sphere: the object's bounding sphere swept along
 the lights' direction down to the ground, taken as level at the lower of the object's origin and the sphere's bottom;
@@ -48,7 +48,7 @@ lists the object).
 
 ## Drawing
 
-`Object3DClientSpecific::Draw` is described in `map_object_shadow.h` and `map_object_draw.cpp` (lights within range +
+`Object3DClientSpecific::DrawParts` is described in `map_object_shadow.h` and `map_object_draw.cpp` (lights within range +
 10, matrix stacks, the part sets). Picking: the parts' screen rectangles. Wounds: a texture of kind 6 made per object,
 reloaded unless its .mmp extra block is unchanged, drawn with a two-stage material.
 

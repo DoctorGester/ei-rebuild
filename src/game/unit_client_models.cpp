@@ -160,11 +160,7 @@ void UnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
     int row = RowOfSlot(static_cast<int>(slot));
     if (row < 0) return;
 
-    FigureModel* model;
-    {
-        std::string name = unit->name;
-        model = manager->FindModel(&name);
-    }
+    FigureModel* model = manager->FindModel(unit->name);
     if (!model) return;
     const itemdb::ArmorRecord* armour = ArmourRecord(prototypeType);
     std::string armourPart;
@@ -207,11 +203,7 @@ void UnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
     int row = RowOfSlot(static_cast<int>(slot));
     if (row < 0) return;
 
-    FigureModel* model;
-    {
-        std::string name = unit->name;
-        model = g_clientWorld.figureManager->FindModel(&name);
-    }
+    FigureModel* model = g_clientWorld.figureManager->FindModel(unit->name);
     if (!model) return;   // the slot stays cleared
     for (int i = 0; i < 7; ++i) {
         const char* plain = kArmourPartNames[row][i];
@@ -240,10 +232,7 @@ void UnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
 int UnitClientSpecific::ShowWeapon(std::uint32_t slot) {
     std::uint32_t previous = WeaponIdOf(this, unit->activeWeapon);
     std::uint32_t next = WeaponIdOf(this, slot);
-    {
-        std::string name = unit->name;
-        g_clientWorld.figureManager->FindModel(&name);    // loads and caches the model
-    }
+    g_clientWorld.figureManager->FindModel(unit->name);    // loads and caches the model
     if (previous != kNoItemId) {
         for (const std::string& name : WeaponModelParts(previous >> 16)) unit->RemovePartNamed(name);
     }
