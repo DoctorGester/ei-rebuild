@@ -6401,6 +6401,20 @@ depends = ["H50a"]
 note = "H50a: without --jobs a WSL run on dzn takes the Windows game slots free at its start (2 to 8) and keeps that many to its end. Started while Windows' 16 were busy it got 2 and stayed at 2 (347 s for the image suite, against 208 to 270 s with 6 to 8), and its last games hold slots they no longer use. Let the hold grow as Windows slots free (up to WSL_GPU_SLOTS) and give slots back as the queue empties; the Windows side of hold_windows_slots() then needs a way to take and release slots one at a time (stdin commands). docs/notes/linux.md, The GPU under WSL."
 
 [[ticket]]
+id = "H52a"
+title = "Silent build step failures under load"
+group = "harness"
+depends = ["H52"]
+note = "Seen in H52's timing runs on a loaded machine (98% CPU, games running): a build step exited non-zero with no output at all, once lib.exe archiving ei_render.lib (main's build, no compiler cache) and once a cached compile of registry.cpp (the launcher and sccache; the same command passed 20 times in a row alone). A rerun passes. Suspect: process start failing under load (0xC0000142, desktop heap) or another worker's taskkill. Find the exit code (ninja does not print it: run the step under a wrapper that logs it) and the cause; then either fix it or have build.cmd retry a build whose failed step printed nothing."
+
+[[ticket]]
+id = "H52b"
+title = "Cheaper cache hits: the preprocessing each object still costs"
+group = "harness"
+depends = ["H52"]
+note = "After H52 a fresh worktree's first build takes every object from sccache, but sccache runs cl -EP before each lookup (its direct mode is gcc / clang only): about 0.5 s of CPU per object, 330-470 CPU-s per verify build, which is most of a warm first build's 20-30 s and grows under load. Measure which headers make the preprocessed size (cl /E | wc per object, the heaviest includes: windows.h through src/platform, <format>, the big game headers) and cut includes where a forward declaration or a narrower header serves; check that the warm first build and a plain compile both get faster."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"
