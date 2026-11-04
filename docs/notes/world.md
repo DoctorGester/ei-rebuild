@@ -30,7 +30,9 @@ added twice, three `RemoveObjectFromServer`, `load savea`, one more spawn), `par
   each plane along z and keeps the highest z (margin 0.5), `Contains` tests (x, y) (margin 0.1), `AddBox` keeps only
   faces with normal z >= 0.8. The bird is the EffectMoshka (effects.md).
 - Time: the day is 24 hours; time of day = fmod(tick * secondsPerTick + base, 24); a speed s gives secondsPerTick = 1 /
-  s / 15 (0: stopped, also for NaN; negative: the setting). Wind: direction and strength (ChangeWind clamps it).
+  s / 15 (0: stopped, also for NaN; negative: the setting). The client's lighting (WorldClient::UpdateLighting) takes it
+  at the drawn frame, the tick plus `tickFraction`, so the sun turns a little every frame (R25a). Wind: direction and
+  strength (ChangeWind clamps it).
 
 ## Server update path
 

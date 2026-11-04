@@ -3,6 +3,7 @@
 #include "render_internal.h"
 #include "render_perf.h"
 
+#include "lib/maths.h"
 #include "../platform/log.h"
 
 #include <algorithm>
@@ -18,13 +19,15 @@ namespace {
 
 using namespace detail;
 
-// The map: kMapSize texels a side over the visible ground (its larger side seen from the sun, in
-// steps of kExtentStep world units so that the texel size changes seldom), the origin snapped to
-// whole texels (shadows do not swim while the camera moves). Along the light it reaches from the
-// nearest caster towards the sun (every caster whose bounds are in the map's area seen from the
-// sun and in front of the ground's far side; none is too high) to kDepthMargin behind the ground.
+// The map: kMapSize texels a side over the visible ground (its larger side in the landscape's x and y along the light
+// onto a level plane, in steps of kExtentStep world units so that the texel size changes seldom), the texels' corners
+// on whole texels of the landscape at the plane's height (shadows neither swim while the camera moves nor crawl while
+// the sun turns). Along the light it reaches from the nearest caster towards the sun (every caster whose bounds are in
+// the map's area seen from the sun and in front of the ground's far side; none is too high) to kDepthMargin behind the
+// ground.
 constexpr int kMapSize = 4096;
 constexpr float kExtentStep = 8.0f;
+constexpr float kPlaneStep = 8.0f;   // the height at which the map's texels stay on the ground (FitMap)
 constexpr float kDepthMargin = 2.0f;
 // The sun at least this far above the horizon (the old shadows' 20 degrees).
 constexpr float kLeastElevation = 20.0f * kPi / 180.0f;
@@ -343,7 +346,7 @@ struct Fit {
     M4 fromClip{};                       // the camera's clip space to the landscape's
     bool haveEye = false;                // the camera's position (none: at infinity)
     Vector3 eye{};
-    Vector3 x{}, y{}, d{};               // the map's axes: across, the rest, the light's direction (down)
+    Vector3 x{}, y{}, d{};               // the map's axes (FitMap): the ground's x and y, the light's direction (down)
     float x0 = 0.0f, y0 = 0.0f, extent = 0.0f;   // the map's area along x and y
     float groundNear = 0.0f, groundFar = 0.0f;   // the visible ground's depths along d
     Vector3 lowGround{}, highGround{};   // the visible ground's box in the landscape's space
@@ -406,11 +409,10 @@ const Fit& FitMap(Frame& f) {
     Vector3 travel;
     if (!MapLightDirection(sh.sun, &travel)) return g_fit;
     const Vector3 d = travel;
-    // The sun's view: x across, y the rest, z along the light.
-    Vector3 x{d.y, -d.x, 0.0f};
-    const float across = std::hypot(x.x, x.y);
-    x = across < 1e-6f ? Vector3{1.0f, 0.0f, 0.0f} : Vector3{x.x / across, x.y / across, 0.0f};
-    const Vector3 y = Cross(d, x);
+    // The map's axes: the landscape's x and y where a point meets a level plane along the light (d.z is below
+    // -sin(kLeastElevation)), z along the light. A point at the plane's height keeps its place on the map
+    // wherever the sun stands, so the map's texels stay on the ground while the sun turns.
+    const Vector3 x{1.0f, 0.0f, -d.x / d.z}, y{0.0f, 1.0f, -d.y / d.z};
 
     // The visible ground seen from the sun, by the terrain pieces' runs of vertices (a piece wholly outside the
     // view skipped by its box, the planes it lies inside not tested again): a run wholly inside the camera's view
@@ -458,8 +460,14 @@ const Fit& FitMap(Frame& f) {
     float extent = std::max(hi.x - lo.x, hi.y - lo.y) + 2.0f;
     extent = std::ceil(extent / kExtentStep) * kExtentStep;
     const float texel = extent / kMapSize;
-    const float x0 = (std::floor(((lo.x + hi.x) * 0.5f - extent * 0.5f) / texel) - static_cast<float>(g_shadowShift)) * texel;
-    const float y0 = (std::floor(((lo.y + hi.y) * 0.5f - extent * 0.5f) / texel) - static_cast<float>(g_shadowShift / 2)) * texel;
+    // The texels' corners lie on whole texels of the landscape's x and y at the plane's height: the visible
+    // ground's middle height in steps of kPlaneStep (ground away from it moves on the map by its height over the
+    // plane as the sun turns).
+    const float plane = std::round((groundLo.z + groundHi.z) * 0.5f / kPlaneStep) * kPlaneStep;
+    const float ox = x.z * plane, oy = y.z * plane;
+    const float shiftX = static_cast<float>(g_shadowShift), shiftY = static_cast<float>(g_shadowShift / 2);
+    const float x0 = (std::floor(((lo.x + hi.x) * 0.5f - extent * 0.5f - ox) / texel) - shiftX) * texel + ox;
+    const float y0 = (std::floor(((lo.y + hi.y) * 0.5f - extent * 0.5f - oy) / texel) - shiftY) * texel + oy;
 
     g_fit.ok = true;
     g_fit.firstGround = firstGround;
@@ -632,10 +640,10 @@ bool ShadowCasterReaches(const ShadowCasterSphere& sphere) {
     // The sphere's box in the map's space against the map's area across the light, and in front of
     // the ground's far side along it (nothing limits it towards the sun).
     const Vector3 c{sphere.x, sphere.y, sphere.z};
-    const float r = sphere.radius, lx = Dot(g_fit.x, c), ly = Dot(g_fit.y, c),
-                lz = Dot(g_fit.d, c);
-    if (lx + r < g_fit.x0 || lx - r > g_fit.x0 + g_fit.extent || ly + r < g_fit.y0 || ly - r > g_fit.y0 + g_fit.extent ||
-        lz - r > g_fit.groundFar)
+    const float r = sphere.radius, lx = Dot(g_fit.x, c), ly = Dot(g_fit.y, c), lz = Dot(g_fit.d, c);
+    const float rx = r * Length(g_fit.x), ry = r * Length(g_fit.y);
+    if (lx + rx < g_fit.x0 || lx - rx > g_fit.x0 + g_fit.extent || ly + ry < g_fit.y0 ||
+        ly - ry > g_fit.y0 + g_fit.extent || lz - r > g_fit.groundFar)
         return false;
     g_nearestCaster = std::min(g_nearestCaster, lz - r);
     return true;
@@ -852,17 +860,36 @@ void PrepareShadows(Frame& f) {
         p.camera[1] = c.y;
         p.camera[2] = c.z;
     }
+    p.sun[0] = fit.d.x;
+    p.sun[1] = fit.d.y;
+    p.sun[2] = fit.d.z;
+    // The filters' discs lie across the light (as the sun's own disc does) and are drawn onto the map: a unit across
+    // the light in uv, by two axes across it, `level` and `up` (towards the sun's azimuth); the map's v runs against
+    // its y. The level axis keeps its length, the other is stretched by 1 / sin(elevation).
+    const float horizontal = lib::Hypot(fit.d.x, fit.d.y);
+    const Vector3 level =
+        horizontal < 1e-6f ? Vector3{1.0f, 0.0f, 0.0f} : Vector3{fit.d.y, -fit.d.x, 0.0f} * (1.0f / horizontal);
+    const Vector3 up = Cross(fit.d, level);
+    const float disc[4] = {Dot(fit.x, level), Dot(fit.x, up), -Dot(fit.y, level), -Dot(fit.y, up)};
+    const float discDet = disc[0] * disc[3] - disc[1] * disc[2];
+    for (int k = 0; k < 4; ++k) p.disc[k] = disc[k];
+    p.discInverse[0] = disc[3] / discDet;
+    p.discInverse[1] = -disc[1] / discDet;
+    p.discInverse[2] = -disc[2] / discDet;
+    p.discInverse[3] = disc[0] / discDet;
+    const float stretch = std::max(lib::Hypot(disc[0], disc[2]), lib::Hypot(disc[1], disc[3]));
+    p.sun[3] = stretch;
     p.soft[0] = depth * kSunSize / extent;
-    // The widest filter, in texels: kWidestRadius, at most what the dilation's cells reach.
+    // The widest filter, in texels across the light: kWidestRadius, at most what the dilation's cells reach on the map.
     constexpr float kWidestReach = (kMostCellsAround - 1) * kRangeCell - 1.0f;
-    const float widestTexels = std::min(kWidestRadius / extent * kMapSize, kWidestReach);
+    const float widestTexels = std::min(kWidestRadius / extent * kMapSize, kWidestReach / stretch);
     p.soft[1] = widestTexels / kMapSize;
     p.soft[2] = kLeastRadius / kMapSize;
     p.soft[3] = static_cast<float>(kMapSize);
     // The cells around a cell that hold every texel the search and the filter read (+1 texel for the
     // bilinear comparisons' second texel), and one cell more: the receivers read the range filtered
     // between the four cells around a pixel, each of which must hold the pixel's taps.
-    const float reachTexels = widestTexels + 1.0f;
+    const float reachTexels = widestTexels * stretch + 1.0f;
     g_cellsAround = std::min(kMostCellsAround, static_cast<int>(std::ceil(reachTexels / kRangeCell)) + 1);
     sh.params = p;
     sh.on = true;
