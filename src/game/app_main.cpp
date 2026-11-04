@@ -41,7 +41,6 @@
 #include "lib/vecmath.h"
 #include "world_glue.h"
 #include "../platform/log.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "world_data.h"
 

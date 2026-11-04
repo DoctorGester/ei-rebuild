@@ -386,7 +386,6 @@
 #include "harness_objects.h"
 #include "image/image_side.h"
 #include "system/harness_system.h"
-#include "../../src/game/game_data.h"
 
 #include <algorithm>
 #include <atomic>
