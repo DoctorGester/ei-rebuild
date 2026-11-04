@@ -915,7 +915,7 @@ enum class ScriptFunction : int {
 // g group); a function's starts with its result type in upper case ("Fff": float IsEqual(float, float)).
 struct ScriptKeyword {
     const char* name;
-    ScriptFunction id;
+    ScriptFunction id{};
     const char* function;   // functions: result and parameter types, else null
     const char* command;    // commands: parameter types, else null
 };
