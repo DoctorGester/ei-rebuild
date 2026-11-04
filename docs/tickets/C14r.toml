@@ -1,0 +1,10 @@
+id = "C14r"
+title = "Delete mfc_archive: CArchive, CArchiveException and the string operators once the collections' Serialize slots are gone"
+group = "cleanup"
+model = "sonnet"
+depends = ["C14m", "C14zb"]
+files = ["src/lib/mfc_archive.h", "src/lib/mfc_archive.cpp", "src/lib/mfc_exception.h", "src/lib/mfc_exception.cpp", "src/lib/mfc_slots.h"]
+note = "C14d left src/lib/mfc_archive.h/.cpp (CArchive over a lib::File, StoreText / LoadText / ReadStringLength / WideToMultiByte) and CArchiveException / ThrowArchiveException (mfc_exception), reached only by the MFC collections' Serialize slots (mfc_slots.h, mfc_array.cpp's Strings::Serialize, game_arrays.h / game_slots.h / party_lifetime.cpp's CompiledCollection tags). Nothing builds an archive, so the slots are dead. When C14m has moved CArray / CList to std (or makes slot 2 CObject's empty Serialize), delete them with mfc_archive, CArchiveException (its vtable row 00746808 to file -, kClassCArchiveException 007467D8 to gen_image_cells UNREAD), kIdpArchiveNone and its resource strings, and the replay_unlinked.cpp stub."
+order = 501
+status = "done"
+done = "2026-10-28"

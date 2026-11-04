@@ -1,0 +1,10 @@
+id = "R27b"
+title = "Textures and surfaces without DirectDraw types: CDXSurface, DDSURFACEDESC2, DDPIXELFORMAT out of the game code"
+group = "renderer"
+model = "opus"
+depends = ["R27a"]
+note = "After R27a. CDXSurface (40 files), dx_surface.cpp, ui_surface_*.cpp, texture_*.cpp still carry DirectDraw surface descriptors and pixel formats picked from the null device's fake texture-format list. Replace them with our own texture / surface types in the one format the renderer takes; pixel_formats.cpp and device_mesh.cpp's EnumTextureFormats go down to one fixed path. Keep file formats (MMP, BMP) as read. Goldens must stay the same."
+order = 80
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

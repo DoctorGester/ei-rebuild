@@ -1,0 +1,9 @@
+id = "C28g"
+title = "C28 worlds, terrain, text manager, the sessions' player sources"
+group = "cleanup"
+model = "opus"
+files = ["src/game/world.h", "src/game/world_class.h", "src/game/world_client_class.h", "src/game/world_create.cpp", "src/game/world_game.cpp", "src/game/terrain.h"]
+note = "world_class.h (CWorld base / client / server tags, 42-43 slots), world_client_class.h (terrain, text manager), world_create.cpp's player sources and counted helper, world_create.cpp; world_game.cpp's and world_create.cpp's SetVtable stores. After C28c (CManagerContext)."
+order = 425
+status = "done"
+done = "2026-10-22"

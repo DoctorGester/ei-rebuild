@@ -1,0 +1,12 @@
+id = "WB4"
+title = "Work board: workers and coordinator switch to work.py"
+group = "harness"
+size = 0.3
+model = "sonnet"
+depends = ["WB2", "WB3"]
+files = ["docs/worker-brief.md", ".claude/agents/area-worker.md"]
+note = "Workers use work.py start at the beginning, note at milestones and test instead of run_all; the coordinator runs done at merge."
+order = 289
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

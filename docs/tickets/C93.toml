@@ -1,0 +1,9 @@
+id = "C93"
+title = "UI style 1: TextStyle, message-box enums, const Rect&"
+group = "cleanup"
+model = "sonnet"
+note = "Follow-ups from the worker: SetRectangle's ~130 hex UV tuples need a Texels struct (scripted); CampPages' kAnswerYes box may be dead (check)."
+order = 1023
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

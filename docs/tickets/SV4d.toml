@@ -1,0 +1,9 @@
+id = "SV4d"
+title = "Function vectors: stat formulas that read game settings and databases"
+group = "verification"
+depends = ["SV4a"]
+note = "Function vectors for stat formulas that read game settings and databases (GetFactors, StrengthRatio, SkillWithBonus, SkillPrice, PickLocation) via a replay seam; docs/notes/standalone-verification.md."
+order = 177
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

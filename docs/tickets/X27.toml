@@ -1,0 +1,7 @@
+id = "X27"
+title = "CPlayerClient::SendLeave04 state check mismatched once"
+group = "harness"
+note = "Closed 2026-10-28: one of 44 Rebirth runs once; not seen since."
+order = 279
+status = "done"
+done = "2026-10-28"

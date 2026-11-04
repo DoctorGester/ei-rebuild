@@ -1,0 +1,10 @@
+id = "C57"
+title = "Delete what only the debug panel read"
+group = "cleanup"
+model = "sonnet"
+depends = ["C55"]
+note = "After C55: the console 'show fps|renderinfo|managers|worlddata' flags (debugFlags_) that nothing reads now (check fps first: the visible FPS surface stays), the device's drawCount_ / textureChanges_ and the frame-time statistics with no readers. Console goldens keep game.exe's text; note the deviation as C55 did (tests/golden/console)."
+order = 700
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

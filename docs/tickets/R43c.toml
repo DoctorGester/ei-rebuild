@@ -1,0 +1,11 @@
+id = "R43c"
+title = "Small SDL_GPU blockers on the sokol renderer: border clamp, manual range bilinear, packed vertex slots, no D24S8"
+group = "renderer"
+size = 1
+model = "sonnet"
+depends = ["R43"]
+note = "From R43 (build/reviews/r43_sdl_gpu.md, blockers 2, 3 and 8). Border clamp (render_textures.cpp, address mode 4): find whether game data uses it, then emulate it in the mesh and terrain shaders or drop it. The shadow range RGBA32F's linear filtering is optional on Vulkan: make the receivers do four loads and a lerp. Pack each pipeline's vertex buffer slots from 0, as the casters' 0 and 2 break SDL's D3D12 backend. Replace the one DEPTH_STENCIL target (D24S8, absent on AMD Vulkan and Metal) with D32F or drop its stencil. Captures unchanged or explained."
+order = 928
+status = "done"
+started = "2026-11-03"
+done = "2026-11-03"

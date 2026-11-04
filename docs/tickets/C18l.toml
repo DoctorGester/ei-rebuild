@@ -1,0 +1,10 @@
+id = "C18l"
+title = "Named data: constant static-init objects hand code reads (C18j pattern, by area)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C18j"]
+note = "Done for the hand-read objects: camera (kHalfPi, kZeroVector, kIdentityRotation), scene_loader zero vector, ground_print / sound_manager / terrain_* constants, player_client_handlers rotation, IsaacRandom g_random 007A9D40; game data addresses 2055 -> 2021, goldens 121 the same. Left: 007AF3E8 / 007C53C4 (a pointer to the constructed stream 007C5810: name that first), 007C2F24 (run-time guard), 0079B2A0 and the per-window folds only game.exe code reads. Waiting for C19 batch 4: sky_object 007AA890/8A0, unit 007AF280/4, animation/object3d/map_object lifetime 007AF0E0-007AF238, torch_spec 007AF2D0."
+order = 383
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

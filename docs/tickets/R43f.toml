@@ -1,0 +1,10 @@
+id = "R43f"
+title = "CI for the HLSL toolchain: linux.yml and the Suites runner fetch and cache shadercross and DXC; port_render on lavapipe"
+group = "renderer"
+size = 0.5
+model = "sonnet"
+depends = ["R43a"]
+note = "From R43 (build/reviews/r43_sdl_gpu.md, blocker 6). The toolchain is fetched with pinned hashes and cached. Lavapipe ran the spike under WSLg. R43a: CMake's configure now fetches (pinned SHA-256) and builds the toolchain itself (tools/shader_toolchain/toolchain.cmake) into EI_THIRD_PARTY (default: the main checkout's build/third_party; in a container where git refuses the checkout, the source tree's). CI only needs to cache that folder. linux.yml and release.yml already install mesa-vulkan-drivers and ctest runs port_shaders (ei_shader_check --require) on lavapipe. Done 2026-11-03 (checked): linux.yml and suites-linux.yml cache build/third_party (the configure-built toolchain), the Windows Suites runner is self-hosted and keeps its checkout's build/third_party, and ctest runs port_render / port_shaders / port_gpu on lavapipe."
+order = 931
+status = "done"
+done = "2026-11-03"

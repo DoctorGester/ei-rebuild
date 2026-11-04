@@ -1,0 +1,8 @@
+id = "C20p"
+title = "After C20n: the unused EDX parameter, the comments about conventions, progress.py's shim count"
+group = "cleanup"
+note = "C20n dropped the modifiers (script in the scratchpad, kept ones listed by rule), which leaves: (1) the 'void*' second parameter of the old thiscall-as-fastcall shims (T* self, void*, ...) is now a plain unused parameter in ~600 functions: drop it with its call sites (the calls pass nullptr); (2) comments that say __fastcall / ECX / EDX / RET n for functions that no longer carry them (tools/comments.py REGISTER_RX); (3) tools/progress.py fastcall_shims counts '__fastcall Fn(T* self, void*)' and now reads 0: make it count the (T* self, void*) shape without the keyword, or retire the line; (4) tools/gen_static_init.py still writes 'void __cdecl Fn()' (harmless default, but keep it matching)."
+order = 482
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

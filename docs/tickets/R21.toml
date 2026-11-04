@@ -1,0 +1,10 @@
+id = "R21"
+title = "Performance overlay in the standalone, switched by the settings file"
+group = "renderer"
+size = 1
+model = "opus"
+note = "Done 2026-10-22: render_perf.{h,cpp} + shaders/perf_overlay.hlsl; switch [Software\\Nival Interactive\\EvilIslands\\Standalone] \"PerfOverlay\"=dword:1 in ei_settings.ini (directdraw_holder.cpp, not read in the harness build); shows FPS, frame avg/worst, GPU shadow/world/UI/present (timestamps), CPU submit/shadow, draws; drawn into the back buffer only. Checked by ei_perf_check (WARP, build.cmd). renderer.md section 15."
+order = 66
+status = "done"
+started = "2026-10-22"
+done = "2026-10-22"

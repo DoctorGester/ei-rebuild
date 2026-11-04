@@ -1,0 +1,9 @@
+id = "T2b"
+title = "Hero attack on a removed target: PlayerMode::UpdateCombat verify mismatch"
+group = "harness"
+size = 1
+note = "Hero attack on a removed target (Attack then RemoveUnitFromServer): the PlayerMode::UpdateCombat verify mismatch was investigated with a scratch scenario."
+order = 299
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

@@ -1,0 +1,9 @@
+id = "C54c1"
+title = "C54c rest: the text reader's free functions and the global map's counts"
+group = "cleanup"
+depends = ["C54c"]
+note = "TextNextLine / TextSkipLine (text_reader.h, the last free functions on CTextManager; callers ui_battle_update, ui_help_page, ui_help_window, ui_item_info, ui_objectives*, ui_global_map_places) -> CTextManager members (TextSkipLine has no caller outside text_manager.cpp: a local helper), text_reader.h folded into item_db_text.h. CGlobalMap: zoneCount_ / questCount_ / linkCount_ repeat the vectors' sizes (markerCount_ their sum); the D() double casts and Ftol truncations in ui_global_map.cpp (x87 mirroring, golden-check under /arch:IA32); MapBuilder::Layer's Vector3::Construct; RefreshSelection's colour expression. Goldens: ui_camp, ui_global_map_pick, ui_gallery_deals."
+order = 739
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

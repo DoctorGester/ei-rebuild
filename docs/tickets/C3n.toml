@@ -1,0 +1,8 @@
+id = "C3n"
+title = "Duplicate forwarders to 0"
+group = "cleanup"
+model = "sonnet"
+note = "Duplicate forwarders at 0 (313 -> 0 across C3m, C3n, C3o, C3p); keep at 0 (check_forwarders)."
+order = 323
+status = "done"
+done = "2026-10-14"

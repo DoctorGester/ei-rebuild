@@ -1,0 +1,10 @@
+id = "S19d"
+title = "Standalone mod folders: checks for Stream, Movies and the uncovered Maps sites"
+group = "standalone"
+size = 0.5
+model = "sonnet"
+note = "From S19b: no scenario covers StreamPatch, MoviesPatch, the extra figure / texture archives, archives a mod switches off ('-' entries), or the zone-table and quest Maps sites. Rebirth's own override folders and a mod's [CONFIG] / [DEV] sections are not reproduced."
+order = 597
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

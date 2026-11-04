@@ -1,0 +1,11 @@
+id = "S18f"
+title = "Standalone: own import table"
+group = "standalone"
+size = 2
+model = "opus"
+depends = ["S18a"]
+note = "A generated table (dll, function) per game.exe import slot, resolved by ei_hook.dll into storage of ours; gameapi.h, the static init's Import and the harness's slot routes (harness*.cpp kXxxSlot) through the seam; the host's ResolveImports and RouteImageCalls' patching of the image's IAT go. Seal iat. Checked: goldens both installs, --no-hooks (harness)."
+order = 614
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

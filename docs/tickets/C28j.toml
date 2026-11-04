@@ -1,0 +1,9 @@
+id = "C28j"
+title = "C28 renderer and device classes"
+group = "cleanup"
+model = "opus"
+files = ["src/game/texture.h", "src/game/dx_errors.h", "src/game/render_helper.cpp", "src/game/directdraw_holder.cpp"]
+note = "texture.h's RendererBaseClass / DirectDrawClass / DeviceObjectClass / DXSurfaceClass, model.h's TransformPipelineClass, dx_errors.h's GameErrorClass, render_helper.cpp, renderer_scene.cpp, directdraw_holder.cpp, dx_surface.cpp, device_mesh.cpp."
+order = 428
+status = "done"
+done = "2026-10-22"

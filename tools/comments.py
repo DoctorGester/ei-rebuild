@@ -14,7 +14,7 @@ Only // comments are touched; code, strings, /* */ blocks (the rdata literal tag
 them) and generated files are left alone. PATH is a file or folder under src/ (default: all of src/);
 `--batch C22x` stands for that batch's files (config/comment_batches.txt).
 """
-import csv, os, re, sys, tomllib
+import csv, os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, 'src')
@@ -34,10 +34,9 @@ NOT_TICKETS = {'MP3'}   # the music format
 
 
 def ticket_ids():
-    """Ticket ids from docs/tickets.toml, longest first. Two-character ids are left out: they are also
+    """Ticket ids (the file names in docs/tickets), longest first. Two-character ids are left out: they are also
     common names in comments (P1 a point, T2 a time, C0 / C2 byte values, R8 a register); so are NOT_TICKETS."""
-    with open(os.path.join(ROOT, 'docs', 'tickets.toml'), 'rb') as f:
-        ids = {t['id'] for t in tomllib.load(f).get('ticket', []) if 'id' in t}
+    ids = {f[:-5] for f in os.listdir(os.path.join(ROOT, 'docs', 'tickets')) if f.endswith('.toml') and f != 'groups.toml'}
     ids = {i for i in ids if len(i) > 2 and i not in NOT_TICKETS}
     return sorted(ids, key=len, reverse=True)
 

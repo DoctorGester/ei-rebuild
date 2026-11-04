@@ -1,0 +1,9 @@
+id = "S4c"
+title = "Standalone library: _ftol and _CI maths, _CxxThrowException, iostream, locale set-up"
+group = "standalone"
+size = 1
+files = ["src/lib/crt.h", "src/lib/crt.cpp"]
+note = "Standalone _ftol / _CI maths, _CxxThrowException, locale set-up (setlocale, _setmbcp, __init_ctype) and ostream inserters ported; suite 0 mismatches. docs/notes/standalone.md."
+order = 556
+status = "done"
+done = "2026-10-15"

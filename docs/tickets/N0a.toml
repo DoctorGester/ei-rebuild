@@ -1,0 +1,10 @@
+id = "N0a"
+title = "Census coverage: help page, chat, connect list, escape-menu capture, save picture, global-map pick"
+group = "native-ui"
+size = 0.5
+files = ["tests/scenarios/", "tests/verify/ui_census.cpp"]
+note = "Census coverage extended to the help page, chat, connect list, escape-menu capture, save picture and global-map pick; see docs/notes/ui-census.md (Coverage)."
+order = 127
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

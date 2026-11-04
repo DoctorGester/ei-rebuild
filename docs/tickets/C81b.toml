@@ -1,0 +1,9 @@
+id = "C81b"
+title = "16-bit canvas formats in render::ui"
+group = "cleanup"
+depends = ["C81"]
+note = "C81 removed VideoColorDepthInBits; ScreenFormat() is always X8R8G8B8. render_ui.cpp (is565/is555), ui_canvas shaders and ui_rgb565.hlsl may still serve the save-picture 565 path only; delete what nothing reaches."
+order = 1003
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

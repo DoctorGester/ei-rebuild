@@ -1,0 +1,9 @@
+id = "C52e"
+title = "C52 rest 5: out-parameters still left after C52d"
+group = "cleanup"
+depends = ["C52d"]
+note = "Left on purpose: ParticleSource::AttachmentOffset (returns the offset, radius still through float*; a struct of both would touch 14 callers), GetMovePoint / FindStandPoint / WeaponPoint (conditional writes that keep the caller's value), FindVariable (bool plus two ints), LightningSegment::SampleNoise (fills the global noise buffers), Unit motion Sample / SamplePath (nine outputs; a result struct), GetBounds users that wanted the initial {10000,0,10000,0} (none: the function sets all four)."
+order = 973
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

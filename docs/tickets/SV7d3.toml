@@ -1,0 +1,10 @@
+id = "SV7d3"
+title = "Unit controller waitFrame: the original's memory value"
+group = "verification"
+size = 0.25
+depends = ["SV7d"]
+note = "The unit controller's waitFrame (+0x93C) starts at 0 on both sides (server objects allocated zeroed, SV7b2), so the leftover no longer decides whether a follower waits."
+order = 226
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

@@ -1,0 +1,10 @@
+id = "P8"
+title = "Native interface by default under present"
+group = "native-ui"
+size = 1
+depends = ["P3a", "P3b", "P3c", "P3d", "P4", "P5", "P6"]
+note = "Drop the DIB and memcmp for native surfaces; renderer.md section 6 and ui.md updated.  Text metrics: GDI's until here (user 2026-10-29); P8 switches to our own metrics in ui_native_fonts.cpp, needs P2a's fonts beside the exe.  User 2026-10-29: P8 deletes all GDI interface code and fallbacks: DIB sections, memcmp, the GDI text path, GDI metrics, and the uinative/uiboth words; grep src for GDI calls (CreateDIBSection, DrawText, TextOut, GetTextExtent, SelectObject, HFONT) and leave none. Done 2026-10-29: canvases the only path (history replay on a lost device), our own metrics, GDI interface code, census and comparison harness deleted; RichEdit titles left for P8a (docs/notes/ui-native.md, P8 done)."
+order = 126
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

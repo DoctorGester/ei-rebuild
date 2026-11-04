@@ -1,0 +1,9 @@
+id = "R52a"
+title = "Ground prints follow the time of day"
+group = "renderer"
+depends = ["R52"]
+note = "R52 found: a print's colour is unlit (blood keeps the sun colour of the moment it was made, footprints are white), so prints made by day stay bright red / white on the ground at night (render_shadows_decals' night frame). The shadows now darken them (mesh.hlsl ground_shade); light them as the ground under them is lit (ground_light's light over a daylight reference), keeping the game's look by day."
+order = 960
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

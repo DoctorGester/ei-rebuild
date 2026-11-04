@@ -1,0 +1,9 @@
+id = "C20m"
+title = "Dead functions and stale comments after the map lines went (C20l)"
+group = "cleanup"
+depends = ["C20l"]
+note = "C20l deleted the 8,293 EI_REWRITTEN lines, which kept every named function in the image. Functions only those lines named are now unreferenced (e.g. mfc_slots.cpp's ExceptionDestruct; header-only aliases such as mfc_slots.h's Plain8 / List12 used only by the old lines): find them with C20g's method (/Od scratch builds, COFF relocation graph) and delete. Also comments that still say a function or instantiation is 'registered' at an address or 'in the map' (file headers of the files the lines left, e.g. aligned_arrays.cpp, stlp_hash.cpp, game_arrays.cpp)."
+order = 476
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

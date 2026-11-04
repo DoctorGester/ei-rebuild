@@ -1,0 +1,9 @@
+id = "V30"
+title = "Adversarial review round (read-only reviewers, no builds or runs)"
+group = "verification"
+model = "opus"
+note = "User 2026-10-29: another round of adversarial reviews, run alongside the R37/H33 profiles, so reviewers never build, test or start games (read the code, the notes and git history only). Areas since the last round: R34a client random split (anything client-only still on the game generators, or gameplay on the client one), C60a AI mode ownership and removedCurrent, C59 renames and file merges (behaviour moved with code?), S24 settings defaults, R35a drawn view vs picking, R36 light shadow flag, C52b/C53b signature changes (optional/vector returns, dropped parameters), P8 native UI. Each reviewer writes findings with file:line and a concrete failure scenario to build/reviews/<area>.md; I verify and file tickets for the confirmed ones."
+order = 866
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

@@ -1,0 +1,10 @@
+id = "PL10"
+title = "Platform layer review: what can be simpler (read-only)"
+group = "port"
+model = "opus"
+depends = ["PL9"]
+note = "User 2026-10-30: clean up the platform layer, review first, then simplify as much as possible. A read-only reviewer reads src/platform (platform.h, the SDL3 backend from PL9, the win32 remainder, audio, bink) and its callers and writes build/reviews/pl10_platform.md: each API that is MFC- or Win32-shaped without need (File's CFile flags and share modes, TextFile = CStdioFile with its 128-character line pieces, FileError's osError, FileFind, mapped files, ini reading, Rect/Point leftovers), duplicates (File vs TextFile, several whole-file readers), dead or single-caller functions, and what the game actually needs. Per item: the proposed simpler shape, the callers to change, and whether a golden could depend on the old behaviour (e.g. the 128-character quirk in script or key files). Ends with a batched plan for PL11. Run after PL9 merges (PL9 rewrites the backend)."
+order = 1088
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

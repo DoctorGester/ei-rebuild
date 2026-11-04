@@ -1,0 +1,10 @@
+id = "W4b"
+title = "EI_Plugin's remaining Fixes and NPlayers sites"
+group = "widescreen"
+size = 0.5
+model = "sonnet"
+note = "EI_Plugin's remaining EiPluginFixes / EiPluginNPlayers sites (005ED7B0, 006091C0, 006407E0, 005F13A0, 00536100, 00640060, 00608D20) reproduced behind the flag; ei::rebirth::PluginNPlayers()."
+order = 146
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

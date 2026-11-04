@@ -1,0 +1,9 @@
+id = "T2e"
+title = "rebirth_flags: check Not(IsLess(DistancePointPoint(3,4),0)) prints 0 on a first run now and then"
+group = "harness"
+size = 1
+note = "rebirth_flags check Not(IsLess(DistancePointPoint(3,4),0)) printing 0 on a first run was the most frequent false failure; fixed."
+order = 302
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

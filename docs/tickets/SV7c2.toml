@@ -1,0 +1,11 @@
+id = "SV7c2"
+title = "Heap jitter for the standalone image's host heap"
+group = "verification"
+size = 1
+model = "opus"
+files = ["tests/verify/harness_heap.cpp", "src/lib/crt.cpp"]
+note = "The image's malloc family uses a VC6-style _crtheap through the game's import slots, so EI_HEAP_JITTER, EI_HEAP_FILL and the fixed reservation act on the image too."
+order = 249
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

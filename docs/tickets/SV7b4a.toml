@@ -1,0 +1,9 @@
+id = "SV7b4a"
+title = "Client orientation ulp: find what flips it (shadow round trip)"
+group = "verification"
+depends = ["SV7b4"]
+note = "Client orientation ulp fixed: the shadow round trip (0051D479 / 0051D4E0) is exact in both original and ours (map_object_shadow.cpp); see docs/notes/standalone-verification.md."
+order = 229
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

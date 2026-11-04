@@ -1,0 +1,11 @@
+id = "D4"
+title = "Trim the area notes to current facts"
+group = "docs"
+size = 1
+model = "sonnet"
+depends = ["D3"]
+note = "Area notes trimmed to current facts (docs/notes/standalone.mddocs/notes/standalone-verification.mdand docs/notes/work-board.mdleft to D3)."
+order = 655
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

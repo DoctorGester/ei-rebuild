@@ -1,0 +1,11 @@
+id = "P8a"
+title = "The titles' text laid out by us instead of RichEdit"
+group = "native-ui"
+size = 0.5
+depends = ["P8"]
+files = ["src/game/ui_scrolling_surface.cpp"]
+note = "The last GDI of the interface (P8): CUiScrollingSurface (0065F020) formats outro.rtf with a hidden RichEdit into a 32-bit DIB page on a memory DC and writes the pixels onto the canvas each scroll step. Needs: an RTF subset reader for the one Word-made file in outro.res (fonttbl, colortbl, par/pard, plain, b/i, fs, cf, qc/ql, li/fi, tx/tqr, tab, f; stylesheet and info skipped); paragraph layout on render::text (alignment, indents, right tab stops, sizes, colours; bold / italic drawn in the regular Liberation shapes unless bold / italic faces are embedded); the scroll in twips with the end detection (the text fitted, then the extra twips below); glyph runs on the canvas instead of the page. Removes the RichEdit library load, EM_STREAMIN / EM_FORMATRANGE and the page (CreateDIBSection, CreateCompatibleDC, SelectObject, GetDeviceCaps). Check: render_titles_present's frames and the titles' end timing."
+order = 136
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

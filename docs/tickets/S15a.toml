@@ -1,0 +1,11 @@
+id = "S15a"
+title = "Harness in the standalone image: capture, held updates, countdowns"
+group = "standalone"
+size = 0.5
+depends = ["S15"]
+files = ["tests/verify/harness.cpp", "tests/verify/harness_capture.cpp"]
+note = "The harness hooks the image's rewritten callers for frame capture (004580D7), held updates (00457314 / 00457368) and update countdown sites (tests/verify/harness_hooks.h)."
+order = 550
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

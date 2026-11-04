@@ -1,0 +1,10 @@
+id = "C34"
+title = "UTF-8 always: drop EI_UTF8; saves, network and harness digests convert at the boundary"
+group = "cleanup"
+model = "opus"
+depends = ["C14a"]
+note = "Done 2026-10-28: no EI_UTF8 / kUtf8 left (build.cmd's utf8 option and build/<cfg>-utf8 gone; text::sys folded into text::utf8). Saves and network convert at the boundary: CStream::WriteString (asset code page, '?' for characters outside it; replaced ~30 raw text writes and the files' WriteText helpers) and CStream::ReadString / ReadText; Chunk's WriteString / WriteStringArray; net_messages PutString / TakeString; GameBuffer strings. Colour escapes kept raw both ways. Harness: the image digest's Text converts to 1251; MessageBoxW hook answers the disc prompt; utf8_typing's steps run unprefixed, the Cyrillic file-name check is its utf8files step. Goldens 121 / 114 the same. docs/notes/standalone.md section 4."
+order = 470
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

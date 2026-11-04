@@ -1,0 +1,10 @@
+id = "C14zd"
+title = "Vector recorders: record_path.cpp reads game.exe's CAIMap through our retyped class and crashes recording runs"
+group = "cleanup"
+model = "sonnet"
+files = ["tests/vectors/record_path.cpp", "tests/vectors/path_vectors.h"]
+note = "C14z's re-record of the script family: every vanilla EI_VECTORS=1 run crashed (C0000005) in record_path.cpp OfferTables / EnsureSaved, because the path recorders read game.exe's CAIMap (and SmoothTable, fixed in C14z phase 0 with an exe::Array view, static_assert 0x3C) through src/game/ai_map.h, whose containers C14u made std. C14z recorded with the path recorders off for that run only. Give record_path.cpp an OriginalAIMap view at game.exe's offsets (cells, waterDepth, marks, the region grids; exe_objects.h's Array / Vector / List as OriginalSmoothTable does), so PutCallMap / Identify / EnsureSaved / MarksOf read no class of ours; then a recording run of the path family must finish and ei_vectors stay at 0 problems."
+order = 516
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

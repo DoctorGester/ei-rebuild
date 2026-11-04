@@ -1,0 +1,11 @@
+id = "X37"
+title = "Build warnings C4244 / C4458"
+group = "harness"
+model = "sonnet"
+size = 0.2
+files = ["src/game/world_rules.cpp", "src/game/map_object_client_effects.cpp"]
+note = "Build warnings C4244 (world_rules.cpp:48-49) and C4458 (map_object_client_effects.cpp) fixed."
+order = 282
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

@@ -1,0 +1,10 @@
+id = "C47"
+title = "Small mechanical cleanups: range-for, RandBelow, dead checks, ClassName, include paths, .clang-format"
+group = "cleanup"
+model = "sonnet"
+depends = ["C46"]
+note = "Style review 2026-10-28 (build/style_review/REPORT.md, user asked to schedule Tier 1 in the suggested order); after SV7b5 and C38d. G8. ~233 iterator loops and 37 pointer-pair loops whose body has no erase / insert -> range-for; 17 Rand() * n / 0x7FFF -> RandBelow(n) keeping the exact expression; delete 14 null checks after new, 7 self-assignment guards, 5 'fetched and not used' calls; rename the GetClassName virtual to ClassName() and drop 61 #undef GetClassName; 31 '../lib/' includes -> 'lib/'; add a .clang-format (include grouping, continuation indent) and apply it to touched files only."
+order = 680
+status = "done"
+started = "2026-10-28"
+done = "2026-10-29"

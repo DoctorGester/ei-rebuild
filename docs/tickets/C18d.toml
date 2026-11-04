@@ -1,0 +1,9 @@
+id = "C18d"
+title = "Named data: the first .data objects (one area)"
+group = "cleanup"
+depends = ["C18"]
+note = "Done (review): particle* .data tables as constexpr (25 tables for 29 addresses: nothing of ours writes them; kRiseFallAlpha 0078A914 serves 0078A914/918/960, kClayReach 0078A6F4/72C) and two written bss globals (g_bagSizes 007A9BFC, g_arraysConstructed 007A9BF4). named_data.py: zero fill for elements left out ({} for the zero tail), .rdata ranges must be const, --refs BEGIN END lists the original's operands into a range. Game data addresses 2,982 -> 2,952. Left in particle*: camera 0079B2DC and wind 007AF5DC (inside larger blocks), the static-init / exit objects."
+order = 373
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

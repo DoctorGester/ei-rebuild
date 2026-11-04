@@ -1,0 +1,8 @@
+id = "H33d"
+title = "Build time: windows.h out of ui.h, gameapi.h out of ui_item_info.h"
+group = "harness"
+note = "From H33a (docs/notes/cleanup-tooling.md, Build time). ui.h (160 objects) still includes windows.h only because its member CInterface::PlaySound is a mmsystem.h macro name (PlaySoundA in every file today): rename the member (e.g. PlayInterfaceSound, ~15 call sites in ui_*.cpp), then ui.h takes lib/win_types.h and the ui_*.cpp that call Windows include windows.h. ui_item_info.h (77 objects) includes lib/gameapi.h for TrimItemCache's gameapi::timeGetTime (a template body): give it a non-template helper in a .cpp. Each ~1% of a clean build. Check per function with dumpbin (include changes can change std::string inlining) or goldens."
+order = 790
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

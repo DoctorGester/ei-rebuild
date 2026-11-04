@@ -1,0 +1,9 @@
+id = "C69"
+title = "ei_settings.ini explains itself: a comment above every setting, docs/settings.md generated"
+group = "cleanup"
+model = "sonnet"
+note = "Done 2026-10-30: src/game/settings_catalog.inc (125 rows), described defaults, docs/settings.md (tools/gen_settings_doc.py, in build_checks), Video 2 in new files (the movies were off), 21 settings nothing read dropped (options, loader, writer, defaults; OptionsResetDefaults gone)."
+order = 979
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

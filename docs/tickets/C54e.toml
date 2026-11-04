@@ -1,0 +1,11 @@
+id = "C54e"
+title = "C54 rest: Tier 2 style in the HUD and the battle screen"
+group = "cleanup"
+model = "opus"
+depends = ["C54a"]
+files = ["src/game/ui_hud*.cpp src/game/ui_battle_*.cpp src/game/ui_camera*.* src/game/ui_flying_hit_points.* src/game/ui_alpha_draws.cpp"]
+note = "C54 follow-up. ui_hud*.cpp (ui_hud.cpp 7 BOOL and 3 forwarders, ui_hud_map / ui_hud_portraits / ui_hud_frame forwarders, ui_hud_unit_info's and ui_hud_frame's unknown parameters, ui_hud_build out-params), ui_battle_*.cpp (unknown/unused parameters in ui_battle_setup and ui_battle_update, BOOL), ui_camera_input.cpp (6 forwarders), ui_camera_keys.h, ui_flying_hit_points.h. G10, G12, G14, G15 as in C54. Goldens unchanged (the battle and HUD scenarios) + ei_ui_check."
+order = 729
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

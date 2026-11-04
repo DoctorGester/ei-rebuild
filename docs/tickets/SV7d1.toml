@@ -1,0 +1,10 @@
+id = "SV7d1"
+title = "Fear mode distance: 9.99999714 in ours, 10.0 in the original"
+group = "verification"
+size = 0.5
+depends = ["SV7d"]
+note = "Fear mode distance now equals the original: /fp:fast had distributed (30x + d) / 31 and (2s + 3) / 3, so the sums are rounded first (FearMode, 005D36F0)."
+order = 224
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

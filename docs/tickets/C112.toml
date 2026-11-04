@@ -1,0 +1,10 @@
+id = "C112"
+title = "Networking style 4: delete the dead reliable path; Connection::Reset"
+group = "cleanup"
+model = "opus"
+depends = ["C111"]
+note = "Style review round 3 (2026-11-04, https://claude.ai/artifact/KKkymAu9dSoUWGGcbsLwPa, digests in build/style_review/round3/*.md; user: file the tickets). Items N5, A7 of the net digest. reliable[] is only ever 0, so kChangedReliable/kRemovedReliable never run: delete the path, flags become a priority. Merge the replication duplicates (id allocation twice, the object-ref write in 4 spellings, (type<<16)+id 5 times, ReadObjectRef's re-inlined Create/AttachRecord, double ShareAssignOwned, the xor bit-insert, freedIds as two vectors). Connection::OnShutdown destroys 14 members and runs new (this): in-class initialisers and a Reset() that assigns; the 17 OnShutdown{Rebuild(this)} messages and NewCounted's refs/flags (59 uses) follow. Coordinate with C108 (roundTripSquare, reliable[-1]). Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes."
+order = 1043
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

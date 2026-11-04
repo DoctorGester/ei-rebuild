@@ -1,0 +1,9 @@
+id = "C13b3y"
+title = "Render forwarders after R16: DrawMesh / DrawMesh2, ManagerFindObject; CWnd::DestroyWindow"
+group = "cleanup"
+model = "sonnet"
+depends = ["C13b3x"]
+note = "Closed 2026-10-28 as obsolete: originals_render.h / originals_core.h and the EI_ORIGINAL forwarders are gone (hook retirement, S21); DrawMesh is CTextureDevice::DrawMeshBlocks (C21 batch 30)."
+order = 355
+status = "done"
+done = "2026-10-28"

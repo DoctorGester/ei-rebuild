@@ -1,0 +1,11 @@
+id = "C30e5"
+title = "SSE2: the server world and world effects (21 files)"
+group = "cleanup"
+model = "opus"
+depends = ["C30e4"]
+files = ["src/game/world_effect.cpp", "src/game/world_effect_missile.cpp", "src/game/world_effect_moshka.cpp", "src/game/world_effect_sequence.cpp", "src/game/world_effect_tornado.cpp", "src/game/world_effect_visual.cpp", "src/game/world_game.cpp", "src/game/world_glue.cpp", "src/game/world_party.cpp", "src/game/world_quests.cpp", "src/game/world_rules.cpp", "src/game/world_save.cpp", "src/game/world_server.cpp", "src/game/world_spells.cpp", "src/game/world_sync.cpp", "src/game/world_tick.cpp", "src/game/world_time.cpp", "src/game/world_unit_set.cpp", "src/game/world_units.cpp", "src/game/world_server.cpp", "src/game/world_weather.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. world_weather's wide constants (4), world_time's fmod (exact), world_game / world_quests / world_sync doubles, moshka / visual / party / units' fsin / fcos / fpatan / CiAcos (CiAcos stays a call into crt_x87)."
+order = 904
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

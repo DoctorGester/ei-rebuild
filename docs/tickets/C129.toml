@@ -1,0 +1,10 @@
+id = "C129"
+title = "World style 2: GameState and ZoneMode enums; GameFlow calls its own steps; world_glue retired"
+group = "cleanup"
+model = "sonnet"
+depends = ["C128"]
+note = "Style review round 4 (2026-11-04, https://claude.ai/artifact/BzXaX58kMcB9E2dwRuhN2U, reviewer reports in build/style_review/round4/<area>.md; user: file them all). Items W1, W4 (world.md A1, A5, A6). enum class GameState for gameResult (1 playing, 2 network, 4 main menu; value 2 is called kGameResultLost in world_units/world_party: one name) and enum class ZoneMode for the campaign codes stored in sessionKind (and a separate session kind if the two vocabularies split cleanly; else document); delete the 12 per-file kKind*/kResult* copies and the 18 bare comparisons; note RestorePlayerItems' edge-as-network under 'Original bugs kept' (C127 checks it). GameFlow: CloseSessions calls DropSessions, RequestKind/RequestZone/RequestPartyZone used, one hello builder, one CopyVisitedZones(from, to), kModeMainMenu/kResultPlaying used, one magic constant. world_glue's 19 forwarders: callers call the owner; the four with logic move to their owners' files; delete the file; SaveGameThunk = DisconnectClient once. Style only: goldens the same, float operation order untouched (any float rewrite exact and said why), no new forwarders, normal C++ classes; gameplay code stays (technical dead code goes)."
+order = 1060
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

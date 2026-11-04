@@ -1,0 +1,11 @@
+id = "S21b"
+title = "--widescreen: Rebirth's WideScreen against the image's frames"
+group = "standalone"
+size = 1
+depends = ["S21"]
+files = ["tools/run_all.py", "tools/compare_frames.py"]
+note = "--widescreen compares the image's frames against recorded references of addon's WideScreen (original-game harness), no live addon comparison each run."
+order = 599
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

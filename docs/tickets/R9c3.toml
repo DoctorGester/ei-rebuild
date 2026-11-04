@@ -1,0 +1,10 @@
+id = "R9c3"
+title = "Scroll Lock screenshot and movie recorder from the new frame"
+group = "renderer"
+model = "sonnet"
+depends = ["R9c"]
+note = "Scroll Lock screenshot and movie recorder take the picture from render::ReadFrame, since 006D6D40 gives no bitmap for a holder without a surface."
+order = 10
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

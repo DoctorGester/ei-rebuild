@@ -1,0 +1,12 @@
+id = "R16d"
+title = "Meshes resident on the GPU: model-space corners kept, colours streamed"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R16"]
+files = ["src/render/render_mesh.cpp", "src/game/device_mesh.cpp"]
+note = "docs/notes/renderer.md section 13, item 4. 0.3-2.3 MB of mesh vertices streamed a frame; 75% of meshes unchanged in zone1, most of the rest only relit. Keep model-space corners per mesh on the GPU, stream colours; positions only when the figure frame changed. Needs a change signal from the game (animation frame, lighting stamp) rather than hashing; the harness build compares. Check: render_scene, models, units, render_blink at 8 / 0.1%."
+order = 36
+status = "done"
+started = "2026-10-20"
+done = "2026-10-20"

@@ -1,0 +1,10 @@
+id = "R17c"
+title = "Weather on surfaces: rain ripples and splashes on water, wet ground and objects, snow cover"
+group = "renderer"
+model = "opus"
+depends = ["R17a"]
+note = "Driven by the game's weather state (weather_particles.cpp: rain / snow intensity, wind) without changing it: rain ripples (animated normal map) and splash particles on water pages, a wetness term (darker albedo, stronger specular, puddles in low terrain) building up and drying over time on ground and meshes, snow cover on up-facing surfaces (normal and height based) for snow maps. Purely visual: nothing in the simulation reads it."
+order = 60
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

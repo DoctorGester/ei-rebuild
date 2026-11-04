@@ -1,0 +1,8 @@
+id = "H34"
+title = "No-hooks suite served pre-R34c runs: the scheduler kept a stale harness digest"
+group = "harness"
+note = "Main 2026-10-29 after R34c: --no-hooks --golden gave 2 same / 111 differ (record 0, crt.rand). Cause: the scheduler (one process, alive 18:34-19:14) cached run_all.harness_digest/harness_files per root for its whole life (functools.cache). Batch 5250 (19:04, main before R34c's merge) computed main's digest; batch 5260 (19:12, after it) reused it, so reference_key gave the pre-R34c key (…-87b562c880ce) and the cache served runs of the old harness (no idle-pick wrapper; harness logs dated 17:01). Not C30a, not the goldens. Fix: the digest expires after 30 s, as work.scenario_revs does."
+order = 789
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

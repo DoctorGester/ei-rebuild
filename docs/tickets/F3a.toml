@@ -1,0 +1,10 @@
+id = "F3a"
+title = "Interface layout follow-ups from F3"
+group = "fields"
+size = 0.4
+model = "sonnet"
+note = "Interface layout follow-ups from F3: CBattleScreen (ui.h) and CBattleScreenSetup (ui_camp.h) merged, CUiMesh derived from CFigureMesh, raw SetDword offsets in ui_window.cpp named."
+order = 157
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

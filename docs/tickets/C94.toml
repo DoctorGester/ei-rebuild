@@ -1,0 +1,7 @@
+id = "C94"
+title = "UI style 2: panel slide struct, one window close, typed stack, dead draw virtual, options ids, unread fields"
+group = "cleanup"
+model = "sonnet"
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Items U2, U4, U5, U6. PanelSlide {t, direction, travel, moving, Step, Offset} replaces the three copies (and AdvanceSlide's template, the Bits(slide) tests); PopWindow()/CloseAll() replace the four close loops; ResetInput's three copies one function; Create's re-zeroing of defaulted fields deleted; enum class Backdrop; std::vector<UiContainer*> stack, ScreenOf gone, HudPortraits uses owner, CreateScreen() = 0 instead of std::abort. U4: delete DrawChild, rename Draw to DrawSprites and Redraw to DrawSurfaces, fold RedrawTips in. U5: an OptionId enum for settings[], dead stores, the one-key vector becomes a pointer, ShowGroup's double RefreshRows. U6: delete fpsSpare, tintSpare, BattleScreen::spare, imageSpare, HudClock::owner; initialise UiRegion bounds, UiTooltip fields and handled; no read at index -1 (HudQuickItems::RegionItem). Also the decompiler residue across ui*: currentUi-style aliases, end()[-1], hand-written push_back/SetAtGrow, goto tail, the TokenizeText/LayOut forwarders, empty rulers. Style only: goldens the same, float operation order untouched, no new forwarders."
+order = 1024
+status = "queued"

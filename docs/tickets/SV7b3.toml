@@ -1,0 +1,9 @@
+id = "SV7b3"
+title = "UnitStats stack-copy leftovers (obj2 hp)"
+group = "verification"
+depends = ["SV7a"]
+note = "UnitStats stack-copy leftovers (spareAbsorb / share / factor, GiveDefaults 00513630, UnitStatSlot::Reset 00523600) zeroed in ours and the original; unmoco2 hp back in the golden compare."
+order = 219
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

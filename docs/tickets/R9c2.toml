@@ -1,0 +1,10 @@
+id = "R9c2"
+title = "Software cursor moving between frames (movies, loading) without DirectDraw"
+group = "renderer"
+model = "opus"
+depends = ["R9c"]
+note = "The software cursor moves between frames in present mode (movies, loading) without DirectDraw (cursor thread 005E5690; docs/notes/renderer.md)."
+order = 9
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

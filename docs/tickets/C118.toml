@@ -1,0 +1,9 @@
+id = "C118"
+title = "Saves style 1: stack-object emulations, Seek, flat world_save, resource classes"
+group = "cleanup"
+model = "sonnet"
+note = "Style review round 3 (2026-11-04, https://claude.ai/artifact/KKkymAu9dSoUWGGcbsLwPa, digests in build/style_review/round3/*.md; user: file the tickets). Items F1, F2, F5, F6. F1: MappedResource and the ai_map_load/ai_events archives as plain locals; delete LocalResource (InPlace + Destroy, 15 uses), Archive and Destroy. F2: world_savefile uses GrowingBuffer::Seek (UpdateHigh/Length/SeekTo/BufferSeek, LocalBuffer, aliases); ByteStream's ReadSized/WriteSized/ApplyDiff/ReadText on narrow types instead of halves of a uint32 (exact); WriteDiff tail = CloseRun; ReadString not quadratic; delete ByteStream::reading and FileStream::Open's flag (13 callers); ok as bool. F5: world_save.cpp LoadSave flat with early returns (110 lines in else branches), typed writes for weatherStrength/unitRadius, the dead continue and always-true bit test, value18 named. F6: ~MappedResource calls CloseResource, MMIOResource copies once, LoadedFile as a vector, GetFilePlain without copies, resource_manager forwarders, the null-after-deref, function pointers for one bool, ~ResourceManager = Destroy, offset/vtable comments. Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes."
+order = 1046
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

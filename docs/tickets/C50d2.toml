@@ -1,0 +1,9 @@
+id = "C50d2"
+title = "CSysInfo, the device lock and the logic settings without static-init ports"
+group = "cleanup"
+depends = ["C50d"]
+note = "C50d follow-up. g_sysInfo (sys_info.cpp, lib::StaticObject, its initialiser stubs SysInfoStatic*) collects the machine's information in its constructor through gameapi import slots, and g_deviceLock 007AEE78 (renderer_lifetime.cpp, a CRITICAL_SECTION with ConstructDeviceLock / DestroyDeviceLock) is initialised through gameapi: as plain globals our CRT would run them at DLL load, before the image's import slots are known to be filled; check that (or call Win32 directly), then make them plain globals / a small lock class and retire their initialisers. LogicSettings::Construct (logic_settings.cpp, ConstructLogicSettings 005CDFB0) can become default member initialisers if named_data accepts the definition's values for g_logicSettings 007C53F8. Goldens unchanged."
+order = 737
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

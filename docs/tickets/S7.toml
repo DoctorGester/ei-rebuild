@@ -1,0 +1,9 @@
+id = "S7"
+title = "Standalone library: MFC CList<T>, CMap<T>, CPlex"
+group = "standalone"
+size = 1
+files = ["src/lib/mfc_list.h", "src/lib/mfc.h", "src/lib/containers.h"]
+note = "Standalone library MFC CList<T>, CMap<T>, CPlex: 104 rows (mfc_list.*, game_lists.*), suite 0 mismatches; 14 script / FaceGroup rows went to S7a."
+order = 533
+status = "done"
+done = "2026-10-15"

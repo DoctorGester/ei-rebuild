@@ -1,0 +1,10 @@
+id = "W3"
+title = "Battle-screen panel builders"
+group = "widescreen"
+model = "opus"
+depends = ["W2"]
+note = "Widescreen battle-screen panel builders; widescreen::SetPanelOffset replaces addon's variable."
+order = 141
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

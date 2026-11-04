@@ -1,0 +1,9 @@
+id = "H52a"
+title = "Silent build step failures under load"
+group = "harness"
+depends = ["H52"]
+note = "Seen in H52's timing runs on a loaded machine (98% CPU, games running): a build step exited non-zero with no output at all, once lib.exe archiving ei_render.lib (main's build, no compiler cache) and once a cached compile of registry.cpp (the launcher and sccache; the same command passed 20 times in a row alone). A rerun passes. Suspect: process start failing under load (0xC0000142, desktop heap) or another worker's taskkill. Find the exit code (ninja does not print it: run the step under a wrapper that logs it) and the cause; then either fix it or have build.cmd retry a build whose failed step printed nothing."
+order = 823
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

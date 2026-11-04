@@ -1,0 +1,12 @@
+id = "WB2"
+title = "Work board: test batches through one scheduler"
+group = "harness"
+size = 1.5
+model = "opus"
+depends = ["WB1"]
+files = ["tools/work.py", "tools/run_all.py"]
+note = "work.py test <ID> [run_all args] submits a batch to one scheduler owning the 16 slots (backfill, display-mode runs alone); docs/notes/work-board.md. Plain run_all still works."
+order = 287
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

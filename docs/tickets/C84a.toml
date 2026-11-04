@@ -1,0 +1,11 @@
+id = "C84a"
+title = "Original bugs: the B entries C84 left (ownership, loaders, slots) and the savers' null blocks"
+group = "cleanup"
+model = "opus"
+depends = ["C84"]
+files = ["src/game/map_object_figures.cpp", "src/game/unit.cpp", "src/game/unit_create.cpp", "src/game/unit_stats.cpp", "src/game/unit_skins.cpp", "src/game/unit_client_models.cpp", "src/game/magic_trap.cpp", "src/game/script_load.cpp", "src/game/script_vars.cpp", "src/game/script_eval.cpp", "src/game/script_exec_helpers.cpp", "src/game/script_parse_load.cpp"]
+note = "From C84's table (build/reviews/c84_original_bugs.md on C84's branch; the 'Left for C84a' paragraphs in docs/notes/{map_objects, script, units}.md). Fix each (rule 9), goldens the same unless a fix changes a recorded run (then re-record with --reason, two agreeing runs). Map objects: Destroy3D / CopyFigure part ownership (one counted rule for parts). Units: AddToSlots returns 1 for 'already there' which is also slot 1, AddSpell(null) (audit the callers, return a distinct value); UnitStats::Reset's untouched fields; name lookups that insert unknown names; CollectArmourPartNames' five empty helmet names; WearArmourModel's id for slots 3-6; RemoveArmourModel's order; DropBrokenEquipment's release order; Unit::Reset clearing item slots without releasing (check the slots start zeroed on fresh units first); LoadTrap appending victims (CountedListLoad); the trap's unused 0x100000 flag. Script: IsInArea creating an area for an unknown id; LoadScriptBody leaving a failed pair's blocks; DeleteArea's moved-out entry; the if-then block id presets; list loaders re-reading nodes; AppendFrom's names vs values; and the one A left: a save whose block ids the loaded scripts lack (savers and Execute fault on the null block) - drop such pairs and runs at load. Equivalence sweeps under ~5 min."
+order = 998
+status = "done"
+started = "2026-11-03"
+done = "2026-11-04"

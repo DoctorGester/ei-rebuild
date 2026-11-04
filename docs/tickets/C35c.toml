@@ -1,0 +1,8 @@
+id = "C35c"
+title = "C35 formatting: crt_format's printf to the host's for integers, strings and chars, VC6's float conversions kept"
+group = "cleanup"
+note = "Survey 2026-10-28: gamecrt::sprintf 35, libcrt::Vsprintf 5, str::FormatV (CString::Format's callers), WideToBytes, the BoundedSink / VectorSink; crt_format.cpp is 935 lines. Keep the %e/%f/%g digits (VC6's 12-byte _fltout and its decimal rounding: the UCRT rounds exact ties to even since Windows 10 2004, so '%.2f' of 0.125 differs; floats reach saves, the console and on-screen numbers). The rest (%d %u %x %s %c, flags, width, precision, %n) is the host's vsnprintf byte for byte; %Z and wide text have no caller to check. The lead-byte test in the plain-text state reads CharClasses (C35b)."
+order = 490
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

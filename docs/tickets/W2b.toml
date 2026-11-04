@@ -1,0 +1,11 @@
+id = "W2b"
+title = "Connect screen Create 0061B2C0: addon's ExtendedServerName sites"
+group = "widescreen"
+size = 0.3
+model = "sonnet"
+files = ["src/game/ui_connect_screen.cpp", "config/rebirth_patches.csv"]
+note = "Connect screen Create 0061B2C0 reproduces addon's ExtendedServerName sites (field sizes, 0061BB51 and neighbours, 0061B5CE float), gated on Patch::ExtendedServerName."
+order = 144
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

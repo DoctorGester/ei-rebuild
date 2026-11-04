@@ -1,0 +1,10 @@
+id = "S4a"
+title = "Standalone library: MSVC6 formatted text (sprintf family, atof)"
+group = "standalone"
+size = 1
+files = ["src/lib/crt.h", "src/lib/crt.cpp"]
+note = "MSVC6 formatting in src/lib/crt_format.cpp: sprintf 006E8715, vsprintf 006ECC47, fprintf 006EAEB0, printf 006E955F (VC6's _output and float digits), atof 006E911A."
+order = 554
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

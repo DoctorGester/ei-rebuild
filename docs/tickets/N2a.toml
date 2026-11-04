@@ -1,0 +1,9 @@
+id = "N2a"
+title = "Line heights matching GDI's hinted Times New Roman (optional)"
+group = "native-ui"
+size = 0.3
+depends = ["N2"]
+note = "Dropped: the user is fine with Liberation's wrapping and line heights (screenshots from ei_text_check --pictures)."
+order = 128
+status = "done"
+done = "2026-10-14"

@@ -1,0 +1,10 @@
+id = "R17c2"
+title = "Characters get wet in rain and covered in snow"
+group = "renderer"
+model = "opus"
+depends = ["R17c"]
+note = "User 2026-11-04: characters should also get wet / snow-covered. Today (R17c, mesh.hlsl weathered_mesh) units only darken when wet (no sheen: few large faces) and get no snow at all. Give units their own look: a wet sheen that works on low-poly figures (per-pixel from the interpolated vertex normal, not face normals; specular on top faces/shoulders/heads), snow settling on upward-facing parts (head, shoulders, the tops of armour) building over time with the cover and melting/brushing off; under a roof or in a cave none. Per-unit state is client-only (the rendering side, no game state, no goldens change): ideally a unit that walks out of shelter starts dry and wets over time; a simple version may follow the world's state. Captures in rain and snow (zone1 rain, gz11k snow) of heroes and monsters, close up, before/after; cost on the R17c profile scene."
+order = 952
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

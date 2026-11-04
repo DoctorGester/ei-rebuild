@@ -1,0 +1,9 @@
+id = "SV2g"
+title = "zone1's start has two outcomes under load (ISAAC +176 by update 40)"
+group = "verification"
+size = 1
+files = ["tests/verify/harness*.cpp"]
+note = "zone1 start under load: closed, 128 --golden runs at 16 at once all pass after the SV2f merge."
+order = 203
+status = "done"
+done = "2026-10-15"

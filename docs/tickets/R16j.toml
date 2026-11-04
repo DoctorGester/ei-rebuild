@@ -1,0 +1,12 @@
+id = "R16j"
+title = "GPU shadows: units and objects cast shadows from the sun through a shadow map, replacing the CPU shadow textures"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R16"]
+files = ["src/render/ src/game/map_object_shadow.cpp src/game/device_mesh.cpp docs/notes/renderer.md"]
+note = "User 2026-10-20: 'we definitely want at least GPU shadows rendered in the modern way'; today's shadows are very inaccurate, especially on slopes, and update in a staggered way (64x64 textures rasterised and blurred on the CPU by 2DintMMX, map_object_shadow.cpp 0051CE60, rebuilt a few per frame, laid on flat ground quads by 0056C750). Render figures and map objects into a sun shadow map each frame (the sun direction from the terrain, TerrainFields +0x258 / SetSun; the meshes R16 already hands over with their matrices), sample it with filtering (PCF) when drawing terrain, objects and figures, so shadows fall correctly on slopes, platforms and other objects and move every frame. New shadows on by default in the image, the old ones kept as an option (EI_RENDER word or render:: switch, for ST2's options screen); with the option on 'classic', frames must match today at 8 / 0.1%. The game's own shadow building keeps running unless the goldens show it is visual only. Show the user side-by-side frames (frame_preview.py) of slopes, a town and a fight. Measure the CPU / GPU cost with render_stats. Terrain self-shadowing from the sun (CPU ray march in terrain_lighting.cpp) and per-pixel lighting stay in R16i."
+order = 42
+status = "done"
+started = "2026-10-20"
+done = "2026-10-20"

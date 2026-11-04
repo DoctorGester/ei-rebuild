@@ -1,0 +1,7 @@
+id = "L2"
+title = "Vendor Lua and generate the bindings"
+group = "lua"
+depends = ["L1"]
+note = "Decide Lua 5.3 + Eris or Luau + Ares; bindings from the keyword table (300 + Rebirth's 69); object references and groups as userdata."
+order = 638
+status = "later"

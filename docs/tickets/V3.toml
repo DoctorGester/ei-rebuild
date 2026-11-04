@@ -1,0 +1,8 @@
+id = "V3"
+title = "Hand-written vector maths to 0"
+group = "cleanup"
+model = "opus"
+note = "Hand-written vector maths at 0 (507 -> 0; docs/notes/vector-math.md section 6); the unrounded forms were twin-checked."
+order = 324
+status = "done"
+done = "2026-10-14"

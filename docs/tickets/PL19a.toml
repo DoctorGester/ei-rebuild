@@ -1,0 +1,7 @@
+id = "PL19a"
+title = "macOS app: find the game folder without EI_GAME_ROOT, log outside the bundle"
+group = "port"
+depends = ["PL19"]
+files = ["src/main.cpp", "src/platform/log.cpp", "src/platform/posix/platform_posix.cpp", ".github/workflows/release.yml", "docs/notes/macos.md"]
+note = "From PL19. A double-clicked ei-rebuild.app looks for the game data beside its executable (Contents/MacOS) and writes ei-rebuild.log there, so the release's README has players start it from Terminal with EI_GAME_ROOT. Pick one uniform rule for Apple: the folder holding the .app when it holds the game's data, else a folder picker (SDL_ShowOpenFolderDialog; SDL_DIALOG is off now) remembered in ~/Library/Application Support/ei-rebuild; the log in ~/Library/Logs/ei-rebuild (or the game folder). A quarantined app runs translocated (a read-only random path), so beside-the-.app works only after xattr -dr. Update the zip's README.txt and macos.md. Touches main.cpp (every system): build verify + release and --golden."
+order = 1129

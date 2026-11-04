@@ -1,0 +1,8 @@
+id = "S21f"
+title = "EI_PROFILE in the standalone image"
+group = "standalone"
+note = "From S21e: InstallProfiler (src/hook/profile.cpp) is called only from game.exe's WinMain hook (hook.cpp OnWinMain), so EI_PROFILE=1 samples nothing in the image (EiStandaloneMain never calls it) since the default suite became the image's (S21). Call it from EiStandaloneMain before WinMain and check tools/profile_report.py on an image run (InCode's exe range is the image's)."
+order = 604
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

@@ -1,0 +1,10 @@
+id = "C84d"
+title = "Original bugs: the second batch the user chose to fix"
+group = "cleanup"
+model = "opus"
+depends = ["C84b"]
+note = "User 2026-11-03 (after reading build/reviews/c84c_explanations.md, the Kept Bugs Explained page): fix unit AI 24 (Player mode carries out a spell choice as a cast, like Aggression / Fear; affects the 11 hub NPCs listed in the explanations), combat 2 (a zero-weight natural attack has no leftover damage type), units 9 (RaiseStrength keeps the hero's health in step with the new maximum), combat 1 (melee reach floor 0.2), combat 12 (ApproachTarget keeps the path flag when the goal is under 0.1 away), combat 18 (OrderMove's fourth argument no longer written over the point's z), combat 36 (the bored remark's draw), combat 30 (FindUseSpot keeps the order points' z), console 2 (the cheat-word test without the in-place XOR cut), console 5 (fps with neither on nor off), map objects 3 (TakeHit's return), unit AI 2 (UpdateFollow uses its side-step search's result), unit AI 7 (AIMemory decay stops at zero), unit AI 8 (Notice measures from the right point's height), unit AI 17 (weapons scored in the allies-only choices), unit AI 20 (an allied corpse listed once). Each row's Today / Fixed / Example is in c84c_explanations.md (main checkout's build/reviews); the file and function in c84_original_bugs.md. User: if something is unused or makes no sense (return values, arguments), drop it rather than keep it, e.g. TakeHit's always-1 return, OrderMove's fourth argument, OrderCast's unused aim point if it falls out. Commit by area; drop the fixed rows from docs/notes' kept lists. Goldens: re-record those that move with --reason from two agreeing runs and list them; say which fix moved which where you can. Equivalence sweeps under ~5 min."
+order = 1001
+status = "done"
+started = "2026-11-03"
+done = "2026-11-03"

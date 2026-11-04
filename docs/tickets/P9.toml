@@ -1,0 +1,10 @@
+id = "P9"
+title = "UI drawn each frame: no per-window canvases, no pixel formats, no readbacks"
+group = "native-ui"
+model = "opus"
+depends = ["R43"]
+note = "Batch A done (2026-11-04): canvases gone; surfaces draw quads and glyph runs into the frame each frame (render::ui::Solid / Glyphs, ui_quad), screen copies are frame pictures (CapturePicture / DrawPicture, grey at draw), Rgb565Copy / PixelAt read the picture; each surface keeps its draws (migration list, texts in layout units laid out again at the current size) until its window paints each frame. Rest filed: P9a-P9c windows to immediate paint, P9d global-map pick by geometry, P9e the list and Hide's flag removed."
+order = 772
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

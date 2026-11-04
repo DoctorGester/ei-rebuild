@@ -1,0 +1,9 @@
+id = "R26"
+title = "Renderer failure is fatal: no fallback paths, the classic shadow texture / decal path deleted"
+group = "renderer"
+model = "opus"
+note = "User 2026-10-28: 'If renderer fails to start, the game shouldn't start either, same for all other paths which depend on that, no fallbacks.' Today render sets g_failed and goes on drawing nothing (render.cpp:126 sokol panic, :419 / :480 device or shaders, render_window.cpp:230 / :253 swap chain) and the game keeps its classic paths behind render::Active() / ClassicShadowSkipped(). Do: (1) a failure to start the device, shaders, blit pipeline or swap chain, a sokol panic, or a device loss whose recovery fails ends the game through game::FatalError with the reason (log it too); device-lost recovery itself stays, it is not a fallback. (2) Delete g_failed / Active() and every branch that only runs when the renderer is off. (3) map_object_shadow.cpp: the 64x64 shadow texture (MakeTexture, NewShadowTexture, the raster / blur, scratch buffers and their atexit frees, the SR%d names, DrawFlatBlocks) and TextureParts / PartGroup texture state go; keep ShadowCastStrength + CastsShadow; replace ShadowInView's decal-projection sphere with the renderer's own caster test (ShadowCasterArea) if the goldens allow, else keep only the sphere; move what is left next to the frame lists (world_client_draw.cpp) and delete the file if it ends up tiny. (4) Grep for other game-side code that only feeds the old DDraw / D3D7 draw (classic textures, flat draws, 2DintMMX shadow helpers) and remove it or list it. Goldens hold no frames (no-render-flags rule) but must stay the same; the image suite's render checks (render_stats / ShadowState) must still pass."
+order = 74
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

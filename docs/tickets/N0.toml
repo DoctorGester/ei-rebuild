@@ -1,0 +1,10 @@
+id = "N0"
+title = "Census of interface drawing per window and surface"
+group = "native-ui"
+size = 1
+files = ["tests/verify/ui_census.cpp", "src/game/ui_surface_dc.cpp", "src/game/ui_window.cpp"]
+note = "Interface drawing census: no uncaught drawing, addon.dll makes no GDI calls; docs/notes/ui-census.md, EI_UI_CENSUS=1 EI_RENDER=new,cpuwindows, tools/ui_census_report.py --summary."
+order = 110
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

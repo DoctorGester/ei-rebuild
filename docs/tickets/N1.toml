@@ -1,0 +1,11 @@
+id = "N1"
+title = "2D canvas layer"
+group = "native-ui"
+size = 2
+files = ["src/render/render_ui.{h,cpp}", "src/render/render.cpp", "src/render/render_internal.h"]
+depends = ["SV1"]
+note = "Render targets, command queue, fill / frame / line / pixel / glyph run / copy frame / greyscale / readback, a Canvas command in the frame, 16-bit quantise. Few lines in render.cpp (SV1 edits it too)."
+order = 111
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

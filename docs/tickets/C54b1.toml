@@ -1,0 +1,9 @@
+id = "C54b1"
+title = "C54b rest: the camp panels' leftovers"
+group = "cleanup"
+depends = ["C54b"]
+note = "Left by C54b: CBattleScreen's empty destructor in ui_window_delete.cpp (C54e ran on the battle screen at the time) and CItemInfoPanel's explicit CParty destructor call there (G11); CUiSurface::DrawLine takes a non-const RECT* (DrawTextIn is const RECT*), so the panels' DrawStats / DrawLists still pass RECT*; CHeroEquipPanel::ShowArmour and ItemAt regions 4-7 read PartyUnitRecord::quickItems though the comments say armour (find out which name is right); the panels' SetPlainFlag (sprite flag 0x100) has no named flag; CTextManager::GetString's std::string* out-param at every panel (G12, with its owner).  C54d: CItemInfoPanel's itemParty_ is a plain CParty member (the explicit destructor call and its destructor gone)."
+order = 734
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

@@ -1,0 +1,11 @@
+id = "S12d"
+title = "Standalone library: the allocating sorts, pair<string, list> and the unclassified container rows"
+group = "standalone"
+size = 1.5
+depends = ["S12b"]
+files = ["src/lib/stlp_algo.h", "src/game/stl_sorts.cpp", "config/library.csv"]
+note = "Standalone allocating sorts (objectives quest sort 0064F310, SaveEntry sort 00657DF0), pair<string, list> 0069C1C0 and the remaining container rows ported, ours first (SV2f)."
+order = 577
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

@@ -1,0 +1,11 @@
+id = "S18k"
+title = "Standalone: no address image, no read of game.exe"
+group = "standalone"
+size = 2
+model = "opus"
+depends = ["S18j"]
+note = "The host no longer reserves 0x400000-0x7D7000 or reads game.exe; ei_standalone links at a normal base; GameAddress's identity case is the original's process only. Dashboard: image ties 0. Checked: full goldens both installs, --no-hooks."
+order = 619
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

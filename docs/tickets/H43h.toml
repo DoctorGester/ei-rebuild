@@ -1,0 +1,10 @@
+id = "H43h"
+title = "Scenario: briefing rewards, the base screen's objectives, the hero rename (world and interface gaps from H43's coverage)"
+group = "harness"
+depends = ["H43"]
+files = ["tests/scenarios"]
+note = "H43's coverage report (build/coverage/report.md; python tools/coverage.py run <ticket>): no run gives a quest's briefing rewards (world_quests.cpp's GiveBriefingRewards, 28 lines), opens the objectives from the base screen (ui_briefing_input.cpp's OpenObjectives, 2.2 KB), hides a speaker (BriefingScreen::HideSpeaker), renames a multiplayer hero (MpHeroScreen::Rename, FinishRename), edits the connect screen's address (MpConnectScreen::EditAddress) or shows the camp's spell stock (ui_camp_deals.cpp's StockSpells); ui_hud_map.cpp has 11 of 35 functions reached (the mini map's input). Scenarios with goldens per screen."
+order = 833
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

@@ -1,0 +1,11 @@
+id = "SV10"
+title = "Faster harness runs: measure where a run's wall time goes, then cut it"
+group = "verification"
+size = 1
+model = "opus"
+files = ["tests/verify/harness*.cpp tests/verify/harness_clock.* tools/run_all.py tools/work_sched.py"]
+note = "User 2026-10-21: 'if we are running the game tests with a virtual clock, can't we run them even faster? Any downsides?' Every scenario already runs on the virtual clock (no scenario says realtime), so game time is not waited for: net_pair_quest plays about 18 minutes of game time (19,472 world updates) in about 165 s. What bounds a run is the cost of each frame: net_pair_quest's standalone run drew 6,479 frames in 165 s (about 25 ms a frame, 40 fps) at 4K with 4 games sharing the machine; startup to the menu is about 4 s. Step 1 (no golden changes): measure per frame where the time goes (render and present at 4K, the game's update, the state digest every 20 updates, the harness's checks, the GPU shared by 4-16 games, the pair's mailbox waits) on the image and the original, plus startup and shutdown. Step 2: propose cuts with their downsides for the user before changing goldens, e.g. more world updates per drawn pass (changes the interleaving of client ticks and server updates: all goldens re-recorded, the original must pace the same way), skipping draws no step reads (picking, captures and the classic shadows read what is drawn), a smaller back buffer outside capture scenarios (UI layout and click positions depend on it), cheaper digests, faster startup. Report numbers and a recommendation; implement only the cuts that keep goldens unchanged."
+order = 260
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

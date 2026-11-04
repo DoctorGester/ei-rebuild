@@ -1,0 +1,11 @@
+id = "C54f"
+title = "C54 rest: Tier 2 style in the menus, briefing, objectives and text screens"
+group = "cleanup"
+model = "opus"
+depends = ["C54a"]
+files = ["src/game/ui_briefing*.* src/game/ui_objectives*.cpp src/game/ui_menus.cpp src/game/ui_main_menu.cpp src/game/ui_saveload.cpp src/game/ui_options.cpp src/game/ui_connect_*.cpp src/game/ui_chat_*.cpp src/game/ui_console_window.cpp src/game/ui_help_*.cpp src/game/ui_credits.cpp src/game/ui_view_screen.* src/game/ui_create_screen.cpp src/game/ui_screens.*"]
+note = "C54 follow-up. G11: ui_objectives.cpp's g_lastQuest (StaticObject + runtime atexit) and ui_create_screen.cpp's player_.Construct/Destruct (C50 recipe: named_data --update, static_init_ports.csv row, gen_static_init RETIRED_STATICS). G10: BOOL in ui_menus (4), ui_saveload (6), ui_help_*, ui_screens.h (10). G12: out-params in ui_briefing_create / _people / _topics, ui_options, ui_scroll_text. G14/G15: forwarders (ui_screens.h, ui_briefing.h), unused parameters in ui_saveload, ui_objectives_input, ui_chat_window. CountedPtr in ui_briefing.h stays with C49a. Goldens unchanged + ei_ui_check."
+order = 730
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

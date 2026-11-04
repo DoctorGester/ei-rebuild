@@ -1,0 +1,10 @@
+id = "N0d"
+title = "Census call chains: stale return addresses"
+group = "native-ui"
+size = 0.25
+files = ["tests/verify/ui_census.cpp"]
+note = "Census call chains walk from the helper's own return address, so the pixel helpers' rows no longer name stale callers (ui-census.md Readers)."
+order = 131
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

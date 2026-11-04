@@ -1,0 +1,10 @@
+id = "R27a"
+title = "Render states straight to the renderer: no round trip through the null device's switch-over table"
+group = "renderer"
+model = "opus"
+depends = ["C43"]
+note = "User 2026-10-28: trim the old D3D7/DDraw facade after C47. The game sets D3DRENDERSTATE / texture stage states on the null device (device_null.cpp), device_switchover.h stores them, and the renderer reads them back (SwitchOverRenderState / SwitchOverStageState). Give the game typed renderer state calls (or a plain struct the renderer owns) and delete the switch-over table, state blocks and the D3DRENDERSTATE plumbing. Goldens must stay the same. User 2026-10-28: the R27 chain runs after C43 and before C44-C47, so the style tickets don't clean code R27 deletes."
+order = 79
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

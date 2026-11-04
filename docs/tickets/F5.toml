@@ -1,0 +1,8 @@
+id = "F5"
+title = "Unknown fields: the rest (~105)"
+group = "fields"
+files = ["map_spec.h", "net_*", "player_*", "sound*", "script*", "app_*", "bink_video.cpp", "quest_records.h", "base_manager.h", "src/lib"]
+order = 156
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

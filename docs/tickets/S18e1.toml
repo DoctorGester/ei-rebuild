@@ -1,0 +1,9 @@
+id = "S18e1"
+title = "Standalone: the generated static initialisers' .rdata operands as literals"
+group = "standalone"
+depends = ["S18e"]
+note = "src/standalone/static_init.cpp (tools/gen_static_init.py) still reads 255 float / double operands of .rdata through d.Float / d.Double(0x...) (float folds: ratios and sums of constants, d.Log of one). gen_static_init's operand() can write the tagged literal (tools/rdata_literals.py literal_of; check_static_init's WHERE patterns and the --check tags follow). The fold's rounding needs a look first: the original computes them at the CRT's startup precision (53 bits) and stores a float, while float / float literals fold in float; compare each with exact arithmetic (tools/rdata_literals.py has the helpers) or keep the operation on non-constant operands. Dword reads (pointer cells, 6) stay. Goldens plus check_static_init."
+order = 620
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

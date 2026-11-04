@@ -1,0 +1,7 @@
+id = "SV6a"
+title = "zone_gz15h_tornado (Rebirth) near its 120 s limit under load"
+group = "verification"
+note = "zone_gz15h_tornado ran 1.6x slower on Rebirth because the verify wrappers' Report built a string and walked a map per check; Report was made cheap (wrappers gone since S21d)."
+order = 197
+status = "done"
+done = "2026-10-15"

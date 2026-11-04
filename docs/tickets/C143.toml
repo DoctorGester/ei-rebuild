@@ -1,0 +1,8 @@
+id = "C143"
+title = "Platform key codes: a platform key enum (plan first)"
+group = "cleanup"
+model = "opus"
+depends = ["C142"]
+note = "Style review round 4 (2026-11-04, https://claude.ai/artifact/BzXaX58kMcB9E2dwRuhN2U, reviewer reports in build/style_review/round4/<area>.md; user: file them all). Item P5 (L; app.md A4). Give keys a platform enum across the boundary; Windows VK codes only where keyboard.ini and the options store them, converted at those readers; the WM_KEYUP lParam rebuild and the wheel's x120 go; Alt+F4/Alt+Tab decoding where it belongs. First check whether a golden reads the console's key line through g_consoleLineObserver. Plan first, then implement. Style only: goldens the same, float operation order untouched (any float rewrite exact and said why), no new forwarders, normal C++ classes; gameplay code stays (technical dead code goes)."
+order = 1074
+status = "queued"

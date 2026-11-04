@@ -1,0 +1,9 @@
+id = "C54f1"
+title = "C54f rest: the interface's int flags, TakePosition's out-parameter and the hero screen's helpers"
+group = "cleanup"
+depends = ["C54f"]
+note = "C54f follow-up. (1) CInterface3D::PushWindow(window, int, int), OpenHelp(int) and ShowMessage(int) take bool flags (whole-tree callers; ui_create_screen.cpp tests the low byte). (2) CUiScrollbar::TakePosition(int*) and CUiSpin::GetValue(int*): the position is always written and several callers ignore the moved flag (ui_saveload FillEntries, ui_connect_screen, ui_hero_screen_click, ui_menu_keys, ui_scroll_text): a Position() read plus a TakeMoved() flag, or std::optional. (3) ui_screens.h: UiCapture / UiShiftDown (still used by CMpHeroScreen::LeftUp in ui_screens.cpp and the hero screen files unless C54d removed them), CMpHeroScreen::CallShowHero, SavedHero / SavedHeroCount, the lib/static_object.h include. (4) PlayMovie's char flags (bink_video.h) and GameFlow::StartServer's char unlisted. (5) Default member initialisers for CChatWindow, CBriefingScreen, CMainMenu, CCreditsScreen (CreateScreen sets them). (6) CUiScrollText::Tokenize / NextToken take const std::string& (ui_scroll_text.cpp, C54g's file). Goldens unchanged + ei_ui_check."
+order = 742
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

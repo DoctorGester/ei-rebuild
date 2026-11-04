@@ -1,0 +1,8 @@
+id = "SV7b8a"
+title = "Vanilla widescreen menu unit cunit129 flags 0xA2 / 0x4A2 hooked"
+group = "verification"
+note = "cunit129's 0x400 is the object-static draw bit our WideScreen view sets (every part lit); designed: golden.py refuses vanilla goldens for scenarios with a rebirthflags line."
+order = 233
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

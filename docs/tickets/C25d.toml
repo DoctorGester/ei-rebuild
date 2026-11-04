@@ -1,0 +1,10 @@
+id = "C25d"
+title = "Delete check_against_exe.cmd and the tools only it runs"
+group = "cleanup"
+model = "sonnet"
+depends = ["C28"]
+note = "User 2026-10-22: keep tools/check_against_exe.cmd until the naming tickets (C18u, C18r, C26's CRT objects) and C28 finish, then delete it and the game.exe-comparing modes only it uses (check_fp_fold, rdata_literals, named_data --check, check_short_functions, check_static_init, gen_image_cells --check/scan, gen_iat --check) where nothing else needs them; drop exe_path.py if only they read it. The harness keeps its game.exe paths."
+order = 437
+status = "done"
+started = "2026-10-27"
+done = "2026-10-27"

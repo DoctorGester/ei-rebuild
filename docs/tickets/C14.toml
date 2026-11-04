@@ -1,0 +1,8 @@
+id = "C14"
+title = "Standard types instead of MFC / STLport containers and strings"
+group = "cleanup"
+size = 5
+note = "Umbrella: C14a strings (running), C14b arrays / lists, C14c maps, C14d archives, C14e aligned arrays, C14f string_view consumers. R16i is done; work happens in the children. Re-review 2026-10-28: every child is done except C14f (string_view consumers, batch 5 running); the umbrella closes, C14f goes on by itself. C14zj1 is a UI scenario ticket, not part of C14."
+order = 341
+status = "done"
+done = "2026-10-28"

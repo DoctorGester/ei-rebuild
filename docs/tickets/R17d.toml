@@ -1,0 +1,10 @@
+id = "R17d"
+title = "Cloud shadows: a moving cloud mask projected from the sun onto ground and objects"
+group = "renderer"
+model = "sonnet"
+depends = ["R16j"]
+note = "A tiling cloud noise texture scrolled with the wind, projected along the sun direction (the same projection as R16j's shadow map) and multiplied into direct sunlight for terrain, meshes and water. Density from the weather state (more cover in rain); off indoors / in caves and at night. Option, off in captures."
+order = 61
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

@@ -1,0 +1,8 @@
+id = "WB9"
+title = "Scheduler: smallest remaining work first, less the time waited"
+group = "harness"
+files = ["tools/work_sched.py", "tools/test_work_sched.py"]
+note = "Scheduler picks the batch with the smallest remaining work first, less the time waited (batch_priority in tools/work_sched.py)."
+order = 297
+status = "done"
+done = "2026-10-15"

@@ -1,0 +1,9 @@
+id = "C30a2"
+title = "Sound maths on SSE2: separate the voice decision from the output levels"
+group = "cleanup"
+depends = ["C30a"]
+note = "C30a kept sound_manager.cpp x87: Play3D's level (UpdatePositional) decides whether a one-shot takes a voice, and a speech's Play2D handle (-1 when every voice plays at its priority or above) clears the server unit's talking flag (unit_client_speech.cpp). Find every path from a float level to voice use (Play3D's silent one-shot, Tick's restarts and stops), keep those x87 or make them integer-exact, and move the rest (per-frame volumes and pans, the fader, emitters) to an SSE2 file; golden-checked."
+order = 871
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

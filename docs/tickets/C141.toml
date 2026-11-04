@@ -1,0 +1,10 @@
+id = "C141"
+title = "App style 2: main loop and start-up read top to bottom; camera save per field"
+group = "cleanup"
+model = "opus"
+depends = ["C140"]
+note = "Style review round 4 (2026-11-04, https://claude.ai/artifact/BzXaX58kMcB9E2dwRuhN2U, reviewer reports in build/style_review/round4/<area>.md; user: file them all). Items P2 and the save half of P3 (app.md A1, A2, A7). struct LoopClock for the five clock globals and the emulated static guard; RunPass split into AdvanceClock/RunWorlds/UpdateClientSpeed/UpdateCamera/DrawFrame keeping every statement and its order (net::Pump placement is behaviour); one activation flag (SceneRenderer::kRunning named); one hook shape; kRecordedFrameMs constexpr. GameMain as one straight list (headers instead of local declarations, the one warning text by name, CreateFolders without scratch, camera placed once, Camera::Init with plain floats, one movie name, SetGamma once, StartFirstMap void). Camera Load/Save one ReadValue/WriteValue per field in the same order (exact: same bytes, same order), stream->Version(). Style only: goldens the same, float operation order untouched (any float rewrite exact and said why), no new forwarders, normal C++ classes; gameplay code stays (technical dead code goes)."
+order = 1072
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

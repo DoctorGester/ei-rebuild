@@ -1,0 +1,9 @@
+id = "C28h"
+title = "C28 units, AI and map object bases: controllers, companions, 3D halves, AI modes, layers"
+group = "cleanup"
+model = "opus"
+files = ["src/game/unit_controller_slots.cpp", "src/game/map_object_companion_slots.cpp", "src/game/object3d_specific_slots.cpp", "src/game/ai_mode_class.h", "src/game/map_object_lifetime.cpp", "tests/verify/harness_digest.cpp"]
+note = "unit_controller_slots.cpp, map_object_companion_slots.cpp, object3d_specific_slots.cpp, ai_mode_class.h (the harness digest's ModeKinds pairs game.exe's tables with the tags: give it another id first), ai_map.h / ai_unit_layer layers, sector_map, map_object.h / figure_mesh.h / map_object_figures.h base tables, unit_client_models, map_object_lifetime.cpp's 33 stores."
+order = 426
+status = "done"
+done = "2026-10-22"

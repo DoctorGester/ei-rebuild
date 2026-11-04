@@ -1,0 +1,9 @@
+id = "R30f1"
+title = "A picking scenario at the screen's edges and corners"
+group = "renderer"
+depends = ["R30f"]
+note = "Found by R30f: no golden scenario picks a unit or object whose mesh crosses the screen edge, so the goldens did not reach BoundsOfCrossing's difference from the original's clipped bounds (device_draw.cpp; equal across one edge, larger past a corner). A scenario with the cursor over a unit cut by the left / bottom edge and one past a corner (golden from the original), to fix which picks the image gives there."
+order = 100
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

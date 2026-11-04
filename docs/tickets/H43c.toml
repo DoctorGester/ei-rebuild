@@ -1,0 +1,10 @@
+id = "H43c"
+title = "Scenario: back to a visited zone, save and load with effects in flight (save gaps from H43's coverage)"
+group = "harness"
+depends = ["H43"]
+files = ["tests/scenarios"]
+note = "H43's coverage report (build/coverage/report.md; python tools/coverage.py run <ticket>): no run returns to a zone it left (world_game.cpp's RestoreZone, 34 lines: saves\\current\\<zone>.sav and the catch-up ticks), loads a save with an arrow, a sound sequence, an ambient sound or a script effect source alive (EffectArrow::Load, EffectSoundSeq::Load, EffectAmbientSound::Unpack, ScriptFxSource::Save and Load), loads shared objects (WorldServer::AddSharedObject, SharedObject::Load) or quick-loads (ui_saveload.cpp's QuickLoad). persistent_globals.cpp's AddonStringMap (1 of 12 functions) and Chunk::WriteString, WriteStringArray and WriteVector3 never run either. Scenarios with goldens: zone1, another zone and back; a save and load with a missile in the air; the quick load key."
+order = 828
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

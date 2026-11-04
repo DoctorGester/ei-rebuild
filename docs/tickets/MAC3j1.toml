@@ -1,0 +1,9 @@
+id = "MAC3j1"
+title = "Windowed mode: no minimise on focus loss (user decision)"
+group = "port"
+depends = ["MAC3j"]
+note = "Done 2026-10-31 (user: drop the minimising entirely): app.cpp no longer minimises or restores on focus changes; platform::Minimize / Restore deleted. By hand for the user: the release build windowed at the desktop's size."
+order = 1108
+status = "done"
+started = "2026-10-30"
+done = "2026-10-31"

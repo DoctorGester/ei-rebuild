@@ -1,0 +1,10 @@
+id = "SV2"
+title = "State digest and dump in the harness; golden record / compare"
+group = "verification"
+size = 1
+depends = ["SV1"]
+note = "Harness state digest and dump (tests/verify/harness_digest.cpp) with golden record / compare (tools/golden.py)."
+order = 160
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

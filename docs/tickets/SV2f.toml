@@ -1,0 +1,10 @@
+id = "SV2f"
+title = "Five Rebirth goldens differ on main after S7 + SV2b (fewer random draws, AI state)"
+group = "verification"
+size = 0.5
+files = ["src/lib/mfc_list.cpp", "src/game/game_lists.cpp"]
+note = "Five Rebirth goldens parted because S7's verify wrappers ran the original before ours where a block is carved; ours now runs first (docs/notes/standalone-verification.md); EI_HEAPSEQ diagnostic added."
+order = 202
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

@@ -1,0 +1,9 @@
+id = "C20d"
+title = "A function-to-original address map that is not the registrations (check_fp_fold first)"
+group = "cleanup"
+model = "opus"
+note = "Done (2026-10-21): the map is the registrations plus EI_REWRITTEN(0x..., Fn) lines (include/ei/hook.h: a {address, &Fn, file, line} record in .eiorg, no registration; check_registrations reads it). check_fp_fold, check_signatures, coverage, direct_calls, save_trace, ui_census_report, gen_originals, progress / dashboard rewritten counts, check_cleanup and gen_short_functions read it; standalone_gaps and registration_readers skip it; check_fp_fold --linked and the check_fp_fold reader are gone; registration_readers --drop now writes EI_REWRITTEN (--only FILE). Every tool's map compared before / after: the same. 1,735 check_fp_fold-only registrations converted (20 in CSkyObject / CSky / CUnit left for C19 batch 5): progress.py registrations 5,262 -> 3,527. check_fp_fold release 1,260 / 4,752 matched / 417 uncalled -> 1,276 / 4,752 / 418, 0 problems (inlining changed where registrar constructors went). Goldens 121 the same. Original suite: 113 differ on isaac.* only, from C18l c (C18l1 filed). Follow-up C20d1: put back the map lines C20c deleted."
+order = 393
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

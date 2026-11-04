@@ -1,0 +1,8 @@
+id = "SV3j"
+title = "sound and zone_gz2g_traps: ours draws rand() apart from the original"
+group = "verification"
+size = 0.5
+note = "sound and zone_gz2g_traps draw rand() like the original on both installs (fixed by T2f, same address-order cause); goldens left to S20."
+order = 193
+status = "done"
+done = "2026-10-15"

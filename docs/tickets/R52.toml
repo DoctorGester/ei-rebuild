@@ -1,0 +1,9 @@
+id = "R52"
+title = "Ground decals (blood splats, prints) not darkened by the shadows"
+group = "renderer"
+model = "opus"
+note = "User 2026-11-04: decals such as blood splats render undarkened inside shadows. They are flat geometry drawn through mesh.hlsl (vs.shift.z depth scale), whose Shade() does apply hidden = shadow_amount(...) * shadow_facing(...); so the flat batch likely gets no receiver matrix (vs.light / shadow.scale 0: 'without the map's space none'), or the flat draws run before the shadow map is ready / outside the receivers' list, or alpha-blended prints skip it. Find which, darken decals like the ground under them (sun map, clouds, point shadows), keep the selection markers and light marks as they are if they are meant to glow. Capture a blood splat in a tree's shadow before/after; add a frame check."
+order = 956
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

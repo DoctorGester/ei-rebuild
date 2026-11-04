@@ -1,0 +1,9 @@
+id = "SV2h3c"
+title = "Heap-order check: both sides keep blocks (twin leaks, caches) and the harness's own"
+group = "verification"
+depends = ["SV2h3"]
+files = ["tests/verify/verify_ui_tooltip.cpp", "tests/verify/verify_map_database.cpp", "tests/verify/verify_particle_render.cpp", "tests/verify/verify_particle_create.cpp", "tests/verify/verify_terrain_map_load.cpp", "tests/verify/verify_resource_stream.cpp", "tests/verify/verify_sound_lifetime.cpp", "tests/verify/verify_mfc_gdi.cpp", "tests/verify/verify_net_server.cpp", "tests/verify/verify_ui_options.cpp", "tests/verify/verify_ui_saveload_list.cpp", "tests/verify/verify_ui_surface.cpp", "tests/verify/verify_ui_text_draw.cpp", "tests/verify/verify_ui_interface_glue.cpp", "tests/verify/harness_heap_order.cpp"]
+note = "Closed as obsolete: superseded by SV7/SV7d (heap layout is not preserved)."
+order = 211
+status = "done"
+done = "2026-10-15"

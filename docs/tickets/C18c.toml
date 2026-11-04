@@ -1,0 +1,9 @@
+id = "C18c"
+title = "Named data: tables that hold pointers (pointer-aware packing)"
+group = "cleanup"
+depends = ["C18"]
+note = "named_data.py refuses a range with a pointer cell inside (material.h 00743BF8, sound_music.cpp 00744090, src/lib's CRuntimeClass / EH ThrowInfo records). Teach the check to compare a pointer element with the name it points at (the cell's target is another named range or a string literal), then name them. Opus: decides the form."
+order = 372
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

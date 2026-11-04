@@ -1,0 +1,10 @@
+id = "P9b"
+title = "Lists and incremental windows paint each frame (P9 batch C)"
+group = "native-ui"
+model = "opus"
+depends = ["P9a"]
+note = "As P9a for: console (its lines, scroll and input are the data; the partial FillRect covers go), chat overlay and chat window, connect list, save / load list, scroll text (briefing, objectives, message log), options, objectives. Check as P9a; ui_gallery_game console / chat frames, net scenarios with goldens."
+order = 776
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

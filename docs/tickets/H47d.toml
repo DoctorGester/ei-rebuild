@@ -1,0 +1,9 @@
+id = "H47d"
+title = "Linux suites against the H47c goldens"
+group = "harness"
+depends = ["H47c"]
+note = "H47c (lib/maths.h) made boot play on Linux as on Windows, digest 1 record for record, and re-recorded the goldens on Windows; the Linux suites (image less LINUX_SKIP and camera_smooth, camera_spin, render_stats, zone_gz15h_tornado; the Rebirth set) against them were not run: the WSL disk failed during H47c. Run them, list what still differs and why, update linux.md's numbers; a run that differs from record 0 again points at another system difference (a libm function outside lib/maths.h, a sort, a timer)."
+order = 810
+status = "done"
+started = "2026-11-03"
+done = "2026-11-04"

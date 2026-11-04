@@ -1,0 +1,8 @@
+id = "R10c"
+title = "A 14-row strip at the top of the wide battle screen that dgVoodoo does not show"
+group = "renderer"
+note = "S21b: at 3840x2160 with WideScreen, our renderer's battle-screen frames have a lighter strip in rows 0-13 from x 2712 to 3770 (right of the top panel, over the map panel's top), with diagonal shapes; addon's frames on dgVoodoo show the scene there. Also in hooked runs on our renderer (vanilla, native, Rebirth), so not the image's WideScreen code. run_all WIDESCREEN_AREAS leaves the rectangle out of --widescreen; remove it there once fixed. Likely a sprite or viewport clipped differently (negative y?)."
+order = 18
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

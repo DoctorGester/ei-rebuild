@@ -1,0 +1,11 @@
+id = "SV3l"
+title = "CInterface3D::Update check flakes: mouse 1920,1260"
+group = "verification"
+size = 0.25
+model = "sonnet"
+files = ["tests/verify/verify_ui_base.cpp"]
+note = "CInterface3D::Update's twin mouse check was made robust against the real cursor landing during Update (harness inputs only; checks gone since S21d)."
+order = 223
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

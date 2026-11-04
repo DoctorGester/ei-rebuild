@@ -1,0 +1,12 @@
+id = "S17"
+title = "Standalone: the suite against the goldens"
+group = "standalone"
+size = 2
+model = "opus"
+depends = ["S16"]
+files = ["tools/run_all.py", "tests/golden"]
+note = "The image's suite compared against the layout-independent goldens (SV7c)."
+order = 544
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

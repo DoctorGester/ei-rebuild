@@ -1,0 +1,9 @@
+id = "C45d1"
+title = "Magic numbers: AI map words"
+group = "cleanup"
+model = "opus"
+depends = ["C45d"]
+note = "C45d's first batch, done by C45d. AIMapCell::flags (water depth bits 0-5, bridge 0x40, water 0x80), the pass-code nibble per size class, the occluder word's fields, the occluder kinds, the region map's representative cells (x | y << 4), the footprint parts' flags. ai_*.cpp, ai_map.h, sector_map.h, model.h (~80). See build/style_review/magic_numbers.md (the C45d survey; its class list has every site). Kinds as enum class in the owning header, flag words with lib::kBitFlags (src/lib/bit_flags.h); the |= / &= ~ writes of the same words go too. No signature changes (C51 owns them): an int parameter is cast once at its switch. Names from the data / strings; meanings they don't give are recorded in the header comment, not guessed. Goldens unchanged."
+order = 708
+status = "done"
+done = "2026-10-29"

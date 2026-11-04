@@ -1,0 +1,9 @@
+id = "C36"
+title = "Layout leftovers: the offsetof static_asserts and unused_XXX padding arrays nothing needs (341 asserts in 64 files, 192 pads)"
+group = "cleanup"
+model = "opus"
+note = "Found at the C14x merge: camera.h keeps unused_1E0[0x2E0-0x1E0] where the dead view stack was, so its offsetof asserts still hold. The layout rule ended with S21 (normal-cpp-classes). Keep an assert or a pad only where bytes leave the process or come from a fixed format: save files, network packets, resource files, GPU vertex/constant layouts, D3D/DirectDraw structs. tests/verify reads the image through its headers, not offsets, so check before keeping one for the harness. Drop the rest, and the fields nothing reads. Delete what becomes dead. Scripted pass; image suite --golden must stay 121 the same; original suite if tests/verify changes."
+order = 514
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

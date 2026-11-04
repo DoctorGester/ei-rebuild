@@ -1,0 +1,12 @@
+id = "R16a"
+title = "Window surfaces by change marks and dirty-rectangle uploads, no memcmp per blit"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R16"]
+files = ["src/render/render_textures.cpp", "src/render/render_blit.cpp", "src/game/ui_surface_dc.cpp"]
+note = "docs/notes/renderer.md section 13, item 1. Today every shown window surface is compared with its snapshot at every blit (4-32 MB a frame at 4K: 1-3 ms CPU on interface screens, about 0.9 ms in the world) and uploaded whole when it changed (up to 4 MB; the escape backdrop 32 MB). Mark changes where the game writes the memory (DC release 005FDC60, pixel code, SwapContents / Freeze, CopyFrameTo, greyscale; N0 census lists the writers), upload the changed rectangle. The harness build keeps the memcmp as a missed-writer check that fails the run. Measure with render_stats (renderstats: memory compared, CPU textures ms). Check: ui_* / render_* captures at 8 / 0.1%."
+order = 33
+status = "done"
+started = "2026-10-20"
+done = "2026-10-20"

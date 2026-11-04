@@ -1,0 +1,10 @@
+id = "C30e4"
+title = "SSE2: transcendental helpers (fexp emulation, sin / cos / atan2 / log counts) and the spell effects"
+group = "cleanup"
+model = "opus"
+files = ["src/game/exit_area.cpp", "src/game/spell_effect_start.cpp", "src/game/spell_effect_update.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. Helpers in src/lib for SSE2 code: VC6's inline exp at PC24 emulated (the multiply by log2(e) rounded to 24 bits exactly, FRNDINT's split, 2^f - 1 plus 1 rounded to 24 bits, the scale), with an equivalence test against x87::fexp at PC24 over all or 100M+ floats; sin / cos / atan2 / log through std:: double with a differing count against FSIN / FCOS / FPATAN / FYL2X then the float rounding (the cases callers use: alone, times a float, plus a float); a wide-constant multiply / add helper (two-product fix-up at a float tie) with its test. Then spell_effect_start / spell_effect_update (fexp, flog) and exit_area (sin / cos) on SSE2."
+order = 903
+status = "done"
+started = "2026-10-29"
+done = "2026-10-30"

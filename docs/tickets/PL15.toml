@@ -1,0 +1,10 @@
+id = "PL15"
+title = "platform.h trimmed: slot-era duplicates collapsed, the standard library where it does the job"
+group = "port"
+model = "opus"
+depends = ["C73"]
+note = "User 2026-11-03 asked what platform.h can lose; review in build/reviews/platform_h_trim.md (sections 1, 2, 5, 6). Collapse the 'through the game's slots' vs 'asked of the system directly' pairs PL14 made pointless (ExePath/ProgramPath, ReadFile/ReadWholeFile, FileExists/PathExists/IsFile, FileFind/FolderEntries) and their slot comments; Thread/Signal to std::thread/std::condition_variable (or say why not); DateTime/LocalTime/FormatLocalTime to <chrono>/strftime in lib; ToNetwork/FromNetwork/ParseIpv4 to lib; the folder and file calls onto std::filesystem where the harness's overlay can become one path-mapping seam (design it: the overlay maps a path, it doesn't answer every call); delete PageSize, DebugOutput (log instead), LayoutControlCharacter if only tools use it, net::Start/Stop made internal, HostNameAt if unused; caller-capture macros out of platform.h (harness or lib). Goldens the same; Linux builds (the workflow). Report platform.h before/after and the backends' line counts."
+order = 1118
+status = "done"
+started = "2026-11-03"
+done = "2026-11-03"

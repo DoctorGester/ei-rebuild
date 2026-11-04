@@ -1,0 +1,9 @@
+id = "C20r2"
+title = "Fields nothing reads that C20r left for C36's layout pass"
+group = "cleanup"
+depends = ["C36"]
+note = "C20r's single-use scan (scratchpad C20r once.py): fields written or copied but never read, in structs that still had unused_ pads when C20r ran, so left for after C36: BriefingSpeaker::spareFlag (ui_briefing.h), the save entry's stringArrays_ (ui.h, copied with the entry), the sound manager's midiName / midiNextName / midiArray1E4 / midiArray1F4 (sound.h), CTextureDevice::depthFormats_ (texture.h, never filled), renderer_lines.h spare1C. Re-run once.py on main first: C36 may have taken some. Keep RasterTarget::keyPitch and the DLL interface slots (2DintMMX / 3DfpFPU layouts). Image suite --golden."
+order = 661
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

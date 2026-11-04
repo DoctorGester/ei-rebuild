@@ -1,0 +1,12 @@
+id = "R16e"
+title = "Ground decals (prints, blood, shadows, markers, light pools, spell marks) projected on the GPU"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R16", "R16b"]
+files = ["src/render/render_mesh.cpp", "src/game/world_client_lights.cpp", "src/game/device_mesh.cpp"]
+note = "Measured, not built (renderer.md section 13 item 5). renderstats' decal timers (render_stats, vanilla 4K, ms a frame): shadow projections zone1 0.34 / fight 0.60 / town 0.48-0.63, print projections 0-0.013 (a print is projected once), flat draws of shadow decals 0.065 / 0.072 / 0.17-0.21, of prints and markers 0-0.06, shadow builds (raster, blur, copy) 0.31 / 0.73 / 1.15-1.30; classic adds 94-288 KB of decal hand-over, +0.02-0.06 ms. A GPU decal path takes under 0.07 ms in the default look (prints, markers), at most about 0.3 ms classic; the shadows' projection stays (its bounds are the shadow sphere ShadowInView 0051E300 reads). The real cost is the classic shadow build running with the shadow map: 0.72 / 1.40 / 2.1 ms a frame: follow-ups R16e1 (exact) and R16e2 (user's call)."
+order = 37
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

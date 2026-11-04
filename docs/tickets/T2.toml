@@ -1,0 +1,9 @@
+id = "T2"
+title = "T1 follow-ups: remaining fixed waits and weak scenarios"
+group = "harness"
+depends = ["T1"]
+note = "T1 follow-ups: remaining fixed waits and weak scenarios fixed (ground_prints, sandbox_map, particles, map_objects, movement, world_client, ui_help, ui_hero_delete); run_all keeps first attempt's log."
+order = 274
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

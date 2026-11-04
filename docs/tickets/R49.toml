@@ -1,0 +1,9 @@
+id = "R49"
+title = "Creatures added by script drawn pale blue-white"
+group = "renderer"
+model = "opus"
+note = "Seen 2026-11-04 in R17b's crowd captures (render_occlusion's crowd, the same in render_lighting's light_fight and render_stats' fight): the twelve units made with AddUnitToServer (WolfTutor, GoblinF1, BoarTutor, ToadTutor, SkeletonF2, DeerF0, WolfGreyF1) draw untextured pale blue-white, at night and by day; the hero and the map's own units look right. Find why: their skin textures not loaded or not bound on the client for units created after the map loaded (unit_client_models.h, the face/skin texture path, texture_load.cpp), a material left at a default, or a client tint (an illusion or a selection highlight). Check against the game's real look of such units (the same creatures placed by the map, e.g. zone1's wolves) and say whether the original draws them so (then it's a kept look) or it is ours. Goldens hold no frames; a scenario frame check that a spawned wolf's pixels match a map-placed wolf's colour range."
+order = 947
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

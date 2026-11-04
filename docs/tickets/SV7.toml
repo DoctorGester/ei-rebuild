@@ -1,0 +1,8 @@
+id = "SV7"
+title = "Goldens independent of heap layout"
+group = "verification"
+size = 2
+note = "Goldens are independent of heap layout: SV7a-d, SV7b1-b8 and SV7c done; goldens hold under EI_HEAP_JITTER / EI_HEAP_FILL on both installs."
+order = 214
+status = "done"
+done = "2026-10-16"

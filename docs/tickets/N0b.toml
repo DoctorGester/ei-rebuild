@@ -1,0 +1,10 @@
+id = "N0b"
+title = "ui_help opens help: H, not F1"
+group = "native-ui"
+size = 0.25
+files = ["tests/scenarios/ui_help.txt"]
+note = "ui_help opens the help with H, not F1 (F1 is select1 in keyboard.ini)."
+order = 129
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

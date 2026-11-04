@@ -1,0 +1,6 @@
+id = "C115a"
+title = "Scripts style 1 tail: party and quest duplicates"
+group = "cleanup"
+model = "sonnet"
+note = "Left by C115 (it stayed in the script files while C119 / C114a ran): quest add once (QuestDatabase / ScriptQuestAddObjective, the quest being built is a global over 3 files), ReadListInline = ReadStringList (quest_database.cpp), party memory-stream copy and archive-as-stream once, NewRecord = CreatePartyRecord, ReleaseItems = ReleaseAll, the two different Drop in one file, the create/clone/append/drop loop (x6, three append spellings), PartyManager::BeginRedeploy / EndRedeploy forwarders (party_manager.cpp:326-328, 12 callers), 'Names are provisional' in party / quest headers. Also not done from the digest: A1 argument cursor, A2 typed fields, A5 renames, A9 ScriptBool, CopyItems / CopyStats null checks. Style only, goldens the same."
+order = 1134

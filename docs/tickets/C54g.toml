@@ -1,0 +1,11 @@
+id = "C54g"
+title = "C54 rest: Tier 2 style in the interface core (windows, text, meshes, cursor)"
+group = "cleanup"
+model = "opus"
+depends = ["C54a"]
+files = ["src/game/ui_window*.cpp src/game/ui_container*.cpp src/game/ui_font.cpp src/game/ui_text.cpp src/game/ui_mesh_*.cpp src/game/ui_surface_*.cpp src/game/ui_cursor*.* src/game/ui_small_members.cpp src/game/ui_interface*.cpp src/game/ui_layouts.cpp src/game/ui_scroll*.cpp src/game/ui_widescreen.cpp"]
+note = "C54 follow-up. G11: g_interface (ui_small_members.cpp: StaticObject, CInterface3D::Construct, atexit DestroyInterface), g_cursor (ui_cursor.cpp: StaticObject, CCursor::Construct, atexit), CUiWindow's ClearFields (ui_window.cpp) -> real constructors (C50 recipe). C51b's ui part: CUiWindow::Create's UiObjectCreate helper folded. G10: ui_window.cpp BOOL (6, ContainsPoint), ui_container. G12: ui_text_draw / ui_font out-params. G14: ui_scrolling_surface, ui_console_window, ui_input_defaults forwarders. G15: ui_layouts' unused parameters, ui_interface_frame. Goldens unchanged + ei_ui_check; leave src/render/render_ui* to R30."
+order = 731
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

@@ -1,0 +1,10 @@
+id = "P9e"
+title = "UiSurface keeps no draws; its API pared down (P9 batch F)"
+group = "native-ui"
+model = "sonnet"
+depends = ["P9c"]
+note = "When every window paints each frame: UiSurface::draws, UiSurfaceDraw, Cover / Keep, the 4096 log and the replay go; Hide(bool)'s unused release flag goes (about 300 calls, scripted); ui-native.md section 3's migration paragraph goes. Check: build, goldens the same, gallery frames."
+order = 779
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

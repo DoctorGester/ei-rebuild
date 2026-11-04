@@ -1,0 +1,10 @@
+id = "C85a"
+title = "Animation databases and key frames as typed records, not views of the file data"
+group = "cleanup"
+model = "opus"
+depends = ["C85"]
+note = "C85 left (4): AnimationDatabase::Of (figure_bones.cpp) and unit_client_update.cpp find the database by index arithmetic back from an entry (container_of over a file blob). The animations Play gets do not all come from the object's own database (UiModel::Stop and the main menu use objectManager->FindAnimation), so the owner cannot be taken from the object. Plan: parse <figure>.adb at its GetFile into AnimationDatabase {start, length, end, std::vector<FigureAnimation>} with a back pointer in each entry, cached per manager by name or dropped when the archive frees the file (MappedResource::CloseFile / FreeAllFiles / CloseResource); the three GetFile sites (Object3D::Animations, MapObjectManager::FindAnimation, BaseManager::FindFigureAnimation) take the parsed one. Same ticket: AnimationTrack::LoadKeyFrames keeps float pointers into the .anm data at any alignment (map_object_animation.cpp): own vectors of Quaternion / Vector3 instead. Goldens the same."
+order = 1008
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

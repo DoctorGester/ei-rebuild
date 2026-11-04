@@ -1,0 +1,10 @@
+id = "R43"
+title = "SDL_GPU spike: one scene through SDL3's GPU API on D3D12 and Vulkan, with readback"
+group = "renderer"
+model = "opus"
+depends = ["R41"]
+note = "User 2026-11-03: replaces R42 (sokol compiled twice). sokol_gfx lacks readback and runtime backend choice; SDL_GPU (SDL3, already our platform layer) picks D3D12/Vulkan/Metal at device creation and has transfer-buffer downloads. Spike, not the port: draw one real scene (a zone's terrain + meshes, or the menu) through SDL_GPU beside the sokol path, shaders built by SDL_shadercross from our existing sources (say which source language), on D3D12 and Vulkan on Windows, and on Linux. Measure: frame time against sokol D3D11 on the same scene, readback latency for a full frame, and startup cost. WSL/WSLg: try the dozen (D3D12-backed) Vulkan driver and lavapipe; say which work. Report: what the full port needs (files, rough size, what in platform::graphics goes away: Readback, GpuTimer, per-backend files), blockers (feature levels, old GPUs, shader features), and a plan of tickets.  User 2026-11-03: shaders in HLSL. They were ported to sokol-shdc's GLSL recently (MAC3); bring back the HLSL sources (git history before the sokol-shdc move; say which commit) as the single source and build them with SDL_shadercross (HLSL to DXIL/SPIR-V/MSL). The spike may do this for its scene's shaders only; the plan covers the rest."
+order = 922
+status = "done"
+started = "2026-11-03"
+done = "2026-11-03"

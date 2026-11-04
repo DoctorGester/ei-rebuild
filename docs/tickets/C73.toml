@@ -1,0 +1,9 @@
+id = "C73"
+title = "Ini reading out of the platform: one parser in game code for every system"
+group = "cleanup"
+model = "sonnet"
+note = "User 2026-11-03: do we need ini parsing in the platform? No. platform.h has IniSectionEntries/IniString/IniInt; Windows answers them with GetPrivateProfile*A (ANSI, in game_calls.cpp and platform_win32.cpp, which the harness redirects), POSIX already has its own parser (platform_posix.cpp). Move the POSIX parser into src/game/ini_file.cpp (reading the file through platform::ReadFile, which the harness already redirects), with GetPrivateProfile's rules that matter for the game's ini files (case-insensitive section/key, ';' comments, quotes stripped, first match wins, the 1022-byte cut if anything relies on it), and delete the platform's Ini* calls on both systems, platform_win32.h's IniSection seam and the harness's .ini answers. Text: UTF-8 as the rest (utf8-always). Goldens the same (the harness reads the same files)."
+order = 983
+status = "done"
+started = "2026-11-03"
+done = "2026-11-03"

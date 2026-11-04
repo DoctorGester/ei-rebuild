@@ -1,0 +1,9 @@
+id = "S3a"
+title = "Standalone: the static initialisers' exit functions"
+group = "standalone"
+depends = ["S3"]
+note = "The 130 exit functions no rewrite registered are generated into src/standalone/static_exit.cpp (tools/gen_static_init.py EXIT_PATTERNS)."
+order = 548
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

@@ -1,0 +1,6 @@
+id = "H44b"
+title = "The user records a session by hand (play.cmd record) and it joins the suite"
+group = "harness"
+depends = ["H44"]
+note = "H44's live mode (recordinput live: real SDL input through sdl_input's translation, frames paced to the wall clock, the cursor held for real) was checked only by the realinput step in a hidden run. The user plays one short session with play.cmd record <name>, replays it twice (work.py test, golden.py record), and the scenario and golden are committed; whatever the live window does wrong (focus, held cursor, pacing, text) is fixed here."
+order = 836

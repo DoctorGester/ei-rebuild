@@ -1,0 +1,8 @@
+id = "LX2"
+title = "Linux: play with real data (menus, maps, movies, sound, saves, multiplayer)"
+group = "port"
+depends = ["LX1"]
+note = "LX1 builds and passes its checks without game data. Play a vanilla and a Rebirth folder on Linux by hand (Kirill, or a machine with the data): the menus and a new game, a campaign map, a movie, music and sounds, a save and its load, the settings file in the user data folder, a LAN game against Windows. Fix what differs; frame captures against Windows' where they differ visibly. User 2026-11-04: someone played the Linux build with real data for the user (not a rigorous pass) and reports it fine; the user has no Linux machine. Closed on that report; anything found later gets its own ticket."
+order = 1113
+status = "done"
+done = "2026-11-04"

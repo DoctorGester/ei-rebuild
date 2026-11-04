@@ -1,0 +1,8 @@
+id = "P8d"
+title = "Briefing and help text: justified lines that stop short, help text off centre, mojibake line"
+group = "native-ui"
+note = "User 2026-10-29 screenshots. (1) Briefing (ui_scroll_text.cpp, justified, align 2 as in the original): the first line of a paragraph can stop well short of the right edge while others are stretched with huge gaps; the gap divides by the token count including format tokens (end - begin - 1), so a line holding a colour/font token gets one gap too many; check against the original's layout (same text, game.exe) and decide: keep the justification but count only words, and do not stretch lines whose gaps would exceed about twice the normal word gap (leave them left aligned) unless the original does the same. (2) Help screen (hint window, e.g. Features / quest help): the text block sits left of centre, the left margin smaller than the right; check the original's margins and centre the block. (3) Behind the help window a line at the top of the screen shows mojibake (cp1251 bytes drawn as UTF-8 or the reverse: 'Р'Р...'); find which text that is (zone name / objective / console) and fix its conversion (UTF-8 always, C34). Goldens unchanged."
+order = 771
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

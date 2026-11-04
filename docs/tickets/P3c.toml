@@ -1,0 +1,10 @@
+id = "P3c"
+title = "Native camp, hero, trade and item info"
+group = "native-ui"
+size = 1.5
+depends = ["P2"]
+note = "Under Rebirth the camp / hero screens wait for W4."
+order = 120
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

@@ -1,0 +1,10 @@
+id = "W4"
+title = "Camp and hero screens, help, global map, cursor rectangles, interface creation"
+group = "widescreen"
+model = "opus"
+depends = ["W3"]
+note = "Widescreen camp and hero screens, help, global map, cursor rectangles and interface creation (also camera mouse moves and 004F1330)."
+order = 142
+status = "done"
+started = "2026-10-14"
+done = "2026-10-15"

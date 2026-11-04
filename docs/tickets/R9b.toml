@@ -1,0 +1,10 @@
+id = "R9b"
+title = "Guard every old-device call for a device object without a device"
+group = "renderer"
+model = "opus"
+depends = ["R9a"]
+note = "Every old-device call is guarded for a device object without a device (73 calling places from the old-device log)."
+order = 3
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

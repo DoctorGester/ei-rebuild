@@ -1,0 +1,11 @@
+id = "R43a"
+title = "HLSL as the single shader source: shadercross toolchain in the build, all 21 programs, reflection headers"
+group = "renderer"
+size = 2
+model = "opus"
+depends = ["R43"]
+note = "From R43 (build/reviews/r43_sdl_gpu.md, tools/gpu_spike). Fetch SDL_shadercross, SPIRV-Cross and DXC with pinned hashes (tools/gpu_spike/fetch_third_party.py) in the main build on Windows and Linux. Port all 21 programs to src/render/shaders/*.hlsl: the spike's seven plus a861650b3's old HLSL for the rest, in SDL's register spaces (VS t/s space0, b space1; FS t/s space2, b space3; TEXCOORD<location> plus vk::location; one-stage code under EI_VERTEX/EI_FRAGMENT). Generate reflection headers (sampler and uniform-block counts, slot names) to replace sokol-shdc's UB_/VIEW_/SMP_/ATTR_. Add a check that creates every program and pipeline on D3D12, Vulkan and lavapipe. The GLSL stays until R43e."
+order = 926
+status = "done"
+started = "2026-11-03"
+done = "2026-11-03"

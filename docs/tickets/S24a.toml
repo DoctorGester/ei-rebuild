@@ -1,0 +1,9 @@
+id = "S24a"
+title = "WideScreen layout: the resolution from the game's own options tree"
+group = "standalone"
+depends = ["S24"]
+note = "S24 found: ui_widescreen.cpp reads VIDEORESOLUTION from Software\\Gipat.ru\\EI_Starter\\EvilIslands\\General Settings (addon.dll's key) on either data, but on vanilla data (no NivalRegistry) the game reads and saves its options under Software\\Nival Interactive\\EvilIslands. S24's defaults write the resolution into both trees so a new file works; a later change of the vanilla tree's VideoResolution (by hand, or a future options screen) leaves the layout on the other tree's size. Read the resolution the game itself uses (g_registryRoot's, or GameOptions::resolutionX_/Y_ once loaded) instead. Check: ui_widescreen scenarios unchanged (their starter lines answer both names); a vanilla run with differing trees."
+order = 784
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

@@ -1,0 +1,8 @@
+id = "S22c"
+title = "Harness routes of slots our code never calls (18, S22's harness-only column)"
+group = "standalone"
+depends = ["S22"]
+note = "S22's gen_iat.py --counts: 18 slots are reached only from tests/ (HeapAlloc/ReAlloc/Free/Size/Create/Destroy, CreateThread, GetTimeZoneInformation, GetPrivateProfileIntA / SectionNamesA, WritePrivateProfileStringA, RegCreateKeyExA, RegSetValueExA, SetFileAttributesA, CreateFontIndirectA, GetMessageTime, SetActiveWindow, SetFocus): our code calls those as the Windows function or not at all, so the harness's patches of them catch nothing in the image. Per route: drop it (its check is dead), or move the call in our code back to gameapi:: when the harness's check is wanted (heap accounting, profile writes). tests/verify changes: --no-hooks suite. Then GDI32 leaves the image's table (its one slot is CreateFontIndirectA)."
+order = 636
+status = "done"
+done = "2026-10-29"

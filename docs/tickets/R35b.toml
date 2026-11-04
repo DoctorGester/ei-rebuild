@@ -1,0 +1,8 @@
+id = "R35b"
+title = "Camera lift when spinning low: ease the original's bob in the drawn view (user to decide)"
+group = "renderer"
+depends = ["R35a"]
+note = "User 2026-10-29: probably unnecessary; dropped."
+order = 770
+status = "done"
+done = "2026-10-29"

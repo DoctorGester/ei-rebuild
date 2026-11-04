@@ -1,0 +1,10 @@
+id = "SV10c"
+title = "Proposal (user decides; all goldens re-recorded): more world updates per drawn frame on the virtual clock"
+group = "verification"
+size = 2
+model = "opus"
+files = ["tests/verify/harness_clock.* tests/verify/harness.cpp tests/golden"]
+note = "Dropped (user 2026-10-21): don't change the number of drawn frames; make the frames faster instead (R16 renderer tickets). SV10: a frame costs 6-9 ms, of which the five world updates (server 0.2-3 ms, client 1-4 ms) are a third or less and the drawing the rest, so game time per wall second grows almost in step with the updates a frame runs: 10 instead of 5 (the virtual clock's frame-time read adds 10 ticks; RunWorlds already runs whatever backlog it gets, the original's loop too, capped by kLongestPassTicks) would cut the frames of a long scenario about in half and its in-game wall time by ~35-45% (net_pair_quest's ~6,400 frames, render_stats, the zone walks). Downsides: the client ticks and server updates interleave differently, the camera's per-pass update and the client speed balance see other steps, the client's particles draw random numbers per drawn frame: every golden changes and must be re-recorded from the original paced the same way (the harness moves the original's clock too, so it follows); scenarios' frame counts ('frames N', waits on frames) then mean more game time and some steps may land differently (re-check the scenarios that count frames). The cap kLongestPassTicks (5) must allow it in both, or the clock gives 5 and the loop is asked twice."
+order = 263
+status = "done"
+done = "2026-10-21"

@@ -1,0 +1,11 @@
+id = "S21d"
+title = "The verify wrappers out"
+group = "standalone"
+size = 2
+depends = ["S21c"]
+files = ["tests/verify", "include/ei/hook.h", "tools/check_stolen.py", "tools/check_patched_calls.py", "tools/check_returns.py", "docs/worker-brief.md", "docs/rewrite-guide.md"]
+note = "The verify wrappers are deleted outright (no frozen copy; git history keeps them) and the every-rewrite-gets-a-wrapper rule is dropped."
+order = 601
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

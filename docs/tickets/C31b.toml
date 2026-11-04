@@ -1,0 +1,7 @@
+id = "C31b"
+title = "Port scaffolding Abi types: ArrayAbi / ListAbi / ListTemporary / VectorAbi callers and registrations"
+group = "cleanup"
+note = "Do with C28o / C14b (after C14a): ~96 ArrayAbi uses (mfc_array.h, mfc_list.h, mfc_slots.h, game_arrays.h, game_slots.h, record_arrays.h), 52 ListAbi (game_lists.h, game_slots.h), 21 ListTemporary (SerializeThrough loaders), 56 stlp::VectorAbi (record_vectors.h, static_lists / unit_db_destroy / world_briefing Destruct); their Serialize / Destruct members are reached through the CArray / CList vtable tags. Re-review 2026-10-28: obsolete. ArrayAbi / ListAbi / ListTemporary / VectorAbi have 0 uses in src and tests (C14b / C14m / C14zb deleted them); only stale coverage csv lines name them."
+order = 468
+status = "done"
+done = "2026-10-28"

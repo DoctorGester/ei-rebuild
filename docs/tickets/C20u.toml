@@ -1,0 +1,8 @@
+id = "C20u"
+title = "Delete the moved image block: storage, shift, guard and section bounds"
+group = "cleanup"
+note = "After C20t (pointer cells 0, the block all zero) and H33f (the import slots out of the block's start). Delete image_data.cpp's storage and guard (PlaceData, OnOldData), game_data.h's kMovedBegin / kMovedEnd and the other section bounds (the dashboard's 5 game data addresses), g_dataShift and GameAddress's range check, data_seam.py's sections if nothing is left for them; gate harness_heap.cpp's GameData<HANDLE>(0x007CAF08) read (_crtheap) to game.exe's runs. Goldens are the check."
+order = 848
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

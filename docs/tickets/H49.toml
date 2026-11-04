@@ -1,0 +1,10 @@
+id = "H49"
+title = "The golden check and recording use every core"
+group = "harness"
+model = "sonnet"
+files = ["tools/run_all.py", "tools/golden.py", "tools/savefile.py"]
+note = "User 2026-11-03: after a suite the Python step sits at ~5% CPU (one core of 32) for a long time. Measured (cProfile, 167 vanilla runs): run_all.golden_check takes 103 s, all in golden.compare_one, one run after another: half compacting the digests (golden.compact / compact_entity), half decoding the saves (savefile.decode: read_world / read_unit, and a pure-Python decompress, 15 s). Run compare_one per run in a process pool (os.cpu_count()), print in the jobs' order as now; the same for golden.py record and snapshot over many scenarios, and cache decoded saves by hash (most runs share the same autosave). Look at savefile.decompress: prefer the pool first, then a faster loop. Check: the same output text as before on a full suite's runs (diff it), and the time before / after."
+order = 811
+status = "done"
+started = "2026-11-03"
+done = "2026-11-04"

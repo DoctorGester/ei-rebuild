@@ -1,0 +1,9 @@
+id = "SV7b1"
+title = "Script groups ordered by object id, not address"
+group = "verification"
+depends = ["SV7a"]
+note = "Script groups are ordered by object id, not address (script_group.cpp; original patched alike in the harness); also fixes PartySync seenCorpses order. Covers SV2d and SV3i."
+order = 217
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

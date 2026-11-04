@@ -1,0 +1,6 @@
+id = "R8"
+title = "Textures without DirectDraw in the switch-over"
+group = "renderer"
+note = "Textures work without DirectDraw in the switch-over (docs/notes/renderer.md)."
+order = 1
+status = "done"

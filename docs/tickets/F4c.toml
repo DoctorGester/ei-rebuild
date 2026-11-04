@@ -1,0 +1,12 @@
+id = "F4c"
+title = "CFigureInstance into CLinkMesh (F4a follow-up)"
+group = "cleanup"
+size = 2
+model = "opus"
+depends = ["F4a"]
+files = ["map_object_figures.h", "link_figure.h", "map_object_*.cpp", "object3d_*.cpp"]
+note = "CFigureInstance replaced by CLinkMesh (vtable 0073D790, as CObject3D +0xF0 holds it); release objects differ only in names."
+order = 334
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

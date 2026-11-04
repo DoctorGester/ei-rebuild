@@ -1,0 +1,8 @@
+id = "S19b"
+title = "Standalone on Rebirth: the mod-folder patches (Maps, ResOverride, MoviesPatch, CameraPatch, StreamPatch)"
+group = "standalone"
+note = "Standalone Rebirth mod-folder patches (Maps, ResOverride, MoviesPatch, CameraPatch, StreamPatch) reproduced behind flags via a standalone resource layer; docs/notes/rebirth.md."
+order = 595
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

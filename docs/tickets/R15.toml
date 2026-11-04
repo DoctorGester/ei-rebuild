@@ -1,0 +1,9 @@
+id = "R15"
+title = "Options: confine the cursor to the window; no edge pan with the cursor outside"
+group = "renderer"
+size = 1
+note = "User 2026-10-22: no UI for now; a settings-file flag in the Standalone key like R23's VSync (dword, default off, not read in the harness). User 2026-11-04: now that the options window gets new rows (R45's resolution row), R15 gets an options row too: confine the cursor on/off in the options window, saved in the settings file, default off, not read in the harness."
+order = 27
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

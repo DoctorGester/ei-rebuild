@@ -1,0 +1,12 @@
+id = "SV9a"
+title = "Scenarios that reach Rebirth's unreached fixes in the fix-profile goldens"
+group = "verification"
+size = 1
+model = "sonnet"
+depends = ["SV9"]
+files = ["tests/scenarios/ tests/golden/ docs/notes/rebirth.md"]
+note = "From SV9: of the 11 Fix-kind patches only FixSpellEffectsOverflow changes a golden (rebirth_fixes). Write scenarios whose vanilla run reaches FixLeversActivate, FixSpellSelfCasting, FixMoveObject, FixAddMapObject, FixRemoveMapObject, FixCreateItem, FixProgressNames, FixRepairPrice, FixPlaingBattleMusicFromAntimagic, FixProcessLogin (addon.log lines or a golden that differs from an EI_ADDON_FLAGS=0 run), record them from the original + fixes, check the image matches. EI_Plugin fixes (Briefings/Fixes) cannot be recorded through addon.dll; list them separately."
+order = 258
+status = "done"
+started = "2026-10-20"
+done = "2026-10-20"

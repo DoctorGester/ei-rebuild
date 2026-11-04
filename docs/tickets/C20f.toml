@@ -1,0 +1,9 @@
+id = "C20f"
+title = "Code literals: call registered functions by name instead of through their game address"
+group = "cleanup"
+model = "sonnet"
+note = "C20f (2026-10-28): code literals 129 -> 3 (GameMain: the hook's HasCode / kGameWinMain; DestroyScriptQuestName in script_exec_helpers.cpp, C14a holds it; GameInfoRecord::Write is a false positive, its address is kGameTextBegin). Registrations 559 -> 434 (125 more EI_REWRITTEN via registration_readers.py --drop; still registered: static init 178, harness 5). Exit functions: libcrt::AtExit(DestroyX) (Destroy moved before Construct); player handler tables are member pointers (HandlerEntry<CPlayerClient/Server>, new CPlayerServer::OnMessage37 for the refusing slot); callbacks take &Fn; the chunk archive's factory type is CRefCounted* (was CRefObject*, a misnomer). Checks: verify, release 0; check_signatures, check_x87 0; image suite 145 pass, goldens 121 the same 0 differ."
+order = 395
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

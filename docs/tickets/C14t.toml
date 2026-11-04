@@ -1,0 +1,10 @@
+id = "C14t"
+title = "The net RefPtr and timed lists to std::list, the sessions' raw-sentinel lists; delete stlp_list.h / stlp_list_refs.h"
+group = "cleanup"
+model = "opus"
+depends = ["C14s"]
+note = "Left by C14n. stlp::SharedRefListOf / CountedRefListOf / SharedRefList / CountedRefList (net_classes.h, ~250 node walks: First / End / next / At(node) in net_*.cpp, ui_hud, ui_chat_window), the TimedEntry PolicyLists (SharedEntry / CountedEntry), the sessions' drivers_ / holders_ / clients_ raw sentinels (net_session_*.cpp, world_create.cpp), the world_stamp_sort / EntryIdLess node-pointer sorts (std::list::sort is stable, the STLport sort on node pointers may not be: check the order of equal keys). Element types: C14n's CountedRefPtr / SharedRefPtr (core_refcount.h). Then stlp_list.h and stlp_list_refs.h go once only tests' views use them (stlp_hash.h's bucket vectors keep stlp_vector.h until C14q)."
+order = 503
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

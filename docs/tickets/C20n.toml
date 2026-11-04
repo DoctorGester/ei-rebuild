@@ -1,0 +1,9 @@
+id = "C20n"
+title = "Drop calling-convention modifiers that only matched game.exe"
+group = "cleanup"
+model = "sonnet"
+note = "User 2026-10-28 asked why so many: __fastcall 1,058, __stdcall 479, __cdecl 549, __thiscall 9 in src/game + src/lib. They matched the original's ABI so registrations could put our function where game.exe called its own (ECX/EDX for MSVC6 helpers turned free functions). Since C20 / C20l nothing in game.exe calls ours, so they are noise. Scripted removal; keep only where an outside signature requires one: Win32 / COM / DirectX callbacks and interfaces (WNDPROC, thread procs, CALLBACK / WINAPI / STDMETHOD), CRT callbacks (qsort, atexit, _onexit), function pointers stored in game data the image reads, and the EI_RECORD recorders (they run inside game.exe; check_signatures). Default convention for x86 32-bit build stays. Checks: verify/release, check_signatures, image suite goldens."
+order = 478
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

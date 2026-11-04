@@ -1,0 +1,9 @@
+id = "SV1j"
+title = "Harness: a screen step's answer lands in the step's frame or the next by real time"
+group = "verification"
+model = "opus"
+note = "A pending close-all and a real window message raced: on the virtual clock the main loop reports no message while the close-all flag is set (harness.cpp HoldMessagesForCloseAll)."
+order = 179
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

@@ -1,0 +1,8 @@
+id = "C35g"
+title = "C35 heap wrappers: gamecrt::operator_new* / operator_delete / malloc / free and the eh vector iterators to new / delete"
+group = "cleanup"
+note = "Survey 2026-10-28: gamecrt::operator_delete 354, operator_new_array 62, operator_new 52, operator_new_as 49, operator_new_bytes_as 12, operator_new_zeroed 9, malloc 1, free 2; libcrt::ConstructElements 2, DestroyElements 4, Element 3, OperatorNew / OperatorDelete / Malloc / Free; NewHandler 18 (mfc's g_afxNewHandler loop). Most are objects allocated raw and constructed by hand: they go with the classes' constructors (C27-C29 style), new T / delete p once each class has one. ei_vectors defines its own (replay_crt.cpp). The STLport node allocator (NodeAllocate 5, NodeDeallocate 9, NodeRefill, NodeChunkAlloc) goes with the last stlp container (C14c, C14n)."
+order = 494
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

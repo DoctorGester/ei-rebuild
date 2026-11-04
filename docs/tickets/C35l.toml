@@ -1,0 +1,11 @@
+id = "C35l"
+title = "C35 the fake unit (class 0x39) and its scene loader deleted: dead in game.exe and ours"
+group = "cleanup"
+model = "opus"
+depends = ["C14m"]
+files = ["src/game/fake_unit.cpp src/game/scene_*.cpp src/game/scene_loader.h"]
+note = "Done (to review): fake unit (class 0x39) and its scene loader deleted. 15 files in src/game (fake_unit, scene_* but scene_renderer, skin_rewind, face_normal, figure_slots, figure.h/.cpp, animation_node_lifetime) plus what only they used: CAnimationNode, MFC CMap/MapAbi/CMapAssoc, KeyFrames/BoneLink/DwordMap/CornerMap/FigureRegistryMap/SceneObject/MorphKey/Index array classes, DeleteThroughFirst, Conjugate, MultiplyByConjugate, FindListedName, CArray::ElementAt, replay_unlinked rows. Factory case 0x39 gone: NewObject returns null as for an unknown class. config: named_data 4 rows, vtables.csv 18 rows to file -, dead_code.csv +58 rows (fake unit chain, incl. two code chunks outside Ghidra functions), unread_data +4 (gen_static_init regenerated, __cdecl stripped, static_init.cpp unchanged), library.csv notes, comment_batches, coverage csv/reach/unreachable rows. About 3,500 lines out of src/tests/tools. Image suite --golden 145 pass, 121 the same (before 121); original suite not run."
+order = 511
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

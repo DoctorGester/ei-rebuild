@@ -1,0 +1,9 @@
+id = "S3b"
+title = "Standalone: constructors only the static initialisers call"
+group = "standalone"
+depends = ["S3"]
+note = "Ten global constructors only the static initialisers call (0051FB10, 005612F0, 00589ED0, 0057E2F0, 0057E3D0, 0065F580, 006AE0F0, 006D0250, 006D7220, 005CDFC0) ported."
+order = 549
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

@@ -1,0 +1,7 @@
+id = "X22"
+title = "render_present crashed once under 16 parallel runs"
+group = "harness"
+note = "Closed 2026-10-28: seen once 2026-10-07 under the old DDraw present path; not seen in any main suite since (dozens of runs)."
+order = 280
+status = "done"
+done = "2026-10-28"

@@ -1,0 +1,8 @@
+id = "SV3i"
+title = "zone_gz3g (vanilla): script group VSS#i#val differs between our runs"
+group = "verification"
+size = 0.5
+note = "zone_gz3g vanilla script group VSS#i#val no longer differs between runs (heap fix plus id-ordered script groups, SV7b1; diagnosis with EI_HEAPTRACE=60 on --no-hooks runs)."
+order = 192
+status = "done"
+done = "2026-10-15"

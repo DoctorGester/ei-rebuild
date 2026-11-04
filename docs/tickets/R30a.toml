@@ -1,0 +1,8 @@
+id = "R30a"
+title = "Renderer trim batch 1: deletions with no caller or no reason left"
+group = "renderer"
+size = 0.25
+note = "Done in R30's branch (survey: build/style_review/renderer_trim.md, R30a): render::game::Where / render_game.h and render.cpp's unused GameWindow, the cursor's never-drawn background and composition holders (CCursor under_ / target_), Texture::usedFrame (never read), MmpHeader::SetFormat8888 (00693910, no caller: dead_code.csv), render::ui::Quantise / Widen file-local, stale comments (render_blit.cpp header, window blit -> image blit)."
+order = 93
+status = "done"
+done = "2026-10-29"

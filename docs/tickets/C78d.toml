@@ -1,0 +1,10 @@
+id = "C78d"
+title = "Vector3 x-and-y leftovers and the Windows-only rename audit"
+group = "cleanup"
+model = "opus"
+depends = ["C78b"]
+note = "The rest of C78b: c78_components.txt (C78's audit) is no longer in build/reviews, so rerun the rename audit first (C78's note: rename the members, WSL gcc -fsyntax-only -fmax-errors=0), and do the Windows-only files (platform/win32, tests/verify, tools) by hand. Then the ~100 'x and y only' functions of build/reviews/c74c_components.txt (ground-plane maths, map cells, 2D turns) with judgement: Vector2 / XY / WithZ / DistanceSquaredXY where both components get the same operation in the same order, a one-line reason where the terms differ. Goldens the same."
+order = 1007
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

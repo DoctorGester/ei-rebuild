@@ -1,0 +1,9 @@
+id = "S8b"
+title = "Standalone library: MFC resource strings, error messages and CFile names"
+group = "standalone"
+depends = ["S8a"]
+note = "MFC resource strings and error messages (CString::LoadString 00702B0E, AfxMessageBox(UINT), ReportError, GetErrorMessage, CFile GetFileName / GetFileTitle / GetFilePath) ported; docs/notes/standalone.md."
+order = 574
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

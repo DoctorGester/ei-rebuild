@@ -1,0 +1,9 @@
+id = "PL1"
+title = "Platform layer: src/platform, its rules and the first areas (time, debug output, message box, paths)"
+group = "port"
+model = "opus"
+note = "User 2026-10-30: a platform layer is tonight's goal with the x64 build. Today the game calls Windows directly: lib/gameapi.h's 166 called imports (KERNEL32 49, USER32 42, WSOCK32 19, WINMM 5, DSOUND 1, Miles, Bink) and windows.h in ~45 game / render / lib files. Make src/platform/: small headers by area (time, window, input, file, thread, net, audio, video, system) with no SDK types (UTF-8 strings, fixed-width ints, opaque handles), one Windows implementation in src/platform/win32/, the only game-side place that includes windows.h (render's D3D backend keeps its own). Write the rule into a short docs/notes/platform.md and add a build check counting windows.h / gameapi:: users outside src/platform and render, shown on the dashboard. This ticket: the skeleton, the check, and the first areas: time (timeGetTime / QueryPerformance / Sleep), debug output, message box, module and folder paths, system info. Goldens unchanged. Next areas: PL2 window and input, PL3 files, PL4 threads, PL5 sockets, PL6 audio and video seams. H33g (lib/file_io) and H33h (rects) feed into it."
+order = 853
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

@@ -1,0 +1,10 @@
+id = "S16b"
+title = "Standalone: the next stops after the zone (0069D9A0, 00657C60, 00424E40) and the rest of the suite"
+group = "standalone"
+depends = ["S16a"]
+files = ["src/game/item_stock.cpp", "src/game/ui_saveload.cpp", "src/game/originals_library.h"]
+note = "Boot stops 0069D9A0, 00657C60, 00424E40 ported (registered with S12g); the image's suite ran past them."
+order = 586
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

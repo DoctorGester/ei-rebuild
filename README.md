@@ -49,7 +49,7 @@ files with goldens that were the same as the original game's runs when the harne
 - Rebirth's bug fixes and its widescreen layout are always on, even on GOG data.
 
 The source is readable modern C++: every function is rewritten from the original, with no leftover MFC or STLport.
-Lua mission scripting is planned (`docs/notes/lua-scripting.md`). The work queue is `docs/tickets.md`.
+Lua mission scripting is planned (`docs/notes/lua-scripting.md`). The work queue is `docs/tickets/` (one file per ticket; `python tools/tickets.py list` or the ticket board).
 
 ## Requirements
 

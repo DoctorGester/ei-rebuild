@@ -1,0 +1,9 @@
+id = "H47b1"
+title = "render_smooth's split pass differs on lavapipe"
+group = "harness"
+depends = ["H47b"]
+note = "On lavapipe (not dzn) render_smooth's samecapture smooth smooth_split fails: 37% of the pixels differ, the whole world view darker and greyer (docs/notes/linux.md, The harness). The split draws the world view's first run, resolves it, copies the frame into every sample (into_multisampled) and draws the rest; smooth_before (the same copy after a cleared frame) matches. Find whether the copy's depth/colour sampling, the resolved-depth copy back (depth_from_resolved) or lavapipe is wrong; then render_smooth can run on lavapipe. render_terrain_seams' level steps (0.9% against 0.3%) stay lavapipe's sampler unless the check can name the cause."
+order = 825
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

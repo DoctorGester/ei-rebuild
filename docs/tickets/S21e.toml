@@ -1,0 +1,11 @@
+id = "S21e"
+title = "InstallHooks' game.exe mode out; verify becomes the harness build"
+group = "standalone"
+size = 2
+depends = ["S21d"]
+files = ["src/hook", "build.cmd", "CMakeLists.txt", "tools/launcher"]
+note = "InstallHooks' game.exe mode is out; verify is the harness build; wrapper-only hook points, disabled.txt and ui_census_report.py's wrapper filter removed."
+order = 602
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

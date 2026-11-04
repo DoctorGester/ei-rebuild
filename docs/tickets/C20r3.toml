@@ -1,0 +1,8 @@
+id = "C20r3"
+title = "One namespace for the game CRT: gamecrt (rand's observer, Ftol) into libcrt"
+group = "cleanup"
+note = "C20r: crt.h has gamecrt::rand (libcrt::Rand plus the harness's random observer), gamecrt::Ftol (inline, ~150 callers) and SetRandObserver beside libcrt's Rand / Srand / Qsort / Format / Ci* maths. One namespace (libcrt), rand as Rand with the observer inside, is a scripted rename over src/tests; no behaviour change. Check: build verify / release, ei_vectors, image suite --golden."
+order = 662
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

@@ -1,0 +1,11 @@
+id = "C113a"
+title = "Networking style 5a: player client order senders return nothing"
+group = "cleanup"
+model = "sonnet"
+depends = ["C113"]
+files = ["src/game/player_client.h", "src/game/player_client_orders.cpp", "src/game/world.h", "src/game/world_client_maps.cpp", "src/game/world_game.cpp"]
+note = "Found in C113 (review round 3, item A15). PlayerClient's order senders (SendWalk, SendGoTo, SendAttack, SendCastOnUnit, SendCastAtPoint, SendItemOnUnit, SendItemAtPoint, SetWeapon, SetMoveMode, SetUnitFightAtWill, SendFollow, SendPause, SendUseOrder, SendUseDead, SendPartyUpdate, SendResume) all return 1 and TakeExit / RequestZone / RequestGameState return the stream position; no caller reads either (WorldClient::SendPause and ::RequestZone only pass it on). Make them void. Style only: goldens the same."
+order = 1077
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

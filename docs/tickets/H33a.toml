@@ -1,0 +1,8 @@
+id = "H33a"
+title = "Build time: header diet (windows.h through gameapi.h, the big game headers)"
+group = "harness"
+note = "From H33's profile (docs/notes/cleanup-tooling.md, Build time): headers are ~1.1 s of each file's ~1.5 s compile. lib/import_table.h pulls windows.h, mmsystem.h, shellapi.h, objbase.h and dsound.h into almost every file through lib/gameapi.h (windows.h alone 0.25 s per file), and gameapi.h's ~150 inline references are each a dynamic initialiser compiled in every file that includes it (dropped at link since /OPT:REF). The big game headers cost ~0.35 s each where included: map_object_figures.h (449 files; it includes windows.h for RECT), ai_map.h / ai_event_table.h (347), unit.h (404), world.h (295), ui.h (0.57 s). Forward declarations / splitting the import slots by DLL could take 15-25% off the compiler time (clean verify ~59 s -> ~47-50 s) and more off a touched header's rebuild. Check: the code of every object unchanged (dumpbin /disasm per function, scratchpad objdiff.py of H33) or goldens."
+order = 786
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

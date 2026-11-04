@@ -1,0 +1,9 @@
+id = "C133"
+title = "Objects style 1: dead sweep and one FigureMesh"
+group = "cleanup"
+model = "sonnet"
+note = "Style review round 4 (2026-11-04, https://claude.ai/artifact/BzXaX58kMcB9E2dwRuhN2U, reviewer reports in build/style_review/round4/<area>.md; user: file them all). Items O1, O2 (objects.md A1, A2, A4, A7, A13). Delete LinkMeshBase and FigureDrawerBase (one subclass each), Unused14/NotifyCompanion and Unused25 with their calls, CopyFigure, the SaveTransform/LoadTransform chain, LinkMesh::RemovePart/UpdateScreenRect/screenRect, MemoryBytes/CacheSize/CacheBytes, MakeFigure's always-1 arg and the dead result tests, chunk_archive Open's dead else and Close calling LeaveChunk. One FigureMesh owning the arrays with one LoadFig/LoadOld/RefreshBuffers (0x41/0x42 kept as type values; check BuffersChanged order). One fig block in figure_mesh.h: kFigMagic once, the record offsets from sizeof, MorphCube/MorphPrism shared by figure_mesh, link_figure, figure_bones and the animation (exact: same operations, said in the review). Style only: goldens the same, float operation order untouched (any float rewrite exact and said why), no new forwarders, normal C++ classes; gameplay code stays (technical dead code goes)."
+order = 1064
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

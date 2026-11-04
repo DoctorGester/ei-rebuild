@@ -1,0 +1,11 @@
+id = "R43h"
+title = "macOS through SDL_GPU's Metal backend (MSL from shadercross)"
+group = "renderer"
+size = 2
+model = "opus"
+depends = ["R43e"]
+note = "From R43 (build/reviews/r43_sdl_gpu.md). Replaces the sokol Metal plan of the MAC3 tickets."
+order = 933
+status = "done"
+started = "2026-11-03"
+done = "2026-11-04"

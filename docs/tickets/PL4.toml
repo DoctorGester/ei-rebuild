@@ -1,0 +1,9 @@
+id = "PL4"
+title = "Platform layer: threads, events, critical sections"
+group = "port"
+model = "sonnet"
+note = "After PL1. lib/thread.cpp and the game's CreateThread / ResumeThread / SetThreadPriority / CreateEvent / SetEvent / WaitForSingleObject / CRITICAL_SECTION users (sound, resource streaming, net) onto a platform thread header (Thread, Event, Mutex), no Windows types in game structs (win_types.h's CRITICAL_SECTION gone). Goldens unchanged."
+order = 856
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

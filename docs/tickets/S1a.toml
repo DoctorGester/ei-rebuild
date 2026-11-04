@@ -1,0 +1,10 @@
+id = "S1a"
+title = "Registrations the image skips or doubles"
+group = "standalone"
+size = 0.5
+files = ["src/game/effects.cpp", "src/game/map_spec.cpp", "src/game/ai_path.cpp"]
+note = "Registrations the image skipped or doubled fixed: non-virtual shims for CEffect::DestroyEffect 00675D40, Spec::SpecRefresh 00469E00, Spec::SpecRemove 00469DE0; one function per doubled address."
+order = 546
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

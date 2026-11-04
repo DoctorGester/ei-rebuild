@@ -1,0 +1,9 @@
+id = "C50b2"
+title = "The camera and the scene renderer as plain globals"
+group = "cleanup"
+depends = ["C50b1"]
+note = "C50b1 follow-up. g_camera 0079B2A8 and the scene renderer 007AF060 are the last lib::StaticObject singletons in game_singletons.h. Since C50b1 the worlds are plain globals emptied by EmptyWorlds (ShutDown and an std::atexit registered before the worlds are created); their destructors run after the camera's exit function, so the world destructor's g_camera->SetTarget(nullptr) writes into a destroyed camera (harmless static storage, but undefined). Make both plain globals (UNUSED_INITIALISERS, static_init_ports / named_data / global_objects rows, whole-tree g_x-> retype) and check the destruction order against the worlds' (camera destroyed after the worlds, or the worlds' destructors not touching it). Also: the world teardown now runs up to three times (ShutDown, EmptyWorlds, destructor); if the destructor can rely on EmptyWorlds, drop the third. Goldens unchanged, net_pair_* no exit hang."
+order = 746
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

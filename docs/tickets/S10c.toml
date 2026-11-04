@@ -1,0 +1,10 @@
+id = "S10c"
+title = "Item stock: recipe pair destructor 004AD640"
+group = "standalone"
+size = 1
+files = ["src/game/item_stock.cpp"]
+note = "Item stock recipe pair destructor 004AD640 (pair<stlp::string, list<recipe*>>, RecipePairDestroy) ported in item_stock.cpp and registered."
+order = 560
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

@@ -1,0 +1,10 @@
+id = "C17a"
+title = "check_fp_fold: call graph names wrong callers for a helper (RandomAngle via 004F7F00 / 004F9FD0)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C17"]
+note = "After SV5d4's merge (harness-only change) main's verify build failed check_fp_fold: ::RandomAngle (world_effect_visual.cpp, the 0073FFD0 literal of CEffectParticle's scorch angle) was judged against LoadFigPart 004F7F00 / RemorphFigPart 004F9FD0, which do not call it; the previous verify builds passed. Allowed in tools/check_fp_fold_allow.txt for now. Find why the CALL / JMP rel32 scan (call_graph) attributes it there (a false rel32 match, a folded COMDAT, a layout-dependent boundary), fix the scan so the result does not depend on unrelated code layout, then drop the allow entry. Checks: build.cmd verify and release at 0 on main and on a couple of earlier commits."
+order = 366
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

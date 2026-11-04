@@ -1,0 +1,8 @@
+id = "C12"
+title = "__asm blocks and float_control pragmas"
+group = "cleanup"
+note = "221 __asm blocks, 110 float_control pragmas; mostly kept for bit-exact x87 maths until the standalone build."
+order = 329
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

@@ -1,0 +1,9 @@
+id = "C51"
+title = "bool and void instead of BOOL, int-as-bool and always-1 returns (G10)"
+group = "cleanup"
+model = "sonnet"
+note = "Style review Tier 2 (build/style_review/REPORT.md; user 2026-10-28: run beside the native UI track P2-P8). Leave src/game/ui_*.* and src/render/render_ui* to the P track (C54 covers them after P8). By subsystem, the compiler as checker, goldens unchanged. G10: bool everywhere except byte-exact structs; always-1 returns to void unless an interface needs the value; int Is*/Has*/Can* predicates to bool; virtual signatures changed together."
+order = 692
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

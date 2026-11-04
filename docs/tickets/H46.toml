@@ -1,0 +1,9 @@
+id = "H46"
+title = "Harness: no crash at exit in netlocal::Scan"
+group = "harness"
+model = "sonnet"
+note = "PL14 saw ui_widescreen_dialogue (x64) crash at exit once: after the report is written, process exit destroys harness_net.cpp's static udp/tcp tables while the watchdog thread still scans them. Keep the tables alive past exit (leaked or function-static never destroyed) or stop the watchdog before static destructors run; say which."
+order = 802
+status = "done"
+started = "2026-11-03"
+done = "2026-11-03"

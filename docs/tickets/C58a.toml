@@ -1,0 +1,8 @@
+id = "C58a"
+title = "Owned arrays, rest: the byte buffers and the DIB bits"
+group = "cleanup"
+note = "G17 after C58. Left with new[] / delete[]: GameBuffer's family (game_buffer.cpp GrowingBuffer: begin/cur/high/end over a new[] block that GameBuffer::Reallocate frees; buffered_file.cpp BufferedStream's window), to a std::vector<std::uint8_t> owned by GrowingBuffer / BufferedStream with the four pointers as views (GameBuffer's layout is read by tests/vectors/record_coder.cpp: keep the base's members); the DIB's bits (dib.cpp / dib.cpp, owned only when bitsOwner == kNew, else borrowed). Also dead: CResourceStream never reads an archive table (entries_ / names_ always null, archive_ never set), so its archive branch in OpenFile is unreachable. Not yet: std::list to vector, types inheriting from std containers."
+order = 760
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

@@ -1,0 +1,11 @@
+id = "S12f"
+title = "Standalone library: the hero screen's string sorts, spell lookup and party-entry insert_overflow"
+group = "standalone"
+size = 1
+depends = ["S12e"]
+files = ["src/game/stl_sorts.cpp", "src/lib/stlp_algo.h", "src/lib/stlp_vector.cpp", "src/game/library_containers.cpp"]
+note = "Hero screen string sorts (topic sort 0060B330 / 0060B440, CString sort 0061A240 / 0061A300), spell lookup 00613920 and party-entry insert_overflow 00619920 ported, ours first (SV2f)."
+order = 584
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

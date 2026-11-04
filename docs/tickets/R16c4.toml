@@ -1,0 +1,10 @@
+id = "R16c4"
+title = "Inlined FISTP for Animate's per-vertex rounding"
+group = "renderer"
+model = "opus"
+depends = ["R16c3"]
+note = "R16c3 (2026-10-21): each water vertex in SectorData::Animate 006C3E80 still makes up to four out-of-line x87::RoundToInt calls (one sine lookup, three colour bytes). An inlinable FISTP in include/ei/x87.h (same instruction, same control word, so bit-exact) would cut Animate further; check no other caller changes beyond the call, measure Animate A/B with waterwaves 1 (stop under 0.1 ms a harness frame). Also record terrain_water_waves's Rebirth golden (only vanilla exists). Checks: goldens both installs, terrain_water_waves the same."
+order = 53
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

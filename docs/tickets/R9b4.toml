@@ -1,0 +1,9 @@
+id = "R9b4"
+title = "FlushBatch calls out"
+group = "renderer"
+depends = ["R9b3"]
+note = "R9b3 (2026-10-21) left FlushBatch / FlushBatch2 (004E7840 / 004E7A40) as empty ports and UiRenderer::FlushBatchA/B: remove them with their ~35 call sites in renderer_*, device_draw, ui_hud, ui_alpha_draws, ui_container_draws, ui_hero_preview and world_client_draw once C11's shim batches have merged (the Flush helpers in the ui_ and world_client_draw files go with them), then dead_code.csv rows for both addresses."
+order = 56
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

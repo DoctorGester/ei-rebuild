@@ -1,0 +1,10 @@
+id = "H43i"
+title = "An offline check of the mixer: harness runs never reach src/audio's mixing"
+group = "harness"
+depends = ["H43"]
+files = ["src/audio/audio.cpp", "tests/unit"]
+note = "H43's coverage report (build/coverage/report.md; python tools/coverage.py run <ticket>): harness runs open no sound device (sound.md), so audio.cpp's Mix, Render, Reverb::Shape and Process, NoteFrame, DeviceData and Stream::Fetch run in no test (65 of 108 functions reached, 249 of 683 lines unreached). A unit check that feeds known voices and streams through the mixer and compares the samples, or a harness option that mixes into a buffer without a device."
+order = 834
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

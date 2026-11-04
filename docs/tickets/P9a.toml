@@ -1,0 +1,10 @@
+id = "P9a"
+title = "Small text windows paint each frame (P9 batch B)"
+group = "native-ui"
+model = "opus"
+depends = ["P9"]
+note = "P9's batch B (build/P9/plan.md is in P9's report; docs/notes/ui-native.md section 3): each window draws its current state into its surfaces every frame from its paint (called from the surface's Blit), its surface keeps no draws (UiSurface::draws empty; a surface flag or paint callback marks it). Windows: spin, main menu version line, FPS, status line, tooltips, item strip, HUD panels and unit info, global-map titles, help page, edit field, connect note. State that today exists only as arguments of the draw call becomes members. Draw functions with side effects (return values used for layout, regions) keep them where they run today. Check: goldens the same, gallery frames the same (the harness's text is unsmoothed: frames compare exactly), ui_resize_text."
+order = 775
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

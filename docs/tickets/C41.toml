@@ -1,0 +1,10 @@
+id = "C41"
+title = "Comments: drop the original-binary addresses and the decompilation narration"
+group = "cleanup"
+model = "sonnet"
+depends = ["C38d", "SV7b5"]
+note = "Style review 2026-10-28 (build/style_review/REPORT.md, user asked to schedule Tier 1 in the suggested order); after SV7b5 and C38d. G1. ~1,370 /*00XXXXXX*/ address comments in 232 files: strip by script (sed -E 's@ ?/[*]0[0-9A-F]{7}( f)?[*]/@@g'), then fix lines whose comment became empty (= /*addr*/ {nullptr} -> = nullptr). Check first that no tool reads them; keep a generated list in docs/notes only for data still generated from game.exe (S18d). Then the narration: ~650 lines on x87 instructions / stack slots / 'integer moves' / 'as a dword', ~100 'the inlined ...', 97 'slot N', ~130 naming MFC / STLport operations on std code: rewrite to say what the code does, or delete. Keep 'the original ...' lines that explain a kept quirk. Add the banned words to tools/comments.py. Comment-only: goldens unchanged. Batches by directory."
+order = 674
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

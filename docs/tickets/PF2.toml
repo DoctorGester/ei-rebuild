@@ -1,0 +1,11 @@
+id = "PF2"
+title = "Faster hook installation"
+group = "harness"
+size = 0.5
+model = "sonnet"
+files = ["src/hook/hook.cpp"]
+note = "Faster hook installation: hooks indexed by address, .text unprotected once, trampolines allocated from one block (about 300 ms saved per launch)."
+order = 285
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

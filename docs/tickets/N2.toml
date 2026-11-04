@@ -1,0 +1,10 @@
+id = "N2"
+title = "Font loading, glyph atlas and DrawText-compatible layout"
+group = "native-ui"
+size = 2
+files = ["src/render/render_text.{h,cpp}", "third_party/stb", "third_party/fonts"]
+note = "render::text (stb_truetype with Liberation Serif / Mono, GlyphAtlas, Layout, TextExtent, DecodeCp1251); ei_text_check has --rules, --gdi and --report; not pixel-exact with GDI."
+order = 112
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

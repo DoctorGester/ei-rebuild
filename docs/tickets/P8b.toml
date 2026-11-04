@@ -1,0 +1,10 @@
+id = "P8b"
+title = "The titles without the system font smoothing switch; render::ui::Image without a game caller"
+group = "native-ui"
+size = 0.25
+depends = ["P8a"]
+note = "Since P8a the titles' text is drawn unsmoothed by our own layout, so the only reason left for CCreditsScreen switching the system's font smoothing off (SPI_SETFONTSMOOTHING in its constructor, restored in OnClose, ui_credits.cpp / ui_layouts.cpp) is the header line's DrawTextIn (TextFontOf asks SPI_GETFONTSMOOTHING). Draw the header with an unsmoothed font explicitly and drop the session-wide setting change (the harness reports smoothing off anyway). Also render::ui::Image (render_ui.h) has no game caller since P8a (only ei_ui_check's pictures): keep it as a test path or fold the checks onto Pixels ops and delete it."
+order = 137
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

@@ -1,0 +1,11 @@
+id = "SV1d"
+title = "A stalled game outlived its scenario limit and ei_launch"
+group = "harness"
+size = 0.3
+model = "sonnet"
+files = ["tests/verify/harness.cpp"]
+note = "A stalled game is ended by ei_launch once the scenario limit plus a margin passes."
+order = 293
+status = "done"
+started = "2026-10-14"
+done = "2026-10-15"

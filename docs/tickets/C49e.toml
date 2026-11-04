@@ -1,0 +1,8 @@
+id = "C49e"
+title = "Ref for the game client's raw counted fields and the AI mode list"
+group = "cleanup"
+note = "C49a follow-up. ClientSession::info_, binding_, map_, trade_ are raw counted pointers (AssignRef / ClearRef / ReleaseInline in net_client_handlers.cpp and net_client.cpp): to Ref<T>. AIBrain::modes (std::list<AIMode*>, the T*& DestroyOwned / ShareOwned overloads in core_refcount.h) to std::list<SharedRef<AIMode>>, then delete the raw overloads. ScriptEffect<T> stays (its reset removes the timed object). Goldens unchanged."
+order = 750
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

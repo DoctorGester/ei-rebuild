@@ -1,0 +1,10 @@
+id = "SV5"
+title = "Coverage list and scenarios for what it shows uncovered"
+group = "verification"
+size = 1
+depends = ["SV3"]
+note = "Coverage list (tools/coverage.py, tests/coverage) and scenarios for what it shows uncovered."
+order = 163
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

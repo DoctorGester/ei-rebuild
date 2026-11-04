@@ -1,0 +1,9 @@
+id = "S4a1"
+title = "Function vectors for the CRT float formatting and atof"
+group = "standalone"
+depends = ["S4a"]
+note = "CRT float formatting and atof (crt_format.cpp: TenByteToDigits / FormatFloat / StringToLd12 / Ld12ToDouble) were checked by a start-up battery of ~135k cases against the original."
+order = 561
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

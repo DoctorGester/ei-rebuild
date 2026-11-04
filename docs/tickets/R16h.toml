@@ -1,0 +1,12 @@
+id = "R16h"
+title = "Figure animation (part morphs) on the GPU"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R16", "R16d"]
+files = ["src/render/render_mesh.cpp", "src/game/figure_part_draw.cpp"]
+note = "docs/notes/renderer.md section 13, item 8. The game morphs figure positions on the CPU every frame; key frames on the GPU with the blend in the vertex shader remove the moved meshes uploads and the CPU morph. Bounds for picking and culling stay on the CPU. Check: models, units at 8 / 0.5%; goldens (picking). Outcome: measured, not built. Creatures animate by their bones (a matrix per part, already on the GPU); the per-vertex morph moves 0.6 of the fight's 331 mesh draws a frame (12 corners), none in zone1 / town / menu, no profile samples, and its result is read by game code (projection: visibility and screen rectangles; the shadow raster). Delivered: renderstats' morphed meshes and main-thread CPU / wall per frame; follow-ups R16k (device per-corner work) and SV10i (libcrt control word)."
+order = 40
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

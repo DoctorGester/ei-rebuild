@@ -1,0 +1,10 @@
+id = "S8a"
+title = "Standalone library: MFC handle maps and the GDI objects"
+group = "standalone"
+size = 1
+files = ["src/lib/mfc_gdi.h", "src/lib/mfc_gdi.cpp"]
+note = "Standalone MFC handle maps and GDI objects (CDC::FromHandle, SelectObject, CGdiObject Attach / DeleteObject, CPen, CFont::CreatePointFont, CDC vtable slots) with the image's own maps."
+order = 572
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

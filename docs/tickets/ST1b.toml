@@ -1,0 +1,10 @@
+id = "ST1b"
+title = "Play while the suites run: the second-instance check"
+group = "standalone"
+size = 1
+model = "sonnet"
+note = "Done: harness game windows get the title '<title> (harness)' (harness.cpp CreateWithoutActivating) so a play launch's FindWindowA check never matches them; harness runs already answer the check themselves (NoOtherGameWindow, game.exe's too), so harness runs never see each other or a play window. The image logs 'app: another game window exists' in ei_hook.log before Exit(-1); ei_launch (no harness) prints a line for exit -1. Suites: 121 and 114 goldens the same. Not covered by a scenario (check is in WinMain)."
+order = 632
+status = "done"
+started = "2026-10-22"
+done = "2026-10-22"

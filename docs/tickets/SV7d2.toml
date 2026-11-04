@@ -1,0 +1,10 @@
+id = "SV7d2"
+title = "Path step flags: one step's flags are 0x2664 in ours"
+group = "verification"
+size = 0.5
+depends = ["SV7d"]
+note = "Path builders give cells plain words, speed 0x200 and terrain bits 0 (kPlainStepSpeed) in JoinLocalSearches, BuildCellsTo and Smooth; the original gets the same via harness_path_cells.cpp."
+order = 225
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

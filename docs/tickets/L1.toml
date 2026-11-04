@@ -1,0 +1,7 @@
+id = "L1"
+title = "Script IR from the existing parser"
+group = "lua"
+depends = ["S"]
+note = "Blocks, commands, definitions, globals, Rebirth's extensions, with a text dump; every mission, quest and console form parses."
+order = 637
+status = "later"

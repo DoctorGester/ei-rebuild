@@ -1,0 +1,9 @@
+id = "SV6b"
+title = "Rare under-load failures after SV6: SendResume mismatch, sound leader dead"
+group = "verification"
+size = 0.5
+files = ["tests/verify/verify_player_messages.cpp"]
+note = "SendResume's slot returns the stream position (our Write returned nothing); the sound scenario removes its second goblin once the first is dead."
+order = 198
+status = "done"
+done = "2026-10-15"

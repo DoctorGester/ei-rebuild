@@ -1,0 +1,10 @@
+id = "R43i"
+title = "Delete tools/gpu_spike and the EI_GPU_SPIKE option"
+group = "renderer"
+size = 0.25
+model = "sonnet"
+depends = ["R43g"]
+note = "From R43. Once R43g's numbers have replaced the spike's. Done by R43e (2026-11-03): tools/gpu_spike and EI_GPU_SPIKE are gone."
+order = 934
+status = "done"
+done = "2026-11-03"

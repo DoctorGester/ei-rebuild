@@ -1,0 +1,8 @@
+id = "H33c"
+title = "ei_hook.dll size after /OPT:REF: zero bytes, fonts, ICF"
+group = "harness"
+note = "After H33 ei_hook.dll is 5.1 MB (release): .text 2.9 MB (ours 2.6 MB, ei_render 0.33 MB, ucrt 0.15 MB; the iostream / locale code is gone with /OPT:REF), .rdata 1.5 MB. Left: image_data.cpp's kInitialData 384 KB, mostly zeros (the image's .rdata / .data copy with the committed cells): as .bss plus the cells written at start-up, ~380 KB less on disk; render_fonts' two Liberation TTFs 696 KB (compressed or subset to the glyphs the game's code pages can show: ~400-600 KB); the charconv ryu tables 112 KB (floating std::to_chars / format of doubles: who uses it); /OPT:ICF another 316 KB but two identical functions share one address (audit function-pointer comparisons first; crash / profile names become ambiguous)."
+order = 788
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

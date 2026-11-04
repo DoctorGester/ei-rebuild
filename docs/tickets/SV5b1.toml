@@ -1,0 +1,8 @@
+id = "SV5b1"
+title = "levers_key goldens"
+group = "verification"
+depends = ["SV5b"]
+note = "levers_key matches the original in all 39 records on both installs, goldens recorded (fixed by T2f: address-ordered object sends and SetSun relight order)."
+order = 238
+status = "done"
+done = "2026-10-15"

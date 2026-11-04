@@ -1,0 +1,10 @@
+id = "H43e"
+title = "Scenario: AI flight, leader changes, corpses and bridges (AI gaps from H43's coverage)"
+group = "harness"
+depends = ["H43"]
+files = ["tests/scenarios"]
+note = "H43's coverage report (build/coverage/report.md; python tools/coverage.py run <ticket>): no run reaches unit_ai_modes.cpp's FindFlightPoint (a ranged unit stepping away from a melee enemy, 25 lines), PlayerMode::SetLeader and StaysWithParty (the party following a new leader), AIMemory::SeeCorpse, AIBrain::IsNearPath or the bridge cells (ai_bridges.cpp's BridgeHeights::RestoreCell, AIMap::BridgeDeckAt); unit_ai_modes.cpp has 135 of 748 lines unreached. A scenario with a golden for each: an archer attacked in melee, a leader switch in a party of two, a unit passing a corpse, a walk over a bridge."
+order = 830
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

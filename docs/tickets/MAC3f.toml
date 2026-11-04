@@ -1,0 +1,10 @@
+id = "MAC3f"
+title = "macos-port: platform::graphics with the D3D11 backend, clean interface"
+group = "port"
+model = "opus"
+depends = ["MAC3e"]
+note = "Scope: graphics.h as in 3.3, win32/graphics_win32.{h,cpp} (one anonymous namespace, removable device in a harness-only part), render.cpp / render_window.cpp / render_perf.cpp / render_staging.cpp without windows.h or d3d11.h, check_platform's `src/render` rule, `platform::FloatingPointGuard`, `WindowPixelSize`, Timestamps with a typed pimpl, `kMsPerTick` once. Check: the removable-device scenario (`render new,present,removable` + `removedevice`) in verify, perf_check's vsync rules on real chains, `run_all` captures, the staging and ramp checks (`checkall`). From MAC2's review (build/reviews/mac2_macos_port.md, sections 1-3 for the reasons). Lands on main green alone; then merge main into macos-port at once so the branch keeps only macOS code."
+order = 1102
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

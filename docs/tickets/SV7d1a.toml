@@ -1,0 +1,9 @@
+id = "SV7d1a"
+title = "Audit /fp:fast-distributed (a + b) * c in rewrites"
+group = "verification"
+depends = ["SV7d1"]
+note = "Project default is /fp:precise (x87) instead of /fp:fast, which removes the regrouped (a + b) * c family; verify mismatches and goldens equal main."
+order = 230
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

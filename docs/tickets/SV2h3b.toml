@@ -1,0 +1,9 @@
+id = "SV2h3b"
+title = "Heap-order holes: UI checks that run the same object twice or restore after ours allocates"
+group = "verification"
+depends = ["SV2h3"]
+files = ["tests/verify/verify_ui_battle_update.cpp", "tests/verify/verify_ui_hud_tips.cpp", "tests/verify/verify_ui_spell_column.cpp", "tests/verify/verify_ui_camp_stats.cpp", "tests/verify/verify_ui_hud_setup.cpp", "tests/verify/verify_ui_hud_panels.cpp", "tests/verify/verify_ui_scroll_text.cpp", "tests/verify/verify_ui_item_strip.cpp", "tests/verify/verify_ui_trade_panel.cpp", "tests/verify/verify_ui_trade_panel_input.cpp", "tests/verify/verify_ui_help_page.cpp", "tests/verify/verify_ui_connect_screen.cpp", "tests/verify/verify_ui_item_info.cpp", "tests/verify/verify_ui_hud_portraits.cpp"]
+note = "Closed as obsolete: superseded by SV7/SV7d (heap layout is not preserved)."
+order = 210
+status = "done"
+done = "2026-10-15"

@@ -1,0 +1,9 @@
+id = "R37"
+title = "Game CPU/GPU profile: big maps, many objects, a tilted camera"
+group = "renderer"
+model = "opus"
+note = "User 2026-10-29: many draw calls, and shadows look expensive. Run on a quiet machine (no worker builds or harness games; read-only reviewers may run). Pick the heaviest scenes: big maps with many objects and units (towns, the largest zones on vanilla and Rebirth data), camera tilted low toward the horizon so the most is in view, day and night (point lights). Measure with the perf overlay and a CPU profiler (ETW / WPR / VS sampling on the release build with symbols) and GPU timings (timestamp queries per pass: shadow map, point shadows, terrain, objects, particles, UI): frame time, CPU time per system, draw calls and state changes per pass, triangles, shadow casters per light. Report the top costs with numbers, then take the clear wins (batching / instancing of repeated meshes, caster culling for the sun map and point shadows, fewer state changes) as follow-up tickets R37a.. sized for one worker each; goldens hold no frames, keep them unchanged."
+order = 865
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

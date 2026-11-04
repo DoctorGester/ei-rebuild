@@ -1,0 +1,9 @@
+id = "R30f"
+title = "Mesh draws without the CPU clip: picking bounds from projected positions"
+group = "renderer"
+size = 1
+note = "R30 survey: build/style_review/renderer_trim.md, R30f: device_mesh.cpp still projects every mesh through 3DfpFPU and clips meshes at the screen edge on the CPU (ClipTriangles, ToScreenClipped) though the GPU draws the unclipped hand-over; the clip only decides whether the passes are handed over and the flag-1 picking rectangle (drawnRect_). Bounds from the projected positions would give both (renderer.md open item). Picking at the screen edge may change: goldens decide. Also device_mesh.cpp's flat draws."
+order = 98
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

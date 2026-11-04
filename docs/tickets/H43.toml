@@ -1,0 +1,10 @@
+id = "H43"
+title = "Source coverage of the suites: which game code no scenario reaches"
+group = "harness"
+model = "opus"
+depends = ["C71"]
+note = "User 2026-11-03 (how not to break code now that the goldens compare us with ourselves): replace the game.exe-address coverage (C71 deletes tools/coverage.py and function_sizes.inc) with source coverage. A coverage build (clang-cl with -fprofile-instr-generate -fcoverage-mapping, or MSVC's /fsanitize-coverage if simpler; say which and why) as build.cmd coverage, the image and Rebirth suites run on it (merge the profiles of all runs, games still ≤60 s), and a report (llvm-cov) by src/game area and file: lines and functions reached, the biggest unreached functions. Output a ranked list of gaps (gameplay code first: units, combat, spells, AI, scripts, network, saves) as build/coverage/report.md plus an HTML view, and file follow-up scenario tickets for the top gaps. Not in the merge routine: run it when wanted (a work.py or tools/coverage command)."
+order = 799
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

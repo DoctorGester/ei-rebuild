@@ -1,0 +1,9 @@
+id = "C38b"
+title = "The singleton accessors { return &*g_x; }: callers use the StaticObject global"
+group = "cleanup"
+depends = ["C38a"]
+note = "C38a's survey: 21 accessors of the form X* TheX() { return &*g_x; } with about 1000 calls: TheServerWorld 258, TheClientWorld 205, TheOptions 149, TheInterface 77, TheCursor 63, TheCamera 62, TheGameFlow 49, TheSceneRenderer 35, ThePartyManager 30, TheMapDatabase 27, GameSaveStream 21, SkillDb 14, DebugInfoPanel 8, SpiralRadiusTree 6, SpellFootprint 6, FrameDeferredUnits 6, and six with 2-4. Callers write g_x-> / &g_x.Get() (scratchpad C38a/c38alib.py, kind addr_static, does the rewrite). Split by size (TheServerWorld / TheClientWorld alone touch most of src/game); also tests/verify/image. Spelling only."
+order = 671
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

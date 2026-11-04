@@ -1,0 +1,7 @@
+id = "X38"
+title = "Regenerate function_sizes.inc from a whole Ghidra database"
+group = "harness"
+note = "Dropped 2026-11-03: function_sizes.inc feeds only game.exe-era tools; the hand-patched sizes are right. Ghidra reported cut-short bodies (0040D710 555 -> 60); the file is hand-patched for two sizes and gen_function_sizes.py no longer reproduces it. Re-review 2026-10-28: still valid but low value. function_sizes.inc is still read by check_signatures, check_stolen, coverage, find_dead_code and gen_static_init; the two hand-patched sizes are correct. Keep parked until a tool gets a size wrong."
+order = 283
+status = "done"
+done = "2026-11-03"

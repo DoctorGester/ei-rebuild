@@ -1,0 +1,10 @@
+id = "C15a"
+title = "ScriptVars hold ScriptNamedValues: no NamedValues() / Raw() casts"
+group = "cleanup"
+model = "sonnet"
+files = ["src/game/script.h", "src/game/script_array.h"]
+note = "From C15 batch 35: script.h's NamedValues() casts (users in game_lists, script_cleanup, script_construct, script_load) and script_array.h's Raw() view go once ScriptVars holds ScriptNamedValues members (~300 uses). Also left on C15's list after the console batch: the ui_briefing_people speakers_ InsertOverflow view and the brain / trap list views (C21 is done; check whether they are still there)."
+order = 477
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

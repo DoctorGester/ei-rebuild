@@ -23,12 +23,15 @@ usage: python tools/work.py start ID [--worktree P] [--branch B] [--agent A]
 The database is build/live/work.db in the MAIN checkout (found from any worktree through
 `git rev-parse --git-common-dir`), so every checkout shares it; WORK_DB overrides the path (tests).
 SQLite in WAL mode: readers never wait, writers take short BEGIN IMMEDIATE transactions and wait for
-each other through the busy timeout. docs/tickets.toml stays what a ticket is; this keeps what is
-happening now, ticket status included (table ticket_status, written by start, done and tickets.py set). Schema and commands: docs/notes/work-board.md.
+each other through the busy timeout. docs/tickets/<ID>.toml stays what a ticket is; this keeps what is
+happening now, ticket status included (table ticket_status, written by start, done and tickets.py set, which copy it
+into the ticket's file). Schema and commands: docs/notes/work-board.md.
 """
-import argparse, contextlib, datetime, os, re, sqlite3, statistics, subprocess, sys, time
+import argparse, contextlib, datetime, json, os, re, sqlite3, statistics, subprocess, sys, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TICKETS_DIR = os.path.join(ROOT, 'docs', 'tickets')   # one <ID>.toml per ticket, groups.toml
+TICKET_STATUS_FIELDS = ('status', 'started', 'done')   # the database's, copied into the ticket's file
 BUSY_MS = 60000          # a writer waits this long for another's transaction before giving up
 
 # Each entry moves the schema one version up (PRAGMA user_version); later tickets append, never edit.
@@ -123,8 +126,7 @@ MIGRATIONS = [
     );
     CREATE INDEX timing_lookup ON timing(scenario, install, scenario_rev, id);
     """,
-    # 4 (WB10): a ticket's status, moved out of docs/tickets.toml (which keeps the ticket's text). No row: queued.
-    # tickets.py fills it once from the toml's status / started / done lines (migrate_ticket_status).
+    # 4 (WB10): a ticket's live status (its file in docs/tickets/ keeps a copy). No row: queued, or the file's lines.
     """
     CREATE TABLE ticket_status (
         ticket    TEXT PRIMARY KEY,
@@ -310,7 +312,7 @@ def record_time(db, scenario, install, root, seconds, batch=None):
                    (scenario, install, rev, round(seconds, 1), now(), batch))
 
 
-# ---- ticket status (WB10): the database keeps it, docs/tickets.toml the ticket's text
+# ---- ticket status (WB10): the database keeps it live, docs/tickets/<ID>.toml the ticket's text and a copy of it
 
 def ticket_statuses(db):
     """{ticket: {status, started, done}} for every ticket the database has a status for (the others are queued)."""
@@ -318,8 +320,9 @@ def ticket_statuses(db):
             for r in db.execute('SELECT ticket, status, started, done FROM ticket_status')}
 
 
-def set_ticket_status(db, ticket, status, author=None, today=None):
-    """running fills started with today (kept while it already runs), done fills done. Returns the old row or {}."""
+def set_ticket_status(db, ticket, status, author=None, today=None, files=None):
+    """running fills started with today (kept while it already runs), done fills done. The ticket's file in `files`
+    (default this checkout's docs/tickets) gets the same lines. Returns the old row or {}."""
     today = today or datetime.date.today().isoformat()
     with transaction(db):
         row = db.execute('SELECT * FROM ticket_status WHERE ticket = ?', (ticket,)).fetchone()
@@ -333,38 +336,49 @@ def set_ticket_status(db, ticket, status, author=None, today=None):
                    'ON CONFLICT(ticket) DO UPDATE SET status = excluded.status, started = excluded.started, '
                    'done = excluded.done, changed = excluded.changed, author = excluded.author',
                    (ticket, status, started, done, now(), author))
+    write_ticket_file_status(ticket, {'status': status, 'started': started, 'done': done}, files)
     return old
 
 
-def migrate_ticket_status(db, toml_status, author='tickets.toml'):
-    """The once-only move out of the toml. toml_status: {ticket: {status, started, done}} as its lines say. A ticket
-    the database has no row for gets exactly those; one it has keeps its own (the line came from an old branch).
-    Returns (migrated ids, ignored ids)."""
-    migrated, ignored = [], []
-    with transaction(db):
-        have = {r[0] for r in db.execute('SELECT ticket FROM ticket_status')}
-        for ticket, v in toml_status.items():
-            if ticket in have:
-                ignored.append(ticket)
-                continue
-            db.execute('INSERT INTO ticket_status (ticket, status, started, done, changed, author) VALUES (?, ?, ?, ?, ?, ?)',
-                       (ticket, v.get('status') or 'queued', v.get('started'), v.get('done'), now(), author))
-            migrated.append(ticket)
-    return migrated, ignored
+def write_ticket_file_status(ticket, row, files=None):
+    """Puts status / started / done lines into the ticket's own file (docs/tickets/<ID>.toml): the committed copy,
+    which a checkout without the database reads. Replaces the file only when its text changes; a ticket with no file
+    in this checkout (it exists only in main's) is left alone."""
+    path = os.path.join(files or TICKETS_DIR, ticket + '.toml')
+    if not os.path.exists(path):
+        return
+    with open(path, encoding='utf-8') as f:
+        before = f.read()
+    lines = [l for l in before.rstrip('\n').split('\n') if l.split('=')[0].strip() not in TICKET_STATUS_FIELDS]
+    lines += [f'{k} = {json.dumps(row[k], ensure_ascii=False)}' for k in TICKET_STATUS_FIELDS if row.get(k)]
+    text = '\n'.join(lines) + '\n'
+    if text != before:
+        tmp = path + '.tmp'
+        with open(tmp, 'w', encoding='utf-8', newline='\n') as f:
+            f.write(text)
+        os.replace(tmp, path)
 
 
-# ---- tickets.toml (titles; whether an id exists)
+# ---- the ticket files (titles; whether an id exists)
 
 def toml_tickets():
-    """{id: ticket} from this checkout's and the main checkout's docs/tickets.toml (main wins)."""
+    """{id: ticket} from this checkout's and the main checkout's docs/tickets/*.toml (main wins)."""
     import tomllib
     out = {}
-    for root in dict.fromkeys((ROOT, main_checkout())):
+    for folder in dict.fromkeys((TICKETS_DIR, os.path.join(main_checkout(), 'docs', 'tickets'))):
         try:
-            with open(os.path.join(root, 'docs', 'tickets.toml'), 'rb') as f:
-                out.update({t['id']: t for t in tomllib.load(f).get('ticket', []) if 'id' in t})
-        except (OSError, ValueError):
-            pass
+            names = os.listdir(folder)
+        except OSError:
+            continue
+        for name in names:
+            if name.endswith('.toml') and name != 'groups.toml':
+                try:
+                    with open(os.path.join(folder, name), 'rb') as f:
+                        t = tomllib.load(f)
+                except (OSError, ValueError):
+                    continue
+                if 'id' in t:
+                    out[t['id']] = t
     return out
 
 
@@ -409,7 +423,7 @@ def short(text, width):
 def cmd_start(db, args):
     known = toml_tickets()
     if args.id not in known and not args.force:
-        sys.exit(f'work.py: no ticket {args.id} in docs/tickets.toml (here or in the main checkout); --force to assign anyway')
+        sys.exit(f'work.py: no ticket {args.id} in docs/tickets/ (here or in the main checkout); --force to assign anyway')
     worktree, branch = here()
     worktree = norm(args.worktree) if args.worktree else worktree
     if args.worktree and not args.branch:
@@ -504,7 +518,7 @@ def cmd_status(db, args):
 def status_one(db, ticket, tickets):
     t = tickets.get(ticket)
     s = ticket_statuses(db).get(ticket) or {'status': (t or {}).get('status') or 'queued'}
-    print(f'{ticket}: {t["title"]} ({s["status"]})' if t else f'{ticket}: not in docs/tickets.toml ({s["status"]})')
+    print(f'{ticket}: {t["title"]} ({s["status"]})' if t else f'{ticket}: not in docs/tickets/ ({s["status"]})')
     for a in db.execute('SELECT * FROM assignment WHERE ticket = ? ORDER BY id', (ticket,)):
         span = f'since {a["started"]} ({age(a["started"])})' if not a['ended'] else f'{a["started"]} to {a["ended"]}'
         print(f'  {"open " if not a["ended"] else "ended"} {a["agent"]}  {span}\n        {a["worktree"]}  {a["branch"]}')
@@ -577,7 +591,7 @@ def main():
     p = sub.add_parser('start', help='assign a ticket to this checkout')
     p.add_argument('id'); p.add_argument('--worktree'); p.add_argument('--branch'); p.add_argument('--agent')
     p.add_argument('--model', help="the model the worker runs on (shown on the board over the ticket's planned one)")
-    p.add_argument('--force', action='store_true', help='assign an id tickets.toml does not have')
+    p.add_argument('--force', action='store_true', help='assign an id docs/tickets/ does not have')
     p = sub.add_parser('note', help='a progress line'); p.add_argument('id'); p.add_argument('text', nargs='+')
     p.add_argument('--author')
     p = sub.add_parser('status', help='assignments, notes, batches'); p.add_argument('id', nargs='?')

@@ -1,0 +1,9 @@
+id = "C60a"
+title = "Unit AI style: the rest of the review (harness renames, structure)"
+group = "cleanup"
+depends = ["C60"]
+note = "User 2026-10-29: the AI mode classes stay (no merge into one struct). Do the const type member instead of GetType (G2) and, if nothing outside the brain keeps a mode alive, plain ownership by the brain instead of counted Clone."
+order = 761
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

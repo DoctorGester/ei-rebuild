@@ -1,0 +1,9 @@
+id = "SV5d2"
+title = "More multiplayer on the pair harness: awards, leaving the game zone, shared files, drops"
+group = "verification"
+depends = ["SV5d1"]
+note = "SV5d1's net_pair_zone reaches the base exchange, the map choice (Nsheriff's topic, command 1, SetMap), the zone switch for both games (StartNetworkZone; the joiner through JoinGameClient / DriverSession); net_pair_kick reaches kick / ban and a refused join. Not reached: a quest completed in the game zone (CompleteZone 00418ED0, Award messages, AwardHost with the final award), leaving the zone back to the base (command '<zone>_2' -> LeaveZone 00418CC0, SwitchMultiplayerZone's second call), shared files (File / FileChunk / FileRequest), the drop paths (a client lost in a game zone, timeouts), the master server's answer (OnMaster 0041ACA0). clickground walks the leader; vanilla and Rebirth offer different zones (z3q2 / z3q1) and lay the base's faces and the exchange window out differently (vanilla / rebirth steps)."
+order = 253
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

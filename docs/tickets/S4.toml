@@ -1,0 +1,10 @@
+id = "S4"
+title = "Standalone library: CRT functions, iostream, import thunks, allocator"
+group = "standalone"
+size = 1
+files = ["src/lib/crt.h", "src/lib/crt.cpp", "src/game/originals_library.h"]
+note = "Standalone CRT functions, import thunks (WSOCK32 / DINPUT), rand, maths, _controlfp, node allocator and standalone-only heap / new / atexit / exit (EI_REPLACE_STANDALONE); suite 0 mismatches."
+order = 530
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

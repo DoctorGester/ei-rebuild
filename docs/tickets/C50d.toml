@@ -1,0 +1,10 @@
+id = "C50d"
+title = "G11 constructors: engine base, app, renderer, terrain, platform"
+group = "cleanup"
+model = "opus"
+depends = ["C50"]
+note = "C50 follow-up. CEngineObject has no constructor by design (engine_object.h; map_object_lifetime's InitEngineObject stores the base's fields): give it one if the spares' reuse allows; app_*, renderer_*, terrain_*, camera_object, chunk_archive, clip, buffered_file, console*, options*, sound*, resource*, registry*, ini*, sys_info, win_*, bink_*, game_*, core_*, figure_*, texture*, effects_weather_draw, particle_draw / render, renderer_lines / sprites: Construct()/Destruct()/ClearFields(), lib::StaticObject globals and std::atexit(Free...) exit functions. Recipe from C50: real ctors with default member initialisers, Reset/Init kept only where the object is reused (engine-object spares are reused: their Create/Destroy stay); Ref<T> has a destructor since C50, so an owner's hand release of a Ref in its destructor goes (keep an explicit Reset only where the order differs from reverse declaration order). A StaticObject / atexit pair becomes a local, a plain global or a member: drop the address tag (python tools/named_data.py --update), its config/static_init_ports.csv row, and for a runtime atexit add the original function's range to gen_static_init.py RETIRED_STATICS (an initialiser's: UNUSED_INITIALISERS), then rerun python tools/gen_static_init.py. Goldens unchanged; leave src/game/ui_* and src/render/render_ui* to C54.  C50b did effects_weather_draw, particle_draw / particle_render, lightning_draw, map_object_shadow (plain globals) and app_helpers' protection list. Left for here: the CEngineObject::ClearFields calls in the world / unit / spell / effect / party constructors (the base's own constructor), CoderState::Construct / Reset (net_coder.h, core_streams.cpp; player_client's and player_messages' compressors, world_savefile's LocalCoder), CWorldServer's InPlace<CFileRegistry> messages_."
+order = 707
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

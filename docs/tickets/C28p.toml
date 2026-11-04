@@ -1,0 +1,9 @@
+id = "C28p"
+title = "C28 retire the helpers: engine_object_class.h, compiled_vtable.h, SetVtable, VirtualSlot; the asserts sweep"
+group = "cleanup"
+model = "opus"
+files = ["src/game/engine_object_class.h", "src/lib/compiled_vtable.h", "include/ei/vcall.h", "src/game/game_data.h", "tools/check_cleanup.py"]
+note = "When C28a-o are done: delete engine_object_class.h, compiled_vtable.h, ei::SetVtable / VirtualSlot (include/ei/vcall.h, game_data.h), drop the offsetof / sizeof asserts left that guard nothing leaving the process or coming from the data image, add the patterns to check_cleanup's counts, update docs (rewrite-guide, standalone-cleanup, notes/standalone.md 'Compiler-made vtables')."
+order = 434
+status = "done"
+done = "2026-10-23"

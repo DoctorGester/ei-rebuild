@@ -1,0 +1,11 @@
+id = "S12c"
+title = "Standalone library: the lists, hashtables, vectors and CArrays in S12a's ranges"
+group = "standalone"
+size = 1
+depends = ["S12a"]
+files = ["src/lib/stlp_list.cpp", "src/lib/stlp_hash.cpp", "src/lib/stlp_vector.cpp", "src/lib/mfc_array.h", "config/library.csv"]
+note = "Lists, hashtables, vectors and CArrays inside S12a's address ranges (95 library.csv rows) classified and ported with the S6a/S9-S11 policies."
+order = 576
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

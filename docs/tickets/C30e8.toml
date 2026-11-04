@@ -1,0 +1,11 @@
+id = "C30e8"
+title = "SSE2: AI maps, paths and motion (17 files)"
+group = "cleanup"
+model = "opus"
+depends = ["C30e4"]
+files = ["src/game/ai_block_search.cpp", "src/game/ai_events.cpp", "src/game/ai_footprint.cpp", "src/game/ai_unit_shape.cpp", "src/game/ai_map.cpp", "src/game/ai_map.cpp", "src/game/ai_map_load.cpp", "src/game/ai_motion.cpp", "src/game/ai_movement.cpp", "src/game/ai_path.cpp", "src/game/ai_path_smooth.cpp", "src/game/ai_path.cpp", "src/game/ai_movement.cpp", "src/game/ai_refresh.cpp", "src/game/ai_unit_shape.cpp", "src/game/ai_unit_shape.cpp", "src/game/ai_water_patch.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. ai_motion (91 doubles, 17 other x87 helpers, fsin / fcos / fpatan), ai_refresh's fexp / flog, x87::fistp 49 (ai_map, ai_path), ai_map_load's fsin / fpatan, ai_path's 4/pi constant."
+order = 907
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

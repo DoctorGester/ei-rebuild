@@ -1,0 +1,9 @@
+id = "S16e"
+title = "Tooling: vtable slots must be function starts; library.csv 'not a function' rows out of the library count"
+group = "standalone"
+depends = ["S16d"]
+files = ["tools/find_vtables.py", "tools/dashboard_data.py", "config/vtables.csv"]
+note = "find_vtables.py half done in C19 batch 24 (slots must be function starts in functions.csv, minus the 'not a function' rows). Left: dashboard_data.py counts library.csv's five 'not a function' rows in library_functions (a denominator nothing can reach); leave them out there and out of the game count. Re-review 2026-10-28: obsolete. dashboard_data.py no longer counts library.csv rows, and the standalone no longer needs readiness counts against game.exe."
+order = 589
+status = "done"
+done = "2026-10-28"

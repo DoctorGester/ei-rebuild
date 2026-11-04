@@ -1,0 +1,10 @@
+id = "H43f"
+title = "Scenario: magic trap ticks, hits while turning, random item loss, speech stops (unit gaps from H43's coverage)"
+group = "harness"
+depends = ["H43"]
+files = ["tests/scenarios"]
+note = "H43's coverage report (build/coverage/report.md; python tools/coverage.py run <ticket>): no run ticks a magic trap (magic_trap.cpp's TrapObject::RunTick and StaysInside; 18 of 37 functions reached), hits a unit while it turns (unit_motion_tick.cpp's HitWhileTurning), takes a random item (Unit::TakeRandomItem) or stops a speech (UnitClientSpecific::StopSpeech); map_spec_unit.cpp's BehaviourChunk::Write, UnitSpec::Save and UnitSpec::Apply never run either. A scenario with a golden per gap."
+order = 831
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

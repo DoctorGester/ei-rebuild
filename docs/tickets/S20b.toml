@@ -1,0 +1,8 @@
+id = "S20b"
+title = "render_present_fullscreen has no run of the original (full screen at its own display mode)"
+group = "verification"
+note = "render_present_fullscreen carries the image's own golden (vanilla); its `# no original:` line keeps it out of --no-hooks plans (no display mode switch)."
+order = 244
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

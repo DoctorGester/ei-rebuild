@@ -1,0 +1,10 @@
+id = "C14m"
+title = "C14 MFC arrays and lists: CArray, CList / CTypedPtrList to std::vector / std::list, with C28o's collection tags"
+group = "cleanup"
+model = "opus"
+depends = ["C14b"]
+note = "User 2026-10-28: don't retype the library's internals; replace the usage code with std or small code of ours first, then delete the old MFC / STLport piece once only the tests' game.exe views use it. C14b moved the STLport vectors and lists (stlp::vector 313 -> 141 lines, stlp::list 176 -> 108); the MFC containers were not touched: CArray 416 lines / 129 files, CList 139 / 53, CTypedPtrList 134 / 73. They carry the vtable field and ConstructHeader / ArrayHeader, and the CompiledCollection tags (C28o), and their Serialize must keep its bytes. Same method: a one-off script in the ticket's scratch folder (C14b's retype_containers.py is the model: one rule per call shape, a fixer driven by the compiler's diagnostics), its output as its own commit, hand fixes after, the image suite with goldens. 2026-10-28 (review): batch 1, the plain-element containers, is std (commits 906072544 retype + fixes, ee3b70bb4 dead tags). Lines (files) before -> after: CArray 415 (128) -> 292 (100), CList 139 (53) -> 114 (45), CTypedPtrList 134 (73) -> 2 comments (the alias deleted), CompiledCollection 164 -> 101 lines (65 tags gone), std::vector 998 -> 1103, std::list 55 -> 190. Review found and fixed 26 double frees (the inlined CArray destructors' operator_delete(x.data()) on vectors), a reinterpret_cast of a std::list to the MFC CountedEngineList, a (void*) ConstructHeader over the particle sprites' vector and DrawSprites' mixed callers (the lightning glow retyped too). Image suite 145 pass, 121 goldens the same; original suite (tests/verify changed) 126 pass, 114 the same. Batch 2 (element policies, the remaining tags): C14u. Pre-existing byte copies over std members: C14v. Scripts: the ticket's scratch folder c14m/."
+order = 484
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

@@ -1,0 +1,11 @@
+id = "N5"
+title = "Cursor and per-frame images cached"
+group = "native-ui"
+model = "sonnet"
+size = 0.5
+files = ["src/render/render_blit.cpp"]
+note = "Cursor and per-frame images are cached (up to 64 dynamic images updated in place, one per movie): image creations per scenario 40-135 down to 1-2."
+order = 115
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

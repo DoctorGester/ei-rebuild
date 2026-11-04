@@ -1,0 +1,10 @@
+id = "SV5c"
+title = "Fake unit scenes (class 0x39, .amf) and MultiplyByConjugate: reachable or not"
+group = "verification"
+size = 1
+depends = ["SV5"]
+note = "The fake unit (class 0x39) and its scene loader are dead: no shipped data makes one, nothing reaches slot 62, no .amf exists; listed in tests/coverage/unreachable.txt."
+order = 185
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

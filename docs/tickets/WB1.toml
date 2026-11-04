@@ -1,0 +1,11 @@
+id = "WB1"
+title = "Work board: live database and work.py start/note/status/done"
+group = "harness"
+size = 1
+model = "opus"
+files = ["tools/work.py", "tools/tickets.py"]
+note = "Work board database build/live/work.db (SQLite WAL, shared by every worktree); work.py start / note / status / done; docs/notes/work-board.md; a lock around tickets.py's toml edits."
+order = 286
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

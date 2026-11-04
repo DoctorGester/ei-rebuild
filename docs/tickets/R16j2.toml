@@ -1,0 +1,12 @@
+id = "R16j2"
+title = "Shadow map: soft edges like the old shadows (wider near the far end, sharp at contact)"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R16j1"]
+files = ["src/render/render_shadows.cpp"]
+note = "User 2026-10-20: 'the new shadows are quite a bit harder than the original one, see the shadow of the town gate'. The old shadows are 64 x 64 textures stretched over each object's shadow quad and, with the shadow option on 'blurred' (mode 2, 0079BD0C), blurred twice on the CPU (2DintMMX BlurShadow / BlurShadow2, map_object_shadow.cpp ~358): a penumbra of a few texels of a 64-texel image, so about a tenth of the object's size, wide on a building. The map is 4096 texels over the visible ground (about 72 units) with 3 x 3 PCF, an edge of a few hundredths of a unit. Make the edge soft: contact-hardening (PCSS: blocker search, penumbra from the receiver's distance to the blocker times the sun's chosen angular size, Poisson-disc taps, rotated per pixel) so a shadow is sharp where an object meets the ground and soft away from it; tune the largest penumbra to look like the old one on the town gate (render_shadows' town_map vs town_classic). Keep the classic option unchanged, and the GPU cost of the map pass + sampling within about 0.3 ms at 4K (render_stats). Show the user the town gate, the fight and a slope before / after."
+order = 46
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

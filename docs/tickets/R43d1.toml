@@ -1,0 +1,11 @@
+id = "R43d1"
+title = "Pipelines made ahead on the device's thread (gpu.cpp)"
+group = "renderer"
+size = 0.5
+model = "sonnet"
+depends = ["R43e"]
+note = "From R43d. gpu::MakePipeline makes a pipeline at its first use on the main thread; the spike measured about 200-330 ms for seven programs' pipelines cold (after a driver or shader change), so the game's ~60 could cost a second at a first start. Make the descriptions the renderer always uses (render_mesh's keys and the rest, as R43e leaves them) on the thread PrepareInBackground makes the device on, into gpu.cpp's cache, before Start returns; check that SDL's pipeline creation is safe off the main thread on Direct3D 12 and Vulkan (ei_gpu_check). Measure with R43g."
+order = 936
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

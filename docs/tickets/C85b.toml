@@ -1,0 +1,10 @@
+id = "C85b"
+title = "Renderer mesh records typed: texture coordinates and corners, FIG bounds reads"
+group = "cleanup"
+model = "sonnet"
+depends = ["C85"]
+note = "C85 left: world_client_shadow_casters.cpp hands render::ShadowMesh the TexCoord and MeshCorner arrays as float* / uint16_t* (MeshDraw takes the same from device_mesh); give src/render its own TexCoord / MeshCorner records (layout-identical, static_asserted where they meet) so no array of structs is read as scalars. figure_manager.cpp LoadFigureBounds passes the .fig data at +0x28 / +8 to MorphFigureBounds as const float*: read the versions with lib::LoadBytes into locals. Goldens the same."
+order = 1009
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

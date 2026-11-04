@@ -1,0 +1,10 @@
+id = "C30e13a"
+title = "SSE2: camera.cpp (ApplyView's FPATAN of a float and _hypot's double)"
+group = "cleanup"
+model = "opus"
+depends = ["C30e8a"]
+note = "C30e13 converted src/game/camera.cpp to float / pc24 maths but kept it in EI_X87_GAME_SOURCES (comment C30e13a): Camera::ApplyView, after ClampAboveObjects lifts the camera, aims back down with x87::fpatan(dz, across) where dz is a float difference and across is libcrt::Hypot's double (the full 53 bits: _hypot computes at 64 bits under its own control word), then SetAngleAxis(-(CAM_RIGHT_ANGLE + angle)); pc24::Atan2 took floats only. With C30e8a's pc24::Atan2(double, double): write it as -pc24::Add(CAM_RIGHT_ANGLE, pc24::Atan2(dz, across)) (check the old object: the fpatan result stays in ST0 for the FADD of the float constant), drop the ei/x87.h include and the C30e13a line from the list, sse2check the object (the rest of the file is plain float maths plus pc24::Exp / Cos / Mul / Add, tested in C30e13's eq/). Goldens unchanged (verify and --rebirth-only): the camera's update runs in every scenario."
+order = 967
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

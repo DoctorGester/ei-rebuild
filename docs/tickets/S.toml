@@ -1,0 +1,10 @@
+id = "S"
+title = "First standalone exe"
+group = "standalone"
+depends = ["SV5"]
+size = 20
+note = "Closed 2026-10-28: the umbrella is finished; S18 (own data) done 2026-10-21, the standalone exe runs both suites."
+order = 525
+status = "done"
+started = "2026-10-15"
+done = "2026-10-28"

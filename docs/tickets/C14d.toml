@@ -1,0 +1,10 @@
+id = "C14d"
+title = "C14 archives: CFile/CArchive to our own small stream, with a save round-trip byte check"
+group = "cleanup"
+model = "opus"
+depends = ["C14c"]
+note = "User 2026-10-28: replace the usage code with std or small code of ours first, then delete the old container / MFC piece when nothing but the tests' game.exe views uses it; don't retype the library's internals. Done (to review, 3d2964af0): src/lib/file_io.h gains lib::File (binary, Win32 handle, MFC's open flags), lib::TextFile (lines on a host stream), lib::FileFind (CFileFind's read-ahead and absolute paths) and lib::FileError (where MFC threw CFileException*); opens and finds stay on the game's import slots. 37 game files moved (scratch retype_files.py, then by hand). mfc::CFile / CArchive / CMemFile uses 94 -> 0, CStdioFile / CFileFind / CFileVirtuals / ExceptionLink lines in src/game 103 -> 0 (one comment). Deleted: mfc_file.h/.cpp, mfc.h's file and archive facades, CFileException and its throws, the TRY link, CTime's file-time constructors, CDib::Serialize, _simpleNotSupportedException (initialiser 0070C1ED UNUSED_INITIALISERS); src/lib 1392 lines out, 378 in. mfc_archive kept on a lib::File for the collections' dead Serialize slots (C14r). Save byte check: 2406 files of harness_saves byte-identical with main's runs. Image suite --golden 145 pass, 121 the same (before 121); original suite not run (tests/verify untouched)."
+order = 418
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

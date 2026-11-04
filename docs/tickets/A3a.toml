@@ -1,0 +1,9 @@
+id = "A3a"
+title = "x64 release build: build.cmd x64, the game compiles, links and starts"
+group = "port"
+model = "opus"
+note = "User 2026-10-30: the x64 build is tonight's goal. After C30e15 (x87.h gone) and C20u (image block and import slots). From A3's probe: add an x64 configuration to build.cmd / CMakeLists (vcvars64, build/x64; the 32-bit guard becomes a per-target choice: hook, tests/verify, tests/vectors stay 32-bit only), lib/win_types.h names _AMD64_, the layout static_asserts that only describe the original's layout hold on 32-bit only (or become field checks that hold on both), CONTEXT Esp / Rsp in the crash and import-trap handlers, static_init.h's duplicate Call on x64, the x87 control word calls gone or 32-bit only, the 3 pointer truncations fixed for real (world_units.cpp:561, unit_client_models.cpp:407, standalone_main.cpp:100/103), C4244 / C4267 reviewed where a pointer size or size_t meets a 32-bit field. Miles and Bink do not load on x64: until A1 / A2 the x64 build runs silent and skips videos (an explicit check, not a crash; PL6 is where the seam goes). Done: build.cmd x64 builds with all checks 0, ei-rebuild.exe (x64) starts, reaches the main menu, starts a new game and loads a save in a short windowed run (60 s); the 32-bit builds and goldens unchanged."
+order = 850
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

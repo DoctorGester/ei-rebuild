@@ -1,0 +1,9 @@
+id = "SV7d1a1"
+title = "Drop the fp:fast workarounds now that the build is /fp:precise"
+group = "verification"
+depends = ["SV7d1a"]
+note = "Build is /fp:precise: float_control(precise, on) pragmas and volatile float store helpers that only defeated /fp:fast are removed; x87::FromUnsigned, IsNaN and x87:: transcendentals stay."
+order = 234
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

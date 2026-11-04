@@ -1,0 +1,9 @@
+id = "R37e2"
+title = "The GPU's 0.4-0.5 ms wait inside the crowd's sun map: its cause"
+group = "renderer"
+depends = ["R37e1"]
+note = "R37e1: the sun map's draws cost about 0.05 ms of GPU time in the town crowd, but one point of the command stream (a different place by draw count in the town at night and the crowd, holding different meshes) shows a 0.4-0.5 ms gap between two stamps; a Flush after the casters changes nothing, uploads are 8 KB a frame. Likely the GPU idle waiting for the driver's next batch while the main thread is the limit (renderer.md, render_shadows.cpp's R37e1 paragraph). Measured on D3D11 before R43e: first check the gap still shows on SDL_GPU (D3D12 / Vulkan). Low value while the main thread is the limit: confirm with a GPU capture (PIX / Nsight) only if the GPU becomes the limit or the overlay's passes mislead. Kit: build/R37e1. Done: the wait is gone on SDL_GPU; it was the D3D11 driver's timeline (the frame recorded while the GPU ran its batches). Times by submission (probe in build/R37e2 of the main checkout), town bz1g at night 4K msaa 8, quiet runs: sun map 0.154 / 0.155 ms without / with the crowd on Direct3D 12 (D3D11 0.088 / 0.584), 0.155-0.17 on Vulkan; casters 0.06, the map's end-of-pass barrier 0.09 (no casters 0.092; clear left out 0.094; optimised clear value 1.0 no change), range passes 0.116. Whole frame 2.75 / 2.81 ms (D3D11 2.05 / 2.66). PIX capture: one command list a frame, one clear, one barrier after the casters. No change to the renderer: nothing in our code waits."
+order = 915
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

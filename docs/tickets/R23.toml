@@ -1,0 +1,10 @@
+id = "R23"
+title = "Vsync switch in the settings file"
+group = "renderer"
+size = 1
+model = "sonnet"
+note = "Implemented: settings file Standalone key VSync (dword, 0 = off, default on). Off: sync interval 0, and where IDXGIFactory5 supports it the flip chain is made with ALLOW_TEARING (ResizeBuffers same flags) and presents carry ALLOW_TEARING; both present paths (render_window.cpp, render_cursor.cpp). Rules in render_present_mode.cpp, checked by ei_perf_check (vsync part, hidden-window chains on WARP). Harness never reads it (VsyncSwitchSupported false); harness SetWaitForVsync(false) unchanged, no tearing flags. Docs: renderer.md 15a, play.cmd."
+order = 68
+status = "done"
+started = "2026-10-22"
+done = "2026-10-22"

@@ -1,0 +1,11 @@
+id = "C30e12"
+title = "SSE2: client units and world (13 files)"
+group = "cleanup"
+model = "opus"
+depends = ["C30e4"]
+files = ["src/game/unit_client_animation.cpp", "src/game/unit_client_attack.cpp", "src/game/unit_client_blink.cpp", "src/game/unit_client_effects.cpp", "src/game/unit_client_models.cpp", "src/game/unit_client_path.cpp", "src/game/unit_client_update.cpp", "src/game/unit_client_wounds.cpp", "src/game/world_client.cpp", "src/game/world_client_draw.cpp", "src/game/world_client_maps.cpp", "src/game/world_client_setup.cpp", "src/game/world_client_view.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. unit_client_path's fexp (the heading weight: 97 goldens hang on it, C16 table) / fpatan / fsin / fcos, unit_client_update's flog, world_client's sin / cos and fmod, world_client_maps' Hypot (stays a call), world_client_view / _draw (picking: the view), Ftol 11."
+order = 911
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

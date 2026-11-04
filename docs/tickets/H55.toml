@@ -1,0 +1,9 @@
+id = "H55"
+title = "compiler_cache.py: skip a port in a Windows excluded range"
+group = "harness"
+model = "sonnet"
+note = "Found by R19b (2026-11-04): in its worktree the release build's compiler-cache port (49841, tools/compiler_cache.py's crc32 port choice) fell inside a Windows excluded port range (49808-49907, netsh int ipv4 show excludedportrange), so sccache could not start and every compile failed even with SCCACHE_IGNORE_SERVER_IO_ERROR; the worker built with EI_COMPILER_CACHE=0. Make the port choice step past ports that fail to bind (WSAEACCES 10013) or sit in an excluded range, deterministically per worktree. Test: a unit test of the port choice with a fake excluded range."
+order = 843
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

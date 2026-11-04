@@ -1,0 +1,10 @@
+id = "S10a"
+title = "Standalone library: STLport vector<T> of game records"
+group = "standalone"
+size = 2
+depends = ["S10"]
+files = ["src/lib/stlp_vector.h", "src/lib/stlp_vector.cpp", "src/lib/stlp_vector_refs.h"]
+note = "Standalone STLport vector<T> of game records (item / spell / weapon / armour / quest / unit / model / acks database resizes, push_back, erase, insert_overflow) ported; docs/notes/standalone.md."
+order = 558
+status = "done"
+done = "2026-10-15"

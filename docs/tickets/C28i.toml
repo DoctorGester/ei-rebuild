@@ -1,0 +1,9 @@
+id = "C28i"
+title = "C28 data records: map specs, item database records, print records, CDib, class templates"
+group = "cleanup"
+model = "opus"
+files = ["src/game/map_spec.h", "src/game/map_spec_class.h", "src/game/map_spec_unit.cpp", "src/game/item_db.h", "src/game/item_constructor.cpp", "src/game/model.h"]
+note = "map_spec_class.h and map_spec_unit.cpp's chunk readers, item_db.h's ItemRecordTag / ItemRecordBaseClass, model.h's PrintRecord / PrintRecord2, dib.cpp, class_template_stock.cpp, sys_info. Keep the byte layout (and its asserts, one line why) where records are read from or written to files; the vtable stays out of the file bytes."
+order = 427
+status = "done"
+done = "2026-10-22"

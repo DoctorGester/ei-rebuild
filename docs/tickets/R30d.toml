@@ -1,0 +1,10 @@
+id = "R30d"
+title = "Renderer duplicate helpers: channels, PixelFormat, MmpFile, staging read-backs"
+group = "renderer"
+size = 0.5
+depends = ["R30a"]
+note = "R30 survey: build/style_review/renderer_trim.md, R30d: pixel-format channel helpers in render_textures.cpp, render_ui.cpp and surface.cpp; two PixelFormat types (surface.h, render::ui) converted field by field; render_textures.cpp's MmpFile / MipOffset duplicating texture.h's MmpHeader; TextureOf and ApplyRect twice; the staging-texture read-back written six times (ReadFrame, CheckUpload, ReadImageLevel, MapRegion, CheckRamp, CheckPresented). One helper each, no behaviour change. Check: build, ei_ui_check, render_device_lost / removed, render_present_shot, render_terrain_seams, render_present_window, render_cursor_present."
+order = 96
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

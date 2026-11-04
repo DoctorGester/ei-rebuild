@@ -1,0 +1,9 @@
+id = "S22a"
+title = "DSOUND out of game.exe's import table: DirectSoundEnumerateA called directly"
+group = "standalone"
+depends = ["S22"]
+note = "S22: DSOUND's one slot (DirectSoundEnumerateA, #2) is reached only by sound_manager_lifetime.cpp's device list (gameapi::DirectSoundEnumerateA). Call it as the Windows function (dsound.lib, the SDK's declaration, ei_hook.dll's own import) or take the device list from Miles; then gen_iat's prototype goes and the slot is a trap (python tools/gen_iat.py --counts). Check: goldens unchanged (the sound device is the default in runs), sound in play.cmd."
+order = 634
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

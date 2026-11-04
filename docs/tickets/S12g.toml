@@ -1,0 +1,10 @@
+id = "S12g"
+title = "Standalone library: the last library functions our code forwards to"
+group = "standalone"
+size = 1
+depends = ["S12f"]
+note = "The last 102 library functions our code forwarded to (MFC, STLport, CRT, allocator new/delete 007005AF / 007005D8) ported and registered at their library addresses."
+order = 585
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

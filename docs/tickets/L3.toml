@@ -1,0 +1,7 @@
+id = "L3"
+title = "Transpiler to resumable Lua functions"
+group = "lua"
+depends = ["L2"]
+note = "Blocks as block(pc, run), rule sets, For / ForIf bodies (a wait ends the body), assignments, script calls, the WorldScript."
+order = 639
+status = "later"

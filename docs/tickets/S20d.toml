@@ -1,0 +1,8 @@
+id = "S20d"
+title = "zone_gz3g and zone_gz15h_tornado: saves left out of the goldens (brain memory call0 point.z differs between plain runs)"
+group = "verification"
+note = "A heard claim's never-set point (CallsAddClaim) is 0,0,0 on both sides (harness_save_leftovers in the original); zone_gz3g and zone_gz15h_tornado keep their saves."
+order = 246
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

@@ -1,0 +1,9 @@
+id = "SV5a3"
+title = "Verify wrapper for UseOnUnit with a potion (synchronously consumed)"
+group = "verification"
+size = 1
+depends = ["SV5a"]
+note = "Dropped 2026-11-03: verify wrappers compared ours with the original at run time; gone since H40. SV5a: a quick-item potion (category 8) used on a unit fails the CBattleScreenSetup::UseOnUnit wrapper because the potion is consumed at once and the member does not nod (ours-vs-original mismatch). Make the wrapper tolerant or compare after the consume, then add a potion scenario (ui_quick_potion was dropped); also UseOnUnitVerify / SetPlayerVerify (ours-only PlayerOwnsUnit check) reject AddUnitUnderControl."
+order = 242
+status = "done"
+done = "2026-11-03"

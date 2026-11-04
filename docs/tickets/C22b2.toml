@@ -1,0 +1,10 @@
+id = "C22b2"
+title = "Comment cleanup batch C22b, second pass: slot numbers, +0x offsets, the original mentions, fragments"
+group = "cleanup"
+model = "sonnet"
+depends = ["C22b"]
+note = "After C22b (addresses and ticket ids at 0). Left: ~60 'slot N' comments (world.h, lightning, UI, effects: name the virtual or drop), +0xNN offsets on named members (drop unless save/packet layout), 207 'the original / game.exe' mentions, 27 history words, fragments such as world.h ~223 and '// In the constructor).'. Files: --batch C22b. Read each file whole; no regex rewrites."
+order = 451
+status = "done"
+started = "2026-10-27"
+done = "2026-10-27"

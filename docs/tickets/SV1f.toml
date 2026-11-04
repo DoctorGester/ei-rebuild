@@ -1,0 +1,11 @@
+id = "SV1f"
+title = "sandbox_map is 4x slower on the virtual clock than on real time"
+group = "verification"
+size = 0.3
+model = "opus"
+files = ["tests/scenarios/sandbox_map.txt", "tests/verify/harness_clock.cpp"]
+note = "sandbox_map runs fast on the virtual clock again: it dropped `speed 10` (81 s -> 26 s); see SV1i for why speed 10 is slow there."
+order = 167
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

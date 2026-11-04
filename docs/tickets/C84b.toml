@@ -1,0 +1,10 @@
+id = "C84b"
+title = "Original bugs: the visible fixes the user approved"
+group = "cleanup"
+model = "sonnet"
+depends = ["C84"]
+note = "Also in docs/notes: mark combat 14/24 (taming cut from the original), map objects 2 (RecomputeScale: strong units get wider) and units 14 (IsBehind: NPCs never backstab players) as by design (user 2026-11-03), out of the bug lists."
+order = 999
+status = "done"
+started = "2026-11-03"
+done = "2026-11-03"

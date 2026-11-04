@@ -1,0 +1,9 @@
+id = "C38c"
+title = "AIMap(), Motion(), AIEvents(): the harness's digest reader reads the fields"
+group = "cleanup"
+depends = ["C38a"]
+note = "C38a kept CWorldServer::AIMap() { return &aiMap_; }, AIEvents() { return &aiMap_.events; } and CUnit::Motion() { return &motion; } (90 game calls): tests/verify/harness_digest_read.inc calls them on both sides, and exe_objects.h's replica has aiEvents_ beside aiMap_ rather than inside it. Give the replica the game's member names and nesting, then the .inc and the game's callers use the fields (scratchpad C38a/c38alib.py, kind addr, member=True; unit_ai_moves.cpp / world_effect_moshka.cpp have their own free AIMap()). A harness change: run the --no-hooks suite. Done: AIMap()/AIEvents()/Motion() gone (replica: CAIMap::events at +0x26C8 inside CAIMap, offset asserts for aiMap_/events/motion); GameDataPathString/GameBasePathString, ShowHitNumbersOption/GameDifficulty and ~150 more free one-line getters { return EXPR; } (EXPR a global / field chain; options field getters, g_serverWorld/g_clientWorld/g_sceneRenderer/g_interface/g_cursor member getters, TheTextManager and friends), ~750 calls, by scratchpad C38c/batch1.py, batch2.py (plan: no argument; go: rewrite), batch3.py, blanks.py, includes.py <compiler log>, manual.patch (replica, digest reader, docs; apply it AFTER batch2 or batch2 sees no definitions to rewrite). Left (C38d): names that clash with a class member or a qualified call (CellSize camera::, Cursor, ItemManager, Map, World, PanelOffset, VolumeSettingA/B, MovieVolumeSetting, LightLevels*, CurrentWorldTick), the out-of-line class member getters (CParty::ItemConstructor ..., CUnitServer::TamingStage), and file-local getters in tests/verify, src/render, src/lib."
+order = 672
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

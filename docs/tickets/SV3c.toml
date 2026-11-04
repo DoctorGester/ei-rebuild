@@ -1,0 +1,10 @@
+id = "SV3c"
+title = "Rebirth with the flags off parts from addon's code at world update 40"
+group = "verification"
+size = 0.5
+files = ["tools/golden.py"]
+note = "Rebirth with the flags off matched again once GameRender went through the address of addon-patched CWorldClient::Render (rule 9 of that time; the flags are all there is since S21e)."
+order = 176
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

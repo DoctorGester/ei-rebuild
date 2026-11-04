@@ -1,0 +1,9 @@
+id = "C50c1"
+title = "The interface-read databases as plain globals"
+group = "cleanup"
+depends = ["C54"]
+note = "C50c follow-up. The spell, item, quest, ack, unit, skill and map databases construct and destroy themselves since C50c but stay lib::StaticObject because ui_* files spell them with ->. After C54: retype them to plain globals (whole-tree g_x-> to g_x., g_x.Get() to g_x), add their initialisers 00684360 / 006A6540 / 006ADF10 / 006D7080 / 005399F0 / 0051FAF0 / 0045E6C0 to gen_static_init's UNUSED_INITIALISERS, drop the static_init_ports rows (database_globals.cpp, unit_db_lifetime.cpp, map_database.cpp) and named_data tags. A plain global is destroyed at our CRT's exit, after every list exit function (the worlds included): fine for data, but anything whose destructor talks to the harness or the network must keep the game's exit order (C50c: the session Refs' release sent leave packets after the harness's pair had ended, net_pair_zone failed). Goldens unchanged."
+order = 723
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

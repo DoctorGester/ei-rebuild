@@ -1,0 +1,8 @@
+id = "H33e"
+title = "Build time: gameapi.h's slot references without a dynamic initialiser per file"
+group = "harness"
+note = "From H33a. lib/gameapi.h's ~140 'inline auto& X = ei::Imports().X' references are dynamic initialisers compiled in every file that includes it (~0.1 s back end each, 140 objects; dropped at link). gen_iat.py generates it and it is in the harness's reference key (a change replays the original's runs). Options: one definition in a .cpp (extern references; mind static-initialisation order), or calls through ei::Imports().X directly. Changes the call code: goldens."
+order = 791
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

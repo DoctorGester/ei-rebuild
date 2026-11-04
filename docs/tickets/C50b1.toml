@@ -1,0 +1,10 @@
+id = "C50b1"
+title = "The worlds and the interface-spelled singletons as plain globals"
+group = "cleanup"
+model = "opus"
+depends = ["C50b"]
+note = "C50b follow-up. g_serverWorld / g_clientWorld (world_create.cpp) stay lib::StaticObject built and destroyed in list order: their destructors release objects into managers and databases the list destroys around them, so a plain global (destroyed by the C++ runtime after every list exit function) needs the exit order checked first (or the worlds emptied by the shutdown before exit). CWorldServer's messages_ (InPlace<CFileRegistry>, registry is C50d's) goes with it. g_gameFlow, g_savedParties, g_partyManager and g_saveStream construct and destroy themselves since C50b but stay StaticObject because ui_* files spell them with ->: after C54, retype them to plain globals (whole-tree g_x-> to g_x.), add their initialisers 00578440 / 0065F2A0 / 004A56D0 / 00578530 to gen_static_init's UNUSED_INITIALISERS and drop their static_init_ports rows and named_data tags. MpHeroRecord's InPlace<CParty> (ctor in ui_hero_screen_click.cpp) is C54's. Goldens unchanged."
+order = 720
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

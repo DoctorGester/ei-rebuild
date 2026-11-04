@@ -1,0 +1,8 @@
+id = "PL9a"
+title = "Check SDL's input translation against the window-procedure path"
+group = "port"
+depends = ["PL9"]
+note = "Done 2026-10-31: ei_input_check compares the SDL backend's keys and control characters with Windows' for every installed layout; the layout keys and Ctrl characters now come from the active layout (platform::LayoutKey / LayoutControlCharacter). By hand for the user: full screen on a second monitor, Alt+Tab, Cyrillic save names, the console key, Ctrl+C / V in the console."
+order = 1090
+status = "done"
+done = "2026-10-31"

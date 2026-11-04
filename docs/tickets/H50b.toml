@@ -1,0 +1,6 @@
+id = "H50b"
+title = "Report dzn's libd3d12 unload under WSL upstream (Mesa)"
+group = "harness"
+depends = ["H50"]
+note = "H50: dzn_instance_destroy closes libd3d12 (util_dl_close), which unloads libd3d12core while one of its threads still runs; a program that makes and ends an instance before its real one (SDL_GPU's driver probe) crashes about 1 in 3 starts with a SIGSEGV in no module. Our ~/mesa-dzn build drops that close (linux.md, The GPU under WSL). File a Mesa issue (or merge request: keep d3d12_mod open as dxcore already is) so the local change can go; the user's call, nothing here posts by itself."
+order = 818

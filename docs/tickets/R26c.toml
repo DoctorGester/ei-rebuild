@@ -1,0 +1,9 @@
+id = "R26c"
+title = "Device mesh draws: the vertex and index arguments nothing reads after R26b"
+group = "renderer"
+depends = ["R26b"]
+note = "Found by R26b. device_draw.cpp's DrawArgs keeps primitive, fvf, vertices, indices and flags that nothing reads now that Draw only hands the pass to render::MeshPass and counts (vertexCount, indexCount). DrawIndexed / DrawTwoTextures (texture.h) take them from device_mesh.cpp's Submit and device_mesh.cpp's DrawFlat; the TL vertices those fill (FillCorners, Fill, Scale, the fog) are read only by the meshcorners full A/B switch (render::MeshCornersSkipped, EI_RENDER_VALIDATION). Trim the arguments and the work only they needed, keeping the counts and the clipper's verdict. Also CSceneRenderer::Polyline (slot 20, renderer_lines.cpp) has no caller (renderer.md section 5): check and delete. Goldens must stay the same."
+order = 77
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

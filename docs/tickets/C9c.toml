@@ -1,0 +1,11 @@
+id = "C9c"
+title = "map_object_shadow.cpp: what C9b left raw"
+group = "cleanup"
+size = 0.3
+model = "opus"
+files = ["src/game/map_object_shadow.cpp"]
+note = "map_object_shadow.cpp leftovers: colour key from CTexture::block_ (+0x60), CUnit* reinterpret_cast for the controller, AlignedRecordBuffer and PointAt/PixelAt indexing."
+order = 339
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

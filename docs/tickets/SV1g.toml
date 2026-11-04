@@ -1,0 +1,8 @@
+id = "SV1g"
+title = "Verify wrappers that leave the verify build off the game's course"
+group = "verification"
+note = "Verify wrappers that left the verify build off the game's course found (verify build random traces vs EI_PLAIN=1, verified.txt bisection in docs/notes/standalone-verification.md) and fixed."
+order = 168
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

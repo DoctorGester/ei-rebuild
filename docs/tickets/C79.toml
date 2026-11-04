@@ -1,0 +1,9 @@
+id = "C79"
+title = "Disc check and disc prompts deleted"
+group = "cleanup"
+model = "sonnet"
+note = "User 2026-11-03: all code for physical disc prompts goes. Delete WinMain's disc check and its second-disc boxes (app_main.cpp), the CD-ROM volume label check, platform::VolumeLabel and the AutoPlay event (platform.h, win32, posix, sdl, harness), the disc prompt strings and any 'insert disc' paths, the harness's disc-prompt answer (MessageBox) and the app_disc_prompt scenario and its golden (scenario deleted, not re-recorded). 'CD-ROM Path' stays only as a data folder setting if something still reads data through it; if it always equals the game folder, fold it into the game folder and drop the setting (say which). Docs: core.md / app.md / platform.md lines about the disc check and the EB jump at 00456BB5. Goldens otherwise the same."
+order = 991
+status = "done"
+started = "2026-11-03"
+done = "2026-11-03"

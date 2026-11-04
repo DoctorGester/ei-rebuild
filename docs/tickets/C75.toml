@@ -1,0 +1,8 @@
+id = "C75"
+title = "static_asserts: keep the ones guarding byte formats, drop the game.exe-matching ones"
+group = "cleanup"
+model = "sonnet"
+note = "User 2026-11-03: do we need all the static_asserts? 276 in 94 files. (1) 111 std::bit_cast checks that a float constant has the original's bits (kPointOne == 0x3DCCCCCD ...): delete all; the literal is the constant and the goldens catch an edit. Keep kPi's only if something relies on the exact value. (2) 137 sizeof/offsetof: keep those on types read or written as bytes (save records, data files, network messages, GPU vertex layouts like TLVertex, net_coder buffers: say 'saved as' / 'sent as' next to each kept one if it isn't said); delete those that only pinned game.exe's in-memory layout (unit.h's 22 offsetofs, effects.h's ParticleElement offsets, unit_record.h, map_object_figures.h, link_figure.h, logic_settings.h: check each is not a file/network format first). (3) type-trait asserts: keep. Goldens the same. Report kept vs removed per category. Batch with C74 (same worker)."
+order = 986
+status = "done"
+done = "2026-11-03"

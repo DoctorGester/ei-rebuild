@@ -1,0 +1,7 @@
+id = "X32"
+title = "Rebirth runs: game still running 10 s after quit"
+group = "harness"
+note = "Rebirth runs no longer linger after quit: the harness answers the starter setting CtfMon = 0 so addon.dll does not start CTFMon.exe."
+order = 277
+status = "done"
+done = "2026-10-15"

@@ -1,0 +1,10 @@
+id = "R17c1"
+title = "Wetness resets on a zone change; render_water_looks aimed for Rebirth's zone1"
+group = "renderer"
+model = "opus"
+depends = ["R17c"]
+note = "User 2026-11-04: snow cover too harsh on the ground and on characters: soften both (after the seams); sent to the worker."
+order = 951
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

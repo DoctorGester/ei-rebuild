@@ -1,0 +1,10 @@
+id = "C14n"
+title = "C14 the kept STLport vectors and lists: record element policies, counted / held elements and raw-sentinel lists to std"
+group = "cleanup"
+model = "opus"
+depends = ["C14b"]
+note = "User 2026-10-28: don't retype the library's internals; replace the usage code with std or small code of ours first, then delete the old MFC / STLport piece once only the tests' game.exe views use it. What C14b kept as stlp (141 stlp::vector lines / 46 files, 108 stlp::list / 42): the record vectors and lists with their own element policy (record_vectors.h's VectorAbi types, record lists, record_members.h / record_lifetime.h: records without real copy / assignment / destructor), counted or held elements (CEngineObject*, CMapObject* with HeldObject, CSpell* with HeldSpell, RefPtr, SharedRef / CountedRef), lists their owner holds as a raw sentinel pointer (CUnitClientSpecific::speech, SessionBase::clients_), and the hash tables' bucket vectors (with C14c). Each needs the record's real special members or an RAII element type (a counted pointer) first; then the retype is C14b's script with the deny entries removed. Also: stlp::ListRemoveInt and unitdb::DestroyStringRange have no callers left."
+order = 485
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

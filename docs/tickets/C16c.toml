@@ -1,0 +1,9 @@
+id = "C16c"
+title = "NaN audit: plain comparisons instead of x87::IsNaN terms (C16 follow-up)"
+group = "cleanup"
+depends = ["C16"]
+note = "docs/cleanup-plan.md 'Compiler artefacts and the NaN audit'. C16 ran the suite with x87::IsNaN always false and CompareStatus without the unordered case: goldens the same, so no NaN reaches those 116 sites in the suite. Write the plain comparisons (a NaN then behaves as IEEE says, a behaviour change only for NaN), log in debug builds when a NaN shows up there; keep IsNaN where NaN detection is the code's own purpose. Opus (judgement per site)."
+order = 360
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

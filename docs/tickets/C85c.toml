@@ -1,0 +1,9 @@
+id = "C85c"
+title = "Renderer positions and normals as packet records; AI map sector vertices read by value"
+group = "cleanup"
+depends = ["C85b"]
+note = "C85b left: MeshDraw / ShadowMesh still take positions and normals as const float* over arrays of VertexPacket / NormalPacket (device_mesh.cpp &positions->block[0][0], MovedPositions; the renderer indexes block (i/4)*16 + lane), the same array-of-structs-as-scalars read C85b removed for corners and texture coordinates: give src/render a packet record (as mesh_records.h) the game's packets are. ai_map_load.cpp StampSector views the sector file as SectorFileVertex* at header + 1 (offset 5: misaligned, the last struct view over file bytes left in src): read each vertex with lib::LoadBytes. Goldens the same."
+order = 1011
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

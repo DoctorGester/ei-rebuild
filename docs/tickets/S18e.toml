@@ -1,0 +1,11 @@
+id = "S18e"
+title = "Standalone: .rdata constants as literals"
+group = "standalone"
+size = 2
+model = "sonnet"
+depends = ["S18a"]
+note = "Float, double and integer constants of .rdata that no code writes (Rebirth's startup actions write some, e.g. 00742B08: those stay data) become bit-exact literals, as C11 batches 15-16 did for strings; the per-file GameFloat / GameDouble helpers go where unused. Checked: goldens; tools/data_seam.py rdata counts down."
+order = 613
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

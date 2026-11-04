@@ -1,0 +1,10 @@
+id = "C14u"
+title = "C14 MFC arrays and lists, batch 2: the containers with an element policy to std, with their CompiledCollection tags"
+group = "cleanup"
+model = "opus"
+depends = ["C14m"]
+note = "What C14m (batch 1: plain elements) kept: mfc::CArray about 290 lines / 100 files, mfc::CList about 114 / 45, about 100 CompiledCollection lines (mfc_slots.h, game_slots.h, game_arrays.h, record_arrays.h, game_lists.h, ui_camp.h, unit_ai.h, scene_loader.h, party_lifetime.cpp, unit_ai_mode_lifetime.cpp). Each has an element policy (EachElements / OriginalElements / InitElements, ListAbi / ArrayAbi, a Serialize through a temporary): the script's records (definitions, runs, decls, groups, areas, FX / particle / lightning sources, tokens), the scene loader's VtArray and records, map_database's allods / maps / zone exits, AI records (looks, path cells), CountedPtrs, SharedObjectList, the sound cache's WaveList, the sector map's sectors, the lever / trap arrays. Each needs a real element type first (special members or an RAII counted pointer, as C14n's CountedPtr / HeldPtr) and then the retype; Serialize must keep its bytes. Use C14m's scratch scripts (retype_mfc.py, fixer.py, idioms.py) with the DENY list emptied for the batch, and repeat C14m's two checks: temporary = delete overloads of ConstructHeader / DestructHeader / ConstructListHeader / ei::SetVtable for std containers, and the forced-include memset / memcpy check (grep explicit (void*) / static_cast<void*> arguments too). A function taking a container as void* needs all its callers retyped together (CSceneRenderer::DrawSprites crashed on a mixed caller). When no tag is left: CompiledCollection, ArrayHeader, ConstructHeader and mfc.h's CArray / CList go (src/lib), their vtables.csv rows become game.exe-only rows; then C14r. Notes: docs/notes/core.md 'MFC CArray and CList to std (C14m)'."
+order = 505
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

@@ -1,0 +1,10 @@
+id = "C52a"
+title = "C52 rest: out-parameters and const Vector3* inputs in ui_*, item_*, spell_*, unit_*, combat_* and what C52 batch 1 left"
+group = "cleanup"
+model = "sonnet"
+depends = ["C52"]
+note = "Rest of G12 after C52 batch 1 (see C52's note for what is done and what was left on purpose). Include src/game/ui_* now that C54 is done. Compiler lists callers, one function at a time, goldens unchanged."
+order = 757
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

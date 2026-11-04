@@ -1,0 +1,9 @@
+id = "D2"
+title = "Retarget code comments that cite removed sections"
+group = "docs"
+model = "sonnet"
+note = "Code comments citing removed sections ('Nth round', 'pass', old renderer section numbers, items_spells.md '(A-H17)') retargeted; tools/progress.py counts UI_INPUT_HANDLER / UI_WHEEL_HANDLER."
+order = 653
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

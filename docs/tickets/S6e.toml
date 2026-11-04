@@ -1,0 +1,9 @@
+id = "S6e"
+title = "Standalone library: the ConstructElements helpers S6d's loaders reach"
+group = "standalone"
+depends = ["S6d"]
+note = "ConstructElements helpers the list Serialize reaches (004D6840 ScriptDefine, 00558EF0 / 00479620 RefPtr, 004C59A0 CArray<ScriptIfThen>) ported."
+order = 582
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

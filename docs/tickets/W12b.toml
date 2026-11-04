@@ -1,0 +1,9 @@
+id = "W12b"
+title = "Rename the layout module (widescreen namespace, ui_widescreen files) and audit relative-y scalings"
+group = "widescreen"
+depends = ["W12"]
+note = "After W12 ui_widescreen.{h,cpp} / namespace widescreen is the interface layout for every window shape; a name like ui_layout / screen_layout reads better (scripted rename, ~25 files). Also: letterboxed windows (narrower than 4:3) add marginY in the with-margin scalings; W12 moved the text height (DrawTextIn's extent) to the no-margin one, other sizes passed through the with-margin scalings would show only on 5:4 / portrait windows (ui_layout_narrow captures)."
+order = 151
+status = "done"
+started = "2026-10-30"
+done = "2026-10-31"

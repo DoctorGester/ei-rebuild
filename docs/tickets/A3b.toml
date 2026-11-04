@@ -1,0 +1,9 @@
+id = "A3b"
+title = "x64 data audit: formats read or written from structs with pointers or long / size_t"
+group = "port"
+model = "opus"
+note = "From A3. A compile does not show it: find every file, save, network, settings or resource format read or written with a struct's bytes (Read(&s, sizeof s), memcpy into or out of a buffer, ChunkArchive Serialize, NetCoder, the res / mpr / mmp / save loaders, figure and animation loaders) whose struct holds a pointer, a long / unsigned long, size_t, time_t or a Windows handle, and any pointer kept in a 32-bit field or hashed as a 32-bit value (handles as ints, lParam packing, pointer keys). Output: the list with file:line and a fix per item; small fixes done (fixed-width types, field-by-field reads), the rest as tickets. Goldens unchanged."
+order = 851
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

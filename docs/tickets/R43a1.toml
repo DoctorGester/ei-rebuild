@@ -1,0 +1,11 @@
+id = "R43a1"
+title = "Pixel check of the HLSL programs against the GLSL before the switch"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R43d"]
+files = ["tools/shader_check/shader_check.cpp", "src/render/shaders"]
+note = "From R43a. Only the spike's seven world programs were compared by pixels (frame dumps); R43a's check creates all 24 HLSL programs and their pipelines and checks their blocks and inputs against sokol-shdc's, but draws nothing. Draw each program once with fixed inputs (blocks, small textures, a few vertices) through sokol on D3D11 and through gpu.h on D3D12, read both back and compare, so a port slip in the 17 newly ported programs (ui_*, texture_*, present, blit, perf_overlay, into/depth_from_multisampled) shows before R43e re-baselines the image captures. Could live in ei_shader_check. Dropped 2026-11-03: R43e switched to gpu.h and deleted sokol and the GLSL, so there is nothing to compare against; the image captures were re-recorded on gpu.h."
+order = 935
+status = "done"
+done = "2026-11-03"

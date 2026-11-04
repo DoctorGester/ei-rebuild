@@ -1,0 +1,9 @@
+id = "PL14"
+title = "The harness redirects files, clocks and sockets in its own platform backend; game.exe's import slots go"
+group = "port"
+depends = ["PL13"]
+note = "After PL12 and PL13 the import slots (image_imports.cpp/.inc, lib/import_table.h, lib/import_prototypes.h, win32/gameapi.h/.cpp, tools/gen_iat.py) exist only so that the harness can patch them (its file overlay, clocks, sockets, registry, message boxes, UTF-8 routes). Move each redirection into the harness's platform side (as PL12 did for the window, events and clocks: tests/verify/harness_platform.cpp answering platform:: calls), then have platform_win32.cpp call the system directly and delete the slot machinery. Goldens the same."
+order = 1117
+status = "done"
+started = "2026-11-03"
+done = "2026-11-03"

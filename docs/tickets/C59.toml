@@ -1,0 +1,8 @@
+id = "C59"
+title = "Regroup files by feature and one naming rule (G16, G18)"
+group = "cleanup"
+note = "Style review Tier 3 (REPORT.md G16, G18): 37 *_slots / *_lifetime / *_small_records files, the AI over 16 unit_ai_* files, CItem over 8 by vtable slot, members in another subsystem's file; trailing _ on ~1,311 members vs ~1,134 without, CPrefix on ~450 classes. Naming rule (user 2026-10-29): no trailing _ on members at all (private already marks what a class guards); where a member and a parameter or local would share a name, rename the parameter or local, never this->. Also drop the C prefix on classes (REPORT suggestion; user may object). Write the rule into docs/rewrite-guide.md first, then scripted renames and file merges in batches when no other worker is in the area: conflicts with everything, so run it alone between other workers."
+order = 753
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

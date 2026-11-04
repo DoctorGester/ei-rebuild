@@ -1,0 +1,10 @@
+id = "SV2h2"
+title = "Delta coder and stream twins: ours first"
+group = "verification"
+depends = ["SV2h"]
+files = ["tests/verify/verify_net_delta.cpp", "tests/verify/verify_net_streams.cpp", "tests/verify/verify_net_coder.cpp", "tests/verify/delta_snapshot.h", "tests/verify/verify_crt_streams.cpp", "tests/verify/verify_directdraw_holder.cpp"]
+note = "Delta coder and stream twin checks run ours first with heap::Aside (net delta / streams / coder / directdraw); stopped in favour of layout-independent goldens (SV7)."
+order = 207
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

@@ -1,0 +1,10 @@
+id = "C44"
+title = "Typed stream I/O: ReadValue / WriteValue instead of Read(&x, 4)"
+group = "cleanup"
+model = "sonnet"
+depends = ["R27e"]
+note = "Style review 2026-10-28 (build/style_review/REPORT.md, user asked to schedule Tier 1 in the suggested order); after SV7b5 and C38d. G5. ~690 stream->Read(&x, 4) / Write(&x, kDword) / Field(id, &x, 4) calls, WriteCopy x7, ReadField. Add template ReadValue(T&) / WriteValue(const T&) with static_assert(trivially copyable) to core_streams.h; a regex replaces the calls, order unchanged. Saves byte-identical (goldens' decoded saves)."
+order = 677
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

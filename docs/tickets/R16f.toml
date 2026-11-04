@@ -1,0 +1,12 @@
+id = "R16f"
+title = "Present without the whole-frame copy: cursor and gamma ramp in the present pass"
+group = "renderer"
+size = 1
+model = "sonnet"
+depends = ["R16"]
+files = ["src/render/render_cursor.cpp", "src/render/render_window.cpp", "src/render/render.cpp"]
+note = "docs/notes/renderer.md section 13, item 6. KeepFrameForCursor copies the whole frame every frame (33 MB of GPU traffic at 4K) before the cursor is drawn into it; draw the cursor in the present pass so the frame stays clean for the cursor thread. Check: render_cursor_present, render_present, render_present_shot (cursorcheck comparisons, 0 differences)."
+order = 38
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

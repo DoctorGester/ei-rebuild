@@ -1,0 +1,10 @@
+id = "S20a1"
+title = "golden.py snapshot: skip harness screenshots"
+group = "verification"
+size = 0.25
+model = "sonnet"
+note = "From S20a: render_present_shot's run folders keep 4K shot*.bmp in harness_saves (~65 MB per run) and golden.py snapshot copies them (1.1 GB for one recording). Skip them (they are not golden inputs)."
+order = 251
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

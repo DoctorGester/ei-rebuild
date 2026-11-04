@@ -1,0 +1,10 @@
+id = "WB13"
+title = "How many standalone games can run at once"
+group = "harness"
+size = 0.5
+depends = ["S21"]
+note = "Measured 2026-10-16 (docs/notes/work-board.md, 'Games at once'; tools/game_load.py): per standalone game 247 MiB GPU memory (peak ~430 while loading), 208 MB RAM, one CPU thread; --no-hooks (dgVoodoo) 291 MiB, not the old ~640. At 16 standalone games: GPU 84-90% busy, 7.8 GB GPU memory (peak 10.7 of 16), CPU 57-63%, no TDR events; throughput flattens from 12 on. Recommendation: keep the cap at 16; a step-up plan to 20 (stop rules: any 153/4101, GPU memory over 13 GB, new failures, <10% more games/min) is in the notes for the user's decision."
+order = 311
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

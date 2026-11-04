@@ -1,0 +1,10 @@
+id = "SV7a"
+title = "Heap jitter: find the game's address-dependent behaviour"
+group = "verification"
+size = 1
+depends = ["SV2h3"]
+note = "Harness heap jitter mode EI_HEAP_JITTER=<seed> (tests/verify/harness_heap.*); inventory of address-dependent behaviour in docs/notes/standalone-verification.md(SV7a)."
+order = 215
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

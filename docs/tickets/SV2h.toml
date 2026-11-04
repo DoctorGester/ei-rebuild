@@ -1,0 +1,10 @@
+id = "SV2h"
+title = "Twin checks that allocate: ours first, everywhere"
+group = "verification"
+size = 1
+files = ["tests/verify/*"]
+note = "Twin checks that allocate ran ours first (the original's blocks after and freed, snapshots in our memory); the MFC list / array / collection checks were fixed (checks gone since S21d)."
+order = 204
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

@@ -1,0 +1,8 @@
+id = "C14w"
+title = "C14 hand-inlined growBy arrays left: CObject3D partBoxes, the AI map's cellRowGrowBy rows, map spec / script SetSize copies"
+group = "cleanup"
+note = "C14h found these hand-written array shapes outside the vector retype: object3d_figure_setup's partBoxes SetSize (pointer, count, capacity, growBy in CObject3D), ai_local_search's cellRowGrowBy, map_spec_unit and script_addon growBy loops. Each is an inlined CArray SetSize: std::vector."
+order = 510
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

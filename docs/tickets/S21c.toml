@@ -1,0 +1,11 @@
+id = "S21c"
+title = "The hooked mode out of the tools"
+group = "standalone"
+size = 1
+depends = ["S21a", "S21b", "SV7c2", "S20c"]
+files = ["tools/run_all.py", "tools/work_sched.py", "tools/compare.py", "harness.cmd", "tools/coverage.py", "README.md"]
+note = "The hooked mode is out of the tools: run_all's --hooked / --native / --dgvoodoo, compare.py's hooked side, harness.cmd, coverage collect; EI_VECTORS records on the original."
+order = 600
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

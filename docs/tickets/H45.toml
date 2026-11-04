@@ -1,0 +1,9 @@
+id = "H45"
+title = "Golden diffs that explain themselves before a re-record"
+group = "harness"
+model = "sonnet"
+note = "User 2026-11-03: a re-record must not quietly accept a regression. When a run differs from its golden, golden.py (and run_all's summary) prints a readable diff: which digest sections and fields changed (units' positions/HP/states, items, scripts' variables, money, quests, save bytes by record), at which step/frame, first difference first, sizes of the change, grouped and capped; frames named by capture. golden.py record refuses without --reason and puts the diff summary in the commit-ready record note. Keep the output short enough to read in a worker's report."
+order = 801
+status = "done"
+started = "2026-11-03"
+done = "2026-11-03"

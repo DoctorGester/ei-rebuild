@@ -1,0 +1,9 @@
+id = "S9a"
+title = "Standalone library: the last 15 STLport list<T> instantiations"
+group = "standalone"
+size = 1
+files = ["src/lib/stlp_list.h", "src/lib/stlp_list.cpp"]
+note = "The last 15 STLport list<T> instantiations ported (StackNode, trade records, CMemoryStream, LinkArchive, ground prints, TitleLine); policies in src/lib/stlp_list_refs.h."
+order = 552
+status = "done"
+done = "2026-10-15"

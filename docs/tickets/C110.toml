@@ -1,0 +1,10 @@
+id = "C110"
+title = "Networking style 2: net_state, namespaces, members in their owners' files, lobby leftovers"
+group = "cleanup"
+model = "sonnet"
+depends = ["C109"]
+note = "Style review round 3 (2026-11-04, https://claude.ai/artifact/KKkymAu9dSoUWGGcbsLwPa, digests in build/style_review/round3/*.md; user: file the tickets). Items N7, N8. net_state.cpp: field-id enum, sizeof instead of hex sizes, the nested-cast bit pack as one expression (exact), offset comments, Unit* unit = this aliases, int-bools, ReadNetState split. One namespace block per file (reopened 7 times now); PutBit, MemoryStream, GameBuffer, AIPath::TargetPoint and netlink::FileStream to their owners' files; PlayerSource::Pump/Query unused; party trading as members (no DropParty->ClientDropParty->DestroyOwned chain). Lobby: expose the server list (no O(n^2) ServerAt), AppendServer refs, kNever bits as 1e38f, TimedEntry as a float, the countdown loop once, padding_2564/padding_1164/PlayerServer::spare gone, float-bit parameters typed (UnitPlacement, SendState71/72), always-1 returns void, 33 literal-returning functions inlined, StringNpos 32-bit leftovers. Comments: scalar deleting destructor, funclets, EAX, SHR by CL, +0x, addon addresses, the 22 'inline' and 10 stack-slot lines (A16). Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes."
+order = 1041
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

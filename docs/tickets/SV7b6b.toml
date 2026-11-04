@@ -1,0 +1,9 @@
+id = "SV7b6b"
+title = "Transform objects' never-set positions"
+group = "verification"
+depends = ["SV7b6a"]
+note = "SV7b6a: CTransformObject's constructor (00453400) leaves position_ / localPosition_, and the sun light's z was read (lights are now allocated zeroed). Audit the other factories whose objects derive from it (cameras, lightning, sky, effects) for reads of positions before any set, and zero those blocks the SV7b2 way (ours + harness_leftovers without hooks). Check with frame hashes plain vs EI_HEAP_JITTER 1 / 2 and fill."
+order = 250
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

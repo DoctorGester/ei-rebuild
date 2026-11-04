@@ -1,0 +1,9 @@
+id = "R9c6"
+title = "Rebirth present-mode runs: game still running 3 s after the scenario quit"
+group = "renderer"
+size = 0.3
+model = "sonnet"
+note = "Rebirth present-mode runs no longer linger after quit: the harness answers the starter setting CtfMon = 0 so addon.dll does not start CTFMon.exe."
+order = 15
+status = "done"
+done = "2026-10-15"

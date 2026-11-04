@@ -1,0 +1,8 @@
+id = "PL21a"
+title = "port_render's glyph cases fail on WSL's lavapipe by one or two levels"
+group = "port"
+note = "Found by PL21 (2026-11-04): ei_render_check on WSL (Ubuntu 24.04, Vulkan llvmpipe LLVM 20.1.2), Release and RelWithDebInfo, at main 650d9227f (the binary byte-identical with PL21's): 15 checks, 3 failed: glyph run cases 0/1/2, 5/11/4 pixels off by 1-2 levels (case 0 at (122,10) expected 0D395C drawn 0C375C). port_shaders and port_gpu pass. An older OpenGL-era build (Nov 3, 29 checks) still passes there, so it came with the SDL_GPU switch or later. The release workflow's Linux Checks step and linux.yml run port_render on lavapipe too: find out whether CI's Mesa shows it, then fix the reference or the comparison's tolerance by judgement."
+order = 1131
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

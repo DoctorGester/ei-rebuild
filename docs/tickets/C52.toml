@@ -1,0 +1,10 @@
+id = "C52"
+title = "Return values instead of out-parameters (G12)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C51"]
+note = "Style review Tier 2 (build/style_review/REPORT.md; user 2026-10-28: run beside the native UI track P2-P8). Leave src/game/ui_*.* and src/render/render_ui* to the P track (C54 covers them after P8). By subsystem, the compiler as checker, goldens unchanged. G12: std::string* out / vector out-params returned by value; const Vector3* never-null inputs to const Vector3&. One function at a time, the compiler lists callers. Batch 1 (outside ui_*, render_ui*, item_*, spell_*, unit_*, combat_*, device files; goldens unchanged): std::string out-params returned by value: MapsFolder/MapPath, BriefingSpeakerName/BriefingVariable/SessionMapName, MultiplayerZone, AmbienceTimeOfDay, CStream/Chunk/DeltaField ReadString and Chunk::ReadEncodedString, CScript::QualifyName, MobScriptDecoder::Decode; vector: PickZones, CFileRegistry::SectionNames, CLinkMesh::PartNames, CFigureAnimationState::BoneNames. Deleted: dead Spec::TypeName virtuals, ScriptStringLoad, ConcatText/ConcatString/Sum, CPlayerClient::ReadText, ZoneNameInto. Vector3 inputs to const Vector3&: DecalBuilder (Begin/Touches/AddTriangle/AddTerrainTriangle), ProjectDecal, EdgeFade, lightning Init/SetEndpoints/Start/DrawGlow, SetWind/ChangeWind/ApplyWind, SetWaves, CentreOn, LookFrom, CreateUnits/AddUnitToServer, UseOrderDistanceSquared, LightRotation/LightShearMatrix. Left (C52a): ReadInto (CStream, 15 callers incl. unit_*/ui_saveload), ListFiles/ListWaveFiles/ListKeys (Rebirth mod ListFiles appends to a reused vector: behaviour decision), ReadLinkString (keeps the old value on length 0), the item/spell/unit/combat/ui_* string and vector out-params, CollectPartsByPrefix (unit_client_models), ai_map.h/camera.h/spell.h/combat.h/world_effect.h const Vector3* inputs (most callers in unit_*/spell_*/combat_*), LightAreaOf/MoveLight (null delta), PlaneHeight (null v01), GetKeyNames/GetList/Tokenize (bool/int results), the render files."
+order = 693
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

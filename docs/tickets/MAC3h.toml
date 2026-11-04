@@ -1,0 +1,10 @@
+id = "MAC3h"
+title = "macos-port: Cursor presents under one GPU rule"
+group = "port"
+model = "opus"
+depends = ["MAC3f"]
+note = "Scope: render_cursor.cpp, render.cpp's guards, a `GpuLock` with a verify-build `Held()` assertion at the sokol entry points (or keep the cursor thread off sokol, 3.4). Check: the cursor-present counters and `CheckPresented` in verify, a long-load scenario with the cursor moving under `build.cmd asan`, the frame captures. From MAC2's review (build/reviews/mac2_macos_port.md, sections 1-3 for the reasons). Lands on main green alone; then merge main into macos-port at once so the branch keeps only macOS code."
+order = 1104
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

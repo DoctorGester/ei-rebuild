@@ -1,0 +1,10 @@
+id = "C20r"
+title = "Dead-code rescan after the MFC removal (C14p, C14zi, C35m, compiled_vtable.h)"
+group = "cleanup"
+model = "opus"
+files = ["src/game", "src/lib", "src/standalone"]
+note = "C20q's relocation-graph scan (scratchpad C20m / C20o / C20q scripts) re-run on main after src/lib lost every mfc_* file, mfc.h, compiled_vtable.h and the gamecrt heap (2026-10-28), counting ei_vectors' references. Delete what is dead; list what one small replacement with std / our code would make dead and do the small ones. Also: tools/named_data.py's UNPORTED regex (ei::UnportedSlot is gone from src), unused includes the MFC removal left, tests/coverage rows of deleted files if the tool regenerates cleanly. Done (to review): scan re-run on main (scratchpad C20r: graph over ei_hook + ei_render objects, ei_render no longer all roots; once.py / twice.py name counts incl. include/; incl.py for includes). Deleted: include/ei/vcall.h, at_exit_functions.h, ScriptNamedValues::FindName, CubicCurve3, 5 record Assign* decls, PlainArray, AssignFrom, script_exec Renderer, null device Viewport, render GammaRamp / SceneSunDirection / ui::CurrentPath; libcrt::Controlfp (+ converters) replaced by the x87 word in SectorData::Light; named_data.py UNPORTED; coverage.csv regenerated; 560 unused quoted includes (game_data.h 324, lib/crt.h 105, game_strings.h 57, ...). Image suite --golden 121 the same / 24. Left: render::text and ui canvas pieces only ei_text_check / P2 / P4 use; DLL interface slots; filed C20r1-C20r3."
+order = 659
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

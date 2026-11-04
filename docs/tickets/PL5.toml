@@ -1,0 +1,9 @@
+id = "PL5"
+title = "Platform layer: sockets"
+group = "port"
+model = "opus"
+note = "After PL1. net_link.cpp, net_second_master.cpp and the other WSOCK32 users (19 imports) behind a platform net header (UDP / TCP sockets, address lookup, non-blocking reads, errors as our own enum). Wire formats unchanged; the net pair goldens unchanged."
+order = 857
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

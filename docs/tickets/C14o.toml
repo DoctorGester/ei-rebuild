@@ -1,0 +1,9 @@
+id = "C14o"
+title = "Harness crash report: read the image's CFileException / CArchiveException file name as a std::string"
+group = "cleanup"
+depends = ["C14i"]
+note = "C14i made src/lib's exceptions hold the file name as std::string. tests/verify/harness_crash.cpp ReadThrow reads it as a const char* at +0x10 (+0xC for the archive exception), right for game.exe's CString and for a std::string of 16 or more characters (the heap pointer comes first), wrong for a shorter name (the characters are inline: the __try gives up and the report has no file name). The image's side should read it through tests/verify/image (a small view of MSVC's std::string, or the image passing the text). tests/verify changes, so the original suite runs. harness_disk_full only checks the cause prefix, so nothing fails today."
+order = 496
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

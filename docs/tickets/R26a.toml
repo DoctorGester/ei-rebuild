@@ -1,0 +1,9 @@
+id = "R26a"
+title = "Shared harness: drop image::RenderActive and WindowPresents.failed (renderer failure is fatal since R26)"
+group = "renderer"
+depends = ["R26"]
+note = "R26 made every renderer failure end the game, so the image always draws: tests/verify/image/harness_objects_image.cpp's RenderActive returns true and render::WindowPresentInfo lost 'failed'. The shared harness still asks: HarnessRenderActive (harness_objects.h: ei::Standalone() && image::RenderActive()), image_side.h's RenderActive and WindowPresents::failed, harness.cpp's waitpresent / newdevice checks of now.failed, harness_capture.cpp and ui_census.cpp. Fold them into ei::Standalone() and drop the field. Left out of R26 because it changes the harness key (the --no-hooks suite replays): do it with the next harness change."
+order = 75
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

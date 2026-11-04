@@ -1,0 +1,11 @@
+id = "W2a"
+title = "Connect list 0061D780 under Rebirth: ExtendedServerName with WideScreen"
+group = "widescreen"
+size = 0.5
+model = "sonnet"
+depends = ["W2"]
+note = "Connect list 0061D780 reproduces ExtendedServerName (+0x27C) with WideScreen under Rebirth (EI_REBIRTH_IMPLEMENTS both)."
+order = 143
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

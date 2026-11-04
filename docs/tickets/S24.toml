@@ -1,0 +1,9 @@
+id = "S24"
+title = "Settings: no registry import, sane defaults when ei_settings.ini is missing"
+group = "standalone"
+model = "opus"
+note = "User 2026-10-29: drop the one-time registry import (settings_file.h/.cpp RegistrySource, SetImportSource, the import at first use; device_mesh.cpp). A missing ei_settings.ini is written with defaults instead: borderless full screen at the desktop's native resolution, vsync on, every graphics setting at its maximum (Msaa 8 or the device's best, Anisotropy 16, draw distances, shadows, water waves, self shadowing, the options' detail levels), sound and music on at the original defaults, and Rebirth's starter switches (EI_Starter: WideScreen on and the rest at Rebirth's own defaults) so the drop-in exe (S23) needs no registry. The game's own options screen still saves to the file. Keep the harness's pinned file (harness_settings.h Pin, written from the committed registry snapshot) unchanged so goldens stay the same; delete the import tests or turn them into default-file tests. Update docs/notes/standalone.md 'Settings file' and play.cmd's comment. Check: start with no file on vanilla and Rebirth data, the written file's values, the window borderless at native size."
+order = 781
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

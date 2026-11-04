@@ -1,0 +1,10 @@
+id = "C45c"
+title = "C45's enums to enum class"
+group = "cleanup"
+model = "sonnet"
+depends = ["C47"]
+note = "User 2026-10-28: prefer enum class. C45 added 13 plain enums (ClassId, ItemKind, QuickItemCategory, LootKind, LootRecordType, UnitOrderKind, UseSource, AIModeType, AIOptionKind, AIRemark, SpellObjectType, LandscapeFlag, SectorStage). Make each enum class; fields keep their sizes (explicit underlying type). Flag words (LandscapeFlag) get one small set of bit operators in a shared header, not per-enum casts. Where a value is stored in a byte/word the reader/writer converts once at the load/save edge. C45a/C45b and later enums are enum class from the start. Goldens unchanged."
+order = 687
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

@@ -1,0 +1,9 @@
+id = "C128"
+title = "World style 1: dead state, wrong comments, DiffSets names, CreateObject helpers"
+group = "cleanup"
+model = "sonnet"
+note = "Style review round 4 (2026-11-04, https://claude.ai/artifact/BzXaX58kMcB9E2dwRuhN2U, reviewer reports in build/style_review/round4/<area>.md; user: file them all). Items W2, W3 (world.md A2, A3, A4, A17). Delete DiffSets and name DiffObjectSets' outputs added/gone/same at the call sites (world_sync.cpp:49-53, 157-170; declare it in world.h, push_back instead of the objects.map.size()*7 cursor); CreateObject: one FileMapObject(MapObject*, updated, inSectorMap) for the three copies, AddTimedObject instead of the timed lambda, plain assignments instead of Copy()/memcpy, enum class SpecKind in map_spec.h, {0.8f,...} instead of kGrey bits. Dead: WorldClient appName/windowClass/windowTitle/pausedTitle, lightingMark, worldValue/SetWorldValue, WorldClientFlag Draw800/NoCamOption/MoviePathOption, virtual Unused39 and MoveObject2, kAllodMaps' fourth row, unusedCopy, the unused name, skyAmbient (a copy of frameAmbient). Comments: 'Returns 1' on void Create, the non-existent item parameter, world.h:509, orphans in world_glue, empty rulers, 'rule 9' misquoted, the A-W13 ruler, inlining narration, address comments. Style only: goldens the same, float operation order untouched (any float rewrite exact and said why), no new forwarders, normal C++ classes; gameplay code stays (technical dead code goes)."
+order = 1059
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

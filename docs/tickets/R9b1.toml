@@ -1,0 +1,9 @@
+id = "R9b1"
+title = "GetDxVersion probe failing in native runs with several games"
+group = "renderer"
+model = "sonnet"
+depends = ["R9b"]
+note = "GetDxVersion probe failure in native runs with several games fixed; skipping the probe in present mode hung sound init, see PF3 for the native-only skip."
+order = 5
+status = "done"
+done = "2026-10-14"

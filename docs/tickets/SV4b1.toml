@@ -1,0 +1,11 @@
+id = "SV4b1"
+title = "Function vectors: the script loader (CScript::Load*)"
+group = "verification"
+size = 0.5
+depends = ["SV4b"]
+files = ["src/game/script_parse.cpp", "tests/vectors/record_script.cpp", "tests/vectors/replay_script.cpp"]
+note = "Function vectors for the script lexer (ClassifyToken, Tokenize, ApplyDefines, FunctionSignature, KeywordName) and loader (CScript::Load*, ExpectLexeme); MFC CArray replay in replay_mfc.cpp."
+order = 187
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

@@ -1,0 +1,10 @@
+id = "C54d1"
+title = "C54d rest: the item and hero screens' leftovers"
+group = "cleanup"
+model = "sonnet"
+depends = ["C54d"]
+note = "Left by C54d. (1) MpHeroRecord::party (world.h) is lib::InPlace<CParty> with placement new / explicit destructor in ui_hero_screen_click.cpp: a plain CParty member (G11; Party() has ~180 callers, keep it or retype by script; the copy constructor's id draws stay in the same order). (2) TrimItemCache is a template declared in ui_item_info.h, defined in ui_item_screen.cpp and used by ui_item_view.cpp's CachedObject: it links only because CreateBase instantiates both kinds; define it in the header or instantiate explicitly. (3) kNewHeroPoints (ui_hero_screen.cpp) and kAttributePoints (ui_hero_screen_click.cpp) are the same 75.0f: one CMpHeroScreen constant. (4) DrawHeroFace calls skin_quaternion's MultiplyQuaternions(Quaternion* out, ...) through a local declaration (G12, with its owner). (5) CUiItemStrip's union of filter_ and figures_ (the figure strips' names): a CFigureStrip member. ItemModel / ItemFigureTexture's ++refCount_ and MoveItem's link_ store stay with C49a / C49c. Goldens unchanged (golden suite) + ei_ui_check."
+order = 740
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

@@ -1,0 +1,8 @@
+id = "S20c"
+title = "ui_mp_host (vanilla, Rebirth), net_second_master and Rebirth rebirth_flags: hooked runs part from the original, standalone matches"
+group = "verification"
+note = "ui_mp_host (vanilla, Rebirth), net_second_master and Rebirth rebirth_flags: standalone matches the original, so S21 restores their goldens (saves per SV7b2a rules)."
+order = 245
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

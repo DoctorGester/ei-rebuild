@@ -1,0 +1,11 @@
+id = "C54a"
+title = "C54 rest: the interface windows' virtuals (input handlers void, On* forwarders folded, Draw void)"
+group = "cleanup"
+model = "opus"
+depends = ["C54"]
+files = ["src/game/ui.h src/game/ui_*.h src/game/ui_*.cpp"]
+note = "C54 follow-up, whole interface tree, one scripted pass with the compiler as checker; run while no other worker is in ui_* (every file changes). (1) UiInputSide's LeftDown/LeftUp/MouseMove/RightDown/RightUp/LeftDouble/RightDouble/KeyDown/Char/KeyUp/Wheel and Event return int that no caller reads (ui_container.cpp, ui_interface_input.cpp, ui_interface.cpp; check Wheel's 'returns 1' in CUiContainer::Wheel) -> void. (2) Then fold the ~120 'int X(...) override { return OnY(...), 0; }' forwarders in ui_*.h (ui_screens.h 21, ui_camp.h, ui_briefing.h, ui_view_screen.h, ui_camera_keys.h, ...) into the override: the On* definition renamed, the forwarder line deleted; an On* that only calls the base (CCampPages::OnKeyUp was one) goes with its override. (3) CUiWindow::Draw's BOOL (about 40 overrides, nobody reads it) -> void, with the '{ return DrawX(pass); }' forwarders (CTradeGrid::DrawGrid, CConstructorPage::DrawItemMaker, CSpellMakerPage::DrawSpellMaker, ...) folded the same way. (4) int flag parameters of the window base: CUiWindow::SetEnabled(int enabled, int notify), the region tip's SetTip(int, int, int), PlaySound(name, int): bool, or dropped where every caller passes the same constant. Goldens unchanged (golden suite + ei_ui_check)."
+order = 725
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

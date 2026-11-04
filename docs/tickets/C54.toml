@@ -1,0 +1,10 @@
+id = "C54"
+title = "Tier 2 style in the interface files"
+group = "cleanup"
+model = "opus"
+depends = ["P8"]
+note = "Style review Tier 2 (G9-G15) for src/game/ui_*.* and src/render/render_ui*, left out of C49-C53 for the native UI track. Whatever the P tickets did not already rewrite."
+order = 695
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

@@ -1,0 +1,8 @@
+id = "C35f"
+title = "C35 import thunks: libcrt::imports:: (WSOCK32 by ordinal, DirectInputCreateEx) to gameapi:: by name"
+group = "cleanup"
+note = "Survey 2026-10-28: libcrt::imports:: about 40 calls (Select 6, CloseSocket 6, IoctlSocket 4, Htons 3, WsaStartup 2, WsaCleanup 2, Socket 2, Ntohs 2, GetHostName 2, GetHostByName 2, Bind 2, SetSockOpt, SendTo, Send, RecvFrom, Recv, InetAddr, GetHostByAddr, Connect, DirectInputCreateEx). Each is a one-line forward to the same gameapi:: slot call: call gameapi:: directly, delete the 40 lines of crt.cpp and the 26 of crt.h."
+order = 493
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

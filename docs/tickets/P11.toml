@@ -1,0 +1,9 @@
+id = "P11"
+title = "Console readable at any resolution (scale with the window and the display scale)"
+group = "port"
+model = "sonnet"
+note = "User 2026-11-04: on a Mac (Retina) the console is barely readable. The console (console.cpp / its window: font, line height, padding, the input line) is drawn at a fixed pixel size. Scale it by the window like the rest of the interface (P8c titles scale by window; PL20: calibrated to 4K at 200%): pick its font size and metrics from the window's size and the display scale, so it reads the same at 1080p, 4K and on a Retina Mac. Check: captures of the console at 1280x720, 3840x2160 and a 2x scale; the text height in pixels proportional to the window height within a step of the font sizes."
+order = 1133
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

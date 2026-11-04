@@ -1,0 +1,10 @@
+id = "SV7c"
+title = "Goldens hold under heap jitter on both installs (SV7 step c)"
+group = "verification"
+size = 1
+model = "opus"
+note = "Goldens hold under heap jitter on both installs (EI_HEAP_JITTER 1, 2, 3 and 2,fill / 3,fill; EI_HEAP_FILL)."
+order = 239
+status = "done"
+started = "2026-10-15"
+done = "2026-10-16"

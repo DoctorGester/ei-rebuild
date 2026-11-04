@@ -1,0 +1,9 @@
+id = "C29b"
+title = "Unread registrations after C28 and standalone_gaps' three open references"
+group = "cleanup"
+depends = ["C28"]
+note = "From C29a: registration_readers --unread lists 9 non-short registrations nothing reads since C28's vtable conversions (mfc_exception.cpp 6, mfc_state.cpp 2, manager_context.cpp MakeCopyOf): drop them with --drop once C28 is done there. standalone_gaps lists 3 open data references on main: 004E0000 (CTextManager::IsPastEnd) and 00610020 (CCampScreen::BestPartySkill) spelled by .rsrc dialog text 007D48D4 / 007D4038..., and 006F47FB (lib) at 007978A8 (C26's locale tables?): list them in config/standalone_unreachable.csv with the reason, or show they are reachable."
+order = 441
+status = "done"
+started = "2026-10-27"
+done = "2026-10-27"

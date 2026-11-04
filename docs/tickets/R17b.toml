@@ -1,0 +1,10 @@
+id = "R17b"
+title = "Ambient occlusion: baked terrain AO plus screen-space AO for objects and units"
+group = "renderer"
+model = "opus"
+depends = ["R16i"]
+note = "Two parts: (1) static AO per terrain page from the height field (computed once when a page goes resident, R16c), cheap and stable; (2) screen-space AO (GTAO or HBAO-style) from the depth buffer for meshes, figures and their contact with the ground, at reduced resolution with a bilateral blur. Applied to ambient light only (needs R16i's split of ambient and direct light). Option with quality levels."
+order = 59
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

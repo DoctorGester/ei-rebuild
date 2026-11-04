@@ -1,0 +1,9 @@
+id = "R17c5"
+title = "Ground and objects under roofs stay dry"
+group = "renderer"
+depends = ["R17c3"]
+note = "R17c3 gave each unit its own wetness from a roof test (CPU rays up against the drawn objects' triangles). The ground (wetness, puddles, rain rings, snow) and the world's other meshes under a roof (the floor of bz1g's gateway, a cart under a shed) still take the world's weather. Per pixel this needs a small top-down depth map of the casters around the view (the receivers compare their height with it), unlike the units' per-object rays."
+order = 961
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

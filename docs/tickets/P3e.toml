@@ -1,0 +1,9 @@
+id = "P3e"
+title = "uifault's comment in harness_ui.h"
+group = "native-ui"
+depends = ["P3d"]
+note = "P3d made uifault fall back to a native canvas (tests/verify/image/harness_ui_image.cpp) when none is mirrored; tests/verify/harness_ui.h's line still says 'one mirrored canvas'. Fix it with the next harness change (editing it alone re-keys the reference cache and needs the --no-hooks suite). Moot (P8): harness_ui.h and uifault were deleted with the comparison harness."
+order = 135
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

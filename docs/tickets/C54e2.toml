@@ -1,0 +1,8 @@
+id = "C54e2"
+title = "C54e rest 2: remaining HUD design calls"
+group = "cleanup"
+note = "From C54e1: the selected-members loops now share CBattleScreen::SelectedIndexes (a snapshot taken before the sends; goldens unchanged). Not done: ui_camp.cpp and ui_global_map.cpp still define their own D() (C54b1/C54c1 and C45d6a branches touch them): switch them to ui_float.h after those merge. ui_hud_frame.cpp's Bits(float) (float to bits) and ui_scrollbar.cpp / unit_client_blink.cpp's Truncate(double) differ from the shared helpers and stay."
+order = 748
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

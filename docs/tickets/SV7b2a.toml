@@ -1,0 +1,9 @@
+id = "SV7b2a"
+title = "Save-only stack leftovers and chunk archive keys"
+group = "verification"
+depends = ["SV7b2"]
+note = "Save-only stack leftovers (queue stepN padding, arrow hit.pad, script area part pad, sound nameTail, item stock stackTail) and scenario.sav chunk archive keys numbered by first save."
+order = 236
+status = "done"
+started = "2026-10-15"
+done = "2026-10-16"

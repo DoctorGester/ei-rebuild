@@ -1,0 +1,9 @@
+id = "C49c"
+title = "Ref for the last raw counted slots the interface reads"
+group = "cleanup"
+depends = ["P8"]
+note = "C49b follow-up. CItem::link_ to Ref<CRefObject> (ui_camp_deals.cpp reinterpret_casts it, ui_item_view.cpp stores it with AssignCounted: then delete AssignCounted from core_refcount.h and CItem::SetLink), CObject3D::parts to std::vector<HeldRef<CFigureMesh>> (ui_model.cpp reads it with auto*; CopyFigure copies it uncounted, keep that with Take or a named copy). With or after C49a (CItem::spell_). Goldens unchanged."
+order = 701
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

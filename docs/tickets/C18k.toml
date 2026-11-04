@@ -1,0 +1,10 @@
+id = "C18k"
+title = "Named data: static-init objects with exit functions (the destructor rule)"
+group = "cleanup"
+model = "opus"
+depends = ["C18j"]
+note = "Done (docs/notes/standalone.md, 'Objects with exit functions'): constinit definitions with no C++ destructor; the exit function ported on the name and registered at its address (the initialiser's AtExit keeps its list place); a constructor with a run-time result through lib::StaticObject<T> and a hand-ported initialiser registered at its address. Named: device_buffers 007AEDE0-007AEE30, link_mesh_draw 007AEED0, renderer_lines 007A9CE0 / 007A9CB8, quest files / folders 007AFDD0 / 007AFDC0, zone table 007AFDE0, item_stock scratch vectors 007C8640-007C8680, app's command-line CStrings and mouse 0079BA08-0079BA1C, folder strings 007AF450-007AF460 (+ guard 007AF438), script quest name 007AA61C. Unread arrays with a free exit (007A9CA8, 007AEDF0) left out with their atexit. Game data addresses 2021 -> 1947. Waits for C19: 007A9C50, CArrays 007A9CC8 / 007AA608, CMemoryStream 007AFDF8, the log ostream 007C5810 (so 007AF3E8 / 007C53C4 / 007C54E8). Follow-ups C18k1-C18k4."
+order = 382
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

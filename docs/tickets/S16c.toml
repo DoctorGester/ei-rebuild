@@ -1,0 +1,9 @@
+id = "S16c"
+title = "Standalone: console disconnect (005DFC10 -> 00581620 -> 00566E00) and reporting INT3 hits before the missing-code handler"
+group = "standalone"
+depends = ["S16b"]
+note = "Standalone: console disconnect path (005DFC10 -> 00581620 -> 00566E00) and the INT3-before-handler case (handler installed first or reported from ei_launch); docs/notes/standalone.md."
+order = 587
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

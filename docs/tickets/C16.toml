@@ -1,0 +1,11 @@
+id = "C16"
+title = "Experiment: an SSE2 build of the image and what it changes against the goldens"
+group = "cleanup"
+size = 1
+model = "opus"
+files = ["CMakeLists.txt src/lib/x87* docs/cleanup-plan.md"]
+note = "User 2026-10-21 asked about removing x87 completely; cleanup-plan Phase 4 plans an SSE2 build. Today: /arch:IA32 /fp:precise; x87:: helpers at ~770 sites (fistp 197, fsqrt 150, IsNaN 106, FromUnsigned 85, fcos 81, fsin 78, CopyFloat 36, fpatan 27, LoadStoreBits 21, flog 15, CompareStatus 10, fexp 7); the game runs the x87 at 24-bit precision in play. Experiment in a worktree, nothing merged unless it is free: build the image with /arch:SSE2 (helpers kept as they are, then a second build with the helpers written as plain C++ / SSE: lrintf for fistp, sqrtf, std::sin etc.), run the image suite, and report per golden: same / differs, the first differing frame and field, and which helper or plain-float expression caused it (bisect by turning helpers back one family at a time). Expected: float arithmetic at 24-bit precision matches SSE single except exponent range; doubles computed under PC24, the transcendental instructions (fsin, fcos, fpatan, flog, fexp) and fistp's rounding mode are where results can part. Output: a table of families that are free to convert (goldens the same), families that change results and how much, and a recommendation for keeping an oracle (bit-exact x87-emulating helpers vs re-recorded goldens with behaviour-level checks). Frame-time difference too (main-thread CPU in render_stats)."
+order = 357
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

@@ -1,0 +1,7 @@
+id = "R9a"
+title = "Device setup without DirectDraw and Present on a flip-model swap chain"
+group = "renderer"
+note = "Device setup without DirectDraw and Present on a flip-model swap chain; the five present scenarios pass on vanilla and --native."
+order = 2
+status = "done"
+done = "2026-10-14"

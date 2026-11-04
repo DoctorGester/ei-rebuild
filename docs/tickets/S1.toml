@@ -1,0 +1,10 @@
+id = "S1"
+title = "Standalone host exe and address image (skeleton)"
+group = "standalone"
+size = 1
+model = "opus"
+files = ["CMakeLists.txt", "build.cmd", "src/standalone/host.cpp", "src/standalone/image.cpp", "src/hook/hook.cpp", "src/hook/dllmain.cpp"]
+note = "Standalone host exe and address image: image builds (6,416 jumps, 0 wrong), WinMain starts; first boot work continues in S16."
+order = 527
+status = "done"
+done = "2026-10-15"

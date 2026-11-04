@@ -1,0 +1,10 @@
+id = "R30c"
+title = "The renderer always presents itself: no PresentsItself flag; Fill as a solid draw"
+group = "renderer"
+size = 0.25
+depends = ["R30a"]
+note = "R30 survey: build/style_review/renderer_trim.md, R30c: g_presentsItself / render::PresentsItself is false only before the device object's StartPresenting, when nothing draws; its other branches (CursorBlit's cursor as a blit command, EndFrame's else, DrawPendingAlone / RunCanvasesNow / GpuWorkAlone) are unreachable. Drop it and the harness's image::PresentsItself (harness change: --no-hooks suite). render::Fill (only the movie player's black clear) goes through a 1x1 image in the small-image cache: a solid rectangle command instead. Check: render_movie_present, render_titles_present, render_present*, render_cursor_present, goldens; first confirm no entry point runs before the device object."
+order = 95
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

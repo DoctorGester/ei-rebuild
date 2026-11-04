@@ -1,0 +1,10 @@
+id = "N0c"
+title = "ui_mp_host under Rebirth: disconnect box after the chat line"
+group = "native-ui"
+size = 0.5
+files = ["tests/scenarios/ui_mp_host.txt"]
+note = "ui_mp_host under Rebirth: the occasional 'disconnect' message box (disconnect_msg) after the chat line was investigated; vanilla never shows it and the scenario still passes."
+order = 130
+status = "done"
+started = "2026-10-14"
+done = "2026-10-15"

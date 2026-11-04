@@ -1,0 +1,10 @@
+id = "C45d6"
+title = "Magic numbers: engine object flag words"
+group = "cleanup"
+model = "opus"
+depends = ["C45d"]
+note = "Flag words of engine objects other than map objects: CFigureMesh flags_ (0x10, 0x20 loaded, 0x40 drawn, 0x80, 0x100 flat), CMaterial 0x10, CLight (0x40 specular, 0x80, 0x100, 0x200, 0x400), CParticleSource (0x1, 0x2, 0x10, 0x20, 0x40), CTexture (0x40..0x2000, 0x4000..0x20000), the client world's flags_ (0x10..0x2000; zone bits 0x10 / 0x20 / 0x40), the objects' highlight bits 0x10 / 0x100 / 0x400. figure_mesh.cpp, figure_part_draw*.cpp, world_client*.cpp, terrain_lighting.cpp, map_object_lifetime.cpp, map_object_shadow.cpp, particle_*.cpp, texture_*.cpp, app_main.cpp, camera_object.cpp (~43 plus the writes). See build/style_review/magic_numbers.md (the C45d survey; its class list has every site). Kinds as enum class in the owning header, flag words with lib::kBitFlags (src/lib/bit_flags.h); the |= / &= ~ writes of the same words go too. No signature changes (C51 owns them): an int parameter is cast once at its switch. Names from the data / strings; meanings they don't give are recorded in the header comment, not guessed. Goldens unchanged."
+order = 713
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

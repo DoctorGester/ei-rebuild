@@ -1,0 +1,9 @@
+id = "T2a"
+title = "ui_base_dialogue: Smith has no topics, dialogue never starts"
+group = "harness"
+size = 1
+note = "ui_base_dialogue: a person and quest state with topics are picked so the dialogue screens are reached (OpenTopics adds regions only if topics exist)."
+order = 298
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

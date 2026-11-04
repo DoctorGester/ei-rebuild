@@ -1,0 +1,8 @@
+id = "C35i"
+title = "C35 str.cpp's host multibyte calls (_mbschr, _mbsstr, _mbsrchr, _mbspbrk, _ismbcspace) to std / text_case.h"
+group = "cleanup"
+note = "C35b left them: under the standalone's _MB_CP_SBCS they are strchr / strstr / strrchr / strpbrk and an ASCII isspace. Check the sign-extended char Contains passes (_mbschr of a value above 0xFF) and _ismbcspace of a negative char before replacing; ei_vectors links str.cpp."
+order = 499
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

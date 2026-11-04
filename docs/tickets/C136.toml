@@ -1,0 +1,9 @@
+id = "C136"
+title = "Combat style 1: call the members that exist"
+group = "cleanup"
+model = "sonnet"
+note = "Style review round 4 (2026-11-04, https://claude.ai/artifact/BzXaX58kMcB9E2dwRuhN2U, reviewer reports in build/style_review/round4/<area>.md; user: file them all). Item K1 (combat.md A1, A2, A4, A5). UnitAction::Reset/Retarget, Idle(), PlaySteps, StandStill, the idle-key cache, ClearStanding, DropEffectObject called instead of their copies (~40); one EndCurrentOrder(); delete ClearAction, EmptyAction, ResetOrder, ReleaseTarget, SetTarget, CanStillDo, SetModeInline and TakeQueuedOrder's body; one TooHighToReach with kMeleeReachHeight = 1.5f (exact: same comparison); SpellCarrier/SpellOfSource only (8 copies, one name for category 8). Check each copy's order of side effects against the member before swapping. No floats involved. Style only: goldens the same, float operation order untouched (any float rewrite exact and said why), no new forwarders, normal C++ classes; gameplay code stays (technical dead code goes)."
+order = 1067
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

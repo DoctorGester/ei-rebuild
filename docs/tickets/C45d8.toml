@@ -1,0 +1,10 @@
+id = "C45d8"
+title = "Magic numbers: the other kinds and none values"
+group = "cleanup"
+model = "opus"
+depends = ["C45d"]
+note = "The figure manager's object types (figure_manager.cpp, like SpellObjectType), the texture manager's types (texture_manager_lifetime.cpp), the texture kinds of the first part set (object3d_client_parts.cpp), clip outcodes (clip.cpp, model.cpp), the game's wheel message 0xCC54 (app.cpp), and the none values (0xFFFFFFFF ids, 0xFFFF materials and tiles, 0x7FFFFFFF skills) as named constants (~34). See build/style_review/magic_numbers.md (the C45d survey; its class list has every site). Kinds as enum class in the owning header, flag words with lib::kBitFlags (src/lib/bit_flags.h); the |= / &= ~ writes of the same words go too. No signature changes (C51 owns them): an int parameter is cast once at its switch. Names from the data / strings; meanings they don't give are recorded in the header comment, not guessed. Goldens unchanged."
+order = 715
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

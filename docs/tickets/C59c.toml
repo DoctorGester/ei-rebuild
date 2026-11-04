@@ -1,0 +1,9 @@
+id = "C59c"
+title = "Feature grouping, third pass: ui_mesh_*, ui_surface_*, unit_params_* and other thin files"
+group = "cleanup"
+model = "sonnet"
+note = "Left by C59b (src/game 737 -> 711 files): still thin by the original's address order: ui_mesh_*, ui_surface_*, unit_params_* and others. Moves only, no signature changes; run alone between other workers. C59b's scripts (mv.py etc.) are in the scratchpad C59b folder."
+order = 974
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

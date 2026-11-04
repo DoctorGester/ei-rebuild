@@ -1,0 +1,10 @@
+id = "P8e"
+title = "The flying hit numbers and their labels scale with the window like the interface"
+group = "native-ui"
+model = "sonnet"
+files = ["src/game/ui_flying_hit_points.cpp"]
+note = "User 2026-11-03: the damage / backstab popups look smaller than in the original on their screen. Cause: FlyingHitPoints::Draw sizes everything in render-target pixels: 8x12 digits, 64x10 label rows (backstab, head, electrical), the 32x10 marker 20 px above the unit, a 120 px drift and 100 px rise. The original ran at 800x600 to 1024x768, so at 4K the same pixels are a third to a quarter of the size on screen, while the interface around them scales from 800x600. Scale every size, offset and the drift by the interface's factor (height43 / 600, the same one the layout helpers use, so widescreen keeps 4:3 proportions), keeping the box's on-screen rules (inside the render target). The texture is 8x12 per digit: check how it looks scaled 3-4x with the current filtering and say whether it needs a larger texture or a native-font path later (P8). Check: captures at 800x600 (unchanged) and at 4K (the same proportion of the screen); goldens hold no frames, so none should move."
+order = 773
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

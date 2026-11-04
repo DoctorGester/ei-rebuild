@@ -1,0 +1,8 @@
+id = "C35e"
+title = "C35 exit and atexit: libcrt::AtExit / Exit / OnExit to std::atexit / std::exit or static destructors"
+group = "cleanup"
+note = "Survey 2026-10-28: libcrt::AtExit 101 calls in 60 files (static initialisers registering their exit functions; one in gen_static_init.py's output, src/game/static_lists.cpp), Exit 8 (fatal errors, renderer creation, standalone_main), OnExit, ExitFunction; SetNewHandler 2 and g_heapNewHandler (007CAAD8; nothing calls the handler it sets). AtExit is already _crt_atexit, so a scripted rename to std::atexit is behaviour-exact; objects that can become plain statics with destructors are the better end (the exit order is last-registered first either way)."
+order = 492
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

@@ -1,0 +1,7 @@
+id = "X30"
+title = "sandbox_actions / combat / world vanilla time out once in a while"
+group = "harness"
+note = "Closed 2026-10-28: no vanilla time-outs in the main suites of 2026-10-27/28 (about 15 runs)."
+order = 278
+status = "done"
+done = "2026-10-28"

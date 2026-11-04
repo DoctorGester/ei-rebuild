@@ -1,0 +1,10 @@
+id = "H30d"
+title = "Vector recorders: read game.exe through views, not our classes"
+group = "cleanup"
+size = 1
+model = "opus"
+files = ["tests/vectors/record_*.cpp"]
+note = "Dropped 2026-11-03: the vector recorders were deleted in H40; vectors are only replayed. From H30b. tests/vectors/record_*.cpp record our functions' inputs from game.exe's EI_VECTORS=1 runs by reading game.exe's objects as our classes (OriginalGameData<CWorldServer>, <IsaacRandom>, members at our offsets). Once a cleanup moves members (C14a and later), recording vectors again reads wrong fields. Only matters when vectors are recorded again; run_all keys them only in EI_VECTORS=1 runs (HARNESS_VECTORS). Read game.exe through tests/verify/exe_objects.h and build our inputs from the views. Re-review 2026-10-28: still valid: 27 OriginalGameData<our class> reads in record_coder / record_crt_format / record_path / record_script / record_stats, and C37-C40 moved and renamed more members. Only matters if vectors are recorded again; keep parked, do it first if anyone re-records. H40: the recorders were deleted (the tag original-oracle has them); this applies only to recording in such a checkout."
+order = 453
+status = "done"
+done = "2026-11-03"

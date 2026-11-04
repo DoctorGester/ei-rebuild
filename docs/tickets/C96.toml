@@ -1,0 +1,8 @@
+id = "C96"
+title = "UI style 4: named regions and sprites instead of creation indices"
+group = "cleanup"
+model = "opus"
+depends = ["C95"]
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Item U7. Keep AddRegion/AddSprite's returned pointers in named members (UiRegion* slingButton; UiMesh* viewButtons[2]) or a per-window enum where a list must stay indexed; switch (region) on raw numbers becomes comparisons with names. Per window: HUD panels first, then options, hero screen click, camp create, save/load, the rest. The ui.h comments listing what region 0, 1, ... are go. May split into C96a/b by window family. Style only: goldens the same, float operation order untouched, no new forwarders."
+order = 1026
+status = "queued"

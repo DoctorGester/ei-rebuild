@@ -1,0 +1,11 @@
+id = "WB7"
+title = "Scheduler: a batch whose arguments it cannot parse fails visibly instead of waiting"
+group = "harness"
+size = 0.15
+model = "sonnet"
+files = ["tools/work_sched.py"]
+note = "A scheduler batch whose arguments it cannot parse finishes as failed with the parse error in its summary instead of waiting forever."
+order = 295
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

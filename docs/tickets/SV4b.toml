@@ -1,0 +1,9 @@
+id = "SV4b"
+title = "Function vectors: parsers and the LZ coder"
+group = "verification"
+depends = ["SV4"]
+note = "Function vectors for the script parser (script_parse*.cpp) and the LZ coder, with variable-size payloads."
+order = 171
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

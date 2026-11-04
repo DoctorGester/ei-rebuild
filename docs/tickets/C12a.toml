@@ -1,0 +1,12 @@
+id = "C12a"
+title = "Long x87 transcriptions into plain C++ (C12 follow-up)"
+group = "cleanup"
+size = 1
+model = "opus"
+depends = ["C12"]
+files = ["src/game/figure_part_draw.cpp", "src/game/renderer_strip.cpp"]
+note = "The four __asm transcriptions C12 left: InvertModelMatrix and CrownBlend (figure_part_draw.cpp), EmitFirstSection and EmitSection (renderer_strip.cpp). Follow the C12 rules in docs/notes/cleanup-tooling.md (double = unrounded register, x87:: helpers inside the expression, NaN-aware comparisons for FCOM tests); compare the object code of each function, then the golden suite (--golden --jobs 4) and ei_vectors."
+order = 343
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

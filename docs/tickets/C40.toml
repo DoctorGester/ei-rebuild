@@ -1,0 +1,10 @@
+id = "C40"
+title = "The last offset-named fields: flagN bits named from their uses, unread format fields as named skips, spares deleted"
+group = "cleanup"
+model = "opus"
+files = ["src/game"]
+note = "User 2026-10-28 asked why unnamed fields remain. Count 2026-10-28: ~186 mentions in 65 files of offset names (flagN, fieldNN, spareNN, unknownNN; moveMode2.flag4 alone is heavily used in combat_motion / combat_tick / combat_sight / class_templates). (1) Bit flags (9 distinct flagN names): read every setter and reader, name each by the rule it encodes (flag18 = the order's point was picked by a path search, flag4 = ... ), then drop C38's naming-only getters that exist because of them (NoBackstab, Busy, ChangedParts and similar). (2) Unread fields of fixed formats (item_db.h's archive fields field16..field1B filled from the .res records): one named skip per record (e.g. `std::uint8_t unreadArchiveFields[N]` with the format's field ids in the comment) or the format's name when docs/notes know it; the loader's byte counts must not change. (3) Spares nothing reads (figure_mesh.h spareDC_ and any left): delete with their copies / clears, watching literal-size memcpy / memset. Also unknownNN names in comments. Spelling and field removal only; saves, packets and goldens unchanged."
+order = 669
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

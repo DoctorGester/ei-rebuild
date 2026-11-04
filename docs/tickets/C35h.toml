@@ -1,0 +1,7 @@
+id = "C35h"
+title = "C35 sort and maths: record why Qsort, rand, the x87 functions and Ftol stay; std::sort where the keys are unique"
+group = "cleanup"
+note = "Survey 2026-10-28: libcrt::Qsort 7 (VC6's quicksort: equal elements in the game's order; the host's qsort changed 105 image goldens), Rand / Srand / RandState (VC6's LCG per thread, the harness's random trace), Hypot 9, CiPow 7, CiAcos 3, CiAsin 2, gamecrt::acos 10, Controlfp 3, Ftol 146 (crt_x87.cpp, 295 lines: x87 results under the game's control word, check_x87). Kept on the goldens' evidence; the ticket: per Qsort caller, std::sort where no two keys compare equal (the order is then the same), and write each kept piece's reason in docs/notes/standalone.md."
+order = 495
+status = "done"
+done = "2026-10-28"

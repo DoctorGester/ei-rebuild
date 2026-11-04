@@ -1,0 +1,7 @@
+id = "C135a"
+title = "Counted halves and virtual bodies left outside the objects area"
+group = "cleanup"
+model = "sonnet"
+depends = ["C135"]
+note = "Left by C135 (same pattern, other areas). Unit::controller (unit_update.cpp AttachObject: hand AddRef/Release) and TorchObject::spec (torch_object.cpp AttachTorchObject, TorchObject::Create) as Ref<T> with one setter each; TorchObject's Load/Save/Destroy/AttachObject bodies under their own names (LoadTorch, SaveTorch, DestroyTorch, AttachTorchObject: the body in the virtual, MapObject:: qualified). FigureAnimationState::bones (LinkBone AddRef, ReleaseBones) as std::vector<HeldRef<FigureBone>> where the release order stays; Object3DClientSpecific::partSets as std::unique_ptr<TextureParts>[2]. Style only: goldens the same."
+order = 1079

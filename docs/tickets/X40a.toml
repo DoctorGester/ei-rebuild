@@ -1,0 +1,8 @@
+id = "X40a"
+title = "Crash stacks name the functions (ei_hook+offset through ei_hook.map, game.exe through the function list)"
+group = "harness"
+note = "Crash stacks name functions: ei_hook+offset through build/<cfg>/ei_hook.map and game.exe addresses through the function list, in run_all's failure summary."
+order = 309
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

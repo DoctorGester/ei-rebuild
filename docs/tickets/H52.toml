@@ -1,0 +1,8 @@
+id = "H52"
+title = "Fresh worktree builds: a compiler cache for the first verify and release build"
+group = "harness"
+note = "From the Waits tab (2026-11-04, last 7 days, 310 workers): a worker's first verify build takes a median 68 s and first release 98 s, 745 of 1752 build minutes; later incremental verify calls take 38 s. Every worktree compiles everything from scratch. Try sccache (or an equivalent) for MSVC: /Z7 instead of /Zi where the cache needs it, the cache dir on E: (build/, never C:), keyed so verify / release / asan stay apart. Measure a fresh worktree's first verify + release with a warm cache against now, check the binaries behave the same (image + Rebirth goldens), and that incremental builds don't get slower. Adopt only if the first builds drop by half or more; say what /Z7 does to PDB size and debugging."
+order = 819
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

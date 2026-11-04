@@ -1,0 +1,10 @@
+id = "S8"
+title = "Standalone library: MFC files, archives, GDI and exceptions"
+group = "standalone"
+size = 1
+files = ["src/lib/mfc.h", "src/lib/mfc.cpp", "src/lib/mfc_try.h"]
+note = "Standalone library MFC CFile, CFileFind, CArchive, CTime, CDC / CPen / CFont / CGdiObject, AfxMessageBox, exceptions and _CxxThrowException (the standalone build throws its own) in src/lib."
+order = 535
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

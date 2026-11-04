@@ -1,0 +1,11 @@
+id = "SV1c"
+title = "Keep harness games from taking the foreground, then drop the minimise rerun"
+group = "harness"
+size = 0.4
+model = "sonnet"
+files = ["tests/verify/harness.cpp", "tools/run_all.py"]
+note = "Harness games never take the foreground (activation blocked), so the minimise rerun in run_all.run is gone."
+order = 292
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

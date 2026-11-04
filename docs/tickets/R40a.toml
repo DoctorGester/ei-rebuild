@@ -1,0 +1,10 @@
+id = "R40a"
+title = "R40 follow-ups: FPSIndependentCursor removed, cursor gamma check"
+group = "renderer"
+model = "sonnet"
+depends = ["R40"]
+note = "User 2026-11-01: the SDL cursor works on macOS; macos-port (4196d48ad, the user's merge of main) already removes FPSIndependentCursor and fixes the camera rotation; take both into main from there (cherry-pick the parts, not the Metal/Apple files). After R40 the FPSIndependentCursor setting is read and saved but does nothing: remove it from the settings catalogue, the options screen and the ini. Add a scenario check that the gamma ramp reaches the cursor shapes. The real-game right-button camera turn under the SDL hold is for the user to try (play.cmd)."
+order = 919
+status = "done"
+started = "2026-11-01"
+done = "2026-11-01"

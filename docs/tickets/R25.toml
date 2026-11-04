@@ -1,0 +1,11 @@
+id = "R25"
+title = "Shadow map: shimmering inside shadows at some camera distances"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R22"]
+note = "User 2026-10-22: the save holds the exact camera distance; no zoom needed. Zooming in removes it, zooming back out brings it back. Reproduce with a still camera over consecutive frames and diff them inside the triangle. Done: cause = receivers read the depth-range image per 16-texel cell (radius bound, early ends, search stepped at cell edges: squares and straight cuts in penumbras), and the sun turns the map's texels every frame so the squares crawled. Fix: range sampled bilinearly between 4 cells, dilation +1 cell, search reads filtered, searched radius blended in from half a cell. Harness shadowview/shadowshift; scenario render_shadows_shimmer (save tests/saves/shadow_corrupt). Before/after: build/R25/compare_*.png. Open: the turned taps' grain still changes as the sun turns (small)."
+order = 70
+status = "done"
+started = "2026-10-22"
+done = "2026-10-22"

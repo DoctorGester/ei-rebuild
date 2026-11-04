@@ -1,0 +1,10 @@
+id = "C135"
+title = "Objects style 3: Ref<T> halves, virtual bodies in the virtuals, text as string_view"
+group = "cleanup"
+model = "opus"
+depends = ["C134"]
+note = "Style review round 4 (2026-11-04, https://claude.ai/artifact/BzXaX58kMcB9E2dwRuhN2U, reviewer reports in build/style_review/round4/<area>.md; user: file them all). Items O4, O8 (objects.md A5, A6, P1, P2). Object3D::attached/animation, MapObject::companion, FigureMesh::drawer, FigureBone mesh/animator, the client half's textures/materials and the link cache as Ref<T>; one SetHalf per owner; delete SetSpecific or AttachSpecific. Virtual bodies under their own names (Create3D/Destroy3D, CreateMapObject, LoadMapObject/SaveMapObject, Flag20000, ResetScale, PackVitals, IsInvisible, ...; about 22): derived classes call Base:: qualified. Text inputs as std::string_view (65 const std::string* in the area, 16 scope-block copies; maps with heterogeneous lookup). Style only: goldens the same, float operation order untouched (any float rewrite exact and said why), no new forwarders, normal C++ classes; gameplay code stays (technical dead code goes)."
+order = 1066
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

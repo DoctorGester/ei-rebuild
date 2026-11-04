@@ -1,0 +1,8 @@
+id = "R33"
+title = "Render quality in ei_settings.ini: MSAA samples, anisotropy, smooth camera as separate settings"
+group = "renderer"
+note = "User 2026-10-29: the 'smooth' EI_RENDER word (render.cpp ParseSpec: g_smooth turns on both the device's MSAA count and anisotropic sampling of world models at kAnisotropy) should be settings from a file, each separately and with levels. Add a [Render] section to ei_settings.ini (settings_file.h; written with defaults when missing): Msaa = 1/2/4/8 (clamped to what the device supports), Anisotropy = 1..16 (1 off), SmoothCamera = 0/1. EI_RENDER keeps only the harness words (removable, checkall); smooth / smoothcamera go. Harness runs pin their own settings file, so goldens and frame captures keep today's defaults (MSAA 1, anisotropy off) unless a scenario sets them. Check: render_smooth scenarios at a few levels, renderstats sample counts, goldens unchanged, play.cmd reads the file."
+order = 103
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

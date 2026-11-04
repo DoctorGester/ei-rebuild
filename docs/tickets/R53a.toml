@@ -1,0 +1,9 @@
+id = "R53a"
+title = "Weather on the figures in the interface previews"
+group = "renderer"
+model = "sonnet"
+note = "User 2026-11-04: the units' rain/snow look (R17c2, mesh.hlsl weathered_unit) does not show on the figure in the HUD unit panel. Interface figure draws (NoEdgeFade: HUD panel, camp and hero-screen previews, UiModel) get no MeshFsParams::weather. Give the HUD unit panel's draw of a world unit the same weather as the unit in the world (it is the same unit, out in the rain); the camp and hero-screen previews stay dry (indoors / not in the world). After R17c3 (per-unit wetness) take that unit's own value. Check: a capture of the panel in rain."
+order = 959
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

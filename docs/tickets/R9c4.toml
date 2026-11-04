@@ -1,0 +1,10 @@
+id = "R9c4"
+title = "Resolution change and real display mode change in present mode"
+group = "renderer"
+model = "opus"
+depends = ["R9c"]
+note = "R9c covers a window resized from outside (the window covers the monitor again, the swap chain resizes). The game's own device re-creation on a resolution change in the options, and a desktop mode change while running, are not exercised by any scenario (renderer.md section 9, R9c)."
+order = 11
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

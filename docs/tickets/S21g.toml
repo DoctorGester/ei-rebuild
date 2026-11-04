@@ -1,0 +1,9 @@
+id = "S21g"
+title = "harness_heap.cpp: order observer and heap::Aside out"
+group = "standalone"
+depends = ["S21c1"]
+note = "From S21d/S21e: harness_heap.cpp's SetOrderObserver and heap::Aside served harness_heap_order.cpp (deleted in S21d) and are unused; take them out once S21c1 (which works in harness_heap.cpp) has merged."
+order = 605
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

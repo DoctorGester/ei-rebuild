@@ -1,0 +1,12 @@
+id = "PF1a"
+title = "Case-fold table for the other game _strnicmp callers"
+group = "port"
+size = 0.3
+model = "sonnet"
+depends = ["PF1"]
+files = ["src/game/resource.cpp", "src/game/object3d_figure_setup.cpp", "src/game/net_server_players.cpp"]
+note = "Other game _strnicmp callers (CMappedResource::FindEntry, object3d_figure_setup.cpp, net_server_players.cpp) use SameIgnoringCase / CaseFoldTable from lib/crt where hot."
+order = 649
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"
