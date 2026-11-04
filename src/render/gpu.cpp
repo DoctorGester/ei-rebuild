@@ -730,13 +730,16 @@ void ReleaseMade(SDL_GPUDevice* device, std::unordered_map<PipelineDesc, Pipelin
     }
 }
 
+bool SupportsSamplesOn(SDL_GPUDevice* device, Format colour, Format depth, int samples) {
+    const SDL_GPUSampleCount count = SampleCount(samples);
+    if (colour != Format::None && !SDL_GPUTextureSupportsSampleCount(device, ToSdl(colour), count)) return false;
+    if (depth != Format::None && !SDL_GPUTextureSupportsSampleCount(device, ToSdl(depth), count)) return false;
+    return true;
+}
+
 int MaxSamplesOn(SDL_GPUDevice* device, Format colour, Format depth, int most) {
-    for (int samples = most; samples > 1; samples /= 2) {
-        const SDL_GPUSampleCount count = SampleCount(samples);
-        if (colour != Format::None && !SDL_GPUTextureSupportsSampleCount(device, ToSdl(colour), count)) continue;
-        if (depth != Format::None && !SDL_GPUTextureSupportsSampleCount(device, ToSdl(depth), count)) continue;
-        return samples;
-    }
+    for (int samples = most; samples > 1; samples /= 2)
+        if (SupportsSamplesOn(device, colour, depth, samples)) return samples;
     return 1;
 }
 
@@ -786,6 +789,10 @@ bool g_filtering = true;
 
 int DeviceLimits::MaxSamples(Format colour, Format depth, int most) const {
     return MaxSamplesOn(device, colour, depth, most);
+}
+
+bool DeviceLimits::SupportsSamples(Format colour, Format depth, int samples) const {
+    return SupportsSamplesOn(device, colour, depth, samples);
 }
 
 // The device thread joined and what it made released, when no Start or Stop took it: a joinable std::thread that is
@@ -911,6 +918,10 @@ int Problems() { return g_problems; }
 
 int MaxSamples(Format colour, Format depth, int most) {
     return g_device ? MaxSamplesOn(g_device, colour, depth, most) : 1;
+}
+
+bool SupportsSamples(Format colour, Format depth, int samples) {
+    return g_device && SupportsSamplesOn(g_device, colour, depth, samples);
 }
 
 namespace {

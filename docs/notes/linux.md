@@ -125,13 +125,33 @@ lib/maths.h (float-maths.md, "Maths functions"). What still differs, and why:
   step in about 140 ms (6 ms on Windows' GPU), so a pair's run passes its frame waits and its time limit (about 190 s
   against Windows' 30 to 50 s) and the turns fall differently. Not run again: they exceed the 60 s game limit there.
   On dzn ("The GPU under WSL") they take 6 to 56 s and all pass, six the same as their goldens.
-- Frames, not digests (both differ on lavapipe only; on dzn they pass, so they stay in `LINUX_LEFT_OUT` for lavapipe).
+- A frame, not a digest (differs on lavapipe only; on dzn it passes, so it stays in `LINUX_LEFT_OUT` for lavapipe).
   render_terrain_seams: the level steps on the vanilla data, 0.91% and 0.72% against at most 0.3% (the same with the
   stub set, 0.89% and 0.72%): the terrain's sampler is anisotropic at 16 with linear mips and lavapipe's level choice
-  steps more often than a GPU's. render_smooth: its saved picture now matches (see below), but the split pass's frame
-  (`smoothorder split`, a draw order the game never reaches: the world view's first run ends in the middle, the frame
-  is copied into every sample and the rest drawn over it) differs from the smooth frame in 37% of the pixels, the whole
-  world view darker and greyer, not its edges; `smoothorder before` and the other captures match. Not found yet (H47b1).
+  steps more often than a GPU's.
+- render_smooth ran on lavapipe once two faults were found (H47b1; it is in the suites again). (1) The split pass's frame
+  (`smoothorder split`, a draw order the game never reaches) differed from the smooth frame in 37% of the pixels, the
+  whole world view darker and greyer. Cause: on lavapipe the depth copy, the multisampled pass's second colour target
+  (R32F, written by every world pipeline, renderer.md "The depth copy"), was never written by the alpha-blended draws,
+  which is all of them: lavapipe blends the second target with the first's blend state (SRC_ALPHA / INV_SRC_ALPHA)
+  although the pipeline gives it its own (blend off, or ONE / ZERO: no difference), and a one-component output has
+  alpha 0 there, so the copy kept its clear value, depth 1, in every frame. The resolved depth copy is what sets the
+  frame target's depth after the world; at 1 everywhere, the split's second run (the water, drawn last) passed its
+  depth test over the land. In the game's own order the depth only reaches the interface's depth-tested draws, so no
+  frame showed it. Seen by drawing the resolved copy as the frame's colour (all clear value on lavapipe, the
+  terrain's depth on dzn), by changing the clear value (the frame took it), by blending off the first target (the copy
+  was written) and by an RGBA32F copy with alpha 0.5 (the stored depth was exactly the half-and-half mix with the
+  old value: blended with SRC_ALPHA). The Vulkan validation layer reports nothing for it; a stand-alone Vulkan program
+  with the same render pass and blend states does not show it (the second target is written there), so what in the
+  game's draws brings it out is not known. Fix: the depth copy's output has four components, alpha 1
+  (depth_copy.hlsli, into_multisampled.hlsl; the target stays R32F): the blend then stores the depth, and where the
+  pipeline's own state is used there is no blend, so the same everywhere (the goldens hold on Windows). (2) `msaa 2`
+  drew with 2 samples, which lavapipe does not list (framebuffer sample counts 1 and 4; the validation layer says
+  `VUID-VkImageCreateInfo-samples-02258`): the frame was black (89% of the pixels differ from plain). The world is now
+  drawn with the device's nearest count (`SamplesFor`, render.cpp: the least it has at or above the asked one, else the
+  most below; `gpu::SupportsSamples`), so `msaa 2` gives 4 there. Now the split frame differs in 0.065% of the pixels
+  (largest 108; the check allows 0.2%), the same on dzn, and render_smooth passes on lavapipe with the real data,
+  vanilla and Rebirth.
 - The saved picture (render_smooth, ui_quicksave: "94% of the pixels differ" under GL, H47): gone since SDL_GPU. On
   lavapipe `checksave` passes in both, with the real data and the stub set; ui_quicksave runs in the suites again.
 - A refused connect (net_second_master): a TCP connect to a closed loopback port is refused at once on Linux, Windows
@@ -218,8 +238,8 @@ Checked (2026-11-04, the machine of "The harness" above, RTX 4070 Ti SUPER):
 
 After H47b (2026-11-04, dzn, 8 slots): `run_all.py --golden` 155 runs in 114 s, all passing, 149 the same, 6 without a
 golden (every scenario but net_pair_master); the Rebirth set 102 of 102 the same, in 126 s. On lavapipe (real data and
-the stub set) net_second_master, render_present_window and ui_quicksave pass; render_smooth and render_terrain_seams
-are the two left out.
+the stub set) net_second_master, render_present_window and ui_quicksave pass; render_terrain_seams is the one left out
+(render_smooth too until H47b1).
 
 Two faults showed only on dzn, both fixed:
 - Fences. The renderer kept every submission's fence while the frame timer was off; dzn refused new ones after a few

@@ -41,14 +41,14 @@ jobs:
     env:
       CCACHE_MAXSIZE: 2G
       # Scenarios that cannot match on llvmpipe yet (linux.md, "The harness"; H47b): the pairs (about 190 s a run
-      # there), render_smooth (the split pass's frame differs on lavapipe) and render_terrain_seams (its level steps),
-      # and the camera scenarios that draw hundreds of 8 ms frames (camera_drag_rate, camera_smooth, camera_spin: past
-      # their 120 s limit on the runner's 4 cores even alone). The scenarios whose own
-      # pixel checks fail on the stub set's blank textures (render_blink, render_cursor_present, render_shadows_outside;
-      # on Windows too) still run: their goldens hold, and only a golden that differs fails the job.
+      # there) and render_terrain_seams (its level steps), and the camera scenarios that draw hundreds of 8 ms frames
+      # (camera_drag_rate, camera_smooth, camera_spin: past their 120 s limit on the runner's 4 cores even alone). The
+      # scenarios whose own pixel checks fail on the stub set's blank textures (render_blink, render_cursor_present,
+      # render_shadows_outside, render_smooth; on Windows too) still run: their goldens hold, and only a golden that
+      # differs fails the job.
       LINUX_SKIP: >-
         net_pair_join net_pair_kick net_pair_leave net_pair_master net_pair_quest net_pair_speed net_pair_zone
-        render_smooth render_terrain_seams
+        render_terrain_seams
         camera_drag_rate camera_smooth camera_spin
     steps:
       - uses: actions/checkout@v5

@@ -1312,12 +1312,11 @@ DZN_ICD = os.path.join('~', 'mesa-dzn', 'share', 'vulkan', 'icd.d', 'dzn_icd.x86
 
 # Linux, no scenario names given: the scenarios left out (docs/notes/linux.md, "The harness" and "The GPU under WSL").
 # On the system's driver (lavapipe, the CPU): CI's LINUX_SKIP (.github/workflows/suites-linux.yml) and a few more
-# that pass 60 s on llvmpipe. render_smooth (its split pass's frame) and render_terrain_seams (the level steps) are
-# lavapipe's own differences; they pass on a GPU. On a GPU (dzn): net_pair_master, whose peer list shows the server
-# one poll sooner on any Linux.
+# that pass 60 s on llvmpipe. render_terrain_seams (the level steps) is lavapipe's own difference; it passes on a GPU.
+# On a GPU (dzn): net_pair_master, whose peer list shows the server one poll sooner on any Linux.
 LINUX_LEFT_OUT = {
     'system': ('net_pair_join', 'net_pair_kick', 'net_pair_leave', 'net_pair_master', 'net_pair_quest', 'net_pair_speed',
-               'net_pair_zone', 'render_smooth', 'render_terrain_seams', 'camera_drag_rate', 'camera_smooth',
+               'net_pair_zone', 'render_terrain_seams', 'camera_drag_rate', 'camera_smooth',
                'camera_spin', 'render_stats', 'zone_gz15h_tornado'),
     'gpu': ('net_pair_master',),
 }

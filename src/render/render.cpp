@@ -103,6 +103,22 @@ int DeviceSamples(MaxSamples maxSamples) {
     return (std::min)(maxSamples(kColourFormat, kDepthFormat), maxSamples(kDepthCopyFormat, gpu::Format::None));
 }
 
+// The sample count the world is drawn with when `asked` (a power of two up to kSmoothSamples) is wanted: the least count
+// the device has at or above it, else the most below it, 1 for none. A device lists the counts it draws (lavapipe has 1
+// and 4, no 2): a pass with another count is invalid and draws nothing right. `supports(colour, depth, samples)`: the
+// device draws exactly those samples into a target of those formats (gpu::SupportsSamples, or a DeviceLimits').
+template <class Supports>
+int SamplesFor(int asked, Supports supports) {
+    auto takes = [&supports](int samples) {
+        return supports(kColourFormat, kDepthFormat, samples) && supports(kDepthCopyFormat, gpu::Format::None, samples);
+    };
+    for (int samples = asked; samples > 1 && samples <= kSmoothSamples; samples *= 2)
+        if (takes(samples)) return samples;
+    for (int samples = asked / 2; samples > 1; samples /= 2)
+        if (takes(samples)) return samples;
+    return 1;
+}
+
 bool CreateDevice() {
     if (!gpu::Start()) return false;
     g_deviceSamples = DeviceSamples(
@@ -170,9 +186,10 @@ bool MakeMultisampled(int width, int height, int samples) {
 }
 
 // The frame target of the game's size; the multisampled one beside it when the render quality asks for
-// multisampling (SetMsaa: at most the device's samples). A change takes effect at a frame's first pass (`mayChange`).
+// multisampling (SetMsaa: the device's nearest count, SamplesFor). A change takes effect at a frame's first pass
+// (`mayChange`).
 bool EnsureTarget(int width, int height, bool mayChange) {
-    int samples = g_msaa < g_deviceSamples ? g_msaa : g_deviceSamples;
+    const int samples = g_deviceSamples > 1 ? SamplesFor(g_msaa, gpu::SupportsSamples) : 1;
     if (width == g_width && height == g_height && g_colour && (samples == g_targetSamples || !mayChange)) return true;
     DestroyTarget();
     g_colour = gpu::MakeTexture({width, height, 1, 1, kColourFormat, gpu::kColourTarget | gpu::kSampled, "ei-frame-colour"});
@@ -587,9 +604,9 @@ void ListPipelines(const gpu::DeviceLimits& limits, int msaa, std::vector<gpu::P
     ListShadowPipelines(out);
     ListComposePipelines(out);
     ListPresentPipelines(out);
-    const int samples = (std::min)(msaa, DeviceSamples([&limits](gpu::Format colour, gpu::Format depth) {
-                                       return limits.MaxSamples(colour, depth, kSmoothSamples);
-                                   }));
+    const int samples = SamplesFor(msaa, [&limits](gpu::Format colour, gpu::Format depth, int count) {
+        return limits.SupportsSamples(colour, depth, count);
+    });
     if (samples > 1) {
         ListMeshPipelines(out, samples);
         ListTerrainPipelines(out, samples);

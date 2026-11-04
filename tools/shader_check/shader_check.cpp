@@ -110,11 +110,11 @@ void CheckDrawTable() {
         if (d.colour != kNone && (p.outputCount < 1 || (p.outputs[0].scalar == Scalar::Uint) != UintFormat(d.colour)))
             Fail("%s: its colour output does not suit a draw's target", d.program);
     }
-    // A second output is the depth copy: one float.
+    // A second output is the depth copy: four floats, the depth first and alpha 1 (depth_copy.hlsli).
     for (int k = 0; k < kProgramCount; ++k) {
         const Program& p = kPrograms[k];
-        if (p.outputCount > 2 || (p.outputCount == 2 && (p.outputs[1].scalar != Scalar::Float || p.outputs[1].components != 1)))
-            Fail("%s: its outputs beyond the colour are not the depth copy's one float", p.name);
+        if (p.outputCount > 2 || (p.outputCount == 2 && (p.outputs[1].scalar != Scalar::Float || p.outputs[1].components != 4)))
+            Fail("%s: its outputs beyond the colour are not the depth copy's four floats", p.name);
     }
     for (int k = 0; k < kProgramCount; ++k) {
         bool drawn = false;
