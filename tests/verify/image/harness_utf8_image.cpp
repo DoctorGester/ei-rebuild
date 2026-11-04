@@ -81,27 +81,19 @@ namespace ei::verify::image::utf8typing {
 
 std::string Type(void* window, const std::string& typed) {
     if (!window) return "typeunicode: no game window yet";
-    unsigned units = 0;
-    auto hand = [&units](unsigned unit) {
-        platform::Event event;
-        event.type = platform::EventType::Character;
-        event.key = static_cast<int>(unit);
-        event.repeat = 1;
-        ei::verify::harnessplatform::Queue(event);
-        ++units;
-    };
+    unsigned characters = 0;
     for (std::size_t at = 0; at < typed.size();) {
         unsigned c = 0;
-        at += static_cast<std::size_t>(text::DecodeUtf8(typed.data() + at, typed.size() - at, &c));
+        const auto length = static_cast<std::size_t>(text::DecodeUtf8(typed.data() + at, typed.size() - at, &c));
         if (c == 0xFFFFFFFFu) return "typeunicode: the text is not valid UTF-8";
-        if (c < 0x10000) {
-            hand(c);
-        } else {   // a surrogate pair
-            hand(0xD800 + ((c - 0x10000) >> 10));
-            hand(0xDC00 + ((c - 0x10000) & 0x3FF));
-        }
+        platform::Event event;
+        event.type = platform::EventType::Text;
+        event.text = typed.substr(at, length);
+        ei::verify::harnessplatform::Queue(event);
+        ++characters;
+        at += length;
     }
-    Log("harness: typeunicode: %u UTF-16 units handed in as characters", units);
+    Log("harness: typeunicode: %u characters handed in as typed text", characters);
     return {};
 }
 

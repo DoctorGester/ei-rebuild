@@ -23,7 +23,6 @@
 namespace ei::verify::harnessplatform {
 namespace {
 
-platform::EventHandler g_handler = nullptr;
 SDL_Window* g_window = nullptr;
 platform::NativeWindow g_native = nullptr;
 std::deque<platform::Event> g_waiting;
@@ -42,7 +41,7 @@ bool g_holding = false;
 Point g_held{};
 platform::PointMap g_toGame = nullptr;
 std::string g_clipboard;
-std::string g_className;   // RegisterWindowClass's
+std::string g_className;   // StartWindowSystem's
 
 SDL_Window* WindowOf(platform::NativeWindow window) { return window && window == g_native ? g_window : nullptr; }
 
@@ -82,23 +81,19 @@ platform::Event QuitEvent() {
 
 } // namespace
 
-void Queue(const platform::Event& event) {
-    platform::Event queued = event;
-    queued.window = g_native;
-    g_waiting.push_back(queued);
-}
+void Queue(const platform::Event& event) { g_waiting.push_back(event); }
 
 void AddMotion(int dx, int dy) {
     g_motionX += dx;
     g_motionY += dy;
 }
 
+// Ahead of the input waiting: the game takes it before anything posted earlier, as when the system told it at once.
 void Activate(bool active) {
     platform::Event event;
-    event.type = platform::EventType::Activate;
-    event.activation = active ? platform::Activation::Active : platform::Activation::Inactive;
-    event.window = g_native;
-    if (g_handler) g_handler(event);
+    event.type = platform::EventType::Focus;
+    event.active = active;
+    g_waiting.push_front(event);
 }
 
 unsigned RealInputLeftOut() { return g_realInput; }
@@ -179,11 +174,10 @@ MessageAnswer ShowMessageBox(void*, const char* text, const char* caption, Messa
 
 // ---- The window --------------------------------------------------------------------------------------------------
 
-void RegisterWindowClass(NativeInstance instance, const char* className, EventHandler handler) {
-    hp::g_handler = handler;
-    hp::g_className = className;
+void StartWindowSystem(const char* name) {
+    hp::g_className = name;
 #if defined(SDL_PLATFORM_WINDOWS)
-    SDL_RegisterApp(className, 0, instance);   // the window class's name, as the game's
+    SDL_RegisterApp(name, 0, nullptr);   // the window class's name, as the game's
 #endif
     SDL_SetHint(SDL_HINT_WINDOW_ACTIVATE_WHEN_SHOWN, "0");
     SDL_SetHint(SDL_HINT_WINDOW_ACTIVATE_WHEN_RAISED, "0");
@@ -194,7 +188,7 @@ void RegisterWindowClass(NativeInstance instance, const char* className, EventHa
 // As the game's: the client area the resolution's, centred in the primary display's usable bounds (made smaller when
 // it would not fit), or a borderless window at the screen's top left; its title marked. Concealed before it is first
 // shown (sys::ConcealWindow: never activated, no taskbar button, cloaked).
-NativeWindow CreateGameWindow(NativeInstance, const char* title, int width, int height, bool fullScreen) {
+NativeWindow CreateGameWindow(const char* title, int width, int height, bool fullScreen) {
     const std::string marked = std::string(title) + " (harness)";
     const SDL_PropertiesID properties = SDL_CreateProperties();
     SDL_SetStringProperty(properties, SDL_PROP_WINDOW_CREATE_TITLE_STRING, marked.c_str());
@@ -227,15 +221,11 @@ NativeWindow CreateGameWindow(NativeInstance, const char* title, int width, int 
     return hp::g_native;
 }
 
-void ShowGameWindow(NativeWindow window, int) {
+void ShowGameWindow(NativeWindow window) {
     if (SDL_Window* w = hp::WindowOf(window)) SDL_ShowWindow(w);
 }
 
 bool IsMinimized(NativeWindow window) { return hp::WindowOf(window) && hp::Minimized(); }
-
-void MarkPainted(NativeWindow) {}
-
-void RepaintDesktop() {}
 
 void ScreenToClient(NativeWindow window, Point* point) {
     int left = 0, top = 0;
@@ -287,9 +277,10 @@ bool NextEvent(Event* event) {
         if (hp::TakeWaiting(event)) {
             if (event->type == EventType::KeyDown)
                 if (const int character = hp::TypedCharacter(event->key)) {
-                    Event typed = *event;
-                    typed.type = EventType::Character;
-                    typed.key = character;
+                    Event typed;
+                    typed.type = EventType::Text;
+                    typed.scan = event->scan;
+                    typed.text = std::string(1, static_cast<char>(character));
                     hp::g_waiting.push_back(typed);
                 }
             return true;
@@ -309,10 +300,6 @@ bool TakeEvent(Event* event) {
     if (!hp::g_quitPosted) return false;
     *event = hp::QuitEvent();
     return true;
-}
-
-void DispatchEvent(const Event& event) {
-    if (hp::g_handler) hp::g_handler(event);
 }
 
 void PostQuit(int code) {
@@ -381,24 +368,8 @@ bool CursorPosition(Point* at) {
 
 void SetCursorPosition(Point) { HoldCursor(nullptr); }
 
-struct MouseDevice::Device {};
-
-MouseDevice::MouseDevice() = default;
-MouseDevice::~MouseDevice() = default;
-
-int MouseDevice::Open(NativeWindow, NativeInstance, MouseReport) { return 1; }
-
-void MouseDevice::Close() {}
-
-int MouseDevice::SetActive(bool, MouseReport) { return 1; }
-
-// The harness's motion only (its buttons and wheel come as events).
-void MouseDevice::Read(std::int32_t state[4]) {
-    state[0] = hp::g_motionX.exchange(0);
-    state[1] = hp::g_motionY.exchange(0);
-    state[2] = 0;
-    state[3] = 0;
-}
+// The harness's motion only.
+Point TakeMouseMotion() { return Point{hp::g_motionX.exchange(0), hp::g_motionY.exchange(0)}; }
 
 void CopyText(std::string_view text) { hp::g_clipboard = std::string(text); }
 

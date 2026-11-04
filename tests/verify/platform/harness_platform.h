@@ -22,7 +22,8 @@ namespace ei::verify::harnessplatform {
 void Queue(const platform::Event& event);
 // The mouse's motion the game's next read reports, (dx, dy) counts more.
 void AddMotion(int dx, int dy);
-// The game told its window was activated or deactivated (the focus steps, the first activation).
+// The game told its window gained or lost the focus (the focus steps, the first activation): a Focus event ahead of
+// the input waiting.
 void Activate(bool active);
 // The system's keyboard and mouse events the backend dropped (for the report).
 unsigned RealInputLeftOut();

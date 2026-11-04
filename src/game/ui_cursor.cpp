@@ -125,7 +125,7 @@ void ShowFrame(Cursor* cursor) {
 
 } // namespace
 
-void Cursor::Init(TextureDevice* newDevice, DirectInputMouse* newMouse, bool smallCursors) {
+void Cursor::Init(TextureDevice* newDevice, bool smallCursors) {
     const std::int32_t size = smallCursors ? kSmallSize : kLargeSize;
     g_cursorWidth = size;
     g_cursorHeight = size;
@@ -136,7 +136,6 @@ void Cursor::Init(TextureDevice* newDevice, DirectInputMouse* newMouse, bool sma
     shape = -1;
     imageShown = true;
     enabled = true;
-    mouse = newMouse;
     TextureDevice* old = device;
     device = newDevice;
     if (newDevice) newDevice->AddRef();
@@ -179,7 +178,7 @@ void Cursor::ShowImage(bool shown) {
 void Cursor::SetHeld(bool newHeld) {
     if (!enabled) return;
     if (newHeld && !held) {
-        mouse->Poll();
+        platform::TakeMouseMotion();   // the motion from before the press dropped
         motion = {};
         pollTime = platform::Milliseconds();
         pollCount = 0;
@@ -247,11 +246,10 @@ bool Cursor::UpdatePosition() {
     frameTime += steps * kFramePeriod;
     bool moved = steps != 0;
 
-    const std::int32_t* state = mouse->Poll();
-    motion.x += state[0];
-    motion.y += state[1];
+    const Point step = platform::TakeMouseMotion();
+    motion += step;
     newestPoll = (newestPoll + 1) % kPollsKept;
-    polls[newestPoll] = Poll{now - pollTime, Point{state[0], state[1]}};
+    polls[newestPoll] = Poll{now - pollTime, step};
     pollCount = std::min(pollCount + 1, kPollsKept);
     pollTime = now;
     drag = DragOfPolls();

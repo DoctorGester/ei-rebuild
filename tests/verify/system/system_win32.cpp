@@ -116,8 +116,8 @@ bool FontSmoothing() {
     return smoothing != FALSE;
 }
 
-void* OtherGameWindow(const char* className, const char* title) {
-    return FindWindowW(text::Wide(className).c_str(), text::Wide(title).c_str());
+bool BringOtherGameForward(const char* name, const char* title) {
+    return platform::win32::BringForward(FindWindowW(text::Wide(name).c_str(), text::Wide(title).c_str()));
 }
 
 // ==== Processes, threads and time ====================================================================================

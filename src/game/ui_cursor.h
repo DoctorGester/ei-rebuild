@@ -19,31 +19,6 @@ inline std::int32_t g_cursorWidth = /*007C7C90*/ 32;
 inline std::int32_t g_cursorHeight = /*007C7C94*/ 32;
 struct Surface;
 
-// The DirectInput mouse (made by the application's start, which also sets it up).
-class DirectInputMouse final {
-public:
-    DirectInputMouse() {}
-    virtual ~DirectInputMouse();
-
-    DirectInputMouse(const DirectInputMouse&) = delete;
-    DirectInputMouse& operator=(const DirectInputMouse&) = delete;
-
-    // The mouse device for `window` and `instance` (platform::MouseDevice::Open). A failure is reported
-    // (FatalErrorCode, except a failed Acquire, which is passed over) and gives its result as 0 / 1.
-    int Setup(platform::NativeWindow window, platform::NativeInstance instance);
-    void Shutdown();
-    // Acquires or unacquires the device with the window's activation; 0 without a device, the report's result
-    // as 0 / 1 when Acquire fails.
-    int SetActive(bool active);
-    // Reads the device state (x, y and wheel motion, buttons; zeroed when the read fails) into the object and
-    // returns it.
-    const std::int32_t* Poll();
-
-    std::uint32_t references = 0;            // the count of holders (WinMain keeps one)
-    platform::MouseDevice device;
-    std::int32_t state[4];
-};
-
 // The cursor's image (one per cursor shape): its surface holder (the picture: `frames` square frames side by
 // side), a frame's size, the frame shown, the hot spot and the mask.
 struct CursorImage {
@@ -89,20 +64,19 @@ public:
     // Releases and frees every shape and empties the list, releases the device and resets the fields (not
     // enabled, shape -1).
     void Shutdown();
-    // Steps the image's frame every 125 ms, adds the DirectInput motion to motion (and keeps the poll for
+    // Steps the image's frame every 125 ms, adds the mouse's motion to motion (and keeps the poll for
     // TakeDrag), takes the mouse position
     // (or heldPosition while held) clamped into the bounds, places rect at the previous position less the
     // hot spot (the frame's size, clipped to the bounds, `from` clipped the same way) and keeps the new
     // position. Returns whether the frame stepped or the position changed.
     bool UpdatePosition();
 
-    // Sets the cursor up on `device` (a reference taken, the old one's dropped) with `mouse`; `smallCursors`
-    // picks 16-pixel cursors instead of 32. Takes the bounds (the screen's size).
-    void Init(TextureDevice* device, DirectInputMouse* mouse, bool smallCursors);
+    // Sets the cursor up on `device` (a reference taken, the old one's dropped); `smallCursors` picks 16-pixel cursors
+    // instead of 32. Takes the bounds (the screen's size).
+    void Init(TextureDevice* device, bool smallCursors);
     void AddShape(const char* name, int hotX, int hotY);
 
     TextureDevice* device = nullptr;    // referenced
-    DirectInputMouse* mouse = nullptr;    // polled for the motion
     bool imageShown = false;         // an image is shown
     CursorImage* image = nullptr;
     std::uint32_t imageSpare = 0;    // 0 from Init and Shutdown (with image); nothing reads it
@@ -146,5 +120,5 @@ void CursorDrawFrame(Cursor* self);
 
 extern Cursor g_cursor;
 
-void SetUpCursors(DirectInputMouse* context, int smallCursors);
-void ResetCursors(DirectInputMouse* context, int smallCursors);
+void SetUpCursors(int smallCursors);
+void ResetCursors(int smallCursors);

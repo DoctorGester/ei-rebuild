@@ -12,7 +12,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -218,95 +217,70 @@ void MakeThreadTimeCritical();
 
 // ==== The window and its events ======================================================================================
 
-// docs/notes/platform.md, "Window and events". The window is a native one (an HWND on Windows) that the game passes
-// around as an opaque pointer; what happens to it reaches the game as Events, through the handler given at the class's
-// registration (events the system sends) and through the loop's NextEvent / TakeEvent (events waiting in the queue).
-// The values inside an Event are the game's: key codes are the virtual-key codes (the next section), key flags and
-// mouse buttons are as Windows gives them.
+// docs/notes/platform.md, "Window and events". The window is a native one (an HWND on Windows, else the SDL_Window)
+// that the game passes around as an opaque pointer. What happens to it and the keyboard's and the mouse's input reach
+// the game as Events, which the game's loops take from the queue (EventWaits, NextEvent, TakeEvent).
 
-// A native window (an HWND on Windows), or a program instance (an HINSTANCE).
+// A native window (an HWND on Windows, else the SDL_Window).
 using NativeWindow = void*;
-using NativeInstance = void*;
 
 enum class EventType : std::uint8_t {
-    KeyDown,         // a key pressed (key, repeat, keyFlags)
-    KeyUp,           // a key released (the same)
-    SystemKeyDown,   // a key pressed with Alt held, or F10 (the same)
-    SystemKeyUp,     // such a key released (the same)
-    Character,       // a typed character (key: a UTF-16 unit, half of a surrogate pair past U+FFFF; repeat, keyFlags)
-    MouseMove,       // the mouse moved (buttons; x, y in the window's client area)
-    LeftDown,        // a mouse button pressed, released, or pressed again quickly (the same)
-    LeftUp,
-    LeftDouble,
-    RightDown,
-    RightUp,
-    RightDouble,
-    Wheel,           // the wheel turned (buttons, wheelDelta; x, y on the screen)
-    Paint,           // part of the window needs drawing
-    Destroy,         // the window is being destroyed
-    Activate,        // the window was activated or deactivated (activation, minimized)
-    SystemCommand,   // a command of the window's system menu or a system key (command)
-    Quit,            // the quit request (quitCode): the loop ends
-    Other,           // anything else
+    KeyDown,          // a key pressed, or held and repeating (key, scan, repeat, modifiers)
+    KeyUp,            // a key released (key, scan, modifiers)
+    Text,             // text typed (text; scan: the last key pressed)
+    MouseMove,        // the mouse moved over the window (x, y)
+    MouseDown,        // a mouse button pressed (button, clicks, x, y)
+    MouseUp,          // a mouse button released (button, x, y)
+    Wheel,            // the wheel turned (wheel, x, y)
+    Focus,            // the window gained or lost the focus, or was minimised or restored (active, minimized)
+    CloseRequested,   // the player closes the window, or the system ends the session
+    Quit,             // PostQuit's request (quitCode): the loop ends
 };
 
-enum class Activation : std::uint8_t { Inactive, Active, ClickActive, Unknown };
-enum class SystemCommand : std::uint8_t {
-    TaskSwitch,    // a switch to another program (its hot key, or the next or previous window)
-    ScreenSaver,   // the screen saver or the monitor's power saving wants to start
-    Other,
-};
+enum class MouseButton : std::uint8_t { Left, Right, Middle, X1, X2 };
 
-// keyFlags: the high half of the key's message data, sign-extended (a released key's flags are negative): the scan
-// code in bits 0-8 (bit 8 for an extended key), Alt held (kKeyAltDown), the key down before (0x4000), released
-// (0x8000).
-constexpr int kKeyAltDown = 0x2000;
+// The modifier keys held (Event::modifiers).
+inline constexpr std::uint8_t kModifierShift = 0x01;
+inline constexpr std::uint8_t kModifierControl = 0x02;
+inline constexpr std::uint8_t kModifierAlt = 0x04;
 
 struct Event {
-    EventType type = EventType::Other;
-    int key = 0;          // keys: the virtual-key code; Character: the UTF-16 unit
-    int repeat = 0;       // keys and characters: the repeat count
-    int keyFlags = 0;     // keys and characters: see kKeyAltDown
-    int buttons = 0;      // mouse: the buttons and modifier keys held (Windows' MK_ bits)
-    int x = 0;            // mouse: the position (16-bit signed values)
+    EventType type = EventType::KeyDown;
+    int key = 0;                  // keys: the virtual-key code (the next section)
+    int scan = 0;                 // keys: the key's place as its set-1 scan code (0x100 for an extended key); Text: the
+                                  // last key pressed's
+    bool repeat = false;          // KeyDown: the key was down already (the keyboard's repeat)
+    std::uint8_t modifiers = 0;   // keys: kModifierShift, kModifierControl, kModifierAlt held
+    std::string text;             // Text: UTF-8, also the control characters a key types (Backspace, Tab, Enter,
+                                  // Escape, Ctrl+letter 1..26; "The keyboard" below)
+    MouseButton button = MouseButton::Left;
+    int clicks = 0;               // MouseDown: 1; 2 for the second press of a double click, 3, ...
+    int x = 0;                    // mouse: the position in the window, in pixels
     int y = 0;
-    int wheelDelta = 0;   // Wheel: the turn, 120 a notch, positive away from the player
-    Activation activation = Activation::Unknown;
-    bool minimized = false;   // Activate: the window is minimised
-    SystemCommand command = SystemCommand::Other;
-    int quitCode = 0;         // Quit: the code the quit request carries
-    NativeWindow window = nullptr;   // the window it is for (null: none)
+    float wheel = 0.0f;           // Wheel: the turn in notches (fractions from a smooth wheel), positive away from the
+                                  // player
+    bool active = false;          // Focus: the window has the focus
+    bool minimized = false;       // Focus: the window is minimised
+    int quitCode = 0;             // Quit: PostQuit's code
 };
-
-// The game's handling of an event the system sends to its window: what the window procedure returns.
-using EventHandler = std::intptr_t (*)(const Event& event);
 
 // ---- The window --------------------------------------------------------------------------------------------------
 
-// Registers the game window's class under `className`, its events going to `handler`; the window keeps the system's
-// cursor hidden only as the handler does (no class cursor), has no icon and gets double clicks.
-void RegisterWindowClass(NativeInstance instance, const char* className, EventHandler handler);
-// The running program's own instance (the module the program was started from).
-NativeInstance ProgramInstance();
-// A window of the class `className` with the title `title` (a game that runs already), or null.
-NativeWindow FindClassWindow(const char* className, const char* title);
-// The id of the process that owns `window`.
-std::uint32_t WindowProcess(NativeWindow window);
-// Brings another program's window to the front, restored from the task bar, unless it is in front already.
-void BringToFront(NativeWindow window);
-// The game window of the registered class, its client area `width` x `height` (the configured resolution, which the
-// game keeps whatever the window gets). Full screen: a borderless window at the screen's top left (CoverMonitor puts it
-// over its monitor); on macOS SDL's desktop full screen, a Space of its own (CoverMonitor does nothing). Windowed: a decorated window the player can move and resize, centred in the primary monitor's
-// work area; a client area that would not fit there is made smaller, so no row is off-screen (the renderer scales the
-// frame into it). Null when it could not be made.
-NativeWindow CreateGameWindow(NativeInstance instance, const char* title, int width, int height, bool fullScreen);
-// Shows the window as the program was asked to start (`show`: WinMain's nCmdShow) and has it painted.
-void ShowGameWindow(NativeWindow window, int show);
+// Starts the window system for the program `name` (on Windows the game window's class name, by which
+// BringOtherInstanceForward finds a running game).
+void StartWindowSystem(const char* name);
+// Whether another copy of the game (started under `name`, its window titled `title`) runs already; when one does, its
+// window is brought to the front, restored from the task bar.
+bool BringOtherInstanceForward(const char* name, const char* title);
+// The game window, hidden, its client area `width` x `height` (the configured resolution, which the game keeps
+// whatever the window gets). Full screen: a borderless window at the screen's top left (CoverMonitor puts it over its
+// monitor); on macOS SDL's desktop full screen, a Space of its own (CoverMonitor does nothing). Windowed: a decorated
+// window the player can move and resize, centred in the primary monitor's work area; a client area that would not fit
+// there is made smaller, so no row is off-screen (the renderer scales the frame into it). Null when it could not be
+// made.
+NativeWindow CreateGameWindow(const char* title, int width, int height, bool fullScreen);
+void ShowGameWindow(NativeWindow window);
 bool IsMinimized(NativeWindow window);
-// The window's part waiting to be painted marked as painted (nothing drawn: the renderer presents on its own).
-void MarkPainted(NativeWindow window);
-// Every window on the desktop repainted.
-void RepaintDesktop();
 // A point of the screen as one of the window's client area, and back.
 void ScreenToClient(NativeWindow window, Point* point);
 void ClientToScreen(NativeWindow window, Point* point);
@@ -320,13 +294,10 @@ bool WindowPixelSize(NativeWindow window, int* width, int* height);
 
 // Whether an event waits in the queue (it stays there).
 bool EventWaits();
-// Waits for the next event and takes it, typed keys translated into Character events that follow it. False at the
-// quit request (`event` is then a Quit event).
+// Waits for the next event and takes it. False at the quit request (`event` is then a Quit event).
 bool NextEvent(Event* event);
-// Takes the next waiting event, untranslated; false when none waits.
+// Takes the next waiting event; false when none waits.
 bool TakeEvent(Event* event);
-// An event taken from the queue sent on to its window's procedure (typed keys translated first).
-void DispatchEvent(const Event& event);
 // Asks the loop to end: NextEvent gives a Quit event with `code` once the waiting events are taken.
 void PostQuit(int code);
 
@@ -353,6 +324,7 @@ inline constexpr int kKeyRight = 0x27;
 inline constexpr int kKeyDown = 0x28;
 inline constexpr int kKeyDelete = 0x2E;
 inline constexpr int kKeyF4 = 0x73;
+inline constexpr int kKeyF10 = 0x79;
 
 // ==== The cursor =====================================================================================================
 
@@ -368,7 +340,7 @@ CursorShape MakeCursor(const std::uint8_t* rgba, int width, int height, int hotX
 void FreeCursor(CursorShape shape);
 CursorShape CurrentCursor();
 void SetCursor(CursorShape shape);
-// With `at` (a game point) the cursor stays there while the mouse's motion still reaches the game (MouseDevice::Read:
+// With `at` (a game point) the cursor stays there while the mouse's motion still reaches the game (TakeMouseMotion:
 // the camera turned with the right button); null lets it move again. SetCursorPosition lets it go first.
 void HoldCursor(const Point* at);
 
@@ -403,43 +375,11 @@ bool IsLetter(std::uint32_t character);
 
 // ==== The mouse ======================================================================================================
 
-// The mouse's motion since the last read: the game's cursor adds it to the position it takes from the cursor calls,
-// and the buttons come as window events. SDL3's motion events, or on Windows' window-procedure path DirectInput 7's
-// system mouse, non-exclusive, in the background (the harness observes it).
+// The mouse's position comes from the cursor calls, its buttons and wheel as events; the game's cursor adds the motion
+// to its own position while it holds the cursor (the camera turned with the right button).
 
-enum class MouseStep : std::uint8_t {
-    Create,       // the input object
-    Device,       // the mouse device
-    Format,       // its data format
-    Cooperation,  // its cooperative level
-    Acquire,      // taking the device
-};
-
-// Told of a step that failed, with the system's result code; the answer is the result of the call that was running
-// (0 or 1), except for a failed Acquire in Open, whose answer is passed over.
-using MouseReport = int (*)(MouseStep step, std::int32_t code);
-
-class MouseDevice {
-public:
-    MouseDevice();
-    ~MouseDevice();
-    MouseDevice(const MouseDevice&) = delete;
-    MouseDevice& operator=(const MouseDevice&) = delete;
-
-    // The input object for `instance`, its system mouse with the mouse data format, for `window`, taken. A failed
-    // step is reported and ends the call with the report's answer (the earlier steps' objects stay); 1 otherwise.
-    int Open(NativeWindow window, NativeInstance instance, MouseReport report);
-    void Close();
-    // Takes the device or lets it go with the window's activation; 0 without a device, the report's answer when
-    // taking it fails, else 1.
-    int SetActive(bool active, MouseReport report);
-    // The state: the motion in x, y and the wheel, and the buttons (four values; zeroed when the read fails).
-    void Read(std::int32_t state[4]);
-
-private:
-    struct Device;                   // the backend's
-    std::unique_ptr<Device> device;
-};
+// The mouse's motion in pixels since the last call (SDL's relative motion, fractions carried to the next).
+Point TakeMouseMotion();
 
 // ==== The clipboard ==================================================================================================
 

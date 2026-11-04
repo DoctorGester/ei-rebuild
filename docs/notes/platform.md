@@ -23,15 +23,15 @@ systems.
 | `src/platform/paths.h`, `system_path.cpp` | the file calls' path seam: `SystemPath(path, use)` (system_path.cpp: the path itself; the harness's builds: its overlay, below) and each backend's `NativePath` |
 | `src/platform/win32/platform_win32.cpp` | the Windows remainder, in every build: UTF-8 to the wide calls (`text::Wide` / `Narrow`), paths, the machine, the file objects, whole files and folder searches, the other game window (the one-instance check), the keyboard's names and layouts, sockets |
 | `src/platform/win32/game_calls.cpp`, `src/platform/posix/game_calls.cpp` | the calls a harness run answers itself (below, "The harness's answers"), each system's; the harness's builds leave them out and take tests/verify/platform's |
-| `src/platform/win32/platform_win32.h`, `src/platform/posix/platform_posix.h` | each backend's own declarations for its files: Windows' `text::Wide` / `Narrow`; POSIX's one-instance look-up (`posix::OtherInstance`, game_calls.cpp's FindClassWindow) |
+| `src/platform/win32/platform_win32.h`, `src/platform/posix/platform_posix.h` | each backend's own declarations for its files: Windows' `text::Wide` / `Narrow` and `win32::BringForward`; POSIX's one-instance lock (`posix::OtherInstanceRunning`, game_calls.cpp's BringOtherInstanceForward) |
 | `src/platform/posix/platform_posix.cpp` | the remainder on Linux and macOS: paths, files, mappings and folder searches with Windows' case rules, the one-instance lock, key names, sockets |
 
 - CMakeLists.txt's ei_platform builds src/platform/sdl/*.cpp, files.cpp, system_path.cpp and src/platform/win32/*.cpp
   or (Linux, macOS) src/platform/posix/*.cpp (with EI_HARNESS but platform_sdl.cpp, game_calls.cpp and system_path.cpp).
   The sound and the movies are not the platform's:
-  src/audio and src/video, one implementation each (sound.md). platform.h carries no backend's type: `MouseDevice`
-  holds a backend's private `Device` and `Event::window` is the event's window. Still Windows' values, on purpose: the
-  key codes and key flags (the bindings file and the interface keep them; SDL's backend maps its keys to them).
+  src/audio and src/video, one implementation each (sound.md). platform.h carries no backend's type. Still Windows'
+  values, on purpose: the virtual-key codes and the set-1 scan codes (the bindings file and the interface keep them;
+  SDL's backend maps its keys to them).
 - Inside `namespace platform` an unqualified call of a Windows function finds the platform function of that name first
   (`Sleep`, `ScreenToClient`, `ClientToScreen`, `SetCursor`, `ActivateKeyboardLayout`): the backend calls
   the system as `::X`. When the files were merged, EndProcess's `Sleep(INFINITE)` (system.cpp, which did not see the
@@ -68,14 +68,14 @@ platform.h's sections (the sockets in `platform::net`):
 | Paths | `ProgramPath()` (the system's separators), `CurrentFolder()`, `SetCurrentFolder`, `UserDataFolder()`, `ArgumentsAfterSeparator` | GetModuleFileNameW, GetCurrentDirectoryW, SetCurrentDirectoryW, GetEnvironmentVariableW |
 | The machine | `FontSmoothing()`; `PrimaryDesktopSize`, `EnvironmentVariable`, `EndProcess` | SystemParametersInfoW (game_calls.cpp: the harness fixes smoothing off); the last three direct |
 | Files and folders | `CreateFolder`, `RemoveFolder`, `RemoveFile`, `RenameFile`, `CopyFileOver`, `PathExists`, `IsFile`, `FreeDiskSpace` (files.cpp, std::filesystem); `FolderEntries` (a folder search's `FolderEntry`s: name, path, size, folder); `ReadWholeFile` / `WriteWholeFile`; `File` (`FileMode` Read / Create / WriteExisting; also text lines: `WriteLine`), `MappedFile` (read only), `FileError` | every path through `SystemPath` (the harness's overlay, below); CreateFileW, FindFirstFileW, CreateFileMappingW direct; the file objects' writes through game_calls.cpp's `win32::WriteFile` (the harness's failed-write watch) |
-| The window and its events | the window class, the game window, `Event`s, the event queue (`EventWaits`, `NextEvent`, `TakeEvent`, `DefaultHandling`, `DispatchEvent`, `PostQuit`), screen / client points, `CoverMonitor` | SDL; harness builds: the harness's backend on SDL (harness_platform.cpp) |
-| The other game window | `FindClassWindow(className, title)`, `WindowProcess`, `BringToFront`, `ProgramInstance()` | Windows in every build: FindWindowW (game_calls.cpp: the harness finds none), GetWindowThreadProcessId, the foreground calls, `ProgramInstance` |
+| The window and its events | `StartWindowSystem(name)`, the game window (`CreateGameWindow`, `ShowGameWindow`), `Event`s (keys with modifiers, UTF-8 text, a mouse button with its click count, the wheel in notches, the focus, the close request), the event queue (`EventWaits`, `NextEvent`, `TakeEvent`, `PostQuit`), screen / client points, `CoverMonitor` | SDL; harness builds: the harness's backend on SDL (harness_platform.cpp) |
+| The other game | `BringOtherInstanceForward(name, title)`: another copy runs, its window brought forward | Windows in every build: FindWindowW and the foreground calls (game_calls.cpp: the harness finds none); POSIX a lock file |
 | The cursor | the game's shapes (`MakeCursor`, `FreeCursor`, `SetCursor`), the hold (`HoldCursor`), its position in game points (`MapCursorPoints` for the scaled frame) | SDL; harness builds: the same SDL cursors with their pixels kept for the checks, the harness's own mouse |
 | The keyboard | `KeyName(scan)`, `ActivateKeyboardLayout(language, fallback)`, `IsLetter(character)` (the message box's edit field) | Windows in every build (SDL has no key names in the layout's language, no layout choice): GetKeyNameTextW, the keyboard layout calls, IsCharAlphaW |
 | The clipboard | `CopyText`, `ClipboardText` (Rebirth's console) | SDL; harness builds: direct |
 | Threads | `MakeThreadTimeCritical()` (the sound's stream thread); the threads are `std::thread`, their waits `std::condition_variable` or a join, locks `std::mutex` / `std::recursive_mutex` | SDL in every build (sdl_threads.cpp) |
 | Key codes | the game's key codes (`kKeyEscape`, `kKeyReturn`, ...: the virtual-key values the bindings file keeps) | none |
-| The mouse | `MouseDevice`: the mouse's motion (`Open`, `SetActive`, `Read`, `Close`), failures reported to the caller's `MouseReport` | SDL's motion events; harness builds: the harness's own motion (harness_platform.cpp) |
+| The mouse | `TakeMouseMotion()`: the relative motion since the last call (the buttons and the wheel are events) | SDL's motion events; harness builds: the harness's own motion (harness_platform.cpp) |
 | Sockets | IPv4 UDP / TCP sockets (`Socket`, pointer-sized), `Address` (sockaddr_in's 16 bytes), `Select` on `SocketGroup`s, host name and look-ups, `LastError()` as our `Error`; Winsock starts with the first socket call (1.1, never cleaned up). Byte order and `ParseIpv4` (inet_addr) are lib/ipv4.h's | Winsock (ws2_32); closing, binding, connecting, sending, receiving and select's call through game_calls.cpp (the harness keeps them on 127.0.0.1) |
 
 The sockets mirror BSD's one to one, each failing as Winsock's does, because the game relies on the failures:
@@ -144,7 +144,7 @@ game's calls in its own builds, as harness_platform.cpp does for SDL's areas: CM
 src/platform/<system>/game_calls.cpp and src/platform/system_path.cpp out of them (EI_GAME_CALLS), and
 tests/verify/platform/game_answers.cpp defines the same functions, one file for both systems:
 
-- `SystemPath` (above: harness.cpp's MapPath), `FontSmoothing` (off), `FindClassWindow` (none).
+- `SystemPath` (above: harness.cpp's MapPath), `FontSmoothing` (off), `BringOtherInstanceForward` (none runs).
 - `File::Write` (the file objects' writes, with the file's path: a failed write fails the run; "diskfull" fails a
   file's writes as on a full disk; harness_crash.h).
 - `net::Bind`, `SendTo`, `ReceiveFrom`, `Close`, `Connect`, `Send`, `Receive` and `Select` (binds and datagrams on
@@ -178,20 +178,20 @@ window (gpu.h's `ClaimWindow`; the NativeWindow the game holds is `SDL_PROP_WIND
   shown without activation, every system event SDL takes dropped (the real keyboard and mouse never reach a harness
   game; counted for the report), the harness's events queued for the game's loops, its steps run before EventWaits /
   TakeEvent look (where its runs took posted input; false holds the events for the close-all pass), a key's character
-  queued by NextEvent as the harness's TranslateMessage posted it, the activation changes only the harness's focus
-  steps make, its message box answers, and the harness's clocks, date and mouse position (harness_clock.h's virtual
+  queued by NextEvent as the harness's TranslateMessage posted it, the focus changes only the harness's focus steps
+  make (queued ahead of the waiting input, as Windows told the game at once), its message box answers, and the harness's clocks, date and mouse position (harness_clock.h's virtual
   and held clocks and fixed date, harness.cpp's own mouse). The backend is SDL and
   the harness's own system layer (tests/verify/system), the same on both systems. Its steps still speak
-  window messages (harness_input.h's own numbers); harness_input.cpp makes each into the event the window procedure's translation made, so the games
-  see what they saw on the window-procedure path (platform_win32_window.cpp, gone with DirectInput, `Event::native`
-  and `DefaultHandling`: PL12). SDL's translation of real input is checked by tools/input_check against Windows'
-  layouts.
+  window messages (harness_input.h's own numbers); harness_input.cpp makes each into the platform's event (a key
+  message's data its scan code and Alt, a double click's message a press with two clicks, a character its UTF-8 text),
+  so the games see what they saw on the window-procedure path (gone with DirectInput: PL12). SDL's translation of real
+  input is checked by tools/input_check against Windows' layouts.
 - What stays Windows in every build: the other game window (FindWindowW on the class name, which SDL_RegisterApp
   gives SDL's window class: "EIGAME"), the key names and keyboard layouts, the paths (SDL's pref path is the roaming
   folder and creates it, its base path is the folder, not the file: the settings file would move), the
   files and sockets. Their POSIX versions (src/platform/posix/platform_posix.cpp,
   PL9b): the program's path from `/proc/self/exe`, the user data folder from SDL's pref path, the one-instance check
-  as an advisory `flock` on a lock file named after the class and title (the other process's id in it), key names
+  as an advisory `flock` on a lock file named after the name and title (another process's window is not raised), key names
   for the set-1 scan codes through SDL's, `ActivateKeyboardLayout` a no-op (text follows the system's layout), no
   layout keys or control characters of the system's (sdl_keys.cpp's rules), `IsLetter` by `iswalpha_l`.
 
@@ -204,23 +204,22 @@ What SDL's backend does (platform_sdl.cpp):
   Alt+F4 is the game's (`SDL_HINT_WINDOWS_CLOSE_ON_ALT_F4` 0), closing the window is a request
   (`SDL_HINT_QUIT_ON_LAST_WINDOW_CLOSE` 0), mouse events only over the window (`SDL_HINT_MOUSE_AUTO_CAPTURE` 0, as Windows
   gave them). SDL makes the process per-monitor DPI aware: its coordinates are pixels.
-- **Window events go to the handler at once**, as the window procedure's sent messages did: focus gained / lost,
-  minimised, restored become `Activate` (only on a change of active / minimised), exposed becomes `Paint`, the close
-  request (and SDL's quit) `Destroy`. SDL keeps the cursor set over its window and the screen saver off itself. Input
-  waits in a queue for the game's loops.
+- **Every event waits in the queue** for the game's loops: focus gained / lost, minimised, restored become `Focus`
+  (only on a change of active / minimised), the close request (and SDL's quit) `CloseRequested`. SDL keeps the cursor
+  set over its window and the screen saver off itself; exposures are not passed on (the renderer presents on its own).
 - **Keys** (sdl_keys.cpp): the virtual-key code and the set-1 scan code (0x100 extended) from the key's place (a table of
   US positions); the keys a layout moves (the digit row, the letters, the main block's punctuation) take the active
   layout's code (`platform::LayoutKey`: Windows' MapVirtualKeyExW, so AZERTY's M key is VK_M), elsewhere what they type
   (SDL's Latin letters on every layout); tools/input_check checks the codes and the control characters against every
-  layout the machine has (a build check). The key flags as Windows' message data (Alt, repeat, release;
-  sign-extended), SystemKeyDown / Up with Alt held but not Ctrl, and F10. Characters: SDL's text as UTF-16 units, each
-  carrying the last key's flags (the interface drops the console key's character by its scan code), and the control
-  characters TranslateMessage made (Backspace, Tab, Enter, Escape; with Ctrl the active layout's on Windows,
-  `platform::LayoutControlCharacter`: Ctrl+[ 0x1B, Ctrl+] 0x1D, Ctrl+\\ 0x1C on a US layout, none for those keys on a
-  Russian one; elsewhere Ctrl+letter 1..26, Ctrl+Escape 0x1B, Ctrl+Backspace 0x7F, Ctrl+Enter 0x0A; none with Alt).
-- **The mouse**: MK_ bits (the buttons held, Shift, Ctrl), positions in the window, a second click (clicks even) as
-  LeftDouble / RightDouble, the wheel 120 a notch at the screen position. `MouseDevice::Read` gives the motion events'
-  sum since the last read, the wheel and the buttons (DIMOUSESTATE's layout).
+  layout the machine has (a build check). A key event carries SDL's repeat and Shift, Ctrl and Alt. Text: SDL's typed
+  text, UTF-8, with the scan code of the last key pressed (the interface drops the console key's character by it), and
+  the control characters a key types, which SDL's text leaves out (Backspace, Tab, Enter, Escape; with Ctrl the active
+  layout's on Windows, `platform::LayoutControlCharacter`: Ctrl+[ 0x1B, Ctrl+] 0x1D, Ctrl+\\ 0x1C on a US layout, none
+  for those keys on a Russian one; elsewhere Ctrl+letter 1..26, Ctrl+Escape 0x1B, Ctrl+Backspace 0x7F, Ctrl+Enter 0x0A;
+  none with Alt).
+- **The mouse**: positions in the window's pixels, a button (left, right, middle, the side buttons) with SDL's click
+  count, the wheel in notches (`SDL_MOUSEWHEEL_FLIPPED` turned back). `TakeMouseMotion` gives the motion events' sum
+  since the last call.
 - **The cursor**: the game's pictures as SDL colour cursors (`MakeCursor`: `SDL_CreateColorCursor` on an RGBA
   surface; the renderer makes them, docs/notes/renderer.md section 9, R40), shown with `SDL_SetCursor` +
   `SDL_ShowCursor`, hidden with `SDL_HideCursor` (null shape). The position is `SDL_GetGlobalMouseState`, placed with
@@ -238,18 +237,19 @@ What SDL's backend does (platform_sdl.cpp):
 
 ### How the events flow
 
-- `platform::RegisterWindowClass(instance, "EIGAME", app::HandleWindowEvent)`. The game's loop (app_main.cpp
+- `platform::StartWindowSystem("EIGAME")` (app_main.cpp, before the one-instance check). The game's loop (app_main.cpp
   RunMainLoop) asks `EventWaits`, takes the next event with `NextEvent` and passes it to `app::DispatchInput` (the
-  interface) or `app::HandleWindowEvent`: as in the original, input does not pass the window procedure. `PumpMessages`
-  takes events with `TakeEvent` (no translation) and gives them to HandleWindowEvent; the movie loop dispatches only
-  Paint events (`DispatchEvent`).
-- Events keep the message's values the game read: the virtual-key code, the repeat count and the key flags (the high
-  half of the key data, sign-extended: scan code, `kKeyAltDown`, ...), the UTF-16 unit of a typed character (app.cpp
-  joins surrogate pairs), the mouse buttons (MK_ bits), positions as signed 16-bit values; the dispatcher hands the
-  interface positions and the wheel's turn as unsigned 16-bit values.
+  interface; the focus and the close request go on to `app::HandleWindowEvent` without the interface's close-all) or
+  `app::HandleWindowEvent`. `PumpMessages` takes events with `TakeEvent` and gives them to HandleWindowEvent (input
+  dropped); the movie loop takes Escape and Space and gives the rest to HandleWindowEvent.
+- app.cpp's dispatcher makes the interface's arguments of an event (the interface still takes the original's message
+  data): the key flags from the scan code, Alt, the repeat and the release (`KeyFlags`), the system keys (Alt without
+  Ctrl, or F10: Alt+F4 quits, a release is printed to the console, Alt+Tab deactivates), each character of a Text
+  event with its scan code, a press with an even click count as a double click, the wheel as 120 a notch; the mouse
+  buttons' argument is 0 (the interface reads it nowhere).
 - **Mouse positions in game points.** The game takes its mouse positions as screen coordinates of a window at 0, 0 the
   size of its resolution: the cursor position (the cursor, the global map) is read and placed without converting, mouse
-  moves and buttons come as client coordinates, the wheel as screen coordinates. The window is anywhere (windowed it is
+  events come in the window's pixels. The window is anywhere (windowed it is
   centred and movable) and the frame may be scaled into it (render::FrameInWindow), so these are always mapped to frame
   pixels: present_window.cpp maps mouse events (`MouseToGame`) and gives the cursor calls its mapping with
   `platform::MapCursorPoints` at each present; every game call of the cursor's position goes through platform.h's cursor

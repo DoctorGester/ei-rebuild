@@ -72,7 +72,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073C224,20,,game,00453240 00476FB0 004A0350 004D9110 0059F030 005AABC0,00453470,FigureMesh,src/game/figure_mesh.h,the figures' base
 0073C274,18,,game,004545C0,00454810,SceneMesh,-,"CFakeFigure (the scene's meshes); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
 0073C2BC,3,,game,00454830 00454A50 00454CE0 0046F1F0 00471B10,007005E3,FaceGroupArrayClass,-,"CArray<FaceGroup> (a scene mesh's face groups); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
-0073C350,1,,game,00456440 004578D0,004578B0,DirectInputMouse,src/game/ui_cursor.h,the DirectInput mouse (CDirectInputMouse)
+0073C350,1,,game,00456440 004578D0,004578B0,DirectInputMouse,-,the DirectInput mouse (CDirectInputMouse); gone (PL16: platform::TakeMouseMotion)
 0073C360,2,,game,00457740 004577E0 004A5BD0 004A5E90,004577C0,PartyRecord,src/game/party_records.h,a named party record (PartyRecord)
 0073C368,1,,game,004578D0 00457940 00457950 004F2C00 004F2D40 004F2E40 004F69F0 004F6BD0 004FCC40 004FCD50 004FD8A0 004FD8B0 0051C3D0 0051C730,00457950,the plain counted root,-,"a fieldless counted root (slot 0 the deleting destructor 00457950) that game.exe's renderer, figure and mouse destructors leave; their classes do without it"
 0073C37C,3,,game,0045D5B0,007005E3,BehaviourPatrolsArrayClass,-,CArray (a unit record behaviour's patrols; derived from PatrolArrayClass); stored only by game.exe (ours is a std::vector)

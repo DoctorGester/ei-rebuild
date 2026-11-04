@@ -64,9 +64,8 @@ bool FontSmoothing() {
 // parallel (run_all.py --jobs), each game in its own output folder, so in harness runs no other window counts. The
 // other way (ST1b): a game the user starts without the harness runs the real check, so a harness game's window has a
 // title of its own (harness_platform.cpp's CreateGameWindow) and a play launch never finds it.
-NativeWindow FindClassWindow(const char* className, const char* title) {
-    if (!hp::Answering()) return sys::OtherGameWindow(className, title);
-    return nullptr;
+bool BringOtherInstanceForward(const char* name, const char* title) {
+    return !hp::Answering() && sys::BringOtherGameForward(name, title);
 }
 
 } // namespace platform

@@ -161,7 +161,7 @@ const unsigned long kDiskFull = ENOSPC;
 
 bool FontSmoothing() { return true; }
 
-void* OtherGameWindow(const char* className, const char* title) { return platform::posix::OtherInstance(className, title); }
+bool BringOtherGameForward(const char* name, const char* title) { return platform::posix::OtherInstanceRunning(name, title); }
 
 // ==== Processes, threads and time ====================================================================================
 

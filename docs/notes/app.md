@@ -9,7 +9,7 @@ window and input in `platform.md`.
 a fallback), the command line ("-moviepath_", "-nocam", .cam / .scr / .mob / .mpr files), a second
 instance's hand-over (a running game is brought forward and this one exits), the settings (`ei_settings.ini`,
 `docs/settings.md`), the two worlds and the camera (field of view pi * 2 / 7), the free disk space (a 300 MB warning,
-`platform::FreeDiskSpace` of the data folder itself), the mouse object, the saves / mp /
+`platform::FreeDiskSpace` of the data folder itself), the saves / mp /
 textures folders, the window, the renderer, the sound, the intro movies (list from the .ini), the databases, the
 cursors, the interface, the map list (`MapDatabase::LoadAll`: map.txt, then map-LMP.txt) and the first map or the main
 menu.
@@ -31,7 +31,7 @@ The harness's hook points (`src/game/main_loop.h`, `g_harnessHooks`) sit at the 
 between the interface draw and the cursor blit, "freeze" (the camera's update), "speed" (the server and client
 updates), and the loop's message peeks and clock reads named in `ei::mainloop::g_site`.
 
-Dropped on purpose: the original chose the interface or the window procedure for a message waiting before the first
+Dropped on purpose: the original chose the interface or the window procedure for an event waiting before the first
 pass by the top byte of a reused stack slot (it hung depending on where a string lay); ours always gives it to the
 interface. Kept: `SetUpCursors`' last argument has only its low byte set; "res\speech.res" is built twice;
 `FrameStep`'s movie capture passes two uninitialised words as the rectangle's size when there is no render target.

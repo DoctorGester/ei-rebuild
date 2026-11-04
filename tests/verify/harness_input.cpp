@@ -3,24 +3,55 @@
 
 #include "platform/harness_platform.h"
 
+#include <string>
+
 namespace ei::verify::input {
 namespace {
 
 using platform::Event;
 using platform::EventType;
+using platform::MouseButton;
+
+// A key message's data: the scan code (bit 8 extended), Alt held, the key down before.
+constexpr int kDataScan = 0x1FF, kDataAlt = 0x2000, kDataRepeated = 0x4000;
+
+int DataFlags(std::intptr_t data) { return static_cast<int>((static_cast<std::uintptr_t>(data) >> 16) & 0xFFFF); }
 
 void SetKey(Event& event, EventType type, std::uintptr_t key, std::intptr_t data) {
+    const int flags = DataFlags(data);
     event.type = type;
     event.key = static_cast<int>(key);
-    event.repeat = static_cast<int>(data & 0xFFFF);
-    event.keyFlags = static_cast<int>(data) >> 16;
+    event.scan = flags & kDataScan;
+    event.repeat = type == EventType::KeyDown && (flags & kDataRepeated) != 0;
+    event.modifiers = (flags & kDataAlt) ? platform::kModifierAlt : 0;
 }
 
-void SetMouse(Event& event, EventType type, std::uintptr_t buttons, std::intptr_t at) {
+void SetMouse(Event& event, EventType type, std::intptr_t at) {
     event.type = type;
-    event.buttons = static_cast<int>(buttons);
     event.x = static_cast<short>(at & 0xFFFF);
     event.y = static_cast<short>((at >> 16) & 0xFFFF);
+}
+
+void SetButton(Event& event, EventType type, MouseButton button, int clicks, std::intptr_t at) {
+    SetMouse(event, type, at);
+    event.button = button;
+    event.clicks = clicks;
+}
+
+// A character (at most U+FFFF) as UTF-8.
+std::string Utf8(unsigned c) {
+    std::string text;
+    if (c < 0x80) {
+        text += static_cast<char>(c);
+    } else if (c < 0x800) {
+        text += static_cast<char>(0xC0 | (c >> 6));
+        text += static_cast<char>(0x80 | (c & 0x3F));
+    } else {
+        text += static_cast<char>(0xE0 | (c >> 12));
+        text += static_cast<char>(0x80 | ((c >> 6) & 0x3F));
+        text += static_cast<char>(0x80 | (c & 0x3F));
+    }
+    return text;
 }
 
 } // namespace
@@ -81,21 +112,25 @@ void Post(unsigned message, std::uintptr_t word, std::intptr_t data) {
     }
     Event event;
     switch (message) {
-    case KeyDown: SetKey(event, EventType::KeyDown, word, data); break;
-    case KeyUp: SetKey(event, EventType::KeyUp, word, data); break;
-    case SystemKeyDown: SetKey(event, EventType::SystemKeyDown, word, data); break;
-    case SystemKeyUp: SetKey(event, EventType::SystemKeyUp, word, data); break;
-    case Character: SetKey(event, EventType::Character, word & 0xFFFF, data); break;
-    case MouseMove: SetMouse(event, EventType::MouseMove, word, data); break;
-    case LeftDown: SetMouse(event, EventType::LeftDown, word, data); break;
-    case LeftUp: SetMouse(event, EventType::LeftUp, word, data); break;
-    case LeftDouble: SetMouse(event, EventType::LeftDouble, word, data); break;
-    case RightDown: SetMouse(event, EventType::RightDown, word, data); break;
-    case RightUp: SetMouse(event, EventType::RightUp, word, data); break;
-    case RightDouble: SetMouse(event, EventType::RightDouble, word, data); break;
+    case KeyDown:
+    case SystemKeyDown: SetKey(event, EventType::KeyDown, word, data); break;
+    case KeyUp:
+    case SystemKeyUp: SetKey(event, EventType::KeyUp, word, data); break;
+    case Character:
+        event.type = EventType::Text;
+        event.scan = DataFlags(data) & kDataScan;
+        event.text = Utf8(static_cast<unsigned>(word & 0xFFFF));
+        break;
+    case MouseMove: SetMouse(event, EventType::MouseMove, data); break;
+    case LeftDown: SetButton(event, EventType::MouseDown, MouseButton::Left, 1, data); break;
+    case LeftUp: SetButton(event, EventType::MouseUp, MouseButton::Left, 1, data); break;
+    case LeftDouble: SetButton(event, EventType::MouseDown, MouseButton::Left, 2, data); break;
+    case RightDown: SetButton(event, EventType::MouseDown, MouseButton::Right, 1, data); break;
+    case RightUp: SetButton(event, EventType::MouseUp, MouseButton::Right, 1, data); break;
+    case RightDouble: SetButton(event, EventType::MouseDown, MouseButton::Right, 2, data); break;
     case Wheel:
-        SetMouse(event, EventType::Wheel, word & 0xFFFF, data);
-        event.wheelDelta = static_cast<short>((word >> 16) & 0xFFFF);
+        SetMouse(event, EventType::Wheel, data);
+        event.wheel = static_cast<float>(static_cast<short>((word >> 16) & 0xFFFF)) / 120.0f;
         break;
     default: return;
     }

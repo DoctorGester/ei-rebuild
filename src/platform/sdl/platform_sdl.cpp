@@ -92,140 +92,81 @@ MessageAnswer ShowMessageBox(void* owner, const char* text, const char* caption,
 
 // ==== The window and its events ======================================================================================
 
-// SDL's window and events turned into the game's Events (docs/notes/platform.md, "SDL3"): keys with the virtual-key
-// codes and the key flags Windows gave (the scan code, Alt, repeat, release), the characters a key types (SDL's text,
-// and the control characters Windows' TranslateMessage made: Backspace, Tab, Enter, Escape, Ctrl+letter), the mouse
-// with Windows' button bits and double clicks. Window events (activation, painting, the close request) go to the
-// handler at once, as the window procedure's messages did; input waits in the queue for the game's loops.
+// SDL's window and events as the game's Events (docs/notes/platform.md, "SDL3"): keys with the virtual-key codes and
+// the set-1 scan codes (sdl_keys.cpp), SDL's typed text and the control characters a key types, the mouse in pixels,
+// the focus only on a change. Every event waits in the queue for the game's loops.
 
 namespace {
 
-EventHandler g_handler = nullptr;
 // The events taken from SDL and not yet from us.
 std::deque<Event> g_waiting;
 // PostQuit's request: NextEvent gives it once nothing else waits.
 bool g_quitPosted = false;
 int g_quitCode = 0;
-// The activation the handler was told last (an Activate event only on a change).
+// The focus the game was told last (a Focus event only on a change).
 bool g_told = false;
 bool g_toldActive = false;
 bool g_toldMinimized = false;
-// The mouse buttons held, as Windows' MK_ bits.
-int g_buttons = 0;
-// The key flags of the last key pressed: the characters it types carry them (WM_CHAR had the key's).
-int g_typedFlags = 0;
-// The mouse's motion and wheel since MouseDevice::Read took them; the motion's fractions kept for the next event (the
-// held cursor's relative mode scales the motion as the system scales the pointer's).
+// The scan code of the last key pressed: the text it types carries it.
+int g_typedScan = 0;
+// The mouse's motion since TakeMouseMotion took it; its fractions kept for the next event (the held cursor's relative
+// mode scales the motion as the system scales the pointer's).
 std::int32_t g_motionX = 0;
 std::int32_t g_motionY = 0;
-std::int32_t g_motionWheel = 0;
 float g_motionRestX = 0.0f, g_motionRestY = 0.0f;
 
-constexpr int kKeyRepeated = 0x4000;   // the key was down before
-constexpr int kKeyReleased = 0xC000;   // a release: down before, going up
-constexpr int kMouseLeft = 0x01;       // MK_LBUTTON ...
-constexpr int kMouseRight = 0x02;
-constexpr int kMouseShift = 0x04;
-constexpr int kMouseControl = 0x08;
-constexpr int kMouseMiddle = 0x10;
-constexpr int kMouseX1 = 0x20;
-constexpr int kMouseX2 = 0x40;
-constexpr int kWheelNotch = 120;
-
-void Send(Event event) {
-    event.window = g_native;
-    if (g_handler) g_handler(event);
-}
-
-void Queue(Event event) {
-    event.window = g_native;
-    g_waiting.push_back(event);
-}
+void Queue(Event event) { g_waiting.push_back(std::move(event)); }
 
 bool Minimized() { return g_window && (SDL_GetWindowFlags(g_window) & SDL_WINDOW_MINIMIZED) != 0; }
 
-void Activation(bool active, bool minimized) {
+void Focus(bool active, bool minimized) {
     if (g_told && active == g_toldActive && minimized == g_toldMinimized) return;
     g_told = true;
     g_toldActive = active;
     g_toldMinimized = minimized;
     Event event;
-    event.type = EventType::Activate;
-    event.activation = active ? Activation::Active : Activation::Inactive;
+    event.type = EventType::Focus;
+    event.active = active;
     event.minimized = minimized;
-    Send(event);
+    Queue(event);
 }
 
 // ---- Keys (sdl_keys.cpp) ------------------------------------------------------------------------------------
 
-void QueueCharacter(int unit) {
+std::uint8_t Modifiers(SDL_Keymod mod) {
+    return static_cast<std::uint8_t>(((mod & SDL_KMOD_SHIFT) ? kModifierShift : 0) |
+                                     ((mod & SDL_KMOD_CTRL) ? kModifierControl : 0) |
+                                     ((mod & SDL_KMOD_ALT) ? kModifierAlt : 0));
+}
+
+void QueueText(std::string text) {
     Event event;
-    event.type = EventType::Character;
-    event.key = unit;
-    event.repeat = 1;
-    event.keyFlags = g_typedFlags;
-    Queue(event);
+    event.type = EventType::Text;
+    event.scan = g_typedScan;
+    event.text = std::move(text);
+    Queue(std::move(event));
 }
 
 void TakeKey(const SDL_KeyboardEvent& k) {
     const sdl_keys::KeyCode code = sdl_keys::KeyOf(k.scancode, k.key, k.mod, LayoutKey);
     if (code.key == 0) return;
-    const bool alt = (k.mod & SDL_KMOD_ALT) != 0;
-    // Windows' system keys: with Alt held but not Ctrl (AltGr is both), and F10.
-    const bool system = (alt && (k.mod & SDL_KMOD_CTRL) == 0) || code.key == 0x79;
-    int flags = code.scan | (alt ? kKeyAltDown : 0);
-    if (!k.down)
-        flags |= kKeyReleased;
-    else if (k.repeat)
-        flags |= kKeyRepeated;
     Event event;
-    if (k.down)
-        event.type = system ? EventType::SystemKeyDown : EventType::KeyDown;
-    else
-        event.type = system ? EventType::SystemKeyUp : EventType::KeyUp;
+    event.type = k.down ? EventType::KeyDown : EventType::KeyUp;
     event.key = code.key;
-    event.repeat = 1;
-    event.keyFlags = static_cast<std::int16_t>(flags);   // sign-extended, as the message data's high half
+    event.scan = code.scan;
+    event.repeat = k.down && k.repeat;
+    event.modifiers = Modifiers(k.mod);
     Queue(event);
     if (!k.down) return;
-    g_typedFlags = event.keyFlags;
-    if (const int character = sdl_keys::ControlCharacter(code.key, code.scan, k.mod, LayoutControlCharacter))
-        QueueCharacter(character);
-}
-
-// SDL's typed text as UTF-16 units (a character past U+FFFF as a surrogate pair), each a Character event.
-void TakeText(const char* text) {
-    std::size_t left = SDL_strlen(text);
-    while (left > 0) {
-        const Uint32 character = SDL_StepUTF8(&text, &left);
-        if (character == 0) break;
-        if (character > 0xFFFF) {
-            QueueCharacter(static_cast<int>(0xD800 + ((character - 0x10000) >> 10)));
-            QueueCharacter(static_cast<int>(0xDC00 + ((character - 0x10000) & 0x3FF)));
-        } else {
-            QueueCharacter(static_cast<int>(character));
-        }
+    g_typedScan = code.scan;
+    if (const int character = sdl_keys::ControlCharacter(code.key, code.scan, k.mod, LayoutControlCharacter)) {
+        char text[5] = {};
+        SDL_UCS4ToUTF8(static_cast<Uint32>(character), text);
+        QueueText(text);
     }
 }
 
 // ---- The mouse ---------------------------------------------------------------------------------------------------
-
-int ButtonBit(Uint8 button) {
-    switch (button) {
-    case SDL_BUTTON_LEFT: return kMouseLeft;
-    case SDL_BUTTON_RIGHT: return kMouseRight;
-    case SDL_BUTTON_MIDDLE: return kMouseMiddle;
-    case SDL_BUTTON_X1: return kMouseX1;
-    case SDL_BUTTON_X2: return kMouseX2;
-    default: return 0;
-    }
-}
-
-// The buttons held and Shift and Ctrl, as a mouse message's MK_ bits.
-int Buttons() {
-    const SDL_Keymod mod = SDL_GetModState();
-    return g_buttons | ((mod & SDL_KMOD_SHIFT) ? kMouseShift : 0) | ((mod & SDL_KMOD_CTRL) ? kMouseControl : 0);
-}
 
 int Whole(float coordinate) { return static_cast<int>(std::floor(coordinate)); }
 
@@ -241,44 +182,32 @@ float PixelsPerPoint() {
 // A coordinate in points as whole pixels.
 int Pixels(float points) { return static_cast<int>(std::floor(points * PixelsPerPoint())); }
 
-void QueueMouse(EventType type, float x, float y) {
+Event MouseEvent(EventType type, float x, float y) {
     Event event;
     event.type = type;
-    event.buttons = Buttons();
-    event.x = static_cast<std::int16_t>(Pixels(x));
-    event.y = static_cast<std::int16_t>(Pixels(y));
-    Queue(event);
+    event.x = Pixels(x);
+    event.y = Pixels(y);
+    return event;
 }
 
 void TakeButton(const SDL_MouseButtonEvent& b) {
-    const int bit = ButtonBit(b.button);
-    if (b.down)
-        g_buttons |= bit;
-    else
-        g_buttons &= ~bit;
-    // Windows' second click of a double click (the fourth, ...) came as its own message.
-    const bool twice = b.down && b.clicks % 2 == 0;
-    if (bit == kMouseLeft)
-        QueueMouse(b.down ? (twice ? EventType::LeftDouble : EventType::LeftDown) : EventType::LeftUp, b.x, b.y);
-    else if (bit == kMouseRight)
-        QueueMouse(b.down ? (twice ? EventType::RightDouble : EventType::RightDown) : EventType::RightUp, b.x, b.y);
+    Event event = MouseEvent(b.down ? EventType::MouseDown : EventType::MouseUp, b.x, b.y);
+    switch (b.button) {
+    case SDL_BUTTON_LEFT: event.button = MouseButton::Left; break;
+    case SDL_BUTTON_RIGHT: event.button = MouseButton::Right; break;
+    case SDL_BUTTON_MIDDLE: event.button = MouseButton::Middle; break;
+    case SDL_BUTTON_X1: event.button = MouseButton::X1; break;
+    case SDL_BUTTON_X2: event.button = MouseButton::X2; break;
+    default: return;
+    }
+    event.clicks = b.clicks;
+    Queue(event);
 }
 
-// A wheel turn: 120 a notch, positive away from the player; at the cursor's screen position, as WM_MOUSEWHEEL.
 void TakeWheel(const SDL_MouseWheelEvent& w) {
-    const float notches = w.direction == SDL_MOUSEWHEEL_FLIPPED ? -w.y : w.y;
-    const int delta = static_cast<int>(std::lround(notches * kWheelNotch));
-    if (delta == 0) return;
-    g_motionWheel += delta;
-    int left = 0, top = 0;
-    SDL_GetWindowPosition(g_window, &left, &top);
-    Event event;
-    event.type = EventType::Wheel;
-    event.buttons = Buttons();
-    event.wheelDelta = delta;
-    event.x = static_cast<std::int16_t>(Pixels(w.mouse_x + static_cast<float>(left)));
-    event.y = static_cast<std::int16_t>(Pixels(w.mouse_y + static_cast<float>(top)));
-    Queue(event);
+    Event event = MouseEvent(EventType::Wheel, w.mouse_x, w.mouse_y);
+    event.wheel = w.direction == SDL_MOUSEWHEEL_FLIPPED ? -w.y : w.y;
+    if (event.wheel != 0.0f) Queue(event);
 }
 
 // ---- SDL's events ------------------------------------------------------------------------------------------------
@@ -287,7 +216,7 @@ void Take(const SDL_Event& e) {
     switch (e.type) {
     case SDL_EVENT_KEY_DOWN:
     case SDL_EVENT_KEY_UP: TakeKey(e.key); break;
-    case SDL_EVENT_TEXT_INPUT: TakeText(e.text.text); break;
+    case SDL_EVENT_TEXT_INPUT: QueueText(e.text.text); break;
     case SDL_EVENT_MOUSE_MOTION:
         g_motionRestX += e.motion.xrel * PixelsPerPoint();
         g_motionRestY += e.motion.yrel * PixelsPerPoint();
@@ -295,29 +224,23 @@ void Take(const SDL_Event& e) {
         g_motionY += Whole(g_motionRestY);
         g_motionRestX -= std::floor(g_motionRestX);
         g_motionRestY -= std::floor(g_motionRestY);
-        QueueMouse(EventType::MouseMove, e.motion.x, e.motion.y);
+        Queue(MouseEvent(EventType::MouseMove, e.motion.x, e.motion.y));
         break;
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
     case SDL_EVENT_MOUSE_BUTTON_UP: TakeButton(e.button); break;
     case SDL_EVENT_MOUSE_WHEEL: TakeWheel(e.wheel); break;
-    case SDL_EVENT_WINDOW_EXPOSED: {
-        Event paint;
-        paint.type = EventType::Paint;
-        Send(paint);
-        break;
-    }
-    case SDL_EVENT_WINDOW_FOCUS_GAINED: Activation(true, Minimized()); break;
-    case SDL_EVENT_WINDOW_FOCUS_LOST: Activation(false, Minimized()); break;
-    case SDL_EVENT_WINDOW_MINIMIZED: Activation(false, true); break;
+    case SDL_EVENT_WINDOW_FOCUS_GAINED: Focus(true, Minimized()); break;
+    case SDL_EVENT_WINDOW_FOCUS_LOST: Focus(false, Minimized()); break;
+    case SDL_EVENT_WINDOW_MINIMIZED: Focus(false, true); break;
     case SDL_EVENT_WINDOW_RESTORED:
-        if (g_window && (SDL_GetWindowFlags(g_window) & SDL_WINDOW_INPUT_FOCUS)) Activation(true, false);
+        if (g_window && (SDL_GetWindowFlags(g_window) & SDL_WINDOW_INPUT_FOCUS)) Focus(true, false);
         break;
-    // The player closes the window (or the system ends the session): the game decides, as on WM_DESTROY.
+    // The player closes the window (or the system ends the session): the game decides.
     case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
     case SDL_EVENT_QUIT: {
-        Event destroy;
-        destroy.type = EventType::Destroy;
-        Send(destroy);
+        Event close;
+        close.type = EventType::CloseRequested;
+        Queue(close);
         break;
     }
     default: break;
@@ -342,25 +265,26 @@ Event QuitEvent() {
 
 // ---- The window --------------------------------------------------------------------------------------------------
 
-void RegisterWindowClass(NativeInstance instance, const char* className, EventHandler handler) {
-    g_handler = handler;
+void StartWindowSystem(const char* name) {
     SDL_SetHint(SDL_HINT_WINDOWS_CLOSE_ON_ALT_F4, "0");      // the game takes Alt+F4 itself
-    SDL_SetHint(SDL_HINT_QUIT_ON_LAST_WINDOW_CLOSE, "0");    // closing the window is a request (Destroy)
+    SDL_SetHint(SDL_HINT_QUIT_ON_LAST_WINDOW_CLOSE, "0");    // closing the window is a request (CloseRequested)
     SDL_SetHint(SDL_HINT_MOUSE_AUTO_CAPTURE, "0");           // mouse events only over the window, as Windows gave them
     // The held cursor (HoldCursor): relative mode keeps it visible where the mouse rectangle holds it, its motion scaled
     // as the pointer's.
     SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_CURSOR_VISIBLE, "1");
     SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_MODE_CENTER, "0");
     SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_SYSTEM_SCALE, "1");
-    // The window class's name (FindClassWindow finds a running game by it); SDL counts double clicks itself.
+    // The window class's name (BringOtherInstanceForward finds a running game by it).
 #if defined(_WIN32)
-    SDL_RegisterApp(className, 0, instance);
+    SDL_RegisterApp(name, 0, nullptr);
+#else
+    (void)name;
 #endif
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO))
         ei::Log("platform: no SDL video: %s", SDL_GetError());
 }
 
-NativeWindow CreateGameWindow(NativeInstance, const char* title, int width, int height, bool fullScreen) {
+NativeWindow CreateGameWindow(const char* title, int width, int height, bool fullScreen) {
 #if defined(__APPLE__)
     // The window in points, so that its drawable holds `width` x `height` pixels (on Retina half as many points).
     if (const SDL_DisplayMode* mode = SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay());
@@ -417,17 +341,11 @@ NativeWindow CreateGameWindow(NativeInstance, const char* title, int width, int 
     return g_native;
 }
 
-void ShowGameWindow(NativeWindow window, int) {
+void ShowGameWindow(NativeWindow window) {
     if (SDL_Window* w = WindowOf(window)) SDL_ShowWindow(w);
 }
 
 bool IsMinimized(NativeWindow window) { return WindowOf(window) && Minimized(); }
-
-// SDL marks the window painted itself.
-void MarkPainted(NativeWindow) {}
-
-// The desktop's compositor repaints it (no display mode ever changes).
-void RepaintDesktop() {}
 
 void ScreenToClient(NativeWindow window, Point* point) {
     int left = 0, top = 0;
@@ -503,10 +421,6 @@ bool TakeEvent(Event* event) {
     if (!g_quitPosted) return false;
     *event = QuitEvent();
     return true;
-}
-
-void DispatchEvent(const Event& event) {
-    if (g_handler) g_handler(event);
 }
 
 void PostQuit(int code) {
@@ -607,32 +521,8 @@ void SetCursorPosition(Point at) {
 
 // ==== The mouse ======================================================================================================
 
-// The motion SDL's events carried since the last Read (the event loop adds it up), the buttons as SDL holds them.
-
-struct MouseDevice::Device {};
-
-MouseDevice::MouseDevice() = default;
-MouseDevice::~MouseDevice() = default;
-
-int MouseDevice::Open(NativeWindow, NativeInstance, MouseReport) { return 1; }
-
-void MouseDevice::Close() {}
-
-int MouseDevice::SetActive(bool, MouseReport) { return 1; }
-
-// DIMOUSESTATE: x, y and the wheel, then a byte a button (0x80 held: left, right, middle, the first side button).
-void MouseDevice::Read(std::int32_t state[4]) {
-    state[0] = std::exchange(g_motionX, 0);
-    state[1] = std::exchange(g_motionY, 0);
-    state[2] = std::exchange(g_motionWheel, 0);
-    const SDL_MouseButtonFlags held = SDL_GetMouseState(nullptr, nullptr);
-    std::uint32_t buttons = 0;
-    if (held & SDL_BUTTON_LMASK) buttons |= 0x80u;
-    if (held & SDL_BUTTON_RMASK) buttons |= 0x80u << 8;
-    if (held & SDL_BUTTON_MMASK) buttons |= 0x80u << 16;
-    if (held & SDL_BUTTON_X1MASK) buttons |= 0x80u << 24;
-    state[3] = static_cast<std::int32_t>(buttons);
-}
+// The motion SDL's events carried since the last call (the event loop adds it up).
+Point TakeMouseMotion() { return Point{std::exchange(g_motionX, 0), std::exchange(g_motionY, 0)}; }
 
 // ==== The clipboard ==================================================================================================
 

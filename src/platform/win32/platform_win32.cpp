@@ -343,31 +343,24 @@ void MappedFile::Close() {
 
 // ==== The other game window ==========================================================================================
 
-// A game that runs already (its window's class and title: FindClassWindow, game_calls.cpp's, which the harness
-// answers) is brought to the front.
+// A game that runs already (its window found by class and title: BringOtherInstanceForward, game_calls.cpp's, which
+// the harness answers) is brought to the front.
 
-namespace platform {
+namespace platform::win32 {
 
-std::uint32_t WindowProcess(NativeWindow window) {
-    DWORD process = 0;
-    ::GetWindowThreadProcessId(static_cast<HWND>(window), &process);
-    return process;
-}
-
-void BringToFront(NativeWindow window) {
-    HWND other = static_cast<HWND>(window);
+bool BringForward(HWND other) {
+    if (!other) return false;
     const DWORD foregroundThread = ::GetWindowThreadProcessId(::GetForegroundWindow(), nullptr);
     const DWORD otherThread = ::GetWindowThreadProcessId(other, nullptr);
-    if (otherThread == foregroundThread && !::IsIconic(other)) return;
+    if (otherThread == foregroundThread && !::IsIconic(other)) return true;
     HWND popup = ::GetLastActivePopup(other);
     if (::IsIconic(popup)) ::ShowWindow(popup, SW_RESTORE);
     ::BringWindowToTop(popup);
     ::SetForegroundWindow(popup);
+    return true;
 }
 
-NativeInstance ProgramInstance() { return GetModuleHandleA(nullptr); }
-
-} // namespace platform
+} // namespace platform::win32
 
 // ==== The keyboard ===================================================================================================
 

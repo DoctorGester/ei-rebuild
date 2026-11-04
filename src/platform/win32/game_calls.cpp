@@ -39,8 +39,8 @@ bool FontSmoothing() {
     return smoothing != FALSE;
 }
 
-NativeWindow FindClassWindow(const char* className, const char* title) {
-    return FindWindowW(text::Wide(className).c_str(), text::Wide(title).c_str());
+bool BringOtherInstanceForward(const char* name, const char* title) {
+    return win32::BringForward(FindWindowW(text::Wide(name).c_str(), text::Wide(title).c_str()));
 }
 
 } // namespace platform

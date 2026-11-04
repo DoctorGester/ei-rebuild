@@ -130,9 +130,7 @@ address,size,name,file
 0079B924,4,g_currentConnection,src/game/net_classes.h
 0079B9F8,4,g_lastTime,src/game/app_main.cpp
 0079B9FC,1,g_lastTimeGuard,src/game/app_main.cpp
-0079BA08,4,g_mouse,src/game/app_main.cpp
 0079BB24,256,g_windowTitle,src/game/app_main.cpp
-0079BC24,4,g_instance,src/game/app_main.cpp
 0079BC28,4,g_mainWindow,src/game/app_main.cpp
 0079BC54,1,g_recordingFrames,src/game/app_main.cpp
 0079BC58,4,g_movieFrame,src/game/app_frame.cpp
