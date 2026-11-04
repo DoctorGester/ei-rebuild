@@ -174,9 +174,8 @@ bool QuestBriefingTable::Add(const QuestBriefingRecord* record) {
 
 // --- Quest db open -----------------------------------------------------------------------------------
 
-// The quest database's load from database.res, once at startup (called from WinMain). Rebirth patches the
-// load (it redirects the file lookup to a mod folder's copy): this is the vanilla function and installs in
-// the vanilla launch only (rule 9). As unit_db.cpp; see docs/notes/items_spells.md.
+// The quest database's load from database.res, once at startup (called from WinMain). As unit_db.cpp; see
+// docs/notes/items_spells.md.
 
 namespace {
 

@@ -55,7 +55,7 @@ int RunIniFileChecks() {
     CHECK(platform::WriteWholeFile(path, kText, &error));
 
     IniFile ini;
-    ini.SetPath(path);
+    ini.Load(path);
     CHECK(ini.GetInt("game", "COUNT", 0) == 42);              // case of section and key; the first of two keys
     CHECK(ini.GetString("GAME", "name", "") == "quoted value"); // one pair of quotes stripped
     CHECK(ini.GetString("Game", "Single", "") == "x");
@@ -71,7 +71,7 @@ int RunIniFileChecks() {
     CHECK(ini.GetString("Last", "End", "") == "1");             // no line end after the last line
 
     IniFile missing;
-    missing.SetPath(folder + "/missing.ini");
+    missing.Load(folder + "/missing.ini");
     CHECK(missing.GetString("Game", "Count", "none") == "none" && missing.GetKeyNames("Game").empty());
 
     std::error_code ignored;

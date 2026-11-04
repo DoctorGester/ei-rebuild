@@ -35,16 +35,16 @@ void TripleChunk(ChunkArchive* ar, int id, PrintLook* look) { TripleChunk(ar, id
 void ChunkArchive::SerializePrints(int id, std::vector<PrintRecord>* records) {
     RecordChunks(this, id, records, &PrintRecord::Serialize);
 }
-void ChunkArchive::SerializePrints2(int id, std::vector<PrintRecord2>* records) {
+void ChunkArchive::SerializeFootprints(int id, std::vector<PrintRecord2>* records) {
     RecordChunks(this, id, records, &PrintRecord2::Serialize);
 }
-void ChunkArchive::SerializeAcks(int id, std::vector<acks::UnitAcks>* records) {
+void ChunkArchive::SerializeUnitAcks(int id, std::vector<acks::UnitAcks>* records) {
     RecordChunks(this, id, records, &acks::UnitAcks::Serialize);
 }
-void ChunkArchive::SerializeAcks2(int id, std::vector<acks::ModelAcks>* records) {
+void ChunkArchive::SerializeModelAcks(int id, std::vector<acks::ModelAcks>* records) {
     RecordChunks(this, id, records, &acks::ModelAcks::Serialize);
 }
-void ChunkArchive::SerializeAcks3(int id, std::vector<acks::ExtraAcks>* records) {
+void ChunkArchive::SerializeExtraAcks(int id, std::vector<acks::ExtraAcks>* records) {
     RecordChunks(this, id, records, &acks::ExtraAcks::Serialize);
 }
 
@@ -115,9 +115,7 @@ void WaterTweens::ApplyTo(terrain::Terrain* terrain) const {
 
 // --- Open --------------------------------------------------------------------------------------------
 
-// The loads of prints.db and acks.db from database.res, once at startup.
-// Rebirth patches both loads (it redirects their file lookup to a mod folder's copy): these are the vanilla
-// functions and install in the vanilla launch only (rule 9). As unit_db.cpp; see docs/notes/models.md.
+// The loads of prints.db and acks.db from database.res, once at startup. As unit_db.cpp; see docs/notes/models.md.
 
 namespace {
 
@@ -183,7 +181,7 @@ int PrintsDatabase::Load(const std::string& folder) {
     const auto name = [](auto& record) -> const std::string& { return record.name; };
     LoadTable(&stream, kBloodChunk, &ChunkArchive::SerializePrints, &blood,
               [&] { FileRecords(blood, bloodByName, name); });
-    LoadTable(&stream, kFootprintsChunk, &ChunkArchive::SerializePrints2, &footprints,
+    LoadTable(&stream, kFootprintsChunk, &ChunkArchive::SerializeFootprints, &footprints,
               [&] { FileRecords(footprints, footprintsByName, name); });
     LoadTable(&stream, kScorchChunk, &ChunkArchive::SerializePrints, &scorch,
               [&] { FileRecords(scorch, scorchByName, name); });
@@ -209,11 +207,11 @@ int AckDatabase::Load(const std::string& folder) {
     stream.Fill(data, size);
 
     const auto name = [](auto& record) -> const std::string& { return record.head.name; };
-    LoadTable(&stream, kUnitAcksChunk, &ChunkArchive::SerializeAcks, &units.records,
+    LoadTable(&stream, kUnitAcksChunk, &ChunkArchive::SerializeUnitAcks, &units.records,
               [&] { FileRecords(units.records, units.byName, name); });
-    LoadTable(&stream, kModelAcksChunk, &ChunkArchive::SerializeAcks2, &models.records,
+    LoadTable(&stream, kModelAcksChunk, &ChunkArchive::SerializeModelAcks, &models.records,
               [&] { FileRecords(models.records, models.byName, name); });
-    LoadTable(&stream, kExtraAcksChunk, &ChunkArchive::SerializeAcks3, &extras.records,
+    LoadTable(&stream, kExtraAcksChunk, &ChunkArchive::SerializeExtraAcks, &extras.records,
               [&] { FileRecords(extras.records, extras.byName, name); });
 
     resource.CloseFile(data);

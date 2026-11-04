@@ -39,7 +39,7 @@ bool RebirthProfileFlags(bool (&flags)[rebirth::kPatchCount], std::string* ini) 
     *ini = FullPath(scenario.substr(0, slash) + "\\..\\..\\config\\rebirth_profile.ini");
     if (!sys::Exists(*ini)) return false;
     IniFile profile;
-    profile.SetPath(*ini);
+    profile.Load(*ini);
     for (int i = 0; i < rebirth::kPatchCount; ++i) {
         const std::string value = profile.GetString("patches", rebirth::Name(static_cast<Patch>(i)), "");
         flags[i] = text::CompareIgnoringCase(value.c_str(), "true") == 0;
@@ -89,7 +89,7 @@ std::string Step() {
         const std::string plugin = folder + "\\EI_Plugin.ini";
         if (!sys::Exists(plugin)) return "folderprofile: the Rebirth folder has no EI_Plugin.ini";
         IniFile pluginIni;
-        pluginIni.SetPath(plugin);
+        pluginIni.Load(plugin);
         const int players = pluginIni.GetInt("CONFIG", "NPlayers", 7);
         const int pause = pluginIni.GetInt("CONFIG", "Pause", 1);
         if (rebirth::PluginNPlayers() != players || rebirth::PluginPause() != pause)

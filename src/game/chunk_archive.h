@@ -109,10 +109,10 @@ public:
     // Database arrays. Each is a vector of records serialised as chunk `id` holding one chunk 1 per record
     // (`occurrence` selects the record); loading replaces the vector's contents.
     void SerializePrints(int id, std::vector<PrintRecord>* records);
-    void SerializePrints2(int id, std::vector<PrintRecord2>* records);
-    void SerializeAcks(int id, std::vector<acks::UnitAcks>* records);
-    void SerializeAcks2(int id, std::vector<acks::ModelAcks>* records);
-    void SerializeAcks3(int id, std::vector<acks::ExtraAcks>* records);
+    void SerializeFootprints(int id, std::vector<PrintRecord2>* records);
+    void SerializeUnitAcks(int id, std::vector<acks::UnitAcks>* records);
+    void SerializeModelAcks(int id, std::vector<acks::ModelAcks>* records);
+    void SerializeExtraAcks(int id, std::vector<acks::ExtraAcks>* records);
 
     // The party manager's chunks. Loading empties the container
     // first and takes one record per chunk 1. The parties by key (party_manager.h, PartyMap): per party a chunk

@@ -14,7 +14,8 @@
 
 class IniFile {
 public:
-    void SetPath(std::string_view path);
+    // Reads the file at `path` (a missing one leaves the text empty).
+    void Load(std::string_view path);
 
     // The key names of `section` (the part before '=', trimmed), in file order; none for an empty or missing section.
     std::vector<std::string> GetKeyNames(const char* section) const;

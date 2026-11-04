@@ -36,7 +36,7 @@ struct MapMaterial {
     float light;                    // scales the colour
     float priority;
     float warpSpeed;                // (the name modding notes give it); copied, nothing reads it
-    std::uint8_t unused_20[0xC];    // not read
+    std::uint8_t reserved[0xC];     // not read
 };
 static_assert(sizeof(MapMaterial) == 0x2C);
 

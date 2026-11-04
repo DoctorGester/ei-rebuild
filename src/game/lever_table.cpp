@@ -30,10 +30,7 @@ void ChunkArchive::SerializeLevers(int id, std::vector<LeverRecord>* list) {
 
 // --- Load --------------------------------------------------------------------------------------------
 
-// The lever table's load from its archive at start-up. Rebirth patches the function
-// (it redirects the file lookup to a mod folder's copy): this is the vanilla
-// function and it installs in the vanilla launch only (rule 9). Its caller is the application's
-// start-up (in the exe). Main thread. See docs/notes/units.md ("Levers").
+// The lever table's load from its archive at start-up (the application's start-up calls it). Main thread. See docs/notes/units.md ("Levers").
 
 int LeverRecordTable::Load(const std::string& folder) {
     std::string dir = folder;
