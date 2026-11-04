@@ -1,8 +1,9 @@
 #pragma once
 
 // The network message classes, types 1..17 (SessionBase::RegisterMessageTypes); see docs/notes/network.md.
-// Each has a factory (Create: a new message with no references); Clone copies with the copy constructor,
-// OnShutdown resets the message in place (its result is undefined), Write / Read the fields at the cursor.
+// Each has a factory (Create: a new message with no references); OnShutdown resets the message in place (its
+// result is undefined), Write / Read the fields at the cursor. Clone (with the copy constructor) is only for the
+// messages that are shared twice (RefObject::Clone).
 
 #include "net_classes.h"
 #include "core_refcount.h"
@@ -25,11 +26,9 @@ class PlayerMessage;
 class LoginMessage final : public Message {
 public:
     LoginMessage();
-    LoginMessage(const LoginMessage& other);
     ~LoginMessage() override;
 
     void OnShutdown() override;
-    LoginMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
@@ -98,7 +97,6 @@ public:
 
 protected:
     PairMessage();
-    PairMessage(const PairMessage& other);
     ~PairMessage() override;
     void WriteFirst(BufferCursor* cursor);
     void ReadFirst(BufferCursor* cursor);
@@ -109,11 +107,9 @@ protected:
 class FileRequestMessage final : public PairMessage {
 public:
     FileRequestMessage();
-    FileRequestMessage(const FileRequestMessage& other) : PairMessage(other) {}
     ~FileRequestMessage() override {}
 
     void OnShutdown() override;
-    FileRequestMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
@@ -127,11 +123,9 @@ public:
 class PartyMessage final : public Message {
 public:
     PartyMessage();
-    PartyMessage(const PartyMessage& other);
     ~PartyMessage() override;
 
     void OnShutdown() override;
-    PartyMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
@@ -151,11 +145,9 @@ public:
 class PartyMemberMessage final : public Message {
 public:
     PartyMemberMessage() {}
-    PartyMemberMessage(const PartyMemberMessage& other);
     ~PartyMemberMessage() override {}
 
     void OnShutdown() override;
-    PartyMemberMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
@@ -170,11 +162,9 @@ public:
 class PlayerMessage final : public Message {
 public:
     PlayerMessage();
-    PlayerMessage(const PlayerMessage& other);
     ~PlayerMessage() override {}
 
     void OnShutdown() override;
-    PlayerMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
@@ -194,11 +184,9 @@ public:
 class LineMessage final : public Message {
 public:
     LineMessage();                               // number is not set
-    LineMessage(const LineMessage& other);
     ~LineMessage() override;
 
     void OnShutdown() override;
-    LineMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
@@ -213,11 +201,9 @@ public:
 class HostMessage final : public Message {
 public:
     HostMessage();
-    HostMessage(const HostMessage& other);
     ~HostMessage() override {}
 
     void OnShutdown() override;
-    HostMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
@@ -231,11 +217,9 @@ public:
 class BindingMessage final : public PairMessage {
 public:
     BindingMessage();
-    BindingMessage(const BindingMessage& other) : PairMessage(other) {}
     ~BindingMessage() override {}
 
     void OnShutdown() override;
-    BindingMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
@@ -250,11 +234,9 @@ public:
 class ZoneMessage final : public TextMessage {
 public:
     ZoneMessage();
-    ZoneMessage(const ZoneMessage& other) : TextMessage(other) {}
     ~ZoneMessage() override {}
 
     void OnShutdown() override;
-    ZoneMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
@@ -265,11 +247,9 @@ public:
 class MapMessage final : public TextMessage {
 public:
     MapMessage() {}
-    MapMessage(const MapMessage& other) : TextMessage(other) {}
     ~MapMessage() override {}
 
     void OnShutdown() override;
-    MapMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
@@ -280,11 +260,9 @@ public:
 class VariableMessage final : public Message {
 public:
     VariableMessage();                                 // value and serial are not set
-    VariableMessage(const VariableMessage& other);
     ~VariableMessage() override {}
 
     void OnShutdown() override;
-    VariableMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
@@ -299,11 +277,9 @@ public:
 class FileMessage final : public Message {
 public:
     FileMessage();
-    FileMessage(const FileMessage& other);
     ~FileMessage() override;
 
     void OnShutdown() override;
-    FileMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
@@ -360,11 +336,9 @@ public:
 class TradeMessage final : public Message {
 public:
     TradeMessage() {}
-    TradeMessage(const TradeMessage& other);
     ~TradeMessage() override;
 
     void OnShutdown() override;
-    TradeMessage* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 

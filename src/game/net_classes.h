@@ -56,8 +56,7 @@ T* NewCounted(const Args&... args) {
     return object;
 }
 
-// `self` destroyed and built again in place (the count and the flags kept): OnShutdown of the messages and
-// the server entries.
+// `self` destroyed and built again in place (the count and the flags kept): OnShutdown of the messages.
 template <typename T>
 void Rebuild(T* self) {
     self->T::~T();
@@ -175,7 +174,6 @@ public:
     ServerEntry();
     ServerEntry(const ServerEntry& other);
     ~ServerEntry() override {}
-    void OnShutdown() override;   // the result is undefined
     ServerEntry* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
@@ -191,8 +189,6 @@ public:
 // A server the client asks directly: its address and the reply last seen.
 struct Query {
     Query();
-    Query(const Query& from);
-    Query& operator=(const Query& from) = default;
     ~Query();
     NetAddress address;
     GrowingBuffer reply;
@@ -329,8 +325,8 @@ public:
     virtual void OnMaster(const NetAddress* from, BufferCursor* cursor);      // kind -1 (logs an error)
     virtual void OnClientLost(Connection*) {}                                 // timed out or a bad update
     virtual void OnClientLeft(Connection*) {}                                 // sent a leave packet
-    // Empty here. Appends what the connection being updated (CurrentConnection) should have to **out.
-    virtual void CollectReplicated(std::vector<Replicated>**) {}
+    // Appends what the connection being updated (CurrentConnection) should have to **out.
+    virtual void CollectReplicated(std::vector<Replicated>**) = 0;
     // Advances the session clock by `dt`, hands the waiting datagrams to the handlers, ticks the connections
     // (dropping timed-out ones) and counts the frame.
     virtual void Tick(double dt);
@@ -401,9 +397,9 @@ public:
     void OnLogin(const NetAddress* from, BufferCursor* cursor) override;     // patched by Rebirth
     void Tick(double dt) override;
     virtual void Describe(Ref<ServerEntry>* out) = 0;   // this server's entry into *out
-    // Admits everybody. Whether a client from `from` may join: `*password` (the login cursor's next byte,
+    // Whether a client from `from` may join: `*password` (the login cursor's next byte,
     // moved past the password when one is checked) and `*reason` (1 full, 2 banned, 3 bad password).
-    virtual bool Admit(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason);
+    virtual bool Admit(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason) = 0;
 
     // Answers a ping from `address` with this server's description (5, the echoed time,
     // the magic and the entry).
@@ -523,7 +519,7 @@ public:
     void OnAccepted(const NetAddress* from, BufferCursor* cursor) override;
     void OnRejected(const NetAddress* from, BufferCursor* cursor) override;
     void Tick(double dt) override;
-    virtual void OnJoined() {}
+    virtual void OnJoined() = 0;
     virtual void CreateEntry(Ref<ServerEntry>* out) = 0;   // a new server entry into *out
 
     // A ping (3, the session time) to `address`.

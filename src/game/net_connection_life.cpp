@@ -87,63 +87,11 @@ Connection::~Connection() = default;
 
 } // namespace net
 
-namespace net {
-
-// The copy below as a new connection.
-Connection* Connection::Clone() { return NewCounted<Connection>(*this); }
-
-// The containers and the reliable streams are members, copied before the body (the original copies them in
-// order).
-Connection::Connection(const Connection& other)
-    : RefObject(), freedIds(other.freedIds), bySentId(other.bySentId), byObject(other.byObject),
-      priorities(other.priorities), entriesTracked(other.entriesTracked), history(other.history), acknowledged(other.acknowledged),
-      records(other.records), attached(other.attached), headers(other.headers), incoming(other.incoming),
-      reliableOut(other.reliableOut), reliableIn(other.reliableIn) {
-    sendSequence = other.sendSequence;
-    lastReceived = other.lastReceived;
-    sequenceHigh = other.sequenceHigh;
-    received = other.received;
-    id = other.id;
-    roundTrip = other.roundTrip;
-    roundTripSquare = other.roundTripSquare;
-    address = other.address;
-    sendInterval = other.sendInterval;
-    sendTimer = other.sendTimer;
-    idleTime = other.idleTime;
-    clock = other.clock;
-    updateBudget = other.updateBudget;
-    for (int i = 0; i < kMessageTypes; ++i) idPools[i] = other.idPools[i];
-    freedTimer = other.freedTimer;
-    headerSequence = other.headerSequence;
-    incomingSequence = other.incomingSequence;
-    ackMask = other.ackMask;
-    ackBase = other.ackBase;
-}
-
-} // namespace net
-
 // ---- Id pools and replica entries ---------------------------------------------------------------------
 
 namespace net {
 
 ReplicaEntry::ReplicaEntry() {
-    version = 0;
-    id = 0;
-}
-
-ReplicaEntry::ReplicaEntry(const ReplicaEntry& other)
-    : RefObject(), version(other.version), id(other.id), type(other.type),
-      flags(other.flags), serial(other.serial) {       // the original merges bit 0 and then the other bits: all of them
-    object.Assign(other.object);
-}
-
-// Entry copy: a copy of the entry sharing the object.
-ReplicaEntry* ReplicaEntry::Clone() { return NewCounted<ReplicaEntry>(*this); }
-
-// Entry reset: releases the object, then built again in place as the constructor would (object, version and
-// id cleared; type and flags kept). The result means nothing.
-void ReplicaEntry::OnShutdown() {
-    object.Reset();
     version = 0;
     id = 0;
 }

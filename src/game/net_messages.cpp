@@ -1,5 +1,5 @@
 // The network message classes (net_messages.h) and the message base: for each class its factory, constructor,
-// copy (Clone's), OnShutdown, Clone, Write, Read and destructor; the same for the lobby's server entry
+// OnShutdown, Write, Read and destructor (Clone and the copy constructor only where a message is shared twice); the same for the lobby's server entry
 // (net_classes.h; no factory).
 // More: docs/notes/network.md, "Sessions and messages".
 #include "net_messages.h"
@@ -74,15 +74,9 @@ Message::~Message() {}
 // LoginMessage.
 
 LoginMessage::LoginMessage() {}
-LoginMessage::LoginMessage(const LoginMessage& other)
-    : Message(other), name(other.name), text(other.text), host(other.host), state(other.state),
-      id(other.id) {
-    binding.Assign(other.binding);
-}
 LoginMessage::~LoginMessage() {}
 
 Message* LoginMessage::Create() { return NewCounted<LoginMessage>(); }
-LoginMessage* LoginMessage::Clone() { return NewCounted<LoginMessage>(*this); }
 void LoginMessage::OnShutdown() {
     Rebuild(this);
 }
@@ -120,7 +114,6 @@ void SayMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
 
 ZoneMessage::ZoneMessage() {}
 Message* ZoneMessage::Create() { return NewCounted<ZoneMessage>(); }
-ZoneMessage* ZoneMessage::Clone() { return NewCounted<ZoneMessage>(*this); }
 void ZoneMessage::OnShutdown() {
     Rebuild(this);
 }
@@ -128,7 +121,6 @@ void ZoneMessage::Write(BufferCursor* cursor) { WriteText(cursor); }
 void ZoneMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
 
 Message* MapMessage::Create() { return NewCounted<MapMessage>(); }
-MapMessage* MapMessage::Clone() { return NewCounted<MapMessage>(*this); }
 void MapMessage::OnShutdown() {
     Rebuild(this);
 }
@@ -157,17 +149,12 @@ void CommandMessage::Read(BufferCursor* cursor) {
 // PairMessage: BindingMessage, FileRequestMessage.
 
 PairMessage::PairMessage() {}
-PairMessage::PairMessage(const PairMessage& other) : Message(other) {
-    first.Assign(other.first);
-    second.Assign(other.second);
-}
 PairMessage::~PairMessage() {}
 void PairMessage::WriteFirst(BufferCursor* cursor) { PutObject(cursor, first); }
 void PairMessage::ReadFirst(BufferCursor* cursor) { TakeObject(cursor, first); }
 
 BindingMessage::BindingMessage() {}
 Message* BindingMessage::Create() { return NewCounted<BindingMessage>(); }
-BindingMessage* BindingMessage::Clone() { return NewCounted<BindingMessage>(*this); }
 void BindingMessage::OnShutdown() {
     Rebuild(this);
 }
@@ -176,7 +163,6 @@ void BindingMessage::Read(BufferCursor* cursor) { ReadFirst(cursor); }
 
 FileRequestMessage::FileRequestMessage() {}
 Message* FileRequestMessage::Create() { return NewCounted<FileRequestMessage>(); }
-FileRequestMessage* FileRequestMessage::Clone() { return NewCounted<FileRequestMessage>(*this); }
 void FileRequestMessage::OnShutdown() {
     Rebuild(this);
 }
@@ -186,12 +172,8 @@ void FileRequestMessage::Read(BufferCursor* cursor) { ReadFirst(cursor); }
 // PlayerMessage.
 
 PlayerMessage::PlayerMessage() {}
-PlayerMessage::PlayerMessage(const PlayerMessage& other)
-    : Message(other), name(other.name), text(other.text), state(other.state), host(other.host),
-      id(other.id), serial(other.serial), number(other.number), firstLine(other.firstLine) {}
 
 Message* PlayerMessage::Create() { return NewCounted<PlayerMessage>(); }
-PlayerMessage* PlayerMessage::Clone() { return NewCounted<PlayerMessage>(*this); }
 void PlayerMessage::OnShutdown() {
     Rebuild(this);
 }
@@ -215,13 +197,9 @@ void PlayerMessage::Read(BufferCursor* cursor) {
 // LineMessage.
 
 LineMessage::LineMessage() {}
-LineMessage::LineMessage(const LineMessage& other) : Message(other), number(other.number), text(other.text) {
-    connection.Assign(other.connection);
-}
 LineMessage::~LineMessage() {}
 
 Message* LineMessage::Create() { return NewCounted<LineMessage>(); }
-LineMessage* LineMessage::Clone() { return NewCounted<LineMessage>(*this); }
 void LineMessage::OnShutdown() {
     Rebuild(this);
 }
@@ -237,10 +215,8 @@ void LineMessage::Read(BufferCursor* cursor) {
 // HostMessage.
 
 HostMessage::HostMessage() {}
-HostMessage::HostMessage(const HostMessage& other) : Message(other), address(other.address), zone(other.zone) {}
 
 Message* HostMessage::Create() { return NewCounted<HostMessage>(); }
-HostMessage* HostMessage::Clone() { return NewCounted<HostMessage>(*this); }
 void HostMessage::OnShutdown() {
     Rebuild(this);
 }
@@ -256,13 +232,8 @@ void HostMessage::Read(BufferCursor* cursor) {
 // VariableMessage.
 
 VariableMessage::VariableMessage() {}
-VariableMessage::VariableMessage(const VariableMessage& other) : Message(other), name(other.name) {
-    value = other.value;
-    serial = other.serial;
-}
 
 Message* VariableMessage::Create() { return NewCounted<VariableMessage>(); }
-VariableMessage* VariableMessage::Clone() { return NewCounted<VariableMessage>(*this); }
 void VariableMessage::OnShutdown() {
     Rebuild(this);
 }
@@ -280,12 +251,9 @@ void VariableMessage::Read(BufferCursor* cursor) {
 // FileMessage.
 
 FileMessage::FileMessage() {}
-FileMessage::FileMessage(const FileMessage& other)
-    : Message(other), chunkCount(other.chunkCount), size(other.size), name(other.name), chunks(other.chunks) {}
 FileMessage::~FileMessage() {}
 
 Message* FileMessage::Create() { return NewCounted<FileMessage>(); }
-FileMessage* FileMessage::Clone() { return NewCounted<FileMessage>(*this); }
 void FileMessage::OnShutdown() {
     Rebuild(this);
 }
@@ -352,17 +320,9 @@ void AwardMessage::Read(BufferCursor* cursor) {
 
 // TradeMessage.
 
-TradeMessage::TradeMessage(const TradeMessage& other)
-    : Message(other), done(other.done), revision(other.revision), partnerRevision(other.partnerRevision) {
-    player.Assign(other.player);
-    partner.Assign(other.partner);
-    offer.Assign(other.offer);
-    partnerOffer.Assign(other.partnerOffer);
-}
 TradeMessage::~TradeMessage() {}
 
 Message* TradeMessage::Create() { return NewCounted<TradeMessage>(); }
-TradeMessage* TradeMessage::Clone() { return NewCounted<TradeMessage>(*this); }
 void TradeMessage::OnShutdown() {
     Rebuild(this);
 }
@@ -383,18 +343,8 @@ void TradeMessage::Read(BufferCursor* cursor) {
 
 // PartyMemberMessage.
 
-// Original bug kept: the copy's stream is sized like ours, then its fresh bytes (uninitialised in the original,
-// zeros here) are read into ours instead of ours being written into it.
-PartyMemberMessage::PartyMemberMessage(const PartyMemberMessage& other) : Message(other) {
-    stream.SetSize(other.stream.size);
-    ByteStream* copy = &stream;
-    copy->Read(const_cast<std::uint8_t*>(other.stream.data.data()), stream.size);
-}
 
 Message* PartyMemberMessage::Create() { return NewCounted<PartyMemberMessage>(); }
-PartyMemberMessage* PartyMemberMessage::Clone() {
-    return NewCounted<PartyMemberMessage>(*this);
-}
 void PartyMemberMessage::OnShutdown() {
     Rebuild(this);
 }
@@ -414,16 +364,9 @@ void PartyMemberMessage::Read(BufferCursor* cursor) {
 // PartyMessage.
 
 PartyMessage::PartyMessage() {}
-PartyMessage::PartyMessage(const PartyMessage& other)
-    : Message(other), members(other.members), money(other.money), accepted(other.accepted),
-      acceptedRevision(other.acceptedRevision), revision(other.revision), trading(other.trading) {
-    player.Assign(other.player);
-    partner.Assign(other.partner);
-}
 PartyMessage::~PartyMessage() {}
 
 Message* PartyMessage::Create() { return NewCounted<PartyMessage>(); }
-PartyMessage* PartyMessage::Clone() { return NewCounted<PartyMessage>(*this); }
 void PartyMessage::OnShutdown() {
     Rebuild(this);
 }
@@ -474,9 +417,6 @@ ServerEntry::ServerEntry(const ServerEntry& other)
       players(other.players), maxPlayers(other.maxPlayers), password(other.password) {}
 
 ServerEntry* ServerEntry::Clone() { return NewCounted<ServerEntry>(*this); }
-void ServerEntry::OnShutdown() {
-    Rebuild(this);
-}
 void ServerEntry::Write(BufferCursor* cursor) {
     PutString(cursor, name);
     Put(cursor, kind);

@@ -29,11 +29,7 @@ struct IdPool {
 class ReplicaEntry final : public RefObject {
 public:
     ReplicaEntry();
-    // The same object, one more reference.
-    ReplicaEntry(const ReplicaEntry& other);
     ~ReplicaEntry() override;
-    void OnShutdown() override;              // Reset: the object let go, version and id cleared
-    ReplicaEntry* Clone() override;
 
     Message* Object() const { return object.Get(); }
 
@@ -102,13 +98,10 @@ class Connection final : public RefObject {
 public:
 
     explicit Connection(std::uint32_t id);
-    // Every container copied.
-    Connection(const Connection& other);
     ~Connection() override;
 
     // Torn down and built again with id 0.
     void OnShutdown() override;
-    Connection* Clone() override;
 
     // Builds and sends one update packet of at most `budget` entry bytes. False when entries had to be left
     // out (or the send failed).
