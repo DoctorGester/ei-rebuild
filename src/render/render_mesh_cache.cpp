@@ -40,9 +40,9 @@ struct MeshFrom {
     int positionCount = 0;
     const std::uint32_t* colours = nullptr;
     const std::uint32_t* speculars = nullptr;
-    const float* uvs = nullptr;
+    const TexCoord* uvs = nullptr;
     int uvCount = 0;                    // a caster's (KeepCasterMesh); 0 for drawn meshes
-    const std::uint16_t* corners = nullptr;
+    const MeshCorner* corners = nullptr;
     int cornerCount = 0;
     const std::uint16_t* indices = nullptr;
     int indexCount = 0;
@@ -158,22 +158,22 @@ MeshFrom FromOf(const ShadowMesh& m) {
 
 // Corner `i`'s position (blocks of four vertices: x[4], y[4], z[4], 4 unused), texture coordinates and normal.
 MeshVertex CornerVertex(const MeshDraw& m, int i) {
-    const std::uint16_t* c = m.corners + i * 3;
-    const float* block = m.positions + (c[0] / 4) * 16;
-    int lane = c[0] % 4;
-    return MeshVertex{{block[lane], block[4 + lane], block[8 + lane]}, m.uvs[c[2] * 2], m.uvs[c[2] * 2 + 1],
-                      CornerNormal(m, c[1])};
+    const MeshCorner& c = m.corners[i];
+    const float* block = m.positions + (c.position / 4) * 16;
+    int lane = c.position % 4;
+    return MeshVertex{{block[lane], block[4 + lane], block[8 + lane]}, m.uvs[c.texCoord].u, m.uvs[c.texCoord].v,
+                      CornerNormal(m, c.normal)};
 }
 
 // A caster's corner `i` (KeepCasterMesh): its position and texture coordinates (none: 0, 0), no normal.
 MeshVertex CasterCorner(const ShadowMesh& m, int i) {
-    const std::uint16_t* c = m.corners + i * 3;
-    const float* block = m.positions + (c[0] / 4) * 16;
-    int lane = c[0] % 4;
+    const MeshCorner& c = m.corners[i];
+    const float* block = m.positions + (c.position / 4) * 16;
+    int lane = c.position % 4;
     MeshVertex v{{block[lane], block[4 + lane], block[8 + lane]}, 0.0f, 0.0f, {}};
-    if (m.uvs && c[2] < m.uvCount) {
-        v.u = m.uvs[c[2] * 2];
-        v.v = m.uvs[c[2] * 2 + 1];
+    if (m.uvs && c.texCoord < m.uvCount) {
+        v.u = m.uvs[c.texCoord].u;
+        v.v = m.uvs[c.texCoord].v;
     }
     return v;
 }
@@ -193,11 +193,11 @@ bool Build(const MeshDraw& m, CachedMesh& out) {
     out.vertices.clear();
     out.colours.clear();
     for (int i = 0; i < m.cornerCount; ++i) {
-        const std::uint16_t* c = m.corners + i * 3;
-        if (c[0] >= m.positionCount) return false;
+        const MeshCorner& c = m.corners[i];
+        if (c.position >= m.positionCount) return false;
         out.vertices.push_back(CornerVertex(m, i));
-        out.colours.push_back(m.colours[c[1]]);
-        out.colours.push_back(m.speculars[c[1]]);
+        out.colours.push_back(m.colours[c.normal]);
+        out.colours.push_back(m.speculars[c.normal]);
     }
     BuildTriangles(m.indices, m.indexCount, m.cornerCount, out.indices);
     return true;
@@ -208,7 +208,7 @@ bool Build(const ShadowMesh& m, CachedMesh& out) {
     out.vertices.clear();
     out.colours.clear();
     for (int i = 0; i < m.cornerCount; ++i) {
-        if (m.corners[i * 3] >= m.positionCount) return false;
+        if (m.corners[i].position >= m.positionCount) return false;
         out.vertices.push_back(CasterCorner(m, i));
     }
     BuildTriangles(m.indices, m.indexCount, m.cornerCount, out.indices);
@@ -243,7 +243,7 @@ bool ReadPositions(int cornerCount, CachedMesh& e, Corner corner) {
 bool ReadColours(const MeshDraw& m, CachedMesh& e) {
     bool changed = false;
     for (int i = 0; i < m.cornerCount; ++i) {
-        int index = m.corners[i * 3 + 1];
+        int index = m.corners[i].normal;
         std::uint32_t* kept = &e.colours[2 * static_cast<std::size_t>(i)];
         if (kept[0] == m.colours[index] && kept[1] == m.speculars[index]) continue;
         kept[0] = m.colours[index];

@@ -788,7 +788,7 @@ public:
     // `point`; the terrain under it adds its triangles unless the point lies on a platform, and the platform faces'
     // objects the decal can touch add the triangles of each part of their figure (once per face).
     void ProjectDecal(const Vector3& direction, const Vector3& point, float depth, const VertexPacket& quad,
-                      std::vector<VertexPacket>* points, std::vector<DecalTexCoord>* texCoords,
+                      std::vector<VertexPacket>* points, std::vector<TexCoord>* texCoords,
                       std::vector<std::uint16_t>* indices);
     // The ambient sounds' time of day: "day" from 6 to 18 o'clock (and for a NaN hour), "morning" before 6 and
     // "evening" after 18 within 2..22, else "night".

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "engine_object.h"
+#include "render/mesh_records.h"
 #include "render/render_state.h"
 #include "renderer_base.h"
 #include "resource_manager.h"
@@ -26,8 +27,6 @@ struct MmpHeader;
 struct TLVertex;
 struct VertexPacket;
 struct NormalPacket;
-struct TexCoord;
-struct MeshCorner;
 struct Vector4;
 
 // The device object: the screen (its window, size and colour depth), the transform pipeline, the texture stages' holders and the
@@ -36,16 +35,16 @@ struct Vector4;
 class TextureDevice final : public RendererBase {
 public:
     int SetMaterial(DeviceMaterial* material);
-    int DrawFlatBlocks(const VertexPacket* positions, const void* uvs, int blocks, const std::uint16_t* indices,
+    int DrawFlatBlocks(const VertexPacket* positions, const render::TexCoord* uvs, int blocks, const std::uint16_t* indices,
                        int indexCount, std::uint32_t colour, std::uint32_t specular);
     int DrawMeshBlocks2(Surface* firstTexture, Surface* secondTexture, const VertexPacket* positions, int blocks,
                   const NormalPacket* normals, int colourCount, std::uint32_t* colours, std::uint32_t* speculars,
-                  const TexCoord* uvs, int unused10, const MeshCorner* corners, int cornerCount,
+                  const render::TexCoord* uvs, int unused10, const render::MeshCorner* corners, int cornerCount,
                   const std::uint32_t* words, int wordCount, std::uint16_t* indices, int indexCount, float uOffset,
                   float vOffset, int alpha, int flags);
     int DrawMeshBlocks(const VertexPacket* positions, int blocks, const NormalPacket* normals, int colourCount,
-                 std::uint32_t* colours, std::uint32_t* speculars, const TexCoord* uvs, int unused10,
-                 const MeshCorner* corners, int cornerCount, const std::uint32_t* words, int wordCount,
+                 std::uint32_t* colours, std::uint32_t* speculars, const render::TexCoord* uvs, int unused10,
+                 const render::MeshCorner* corners, int cornerCount, const std::uint32_t* words, int wordCount,
                  std::uint16_t* indices, int indexCount, float uOffset, float vOffset, int alpha, int flags);
     int DrawTwoTextures(Surface* first, Surface* second);
     int DrawIndexed();

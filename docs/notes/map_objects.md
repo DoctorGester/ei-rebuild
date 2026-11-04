@@ -57,7 +57,15 @@ reloaded unless its .mmp extra block is unchanged, drawn with a two-stage materi
 LoadFigures reads the model named by the object through the figure manager; SetFigureScale rebuilds the figure only
 when the scale changes. The figure is a `LinkMesh` (link_figure.h, models.md) whose piece map is `headers`
 (map<string, LinkPartHeader>). Part lookups: FindPartByPrefix (strstr at the name's start, case-sensitive), FindPart
-(strcmp), FindPartIndex (_mbscmp). Animations come from "<name>.adb" through the owner's GetFile on first use;
+(strcmp), FindPartIndex (_mbscmp). Animations come from "<name>.adb" on first use:
+`MapObjectManager::AnimationDatabaseOf` reads the file into an `AnimationDatabase` (its header's time factor and the
+0x58-byte entries, each a `FigureAnimation` that points back at its database) and keeps it by file name until the
+manager's Destroy, so Object3D::animations, FindAnimation and FindFigureAnimation share one database per name. What
+an object plays need not come from its own database (UiModel's and the main menu stones' rest pose come from
+FindAnimation by name), so the database of a playing animation is its entry's `database`, never the object's. Four of
+database.res's files (unmozozo, unmoco3, unmoco4, inmm1) are of an older, shorter entry and end inside their last
+0x58-byte entry: they are read at the 0x58 stride like the original, the bytes past the file as zero (the original
+read past the file, and found an entry's database by its index byte, which these files do not hold).
 `AnimationFactor` (units only) is (start + (end - start) t) / length, 1 for a 0 / NaN length.
 
 ## Skeleton
@@ -70,7 +78,8 @@ of the first bone named as its parent unless that one already has a child of the
 without a parent name.
 
 **Animation tracks and cages**: AnimationTrack::Evaluate uses the CRT's modf of the time rounded to an integer and
-`Quaternion::Slerp`. FigureBone::InterpolateCube / InterpolatePrism (the bone's cage: its offset at its morph
+`Quaternion::Slerp`; LoadKeyFrames copies the key frames (rotations, positions, the frames' vertex sets) out of the
+.anm entry into the track's own vectors. FigureBone::InterpolateCube / InterpolatePrism (the bone's cage: its offset at its morph
 coefficients) read point records from a stream advancing 0x60 / 0x48. UpdatePose evaluates the tracks at the frame,
 then places the skeleton at AnimationFactor(scale.z) * defaultScale, one float factor for x, y and z.
 

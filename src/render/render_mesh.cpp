@@ -74,9 +74,9 @@ bool Build(Frame& f, Pending& p) {
     auto base = static_cast<std::uint32_t>(f.meshVertices.size());
     for (int i = 0; i < m.cornerCount; ++i) {
         // Without corners (the flat geometry): vertex i, one colour pair for all.
-        const std::uint16_t flat[3] = {static_cast<std::uint16_t>(i), 0, static_cast<std::uint16_t>(i)};
-        const std::uint16_t* c = m.corners ? m.corners + i * 3 : flat;
-        int position = c[0];
+        const MeshCorner flat{static_cast<std::uint16_t>(i), 0, static_cast<std::uint16_t>(i)};
+        const MeshCorner& c = m.corners ? m.corners[i] : flat;
+        int position = c.position;
         if (position >= m.positionCount) {
             f.meshVertices.resize(base);
             return false;
@@ -87,11 +87,11 @@ bool Build(Frame& f, Pending& p) {
         v.position.x = block[lane];
         v.position.y = block[4 + lane];
         v.position.z = block[8 + lane];
-        v.colour = m.colours[c[1]];
-        v.specular = m.speculars[c[1]];
-        v.normal = CornerNormal(m, c[1]);
-        v.u = m.uvs[c[2] * 2];
-        v.v = m.uvs[c[2] * 2 + 1];
+        v.colour = m.colours[c.normal];
+        v.specular = m.speculars[c.normal];
+        v.normal = CornerNormal(m, c.normal);
+        v.u = m.uvs[c.texCoord].u;
+        v.v = m.uvs[c.texCoord].v;
         if (m.moveUv) {
             v.u = m.uOffset + v.u;
             v.v = m.vOffset + v.v;

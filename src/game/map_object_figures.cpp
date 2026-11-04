@@ -347,8 +347,8 @@ FigureAnimation* Object3D::RandomAnimation(std::uint32_t key, AnimationRandom ra
     if (!database) return nullptr;
     std::vector<FigureAnimation*> candidates{};
     std::uint32_t wanted = key & kAnimationVariantBits;
-    for (int i = 0; i < static_cast<int>(animations->count); ++i) {
-        FigureAnimation* entry = &animations->animations[i];
+    for (FigureAnimation& candidate : database->animations) {
+        FigureAnimation* entry = &candidate;
         std::uint32_t entryKey = entry->key;
         bool variant =
             wanted == 0 ? (entryKey & kAnimationVariantBits) == 0 : (~entryKey & key & kAnimationVariantBits) == 0;
@@ -378,8 +378,8 @@ FigureAnimation* Object3D::RandomAnimationOfKind(std::uint32_t key, AnimationRan
     AnimationDatabase* database = Animations();
     if (!database) return nullptr;
     std::vector<FigureAnimation*> candidates{};
-    for (int i = 0; i < static_cast<int>(animations->count); ++i) {
-        FigureAnimation* entry = &animations->animations[i];
+    for (FigureAnimation& candidate : database->animations) {
+        FigureAnimation* entry = &candidate;
         if (((entry->key ^ key) & kKeyKindBits) != 0) continue;
         if (!AcceptsAnimation(entry)) continue;
         int index = lib::Count(candidates);

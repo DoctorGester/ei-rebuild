@@ -74,28 +74,21 @@ Vector3 Object3D::PartWorldPosition(const FigureMesh* part) {
 // --- The animation database -------------------------------------------------------------------
 
 AnimationDatabase* Object3D::Animations() {
-    if (!animations && owner) {
-        std::string file = name;
-        file += ".adb";
-        animations = static_cast<AnimationDatabase*>(owner->GetFile(file, nullptr));
-    }
+    if (!animations && owner) animations = MapObjectManagerOf(this)->AnimationDatabaseOf(name);
     return animations;
 }
 
 FigureAnimation* Object3D::AnimationAt(std::uint32_t key) {
     if (!Animations()) return nullptr;
     std::uint32_t index = static_cast<std::uint8_t>(key);   // the entry's index is the low byte
-    return index < animations->count ? &animations->animations[index] : nullptr;
+    return index < animations->animations.size() ? &animations->animations[index] : nullptr;
 }
 
 FigureAnimation* Object3D::FindSkillAnimation(SkillAnimation number) {
     if (!Animations()) return nullptr;
     std::uint32_t wanted = AnimationNumberBits(static_cast<int>(number));
-    for (int i = 0; i < static_cast<int>(animations->count); ++i) {
-        const FigureAnimation& entry = animations->animations[i];
-        if (entry.Kind() == AnimationKind::Special && (entry.key & kAnimationNumberMask) == wanted)
-            return &animations->animations[i];
-    }
+    for (FigureAnimation& entry : animations->animations)
+        if (entry.Kind() == AnimationKind::Special && (entry.key & kAnimationNumberMask) == wanted) return &entry;
     return nullptr;
 }
 

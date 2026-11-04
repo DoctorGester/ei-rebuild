@@ -29,10 +29,8 @@
 
 #include <bit>
 #include <cmath>
-#include <cstddef>
 #include <cstdint>
 #include <cstdio>
-#include <cstring>
 
 namespace {
 constexpr std::uint32_t kFlagNotDrawn = 8;            // the unit's flags
@@ -322,15 +320,7 @@ static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
         unit->animationSpeed = unit->ActionSpeed(animation);
         return;
     }
-    // The database the animation is in: its index back to the first one.
-    int index;
-    std::memcpy(&index, &animation->index, sizeof(index));
-    const auto* database = reinterpret_cast<const AnimationDatabase*>(
-        reinterpret_cast<const char*>(animation - index) - offsetof(AnimationDatabase, animations));
-    float frames = 1.0f;
-    float span = database->length;
-    if (span != 0.0f)
-        frames = ((database->end - database->start) * unit->scale.z + database->start) / span;
+    float frames = animation->database->TimeFactor(unit->scale.z);
     float moved = std::sqrt(LengthSquared(direction));
     float numerator = moved * sample.speed * kAnimationRate;
     float denominator = 2.0f * (frames * length);

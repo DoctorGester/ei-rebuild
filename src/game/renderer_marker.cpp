@@ -69,7 +69,7 @@ int SceneRenderer::DrawSelectionMarker(const Vector3& point, float size, const V
     for (int i = 0; i < 6; ++i) SetVertex(blocks, i, corners[i].x, corners[i].y, z);
     SetVertex(blocks, 6, p.x, p.y, z);
     SetVertex(blocks, 7, p.x, p.y, z);
-    float uvs[kVertices][2] = {};
+    TexCoord uvs[kVertices] = {};
     std::uint16_t indices[18];
     for (int i = 0; i < 18; ++i) indices[i] = kIndices[i];
     device->DrawFlatBlocks(blocks, uvs, kBlocks, indices, 18, kColour, kSpecular);

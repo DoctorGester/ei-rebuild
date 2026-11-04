@@ -190,7 +190,7 @@ int GroundPrint::Draw() {
         float us = lib::Sin(uvAngle);
         int vertices = lib::Count(positions) * 4;
         for (int i = 0; i < vertices; ++i) {
-            DecalTexCoord& uv = texCoords[i];
+            TexCoord& uv = texCoords[i];
             float du = uv.u - 0.5f;
             float dv = uv.v - 0.5f;
             float u = (du * uc - dv * us) + 0.5f;

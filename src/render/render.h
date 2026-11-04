@@ -9,6 +9,7 @@
 
 #include "lib/rect.h"
 #include "lib/vecmath.h"
+#include "render/mesh_records.h"
 
 #include <cstdint>
 #include <vector>
@@ -119,9 +120,9 @@ float CasterStrength(const void* object);
 struct ShadowMesh {
     const float* positions;            // blocks of four vertices, as MeshDraw's
     int positionCount;
-    const float* uvs;                  // (u, v) pairs
+    const TexCoord* uvs;
     int uvCount;
-    const std::uint16_t* corners;      // (position, colour, texture) index triples
+    const MeshCorner* corners;
     int cornerCount;
     const std::uint16_t* indices;      // a triangle list over the corners
     int indexCount;
@@ -233,11 +234,11 @@ void SetVsync(bool on);
 struct MeshDraw {
     const float* positions;            // blocks of four vertices: x[4], y[4], z[4], 4 unused
     int positionCount;
-    const std::uint32_t* colours;      // D3DCOLOR, by the corners' colour index
+    const std::uint32_t* colours;      // D3DCOLOR, by the corners' normal index
     const std::uint32_t* speculars;
-    const float* uvs;                  // (u, v) pairs, by the corners' texture index
-    const std::uint16_t* corners;      // (position, colour, texture) index triples; null (the flat geometry
-                                       // draw): vertex i is position i with uv i and colours[0] / speculars[0]
+    const TexCoord* uvs;               // by the corners' texture index
+    const MeshCorner* corners;         // null (the flat geometry draw): vertex i is position i with uv i and
+                                       // colours[0] / speculars[0]
     int cornerCount;                   // without corners: the vertex count
     const std::uint16_t* indices;      // a triangle list over the corners
     int indexCount;

@@ -34,11 +34,10 @@ void PlaceRoot(FigureAnimationState* state) {
 // Inlines DestroyTrack's reset without the bone (the key frames' array emptied through its SetSize(0)).
 void ClearTrack(AnimationTrack* track) {
     track->animation = nullptr;
-    track->positionCount = 0;
-    track->positions = nullptr;
-    track->rotationCount = 0;
-    track->rotations = nullptr;
+    track->positions.clear();
+    track->rotations.clear();
     track->vertexCount = 0;
+    track->frameCount = 0;
     track->frames.clear();
     track->position = kTrackDefaultPosition;
     track->rotation = kTrackDefaultRotation;

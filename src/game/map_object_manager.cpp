@@ -13,11 +13,17 @@
 #include "world.h"
 #include "world_data.h"
 
+#include "lib/bytes.h"
 #include "lib/crt.h"
+#include "lib/text_case.h"
 
+#include <algorithm>
+#include <cstring>
+#include <memory>
 #include <new>
 #include <optional>
 #include <string>
+#include <utility>
 
 namespace {
 
@@ -71,19 +77,89 @@ EngineObject* MapObjectManager::CreateMapObject(int newType, int newId) {
     return object;
 }
 
+void MapObjectManager::Destroy() {
+    ResourceManager::Destroy();
+    animationDatabases.clear();
+}
+
+// --- Animation databases --------------------------------------------------------------------------
+
+namespace {
+
+// The header of "<figure>.adb"; `count` FigureAnimationRecords follow.
+struct AdbHeader {
+    char magic[4];                  // "ADB"
+    std::uint32_t count;
+    char unreadName[0x18];          // the database's name ("Zombie00")
+    float start;
+    float length;
+    float end;
+};
+static_assert(sizeof(AdbHeader) == 0x2C);
+
+// `out` from the file's bytes at `offset`; what lies beyond the file's `size` reads as zero.
+template <class T>
+void LoadWithinFile(T& out, const std::uint8_t* data, std::uint32_t size, std::size_t offset) {
+    std::uint8_t bytes[sizeof(T)] = {};
+    if (offset < size) std::memcpy(bytes, data + offset, std::min<std::size_t>(sizeof(T), size - offset));
+    lib::LoadBytes(out, bytes);
+}
+
+// The database of an .adb file. Four of the game's (unmozozo, unmoco3, unmoco4, inmm1) are of an older, shorter
+// entry and end before `count` full entries: their entries are read at the current stride, the bytes past the file as
+// zero (the original read past the file).
+std::unique_ptr<AnimationDatabase> ReadAnimationDatabase(const std::uint8_t* data, std::uint32_t size) {
+    AdbHeader header;
+    LoadWithinFile(header, data, size, 0);
+    auto database = std::make_unique<AnimationDatabase>();
+    database->start = header.start;
+    database->length = header.length;
+    database->end = header.end;
+    database->animations.reserve(header.count);
+    for (std::size_t i = 0; i < header.count; ++i) {
+        FigureAnimationRecord record;
+        LoadWithinFile(record, data, size, sizeof(AdbHeader) + i * sizeof(FigureAnimationRecord));
+        database->animations.push_back(FigureAnimation{record, database.get()});
+    }
+    return database;
+}
+
+} // namespace
+
+AnimationDatabase* MapObjectManager::AnimationDatabaseOf(const std::string& figure) {
+    std::string file = figure + ".adb";
+    if (auto found = animationDatabases.find(file); found != animationDatabases.end()) return found->second.get();
+    std::uint32_t size = 0;
+    void* data = GetFile(file, &size);
+    if (!data) return nullptr;
+    auto database = ReadAnimationDatabase(static_cast<const std::uint8_t*>(data), size);
+    CloseFile(data);
+    return animationDatabases.emplace(std::move(file), std::move(database)).first->second.get();
+}
+
 FigureAnimation* MapObjectManager::FindAnimation(const std::string* figure, std::uint32_t key) {
-    auto* database = static_cast<AnimationDatabase*>(GetFile((*figure + ".adb"), nullptr));
+    AnimationDatabase* database = AnimationDatabaseOf(*figure);
     if (!database) {
         game::DebugLog(kNoDatabaseText, *figure);
         return nullptr;
     }
     const std::uint32_t variant = key & kAnimationVariantBits;
-    for (int i = 0; i < static_cast<int>(database->count); ++i) {
-        const std::uint32_t entry = database->animations[i].key;
-        const bool variantFits =
-            variant == 0 ? (entry & kAnimationVariantBits) == 0 : (~entry & key & kAnimationVariantBits) == 0;
-        if (variantFits && ((entry ^ key) & kKeyKindBits) == 0) return &database->animations[i];
+    for (FigureAnimation& entry : database->animations) {
+        const bool variantFits = variant == 0 ? (entry.key & kAnimationVariantBits) == 0
+                                              : (~entry.key & key & kAnimationVariantBits) == 0;
+        if (variantFits && ((entry.key ^ key) & kKeyKindBits) == 0) return &entry;
     }
+    return nullptr;
+}
+
+FigureAnimation* MapObjectManager::FindFigureAnimation(const std::string& figure, const char* name) {
+    AnimationDatabase* database = AnimationDatabaseOf(figure);
+    if (!database) {
+        game::DebugLog(kNoDatabaseText, figure);
+        return nullptr;
+    }
+    for (FigureAnimation& entry : database->animations)
+        if (text::CompareIgnoringCase(entry.name, name) == 0) return &entry;
     return nullptr;
 }
 
