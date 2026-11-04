@@ -13,6 +13,10 @@
 
 namespace platform::sdl_input {
 
+// Whether `e` is Alt+F4's press (Alt held without Ctrl): the window's close request, not a key. The backends give it as
+// CloseRequested on every system, as Windows made it a close.
+bool IsCloseKey(const SDL_Event& e);
+
 class Translator {
 public:
     // The events `e` makes, appended to `out`: a key with its code, scan code, repeat and modifiers and the control

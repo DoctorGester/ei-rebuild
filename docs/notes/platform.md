@@ -32,9 +32,11 @@ systems.
   seams.cpp: EI_GAME_CALLS, EI_SDL_CALLS).
   The sound and the movies are not the platform's:
   src/audio and src/video, one implementation each (sound.md). platform.h carries no backend's type. Still Windows'
-  values, on purpose: `platform::Key`'s values are the virtual-key codes (the console prints a released system key's,
-  two goldens hold such lines, and the harness's recordings keep them) and scan codes are set 1 (the bindings file and
-  the interface's key tables are indexed by them); SDL's backend maps its keys to both.
+  values, on purpose: `platform::Key`'s values are the virtual-key codes (Windows' layouts answer in them, the harness's
+  recordings keep them, a layout's unnamed codes such as VK_OEM_8 pass through; nothing in the game reads the numbers,
+  so other values would need a two-way table at those three places and a rule for the unnamed ones, for no change in
+  behaviour) and scan codes are set 1 (the bindings file and the interface's key tables are indexed by them); SDL's
+  backend maps its keys to both.
 - Inside `namespace platform` an unqualified call of a Windows function finds the platform function of that name first
   (`Sleep`, `ScreenToClient`, `ClientToScreen`, `SetCursor`, `ActivateKeyboardLayout`): the backend calls
   the system as `::X`.
@@ -219,11 +221,15 @@ What SDL's backend does (platform_sdl.cpp):
   `CreateGameWindow` uses there. `DisplaySizes`: `SDL_GetFullscreenDisplayModes` of the window's display, each
   mode's size in pixels (width times `pixel_density`), `platform::ChooseSizes` (display_sizes.h: deduped, narrowest
   first, none under 800x600 or above `SDL_GetDesktopDisplayMode`'s size); the harness's backend lists 19 fixed sizes. Hints:
-  Alt+F4 is the game's (`SDL_HINT_WINDOWS_CLOSE_ON_ALT_F4` 0), closing the window is a request
+  Alt+F4 is the backend's own (`SDL_HINT_WINDOWS_CLOSE_ON_ALT_F4` 0: SDL would send the close and the key both, and
+  only on Windows), closing the window is a request
   (`SDL_HINT_QUIT_ON_LAST_WINDOW_CLOSE` 0), mouse events only over the window (`SDL_HINT_MOUSE_AUTO_CAPTURE` 0, as Windows
   gave them). SDL makes the process per-monitor DPI aware: its coordinates are pixels.
 - **Every event waits in the queue** for the game's loops: focus gained / lost, minimised, restored become `Focus`
-  (only on a change of active / minimised), the close request (and SDL's quit) `CloseRequested`. SDL keeps the cursor
+  (only on a change of active / minimised), the close request (and SDL's quit) `CloseRequested`, and so is Alt+F4's
+  press (Alt without Ctrl, `sdl_input::IsCloseKey`, on every system; no key event for it, its release still comes; the
+  harness's backend and its key steps do the same, a live recording ends on it as on the window's close). Alt+Tab is
+  the system's switcher: the game sees the focus it took. SDL keeps the cursor
   set over its window and the screen saver off itself; exposures are not passed on (the renderer presents on its own).
 - **Keys** (sdl_keys.cpp): the `Key` and the set-1 scan code (0x100 extended) from the key's place (a table of US
   positions); the keys a layout moves (the digit row, the letters, the main block's punctuation) take the active
@@ -263,10 +269,10 @@ What SDL's backend does (platform_sdl.cpp):
   interface; the focus and the close request go on to `app::HandleWindowEvent` without the interface's close-all) or
   `app::HandleWindowEvent`. `PumpMessages` takes events with `TakeEvent` and gives them to HandleWindowEvent (input
   dropped); the movie loop takes Escape and Space and gives the rest to HandleWindowEvent.
-- app.cpp's dispatcher hands the interface an event's own data: a key's code, scan code and repeat, the system keys
-  (Alt without Ctrl, or F10: Alt+F4 quits, a release is printed to the console with the original's message data,
-  Alt+Tab deactivates), each character of a Text event with its scan code, a press with an even click count as a
-  double click, the mouse's position, the wheel's turn signed at 120 a notch.
+- app.cpp's dispatcher hands the interface an event's own data: a key's code, scan code and repeat, each character of
+  a Text event with its scan code, a press with an even click count as a double click, the mouse's position, the
+  wheel's turn signed at 120 a notch. A close request (the window's, Alt+F4) posts the quit in every loop, the loading
+  screens' PumpMessages and the movie loop included; a quit taken there stays posted for the main loop.
 - **Mouse positions in game points.** The game takes its mouse positions as screen coordinates of a window at 0, 0 the
   size of its resolution: the cursor position (the cursor, the global map) is read and placed without converting, mouse
   events come in the window's pixels. The window is anywhere (windowed it is
@@ -275,7 +281,7 @@ What SDL's backend does (platform_sdl.cpp):
   `platform::MapCursorPoints` at each present; every game call of the cursor's position goes through platform.h's cursor
   calls.
 - Keys are `platform::Key` everywhere past the backend (events, the interface's KeyDown / KeyUp, the harness's steps);
-  only the console's system-key line and the harness's recordings use its value (`static_cast`), the virtual-key code. A
+  only the harness's recordings and Windows' layout answers use its value (`static_cast`), the virtual-key code. A
   layout's code without a name passes through as it is. Typed characters (Char, OnChar) are code points, compared with
   character literals (`'\b'`, `'\r'`, `'\x1B'`), not with keys.
 
