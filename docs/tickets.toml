@@ -7744,6 +7744,15 @@ depends = ["C86"]
 note = "C86 took the count from 219 to 154: 0 wrong left (file bytes now read into values), about 52 byte views of void* buffers, 4 callback user data, about 32 downcasts after a class test, a kind switch or a typed factory (CreateObjectAs, FindModeOf, the side-half AttachObject), and about 66 typing debt, listed here by area. Items: item.h AsWeapon/AsArmor/AsLoot/AsQuick/AsQuest (type Unit::weapons and PartyUnitRecord weapons/armor), item_db RecordAs and item_stock, Item::link as ItemLink (ServerLink) and ItemTurn (ui_item_info ItemTurnOf), player_messages ItemCharge, net_client_party AddItem. UI: ui.h ActiveWindowAs (HUD panels could hold a typed screen), ScreenOf, AsUiMesh / sceneObjects, ui_chat_window PlayerOf. Net: net_messages PairMessage/BindingMessage PlayerInfo, net_client_handlers PlayerRef, PushReplicated, net_server TimedValueOf, net_server_map chunks, net_classes' handler registry and the message vector, net_connection ReadObject, net_messages ReadRef, player_sync, party_manager's archive ObjectRef. Script: script.h get<T>, map_object.h ObjectSlots, script_eval Lever, script_group CopyToList, script_exec_run EffectMoved. Spells and particles: spell.h Visual<T>, spell_effect_internal TargetUnit, spell.cpp target, particle_common Carrier, particle_callbacks attachedTo as Unit, particle_manager's object/source casts. AI: unit_ai_modes leader/target/enemy as Unit (5), combat_order_setters target, world_client_maps hits as Unit (2), OrderTame (unreached, keep). Specs: map_spec MadeMapObject/Transform, map_spec_unit MadeUnit, torch_object spec. Figures: figure_part_draw LinkMesh, figure_mesh SetDrawer, address_order AsObject3D, map_object_animation_bones AsMesh. Lists: lightning's objectList walk, texture.cpp ReleaseObject, render_textures' Texture, world_save / world_sync timed objects as Effect (type timedObjects). The same rules as C86: normal C++ classes, no forwarders to hide a cast, no reinterpret_cast, goldens the same."
 
 [[ticket]]
+id = "C86b"
+title = "Pointer static_casts, part 3: stream-read classes and the original's unchecked reads"
+group = "cleanup"
+size = 0.5
+model = "opus"
+depends = ["C86a"]
+note = "C86a took the count from 154 to 96, all legitimate by C86's classes except a few to reconsider: net_messages ReadRef and party_manager's archive ObjectRef take the class the stream names without a check (a class test would catch a bad stream); the three reads the original makes unchecked (unit_ai_modes PlayerMode::UpdateCombat's commanded target as a unit, spell_effect_update MissileImpact's target as a unit, figure_part_draw's Object3D owner) could test the class once their reach is known; the lightning and particle managers' objectList walks and TextureManager::ReleaseObject read a manager's objects as its one class (a typed list on the manager would drop them). Goldens the same."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
