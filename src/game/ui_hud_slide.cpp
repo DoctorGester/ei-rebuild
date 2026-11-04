@@ -307,6 +307,7 @@ void HudUnitPanel::Setup(int newBodyPart, bool slid) {
 
     UiSurface* panel = new UiSurface(ui, 20, 0, 180, 220, SurfaceBlend::Keyed, true);
     AddSurface(panel);
+    panel->PaintWith([this](UiSurface& out) { PaintTexts(out); });
 
     bodyPart = newBodyPart;
     for (int i = 0; i < 4; ++i) SetTint(sceneObjects[3 + i], bodyPart == i ? 1.0f : 0.5f);
@@ -436,7 +437,7 @@ void HudMap::Setup(float newZoom, bool slid) {
 
     UiSurface* dot = new UiSurface(ui, 700, 80, 705, 85, SurfaceBlend::Keyed, true);
     AddSurface(dot);
-    dot->Dot({0, 0}, 0xFFFFFF);
+    dot->PaintWith([](UiSurface& out) { out.Dot({0, 0}, 0xFFFFFF); });
 
     const UiMesh* disc = SceneMesh(1);
     for (int block = 0; block < kOutlinePoints / 4; ++block) {

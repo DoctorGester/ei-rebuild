@@ -1,8 +1,8 @@
 // The window surface (UiSurface): a rectangle of the interface a window draws into, drawn into the frame each frame
-// by its Blit. Until its window paints it each frame (P9's later batches), a surface keeps the draws it was given in
-// the coordinates they came in and Blit draws them again at the current layout, with the current fonts. Every live
-// surface is in a registry so a resolution change places them all again (UiSurface::RelayoutAll). See
-// docs/notes/ui-native.md, section 3.
+// by its Blit. A window that paints its surface (PaintWith) draws its current state into the frame from Blit; a
+// surface whose window does not paint yet keeps the draws it was given in the coordinates they came in and Blit
+// draws them again at the current layout, with the current fonts. Every live surface is in a registry so a
+// resolution change places them all again (UiSurface::RelayoutAll). See docs/notes/ui-native.md, section 3.
 #include "app.h"
 
 #include "asset_text.h"
@@ -166,6 +166,10 @@ void UiSurface::Cover(const Rect& area, bool whole) {
 void UiSurface::AddFill(const Rect& area, bool whole, std::uint32_t colour) {
     const Rect r = whole ? Rect{0, 0, width, height} : area.Intersection(Rect{0, 0, width, height});
     if (r.IsEmpty()) return;
+    if (paint) {
+        if (painting && !Transparent(colour)) render::ui::Solid(r.Offsetted(rect.TopLeft()), colour, paintClip);
+        return;
+    }
     Cover(r, whole);
     if (Transparent(colour)) return;
     UiSurfaceDraw d;
@@ -188,6 +192,12 @@ void UiSurface::FrameRect(const Rect* area, std::uint32_t colour) {
     }
     d.at = {width, height};
     d.colour = colour;
+    if (paint) {
+        if (!painting || Transparent(colour)) return;
+        const Rect r = d.whole ? Rect{0, 0, width, height} : d.area;
+        for (const Rect& side : render::ui::FrameRects(r.Offsetted(rect.TopLeft()))) render::ui::Solid(side, colour, paintClip);
+        return;
+    }
     Keep(std::move(d));
 }
 
@@ -245,7 +255,12 @@ int UiSurface::AddText(UiSurfaceDraw&& draw, std::string_view text, std::uint32_
     draw.shadow = shadow;
     if (!LayOut(draw)) return 0;
     const int result = draw.layout.result;
-    if (!(format & render::text::kCalcRect) && !(draw.layout.quads.empty() && draw.layout.underlines.empty())) Keep(std::move(draw));
+    if (format & render::text::kCalcRect) return result;
+    if (paint) {
+        if (painting) DrawLaidText(draw, paintClip);
+        return result;
+    }
+    if (!(draw.layout.quads.empty() && draw.layout.underlines.empty())) Keep(std::move(draw));
     return result;
 }
 
@@ -273,24 +288,43 @@ bool UiSurface::LayOut(UiSurfaceDraw& draw) {
     return true;
 }
 
+// A laid-out text into the frame at the surface's place: its shadow first; nothing in the key colour.
+void UiSurface::DrawLaidText(const UiSurfaceDraw& draw, const Rect& clip) const {
+    if (Transparent(draw.colour)) return;
+    const Point origin = rect.TopLeft();
+    if (draw.shadow) render::ui::Glyphs(*draw.laidFont, draw.layout, origin + Point{1, 1}, kShadowColour, clip);
+    render::ui::Glyphs(*draw.laidFont, draw.layout, origin, draw.colour, clip);
+}
+
 // --- Blit --------------------------------------------------------------------------------------------
 
+void UiSurface::PaintWith(std::function<void(UiSurface&)> newPaint) {
+    paint = std::move(newPaint);
+    draws.clear();
+}
+
 // A shown surface's draw into the frame: its frame picture (stretched over its rectangle, greyed after Greyscale),
-// then its draws at its rectangle, clipped to it and to the screen; a keyed surface leaves out what is in its
-// background colour (a text's antialiased edges blend over the frame). See docs/notes/ui.md, "Surface blit".
+// then its window's paint or its kept draws at its rectangle, clipped to it and to the screen; a keyed surface
+// leaves out what is in its background colour (a text's antialiased edges blend over the frame). See docs/notes/ui.md,
+// "Surface blit".
 void UiSurface::Blit() {
     if (!shown) return;
     const Rect clip = Rect{0, 0, ui->width, ui->height}.Intersection(rect);
     if (clip.IsEmpty()) return;
     if (render::ui::HasPicture(this)) render::ui::DrawPicture(this, rect, greyed);
+    if (paint) {
+        paintClip = clip;
+        painting = true;
+        paint(*this);
+        painting = false;
+        return;
+    }
     const Point origin = rect.TopLeft();
     const Size size{width, height};
     for (UiSurfaceDraw& d : draws) {
         if (Transparent(d.colour)) continue;
         if (d.kind == UiSurfaceDraw::Kind::Text) {
-            if (!LayOut(d)) continue;
-            if (d.shadow) render::ui::Glyphs(*d.laidFont, d.layout, origin + Point{1, 1}, kShadowColour, clip);
-            render::ui::Glyphs(*d.laidFont, d.layout, origin, d.colour, clip);
+            if (LayOut(d)) DrawLaidText(d, clip);
             continue;
         }
         const Rect r = d.whole ? Rect{0, 0, width, height} : ScaledArea(d.area, d.at, size);

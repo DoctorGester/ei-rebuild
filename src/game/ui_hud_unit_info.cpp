@@ -91,12 +91,12 @@ bool OutsideGroup(HudUnitPanel* self, Unit* unit) {
 
 } // namespace
 
-void HudUnitPanel::DrawUnitInfo(Unit* unit) {
+void HudUnitPanel::PaintUnitInfo(UiSurface& surface, Unit* unit) {
     TextManager* clientWorldTexts = g_clientWorld.texts;
     UnitParams* params = &unit->params;
     std::string suffix;
     Panel panel;
-    panel.surface = surfaces[0];
+    panel.surface = &surface;
     panel.labels = texts.data();
     panel.rect = {5, 0x23, 0x9B, 0x32};
 
@@ -207,6 +207,35 @@ constexpr int kInfoPage = 2;          // bodyPart: the page of texts, without th
 
 } // namespace
 
+Unit* HudUnitPanel::PanelUnit() const {
+    if (slide >= 1.0f) return nullptr;
+    Unit* unit = hoverUnit ? hoverUnit : shownUnit;
+    return unit && unit->AsObject3D()->attached ? unit : nullptr;
+}
+
+// The panel surface's paint: the shown unit's name and its page's texts.
+void HudUnitPanel::PaintTexts(UiSurface& surface) {
+    Unit* unit = PanelUnit();
+    if (!unit) return;
+    Rect nameRect = {5, 5, 155, 20};
+    surface.DrawWrappedText(strings[hoverUnit ? 1 : 0], &nameRect, 2, 0, kTextColour, render::text::kCenter | render::text::kWordBreak, 1);
+    switch (bodyPart) {
+    case 0:
+        PaintHealth(surface, unit);
+        break;
+    case 1:
+        PaintParts(surface, unit);
+        PaintHealth(surface, unit);
+        break;
+    case 2:
+        PaintUnitInfo(surface, unit);
+        break;
+    case 3:
+        PaintEffects(surface, unit);
+        break;
+    }
+}
+
 void HudUnitPanel::Draw(SceneRenderer* pass) {
     screen_layout::EnterLeftPanel();    // addon's 100232F4
     Quaternion savedOrientation = {1.0f, 0.0f, 0.0f, 0.0f};
@@ -220,13 +249,11 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
 
     // The unit shown while the panel is not slid away: the hover unit, else the selected one.
     Unit* unit = nullptr;
-    const char* name = nullptr;
     float size = 0.0f;     // the original leaves both unset without a unit (never read then)
     float height = 0.0f;
     if (slide < 1.0f) {
         const int which = hoverUnit ? 1 : 0;
         unit = hoverUnit ? hoverUnit : shownUnit;
-        name = strings[which].c_str();
         size = viewSize[which];
         height = viewHeight[which];
         if (hoverUnit == shownUnit) size = viewSize[0];
@@ -234,7 +261,6 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
     }
 
     for (int i = kFirstDisplay; i < kDisplaysEnd; ++i) SceneMesh(i)->visible = false;
-    surfaces[0]->Clear();
 
     if (unit && unit->AsObject3D()->attached) {
         Object3D* model = unit->AsObject3D();
@@ -293,9 +319,6 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
             ClearUiDepth(1.0f, rects, 3);
         }
 
-        Rect nameRect = {5, 5, 155, 20};
-        surfaces[0]->DrawWrappedText(name, &nameRect, 2, 0, kTextColour, render::text::kCenter | render::text::kWordBreak, 1);
-
         switch (bodyPart) {
         case 0: {
             ShowHealth(unit);
@@ -313,9 +336,6 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
         case 1:
             ShowParts(unit);
             ShowHealth(unit);
-            break;
-        case 2:
-            DrawUnitInfo(unit);
             break;
         case 3:
             ShowEffects(unit);

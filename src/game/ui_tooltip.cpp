@@ -1,5 +1,5 @@
 // A region's tooltip (UiTooltip): its constructor, which splits the text into lines and measures them, the
-// destructor body, SetText and the drawing of the lines; and its showing (Rebirth-patched: its WideScreen is
+// destructor body, SetText and the painting of the lines; and its showing (Rebirth-patched: its WideScreen is
 // reproduced behind the flag). See ui.h and docs/notes/items_spells.md.
 #include "ui.h"
 #include "options.h"
@@ -78,16 +78,12 @@ UiTooltip::~UiTooltip() = default;
 void UiTooltip::SetText(std::string_view text) {
     if (text.empty()) return;
     lines = text::Split(text, kLineSeparator);
-    DrawLines();
 }
 
-void UiTooltip::DrawLines() {
-    if (!(!surfaces.empty())) return;
-    UiSurface* surface = surfaces[0];
-    if (!surface) return;
-    surface->Fill(kBackground);
+void UiTooltip::PaintLines(UiSurface& surface) const {
+    surface.Fill(kBackground);
     Rect whole{0, 0, 0, 0};   // empty: the whole surface
-    surface->FrameRect(&whole, kTitleColour);
+    surface.FrameRect(&whole, kTitleColour);
     int right = width > keyWidth ? width : keyWidth;
     int step = lineHeight;
     Rect row{kTextLeft, kTextTop, right - kTextLeft, step + kTextTop};
@@ -95,9 +91,9 @@ void UiTooltip::DrawLines() {
         std::uint32_t colour = i > 0 ? kTextColour : kTitleColour;
         if (i == 0 && keyName) {
             std::string text = lines[0] + KeyOpen() + keyName + KeyClose();
-            surface->DrawTextIn(text, &row, kFont, colour, 0, 0);
+            surface.DrawTextIn(text, &row, kFont, colour, 0, 0);
         } else {
-            surface->DrawTextIn(lines[i], &row, kFont, colour, 0, 0);
+            surface.DrawTextIn(lines[i], &row, kFont, colour, 0, 0);
         }
         row.Offset(0, step);
     }
@@ -143,22 +139,20 @@ void UiTooltip::OnMouseMove(Point point) {
         }
         UiSurface* surface = new UiSurface(ui, &area, SurfaceBlend::Keyed);
         AddSurface(surface);
+        surface->PaintWith([this](UiSurface& out) { PaintLines(out); });
         return;
     }
     case State::Appearing:
-        // The appearing time is zero in the exe: the tooltip is fully shown on the next call.
+        // The appearing time is zero in the exe: the tooltip is Shown on the next call.
         if (timer < kAppearTime) {
-            DrawLines();
             timer = UiContainer::FrameTime() + timer;
         } else {
             state = State::Shown;
             timer = kAppearTime;
-            DrawLines();
         }
         return;
     case State::Disappearing:
         if (timer > 0.0f) {
-            DrawLines();
             timer -= UiContainer::FrameTime();
         } else {
             state = State::Idle;

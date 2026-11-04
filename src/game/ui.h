@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <deque>
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
@@ -144,6 +145,8 @@ public:
     // The console's "fps": a surface for the frame rate at (730, 10)-(800, 28) unless there is one; off
     // frees it.
     void ShowFps(bool on);
+    // The FPS surface's paint.
+    void PaintFps(UiSurface& surface) const;
     // A quest variable changed (client, script): the top window hears of it; at 1 (or NaN) a name of
     // three or more '.' parts keeps its third part in savedText (the current quest).
     void OnQuestVariable(std::string_view name, float value);
@@ -216,6 +219,7 @@ public:
     int fpsSpare = 0;                // 0 from Create with the frame rate fields; nothing reads it
     std::uint32_t fpsTime = 0;
     int fpsFrames = 0;
+    std::string fpsText;             // the last measured rate ("%.1f"); empty until the first period
     // The windows draw, redraw their surfaces and update their tooltips only while this is set.
     bool drawing = false;
     std::vector<UiWindow*> stack;    // the open windows, the top one last
@@ -384,16 +388,25 @@ public:
     Rect layoutRect;                 // what rect is scaled from (layout coordinates); screen pixels when not `scaled`
     bool scaled = true;              // made over a layout rectangle (not the screen's pixels)
     std::uint32_t background = 0;         // the colour Clear fills with
-    // What it was asked to draw, drawn again each frame (until its window paints it each frame).
+    // What it was asked to draw, drawn again each frame (a surface its window does not paint yet).
     std::vector<UiSurfaceDraw> draws;
 
+    // Its window paints it each frame: Blit calls `paint` after the frame picture, and what paint draws goes
+    // straight into the frame. Such a surface keeps no draws; a draw on it outside paint draws nothing (a text
+    // still returns its value).
+    void PaintWith(std::function<void(UiSurface&)> paint);
+
 private:
+    std::function<void(UiSurface&)> paint;
+    bool painting = false;           // inside paint
+    Rect paintClip;                  // Blit's clip while painting
     bool Transparent(std::uint32_t colour) const;
     void Keep(UiSurfaceDraw&& draw);
     void Cover(const Rect& area, bool whole);
     void AddFill(const Rect& area, bool whole, std::uint32_t colour);
     int AddText(UiSurfaceDraw&& draw, std::string_view text, std::uint32_t format, std::uint32_t colour, bool shadow);
     bool LayOut(UiSurfaceDraw& draw);
+    void DrawLaidText(const UiSurfaceDraw& draw, const Rect& clip) const;
 };
 
 // A 3D model shown in a window (an inventory item, a portrait).
@@ -500,7 +513,6 @@ public:
     void ClearSceneObjects();
 
     UiSurface* AddSurface(UiSurface* surface);
-    void RemoveSurfaceAt(int index);
     void ClearSurfaces();
 
     UiRegion* AddRegion();
@@ -562,12 +574,13 @@ struct UiTooltip : UiWindow {
     ~UiTooltip() override;
     // Empty: nothing. The size is not measured again.
     void SetText(std::string_view text);
-    // The first line in the title colour, followed by "  ( <key> )" with keyName.
-    void DrawLines();
+    // The surface's paint: the background, the frame, the first line in the title colour, followed by
+    // "  ( <key> )" with keyName, then the others.
+    void PaintLines(UiSurface& surface) const;
     // Rebirth-patched (WideScreen). One step of the showing, mouse in layout coordinates;
-    // Hovered waits for the delay (setting 20; 0: never shown), then makes the surface at the mouse
-    // (Appearing); Appearing draws and becomes Shown; Disappearing draws while the timer is positive, then drops
-    // the surface (Idle).
+    // Hovered waits for the delay (setting 20; 0: never shown), then makes the surface at the mouse, painted from
+    // then on (Appearing); Appearing becomes Shown; Disappearing waits while the timer is positive, then drops the
+    // surface (Idle).
     void OnMouseMove(Point point);
     void Draw(SceneRenderer* pass) override;
     void Redraw() override;
@@ -959,21 +972,31 @@ public:
 class HudUnitPanel : public UiWindow {
 public:
     HudUnitPanel(Interface3D* ui, BattleScreen* owner);
+    // The unit the panel shows: the hover unit, else the selected one, while the panel is not slid away and the
+    // unit's model is attached; else null.
+    Unit* PanelUnit() const;
+    // The panel surface's paint: PanelUnit's name and the texts of its page (bodyPart): the hit points and mana,
+    // the parts' names, the info lines or the effects.
+    void PaintTexts(UiSurface& surface);
     // The info page's lines for `unit`: hit points, mana, speed, vision, attack, defence, damage, rate,
     // protection and, for a unit outside the party, its level against the leader's.
-    void DrawUnitInfo(Unit* unit);
-    // The mana bar only for a party unit.
+    void PaintUnitInfo(UiSurface& surface, Unit* unit);
+    // The hit points' and, for a party unit, the mana's bar; PaintHealth their numbers.
     void ShowHealth(Unit* unit);
-    // The name of each present part and, for state 3, its durability bar.
+    void PaintHealth(UiSurface& surface, Unit* unit);
+    // The durability bar of each present part in state 3; PaintParts the parts' names.
     void ShowParts(Unit* unit);
+    void PaintParts(UiSurface& surface, Unit* unit);
     void LeftDown(int buttons, Point point) override;
     void LeftUp(int buttons, Point point) override;
     void MouseMove(int buttons, Point point) override;
     void Wheel(int buttons, int delta, Point point) override;
     // The battle screen's keys call it after setting bodyPart.
     void ShowBodyPart();
-    // The first six effects on `unit` (text, time left and picture); scene object 9 shows when there are more.
+    // The pictures of the first six effects on `unit`; scene object 9 shows when there are more. PaintEffects their
+    // names and times left.
     void ShowEffects(Unit* unit);
+    void PaintEffects(UiSurface& surface, Unit* unit);
     // Rebirth-patched (WideScreen). The parts at the current slide offset.
     void Layout();
     // Rebirth-patched (WideScreen). Every frame: the slide (as the map's); a dead hover unit
@@ -983,8 +1006,8 @@ public:
     // rectangle and "no slide" are not kept, ui_hud_slide.cpp). `slid` starts the panel at the far end of its slide.
     void Setup(int bodyPart, bool slid);
     // Rebirth-patched (WideScreen). The hover unit, else the selected one, while the panel
-    // is not slid away: its model (not on info page 2) over a depth buffer cleared to 0 around the panel,
-    // its name, bars and texts.
+    // is not slid away: its model (not on info page 2) over a depth buffer cleared to 0 around the panel and
+    // its bars (the texts are PaintTexts').
     void Draw(SceneRenderer* pass) override;
 
     BattleScreen* owner;
@@ -1813,7 +1836,11 @@ public:
     // While focused. The first edit key starts editing (Backspace / Delete from an empty text, the others
     // with the caret at the end); the caret is not clamped here.
     void KeyDown(int key, int repeat, int flags) override;
-    void DrawContentsVanilla();
+    // The caret kept within the text (after every change, as the original's redraw did).
+    void ClampCaret();
+    // The surface's paint: the text (centred with mode 1), then a 1-pixel caret line in caretColour after the
+    // caret's characters while it falls inside the field.
+    void PaintContents(UiSurface& surface) const;
     // Every character class, font 1, at most 50 characters; focused. caret, editing and changed are left
     // as they are.
     UiEditField(Interface3D* ui, Rect rect);
@@ -1888,6 +1915,11 @@ public:
     // (200, 50)-(600, 560) or "#position", one pulsing frame per "#rectangle" line, one entry per "#text"
     // line. Details: docs/notes/ui.md, "Behaviour moved out of header comments".
     void ShowPage();
+    // The surfaces' paints: the page's and the topic's titles; the texts; the neighbouring pages' titles and the
+    // help key's name.
+    void PaintHeader(UiSurface& surface) const;
+    void PaintBody(UiSurface& surface) const;
+    void PaintFooter(UiSurface& surface) const;
 
     bool message;                        // a message window (ShowMessage), not help
     std::string text;                   // the message, or the help topic
@@ -1897,6 +1929,15 @@ public:
     std::vector<UiMesh*> pulsing;      // sprites whose plain colour pulses (Update)
     std::vector<UiMesh*> pictures;     // the entries' picture sprites
     float pulseTime;
+    // What ShowPage keeps for the paints: the page's width (layout), the texts with their first rows, and the help
+    // key's hint ("<show_tutorial_key> <key>"; empty without a key).
+    struct HelpText {
+        std::string text;
+        Rect row;
+    };
+    int pageWidth = 0;
+    std::vector<HelpText> bodyTexts;
+    std::string keyHint;
 
 private:
     // The page is kept for the topic (or the message).

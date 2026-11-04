@@ -229,11 +229,6 @@ UiSurface* UiWindow::AddSurface(UiSurface* surface) {
     return surface;
 }
 
-void UiWindow::RemoveSurfaceAt(int index) {
-    if (UiSurface* surface = surfaces[index]) DestroySurface(surface);
-    surfaces.erase(surfaces.begin() + index);
-}
-
 void UiWindow::ClearSurfaces() {
     for (int i = 0; i < std::ssize(surfaces); ++i) {
         if (UiSurface* surface = surfaces[i]) DestroySurface(surface);

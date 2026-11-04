@@ -1,5 +1,5 @@
 // The item strip's layout: the camp's and the hero screen's strips of items along the
-// top or bottom edge, and the forwarding strip's draw. See ui_screens.h
+// top or bottom edge, the forwarding strip's draw and its two text surfaces' paints. See ui_screens.h
 // (UiItemStrip::Build, Draw) and docs/notes/ui.md ("Camp, global map, hero screens").
 #include "ui.h"
 
@@ -18,8 +18,40 @@ namespace {
 
 constexpr int kFirstCellX = 50;     // the items' region starts here
 constexpr int kCellPixels = 100;    // one slot
+constexpr std::uint32_t kNumberColour = 0xA7D7E4;
+
+// The strip's eight cells in view that hold an item: the item and the cell's text rectangle (70 x 20 from 15 pixels
+// into the cell), the cells 100 pixels apart from the current tab's position less its whole slots.
+template <class Each>
+void ForItemsInView(const UiItemStrip& strip, Each each) {
+    const float scrollPosition = strip.position[strip.tab];
+    const int first = static_cast<int>(scrollPosition);
+    const float frac = scrollPosition - first;
+    const float hundred = 100.0f;
+    for (int i = 0; i < 8; ++i) {
+        const int index = first + i;
+        if (index < 0 || index >= std::ssize(strip.list)) continue;
+        const int x = static_cast<int>((i - frac) * hundred);
+        each(strip.list[index], Rect{x + 0xF, 0, x + 0x55, 0x14});
+    }
+}
 
 } // namespace
+
+void UiItemStrip::PaintCounts(UiSurface& surface) const {
+    ForItemsInView(*this, [&](const Item* item, const Rect& area) {
+        const int stackCount = static_cast<int>(item->count);
+        if (stackCount != 1) surface.DrawTextIn(str::Format("%d", stackCount), &area, 1, kNumberColour, 2, 1);
+    });
+}
+
+void UiItemStrip::PaintPrices(UiSurface& surface) const {
+    if (priceKind == PriceKind::None) return;
+    ForItemsInView(*this, [&](Item* item, const Rect& area) {
+        // Whether the strip's mode takes the item, then the number shown under it.
+        if (owner->CanEquip(item, mode)) surface.DrawTextIn(str::Format("%d", owner->Price(item, priceKind)), &area, 1, kNumberColour, 1, 1);
+    });
+}
 
 void UiItemStrip::Build(bool atTop) {
     top = atTop ? 0 : 500;
@@ -110,47 +142,12 @@ void ForwardingStrip::Draw(SceneRenderer* pass) {
     }
     DrawBase(pass);
 
-    Item* shown[8];
     for (int i = 0; i < 8; ++i) {
         int index = first + i;
-        if (index < 0 || index >= std::ssize(list)) {
-            shown[i] = nullptr;
-            continue;
-        }
-        shown[i] = list[index];
+        if (index < 0 || index >= std::ssize(list)) continue;
         const ItemCell cell{list[index], ((i - frac) + one) * hundred, top + fifty,
                             scale * 1.5f, 100.0f, mode};
         owner->DrawItem(pass, cell);
-    }
-
-    // The text rectangle of cell i: 70 x 20 from 15 pixels into the cell.
-    auto cellRect = [&](int i) {
-        int x = static_cast<int>((i - frac) * hundred);
-        Rect rect;
-        rect = {x + 0xF, 0, x + 0x55, 0x14};
-        return rect;
-    };
-    const char* const kNumber = "%d";
-    std::string text;
-    UiSurface* counts = surfaces[0];
-    counts->Clear();
-    for (int i = 0; i < 8; ++i) {
-        if (!shown[i]) continue;
-        int stackCount = static_cast<int>(shown[i]->count);
-        if (stackCount == 1) continue;
-        text = str::Format(kNumber, stackCount);
-        Rect area = cellRect(i);
-        counts->DrawTextIn(text, &area, 1, 0xA7D7E4, 2, 1);
-    }
-    UiSurface* numbers = surfaces[1];
-    numbers->Clear();
-    for (int i = 0; i < 8; ++i) {
-        Item* item = shown[i];
-        if (!item || priceKind == PriceKind::None) continue;
-        if (!owner->CanEquip(item, mode)) continue;       // whether the strip's mode takes the item
-        text = str::Format(kNumber, owner->Price(item, priceKind));     // the number shown under it
-        Rect area = cellRect(i);
-        numbers->DrawTextIn(text, &area, 1, 0xA7D7E4, 1, 1);
     }
 }
 
@@ -286,8 +283,10 @@ void UiItemStrip::Setup(std::vector<Item*>* newSource, bool newTop) {
     Build(newTop);
     regions[0]->SetTip(0x4FB0);
     regions[1]->SetTip(0x4FB1);
-    AddSurface(new UiSurface(ui, 50, top + 15, 750, top + 35, SurfaceBlend::Keyed, true));
-    AddSurface(new UiSurface(ui, 50, top + 65, 750, top + 85, SurfaceBlend::Keyed, true));
+    AddSurface(new UiSurface(ui, 50, top + 15, 750, top + 35, SurfaceBlend::Keyed, true))
+        ->PaintWith([this](UiSurface& out) { PaintCounts(out); });
+    AddSurface(new UiSurface(ui, 50, top + 65, 750, top + 85, SurfaceBlend::Keyed, true))
+        ->PaintWith([this](UiSurface& out) { PaintPrices(out); });
     priceKind = PriceKind::None;
     source = newSource;
 }

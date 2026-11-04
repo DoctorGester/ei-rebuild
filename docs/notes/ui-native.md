@@ -13,7 +13,7 @@ surface is drawn above every mesh, in stack and child order.
 
 | Primitive | Functions (file) | Path |
 |---|---|---|
-| Surface draw | `UiSurface::Blit` (`ui_surface.cpp`): its frame picture, then its draws at its rectangle | `render::ui::Solid` / `Glyphs` into the frame |
+| Surface draw | `UiSurface::Blit` (`ui_surface.cpp`): its frame picture, then its window's paint (or its kept draws) at its rectangle | `render::ui::Solid` / `Glyphs` into the frame |
 | Text | `UiSurface::DrawTextIn` / `DrawTextPixels` (shadow first in 0x080808 at +1,+1), `DrawWrappedText` (`ui_text.cpp`); extents by `TextExtent` (`ui_font.h`) | glyph runs, laid out again when the font or rectangle changes |
 | Fill / Clear / FillRect / FrameRect | `ui_surface.cpp` (`render::ui::FrameRects`) | solid quads |
 | Lines and carets | `UiSurface::Line` (`render::ui::LineRects`: the 1-pixel pen's rule, end point left out): console, chat typed line, edit field, connect list, save / load list | solid quads |
@@ -31,9 +31,9 @@ surface is drawn above every mesh, in stack and child order.
 | Movies | `bink_video.cpp` -> `MovieFrame` / `MovieBlit` | GPU draw of the CPU-decoded frame |
 | Textures the interface writes | `CopyImage` (portraits, HUD icons, help pictures), `ItemFigureTexture`, the save / load pictures, the global-map clouds (noise and blend in shaders) | GPU |
 
-What is left on the CPU per frame: the quads of every shown surface (a text is laid out again only when its font or its
-pixel rectangle changed), the text layout of what windows draw again (the unit panel every frame, tooltips), the mesh
-path's projection for picking bounds, and the Bink decode.
+What is left on the CPU per frame: the quads of every shown surface, the text layout of every painted surface's texts (a
+kept text is laid out again only when its font or its pixel rectangle changed), the mesh path's projection for picking
+bounds, and the Bink decode.
 
 ## 2. Text
 
@@ -99,8 +99,18 @@ the atlas's coverage (or full coverage for solids and underlines), alpha-blended
 one clip rectangle are one draw. A keyed surface leaves out its draws in its background colour (the key), so what is
 behind it shows; an opaque one draws them. A new surface is black.
 
-**The draws a surface keeps (migration step).** Windows still draw into their surfaces when something changes (ui.md),
-not each frame. Until a window paints its state each frame (P9a-P9e), its surface keeps the draws it was given
+**Painted surfaces.** A window paints its surface each frame: `UiSurface::PaintWith` gives the surface a paint (the
+window's `Paint...` function), which Blit calls after the frame picture; the fills, frames, lines, dots and texts it makes
+go straight into the frame (laid out each time, at the current size and fonts), and the surface keeps nothing. What
+the paint draws is the window's state (members), so a change shows from the next frame without a redraw call; a draw
+whose value sets layout (a text's height, a wrapped text's line count) is measured where it ran before (`WrapText`,
+`TextExtent`), the paint draws only. A draw on a painted surface outside its paint draws nothing (a text still returns
+its value). Painted: the options' spins, the main menu's version line, the FPS and status surfaces, tooltips, the item
+strips' counts and prices, the HUD unit panel's texts and the HUD map's marker, the global map's zone tip and title,
+the help page's three surfaces, the edit field and the connection screen's note (P9a).
+
+**The draws a surface keeps (migration step).** The windows not converted yet (P9b, P9c) draw into their surfaces when
+something changes (ui.md), not each frame. Until a window paints its state each frame, its surface keeps the draws it was given
 (`UiSurface::draws`) in the coordinates they came in and Blit draws them again: a fill, frame or line in surface pixels
 with the size it was made at (scaled to the current size; whole-surface fills and frames follow the size), a
 `DrawTextIn` in layout units with the interface font's index, a `DrawTextPixels` in pixels with its own font. A text is
