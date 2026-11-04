@@ -79,20 +79,17 @@ int TradePanel::PurchaseCost() {
 // --- Draw ------------------------------------------------------------------------------
 
 void MpHeroScreen::DrawExperience() {
-    UiSurface* surface = surfaces[2];
+    std::vector<UiLabel>& out = labels[2];
     std::string levelText;
     std::string line;
-    surface->Clear();
+    out.clear();
     levelText = g_clientWorld.texts->GetString(kLevelUpKey);
-    Rect title = {0, 130, 200, 150};
-    surface->DrawTextIn(levelText, &title, kTextFormat, kWhite, 1, 1);
+    out.push_back({levelText, Rect{0, 130, 200, 150}, kTextFormat, kWhite, 1});
     levelText = str::Format(kSignedFormat, -tradePanel->PurchaseCost());
-    Rect cost = {0, 150, 200, 170};
-    surface->DrawTextIn(levelText, &cost, kTextFormat, kWhite, 1, 1);
+    out.push_back({levelText, Rect{0, 150, 200, 170}, kTextFormat, kWhite, 1});
     levelText = g_clientWorld.texts->GetString(kCurrentExpKey);
     line = str::Format(kLabelFormat, levelText, tradePanel->Experience());
-    Rect current = {0, 110, 200, 130};
-    surface->DrawTextIn(line, &current, kTextFormat, kWhite, 1, 1);
+    out.push_back({line, Rect{0, 110, 200, 130}, kTextFormat, kWhite, 1});
 }
 
 void MpHeroScreen::Draw(SceneRenderer* pass) {
@@ -176,8 +173,7 @@ void MpHeroScreen::CloseScreen() {
 // --- The hero list and the voices drawn -----------------------------------------------------
 
 void MpHeroScreen::DrawHeroList() {
-    UiSurface* surface = surfaces[0];
-    surface->Clear();
+    labels[0].clear();
     UiMesh* frame = SceneMesh(kSelectionFrame);
     frame->visible = false;
     Rect area = {12, 13, 265, 33};
@@ -190,22 +186,21 @@ void MpHeroScreen::DrawHeroList() {
             frame->Place(240.0f, static_cast<float>(y), kFrameDepth);
         }
         // A hero record is a party; its name the first member's text 0.
-        surface->DrawTextIn(g_savedParties.Hero(static_cast<int>(index))->GetParty()->members[0].texts[0], &area, 1, kListColour,
-                            kListFormat, 1);
+        labels[0].push_back({g_savedParties.Hero(static_cast<int>(index))->GetParty()->members[0].texts[0], area, 1, kListColour,
+                             kListFormat});
         area.Offset(0, 24);
     }
 }
 
 void MpHeroScreen::DrawVoices() {
-    UiSurface* surface = surfaces[2];
-    surface->Clear();
+    std::vector<UiLabel>& out = labels[2];
+    out.clear();
     UiMesh* frame = SceneMesh(kSelectionFrame);
     frame->visible = false;
     std::string title;
-    Rect area = {10, 5, 190, 20};
     title = g_clientWorld.texts->GetString(kVoicesKey);
-    surface->DrawTextIn(title, &area, 0, kWhite, 1, 1);
-    area = {20, 25, 175, 40};
+    out.push_back({title, Rect{10, 5, 190, 20}, 0, kWhite, 1});
+    Rect area = {20, 25, 175, 40};
     std::uint32_t index = static_cast<std::uint32_t>(voiceTop);
     for (int offset = 0; offset < 165; offset += 15, ++index) {
         const std::vector<MpVoiceEntry>& currentVoices = *voices;
@@ -215,7 +210,7 @@ void MpHeroScreen::DrawVoices() {
             float y = offset + kVoiceFrameTop;
             frame->Place(97.5f, y, kFrameDepth);
         }
-        surface->DrawTextIn(currentVoices[index].name, &area, 0, kListColour, kListFormat, 1);
+        out.push_back({currentVoices[index].name, area, 0, kListColour, kListFormat});
         area.Offset(0, 15);
     }
 }

@@ -247,6 +247,7 @@ public:
     int heldRegion = -1;             // the school / science row held after a purchase
     int holdTicks = 0;               // milliseconds held, from -500
     std::vector<std::string> texts; // the titles
+    std::vector<UiLabel> labels;     // the surface's paint: the titles and the rows DrawLists shows
 };
 
 // --- Camp pages ---
@@ -374,6 +375,8 @@ public:
     Ref<Item> spellMade;            // the spell container the spell constructor would make, or null
     float priceWeights[9] = {};      // ClassTemplate::weights
     std::vector<std::string> pageTitles;    // the seven pages' titles and "quit"
+    std::vector<UiLabel> actionLabels;    // surface 0's paint: the money or experience, the action and its cost
+    std::vector<UiLabel> titleLabels;     // surface 1's: the page's title
     bool noConstructor = false;      // the player's "i.noconstr" = 1: second pages hidden
     float heroTurn = 0.0f;           // the hero preview's turn (radians)
     int turning = 0;                 // 1 / 2 while a turn button is held (Update turns the hero)
@@ -422,6 +425,7 @@ public:
     int points = 0;                  // skill points left (page 10); SetHero puts the height * 100 here
     int heldRegion = -1;             // the -/+ button held on page 10 (-1 none)
     int holdTicks = 0;               // milliseconds it has been held (from -500)
+    std::vector<UiLabel> labels;     // the surface's paint: the title and the rows DrawStats shows
 };
 
 // --- Hero equipment panel ---
@@ -464,6 +468,7 @@ public:
     PriceKind buyKind = PriceKind::SpellBuy;
     PriceKind sellKind = PriceKind::SpellBuy;
     bool exchange = false;
+    std::vector<UiLabel> labels;     // the surface's paint: the counts and prices of the last Draw
 };
 
 // The repair page's grid: the same cells as the trade grid with textures repair1..4.
@@ -477,6 +482,7 @@ public:
     Item* ItemAt(Point point, int* topic) override;
 
     std::vector<Item*>* items = nullptr;
+    std::vector<UiLabel> labels;     // the surface's paint: the counts and prices of the last Draw
 };
 
 // The quick item strip of the hero panels: eight cells along the top (camp) or the bottom of the screen.
@@ -523,4 +529,5 @@ public:
     void Draw(SceneRenderer* pass) override;
 
     std::vector<std::string> texts; // the cost texts ("infoitem_35", "infoitem_36")
+    std::vector<UiLabel> labels;     // the surface's paint: the cost lines of the last Draw
 };

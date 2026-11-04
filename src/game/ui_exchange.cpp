@@ -190,10 +190,9 @@ void ExchangeScreen::CreateScreen() {
     moneyField->SetLook(1, static_cast<char>(1), 1, 9, 0xFFFFFF, 0x31B3FF);
     moneyField->SetText("");
 
-    AddSurface(NewSurface(ui, 0x19A, 0x1C2));
-    AddSurface(NewSurface(ui, 0x136, 0x15E));
-    AddSurface(NewSurface(ui, 0xD2, 0x10E));
-    AddSurface(NewSurface(ui, 0x6E, 0xAA));
+    const int tops[4] = {0x19A, 0x136, 0xD2, 0x6E}, bottoms[4] = {0x1C2, 0x15E, 0x10E, 0xAA};
+    for (int i = 0; i < 4; ++i)
+        AddSurface(NewSurface(ui, tops[i], bottoms[i]))->PaintWith([this, i](UiSurface& out) { PaintLabels(out, labels[i]); });
 }
 
 // --- Draw ----------------------------------------------------------------------------------------
@@ -217,49 +216,35 @@ void ExchangeScreen::Draw(SceneRenderer* pass) {
     std::string text, line;
     net::ClientSession* client = net::g_gameClient;
 
+    for (std::vector<UiLabel>& surfaceLabels : labels) surfaceLabels.clear();
     // Surface 0: our money and the accept caption.
-    UiSurface* surface = surfaces[0];
-    surface->Clear();
     text = texts->GetString("xch_current_money");
     line = std::format("{} {}", text, LocalPlayerData()->money);
-    Rect area{0, 0, 200, 0x14};
-    surface->DrawTextIn(line, &area, kAlignLeft, kWhite, 1, 1);
+    labels[0].push_back({line, Rect{0, 0, 200, 0x14}, kAlignLeft, kWhite, 1});
     text = texts->GetString("xch_accept");
-    area = Rect{0, 0x14, 200, 0x28};
-    surface->DrawTextIn(text, &area, kAlignLeft, kWhite, 1, 1);
+    labels[0].push_back({text, Rect{0, 0x14, 200, 0x28}, kAlignLeft, kWhite, 1});
 
     // Surface 1: the money offer's caption.
-    surface = surfaces[1];
-    surface->Clear();
     text = texts->GetString("xch_money_offer");
-    area = Rect{0x14, 0, 0xB4, 0x14};
-    surface->DrawWrappedText(text, &area, kWrapLines, 1, kWhite, 1, 1);
+    labels[1].push_back({text, Rect{0x14, 0, 0xB4, 0x14}, 1, kWhite, 1, kWrapLines});
 
     // Surface 2: the partner's money, while its offer pairs with ours.
-    surface = surfaces[2];
-    surface->Clear();
     net::PartyMessage* partner = net::ClientFindParty(client);
     if (IsLive(partner)) {
         text = texts->GetString("xch_money_remote");
-        area = Rect{0x14, 0, 0xB4, 0x14};
-        surface->DrawWrappedText(text, &area, kWrapLines, 1, kWhite, 1, 1);
+        labels[2].push_back({text, Rect{0x14, 0, 0xB4, 0x14}, 1, kWhite, 1, kWrapLines});
         line = std::format("{}", partnerOffer->money);
-        area = Rect{0, 0x28, 200, 0x3C};
-        surface->DrawTextIn(line, &area, kAlignLeft, kWhite, 1, 1);
+        labels[2].push_back({line, Rect{0, 0x28, 200, 0x3C}, kAlignLeft, kWhite, 1});
     }
 
     // Surface 3: whether the partner accepted.
-    surface = surfaces[3];
-    surface->Clear();
     partner = net::ClientFindParty(client);
     if (IsLive(partner)) {
         text = texts->GetString("xch_remote_header");
-        area = Rect{0x14, 0, 0xB4, 0x14};
-        surface->DrawWrappedText(text, &area, kWrapLines, 1, kWhite, 1, 1);
+        labels[3].push_back({text, Rect{0x14, 0, 0xB4, 0x14}, 1, kWhite, 1, kWrapLines});
         text = texts->GetString(net::ClientFindParty(client)->accepted ? "xch_remote_ok"
                                                               : "xch_remote_cancel");
-        area = Rect{0, 0x28, 200, 0x3C};
-        surface->DrawTextIn(text, &area, kAlignLeft, kGrey, 1, 1);
+        labels[3].push_back({text, Rect{0, 0x28, 200, 0x3C}, kAlignLeft, kGrey, 1});
     }
 
     // The accept button greyed and take-back lit while our offer is accepted, else the reverse;

@@ -63,22 +63,24 @@ constexpr std::uint32_t kText = 0xA7D7E4;
 class Writer {
 public:
     explicit Writer(ItemInfoPanel* newPanel)
-        : draw(newPanel->surfaces[0]), panel(newPanel), rect{15, 10, 185, 25} {}
+        : panel(newPanel), rect{15, 10, 185, 25} {}
 
     const std::string& T(int index) const { return panel->itemTexts[index]; }
     const std::string& Skill(int index) const { return panel->skillTexts[index]; }
 
     void Down() { rect.Offset(0, 15); }
-    void Text(std::string_view text) { draw->DrawTextIn(text, &rect, 0, kText, 0, 1); }
+    // A label of the panel's surface in font 0 at `at` (wrapped with maxLines).
+    void Add(std::string_view text, const Rect& at, std::uint32_t colour, std::uint32_t format, int maxLines = 0) {
+        panel->labels.push_back({std::string(text), at, 0, colour, format, maxLines});
+    }
+    void Text(std::string_view text) { Add(text, rect, kText, 0); }
     void Value(std::string_view text) {
         Rect shifted = rect;
         shifted.Offset(-10, 0);
-        draw->DrawTextIn(text, &shifted, 0, kText, 2, 1);
+        Add(text, shifted, kText, 2);
     }
-    void Title(std::string_view text) { draw->DrawWrappedText(text, &rect, 2, 0, kWhite, 0x11, 1); }
-    void Wrapped(std::string_view text, int maxLines) {
-        draw->DrawWrappedText(text, &rect, maxLines, 0, kText, 0x11, 1);
-    }
+    void Title(std::string_view text) { Add(text, rect, kWhite, 0x11, 2); }
+    void Wrapped(std::string_view text, int maxLines) { Add(text, rect, kText, 0x11, maxLines); }
 
     void Head(const std::string& name, const std::string& kind) {
         Title(name);
@@ -115,8 +117,6 @@ public:
     }
 
     std::string line;
-
-    UiSurface* draw;   // the panel's first surface
 
 private:
     ItemInfoPanel* panel;
@@ -196,7 +196,7 @@ void PerkLines(Writer& w, const ItemHoverInfo& info, std::string& title) {
         key += level->name;
         if (texts->Open(key)) title = texts->ReadLine(true);
         w.Text(title);
-        if (info.index > i) w.draw->DrawTextIn(w.Skill(21), &w.rect, 0, kText, 2, 1);    // learned
+        if (info.index > i) w.Add(w.Skill(21), w.rect, kText, 2);    // learned
         w.Down();
         int value = static_cast<int>(level->values[7]);
         const char* percent = "     %s %d%%";
@@ -317,8 +317,7 @@ DamageLists ItemDamageLists(const float* values, bool integer) {
 
 void ItemInfoPanel::DescribeItem() {
     Item* item = FirstItem();
-    UiSurface* draw = surfaces[0];
-    draw->Clear();
+    labels.clear();
     if (!item) return;
 
     ItemKind kind = item->Kind();
@@ -695,7 +694,7 @@ void ItemInfoPanel::DescribeCarriedSpell() {
         }
         str::TrimRight(w.line, ",");
         w.line += ".";
-        w.draw->DrawWrappedText(w.line, &w.rect, 3, 0, kText, 0x10, 1);
+        w.Add(w.line, w.rect, kText, 0x10, 3);
     }
 }
 
@@ -859,7 +858,7 @@ void ItemInfoPanel::Build(int atX, int atY) {
     x = atX;
     y = atY;
     UiSurface* surface = new UiSurface(ui, Rect::Sized({x, y}, {200, 300}), SurfaceBlend::Keyed, true);
-    AddSurface(surface);
+    AddSurface(surface)->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
     TextManager* texts = g_clientWorld.texts;
     std::string text, key;
     for (int i = 0; i < 45; ++i) {

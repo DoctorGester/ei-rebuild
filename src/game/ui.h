@@ -409,6 +409,20 @@ private:
     void DrawLaidText(const UiSurfaceDraw& draw, const Rect& clip) const;
 };
 
+// A text a window shows on a painted surface, kept as the window's state where it drew it before: DrawTextIn's
+// arguments (layout units, one of the interface's fonts, with the shadow) or, with maxLines, DrawWrappedText's
+// (wrapped again at the current fonts when painted).
+struct UiLabel {
+    std::string text;
+    Rect area;
+    int font = 0;
+    std::uint32_t colour = 0;
+    std::uint32_t format = 0;
+    int maxLines = 0;                // > 0: word-wrapped, at most this many lines
+};
+// A window's paint step: `labels` drawn in order.
+void PaintLabels(UiSurface& surface, const std::vector<UiLabel>& labels);
+
 // A 3D model shown in a window (an inventory item, a portrait).
 class UiModel {
 public:
@@ -1911,6 +1925,7 @@ public:
     std::uint32_t result;            // 0xFFFF0000: the text in font 1, else 2
     std::uint32_t flags;
     std::uint32_t format;            // added to the text's DrawText format
+    std::vector<UiLabel> labels;     // the surface's paint: the title and the text (CreateScreen measures and places them)
     UiEditField* edit;              // the edit field (flag 4)
     char* editText;                  // the edit field's first text; OK copies the typed one here
 };

@@ -350,7 +350,8 @@ void MainMenu::LeftDown(int buttons, Point point) {
 void MessageWindow::CreateScreen() {
     LoadTexture("saveload", TextureKind::Interface);
     UiSurface* surface = NewSurface(ui, 200, 50, 600, 500);
-    AddSurface(surface);
+    AddSurface(surface)->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
+    labels.clear();
     int font = result != 0xFFFF0000u ? 2 : 1;
     // Measure the title (font 2) and the text (DT_CALCRECT | DT_WORDBREAK | DT_CENTER, 370 wide).
     Rect area = {15, 0, 385, 200};
@@ -363,16 +364,14 @@ void MessageWindow::CreateScreen() {
             ui->TextExtent("A", font).h;
     int height = titleHeight + textHeight;
     int top = (0x226 - (height + 0x3C)) / 2;   // the block centred in 550 pixels
-    area = Rect{15, top - 35, 385, 450};
-    surface->DrawTextIn(title, &area, 2, 0x31B3FF, 0x11, 1);
+    labels.push_back({title, Rect{15, top - 35, 385, 450}, 2, 0x31B3FF, 0x11});
     if (flags & 4) {
         edit = new UiEditField(ui, Rect{215, top + titleHeight + 30, 585, height + top + 30});
         edit->SetLook(15, 0, font, 0x32, 0xA7D7E4, 0x31B3FF);
         edit->SetText(editText);
         AddChild(edit);
     } else {
-        area = Rect{15, top + titleHeight - 20, 385, 450};
-        surface->DrawTextIn(text, &area, font, 0xA7D7E4, static_cast<int>(format | 0x10), 1);
+        labels.push_back({text, Rect{15, top + titleHeight - 20, 385, 450}, font, 0xA7D7E4, format | 0x10});
     }
 
     int bottom = top + height + 0x3C;
@@ -403,7 +402,8 @@ void MessageWindow::CreateScreen() {
 void DifficultyBox::CreateScreen() {
     LoadTexture("saveload", TextureKind::Interface);
     UiSurface* surface = NewSurface(ui, 200, 100, 600, 500);
-    AddSurface(surface);
+    AddSurface(surface)->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
+    labels.clear();
     // Measure the title (font 2) and the explanation (font 1, DT_CALCRECT | DT_WORDBREAK).
     Rect area = {15, 0, 385, 200};
     int titleHeight = surface->DrawTextIn(title, &area, 2, 0, 0x411, 1);
@@ -417,10 +417,8 @@ void DifficultyBox::CreateScreen() {
     }
     int total = textHeight + titleHeight + 0x6C;
     int top = (0x226 - total) / 2;   // the block centred in 550 pixels
-    area = Rect{15, top - 0x55, 385, 450};
-    surface->DrawTextIn(title, &area, 2, 0x31B3FF, 0x11, 1);
-    area = Rect{15, titleHeight + top - 7, 385, 450};
-    surface->DrawTextIn(explanation, &area, 1, 0xA7D7E4, 0x10, 1);
+    labels.push_back({title, Rect{15, top - 0x55, 385, 450}, 2, 0x31B3FF, 0x11});
+    labels.push_back({explanation, Rect{15, titleHeight + top - 7, 385, 450}, 1, 0xA7D7E4, 0x10});
 
     // The two choices, their labels centred on 430 (surface x 230) by their mean width.
     std::string newEasy;
@@ -431,10 +429,8 @@ void DifficultyBox::CreateScreen() {
     Size hardSize = ui->TextExtent(hard, 2);
     int half = ((easySize.w + hardSize.w) / 2 + 0x1E) / 2;
     int row = titleHeight + top + 0x1E;   // layout y of the easy row (the surface starts at 100)
-    area = Rect{0xE6 - half, row - 100, 385, 450};
-    surface->DrawTextIn(newEasy, &area, 2, 0xA7D7E4, 0, 1);
-    area = Rect{0xE6 - half, row - 0x4C, 385, 450};
-    surface->DrawTextIn(hard, &area, 2, 0xA7D7E4, 0, 1);
+    labels.push_back({newEasy, Rect{0xE6 - half, row - 100, 385, 450}, 2, 0xA7D7E4, 0});
+    labels.push_back({hard, Rect{0xE6 - half, row - 0x4C, 385, 450}, 2, 0xA7D7E4, 0});
     easy = 0;
 
     // The check boxes (texels 0xD1..0xE6 x 0x37..0x4C); the hard one checked (its texture shifted by
@@ -522,6 +518,7 @@ void CreditsScreen::CreateScreen() {
     {
         Rect area = {10, 0x6E, 0x316, 0x8C};
         headerSurface = AddSurface(new UiSurface(currentUi, &area, SurfaceBlend::Keyed));
+        headerSurface->PaintWith([this](UiSurface& out) { PaintHeader(out); });
         headerSurface->Hide(false);
     }
     if (fromGame) GameSetServerPaused(0);

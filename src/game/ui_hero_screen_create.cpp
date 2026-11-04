@@ -271,16 +271,16 @@ void MpHeroScreen::CreateScreen() {
     turn = 0.0f;
     rotating = 0;
 
-    AddSurface(new UiSurface(ui, 100, 240, 390, 500, SurfaceBlend::Keyed, true));
-    AddSurface(new UiSurface(ui, 100, 100, 390, 220, SurfaceBlend::Keyed, true));
-    AddSurface(new UiSurface(ui, 0, 300, 200, 500, SurfaceBlend::Keyed, true));
-    AddSurface(new UiSurface(ui, 425, 110, 555, 126, SurfaceBlend::Keyed, true));
+    const Rect areas[4] = {{100, 240, 390, 500}, {100, 100, 390, 220}, {0, 300, 200, 500}, {425, 110, 555, 126}};
+    for (int i = 0; i < 4; ++i)
+        AddSurface(new UiSurface(ui, areas[i], SurfaceBlend::Keyed, true))
+            ->PaintWith([this, i](UiSurface& out) { PaintLabels(out, labels[i]); });
     surfaces[kSurfaceRename]->Hide(false);
 
     // The list's four commands.
     std::string line;
-    UiSurface* commands = surfaces[kSurfaceCommands];
-    commands->Clear();
+    std::vector<UiLabel>& commands = labels[kSurfaceCommands];
+    commands.clear();
     const char* const commandKeys[] = {
         "lmp_pers_new",
         "lmp_pers_rename",
@@ -290,8 +290,7 @@ void MpHeroScreen::CreateScreen() {
     int top = 16;
     for (const char* key : commandKeys) {
         line = texts->GetString(key);
-        Rect area{0, top, 290, top + 20};
-        commands->DrawTextIn(line, &area, 1, kWhite, kTextFormat, 1);
+        commands.push_back({line, Rect{0, top, 290, top + 20}, 1, kWhite, kTextFormat});
         top += 24;
     }
 

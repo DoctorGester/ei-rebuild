@@ -153,8 +153,8 @@ void CampPages::BuildPages() {
     sprite->tint[2] = 0.5f;
 
     CreateBase();
-    AddSurface(NewSurface(ui, 0, 400, 200, 500));
-    AddSurface(NewSurface(ui, 600, 400, 800, 430));
+    AddSurface(NewSurface(ui, 0, 400, 200, 500))->PaintWith([this](UiSurface& out) { PaintLabels(out, actionLabels); });
+    AddSurface(NewSurface(ui, 600, 400, 800, 430))->PaintWith([this](UiSurface& out) { PaintLabels(out, titleLabels); });
 
     // The constructors' lists (the first of each is the class template's).
     spellParts[1] = NewItemList();

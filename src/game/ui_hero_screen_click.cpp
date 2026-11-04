@@ -95,7 +95,7 @@ void MpHeroScreen::CloseRenameEdit() {
 void MpHeroScreen::BackToNewHero() {
     ui->PlayInterfaceSound(game::CancelSoundText());
     statsPanel->SetHero(0, game::kEmptyText);
-    surfaces[0]->Clear();
+    labels[0].clear();
     tradePanel->Settle(false, false);
     SetMode(kModeNewHero);
     nameEdit->SetText(HeroRecord()->texts[0]);
@@ -291,7 +291,7 @@ void MpHeroScreen::LeftDown(int modifiers, Point point) {
         currentUi->PlayInterfaceSound(game::SelectSoundText());
         ChooseFigure(defaults[0]);
         statsPanel->SetHero(0, game::kEmptyText);
-        surfaces[0]->Clear();
+        labels[0].clear();
         turn = 0.0f;
         SetMode(kModeNewHero);
         nameEdit->SetText(game::kEmptyText);
@@ -342,11 +342,8 @@ void MpHeroScreen::Rename() {
         name = str::Left(name, bar);
         str::TrimRight(name);
     }
-    auto* surface = surfaces[3];
-    surface->Show();
-    surface->Clear();
-    Rect area = kRenameTitle;
-    surface->DrawTextIn(name + kRenameSeparator, &area, 1, kBright, 2, 1);
+    surfaces[3]->Show();
+    labels[3] = {{name + kRenameSeparator, kRenameTitle, 1, kBright, 2}};
 }
 
 // --- The voice's sound ----------------------------------------------------------------

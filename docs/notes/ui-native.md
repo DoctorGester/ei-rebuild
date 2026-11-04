@@ -111,12 +111,21 @@ the help page's three surfaces, the edit field and the connection screen's note 
 input), the chat overlay's lines (each line's coloured pieces, measured when it is added) and typed line, the base
 screen's chat window (the players' statuses Update finds), the connection screen's list, the save / load list, the
 scrolling texts (the words `PlaceWords` placed when the position moved: the briefing, the objectives, the message log),
-the options' rows and the objectives' quest list and zone text (P9b). What a redraw did besides drawing stays where it
-ran: the console's and the lists' clamps, the sprites, tips and tints, the connection screen's text colour left for its
-note.
+the options' rows and the objectives' quest list and zone text (P9b); the camp's action and title lines, the hero
+statistics panel, the trade panel's lists, the trade, repair and spell maker grids' counts, prices and costs, the item
+description panel, the exchange window's four surfaces, the multiplayer hero screen's list, commands, voices, experience
+and rename title, the message box and the difficulty question, the briefing's topics and person label and the titles'
+header (P9c). What a redraw did besides drawing stays where it ran: the console's and the lists' clamps, the sprites,
+tips and tints, the connection screen's text colour left for its note, the message boxes' measuring.
 
-**The draws a surface keeps (migration step).** The windows not converted yet (P9c) draw into their surfaces when
-something changes (ui.md), not each frame. Until a window paints its state each frame, its surface keeps the draws it was given
+**Labels.** Where a window's texts come from reads that must stay where they ran (the text manager's open text, the
+owner's prices, the hero's statistics, the attack parameters), the window keeps the texts it worked out as `UiLabel`s
+(DrawTextIn's or DrawWrappedText's arguments: text, layout rectangle, font, colour, format, wrap lines) in a member
+vector per surface, made where the draws were (a Clear empties it), and its paint is `PaintLabels`. A wrapped label is
+wrapped again at the current fonts.
+
+**The draws a surface keeps (migration step, P9e removes it).** Every window paints its surfaces now; a surface without
+a paint would keep the draws it was given
 (`UiSurface::draws`) in the coordinates they came in and Blit draws them again: a fill, frame or line in surface pixels
 with the size it was made at (scaled to the current size; whole-surface fills and frames follow the size), a
 `DrawTextIn` in layout units with the interface font's index, a `DrawTextPixels` in pixels with its own font. A text is

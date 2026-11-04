@@ -610,8 +610,8 @@ model's x moved left by EdgeShift, the depth buffer's rectangles scaled without 
 ## Item description drawing
 
 The item description panel: what the camp, the multiplayer hero screen and the exchange window write about the item or
-statistic under the mouse (ui_item_info.h; section 9). Each function draws text lines into the panel's surface 0 between
-Begin and End Text for single lines and DrawWrappedText for the wrapped title and description. Values of the statistics
+statistic under the mouse (ui_item_info.h; section 9). Each function writes text lines into the panel's labels (`labels`,
+which surface 0's paint draws each frame): single lines, and wrapped ones for the title and description. Values of the statistics
 functions (UnitStats, WeaponStat84 / 88, WeaponPrototypeSkillBonus) are truncated as they come back, unrounded (those
 functions return double), so no rounding happens in between.
 

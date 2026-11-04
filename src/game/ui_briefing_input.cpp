@@ -162,9 +162,7 @@ void BriefingScreen::MouseMove(int buttons, Point point) {
         auto node = personTexts.find(objectId);
         if (node == personTexts.end()) return;
         UiSurface* label = surfaces[1];
-        label->Clear();
-        Rect area{0, 0, 0, 0};
-        label->DrawTextIn(node->second, &area, kTextFormat, kLabelColour, 1, 1);
+        personLabel = {{node->second, Rect{0, 0, 0, 0}, kTextFormat, kLabelColour, 1}};
         Point at = point;
         ui->ScalePointFromScreen(&at);
         label->MoveTo(at - Point{kLabelOffsetX, kLabelOffsetY});
@@ -226,8 +224,7 @@ void BriefingScreen::OpenTopics(EngineObject* speaker) {
 
 void BriefingScreen::DrawTopics() {
     std::string prefix = g_clientWorld.texts->GetString(kTopicPrefixKey);
-    UiSurface* surface = surfaces[0];
-    surface->Clear();
+    topicLabels.clear();
     int row = topicTop;
     for (int bottom = kRowTextFirstBottom; bottom < kRowTextEnd; bottom += kRowHeight, ++row) {
         if (row >= std::ssize(topics)) break;
@@ -236,7 +233,7 @@ void BriefingScreen::DrawTopics() {
         std::string line = prefix;
         line += kTopicSeparator;
         line += TopicTitle(topics[row]);
-        surface->DrawTextIn(line, &area, kTextFormat, colour, 0, 1);
+        topicLabels.push_back({line, area, kTextFormat, colour, 0});
     }
 }
 

@@ -35,9 +35,9 @@ constexpr std::uint32_t kGrey = 0x828282;
 
 // The 4 x 4 cell grid over 200..600 x 100..500 shared by the trade and repair grids: a picture (textures 0-3 by quarter)
 // and a frame per cell, a region per
-// cell, then the surface. Texels alternate between 0x1C and 0x80 across and down; each row's
+// cell, then the surface, painted from `labels`. Texels alternate between 0x1C and 0x80 across and down; each row's
 // pictures lie twice as deep as their frames, and half as deep as the row above.
-void BuildCellGrid(UiWindow* window) {
+void BuildCellGrid(UiWindow* window, const std::vector<UiLabel>* labels) {
     int u = 0x1C;
     float depth = 32.0f;
     int v = 0x1C;
@@ -63,7 +63,8 @@ void BuildCellGrid(UiWindow* window) {
         depth *= 0.5f;   // * 0.5
         v = 0x9C - v;
     }
-    window->AddSurface(new UiSurface(window->ui, 200, 100, 600, 500, SurfaceBlend::Keyed, true));
+    window->AddSurface(new UiSurface(window->ui, 200, 100, 600, 500, SurfaceBlend::Keyed, true))
+        ->PaintWith([labels](UiSurface& out) { PaintLabels(out, *labels); });
 }
 
 constexpr int kGridCellsPerList = 8;
@@ -151,10 +152,8 @@ void HeroStatsPanel::ShowStats(int newPage) {
 // --- Statistics drawing ---------------------------------------------------------------------------
 
 void HeroStatsPanel::DrawStats() {
-    UiSurface* draw = surfaces[0];
-    draw->Clear();
-    Rect titleArea = {0, 0x1B, 0xC8, 0x2B};
-    draw->DrawTextIn(title, &titleArea, 1, 0xFFFFFF, 1, 1);
+    labels.clear();
+    labels.push_back({title, Rect{0, 0x1B, 0xC8, 0x2B}, 1, 0xFFFFFF, 1});
 
     auto hero = [this]() { return owner->HeroRecord(); };
     UnitStats* stats = &hero()->stats;
@@ -192,12 +191,12 @@ void HeroStatsPanel::DrawStats() {
             float value = static_cast<float>(values[i]);
             storedStats[i] = value;
             std::uint32_t colour = value > minimum ? kBright : kGrey;
-            draw->DrawTextIn("-", &area, 0, colour, 1, 1);
+            labels.push_back({"-", area, 0, colour, 1});
             Down(&area);
         }
         Down(&area);
         Down(&area);
-        draw->DrawTextIn("-", &area, 0, points <= 0 ? kGrey : kBright, 1, 1);
+        labels.push_back({"-", area, 0, points <= 0 ? kGrey : kBright, 1});
 
         // "+": while below 35 and points are left.
         int left = static_cast<int>(75.0f - sumF);
@@ -206,16 +205,16 @@ void HeroStatsPanel::DrawStats() {
         for (int i = 0; i < 3; ++i) {
             bool below = storedStats[i] < maximum;
             std::uint32_t colour = below && left > 0 ? kBright : kGrey;
-            draw->DrawTextIn("+", &area, 0, colour, 1, 1);
+            labels.push_back({"+", area, 0, colour, 1});
             Down(&area);
         }
         Down(&area);
         Down(&area);
-        draw->DrawTextIn("+", &area, 0, points >= 100 ? kGrey : kBright, 1, 1);
+        labels.push_back({"+", area, 0, points >= 100 ? kGrey : kBright, 1});
     } else if (page == 0) {
         area = Rect{0x14, 0x41, 0xAF, 0x50};
         text = clientWorldTexts->GetString("infoitem_25");
-        draw->DrawTextIn(text, &area, 0, kBright, 0, 1);
+        labels.push_back({text, area, 0, kBright, 0});
         Down(&area);
         DrawPart(area, "skull", 0);
         Down(&area);
@@ -229,30 +228,30 @@ void HeroStatsPanel::DrawStats() {
         if (hero()->weaponIndex == kNoWeaponSlot) {
             for (int i = 0; i < 5; ++i) Down(&area);
         } else {
-            draw->DrawTextIn(texts[3], &area, 0, kBright, 0, 1);
+            labels.push_back({texts[3], area, 0, kBright, 0});
             Down(&area);
             AttackParams info;
             unit->Controller()->GetAttackParams(&info);
             line = std::format("     {}", texts[0]);
-            draw->DrawTextIn(line, &area, 0, kBright, 0, 1);
+            labels.push_back({line, area, 0, kBright, 0});
             line = std::format("{}", info.attack);
-            draw->DrawTextIn(line, &area, 0, kBright, 2, 1);
+            labels.push_back({line, area, 0, kBright, 2});
             Down(&area);
             line = std::format("     {}", texts[1]);
-            draw->DrawTextIn(line, &area, 0, kBright, 0, 1);
+            labels.push_back({line, area, 0, kBright, 0});
             line = std::format("{}", info.defence);
-            draw->DrawTextIn(line, &area, 0, kBright, 2, 1);
+            labels.push_back({line, area, 0, kBright, 2});
             Down(&area);
             if (static_cast<std::uint32_t>(info.damageType) < 7) {
                 line = std::format("damage_{}", info.damageType);
                 text = clientWorldTexts->GetString(line);
             }
             line = std::format("     {} {}", texts[2], text);
-            draw->DrawTextIn(line, &area, 0, kBright, 0, 1);
+            labels.push_back({line, area, 0, kBright, 0});
             int high = static_cast<int>(info.damageMax);
             int low = static_cast<int>(info.damageMin);
             line = std::format("{}-{}", low, high);
-            draw->DrawTextIn(line, &area, 0, kBright, 2, 1);
+            labels.push_back({line, area, 0, kBright, 2});
             Down(&area);
             Down(&area);
         }
@@ -260,9 +259,9 @@ void HeroStatsPanel::DrawStats() {
         int capacity = static_cast<int>(stats->capacity);
         DrawRow(area, "Encumbrance", weight, capacity);
         Down(&area);
-        if (weight > capacity) draw->DrawTextIn(texts[4], &area, 0, 0xFF, 2, 1);
+        if (weight > capacity) labels.push_back({texts[4], area, 0, 0xFF, 2});
         Down(&area);
-        draw->DrawTextIn(texts[7], &area, 0, kBright, 0, 1);
+        labels.push_back({texts[7], area, 0, kBright, 0});
     } else {
         area = Rect{0x14, 0x41, 0xB4, 0x50};
         DrawRow(area, "Strength", static_cast<int>(stats->strength), -1);
@@ -291,7 +290,7 @@ void HeroStatsPanel::DrawStats() {
         int capacity = static_cast<int>(stats->capacity);
         DrawRow(area, "Encumbrance", weight, capacity);
         Down(&area);
-        if (weight > capacity) draw->DrawTextIn(texts[4], &area, 0, 0xFF, 2, 1);
+        if (weight > capacity) labels.push_back({texts[4], area, 0, 0xFF, 2});
         Down(&area);
     }
 }
@@ -342,7 +341,8 @@ void HeroStatsPanel::Build() {
     rect = Rect{0, 100, 200, 400};
     AddRect(this, Rect{0, 0x7D, 0x1E, 0x91});      // previous hero
     AddRect(this, Rect{0xAA, 0x7D, 200, 0x91});    // next hero
-    AddSurface(new UiSurface(ui, 0, 100, 200, 400, SurfaceBlend::Keyed, true));
+    AddSurface(new UiSurface(ui, 0, 100, 200, 400, SurfaceBlend::Keyed, true))
+        ->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
     AddBlankSprite()->SetRectangle(5.0f, 100.0f, 176.0f, 125.0f, 192.0f, 145.0f, 2, 0x81, 0x12, 0x95);
     AddBlankSprite()->SetRectangle(5.0f, 100.0f, 8.0f, 125.0f, 24.0f, 145.0f, 0x12, 0x81, 2, 0x95);
     AddBlankSprite()->SetRectangle(6.0f, 100.0f, 14.0f, 110.0f, 100.0f, 160.0f, 0xE7, 0x4C, 0x91, 0x88);
@@ -370,7 +370,7 @@ void TradeGrid::Build(std::vector<Item*>* boughtItems, std::vector<Item*>* soldI
     sellKind = spells ? PriceKind::SpellSell : PriceKind::ItemSell;
     exchange = isExchange;
     for (const char* name : {"trade1", "trade2", "trade3", "trade4"}) LoadTexture(name, TextureKind::Interface);
-    BuildCellGrid(this);
+    BuildCellGrid(this, &labels);
 }
 
 // --- The item under the mouse ---------------------------------------------------------------
@@ -407,7 +407,7 @@ void RepairGrid::Build(std::vector<Item*>* damaged) {
     mode = 8;
     items = damaged;
     for (const char* name : {"repair1", "repair2", "repair3", "repair4"}) LoadTexture(name, TextureKind::Interface);
-    BuildCellGrid(this);
+    BuildCellGrid(this, &labels);
 }
 
 // --- The quick strip's Build -------------------------------------------------------------
@@ -440,7 +440,8 @@ void SpellMakerPage::BuildSpellMaker(Party* party) {
     AddRect(this, Rect{200, 450, 400, 470});
     AddRect(this, Rect{200, 470, 400, 490});
     AddMakerPictures(this);
-    AddSurface(new UiSurface(ui, 200, 450, 400, 490, SurfaceBlend::Keyed, true));
+    AddSurface(new UiSurface(ui, 200, 450, 400, 490, SurfaceBlend::Keyed, true))
+        ->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
     TextManager* clientWorldTexts = g_clientWorld.texts;
     std::string text;
     for (int key : {0x23, 0x24}) {

@@ -135,7 +135,7 @@ public:
 
     // None leaves state 0; otherwise the leader stops (unless noWalk), "goodbye" is appended, state 1.
     void OpenTopics(EngineObject* person);
-    // "topic_prefix" text + " " + the topic's title, white for hoveredTopic, else 0xA7D7E4.
+    // "topic_prefix" text + " " + the topic's title, white for hoveredTopic, else 0xA7D7E4, into topicLabels.
     void DrawTopics();
     // Every "b.<person>.<topic>" variable equal to 1 (bit compare), in the variable table's order (a network
     // client sorts them), and last the last "constr..." one found.
@@ -212,6 +212,8 @@ public:
     int topicTop = 0;                    // first topic row shown
     float savedEdgeFade = 0.0f;             // the map edge fade Create replaced
     std::map<int, std::string> personTexts;       // "pers" texts by text key
+    std::vector<UiLabel> topicLabels;   // surface 0's paint: the topic rows
+    std::vector<UiLabel> personLabel;   // surface 1's: the label of the person under the mouse
     std::vector<BriefingShownItem> shown;   // the newest first
     bool immediate = false;                  // the dialogue's people are placed at once
     bool noWalk = false;                     // the zone's map record's cage: the leader does not walk
