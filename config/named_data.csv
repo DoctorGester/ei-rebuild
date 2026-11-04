@@ -33,7 +33,6 @@ address,size,name,file
 00783E38,4,g_localRate,src/game/net_session.cpp
 00784750,1,g_interfaceHasScreen,src/game/app_main.cpp
 00784751,1,g_quitAllowed,src/game/app_main.cpp
-00784752,1,g_movieMode,src/game/app_helpers.cpp
 00784758,4,g_clientSpeed,src/game/app_main.cpp
 007857B0,6336,g_keyNames,src/game/key_bindings.cpp
 00787070,960,kActionDefinitions,src/game/ui.h
@@ -111,9 +110,7 @@ address,size,name,file
 007969D0,384,kAmbientSounds,src/game/terrain_ambience.cpp
 0079AE60,348,kPow10Positive,src/lib/crt_format.cpp
 0079AFC0,348,kPow10Negative,src/lib/crt_format.cpp
-0079B1B8,4,kHeadingOffset,src/game/core_transform.cpp
 0079B298,1,kEmptyText,src/game/game_strings.h
-0079B2A4,4,kHalfPi,src/game/camera.h
 0079B5B8,16,kIdentityRotation,src/game/camera.h
 0079B5C8,12,kZeroVector,src/game/camera.h
 0079B5D8,4,g_gameClient,src/game/net_classes.h
@@ -147,7 +144,6 @@ address,size,name,file
 007A9784,4,g_keepSnapshot0,src/game/net_delta.h
 007A9794,4,g_readSnapshot,src/game/net_delta.h
 007A9798,4,g_received,src/game/net_delta.h
-007A9B9C,4,g_fatalErrorCount,src/game/app.cpp
 007A9BF8,4,kSpinAngle,src/game/particle_callbacks.cpp
 007A9BFC,48,g_bagSizes,src/game/particle_callbacks.cpp
 007A9C30,16,kIdentityRotation,src/game/particle_create.cpp
@@ -215,13 +211,10 @@ address,size,name,file
 007C8344,4,g_loadingParty,src/game/party.h
 007C8388,16,kFixedViewRotation,src/game/player_client_handlers.cpp
 007C84EC,4,g_loadingProjectileWorld,src/game/world.h
-007C8808,4,kHalfPi,src/game/sound_manager.cpp
 007C8908,4,kWaterFalloff,src/game/terrain_sector.h
-007C8930,4,kHalfPi,src/game/terrain_ambience.cpp
 007C8968,4,kWaveSpeedScale,src/game/terrain_landscape.cpp
 007C896C,4,kWaveDirectionScale,src/game/terrain_landscape.cpp
 007C8970,4,kWaveHeightScale,src/game/terrain_landscape.cpp
 007C8978,16,kIdentityRotation,src/game/terrain_landscape.cpp
 007C8988,12,kZeroPosition,src/game/terrain_landscape.cpp
 007C8998,4,kTwoPi,src/game/ground_print.cpp
-007C899C,4,kHalfPi,src/game/ground_print.cpp

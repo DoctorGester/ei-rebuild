@@ -10,9 +10,6 @@ namespace {
 
 constexpr std::uint32_t kInitialBytes = 0x20;
 constexpr std::uint32_t kGrowingFlags = 6;
-// Flag bits: 0 written through a cursor, 3 a read ran past the end.
-constexpr std::uint32_t kFlagWritten = 1;
-constexpr std::uint32_t kFlagReadPastEnd = 8;
 // Every growth adds this much on top of twice the needed size.
 constexpr std::uint32_t kGrowthSlack = 0x40;
 
@@ -96,7 +93,7 @@ int BufferView::WriteMore(const void*, std::uint32_t) { return 0; }
 // --- Reading past the end and the cursor binding -------------------------------------------------
 
 std::uint32_t GameBuffer::ReadPastEnd(void* to, std::uint32_t size) {
-    flags |= kFlagReadPastEnd;
+    flags |= GameBuffer::kFlagReadPastEnd;
     std::memset(to, 0, size);
     if (cur >= high) {
         cur = high;
@@ -123,7 +120,7 @@ void BufferCursor::BeginRead(GameBuffer* buffer, std::int32_t size) {
 
 void BufferCursor::BeginWrite(GameBuffer* buffer, std::int32_t size) {
     sink = buffer;
-    buffer->flags |= kFlagWritten;
+    buffer->flags |= GameBuffer::kFlagWritten;
     if (buffer->cur + size > buffer->end) buffer->ReserveWrite(size);
     start = buffer->cur;
     p = buffer->cur;
@@ -132,7 +129,7 @@ void BufferCursor::BeginWrite(GameBuffer* buffer, std::int32_t size) {
 }
 
 std::uint8_t* GameBuffer::BeginWrite(std::int32_t size) {
-    flags |= kFlagWritten;
+    flags |= GameBuffer::kFlagWritten;
     if (cur + static_cast<std::uint32_t>(size) > end) ReserveWrite(size);
     return cur;
 }

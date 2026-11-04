@@ -1,6 +1,5 @@
-// Stream and reference-counted base classes: constructor and destructor bodies, the stream's string
-// read, the memory stream's Clear and Reset, the aligned pointer arrays and the coder state
-// constructor. See core_streams.h.
+// The byte streams (core_streams.h): the base class's string, tagged-block, sized-block, header and difference
+// coding, and the memory stream's reads, writes, sizes and bit helpers.
 #include "core_streams.h"
 
 #include "asset_text.h"
@@ -21,8 +20,6 @@ constexpr std::uint32_t kDefaultVersion = 2000000000;
 
 } // namespace
 
-// --- ByteStream -----------------------------------------------------------------------------------
-
 ByteStream::ByteStream() {
     version = kDefaultVersion;
     ok = 1;
@@ -33,7 +30,7 @@ void (*g_memoryStreamWriteObserver)(MemoryStream* stream, std::uint32_t size, vo
 std::string ByteStream::ReadString() {
     std::string text;
     unsigned char byte;
-    while (Read(&byte, 1) && byte) text = text + static_cast<char>(byte);
+    while (Read(&byte, 1) && byte) text.push_back(static_cast<char>(byte));
     text::FromAssetText(&text);
     return text;
 }
@@ -43,14 +40,7 @@ void ByteStream::WriteString(std::string_view text) {
     Write(bytes.c_str(), static_cast<std::uint32_t>(bytes.size() + 1));
 }
 
-// --- MemoryStream (its Read, Write, Seek and CopyFrom; Resize and SetSize are in core_streams.cpp) --------
-
-MemoryStream::MemoryStream() {
-    position = 0;
-    size = 0;
-    bitMask = 0x80;
-    bitsIndex = -1;
-}
+MemoryStream::MemoryStream() = default;
 
 MemoryStream::~MemoryStream() = default;
 
@@ -58,7 +48,6 @@ MemoryStream::MemoryStream(MemoryStream&& other) noexcept
     : bits(other.bits), bitMask(other.bitMask), bitsIndex(other.bitsIndex),
       data(std::exchange(other.data, {})),
       position(std::exchange(other.position, 0)), size(std::exchange(other.size, 0)) {
-    reading = other.reading;
     ok = other.ok;
     version = other.version;
 }
@@ -72,18 +61,12 @@ void MemoryStream::Clear() {
     bitsIndex = -1;
 }
 
-// --- Core stream chunks ------------------------------------------------------------------------------
-
-// Tagged blocks and text in a stream: ByteStream::ReadTagged, FindTagged ReplaceTagged and ReadText. Every
-// stream access goes through the virtual functions, in the game's order.
-
 bool ByteStream::ReadTagged(std::uint32_t* tag, ByteStream* out) {
     std::uint32_t size = 0;
     if (!Read(tag, 4)) return false;
     if (!Read(&size, 4) || size < 8) return false;   // the size counts the tag and itself
     size -= 8;
     out->Clear();
-    out->reading = 0;
     std::vector<std::uint8_t> block(size);
     if (Read(block.data(), size) != size) return false;
     out->Write(block.data(), size);
@@ -93,7 +76,6 @@ bool ByteStream::ReadTagged(std::uint32_t* tag, ByteStream* out) {
 
 bool ByteStream::FindTagged(std::uint32_t id, ByteStream* out) {
     Seek(0);
-    reading = 1;
     std::uint32_t tag;
     while (ReadTagged(&tag, out)) {
         if (tag == id) return true;
@@ -119,12 +101,6 @@ void ByteStream::ReadText(char* buffer, int capacity) {
     text::FromAssetText(&text);
     text::CopyFitting(buffer, static_cast<std::size_t>(capacity), text);
 }
-
-// --- Core stream diff --------------------------------------------------------------------------------
-
-// The save game's difference coding between two streams: ByteStream::WriteDiff
-// and ByteStream::ApplyDiff. The format is described in core_streams.h. Every stream
-// access goes through the stream's virtual functions, in the game's order.
 
 namespace {
 
@@ -187,7 +163,6 @@ void ByteStream::WriteDiff(ByteStream* base, ByteStream* current) {
     Seek(header);
     WriteValue(static_cast<std::uint8_t>(count));
     Seek(end);
-    Position();
     WriteValue(std::uint8_t{0});
 }
 
@@ -212,12 +187,6 @@ void ByteStream::ApplyDiff(ByteStream* base, ByteStream* diff) {
     } while (done < size);
 }
 
-// --- Core memory stream ------------------------------------------------------------------------------
-
-// The memory stream's own slots (Read, Write, Seek, CopyFrom), its Resize / SetSize and bit helpers,
-// ByteStream::CopyFrom and the stream helpers that write and read a sized block or a format header
-// See core_streams.h and docs/notes/core.md.
-
 namespace {
 
 // The format header's magic number and version are written and read as four bytes each.
@@ -226,8 +195,6 @@ constexpr std::uint32_t kHeaderFieldBytes = 4;
 constexpr std::int32_t kShortSizeLimit = 30000;
 
 } // namespace
-
-// --- MemoryStream slots -----------------------------------------------------------------------
 
 std::uint32_t MemoryStream::Read(void* buffer, std::uint32_t byteCount) {
     if (position + byteCount > size) {
@@ -261,8 +228,6 @@ void MemoryStream::CopyFrom(ByteStream* source) {
     source->Read(data.data(), size);
     Seek(0);
 }
-
-// --- MemoryStream sizes and bits --------------------------------------------------------------
 
 void MemoryStream::Resize(std::uint32_t byteCount) {
     if (byteCount <= data.size()) {
@@ -304,13 +269,9 @@ void MemoryStream::EndBits() {
     bitMask = 0x80;
 }
 
-// --- ByteStream helpers ---------------------------------------------------------------------------
-
 void ByteStream::CopyFrom(ByteStream* source) {
     std::uint8_t chunk[0x400];
     source->Seek(0);
-    source->reading = 1;
-    reading = 0;
     for (;;) {
         std::uint32_t read = source->Read(chunk, sizeof(chunk));
         if (!read) break;

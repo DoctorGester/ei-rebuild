@@ -57,8 +57,7 @@ void SortQuests(std::string* first, std::string* last) {
 
 void Turn(UiMesh* sprite, float angle) {
     Vector3 axis = {0.0f, 0.0f, 1.0f};
-    Quaternion q;
-    q.SetAxisAngle(axis, angle);
+    Quaternion q = Quaternion::AxisAngle(axis, angle);
     sprite->localRotation = q;
 }
 

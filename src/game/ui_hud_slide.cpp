@@ -91,8 +91,7 @@ void AdvanceSlide(Panel* panel) {
 
 void PlaceSling(UiMesh* sling, float angle, float x) {
     const Vector3 axis = {0.0f, 0.0f, 1.0f};
-    Quaternion turn;
-    sling->localRotation = *turn.SetAxisAngle(axis, angle);
+    sling->localRotation = Quaternion::AxisAngle(axis, angle);
     sling->Place(x, kSlingY, kSlingDepthBits);
 }
 

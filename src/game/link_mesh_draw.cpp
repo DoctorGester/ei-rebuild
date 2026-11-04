@@ -74,9 +74,7 @@ struct PartDraw {
     std::uint32_t v;
     int flags;
 
-    // TextureDevice::DrawMeshBlocks / 2: positions and
-    // packets, normals and count, colours, speculars, texture coordinates and count, corners and
-    // count, words and count, indices and count, the texture offsets, alpha, flags.
+    // TextureDevice::DrawMeshBlocks / 2.
     int Draw(TextureDevice* device, Surface* first, Surface* second, bool textured) const {
         std::uint16_t* indices = mesh->indices.data() + r.indices.start;
         const auto* words = mesh->words.data() + r.words.start;
@@ -85,15 +83,10 @@ struct PartDraw {
         const auto* normals = mesh->normals.data() + r.normals.start;
         const float uOffset = std::bit_cast<float>(u);
         const float vOffset = std::bit_cast<float>(v);
-        if (textured) {
-            return device->DrawMeshBlocks2(first, second, positions, r.vertices.count, normals, r.normals.count,
-                                           colours->data(), speculars->data(), texCoords, r.texCoords.count, corners,
-                                           r.corners.count, words, r.words.count, indices, r.indices.count, uOffset,
-                                           vOffset, kOpaque, flags);
-        }
-        return device->DrawMeshBlocks(positions, r.vertices.count, normals, r.normals.count, colours->data(),
-                                      speculars->data(), texCoords, r.texCoords.count, corners, r.corners.count, words,
-                                      r.words.count, indices, r.indices.count, uOffset, vOffset, kOpaque, flags);
+        const MeshArgs args{positions, r.vertices.count, normals, r.normals.count, colours->data(), speculars->data(),
+                            texCoords, corners, r.corners.count, words, r.words.count, indices, r.indices.count,
+                            uOffset, vOffset, kOpaque, flags};
+        return textured ? device->DrawMeshBlocks2(first, second, args) : device->DrawMeshBlocks(args);
     }
 };
 

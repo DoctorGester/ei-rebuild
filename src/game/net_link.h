@@ -38,9 +38,8 @@ public:
     // Seeks from the start; returns the file's position.
     long SeekFrom(long position);
 
-    // The direction byte, then the file's Open; ok tells whether it opened.
-    bool Open(std::string_view path, platform::FileMode mode, std::uint8_t newReading) {
-        reading = newReading;
+    // The file's Open; ok tells whether it opened.
+    bool Open(std::string_view path, platform::FileMode mode) {
         ok = file.Open(path, mode);
         return ok != 0;
     }

@@ -55,7 +55,7 @@ void GameSetUnitHeight(int id, float z);
 // The server world's pause flag / WorldServer::SetPaused.
 void GameSetServerPaused(int paused);
 
-// Recording stops: CameraCloseFile, the client world's flag 0x10 off.
+// Recording stops: Camera::CloseFile, the client world's flag 0x10 off.
 void GameStopCameraRecording();
 // The client world's flag 0x10 on, then CameraOpenFile(name); its result.
 int GameStartCameraRecording(const char* name);

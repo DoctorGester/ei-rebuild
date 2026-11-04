@@ -144,8 +144,7 @@ void RebuildKeysText(OptionBinding& binding) {
 
 void TurnQuarter(UiMesh* sprite) {
     Vector3 axis = {0.0f, 0.0f, 1.0f};
-    Quaternion turn;
-    sprite->localRotation = *turn.SetAxisAngle(axis, kQuarterTurn);
+    sprite->localRotation = Quaternion::AxisAngle(axis, kQuarterTurn);
 }
 
 } // namespace

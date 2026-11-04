@@ -75,8 +75,7 @@ void MpHeroScreen::CreateScreen() {
     {
         // Turned about x by pi / 2 times 1.2.
         const Vector3 axis = {1.0f, 0.0f, 0.0f};
-        Quaternion rotation;
-        model->object->localRotation = *rotation.SetAxisAngle(axis, kMenuTilt * 1.2f);
+        model->object->localRotation = Quaternion::AxisAngle(axis, kMenuTilt * 1.2f);
     }
     model->ShowAllParts(0);
     model->ShowPart("but03", 1);

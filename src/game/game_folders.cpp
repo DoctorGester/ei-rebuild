@@ -1,4 +1,4 @@
-// The registry key of the options and the game's folders: plain globals.
+// The game's folders: plain globals.
 #include "game_singletons.h"
 
 #include <string>

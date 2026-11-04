@@ -491,8 +491,7 @@ void HudMovePanel::ShowMode(int newMode) {
         // The marker points at the mode's button: turned about -z and put on its circle.
         const float angle = static_cast<float>(2 * i + 1) * kPi * kSixteenth;
         const Vector3 axis = {0.0f, 0.0f, -1.0f};
-        Quaternion turn;
-        marker->localRotation = *turn.SetAxisAngle(axis, angle);
+        marker->localRotation = Quaternion::AxisAngle(axis, angle);
         const float y = kMarkerCentreY - (lib::Sin(angle) * kMarkerRadius);
         const float x = lib::Cos(angle) * kMarkerRadius;
         sceneObjects[0]->Place(x, y, kMarkerDepth);

@@ -71,19 +71,25 @@ bool Write(Store& s) {
     return true;
 }
 
+struct DesktopSize {
+    int width;
+    int height;
+};
+
 // The defaults for the primary monitor's mode in pixels (whatever the process's DPI awareness), or the harness's
-// desktop. Without a size (no desktop): for 1024x768, kept in memory only, so a start with a desktop writes its own.
-void UseDefaults(Store& s, int* width, int* height) {
-    *width = s.desktopWidth;
-    *height = s.desktopHeight;
-    if (*width <= 0 || *height <= 0) platform::PrimaryDesktopSize(width, height);
-    if (*width <= 0 || *height <= 0) {
-        ei::Log("settings: no desktop size (%dx%d): the defaults for 1024x768, not written this session", *width, *height);
-        *width = 1024;
-        *height = 768;
+// desktop; the size they are for. Without a size (no desktop): for 1024x768, kept in memory only, so a start with a
+// desktop writes its own.
+DesktopSize UseDefaults(Store& s) {
+    DesktopSize size = {s.desktopWidth, s.desktopHeight};
+    if (size.width <= 0 || size.height <= 0) platform::PrimaryDesktopSize(&size.width, &size.height);
+    if (size.width <= 0 || size.height <= 0) {
+        ei::Log("settings: no desktop size (%dx%d): the defaults for 1024x768, not written this session", size.width,
+                size.height);
+        size = {1024, 768};
         s.inMemory = true;
     }
-    s.document = Defaults(*width, *height);
+    s.document = Defaults(size.width, size.height);
+    return size;
 }
 
 // The first of the places that holds a file, read: the pinned file, else the one next to the exe, then the per-user
@@ -100,7 +106,6 @@ void Load(Store& s) {
         places.push_back(FileNextToExe());
         if (std::string user = FileForUser(); !user.empty()) places.push_back(std::move(user));
     }
-    int width = 0, height = 0;
     for (std::size_t i = 0; i < places.size(); ++i) {
         const std::string& place = places[i];
         s.file = place;
@@ -109,10 +114,10 @@ void Load(Store& s) {
         if (read == Read::missing) continue;
         if (read == Read::failed) {
             if (s.readOnly) return;
-            UseDefaults(s, &width, &height);
+            const DesktopSize size = UseDefaults(s);
             s.inMemory = true;
             ei::Log("settings: %s left as it is: the defaults (full screen at %dx%d) are used and nothing is written "
-                    "this session", place.c_str(), width, height);
+                    "this session", place.c_str(), size.width, size.height);
             return;
         }
         std::vector<std::string> problems;
@@ -135,18 +140,18 @@ void Load(Store& s) {
         ei::Log("settings: the pinned file %s cannot be read", s.file.c_str());
         return;
     }
-    UseDefaults(s, &width, &height);
+    const DesktopSize size = UseDefaults(s);
     if (s.inMemory) return;
     for (const std::string& place : places) {
         s.file = place;
         if (Write(s)) {
-            ei::Log("settings: %s written with the defaults (full screen at %dx%d)", place.c_str(), width, height);
+            ei::Log("settings: %s written with the defaults (full screen at %dx%d)", place.c_str(), size.width, size.height);
             return;
         }
     }
     s.inMemory = true;
     ei::Log("settings: no settings file can be written: the defaults (full screen at %dx%d) are kept in memory this "
-            "session", width, height);
+            "session", size.width, size.height);
 }
 
 // The value's text after the read filters, or false (reported to the harness) when it is missing.
@@ -217,15 +222,8 @@ std::string GetString(const char* section, const char* name, const std::string& 
 }
 
 std::vector<std::string> GetValues(const char* section) {
-    Locked lock;
-    Store& s = S();
-    Load(s);
     std::vector<std::string> values;
-    for (const Document::Section& found : s.document.sections) {
-        if (text::CompareIgnoringCase(found.name, section) != 0) continue;
-        for (const Document::Line& line : found.lines)
-            if (!line.name.empty()) values.push_back(line.value);
-    }
+    for (Document::Line& line : GetLines(section)) values.push_back(std::move(line.value));
     return values;
 }
 

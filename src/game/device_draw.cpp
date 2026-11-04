@@ -25,9 +25,6 @@
 
 namespace {
 
-DeviceMaterial* CurrentMaterial(TextureDevice* device) { return device->material; }
-Surface* TextureSurface(Texture* texture) { return texture->surface; }
-
 // The material's blend: blending on with its factors.
 void SetMaterialBlend(const DeviceMaterial* material) {
     render::RenderState& state = render::g_renderState;
@@ -36,20 +33,16 @@ void SetMaterialBlend(const DeviceMaterial* material) {
     state.destBlend = material->destBlend;
 }
 
-// The stage's texture, looked up by name on first use (an inline counted assignment);
-// a stage without one unbinds the device's texture of that stage (stageSurfaces) once.
+// The stage's texture, looked up by name on first use; a stage without one unbinds the device's texture of that stage
+// (stageSurfaces) once.
 void SetStage(TextureDevice* device, int stage, MaterialStage& s) {
     if (s.texture) {
-        device->BindSurface(stage, TextureSurface(s.texture));
+        device->BindSurface(stage, s.texture->surface.Get());
         return;
     }
     if (!s.name.empty()) {
-        Texture* texture = g_clientWorld.textureManager->FindTexture(s.name.data());
-        EngineObject* old = s.texture;
-        s.texture = texture;
-        if (texture) texture->AddRef();
-        if (old) old->Release();
-        device->BindSurface(stage, s.texture ? TextureSurface(s.texture) : nullptr);
+        s.texture.Assign(g_clientWorld.textureManager->FindTexture(s.name.data()));
+        device->BindSurface(stage, s.texture ? s.texture->surface.Get() : nullptr);
         return;
     }
     device->stageSurfaces[stage] = nullptr;
@@ -57,9 +50,9 @@ void SetStage(TextureDevice* device, int stage, MaterialStage& s) {
 
 } // namespace
 
-// Draws the mesh the renderer has with the current material. Returns 1.
-int TextureDevice::DrawIndexed() {
-    DeviceMaterial* current = CurrentMaterial(this);
+// Draws the mesh the renderer has with the current material.
+void TextureDevice::DrawIndexed() {
+    DeviceMaterial* current = material;
     if (current) {
         RenderPreset* preset = current->preset;
         if (current->blend) SetMaterialBlend(current);
@@ -68,12 +61,11 @@ int TextureDevice::DrawIndexed() {
         for (int stage = 0; stage < preset->StageCount(); ++stage) SetStage(this, stage, current->stages[stage]);
     }
     render::MeshPass(this);
-    return 1;
 }
 
 // Draws the indexed primitives with `first` on stage 0, then again blended (source
-// alpha / inverse source alpha, blending on) with `second` and texture coordinates 0. Returns 1.
-int TextureDevice::DrawTwoTextures(Surface* first, Surface* second) {
+// alpha / inverse source alpha, blending on) with `second` and texture coordinates 0.
+void TextureDevice::DrawTwoTextures(Surface* first, Surface* second) {
     stageSurfaces[0] = first;
     render::MeshPass(this);
     render::RenderState& state = render::g_renderState;
@@ -82,7 +74,6 @@ int TextureDevice::DrawTwoTextures(Surface* first, Surface* second) {
     state.blend = true;
     stageSurfaces[0] = second;
     render::MeshPass(this);
-    return 1;
 }
 
 // --- Device binds ------------------------------------------------------------------------------------
@@ -90,22 +81,18 @@ int TextureDevice::DrawTwoTextures(Surface* first, Surface* second) {
 // The device object's texture binds: a surface holder, a texture, a texture kept by name. See
 // docs/notes/renderer.md (section 12).
 
-int TextureDevice::BindSurface(int stage, Surface* holder) {
-    stageSurfaces[stage] = holder;
-    return 1;
+void TextureDevice::BindSurface(int stage, Surface* holder) { stageSurfaces[stage] = holder; }
+
+void TextureDevice::BindTexture(int stage, Texture* texture) {
+    BindSurface(stage, texture ? texture->surface.Get() : nullptr);
 }
 
-// The same body as BindSurface's, for a texture and for none.
-int TextureDevice::BindTexture(int stage, Texture* texture) {
-    return BindSurface(stage, texture ? texture->surface.Get() : nullptr);
-}
-
-int TextureDevice::BindNamedTexture(int stage, NamedTexture* named) {
+void TextureDevice::BindNamedTexture(int stage, NamedTexture* named) {
     if (!named->texture && named->name.size() != 0) {
         Texture* found = g_clientWorld.textureManager->FindTexture(named->name.data());
         named->texture.Assign(found);
     }
-    return BindSurface(stage, named->texture ? named->texture->surface.Get() : nullptr);
+    BindSurface(stage, named->texture ? named->texture->surface.Get() : nullptr);
 }
 
 // --- Device states -----------------------------------------------------------------------------------
@@ -114,23 +101,18 @@ int TextureDevice::BindNamedTexture(int stage, NamedTexture* named) {
 // factors (the particles' additive / normal switch) and the device object's material. See docs/notes/renderer.md
 // ("Pass state").
 
-// Sets the fog colour. Returns 1.
-int SceneRenderer::SetFogColourState(std::uint32_t newColour) {
-    render::g_renderState.fogColour = newColour;
-    return 1;
-}
+void SceneRenderer::SetFogColourState(std::uint32_t newColour) { render::g_renderState.fogColour = newColour; }
 
 // Sets the blend factors (the particle draw: source alpha and one for additive sources, source alpha and inverse
-// source alpha to go back). Returns 1.
-int SceneRenderer::SetBlend(render::Blend source, render::Blend dest) {
+// source alpha to go back).
+void SceneRenderer::SetBlend(render::Blend source, render::Blend dest) {
     render::g_renderState.sourceBlend = source;
     render::g_renderState.destBlend = dest;
-    return 1;
 }
 
 // The current material (material, counted; the old one released when its count reaches 0); without a material
-// stage 1's colour and alpha operations are turned off. Returns 1.
-int TextureDevice::SetMaterial(DeviceMaterial* newMaterial) {
+// stage 1's colour and alpha operations are turned off.
+void TextureDevice::SetMaterial(DeviceMaterial* newMaterial) {
     DeviceMaterial* old = material;
     material = newMaterial;
     if (newMaterial) newMaterial->AddRef();
@@ -139,7 +121,6 @@ int TextureDevice::SetMaterial(DeviceMaterial* newMaterial) {
         render::g_renderState.stages[1].combiner.colourOp = render::TextureOp::Disable;
         render::g_renderState.stages[1].combiner.alphaOp = render::TextureOp::Disable;
     }
-    return 1;
 }
 
 // --- Device buffers ----------------------------------------------------------------------------------
@@ -160,11 +141,9 @@ std::vector<std::uint8_t> g_outcodes;
 // primary at the client rectangle's corner in a window; here it ends the new renderer's frame, which shows it on the
 // game window placed first (full screen over its monitor, present_window.h). See docs/notes/renderer.md.
 
-// Returns the DirectDraw result: 0.
-long DevicePresent(TextureDevice* device) {
+void DevicePresent(TextureDevice* device) {
     present_window::Update(device);
     render::Present();
-    return 0;
 }
 
 // --- Device bounds -----------------------------------------------------------------------------------

@@ -337,8 +337,7 @@ void BriefingScreen::ShowItem(std::string_view name, int index) {
     CopyImage(texture, image, 0x40, 0x40, 0x40, 0x40, 0, 0xC0);
     item->texture = texture;
     item->Place(x, y, kItemDepth);
-    Quaternion turn;
-    turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, kTurnedOver);
+    Quaternion turn = Quaternion::AxisAngle(Vector3{1.0f, 0.0f, 0.0f}, kTurnedOver);
     item->localRotation = turn;
 
     shown.insert(shown.begin(), BriefingShownItem{std::string(name), item, back, frame});

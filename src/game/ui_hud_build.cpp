@@ -124,12 +124,10 @@ void HudWeaponBar::AddWeapon(std::string_view model, std::string_view image) {
     UiMesh* sprite = AddSprite(model);
     if (sprite) {
         // Turned about z, then y, then z again: pi * -0.05, pi * -1/3 and pi * 0.75.
-        Quaternion first, second, third;
-        first.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi * (-0.05f));
-        second.SetAxisAngle(Vector3{0.0f, 1.0f, 0.0f}, kPi * (-0.33333334f));
-        Quaternion both = first * second;
-        third.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi * 0.75f);
-        sprite->localRotation = both * third;
+        const Quaternion first = Quaternion::AxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi * (-0.05f));
+        const Quaternion second = Quaternion::AxisAngle(Vector3{0.0f, 1.0f, 0.0f}, kPi * (-0.33333334f));
+        const Quaternion third = Quaternion::AxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi * 0.75f);
+        sprite->localRotation = (first * second) * third;
     } else {
         sprite = AddBlankSprite();
         // 80 and 120; WideScreen: both less the shift (addon points the FADDs at its two floats
@@ -177,8 +175,7 @@ void HudQuickItems::AddItem(std::string_view model, std::string_view image) {
     CopyImage(objects[0], image, kIconSize, kIconSize, kIconSize, kIconSize, at.x, at.y);
     UiMesh* sprite = AddSprite(model);
     if (sprite) {
-        Quaternion turn;
-        sprite->localRotation = *turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, kPi);
+        sprite->localRotation = Quaternion::AxisAngle(Vector3{1.0f, 0.0f, 0.0f}, kPi);
     } else {
         sprite = AddBlankSprite();
         const float shift = static_cast<float>(screen_layout::EdgeShift());   // WideScreen
@@ -219,8 +216,7 @@ void HudSpellColumn::AddSpell(std::string_view model, std::string_view image) {
     CopyImage(objects[0], image, kIconSize, kIconSize, kIconSize, kIconSize, at.x, at.y);
     UiMesh* sprite = AddSprite(model);
     SetOffsets(sprite, at.x, at.y + kIconSize);
-    Quaternion turn;
-    sprite->localRotation = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi);
+    sprite->localRotation = Quaternion::AxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi);
     sprite->Place(780.0f, 490.0f, 40.0f);
     MakePlain(sprite);
     int index = count;
@@ -256,8 +252,7 @@ void HudActionColumn::AddAction(std::string_view model, std::string_view image, 
     CopyImage(objects[0], image, kIconSize, kIconSize, kIconSize, kIconSize, at.x, at.y);
     UiMesh* sprite = AddSprite(model);
     SetOffsets(sprite, at.x, at.y + kIconSize);
-    Quaternion turn;
-    sprite->localRotation = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi);
+    sprite->localRotation = Quaternion::AxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi);
     float y = kColumnBottom - (count * kStep);
     sprite->Place(20.0f - screen_layout::EdgeShift(), y, 40.0f);   // WideScreen
     MakePlain(sprite);

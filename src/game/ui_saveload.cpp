@@ -193,7 +193,7 @@ void SaveLoadWindow::SaveGame() {
     netlink::FileStream info;
     {
         std::string path = folder + game::savewords::InfoFile();
-        info.Open(path, platform::FileMode::Create, 0);
+        info.Open(path, platform::FileMode::Create);
     }
     if (nameTyped)
         entries.data()->title = name;
@@ -242,7 +242,7 @@ void SaveLoadWindow::FillEntries() {
             entry->title = game::savewords::BrokenTitle();
         } else {
             netlink::FileStream info;
-            info.Open(infoPath, platform::FileMode::Read, 1);
+            info.Open(infoPath, platform::FileMode::Read);
             if (info.ReadHeader(kInfoMagic, (int)kInfoVersion, 1)) {
                 info.ReadValue(entry->gameTime);
                 entry->map = info.ReadString();
@@ -307,7 +307,7 @@ void QuickSave(const char* slot, bool stepFrame) {
     double space = platform::FreeDiskSpace(DataFolderText());
     // 0 means unknown: no check.
     if (space != 0.0 && static_cast<double>(CurrentSaveSize()) > space) return;
-    if (stepFrame) app::FrameStep(false, true);
+    if (stepFrame) app::FrameStep(false);
     // A null surface (no memory) is used all the same, as in the original.
     UiSurface* surface = new UiSurface(&g_interface, 0, 0, kScreenWidth, kScreenHeight, SurfaceBlend::Opaque, true);
     surface->CaptureScreen();
@@ -327,7 +327,7 @@ void QuickSave(const char* slot, bool stepFrame) {
         map = record->allod;
     std::string folder = SlotFolder(slot);
     netlink::FileStream info;
-    info.Open(folder + game::savewords::InfoFile(), platform::FileMode::Create, 0);
+    info.Open(folder + game::savewords::InfoFile(), platform::FileMode::Create);
     info.WriteHeader(kInfoMagic, kInfoVersion);
     info.WriteValue(gameTime);
     info.WriteString(map);

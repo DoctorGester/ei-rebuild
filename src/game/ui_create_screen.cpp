@@ -96,14 +96,14 @@ void Interface3D::PushWindow(UiContainer* window, WindowBackdrop keep) {
     if (keep == WindowBackdrop::Screen) {
         backdropMode = 3;
         backdropWindows = stack.size();
-        app::FrameStep(false, true);
+        app::FrameStep(false);
     }
     if (stack.size() == 1) {    // one window open
         serverFlag = static_cast<std::uint8_t>(g_serverWorld.paused);
         if (!IsMultiplayerClient()) GameSetServerPaused(1);
         if (keep == WindowBackdrop::FirstWindow) {
             backdropMode = 1;
-            app::FrameStep(false, true);
+            app::FrameStep(false);
         }
     }
     ctrlDown = false;

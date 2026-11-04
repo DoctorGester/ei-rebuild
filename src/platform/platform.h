@@ -71,8 +71,6 @@ bool FontSmoothing();
 void PrimaryDesktopSize(int* width, int* height);
 // The value of the environment variable `name`; empty when it is not set (or empty).
 std::string EnvironmentVariable(const char* name);
-// Ends the program at once with `exitCode`, without running its exit functions, and never returns.
-[[noreturn]] void EndProcess(std::uint32_t exitCode);
 
 // ==== Files and folders ==============================================================================================
 

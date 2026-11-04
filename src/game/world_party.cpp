@@ -160,7 +160,7 @@ void WorldServer::Redeploy(Player* player, std::vector<UnitPlacement>* placement
     float angle = lib::Atan2(start.y - centreY, start.x - centreX) - kFacingOffset;
     if (exit && exit->hasDeployAngle) angle = exit->deployAngle;
     Vector3 up{0.0f, 0.0f, 1.0f};
-    rotation.FromAxisAngle(up, angle);
+    rotation = Quaternion::AxisAngle(up, angle);
 
     CreateUnits(player, &records, start, rotation, placements);
     if (placements) placements->clear();

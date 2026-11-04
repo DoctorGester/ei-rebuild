@@ -3,7 +3,7 @@
 // The standalone's settings: ei_settings.ini next to the exe (or %LOCALAPPDATA%\EvilIslands\ei_settings.ini when the
 // exe's folder has none and cannot be written; docs/notes/standalone.md, "Settings file"). The options (options.cpp),
 // the renderer's switches, Rebirth's patches, switches and console lines are read and written here through typed
-// accessors; nothing reads or writes the registry (game.exe, the original game, keeps it).
+// accessors; nothing reads or writes the registry.
 //
 // The file is a plain ini:
 //   ; a comment (a line starting with ';' or '#'; kept when the game rewrites the file)
@@ -117,7 +117,7 @@ const Described* CatalogEnd();
 // The catalog's row for `name` in `section` (both without case), or null.
 const Described* Describe(std::string_view section, std::string_view name);
 
-// ---- The process's settings (the standalone; game.exe uses the registry) ----
+// ---- The process's settings ----
 
 // The value of `name` in `section` as its type, or `defaultValue` when it is missing or not of that type (the last
 // logged). A boolean reads any number too (not 0: true); a number reads true / false as 1 / 0.

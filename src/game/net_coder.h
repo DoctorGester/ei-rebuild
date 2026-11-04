@@ -52,7 +52,9 @@ public:
     std::uint8_t* end;         // capacity
     std::uint8_t* high;        // highest position written (updated lazily)
     std::int32_t base;         // position of `begin` in the whole stream (0 for these)
-    std::uint32_t flags;       // bit 0: written through a cursor
+    std::uint32_t flags;       // kFlagWritten, kFlagReadPastEnd
+    static constexpr std::uint32_t kFlagWritten = 1;        // bit 0: written through a cursor
+    static constexpr std::uint32_t kFlagReadPastEnd = 8;    // bit 3: a read ran past the end
 
 protected:
     GameBuffer() {}

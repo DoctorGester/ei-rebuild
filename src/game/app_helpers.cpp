@@ -1,5 +1,4 @@
-// Small application helpers: the quit flag, the movie mode byte, the copy
-// protection's delayed check and two EngineObject helpers. See docs/notes/app.md.
+// Small application helpers: the quit flag and three EngineObject helpers. See docs/notes/app.md.
 #include "app_helpers.h"
 
 #include "app.h"
@@ -27,22 +26,4 @@ bool QuitGame(int exitCode) {
     return true;
 }
 
-// The movie mode byte (1 unless the command line changed it; the loop passes it to the frame step).
-std::uint8_t g_movieMode = /*00784752*/ 1;
-
 } // namespace app
-
-World* EngineObject::OwningWorld() const {
-    auto* context = owner->context;
-    return context ? context->ThisWorld() : nullptr;
-}
-
-WorldServer* EngineObject::ServerWorld() const {
-    auto* context = owner->context;
-    return context ? context->ThisServerWorld() : nullptr;
-}
-
-WorldClient* EngineObject::ClientWorld() const {
-    auto* context = owner->context;
-    return context ? context->ThisClientWorld() : nullptr;
-}

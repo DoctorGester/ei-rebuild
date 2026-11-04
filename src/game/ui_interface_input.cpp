@@ -381,7 +381,7 @@ void Interface3D::ShowStatusText(std::string_view text) {
         Rect rect = {0, 0, kLayoutWidth, kStatusTextHeight};
         out.DrawTextIn(text, rect, TextStyle{kStatusFont, kStatusColour, render::text::kCenter});    // Rebirth-patched
     });
-    app::FrameStep(true, true);
+    app::FrameStep(true);
     if (statusSurface) {
         delete statusSurface;
     }

@@ -248,7 +248,7 @@ public:
     SceneRenderer& operator=(const SceneRenderer&) = delete;
 
     // Sets the render state's fog colour (render/render_state.h) to `colour`.
-    int SetFogColourState(std::uint32_t colour);
+    void SetFogColourState(std::uint32_t colour);
     void CreateRenderer(void* window, options::GameOptions* settings);
     // The device's screen made `width` x `height` (app::SetResolution, between frames): the viewport and the axis swap
     // (the window's 4:3 part, screen_layout.h) on the pipeline's stacks again, the projection kept.
@@ -265,7 +265,7 @@ public:
     // object's ambient from it.
     void SetColour(std::uint32_t colour);
     // Sets SRCBLEND, then DESTBLEND.
-    int SetBlend(render::Blend source, render::Blend dest);
+    void SetBlend(render::Blend source, render::Blend dest);
     // Binds `texture` (a texture object, or null) to stage `stage`.
     int SetTexture(int stage, Texture* texture);
     // Draws `figure` (a FigureMesh) through its drawer's lit draw with `lights`, the drawing context

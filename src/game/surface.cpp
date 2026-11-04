@@ -5,17 +5,18 @@
 #include "surface.h"
 
 #include "dib.h"
-#include "dx_errors.h"
 #include "texture.h"
 #include "../platform/log.h"
 #include "../render/render.h"
 #include "lib/bytes.h"
 #include "lib/crt.h"
+#include "lib/str.h"
 #include "render/render.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <stdexcept>
 #include <vector>
 
 namespace {
@@ -118,7 +119,7 @@ std::uint32_t ChannelLayout::FromNative(std::uint32_t pixel) const {
 // ---- The holders ------------------------------------------------------------------------------------------
 
 void ThrowSurfaceNotMade(int width, int height) {
-    ThrowGameError("Can't create DDSurface %d:%d with default BPP.\n", width, height);
+    throw std::runtime_error(str::Format("Can't create DDSurface %d:%d with default BPP.\n", width, height));
 }
 
 Surface* NewDecodedTextureHolder(TextureDevice* device, int width, int height, int bitsPerPixel) {
@@ -134,7 +135,7 @@ Surface::Surface(TextureDevice* deviceIn) : device(deviceIn) {}
 
 // The renderer keeps the picture's pixels from the file data (render::PictureFromMmp).
 Surface::Surface(TextureDevice* deviceIn, const MmpFile& picture) : device(deviceIn) {
-    if (!LoadPicture(this, picture)) ThrowGameError("Can't load picture to surface.\n");
+    if (!LoadPicture(this, picture)) throw std::runtime_error("Can't load picture to surface.\n");
     render::PictureFromMmp(this, picture);
 }
 

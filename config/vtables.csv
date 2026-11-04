@@ -128,8 +128,8 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073CA10,14,,game,0047CAA0 0047CC60 0047CD40 0047CEB0 0047CFA0,0047CE90,dead class,-,stored only by dead code 0047CAA0 / 0047CC60 / 0047CD40 / 0047CEB0 / 0047CFA0
 0073CA48,7,,game,0047D7F0 0047D910 0047D960 0047D970 004DA850 004DA910 00579B80 00580DF0 00580E60,006E73EB,GameBuffer,src/game/net_coder.h,the byte buffer base (the views' destructors leave it)
 0073CA64,7,,game,0047D7F0 0047D970 00579B80,004DA580,BufferView,src/game/net_coder.h,a fixed view over memory owned elsewhere
-0073CAB0,1,,game,004800E0 00481560 00481580 004815D0,00481580,GameException,src/game/dx_errors.h,the thrown error object's base
-0073CAB4,1,,game,00480250 00480300,004815B0,DXException,src/game/dx_errors.h,the thrown error object
+0073CAB0,1,,game,004800E0 00481560 00481580 004815D0,00481580,GameException,-,the thrown error object's base; stored only by game.exe (ours throws std::runtime_error)
+0073CAB4,1,,game,00480250 00480300,004815B0,DXException,-,the thrown error object; stored only by game.exe
 0073CFD0,18,,game,004981B0 00498310,004982F0,ParticleSource,src/game/effects.h,a particle source (CParticleSource)
 0073D018,3,,game,004981B0 00498310 00498CA0 005627C0 0056FD40,007005E3,ClientListClass,-,CList (the client map's lists (world_client_maps 0056FD40)); stored only by game.exe (ours is a std::list)
 0073D024,3,,game,00498E60 00498E80,007005E3,ParticleDepthArrayClass,-,CArray (the particles' draw order 007A9C50); stored only by game.exe (ours is a std::vector)

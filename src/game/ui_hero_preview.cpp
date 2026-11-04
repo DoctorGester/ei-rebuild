@@ -75,18 +75,15 @@ void UiWindow::DrawHeroPreview(SceneRenderer* pass, Unit* hero, float turn, floa
     }
 
     // The turn about y. (The original also turned the origin by it and added that zero vector to the place.)
-    Quaternion q;
-    q.SetAxisAngle(Vector3{0.0f, 1.0f, 0.0f}, turn);
+    Quaternion q = Quaternion::AxisAngle(Vector3{0.0f, 1.0f, 0.0f}, turn);
     // Placed by the depth: x from depth * c - 1, y and z fixed offsets.
     model->localPosition = {((depth * 0.0025f - 1.0f) * 0.48157462f) * 6.0f, 0.48157462f * 2.1f, 6.0f};
     // The orientation: the turn, then a fixed tilt about x, and in the wide layout a turn about -z.
     Vector3 xAxis = {1.0f, 0.0f, 0.0f};
-    Quaternion tilt;
-    q = q * *tilt.SetAxisAngle(xAxis, kTilt);
+    q = q * Quaternion::AxisAngle(xAxis, kTilt);
     if (depth > 400.0f) {
         Vector3 zAxis = {0.0f, 0.0f, -1.0f};
-        Quaternion side;
-        q = q * *side.SetAxisAngle(zAxis, kTilt * 0.15f);
+        q = q * Quaternion::AxisAngle(zAxis, kTilt * 0.15f);
     }
     model->localRotation = q;
 

@@ -99,10 +99,9 @@ void Sky::Draw(SceneRenderer* renderer, const Vector3& eye) {
     const float x = eye.x, y = eye.y, z = eye.z - kSkyDrop;
     if (turns) {
         const Vector3 up{0.0f, 0.0f, 1.0f};
-        Quaternion turn;
         // The world time in ticks: whole ticks plus
         // the fraction of the current one.
-        object->localRotation = *turn.SetAxisAngle(up, GameTime() * kSkyTurnRate);
+        object->localRotation = Quaternion::AxisAngle(up, GameTime() * kSkyTurnRate);
     }
     object->localPosition = Vector3{x, y, z};
     float* m = object->worldMatrix.m;

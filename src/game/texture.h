@@ -30,36 +30,54 @@ using VertexPacket = render::VertexPacket;
 using NormalPacket = render::NormalPacket;
 struct Vector4;
 
+// The arguments of a mesh draw. A corner's position indexes the projected vertices, its normal the colour and specular
+// arrays (one colour per normal) and its texCoord the texture coordinates.
+struct MeshArgs {
+    const VertexPacket* positions;   // a block of four vertices each
+    int blocks;
+    const NormalPacket* normals;     // blocks of four as the positions
+    int colourCount;              // the colour arrays hold four times this (and so many normal blocks)
+    std::uint32_t* colours;
+    std::uint32_t* speculars;
+    const render::TexCoord* uvs;
+    const render::MeshCorner* corners;
+    int cornerCount;
+    const std::uint32_t* words;   // (position, normal) index pairs, by colour index
+    int wordCount;
+    std::uint16_t* indices;       // into the corners
+    int indexCount;
+    float uOffset;                // compared with 0 and added to the texture coordinates
+    float vOffset;
+    int alpha;                    // the low byte, with flag 4
+    int flags;                    // 1 screen bounds, 2 clip, 4 colours from the device (colour) and alpha
+};
+
 // The device object: the screen (its window, size and colour depth), the transform pipeline, the texture stages' holders and the
 // draws' state. Made once by the scene renderer's creation (renderer_init.cpp); the new renderer (src/render) draws
 // and presents. Held by the scene renderer and the texture manager.
 class TextureDevice final : public RendererBase {
 public:
-    int SetMaterial(DeviceMaterial* material);
+    void SetMaterial(DeviceMaterial* material);
     int DrawFlatBlocks(const VertexPacket* positions, const render::TexCoord* uvs, int blocks, const std::uint16_t* indices,
                        int indexCount, std::uint32_t colour, std::uint32_t specular, bool groundPrint);
-    int DrawMeshBlocks2(Surface* firstTexture, Surface* secondTexture, const VertexPacket* positions, int blocks,
-                  const NormalPacket* normals, int colourCount, std::uint32_t* colours, std::uint32_t* speculars,
-                  const render::TexCoord* uvs, int unused10, const render::MeshCorner* corners, int cornerCount,
-                  const std::uint32_t* words, int wordCount, std::uint16_t* indices, int indexCount, float uOffset,
-                  float vOffset, int alpha, int flags);
-    int DrawMeshBlocks(const VertexPacket* positions, int blocks, const NormalPacket* normals, int colourCount,
-                 std::uint32_t* colours, std::uint32_t* speculars, const render::TexCoord* uvs, int unused10,
-                 const render::MeshCorner* corners, int cornerCount, const std::uint32_t* words, int wordCount,
-                 std::uint16_t* indices, int indexCount, float uOffset, float vOffset, int alpha, int flags);
-    int DrawTwoTextures(Surface* first, Surface* second);
-    int DrawIndexed();
+    // The mesh drawn (with two textures for DrawMeshBlocks2). Returns the projection's verdict: 2 nothing on screen,
+    // 1 crossing the edges, 0 on screen (drawn: 1). Without flag 2 the mesh is projected with the screen stack and
+    // counts as on screen.
+    int DrawMeshBlocks2(Surface* firstTexture, Surface* secondTexture, const MeshArgs& args);
+    int DrawMeshBlocks(const MeshArgs& args);
+    void DrawTwoTextures(Surface* first, Surface* second);
+    void DrawIndexed();
     // Draw flag 1's rectangle: the bounds of the projected `positions` (screen positions, or with `clipSpace` the
     // clip-space ones inside the depth range, mapped to the screen) clamped to the screen.
     void BoundsOfProjected(const std::vector<Vector4>* positions, bool clipSpace);
     int DrawTlTriangles(TLVertex* vertices, int vertexCount, const std::uint16_t* indices, int indexCount);
-    // The holder the renderer draws the stage with. Returns 1.
-    int BindSurface(int stage, Surface* holder);
+    // The holder the renderer draws the stage with.
+    void BindSurface(int stage, Surface* holder);
     // A null texture binds none.
-    int BindTexture(int stage, Texture* texture);
+    void BindTexture(int stage, Texture* texture);
     // A texture not looked up yet is found by its name among the texture manager's registered and cached
     // textures (an empty name is not looked up) and kept, counted.
-    int BindNamedTexture(int stage, NamedTexture* named);
+    void BindNamedTexture(int stage, NamedTexture* named);
 
     // Starts the new renderer (its failure ends the game). `width` x `height` pixels on `window`.
     TextureDevice(platform::NativeWindow window, bool fullScreen, int width, int height);
@@ -90,8 +108,8 @@ inline constexpr render::StageCombiner kTerrainStage = {render::TextureOp::Modul
                                                         render::kArgCurrent, render::TextureOp::SelectArg1,
                                                         render::kArgTexture, render::kArgCurrent};
 
-// Once a frame: the new renderer's frame shown. Returns 0.
-long DevicePresent(TextureDevice* device);
+// Once a frame: the new renderer's frame shown.
+void DevicePresent(TextureDevice* device);
 
 constexpr std::uint32_t kMmpFormatPnt3 = 0x33544E50;   // "PNT3"
 

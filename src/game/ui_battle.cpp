@@ -328,8 +328,7 @@ void BattleScreen::MarkPortrait(int index) {
     auto* currentPortraits = portraits;
     currentPortraits->sceneObjects[index * kPortraitSprites + 4]->visible = true;
     const Vector3 axis = {-1.0f, 0.0f, 0.0f};
-    Quaternion turn;
-    currentPortraits->slots[index].restB = *turn.SetAxisAngle(axis, SelectedFaceAngle());
+    currentPortraits->slots[index].restB = Quaternion::AxisAngle(axis, SelectedFaceAngle());
 }
 
 void BattleScreen::UnitJoined(Unit* unit) {
@@ -745,8 +744,7 @@ void BattleScreen::LeftUp(Point point) {
                 const Vector3 axis = {-1.0f, 0.0f, 0.0f};
                 const float angle = kHudQuarterTurn *
                                     0.14285715f;   // 1/7
-                Quaternion turn;
-                turn.SetAxisAngle(axis, angle);
+                Quaternion turn = Quaternion::AxisAngle(axis, angle);
                 slot(i).restB = turn;
                 world->Select(unitAt(static_cast<int>(node)));
             }

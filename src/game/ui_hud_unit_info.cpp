@@ -291,12 +291,11 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
             // Turned with the sling buttons' angle: about z, about x, about z again.
             const Vector3 axisZ = {0.0f, 0.0f, 1.0f};
             const Vector3 axisX = {1.0f, 0.0f, 0.0f};
-            Quaternion first, second, third;
-            Quaternion* q1 = first.SetAxisAngle(axisZ, kHudQuarterTurn * kTurnAboutZ);
-            Quaternion* q2 = second.SetAxisAngle(axisX, kHudQuarterTurn * kTurnAboutX);
-            const Quaternion tilted = *q1 * *q2;
-            Quaternion* q3 = third.SetAxisAngle(axisZ, kHudQuarterTurn * kSecondTurnAboutZ);
-            model->localRotation = tilted * *q3;
+            const Quaternion first = Quaternion::AxisAngle(axisZ, kHudQuarterTurn * kTurnAboutZ);
+            const Quaternion second = Quaternion::AxisAngle(axisX, kHudQuarterTurn * kTurnAboutX);
+            const Quaternion tilted = first * second;
+            const Quaternion third = Quaternion::AxisAngle(axisZ, kHudQuarterTurn * kSecondTurnAboutZ);
+            model->localRotation = tilted * third;
 
             const float scale = 1.0f / size;
             unit->AsObject3D()->ClientSpecific()->figureScale = Vector3{scale, scale, scale};

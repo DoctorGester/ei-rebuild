@@ -61,8 +61,7 @@ void SetTint(UiMesh* object, float value) {
 // Turns a sprite about `axis` (z or -z) by `angle`.
 void Turn(UiMesh* object, float axisZ, float angle) {
     Vector3 axis = {0.0f, 0.0f, axisZ};
-    Quaternion q;
-    q.SetAxisAngle(axis, angle);
+    Quaternion q = Quaternion::AxisAngle(axis, angle);
     object->localRotation = q;
 }
 
@@ -230,8 +229,7 @@ void HudTopPanel::Setup(int newPage, bool shown) {
     UiMesh* arrow = AddSprite("in25arrow");
     arrow->textureOffsetU = 0.22265625f;
     arrow->textureOffsetV = 0.140625f;
-    Quaternion turn;
-    arrow->localRotation = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi);
+    arrow->localRotation = Quaternion::AxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi);
     arrow->Place(400.0f, -52.0f, 8.106086f);
     arrow->SetScale(0.8f);
 
