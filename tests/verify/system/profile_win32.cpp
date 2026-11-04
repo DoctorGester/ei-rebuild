@@ -8,6 +8,7 @@
 #include "platform/win32/thread_context.h"
 
 #include <windows.h>
+#include <mmsystem.h>   // timeBeginPeriod, timeGetTime
 #include <psapi.h>
 
 #include <algorithm>
