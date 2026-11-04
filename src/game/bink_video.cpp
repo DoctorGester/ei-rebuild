@@ -121,9 +121,9 @@ bool PlayMovie(const std::string& name, bool keysEnd, bool clearScreen, bool loa
     for (;;) {
         if (const std::optional<platform::Event> event = platform::TakeEvent()) {
             if (event->type == platform::EventType::KeyDown) {
-                if (event->key != platform::kKeyEscape && event->key != platform::kKeySpace) continue;
+                if (event->key != platform::Key::Escape && event->key != platform::Key::Space) continue;
                 if (!keysEnd) continue;
-                if (event->key == platform::kKeyEscape) escaped = true;
+                if (event->key == platform::Key::Escape) escaped = true;
                 break;
             } else if (event->type == platform::EventType::Quit) {   // the movie ends; the main loop ends on it
                 platform::PostQuit(event->quitCode);

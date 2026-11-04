@@ -96,12 +96,12 @@ void Interface3D::OnChar(int key, int scan) {
     if (!stack.empty()) stack.back()->Input()->Char(key, scan);
 }
 
-void Interface3D::OnKeyUp(int key, int scan) {
-    if (key == platform::kKeyShift)
+void Interface3D::OnKeyUp(platform::Key key, int scan) {
+    if (key == platform::Key::Shift)
         shiftDown = 0;
-    else if (key == platform::kKeyControl)
+    else if (key == platform::Key::Control)
         ctrlDown = false;
-    else if (key == platform::kKeyMenu)
+    else if (key == platform::Key::Alt)
         altDown = false;
     if (console->shown) {
         console->OnKeyUp(key, scan);
@@ -110,10 +110,10 @@ void Interface3D::OnKeyUp(int key, int scan) {
     if (!stack.empty()) stack.back()->Input()->KeyUp(key, scan);
 }
 
-void console::ConsoleWindow::OnKeyUp(int key, int) {
-    if (key == platform::kKeyShift)
+void console::ConsoleWindow::OnKeyUp(platform::Key key, int) {
+    if (key == platform::Key::Shift)
         shift = false;
-    else if (key == platform::kKeyControl)
+    else if (key == platform::Key::Control)
         ctrl = false;
 }
 

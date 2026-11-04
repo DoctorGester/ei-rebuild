@@ -235,18 +235,19 @@ void Check(const Layout& layout, bool print) {
         const int plain = platform::sdl_keys::ControlCharacter(code.key, code.scan, SDL_KMOD_NONE,
                                                                platform::sdl_keys::LayoutControlCharacter);
         const std::string name = Name(scan);
-        const bool letter = code.key >= 'A' && code.key <= 'Z';
+        const int key = static_cast<int>(code.key);   // Windows' virtual-key code, as the table holds it
+        const bool letter = key >= 'A' && key <= 'Z';
         if (print) {
-            keys += "0x" + Hex(code.key) + (i + 1 < scans.size() ? ", " : "");
+            keys += "0x" + Hex(key) + (i + 1 < scans.size() ? ", " : "");
             typed += name + (i + 1 < scans.size() ? " " : "");
             if (withCtrl && !letter) control += (control.empty() ? "" : " ") + Hex(scan) + ":" + Hex(withCtrl);
             continue;
         }
         Expect(code.scan == scan, layout.name, scan, "scan", Hex(code.scan), Hex(scan));
-        Expect(code.key == layout.keys[i], layout.name, scan, "key", Hex(code.key), Hex(layout.keys[i]));
+        Expect(key == layout.keys[i], layout.name, scan, "key", Hex(key), Hex(layout.keys[i]));
         const std::string want = i < names.size() ? names[i] : "";
         Expect(name == want, layout.name, scan, "name", name, want);
-        int wantCtrl = letter ? code.key - 'A' + 1 : 0;
+        int wantCtrl = letter ? key - 'A' + 1 : 0;
         const std::string tag = Hex(scan) + ":";
         if (const char* at = std::strstr(layout.control, tag.c_str())) wantCtrl = static_cast<int>(std::strtol(at + 3, nullptr, 16));
         Expect(withCtrl == wantCtrl, layout.name, scan, "Ctrl character", Hex(withCtrl), Hex(wantCtrl));

@@ -44,7 +44,7 @@ bool Translator::Take(const SDL_Event& e, float pixelsPerPoint, std::deque<Event
     case SDL_EVENT_KEY_UP: {
         const SDL_KeyboardEvent& k = e.key;
         const sdl_keys::KeyCode code = sdl_keys::KeyOf(k.scancode, k.mod, sdl_keys::LayoutKey);
-        if (code.key == 0) return true;
+        if (code.key == Key::None) return true;
         Event event;
         event.type = k.down ? EventType::KeyDown : EventType::KeyUp;
         event.key = code.key;

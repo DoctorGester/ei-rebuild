@@ -213,37 +213,37 @@ void ChatOverlay::PaintTyped(UiSurface& surface) const {
 
 // --- the chat line's keys -------------------------------------------------------------------------
 
-void ChatOverlay::KeyDown(int key, int, bool) {
+void ChatOverlay::KeyDown(platform::Key key, int, bool) {
     if (!chatOpen) return;
     handled = true;
     switch (key) {
-    case platform::kKeyBack: {   // by character, as Delete and the caret's steps
+    case platform::Key::Backspace: {   // by character, as Delete and the caret's steps
         if (caret <= 0) break;
         const int previous = text::PreviousCharacter(typed, caret);
         typed = str::Left(typed, previous) + str::Mid(typed, caret);
         caret = previous;
         break;
     }
-    case platform::kKeyReturn:
+    case platform::Key::Return:
         if (typed.size() != 0 && IsMultiplayerClient()) SendSay(typed);
         chatOpen = false;
         break;
-    case platform::kKeyEscape:
+    case platform::Key::Escape:
         chatOpen = false;
         break;
-    case platform::kKeyEnd:
+    case platform::Key::End:
         caret = lib::Count(typed);
         break;
-    case platform::kKeyHome:
+    case platform::Key::Home:
         caret = 0;
         break;
-    case platform::kKeyLeft:
+    case platform::Key::Left:
         caret = text::PreviousCharacter(typed, caret);
         break;
-    case platform::kKeyRight:
+    case platform::Key::Right:
         caret = text::NextCharacter(typed, caret);
         break;
-    case platform::kKeyDelete:
+    case platform::Key::Delete:
         if (caret >= static_cast<int>(typed.size())) break;
         typed = str::Left(typed, caret) + str::Mid(typed, text::NextCharacter(typed, caret));
         break;
@@ -255,7 +255,7 @@ void ChatOverlay::KeyDown(int key, int, bool) {
 
 void ChatOverlay::Char(int key, int) {
     if (!chatOpen) return;
-    if (key == platform::kKeyBack || key == platform::kKeyTab || key == platform::kKeyReturn || key == platform::kKeyEscape) return;
+    if (key == '\b' || key == '\t' || key == '\r' || key == '\x1B') return;
     std::string line = text::Typed(str::Left(typed, caret), key) + str::Mid(typed, caret);
     // The line also stays within kMaxTyped bytes (what 200 one-byte characters took).
     // That is what the sent SayMessage fits in: a client's update carries 220 bytes, and a message larger

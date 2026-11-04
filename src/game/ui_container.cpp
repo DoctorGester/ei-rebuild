@@ -121,7 +121,7 @@ void UiContainer::RightDouble(Point point) {
 }
 
 // Key events reach every enabled child, wherever the mouse is.
-void UiContainer::KeyDown(int key, int scan, bool repeat) {
+void UiContainer::KeyDown(platform::Key key, int scan, bool repeat) {
     Offer(this, nullptr, [&](UiInputSide* to) { to->KeyDown(key, scan, repeat); });
 }
 
@@ -129,7 +129,7 @@ void UiContainer::Char(int key, int scan) {
     Offer(this, nullptr, [&](UiInputSide* to) { to->Char(key, scan); });
 }
 
-void UiContainer::KeyUp(int key, int scan) {
+void UiContainer::KeyUp(platform::Key key, int scan) {
     Offer(this, nullptr, [&](UiInputSide* to) { to->KeyUp(key, scan); });
 }
 

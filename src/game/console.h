@@ -4,6 +4,7 @@
 // command maps, the "@"/"#"/"$" script lines and the command handlers. See docs/notes/console.md.
 
 #include "ui_font.h"
+#include "platform/platform.h"
 #include "lib/str.h"
 #include "lib/rect.h"
 
@@ -125,9 +126,9 @@ public:
     void AddText(std::string_view text);  // continues the last line; '\n' starts a new one
     // Drawing and input:
     void Show(bool shown);                     // creates or releases the surface
-    void OnKeyDown(int key, int scan, bool repeat);   // editing and scrolling keys
+    void OnKeyDown(platform::Key key, int scan, bool repeat);   // editing and scrolling keys
     void OnChar(int key, int scan);      // typed characters, Enter, Escape
-    void OnKeyUp(int key, int scan);     // platform::kKeyShift / platform::kKeyControl clear shift / ctrl
+    void OnKeyUp(platform::Key key, int scan);     // Shift / Control clear shift / ctrl
     void ClampScroll();                        // the scroll position within the lines
     void ClampCaret();                         // the caret and the anchor within the input
     // The surface's paint: the lines above the input line; the input line, selection and caret.

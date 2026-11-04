@@ -16,15 +16,15 @@ std::string KeyName(int scan) {
     return text::Narrow(std::wstring_view(wide, static_cast<std::size_t>(length > 0 ? length : 0)));
 }
 
-// What Windows' layout maps the scan code to (the key messages' code).
-int sdl_keys::LayoutKey(int scan) {
+// What Windows' layout maps the scan code to (the key messages' virtual-key code, Key's value).
+Key sdl_keys::LayoutKey(int scan) {
     const UINT code = static_cast<UINT>(scan & 0xFF) | ((scan & 0x100) ? 0xE000u : 0u);
-    return static_cast<int>(MapVirtualKeyExW(code, MAPVK_VSC_TO_VK_EX, GetKeyboardLayout(0)));
+    return static_cast<Key>(MapVirtualKeyExW(code, MAPVK_VSC_TO_VK_EX, GetKeyboardLayout(0)));
 }
 
 // As LayoutKey: what the layout types with Ctrl held (flag 4: a dead key's state left as it was); only a
 // control character counts.
-int sdl_keys::LayoutControlCharacter(int key, int scan) {
+int sdl_keys::LayoutControlCharacter(Key key, int scan) {
     BYTE state[256] = {};
     state[VK_CONTROL] = 0x80;
     wchar_t out[8] = {};

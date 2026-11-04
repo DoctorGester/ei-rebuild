@@ -143,9 +143,9 @@ void GlobalMap::PaintTitle(UiSurface& surface) const {
     surface.DrawTextIn(clock, line2, TextStyle{2, kUiTextColour, render::text::kCenter | render::text::kVCenter | render::text::kSingleLine});
 }
 
-void GlobalMap::KeyDown(int key, int scan, bool repeat) {
+void GlobalMap::KeyDown(platform::Key key, int scan, bool repeat) {
     UiContainer::KeyDown(key, scan, repeat);
-    if (key == platform::kKeyEscape) {
+    if (key == platform::Key::Escape) {
         ui->PushWindow(new EscMenu(ui), WindowBackdrop::FirstWindow);
         handled = true;
     }

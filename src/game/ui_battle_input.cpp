@@ -66,7 +66,7 @@ void BattleScreen::LeftDouble(Point point) {
 
 // --- a key released on the battle screen ---------------------------------------------------------
 
-void BattleScreen::KeyUp(int key, int scan) {
+void BattleScreen::KeyUp(platform::Key key, int scan) {
     if (portraitMode != 0) return;
     UiContainer::KeyUp(key, scan);
     int action = g_keyActions[scan] - kFirstOrderKeyAction;
@@ -161,18 +161,18 @@ void SlideKey(Panel* panel, int& shown, int choice, Show show) {
 
 } // namespace
 
-void BattleScreen::KeyDown(int key, int scan, bool repeat) {
+void BattleScreen::KeyDown(platform::Key key, int scan, bool repeat) {
     if (portraitMode != 0) {
-        if (key == platform::kKeyEscape) portraitMode = 0;
+        if (key == platform::Key::Escape) portraitMode = 0;
         return;
     }
-    if (key == platform::kKeyReturn) {
+    if (key == platform::Key::Return) {
         if (IsMultiplayerClient()) {
             ui->ChatKeyEnter();
             handled = true;
             return;
         }
-    } else if (key == platform::kKeyBack) {
+    } else if (key == platform::Key::Backspace) {
         if (IsMultiplayerClient()) {
             ui->ChatKeyBackspace();
             handled = true;
@@ -183,7 +183,7 @@ void BattleScreen::KeyDown(int key, int scan, bool repeat) {
     if (handled) return;
     if (repeat) return;
 
-    if (key == platform::kKeyEscape) {
+    if (key == platform::Key::Escape) {
         if (pendingAction != kPendingNone) {
             // The pending action is dropped with every panel's highlight.
             SetPendingAction(kPendingNone, -1, -1);

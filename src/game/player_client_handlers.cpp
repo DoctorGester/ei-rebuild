@@ -85,7 +85,7 @@ bool PlayerClient::OnGameState() {
     int tick;
     in.ReadValue(tick);
     if (localSession) {
-        g_interface.OnKeyDown(-1, 0, false);   // a press of no key (-1, scan code 0), as the original's
+        g_interface.OnKeyDown(platform::Key::None, 0, false);   // a press of no key (the original's -1, scan code 0)
         return true;
     }
     currentPlayer->sessionKind = gameState;

@@ -19,16 +19,6 @@
 #include "render/text_format.h"
 
 namespace {
-constexpr int kKeyBackspace = 0x08;
-constexpr int kKeyEnd = 0x23;
-constexpr int kKeyHome = 0x24;
-constexpr int kKeyLeft = 0x25;
-constexpr int kKeyRight = 0x27;
-constexpr int kKeyDelete = 0x2E;
-
-constexpr int kKeyTab = 0x09;
-constexpr int kKeyEnter = 0x0D;
-constexpr int kKeyEscape = 0x1B;
 constexpr std::uint32_t kClassDigit = 1;
 constexpr std::uint32_t kClassLetter = 2;      // letters and the space
 constexpr std::uint32_t kClassOther = 4;
@@ -47,12 +37,12 @@ std::uint32_t CharClass(int key) {
 
 } // namespace
 
-void UiEditField::KeyDown(int key, int, bool) {
+void UiEditField::KeyDown(platform::Key key, int, bool) {
     if (!focused) return;
     auto& currentText = text;
     switch (key) {
-    case kKeyBackspace:
-    case kKeyDelete:
+    case platform::Key::Backspace:
+    case platform::Key::Delete:
         // The first edit key of a field starts from an empty text.
         if (!editing) {
             editing = true;
@@ -61,7 +51,7 @@ void UiEditField::KeyDown(int key, int, bool) {
             changed = true;
         }
         // By character (a UTF-8 character's bytes).
-        if (key == kKeyBackspace) {
+        if (key == platform::Key::Backspace) {
             if (caret > 0) {
                 const int previous = text::PreviousCharacter(currentText, caret);
                 std::string tail = str::Mid(currentText, caret);
@@ -77,20 +67,20 @@ void UiEditField::KeyDown(int key, int, bool) {
             changed = true;
         }
         break;
-    case kKeyEnd:
-    case kKeyHome:
-    case kKeyLeft:
-    case kKeyRight:
+    case platform::Key::End:
+    case platform::Key::Home:
+    case platform::Key::Left:
+    case platform::Key::Right:
         // The first edit key of a field keeps the text, the caret at its end.
         if (!editing) {
             editing = true;
             caret = lib::Count(currentText);
         }
-        if (key == kKeyEnd)
+        if (key == platform::Key::End)
             caret = lib::Count(currentText);
-        else if (key == kKeyHome)
+        else if (key == platform::Key::Home)
             caret = 0;
-        else if (key == kKeyLeft)
+        else if (key == platform::Key::Left)
             caret = text::PreviousCharacter(currentText, caret);
         else
             caret = text::NextCharacter(currentText, caret);
@@ -121,7 +111,7 @@ UiEditField::UiEditField(Interface3D* ownerUi, Rect rect) : UiWindow(ownerUi) {
 
 void UiEditField::Char(int key, int) {
     if (!focused) return;
-    if (key == kKeyBackspace || key == kKeyTab || key == kKeyEnter || key == kKeyEscape) return;
+    if (key == '\b' || key == '\t' || key == '\r' || key == '\x1B') return;
     if (ui->ctrlDown) return;
     if ((charClasses & CharClass(key)) == 0) return;
     auto& currentText = text;

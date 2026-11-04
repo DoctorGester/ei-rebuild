@@ -75,7 +75,7 @@ std::string WindowClass();
 bool BeforeEvents();
 // Whether SetCursor keeps the shape it is given (SeenCursors).
 bool CollectCursors();
-int TypedCharacter(int key);
+int TypedCharacter(platform::Key key);
 // The game asked to quit (PostQuit): a recorded scenario's game may quit itself after its last step.
 void GameQuits();
 platform::MessageAnswer AnswerMessageBox(const char* text, const char* caption, platform::MessageButtons buttons);

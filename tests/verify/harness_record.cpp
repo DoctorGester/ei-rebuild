@@ -41,7 +41,7 @@ std::map<std::string, std::string> g_carried;
 bool g_cutting = false;
 // What the player holds: a cut waits until nothing is.
 int g_buttonsDown = 0;
-std::set<unsigned> g_keysDown;
+std::set<platform::Key> g_keysDown;
 std::atomic<int>* g_mouseX = nullptr;
 std::atomic<int>* g_mouseY = nullptr;
 // The harness's mouse as the lines left it (the harness's own start, -1: the window's centre).
@@ -209,8 +209,9 @@ void Queued(const Event& e, bool typesCharacter) {
     switch (e.type) {
     case EventType::KeyDown:
     case EventType::KeyUp:
-        std::snprintf(text, sizeof(text), "event key %s %#x %#x %u%s%s", e.type == EventType::KeyDown ? "down" : "up", e.key,
-                      e.scan, unsigned(e.modifiers), e.repeat ? " repeat" : "", typesCharacter ? "" : " raw");
+        // The key as its value, Windows' virtual-key code (platform.h, "Key codes").
+        std::snprintf(text, sizeof(text), "event key %s %#x %#x %u%s%s", e.type == EventType::KeyDown ? "down" : "up",
+                      static_cast<unsigned>(e.key), e.scan, unsigned(e.modifiers), e.repeat ? " repeat" : "", typesCharacter ? "" : " raw");
         break;
     case EventType::Text:
         Line("event text " + std::to_string(e.scan) + " " + Escaped(e.text));
@@ -319,7 +320,7 @@ std::string Replay(const std::string& argument) {
     bool typesCharacter = true;
     if (w[0] == "key" && w.size() >= 5 && (w[1] == "down" || w[1] == "up")) {
         e.type = w[1] == "down" ? EventType::KeyDown : EventType::KeyUp;
-        e.key = number(2);
+        e.key = static_cast<platform::Key>(number(2));
         e.scan = number(3);
         e.modifiers = static_cast<std::uint8_t>(number(4));
         for (std::size_t i = 5; i < w.size(); ++i) {

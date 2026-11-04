@@ -368,7 +368,7 @@ std::uint32_t g_shotCounter = /*007C7E24*/ {};
 
 } // namespace
 
-void Interface3D::OnKeyDown(int key, int scan, bool repeat) {
+void Interface3D::OnKeyDown(platform::Key key, int scan, bool repeat) {
     console::ConsoleWindow* consoleWindow = console;
     switch (scan) {
     case 0x1D:

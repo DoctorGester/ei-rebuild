@@ -120,7 +120,7 @@ void MpHeroScreen::FinishRename() {
     ShowHero(heroIndex);
 }
 
-void MpHeroScreen::KeyDown(int key, int scan, bool repeat) {
+void MpHeroScreen::KeyDown(platform::Key key, int scan, bool repeat) {
     UiContainer::KeyDown(key, scan, repeat);
     if (handled) return;
     Interface3D* currentUi = ui;
@@ -128,7 +128,7 @@ void MpHeroScreen::KeyDown(int key, int scan, bool repeat) {
     int heroStep = 0;
     int voiceStep = 0;
     switch (key) {
-    case platform::kKeyReturn:
+    case platform::Key::Return:
         if (renaming)
             FinishRename();
         else if (mode == kModeList)
@@ -139,7 +139,7 @@ void MpHeroScreen::KeyDown(int key, int scan, bool repeat) {
             CreateHero();
         handled = true;
         return;
-    case platform::kKeyEscape:
+    case platform::Key::Escape:
         if (renaming) {
             CloseRenameEdit();
             DrawHeroList();
@@ -153,19 +153,19 @@ void MpHeroScreen::KeyDown(int key, int scan, bool repeat) {
         }
         handled = true;
         return;
-    case platform::kKeyPageUp:
+    case platform::Key::PageUp:
         heroStep = -10;
         voiceStep = -11;
         break;
-    case platform::kKeyPageDown:
+    case platform::Key::PageDown:
         heroStep = 10;
         voiceStep = 11;
         break;
-    case platform::kKeyUp:
+    case platform::Key::Up:
         heroStep = -1;
         voiceStep = -1;
         break;
-    case platform::kKeyDown:
+    case platform::Key::Down:
         heroStep = 1;
         voiceStep = 1;
         break;

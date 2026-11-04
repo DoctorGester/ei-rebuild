@@ -84,14 +84,14 @@ void CampPages::LeftUp(Point point) {
     turning = 0;
 }
 
-void CampPages::KeyDown(int key, int scan, bool repeat) {
-    if (key == platform::kKeyEscape) {
+void CampPages::KeyDown(platform::Key key, int scan, bool repeat) {
+    if (key == platform::Key::Escape) {
         ShowPage(kLeavePage);
         handled = true;
         return;
     }
-    if ((key == platform::kKeyBack || key == platform::kKeyReturn) && IsMultiplayerClient()) {
-        if (key == platform::kKeyBack)
+    if ((key == platform::Key::Backspace || key == platform::Key::Return) && IsMultiplayerClient()) {
+        if (key == platform::Key::Backspace)
             ui->ChatKeyBackspace();
         else
             ui->ChatKeyEnter();

@@ -17,12 +17,12 @@ public:
 
     // A direction key (actions 5-10 of g_keyActions) sets its axis; actions 13-16 restore camera view 0-3,
     // or save it with Ctrl / Alt. Then, when used, the camera's motion is set from the axes as KeyUp does.
-    void KeyDown(int key, int scan, bool repeat) override;
+    void KeyDown(platform::Key key, int scan, bool repeat) override;
     // A direction key released clears its axis and marks the key used; then, when used, the camera's motion
     // is set again from the axes: without Ctrl / Alt it pans along (y, -x) at the pan speed (the speed
     // options multiplied, stored as float), turns and tilts not, and climbs at the climb speed * z; with one
     // it does not pan, turns at the turn speed * y, climbs, and tilts at the tilt speed * x.
-    void KeyUp(int key, int scan) override;
+    void KeyUp(platform::Key key, int scan) override;
     // The right button went down: the point kept in screen and layout coordinates, turning set, the cursor held
     // (its motion so far dropped); the button used.
     void RightDown(Point point) override;

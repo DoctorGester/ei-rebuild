@@ -35,7 +35,6 @@ constexpr int kRegionNextZone = 3;
 constexpr int kRegionFirstRow = 4;
 constexpr int kRegionFirstExit = 9;
 
-constexpr int kKeyEnter = 0x0D, kKeyEsc = 0x1B, kKeyPageUp = 0x21, kKeyPageDown = 0x22, kKeyUp = 0x26, kKeyDown = 0x28;
 constexpr int kActionObjectives = 4;   // "obj" in the key table
 
 constexpr int kFirstExitSprite = 21;     // the exits' markers, then the quest places'
@@ -106,11 +105,11 @@ void ObjectivesWindow::LeftDown(Point point) {
     ui->PlayInterfaceSound(game::CancelSoundText());
 }
 
-void ObjectivesWindow::KeyDown(int key, int scan, bool repeat) {
+void ObjectivesWindow::KeyDown(platform::Key key, int scan, bool repeat) {
     UiContainer::KeyDown(key, scan, repeat);
     int step = 0;
     switch (key) {
-    case kKeyEnter:
+    case platform::Key::Return:
         ui->PlayInterfaceSound(kOkSound);
         if (!twoButtons) {
             ui->SetPendingValue(0);
@@ -122,15 +121,15 @@ void ObjectivesWindow::KeyDown(int key, int scan, bool repeat) {
         }
         handled = true;
         break;
-    case kKeyEsc:
+    case platform::Key::Escape:
         ui->PlayInterfaceSound(!twoButtons ? kOkSound : game::CancelSoundText());
         ui->SetPendingValue(0);
         handled = true;
         break;
-    case kKeyPageUp: step = -5; break;
-    case kKeyPageDown: step = 5; break;
-    case kKeyUp: step = -1; break;
-    case kKeyDown: step = 1; break;
+    case platform::Key::PageUp: step = -5; break;
+    case platform::Key::PageDown: step = 5; break;
+    case platform::Key::Up: step = -1; break;
+    case platform::Key::Down: step = 1; break;
     default: break;
     }
     if (step != 0) {

@@ -845,12 +845,12 @@ void ItemInfoPanel::Describe(Item* item) {
 
 // --- Input side: the input virtuals (mouse, key down, key up) ------------------
 
-void ItemInfoPanel::KeyDown(int key, int, bool repeat) {
-    if (key == platform::kKeyControl && !repeat && FirstItem()) DescribeItem();
+void ItemInfoPanel::KeyDown(platform::Key key, int, bool repeat) {
+    if (key == platform::Key::Control && !repeat && FirstItem()) DescribeItem();
 }
 
-void ItemInfoPanel::KeyUp(int key, int) {
-    if (key == platform::kKeyControl && FirstItem()) DescribeItem();
+void ItemInfoPanel::KeyUp(platform::Key key, int) {
+    if (key == platform::Key::Control && FirstItem()) DescribeItem();
 }
 
 void ItemInfoPanel::Build(int atX, int atY) {
