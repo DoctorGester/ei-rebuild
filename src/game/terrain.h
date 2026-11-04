@@ -7,6 +7,7 @@
 #include "lib/bit_flags.h"
 #include "lib/hash_map.h"
 #include "lib/vecmath.h"
+#include "render/mesh_records.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -18,7 +19,7 @@ class Light;
 class SceneRenderer;
 class Texture;
 class DecalBuilder;
-struct VertexPacket;
+using VertexPacket = render::VertexPacket;
 
 namespace terrain {
 

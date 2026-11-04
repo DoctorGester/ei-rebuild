@@ -118,7 +118,7 @@ bool ShadowCasterReaches(const ShadowCasterSphere& sphere);
 bool CasterPartDrawn(const void* part);
 float CasterStrength(const void* object);
 struct ShadowMesh {
-    const float* positions;            // blocks of four vertices, as MeshDraw's
+    const VertexPacket* positions;     // as MeshDraw's
     int positionCount;
     const TexCoord* uvs;
     int uvCount;
@@ -232,8 +232,8 @@ void SetVsync(bool on);
 // old path projects it with. Every pass the old path draws between BeginMesh and EndMesh calls MeshPass,
 // which takes the old device's state. A mesh the renderer refuses is lost (logged).
 struct MeshDraw {
-    const float* positions;            // blocks of four vertices: x[4], y[4], z[4], 4 unused
-    int positionCount;
+    const VertexPacket* positions;     // vertex i is lane i % 4 of packet i / 4 (w unused)
+    int positionCount;                 // vertices
     const std::uint32_t* colours;      // D3DCOLOR, by the corners' normal index
     const std::uint32_t* speculars;
     const TexCoord* uvs;               // by the corners' texture index
@@ -250,11 +250,11 @@ struct MeshDraw {
     bool distanceFog;
     float zScale;                      // 0 taken as 1
     bool coloursWritten;               // the draw set every colour to the device's (flag 4)
-// A figure mesh lit on the GPU (MeshSource::lighting), else null: the normals (blocks of four as the
+// A figure mesh lit on the GPU (MeshSource::lighting), else null: the normals (packets of four as the
 // positions) and the words (a position index in the low half, a normal index in the high half, by the corners'
 // colour index).
-    const float* normals;
-    int normalCount;
+    const NormalPacket* normals;
+    int normalCount;                   // normals
     const std::uint32_t* words;
     int wordCount;
 };

@@ -221,6 +221,16 @@ inline float VertexHeight(const SectorFileVertex& vertex, float maxZ) {
     return static_cast<float>(vertex.altitude) * maxZ * kAltitudeUnit;
 }
 
+// A vertex layer of a sector file, its vertices read by value (the layers start at byte 5, unaligned).
+struct SectorVertices {
+    const std::uint8_t* bytes;
+    SectorFileVertex operator[](int index) const {
+        SectorFileVertex vertex;
+        lib::LoadBytes(vertex, bytes + static_cast<std::size_t>(index) * sizeof(SectorFileVertex));
+        return vertex;
+    }
+};
+
 // Four floats of a terrain square, one per cell: [0] at its first vertex, [1] towards the next
 // vertex of the row, [2] towards the next row, [3] opposite.
 struct SquareHeights {
@@ -230,11 +240,11 @@ struct SquareHeights {
 // The ground's height at the four cells of a terrain square: half of the cell's own corner and a quarter of
 // each of the two corners beside it. The original stores the heights of the three other corners and keeps the
 // first one, and the quarter of the first and the opposite corner, on the stack.
-SquareHeights LandHeights(const SectorFileVertex* vertex, float maxZ) {
-    const float next = VertexHeight(vertex[1], maxZ);
-    const float below = VertexHeight(vertex[kVertexRow], maxZ);
-    const float opposite = VertexHeight(vertex[kVertexRow + 1], maxZ);
-    const float first = VertexHeight(vertex[0], maxZ);
+SquareHeights LandHeights(SectorVertices layer, int vertex, float maxZ) {
+    const float next = VertexHeight(layer[vertex + 1], maxZ);
+    const float below = VertexHeight(layer[vertex + kVertexRow], maxZ);
+    const float opposite = VertexHeight(layer[vertex + kVertexRow + 1], maxZ);
+    const float first = VertexHeight(layer[vertex], maxZ);
     const float sides = (below + next) * kQuarter;
     SquareHeights heights;
     heights.cell[0] = first * 0.5f + sides;
@@ -248,11 +258,11 @@ SquareHeights LandHeights(const SectorFileVertex* vertex, float maxZ) {
 // The water's depth over the four cells of a terrain square: its surface, weighted like the ground, less the
 // ground `land`. The original keeps the third cell's surface on the stack here as well and subtracts the
 // ground from it there.
-SquareHeights WaterDepths(const SectorFileVertex* vertex, float maxZ, const SquareHeights& land) {
-    const float next = VertexHeight(vertex[1], maxZ);
-    const float below = VertexHeight(vertex[kVertexRow], maxZ);
-    const float opposite = VertexHeight(vertex[kVertexRow + 1], maxZ);
-    const float first = VertexHeight(vertex[0], maxZ);
+SquareHeights WaterDepths(SectorVertices layer, int vertex, float maxZ, const SquareHeights& land) {
+    const float next = VertexHeight(layer[vertex + 1], maxZ);
+    const float below = VertexHeight(layer[vertex + kVertexRow], maxZ);
+    const float opposite = VertexHeight(layer[vertex + kVertexRow + 1], maxZ);
+    const float first = VertexHeight(layer[vertex], maxZ);
     const float sides = (below + next) * kQuarter;
     const float surface0 = first * 0.5f + sides;
     const float diagonal = (first + opposite) * kQuarter;
@@ -297,8 +307,8 @@ void StampSector(AIMap& map, const MapDescription& description, const void* file
     const auto* header = static_cast<const SectorHeader*>(file);
     const bool hasWater = (header->layers & 1) != 0;
     const bool hasWaterTiles = (header->layers & 3) != 0;
-    const auto* ground = reinterpret_cast<const SectorFileVertex*>(header + 1);
-    const SectorFileVertex* water = ground + kVertexRow * kVertexRow;
+    const SectorVertices ground{static_cast<const std::uint8_t*>(file) + sizeof(SectorHeader)};
+    const SectorVertices water{ground.bytes + kVertexBytes};
     const float maxZ = description.header.heightRange;
     const float scale = map.heightScale;
 
@@ -310,10 +320,10 @@ void StampSector(AIMap& map, const MapDescription& description, const void* file
             cells[1] = cells[0] + 1;
             cells[2] = &map.cells[y0 + row * 2 + 1][x0 + column * 2];
             cells[3] = cells[2] + 1;
-            const SquareHeights land = LandHeights(ground + vertex, maxZ);
+            const SquareHeights land = LandHeights(ground, vertex, maxZ);
             for (int i = 0; i < 4; ++i) cells[i]->groundLevel = static_cast<std::uint16_t>(HeightUnits(land.cell[i], scale));
             if (!hasWater) continue;
-            const SquareHeights depths = WaterDepths(water + vertex, maxZ, land);
+            const SquareHeights depths = WaterDepths(water, vertex, maxZ, land);
             for (int i = 0; i < 4; ++i) {
                 int depth = HeightUnits(depths.cell[i], scale);
                 depth = depth >= kMaxDepth ? kMaxDepth : depth < 0 ? 0 : depth;
@@ -324,7 +334,7 @@ void StampSector(AIMap& map, const MapDescription& description, const void* file
 
     // The tile words after the vertex layers: the tiles, the water tiles, the water materials (unaligned: the header
     // is 5 bytes).
-    const auto* tileWords = static_cast<const std::uint8_t*>(file) + sizeof(SectorHeader) + (hasWater ? 2 : 1) * kVertexBytes;
+    const std::uint8_t* tileWords = ground.bytes + (hasWater ? 2 : 1) * kVertexBytes;
     auto tileWord = [tileWords](int layer, int tx, int ty) {
         std::uint16_t word;
         lib::LoadBytes(word, tileWords + 2 * ((layer * kTiles + ty) * kTiles + tx));

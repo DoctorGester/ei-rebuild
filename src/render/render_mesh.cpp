@@ -81,12 +81,12 @@ bool Build(Frame& f, Pending& p) {
             f.meshVertices.resize(base);
             return false;
         }
-        const float* block = m.positions + (position / 4) * 16;
+        const VertexPacket& packet = m.positions[position / 4];
         int lane = position % 4;
         Vertex v{};
-        v.position.x = block[lane];
-        v.position.y = block[4 + lane];
-        v.position.z = block[8 + lane];
+        v.position.x = packet.x()[lane];
+        v.position.y = packet.y()[lane];
+        v.position.z = packet.z()[lane];
         v.colour = m.colours[c.normal];
         v.specular = m.speculars[c.normal];
         v.normal = CornerNormal(m, c.normal);

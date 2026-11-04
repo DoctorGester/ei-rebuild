@@ -81,7 +81,7 @@ void Draw(TextureDevice* device, const MeshArgs& args, const Textures* textures,
 
 void HandOver(TextureDevice* device, const MeshArgs& args) {
     render::MeshDraw m{};
-    m.positions = &args.positions->block[0][0];
+    m.positions = args.positions;
     m.positionCount = args.blocks * 4;
     m.colours = args.colours;
     m.speculars = args.speculars;
@@ -103,7 +103,7 @@ void HandOver(TextureDevice* device, const MeshArgs& args) {
     m.zScale = 1.0f;
     m.coloursWritten = (args.flags & 4) != 0;   // OverrideColours
     // A figure part lit on the GPU needs its normals.
-    m.normals = &args.normals->block[0][0];
+    m.normals = args.normals;
     m.normalCount = args.colourCount * 4;
     m.words = args.words;
     m.wordCount = args.wordCount;
@@ -238,7 +238,7 @@ using devicebuffers::g_projected;
 void HandOver(TextureDevice* device, const VertexPacket* positions, const TexCoord* uvs, int count,
               const std::uint16_t* indices, int indexCount, const std::uint32_t* colours, bool clipped) {
     render::MeshDraw m{};
-    m.positions = &positions->block[0][0];
+    m.positions = positions;
     m.positionCount = count;
     m.colours = &colours[0];
     m.speculars = &colours[1];

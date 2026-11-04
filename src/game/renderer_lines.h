@@ -3,6 +3,7 @@
 // The old renderer's line-strip draw (renderer_lines.cpp): the strip of the renderer's line lists.
 
 #include "lib/containers.h"
+#include "render/mesh_records.h"
 #include "lib/vecmath.h"   // Vector4
 
 #include <cstddef>
@@ -11,7 +12,7 @@
 
 class TextureDevice;
 class TransformPipeline;
-struct VertexPacket;
+using VertexPacket = render::VertexPacket;
 
 // A pre-transformed vertex (FVF 0xC4: XYZRHW | DIFFUSE | SPECULAR).
 struct LineVertex {
