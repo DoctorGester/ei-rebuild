@@ -518,9 +518,9 @@ void UnitClientSpecific::RefreshEquipment() {
     // EI_Plugin's Fixes: the test for a hero is gone, every unit is refreshed.
     if (unit->MapType() != MapObjectType::Hero && !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes)) return;
     auto* half = unit->AsObject3D()->ClientSpecific();
-    Texture* detailed = SkinTexture(half->partSets[0]);
+    Texture* detailed = SkinTexture(half->partSets[0].get());
     if (NeedsReload(ComposeSkin(1, &name), detailed, name, false)) Reload(detailed, name);
-    Texture* simple = SkinTexture(half->partSets[1]);
+    Texture* simple = SkinTexture(half->partSets[1].get());
     if (NeedsReload(ComposeSkin(0, &name), simple, name, true) && simple) Reload(simple, name);
 }
 
@@ -528,7 +528,7 @@ int UnitClientSpecific::RefreshModel() {
     if (unit->MapType() != MapObjectType::Hero) return 1;
     std::string name;
     auto* half = unit->AsObject3D()->ClientSpecific();
-    Texture* simple = SkinTexture(half->partSets[1]);
+    Texture* simple = SkinTexture(half->partSets[1].get());
     if (NeedsReload(ComposeSkin(0, &name), simple, name, true) && simple) Reload(simple, name);
     return 1;
 }

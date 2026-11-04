@@ -366,7 +366,7 @@ void Object3D::SetUpAnimatedFigure(std::string_view model) {
             if (text::CompareIgnoringCase(partName.substr(0, 5), "EMPTY") == 0) box->bounds.flags |= BoundsFlag::NoFootprint | BoundsFlag::Crown;
             ++index;
         }
-        animation->ReleaseBones();
+        animation->bones.clear();
     }
     if (MapType() == MapObjectType::Hero) {
         high.y = kHeroHalfWidth;

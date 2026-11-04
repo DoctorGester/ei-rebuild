@@ -479,7 +479,10 @@ public:
 
     std::string scriptName;        // network field 9
     int secondPrototype;              // a second prototype index (-1 none)
-    UnitController* controller;    // the side half (the script code calls it the perception object)
+    // `controller` (or null) replaces the side half: the old one is detached and released, the new one points
+    // back here and gains a reference.
+    void SetController(UnitController* controller);
+    Ref<UnitController> controller;    // the side half (the script code calls it the perception object)
     std::uint32_t relationsA;       // \ a unit regards side s as hostile when both have
     std::uint32_t relationsB;       // / bit s set
     Player* player;

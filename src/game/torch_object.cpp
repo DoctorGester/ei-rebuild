@@ -26,43 +26,37 @@ namespace {
 const char* const kTorchClassName = "CTorchObject";
 } // namespace
 
-TorchObject::TorchObject() { spec = nullptr; }
+TorchObject::TorchObject() = default;
 
-TorchObject::~TorchObject() {
-    if (spec) spec->Release();
-}
+TorchObject::~TorchObject() = default;
 
-void TorchObject::DestroyTorch() {
-    TorchObjectSpec* old = spec;
-    spec = nullptr;
-    if (old) old->Release();
+void TorchObject::Destroy() {
+    spec.Reset();
     netState.Reset();
     MapObject::Destroy();
 }
 
-void TorchObject::LoadTorch(ByteStream* stream) {
+void TorchObject::Load(ByteStream* stream) {
     MapObject::Load(stream);
     spec->Load(stream);
 }
 
-void TorchObject::SaveTorch(ByteStream* stream) {
+void TorchObject::Save(ByteStream* stream) {
     MapObject::Save(stream);
     spec->Save(stream);
 }
 
-void TorchObject::Load(ByteStream* stream) { LoadTorch(stream); }
-void TorchObject::Save(ByteStream* stream) { SaveTorch(stream); }
-
-void TorchObject::AttachTorchObject(EngineObject* object) {
+void TorchObject::AttachObject(EngineObject* object) {
     if (SideTypeOf(object) != SideObjectType::Torch) {
         MapObject::AttachObject(object);
         return;
     }
-    TorchObjectSpec* old = spec;
-    spec = static_cast<TorchObjectSpec*>(object);
-    if (spec) spec->AddRef();
-    if (old) old->Release();
-    if (spec) spec->torch = this;    // the spec's owner
+    SetSpec(static_cast<TorchObjectSpec*>(object));
+}
+
+void TorchObject::SetSpec(TorchObjectSpec* newSpec) {
+    spec.Assign(newSpec);
+    if (newSpec) newSpec->torch = this;    // the spec's owner
 }
 
 void TorchObject::WriteNetState() {

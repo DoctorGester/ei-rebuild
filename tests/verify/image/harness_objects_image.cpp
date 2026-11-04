@@ -270,7 +270,7 @@ bool UnitFaceHalves(std::vector<void*>* halves) {
     if (!world) return false;
     for (MapObject* object : world->objects) {
         if (!object || object->GetClassId() != ClassId::Unit) continue;
-        auto* half = reinterpret_cast<UnitClientSpecific*>(static_cast<Unit*>(object)->controller);
+        auto* half = reinterpret_cast<UnitClientSpecific*>(static_cast<Unit*>(object)->controller.Get());
         if (half && half->faceTexture) halves->push_back(half);
     }
     return true;

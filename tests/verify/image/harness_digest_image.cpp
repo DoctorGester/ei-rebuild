@@ -587,7 +587,7 @@ void ReadClientUnit(Unit* u, Builder& b) {
     b.Unsigned("mana", v.mana);
     b.Unsigned("maxMana", v.maxMana);
     b.Int("effects", static_cast<int>(std::ssize(u->effects)));
-    b.Int("controller", u->controller ? ClassOf(u->controller) : -1);
+    b.Int("controller", u->controller ? ClassOf(u->controller.Get()) : -1);
 }
 
 // The water layer as the waves leave it (SectorData::Animate 006C3E80, R16c3): the landscape's wave

@@ -56,8 +56,8 @@ void Object3DClientSpecific::Create() {
     woundsTexture.Reset();
     ClearWoundsMaterial();
     std::memset(&sphere, 0, sizeof(sphere));
-    partSets[0] = nullptr;
-    partSets[1] = nullptr;
+    partSets[0].reset();
+    partSets[1].reset();
     touchTime = 0;
     figureScale = {1.0f, 1.0f, 1.0f};
 }
@@ -66,11 +66,8 @@ void Object3DClientSpecific::Destroy() {
     shadowMade = false;
     woundsTexture.Reset();
     woundsMaterial.Reset();
-    for (int k = 0; k < 2; ++k) {
-        delete partSets[k];
-    }
-    partSets[0] = nullptr;
-    partSets[1] = nullptr;
+    partSets[0].reset();
+    partSets[1].reset();
     textures.clear();
     materials.clear();
     object = nullptr;
@@ -88,14 +85,14 @@ Texture* Object3DClientSpecific::FindOrAddTexture(int kind) {
     int k = IsPrimaryKind(kind) ? 0 : 1;
     TextureParts* set;
     if (!partSets[k]) {
-        set = new TextureParts();
+        partSets[k] = std::make_unique<TextureParts>();
+        set = partSets[k].get();
         set->texture = ClientWorld()->NewTexture(kind);
-        partSets[k] = set;
         textures.emplace_back(set->texture);
     } else {
         if (k == 0) game::DebugLog(kSecondPrimarySetText, object->name, object->id);
         partSets[k]->texture->type = kind;
-        set = partSets[k];
+        set = partSets[k].get();
     }
     if (object->MapType() == MapObjectType::Tree) set->texture->flags |= TextureFlag::Tree;
     return set->texture;
@@ -103,7 +100,7 @@ Texture* Object3DClientSpecific::FindOrAddTexture(int kind) {
 
 Material* Object3DClientSpecific::FindMaterial(int textureKind, int materialKind) {
     for (int k = 0; k < 2; ++k) {
-        TextureParts* set = partSets[k];
+        TextureParts* set = partSets[k].get();
         if (!set || !set->texture || set->texture->type != textureKind) continue;
         for (const std::unique_ptr<PartGroup>& group : set->groups)
             if (group->material && group->material->type == materialKind) return group->material;
@@ -116,7 +113,7 @@ Material* Object3DClientSpecific::FindOrAddMaterial(int textureKind, int materia
     while (!partSets[k] || !partSets[k]->texture || partSets[k]->texture->type != textureKind) {
         if (++k > 1) return nullptr;
     }
-    TextureParts* set = partSets[k];
+    TextureParts* set = partSets[k].get();
     for (const std::unique_ptr<PartGroup>& group : set->groups)
         if (group->material && group->material->type == materialKind) return group->material;
     Material* material = ClientWorld()->NewMaterial(materialKind);
@@ -150,7 +147,7 @@ int Object3DClientSpecific::OnPartAdded(FigureMesh* part) {
 }
 
 int Object3DClientSpecific::OnPartRemoved(FigureMesh* part) {
-    for (TextureParts* set : partSets) {
+    for (const std::unique_ptr<TextureParts>& set : partSets) {
         if (!set) continue;
         for (const std::unique_ptr<PartGroup>& group : set->groups) {
             auto found = std::ranges::find(group->parts, part, &Ref<FigureMesh>::Get);
@@ -190,7 +187,7 @@ int Object3DClientSpecific::SetSkins(std::optional<std::string_view> first, std:
         if (!names[k]) continue;
         const std::string_view name = *names[k];
         if (text::CompareIgnoringCase(name, kNoneText) == 0) continue;
-        TextureParts* set = partSets[k];
+        TextureParts* set = partSets[k].get();
         if (set && set->texture) {
             auto* found = manager->FindTypedTexture(set->texture->type, name);
             if (found) {

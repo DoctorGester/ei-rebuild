@@ -45,13 +45,8 @@ void FigureAnimationState::Create() {
 }
 
 void FigureAnimationState::Destroy() {
-    ReleaseBones();
+    bones.clear();   // each bone's reference released, first to last
     Reset();
-}
-
-void FigureAnimationState::ReleaseBones() {
-    for (FigureBone* bone : bones) bone->Release();
-    bones.clear();
 }
 
 void FigureAnimationState::Reset() {
@@ -102,7 +97,6 @@ void FigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
         }
     }
     bones.push_back(bone);
-    bone->AddRef();
     bone->modelName = owner->name;
     bone->morphS = morphS;
     bone->morphT = morphT;

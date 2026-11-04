@@ -57,13 +57,13 @@ void Unit::AttachObject(EngineObject* object) {
         MapObject::AttachObject(object);
         return;
     }
-    if (controller) {
-        controller->unit = nullptr;
-        controller->Release();
-    }
-    controller = static_cast<UnitController*>(object);   // the unit's side half
-    controller->unit = this;
-    controller->AddRef();
+    SetController(static_cast<UnitController*>(object));   // the unit's side half
+}
+
+void Unit::SetController(UnitController* newController) {
+    if (controller) controller->unit = nullptr;
+    controller.Assign(newController);
+    if (newController) newController->unit = this;
 }
 
 int Unit::StatsChanged() {
