@@ -91,12 +91,11 @@ constexpr ScriptParticleType kScriptParticleTypes[64] = /*0078B120*/ {
 // Class ids of the effect objects the script makes (BaseManager::CreateObject).
 constexpr int kCommandCreateFxSource = 0x16;   // CreateRandomizedFXSource is 0x18
 
-// The effect object saved under `id` (-1: none), as the slot's effect class.
+// The effect object saved under `id` (kNoObjectId: none), as the slot's effect class.
 template <class T>
 ScriptEffect<T> ReadObject(ByteStream* stream) {
-    int id;
-    stream->ReadValue(id);
-    if (id == -1) return {};
+    const int id = stream->ReadId();
+    if (id == kNoObjectId) return {};
     return ScriptEffect<T>(g_serverWorld.timedObjectManager->FindObjectAs<T>(id));
 }
 
@@ -245,7 +244,7 @@ void Script::ScriptMoveParticleSource(const SSCCmd* cmd) {
 
 
 void ScriptPointLight::Save(ByteStream* stream) const {
-    stream->WriteValue(object.SavedId());
+    stream->WriteId(object.get());
     stream->WriteValue(id);
     stream->WriteValue(removeWhenDone);
     stream->WriteValue(moving);
@@ -254,7 +253,7 @@ void ScriptPointLight::Save(ByteStream* stream) const {
 }
 
 void ScriptParticleSource::Save(ByteStream* stream) const {
-    stream->WriteValue(object.SavedId());
+    stream->WriteId(object.get());
     stream->WriteValue(id);
     stream->WriteValue(deleteAfterMove);
     stream->WriteValue(moving);
@@ -264,7 +263,7 @@ void ScriptParticleSource::Save(ByteStream* stream) const {
 }
 
 void ScriptFxSource::Save(ByteStream* stream) const {
-    stream->WriteValue(object.SavedId());
+    stream->WriteId(object.get());
     stream->WriteValue(id);
     stream->WriteString(name);
     stream->WriteValue(position);
@@ -278,7 +277,7 @@ void ScriptFxSource::Save(ByteStream* stream) const {
 }
 
 void ScriptLightning::Save(ByteStream* stream) const {
-    stream->WriteValue(object.SavedId());
+    stream->WriteId(object.get());
     stream->WriteValue(id);
 }
 

@@ -46,16 +46,13 @@ bool AnimationSteps::SameAs(const AnimationSteps* other) const {
 }
 
 void AnimationSteps::Load(ByteStream* stream) {
-    int newCount = 0;
-    stream->ReadValue(newCount);
-    steps.resize(newCount);
+    steps.resize(stream->ReadCount());
     for (AnimationStep& step : steps) stream->ReadValue(step);
     stream->ReadValue(extra);
 }
 
 void AnimationSteps::Save(ByteStream* stream) const {
-    int written = static_cast<int>(steps.size());
-    stream->WriteValue(written);
+    stream->WriteCount(steps.size());
     for (const AnimationStep& step : steps) stream->WriteValue(step);
     int last = extra;
     stream->WriteValue(last);

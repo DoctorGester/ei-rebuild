@@ -100,14 +100,12 @@ bool WaterTweens::Tick() {
 }
 
 void WaterTweens::Save(ByteStream* stream) const {
-    stream->WriteValue(static_cast<int>(entries.size()));
+    stream->WriteCount(entries.size());
     for (const TweenEntry& e : entries) stream->WriteValue(e);
 }
 
 void WaterTweens::ReadEntries(ByteStream* stream) {
-    int count = 0;
-    stream->ReadValue(count);
-    entries.resize(count);
+    entries.resize(stream->ReadCount());
     for (TweenEntry& e : entries) stream->ReadValue(e);
 }
 

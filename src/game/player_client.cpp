@@ -111,11 +111,6 @@ void RemovePartNamed(Object3D* object, const char* name) {
 constexpr int kSessionKindSingle = 1;
 
 std::unordered_set<int> g_partyIdSet;
-int ReadDword(MemoryStream* in) {
-    int value;
-    in->ReadValue(value);
-    return value;
-}
 
 } // namespace
 
@@ -615,12 +610,12 @@ bool PlayerClient::OnPartyState() {
     std::uint8_t paused;
     in.ReadValue(paused);
     currentPlayer->ClientWorld()->paused = paused != 0 ? 1 : 0;
-    ReadDword(&in);    // the server's possessedId, not used
+    in.Skip(4);    // the server's possessedId, not used
 
-    int count = ReadDword(&in);
+    const int count = in.ReadCount();
     partyUnitIds.resize(count);
     for (int i = 0; i < count; ++i) {
-        int objectId = ReadDword(&in);
+        const int objectId = in.ReadId();
         partyUnitIds[i] = objectId;
         auto* unit = currentPlayer->OwningWorld()->FindUnit(objectId);
         if (unit == nullptr) continue;
@@ -631,10 +626,9 @@ bool PlayerClient::OnPartyState() {
     }
     g_partyIdSet.clear();
 
-    currentPlayer->ClientWorld()->partyDanger = ReadDword(&in);
-    int others = ReadDword(&in);
-    otherUnitIds.resize(others);
-    for (int i = 0; i < others; ++i) in.ReadValue(otherUnitIds[i]);
+    currentPlayer->ClientWorld()->partyDanger = in.ReadAs<std::int32_t>();
+    otherUnitIds.resize(in.ReadCount());
+    for (auto& unitId : otherUnitIds) in.ReadValue(unitId);
     return true;
 }
 

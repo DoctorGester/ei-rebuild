@@ -19,23 +19,18 @@
 namespace {
 constexpr int kSavedConstant = 2;             // written between actingCheckTime and searchingTarget, read back and dropped
 
-int IdOrNone(const EngineObject* object) { return object ? object->id : -1; }
-
-// Resolves an id read from the stream in `manager` (-1: none).
+// Resolves an id read from the stream in `manager` (kNoObjectId: none).
 EngineObject* ReadObject(ByteStream* stream, const BaseManager* manager) {
-    int id;
-    stream->ReadValue(id);
-    return id == -1 ? nullptr : manager->FindObject(id);
+    const int id = stream->ReadId();
+    return id == kNoObjectId ? nullptr : manager->FindObject(id);
 }
 Item* ReadItem(ByteStream* stream, const BaseManager* items) {
-    int id;
-    stream->ReadValue(id);
-    return id == -1 ? nullptr : FindItem(items, id);
+    const int id = stream->ReadId();
+    return id == kNoObjectId ? nullptr : FindItem(items, id);
 }
 Unit* ReadUnit(ByteStream* stream, const BaseManager* objects) {
-    int id;
-    stream->ReadValue(id);
-    return id == -1 ? nullptr : UnitWithId(objects, id);
+    const int id = stream->ReadId();
+    return id == kNoObjectId ? nullptr : UnitWithId(objects, id);
 }
 
 void LoadOrder(ByteStream* stream, UnitAction* order) {
@@ -51,7 +46,7 @@ void LoadOrder(ByteStream* stream, UnitAction* order) {
 void SaveOrder(ByteStream* stream, UnitAction* order) {
     stream->WriteValue(order->kind);
     stream->WriteValue(order->source);
-    SaveRef(order->target, stream);
+    stream->WriteId(order->target);
     stream->WriteValue(order->point);
     stream->WriteValue(order->param);
     stream->WriteValue(order->modifier);
@@ -88,16 +83,15 @@ void SavePlanFields(ByteStream* stream, OrderPlan* plan) {
 // --- Step lists and the armour spell list ----------------------------------------------------
 
 void ArmourSpell::Save(ByteStream* stream) const {
-    stream->WriteValue(IdOrNone(item));
+    stream->WriteId(item);
     stream->WriteValue(countdown);
 }
 
 void LoadArmourSpells(std::vector<ArmourSpell>* list, ByteStream* stream) {
-    int count = 0;
-    stream->ReadValue(count);
+    const int count = stream->ReadCount();
     // Blank entries (no item, countdown 0; `worn` is the original's stack byte), replacing the list.
     list->clear();
-    if (count > 0) list->resize(count, ArmourSpell{{}, 0, 0});
+    list->resize(count, ArmourSpell{{}, 0, 0});
     for (ArmourSpell& entry : *list) {
         entry.item.Assign(ReadItem(stream, g_serverWorld.itemManager));
         stream->ReadValue(entry.countdown);
@@ -149,8 +143,7 @@ void UnitServer::Load(ByteStream* stream) {
     if (stream->version < kVersionActingCheckTime) return;
     stream->ReadValue(actingCheckTime);
     if (stream->version < kVersionUnusedDword) return;
-    int unused;
-    stream->ReadValue(unused);
+    stream->Skip(sizeof(kSavedConstant));
     if (stream->version < kVersionSearchingTarget) return;
     stream->ReadValue(searchingTarget);
     if (stream->version < kVersionProtection) return;
@@ -196,11 +189,11 @@ void UnitServer::Save(ByteStream* stream) {
     stream->WriteValue(orderStopped);
     stream->WriteValue(deathReported);
     stream->WriteValue(sinkSpeed);   // the float's bits
-    stream->WriteValue(IdOrNone(effectObject));
-    stream->WriteValue(static_cast<std::int32_t>(std::ssize(armourSpells)));
+    stream->WriteId(effectObject);
+    stream->WriteCount(armourSpells.size());
     for (const ArmourSpell& entry : armourSpells) entry.Save(stream);
     stream->WriteValue(followsLeader);
-    stream->WriteValue(IdOrNone(followedLeader));
+    stream->WriteId(followedLeader);
     stream->WriteValue(actingCheckTime);
     stream->WriteValue(kSavedConstant);
     stream->WriteValue(searchingTarget);

@@ -39,12 +39,8 @@ struct UnitByteBlock {      // 5 bytes
 static_assert(sizeof(OnUnitBlock) == 13 && sizeof(AtPointBlock) == 21 && sizeof(UnitByteBlock) == 5);   // sent as these bytes
 
 void WriteUnits(MemoryStream& out, const std::vector<Unit*>* units) {
-    int count = lib::Count(*units);
-    out.WriteValue(count);
-    for (int i = 0; i < std::ssize(*units); ++i) {
-        int id = (*units)[i] ? (*units)[i]->id : kNoObjectId;
-        out.WriteValue(id);
-    }
+    out.WriteCount(units->size());
+    for (const Unit* unit : *units) out.WriteId(unit);
 }
 
 int SendMove(MemoryStream* out, ClientMessage type, const std::vector<Unit*>* units, const Vector3& to, int run) {
@@ -75,8 +71,7 @@ int PlayerClient::SendAttack(const std::vector<Unit*>* units, EngineObject* targ
     WriteUnits(out, units);
     out.WriteValue(ctrl);
     out.WriteValue(how);
-    int targetId = target->id;
-    out.WriteValue(targetId);
+    out.WriteId(target);
     return 1;
 }
 
@@ -154,15 +149,12 @@ int PlayerClient::SendPause(std::uint8_t value) {
 
 int PlayerClient::SendUseOrder(Unit* unit, EngineObject* target, int kind, int value, int flag) {
     WriteType(&out, ClientMessage::UseOrder);
-    int count = 1;
-    out.WriteValue(count);
-    int unitId = unit ? unit->id : kNoObjectId;
-    out.WriteValue(unitId);
+    out.WriteCount(1);
+    out.WriteId(unit);
     out.WriteValue(flag);
     out.WriteValue(kind);
     out.WriteValue(value);
-    int targetId = target->id;
-    out.WriteValue(targetId);
+    out.WriteId(target);
     return 1;
 }
 
@@ -174,8 +166,7 @@ int PlayerClient::SendUseDead(const std::vector<Unit*>* units, EngineObject* tar
     out.WriteValue(kind);
     int value = kNoObjectId;
     out.WriteValue(value);
-    int targetId = target->id;
-    out.WriteValue(targetId);
+    out.WriteId(target);
     return 1;
 }
 

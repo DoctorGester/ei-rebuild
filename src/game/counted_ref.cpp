@@ -6,25 +6,15 @@
 #include "world.h"
 
 
-namespace {
-constexpr int kNoObject = -1;
-}
-
 template <typename T>
 void LoadRef(Ref<T>& ref, ByteStream* stream, World* world) {
-    int id;
-    stream->ReadValue(id);
-    if (id == kNoObject) {
+    const int id = stream->ReadId();
+    if (id == kNoObjectId) {
         ref.Reset();
         return;
     }
     auto* manager = world->GetMapObjectManager();
     ref.Assign(manager->FindObjectAs<T>(static_cast<unsigned>(id)));
-}
-
-void SaveRef(const EngineObject* object, ByteStream* stream) {
-    int id = object ? object->id : kNoObject;
-    stream->WriteValue(id);
 }
 
 // The references loaded: the AI's map objects and units, the effects' figures.
@@ -35,7 +25,5 @@ template void LoadRef(Ref<Unit>&, ByteStream*, World*);
 // trap's units, the brain's lists).
 void CountedListLoad(HeldUnits* list, ByteStream* stream, World* context) {
     list->clear();
-    int count = 0;
-    stream->ReadValue(count);
-    while (count-- > 0) LoadRef(list->emplace_back(), stream, context);
+    for (int count = stream->ReadCount(); count > 0; --count) LoadRef(list->emplace_back(), stream, context);
 }

@@ -49,7 +49,8 @@ check (`app.md`).
 - A container element that holds its reference is a `HeldRef<T>` (copyable, movable; a move hands the reference over,
   so a reallocation takes and drops none). `HeldRef::Take()` hands a reference on without releasing (the shared
   objects' items given at loot: the original leaked them).
-- Ids in saves: `SaveRef(object, stream)` writes the id (-1: none), `LoadRef(ref, stream, world)` looks it up.
+- Ids in saves: `stream->WriteId(object)` writes the id (kNoObjectId, -1: none), `LoadRef(ref, stream, world)` looks it
+  up.
 - Object3D's `parts` hold references the original never releases through the vector (Destroy3D forgets each); the code
   keeps that.
 
@@ -68,8 +69,11 @@ check (`app.md`).
   Seek, Size, Position, Clear (memory streams empty, file streams rewind), CopyFrom. One value is
   `ReadValue(x)` / `WriteValue(x)` (sizeof(x) bytes, a format value: "Values read and written as bytes"); a read whose
   size is not the variable's (a byte into an int, a block of several members) is `Read(&x, N)` with the size written
-  out. A value in a raw buffer is `lib::Load<T>(address)` / `lib::Store(address, value)` (lib/bytes.h; every format
-  is little-endian, as the host: no file keeps its own 16/32-bit readers).
+  out. The rest of the vocabulary: `ReadAs<T>()` (the value returned), `ReadCount` / `WriteCount` (the four-byte
+  count in front of a list; a negative one reads as 0), `ReadId` / `WriteId` (an engine object's id, kNoObjectId for
+  none; the reader looks it up) and `Skip(n)` (bytes nothing uses any more). A value in a raw buffer is
+  `lib::Load<T>(address)` / `lib::Store(address, value)` (lib/bytes.h; every format is little-endian, as the host:
+  no file keeps its own 16/32-bit readers).
 - `MemoryStream`: a byte buffer with a bit writer (the byte being assembled, the mask of the last bit, the index of the
   byte the bits go to). Write grows to twice the need; `Resize` keeps the contents (1.5x + 0x10), `SetSize` is exact
   and drops them.

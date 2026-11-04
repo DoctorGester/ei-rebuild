@@ -52,15 +52,12 @@ void ScriptObjectRef::ReleaseIfDeleted() {
 }
 
 void ScriptObjectRef::Load(ByteStream* stream) {
-    int id;
-    stream->ReadValue(id);
-    object = id == -1 ? nullptr : FindObject(id);
+    const int id = stream->ReadId();
+    object = id == kNoObjectId ? nullptr : FindObject(id);
 }
 
 void ScriptObjectRef::Save(ByteStream* stream) const {
-    int id = -1;
-    if (object) id = object->id;
-    stream->WriteValue(id);
+    stream->WriteId(object);
 }
 
 // The merges walk both groups in member order (After) and write the result from the front of `this`, which is
@@ -194,9 +191,7 @@ bool ScriptGroup::Contains(EngineObject* object) const {
 }
 
 void ScriptGroup::Load(ByteStream* stream) {
-    int count;
-    stream->ReadValue(count);
-    members.resize(static_cast<std::size_t>(count));
+    members.resize(stream->ReadCount());
     for (ScriptObjectRef& slot : members) slot.Load(stream);
     Sort();
 }

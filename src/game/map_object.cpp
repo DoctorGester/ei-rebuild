@@ -363,9 +363,7 @@ void MapObject::Load(ByteStream* stream) {
     stream->ReadValue(localRotation);
     name = stream->ReadString();
     stream->ReadValue(scale);
-    int count = 0;
-    stream->ReadValue(count);
-    SetEffectCount(count);
+    SetEffectCount(stream->ReadCount());
     for (int i = 0; i < std::ssize(effects); ++i) effects[i].Load(stream);
     std::uint32_t currentFlags = flags;    // the original's local starts as stack garbage
     stream->ReadValue(currentFlags);
@@ -382,8 +380,7 @@ void MapObject::Save(ByteStream* stream) {
     stream->WriteValue(localRotation);
     stream->WriteString(name);
     stream->WriteValue(scale);
-    int count = lib::Count(effects);
-    stream->WriteValue(count);
+    stream->WriteCount(effects.size());
     for (int i = 0; i < std::ssize(effects); ++i) effects[i].Save(stream);
     std::uint32_t currentFlags = flags;
     stream->WriteValue(currentFlags);
@@ -395,16 +392,13 @@ void MapObjectServer::Load(ByteStream* stream) {
     stream->ReadValue(vitals);
     parentIname = stream->ReadString();
     skinTexture = stream->ReadString();
-    int count = 0;
-    stream->ReadValue(count);
-    for (int i = 0; i < count; ++i) strings.push_back(stream->ReadString());
+    for (int count = stream->ReadCount(); count > 0; --count) strings.push_back(stream->ReadString());
 }
 
 void MapObjectServer::Save(ByteStream* stream) {
     stream->WriteValue(vitals);
     stream->WriteString(parentIname);
     stream->WriteString(skinTexture);
-    int count = static_cast<int>(strings.size());
-    stream->WriteValue(count);
+    stream->WriteCount(strings.size());
     for (const std::string& text : strings) stream->WriteString(text);
 }

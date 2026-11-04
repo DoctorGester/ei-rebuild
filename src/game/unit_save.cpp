@@ -29,20 +29,14 @@ int PrototypeIndexOf(const UnitPrototypeRecord* record) {
     return record ? static_cast<int>(record - g_unitDatabase.prototypes.records.data()) : -1;
 }
 
-template <typename T>
-void WriteItemIds(ByteStream* stream, T* const* items, int count) {
-    for (int i = 0; i < count; ++i) stream->WriteValue<int>(items[i] ? items[i]->id : -1);
-}
-
 
 
 // Reads an item id and resolves it in the world's item manager (asked before each read), with a
 // counted reference.
 Item* ReadItem(Unit* unit, ByteStream* stream) {
     BaseManager* manager = unit->GetManagerContext()->ItemFactory();
-    int id;
-    stream->ReadValue(id);
-    if (id == -1) return nullptr;
+    const int id = stream->ReadId();
+    if (id == kNoObjectId) return nullptr;
     Item* item = FindItem(manager, id);
     if (item) item->AddRef();
     return item;
@@ -109,9 +103,8 @@ void Unit::LoadUnit(ByteStream* stream) {
     SetPlayer(newPlayer);   // inlined
 
     stream->ReadValue(relationsB);
-    int count;
-    stream->ReadValue(count);
-    carried.resize(static_cast<std::size_t>(count > 0 ? count : 0));
+    const int count = stream->ReadCount();
+    carried.resize(count);
     for (int i = 0; i < count; ++i) carried[i] = ReadItem(this, stream);
     stream->ReadValue(standingHeight);
 
@@ -156,14 +149,14 @@ void Unit::SaveUnit(ByteStream* stream) {
     stream->WriteValue(unitRadius);
     stream->WriteValue(activeWeapon);
 
-    WriteItemIds(stream, weapons, 4);
-    WriteItemIds(stream, quickItems, 4);
-    WriteItemIds(stream, spells, 8);
-    WriteItemIds(stream, armor, 7);
+    for (const Item* item : weapons) stream->WriteId(item);
+    for (const Item* item : quickItems) stream->WriteId(item);
+    for (const Item* item : spells) stream->WriteId(item);
+    for (const ItemArmor* item : armor) stream->WriteId(item);
     stream->Write(exposure.data(), sizeof(exposure));
     stream->WriteValue(relationsB);
-    stream->WriteValue(static_cast<int>(std::ssize(carried)));
-    WriteItemIds(stream, carried.data(), static_cast<int>(std::ssize(carried)));
+    stream->WriteCount(carried.size());
+    for (const Item* item : carried) stream->WriteId(item);
     stream->WriteValue(standingHeight);
     stream->WriteValue(fightAtWill);
 

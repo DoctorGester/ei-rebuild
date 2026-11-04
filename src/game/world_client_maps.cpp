@@ -833,9 +833,7 @@ int WorldClient::LoadZone(ByteStream* block) {
     block->ReadValue(tick);
     map = block->ReadString();
     mob = block->ReadString();
-    int exitCount;
-    block->ReadValue(exitCount);
-    exits.resize(exitCount);
+    exits.resize(block->ReadCount());
     for (ZoneExit& exit : exits) exit.Read(block);
     int newCave;
     block->ReadValue(newCave);

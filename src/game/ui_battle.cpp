@@ -71,9 +71,7 @@ void BattleScreen::CreateScreen() {
         // The screen's part of the saved game.
         MemoryStream* stream = &g_saveStream;
         stream->Seek(0);
-        int count;
-        stream->ReadValue(count);
-        heroes.resize(count);
+        heroes.resize(stream->ReadCount());
         for (int i = 0; i < std::ssize(heroes); ++i) stream->ReadValue(heroes[i]);
         stream->ReadValue(mapZoom);
         std::uint8_t serverFlag;
@@ -315,7 +313,7 @@ void BattleScreen::SaveState() {
     stream->WriteValue(count);
     for (int i = 0; i < std::ssize(currentParty); ++i) {
         auto* unit = currentParty[i];
-        if (unit->flags & MapObjectFlag::Selected) stream->WriteValue(unit->id);
+        if (unit->flags & MapObjectFlag::Selected) stream->WriteId(unit);
     }
     stream->WriteValue(map->zoom);
     stream->WriteValue(ui->serverFlag);

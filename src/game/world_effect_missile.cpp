@@ -329,7 +329,7 @@ void EffectArrowFigure::Save(ByteStream* s) {
     s->WriteValue(velocity);
     std::memcpy(&copy, &arrived, 4);
     s->WriteValue(copy);
-    SaveRef(figure, s);
+    s->WriteId(figure);
     s->WriteValue(hit);
     std::uint8_t flag = fromCaster;
     s->WriteValue(flag);

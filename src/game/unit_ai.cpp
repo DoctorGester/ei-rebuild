@@ -600,10 +600,8 @@ void AIBrain::Load(ByteStream* stream) {
     stream->ReadValue(previousPosition);
     stream->ReadValue(position);
     stream->ReadValue(alertMode);
-    int count;
-    int currentIndex;
-    stream->ReadValue(count);
-    stream->ReadValue(currentIndex);
+    const int count = stream->ReadCount();
+    const int currentIndex = stream->ReadAs<std::int32_t>();
     for (int i = 0; i < count; ++i) {
         int type;
         stream->ReadValue(type);
@@ -616,8 +614,7 @@ void AIBrain::Load(ByteStream* stream) {
     memory.Load(stream);
     stream->ReadValue(alerted);
     stream->ReadValue(alarm);
-    stream->ReadValue(count);
-    alarmRecords.resize(count);
+    alarmRecords.resize(stream->ReadCount());
     for (mapspec::Behaviour& record : alarmRecords) record.Read(stream);
     stream->ReadValue(alarmCountdown);
     // A radius saved as the default one becomes the configured one.
@@ -641,8 +638,8 @@ void AIBrain::Save(ByteStream* stream) {
     stream->WriteValue(move.point);
     SaveLooks(&move.looks, stream);
     stream->WriteValue(actionTime);
-    SaveRef(target, stream);
-    SaveRef(seen, stream);
+    stream->WriteId(target);
+    stream->WriteId(seen);
     stream->WriteValue(callRadius);
     stream->WriteValue(nearRange);
     stream->WriteValue(farRange);
@@ -650,7 +647,7 @@ void AIBrain::Save(ByteStream* stream) {
     stream->WriteValue(previousPosition);
     stream->WriteValue(position);
     stream->WriteValue(alertMode);
-    stream->WriteValue(static_cast<std::int32_t>(modes.size()));
+    stream->WriteCount(modes.size());
     int currentIndex = -1;
     int index = 0;
     for (const std::unique_ptr<AIMode>& mode : modes) {
@@ -665,13 +662,13 @@ void AIBrain::Save(ByteStream* stream) {
     memory.Save(stream);
     stream->WriteValue(alerted);
     stream->WriteValue(alarm);
-    stream->WriteValue(static_cast<std::int32_t>(alarmRecords.size()));
+    stream->WriteCount(alarmRecords.size());
     for (mapspec::Behaviour& record : alarmRecords) record.Write(stream);
     stream->WriteValue(alarmCountdown);
     stream->WriteValue(alwaysUpdated);
-    stream->WriteValue(static_cast<std::int32_t>(attention.weapons.size()));
+    stream->WriteCount(attention.weapons.size());
     for (const AIAttackOption& option : attention.weapons) option.Save(stream);
-    stream->WriteValue(static_cast<std::int32_t>(attention.spells.size()));
+    stream->WriteCount(attention.spells.size());
     for (const AIAttackOption& option : attention.spells) option.Save(stream);
     stream->WriteValue(attention.healWeight);
     stream->WriteValue(alarmSlot);
@@ -859,15 +856,13 @@ namespace {
 
 // Each object's counted reference (its id) of a memory list.
 void SaveObjectList(const HeldUnits& list, ByteStream* stream) {
-    stream->WriteValue(static_cast<std::int32_t>(list.size()));
-    for (const HeldRef<Unit>& unit : list) SaveRef(unit, stream);
+    stream->WriteCount(list.size());
+    for (const HeldRef<Unit>& unit : list) stream->WriteId(unit);
 }
 } // namespace
 
 std::vector<AILook> LoadLooks(ByteStream* stream) {
-    int count;
-    stream->ReadValue(count);
-    std::vector<AILook> looks(count);
+    std::vector<AILook> looks(stream->ReadCount());
     for (AILook& look : looks) {
         stream->ReadValue(look.angle);
         stream->ReadValue(look.time);
@@ -878,7 +873,7 @@ std::vector<AILook> LoadLooks(ByteStream* stream) {
 }
 
 void SaveLooks(const std::vector<AILook>* looks, ByteStream* stream) {
-    stream->WriteValue(static_cast<std::int32_t>(looks->size()));
+    stream->WriteCount(looks->size());
     for (const AILook& look : *looks) {
         stream->WriteValue(look.angle);
         stream->WriteValue(look.time);
@@ -902,8 +897,7 @@ void AIMemory::Load(ByteStream* stream) {
 }
 
 void AIReports::Load(ByteStream* stream) {
-    int count;
-    stream->ReadValue(count);
+    const int count = stream->ReadCount();
     reports.resize(count);
     for (int i = 0; i < count; ++i) {
         LoadRef(reports[i].object, stream, &g_serverWorld);
@@ -912,17 +906,15 @@ void AIReports::Load(ByteStream* stream) {
 }
 
 void AIReports::Save(ByteStream* stream) const {
-    stream->WriteValue(static_cast<std::int32_t>(reports.size()));
+    stream->WriteCount(reports.size());
     for (const AIReport& report : reports) {
-        SaveRef(report.object, stream);
+        stream->WriteId(report.object);
         stream->WriteValue(report.ticksLeft);
     }
 }
 
 void AIHeardCalls::Load(ByteStream* stream) {
-    int count;
-    stream->ReadValue(count);
-    calls.resize(count);
+    calls.resize(stream->ReadCount());
     for (AICallRecord& call : calls) {
         call.hostileMask = 0;
         stream->ReadValue(call.point);
@@ -933,7 +925,7 @@ void AIHeardCalls::Load(ByteStream* stream) {
 }
 
 void AIHeardCalls::Save(ByteStream* stream) const {
-    stream->WriteValue(static_cast<std::int32_t>(calls.size()));
+    stream->WriteCount(calls.size());
     for (const AICallRecord& call : calls) {
         stream->WriteValue(call.point);
         stream->WriteValue(call.delay);

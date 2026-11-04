@@ -286,28 +286,21 @@ void BaseManager::FreeSpares() {
 // The spares are freed; then `count` records {id, type, prototypeId} each create an object (CreateObject).
 void BaseManager::Load(ByteStream* in) {
     FreeSpares();
-    int count;
-    in->ReadValue(count);
-    for (int i = 0; i < count; ++i) {
-        int objectId, objectType, extra;
-        in->ReadValue(objectId);
-        in->ReadValue(objectType);
-        in->ReadValue(extra);
+    for (int count = in->ReadCount(); count > 0; --count) {
+        const int objectId = in->ReadId();
+        const int objectType = in->ReadAs<std::int32_t>();
+        const auto prototype = in->ReadAs<std::uint32_t>();
         EngineObject* object = CreateObject(objectType, objectId);
-        object->prototypeId = static_cast<std::uint32_t>(extra);
+        object->prototypeId = prototype;
     }
 }
 
 void BaseManager::Save(ByteStream* out) {
-    int count = static_cast<int>(objectList.size());
-    out->WriteValue(count);
-    for (EngineObject* object : objectList) {
-        int value = object->id;
-        out->WriteValue(value);
-        value = object->type;
-        out->WriteValue(value);
-        value = static_cast<int>(object->prototypeId);
-        out->WriteValue(value);
+    out->WriteCount(objectList.size());
+    for (const EngineObject* object : objectList) {
+        out->WriteId(object);
+        out->WriteValue(object->type);
+        out->WriteValue(object->prototypeId);
     }
 }
 
@@ -315,13 +308,8 @@ void BaseManager::Save(ByteStream* out) {
 // mark is an object id after all); stops at an id not registered (FindObject inlined).
 void BaseManager::LoadObjects(ByteStream* in) {
     for (;;) {
-        int objectId;
-        in->ReadValue(objectId);
-        if (objectId == kEndOfObjects) {
-            char more;
-            in->ReadValue(more);
-            if (!more) return;
-        }
+        const int objectId = in->ReadId();
+        if (objectId == kEndOfObjects && !in->ReadAs<char>()) return;
         EngineObject* object = FindObject(static_cast<unsigned>(objectId));
         if (!object) return;
         object->Load(in);
@@ -332,18 +320,12 @@ void BaseManager::LoadObjects(ByteStream* in) {
 // the end mark and a 0 byte.
 void BaseManager::SaveObjects(ByteStream* out) {
     for (EngineObject* object : objectList) {
-        int objectId = object->id;
-        out->WriteValue(objectId);
-        if (object->id == kEndOfObjects) {
-            char one = 1;
-            out->WriteValue(one);
-        }
+        out->WriteId(object);
+        if (object->id == kEndOfObjects) out->WriteValue<char>(1);
         object->Save(out);
     }
-    int mark = kEndOfObjects;
-    out->WriteValue(mark);
-    char zero = 0;
-    out->WriteValue(zero);
+    out->WriteValue(kEndOfObjects);
+    out->WriteValue<char>(0);
 }
 
 void BaseManager::ReleaseUnused() {
