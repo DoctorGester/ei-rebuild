@@ -311,7 +311,9 @@ What needed no system at all is standard C++, each checked equal to the call it 
 code with USER32's rules, so the UI and figure files no longer call SetRect, OffsetRect, IntersectRect ... (not an area
 of the layer: no system call is left). An empty rectangle has right <= left or bottom <= top; `Intersection` and
 `Union` return the all-zero rectangle when nothing is left (`Union` ignores an empty operand); `Contains` excludes the
-right and bottom edges; `Offset` and the aggregate initialisation do not normalise. The edge rules were compared with
+right and bottom edges; `Offset` and the aggregate initialisation do not normalise. Layout code builds rectangles from
+others with `Inset` (all edges, dx / dy, or each edge), the `LeftStrip` / `RightStrip` / `TopStrip` / `BottomStrip`
+bands inside an edge and `Rect::Sized(topLeft, size)`; none of them normalises either. The edge rules were compared with
 USER32 on 56 million edge and random rectangle pairs (H33h's scratch test); `std::min` / `std::max` are written
 `(std::min)` in the header because windows.h defines the macros. A mouse event's position is a `Point` (the
 `LeftDown(int buttons, Point point)` handlers).

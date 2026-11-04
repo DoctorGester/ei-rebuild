@@ -198,7 +198,7 @@ void ApplyFs(const UiParams& fs) { gpu::PushUniforms(gpu::Stage::Fragment, 0, fs
 void DrawMoved(const gpu::Texture& source, const Rect& from, int left, int top, int width, int height) {
     gpu::ApplyPipeline(MovePipeline());
     BindTexture(source);
-    ApplyRect(Rect{left, top, left + from.Width(), top + from.Height()}, width, height);
+    ApplyRect(Rect::Sized({left, top}, from.Extent()), width, height);
     UiParams fs{};
     fs.source[0] = left - from.left;
     fs.source[1] = top - from.top;
@@ -291,7 +291,7 @@ void DrawGlyphs(const CanvasState& canvas, std::size_t from, std::size_t to) {
         const gpu::BufferBinding vertices{g_vertices.Buffer(), static_cast<std::uint32_t>(offset) + run.first};
         gpu::BindVertexBuffers(0, {&vertices, 1});
         BindTexture(run.atlas);
-        ApplyRect(Rect{r.left, r.top - run.row, r.right, r.bottom - run.row}, g_coverage.width, g_coverage.height);
+        ApplyRect(r.Offsetted(0, -run.row), g_coverage.width, g_coverage.height);
         gpu::Draw(0, static_cast<std::uint32_t>(run.op->vertices.size() / 4));
     }
     gpu::EndPass();
@@ -491,21 +491,25 @@ void FrameRect(const void* holder, const Rect& rect, std::uint32_t colour) {
     CanvasState* canvas = Target(holder);
     if (!canvas || rect.IsEmpty()) return;
     std::uint32_t rgb = CanvasColour(colour);
-    PushSolid(holder, *canvas, Rect{rect.left, rect.top, rect.right, rect.top + 1}, rgb);
-    PushSolid(holder, *canvas, Rect{rect.left, rect.bottom - 1, rect.right, rect.bottom}, rgb);
-    PushSolid(holder, *canvas, Rect{rect.left, rect.top + 1, rect.left + 1, rect.bottom - 1}, rgb);
-    PushSolid(holder, *canvas, Rect{rect.right - 1, rect.top + 1, rect.right, rect.bottom - 1}, rgb);
+    PushSolid(holder, *canvas, rect.TopStrip(1), rgb);
+    PushSolid(holder, *canvas, rect.BottomStrip(1), rgb);
+    const Rect sides = rect.Inset(0, 1);
+    PushSolid(holder, *canvas, sides.LeftStrip(1), rgb);
+    PushSolid(holder, *canvas, sides.RightStrip(1), rgb);
 }
 
-void Line(const void* holder, int x0, int y0, int x1, int y1, int width, std::uint32_t colour) {
+void Line(const void* holder, Point from, Point to, int width, std::uint32_t colour) {
     CanvasState* canvas = Target(holder);
     if (!canvas) return;
     std::uint32_t rgb = CanvasColour(colour);
     if (width < 1) width = 1;
-    if (x0 == x1 && y0 == y1) {   // nothing with a one-pixel pen; GDI's two-pixel pen leaves a dot
-        if (width == 2) PushSolid(holder, *canvas, Rect{x0, y0, x0 + 1, y0 + 1}, rgb);
+    if (from == to) {   // nothing with a one-pixel pen; GDI's two-pixel pen leaves a dot
+        if (width == 2) PushSolid(holder, *canvas, Rect::Sized(from, {1, 1}), rgb);
         return;
     }
+    // GDI's pixel rules below go by coordinate.
+    const auto [x0, y0] = from;
+    const auto [x1, y1] = to;
     // A wider pen is a band of its width around the line; a one-pixel pen covers the pixels from the
     // start up to the end, not including it.
     const int before = width > 1 ? width / 2 : 0;
@@ -551,9 +555,9 @@ void Line(const void* holder, int x0, int y0, int x1, int y1, int width, std::ui
     }
 }
 
-void Pixel(const void* holder, int x, int y, std::uint32_t colour) {
+void Pixel(const void* holder, Point at, std::uint32_t colour) {
     CanvasState* canvas = Target(holder);
-    if (canvas) PushSolid(holder, *canvas, Rect{x, y, x + 1, y + 1}, CanvasColour(colour));
+    if (canvas) PushSolid(holder, *canvas, Rect::Sized(at, {1, 1}), CanvasColour(colour));
 }
 
 void GlyphRun(const void* holder, text::TextFont& font, const text::TextLayout& layout, std::uint32_t colour) {
@@ -637,16 +641,16 @@ bool ReadPixels(const void* holder, std::vector<std::uint32_t>* rgb, int* width,
     return true;
 }
 
-bool ReadPixel(const void* holder, int x, int y, std::uint32_t* rgb) {
+bool ReadPixel(const void* holder, Point at, std::uint32_t* rgb) {
     if (!HasCanvas(holder)) return false;
     RunCanvasesNow();
     auto it = g_canvases.find(holder);
     if (it == g_canvases.end() || !it->second.gpu) return false;
     const CanvasState& canvas = it->second;
-    if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return false;
+    if (!Rect{0, 0, canvas.width, canvas.height}.Contains(at)) return false;
     gpu::Ticket ticket;
     gpu::Texels texels;
-    const bool read = ReadBack(canvas.gpu, Rect{x, y, x + 1, y + 1}, &ticket, &texels);
+    const bool read = ReadBack(canvas.gpu, Rect::Sized(at, {1, 1}), &ticket, &texels);
     if (read) {
         const std::uint8_t* p = texels.Row(0);   // RGBA8
         *rgb = (static_cast<std::uint32_t>(p[0]) << 16) | (static_cast<std::uint32_t>(p[1]) << 8) | p[2];

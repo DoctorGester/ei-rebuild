@@ -72,14 +72,10 @@ void SetPlain(UiMesh* sprite, std::uint32_t colour) {
     sprite->flatColour = colour;
 }
 
-UiSurface* NewSurface(Interface3D* ui, int left, int top, int right, int bottom) {
-    UiSurface* surface = new UiSurface(ui, left, top, right, bottom, SurfaceBlend::Keyed, true);
-    return surface;
-}
+UiSurface* NewSurface(Interface3D* ui, const Rect& area) { return new UiSurface(ui, area, SurfaceBlend::Keyed, true); }
 
 void SetRectangle(UiMesh* sprite, const Rect& rect, int u0, int v0, int u1, int v1) {
-    sprite->SetRectangle(3.0f, 100.0f, static_cast<float>(rect.left), static_cast<float>(rect.top),
-                         static_cast<float>(rect.right), static_cast<float>(rect.bottom), u0, v0, u1, v1);
+    sprite->SetRectangle(3.0f, 100.0f, rect, u0, v0, u1, v1);
 }
 
 // Rebirth's WideScreen (addon's handler, a context hook over the first AddSprite of a
@@ -168,7 +164,7 @@ void HelpWindow::ShowPage() {
     // Surface 0: the page's title and the topic's with the page's number.
     std::string titleText;
     const int width = pageArea.Width();
-    UiSurface* header = NewSurface(ui, pageArea.left, pageArea.top, pageArea.right, pageArea.top + kStripHeight);
+    UiSurface* header = NewSurface(ui, pageArea.TopStrip(kStripHeight));
     AddSurface(header);
     header->Clear();
     Rect line{0, 8, width, 30};
@@ -183,14 +179,10 @@ void HelpWindow::ShowPage() {
         words = texts->Split(true);
         if (text::CompareIgnoringCase(words[0], kScreenLine) == 0) break;
         if (text::CompareIgnoringCase(words[0], kRectangleLine) == 0 && words.size() > 4) {
-            const int top = str::ToInt(words[2]);
-            const int bottom = str::ToInt(words[4]);
-            const int shift = TutorialFrameShift(this);
-            const int left = str::ToInt(words[1]) + shift;
-            const int right = str::ToInt(words[3]) + shift;
+            const Rect marked = Rect{str::ToInt(words[1]), str::ToInt(words[2]), str::ToInt(words[3]),
+                                     str::ToInt(words[4])}.Offsetted(TutorialFrameShift(this), 0);
             UiMesh* mark = AddBlankSprite();
-            mark->SetFrame(3.0f, 100.0f, static_cast<float>(left), static_cast<float>(top), static_cast<float>(right),
-                           static_cast<float>(bottom), 5.0f, 0, 0, 256, 256);
+            mark->SetFrame(3.0f, 100.0f, marked, 5.0f, 0, 0, 256, 256);
             SetPlain(mark, 0x82FF0000);
             pulsing.push_back(mark);
         } else if (text::CompareIgnoringCase(words[0], kTextLine) == 0) {
@@ -233,7 +225,7 @@ void HelpWindow::ShowPage() {
     // pictures and measures; its surface is dropped and the page's bottom follows the height.
     int pictureCount = 0;
     for (int pass = rowsGiven ? 1 : 0; pass < 2; ++pass) {
-        UiSurface* body = NewSurface(ui, pageArea.left, pageArea.top + kStripHeight, pageArea.right, pageArea.bottom - kStripHeight);
+        UiSurface* body = NewSurface(ui, pageArea.Inset(0, kStripHeight));
         AddSurface(body);
         Rect row{kTextLeft + shift, 0, width - kTextRightMargin + shift, kRowHeight};
         int y = 0;
@@ -279,8 +271,7 @@ void HelpWindow::ShowPage() {
     }
 
     SetRectangle(back, pageArea, 0, 0, 256, 256);
-    frame->SetFrame(3.0f, 100.0f, static_cast<float>(pageArea.left - 5), static_cast<float>(pageArea.top - 5),
-                    static_cast<float>(pageArea.right + 5), static_cast<float>(pageArea.bottom + 5), 5.0f, 2, 0xF5, 0xB4, 0xF0);
+    frame->SetFrame(3.0f, 100.0f, pageArea.Inset(-5), 5.0f, 2, 0xF5, 0xB4, 0xF0);
 
     // The three buttons along the bottom, each with its region.
     Rect button{0, pageArea.bottom - 30, 50, pageArea.bottom - 10};
@@ -299,7 +290,7 @@ void HelpWindow::ShowPage() {
     SetRectangle(next, button, 2, 0x48, 0x34, 0x5C);
 
     // Surface 2: the neighbouring pages' titles under the arrows and the help key's name.
-    UiSurface* footer = NewSurface(ui, pageArea.left, pageArea.bottom - kStripHeight, pageArea.right, pageArea.bottom);
+    UiSurface* footer = NewSurface(ui, pageArea.BottomStrip(kStripHeight));
     AddSurface(footer);
     footer->Clear();
     if (page > 0) {

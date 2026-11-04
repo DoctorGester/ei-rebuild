@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "lib/rect.h"
 #include "lib/vecmath.h"
 
 #include <vector>
@@ -18,16 +19,16 @@ struct PathOrder;
 
 // A point of the trajectory.
 struct MotionPoint {
-    float x, y;         // half-cell units
-    float dirX, dirY;   // unit direction of travel
+    Vector2 position;   // half-cell units
+    Vector2 direction;  // unit direction of travel
     float speed;        // half-cells per tick
-    int cellX, cellY;   // path cell the point belongs to (-1 none)
+    Point cell;         // path cell the point belongs to (-1, -1 none)
 };
 static_assert(sizeof(MotionPoint) == 0x1C);   // saved as its 28 bytes
 
 // A corner of the path the trajectory is built from: `cells` path cells lead to it.
 struct MotionWaypoint {
-    float x, y;
+    Vector2 position;
     int cells;
 };
 static_assert(sizeof(MotionWaypoint) == 0x0C);   // saved as its 12 bytes
@@ -48,21 +49,19 @@ struct MotionCubic {
 struct MotionSample {
     bool alive = true;      // false when the order is complete
     bool turning = false;   // the unit only turns
-    float x = 0.0f;         // position in half-cells
-    float y = 0.0f;
+    Vector2 position = {0.0f, 0.0f};    // in half-cells
     Vector3 direction = {0.0f, 0.0f, 0.0f};
-    float speed = 0.1f;     // 0.1 if unchanged
-    int cellX = -1;         // the path cell reached (-1 if none)
-    int cellY = -1;
+    float speed = 0.1f;                 // 0.1 if unchanged
+    Point cell = {-1, -1};              // the path cell reached (-1, -1 if none)
 };
 
 struct UnitMotion {
     // Samples the motion of `order` at world time `time`. `world` resolves object ids for tracking orders
     // (its ObjectWithId).
     MotionSample Sample(World* world, MotionOrder* order, float time);
-    // Sample for a path order; `time` is relative to the order's start. `x`, `y`: the position while the
+    // Sample for a path order; `time` is relative to the order's start. `start`: the position while the
     // unit only turns (the order's).
-    MotionSample SamplePath(float time, float x, float y);
+    MotionSample SamplePath(float time, Vector2 start);
     // Rebuilds the trajectory for `order` (a PathOrder with its steps).
     void Build(PathOrder* order);
     // Empties the trajectory. Returns 0.
@@ -89,10 +88,8 @@ struct UnitMotion {
     float turnRate;
     float startAngle;
     float turn;                             // turn to make before moving, in [-pi, pi]
-    float fromX, fromY;                     // current segment
-    float fromDirX, fromDirY;
-    float toX, toY;
-    float toDirX, toDirY;
+    Vector2 segmentFrom, segmentFromDirection;  // current segment: its first and last point
+    Vector2 segmentTo, segmentToDirection;
     float length;
     float speed;
     MotionCubic curveX;

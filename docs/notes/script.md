@@ -110,7 +110,9 @@ value array. Effect elements: object id (-1 none), then fields; loading looks th
 `ScriptLoad` mirrors it: list loaders replace the list with that many default nodes and read each.
 Block ids resolve in the lists of the world's first script (negative ids in the WorldScript blocks, others in the
 command blocks; unknown gives null). A definition's or instance's if-then pair and a run whose block did not resolve
-(a save made with other scripts) are dropped at load, so the savers and Execute always have their blocks. Runs: block id, index, ticks, sleep start, the instance index (0 out of range),
+(a save made with other scripts) are dropped at load, and a For / ForIf whose body did not resolve is cleared into a
+command that does nothing (id 0; the block keeps its length, so runs' saved indices stay right), so the savers and
+Execute always have their blocks. Runs: block id, index, ticks, sleep start, the instance index (0 out of range),
 the variables (object ids looked up, group members sorted).
 
 ## Quests, unit modes, text manager

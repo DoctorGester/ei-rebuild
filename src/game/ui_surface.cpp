@@ -86,7 +86,7 @@ void UiSurface::Relayout(const screen_layout::Layout& before) {
     if (scaled) {
         rect = layoutRect;
         ui->ScaleRectToScreen(&rect);
-    } else if (rect.left == 0 && rect.top == 0 && rect.right == before.width && rect.bottom == before.height) {
+    } else if (rect == Rect{0, 0, before.width, before.height}) {
         rect = Rect{0, 0, now.width, now.height};
         layoutRect = rect;
     }
@@ -168,11 +168,11 @@ void UiSurface::FillRect(const Rect& area, std::uint32_t colour) {
 }
 
 void UiSurface::Line(Point from, Point to, int lineWidth, std::uint32_t colour) {
-    if (holder) render::ui::Line(holder, from.x, from.y, to.x, to.y, lineWidth, colour);
+    if (holder) render::ui::Line(holder, from, to, lineWidth, colour);
 }
 
 void UiSurface::Dot(Point at, std::uint32_t colour) {
-    if (holder) render::ui::Pixel(holder, at.x, at.y, colour);
+    if (holder) render::ui::Pixel(holder, at, colour);
 }
 
 // --- Pixels ------------------------------------------------------------------------------------------
@@ -227,6 +227,6 @@ void UiSurface::SwapContents(bool restore) {
 std::uint32_t UiSurface::PixelAt(Point at) {
     if (!holder || at.x < 0 || at.y < 0 || at.x >= width || at.y >= height) return 0;
     std::uint32_t rgb = 0;
-    if (!render::ui::ReadPixel(holder, at.x, at.y, &rgb)) return 0;
+    if (!render::ui::ReadPixel(holder, at, &rgb)) return 0;
     return rgb;
 }

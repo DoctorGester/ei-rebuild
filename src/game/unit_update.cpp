@@ -255,7 +255,7 @@ static Vector3 PredictPosition(Unit* unit, int time) {
     if (order->kind == kOrderPath && !(unit->flags & MapObjectFlag::Planned)) {
         MotionSample sample = unit->motion.Sample(unit->OwningWorld(), order, static_cast<float>(time));
         float toWorld = 0.5f;
-        return {toWorld * sample.x, toWorld * sample.y, unit->localPosition.z};
+        return WithZ(toWorld * sample.position, unit->localPosition.z);
     }
     return unit->localPosition;
 }

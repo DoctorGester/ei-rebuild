@@ -28,10 +28,10 @@ float CellToWorld(int cell) { return (static_cast<float>(cell) + 0.5f) * 0.5f; }
 
 int PositiveOrZero(int v) { return v < 0 ? 0 : v; }
 
-// The occluder records of the sector holding cell (x, y), for cells holding more than one (occluder::kChained).
-const SectorOccluder* OccluderRecords(const AIMap* map, int x, int y) {
+// The occluder records of the sector holding `cell`, for cells holding more than one (occluder::kChained).
+const SectorOccluder* OccluderRecords(const AIMap* map, Point cell) {
     const SectorMap& sectors = map->sectorMap;
-    return sectors.sectors[(y / 32) * sectors.width + x / 32].occluders.data();
+    return sectors.sectors[(cell.y / 32) * sectors.width + cell.x / 32].occluders.data();
 }
 
 constexpr float kTransparency[4] = /*00791744*/ {0.0f, 0.98f, 0.99f, 1.0f};
@@ -59,33 +59,30 @@ int BridgeHeights::HeightAt(short x, short y) const {
 
 // --- Cell queries --------------------------------------------------------------------------------
 
-bool AIMap::CanStandAt(Unit* unit, int x, int y, int* reason) {
-    if (x < 0 || x >= cells.width || y < 0 || y >= cells.height) return false;
+bool AIMap::CanStandAt(Unit* unit, Point cell, int* reason) {
+    if (!InBounds(cell)) return false;
     if (unit->GetClassId() == ClassId::Unit) {
         int level = lib::RoundEven((2.0f - unit->standingHeight) * 16.0f);
         if (level < 0) level = 0;
         *reason = 1;
-        if (cells[y][x].level > static_cast<std::uint8_t>(level)) return false;
+        if (cells[cell].level > static_cast<std::uint8_t>(level)) return false;
         *reason = 2;
-        if (waterDepth[y][x] > (level & 0xFF)) return false;
+        if (waterDepth[cell] > (level & 0xFF)) return false;
     }
     *reason = 0;
     return true;
 }
 
-bool AIMap::CanStandAtFromHere(Unit* unit, int x, int y, int* reason) {
-    if (x < 0 || x >= cells.width || y < 0 || y >= cells.height) return false;
+bool AIMap::CanStandAtFromHere(Unit* unit, Point cell, int* reason) {
+    if (!InBounds(cell)) return false;
     int level = PositiveOrZero(lib::RoundEven((2.0f - unit->standingHeight) * 16.0f));
     *reason = 1;
     // The unit's own cell, clamped into the map.
-    Point own = WorldToCell(unit->localPosition);
-    own.x = std::clamp(own.x, 0, cells.width - 1);
-    own.y = std::clamp(own.y, 0, cells.height - 1);
-    if (cells[y][x].level > static_cast<std::uint8_t>(level) && cells[y][x].level > cells[own.y][own.x].level)
-        return false;
+    const Point own = Min(Max(WorldToCell(unit->localPosition), Point{0, 0}), Point{cells.width - 1, cells.height - 1});
+    if (cells[cell].level > static_cast<std::uint8_t>(level) && cells[cell].level > cells[own].level) return false;
     level &= 0xFF;
     *reason = 2;
-    if (waterDepth[y][x] > level && waterDepth[y][x] > waterDepth[own.y][own.x]) return false;
+    if (waterDepth[cell] > level && waterDepth[cell] > waterDepth[own]) return false;
     *reason = 0;
     return true;
 }
@@ -97,8 +94,7 @@ bool AIMap::IsPassableWithoutSelf(Unit* unit, const Vector3& position) {
     bool passable = true;
     if (unit->GetClassId() == ClassId::Unit) {
         int reason;
-        passable = CanStandAt(unit, cell.x, cell.y, &reason) &&
-                   cells[cell.y][cell.x].Passability(unit->sizeClass * 4) != 0;
+        passable = CanStandAt(unit, cell, &reason) && cells[cell].Passability(unit->sizeClass * 4) != 0;
     }
     sectorMap.Add(unit);
     return passable;
@@ -136,8 +132,8 @@ bool AIMap::CanLeaveCell(Unit* unit) {
 
 // --- Heights -------------------------------------------------------------------------------------
 
-float AIMap::GroundHeight(int x, int y) {
-    return static_cast<float>(static_cast<int>(cells[y][x].groundLevel)) / heightScale;
+float AIMap::GroundHeight(Point cell) {
+    return static_cast<float>(static_cast<int>(cells[cell].groundLevel)) / heightScale;
 }
 
 float AIMap::TopHeightAt(const Vector3& position) {
@@ -174,11 +170,11 @@ bool AIMap::InWaterAt(const Vector3& position) {
     return cells[cell.y][cell.x].InWater();
 }
 
-bool AIMap::HasSpellArea(int x, int y) {
-    std::uint32_t word = occluders[y][x];
+bool AIMap::HasSpellArea(Point cell) {
+    std::uint32_t word = occluders[cell];
     if (word & occluder::kNone) return false;
     if (!(word & occluder::kChained)) return occluder::Kind(word) == OccluderKind::SpellArea;
-    const SectorOccluder* records = OccluderRecords(this, x, y);
+    const SectorOccluder* records = OccluderRecords(this, cell);
     for (int index = occluder::Head(word); index >= 0; index = records[index].next) {
         if (records[index].kind == OccluderKind::SpellArea) return true;
     }
@@ -188,7 +184,7 @@ bool AIMap::HasSpellArea(int x, int y) {
 bool AIMap::HasSpellAreaAt(const Vector3& position) {
     const Point cell = WorldToCell(position);
     if (!InBounds(cell)) return false;
-    return HasSpellArea(cell.x, cell.y);
+    return HasSpellArea(cell);
 }
 
 int AIMap::MaterialAt(const Vector3& position) {
@@ -210,13 +206,13 @@ void AIMap::TurnObject(MapObject* object, const Quaternion* rotation) {
     map->Add(object);
 }
 
-bool AIMap::BridgeDeckAt(int x, int y, int* deckHeight) {
+bool AIMap::BridgeDeckAt(Point cell, int* deckHeight) {
     int deck = 0;
     bool found = false;
-    std::uint32_t word = occluders[y][x];
+    std::uint32_t word = occluders[cell];
     if (!(word & occluder::kNone)) {
         if (word & occluder::kChained) {
-            const SectorOccluder* records = OccluderRecords(this, x, y);
+            const SectorOccluder* records = OccluderRecords(this, cell);
             for (int index = occluder::Head(word); index >= 0; index = records[index].next) {
                 if (records[index].kind == OccluderKind::BridgeDeck) {
                     if (!(deck > records[index].top)) deck = records[index].top;
@@ -276,7 +272,7 @@ float AIMap::LineOfSight(const Vector3& from, const Vector3& to) {
             continue;
         }
         // Several occluders: a chain in the sector's record list.
-        const SectorOccluder* records = OccluderRecords(this, cx, cy);
+        const SectorOccluder* records = OccluderRecords(this, {cx, cy});
         for (int index = occluder::Head(word); index >= 0; index = records[index].next) {
             const SectorOccluder& o = records[index];
             if (o.top < cz || o.bottom > cz) continue;
@@ -308,7 +304,7 @@ bool AIMap::FindFreeCellNear(Unit* unit, const Vector3& from, Vector3* target) {
     int sizeClass = unit->sizeClass;
     const Point here = WorldToCell(from);
     if (here.x < 1 || here.y < 1 || here.x >= cells.width - 1 || here.y >= cells.height - 1) return false;
-    short region = static_cast<short>(regionMap.DominantRegion(sizeClass, here.x, here.y));
+    short region = static_cast<short>(regionMap.DominantRegion(sizeClass, here));
 
     const Point goal = WorldToCell(*target);
     int count;
@@ -318,15 +314,14 @@ bool AIMap::FindFreeCellNear(Unit* unit, const Vector3& from, Vector3* target) {
     const std::int16_t* offset = cache.Get(radius, &count);
     for (int i = 0; i < count; ++i, offset += 2) {
         const Point cell = goal + Point{offset[0], offset[1]};
-        const int cx = cell.x, cy = cell.y;
         int reason;
-        if (!CanStandAt(unit, cx, cy, &reason)) continue;
-        if (cells[cy][cx].Passability(sizeClass * 4) == 0) continue;
-        short r = static_cast<short>(regionMap.DominantRegion(sizeClass, cx, cy));
+        if (!CanStandAt(unit, cell, &reason)) continue;
+        if (cells[cell].Passability(sizeClass * 4) == 0) continue;
+        short r = static_cast<short>(regionMap.DominantRegion(sizeClass, cell));
         if (region != 0 && r != region) continue;
         if (i != 0) {
-            target->x = CellToWorld(cx);
-            target->y = CellToWorld(cy);
+            target->x = CellToWorld(cell.x);
+            target->y = CellToWorld(cell.y);
         }
         return true;
     }
@@ -388,31 +383,22 @@ bool AIMap::JoinLocalSearches(PathCells* path, int* cost) {
     return ok;
 }
 
-void AIMap::BuildCellsTo(int x, int y, PathCells* path) {
-    if (x < 0 || x >= cells.width || y < 0 || y >= cells.height) return;
+void AIMap::BuildCellsTo(Point cell, PathCells* path) {
+    if (!InBounds(cell)) return;
     // The original takes each cell's speed word and terrain bits from stack memory it never writes (the planner's last
     // call left a search's row offset there); ours get the plain words.
-    auto cellAt = [](int cx, int cy) {
-        PathCell c{static_cast<std::int16_t>(cx), static_cast<std::int16_t>(cy), kPlainStepSpeed, 0};
-        return c;
+    auto cellAt = [](Point at) {
+        return PathCell{static_cast<std::int16_t>(at.x), static_cast<std::int16_t>(at.y), kPlainStepSpeed, 0};
     };
-    // Walk back along the marks (directions 1..8; 0 ends); the cells go before the path's, the last one walked first.
+    // Walk back along the marks (directions 1..8, kDirectionDx / Dy; 0 ends); the cells go before the path's, the last
+    // one walked first.
     PathCells walked;
-    while (int dir = marks[y][x]) {
-        walked.push_back(cellAt(x, y));
-        switch (dir) {
-        case 1: --y; break;
-        case 2: --y; --x; break;
-        case 3: --x; break;
-        case 4: ++y; --x; break;
-        case 5: ++y; break;
-        case 6: ++y; ++x; break;
-        case 7: ++x; break;
-        case 8: --y; ++x; break;
-        default: break;
-        }
+    Point at = cell;
+    while (int dir = marks[at]) {
+        walked.push_back(cellAt(at));
+        if (dir >= 1 && dir <= 8) at += Point{kDirectionDx[dir], kDirectionDy[dir]};
     }
-    walked.push_back(cellAt(x, y));
+    walked.push_back(cellAt(at));
     path->insert(path->begin(), walked.rbegin(), walked.rend());
 }
 

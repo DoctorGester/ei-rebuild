@@ -279,7 +279,7 @@ static void PlaceOnPathOf(UnitClientSpecific* self, float time, float rate) {
     MotionSample sample = unit->motion.Sample(world, OrderOf(&self->motion), time);
     Vector3 direction = sample.direction;
     float toWorld = 0.5f;
-    Vector3 position = {toWorld * sample.x, toWorld * sample.y, 0.0f};
+    Vector3 position = WithZ(toWorld * sample.position, 0.0f);
     position.z = unit->GroundHeight(position.x, position.y) + unit->heightOffset;
     self->OwningWorld()->MoveObject(unit, &position.x);
     if (self->snapHeading) {

@@ -201,7 +201,7 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
             Turn(marker, kExitTurn);
             area.Offset(-10, 0);
         }
-        region->SetRect(area.left, area.top, area.right, area.bottom);
+        region->SetRect(area);
     }
     SelectExit(nearestExit);
     if (twoButtons && !anyKnown) {

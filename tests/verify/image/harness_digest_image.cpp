@@ -257,10 +257,10 @@ void ReadUnit(Unit* u, const std::map<const void*, int>& players, Builder& b) {
     b.Float("motion.speedScale", m->speedScale);
     b.Float("motion.turnRate", m->turnRate);
     b.Float("motion.turn", m->turn);
-    b.Float("motion.from.x", m->fromX);
-    b.Float("motion.from.y", m->fromY);
-    b.Float("motion.to.x", m->toX);
-    b.Float("motion.to.y", m->toY);
+    b.Float("motion.from.x", m->segmentFrom.x);
+    b.Float("motion.from.y", m->segmentFrom.y);
+    b.Float("motion.to.x", m->segmentTo.x);
+    b.Float("motion.to.y", m->segmentTo.y);
     b.Float("motion.length", m->length);
     b.Float("motion.speed", m->speed);
     b.Float("motion.segmentStart", m->segmentStart);

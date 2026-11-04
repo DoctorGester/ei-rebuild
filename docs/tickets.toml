@@ -7319,6 +7319,22 @@ model = "opus"
 note = "User 2026-11-04: look at the reinterpret_casts again (some look suspicious). 91 left in src (C15 kept many as legitimate; since then x64-only, SDL_GPU and the ports changed the reasons; gcc/clang at -O2 on Linux and macOS arm64 make aliasing and alignment UB real). Fix, in order: (1) unit_update.cpp WeaponPrototypeSkillBonus reads address 0x0C on purpose to fault like the game, and indexes 0x7FFFFFFF bytes on for other types: a report + a defined result (original bug, not gameplay). (2) net_classes.h AsHandler casts handler functions to another signature and calls them through it (UB): a typed thunk per handler (template lambda) instead. (3) ai_water_patch.cpp makes a Unit* out of an int key for UnitLayer: give the layer a real key type (or a variant owner) instead of fake pointers. (4) unit_client_update.cpp finds its AnimationDatabase by index arithmetic back to animations[0] minus offsetof: store the owner. (5) render_mesh.cpp casts the device to TextureDevice, figure_part_draw.cpp ContextOf casts the manager context to EngineObject*, world_client_view.cpp ClipBounds from &bounds.flags, figure_manager.cpp const float** over bones.data, ai_refresh.cpp CellOffset over kSteepOffsets, map_object_animation.cpp Quaternion over float data: typed members or values instead. (6) spell_effect_internal.h / world_effect_internal.h ConstAt (volatile float read, 24 uses): an x87-era fold blocker, delete if the goldens allow. (7) game_data.h GamePointer / DataId: no users, delete. (8) File parsers that cast buffers to structs (dib.cpp, resource.cpp ResEntry, ai_map_load.cpp, world_savefile.cpp, figure_mesh.cpp / link_figure.cpp cursor reads, world_guard.cpp XorRange): a small byte reader (memcpy or std::bit_cast) where alignment or aliasing is not guaranteed; keep plain byte views (char / uint8_t) and the platform casts (sockaddr, handles, uintptr_t) as they are. Report what stays and why. Goldens the same (one re-record only for (1) or (6) if they move, with the reason)."
 
 [[ticket]]
+id = "C78c"
+title = "AI search cells and rectangles as Point / Rect"
+group = "cleanup"
+model = "opus"
+depends = ["C78b"]
+note = "C78b moved AIMap's cell queries (CanStandAt, CanStandAtFromHere, GroundHeight, HasSpellArea, BridgeDeckAt, BuildCellsTo, CellMark) and RegionMap's DominantRegion / ReachesRegion / NearbyBlocks / SeedSearch to Point, with SearchGrid::operator[](Point) / Contains. Left, as int pairs: LocalSearch (Begin, BeginInRect, BeginInRectForClass, PlaceWindow, Recenter, CostAt, ExpandUntil, PathTo, Best), BlockSearch::PathTo, RegionMap::FindRegionChain / PickRepresentatives / MeasureBlockEdges / CellSuitsBlockAt / UpdateBlocks, AIMap::PlanLongPath / RefreshArea / QueueRefresh / LimitSteepCells / ClearUnmarkedArea (x0, x1, y0, y1 ranges: inclusive or not per function, say which), UnitLayer::Add / Remove, BridgeHeights::SaveCell / RestoreCell; SnapTarget and FindPath's tx / ty / ux / uy locals. Behaviour the same (goldens)."
+
+[[ticket]]
+id = "C78d"
+title = "Vector3 x-and-y leftovers and the Windows-only rename audit"
+group = "cleanup"
+model = "opus"
+depends = ["C78b"]
+note = "The rest of C78b: c78_components.txt (C78's audit) is no longer in build/reviews, so rerun the rename audit first (C78's note: rename the members, WSL gcc -fsyntax-only -fmax-errors=0), and do the Windows-only files (platform/win32, tests/verify, tools) by hand. Then the ~100 'x and y only' functions of build/reviews/c74c_components.txt (ground-plane maths, map cells, 2D turns) with judgement: Vector2 / XY / WithZ / DistanceSquaredXY where both components get the same operation in the same order, a one-line reason where the terms differ. Goldens the same."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"

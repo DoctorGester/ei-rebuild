@@ -35,11 +35,11 @@ void MoveCanvas(const void* from, const void* to);
 void Fill(const void* holder, const Rect& rect, std::uint32_t colour);
 // FrameRect with a solid brush: the rectangle's one-pixel border inside it.
 void FrameRect(const void* holder, const Rect& rect, std::uint32_t colour);
-// MoveTo (x0, y0), LineTo (x1, y1) with a solid pen of `width`. GDI's pixels for horizontal and vertical
+// MoveTo `from`, LineTo `to` with a solid pen of `width`. GDI's pixels for horizontal and vertical
 // lines 1 px wide (the end point not drawn) and 2 px wide (the game's pens); wider pens and slanted lines
 // are close to GDI, not exact (a band around the line; Bresenham's steps).
-void Line(const void* holder, int x0, int y0, int x1, int y1, int width, std::uint32_t colour);
-void Pixel(const void* holder, int x, int y, std::uint32_t colour);
+void Line(const void* holder, Point from, Point to, int width, std::uint32_t colour);
+void Pixel(const void* holder, Point at, std::uint32_t colour);
 // A text layout (render_text.h, its rectangle in canvas pixels) drawn in `colour`: each pixel becomes
 // colour x coverage + what was there x (1 - coverage), overlapping glyphs keeping the larger coverage,
 // underlines fully covered; clipped to the layout's clip rectangle. Over black this is
@@ -54,9 +54,9 @@ void Greyscale(const void* holder);
 // The canvas's pixels after every queued command, as 0x00RRGGBB rows top-down (width x height); false
 // without a canvas or when the GPU is not there.
 bool ReadPixels(const void* holder, std::vector<std::uint32_t>* rgb, int* width = nullptr, int* height = nullptr);
-// The pixel (x, y) of the canvas after every queued command, as 0x00RRGGBB; false outside it, without one
+// The pixel `at` of the canvas after every queued command, as 0x00RRGGBB; false outside it, without one
 // or when the GPU is not there.
-bool ReadPixel(const void* holder, int x, int y, std::uint32_t* rgb);
+bool ReadPixel(const void* holder, Point at, std::uint32_t* rgb);
 // The canvas after every queued command stretched to `width` x `height` on the GPU (each pixel the canvas
 // pixel under its centre, (2 x + 1) * canvas width / (2 width)) as 5:6:5 pixels (each channel's top bits),
 // rows from the top, read back into `out` (width x height): the save's picture (shot.sav keeps 5:6:5).

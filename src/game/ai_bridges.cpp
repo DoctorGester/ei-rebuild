@@ -51,7 +51,7 @@ bool AIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
             if (!ClearOccluderRecord(&c)) continue;
             AIMapCell* cell = &cells[y][x];
             int deck;
-            if (!BridgeDeckAt(x, y, &deck)) {
+            if (!BridgeDeckAt({x, y}, &deck)) {
                 if (cell->flags & kCellBridge)
                     bridgeHeights.RestoreCell(x, y, &cells[y][x], &occluders[y][x]);
                 const int depth = cell->WaterDepth();

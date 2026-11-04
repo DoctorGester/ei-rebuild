@@ -367,7 +367,8 @@ void OptionsWindow::Apply() {
 
 void UiSlider::SetRect(const Rect* newRect) {
     rect = *newRect;
-    track = {newRect->left + 26, newRect->bottom - 10, newRect->right - 26, newRect->bottom};
+    const Rect bar = newRect->BottomStrip(10);   // the arrows at both ends, the track between them
+    track = bar.Inset(26, 0);
 
     UiMesh* trackMesh = SceneMesh(0);
     trackMesh->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 6.0f, static_cast<float>(newRect->Width() - 8), 8, 4, 0x20,
@@ -390,9 +391,9 @@ void UiSlider::SetRect(const Rect* newRect) {
     left->Place(static_cast<float>(newRect->left + 6), static_cast<float>(newRect->bottom - 5), depth);
     TurnQuarter(left);
 
-    regions[0]->SetRect(newRect->left, newRect->bottom - 10, newRect->left + 12, newRect->bottom);
-    regions[1]->SetRect(newRect->right - 12, newRect->bottom - 10, newRect->right, newRect->bottom);
-    regions[2]->SetRect(newRect->left, newRect->top, newRect->right, newRect->bottom - 10);
+    regions[0]->SetRect(bar.LeftStrip(12));
+    regions[1]->SetRect(bar.RightStrip(12));
+    regions[2]->SetRect(newRect->Inset(0, 0, 0, 10));
 
     // The position set again (one below first, so the change virtual sees a change).
     int currentPosition = position;

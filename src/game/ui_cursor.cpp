@@ -57,8 +57,7 @@ CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY) {
     height = static_cast<std::int32_t>(pictureHeight);
     frames = static_cast<int>(count);
     width = static_cast<std::int32_t>(pictureWidth / count);
-    hotX = static_cast<int>(g_cursorWidth) * hotSpotX / 32;
-    hotY = static_cast<int>(g_cursorHeight) * hotSpotY / 32;
+    hot = {static_cast<int>(g_cursorWidth) * hotSpotX / 32, static_cast<int>(g_cursorHeight) * hotSpotY / 32};
     std::uint32_t maskBytes = (static_cast<std::uint32_t>(holder->bitsPerPixel) * pictureHeight * pictureWidth) >> 3;
     saved.assign(maskBytes, 0);
     BuildMask(picture, saved.data());
@@ -90,11 +89,9 @@ void CursorDrawFrame(Cursor* self) {
     frame.imageHolder = image->holder;
     frame.mask = image->saved.data();
     frame.from = Rect{image->frame * image->width, 0, (image->frame + 1) * image->width, image->height};
-    frame.hotX = image->hotX;
-    frame.hotY = image->hotY;
+    frame.hot = image->hot;
     frame.held = self->held;
-    frame.heldX = self->position.x;
-    frame.heldY = self->position.y;
+    frame.heldAt = self->position;
     render::Cursor(frame);
     self->drawn = self->rect;
 }
@@ -273,7 +270,7 @@ bool Cursor::UpdatePosition() {
     if (position != point) moved = true;
 
     ShowFrame(this);
-    const Point corner = position - Point{image->hotX, image->hotY};
+    const Point corner = position - image->hot;
     rect = Rect{0, 0, from.Width(), from.Height()}.Offsetted(corner).Intersection(bounds);
     const Point origin = from.TopLeft() + rect.TopLeft() - corner;
     from = {origin.x, origin.y, origin.x + rect.Width(), origin.y + rect.Height()};

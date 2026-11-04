@@ -121,7 +121,7 @@ float UnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder) 
     for (;;) {
         float time = static_cast<float>(pathOrder->startTime) + t;
         MotionSample sample = simulated.motion.Sample(nullptr, OrderOf(motionOrder), time);
-        Vector3 position = {sample.x, sample.y, 0.0f};
+        Vector3 position = WithZ(sample.position, 0.0f);
         if (position.x == previous.x && position.y == previous.y && position.z == previous.z) break;
         previous = position;
         float half = kHalfCell;

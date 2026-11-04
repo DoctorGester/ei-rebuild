@@ -240,9 +240,7 @@ void EscMenu::CreateScreen() {
     const Rect* rects = g_menuRects + kMainMenuRects;
     for (const Rect* source = rects; source < rects + 5; ++source) {
         UiRegion* region = AddRegion();
-        Rect area;
-        area = *source;
-        region->SetRect(area.left, area.top, area.right, area.bottom);
+        region->SetRect(*source);
     }
     models[0]->Play(SkillAnimation::Briefing02);
     ui->PlayInterfaceSound("buttons\\menu\\shift.wav");

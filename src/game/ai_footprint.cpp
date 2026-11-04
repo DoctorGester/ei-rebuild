@@ -135,14 +135,15 @@ bool AIMap::CollectFootprint(MapObject* object, FootprintCellSet* footprintSet, 
         position = object->localPosition;
 
         // Stand the object on the ground (or bridge deck) under its centre.
-        int cx = WorldToCell(object->localPosition.x), cy = WorldToCell(object->localPosition.y);
+        const Point under = WorldToCell(object->localPosition);
         float ground;
-        if (cx < 0 || cy < 0 || cx >= cells.width || cy >= cells.height) {
+        if (!InBounds(under)) {
             ground = 0.0f;
-        } else if (cells[cy][cx].flags & kCellBridge) {
-            ground = static_cast<float>(bridgeHeights.HeightAt(static_cast<short>(cx), static_cast<short>(cy))) / heightScale;
+        } else if (cells[under].flags & kCellBridge) {
+            ground = static_cast<float>(bridgeHeights.HeightAt(static_cast<short>(under.x), static_cast<short>(under.y))) /
+                     heightScale;
         } else {
-            ground = GroundHeight(cx, cy);
+            ground = GroundHeight(under);
         }
         position.z = ground + position.z;
 

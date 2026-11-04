@@ -113,16 +113,15 @@ bool AIMap::StandsOnCheapCell(Unit* unit) {
     CostContext(unit->sizeClass, &context);
     // The original also asks the unit for its movement speeds and ignores them.
     const Point cell = WorldToCell(unit->localPosition);
-    const int x = cell.x, y = cell.y;
     if (!InBounds(cell)) return false;
-    if (HasSpellArea(x, y)) {
+    if (HasSpellArea(cell)) {
         int sizeClass = unit->sizeClass;
         int level = lib::RoundEven(kLevelHeights[sizeClass] * heightScale);
         CellMarkState mark;
-        CellMark(&mark, sizeClass, level, x, y);
+        CellMark(&mark, sizeClass, level, cell);
         return mark.cost < kExpensive;
     }
-    int cost = context.costs[cells[y][x].Passability(context.shift)];
+    int cost = context.costs[cells[cell].Passability(context.shift)];
     return cost > 0 && cost < kExpensive;
 }
 
@@ -358,7 +357,7 @@ bool AIMap::PlanLongPath(Unit* unit, int fromX, int fromY, int toX, int toY, AIP
 
     if (result) {
         marks[fromY][fromX] = 0;
-        BuildCellsTo(toX, toY, &path->cells);
+        BuildCellsTo({toX, toY}, &path->cells);
         auto first = path->cells.begin();
         if (first->x != fromX || first->y != fromY) result = false;
     }

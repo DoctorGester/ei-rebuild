@@ -139,8 +139,9 @@ CursorState Cursor() {
         state.width = image->width;
         state.height = image->height;
         state.frames = image->frames;
-        state.hotX = image->hotX;
-        state.hotY = image->hotY;
+        state.hotX = image->hot.x;
+        state.hotY = image->hot.y;
+
     }
     state.held = cursor->held;
     state.x = cursor->position.x;

@@ -36,16 +36,15 @@ gpu::Pipeline PassPipeline(PipelineKind kind) {
 
 // `r` with the depth clear's or the fill's pipeline; `colour` a D3DCOLOR, its alpha ignored.
 void DrawSolid(PipelineKind kind, const Rect& r, float z, std::uint32_t colour, int width, int height) {
-    if (r.right <= r.left || r.bottom <= r.top) return;
+    if (r.IsEmpty()) return;
     gpu::Pipeline pipeline = PassPipeline(kind);
     if (!pipeline) return;
     gpu::ApplyPipeline(pipeline);
     CountPipeline(pipeline);
-    const SolidParams vs{
-        {static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right),
-         static_cast<float>(r.bottom)},
-        {static_cast<float>(width), static_cast<float>(height), z, 0.0f},
-        {((colour >> 16) & 0xFF) / 255.0f, ((colour >> 8) & 0xFF) / 255.0f, (colour & 0xFF) / 255.0f, 1.0f}};
+    SolidParams vs{{},
+                   {static_cast<float>(width), static_cast<float>(height), z, 0.0f},
+                   {((colour >> 16) & 0xFF) / 255.0f, ((colour >> 8) & 0xFF) / 255.0f, (colour & 0xFF) / 255.0f, 1.0f}};
+    StoreRect(r, vs.rect);
     gpu::PushUniforms(gpu::Stage::Vertex, gpu_shaders::solid::kBlockSolidParams, vs);
     gpu::Draw(0, 6);
     CountDraw(sizeof(vs));

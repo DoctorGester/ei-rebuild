@@ -21,8 +21,8 @@
 
 namespace {
 
-bool IsCellPassable(AIMap* map, Unit* unit, int x, int y) {
-    return map->cells[y][x].Passability(unit->sizeClass * 4) != 0;
+bool IsCellPassable(AIMap* map, Unit* unit, Point cell) {
+    return map->cells[cell].Passability(unit->sizeClass * 4) != 0;
 }
 
 constexpr float kDiagonal = 0.707f;
@@ -36,7 +36,7 @@ bool AIMap::SnapTarget(Unit* unit, Vector3* target, bool sameRegion, float minDi
     int reason;
     if (!sameRegion) {
         if (unit->GetClassId() != ClassId::Unit) return true;
-        if (CanStandAt(unit, tx, ty, &reason) && IsCellPassable(this, unit, tx, ty)) return true;
+        if (CanStandAt(unit, {tx, ty}, &reason) && IsCellPassable(this, unit, {tx, ty})) return true;
     }
 
     Vector3 from;
@@ -45,7 +45,7 @@ bool AIMap::SnapTarget(Unit* unit, Vector3* target, bool sameRegion, float minDi
     int sizeClass = unit->sizeClass;
     int region = 0;
     if (sameRegion) {
-        region = regionMap.DominantRegion(sizeClass, ux, uy);
+        region = regionMap.DominantRegion(sizeClass, {ux, uy});
         // Clear the reachability marks in the box spanned by the unit and the target (and a margin).
         int dx = (tx - ux < 0 ? ux - tx : tx - ux) + 1;
         int x0 = tx - dx, x1 = tx + dx + 1;
@@ -98,23 +98,23 @@ bool AIMap::SnapTarget(Unit* unit, Vector3* target, bool sameRegion, float minDi
         int count = r != 0 ? 8 : 1;
         float distance = static_cast<float>(r);
         for (int d = 0; d < count; ++d) {
-            int cx = tx - lib::RoundEven(distance * directions[d][0]);
-            int cy = ty - lib::RoundEven(distance * directions[d][1]);
+            const Point cell{tx - lib::RoundEven(distance * directions[d][0]),
+                             ty - lib::RoundEven(distance * directions[d][1])};
             if (unit->GetClassId() == ClassId::Unit) {
-                if (!CanStandAt(unit, cx, cy, &reason) || !IsCellPassable(this, unit, cx, cy)) continue;
+                if (!CanStandAt(unit, cell, &reason) || !IsCellPassable(this, unit, cell)) continue;
             }
             if (sameRegion) {
-                std::uint8_t mark = static_cast<std::uint8_t>(marks[cy][cx]);
+                std::uint8_t mark = static_cast<std::uint8_t>(marks[cell]);
                 if (mark != 1) {
                     if (mark == 2) continue;
-                    if (!regionMap.ReachesRegion(sizeClass, cx, cy, region, &marks)) continue;
+                    if (!regionMap.ReachesRegion(sizeClass, cell, region, &marks)) continue;
                 }
             }
             if (r != 0) {
                 // The centre of the cell, pulled 0.49 back towards the target cell.
-                float fx = static_cast<float>(cx) + 0.5f;
+                float fx = static_cast<float>(cell.x) + 0.5f;
                 target->x = fx;
-                float fy = static_cast<float>(cy) + 0.5f;
+                float fy = static_cast<float>(cell.y) + 0.5f;
                 target->y = fy;
                 if (fx > static_cast<float>(tx)) target->x = fx - kInset;
                 if (static_cast<float>(tx) > target->x) target->x = target->x + kInset;
@@ -190,7 +190,8 @@ bool AIMap::FindPath(Unit* unit, const Vector3& target, AIPath* path, float rang
     PathCells& pathCells = path->cells;
     if (ux == tx && uy == ty) {
         int reason;
-        if (unit->GetClassId() == ClassId::Unit && !(CanStandAt(unit, tx, ty, &reason) && IsCellPassable(this, unit, tx, ty))) {
+        if (unit->GetClassId() == ClassId::Unit &&
+            !(CanStandAt(unit, {tx, ty}, &reason) && IsCellPassable(this, unit, {tx, ty}))) {
             goto done;
         }
         cell.x = static_cast<std::int16_t>(ux);

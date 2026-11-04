@@ -97,8 +97,7 @@ const Made* ShapeFor(const FrameCursor& cursor) {
     g_placedHeight = placed.Height();
     const std::uint32_t ramp = GammaRampChanges();
     for (const Made& m : g_made)
-        if (m.holder == cursor.imageHolder && m.mask == cursor.mask && m.from.left == cursor.from.left &&
-            m.from.top == cursor.from.top && m.from.right == cursor.from.right && m.from.bottom == cursor.from.bottom &&
+        if (m.holder == cursor.imageHolder && m.mask == cursor.mask && m.from == cursor.from &&
             m.placedWidth == g_placedWidth && m.placedHeight == g_placedHeight && m.ramp == ramp)
             return &m;
     // The picture loaded from its file (render::PictureFromMmp); the mask, the holder's width in its pixel size.
@@ -106,16 +105,15 @@ const Made* ShapeFor(const FrameCursor& cursor) {
     const int maskBytes = holder->bitsPerPixel / 8;
     const Picture* picture = PictureOf(cursor.imageHolder);
     const Rect& from = cursor.from;
-    if (!picture || picture->width != holder->width || (maskBytes != 2 && maskBytes != 4) || from.left < 0 ||
-        from.top < 0 || from.right > picture->width || from.bottom > picture->height || from.right <= from.left ||
-        from.bottom <= from.top)
+    if (!picture || picture->width != holder->width || (maskBytes != 2 && maskBytes != 4) || from.IsEmpty() ||
+        from.Intersection(Rect{0, 0, picture->width, picture->height}) != from)
         return nullptr;
     const int sw = from.Width(), sh = from.Height();
     Made m{cursor.imageHolder, cursor.mask, from, g_placedWidth, g_placedHeight, ramp};
     m.width = std::max(1, (sw * g_placedWidth + frameWidth / 2) / frameWidth);
     m.height = std::max(1, (sh * g_placedHeight + frameHeight / 2) / frameHeight);
-    m.hotX = std::clamp((cursor.hotX * m.width + sw / 2) / sw, 0, m.width - 1);
-    m.hotY = std::clamp((cursor.hotY * m.height + sh / 2) / sh, 0, m.height - 1);
+    m.hotX = std::clamp((cursor.hot.x * m.width + sw / 2) / sw, 0, m.width - 1);
+    m.hotY = std::clamp((cursor.hot.y * m.height + sh / 2) / sh, 0, m.height - 1);
     const std::vector<std::uint8_t> rgba =
         Pixels(*picture, static_cast<const std::uint8_t*>(cursor.mask), maskBytes, from, m.width, m.height, GammaRamp());
     m.shape = platform::MakeCursor(rgba.data(), m.width, m.height, m.hotX, m.hotY);
@@ -167,8 +165,7 @@ void ShowFrameCursor() {
     Show(made);
     DropStale();
     const bool held = made && g_frameCursor.held;
-    const Point at{g_frameCursor.heldX, g_frameCursor.heldY};
-    platform::HoldCursor(held ? &at : nullptr);
+    platform::HoldCursor(held ? &g_frameCursor.heldAt : nullptr);
     if (held) ++g_info.presentsHeld;
     else if (made) ++g_info.presentsShown;
     else ++g_info.presentsHidden;

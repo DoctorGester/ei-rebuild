@@ -21,6 +21,10 @@ constexpr int kEdgesPerBlock = 8;       // the edge words of a block, one per di
 // The block grid's size: the first size class's edge grid.
 int BlocksWide(const RegionMap* map) { return map->edges[0].width; }
 int BlocksHigh(const RegionMap* map) { return map->edges[0].height; }
+// The block holding `cell`, clamped into the grid.
+Point BlockOf(const RegionMap* map, Point cell) {
+    return Max(Min(cell / 8, Point{BlocksWide(map) - 1, BlocksHigh(map) - 1}), Point{0, 0});
+}
 
 // The direction steps of block directions 0..7 (the tables from their index 1).
 const int* StepX() { return kDirectionDx + 1; }
@@ -59,12 +63,8 @@ void FinishSearch(BlockSearch& search) {
 
 } // namespace
 
-bool RegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGrid<std::int8_t>* marks) {
-    int bx = x / 8, by = y / 8;
-    if (BlocksWide(this) - 1 < bx) bx = BlocksWide(this) - 1;
-    if (bx < 0) bx = 0;
-    if (BlocksHigh(this) - 1 < by) by = BlocksHigh(this) - 1;
-    if (by < 0) by = 0;
+bool RegionMap::ReachesRegion(int sizeClass, Point cell, int region, SearchGrid<std::int8_t>* marks) {
+    const auto [bx, by] = BlockOf(this, cell);
 
     std::vector<Point> blocks;
     for (int yy = by - 1; yy < by + 2; ++yy) {
@@ -97,7 +97,7 @@ bool RegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGri
     int x0 = bx * 8 - 8, y0 = by * 8 - 8, x1 = bx * 8 + 16, y1 = by * 8 + 16;
     local.backward = true;
     LocalSearch* search = &local;
-    search->BeginInRectForClass(sizeClass, x0, y0, x1, y1, x, y);
+    search->BeginInRectForClass(sizeClass, x0, y0, x1, y1, cell.x, cell.y);
     search->SaveLevels();
     search->ExpandAll();
     search->RestoreLevels();
@@ -106,8 +106,9 @@ bool RegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGri
     bool found = false;
     for (int k = 0; k < std::ssize(blocks); ++k) {
         int xx = blocks[k].x, yy = blocks[k].y;
-        std::uint8_t cell = cellRows[yy][xx];
-        if (search->CostAt(RepresentativeX(cell) + xx * 8, RepresentativeY(cell) + yy * 8) < kUnreached && inRegion(xx, yy)) {
+        std::uint8_t representative = cellRows[yy][xx];
+        if (search->CostAt(RepresentativeX(representative) + xx * 8, RepresentativeY(representative) + yy * 8) < kUnreached &&
+            inRegion(xx, yy)) {
             found = true;
             break;
         }
@@ -141,17 +142,13 @@ void RegionMap::LabelRegions() {
     }
 }
 
-std::vector<BlockCost> RegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y) {
+std::vector<BlockCost> RegionMap::NearbyBlocks(int sizeClass, bool flag, Point cell) {
     std::vector<BlockCost> out;
-    int bx = x / 8, by = y / 8;
-    if (BlocksWide(this) - 1 < bx) bx = BlocksWide(this) - 1;
-    if (bx < 0) bx = 0;
-    if (BlocksHigh(this) - 1 < by) by = BlocksHigh(this) - 1;
-    if (by < 0) by = 0;
+    const auto [bx, by] = BlockOf(this, cell);
 
     local.backward = flag;
     LocalSearch* search = &local;
-    search->BeginInRectForClass(sizeClass, bx * 8 - 8, by * 8 - 8, bx * 8 + 16, by * 8 + 16, x, y);
+    search->BeginInRectForClass(sizeClass, bx * 8 - 8, by * 8 - 8, bx * 8 + 16, by * 8 + 16, cell.x, cell.y);
     search->SaveLevels();
     search->ExpandAll();
     search->RestoreLevels();
@@ -160,8 +157,8 @@ std::vector<BlockCost> RegionMap::NearbyBlocks(int sizeClass, bool flag, int x, 
         if (yy < 0 || yy >= BlocksHigh(this)) continue;
         for (int xx = bx - 1; xx < bx + 2; ++xx) {
             if (xx < 0 || xx >= BlocksWide(this)) continue;
-            std::uint8_t cell = cellRows[yy][xx];
-            int cost = search->CostAt(RepresentativeX(cell) + xx * 8, RepresentativeY(cell) + yy * 8);
+            std::uint8_t representative = cellRows[yy][xx];
+            int cost = search->CostAt(RepresentativeX(representative) + xx * 8, RepresentativeY(representative) + yy * 8);
             if (cost >= kUnreached) continue;
             out.push_back({xx, yy, cost});
         }
@@ -286,17 +283,17 @@ bool RegionMap::FindRegionChain(int sizeClass, int fromX, int fromY, int toX, in
         Exclude(forward, points[i].x, points[i].y);
         Exclude(backward, points[i].x, points[i].y);
     }
-    bool ok = SeedSearch(sizeClass, false, &forward, fromX, fromY);
-    if (ok) ok = SeedSearch(sizeClass, true, &backward, toX, toY);
+    bool ok = SeedSearch(sizeClass, false, &forward, {fromX, fromY});
+    if (ok) ok = SeedSearch(sizeClass, true, &backward, {toX, toY});
     if (ok) ok = JoinBlockSearches(chain);
     FinishSearch(forward);
     FinishSearch(backward);
     return ok;
 }
 
-int RegionMap::DominantRegion(int sizeClass, int x, int y) {
+int RegionMap::DominantRegion(int sizeClass, Point cell) {
     // The reachable blocks around the cell.
-    std::vector<BlockCost> blocks = NearbyBlocks(sizeClass, false, x, y);
+    std::vector<BlockCost> blocks = NearbyBlocks(sizeClass, false, cell);
     // Count the blocks per region, in first-seen order (the original keeps a list of {region, count}; at most
     // nine entries).
     std::uint16_t seen[9];

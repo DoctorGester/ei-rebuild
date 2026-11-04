@@ -123,8 +123,9 @@ inline Vector3 Max(const Vector3& a, const Vector3& b) {
 }
 inline Vector3 Abs(const Vector3& v) { return {std::fabs(v.x), std::fabs(v.y), std::fabs(v.z)}; }
 
-// The 2D part (x, y) of 3D positions.
+// The 2D part (x, y) of 3D positions, and a 2D point at height `z`.
 inline Vector2 XY(const Vector3& v) { return {v.x, v.y}; }
+inline Vector3 WithZ(const Vector2& v, float z) { return {v.x, v.y, z}; }
 inline float DistanceSquaredXY(const Vector3& a, const Vector3& b) { return LengthSquared2D(a.x - b.x, a.y - b.y); }
 
 inline float Dot(const Vector3& a, const Vector3& b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
