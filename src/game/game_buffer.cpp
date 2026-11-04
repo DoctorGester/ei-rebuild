@@ -81,13 +81,12 @@ int GrowingBuffer::WriteMore(const void* from, std::uint32_t size) {
     return static_cast<int>(size);
 }
 
-std::uint8_t* GrowingBuffer::Seek(std::int32_t position) {
+void GrowingBuffer::Seek(std::int32_t position) {
     if (cur > high) high = cur;
     cur = begin + position;
-    if (!(cur > end)) return cur;
+    if (!(cur > end)) return;
     std::uint32_t capacity = Distance(begin, cur) * 2 + kGrowthSlack;
     Reallocate(capacity);
-    return reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(capacity));
 }
 
 int GrowingBuffer::ReadMore(void*, std::uint32_t) { return 0; }

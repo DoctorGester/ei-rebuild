@@ -68,9 +68,9 @@ int UiScrollText::NextToken(const std::string& text, int pos, std::string* out) 
             count = 5;
         } else {
             game::FatalError("ScrollText::Incorrect special symbol '%c'", static_cast<int>(r[1]));
-            // Should the error come back, the original takes the text's data pointer as the count.
-            count = static_cast<int>(reinterpret_cast<std::intptr_t>(r));
-            if (count == -1) count = lib::Count(rest);
+            // With Rebirth's DisableExitOnCrashReport the error comes back: the original took the text's data
+            // pointer as the count, past the end, so the token is the rest of the text.
+            count = lib::Count(rest);
         }
     } else if (r[0] == '\n') {
         count = 1;

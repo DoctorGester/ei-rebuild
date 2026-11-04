@@ -78,7 +78,7 @@ struct PartDraw {
     // packets, normals and count, colours, speculars, texture coordinates and count, corners and
     // count, words and count, indices and count, the texture offsets, alpha, flags.
     int Draw(TextureDevice* device, Surface* first, Surface* second, bool textured) const {
-        auto* indices = reinterpret_cast<std::uint16_t*>(mesh->indices.data() + r.indices.start);
+        std::uint16_t* indices = mesh->indices.data() + r.indices.start;
         const auto* words = mesh->words.data() + r.words.start;
         const auto* corners = mesh->corners.data() + r.corners.start;
         const auto* texCoords = mesh->texCoords.data() + r.texCoords.start;

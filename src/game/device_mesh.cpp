@@ -105,7 +105,7 @@ void HandOver(TextureDevice* device, const MeshArgs& args) {
     // A figure part lit on the GPU needs its normals.
     m.normals = &args.normals->block[0][0];
     m.normalCount = args.colourCount * 4;
-    m.words = reinterpret_cast<const std::uint16_t*>(args.words);   // (position, normal) index pairs
+    m.words = args.words;
     m.wordCount = args.wordCount;
     render::BeginMesh(device, m);
 }

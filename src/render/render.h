@@ -250,10 +250,11 @@ struct MeshDraw {
     float zScale;                      // 0 taken as 1
     bool coloursWritten;               // the draw set every colour to the device's (flag 4)
 // A figure mesh lit on the GPU (MeshSource::lighting), else null: the normals (blocks of four as the
-// positions) and the words ((position, normal) index pairs, by the corners' colour index).
+// positions) and the words (a position index in the low half, a normal index in the high half, by the corners'
+// colour index).
     const float* normals;
     int normalCount;
-    const std::uint16_t* words;
+    const std::uint32_t* words;
     int wordCount;
 };
 
