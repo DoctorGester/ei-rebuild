@@ -902,6 +902,9 @@ hour 4 and after 20, rising to 1 at 6, falling from 18; 0 in a cave), the rain o
   `diffcapture` between the views; rain: `cloudcheck` with the cover at 0.7 .. 0.8; night and the cave gz5g:
   `cloudcheck 0 0`). `cloudcheck <least> <most> [<least cover> <most cover>]` reads ShadowInfo's `cloudLight` and
   `cloudCover`; `shadowview on` shows the clouds with the map's shadows.
+- GPU cost (the town bz1g by day at 3840 x 2160, msaa 8, alone and with a crowd of 12; whole-frame times by submission,
+  item 1; five rounds interleaved with the clouds switched off by a probe): none measurable, the medians 2.21-2.35 ms
+  with them and 2.27-2.40 without (the machine's noise is larger than two R8 reads a pixel).
 
 **12. Profiling the heaviest scenes.** The user's play settings: 3840 x 2160 windowed, msaa 8, anisotropy 16, flora
 shadows on, Rebirth's draw radii, `frametime 8`; zone1, zone7 (forest), zone11 (snow forest), zone19, the town bz1g, the
