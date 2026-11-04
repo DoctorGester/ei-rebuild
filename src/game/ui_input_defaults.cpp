@@ -2,8 +2,8 @@
 // See ui.h (UiInputSide) and docs/notes/ui.md, section 1.
 #include "ui.h"
 
-void UiInputSide::LeftDouble(int buttons, Point point) { LeftDown(buttons, point); }
+void UiInputSide::LeftDouble(Point point) { LeftDown(point); }
 
-void UiInputSide::RightDouble(int buttons, Point point) { RightDown(buttons, point); }
+void UiInputSide::RightDouble(Point point) { RightDown(point); }
 
-void UiInputSide::Wheel(int, int, Point) {}
+void UiInputSide::Wheel(int, Point) {}

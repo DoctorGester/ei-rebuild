@@ -343,7 +343,7 @@ void GlobalMap::Update() {
     if (dragging && turning == 0) {
         Point cursor{};
         platform::CursorPosition(&cursor);
-        Input()->MouseMove(0, cursor);
+        Input()->MouseMove(cursor);
     }
     MapBuilder builder(this);
     if (turning != 0 || dragging) {

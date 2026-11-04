@@ -67,18 +67,6 @@ void OnActivate(bool active, bool minimized) {
 
 void Handled() { g_interface.CloseAllPending(); }
 
-// The interface's key flags, the original's key message data: the scan code in bits 0-8 (its key tables are indexed
-// by it), Alt held 0x2000, the key down before 0x4000, a release 0xC000; sign-extended from 16 bits.
-constexpr int kFlagAlt = 0x2000, kFlagRepeated = 0x4000, kFlagReleased = 0xC000;
-int KeyFlags(const platform::Event& event) {
-    int flags = event.scan | ((event.modifiers & platform::kModifierAlt) ? kFlagAlt : 0);
-    if (event.type == EventType::KeyUp)
-        flags |= kFlagReleased;
-    else if (event.repeat)
-        flags |= kFlagRepeated;
-    return static_cast<std::int16_t>(flags);
-}
-
 // The keys Windows called system keys (Alt held without Ctrl, or F10): the original printed their releases to the
 // console and took Alt+F4 and Alt+Tab from them.
 bool SystemKey(const platform::Event& event) {
@@ -86,9 +74,16 @@ bool SystemKey(const platform::Event& event) {
     return (alt && !(event.modifiers & platform::kModifierControl)) || event.key == platform::kKeyF10;
 }
 
-// The interface takes the wheel's turn as the 16-bit half of the original's message data, unsigned (120 a notch; a
-// turn towards the player as 65536 less its size).
-int WheelTurn(const platform::Event& event) { return static_cast<int>(std::lround(event.wheel * 120.0f)) & 0xFFFF; }
+// The wheel's turn as the interface takes it: 120 a notch, positive away from the player.
+int WheelTurn(const platform::Event& event) { return static_cast<int>(std::lround(event.wheel * 120.0f)); }
+
+// A released system key's message data as the original printed it: the repeat count 1, the scan code at bit 16 (the
+// extended bit 24), Alt held bit 29, the key down before and released bits 30 and 31.
+std::int32_t ReleaseData(const platform::Event& event) {
+    constexpr std::uint32_t kRepeatCount = 1, kAlt = 0x20000000u, kReleased = 0xC0000000u;
+    const std::uint32_t alt = (event.modifiers & platform::kModifierAlt) ? kAlt : 0;
+    return static_cast<std::int32_t>(kReleased | alt | (static_cast<std::uint32_t>(event.scan) << 16) | kRepeatCount);
+}
 
 // The events the interface takes: keys, text, the mouse's moves, its left and right buttons and a wheel's turn.
 bool IsInput(const platform::Event& event) {
@@ -111,27 +106,25 @@ int g_fatalErrorCount = /*007A9B9C*/ {};
 const char* CodeReportFormat() { return "%s (0x%.8X) %s"; }
 
 void OnKey(Interface3D* input, const platform::Event& event) {
-    const int flags = KeyFlags(event);
     if (event.type == EventType::KeyDown) {
         if (event.key == platform::kKeyF4 && SystemKey(event)) {   // Alt+F4
             if (g_quitAllowed != 0) platform::PostQuit(0);
             return;
         }
-        input->OnKeyDown(event.key, 1, flags);
+        input->OnKeyDown(event.key, event.scan, event.repeat);
         return;
     }
     if (SystemKey(event)) {
-        // The key and its message data (the flags over the repeat count, 1), as the original printed them: the 32
-        // bits signed (a released key's are negative), wherever long is wider.
+        // The key and its message data, signed (a released key's are negative), wherever long is wider: F10's
+        // "121:-1069285375".
         console::EndLine(console::g_consoleOut << static_cast<unsigned>(event.key) << ':'
-                                               << static_cast<long>(static_cast<std::int32_t>(
-                                                      (static_cast<std::uint32_t>(flags) << 16) | 1u)));
+                                               << static_cast<long>(ReleaseData(event)));
         if (event.key == platform::kKeyTab && (event.modifiers & platform::kModifierAlt)) {   // Alt+Tab: as if the window was deactivated
             OnActivate(false, platform::IsMinimized(g_mainWindow));
             return;
         }
     }
-    input->OnKeyUp(event.key, 1, flags);
+    input->OnKeyUp(event.key, event.scan);
 }
 
 // Each character of the text to the interface, with the scan code of the key that typed it (the interface drops the
@@ -142,7 +135,7 @@ void OnText(Interface3D* input, const platform::Event& event) {
         unsigned character = 0;
         at += static_cast<std::size_t>(text::DecodeUtf8(text.data() + at, text.size() - at, &character));
         if (character == 0xFFFFFFFFu) continue;
-        input->OnChar(static_cast<int>(character), 1, event.scan);
+        input->OnChar(static_cast<int>(character), event.scan);
         Handled();
     }
 }
@@ -152,18 +145,18 @@ void OnMouse(Interface3D* input, const platform::Event& event, Point at) {
     const bool twice = event.clicks % 2 == 0;
     const bool left = event.button == MouseButton::Left;
     switch (event.type) {
-    case EventType::MouseMove: input->OnMouseMove(0, at); break;
+    case EventType::MouseMove: input->OnMouseMove(at); break;
     case EventType::MouseDown:
-        if (left && twice) input->OnLeftDouble(0, at);
-        else if (left) input->OnLeftDown(0, at);
-        else if (twice) input->OnRightDouble(0, at);
-        else input->OnRightDown(0, at);
+        if (left && twice) input->OnLeftDouble(at);
+        else if (left) input->OnLeftDown(at);
+        else if (twice) input->OnRightDouble(at);
+        else input->OnRightDown(at);
         break;
     case EventType::MouseUp:
-        if (left) input->OnLeftUp(0, at);
-        else input->OnRightUp(0, at);
+        if (left) input->OnLeftUp(at);
+        else input->OnRightUp(at);
         break;
-    case EventType::Wheel: input->OnWheel(0, WheelTurn(event), at); break;
+    case EventType::Wheel: input->OnWheel(WheelTurn(event), at); break;
     default: break;
     }
 }

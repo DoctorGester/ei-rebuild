@@ -274,7 +274,7 @@ void UiItemStrip::SettleScroll() {
     ui->mouseCapture = nullptr;
 }
 
-void UiItemStrip::LeftDown(int, Point point) {
+void UiItemStrip::LeftDown(Point point) {
     Interface3D* currentUi = ui;
     int region = RegionAt(point);
     if (region == 0 || region == 1) {
@@ -296,27 +296,27 @@ void UiItemStrip::LeftDown(int, Point point) {
     if (region >= 0) handled = true;
 }
 
-void UiItemStrip::LeftUp(int, Point) {
+void UiItemStrip::LeftUp(Point) {
     if (scrollDirection != 0) SettleScroll();
 }
 
-void UiItemStrip::MouseMove(int, Point point) {
+void UiItemStrip::MouseMove(Point point) {
     int region = RegionAt(point);
     // Leaving the held arrow stops scrolling.
     if ((scrollDirection == 1 && region != 0) || (scrollDirection == 2 && region != 1)) SettleScroll();
 }
 
-void UiItemStrip::Wheel(int, int delta, Point point) {
+void UiItemStrip::Wheel(int delta, Point point) {
     if (RegionAt(point) == 8) {
-        pending = (static_cast<short>(delta) / 120) + pending;
+        pending = (delta / 120) + pending;
         ui->PlayInterfaceSound(kSoundCampScroll);
     }
 }
 
-void ForwardingStrip::LeftDown(int modifiers, Point point) {
-    UiItemStrip::LeftDown(modifiers, point);
-    // The original passes its own first argument's stack memory as the cursor output.
-    Item* item = ItemAt(point, &modifiers);
+void ForwardingStrip::LeftDown(Point point) {
+    UiItemStrip::LeftDown(point);
+    int cursor = 0;   // the cursor for the mode, not used here
+    Item* item = ItemAt(point, &cursor);
     if (item) owner->TakeItem(item, mode);
 }
 
@@ -464,8 +464,8 @@ bool MpHeroScreen::CanEquip(Item* item, int) {
 
 PartyUnitRecord* MpHeroScreen::HeroRecord() { return LocalPlayerData()->members.data(); }
 
-void MpHeroScreen::LeftUp(int modifiers, Point point) {
-    UiContainer::LeftUp(modifiers, point);
+void MpHeroScreen::LeftUp(Point point) {
+    UiContainer::LeftUp(point);
     // Releasing a rotate arrow.
     if (ui->mouseCapture == Input()) ui->mouseCapture = nullptr;
     rotating = 0;
@@ -473,7 +473,7 @@ void MpHeroScreen::LeftUp(int modifiers, Point point) {
 
 // --- EscMenu ---------------------------------------------------------------------------------
 
-void EscMenu::MouseMove(int modifiers, Point point) {
+void EscMenu::MouseMove(Point point) {
     UiModel* model = models[0];
     int region = RegionAt(point);
     // Hovering a stone plays its animation (the first two only in single player).
@@ -510,11 +510,11 @@ void EscMenu::MouseMove(int modifiers, Point point) {
         hovered = -1;
         break;
     }
-    UiContainer::MouseMove(modifiers, point);
+    UiContainer::MouseMove(point);
 }
 
-void EscMenu::KeyDown(int key, int repeat, int modifiers) {
-    UiContainer::KeyDown(key, repeat, modifiers);
+void EscMenu::KeyDown(int key, int scan, bool repeat) {
+    UiContainer::KeyDown(key, scan, repeat);
     if (key == platform::kKeyEscape) {
         ui->PlayInterfaceSound(kSoundMenuOk);
         ui->SetPendingValue(0);
@@ -540,16 +540,16 @@ void CreditsScreen::Close() {
     else g_gameFlow.CloseSessions();
 }
 
-void CreditsScreen::LeftDown(int, Point) { Close(); }
+void CreditsScreen::LeftDown(Point) { Close(); }
 
-void CreditsScreen::KeyDown(int key, int, int) {
+void CreditsScreen::KeyDown(int key, int, bool) {
     if (key == platform::kKeyReturn || key == platform::kKeyEscape || key == platform::kKeySpace) Close();
 }
 
 // --- ExchangeScreen --------------------------------------------------------------------------
 
-void ExchangeScreen::KeyDown(int key, int repeat, int modifiers) {
-    UiContainer::KeyDown(key, repeat, modifiers);
+void ExchangeScreen::KeyDown(int key, int scan, bool repeat) {
+    UiContainer::KeyDown(key, scan, repeat);
     if (handled) return;
     switch (key) {
     case platform::kKeyBack:

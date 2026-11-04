@@ -1,5 +1,7 @@
 #pragma once
 
+#include "platform/platform.h"
+
 #include <cstdint>
 #include <cstdio>
 
@@ -10,41 +12,22 @@
 // motion (TakeMouseMotion: the camera on a right-button drag), all from the harness's own platform backend
 // (platform/harness_platform.h): its queue of the harness's events, its motion count, its position from the harness's
 // mouse. The real keyboard and mouse never reach the game: the backend drops every system event (S21c1: the real
-// mouse made the original's runs stop repeating). The steps still speak the window messages the game's window
-// procedure took (key down, left button down, ...; their numbers and words as Windows' were): Post makes each into
-// the platform's event (a double click's second press a press with two clicks, a character its UTF-8 text).
+// mouse made the original's runs stop repeating). The steps queue the platform's events for the game's loops.
 
 namespace ei::verify::input {
 
-// The messages (Windows' WM_ numbers).
-enum Message : unsigned {
-    Activate = 0x0006,      // word: active (1, 2) or not (0)
-    KeyDown = 0x0100,       // word: the key; data: the repeat count, scan code << 16, flags
-    KeyUp = 0x0101,
-    Character = 0x0102,     // word: the character
-    SystemKeyDown = 0x0104,
-    SystemKeyUp = 0x0105,
-    MouseMove = 0x0200,     // word: the buttons and keys held (kLeftButton, ...); data: Point(x, y)
-    LeftDown = 0x0201,
-    LeftUp = 0x0202,
-    LeftDouble = 0x0203,
-    RightDown = 0x0204,
-    RightUp = 0x0205,
-    RightDouble = 0x0206,
-    Wheel = 0x020A,         // word: the buttons, the delta << 16 (120 a notch); data: Point(x, y)
-};
-
-// The buttons and keys a mouse message holds (Windows' MK_).
-inline constexpr unsigned kLeftButton = 0x0001, kRightButton = 0x0002;
-
-// A mouse message's point (client coordinates).
-inline std::intptr_t Point(int x, int y) {
-    return static_cast<std::intptr_t>((static_cast<std::uint32_t>(y & 0xFFFF) << 16) | static_cast<std::uint32_t>(x & 0xFFFF));
-}
-// A wheel message's word.
-inline std::uintptr_t WheelWord(unsigned buttons, int delta) {
-    return (static_cast<std::uint32_t>(delta & 0xFFFF) << 16) | (buttons & 0xFFFF);
-}
+// A key pressed or released: its virtual-key code (Key below), its set-1 scan code (0x100 extended) and the
+// modifiers held (platform::kModifier...).
+void PressKey(unsigned key, unsigned scan, std::uint8_t modifiers = 0);
+void ReleaseKey(unsigned key, unsigned scan, std::uint8_t modifiers = 0);
+// A typed character (at most U+FFFF) with the scan code of the key that typed it.
+void TypeCharacter(unsigned character, unsigned scan);
+// The mouse at `at` (the window's client pixels): moved there, a button pressed (`clicks` 2: a double click's second
+// press) or released, the wheel turned (`turn` 120 a notch, positive away from the player).
+void MoveMouse(Point at);
+void PressButton(platform::MouseButton button, Point at, int clicks = 1);
+void ReleaseButton(platform::MouseButton button, Point at);
+void TurnWheel(int turn, Point at);
 
 // The keys the steps press (Windows' virtual-key codes; a letter or digit is its upper case character).
 enum Key : unsigned {
@@ -58,10 +41,6 @@ enum Key : unsigned {
 
 // A key's scan code (set 1) on a US keyboard, as Windows' MapVirtualKey gave it; 0 for none.
 unsigned ScanCode(unsigned key);
-
-// The window message `message` (word, data as the steps post them) as the game's event, queued for its loops;
-// Activate ahead of the input waiting (the focus steps, as SendMessage told the game at once).
-void Post(unsigned message, std::uintptr_t word, std::intptr_t data);
 
 // The harness's own motion (the "mousedrag" step): the game's next read of its mouse reports (dx, dy) more.
 void AddMotion(int dx, int dy);

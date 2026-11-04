@@ -338,32 +338,24 @@ std::uint8_t KeyCharacter(int scan) { return static_cast<std::uint8_t>(g_keyActi
 
 std::uint32_t g_shotCounter = /*007C7E24*/ {};
 
-constexpr int kRepeat = 0x4000;
-
-// The input side's key-down handler of a window.
-void WindowKeyDown(UiWindow* window, int key, int repeat, int flags) {
-    window->Input()->KeyDown(key, repeat, flags);
-}
-
 } // namespace
 
-void Interface3D::OnKeyDown(int key, int repeat, int flags) {
+void Interface3D::OnKeyDown(int key, int scan, bool repeat) {
     console::ConsoleWindow* consoleWindow = console;
-    int scan = flags & 0x1FF;
     switch (scan) {
     case 0x1D:
     case 0x11D:   // Ctrl
-        if (flags & kRepeat) return;
+        if (repeat) return;
         ctrlDown = true;
         break;
     case 0x2A:
     case 0x36:    // Shift
-        if (flags & kRepeat) return;
+        if (repeat) return;
         shiftDown = 1;
         break;
     case 0x38:
     case 0x138:   // Alt
-        if (flags & kRepeat) return;
+        if (repeat) return;
         altDown = true;
         break;
     case 0x29:    // the key under Esc
@@ -385,15 +377,15 @@ void Interface3D::OnKeyDown(int key, int repeat, int flags) {
     }
 
     if (consoleWindow->shown) {
-        consoleWindow->OnKeyDown(key, repeat, flags);
+        consoleWindow->OnKeyDown(key, scan, repeat);
         return;
     }
     ChatOverlay* chat = root;
     if (IsMultiplayerClient() && chat->chatOpen) {
-        WindowKeyDown(chat, key, repeat, flags);
+        chat->Input()->KeyDown(key, scan, repeat);
         return;
     }
-    if (!stack.empty()) WindowKeyDown(stack.back(), key, repeat, flags);
+    if (!stack.empty()) stack.back()->Input()->KeyDown(key, scan, repeat);
     if (!stack.empty() && !stack.back()->Input()->handled &&
         KeyCharacter(scan) == ';') {
         OpenHelp(true);

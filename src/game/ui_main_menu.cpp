@@ -177,7 +177,7 @@ void MainMenu::MessageResult(int result) {
 
 // --- The mouse move and the keys -------------------------------------------
 
-void MainMenu::MouseMove(int buttons, Point point) {
+void MainMenu::MouseMove(Point point) {
     if (auto* stones = g_clientWorld.objectManager->FindObjectAs<Object3D>(kStonesObject)) {
         int region = RegionAt(point);
         std::string name(stones->name);
@@ -192,11 +192,11 @@ void MainMenu::MouseMove(int buttons, Point point) {
         }
         hovered = region;
     }
-    UiContainer::MouseMove(buttons, point);
+    UiContainer::MouseMove(point);
 }
 
-void MainMenu::KeyDown(int key, int repeat, int modifiers) {
-    UiContainer::KeyDown(key, repeat, modifiers);
+void MainMenu::KeyDown(int key, int scan, bool repeat) {
+    UiContainer::KeyDown(key, scan, repeat);
     if (key != platform::kKeyEscape) return;
     ui->PushWindow(new MessageWindow(ui, kQuitTitle, kQuitText, 0x10000, 3, 1), true, true);
 }

@@ -49,7 +49,7 @@ void HeroQuickStrip::ShowEntry(Item* item) {
 
 // --- the equipment panel's right button ----------------------------------------------------------
 
-void HeroEquipPanel::RightDown(int, Point point) {
+void HeroEquipPanel::RightDown(Point point) {
     if (!body || !enabled) return;
     int region = RegionAt(point);
     if (region < 0) return;

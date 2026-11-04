@@ -1,9 +1,8 @@
 #pragma once
 
 // Interface screens (docs/notes/ui.md, "Screens"): the camp's item strips, the multiplayer hero and
-// connection screens, the escape menu, the credits, the main menu and the exchange window. Handler arguments:
-// mouse (button flags, x, y) in screen pixels; key down (virtual-key code, repeat count, scan code and
-// flags); wheel (key flags, wheel delta, x, y).
+// connection screens, the escape menu, the credits, the main menu and the exchange window. Handler arguments
+// as UiInputSide's (ui.h).
 
 #include "bink_video.h"
 #include "ui_item_info.h"
@@ -84,10 +83,10 @@ public:
     // slot and settling on a whole slot; then the list is rebuilt and the position kept within [0, count - 7].
     void Update() override;
 
-    void LeftDown(int flags, Point point) override;
-    void LeftUp(int flags, Point point) override;
-    void MouseMove(int flags, Point point) override;
-    void Wheel(int keys, int delta, Point point) override;
+    void LeftDown(Point point) override;
+    void LeftUp(Point point) override;
+    void MouseMove(Point point) override;
+    void Wheel(int delta, Point point) override;
 
     // Settles the pending scroll on release.
     void SettleScroll();
@@ -127,7 +126,7 @@ public:
     // Rebuilds the visible list from the source list for the current filter and tab (tab 5 of filter 0 shows everything).
     void RebuildList() override;
     // The strip's own click, then the item under the point to the owner.
-    void LeftDown(int flags, Point point) override;
+    void LeftDown(Point point) override;
 };
 
 // The figure strips (the hero screen's two, the exchange window's).
@@ -146,7 +145,7 @@ public:
     void RebuildList() override;
     // The strip's own click, then on the items (region 8) the figure under the point picked: the "on_off" sound and the
     // owner's choose-figure virtual with its name.
-    void LeftDown(int buttons, Point point) override;
+    void LeftDown(Point point) override;
 
     std::vector<std::string>* figures = nullptr;    // the figure names
 };
@@ -200,13 +199,13 @@ public:
     // Whether the hero can take `item`; spell containers need the spell's skill and mana.
     bool CanEquip(Item* item, int mode) override;
 
-    void LeftUp(int flags, Point point) override;
+    void LeftUp(Point point) override;
     // Nothing while a hero is being renamed; after the base handler, clicks by mode (9 list, 10 new hero, 11 statistics):
     // see docs/notes/ui.md, "MpHeroScreen::LeftDown".
-    void LeftDown(int flags, Point point) override;
+    void LeftDown(Point point) override;
     // After the container's handler, unless a child used the key: Enter, Esc and the paging keys by mode (9, 10, 11):
     // see docs/notes/ui.md, "MpHeroScreen::KeyDown". A key used is marked.
-    void KeyDown(int key, int repeat, int flags) override;
+    void KeyDown(int key, int scan, bool repeat) override;
     // Enter while renaming: the hero's name becomes the text before its " | " plus " | " and the typed text (trimmed); the
     // transfer sent; the edit window put away.
     void FinishRename();
@@ -358,12 +357,12 @@ public:
     // screen closed with 0x1000001), 2 MasterRequest, 3 EditAddress, 4 the unlisted switch, 5 the password (none: a box for
     // one; else it is dropped), 6-9 the sort column (a second click reverses it), 10-13 the game type (only with row 0
     // selected), 14 and up a row (the select sound, it and its address selected); then the container's handler.
-    void LeftDown(int buttons, Point point) override;
+    void LeftDown(Point point) override;
     // A row double-clicked is selected (no sound, no drawing) and Connect follows; then the container's handler.
-    void LeftDouble(int buttons, Point point) override;
+    void LeftDouble(Point point) override;
     // The container's handler first; then Enter connects, Esc leaves (as region 1 without the address book), Up / Down / PgUp /
     // PgDn move the selection by 1 / 15 with the select sound (SelectAndScroll); those keys are marked used.
-    void KeyDown(int key, int repeat, int flags) override;
+    void KeyDown(int key, int scan, bool repeat) override;
     // The selection clamped to the list (an empty list gives -1 and reads the entry before it), its address kept, the list
     // scrolled to show it and drawn.
     void SelectAndScroll();
@@ -436,14 +435,14 @@ public:
 class EscMenu : public UiContainer {
 public:
     explicit EscMenu(Interface3D* ui) : UiContainer(ui) {}
-    void MouseMove(int flags, Point point) override;
-    void KeyDown(int key, int repeat, int flags) override;
+    void MouseMove(Point point) override;
+    void KeyDown(int key, int scan, bool repeat) override;
     void MessageResult(int result) override;
     // The stone model and the five regions, whose rectangles come from menus.reg.
     void CreateScreen() override;
     // Opens the save window (region 0), the load window (1; neither in multiplayer), resumes (2), asks to quit (3) or opens the
     // options (4).
-    void LeftDown(int buttons, Point point) override;
+    void LeftDown(Point point) override;
     // The menu closes: its stone model (models[0]) plays animation 0.
     void CloseScreen() override;
 
@@ -493,8 +492,8 @@ public:
 class CreditsScreen : public UiContainer {
 public:
     CreditsScreen(Interface3D* ui, bool fromGame, const char* name);
-    void LeftDown(int flags, Point point) override;
-    void KeyDown(int key, int repeat, int flags) override;
+    void LeftDown(Point point) override;
+    void KeyDown(int key, int scan, bool repeat) override;
     // Ends the titles: back to where they were opened from.
     void Close();
     // Opened in a game (fromGame 0) the loading screen steps and the music stops; the cursor hidden, the
@@ -542,7 +541,7 @@ public:
     // By region: 0 the difficulty question (a message box), 1 load (the save/load window), 2 the exit movie and quit, 3
     // options, 4 the titles (surfaces cleared, opened over the menu), 5 multiplayer (status "reserved_04", the server flag, the
     // hero screen). Then the container's handler.
-    void LeftDown(int buttons, Point point) override;
+    void LeftDown(Point point) override;
     // The interface's saved state cleared, the flow's party step 0, an inert extra input side (UiInertInput),
     // the full-screen rectangle, the version line, the six regions; the default music, the map edge fade kept
     // and set to 6, rain by a coin toss, daylight between 7 and 21, the rain started before 7; the camera
@@ -560,9 +559,9 @@ public:
     void MessageResult(int result) override;
     // Hovering a region plays its stone's animation (regions 0-5: 1, 3, 5, 7, 11, 9; off them the rest pose) with the stone
     // sound, once per region; then the container's handler.
-    void MouseMove(int buttons, Point point) override;
+    void MouseMove(Point point) override;
     // The container's handler, then Esc asks to quit (a message box "quit" / "quit_msg", flags 0x10000).
-    void KeyDown(int key, int repeat, int flags) override;
+    void KeyDown(int key, int scan, bool repeat) override;
 
     int hovered = -1;                     // the region under the mouse (-1 none)
     bool rain = false;
@@ -598,7 +597,7 @@ public:
     // "xch_remote_header" with "xch_remote_ok" / "_cancel"; the accept / take back buttons are shaded by our
     // offer's acceptance and the third button by the partner's; then the children.
     void Draw(SceneRenderer* pass) override;
-    void KeyDown(int key, int repeat, int flags) override;
+    void KeyDown(int key, int scan, bool repeat) override;
     // The children's update; then, when the client's offer is gone or detached, our offer's items go back to
     // the local party and the client returns to the world; else a changed money field (its changed cleared)
     // becomes our offer's money (atoi) and the offer is published.
@@ -607,7 +606,7 @@ public:
     // party, when our offer is live and not accepted and its money is within the local party's; else the
     // cancel sound), 1 take the acceptance back (cancel sound and the recorded take-back, when it is
     // accepted), 2 leave (the transit sound and the recorded leave). The event is not marked used.
-    void LeftDown(int buttons, Point point) override;
+    void LeftDown(Point point) override;
 
     Party* scratch;                 // a party of the screen's own (made by Create, deleted by Close)
     Party* partnerOffer;            // the client's parties[1]

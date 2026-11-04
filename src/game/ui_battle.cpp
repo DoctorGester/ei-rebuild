@@ -222,7 +222,7 @@ void BattleScreen::Draw(SceneRenderer* pass) {
         pass->DrawRectangle(selectionBox.left, selectionBox.top, selectionBox.right,
                                                             selectionBox.bottom, 0x40, 1);
     }
-    Input()->MouseMove(0, g_cursor.position);
+    Input()->MouseMove(g_cursor.position);
     // The depth buffer is cleared before the panels draw.
     ClearUiDepth(1.0f);
     // "nogui" shows or hides the panels (Rebirth's AddNewConsoleCommands).
@@ -689,10 +689,10 @@ bool BattleScreen::PartyIds::Equals(const BattleScreen::PartyIds& other) const {
 
 // --- the battle screen's left button release -----------------------------------------------------
 
-void BattleScreen::LeftUp(int buttons, Point point) {
+void BattleScreen::LeftUp(Point point) {
     if (portraitMode != 0) return;
     if (!viewPressed) {
-        UiContainer::LeftUp(buttons, point);
+        UiContainer::LeftUp(point);
         return;
     }
     viewPressed = false;

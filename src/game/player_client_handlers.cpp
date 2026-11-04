@@ -31,7 +31,6 @@ constexpr int kStateLoggedIn = 2;
 constexpr int kGameStateBetweenZones = 3;
 constexpr std::uint32_t kUnitFlagHidden = 0x10;
 constexpr std::uint32_t kUnitFlagLit = 0x100;
-constexpr int kKeyEnter = 0xD;
 constexpr float kSpecialZoneDistance = 23.0f;
 
 // The zone whose camera placement keeps a fixed view ("gz20g").
@@ -87,7 +86,7 @@ int PlayerClient::OnGameState() {
     int tick;
     in.ReadValue(tick);
     if (localSession) {
-        g_interface.OnKeyDown(-1, kKeyEnter, 0);
+        g_interface.OnKeyDown(-1, 0, false);   // a press of no key (-1, scan code 0), as the original's
         return 1;
     }
     currentPlayer->sessionKind = gameState;

@@ -54,7 +54,7 @@ void ViewScreen::CloseScreen() { g_camera.flags |= Camera::kFree; }
 
 // --- UnitPickInput ------------------------------------------------------------------------------
 
-void UnitPickInput::LeftDown(int, Point point) {
+void UnitPickInput::LeftDown(Point point) {
     WorldClient* world = &g_clientWorld;
     Unit* unit = world->UnitAt2(&point);
     if (!ui->ctrlDown) {
@@ -82,12 +82,12 @@ void UnitPickInput::LeftDown(int, Point point) {
     }
 }
 
-void UnitPickInput::RightDown(int, Point) {
+void UnitPickInput::RightDown(Point) {
     lib::FreeStorage(picked);
     g_clientWorld.Deselect();
 }
 
-void UnitPickInput::KeyDown(int key, int, int) {
+void UnitPickInput::KeyDown(int key, int, bool) {
     if (key == platform::kKeyControl) {
         g_cursor.SetShape(kCursorCtrl);
     } else if (key == platform::kKeySpace) {
@@ -95,6 +95,6 @@ void UnitPickInput::KeyDown(int key, int, int) {
     }
 }
 
-void UnitPickInput::KeyUp(int key, int, int) {
+void UnitPickInput::KeyUp(int key, int) {
     if (key == platform::kKeyControl) g_cursor.SetShape(kCursorNormal);
 }

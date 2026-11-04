@@ -86,50 +86,50 @@ void UiContainer::Deactivate() {
     for (int i = 0; i < std::ssize(self->children); ++i) self->children[i]->Input()->Deactivate();
 }
 
-void UiContainer::LeftDown(int buttons, Point point) {
-    Offer(this, &point, [&](UiInputSide* to) { to->LeftDown(buttons, point); });
+void UiContainer::LeftDown(Point point) {
+    Offer(this, &point, [&](UiInputSide* to) { to->LeftDown(point); });
 }
 
-void UiContainer::LeftUp(int buttons, Point point) {
-    Offer(this, &point, [&](UiInputSide* to) { to->LeftUp(buttons, point); });
+void UiContainer::LeftUp(Point point) {
+    Offer(this, &point, [&](UiInputSide* to) { to->LeftUp(point); });
 }
 
-void UiContainer::MouseMove(int buttons, Point point) {
-    Offer(this, &point, [&](UiInputSide* to) { to->MouseMove(buttons, point); });
+void UiContainer::MouseMove(Point point) {
+    Offer(this, &point, [&](UiInputSide* to) { to->MouseMove(point); });
 }
 
-void UiContainer::RightDown(int buttons, Point point) {
-    Offer(this, &point, [&](UiInputSide* to) { to->RightDown(buttons, point); });
+void UiContainer::RightDown(Point point) {
+    Offer(this, &point, [&](UiInputSide* to) { to->RightDown(point); });
 }
 
-void UiContainer::RightUp(int buttons, Point point) {
-    Offer(this, &point, [&](UiInputSide* to) { to->RightUp(buttons, point); });
+void UiContainer::RightUp(Point point) {
+    Offer(this, &point, [&](UiInputSide* to) { to->RightUp(point); });
 }
 
-void UiContainer::LeftDouble(int buttons, Point point) {
-    Offer(this, &point, [&](UiInputSide* to) { to->LeftDouble(buttons, point); });
+void UiContainer::LeftDouble(Point point) {
+    Offer(this, &point, [&](UiInputSide* to) { to->LeftDouble(point); });
 }
 
-void UiContainer::RightDouble(int buttons, Point point) {
-    Offer(this, &point, [&](UiInputSide* to) { to->RightDouble(buttons, point); });
+void UiContainer::RightDouble(Point point) {
+    Offer(this, &point, [&](UiInputSide* to) { to->RightDouble(point); });
 }
 
 // Key events reach every enabled child, wherever the mouse is.
-void UiContainer::KeyDown(int key, int repeat, int modifiers) {
-    Offer(this, nullptr, [&](UiInputSide* to) { to->KeyDown(key, repeat, modifiers); });
+void UiContainer::KeyDown(int key, int scan, bool repeat) {
+    Offer(this, nullptr, [&](UiInputSide* to) { to->KeyDown(key, scan, repeat); });
 }
 
-void UiContainer::Char(int key, int repeat, int modifiers) {
-    Offer(this, nullptr, [&](UiInputSide* to) { to->Char(key, repeat, modifiers); });
+void UiContainer::Char(int key, int scan) {
+    Offer(this, nullptr, [&](UiInputSide* to) { to->Char(key, scan); });
 }
 
-void UiContainer::KeyUp(int key, int repeat, int modifiers) {
-    Offer(this, nullptr, [&](UiInputSide* to) { to->KeyUp(key, repeat, modifiers); });
+void UiContainer::KeyUp(int key, int scan) {
+    Offer(this, nullptr, [&](UiInputSide* to) { to->KeyUp(key, scan); });
 }
 
 // The children are tested at the position.
-void UiContainer::Wheel(int modifiers, int delta, Point point) {
-    Offer(this, &point, [&](UiInputSide* to) { to->Wheel(modifiers, delta, point); });
+void UiContainer::Wheel(int delta, Point point) {
+    Offer(this, &point, [&](UiInputSide* to) { to->Wheel(delta, point); });
 }
 
 void UiContainer::AddChild(UiWindow* child) {

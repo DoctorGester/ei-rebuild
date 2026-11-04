@@ -85,8 +85,8 @@ void ExchangeScreen::Update() {
 
 // --- the left button -------------------------------------------------------------------------------
 
-void ExchangeScreen::LeftDown(int buttons, Point point) {
-    UiContainer::LeftDown(buttons, point);
+void ExchangeScreen::LeftDown(Point point) {
+    UiContainer::LeftDown(point);
     switch (RegionAt(point)) {
     case kAcceptRegion: {
         net::PartyMessage* offer = LiveOffer();

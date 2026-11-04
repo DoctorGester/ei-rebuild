@@ -11,9 +11,10 @@ each frame, text, the glyph atlas) is ui-native.md.
 wrapping products, truncating division). The WideScreen layout (rebirth.md, "WideScreen"; `screen_layout.h`) keeps the
 800x600 middle and moves the edge panels by `EdgeShift`.
 
-**Screen classes.** Each screen is a `UiWindow` subclass with an input side (`UiInputSide`). Input handlers get (buttons or
-key, x, y) in screen pixels: Deactivate, LeftDown, LeftUp, MouseMove, RightDown / RightUp, LeftDouble / RightDouble,
-KeyDown `(vk, repeat, scan|flags)`, Char, KeyUp, Wheel `(keys, delta, x, y)`. A button-down handler that takes the mouse
+**Screen classes.** Each screen is a `UiWindow` subclass with an input side (`UiInputSide`). Input handlers get the platform's
+event data, the mouse's in screen pixels: Deactivate, LeftDown, LeftUp, MouseMove, RightDown / RightUp, LeftDouble /
+RightDouble `(point)`, KeyDown `(vk, scan, repeat)`, KeyUp `(vk, scan)`, Char `(code point, scan)`, Wheel `(turn, point)`
+(120 a notch, positive away from the player). The key tables are indexed by the scan code (0x100 extended). A button-down handler that takes the mouse
 stores its input side in `Interface3D::mouseCapture`; the button-up handler acts only when the capture is its own and
 clears it; a handler sets `handled` when it used the event, which stops the container passing it on.
 
@@ -334,7 +335,7 @@ F1. `UiEditField::KeyDown` has no scenario that types into one. The titles' RTF 
   `QuickLoad` loads newgame's savea. A save window edits the name; the first edit of an entry other than "saveq" / "savea" /
   "saveb" marks it changed.
 - Key handlers run only when the window is not sliding in, pass the key to the container first and set the input side's
-  handled flag for the keys they use. Options: while a binding row waits, the next scan code (flags & 0x1FF) is looked up in
+  handled flag for the keys they use. Options: while a binding row waits, the next scan code is looked up in
   the key names (88 entries), a key bound to another row asks "key_already_mapped", else CommitBinding and RefreshRows. OK
   only copies the window's table into the key table (Apply); `config\keyboard.ini` ("<key name> <action>" lines) is written
   on the interface's shutdown, so a game that ends without it keeps the remap for that session only. Settings go to the
@@ -700,7 +701,7 @@ unit under the point (any flags) goes to HoverUnit.
 A key pressed (ui_battle_input.cpp; Rebirth's MPSpeedControl behind its flag). While a portrait click picks a player, Esc
 ends that and nothing else happens. On a network client Enter / Backspace go to the chat line and the key is used.
 Otherwise the container's handler first; a key nobody used and not repeating: Esc drops the pending action with every
-panel's highlight, or without one opens the escape menu; any other key by its action (KeyActions, by `flags & 0x1FF`): 1
+panel's highlight, or without one opens the escape menu; any other key by its action (KeyActions, by the scan code): 1
 pause (the clock's sound), 2 / 3 normal / fast speed (not while paused or on a network client: the world's update period 55
 / 27 ms), 4 the objectives window of the player's zone, 0xB the camera follows the first selected member (or nobody), 0xC
 the camera faces north, 0x11..0x16 the order keys (orderKeys), 0x17..0x1A the selected members' movement mode 0..3 and 0x1B

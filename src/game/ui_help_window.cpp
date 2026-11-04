@@ -104,8 +104,8 @@ void HelpWindow::Finish() {
     ui->SetPendingValue(0);
 }
 
-void HelpWindow::LeftDown(int buttons, Point point) {
-    UiContainer::LeftDown(buttons, point);
+void HelpWindow::LeftDown(Point point) {
+    UiContainer::LeftDown(point);
     switch (RegionAt(point)) {
     case 0:
         if (page > 0) {
@@ -129,8 +129,8 @@ void HelpWindow::LeftDown(int buttons, Point point) {
     }
 }
 
-void HelpWindow::KeyDown(int key, int repeat, int modifiers) {
-    UiContainer::KeyDown(key, repeat, modifiers);
+void HelpWindow::KeyDown(int key, int scan, bool repeat) {
+    UiContainer::KeyDown(key, scan, repeat);
     if (key == platform::kKeyReturn && page < static_cast<int>(lines.size()) - 1) {
         ui->PlayInterfaceSound(kNextSound);
         ++page;
@@ -138,7 +138,7 @@ void HelpWindow::KeyDown(int key, int repeat, int modifiers) {
         handled = true;
         return;
     }
-    if (key != platform::kKeyReturn && key != platform::kKeyEscape && g_keyActions[modifiers & 0x1FF] != kHelpAction) return;
+    if (key != platform::kKeyReturn && key != platform::kKeyEscape && g_keyActions[scan] != kHelpAction) return;
     Finish();
     handled = true;
 }

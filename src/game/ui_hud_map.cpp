@@ -246,7 +246,7 @@ void ClipPass(std::vector<Vector2>& points, Cut cut, Outside outside) {
 }
 
 // 2.5^(delta / 1200).
-float WheelZoomFactor(short delta) {
+float WheelZoomFactor(int delta) {
     return lib::Pow(2.5f, static_cast<float>(delta) * 0.00083333335f);
 }
 
@@ -501,11 +501,11 @@ void HudMap::UpdateView() {
 
 // --- The zoom factor ----------------------------------------------------------------------------------
 
-void HudMap::Wheel(int, int delta, Point point) {
+void HudMap::Wheel(int delta, Point point) {
     int region = RegionAt(point);
     if (region < 0) return;
     if (region == 0) {
-        float newZoom = WheelZoomFactor(static_cast<short>(delta)) * zoom;
+        float newZoom = WheelZoomFactor(delta) * zoom;
         zoom = newZoom;
         if (newZoom > zoomMax) zoom = zoomMax;
         zoom = MaxKeepB(zoom, 1.0f);

@@ -69,7 +69,7 @@ void SaveLoadWindow::TakeSelectedTitle() {
     cursor = lib::Count(name);
 }
 
-void SaveLoadWindow::LeftDown(int buttons, Point point) {
+void SaveLoadWindow::LeftDown(Point point) {
     if (sliding) return;
     int region = RegionAt(point);
     switch (region) {
@@ -98,10 +98,10 @@ void SaveLoadWindow::LeftDown(int buttons, Point point) {
         }
         break;
     }
-    UiContainer::LeftDown(buttons, point);
+    UiContainer::LeftDown(point);
 }
 
-void SaveLoadWindow::LeftDouble(int buttons, Point point) {
+void SaveLoadWindow::LeftDouble(Point point) {
     if (sliding) return;
     int region = RegionAt(point);
     if (region >= 3) {
@@ -114,7 +114,7 @@ void SaveLoadWindow::LeftDouble(int buttons, Point point) {
             Confirm();
         }
     }
-    UiContainer::LeftDouble(buttons, point);
+    UiContainer::LeftDouble(point);
 }
 
 void SaveLoadWindow::Draw(SceneRenderer* pass) {
@@ -176,7 +176,7 @@ void OptionsWindow::RestoreSettings() {
     g_sceneRenderer.SetGamma(options::g_options.brightness, options::g_options.gamma);
 }
 
-void OptionsWindow::LeftDown(int buttons, Point point) {
+void OptionsWindow::LeftDown(Point point) {
     if (sliding) return;
     int region = RegionAt(point);
     if (region == 0 || region == 1) {
@@ -206,10 +206,10 @@ void OptionsWindow::LeftDown(int buttons, Point point) {
             }
         }
     }
-    UiContainer::LeftDown(buttons, point);
+    UiContainer::LeftDown(point);
 }
 
-void OptionsWindow::LeftDouble(int buttons, Point point) {
+void OptionsWindow::LeftDouble(Point point) {
     if (sliding) return;
     int region = RegionAt(point);
     if (region >= 13) {
@@ -226,7 +226,7 @@ void OptionsWindow::LeftDouble(int buttons, Point point) {
             RefreshRows();
         }
     }
-    UiContainer::LeftDouble(buttons, point);
+    UiContainer::LeftDouble(point);
 }
 
 void OptionsWindow::Draw(SceneRenderer* pass) {
@@ -342,7 +342,7 @@ void UiScrollbar::Update() {
     if (steps != 0) SetPosition(position + steps);
 }
 
-void UiScrollbar::LeftDown(int, Point point) {
+void UiScrollbar::LeftDown(Point point) {
     ui->ScalePointFromScreen(&point);
     if (thumb.Contains(point)) {
         CaptureMouse();
@@ -360,7 +360,7 @@ void UiScrollbar::LeftDown(int, Point point) {
     handled = true;
 }
 
-void UiScrollbar::LeftUp(int, Point) {
+void UiScrollbar::LeftUp(Point) {
     state = 0;
     ui->mouseCapture = nullptr;
     accumulated = 0.0f;

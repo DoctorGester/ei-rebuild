@@ -97,6 +97,6 @@ OnNewObject leaves an object it cannot read made and unreleased.
   The settings the modern renderer made fixed (C81) are constants in options.h: the lights, the fog distances, the
   wind, the clock's scale, the lighting coefficient.
 - The input dispatcher logs every system key's release (Alt without Ctrl, or F10: "<key>:<lParam>", the original's
-  message data) and turns Alt+Tab into a deactivation; the interface's key flags are sign-extended (`platform.md`,
-  "Window and events").
+  message data, signed: F10's "121:-1069285375") and turns Alt+Tab into a deactivation (`platform.md`, "Window and
+  events").
 - Item's base slots 17-20 return an empty text, 21 zeroes the caller's ItemUse (every class but the quest item).

@@ -379,7 +379,7 @@ void TradePanel::ClampScroll() {
 
 // --- The left button (input click) ---------------------------------------------------------------------
 
-void TradePanel::LeftDown(int, Point point) {
+void TradePanel::LeftDown(Point point) {
     int region = RegionAt(point);
     switch (region) {
     case kHeldUp: --perkTop; ClampScroll(); return;
@@ -430,7 +430,7 @@ void TradePanel::LeftDown(int, Point point) {
 
 // --- The left button released (input release) -----------------------------------------------------------
 
-void TradePanel::LeftUp(int, Point) {
+void TradePanel::LeftUp(Point) {
     ui->mouseCapture = nullptr;
     heldRegion = -1;
     holdTicks = 0;

@@ -254,8 +254,8 @@ public:
     void Describe(Item* item);
     // Ctrl (platform::kKeyControl) pressed (not a repeat) or released redraws the described item, so that the
     // carried spell is shown while it is held.
-    void KeyDown(int key, int repeat, int flags) override;
-    void KeyUp(int key, int repeat, int flags) override;
+    void KeyDown(int key, int scan, bool repeat) override;
+    void KeyUp(int key, int scan) override;
     // Draws the described item's model at (x + 100, y + 200), size 120, greyed (mode 9) through the owner's DrawItem.
     void Draw(SceneRenderer* pass) override;
     // Builds the panel at layout point (x, y): its 200 x 300 surface (format 5), the item texts

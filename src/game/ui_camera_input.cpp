@@ -50,12 +50,10 @@ int EdgeCursor(unsigned edges) {
     }
 }
 
-constexpr int kScanCodeMask = 0x1FF;
-
 } // namespace
 
-void CameraInput::KeyUp(int, int, int flags) {
-    switch (g_keyActions[flags & kScanCodeMask]) {
+void CameraInput::KeyUp(int, int scan) {
+    switch (g_keyActions[scan]) {
     case 5:
     case 6:
         x = 0.0f;
@@ -93,7 +91,7 @@ void CameraInput::KeyUp(int, int, int flags) {
     camera->SetTiltRate(KeyboardSpeed(options::g_options.cameraPitch) * x);
 }
 
-void CameraInput::RightDown(int, Point at) {
+void CameraInput::RightDown(Point at) {
     pressScreen = at;
     pressLayout = at;
     turning = true;
@@ -102,7 +100,7 @@ void CameraInput::RightDown(int, Point at) {
     handled = true;
 }
 
-void CameraInput::RightUp(int, Point) {
+void CameraInput::RightUp(Point) {
     turning = false;
     Camera* camera = &g_camera;
     camera->SetTurnRate(0.0f);
@@ -115,7 +113,7 @@ void CameraInput::RightUp(int, Point) {
     handled = true;
 }
 
-void CameraInput::MouseMove(int, Point at) {
+void CameraInput::MouseMove(Point at) {
     Camera* camera = &g_camera;
     if (turning) {
         Point point = at;
@@ -199,9 +197,8 @@ void CameraInput::Deactivate() {
     g_camera.StopMotion();
 }
 
-void CameraInput::Wheel(int, int delta, Point) {
-    int steps = static_cast<short>(delta);
-    g_camera.ZoomBy(MouseSpeed(options::g_options.cameraZoom) * static_cast<float>(steps) * kWheelStep);
+void CameraInput::Wheel(int delta, Point) {
+    g_camera.ZoomBy(MouseSpeed(options::g_options.cameraZoom) * static_cast<float>(delta) * kWheelStep);
 }
 
 // --- Ui camera keys ----------------------------------------------------------------------------------
@@ -213,8 +210,8 @@ void CameraInput::Wheel(int, int delta, Point) {
 // or Alt held: interface +0x7C / +0x7E). While a direction is held, the camera pans (or with
 // a modifier turns and tilts) at the option speeds.
 
-void CameraInput::KeyDown(int, int, int flags) {
-    int character = g_keyActions[flags & 0x1FF];
+void CameraInput::KeyDown(int, int scan, bool) {
+    int character = g_keyActions[scan];
     switch (character) {
     case 5: x = 1.0f; handled = true; break;
     case 6: x = -1.0f; handled = true; break;

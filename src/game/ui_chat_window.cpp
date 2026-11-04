@@ -210,7 +210,7 @@ void ChatWindow::PaintStatus(UiSurface& surface) const {
 
 // --- the input side's left button and mouse move -------------------------------------------------
 
-void ChatWindow::LeftDown(int, Point point) {
+void ChatWindow::LeftDown(Point point) {
     int index = RegionAt(point);
     if (index < 0 || static_cast<unsigned>(index) >= players.size()) return;
     handled = true;
@@ -240,7 +240,7 @@ void ChatWindow::LeftDown(int, Point point) {
     client->StartParty(player);
 }
 
-void ChatWindow::MouseMove(int, Point point) {
+void ChatWindow::MouseMove(Point point) {
     int index = RegionAt(point);
     int pick = ui->ActiveWindowAs<BriefingScreen>()->chatActive;
     if (pick != 0 && index >= 0 && static_cast<unsigned>(index) < players.size()) g_cursor.SetShape(0);

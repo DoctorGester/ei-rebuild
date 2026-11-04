@@ -53,8 +53,8 @@ constexpr float kAlphaScale = 255.0f;
 
 } // namespace
 
-void ObjectivesWindow::LeftDown(int buttons, Point point) {
-    UiContainer::LeftDown(buttons, point);
+void ObjectivesWindow::LeftDown(Point point) {
+    UiContainer::LeftDown(point);
     int region = RegionAt(point);
     std::uint32_t zoneCount = static_cast<std::uint32_t>(zones.end() - zones.begin());
     switch (region) {
@@ -109,8 +109,8 @@ void ObjectivesWindow::LeftDown(int buttons, Point point) {
     ui->PlayInterfaceSound(kCancelSound);
 }
 
-void ObjectivesWindow::KeyDown(int key, int repeat, int modifiers) {
-    UiContainer::KeyDown(key, repeat, modifiers);
+void ObjectivesWindow::KeyDown(int key, int scan, bool repeat) {
+    UiContainer::KeyDown(key, scan, repeat);
     int step = 0;
     switch (key) {
     case kKeyEnter:
@@ -142,7 +142,7 @@ void ObjectivesWindow::KeyDown(int key, int repeat, int modifiers) {
         RefreshQuests();
         handled = true;
     }
-    if (!handled && g_keyActions[modifiers & 0x1FF] == kActionObjectives && !twoButtons) {
+    if (!handled && g_keyActions[scan] == kActionObjectives && !twoButtons) {
         ui->PlayInterfaceSound(kMessageOkSound);
         ui->SetPendingValue(0);
     }

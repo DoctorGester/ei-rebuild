@@ -39,66 +39,65 @@ UiInputSide* Interface3D::MouseTarget() const {
 }
 
 namespace {
-constexpr int kScanMask = 0x1FF;
 constexpr int kScanConsoleKey = 0x29;   // the key under Esc (the console's)
 constexpr int kCursorWait = 3;
 
 } // namespace
 
-void Interface3D::OnLeftDown(int buttons, Point point) {
+void Interface3D::OnLeftDown(Point point) {
     doubleClick = false;
-    if (UiInputSide* target = MouseTarget()) target->LeftDown(buttons, point);
+    if (UiInputSide* target = MouseTarget()) target->LeftDown(point);
 }
 
-void Interface3D::OnLeftUp(int buttons, Point point) {
-    if (UiInputSide* target = MouseTarget()) target->LeftUp(buttons, point);
+void Interface3D::OnLeftUp(Point point) {
+    if (UiInputSide* target = MouseTarget()) target->LeftUp(point);
     doubleClick = false;
 }
 
-void Interface3D::OnMouseMove(int buttons, Point point) {
-    if (UiInputSide* target = MouseTarget()) target->MouseMove(buttons, point);
+void Interface3D::OnMouseMove(Point point) {
+    if (UiInputSide* target = MouseTarget()) target->MouseMove(point);
 }
 
-void Interface3D::OnRightDown(int buttons, Point point) {
+void Interface3D::OnRightDown(Point point) {
     rightDown = true;
-    if (UiInputSide* target = MouseTarget()) target->RightDown(buttons, point);
+    if (UiInputSide* target = MouseTarget()) target->RightDown(point);
 }
 
-void Interface3D::OnRightUp(int buttons, Point point) {
+void Interface3D::OnRightUp(Point point) {
     rightDown = false;
-    if (UiInputSide* target = MouseTarget()) target->RightUp(buttons, point);
+    if (UiInputSide* target = MouseTarget()) target->RightUp(point);
 }
 
-void Interface3D::OnLeftDouble(int buttons, Point point) {
+void Interface3D::OnLeftDouble(Point point) {
     doubleClick = true;
-    if (UiInputSide* target = MouseTarget()) target->LeftDouble(buttons, point);
+    if (UiInputSide* target = MouseTarget()) target->LeftDouble(point);
 }
 
-void Interface3D::OnRightDouble(int buttons, Point point) {
+void Interface3D::OnRightDouble(Point point) {
     rightDown = true;
-    if (UiInputSide* target = MouseTarget()) target->RightDouble(buttons, point);
+    if (UiInputSide* target = MouseTarget()) target->RightDouble(point);
 }
 
-void Interface3D::OnWheel(int flags, int delta, Point point) {
-    if (UiInputSide* target = MouseTarget()) target->Wheel(flags, delta, point);
+void Interface3D::OnWheel(int delta, Point point) {
+    if (UiInputSide* target = MouseTarget()) target->Wheel(delta, point);
 }
 
 // --- Keys ------------------------------------------------------------------
 
-void Interface3D::OnChar(int key, int repeat, int flags) {
-    if ((flags & kScanMask) == kScanConsoleKey) return;
+void Interface3D::OnChar(int key, int scan) {
+    if (scan == kScanConsoleKey) return;
     if (console->shown) {
-        static_cast<console::ConsoleWindow*>(console)->OnChar(key, repeat, flags);
+        static_cast<console::ConsoleWindow*>(console)->OnChar(key, scan);
         return;
     }
     if (IsMultiplayerClient() && root->chatOpen) {
-        root->Input()->Char(key, repeat, flags);
+        root->Input()->Char(key, scan);
         return;
     }
-    if (!stack.empty()) stack.back()->Input()->Char(key, repeat, flags);
+    if (!stack.empty()) stack.back()->Input()->Char(key, scan);
 }
 
-void Interface3D::OnKeyUp(int key, int repeat, int flags) {
+void Interface3D::OnKeyUp(int key, int scan) {
     if (key == platform::kKeyShift)
         shiftDown = 0;
     else if (key == platform::kKeyControl)
@@ -106,13 +105,13 @@ void Interface3D::OnKeyUp(int key, int repeat, int flags) {
     else if (key == platform::kKeyMenu)
         altDown = false;
     if (console->shown) {
-        console->OnKeyUp(key, repeat, flags);
+        console->OnKeyUp(key, scan);
         return;
     }
-    if (!stack.empty()) stack.back()->Input()->KeyUp(key, repeat, flags);
+    if (!stack.empty()) stack.back()->Input()->KeyUp(key, scan);
 }
 
-void console::ConsoleWindow::OnKeyUp(int key, int, int) {
+void console::ConsoleWindow::OnKeyUp(int key, int) {
     if (key == platform::kKeyShift)
         shift = false;
     else if (key == platform::kKeyControl)

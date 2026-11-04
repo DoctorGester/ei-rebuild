@@ -181,10 +181,10 @@ window (gpu.h's `ClaimWindow`; the NativeWindow the game holds is `SDL_PROP_WIND
   queued by NextEvent as the harness's TranslateMessage posted it, the focus changes only the harness's focus steps
   make (queued ahead of the waiting input, as Windows told the game at once), its message box answers, and the harness's clocks, date and mouse position (harness_clock.h's virtual
   and held clocks and fixed date, harness.cpp's own mouse). The backend is SDL and
-  the harness's own system layer (tests/verify/system), the same on both systems. Its steps still speak
-  window messages (harness_input.h's own numbers); harness_input.cpp makes each into the platform's event (a key
-  message's data its scan code and Alt, a double click's message a press with two clicks, a character its UTF-8 text),
-  so the games see what they saw on the window-procedure path (gone with DirectInput: PL12). SDL's translation of real
+  the harness's own system layer (tests/verify/system), the same on both systems. Its steps queue the
+  platform's events (harness_input.h: a key with its scan code, Alt's own key holding Alt, a character as UTF-8 text
+  with its key's scan code, a double click's second press with two clicks, the wheel's turn), as the games saw them
+  on the window-procedure path (gone with DirectInput: PL12). SDL's translation of real
   input is checked by tools/input_check against Windows' layouts.
 - What stays Windows in every build: the other game window (FindWindowW on the class name, which SDL_RegisterApp
   gives SDL's window class: "EIGAME"), the key names and keyboard layouts, the paths (SDL's pref path is the roaming
@@ -242,11 +242,10 @@ What SDL's backend does (platform_sdl.cpp):
   interface; the focus and the close request go on to `app::HandleWindowEvent` without the interface's close-all) or
   `app::HandleWindowEvent`. `PumpMessages` takes events with `TakeEvent` and gives them to HandleWindowEvent (input
   dropped); the movie loop takes Escape and Space and gives the rest to HandleWindowEvent.
-- app.cpp's dispatcher makes the interface's arguments of an event (the interface still takes the original's message
-  data): the key flags from the scan code, Alt, the repeat and the release (`KeyFlags`), the system keys (Alt without
-  Ctrl, or F10: Alt+F4 quits, a release is printed to the console, Alt+Tab deactivates), each character of a Text
-  event with its scan code, a press with an even click count as a double click, the wheel as 120 a notch; the mouse
-  buttons' argument is 0 (the interface reads it nowhere).
+- app.cpp's dispatcher hands the interface an event's own data: a key's code, scan code and repeat, the system keys
+  (Alt without Ctrl, or F10: Alt+F4 quits, a release is printed to the console with the original's message data,
+  Alt+Tab deactivates), each character of a Text event with its scan code, a press with an even click count as a
+  double click, the mouse's position, the wheel's turn signed at 120 a notch.
 - **Mouse positions in game points.** The game takes its mouse positions as screen coordinates of a window at 0, 0 the
   size of its resolution: the cursor position (the cursor, the global map) is read and placed without converting, mouse
   events come in the window's pixels. The window is anywhere (windowed it is

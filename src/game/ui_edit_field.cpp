@@ -47,7 +47,7 @@ std::uint32_t CharClass(int key) {
 
 } // namespace
 
-void UiEditField::KeyDown(int key, int, int) {
+void UiEditField::KeyDown(int key, int, bool) {
     if (!focused) return;
     auto& currentText = text;
     switch (key) {
@@ -119,7 +119,7 @@ UiEditField::UiEditField(Interface3D* ownerUi, Rect rect) : UiWindow(ownerUi) {
     focused = true;
 }
 
-void UiEditField::Char(int key, int, int) {
+void UiEditField::Char(int key, int) {
     if (!focused) return;
     if (key == kKeyBackspace || key == kKeyTab || key == kKeyEnter || key == kKeyEscape) return;
     if (ui->ctrlDown) return;
