@@ -972,7 +972,7 @@ public:
     // copy's text, which shares the element's buffer).
     const char* ExitTarget(int index);
     void RemoveUnitsOf(const std::vector<PartyUnitRecord*>* records);
-    int SendPause(int value);
+    void SendPause(int value);
     // The camera looks at the point (x, y) at its own focus height, with its view applied and kept above
     // the objects.
     void CentreOn(const Vector3& point);
@@ -1263,7 +1263,7 @@ extern SavedParties g_savedParties;
 // The party of the record kept outside a running game (the multiplayer hero).
 inline Party* GlobalParty() { return g_savedParties.outsideGame.GetParty(); }
 
-int RequestZone(std::string_view zone, int entrance);
+void RequestZone(std::string_view zone, int entrance);
 
 // With the briefing texts loaded: every quest text file loaded so far (g_questFiles) is unloaded and
 // the list emptied.
