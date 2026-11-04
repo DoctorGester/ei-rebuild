@@ -40,6 +40,8 @@ public:
     void MouseMove(Point point) override;
     // The input loses the screen: no turning, the axes cleared, the cursor let go and the camera stopped.
     void Deactivate() override;
+    // Whether the mouse pans the camera at the screen's edges: the border scroll area is above 0.
+    bool PansAtEdges() const override { return options::g_options.cameraBorderScrollArea > 0; }
     // The wheel zooms the camera by the zoom speed * (the delta's low word) * the step size.
     void Wheel(int delta, Point point) override;
 

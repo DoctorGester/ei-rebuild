@@ -12,7 +12,6 @@ GameOptions::GameOptions() {
     resolutionY = 600;
     fullScreen = 1;
     video = 0;
-    confineCursor = 0;
     audio = 1;
     audioStreaming = 100;
     audioSfx = 100;

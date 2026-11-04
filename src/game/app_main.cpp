@@ -360,6 +360,7 @@ constexpr int kRecordedFramesPerSecond = 15;
 bool RunPass() {
     TakeActivationChange();
     TakeResolutionChange();
+    UpdateCursorConfinement();
     std::uint32_t elapsed = TimeSinceLastPass();
     if (!(g_sceneRenderer.flags & 1)) {
         GuardPlayerData(0);

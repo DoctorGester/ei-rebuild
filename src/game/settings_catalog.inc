@@ -30,9 +30,6 @@ EI_SETTING(kVideo, "Brightness", "0", "-1 .. 1",
 EI_SETTING(kVideo, "Gamma", "0", "-1 .. 1",
            "Above 0 lightens the mid-tones, below 0 darkens them (black and white stay); 0 leaves the picture as "
            "it is.")
-EI_SETTING(kVideo, "ConfineCursor", "false", "true / false",
-           "Keeps the cursor inside the game's window while it is the active one (the options' display group sets "
-           "it). The cursor is let go when the window loses the focus.")
 
 // [sound]
 EI_SETTING(kSound, "Audio", "true", "true / false",

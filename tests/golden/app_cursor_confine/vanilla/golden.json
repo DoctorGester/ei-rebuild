@@ -1,0 +1,13 @@
+{
+  "scenario": "app_cursor_confine",
+  "install": "vanilla",
+  "recorded": "2026-11-04",
+  "commit": "84adb7d9d",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "New scenario: the cursor confined while the camera's edge pan is available (R15b), replacing ui_options_confine",
+  "source": "image",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
+}

@@ -444,12 +444,15 @@ passed on and is logged ("input: a press outside the picture ignored"), its rele
 `Interface3D::PictureRect`: the screen less the letterbox bars while `ScreenFade::letterbox` is set (nothing in the
 game sets it). A window narrower than 4:3 has the world over its whole height.
 
-The options' display group's next row (setting 22, ours) is "confine the cursor" (a spin on / off, default off, saved as
-[video] ConfineCursor and read and written only where the cursor can really be grabbed, not in the harness): OK calls
-`app::UpdateCursorConfinement`, which asks `platform::ConfineCursor` (SDL_SetWindowMouseGrab) while the option is on and
-the game's window is the active one, and lets go when it loses the focus, is minimised or the option is turned off; at the
-focus loss with the option on the input is reset too (`Interface3D::ResetInput`), so an edge pan the last mouse motion
-started does not go on for a cursor outside the window. Scenario `ui_options_confine`.
+**The cursor is confined whenever the edge pan is available** (no option; a stale `ConfineCursor` line in
+ei_settings.ini is ignored). `app::UpdateCursorConfinement`, run every main loop pass and at the window's focus
+changes, asks `platform::ConfineCursor` (SDL_SetWindowMouseGrab) while the game's window is the active one and
+`Interface3D::EdgePanLive` says the top window has an input side that pans at the edges (`UiInputSide::PansAtEdges`:
+the `CameraInput` of the battle, briefing and view screens with the border scroll area above 0). The main menu, the
+escape menu and the modal windows are other top windows, so the cursor is free there; it is let go too when the window
+loses the focus or is minimised, and at the focus loss the input is reset (`Interface3D::ResetInput`), so an edge pan
+the last mouse motion started does not go on for a cursor outside the window. Scenario `app_cursor_confine` (the
+harness's `logmark` / `expectnewlog` / `expectnonewlog` look at the log after the last mark).
 
 Scenarios: `render_options_resolution` (zone1 windowed at 800x600: 1280x720 and then 1280x1024 picked in the options
 from the Esc menu), `render_resize_windows` (the Esc menu, the save window, the objectives, a zone tutorial, the camp's

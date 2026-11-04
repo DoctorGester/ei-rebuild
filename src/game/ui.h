@@ -214,6 +214,9 @@ public:
     // Where the game's picture is on the screen: the whole screen, less the letterbox bars while they are shown.
     // Presses outside it are not passed on (app.cpp's input dispatch) and the camera's edge pan works at its edges.
     Rect PictureRect() const;
+    // Whether the top window's camera input pans at the picture's edges now (the world view is up, not a menu, the
+    // escape menu or a modal window, and the border scroll area is above 0): app::UpdateCursorConfinement's condition.
+    bool EdgePanLive() const;
 
     int width = 0;                   // screen width
     int height = 0;                  // screen height
@@ -469,6 +472,8 @@ struct UiInputSide {
     virtual void Char(int, int) {}
     virtual void KeyUp(int, int) {}
     virtual void Wheel(int delta, Point point);
+    // Whether the side pans the camera at the screen's edges (CameraInput with the border scroll area above 0).
+    virtual bool PansAtEdges() const { return false; }
 
     Interface3D* ui;
     bool handled;                    // set by a handler that used the event
@@ -1648,7 +1653,7 @@ struct OptionDefinition {
     int group;                       // the option group (0-10) it is shown in
     int row;                         // its row there
 };
-constexpr int kOptionDefinitionCount = 23;
+constexpr int kOptionDefinitionCount = 22;
 
 struct ActionDefinition {
     int id;                          // the action (the key code in the key table)

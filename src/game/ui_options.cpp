@@ -50,7 +50,6 @@ constexpr int kHighlightSprite = 2;     // scene object 2: the selected row's hi
 constexpr int kFirstGroupSprite = 3;    // scene objects 3-13: the group buttons
 constexpr int kDifficultySetting = 20;  // its spin control says hard / easy
 constexpr int kResolutionSetting = 21;
-constexpr int kConfineSetting = 22;     // the cursor kept in the window (app::UpdateCursorConfinement)
 constexpr int kSliderKind = 0;
 constexpr int kSpinKind = 1;
 constexpr int kResolutionKind = 2;
@@ -90,7 +89,6 @@ constexpr OptionDefinition kOptionDefinitions[kOptionDefinitionCount] = {
     {19, "reverse_stereo", 1, 2, 1, 4},
     {20, "difficulty", 1, 2, 3, 0},
     {21, "resolution", 2, 0, 0, 9},   // ours: the rendering resolution (app::ChooseResolution)
-    {22, "confine_cursor", 1, 2, 0, 10},   // ours: the cursor confined to the window
 };
 
 // The texts of what the rebuild adds to the options, which the game's texts lack: in Russian where the game's are
@@ -103,8 +101,6 @@ struct AddedText {
 constexpr AddedText kAddedTexts[] = {
     {"option_resolution", "Разрешение", "Resolution"},
     {"tip option_resolution", "Размер изображения игры", "The size of the game's picture"},
-    {"option_confine_cursor", "Курсор в окне", "Confine cursor"},
-    {"tip option_confine_cursor", "Курсор не выходит за пределы окна игры", "The cursor stays inside the game's window"},
 };
 
 std::optional<std::string> FindAddedText(std::string_view key) {
@@ -373,7 +369,6 @@ void OptionsWindow::LoadSettings() {
     s[10].value = static_cast<int>((options::g_options.brightness + one) * fromStep);
     s[11].value = static_cast<int>((options::g_options.gamma + one) * fromStep);
     s[20].value = options::g_options.difficulty;
-    s[kConfineSetting].value = options::g_options.confineCursor;
     s[kResolutionSetting].value = static_cast<int>(
         std::find(resolutions.begin(), resolutions.end(), ScreenSize()) - resolutions.begin());
 
@@ -425,8 +420,6 @@ void OptionsWindow::Apply() {
     if (shadowsChanged) g_clientWorld.DropShadows();
     if (const Size chosen = resolutions[s[kResolutionSetting].value]; chosen != ScreenSize())
         app::ChooseResolution(chosen.w, chosen.h);
-    options::g_options.confineCursor = s[kConfineSetting].value;
-    app::UpdateCursorConfinement();
 }
 
 // --- The slider's virtual ------------------------------------------------------------------

@@ -234,9 +234,9 @@ What SDL's backend does (platform_sdl.cpp):
   `SDL_ShowCursor`, hidden with `SDL_HideCursor` (null shape). The position is `SDL_GetGlobalMouseState`, placed with
   `SDL_WarpMouseGlobal`. `HoldCursor`: the window in relative mode with a one-pixel mouse rectangle at the point (the
   hints keep the cursor visible there, not centred, the motion scaled as the pointer's; the motion's fractions are
-  carried to the next event); `ConfineCursor`: `SDL_SetWindowMouseGrab` (the harness's backend only logs the request and
-  `CursorConfinementSupported` is false there, so the option is neither read nor written in a harness run; the game asks
-  at the option's changes and the focus's, app_confine.cpp); `SetCursorPosition` lets it go before it warps, since SDL puts the pointer back where its
+  carried to the next event); `ConfineCursor`: `SDL_SetWindowMouseGrab` (the harness's backend only logs the request; the game
+  asks every main loop pass and at the focus's changes, when the answer changed, app_confine.cpp: there is no option,
+  the cursor is confined while the window is active and the camera's edge pan is available); `SetCursorPosition` lets it go before it warps, since SDL puts the pointer back where its
   motion went when relative mode ends.
 - **The clocks**: both are `SDL_GetTicks` plus a day (`kClockStart`), so no read is near 0 (the game keeps 0 as
   "never" in times it compares with them, and the original ran on machines that had been up for a while).

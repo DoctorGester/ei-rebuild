@@ -1,0 +1,81 @@
+# R15b: the cursor is confined to the window whenever the camera's edge pan is available (app::UpdateCursorConfinement;
+# docs/notes/platform.md, "The cursor"): the window is active, the world view is the top window (Interface3D::
+# EdgePanLive) and the border scroll area (the camera group's slider, row 2) is above 0. There is no option for it. The
+# harness's backend only logs the requests; the real grab never runs here. The harness's border scroll area is 1.
+# Free in the main menu and its options, the Esc menu, after the focus is lost; confined again at the focus back and
+# when the Esc menu closes; free with the border scroll area 0 and confined again with it back at 1.
+timeout 60
+resolution 800x600
+fullscreen 0
+reject Script error
+waitmenu
+logmark
+
+# The main menu and its options: no world view, no confinement.
+clickregion 3
+waitwindow 10 options
+frames 3
+clickregion 1
+waitwindow 10 menu
+frames 3
+expectnonewlog app: cursor confined to the window
+
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+move 400 300
+frames 5
+expectnewlog app: cursor confined to the window
+expectlog platform: cursor confinement on
+
+# The Esc menu is the top window: free; closed, confined again.
+key esc
+waitwindow 10 escmenu
+frames 3
+expectnewlog app: cursor released from the window
+key esc
+waitwindow 10 battle
+frames 3
+expectnewlog app: cursor confined to the window
+
+# The focus lost lets it go (and an edge pan stop); back, confined again.
+focus off
+frames 5
+expectnewlog app: cursor released from the window
+focus on
+frames 5
+expectnewlog app: cursor confined to the window
+
+# The border scroll area 0 (the Esc menu's options, the camera group, row 2's slider one step down; OK closes the Esc
+# menu too): no edge pan, so no confinement.
+key esc
+waitwindow 10 escmenu
+clickregion 4
+waitwindow 10 options
+clickregion 4
+clickregion 15
+key left
+frames 3
+clickregion 0
+waitwindow 10 battle
+frames 5
+expectnewlog app: cursor released from the window
+expectnonewlog app: cursor confined to the window
+
+# And one step up again: confined.
+key esc
+waitwindow 10 escmenu
+clickregion 4
+waitwindow 10 options
+clickregion 4
+clickregion 15
+key right
+frames 3
+clickregion 0
+waitwindow 10 battle
+frames 5
+expectnewlog app: cursor confined to the window
+report
+quit

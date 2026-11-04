@@ -395,7 +395,6 @@ std::vector<Size> DisplaySizes(NativeWindow) {
 }
 
 // No grab in a harness run (it would hold the user's cursor): the request is logged.
-bool CursorConfinementSupported() { return false; }
 
 void ConfineCursor(NativeWindow, bool confined) {
     ei::Log("platform: cursor confinement %s (not grabbed in the harness)", confined ? "on" : "off");

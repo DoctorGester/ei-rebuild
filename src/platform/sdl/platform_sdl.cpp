@@ -348,7 +348,6 @@ std::vector<Size> DisplaySizes(NativeWindow window) {
     return ChooseSizes(std::move(modes), pixels(*desktop));
 }
 
-bool CursorConfinementSupported() { return true; }
 
 void ConfineCursor(NativeWindow window, bool confined) {
     if (SDL_Window* w = WindowOf(window)) SDL_SetWindowMouseGrab(w, confined);

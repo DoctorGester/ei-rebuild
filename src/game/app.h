@@ -78,10 +78,11 @@ void RequestResolution(int width, int height);
 void ChooseResolution(int width, int height);
 // At a main loop pass's start: the requested resolution taken.
 void TakeResolutionChange();
-// The cursor confined to the window (platform::ConfineCursor) while the option is on (GameOptions::confineCursor, the
-// options' display group; off by default) and the game's window is the active one; asked again at each change of the
-// option and of the window's focus. The pan at the screen's edge is stopped when the window loses the focus, so the
-// camera never pans for a cursor that is outside.
+// The cursor confined to the window (platform::ConfineCursor) while the game's window is the active one and the camera
+// pans at the screen's edges (Interface3D::EdgePanLive: the world view is up and the border scroll area is above 0);
+// free in the menus, the escape menu and the modal windows. Asked at each main loop pass and at the window's focus
+// changes; the request goes to the platform only when the answer changes. The pan at the screen's edge is stopped when
+// the window loses the focus, so the camera never pans for a cursor that is outside.
 void UpdateCursorConfinement();
 // main's first step: SDL's video up and the renderer's device started on its thread, so that most of the device's time
 // passes while GameMain starts up.
