@@ -84,7 +84,7 @@ struct FreedId {
 
 // An object received from the peer (the value of records): its share (copied with Share, released as its owner).
 struct Record {
-    SharedRef<RefObject> object;
+    SharedRef<Message> object;
     std::uint32_t version = 0;   // the version last applied
 };
 
@@ -116,7 +116,7 @@ public:
     void WriteObjectRef(BufferCursor* cursor, RefObject* object);
     // Reads such a reference: the peer's replicated object (created from the type's factory when missing or
     // detached) or one this side sent; null for none.
-    RefObject* ReadObjectRef(BufferCursor* cursor);
+    Message* ReadObjectRef(BufferCursor* cursor);
     // Writes the acknowledgements: the last sequence received and a mask of the 32 before it; forgets
     // sequences more than 32 old.
     void WriteAcks(std::uint8_t** p);

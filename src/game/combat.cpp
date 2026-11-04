@@ -154,7 +154,8 @@ void UnitServer::GetDamageByType(DamageWords* out) {
     Unit* self = unit;
     ItemWeapon* weapon;
     if (self->player && self->activeWeapon < 4 &&
-        (weapon = AsWeapon(self->weapons[self->activeWeapon])) != nullptr) {
+        self->weapons[self->activeWeapon] &&
+        (weapon = self->weapons[self->activeWeapon]->AsWeapon()) != nullptr) {
         float total = weapon->damageSpread + weapon->damage;
         float scale = ScaleDamageByEffects(self, total);   // (not read)
         float weights[7];
@@ -447,7 +448,8 @@ void UnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, cha
     std::memset(out, 0, sizeof(DamageInfo));
     out->multiplier = 1.0f;
     ItemWeapon* weapon = nullptr;
-    if (keyed && self->activeWeapon < 4) weapon = AsWeapon(self->weapons[self->activeWeapon]);
+    if (keyed && self->activeWeapon < 4 && self->weapons[self->activeWeapon])
+        weapon = self->weapons[self->activeWeapon]->AsWeapon();
     if (weapon) {
         weapon->GetDamageTypes(out->typeWeights);
         out->weaponValue = weapon->actionValue;

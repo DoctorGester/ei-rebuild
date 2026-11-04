@@ -18,6 +18,8 @@ namespace net {
 
 class BindingMessage;
 class FileMessage;
+class FileChunkMessage;
+class PartyMemberMessage;
 class PlayerMessage;
 
 // ---- Client to server ---------------------------------------------------------------------------
@@ -88,26 +90,12 @@ public:
     std::string text;
 };
 
-// Two counted pointers; only the first is sent. The base of BindingMessage and
-// FileRequestMessage, which differ only in their classes and the names of the pointers.
-class PairMessage : public Message {
-public:
-    Ref<RefObject> first{};
-    Ref<Connection> second{};    // the connection on the server (not sent)
-
-protected:
-    PairMessage();
-    ~PairMessage() override;
-    void WriteFirst(BufferCursor* cursor);
-    void ReadFirst(BufferCursor* cursor);
-};
-
-// Type 13: a client's request for a shared file (first the file message, second the
-// requesting connection on the server).
-class FileRequestMessage final : public PairMessage {
+// Type 13: a client's request for a shared file: the file message (sent) and the requesting connection on the
+// server.
+class FileRequestMessage final : public Message {
 public:
     FileRequestMessage();
-    ~FileRequestMessage() override {}
+    ~FileRequestMessage() override;
 
     void OnShutdown() override;
     void Write(BufferCursor* cursor) override;
@@ -115,8 +103,8 @@ public:
 
     static Message* Create();
 
-    Ref<RefObject>& FileRef() { return first; }
-    Ref<Connection>& ConnectionRef() { return second; }
+    Ref<FileMessage> file{};
+    Ref<Connection> connection{};    // not sent
 };
 
 // Type 15: a trade offer, the party a player offers to a partner.
@@ -131,7 +119,7 @@ public:
 
     static Message* Create();
 
-    std::vector<HeldRef<RefObject>> members;               // PartyMemberMessages
+    std::vector<HeldRef<PartyMemberMessage>> members;
     std::uint32_t money = 0;         // the offered party's money (Party::Money)
     std::uint8_t accepted = 0;       // the partner's offer is accepted
     std::uint32_t acceptedRevision = 0;    // the partner's revision accepted
@@ -213,11 +201,11 @@ public:
     std::string zone;
 };
 
-// Type 4: binds a player record (first) to its connection (second, not sent).
-class BindingMessage final : public PairMessage {
+// Type 4: binds a player record (sent) to its connection on the server.
+class BindingMessage final : public Message {
 public:
     BindingMessage();
-    ~BindingMessage() override {}
+    ~BindingMessage() override;
 
     void OnShutdown() override;
     void Write(BufferCursor* cursor) override;
@@ -225,9 +213,8 @@ public:
 
     static Message* Create();
 
-    Ref<RefObject>& PlayerRef() { return first; }
-    Ref<Connection>& ConnectionRef() { return second; }
-    PlayerMessage* PlayerInfo() const { return static_cast<PlayerMessage*>(first.Get()); }
+    Ref<PlayerMessage> player{};
+    Ref<Connection> connection{};    // not sent
 };
 
 // Type 8: a zone the host may pick next.
@@ -288,7 +275,7 @@ public:
     std::uint16_t chunkCount;
     std::int32_t size;           // in bytes
     std::string name;
-    std::vector<SharedRef<RefObject>> chunks;    // the chunk messages (not sent)
+    std::vector<SharedRef<FileChunkMessage>> chunks;    // not sent
 };
 
 // Type 12: 64 bytes of a shared file.

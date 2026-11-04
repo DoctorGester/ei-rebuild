@@ -123,7 +123,7 @@ Quaternion HalfTurn(float ax, float ay, float az) {
 
 bool IsRecordLoot(const Item* item, LootRecordType recordType) {
     if (item->Kind() != ItemKind::Loot) return false;
-    const auto* loot = AsLoot(item);
+    const auto* loot = item->AsLoot();
     return loot->kind == LootKind::Record && loot->recordType == recordType;
 }
 
@@ -161,10 +161,10 @@ void ItemScreen::DrawItem(SceneRenderer* pass, const ItemCell& cell) {
     model->SetScale(0.48157462f * cell.size * cell.depth * 0.0009375f);
     model->material = blackMaterial;
 
-    if (ItemTurnOf(item) == nullptr) {
+    if (!item->turn) {
         auto* turn = new ItemTurn();
         turn->glow = RandomPhase(g_clientRandom.Next());
-        item->link.Assign(turn);
+        item->turn.Assign(turn);
     }
 
     if (cell.mode == 9) {
@@ -183,7 +183,7 @@ void ItemScreen::DrawItem(SceneRenderer* pass, const ItemCell& cell) {
     } else {
         SetShade(model, 1.0f);
         float dt = FrameTime();
-        ItemTurn* turn = ItemTurnOf(item);
+        ItemTurn* turn = item->turn;
         ItemKind kind = item->Kind();
         Spell* spell = item->spell;
         if (spell && (kind == ItemKind::Weapon || kind == ItemKind::Armor)) {

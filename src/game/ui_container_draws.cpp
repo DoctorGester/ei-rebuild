@@ -93,7 +93,7 @@ void HeroEquipPanel::Draw(SceneRenderer* pass) {
     ClearUiDepth(1.0f, slots, 7);
     for (int i = 0; i < std::ssize(hero->armor); ++i) {
         Item* item = hero->armor[i];
-        int armorType = AsArmor(item)->GetType();
+        int armorType = item->AsArmor()->GetType();
         ItemCell cell{item, static_cast<float>(centreX[armorType]), static_cast<float>(centreY[armorType]), 6.0f, 100.0f,
                       mode};
         currentOwner->DrawItem(pass, cell);

@@ -127,9 +127,6 @@ void DropLink(netlink::NetLink*& link) {
     if (old != nullptr) old->Release();
 }
 
-// The data word every item class keeps (a quest item's id).
-std::uint32_t ItemWord4C(Item* item) { return AsQuest(item)->questItemId; }
-
 // The first given item `match` accepts: the connection's lookup, the item out of the list and
 // released. 1, or 0 when there is none.
 template <typename Match>
@@ -193,18 +190,18 @@ void Player::TakeAllItems() {
 
 bool Player::HasLoot(int kind) {
     for (Item* item : items)
-        if (item->Kind() == ItemKind::Quest && ItemWord4C(item) == static_cast<std::uint32_t>(kind)) return true;
+        if (item->Kind() == ItemKind::Quest && item->AsQuest()->questItemId == static_cast<std::uint32_t>(kind)) return true;
     for (auto node = units.begin(); node != units.end() && node->second != nullptr; ++node) {
         Unit* unit = node->second;
         for (Item* item : unit->carried)
-            if (ItemWord4C(item) == static_cast<std::uint32_t>(kind)) return true;
+            if (item->QuestWord() == static_cast<std::uint32_t>(kind)) return true;
     }
     return false;
 }
 
 bool Player::TakeLoot(int kind) {
     return TakeFirst(this, [kind](Item* item) {
-        return item->Kind() == ItemKind::Quest && ItemWord4C(item) == static_cast<std::uint32_t>(kind);
+        return item->Kind() == ItemKind::Quest && item->AsQuest()->questItemId == static_cast<std::uint32_t>(kind);
     });
 }
 
@@ -231,7 +228,7 @@ void Player::RemoveUnit(Unit* unit) {
     connection->UnitChanged(unit);
 }
 
-void Player::ItemUsed(EngineObject* item) {
+void Player::ItemUsed(Item* item) {
     std::uint32_t itemId = static_cast<std::uint32_t>(item->id);
     if (!lib::Contains(recharging, itemId)) recharging.push_back(itemId);
     connection->ItemUsed(item);

@@ -23,9 +23,9 @@
 #include <memory>
 #include <vector>
 
-void DiffObjectSets(std::vector<EngineObject*>* sent, std::vector<EngineObject*>* current,
-                               std::vector<EngineObject*>* added, std::vector<EngineObject*>* gone,
-                               std::vector<EngineObject*>* same);
+template <class T>
+void DiffObjectSets(std::vector<T*>* sent, std::vector<T*>* current, std::vector<T*>* added, std::vector<T*>* gone,
+                    std::vector<T*>* same);
 
 namespace {
 
@@ -46,8 +46,9 @@ constexpr int kKindSinglePlayer = 1;         // WorldServer::sessionKind
 constexpr int kKindNoRangeTest = 3;
 
 // Compares the ids in `known` with the objects in `current`; fills `added`, `kept` and `removed`.
-void DiffSets(std::vector<EngineObject*>* known, std::vector<EngineObject*>* current, std::vector<EngineObject*>* added, std::vector<EngineObject*>* kept,
-              std::vector<EngineObject*>* removed) {
+template <class T>
+void DiffSets(std::vector<T*>* known, std::vector<T*>* current, std::vector<T*>* added, std::vector<T*>* kept,
+              std::vector<T*>* removed) {
     ::DiffObjectSets(known, current, added, kept, removed);
 }
 
@@ -111,15 +112,14 @@ EngineObject** CollectMapObjects(WorldServer* world, Player* player, PlayerServe
 
 // The timed objects (spells, effects) a player should know: those whose reach (a virtual, squared) covers its
 // camera.
-EngineObject** CollectTimedObjects(WorldServer* world, PlayerServer* state, EngineObject** out) {
+Effect** CollectTimedObjects(WorldServer* world, PlayerServer* state, Effect** out) {
     for (auto node = world->timedObjects.map.begin(); node != world->timedObjects.map.end() && node->second; ++node) {
-        EngineObject* object = node->second;
-        auto* timed = static_cast<Effect*>(object);
+        Effect* timed = node->second;
         const Vector3* position = timed->Position(&state->partyUnits);
         float distance = DistanceSquaredXY(*position, state->lastPosition);
         float reach = timed->Radius();
         float reach2 = timed->Radius() * reach;
-        if (reach2 > distance) *out++ = object;
+        if (reach2 > distance) *out++ = timed;
     }
     return out;
 }
@@ -167,13 +167,17 @@ int WorldServer::SyncPlayer(Player* player) {
         state->SendObjectsAdded(&added);
         state->SendObjectsChanged(&removed);
 
-        collected.resize(static_cast<int>(timedObjects.map.size()));
-        end = CollectTimedObjects(this, state, collected.data());
-        collected.resize(static_cast<int>(end - collected.data()));
-        DiffSets(&state->sentTimed, &collected, &added, &kept, &removed);
-        state->SendTimedRemoved(&kept);
-        state->SendTimedAdded(&added);
-        state->SendTimedChanged(&removed);
+        std::vector<Effect*> timed;
+        std::vector<Effect*> timedAdded;
+        std::vector<Effect*> timedKept;
+        std::vector<Effect*> timedRemoved;
+        timed.resize(static_cast<int>(timedObjects.map.size()));
+        Effect** timedEnd = CollectTimedObjects(this, state, timed.data());
+        timed.resize(static_cast<int>(timedEnd - timed.data()));
+        DiffSets(&state->sentTimed, &timed, &timedAdded, &timedKept, &timedRemoved);
+        state->SendTimedRemoved(&timedKept);
+        state->SendTimedAdded(&timedAdded);
+        state->SendTimedChanged(&timedRemoved);
 
         if (sessionKind == kKindSinglePlayer && IsMultiplayerClient()) {
             int& timer = state->refreshTimer;

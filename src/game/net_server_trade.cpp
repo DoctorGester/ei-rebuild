@@ -110,8 +110,8 @@ void ServerOnTradeCancel(ServerSession* self, PartyMessage* message) {
     if (!message->trading) TellPartner(self, message, 11);
     if (!IsLive(trade)) return;
     if (trade->done) {
-        HeldRef<RefObject> held(trade);
-        TimedEntry<HeldRef<RefObject>> entry(kFinishedDelay, held);
+        HeldRef<TradeMessage> held(trade);
+        TimedEntry<HeldRef<TradeMessage>> entry(kFinishedDelay, held);
         self->finishedTrades.push_back(entry);
     }
     // remove(trade), the trade held meanwhile.
@@ -151,8 +151,8 @@ void ServerSession::QueueAward(RefObject* connection, int textKind, float value,
 
     // Shared three times over: the list keeps a clone of the entry's clone (each share marks the object
     // copy-on-share); the entry's and then the first share are destroyed.
-    SharedRef<RefObject> shared(award);
-    TimedEntry<SharedRef<RefObject>> entry(kAwardDelay, shared);
+    SharedRef<AwardMessage> shared(award);
+    TimedEntry<SharedRef<AwardMessage>> entry(kAwardDelay, shared);
     awards.push_back(entry);
 }
 
@@ -165,11 +165,11 @@ void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) 
     for (;;) {
         if (node == sentinel) return;
         auto* binding = node->Get();
-        auto* player = binding->PlayerInfo();
+        auto* player = binding->player.Get();
         if (IsLive(player) && player->host) break;
         ++node;
     }
-    RefObject* connection = node->Get()->ConnectionRef().Get();
+    RefObject* connection = node->Get()->connection.Get();
     if (!IsLive(connection)) return;
 
     const std::vector<std::string>& items = entry->lists[0];   // the items given

@@ -126,10 +126,10 @@ Item* ItemScreen::MoveItem(Item* item, Party* to, Party* from, int limit, bool m
     Item* moved = to->AddItem(item, whole, merge);
     from->RemoveItem(item, whole);
     if (turning) {
-        if (!ItemTurnOf(moved)) {   // a null item faults here, like the original
-            moved->link.Assign(new ItemTurn());
+        if (!moved->turn) {   // a null item faults here, like the original
+            moved->turn.Assign(new ItemTurn());
         }
-        ItemTurnOf(moved)->flag = true;
+        moved->turn->flag = true;
     }
     return moved;
 }

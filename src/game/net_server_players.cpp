@@ -24,8 +24,8 @@ constexpr std::size_t kPasswordSize = 0x14;
 // The connection of the first binding whose player is live and the host, or null.
 Connection* HostConnection(const std::vector<SharedRef<BindingMessage>>& bindings) {
     for (auto& node : bindings) {
-        PlayerMessage* player = node.Get()->PlayerInfo();
-        if (IsLive(player) && player->host) return node.Get()->ConnectionRef().Get();
+        PlayerMessage* player = node.Get()->player.Get();
+        if (IsLive(player) && player->host) return node.Get()->connection.Get();
     }
     return nullptr;
 }
@@ -88,18 +88,18 @@ Connection* ServerSession::FindGuestConnection(const std::string* guestName) {
         const auto& currentBindings = bindings;
         auto first = currentBindings.begin();
         for (auto binding = first; binding != currentBindings.end(); ++binding) {
-            if (binding->Get()->PlayerInfo() != player) continue;
-            Connection* connection = binding->Get()->ConnectionRef().Get();
+            if (binding->Get()->player.Get() != player) continue;
+            Connection* connection = binding->Get()->connection.Get();
             bool hostsToo = false;
             for (auto other = first; other != currentBindings.end(); ++other) {
-                if (other->Get()->ConnectionRef().Get() != connection) continue;
-                PlayerMessage* owner = other->Get()->PlayerInfo();
+                if (other->Get()->connection.Get() != connection) continue;
+                PlayerMessage* owner = other->Get()->player.Get();
                 if (owner && !(owner->flags7 & RefObject::kDetached) && owner->host) {
                     hostsToo = true;
                     break;
                 }
             }
-            if (!hostsToo) return binding->Get()->ConnectionRef().Get();
+            if (!hostsToo) return binding->Get()->connection.Get();
             break;
         }
     }
@@ -110,7 +110,7 @@ Connection* ServerSession::FindGuestConnection(const std::string* guestName) {
 Connection* ServerSession::FindConnectionBySerial(int serial) {
     const auto& currentBindings = bindings;
     for (auto node = currentBindings.begin(); node != currentBindings.end(); ++node)
-        if (node->Get()->PlayerInfo()->serial == serial) return node->Get()->ConnectionRef().Get();
+        if (node->Get()->player.Get()->serial == serial) return node->Get()->connection.Get();
     return nullptr;
 }
 
@@ -138,10 +138,10 @@ void ServerSession::Kick(Connection* connection) {
     Connection* host = HostConnection(currentBindings);
     if (connection == host) return;
     for (auto& node : currentBindings) {
-        if (node.Get()->ConnectionRef().Get() != connection) continue;
+        if (node.Get()->connection.Get() != connection) continue;
         BindingMessage* binding = node.Get();
         if (binding) {
-            PlayerMessage* player = binding->PlayerInfo();
+            PlayerMessage* player = binding->player.Get();
             if (IsLive(player)) AnnounceText(2, player->name.data(), nullptr);
         }
         break;
@@ -157,10 +157,10 @@ void ServerSession::Ban(Connection* connection) {
     Connection* host = HostConnection(currentBindings);
     if (connection == host) return;
     for (auto& node : currentBindings) {
-        if (node.Get()->ConnectionRef().Get() != connection) continue;
+        if (node.Get()->connection.Get() != connection) continue;
         BindingMessage* binding = node.Get();
         if (binding) {
-            PlayerMessage* player = binding->PlayerInfo();
+            PlayerMessage* player = binding->player.Get();
             if (IsLive(player)) AnnounceText(3, player->name.data(), nullptr);
         }
         break;
@@ -175,10 +175,10 @@ void ServerSession::ReportDeparture(Connection* connection, int text) {
     if (!IsLive(connection)) return;
     const auto& currentBindings = bindings;
     for (auto& node : currentBindings) {
-        if (node.Get()->ConnectionRef().Get() != connection) continue;
+        if (node.Get()->connection.Get() != connection) continue;
         BindingMessage* binding = node.Get();
         if (!IsLive(binding)) return;
-        PlayerMessage* player = binding->PlayerInfo();
+        PlayerMessage* player = binding->player.Get();
         if (!IsLive(player)) return;
         AnnounceText(text, player->name.data(), nullptr);
         return;
@@ -247,8 +247,8 @@ void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     record->serial = static_cast<std::int32_t>(g_playerSerial);
     ++g_playerSerial;
     record->firstLine = self->nextLine;
-    bound->PlayerRef().Assign(record);
-    bound->ConnectionRef().Assign(g_currentConnection);
+    bound->player.Assign(record);
+    bound->connection.Assign(g_currentConnection);
     msg->binding.Assign(bound);
 
     ClientSession* client = g_gameClient;
@@ -265,9 +265,9 @@ void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
 
 // Channel 1: the client's login changed: its player record takes the state and id, and its version goes up.
 void ServerOnPlayerChanged(ServerSession*, LoginMessage* message) {
-    message->binding.Get()->PlayerInfo()->state = message->state;
-    message->binding.Get()->PlayerInfo()->id = message->id;
-    PlayerMessage* player = message->binding.Get()->PlayerInfo();
+    message->binding.Get()->player.Get()->state = message->state;
+    message->binding.Get()->player.Get()->id = message->id;
+    PlayerMessage* player = message->binding.Get()->player.Get();
     ++player->version;
 }
 
@@ -277,7 +277,7 @@ void ServerOnPlayerChanged(ServerSession*, LoginMessage* message) {
 void ServerOnPlayerGone(ServerSession* self, LoginMessage* message) {
     auto* binding = message->binding.Get();
     if (!IsLive(binding)) return;
-    auto* player = binding->PlayerInfo();
+    auto* player = binding->player.Get();
     if (IsLive(player)) {
         std::uint8_t wasHost = player->host;
         EraseValue(self->players, player);
@@ -321,8 +321,8 @@ void ServerSession::Announce(std::string_view text, RefObject* player) {
     if (player && !(player->flags7 & RefObject::kDetached)) {
         for (auto& node : bindings) {
             auto* binding = node.Get();
-            if (binding->PlayerRef().Get() == player) {
-                connection = binding->ConnectionRef().Get();
+            if (binding->player.Get() == player) {
+                connection = binding->connection.Get();
                 break;
             }
         }

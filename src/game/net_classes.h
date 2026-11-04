@@ -214,10 +214,10 @@ constexpr int kMessageTypes = 0x100;
 // A message handler as the session keeps it: its session and the message. The handlers themselves take their
 // own session class and message class (net_handlers.h); AsHandler<handler>() is a thunk that casts both down and
 // calls it.
-using MessageHandler = void(*)(SessionBase*, RefObject*);
+using MessageHandler = void(*)(SessionBase*, Message*);
 template <auto Handler>
 MessageHandler AsHandler() {
-    return [](SessionBase* session, RefObject* message) {
+    return [](SessionBase* session, Message* message) {
         [&]<typename Session, typename MessageType>(void (*)(Session*, MessageType*)) {
             Handler(static_cast<Session*>(session), static_cast<MessageType*>(message));
         }(Handler);
@@ -293,8 +293,8 @@ struct Replicated {
 };
 
 // Appends one {object, priority}.
-inline void PushReplicated(std::vector<Replicated>* v, void* object, std::uint8_t priority) {
-    v->push_back({static_cast<Message*>(object), priority});
+inline void PushReplicated(std::vector<Replicated>* v, Message* object, std::uint8_t priority) {
+    v->push_back({object, priority});
 }
 
 // Packets (the datagram's first byte): -1 master, 0 update, 1 leave, 3 get info (ping), 4 login, 5 info, 6
@@ -488,10 +488,10 @@ public:
     Ref<MapMessage> map;           // the map message while a map is played
     std::vector<SharedRef<ZoneMessage>> queuedMaps; // map messages the host may pick next
     std::vector<SharedRef<VariableMessage>> variables;
-    std::vector<TimedEntry<SharedRef<RefObject>>> awards;             // {delay, award}
+    std::vector<TimedEntry<SharedRef<AwardMessage>>> awards;             // {delay, award}
     std::vector<HeldRef<PartyMessage>> offers; // the players' trade offers
     std::vector<HeldRef<TradeMessage>> trades;
-    std::vector<TimedEntry<HeldRef<RefObject>>> finishedTrades;    // {delay, trade}: done trades, kept 60 s
+    std::vector<TimedEntry<HeldRef<TradeMessage>>> finishedTrades;    // {delay, trade}: done trades, kept 60 s
     std::vector<NetAddress> banned;
     std::string name;
     std::string mapName;
@@ -583,7 +583,7 @@ public:
     float BufferRatio(GameBuffer* buffer);
     // Reads a server list reply.
     void ReadServerList(GameBuffer* in);
-    void StartParty(RefObject* partner);
+    void StartParty(PlayerMessage* partner);
     void RecordTrade(Party* party);
 
     ClientSession();
@@ -596,7 +596,7 @@ public:
     // Applies the awards received: experience, gold, items.
     void ApplyAwards();
     // Keeps `object` on the timers list for `seconds`.
-    void AddTimed(RefObject* object, std::uint32_t seconds);
+    void AddTimed(Message* object, std::uint32_t seconds);
     // A command message ({kind, text}) for the server, kept 60 s.
     void SendCommand(int kind, std::string_view text);
 
@@ -611,7 +611,7 @@ public:
     std::vector<HeldRef<ZoneMessage>> zones; // map messages the host may pick
     std::vector<HeldRef<VariableMessage>> variables;
     Ref<LoginMessage> player;      // the local player's login record
-    std::vector<TimedEntry<SharedRef<RefObject>>> timers;             // {seconds left, object}: objects kept for a while
+    std::vector<TimedEntry<SharedRef<Message>>> timers;             // {seconds left, object}: objects kept for a while
     std::vector<HeldRef<AwardMessage>> awards; // awards received, applied by ApplyAwards
     Ref<PartyMessage> party;       // our trade offer (party description)
     std::vector<HeldRef<PartyMessage>> offers; // the other players' trade offers

@@ -7,6 +7,7 @@
 #include <cstdint>
 
 class EngineObject;
+class Object3D;
 
 namespace address_order {
 
@@ -17,6 +18,6 @@ bool ObjectBefore(const EngineObject* a, const EngineObject* b);
 // The draw lists' order: the first part set's texture (null first,
 // then by name), then the figure (null first, then by name and morph weights), then the view depth.
 // Objects with the same keys keep the sort's own order.
-bool DrawBefore(EngineObject* a, EngineObject* b);
+bool DrawBefore(Object3D* a, Object3D* b);
 
 } // namespace address_order

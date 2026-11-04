@@ -118,7 +118,7 @@ Item* MakeItem(WorldServer* world, Item* itemRecord) {
     Item* item = world->DuplicateItem(itemRecord);
     auto* record = new ItemLink();
     record->value = static_cast<std::uint32_t>(itemRecord->id);
-    item->link.Assign(record);
+    item->serverLink.Assign(record);
     return item;
 }
 

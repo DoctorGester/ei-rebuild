@@ -100,11 +100,10 @@ void SaveListed(const std::vector<T*>* list, ByteStream* stream) {
     SaveListedObjectsEnd(stream);
 }
 
-// SyncPlayer's arrays (world_sync.cpp) hold one class per pass: the map objects, then the timed
-// objects (Effect). The next element as that class; the loops read the data pointer once.
-template <typename T>
-T* NextAs(EngineObject* const*& next) {
-    return static_cast<T*>(*next++);
+// The map-object pass's array (world_sync.cpp) holds map objects: the world's and the script's party units. The
+// next element as one; the loops read the data pointer once.
+MapObject* NextMapObject(EngineObject* const*& next) {
+    return static_cast<MapObject*>(*next++);
 }
 
 } // namespace
@@ -145,7 +144,7 @@ int PlayerServer::Flush() {
 int PlayerServer::SendObjectsAdded(const std::vector<EngineObject*>* objects) {
     EngineObject* const* next = objects->data();
     for (int i = 0; i < std::ssize(*objects); ++i) {
-        auto* object = NextAs<MapObject>(next);
+        auto* object = NextMapObject(next);
         bool isUnit = object->GetClassId() == ClassId::Unit;
         std::uint32_t header[4] = {static_cast<std::uint32_t>(object->id), static_cast<std::uint32_t>(object->type),
                                    object->prototypeId, object->flags};
@@ -182,7 +181,7 @@ int PlayerServer::SendObjectsChanged(const std::vector<EngineObject*>* objects) 
     EngineObject* const* next = objects->data();
     int stamp = WorldUpdateCount(player);
     for (int i = 0; i < std::ssize(*objects); ++i) {
-        auto* object = NextAs<MapObject>(next);
+        auto* object = NextMapObject(next);
         if (object->changeStamp != stamp) continue;
         if (object->flags & kFlagDeltaPending) object->WriteChangedState();
         WriteByte(&out, kMessageObjectChanged);
@@ -205,10 +204,8 @@ int PlayerServer::SendObjectsRemoved(const std::vector<EngineObject*>* objects) 
     return 1;
 }
 
-int PlayerServer::SendTimedAdded(const std::vector<EngineObject*>* objects) {
-    EngineObject* const* next = objects->data();
-    for (int i = 0; i < std::ssize(*objects); ++i) {
-        auto* effect = NextAs<Effect>(next);
+int PlayerServer::SendTimedAdded(const std::vector<Effect*>* effects) {
+    for (Effect* effect : *effects) {
         if (effect->flags & kFlagDeltaPending) effect->SendDelta();
         std::uint32_t header[2];
         header[1] = static_cast<std::uint32_t>(effect->GetClassId());
@@ -222,11 +219,9 @@ int PlayerServer::SendTimedAdded(const std::vector<EngineObject*>* objects) {
     return 1;
 }
 
-int PlayerServer::SendTimedChanged(const std::vector<EngineObject*>* objects) {
-    EngineObject* const* next = objects->data();
+int PlayerServer::SendTimedChanged(const std::vector<Effect*>* effects) {
     int stamp = WorldUpdateCount(player);
-    for (int i = 0; i < std::ssize(*objects); ++i) {
-        auto* effect = NextAs<Effect>(next);
+    for (Effect* effect : *effects) {
         if (effect->changeStamp != stamp) continue;
         if (effect->flags & kFlagDeltaPending) effect->SendDelta();
         WriteByte(&out, kMessageTimedChanged);
@@ -236,14 +231,12 @@ int PlayerServer::SendTimedChanged(const std::vector<EngineObject*>* objects) {
     return 1;
 }
 
-int PlayerServer::SendTimedRemoved(const std::vector<EngineObject*>* objects) {
-    EngineObject* const* next = objects->data();
-    for (int i = 0; i < std::ssize(*objects); ++i) {
-        EngineObject* object = *next++;
+int PlayerServer::SendTimedRemoved(const std::vector<Effect*>* effects) {
+    for (Effect* effect : *effects) {
         WriteByte(&out, kMessageTimedRemoved);
-        WriteDword(&out, static_cast<std::uint32_t>(object->id));
-        Forget(player->knownTimed, object->id);
-        object->Release();
+        WriteDword(&out, static_cast<std::uint32_t>(effect->id));
+        Forget(player->knownTimed, effect->id);
+        effect->Release();
     }
     return 1;
 }
@@ -252,7 +245,7 @@ int PlayerServer::SendTimedRemoved(const std::vector<EngineObject*>* objects) {
 void PlayerServer::SendItems() {
     for (unsigned objectId : player->recharging) {
         ResourceManager* items = player->GetParty()->ItemFactory();
-        if (EngineObject* item = items->FindObject(objectId)) SendObject14(item);
+        if (Item* item = items->FindObjectAs<Item>(objectId)) SendObject14(item);
     }
 }
 

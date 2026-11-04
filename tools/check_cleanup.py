@@ -104,10 +104,10 @@ PATTERNS = {
 # Patterns not counted under these directories (or files).
 # Structs the vector/map/set pattern matches by name that are not container layouts. Each was checked
 # (2026-10-14) to hold the shared templates rather than repeat one: FootprintCellSet is a bucket hash
-# over std::vector; ObjectIdMap and UnitSet
+# over std::vector; EffectIdMap and UnitSet
 # (and MapObjectIdMap, its shape with MapObject* values) are records whose members are hash maps; RegionMap is a
 # block grid; PlatformSet is the engine's CBridgeManager around a list.
-NOT_CONTAINERS = {'FootprintCellSet', 'ObjectIdMap', 'MapObjectIdMap', 'UnitSet', 'RegionMap', 'PlatformSet'}
+NOT_CONTAINERS = {'FootprintCellSet', 'EffectIdMap', 'MapObjectIdMap', 'UnitSet', 'RegionMap', 'PlatformSet'}
 EXEMPT = {'per-file container struct': 'src/lib/', 'per-file vector/map/set struct': 'src/lib/',
           'hand-written vector maths': ('src/lib/vecmath.h', 'src/lib/maths.h'),   # maths.h: Hypot's doubles
           'system maths function': 'src/lib/maths.h'}

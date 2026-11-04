@@ -60,12 +60,13 @@ class SpellEffect;
 class ParticleManager;
 class VisibilityFog;
 class Hoover;
+class Effect;
 class EffectMoshka;
 namespace mapspec { class Spec; }
 
 class WorldServer;
 
-// A hash map of counted objects emptied as ObjectIdMap::ReleaseAll does: every object up to the first empty entry
+// A hash map of counted objects emptied as the world's object maps are: every object up to the first empty entry
 // released, the nodes freed (the buckets stay). The caller clears its highest id.
 template <typename Map>
 void ReleaseEach(Map& map) {
@@ -78,11 +79,11 @@ void ReleaseEach(Map& map) {
 
 // The world's object maps plus the highest key ever inserted; walked in STLport's order (the timed objects are ticked
 // and saved in it, the map objects saved by SaveMapObjects and collected for the clients' sync).
-struct ObjectIdMap {
-    lib::HashMap<unsigned, EngineObject*> map;
+struct EffectIdMap {
+    lib::HashMap<unsigned, Effect*> map;
     int maxId = 0;
 
-    void Set(const unsigned& key, EngineObject* const& value);
+    void Set(const unsigned& key, Effect* const& value);
 };
 
 struct MapObjectIdMap {
@@ -533,7 +534,7 @@ public:
     MapObjectIdMap mapObjects;            // objects saved with the zone (SaveMapObjects)
     MapObjectIdMap otherMapObjects;       // the map objects that are not units
     MapObjectIdMap namedObjects;          // objects with a second name
-    ObjectIdMap timedObjects;
+    EffectIdMap timedObjects;
     // The zone header SendFreshObjects sends to a temporary player.
     MemoryStream zoneHeader;
     // A list: a missile's hit can cast the struck unit's item spells (CreateMissile appends) while Tick walks it.

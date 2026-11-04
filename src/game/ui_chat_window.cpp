@@ -43,7 +43,6 @@ constexpr int kFirstStatusLeft = 0x118;   // with the window at 0x1D0; 0x2E8 wit
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr int kPickCommandA = 4, kPickCommandB = 5;   // the client's command kinds for picks 1 / 2
 
-net::PlayerMessage* PlayerOf(RefObject* object) { return static_cast<net::PlayerMessage*>(object); }
 bool Live(const RefObject* object) { return object && !(object->flags7 & RefObject::kDetached); }
 
 } // namespace
@@ -121,8 +120,8 @@ void ChatWindow::ShowPlayers() {
     const auto& clientPlayers = client->players;
     for (auto node = clientPlayers.begin(); node != clientPlayers.end(); ++node) {
         if (!Live(client->binding)) continue;
-        RefObject* player = node->Get();
-        bool own = client->binding->PlayerRef().Get() == player;
+        net::PlayerMessage* player = node->Get();
+        bool own = client->binding->player.Get() == player;
         if (own)
             players.emplace(players.begin(), player);
         else
@@ -133,7 +132,7 @@ void ChatWindow::ShowPlayers() {
     // The faces (the strings live across players: the sex letter carries over).
     std::string model, picture, sex, build;
     for (auto& p : players) {
-        net::PlayerMessage* player = PlayerOf(p);
+        net::PlayerMessage* player = p;
         UnitPrototypeRecord* prototype;
         {
             prototype = g_unitDatabase.prototypes.FindByName(std::string(player->text));
@@ -171,7 +170,7 @@ void ChatWindow::Update() {
     std::string status, offer;
     int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? kFirstFaceLeft : kFirstStatusLeft;
     for (auto p = players.begin(); p != players.end(); ++p, left -= kFaceWidth) {
-        net::PlayerMessage* player = PlayerOf(*p);
+        net::PlayerMessage* player = *p;
         status.clear();
         switch (player->state) {
         case 0: status = texts[0]; break;
@@ -219,7 +218,7 @@ void ChatWindow::LeftDown(Point point) {
     int pick = briefing->chatActive;
     if (pick != 0) {
         char text[0x80];
-        std::snprintf(text, sizeof(text), "%d", PlayerOf(players[index])->serial);
+        std::snprintf(text, sizeof(text), "%d", players[index]->serial);
         if (pick == 1)
             net::g_gameClient->SendCommand(kPickCommandA, text);
         else if (pick == 2)
@@ -229,9 +228,9 @@ void ChatWindow::LeftDown(Point point) {
     }
     ui->PlayInterfaceSound(kOnOffSound);
     net::ClientSession* client = net::g_gameClient;
-    RefObject* player = players[index];
+    net::PlayerMessage* player = players[index];
     // The binding is not checked for null here.
-    if (client->binding->PlayerRef().Get() == player) return;
+    if (client->binding->player.Get() == player) return;
     auto* own = client->party.Get();
     if (own && own->partner.Get() == player) {
         net::ClientDropParty(client);

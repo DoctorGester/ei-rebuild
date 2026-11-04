@@ -9,6 +9,7 @@
 #include "item_db.h"
 #include "lock_key.h"
 
+#include <bit>
 #include <cstdint>
 #include <string>
 
@@ -34,6 +35,12 @@ itemdb::ItemRecordHead* PrototypeAt(ItemKind kind, std::uint32_t index);
 inline bool IsUpperBodyArmor(int type) { return type == 0 || type == 1 || type == 2; }
 
 class ItemLink;
+class ItemTurn;
+class ItemWeapon;
+class ItemArmor;
+class ItemQuick;
+class ItemQuest;
+class ItemLoot;
 
 // Base of every item. The six item classes override its virtuals (each calls Item's first).
 class Item : public EngineObject {
@@ -67,6 +74,19 @@ public:
     // The key the item works as on a lock (AcceptsKey, a lever's or a trap's ApplyScience): zeros; the quest
     // item's has its id.
     virtual LockKey GetUse();
+    // The item as the class it is: null from every class but that one (scrolls are quick items).
+    virtual ItemWeapon* AsWeapon() { return nullptr; }
+    virtual const ItemWeapon* AsWeapon() const { return nullptr; }
+    virtual ItemArmor* AsArmor() { return nullptr; }
+    virtual const ItemArmor* AsArmor() const { return nullptr; }
+    virtual ItemLoot* AsLoot() { return nullptr; }
+    virtual const ItemLoot* AsLoot() const { return nullptr; }
+    virtual ItemQuick* AsQuick() { return nullptr; }
+    virtual ItemQuest* AsQuest() { return nullptr; }
+    // The word in the place of a quest item's id, read from every class: the quest searches over a unit's
+    // carried items (Player::HasLoot, the script's RemoveQuestItem) compare it without a class test, as in the
+    // original (an original bug kept: docs/notes/items_spells.md).
+    virtual std::uint32_t QuestWord() const { return 0; }
 
     // A new item of the same kind from the owning manager, given this one's values through the copy virtual
     // with the spell manager `spells`; when that fails the new item is released and the result is null.
@@ -88,10 +108,10 @@ public:
     void Repair() { condition = conditionMax; }
     float Weight() const { return weight; }
 
-    // a link record: the world server's ItemLink (the id the world's save keeps per item, or the party record's
-    // item), the HUD's ItemTurn.
-    Ref<RefObject> link;
-    ItemLink* ServerLink() const;
+    // The world server's link record: the id the world's save keeps per item, or the party record's item.
+    Ref<ItemLink> serverLink;
+    // The interface's turning state of the item's model (the item views make it).
+    Ref<ItemTurn> turn;
     // the condition and its maximum (both from the prototype's; -1.0 until then): at 0 or below (rounded) the
     // item is broken.
     float condition;
@@ -122,13 +142,32 @@ public:
 
     std::uint32_t value;
 };
-inline ItemLink* Item::ServerLink() const { return static_cast<ItemLink*>(link.Get()); }
+
+// An item's turning state in the item views: made by the item draw and the moves.
+class ItemTurn final : public RefObject {
+public:
+    ItemTurn() {
+        refs = 0;
+        flags6 = 0;
+        flags7 = 0;
+    }
+    void OnShutdown() override;
+    ItemTurn* Clone() override;
+
+    float angle = 0.0f;      // radians, wrapped at 2 pi
+    float speed = 0.0f;
+    bool flag = false;       // set by a move into a list shown turning
+    float glow = 0.0f;       // phase of the spell glow
+};
 
 class ItemWeapon : public Item {
 public:
     ItemWeapon();
     const char* ClassName() override;
     ClassId GetClassId() override;
+    ItemWeapon* AsWeapon() override { return this; }
+    const ItemWeapon* AsWeapon() const override { return this; }
+    std::uint32_t QuestWord() const override { return actionValue; }
 
     // The weapon type from the prototype (faults if the index is out of range).
     int GetType();
@@ -163,6 +202,9 @@ class ItemArmor : public Item {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
+    ItemArmor* AsArmor() override { return this; }
+    const ItemArmor* AsArmor() const override { return this; }
+    std::uint32_t QuestWord() const override { return std::bit_cast<std::uint32_t>(absorb[0][0]); }
 
     // The armor type from the prototype (faults if the index is out of range).
     int GetType();
@@ -193,6 +235,8 @@ class ItemQuick : public Item {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
+    ItemQuick* AsQuick() override { return this; }
+    std::uint32_t QuestWord() const override { return actionValue; }
 
     // "qitem<number>.<material name>" when the prototype's materialClass is not "none" ("uq" for a material
     // out of range), else "qitem<number>" (-1 without a prototype).
@@ -213,6 +257,8 @@ class ItemQuest : public Item {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
+    ItemQuest* AsQuest() override { return this; }
+    std::uint32_t QuestWord() const override { return questItemId; }
 
     std::string FigureName() override;    // "quitem<number>"
     std::string PictureName() override;   // "initqu<number>item"
@@ -245,6 +291,9 @@ class ItemLoot : public Item {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
+    ItemLoot* AsLoot() override { return this; }
+    const ItemLoot* AsLoot() const override { return this; }
+    std::uint32_t QuestWord() const override { return static_cast<std::uint32_t>(kind); }
 
     // The base price. Depends on what the loot stands for (kind): itself (price), a material, or a record
     // of another database (recordType).
@@ -285,23 +334,3 @@ int ArmorLayer(std::uint32_t index);
 
 // The item with id `id` in an item manager (a party's, the world's item factory), or null.
 inline Item* FindItem(const BaseManager* items, unsigned id) { return items->FindObjectAs<Item>(id); }
-
-// An item known to be a weapon as the ItemWeapon it is: a weapon slot's item (Unit::weapons,
-// PartyUnitRecord::weapons hold weapons only), an item of the weapon kind, the copy or match of a
-// weapon. The weapon's methods are called without a class test.
-inline ItemWeapon* AsWeapon(Item* item) { return static_cast<ItemWeapon*>(item); }
-inline const ItemWeapon* AsWeapon(const Item* item) { return static_cast<const ItemWeapon*>(item); }
-// An item known to be armour as the ItemArmor it is: a hero record's armour (PartyUnitRecord::armor holds
-// armour only), an item of the armour kind, the copy or match of an armour piece, the item put on as armour
-// (Unit::EquipArmour). The armour's methods are called without a class test.
-inline ItemArmor* AsArmor(Item* item) { return static_cast<ItemArmor*>(item); }
-inline const ItemArmor* AsArmor(const Item* item) { return static_cast<const ItemArmor*>(item); }
-// An item known to be loot as the ItemLoot it is: an item of the loot kind (ItemKind::Loot), one made by name from
-// a loot prototype (runes, materials, instructions), the copy or match of a loot item. Its fields are read
-// without a class test.
-inline ItemLoot* AsLoot(Item* item) { return static_cast<ItemLoot*>(item); }
-inline const ItemLoot* AsLoot(const Item* item) { return static_cast<const ItemLoot*>(item); }
-// An item known to be a quick item / a quest item: the copy or match of one (the base IsSameAs
-// compares the classes first), an item of class kClassQuestItem.
-inline ItemQuick* AsQuick(Item* item) { return static_cast<ItemQuick*>(item); }
-inline ItemQuest* AsQuest(Item* item) { return static_cast<ItemQuest*>(item); }

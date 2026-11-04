@@ -14,6 +14,7 @@
 #include "script.h"
 #include "unit.h"
 #include "world.h"
+#include "world_effect.h"
 
 #include "lib/bytes.h"
 
@@ -32,10 +33,6 @@ void WriteDword(MemoryStream* out, std::uint32_t value) { Write(out, &value, 4);
 
 std::uint32_t ObjectId(const EngineObject* object) { return static_cast<std::uint32_t>(object->id); }
 
-// An item's charge (the float; the client's 0x0C / 0x14 handlers store it there), as its bits.
-std::uint32_t ItemCharge(const EngineObject* object) {
-    return std::bit_cast<std::uint32_t>(static_cast<const Item*>(object)->charge);
-}
 
 // The world player's party variables (a NamedFloatTable, object_tables.h).
 NamedFloatTable* Variables(Player* player) { return &player->GetParty()->variables; }
@@ -58,9 +55,10 @@ constexpr HandlerEntry<PlayerServer> kServerHandlers[] = {
 };
 
 // The sent-object arrays emptied: every object released, the block freed.
-void ReleaseAll(std::vector<EngineObject*>& objects) {
+template <class T>
+void ReleaseAll(std::vector<T*>& objects) {
     // The data pointer is read once, the size after every release.
-    EngineObject** element = objects.data();
+    T** element = objects.data();
     for (int i = 0; i < std::ssize(objects); ++i) (*element++)->Release();
     objects.clear();
 }
@@ -185,10 +183,11 @@ void PlayerServer::SendPair16(std::uint32_t unitId, std::uint32_t index) {
     WriteDword(&out, index);
 }
 
-void PlayerServer::SendObject14(const EngineObject* object) {
+// The item's charge goes as its float's bits (the client's 0x0C / 0x14 handlers store it there).
+void PlayerServer::SendObject14(const Item* item) {
     WriteByte(&out, 0x14);
-    WriteDword(&out, ObjectId(object));
-    WriteDword(&out, ItemCharge(object));
+    WriteDword(&out, ObjectId(item));
+    WriteDword(&out, std::bit_cast<std::uint32_t>(item->charge));
 }
 
 void PlayerServer::SendText0D(const char* text) {

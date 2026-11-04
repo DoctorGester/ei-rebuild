@@ -542,7 +542,7 @@ void RebuildClientParty(BattleScreen* screen) {
             ids.withUnit.push_back(unitId);
             net::BindingMessage* camera = session->binding;
             if (camera && !(camera->flags7 & RefCounted::kDetached) &&
-                camera->first.Get() == player)
+                camera->player.Get() == player)
                 ids.camera = unitId;
         } else {
             ids.without.push_back(playerId);

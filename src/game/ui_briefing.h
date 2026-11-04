@@ -16,6 +16,10 @@
 #include <cstddef>
 #include <vector>
 
+namespace net {
+class PlayerMessage;
+}
+
 // A person walking to the place a dialogue gives them.
 struct BriefingMover {
     Vector3 target;
@@ -71,7 +75,7 @@ public:
 
     int listed = 0;
     int portraits = 0;
-    std::vector<HeldRef<RefObject>> players;    // PlayerMessage records
+    std::vector<HeldRef<net::PlayerMessage>> players;
     std::vector<std::string> texts;
     // A listed player's texts as the last Update found them, under the face whose left edge is `left`.
     struct StatusRow {

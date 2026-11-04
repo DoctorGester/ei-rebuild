@@ -46,9 +46,9 @@ struct ItemStock {
 
     Party* party;                  // the template's party object (its item constructor and item manager)
     int classIndex = 0;             // bit of the records' class masks
-    std::vector<itemdb::ItemRecordHead*> armors;
-    std::vector<itemdb::ItemRecordHead*> weapons;
-    std::vector<itemdb::ItemRecordHead*> quickItems;
+    std::vector<itemdb::ArmorRecord*> armors;
+    std::vector<itemdb::WeaponRecord*> weapons;
+    std::vector<itemdb::QuickItemRecord*> quickItems;
     std::vector<StockMaterial> materials;
     std::vector<itemdb::SpellRecord*> spells;
     std::vector<itemdb::SpellModifierRecord*> modifiers;
@@ -99,8 +99,9 @@ struct ItemStock {
     // left (a quality-weighted draw, else a random one; none at all cancels the item); with `spellRecipes`
     // (weapons and armours) the item gets a random spell half the time when the material allows magic; potions
     // come in stacks of 20..49.
-    void GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, int minCount, int maxCount,
-                       std::vector<Item*>* out, const std::vector<itemdb::SpellListRecord>* spellRecipes);
+    template <class Record>
+    void GenerateItems(std::vector<Record*>* prototypes, int minCount, int maxCount, std::vector<Item*>* out,
+                       const std::vector<itemdb::SpellListRecord>* spellRecipes);
 
     // A random count in [minCount, maxCount] of the material entries (the
     // vector shuffled in place when there are more), each as a "material" item (kind ItemKind::Loot) of a

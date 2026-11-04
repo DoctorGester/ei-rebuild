@@ -69,7 +69,7 @@ public:
     virtual void ItemTaken(EngineObject*) {}   // server (message 0x0A); client empty
     virtual void LeaderDied() {}            // the player's leader died: server; client empty
     virtual void TickDone() {}              // server; client empty
-    virtual void ItemUsed(EngineObject*) {}    // server (message 0x14); client empty
+    virtual void ItemUsed(Item*) {}    // server (message 0x14); client empty
     virtual int Receive() = 0;              // server and client versions
 
     Player* player;    // the owner (set by Player::SetConnection)
@@ -100,7 +100,7 @@ public:
     void ItemTaken(EngineObject* item) override { SendObject0A(item); }
     void LeaderDied() override { OnLeaderDied(); }
     void TickDone() override { ClearPossessedGroup(); }
-    void ItemUsed(EngineObject* item) override { SendObject14(item); }
+    void ItemUsed(Item* item) override { SendObject14(item); }
     int Receive() override { return ReceiveMessages(); }
 
     void SetVariable(std::string_view name, std::uint32_t value);        // message 0x81
@@ -117,7 +117,7 @@ public:
     void Send17();
     void SendObject0A(const EngineObject* object);                 // id
     void SendPair16(std::uint32_t unitId, std::uint32_t index);
-    void SendObject14(const EngineObject* object);                 // the item's id and charge
+    void SendObject14(const Item* item);                 // the item's id and charge
     void SendText0D(const char* text);
     void SendValue15(std::uint32_t value);
     void SendPair18(std::uint32_t unitId, std::uint32_t value);
@@ -138,14 +138,14 @@ public:
     // unit's name, its full state) / timed object (0x50: id, class, full state) is sent and kept, counted, in
     // the player's map. 1.
     int SendObjectsAdded(const std::vector<EngineObject*>* objects);
-    int SendTimedAdded(const std::vector<EngineObject*>* objects);
+    int SendTimedAdded(const std::vector<Effect*>* effects);
     // The objects changed in this world update (their stamp equals the world's update count) send their delta
     // (0x41 / 0x51: id, then the delta stream). 1.
     int SendObjectsChanged(const std::vector<EngineObject*>* objects);
-    int SendTimedChanged(const std::vector<EngineObject*>* objects);
+    int SendTimedChanged(const std::vector<Effect*>* effects);
     // Objects gone from view: dropped from the player's map and released (0x42 / 0x52: id). 1.
     int SendObjectsRemoved(const std::vector<EngineObject*>* objects);
-    int SendTimedRemoved(const std::vector<EngineObject*>* objects);
+    int SendTimedRemoved(const std::vector<Effect*>* effects);
     // Every item of the player's item list the party's item manager knows is sent (SendObject14).
     void SendItems();
     // For a joined player (state 1): message 0x05, a stream with the given items' spells and then the items,
@@ -275,7 +275,7 @@ public:
     CoderState compressor;          // for the messages sent (Flush)
     CoderState decompressor;        // for the messages received
     std::vector<EngineObject*> sentObjects; // map objects the client has (counted)
-    std::vector<EngineObject*> sentTimed;    // timed objects the client has (counted)
+    std::vector<Effect*> sentTimed;    // timed objects the client has (counted)
     ScriptGroup possessedGroup;
     ScriptGroup partyUnits;         // units always sent (message 0x60)
     // How much danger the party is in (SendPartyState; the script's IsPlayerInDanger / IsPlayerInSafety).
@@ -374,7 +374,7 @@ public:
     // A unit in units is erased, released and given to the connection's UnitChanged.
     void RemoveUnit(Unit* unit);
     // The item's id joins the recharge list unless there; the connection's ItemUsed.
-    void ItemUsed(EngineObject* item);
+    void ItemUsed(Item* item);
     // The recharge list emptied, then the party assigned from `source` (Party::Assign's result).
     Party* AssignParty(Party* source);
     // Every unit at a taming stage leaves the player; the walk stops at a null entry.

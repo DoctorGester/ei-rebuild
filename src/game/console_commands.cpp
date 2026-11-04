@@ -77,7 +77,7 @@ void KickOrBan(std::vector<std::string>* args, int windowMode, int command) {
         if (IsLive(server)) {
             // Our binding's player record: only the host gets the window.
             net::BindingMessage* binding = server->binding;
-            if (binding->PlayerInfo()->host)
+            if (binding->player.Get()->host)
                 ScreenOf(g_interface.GetActiveWindow())->PlayerList(windowMode);
             return;
         }

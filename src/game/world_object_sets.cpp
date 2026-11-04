@@ -7,6 +7,7 @@
 #include "address_order.h"
 #include "core_streams.h"
 #include "engine_object.h"
+#include "world_effect.h"
 #include "lib/containers.h"
 
 #include <algorithm>
@@ -25,14 +26,15 @@ bool address_order::ObjectBefore(const EngineObject* a, const EngineObject* b) {
 // Sorts the set and drops the duplicates. The game sorts by address (four byte passes of a radix sort,
 // through a scratch array freed at exit); this sorts by id (address_order::ObjectBefore), a comparison sort
 // without the scratch array.
-void ObjectSetSortUnique(std::vector<EngineObject*>* self) {
+template <class T>
+void ObjectSetSortUnique(std::vector<T*>* self) {
     if (std::ssize(*self) < 2) return;
     std::sort(self->data(), self->data() + std::ssize(*self), address_order::ObjectBefore);
     // Each element compared with the one before it in place.
-    EngineObject** end = self->data() + std::ssize(*self);
-    EngineObject** out = self->data() + 1;
-    for (EngineObject** p = self->data() + 1; p < end; ++p) {
-        EngineObject* value = *p;
+    T** end = self->data() + std::ssize(*self);
+    T** out = self->data() + 1;
+    for (T** p = self->data() + 1; p < end; ++p) {
+        T* value = *p;
         if (value != p[-1]) *out++ = value;
     }
     self->resize(static_cast<int>(out - self->data()));
@@ -41,22 +43,24 @@ void ObjectSetSortUnique(std::vector<EngineObject*>* self) {
 // `current` is sorted first; `sent` (sorted by an earlier call) is walked beside it. Objects only in
 // `current` go to `added` (referenced once more, +4), objects only in `sent` to `gone` (released by a
 // virtual call), objects in both to `same`. When anything differs `sent` becomes a copy of `current`.
-void DiffObjectSets(std::vector<EngineObject*>* sent, std::vector<EngineObject*>* current, std::vector<EngineObject*>* added, std::vector<EngineObject*>* gone, std::vector<EngineObject*>* same) {
+template <class T>
+void DiffObjectSets(std::vector<T*>* sent, std::vector<T*>* current, std::vector<T*>* added, std::vector<T*>* gone,
+                    std::vector<T*>* same) {
     ObjectSetSortUnique(current);
     int most = lib::Count(*current) > lib::Count(*sent) ? lib::Count(*current) : lib::Count(*sent);
     added->resize(most);
     gone->resize(most);
     same->resize(most);
 
-    EngineObject* const* s = sent->data();
-    EngineObject* const* c = current->data();
+    T* const* s = sent->data();
+    T* const* c = current->data();
     int sentLeft = lib::Count(*sent);
     int currentLeft = lib::Count(*current);
     int addedCount = 0, goneCount = 0, sameCount = 0;
     bool changed = false;
     while (sentLeft != 0 && currentLeft != 0) {
-        EngineObject* old = *s;
-        EngineObject* now = *c;
+        T* old = *s;
+        T* now = *c;
         if (old == now) {
             (*same)[sameCount++] = now;
             ++s;
@@ -93,3 +97,9 @@ void DiffObjectSets(std::vector<EngineObject*>* sent, std::vector<EngineObject*>
     gone->resize(goneCount);
     same->resize(sameCount);
 }
+
+// The two passes of SyncPlayer: the map objects (with the script's party units), then the timed objects.
+template void DiffObjectSets(std::vector<EngineObject*>*, std::vector<EngineObject*>*, std::vector<EngineObject*>*,
+                             std::vector<EngineObject*>*, std::vector<EngineObject*>*);
+template void DiffObjectSets(std::vector<Effect*>*, std::vector<Effect*>*, std::vector<Effect*>*, std::vector<Effect*>*,
+                             std::vector<Effect*>*);

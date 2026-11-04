@@ -33,7 +33,7 @@ void ReleaseSlots(Unit* unit, Item** slots, int count) {
 ItemArmor* Unit::EquipArmour(Item* item) {
     if (!item) return nullptr;
     if (lib::RoundEven(item->condition) <= 0) return nullptr;    // broken
-    ItemArmor* piece = AsArmor(item);
+    ItemArmor* piece = item->AsArmor();
     ItemArmor* previous = armor[piece->GetType()];
     armor[piece->GetType()] = piece;
     piece->AddRef();

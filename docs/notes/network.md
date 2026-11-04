@@ -71,7 +71,7 @@ and `net_pair_party` (an exchange offered, withdrawn, answered, left);
 - Message types: client to server: Login (5), Say (6), Command (7, {kind, text}), FileRequest (13), Party (15, a trade
   offer), PartyMember (16, a MemoryStream); server to client: Player (1), Line (2, chat), Host (3, "host:port" + zone),
   Binding (4), Zone (8), Map (9), Variable (10), File (11), FileChunk (12), Award (14), Trade (17). Duplicate layouts
-  share a class: `TextMessage` (Say / Zone / Map), `PairMessage` (Binding / FileRequest). Each class has its factory,
+  share a class: `TextMessage` (Say / Zone / Map); Binding and FileRequest hold their typed pair. Each class has its factory,
   reset, Write and Read; a reset ends with the inlined placement new's null test of `this` in the original, which
   ours leaves out. Only the messages a second share of an object clones (Say, Command, FileChunk, Award, ServerEntry)
   have `Clone` and a copy constructor; `RefObject::Clone` of any other class is a fatal error, and `OnShutdown` is

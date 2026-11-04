@@ -99,26 +99,9 @@ inline void TrimItemCache(ItemObjectCache<Object>* cache) {
     }
 }
 
-// An item's turning state, a counted object in the item's link: made by the item draw and the moves.
-class ItemTurn : public RefObject {
-public:
-    ItemTurn() {
-        refs = 0;
-        flags6 = 0;
-        flags7 = 0;
-    }
-    void OnShutdown() override;
-    ItemTurn* Clone() override;
-
-    float angle = 0.0f;      // radians, wrapped at 2 pi
-    float speed = 0.0f;
-    bool flag = false;       // set by a move into a list shown turning
-    float glow = 0.0f;       // phase of the spell glow
-};
-inline ItemTurn* ItemTurnOf(Item* item) { return static_cast<ItemTurn*>(item->link.Get()); }
 // An item a constructor made: a move into a list shown turning sets its turn's flag.
 inline bool IsMade(Item* item) {
-    const ItemTurn* turn = ItemTurnOf(item);
+    const ItemTurn* turn = item->turn;
     return turn && turn->flag;
 }
 

@@ -200,25 +200,26 @@ bool GiveUnitWeapon(Call* call) {
     Unit* unit = UnitOrNull(object);   // IsUnit's test
     if (!unit) return Report("GiveUnitWeapon", "Object with ID %d must be a Unit", object->id);
     const char* name = Text(call, 0);
-    auto* item = AsWeapon(g_serverWorld.CreateItemNamed(name));
+    Item* item = g_serverWorld.CreateItemNamed(name);
     if (override && unit->id >= 1000000000) override = false;    // (a warning with EnableShowingScriptErrors)
     if (!item) return Report("GiveUnitWeapon", "Can't create item \"%s\"", name);
     int slot = unit->AddWeapon(item);
     if (slot == -1) return true;
     unit->pendingWeapon = slot;
-    if (override) {
-        const auto* weapon = itemdb::RecordAs<itemdb::WeaponRecord>(item->GetPrototype());
+    // A name of another item kind fills the slot without the weapon's statistics.
+    if (ItemWeapon* made = item->AsWeapon(); override && made) {
+        const auto* weapon = itemdb::RecordAs<itemdb::WeaponRecord>(made->GetPrototype());
         UnitStats& stats = unit->ServerController()->stats;
         const UnitPrototypeRecord* prototype = unit->GetPrototype();
-        stats.damage = item->damage;
-        stats.damageSpread = item->damageSpread;
+        stats.damage = made->damage;
+        stats.damageSpread = made->damageSpread;
         float sum = prototype->combat[3] + weapon->defenceBonus;
         stats.combat[UnitStats::kDefence] = sum;
         stats.combat[UnitStats::kReach] = weapon->reach;
         sum = prototype->combat[1] + weapon->attackBonus;
         stats.combat[UnitStats::kAttack] = sum;
         stats.attackCategory = static_cast<float>(weapon->category);
-        stats.naturalWeapon = item->GetType();
+        stats.naturalWeapon = made->GetType();
         for (int i = 0; i < 7; ++i) stats.damageWeights[i] = weapon->damageTypes[i];
         unit->MarkChanged(0);
     }

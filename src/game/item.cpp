@@ -65,7 +65,8 @@ void Item::Create() {
 
 void Item::Destroy() {
     spell.Reset();
-    link.Reset();
+    serverLink.Reset();
+    turn.Reset();
 }
 
 bool Item::RunTick() {
@@ -245,7 +246,7 @@ void ItemWeapon::InitFromRecord(const ItemRecordHead* record) {
 
 bool ItemWeapon::IsSameAs(Item* item) {
     if (!Item::IsSameAs(item)) return false;
-    ItemWeapon* other = AsWeapon(item);   // of this one's type (the base's test)
+    ItemWeapon* other = item->AsWeapon();   // of this one's type (the base's test)
     if (other->actionValue != actionValue) return false;
     if (other->damage != damage) return false;
     if (other->damageSpread != damageSpread) return false;
@@ -255,7 +256,7 @@ bool ItemWeapon::IsSameAs(Item* item) {
 
 bool ItemWeapon::CopyTo(Item* target, SpellManager* spells) {
     if (!Item::CopyTo(target, spells)) return false;
-    ItemWeapon* weapon = AsWeapon(target);   // a copy of this weapon
+    ItemWeapon* weapon = target->AsWeapon();   // a copy of this weapon
     weapon->actionValue = actionValue;
     weapon->damage = damage;
     weapon->damageSpread = damageSpread;
@@ -298,7 +299,7 @@ void ItemArmor::InitFromRecord(const ItemRecordHead* record) {
 
 bool ItemArmor::IsSameAs(Item* item) {
     if (!Item::IsSameAs(item)) return false;
-    auto* other = AsArmor(item);
+    auto* other = item->AsArmor();
     // Both absorption rows and the layer masks, compared by their bits.
     return std::memcmp(absorb, other->absorb, sizeof(absorb)) == 0 &&
            std::memcmp(layerMask, other->layerMask, sizeof(layerMask)) == 0;
@@ -306,7 +307,7 @@ bool ItemArmor::IsSameAs(Item* item) {
 
 bool ItemArmor::CopyTo(Item* target, SpellManager* spells) {
     if (!Item::CopyTo(target, spells)) return false;
-    auto* armor = AsArmor(target);
+    auto* armor = target->AsArmor();
     std::memcpy(armor->absorb, absorb, sizeof(absorb));
     armor->layerMask[0] = layerMask[0];
     armor->layerMask[1] = layerMask[1];
@@ -338,12 +339,12 @@ void ItemQuick::InitFromRecord(const ItemRecordHead* record) {
 
 bool ItemQuick::IsSameAs(Item* other) {
     if (!Item::IsSameAs(other)) return false;
-    return AsQuick(other)->actionValue == actionValue;
+    return other->AsQuick()->actionValue == actionValue;
 }
 
 bool ItemQuick::CopyTo(Item* target, SpellManager* spells) {
     if (!Item::CopyTo(target, spells)) return false;
-    AsQuick(target)->actionValue = actionValue;
+    target->AsQuick()->actionValue = actionValue;
     return true;
 }
 
@@ -376,12 +377,12 @@ void ItemQuest::InitFromRecord(const ItemRecordHead* record) {
 
 bool ItemQuest::IsSameAs(Item* other) {
     if (!Item::IsSameAs(other)) return false;
-    return AsQuest(other)->questItemId == questItemId;
+    return other->AsQuest()->questItemId == questItemId;
 }
 
 bool ItemQuest::CopyTo(Item* target, SpellManager* spells) {
     if (!Item::CopyTo(target, spells)) return false;
-    AsQuest(target)->questItemId = questItemId;
+    target->AsQuest()->questItemId = questItemId;
     return true;
 }
 
@@ -430,14 +431,14 @@ void ItemLoot::InitFromRecord(const ItemRecordHead* record) {
 
 bool ItemLoot::IsSameAs(Item* item) {
     if (!Item::IsSameAs(item)) return false;
-    auto* other = AsLoot(item);
+    auto* other = item->AsLoot();
     if (other->kind != kind || other->recordType != recordType) return false;
     return other->index == index;
 }
 
 bool ItemLoot::CopyTo(Item* target, SpellManager* spells) {
     if (!Item::CopyTo(target, spells)) return false;
-    auto* loot = AsLoot(target);
+    auto* loot = target->AsLoot();
     loot->kind = kind;
     loot->recordType = recordType;
     loot->index = index;

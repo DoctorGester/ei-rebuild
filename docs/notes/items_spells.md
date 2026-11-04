@@ -55,6 +55,13 @@ what they do not say. The HUD panels and windows are in `ui.md`; players and the
 - Clone = the owning manager's CreateObject(kind, -1), then the source's CopyTo, which gives the target the packed id,
   condition..magicLevel (bit for bit), a clone of the attached spell and count 1.
 - Kept: the loot's Load reads kind / recordType through its stream argument's slot, Item's the spell id likewise.
+- The classes are told apart by the item's virtual `AsWeapon` / `AsArmor` / `AsLoot` / `AsQuick` / `AsQuest` (null for
+  another class); an item's two link records are typed fields: `serverLink` (the world server's `ItemLink`) and `turn`
+  (the item views' `ItemTurn`).
+- Original bug kept: `Player::HasLoot` (over a unit's carried items) and the script's `RemoveQuestItem` compare the
+  quest item id's word of every carried item without a class test: a weapon's or quick item's actionValue, the
+  armour's first absorption factor (its bits) or the loot's kind can match an id (`Item::QuestWord`). A fix would
+  test the class first.
 
 ## Item texts
 

@@ -154,12 +154,12 @@ void ServerSession::ShareFile(const std::string* fileName, GameBuffer* data) {
 
     // Filled with shares of one chunk: each element a clone of it (it is marked copy-on-share by the first share).
     auto& chunks = file->chunks;
-    chunks.resize(static_cast<std::size_t>(chunkCount), SharedRef<RefObject>(NewCounted<FileChunkMessage>()));
+    chunks.resize(static_cast<std::size_t>(chunkCount), SharedRef<FileChunkMessage>(NewCounted<FileChunkMessage>()));
 
     data->Seek(0);
     std::int32_t remaining = size;
     for (std::int32_t i = 0; i < chunkCount; ++i) {
-        auto* piece = static_cast<FileChunkMessage*>(chunks[i].Get());
+        FileChunkMessage* piece = chunks[i].Get();
         piece->file.Assign(file);
         piece->index = static_cast<std::uint16_t>(i);
         unsigned n = static_cast<unsigned>(remaining > kChunkSize ? kChunkSize : remaining);
@@ -211,8 +211,8 @@ bool Is(const std::string& s, const char* t) {
 bool ServerSession::IsHostConnection(const Connection* connection) {
     for (auto& node : bindings) {
         auto* binding = node.Get();
-        if (binding->ConnectionRef().Get() != connection) continue;
-        auto* player = binding->PlayerInfo();
+        if (binding->connection.Get() != connection) continue;
+        auto* player = binding->player.Get();
         if (IsLive(player) && player->host) return true;
     }
     return false;
@@ -221,7 +221,7 @@ bool ServerSession::IsHostConnection(const Connection* connection) {
 // File requests: the request keeps its sender's connection and is listed on fileRequests (dropped again on
 // removal).
 void ServerOnObjectAdded(ServerSession* self, FileRequestMessage* message) {
-    message->ConnectionRef().Assign(g_currentConnection);
+    message->connection.Assign(g_currentConnection);
     self->fileRequests.emplace_back(message);
 }
 

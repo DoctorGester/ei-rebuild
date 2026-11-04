@@ -359,7 +359,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00740244,13,,game,005EB580,005EB600,input side,-,stored only by game.exe's 005EACF0 (InputSideDestroy stores the base input vtable)
 00740278,13,,game,005EB8C0,005EB8F0,UnitPickInput,src/game/ui_view_screen.h,the view screen's unit pick input side (UnitPickInput)
 007402AC,3,,game,005EB940 005EBBE0 005F5BA0 005F6130 005F6240 005F6620 005F6BA0 005FAF80 00617050 00618060 00636F10 00637190 006373A0 0066AA20 0066FBD0 0066FFF0 00670190 00670310,007005E3,UnitPtrArrayClass,-,CArray (the interface's unit pointer arrays); stored only by game.exe (ours is a std::vector)
-007403F8,4,,game,005ECA10 005ED710 005ED760 005EE1B0,005ED780,ItemTurn,src/game/ui_item_info.h,an item's turning state (ItemTurn)
+007403F8,4,,game,005ECA10 005ED710 005ED760 005EE1B0,005ED780,ItemTurn,src/game/item.h,an item's turning state (ItemTurn)
 00740410,13,,game,005EDD80,005F45F0,ItemIconWindow,src/game/ui_item_info.h,the item screens' icon window's input side (CItemIconWindow's UiInputSide)
 00740444,25,,game,005EDD80,005EE020,ItemIconWindow,src/game/ui_item_info.h,the item screens' icon window (CItemIconWindow)
 007404A8,13,,game,005EE380 0060C870 00613EA0 0062C250,005F4600,ItemInfoPanel,src/game/ui_item_info.h,the item description panel's input side (CItemInfoPanel)

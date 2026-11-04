@@ -67,7 +67,8 @@ void ReturnResults(CampPages* camp, Party* results, Party* constructorList, UiIt
 
 // A new item named `name` from the results' item manager as loot (null when none is made).
 ItemLoot* NewLoot(Party* results, std::string_view name) {
-    return AsLoot(results->ItemFactory()->CreateItem(name));
+    Item* item = results->ItemFactory()->CreateItem(name);
+    return item ? item->AsLoot() : nullptr;
 }
 // `item` (not checked for null) added to the results, counted while it is added; its record index set first
 // when `index` is given.
@@ -97,9 +98,9 @@ void StockSpells(CampPages* camp, Party* list) {
         if (IsSpellContainer(item))
             stock->AddSpell(g_spellDatabase.spells.Named(item->spell->GetPrototype()->code.c_str()));
         else if (IsSpell(item))
-            stock->AddSpell(itemdb::SpellAt(AsLoot(item)->index));
+            stock->AddSpell(itemdb::SpellAt(item->AsLoot()->index));
         else if (IsModifier(item))
-            stock->AddModifier(itemdb::SpellModifierAt(AsLoot(item)->index));
+            stock->AddModifier(itemdb::SpellModifierAt(item->AsLoot()->index));
     }
 }
 
@@ -119,10 +120,10 @@ void StockItems(CampPages* camp, Party* list) {
             else if (item->Kind() == ItemKind::Armor) kind = LootRecordType::Armor;
             else if (item->Kind() == ItemKind::Quick) kind = LootRecordType::Quick;
         } else if (IsPart(item)) {
-            auto* loot = AsLoot(item);
+            auto* loot = item->AsLoot();
             index = loot->index;
             if (loot->recordType <= LootRecordType::Quick) kind = loot->recordType;
-        } else if (item->Kind() == ItemKind::Loot && AsLoot(item)->kind == LootKind::Self) {
+        } else if (item->Kind() == ItemKind::Loot && item->AsLoot()->kind == LootKind::Self) {
             list->RemoveItem(item, 1);
         }
         if (kind == LootRecordType::Weapon)

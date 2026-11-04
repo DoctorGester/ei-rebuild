@@ -33,10 +33,9 @@ void RemoveValue(List& list, const void* value) {
     std::erase_if(list, [value](const auto& element) { return element.Get() == value; });
 }
 // The message appended (the list's element takes its own reference or share).
-template <typename List>
-void Append(List& list, Message* message) {
-    using Element = std::remove_pointer_t<decltype(list.front().Get())>;
-    list.emplace_back(static_cast<Element*>(message));
+template <typename List, typename T>
+void Append(List& list, T* message) {
+    list.emplace_back(message);
 }
 template <typename List>
 void RemoveRaw(List& list, Message* message) {
@@ -51,7 +50,7 @@ void RemoveCounted(List& list, Message* message) {
 
 // Every request for `file` erased.
 void DropRequestsFor(ClientSession* self, const Message* file) {
-    std::erase_if(self->fileRequests, [file](const auto& request) { return request.Get()->FileRef().Get() == file; });
+    std::erase_if(self->fileRequests, [file](const auto& request) { return request.Get()->file.Get() == file; });
 }
 
 // The owner's release of the party description as the handlers inline it, then null.
@@ -96,13 +95,13 @@ void ClientSession::RecordTrade(Party* tradeParty) {
 
 // Starts our trade offer to `partner` when the binding and its player are
 // live: kept, from the binding's player.
-void ClientSession::StartParty(RefObject* partner) {
+void ClientSession::StartParty(PlayerMessage* partner) {
     BindingMessage* currentBinding = binding;
     if (!IsLive(currentBinding)) return;
-    if (!IsLive(currentBinding->PlayerRef().Get())) return;
+    if (!IsLive(currentBinding->player.Get())) return;
     ShareAssignOwned(party, NewCounted<PartyMessage>());
-    party->player.Assign(static_cast<PlayerMessage*>(binding->PlayerRef().Get()));
-    party->partner.Assign(static_cast<PlayerMessage*>(partner));
+    party->player.Assign(binding->player.Get());
+    party->partner.Assign(partner);
 }
 
 // Drops the party description.
@@ -119,7 +118,7 @@ void ClientOnBinding(ClientSession* self, BindingMessage* message) {
 }
 void ClientOnBindingGone(ClientSession* self, Message*) { self->binding.Reset(); }
 // The players, with the interface's player list refreshed.
-void ClientOnPlayer(ClientSession* self, Message* message) {
+void ClientOnPlayer(ClientSession* self, PlayerMessage* message) {
     Append(self->players, message);
     g_interface.OnPlayersChanged(1);
 }
@@ -156,7 +155,7 @@ void ClientOnMap(ClientSession* self, MapMessage* message) {
 }
 void ClientOnMapGone(ClientSession* self, Message*) { self->map.Reset(); }
 // The script variables; the flow is told of every change.
-void ClientOnVariable(ClientSession* self, Message* message) {
+void ClientOnVariable(ClientSession* self, VariableMessage* message) {
     Append(self->variables, message);
     g_gameFlow.UpdateFromServer();
 }
@@ -170,7 +169,7 @@ void ClientOnFile(ClientSession* self, FileMessage* message) {
     Append(self->files, message);
     if (MapFileExists(message->name.data())) return;
     auto* request = NewCounted<FileRequestMessage>();
-    request->FileRef().Assign(message);
+    request->file.Assign(message);
     Append(self->fileRequests, request);
 }
 void ClientOnFileGone(ClientSession* self, Message* message) {
@@ -226,9 +225,9 @@ void ClientOnFileChunk(ClientSession* self, FileChunkMessage* message) {
 }
 void ClientOnObjectGone(ClientSession* self, Message* message) { RemoveRaw(self->chunks, message); }
 // The awards (applied by the tick).
-void ClientOnAward(ClientSession* self, Message* message) { Append(self->awards, message); }
+void ClientOnAward(ClientSession* self, AwardMessage* message) { Append(self->awards, message); }
 // The other players' trade offers; the one paired with ours rebuilds the party.
-void ClientOnParty(ClientSession* self, Message* message) {
+void ClientOnParty(ClientSession* self, PartyMessage* message) {
     Append(self->offers, message);
     if (ClientFindParty(self) != message) return;
     ClientCommitParty(self);

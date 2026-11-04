@@ -85,7 +85,7 @@ std::vector<Item*> WorldServer::TakeZoneQuestItems(std::vector<Item*>* items) {
         itemdb::QuestItemRecord* info = itemdb::RecordAs<itemdb::QuestItemRecord>(item->GetPrototype());
         if (sessionKind == kKindSinglePlayer && !IsMultiplayerClient()) {
             bool here = info && NamesZone(info, zoneName.c_str());
-            if (!here && !Contains(wanted, static_cast<int>(AsQuest(item)->questItemId))) continue;
+            if (!here && !Contains(wanted, static_cast<int>(item->AsQuest()->questItemId))) continue;
         }
         taken.push_back(ItemAt(items, i));
         items->erase(items->begin() + i);
@@ -215,7 +215,7 @@ void WorldServer::AddCounted(EngineObject* item) {
 
 void WorldServer::UseItemUp(Unit* unit, Item* item) {
     if (unit->player) {
-        if (ItemLink* link = item->ServerLink()) {
+        if (ItemLink* link = item->serverLink.Get()) {
             Party* party = unit->player->GetParty();
             if (party->Find(unit->id)) {
                 Item* source = FindItem(party->ItemFactory(), link->value);

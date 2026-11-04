@@ -626,8 +626,7 @@ bool ScriptRun::Execute(Script* script) {
             int count = lib::Count(unit->carried);
             int id = lib::Truncate(f[0]);
             for (int i = 0; i < count; ++i) {
-                ItemQuest* item = AsQuest(unit->carried[i]);
-                if (static_cast<int>(item->questItemId) == id) {
+                if (static_cast<int>(unit->carried[i]->QuestWord()) == id) {
                     unit->RemoveCarried(i);
                     break;
                 }
