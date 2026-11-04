@@ -209,6 +209,7 @@ Vector3 AtTorch(const MapObject* torch, const float* offset) {
 
 TorchObjectClientSpec::TorchObjectClientSpec() {
     particles = nullptr;
+    sound = kNoSound;
 }
 
 TorchObjectClientSpec::~TorchObjectClientSpec() {
@@ -230,7 +231,7 @@ void TorchObjectClientSpec::Create() {
         particles = nullptr;
         ReleaseSource(old);
     }
-    sound = 0;
+    sound = kNoSound;
 }
 
 void TorchObjectClientSpec::DestroyClient() {
@@ -250,7 +251,7 @@ void TorchObjectClientSpec::ShowEffects() {
         light->flags &= ~LightFlag::Hidden;
         g_clientWorld.terrain->AddLight(light);
     }
-    if (sound) g_clientWorld.sounds->StopSound(sound);
+    if (sound != kNoSound) g_clientWorld.sounds->StopSound(sound);
     const float farRadius = values[1] * kShowFarFactor;
     sound = g_clientWorld.sounds->Play3D(name, 0, torch->localPosition, kSoundNear, farRadius, 1);
 }
@@ -261,9 +262,10 @@ void TorchObjectClientSpec::HideEffects() {
         light->flags |= LightFlag::Hidden;
         g_clientWorld.terrain->RemoveLight(light);
     }
-    if (sound) {
+    // The original kept 0 for none and tested `if (sound)`: a torch given handle 0 kept its loop playing.
+    if (sound != kNoSound) {
         g_clientWorld.sounds->StopSound(sound);
-        sound = 0;
+        sound = kNoSound;
     }
 }
 
@@ -311,7 +313,7 @@ void TorchObjectClientSpec::SetLightAt(const float* offset, float radius, const 
 
 void TorchObjectClientSpec::SetSound(const char* newName) {
     SetName(newName);
-    if (sound) g_clientWorld.sounds->StopSound(sound);
+    if (sound != kNoSound) g_clientWorld.sounds->StopSound(sound);
     const float farRadius = values[1] * kSetFarFactor;
     sound = g_clientWorld.sounds->Play3D(name, 0, torch->localPosition, kSoundNear, farRadius, 1);
 }

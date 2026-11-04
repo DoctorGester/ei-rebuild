@@ -1034,7 +1034,8 @@ int SoundManager::Play2D(std::string_view name, int priority, int volume, int pa
 
 // Plays `name` at `position`: full volume inside `nearDist`, silent beyond `farDist`, the pan from the
 // listener (UpdatePositional). Returns the handle or -1 as Play2D. A looping sound without a voice is
-// deferred; the record's volume, base volume, pan and length are left as operator new returned them.
+// deferred; the record's volume, base volume, pan and length stay 0 (the original left them as operator new
+// returned them): a restart computes the volume and pan from the position, and nothing reads the others.
 int SoundManager::Play3D(std::string_view name, int priority, const Vector3& position, float nearDist, float farDist, int loop) {
     if (enabled == 0) return -1;
     int index = AllocateVoice(priority);
@@ -1349,6 +1350,7 @@ void SoundManager::ResetStream() {
     streamFile = nullptr;
     for (std::vector<std::uint8_t>& buffer : streamBuffers) buffer.clear();
     streamBufferSize = -1;
+    streamBufferFrames = 0;   // the original left it unset until a file played: silence counts no frames
     streamSpareBuffer = -1;
     streamHalfBuffer[1] = -1;
     streamHalfBuffer[0] = -1;

@@ -24,6 +24,9 @@
 #include <unordered_map>
 #include <vector>
 
+// A sound handle that names no sound (Play2D / Play3D's failure; handles count up from 0).
+inline constexpr int kNoSound = -1;
+
 // The music stream's volume envelope.
 struct SoundFader {
     std::int32_t volume;        // 0..100
@@ -65,19 +68,19 @@ struct SoundSlot {
 // A looping sound that lost its voice to a higher priority one and waits to be restarted.
 struct DeferredSound {
     std::string name;
-    std::int32_t volume;
-    std::int32_t baseVolume;
-    std::int32_t pan;
-    std::int32_t priority;
-    std::int32_t speech;
-    float length;
-    std::int32_t flat;
-    std::int32_t heightFade;
-    Vector3 position;
-    float nearDistance;
-    float farDistance;
-    std::int32_t handle;        // the map key
-    std::int32_t samplePosition;
+    std::int32_t volume = 0;
+    std::int32_t baseVolume = 0;
+    std::int32_t pan = 0;
+    std::int32_t priority = 0;
+    std::int32_t speech = 0;
+    float length = 0.0f;
+    std::int32_t flat = 0;
+    std::int32_t heightFade = 0;
+    Vector3 position{};
+    float nearDistance = 0.0f;
+    float farDistance = 0.0f;
+    std::int32_t handle = -1;   // the map key
+    std::int32_t samplePosition = 0;
 };
 
 // An ambient emitter (16): plays one of its names at random intervals while the listener is within `outerRadius`.
@@ -113,7 +116,7 @@ struct SoundSequence {
     // Returns the next index (with kSequenceLoop: loop it), < 0 ends; called with the previous index and the
     // number of sounds started before.
     int(*chooser)(int previous, int played);
-    std::int32_t generation;
+    std::int32_t generation = 0;
     std::int32_t id;            // generation << 8 | slot (-1: free)
 
     int PlayNext(struct SoundManager* manager);
@@ -155,12 +158,12 @@ struct SoundManager : EngineObject {
     FileRegistry soundRegistry;
     std::vector<MappedResource*> waveSources;   // the archives LoadSample looks in
     // The MP3 music stream, filled on the stream thread.
-    volatile std::int32_t streamState;  // 0 idle, 1 playing, 2 switching to nextName
+    std::atomic<std::int32_t> streamState;   // 0 idle, 1 playing, 2 switching to nextName
     audio::Stream* streamSample;
     audio::Mp3Stream* streamFile;   // the playing file's decoder
     std::vector<std::uint8_t> streamBuffers[3];   // streamBufferSize bytes each
     std::int32_t streamBufferSize;      // twice the output's minimum half; -1 after ResetStream
-    std::int32_t streamBufferFrames;    // frames in one buffer: streamBufferSize / streamFrameBytes
+    std::int32_t streamBufferFrames;    // frames in one buffer: streamBufferSize / streamFrameBytes; 0 before a file
     // Which buffer each half of the stream plays (the first two) and the third one (taken next, and what the stream
     // reader fills): -1 after ResetStream; 0, 1 and 2 after OpenStream.
     std::int32_t streamHalfBuffer[2];
@@ -197,7 +200,7 @@ struct SoundManager : EngineObject {
     // Without a device the main loop steps the stream (FollowClock); the last step's time.
     bool streamOnMainLoop = false;
     std::uint32_t streamSteppedAt = 0;
-    volatile std::int32_t threadsQuit;  // set by Close; the stream thread ends on it
+    std::atomic<std::int32_t> threadsQuit;   // set by Close; the stream thread ends on it
     std::unique_ptr<SoundSlot[]> slots; // 15 voices while open
     Vector3 listener;                   // listener position (z: camera height)
     Vector3 listenerAxis;               // listener direction, unit length in x/y

@@ -19,7 +19,6 @@
 #include <string>
 
 namespace {
-constexpr int kNoSound = -1;
 constexpr int kEndSoundTicks = 0x1E;                 // end sound when fewer ticks are left
 constexpr std::uint32_t kStenchPeriod = 0x10;
 constexpr float kEndSoundNear = 8.0f;

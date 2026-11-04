@@ -25,7 +25,7 @@ public:
     TorchObjectClientSpec();
     ~TorchObjectClientSpec() override;
 
-    // CreateSpec, the light and particles dropped (released), sound 0.
+    // CreateSpec, the light and particles dropped (released), no sound.
     void Create() override;
     void Destroy() override { DestroyClient(); }
     bool RunTick() override;                             // true
@@ -46,7 +46,7 @@ public:
     // distance values[1] * 3).
     void ShowEffects();
     // The particles stop emitting, a shown light is hidden (flags bit 7 set,
-    // removed from the light manager), the sound stops (sound 0).
+    // removed from the light manager), the sound stops.
     void HideEffects();
     // The particle source ticks 60 times (its tick) when there is one.
     void WarmUpParticles();
@@ -65,5 +65,5 @@ public:
 
     Ref<Light> light;
     ParticleSource* particles;     // counted
-    int sound;                      // the looping sound's handle, 0 when none
+    int sound;                      // the looping sound's handle, kNoSound when none
 };
