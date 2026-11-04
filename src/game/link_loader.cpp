@@ -18,8 +18,7 @@
 #include <vector>
 
 std::optional<std::string> ReadLinkString(const char** cursor) {
-    std::uint32_t length;
-    lib::LoadBytes(length, *cursor);
+    std::uint32_t length = lib::Load<std::uint32_t>(*cursor);
     *cursor += 4;
     if (length == 0) return std::nullopt;
     const char* text = *cursor;
@@ -34,8 +33,7 @@ constexpr float kSameMorph = 1e-5f;           // squared distance of the coeffic
 // A part record at `data` into `mesh`: FIG / FIG8 or the older kind.
 void LoadPartRecord(LinkFigureLoader* loader, LinkMesh* mesh, const std::string* name, const char* data, float s,
                     float t, float u) {
-    std::uint32_t tag;
-    lib::LoadBytes(tag, data);
+    std::uint32_t tag = lib::Load<std::uint32_t>(data);
     const char* cursor = data;
     if (fig::IsFig(tag))
         loader->LoadFigPart(mesh, name, &cursor, s, t, u);
@@ -167,8 +165,7 @@ LinkMesh* LinkFigureLoader::LoadLinkFile(const std::string* name, float s, float
         return nullptr;
     }
     auto* mesh = new LinkMesh(this, name, s, t, u);
-    std::uint32_t count;
-    lib::LoadBytes(count, data);
+    std::uint32_t count = lib::Load<std::uint32_t>(data);
     const char* cursor = data + 4;
     std::string part;
     for (; count != 0; --count) {
@@ -246,8 +243,7 @@ bool LinkFigureLoader::RemorphPart(LinkMesh* mesh, FigureModel* set, const std::
         data = FindInArchives(archives, file.data());
     }
     if (!data) return false;
-    std::uint32_t tag;
-    lib::LoadBytes(tag, data);
+    std::uint32_t tag = lib::Load<std::uint32_t>(data);
     const char* cursor = data;
     if (fig::IsFig(tag))
         RemorphFigPart(mesh, name, &cursor, s, t, u);

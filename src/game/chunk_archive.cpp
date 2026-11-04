@@ -97,7 +97,7 @@ void ChunkArchive::AppendChild(ChunkArchive::Ref* chunk, int id, const void* dat
     std::uint32_t length = size * 2;
     if (length >= 0x100) {
         length |= 1;
-        lib::StoreBytes(base + chunk->size, length);
+        lib::Store(base + chunk->size, length);
         chunk->size += 4;
     } else {
         base[chunk->size] = static_cast<std::uint8_t>(length);
@@ -235,7 +235,7 @@ RefCounted* ChunkArchive::ObjectRef(int id) {
         AppendChild(Current(), id, &key, 4);
     } else {
         ChunkArchive::Ref child;
-        if (FindField(this, id, &child)) lib::LoadBytes(key, dataStream.data.data() + child.offset);
+        if (FindField(this, id, &child)) key = lib::Load<std::uint32_t>(dataStream.data.data() + child.offset);
         else key = 0;
     }
     auto node = loaded.find(key);
@@ -360,8 +360,7 @@ void ChunkArchive::Close(ByteStream* stream) {
         while (!saved.empty()) {
             RefCounted* object = saved.front();
             saved.pop_front();
-            std::uintptr_t vtable;
-            lib::LoadBytes(vtable, object);
+            std::uintptr_t vtable = lib::Load<std::uintptr_t>(object);
             const std::unordered_map<std::uintptr_t, std::int32_t>& classIds = g_classRegistry.classIds;
             auto found = classIds.find(vtable);
             std::int32_t classId = found != classIds.end() ? found->second : -1;

@@ -53,8 +53,7 @@ void AnimationTrack::Evaluate(float atTime) {
 namespace {
 
 int ReadCount(std::uint8_t** cursor) {
-    int value;
-    lib::LoadBytes(value, *cursor);
+    int value = lib::Load<int>(*cursor);
     *cursor += sizeof(value);
     return value;
 }
@@ -64,7 +63,7 @@ template <class T>
 std::vector<T> ReadKeys(std::uint8_t** cursor, int count) {
     std::vector<T> keys(count);
     for (T& key : keys) {
-        lib::LoadBytes(key, *cursor);
+        key = lib::Load<T>(*cursor);
         *cursor += sizeof(T);
     }
     return keys;

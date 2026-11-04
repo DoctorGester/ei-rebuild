@@ -178,7 +178,7 @@ void MagicTrap::SaveTrap(ByteStream* stream) {
     stream->WriteValue(value);
     for (int i = 0; i < std::ssize(points); ++i) stream->WriteValue(points[i]);
     for (int i = 0; i < kTailFieldCount; ++i) {
-        lib::LoadBytes(value, TailFields(this, i));
+        value = lib::Load<std::int32_t>(TailFields(this, i));
         stream->WriteValue(value);
     }
 }

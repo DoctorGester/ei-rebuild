@@ -70,7 +70,7 @@ bool MappedResource::OpenResource(const std::string& path) {
 }
 
 bool MappedResource::ReadImage(char* base) {
-    lib::LoadBytes(header, base);
+    header = lib::Load<ResHeader>(base);
     if (header.magic != kResMagic) {
         game::FatalError("Wrong format resource");
         return false;

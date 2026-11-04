@@ -148,7 +148,7 @@ void SetupTornado(ParticleSource* s) {
     color |= static_cast<std::uint32_t>(light[1] * 255.0f);
     color <<= 8;
     color |= static_cast<std::uint32_t>(light[2] * 255.0f);
-    lib::StoreBytes(&s->frameDelay, color);
+    lib::Store(&s->frameDelay, color);
     SetupTornadoRings(s);
     s->elements[0].funnel.height = 12.0f;  // 12.0
     s->elements[0].funnel.bend = 0.5f;
@@ -163,7 +163,7 @@ void SetupCurseHolder(ParticleSource* s) {
     s->attachPoint = 7;
     s->maxParticles = 800;
     s->height = 0.2f;
-    lib::StoreBytes(&s->frameDelay, 0x19000000);
+    lib::Store(&s->frameDelay, 0x19000000);
     SetupTornadoRings(s);
     s->elements[0].funnel.height = 12.0f * 0.4f;
     s->elements[0].funnel.bend = 0.0f;

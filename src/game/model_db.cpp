@@ -250,8 +250,7 @@ int AckDatabase::Load(const std::string& folder) {
 // A length-prefixed name in a model file's data. See model.h.
 
 void ReadPrefixedName(std::string* out, const std::uint8_t** cursor) {
-    std::int32_t length;
-    lib::LoadBytes(length, *cursor);
+    std::int32_t length = lib::Load<std::int32_t>(*cursor);
     *cursor += 4;
     if (length == 0) {
         out->clear();

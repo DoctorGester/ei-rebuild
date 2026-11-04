@@ -189,7 +189,7 @@ void PlayerServer::SendUnitSpeech(const EngineObject* object, AckKind kind) {
 
 void PlayerServer::SendWorldValue(std::uint32_t value) {
     std::uint8_t payload[1 + sizeof(value)] = {};
-    lib::StoreBytes(payload + 1, value);
+    lib::Store(payload + 1, value);
     WriteType(&out, ServerMessage::WorldValue);
     Write(&out, payload, sizeof(payload));
 }

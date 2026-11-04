@@ -84,7 +84,7 @@ void MaterialManager::Create() {
             lit.specular = {0.2f, 0.2f, 0.2f, lit.specular.w};
             lit.power = 5.0f;
         } else {
-            lib::LoadBytes(lit, MaterialFileColors(data));
+            lit = lib::Load<MaterialColors>(MaterialFileColors(data));
         }
         CloseFile(data);
         if (kind.kind == kMagicMaterialKind) lit.emissive = {1.0f, 1.0f, 1.0f, lit.emissive.w};

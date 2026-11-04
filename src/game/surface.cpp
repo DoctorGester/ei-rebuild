@@ -175,7 +175,7 @@ Dib* CaptureScreen(const TextureDevice* device) {
         for (int x = 0; x < width && x < frameWidth; ++x) {
             const std::uint8_t* bgr = &frame[(static_cast<std::size_t>(row) * frameWidth + x) * 3];
             const std::uint32_t pixel = (static_cast<std::uint32_t>(bgr[2]) << 16) | (static_cast<std::uint32_t>(bgr[1]) << 8) | bgr[0];
-            lib::StoreBytes(out + x * 4, pixel);
+            lib::Store(out + x * 4, pixel);
         }
     }
     return dib;

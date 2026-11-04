@@ -118,8 +118,7 @@ TileUv BuildTileUv(int rotation, int column, int row, float size, float margin, 
 // at 32 bits, as the counts are not checked).
 std::optional<MapHeader> ReadMapHeader(const std::uint8_t* file, std::uint32_t size) {
     if (size < sizeof(MapHeader)) return std::nullopt;
-    MapHeader header;
-    lib::LoadBytes(header, file);
+    MapHeader header = lib::Load<MapHeader>(file);
     const std::uint32_t expected = sizeof(MapHeader) + header.materials * sizeof(MapMaterial) +
                                    static_cast<std::uint32_t>(header.textures) * sizeof(std::int32_t) +
                                    header.animated * sizeof(MapAnimatedTexture);
@@ -401,8 +400,7 @@ void Terrain::ReadMap(const MapHeader& header, const std::uint8_t* file) {
     const int materialCount = header.materials;
     materials.resize(materialCount);
     for (int i = 0; i < materialCount; ++i, cursor += sizeof(MapMaterial)) {
-        MapMaterial source;
-        lib::LoadBytes(source, cursor);
+        MapMaterial source = lib::Load<MapMaterial>(cursor);
         TerrainMaterial& material = materials[i];
         material.kind = source.kind;
         material.waveColour = source.colour;
@@ -426,8 +424,7 @@ void Terrain::ReadMap(const MapHeader& header, const std::uint8_t* file) {
     textureFrames.assign(textures, 0);
     const std::uint8_t* animated = cursor + classBytes;
     for (int i = 0; i < static_cast<int>(header.animated); ++i, animated += sizeof(MapAnimatedTexture)) {
-        MapAnimatedTexture entry;
-        lib::LoadBytes(entry, animated);
+        MapAnimatedTexture entry = lib::Load<MapAnimatedTexture>(animated);
         textureFrames[entry.texture] = entry.frames;
     }
 }

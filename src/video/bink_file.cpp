@@ -6,6 +6,8 @@
 // by the number of bytes it decodes to and the packet, then the video packet.
 #include "video/bink_file.h"
 
+#include "lib/bytes.h"
+
 #include <cstring>
 
 namespace bink {
@@ -22,12 +24,6 @@ constexpr std::uint32_t kUnplayedFlags = 0x00100000 | 0x00020000 | 0xF0000000;
 constexpr std::uint16_t kStereo = 0x2000;
 constexpr std::uint16_t kDctAudio = 0x1000;
 
-std::uint32_t Read32(const std::uint8_t* p) {
-    return static_cast<std::uint32_t>(p[0]) | static_cast<std::uint32_t>(p[1]) << 8 |
-           static_cast<std::uint32_t>(p[2]) << 16 | static_cast<std::uint32_t>(p[3]) << 24;
-}
-std::uint16_t Read16(const std::uint8_t* p) { return static_cast<std::uint16_t>(p[0] | p[1] << 8); }
-
 } // namespace
 
 bool File::Open(const char* path) {
@@ -35,12 +31,12 @@ bool File::Open(const char* path) {
     if (!file.Open(path, platform::FileMode::Read)) return false;
     std::uint8_t header[kHeaderBytes];
     if (file.Read(header, kHeaderBytes) != kHeaderBytes || std::memcmp(header, "BIKi", 4) != 0) return false;
-    frameCount = Read32(header + 8);
-    const std::uint32_t w = Read32(header + 20), h = Read32(header + 24);
-    rate = Read32(header + 28);
-    divider = Read32(header + 32);
-    const std::uint32_t flags = Read32(header + 36);
-    audioTracks = Read32(header + 40);
+    frameCount = lib::Load<std::uint32_t>(header + 8);
+    const std::uint32_t w = lib::Load<std::uint32_t>(header + 20), h = lib::Load<std::uint32_t>(header + 24);
+    rate = lib::Load<std::uint32_t>(header + 28);
+    divider = lib::Load<std::uint32_t>(header + 32);
+    const std::uint32_t flags = lib::Load<std::uint32_t>(header + 36);
+    audioTracks = lib::Load<std::uint32_t>(header + 40);
     if (frameCount == 0 || frameCount > kMostFrames || w == 0 || w > kLargestSide || h == 0 || h > kLargestSide ||
         rate == 0 || divider == 0 || (flags & kUnplayedFlags) != 0 || audioTracks > kMostTracks)
         return false;
@@ -51,7 +47,7 @@ bool File::Open(const char* path) {
     if (file.Read(tracks.data(), static_cast<unsigned>(tracks.size())) != tracks.size()) return false;
     if (audioTracks > 0) {
         const std::uint8_t* track = tracks.data() + 4 * audioTracks;
-        const std::uint16_t trackRate = Read16(track), trackFlags = Read16(track + 2);
+        const std::uint16_t trackRate = lib::Load<std::uint16_t>(track), trackFlags = lib::Load<std::uint16_t>(track + 2);
         if (trackRate != 0 && !(trackFlags & kDctAudio)) {
             audioRate = trackRate;
             audioChannels = trackFlags & kStereo ? 2 : 1;
@@ -61,7 +57,7 @@ bool File::Open(const char* path) {
     std::vector<std::uint8_t> index(std::size_t{4} * (frameCount + 1));
     if (file.Read(index.data(), static_cast<unsigned>(index.size())) != index.size()) return false;
     offsets.resize(frameCount + 1);
-    for (unsigned i = 0; i <= frameCount; ++i) offsets[i] = Read32(index.data() + 4 * i);
+    for (unsigned i = 0; i <= frameCount; ++i) offsets[i] = lib::Load<std::uint32_t>(index.data() + 4 * i);
     return true;
 }
 
@@ -78,11 +74,11 @@ bool File::ReadFrame(unsigned index, FramePackets& packets) {
     std::size_t at = 0;
     for (unsigned track = 0; track < audioTracks; ++track) {
         if (at + 4 > size) return false;
-        const std::size_t bytes = Read32(buffer.data() + at);
+        const std::size_t bytes = lib::Load<std::uint32_t>(buffer.data() + at);
         at += 4;
         if (bytes > size - at) return false;
         if (track == 0 && audioRate != 0 && bytes >= 4) {
-            packets.audioSamples = Read32(buffer.data() + at) / 2;
+            packets.audioSamples = lib::Load<std::uint32_t>(buffer.data() + at) / 2;
             packets.audio = buffer.data() + at + 4;
             packets.audioBytes = bytes - 4;
         }

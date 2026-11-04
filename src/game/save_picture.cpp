@@ -1,6 +1,7 @@
 // The save pictures (save_picture.h).
 #include "save_picture.h"
 
+#include "lib/bytes.h"
 #include "lib/qoi.h"
 
 #include <algorithm>
@@ -14,15 +15,6 @@ namespace {
 constexpr std::uint8_t kMagic[4] = {'E', 'I', 'P', 'C'};
 constexpr std::uint32_t kVersion = 1;
 constexpr std::size_t kTrailerHeader = 20;
-
-void Put32(std::vector<std::uint8_t>& out, std::uint32_t v) {
-    for (int shift = 0; shift < 32; shift += 8) out.push_back(static_cast<std::uint8_t>(v >> shift));
-}
-
-std::uint32_t Get32(const std::uint8_t* p) {
-    return p[0] | (static_cast<std::uint32_t>(p[1]) << 8) | (static_cast<std::uint32_t>(p[2]) << 16) |
-           (static_cast<std::uint32_t>(p[3]) << 24);
-}
 
 } // namespace
 
@@ -88,11 +80,13 @@ std::vector<std::uint8_t> ShotFile(const Picture& screen, const Picture& shown) 
     }
     if (shown.Empty()) return out;
     const std::vector<std::uint8_t> qoi = lib::EncodeQoi(shown.rgba.data(), shown.width, shown.height, 3);
-    out.insert(out.end(), std::begin(kMagic), std::end(kMagic));
-    Put32(out, kVersion);
-    Put32(out, static_cast<std::uint32_t>(shown.width));
-    Put32(out, static_cast<std::uint32_t>(shown.height));
-    Put32(out, static_cast<std::uint32_t>(qoi.size()));
+    std::uint8_t header[kTrailerHeader];
+    std::memcpy(header, kMagic, sizeof(kMagic));
+    lib::Store<std::uint32_t>(header + 4, kVersion);
+    lib::Store<std::uint32_t>(header + 8, static_cast<std::uint32_t>(shown.width));
+    lib::Store<std::uint32_t>(header + 12, static_cast<std::uint32_t>(shown.height));
+    lib::Store<std::uint32_t>(header + 16, static_cast<std::uint32_t>(qoi.size()));
+    out.insert(out.end(), std::begin(header), std::end(header));
     out.insert(out.end(), qoi.begin(), qoi.end());
     return out;
 }
@@ -120,8 +114,8 @@ Picture OldPicture(const std::uint8_t* bytes, std::size_t size) {
 bool TrailerPicture(const std::uint8_t* bytes, std::size_t size, Picture* picture) {
     if (!bytes || size < kOldBytes + kTrailerHeader) return false;
     const std::uint8_t* t = bytes + kOldBytes;
-    if (std::memcmp(t, kMagic, sizeof(kMagic)) != 0 || Get32(t + 4) != kVersion) return false;
-    const std::uint32_t width = Get32(t + 8), height = Get32(t + 12), length = Get32(t + 16);
+    if (std::memcmp(t, kMagic, sizeof(kMagic)) != 0 || lib::Load<std::uint32_t>(t + 4) != kVersion) return false;
+    const std::uint32_t width = lib::Load<std::uint32_t>(t + 8), height = lib::Load<std::uint32_t>(t + 12), length = lib::Load<std::uint32_t>(t + 16);
     if (length > size - kOldBytes - kTrailerHeader) return false;
     Picture out;
     if (!lib::DecodeQoi(t + kTrailerHeader, length, kMostSide, &out.width, &out.height, &out.rgba)) return false;

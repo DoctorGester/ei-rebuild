@@ -16,8 +16,7 @@ namespace {
 std::uint32_t Checksum(const std::uint8_t* data, std::int32_t size) {
     std::uint32_t h = 0;
     for (std::int32_t at = 0; at < (size >> 2) * 4; at += 4) {
-        std::uint32_t word;
-        lib::LoadBytes(word, data + at);
+        std::uint32_t word = lib::Load<std::uint32_t>(data + at);
         h ^= word;
         h *= (h & 0xFC) | 3;
     }

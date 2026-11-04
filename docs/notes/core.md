@@ -68,7 +68,8 @@ check (`app.md`).
   Seek, Size, Position, Clear (memory streams empty, file streams rewind), CopyFrom. One value is
   `ReadValue(x)` / `WriteValue(x)` (sizeof(x) bytes, a format value: "Values read and written as bytes"); a read whose
   size is not the variable's (a byte into an int, a block of several members) is `Read(&x, N)` with the size written
-  out. Bytes in a raw buffer are `lib::LoadBytes` / `lib::StoreBytes` (lib/bytes.h).
+  out. A value in a raw buffer is `lib::Load<T>(address)` / `lib::Store(address, value)` (lib/bytes.h; every format
+  is little-endian, as the host: no file keeps its own 16/32-bit readers).
 - `MemoryStream`: a byte buffer with a bit writer (the byte being assembled, the mask of the last bit, the index of the
   byte the bits go to). Write grows to twice the need; `Resize` keeps the contents (1.5x + 0x10), `SetSize` is exact
   and drops them.
