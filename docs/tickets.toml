@@ -7017,6 +7017,13 @@ files = ["src/render/shaders/shadow_caster.*", "shadow_receiver.glsl (+ HLSL)", 
 note = "User 2026-11-03: tree shadows look somewhat blocky; maybe the shadow map does not handle alpha right. What I read (not measured): shadow_caster_fs is a binary alpha test on level 0 of the stage's texture (StageSampler, linear unless the stage asks point), cut at (alphaReference+0.5)/255, or 0.5 for blended passes; outside casters use StageSampler(StageState{}) and the cut remembered in g_cuts (default 0.5). The map is 4096 texels over the visible ground (render_shadows.cpp kMapSize, extent/kMapSize per texel), the PCSS filter at least kLeastRadius 1.5 texels. Candidates: point-filtered tree stages giving stair-stepped leaf edges magnified into the map; a cut too high for blended foliage; texel size too large at the far zoom; the narrowest filter too small to hide the steps; the range cells (kRangeCell 16) ending the filter early (around.y < z - reach returns 1 at cell edges). Find the real cause with captures first (a forest map at the default and far zoom, sun shadows and a point light near trees), then fix it in both GLSL and HLSL. Deliverable: before/after PNG pairs under build/reviews/r47_shadows/ (same view, same frame), and a short note of the cause. The coordinator publishes them for the user. Gating: goldens hold no frames, so goldens the same; ei_render_check and ei_shader_check green. Starts after R43c (it changes the shadow shaders' samplers and packing)."
 
 [[ticket]]
+id = "R48"
+title = "Animation blending between states (idle, walk, run, attack, hit, death...)"
+group = "renderer"
+model = "opus"
+note = "User 2026-11-04: add animation blending. Today a unit (and a map object) switches from one animation to the next at once, so poses snap. Blend the outgoing pose into the incoming one over a short time (per bone, quaternion slerp of rotations and lerp of positions and morph weights; ~0.1-0.25 s, tuned per transition kind), client side only: game state (animation timing, hit frames, the server's view of what a unit is doing) stays as it is. Watch out: picking uses the drawn meshes (R35a), so a blended pose could change what a click hits; keep picking on the unblended pose or show it changes no golden. Check: captures of a walk-to-attack and an idle-to-run transition, goldens the same, frame time on the crowd scene."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
