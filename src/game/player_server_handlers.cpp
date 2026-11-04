@@ -106,8 +106,7 @@ void PlayerServer::OnLeaderDied() {
         return;
     }
 
-    // Both ids stay unset in the original (stack garbage) when the party is not a single hero;
-    // here they are -1, which no object has.
+    // Both ids are -1 (which no object has) when the party is not a single hero; the original left them unset.
     int oldId = kNoId;
     int newId = kNoId;
     if (std::ssize(party->members) == 1) {

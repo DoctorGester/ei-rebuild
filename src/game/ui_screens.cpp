@@ -560,7 +560,7 @@ void ExchangeScreen::KeyDown(int key, int scan, bool repeat) {
         handled = true;
         break;
     case platform::kKeyEscape:
-        net::ClientDropParty(net::g_gameClient);
+        net::g_gameClient->DropParty();
         handled = true;
         break;
     }

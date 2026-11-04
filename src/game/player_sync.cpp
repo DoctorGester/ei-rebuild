@@ -53,8 +53,7 @@ void WriteStateStream(MemoryStream* out, MemoryStream* from) {
     out->Write(data, from->Size());
 }
 
-// The insert of hash_map::operator[] inlined by the senders: the highest id kept, the object
-// stored under its id and counted.
+// The highest id kept, the object stored under its id and counted.
 template <typename T>
 void Keep(lib::HashMap<int, T*>& map, int& maxId, T* object) {
     int id = object->id;

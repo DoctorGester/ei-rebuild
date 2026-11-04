@@ -20,7 +20,7 @@ namespace {
 // The std::vector<int> of received sequences given back to the pool.
 void FreeReceived(Connection* c) { std::destroy_at(&c->received); }
 
-// Every container destroyed in the order the destructor's unwinding would (Reset's teardown).
+// Every container destroyed in the destructor's order (Reset's teardown).
 void DestroyForReset(Connection* c) {
     c->reliableIn.~GrowingBuffer();
     c->reliableOut.~GrowingBuffer();
@@ -78,7 +78,7 @@ Connection::Connection(std::uint32_t newId) {
     ackBase = 0;
 }
 
-// Tears every container down (in the order the destructor's unwinding would)
+// Tears every container down (in the destructor's order)
 // and constructs the connection again with id 0 (the count and the flags kept).
 void Connection::OnShutdown() {
     DestroyForReset(this);

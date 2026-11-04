@@ -1,9 +1,8 @@
 // The handler registration template (one instantiation per message class, called by the session
 // constructors as `session->Register<T>(channel, handler)`): a prototype of
 // the class is made and shared to learn its type id (looked up by vtable), `handler` is added for
-// that type on `channel`, and the prototype is released. The instantiations inline the class
-// constructors; the prototypes here come from the classes' factories (net_messages.cpp),
-// which allocate the same blocks in the same order. Only the class of the prototype is read. See docs/notes/network.md.
+// that type on `channel`, and the prototype is released. The prototypes come from the classes' factories
+// (net_messages.cpp); only the class of the prototype is read. See docs/notes/network.md.
 #include "net_messages.h"
 #include "core_refcount.h"
 

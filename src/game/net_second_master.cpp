@@ -1,10 +1,6 @@
-// EI_Plugin's NewMaster: the second master server (net_second_master.h). The plugin's code, read from
-// EI_Plugin.asi: 10005110 (start the look-up), 100050C0 (the thread), 100051B0,
-// 10004E20, 100052D0. Its state lives in its block
-// (+0xC7 the second master's sockaddr, whose address is -1 until known; +0xD7 the "a.b.c.d:port"
-// text); ours is here. The sockets are the platform's (the plugin called game.exe's imports, but for
-// gethostbyname and select, which it imported itself). Its times are the real clock's, not
-// the game's.
+// EI_Plugin's NewMaster: the second master server (net_second_master.h). Its state is the second master's
+// socket address (the address is -1 until known) and its "a.b.c.d:port" text. The sockets are the platform's.
+// Its times are the real clock's, not the game's.
 #include "net_second_master.h"
 
 #include "net_classes.h"
@@ -47,7 +43,7 @@ std::shared_future<void> g_done;             // ready when the last look-up ende
 std::string g_host;                          // the setting's host part, which the thread looks up
 int g_port = kDefaultPort;
 
-// The plugin's block +0xC7 (family 2, port, address; the address -1 until known) and +0xD7.
+// The second master's address (family 2, port, address; the address -1 until known) and its text.
 NetAddress g_address = {{sockets::kIpv4, 0, kUnknown, {}}};
 char g_text[32];
 
@@ -59,7 +55,7 @@ void SplitSetting() {
     g_port = colon == std::string::npos ? kDefaultPort : std::atoi(setting.c_str() + colon + 1);
 }
 
-// 100050C0: the first address of the host, or -1; then the end and the running flag.
+// The look-up thread: the first address of the host, or -1; then the end and the running flag.
 void LookUp(std::promise<void> done) {
     std::uint32_t address = kUnknown;
     if (!sockets::LookUp(g_host.c_str(), &address)) address = kUnknown;
@@ -68,7 +64,7 @@ void LookUp(std::promise<void> done) {
     g_lookingUp = false;
 }
 
-// 10005110: a look-up thread unless the address is known, one runs, or the last started under 10 s ago.
+// A look-up thread unless the address is known, one runs, or the last started under 10 s ago.
 void StartLookUp() {
     if (g_resolved != kUnknown) return;
     const Clock::time_point now = Clock::now();
@@ -103,7 +99,7 @@ std::string Names(std::uint8_t* count) {
     return names;
 }
 
-// The nonblocking connect of 100052D0: written within 1 s. The second select asks for the error set
+// The nonblocking connect: written within 1 s. The second select asks for the error set
 // the first one emptied (Winsock leaves only the ready sockets), as the plugin does.
 bool Reachable(const NetAddress& master) {
     sockets::Socket s = sockets::Open(sockets::Kind::Tcp);

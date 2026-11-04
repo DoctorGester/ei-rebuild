@@ -45,8 +45,8 @@ namespace {
 
 constexpr int kLoginVersion = 100;
 
-// The login request (message 0). The original copies the two texts into stack buffers
-// and sends the bytes after them uninitialised; here they are zero.
+// The login request (message 0). The bytes after the two texts are zero (the original sent whatever its buffers
+// held).
 struct LoginRequest {
     int version;
     char name[64];
@@ -345,7 +345,7 @@ int PlayerClient::OnItemsReceived() {
     int& money = player->GetParty()->money;
     int before = money;
     in.ReadValue(money);
-    std::uint8_t flag = 0;   // the original passes this byte with three bytes of stack memory above it
+    std::uint8_t flag = 0;
     in.ReadValue(flag);
     int result = 1;
     for (;;) {
@@ -477,7 +477,7 @@ int PlayerClient::OnNewObject() {
     in.ReadText(model, kTextSize);
     in.ReadText(textureFrom, kTextSize);
     in.ReadText(textureTo, kTextSize);
-    std::uint16_t count = 0;   // read into the low half of a stack dword
+    std::uint16_t count = 0;
     in.ReadValue(count);
     parts.resize(count);
     for (std::uint16_t i = 0; i < count; ++i) {

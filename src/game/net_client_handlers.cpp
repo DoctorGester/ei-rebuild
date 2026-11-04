@@ -23,8 +23,6 @@
 
 namespace net {
 
-void ClientApplyParty(ClientSession* self);      // net_client_party.cpp
-
 namespace {
 
 // Every element holding `value` erased.
@@ -53,11 +51,6 @@ void DropRequestsFor(ClientSession* self, const Message* file) {
     std::erase_if(self->fileRequests, [file](const auto& request) { return request.Get()->file.Get() == file; });
 }
 
-// The owner's release of the party description as the handlers inline it, then null.
-void DropParty(ClientSession* self) {
-    DestroyOwned(self->party);
-}
-
 // The trade records emptied.
 void ClearTradeRecords(ClientSession* self) { self->tradeRecords.clear(); }
 
@@ -69,7 +62,7 @@ void ClearTradeRecords(ClientSession* self) { self->tradeRecords.clear(); }
 // revision (and changes), and unless a record of the two revisions exists one is added with copies
 // of the two parties (parties) and `party`.
 void ClientSession::RecordTrade(Party* tradeParty) {
-    PartyMessage* remote = ClientFindParty(this);
+    PartyMessage* remote = FindParty();
     if (!remote) return;
     if (!party.Get()) return;
     auto* ours = party.Get();
@@ -103,9 +96,6 @@ void ClientSession::StartParty(PlayerMessage* partner) {
     party->player.Assign(binding->player.Get());
     party->partner.Assign(partner);
 }
-
-// Drops the party description.
-void ClientDropParty(ClientSession* self) { DropParty(self); }
 
 // The binding of this client: kept, dropped. An update lists its
 // objects in the order of the server's entries' addresses (Connection::SendUpdate), so the players may
@@ -217,20 +207,20 @@ void ClientOnAward(ClientSession* self, AwardMessage* message) { Append(self->aw
 // The other players' trade offers; the one paired with ours rebuilds the party.
 void ClientOnParty(ClientSession* self, PartyMessage* message) {
     Append(self->offers, message);
-    if (ClientFindParty(self) != message) return;
-    ClientCommitParty(self);
-    ClientApplyParty(self);
+    if (self->FindParty() != message) return;
+    self->CommitParty();
+    self->ApplyParty();
 }
 void ClientOnPartyChanged(ClientSession* self, Message* message) {
-    if (ClientFindParty(self) != message) return;
-    ClientCommitParty(self);
-    ClientApplyParty(self);
+    if (self->FindParty() != message) return;
+    self->CommitParty();
+    self->ApplyParty();
 }
 void ClientOnPartyGone(ClientSession* self, Message* message) { RemoveRaw(self->offers, message); }
 // Party members, every channel: the description committed and the party rebuilt.
 void ClientOnMember(ClientSession* self, Message*) {
-    ClientCommitParty(self);
-    ClientApplyParty(self);
+    self->CommitParty();
+    self->ApplyParty();
 }
 // The trade: a new one empties the trade records and resets both parties.
 void ClientOnTrade(ClientSession* self, TradeMessage* message) {
@@ -258,13 +248,13 @@ void ClientOnTradeChanged(ClientSession* self, TradeMessage* message) {
         }
     }
     self->trade.Reset();
-    DropParty(self);
+    self->DropParty();
     ClearTradeRecords(self);
 }
 void ClientOnTradeGone(ClientSession* self, Message* message) {
     if (self->trade != message) return;
     self->trade.Reset();
-    DropParty(self);
+    self->DropParty();
     ClearTradeRecords(self);
 }
 

@@ -372,10 +372,10 @@ public:
 
 // The client's login message to the world server (not net::LoginMessage; 0x88 bytes, read whole by PlayerServer::OnLogin).
 struct PlayerLoginMessage {
-    int version;                    // +0x00 0x64
-    char name[0x40];                // +0x04
-    char password[0x40];            // +0x44
-    std::uint32_t partyId;          // +0x84 the client player's partyId (cleared before the read)
+    int version;                    // 0x64
+    char name[0x40];
+    char password[0x40];
+    std::uint32_t partyId;          // the client player's partyId (cleared before the read)
 };
 static_assert(sizeof(PlayerLoginMessage) == 0x88);   // sent as its bytes
 

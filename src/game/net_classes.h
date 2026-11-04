@@ -167,12 +167,6 @@ extern GrowingBuffer g_receiveBuffer;
 // initialisers and released by the exit functions those register (net_session.cpp).
 inline Ref<ClientSession> g_gameClient = /*0079B5D8*/ {};
 inline Ref<ServerSession> g_gameServer = /*0079B5DC*/ {};
-// The game client's trade offer: publish ours, find the partner's offer that pairs with ours (a
-// PartyMessage, or null), take the acceptance back, drop the offer.
-void ClientPublishParty(ClientSession* self);
-PartyMessage* ClientFindParty(ClientSession* self);
-void ClientCommitParty(ClientSession* self);
-void ClientDropParty(ClientSession* self);
 
 // ---- The message base ---------------------------------------------------------------------------
 
@@ -642,6 +636,13 @@ public:
     void ReadServerList(GameBuffer* in);
     void StartParty(PlayerMessage* partner);
     void RecordTrade(Party* party);
+    // The game client's trade offer: publish ours, find the partner's offer that pairs with ours (null without
+    // one), take the acceptance back, drop the offer, rebuild the partner's party from its offer.
+    void PublishParty();
+    PartyMessage* FindParty();
+    void CommitParty();
+    void DropParty();
+    void ApplyParty();
 
     ClientSession();
     ~ClientSession() override;

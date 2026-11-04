@@ -36,8 +36,8 @@ bool Is(const std::string& s, const char* t) {
 
 // Empties queuedMaps and variables, queues a map message (name + suffix) on the first, replaces map by a fresh
 // one and copies the name into it and into mapName, loads the map into the world and announces its title. Then,
-// when the map registry knows "name + suffix", sets a script variable to 1 for each of the map's names (inline,
-// through FindOrAddVariable) and for two paths built from the map name (SetVariable), and queues the host's item
+// when the map registry knows "name + suffix", sets a script variable to 1 for each of the map's names
+// (FindOrAddVariable) and for two paths built from the map name (SetVariable), and queues the host's item
 // awards (without the final award).
 void ServerSession::SetMap(const std::string* newName) {
     queuedMaps.clear();

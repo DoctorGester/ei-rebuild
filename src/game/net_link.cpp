@@ -20,7 +20,7 @@ namespace netlink {
 
 namespace {
 
-// The largest message Send takes (its stack buffer holds the length and the bytes).
+// The largest message Send takes (its buffer holds the length and the bytes).
 constexpr unsigned kMaxMessage = 0x7FFC;
 
 } // namespace
@@ -147,8 +147,8 @@ int FramedLink::IncomingCount() {
     return count;
 }
 
-// The message framed (its length, then its bytes, read from the start) in a stack buffer and handed to slot
-// 13; when that fails the link disconnects. False for a message over 0x7FFC bytes or a failed send.
+// The message framed (its length, then its bytes, read from the start) in a buffer and handed to SendBytes;
+// when that fails the link disconnects. False for a message over 0x7FFC bytes or a failed send.
 bool FramedLink::Send(ByteStream* stream) {
     std::uint8_t buffer[kMaxMessage + 4];
     if (stream->Size() > kMaxMessage) return false;

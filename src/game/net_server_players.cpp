@@ -342,7 +342,6 @@ std::vector<SharedRef<VariableMessage>>::iterator ServerSession::FindOrAddVariab
 
     auto first = variables.emplace(variables.begin(), NewCounted<VariableMessage>());
 
-    // The name, assigned in place (string::operator= inlined: overwrite, then cut or append).
     std::string* to = &first->Get()->name;
     if (variableName != to) *to = *variableName;
     return first;

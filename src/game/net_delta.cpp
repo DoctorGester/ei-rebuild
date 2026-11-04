@@ -275,7 +275,7 @@ void DeltaField::WritePosition2D(Vector2 position) {
     WriteDelta(&q, 2);
 }
 
-// One 16-bit value with the bit read inline (unchanged: from the snapshot read against).
+// One 16-bit value (unchanged: from the snapshot read against).
 std::uint16_t DeltaField::ReadWord() {
     std::uint32_t at = delta::g_readSnapshot->Position();
     MemoryStream* reader = delta::g_received;

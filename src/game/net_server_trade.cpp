@@ -126,7 +126,6 @@ void ServerSession::QueueAward(RefObject* connection, AwardKind awardKind, float
     award->kind = awardKind;
     award->value = value;
 
-    // The text, assigned in place (string::operator= inlined: overwrite, then cut or append).
     award->text = text;
 
     // Shared three times over: the list keeps a clone of the entry's clone (each share marks the object

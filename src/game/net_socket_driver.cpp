@@ -213,8 +213,7 @@ int MasterLinkTick(MasterLink* self) {
             return self->state;
         }
         if (n == 0) {
-            // EI_Plugin's NewMaster (its 10005490): a link closed before anything
-            // arrived (base - begin + high of +0x1C, `high` as it stands) is left as it is.
+            // EI_Plugin's NewMaster: a link closed before anything arrived (nothing received) is left as it is.
             GameBuffer* received = &self->in;
             if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster) &&
                 received->PositionOf(received->high) ==

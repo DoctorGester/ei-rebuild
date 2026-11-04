@@ -21,8 +21,7 @@ void PartyConstruct(lib::InPlace<Party>* party) { new (party->Get()) Party(); }
 
 } // namespace
 
-// The client base's constructor is inlined into the game client's: the session base, its lobby fields, an unbound
-// socket.
+// The client base: the session base, its lobby fields, an unbound socket.
 ClientBase::ClientBase() {
     host = NetAddress{};
     alwaysAsk = NetAddress{};
@@ -96,9 +95,8 @@ void ClientSession::CollectReplicated(std::vector<Replicated>** out) {
 
 // --- Life --------------------------------------------------------------------------------------------
 
-// The game client's destructor, scalar deleting destructor and its
-// base layer's destructor. The members are torn down in reverse order: the lists are cleared where the original
-// destroys them, between the counted pointers' releases; then the session base. See net_classes.h and
+// The game client's destructor and its base layer's. The members are torn down in reverse order: the lists are
+// cleared between the counted pointers' releases; then the session base. See net_classes.h and
 // docs/notes/network.md.
 
 // The client base's part and the session base follow (their destructors).

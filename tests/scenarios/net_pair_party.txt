@@ -1,9 +1,9 @@
 # H43g: the exchange offer's other ends (a pair of games, harness_pair.h; net_pair_zone has the exchange that
 # goes through). This game hosts as net_pair_join does; the peer (peer/net_pair_party.txt) offers an exchange and
-# withdraws it with a second click on the face (ClientDropParty; the server's ServerOnTradeCancel tells this game,
+# withdraws it with a second click on the face (ClientSession::DropParty; the server's ServerOnTradeCancel tells this game,
 # text 11), then offers again; this game answers (the exchange window opens on both, a TradeMessage), both accept,
-# the peer takes its acceptance back (region 1: ClientCommitParty) and accepts again, and this game leaves the
-# exchange (region 2: ClientDropParty with a live trade; the peer's window closes by itself).
+# the peer takes its acceptance back (region 1: ClientSession::CommitParty) and accepts again, and this game leaves the
+# exchange (region 2: ClientSession::DropParty with a live trade; the peer's window closes by itself).
 # The faces: the peer's is the left one on this game's base screen (715 25 on the vanilla layout, 635 36 on Rebirth's).
 timeout 180
 peer net_pair_party

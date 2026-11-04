@@ -55,22 +55,19 @@ Player* LocalPlayer() { return g_serverWorld.GetPlayer(0); }
 // or -1 without a spell, then the item's type and packed id and its own Save. A message equal to
 // one of the previous messages is replaced by that one (so unchanged members keep their object).
 // The offer takes the party's money; then its counters move on and its accepted flag is cleared.
-void ClientPublishParty(ClientSession* self) {
-    Party* party = self->parties[0].Get();
-    // Read again at each use.
-    auto state = [self] { return self->party.Get(); };
-    if (!state()) return;
+void ClientSession::PublishParty() {
+    if (!party) return;
+    Party* own = parties[0].Get();
     // A copy of the old messages, then the list emptied.
-    MemberList previous = state()->members;
-    state()->members.clear();
-    state()->money = static_cast<std::uint32_t>(party->money);
+    MemberList previous = party->members;
+    party->members.clear();
+    party->money = static_cast<std::uint32_t>(own->money);
 
     std::uint32_t scratch = 0;
-    for (int i = 0; i < std::ssize(party->items); ++i) {
+    for (Item* item : own->items) {
         auto* message = NewCounted<PartyMemberMessage>();
         HeldRef<PartyMemberMessage> ref(message);
         ByteStream* stream = &message->stream;
-        Item* item = party->items[i];
         stream->Clear();
         Spell* spell = item->spell;
         if (spell) {
@@ -86,62 +83,60 @@ void ClientPublishParty(ClientSession* self) {
         item->Save(stream);
 
         auto same = FindSameMessage(previous.begin(), previous.end(), message);
-        PartyMessage* current = state();
         if (same != previous.end()) {
-            current->members.push_back(*same);
+            party->members.push_back(*same);
             previous.erase(same);
         } else {
-            current->members.push_back(ref);
+            party->members.push_back(ref);
         }
     }
 
-    ++state()->revision;
-    state()->accepted = 0;
-    ++state()->version;
+    ++party->revision;
+    party->accepted = 0;
+    ++party->version;
 }
 
 // The received offer that pairs with ours: its partner is our
 // player and its player our partner, and it is live. Null without one.
-PartyMessage* ClientFindParty(ClientSession* self) {
-    auto* ours = self->party.Get();
-    if (!ours) return nullptr;
-    for (auto& node : self->offers) {
+PartyMessage* ClientSession::FindParty() {
+    if (!party) return nullptr;
+    for (auto& node : offers) {
         auto* other = node.Get();
-        if (other->partner.Get() != ours->player.Get() || other->player.Get() != ours->partner.Get()) continue;
+        if (other->partner.Get() != party->player.Get() || other->player.Get() != party->partner.Get()) continue;
         if (other && !(other->flags7 & RefObject::kDetached)) return other;
     }
     return nullptr;
 }
 
 // An accepted offer is unaccepted with its version moved on, so it is sent again.
-void ClientCommitParty(ClientSession* self) {
-    auto* state = self->party.Get();
-    if (!state || !state->accepted) return;
-    state->accepted = 0;
-    ++self->party.Get()->version;
+void ClientSession::CommitParty() {
+    if (!party || !party->accepted) return;
+    party->accepted = 0;
+    ++party->version;
 }
+
+// Drops the party description (the owner's release).
+void ClientSession::DropParty() { DestroyOwned(party); }
 
 // Rebuilds the partner's party from the paired offer, once every member message of it holds data. Each
 // message gives (when its first dword, the spell's id, is positive) a spell made by the party's spell manager
 // (CreateObject with the stored type and that id, its packed id set and its Load) and an
 // item made by the item manager (CreateObject with id -1, packed id, Load). The items are added to
 // the party, which takes the offer's money first; trade records older than the offer's revision are dropped.
-void ClientApplyParty(ClientSession* self) {
-    PartyMessage* remote = ClientFindParty(self);
+void ClientSession::ApplyParty() {
+    PartyMessage* remote = FindParty();
     if (!remote) return;
-    auto count = [remote] { return static_cast<std::uint32_t>(remote->members.size()); };
-    for (std::uint32_t i = 0; i < count(); ++i) {
-        PartyMemberMessage* message = remote->members[i].Get();
-        if (!message || (message->flags7 & RefObject::kDetached)) return;
-        if (message->stream.Size() == 0) return;
+    for (const auto& member : remote->members) {
+        if (!member.Get() || (member.Get()->flags7 & RefObject::kDetached)) return;
+        if (member.Get()->stream.Size() == 0) return;
     }
 
-    Party* party = self->parties[1].Get();
-    party->Clear(1, 0);
-    party->money = static_cast<int>(remote->money);
+    Party* partner = parties[1].Get();
+    partner->Clear(1, 0);
+    partner->money = static_cast<int>(remote->money);
     std::vector<Item*> items;   // each holds a reference
-    for (std::uint32_t i = 0; i < count(); ++i) {
-        ByteStream* stream = &remote->members[i]->stream;
+    for (const auto& member : remote->members) {
+        ByteStream* stream = &member->stream;
         stream->Seek(0);
         std::int32_t id;
         std::uint32_t type, packedId;
@@ -149,26 +144,25 @@ void ClientApplyParty(ClientSession* self) {
         if (id > 0) {
             stream->ReadValue(type);
             stream->ReadValue(packedId);
-            EngineObject* spell = party->GetSpellManager()->CreateObject(static_cast<int>(type), id);
+            EngineObject* spell = partner->GetSpellManager()->CreateObject(static_cast<int>(type), id);
             if (!spell) break;   // a type the factory does not know: the rest of the offer cannot be read
             spell->prototypeId = packedId;
             spell->Load(stream);
         }
         stream->ReadValue(type);
         stream->ReadValue(packedId);
-        auto* item = party->ItemFactory()->CreateObjectAs<Item>(static_cast<int>(type), -1);
+        auto* item = partner->ItemFactory()->CreateObjectAs<Item>(static_cast<int>(type), -1);
         if (!item) break;
         item->prototypeId = packedId;
         item->Load(stream);
         item->AddRef();
         items.push_back(item);
     }
-    for (Item* item : items) party->AddItem(item, 1, 1);
+    for (Item* item : items) partner->AddItem(item, 1, 1);
 
     std::int32_t revision = static_cast<std::int32_t>(remote->revision);
-    std::list<TradeRecord>& records = self->tradeRecords;
-    for (auto record = records.begin(); record != records.end();)
-        record = static_cast<std::int32_t>(record->acceptedRevision) < revision ? records.erase(record) : std::next(record);
+    for (auto record = tradeRecords.begin(); record != tradeRecords.end();)
+        record = static_cast<std::int32_t>(record->acceptedRevision) < revision ? tradeRecords.erase(record) : std::next(record);
     for (EngineObject* item : items)
         if (item) item->Release();
 }
@@ -183,17 +177,14 @@ void ClientApplyParty(ClientSession* self) {
 // the first given item whose IsSameAs with the named item returns 0 is taken (by id); QuestReset: the party's quest items
 // removed and every given quest item (class 0x14) taken.
 void ClientSession::ApplyAwards() {
-    ClientSession* self = this;
     Player* localPlayer = LocalPlayer();
     if (!localPlayer) return;
-    for (auto& node : self->awards) {
+    for (auto& node : awards) {
         auto* award = node.Get();
         const char* name = award->text.data();
         switch (award->kind) {
         case AwardKind::Experience: {
-            std::uint32_t bits;
-            bits = std::bit_cast<std::uint32_t>(award->value);
-            g_serverWorld.AwardExperience(nullptr, std::bit_cast<float>(bits));
+            g_serverWorld.AwardExperience(nullptr, award->value);
             break;
         }
         case AwardKind::Gold: {
@@ -239,17 +230,15 @@ void ClientSession::ApplyAwards() {
         }
     }
 
-    // The list emptied inline: each award released, each node back to the 16-byte pool list.
-    self->awards.clear();
+    awards.clear();
 }
 
 // The client base tick, then the timers count down by `dt` (as a float) and those below zero are dropped. Awards
 // are applied in a game of mode 3 when player 0 exists with its connection in state 1 and the game-flow flag is set.
 void ClientSession::Tick(double dt) {
-    ClientSession* self = this;
-    self->ClientBase::Tick(dt);
-    CountDown(self->timers, static_cast<float>(dt));
-    if (self->awards.begin() == self->awards.end() || g_serverWorld.zoneMode != ZoneMode::Base) return;
+    ClientBase::Tick(dt);
+    CountDown(timers, static_cast<float>(dt));
+    if (awards.empty() || g_serverWorld.zoneMode != ZoneMode::Base) return;
     Player* localPlayer = LocalPlayer();
     if (!localPlayer || localPlayer->Server()->state != PlayerServer::State::Joined || !g_serverWorld.zoneLoaded) return;
     ApplyAwards();
