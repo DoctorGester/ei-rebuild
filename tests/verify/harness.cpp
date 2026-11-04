@@ -49,6 +49,12 @@
 //                             may come while the steps between still run)
 //                             (these four read the server world after the frame's update, as the
 //                             digest does: they end in the same frame every run)
+//   hit <target> <attacker> <amount>
+//                             the server world's unit <target> takes a blow of <amount> damage from unit
+//                             <attacker> (none: no attacker, as a script's InflictDamage): Unit::ReceiveHit, so the
+//                             attacker gives the hit a side (HitDirection) and the game's own rules decide what it
+//                             does, also in a network game where "@" commands do nothing. A unit is "leader" (the
+//                             local player's first party member), "#<id>" or a script name (as GetObjectByName)
 //   frames <n>                let the game run <n> frames of its main loop (after the input posted
 //                             so far has been handled): for what follows a posted key or mouse
 //                             step on the next frames, whatever the frame rate
@@ -624,6 +630,14 @@ unsigned g_awardMoney = 0;
 bool g_awardServed = false;      // "waitaward ... served": the server's award queue filled and emptied
 bool g_awardQueueSeen = false;   // the server's award queue was seen with awards
 bool g_awardFromSet = false;   // "awardfrom" took them (the next waitaward compares with those)
+// A "hit" step's unit: "leader", "#<id>" or a script name; "none" (0) where `none` allows it; -1 when not found.
+int HitUnitId(const std::string& name, bool none) {
+    if (none && name == "none") return 0;
+    if (name == "leader") return digest::LocalLeader();
+    if (!name.empty() && name[0] == '#') return std::atoi(name.c_str() + 1);
+    const int id = image::TextKey(name.c_str());
+    return id ? id : -1;
+}
 void AwardFrom() {
     const digest::UnitNow unit = digest::UnitNowOf(digest::LocalLeader(&g_awardMoney));
     g_awardExperience = unit.experience;
@@ -2460,6 +2474,23 @@ void RunSteps() {
         } else if (s.verb == "awardfrom") {
             AwardFrom();
             g_awardFromSet = true;
+        } else if (s.verb == "hit") {
+            char target[96] = {}, attacker[96] = {};
+            float amount = 0.0f;
+            std::string error;
+            if (std::sscanf(s.argument.c_str(), "%95s %95s %f", target, attacker, &amount) != 3) {
+                error = "hit needs <target> <attacker> <amount>";
+            } else {
+                const int targetId = HitUnitId(target, false);
+                const int attackerId = HitUnitId(attacker, true);
+                if (targetId < 0 || attackerId < 0)
+                    error = std::string("hit: no unit ") + (targetId < 0 ? target : attacker);
+                else
+                    error = image::HitUnit(targetId, attackerId, amount);
+                Log("harness: hit %s (%d) by %s (%d), %g damage%s%s", target, targetId, attacker, attackerId, amount,
+                    error.empty() ? "" : ": ", error.c_str());
+            }
+            if (!error.empty()) g_failures.push_back(error);
         } else if (s.verb == "console") {
             ConsoleExecute(s.argument.c_str());
         } else if (s.verb == "newgame") {
