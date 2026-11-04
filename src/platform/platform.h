@@ -293,6 +293,15 @@ bool WindowPixelSize(NativeWindow window, int* width, int* height);
 // (made smaller when it and its borders would not fit in the usable bounds of the display it is on, centred there); a
 // maximised window is restored first. Returns once the system has applied it (X11 resizes asynchronously).
 void SetClientSize(NativeWindow window, int width, int height);
+// The sizes of the display `window` is on that the game offers as its resolution, narrowest first, each once (the
+// display's modes' sizes in pixels, none under 800x600 or above the desktop's: display_sizes.h). Sizes only: no display
+// mode is ever set, full screen scales the frame. The harness's backend returns a fixed list.
+std::vector<Size> DisplaySizes(NativeWindow window);
+// Whether ConfineCursor does anything (the harness's backend only notes the request).
+bool CursorConfinementSupported();
+// The cursor kept inside the window (the window grabs the mouse) or let go; a window that has no focus is let go by the
+// system, and the game asks again as it gets it back.
+void ConfineCursor(NativeWindow window, bool confined);
 
 // ---- Events ------------------------------------------------------------------------------------------------------
 

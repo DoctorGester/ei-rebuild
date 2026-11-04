@@ -4,6 +4,7 @@
 // counted for the report); the game's events are the harness's, and so are its clocks, date, mouse position and
 // message box answers.
 #include "harness_platform.h"
+#include "platform/log.h"
 #include "platform/sdl/sdl_input.h"
 #include "platform/sdl/sdl_window.h"
 #include "harness_clock.h"
@@ -383,6 +384,21 @@ void SetClientSize(NativeWindow window, int width, int height) {
     if (SDL_GetWindowFlags(w) & SDL_WINDOW_MAXIMIZED) SDL_RestoreWindow(w);
     if (!hp::PlaceInUsableBounds(SDL_GetDisplayForWindow(w), &width, &height)) SDL_SetWindowSize(w, width, height);
     hp::WaitForClientSize(width, height);
+}
+
+// A list of its own, the same on every machine, so that the options' resolution row steps through the same sizes
+// whatever the monitor (SDL's backend lists the display's modes).
+std::vector<Size> DisplaySizes(NativeWindow) {
+    return {{800, 600},   {1024, 768},  {1152, 864},  {1280, 720},  {1280, 800},  {1280, 960},  {1280, 1024},
+            {1366, 768},  {1440, 900},  {1600, 900},  {1600, 1200}, {1680, 1050}, {1920, 1080}, {1920, 1200},
+            {2560, 1080}, {2560, 1440}, {2560, 1600}, {3440, 1440}, {3840, 2160}};
+}
+
+// No grab in a harness run (it would hold the user's cursor): the request is logged.
+bool CursorConfinementSupported() { return false; }
+
+void ConfineCursor(NativeWindow, bool confined) {
+    ei::Log("platform: cursor confinement %s (not grabbed in the harness)", confined ? "on" : "off");
 }
 
 // ---- Events ------------------------------------------------------------------------------------------------------

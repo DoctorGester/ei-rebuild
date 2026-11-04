@@ -43,6 +43,7 @@ void OnActivate(bool active, bool minimized) {
     if (minimized) {
         g_activationChanged = 1;
         g_active = 0;
+        UpdateCursorConfinement();
         return;
     }
     auto* sounds = g_clientWorld.sounds;
@@ -51,6 +52,7 @@ void OnActivate(bool active, bool minimized) {
         g_activationChanged = 1;
         g_cursor.ShowImage(0);
         if (sounds) sounds->PauseAll();
+        UpdateCursorConfinement();
         return;
     }
     g_active = 1;
@@ -63,6 +65,7 @@ void OnActivate(bool active, bool minimized) {
     g_cursor.ShowImage(1);
     if (sounds) sounds->ResumeAll();
     g_interface.ResetInput();
+    UpdateCursorConfinement();
 }
 
 void Handled() { g_interface.CloseAllPending(); }

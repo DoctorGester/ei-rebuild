@@ -423,9 +423,11 @@ maximised, a DPI change). `present_window::Update` asks at each present (`app::R
 loop pass takes it (`TakeResolutionChange`), so a resize during a blocking movie or loading screen is taken after it;
 meanwhile the present scales the frame. The window's first client area is not a change.
 
-The options window's resolution (setting 21, the display group's last row, ours): a spin control over a fixed list of
-common sizes (4:3, 5:4, 16:10, 16:9, 21:9, 800x600 to 3840x2160; the same on every machine, so scenarios step it the
-same) with the screen's own size put in its place when it is none of them; Enter or a click steps on, Left / Right
+The options window's resolution (setting 21, the display group's last row, ours): a spin control over the sizes of the
+display's own modes (`platform::DisplaySizes`: SDL_GetFullscreenDisplayModes of the window's display, in pixels, sizes
+only, each once, narrowest first, none under 800x600 or above the desktop's: `platform/display_sizes.h`, unit check
+display_sizes.cpp; the harness's backend returns a fixed list of 19 common sizes, so scenarios step it the same on
+every machine) with the screen's own size put in its place when the list lacks it; Enter or a click steps on, Left / Right
 (on any spin row) back and on. Its label and tip are ours ("option_resolution": Russian where the game's texts are,
 else English; a text the game's files have wins). OK with another size calls `app::ChooseResolution`: the change is
 asked for at the next main loop pass (`RequestResolution`, between frames: the windows' LayoutChanged never runs inside
@@ -441,6 +443,13 @@ nearest pixel (`present_window::MouseToGame`), so the edge pan works at the pict
 passed on and is logged ("input: a press outside the picture ignored"), its release is. Inside the frame the picture is
 `Interface3D::PictureRect`: the screen less the letterbox bars while `ScreenFade::letterbox` is set (nothing in the
 game sets it). A window narrower than 4:3 has the world over its whole height.
+
+The options' display group's next row (setting 22, ours) is "confine the cursor" (a spin on / off, default off, saved as
+[video] ConfineCursor and read and written only where the cursor can really be grabbed, not in the harness): OK calls
+`app::UpdateCursorConfinement`, which asks `platform::ConfineCursor` (SDL_SetWindowMouseGrab) while the option is on and
+the game's window is the active one, and lets go when it loses the focus, is minimised or the option is turned off; at the
+focus loss with the option on the input is reset too (`Interface3D::ResetInput`), so an edge pan the last mouse motion
+started does not go on for a cursor outside the window. Scenario `ui_options_confine`.
 
 Scenarios: `render_options_resolution` (zone1 windowed at 800x600: 1280x720 and then 1280x1024 picked in the options
 from the Esc menu), `render_resize_windows` (the Esc menu, the save window, the objectives, a zone tutorial, the camp's

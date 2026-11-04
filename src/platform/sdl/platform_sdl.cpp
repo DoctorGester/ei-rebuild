@@ -4,6 +4,7 @@
 // (tests/verify/platform/harness_platform.cpp). The game keeps its own loops (each takes SDL's events through
 // EventWaits / NextEvent / TakeEvent); the renderer takes the window's SDL_Window (sdl_window.h) for its swap chain.
 #include "platform/platform.h"
+#include "platform/display_sizes.h"
 #include "platform/log.h"
 #include "platform/sdl/sdl_input.h"
 #include "platform/sdl/sdl_window.h"
@@ -326,6 +327,31 @@ void SetClientSize(NativeWindow window, int width, int height) {
     height = static_cast<int>(std::lround(static_cast<float>(height) / density));
     if (!PlaceInUsableBounds(w, SDL_GetDisplayForWindow(w), width, height)) SDL_SetWindowSize(w, width, height);
     SDL_SyncWindow(w);
+}
+
+std::vector<Size> DisplaySizes(NativeWindow window) {
+    SDL_Window* w = WindowOf(window);
+    const SDL_DisplayID display = w ? SDL_GetDisplayForWindow(w) : SDL_GetPrimaryDisplay();
+    const SDL_DisplayMode* desktop = SDL_GetDesktopDisplayMode(display);
+    if (!desktop) return {};
+    // Modes are in points (two pixels a point on Retina).
+    auto pixels = [](const SDL_DisplayMode& mode) {
+        return Size{static_cast<std::int32_t>(std::lround(mode.w * mode.pixel_density)),
+                    static_cast<std::int32_t>(std::lround(mode.h * mode.pixel_density))};
+    };
+    std::vector<Size> modes;
+    int count = 0;
+    if (SDL_DisplayMode** list = SDL_GetFullscreenDisplayModes(display, &count)) {
+        for (int i = 0; i < count; ++i) modes.push_back(pixels(*list[i]));
+        SDL_free(list);
+    }
+    return ChooseSizes(std::move(modes), pixels(*desktop));
+}
+
+bool CursorConfinementSupported() { return true; }
+
+void ConfineCursor(NativeWindow window, bool confined) {
+    if (SDL_Window* w = WindowOf(window)) SDL_SetWindowMouseGrab(w, confined);
 }
 
 // ---- Events ------------------------------------------------------------------------------------------------------

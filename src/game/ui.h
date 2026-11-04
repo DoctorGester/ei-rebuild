@@ -1648,7 +1648,7 @@ struct OptionDefinition {
     int group;                       // the option group (0-10) it is shown in
     int row;                         // its row there
 };
-constexpr int kOptionDefinitionCount = 22;
+constexpr int kOptionDefinitionCount = 23;
 
 struct ActionDefinition {
     int id;                          // the action (the key code in the key table)
