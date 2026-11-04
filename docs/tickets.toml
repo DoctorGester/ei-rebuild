@@ -6382,6 +6382,13 @@ depends = ["H50"]
 note = "H50: dzn_instance_destroy closes libd3d12 (util_dl_close), which unloads libd3d12core while one of its threads still runs; a program that makes and ends an instance before its real one (SDL_GPU's driver probe) crashes about 1 in 3 starts with a SIGSEGV in no module. Our ~/mesa-dzn build drops that close (linux.md, The GPU under WSL). File a Mesa issue (or merge request: keep d3d12_mod open as dxcore already is) so the local change can go; the user's call, nothing here posts by itself."
 
 [[ticket]]
+id = "H50a1"
+title = "Linux: a WSL dzn run's Windows slots follow its need"
+group = "harness"
+depends = ["H50a"]
+note = "H50a: without --jobs a WSL run on dzn takes the Windows game slots free at its start (2 to 8) and keeps that many to its end. Started while Windows' 16 were busy it got 2 and stayed at 2 (347 s for the image suite, against 208 to 270 s with 6 to 8), and its last games hold slots they no longer use. Let the hold grow as Windows slots free (up to WSL_GPU_SLOTS) and give slots back as the queue empties; the Windows side of hold_windows_slots() then needs a way to take and release slots one at a time (stdin commands). docs/notes/linux.md, The GPU under WSL."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"

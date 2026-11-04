@@ -84,7 +84,7 @@ GOLDEN_PERIOD = 20   # world updates between the digest records of the suite's g
 # both.
 def under_wsl():
     # Linux only: Windows' Python started from WSL (hold_windows_slots()) works in a \\wsl.localhost folder, where
-    # /proc/version is WSL's (it took 6 of Windows' 16 slots as the most, H50a).
+    # /proc/version is WSL's (that side then took WSL's pool of 6 as the most of Windows' 16).
     if not sys.platform.startswith('linux'):
         return False
     with contextlib.suppress(OSError), open('/proc/version', encoding='utf-8', errors='replace') as f:
@@ -1229,7 +1229,8 @@ LINUX_LEFT_OUT = {
 
 # Under WSL on Windows' GPU (dzn), games at once by default: the Windows game slots free when the run starts, at most
 # this many (EI_HARNESS_SLOTS sets the most instead). Half the machine's 16, so Windows' suites (work.py test's batches
-# of up to 4 jobs) keep the other half; the image suite took 91 to 112 s with 6 jobs, 138 to 209 s with 4 (H50).
+# of up to 4 jobs) keep the other half, and about the most WSL's 16 GB holds: dzn's GPU memory counts there, 8 games
+# peaked at 12 GB (docs/notes/linux.md, "The GPU under WSL").
 WSL_GPU_SLOTS = 8
 
 

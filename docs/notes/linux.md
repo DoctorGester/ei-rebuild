@@ -84,9 +84,12 @@ Linux workflow builds it. Scenarios run with run_all.py as on Windows (`python3 
 `EI_BUILD_DIR` the build folder, `EI_GAME_VANILLA` / `EI_GAME_REBIRTH` the game folders (copies: a run never writes
 into them, but WSL reads /mnt slowly), and `EI_HARNESS_SETTINGS=<checkout>/config/harness` when the build folder is not
 two levels below the checkout. run_all's machine slots are the system's own (lock files in its temp folder, Linux's
-/tmp under WSL): games in WSL do not count against Windows' 16, so under WSL run_all allows 6 at once by default (WSL's
-memory is capped at 16 GB; `EI_HARNESS_SLOTS` overrides it), and a local Linux suite on lavapipe runs only while no
-Windows suite does; on dzn run_all holds Windows' slots itself ("The GPU under WSL"). Under WSL keep the checkout and the build in WSL's home
+/tmp under WSL): games in WSL do not count against Windows' 16, so under WSL run_all allows 6 at once on lavapipe by
+default (WSL's memory is capped at 16 GB; `EI_HARNESS_SLOTS` overrides it), and a local Linux suite on lavapipe runs
+only while no Windows suite does; on dzn, the default under WSL once it is installed, run_all holds Windows' slots
+itself and takes its games at once from them ("The GPU under WSL"). Without scenario names a Linux run leaves out the
+scenarios its driver cannot match (run_all's `LINUX_LEFT_OUT`: on lavapipe CI's `LINUX_SKIP` and render_stats and
+zone_gz15h_tornado, on dzn three; the list below says why). Under WSL keep the checkout and the build in WSL's home
 (gcc over /mnt runs at a quarter of the speed).
 On Linux run_all starts one Xvfb itself (a free display number from :99 down, a 3840x2160 screen like the goldens' Windows desktop, DISPLAY of every game
 pointed at it, WAYLAND_DISPLAY unset; harness.md) unless `EI_SHOW_WINDOWS=1` is set, so a plain run opens no window on the desktop under
@@ -157,12 +160,18 @@ program on dzn (`vulkaninfo --summary`: "Microsoft Direct3D12 (NVIDIA GeForce RT
 Dozen; every program prints "dzn is not a conformant Vulkan implementation, testing use only"). The gallium d3d12
 driver (OpenGL on D3D12) is not built: the game draws through SDL_GPU's Vulkan only.
 
-`run_all.py --dzn` (or `EI_VK_ICD=dzn`; `EI_VK_ICD=<manifest>` names any driver) points the games at it; lavapipe
-stays the default and CI's reference. Those games draw on Windows' GPU, so under WSL run_all then also holds as many
-of Windows' machine slots as it can run games at once (`hold_windows_slots()`: Windows' python.exe through WSL's
-interop runs run_all.py `--hold-slots N`, which takes N of the lock files in Windows' temp folder, the same as
-Windows' suites and work.py's scheduler, until the run ends), so Windows' and WSL's games together stay within
-Windows' 16. It waits for them while Windows suites hold them.
+Under WSL run_all points the games at it by itself when that manifest exists (`vulkan_driver()`); `--lavapipe` or
+`EI_VK_ICD=system` keeps the system's driver, `--dzn` or `EI_VK_ICD=dzn` asks for dzn anywhere on Linux, and
+`EI_VK_ICD=<manifest>` names any driver. GitHub's runner is no WSL: CI stays on lavapipe, its reference. Those games
+draw on Windows' GPU, so under WSL run_all then also holds Windows' machine slots for them (`hold_windows_slots()`:
+Windows' python.exe through WSL's interop runs run_all.py `--hold-slots N [--hold-most M]`, which takes lock files in
+Windows' temp folder, the same as Windows' suites and work.py's scheduler, until the run ends), so Windows' and WSL's
+games together stay within Windows' 16, and runs no more games at once than it holds. With `--jobs N` it waits for N
+slots (2N with a pair in the run); without, it waits for 2 (a pair's) and takes every other one free at that moment
+up to `WSL_GPU_SLOTS`, 8 (`EI_HARNESS_SLOTS` sets the most instead): half the machine, so Windows' suites keep the
+other half however long the WSL run lasts. The hold is kept to the run's end, also while its last games finish.
+(Windows' Python started from WSL works in a `\\wsl.localhost` folder, where `/proc/version` is WSL's: `under_wsl()`
+asks Linux first, or that side took WSL's pool of 6 as the most.)
 
 Checked (2026-11-04, the machine of "The harness" above, RTX 4070 Ti SUPER):
 - The port checks under xvfb-run on dzn: port_render 21 checks, port_shaders 24 programs / 31 pipelines, port_gpu 132
@@ -177,6 +186,7 @@ Checked (2026-11-04, the machine of "The harness" above, RTX 4070 Ti SUPER):
 - What LINUX_SKIP and the slow list leave out, on dzn: camera_smooth, camera_spin, render_stats, zone_gz15h_tornado,
   the seven pairs (net_pair_master's golden differs as on lavapipe), render_smooth, render_terrain_seams and
   ui_quicksave pass; net_second_master and render_present_window fail as on lavapipe (not the driver: the list above).
+  These three are run_all's `LINUX_LEFT_OUT` on dzn.
 
 Two faults showed only on dzn, both fixed:
 - Fences. The renderer kept every submission's fence while the frame timer was off; dzn refused new ones after a few
@@ -190,8 +200,18 @@ Two faults showed only on dzn, both fixed:
 
 With both: the image suite twice and the Rebirth set and the left-out set once each, with 4 jobs, Windows' slots held,
 no failure and no retry but net_second_master and render_present_window (93 and 128 s for the image suite, 41 s for
-the Rebirth set). Stable enough to be the local default under WSL; it is not one yet (lavapipe needs no Mesa build and
-takes none of Windows' slots).
+the Rebirth set). So it became the local default under WSL (H50a).
+
+The defaults (H50a, 2026-11-04, a fresh clone and harness build in WSL's home): `run_all.py --golden` with no names,
+the image suite less net_pair_master, net_second_master and render_present_window (153 runs: the pairs and the slow
+ones included), every time all passing, 147 goldens the same, 6 without one:
+- 6 slots (Windows' side still capped at 6, fixed since), Windows idle: 208 s, summed game time 1133 s.
+- 8 slots beside 8 Windows games (other workers' suites, which kept their 8 throughout): 270 s, summed 2088 s, the
+  longest net_pair_quest 165 s; settings_save passed on its retry.
+- 2 slots (all 16 busy at the start; the run keeps what it got): 347 s, summed 665 s.
+The GPU shared with Windows' games costs more than the jobs gain: the same runs take three times as long beside 8
+Windows games. WSL's memory: a game's own RSS is 150 to 250 MB, but dzn's GPU memory counts in WSL's "used" too, about
+1.2 GB a game: 8 games peaked at 12 GB of WSL's 16, so 8 is also the most that fits.
 
 ### Sound under WSLg
 
