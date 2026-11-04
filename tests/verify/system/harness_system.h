@@ -100,6 +100,9 @@ struct Date {
     int year, month, dayOfWeek, day, hour, minute, second, milliseconds;
 };
 Date LocalDate();
+// The C library's time zone from now on (localtime, mktime): a POSIX TZ rule such as "EET-2" (UTC+2, no daylight
+// saving), which glibc and the UCRT read alike.
+void SetTimeZone(const char* rule);
 // CPU time of the calling thread (ms) and its cycles where the system counts them (else 0).
 void ThisThreadCpu(double* ms, std::uint64_t* cycles);
 // CPU time of the main thread (Remember'd at the harness's start); false when unknown.

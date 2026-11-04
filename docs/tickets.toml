@@ -6301,6 +6301,19 @@ model = "opus"
 note = "From the user's log of the first Suites (Linux) run (2026-11-03, commit bc3de705e, before H47d; build/gh_logs_113095521401). Already fixed by H47d: settings_save (CD-ROM Path) and the ui_widescreen_* digests (Xvfb was 1280x1024; now 3840x2160). Left: (1) 114 vanilla and 14 Rebirth runs differ only in one info.sav field ('info 1': gametime f8, allod, zone or the savedAt time; find which). H47d's WSL run on the real data matched, so look at what differs on the runner: the stub data (tools/stub_data.py, e.g. a map database name or a file time) or the runner (TZ=UTC with lib::CurrentTime's mktime round trip, locale). Reproduce locally with build/stub/ei-stub-data.tar.zst unpacked in WSL home (never in the repo), TZ=UTC; fix the cause so the stub run gives the goldens' bytes. (2) Frame checks that see no change on the runner's lavapipe: render_blink (open/closed 0% differ), render_shadows_outside (gate_all/gate_view 0%), render_cursor_present (cursor capture fully transparent): a stale readback or a present path that differs without a GPU; compare with WSL's lavapipe. (3) camera_drag_rate, camera_smooth, camera_spin time out at 120 s on the 4-core runner even one at a time: a longer Linux limit for those, or LINUX_SKIP them in the workflow with the reason. Check: a workflow run (ask the user to start it) with goldens the same apart from what LINUX_SKIP lists."
 
 [[ticket]]
+id = "H51a"
+title = "camera's Rebirth golden differs: action points' z 1e6 saved as 0"
+group = "harness"
+note = "Found in H51 (2026-11-04, main 48c6d3bc1): camera on Rebirth differs from its golden on Windows and Linux alike, mission.sav only: obj1804, obj1890, obj1937 controller.action.point.z and action2.point.z 1000000.0 in the golden (recorded 7b72762ec, 2026-11-03), 0.0 now. camera is not in the Rebirth set (config/rebirth_scenarios.csv), so no suite compares it; the vanilla run is the same. Find the commit since 7b72762ec that writes 0 where the 'no height' 1e6 was (C78b's Vector2 motion points are a suspect) and fix it, or re-record if the change is intended; then think about checking every Rebirth golden that exists, not only the set's."
+
+[[ticket]]
+id = "H51b"
+title = "Stub set: textures the three frame checks need"
+group = "harness"
+depends = ["H51"]
+note = "Found in H51: render_blink, render_cursor_present and render_shadows_outside fail their own pixel checks on the stub set (Windows and Linux alike; they pass on the installs, lavapipe included), because every texture is blanked to 0: the faces' open and closed rectangles are the same black, the gate's shadow falls on black ground, the cursor is 1024 transparent pixels. Options: keep the pixels of the few textures these read (the cursor pictures, the briefing speakers' mouth textures, bz1g's ground) in tools/stub_data.py, or blank to a cheap non-uniform pattern that keeps every other frame check passing. Needs the user to rebuild, repack and push the stub set; then the Suites (Linux) job's comment drops the three."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"
