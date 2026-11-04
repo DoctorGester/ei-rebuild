@@ -326,6 +326,8 @@ void Interface3D::ShowFps(bool on) {
     }
     if (fpsSurface) return;
     fpsSurface = new UiSurface(this, kFpsLeft, kFpsTop, kFpsRight, kFpsBottom, SurfaceBlend::Keyed, true);
+    fpsText.clear();
+    fpsSurface->PaintWith([this](UiSurface& out) { PaintFps(out); });
 }
 
 void Interface3D::OnQuestVariable(std::string_view name, float value) {
@@ -377,9 +379,10 @@ void Interface3D::SaveWindowState() {
 
 void Interface3D::ShowStatusText(std::string_view text) {
     statusSurface = new UiSurface(this, 0, kStatusTop, kLayoutWidth, kStatusBottom, SurfaceBlend::Keyed, true);
-    statusSurface->Clear();
-    Rect rect = {0, 0, kLayoutWidth, kStatusTextHeight};
-    statusSurface->DrawTextIn(text, &rect, kStatusTextFormat, kStatusColour, 1, 1);    // Rebirth-patched
+    statusSurface->PaintWith([text](UiSurface& out) {
+        Rect rect = {0, 0, kLayoutWidth, kStatusTextHeight};
+        out.DrawTextIn(text, &rect, kStatusTextFormat, kStatusColour, 1, 1);    // Rebirth-patched
+    });
     app::FrameStep(true, true);
     if (statusSurface) {
         delete statusSurface;
@@ -478,6 +481,14 @@ void Interface3D::Draw() {
     fade->Draw(&g_sceneRenderer);
 }
 
+// The frame rate, once measured: "FPS:" at the left, the rate at the right.
+void Interface3D::PaintFps(UiSurface& surface) const {
+    if (fpsText.empty()) return;
+    Rect rect{0, 0, 60, 18};
+    surface.DrawTextIn("FPS:", &rect, kFpsFont, kWhite, 0, 1);
+    surface.DrawTextIn(fpsText, &rect, kFpsFont, kWhite, 2, 1);
+}
+
 void Interface3D::DrawOverlays() {
     if (!stack.empty()) {
         stack.back()->Redraw();        // its surfaces blit themselves
@@ -507,15 +518,8 @@ void Interface3D::DrawOverlays() {
     const std::uint32_t elapsed = now - fpsTime;
     if (elapsed > kFpsPeriod) {
         if (fpsSurface) {
-            std::string rate;
-            float perSecond =
-                fpsFrames * 1000.0f / static_cast<int>(elapsed);
-            rate = str::Format("%.1f", perSecond);
-            fpsSurface->Clear();
-            Rect rect{0, 0, 60, 18};
-            fpsSurface->DrawTextIn("FPS:", &rect, kFpsFont, kWhite, 0, 1);
-            rect = Rect{0, 0, 60, 18};
-            fpsSurface->DrawTextIn(rate, &rect, kFpsFont, kWhite, 2, 1);
+            const float perSecond = fpsFrames * 1000.0f / static_cast<int>(elapsed);
+            fpsText = str::Format("%.1f", perSecond);
         }
         fpsTime = now;
         fpsFrames = 0;

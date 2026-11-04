@@ -79,10 +79,10 @@ void Interface3D::ResetSavedState() {
 
 void MainMenu::AddVersionLine() {
     UiSurface* surface = new UiSurface(ui, 100, 480, 780, 600, SurfaceBlend::Keyed, true);
-    surface->Clear();
-    std::string text = g_clientWorld.texts->TextManager::GetString(kVersionKey);
-    Rect area = {0, 0, 675, 120};
-    surface->DrawTextIn(text, &area, 2, 0xA7D7E4, 2, 1);
+    surface->PaintWith([text = g_clientWorld.texts->TextManager::GetString(kVersionKey)](UiSurface& out) {
+        Rect area = {0, 0, 675, 120};
+        out.DrawTextIn(text, &area, 2, 0xA7D7E4, 2, 1);
+    });
     AddSurface(surface);
 }
 

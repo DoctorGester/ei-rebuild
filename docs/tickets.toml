@@ -7425,6 +7425,12 @@ depends = ["C85"]
 note = "C85 left: world_client_shadow_casters.cpp hands render::ShadowMesh the TexCoord and MeshCorner arrays as float* / uint16_t* (MeshDraw takes the same from device_mesh); give src/render its own TexCoord / MeshCorner records (layout-identical, static_asserted where they meet) so no array of structs is read as scalars. figure_manager.cpp LoadFigureBounds passes the .fig data at +0x28 / +8 to MorphFigureBounds as const float*: read the versions with lib::LoadBytes into locals. Goldens the same."
 
 [[ticket]]
+id = "P9a1"
+title = "Spell column tooltip reads Spell by byte offsets (garbage numbers)"
+group = "cleanup"
+note = "ui_spell_column.cpp's local Get<T>(base, offset) memcpys Spell fields at the original's offsets (0x20, 0x24, 0x28, 0x30, 0x34, 0x38, 0x3C, 0x40); Spell (spell.h) is a normal class now, so the HUD spell tooltip shows garbage (ui_widescreen_more's tooltip frame: 'Длительн.: 104857.6с  Цели: -1082130432', the area 0.0 or 0.5 from run to run). Read the named members; the helper evades build_checks' offset-access count (add its pattern). Found by P9a."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"

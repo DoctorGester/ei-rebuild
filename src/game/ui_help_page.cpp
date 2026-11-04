@@ -1,5 +1,5 @@
 // The help / message window's page (HelpWindow::ShowPage): everything the
-// window shows is rebuilt from the texts for page page (see ui.h).
+// window shows is rebuilt from the texts for page page (see ui.h); its three surfaces paint what ShowPage kept.
 // Rebirth's WideScreen patches it (a context hook: the pulsing frames of some tutorial messages follow the
 // battle screen's panels to the screen's edges), reproduced here. Rebirth-patched callees: the surface's
 // text, the sprites' Place, SetRectangle and SetFrame, the regions' SetRect. See docs/notes/items_spells.md.
@@ -162,16 +162,9 @@ void HelpWindow::ShowPage() {
     if (page >= static_cast<int>(lines.size()) - 1) next->visible = false;
 
     // Surface 0: the page's title and the topic's with the page's number.
-    std::string titleText;
     const int width = pageArea.Width();
-    UiSurface* header = NewSurface(ui, pageArea.TopStrip(kStripHeight));
-    AddSurface(header);
-    header->Clear();
-    Rect line{0, 8, width, 30};
-    header->DrawTextIn(lines[page], &line, 2, kTitleColour, render::text::kCenter, 1);
-    line = Rect{0, 30, width, 50};
-    titleText = str::Format(kTitleFormat, title, page + 1, static_cast<int>(lines.size()));
-    header->DrawTextIn(titleText, &line, 1, kTitleColour, render::text::kCenter, 1);
+    pageWidth = width;
+    AddSurface(NewSurface(ui, pageArea.TopStrip(kStripHeight)))->PaintWith([this](UiSurface& out) { PaintHeader(out); });
 
     // The page's lines up to the next "#screen": the pulsing frames and the texts.
     std::vector<PageEntry> entries;
@@ -222,14 +215,12 @@ void HelpWindow::ShowPage() {
     const int shift = (std::max)(0, (width - block) / 2 - kTextLeft);
 
     // Surface 1: the texts, one under the other. Without a row count the first pass makes the
-    // pictures and measures; its surface is dropped and the page's bottom follows the height.
+    // pictures and measures, and the page's bottom follows the height.
     int pictureCount = 0;
     for (int pass = rowsGiven ? 1 : 0; pass < 2; ++pass) {
-        UiSurface* body = NewSurface(ui, pageArea.Inset(0, kStripHeight));
-        AddSurface(body);
         Rect row{kTextLeft + shift, 0, width - kTextRightMargin + shift, kRowHeight};
         int y = 0;
-        body->Clear();
+        bodyTexts.clear();
         for (const PageEntry& entry : entries) {
             bool withPicture = false;
             if (entry.picture.size() != 0 && pictureCount < kMaxPictures) {
@@ -259,16 +250,15 @@ void HelpWindow::ShowPage() {
             }
             row.top = y;
             row.bottom = y + kRowHeight;
-            int height = body->DrawWrappedText(entry.text, &row, 100, 1, kTextColour, kWrapFormat, 1) * kRowHeight;
+            bodyTexts.push_back({entry.text, row});
+            int height = static_cast<int>(ui->WrapText(entry.text, row.Width(), 1).size()) * kRowHeight;
             // A text with a picture is at least as high as the picture's place.
             if (withPicture && height <= 80) height = 80;
             y += height;
         }
-        if (pass == 0) {
-            RemoveSurfaceAt(1);
-            pageArea.bottom = y + pageArea.top + 2 * kStripHeight;
-        }
+        if (pass == 0) pageArea.bottom = y + pageArea.top + 2 * kStripHeight;
     }
+    AddSurface(NewSurface(ui, pageArea.Inset(0, kStripHeight)))->PaintWith([this](UiSurface& out) { PaintBody(out); });
 
     SetRectangle(back, pageArea, 0, 0, 256, 256);
     frame->SetFrame(3.0f, 100.0f, pageArea.Inset(-5), 5.0f, 2, 0xF5, 0xB4, 0xF0);
@@ -290,26 +280,42 @@ void HelpWindow::ShowPage() {
     SetRectangle(next, button, 2, 0x48, 0x34, 0x5C);
 
     // Surface 2: the neighbouring pages' titles under the arrows and the help key's name.
-    UiSurface* footer = NewSurface(ui, pageArea.BottomStrip(kStripHeight));
-    AddSurface(footer);
-    footer->Clear();
-    if (page > 0) {
-        Rect label{0, 5, width / 3, 25};
-        footer->DrawTextIn(lines[page - 1], &label, 0, kTitleColour, render::text::kCenter, 1);
-        regions[0]->SetTip(0x7595);
-    }
+    AddSurface(NewSurface(ui, pageArea.BottomStrip(kStripHeight)))->PaintWith([this](UiSurface& out) { PaintFooter(out); });
+    if (page > 0) regions[0]->SetTip(0x7595);
+    keyHint.clear();
     if (const char* key = static_cast<const char*>(FindCommandByKey(kHelpAction))) {
-        std::string hint = texts->GetString(kHelpKeyText);
-        hint += kSpace;
-        hint += key;
-        Rect label{width / 3, 5, 2 * width / 3, 25};
-        footer->DrawTextIn(hint, &label, 0, kTitleColour, render::text::kCenter, 1);
+        keyHint = texts->GetString(kHelpKeyText);
+        keyHint += kSpace;
+        keyHint += key;
     }
-    if (page < static_cast<int>(lines.size()) - 1) {
-        Rect label{2 * width / 3, 5, width, 25};
-        footer->DrawTextIn(lines[page + 1], &label, 0, kTitleColour, render::text::kCenter, 1);
-        regions[2]->SetTip(0x7596);
-    }
+    if (page < static_cast<int>(lines.size()) - 1) regions[2]->SetTip(0x7596);
 
     entries.clear();
+}
+
+void HelpWindow::PaintHeader(UiSurface& surface) const {
+    Rect line{0, 8, pageWidth, 30};
+    surface.DrawTextIn(lines[page], &line, 2, kTitleColour, render::text::kCenter, 1);
+    line = Rect{0, 30, pageWidth, 50};
+    surface.DrawTextIn(str::Format(kTitleFormat, title, page + 1, static_cast<int>(lines.size())), &line, 1, kTitleColour,
+                       render::text::kCenter, 1);
+}
+
+void HelpWindow::PaintBody(UiSurface& surface) const {
+    for (const HelpText& entry : bodyTexts) surface.DrawWrappedText(entry.text, &entry.row, 100, 1, kTextColour, kWrapFormat, 1);
+}
+
+void HelpWindow::PaintFooter(UiSurface& surface) const {
+    if (page > 0) {
+        Rect label{0, 5, pageWidth / 3, 25};
+        surface.DrawTextIn(lines[page - 1], &label, 0, kTitleColour, render::text::kCenter, 1);
+    }
+    if (!keyHint.empty()) {
+        Rect label{pageWidth / 3, 5, 2 * pageWidth / 3, 25};
+        surface.DrawTextIn(keyHint, &label, 0, kTitleColour, render::text::kCenter, 1);
+    }
+    if (page < static_cast<int>(lines.size()) - 1) {
+        Rect label{2 * pageWidth / 3, 5, pageWidth, 25};
+        surface.DrawTextIn(lines[page + 1], &label, 0, kTitleColour, render::text::kCenter, 1);
+    }
 }

@@ -29,10 +29,19 @@ constexpr std::uint32_t kTextColour = 0xA7D7E4;
 constexpr char kNewLine[] = {'\n', '\0'};
 constexpr std::uint32_t kRed = 0x0000FF;                             // COLORREF
 
-// Text into the panel's first surface (Rebirth-patched).
-void DrawPanelText(UiWindow* window, std::string_view text, Rect rect, std::uint32_t colour, std::uint32_t format, int shadow) {
-    window->surfaces[0]->DrawTextIn(text, &rect, 0, colour, format, shadow);
+// Text on the panel's surface (Rebirth-patched).
+void DrawPanelText(UiSurface& surface, std::string_view text, Rect rect, std::uint32_t colour, std::uint32_t format, int shadow) {
+    surface.DrawTextIn(text, &rect, 0, colour, format, shadow);
 }
+
+// Whether `unit` is one of the battle screen's party (its mana is shown).
+bool InParty(const BattleScreen* owner, const Unit* unit) {
+    for (const Unit* member : owner->party)
+        if (member == unit) return true;
+    return false;
+}
+
+constexpr int kEffectPlaces = 6;    // the effects listed
 
 // A horizontal bar sprite filled to `ratio` (0..1): its right edge moves to ratio - 0.5 and its
 // texture's right edge to (ratio * `width` + 64) / 256 + 1/512 texels, between the rows `top`
@@ -69,26 +78,21 @@ void HudUnitPanel::ShowHealth(Unit* unit) {
     float ratio;
     if (unit->packedVitals.maxHitPoints != 0 && unit->packedVitals.hitPoints > 0 && BarRatio(unit->packedVitals.hitPoints, unit->packedVitals.maxHitPoints, &ratio))
         FillBar(SceneMesh(10), ratio, 100.0f, 0.396484375f, 0.376953125f);
-    std::string health = std::format("{}", unit->packedVitals.hitPoints > 0 ? unit->packedVitals.hitPoints : 0);
-    DrawPanelText(this, health, Rect{130, 185, 160, 200}, kTextColour, 0, 1);
+    if (!InParty(owner, unit)) return;
+    SceneMesh(13)->visible = true;
+    if (unit->packedVitals.maxMana != 0 && unit->packedVitals.mana != 0 && BarRatio(unit->packedVitals.mana, unit->packedVitals.maxMana, &ratio))
+        FillBar(SceneMesh(12), ratio, 100.0f, 0.369140625f, 0.349609375f);
+}
 
-    for (int i = 0; i < std::ssize(owner->party); ++i) {
-        if (owner->party[i] != unit) continue;
-        SceneMesh(13)->visible = true;
-        if (unit->packedVitals.maxMana != 0 && unit->packedVitals.mana != 0 && BarRatio(unit->packedVitals.mana, unit->packedVitals.maxMana, &ratio))
-            FillBar(SceneMesh(12), ratio, 100.0f, 0.369140625f, 0.349609375f);
-        std::string mana = std::format("{}", static_cast<int>(unit->packedVitals.mana));
-        DrawPanelText(this, mana, Rect{130, 200, 160, 215}, kTextColour, 0, 1);
-        break;
-    }
+void HudUnitPanel::PaintHealth(UiSurface& surface, Unit* unit) {
+    std::string health = std::format("{}", unit->packedVitals.hitPoints > 0 ? unit->packedVitals.hitPoints : 0);
+    DrawPanelText(surface, health, Rect{130, 185, 160, 200}, kTextColour, 0, 1);
+    if (!InParty(owner, unit)) return;
+    std::string mana = std::format("{}", static_cast<int>(unit->packedVitals.mana));
+    DrawPanelText(surface, mana, Rect{130, 200, 160, 215}, kTextColour, 0, 1);
 }
 
 void HudUnitPanel::ShowParts(Unit* unit) {
-    // Label positions of the six parts.
-    static constexpr int kLabelX[6] = {50, 50, 95, 5, 95, 5};
-    static constexpr int kLabelY[6] = {35, 105, 70, 70, 140, 140};
-    static const char* const kPartNames[4] = {"skull", "torso", "leg", "arm"};
-
     for (int i = 0; i < 6; ++i) {
         const UnitParamsSlot& part = unit->params.slots[i];
         if (part.kind == 0) continue;
@@ -102,7 +106,18 @@ void HudUnitPanel::ShowParts(Unit* unit) {
             bar->visible = false;
         // The bar's colour row: green above 2/3, yellow above 1/3, else red.
         bar->textureOffsetV = ratio > 2.0f / 3.0f ? 0.0f : ratio > 1.0f / 3.0f ? -0.02734375f : -0.0546875f;
+    }
+}
 
+void HudUnitPanel::PaintParts(UiSurface& surface, Unit* unit) {
+    // Label positions of the six parts.
+    static constexpr int kLabelX[6] = {50, 50, 95, 5, 95, 5};
+    static constexpr int kLabelY[6] = {35, 105, 70, 70, 140, 140};
+    static const char* const kPartNames[4] = {"skull", "torso", "leg", "arm"};
+
+    for (int i = 0; i < 6; ++i) {
+        const UnitParamsSlot& part = unit->params.slots[i];
+        if (part.kind == 0) continue;
         std::string name = unit->GetPrototypeModel()->slots[i].levelName;
         for (int k = 0; k < 4; ++k) {
             if (str::Compare(name,
@@ -111,7 +126,7 @@ void HudUnitPanel::ShowParts(Unit* unit) {
                 break;
             }
         }
-        DrawPanelText(this, name, Rect{kLabelX[i], kLabelY[i], kLabelX[i] + 60, kLabelY[i] + 15},
+        DrawPanelText(surface, name, Rect{kLabelX[i], kLabelY[i], kLabelX[i] + 60, kLabelY[i] + 15},
                       part.kind == 1 ? kRed : kTextColour, 1, 1);
     }
 }
@@ -142,43 +157,43 @@ void HudMovePanel::ToggleFlag() {
 
 // --- Unit panel: the effects on the unit -----------------------------------------------
 
+void HudUnitPanel::PaintEffects(UiSurface& surface, Unit* unit) {
+    constexpr int kLineHeight = 15;
+    TextManager* clientWorldTexts = g_clientWorld.texts;
+    std::string text;
+    Rect line{40, 35, 155, 50};
+    // The unit's effects are the map object's records.
+    const MapEffect* effects = unit->effects.data();
+    for (int i = 0; i < std::ssize(unit->effects) && i < kEffectPlaces; ++i) {
+        text.clear();
+        if (const itemdb::SpellRecord* spell = itemdb::SpellAt(effects[i].type)) {
+            // The texts' section "spell <code>": its first line is the spell's name.
+            if (clientWorldTexts->TextManager::Open(std::string("spell ") + spell->code.c_str())) text = clientWorldTexts->ReadLine(true);
+        }
+        surface.DrawTextIn(text, &line, 0, kTextColour, 0, 1);
+        line.Offset(0, kLineHeight);
+        surface.DrawTextIn(std::format("{}", effects[i].ticksLeft / 15), &line, 0, kTextColour, 0, 1);
+        line.Offset(0, kLineHeight);
+    }
+}
+
 void HudUnitPanel::ShowEffects(Unit* unit) {
-    constexpr int kPlaces = 6;
+    constexpr int kPlaces = kEffectPlaces;
     constexpr int kMoreMark = 9;      // scene object: there are more effects than places
     constexpr int kFirstIcon = 26;    // scene objects 26..31, one per listed effect
     constexpr int kIconSize = 64;
-    constexpr int kLineHeight = 15;
     // Where each kept picture sits in the panel's 256 x 256 icon texture (its object 1).
     static constexpr int kPlaceX[kPlaces] = {0, 0, 64, 64, 64, 64};
     static constexpr int kPlaceY[kPlaces] = {128, 192, 0, 64, 128, 192};
 
-    TextManager* clientWorldTexts = g_clientWorld.texts;
-    UiSurface* surface = surfaces[0];
-    std::string code, text, number;
     int icons[kPlaces], places[kPlaces];
     bool taken[kPlaces] = {};
     for (int i = 0; i < kPlaces; ++i) icons[i] = places[i] = -1;
-    Rect line{40, 35, 155, 50};
 
     if (std::ssize(unit->effects) > kPlaces) SceneMesh(kMoreMark)->visible = true;
-    // The unit's effects are the map object's records.
     const MapEffect* effects = unit->effects.data();
     for (int i = 0; i < std::ssize(unit->effects) && i < kPlaces; ++i) {
-        code.clear();
-        text.clear();
-        const itemdb::SpellRecord* spell = itemdb::SpellAt(effects[i].type);
-        if (spell) {
-            icons[i] = static_cast<int>(spell->icon);
-            code = spell->code.c_str();
-            // The texts' section "spell <code>": its first line is the spell's name.
-            bool found = clientWorldTexts->TextManager::Open((std::string("spell ") + code)) != 0;
-            if (found) text = clientWorldTexts->ReadLine(true);
-        }
-        surface->DrawTextIn(text, &line, 0, kTextColour, 0, 1);
-        line.Offset(0, kLineHeight);
-        number = std::format("{}", effects[i].ticksLeft / 15);
-        surface->DrawTextIn(number, &line, 0, kTextColour, 0, 1);
-        line.Offset(0, kLineHeight);
+        if (const itemdb::SpellRecord* spell = itemdb::SpellAt(effects[i].type)) icons[i] = static_cast<int>(spell->icon);
     }
 
     // The pictures already in the texture keep their places (the last one that matches).

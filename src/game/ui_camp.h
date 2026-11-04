@@ -122,6 +122,9 @@ public:
     UiMesh* Marker(int index) const { return SceneMesh(3 + index); }
     // Scene objects 0..2 and those after the zone markers.
     void ShowAllButZones(bool visible);
+    // The surfaces' paints: the zone tip; the allod's title and the clock.
+    void PaintTip(UiSurface& surface) const;
+    void PaintTitle(UiSurface& surface) const;
     // Zones + quests + links: the layers and the rest follow them.
     int MarkerCount() const { return static_cast<int>(zones.size() + quests.size() + links.size()); }
 
@@ -152,6 +155,10 @@ public:
     Point dragStart{};               // where the drag began (layout)
     float dragAngle = 0.0f;          // angle when the drag began
     std::string shownName;          // the zone or link whose tip is shown
+    // What the tip's surface (surfaces[0]) paints: the title, then a zone's quests one under the other.
+    std::string tipTitle;
+    std::vector<std::string> tipQuests;
+    std::string clock;               // "<save_day>  <day>,  <h>:<mm>" under the allod's title (surfaces[1])
     bool gipat = false;              // the allod is gipat
     bool noCamp = false;             // the player's "i.nocamp" is 1: no camp button
     float fog[3] = {0.0f, 1.0f, 0.0f};    // the selected zone's tint, by allod

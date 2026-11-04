@@ -1,5 +1,5 @@
 // The message box's edit field: its key handler, constructor and character
-// handler, and its drawing (Rebirth's WideScreen). See ui.h (UiEditField) and
+// handler, and its paint (Rebirth's WideScreen). See ui.h (UiEditField) and
 // docs/notes/items_spells.md
 #include "ui.h"
 #include "ui_screens.h"
@@ -98,7 +98,7 @@ void UiEditField::KeyDown(int key, int, int) {
     default:
         return;
     }
-    DrawContentsVanilla();
+    ClampCaret();
     handled = true;
 }
 
@@ -114,7 +114,8 @@ UiEditField::UiEditField(Interface3D* ownerUi, Rect rect) : UiWindow(ownerUi) {
     area = rect;
     UiSurface* surface = new UiSurface(ui, &area, SurfaceBlend::Keyed);
     AddSurface(surface);
-    DrawContentsVanilla();
+    surface->PaintWith([this](UiSurface& out) { PaintContents(out); });
+    ClampCaret();
     focused = true;
 }
 
@@ -139,7 +140,7 @@ void UiEditField::Char(int key, int, int) {
         changed = true;
         caret += text::TypedLength(key);
     }
-    DrawContentsVanilla();
+    ClampCaret();
     handled = true;
 }
 
@@ -153,7 +154,7 @@ void UiEditField::SetLook(std::uint32_t newCharClasses, char mode, int newFont, 
     maxLength = newMaxLength;
     colour = newColour;
     caretColour = newCaretColour;
-    DrawContentsVanilla();
+    ClampCaret();
 }
 
 void UiEditField::SetText(std::string_view newText) {
@@ -161,23 +162,24 @@ void UiEditField::SetText(std::string_view newText) {
     text = newText;
     changed = true;
     caret = lib::Count(text);
-    DrawContentsVanilla();
+    ClampCaret();
 }
 
 void UiEditField::SetFocused(bool newFocused) { focused = newFocused; }
 
-// --- the text and the caret drawn ----------------------------------------------------------------
+// --- the text and the caret painted ---------------------------------------------------------------
 
-void UiEditField::DrawContentsVanilla() {
-    auto& currentText = text;
-    if (caret > static_cast<int>(currentText.size())) caret = lib::Count(currentText);
+void UiEditField::ClampCaret() {
+    if (caret > static_cast<int>(text.size())) caret = lib::Count(text);
     if (caret < 0) caret = 0;
-    UiSurface* surface = surfaces[0];
-    surface->Clear();
+}
+
+void UiEditField::PaintContents(UiSurface& surface) const {
+    const std::string& currentText = text;
     const int width = area.Width();
     const int height = area.Height();
     Rect box{0, 0, width, height};
-    surface->DrawTextIn(currentText, &box, font, colour, centred ? render::text::kNoPrefix | render::text::kCenter : render::text::kNoPrefix, 1);
+    surface.DrawTextIn(currentText, &box, font, colour, centred ? render::text::kNoPrefix | render::text::kCenter : render::text::kNoPrefix, 1);
     // The caret stands after the first caret characters; a centred text starts half its width left
     // of the middle.
     int caretX = ui->TextExtent(str::Left(currentText, caret), font).w;
@@ -188,6 +190,6 @@ void UiEditField::DrawContentsVanilla() {
         // WideScreen: without the margin.
         ui->ScalePointToScreenNoMargin(&top);
         ui->ScalePointToScreenNoMargin(&bottom);
-        surface->Line(top, bottom, 1, caretColour);
+        surface.Line(top, bottom, 1, caretColour);
     }
 }

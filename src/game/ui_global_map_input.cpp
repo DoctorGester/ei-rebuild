@@ -114,24 +114,15 @@ void GlobalMap::MouseMove(int, Point point) {
     text = isLink ? links[index].name : zones[index].name;
     if (str::Compare(shownName, text) != 0) ui->PlayInterfaceSound(kZoneSound);
     shownName = text;
-    text = isLink ? links[index].title : zones[index].title;
+    tipTitle = isLink ? links[index].title : zones[index].title;
     surfaces[0]->Show();
-    surfaces[0]->Clear();
-    Rect titleRect{10, 10, 300, 50};
-    surfaces[0]->DrawTextIn(text, &titleRect, kTipFont, kTipColour, kTipFormat, 1);
     // A zone's tip lists the quests in it.
-    int lines = 0;
+    tipQuests.clear();
     if (!isLink) {
-        int bottom = 60;
-        for (int i = 0; i < std::ssize(quests); ++i) {
-            GlobalMapPlace& quest = quests[i];
-            if (quest.zone != index) continue;
-            Rect area{20, bottom - kTipLine, 350, bottom};
-            surfaces[0]->DrawTextIn(quest.title, &area, kTipFont, kTipColour, kTipFormat, 1);
-            ++lines;
-            bottom += kTipLine;
-        }
+        for (const GlobalMapPlace& quest : quests)
+            if (quest.zone == index) tipQuests.push_back(quest.title);
     }
+    const int lines = static_cast<int>(tipQuests.size());
     UiMesh* back = SceneMesh(MarkerCount() + kTipBack);
     back->SetRectangle(3.0f, 100.0f, 400.0f, 20.0f, 780.0f, static_cast<float>(lines * kTipLine + 75), 0, 0, 0x100, 0x100);
     back->visible = true;
@@ -139,6 +130,24 @@ void GlobalMap::MouseMove(int, Point point) {
     frame->SetFrame(3.0f, 100.0f, 395.0f, 15.0f, 785.0f, static_cast<float>((lines * 5 + 20) * 4), 5.0f, 2, 0xFE, 0xB4,
                     0xF9);
     frame->visible = true;
+}
+
+void GlobalMap::PaintTip(UiSurface& surface) const {
+    Rect titleRect{10, 10, 300, 50};
+    surface.DrawTextIn(tipTitle, &titleRect, kTipFont, kTipColour, kTipFormat, 1);
+    int bottom = 60;
+    for (const std::string& quest : tipQuests) {
+        Rect area{20, bottom - kTipLine, 350, bottom};
+        surface.DrawTextIn(quest, &area, kTipFont, kTipColour, kTipFormat, 1);
+        bottom += kTipLine;
+    }
+}
+
+void GlobalMap::PaintTitle(UiSurface& surface) const {
+    Rect line1 = {0, 5, 150, 25};
+    surface.DrawTextIn(allodTitle, &line1, 2, 0xA7D7E4, 0x25, 1);
+    Rect line2 = {0, 25, 150, 45};
+    surface.DrawTextIn(clock, &line2, 2, 0xA7D7E4, 0x25, 1);
 }
 
 void GlobalMap::KeyDown(int key, int repeat, int modifiers) {

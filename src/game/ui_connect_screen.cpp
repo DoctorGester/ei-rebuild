@@ -600,9 +600,10 @@ void MpConnectScreen::CreateScreen() {
     ui->OpenHelp(false);
     refreshTimer = 0.0f;
     UiSurface* note = AddSurface(NewSurface(ui, 0, 0, 300, 20));
-    note->Clear();
-    Rect area{0, 0, 300, 20};
-    note->DrawTextIn(texts[kTextConnecting], &area, 2, g_connectTextColour, 0, 1);
+    note->PaintWith([this](UiSurface& out) {
+        Rect area{0, 0, 300, 20};
+        out.DrawTextIn(texts[kTextConnecting], &area, 2, g_connectTextColour, 0, 1);
+    });
 }
 
 // --- the master request box ----------------------------------------------------------------------

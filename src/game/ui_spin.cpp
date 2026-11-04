@@ -18,11 +18,17 @@ const char* const kOkSound = "buttons\\messbox\\ok.wav";
 
 } // namespace
 
-// The window's virtuals; the input side's click and a left double click that does nothing.
+// The window's virtuals; the input side's click and a left double click that does nothing. Its surface paints the
+// current value's text.
 UiSpin::UiSpin(Interface3D* ui, Rect newRect, const char* text) : UiWindow(ui) {
     rect = newRect;
     UiSurface* surface = new UiSurface(ui, &newRect, SurfaceBlend::Keyed);
     AddSurface(surface);
+    surface->PaintWith([this](UiSurface& out) {
+        Rect area = layout;
+        area.Offset(-layout.left, -layout.top);
+        out.DrawTextIn(texts[value], &area, kTextFormat, kTextColour, 0, 1);
+    });
     texts.push_back(text ? text : game::kEmptyText);
     changed = false;
     layout = newRect;
@@ -44,12 +50,6 @@ int UiSpin::TakeValue() {
 
 void UiSpin::SetValue(int newValue) {
     value = newValue < static_cast<int>(texts.size()) ? newValue : 0;
-    UiSurface* surface = surfaces[0];
-    surface->Clear();
-    Rect area = layout;
-    area.Offset(-layout.left, -layout.top);
-    // DrawText is Rebirth-patched: through its address.
-    surface->DrawTextIn(texts[value], &area, kTextFormat, kTextColour, 0, 1);
     changed = true;
 }
 

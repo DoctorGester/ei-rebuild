@@ -288,7 +288,7 @@ quarter circle radius 34, 1-4 ring sectors 35..80), top panel 180..620 x 0..100 
 185..215 / 215..245).
 
 Classes: `HudWeaponBar`, `HudQuickItems`, `HudSpellColumn`, `HudActionColumn`, `HudPortraits` (`ui_hud_portraits.cpp`;
-Rebuild every new game, ShowFace for low mana and hits), `HudMap`, `HudUnitPanel` (`ui_hud_panels.cpp`, `DrawUnitInfo`),
+Rebuild every new game, ShowFace for low mana and hits), `HudMap`, `HudUnitPanel` (`ui_hud_panels.cpp`, `PaintUnitInfo`),
 `HudClock`, `HudMovePanel` (`ToggleFlag` orders through the local view), `HudTopPanel` (`ui_hud_frame.cpp`).
 
 - Quick items' slot lookup uses RegionAt's result unchecked: a point inside the panel but outside every slot (-1) reads the
@@ -626,7 +626,8 @@ which SaveGame writes to the new save's shot.sav, so the file's bytes are the or
 
 A window surface's draw (UiSurface::Blit; called by UiWindow's surface pass and the interface's draw for the backdrop and
 the frame rate surface): when the surface is shown, its frame picture and its draws are drawn into the frame at its
-rectangle, clipped to it and the screen; a keyed surface (SurfaceBlend::Keyed) leaves out what is in its background colour.
+rectangle (or, for a surface its window paints, what the window's paint draws), clipped to it and the screen; a keyed
+surface (SurfaceBlend::Keyed) leaves out what is in its background colour.
 Every surface is opaque or keyed; the original's stretch bit was never set. See ui-native.md section 3.
 
 ## Surface construction

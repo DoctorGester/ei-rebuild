@@ -270,6 +270,7 @@ void GlobalMap::CreateScreen() {
     {
         UiSurface* info = new UiSurface(ui, 400, 20, 780, 300, SurfaceBlend::Keyed, true);
         AddSurface(info);
+        info->PaintWith([this](UiSurface& out) { PaintTip(out); });
         info->Hide(false);
     }
     {
@@ -289,17 +290,9 @@ void GlobalMap::CreateScreen() {
     minutes -= day * 1440;
     int hour = minutes / 60;
     minutes -= hour * 60;
-    std::string clock;
     std::string dayText = g_clientWorld.texts->GetString("save_day");
     clock = std::format("{}  {},  {}:{:02}", dayText, day + 1, hour, minutes);
-    {
-        UiSurface* text = new UiSurface(ui, 20, 20, 170, 70, SurfaceBlend::Keyed, true);
-        AddSurface(text);
-        Rect line1 = {0, 5, 150, 25};
-        text->DrawTextIn(allodTitle, &line1, 2, 0xA7D7E4, 0x25, 1);
-        Rect line2 = {0, 25, 150, 45};
-        text->DrawTextIn(clock, &line2, 2, 0xA7D7E4, 0x25, 1);
-    }
+    AddSurface(new UiSurface(ui, 20, 20, 170, 70, SurfaceBlend::Keyed, true))->PaintWith([this](UiSurface& out) { PaintTitle(out); });
 
     // The camp button (hidden with "i.nocamp" = 1) and the two turn buttons.
     {

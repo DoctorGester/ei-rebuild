@@ -54,6 +54,10 @@ public:
     // strip built, the arrows' tips 0x4FB0 / 0x4FB1, two text surfaces (x 50..750, y top + 15..35 and top + 65..85), nine
     // slots and the source list.
     void Setup(std::vector<Item*>* source, bool top);
+    // The text surfaces' paints, over the items in view: the stack counts (not 1); unless priceKind is None, the
+    // owner's number (Price) of each item the strip's mode takes (CanEquip).
+    void PaintCounts(UiSurface& surface) const;
+    void PaintPrices(UiSurface& surface) const;
     // Lays the strip out along the top edge (`top`: y 0, scale 8) or the bottom (y 500, scale 4): the scroll state cleared, nine
     // regions (arrows, six tab buttons, the items), the ends' and tab buttons' sprites, the highlight frame, the background
     // cells; tab 5.
@@ -115,8 +119,8 @@ class ForwardingStrip : public UiItemStrip {
 public:
     using UiItemStrip::UiItemStrip;
     // The end faces dimmed (sprite alpha 0.195) where it can scroll on, the background cells shifted by the current tab's
-    // fractional position, the window's sprites, eight item cells through the owner, the stack counts (not 1) on surface 0
-    // and, unless a member is 9, the owner's number of each item its accept virtual takes on surface 1.
+    // fractional position, the window's sprites, eight item cells through the owner (its two text surfaces paint
+    // themselves: UiItemStrip::PaintCounts, PaintPrices).
     void Draw(SceneRenderer* pass) override;
     // The item under the screen point, or null; sets the cursor for the strip's action mode.
     Item* ItemAt(Point point, int* cursor) override;
