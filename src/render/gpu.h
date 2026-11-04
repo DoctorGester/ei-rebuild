@@ -290,6 +290,21 @@ struct TextureBinding {
     Texture texture;
     Sampler sampler;
 };
+// What the draws below sent to SDL, and what the filter below left out, since the last ResetCounts.
+struct DrawCounts {
+    std::uint64_t draws = 0;
+    std::uint64_t pipelinesBound = 0, pipelinesSkipped = 0;
+    std::uint64_t vertexBound = 0, vertexSkipped = 0;       // calls (each binds the changed range)
+    std::uint64_t indexBound = 0, indexSkipped = 0;
+    std::uint64_t texturesBound = 0, texturesSkipped = 0;   // calls
+    std::uint64_t pushes = 0, pushesSkipped = 0;
+    std::uint64_t pushedBytes = 0;
+};
+DrawCounts Counts();
+void ResetCounts();
+// Whether a binding or uniform set again unchanged is left out (the default). Off only for tools/gpu_check's bench, to
+// price what the filter saves.
+void SetStateFiltering(bool on);
 // Bindings and uniforms last for the pass, across pipelines; one set again unchanged is not sent again.
 void ApplyPipeline(Pipeline pipeline);
 void BindVertexBuffers(int first, std::span<const BufferBinding> buffers);

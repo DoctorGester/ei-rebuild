@@ -776,6 +776,8 @@ struct Bound {
     }
 };
 Bound g_bound;
+DrawCounts g_counts;
+bool g_filtering = true;
 
 } // namespace
 
@@ -1290,9 +1292,17 @@ void SetScissor(const Rect& rect) {
     SDL_SetGPUScissor(g_pass, &r);
 }
 
+DrawCounts Counts() { return g_counts; }
+void ResetCounts() { g_counts = DrawCounts{}; }
+void SetStateFiltering(bool on) { g_filtering = on; }
+
 void ApplyPipeline(Pipeline pipeline) {
     if (!g_pass || !pipeline) return Problem("a pipeline %s", g_pass ? "that is empty" : "outside a pass");
-    if (pipeline.pipeline == g_bound.pipeline) return;
+    if (pipeline.pipeline == g_bound.pipeline && g_filtering) {
+        ++g_counts.pipelinesSkipped;
+        return;
+    }
+    ++g_counts.pipelinesBound;
     SDL_BindGPUGraphicsPipeline(g_pass, pipeline.pipeline);
     g_bound.pipeline = pipeline.pipeline;
 }
@@ -1306,12 +1316,18 @@ void BindVertexBuffers(int first, std::span<const BufferBinding> buffers) {
     int low = -1, high = -1;
     for (int i = 0; i < static_cast<int>(buffers.size()); ++i) {
         BufferBinding& b = g_bound.vertex[first + i];
-        if (b.buffer.buffer == buffers[i].buffer.buffer && b.offset == buffers[i].offset && b.buffer.buffer) continue;
+        if (g_filtering && b.buffer.buffer == buffers[i].buffer.buffer && b.offset == buffers[i].offset &&
+            b.buffer.buffer)
+            continue;
         b = buffers[i];
         if (low < 0) low = i;
         high = i;
     }
-    if (low < 0) return;
+    if (low < 0) {
+        ++g_counts.vertexSkipped;
+        return;
+    }
+    ++g_counts.vertexBound;
     SDL_GPUBufferBinding sdl[kMostVertexBuffers]{};
     for (int i = low; i <= high; ++i) sdl[i - low] = {buffers[i].buffer.buffer, buffers[i].offset};
     SDL_BindGPUVertexBuffers(g_pass, static_cast<Uint32>(first + low), sdl, static_cast<Uint32>(high - low + 1));
@@ -1320,7 +1336,12 @@ void BindVertexBuffers(int first, std::span<const BufferBinding> buffers) {
 void BindIndexBuffer(const BufferBinding& binding) {
     if (!g_pass || !binding.buffer) return Problem("an index buffer %s", g_pass ? "that is empty" : "outside a pass");
     const BufferBinding& bound = g_bound.index;
-    if (g_bound.haveIndex && bound.buffer.buffer == binding.buffer.buffer && bound.offset == binding.offset) return;
+    if (g_filtering && g_bound.haveIndex && bound.buffer.buffer == binding.buffer.buffer &&
+        bound.offset == binding.offset) {
+        ++g_counts.indexSkipped;
+        return;
+    }
+    ++g_counts.indexBound;
     g_bound.index = binding;
     g_bound.haveIndex = true;
     const SDL_GPUBufferBinding b{binding.buffer.buffer, binding.offset};
@@ -1337,13 +1358,17 @@ void BindTextures(Stage stage, int first, std::span<const TextureBinding> textur
     for (int i = 0; i < static_cast<int>(textures.size()); ++i) {
         SDL_GPUTexture*& t = g_bound.textures[s][first + i];
         SDL_GPUSampler*& m = g_bound.samplers[s][first + i];
-        if (t == textures[i].texture.texture && m == textures[i].sampler.sampler && t) continue;
+        if (g_filtering && t == textures[i].texture.texture && m == textures[i].sampler.sampler && t) continue;
         t = textures[i].texture.texture;
         m = textures[i].sampler.sampler;
         if (low < 0) low = i;
         high = i;
     }
-    if (low < 0) return;
+    if (low < 0) {
+        ++g_counts.texturesSkipped;
+        return;
+    }
+    ++g_counts.texturesBound;
     SDL_GPUTextureSamplerBinding sdl[kMostSamplers]{};
     for (int i = low; i <= high; ++i) sdl[i - low] = {textures[i].texture.texture, textures[i].sampler.sampler};
     const Uint32 slot = static_cast<Uint32>(first + low), count = static_cast<Uint32>(high - low + 1);
@@ -1356,7 +1381,12 @@ void PushUniforms(Stage stage, int slot, const void* data, std::uint32_t bytes) 
         return Problem("uniforms %s", g_pass ? "out of range" : "outside a pass");
     const int s = stage == Stage::Vertex ? 0 : 1;
     std::vector<std::uint8_t>& last = g_bound.uniforms[s][slot];
-    if (g_bound.pushed[s][slot] && last.size() == bytes && std::memcmp(last.data(), data, bytes) == 0) return;
+    if (g_filtering && g_bound.pushed[s][slot] && last.size() == bytes && std::memcmp(last.data(), data, bytes) == 0) {
+        ++g_counts.pushesSkipped;
+        return;
+    }
+    ++g_counts.pushes;
+    g_counts.pushedBytes += bytes;
     last.assign(static_cast<const std::uint8_t*>(data), static_cast<const std::uint8_t*>(data) + bytes);
     g_bound.pushed[s][slot] = true;
     if (stage == Stage::Vertex) SDL_PushGPUVertexUniformData(g_commands, static_cast<Uint32>(slot), data, bytes);
@@ -1365,6 +1395,7 @@ void PushUniforms(Stage stage, int slot, const void* data, std::uint32_t bytes) 
 
 void Draw(std::uint32_t first, std::uint32_t count, std::uint32_t instances) {
     if (!g_pass || !g_bound.pipeline) return Problem("a draw %s", g_pass ? "without a pipeline" : "outside a pass");
+    ++g_counts.draws;
     SDL_DrawGPUPrimitives(g_pass, count, instances, first, 0);
 }
 
@@ -1372,6 +1403,7 @@ void DrawIndexed(std::uint32_t first, std::uint32_t count, std::uint32_t instanc
     if (!g_pass || !g_bound.pipeline || !g_bound.haveIndex)
         return Problem("an indexed draw %s",
                        !g_pass ? "outside a pass" : g_bound.pipeline ? "without indices" : "without a pipeline");
+    ++g_counts.draws;
     SDL_DrawGPUIndexedPrimitives(g_pass, count, instances, first, 0, firstInstance);
 }
 
