@@ -7464,6 +7464,13 @@ group = "cleanup"
 note = "ui_spell_column.cpp's local Get<T>(base, offset) memcpys Spell fields at the original's offsets (0x20, 0x24, 0x28, 0x30, 0x34, 0x38, 0x3C, 0x40); Spell (spell.h) is a normal class now, so the HUD spell tooltip shows garbage (ui_widescreen_more's tooltip frame: 'Длительн.: 104857.6с  Цели: -1082130432', the area 0.0 or 0.5 from run to run). Read the named members; the helper evades build_checks' offset-access count (add its pattern). Found by P9a."
 
 [[ticket]]
+id = "C85c"
+title = "Renderer positions and normals as packet records; AI map sector vertices read by value"
+group = "cleanup"
+depends = ["C85b"]
+note = "C85b left: MeshDraw / ShadowMesh still take positions and normals as const float* over arrays of VertexPacket / NormalPacket (device_mesh.cpp &positions->block[0][0], MovedPositions; the renderer indexes block (i/4)*16 + lane), the same array-of-structs-as-scalars read C85b removed for corners and texture coordinates: give src/render a packet record (as mesh_records.h) the game's packets are. ai_map_load.cpp StampSector views the sector file as SectorFileVertex* at header + 1 (offset 5: misaligned, the last struct view over file bytes left in src): read each vertex with lib::LoadBytes. Goldens the same."
+
+[[ticket]]
 id = "PL6b"
 title = "Platform layer: sound_manager's locks and stream thread, bink_video's key codes"
 group = "port"
