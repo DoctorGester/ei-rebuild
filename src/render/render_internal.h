@@ -568,6 +568,21 @@ void PrepareUnitWeather(Frame& frame);
 void SurfaceUniforms(float weather[4], float rain[4]);
 void MeshWeatherUniforms(float weather[4], float sun[4], float sunColour[4]);
 void SurfaceState(float* wet, float* puddles, float* snow);
+// The roofs over the ground and the world's meshes (render_weather.cpp, shaders/roof.hlsli): while there is weather on
+// the surfaces, PrepareRoofs (after PrepareUnitWeather) fits a top-down depth map of the frame's roofs (the drawn
+// objects' meshes, not the units') around the visible ground; RoofUniforms writes the receivers' part of `params` for
+// the sun map's light matrix `light` (its clip space, where the receivers' points are, to the roof map's);
+// DrawRoofMap draws it (outside a pass); BindRoofMap binds it (or the 1 x 1 stand-in) at `slot`.
+void PrepareRoofs(Frame& frame);
+void RoofUniforms(const Matrix4& light, ShadowParams* params);
+void DrawRoofMap(Frame& frame);
+void BindRoofMap(int slot);
+// The visible ground's box in the landscape's space, by the sun map's fit of this frame; false without one.
+// AddOutsideRoofs: the sun map's casters outside the view that are not units (render::ShadowCasterMesh) into `draws`
+// through `clip` (the landscape's space to the roof map's), after the sun map's draws were listed; the count added.
+bool VisibleGround(Frame& frame, Vector3* low, Vector3* high);
+class CasterDraws;
+int AddOutsideRoofs(CasterDraws& draws, const Matrix4& clip);
 // How far along its normal a receiver's point is moved before it is looked up in the map: 1.5 of the map's texels,
 // in world units (0 without the map).
 inline float ShadowNormalOffset(const ShadowParams& shadow) {

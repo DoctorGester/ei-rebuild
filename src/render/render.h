@@ -178,6 +178,7 @@ struct ShadowMesh {
     const void* owner;
     const void* shared;
     bool moved;
+    bool unit;   // a unit's part: no roof over the weather (render_weather.cpp's roof map)
 };
 void ShadowCasterMesh(const void* object, const ShadowMesh& mesh);
 // The walk's time counts as the shadow map's CPU time.
@@ -199,6 +200,18 @@ bool WeatherParticlesDrawn();
 // Harness build: the interface figure of a world unit (BeginInterfaceUnit) with its unit's weather (the default) or
 // dry ("panelweather on|off"), for a frozen capture of the HUD unit panel both ways.
 void SetInterfaceUnitWeather(bool on);
+// Harness build: the ground and the world's meshes under a roof kept dry (the roof map, the default) or weathered as in
+// the open ("roofs on|off"), for a frozen capture both ways.
+void SetRoofShelter(bool on);
+// The roof map of the last prepared frame (render_weather.cpp): made (only while there is weather on the surfaces),
+// its texels a side, the units it spans and the roof meshes drawn into it.
+struct RoofInfo {
+    bool made = false;
+    int size = 0;
+    float extent = 0.0f;
+    int roofs = 0;
+};
+RoofInfo RoofState();
 // Harness build: the ambient occlusion on (the default), off, or shown alone by its receivers (white none, black
 // all; "occlusion on|off|view"). OcclusionState: the last presented frame's, with the ground's sectors whose
 // occlusion is kept and how often one was worked out since the start.

@@ -799,6 +799,7 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerRipples, {&ripples, 1});
     BindCloudMap(program::kSamplerCloudMap);
     BindOcclusion(program::kSamplerOcclusionMap);
+    BindRoofMap(program::kSamplerRoofMap);
     CountBindings(texture.texture);
     // The ground receives the objects' shadows; the water does not (the ground under it does). Both take the clouds'.
     const bool clouded = mode < 1.5f && !f.shadow.lights.empty();

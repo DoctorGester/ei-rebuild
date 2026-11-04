@@ -76,10 +76,12 @@ VsOut vs_main(VsIn i) {
 #define CLOUD_MAP_SLOT 6
 #define OCCLUSION_MAP_SLOT 7
 #define OCCLUSION_DEPTH_SLOT 8
+#define ROOF_MAP_SLOT 9
 #include "shadow_receiver.hlsli"
 #include "point_shadow.hlsli"
 #include "cloud_shadow.hlsli"
 #include "ambient_occlusion.hlsli"
+#include "roof.hlsli"
 struct MeshFsParams {
     float4 fogColour;      // rgb
     float4 factor;         // TEXTUREFACTOR
@@ -213,8 +215,9 @@ float4 combine(int op, float4 a1, float4 a2, float4 current, float4 diffuse, flo
 }
 // The weather on a world mesh's pixel of colour `rgb` lit by `light`, from its face (the map's clip space's derivatives
 // `dsx`, `dsy` at `s` taken to the landscape's space and turned to the camera): snow on faces turned up (not on a
-// unit), wet faces darker with a sheen of the sun (a unit only darker: its faces are few and large). `hidden`: the
-// share of the sun the map and the clouds hide. Without the map's space (no fit: `shadow.scale` 0) none.
+// unit), wet faces darker with a sheen of the sun (a unit only darker: its faces are few and large); none under a roof
+// (roof_open; a unit has its own shelter). `hidden`: the share of the sun the map and the clouds hide. Without the
+// map's space (no fit: `shadow.scale` 0) none.
 static const float3 kSnow = float3(0.76, 0.78, 0.83);
 float3 weathered_mesh(float3 rgb, float3 light, float3 s, float3 dsx, float3 dsy, bool unit, float hidden) {
     float3 n = cross(map_to_landscape(dsx * shadow.scale.xyz), map_to_landscape(dsy * shadow.scale.xyz));
@@ -224,10 +227,12 @@ float3 weathered_mesh(float3 rgb, float3 light, float3 s, float3 dsx, float3 dsy
     float3 v = map_to_landscape((shadow.camera.xyz - s) * shadow.scale.xyz);
     if (dot(n, v) < 0.0) n = -n;
     v = normalize(v);
+    float open = unit ? 1.0 : roof_open(s, n);
     float cover = fs.weather.y;
     float snow = unit ? 0.0 : smoothstep(lerp(1.1, 0.6, cover), lerp(1.3, 0.85, cover), n.z) * saturate(cover * 3.0) * 0.85;
+    snow *= open;
     rgb = lerp(rgb, kSnow * saturate(light), snow);
-    float wet = fs.weather.x * (1.0 - snow);
+    float wet = fs.weather.x * (1.0 - snow) * open;
     rgb *= lerp(1.0, 0.65, wet);
     if (!unit) {
         float3 h = normalize(fs.weatherSun.xyz + v);

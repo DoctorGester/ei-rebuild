@@ -16,6 +16,10 @@ struct ShadowParams {
     float4 clouds;        // the cloud shadows (cloud_shadow.hlsli): x, y the map's clip space to the two layers' uv,
                           // z the cover's threshold, w how much of the sun a full cloud hides (0: none)
     float4 cloudShift;    // xy, zw: the two layers' uv at the map's clip origin
+    float4 roofRows[3];   // the roofs over the weather (roof.hlsli): the map's clip space to the roof map's u, v, depth
+    float4 roofScale;     // xyz: a landscape offset (per unit) in the roof map's u, v, depth; w: its filter's step in uv
+    float4 roof;          // x: on, y: a receiver this much depth under the highest roof is in the open, z: the lookup's
+                          // offset along the receiver's normal, landscape units
 };
 ConstantBuffer<ShadowParams> shadow : FS_BLOCK(SHADOW_BLOCK_SLOT);
 Texture2D<float> shadow_map : FS_TEXTURE(SHADOW_MAP_SLOT);

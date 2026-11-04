@@ -70,11 +70,13 @@ VsOut vs_main(VsIn i) {
 #define CLOUD_MAP_SLOT 5   // 4 is the ripple map (render_water.cpp)
 #define OCCLUSION_MAP_SLOT 6
 #define OCCLUSION_DEPTH_SLOT 7
+#define ROOF_MAP_SLOT 8
 #include "shadow_receiver.hlsli"
 #include "point_shadow.hlsli"
 #include "cloud_shadow.hlsli"
 #include "scene_lighting.hlsli"
 #include "ambient_occlusion.hlsli"
+#include "roof.hlsli"
 struct TerrainFsParams {
     float4 fog;            // rgb: the fog colour
     float4 flags;          // x: water (alpha from the vertex colour; 2: the level map, render::TerrainLevels), y: fog on
@@ -162,11 +164,11 @@ static const float kMudRim = 0.6;                      // the swamps' muddy rim 
 static const float3 kMud = float3(0.95, 0.78, 0.52);   // its tint, of the ground's luminance
 
 // The weather at a ground pixel: how wet (0 .. 1), how much of a puddle and how much snow; and how much of a swamp's
-// muddy rim (wet whatever the weather).
+// muddy rim (wet whatever the weather). `open`: how much of it lies under the sky (roof_open), the rest stays dry.
 struct GroundWeather {
     float wet, puddle, snow, mud;
 };
-GroundWeather ground_weather(VsOut i, float3 n) {
+GroundWeather ground_weather(VsOut i, float3 n, float open) {
     GroundWeather g = (GroundWeather)0;
     float dry = 1.0 - saturate(i.loss * 50.0);   // under the water: none
     if (fs.weather.z > 0.0) {
@@ -175,9 +177,9 @@ GroundWeather ground_weather(VsOut i, float3 n) {
         float noise = cloud_map.Sample(cloud_smp, i.world.xy * kSnowScale);
         float up = n.z + (noise - 0.5) * 0.3 + 0.1 * saturate(i.world.z / 30.0);
         float edge = lerp(1.15, 0.55, fs.weather.z);
-        g.snow = smoothstep(edge - 0.15, edge + 0.15, up) * (0.62 + 0.25 * noise) * dry;
+        g.snow = smoothstep(edge - 0.15, edge + 0.15, up) * (0.62 + 0.25 * noise) * dry * open;
     }
-    g.wet = fs.weather.x * dry * (1.0 - g.snow);
+    g.wet = fs.weather.x * dry * (1.0 - g.snow) * open;
     if (fs.weather.y > 0.0) {
         // Puddles: in flat ground, more where the ground lies low (its own occlusion), patchy.
         float low = saturate((1.0 - i.occlusion) * 3.0);
@@ -224,7 +226,8 @@ float3 wet_ground(float3 c, VsOut i, float3 n, GroundWeather g, float hidden, fl
 // The water (docs/notes/renderer.md, "shaders/terrain.hlsl: the water"): the game's textured and lit layer `base`
 // (alpha `opacity`, the material's) seen through small ripples, more opaque and darker with the depth, the sky and
 // the sun reflected by the rippled normal, and foam where the depth runs out at the shore; it fades in from the shore
-// line; in the rain the drops' rings and splashes and a rougher surface. A swamp is still standing water: a dark
+// line; in the rain (`rain`: the drops' share where it falls, none under a roof) the drops' rings and splashes and a
+// rougher surface. A swamp is still standing water: a dark
 // olive-brown body, opaque but at its very edge, faint slow ripples, a glossy sheen of the sky and the sun, sparse scum
 // in place of the foam (and a muddy rim on the ground: ground_weather); lava keeps the game's look. `clouded`: the
 // share of the sun the clouds hide, `footprint` the landscape units a pixel spans.
@@ -250,7 +253,7 @@ float3 ripple_layers(float2 xy, float4 offsets) {
     return float3((a.xy * 2.0 - 1.0) + (b.xy * 2.0 - 1.0) * 0.45, a.z * 0.6 + b.z * 0.4);
 }
 
-float3 Water(VsOut i, float3 base, float opacity, float3 n, float clouded, float footprint, out float alpha) {
+float3 Water(VsOut i, float3 base, float opacity, float3 n, float clouded, float footprint, float rain, out float alpha) {
     const float3 game = base;
     float depth = max(i.depth, 0.0);
     float lava = saturate(i.kind - 1.0);
@@ -259,8 +262,8 @@ float3 Water(VsOut i, float3 base, float opacity, float3 n, float clouded, float
     float3 layers = lerp(ripple_layers(xy, fs.ripples), ripple_layers(xy, fs.slowRipples), swamp);
     float2 slope = layers.xy * kRippleSlope * lerp(1.0, kSwampSlope, swamp);
     slope *= 0.4 + 0.6 * saturate(depth * 2.0);   // calmer at the shore
-    float4 rings = rain_rings(xy, fs.weather.w, footprint);
-    slope = slope * (1.0 + 0.5 * fs.weather.w) + rings.xy;
+    float4 rings = rain_rings(xy, rain, footprint);
+    slope = slope * (1.0 + 0.5 * rain) + rings.xy;
     float3 rippled = normalize(n + float3(-slope, 0.0));
 
     float3 toEye = scene.camera.xyz - i.world;
@@ -322,6 +325,7 @@ float4 Shade(VsOut i) {
     float len = length(i.normal);
     float3 n = len > 1e-6 ? i.normal / len : float3(0.0, 0.0, 1.0);
     float footprint = length(fwidth(i.world.xy));
+    float open = fs.weather.x > 0.0 || fs.weather.z > 0.0 || fs.weather.w > 0.0 ? roof_open(i.shadow.xyz, n) : 1.0;
     float3 spec, c;
     // The layer is the batch's, not the interpolated `loss`'s sign: with multisampling a pixel on a triangle's edge is
     // shaded at its centre, past the triangle, and there the ground's loss (0 on the dry ground, more under the water)
@@ -333,7 +337,7 @@ float4 Shade(VsOut i) {
     if (water) {
         float3 lit = ground_light(i.world, n, i.col.rgb, i.col.rgb, 0.0, hidden, shadow.on.y, false, 0.0, 1.0, spec);
         float seen;
-        c = Water(i, saturate(t.rgb * lit + max(spec, i.spec.rgb)), a, n, hidden, footprint, seen);
+        c = Water(i, saturate(t.rgb * lit + max(spec, i.spec.rgb)), a, n, hidden, footprint, fs.weather.w * open, seen);
         a = seen;
     } else {
         i.loss = max(i.loss, 0.0);   // past the triangle's edge (above) it can fall below 0
@@ -341,7 +345,7 @@ float4 Shade(VsOut i) {
         if (fs.occlusion.w > 0.5) return float4(occlusion.xxx, 1.0);   // the harness's occlusion view
         float3 lit = ground_light(i.world, n, i.col.rgb, 0.0, i.loss, hidden, shadow.on.y, pointShadow.on.x > 0.5,
                                   pixel_turn(i.pos.xy), occlusion, spec);
-        GroundWeather g = ground_weather(i, n);
+        GroundWeather g = ground_weather(i, n, open);
         float4 rings = 0.0;
         if (g.puddle > 0.0) rings = rain_rings(i.world.xy, fs.weather.w, footprint);
         c = wet_ground(saturate(weathered(t.rgb, g) * lit + spec), i, n, g, hidden, rings);

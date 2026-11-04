@@ -1069,9 +1069,25 @@ option). Client side only: driven by the weather the world's light hands over (`
   already, the answer is needed there (a state that changes over time, a number for the harness), and a map would need
   a new pass and a read back a few frames late. Trees' canopies count as roofs (their cards with their cut-out holes:
   a unit under a big tree stays drier); the casters the game does not draw this frame do not (a roof over a drawn unit
-  is in view). Cost: a few hundred box tests per unit, the five rays tested together against the triangles of the
+  is in view). The ground and the other meshes take the roof map instead (Roofs, below). Cost: a few hundred box tests per unit, the five rays tested together against the triangles of the
   meshes over it; measured 0.005-0.014 ms a frame on average (render_weather, render_weather_units, the shelter scenario;
   1-5 units, 7-44 roof meshes), within shadowMs.
+- **Roofs** (render_weather.cpp `PrepareRoofs` / `DrawRoofMap`, shaders/roof.hlsli `roof_open`; R17c5): the ground
+  (wetness, puddles, snow), the rain's rings on the water and the world's meshes (`weathered_mesh`) under a roof take no
+  weather. A depth map (2048 texels a side, D32F) seen straight down over the visible ground (the sun map's fit's box,
+  2 units around, its side in steps of 8 so the texel size changes seldom, the texels on whole texels of the landscape)
+  from 24 units above the highest visible ground (a higher roof is drawn at that height: the caster shader's clamp) to 2
+  under the lowest. Its roofs: the units' roof meshes (the frame's drawn objects but the units, `CollectUnitsAndRoofs`)
+  and the sun map's casters outside the view but the units' (`ShadowMesh::unit`, `AddOutsideRoofs`): zoomed in, the
+  gateway's roof over the visible floor stands above the view's top edge and is not drawn, and the floor stayed wet
+  without them. Drawn by the sun map's caster pipelines (`CasterDraws`, cut out by their texture's alpha), only while
+  the weather shows (the wetness, puddles, snow or falling rain above 0.001; else no pass, everything in the open). A
+  receiver's point (its sun-map clip position through `ShadowParams::roofRows`) is looked up 0.2 units out along its
+  normal (a wall's face beside its own top; the meshes' face normal turned to the camera, the ground's normal) and
+  counts as open while less than 0.2 units under the highest roof there (a roof's own top, the ground at the foot of a
+  rock), over a 3 x 3 tent of comparisons 0.3 units apart (a soft edge about half a unit wide). Units keep their own
+  shelter (the roof test above). Plants count as roofs: the ground under a fern or a torch's stand stays dry and bare
+  of snow, as under the trees.
 - Cost of the units' path (R17c2, the same machine and settings, zone1 a minute into rain with the hero and four
   creatures beside him, frozen; the units' path and the face path alternated every 150 frames by a probe, 1200 frames
   each view; the kit and the captures in build/r17c2 of the main checkout): R17c's view 2.64-2.66 ms either way, zoomed in on the units
@@ -1088,6 +1104,11 @@ option). Client side only: driven by the weather the world's light hands over (`
   from the camera inside); `unitweather leader|#id|<name> <least wet> <most wet> [<least snow> <most snow> [<least
   shelter> <most shelter>]]` reads `render::UnitWeatherState` (and logs where the unit stood); the frames of R17c3 in
   build/r17c3 of its worktree.
+  `render_weather_roofs` (R17c5, bz1g by day, 1440x1080, the camera turned to look through the town gate's gateway): a
+  minute of rain, then two of snow; each frozen moment captured with the roofs and without (`roofs off`, harness only:
+  everything weathered as in the open); diffcapture requires the gateway's floor under the roof to differ (97-98% of its
+  pixels) and the open ground before the gate not to (none); `roofs check <n>` requires the map made with at least n
+  roof meshes (50 there). The frames in build/captures/r17c5 of its worktree.
   `render_weather_panel` (R53a, 1440x1080, zone1 by day): the hero dry, then a minute into rain (unitweather: wet
   0.5 .. 1); `diffcapture <a> <b> <least> <most> <tolerance> <left> <top> <right> <bottom>` on the panel's rectangle
   requires the figure to differ between the two frozen moments (a dry figure differs in none of it).
