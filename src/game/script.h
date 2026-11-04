@@ -34,6 +34,25 @@ enum ScriptType : int {
     kScriptGroup = 4,
 };
 
+// The four types' signature letters and names, in ScriptType order.
+inline constexpr char kScriptTypeLetters[] = "fsog";
+inline constexpr const char* kScriptTypeNames[] = {"float", "string", "object", "group"};
+
+// The signature letter of a type ('f', 's', 'o', 'g'); 0 for a number that is none.
+inline char ScriptTypeLetter(int type) {
+    return type >= kScriptFloat && type <= kScriptGroup ? kScriptTypeLetters[type - 1] : 0;
+}
+// The type of a signature letter (upper-case too: a result letter, the loop counter 'O'); 0 for none.
+inline int ScriptTypeOfLetter(char letter) {
+    for (int type = kScriptFloat; type <= kScriptGroup; ++type)
+        if (letter == kScriptTypeLetters[type - 1] || letter == kScriptTypeLetters[type - 1] - 'a' + 'A') return type;
+    return 0;
+}
+// "float", "string", "object" or "group"; null for any other number.
+inline const char* ScriptTypeName(int type) {
+    return type >= kScriptFloat && type <= kScriptGroup ? kScriptTypeNames[type - 1] : nullptr;
+}
+
 // A counted reference to a world object: holding one keeps the object's refCount raised. Objects
 // deleted from the world stay allocated while referenced and have bit 0 of flags set.
 struct ScriptObjectRef {
@@ -104,6 +123,8 @@ struct ScriptNamedValues {
     void Save(ByteStream* stream) const;
     // The other set's values and names appended (the two lists stay parallel).
     void Append(const ScriptNamedValues<T>& other);
+    // The index of the name (case-sensitive), -1 when there is none.
+    int Find(std::string_view name) const;
 
     std::vector<T> values;
     std::vector<std::string> names;
@@ -137,6 +158,8 @@ struct ScriptVars {
     // Any type; case-sensitive.
     bool HasVariable(std::string_view name) const;
     ScriptVarRef FindVariable(std::string_view name) const;
+    // The index of the name among the variables of one ScriptType, -1 when there is none.
+    int FindOfType(int type, std::string_view name) const;
     void RemoveDeletedObjects();
 
     ScriptNamedValues<float> floats;
@@ -157,6 +180,52 @@ static_assert(sizeof(ScriptBinding) == 12);   // saved as its 12 bytes
 struct ScriptToken {
     std::string text = "None";
     int line = -1;
+};
+
+// What Script::Error records as the error code.
+enum ScriptParseError : int {
+    kErrNone = 0,
+    kErrEndOfFile = 1,          // "Unexpected end of file" (and the open comment)
+    kErrWrongLexeme = 2,
+    kErrUnexpectedToken = 3,
+    kErrExpected = 4,
+    kErrNotEnoughParameters = 5,
+    kErrTooManyParameters = 6,
+    kErrParameterType = 7,
+    kErrLoopCounter = 8,
+    kErrFloatFunction = 9,
+    kErrExpectedIf = 10,
+    kErrNoCondition = 11,
+    kErrUnknownType = 12,
+    kErrDuplicateVariable = 13,
+    kErrSecondWorldScript = 14,
+    kErrDuplicateScript = 15,
+    kErrMultipleDeclaration = 16,
+    kErrCannotRead = 17,
+};
+
+class Script;
+
+// The tokens of one file in reading order, and the Script that gets the parse errors.
+class TokenReader {
+public:
+    TokenReader(Script* script, const std::vector<ScriptToken>* tokens) : script(script), tokens(tokens), pos(tokens->begin()) {}
+
+    bool AtEnd() const { return pos == tokens->end(); }
+    // The line of the last token (-1 with no tokens).
+    int LastLine() const { return tokens->empty() ? -1 : tokens->back().line; }
+    // Takes the next token and sets *id (when given) to what ClassifyToken makes of it. At the end: an empty token on
+    // the last line, the position staying (the game read past the end: a script ending in "Foo(" faulted).
+    ScriptToken Next(int* id = nullptr);
+    // The next token must be lexeme `id`: otherwise the error "Unexpected end of file" or "Wrong lexeme", returns false.
+    bool Expect(int id);
+    // Records "Unexpected end of file" on the last line; returns false.
+    bool EndOfFileError();
+
+private:
+    Script* script;
+    const std::vector<ScriptToken>* tokens;
+    std::vector<ScriptToken>::const_iterator pos;
 };
 
 // A part of a named area for IsInArea (AddRectToArea / AddRoundToArea).
@@ -481,43 +550,38 @@ public:
     void ScriptMoveParticleSource(const SSCCmd* cmd);
 
     // ---- Loader and parser ----
-    // Every Load* function returns 1 on success; on failure it returns what Error returned (0). `pos` is the
-    // current token; functions consume tokens through it.
+    // Every Load* function returns true on success; on failure it returns what Error returned (false) after
+    // recording the error. `tokens` is the file's token stream; functions consume it.
 
-    // Formats the message into the error text; returns 0. Rebirth patches it.
-    static int Error(Script* script, int line, int code, const char* format, ...);
+    // Formats the message into the error text; returns 0.
+    static int Error(Script* script, int line, ScriptParseError code, const char* format, ...);
     // With a std::string among the arguments: its text is passed for the %s.
     template <class... Args>
         requires libprintf::HasString<Args...>
-    static int Error(Script* script, int line, int code, const char* format, Args&&... args) {
+    static int Error(Script* script, int line, ScriptParseError code, const char* format, Args&&... args) {
         return Error(script, line, code, format, libprintf::Arg(std::forward<Args>(args))...);
     }
     // See script.md, "Lexer".
     bool Tokenize(const std::string& text, std::vector<ScriptToken>* tokens);
-    bool ExpectLexeme(const std::vector<ScriptToken>* tokens, std::vector<ScriptToken>::const_iterator* pos, int id);
     // `name`, or "!<file>!<name>" when this is not the first file loaded.
     std::string QualifyName(const std::string& name);
     // Retries without each "!<n>!" prefix.
     int FindScript(std::string_view name);
-    // Rebirth patches it. `signature`: the parameter types (lower-case letters). `assignment`: one parameter,
-    // no parentheses; `scriptCall`: one extra float and string slot.
-    bool LoadFunction(SSCCmd* cmd, std::vector<ScriptToken>::const_iterator* pos, const std::vector<ScriptToken>* tokens, int id,
-                      ScriptVars* locals, const char* signature, bool assignment, bool scriptCall);
+    // `signature`: the parameter types (lower-case letters). `assignment`: one parameter, no parentheses;
+    // `scriptCall`: one extra float and string slot.
+    bool LoadFunction(SSCCmd* cmd, TokenReader* tokens, int id, ScriptVars* locals, const char* signature, bool assignment,
+                      bool scriptCall);
     // Float functions up to ')'.
-    bool LoadConditions(std::vector<SSCCmd>* conditions, std::vector<ScriptToken>::const_iterator* pos,
-                        const std::vector<ScriptToken>* tokens, ScriptVars* locals);
+    bool LoadConditions(std::vector<SSCCmd>* conditions, TokenReader* tokens, ScriptVars* locals);
     // `if(...)then(...)` pairs up to ')'.
-    bool LoadScriptBody(ScriptDefinition* script, std::vector<ScriptToken>::const_iterator* pos, const std::vector<ScriptToken>* tokens);
+    bool LoadScriptBody(ScriptDefinition* script, TokenReader* tokens);
     // `= value` assigned to global variable `name` (command 0x78).
-    bool LoadAssignOperator(SSCCmd* cmd, std::vector<ScriptToken>::const_iterator* pos, const std::vector<ScriptToken>* tokens,
-                            ScriptVars* locals, const std::string* name);
-    // `name : type, ...)` (parameters or GlobalVars). Returns 0 without an error when the tokens run out.
-    bool LoadVariableDeclarations(ScriptDefinition* script, std::vector<ScriptToken>::const_iterator* pos,
-                                  const std::vector<ScriptToken>* tokens, bool qualify);
-    // Rebirth patches it. Commands up to ')'; null `locals` means an empty variable set (For bodies; with
-    // Rebirth's AllowScriptArgsInLoops a For body gets the enclosing `locals`).
-    bool LoadCommands(std::vector<SSCCmd>* commands, std::vector<ScriptToken>::const_iterator* pos, const std::vector<ScriptToken>* tokens,
-                      ScriptVars* locals);
+    bool LoadAssignOperator(SSCCmd* cmd, TokenReader* tokens, ScriptVars* locals, const std::string* name);
+    // `name : type, ...)` (parameters or GlobalVars); "Unexpected end of file" when the tokens run out.
+    bool LoadVariableDeclarations(ScriptDefinition* script, TokenReader* tokens, bool qualify);
+    // Commands up to ')'; null `locals` means an empty variable set (the WorldScript). A For body sees the
+    // enclosing `locals`.
+    bool LoadCommands(std::vector<SSCCmd>* commands, TokenReader* tokens, ScriptVars* locals);
     // The text is replaced by its #define-expanded form.
     bool Load(std::string* text, bool runWorldScript);
     // With the WorldScript started; error 0x11 when the file cannot be read.

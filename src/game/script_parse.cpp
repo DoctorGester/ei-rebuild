@@ -1,12 +1,10 @@
 // Script loader, part 1: tokens, the lexer (Script::Tokenize), keyword lookup, #define handling
 // and name helpers. The parser proper is in script_parse_load.cpp. See script.h and
 // docs/notes/script.md ("Loader and parser").
-// Rebirth patches the keyword lookups.
 #include "script.h"
 #include "script_parse.h"
 #include "script_addon.h"
 
-#include "lib/rebirth.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
@@ -23,7 +21,7 @@ using namespace scriptparse;
 
 
 
-int scriptparse::ScriptErrorV(Script* script, int line, int code, const char* format, va_list args) {
+int scriptparse::ScriptErrorV(Script* script, int line, ScriptParseError code, const char* format, va_list args) {
     char text[0x400];   // cut to 1023 bytes (the game's wvsprintf wrote at most 1024 characters)
     std::vsnprintf(text, sizeof(text), format, args);
     script->errorLine = line;
@@ -31,8 +29,6 @@ int scriptparse::ScriptErrorV(Script* script, int line, int code, const char* fo
     script->errorCode = code;
     return 0;
 }
-
-// Rebirth's AddNewScriptCommands also copies the error to addon.log (not reproduced).
 
 // ---- Keyword table ------------------------------------------------------------------------------
 
@@ -269,7 +265,7 @@ const ScriptKeyword kScriptKeywords[226] = /*0078BCA0*/ {
 };
 
 const ScriptKeyword* KeywordTable() {
-    // Rebirth's AddNewScriptCommands' extended table (script_addon.cpp, built from this one).
+    // The game's table extended by script_addon.cpp.
     return scriptaddon::Table();
 }
 
@@ -314,7 +310,7 @@ void ClassifyToken(const char* text, int* id, int* rest) {
         if (length < best) continue;
         if (text::CompareIgnoringCase(p, k->name, static_cast<std::size_t>(length)) != 0) continue;
         best = length;
-        // An identifier-like match must end the identifier (Rebirth's AddNewScriptCommands).
+        // An identifier-like match must end the identifier.
         if (scriptaddon::RejectsMatch(k->name, p[length])) continue;
         if (rest) *rest = static_cast<int>(std::strlen(p)) - length;
         if (id) *id = static_cast<int>(k->id);
@@ -324,20 +320,8 @@ void ClassifyToken(const char* text, int* id, int* rest) {
 const char* FunctionSignature(int id, int type) {
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k) {
         if (static_cast<int>(k->id) != id || !k->function) continue;
-        switch (k->function[0]) {
-        case 'F':
-            if (type == kScriptFloat) return k->function + 1;
-            break;
-        case 'G':
-            if (type == kScriptGroup) return k->function + 1;
-            break;
-        case 'O':
-            if (type == kScriptObject) return k->function + 1;
-            break;
-        case 'S':
-            if (type == kScriptString) return k->function + 1;
-            break;
-        }
+        // The first letter is the result's type (F, G, O or S).
+        if (type != 0 && ScriptTypeOfLetter(k->function[0]) == type) return k->function + 1;
     }
     return nullptr;
 }
@@ -385,7 +369,7 @@ bool Script::Tokenize(const std::string& source, std::vector<ScriptToken>* token
         if (std::strncmp(buffer, kCommentOpen, std::strlen(kCommentOpen)) == 0) {
             // Block comment: the search for the end starts after the token (so "/**/" written as
             // one token does not end it) and skips quoted text.
-            if (!*p) return Error(this, line, 1, "End of file before '%s'", kCommentClose);
+            if (!*p) return Error(this, line, kErrEndOfFile, "End of file before '%s'", kCommentClose);
             for (;;) {
                 const char c = *p;
                 if (c == '\n') ++line;
@@ -395,7 +379,7 @@ bool Script::Tokenize(const std::string& source, std::vector<ScriptToken>* token
                     break;
                 }
                 ++p;
-                if (!*p) return Error(this, line, 1, "End of file before '%s'", kCommentClose);
+                if (!*p) return Error(this, line, kErrEndOfFile, "End of file before '%s'", kCommentClose);
             }
             continue;
         }
@@ -416,15 +400,25 @@ bool Script::Tokenize(const std::string& source, std::vector<ScriptToken>* token
     return true;
 }
 
-bool Script::ExpectLexeme(const std::vector<ScriptToken>* tokens, std::vector<ScriptToken>::const_iterator* pos, int id) {
-    if (*pos == tokens->end()) return Error(this, tokens->back().line, 1, "Unexpected end of file");
-    const ScriptToken token = *(*pos)++;
-    std::string text = token.text;
+ScriptToken TokenReader::Next(int* id) {
+    if (AtEnd()) {
+        if (id) *id = 0;
+        return ScriptToken{std::string(), LastLine()};
+    }
+    ScriptToken token = *pos++;
+    if (id) ClassifyToken(token.text, id, nullptr);
+    return token;
+}
+
+bool TokenReader::Expect(int id) {
+    if (AtEnd()) return EndOfFileError();
     int found;
-    ClassifyToken(text, &found, nullptr);
-    if (found != id) return Error(this, token.line, 2, "Wrong lexeme %s", text);
+    const ScriptToken token = Next(&found);
+    if (found != id) return Script::Error(script, token.line, kErrWrongLexeme, "Wrong lexeme %s", token.text);
     return true;
 }
+
+bool TokenReader::EndOfFileError() { return Script::Error(script, LastLine(), kErrEndOfFile, "Unexpected end of file"); }
 
 std::string Script::QualifyName(const std::string& name) {
     if (fileCount == 0) return name;
