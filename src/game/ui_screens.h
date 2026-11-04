@@ -255,7 +255,7 @@ public:
     void DeleteHero();
     // A message box answered: 0x10001 (the "lmp_deletepers" OK) deletes the hero; then the selected hero's record takes the
     // local player's party and sends the transfer; mode 9.
-    void MessageResult(int result) override;
+    void MessageResult(std::uint32_t result) override;
     // Region 1 / Enter of the statistics page: the new hero is kept and saved as a record: see docs/notes/ui.md,
     // "MpHeroScreen::AddNewHero".
     void AddNewHero();
@@ -329,15 +329,12 @@ public:
     using UiContainer::UiContainer;
     void CloseScreen() override {}
 
-    // The message box results: the kinds the screen opens boxes with, ORed with 1 (OK) or 2 (cancel) when
-    // they come back.
-    enum BoxKind : std::uint32_t {
-        kBoxNotice = 0x10000,         // a message (refusal, wrong protocol)
-        kBoxAddress = 0x20000,        // an address to ask
-        kBoxPassword = 0x30000,       // the new game's password
-        kBoxMaster = 0x40000,         // the master server request (MasterRequestBox)
-        kBoxJoinPassword = 0x50000,   // the password of the server joined
-    };
+    // The questions the screen opens message boxes with; MessageResult gets BoxResult(question, answer) back.
+    static constexpr MessageQuestion kBoxNotice = MessageQuestion::First;           // a message (refusal, wrong protocol)
+    static constexpr MessageQuestion kBoxAddress = MessageQuestion::Second;         // an address to ask
+    static constexpr MessageQuestion kBoxPassword = MessageQuestion::Third;         // the new game's password
+    static constexpr MessageQuestion kBoxMaster = MessageQuestion::Fourth;          // the master server request (MasterRequestBox)
+    static constexpr MessageQuestion kBoxJoinPassword = MessageQuestion::Fifth;     // the password of the server joined
     static constexpr int kRows = 15;
 
     // The screen over 800 x 600 (the vanilla body; Rebirth patches it): see docs/notes/ui.md,
@@ -352,7 +349,7 @@ public:
     // address book written, the list drawn; the master request ending (0x40002) draws the list; the new
     // game's password (0x30001 / 0x30002) is kept and its switch shows whether there is one; a join password
     // (0x50001) joins the selected server with it and sets the client's game type from the row.
-    void MessageResult(int result) override;
+    void MessageResult(std::uint32_t result) override;
     // By region (above): 0 Connect, 1 back (the cancel sound, the address book written, the network sessions dropped, the
     // screen closed with 0x1000001), 2 MasterRequest, 3 EditAddress, 4 the unlisted switch, 5 the password (none: a box for
     // one; else it is dropped), 6-9 the sort column (a second click reverses it), 10-13 the game type (only with row 0
@@ -416,9 +413,9 @@ public:
 // sprite. Its result is kBoxMaster (| 2 when done).
 class MasterRequestBox : public MessageWindow {
 public:
-    // The box (flags 2: one cancel button; format 1), the link connecting to `address`, the
+    // The box (one cancel button), the link connecting to `address`, the
     // bar (a plain sprite, colour 0xFFA06800), and `extra` written to the link's outgoing buffer.
-    MasterRequestBox(Interface3D* ui, std::string_view titleKey, const char* textKey, std::uint32_t result,
+    MasterRequestBox(Interface3D* ui, std::string_view titleKey, const char* textKey, MessageQuestion question,
                       const net::NetAddress* address, std::uint32_t extra);
     // The bar's right edge at 225 + 355 * the received share; the link steps: done (3) hands the reply to the
     // client's server list; the box closes (0x40002) when the link is done or, stepping again, closed (up to
@@ -437,7 +434,7 @@ public:
     explicit EscMenu(Interface3D* ui) : UiContainer(ui) {}
     void MouseMove(Point point) override;
     void KeyDown(int key, int scan, bool repeat) override;
-    void MessageResult(int result) override;
+    void MessageResult(std::uint32_t result) override;
     // The stone model and the five regions, whose rectangles come from menus.reg.
     void CreateScreen() override;
     // Opens the save window (region 0), the load window (1; neither in multiplayer), resumes (2), asks to quit (3) or opens the
@@ -511,7 +508,7 @@ public:
     // The lines freed, the display's flag restored, the screen flag set and the cursor shown.
     void CloseScreen() override;
     // A window above closed: the movie player is closed.
-    void MessageResult(int result) override;
+    void MessageResult(std::uint32_t result) override;
     // The header surface's paint: header.
     void PaintHeader(UiSurface& surface) const;
 
@@ -556,7 +553,7 @@ public:
     // A message box's answer (the flow's party step 0 and the server flag cleared first): 0x10001 (the quit
     // box's yes) the exit movie and quit, 0x20001 the intro movie and the flow's state 3, 0xCCCCCCCC (the
     // titles closed) the version line again.
-    void MessageResult(int result) override;
+    void MessageResult(std::uint32_t result) override;
     // Hovering a region plays its stone's animation (regions 0-5: 1, 3, 5, 7, 11, 9; off them the rest pose) with the stone
     // sound, once per region; then the container's handler.
     void MouseMove(Point point) override;

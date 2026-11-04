@@ -77,17 +77,15 @@ constexpr int kSpriteUnlisted = 4, kSpritePassword = 5, kSpriteTabFirst = 6, kTa
 constexpr int kSurfaceConnecting = 1;
 constexpr int kTextPassword = 18, kTextAddress = 19, kTextMaster = 20;
 constexpr std::uint32_t kLeaveScreen = 0x1000001;
-constexpr std::uint32_t kAnswerOk = 1, kAnswerCancel = 2;
 constexpr int kNoPing = 9999;
 constexpr int kNewGameType = 4;
 constexpr int kStateAsked = 1;   // net::ServerEntryBase::kAsked
-constexpr int kBoxFlagsOk = 1, kBoxFlagsEdit = 7, kBoxFlagsCancel = 2, kBoxFormat = 1;
 constexpr std::uint32_t kBarColour = 0xFFA06800;
 
 void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(from) + 1); }
 
-void OpenBox(Interface3D* ui, std::string_view title, const char* text, std::uint32_t result, int flags) {
-    MessageWindow* box = new MessageWindow(ui, title, text, result, flags, kBoxFormat);
+void OpenBox(Interface3D* ui, std::string_view title, const char* text, MessageQuestion question, MessageButtons buttons) {
+    MessageWindow* box = new MessageWindow(ui, title, text, question, buttons);
     ui->PushWindow(box, true, true);
 }
 
@@ -128,7 +126,7 @@ void MpConnectScreen::Update() {
             joining = false;
             std::string key = RefusalKey(client->refusal);
             std::string text = key + kMessageSuffix;
-            ui->PushWindow(new MessageWindow(ui, key, text.c_str(), kBoxNotice, kBoxFlagsOk, kBoxFormat), true, true);
+            ui->PushWindow(new MessageWindow(ui, key, text.c_str(), MpConnectScreen::kBoxNotice, MessageButtons::Ok), true, true);
             return;
         }
     }
@@ -165,20 +163,19 @@ void MpConnectScreen::Update() {
     if (renamed) DrawListVanilla();
 }
 
-void MpConnectScreen::MessageResult(int answer) {
-    const auto result = static_cast<std::uint32_t>(answer);
-    if (result == (kBoxMaster | kAnswerCancel)) {
+void MpConnectScreen::MessageResult(std::uint32_t result) {
+    if (result == BoxResult(kBoxMaster, MessageAnswer::Cancel)) {
         DrawListVanilla();
-    } else if (result == (kBoxAddress | kAnswerOk)) {
+    } else if (result == BoxResult(kBoxAddress, MessageAnswer::Ok)) {
         net::NetAddress address{};
         if (address.Parse(boxText, net::g_gamePort)) net::g_gameClient->Ask(&address);
         SaveAddressBook();
         DrawListVanilla();
-    } else if (result == (kBoxPassword | kAnswerOk) || result == (kBoxPassword | kAnswerCancel)) {
+    } else if (result == BoxResult(kBoxPassword, MessageAnswer::Ok) || result == BoxResult(kBoxPassword, MessageAnswer::Cancel)) {
         hostPassword = boxText;
         auto* sprite = sceneObjects[kSpritePassword];
         sprite->textureOffsetU = hostPassword.size() == 0 ? kFrameOff : kFrameOn;
-    } else if (result == (kBoxJoinPassword | kAnswerOk)) {
+    } else if (result == BoxResult(kBoxJoinPassword, MessageAnswer::Ok)) {
         g_gameFlow.JoinServer(&entries[selected].address, boxText);
         net::g_gameClient->gameType = entries[selected].gameType;
     }
@@ -213,7 +210,7 @@ void MpConnectScreen::LeftDown(Point point) {
     case kRegionPassword:
         if (hostPassword.size() == 0) {
             CopyText(boxText, hostPassword.c_str());
-            OpenBox(ui, texts[kTextPassword], boxText, kBoxPassword, kBoxFlagsEdit);
+            OpenBox(ui, texts[kTextPassword], boxText, kBoxPassword, MessageButtons::OkCancelEdit);
         } else {
             hostPassword.clear();
             sceneObjects[kSpritePassword]->textureOffsetU = 0.0f;
@@ -317,13 +314,13 @@ void MpConnectScreen::Connect() {
     }
     if (row < 0 || static_cast<unsigned>(row) >= entries.size()) return;
     if (entries[row].foreign) {
-        OpenBox(ui, kWrongProtocolKey, kWrongProtocolTextKey, kBoxNotice, kBoxFlagsOk);
+        OpenBox(ui, kWrongProtocolKey, kWrongProtocolTextKey, kBoxNotice, MessageButtons::Ok);
         return;
     }
     SaveAddressBook();
     if (entries[selected].password) {
         boxText[0] = '\0';
-        OpenBox(ui, texts[kTextPassword], boxText, kBoxJoinPassword, kBoxFlagsEdit);
+        OpenBox(ui, texts[kTextPassword], boxText, kBoxJoinPassword, MessageButtons::OkCancelEdit);
     }
     g_gameFlow.JoinServer(&entries[selected].address, kEmptyText);
     net::g_gameClient->gameType = entries[selected].gameType;
@@ -343,7 +340,7 @@ void MpConnectScreen::EditAddress() {
         std::string text = entry.address.ToString();
         CopyText(boxText, text.data());
     }
-    OpenBox(ui, texts[kTextAddress], boxText, kBoxAddress, kBoxFlagsEdit);
+    OpenBox(ui, texts[kTextAddress], boxText, kBoxAddress, MessageButtons::OkCancelEdit);
 }
 
 void MpConnectScreen::MasterRequest() {
@@ -601,9 +598,9 @@ void MpConnectScreen::CreateScreen() {
 
 // --- the master request box ----------------------------------------------------------------------
 
-MasterRequestBox::MasterRequestBox(Interface3D* ui, std::string_view titleKey, const char* textKey, std::uint32_t result,
+MasterRequestBox::MasterRequestBox(Interface3D* ui, std::string_view titleKey, const char* textKey, MessageQuestion question,
                                      const net::NetAddress* address, std::uint32_t extra)
-    : MessageWindow(ui, titleKey, textKey, result, kBoxFlagsCancel, kBoxFormat), link(address) {
+    : MessageWindow(ui, titleKey, textKey, question, MessageButtons::Cancel), link(address) {
     bar = AddBlankSprite();
     bar->texture = nullptr;
     bar->flags |= FigureMeshFlag::Flat;
@@ -616,5 +613,5 @@ void MasterRequestBox::Update() {
     bar->SetRectangle(2.5f, 100.0f, 220.0f, 280.0f, right, 300.0f, 0, 0, 0x100, 0x100);
     if (net::MasterLinkTick(&link) == net::MasterLink::kDone) net::g_gameClient->ReadServerList(&link.in);
     if (net::MasterLinkTick(&link) == net::MasterLink::kDone || net::MasterLinkTick(&link) == net::MasterLink::kClosed)
-        ui->SetPendingValue(MpConnectScreen::kBoxMaster | kAnswerCancel);
+        ui->SetPendingValue(BoxResult(MpConnectScreen::kBoxMaster, MessageAnswer::Cancel));
 }

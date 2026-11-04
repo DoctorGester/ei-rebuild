@@ -39,12 +39,8 @@
 
 namespace {
 
-constexpr int kLeaveZoneYes = 0x10001;
-constexpr int kGameOverLoad = 0x20001;
-constexpr int kGameOverQuit = 0x20002;
-constexpr int kLeaveAnswer = 0x90001;
-constexpr int kLoadWindowClosed = 0x100001;
-constexpr int kGameOverResult = 0x20000;
+constexpr std::uint32_t kLeaveAnswer = 0x90001;
+constexpr std::uint32_t kLoadWindowClosed = 0x100001;
 
 constexpr const char* kZoneTopicFormat = "b.%s";
 constexpr int kTopicNameParts = 3;
@@ -59,7 +55,7 @@ void BriefingScreen::CloseScreen() {
     cameraFlags = (cameraFlags & ~(Camera::kBounded | Camera::kAlternate)) | Camera::kFree;
 }
 
-void BriefingScreen::MessageResult(int result) {
+void BriefingScreen::MessageResult(std::uint32_t result) {
     switch (result) {
     case kLeaveZoneYes:
         GameLeaveThroughExit(exit);
@@ -143,7 +139,7 @@ void BriefingScreen::UnitLeft(Unit* unit) {
 
 void BriefingScreen::GameOver(bool) {
     ui->PlayInterfaceSound("buttons\\gameover.wav");
-    MessageWindow* box = new MessageWindow(ui, "game_over", "game_over_msg", kGameOverResult, 3, 1);
+    MessageWindow* box = new MessageWindow(ui, "game_over", "game_over_msg", MessageQuestion::Second, MessageButtons::OkCancel);
     ui->PushWindow(box, true, true);
 }
 

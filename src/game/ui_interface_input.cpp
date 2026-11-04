@@ -192,7 +192,7 @@ void Interface3D::Update() {
             serverFlag = 0;
         }
         if (!stack.empty()) {
-            stack.back()->MessageResult(static_cast<int>(pendingValue));
+            stack.back()->MessageResult(pendingValue);
         }
         if (pendingValue == kLeaveGame) {
             closeAll = true;
@@ -225,7 +225,7 @@ void Interface3D::Update() {
         disconnected = false;
         ei::Log("interface: the network client is not joined (state %u): the disconnect box",   // not the game's
                 static_cast<unsigned>(net::g_gameClient->joinState));
-        MessageWindow* box = new MessageWindow(this, "disconnect", "disconnect_msg", 0x990000, 1, 1);
+        MessageWindow* box = new MessageWindow(this, "disconnect", "disconnect_msg", MessageQuestion::Disconnect, MessageButtons::Ok);
         PushWindow(box, true, true);
     } else if (!stack.empty()) {
         stack.back()->Update();
@@ -247,7 +247,7 @@ void Interface3D::OnStringEvent(std::string_view event) {
         PlayInterfaceSound("buttons\\gameover.wav");
         const std::string_view title = words.size() > 1 ? std::string_view(words[1]) : "game_over";
         const char* message = words.size() > 2 ? words[2].c_str() : "game_over_msg";
-        MessageWindow* window = new MessageWindow(this, title, message, 0x20000, 3, 1);
+        MessageWindow* window = new MessageWindow(this, title, message, MessageQuestion::Second, MessageButtons::OkCancel);
         PushWindow(window, true, true);
         return;
     }

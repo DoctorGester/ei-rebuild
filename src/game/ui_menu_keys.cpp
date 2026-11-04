@@ -224,7 +224,7 @@ void OptionsWindow::KeyDown(int key, int scan, bool repeat) {
         }
         if (other && other != binding) {
             // Already bound to another action: ask (the box's result goes to MessageResult).
-            MessageWindow* box = new MessageWindow(ui, game::menukeytexts::KeyMapped(), game::menukeytexts::KeyMappedText(), 0x10000, 3, 1);
+            MessageWindow* box = new MessageWindow(ui, game::menukeytexts::KeyMapped(), game::menukeytexts::KeyMappedText(), MessageQuestion::First, MessageButtons::OkCancel);
             std::string format;
             std::string message;
             format = g_clientWorld.texts->GetString(game::menukeytexts::KeyMappedText());

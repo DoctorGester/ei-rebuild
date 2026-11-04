@@ -110,14 +110,14 @@ std::string FirstLineOf(const char* prefix, const std::string& suffix) {
 }
 
 constexpr const char* kSoundDelete = "buttons\\save\\delete.wav";
-constexpr int kAskOverwrite = 0x20000, kAskDelete = 0x10000;            // the boxes' results (high word)
+constexpr MessageQuestion kAskOverwrite = MessageQuestion::Second, kAskDelete = MessageQuestion::First;
 constexpr const char* kFolderFormat = "%ssaves\\%s";
 constexpr const char* kEveryFile = "\\*.*";
 
 // A message box `name` / `text` on top of the interface (a failed allocation pushes null, as the
 // original does).
-void Ask(Interface3D* ui, const char* name, const char* text, int result) {
-    auto* box = new MessageWindow(ui, name, text, result, 3, 1);
+void Ask(Interface3D* ui, const char* name, const char* text, MessageQuestion question) {
+    auto* box = new MessageWindow(ui, name, text, question, MessageButtons::OkCancel);
     ui->PushWindow(box, true, true);
 }
 
@@ -178,7 +178,7 @@ void SaveLoadWindow::SaveGame() {
     if (space != 0.0) {
         int needed = CurrentSaveSize();
         if (static_cast<double>(needed) > space) {
-            auto* box = new MessageWindow(ui, game::savewords::NoSpace(), game::savewords::NoSpaceText(), 0x30000, 1, 1);
+            auto* box = new MessageWindow(ui, game::savewords::NoSpace(), game::savewords::NoSpaceText(), MessageQuestion::Third, MessageButtons::Ok);
             ui->PushWindow(box, true, true);
             return;
         }

@@ -157,7 +157,7 @@ void GlobalMap::KeyDown(int key, int scan, bool repeat) {
         QuickLoad(kQuickSaveSlot);
 }
 
-void GlobalMap::MessageResult(int) {
+void GlobalMap::MessageResult(std::uint32_t) {
     turning = 0;
     dragging = false;
     selectPending = true;

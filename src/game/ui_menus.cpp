@@ -26,9 +26,9 @@ constexpr std::uint32_t kCloseSaveLoadLoad = 0x100002;
 constexpr std::uint32_t kCloseOptions = 0x110001;
 
 // Results of the save/load window's message boxes.
-constexpr int kResultDelete = 0x10001;
-constexpr int kResultOverwrite = 0x20001;
-constexpr int kResultLoad = 0x30001;
+constexpr std::uint32_t kResultDelete = BoxResult(MessageQuestion::First, MessageAnswer::Ok);
+constexpr std::uint32_t kResultOverwrite = BoxResult(MessageQuestion::Second, MessageAnswer::Ok);
+constexpr std::uint32_t kResultNoSpace = BoxResult(MessageQuestion::Third, MessageAnswer::Ok);
 
 // The windows slide in: the model's y goes from 700 to its resting place with an ease-in-out
 // curve over the slide (0..1).
@@ -154,12 +154,12 @@ void SaveLoadWindow::CloseScreen() {
     picture = nullptr;
 }
 
-void SaveLoadWindow::MessageResult(int result) {
+void SaveLoadWindow::MessageResult(std::uint32_t result) {
     if (result == kResultDelete)
         DeleteSave();
     else if (result == kResultOverwrite)
         SaveGame();
-    else if (result == kResultLoad)
+    else if (result == kResultNoSpace)
         ui->SetPendingValue(kCloseSaveLoadLoad);
 }
 
@@ -258,8 +258,8 @@ void OptionsWindow::Redraw() {
     if (!sliding) UiContainer::Redraw();
 }
 
-void OptionsWindow::MessageResult(int result) {
-    if (result == 0x10001) CommitBinding();
+void OptionsWindow::MessageResult(std::uint32_t result) {
+    if (result == BoxResult(MessageQuestion::First, MessageAnswer::Ok)) CommitBinding();
     RefreshRows();
 }
 

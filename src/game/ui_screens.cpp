@@ -521,13 +521,13 @@ void EscMenu::KeyDown(int key, int scan, bool repeat) {
     }
 }
 
-void EscMenu::MessageResult(int result) {
-    // 0x10001: the quit box's yes; 0x100001/0x100002/0x110001 close the menu.
-    if (static_cast<std::uint32_t>(result) > 0x100002) {
+void EscMenu::MessageResult(std::uint32_t result) {
+    // The quit box's yes; 0x100001/0x100002/0x110001 close the menu.
+    if (result > 0x100002) {
         if (result == 0x110001) ui->SetPendingValue(0);
-    } else if (static_cast<std::uint32_t>(result) >= 0x100001) {
+    } else if (result >= 0x100001) {
         ui->SetPendingValue(0);
-    } else if (result == 0x10001) {
+    } else if (result == BoxResult(MessageQuestion::First, MessageAnswer::Ok)) {
         g_gameFlow.CloseSessions();
     }
 }

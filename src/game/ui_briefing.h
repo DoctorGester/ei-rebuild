@@ -102,7 +102,7 @@ public:
     // 0x10001 leaves through exit; 0x20001 (game over: load) opens the load window; 0x20002, 0x90001,
     // 0x100001 close every window, drop the sessions and leave the game. A network client then shows its chat
     // window again.
-    void MessageResult(int result) override;
+    void MessageResult(std::uint32_t result) override;
     void UnitLeft(Unit* unit) override;
     // `unit` goes into party after the members whose unit records (the local player's) come before its record,
     // or last without one. The first record's unit becomes the leader, and the first "b.<zone>..." variable

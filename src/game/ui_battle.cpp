@@ -254,9 +254,6 @@ float SelectedFaceAngle() {
     return kHudQuarterTurn * 0.14285715f;
 }
 
-constexpr std::uint32_t kLeaveZoneYes = 0x10001;
-constexpr std::uint32_t kGameOverLoad = 0x20001;
-constexpr std::uint32_t kGameOverQuit = 0x20002;
 constexpr std::uint32_t kLeaveAnswer = 0x90001;
 constexpr std::uint32_t kLoadWindowClosed = 0x100001;
 constexpr int kPortraitSprites = 5;   // sprites per portrait; the fifth (4) is the selection marker
@@ -389,7 +386,7 @@ void BattleScreen::UnitJoined(Unit* unit) {
     RefreshSelection();
 }
 
-void BattleScreen::MessageResult(int result) {
+void BattleScreen::MessageResult(std::uint32_t result) {
     switch (static_cast<std::uint32_t>(result)) {
     case kLeaveZoneYes:
         GameLeaveThroughExit(pendingExit);
@@ -416,9 +413,9 @@ void BattleScreen::GameOver(bool won) {
     MessageWindow* box;
     if (!won) {
         ui->PlayInterfaceSound("buttons\\gameover.wav");
-        box = new MessageWindow(ui, "game_over", "game_over_msg", 0x20000, 3, 1);
+        box = new MessageWindow(ui, "game_over", "game_over_msg", MessageQuestion::Second, MessageButtons::OkCancel);
     } else {
-        box = new MessageWindow(ui, "end_of_game", "end_of_game_msg", 0xFFFF0000u, 3, 1);
+        box = new MessageWindow(ui, "end_of_game", "end_of_game_msg", MessageQuestion::Exit, MessageButtons::OkCancel);
     }
     ui->PushWindow(box, true, true);
 }
@@ -641,7 +638,7 @@ void BattleScreen::Update() {
         for (int i = 0; i < std::ssize(data->members); ++i)
             lib::SetAtGrow(records, lib::Count(records), &data->members[i]);
         if (g_clientWorld.PartyInExit(&records, pendingExit, &second)) {
-            MessageWindow* box = new MessageWindow(ui, "leave_zone", "leave_zone_msg", 0x10000, 3, 1);
+            MessageWindow* box = new MessageWindow(ui, "leave_zone", "leave_zone_msg", MessageQuestion::First, MessageButtons::OkCancel);
             ui->PushWindow(box, true, true);
             exitPending = false;
         }

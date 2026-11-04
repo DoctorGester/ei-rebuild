@@ -27,7 +27,7 @@ constexpr int kHeaderFont = 2;
 
 // --- a window above the titles closed ------------------------------------------------------------
 
-void CreditsScreen::MessageResult(int) { player.Close(); }
+void CreditsScreen::MessageResult(std::uint32_t) { player.Close(); }
 
 // --- the frame -----------------------------------------------------------------------------------
 

@@ -153,23 +153,23 @@ void MainMenu::CloseScreen() {
 
 // --- A message box's answer -----------------------------------------------
 
-void MainMenu::MessageResult(int result) {
+void MainMenu::MessageResult(std::uint32_t result) {
     g_gameFlow.UseResources(false);
     GameSetServerPaused(0);
-    if (result == 0x10001) {
+    if (result == BoxResult(MessageQuestion::First, MessageAnswer::Ok)) {
         {
             std::string path = g_dataFolder + kExitMovie;
             PlayMovie(path, 0, 0, 0, 1, 1);
         }
         app::QuitGame(0);
-    } else if (result == 0x20001) {
+    } else if (result == BoxResult(MessageQuestion::Second, MessageAnswer::Ok)) {
         {
             std::string path = g_dataFolder + kIntroMovie;
             PlayMovie(path, 0, 1, 1, 1, 1);
         }
         app::g_interfaceHasScreen = 0;
         g_gameFlow.RequestState3();
-    } else if (static_cast<std::uint32_t>(result) == 0xCCCCCCCC) {
+    } else if (result == 0xCCCCCCCC) {
         GameStartAmbience();
         AddVersionLine();
     }
@@ -198,5 +198,5 @@ void MainMenu::MouseMove(Point point) {
 void MainMenu::KeyDown(int key, int scan, bool repeat) {
     UiContainer::KeyDown(key, scan, repeat);
     if (key != platform::kKeyEscape) return;
-    ui->PushWindow(new MessageWindow(ui, kQuitTitle, kQuitText, 0x10000, 3, 1), true, true);
+    ui->PushWindow(new MessageWindow(ui, kQuitTitle, kQuitText, MessageQuestion::First, MessageButtons::OkCancel), true, true);
 }

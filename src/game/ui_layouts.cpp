@@ -269,7 +269,7 @@ void EscMenu::LeftDown(Point point) {
         open = false;
         break;
     case 3: { // quit: the message box
-        opened = new MessageWindow(currentUi, "quit", "quit_msg", 0x10000, 3, 1);
+        opened = new MessageWindow(currentUi, "quit", "quit_msg", MessageQuestion::First, MessageButtons::OkCancel);
         break;
     }
     case 4: { // options
@@ -347,26 +347,25 @@ void MessageWindow::CreateScreen() {
     UiSurface* surface = NewSurface(ui, Rect{200, 50, 600, 500});
     AddSurface(surface)->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
     labels.clear();
-    int font = result != 0xFFFF0000u ? 2 : 1;
+    int font = question != MessageQuestion::Exit ? 2 : 1;
     // Measure the title (font 2) and the text (DT_CALCRECT | DT_WORDBREAK | DT_CENTER, 370 wide).
     Rect area = {15, 0, 385, 200};
     int titleHeight = surface->DrawTextIn(title, area, TextStyle{2, 0, render::text::kCenter | render::text::kWordBreak | render::text::kCalcRect});
     area = Rect{15, 0, 385, 400};
     int textHeight = surface->DrawTextIn(text, area, TextStyle{font, 0, render::text::kCenter | render::text::kWordBreak | render::text::kCalcRect});
     // An edit field takes one line of the font (the extent of "A").
-    if (flags & 4)
-        textHeight =
-            ui->TextExtent("A", font).h;
+    const bool editing = buttons == MessageButtons::OkCancelEdit;
+    if (editing) textHeight = ui->TextExtent("A", font).h;
     int height = titleHeight + textHeight;
     int top = (0x226 - (height + 0x3C)) / 2;   // the block centred in 550 pixels
     labels.push_back({title, Rect{15, top - 35, 385, 450}, {2, 0x31B3FF, render::text::kCenter | render::text::kWordBreak}});
-    if (flags & 4) {
+    if (editing) {
         edit = new UiEditField(ui, Rect{215, top + titleHeight + 30, 585, height + top + 30});
         edit->SetLook(15, 0, font, 0x32, kUiTextColour, 0x31B3FF);
         edit->SetText(editText);
         AddChild(edit);
     } else {
-        labels.push_back({text, Rect{15, top + titleHeight - 20, 385, 450}, {font, kUiTextColour, format | 0x10}});
+        labels.push_back({text, Rect{15, top + titleHeight - 20, 385, 450}, {font, kUiTextColour, render::text::kCenter | render::text::kWordBreak}});
     }
 
     int bottom = top + height + 0x3C;
@@ -376,12 +375,12 @@ void MessageWindow::CreateScreen() {
     // The buttons, 48 high below the block: OK (texels 0x51..0x9B) and cancel (0xA0..0xEA).
     float buttonTop = static_cast<float>(bottom + 0x1A);
     float buttonBottom = static_cast<float>(bottom + 0x4A);
-    if ((flags & 2) && (flags & 1)) {
+    if (buttons == MessageButtons::OkCancel || editing) {
         AddBlankSprite()->SetRectangle(3.0f, 100.0f, 263.0f, buttonTop, 337.0f, buttonBottom, 0x51, 2, 0x9B, 0x32);
         AddBlankSprite()->SetRectangle(3.0f, 100.0f, 463.0f, buttonTop, 537.0f, buttonBottom, 0xA0, 2, 0xEA, 0x32);
         AddRect(this, 263, bottom + 0x1A, 337, bottom + 0x4A)->SetTip(0xC3B4);
         AddRect(this, 463, bottom + 0x1A, 537, bottom + 0x4A)->SetTip(0xC3B5);
-    } else if (!(flags & 2) && (flags & 1)) {
+    } else if (buttons == MessageButtons::Ok) {
         AddBlankSprite()->SetRectangle(3.0f, 100.0f, 363.0f, buttonTop, 437.0f, buttonBottom, 0x51, 2, 0x9B, 0x32);
         AddRect(this, 363, bottom + 0x1A, 437, bottom + 0x4A)->SetTip(0xC3B4);
     } else {

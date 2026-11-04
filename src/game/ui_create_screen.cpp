@@ -199,20 +199,18 @@ CreditsScreen::CreditsScreen(Interface3D* ui, bool newFromGame, const char* newN
 
 namespace {
 
-constexpr std::uint32_t kEditField = 4;   // the message box's flag: an edit field instead of the text
-
 } // namespace
 
 // --- The message box ----------------------------------------------------------------------------------
 
-MessageWindow::MessageWindow(Interface3D* ui, std::string_view titleKey, const char* textKey, std::uint32_t newResult,
-                         std::uint32_t newFlags, std::uint32_t newFormat)
-    : UiContainer(ui), result(newResult), flags(newFlags), format(newFormat) {
+MessageWindow::MessageWindow(Interface3D* ui, std::string_view titleKey, const char* textKey, MessageQuestion newQuestion,
+                             MessageButtons newButtons)
+    : UiContainer(ui), question(newQuestion), buttons(newButtons) {
     std::string line;
     TextManager* texts = g_clientWorld.texts;
     line = texts->GetString(titleKey);
     title = line;
-    if (flags & kEditField) {
+    if (buttons == MessageButtons::OkCancelEdit) {
         editText = const_cast<char*>(textKey);    // the caller's buffer: OK copies the answer into it
     } else {
         editText = nullptr;

@@ -1171,7 +1171,7 @@ public:
     // The screens' virtuals the interface calls (Interface3D); the defaults do nothing.
     virtual void CreateScreen();
     virtual void CloseScreen();
-    virtual void MessageResult(int) {}                                 // the value a window above left pending when it closed
+    virtual void MessageResult(std::uint32_t) {}                                 // the value a window above left pending when it closed
     virtual void ItemsPicked(const std::vector<Item*>&, int, bool) {}   // items picked up (items, money, crippled)
     virtual void UnitJoined(Unit*) {}
     virtual void UnitLeft(Unit*) {}
@@ -1335,7 +1335,7 @@ public:
     void MarkPortrait(int index);
     // 0x10001 (the "leave_zone" question) leaves through pendingExit; 0x20001 (game over: load) opens the
     // load window; 0x20002, 0x90001 and 0x100001 leave the game.
-    void MessageResult(int result) override;
+    void MessageResult(std::uint32_t result) override;
     // Lost (`won` 0): the box "game_over" (result 0x20000); won: "end_of_game" (0xFFFF0000).
     void GameOver(bool won) override;
     // A portrait click picks a player while it is not 0.
@@ -1649,7 +1649,7 @@ public:
     void CloseScreen() override;
     void LeftDown(Point point) override;
     void LeftDouble(Point point) override;
-    void MessageResult(int result) override;
+    void MessageResult(std::uint32_t result) override;
 
     // A save window saves into the new save (row 0) or asks "overwrite" (message box 0x20000); a load
     // window loads.
@@ -1901,7 +1901,7 @@ public:
     const char* HelpTopic() override;
     void LeftDown(Point point) override;
     void LeftDouble(Point point) override;
-    void MessageResult(int result) override;
+    void MessageResult(std::uint32_t result) override;
     // Applies the settings whose bar or spin control changed (volumes, the display's gamma at once).
     void Update() override;
 
@@ -1987,16 +1987,47 @@ public:
     bool changed;
 };
 
-// The message box. Flags: 1 an OK button, 2 with 1 also a cancel button (neither: one cancel button), 4 an
-// edit field instead of the text (its initial text is the text key itself).
+// The buttons of a message box.
+enum class MessageButtons : std::uint32_t {
+    Ok = 1,
+    Cancel = 2,         // the cancel button alone (region 1; region 0 stays empty)
+    OkCancel = 3,
+    OkCancelEdit = 7,   // OK and cancel under an edit field instead of the text (its initial text is the text key itself)
+};
+
+// Which question a message box asks: the high half of what it leaves pending, so that the window below tells its
+// boxes apart (each window numbers its own, from First).
+enum class MessageQuestion : std::uint32_t {
+    First = 0x10000,
+    Second = 0x20000,
+    Third = 0x30000,
+    Fourth = 0x40000,
+    Fifth = 0x50000,
+    Disconnect = 0x990000,   // the multiplayer client lost its server
+    Exit = 0xFFFF0000,       // the end of the game: OK plays the exit movie and the game quits
+};
+
+// What was pressed: the region's number plus one.
+enum class MessageAnswer : std::uint32_t { Ok = 1, Cancel = 2 };
+
+// What a box of `question` leaves pending (Interface3D::SetPendingValue) for the window below: its MessageResult.
+constexpr std::uint32_t BoxResult(MessageQuestion question, MessageAnswer answer) {
+    return static_cast<std::uint32_t>(question) | static_cast<std::uint32_t>(answer);
+}
+
+// The answers the battle and briefing screens take from their boxes.
+inline constexpr std::uint32_t kLeaveZoneYes = BoxResult(MessageQuestion::First, MessageAnswer::Ok);     // "leave_zone"
+inline constexpr std::uint32_t kGameOverLoad = BoxResult(MessageQuestion::Second, MessageAnswer::Ok);    // "game_over"
+inline constexpr std::uint32_t kGameOverQuit = BoxResult(MessageQuestion::Second, MessageAnswer::Cancel);
+
+// The message box.
 class MessageWindow : public UiContainer {
 public:
-    // A missing text gives its key.
-    MessageWindow(Interface3D* ui, std::string_view titleKey, const char* textKey, std::uint32_t result, std::uint32_t flags,
-                std::uint32_t format);
+    // A missing text gives its key. The text is centred and word-wrapped.
+    MessageWindow(Interface3D* ui, std::string_view titleKey, const char* textKey, MessageQuestion question, MessageButtons buttons);
     void CreateScreen() override;
-    // Region 0 OK: for the exit question (result 0xFFFF0000) the exit movie and the game quits; otherwise
-    // the edit field's text into editText. Any region n then leaves result | (n + 1) pending.
+    // Region 0 OK: for the exit question the exit movie and the game quits; otherwise
+    // the edit field's text into editText. The region n pressed then leaves BoxResult(question, n + 1) pending.
     void LeftDown(Point point) override;
     // Unless a child used the key, Enter answers as region 0 and Esc as region 1.
     void KeyDown(int key, int scan, bool repeat) override;
@@ -2007,11 +2038,10 @@ public:
 
     std::string title;
     std::string text;
-    std::uint32_t result;            // 0xFFFF0000: the text in font 1, else 2
-    std::uint32_t flags;
-    std::uint32_t format;            // added to the text's DrawText format
+    MessageQuestion question;        // Exit: the text in font 1, else 2
+    MessageButtons buttons;
     std::vector<UiLabel> labels;     // the surface's paint: the title and the text (CreateScreen measures and places them)
-    UiEditField* edit;              // the edit field (flag 4)
+    UiEditField* edit;              // the edit field (OkCancelEdit)
     char* editText;                  // the edit field's first text; OK copies the typed one here
 };
 
@@ -2112,7 +2142,7 @@ public:
 // options::g_options.difficulty on OK.
 class DifficultyBox : public MessageWindow {
 public:
-    explicit DifficultyBox(Interface3D* ui) : MessageWindow(ui, "option_difficulty", game::kEmptyText, 0x20000, 3, 1) {}
+    explicit DifficultyBox(Interface3D* ui) : MessageWindow(ui, "option_difficulty", game::kEmptyText, MessageQuestion::Second, MessageButtons::OkCancel) {}
     // No container handler. Region 0 OK (easy to options::g_options.difficulty), 1 cancel, 2 / 3 check easy / hard.
     void LeftDown(Point point) override;
     // Unless a child used the key, Enter answers as OK and Esc as cancel.

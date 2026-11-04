@@ -69,7 +69,7 @@ bool IsVoice(const acks::EnvironmentSpeech& entry) {
 }
 
 constexpr int kListRows = 10;
-constexpr int kAnswerOk = 0x10001;
+constexpr std::uint32_t kDeleteAnswerOk = BoxResult(MessageQuestion::First, MessageAnswer::Ok);
 
 // The highest number among the titles of the files matching `pattern` (atoi; 0 without any).
 int HighestFileNumber(std::string_view pattern) {
@@ -302,7 +302,7 @@ void MpHeroScreen::LeftDown(Point point) {
         // Delete: asks first ("lmp_deletepers").
         currentUi->PlayInterfaceSound(game::SelectSoundText());
         if (!IsHero(heroIndex)) return;
-        auto* box = new MessageWindow(currentUi, "lmp_deletepers", "lmp_deletepers_msg", 0x10000, 3, 1);
+        auto* box = new MessageWindow(currentUi, "lmp_deletepers", "lmp_deletepers_msg", MessageQuestion::First, MessageButtons::OkCancel);
         currentUi->PushWindow(box, true, true);
         return;
     }
@@ -391,7 +391,7 @@ void MpHeroScreen::Continue() {
         currentUi->PushWindow(new MpConnectScreen(currentUi), true, true);
         return;
     }
-    auto* box = new MessageWindow(currentUi, "lmp_no_pers", "lmp_no_pers_msg", 0x20000, 1, 1);
+    auto* box = new MessageWindow(currentUi, "lmp_no_pers", "lmp_no_pers_msg", MessageQuestion::Second, MessageButtons::Ok);
     currentUi->PushWindow(box, true, true);
 }
 
@@ -477,8 +477,8 @@ void MpHeroScreen::RefreshHeroScroll() {
     }
 }
 
-void MpHeroScreen::MessageResult(int result) {
-    if (result == kAnswerOk) DeleteHero();
+void MpHeroScreen::MessageResult(std::uint32_t result) {
+    if (result == kDeleteAnswerOk) DeleteHero();
     if (IsHero(heroIndex)) {
         MpHeroRecord* hero = g_savedParties.Hero(heroIndex);
         hero->GetParty()->Assign(LocalPlayerData());
