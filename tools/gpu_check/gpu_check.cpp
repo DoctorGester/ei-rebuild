@@ -696,8 +696,7 @@ void CheckFencesReleased() {
     g::Submit();
     const std::size_t held = g::SubmissionsHeld();
     Check(waited && held <= 2, "finished submissions' fences released without the frame timer");
-    std::printf("gpu_check: %s: %zu of 302 submissions held after the last finished
-", g_driver.c_str(), held);
+    std::printf("gpu_check: %s: %zu of 302 submissions held after the last finished\n", g_driver.c_str(), held);
     g::Release(last);
     g::Release(target);
 }
