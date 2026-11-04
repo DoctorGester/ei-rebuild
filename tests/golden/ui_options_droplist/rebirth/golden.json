@@ -1,0 +1,12 @@
+{
+  "scenario": "ui_options_droplist",
+  "install": "rebirth",
+  "recorded": "2026-11-04",
+  "commit": "f7c3b0404",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "R50: new scenario, the options' resolution drop-down list",
+  "source": "image"
+}

@@ -1207,7 +1207,8 @@ public:
 
     std::vector<UiWindow*> children;
     std::vector<UiInputSide*> inputs;         // extra input sides
-
+    // A child that takes every input event while it is set, wherever the mouse is (an open drop-down list).
+    UiWindow* popup = nullptr;
 };
 // A window on the interface's stack as the screen it is (every window pushed there is a container).
 inline UiContainer* ScreenOf(UiWindow* window) { return static_cast<UiContainer*>(window); }
@@ -1551,6 +1552,63 @@ public:
     Rect layout;                     // the constructor's rectangle
 };
 
+// A drop-down list (ours; the options' resolution row): the row shows the chosen text; a click (or Open) opens the
+// list of every text below the row, or above it when only that side has room, with the chosen one marked, the active
+// one (under the mouse, or moved to by the keys) highlighted and the game's scroll bar when they don't all fit. A
+// click on an entry or Enter chooses the active one; Escape, a click outside or another click on the row closes it
+// without a change. While open it is its owner's popup (every input event goes to it) and the owner's children under
+// it are not drawn. Drawn in the game's list look: the frame and the shade of the save list, the rows' highlight and
+// font. See docs/notes/ui-native.md, "The drop-down list".
+class UiDropList : public UiContainer {
+public:
+    // `row` in layout coordinates.
+    UiDropList(Interface3D* ui, UiContainer* owner, Rect row);
+    void AddText(std::string_view text);
+    // Whether it changed since the last call (the flag cleared).
+    bool TakeChanged();
+    // 0 when not below the text count.
+    void SetValue(int value);
+    // The value `by` steps on, wrapping both ways.
+    void Step(int by);
+    void Open();
+    void Close();
+    // The first entry shown, and entry `index`'s rectangle (layout; empty when not shown).
+    int FirstShown() const;
+    Rect EntryRect(int index) const;
+    // The entries from `index` on shown (scrolled as little as needed).
+    void ScrollTo(int index);
+
+    void Update() override;
+    void Deactivate() override;
+    void LeftDown(Point point) override;
+    void LeftDouble(Point point) override { LeftDown(point); }
+    void MouseMove(Point point) override;
+    void Wheel(int delta, Point point) override;
+    void KeyDown(int key, int scan, bool repeat) override;
+
+    std::vector<std::string> texts;
+    int value = 0;                   // the chosen entry
+    bool changed = false;
+    int active = 0;                  // the highlighted entry while open
+    UiContainer* owner;
+    Rect row;                        // layout coordinates
+    Rect frame;                      // the open list's frame (layout); entries inside its 5-pixel border
+    bool open = false;
+    int shown = 0;                   // entries shown at once
+    UiScrollbar* scroll;
+    std::vector<UiWindow*> covered;  // the owner's children not drawn while open (under the list)
+
+private:
+    void PaintRow(UiSurface& surface) const;
+    void PaintList(UiSurface& surface) const;
+    // The entry at screen point `point`, or -1.
+    int EntryAt(Point point) const;
+    void Choose(int index);
+    void SetActive(int index);
+    // The marks placed for the scroll position and the active and chosen entries.
+    void PlaceMarks();
+};
+
 // A saved game in the save/load list; the fields after the folder come from the save's info.sav.
 struct SaveEntry {
     // "save_quick", "save_auto_enter" / "save_auto_exit" for "saveq", "savea" / "saveb", else the zone's name.
@@ -1649,7 +1707,7 @@ public:
 struct OptionDefinition {
     int id;
     const char* name;                // "option_" + name is its text key (else the name is shown)
-    int kind;                        // 0 a slider, 1 an on / off spin control, 2 the resolutions' spin control
+    int kind;                        // 0 a slider, 1 an on / off spin control, 2 the resolutions' drop-down list
     int maximum;                     // the slider's range
     int group;                       // the option group (0-10) it is shown in
     int row;                         // its row there
@@ -1734,6 +1792,7 @@ struct OptionSetting {
     int value;
     UiScrollbar* bar;               // a UiSlider, or null
     UiSpin* spin;                   // or null
+    UiDropList* list;               // the resolutions' drop-down list, or null
     std::string text;               // the shown name
 };
 
@@ -1851,7 +1910,7 @@ public:
     // multiplayer client); a shadow switch (settings 7-9) turned off drops those shadows; another resolution is
     // chosen (app::ChooseResolution).
     void Apply();
-    // A slider (kind 0), an on / off spin control (kind 1) or the resolutions' spin control (kind 2) per setting.
+    // A slider (kind 0), an on / off spin control (kind 1) or the resolutions' drop-down list (kind 2) per setting.
     void BuildSettings();
     void LoadSettings();
     // The keys' text is the first key name of a scan code bound to the action.
@@ -1864,9 +1923,9 @@ public:
     static void RestoreSettings();
     void CreateScreen() override;
 
-    // Esc cancels, Enter starts a key binding or steps a spin row, Up / Down select rows, PgUp / PgDn switch
-    // groups, Left / Right move a bar or step a spin row back or on. While a binding waits, the next key is bound (Esc gives up); a key
-    // bound to another action asks first.
+    // Esc cancels, Enter starts a key binding, steps a spin row or opens a list row, Up / Down select rows, PgUp /
+    // PgDn switch groups, Left / Right move a bar or step a spin or list row back or on. While a binding waits, the
+    // next key is bound (Esc gives up); a key bound to another action asks first. An open list takes every key.
     void KeyDown(int key, int scan, bool repeat) override;
 
     OptionRow& RegionRow(int region) { return rows[region - 13]; }

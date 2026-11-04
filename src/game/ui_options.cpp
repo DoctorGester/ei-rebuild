@@ -223,11 +223,14 @@ void OptionsWindow::ShowGroup(int groupIndex) {
         if (settings[i].bar) settings[i].bar->SetEnabled(false);
     for (int i = 0; i < kOptionDefinitionCount; ++i)
         if (settings[i].spin) settings[i].spin->SetEnabled(false);
+    for (int i = 0; i < kOptionDefinitionCount; ++i)
+        if (settings[i].list) settings[i].list->SetEnabled(false);
     for (int row = 0; row < kOptionRows; ++row) {
         OptionSetting* setting = rows[row].setting;
         if (!setting) continue;
         if (setting->bar) setting->bar->SetEnabled(true);
         if (setting->spin) setting->spin->SetEnabled(true);
+        if (setting->list) setting->list->SetEnabled(true);
     }
 
     selectedRow = -1;
@@ -277,11 +280,10 @@ void OptionsWindow::BuildSettings() {
         } else if (definition->kind == kResolutionKind) {
             resolutions = platform::DisplaySizes(g_sceneRenderer.device->window);
             platform::AddSize(resolutions, ScreenSize());
-            std::vector<std::string> texts;
-            for (const Size size : resolutions) texts.push_back(str::Format("%d x %d", size.w, size.h));
-            setting.spin = new UiSpin(ui, Rect{530, top + 160, 690, top + 176}, texts[0].c_str());
-            for (std::size_t k = 1; k < texts.size(); ++k) setting.spin->AddText(texts[k]);
-            AddChild(setting.spin);
+            setting.list = new UiDropList(ui, this, Rect{530, top + 160, 690, top + 176});
+            for (const Size size : resolutions) setting.list->AddText(str::Format("%d x %d", size.w, size.h));
+            AddChild(setting.list);
+            setting.spin = nullptr;
             setting.bar = nullptr;
         }
     }
@@ -377,6 +379,8 @@ void OptionsWindow::LoadSettings() {
             s[i].bar->SetPosition(s[i].value);
         else if (s[i].spin)
             s[i].spin->SetValue(s[i].value);
+        else if (s[i].list)
+            s[i].list->SetValue(s[i].value);
     }
 }
 

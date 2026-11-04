@@ -174,6 +174,42 @@ Not captured: the status surface ("saving" / "loading": drawn and gone inside on
 (no script command or key wears one; ui.md section 5); a global-map link (travels at once); the exchange window (needs a
 second player; `net_pair_zone` reaches it). Rebirth's layout is covered by the WideScreen frames (`run_all --widescreen`).
 
+### The drop-down list
+
+`UiDropList` (ui_drop_list.cpp; ours) picks one of many texts: the options' resolution row (R45's sizes,
+`platform::DisplaySizes`) uses it, the other rows keep the original's spin and slider. It is drawn in the game's list look,
+nothing new: the save list's frame art (`saveload` texels 2, 0xFE - 0xB4, 0xF9, 5 wide) and shade (flat black, denser:
+0xE0000000 where the save list's is 0xA0, so what the list covers hardly shows), the
+rows' highlight (flat 0xC8A06800) on the active entry and a darker one (0xC8503400: a window's
+sprites draw with alpha reference 200, so a fainter alpha draws nothing) on the chosen one, font 1 in the rows'
+colour, the game's scroll bar (`UiScrollbar`, speed 1: a wheel notch or 1/16 s of a held arrow is one entry), and the
+scroll bar's down arrow at the right of the closed row.
+- **Layout** (layout units): entries 20 high, at most 10 shown, in a frame 5 wide 2 below the row, or 2 above it when the
+  entries don't fit below and the room above is larger (the options' last display row opens upwards). The list is a
+  surface over the whole layout painting the row and the open entries, so its texts come after every other surface of
+  the window; its sprites lie in front of the rows' controls and highlight (depth 3) at depths 2.3 to 2.6: a sprite nearer
+  than the near plane (NearClipDistance, 2) is not drawn at all, so a popup's sprites stay between 2 and the controls' 3.
+- **Over the owner.** Sprites draw before every surface (section 1), so the owner's children under an open list (the
+  sliders and spins of the rows it covers) are disabled while it is open (`covered`) and enabled again when it closes;
+  the owner's own surface draws nothing in the value column. A popup over other columns of the options would need their
+  texts left out the same way.
+- **Input.** While open it is its owner's `UiContainer::popup`: the container's dispatch sends every event to it alone
+  (ui.md, "Container input dispatch"), and the options' own LeftDown, LeftDouble and KeyDown pass straight to the container
+  then. Mouse: the entry under the pointer is active; a press on an entry chooses it, on the scroll bar scrolls, outside the
+  frame (the row too) closes without a change; a double click is a press. The wheel over the entries scrolls. Keys:
+  Up / Down / Home / End move the active entry (scrolled into view), Enter chooses it, Escape closes; every other key is
+  taken and dropped. Deactivate closes it. Closed: a click on the row opens it; the options' Enter or a double click on
+  the row's name opens it, Left / Right step the value as the spin did.
+- **Size and rate.** Everything is placed in layout units from pointer positions, and the scroll bar's arrows and wheel
+  count frames' time and notches, so the list behaves the same at any window size and frame rate (ui.md, "Camera mouse
+  turn": no motion counts are involved). The scroll bar's arrows took no click at any size but 800x600 before (the
+  original scaled the point twice); `UiScrollbar::LeftDown` tests the region on the screen point now.
+- **Choosing** sets the value and its changed flag, as the spin did: the options' Update copies it into the setting and
+  OK's Apply asks `app::ChooseResolution` (renderer.md, "Resolution changes").
+- **Checks.** Scenario `ui_options_droplist` (harness steps `droplist open | pick <n> | expect <text> | isopen <0|1>`):
+  the keys, the hover, the wheel, a click outside, picks by index and OK at 800x600, then the list at 1280x720; frames
+  droplist_open (4:3) and droplist_wide (widescreen), on both installs.
+
 ### The titles' rich text
 
 The titles' scrolling surface (`UiScrollingSurface`, ui_scrolling_surface.cpp) reads the RTF block with

@@ -306,6 +306,38 @@ void InterfaceSize(int* width, int* height) {
     *width = g_interface.width;
     *height = g_interface.height;
 }
+namespace {
+UiDropList* FindDropList(UiWindow* window) {
+    auto* container = dynamic_cast<UiContainer*>(window);
+    if (!container) return nullptr;
+    for (UiWindow* child : container->children) {
+        if (auto* list = dynamic_cast<UiDropList*>(child)) return list;
+        if (UiDropList* inner = FindDropList(child)) return inner;
+    }
+    return nullptr;
+}
+} // namespace
+bool DropList(void* window, DropListInfo* info) {
+    const UiDropList* list = FindDropList(static_cast<UiWindow*>(window));
+    if (!list) return false;
+    info->open = list->open;
+    info->value = list->value;
+    info->count = static_cast<int>(std::ssize(list->texts));
+    info->first = list->FirstShown();
+    info->shown = list->shown;
+    info->active = list->active;
+    info->text = info->count != 0 ? list->texts[list->value] : std::string();
+    info->row = list->row;
+    return true;
+}
+bool DropListEntry(void* window, int index, Point* centre) {
+    UiDropList* list = FindDropList(static_cast<UiWindow*>(window));
+    if (!list || !list->open || index < 0 || index >= std::ssize(list->texts)) return false;
+    list->ScrollTo(index);
+    const Rect entry = list->EntryRect(index);
+    *centre = Point{(entry.left + entry.right) / 2, (entry.top + entry.bottom) / 2};
+    return !entry.IsEmpty();
+}
 bool SaveLoadSliding(void* window) { return static_cast<SaveLoadWindow*>(window)->sliding; }
 bool OptionsSliding(void* window) { return static_cast<OptionsWindow*>(window)->sliding; }
 bool HasChatOverlay() { return g_interface.root != nullptr; }

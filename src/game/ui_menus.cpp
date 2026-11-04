@@ -178,6 +178,10 @@ void OptionsWindow::RestoreSettings() {
 
 void OptionsWindow::LeftDown(Point point) {
     if (sliding) return;
+    if (popup) {
+        UiContainer::LeftDown(point);
+        return;
+    }
     int region = RegionAt(point);
     if (region == 0 || region == 1) {
         const char* sound;
@@ -211,6 +215,10 @@ void OptionsWindow::LeftDown(Point point) {
 
 void OptionsWindow::LeftDouble(Point point) {
     if (sliding) return;
+    if (popup) {
+        UiContainer::LeftDouble(point);
+        return;
+    }
     int region = RegionAt(point);
     if (region >= 13) {
         OptionRow& row = RegionRow(region);
@@ -219,6 +227,9 @@ void OptionsWindow::LeftDouble(Point point) {
             selectedRow = region - 13;
             waitingForKey = true;
             RefreshRows();
+        } else if (row.setting && row.setting->list) {
+            ui->PlayInterfaceSound(kSoundOk);
+            row.setting->list->Open();
         } else if (row.setting && row.setting->spin) {
             const int value = row.setting->spin->TakeValue();
             RegionRow(region).setting->spin->SetValue(value + 1);
@@ -288,6 +299,7 @@ void OptionsWindow::Update() {
                 g_sceneRenderer.SetGamma(brightness, gamma);
             }
         }
+        if (settings[i].list && settings[i].list->TakeChanged()) settings[i].value = settings[i].list->value;
         if (settings[i].spin && settings[i].spin->TakeChanged()) {
             const int value = settings[i].spin->Value();
             settings[i].value = value;
@@ -343,6 +355,9 @@ void UiScrollbar::Update() {
 }
 
 void UiScrollbar::LeftDown(Point point) {
+    // The arrows' region from the screen point (the original tested the point scaled twice: no arrow took a click at
+    // any size but 800x600).
+    const int region = RegionAt(point);
     ui->ScalePointFromScreen(&point);
     if (thumb.Contains(point)) {
         CaptureMouse();
@@ -352,7 +367,6 @@ void UiScrollbar::LeftDown(Point point) {
         handled = true;
         return;
     }
-    int region = RegionAt(point);
     if (region != 0 && region != 1) return;
     CaptureMouse();
     state = region == 0 ? 2 : 3;

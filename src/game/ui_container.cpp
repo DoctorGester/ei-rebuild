@@ -54,10 +54,16 @@ void UiContainer::RedrawTips() {
 
 namespace {
 // Offers an event to a container's input sides, then to its enabled children (those holding `at`, when it is given),
-// until one handles it. `call` sends it to one input side.
+// until one handles it; to its popup alone while it has one. `call` sends it to one input side.
 template <class Call>
 void Offer(UiContainer* self, const Point* at, Call call) {
     self->handled = false;
+    if (UiWindow* popup = self->popup) {
+        popup->handled = false;
+        call(popup->Input());
+        self->handled = true;
+        return;
+    }
     for (auto& side : self->inputs) {
         side->handled = false;
         call(side);

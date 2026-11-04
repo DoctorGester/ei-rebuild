@@ -183,7 +183,9 @@ void SaveLoadWindow::Char(int key, int scan) {
 
 void OptionsWindow::KeyDown(int key, int scan, bool repeat) {
     if (sliding) return;
+    const bool listOpen = popup != nullptr;
     UiContainer::KeyDown(key, scan, repeat);
+    if (listOpen) return;   // the open list took the key (Enter or Escape may have closed it)
     if (waitingForKey) {
         // The key for the selected binding row, by scan code.
         handled = true;
@@ -242,6 +244,8 @@ void OptionsWindow::KeyDown(int key, int scan, bool repeat) {
         OptionRow& row = rows[selectedRow];
         if (row.binding) {
             waitingForKey = true;
+        } else if (row.setting && row.setting->list) {
+            row.setting->list->Open();
         } else {
             if (!row.setting || !row.setting->spin) {
                 handled = true;
@@ -270,6 +274,11 @@ void OptionsWindow::KeyDown(int key, int scan, bool repeat) {
         // The row's bar moves one step, or its spin control steps back or on; the handled flag stays as it is.
         OptionSetting* setting = rows[selectedRow].setting;
         if (!setting) return;
+        if (setting->list) {
+            setting->list->Step(key == kKeyLeft ? -1 : 1);
+            ui->PlayInterfaceSound(game::OkSoundText());
+            return;
+        }
         if (setting->spin) {
             setting->spin->Step(key == kKeyLeft ? -1 : 1);
             ui->PlayInterfaceSound(game::OkSoundText());

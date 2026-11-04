@@ -1,0 +1,123 @@
+# R50: the options' resolution row as a drop-down list (UiDropList; docs/notes/ui-native.md, "The drop-down list"). From
+# the main menu, windowed at 800x600: the options (region 3) show the display group first, its last row the list (the
+# harness's 19 sizes, platform::DisplaySizes). Row 9 has no room below for ten entries, so the list opens above it,
+# entries 20 layout units high from y 169, the first shown five before the chosen one (here 0). Steps: opened by a
+# click, Down three times and Enter (1280 x 720); End and Enter (the last); Home and Escape (no change); a click
+# outside (no change); the wheel three notches up from the last entry (shown from 9), then a click on the first
+# entry shown (index 6 when the wheel scrolled); the mouse over the third entry shown and Enter (the hovered entry,
+# 3); opened from the keyboard (row 9 selected by region 22, Enter); pick 15 (scrolled into view) and pick 3; OK
+# applies 1280x720 (app::ChooseResolution). Then the options again at 1280x720 (wider than 4:3), the list open, Escape, Cancel.
+# Captures to look at: droplist_open (4:3, the list over the display rows), droplist_hover (the hovered entry and the
+# chosen one's fainter mark), droplist_wide (widescreen).
+resolution 800x600
+fullscreen 0
+timeout 60
+reject Script error
+waitmenu
+
+clickregion 3
+waitwindow 10 options
+frames 5
+droplist expect 800 x 600
+droplist open
+frames 3
+droplist isopen 1
+move 400 20
+frames 5
+freeze
+capture droplist_open
+unfreeze
+
+# Keys: Down x3, Enter.
+key down
+key down
+key down
+key enter
+frames 3
+droplist isopen 0
+droplist expect 1280 x 720
+# End, Enter.
+droplist open
+frames 3
+key end
+key enter
+frames 3
+droplist expect 3840 x 2160
+# Home, Escape: closed, no change.
+droplist open
+frames 3
+key home
+key esc
+frames 3
+droplist isopen 0
+droplist expect 3840 x 2160
+waitwindow 5 options
+# A click outside: closed, no change (and the click goes nowhere else).
+droplist open
+frames 3
+layout click 300 300
+frames 3
+droplist isopen 0
+droplist expect 3840 x 2160
+# The wheel: opened at the last entry (shown from 9); three notches up, then the first entry shown.
+droplist open
+frames 3
+wheel 600 250 360
+frames 5
+layout click 600 179
+frames 3
+droplist expect 1280 x 1024
+# The hover: the mouse over the third entry shown, Enter.
+droplist open
+frames 3
+layout move 600 219
+frames 3
+freeze
+capture droplist_hover
+unfreeze
+key enter
+frames 3
+droplist expect 1280 x 720
+# Opened from the keyboard: row 9 selected (region 22), Enter; then picks by index.
+clickregion 22
+frames 3
+key enter
+frames 3
+droplist isopen 1
+droplist pick 15
+frames 3
+droplist expect 2560 x 1440
+droplist open
+frames 3
+droplist pick 3
+frames 3
+droplist expect 1280 x 720
+move 400 20
+frames 5
+
+# OK (region 0) applies it.
+clickregion 0
+waitwindow 10 menu
+waitpresent 10
+frames 5
+expectlog Resolution: 1280x720 (was 800x600)
+
+# Widescreen: the options again, the list open.
+clickregion 3
+waitwindow 10 options
+frames 5
+droplist expect 1280 x 720
+droplist open
+frames 3
+move 640 20
+frames 5
+freeze
+capture droplist_wide
+unfreeze
+key esc
+frames 3
+droplist isopen 0
+clickregion 1
+waitwindow 10 menu
+report
+quit
