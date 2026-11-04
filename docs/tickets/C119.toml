@@ -5,5 +5,6 @@ model = "opus"
 depends = ["C118"]
 note = "Style review round 3 (2026-11-04, https://claude.ai/artifact/KKkymAu9dSoUWGGcbsLwPa, digests in build/style_review/round3/*.md; user: file the tickets). Items Y2, F3. A value-returning lib::Load<T>/Store<T> in lib/bytes.h replacing the nine per-file 16/32-bit readers (U32, Get32, Read32, Word, Put32 x3; two byte-order styles) in saves, sound, video and formats. ByteStream gets public ReadAs<T>, WriteCount/ReadCount, WriteId/ReadId and Skip: the 33 count writes (three cast spellings), 48 count reads (four clamp styles) and the six id helper pairs (combat_save, unit_save, party, counted_ref, bare -1 loops) go through them. ai_path_save's Read(&*node, 8) as ReadValue. File bytes the same; the network buffer is C111's. Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes."
 order = 1047
-status = "review"
+status = "done"
 started = "2026-11-04"
+done = "2026-11-04"
