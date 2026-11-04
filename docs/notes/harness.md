@@ -59,7 +59,9 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   on top (else skipped, logged): a box that Windows keeps up and Linux closes by itself. A new
   game's battle screen comes seconds after the leader has HP, so input for it waits on `waitwindow 15 battle` first.
   `waitunit <seconds> <name>` waits until `clickunit` would find the unit on screen. `frames <n>` lets the game run <n>
-  frames (input posted before it has been handled after one). Plain `wait <ms>` is left for "let the world run this
+  frames (input posted before it has been handled after one), with a real-time limit of 10 s plus 100 ms a frame: past
+  it the step fails and the scenario goes on early, so every later step lands on other world updates and the digest
+  differs from there on (a slow machine's cut, not a behaviour difference; linux.md, H56). Plain `wait <ms>` is left for "let the world run this
   long". On the server world: `waitidle <seconds> [frames]` waits until the leader has stood idle for that many frames
   (default 10), `walkto <seconds> <x> <y> [frames]` walks the leader to a map point (lookat, a ground double click,
   then idle for that many frames, default 20; clicked again when a fight stopped it short), `waitdead <seconds>
