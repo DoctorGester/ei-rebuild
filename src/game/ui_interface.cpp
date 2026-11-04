@@ -159,6 +159,7 @@ void Interface3D::Resize(const screen_layout::Layout& before) {
     height = renderer->screen.bottom;
     MakeFonts(fonts, width);
     UiSurface::RelayoutAll(before);
+    if (console) console->OnResize();
     // (A window's LayoutChanged may replace its children, never the stack.)
     for (UiContainer* window : stack) window->LayoutChanged();
     RetakeBackdrops();

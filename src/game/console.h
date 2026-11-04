@@ -118,6 +118,9 @@ public:
     ConsoleWindow(const ConsoleWindow&) = delete;
     ConsoleWindow& operator=(const ConsoleWindow&) = delete;
     void SetRect(const Rect* rect);   // 800x600 coordinates
+    void OnResize();                  // the rectangle, font and metrics again for the new screen size
+    int Px(int layoutPixels) const;   // a size of the 800x600 layout in screen pixels (text and strips scale with the window)
+    void SetScale();                  // scale and font from the screen layout
     void SetHistory(int lines);
     void AddText(std::string_view text);  // continues the last line; '\n' starts a new one
     // Drawing and input:
@@ -147,6 +150,8 @@ public:
     int height;                      // pixels, at least 69
     Rect rect;                       // the window in 800x600 coordinates (after clamping)
     Rect screenRect;                 // the window in pixels
+    Rect requestedRect;              // the window as last asked for (800x600 coordinates, before clamping)
+    float scale;                     // screen pixels per layout pixel
     std::vector<std::string> lines;
     int history;                     // lines kept
     int visibleLines;

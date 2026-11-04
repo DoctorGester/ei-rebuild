@@ -1,29 +1,59 @@
 // The console window's text and placement. See docs/notes/console.md.
 #include "console.h"
 
+#include "screen_layout.h"
 #include "text_split.h"
 #include "ui.h"
 
+#include "platform/log.h"
+
+#include <cmath>
 #include <new>
 
 namespace console {
 
-// The rectangle in pixels, clamped to at least 76x69 and at most the screen; the number
-// of 15-pixel lines that fit below the 24-pixel margin, less one; the clamped rectangle back in
-// 800x600 coordinates. A shown window gets a new surface.
+namespace {
+constexpr int kFontSize = 90;            // tenths of a point at the 800x600 layout's size
+constexpr const char* kFontFace = "Courier New";
+constexpr int kMinWidth = 0x4C;          // layout pixels, like every size the window draws with
+constexpr int kMinHeight = 0x45;
+constexpr int kTopMargin = 0x18;
+constexpr int kLineHeight = 15;
+constexpr int kLayoutHeight = 600;
+} // namespace
+
+int ConsoleWindow::Px(int layoutPixels) const {
+    return static_cast<int>(std::lround(static_cast<float>(layoutPixels) * scale));
+}
+
+// The text and the metrics follow the window like the rest of the interface: one pixel of the 800x600 layout is
+// height43 / 600 screen pixels (the window's 4:3 part), whatever the system's DPI or display scale (a Retina window
+// is as many pixels as it has physical ones).
+void ConsoleWindow::SetScale() {
+    scale = static_cast<float>(screen_layout::Get().height43) / kLayoutHeight;
+    font = PointFont(Px(kFontSize), kFontFace);
+}
+
+// The rectangle in pixels, clamped to at least 76x69 layout pixels (scaled) and at most the screen; the number of lines
+// that fit below the 24-pixel margin, less one; the clamped rectangle back in 800x600 coordinates. A shown window gets
+// a new surface. The requested rectangle is kept, so a resolution change places it again (OnResize).
 void ConsoleWindow::SetRect(const Rect* newRect) {
     int screenWidth = screen->width;
     int screenHeight = screen->height;
+    requestedRect = *newRect;
+    SetScale();
     screenRect = *newRect;
     // The 3D interface scales 800x600 to pixels (Rebirth patches it, so it is called through its address).
     screen->ScaleRectToScreen(&screenRect);
     width = screenRect.Width();
     height = screenRect.Height();
-    if (width < 0x4C) width = 0x4C;
+    if (width < Px(kMinWidth)) width = Px(kMinWidth);
     if (width > screenWidth) width = screenWidth;
-    if (height < 0x45) height = 0x45;
+    if (height < Px(kMinHeight)) height = Px(kMinHeight);
     if (height > screenHeight) height = screenHeight;
-    visibleLines = (height - 0x18) / 15 - 1;
+    visibleLines = (height - Px(kTopMargin)) / Px(kLineHeight) - 1;
+    ei::Log("Console window: %dx%d pixels, font %d px, lines %d px, %d visible", width, height, font.pixels,
+            Px(kLineHeight), visibleLines);
     screenRect.right = screenRect.left + width;
     screenRect.bottom = screenRect.top + height;
     rect = screenRect;
@@ -33,6 +63,8 @@ void ConsoleWindow::SetRect(const Rect* newRect) {
         Show(true);
     }
 }
+
+void ConsoleWindow::OnResize() { SetRect(&requestedRect); }
 
 void ConsoleWindow::SetHistory(int newLines) {
     history = newLines;
@@ -67,8 +99,6 @@ void ConsoleWindow::AddText(std::string_view text) {
 namespace console {
 
 namespace {
-constexpr int kFontSize = 90;            // tenths of a point
-constexpr const char* kFontFace = "Courier New";
 constexpr Rect kInitialRect = {0, 0, 800, 150};
 constexpr int kHistory = 0x100;
 constexpr int kNoCommand = -1;
@@ -84,7 +114,7 @@ ConsoleWindow::ConsoleWindow(Interface3D* newScreen) {
     shown = false;
     ctrl = false;
     shift = false;
-    font = PointFont(kFontSize, kFontFace);
+    scale = 1.0f;
     Rect area = kInitialRect;
     SetRect(&area);
     history = kHistory;

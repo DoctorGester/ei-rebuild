@@ -101,7 +101,13 @@ every side and child and touches no flag. Ours: while a container has a `popup` 
   the option speeds.
 - Console window (`ui_console_window.cpp`): `PaintInput`, `PaintLines`, `OnKeyDown`, `OnChar` (Rebirth's ImproveConsole behind
   its flag); harness key names `grave`, `backspace`, `delete`, `home`, `end`, `pgup`, `pgdn`, `enterchar` (Enter plus its
-  character, which the console needs); scenario `console.txt`.
+  character, which the console needs); scenario `console.txt`. **Size** (`console_window.cpp`, P11): every size the window draws
+  with (the 9-point Courier New, the 15-pixel line pitch, the 8-pixel padding, the 31-pixel input strip, the caret's 2
+  pixels, the minimum window, the 24-pixel top margin) is a layout pixel times `scale` = `height43` / 600 (`ConsoleWindow::Px`),
+  like the interface's fonts (`TitlesDpi`): the same in proportion at 1280x720, 3840x2160 and on a Retina Mac (the game
+  sees physical pixels, a 2x display of 1280x720 points is 2560x1440: scale 2.4). A resolution change runs `OnResize` (the
+  rectangle asked for, scale, font and visible lines again, the surface made anew). The log's "Console window:" line gives
+  the metrics; scenario `ui_console_size` captures 1280x720, 3840x2160 and 2560x1440 (line pitch 18, 54 and 36 pixels).
 - Multiplayer-only windows (no scenario): `ChatWindow` (the base screen's chat, `ui_chat_window.cpp`: a vector of counted
   `PlayerMessage`s, new ones in front), the exchange (`ui_exchange.cpp`), `MpConnectScreen` (`ui_connect_screen.cpp`),
   `MasterRequestBox` (`net::MasterLink` in net_classes.h).
