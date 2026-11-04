@@ -4,6 +4,7 @@
 #include "platform/platform.h"
 
 #include <cstdint>
+#include <deque>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -18,10 +19,28 @@
 
 namespace ei::verify::harnessplatform {
 
-// The harness's input: `event` queued for the game's loops.
-void Queue(const platform::Event& event);
+// The harness's input: `event` queued for the game's loops; with `typesCharacter` a key press also gets the character
+// TypedCharacter names when the game takes it (the harness's keys; real play's text comes with its own events). The
+// recorder sees it (harness_record.h).
+void Queue(const platform::Event& event, bool typesCharacter = true);
 // The mouse's motion the game's next read reports, (dx, dy) counts more.
 void AddMotion(int dx, int dy);
+// Real play (the recorder's live mode, harness_record.h): from now on SDL's keyboard and mouse events go through the
+// game's own translation (platform/sdl/sdl_input.h) and wait for TakeReal instead of being dropped; the game window is
+// shown, activated and of a fixed size, the text input on, the cursor held and placed for real. Before the window
+// system starts.
+void TakeRealInput();
+// The real events and the mouse's motion (pixels) since the last call (false: none).
+bool TakeReal(std::deque<platform::Event>* events, Point* motion);
+// The player closed the window in real play.
+bool CloseRequested();
+// Input made as SDL's own and translated as real play's (the "realinput" step): a key pressed and released (SDL's
+// name: "A", "Return", "Escape", "Left"), typed text, the mouse moved to a point of the window's client area (pixels)
+// and there clicked.
+void InjectRealKey(const char* name);
+void InjectRealText(const std::string& text);
+enum class RealMouse { Move, Click, RightClick };
+void InjectRealMouse(RealMouse what, Point at);
 // The game told its window gained or lost the focus (the focus steps, the first activation): a Focus event ahead of
 // the input waiting.
 void Activate(bool active);
@@ -56,6 +75,8 @@ bool BeforeEvents();
 // Whether SetCursor keeps the shape it is given (SeenCursors).
 bool CollectCursors();
 int TypedCharacter(int key);
+// The game asked to quit (PostQuit): a recorded scenario's game may quit itself after its last step.
+void GameQuits();
 platform::MessageAnswer AnswerMessageBox(const char* text, const char* caption, platform::MessageButtons buttons);
 // The harness's mouse's position on the screen (false: none).
 bool MousePosition(Point* at);

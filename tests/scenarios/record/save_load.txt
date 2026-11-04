@@ -1,0 +1,32 @@
+# Recorded play, session 2 (harness_record.h; docs/notes/harness.md, "Recorded play"): a new game, a walk, a save
+# through the escape menu's Save window, another walk, then that save loaded back through the Load window and a last
+# walk from it. Its recording is tests/scenarios/rec_save_load.txt (python tools\recorded.py take).
+recordinput
+reject Script error
+waitmenu
+newgame
+waitline 15 Saved savea
+waitwindow 15 battle
+click 470 330
+frames 40
+key esc
+waitwindow 10 escmenu
+click 395 120
+waitwindow 10 saveload
+clickregion 0
+waitline 15 Saved save1
+waitwindow 10 battle
+dblclick 330 260
+frames 40
+key esc
+waitwindow 10 escmenu
+click 395 187
+waitwindow 10 saveload
+clickregion 4
+frames 10
+clickregion 0
+waitwindow 30 battle
+frames 10
+click 420 380
+frames 60
+quit

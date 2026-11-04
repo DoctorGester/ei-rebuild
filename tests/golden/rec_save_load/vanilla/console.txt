@@ -1,0 +1,5 @@
+  Cannot open file autoexec.cfg for reading
+  Saved savea
+  Saved save1
+  Cannot open file autoexec.cfg for reading
+  Loaded save1

@@ -6501,6 +6501,20 @@ files = ["src/audio/audio.cpp", "tests/unit"]
 note = "H43's coverage report (build/coverage/report.md; python tools/coverage.py run <ticket>): harness runs open no sound device (sound.md), so audio.cpp's Mix, Render, Reverb::Shape and Process, NoteFrame, DeviceData and Stream::Fetch run in no test (65 of 108 functions reached, 249 of 683 lines unreached). A unit check that feeds known voices and streams through the mixer and compares the samples, or a harness option that mixes into a buffer without a device."
 
 [[ticket]]
+id = "H44a"
+title = "Long recorded sessions cut into scenarios of 60 s or less, each from a save the recording made"
+group = "harness"
+depends = ["H44"]
+note = "H44 records a whole session as one scenario (tests/verify/harness_record.h); its replay must fit a run's 60 s, about a minute of live play (tools/recorded.py warns past frame 3750). Cut a long recording: at a cut the recorder saves (a save of its own in harness_saves) and loads it at once, so the next part's recording starts from a load; each part becomes rec_<name>_<n>.txt starting with that save (a # prepare: tool copying it from the committed part, or the save made by replaying the earlier part), replayed and given its golden on its own. Check: a driven recording (tests/scenarios/record/) cut in two, each part replayed twice with the same digests."
+
+[[ticket]]
+id = "H44b"
+title = "The user records a session by hand (play.cmd record) and it joins the suite"
+group = "harness"
+depends = ["H44"]
+note = "H44's live mode (recordinput live: real SDL input through sdl_input's translation, frames paced to the wall clock, the cursor held for real) was checked only by the realinput step in a hidden run. The user plays one short session with play.cmd record <name>, replays it twice (work.py test, golden.py record), and the scenario and golden are committed; whatever the live window does wrong (focus, held cursor, pacing, text) is fixed here."
+
+[[ticket]]
 id = "C20t"
 title = "Pointer cells to zero, then the moved image block (0073B000-007CD000) gone"
 group = "cleanup"

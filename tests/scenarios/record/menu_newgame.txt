@@ -1,0 +1,34 @@
+# Recorded play, session 1 (harness_record.h; docs/notes/harness.md, "Recorded play"): a player's way into a new game
+# through the main menu's clicks (the options opened and cancelled, the new game's difficulty question answered, the
+# start's movie), then a walk on zone1 by clicks on the ground, the camera's keys and wheel, the escape menu opened and
+# closed. Its recording is tests/scenarios/rec_menu_newgame.txt (python tools\recorded.py take).
+recordinput
+reject Script error
+waitmenu
+clickregion 3
+waitwindow 10 options
+clickregion 1
+waitwindow 10 menu
+clickregion 0
+waitwindow 10 difficulty
+clickregion 0
+waitwindow 40 battle
+frames 10
+click 470 330
+frames 40
+dblclick 330 260
+frames 40
+keydown left
+frames 15
+keyup left
+wheel 400 300 -120
+frames 10
+rclick 400 300
+frames 10
+key esc
+waitwindow 10 escmenu
+key esc
+waitwindow 10 battle
+click 420 380
+frames 60
+quit

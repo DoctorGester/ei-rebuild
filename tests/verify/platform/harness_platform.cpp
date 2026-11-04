@@ -4,8 +4,10 @@
 // counted for the report); the game's events are the harness's, and so are its clocks, date, mouse position and
 // message box answers.
 #include "harness_platform.h"
+#include "platform/sdl/sdl_input.h"
 #include "platform/sdl/sdl_window.h"
 #include "harness_clock.h"
+#include "harness_record.h"
 #include "system/harness_system.h"
 
 #define SDL_MAIN_HANDLED
@@ -25,7 +27,13 @@ namespace {
 
 SDL_Window* g_window = nullptr;
 platform::NativeWindow g_native = nullptr;
-std::deque<platform::Event> g_waiting;
+// The events waiting for the game's loops, each with whether NextEvent adds the character a key press types (the
+// harness's keys; real play's come with SDL's own text).
+struct Waiting {
+    platform::Event event;
+    bool typesCharacter = true;
+};
+std::deque<Waiting> g_waiting;
 bool g_quitPosted = false;
 int g_quitCode = 0;
 std::atomic<std::int32_t> g_motionX{0}, g_motionY{0};
@@ -42,15 +50,30 @@ Point g_held{};
 platform::PointMap g_toGame = nullptr;
 std::string g_clipboard;
 std::string g_className;   // StartWindowSystem's
+platform::PointMap g_toScreen = nullptr;
+// Real play (TakeRealInput): SDL's keyboard and mouse events through the game's own translation, waiting for the
+// harness's next pass; the window shown, activated, of a fixed size; the cursor held for real.
+bool g_live = false;
+platform::sdl_input::Translator g_real;
+std::deque<platform::Event> g_realWaiting;
+bool g_closeRequested = false;
+SDL_Rect g_heldRect{};
 
 SDL_Window* WindowOf(platform::NativeWindow window) { return window && window == g_native ? g_window : nullptr; }
 
 bool Minimized() { return g_window && (SDL_GetWindowFlags(g_window) & SDL_WINDOW_MINIMIZED) != 0; }
 
-// SDL's events taken and dropped; the real keyboard's and mouse's counted.
+// SDL's events taken: in real play the keyboard's and the mouse's translated and kept for the harness, else dropped and
+// counted.
 void Pump() {
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
+        if (g_live) {
+            if (!g_real.Take(e, 1.0f, &g_realWaiting) &&
+                (e.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED || e.type == SDL_EVENT_QUIT))
+                g_closeRequested = true;
+            continue;
+        }
         switch (e.type) {
         case SDL_EVENT_KEY_DOWN:
         case SDL_EVENT_KEY_UP:
@@ -64,9 +87,10 @@ void Pump() {
     }
 }
 
-bool TakeWaiting(platform::Event* event) {
+bool TakeWaiting(platform::Event* event, bool* typesCharacter = nullptr) {
     if (g_waiting.empty()) return false;
-    *event = g_waiting.front();
+    *event = g_waiting.front().event;
+    if (typesCharacter) *typesCharacter = g_waiting.front().typesCharacter;
     g_waiting.pop_front();
     return true;
 }
@@ -81,11 +105,69 @@ platform::Event QuitEvent() {
 
 } // namespace
 
-void Queue(const platform::Event& event) { g_waiting.push_back(event); }
+void Queue(const platform::Event& event, bool typesCharacter) {
+    g_waiting.push_back({event, typesCharacter});
+    record::Queued(event, typesCharacter);
+}
 
 void AddMotion(int dx, int dy) {
     g_motionX += dx;
     g_motionY += dy;
+    record::Motion(dx, dy);
+}
+
+void TakeRealInput() { g_live = true; }
+
+bool TakeReal(std::deque<platform::Event>* events, Point* motion) {
+    *motion = g_real.TakeMotion();
+    events->swap(g_realWaiting);
+    g_realWaiting.clear();
+    return !events->empty() || motion->x || motion->y;
+}
+
+bool CloseRequested() { return g_closeRequested; }
+
+void InjectRealKey(const char* name) {
+    const SDL_Scancode scancode = SDL_GetScancodeFromName(name);
+    for (const bool down : {true, false}) {
+        SDL_Event e{};
+        e.type = down ? SDL_EVENT_KEY_DOWN : SDL_EVENT_KEY_UP;
+        e.key.scancode = scancode;
+        e.key.key = SDL_GetKeyFromScancode(scancode, SDL_KMOD_NONE, false);
+        e.key.mod = SDL_KMOD_NONE;
+        e.key.down = down;
+        g_real.Take(e, 1.0f, &g_realWaiting);
+    }
+}
+
+void InjectRealText(const std::string& text) {
+    SDL_Event e{};
+    e.type = SDL_EVENT_TEXT_INPUT;
+    e.text.text = text.c_str();
+    g_real.Take(e, 1.0f, &g_realWaiting);
+}
+
+void InjectRealMouse(RealMouse what, Point at) {
+    static Point last{};
+    SDL_Event e{};
+    e.type = SDL_EVENT_MOUSE_MOTION;
+    e.motion.x = static_cast<float>(at.x);
+    e.motion.y = static_cast<float>(at.y);
+    e.motion.xrel = static_cast<float>(at.x - last.x);
+    e.motion.yrel = static_cast<float>(at.y - last.y);
+    last = at;
+    g_real.Take(e, 1.0f, &g_realWaiting);
+    if (what == RealMouse::Move) return;
+    for (const bool down : {true, false}) {
+        SDL_Event b{};
+        b.type = down ? SDL_EVENT_MOUSE_BUTTON_DOWN : SDL_EVENT_MOUSE_BUTTON_UP;
+        b.button.button = what == RealMouse::RightClick ? SDL_BUTTON_RIGHT : SDL_BUTTON_LEFT;
+        b.button.down = down;
+        b.button.clicks = 1;
+        b.button.x = static_cast<float>(at.x);
+        b.button.y = static_cast<float>(at.y);
+        g_real.Take(b, 1.0f, &g_realWaiting);
+    }
 }
 
 // Ahead of the input waiting: the game takes it before anything posted earlier, as when the system told it at once.
@@ -93,7 +175,7 @@ void Activate(bool active) {
     platform::Event event;
     event.type = platform::EventType::Focus;
     event.active = active;
-    g_waiting.push_front(event);
+    g_waiting.push_front({event, true});
 }
 
 unsigned RealInputLeftOut() { return g_realInput; }
@@ -189,9 +271,13 @@ void StartWindowSystem(const char* name) {
 #if defined(SDL_PLATFORM_WINDOWS)
     SDL_RegisterApp(name, 0, nullptr);   // the window class's name, as the game's
 #endif
-    SDL_SetHint(SDL_HINT_WINDOW_ACTIVATE_WHEN_SHOWN, "0");
-    SDL_SetHint(SDL_HINT_WINDOW_ACTIVATE_WHEN_RAISED, "0");
+    SDL_SetHint(SDL_HINT_WINDOW_ACTIVATE_WHEN_SHOWN, hp::g_live ? "1" : "0");
+    SDL_SetHint(SDL_HINT_WINDOW_ACTIVATE_WHEN_RAISED, hp::g_live ? "1" : "0");
     SDL_SetHint(SDL_HINT_MOUSE_AUTO_CAPTURE, "0");
+    // Real play's held cursor, as the game's backend holds it (platform_sdl.cpp).
+    SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_CURSOR_VISIBLE, "1");
+    SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_MODE_CENTER, "0");
+    SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_SYSTEM_SCALE, "1");
     SDL_InitSubSystem(SDL_INIT_VIDEO);
 }
 
@@ -207,7 +293,7 @@ NativeWindow CreateGameWindow(const char* title, int width, int height, bool ful
     SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, width);
     SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, height);
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_BORDERLESS_BOOLEAN, fullScreen);
-    SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, !fullScreen);
+    SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, !fullScreen && !hp::g_live);
     SDL_SetBooleanProperty(properties, SDL_PROP_WINDOW_CREATE_HIDDEN_BOOLEAN, true);
     hp::g_window = SDL_CreateWindowWithProperties(properties);
     SDL_DestroyProperties(properties);
@@ -227,12 +313,16 @@ NativeWindow CreateGameWindow(const char* title, int width, int height, bool ful
 #else
     hp::g_native = hp::g_window;   // as platform_sdl.cpp's: graphics_gl.cpp takes the SDL window
 #endif
-    ei::verify::sys::ConcealWindow(hp::g_native);
+    if (hp::g_live) SDL_StartTextInput(hp::g_window);
+    else ei::verify::sys::ConcealWindow(hp::g_native);
     return hp::g_native;
 }
 
 void ShowGameWindow(NativeWindow window) {
-    if (SDL_Window* w = hp::WindowOf(window)) SDL_ShowWindow(w);
+    SDL_Window* w = hp::WindowOf(window);
+    if (!w) return;
+    SDL_ShowWindow(w);
+    if (hp::g_live) SDL_RaiseWindow(w);
 }
 
 bool IsMinimized(NativeWindow window) { return hp::WindowOf(window) && hp::Minimized(); }
@@ -284,14 +374,15 @@ bool EventWaits() {
 bool NextEvent(Event* event) {
     for (;;) {
         hp::Pump();
-        if (hp::TakeWaiting(event)) {
-            if (event->type == EventType::KeyDown)
+        bool typesCharacter = true;
+        if (hp::TakeWaiting(event, &typesCharacter)) {
+            if (event->type == EventType::KeyDown && typesCharacter)
                 if (const int character = hp::TypedCharacter(event->key)) {
                     Event typed;
                     typed.type = EventType::Text;
                     typed.scan = event->scan;
                     typed.text = std::string(1, static_cast<char>(character));
-                    hp::g_waiting.push_back(typed);
+                    hp::g_waiting.push_back({typed, true});
                 }
             return true;
         }
@@ -315,6 +406,7 @@ bool TakeEvent(Event* event) {
 void PostQuit(int code) {
     hp::g_quitPosted = true;
     hp::g_quitCode = code;
+    hp::GameQuits();
 }
 
 // ---- The cursor, the mouse, the clipboard ------------------------------------------------------------------------
@@ -360,13 +452,34 @@ void SetCursor(CursorShape shape) {
     SDL_ShowCursor();
 }
 
-// The harness's mouse moves only by its steps: a hold is only recorded, a move ends it.
+// The harness's mouse moves only by its steps: a hold is only recorded, a move ends it. In real play the pointer is
+// held as the game's backend holds it (platform_sdl.cpp): relative mode, a one-pixel mouse rectangle at the point.
 void HoldCursor(const Point* at) {
+    const bool was = hp::g_holding;
     hp::g_holding = at != nullptr;
     if (at) hp::g_held = *at;
+    if (!hp::g_live || !hp::g_window) return;
+    if (!at) {
+        if (!was) return;
+        SDL_SetWindowMouseRect(hp::g_window, nullptr);
+        SDL_SetWindowRelativeMouseMode(hp::g_window, false);
+        return;
+    }
+    Point screen = *at;
+    if (hp::g_toScreen) hp::g_toScreen(&screen);
+    int left = 0, top = 0;
+    SDL_GetWindowPosition(hp::g_window, &left, &top);
+    const SDL_Rect place{screen.x - left, screen.y - top, 1, 1};
+    if (was && place.x == hp::g_heldRect.x && place.y == hp::g_heldRect.y) return;
+    SDL_SetWindowMouseRect(hp::g_window, &place);
+    SDL_SetWindowRelativeMouseMode(hp::g_window, true);
+    hp::g_heldRect = place;
 }
 
-void MapCursorPoints(PointMap toGame, PointMap) { hp::g_toGame = toGame; }
+void MapCursorPoints(PointMap toGame, PointMap toScreen) {
+    hp::g_toGame = toGame;
+    hp::g_toScreen = toScreen;
+}
 
 bool CursorPosition(Point* at) {
     Point point{};
@@ -376,7 +489,12 @@ bool CursorPosition(Point* at) {
     return true;
 }
 
-void SetCursorPosition(Point) { HoldCursor(nullptr); }
+void SetCursorPosition(Point at) {
+    HoldCursor(nullptr);
+    if (!hp::g_live) return;
+    if (hp::g_toScreen) hp::g_toScreen(&at);
+    SDL_WarpMouseGlobal(static_cast<float>(at.x), static_cast<float>(at.y));
+}
 
 // The harness's motion only.
 Point TakeMouseMotion() { return Point{hp::g_motionX.exchange(0), hp::g_motionY.exchange(0)}; }

@@ -5,7 +5,7 @@
 // EventWaits / NextEvent / TakeEvent); the renderer takes the window's SDL_Window (sdl_window.h) for its swap chain.
 #include "platform/platform.h"
 #include "platform/log.h"
-#include "platform/sdl/sdl_keys.h"
+#include "platform/sdl/sdl_input.h"
 #include "platform/sdl/sdl_window.h"
 
 #define SDL_MAIN_HANDLED   // SDL_main.h only for SDL_RegisterApp: the program keeps its own entry
@@ -107,13 +107,8 @@ int g_quitCode = 0;
 bool g_told = false;
 bool g_toldActive = false;
 bool g_toldMinimized = false;
-// The scan code of the last key pressed: the text it types carries it.
-int g_typedScan = 0;
-// The mouse's motion since TakeMouseMotion took it; its fractions kept for the next event (the held cursor's relative
-// mode scales the motion as the system scales the pointer's).
-std::int32_t g_motionX = 0;
-std::int32_t g_motionY = 0;
-float g_motionRestX = 0.0f, g_motionRestY = 0.0f;
+// SDL's keyboard and mouse events as ours (sdl_input.h), and the mouse's motion since TakeMouseMotion took it.
+sdl_input::Translator g_input;
 
 void Queue(Event event) { g_waiting.push_back(std::move(event)); }
 
@@ -131,44 +126,7 @@ void Focus(bool active, bool minimized) {
     Queue(event);
 }
 
-// ---- Keys (sdl_keys.cpp) ------------------------------------------------------------------------------------
-
-std::uint8_t Modifiers(SDL_Keymod mod) {
-    return static_cast<std::uint8_t>(((mod & SDL_KMOD_SHIFT) ? kModifierShift : 0) |
-                                     ((mod & SDL_KMOD_CTRL) ? kModifierControl : 0) |
-                                     ((mod & SDL_KMOD_ALT) ? kModifierAlt : 0));
-}
-
-void QueueText(std::string text) {
-    Event event;
-    event.type = EventType::Text;
-    event.scan = g_typedScan;
-    event.text = std::move(text);
-    Queue(std::move(event));
-}
-
-void TakeKey(const SDL_KeyboardEvent& k) {
-    const sdl_keys::KeyCode code = sdl_keys::KeyOf(k.scancode, k.mod, LayoutKey);
-    if (code.key == 0) return;
-    Event event;
-    event.type = k.down ? EventType::KeyDown : EventType::KeyUp;
-    event.key = code.key;
-    event.scan = code.scan;
-    event.repeat = k.down && k.repeat;
-    event.modifiers = Modifiers(k.mod);
-    Queue(event);
-    if (!k.down) return;
-    g_typedScan = code.scan;
-    if (const int character = sdl_keys::ControlCharacter(code.key, code.scan, k.mod, LayoutControlCharacter)) {
-        char text[5] = {};
-        SDL_UCS4ToUTF8(static_cast<Uint32>(character), text);
-        QueueText(text);
-    }
-}
-
 // ---- The mouse ---------------------------------------------------------------------------------------------------
-
-int Whole(float coordinate) { return static_cast<int>(std::floor(coordinate)); }
 
 // Pixels a window point holds: SDL's mouse and window coordinates are points, the game's (its input, its frame, the
 // renderer's drawable) pixels. On macOS a point is 2 pixels on Retina; elsewhere 1.
@@ -179,56 +137,16 @@ float PixelsPerPoint() {
     return 1.0f;
 }
 
+int Whole(float coordinate) { return static_cast<int>(std::floor(coordinate)); }
+
 // A coordinate in points as whole pixels.
-int Pixels(float points) { return static_cast<int>(std::floor(points * PixelsPerPoint())); }
-
-Event MouseEvent(EventType type, float x, float y) {
-    Event event;
-    event.type = type;
-    event.x = Pixels(x);
-    event.y = Pixels(y);
-    return event;
-}
-
-void TakeButton(const SDL_MouseButtonEvent& b) {
-    Event event = MouseEvent(b.down ? EventType::MouseDown : EventType::MouseUp, b.x, b.y);
-    switch (b.button) {
-    case SDL_BUTTON_LEFT: event.button = MouseButton::Left; break;
-    case SDL_BUTTON_RIGHT: event.button = MouseButton::Right; break;
-    case SDL_BUTTON_MIDDLE: event.button = MouseButton::Middle; break;
-    case SDL_BUTTON_X1: event.button = MouseButton::X1; break;
-    case SDL_BUTTON_X2: event.button = MouseButton::X2; break;
-    default: return;
-    }
-    event.clicks = b.clicks;
-    Queue(event);
-}
-
-void TakeWheel(const SDL_MouseWheelEvent& w) {
-    Event event = MouseEvent(EventType::Wheel, w.mouse_x, w.mouse_y);
-    event.wheel = w.direction == SDL_MOUSEWHEEL_FLIPPED ? -w.y : w.y;
-    if (event.wheel != 0.0f) Queue(event);
-}
+int Pixels(float points) { return Whole(points * PixelsPerPoint()); }
 
 // ---- SDL's events ------------------------------------------------------------------------------------------------
 
 void Take(const SDL_Event& e) {
+    if (g_input.Take(e, PixelsPerPoint(), &g_waiting)) return;
     switch (e.type) {
-    case SDL_EVENT_KEY_DOWN:
-    case SDL_EVENT_KEY_UP: TakeKey(e.key); break;
-    case SDL_EVENT_TEXT_INPUT: QueueText(e.text.text); break;
-    case SDL_EVENT_MOUSE_MOTION:
-        g_motionRestX += e.motion.xrel * PixelsPerPoint();
-        g_motionRestY += e.motion.yrel * PixelsPerPoint();
-        g_motionX += Whole(g_motionRestX);
-        g_motionY += Whole(g_motionRestY);
-        g_motionRestX -= std::floor(g_motionRestX);
-        g_motionRestY -= std::floor(g_motionRestY);
-        Queue(MouseEvent(EventType::MouseMove, e.motion.x, e.motion.y));
-        break;
-    case SDL_EVENT_MOUSE_BUTTON_DOWN:
-    case SDL_EVENT_MOUSE_BUTTON_UP: TakeButton(e.button); break;
-    case SDL_EVENT_MOUSE_WHEEL: TakeWheel(e.wheel); break;
     case SDL_EVENT_WINDOW_FOCUS_GAINED: Focus(true, Minimized()); break;
     case SDL_EVENT_WINDOW_FOCUS_LOST: Focus(false, Minimized()); break;
     case SDL_EVENT_WINDOW_MINIMIZED: Focus(false, true); break;
@@ -522,7 +440,7 @@ void SetCursorPosition(Point at) {
 // ==== The mouse ======================================================================================================
 
 // The motion SDL's events carried since the last call (the event loop adds it up).
-Point TakeMouseMotion() { return Point{std::exchange(g_motionX, 0), std::exchange(g_motionY, 0)}; }
+Point TakeMouseMotion() { return g_input.TakeMotion(); }
 
 // ==== The clipboard ==================================================================================================
 
