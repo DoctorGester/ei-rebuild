@@ -7,7 +7,6 @@
 #include "game_strings.h"
 #include "net_coder.h"
 
-#include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 
@@ -26,17 +25,6 @@ void LogLine(const char* text) {
     if (console::Stream* log = g_netLog) console::EndLine(*log << text);
 }
 
-// Inlined helper of the buffers: `high` follows `cur` upwards.
-void UpdateHigh(GameBuffer* buffer) {
-    if (buffer->cur > buffer->high) buffer->high = buffer->cur;
-}
-
-// Bytes in a buffer (written so far).
-std::int32_t BufferedSize(GameBuffer* buffer) {
-    UpdateHigh(buffer);
-    return buffer->PositionOf(buffer->high);
-}
-
 // The handlers registered for message `type` on `channel` (called with the session and the message). The end
 // is read again after each call.
 void CallHandlers(SessionBase* session, int channel, std::uint32_t type, Message* message) {
@@ -53,7 +41,7 @@ std::uint16_t IdPool::Allocate() {
     return id;
 }
 
-void Connection::WriteAcks(std::uint8_t** p) {
+void Connection::WriteAcks(BufferCursor* cursor) {
     std::uint16_t base = static_cast<std::uint16_t>(lastReceived);
     std::uint32_t mask = 0;
     std::int32_t* end = received.data() + received.size();
@@ -64,10 +52,8 @@ void Connection::WriteAcks(std::uint8_t** p) {
         while (it != end && *it != target) ++it;
         if (it != end) mask |= 1u << (k - 1);
     }
-    std::memcpy(*p, &base, 2);
-    *p += 2;
-    lib::StoreBytes(*p, mask);
-    *p += 4;
+    cursor->Put(base);
+    cursor->Put(mask);
     // Forget sequences more than 32 behind (from the back, shifting the rest down).
     for (std::int32_t i = static_cast<std::int32_t>(received.size()) - 1; i >= 0; --i) {
         std::int32_t* at = received.data() + i;
@@ -81,16 +67,14 @@ void Connection::QueueHeader(int budget) {
     if (headers.empty()) {
         int size = budget < 0xFF ? budget : 0xFF;
         std::uint8_t* chunk = headers.emplace_back().bytes;
-        int available = BufferedSize(&reliableOut);
+        int available = reliableOut.Size();
         if (size >= available) size = available;
         chunk[2] = static_cast<std::uint8_t>(size);
         std::memcpy(chunk, &headerSequence, 2);
         std::memcpy(chunk + 3, reliableOut.begin, static_cast<std::size_t>(size));
-        int remaining = BufferedSize(&reliableOut) - size;
+        int remaining = reliableOut.Size() - size;
         std::memmove(reliableOut.begin, reliableOut.begin + size, static_cast<std::size_t>(remaining));
-        reliableOut.cur = reliableOut.begin;
-        reliableOut.high = reliableOut.begin + remaining;
-        if (reliableOut.high > reliableOut.end) reliableOut.Grow(static_cast<std::uint32_t>(remaining));
+        reliableOut.SetSize(static_cast<std::uint32_t>(remaining));
         headerSequence = static_cast<std::uint16_t>(headerSequence + size);
         return;
     }
@@ -133,34 +117,28 @@ bool Connection::SendUpdate(int budget) {
     bool complete = true;
     CollectChanges();
     BufferCursor c;
-    c.Reset();
-    c.sink = nullptr;
     GameBuffer* out = &g_sendBuffer;
     out->Seek(0);
     c.BeginWrite(out, budget + 0x400);
 
-    *c.p = static_cast<std::uint8_t>(PacketKind::Update);
-    std::uint8_t* payload = c.p + 1;
+    c.Put(static_cast<std::uint8_t>(PacketKind::Update));
+    const std::uint8_t* payload = c.p;
     std::uint16_t sequence = sendSequence++;
-    c.p = payload;
-    std::memcpy(c.p, &sequence, 2);
-    c.p += 2;
-    WriteAcks(&c.p);
+    c.Put(sequence);
+    WriteAcks(&c);
     QueueHeader(budget - 0x10);
 
     // The reliable chunk at the front of the queue goes into the packet and into its history entry.
     const ReliableChunk& chunk = headers.front();
-    std::size_t chunkSize = static_cast<std::size_t>(chunk.Size()) + 3;
-    std::memcpy(c.p, chunk.bytes, chunkSize);
-    c.p += chunkSize;
+    c.WriteBytes(chunk.bytes, static_cast<std::uint32_t>(chunk.Size()) + 3);
     SentPacket& sent = history.emplace_back();
     sent.time = clock;
     sent.sequence = sequence;
     sent.header = chunk;
     headers.erase(headers.begin());
 
-    std::uint8_t* count = c.p++;
-    *count = 0;
+    std::uint8_t* count = c.p;   // the number of entries, counted up below
+    c.Put(std::uint8_t{0});
     for (int priority = 10; priority >= 0; --priority) {
         // In the order the entries were tracked (the original: by the entry's address).
         std::map<std::uint32_t, EntryRef>& map = priorities[priority];
@@ -177,10 +155,8 @@ bool Connection::SendUpdate(int budget) {
                     bySentId[key] = entry;
                 }
                 c.PutBits(1, 1);
-                std::uint32_t entryId = entry->id;
-                *c.p = entry->type;
-                ++c.p;
-                c.WriteBytes(&entryId, 2);
+                c.Put(entry->type);
+                c.Put(entry->id);
                 entry->Object()->Write(&c);
             } else {
                 alive = false;
@@ -193,10 +169,8 @@ bool Connection::SendUpdate(int budget) {
                 }
                 if (entry->version != 0) continue;
                 c.PutBits(0, 1);
-                std::uint32_t entryId = entry->id;
-                *c.p = entry->type;
-                ++c.p;
-                c.WriteBytes(&entryId, 2);
+                c.Put(entry->type);
+                c.Put(entry->id);
             }
             if (budget < static_cast<int>(c.p - payload)) {
                 // Over the budget: this priority's other entries wait (the entry just written
@@ -358,29 +332,6 @@ void Connection::CollectChanges() {
         if (!byObject.contains(item.object)) Track(&item);
 }
 
-} // namespace net
-
-void BufferCursor::PutBit(std::uint32_t bit) {
-    if (bits == 0) {
-        bits = 1;
-        bytePtr = p;
-        ++p;
-        acc = bit;
-    } else {
-        acc += bit << bits;
-        ++bits;
-    }
-    if (bits > 8) {
-        *bytePtr = static_cast<std::uint8_t>(acc);
-        bits = static_cast<std::uint8_t>(bits - 8);
-        bytePtr = p;
-        acc >>= 8;
-        ++p;
-    }
-}
-
-namespace net {
-
 void Connection::WriteObjectRef(BufferCursor* cursor, RefObject* object) {
     if (IsLive(object)) {
         auto found = byObject.find(object);
@@ -391,28 +342,22 @@ void Connection::WriteObjectRef(BufferCursor* cursor, RefObject* object) {
                 std::int32_t key = (static_cast<std::int32_t>(entry->type) << 16) + entry->id;
                 bySentId[key] = entry;
             }
-            std::uint16_t entryId = entry->id;
-            std::uint8_t type = entry->type;
-            cursor->PutBit(0);
-            cursor->WriteBytes(&type, 1);
-            cursor->WriteBytes(&entryId, 2);
+            cursor->PutBits(0, 1);
+            cursor->Put(entry->type);
+            cursor->Put(entry->id);
             return;
         }
         auto node = attached.find(object);
         if (node != attached.end()) {
-            std::uint16_t secondId = node->second.id;
-            std::uint8_t type = node->second.type;
-            cursor->PutBit(1);
-            *cursor->p++ = type;
-            std::memcpy(cursor->p, &secondId, 2);
-            cursor->p += 2;
+            cursor->PutBits(1, 1);
+            cursor->Put(node->second.type);
+            cursor->Put(node->second.id);
             return;
         }
     }
-    std::uint32_t zero = 0;
-    cursor->PutBit(0);
-    *cursor->p++ = 0;
-    cursor->WriteBytes(&zero, 2);
+    cursor->PutBits(0, 1);
+    cursor->Put(std::uint8_t{0});
+    cursor->Put(std::uint16_t{0});
 }
 
 // The original reads the type and id into dwords whose upper bytes it masks off (and passes the
@@ -473,11 +418,9 @@ void Connection::Acknowledge(std::uint16_t sequence) {
 // ackMask shifts along when the peer's newest acknowledged sequence moves.
 void Connection::ReadAcks(BufferCursor* cursor) {
     std::uint16_t sequence;
-    std::memcpy(&sequence, cursor->p, 2);
-    cursor->p += 2;
+    cursor->Take(sequence);
     std::uint32_t mask;
-    lib::LoadBytes(mask, cursor->p);
-    cursor->p += 4;
+    cursor->Take(mask);
     std::int32_t moved = static_cast<std::int32_t>((static_cast<std::uint32_t>(sequence) - ackBase) & 0xFFFF);
     if (moved > 0x8000) moved -= 0x10000;
     if (moved <= 0) {
@@ -531,18 +474,8 @@ void Connection::ProcessHeaders() {
         if (node == incoming.end()) return;
         do {
             if (node->Sequence() == incomingSequence) {
-                GameBuffer* in = &reliableIn;
-                if (in->cur > in->high) in->high = in->cur;
-                in->Seek(in->PositionOf(in->high));
-                std::uint32_t size = node->Size();
-                const std::uint8_t* from = node->bytes + 3;
-                if (in->cur + size > in->end) {
-                    in->WriteMore(from, size);
-                } else {
-                    in->flags |= 1;
-                    std::memcpy(in->cur, from, size);
-                    in->cur += size;
-                }
+                reliableIn.Seek(reliableIn.Size());
+                reliableIn.Write(node->bytes + 3, node->Size());
                 incomingSequence = static_cast<std::uint16_t>(incomingSequence + node->Size());
                 node = incoming.erase(node);
                 progress = true;
@@ -557,8 +490,7 @@ bool Connection::ReadUpdate(BufferCursor* cursor) {
     g_currentConnection = this;
     idleTime = 0.0f;
     std::uint16_t low;
-    std::memcpy(&low, cursor->p, 2);
-    cursor->p += 2;
+    cursor->Take(low);
     std::uint32_t sequence = low + sequenceHigh;
     if (lastReceived == 0) lastReceived = sequence;
     std::int32_t step = static_cast<std::int32_t>(sequence - lastReceived);
@@ -574,16 +506,14 @@ bool Connection::ReadUpdate(BufferCursor* cursor) {
     }
     ReadAcks(cursor);
     ReliableChunk header;
-    std::memcpy(header.bytes, cursor->p, 3);
-    std::uint8_t* from = cursor->p + 3;
-    cursor->p = from;
-    std::memcpy(header.bytes + 3, from, header.Size());
-    cursor->p = from + header.Size();
+    cursor->ReadBytes(header.bytes, 3);
+    cursor->ReadBytes(header.bytes + 3, header.Size());
     if (static_cast<std::uint16_t>(header.Sequence() - incomingSequence) <= 0x8000 && header.Size() != 0) {
         incoming.push_back(header);
         ProcessHeaders();
     }
-    std::uint8_t count = *cursor->p++;
+    std::uint8_t count;
+    cursor->Take(count);
     for (std::uint8_t i = 0; i < count; ++i) {
         if (!ReadRecord(cursor, sequence)) {
             g_currentConnection = nullptr;

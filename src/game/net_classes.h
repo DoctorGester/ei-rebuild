@@ -447,9 +447,9 @@ public:
     void OnLogin(const NetAddress* from, BufferCursor* cursor) override;     // patched by Rebirth
     void Tick(double dt) override;
     virtual void Describe(Ref<ServerEntry>* out) = 0;   // this server's entry into *out
-    // Whether a client from `from` may join: `*password` (the login cursor's next byte,
-    // moved past the password when one is checked) and `*reason`.
-    virtual bool Admit(const NetAddress* from, std::uint8_t** password, RefusalReason* reason) = 0;
+    // Whether a client from `from` may join (and `*reason` when not): the login's password at the cursor, read
+    // when one is checked.
+    virtual bool Admit(const NetAddress* from, BufferCursor* password, RefusalReason* reason) = 0;
 
     // Answers a ping from `address` with this server's description (5, the echoed time,
     // the magic and the entry).
@@ -469,7 +469,7 @@ public:
     void CollectReplicated(std::vector<Replicated>** out) override;
     void Tick(double dt) override;
     void Describe(Ref<ServerEntry>* out) override;
-    bool Admit(const NetAddress* from, std::uint8_t** password, RefusalReason* reason) override;
+    bool Admit(const NetAddress* from, BufferCursor* password, RefusalReason* reason) override;
 
     // Switches the server to map `name`.
     void SetMap(const std::string* name);
@@ -689,6 +689,4 @@ struct GameInfoRecord {
     int Read(GameBuffer* buffer);           // 1 unless the buffer ran short
 };
 
-// The byte buffer's read helper.
-void BufferUpdateHigh(GameBuffer* buffer);
 } // namespace net

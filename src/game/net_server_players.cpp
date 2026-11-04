@@ -47,9 +47,9 @@ int ServerSession::LeaderId() {
 }
 
 // Whether a client from `from` may join. Refused when the address is banned (Banned), when a password is
-// set and the 20 bytes at `*password` differ (WrongPassword; the pointer moves past them either way), or when the
-// clients and the pending joins reach the maximum (Full).
-bool ServerSession::Admit(const NetAddress* from, std::uint8_t** passwordOut, RefusalReason* reason) {
+// set and the 20 bytes at the cursor differ (WrongPassword; read either way), or when the clients and the pending
+// joins reach the maximum (Full).
+bool ServerSession::Admit(const NetAddress* from, BufferCursor* given, RefusalReason* reason) {
     *reason = RefusalReason::Banned;
     // find_if over the banned addresses: the host compared, not the port.
     auto newBanned = banned.begin();
@@ -59,10 +59,9 @@ bool ServerSession::Admit(const NetAddress* from, std::uint8_t** passwordOut, Re
     const char* stored = password;
     if (stored[0]) {
         *reason = RefusalReason::WrongPassword;
-        std::uint8_t given[kPasswordSize] = {};
-        std::memcpy(given, *passwordOut, kPasswordSize);
-        *passwordOut += kPasswordSize;
-        if (std::memcmp(given, stored, kPasswordSize) != 0) return false;
+        std::uint8_t sent[kPasswordSize];
+        given->Take(sent);
+        if (std::memcmp(sent, stored, kPasswordSize) != 0) return false;
     }
     *reason = RefusalReason::Full;
     std::uint32_t clientCount = ClientCount();

@@ -1,71 +1,52 @@
-// The byte buffer's length-prefixed strings: GameBuffer::ReadString and WriteString. The format is in net_coder.h;
-// the buffer's other members are game_buffer.cpp.
-#include "net_classes.h"
+// The texts of the byte buffer and its cursor: GameBuffer's length-prefixed strings and BufferCursor's
+// zero-terminated ones. The formats are in net_coder.h; the other members are game_buffer.cpp and net_coder.cpp.
 #include "net_coder.h"
 #include "asset_text.h"
 
+#include "lib/str.h"
+
 #include <cstring>
-
-namespace {
-
-// `size` bytes from the cursor as the reader inlines it: past `high` through ReadPastEnd, past `end` through the
-// buffer's refill virtual, else copied in place.
-void ReadInline(GameBuffer* buffer, void* to, std::uint32_t size) {
-    if (buffer->cur + size > buffer->high) {
-        buffer->ReadPastEnd(to, size);
-    } else if (buffer->cur + size > buffer->end) {
-        buffer->ReadMore(to, size);
-    } else {
-        std::memcpy(to, buffer->cur, size);
-        buffer->cur += size;
-    }
-}
-
-// The writer's inline store: in place (flags bit 0) when it fits before `end`, else through the buffer's grow
-// virtual.
-void WriteInline(GameBuffer* buffer, const void* from, std::uint32_t size) {
-    if (buffer->cur + size <= buffer->end) {
-        buffer->flags |= GameBuffer::kFlagWritten;
-        std::memcpy(buffer->cur, from, size);
-        buffer->cur += size;
-    } else {
-        buffer->WriteMore(from, size);
-    }
-}
-
-} // namespace
 
 bool GameBuffer::ReadString(std::string* s, int maxLength) {
     std::uint32_t word = 0;
     auto* bytes = reinterpret_cast<std::uint8_t*>(&word);
-    ReadInline(this, bytes, 1);
-    if (word & 1) ReadInline(this, bytes + 1, 3);
+    Read(bytes, 1);
+    if (word & 1) Read(bytes + 1, 3);
     const int length = static_cast<int>(word) >> 1;
     if (maxLength > 0 && length > maxLength) {
-        flags |= kFlagReadPastEnd;
+        readPastEnd = true;
         return false;
     }
-    if (cur + length > end) ReserveRead(length);
+    if (cur + length > end) Reserve(length);
     const char* first = reinterpret_cast<const char*>(cur);
-    const char* last = first + length;
-    // string::assign(first, last), inlined: overwrite and cut, or overwrite and append the rest.
-    s->assign(first, last);
+    s->assign(first, first + length);
     text::FromAssetText(s);   // the wire's text is in the asset code page, as vanilla peers send it
-    cur = reinterpret_cast<std::uint8_t*>(const_cast<char*>(first)) + length;
-    Commit();
+    cur += length;
     return true;
 }
 
 void GameBuffer::WriteString(const std::string* text) {
     const std::string bytes = text::ToAssetText(*text);   // in the asset code page, as vanilla peers read it
-    const std::string* s = &bytes;
-    const auto length = static_cast<std::uint32_t>(s->size());
+    const auto length = static_cast<std::uint32_t>(bytes.size());
     if (static_cast<int>(length) >= 0x80) {
-        std::uint32_t header = length * 2 + 1;
-        WriteInline(this, &header, 4);
+        Put(length * 2 + 1);
     } else {
-        std::uint32_t header = length * 2;   // one byte of it
-        WriteInline(this, &header, 1);
+        const auto header = static_cast<std::uint8_t>(length * 2);
+        Put(header);
     }
-    WriteInline(this, s->data(), length);
+    Write(bytes.data(), length);
+}
+
+void BufferCursor::PutString(const std::string& s) {
+    const std::string bytes = text::ToAssetText(std::string_view(s.c_str()));
+    WriteBytes(bytes.c_str(), static_cast<std::uint32_t>(bytes.size() + 1));
+}
+
+void BufferCursor::TakeString(std::string& s) {
+    const char* text = reinterpret_cast<const char*>(p);
+    const std::size_t room = Room();
+    const std::size_t length = str::BoundedLength(text, room);
+    s.assign(text, text + length);
+    text::FromAssetText(&s);
+    p += length < room ? length + 1 : length;
 }

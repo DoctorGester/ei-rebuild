@@ -717,17 +717,10 @@ void GameFlow::SwitchMultiplayerZone() {
         return;
     }
 
-    // Every connection of the host drops what it has read of the incoming reliable stream
-    // (flags 6, high and the cursor back to the start).
+    // Every connection of the host drops what it has read of the incoming reliable stream.
     net::ServerSession* server = net::g_gameServer;
     if (IsLive(server)) {
-        for (auto& connection : server->clients) {
-            GameBuffer& in = connection.Get()->reliableIn;
-            std::uint8_t* begin = in.begin;
-            in.flags = 6;
-            in.high = begin;
-            in.cur = begin;
-        }
+        for (auto& connection : server->clients) connection.Get()->reliableIn.Clear();
     }
     Party records;
     Player* player = g_serverWorld.GetPlayer(0);
@@ -771,7 +764,7 @@ void GameFlow::StartServer(const char* name, int maxPlayers, int gameType, const
         char secret[kPasswordSize] = {};
         #pragma warning(suppress : 4996)   // strncpy: the copy padded with zeros
         if (password) std::strncpy(secret, password, kPasswordSize);
-        hello.BufferWrite(secret, static_cast<int>(kPasswordSize));
+        hello.Put(secret);
         net::g_gameClient->Join(&address, &hello);
     }
     net::g_gameClient->player.Get()->host = 1;
@@ -797,7 +790,7 @@ void GameFlow::JoinServer(const net::NetAddress* address, const char* password) 
     char secret[kPasswordSize] = {};
     #pragma warning(suppress : 4996)   // strncpy: the copy padded with zeros
     if (password) std::strncpy(secret, password, kPasswordSize);
-    hello.BufferWrite(secret, static_cast<int>(kPasswordSize));
+    hello.Put(secret);
     net::g_gameClient->Join(const_cast<net::NetAddress*>(address), &hello);
 }
 

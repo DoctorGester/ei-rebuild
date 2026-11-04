@@ -28,11 +28,6 @@ constexpr std::int32_t kSelectTimeout = 0;
 
 unsigned AddressCount(const SocketDriver* d) { return static_cast<unsigned>(d->addresses.size()); }
 
-std::int32_t Length(GameBuffer* buffer) {
-    if (buffer->cur > buffer->high) buffer->high = buffer->cur;
-    return buffer->PositionOf(buffer->high);
-}
-
 } // namespace
 
 
@@ -153,7 +148,7 @@ bool SocketDriver::IsLocal(const NetAddress* address) {
 }
 
 bool SocketDriver::SendTo(const NetAddress* address, GameBuffer* buffer) {
-    std::int32_t length = Length(buffer);
+    std::int32_t length = buffer->Size();
     return sockets::SendTo(socket, buffer->begin, length, *address) == length;
 }
 
@@ -164,9 +159,7 @@ bool SocketDriver::Receive(NetAddress* from, GrowingBuffer* buffer) {
     if (n >= 0) {
         from->family = sockets::kIpv4;
         std::memset(from->zero, 0, sizeof(from->zero));
-        buffer->cur = buffer->begin;
-        buffer->high = buffer->begin + n;
-        if (buffer->high > buffer->end) buffer->Grow(static_cast<std::uint32_t>(n));
+        buffer->SetSize(static_cast<std::uint32_t>(n));
     }
     return n >= 0;
 }
@@ -239,15 +232,8 @@ int MasterLinkTick(MasterLink* self) {
             close(3);
             return self->state;
         }
-        GameBuffer* in = &self->in;
-        in->Seek(Length(in));
-        if (in->cur + n > in->end) {
-            in->WriteMore(data, n);
-            return self->state;
-        }
-        in->flags |= 1;
-        std::memcpy(in->cur, data, static_cast<std::size_t>(n));
-        in->cur += n;
+        self->in.Seek(self->in.Size());
+        self->in.Write(data, static_cast<std::uint32_t>(n));
         return self->state;
     }
     case 4: {
@@ -257,9 +243,9 @@ int MasterLinkTick(MasterLink* self) {
         }
         self->state = 2;
         sockets::SetNonBlocking(self->socket, false);
-        int sent = sockets::Send(self->socket, self->out.begin, Length(&self->out));
+        int sent = sockets::Send(self->socket, self->out.begin, self->out.Size());
         sockets::SetNonBlocking(self->socket, true);
-        if (sent != Length(&self->out)) close(0);
+        if (sent != self->out.Size()) close(0);
         return self->state;
     }
     default:

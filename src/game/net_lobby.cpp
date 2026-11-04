@@ -9,7 +9,6 @@
 #include "net_classes.h"
 #include "net_messages.h"
 #include "net_coder.h"
-#include "lib/bytes.h"
 #include "lib/crt.h"
 
 #include "lib/rebirth.h"
@@ -59,30 +58,6 @@ std::vector<Query>::iterator FindQuery(ClientQueries& v, const NetAddress* addre
     return std::find_if(v.list.begin(), v.list.end(), [address](const Query& q) { return SameAddress(&q.address, address); });
 }
 
-// A write the way these functions inline it: in place (marking the buffer written) when it fits
-// before `end`, otherwise through WriteMore.
-void Put(GameBuffer* buffer, const void* from, unsigned size) {
-    if (buffer->cur + size > buffer->end) {
-        buffer->WriteMore(from, size);
-        return;
-    }
-    buffer->flags |= 1;
-    std::memcpy(buffer->cur, from, size);
-    buffer->cur += size;
-}
-
-// A cursor's end as inlined: the pending bits stored, then `p` committed to the sink if any.
-void EndCursor(BufferCursor& c) {
-    if (c.bits != 0) {
-        c.bits = 0;
-        if (c.bytePtr) *c.bytePtr = static_cast<std::uint8_t>(c.acc);
-    }
-    if (c.sink) {
-        c.sink->cur = c.p;
-        c.sink->Commit();
-    }
-}
-
 // Hands `entry` (non-null) over to a new node at the end of the servers list: the reference the local pointer
 // held is dropped without release (the copy-on-share mark cleared), and the list shares the raw pointer.
 void AppendServer(ClientBase* self, Ref<ServerEntry>& entry) {
@@ -95,9 +70,8 @@ void AppendServer(ClientBase* self, Ref<ServerEntry>& entry) {
 // PacketKind::Accepted with the join's id, to `to`.
 void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
     GrowingBuffer b;
-    std::uint8_t kind = static_cast<std::uint8_t>(PacketKind::Accepted);
-    b.BufferWrite(&kind, 1);
-    b.BufferWrite(&id, 4);
+    b.Put(static_cast<std::uint8_t>(PacketKind::Accepted));
+    b.Put(id);
     self->Send(to, &b);
 }
 
@@ -115,12 +89,6 @@ ServerEntryBase::ServerEntryBase() {
 
 std::vector<Query>::iterator ClientQueries::QueriesFind(const NetAddress* address) { return FindQuery(*this, address); }
 
-// A buffer's length (its highest position brought up to date first).
-std::int32_t BufferLength(GameBuffer* buffer) {
-    if (buffer->cur > buffer->high) buffer->high = buffer->cur;
-    return buffer->PositionOf(buffer->high);
-}
-
 Query::Query() { std::memset(&address, 0, sizeof(address)); }
 Query::~Query() {}
 
@@ -128,24 +96,19 @@ Query::~Query() {}
 
 void ClientBase::SendPing(const NetAddress* address) {
     GrowingBuffer b;
-    std::uint8_t kind = static_cast<std::uint8_t>(PacketKind::GetInfo);
-    Put(&b, &kind, 1);
-    float seconds = static_cast<float>(time);
-    Put(&b, &seconds, 4);
+    b.Put(static_cast<std::uint8_t>(PacketKind::GetInfo));
+    b.Put(static_cast<float>(time));
     Send(address, &b);
 }
 
 void ClientBase::SendJoin(const NetAddress* address, GameBuffer* data) {
     std::uint32_t rate = RateFor(address);
     GrowingBuffer b;
-    std::uint8_t kind = static_cast<std::uint8_t>(PacketKind::Login);
-    Put(&b, &kind, 1);
-    Put(&b, &magic, 4);
-    Put(&b, &joinId, 4);
-    Put(&b, &rate, 4);
-    if (data->cur > data->high) data->high = data->cur;
-    unsigned length = static_cast<unsigned>(data->PositionOf(data->high));
-    Put(&b, data->begin, length);
+    b.Put(static_cast<std::uint8_t>(PacketKind::Login));
+    b.Put(magic);
+    b.Put(joinId);
+    b.Put(rate);
+    b.Write(data->begin, static_cast<std::uint32_t>(data->Size()));
     Send(address, &b);
 }
 
@@ -162,8 +125,7 @@ bool ClientBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
 
 void ClientBase::OnAccepted(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t id;
-    lib::LoadBytes(id, cursor->p);
-    cursor->p += 4;
+    cursor->Take(id);
     if (!SameAddress(&host, from)) {
         LogAddressLine("ERROR: Accepted msg received from unknown host ", from);
         return;
@@ -185,11 +147,8 @@ void ClientBase::OnAccepted(const NetAddress* from, BufferCursor* cursor) {
 
 // A reason byte follows the join id.
 void ClientBase::OnRejected(const NetAddress* from, BufferCursor* cursor) {
-    std::uint8_t* p = cursor->p;
     std::uint32_t id;
-    lib::LoadBytes(id, p);
-    p += 4;
-    cursor->p = p;
+    cursor->Take(id);
     if (!SameAddress(&host, from)) {
         LogAddressLine("ERROR: Rejected msg received from unknown host ", from);
         return;
@@ -199,8 +158,7 @@ void ClientBase::OnRejected(const NetAddress* from, BufferCursor* cursor) {
         return;
     }
     if (joinState == kAsking) {
-        refusal = static_cast<RefusalReason>(*p);
-        ++cursor->p;
+        cursor->Take(refusal);
         joinState = kNotJoined;
     } else {
         LogAddressLine("ERROR: Reject not during connecting from ", from);
@@ -250,15 +208,10 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
         auto q = FindQuery(v, from);
         if (q != v.list.end()) {
             BufferCursor c;
-            c.Reset();
-            c.sink = nullptr;
-            GameBuffer& r = q->reply;
-            r.high = r.begin;
-            r.cur = r.begin;
-            r.flags = 6;
-            c.BeginWrite(&r, 0x400);
+            q->reply.Clear();
+            c.BeginWrite(&q->reply, 0x400);
             entry.Get()->Write(&c);
-            EndCursor(c);
+            c.End();
         }
     }
 }
@@ -309,21 +262,13 @@ void ClientBase::SetQueries(const ClientQueries* from) {
         if (FindServer(this, &q->address) != servers.end()) continue;
         SharedRef<ServerEntry> entry;
         GameBuffer& r = q->reply;
-        if (r.cur > r.high) r.high = r.cur;
-        if (r.PositionOf(r.high) != 0) {
+        if (r.Size() != 0) {
             BufferCursor c;
-            c.Reset();
-            c.sink = nullptr;
             r.Seek(0);
-            BufferUpdateHigh(&r);
-            c.BeginRead(&r, r.PositionOf(r.high));
+            c.BeginRead(&r, r.Size());
             CreateEntry(&entry);
             entry.Get()->Read(&c);
-            c.FlushBits();
-            if (c.sink) {
-                c.sink->cur = c.p;
-                c.sink->Commit();
-            }
+            c.End();
         } else {
             CreateEntry(&entry);
         }
@@ -341,12 +286,7 @@ void ClientBase::Ask(const NetAddress* address) {
     std::vector<Query>& v = queries.list;
     if (FindQuery(queries, address) == v.end()) {
         v.emplace_back().address = *address;
-        GrowingBuffer b;
-        std::uint8_t kind = static_cast<std::uint8_t>(PacketKind::GetInfo);
-        b.BufferWrite(&kind, 1);
-        float seconds = static_cast<float>(time);
-        b.BufferWrite(&seconds, 4);
-        Send(address, &b);
+        SendPing(address);
     }
     auto node = FindServer(this, address);
     if (node != servers.end()) {
@@ -452,41 +392,23 @@ void ClientBase::Tick(double dt) {
 
 void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
     GrowingBuffer b;
-    GameBuffer* buffer = &b;   // writes go through the vtable
     SharedRef<ServerEntry> entry;
     Describe(&entry);
     if (entry.Get()) {
-        std::uint8_t kind = static_cast<std::uint8_t>(PacketKind::Info);
-        if (b.cur + 1 <= b.end) {
-            b.flags |= 1;
-            b.BufferWriteRaw(&kind, 1);
-        } else {
-            buffer->WriteMore(&kind, 1u);
-        }
-        if (b.cur + 4 <= b.end) {
-            b.flags |= 1;
-            b.BufferWriteRaw(&echo, 4);
-        } else {
-            buffer->WriteMore(&echo, 4u);
-        }
+        b.Put(static_cast<std::uint8_t>(PacketKind::Info));
+        b.Put(echo);
         BufferCursor c;
-        c.p = nullptr;
-        c.bits = 0;
-        c.bytePtr = nullptr;
-        c.sink = nullptr;
         c.BeginWrite(&b, 0x400);
-        lib::StoreBytes(c.p, magic);
-        c.p += 4;
+        c.Put(magic);
         entry.Get()->Write(&c);
-        EndCursor(c);
+        c.End();
         Send(address, &b);
     }
 }
 
 void ServerBase::OnGetInfo(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t echo;
-    lib::LoadBytes(echo, cursor->p);
-    cursor->p += 4;
+    cursor->Take(echo);
     SendInfo(from, echo);
 }
 
@@ -529,12 +451,12 @@ void ServerBase::Tick(double dt) {
 // always does: garbage cannot be reproduced, so the flag changes nothing here.
 void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t magicNumber;
-    cursor->ReadBytes(&magicNumber, 4);
+    cursor->Take(magicNumber);
     if (magicNumber != magic) return;
     std::uint32_t id;
-    cursor->ReadBytes(&id, 4);
+    cursor->Take(id);
     std::int32_t rate;
-    cursor->ReadBytes(&rate, 4);
+    cursor->Take(rate);
     const std::int32_t limit = static_cast<std::int32_t>(RateFor(from));
     if (rate >= limit) rate = limit;
 
@@ -558,7 +480,7 @@ void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
     }
 
     RefusalReason reason;
-    if (Admit(from, &cursor->p, &reason)) {   // the password at the cursor
+    if (Admit(from, cursor, &reason)) {
         LogAddressLine("Accepting client from ", from);
         PendingJoin join;
         join.address = *from;
@@ -571,10 +493,9 @@ void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
     }
 
     GrowingBuffer b;
-    std::uint8_t kind = static_cast<std::uint8_t>(PacketKind::Rejected);
-    b.BufferWrite(&kind, 1);
-    b.BufferWrite(&id, 4);
-    b.BufferWrite(&reason, 1);
+    b.Put(static_cast<std::uint8_t>(PacketKind::Rejected));
+    b.Put(id);
+    b.Put(reason);
     Send(from, &b);
 }
 
@@ -586,12 +507,9 @@ void ClientQueries::Serialize(ChunkArchive* archive) {
         std::uint32_t length;
         if (ar->loading) {
             ar->Field(2, &length);
-            GrowingBuffer& r = q.reply;
-            r.cur = r.begin;
-            r.high = r.begin + length;
-            if (r.high > r.end) r.Grow(length);
+            q.reply.SetSize(length);
         } else {
-            length = static_cast<std::uint32_t>(BufferLength(&q.reply));
+            length = static_cast<std::uint32_t>(q.reply.Size());
             ar->Field(2, &length);
         }
         ar->Field(3, q.reply.begin, length);

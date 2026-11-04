@@ -112,12 +112,6 @@ namespace {
 // The time from `then` to `now` on a connection's clock (doubles holding float values).
 float Age(double now, double then) { return static_cast<float>(now) - static_cast<float>(then); }
 
-// The reliable stream's size (the buffer's high mark follows its position first).
-std::int32_t ReliableSize(GameBuffer* buffer) {
-    if (buffer->cur > buffer->high) buffer->high = buffer->cur;
-    return buffer->PositionOf(buffer->high);
-}
-
 constexpr float kRttKeep = 0.93f;   // the share of the old average kept per sample
 
 } // namespace
@@ -158,7 +152,7 @@ bool Connection::Tick(double dt) {
         do {
             sendTimer -= sendInterval;
             if (SendUpdate(static_cast<int>(updateBudget)) && headers.empty()) {
-                if (ReliableSize(&reliableOut) == 0) break;
+                if (reliableOut.Size() == 0) break;
             }
         } while (sendTimer > sendInterval);
     }
@@ -179,7 +173,7 @@ bool Connection::Tick(double dt) {
     }
 
     bool alive = false;
-    if (static_cast<float>(g_currentSession->timeout) > idleTime) alive = ReliableSize(&reliableOut) < 32000;
+    if (static_cast<float>(g_currentSession->timeout) > idleTime) alive = reliableOut.Size() < 32000;
     g_currentConnection = nullptr;
     return alive;
 }

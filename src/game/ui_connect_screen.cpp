@@ -604,7 +604,7 @@ MasterRequestBox::MasterRequestBox(Interface3D* ui, std::string_view titleKey, c
     bar->texture = nullptr;
     bar->flags |= FigureMeshFlag::Flat;
     bar->flatColour = kBarColour;
-    link.out.BufferWrite(&extra, sizeof(extra));
+    link.out.Put(extra);
 }
 
 void MasterRequestBox::Update() {

@@ -294,7 +294,6 @@ void WriteMapFile(const char* name, GameBuffer* buffer) {
         std::string path = MapsFolder() + name;
         file.Open(path, platform::FileMode::Create);
     }
-    if (buffer->cur > buffer->high) buffer->high = buffer->cur;
-    file.Write(buffer->begin, static_cast<std::uint32_t>(buffer->base + (buffer->high - buffer->begin)));
+    file.Write(buffer->begin, static_cast<std::uint32_t>(buffer->Size()));
     file.Close();
 }

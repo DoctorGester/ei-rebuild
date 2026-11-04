@@ -204,21 +204,9 @@ void ClientOnFileChunk(ClientSession* self, FileChunkMessage* message) {
         // carry the same chunk's data: any sort writes the same bytes.
         std::sort(chunks.begin(), chunks.end(),
                   [](const FileChunkMessage* a, const FileChunkMessage* b) { return a->index < b->index; });
-        for (auto& chunk : chunks) {
-            const std::uint8_t* data = chunk->data;
-            if (buffer.cur + FileChunkMessage::kDataSize <= buffer.end) {
-                buffer.flags |= 1;
-                std::memcpy(buffer.cur, data, FileChunkMessage::kDataSize);
-                buffer.cur += FileChunkMessage::kDataSize;
-            } else {
-                buffer.WriteMore(data, FileChunkMessage::kDataSize);
-            }
-        }
+        for (auto& chunk : chunks) buffer.Put(chunk->data);
         // The buffer rewound and its written length set to the file's (the last chunk is padded).
-        buffer.cur = buffer.begin;
-        const std::int32_t size = file->size;
-        buffer.high = buffer.begin + size;
-        if (buffer.high > buffer.end) buffer.Grow(static_cast<std::uint32_t>(size));
+        buffer.SetSize(static_cast<std::uint32_t>(file->size));
         WriteMapFile(file->name.data(), &buffer);
         DropRequestsFor(self, file);
     }

@@ -177,18 +177,12 @@ void ClientSession::OnJoined() { g_gameFlow.BeginMultiplayerGame(); }
 // `begin`) over the dword at its start (1 when 0), both as signed integers; 0 for fewer than 4 bytes. Reading
 // the dword moves the read position to 4 (a Seek(0), then a 4-byte read as BufferRead does it).
 float ClientSession::BufferRatio(GameBuffer* buffer) {
-    auto streamSize = [buffer] {
-        if (buffer->cur > buffer->high) buffer->high = buffer->cur;
-        return buffer->PositionOf(buffer->high);
-    };
-    if (streamSize() < 4) {
-        return 0.0f;
-    }
+    if (buffer->Size() < 4) return 0.0f;
     buffer->Seek(0);
     std::uint32_t stored;
-    buffer->ReadBytes(&stored, 4);
+    buffer->Get(stored);
     std::int32_t divisor = stored != 0 ? static_cast<std::int32_t>(stored) : 1;
-    return static_cast<float>(streamSize() / divisor);
+    return static_cast<float>(buffer->Size() / divisor);
 }
 
 } // namespace net
