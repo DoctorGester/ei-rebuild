@@ -9,12 +9,13 @@ int RunMathsChecks();          // maths.cpp: lib/maths.h where the systems' floa
 int RunSavePictureChecks();    // save_picture.cpp: the save pictures and their QOI codec
 int RunAudioMixChecks();       // audio_mix.cpp: src/audio's mixer on an offline output
 int RunDisplaySizesChecks();   // display_sizes.cpp: the resolution row's sizes from a display's modes
+int RunBoundedTextChecks();    // bounded_text.cpp: str::BoundedLength and str::CopyInto
 
 int main() {
     std::setvbuf(stdout, nullptr, _IONBF, 0);   // what was printed survives a crashing check
     const int failures = RunSettingsFileChecks() + RunHashMapChecks() + RunIniFileChecks() + RunIpv4Checks() +
                          RunMathsChecks() + RunSavePictureChecks() + RunAudioMixChecks() +
-                         RunDisplaySizesChecks();
+                         RunDisplaySizesChecks() + RunBoundedTextChecks();
     std::printf("ei_unit_check: %d problems\n", failures);
     return failures ? 1 : 0;
 }
