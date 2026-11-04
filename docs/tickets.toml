@@ -7426,6 +7426,20 @@ depends = ["R17c1"]
 note = "From R17c1 (not done there): on Rebirth's zone1 at 1440x1080 lookat cannot aim the camera. Calibration (minimap clicks with 60 frames between, groundview after each): the hero starts at about (42, 138) near the map's west edge with the camera turned 90 degrees (screen right = world +y), the minimap's circle centre is about layout (701, 72) and north-up, but clicks move the camera erratically (20 px right: +48 x; 20 px left and up: nothing; the camera turns again after a click), so the 'rebirth minimap 726 80.6 3.75 2.7' numbers (made at 800x600) do not hold at 1440x1080 and the swamp views land at the map's edge. Wanted: a harness step that places the camera at a map point directly (camera.cpp's target / view, no minimap), then Rebirth's own swamp coordinates in render_water_looks (find them from the map's water materials: WaterKind 1). Also confirm R17c's note: where a swamp meets the sea the ground's swamp-depth attribute blends with -1 under the water (hidden by the opaque water?)."
 
 [[ticket]]
+id = "R53"
+title = "Rain: the falling rain is not seen, and the drops on the water read as bright dots"
+group = "renderer"
+model = "opus"
+note = "User 2026-11-04, playing in rain: no visible rain streaks, and the rain on the water looks funky, just bright dots appearing on the water. (1) The streaks: weather_particles.cpp draws rain through render::TlDraw; renderer.md section 12 'Weather' says the original never writes the rain's vertex colours or packet w (what the buffer held stays). Find why nothing shows on the SDL_GPU renderer (alpha 0 from stale/zeroed colours, fog, the depth test, the texture frames, the draw order against the water) and make the rain visible as streaks, as in the original under dgVoodoo (compare a frame of the original game if needed, never writing to F:\\games). (2) The water: rain_rings in terrain.hlsl (renderer.md 11b, 'Rings and splashes') adds rings to the ripples and splashes lit like the foam; on the water the splashes read as isolated bright dots. Make drops on water read as rain: rings that show, splashes smaller/softer and not brighter than the lit water, density by the rain's strength. Captures before/after (zone 1 a minute into rain: ground, water, units) for the captures page; a harness check that rain particles cover some share of the frame in rain. Goldens hold no frames."
+
+[[ticket]]
+id = "R53a"
+title = "Weather on the figures in the interface previews"
+group = "renderer"
+model = "sonnet"
+note = "User 2026-11-04: the units' rain/snow look (R17c2, mesh.hlsl weathered_unit) does not show on the figure in the HUD unit panel. Interface figure draws (NoEdgeFade: HUD panel, camp and hero-screen previews, UiModel) get no MeshFsParams::weather. Give the HUD unit panel's draw of a world unit the same weather as the unit in the world (it is the same unit, out in the rain); the camp and hero-screen previews stay dry (indoors / not in the world). After R17c3 (per-unit wetness) take that unit's own value. Check: a capture of the panel in rain."
+
+[[ticket]]
 id = "C30e16"
 group = "cleanup"
 title = "One exact PC24 helper: lib::RoundedSum / RoundedProduct folded into pc24"
