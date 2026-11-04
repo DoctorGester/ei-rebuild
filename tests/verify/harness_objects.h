@@ -33,7 +33,7 @@ inline void* HarnessQueuedWindow() { return ei::verify::image::QueuedWindow(); }
 inline bool HarnessCloseAllPending() { return ei::verify::image::CloseAllPending(); }
 inline bool HarnessScreenFade(bool* running, float* alpha) { return ei::verify::image::ScreenFade(running, alpha); }
 
-// The server world's campaign mode: its session kind, which GameFlow::StartZone sets.
+// The server world's campaign mode: its ZoneMode as a number, which GameFlow::StartZone sets.
 inline int HarnessCampaignMode() { return ei::verify::image::CampaignMode(); }
 
 // The client world (for the game's picks; null-checked by them).

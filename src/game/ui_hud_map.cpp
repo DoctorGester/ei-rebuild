@@ -360,8 +360,7 @@ void HudMap::UpdateView() {
     }
     float angle = lib::Atan2(-facing.x, -facing.y);
     Vector3 up = {0.0f, 0.0f, 1.0f};
-    Quaternion turn;
-    turn.SetAxisAngle(up, angle);
+    Quaternion turn = Quaternion::AxisAngle(up, angle);
     sceneObjects[10]->localRotation = turn;
 
     auto* area = sceneObjects[1];

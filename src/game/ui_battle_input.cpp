@@ -23,7 +23,6 @@
 #include "unit_client_models.h"
 #include "unit_db.h"
 #include "world.h"
-#include "world_glue.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/str.h"
@@ -644,15 +643,14 @@ void BattleScreen::ToggleMember(int index) {
         auto* currentPortraits = portraits;
         std::uint32_t value = chosen[i];
         currentPortraits->sceneObjects[i * 5 + 4]->visible = value != 0;
-        Quaternion turn;
-        const Quaternion* rest = &kHudRestRotation;
+        Quaternion rest = kHudRestRotation;
         if (value != 0) {
             const Vector3 axis = {-1.0f, 0.0f, 0.0f};
             const float angle = kHudQuarterTurn *
                                 0.14285715f;   // 1/7
-            rest = turn.SetAxisAngle(axis, angle);
+            rest = Quaternion::AxisAngle(axis, angle);
         }
-        currentPortraits->slots[i].restB = *rest;
+        currentPortraits->slots[i].restB = rest;
         Unit* member = unitAt(i);
         if (member && chosen[i] != 0) {
             g_clientWorld.Select(member);
@@ -662,7 +660,7 @@ void BattleScreen::ToggleMember(int index) {
 
     // Single player: the local player's unit records (0x784 bytes, +0x1C the unit id) keep the
     // members' selection, record i against member i.
-    if (g_serverWorld.gameResult == 1) {
+    if (g_serverWorld.gameState == GameState::Playing) {
         if (auto* player = g_serverWorld.GetPlayer(0)) {
             for (int i = 0; i < std::ssize(player->GetParty()->members); ++i) {
                 if (i >= std::ssize(*currentParty)) continue;

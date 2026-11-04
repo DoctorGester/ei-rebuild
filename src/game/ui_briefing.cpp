@@ -21,7 +21,8 @@
 #include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
-#include "world_glue.h"
+#include "sound.h"
+#include "terrain.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/intro_sort.h"
@@ -49,8 +50,8 @@ constexpr int kTopicNameParts = 3;
 
 void BriefingScreen::CloseScreen() {
     options::g_options.borderFogDistance = savedEdgeFade;
-    GameStopSounds(1);
-    GameStopAmbience();
+    g_clientWorld.sounds->StopAll(true);
+    g_clientWorld.terrain->StopAmbience();
     std::uint32_t& cameraFlags = g_camera.flags;
     cameraFlags = (cameraFlags & ~(Camera::kBounded | Camera::kAlternate)) | Camera::kFree;
 }
@@ -58,7 +59,7 @@ void BriefingScreen::CloseScreen() {
 void BriefingScreen::MessageResult(std::uint32_t result) {
     switch (result) {
     case kLeaveZoneYes:
-        GameLeaveThroughExit(exit);
+        g_gameFlow.LeaveThroughExit(exit);
         break;
     case kGameOverLoad: {
         ui->PushWindow(new SaveLoadWindow(ui, false, false), WindowBackdrop::FirstWindow);
@@ -337,8 +338,7 @@ void BriefingScreen::ShowItem(std::string_view name, int index) {
     CopyImage(texture, image, 0x40, 0x40, 0x40, 0x40, 0, 0xC0);
     item->texture = texture;
     item->Place(x, y, kItemDepth);
-    Quaternion turn;
-    turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, kTurnedOver);
+    Quaternion turn = Quaternion::AxisAngle(Vector3{1.0f, 0.0f, 0.0f}, kTurnedOver);
     item->localRotation = turn;
 
     shown.insert(shown.begin(), BriefingShownItem{std::string(name), item, back, frame});

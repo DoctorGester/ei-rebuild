@@ -3,10 +3,8 @@
 #include "app.h"
 #include "console.h"
 #include "player_client.h"
-#include "world_glue.h"
 #include "sound.h"
 #include "ui_cursor.h"
-#include "dx_errors.h"
 #include "game_strings.h"
 #include "present_window.h"
 #include "asset_text.h"
@@ -103,10 +101,6 @@ bool IsInput(const platform::Event& event) {
 }
 
 void MenuOpen(void* flow) { static_cast<GameFlow*>(flow)->ProcessRequest(); }
-
-int g_fatalErrorCount = /*007A9B9C*/ {};
-
-const char* CodeReportFormat() { return "%s (0x%.8X) %s"; }
 
 void OnKey(Interface3D* input, const platform::Event& event) {
     if (event.type == EventType::KeyDown) {
@@ -231,11 +225,11 @@ int StartFirstMap() {
     WorldServer* world = &g_serverWorld;
     if (!world->NewZone(map, cmdMode, std::nullopt))
         return game::FatalError("Can't load map \"%s\".\n", map);
-    world->SetGameResult(1);
+    world->SetGameState(GameState::Playing);
     WorldClient* client = &g_clientWorld;
     client->SetPlayer(g_serverWorld.worldHandle.Get());
     client->LocalView()->sendParty = 0;
-    g_serverWorld.sessionKind = 7;
+    g_serverWorld.zoneMode = ZoneMode::Script;
     if (cmdScript.size() == 0) return 1;
     Script* script = TheMissionScript();
     bool loaded;
@@ -266,39 +260,18 @@ void ShowLibraryMessageBox(const char* text) {
 
 } // namespace app
 
-// Formats the error (1 KB), shows it in a message box and exits the
-// game (exit(-1); the error counter reaches 1). Rebirth's DisableExitOnCrashReport replaces the message box
-// with a line in addon.log (not reproduced) and removes the exit, so the game carries on. Returns 0.
+// Formats the error (1 KB), shows it in a message box and exits the game (exit(-1)). Rebirth's
+// DisableExitOnCrashReport replaces the message box with a line in addon.log (not reproduced) and removes the exit,
+// so the game carries on. Returns 0.
 int game::FatalError(const char* format, ...) {
     char text[0x400];
     va_list args;
     va_start(args, format);
     std::vsnprintf(text, sizeof(text), format, args);
     va_end(args);
-    bool carryOn = ei::rebirth::Enabled(ei::rebirth::Patch::DisableExitOnCrashReport);
-    if (!carryOn) app::ShowMessageBox(text);
-    if (++app::g_fatalErrorCount >= 1 && !carryOn) std::exit(-1);
+    if (!ei::rebirth::Enabled(ei::rebirth::Patch::DisableExitOnCrashReport)) {
+        app::ShowMessageBox(text);
+        std::exit(-1);
+    }
     return 0;
 }
-
-namespace app {
-
-// ---- FatalErrorCode -----------------------------------------------------------------
-
-int FatalErrorCodeV(long result, const char* format, va_list args) {
-    const std::string text = str::FormatV(format, args);
-    const std::string report = str::Format(CodeReportFormat(), text.c_str(), result, DirectXErrorText(result));
-    ShowMessageBox(report.c_str());
-    if (++g_fatalErrorCount >= 1) std::exit(-1);
-    return 0;
-}
-
-int FatalErrorCode(long result, const char* format, ...) {
-    va_list args;
-    va_start(args, format);
-    int value = FatalErrorCodeV(result, format, args);
-    va_end(args);
-    return value;
-}
-
-} // namespace app

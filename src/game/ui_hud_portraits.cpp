@@ -80,8 +80,7 @@ float RandomTilt(std::uint32_t r) {
 
 Quaternion AxisAngle(float x, float y, float z, float angle) {
     Vector3 axis = {x, y, z};
-    Quaternion q;
-    q.SetAxisAngle(axis, angle);
+    Quaternion q = Quaternion::AxisAngle(axis, angle);
     return q;
 }
 
@@ -334,8 +333,7 @@ void HudPortraits::AddPortrait(const std::string& model, std::string_view pictur
     if (face) {
         face->Place((x + right) * 0.5f, 548.0f, 7.0f);
         face->SetScale(width < 0x32 ? 0.22f : 0.3f);
-        Quaternion turn;
-        slots[count].restA = *turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, kPi);
+        slots[count].restA = Quaternion::AxisAngle(Vector3{1.0f, 0.0f, 0.0f}, kPi);
         face->localRotation = slots[count].restA;
     } else {
         face = AddBlankSprite();
@@ -416,8 +414,7 @@ void HudPortraits::Rebuild(bool wide) {
 
         if (owner->party[i]->flags & MapObjectFlag::Selected) {
             sceneObjects[i * 5 + 4]->visible = true;
-            Quaternion turn;
-            slots[i].restB = *turn.SetAxisAngle(Vector3{-1.0f, 0.0f, 0.0f}, kHudQuarterTurn * kSeventh);
+            slots[i].restB = Quaternion::AxisAngle(Vector3{-1.0f, 0.0f, 0.0f}, kHudQuarterTurn * kSeventh);
         }
         slots[i].flash = 0.0f;
         slots[i].lastHitPoints = owner->party[i]->packedVitals.hitPoints;

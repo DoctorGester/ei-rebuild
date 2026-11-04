@@ -41,7 +41,6 @@ constexpr float kAngularSpeed = 0.2f;         // radians per frame
 constexpr float kCircleStartHeight = 30.0f;
 constexpr float kAngleOffset = 1.5f;
 constexpr float kPerchSearchRadius = 50.0f;
-constexpr float kHalfPi = 1.5707964f;         // pi * 0.5, set at startup
 constexpr float kClearance = 0.5f;            // above the ground, the sight threshold, height step
 // The flight speed per frame: sqrt(distance to the followed object) * 0.03 + 0.3.
 constexpr float kSpeedFactor = 0.03f;

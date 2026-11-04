@@ -22,16 +22,27 @@ namespace platform { class File; }
 
 namespace console {
 
+// The message categories: one bit each, shown when the "filter" command has it on. The console itself (0) is always
+// shown; kLogAll is every category's bit.
+enum LogCategory : unsigned {
+    kLogConsole = 0,
+    kLogAi = 1,
+    kLogEvent = 2,
+    kLogGraphics = 4,
+    kLogRpg = 8,
+    kLogUnitAcks = 0x10,
+    kLogNet = 0x20,
+    kLogAll = 0xFFFFFFFF,
+};
 
-// The console's streambuf (eight static instances, one per message filter: 0 the console itself, then
-// ai 1, event 2, graphics 4, rpg 8, unitacks 0x10, net 0x20, all -1). Characters collect in the put
+// The console's streambuf (eight static instances, one per message category). Characters collect in the put
 // area (buffer) and move into line on overflow; sync hands the line to the console window.
 // MSVC 6's streambuf as the console's used it: the put area is set up by the first overflow while the
 // category is shown; a hidden category's overflow leaves it as it is (what it holds shows with the next
 // line once the category is shown again).
 class ConsoleStreambuf {
 public:
-    explicit ConsoleStreambuf(unsigned filter);
+    explicit ConsoleStreambuf(LogCategory category);
     ConsoleStreambuf(const ConsoleStreambuf&) = delete;
     ConsoleStreambuf& operator=(const ConsoleStreambuf&) = delete;
 
@@ -44,7 +55,7 @@ private:
     // Moves the put area (and `c`, unless EOF) into the line when this streambuf's category is shown.
     void Overflow(int c);
 
-    unsigned filter;           // message category; 0 = always shown
+    LogCategory category;      // kLogConsole: always shown
     std::string line;
     std::size_t putEnd = 0;    // the put area's size: 0 until the first overflow while shown
     std::size_t putNext = 0;   // characters in the put area
@@ -107,6 +118,9 @@ public:
     ConsoleWindow(const ConsoleWindow&) = delete;
     ConsoleWindow& operator=(const ConsoleWindow&) = delete;
     void SetRect(const Rect* rect);   // 800x600 coordinates
+    void OnResize();                  // the rectangle, font and metrics again for the new screen size
+    int Px(int layoutPixels) const;   // a size of the 800x600 layout in screen pixels (text and strips scale with the window)
+    void SetScale();                  // scale and font from the screen layout
     void SetHistory(int lines);
     void AddText(std::string_view text);  // continues the last line; '\n' starts a new one
     // Drawing and input:
@@ -136,6 +150,8 @@ public:
     int height;                      // pixels, at least 69
     Rect rect;                       // the window in 800x600 coordinates (after clamping)
     Rect screenRect;                 // the window in pixels
+    Rect requestedRect;              // the window as last asked for (800x600 coordinates, before clamping)
+    float scale;                     // screen pixels per layout pixel
     std::vector<std::string> lines;
     int history;                     // lines kept
     int visibleLines;
@@ -144,21 +160,16 @@ public:
     bool shift;                      // Shift held (0x10): the selection grows
     bool shown;
 };
-using CommandHandler = void(*)(std::vector<std::string>* args);
+using CommandArgs = std::vector<std::string>;
+using CommandHandler = void(*)(const CommandArgs& args);
 
 // Keys compared by _mbscmp. Kept as an alias: the spelled-out map type is 50 characters and named at ten sites.
 using CommandMap = std::map<std::string, CommandHandler, str::MbsLess>;
 
-// The handler slot for `key`, inserted with a null handler if missing.
-CommandHandler& Command(CommandMap* map, const std::string& key);
 // The handler for `key`, or null (nothing inserted).
 CommandHandler FindCommand(const CommandMap& map, const std::string& key);
 
-// The commands always available and those after the cheat word.
-extern CommandMap g_publicCommands;
-extern CommandMap g_cheatCommands;
-
-// The registrations the executor makes on every call, in its order: map, name, handler.
+// A command: the map it goes in (those after the cheat word, or those always available), its name and handler.
 struct CommandRegistration {
     bool cheat;
     const char* name;
@@ -167,12 +178,9 @@ struct CommandRegistration {
 extern const CommandRegistration kCommandRegistrations[25];
 
 void Execute(const std::string& text);
-// Rebirth's console additions. AddNewConsoleCommands: the executor registers
-// addon's commands on every call; the battle screen's drawing applies "nogui" to its panels.
+// Rebirth's console additions. AddNewConsoleCommands: the commands registered after the game's ("help" replaces the
+// game's, which addon's own "help" calls first); the battle screen's drawing applies "nogui" to its panels.
 // AutoExec: the "Console AutoExec" lines, run before three of the game's console executions.
-void RegisterAddonCommands();
-// What RegisterAddonCommands puts in the maps, in its order ("help" replaces the game's, which
-// addon's own "help" calls first).
 extern const CommandRegistration kAddonCommandRegistrations[6];
 void ApplyAddonGuiVisibility(UiContainer* screen);
 void RunAddonAutoExec();
@@ -183,30 +191,30 @@ std::vector<std::string> Tokenize(std::string_view text);
 void RunScriptLine(const std::string& text, const std::vector<std::string>& args, const char* prefix, const char* suffix);
 
 namespace commands {
-void Help(std::vector<std::string>* args);
-void ConsolePos(std::vector<std::string>* args);    // console
-void History(std::vector<std::string>* args);
-void Filter(std::vector<std::string>* args);
-void ListVar(std::vector<std::string>* args);
-void LoadVar(std::vector<std::string>* args);
-void LastFps(std::vector<std::string>* args);
-void Exec(std::vector<std::string>* args);          // exec, execute
-void Give(std::vector<std::string>* args);
-void LootAll(std::vector<std::string>* args);
-void Join(std::vector<std::string>* args);
-void HostServer(std::vector<std::string>* args);    // server
-void MemUsage(std::vector<std::string>* args);
-void Disconnect(std::vector<std::string>* args);
-void FadeOut(std::vector<std::string>* args);
-void Net(std::vector<std::string>* args);
-void GenerateAcks(std::vector<std::string>* args);
-void Days(std::vector<std::string>* args);
-void PartyResend(std::vector<std::string>* args);
-void Kick(std::vector<std::string>* args);
-void Ban(std::vector<std::string>* args);
-void Fps(std::vector<std::string>* args);
-void Rate(std::vector<std::string>* args);
-void LocalRate(std::vector<std::string>* args);
+void Help(const CommandArgs& args);
+void ConsolePos(const CommandArgs& args);    // console
+void History(const CommandArgs& args);
+void Filter(const CommandArgs& args);
+void ListVar(const CommandArgs& args);
+void LoadVar(const CommandArgs& args);
+void LastFps(const CommandArgs& args);
+void Exec(const CommandArgs& args);          // exec, execute
+void Give(const CommandArgs& args);
+void LootAll(const CommandArgs& args);
+void Join(const CommandArgs& args);
+void HostServer(const CommandArgs& args);    // server
+void MemUsage(const CommandArgs& args);
+void Disconnect(const CommandArgs& args);
+void FadeOut(const CommandArgs& args);
+void Net(const CommandArgs& args);
+void GenerateAcks(const CommandArgs& args);
+void Days(const CommandArgs& args);
+void PartyResend(const CommandArgs& args);
+void Kick(const CommandArgs& args);
+void Ban(const CommandArgs& args);
+void Fps(const CommandArgs& args);
+void Rate(const CommandArgs& args);
+void LocalRate(const CommandArgs& args);
 // generateacks' lines for a speech list / an environment speech list (a null list writes nothing).
 void WriteSpeechLines(platform::File* file, const acks::Speeches* list);
 void WriteEnvironmentSpeechLines(platform::File* file, const acks::EnvironmentSpeeches* list);

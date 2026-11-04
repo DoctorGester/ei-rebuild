@@ -27,7 +27,7 @@ constexpr float kShakeRange = 20.0f;
 constexpr float kShakeFull = 8.0f;
 constexpr float kShakeTicks = 30.0f;
 constexpr float kAxisTiny = 1e-8f;
-
+constexpr float kZoomStep = 1.05f;
 
 // Branch-free clamp of a map coordinate to [0, last - 1]: NaN becomes 0, and a NaN limit wins.
 float ClampToMap(float v, float last) {
@@ -38,19 +38,19 @@ float ClampToMap(float v, float last) {
 
 // Moves `rate` towards `target` by (target - rate) * response * dt; snaps to the target when the
 // step is tiny or the rate's magnitude passes the target's.
-void Approach(float* rate, const float* target, float response, float dt) {
-    float step = (*target - *rate) * response;
+void Approach(float& rate, float target, float response, float dt) {
+    float step = (target - rate) * response;
     if (AbsBits(step) < 0.001f) {
-        *rate = *target;
+        rate = target;
         return;
     }
-    float before = *rate * *rate;
-    float after = step * dt + *rate;
-    *rate = after;
+    float before = rate * rate;
+    float after = step * dt + rate;
+    rate = after;
     float after2 = after * after;
-    float target2 = *target * *target;
+    float target2 = target * target;
     if ((before < target2 && after2 > target2) || (before > target2 && after2 < target2))
-        *rate = *target;
+        rate = target;
 }
 
 // ---- The drawn view (camera::DrawnView; docs/notes/renderer.md section 14) -----------------------
@@ -196,42 +196,41 @@ TerrainSample SampleTerrain(const Vector3& p, float step, float halfX, float hal
     return sample;
 }
 
-int Camera::PlaybackStart() {
-    if (keys.empty()) return 0;
+bool Camera::PlaybackStart() {
+    if (keys.empty()) return false;
     camera::ForgetViewStep();
     localPosition = keys[0].position;
     localRotation = keys[0].rotation;
-    return 1;
+    return true;
 }
 
-int Camera::PlaybackStep(float time) {
-    if (!(flags & kPlaying) || keys.empty()) return 0;
-    const CameraKey* newKeys = keys.data();
-    if (keyIndex >= std::ssize(keys) - 1) {
-        localPosition = newKeys[std::ssize(keys) - 1].position;
-        localRotation = newKeys[std::ssize(keys) - 1].rotation;
-        return 0;
+void Camera::PlaybackStep(float time) {
+    if (!(flags & kPlaying) || keys.empty()) return;
+    const std::ptrdiff_t last = std::ssize(keys) - 1;
+    if (keyIndex >= last) {
+        localPosition = keys[last].position;
+        localRotation = keys[last].rotation;
+        return;
     }
-    float next = newKeys[keyIndex + 1].time + timeOffset;
+    float next = keys[keyIndex + 1].time + timeOffset;
     while (time > next) {
         ++keyIndex;
-        if (keyIndex >= std::ssize(keys) - 1) {
-            localPosition = newKeys[std::ssize(keys) - 1].position;
-            localRotation = newKeys[std::ssize(keys) - 1].rotation;
+        if (keyIndex >= last) {
+            localPosition = keys[last].position;
+            localRotation = keys[last].rotation;
             flags &= ~kPlaying;
-            return 0;
+            return;
         }
-        next = newKeys[keyIndex + 1].time + timeOffset;
+        next = keys[keyIndex + 1].time + timeOffset;
     }
-    const CameraKey& a = newKeys[keyIndex];
-    const CameraKey& b = (&a)[1];
+    const CameraKey& a = keys[keyIndex];
+    const CameraKey& b = keys[keyIndex + 1];
     float start = a.time + timeOffset;
     float span = next - start;
     float u = 0.0f;
     if (span != 0.0f) u = (time - start) / span;
     localPosition = Lerp(a.position, b.position, u);
     localRotation.Slerp(u, a.rotation, b.rotation);
-    return 1;
 }
 
 void Camera::Pan(const Vector3& direction) {
@@ -251,15 +250,12 @@ void Camera::Pan(const Vector3& direction) {
 void Camera::StopMotion() {
     Vector3 right = localRotation.AxisX();
     Vector3 up = localRotation.AxisY();
-    // Multiplies by 0 (keeping NaN and -0), so the zero is read from memory.
-    const float zero = CAM_ZERO;
+    // Multiplies by 0 (keeping NaN and -0).
+    const float zero = 0.0f;
     panTarget = WithZ(XY(right) * zero + XY(up) * zero, 0.0f);
-    // SetTiltRate(0) / SetTurnRate(0) inlined: a rate is replaced when its magnitude is below the
-    // target's (never, for 0; a NaN rate is replaced).
+    // The rates stay: a rate is replaced by a target of 0 only when its magnitude is below 0 (never).
     tiltTarget = 0.0f;
-    if (std::fabs(tiltRate) < std::fabs(tiltTarget)) tiltRate = tiltTarget;
     turnTarget = 0.0f;
-    if (std::fabs(turnRate) < std::fabs(turnTarget)) turnRate = turnTarget;
     zoomTarget = 0.0f;
 }
 
@@ -274,30 +270,24 @@ void Camera::SetFocus(const Vector3& p) {
 void Camera::ApplyView() {
     localRotation = viewRotation;
     Vector3 right = localRotation.AxisX();
-    Quaternion tilt;
-    tilt.SetAngleAxis(-(CAM_RIGHT_ANGLE + pitch), right);
-    localRotation.PreMultiply(tilt);
+    localRotation.PreMultiply(Quaternion::AxisAngle(right, -(camera::kRightAngle + pitch)));
     Vector3 forward = localRotation.AxisZ();
     localPosition = focus - forward * distance;
-    float before;
-    before = localPosition.z;
+    const float before = localPosition.z;
     ClampAboveObjects();
     if (before >= localPosition.z) return;
     // Lifted over an object: aim back down at the focus.
     float dz = localPosition.z - focus.z;
     float across = lib::Hypot(localPosition.x - focus.x, localPosition.y - focus.y);
-    const float tiltAngle = -(CAM_RIGHT_ANGLE + lib::Atan2(dz, across));
+    const float tiltAngle = -(camera::kRightAngle + lib::Atan2(dz, across));
     localRotation = viewRotation;
     const Quaternion s = localRotation;
     const Vector3 axis = s.AxisX();
-    Quaternion q;
-    q.SetAngleAxis(tiltAngle, axis);
-    localRotation = q * s;
+    localRotation = Quaternion::AxisAngle(axis, tiltAngle) * s;
 }
 
 void Camera::Update(float dt) {
-    Vector3 listener;
-    listener = localPosition;
+    Vector3 listener = localPosition;
     if (!(flags & kPlaced)) {
         listener = focus;
         if (g_clientWorld.terrain) listener.z = g_clientWorld.RawSurfaceHeightAt(focus.x, focus.y) + focusHeight;
@@ -310,11 +300,9 @@ void Camera::Update(float dt) {
     if (flags & kFollowing) {
         if (target) {
             // Behind the target, looking along its heading.
-            const TransformObject* t = target;
-            const Object3D* body = target;
-            float lift = body->bounds.boxMax.z + body->bounds.center.z;
-            localPosition = {t->localPosition.x, t->localPosition.y, lift + t->localPosition.z};
-            Vector3 side = t->localRotation.AxisY();
+            float lift = target->bounds.boxMax.z + target->bounds.center.z;
+            localPosition = {target->localPosition.x, target->localPosition.y, lift + target->localPosition.z};
+            Vector3 side = target->localRotation.AxisY();
             float nx = -side.x;
             Vector3 dir;
             dir.y = -side.y;
@@ -328,9 +316,8 @@ void Camera::Update(float dt) {
         }
     } else if (target) {
         // Drift the focus a fifth of the way to the tracked object.
-        const TransformObject* t = target;
-        float dx = t->localPosition.x - focus.x;
-        float dy = t->localPosition.y - focus.y;
+        float dx = target->localPosition.x - focus.x;
+        float dy = target->localPosition.y - focus.y;
         float width = g_clientWorld.terrain->width;
         focus.x = ClampToMap(dx * kTrackGain + focus.x, width);
         float height = g_clientWorld.terrain->height;
@@ -387,32 +374,28 @@ void Camera::Update(float dt) {
     // The focus height follows the target's or the ground's, a tenth of the way per call.
     const TerrainSample terrain = SampleTerrain(focus, options::g_options.cameraTerrainArea * 0.5f,
                                                 options::g_options.cameraTerrainArea, options::g_options.cameraTerrainArea);
-    const Object3D* body = target;
-    float ground = target ? body->localPosition.z : terrain.average;
+    float ground = target ? target->localPosition.z : terrain.average;
     focus.z = ((ground + focusHeight) - focus.z) * kHeightLag + focus.z;
 
     // Tilt (pitch in degrees, clamped to the settings' range).
-    Approach(&tiltRate, &tiltTarget, tiltResponse, dt);
+    Approach(tiltRate, tiltTarget, tiltResponse, dt);
     if (tiltRate != 0.0f) {
         float newPitch = dt * tiltRate + pitch;
         pitch = newPitch;
         bool alternate = (flags & kAlternate) != 0;
-        float most = (alternate ? settings->briefingMaxPitch : settings->cameraDefaultMaxPitch) * CAM_DEGREE;
+        float most = (alternate ? settings->briefingMaxPitch : settings->cameraDefaultMaxPitch) * ei::kRadiansPerDegree;
         if (newPitch > most) pitch = most;
-        float least = (alternate ? settings->briefingMinPitch : settings->cameraDefaultMinPitch) * CAM_DEGREE;
+        float least = (alternate ? settings->briefingMinPitch : settings->cameraDefaultMinPitch) * ei::kRadiansPerDegree;
         if (least > pitch) pitch = least;
     }
 
-    Approach(&turnRate, &turnTarget, turnResponse, dt);
+    Approach(turnRate, turnTarget, turnResponse, dt);
     if (turnRate != 0.0f) {
-        Vector3 up = {0.0f, 0.0f, 1.0f};
-        Quaternion q;
-        q.SetAxisAngle(up, dt * turnRate);
-        viewRotation = q * viewRotation;
+        const Vector3 up = {0.0f, 0.0f, 1.0f};
+        viewRotation = Quaternion::AxisAngle(up, dt * turnRate) * viewRotation;
     }
 
-    float currentZoomTarget = zoomTarget;
-    Approach(&zoomRate, &currentZoomTarget, zoomResponse, dt);
+    Approach(zoomRate, zoomTarget, zoomResponse, dt);
     if (zoomRate != 0.0f) distance = dt * zoomRate + distance;
 
     const CameraLimits limits = Limits();
@@ -430,24 +413,19 @@ void Camera::Update(float dt) {
 
     if (shakes.empty()) return;
     float offset = 0.0f;
-    for (auto node = shakes.begin(); node != shakes.end();) {
-        CameraShake* s = &(*node);
+    for (CameraShake& s : shakes) {
         // The cosine (64 bits) times the exponential, then the amplitude and the sum at 24 bits.
-        float damping = lib::Exp(-(s->decay * s->elapsed));
-        float wave = lib::Cos(camera::kHalfPi * s->elapsed * kShakeFrequency);
-        offset = (wave * damping) * s->amplitude + offset;
-        float elapsed = dt + s->elapsed;
-        s->elapsed = elapsed;
-        if (elapsed >= s->duration)
-            node = shakes.erase(node);
-        else
-            ++node;   // also NaN
+        float damping = lib::Exp(-(s.decay * s.elapsed));
+        float wave = lib::Cos(kHalfPi * s.elapsed * kShakeFrequency);
+        offset = (wave * damping) * s.amplitude + offset;
+        s.elapsed = dt + s.elapsed;
     }
+    std::erase_if(shakes, [](const CameraShake& s) { return s.elapsed >= s.duration; });   // a NaN stays
     localPosition.z = offset + localPosition.z;
 }
 
 void Camera::ZoomBy(float steps) {
-    float d = lib::Pow(CAM_ZOOM_STEP, steps) * distance;
+    float d = lib::Pow(kZoomStep, steps) * distance;
     distance = d;
     if (!settings) return;
     const CameraLimits limits = Limits();
@@ -470,10 +448,7 @@ bool Camera::SaveView(unsigned slot) {
 
 bool Camera::RestoreView(unsigned slot) {
     if (slot >= 8) return false;
-    camera::ForgetViewStep();
-    distance = views[slot].distance;
-    pitch = views[slot].pitch;
-    ResetMotion(this);
+    SetDistancePitch(&views[slot]);
     return true;
 }
 
@@ -522,14 +497,14 @@ void Camera::ViewsFromSettings(const options::GameOptions* gameOptions) {
         v.distance = r.distance;
         v.pitch = r.pitch;
         Vector3 axis = {r.axisX, r.axisY, r.axisZ};
-        v.rotation.FromAxisAngle(axis, r.angle);
+        v.rotation = Quaternion::AxisAngle(axis, r.angle);
     }
 }
 
 void Camera::SetHeading(float angle) {
     camera::ForgetViewStep();
     Vector3 up = {0.0f, 0.0f, 1.0f};
-    viewRotation.FromAxisAngle(up, angle);
+    viewRotation = Quaternion::AxisAngle(up, angle);
     ApplyView();
 }
 
@@ -547,6 +522,37 @@ void Camera::LookFrom(const Vector3& from, const Vector3& to) {
     LookDirection(to.x - from.x, to.y - from.y, to.z - from.z);
 }
 
+void Camera::GroundPoint(Vector3* out) const {
+    const Vector3 axis = localRotation.AxisZ();
+    if (std::fabs(axis.z) > 1e-5f && -(localPosition.z / axis.z) > 0.0f) {
+        *out = axis * -(localPosition.z / axis.z) + localPosition;
+        return;
+    }
+    *out = localPosition;
+}
+
+void Camera::SetTurnRate(float rate) {
+    turnTarget = rate;
+    if (std::fabs(turnRate) < std::fabs(rate)) turnRate = turnTarget;
+}
+
+void Camera::SetTiltRate(float rate) {
+    tiltTarget = rate;
+    if (std::fabs(tiltRate) < std::fabs(rate)) tiltRate = tiltTarget;
+}
+
+void Camera::SetZoomTarget(float value) { zoomTarget = value; }
+
+void Camera::SetTarget(const EngineObject* target) { SetTargetId(target ? target->id : -1); }
+
+void Camera::SetTargetId(int newId) {
+    targetId = newId;
+    if (newId != -1) {
+        panTarget = camera::kZeroVector;
+        panVelocity = camera::kZeroVector;
+    }
+}
+
 void Camera::SetBounds(const Vector3& center, float radius) {
     boundsCenter = center;
     boundsRadius = radius;
@@ -559,10 +565,5 @@ void Camera::Shake(const Vector3& source, float duration, float amplitude, float
     if (newDistance >= kShakeRange) return;
     float strength = amplitude;
     if (newDistance > kShakeFull) strength = (1.0f - (newDistance - kShakeFull) / (kShakeRange - kShakeFull)) * amplitude;
-    CameraShake entry;
-    entry.elapsed = 0.0f;
-    entry.duration = duration * kShakeTicks;
-    entry.amplitude = strength;
-    entry.decay = decay;
-    shakes.push_back(entry);
+    shakes.push_back({0.0f, duration * kShakeTicks, strength, decay});
 }

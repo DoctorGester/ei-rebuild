@@ -15,7 +15,6 @@
 #include "unit_create.h"
 #include "unit_db.h"
 #include "world.h"
-#include "world_glue.h"
 #include "random.h"
 
 #include "lib/containers.h"

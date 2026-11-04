@@ -150,11 +150,6 @@ std::string EnvironmentVariable(const char* name) {
     return value;
 }
 
-void EndProcess(std::uint32_t exitCode) {
-    TerminateProcess(GetCurrentProcess(), exitCode);
-    for (;;) ::Sleep(INFINITE);
-}
-
 } // namespace platform
 
 // ==== Files and folders ==============================================================================================

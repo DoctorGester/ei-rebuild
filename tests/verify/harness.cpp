@@ -1220,14 +1220,14 @@ void HeldCameraUpdate(void* camera, float dt) {
 // A pass's frame step (CL draw, DL cursor): a pair's game ends its turn first, so that it draws while
 // the other game takes its turn (harness_pair.h). Only the main loop's call; the frame steps of modal
 // loops and screens stay inside the turn.
-void HandOffThenFrameStep(bool draw, bool cursor) {
+void HandOffThenFrameStep(bool draw) {
     pair::HandOff();
-    image::FrameStep(draw, cursor);
+    image::FrameStep(draw);
 }
 
 // The main loop's frame step, then the object trace's sample of what it drew (objtrace).
-void TracedFrameStep(bool draw, bool cursor) {
-    image::FrameStep(draw, cursor);
+void TracedFrameStep(bool draw) {
+    image::FrameStep(draw);
     camera_trace::ObjectFrame();
 }
 

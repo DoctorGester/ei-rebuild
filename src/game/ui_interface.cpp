@@ -159,6 +159,7 @@ void Interface3D::Resize(const screen_layout::Layout& before) {
     height = renderer->screen.bottom;
     MakeFonts(fonts, width);
     UiSurface::RelayoutAll(before);
+    if (console) console->OnResize();
     // (A window's LayoutChanged may replace its children, never the stack.)
     for (UiContainer* window : stack) window->LayoutChanged();
     RetakeBackdrops();
@@ -177,13 +178,13 @@ void Interface3D::RetakeBackdrops() {
     if (backdrop) {   // the bottom window greyed, and the save copy (DrawOverlays' mode 1, into mode 2)
         stack.resize(1);
         backdropMode = 1;
-        app::FrameStep(false, true);
+        app::FrameStep(false);
     }
     if (over) {   // the windows under the help window over that (mode 3, into mode 4)
         delete over;
         stack.assign(windows.begin(), windows.begin() + std::min(backdropWindows, windows.size()));
         backdropMode = 3;
-        app::FrameStep(false, true);
+        app::FrameStep(false);
     }
     stack = windows;
 }

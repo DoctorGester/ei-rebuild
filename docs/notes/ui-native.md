@@ -47,7 +47,7 @@ and drawing use one set of metrics.
   `TextExtent` is GetTextExtentPoint32's rule on our advances (summed, no kerning, no prefix or tab handling).
 - `Interface3D::Create` makes `fonts[0..2]` as the original sized them: "Times New Roman" at width x {104, 112, 144} / 800 /
   scale, where the scale is the pixel height of a 75-point font, so the size follows the resolution. With WideScreen the
-  scale's 0.01 becomes width x 0.0075 / height (`screen_layout::FontScale`). The console has its own point font.
+  scale's 0.01 becomes width x 0.0075 / height (`screen_layout::FontScale`). The console has its own point font, at the same scale (`ConsoleWindow::Px`).
 - The text extent feeds word wrap in `DrawWrappedText`, `UiScrollText`'s tokens (sample "W" for each font's height), tooltip
   sizes, the chat (wrap at 780), the message box and the console's prompt width. `DrawTextIn`'s return value (the text's
   height scaled back) and DT_CALCRECT measurements decide layout.

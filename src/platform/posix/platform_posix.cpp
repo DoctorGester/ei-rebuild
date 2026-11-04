@@ -158,8 +158,6 @@ std::string EnvironmentVariable(const char* name) {
     return value ? value : "";
 }
 
-void EndProcess(std::uint32_t code) { std::_Exit(static_cast<int>(code)); }
-
 // As Windows' text (platform_win32.cpp), the system's own words added.
 FileError::FileError(unsigned long code, std::string_view path)
     : std::runtime_error("file error: OS error " + std::to_string(code) + " (" + std::strerror(static_cast<int>(code)) +

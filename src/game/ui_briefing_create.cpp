@@ -22,7 +22,7 @@
 #include "unit_ai.h"
 #include "unit_client_models.h"
 #include "world.h"
-#include "world_glue.h"
+#include "terrain.h"
 
 #include "lib/str.h"
 #include "lib/text_case.h"
@@ -176,7 +176,7 @@ void BriefingScreen::CreateScreen() {
         g_clientWorld.music->PlayBriefing(kDefaultAllod);
         noWalk = false;
     }
-    GameStartAmbience();
+    g_clientWorld.terrain->landscapeFlags |= terrain::LandscapeFlag::Ambience;
     g_serverWorld.SetWeather(0, 0.0f);
 
     // The screen's own input side (its third dword is left as allocated) and the view's.
@@ -332,6 +332,6 @@ void BriefingScreen::LeaveIfExitOpen() {
     records[0] = localParty->members.data();
     if (g_clientWorld.PartyInExit(&records, exit, &second)) {
         app::g_interfaceHasScreen = 0;
-        GameLeaveThroughExit(exit);
+        g_gameFlow.LeaveThroughExit(exit);
     }
 }

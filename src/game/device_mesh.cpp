@@ -14,30 +14,6 @@
 
 namespace {
 
-// A corner's position indexes the projected vertices, its normal the colour and specular arrays (one
-// colour per normal) and its texCoord the texture coordinates.
-// The arguments both draws share (the two-texture draw has the two textures before them).
-struct MeshArgs {
-    const VertexPacket* positions;   // a block of four vertices each
-    int blocks;
-    const NormalPacket* normals;     // blocks of four as the positions
-    int colourCount;              // the colour arrays hold four times this (and so many normal blocks)
-    std::uint32_t* colours;
-    std::uint32_t* speculars;
-    const TexCoord* uvs;
-    int unused10;
-    const MeshCorner* corners;
-    int cornerCount;
-    const std::uint32_t* words;   // the words' address: (position, normal) index pairs, by colour index
-    int wordCount;
-    std::uint16_t* indices;       // into the corners
-    int indexCount;
-    const float* uOffset;         // the arguments themselves (their bits are compared and added)
-    const float* vOffset;
-    int alpha;                    // the low byte, with flag 4
-    int flags;                    // DrawFlag bits
-};
-
 struct Textures {
     Surface* first;
     Surface* second;
@@ -90,9 +66,9 @@ void HandOver(TextureDevice* device, const MeshArgs& args) {
     m.cornerCount = args.cornerCount;
     m.indices = args.indices;
     m.indexCount = args.indexCount;
-    m.moveUv = *args.uOffset != 0.0f || *args.vOffset != 0.0f;
-    m.uOffset = *args.uOffset;
-    m.vOffset = *args.vOffset;
+    m.moveUv = args.uOffset != 0.0f || args.vOffset != 0.0f;
+    m.uOffset = args.uOffset;
+    m.vOffset = args.vOffset;
     // The screen stack (1): the clip-space stack (2, which the clipping draws use) times the
     // viewport mapping, so it also places meshes drawn into a part of the screen (the interface's
     // previews). Both stacks get the same pushes.
@@ -147,26 +123,11 @@ int DrawMesh(TextureDevice* device, const MeshArgs& args, const Textures* textur
 
 } // namespace
 
-int TextureDevice::DrawMeshBlocks(const VertexPacket* positions, int blocks, const NormalPacket* normals,
-                              int colourCount, std::uint32_t* colours, std::uint32_t* speculars, const TexCoord* uvs,
-                              int unused10, const MeshCorner* corners, int cornerCount, const std::uint32_t* words,
-                              int wordCount, std::uint16_t* indices, int indexCount, float uOffset, float vOffset,
-                              int alpha, int flags) {
-    MeshArgs a{positions, blocks, normals, colourCount, colours, speculars, uvs, unused10, corners, cornerCount,
-               words, wordCount, indices, indexCount, &uOffset, &vOffset, alpha, flags};
-    return DrawMesh(this, a, nullptr);
-}
+int TextureDevice::DrawMeshBlocks(const MeshArgs& args) { return DrawMesh(this, args, nullptr); }
 
-int TextureDevice::DrawMeshBlocks2(Surface* firstTexture, Surface* secondTexture,
-                               const VertexPacket* positions, int blocks, const NormalPacket* normals, int colourCount,
-                               std::uint32_t* colours, std::uint32_t* speculars, const TexCoord* uvs, int unused10,
-                               const MeshCorner* corners, int cornerCount, const std::uint32_t* words, int wordCount,
-                               std::uint16_t* indices, int indexCount, float uOffset, float vOffset, int alpha,
-                               int flags) {
-    MeshArgs a{positions, blocks, normals, colourCount, colours, speculars, uvs, unused10, corners, cornerCount,
-               words, wordCount, indices, indexCount, &uOffset, &vOffset, alpha, flags};
+int TextureDevice::DrawMeshBlocks2(Surface* firstTexture, Surface* secondTexture, const MeshArgs& args) {
     Textures textures{firstTexture, secondTexture};
-    return DrawMesh(this, a, &textures);
+    return DrawMesh(this, args, &textures);
 }
 
 // --- Device object -----------------------------------------------------------------------------------

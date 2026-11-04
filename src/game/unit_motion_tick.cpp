@@ -266,7 +266,7 @@ void Exhaustion(UnitServer* c) {
     if (unit->obstacle == 0) return;
     if (c->moveMode.mode != 2 || c->moveMode2.mode != 2) return;
     Player* player = unit->player;
-    if (c->moveMode.wasMode3 && player && player->godMode == 0 && g_serverWorld.sessionKind != 3) {
+    if (c->moveMode.wasMode3 && player && player->godMode == 0 && g_serverWorld.zoneMode != ZoneMode::Base) {
         UnitVitals& vitals = unit->ServerCompanion()->vitals;
         float* stamina = &vitals.mana;
         const float* rate = &vitals.maxMana;

@@ -45,24 +45,17 @@ struct PartDraw {
     float v;
     int flags;
 
-    // TextureDevice::DrawMeshBlocks / 2: positions and
-    // packets, normals and count, colours, speculars, texture coordinates and count, corners and
-    // count, words and count, indices and count, the texture offsets, alpha, flags.
+    // TextureDevice::DrawMeshBlocks / 2.
     int Draw(TextureDevice* device, Surface* first, Surface* second, bool textured) const {
         std::uint16_t* indices = mesh->indices.data() + r.indices.start;
         const auto* words = mesh->words.data() + r.words.start;
         const auto* corners = mesh->corners.data() + r.corners.start;
         const auto* texCoords = mesh->texCoords.data() + r.texCoords.start;
         const auto* normals = mesh->normals.data() + r.normals.start;
-        if (textured) {
-            return device->DrawMeshBlocks2(first, second, positions, r.vertices.count, normals, r.normals.count,
-                                           colours->data(), speculars->data(), texCoords, r.texCoords.count, corners,
-                                           r.corners.count, words, r.words.count, indices, r.indices.count, u,
-                                           v, kOpaque, flags);
-        }
-        return device->DrawMeshBlocks(positions, r.vertices.count, normals, r.normals.count, colours->data(),
-                                      speculars->data(), texCoords, r.texCoords.count, corners, r.corners.count, words,
-                                      r.words.count, indices, r.indices.count, u, v, kOpaque, flags);
+        const MeshArgs args{positions, r.vertices.count, normals, r.normals.count, colours->data(), speculars->data(),
+                            texCoords, corners, r.corners.count, words, r.words.count, indices, r.indices.count,
+                            u, v, kOpaque, flags};
+        return textured ? device->DrawMeshBlocks2(first, second, args) : device->DrawMeshBlocks(args);
     }
 };
 

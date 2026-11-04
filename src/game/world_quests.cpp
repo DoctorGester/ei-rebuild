@@ -48,7 +48,6 @@ struct Briefing {
 Party* PartyOf(Player* player) { return player->GetParty(); }
 PartyUnitRecord& MercRecord(Player* player, int index) { return player->GetParty()->members[index]; }
 
-constexpr int kKindNoRangeTest = 3;
 
 // The item named `name` (the game builds two unused temporary lists around the creation).
 // Unreached in the shipped game, like GiveBriefingRewards.
@@ -255,7 +254,6 @@ void SyncRecord(Party* party, PartyUnitRecord* record, Unit* unit) {
     controller->CopyStats(&record->stats);
 }
 
-constexpr int kKindNetwork = 4;   // kKindNoRangeTest (3): above
 
 // As SyncPartyRecords does, without the items' records.
 void StoreRecord(WorldServer* world, Party* party, PartyUnitRecord* record, Unit* unit) {
@@ -279,7 +277,7 @@ void StoreRecord(WorldServer* world, Party* party, PartyUnitRecord* record, Unit
     for (int slot = 0; slot < kSpellSlots; ++slot)
         if (Item* spell = unit->GetSpell(slot)) AddToRecord<&PartyUnitRecord::AddSpell>(party, record, spell);
     controller->CopyStats(&record->stats);
-    if (world->sessionKind == 1) {
+    if (world->zoneMode == ZoneMode::Battle) {
         record->moveMode2 = unit->moveMode2;
         record->weaponIndex = unit->activeWeapon;
     }
@@ -416,7 +414,7 @@ void WorldServer::CompleteBriefing(int playerId, std::string_view name) {
 void WorldServer::QueueBriefingScript(int playerId, std::string_view name) {
     std::string script = str::Format(worlddata::BriefingCompleteScript(), playerId, std::string(name), playerId, std::string(name));
     MainScript()->Load(&script, 1);
-    if (sessionKind == kKindNoRangeTest)
+    if (zoneMode == ZoneMode::Base)
         for (int i = 0; i < 5; ++i) ScriptTick(MainScript());
 }
 
@@ -477,7 +475,7 @@ void WorldServer::SyncPartyRecords(Player* player) {
 }
 
 void WorldServer::StoreParty(std::vector<PartyUnitRecord*>* list, Party* party, std::vector<UnitPlacement>* placements) {
-    if (sessionKind == 1) {
+    if (zoneMode == ZoneMode::Battle) {
         // Each record remembers whom its unit follows (-1: nobody).
         for (int i = 0; i < std::ssize(*list); ++i) {
             auto* record = (*list)[i];
@@ -507,12 +505,12 @@ void WorldServer::StoreParty(std::vector<PartyUnitRecord*>* list, Party* party, 
 
 void WorldServer::CollectParty(Player* player, std::vector<UnitPlacement>* placements) {
     if (!player) return;
-    if (sessionKind == 1 || sessionKind == kKindNoRangeTest) UpdatePlayerTimes(0.0f);
-    if (sessionKind != kKindNetwork) {
+    if (IsSinglePlayerMode(zoneMode)) UpdatePlayerTimes(0.0f);
+    if (zoneMode != ZoneMode::Edge) {
         StorePlayerItems(player, PartyOf(player));
         player->Server()->SendPartyUpdate();
     }
-    if (!(sessionKind == 1 || sessionKind == kKindNoRangeTest) || zoneLoaded == 0) return;
+    if (!IsSinglePlayerMode(zoneMode) || zoneLoaded == 0) return;
 
     std::vector<PartyUnitRecord*> list{};
     // Records whose unit is gone (or dead, outside a network client game) are dropped.

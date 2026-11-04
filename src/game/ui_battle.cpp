@@ -30,7 +30,8 @@
 #include "unit_db.h"
 #include "world.h"
 #include "world_data.h"
-#include "world_glue.h"
+#include "sound.h"
+#include "terrain.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "render/render.h"
@@ -77,7 +78,7 @@ void BattleScreen::CreateScreen() {
         stream->ReadValue(mapZoom);
         std::uint8_t serverFlag;
         stream->ReadValue(serverFlag);
-        GameSetServerPaused(serverFlag);
+        g_serverWorld.SetServerPaused(serverFlag);
         if (SaveVersion() >= kVersionBattleText) {
             int money;   // the party's money (SaveState), not used
             stream->ReadValue(money);
@@ -122,7 +123,7 @@ void BattleScreen::CreateScreen() {
     pendingAction = kPendingNone;
     pendingSlot = -1;
     g_serverWorld.SetWeather(0, 0.0f);   // clear weather
-    GameStartAmbience();
+    g_clientWorld.terrain->landscapeFlags |= terrain::LandscapeFlag::Ambience;
     party.clear();
     viewPressed = false;
     boxSelecting = false;
@@ -264,8 +265,8 @@ void BattleScreen::CloseScreen() {
     g_camera.flags |= Camera::kFree;
     worlddata::g_updatePeriod = kDefaultUpdatePeriod;
     g_cursor.SetHeld(0);
-    GameStopSounds(1);
-    GameStopAmbience();
+    g_clientWorld.sounds->StopAll(true);
+    g_clientWorld.terrain->StopAmbience();
     party.clear();
 }
 
@@ -328,8 +329,7 @@ void BattleScreen::MarkPortrait(int index) {
     auto* currentPortraits = portraits;
     currentPortraits->sceneObjects[index * kPortraitSprites + 4]->visible = true;
     const Vector3 axis = {-1.0f, 0.0f, 0.0f};
-    Quaternion turn;
-    currentPortraits->slots[index].restB = *turn.SetAxisAngle(axis, SelectedFaceAngle());
+    currentPortraits->slots[index].restB = Quaternion::AxisAngle(axis, SelectedFaceAngle());
 }
 
 void BattleScreen::UnitJoined(Unit* unit) {
@@ -389,7 +389,7 @@ void BattleScreen::UnitJoined(Unit* unit) {
 void BattleScreen::MessageResult(std::uint32_t result) {
     switch (static_cast<std::uint32_t>(result)) {
     case kLeaveZoneYes:
-        GameLeaveThroughExit(pendingExit);
+        g_gameFlow.LeaveThroughExit(pendingExit);
         break;
     case kGameOverLoad: {
         ui->PushWindow(new SaveLoadWindow(ui, false, false), WindowBackdrop::FirstWindow);
@@ -408,8 +408,8 @@ void BattleScreen::MessageResult(std::uint32_t result) {
 }
 
 void BattleScreen::GameOver(bool won) {
-    GameStopSounds(1);
-    GameStopAmbience();
+    g_clientWorld.sounds->StopAll(true);
+    g_clientWorld.terrain->StopAmbience();
     MessageWindow* box;
     if (!won) {
         ui->PlayInterfaceSound("buttons\\gameover.wav");
@@ -745,8 +745,7 @@ void BattleScreen::LeftUp(Point point) {
                 const Vector3 axis = {-1.0f, 0.0f, 0.0f};
                 const float angle = kHudQuarterTurn *
                                     0.14285715f;   // 1/7
-                Quaternion turn;
-                turn.SetAxisAngle(axis, angle);
+                Quaternion turn = Quaternion::AxisAngle(axis, angle);
                 slot(i).restB = turn;
                 world->Select(unitAt(static_cast<int>(node)));
             }

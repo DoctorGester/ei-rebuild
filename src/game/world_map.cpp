@@ -185,8 +185,8 @@ void WorldServer::TeardownZone() {
 
     EndTimedObjects(this);
     CloseSession();
-    gameResult = 0;
-    sessionKind = 0;
+    gameState = GameState::None;
+    zoneMode = ZoneMode::None;
 }
 
 // ---- SendFreshObjects -------------------------------------------------------------------------
@@ -241,7 +241,7 @@ void WorldServer::ResetState() {
         alarm.y = 0.0f;
         alarm.x = 0.0f;
     }
-    sessionKind = 0;
+    zoneMode = ZoneMode::None;
     startPosition = {};
     weatherFactor = std::bit_cast<std::uint32_t>(1.0f);
     loaded = 0;
@@ -292,7 +292,7 @@ void WriteMapFile(const char* name, GameBuffer* buffer) {
     {
         modfolders::SelectMaps(name, modfolders::MapsSite::WriteFile);
         std::string path = MapsFolder() + name;
-        file.Open(path, platform::FileMode::Create, 0);
+        file.Open(path, platform::FileMode::Create);
     }
     if (buffer->cur > buffer->high) buffer->high = buffer->cur;
     file.Write(buffer->begin, static_cast<std::uint32_t>(buffer->base + (buffer->high - buffer->begin)));

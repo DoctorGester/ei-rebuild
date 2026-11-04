@@ -110,13 +110,13 @@ void ReadWorld(WorldServer* w, Builder& b) {
     b.Int("weather", w->weather);
     b.Float("weatherStrength", w->weatherStrength);
     b.Int("exits", static_cast<int>(std::ssize(w->exits)));
-    b.Int("gameResult", w->gameResult);
+    b.Int("gameResult", static_cast<int>(w->gameState));
     b.Unsigned("lastRainBoltTick", w->lastRainBoltTick);
     b.Int("zoneLoaded", w->zoneLoaded);
     b.Int("scriptsActive", w->scriptsActive);
     b.Vector("start.x", "start.y", "start.z", w->startPosition);
     b.Int("occluderReplanTime", w->aiMap.footprintTick);
-    b.Int("sessionKind", w->sessionKind);
+    b.Int("sessionKind", static_cast<int>(w->zoneMode));
     b.Unsigned("objects", static_cast<std::uint32_t>(w->objects.map.size()));
     b.Unsigned("mapObjects", static_cast<std::uint32_t>(w->mapObjects.map.size()));
     b.Unsigned("sentObjects", static_cast<std::uint32_t>(w->sentObjects.map.size()));

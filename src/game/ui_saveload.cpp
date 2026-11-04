@@ -28,7 +28,7 @@
 #include <string>
 #include "render/render.h"
 #include "game_flow_data.h"
-#include "world_glue.h"
+#include "sound.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 
@@ -186,14 +186,14 @@ void SaveLoadWindow::SaveGame() {
     std::string folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder);
     std::string notice = g_clientWorld.texts->GetString(game::savewords::NotifySaving());
     g_interface.ShowStatusText(notice);
-    g_gameFlow.SaveGameThunk(entry->folder);
+    g_gameFlow.SaveGame(entry->folder);
     g_cursor.SetShape(CursorShape::Wait);
 
     // info.sav: the new save's entry (the first) with the title being given.
     netlink::FileStream info;
     {
         std::string path = folder + game::savewords::InfoFile();
-        info.Open(path, platform::FileMode::Create, 0);
+        info.Open(path, platform::FileMode::Create);
     }
     if (nameTyped)
         entries.data()->title = name;
@@ -242,7 +242,7 @@ void SaveLoadWindow::FillEntries() {
             entry->title = game::savewords::BrokenTitle();
         } else {
             netlink::FileStream info;
-            info.Open(infoPath, platform::FileMode::Read, 1);
+            info.Open(infoPath, platform::FileMode::Read);
             if (info.ReadHeader(kInfoMagic, (int)kInfoVersion, 1)) {
                 info.ReadValue(entry->gameTime);
                 entry->map = info.ReadString();
@@ -307,7 +307,7 @@ void QuickSave(const char* slot, bool stepFrame) {
     double space = platform::FreeDiskSpace(DataFolderText());
     // 0 means unknown: no check.
     if (space != 0.0 && static_cast<double>(CurrentSaveSize()) > space) return;
-    if (stepFrame) app::FrameStep(false, true);
+    if (stepFrame) app::FrameStep(false);
     // A null surface (no memory) is used all the same, as in the original.
     UiSurface* surface = new UiSurface(&g_interface, 0, 0, kScreenWidth, kScreenHeight, SurfaceBlend::Opaque, true);
     surface->CaptureScreen();
@@ -315,7 +315,7 @@ void QuickSave(const char* slot, bool stepFrame) {
     g_interface.serverFlag = static_cast<std::uint8_t>(g_serverWorld.paused);
     std::string notice = g_clientWorld.texts->GetString(game::savewords::NotifySaving());
     g_interface.ShowStatusText(notice);
-    g_gameFlow.SaveGameThunk(slot);
+    g_gameFlow.SaveGame(slot);
 
     // info.sav: the "gtime" variable, the zone's map, the zone, the time and an empty title.
     std::string title;
@@ -327,7 +327,7 @@ void QuickSave(const char* slot, bool stepFrame) {
         map = record->allod;
     std::string folder = SlotFolder(slot);
     netlink::FileStream info;
-    info.Open(folder + game::savewords::InfoFile(), platform::FileMode::Create, 0);
+    info.Open(folder + game::savewords::InfoFile(), platform::FileMode::Create);
     info.WriteHeader(kInfoMagic, kInfoVersion);
     info.WriteValue(gameTime);
     info.WriteString(map);
@@ -354,7 +354,7 @@ void QuickLoad(const char* slot) {
     if (!platform::PathExists(folder)) return;
     std::string notice = g_clientWorld.texts->GetString(kNotifyLoading);
     g_interface.ShowStatusText(notice);
-    GameStopSounds(1);
+    g_clientWorld.sounds->StopAll(true);
     g_gameFlow.RequestLoad(slot);
 }
 
@@ -398,7 +398,7 @@ void SaveLoadWindow::LoadSelected() {
     if (entries.data()[currentSelected].broken) return;
     std::string notice = g_clientWorld.texts->GetString(kNotifyLoading);
     g_interface.ShowStatusText(notice);
-    GameStopSounds(1);
+    g_clientWorld.sounds->StopAll(true);
     ui->PlayInterfaceSound(game::OkSoundText());
     g_gameFlow.RequestLoad(entries.data()[selected].folder);
 }

@@ -64,8 +64,6 @@ constexpr float kPercent = 0.01f;
 constexpr float kEmitterMargin = 0.001f;
 constexpr float kEmitterMaxScale = 255.0f;
 
-// pi and pi / 2 (set by a static initialiser).
-constexpr float kHalfPi = /*007C8808*/ 1.5707964f;
 // The fade step every fade request uses (1/96).
 std::uint32_t FadeStepBits() { return 0x3C2AAAABu; }
 // StopStream's fade-out step, loaded and tested as a float.

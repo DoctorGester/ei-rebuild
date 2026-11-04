@@ -30,7 +30,6 @@
 #include <string>
 #include "lib/str.h"
 #include "lib/vecmath.h"
-#include "world_glue.h"
 #include "game_singletons.h"
 
 #include <memory>
@@ -360,7 +359,7 @@ void MpConnectScreen::MasterRequest() {
 void MpConnectScreen::SaveAddressBook() {
     ChunkArchive archive;
     netlink::FileStream file;
-    if (!file.Open(g_dataFolder + kAddressBookFile, platform::FileMode::Create, 0)) return;
+    if (!file.Open(g_dataFolder + kAddressBookFile, platform::FileMode::Create)) return;
     archive.Open(&file, 0, 1);
     net::ClientQueries* queries = &net::g_gameClient->queries;
     if (archive.EnterChunk(1)) {
@@ -444,8 +443,7 @@ void MpConnectScreen::CreateScreen() {
     model->SetScreenPosition(400.0f, 350.0f, 8.0f);
     {
         const Vector3 axis = {1.0f, 0.0f, 0.0f};
-        Quaternion turn;
-        model->object->localRotation = *turn.SetAxisAngle(axis, MenuTurn());
+        model->object->localRotation = Quaternion::AxisAngle(axis, MenuTurn());
     }
     model->ShowAllParts(0);
     model->ShowPart(kMenuButtonPart, 1);
@@ -565,7 +563,7 @@ void MpConnectScreen::CreateScreen() {
     net::ClientQueries queries;
     ChunkArchive archive;
     netlink::FileStream file;
-    if (file.Open(g_dataFolder + kAddressBookFile, platform::FileMode::Read, 1)) {
+    if (file.Open(g_dataFolder + kAddressBookFile, platform::FileMode::Read)) {
         archive.Open(&file, 1, 1);
         if (archive.EnterChunk(1)) {
             queries.Serialize(&archive);

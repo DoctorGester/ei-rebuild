@@ -80,7 +80,6 @@ constexpr float kPercent = 100.0f;
 constexpr float kTwoToMinus32 = 2.3283064e-10f;
 constexpr int kMaxVolume = 100;
 
-constexpr float kHalfPi = /*007C8930*/ 1.5707964f;
 
 // The sector containing `v` (v rounded to nearest, then / 32 towards zero).
 int SectorOf(float v) { return std::lround(v) / kSectorCells; }

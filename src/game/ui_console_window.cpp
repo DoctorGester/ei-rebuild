@@ -11,6 +11,7 @@
 
 #include "lib/str.h"
 
+#include <algorithm>
 #include <cstring>
 #include <string>
 #include "platform/platform.h"
@@ -26,8 +27,9 @@ constexpr std::uint32_t kBackground = 0x282828;
 constexpr std::uint32_t kSelection = 0x505050;
 constexpr std::uint32_t kLineText = 0xB4B4B4;
 constexpr std::uint32_t kInputText = 0xFFFFFF;
+// Layout pixels (ConsoleWindow::Px scales them): the line pitch and the input strip at the bottom.
 constexpr int kLineHeight = 15;
-constexpr int kInputHeight = 0x1F;     // the input strip at the bottom
+constexpr int kInputHeight = 0x1F;
 constexpr std::uint32_t kDrawLine = 0x800;      // DT_NOPREFIX
 constexpr std::uint32_t kDrawMark = 0x802;      // DT_NOPREFIX | DT_RIGHT
 
@@ -265,43 +267,48 @@ void ConsoleWindow::ClampCaret() {
     anchor = Clamp(anchor, lib::Count(input));
 }
 
-// The area above the input strip filled, the visible lines bottom up, 15 pixels apart, with a "+" at the top right
-// when there is more above and at the bottom right when scrolled back.
+// The area above the input strip filled, the visible lines bottom up, 15 layout pixels apart, with a "+" at the top
+// right when there is more above and at the bottom right when scrolled back.
 void ConsoleWindow::PaintLines(UiSurface& out) const {
     if (!font) return;
     const int lineCount = static_cast<int>(lines.size());
-    FillArea(out, 0, 0, width, height - kInputHeight, kBackground);
+    const int inputHeight = Px(kInputHeight);
+    FillArea(out, 0, 0, width, height - inputHeight, kBackground);
     int line = lineCount - scroll - 1;
-    for (int i = 0, y = 0; i < visibleLines && line >= 0; ++i, y += kLineHeight, --line) {
-        Rect area{8, height - y - 0x2E, width - 0x12, height - y - 0x1A};
+    for (int i = 0, y = 0; i < visibleLines && line >= 0; ++i, y += Px(kLineHeight), --line) {
+        Rect area{Px(8), height - y - Px(0x2E), width - Px(0x12), height - y - Px(0x1A)};
         out.DrawTextPixels(font, lines[line], area, kDrawLine, kLineText, false);
     }
     if (scroll > 0) {
-        Rect area{width - 0x12, height - 0x2E, width - 8, height - kInputHeight};
+        Rect area{width - Px(0x12), height - Px(0x2E), width - Px(8), height - inputHeight};
         out.DrawTextPixels(font, game::consoletexts::More(), area, kDrawMark, kLineText, false);
     }
     if (scroll < lineCount - visibleLines) {
-        Rect area{width - 0x12, 8, width - 8, 0x17};
+        Rect area{width - Px(0x12), Px(8), width - Px(8), Px(0x17)};
         out.DrawTextPixels(font, game::consoletexts::More(), area, kDrawMark, kLineText, false);
     }
 }
 
-// The input strip filled, the selection shaded (clipped 16 pixels before the right edge), "> " and the input, and a
-// 2-pixel caret line when it lies left of that limit.
+// The input strip filled, the selection shaded (clipped 16 layout pixels before the right edge), "> " and the input, and
+// a 2-layout-pixel caret line when it lies left of that limit.
 void ConsoleWindow::PaintInput(UiSurface& out) const {
     if (!font) return;
-    FillArea(out, 0, height - kInputHeight, width, kInputHeight, kBackground);
+    const int inputHeight = Px(kInputHeight);
+    const int margin = Px(8);
+    const int right = width - Px(0x10);
+    const int top = height - Px(0x17);
+    FillArea(out, 0, height - inputHeight, width, inputHeight, kBackground);
     int caretX = PromptWidth(font, input, caret);
     if (anchor != caret) {
         int anchorX = PromptWidth(font, input, anchor);
         int low = caretX < anchorX ? caretX : anchorX;
         int high = caretX > anchorX ? caretX : anchorX;
-        if (high > width - 0x10) high = width - 0x10;
-        if (low < high) FillArea(out, low + 8, height - 0x17, high - low, 0xF, kSelection);
+        if (high > right) high = right;
+        if (low < high) FillArea(out, low + margin, top, high - low, Px(0xF), kSelection);
     }
-    Rect area{8, height - 0x17, width - 8, height - 3};
+    Rect area{margin, top, width - margin, height - Px(3)};
     out.DrawTextPixels(font, std::string(game::consoletexts::Prompt()) + input, area, kDrawLine, kInputText, false);
-    if (caretX < width - 0x10) out.Line({caretX + 8, height - 0x17}, {caretX + 8, height - 8}, 2, kInputText);
+    if (caretX < right) out.Line({caretX + margin, top}, {caretX + margin, height - margin}, std::max(Px(2), 1), kInputText);
 }
 
 } // namespace console

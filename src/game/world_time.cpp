@@ -12,9 +12,6 @@
 namespace {
 constexpr float kHoursPerDay = 24.0f;
 constexpr float kHoursPerSecond = 1.0f / 15.0f;  // as the game counts its speed
-
-// Game kinds whose players keep their own time (UpdatePlayerTimes before a change).
-bool KeepsPlayerTimes(int kind) { return kind == 1 || kind == 3; }
 } // namespace
 
 float World::Elapsed() const { return static_cast<float>(tick) * secondsPerTick; }
@@ -65,14 +62,14 @@ void World::SetWind(const Vector3& direction, float strength) {
 }
 
 void WorldServer::SetTime(float hours) {
-    if (KeepsPlayerTimes(sessionKind)) UpdatePlayerTimes(0.0f);
+    if (IsSinglePlayerMode(zoneMode)) UpdatePlayerTimes(0.0f);
     World::SetTime(hours);
     MarkPlayersDirty(lib::Bits(PlayerDirty::Time));
     UpdateWeather();
 }
 
 void WorldServer::SetTimeSpeed(float speed) {
-    if (KeepsPlayerTimes(sessionKind)) UpdatePlayerTimes(0.0f);
+    if (IsSinglePlayerMode(zoneMode)) UpdatePlayerTimes(0.0f);
     World::SetTimeSpeed(speed);
     MarkPlayersDirty(lib::Bits(PlayerDirty::Time));
     UpdateWeather();

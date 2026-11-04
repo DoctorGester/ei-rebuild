@@ -21,7 +21,6 @@
 #include "ui_camp.h"
 #include "ui_cursor.h"
 #include "world.h"
-#include "world_glue.h"
 
 #include "render/render_state.h"
 
@@ -151,8 +150,7 @@ void GlobalMap::CreateScreen() {
     CreateTexture(0x100, 0x100, TextureKind::Blank4444);
     {
         Vector3 axis = {1.0f, 0.0f, 0.0f};
-        Quaternion q;
-        q.SetAxisAngle(axis, 3.1415927f * 0.8f);   // pi * 0.8
+        Quaternion q = Quaternion::AxisAngle(axis, 3.1415927f * 0.8f);   // pi * 0.8
         turn = q;
     }
     MapBuilder builder(this);
@@ -195,7 +193,7 @@ void GlobalMap::CreateScreen() {
     // The quests the player holds in each zone ("q.<zone>.<quest>" = 1).
     for (int i = 0; i < std::ssize(zones); ++i) {
         variable = std::format("q.{}", zones[i].name);
-        GameLocalPlayerVariables(variable, &vars);
+        g_clientWorld.LocalView()->player->GetParty()->variables.CopyPrefixed(variable, &vars);
         for (const auto& node : vars) {
             if (std::bit_cast<std::uint32_t>(node.second) != std::bit_cast<std::uint32_t>(1.0f)) continue;
             parts = text::Split(node.first, '.');
@@ -351,10 +349,8 @@ void GlobalMap::Update() {
         angle = std::fmod(turned, kGlobalMapFullTurn);
         Vector3 up = {0.0f, 0.0f, 1.0f};
         Vector3 side = {1.0f, 0.0f, 0.0f};
-        Quaternion spin;
-        spin.SetAngleAxis(angle, up);
-        Quaternion tilt;
-        tilt.SetAxisAngle(side, 3.1415927f * 0.8f);
+        Quaternion spin = Quaternion::AxisAngle(up, angle);
+        Quaternion tilt = Quaternion::AxisAngle(side, 3.1415927f * 0.8f);
         Quaternion rotation = tilt * spin;
         turn = rotation;
         if (turn.w < 0.0f) {

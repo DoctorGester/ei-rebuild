@@ -24,7 +24,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <string>
-#include "world_glue.h"
+#include "player_client.h"
 #include "game_singletons.h"
 #include "ui_cursor.h"
 
@@ -226,7 +226,8 @@ void CampPages::ShowPage(int newPage) {
             ui->SetPendingValue(0);
             return;
         }
-        GameRejoin();
+        g_interface.closeAll = 1;
+        g_clientWorld.LocalView()->Rejoin();
         return;
     }
     default:
@@ -663,7 +664,7 @@ bool CampPages::CanMakeItem() {
 // --- leaving the camp ----------------------------------------------------------------------------
 
 void CampPages::CloseScreen() {
-    GameSetServerPaused(0);
+    g_serverWorld.SetServerPaused(0);
     // The local player's unit records, their keys raised meanwhile.
     std::vector<PartyUnitRecord*> records;
     auto* player = LocalPlayerData();

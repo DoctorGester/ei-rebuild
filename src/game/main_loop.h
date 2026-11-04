@@ -34,13 +34,13 @@ struct HarnessHooks {
     using WorldUpdate = int (*)(void* world);   // 0 stops the frame
     using CameraUpdate = void (*)(void* camera, float seconds);
     using BeforePresent = void (*)();
-    using FrameStep = void (*)(bool draw, bool cursor);
+    using FrameStep = void (*)(bool draw);
     WorldUpdate serverUpdate = nullptr;         // the server world's tick; the harness's "speed" hold follows it
     WorldUpdate clientSegment = nullptr;        // the client world's tick; the "speed" hold follows it too
     CameraUpdate frameCameraUpdate = nullptr;   // the pass's last camera update for the real time; "freeze" holds it still
     BeforePresent beforePresent = nullptr;      // in the frame step, after the interface is drawn and before the cursor
                                                 // and the present: the frame capture reads the finished frame here
-    FrameStep frameStep = nullptr;              // a pass's frame step (draw, cursor): overlapping paired games hand
+    FrameStep frameStep = nullptr;              // a pass's frame step (draw): overlapping paired games hand
                                                 // over to each other before it
 };
 

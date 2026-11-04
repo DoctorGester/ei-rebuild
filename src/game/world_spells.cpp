@@ -17,7 +17,6 @@
 
 namespace {
 
-constexpr int kKindSinglePlayer = 1;
 constexpr std::uint32_t kFarAway = 0x7E967699;           // 1e38f
 
 // Whether the spell type turns the target against the caster.
@@ -64,7 +63,7 @@ void WorldServer::CreateMissile(Spell* spell, Unit* caster, Vector3 from, MapObj
 void WorldServer::CastSpell(Spell* spell, Unit* caster, const Vector3& from, MapObject* target,
                              const Vector3& to, int extra) {
     if (!spell) return;
-    if (sessionKind != kKindSinglePlayer && caster) return;
+    if (zoneMode != ZoneMode::Battle && caster) return;
     SpellType spellType = spell->Type();
     if (spellType == SpellType::Possession || spellType == SpellType::Link || spellType == SpellType::Charm) return;
     std::uint32_t targetFlags = spell->targetFlags;

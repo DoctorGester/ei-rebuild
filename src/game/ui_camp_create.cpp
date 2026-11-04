@@ -28,7 +28,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
-#include "world_glue.h"
+#include "player_client.h"
 #include "render/render_state.h"
 #include "game_singletons.h"
 #include "party_manager.h"
@@ -79,13 +79,14 @@ void CampPages::BuildPages() {
     itemConstructor = false;
     spellParts[0] = nullptr;
     itemParts[0] = nullptr;
-    GameSetServerPaused(1);
+    g_serverWorld.SetServerPaused(1);
     constructor = nullptr;
     int maker = static_cast<int>(LocalPlayerVariable("constr.current"));
     if (maker > 0) {
         constructor = g_partyManager.templates.Find(maker);
         if (!constructor) {
-            GameRejoin();
+            g_interface.closeAll = 1;
+            g_clientWorld.LocalView()->Rejoin();
             return;
         }
         spellConstructor = constructor->sellsSpells != 0;
@@ -266,7 +267,7 @@ void CampPages::BuildPages() {
         record.unitId += kRecordBias;
         if (PrototypeObjectClass(record.texts[5]) == MapObjectType::Hero) records.push_back(&record);
     }
-    GameCreatePartyUnits(&records, 1);
+    g_clientWorld.CreatePartyUnits(&records, 1);
 
     heroes.assign(count, nullptr);
     for (int i = 0; i < count; ++i) {

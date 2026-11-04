@@ -18,7 +18,7 @@
 #include "ui_cursor.h"
 #include "screen_layout.h"
 #include "world.h"
-#include "world_glue.h"
+#include "terrain.h"
 #include "../platform/log.h"
 #include "lib/crt.h"
 #include "lib/rect.h"
@@ -187,7 +187,7 @@ void Interface3D::Update() {
             delete screenCopy;
             screenCopy = nullptr;
             backdropMode = 0;
-            if (!IsMultiplayerClient()) GameSetServerPaused(serverFlag);
+            if (!IsMultiplayerClient()) g_serverWorld.SetServerPaused(serverFlag);
             serverFlag = 0;
         }
         if (!stack.empty()) {
@@ -241,8 +241,8 @@ void Interface3D::OnStringEvent(std::string_view event) {
     // "gameover [title [text]]" plays buttons\gameover.wav and shows a message window (the texts default to the keys
     // game_over and game_over_msg; Rebirth's NewStringEvents).
     if (str::Compare(words[0], "gameover") == 0) {
-        GameStopSounds(1);
-        GameStopAmbience();
+        g_clientWorld.sounds->StopAll(true);
+        g_clientWorld.terrain->StopAmbience();
         PlayInterfaceSound("buttons\\gameover.wav");
         const std::string_view title = words.size() > 1 ? std::string_view(words[1]) : "game_over";
         const char* message = words.size() > 2 ? words[2].c_str() : "game_over_msg";
@@ -381,7 +381,7 @@ void Interface3D::ShowStatusText(std::string_view text) {
         Rect rect = {0, 0, kLayoutWidth, kStatusTextHeight};
         out.DrawTextIn(text, rect, TextStyle{kStatusFont, kStatusColour, render::text::kCenter});    // Rebirth-patched
     });
-    app::FrameStep(true, true);
+    app::FrameStep(true);
     if (statusSurface) {
         delete statusSurface;
     }

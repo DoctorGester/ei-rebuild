@@ -1,7 +1,6 @@
 #pragma once
 
-// The engine's byte streams (ByteStream, MemoryStream), the constructors and destructors of the reference-counted
-// base classes, and two small allocation helpers. See docs/notes/core.md.
+// The engine's byte streams (ByteStream, MemoryStream). See docs/notes/core.md.
 
 #include "core_refcount.h"
 #include "engine_object.h"
@@ -75,11 +74,11 @@ public:
     // from `diff` (at its position), until base's size is reached or `diff` runs out.
     void ApplyDiff(ByteStream* base, ByteStream* diff);
     // Tagged blocks (a four-byte tag, the size including these eight bytes, then the content). Reads the next
-    // block's tag into *tag and its content into `out` (emptied, reading cleared, written, sought to 0).
+    // block's tag into *tag and its content into `out` (emptied, written, sought to 0).
     // False when the tag, the size or the content cannot be read or the size is below 8 (`out` is then already
     // emptied once a size of 8 or more was read).
     bool ReadTagged(std::uint32_t* tag, ByteStream* out);
-    // From the start (reading set), reads blocks until one has tag `id`;
+    // From the start, reads blocks until one has tag `id`;
     // when none has, `out` is emptied and the result is false.
     bool FindTagged(std::uint32_t id, ByteStream* out);
     // Reads bytes into `buffer` until a zero or `capacity` bytes; buffer[capacity - 1] is always set to zero. The
@@ -96,10 +95,8 @@ public:
     void Rewind() {
         ok = 1;
         Seek(0);
-        reading = 1;
     }
 
-    std::uint8_t reading = 0;       // 1 reading, 0 writing (CopyFrom clears it; never read)
     std::uint8_t ok;                // cleared when a read runs past the end
     std::uint32_t version;          // format version (the save game's); 2000000000 when constructed
 };
@@ -149,11 +146,11 @@ public:
     void DecompressTo(CoderState* coder, MemoryStream* out);
 
     std::uint8_t bits = 0;          // byte being assembled by the bit writer
-    std::int32_t bitMask;           // bit of the last bit written (0x80: start a new byte)
-    std::int32_t bitsIndex;         // where bits goes in the data (-1: nowhere yet)
+    std::int32_t bitMask = 0x80;    // bit of the last bit written (0x80: start a new byte)
+    std::int32_t bitsIndex = -1;    // where bits goes in the data (-1: nowhere yet)
     std::vector<std::uint8_t> data;     // the buffer: its size is the capacity
-    std::uint32_t position;         // read / write position
-    std::uint32_t size;             // end of the data
+    std::uint32_t position = 0;     // read / write position
+    std::uint32_t size = 0;         // end of the data
 };
 
 // The saved game's stream (world_game.cpp).

@@ -686,8 +686,6 @@ src/game/unit_update.cpp
 src/game/unit_vision.cpp
 src/game/unit_vitals.cpp
 src/game/world_game.cpp
-src/game/world_glue.cpp
-src/game/world_glue.h
 src/game/world_guard.cpp
 src/game/world_loot.cpp
 src/game/world_managers.cpp
@@ -1684,8 +1682,6 @@ src/game/world_effect_tornado.cpp
 src/game/world_effect_visibility.cpp
 src/game/world_effect_visual.cpp
 src/game/world_game.cpp
-src/game/world_glue.cpp
-src/game/world_glue.h
 src/game/world_guard.cpp
 src/game/world_loot.cpp
 src/game/world_managers.cpp

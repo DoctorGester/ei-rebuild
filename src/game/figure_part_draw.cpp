@@ -183,18 +183,11 @@ int DeviceDraw(TextureDevice* device, FigureMesh* mesh, const render::MeshSource
     const VertexPacket* positions = b.vertices;
     if (!mesh->offsets.empty()) positions = MovedPositions(positions, b.vertexCount, mesh->offsets);
     render::SetMeshSource(&source);
-    int result;
-    if (textureA && textureB) {
-        result = device->DrawMeshBlocks2(textureA->surface, textureB->surface, positions, b.vertexCount, b.normals,
-                                         b.normalCount, mesh->colorsA.data(), mesh->colorsB.data(), b.texCoords,
-                                         b.texCoordCount, b.corners, b.cornerCount, b.words, b.wordCount, b.indices,
-                                         b.indexCount, mesh->textureOffsetU, mesh->textureOffsetV, alpha, drawFlags);
-    } else {
-        result = device->DrawMeshBlocks(positions, b.vertexCount, b.normals, b.normalCount, mesh->colorsA.data(),
-                                        mesh->colorsB.data(), b.texCoords, b.texCoordCount, b.corners, b.cornerCount,
-                                        b.words, b.wordCount, b.indices, b.indexCount, mesh->textureOffsetU,
-                                        mesh->textureOffsetV, alpha, drawFlags);
-    }
+    const MeshArgs args{positions, b.vertexCount, b.normals, b.normalCount, mesh->colorsA.data(), mesh->colorsB.data(),
+                        b.texCoords, b.corners, b.cornerCount, b.words, b.wordCount, b.indices, b.indexCount,
+                        mesh->textureOffsetU, mesh->textureOffsetV, alpha, drawFlags};
+    const int result = textureA && textureB ? device->DrawMeshBlocks2(textureA->surface, textureB->surface, args)
+                                            : device->DrawMeshBlocks(args);
     render::SetMeshSource(nullptr);
     return result;
 }
