@@ -981,11 +981,31 @@ option). Client side only: driven by the weather the world's light hands over (`
 - **Meshes** (mesh.hlsl, `weathered_mesh`): the world's meshes that receive the shadow map (`MeshBatch::light`) get
   `MeshFsParams::weather` (wetness, snow) and the sun; from the face normal (the map's clip space's derivatives taken to
   the landscape's space, turned to the camera): snow on faces turned up (n.z from 1.1 .. 1.2 down to 0.6 .. 0.72 with the
-  cover; not on units), wet faces down to 0.65 and, but on units (few large faces), a sheen of the sun. Without a fitted
-  map (no shadow space) none.
+  cover), wet faces down to 0.65 with a sheen of the sun. Without a fitted map (no shadow space) none.
+- **Units** (mesh.hlsl, `weathered_unit`; R17c2): a unit's figure part lit on the GPU (`MeshBatch::figure`,
+  `MeshFsParams::weather.z`) takes the weather per pixel from its interpolated vertex normal instead (a low-poly figure's
+  faces are too few and large for a face normal: a face's sheen flips on and off as it turns). The vertex shader takes the
+  normal into the map's clip space by the receiver's matrix (`mapNormal`), the pixel back to the landscape's
+  (`map_to_landscape`, as the face normal; right for the figures' rotations and even scales). Snow where the normal turns
+  up (n.z plus a noise of +-0.17 fixed to the part's model space, so it rides with the unit, against an edge falling from
+  0.95 .. 1.05 to 0.3 .. 0.6 with the cover; full from a third of the cover): the heads, shoulders, backs and the tops of
+  armour, the ground's snow colour times the pixel's light, 0.8 .. 1.0 of it by the texture's light and +-0.04 by the
+  noise (a covered back keeps some shape). Wet: down to 0.6, and a sheen: the sky the normal reflects (upward reflections only, so on the same tops; the
+  ambient light's colour plus 0.1, (r.z)^3 x (0.3 + Schlick's term) x 0.35) and the sun's highlight (Blinn-Phong 30,
+  0.4, as hidden by the map and the clouds). A unit drawn without the GPU's lighting (none known) keeps the face path,
+  only darker. Shelter: the units follow the world's state; neither the sun map (along the sun, not straight up) nor the
+  screen's occlusion tells a roof over a unit, so a unit under one is as wet as one in the open (the caves have no
+  weather: `HandOverClouds`, and a zone change starts the state again). A per-unit state (a unit out of shelter starting
+  dry) would need such a test first.
+- Cost of the units' path (R17c2, the same machine and settings, zone1 a minute into rain with the hero and four
+  creatures beside him, frozen; the units' path and the face path alternated every 150 frames by a probe, 1200 frames
+  each view; the kit and the captures in build/r17c2 of the main checkout): R17c's view 2.64-2.66 ms either way, zoomed in on the units
+  2.60-2.61 ms either way; nothing above the noise.
 - Check: scenario `render_weather` (1440x1080, zone1 by day: dry, five seconds into rain, after a minute, half a minute
   after it stopped, the sea and the beach in rain; gz11k before and after two minutes of snow; samecapture of a frozen
-  moment drawn twice). `weathercheck <least wet> <most wet> [<least snow> <most snow>]` reads ShadowInfo's `wetness`,
+  moment drawn twice); `render_weather_units` (3840x2009) close up on the hero with a wolf, a goblin, a boar and a
+  skeleton (spawned, skinned, blocked) on zone1 dry and after a minute of rain, and on gz11k before and after two
+  minutes of snow. `weathercheck <least wet> <most wet> [<least snow> <most snow>]` reads ShadowInfo's `wetness`,
   `puddles` and `snowCover`.
 - Cost (R17c, RTX 4070 Ti SUPER, Direct3D 12, 3840x2009 msaa 8 anisotropy 16, zone1 a minute into rain, a frozen
   frame; the uniforms zeroed and set again in turn, 150 frames each): the frame's GPU time 2.59 .. 2.61 ms with the

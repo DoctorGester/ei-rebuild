@@ -1,0 +1,110 @@
+# R17c2: the weather on the units (docs/notes/renderer.md section 13, item 11b, "Units") close up by day, at 3840x2009
+# (the units larger in the frame) with msaa 8 and anisotropy 16 as the user plays: the hero with a wolf, a goblin, a
+# boar and a skeleton beside him (blocked, skinned as the maps place them) on zone1, dry and after a minute of rain (wet,
+# a sheen on the heads, shoulders and backs); on the snow map gz11k before and after two minutes of snow (snow on the
+# upward parts). Four wheel turns of five notches zoom the camera in. Frames only (goldens hold none).
+render checkall
+resolution 3840x2009
+msaa 8
+anisotropy 16
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),1)
+console @GodMode(0,1)
+waitwindow 15 battle
+console @FixWorldTime(12)
+console @SetWeather("clear")
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+console @AddUnitToServer("U1","WolfTutor","U1",Add(GSGetVar(0,"hx"),2.5),GSGetVar(0,"hy"),0)
+skin U1 Wolf00 GoblinAxeBag00
+console @AddUnitToServer("U2","GoblinF1","U2",Sub(GSGetVar(0,"hx"),2.5),GSGetVar(0,"hy"),0)
+skin U2 Goblin00 GoblinAxeBag00
+console @AddUnitToServer("U3","BoarTutor","U3",GSGetVar(0,"hx"),Sub(GSGetVar(0,"hy"),2.5),0)
+skin U3 Boar00 default0
+console @AddUnitToServer("U4","SkeletonF2","U4",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),2.5),0)
+skin U4 Skeleton00 default0
+waitfor 15 IsAlive(GetObjectByName("U4"))
+console @BlockUnit(GetObjectByName("U1"),1)
+console @BlockUnit(GetObjectByName("U2"),1)
+console @BlockUnit(GetObjectByName("U3"),1)
+console @BlockUnit(GetObjectByName("U4"),1)
+waitpresent 10
+move 400 20
+wheel 400 300 600
+frames 3
+wheel 400 300 600
+frames 3
+wheel 400 300 600
+frames 3
+wheel 400 300 600
+frames 10
+move 400 20
+wait 5000
+frames 5
+freeze
+weathercheck 0 0.25 0 0
+capture units_dry
+unfreeze
+
+console @SetWeather("rain")
+wait 60000
+frames 5
+freeze
+weathercheck 0.55 1 0 0
+capture units_rain
+capture units_rain_again
+unfreeze
+samecapture units_rain units_rain_again
+
+# The snow map gz11k.
+zone gz11k 0
+waitzone 20 gz11k
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),1)
+console @FixWorldTime(12)
+console @SetWeather("clear")
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+console @AddUnitToServer("V1","WolfTutor","V1",Add(GSGetVar(0,"hx"),2.5),GSGetVar(0,"hy"),0)
+skin V1 Wolf00 GoblinAxeBag00
+console @AddUnitToServer("V2","GoblinF1","V2",Sub(GSGetVar(0,"hx"),2.5),GSGetVar(0,"hy"),0)
+skin V2 Goblin00 GoblinAxeBag00
+console @AddUnitToServer("V3","BoarTutor","V3",GSGetVar(0,"hx"),Sub(GSGetVar(0,"hy"),2.5),0)
+skin V3 Boar00 default0
+console @AddUnitToServer("V4","SkeletonF2","V4",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),2.5),0)
+skin V4 Skeleton00 default0
+waitfor 15 IsAlive(GetObjectByName("V4"))
+console @BlockUnit(GetObjectByName("V1"),1)
+console @BlockUnit(GetObjectByName("V2"),1)
+console @BlockUnit(GetObjectByName("V3"),1)
+console @BlockUnit(GetObjectByName("V4"),1)
+move 400 20
+wheel 400 300 600
+frames 3
+wheel 400 300 600
+frames 3
+wheel 400 300 600
+frames 3
+wheel 400 300 600
+frames 10
+move 400 20
+wait 3000
+frames 5
+freeze
+weathercheck 0 1 0 1
+capture units_snow_before
+unfreeze
+console @SetWeather("snow")
+wait 120000
+frames 5
+freeze
+weathercheck 0 1 0.65 1
+capture units_snow
+unfreeze
+report
+quit

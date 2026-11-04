@@ -2,7 +2,8 @@
 // (D3DTEXTUREOP and D3DTA values), evaluated per pixel; then specular, fog and the alpha test. A figure part lit on
 // the GPU (render::MeshLighting) takes its diffuse colour from `figure_light` instead of the vertex colour (whose
 // alpha it keeps), its ambient light darkened by the screen's ambient occlusion in the world (ambient_occlusion.hlsli).
-// The world's meshes take the weather on their faces (weathered_mesh).
+// The world's meshes take the weather on their faces (weathered_mesh), a unit's figure on its smoothed normals
+// (weathered_unit).
 #include "bindings.hlsli"
 #include "depth_copy.hlsli"
 struct VsIn {
@@ -20,6 +21,7 @@ struct VsOut {
     [[vk::location(4)]] float3 model : TEXCOORD4;
     [[vk::location(5)]] float3 normal : TEXCOORD5;
     [[vk::location(6)]] float3 land : TEXCOORD6;
+    [[vk::location(7)]] float3 mapNormal : TEXCOORD7;   // the vertex normal in the shadow map's clip space
     float4 pos : SV_Position;
 };
 
@@ -56,6 +58,7 @@ VsOut vs_main(VsIn i) {
     o.shadow = float4(dot(vs.light[0], q), dot(vs.light[1], q), dot(vs.light[2], q), 1.0);
     o.model = i.pos;
     o.normal = i.normal;
+    o.mapNormal = float3(dot(vs.light[0].xyz, i.normal), dot(vs.light[1].xyz, i.normal), dot(vs.light[2].xyz, i.normal));
     o.land = float3(dot(vs.landscape[0], p), dot(vs.landscape[1], p), dot(vs.landscape[2], p));
     return o;
 }
@@ -90,7 +93,7 @@ struct MeshFsParams {
     float4 pointFront;     // per map: a unit's nearest distance to the light (MeshBatch::pointFront)
     float4 occlusion;      // ambient_occlusion's `on` (a world mesh lit here)
     float4 occlusionMap;   // ... and `map`
-    float4 weather;        // a world mesh's weather (render_weather.cpp): x wetness, y snow cover; 0 elsewhere
+    float4 weather;        // a world mesh's weather (render_weather.cpp): x wetness, y snow cover, z a unit's; 0 elsewhere
     float4 weatherSun;     // xyz: towards the sun (the landscape's space)
     float4 weatherSunColour;   // rgb
 };
@@ -196,6 +199,46 @@ float3 weathered_mesh(float3 rgb, float3 light, float3 s, float3 dsx, float3 dsy
     }
     return saturate(rgb);
 }
+// A value noise in 0 .. 1 over `p` (a lattice of hashed corners, smoothly blended).
+float hash3(float3 c) { return frac(sin(dot(c, float3(12.9898, 78.233, 37.719))) * 43758.5453); }
+float value_noise(float3 p) {
+    float3 c = floor(p), f = p - c;
+    f = f * f * (3.0 - 2.0 * f);
+    float a = lerp(lerp(hash3(c), hash3(c + float3(1, 0, 0)), f.x), lerp(hash3(c + float3(0, 1, 0)), hash3(c + float3(1, 1, 0)), f.x), f.y);
+    float b = lerp(lerp(hash3(c + float3(0, 0, 1)), hash3(c + float3(1, 0, 1)), f.x), lerp(hash3(c + float3(0, 1, 1)), hash3(c + 1.0), f.x), f.y);
+    return lerp(a, b, f.z);
+}
+// The weather on a unit's figure part lit on the GPU, per pixel from its interpolated vertex normal (`mapNormal`, in the
+// map's clip space, taken to the landscape's; a low-poly figure's faces are too few and large for a face normal):
+// snow settles where it turns up (the head, the shoulders, the tops of armour and backs), broken by a noise fixed to
+// the part (`model`) so it rides with the unit; wet parts darker with a sheen: the sky they reflect (upward, so on the
+// same tops; the ambient light's colour, Schlick's term) and the sun's highlight. `light`: the pixel's lit colour.
+float3 weathered_unit(float3 rgb, float3 light, float3 s, float3 mapNormal, float3 model, float hidden) {
+    float3 n = map_to_landscape(mapNormal * shadow.scale.xyz);
+    float len = length(n);
+    if (len <= 1e-20) return rgb;
+    n /= len;
+    float3 v = normalize(map_to_landscape((shadow.camera.xyz - s) * shadow.scale.xyz));
+    float cover = fs.weather.y;
+    float grain = value_noise(model * 7.0) * 0.6 + value_noise(model * 19.0) * 0.4;
+    float up = n.z + (grain - 0.5) * 0.35;
+    float snow = smoothstep(lerp(0.95, 0.3, cover), lerp(1.05, 0.6, cover), up) * saturate(cover * 3.0);
+    // The snow shaded a little by the texture under it (its light against the pixel's light) and the noise, so a
+    // covered back keeps some of its shape.
+    float albedo = saturate(dot(rgb, 1.0 / 3.0) / max(dot(light, 1.0 / 3.0), 0.05));
+    rgb = lerp(rgb, kSnow * saturate(light) * (0.8 + 0.2 * albedo + 0.08 * grain), snow);
+    float wet = fs.weather.x * (1.0 - snow);
+    rgb *= lerp(1.0, 0.6, wet);
+    float3 r = reflect(-v, n);
+    float fresnel = 0.04 + 0.96 * pow(1.0 - saturate(dot(n, v)), 5.0);
+    float sky = pow(saturate(r.z), 3.0) * (0.3 + fresnel);
+    float3 h = normalize(fs.weatherSun.xyz + v);
+    float sunUp = saturate(fs.weatherSun.z * 4.0) * (1.0 - hidden);
+    float3 sheen = saturate(lighting.ambient.rgb + 0.1) * sky * 0.35 +
+                   fs.weatherSunColour.rgb * sunUp * pow(saturate(dot(n, h)), 30.0) * 0.4;
+    rgb += sheen * wet;
+    return saturate(rgb);
+}
 // HLSL's round takes halves to the even neighbour, as the GLSL's roundEven.
 bool passes(int func, float a, int reference) {
     int v = (int)round(saturate(a) * 255.0);
@@ -258,8 +301,12 @@ float4 Shade(VsOut i) {
     float3 rgb = current.rgb;
     if (fs.switches.x != 0) rgb = saturate(rgb + i.spec.rgb);
     if (shadow.on.z > 0.5) return float4((1.0 - hidden).xxx, current.a);   // the harness's shadowview
-    if (fs.weather.x > 0.0 || fs.weather.y > 0.0)
-        rgb = weathered_mesh(rgb, diffuse.rgb, i.shadow.xyz, dsx, dsy, unit, hidden);
+    if (fs.weather.x > 0.0 || fs.weather.y > 0.0) {
+        if (fs.weather.z > 0.5 && lighting.on.x > 0.5)
+            rgb = weathered_unit(rgb, diffuse.rgb, i.shadow.xyz, i.mapNormal, i.model, hidden);
+        else
+            rgb = weathered_mesh(rgb, diffuse.rgb, i.shadow.xyz, dsx, dsy, unit, hidden);
+    }
     rgb *= 1.0 - hidden * shadow.on.y;
     if (fs.switches.y != 0) rgb = lerp(fs.fogColour.rgb, rgb, i.spec.a);
     return float4(rgb, current.a);
