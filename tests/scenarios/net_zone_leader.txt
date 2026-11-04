@@ -1,0 +1,69 @@
+# H43g2: a game hosted alone into a quest zone whose script asks for the server's leader (ServerSession::LeaderId
+# through the script function GetLeader: z7q3.mob's first trigger is IsInArea(1,GetX(GetLeader()),GetY(GetLeader()))).
+# No peer: the host's own client plays its zone.
+# - The offer: as in net_zone_vars the sheriff's fourth topic is z7q1 first. This game takes it (four phrases) and
+#   rejects it at once with the sheriff's middle topic (z7q1_2: LeaveZone, the next offer drawn without z7q1, as
+#   net_pair_quest does with z9q3), so the zone7 group now offers z7q2 or z7q3 by the next PickZones draw. That draw
+#   follows the frames the game has run since the start, so the frames before the reject pick the zone (30 give
+#   z7q3 on both installs; 0 gives z7q2 on vanilla, 5 z7q2 on Rebirth; scenario steps are the same in every run).
+#   The fourth topic then takes z7q3 and "waitzone z7q3" fails the run when another zone came.
+# A clickground lands where the clicked pixel's ray meets the ground and the leader walks to that exact point, so
+# the walk follows the frame's pixel grid. The vanilla runs play in the image's 4:3 window (harness_starter.h), the
+# layout their goldens have had since game.exe's; the Rebirth runs at the desktop's size, the wide layout at 16:9 (W12).
+rebirth resolution desktop
+timeout 120
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key h
+frames 3
+key o
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 mpconnect
+
+clickregion 14
+frames 5
+clickregion 0
+waitwindow 25 briefing
+frames 20
+
+clickground 63 64 dblclick
+frames 60
+waitunit 10 Nsheriff
+clickunit Nsheriff
+waitdialogue 10 1
+clickregion 3
+talk 30
+frames 30
+clickunit Nsheriff
+waitdialogue 10 1
+clickregion 1
+talk 30
+frames 20
+
+clickunit Nsheriff
+waitdialogue 10 1
+clickregion 3
+talk 30
+clickground 61 50 dblclick
+frames 60
+clickground 59 43 dblclick
+waitzone 40 z7q3
+frames 60
+report
+quit
