@@ -162,7 +162,6 @@ LinkMesh* LinkFigureLoader::Remorph(LinkMesh* mesh, float s, float t, float u) {
 }
 
 LinkMesh* LinkFigureLoader::LoadLinkFile(const std::string* name, float s, float t, float u) {
-    auto* mesh = new LinkMesh(this, name, s, t, u);
     FigureModel* set = FindFigureSet(name);
     const char* data;
     if (set) {
@@ -176,6 +175,7 @@ LinkMesh* LinkFigureLoader::LoadLinkFile(const std::string* name, float s, float
         game::FatalError("Can't find link file for \"%s\"\n", name->data());
         return nullptr;
     }
+    auto* mesh = new LinkMesh(this, name, s, t, u);
     std::uint32_t count;
     lib::LoadBytes(count, data);
     const char* cursor = data + 4;

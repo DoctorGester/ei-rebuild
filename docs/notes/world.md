@@ -213,6 +213,13 @@ refresh. A vertex's altitude unit is 1 / 65534 as a float (37800100, 2^-16 + 2^-
 constants as exact fractions or bit patterns with a static_assert on the bits. The unit shape cache releases every shape
 as its owner at exit: a fault there shows as a crash on quit.
 
+## Original bugs kept
+
+- `sessionKind` holds the session kind (1 single player, 3 no range test, 4 network) and, once a zone is entered
+  (`g_serverWorld.sessionKind = mode`), the campaign mode (1 battle, 2 menu, 3 base, 4 edge, 8 end). So
+  `RestorePlayerItems` takes an edge zone (mode 4) for a network game and gives no quest items back on a redeploy there.
+  The original compares the same field with 4. A fix would give a party redeployed in an edge zone its quest items.
+
 ## Known points
 
 - world.h's SaveFileRead parameters `minimum` / `maximum` are swapped in meaning (ReadHeader takes newest, oldest).

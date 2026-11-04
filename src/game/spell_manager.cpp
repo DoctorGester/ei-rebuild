@@ -60,9 +60,9 @@ Spell* SpellManager::CreateSpellObject(int newId) {
         return spell;
     }
     if (low > sequence->maxLow) sequence->maxLow = low;
-    // A new entry has no container: CopyTo then faults (this = 0x30), as the game does.
+    // A new entry has no container: the spell keeps only its id.
     SpellContainer* container = sequence->containers[low];
-    container->spell.CopyTo(spell);
+    if (container) container->spell.CopyTo(spell);
     return spell;
 }
 
@@ -362,7 +362,7 @@ bool SpellConstructor::BeginConstruct(const itemdb::SpellRecord* prototype) {
     if (!prototype) return game::FatalError(kNoSpellPrototype);
     SpellContainer* newContainer = manager->NewContainer();
     container.Assign(newContainer);
-    container->prototype = prototype;     // no null check
+    container->prototype = prototype;
     return true;
 }
 

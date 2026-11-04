@@ -787,9 +787,8 @@ void UnitServer::RepackStats() {
 }
 
 void UnitServer::ArmourPutOn(std::uint32_t key) {
-    // A key out of range gives no record; the original then faults reading its type, as this does.
-    auto* record = itemdb::ArmorAt(key >> 16);
-    stats.AddArmourLayer(unit->armor[record->type]);
+    // A key out of range gives no record and adds nothing.
+    if (auto* record = itemdb::ArmorAt(key >> 16)) stats.AddArmourLayer(unit->armor[record->type]);
 }
 
 void UnitServer::RefreshEquipment() {

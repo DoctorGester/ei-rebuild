@@ -69,7 +69,7 @@ public:
     // `partName`; a null part faults, as in the original.
     FigureMesh* NewPart(const std::string& modelName, std::string_view partName, std::uint32_t attached);
     // The bone's animation from "<model><bone><animation>.ast" into `animator`; 0 without an animation or the
-    // file. The path is built in a 0x200-byte buffer without a bounds check; the data is not closed.
+    // file. The data is not closed.
     int LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator, const char* animation);
 
     std::unordered_map<std::string, FigureModel*> models;     // the cached models by name

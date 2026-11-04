@@ -474,8 +474,8 @@ void UnitServer::ReportPath(AIPath* path, char partial) {
     if (brain.action == AIBrain::kActionFollow) return;   // following reports nothing
     Unit* self = unit;
     const Vector3& goal = path->goal;
-    // The path as a motion order for the message. The header is left uninitialised when the path is not partial
-    // (the message does not read it for kind 3).
+    // The path as a motion order for the message (left empty when the path is not partial: the message does not
+    // read it for kind 3).
     LocalMotionOrder end;
     AckKind message;
     if (!partial) {
