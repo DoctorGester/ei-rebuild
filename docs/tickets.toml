@@ -4811,7 +4811,7 @@ title = "In-game graphics options instead of the launcher"
 group = "standalone"
 size = 2
 depends = ["S18"]
-note = "User 2026-11-04: do it now, all the pieces are in place (S18, ST1, R12a, R14, R15 done)."
+note = "User 2026-10-20: after the standalone exe, add graphics options to the game itself so no launcher is needed: display mode (windowed / borderless full screen; no exclusive mode change), resolution, antialiasing, anisotropic filtering and the like. R12a (the dgVoodoo look as an option, off by default), R14 (stay on screen on focus loss) and R15 (confine the cursor, no edge pan outside the window) supply switches it can show. Settings go to the settings file of ST1. User 2026-11-04: do it now, all the pieces are in place (S18, ST1, R12a, R14, R15 done)."
 
 [[ticket]]
 id = "S18a"
@@ -8128,7 +8128,7 @@ title = "Sound style 2: trim audio.h, SoundParams, video blocks"
 group = "cleanup"
 model = "opus"
 depends = ["C121"]
-note = "From C121 (2026-11-04): an IsPlaying(handle) on SoundManager (3 files write FindPlaying || FindDeferred); Play3D callers pass 0/1 for bool loop; terrain_ambience's LoadWaveFile(name, nullptr, nullptr) probe never calls CloseFile (possible mapped-view leak, check)."
+note = "Style review round 3 (2026-11-04, https://claude.ai/artifact/KKkymAu9dSoUWGGcbsLwPa, digests in build/style_review/round3/*.md; user: file the tickets). Items A4, A5, A7. A4: OpenOutput(rate) (window, reverb, error ignored, always true; drop platform.h), delete NoteStreamTaken/Held with StreamGuard (<chrono> in 35 files), delete the test-only 8-bit stream, OpenMp3 from a vector. A5: a SoundParams struct shared by SoundSlot and DeferredSound (12 fields copied in 4 places), deferred sounds held by value, member initialisers on every sound struct, std::atomic for the thread flags (with C108), then QueueHalf copies its bytes (no three-buffer rotation, Movie::halves). A7: video MakeBlock (five block cases twice), a per-movie scratch vector, IntraBlock params, volume 0..127 (one scale instead of three), honest video::Waiting, BinkVideo::Open returns bool, bink_audio's per-frame allocation, one anonymous namespace per file. Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes. From C121 (2026-11-04): an IsPlaying(handle) on SoundManager (3 files write FindPlaying || FindDeferred); Play3D callers pass 0/1 for bool loop; terrain_ambience's LoadWaveFile(name, nullptr, nullptr) probe never calls CloseFile (possible mapped-view leak, check)."
 
 [[ticket]]
 id = "C123"
@@ -8144,7 +8144,7 @@ title = "Lifetimes: default initialisers, Reset(), iterators that release"
 group = "cleanup"
 model = "opus"
 depends = ["C108"]
-note = "C112 (2026-11-04) already did the net Rebuild sites and RefCounted setting its own count; what is left here is AIMap::Reset's new (this) and the other items. C131 (2026-11-04) did the iterators tree-wide: ObjectListIterator drops its manager count in its destructor, PlayerIterator is an alias, no hand drops left."
+note = "Style review round 3 (2026-11-04, https://claude.ai/artifact/KKkymAu9dSoUWGGcbsLwPa, digests in build/style_review/round3/*.md; user: file the tickets). Item Y4 tree-wide. Every field gets a default initialiser (ratchet MSVC C26495 in check_cleanup); resets by new (this) or Rebuild (19 sites incl. ai_map_construct) become Reset() assigning fields; RefCounted sets its own count (15 refs = 0 at creators); ObjectListIterator releases in its destructor (28 hand drops); flags7 & kDetached (34) through IsLive; types with real ctor/dtor as plain locals. Networking's Connection is C112's; sound structs C122's. Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes. C112 (2026-11-04) already did the net Rebuild sites and RefCounted setting its own count; what is left here is AIMap::Reset's new (this) and the other items. C131 (2026-11-04) did the iterators tree-wide: ObjectListIterator drops its manager count in its destructor, PlayerIterator is an alias, no hand drops left."
 
 [[ticket]]
 id = "C125"
@@ -8283,7 +8283,7 @@ title = "Combat style 4: names, comments, spell effect protocol, construction, d
 group = "cleanup"
 model = "sonnet"
 depends = ["C137"]
-note = "Left for later (C139 hand-back): savefile_unit.py still reads the plan field as notSkill (rename = one golden re-record of 156); CreateSpell plumbing; IsUnit Ref null tests in spell_effect_update.cpp."
+note = "Style review round 4 (2026-11-04, https://claude.ai/artifact/BzXaX58kMcB9E2dwRuhN2U, reviewer reports in build/style_review/round4/<area>.md; user: file them all). Items K5, K6, K7 (combat.md A8, A12, A13, A14, A16, A17). notSkill -> calledShot, kSkillSource -> kSourceAllParts, kSkillLocations -> kRandomPartTable; delete SetStepFlags; StartAction's parameter named missed; LeaveMoveMode named for what it does. Start* functions enter the lasting state themselves and return void; CountDown used (13 copies); a named FireWall/LightWall/PoisonCloud skeleton (keep their end orders); tick counts decimal; IsSpellTarget/HitUnit forwarders, HitAreaTargets, a GetDamage table, multiplier * amount (exact). Spell construction once (Build/InitFromPrototype, Spell()/Create, ~SpellManager/Destroy), std::sort, delete SpellSequence, Spell::CopyTo via a SpellValues member (no memcpy over a class). Dead stores and the exact tidies (BandAt, RandomHeight, attack roll, AbsBits, 1.0f * x). Comments: offsets, instructions, inlining, wrong ones, 33 numbers in combat.h. Style only: goldens the same, float operation order untouched (any float rewrite exact and said why), no new forwarders, normal C++ classes; gameplay code stays (technical dead code goes). Left for later (C139 hand-back): savefile_unit.py still reads the plan field as notSkill (rename = one golden re-record of 156); CreateSpell plumbing; IsUnit Ref null tests in spell_effect_update.cpp."
 
 [[ticket]]
 id = "C140"
