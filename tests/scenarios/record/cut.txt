@@ -1,0 +1,31 @@
+# Recorded play, a recording cut in two (harness_record.h, "Parts"; docs/notes/harness.md, "Recorded play"): a new game
+# and a walk, the cut (the quick save and its load at once: "recordcut"), then more walking, the camera's keys and wheel
+# and the escape menu from the loaded game. Its recording is tests/scenarios/rec_cut_1.txt and rec_cut_2.txt
+# (python tools\recorded.py take <run> cut).
+recordinput
+reject Script error
+waitmenu
+newgame
+waitline 15 Saved savea
+waitwindow 15 battle
+click 470 330
+frames 40
+dblclick 330 260
+frames 50
+recordcut
+dblclick 420 380
+frames 50
+keydown left
+frames 15
+keyup left
+wheel 400 300 -120
+frames 10
+click 470 330
+frames 40
+key esc
+waitwindow 10 escmenu
+key esc
+waitwindow 10 battle
+click 420 380
+frames 60
+quit

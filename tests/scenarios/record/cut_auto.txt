@@ -1,0 +1,30 @@
+# Recorded play, a recording cut by its length (harness_record.h, "Parts"; docs/notes/harness.md, "Recorded play"): the
+# line "recordinput cut 100" cuts wherever the battle screen takes input once a part has 100 frames, as live play's
+# "recordinput live cut 3000" does. Three parts: a new game and walks, camera keys and wheel, the escape menu. Its
+# recording is tests/scenarios/rec_cut_auto_1.txt to _3 (python tools\recorded.py take <run> cut_auto).
+recordinput cut 100
+reject Script error
+waitmenu
+newgame
+waitline 15 Saved savea
+waitwindow 15 battle
+click 470 330
+frames 50
+click 400 320
+frames 60
+click 420 380
+frames 40
+keydown left
+frames 15
+keyup left
+wheel 400 300 -120
+frames 40
+click 470 330
+frames 70
+key esc
+waitwindow 10 escmenu
+key esc
+waitwindow 10 battle
+click 420 380
+frames 30
+quit

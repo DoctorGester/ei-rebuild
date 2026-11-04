@@ -4,7 +4,8 @@ rem usage: play.cmd [rebirth|vanilla]
 rem        play.cmd record <name> [vanilla|rebirth]
 rem   record <name>      a session recorded as a scenario (docs/notes/harness.md, "Recorded play"): the verify build
 rem                      (build\verify) in a window on the vanilla data (default) or Rebirth's, your input recorded;
-rem                      close the window to end it. It becomes tests\scenarios\rec_<name>.txt (tools/recorded.py).
+rem                      close the window to end it. It becomes tests\scenarios\rec_<name>.txt, or
+rem                      rec_<name>_<n>.txt for a long session the game cuts into parts (tools/recorded.py).
 rem   rebirth (default)  the Rebirth install's data (EI_GAME_REBIRTH, default F:\games\Evil Islands (Rebirth)) with the Rebirth profile
 rem                      (config\rebirth_profile.ini: draw radii, console and script additions, the bug fixes)
 rem   vanilla            the plain GOG install's data (EI_GAME_VANILLA, default F:\games\EvilIslands) with the plain profile (the bug fixes)

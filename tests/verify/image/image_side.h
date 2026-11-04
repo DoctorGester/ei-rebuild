@@ -92,6 +92,9 @@ unsigned& UpdatePeriod();                       // worlddata::g_updatePeriod
 const char* DataFolder();                       // the data folder's text, may be empty
 // IsaacRandom's seed hook: rand() seeded with 12345 and the generator's results filled by `fill`.
 void SetFixedSeed(void (*fill)(std::uint32_t* results));
+// The generators seeded again as a first world seeds them (World::Create): a recording's part begins so (the "origin"
+// step), since a save holds no generator and a replay that begins at a load has drawn otherwise than the recording.
+void ReseedRandom();
 int TextKey(const char* name);                  // TextKeyFromName
 void* LocalWorldPlayer(int player);             // WorldServer::GetPlayer
 void* WorldHandle();                          // the server world's worldHandle

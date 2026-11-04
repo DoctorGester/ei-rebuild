@@ -357,10 +357,14 @@
 //   digest water              (a line for the whole run) the records and dumps hold the water layer too:
 //                             hashes of each cached sector's water vertices as the waves move them (R16c3)
 //   dump <name>               the whole game state now into dump_<name>.txt (harness_digest.h)
-//   recordinput [live]        (a line for the whole run) write the run's input into recorded.txt in the run folder
+//   recordinput [live] [cut <frames>]
+//                             (a line for the whole run) write the run's input into recorded.txt in the run folder
 //                             as a scenario that replays it (harness_record.h); "live": the player's own keyboard
 //                             and mouse in a window shown and activated, the frames paced to real time
-//                             (tools/recorded.py, play.cmd record)
+//                             (tools/recorded.py, play.cmd record); "cut": a part is cut off once it is this many
+//                             frames long (recorded_2.txt, ...: each part begins with a load of the quick save)
+//   recordcut                 (a recording's step) cut the recording here, as "cut" does
+//   origin                    (a recorded part's step) the "at" lines count their frames from here
 //   recorded                  (a line for the whole run) a recorded scenario: its game may quit itself after the
 //                             last step (the player's Exit), which passes
 //   at <frame> <step>         run the step in the pass after frame <frame> of the main loop (a recorded
@@ -506,6 +510,8 @@ std::size_t g_next = 0;
 std::vector<std::string> g_loadLines;
 bool g_recordedScenario = false;
 bool g_replayLate = false;
+// A recording's cut is queued (InjectCut) until its origin step.
+bool g_cutQueued = false;
 
 // When a wait ends: after `ms` on the harness's clock (virtual time in deterministic mode), or at a
 // real-time safety limit, so that a game which stops drawing frames (the virtual clock stands
@@ -1855,6 +1861,16 @@ bool WindowReady(const std::string& name) {
     return true;
 }
 
+// A recording's cut (harness_record.h, "Parts"): the steps that quick-save, end the part, and load the save at once as
+// the next part's replay will (it begins with the same load, waitwindow and origin), next in line.
+void InjectCut() {
+    if (g_cutQueued) return;
+    g_cutQueued = true;
+    const std::vector<Step> cut = {{"key", "f5"},       {"waitexpect", "15 Saved saveq"}, {"recordpart", ""},
+                                   {"load", "saveq"},   {"waitwindow", "30 battle"},      {"origin", ""}};
+    g_steps.insert(g_steps.begin() + static_cast<std::ptrdiff_t>(g_next), cut.begin(), cut.end());
+}
+
 // For failure messages: the window on top and what keeps it from counting.
 std::string DescribeTopWindow() {
     void* top = TopWindow();
@@ -2259,6 +2275,8 @@ void RunSteps() {
             return;
         }
     }
+    // A recording that is long enough is cut where the battle screen takes input (harness_record.h, "Parts").
+    if (record::CutDue() && WindowReady("battle")) InjectCut();
     while (g_next < g_steps.size()) {
         if (!g_waitUntil.Passed()) return;
         if (std::string why = g_waitUntil.Why(); !why.empty()) {
@@ -2302,13 +2320,13 @@ void RunSteps() {
         if (s.verb == "at") {
             char* rest = nullptr;
             const unsigned long frame = std::strtoul(s.argument.c_str(), &rest, 10);
-            if (g_frames < frame) {
+            if (record::Frame() < frame) {
                 --g_next;
                 return;
             }
-            if (g_frames > frame && !g_replayLate) {
+            if (record::Frame() > frame && !g_replayLate) {
                 g_replayLate = true;
-                const std::string what = "at " + std::to_string(frame) + ": the replay is at frame " + std::to_string(g_frames) +
+                const std::string what = "at " + std::to_string(frame) + ": the replay is at frame " + std::to_string(record::Frame()) +
                                          " already (it has parted from the recording)";
                 Log("harness: %s", what.c_str());
                 g_failures.push_back(what);
@@ -2462,6 +2480,20 @@ void RunSteps() {
             g_awardFromSet = true;
         } else if (s.verb == "console") {
             ConsoleExecute(s.argument.c_str());
+        } else if (s.verb == "recordcut") {
+            // A driven recording's cut where the scenario says (harness_record.h, "Parts").
+            if (!record::On()) {
+                g_failures.push_back("recordcut: this run is not a recording (recordinput)");
+            } else {
+                InjectCut();
+            }
+        } else if (s.verb == "recordpart") {
+            if (std::string error = record::Part(); !error.empty()) g_failures.push_back(error);
+        } else if (s.verb == "origin") {
+            // The frames of a recorded scenario's "at" lines count from here (a part that begins with a load).
+            record::Origin();
+            g_cutQueued = false;
+            image::ReseedRandom();   // a save holds no generator: the recording and its replay both begin from a fresh one
         } else if (s.verb == "newgame") {
             // What the main menu's new-game button does after the intro movie (00632940).
             HarnessInterfaceHasScreen() = 0;
@@ -3052,6 +3084,7 @@ void ReleaseRealInput() {
     std::deque<platform::Event> events;
     Point motion{};
     if (!harnessplatform::TakeReal(&events, &motion)) return;
+    if (record::Cutting()) return;   // between a recording's cut and the next part's origin the player's input is dropped
     for (std::size_t i = 0; i < events.size(); ++i) {
         const platform::Event& e = events[i];
         const bool mouse = e.type == platform::EventType::MouseMove || e.type == platform::EventType::MouseDown ||
@@ -3198,8 +3231,15 @@ bool LoadScenario(const char* path) {
             g_steps.pop_back();
         };
         if (g_steps.back().verb == "recordinput" || g_steps.back().verb == "recorded") {
-            if (g_steps.back().verb == "recorded") g_recordedScenario = true;
-            else record::Ask(g_steps.back().argument == "live");
+            if (g_steps.back().verb == "recorded") {
+                g_recordedScenario = true;
+            } else {
+                // recordinput [live] [cut <frames>]
+                const std::string& argument = g_steps.back().argument;
+                const std::size_t cut = argument.find("cut ");
+                record::Ask(argument.compare(0, 4, "live") == 0,
+                            cut == std::string::npos ? 0 : static_cast<unsigned>(std::strtoul(argument.c_str() + cut + 4, nullptr, 10)));
+            }
             g_steps.pop_back();
             continue;
         }

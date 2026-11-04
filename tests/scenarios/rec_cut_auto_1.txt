@@ -1,0 +1,13 @@
+# Recorded by the harness from tests/scenarios/record/cut_auto.txt (tests/verify/harness_record.h), part 1:
+# each input event and each step that acts on the game at the frame it came in.
+recorded
+at 4 newgame
+at 9 event move 564 396 c
+at 9 event down left 564 396 1
+at 9 event up left 564 396 1
+at 59 event move 480 384 c
+at 59 event down left 480 384 1
+at 59 event up left 480 384 1
+at 119 event key down 0x74 0x3f 0
+at 119 event key up 0x74 0x3f 0
+at 120 quit
