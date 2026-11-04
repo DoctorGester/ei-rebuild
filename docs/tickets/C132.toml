@@ -5,5 +5,6 @@ model = "opus"
 depends = ["C130"]
 note = "Style review round 4 (2026-11-04, https://claude.ai/artifact/BzXaX58kMcB9E2dwRuhN2U, reviewer reports in build/style_review/round4/<area>.md; user: file them all). Items W8, P7 (world.md A10, A11; app.md A12). world.h (1,331 lines, 212 includers) splits into game_flow.h, saved_parties.h, save_file.h (kSaveVersion to save_versions.h), frame_lists.h (std::vector<MapObject*> g_frameLists[FrameList::Count] instead of 11 globals and the address table). world_data.h: each constant to its one user's file as a literal or meaning-named constexpr, the 33 literal-returning functions inlined, kFloatConstant only where an address is really passed (after C135 removes ConstPtr), the header deleted. game_strings.h (126 literal functions; game::kEmptyText in 43 files -> empty()/clear()) and game_flow_data.h likewise. Pure moves and inlines: run when no other ticket touches world.h. Style only: goldens the same, float operation order untouched (any float rewrite exact and said why), no new forwarders, normal C++ classes; gameplay code stays (technical dead code goes)."
 order = 1063
-status = "review"
+status = "done"
 started = "2026-11-04"
+done = "2026-11-04"
