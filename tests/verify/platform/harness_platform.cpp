@@ -205,11 +205,11 @@ void ShowMinimized(bool minimized) {
     else SDL_RestoreWindow(g_window);
 }
 
-void ResizeClient(int width, int height) {
-    if (!g_window) return;
-    SDL_SetWindowSize(g_window, width, height);
-    // X11 resizes asynchronously: the steps after this one must see the new size (events are only pumped, the game
-    // takes them from SDL's queue as ever). A size the system does not give ends the wait after two seconds.
+namespace {
+
+// X11 resizes asynchronously: the steps after a resize must see the new size (events are only pumped, the game takes
+// them from SDL's queue as ever). A size the system does not give ends the wait after two seconds.
+void WaitForClientSize(int width, int height) {
     SDL_SyncWindow(g_window);
     for (int waited = 0; waited < 2000; ++waited) {
         int now = 0, high = 0;
@@ -217,6 +217,29 @@ void ResizeClient(int width, int height) {
         SDL_PumpEvents();
         SDL_Delay(1);
     }
+}
+
+// As platform_sdl.cpp's: the client area made smaller when it and the borders would not fit in `display`'s usable
+// bounds, centred there; false when SDL cannot tell the bounds. Sets `width` and `height` to the size asked for.
+bool PlaceInUsableBounds(SDL_DisplayID display, int* width, int* height) {
+    SDL_Rect work{};
+    if (!SDL_GetDisplayUsableBounds(display, &work)) return false;
+    int top = 0, left = 0, bottom = 0, right = 0;
+    SDL_GetWindowBordersSize(g_window, &top, &left, &bottom, &right);
+    *width = (std::min)(*width, work.w - left - right);
+    *height = (std::min)(*height, work.h - top - bottom);
+    SDL_SetWindowSize(g_window, *width, *height);
+    SDL_SetWindowPosition(g_window, work.x + left + (work.w - left - right - *width) / 2,
+                          work.y + top + (work.h - top - bottom - *height) / 2);
+    return true;
+}
+
+} // namespace
+
+void ResizeClient(int width, int height) {
+    if (!g_window) return;
+    SDL_SetWindowSize(g_window, width, height);
+    WaitForClientSize(width, height);
 }
 
 std::string WindowTitle() {
@@ -298,16 +321,7 @@ NativeWindow CreateGameWindow(const char* title, int width, int height, bool ful
     hp::g_window = SDL_CreateWindowWithProperties(properties);
     SDL_DestroyProperties(properties);
     if (!hp::g_window) return nullptr;
-    SDL_Rect work{};
-    if (!fullScreen && SDL_GetDisplayUsableBounds(SDL_GetPrimaryDisplay(), &work)) {
-        int top = 0, left = 0, bottom = 0, right = 0;
-        SDL_GetWindowBordersSize(hp::g_window, &top, &left, &bottom, &right);
-        width = (std::min)(width, work.w - left - right);
-        height = (std::min)(height, work.h - top - bottom);
-        SDL_SetWindowSize(hp::g_window, width, height);
-        SDL_SetWindowPosition(hp::g_window, work.x + left + (work.w - left - right - width) / 2,
-                              work.y + top + (work.h - top - bottom - height) / 2);
-    }
+    if (!fullScreen) hp::PlaceInUsableBounds(SDL_GetPrimaryDisplay(), &width, &height);
 #if defined(SDL_PLATFORM_WINDOWS)
     hp::g_native = SDL_GetPointerProperty(SDL_GetWindowProperties(hp::g_window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
 #else
@@ -361,6 +375,14 @@ bool WindowPixelSize(NativeWindow window, int* width, int* height) {
     SDL_Window* w = hp::WindowOf(window);
     if (!w || hp::Minimized() || !SDL_GetWindowSizeInPixels(w, width, height)) return false;
     return *width > 0 && *height > 0;
+}
+
+void SetClientSize(NativeWindow window, int width, int height) {
+    SDL_Window* w = hp::WindowOf(window);
+    if (!w) return;
+    if (SDL_GetWindowFlags(w) & SDL_WINDOW_MAXIMIZED) SDL_RestoreWindow(w);
+    if (!hp::PlaceInUsableBounds(SDL_GetDisplayForWindow(w), &width, &height)) SDL_SetWindowSize(w, width, height);
+    hp::WaitForClientSize(width, height);
 }
 
 // ---- Events ------------------------------------------------------------------------------------------------------

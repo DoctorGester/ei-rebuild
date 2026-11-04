@@ -53,6 +53,11 @@ void UiSpin::SetValue(int newValue) {
     changed = true;
 }
 
+void UiSpin::Step(int by) {
+    const int count = static_cast<int>(texts.size());
+    SetValue(((value + by) % count + count) % count);
+}
+
 // --- A click steps the value ------------------------------------------------------------------------
 
 void UiSpin::LeftDown(Point) {

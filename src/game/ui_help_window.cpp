@@ -71,6 +71,10 @@ void HelpWindow::CreateScreen() {
     ShowPage();
 }
 
+void HelpWindow::LayoutChanged() {
+    if (!lines.empty()) ShowPage();   // (a window without pages is closing)
+}
+
 void HelpWindow::CloseScreen() {
     pulsing.clear();
     pictures.clear();

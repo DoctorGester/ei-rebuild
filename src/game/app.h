@@ -61,7 +61,7 @@ void ShowMessageBox(const char* text);
 // warning icon.
 void ShowLibraryMessageBox(const char* text);
 // The rendering resolution changed while the game runs, the one way every change takes (a window resized: the present
-// asks through RequestResolution; a resolution chosen in the settings can call it directly, between frames): the
+// asks through RequestResolution; a resolution chosen in the options: ChooseResolution): the
 // device's screen, the interface layout (screen_layout.h: the 4:3 part, the widescreen margins and axis scales), the
 // camera's viewport and axis swap, the cursor's bounds, the interface (fonts, surfaces and the windows built for the
 // window's shape: Interface3D::Resize) and the settings' VideoResolution (written at exit) take width x height.
@@ -71,6 +71,11 @@ bool SetResolution(int width, int height);
 // SetResolution asked for at the next main loop pass: the present notices a window's new size in the middle of a
 // frame (and the movie players and loading screens present outside the loop, which takes it after them).
 void RequestResolution(int width, int height);
+// A resolution chosen in the options (their OK): asked for at the next main loop pass (RequestResolution, between
+// frames) and, in a window that is not full screen, the window's client area sized to it now
+// (present_window::SizeClient). Full screen keeps its window over the monitor: the frame is scaled over it, the
+// display mode never changes.
+void ChooseResolution(int width, int height);
 // At a main loop pass's start: the requested resolution taken.
 void TakeResolutionChange();
 // main's first step: SDL's video up and the renderer's device started on its thread, so that most of the device's time

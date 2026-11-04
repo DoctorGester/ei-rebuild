@@ -1,10 +1,11 @@
 // The rendering resolution changed while the game runs (app.h's SetResolution): a window resized by the player or
-// the system, later a resolution chosen in the settings. docs/notes/renderer.md, "Resolution changes".
+// the system, or a resolution chosen in the options. docs/notes/renderer.md, "Resolution changes".
 #include "app.h"
 
 #include "game_singletons.h"
 #include "model.h"
 #include "options.h"
+#include "present_window.h"
 #include "screen_layout.h"
 #include "texture.h"
 #include "ui.h"
@@ -41,6 +42,11 @@ bool SetResolution(int width, int height) {
 void RequestResolution(int width, int height) {
     g_requestedWidth = width;
     g_requestedHeight = height;
+}
+
+void ChooseResolution(int width, int height) {
+    RequestResolution(width, height);
+    present_window::SizeClient(g_sceneRenderer.device, width, height);
 }
 
 void TakeResolutionChange() {

@@ -139,7 +139,8 @@ only when a save window opens. In-game screenshots come from render::ReadFrame (
 
 **Resolution changes.** Each surface keeps the layout rectangle it was given and is in a registry of live surfaces, so a
 resolution change places them all again (`UiSurface::RelayoutAll`); their paints draw at the new size from the next
-frame, texts laid out in the new fonts (sharp; scenario `ui_resize_text`; renderer.md, "Resolution changes"). A frame picture is stretched to the new rectangle.
+frame, texts laid out in the new fonts (sharp; scenario `ui_resize_text`; renderer.md, "Resolution changes"). The
+frame pictures behind the windows are taken again at the new size (`Interface3D::RetakeBackdrops`).
 
 **GDI rules the quads follow** (measured on Windows 10; `ei_ui_check` holds them): FrameRect draws a 1-px border inside the
 rectangle (`FrameRects`). A 1-px pen leaves out the end point (`LineRects`). A 2-px pen (round ends) draws both end points;

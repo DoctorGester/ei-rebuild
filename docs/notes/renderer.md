@@ -404,8 +404,14 @@ frames; no device is made again and the zone goes on. It sets, in order:
   (`UiSurface::RelayoutAll`: its rectangle scaled from the layout rectangle it was given; what it draws is drawn at the
   new size from the next frame, its texts laid out again in the new fonts), then each window on the stack, bottom first, `UiContainer::LayoutChanged`. The battle screen builds its HUD panels
   again (`BattleScreen::BuildPanels`, at the window's edges, `EdgeShift`), keeping the map's zoom, the top panel's
-  texts, the selection, the portraits and the pending action; the camp and the multiplayer hero screen move their
-  curtains (`screen_layout::PlaceCurtains`).
+  texts, the clock's blink and dial, the selection, the portraits and the pending action, and shows the clock and the
+  movement panel at once (`HudClock::Show`, `HudMovePanel::Update`); the camp and the multiplayer hero screen move
+  their curtains (`screen_layout::PlaceCurtains`); a help or tutorial window builds its page again
+  (`HelpWindow::ShowPage`: a zone tutorial's frames at the battle screen's panels follow them to the new edges). Last
+  the screen copies behind the windows are taken again (`Interface3D::RetakeBackdrops`): frame steps without a present
+  with the stack cut back to what each copy showed, as `PushWindow` took them (the bottom window greyed, with the
+  escape menu's save copy; then the windows under a help window, `backdropWindows`). Every other window places its
+  panels, regions and sprites in the layout and draws its texts each frame, so it needs nothing.
 
 The renderer follows by itself: the frame target is made again at the next frame at the screen's size (`EnsureTarget`
 reads `GameTargetSize`), the swap chain follows the client area, the cursor's shapes are made at the new scale. Movies
@@ -415,11 +421,19 @@ the movie's size).
 Who calls it: a window that is not full screen and whose client area changed since the last present (dragged,
 maximised, a DPI change). `present_window::Update` asks at each present (`app::RequestResolution`) and the next main
 loop pass takes it (`TakeResolutionChange`), so a resize during a blocking movie or loading screen is taken after it;
-meanwhile the present scales the frame. The window's first client area is not a change. A settings screen (not built)
-would call `app::SetResolution` from its apply and, windowed, size the client area to it. The options window has no
-resolution: its 21 settings are volumes, keys, mouse speeds, border scroll, the shadows switch (7), selection type,
-path, brightness / gamma, flying HP, tutorial, autosave, tooltip time, filters, camera axes, stereo and difficulty
-(`render_options_shadows` steps the shadows switch).
+meanwhile the present scales the frame. The window's first client area is not a change.
+
+The options window's resolution (setting 21, the display group's last row, ours): a spin control over a fixed list of
+common sizes (4:3, 5:4, 16:10, 16:9, 21:9, 800x600 to 3840x2160; the same on every machine, so scenarios step it the
+same) with the screen's own size put in its place when it is none of them; Enter or a click steps on, Left / Right
+(on any spin row) back and on. Its label and tip are ours ("option_resolution": Russian where the game's texts are,
+else English; a text the game's files have wins). OK with another size calls `app::ChooseResolution`: the change is
+asked for at the next main loop pass (`RequestResolution`, between frames: the windows' LayoutChanged never runs inside
+their own input handler) and, in a window that is not full screen, the client area sized to it now
+(`present_window::SizeClient` -> `platform::SetClientSize`: placed as the window was made, made smaller when it would
+not fit, the frame then scaled into it; logged "present: the window's client area sized to ..."), taken as the
+window's own size, so the next present asks for nothing. Full screen only the resolution changes: the frame is scaled
+over the monitor, the display mode never changes.
 
 **Input in a window of another shape.** Mouse coordinates are frame pixels through the picture's placement
 (`render::WindowToFrame`; the cursor's through `platform::MapCursorPoints`). A point over the bars goes to the frame's
@@ -428,7 +442,12 @@ passed on and is logged ("input: a press outside the picture ignored"), its rele
 `Interface3D::PictureRect`: the screen less the letterbox bars while `ScreenFade::letterbox` is set (nothing in the
 game sets it). A window narrower than 4:3 has the world over its whole height.
 
-Scenarios: `render_resize_zone` (zone1 windowed at 800x600, 1280x720, 1000x800 under the Esc menu, back to 800x600),
+Scenarios: `render_options_resolution` (zone1 windowed at 800x600: 1280x720 and then 1280x1024 picked in the options
+from the Esc menu), `render_resize_windows` (the Esc menu, the save window, the objectives, a zone tutorial, the camp's
+inventory and trade, the global map, each resized while open; `samecapture` against the window opened at that size,
+the game's clocks held between), `render_resize_menus` (the main menu, the options over it and their help, the same
+way), `render_resize_dialogue` (a base's topics and phrases resized: captures),
+`render_resize_zone` (zone1 windowed at 800x600, 1280x720, 1000x800 under the Esc menu, back to 800x600),
 `render_resize_edgepan` (full screen at 800x600 on a 16:9 monitor: the camera pans at the picture's edges, a click over
 the bar ignored), `render_present_window`, `render_cursor_present`; `ui_resize_text` (the options and the help captured at 800x600, again
 after several shrinks and grows: the same frames).

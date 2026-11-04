@@ -267,9 +267,15 @@ void OptionsWindow::KeyDown(int key, int scan, bool repeat) {
         break;
     case kKeyLeft:
     case kKeyRight: {
-        // The row's bar moves one step; the handled flag stays as it is.
+        // The row's bar moves one step, or its spin control steps back or on; the handled flag stays as it is.
         OptionSetting* setting = rows[selectedRow].setting;
-        if (!setting || !setting->bar) return;
+        if (!setting) return;
+        if (setting->spin) {
+            setting->spin->Step(key == kKeyLeft ? -1 : 1);
+            ui->PlayInterfaceSound(game::OkSoundText());
+            return;
+        }
+        if (!setting->bar) return;
         const int position = setting->bar->TakePosition();
         rows[selectedRow].setting->bar->SetPosition(key == kKeyLeft ? position - 1 : position + 1);
         return;

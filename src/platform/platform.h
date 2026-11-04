@@ -289,6 +289,10 @@ void ClientToScreen(NativeWindow window, Point* point);
 bool CoverMonitor(NativeWindow window, Rect* was, Rect* monitor);
 // The window's client area in pixels (what the renderer draws into); false when it has none (minimised).
 bool WindowPixelSize(NativeWindow window, int* width, int* height);
+// A window that is not full screen: its client area `width` x `height` pixels, placed as CreateGameWindow places it
+// (made smaller when it and its borders would not fit in the usable bounds of the display it is on, centred there); a
+// maximised window is restored first. Returns once the system has applied it (X11 resizes asynchronously).
+void SetClientSize(NativeWindow window, int width, int height);
 
 // ---- Events ------------------------------------------------------------------------------------------------------
 
