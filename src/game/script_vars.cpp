@@ -84,7 +84,7 @@ ScriptVarRef ScriptVars::FindVariable(std::string_view name) const {
     return {groups.Find(name), kScriptGroup};
 }
 
-int ScriptVars::FindOfType(int type, std::string_view name) const {
+int ScriptVars::FindOfType(ScriptType type, std::string_view name) const {
     switch (type) {
     case kScriptFloat: return floats.Find(name);
     case kScriptString: return strings.Find(name);
@@ -101,7 +101,7 @@ void ScriptVars::RemoveDeletedObjects() {
 // ---- ScriptDefinition::AddParameter -------------------------------------------------------------
 
 // An unknown type is accepted and adds no letter.
-bool ScriptDefinition::AddParameter(const std::string* parameterName, int type) {
+bool ScriptDefinition::AddParameter(const std::string* parameterName, ScriptType type) {
     const std::string& text = *parameterName;
     bool added;
     switch (type) {
@@ -137,7 +137,10 @@ void ScriptCall::SetParameters(const std::vector<ScriptBinding>& bindings, Scrip
 }
 
 void ScriptCall::Clear() {
-    id = 0;
+    id = ScriptFunction{};
+    target = 0;
+    targetType = ScriptType{};
+    targetName.clear();
     floatArgs.clear();
     stringArgs.clear();
     objectArgs.clear();
@@ -149,26 +152,43 @@ void ScriptCall::Clear() {
 }
 
 void ScriptCall::Save(ByteStream* stream) const {
+    // Assign / CallScript: the target in leading slots (Load); the bindings and nested calls count them.
+    const bool assign = id == ScriptFunction::Assign;
+    const bool callScript = id == ScriptFunction::CallScript;
+    const int leadFloats = assign ? 2 : callScript ? 1 : 0;
+    const int leadTexts = callScript ? 1 : 0;
+    auto savedArgIndex = [&](ScriptType type, int argIndex) {
+        return argIndex + (type == kScriptFloat ? leadFloats : type == kScriptString ? leadTexts : 0);
+    };
+
     stream->WriteValue(id);
-    stream->WriteCount(floatArgs.size());
+    stream->WriteCount(floatArgs.size() + leadFloats);
+    if (assign || callScript) stream->WriteValue(static_cast<float>(target));
+    if (assign) stream->WriteValue(static_cast<float>(targetType - 1));
     for (const float& value : floatArgs) stream->WriteValue(value);
 
-    stream->WriteCount(stringArgs.size());
+    stream->WriteCount(stringArgs.size() + leadTexts);
+    if (callScript) stream->WriteString(targetName);
     for (const std::string& text : stringArgs) stream->WriteString(text);
 
     // Object and group arguments are only counted: they are re-bound on load.
     stream->WriteCount(objectArgs.size());
     stream->WriteCount(groupArgs.size());
 
-    stream->WriteCount(localBindings.size());
-    for (const ScriptBinding& binding : localBindings) stream->WriteValue(binding);
-    stream->WriteCount(globalBindings.size());
-    for (const ScriptBinding& binding : globalBindings) stream->WriteValue(binding);
+    auto saveBindings = [&](const std::vector<ScriptBinding>& bindings) {
+        stream->WriteCount(bindings.size());
+        for (ScriptBinding binding : bindings) {
+            binding.argIndex = savedArgIndex(binding.type, binding.argIndex);
+            stream->WriteValue(binding);
+        }
+    };
+    saveBindings(localBindings);
+    saveBindings(globalBindings);
 
     stream->WriteCount(subCalls.size());
     for (const ScriptSubCall& call : subCalls) {
         stream->WriteValue(call.type);
-        stream->WriteValue(call.argIndex);
+        stream->WriteValue(savedArgIndex(call.type, call.argIndex));
         call.cmd->Save(stream);
     }
 

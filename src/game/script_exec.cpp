@@ -246,7 +246,7 @@ bool ScriptRun::Execute(Script* script) {
         const bool done = scriptaddon::Dispatch(&call);
 
         ScriptArgs args(cmd);
-        const ScriptFunction function = done ? ScriptFunction::None : static_cast<ScriptFunction>(cmd->id);
+        const ScriptFunction function = done ? ScriptFunction::None : cmd->id;
         switch (function) {
         case ScriptFunction::Sleep: {   // Sleep(ticks): counts this run's Execute calls from the first one
             if (position.sleepStart < 0) position.sleepStart = position.ticks;
@@ -267,8 +267,8 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::CallScript: {   // a declared script: start an instance with the call's arguments
-            int which = lib::Truncate(cmd->floatArgs[0]);
-            ScriptDefinition* instance = &script->instances.emplace_front(script->definitions[static_cast<std::size_t>(which)]);
+            const ScriptDefinition& definition = script->definitions[static_cast<std::size_t>(cmd->target)];
+            ScriptDefinition* instance = &script->instances.emplace_front(definition);
             instance->BindCall(cmd);
             instance->killed = false;
             break;
@@ -300,26 +300,15 @@ bool ScriptRun::Execute(Script* script) {
             --script->forDepth;
             break;
         }
-        case ScriptFunction::Assign: {   // global = value: float 0 variable index, float 1 type - 1
-            const float* f = cmd->floatArgs.data();
+        case ScriptFunction::Assign: {   // global = value
             ScriptVars* globals = &script->globals;
-            switch (lib::Truncate(f[1])) {
-            case 0:
-                globals->floats.values[lib::Truncate(f[0])] = f[2];
-                break;
-            case 1:
-                globals->strings.values[lib::Truncate(f[0])] = cmd->stringArgs[0];
-                break;
-            case 2: {
-                globals->objects.values[static_cast<std::size_t>(lib::Truncate(f[0]))] = *cmd->objectArgs[0];
-                break;
-            }
-            case 3: {
-                globals->groups.values[static_cast<std::size_t>(lib::Truncate(f[0]))] = *cmd->groupArgs[0];
-                break;
-            }
-            default:
-                break;
+            const std::size_t index = static_cast<std::size_t>(cmd->target);
+            switch (cmd->targetType) {
+            case kScriptFloat: globals->floats.values[index] = args.Float(); break;
+            case kScriptString: globals->strings.values[index] = args.Text(); break;
+            case kScriptObject: globals->objects.values[index] = args.Object(); break;
+            case kScriptGroup: globals->groups.values[index] = *args.Group(); break;
+            default: break;   // a loaded save's unknown type
             }
             break;
         }

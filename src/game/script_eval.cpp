@@ -121,7 +121,7 @@ float ScriptCall::CalcFloat(Script* script, ScriptVars* vars) {
         if (scriptaddon::Dispatch(&call)) return result;
     }
     ScriptArgs args(this);
-    const ScriptFunction function = static_cast<ScriptFunction>(id);
+    const ScriptFunction function = id;
     switch (function) {
     case ScriptFunction::IsEqual: {
         const float a = args.Float();
@@ -448,7 +448,7 @@ void ScriptCall::CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** 
         if (scriptaddon::Dispatch(&call)) return;
     }
     ScriptArgs args(this);
-    const ScriptFunction function = static_cast<ScriptFunction>(id);
+    const ScriptFunction function = id;
     switch (function) {
     case ScriptFunction::ScriptGetObject: { // GetObject(id)
         const int objectId = lib::Truncate(args.Float());
@@ -509,7 +509,7 @@ void ScriptCall::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** resul
     scriptaddon::Call call{this, script, result, nullptr, nullptr};
     const bool done = scriptaddon::Dispatch(&call);
     ScriptArgs args(this);
-    switch (done ? ScriptFunction::None : static_cast<ScriptFunction>(id)) {
+    switch (done ? ScriptFunction::None : id) {
     case ScriptFunction::None:
         break;
     case ScriptFunction::GroupAdd: {

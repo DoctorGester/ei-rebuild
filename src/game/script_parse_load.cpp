@@ -10,9 +10,7 @@
 #include "lib/str.h"
 #include "lib/text_case.h"
 
-#include <bit>
 #include <cstdarg>
-#include <cstdint>
 #include <cstring>
 #include <string>
 
@@ -33,11 +31,6 @@ namespace {
 // *dst = (float)atof(text): the CRT's result stored as a float.
 void StoreAtof(float* dst, const std::string& text) { *dst = str::ToFloat(text); }
 
-// An int stored as a float.
-void StoreIntAsFloat(float* dst, int value) { *dst = static_cast<float>(value); }
-
-void StoreBits(float* dst, std::uint32_t bits) { *dst = std::bit_cast<float>(bits); }
-
 int CountChar(const char* text, char c) {
     int n = 0;
     for (; *text; ++text)
@@ -46,34 +39,28 @@ int CountChar(const char* text, char c) {
 }
 
 // The ScriptType named by a declaration's type word ("float", ...); 0 for none.
-int TypeOfName(const std::string& name) {
+ScriptType TypeOfName(const std::string& name) {
     for (int type = kScriptFloat; type <= kScriptGroup; ++type)
-        if (name == ScriptTypeName(type)) return type;
-    return 0;
+        if (name == kScriptTypeNames[type - 1]) return static_cast<ScriptType>(type);
+    return ScriptType{};
 }
 
 } // namespace
 
 
-bool Script::LoadFunction(ScriptCall* cmd, TokenReader* tokens, int id, ScriptVars* locals, const char* signature, bool assignment,
-                          bool scriptCall) {
+bool Script::LoadFunction(ScriptCall* cmd, TokenReader* tokens, ScriptFunction id, ScriptVars* locals, const char* signature,
+                          ScriptArgSyntax syntax) {
+    const bool assignment = syntax == ScriptArgSyntax::Value;
     int paramIndex = 0;
-    // The next argument slot of each type (by ScriptType). Extra leading slots: an assignment keeps the variable
-    // index and type in floats 0 and 1, a script call the script index in float 0 and its name in string 0.
-    int nextArg[kScriptGroup + 1] = {};
+    int nextArg[kScriptGroup + 1] = {};   // the next argument slot of each type (by ScriptType)
     ScriptToken token;
     std::string qualified;
-    ScriptBinding local{0, 0, 0}, global{0, 0, 0};
+    ScriptBinding local{ScriptType{}, 0, 0}, global{ScriptType{}, 0, 0};
     ScriptSubCall sub;
-    if (assignment) nextArg[kScriptFloat] = 2;
-    if (scriptCall) {
-        nextArg[kScriptFloat] = 1;
-        nextArg[kScriptString] = 1;
-    }
 
     cmd->id = id;
-    cmd->floatArgs.resize(static_cast<std::size_t>(CountChar(signature, 'f') + nextArg[kScriptFloat]));
-    cmd->stringArgs.resize(static_cast<std::size_t>(CountChar(signature, 's') + nextArg[kScriptString]));
+    cmd->floatArgs.resize(static_cast<std::size_t>(CountChar(signature, 'f')));
+    cmd->stringArgs.resize(static_cast<std::size_t>(CountChar(signature, 's')));
     cmd->objectArgs.resize(static_cast<std::size_t>(CountChar(signature, 'o') + CountChar(signature, 'O')));
     cmd->groupArgs.resize(static_cast<std::size_t>(CountChar(signature, 'g')));
     cmd->localBindings.clear();
@@ -110,7 +97,7 @@ bool Script::LoadFunction(ScriptCall* cmd, TokenReader* tokens, int id, ScriptVa
         // Literal parameters are stored directly; others bind a local or global variable of
         // the same name, or are parsed as a nested function call.
         if (*signature == 0) return Error(this, token.line, kErrTooManyParameters, "Too much parameters");
-        const int type = ScriptTypeOfLetter(*signature);
+        const ScriptType type = ScriptTypeOfLetter(*signature);
         if (type == 0) game::FatalError("wrong type char in CScript::LoadFunction");
         const int argIndex = nextArg[type]++;
         local.type = type;
@@ -151,7 +138,7 @@ bool Script::LoadFunction(ScriptCall* cmd, TokenReader* tokens, int id, ScriptVa
                 sub.type = local.type;
                 const char* nested = FunctionSignature(tokenId, local.type);
                 if (!nested) return Error(this, token.line, kErrParameterType, "Parameter of type %s expected", ScriptTypeName(type));
-                if (!LoadFunction(sub.cmd.get(), tokens, tokenId, locals, nested, false, false)) return false;
+                if (!LoadFunction(sub.cmd.get(), tokens, static_cast<ScriptFunction>(tokenId), locals, nested)) return false;
                 cmd->subCalls.push_back(sub);
             }
         }
@@ -175,7 +162,7 @@ bool Script::LoadConditions(std::vector<ScriptCall>* conditions, TokenReader* to
         if (id == kLexClose) return true;
         const char* signature = FunctionSignature(id, kScriptFloat);
         if (!signature) return Error(this, token.line, kErrFloatFunction, "Function returning float expected");
-        if (!LoadFunction(&cmd, tokens, id, locals, signature, false, false)) return false;
+        if (!LoadFunction(&cmd, tokens, static_cast<ScriptFunction>(id), locals, signature)) return false;
         conditions->push_back(cmd);
     }
 }
@@ -231,17 +218,12 @@ bool Script::LoadAssignOperator(ScriptCall* cmd, TokenReader* tokens, ScriptVars
     cmd->Clear();
     if (!tokens->Expect(kLexAssign)) return false;
 
-    auto [index, type] = globals.FindVariable(*name);
-    // The value is parsed as the single parameter of command 0x78; float 1 holds the type - 1.
-    static const std::uint32_t kTypeCode[] = {0, 0x00000000, 0x3F800000, 0x40000000, 0x40400000};
-    if (type < 1 || type > 4) {
-        game::FatalError("Uknown variable type at CScript::LoadAssignOperator");
-        return false;
-    }
+    // The value is the single argument of an Assign command (the caller found the variable).
+    const auto [index, type] = globals.FindVariable(*name);
     const char signature[2] = {ScriptTypeLetter(type), 0};
-    bool result = LoadFunction(cmd, tokens, kCmdAssign, locals, signature, true, false);
-    StoreBits(&cmd->floatArgs[1], kTypeCode[type]);
-    StoreIntAsFloat(&cmd->floatArgs[0], index);
+    bool result = LoadFunction(cmd, tokens, ScriptFunction::Assign, locals, signature, ScriptArgSyntax::Value);
+    cmd->target = index;
+    cmd->targetType = type;
     return result;
 }
 
@@ -258,7 +240,7 @@ bool Script::LoadVariableDeclarations(ScriptDefinition* script, TokenReader* tok
         if (!tokens->Expect(kLexColon)) return false;
         if (qualify) name = QualifyName(name);
         token = tokens->Next();
-        const int type = TypeOfName(token.text);
+        const ScriptType type = TypeOfName(token.text);
         if (type == 0) return Error(this, token.line, kErrUnknownType, "Unknown parameter type");
         if (!script->AddParameter(&name, type)) return Error(this, token.line, kErrDuplicateVariable, "Duplicate variable name %s", name);
         first = false;
@@ -287,8 +269,8 @@ bool Script::LoadCommands(std::vector<ScriptCall>* commands, TokenReader* tokens
 
         bool ok;
         if (command) {
-            ok = LoadFunction(&cmd, tokens, id, locals, command->command, false, false);
-            if (id == kCmdFor || id == kCmdForIf) {
+            ok = LoadFunction(&cmd, tokens, command->id, locals, command->command);
+            if (command->id == ScriptFunction::For || command->id == ScriptFunction::ForIf) {
                 // The loop body: `(` commands `)`, which sees the script's parameters and locals. Parsed even
                 // when the loop header failed.
                 if (!tokens->Expect(kLexOpen)) return false;
@@ -303,11 +285,11 @@ bool Script::LoadCommands(std::vector<ScriptCall>* commands, TokenReader* tokens
             for (; index < definitions.size(); ++index)
                 if (definitions[index].name == text || definitions[index].name == qualified) break;
             if (index < definitions.size()) {
-                // A call to a declared script: command 8, float 0 = script index, string 0 = name.
-                if (!LoadFunction(&cmd, tokens, kCmdCallScript, locals, definitions[index].params.c_str(), false, true))
+                // A call to a declared script.
+                if (!LoadFunction(&cmd, tokens, ScriptFunction::CallScript, locals, definitions[index].params.c_str()))
                     return false;
-                cmd.stringArgs[0] = definitions[index].name == text ? text : qualified;
-                StoreIntAsFloat(&cmd.floatArgs[0], static_cast<int>(index));
+                cmd.target = static_cast<int>(index);
+                cmd.targetName = definitions[index].name;
                 commands->push_back(cmd);
                 continue;
             }

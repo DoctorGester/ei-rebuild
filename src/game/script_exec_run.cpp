@@ -89,11 +89,11 @@ void UpdateParticleSources(Script* script) {
 // ---- Script instances ---------------------------------------------------------------------------
 
 void ScriptDefinition::BindCall(const ScriptCall* call) {
-    if (call->floatArgs.size() - 1 != vars.floats.values.size()) {
+    if (call->floatArgs.size() != vars.floats.values.size()) {
         game::FatalError(kWrongFloatCount, name);
         return;
     }
-    if (call->stringArgs.size() - 1 != vars.strings.values.size()) {
+    if (call->stringArgs.size() != vars.strings.values.size()) {
         game::FatalError(kWrongStringCount, name);
         return;
     }
@@ -105,9 +105,8 @@ void ScriptDefinition::BindCall(const ScriptCall* call) {
         game::FatalError(kWrongGroupCount, name);
         return;
     }
-    // Float 0 and string 0 name the script; the rest are the parameters.
-    for (std::size_t i = 1; i < call->floatArgs.size(); ++i) vars.floats.values[i - 1] = call->floatArgs[i];
-    for (std::size_t i = 1; i < call->stringArgs.size(); ++i) vars.strings.values[i - 1] = call->stringArgs[i];
+    for (std::size_t i = 0; i < call->floatArgs.size(); ++i) vars.floats.values[i] = call->floatArgs[i];
+    for (std::size_t i = 0; i < call->stringArgs.size(); ++i) vars.strings.values[i] = call->stringArgs[i];
     for (std::size_t i = 0; i < call->objectArgs.size(); ++i) vars.objects.values[i] = *call->objectArgs[i];
     for (std::size_t i = 0; i < call->groupArgs.size(); ++i) vars.groups.values[i] = *call->groupArgs[i];
 }

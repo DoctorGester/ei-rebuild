@@ -257,10 +257,10 @@ def enum_numbers():
     `Lex(kLexName)` (ScriptKeyword's punctuation entries: a ScriptLexeme value) -> the number's text."""
     if not _ENUM_NUMBERS:
         text = srcscan.blank_comments(open(os.path.join(ROOT, 'src', 'game', 'script.h'), encoding='utf-8').read())
-        body = re.search(r'enum class ScriptFunction\b[^{]*\{(.*?)\};', text, re.S).group(1)
+        body = re.search(r'enum class ScriptFunction\b[^{;]*\{(.*?)\};', text, re.S).group(1)
         for name, value in re.findall(r'(\w+)\s*=\s*(-?\w+)', body):
             _ENUM_NUMBERS['ScriptFunction::' + name] = value
-        body = re.search(r'enum ScriptLexeme\b[^{]*\{(.*?)\};', text, re.S).group(1)
+        body = re.search(r'enum ScriptLexeme\b[^{;]*\{(.*?)\};', text, re.S).group(1)
         for name, value in re.findall(r'(\w+)\s*=\s*(0[xX][0-9A-Fa-f]+|\d+)', body):
             _ENUM_NUMBERS['Lex(' + name + ')'] = value
     return _ENUM_NUMBERS

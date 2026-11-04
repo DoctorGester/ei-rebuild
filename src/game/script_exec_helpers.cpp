@@ -147,7 +147,7 @@ void ScriptQuestBuilder::Finish(Script* script) {
         }
         const ScriptQuestObjective& objective = objectives[i];
         const std::string& argument = objective.text;
-        switch (static_cast<ScriptFunction>(objective.type)) {
+        switch (objective.type) {
         case ScriptFunction::QObjArea:
             condition = str::Format("any( i, Heroes, IsInArea( %f, GetX(i), GetY(i) ) )", static_cast<double>(objective.value));
             break;
@@ -194,7 +194,7 @@ void ScriptQuestBuilder::Start(const char* questName) {
     name = questName;
 }
 
-void ScriptQuestBuilder::AddObjective(int type, const std::string& text, float value) {
+void ScriptQuestBuilder::AddObjective(ScriptFunction type, const std::string& text, float value) {
     objectives.push_back({type, text, value});
 }
 

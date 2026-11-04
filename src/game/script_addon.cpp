@@ -192,7 +192,7 @@ bool InvalidArguments(const char* function) {
 const ScriptKeyword* Table() { return Build().table.data(); }
 
 bool Dispatch(Call* call) {
-    int id = call->cmd->id;
+    const int id = static_cast<int>(call->cmd->id);
     if (id < 0 || id >= kFirstNewId + kRecordCount) return false;
     int r = Build().recordById[id];
     if (r < 0 || !kRecords[r].handler) return false;

@@ -40,17 +40,18 @@ inline constexpr char kScriptTypeLetters[] = "fsog";
 inline constexpr const char* kScriptTypeNames[] = {"float", "string", "object", "group"};
 
 // The signature letter of a type ('f', 's', 'o', 'g'); 0 for a number that is none.
-inline char ScriptTypeLetter(int type) {
+inline char ScriptTypeLetter(ScriptType type) {
     return type >= kScriptFloat && type <= kScriptGroup ? kScriptTypeLetters[type - 1] : 0;
 }
 // The type of a signature letter (upper-case too: a result letter, the loop counter 'O'); 0 for none.
-inline int ScriptTypeOfLetter(char letter) {
+inline ScriptType ScriptTypeOfLetter(char letter) {
     for (int type = kScriptFloat; type <= kScriptGroup; ++type)
-        if (letter == kScriptTypeLetters[type - 1] || letter == kScriptTypeLetters[type - 1] - 'a' + 'A') return type;
-    return 0;
+        if (letter == kScriptTypeLetters[type - 1] || letter == kScriptTypeLetters[type - 1] - 'a' + 'A')
+            return static_cast<ScriptType>(type);
+    return ScriptType{};
 }
 // "float", "string", "object" or "group"; null for any other number.
-inline const char* ScriptTypeName(int type) {
+inline const char* ScriptTypeName(ScriptType type) {
     return type >= kScriptFloat && type <= kScriptGroup ? kScriptTypeNames[type - 1] : nullptr;
 }
 
@@ -140,7 +141,7 @@ struct ScriptNamedValues {
 // not found has index -1 and the last type searched (group).
 struct ScriptVarRef {
     int index;
-    int type;
+    ScriptType type;
 };
 
 // A set of named script variables, one value array and one name array per type: a script's local variables
@@ -158,7 +159,7 @@ struct ScriptVars {
     bool HasVariable(std::string_view name) const;
     ScriptVarRef FindVariable(std::string_view name) const;
     // The index of the name among the variables of one ScriptType, -1 when there is none.
-    int FindOfType(int type, std::string_view name) const;
+    int FindOfType(ScriptType type, std::string_view name) const;
     void RemoveDeletedObjects();
 
     ScriptNamedValues<float> floats;
@@ -169,7 +170,7 @@ struct ScriptVars {
 
 // Binds argument `argIndex` of a command to variable `varIndex` of the same type.
 struct ScriptBinding {
-    int type;       // ScriptType
+    ScriptType type;
     int argIndex;
     int varIndex;
 };
@@ -365,6 +366,7 @@ struct ScriptBlock;
 struct ScriptDefinition;
 struct ScriptRun;
 class ScriptCall;
+enum class ScriptFunction : int;   // below
 
 // Argument `argIndex` of a command is the result of the nested call `cmd` (always set; copies deep-copy it).
 struct ScriptSubCall {
@@ -377,7 +379,7 @@ struct ScriptSubCall {
 
     void Load(ByteStream* stream);
 
-    int type = 0;       // ScriptType of the result
+    ScriptType type{};  // of the result
     int argIndex = 0;
     std::unique_ptr<ScriptCall> cmd;
 };
@@ -387,7 +389,9 @@ struct ScriptSubCall {
 class ScriptCall {
 public:
     // The object / group argument slots are left null, bound when run; the called block's id is resolved
-    // like FindBlock.
+    // like FindBlock. Assign and CallScript keep their target in leading argument slots on disk, as the game
+    // did: Assign the variable index in float 0 and its type - 1 in float 1, CallScript the definition's index
+    // in float 0 and its name in string 0 (the bindings and nested calls count those slots).
     void Load(ByteStream* stream);
     // Floats and strings by value, objects and groups by address.
     void SetParameters(const std::vector<ScriptBinding>& bindings, ScriptVars* vars);
@@ -407,10 +411,14 @@ public:
     // (the condition is then the constant in float 0).
     const ScriptSubCall* ConditionCall() const;
 
-    // Every argument, binding and nested call dropped; id and body become 0.
+    // Every argument, binding and nested call dropped; id, target and body become 0.
     void Clear();
 
-    int id = 0;                                 // ScriptKeyword::id
+    ScriptFunction id{};                        // ScriptKeyword::id
+    // Assign: the global variable's index and type. CallScript: the definition's index and name.
+    int target = 0;
+    ScriptType targetType{};
+    std::string targetName;
     std::vector<float> floatArgs;
     std::vector<std::string> stringArgs;
     std::vector<ScriptObjectRef*> objectArgs;
@@ -486,11 +494,10 @@ struct ScriptDefinition {
     void Save(ByteStream* stream) const;
     // Reads what Save wrote; if-then pairs naming a block the saved script lacks are dropped.
     void Load(ByteStream* stream);
-    // A script call's arguments (all but the first float and string, which name the script) into the
-    // instance's variables; FatalError when a type's count does not match.
+    // A script call's arguments into the instance's variables; FatalError when a type's count does not match.
     void BindCall(const ScriptCall* call);
     // False when the name is taken.
-    bool AddParameter(const std::string* name, int type);
+    bool AddParameter(const std::string* name, ScriptType type);
     // Emptied (Script::Load before each `Script` section).
     void Reset();
 
@@ -527,6 +534,9 @@ struct ScriptRun {
     bool* killFlag = nullptr;       // the script instance's killed flag, null for the WorldScript
     ScriptVars vars;                // a copy of the instance's variables
 };
+
+// How Script::LoadFunction reads the arguments: `(a, b, ...)`, or the value alone (`variable = value`).
+enum class ScriptArgSyntax { List, Value };
 
 // A script's error as Script::GetError hands it out: the text, the code and the line.
 struct ScriptErrorInfo {
@@ -610,10 +620,10 @@ public:
     std::string QualifyName(const std::string& name);
     // Retries without each "!<n>!" prefix.
     int FindScript(std::string_view name);
-    // `signature`: the parameter types (lower-case letters). `assignment`: one parameter, no parentheses;
-    // `scriptCall`: one extra float and string slot.
-    bool LoadFunction(ScriptCall* cmd, TokenReader* tokens, int id, ScriptVars* locals, const char* signature, bool assignment,
-                      bool scriptCall);
+    // `signature`: the parameter types (lower-case letters). `syntax`: a parenthesized list, or the one value of
+    // `variable = value`.
+    bool LoadFunction(ScriptCall* cmd, TokenReader* tokens, ScriptFunction id, ScriptVars* locals, const char* signature,
+                      ScriptArgSyntax syntax = ScriptArgSyntax::List);
     // Float functions up to ')'.
     bool LoadConditions(std::vector<ScriptCall>* conditions, TokenReader* tokens, ScriptVars* locals);
     // `if(...)then(...)` pairs up to ')'.
@@ -927,10 +937,6 @@ enum ScriptLexeme : int {
     kLexNumber = 0x7A,        // not in the table: digits, '.', '-'
     kLexString = 0x7B,        // not in the table: "..."
 };
-constexpr int kCmdAssign = static_cast<int>(ScriptFunction::Assign);
-constexpr int kCmdCallScript = static_cast<int>(ScriptFunction::CallScript);
-constexpr int kCmdFor = static_cast<int>(ScriptFunction::For);
-constexpr int kCmdForIf = static_cast<int>(ScriptFunction::ForIf);
 
 struct ScriptDefine {
     std::string name;
@@ -947,7 +953,7 @@ void ApplyDefines(std::string* line, const std::vector<ScriptDefine>* defines);
 void ClassifyToken(const char* text, int* id, int* rest);
 inline void ClassifyToken(const std::string& text, int* id, int* rest) { ClassifyToken(text.c_str(), id, rest); }
 // Null unless function `id` returns `type`.
-const char* FunctionSignature(int id, int type);
+const char* FunctionSignature(int id, ScriptType type);
 // "Unknown command" if none.
 const char* KeywordName(int id);
 // The keyword table with Rebirth's additions (scriptaddon::Table()).
@@ -956,7 +962,7 @@ const ScriptKeyword* KeywordTable();
 // ---- Quest construction ----
 // An objective of the quest QStart starts; QFinish turns them into a script.
 struct ScriptQuestObjective {
-    int type;               // the QObj* command's id (0xD7-0xDD)
+    ScriptFunction type;    // the QObj* command
     std::string text;       // its string argument (empty for QObjArea / QObjGetItem)
     float value;            // its float argument
 };
@@ -965,7 +971,7 @@ struct ScriptQuestBuilder {
     // QStart: the old objectives dropped, the quest named.
     void Start(const char* questName);
     // The QObj* commands (type, text, with the value on the stack): appends {type, text, value}.
-    void AddObjective(int type, const std::string& text, float value);
+    void AddObjective(ScriptFunction type, const std::string& text, float value);
     // QFinish: one declared script per objective, chaining to the next, loaded with the WorldScript started.
     void Finish(Script* script);
 
