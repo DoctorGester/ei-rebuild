@@ -14,7 +14,6 @@
 
 #include "lib/bytes.h"
 #include "lib/containers.h"
-
 #include "lib/float_select.h"
 #include "lib/rounding.h"
 
@@ -52,14 +51,10 @@ void DiffSets(std::vector<EngineObject*>* known, std::vector<EngineObject*>* cur
     ::DiffObjectSets(known, current, added, kept, removed);
 }
 
-// Whether (x, y) lies outside the camera's view range around (cx, cy); NaN counts as inside. The squared distance
-// is dy^2 + dx^2, in that order.
-bool OutOfView(const float* point, const PlayerServer* state) {
-    float dx = point[0] - state->lastPosition.x;
-    float dy = point[1] - state->lastPosition.y;
-    float distance = LengthSquared2D(dy, dx);
-    float range = kViewRange * kViewRange;
-    return distance >= range;
+// Whether `point` lies outside the camera's view range around the player's last position, in the ground plane; NaN
+// counts as inside.
+bool OutOfView(const Vector3& point, const PlayerServer* state) {
+    return DistanceSquaredXY(point, state->lastPosition) >= kViewRange * kViewRange;
 }
 
 // The map objects a player should know: around its camera (or all of them), its own units, the
@@ -71,7 +66,7 @@ EngineObject** CollectMapObjects(WorldServer* world, Player* player, PlayerServe
         for (auto node = world->mapObjects.map.begin(); node != world->mapObjects.map.end() && node->second; ++node) {
             MapObject* object = node->second;
             if (object->MapType() == kTypeNoSync) continue;
-            if (!OutOfView(&object->localPosition.x, state)) {
+            if (!OutOfView(object->localPosition, state)) {
                 *out++ = object;
                 continue;
             }
@@ -89,7 +84,7 @@ EngineObject** CollectMapObjects(WorldServer* world, Player* player, PlayerServe
     } else {
         for (auto node = source.map.begin(); node != source.map.end() && node->second; ++node) {
             MapObject* object = node->second;
-            if (object->MapType() != kTypeNoSync && !OutOfView(&object->localPosition.x, state)) *out++ = object;
+            if (object->MapType() != kTypeNoSync && !OutOfView(object->localPosition, state)) *out++ = object;
         }
     }
     if (world->sessionKind != kKindSinglePlayer) return out;

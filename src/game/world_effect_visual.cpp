@@ -2,10 +2,12 @@
 // world_effect.h and docs/notes/effects.md.
 
 #include "camera.h"
-#include "random.h"
 #include "effects.h"
+#include "game_singletons.h"
 #include "lightning.h"
 #include "net_delta.h"
+#include "random.h"
+#include "save_versions.h"
 #include "script.h"
 #include "spell.h"
 #include "terrain.h"
@@ -13,10 +15,9 @@
 #include "unit.h"
 #include "world.h"
 #include "world_effect_internal.h"
-#include "game_singletons.h"
+
 #include "lib/float_select.h"
 #include "lib/maths.h"
-#include "save_versions.h"
 
 #include <bit>
 #include <cstring>
@@ -50,8 +51,8 @@ Vector3& LightPosition(Light* light) { return light->localPosition; }
 // The particle tick's step towards the target: speed = |velocity|, dist = the planar distance; nothing when
 // dist is not above 0 (or NaN); otherwise t = speed / (dist < speed (or NaN) ? speed : dist).
 int StepFraction(const Vector3& velocity, const Vector3& dxdy, float* t) {
-    const float speed = std::sqrt(LengthSquared(velocity));
-    const float dist = std::sqrt(LengthSquared2D(dxdy.y, dxdy.x));
+    const float speed = Length(velocity);
+    const float dist = Length2D(XY(dxdy));
     // On only when above.
     if (dist <= 0.0f) return 0;
     // The speed when the distance is below it or they are unordered.
@@ -92,7 +93,7 @@ std::uint32_t InlineRandom() {
 // sqrt(x*x + y*y) + half + 0.3.
 void WallScorchShape(const Vector3& direction, const float* half, float* angleAndOuter) {
     angleAndOuter[0] = lib::Atan2(direction.y, direction.x);
-    const float outer = std::sqrt(LengthSquared2D(direction.x, direction.y));
+    const float outer = Length2D(XY(direction));
     angleAndOuter[1] = (outer + *half) + 0.3f;
 }
 

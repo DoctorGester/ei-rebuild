@@ -488,9 +488,7 @@ void UnitServer::ReportPath(AIPath* path, char partial) {
         path->ToMotionOrder(&end);
         float reached = DistanceSquaredXY(self->localPosition, goal);
         float half = kHalfCell;
-        float ey = half * path->targetY - goal.y;
-        float ex = half * path->targetX - goal.x;
-        float left = LengthSquared2D(ex, ey);
+        float left = LengthSquared2D(half * path->target - XY(goal));
         bool stillFar = reached * 0.010000001f > left;   // unordered: not far
         if (self->player)
             self->player->Server()->SendPathMessage(self, &end, goal, 0, stillFar ? 0 : 1, kFarBits);

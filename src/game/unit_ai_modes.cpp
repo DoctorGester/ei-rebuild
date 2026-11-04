@@ -4,11 +4,6 @@
 #include "combat.h"
 #include "core_maths.h"
 #include "game_singletons.h"
-#include "lib/containers.h"
-#include "lib/crt.h"
-#include "lib/float_select.h"
-#include "lib/maths.h"
-#include "lib/rounding.h"
 #include "logic_settings.h"
 #include "map_object.h"
 #include "object_diplomacy.h"
@@ -19,6 +14,12 @@
 #include "unit_ai.h"
 #include "unit_db.h"
 #include "world.h"
+
+#include "lib/containers.h"
+#include "lib/crt.h"
+#include "lib/float_select.h"
+#include "lib/maths.h"
+#include "lib/rounding.h"
 
 #include <algorithm>
 #include <bit>
@@ -236,23 +237,19 @@ void FollowMode::Save(ByteStream* stream) { SaveRef(leader, stream); }
 int SuspectionMode::Evaluate(AIBrain* brain) {
     if (brain->seen && !brain->IsAlliedUnit(brain->seen))
         brain->memory.Notice(brain->seen->localPosition, kNoticeSeenLevel, kNoticeSeenDecay);
-    if (brain->memory.noticedX == point.x && brain->memory.noticedY == point.y) {
+    if (brain->memory.noticed == XY(point)) {
         level = (std::min)(level, brain->memory.noticedLevel);
         return level;
     }
     level = brain->memory.noticedLevel;
-    point.x = brain->memory.noticedX;
-    point.y = brain->memory.noticedY;
-    point.z = 0.0f;
+    point = brain->memory.NoticedPoint();
     return level;
 }
 
 void SuspectionMode::Execute(AIBrain* brain) {
     if (brain->action != AIBrain::kActionNone) {
-        float dy = point.y - brain->move.point.y;
-        float dx = point.x - brain->move.point.x;
         // A new move only when the distance is greater.
-        if (LengthSquared2D(dx, dy) <= kArrivedSq) {
+        if (DistanceSquaredXY(point, brain->move.point) <= kArrivedSq) {
             const Vector3& at = brain->owner->unit->localPosition;
             Vector3 u = at - point;
             if (LengthSquared(u) < kCloseSq) level -= 5;
@@ -635,7 +632,7 @@ bool FindFlightPoint(AIBrain* brain, Unit* self, Unit* enemy, Vector3 me, const 
     float scale = 0.5f;
     float limit = 1.0f / scale * way * kSmoothingScale;
     if (limit < static_cast<float>(path.smoothing)) return false;
-    Vector3 end{scale * path.targetX, scale * path.targetY, 0.0f};
+    Vector3 end = WithZ(scale * path.target, 0.0f);
 
     AIOrder order;
     order.MakeAttack(enemy);
@@ -730,7 +727,7 @@ void FearMode::Execute(AIBrain* brain) {
     const Vector3* here = &owner->unit->localPosition;
 
     // What to run from: the nearest enemy, a shelter to stay in, or the noticed point.
-    Vector3 from{brain->memory.noticedX, brain->memory.noticedY, 0.0f};
+    Vector3 from = brain->memory.NoticedPoint();
     if (brain->memory.seesEnemy) {
         if (Unit* enemy = brain->memory.NearestEnemy(brain->owner->unit)) {
             from = enemy->localPosition;
@@ -1148,10 +1145,7 @@ void AIBrain::UpdateFollow() {
     Vector3 aside = passing + side;
     bool found = g_serverWorld.aiMap.FindPath(self, aside, &path, kPassRange, 0.0f);
     float half = 0.5f;
-    float targetY = half * path.targetY;
-    float offY = aside.y - targetY;
-    float offX = aside.x - half * path.targetX;
-    if (found && LengthSquared2D(offX, offY) < kReachedSq) {
+    if (found && LengthSquared2D(XY(aside) - half * path.target) < kReachedSq) {
         owner->OrderMove(aside, 0, 0);
         followTimer = kFollowPause;
     } else {
@@ -1163,9 +1157,7 @@ void AIBrain::UpdateFollow() {
 }
 
 bool PlayerMode::PathClear(AIBrain* brain, const Vector3& from, const Vector3& to) {
-    float fy = from.y - to.y;
-    float fx = from.x - to.x;
-    if (LengthSquared2D(fx, fy) < kSamePointSq) return false;
+    if (DistanceSquaredXY(from, to) < kSamePointSq) return false;
     AIPath path;
     Unit* unit = brain->owner->unit;
     Vector3 saved = unit->localPosition;

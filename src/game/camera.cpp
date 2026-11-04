@@ -4,16 +4,16 @@
 
 #include "base_manager.h"
 #include "core_maths.h"
+#include "game_singletons.h"
 #include "map_object_figures.h"
 #include "sound.h"
 #include "terrain.h"
 #include "world.h"
 
-#include "lib/maths.h"
-#include "lib/vecmath.h"
-#include "game_singletons.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
+#include "lib/maths.h"
+#include "lib/vecmath.h"
 
 namespace {
 
@@ -253,7 +253,7 @@ void Camera::StopMotion() {
     Vector3 up = localRotation.AxisY();
     // Multiplies by 0 (keeping NaN and -0), so the zero is read from memory.
     const float zero = CAM_ZERO;
-    panTarget = Vector3{right.x * zero, right.y * zero, 0.0f} + Vector3{up.x * zero, up.y * zero, 0.0f};
+    panTarget = WithZ(XY(right) * zero + XY(up) * zero, 0.0f);
     // SetTiltRate(0) / SetTurnRate(0) inlined: a rate is replaced when its magnitude is below the
     // target's (never, for 0; a NaN rate is replaced).
     tiltTarget = 0.0f;

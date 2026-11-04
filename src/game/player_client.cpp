@@ -419,9 +419,9 @@ int PlayerClient::OnPathMarker() {
     in.ReadValue(kind);
     int flag;
     in.ReadValue(flag);
-    Vector3 at{0.0f, 0.0f, 0.0f};
-    in.ReadValue(at.x);
-    in.ReadValue(at.y);
+    Vector2 xy{0.0f, 0.0f};
+    in.ReadValue(xy);
+    Vector3 at = WithZ(xy, 0.0f);
     int unitId;
     in.ReadValue(unitId);
     float value;

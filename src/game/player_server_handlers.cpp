@@ -2,43 +2,41 @@
 // client's messages (handlers by type, from the table CreateServer builds). See player_messages.h and
 // docs/notes/objects.md ("Players").
 
-#include "player_messages.h"
-#include "console.h"
-
 #include "ai_map.h"
+#include "asset_text.h"
+#include "combat.h"
+#include "console.h"
 #include "core_maths.h"
 #include "core_streams.h"
+#include "game_singletons.h"
+#include "logic_settings.h"
 #include "map_object.h"
 #include "party.h"
 #include "party_manager.h"
 #include "party_records.h"
+#include "player_messages.h"
 #include "registry.h"
 #include "unit.h"
 #include "unit_ai.h"
-#include "combat.h"
 #include "unit_create.h"
 #include "unit_db.h"
 #include "world.h"
 
-#include "asset_text.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
+#include "lib/rounding.h"
 #include "lib/str.h"
-#include <cstddef>
-#include <cstdint>
-#include <new>
-#include <string>
 #include "lib/text_case.h"
 
-#include "lib/rounding.h"
-#include "game_singletons.h"
-#include "logic_settings.h"
-
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
+#include <new>
+#include <string>
 #include <vector>
 
 namespace {
@@ -171,9 +169,7 @@ void PlayerServer::OnLeaderDied() {
 
 // --- Message 0x36, a use order --------------------------------------------------------
 
-Vector3 AIPath::TargetPoint() const {
-    return {0.5f * targetX, 0.5f * targetY, 0.0f};
-}
+Vector3 AIPath::TargetPoint() const { return WithZ(0.5f * target, 0.0f); }
 
 int PlayerServer::OnUseOrder() {
     MemoryStream& in = g_receivedMessages;
@@ -262,28 +258,15 @@ void FormationOffsets(const std::vector<Unit*>* units, std::vector<Vector3>* off
         (*offsets)[0] = Vector3{0.0f, 0.0f, 0.0f};
         return;
     }
-    float sumX = 0.0f;
-    float sumY = 0.0f;
-    for (int i = 0; i < count; ++i) {
-        const Vector3* at = &(*units)[i]->localPosition;
-        sumX += at->x;
-        sumY += at->y;
-    }
-    const auto n = static_cast<float>(count);
-    const float centreX = sumX / n;
-    const float centreY = sumY / n;
+    Vector2 sum{0.0f, 0.0f};
+    for (int i = 0; i < count; ++i) sum += XY((*units)[i]->localPosition);
+    const Vector2 centre = sum / static_cast<float>(count);
     offsets->resize(count);
     for (int i = 0; i < std::ssize(*units); ++i) {
-        const Vector3* at = &(*units)[i]->localPosition;
-        float dx = at->x - centreX;
-        float dy = at->y - centreY;
-        const float length = std::sqrt(LengthSquared2D(dx, dy));
-        if (length > 0.0f) {   // the original skips zero and NaN
-            const float inverse = 1.0f / length;
-            dx *= inverse;
-            dy *= inverse;
-        }
-        (*offsets)[i] = Vector3{dx, dy, 0.0f};
+        Vector2 d = XY((*units)[i]->localPosition) - centre;
+        const float length = Length2D(d);
+        if (length > 0.0f) d *= 1.0f / length;   // the original skips zero and NaN
+        (*offsets)[i] = WithZ(d, 0.0f);
     }
 }
 

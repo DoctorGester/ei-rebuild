@@ -1,13 +1,13 @@
 // Path search on the AI map: snapping the target to a reachable cell, planning, and feeding the
 // planned cells to the unit's steering.
 #include "ai_map.h"
-
 #include "ai_motion.h"
 #include "core_maths.h"
 #include "game_singletons.h"
 #include "map_object.h"
 #include "sector_map.h"
 #include "world.h"
+
 #include "lib/float_select.h"
 #include "lib/maths.h"
 #include "lib/rounding.h"
@@ -31,8 +31,7 @@ constexpr float kInset = 0.49f;
 
 bool AIMap::SnapTarget(Unit* unit, Vector3* target, bool sameRegion, float minDistance) {
     const Point targetCell = WorldToCell(*target);
-    target->x = 2.0f * target->x;
-    target->y = 2.0f * target->y;
+    *target = WithZ(2.0f * XY(*target), target->z);
     int reason;
     if (!sameRegion) {
         if (unit->GetClassId() != ClassId::Unit) return true;
@@ -138,20 +137,18 @@ void AIMap::AdvancePath(Unit* unit, AIPath* path) {
     while (std::ssize(steps) < 32 && taken < std::ssize(pathCells)) steps.push_back(pathCells[taken++]);
     pathCells.erase(pathCells.begin(), pathCells.begin() + taken);
 
-    float x, y;
+    Vector2 target;
     if (std::ssize(pathCells) > 0) {
         path->reached = false;
         // Put the last step back at the head of the path: it is where the steering heads.
         const PathCell* last = &steps.back();
         pathCells.insert(pathCells.begin(), *last);
-        y = static_cast<float>(last->y) + 0.5f;
-        x = static_cast<float>(last->x) + 0.5f;
+        target = {static_cast<float>(last->x) + 0.5f, static_cast<float>(last->y) + 0.5f};
     } else {
-        y = path->targetY;
-        x = path->targetX;
+        target = path->target;
         path->reached = true;
     }
-    path->SetTarget(x, y);
+    path->SetTarget(target);
     SetStepSpeeds(unit, &path->steps);
 }
 
@@ -160,26 +157,23 @@ bool AIMap::FindPath(Unit* unit, const Vector3& target, AIPath* path, float rang
     from = unit->localPosition;
     goal = target;
     path->goal = target;
-    if (LengthSquared2D(target.x, target.y) > 100000000.0f) return false;   // NaN goes on
+    if (LengthSquared2D(XY(target)) > 100000000.0f) return false;   // NaN goes on
 
     sectorMap.Remove(unit);
     if (!SnapTarget(unit, &goal, false, minDistance)) {
         sectorMap.Add(unit);
         return false;
     }
-    path->targetY = goal.y;
-    path->targetX = goal.x;
+    path->target = XY(goal);
 
     // In half-cell units, like the snapped target.
-    float fx = 2.0f * from.x;
-    float fy = 2.0f * from.y;
-    float ddx = fx - goal.x, ddy = fy - goal.y;
-    if (LengthSquared2D(ddy, ddx) < 0.001f) {
+    const Vector2 start = 2.0f * XY(from);
+    if (LengthSquared2D(start - XY(goal)) < 0.001f) {
         sectorMap.Add(unit);
         return false;
     }
     const Point targetCell{lib::RoundEven(goal.x - 0.5f), lib::RoundEven(goal.y - 0.5f)};
-    const Point unitCell{lib::RoundEven(fx - 0.5f), lib::RoundEven(fy - 0.5f)};
+    const Point unitCell{lib::RoundEven(start.x - 0.5f), lib::RoundEven(start.y - 0.5f)};
 
     bool found = false;
     PathCell cell;
@@ -225,8 +219,7 @@ bool AIMap::FindPath(Unit* unit, const Vector3& target, AIPath* path, float rang
                 return false;
             }
             const Point goalCell{lib::RoundEven(goal.x - 0.5f), lib::RoundEven(goal.y - 0.5f)};
-            path->targetX = goal.x;
-            path->targetY = goal.y;
+            path->target = XY(goal);
             if (unitCell == goalCell) {
                 PathCell& first = *pathCells.emplace(pathCells.begin());
                 first.x = static_cast<std::int16_t>(unitCell.x);
@@ -244,8 +237,8 @@ bool AIMap::FindPath(Unit* unit, const Vector3& target, AIPath* path, float rang
         // Smooth the start of the path, entering from the side the unit faces.
         Vector3 facing = unit->localRotation.AxisY();
         float bx = -facing.x, by = -facing.y;
-        float a = AbsBits(path->targetX - static_cast<float>(lib::RoundEven(path->targetX)));
-        float b = AbsBits(path->targetY - static_cast<float>(lib::RoundEven(path->targetY)));
+        float a = AbsBits(path->target.x - static_cast<float>(lib::RoundEven(path->target.x)));
+        float b = AbsBits(path->target.y - static_cast<float>(lib::RoundEven(path->target.y)));
         float b2 = b + b, a2 = a + a;
         float fraction = b2 < a2 ? b2 : a2;
         int octant = lib::RoundEven(lib::Atan2(by, bx) * 1.273239605931458f);
@@ -312,7 +305,7 @@ void AIPath::ToMotionOrder(PathOrder* out) const {
     out->steps.insert(out->steps.end(), cells.begin(), cells.end());
     PathCellsRemoveRepeats(&out->steps);
     out->SetStepSpeeds(0x200);
-    out->SetTarget(targetX, targetY);
+    out->SetTarget(target);
 }
 
 void AIMap::ClearMarksAround(const PathCells* chain) {
@@ -354,8 +347,7 @@ namespace {
 void StandAt(AIPath* path, const int* time, const MapObject* object) {
     path->cells.clear();
     path->Reset();
-    path->targetX = 0.0f;
-    path->targetY = 0.0f;
+    path->target = {0.0f, 0.0f};
     path->reached = true;
     path->failed = false;
     path->mayExcludeRegions = false;
@@ -364,8 +356,7 @@ void StandAt(AIPath* path, const int* time, const MapObject* object) {
     path->smoothing = 0;
     path->reached = true;
     float scale = 1.0f / 0.5f;
-    path->targetX = scale * object->localPosition.x;
-    path->targetY = scale * object->localPosition.y;
+    path->target = scale * XY(object->localPosition);
     path->Start(object->localPosition, -object->localRotation.AxisY(), *time);
 }
 

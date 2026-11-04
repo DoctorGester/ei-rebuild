@@ -3,49 +3,47 @@
 // adds the heroes to the "Heroes" script group. See world.h and docs/notes/world.md.
 #include "ai_map.h"
 #include "app.h"
-#include "core_refcount.h"
-#include "core_streams.h"
-#include "item_manager.h"
-#include "lever.h"
-#include "magic_trap.h"
-#include "map_object_figures.h"
-#include "object_diplomacy.h"
-#include "sector_map.h"
-#include "spell.h"
-#include "unit_ai.h"
-#include "unit_create.h"
-#include "unit_record.h"
-#include "world.h"
-#include "world_data.h"
-#include "game_strings.h"
-
 #include "base_manager.h"
 #include "chunk_stream.h"
 #include "combat.h"
 #include "core_maths.h"
+#include "core_refcount.h"
+#include "core_streams.h"
+#include "game_strings.h"
 #include "item.h"
+#include "item_manager.h"
+#include "lever.h"
+#include "magic_trap.h"
 #include "map_object.h"
+#include "map_object_figures.h"
 #include "map_spec.h"
+#include "object_diplomacy.h"
 #include "player_messages.h"
+#include "sector_map.h"
 #include "server_specific_manager.h"
+#include "spell.h"
 #include "torch.h"
 #include "unit.h"
+#include "unit_ai.h"
+#include "unit_create.h"
 #include "unit_db.h"
+#include "unit_record.h"
+#include "world.h"
+#include "world_data.h"
 #include "world_effect.h"
 
 #include "lib/crt.h"
+#include "lib/float_select.h"
+#include "lib/maths.h"
+#include "lib/str.h"
+#include "lib/text_case.h"
+
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <memory>
 #include <string>
-#include "lib/maths.h"
-#include "lib/text_case.h"
-
-#include "lib/str.h"
-#include "lib/float_select.h"
-
-#include <bit>
 #include <type_traits>
 #include <vector>
 
@@ -281,7 +279,7 @@ void WorldServer::UseQuickItem(Unit* unit) {
     message.parentId = static_cast<std::int32_t>(kQuickEffectFlags);
     message.scale.y = 0.0f;
     // At the unit's position, on the ground.
-    message.position = {unit->localPosition.x, unit->localPosition.y, 0.0f};
+    message.position = WithZ(XY(unit->localPosition), 0.0f);
     int objectId = CreateObject(&message);
     EngineObject* effect = ObjectWithId(objectId);
     effect->flags |= kFlagsNewEffect;
@@ -318,10 +316,10 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
     };
     auto place = [spec](MapObject* object) {
         object->SetFigureScale(spec->scale);
-        Copy(&object->baseScale, &spec->scale, 12);
+        object->baseScale = spec->scale;
         object->ApplyBaseScale();
-        Copy(&object->localPosition.x, &spec->position, 12);
-        Copy(&object->localRotation, &spec->rotation, 16);
+        object->localPosition = spec->position;
+        object->localRotation = spec->rotation;
     };
     auto timed = [this](Effect* object) {
         object->startTick = tick;

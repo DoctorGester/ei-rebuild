@@ -172,10 +172,11 @@ int CompareWithGdi(Shape shape, int count, unsigned seed, std::string* example) 
         case Shape::Fill:
         case Shape::Frame: {
             int x0 = coord(w), x1 = coord(w), y0 = coord(h), y1 = coord(h);
-            RECT r{std::min(x0, x1), std::min(y0, y1), std::max(x0, x1), std::max(y0, y1)};
+            const Point a{x0, y0}, b{x1, y1};
+            Rect ours = Rect::FromCorners(Min(a, b), Max(a, b));
             // GDI's FrameRect draws odd shapes for an empty rectangle (not the game's; FrameRects gives none).
-            if (shape == Shape::Frame && (r.right == r.left || r.bottom == r.top)) ++r.right, ++r.bottom;
-            const Rect ours{r.left, r.top, r.right, r.bottom};
+            if (shape == Shape::Frame && (ours.Width() == 0 || ours.Height() == 0)) ours = ours.Inset(0, 0, -1, -1);
+            RECT r{ours.left, ours.top, ours.right, ours.bottom};
             if (shape == Shape::Fill) {
                 SetBkColor(dib.dc, c);
                 ExtTextOutA(dib.dc, 0, 0, ETO_OPAQUE, &r, nullptr, 0, nullptr);   // CDC::FillSolidRect

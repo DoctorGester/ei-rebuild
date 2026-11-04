@@ -22,10 +22,9 @@
 #include "world.h"
 #include "world_glue.h"
 
+#include "lib/rebirth.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
-
-#include "lib/rebirth.h"
 
 #include <bit>
 #include <cmath>
@@ -38,7 +37,7 @@ namespace {
 
 // ---- Conversions --------------------------------------------------------------------------------
 
-float Distance(float x0, float y0, float x1, float y1) { return Length2D(Vector2{x0, y0} - Vector2{x1, y1}); }
+float Distance(Vector2 a, Vector2 b) { return Length2D(a - b); }
 
 // As IsInArea tests circles.
 float SquaredDistance(float x, float y, float centreX, float centreY) {
@@ -304,13 +303,13 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
     case ScriptFunction::DistanceUnitUnit: {
         EngineObject* a = objectArgs[0]->object;
         EngineObject* b = objectArgs[1]->object;
-        if (a && b) *result = Distance(ObjectSlots(a)->localPosition.x, ObjectSlots(a)->localPosition.y, ObjectSlots(b)->localPosition.x, ObjectSlots(b)->localPosition.y);
+        if (a && b) *result = Distance(XY(ObjectSlots(a)->localPosition), XY(ObjectSlots(b)->localPosition));
         else *result = kFar;
         return;
     }
     case ScriptFunction::DistanceUnitPoint: {
         EngineObject* o = objectArgs[0]->object;
-        if (o) *result = Distance(ObjectSlots(o)->localPosition.x, ObjectSlots(o)->localPosition.y, f[0], f[1]);
+        if (o) *result = Distance(XY(ObjectSlots(o)->localPosition), Vector2{f[0], f[1]});
         else *result = kFar;
         return;
     }

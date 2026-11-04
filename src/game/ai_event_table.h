@@ -3,12 +3,12 @@
 // The world's AI events: the viewer the brain sees through (AIViewer) and the table of events a time wheel
 // and a grid hold (AIEventTable, a member of AIMap). See docs/notes/ai.md.
 
-#include "lib/vecmath.h"
 #include "unit.h"
+
+#include "lib/vecmath.h"
 
 #include <cstddef>
 #include <cstdint>
-
 #include <list>
 #include <vector>
 
@@ -48,8 +48,7 @@ struct AIViewer {
     int tick = 0;                   // the world's event table: its tick (AIEventTable::Advance)
     Vector3 eye{};
     Vector3 facing{};
-    int cellX = 0;                  // AI map cell of the eye
-    int cellY = 0;
+    Point eyeCell{};                // AI map cell of the eye
     std::uint8_t ready = 0;         // Prepare has run
 };
 

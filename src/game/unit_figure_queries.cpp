@@ -1,9 +1,8 @@
 // Unit queries on the figure: animation entries for a key, the body's extent, the height of the ground under
 // a point and the point effects start from. See unit.h and docs/notes/units.md ("Creation, databases, save").
+#include "ai_map.h"
 #include "map_object_figures.h"
 #include "unit.h"
-
-#include "ai_map.h"
 #include "unit_client_models.h"
 #include "world.h"
 
@@ -65,8 +64,7 @@ float Unit::BodyExtent() {
     }
     float extentScale = kExtentScale;
     if (MapType() == MapObjectType::Creature && str::Compare(name, kMosquito) == 0) extentScale = kMosquitoExtentScale;
-    const Vector3& corner = partBoxes[part].bounds.boxMax;
-    return extentScale * std::sqrt(LengthSquared2D(corner.y, corner.x));
+    return extentScale * Length2D(XY(partBoxes[part].bounds.boxMax));
 }
 
 float Unit::GroundHeight(float x, float y) {

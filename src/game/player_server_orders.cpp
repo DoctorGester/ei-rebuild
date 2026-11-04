@@ -1,24 +1,22 @@
 // PlayerServer: the last client messages: leave, the game state request, pause, casts, weapon and movement
 // style, follow and two small ones. See player_messages.h and docs/notes/objects.md ("Players").
-#include "player_messages.h"
-
 #include "combat.h"
 #include "core_refcount.h"
 #include "core_streams.h"
+#include "game_singletons.h"
 #include "map_object.h"
 #include "net_classes.h"
 #include "net_messages.h"
 #include "party.h"
-#include "unit.h"
+#include "player_messages.h"
 #include "ui.h"
+#include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
 
 #include "lib/rebirth.h"
-#include "game_singletons.h"
 
 #include <bit>
-
 #include <cstring>
 
 namespace {
@@ -182,9 +180,8 @@ int PlayerServer::OnFightAtWill() {
 }
 
 int PlayerServer::OnLastPosition() {
-    std::uint32_t xy[2];   // bit for bit
-    g_receivedMessages.Read(xy, 8);
-    lastPosition.x = std::bit_cast<float>(xy[0]);
-    lastPosition.y = std::bit_cast<float>(xy[1]);
+    Vector2 xy;   // bit for bit
+    g_receivedMessages.Read(&xy, 8);
+    lastPosition = WithZ(xy, lastPosition.z);
     return 1;
 }

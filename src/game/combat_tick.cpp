@@ -4,11 +4,10 @@
 #include "ai_map.h"
 #include "combat.h"
 #include "combat_plan.h"
-
+#include "game_singletons.h"
 #include "item.h"
 #include "item_db.h"
 #include "map_object.h"
-#include "lib/vecmath.h"
 #include "player_messages.h"
 #include "random.h"
 #include "sector_map.h"
@@ -18,9 +17,8 @@
 #include "world.h"
 
 #include "lib/bytes.h"
-
-#include "game_singletons.h"
 #include "lib/rounding.h"
+#include "lib/vecmath.h"
 
 #include <bit>
 #include <cstring>
@@ -258,9 +256,7 @@ bool UnitServer::StartMove() {
         action.param = 0;
         bool close = false;
         if (!found) {
-            float dy = action.point.y - unit->localPosition.y;
-            float dx = action.point.x - unit->localPosition.x;
-            close = LengthSquared2D(dx, dy) < kLong;
+            close = DistanceSquaredXY(action.point, unit->localPosition) < kLong;
         }
         if (close) arrived = true;
         else ReportPath(&motion, found);
@@ -570,10 +566,8 @@ void UnitServer::ApproachTarget() {
             if (DistanceSquaredXY(goal, motion.goal) <= kNearPoint) return;
         }
         if (PathTo(goal, kFar)) {
-            const Vector3 heading = {kHalfScale * motion.targetX, kHalfScale * motion.targetY, 0.0f};
-            float dx = heading.x - goal.x;
-            float dy = heading.y - goal.y;
-            if (LengthSquared2D(dy, dx) <= kNearPoint) return;
+            const Vector3 heading = WithZ(kHalfScale * motion.target, 0.0f);
+            if (DistanceSquaredXY(heading, goal) <= kNearPoint) return;
             if (CanReachTarget(&action)) {
                 const Vector3 saved = unit->localPosition;
                 unit->localPosition = heading;
@@ -672,22 +666,14 @@ void UnitServer::ApproachTarget() {
     aiMap->refreshUnits = false;
 
     g_serverWorld.aiMap.sectorMap.Remove(chased);
-    float farOffset = goal.y * kShort;
-    float nearX = goal.x * kShort;
-    float unitY = unit->localPosition.y * kLong;
-    Vector3 point;
-    point.x = unit->localPosition.x * kLong + nearX;
-    point.y = unitY + farOffset;
-    point.z = goal.z;
+    const Vector3 point = WithZ(XY(unit->localPosition) * kLong + XY(goal) * kShort, goal.z);
     if (!PathTo(point, patience))
         stoodBlocked = 1;
     g_serverWorld.aiMap.sectorMap.Add(chased);
 
-    float headX = kHalfScale * motion.targetX;
-    float fy = goal.y - kHalfScale * motion.targetY;
-    float fx = goal.x - headX;
+    const Vector2 left = XY(goal) - kHalfScale * motion.target;
     aiMap->refreshUnits = savedFlag;
-    if (reach * reach < LengthSquared2D(fx, fy)) {
+    if (reach * reach < LengthSquared2D(left)) {
         // The way leads elsewhere: stop, face along, and chase from here.
         AIPath* path = &motion;
         path->Clear();

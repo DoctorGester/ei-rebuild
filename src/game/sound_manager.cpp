@@ -8,25 +8,26 @@
 // basic operations on floats and small integers in the original's order, rounded to integers by lib::RoundEven
 // (docs/notes/sound.md, "Floating point"). The pans, the axis, the fader and the wave lengths only reach the output.
 #include "game_strings.h"
+#include "mod_folders.h"
+#include "platform/platform.h"
+#include "random.h"
+#include "sound.h"
+
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
-#include "platform/platform.h"
 #include "lib/maths.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
-#include "mod_folders.h"
-#include "random.h"
-#include "sound.h"
 
 #include <bit>
 #include <cmath>
-#include <mutex>
 #include <concepts>
 #include <cstring>
 #include <memory>
+#include <mutex>
 #include <new>
 #include <string>
 #include <vector>
@@ -241,9 +242,8 @@ SoundSlot* SoundManager::SlotForHandle(int handle) const {
 // between the listener axis and the direction to the sound (0 ahead or behind, +-100 to the sides). The volume
 // decides whether Play3D's one-shot plays (the file's head comment).
 void SoundManager::UpdatePositional(SoundSlot* slot) {
-    float dx = slot->position.x - listener.x;
-    float dy = slot->position.y - listener.y;
-    float dist2 = LengthSquared2D(dy, dx);
+    const Vector2 d = XY(slot->position) - XY(listener);
+    float dist2 = LengthSquared2D(d);
     if (dist2 > slot->farDistance * slot->farDistance) {
         slot->volume = 0;
         return;
@@ -254,7 +254,7 @@ void SoundManager::UpdatePositional(SoundSlot* slot) {
         level = 100 - lib::RoundEven((dist - slot->nearDistance) / (slot->farDistance - slot->nearDistance) * kHundred);
     slot->volume = FlatVolume(level, 1, slot->speech);
 
-    float ahead = AbsBits(Dot2D(dy, dx, listenerAxis.y, listenerAxis.x));
+    float ahead = AbsBits(Dot2D(d, XY(listenerAxis)));
     if (ahead > dist) {
         slot->pan = 0;
         return;
@@ -267,7 +267,7 @@ void SoundManager::UpdatePositional(SoundSlot* slot) {
     if (angle > kHalfPi) angle = kPi - angle;
     int pan = lib::RoundEven(kHundred / kHalfPi * angle);
     slot->pan = pan;
-    if (dy * listenerAxis.x > dx * listenerAxis.y) slot->pan = -pan;
+    if (d.y * listenerAxis.x > d.x * listenerAxis.y) slot->pan = -pan;
 }
 
 // Options: effects volume 0..100.
@@ -289,7 +289,7 @@ void SoundManager::SetListener(const Vector3& position, const Vector3& axis) {
     if (enabled == 0) return;
     listener = position;
     listenerAxis = axis;
-    float len = std::sqrt(LengthSquared2D(listenerAxis.x, listenerAxis.y));
+    float len = Length2D(XY(listenerAxis));
     if (len == 0.0f) {
         listenerAxis = {1.0f, 0.0f, 0.0f};
     } else {

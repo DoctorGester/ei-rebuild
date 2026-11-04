@@ -4,6 +4,7 @@
 #include "map_object.h"
 #include "sector_map.h"
 #include "world_data.h"
+
 #include "lib/containers.h"
 #include "lib/rounding.h"
 
@@ -415,28 +416,24 @@ float AIMap::LargestStepAlong(const Vector3& from, const Vector3& to) {
     float inverse = 1.0f / steps;
     int count = lib::RoundEven(steps);
     float fixed = worlddata::kFixedPoint;
-    auto toFixed = [&](float value) { return lib::RoundEven(value * fixed / 0.5f); };
-    int fx = toFixed(from.x);
-    int fy = toFixed(from.y);
-    int stepX = toFixed(d.x * inverse);
-    int stepY = toFixed(d.y * inverse);
+    auto toFixed = [&](Vector2 value) {
+        return Point{lib::RoundEven(value.x * fixed / 0.5f), lib::RoundEven(value.y * fixed / 0.5f)};
+    };
+    auto cellOf = [](Point fixedPoint) { return Point{fixedPoint.x >> 16, fixedPoint.y >> 16}; };
+    const Point start = toFixed(XY(from)), step = toFixed(XY(d) * inverse);
+    const Point first = cellOf(start), last = cellOf(step * count + start);
+    if (!cells.Contains(first) || !cells.Contains(last)) return worlddata::kOutsideDistance;
 
-    int cx = fx >> 16, cy = fy >> 16;
-    if (cx < 0 || cy < 0 || cx >= cells.width || cy >= cells.height) return worlddata::kOutsideDistance;
-    int ex = (stepX * count + fx) >> 16, ey = (stepY * count + fy) >> 16;
-    if (ex < 0 || ey < 0 || ex >= cells.width || ey >= cells.height) return worlddata::kOutsideDistance;
-
-    int previous = cells[cy][cx].groundLevel;
+    int previous = cells[first].groundLevel;
     int largest = 0;
-    int px = fx + stepX, py = fy + stepY;
+    Point at = start + step;
     for (int i = 0; i < count; ++i) {
-        int here = cells[py >> 16][px >> 16].groundLevel;
-        int step = here - previous;
-        if (step < 0) step = -step;
-        if (largest <= step) largest = step;
+        int here = cells[cellOf(at)].groundLevel;
+        int rise = here - previous;
+        if (rise < 0) rise = -rise;
+        if (largest <= rise) largest = rise;
         previous = here;
-        px += stepX;
-        py += stepY;
+        at += step;
     }
     return static_cast<float>(largest) / heightScale;
 }

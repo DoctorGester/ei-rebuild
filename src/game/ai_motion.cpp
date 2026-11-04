@@ -13,7 +13,6 @@
 #include "lib/maths.h"
 #include "lib/vecmath.h"
 
-
 #include <bit>
 #include <concepts>
 #include <cstdint>
@@ -98,8 +97,7 @@ MotionWaypoint Waypoint(float x, float y) { return {{x, y}, 0}; }
 int PathOrder::Reset() {
     MotionOrder* order = OrderOf(this);
     order->kind = 0;
-    order->x = 0.0f;
-    order->y = 0.0f;
+    order->position = {0.0f, 0.0f};
     order->arg5 = 0;
     order->arg6 = 0;
     order->arg7 = 0;
@@ -115,13 +113,11 @@ bool PathOrder::Start(const Vector3& position, const Vector3& direction, int tim
     float dy = direction.y;
     float length = std::sqrt(LengthSquared2D(dy, dx));
     float angle = length > 0.0f ? lib::Atan2(dy / length, dx / length) : 0.0f;
-    float x = kHalfCellScale * position.x;
-    float y = kHalfCellScale * position.y;
-    bool same = order->kind == 0 && order->angle == angle && x == order->x && order->y == y;
-    order->x = x;
+    const Vector2 at = kHalfCellScale * XY(position);
+    bool same = order->kind == 0 && order->angle == angle && at == order->position;
+    order->position = at;
     order->angle = angle;
     order->kind = 0;
-    order->y = y;
     order->startTime = time;
     steps.clear();
     return !same;
@@ -152,11 +148,11 @@ void PathOrder::SetTurnUntil(const Vector3& direction, int fromTime, int toTime)
     order->arg5 = std::bit_cast<std::uint32_t>(angle);
 }
 
-void PathOrder::SetTarget(float x, float y) {
+void PathOrder::SetTarget(Vector2 target) {
     MotionOrder* order = OrderOf(this);
     order->kind = 2;
-    order->arg5 = std::bit_cast<std::uint32_t>(x);
-    order->arg6 = std::bit_cast<std::uint32_t>(y);
+    order->arg5 = std::bit_cast<std::uint32_t>(target.x);
+    order->arg6 = std::bit_cast<std::uint32_t>(target.y);
 }
 
 void PathOrder::ForgetObject(int id) {
@@ -181,15 +177,14 @@ int PathOrder::SetStepSpeeds(std::uint16_t speed) {
 Vector3 PathOrder::Destination() {
     const MotionOrder* order = OrderOf(this);
     float scale = 0.5f;     // half a cell
-    if (order->kind != 2) return {scale * order->x, scale * order->y, 0.0f};
+    if (order->kind != 2) return WithZ(scale * order->position, 0.0f);
     return {scale * AsFloat(order->arg5), scale * AsFloat(order->arg6), 0.0f};
 }
 
 void AIPath::Clear() {
     cells.clear();
     Reset();
-    targetX = 0.0f;
-    targetY = 0.0f;
+    target = {0.0f, 0.0f};
     reached = true;
     failed = false;
     mayExcludeRegions = false;
@@ -233,7 +228,7 @@ MotionSample UnitMotion::Sample(World* world, MotionOrder* order, float time) {
     MotionSample sample;
     float start = static_cast<float>(order->startTime);
     time = time >= start ? time : start;
-    sample.position = {order->x, order->y};
+    sample.position = order->position;
 
     switch (static_cast<unsigned>(order->kind)) {
     case 0:
@@ -242,9 +237,7 @@ MotionSample UnitMotion::Sample(World* world, MotionOrder* order, float time) {
     case 1: {
         sample.turning = true;
         bool final;
-        float angle = TurnAngle(this, time - start, &final);
-        sample.direction.x = lib::Cos(angle);
-        sample.direction.y = lib::Sin(angle);
+        FaceAngle(TurnAngle(this, time - start, &final), &sample);
         sample.alive = !final;
         return sample;
     }
@@ -258,26 +251,20 @@ MotionSample UnitMotion::Sample(World* world, MotionOrder* order, float time) {
         }
         int from = static_cast<int>(order->arg6);
         Vector3 target = static_cast<float>(from) >= time ? object->PositionAt(from) : object->AimPoint();
-        float tx = kHalfCellScale * target.x;
-        float ty = kHalfCellScale * target.y;
+        const Vector2 toTarget = kHalfCellScale * XY(target) - order->position;
         int to = static_cast<int>(order->arg7);
         if (static_cast<float>(to) > time && to != order->startTime) {
-            float angleTo = lib::Atan2(ty - order->y, tx - order->x) - order->angle;
+            float angleTo = lib::Atan2(toTarget.y, toTarget.x) - order->angle;
             const float twoPi = kPi + kPi;
             while (angleTo > kPi) angleTo = angleTo - twoPi;
             const float negPi = -kPi;
             while (angleTo < negPi) angleTo = angleTo + twoPi;   // ends on a NaN (the original's did not)
             // Over the turn's tick count, an int.
-            float angle = ((time - start) * angleTo / static_cast<float>(to - order->startTime)) +
-                          order->angle;
-            sample.direction.x = lib::Cos(angle);
-            sample.direction.y = lib::Sin(angle);
+            FaceAngle(((time - start) * angleTo / static_cast<float>(to - order->startTime)) + order->angle, &sample);
             return sample;
         }
-        sample.direction.x = tx - order->x;
-        float dy = ty - order->y;
-        sample.direction.y = dy;
-        float norm = std::sqrt(dy * dy + sample.direction.x * sample.direction.x);
+        sample.direction = WithZ(toTarget, 0.0f);
+        float norm = std::sqrt(LengthSquared2D(toTarget.y, toTarget.x));
         if (norm == 0.0f) return sample;
         float inverse = 1.0f / norm;
         sample.direction *= inverse;
@@ -285,9 +272,7 @@ MotionSample UnitMotion::Sample(World* world, MotionOrder* order, float time) {
     }
     case 4: {
         bool final;
-        float angle = TurnAngle(this, time - start, &final);
-        sample.direction.x = lib::Cos(angle);
-        sample.direction.y = lib::Sin(angle);
+        FaceAngle(TurnAngle(this, time - start, &final), &sample);
         sample.turning = !final;
         return sample;
     }
@@ -321,8 +306,7 @@ MotionSample UnitMotion::SamplePath(float time, Vector2 start) {
                 float sign = turn < 0.0f ? kMinusOne : (turn > 0.0f ? kOne : kZero);
                 angle = sign * turnRate * time + startAngle;
             }
-            sample.direction.x = lib::Cos(angle);
-            sample.direction.y = lib::Sin(angle);
+            FaceAngle(angle, &sample);
             return sample;
         }
         end = turnTime;
@@ -419,7 +403,7 @@ void UnitMotion::Build(PathOrder* path) {
 
     // Kind 2 (and anything else): waypoints at the start, at each corner of the steps and at the
     // target, then one trajectory point per path cell.
-    lib::SetAtGrow(waypoints, lib::Count(waypoints), Waypoint(order->x, order->y));
+    lib::SetAtGrow(waypoints, lib::Count(waypoints), MotionWaypoint{order->position, 0});
     int previous = 0;
     for (auto node = path->steps.begin(); node != path->steps.end();) {
         auto next = std::next(node);
@@ -557,8 +541,7 @@ void UnitMotion::SubdivideSegment(const MotionWaypoint* from, const MotionWaypoi
     for (int k = 0; k < cells; ++k) {
         float f = (static_cast<float>(k) + startOffset + 0.5f) * inverse;
         float g = 1.0f - f;
-        // The two coordinates sum their terms in different orders.
-        p.position = {f * b.x + g * a.x, g * a.y + f * b.y};
+        p.position = f * b + g * a;
         p.speed = stepSpeeds[*stepIndex] * speedScale * kSpeedUnit;
         int size = lib::Count(points);
         points.resize(size + 1);

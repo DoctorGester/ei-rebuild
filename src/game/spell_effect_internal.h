@@ -3,26 +3,25 @@
 // Shared by the spell effects' start and update: helpers, the original's maths repeated inline, and small
 // accessors. See docs/notes/items_spells.md.
 
-#include "spell.h"
-#include "world_data.h"
-
 #include "ai_map.h"
 #include "combat.h"
 #include "console.h"
-#include "lib/crt.h"
-#include <bit>
-#include <cstdint>
-#include <cstring>
 #include "map_object.h"
+#include "spell.h"
 #include "unit.h"
 #include "world.h"
+#include "world_data.h"
 #include "world_effect.h"
 
+#include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"
 #include "lib/rounding.h"
 #include "lib/vecmath.h"
 
+#include <bit>
+#include <cstdint>
+#include <cstring>
 
 namespace spellfx {
 
@@ -118,8 +117,8 @@ inline void HeightPlusProduct(World* world, float (World::*height)(float, float)
     *out = WorldHeight(world, height, x, y) + *a * *b;
 }
 
-// *out = sqrt(y*y + x*x).
-inline void PlanarLength(const Vector3& v, float* out) { *out = std::sqrt(LengthSquared2D(v.y, v.x)); }
+// *out = the length of (x, y).
+inline void PlanarLength(const Vector3& v, float* out) { *out = Length2D(XY(v)); }
 
 // The fireball's velocity: v *= (speed * 1/15) / sqrt((y*y + x*x) + z*z).
 inline void ScaleToSpeed(Vector3* v, const float* speed) {
@@ -131,11 +130,11 @@ inline void ScaleToSpeed(Vector3* v, const float* speed) {
 // (distance / speed) * 15 rounded to nearest: the missile's flight time in ticks.
 inline int FlightTicks(const float* distance, const float* speed) { return lib::RoundEven(*distance / *speed * 15.0f); }
 
-// The walls' extent: the normal (-d.y, d.x, 0) in the ground plane scaled to length `radius`: k =
-// radius / sqrt(n.y*n.y + n.x*n.x), then each component times k. The normal is written to `out` first and read back.
+// The walls' extent: the normal (-d.y, d.x, 0) in the ground plane scaled to length `radius` (each component times
+// radius / |n|).
 inline void WallSpan(const Vector3& direction, const float* radius, Vector3* out) {
     *out = {-direction.y, direction.x, 0.0f};
-    *out *= *radius / std::sqrt(LengthSquared2D(out->y, out->x));
+    *out *= *radius / Length2D(XY(*out));
 }
 
 // The light wall's half extent from its lightning's ends.

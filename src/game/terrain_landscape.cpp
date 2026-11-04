@@ -1,16 +1,16 @@
 // The landscape object's own members (Terrain, terrain.h): the sector cache, the map loader, the waves'
 // setup and the tile texture coordinates. Sector loading and building are in terrain_sector.cpp, height
 // queries in terrain.cpp.
-#include "terrain.h"
-#include "terrain_sector.h"
-#include "map_file.h"
 #include "console.h"
+#include "game_singletons.h"
+#include "map_file.h"
+#include "random.h"
 #include "sound.h"
 #include "spell.h"
+#include "terrain.h"
+#include "terrain_sector.h"
 #include "texture.h"
-#include "game_singletons.h"
 #include "world.h"
-#include "random.h"
 
 #include "lib/bytes.h"
 #include "lib/crt.h"
@@ -318,8 +318,7 @@ void Terrain::SetWaveStrength(float strength) {
     const float step = lib::Asin(1.0f - strength) + kPi * kWaveStepTurn;
     float length = Length(waveDirection);
     if (length > 0.0f) waveDirection *= 1.0f / length;
-    waveDirection.x = kWaveDirectionScale * waveDirection.x * step;
-    waveDirection.y = kWaveDirectionScale * waveDirection.y * step;
+    waveDirection = WithZ(kWaveDirectionScale * XY(waveDirection) * step, waveDirection.z);
 }
 
 void Terrain::SetWaves(const Vector3& direction, float strength) {

@@ -1,8 +1,6 @@
 // Spell effects (SpellEffect, the world server's missiles): hitting units, saving and loading a cast spell, and the
 // casting state with the helpers that create its effect objects (the later states: spell_effect_update.cpp).
 // See docs/notes/items_spells.md.
-#include "spell.h"
-
 #include "ai_map.h"
 #include "base_manager.h"
 #include "combat.h"
@@ -10,12 +8,14 @@
 #include "game_strings.h"
 #include "map_object.h"
 #include "sector_map.h"
+#include "spell.h"
 #include "spell_effect_internal.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_db.h"
 #include "world.h"
 #include "world_effect.h"
+
 #include "lib/float_select.h"
 #include "lib/str.h"
 
@@ -306,7 +306,7 @@ Next StartAcidColumn(SpellEffect* e) {
 // (both 0).
 Vector3 WallDirection(const Vector3& centre, const Vector3& from) {
     Vector3 d = centre - from;
-    if (d.x == 0.0f && d.y == 0.0f) d.x = 1.0f;
+    if (XY(d) == Vector2{0.0f, 0.0f}) d.x = 1.0f;
     return d;
 }
 

@@ -6,17 +6,18 @@
 #include "console.h"
 #include "effects.h"
 #include "game_singletons.h"
-#include "lib/crt.h"
-#include "lib/float_select.h"
-#include "lib/rounding.h"
-#include "lib/str.h"
-#include "lib/vecmath.h"
 #include "map_object.h"
 #include "object_diplomacy.h"
 #include "sector_map.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
+
+#include "lib/crt.h"
+#include "lib/float_select.h"
+#include "lib/rounding.h"
+#include "lib/str.h"
+#include "lib/vecmath.h"
 
 #include <algorithm>
 #include <bit>
@@ -48,17 +49,16 @@ console::Stream& LogPair(Unit* self, const char* text, EngineObject* other) {
 
 // The noticed point taken over without Notice's checks.
 void NoticeAt(AIMemory* memory, Unit* at, int level, int decay) {
-    memory->noticedX = at->localPosition.x;
+    memory->noticed = XY(at->localPosition);
     memory->noticedLevel = level;
-    memory->noticedY = at->localPosition.y;
     memory->noticedDecay = decay;
 }
 
 } // namespace
 
 void AIViewer::Prepare(Unit* self) {
-    if (cellX >= 0 && cellY >= 0 && cellX < map->cells.width && cellY < map->cells.height)
-        eye.z = static_cast<float>(map->cells[cellY][cellX].groundLevel) / map->heightScale + eye.z;
+    if (map->cells.Contains(eyeCell))
+        eye.z = static_cast<float>(map->cells[eyeCell].groundLevel) / map->heightScale + eye.z;
     eye.z = self->bounds.boxMax.z * kEyeHeightFactor + self->eyeHeight + self->bounds.center.z + eye.z;
     Vector3 axis = (self->localRotation).AxisY();
     ready = 1;
@@ -69,8 +69,7 @@ void AIViewer::Refresh(Unit* self, AIMemory* memory) {
     if (--memory->nearbyCountdown > 0) return;
     self->flags |= kFlagNearbyListed;
     memory->nearbyCountdown = (libcrt::Rand() & 3) + 8;
-    int blockX = cellX / 32;
-    int blockY = cellY / 32;
+    const Point block = eyeCell / 32;
     UnitServer* control = self->ServerController();
     float hearing = control->stats.perception[2].current;
     float sight = control->moveFactors[3] * control->stats.perception[0].current;
@@ -79,7 +78,7 @@ void AIViewer::Refresh(Unit* self, AIMemory* memory) {
     const std::int16_t* offsets = memory->sightCells.Get(reach * kSightCellsFactor * kSectorScale, &count);
     memory->nearby.clear();
     for (int i = 0; i < count; ++i) {
-        std::vector<Unit*>* units = map->sectorMap.UnitsAt(offsets[2 * i] + blockX, offsets[2 * i + 1] + blockY);
+        std::vector<Unit*>* units = map->sectorMap.UnitsAt(offsets[2 * i] + block.x, offsets[2 * i + 1] + block.y);
         if (!units) continue;
         for (Unit* other : *units) {
             if (other != self) memory->nearby.push_back(other);
@@ -111,7 +110,7 @@ void AIViewer::See(Unit* self, AIMemory* memory) {
         Vector3 d = theirEye - eye;
         UnitServer* theirs = other->ServerController();
         float coneLimit = ours->stats.sightCone;
-        float distance = Length2D({d.x, d.y});
+        float distance = Length2D(XY(d));
         float sight = theirs->moveFactors[2] * ours->moveFactors[3] * theirs->stats.conspicuity[0].current *
                       ours->stats.perception[0].current;
         bool seen = false;
@@ -186,9 +185,7 @@ void AIViewer::Update(UnitServer* owner, AIMemory* memory) {
     if (!self) return;
     ready = 0;
     eye = *&self->localPosition;
-    float scale = 2.0f;
-    cellX = lib::RoundEven(scale * eye.x - 0.5f);
-    cellY = lib::RoundEven(scale * eye.y - 0.5f);
+    eyeCell = WorldToCell(eye);
     Refresh(self, memory);
     HeldUnits& visible = memory->visible;
     for (std::size_t i = 0; i < visible.size();) {

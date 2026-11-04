@@ -1,12 +1,12 @@
 // The unit shapes (UnitShape, ai_unit_layer.h): the 16 x 16 cell levels a unit of a radius stamps on the AI
 // map's unit layers. Shared through the shape cache, whose creator virtual makes them. See docs/notes/ai.md.
-#include "ai_unit_layer.h"
-
 #include "ai_map.h"
 #include "ai_shape_cache.h"
+#include "ai_unit_layer.h"
 #include "core_maths.h"
 #include "core_refcount.h"
 #include "world_data.h"
+
 #include "lib/containers.h"
 #include "lib/rounding.h"
 
@@ -141,8 +141,7 @@ void FootprintCellSet::AlongDirection(AIMap* map, const Vector3& position, const
     float scale = 1.0f / 0.5f;
     float cx = scale * position.x;
     float cy = scale * position.y;
-    float dx = direction.x, dy = direction.y, dz = direction.z;
-    float length = std::sqrt(LengthSquared(Vector3{dx, dy, dz}));
+    float length = Length(direction);
     float reach = length * scale + 1.0f;
     float r = reach;
     float r2 = reach * r;

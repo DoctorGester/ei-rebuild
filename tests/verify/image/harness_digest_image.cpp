@@ -1,8 +1,8 @@
 // The digest's reader of the image's objects (harness_digest_read.h). No pointers go into a record: objects are
 // named by their ids.
 #include "../harness_digest_read.h"
-
 #include "game/ai_motion.h"
+#include "game/asset_text.h"
 #include "game/combat.h"
 #include "game/game_singletons.h"
 #include "game/map_object.h"
@@ -18,7 +18,7 @@
 #include "game/unit_ai.h"
 #include "game/world.h"
 #include "game/world_effect.h"
-#include "game/asset_text.h"
+
 #include "lib/crt.h"
 
 #include <typeinfo>
@@ -185,8 +185,8 @@ void ReadBrain(AIBrain& brain, Builder& b) {
     b.Float("ai.decay", brain.decay);
     b.Int("ai.standCooldown", brain.standCooldown);
     b.Int("ai.followTimer", brain.followTimer);
-    b.Float("ai.noticed.x", brain.memory.noticedX);
-    b.Float("ai.noticed.y", brain.memory.noticedY);
+    b.Float("ai.noticed.x", brain.memory.noticed.x);
+    b.Float("ai.noticed.y", brain.memory.noticed.y);
     b.Int("ai.noticedLevel", brain.memory.noticedLevel);
     b.Int("ai.noticedKind", brain.memory.noticedDecay);
     b.Int("ai.nearby", static_cast<int>(std::ssize(brain.memory.nearby)));

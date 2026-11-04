@@ -1,5 +1,6 @@
-#include "ai_map.h"
 #include "sector_map.h"
+
+#include "ai_map.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -72,9 +73,8 @@ SectorMap::SectorMap() {
 SectorMap::~SectorMap() = default;
 
 bool SectorMap::Add(MapObject* object) {
-    int cellX = lib::RoundEven(2.0f * object->localPosition.x - 0.5f);
-    int cellY = lib::RoundEven(2.0f * object->localPosition.y - 0.5f);
-    int sx = cellX / 32, sy = cellY / 32;
+    const Point cell = WorldToCell(object->localPosition);
+    int sx = cell.x / 32, sy = cell.y / 32;
     if (sx >= width || sy >= height || sx < 0 || sy < 0) return false;
 
     Sector& sector = sectors[width * sy + sx];
@@ -85,8 +85,8 @@ bool SectorMap::Add(MapObject* object) {
     if (fits) {
         ++added;
         object->flags |= kInSectorMap;
-        object->sectorCellY = cellY;
-        object->sectorCellX = cellX;
+        object->sectorCellY = cell.y;
+        object->sectorCellX = cell.x;
         return true;
     }
 
@@ -135,11 +135,9 @@ std::vector<Unit*> SectorMap::FindUnitsInRadius(const Vector3& position, float r
     int length = spiral.lengths[spiral.radii.Find(radius * 0.03125f)];
     const std::int16_t* offset = &spiral.offsets.data()->x;
 
-    int cellX = lib::RoundEven(2.0f * position.x - 0.5f);
-    int cellY = lib::RoundEven(2.0f * position.y - 0.5f);
-    int sx = cellX / 32, sy = cellY / 32;
+    const Point cell = WorldToCell(position);
+    int sx = cell.x / 32, sy = cell.y / 32;
     float radiusSquared = radius * radius;
-    float px = position.x, py = position.y;
 
     // The units live in the AI map's own sector grid.
     SectorMap* grid = &aiMap->sectorMap;
@@ -148,9 +146,7 @@ std::vector<Unit*> SectorMap::FindUnitsInRadius(const Vector3& position, float r
         if (gx < 0 || gy < 0 || gx >= grid->width || gy >= grid->height) continue;
         Sector& sector = grid->sectors[grid->width * gy + gx];
         for (Unit* unit : sector.units) {
-            float dx = unit->localPosition.x - px, dy = unit->localPosition.y - py;
-            const auto distance = LengthSquared2D(dy, dx);
-            if (distance < radiusSquared) result.push_back(unit);
+            if (DistanceSquaredXY(unit->localPosition, position) < radiusSquared) result.push_back(unit);
         }
     }
     std::ranges::reverse(result);
@@ -161,13 +157,12 @@ bool SectorMap::Move(MapObject* object, const Vector3& position) {
     // No move to a negative (or NaN) x or y (Rebirth's FixMoveObject).
     if (!(position.x >= 0.0f) || !(position.y >= 0.0f)) return false;
     Vector3& current = object->localPosition;
-    int cellX = lib::RoundEven(2.0f * position.x - 0.5f);
-    int cellY = lib::RoundEven(2.0f * position.y - 0.5f);
+    const Point cell = WorldToCell(position);
     const Vector3 saved = current;
 
     int oldSx = object->sectorCellX / 32, oldSy = object->sectorCellY / 32;
     if (oldSx >= width || oldSy >= height) return false;
-    int newSx = cellX / 32, newSy = cellY / 32;
+    int newSx = cell.x / 32, newSy = cell.y / 32;
     if (newSx >= width || newSy >= height) return false;
     bool changesSector = newSx != oldSx || newSy != oldSy;
 
@@ -195,8 +190,8 @@ bool SectorMap::Move(MapObject* object, const Vector3& position) {
         }
     }
     object->flags |= kInSectorMap;
-    object->sectorCellY = cellY;
-    object->sectorCellX = cellX;
+    object->sectorCellY = cell.y;
+    object->sectorCellX = cell.x;
     return true;
 }
 
