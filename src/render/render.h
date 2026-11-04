@@ -135,6 +135,12 @@ void ShadowTerrainSector(const terrain::SectorData* sector);
 // cast, on every face; other objects' meshes are shadowed on the faces turned to the sun.
 void BeginCaster(const void* object, bool figure);
 void EndCaster();
+// The meshes handed over between BeginInterfaceUnit and EndInterfaceUnit are an interface figure of the world unit
+// `object` (the one BeginCaster was given for it; the HUD unit panel's): drawn in the interface, they take that
+// unit's own weather (renderer.md 11b, Units), as the unit out in the rain. Figures not drawn so (the camp's and the
+// hero screen's previews) stay dry.
+void BeginInterfaceUnit(const void* object);
+void EndInterfaceUnit();
 void CastsShadow(const void* object, float strength);
 // Casters the game does not draw this frame (or parts it left out) whose shadow can reach the visible ground
 // cast through ShadowCasterMesh, read by the world's draw from the objects' parts. ShadowCasterArea: whether
@@ -190,6 +196,9 @@ void SetGroundDecals(bool on);
 // on|off"), to measure what share of a frame they cover.
 void SetWeatherParticles(bool on);
 bool WeatherParticlesDrawn();
+// Harness build: the interface figure of a world unit (BeginInterfaceUnit) with its unit's weather (the default) or
+// dry ("panelweather on|off"), for a frozen capture of the HUD unit panel both ways.
+void SetInterfaceUnitWeather(bool on);
 // Harness build: the ambient occlusion on (the default), off, or shown alone by its receivers (white none, black
 // all; "occlusion on|off|view"). OcclusionState: the last presented frame's, with the ground's sectors whose
 // occlusion is kept and how often one was worked out since the start.

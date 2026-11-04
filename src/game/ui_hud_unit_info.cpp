@@ -310,7 +310,11 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
             render::TextureStage& stage0 = render::g_renderState.stages[0];
             const render::MipFilter mipFilter = stage0.mipFilter;
             stage0.mipFilter = render::MipFilter::None;
+            // The unit is out in the weather the world draws it in: the same weather on its figure here.
+            const MapObject* worldObject = unit;
+            render::BeginInterfaceUnit(worldObject);
             unit->DrawFigure(pass);
+            render::EndInterfaceUnit();
             stage0.mipFilter = mipFilter;
 
             unit->flags &= ~MapObjectFlag::NoEdgeFade;

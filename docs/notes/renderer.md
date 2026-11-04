@@ -1053,6 +1053,13 @@ option). Client side only: driven by the weather the world's light hands over (`
   met while the ground settles after a zone's landscape was loaded (its first 32 ticks) starts from the ground's state
   times its exposure; no step of the time back restarts it. Client-side only: no random, nothing the
   game simulates reads it.
+  The HUD unit panel's figure takes its unit's own value too (R53a): `HudUnitPanel::Draw` hands its meshes over between
+  `render::BeginInterfaceUnit(unit as a MapObject)` and `EndInterfaceUnit` (the object the world's draw gave
+  `BeginCaster`), `MeshBatch::interfaceUnit` finds that unit's state (the ground's when the world has not drawn it
+  lately), and the mesh shader's `weathered_figure` (`MeshFsParams::weather` z 2) applies it: the snow's and the wet's
+  darkening as the world's (`unit_snow_and_wet`) by the vertex normal in model space (which stands up along z as in the
+  world; the draw keeps the normals the flat colours would drop), and a fixed sheen on the faces turned up (no map, sun
+  or ambient light there). The camp's and the hero screen's previews and UiModel do not call it: they stay dry.
 - **The roof test**: a ray straight up on the CPU against the triangles of the frame's other drawn objects (the world's
   model meshes after the ground with a caster object that is not a unit; not the added light), the meshes' boxes
   placed in the landscape's space first (`UnderCamera`), then the ray taken into a mesh's model space and tested
@@ -1081,6 +1088,9 @@ option). Client side only: driven by the weather the world's light hands over (`
   from the camera inside); `unitweather leader|#id|<name> <least wet> <most wet> [<least snow> <most snow> [<least
   shelter> <most shelter>]]` reads `render::UnitWeatherState` (and logs where the unit stood); the frames of R17c3 in
   build/r17c3 of its worktree.
+  `render_weather_panel` (R53a, 1440x1080, zone1 by day): the hero dry, then a minute into rain (unitweather: wet
+  0.5 .. 1); `diffcapture <a> <b> <least> <most> <tolerance> <left> <top> <right> <bottom>` on the panel's rectangle
+  requires the figure to differ between the two frozen moments (a dry figure differs in none of it).
 - Cost (R17c, RTX 4070 Ti SUPER, Direct3D 12, 3840x2009 msaa 8 anisotropy 16, zone1 a minute into rain, a frozen
   frame; the uniforms zeroed and set again in turn, 150 frames each): the frame's GPU time 2.59 .. 2.61 ms with the
   weather and 2.59 .. 2.63 ms without, at the start and at the shore; no difference above the noise.

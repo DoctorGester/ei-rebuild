@@ -30,6 +30,11 @@ bool WriteFrame(const char* name, int width, int height, const std::vector<std::
 // channel difference. False (with `why`) when a file is missing, unreadable or of another size.
 bool Compare(const char* a, const char* b, int tolerance, double* differing, int* largest, const char** why);
 
+// As Compare, within the rectangle `left`..`right` x `top`..`bottom` (right and bottom excluded; cut to the frame):
+// `differing` is the fraction of the rectangle's pixels.
+bool CompareRect(const char* a, const char* b, int tolerance, int left, int top, int right, int bottom,
+                 double* differing, int* largest, const char** why);
+
 // The pixels of frames\<smooth>.bmp (the world multisampled) outside the range of their 3 x 3 neighbourhood in
 // frames\<plain>.bmp (the same frozen moment drawn without) by more than `tolerance` in a channel, in the rectangle
 // `left`..`right` x `top`..`bottom` (right and bottom excluded; cut to the frame less its border pixels): `outside`
