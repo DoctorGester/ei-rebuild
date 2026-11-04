@@ -548,6 +548,14 @@ float PrepareClouds(const ShadowFrame& shadow);
 float CloudCover();
 void CloudUniforms(float x0, float y0, float extent, float light, ShadowParams* params);
 void BindCloudMap(int slot);
+// The weather on the surfaces (render_weather.cpp; section 13, item 11b). PrepareSurfaces, from PrepareShadows once a
+// frame: the wetness, the puddles and the snow cover moved on towards the frame's weather by the world's time.
+// SurfaceUniforms: the terrain's TerrainFsParams::weather and ::rain. MeshWeatherUniforms: a world mesh's
+// MeshFsParams::weather, ::weatherSun and ::weatherSunColour. SurfaceState: the three for the harness.
+void PrepareSurfaces(const ShadowFrame& shadow);
+void SurfaceUniforms(float weather[4], float rain[4]);
+void MeshWeatherUniforms(float weather[4], float sun[4], float sunColour[4]);
+void SurfaceState(float* wet, float* puddles, float* snow);
 // How far along its normal a receiver's point is moved before it is looked up in the map: 1.5 of the map's texels,
 // in world units (0 without the map).
 inline float ShadowNormalOffset(const ShadowParams& shadow) {

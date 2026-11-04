@@ -1,0 +1,102 @@
+# R17c: the weather on the surfaces (docs/notes/renderer.md section 13, item 11b) at 1440x1080 by day. Zone1's start
+# dry, a few seconds into rain, after a minute of rain (wet ground and objects, puddles, the drops' rings), half a minute
+# after the rain stopped (drying), the sea in rain (rings and splashes); the snow map gz11k before and after two
+# minutes of snow. `weathercheck` reads how wet the ground is and the snow's cover. Frames only (goldens hold none).
+render checkall
+resolution 1440x1080
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+console @FixWorldTime(12)
+console @SetWeather("clear")
+waitpresent 10
+move 400 20
+frames 5
+vanilla minimap 701 81 2.8 2.8
+rebirth minimap 726 80.6 3.75 2.7
+wait 300000
+frames 5
+freeze
+weathercheck 0 0.05 0 0
+capture weather_dry
+unfreeze
+
+# Rain: a few seconds in, then a minute.
+console @SetWeather("rain")
+wait 5000
+frames 5
+freeze
+weathercheck 0.02 0.5 0 0
+capture weather_rain_start
+unfreeze
+wait 60000
+frames 5
+freeze
+weathercheck 0.55 1 0 0
+capture weather_rain_minute
+capture weather_rain_minute_again
+unfreeze
+samecapture weather_rain_minute weather_rain_minute_again
+
+# Drying: half a minute after the rain stopped.
+console @SetWeather("clear")
+wait 30000
+frames 5
+freeze
+weathercheck 0.4 0.95 0 0
+capture weather_drying
+unfreeze
+
+# The sea in rain.
+console @SetWeather("rain")
+lookat 30 120
+frames 3
+lookat 30 120
+frames 3
+lookat 30 120
+frames 3
+wait 20000
+move 400 20
+frames 5
+freeze
+capture weather_rain_sea
+unfreeze
+lookat 30 80
+frames 3
+lookat 30 80
+frames 3
+lookat 30 80
+frames 3
+move 400 20
+frames 5
+freeze
+capture weather_rain_shore
+unfreeze
+
+# The snow map gz11k: before the snow and after two minutes of it.
+zone gz11k 0
+waitzone 20 gz11k
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @FixWorldTime(12)
+console @SetWeather("clear")
+wait 3000
+move 400 20
+frames 5
+freeze
+weathercheck 0 1 0 1
+capture weather_snow_before
+unfreeze
+console @SetWeather("snow")
+wait 120000
+frames 5
+freeze
+weathercheck 0 1 0.65 1
+capture weather_snow
+unfreeze
+report
+quit

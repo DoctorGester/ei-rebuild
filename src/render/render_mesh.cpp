@@ -388,6 +388,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
         vs.normalOffset[0] = 0.0f;
     }
     OcclusionUniforms(batch.occluded, fs.occlusion, fs.occlusionMap);
+    if (batch.light >= 0) MeshWeatherUniforms(fs.weather, fs.weatherSun, fs.weatherSunColour);   // a world mesh
     fs.fogColour[0] = ((s.fogColour >> 16) & 0xFF) / 255.0f;
     fs.fogColour[1] = ((s.fogColour >> 8) & 0xFF) / 255.0f;
     fs.fogColour[2] = (s.fogColour & 0xFF) / 255.0f;

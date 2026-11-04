@@ -943,6 +943,39 @@ colour, the meshes the game lights, the water, the interface's previews) is touc
   passes 0.30 ms a frame in both (p10-p90 0.29-0.31), the rest of the frame (about 1.9-2.0 ms) no dearer with the
   lookups; the ground's own occlusion costs only when a sector is first held.
 
+**11b. Weather on the surfaces** (`render_weather.cpp`, `shaders/terrain.hlsl`, `shaders/mesh.hlsl`; R17c; always on, no
+option). Client side only: driven by the weather the world's light hands over (`render::CloudWeather`, item 11, with
+`snow` when the rain / snow layer's mode is snow), nothing the game simulates reads it, and the goldens hold no frames.
+- **State** (PrepareSurfaces, from PrepareShadows once a frame): the wetness and the puddles follow the rain's strength,
+  the snow cover the snow's, each by the world's time with its own time constant (ticks for 1 - 1/e of the way): wet in
+  200 (about 11 s) and dry in 1600 (about 90 s), the puddles 450 / 2400, the snow 800 / 5500. A step of the world's time
+  back or over 64 ticks (a load, a zone change) and the first frame start from the weather as it is (wet in rain, covered
+  in snow). The game's rain and snow themselves grow over a minute or more and fade the same way after `SetWeather`, so
+  the state lags them (a minute into rain about 0.66 wet; still rising half a minute after it was stopped). The rain
+  falling now (its strength, none in snow) drives the rings and splashes.
+- **Ground** (terrain.hlsl, `ground_weather`, `weathered`, `wet_ground`; nothing under the water, by `loss`): snow on
+  ground turned up: n.z against an edge falling from 1.15 to 0.55 with the cover, broken by the cloud map at 1/11 a unit
+  and a little sooner higher up, the albedo towards (0.82, 0.85, 0.92) (0.85 .. 1.05 of it by the texture's light). Wet
+  ground: the albedo down to 0.6 and a sheen of the sun (Blinn-Phong 40, 0.12). Puddles: on flat ground (n.z 0.86 ..
+  0.96), where the cloud map at 1/7 a unit and the ground's own occlusion (low ground: valleys, the foot of slopes) sum
+  above an edge falling with the puddles' share; the ground under them darker again (0.55), the sky reflected (the fog's
+  colour as on the water, Schlick's term plus 0.15) and a sharp glint, on the normal the rain's rings turn.
+- **Rings and splashes** (`rain_rings`): two layers of cells 0.8 units across, a drop in the share of the cells the rain's
+  strength gives, each cell's ring at its own place and phase on the client's clock (`TerrainFsParams::rain`, the client
+  ticks modulo a whole number of both periods: 16 and 21 ticks), growing to a third of a cell and fading; the slope of a
+  Gaussian ring turns the normal, and a splash (a small bright spot) shows in the first 15% of a ring's time. They fade
+  out where a cell is under a few pixels across (`footprint`, the units a pixel spans). On the water (and the swamps)
+  they add to the ripples, which the rain makes half again as rough; the splashes there are lit like the foam.
+- **Meshes** (mesh.hlsl, `weathered_mesh`): the world's meshes that receive the shadow map (`MeshBatch::light`) get
+  `MeshFsParams::weather` (wetness, snow) and the sun; from the face normal (the map's clip space's derivatives taken to
+  the landscape's space, turned to the camera): snow on faces turned up (n.z from 1.1 .. 1.2 down to 0.6 .. 0.72 with the
+  cover; not on units), wet faces down to 0.65 and, but on units (few large faces), a sheen of the sun. Without a fitted
+  map (no shadow space) none.
+- Check: scenario `render_weather` (1440x1080, zone1 by day: dry, five seconds into rain, after a minute, half a minute
+  after it stopped, the sea and the beach in rain; gz11k before and after two minutes of snow; samecapture of a frozen
+  moment drawn twice). `weathercheck <least wet> <most wet> [<least snow> <most snow>]` reads ShadowInfo's `wetness`,
+  `puddles` and `snowCover`.
+
 **12. Profiling the heaviest scenes.** The user's play settings: 3840 x 2160 windowed, msaa 8, anisotropy 16, flora
 shadows on, Rebirth's draw radii, `frametime 8`; zone1, zone7 (forest), zone11 (snow forest), zone19, the town bz1g, the
 camera at its default and tilted low, noon and night, the town at night with a crowd of 12 fighting. Findings: the main

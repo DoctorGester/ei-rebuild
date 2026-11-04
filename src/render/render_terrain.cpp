@@ -803,6 +803,7 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     fs.flags[0] = mode;
     fs.flags[1] = f.fogEnabled ? 1.0f : 0.0f;
     RippleOffsets(fs.ripples, fs.slowRipples);
+    SurfaceUniforms(fs.weather, fs.rain);
     OcclusionUniforms(batch.occluded && mode < 1.5f, fs.occlusion, fs.occlusionMap);
     SceneLightParams light;
     LightUniforms(&light);
