@@ -5,4 +5,5 @@ model = "opus"
 depends = ["C108"]
 note = "Style review round 3 (2026-11-04, https://claude.ai/artifact/KKkymAu9dSoUWGGcbsLwPa, digests in build/style_review/round3/*.md; user: file the tickets). Item Y4 tree-wide. Every field gets a default initialiser (ratchet MSVC C26495 in check_cleanup); resets by new (this) or Rebuild (19 sites incl. ai_map_construct) become Reset() assigning fields; RefCounted sets its own count (15 refs = 0 at creators); ObjectListIterator releases in its destructor (28 hand drops); flags7 & kDetached (34) through IsLive; types with real ctor/dtor as plain locals. Networking's Connection is C112's; sound structs C122's. Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes. C112 (2026-11-04) already did the net Rebuild sites and RefCounted setting its own count; what is left here is AIMap::Reset's new (this) and the other items. C131 (2026-11-04) did the iterators tree-wide: ObjectListIterator drops its manager count in its destructor, PlayerIterator is an alias, no hand drops left."
 order = 1052
-status = "queued"
+status = "running"
+started = "2026-11-04"
