@@ -212,6 +212,7 @@ unsigned g_records = 0;
 std::uint32_t g_lastHash = 0;
 void* g_server = nullptr;       // the server world (game.exe's or ours)
 FILE* g_file = nullptr;
+bool g_openFailed = false;      // digest.txt could not be created (a record was due)
 State g_previous;
 
 FILE* OpenOutput(const char* name, const char* mode) {
@@ -222,7 +223,11 @@ FILE* OpenOutput(const char* name, const char* mode) {
 bool OpenDigest() {
     if (g_file) return true;
     g_file = OpenOutput("digest.txt", "w");
-    if (!g_file) return false;
+    if (!g_file) {
+        if (!g_openFailed) Log("harness: digest.txt cannot be created in the run folder");
+        g_openFailed = true;
+        return false;
+    }
     std::setvbuf(g_file, nullptr, _IOFBF, 1 << 20);
     const std::string hooks = platform::EnvironmentVariable("EI_NO_HOOKS");
     std::fprintf(g_file, "# ei state digest 2; groups %s; hooks %s; install %s; every %u world updates\n", NewGroups().c_str(),
@@ -323,6 +328,10 @@ std::string Summary() {
 
 void Flush() {
     if (g_file) std::fflush(g_file);
+}
+
+std::string Failure() {
+    return g_openFailed ? "digest: digest.txt could not be created in the run folder" : "";
 }
 
 } // namespace ei::verify::digest

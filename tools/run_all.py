@@ -624,6 +624,29 @@ def check_settings_file(report, scenario, out, rebirth, install, say):
     add_failures(report, failures)
 
 
+def empty_folder(out, tries=10):
+    """Removes a run folder before its run, trying again for tries seconds when a file in it is still open (rmtree
+    leaves such a file silently, and the game would then write beside a stale file or fail to create its own).
+    Returns the names left in it, [] when it is gone."""
+    left = []
+    for attempt in range(tries):
+        shutil.rmtree(out, ignore_errors=True)
+        left = os.listdir(out) if os.path.isdir(out) else []
+        if not left:
+            return []
+        time.sleep(1)
+    return left
+
+
+def missing_digest(result, environ, out):
+    """The failure for a run that passed in digest mode (EI_DIGEST, --golden) without writing digest.txt: the golden
+    compare would count it as differing and nothing else says why (H54)."""
+    wanted = environ.get('EI_DIGEST') or '0'
+    if result == 'PASS' and wanted.isdigit() and int(wanted) and not os.path.exists(os.path.join(out, 'digest.txt')):
+        return f'no digest.txt in the run folder although EI_DIGEST={wanted} asked for one (the run passed without a state record)'
+    return None
+
+
 def run_once(name, install, folder, root, build, take_slot, clock, game_env, held=1, slots=None):
     scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
     out = os.path.join(build, 'runs', folder or f'{name}-{install}')
@@ -632,7 +655,8 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
                              'is no longer run since H40)'], {}, []
     if low_disk := wait_for_disk(build):
         return 'FAIL', 0.0, [low_disk], {}, []
-    shutil.rmtree(out, ignore_errors=True)
+    if left := empty_folder(out):
+        return 'FAIL', 0.0, [f'the run folder could not be emptied ({", ".join(left[:5])} left: a file in it is still open)'], {}, []
     os.makedirs(out, exist_ok=True)
     prepare_scenario.prepare(scenario, os.path.join(out, 'harness_saves'))   # "# prepare:" lines
     env = None
@@ -685,6 +709,10 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
         if result == 'PASS':
             result = 'FAIL'
     expected = expected_result(scenario)
+    if not expected and (lost := missing_digest(result, environ, out)):
+        failures.append(lost)
+        result = 'FAIL'
+        add_failures(path, [lost])
     if expected and result == expected and code != UNKILLABLE_EXIT:
         result = 'PASS'
         failures = []

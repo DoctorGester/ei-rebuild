@@ -1024,6 +1024,7 @@ void WriteReport() {
     for (const std::string& line : g_console) std::fprintf(f, "  %s\n", line.c_str());
     std::vector<std::string> failures = g_failures;
     if (std::string write = crash::FailedWrite(); !write.empty()) failures.push_back(write);   // harness_crash.h
+    if (std::string digested = digest::Failure(); !digested.empty()) failures.push_back(digested);   // harness_digest.h
     if (std::string paired = pair::Failure(); !paired.empty()) failures.push_back(paired);    // harness_pair.h
     if (std::string pinned = settings::Failure(); !pinned.empty()) failures.push_back(pinned);   // harness_settings.h
     if (std::string written = InstallFailure(); !written.empty()) failures.push_back(written);   // MapPath

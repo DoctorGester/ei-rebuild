@@ -34,7 +34,7 @@ class Limits(unittest.TestCase):
 class Run(unittest.TestCase):
     """run_once() with launch() replaced: its result code and the report decide the result."""
 
-    def run_scenario(self, scenario_text, returncode, report, text=''):
+    def run_scenario(self, scenario_text, returncode, report, text='', game_env=None, digest=False):
         with tempfile.TemporaryDirectory() as root:
             os.makedirs(os.path.join(root, 'tests', 'scenarios'))
             build = os.path.join(root, 'build')
@@ -45,10 +45,13 @@ class Run(unittest.TestCase):
                 if report is not None:
                     with open(os.path.join(out, 'harness_report.txt'), 'w') as f:
                         f.write(report)
+                if digest:
+                    with open(os.path.join(out, 'digest.txt'), 'w') as f:
+                        f.write('# ei state digest 2\n')
                 return returncode, text
 
             with mock.patch.object(run_all, 'launch', fake):
-                return run_all.run_once('x', 'standalone', None, root, build, False, None, None)
+                return run_all.run_once('x', 'standalone', None, root, build, False, None, game_env)
 
     def test_run_all_ended_the_game(self):
         result, _, failures, _, notes = self.run_scenario(
@@ -83,6 +86,29 @@ class Run(unittest.TestCase):
         self.assertEqual((result, failures), ('PASS', []))
         result, _, _, _, _ = self.run_scenario(text, run_all.UNKILLABLE_EXIT, 'RESULT: RUNNING\n')
         self.assertEqual(result, 'TIMEOUT')
+
+    def test_golden_run_without_a_digest_fails(self):
+        # H54: a run that passed in digest mode without digest.txt is a failure, not a PASS the compare counts as differing.
+        env = {'EI_DIGEST': '20'}
+        result, _, failures, _, _ = self.run_scenario('quit\n', 0, 'RESULT: PASS\n', game_env=env)
+        self.assertEqual(result, 'FAIL')
+        self.assertIn('no digest.txt', failures[0])
+        self.assertEqual(self.run_scenario('quit\n', 0, 'RESULT: PASS\n', game_env=env, digest=True)[0], 'PASS')
+        self.assertEqual(self.run_scenario('quit\n', 0, 'RESULT: PASS\n')[0], 'PASS')   # no digest asked for
+        self.assertEqual(self.run_scenario('# expect: TIMEOUT\nquit\n', run_all.TIMEOUT_EXIT, 'RESULT: RUNNING\n',
+                                           game_env=env)[0], 'PASS')
+
+    def test_run_folder_that_cannot_be_emptied(self):
+        with tempfile.TemporaryDirectory() as d:
+            out = os.path.join(d, 'run')
+            os.makedirs(os.path.join(out, 'harness_saves'))
+            self.assertEqual(run_all.empty_folder(out), [])
+            self.assertFalse(os.path.exists(out))
+            os.makedirs(out)
+            with mock.patch.object(shutil, 'rmtree'), mock.patch.object(time, 'sleep'):
+                self.assertEqual(run_all.empty_folder(out, tries=2), [])   # an empty folder is fine
+                open(os.path.join(out, 'digest.txt'), 'w').close()
+                self.assertEqual(run_all.empty_folder(out, tries=2), ['digest.txt'])
 
     def test_ordinary_results_are_unchanged(self):
         self.assertEqual(self.run_scenario('quit\n', 0, 'RESULT: PASS\n')[0], 'PASS')
