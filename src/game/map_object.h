@@ -237,6 +237,8 @@ public:
     MapObjectCompanion* companion; // MapObjectServer / MapObjectClientSpecific
     // The companion as the server's MapObjectServer (on the server; defined in unit.h).
     MapObjectServer* ServerCompanion() const;
+    // The server companion's vitals (defined in unit.h).
+    UnitVitals& Vitals() const;
     // The companion as the client's MapObjectClientSpecific (on the client; defined in unit.h).
     MapObjectClientSpecific* ClientCompanion() const;
     // World updates until the object's effects are next looked at (5 after Create; the server world's update map

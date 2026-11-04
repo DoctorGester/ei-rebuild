@@ -239,12 +239,12 @@ void PerkLines(Writer& w, const ItemHoverInfo& info, std::string& title) {
 }
 
 // HoverKind::Weapon, the weapon's attack or defence: its four parts and their sum (or, for the defence of a
-// weapon of type 5 or 6, infoitem_34).
+// ranged weapon, infoitem_34).
 void WeaponLines(Writer& w, const ItemHoverInfo& info) {
     ItemWeapon* weapon = info.weapon;
     UnitStats* stats = info.stats;
-    int type = weapon->GetType();
-    if (str::Compare(info.text, "defense") == 0 && (type == 5 || type == 6)) {
+    int type = static_cast<int>(weapon->GetType());
+    if (str::Compare(info.text, "defense") == 0 && weapon->IsRanged()) {
         w.Wrapped(w.T(34), 2);
         w.Down();
         return;
@@ -420,7 +420,7 @@ void ItemInfoPanel::DescribeItem() {
             w.Down();
             w.Number(20, static_cast<int>(item->GetPrototype()->category));
             w.Number(38, static_cast<int>(WeaponAttackBonus(item->prototypeId)));
-            if (weapon->GetType() == 5 || weapon->GetType() == 6)
+            if (weapon->IsRanged())
                 w.Number(10, static_cast<int>(weapon->reach));
             else
                 w.Number(39, static_cast<int>(WeaponDefenceBonus(item->prototypeId)));

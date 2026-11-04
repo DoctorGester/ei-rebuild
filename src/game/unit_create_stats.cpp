@@ -474,7 +474,8 @@ void UnitStats::LearnSkill(const SkillDatabase* database, const ::SkillLevelReco
     HealSlots(newMaximum, heal);
 }
 
-float UnitStats::WeaponSkillBonus(int type, Unit* unit) {
+float UnitStats::WeaponSkillBonus(WeaponType weaponType, Unit* unit) {
+    int type = static_cast<int>(weaponType);
     if (type < 5 || type == 5 || type == 6) {
         int skill = type >= 5 ? 1 : 0;
         float level = LevelAsFloat(this, type);

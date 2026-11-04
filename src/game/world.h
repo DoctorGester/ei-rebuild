@@ -766,7 +766,7 @@ template <> inline constexpr bool lib::kBitFlags<WorldClientFlag> = true;
 
 // WorldClient::EnvironmentFlags: what an environment speech (acks.db) asks of the surroundings.
 enum class EnvironmentFlag : std::uint32_t {
-    MoveMode3 = 0x1,        // the unit's moveMode2 (1 walk, 2 run; 0 and 3 not named)
+    MoveMode3 = 0x1,        // the unit's moveMode2 (the data's names for 1 and 2 are Walk and Run; 0 and 3 are not named)
     Run = 0x2,
     Walk = 0x4,
     MoveMode0 = 0x8,

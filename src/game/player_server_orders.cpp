@@ -142,7 +142,7 @@ int PlayerServer::OnMoveStyle() {
     UnitByte message;
     g_receivedMessages.ReadValue(message);
     Unit* unit = player->OwningWorld()->FindUnit(message.unitId);
-    if (unit && !unit->IsDead()) unit->ServerController()->SetMoveStyle(message.value);
+    if (unit && !unit->IsDead()) unit->ServerController()->SetMoveStyle(static_cast<MoveMode>(message.value));
     return 1;
 }
 

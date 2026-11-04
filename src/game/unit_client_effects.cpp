@@ -239,8 +239,6 @@ constexpr int kTerrainNoCrawl1 = 6;          // kinds crawling does not change
 constexpr int kTerrainNoCrawl2 = 0xE;
 constexpr float kPlatformGap = 0.01f;
 constexpr int kCrawlSounds = 6;
-constexpr int kWeaponBow = 5;
-constexpr int kWeaponCrossbow = 6;
 
 // ClientRand() scaled into 0..n-1.
 
@@ -308,7 +306,7 @@ std::optional<std::string> UnitClientSpecific::FootstepSound(int terrain) {
     float surface = world->platforms.SurfaceHeight(at, world->ClampedGroundHeight(x, y));
     float gap = ground - surface;
     if (std::fabs(gap) > kPlatformGap) terrain = kTerrainPlatform;
-    if (unit->moveMode == 0 && terrain != kTerrainNoCrawl2 && terrain != kTerrainNoCrawl1)
+    if (unit->moveMode == MoveMode::Lie && terrain != kTerrainNoCrawl2 && terrain != kTerrainNoCrawl1)
         return std::format("steps\\human\\crawl\\{}.wav", ClientRandBelow(kCrawlSounds) + 1);
     int count = static_cast<int>(model->SoundCounts()[terrain]);
     if (count == 0) return std::nullopt;   // a platform's kind without sounds
@@ -345,7 +343,7 @@ std::optional<std::string> UnitClientSpecific::ActionSound(const FigureAnimation
     case AnimationKind::Attack: {
         std::uint32_t hand = unit->activeWeapon < 4 ? weaponIds[unit->activeWeapon] : kNoItemId;
         if (unit->MapType() == MapObjectType::Hero && unit->activeWeapon < 4 && hand != kNoItemId &&
-            (WeaponType(hand) == kWeaponBow || WeaponType(hand) == kWeaponCrossbow))
+            IsRanged(WeaponTypeOf(hand)))
             return std::format("weapons\\{}.wav", static_cast<int>(sound));
         if (static_cast<std::uint32_t>(ClientRandBelow(100)) >= model->attackSoundChance) return std::string();
         format = "%s\\attack\\%d.wav";
@@ -427,7 +425,7 @@ void UnitClientSpecific::PlayStepSounds() {
             int ground = world->terrain->SurfaceClass(position.x, position.y);
             if (std::optional<std::string> footstep = FootstepSound(ground)) sound = std::move(*footstep);   // else the last one stays
         }
-        if (unit->moveMode == 0) break;
+        if (unit->moveMode == MoveMode::Lie) break;
         const auto* prototype = unit->GetPrototype();
         if (prototype) {
             float strength = prototype->shake;
@@ -464,8 +462,8 @@ void UnitClientSpecific::PlayStepSounds() {
         // The prototype's conspicuity[0] is the footprint scale (read unchecked: a unit without a prototype
         // faults here).
         float scale = prototype->conspicuity[0];
-        if (unit->moveMode == 0) scale *= kCrawlPrintScale;
-        else if (unit->moveMode == 1) scale *= kWalkPrintScale;
+        if (unit->moveMode == MoveMode::Lie) scale *= kCrawlPrintScale;
+        else if (unit->moveMode == MoveMode::Crawl) scale *= kWalkPrintScale;
         int footprintId = g_clientWorld.AddFootprint(footAt.x - sizeX * facing.x * 0.5f,
                               footAt.y - sizeY * facing.y * 0.5f, sizeX, sizeY, turn, (left << 16) | printKind, scale,
                               shown, footprint);

@@ -75,20 +75,15 @@ constexpr float kIdleMode1Factor0 = kPointTwo;                      // 0.2
 constexpr float kIdleMode3Scale = 2.0f;
 constexpr float kIdleMode3Factor1 = 0.5f;
 constexpr float kCastingFactor2 = 1.5f;
-constexpr float kSpeedFast = kSizeMedium;                           // 1.2
+constexpr float kSpeedFast = 1.2f;
+constexpr float kSpeedMedium = kPointSix;                           // 0.6
 constexpr float kSpeedSlow = 0.15f;
 
-constexpr std::uint32_t kQuickItemSource = 0x80000000u;
-constexpr int kNoNaturalWeapon = 0x10;
-constexpr int kWeaponBow = 5;
-constexpr int kWeaponCrossbow = 6;
 
 float DifficultyAttackFactor() {
     int difficulty = options::g_options.difficulty;
     return g_logicSettings.attack[difficulty];
 }
-
-float ServerMana(const Unit* unit) { return unit->ServerCompanion()->vitals.mana; }
 
 std::uint8_t PlayerGodMode(const Player* player) { return player->godMode; }
 
@@ -136,17 +131,13 @@ float UnitServer::AttackRange() {
 
 bool UnitServer::HasRangedWeapon() {
     ItemWeapon* weapon = unit->ActiveWeapon();
-    if (!weapon) return false;
-    return weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow;
+    return weapon && weapon->IsRanged();
 }
 
 bool UnitServer::AttacksFromRange() {
-    if (!unit->ActiveWeapon()) {
-        return stats.naturalWeapon != kNoNaturalWeapon && stats.combat[UnitStats::kReach] > 1.0f;
-    }
     ItemWeapon* weapon = unit->ActiveWeapon();
-    if (!weapon) return false;
-    return weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow;
+    if (!weapon) return stats.naturalWeapon != WeaponType::SpellsOnly && stats.combat[UnitStats::kReach] > 1.0f;
+    return weapon->IsRanged();
 }
 
 void UnitServer::GetDamageByType(DamageWords* out) {
@@ -178,8 +169,7 @@ void UnitServer::GetSpellDamage(std::uint32_t source, DamageWords* out) {
     *out = DamageWords{};
     if (spell) {
         auto value = static_cast<std::uint16_t>(lib::Truncate(SpellDamage(spell)));
-        int damageType = spell->GetDamageType();
-        out->words[1 + damageType] = value;
+        out->words[1 + static_cast<int>(spell->GetDamageType())] = value;
     }
     out->words[0] = 0x7FFF;
 }
@@ -230,7 +220,7 @@ bool UnitServer::CanCast(const AIOrder* order) {
     if (!spell) return false;
     if (unit->player != nullptr) {
         float cost = SpellCost(spell);
-        float mana = ServerMana(unit);
+        float mana = unit->Vitals().mana;
         float needed = stats.Period20() * cost;
         if (needed > mana) return false;
     }
@@ -248,7 +238,7 @@ float UnitServer::ActionDistance(const AIOrder* order) {
     UnitOrderKind kind = order->kind;
     MapObject* target = order->target;
     if (kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn) {
-        if (!unit->player && stats.naturalWeapon == kNoNaturalWeapon) return stats.combat[UnitStats::kReach];
+        if (!unit->player && stats.naturalWeapon == WeaponType::SpellsOnly) return stats.combat[UnitStats::kReach];
         Spell* spell = SpellOfSource(order->source);
         if (spell) return SpellRange(spell);
         return kTen;
@@ -291,19 +281,18 @@ bool UnitServer::TooHighToReach(const AIOrder* order) {
 std::uint32_t UnitServer::WeaponTypeMask() {
     ItemWeapon* weapon = unit->ActiveWeapon();
     if (weapon) return AnimationWeaponBit(weapon->GetType());
-    int natural = stats.naturalWeapon;
-    if (natural < 7) return AnimationWeaponBit(natural);
+    if (static_cast<int>(stats.naturalWeapon) < kAnimatedWeaponTypes) return AnimationWeaponBit(stats.naturalWeapon);
     return 0;
 }
 
 std::uint32_t UnitServer::MoveModeMask(const MoveModeState* mode) {
-    switch (static_cast<std::uint32_t>(mode->mode)) {
-    case 0: return AnimationKeyOf(AnimationMoveBits::Mode0);
-    case 1: return AnimationKeyOf(AnimationMoveBits::Mode1);
-    case 2:
-        if (mode->onGuard || unit->MapType() != MapObjectType::Hero) return AnimationKeyOf(AnimationMoveBits::Mode2);
+    switch (mode->mode) {
+    case MoveMode::Lie: return AnimationKeyOf(AnimationMoveBits::Lie);
+    case MoveMode::Crawl: return AnimationKeyOf(AnimationMoveBits::Crawl);
+    case MoveMode::Walk:
+        if (mode->onGuard || unit->MapType() != MapObjectType::Hero) return AnimationKeyOf(AnimationMoveBits::Walk);
         return 0;
-    case 4: return AnimationKeyOf(AnimationMoveBits::Mode4);
+    case MoveMode::Stop: return AnimationKeyOf(AnimationMoveBits::Stop);
     default: return 0;
     }
 }
@@ -318,7 +307,7 @@ int UnitServer::Level() {
 }
 
 void UnitServer::EffectsChanged() {
-    if (unit->HasEffect(SpellType::Feeblemind) && stats.naturalWeapon != kNoNaturalWeapon) unit->flags |= MapObjectFlag::NoCasting;
+    if (unit->HasEffect(SpellType::Feeblemind) && stats.naturalWeapon != WeaponType::SpellsOnly) unit->flags |= MapObjectFlag::NoCasting;
     else unit->flags &= ~MapObjectFlag::NoCasting;
 }
 
@@ -361,7 +350,7 @@ void UnitServer::GetAttackParams(AttackParams* out) {
             }
         }
     }
-    if (out->weaponType == kWeaponBow || out->weaponType == kWeaponCrossbow) out->defence = 0;
+    if (IsRanged(out->weaponType)) out->defence = 0;
     out->damageMax = ScaleDamageByEffects(self, out->damageMax);
     out->damageMin = ScaleDamageByEffects(self, out->damageMin);
     out->attackSpread = stats.combat[UnitStats::kAttackSpread];
@@ -497,7 +486,7 @@ void UnitServer::TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) {
         unit->MarkChanged(NetField::Stats);
         TriggerItemSpells(1);
         Item* weapon = attacker ? attacker->GetWeapon(attacker->activeWeapon) : nullptr;
-        if (stats.ApplyHit(unit, ServerStatsOf(unit), hit, weapon)) {
+        if (stats.ApplyHit(unit, &unit->Vitals(), hit, weapon)) {
             if (attacker && !HasElementalDamage(hit)) {
                 if (attacker->MapType() != MapObjectType::Hero) {
                     LastDamageSource(unit) = static_cast<std::int16_t>(attacker->prototypeId + 0x10);
@@ -510,7 +499,7 @@ void UnitServer::TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) {
             } else {
                 LastDamageSource(unit) = 7;
             }
-            stats.Recompute(ServerStatsOf(unit), unit);
+            stats.Recompute(&unit->Vitals(), unit);
             unit->MarkChanged(NetField::Vitals);
             unit->MarkChanged(NetField::Stats);
             if (!dead) {
@@ -561,16 +550,16 @@ void UnitServer::UpdateMoveFactors() {
     float sum = scaled + (1.0f - factor);
     moveFactors[3] = sum;
     moveFactors[3] = std::bit_cast<float>(world->weatherFactor) * sum;
-    if (unit->moveMode == 0) {
+    if (unit->moveMode == MoveMode::Lie) {
         moveFactors[2] = kMode0Factor2;
         moveFactors[3] = kMode0Factor3 * moveFactors[3];
-    } else if (unit->moveMode == 1) {
+    } else if (unit->moveMode == MoveMode::Crawl) {
         moveFactors[2] = kMode1Factor2;
     }
     if (state == UnitState::Idle) {
-        if (unit->moveMode == 0) moveFactors[0] = kIdleMode0Factor0;
-        else if (unit->moveMode == 1) moveFactors[0] = kIdleMode1Factor0;
-        if (unit->moveMode == 3) {
+        if (unit->moveMode == MoveMode::Lie) moveFactors[0] = kIdleMode0Factor0;
+        else if (unit->moveMode == MoveMode::Crawl) moveFactors[0] = kIdleMode1Factor0;
+        if (unit->moveMode == MoveMode::Run) {
             moveFactors[0] = kIdleMode3Scale * moveFactors[0];
             moveFactors[1] = kIdleMode3Factor1;
         }
@@ -588,7 +577,7 @@ void UnitServer::UpdateMoveFactors() {
     }
     float speed = unit->MoveSpeed();
     if (speed > kSpeedFast) speedClass = 0;
-    else if (speed > kSizeSmall) speedClass = 1;
+    else if (speed > kSpeedMedium) speedClass = 1;
     else if (speed > kPointThree) speedClass = 3;
     else if (speed > kSpeedSlow) speedClass = 7;
     else speedClass = 15;
@@ -596,7 +585,6 @@ void UnitServer::UpdateMoveFactors() {
 
 namespace {
 const char* const kServerName = "CUnitServer";
-constexpr float kNoRange = 1e38f;
 } // namespace
 
 // --- UnitServer's lifetime, class name and id -----------------------------------------------------
@@ -614,14 +602,21 @@ void UnitServer::MoveFactorsChanged() { UpdateMoveFactors(); }
 // --- OrderPlan ----------------------------------------------------------------------------------
 
 // Unreached in the shipped game: only the use-item order plans with it, and nothing sets that order.
-void OrderPlan::TakeSteps(AnimationSteps steps, int start, int duration) {
+void OrderPlan::Reset() {
+    animation = {};
     targetId = -1;
-    startTime = start;
+    endTime = 0;
+    startTime = 0;
     hitLocation = 1;
-    rangeSq = kNoRange;
+    rangeSq = kNoPlanRange;
     isCast = 0;
     notSkill = 0;
-    castKind = 8;
+    castKind = SpellSchool::None;
+}
+
+void OrderPlan::TakeSteps(AnimationSteps steps, int start, int duration) {
+    Reset();
+    startTime = start;
     endTime = start + duration;
     animation = std::move(steps);
 }
@@ -717,7 +712,6 @@ namespace {
 // The defence factor of units without a player, per difficulty (options::g_options.difficulty).
 inline const float* DefenceFactors() { return g_logicSettings.defence; }
 
-UnitVitals& VitalsOf(Unit* unit) { return unit->ServerCompanion()->vitals; }
 
 
 } // namespace
@@ -725,8 +719,8 @@ UnitVitals& VitalsOf(Unit* unit) { return unit->ServerCompanion()->vitals; }
 void UnitServer::RefreshVitals(bool withHitPoints) {
     int now = OwningWorld()->tick;
     float oldRate = stats.rate;
-    if (withHitPoints) stats.RecomputeHitPoints(&VitalsOf(unit), unit);
-    stats.Recompute(&VitalsOf(unit), unit);
+    if (withHitPoints) stats.RecomputeHitPoints(&unit->Vitals(), unit);
+    stats.Recompute(&unit->Vitals(), unit);
     if (nextAttackTime > now) {
         float scaled = (static_cast<float>(nextAttackTime - now) * oldRate) / stats.rate;
         nextAttackTime = lib::RoundEven(scaled) + now;
@@ -735,7 +729,7 @@ void UnitServer::RefreshVitals(bool withHitPoints) {
 }
 
 void UnitServer::UpdateProtection() {
-    stats.PackBodyProtection(unit, &VitalsOf(unit), &protection);
+    stats.PackBodyProtection(unit, &unit->Vitals(), &protection);
     float factor = unit->player ? 1.0f : DefenceFactors()[options::g_options.difficulty];
     ItemWeapon* weapon = unit->GetWeapon(unit->activeWeapon);
     if (unit->player && weapon) {

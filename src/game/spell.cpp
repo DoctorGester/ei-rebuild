@@ -89,17 +89,17 @@ bool Spell::HasCastFlagModifier() {
     return false;
 }
 
-int Spell::GetDamageType() {
+DamageType Spell::GetDamageType() {
     switch (Type()) {
     case SpellType::FireArrow: case SpellType::Fireball: case SpellType::FireWall: case SpellType::RickMagic:
-        return 3;
+        return DamageType::Fire;
     case SpellType::Lightning: case SpellType::InvokeLightning: case SpellType::LightningWall:
     case SpellType::CurseMagic:
-        return 5;
+        return DamageType::Lightning;
     case SpellType::AcidRay: case SpellType::AcidColumn: case SpellType::AcidFog:
-        return 4;
+        return DamageType::Acid;
     default:
-        return 6;
+        return DamageType::Other;
     }
 }
 

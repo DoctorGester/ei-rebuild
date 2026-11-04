@@ -234,8 +234,8 @@ void ReadUnit(Unit* u, const std::map<const void*, int>& players, Builder& b) {
     b.Int("animation2", u->secondEntry);
     b.Int("animationStart", u->animationStart);
     b.Int("motionMode", u->motionMode);
-    b.Int("moveMode", u->moveMode);
-    b.Int("moveMode2", u->moveMode2);
+    b.Int("moveMode", static_cast<int>(u->moveMode));
+    b.Int("moveMode2", static_cast<int>(u->moveMode2));
     b.Unsigned("activeWeapon", u->activeWeapon);
     b.Int("pendingWeapon", u->pendingWeapon);
     b.Unsigned("obstacle", u->obstacle);

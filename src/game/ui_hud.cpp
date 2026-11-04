@@ -511,8 +511,8 @@ void HudMovePanel::Update() {
         Unit* unit = units[i];
         if (!(unit->flags & MapObjectFlag::Selected)) continue;
         if (newMode == -1)
-            newMode = unit->moveMode2;
-        else if (newMode != unit->moveMode2)
+            newMode = static_cast<int>(unit->moveMode2);
+        else if (newMode != static_cast<int>(unit->moveMode2))
             newMode = -2;
         if (newFlag == -1)
             newFlag = unit->fightAtWill;

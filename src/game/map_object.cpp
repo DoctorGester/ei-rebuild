@@ -170,7 +170,7 @@ void MapObject::AttachObject(EngineObject* object) {
 
 int MapObject::StatsChanged() {
     if (companion->GetClassId() != ClassId::MapObjectServer) return 0;
-    ServerCompanion()->vitals.Pack(&packedVitals);
+    Vitals().Pack(&packedVitals);
     return 1;
 }
 
@@ -288,7 +288,7 @@ bool MapObject::ApplyScience(const LockKey*, EngineObject*) {
 void MapObject::ClearProtectionBases() {
     if (companion->GetClassId() != ClassId::MapObjectServer) return;
     // The original reloads the companion pointer for each store (two stores per pair, both +0).
-    for (UnitStatPair& pair : ServerCompanion()->vitals.protection) pair.base = 0.0f;
+    for (UnitStatPair& pair : Vitals().protection) pair.base = 0.0f;
 }
 
 // --- Create ------------------------------------------------------------------------------------------

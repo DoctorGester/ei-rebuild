@@ -37,7 +37,7 @@ namespace {
 constexpr std::uint32_t kFlagNotDrawn = 8;            // the unit's flags
 constexpr int kDeadShownTicks = 50;                   // after the unit's +0x254
 constexpr std::uint32_t kKeyMovement = kAnimationMoveMask;
-constexpr std::uint32_t kKeyMovementStill = AnimationKeyOf(AnimationMoveBits::Mode0);
+constexpr std::uint32_t kKeyMovementStill = AnimationKeyOf(AnimationMoveBits::Lie);
 constexpr float kFadeStep = 0.06666667f;              // 1/15
 constexpr std::int8_t kModeSpecialIdle = -2;          // the unit's +0x255
 constexpr int kIdleRestartBelow = 3;                  // FigureAnimationState::queue.count
@@ -168,8 +168,7 @@ constexpr int kMotionPaused = 1;                      // Unit::motionMode
 constexpr int kMotionScaled = 2;
 constexpr std::uint32_t kNoWeapon = 0xFFFFFFFFu;
 constexpr std::uint32_t kNoPrototype = 0xFFFF;
-constexpr std::uint8_t kNaturalWeapons = 7;
-constexpr std::uint32_t kKeyNotHero = AnimationKeyOf(AnimationMoveBits::Mode2);
+constexpr std::uint32_t kKeyNotHero = AnimationKeyOf(AnimationMoveBits::Walk);
 constexpr std::uint32_t kKeySpecialIdle = kAnimationSpecialIdleKey;
 } // namespace
 
@@ -240,10 +239,10 @@ void UnitClientSpecific::StartIdleAnimation(std::uint8_t play) {
             // An index beyond the table reads the type at address 0xC (a fault).
             const auto* record =
                 itemdb::WeaponAt(prototype);
-            key = AnimationWeaponBit(record->type);
+            key = AnimationWeaponBit(static_cast<WeaponType>(record->type));
         }
-    } else if (unit->params.naturalWeapon < kNaturalWeapons) {
-        key = AnimationWeaponBit(unit->params.naturalWeapon);
+    } else if (unit->params.naturalWeapon < kAnimatedWeaponTypes) {
+        key = AnimationWeaponBit(static_cast<WeaponType>(unit->params.naturalWeapon));
     }
     if (unit->MapType() != MapObjectType::Hero) key |= kKeyNotHero;
     if (unit->secondEntry == kModeSpecialIdle) key |= kKeySpecialIdle;
@@ -424,9 +423,6 @@ void UnitClientSpecific::BlinkOpen(bool force) {
 // damage scale it uses. See unit_client_models.h and docs/notes/units.md ("Client controller").
 
 namespace {
-constexpr int kTypeNoWeapon = 8;    // AttackParams::weaponType without a weapon in hand
-constexpr int kWeaponBow = 5;
-constexpr int kWeaponCrossbow = 6;
 constexpr int kDamageTypes = 7;
 
 // The weapon id of the controller's slot `slot`, or none for a slot beyond 3.
@@ -443,7 +439,7 @@ void UnitClientSpecific::GetAttackParams(AttackParams* out) {
     if (keyed && weapon != kNoWeapon) {
         out->damageMin = WeaponMinDamage(weapon);
         out->damageMax = WeaponMaxDamage(weapon);
-        out->weaponType = WeaponType(weapon);
+        out->weaponType = WeaponTypeOf(weapon);
         out->damageType = WeaponDamageType(weapon);
         out->speed = WeaponWeight(weapon);
         const itemdb::WeaponRecord* record = itemdb::WeaponAt(PrototypeIndex(weapon));
@@ -461,10 +457,10 @@ void UnitClientSpecific::GetAttackParams(AttackParams* out) {
         out->speed = params->combat[4];
         weapon = WeaponIn(this, ownerObject->activeWeapon);
         if (weapon != kNoWeapon) {
-            out->weaponType = WeaponType(weapon);
+            out->weaponType = WeaponTypeOf(weapon);
             out->damageType = WeaponDamageType(weapon);
         } else {
-            out->weaponType = kTypeNoWeapon;
+            out->weaponType = WeaponType::NoWeapon;
             auto* model = ownerObject->GetPrototypeModel();
             // The first damage type whose weight is not zero, none when every weight is zero.
             out->damageType = kNoDamageType;
@@ -477,7 +473,7 @@ void UnitClientSpecific::GetAttackParams(AttackParams* out) {
             }
         }
     }
-    if (out->weaponType == kWeaponBow || out->weaponType == kWeaponCrossbow) out->defence = 0;
+    if (IsRanged(out->weaponType)) out->defence = 0;
     out->damageMax = ScaleDamageByEffects(ownerObject, out->damageMax);   // (not read)
     out->damageMin = ScaleDamageByEffects(ownerObject, out->damageMin);
     out->attackSpread = params->combat[2];

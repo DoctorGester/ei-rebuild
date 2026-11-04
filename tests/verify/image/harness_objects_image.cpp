@@ -62,7 +62,7 @@ void FixedSeed(IsaacRandom& random) {
 Item* UnitQuickItem(Unit* unit, std::uint32_t slot) { return unit->GetQuickItem(slot); }
 Item* UnitSpell(Unit* unit, std::uint32_t slot) { return unit->GetSpell(slot); }
 ItemWeapon* UnitWeapon(Unit* unit, std::uint32_t slot) { return unit->GetWeapon(slot); }
-int WeaponType(ItemWeapon* weapon) { return weapon->GetType(); }
+int WeaponTypeOf(ItemWeapon* weapon) { return static_cast<int>(weapon->GetType()); }
 
 // "hudstate" (harness.cpp, HudState): the battle screen's state logged.
 // Logs the pending action (pendingAction, pendingSlot, pendingItem), each party member's selection (flags 0x10)
@@ -116,7 +116,7 @@ std::string HudStateOf(void* window, const std::string& argument) {
             for (unsigned w = 0; w < 4; ++w)
                 if (ItemWeapon* weapon = UnitWeapon(unit, w))
                     Log("harness: hudstate: weapon slot %u item %p kind %d%s", w, static_cast<void*>(weapon),
-                        WeaponType(weapon), unit->activeWeapon == w ? " (in use)" : "");
+                        WeaponTypeOf(weapon), unit->activeWeapon == w ? " (in use)" : "");
         }
     }
     if (!argument.empty()) {

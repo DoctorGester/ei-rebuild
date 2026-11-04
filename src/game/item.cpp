@@ -217,8 +217,8 @@ const char* ItemWeapon::ClassName() { return "CItemWeapon"; }
 
 ClassId ItemWeapon::GetClassId() { return ClassId::ItemWeapon; }
 
-int ItemWeapon::GetType() {
-    return WeaponAt(PrototypeIndex(prototypeId))->type;
+WeaponType ItemWeapon::GetType() {
+    return static_cast<WeaponType>(WeaponAt(PrototypeIndex(prototypeId))->type);
 }
 
 void ItemWeapon::GetDamageTypes(float (&out)[kDamageTypeCount]) {
@@ -464,8 +464,8 @@ void ItemLoot::Save(ByteStream* stream) {
 
 // --- Weapon and armour stats by packed id / index ------------------------------------------------
 
-int WeaponType(std::uint32_t packedId) {
-    return WeaponOf(packedId)->type;
+WeaponType WeaponTypeOf(std::uint32_t packedId) {
+    return static_cast<WeaponType>(WeaponOf(packedId)->type);
 }
 
 float WeaponMinDamage(std::uint32_t packedId) {

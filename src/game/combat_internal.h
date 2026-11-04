@@ -10,10 +10,6 @@ class PlayerServer;
 // The combat log: the AI stream.
 inline constexpr console::Stream& kCombatLog = console::g_aiLogOut;
 
-// The unit's server object (Unit + 0x170, a MapObjectServer) and the stats block at its +0x20.
-
-inline UnitVitals* ServerStatsOf(Unit* unit) { return &unit->ServerCompanion()->vitals; }
-
 // Defined in combat_actions.cpp.
 // Player messages (player + 0x20 points at it): message `code` about `unit`.
 void PlayerMessage(PlayerServer* messages, Unit* unit, AckKind kind);

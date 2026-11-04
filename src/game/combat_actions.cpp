@@ -33,9 +33,6 @@ namespace {
 constexpr float kHitNoiseScale = 2.0f;
 constexpr float kSkillNoiseScale = 1.5f;
 
-constexpr int kWeaponBow = 5;
-constexpr int kWeaponCrossbow = 6;
-constexpr int kMissileObject = 0x5B;                    // object factory kind of a missile
 
 Diplomacy* DiplomacyOf(WorldServer* world) { return &world->diplomacy; }
 
@@ -107,9 +104,9 @@ void UnitServer::FinishAction(int location) {
 void UnitServer::DeliverAttack(MapObject* target, DamageInfo* hit) {
     WorldServer* world = ServerWorld();
     ItemWeapon* weapon = unit->GetWeapon(unit->activeWeapon);
-    if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) {
+    if (weapon && weapon->IsRanged()) {
         BaseManager* factory = world->TimedObjectManager();
-        auto* arrow = factory->CreateObjectAs<EffectArrowFigure>(kMissileObject, -1);
+        auto* arrow = factory->CreateObjectAs<EffectArrowFigure>(ClassId::EffectArrowFigure, -1);
         if (!arrow) return;
         arrow->localPosition = unit->EyePoint();
         arrow->SetTarget(target->id);
@@ -171,8 +168,8 @@ void UnitServer::UseItemCharge(Item* item, float cost) {
 }
 
 bool UnitServer::Heal(float amount) {
-    stats.Heal(ServerStatsOf(unit), amount);
-    stats.Recompute(ServerStatsOf(unit), unit);
+    stats.Heal(&unit->Vitals(), amount);
+    stats.Recompute(&unit->Vitals(), unit);
     unit->MarkChanged(NetField::Vitals);
     unit->MarkChanged(NetField::Stats);
     console::EndLine(kCombatLog << "Unit " << static_cast<long>(unit->id) << " was healed");

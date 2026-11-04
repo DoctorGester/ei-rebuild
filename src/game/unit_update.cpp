@@ -211,8 +211,8 @@ void Unit::UpdateSizeClass() {
     }
     // The server controller's size classes, read unsigned.
     const UnitStats& combat = ServerController()->stats;
-    if (moveMode == 0) sizeClass = static_cast<std::uint16_t>(combat.sizeClass20);
-    else if (moveMode == 1) sizeClass = static_cast<std::uint16_t>(combat.sizeClass60);
+    if (moveMode == MoveMode::Lie) sizeClass = static_cast<std::uint16_t>(combat.sizeClass20);
+    else if (moveMode == MoveMode::Crawl) sizeClass = static_cast<std::uint16_t>(combat.sizeClass60);
     else sizeClass = static_cast<std::uint16_t>(combat.sizeClass);
 
     // The larger half extent, selected bitwise: above.y when above.x is below it or NaN.
@@ -341,7 +341,6 @@ void Unit::AdvanceTime(float time) {
     float daylight = g_clientWorld.NightLevel();
     float range = params.VisionRange(daylight);
 
-    if (moveMode == 0) range = range;
     g_clientWorld.MarkFootprintsInSight(&localPosition.x, range);
 }
 

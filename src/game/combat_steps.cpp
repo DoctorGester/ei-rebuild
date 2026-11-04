@@ -26,20 +26,17 @@ constexpr float kSteepUp = 1.73205f;
 constexpr float kSteepDown = -1.73205f;
 constexpr float kReachSlack = 0.15f;
 
-constexpr int kNoNaturalWeapon = 7;       // natural weapon types from 7 up have no animation bit
-constexpr int kWeaponBow = 5;
-constexpr int kWeaponCrossbow = 6;
 constexpr int kNoSizeClasses = 2;         // UnitStats::movementKind
 
 constexpr std::uint32_t kKeyAction = AnimationKeyOf(AnimationKind::Special);
-constexpr std::uint32_t kKeyGuarded = AnimationKeyOf(AnimationMoveBits::Mode2);   // a guarded cast; the attacks have it too
+constexpr std::uint32_t kKeyGuarded = AnimationKeyOf(AnimationMoveBits::Walk);   // a guarded cast; the attacks have it too
 constexpr std::uint32_t kKeyAttack = AnimationKeyOf(AnimationKind::Attack) | kKeyGuarded;
 constexpr std::uint32_t kKeyNoWeapon = 0x20;
 constexpr std::uint32_t kKeyHigh = AnimationKeyOf(AttackHeight::High);
 constexpr std::uint32_t kKeyMiddle = AnimationKeyOf(AttackHeight::Middle);
 constexpr std::uint32_t kKeyLow = AnimationKeyOf(AttackHeight::Low);
 constexpr std::uint32_t kKeyBlow = kAnimationAttackBlow;
-constexpr std::uint32_t kKeyCastStanding = kKeyMiddle | kKeyBlow | AnimationKeyOf(AnimationMoveBits::Mode1);
+constexpr std::uint32_t kKeyCastStanding = kKeyMiddle | kKeyBlow | AnimationKeyOf(AnimationMoveBits::Crawl);
 constexpr std::uint32_t kKeyCastA = kKeyMiddle | kKeyBlow;
 constexpr std::uint32_t kKeyCastB = kKeyHigh | kKeyBlow;
 constexpr std::uint32_t kKeyNoUnitCast = kKeyMiddle | kKeyBlow | kKeyAttack;
@@ -61,19 +58,9 @@ constexpr int kLocationCount = 6;
 // Logged when not even the fallback attack animation exists (the original's debugger output).
 const char* const kNoAnimationMessage = "Fucking ShITTT!!! ArtIsTs MuSt diE!!! CaN'T FiNd pRoPER ANiMatioN!!!";
 
-std::uint32_t Bits(float f) { return std::bit_cast<std::uint32_t>(f); }
-
-// 1 << the active weapon's type, else of the natural weapon (none from type 7 up).
-std::uint32_t WeaponBit(UnitServer* self) {
-    ItemWeapon* weapon = self->unit->ActiveWeapon();
-    if (weapon) return AnimationWeaponBit(weapon->GetType());
-    int natural = self->stats.naturalWeapon;
-    return natural < kNoNaturalWeapon ? AnimationWeaponBit(natural) : 0u;
-}
-
 bool HasRangedWeapon(Unit* unit) {
     ItemWeapon* weapon = unit->ActiveWeapon();
-    return weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow);
+    return weapon && weapon->IsRanged();
 }
 
 
@@ -88,25 +75,14 @@ int EntryTicks(Unit* unit, std::uint32_t index, std::uint32_t FigureAnimation::*
     return static_cast<int>(static_cast<std::int64_t>(frameCount / speed));
 }
 
-// Key bits of the mode being left (the movement bits) / entered (a Cross animation's number: 4, 3, 2, 5 for modes 0,
-// 1, 2, 4; 1 for a hero's own walk: mode 2 without onGuard).
-std::uint32_t LeaveBits(const MoveModeState* from, const Unit* unit) {
-    switch (from->mode) {
-    case 0: return AnimationKeyOf(AnimationMoveBits::Mode0);
-    case 1: return AnimationKeyOf(AnimationMoveBits::Mode1);
-    case 2:
-        return !from->onGuard && unit->MapType() == MapObjectType::Hero ? 0 : AnimationKeyOf(AnimationMoveBits::Mode2);
-    case 4: return AnimationKeyOf(AnimationMoveBits::Mode4);
-    default: return 0;
-    }
-}
-
+// Key bits of the mode being entered (a Cross animation's number: 4, 3, 2, 5 for Lie, Crawl, Walk and Stop; 1 for a
+// hero's own walk: Walk without onGuard). The mode being left gives UnitServer::MoveModeMask.
 std::uint32_t EnterBits(const MoveModeState* to, const Unit* unit) {
     switch (to->mode) {
-    case 0: return AnimationNumberBits(4);
-    case 1: return AnimationNumberBits(3);
-    case 2: return AnimationNumberBits(!to->onGuard && unit->MapType() == MapObjectType::Hero ? 1 : 2);
-    case 4: return AnimationNumberBits(5);
+    case MoveMode::Lie: return AnimationNumberBits(4);
+    case MoveMode::Crawl: return AnimationNumberBits(3);
+    case MoveMode::Walk: return AnimationNumberBits(!to->onGuard && unit->MapType() == MapObjectType::Hero ? 1 : 2);
+    case MoveMode::Stop: return AnimationNumberBits(5);
     default: return 0;
     }
 }
@@ -118,10 +94,10 @@ std::uint32_t OrderKey(UnitServer* self, UnitOrderKind kind, std::uint32_t sourc
     *weaponBit = 0;
     *frame = false;
     if (kind != UnitOrderKind::Use) {
-        *weaponBit = WeaponBit(self);
+        *weaponBit = self->WeaponTypeMask();
         return *weaponBit | source | kKeyAttack;
     }
-    bool leavesWalk = self->moveMode.mode != 1;
+    bool leavesWalk = self->moveMode.mode != MoveMode::Crawl;
     switch (static_cast<UseSource>(source)) {
     case UseSource::Use:
         *frame = leavesWalk;
@@ -134,15 +110,15 @@ std::uint32_t OrderKey(UnitServer* self, UnitOrderKind kind, std::uint32_t sourc
         return SkillKey(SkillAnimation::Tame);
     case UseSource::SearchBody: {
         std::uint32_t key;
-        if (self->moveMode.mode == 2) {
+        if (self->moveMode.mode == MoveMode::Walk) {
             key = SkillKey(HasRangedWeapon(self->unit) ? SkillAnimation::SearchBodyMode2Ranged
                                                        : SkillAnimation::SearchBodyMode2);
         } else {
             key = SkillKey(HasRangedWeapon(self->unit) ? SkillAnimation::SearchBodyRanged : SkillAnimation::SearchBody);
             *frame = leavesWalk;
         }
-        if (!self->unit->ActiveWeapon() && self->stats.naturalWeapon >= kNoNaturalWeapon) return key | kKeyNoWeapon;
-        return key | WeaponBit(self);
+        if (!self->unit->ActiveWeapon() && static_cast<int>(self->stats.naturalWeapon) >= kAnimatedWeaponTypes) return key | kKeyNoWeapon;
+        return key | self->WeaponTypeMask();
     }
     default:
         return source | kKeyAction;
@@ -185,7 +161,7 @@ float RandomHeight(float to, float from, float low, float high) {
 }
 
 constexpr std::uint32_t kKeyDeath = AnimationNumberBits(0x18);
-constexpr std::uint32_t kKeyDeathStanding = kKeyDeath | AnimationKeyOf(AnimationMoveBits::Mode0);
+constexpr std::uint32_t kKeyDeathStanding = kKeyDeath | AnimationKeyOf(AnimationMoveBits::Lie);
 constexpr std::uint32_t kKeyFallWalking = AnimationNumberBits(8) | kKeyGuarded;
 constexpr std::uint32_t kKeyFall = AnimationNumberBits(0x10);
 constexpr std::uint32_t kKeySideMask = ~kAnimationNumberMask;   // the key without its number (and so its side)
@@ -210,10 +186,10 @@ int UnitServer::AnimationMoment(std::uint32_t index) { return EntryTicks(unit, i
 
 bool UnitServer::BuildTransition(AnimationSteps* steps, const MoveModeState* from, const MoveModeState* to) {
     *steps = {};
-    if (unit->MapType() != MapObjectType::Hero && to->mode != 4 && from->mode != 4) return false;
-    if (from->mode == to->mode && (from->mode != 2 || from->onGuard == to->onGuard)) return false;
+    if (unit->MapType() != MapObjectType::Hero && to->mode != MoveMode::Stop && from->mode != MoveMode::Stop) return false;
+    if (from->mode == to->mode && (from->mode != MoveMode::Walk || from->onGuard == to->onGuard)) return false;
 
-    std::uint32_t key = WeaponBit(this) | (LeaveBits(from, unit) | AnimationKeyOf(AnimationKind::Cross));
+    std::uint32_t key = WeaponTypeMask() | (MoveModeMask(from) | AnimationKeyOf(AnimationKind::Cross));
     key |= EnterBits(to, unit);
     FigureAnimation* animation = unit->FindAnimation(key, 1);
     if (!animation) return false;
@@ -248,7 +224,7 @@ void UnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, UnitOrder
         // Step out of the movement mode into standing (mode 1) first.
         AnimationSteps out;
         MoveModeState to{};
-        to.mode = 1;
+        to.mode = MoveMode::Crawl;
         if (BuildTransition(&out, &moveMode, &to)) {
             steps->steps.push_back(out.steps[0]);
             *duration += out.steps[0].duration;
@@ -263,7 +239,7 @@ void UnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, UnitOrder
     if (frame) {
         AnimationSteps back;
         MoveModeState from{};
-        from.mode = 1;
+        from.mode = MoveMode::Crawl;
         if (BuildTransition(&back, &from, &moveMode)) steps->steps.push_back(back.steps[0]);
     }
 }
@@ -275,8 +251,8 @@ void UnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, UnitOrderK
     *steps = {};
     std::uint32_t key;
     if (unit->MapType() == MapObjectType::Hero) {
-        key = WeaponBit(this) | AnimationKeyOf(AnimationKind::Cast);
-        if (moveMode.mode == 1) {
+        key = WeaponTypeMask() | AnimationKeyOf(AnimationKind::Cast);
+        if (moveMode.mode == MoveMode::Crawl) {
             key |= kKeyCastStanding;
         } else {
             if (moveMode.onGuard) key |= kKeyGuarded;
@@ -450,23 +426,23 @@ void UnitServer::BuildDeathAnimation(AnimationSteps* steps, BlowSide direction, 
     bool isDying = static_cast<std::uint8_t>(dying) != 0;
     bool isFall = static_cast<std::uint8_t>(fall) != 0;
     *steps = {};
-    std::uint32_t key = WeaponBit(this) | LeaveBits(&moveMode, unit);
-    int mode = moveMode.mode;
+    std::uint32_t key = WeaponTypeMask() | MoveModeMask(&moveMode);
+    MoveMode mode = moveMode.mode;
 
     if (unit->MapType() == MapObjectType::Hero) {
-        if (isDying && mode != 4) {
-            if (mode == 1) {
+        if (isDying && mode != MoveMode::Stop) {
+            if (mode == MoveMode::Crawl) {
                 if (isFall) key = RandomSide(key);
-            } else if (mode != 0) {
+            } else if (mode != MoveMode::Lie) {
                 key |= AnimationKeyOf(direction);
                 if (isFall && (key & 1)) key = RandomSide(key);
             }
         }
         key &= ~kKeyGuarded;
-        if (isFall && mode != 0) {
-            key |= moveMode.wasMode3 && mode == 2 ? kKeyFallWalking : kKeyFall;
+        if (isFall && mode != MoveMode::Lie) {
+            key |= moveMode.wasMode3 && mode == MoveMode::Walk ? kKeyFallWalking : kKeyFall;
         } else {
-            key |= mode == 0 ? kKeyDeathStanding : kKeyDeath;
+            key |= mode == MoveMode::Lie ? kKeyDeathStanding : kKeyDeath;
         }
     } else {
         if (isFall && !isDying) return;
@@ -483,7 +459,7 @@ void UnitServer::BuildDeathAnimation(AnimationSteps* steps, BlowSide direction, 
         if (!animation) animation = unit->FindAnimation(key & kKeyNoSide, 1);
         add = animation != nullptr;
     } else {
-        add = moveMode.mode != 0 && animation;
+        add = moveMode.mode != MoveMode::Lie && animation;
     }
     if (add) {
         std::uint8_t index = animation->index;

@@ -124,7 +124,7 @@ int PlayerClient::SetMoveMode(Unit* unit, int mode) {
     WriteType(&out, ClientMessage::MoveStyle);
     UnitByteBlock block{unit->id, static_cast<std::uint8_t>(mode)};
     out.WriteValue(block);
-    unit->moveMode2 = mode;
+    unit->moveMode2 = static_cast<MoveMode>(mode);
     return 1;
 }
 

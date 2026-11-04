@@ -169,7 +169,8 @@ std::uint32_t ResetDamageInfo(DamageInfo* info) {
 }
 
 bool HasElementalDamage(const DamageInfo* info) {
-    if (info->typeWeights[3] == 0.0f && info->typeWeights[4] == 0.0f && info->typeWeights[5] == 0.0f) {
+    if (info->Weight(DamageType::Fire) == 0.0f && info->Weight(DamageType::Acid) == 0.0f &&
+        info->Weight(DamageType::Lightning) == 0.0f) {
         return false;
     }
     return true;
@@ -221,7 +222,6 @@ void UnitStats::SaveTo(ByteStream* stream) { stream->Write(this, sizeof(UnitStat
 namespace {
 constexpr float kByteMax = 255.0f;
 constexpr float kSpeedScale = 25.5f;
-constexpr int kNoNaturalWeapon = 8;              // after Reset
 constexpr int kResetSlotType = 4;
 constexpr std::int16_t kResetParams20 = 7;
 
@@ -313,7 +313,7 @@ void UnitStats::Pack(UnitParams* params) {
 void UnitStats::Reset() {
     *this = {};
     combat[kAttackSpread] = 1.0f;
-    naturalWeapon = kNoNaturalWeapon;
+    naturalWeapon = WeaponType::NoWeapon;   // after Reset
     for (UnitStatSlot& slot : slots) slot.type = kResetSlotType;
 }
 

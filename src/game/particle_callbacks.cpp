@@ -3283,7 +3283,7 @@ int ParticleSource::EmitStun(Particle* p, int) {
         Stop();
         return 0;
     }
-    if (unit->moveMode == 3) {
+    if (unit->moveMode == MoveMode::Run) {
         emitCount = 4;
         p->life = 5;
     } else {

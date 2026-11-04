@@ -130,7 +130,7 @@ void UnitServer::Load(ByteStream* stream) {
     LoadOrder(stream, &action2);
     stats.LoadFrom(stream);
     if (stream->version < kVersionFixedMaxHitPoints)
-        stats.fixedMaxHitPoints = unit->ServerCompanion()->vitals.maxHitPoints;
+        stats.fixedMaxHitPoints = unit->Vitals().maxHitPoints;
     for (int i = 0; i < 4; ++i) stream->ReadValue(moveFactors[i]);
     stream->ReadValue(tameStage);
     stream->ReadValue(ownSide);

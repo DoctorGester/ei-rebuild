@@ -232,8 +232,8 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
         if (zoneMode == ZoneMode::Battle && !atStart) unit->moveMode2 = record->moveMode2;
         if (placement) {
             bool flagged = aiMap.IsPassableForClass(1, unit->localPosition);
-            if (flagged) unit->SetMoveModes(placement->moveMode, placement->moveMode);
-            else unit->moveMode2 = static_cast<int>(placement->moveMode);
+            if (flagged) unit->SetMoveModes(static_cast<MoveMode>(placement->moveMode), static_cast<MoveMode>(placement->moveMode));
+            else unit->moveMode2 = static_cast<MoveMode>(placement->moveMode);
         }
         controller->ResyncWithUnit();
         if (IsSinglePlayerMode(zoneMode))

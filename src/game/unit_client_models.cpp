@@ -60,7 +60,6 @@ bool SameName(std::string_view a, std::string_view b) { return a == b; }
 
 const itemdb::ArmorRecord* ArmourRecord(std::uint32_t type) { return itemdb::ArmorAt(type); }
 
-constexpr int kWeaponBow = 5;
 const char* const kBowArrow = "rh3.arrow00";
 
 std::uint32_t WeaponIdOf(const UnitClientSpecific* self, std::uint32_t slot) {
@@ -70,7 +69,7 @@ std::uint32_t WeaponIdOf(const UnitClientSpecific* self, std::uint32_t slot) {
 // The bow's arrow part of a hero holding a bow, or null.
 EngineObject* BowArrow(UnitClientSpecific* self) {
     std::uint32_t hand = WeaponIdOf(self, self->unit->activeWeapon);
-    if (hand == kNoItemId || ::WeaponType(hand) != kWeaponBow) return nullptr;
+    if (hand == kNoItemId || WeaponTypeOf(hand) != WeaponType::Bow) return nullptr;
     return self->unit->FindPart(kBowArrow);
 }
 
@@ -257,7 +256,7 @@ int UnitClientSpecific::ShowWeapon(std::uint32_t slot) {
             if (part) unit->AttachPartMesh(part);
         }
         std::uint32_t hand = WeaponIdOf(this, unit->activeWeapon);
-        if (hand != kNoItemId && ::WeaponType(hand) == kWeaponBow) {
+        if (hand != kNoItemId && WeaponTypeOf(hand) == WeaponType::Bow) {
             if (EngineObject* arrow = unit->FindPart(kBowArrow)) {
                 arrow->flags |= FigureMeshFlag::Hidden;
                 arrowHidden = 1;

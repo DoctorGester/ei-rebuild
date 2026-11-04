@@ -170,7 +170,8 @@ public:
     std::uint32_t QuestWord() const override { return actionValue; }
 
     // The weapon type from the prototype (faults if the index is out of range).
-    int GetType();
+    WeaponType GetType();
+    bool IsRanged() { return ::IsRanged(GetType()); }
 
     // The prototype's damage type weights; zeros without a prototype.
     void GetDamageTypes(float (&out)[kDamageTypeCount]);
@@ -320,7 +321,7 @@ public:
 
 // Weapon stats from a packed id. Each faults if the prototype index is out of range; an out-of-range
 // material reads the multiplier from address 0 likewise.
-int WeaponType(std::uint32_t packedId);
+WeaponType WeaponTypeOf(std::uint32_t packedId);
 float WeaponMinDamage(std::uint32_t packedId);
 float WeaponMaxDamage(std::uint32_t packedId);
 // The prototype's weight times the material's weightFactor; the unit's attack info shows it as the speed.

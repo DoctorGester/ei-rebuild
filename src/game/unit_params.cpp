@@ -46,7 +46,8 @@ float WeaponByte(const itemdb::WeaponRecord* weapon, int skill) {
 }
 } // namespace
 
-float UnitParams::WeaponSkillBonus(int type, const itemdb::WeaponRecord* weapon) {
+float UnitParams::WeaponSkillBonus(WeaponType weaponType, const itemdb::WeaponRecord* weapon) {
+    int type = static_cast<int>(weaponType);
     float term;
     if (type < 5) {
         // The sums in the original's order.

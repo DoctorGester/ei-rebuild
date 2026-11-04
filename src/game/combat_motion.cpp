@@ -29,21 +29,17 @@
 
 namespace {
 
-constexpr int kModeRun = 2;
 constexpr std::uint32_t kKeyIdle = kAnimationSpecialIdleKey;
 constexpr std::uint8_t kEmoteStand = 0xFE;   // the idle "emote" of a walking hero
-constexpr float kNoRange = 1e38f;
-constexpr std::uint32_t kFarBits = 0x49742400u;                 // 1e6
+constexpr std::uint32_t kNoPathLimitBits = std::bit_cast<std::uint32_t>(kNoPathLimit);
 
 // --- Helpers --------------------------------------------------------------------------------------
 
 constexpr float kHalfCell = 0.5f;
 
 
-UnitVitals& ServerVitals(Unit* unit) { return unit->ServerCompanion()->vitals; }
-
 // The unit's movement mode from a record: 3 while it was mode 3 (`wasMode3`), else its mode.
-int UnitModeOf(const MoveModeState& state) { return (state.wasMode3 & 1) ? 3 : state.mode; }
+MoveMode UnitModeOf(const MoveModeState& state) { return (state.wasMode3 & 1) ? MoveMode::Run : state.mode; }
 
 // A pause step for an emote (`value` as its variant byte, open-ended), reusing a trailing one.
 void AddEmote(AnimationSteps* steps, std::uint8_t value) {
@@ -62,7 +58,7 @@ std::uint32_t WeaponAndModeBits(UnitServer* self) {
 // animation for the key, if any.
 void FillIdle(UnitServer* self, AnimationSteps* steps) {
     *steps = {};
-    if (self->moveMode.mode == kModeRun && self->moveMode.onGuard == 0) {
+    if (self->moveMode.mode == MoveMode::Walk && self->moveMode.onGuard == 0) {
         AddEmote(steps, kEmoteStand);
         return;
     }
@@ -81,11 +77,11 @@ void Play(UnitServer* self, const AnimationSteps& steps, UnitState newState) {
 }
 
 // A movement record from the unit's mode: mode 3 is mode 2 with `wasMode3`.
-void RecordFromMode(MoveModeState* record, int mode) {
+void RecordFromMode(MoveModeState* record, MoveMode mode) {
     record->wasMode3 = 0;
     record->mode = mode;
-    if (mode == 3) {
-        record->mode = 2;
+    if (mode == MoveMode::Run) {
+        record->mode = MoveMode::Walk;
         record->wasMode3 = 1;
     }
 }
@@ -128,24 +124,11 @@ void UnitServer::PlayIdle() {
 void UnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
     *steps = {};
     Unit* self = unit;
-    std::uint32_t bits;
-    switch (static_cast<std::uint32_t>(moveMode.mode)) {
-    case 0: bits = 0x30000; break;
-    case 1: bits = 0x20000; break;
-    case 4: bits = 0x8000; break;
-    case 2:
-        if (moveMode.onGuard || self->MapType() != MapObjectType::Hero) {
-            bits = 0x10000;
-            break;
-        }
-        [[fallthrough]];
-    default:
-        // A hero's own walk is looped with the walking bits (not when played once).
-        bits = (!once && self->MapType() == MapObjectType::Hero) ? 0x10000 : 0;
-        break;
-    }
-    std::uint32_t key =
-        WeaponTypeMask() | bits | AnimationKeyOf(self->moveMode == 3 ? AnimationKind::Run : AnimationKind::Walk);
+    std::uint32_t bits = MoveModeMask(&moveMode);
+    // A hero's own walk is looped with the walking bits (not when played once).
+    if (bits == 0 && !once && self->MapType() == MapObjectType::Hero) bits = AnimationKeyOf(AnimationMoveBits::Walk);
+    std::uint32_t key = WeaponTypeMask() | bits |
+                        AnimationKeyOf(self->moveMode == MoveMode::Run ? AnimationKind::Run : AnimationKind::Walk);
     if (once) {
         key |= AnimationKeyFlag::Once;
     } else {
@@ -173,7 +156,7 @@ void UnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
 AnimationSteps* UnitServer::NextAnimation() {
     Unit* self = unit;
     std::uint32_t key = WeaponAndModeBits(this);
-    if (self->moveMode == 3) {
+    if (self->moveMode == MoveMode::Run) {
         key |= AnimationKeyOf(AnimationKind::Run);
     } else {
         key |= AnimationKeyOf(AnimationKind::Walk);
@@ -243,7 +226,7 @@ void UnitServer::UpdateSneak() {
         if (IsShoutable(kind) && unit->player) PlayerMessage(unit->player->Server(), unit, kind);
         if (action.modifier != 0) action.modifier = 0;
         moveMode2.wasMode3 = 0;
-        int mode = moveMode2.mode;
+        MoveMode mode = moveMode2.mode;
         if (mode != unit->moveMode2) {
             unit->moveMode2 = mode;
             unit->MarkChanged(NetField::Modes);
@@ -258,7 +241,7 @@ void UnitServer::UpdateSneak() {
         ++waited;
         if (waited <= 5 && moveMode2.wasMode3 != 0) return;
         moveMode.wasMode3 = 0;
-        int mode = moveMode.mode;
+        MoveMode mode = moveMode.mode;
         if (mode != unit->moveMode) {
             unit->moveMode = mode;
             unit->MarkChanged(NetField::Modes);
@@ -268,13 +251,13 @@ void UnitServer::UpdateSneak() {
         return;
     }
     int allowed = unit->player ? unit->player->godMode : 1;
-    if (moveMode.mode != kModeRun || moveMode2.wasMode3 == 0) return;
-    if (allowed == 0 && ServerVitals(unit).mana <= 0.0f) return;   // the breath
+    if (moveMode.mode != MoveMode::Walk || moveMode2.wasMode3 == 0) return;
+    if (allowed == 0 && unit->Vitals().mana <= 0.0f) return;   // the breath
     if (!world->aiMap.StandsOnCheapCell(unit)) return;
     if (running != 0) return;
     sneakWait = 0;
     moveMode.wasMode3 = 1;
-    int mode = UnitModeOf(moveMode);
+    MoveMode mode = UnitModeOf(moveMode);
     if (mode != unit->moveMode) {
         unit->moveMode = mode;
         unit->MarkChanged(NetField::Modes);
@@ -305,7 +288,7 @@ bool UnitServer::ChangeMoveMode() {
         moveMode = saved;
         unit->moveMode = UnitModeOf(moveMode);
         moveMode2.mode = moveMode.mode;
-        if (moveMode.mode != 2) moveMode2.wasMode3 = 0;
+        if (moveMode.mode != MoveMode::Walk) moveMode2.wasMode3 = 0;
         unit->moveMode2 = UnitModeOf(moveMode2);
         unit->UpdateSizeClass();
         g_serverWorld.aiMap.sectorMap.Add(unit);
@@ -417,7 +400,7 @@ void UnitServer::ReportPath(AIPath* path, char partial) {
     LocalMotionOrder end;
     AckKind message;
     if (!partial) {
-        if (self->player) self->player->Server()->SendPathMessage(self, &end, goal, 3, 1, kFarBits);
+        if (self->player) self->player->Server()->SendPathMessage(self, &end, goal, 3, 1, kNoPathLimitBits);
         if (brain.LeaderOrFollowed()) return;
         self = unit;
         if (!self->player) return;
@@ -429,7 +412,7 @@ void UnitServer::ReportPath(AIPath* path, char partial) {
         float left = LengthSquared2D(half * path->target - XY(goal));
         bool stillFar = reached * 0.010000001f > left;   // unordered: not far
         if (self->player)
-            self->player->Server()->SendPathMessage(self, &end, goal, 0, stillFar ? 0 : 1, kFarBits);
+            self->player->Server()->SendPathMessage(self, &end, goal, 0, stillFar ? 0 : 1, kNoPathLimitBits);
         if (brain.LeaderOrFollowed()) return;
         self = unit;
         if (!self->player) return;
@@ -463,16 +446,7 @@ void UnitServer::ResetController() {
     animationHeld = 0;
     queue = {};
     motion.Clear();
-    OrderPlan& plan = currentPlan;
-    plan.animation = {};
-    plan.targetId = -1;
-    plan.endTime = 0;
-    plan.startTime = 0;
-    plan.hitLocation = 1;
-    plan.rangeSq = kNoRange;
-    plan.isCast = 0;
-    plan.notSkill = 0;
-    plan.castKind = 8;
+    currentPlan.Reset();
     std::memset(&pendingHit, 0, 0x3C);
     pendingHit.multiplier = 1.0f;
     savedQueue = {};
@@ -482,10 +456,10 @@ void UnitServer::ResetController() {
     stoodBlocked = 0;
     motionChanged = 0;
     movingAnimation = 0;
-    moveMode.mode = 2;
+    moveMode.mode = MoveMode::Walk;
     moveMode.onGuard = 0;
     moveMode.wasMode3 = 0;
-    moveMode2.mode = 2;
+    moveMode2.mode = MoveMode::Walk;
     moveMode2.onGuard = 0;
     moveMode2.wasMode3 = 0;
     effectObject.Reset();

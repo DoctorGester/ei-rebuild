@@ -19,8 +19,6 @@
 #include <string>
 
 namespace {
-constexpr int kStyleWalk = 2;
-constexpr int kStyleRun = 3;
 // EngineObject::prototypeId (not type) of a unit that cannot be tamed (0x32, the value type has for
 // heroes; the original compares prototypeId).
 constexpr std::uint32_t kUntameable = 0x32;
@@ -41,11 +39,11 @@ void QueueUse(UnitServer* self, MapObject* target, UseSource source, int spot, i
 }
 } // namespace
 
-bool UnitServer::FitsMoveMode(int mode) {
-    int stored = mode == kStyleRun ? kStyleWalk : mode;
+bool UnitServer::FitsMoveMode(MoveMode mode) {
+    MoveMode stored = mode == MoveMode::Run ? MoveMode::Walk : mode;
     if (stored == moveMode.mode) return true;
     AIMap* map = &g_serverWorld.aiMap;
-    int saved = unit->moveMode;
+    MoveMode saved = unit->moveMode;
     map->sectorMap.Remove(unit);
     unit->moveMode = mode;
     unit->UpdateSizeClass();
@@ -56,14 +54,14 @@ bool UnitServer::FitsMoveMode(int mode) {
     return fits;
 }
 
-void UnitServer::SetMoveStyle(int style) {
+void UnitServer::SetMoveStyle(MoveMode style) {
     boredTicks = 0;
     unit->moveMode2 = style;
     if (FitsMoveMode(style)) {
-        if (style == kStyleRun && stats.MovementState(1) != 0) return;
+        if (style == MoveMode::Run && stats.MovementState(1) != 0) return;
         if (unit->player) unit->player->Server()->SendUnitSpeech(unit, AckKind::ChangePosition);
     }
-    if (style != kStyleWalk && style != kStyleRun) action.modifier = 0;
+    if (style != MoveMode::Walk && style != MoveMode::Run) action.modifier = 0;
 }
 
 void UnitServer::SetWantedWeapon(int slot) {
@@ -127,7 +125,7 @@ void UnitServer::StopAction() {
     state = UnitState::Stopped;
     unit->UpdateSizeClass();
     DropEffectObject();
-    OrderPlanReset(&currentPlan);   // SetSize(0, -1) instead of the free, like the original
+    currentPlan.Reset();   // SetSize(0, -1) instead of the free, like the original
     StandStill();
     action.Reset();
     action2.Reset();

@@ -19,7 +19,6 @@
 
 namespace {
 constexpr float kCastNoiseScale = 2.0f;
-constexpr std::uint32_t kQuickItemSource = 0x80000000u;
 constexpr std::uint32_t kNoSource = 0xFFFFFFFFu;
 constexpr std::uint32_t kNoPointZ = 0xC4A42000u;    // -1313.0f: "no point"
 
@@ -72,7 +71,7 @@ void UnitServer::FinishCast() {
         UseItemCharge(carrier, cost);
     } else if (unit->player) {
         float cost = spell->manaCost;
-        UnitVitals* vitals = ServerStatsOf(unit);
+        UnitVitals* vitals = &unit->Vitals();
         float needed = stats.Period20() * cost;
         float maximum;
         maximum = vitals->maxMana;
