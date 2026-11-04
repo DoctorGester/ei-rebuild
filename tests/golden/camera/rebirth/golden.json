@@ -2,16 +2,15 @@
   "scenario": "camera",
   "install": "rebirth",
   "recorded": "2026-11-04",
-  "commit": "13def2600",
+  "commit": "ad8ff5f9f",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "H51a: Rebirth goldens outside the old Rebirth set had gone stale behind golden-moving merges (C84d's no-point z 0 instead of 1e6 and its other fixes, H47c's game maths, C81's settings, and PL20/C84/C84b before them); main's runs are the same as a build of d31120f0e (C84d's goldens) and every vanilla twin moved at those merges",
+  "reason": "The harness's key f10 step posted WM_KEYDOWN / WM_KEYUP; Windows sends F10 as a system key, so with a real keyboard the original printed its release to the console (121:-1069285375, as the SDL backend already did). PL16's dispatcher applies the system-key rule to every key event, so the harness's F10 now does the same; the camera2 binding still takes the press. Console only.",
   "source": "image",
   "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save savea/mission.sav: 6 fields in 3 records differ: obj 6",
-    "  obj: 6 fields in 3 records; first obj1804 controller.action.point.z: 1000000.0 in the old golden, 0.0 in the new run (d 1e+06)"
+    "console: differs from line 31: the old golden '0', the new run '121:-1069285375'"
   ]
 }
