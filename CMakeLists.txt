@@ -303,10 +303,10 @@ if(WIN32)
     target_link_options(ei-rebuild PRIVATE /ENTRY:mainCRTStartup)
 
     # The unit checks (tests/unit): the settings file's format, lib::HashMap's walk order, the .ini reader,
-    # lib::ParseIpv4 and lib/maths.h, without the game. build.cmd runs it.
+    # lib::ParseIpv4, lib/maths.h and the save pictures, without the game. build.cmd runs it.
     add_executable(ei_unit_check tests/unit/unit_check.cpp tests/unit/settings_file.cpp tests/unit/hash_map.cpp
-                   tests/unit/ini_file.cpp tests/unit/ipv4.cpp tests/unit/maths.cpp src/game/settings_document.cpp
-                   src/game/ini_file.cpp
+                   tests/unit/ini_file.cpp tests/unit/ipv4.cpp tests/unit/maths.cpp tests/unit/save_picture.cpp
+                   src/game/settings_document.cpp src/game/ini_file.cpp src/game/save_picture.cpp src/lib/qoi.cpp
                    src/game/asset_text.cpp src/lib/hash_map.cpp src/lib/ipv4.cpp src/lib/text_case.cpp ${EI_GAME_CALLS})
     target_include_directories(ei_unit_check PRIVATE src)
     target_link_libraries(ei_unit_check PRIVATE ei_platform)
@@ -340,8 +340,8 @@ else()
     enable_testing()
     add_executable(ei_port_check tests/port/port_check.cpp src/lib/text_case.cpp src/lib/calendar.cpp src/lib/ipv4.cpp
                    src/game/settings_document.cpp tests/unit/settings_file.cpp tests/unit/ini_file.cpp
-                   tests/unit/ipv4.cpp tests/unit/maths.cpp src/game/ini_file.cpp src/game/asset_text.cpp
-                   src/video/bink_file.cpp
+                   tests/unit/ipv4.cpp tests/unit/maths.cpp tests/unit/save_picture.cpp src/game/ini_file.cpp
+                   src/game/asset_text.cpp src/game/save_picture.cpp src/lib/qoi.cpp src/video/bink_file.cpp
                    ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_port_check PRIVATE src)
     target_link_libraries(ei_port_check PRIVATE ei_platform SDL3::SDL3-static)

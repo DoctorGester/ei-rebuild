@@ -221,7 +221,8 @@ void Interface3D::Shutdown() {
     backdrop = nullptr;
     DeleteSurface(secondBackdrop);
     secondBackdrop = nullptr;
-    screenCopy = {};
+    DeleteSurface(screenCopy);
+    screenCopy = nullptr;
     if (root) {
         delete root;
         root = nullptr;

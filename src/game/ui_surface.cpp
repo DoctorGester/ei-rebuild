@@ -201,11 +201,10 @@ void UiSurface::CaptureScreen() {
     render::ui::CapturePicture(this, rect, width, height);
 }
 
-// The picture stretched to the wanted size as 5:6:5 pixels; black without a picture.
-std::vector<std::uint16_t> UiSurface::Rgb565Copy(int copyWidth, int copyHeight) {
-    std::vector<std::uint16_t> pixels(static_cast<std::size_t>(static_cast<std::uint32_t>(copyWidth) * static_cast<std::uint32_t>(copyHeight)));
-    render::ui::ReadPictureRgb565(this, copyWidth, copyHeight, pixels.data());
-    return pixels;
+save_picture::Picture UiSurface::ReadPicture() const {
+    save_picture::Picture picture;
+    if (!render::ui::ReadPicture(this, &picture.width, &picture.height, &picture.rgba)) return {};
+    return picture;
 }
 
 void UiSurface::Greyscale() { greyed = true; }

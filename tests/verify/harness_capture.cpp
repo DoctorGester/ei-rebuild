@@ -8,6 +8,7 @@
 #include "platform/log.h"
 #include "system/harness_system.h"
 #include "game/main_loop.h"
+#include "game/save_picture.h"
 #include "image/image_side.h"
 
 #include <algorithm>
@@ -337,34 +338,21 @@ bool CompareFile(const char* path, const char* frame, int tolerance, double* dif
     return CompareImages(shot, captured, tolerance, differing, largest, why);
 }
 
-bool CompareSavePicture(const char* path, const char* frame, bool centre, int tolerance, double* differing, int* largest,
-                        const char** why) {
-    constexpr int kWidth = 256, kHeight = 192;   // shot.sav: 256x192 5:6:5 pixels, top-down, no header
-    std::vector<std::uint16_t> pixels(static_cast<std::size_t>(kWidth) * kHeight);
-    FILE* f = sys::OpenFile(path, "rb");
-    bool ok = f != nullptr;
-    if (ok) ok = std::fread(pixels.data(), 2, pixels.size(), f) == pixels.size();
-    if (f) std::fclose(f);
-    if (!ok) {
-        *why = "the save's picture is missing or short";
-        return false;
-    }
-    Image captured;
-    if (!ReadBmp(frame, captured)) {
-        *why = "the frame is missing or unreadable";
-        return false;
-    }
-    // Both as averages of 8x8 blocks of the picture (32x24; the frame's matching rectangles): the
-    // picture went through two nearest-pixel stretches (the screen copy, 005FD440) whose samples
-    // differ from any one sampling of the frame in textured places, but not on average.
-    constexpr int kBlock = 8, kColumns = kWidth / kBlock, kRows = kHeight / kBlock;
+namespace {
+
+// `picture` against the frame (its centred 4:3 part with `centre`), both as averages of 32x24 matching rectangles: a
+// save's picture went through stretches whose samples differ from any one sampling of the frame in textured places,
+// but not on average.
+bool ComparePictureBlocks(const save_picture::Picture& picture, const Image& captured, bool centre, int tolerance,
+                          double* differing, int* largest, const char** why) {
+    constexpr int kColumns = 32, kRows = 24;
     int left = 0, width = captured.width;
     if (centre && captured.width * 3 > captured.height * 4) {
         width = captured.height * 4 / 3;
         left = (captured.width - width) / 2;
     }
-    if (width < kColumns || captured.height < kRows) {
-        *why = "the frame is too small";
+    if (width < kColumns || captured.height < kRows || picture.width < kColumns || picture.height < kRows) {
+        *why = "the frame or the picture is too small";
         return false;
     }
     Image shot, scaled;
@@ -372,33 +360,81 @@ bool CompareSavePicture(const char* path, const char* frame, bool centre, int to
     shot.height = scaled.height = kRows;
     shot.bgr.resize(static_cast<std::size_t>(kColumns) * kRows * 3);
     scaled.bgr.resize(shot.bgr.size());
-    Channel r = MakeChannel(0xF800), g = MakeChannel(0x07E0), b = MakeChannel(0x001F);
     for (int by = 0; by < kRows; ++by) {
         for (int bx = 0; bx < kColumns; ++bx) {
-            std::size_t i = (static_cast<std::size_t>(by) * kColumns + bx) * 3;
-            unsigned sum[3] = {0, 0, 0};
-            for (int y = by * kBlock; y < (by + 1) * kBlock; ++y) {
-                for (int x = bx * kBlock; x < (bx + 1) * kBlock; ++x) {
-                    std::uint32_t pixel = pixels[static_cast<std::size_t>(y) * kWidth + x];
-                    sum[0] += Expand(pixel, b);
-                    sum[1] += Expand(pixel, g);
-                    sum[2] += Expand(pixel, r);
+            const std::size_t i = (static_cast<std::size_t>(by) * kColumns + bx) * 3;
+            unsigned long long sum[3] = {0, 0, 0};
+            const int px0 = bx * picture.width / kColumns, px1 = (bx + 1) * picture.width / kColumns;
+            const int py0 = by * picture.height / kRows, py1 = (by + 1) * picture.height / kRows;
+            for (int y = py0; y < py1; ++y)
+                for (int x = px0; x < px1; ++x) {
+                    const std::uint8_t* p = &picture.rgba[(static_cast<std::size_t>(y) * picture.width + x) * 4];
+                    for (int c = 0; c < 3; ++c) sum[c] += p[2 - c];   // as blue, green, red
                 }
-            }
-            for (int c = 0; c < 3; ++c) shot.bgr[i + c] = static_cast<std::uint8_t>(sum[c] / (kBlock * kBlock));
-            int x0 = left + bx * width / kColumns, x1 = left + (bx + 1) * width / kColumns;
-            int y0 = by * captured.height / kRows, y1 = (by + 1) * captured.height / kRows;
+            const unsigned long long n = static_cast<unsigned long long>(px1 - px0) * static_cast<unsigned long long>(py1 - py0);
+            for (int c = 0; c < 3; ++c) shot.bgr[i + c] = static_cast<std::uint8_t>(sum[c] / n);
+            // The frame's rectangle the block's pixels were made from.
+            const int x0 = left + px0 * width / picture.width, x1 = left + px1 * width / picture.width;
+            const int y0 = py0 * captured.height / picture.height, y1 = py1 * captured.height / picture.height;
             unsigned long long frameSum[3] = {0, 0, 0};
             for (int y = y0; y < y1; ++y) {
                 const std::uint8_t* row = &captured.bgr[(static_cast<std::size_t>(y) * captured.width + x0) * 3];
                 for (int x = x0; x < x1; ++x, row += 3)
                     for (int c = 0; c < 3; ++c) frameSum[c] += row[c];
             }
-            unsigned long long count = static_cast<unsigned long long>(x1 - x0) * static_cast<unsigned long long>(y1 - y0);
+            const unsigned long long count = static_cast<unsigned long long>(x1 - x0) * static_cast<unsigned long long>(y1 - y0);
             for (int c = 0; c < 3; ++c) scaled.bgr[i + c] = static_cast<std::uint8_t>(frameSum[c] / count);
         }
     }
     return CompareImages(shot, scaled, tolerance, differing, largest, why);
+}
+
+bool ReadWhole(const char* path, std::vector<std::uint8_t>* bytes) {
+    FILE* f = sys::OpenFile(path, "rb");
+    if (!f) return false;
+    std::uint8_t block[65536];
+    for (std::size_t n; (n = std::fread(block, 1, sizeof(block), f)) > 0;) bytes->insert(bytes->end(), block, block + n);
+    std::fclose(f);
+    return true;
+}
+
+} // namespace
+
+bool CompareSavePicture(const char* path, const char* frame, bool centre, int tolerance, double* differing, int* largest,
+                        const char** why) {
+    std::vector<std::uint8_t> bytes;
+    if (!ReadWhole(path, &bytes) || bytes.size() < save_picture::kOldBytes) {
+        *why = "the save's picture is missing or short";
+        return false;
+    }
+    save_picture::Picture full;
+    if (!save_picture::TrailerPicture(bytes.data(), bytes.size(), &full)) {
+        *why = "the save's picture has no full-colour picture after the 5:6:5 one";
+        return false;
+    }
+    Image captured;
+    if (!ReadBmp(frame, captured)) {
+        *why = "the frame is missing or unreadable";
+        return false;
+    }
+    double fullDiffering = 0;
+    int fullLargest = 0;
+    if (!ComparePictureBlocks(save_picture::OldPicture(bytes.data(), bytes.size()), captured, centre, tolerance, differing,
+                              largest, why) ||
+        !ComparePictureBlocks(full, captured, centre, tolerance, &fullDiffering, &fullLargest, why))
+        return false;
+    *differing = std::max(*differing, fullDiffering);
+    *largest = std::max(*largest, fullLargest);
+    return true;
+}
+
+bool CutSavePicture(const char* path) {
+    std::vector<std::uint8_t> bytes;
+    if (!ReadWhole(path, &bytes) || bytes.size() < save_picture::kOldBytes) return false;
+    FILE* f = sys::OpenFile(path, "wb");
+    if (!f) return false;
+    const bool written = std::fwrite(bytes.data(), 1, save_picture::kOldBytes, f) == save_picture::kOldBytes;
+    return std::fclose(f) == 0 && written;
 }
 
 } // namespace ei::verify::capture

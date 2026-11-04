@@ -338,12 +338,15 @@
 //                             overlay) to exist and match frames\<frame>.bmp as
 //                             samecapture does (16 bits lose the low bits: use tolerance 8 or more)
 //   checksave <slot> <frame> [centre] [tolerance] [fraction]
-//                             require the save <slot>'s picture (shot.sav, 256x192 5:6:5) to match
-//                             frames\<frame>.bmp, both as averages of 8x8 blocks of the picture (the
-//                             save's two nearest-pixel stretches sample differently), counted as
-//                             samecapture does; catches a picture of nothing (a cleared frame, R13).
-//                             "centre": against the frame's centred 4:3 part (the 800x600 layout's
-//                             rectangle under Rebirth's WideScreen, which the screen copy takes)
+//                             require the save <slot>'s pictures (shot.sav: the 256x192 5:6:5 one and
+//                             the full-colour one after it, src/game/save_picture.h) to match
+//                             frames\<frame>.bmp, each as averages of 32x24 matching rectangles (the
+//                             save's stretches sample differently), counted as samecapture does;
+//                             catches a picture of nothing (a cleared frame, R13). "centre": against
+//                             the frame's centred 4:3 part (the 800x600 layout's rectangle under
+//                             Rebirth's WideScreen, which the screen copy takes)
+//   oldshot <slot>            the save <slot>'s shot.sav cut to its 5:6:5 picture, as the original
+//                             game writes it (its pictures then come from that part)
 //   record on|off             the game's frame recorder (0079BC54: a "shotNNNN.bmp" of each presented
 //                             frame, nothing in the shipped game sets it)
 //   digest <N>|off, digest    a record of the game state (world, generators, players, every world
@@ -2761,6 +2764,9 @@ void RunSteps() {
             Log("harness: %s", text);
             g_capturedFrames.push_back(text);
             if (differing > limit) g_failures.push_back(text);
+        } else if (s.verb == "oldshot") {
+            const std::string path = str::Format("%s\\%s\\shot.sav", g_savesDir, s.argument.c_str());
+            if (!capture::CutSavePicture(path.c_str())) g_failures.push_back("oldshot " + s.argument + ": no picture to cut");
         } else if (s.verb == "record") {
             HarnessRecordingFrames() = s.argument == "on" ? 1 : 0;
         } else if (s.verb == "waitpresent") {

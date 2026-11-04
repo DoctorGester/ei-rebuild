@@ -250,10 +250,6 @@ std::uint32_t GreyOf(std::uint32_t rgb) {
     return grey << 16 | grey << 8 | grey;
 }
 
-std::uint16_t Rgb565Of(std::uint32_t rgb) {
-    return static_cast<std::uint16_t>((((rgb >> 16) & 0xFF) >> 3) << 11 | (((rgb >> 8) & 0xFF) >> 2) << 5 | ((rgb & 0xFF) >> 3));
-}
-
 void CheckPicture() {
     if (g_verbose) std::printf("picture:\n");
     const int w = 96, h = 64;
@@ -281,17 +277,13 @@ void CheckPicture() {
         for (int x = 0; x < pw; ++x)
             picture[static_cast<std::size_t>(y) * pw + static_cast<std::size_t>(x)] =
                 frame[static_cast<std::size_t>(source.top + y * source.Height() / ph) * w + static_cast<std::size_t>(source.left + x * source.Width() / pw)];
-    // The 5:6:5 picture at its own size and at about half of it.
-    for (Size size : {Size{pw, ph}, Size{19, 13}}) {
-        std::vector<std::uint16_t> got(static_cast<std::size_t>(size.w) * size.h), want(got.size());
-        for (int y = 0; y < size.h; ++y)
-            for (int x = 0; x < size.w; ++x) {
-                const int tx = ((2 * x + 1) * pw) / (2 * size.w), ty = ((2 * y + 1) * ph) / (2 * size.h);
-                want[static_cast<std::size_t>(y) * size.w + static_cast<std::size_t>(x)] = Rgb565Of(picture[static_cast<std::size_t>(ty) * pw + static_cast<std::size_t>(tx)]);
-            }
-        const bool read = ui::ReadPictureRgb565(&key, size.w, size.h, got.data());
-        Check(read && got == want, "the 5:6:5 picture at " + std::to_string(size.w) + "x" + std::to_string(size.h));
-    }
+    // Read back as it is.
+    int rw = 0, rh = 0;
+    std::vector<std::uint8_t> rgba;
+    bool same = ui::ReadPicture(&key, &rw, &rh, &rgba) && rw == pw && rh == ph;
+    for (std::size_t i = 0; same && i < picture.size(); ++i)
+        same = (static_cast<std::uint32_t>(rgba[i * 4]) << 16 | static_cast<std::uint32_t>(rgba[i * 4 + 1]) << 8 | rgba[i * 4 + 2]) == picture[i];
+    Check(same, "the picture read back");
     EndFrame();
     // Drawn onto the next frame at twice its size, plain and greyed.
     NewFrame(w * 2, h * 2);

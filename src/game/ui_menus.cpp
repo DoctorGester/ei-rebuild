@@ -152,6 +152,8 @@ void SaveLoadWindow::Update() {
 void SaveLoadWindow::CloseScreen() {
     if (dialog) dialog->Release();
     dialog = nullptr;
+    if (picture) picture->Release();
+    picture = nullptr;
 }
 
 void SaveLoadWindow::MessageResult(int result) {

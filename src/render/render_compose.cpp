@@ -84,17 +84,8 @@ void Decode(const TextureImage& image, ComposeImage& out) {
     out.rgba.assign(count * 4, 0);
     const auto* p = static_cast<const std::uint8_t*>(image.pixels);
     std::size_t left = image.bytes;
-    if (image.layout == ImageLayout::Rgb565) {
-        // Each channel's bits repeated into the low ones (5 bits 0x1F is 255).
-        for (std::size_t i = 0; i < count && left >= 2; ++i, p += 2, left -= 2) {
-            const unsigned c = p[0] | (p[1] << 8);
-            const unsigned r = c >> 11, g = (c >> 5) & 63, b = c & 31;
-            std::uint8_t* o = &out.rgba[i * 4];
-            o[0] = static_cast<std::uint8_t>((r << 3) | (r >> 2));
-            o[1] = static_cast<std::uint8_t>((g << 2) | (g >> 4));
-            o[2] = static_cast<std::uint8_t>((b << 3) | (b >> 2));
-            o[3] = 255;
-        }
+    if (image.layout == ImageLayout::Rgba) {
+        std::memcpy(out.rgba.data(), p, std::min(left, count * 4));
         return;
     }
     if (image.layout == ImageLayout::Argb) {

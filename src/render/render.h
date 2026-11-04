@@ -273,7 +273,7 @@ enum class ImageLayout : std::uint8_t {
     Argb,     // 0xAARRGGBB with premultiplied alpha
     Pnt3,     // "PNT3": Argb in groups of four pixels, where a group's first pixel has alpha 0 and is not 0, that word
               // instead counts target bytes left as they are
-    Rgb565,   // 16 bits 5:6:5, opaque (shot.sav's pictures)
+    Rgba,     // 8 bits a channel: R, G, B, A (the save pictures)
 };
 // An image the game has drawn into a texture on the GPU (ComposeTexture, DrawIntoTexture): an .mmp file's pixels after
 // its header and extra block, or another file's picture, rows from the top.

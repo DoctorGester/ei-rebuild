@@ -103,8 +103,6 @@ struct TitlesTokenizer : TextTokenizer {
 void SaveLoadWindow::CreateScreen() {
     rect = Rect{0, 0, 800, 600};
     LoadTexture("saveload", TextureKind::Interface);
-    // The selected save's picture (5:6:5).
-    CreateTexture(0x100, 0x100, TextureKind::Blank565);
 
     AddBlankSprite()->SetRectangle(3.0f, 100.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
     AddBlankSprite()->SetRectangle(3.0f, 100.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
@@ -113,10 +111,10 @@ void SaveLoadWindow::CreateScreen() {
     AddRect(this, 563, 526, 637, 574)->SetTip(0xEAC7);
     AddRect(this, 363, 526, 437, 574)->SetTip(0xEAC6);
 
-    // The picture of the selected save (texture of the window's second texture object).
-    UiMesh* picture = AddBlankSprite();
-    picture->SetRectangle(3.0f, 100.0f, 410.0f, 100.0f, 700.0f, 320.0f, 0, 0x100, 0x100, 0x40);
-    picture->texture = nullptr;
+    // The picture of the selected save (ShowPicture gives it its texture and texels).
+    UiMesh* pictureSprite = AddBlankSprite();
+    pictureSprite->SetRectangle(3.0f, 100.0f, kPictureRect, 0, 0x100, 0x100, 0);
+    pictureSprite->texture = nullptr;
     UiMesh* highlight = AddBlankSprite();
     highlight->SetRectangle(3.0f, 100.0f, 108.0f, 108.0f, 370.0f, 132.0f, 0, 0, 0x100, 0x100);
     highlight->texture = nullptr;
@@ -149,6 +147,7 @@ void SaveLoadWindow::CreateScreen() {
     }
 
     dialog = nullptr;
+    picture = nullptr;
     if (sliding) slide = 0.0f;
     FillEntries();
     if (isSave) {
