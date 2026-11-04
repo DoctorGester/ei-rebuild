@@ -58,7 +58,6 @@ float LayerSum(const float* p) { return ((0.0f + p[0]) + p[0x12]) + p[0x24]; }
 
 
 constexpr std::uint32_t kWhite = 0xFFFFFF;
-constexpr std::uint32_t kText = 0xA7D7E4;
 
 class Writer {
 public:
@@ -71,16 +70,16 @@ public:
     void Down() { rect.Offset(0, 15); }
     // A label of the panel's surface in font 0 at `at` (wrapped with maxLines).
     void Add(std::string_view text, const Rect& at, std::uint32_t colour, std::uint32_t format, int maxLines = 0) {
-        panel->labels.push_back({std::string(text), at, 0, colour, format, maxLines});
+        panel->labels.push_back({std::string(text), at, {0, colour, format}, maxLines});
     }
-    void Text(std::string_view text) { Add(text, rect, kText, 0); }
+    void Text(std::string_view text) { Add(text, rect, kUiTextColour, 0); }
     void Value(std::string_view text) {
         Rect shifted = rect;
         shifted.Offset(-10, 0);
-        Add(text, shifted, kText, 2);
+        Add(text, shifted, kUiTextColour, 2);
     }
     void Title(std::string_view text) { Add(text, rect, kWhite, 0x11, 2); }
-    void Wrapped(std::string_view text, int maxLines) { Add(text, rect, kText, 0x11, maxLines); }
+    void Wrapped(std::string_view text, int maxLines) { Add(text, rect, kUiTextColour, 0x11, maxLines); }
 
     void Head(const std::string& name, const std::string& kind) {
         Title(name);
@@ -196,7 +195,7 @@ void PerkLines(Writer& w, const ItemHoverInfo& info, std::string& title) {
         key += level->name;
         if (texts->Open(key)) title = texts->ReadLine(true);
         w.Text(title);
-        if (info.index > i) w.Add(w.Skill(21), w.rect, kText, 2);    // learned
+        if (info.index > i) w.Add(w.Skill(21), w.rect, kUiTextColour, 2);    // learned
         w.Down();
         int value = static_cast<int>(level->values[7]);
         const char* percent = "     %s %d%%";
@@ -694,7 +693,7 @@ void ItemInfoPanel::DescribeCarriedSpell() {
         }
         str::TrimRight(w.line, ",");
         w.line += ".";
-        w.Add(w.line, w.rect, kText, 0x10, 3);
+        w.Add(w.line, w.rect, kUiTextColour, 0x10, 3);
     }
 }
 

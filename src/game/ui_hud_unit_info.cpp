@@ -48,7 +48,6 @@ const char* const kWeaker = "consider_less%d";
 const char* const kTwoTexts = "%s %s";
 const char* const kCampExp = "camp_current_exp";
 
-constexpr std::uint32_t kTextColour = 0xA7D7E4;
 constexpr int kLineHeight = 15;
 constexpr int kLevelDifferenceLimit = 25;
 
@@ -68,7 +67,7 @@ struct Panel {
     // Draws `text` and moves down a line.
     void DrawLine() { DrawLine(text); }
     void DrawLine(std::string_view line) {
-        surface->DrawTextIn(line, &rect, 0, kTextColour, 0, 1);
+        surface->DrawTextIn(line, rect, TextStyle{0, kUiTextColour});
         rect.Offset(0, kLineHeight);
     }
     // "<label> <line>" when the line is not empty.
@@ -218,7 +217,7 @@ void HudUnitPanel::PaintTexts(UiSurface& surface) {
     Unit* unit = PanelUnit();
     if (!unit) return;
     Rect nameRect = {5, 5, 155, 20};
-    surface.DrawWrappedText(strings[hoverUnit ? 1 : 0], &nameRect, 2, 0, kTextColour, render::text::kCenter | render::text::kWordBreak, 1);
+    surface.DrawWrappedText(strings[hoverUnit ? 1 : 0], nameRect, 2, TextStyle{0, kUiTextColour, render::text::kCenter | render::text::kWordBreak});
     switch (bodyPart) {
     case 0:
         PaintHealth(surface, unit);

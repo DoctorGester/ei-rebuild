@@ -43,9 +43,7 @@ namespace {
 
 constexpr float kMenuTilt = /*007C7F40*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
-constexpr const char* kCancelSound = "buttons\\messbox\\cancel.wav";
 constexpr const char* kSelectSound = "buttons\\save\\select.wav";
-constexpr const char* kOkSound = "buttons\\messbox\\ok.wav";
 constexpr const char* kMessageSuffix = "_msg";
 constexpr const char* kWrongProtocolKey = "lmp_wrong_protocol";
 constexpr const char* kWrongProtocolTextKey = "lmp_wrong_protocol_msg";
@@ -116,11 +114,6 @@ constexpr int kTextCount = 22;
 constexpr int kTextConnecting = 8;
 constexpr int kNameLength = 10;
 constexpr int kScrollbarObject = 1;   // objects: 0 "saveload", 1 "scrollbar"
-
-UiSurface* NewSurface(Interface3D* ui, int left, int top, int right, int bottom) {
-    UiSurface* surface = new UiSurface(ui, left, top, right, bottom, SurfaceBlend::Keyed, true);
-    return surface;
-}
 
 } // namespace
 
@@ -200,7 +193,7 @@ void MpConnectScreen::LeftDown(Point point) {
         Connect();
         break;
     case kRegionBack:
-        ui->PlayInterfaceSound(kCancelSound);
+        ui->PlayInterfaceSound(game::CancelSoundText());
         SaveAddressBook();
         g_gameFlow.DropSessions();
         ui->SetPendingValue(kLeaveScreen);
@@ -281,7 +274,7 @@ void MpConnectScreen::KeyDown(int key, int scan, bool repeat) {
         handled = true;
         return;
     case platform::kKeyEscape:
-        ui->PlayInterfaceSound(kCancelSound);
+        ui->PlayInterfaceSound(game::CancelSoundText());
         g_gameFlow.DropSessions();
         ui->SetPendingValue(kLeaveScreen);
         handled = true;
@@ -311,7 +304,7 @@ void MpConnectScreen::SelectAndScroll() {
 }
 
 void MpConnectScreen::Connect() {
-    ui->PlayInterfaceSound(kOkSound);
+    ui->PlayInterfaceSound(game::OkSoundText());
     int row = selected;
     if (row == 0) {
         const int players = playersSlider->TakePosition() + 1;
@@ -525,7 +518,7 @@ void MpConnectScreen::CreateScreen() {
     plain(sprite(5.0f, 410.0f, 430.0f, 700.0f, 500.0f, 0, 0, 0x100, 0x100), kBackColour);
     for (int top = 132; top < 492; top += 24) region(108, top, 370, top + 24, 0);   // the rows
 
-    AddSurface(NewSurface(ui, 100, 100, 700, 500))->PaintWith([this](UiSurface& out) { PaintList(out); });
+    AddSurface(NewSurface(ui, Rect{100, 100, 700, 500}))->PaintWith([this](UiSurface& out) { PaintList(out); });
     {
         scroll = new UiScrollbar(ui, Rect{108, 132, 384, 492}, 3.0f, 0, 1.0f);
         AddChild(scroll);
@@ -599,10 +592,10 @@ void MpConnectScreen::CreateScreen() {
     DrawListVanilla();
     ui->OpenHelp(false);
     refreshTimer = 0.0f;
-    UiSurface* note = AddSurface(NewSurface(ui, 0, 0, 300, 20));
+    UiSurface* note = AddSurface(NewSurface(ui, Rect{0, 0, 300, 20}));
     note->PaintWith([this](UiSurface& out) {
         Rect area{0, 0, 300, 20};
-        out.DrawTextIn(texts[kTextConnecting], &area, 2, g_connectTextColour, 0, 1);
+        out.DrawTextIn(texts[kTextConnecting], area, TextStyle{2, g_connectTextColour});
     });
 }
 

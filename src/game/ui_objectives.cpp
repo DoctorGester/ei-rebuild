@@ -68,10 +68,6 @@ UiRegion* AddRect(UiWindow* window, int left, int top, int right, int bottom) {
     return region;
 }
 
-UiSurface* NewSurface(Interface3D* ui, int left, int top, int right, int bottom) {
-    return new UiSurface(ui, left, top, right, bottom, SurfaceBlend::Keyed, true);
-}
-
 
 // Layout constants (zone picture centre and size on the right half of the window).
 constexpr float kPictureCentreX = 580.0f;
@@ -399,9 +395,9 @@ void ObjectivesWindow::CreateScreen() {
 
     LoadTexture("saveload", TextureKind::Interface);
     LoadTexture("cross", TextureKind::Interface);
-    AddSurface(NewSurface(ui, 50, 20, 390, 160))->PaintWith([this](UiSurface& out) { PaintQuestList(out); });
-    AddSurface(NewSurface(ui, 410, 380, 750, 520))->PaintWith([this](UiSurface& out) { PaintZone(out); });
-    AddSurface(NewSurface(ui, 280, 540, 520, 580));
+    AddSurface(NewSurface(ui, Rect{50, 20, 390, 160}))->PaintWith([this](UiSurface& out) { PaintQuestList(out); });
+    AddSurface(NewSurface(ui, Rect{410, 380, 750, 520}))->PaintWith([this](UiSurface& out) { PaintZone(out); });
+    AddSurface(NewSurface(ui, Rect{280, 540, 520, 580}));
 
     if (twoButtons)
         AddBlankSprite()->SetRectangle(3.0f, 100.0f, 163.0f, 536.0f, 237.0f, 584.0f, 0x51, 2, 0x9B, 0x32);
@@ -563,16 +559,16 @@ void ObjectivesWindow::PaintQuestList(UiSurface& surface) const {
     int y = 13;
     for (const std::string& title : questTitles) {
         Rect area{36, y, 320, y + 21};
-        surface.DrawTextIn(title, &area, 1, 0xA7D7E4, 0, 1);
+        surface.DrawTextIn(title, area, TextStyle{1, kUiTextColour});
         y += 24;
     }
 }
 
 void ObjectivesWindow::PaintZone(UiSurface& surface) const {
     Rect titleRect = {0, 5, 340, 25};
-    surface.DrawTextIn(zoneTitle, &titleRect, 1, 0x31B3FF, 1, 1);
+    surface.DrawTextIn(zoneTitle, titleRect, TextStyle{1, 0x31B3FF, render::text::kCenter});
     Rect textRect = {10, 25, 330, 140};
-    surface.DrawTextIn(zoneText, &textRect, 1, 0xA7D7E4, 0x11, 1);
+    surface.DrawTextIn(zoneText, textRect, TextStyle{1, kUiTextColour, render::text::kCenter | render::text::kWordBreak});
 }
 
 // --- What the window is opened for, and its help topic --------------------

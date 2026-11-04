@@ -33,8 +33,7 @@ constexpr int kActionQuickLoad = '6';
 // DrawText format; the two sprites behind it follow the markers and the three layers.
 constexpr int kFirstLinkRegion = 3;
 constexpr int kTipFont = 2;
-constexpr std::uint32_t kTipColour = 0xA7D7E4;
-constexpr int kTipFormat = 4;
+constexpr std::uint32_t kTipFormat = render::text::kVCenter;
 constexpr int kTipBack = 6;
 constexpr int kTipFrame = 7;
 constexpr int kTipLine = 20;
@@ -128,20 +127,20 @@ void GlobalMap::MouseMove(Point point) {
 
 void GlobalMap::PaintTip(UiSurface& surface) const {
     Rect titleRect{10, 10, 300, 50};
-    surface.DrawTextIn(tipTitle, &titleRect, kTipFont, kTipColour, kTipFormat, 1);
+    surface.DrawTextIn(tipTitle, titleRect, TextStyle{kTipFont, kUiTextColour, kTipFormat});
     int bottom = 60;
     for (const std::string& quest : tipQuests) {
         Rect area{20, bottom - kTipLine, 350, bottom};
-        surface.DrawTextIn(quest, &area, kTipFont, kTipColour, kTipFormat, 1);
+        surface.DrawTextIn(quest, area, TextStyle{kTipFont, kUiTextColour, kTipFormat});
         bottom += kTipLine;
     }
 }
 
 void GlobalMap::PaintTitle(UiSurface& surface) const {
     Rect line1 = {0, 5, 150, 25};
-    surface.DrawTextIn(allodTitle, &line1, 2, 0xA7D7E4, 0x25, 1);
+    surface.DrawTextIn(allodTitle, line1, TextStyle{2, kUiTextColour, render::text::kCenter | render::text::kVCenter | render::text::kSingleLine});
     Rect line2 = {0, 25, 150, 45};
-    surface.DrawTextIn(clock, &line2, 2, 0xA7D7E4, 0x25, 1);
+    surface.DrawTextIn(clock, line2, TextStyle{2, kUiTextColour, render::text::kCenter | render::text::kVCenter | render::text::kSingleLine});
 }
 
 void GlobalMap::KeyDown(int key, int scan, bool repeat) {

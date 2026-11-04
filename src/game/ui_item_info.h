@@ -5,7 +5,7 @@
 // y) on which it writes what the mouse is over: an item (DescribeItem), a statistic of the hero or the
 // level-up page, or a camp help topic. Its draw draws the described item's model through the owner screen.
 // Every description writes the title wrapped in white at (15, 10)-(185, 25), then lines 15 pixels apart in
-// 0xA7D7E4, the description text wrapped last.
+// kUiTextColour, the description text wrapped last.
 
 #include "core_refcount.h"
 #include "party_storage.h"

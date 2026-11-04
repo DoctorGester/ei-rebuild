@@ -30,7 +30,6 @@ void ShowFrom(UiWindow* window, int first, bool shown) {
     for (int i = first; i < std::ssize(window->sceneObjects); ++i) window->sceneObjects[i]->visible = shown;
 }
 
-constexpr std::uint32_t kBright = 0xA7D7E4;
 constexpr std::uint32_t kGrey = 0x828282;
 
 // The 4 x 4 cell grid over 200..600 x 100..500 shared by the trade and repair grids: a picture (textures 0-3 by quarter)
@@ -153,7 +152,7 @@ void HeroStatsPanel::ShowStats(int newPage) {
 
 void HeroStatsPanel::DrawStats() {
     labels.clear();
-    labels.push_back({title, Rect{0, 0x1B, 0xC8, 0x2B}, 1, 0xFFFFFF, 1});
+    labels.push_back({title, Rect{0, 0x1B, 0xC8, 0x2B}, {1, 0xFFFFFF, render::text::kCenter}});
 
     auto hero = [this]() { return owner->HeroRecord(); };
     UnitStats* stats = &hero()->stats;
@@ -190,13 +189,13 @@ void HeroStatsPanel::DrawStats() {
         for (int i = 0; i < 3; ++i) {
             float value = static_cast<float>(values[i]);
             storedStats[i] = value;
-            std::uint32_t colour = value > minimum ? kBright : kGrey;
-            labels.push_back({"-", area, 0, colour, 1});
+            std::uint32_t colour = value > minimum ? kUiTextColour : kGrey;
+            labels.push_back({"-", area, {0, colour, render::text::kCenter}});
             Down(&area);
         }
         Down(&area);
         Down(&area);
-        labels.push_back({"-", area, 0, points <= 0 ? kGrey : kBright, 1});
+        labels.push_back({"-", area, {0, points <= 0 ? kGrey : kUiTextColour, render::text::kCenter}});
 
         // "+": while below 35 and points are left.
         int left = static_cast<int>(75.0f - sumF);
@@ -204,17 +203,17 @@ void HeroStatsPanel::DrawStats() {
         float maximum = 35.0f;
         for (int i = 0; i < 3; ++i) {
             bool below = storedStats[i] < maximum;
-            std::uint32_t colour = below && left > 0 ? kBright : kGrey;
-            labels.push_back({"+", area, 0, colour, 1});
+            std::uint32_t colour = below && left > 0 ? kUiTextColour : kGrey;
+            labels.push_back({"+", area, {0, colour, render::text::kCenter}});
             Down(&area);
         }
         Down(&area);
         Down(&area);
-        labels.push_back({"+", area, 0, points >= 100 ? kGrey : kBright, 1});
+        labels.push_back({"+", area, {0, points >= 100 ? kGrey : kUiTextColour, render::text::kCenter}});
     } else if (page == 0) {
         area = Rect{0x14, 0x41, 0xAF, 0x50};
         text = clientWorldTexts->GetString("infoitem_25");
-        labels.push_back({text, area, 0, kBright, 0});
+        labels.push_back({text, area, {0, kUiTextColour}});
         Down(&area);
         DrawPart(area, "skull", 0);
         Down(&area);
@@ -228,30 +227,30 @@ void HeroStatsPanel::DrawStats() {
         if (hero()->weaponIndex == kNoWeaponSlot) {
             for (int i = 0; i < 5; ++i) Down(&area);
         } else {
-            labels.push_back({texts[3], area, 0, kBright, 0});
+            labels.push_back({texts[3], area, {0, kUiTextColour}});
             Down(&area);
             AttackParams info;
             unit->controller->GetAttackParams(&info);
             line = std::format("     {}", texts[0]);
-            labels.push_back({line, area, 0, kBright, 0});
+            labels.push_back({line, area, {0, kUiTextColour}});
             line = std::format("{}", info.attack);
-            labels.push_back({line, area, 0, kBright, 2});
+            labels.push_back({line, area, {0, kUiTextColour, render::text::kRight}});
             Down(&area);
             line = std::format("     {}", texts[1]);
-            labels.push_back({line, area, 0, kBright, 0});
+            labels.push_back({line, area, {0, kUiTextColour}});
             line = std::format("{}", info.defence);
-            labels.push_back({line, area, 0, kBright, 2});
+            labels.push_back({line, area, {0, kUiTextColour, render::text::kRight}});
             Down(&area);
             if (static_cast<std::uint32_t>(info.damageType) < 7) {
                 line = std::format("damage_{}", info.damageType);
                 text = clientWorldTexts->GetString(line);
             }
             line = std::format("     {} {}", texts[2], text);
-            labels.push_back({line, area, 0, kBright, 0});
+            labels.push_back({line, area, {0, kUiTextColour}});
             int high = static_cast<int>(info.damageMax);
             int low = static_cast<int>(info.damageMin);
             line = std::format("{}-{}", low, high);
-            labels.push_back({line, area, 0, kBright, 2});
+            labels.push_back({line, area, {0, kUiTextColour, render::text::kRight}});
             Down(&area);
             Down(&area);
         }
@@ -259,9 +258,9 @@ void HeroStatsPanel::DrawStats() {
         int capacity = static_cast<int>(stats->capacity);
         DrawRow(area, "Encumbrance", weight, capacity);
         Down(&area);
-        if (weight > capacity) labels.push_back({texts[4], area, 0, 0xFF, 2});
+        if (weight > capacity) labels.push_back({texts[4], area, {0, 0xFF, render::text::kRight}});
         Down(&area);
-        labels.push_back({texts[7], area, 0, kBright, 0});
+        labels.push_back({texts[7], area, {0, kUiTextColour}});
     } else {
         area = Rect{0x14, 0x41, 0xB4, 0x50};
         DrawRow(area, "Strength", static_cast<int>(stats->strength), -1);
@@ -290,7 +289,7 @@ void HeroStatsPanel::DrawStats() {
         int capacity = static_cast<int>(stats->capacity);
         DrawRow(area, "Encumbrance", weight, capacity);
         Down(&area);
-        if (weight > capacity) labels.push_back({texts[4], area, 0, 0xFF, 2});
+        if (weight > capacity) labels.push_back({texts[4], area, {0, 0xFF, render::text::kRight}});
         Down(&area);
     }
 }

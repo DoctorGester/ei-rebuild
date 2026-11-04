@@ -35,11 +35,9 @@ constexpr float kMenuTilt = /*007C7F14*/ 1.5707964f;   // a static initialiser: 
 
 constexpr std::uint32_t kSelectionColour = 0xC8A06800;
 constexpr std::uint32_t kBackColour = 0xA0000000;
-constexpr std::uint32_t kRenameColour = 0xA7D7E4;
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr std::uint32_t kCaretColour = 0x31B3FF;
 constexpr int kNameLength = 10;
-constexpr int kTextFormat = 1;
 
 // objects: 0 "campinfo", 1 and 2 the item screen's (CreateBase), 3 "saveload", 4..7 the four
 // quarters of the frame around the figure.
@@ -254,7 +252,7 @@ void MpHeroScreen::CreateScreen() {
     // The edit windows: a listed hero's new name, and the new hero's name.
     renameEdit = new UiEditField(ui, Rect{558, 110, 695, 126});
     AddChild(renameEdit);
-    renameEdit->SetLook(3, 0, 1, kNameLength, kRenameColour, kCaretColour);
+    renameEdit->SetLook(3, 0, 1, kNameLength, kUiTextColour, kCaretColour);
     renameEdit->SetEnabled(false);
     renameEdit->SetFocused(false);
     nameEdit = new UiEditField(ui, Rect{0, 127, 200, 143});
@@ -291,7 +289,7 @@ void MpHeroScreen::CreateScreen() {
     int top = 16;
     for (const char* key : commandKeys) {
         line = texts->GetString(key);
-        commands.push_back({line, Rect{0, top, 290, top + 20}, 1, kWhite, kTextFormat});
+        commands.push_back({line, Rect{0, top, 290, top + 20}, {1, kWhite, render::text::kCenter}});
         top += 24;
     }
 

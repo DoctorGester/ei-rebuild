@@ -22,7 +22,6 @@
 namespace {
 
 const char* const kBuySound = "buttons\\camp\\buy.wav";
-const char* const kCancelSound = "buttons\\messbox\\cancel.wav";
 const char* const kPrototypeItem = "Prototype";
 const char* const kRuneItem = "Rune";
 
@@ -236,7 +235,7 @@ void CampPages::DoAction() {
 // --- the second action button --------------------------------------------------------------------
 
 void CampPages::UndoAction() {
-    ui->PlayInterfaceSound(kCancelSound);
+    ui->PlayInterfaceSound(game::CancelSoundText());
     switch (page) {
     case kTrade:
         trade->Settle(false, false);

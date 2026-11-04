@@ -72,8 +72,6 @@ void SetPlain(UiMesh* sprite, std::uint32_t colour) {
     sprite->flatColour = colour;
 }
 
-UiSurface* NewSurface(Interface3D* ui, const Rect& area) { return new UiSurface(ui, area, SurfaceBlend::Keyed, true); }
-
 void SetRectangle(UiMesh* sprite, const Rect& rect, int u0, int v0, int u1, int v1) {
     sprite->SetRectangle(3.0f, 100.0f, rect, u0, v0, u1, v1);
 }
@@ -295,27 +293,26 @@ void HelpWindow::ShowPage() {
 
 void HelpWindow::PaintHeader(UiSurface& surface) const {
     Rect line{0, 8, pageWidth, 30};
-    surface.DrawTextIn(lines[page], &line, 2, kTitleColour, render::text::kCenter, 1);
+    surface.DrawTextIn(lines[page], line, TextStyle{2, kTitleColour, render::text::kCenter});
     line = Rect{0, 30, pageWidth, 50};
-    surface.DrawTextIn(str::Format(kTitleFormat, title, page + 1, static_cast<int>(lines.size())), &line, 1, kTitleColour,
-                       render::text::kCenter, 1);
+    surface.DrawTextIn(str::Format(kTitleFormat, title, page + 1, static_cast<int>(lines.size())), line, TextStyle{1, kTitleColour, render::text::kCenter});
 }
 
 void HelpWindow::PaintBody(UiSurface& surface) const {
-    for (const HelpText& entry : bodyTexts) surface.DrawWrappedText(entry.text, &entry.row, 100, 1, kTextColour, kWrapFormat, 1);
+    for (const HelpText& entry : bodyTexts) surface.DrawWrappedText(entry.text, entry.row, 100, TextStyle{1, kTextColour, kWrapFormat});
 }
 
 void HelpWindow::PaintFooter(UiSurface& surface) const {
     if (page > 0) {
         Rect label{0, 5, pageWidth / 3, 25};
-        surface.DrawTextIn(lines[page - 1], &label, 0, kTitleColour, render::text::kCenter, 1);
+        surface.DrawTextIn(lines[page - 1], label, TextStyle{0, kTitleColour, render::text::kCenter});
     }
     if (!keyHint.empty()) {
         Rect label{pageWidth / 3, 5, 2 * pageWidth / 3, 25};
-        surface.DrawTextIn(keyHint, &label, 0, kTitleColour, render::text::kCenter, 1);
+        surface.DrawTextIn(keyHint, label, TextStyle{0, kTitleColour, render::text::kCenter});
     }
     if (page < static_cast<int>(lines.size()) - 1) {
         Rect label{2 * pageWidth / 3, 5, pageWidth, 25};
-        surface.DrawTextIn(lines[page + 1], &label, 0, kTitleColour, render::text::kCenter, 1);
+        surface.DrawTextIn(lines[page + 1], label, TextStyle{0, kTitleColour, render::text::kCenter});
     }
 }

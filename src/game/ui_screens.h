@@ -409,7 +409,7 @@ public:
     std::vector<std::string> texts;       // "lmp_connection %d" texts (22)
     int sortKey;                   // 0 none; 1..8 the column pairs (odd ascending)
     bool newGameTips;              // the unlisted and password regions have their tips (DrawList; 0 from Create)
-    std::uint32_t titleColour = 0xA7D7E4;   // the titles' colour: g_connectTextColour before the last DrawListVanilla
+    std::uint32_t titleColour = kUiTextColour;   // the titles' colour: g_connectTextColour before the last DrawListVanilla
 };
 
 // A message box waiting on a master server request: one cancel button, the link to the master server and a progress bar

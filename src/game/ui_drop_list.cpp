@@ -15,7 +15,6 @@
 namespace {
 
 constexpr int kFont = 1;
-constexpr std::uint32_t kTextColour = 0xA7D7E4;
 constexpr int kLayoutHeight = 600;
 
 constexpr int kEntryHeight = 20;
@@ -202,7 +201,7 @@ void UiDropList::PlaceMarks() {
 void UiDropList::PaintRow(UiSurface& surface) const {
     if (texts.empty()) return;
     const Rect area = row.Inset(0, 0, kArrowWidth + kGap, 0);
-    surface.DrawTextIn(texts[value], &area, kFont, kTextColour, 0, true);
+    surface.DrawTextIn(texts[value], area, TextStyle{kFont, kUiTextColour});
 }
 
 void UiDropList::PaintList(UiSurface& surface) const {
@@ -210,7 +209,7 @@ void UiDropList::PaintList(UiSurface& surface) const {
         const Rect entry = EntryRect(i);
         if (entry.IsEmpty()) continue;
         const Rect text = entry.Inset(kTextInset, 0, 0, 0);
-        surface.DrawTextIn(texts[i], &text, kFont, kTextColour, 0, true);
+        surface.DrawTextIn(texts[i], text, TextStyle{kFont, kUiTextColour});
     }
 }
 

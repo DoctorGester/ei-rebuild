@@ -141,7 +141,7 @@ public:
 
     // None leaves state 0; otherwise the leader stops (unless noWalk), "goodbye" is appended, state 1.
     void OpenTopics(EngineObject* person);
-    // "topic_prefix" text + " " + the topic's title, white for hoveredTopic, else 0xA7D7E4, into topicLabels.
+    // "topic_prefix" text + " " + the topic's title, white for hoveredTopic, else kUiTextColour, into topicLabels.
     void DrawTopics();
     // Every "b.<person>.<topic>" variable equal to 1 (bit compare), in the variable table's order (a network
     // client sorts them), and last the last "constr..." one found.

@@ -33,7 +33,6 @@
 
 namespace {
 
-const char* const kSoundOk = "buttons\\messbox\\ok.wav";
 const char* const kRenameSeparator = " | ";
 const char* const kRenameBar = "|";
 
@@ -61,7 +60,6 @@ std::string& MpHeroName(int index) {
 
 // The rename's title on surface 3: 130 x 16 pixels.
 constexpr Rect kRenameTitle = {0, 0, 0x82, 0x10};
-constexpr std::uint32_t kBright = 0xA7D7E4;
 
 constexpr std::uint32_t kVoiceFlags = 0x2282;
 
@@ -343,7 +341,7 @@ void MpHeroScreen::Rename() {
         str::TrimRight(name);
     }
     surfaces[3]->Show();
-    labels[3] = {{name + kRenameSeparator, kRenameTitle, 1, kBright, 2}};
+    labels[3] = {{name + kRenameSeparator, kRenameTitle, 1, kUiTextColour, 2}};
 }
 
 // --- The voice's sound ----------------------------------------------------------------
@@ -387,7 +385,7 @@ void MpHeroScreen::PlayVoice() {
 
 void MpHeroScreen::Continue() {
     Interface3D* currentUi = ui;
-    currentUi->PlayInterfaceSound(kSoundOk);
+    currentUi->PlayInterfaceSound(game::OkSoundText());
     if (IsHero(heroIndex)) {
         g_savedParties.SaveAll();
         currentUi->PushWindow(new MpConnectScreen(currentUi), true, true);
@@ -425,7 +423,7 @@ void MpHeroScreen::CreateHero() {
         ui->PlayInterfaceSound(game::CancelSoundText());
         return;
     }
-    ui->PlayInterfaceSound(kSoundOk);
+    ui->PlayInterfaceSound(game::OkSoundText());
     ShowFirstEquipment();
     hero->texts[0] = name;
     statsPanel->SetHero(0, name);
@@ -492,7 +490,7 @@ void MpHeroScreen::MessageResult(int result) {
 // --- The new hero added to the list --------------------------------------------------
 
 void MpHeroScreen::AddNewHero() {
-    ui->PlayInterfaceSound(kSoundOk);
+    ui->PlayInterfaceSound(game::OkSoundText());
     auto* hero = HeroRecord();
     // Only the chosen equipment stays (each list walked from its end; the count read once).
     for (int i = lib::Count(hero->weapons) - 1; i >= 0; --i)

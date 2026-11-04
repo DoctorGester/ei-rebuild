@@ -109,7 +109,6 @@ std::string FirstLineOf(const char* prefix, const std::string& suffix) {
     return line;
 }
 
-constexpr const char* kSoundOk = "buttons\\messbox\\ok.wav";
 constexpr const char* kSoundDelete = "buttons\\save\\delete.wav";
 constexpr int kAskOverwrite = 0x20000, kAskDelete = 0x10000;            // the boxes' results (high word)
 constexpr const char* kFolderFormat = "%ssaves\\%s";
@@ -379,7 +378,7 @@ void SaveLoadWindow::Confirm() {
         LoadSelected();
         return;
     }
-    ui->PlayInterfaceSound(kSoundOk);
+    ui->PlayInterfaceSound(game::OkSoundText());
     if (selected == 0) {
         SaveGame();
         return;
@@ -400,7 +399,7 @@ void SaveLoadWindow::LoadSelected() {
     std::string notice = g_clientWorld.texts->GetString(kNotifyLoading);
     g_interface.ShowStatusText(notice);
     GameStopSounds(1);
-    ui->PlayInterfaceSound(kSoundOk);
+    ui->PlayInterfaceSound(game::OkSoundText());
     g_gameFlow.RequestLoad(entries.data()[selected].folder);
 }
 

@@ -18,8 +18,6 @@
 namespace {
 
 // The sound system is handed the game's own string pointers.
-const char* OkSound() { return "buttons\\messbox\\ok.wav"; }
-const char* CancelSound() { return "buttons\\messbox\\cancel.wav"; }
 const char* ExitMovie() { return "Movies\\Exit.bik"; }
 
 // The result of the exit question: OK plays the exit movie and quits.
@@ -57,10 +55,10 @@ void MessageWindow::LeftDown(Point point) {
             PlayExitMovieAndQuit();
             return;
         }
-        ui->PlayInterfaceSound(OkSound());
+        ui->PlayInterfaceSound(game::OkSoundText());
         if (flags & kEditField) CopyEditText();
     } else if (region == 1) {
-        ui->PlayInterfaceSound(CancelSound());
+        ui->PlayInterfaceSound(game::CancelSoundText());
     } else if (region < 0) {
         return;
     }
@@ -75,11 +73,11 @@ void MessageWindow::KeyDown(int key, int scan, bool repeat) {
             PlayExitMovieAndQuit();
         } else {
             if (flags & kEditField) CopyEditText();
-            ui->PlayInterfaceSound(OkSound());
+            ui->PlayInterfaceSound(game::OkSoundText());
             ui->SetPendingValue(result | kAnswerOk);
         }
     } else if (key == platform::kKeyEscape) {
-        ui->PlayInterfaceSound(CancelSound());
+        ui->PlayInterfaceSound(game::CancelSoundText());
         ui->SetPendingValue(result | kAnswerCancel);
     } else {
         return;
@@ -93,11 +91,11 @@ void DifficultyBox::LeftDown(Point point) {
     switch (RegionAt(point)) {
     case 0:
         options::g_options.difficulty = easy;
-        ui->PlayInterfaceSound(OkSound());
+        ui->PlayInterfaceSound(game::OkSoundText());
         ui->SetPendingValue(result | kAnswerOk);
         break;
     case 1:
-        ui->PlayInterfaceSound(CancelSound());
+        ui->PlayInterfaceSound(game::CancelSoundText());
         ui->SetPendingValue(result | kAnswerCancel);
         break;
     case 2:
@@ -120,10 +118,10 @@ void DifficultyBox::KeyDown(int key, int scan, bool repeat) {
     if (handled) return;
     if (key == platform::kKeyReturn) {
         options::g_options.difficulty = easy;
-        ui->PlayInterfaceSound(OkSound());
+        ui->PlayInterfaceSound(game::OkSoundText());
         ui->SetPendingValue(result | kAnswerOk);
     } else if (key == platform::kKeyEscape) {
-        ui->PlayInterfaceSound(CancelSound());
+        ui->PlayInterfaceSound(game::CancelSoundText());
         ui->SetPendingValue(result | kAnswerCancel);
     } else {
         return;

@@ -288,7 +288,7 @@ constexpr int kFpsLeft = 730, kFpsTop = 10, kFpsRight = 800, kFpsBottom = 28;
 constexpr int kQuestPart = 2;   // "q.<zone>.<quest>": the quest's name
 // The status line: a surface over (0, 280)-(800, 320), the text in green in its top 40 pixels.
 constexpr int kStatusTop = 280, kStatusBottom = 320;
-constexpr int kStatusTextFormat = 2, kStatusTextHeight = 40;
+constexpr int kStatusFont = 2, kStatusTextHeight = 40;
 constexpr std::uint32_t kStatusColour = 0xFF00;
 
 // A unit's speech without an extra argument.
@@ -381,7 +381,7 @@ void Interface3D::ShowStatusText(std::string_view text) {
     statusSurface = new UiSurface(this, 0, kStatusTop, kLayoutWidth, kStatusBottom, SurfaceBlend::Keyed, true);
     statusSurface->PaintWith([text](UiSurface& out) {
         Rect rect = {0, 0, kLayoutWidth, kStatusTextHeight};
-        out.DrawTextIn(text, &rect, kStatusTextFormat, kStatusColour, 1, 1);    // Rebirth-patched
+        out.DrawTextIn(text, rect, TextStyle{kStatusFont, kStatusColour, render::text::kCenter});    // Rebirth-patched
     });
     app::FrameStep(true, true);
     if (statusSurface) {
@@ -485,8 +485,8 @@ void Interface3D::Draw() {
 void Interface3D::PaintFps(UiSurface& surface) const {
     if (fpsText.empty()) return;
     Rect rect{0, 0, 60, 18};
-    surface.DrawTextIn("FPS:", &rect, kFpsFont, kWhite, 0, 1);
-    surface.DrawTextIn(fpsText, &rect, kFpsFont, kWhite, 2, 1);
+    surface.DrawTextIn("FPS:", rect, TextStyle{kFpsFont, kWhite});
+    surface.DrawTextIn(fpsText, rect, TextStyle{kFpsFont, kWhite, render::text::kRight});
 }
 
 void Interface3D::DrawOverlays() {

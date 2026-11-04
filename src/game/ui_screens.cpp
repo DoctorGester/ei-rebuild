@@ -31,7 +31,6 @@ const char* const kSoundCampScroll = "buttons\\camp\\scroll.wav";
 const char* const kSoundCampMode = "buttons\\camp\\mode.wav";
 const char* const kSoundMenuStone = "buttons\\menu\\stone.wav";
 const char* const kSoundMenuOk = "buttons\\menu\\ok.wav";
-const char* const kSoundMessageOk = "buttons\\messbox\\ok.wav";
 
 // The tab keys select the strips' tabs (the "switch_filters" option).
 bool TabKeysEnabled() { return options::g_options.switchFilters != 0; }
@@ -450,7 +449,7 @@ void MpHeroScreen::TakeItem(Item* item, int takeMode) {
             equipped = false;
             break;
         }
-        if (equipped) ui->PlayInterfaceSound(kSoundMessageOk);
+        if (equipped) ui->PlayInterfaceSound(game::OkSoundText());
     }
     RefreshStats();
 }

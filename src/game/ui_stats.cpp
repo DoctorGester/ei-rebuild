@@ -147,9 +147,6 @@ const char* const kPartPrefix = "hl_";
 const char* const kPartIndent = "     ";
 const char* const kArmourFormat = "%.1f";
 
-constexpr std::uint32_t kRowColour = 0xA7D7E4;
-constexpr int kLeft = 0;
-constexpr int kRight = 2;
 constexpr int kDamageTypes = 7;
 constexpr int kShownTypes = 6;               // the seventh is summed but not compared
 constexpr int kLayers = 3;
@@ -168,8 +165,8 @@ void HeroStatsPanel::DrawRow(const Rect& area, std::string_view label, int value
     else
         name = label;
     std::string number = maximum >= 0 ? str::Format(kRangeFormat, value, maximum) : str::Format(kValueFormat, value);
-    labels.push_back({name, area, 0, kRowColour, kLeft});
-    labels.push_back({number, area, 0, kRowColour, kRight});
+    labels.push_back({name, area, {0, kUiTextColour, render::text::kLeft}});
+    labels.push_back({number, area, {0, kUiTextColour, render::text::kRight}});
 }
 
 // --- A body part's armour ------------------------------------------------------------------------
@@ -194,6 +191,6 @@ void HeroStatsPanel::DrawPart(const Rect& area, std::string_view name, int part)
     key += name;
     std::string label = g_clientWorld.texts->TextManager::GetString(key);
     label = kPartIndent + label;
-    labels.push_back({label, area, 0, kRowColour, kLeft});
-    labels.push_back({str::Format(kArmourFormat, PartArmour(part)), area, 0, kRowColour, kRight});
+    labels.push_back({label, area, {0, kUiTextColour, render::text::kLeft}});
+    labels.push_back({str::Format(kArmourFormat, PartArmour(part)), area, {0, kUiTextColour, render::text::kRight}});
 }

@@ -17,8 +17,6 @@
 #include "world.h"
 
 namespace {
-constexpr const char* kSoundCancel = "buttons\\messbox\\cancel.wav";
-constexpr const char* kSoundOk = "buttons\\messbox\\ok.wav";
 constexpr const char* kSoundSelect = "buttons\\save\\select.wav";
 
 // Pending values a window hands the interface when it closes (Interface3D::SetPendingValue):
@@ -77,7 +75,7 @@ void SaveLoadWindow::LeftDown(Point point) {
         Confirm();
         break;
     case 1:
-        ui->PlayInterfaceSound(kSoundCancel);
+        ui->PlayInterfaceSound(game::CancelSoundText());
         ui->SetPendingValue(kCloseSaveLoad);
         break;
     case 2:
@@ -187,10 +185,10 @@ void OptionsWindow::LeftDown(Point point) {
         const char* sound;
         if (region == 0) {
             Apply();
-            sound = kSoundOk;
+            sound = game::OkSoundText();
         } else {
             RestoreSettings();
-            sound = kSoundCancel;
+            sound = game::CancelSoundText();
         }
         ui->PlayInterfaceSound(sound);
         ui->SetPendingValue(kCloseOptions);
@@ -228,12 +226,12 @@ void OptionsWindow::LeftDouble(Point point) {
             waitingForKey = true;
             RefreshRows();
         } else if (row.setting && row.setting->list) {
-            ui->PlayInterfaceSound(kSoundOk);
+            ui->PlayInterfaceSound(game::OkSoundText());
             row.setting->list->Open();
         } else if (row.setting && row.setting->spin) {
             const int value = row.setting->spin->TakeValue();
             RegionRow(region).setting->spin->SetValue(value + 1);
-            ui->PlayInterfaceSound(kSoundOk);
+            ui->PlayInterfaceSound(game::OkSoundText());
             RefreshRows();
         }
     }

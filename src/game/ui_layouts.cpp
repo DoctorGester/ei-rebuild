@@ -46,10 +46,6 @@ UiRegion* AddRect(UiWindow* window, int left, int top, int right, int bottom) {
     return region;
 }
 
-UiSurface* NewSurface(Interface3D* ui, int left, int top, int right, int bottom) {
-        return new UiSurface(ui, left, top, right, bottom, SurfaceBlend::Keyed, true);
-}
-
 UiScrollbar* NewScrollbar(Interface3D* ui, int left, int top, int right, int bottom) {
     return new UiScrollbar(ui, Rect{left, top, right, bottom}, 3.0f, 0, 1.0f);
 }
@@ -129,7 +125,7 @@ void SaveLoadWindow::CreateScreen() {
 
     for (int top = 108; top < 492; top += 24) AddRect(this, 108, top, 370, top + 24);
 
-    UiSurface* list = NewSurface(ui, 100, 100, 700, 500);
+    UiSurface* list = NewSurface(ui, Rect{100, 100, 700, 500});
     AddSurface(list);
     list->PaintWith([this](UiSurface& out) { PaintList(out); });
     scrollbar = NewScrollbar(ui, 108, 108, 384, 492);
@@ -203,7 +199,7 @@ void OptionsWindow::CreateScreen() {
     Frame(this, 2.0f, 95.0f, 95.0f, 705.0f, 505.0f);
     Shade(this, 5.0f, 100.0f, 100.0f, 700.0f, 500.0f);
     for (int top = 156; top < 492; top += 24) AddRect(this, 250, top, 520, top + 24);
-    UiSurface* surface = NewSurface(ui, 100, 100, 700, 500);
+    UiSurface* surface = NewSurface(ui, Rect{100, 100, 700, 500});
     AddSurface(surface);
     surface->PaintWith([this](UiSurface& out) { PaintRows(out); });
 
@@ -348,29 +344,29 @@ void MainMenu::LeftDown(Point point) {
 
 void MessageWindow::CreateScreen() {
     LoadTexture("saveload", TextureKind::Interface);
-    UiSurface* surface = NewSurface(ui, 200, 50, 600, 500);
+    UiSurface* surface = NewSurface(ui, Rect{200, 50, 600, 500});
     AddSurface(surface)->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
     labels.clear();
     int font = result != 0xFFFF0000u ? 2 : 1;
     // Measure the title (font 2) and the text (DT_CALCRECT | DT_WORDBREAK | DT_CENTER, 370 wide).
     Rect area = {15, 0, 385, 200};
-    int titleHeight = surface->DrawTextIn(title, &area, 2, 0, 0x411, 1);
+    int titleHeight = surface->DrawTextIn(title, area, TextStyle{2, 0, render::text::kCenter | render::text::kWordBreak | render::text::kCalcRect});
     area = Rect{15, 0, 385, 400};
-    int textHeight = surface->DrawTextIn(text, &area, font, 0, 0x411, 1);
+    int textHeight = surface->DrawTextIn(text, area, TextStyle{font, 0, render::text::kCenter | render::text::kWordBreak | render::text::kCalcRect});
     // An edit field takes one line of the font (the extent of "A").
     if (flags & 4)
         textHeight =
             ui->TextExtent("A", font).h;
     int height = titleHeight + textHeight;
     int top = (0x226 - (height + 0x3C)) / 2;   // the block centred in 550 pixels
-    labels.push_back({title, Rect{15, top - 35, 385, 450}, 2, 0x31B3FF, 0x11});
+    labels.push_back({title, Rect{15, top - 35, 385, 450}, {2, 0x31B3FF, render::text::kCenter | render::text::kWordBreak}});
     if (flags & 4) {
         edit = new UiEditField(ui, Rect{215, top + titleHeight + 30, 585, height + top + 30});
-        edit->SetLook(15, 0, font, 0x32, 0xA7D7E4, 0x31B3FF);
+        edit->SetLook(15, 0, font, 0x32, kUiTextColour, 0x31B3FF);
         edit->SetText(editText);
         AddChild(edit);
     } else {
-        labels.push_back({text, Rect{15, top + titleHeight - 20, 385, 450}, font, 0xA7D7E4, format | 0x10});
+        labels.push_back({text, Rect{15, top + titleHeight - 20, 385, 450}, {font, kUiTextColour, format | 0x10}});
     }
 
     int bottom = top + height + 0x3C;
@@ -400,24 +396,24 @@ void MessageWindow::CreateScreen() {
 
 void DifficultyBox::CreateScreen() {
     LoadTexture("saveload", TextureKind::Interface);
-    UiSurface* surface = NewSurface(ui, 200, 100, 600, 500);
+    UiSurface* surface = NewSurface(ui, Rect{200, 100, 600, 500});
     AddSurface(surface)->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
     labels.clear();
     // Measure the title (font 2) and the explanation (font 1, DT_CALCRECT | DT_WORDBREAK).
     Rect area = {15, 0, 385, 200};
-    int titleHeight = surface->DrawTextIn(title, &area, 2, 0, 0x411, 1);
+    int titleHeight = surface->DrawTextIn(title, area, TextStyle{2, 0, render::text::kCenter | render::text::kWordBreak | render::text::kCalcRect});
     std::string explanation;
     int textHeight = 0;
     if (g_clientWorld.texts->Open("tip option_difficulty") != 0) {
         explanation = g_clientWorld.texts->ReadToHash();
         str::TrimRight(explanation, "\r\n");
         area = Rect{15, 0, 385, 300};
-        textHeight = surface->DrawTextIn(explanation, &area, 1, 0, 0x410, 1);
+        textHeight = surface->DrawTextIn(explanation, area, TextStyle{1, 0, render::text::kWordBreak | render::text::kCalcRect});
     }
     int total = textHeight + titleHeight + 0x6C;
     int top = (0x226 - total) / 2;   // the block centred in 550 pixels
-    labels.push_back({title, Rect{15, top - 0x55, 385, 450}, 2, 0x31B3FF, 0x11});
-    labels.push_back({explanation, Rect{15, titleHeight + top - 7, 385, 450}, 1, 0xA7D7E4, 0x10});
+    labels.push_back({title, Rect{15, top - 0x55, 385, 450}, {2, 0x31B3FF, render::text::kCenter | render::text::kWordBreak}});
+    labels.push_back({explanation, Rect{15, titleHeight + top - 7, 385, 450}, {1, kUiTextColour, render::text::kWordBreak}});
 
     // The two choices, their labels centred on 430 (surface x 230) by their mean width.
     std::string newEasy;
@@ -428,8 +424,8 @@ void DifficultyBox::CreateScreen() {
     Size hardSize = ui->TextExtent(hard, 2);
     int half = ((easySize.w + hardSize.w) / 2 + 0x1E) / 2;
     int row = titleHeight + top + 0x1E;   // layout y of the easy row (the surface starts at 100)
-    labels.push_back({newEasy, Rect{0xE6 - half, row - 100, 385, 450}, 2, 0xA7D7E4, 0});
-    labels.push_back({hard, Rect{0xE6 - half, row - 0x4C, 385, 450}, 2, 0xA7D7E4, 0});
+    labels.push_back({newEasy, Rect{0xE6 - half, row - 100, 385, 450}, {2, kUiTextColour}});
+    labels.push_back({hard, Rect{0xE6 - half, row - 0x4C, 385, 450}, {2, kUiTextColour}});
     easy = 0;
 
     // The check boxes (texels 0xD1..0xE6 x 0x37..0x4C); the hard one checked (its texture shifted by

@@ -54,7 +54,6 @@ constexpr int kSliderKind = 0;
 constexpr int kSpinKind = 1;
 constexpr int kResolutionKind = 2;
 
-constexpr std::uint32_t kColourText = 0xA7D7E4;
 constexpr std::uint32_t kColourDim = 0xA0A0A0;
 constexpr std::uint32_t kColourWaiting = 0x0000FF;   // a binding waiting for its key (red)
 
@@ -172,21 +171,21 @@ void OptionsWindow::RefreshRows() {
 void OptionsWindow::PaintRows(UiSurface& surface) const {
     Rect title = {10, 60, 140, 80};
     for (int groupIndex = 0; groupIndex < kOptionGroups; ++groupIndex) {
-        surface.DrawTextIn(groupNames[groupIndex], &title, 1, groupIndex == group ? kColourText : kColourDim, 1, 1);
+        surface.DrawTextIn(groupNames[groupIndex], title, TextStyle{1, groupIndex == group ? kUiTextColour : kColourDim, render::text::kCenter});
         title.Offset(0, 24);
     }
     Rect heading = {0, 10, 600, 34};
-    surface.DrawTextIn(groupNames[group], &heading, 2, kColourText, 1, 1);
+    surface.DrawTextIn(groupNames[group], heading, TextStyle{2, kUiTextColour, render::text::kCenter});
 
     Rect name = {160, 60, 420, 80};
     Rect keys = {430, 60, 590, 80};
     for (int row = 0, y = 168; y < 504; ++row, y += 24) {
         if (const OptionBinding* binding = rows[row].binding) {
-            std::uint32_t colour = row == selectedRow && waitingForKey ? kColourWaiting : kColourText;
-            surface.DrawTextIn(binding->name, &name, 1, colour, 0, 1);
-            surface.DrawTextIn(binding->keysText, &keys, 1, colour, 0, 1);
+            std::uint32_t colour = row == selectedRow && waitingForKey ? kColourWaiting : kUiTextColour;
+            surface.DrawTextIn(binding->name, name, TextStyle{1, colour});
+            surface.DrawTextIn(binding->keysText, keys, TextStyle{1, colour});
         } else if (const OptionSetting* setting = rows[row].setting) {
-            surface.DrawTextIn(setting->text, &name, 1, kColourText, 0, 1);
+            surface.DrawTextIn(setting->text, name, TextStyle{1, kUiTextColour});
         }
         name.Offset(0, 24);
         keys.Offset(0, 24);

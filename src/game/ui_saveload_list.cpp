@@ -37,7 +37,6 @@ constexpr const char* kGameTimeFormat = "%s  %d,  %d:%02d";
 constexpr float kMinutesPerHour = 60.0f;
 
 constexpr int kFont = 1;
-constexpr std::uint32_t kTextColour = 0xA7D7E4;
 constexpr std::uint32_t kCaretColour = 0x31B3FF;
 constexpr int kRowHeight = 24;
 constexpr int kFirstRowY = 120;          // the marker's layout y for the first row
@@ -79,7 +78,7 @@ void SaveLoadWindow::PaintList(UiSurface& surface) const {
         const SaveEntry& entry = entries[index];
         if (static_cast<int>(index) == selected) {
             const std::string& title = isSave && nameTyped ? name : entry.title;
-            surface.DrawTextIn(title, &titleRect, kFont, kTextColour, render::text::kNoPrefix, 1);
+            surface.DrawTextIn(title, titleRect, TextStyle{kFont, kUiTextColour, render::text::kNoPrefix});
             // The caret, unless the save keeps its name (the quick and the automatic saves).
             if (isSave && !SameFolder(entry.folder, kQuickFolder) && !SameFolder(entry.folder, kAutoFolderA) &&
                 !SameFolder(entry.folder, kAutoFolderB)) {
@@ -94,11 +93,11 @@ void SaveLoadWindow::PaintList(UiSurface& surface) const {
                 }
             }
         } else {
-            surface.DrawTextIn(entry.title, &titleRect, kFont, kTextColour, render::text::kNoPrefix, 1);
+            surface.DrawTextIn(entry.title, titleRect, TextStyle{kFont, kUiTextColour, render::text::kNoPrefix});
         }
         if (!isSave || index != 0) {
             const std::string date = lib::FormatLocalTime(entry.savedAt, kDateFormat);
-            surface.DrawTextIn(date, &dateRect, kFont, kTextColour, render::text::kRight, 1);
+            surface.DrawTextIn(date, dateRect, TextStyle{kFont, kUiTextColour, render::text::kRight});
         }
         titleRect.Offset(0, kRowHeight);
         dateRect.Offset(0, kRowHeight);
@@ -114,10 +113,10 @@ void SaveLoadWindow::PaintList(UiSurface& surface) const {
     const SaveEntry& entry = entries[selected];
     Rect detailRect{340, 260, 590, 284};
     std::string line = str::Format(kPlainFormat, entry.AllodTitle());
-    surface.DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
+    surface.DrawTextIn(line, detailRect, TextStyle{kFont, kUiTextColour});
     detailRect.Offset(0, kRowHeight);
     line = str::Format(kPlainFormat, entry.ZoneTitle());
-    surface.DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
+    surface.DrawTextIn(line, detailRect, TextStyle{kFont, kUiTextColour});
     detailRect.Offset(0, kRowHeight);
 
     const int minutes = static_cast<int>(entry.gameTime * kMinutesPerHour);
@@ -127,8 +126,8 @@ void SaveLoadWindow::PaintList(UiSurface& surface) const {
     const int minute = minuteOfDay - hour * 60;
     std::string dayText = g_clientWorld.texts->GetString(kDayText);
     line = str::Format(kGameTimeFormat, dayText, day + 1, hour, minute);
-    surface.DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
+    surface.DrawTextIn(line, detailRect, TextStyle{kFont, kUiTextColour});
 
     Rect folderRect{340, 360, 580, 385};
-    surface.DrawTextIn(entry.folder, &folderRect, kFont, kTextColour, render::text::kRight, 1);
+    surface.DrawTextIn(entry.folder, folderRect, TextStyle{kFont, kUiTextColour, render::text::kRight});
 }

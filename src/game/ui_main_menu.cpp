@@ -81,7 +81,7 @@ void MainMenu::AddVersionLine() {
     UiSurface* surface = new UiSurface(ui, 100, 480, 780, 600, SurfaceBlend::Keyed, true);
     surface->PaintWith([text = g_clientWorld.texts->TextManager::GetString(kVersionKey)](UiSurface& out) {
         Rect area = {0, 0, 675, 120};
-        out.DrawTextIn(text, &area, 2, 0xA7D7E4, 2, 1);
+        out.DrawTextIn(text, area, TextStyle{2, kUiTextColour, render::text::kRight});
     });
     AddSurface(surface);
 }

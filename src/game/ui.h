@@ -16,6 +16,7 @@
 #include "lib/containers.h"
 #include "lib/str.h"
 #include "lib/rect.h"
+#include "render/text_format.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -321,6 +322,18 @@ public:
 
 enum class SkillAnimation : int;   // map_object_figures.h
 
+// The pale blue the interface draws its texts, rows and numbers in.
+inline constexpr std::uint32_t kUiTextColour = 0xA7D7E4;
+
+// How a text is drawn: one of the interface's three fonts (Interface3D::fonts), its colour, DrawText's format bits
+// (render::text::Format) and whether a shadow is drawn first (the interface's texts have one, the tooltips none).
+struct TextStyle {
+    int font = 0;
+    std::uint32_t colour = 0;
+    std::uint32_t format = render::text::kLeft;
+    bool shadow = true;
+};
+
 // A rectangle of the interface a window draws into, drawn into the frame each frame by its Blit (ui_surface.cpp).
 // How a window surface's Blit draws it: every pixel, or with its background as the source colour key (the
 // pixels of that colour left out).
@@ -347,12 +360,11 @@ public:
     void MoveTo(Point at);
     // Word-wraps `text` to the width of `rect` (layout coordinates; breaks at spaces and '\n') and draws up
     // to `maxLines` lines one rect height apart with DrawTextIn. Returns the line count.
-    int DrawWrappedText(std::string_view text, const Rect* rect, int maxLines, int font, std::uint32_t colour, std::uint32_t format,
-                        bool shadow);
+    int DrawWrappedText(std::string_view text, const Rect& rect, int maxLines, const TextStyle& style);
     // Rebirth-patched (WideScreen). `rect` in layout coordinates (empty: the whole surface),
-    // grown by two pixels once scaled; `shadow` first draws the text in 0x080808 one pixel right and down.
+    // grown by two pixels once scaled; a style with `shadow` first draws the text in 0x080808 one pixel right and down.
     // Returns the drawn height in layout units, 0 without a surface.
-    int DrawTextIn(std::string_view text, const Rect* rect, int font, std::uint32_t colour, std::uint32_t format, bool shadow);
+    int DrawTextIn(std::string_view text, const Rect& rect, const TextStyle& style);
     // DrawText of `text` (UTF-8) in `font` in `rect` (surface pixels) by DrawText's `format` (render_text.h's
     // Layout), in `colour`, first in 0x080808 one pixel right and down when `shadow`. Returns DrawText's value
     // (the height laid out, pixels); 0 without a surface or font.
@@ -408,15 +420,16 @@ private:
                       bool shadow);
 };
 
+// A keyed surface over `area` (layout coordinates, scaled to the screen): what most windows draw on.
+inline UiSurface* NewSurface(Interface3D* ui, const Rect& area) { return new UiSurface(ui, area, SurfaceBlend::Keyed, true); }
+
 // A text a window shows on a painted surface, kept as the window's state where it drew it before: DrawTextIn's
 // arguments (layout units, one of the interface's fonts, with the shadow) or, with maxLines, DrawWrappedText's
 // (wrapped again at the current fonts when painted).
 struct UiLabel {
     std::string text;
     Rect area;
-    int font = 0;
-    std::uint32_t colour = 0;
-    std::uint32_t format = 0;
+    TextStyle style;
     int maxLines = 0;                // > 0: word-wrapped, at most this many lines
 };
 // A window's paint step: `labels` drawn in order.

@@ -198,11 +198,11 @@ void ChatWindow::PaintStatus(UiSurface& surface) const {
     for (const StatusRow& row : statusRows) {
         if (row.status.size() != 0) {
             Rect line{row.left, 0, row.left + kFaceWidth, 0xF};
-            surface.DrawTextIn(row.status, &line, 0, kWhite, 1, 1);
+            surface.DrawTextIn(row.status, line, TextStyle{0, kWhite, render::text::kCenter});
         }
         if (row.offer.size() != 0) {
             Rect line{row.left, 0xF, row.left + kFaceWidth, 0x1E};
-            surface.DrawTextIn(row.offer, &line, 0, kWhite, 1, 1);
+            surface.DrawTextIn(row.offer, line, TextStyle{0, kWhite, render::text::kCenter});
         }
     }
 }
