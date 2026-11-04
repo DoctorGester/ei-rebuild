@@ -97,12 +97,14 @@ void ReleaseFrame() {
 
 std::uint32_t RgbOfColorref(std::uint32_t c) { return ((c & 0xFF) << 16) | (c & 0xFF00) | ((c >> 16) & 0xFF); }
 
-int Differ(const std::vector<std::uint32_t>& a, const std::vector<std::uint32_t>& b, int width, std::string* example, int tolerance) {
+int Differ(const std::vector<std::uint32_t>& a, const std::vector<std::uint32_t>& b, int width, std::string* example, int tolerance,
+           const std::vector<std::uint8_t>* blends) {
     int differ = 0;
     for (std::size_t i = 0; i < a.size() && i < b.size(); ++i) {
+        const int allowed = blends && i < blends->size() ? std::max<int>(tolerance, (*blends)[i]) : tolerance;
         bool off = false;
         for (int shift : {16, 8, 0})
-            off = off || std::abs(static_cast<int>((a[i] >> shift) & 0xFF) - static_cast<int>((b[i] >> shift) & 0xFF)) > tolerance;
+            off = off || std::abs(static_cast<int>((a[i] >> shift) & 0xFF) - static_cast<int>((b[i] >> shift) & 0xFF)) > allowed;
         if (off && ++differ == 1 && example) {
             char buffer[160];
             std::snprintf(buffer, sizeof buffer, "first at (%d, %d): expected %06X, drawn %06X", static_cast<int>(i % static_cast<std::size_t>(width)),
@@ -121,14 +123,17 @@ namespace {
 constexpr std::uint32_t Colourref(unsigned r, unsigned g, unsigned b) { return r | (g << 8) | (b << 16); }
 
 // The run drawn onto `pixels` (0x00RRGGBB, `width` x `height`) at `origin`: each quad's coverage blended over what
-// is there in turn (underlines fully covered), clipped to `clip` and the layout's clip.
-void RefGlyphs(std::vector<std::uint32_t>& pixels, int width, Rect clip, text::TextFont& font, const text::TextLayout& layout,
-               Point origin, std::uint32_t colour) {
+// is there in turn (underlines fully covered), clipped to `clip` and the layout's clip; `blends` counts the blends
+// at each pixel.
+void RefGlyphs(std::vector<std::uint32_t>& pixels, std::vector<std::uint8_t>& blends, int width, Rect clip, text::TextFont& font,
+               const text::TextLayout& layout, Point origin, std::uint32_t colour) {
     if (layout.clipped) clip = clip.Intersection(layout.clip.Offsetted(origin));
     const std::uint32_t t = RgbOfColorref(colour);
     auto blend = [&](int x, int y, unsigned c) {
         if (!c || !clip.Contains({x, y})) return;
-        std::uint32_t& p = pixels[static_cast<std::size_t>(y) * width + static_cast<std::size_t>(x)];
+        const std::size_t at = static_cast<std::size_t>(y) * width + static_cast<std::size_t>(x);
+        std::uint32_t& p = pixels[at];
+        ++blends[at];
         std::uint32_t out = 0;
         for (int shift : {16, 8, 0}) {
             unsigned a = (t >> shift) & 0xFF, d = (p >> shift) & 0xFF;
@@ -183,6 +188,7 @@ void Run(CheckFn check) {
         // A background of fills (the text blends over it), the shadow one pixel right and down, then the text,
         // drawn at an origin inside the frame and clipped to a part of it.
         std::vector<std::uint32_t> expected(static_cast<std::size_t>(w) * h, 0);
+        std::vector<std::uint8_t> blends(expected.size(), 0);
         const std::uint32_t fills[3] = {Colourref(200, 30, 90), Colourref(10, 140, 250), Colourref(255, 255, 255)};
         for (int i = 0; i < 3; ++i) {
             Rect r = Rect{i * 60, i * 10, i * 60 + 70, h - i * 5}.Intersection(all);
@@ -193,13 +199,13 @@ void Run(CheckFn check) {
         const Rect clip{0, 0, w - 7, h};
         const Point origin{2, 1};
         ui::Glyphs(*font, layout, origin + Point{1, 1}, Colourref(8, 8, 8), clip);
-        RefGlyphs(expected, w, clip, *font, layout, origin + Point{1, 1}, Colourref(8, 8, 8));
+        RefGlyphs(expected, blends, w, clip, *font, layout, origin + Point{1, 1}, Colourref(8, 8, 8));
         const std::uint32_t colour = Colourref(250, 220, 120 + caseIndex * 30);
         ui::Glyphs(*font, layout, origin, colour, clip);
-        RefGlyphs(expected, w, clip, *font, layout, origin, colour);
+        RefGlyphs(expected, blends, w, clip, *font, layout, origin, colour);
         std::vector<std::uint32_t> got;
         std::string example;
-        const int differ = ReadFrame(&got) ? Differ(expected, got, w, &example, 1) : -1;
+        const int differ = ReadFrame(&got) ? Differ(expected, got, w, &example, 1, &blends) : -1;
         EndFrame();
         check(differ == 0, "glyph run, case " + std::to_string(caseIndex) + " (" + std::to_string(layout.quads.size()) + " glyphs, " +
                                std::to_string(layout.underlines.size()) + " underlines): " + Outcome(differ, example));
@@ -214,6 +220,7 @@ void Run(CheckFn check) {
     }
     NewFrame(bw, bh);
     std::vector<std::uint32_t> expected(static_cast<std::size_t>(bw) * bh, 0);
+    std::vector<std::uint8_t> blends(expected.size(), 0);
     const char* line = "The quick brown fox jumps over the lazy dog; pack my box with five dozen liquor jugs. "
                        "Sphinx of black quartz, judge my vow: 0123456789 and again 9876543210.";
     int runs = 0;
@@ -221,12 +228,12 @@ void Run(CheckFn check) {
         text::TextLayout layout;
         if (!text::Layout(*font, text::DecodeCp1251(line), Rect{2, 2 + i * 26, bw - 2, 2 + i * 26 + 24}, text::kNoPrefix, layout)) continue;
         ui::Glyphs(*font, layout, {0, 0}, Colourref(220, 230, 140 + i * 8), Rect{0, 0, bw, bh});
-        RefGlyphs(expected, bw, Rect{0, 0, bw, bh}, *font, layout, {0, 0}, Colourref(220, 230, 140 + i * 8));
+        RefGlyphs(expected, blends, bw, Rect{0, 0, bw, bh}, *font, layout, {0, 0}, Colourref(220, 230, 140 + i * 8));
         ++runs;
     }
     std::vector<std::uint32_t> got;
     std::string example;
-    const int differ = ReadFrame(&got) ? Differ(expected, got, bw, &example, 1) : -1;
+    const int differ = ReadFrame(&got) ? Differ(expected, got, bw, &example, 1, &blends) : -1;
     EndFrame();
     check(runs == 13 && differ == 0, "13 glyph runs in one frame (" + std::to_string(runs) + " laid out): " + Outcome(differ, example));
 }

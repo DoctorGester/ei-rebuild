@@ -44,12 +44,9 @@ console kick
 frames 10
 vanilla click 715 25
 rebirth click 635 36
-frames 40
 peersignal kicked
 peerwait 120 back
-frames 60
 console ban z
-frames 40
 peersignal banned
 peerwait 120 refused
 frames 20

@@ -16,6 +16,13 @@
 //                             fails after <seconds>. <window>: menu, battle, briefing, map, camp,
 //                             view, trade, escmenu, saveload, options, objectives, help, msgbox,
 //                             difficulty, heroes, titles, mpconnect (image/harness_windows_image.cpp)
+//   waitdialogue <seconds> <state>
+//                             wait until the base screen (briefing) is on top with its dialogue in <state>
+//                             (BriefingScreen::state: 0 walking, 1 a person's topics open, 2 the dialogue
+//                             starting, 3 phrases, 4 rewards), in a main loop pass (input steps follow)
+//   talk <seconds>            click through the base screen's dialogue: a click at the layout's centre in
+//                             states 3 and 4 (the next phrase, then the rewards taken), two frames apart,
+//                             until it is back in state 0 (a topic without phrases at once)
 //   waitunit <seconds> <name> wait until the unit with script name <name> is drawn and the game's
 //                             picking finds it, as "clickunit" needs (a unit just added to the
 //                             server reaches the client and the screen a few frames later)
@@ -23,14 +30,23 @@
 //                             wait until the local player's leader (player 0's first party member in the
 //                             server world) has stood idle for <frames> frames in a row (default 10): no
 //                             action (a walk that ended or that a fight stopped, a fight over) and no path
+//   walkto <seconds> <x> <y> [<frames>]
+//                             walk the leader to map point (x, y) as a player does: the camera brought over
+//                             it (lookat, at most twice), a double click on the ground there (clickground
+//                             dblclick), then as waitidle with <frames> (default 20); the leader standing
+//                             further than 3 units from the point (a fight stopped the walk) is clicked
+//                             there again, at most 8 clicks
 //   waitdead <seconds> <id> ...
 //                             wait until each of the server world's units <id> is dead or gone
-//   waitaward <seconds>       wait until the leader's experience or its party's money changes (an award
+//   waitaward <seconds> [served]
+//                             wait until the leader's experience or its party's money changes (an award
 //                             applied: ClientSession::ApplyAwards; net_pair_quest): from what they were at
-//                             the last "awardfrom" step, or else at this step
+//                             the last "awardfrom" step, or else at this step. "served": instead until the
+//                             game server has queued awards and they are all gone again (each is kept and
+//                             replicated for 60 s; net_pair_leave's final award changes neither)
 //   awardfrom                 note the leader's experience and money for the next waitaward (an award that
 //                             may come while the steps between still run)
-//                             (these three read the server world after the frame's update, as the
+//                             (these four read the server world after the frame's update, as the
 //                             digest does: they end in the same frame every run)
 //   frames <n>                let the game run <n> frames of its main loop (after the input posted
 //                             so far has been handled): for what follows a posted key or mouse
@@ -552,24 +568,42 @@ bool g_waitingWindow = false;
 std::string g_waitWindowName;
 Deadline g_waitWindowDeadline;
 unsigned g_waitWindowReadyFrom = kNotReady;
+// A pending "waitdialogue" / "talk" (H53): the state awaited, whether it clicks through, its clicks, the frame the
+// next click may come, when it gives up.
+bool g_waitingDialogue = false;
+bool g_talking = false;
+int g_dialogueState = 0;
+int g_talkClicks = 0;
+unsigned g_talkNextFrame = 0;
+Deadline g_dialogueDeadline;
 // A pending "waitunit": the unit's script name, when it started and gives up.
 bool g_waitingUnit = false;
 std::string g_waitUnitName;
 Deadline g_waitUnitDeadline;
-// A pending "waitidle" / "waitdead" / "waitaward" (SV5d5): which, its deadline; waitidle's frames wanted and the
-// frame from which the leader has stood idle; waitdead's unit ids; waitaward's experience and money at its start.
-enum class WorldWait { None, Idle, Dead, Award };
+// A pending "waitidle" / "walkto" / "waitdead" / "waitaward" (SV5d5): which, its deadline; waitidle's frames wanted
+// and the frame from which the leader has stood idle; walkto's point, its clicks so far, the minimap clicks of this
+// aim and the frame the next may come (H53); waitdead's unit ids; waitaward's experience and money at its start.
+enum class WorldWait { None, Idle, Walk, Dead, Award };
 WorldWait g_worldWait = WorldWait::None;
 Deadline g_worldWaitDeadline;
 unsigned g_idleFrames = 0;
 unsigned g_idleFrom = kNotReady;
+float g_walkX = 0, g_walkY = 0;
+int g_walkClicks = 0, g_walkLooks = 0;
+bool g_walking = false;   // the ground was clicked; false: aiming the camera
+unsigned g_walkNextFrame = 0;
+constexpr float kWalkReach = 3.0f;
+constexpr int kWalkMostClicks = 8;
 std::vector<int> g_deadIds;
 float g_awardExperience = 0;
 unsigned g_awardMoney = 0;
+bool g_awardServed = false;      // "waitaward ... served": the server's award queue filled and emptied
+bool g_awardQueueSeen = false;   // the server's award queue was seen with awards
 bool g_awardFromSet = false;   // "awardfrom" took them (the next waitaward compares with those)
 void AwardFrom() {
     const digest::UnitNow unit = digest::UnitNowOf(digest::LocalLeader(&g_awardMoney));
     g_awardExperience = unit.experience;
+    g_awardQueueSeen = false;
 }
 // A pending "peerwait": the other game's signal and when to give up (harness_pair.h).
 bool g_waitingPeer = false;
@@ -1689,7 +1723,7 @@ void LogGroundView() {
 // repeats lookat before its clickground steps.
 struct MinimapLayout { float cx = 0, cy = 0, sx = 0, sy = 0; } g_minimap;
 
-std::string LookAt(const std::string& argument) {
+std::string LookAt(const std::string& argument, bool* clicked = nullptr) {
     float wx = 0.0f, wy = 0.0f;
     if (std::sscanf(argument.c_str(), "%f %f", &wx, &wy) != 2) return "lookat needs <x> <y>";
     if (!(g_minimap.sx > 0.0f && g_minimap.sy > 0.0f)) return "lookat: no minimap step before it";
@@ -1698,6 +1732,7 @@ std::string LookAt(const std::string& argument) {
     float out[3] = {};
     HarnessPickSurface(HarnessClientWorld(), out, 400 * cw / 800, 300 * ch / 600);
     const float dx = (wx - out[0]) / g_minimap.sx, dy = -(wy - out[1]) / g_minimap.sy;
+    if (clicked) *clicked = false;
     if (std::fabs(wx - out[0]) < 3.0f && std::fabs(wy - out[1]) < 3.0f) {
         Log("harness: lookat %.1f %.1f: the camera looks at %.1f %.1f", wx, wy, out[0], out[1]);
         return "";
@@ -1706,6 +1741,31 @@ std::string LookAt(const std::string& argument) {
     const int lx = int(std::lround(g_minimap.cx + dx * clamp)), ly = int(std::lround(g_minimap.cy + dy * clamp));
     Log("harness: lookat %.1f %.1f: the camera looks at %.1f %.1f, minimap click (%d,%d)", wx, wy, out[0], out[1], lx, ly);
     PostMouse("click", lx, ly);
+    if (clicked) *clicked = true;
+    return "";
+}
+
+// --- walkto <seconds> <x> <y> [<frames>] (H53) --------------------------------------------------------
+// One pass of a walk's input, in a main loop pass: while aiming, the camera brought toward the point (a minimap
+// click, then two frames for it to move; at most two, as the camera stops at the map's edge), then the double
+// click on the ground there. "" or the error.
+std::string WalkInput() {
+    char point[64];
+    std::snprintf(point, sizeof(point), "%.2f %.2f", g_walkX, g_walkY);
+    if (g_walkLooks < 2) {
+        bool clicked = false;
+        if (std::string error = LookAt(point, &clicked); !error.empty()) return error;
+        if (clicked) {
+            ++g_walkLooks;
+            g_walkNextFrame = g_frames + 2;
+            return "";
+        }
+    }
+    if (std::string error = PostGroundMouse(std::string(point) + " dblclick"); !error.empty()) return error;
+    ++g_walkClicks;
+    g_walkLooks = 0;
+    g_walking = true;
+    g_idleFrom = kNotReady;
     return "";
 }
 
@@ -2053,6 +2113,34 @@ void RunSteps() {
             return;
         }
     }
+    if (g_waitingDialogue) {
+        void* top = TopWindow();
+        const int state = top ? image::DialogueState(top) : -1;
+        bool done = false;
+        if (!g_talking) {
+            done = state == g_dialogueState && g_inputLoop;
+        } else if (state == 0) {
+            done = true;
+        } else if ((state == 3 || state == 4) && g_inputLoop && g_frames >= g_talkNextFrame) {
+            PostMouse("click", 400, 300);
+            ++g_talkClicks;
+            g_talkNextFrame = g_frames + 2;
+        }
+        const char* verb = g_talking ? "talk" : "waitdialogue";
+        if (done) {
+            Log("harness: %s done after %u ms (frame %u, state %d, %d clicks)", verb, Now() - g_dialogueDeadline.start, g_frames,
+                state, g_talkClicks);
+            g_waitingDialogue = false;
+        } else if (g_dialogueDeadline.Passed()) {
+            std::string what = std::string(verb) + " timed out (dialogue state " + std::to_string(state) + ", " +
+                               std::to_string(g_talkClicks) + " clicks; " + DescribeTopWindow() + ")" + g_dialogueDeadline.Why();
+            Log("harness: %s", what.c_str());
+            g_failures.push_back(what);
+            g_waitingDialogue = false;
+        } else {
+            return;
+        }
+    }
     if (g_waitingUnit) {
         // Checked in input loop passes: the pick list is the last frame's, and clickunit follows.
         Point at{};
@@ -2084,6 +2172,32 @@ void RunSteps() {
             done = g_idleFrom != kNotReady && g_frames >= g_idleFrom + g_idleFrames;
             what = "waitidle " + std::to_string(g_idleFrames) + " (leader " + std::to_string(leader) +
                    (unit.found ? unit.dead ? ": dead)" : unit.idle ? ": idle)" : ": busy)" : ": not in the world)");
+        } else if (g_worldWait == WorldWait::Walk) {
+            const int leader = digest::LocalLeader();
+            const digest::UnitNow unit = digest::UnitNowOf(leader);
+            if (!unit.found || unit.dead || !unit.idle) g_idleFrom = kNotReady;
+            else if (g_idleFrom == kNotReady) g_idleFrom = g_frames;
+            const float dx = unit.x - g_walkX, dy = unit.y - g_walkY;
+            const bool there = dx * dx + dy * dy <= kWalkReach * kWalkReach;
+            const bool stood = g_idleFrom != kNotReady && g_frames >= g_idleFrom + g_idleFrames;
+            char text[200];
+            std::snprintf(text, sizeof(text), "walkto %.1f %.1f (leader %d at %.1f %.1f, %s, %d clicks)", g_walkX, g_walkY,
+                          leader, unit.x, unit.y, unit.found ? unit.dead ? "dead" : unit.idle ? "idle" : "busy" : "not in the world",
+                          g_walkClicks);
+            what = text;
+            if (g_walking && stood) {
+                done = there;
+                g_walking = there;   // stopped short: clicked there again
+            }
+            if (!g_walking && !done && g_inputLoop && g_frames >= g_walkNextFrame) {
+                std::string error = g_walkClicks >= kWalkMostClicks ? what + ": still away after the last click" : WalkInput();
+                if (!error.empty()) {
+                    Log("harness: walkto: %s", error.c_str());
+                    g_failures.push_back("walkto: " + error);
+                    g_worldWait = WorldWait::None;
+                    return;
+                }
+            }
         } else if (g_worldWait == WorldWait::Dead) {
             std::string alive;
             for (int id : g_deadIds) {
@@ -2095,10 +2209,14 @@ void RunSteps() {
         } else {
             unsigned money = 0;
             const digest::UnitNow unit = digest::UnitNowOf(digest::LocalLeader(&money));
-            done = unit.found && (unit.experience != g_awardExperience || money != g_awardMoney);
-            char text[160];
-            std::snprintf(text, sizeof(text), "waitaward (experience %.1f -> %.1f, money %u -> %u)", g_awardExperience,
-                          unit.experience, g_awardMoney, money);
+            const int queued = image::ServerAwards();
+            if (queued > 0) g_awardQueueSeen = true;
+            done = g_awardServed ? g_awardQueueSeen && queued == 0
+                                 : unit.found && (unit.experience != g_awardExperience || money != g_awardMoney);
+            char text[200];
+            std::snprintf(text, sizeof(text), "waitaward (experience %.1f -> %.1f, money %u -> %u, server awards %d%s)",
+                          g_awardExperience, unit.experience, g_awardMoney, money, queued,
+                          g_awardQueueSeen ? ", seen queued" : "");
             what = text;
         }
         if (done) {
@@ -2191,6 +2309,16 @@ void RunSteps() {
             g_waitWindowReadyFrom = kNotReady;
             g_waitWindowDeadline.Set(seconds * 1000);
             return;
+        } else if (s.verb == "waitdialogue" || s.verb == "talk") {
+            char* rest = nullptr;
+            const unsigned long seconds = std::strtoul(s.argument.c_str(), &rest, 10);
+            g_talking = s.verb == "talk";
+            g_dialogueState = g_talking ? 0 : std::atoi(rest ? rest : "0");
+            g_talkClicks = 0;
+            g_talkNextFrame = 0;
+            g_waitingDialogue = true;
+            g_dialogueDeadline.Set(seconds * 1000);
+            return;
         } else if (s.verb == "waitunit") {
             char* rest = nullptr;
             unsigned long seconds = std::strtoul(s.argument.c_str(), &rest, 10);
@@ -2199,7 +2327,7 @@ void RunSteps() {
             g_waitUnitName = rest ? rest : "";
             g_waitUnitDeadline.Set(seconds * 1000);
             return;
-        } else if (s.verb == "waitidle" || s.verb == "waitdead" || s.verb == "waitaward") {
+        } else if (s.verb == "waitidle" || s.verb == "walkto" || s.verb == "waitdead" || s.verb == "waitaward") {
             char* rest = nullptr;
             const unsigned long seconds = std::strtoul(s.argument.c_str(), &rest, 10);
             if (s.verb == "waitidle") {
@@ -2207,6 +2335,23 @@ void RunSteps() {
                 g_idleFrames = 10;
                 if (rest && *rest) g_idleFrames = std::strtoul(rest, nullptr, 10);
                 g_idleFrom = kNotReady;
+            } else if (s.verb == "walkto") {
+                unsigned frames = 20;
+                if (!rest || std::sscanf(rest, "%f %f %u", &g_walkX, &g_walkY, &frames) < 2) {
+                    g_failures.push_back("walkto needs <seconds> <x> <y> [<frames>]");
+                    continue;
+                }
+                if (!(g_minimap.sx > 0.0f && g_minimap.sy > 0.0f)) {
+                    g_failures.push_back("walkto: no minimap step before it");
+                    continue;
+                }
+                g_worldWait = WorldWait::Walk;
+                g_idleFrames = frames;
+                g_idleFrom = kNotReady;
+                g_walkClicks = 0;
+                g_walkLooks = 0;
+                g_walking = false;
+                g_walkNextFrame = 0;
             } else if (s.verb == "waitdead") {
                 g_worldWait = WorldWait::Dead;
                 g_deadIds.clear();
@@ -2219,6 +2364,7 @@ void RunSteps() {
                 }
             } else {
                 g_worldWait = WorldWait::Award;
+                g_awardServed = rest && std::strstr(rest, "served") != nullptr;
                 if (!g_awardFromSet) AwardFrom();
                 g_awardFromSet = false;
             }

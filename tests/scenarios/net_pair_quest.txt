@@ -16,13 +16,15 @@
 #   and its ten undead (1000188..1000197, around 8..55 x 266..309). The briefing is clicked through after the
 #   peer has joined (a guest joining while the host's briefing runs crashes the original and the image alike
 #   in CTextManager::PeekWord, from CBriefingScreen::NextPhrase).
-# - Walks: the wheel zooms out; before each clickground step "lookat" clicks the minimap to bring the camera
-#   over the target (the minimap is centred on the camera, 1 layout pixel about 2.8 map units on vanilla's,
-#   3.75 x 2.7 on Rebirth's wider one; the camera goes back to the hero at times). Each step is repeated
-#   because a fight stops the walk, and waits until the hero has stood idle for 20 frames (waitidle: the walk
-#   over, or the fight it ran into; SV5d5, instead of 150 frames each), which also gives the undead near him
-#   time to come. waitdead checks all ten are dead. The last undead killed: QuestComplete -> FinishQuestMap
-#   0057FB90 -> FinishMap 004193F0 queues "z9q2_3".
+# - Dialogues: waitdialogue 1 (the sheriff's topics open), the topic's region, then talk clicks through its
+#   phrases and rewards until it is over (H53, instead of fixed waits between clicks).
+# - Walks: the wheel zooms out; each walkto step clicks the minimap to bring the camera over the target
+#   ("lookat": the minimap is centred on the camera, 1 layout pixel about 2.8 map units on vanilla's, 3.75 x 2.7
+#   on Rebirth's wider one; the camera goes back to the hero at times), double clicks the ground there and
+#   waits until the hero has stood idle for 20 frames (the walk over, or the fight it ran into; SV5d5), which
+#   also gives the undead near him time to come; a fight that stopped him short sends him there again (H53:
+#   before, every step was clicked twice). waitdead checks all ten are dead. The last undead killed:
+#   QuestComplete -> FinishQuestMap 0057FB90 -> FinishMap 004193F0 queues "z9q2_3".
 # - Back through exit 1 (remove rectangle 205 305 215 320; the leave box's Enter), then the sheriff's middle
 #   topic "The undead are destroyed" (z9q2_3): command 1 -> CompleteZone 00418ED0 (text 7 announced, the kind 0
 #   and kind 1 awards shared by the two clients, the host's items with the final award, the next zones
@@ -64,59 +66,29 @@ peerwait 90 joined
 frames 20
 
 # Vanilla: z9q3 taken (the fifth topic) and rejected (the middle topic); the new offer has z9q2.
+# The topics a dialogue leaves come from the server (its variables), a few frames later. The reject draws the
+# next offer from g_random (PickZones), so the frames before it pick the map: 20 give z9q2 (10, 30 give z9q1).
 vanilla clickground 63 64 dblclick
 vanilla frames 60
 vanilla waitunit 10 Nsheriff
 vanilla clickunit Nsheriff
-vanilla frames 10
+vanilla waitdialogue 10 1
 vanilla clickregion 4
-vanilla wait 4000
-vanilla click 400 300
-vanilla wait 800
-vanilla click 400 300
-vanilla wait 800
-vanilla click 400 300
-vanilla wait 800
-vanilla click 400 300
-vanilla wait 800
-vanilla frames 40
+vanilla talk 30
+vanilla frames 20
 vanilla clickunit Nsheriff
-vanilla frames 10
+vanilla waitdialogue 10 1
 vanilla clickregion 1
-vanilla wait 4000
-vanilla click 400 300
-vanilla wait 800
-vanilla click 400 300
-vanilla wait 800
-vanilla click 400 300
-vanilla wait 800
-vanilla frames 40
+vanilla talk 30
 
 # The sheriff's fifth topic takes z9q2 (seven phrases).
 clickground 63 64 dblclick
 frames 60
 waitunit 10 Nsheriff
 clickunit Nsheriff
-frames 10
+waitdialogue 10 1
 clickregion 4
-wait 4000
-click 400 300
-wait 800
-click 400 300
-wait 800
-click 400 300
-wait 800
-click 400 300
-wait 800
-click 400 300
-wait 800
-click 400 300
-wait 800
-click 400 300
-wait 800
-click 400 300
-wait 800
-frames 40
+talk 30
 clickground 61 50 dblclick
 frames 60
 clickground 59 43 dblclick
@@ -136,211 +108,26 @@ wheel 400 300 -120
 frames 5
 vanilla minimap 701 81 2.8 2.8
 rebirth minimap 726 80.6 3.75 2.7
-lookat 80 264
-frames 5
-lookat 80 264
-frames 5
-clickground 80 264 dblclick
-waitidle 120 20
-lookat 80 264
-frames 5
-lookat 80 264
-frames 5
-clickground 80 264 dblclick
-waitidle 120 20
-lookat 80 264
-frames 5
-lookat 80 264
-frames 5
-clickground 80 264 dblclick
-waitidle 120 20
-lookat 80 264
-frames 5
-lookat 80 264
-frames 5
-clickground 80 264 dblclick
-waitidle 120 20
-lookat 80 264
-frames 5
-lookat 80 264
-frames 5
-clickground 80 264 dblclick
-waitidle 120 20
-lookat 80 264
-frames 5
-lookat 80 264
-frames 5
-clickground 80 264 dblclick
-waitidle 120 20
+walkto 120 80 264
 
 # The undead: the west part of the camp (the camera stops at the map's edge), then the east part.
-lookat 40 280
-frames 5
-lookat 40 280
-frames 5
-clickground 40 280 dblclick
-waitidle 120 20
-lookat 40 280
-frames 5
-lookat 40 280
-frames 5
-clickground 40 280 dblclick
-waitidle 120 20
-lookat 25 292
-frames 5
-lookat 25 292
-frames 5
-clickground 25 292 dblclick
-waitidle 120 20
-lookat 25 292
-frames 5
-lookat 25 292
-frames 5
-clickground 25 292 dblclick
-waitidle 120 20
-lookat 10 280
-frames 5
-lookat 10 280
-frames 5
-clickground 10 280 dblclick
-waitidle 120 20
-lookat 10 280
-frames 5
-lookat 10 280
-frames 5
-clickground 10 280 dblclick
-waitidle 120 20
-lookat 25 305
-frames 5
-lookat 25 305
-frames 5
-clickground 25 305 dblclick
-waitidle 120 20
-lookat 25 305
-frames 5
-lookat 25 305
-frames 5
-clickground 25 305 dblclick
-waitidle 120 20
-lookat 10 292
-frames 5
-lookat 10 292
-frames 5
-clickground 10 292 dblclick
-waitidle 120 20
-lookat 10 292
-frames 5
-lookat 10 292
-frames 5
-clickground 10 292 dblclick
-waitidle 120 20
-lookat 40 304
-frames 5
-lookat 40 304
-frames 5
-clickground 40 304 dblclick
-waitidle 120 20
-lookat 40 304
-frames 5
-lookat 40 304
-frames 5
-clickground 40 304 dblclick
-waitidle 120 20
-lookat 40 285
-frames 5
-lookat 40 285
-frames 5
-clickground 40 285 dblclick
-waitidle 120 20
-lookat 40 285
-frames 5
-lookat 40 285
-frames 5
-clickground 40 285 dblclick
-waitidle 120 20
-lookat 36 265
-frames 5
-lookat 36 265
-frames 5
-clickground 36 265 dblclick
-waitidle 120 20
-lookat 36 265
-frames 5
-lookat 36 265
-frames 5
-clickground 36 265 dblclick
-waitidle 120 20
-lookat 55 288
-frames 5
-lookat 55 288
-frames 5
-clickground 55 288 dblclick
-waitidle 120 20
-lookat 55 288
-frames 5
-lookat 55 288
-frames 5
-clickground 55 288 dblclick
-waitidle 120 20
-lookat 52 292
-frames 5
-lookat 52 292
-frames 5
-clickground 52 292 dblclick
-waitidle 120 20
-lookat 52 292
-frames 5
-lookat 52 292
-frames 5
-clickground 52 292 dblclick
-waitidle 120 20
-lookat 45 280
-frames 5
-lookat 45 280
-frames 5
-clickground 45 280 dblclick
-waitidle 120 20
-lookat 45 280
-frames 5
-lookat 45 280
-frames 5
-clickground 45 280 dblclick
-waitidle 120 20
+walkto 120 40 280
+walkto 120 25 292
+walkto 120 10 280
+walkto 120 25 305
+walkto 120 10 292
+walkto 120 40 304
+walkto 120 40 285
+walkto 120 36 265
+walkto 120 55 288
+walkto 120 52 292
+walkto 120 45 280
 # The north-west undead (1000188) keeps to about 11..27 x 266..292 and only fights a hero who stands near it.
-lookat 19 277
-frames 5
-lookat 19 277
-frames 5
-clickground 19 277 dblclick
-waitidle 120 60
-lookat 19 277
-frames 5
-lookat 19 277
-frames 5
-clickground 19 277 dblclick
-waitidle 120 60
+walkto 120 19 277 60
 waitdead 120 1000188 1000189 1000190 1000191 1000192 1000193 1000194 1000195 1000196 1000197
 
-# Back to exit 1 (the first walk's wait is longer: an undead met on the way may hold the hero in a fight).
-lookat 210 312
-frames 5
-lookat 210 312
-frames 5
-clickground 210 312 dblclick
-waitidle 240 20
-lookat 210 312
-frames 5
-lookat 210 312
-frames 5
-clickground 210 312 dblclick
-waitidle 120 20
-lookat 210 312
-frames 5
-lookat 210 312
-frames 5
-clickground 210 312 dblclick
-waitidle 120 20
-
+# Back to exit 1 (an undead met on the way may hold the hero in a fight).
+walkto 240 210 312
 waitwindow 30 msgbox
 key enter
 waitwindow 60 briefing
@@ -351,19 +138,11 @@ clickground 63 64 dblclick
 frames 60
 waitunit 10 Nsheriff
 clickunit Nsheriff
-frames 10
+waitdialogue 10 1
 capture topics
 awardfrom
 clickregion 1
-wait 4000
-click 400 300
-wait 800
-click 400 300
-wait 800
-click 400 300
-wait 800
-click 400 300
-wait 800
+talk 30
 # The awards reach both clients (ClientOnAward 0041EF90, applied by ApplyAwards).
 waitaward 120
 peersignal done

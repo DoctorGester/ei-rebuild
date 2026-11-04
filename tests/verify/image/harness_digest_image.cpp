@@ -716,6 +716,8 @@ UnitNow UnitNowOf(void* server, int id) {
     auto* u = static_cast<Unit*>(object);
     now.found = true;
     now.dead = u->dead != 0;
+    now.x = u->localPosition.x;
+    now.y = u->localPosition.y;
     EngineObject* controller = u->controller;
     if (controller && ClassOf(controller) == kClassUnitServer) {
         auto* c = static_cast<UnitServer*>(controller);

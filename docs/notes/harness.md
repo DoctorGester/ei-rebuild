@@ -59,8 +59,13 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   `waitunit <seconds> <name>` waits until `clickunit` would find the unit on screen. `frames <n>` lets the game run <n>
   frames (input posted before it has been handled after one). Plain `wait <ms>` is left for "let the world run this
   long". On the server world: `waitidle <seconds> [frames]` waits until the leader has stood idle for that many frames
-  (default 10), `waitdead <seconds> <id>...` until those units are dead, `waitaward <seconds>` until the leader's
-  experience or money changes (from an earlier `awardfrom`; `net_pair_quest.txt`).
+  (default 10), `walkto <seconds> <x> <y> [frames]` walks the leader to a map point (lookat, a ground double click,
+  then idle for that many frames, default 20; clicked again when a fight stopped it short), `waitdead <seconds>
+  <id>...` until those units are dead, `waitaward <seconds> [received]` until the leader's experience or money changes (from an
+  earlier `awardfrom`; `net_pair_quest.txt`; `served`: instead until the game server's queued awards, each kept 60 s, are
+  gone, `net_pair_leave.txt`). On the base screen: `waitdialogue <seconds> <state>` waits for its
+  dialogue state (1 a person's topics open: `clickregion` picks one), `talk <seconds>` clicks through the dialogue's
+  phrases and rewards until it is over (`net_pair_leave.txt`).
 - `key <key>` and `click/rclick/move <x> <y>` send keyboard and mouse input to the game window (coordinates in the
   800x600 interface layout); Esc and mouse clicks reach the interface. `clickregion/rclickregion/dblclickregion/
   moveregion <n>` do the same at the centre of region `<n>` of the window on top (region numbers as the screen's code
