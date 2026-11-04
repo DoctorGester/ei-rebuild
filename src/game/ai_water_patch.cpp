@@ -28,6 +28,6 @@ void AIMap::StampWaterPatch(const Vector3& position, bool add) {
     for (int yy = y0; yy < y1; ++yy)
         for (int xx = x0; xx < x1; ++xx)
             shape->levels[yy - y0][xx - x0] = static_cast<std::uint8_t>(waterDepth[yy][xx]);
-    if (add) unitLayerSmall.Add(key, patch, x0, y0);
-    else unitLayerSmall.Remove(key, x0, y0);
+    if (add) unitLayerSmall.Add(key, patch, {x0, y0});
+    else unitLayerSmall.Remove(key, {x0, y0});
 }

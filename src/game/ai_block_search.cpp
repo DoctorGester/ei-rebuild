@@ -118,17 +118,15 @@ bool RegionMap::SeedSearch(int sizeClass, bool flag, BlockSearch* search, Point 
     return seeded;
 }
 
-void RegionMap::UpdateBlocks(AIMap* aiMap, int x0, int x1, int y0, int y1) {
-    if (y0 < 0) y0 = 0;
-    if (edges[0].height <= y1) y1 = edges[0].height;
-    if (x0 < 0) x0 = 0;
-    if (edges[0].width <= x1) x1 = edges[0].width;
-    for (int y = y0; y < y1; ++y) {
-        for (int x = x0; x < x1; ++x) PickRepresentatives(aiMap, x, y);
+void RegionMap::UpdateBlocks(AIMap* aiMap, Rect blocks) {
+    const Point first = Max(blocks.TopLeft(), Point{});
+    const Point end = Min(blocks.BottomRight(), Point{edges[0].width, edges[0].height});
+    for (int y = first.y; y < end.y; ++y) {
+        for (int x = first.x; x < end.x; ++x) PickRepresentatives(aiMap, {x, y});
         if (progress) progress(static_cast<float>(y) / static_cast<float>(edges[0].height) * kFirstPassShare);
     }
-    for (int y = y0; y < y1; ++y) {
-        for (int x = x0; x < x1; ++x) MeasureBlockEdges(x, y);
+    for (int y = first.y; y < end.y; ++y) {
+        for (int x = first.x; x < end.x; ++x) MeasureBlockEdges({x, y});
         if (progress)
             progress(static_cast<float>(y) / static_cast<float>(edges[0].height) * kSecondPassShare + kFirstPassShare);
     }
@@ -136,10 +134,6 @@ void RegionMap::UpdateBlocks(AIMap* aiMap, int x0, int x1, int y0, int y1) {
     AttachSearches();
     LabelRegions();
     progress = nullptr;
-}
-
-void RegionMap::UpdateBlocksFor(AIMap* aiMap, int x0, int x1, int y0, int y1) {
-    UpdateBlocks(aiMap, x0, x1, y0, y1);
 }
 
 void RegionMap::AttachSearches() {
@@ -163,10 +157,8 @@ LocalSearch::LocalSearch() {
 BlockSearch::BlockSearch() { records.Resize(1, 1); }
 
 void AIDirtyRect::Reset() {
-    minX = 10000;
-    maxX = 0;
-    minY = 10000;
-    maxY = 0;
+    first = {10000, 10000};
+    last = {0, 0};
 }
 
 // ---- The event table ------------------------------------------------------------------------------

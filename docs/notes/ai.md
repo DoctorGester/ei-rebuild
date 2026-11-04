@@ -42,6 +42,10 @@ region (1, 2, ...) flooded from a queue of blocks.
   `Resize(width, height, fill, perCell)`, which leaves a grid of that size alone; `grid[y][x]` reads a row; new cells are
   `fill`, 0 by default): `waterDepth`, `cells` (the map's size), `occluders`, `marks`. The large-unit layer's Set / Merge
   also write signed bytes into `waterDepth`'s rows (the small layer writes the cells' `level` byte).
+- Cells and blocks are `Point`s (`grid[cell]`, `grid.Contains(cell)`). Areas come two ways: the refreshes
+  (`QueueRefresh`, `RefreshArea`, `LimitSteepCells`, `ClearUnmarkedArea`, the dirty rectangle) and
+  `LocalSearch::BeginInRect` take a `first` and a `last` cell, both inside; `RegionMap::UpdateBlocks` takes a `Rect` of
+  blocks (right and bottom edges outside, as everywhere `Rect` is used).
 - The packed words have names in ai_map.h: AIMapCell::flags is the water's depth (kCellDepthMask), kCellBridge and
   kCellWater; AIMapCell::Passability reads a size class's nibble; namespace `occluder` reads and writes the occluder word.
   The occluder kinds (sector_map.h `OccluderKind`) come from the part names (model.h BoundsFlag: "CROWN" kind 2, "BASE"

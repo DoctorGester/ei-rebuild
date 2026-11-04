@@ -7,7 +7,6 @@
 #include "core_maths.h"
 #include "core_refcount.h"
 #include "effects.h"
-#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/rounding.h"
 
@@ -215,7 +214,7 @@ constexpr int kUnreachable = 0x7FFFFFFF;
 constexpr float kAllOffsets = 1.0e20f;   // the spiral radius covering every offset
 
 struct Waypoint {
-    int x, y;
+    Point cell;
     PathCells::iterator region;
 };
 
@@ -223,12 +222,12 @@ constexpr float kThreshold = 15.0f;
 
 } // namespace
 
-bool AIMap::PlanLongPath(Unit* unit, int fromX, int fromY, int toX, int toY, AIPath* path, int retry, int maxCells) {
+bool AIMap::PlanLongPath(Unit* unit, Point from, Point to, AIPath* path, int retry, int maxCells) {
     PathCells chain;
     static SpiralCache spiral{0, -1.0f};
     int sizeClass = unit->sizeClass;
     path->cells.clear();
-    bool ok = regionMap.FindRegionChain(sizeClass, fromX, fromY, toX, toY, &chain, &path->excludedBlocks);
+    bool ok = regionMap.FindRegionChain(sizeClass, from, to, &chain, &path->excludedBlocks);
     if (!ok || std::ssize(chain) * 8 > maxCells) {
         chain.clear();
         return false;
@@ -237,8 +236,8 @@ bool AIMap::PlanLongPath(Unit* unit, int fromX, int fromY, int toX, int toY, AIP
 
     // The waypoints: each region's representative cell (the region cell byte's nibbles inside its
     // 8x8 block), then the target.
-    int curX = fromX, curY = fromY;
-    int bestX = fromX, bestY = fromY;
+    Point current = from;
+    Point best = from;
     std::vector<Waypoint> waypoints;
     SearchGrid<std::uint8_t>& cellRows = regionMap.cells[sizeClass];
     PathCells::iterator previous = chain.begin();
@@ -246,9 +245,9 @@ bool AIMap::PlanLongPath(Unit* unit, int fromX, int fromY, int toX, int toY, AIP
         PathCells::iterator owner = previous;
         previous = node;
         std::uint8_t cell = cellRows[node->y][node->x];
-        waypoints.push_back({RepresentativeX(cell) + node->x * 8, RepresentativeY(cell) + node->y * 8, owner});
+        waypoints.push_back({Representative(cell) + Point{node->x, node->y} * 8, owner});
     }
-    waypoints.push_back({toX, toY, previous});
+    waypoints.push_back({to, previous});
 
     int count = 0;
     const std::int16_t* offsets = spiral.Get(kAllOffsets, &count);
@@ -260,29 +259,26 @@ bool AIMap::PlanLongPath(Unit* unit, int fromX, int fromY, int toX, int toY, AIP
     bool failed = false;
     for (auto w = waypoints.begin(); w != waypoints.end();) {
         auto next = std::next(w);
-        if (!(w->x == curX && w->y == curY)) {
+        if (w->cell != current) {
             bool exact;
-            result = legs == 0 ? search->Begin(unit, curX, curY, w->x, w->y)
-                               : search->Recenter(curX, curY, w->x, w->y, reachedLast ? 0 : 1);
+            result = legs == 0 ? search->Begin(unit, current, w->cell)
+                               : search->Recenter(current, w->cell, reachedLast ? 0 : 1);
             ++legs;
             if (!result) {
                 failed = true;
                 failedAt = w;
                 break;
             }
-            if (search->ExpandUntil(w->x, w->y)) {
+            if (search->ExpandUntil(w->cell)) {
                 exact = true;
-                bestX = w->x;
-                bestY = w->y;
+                best = w->cell;
             } else {
                 exact = false;
                 bool found = false;
                 for (int k = 0; k < count; ++k) {
-                    int x = offsets[k * 2] + w->x;
-                    int y = offsets[k * 2 + 1] + w->y;
-                    if (search->CostAt(x, y) < kUnreachable) {
-                        bestX = x;
-                        bestY = y;
+                    const Point at = Point{offsets[k * 2], offsets[k * 2 + 1]} + w->cell;
+                    if (search->CostAt(at) < kUnreachable) {
+                        best = at;
                         result = true;
                         found = true;
                         break;
@@ -294,23 +290,22 @@ bool AIMap::PlanLongPath(Unit* unit, int fromX, int fromY, int toX, int toY, AIP
                     break;
                 }
             }
-            if (next == waypoints.end() && search->CostAt(toX, toY) == kUnreachable) {
+            if (next == waypoints.end() && search->CostAt(to) == kUnreachable) {
                 search->CommitDirections();
-                if (!search->Recenter(bestX, bestY, toX, toY, 1)) {
+                if (!search->Recenter(best, to, 1)) {
                     failed = true;
                     failedAt = w;
                     break;
                 }
                 search->ExpandAll();
-                result = search->CostAt(toX, toY) != kUnreachable;
+                result = search->CostAt(to) != kUnreachable;
             }
             if (!result) {
                 failed = true;
                 failedAt = w;
                 break;
             }
-            curY = bestY;
-            curX = bestX;
+            current = best;
             search->CommitDirections();
             reachedLast = exact;
         }
@@ -318,9 +313,9 @@ bool AIMap::PlanLongPath(Unit* unit, int fromX, int fromY, int toX, int toY, AIP
     }
 
     if (failed) {
-        int dx = fromX - bestX;
+        int dx = from.x - best.x;
         if (dx < 0) dx = -dx;
-        int dy = fromY - bestY;
+        int dy = from.y - best.y;
         if (dy < 0) dy = -dy;
         int shorter = dx < dy ? dx : dy;
         int diff = dx - dy;
@@ -328,38 +323,30 @@ bool AIMap::PlanLongPath(Unit* unit, int fromX, int fromY, int toX, int toY, AIP
         int distance = diff + ((shorter * 1448) >> 10);
         if (static_cast<float>(distance) > kThreshold) {
             search->CommitDirections();
-            toY = bestY;
-            toX = bestX;
+            to = best;
             path->failed = true;
             result = true;
-            float tx = static_cast<float>(bestX) + 0.5f;
+            float tx = static_cast<float>(best.x) + 0.5f;
             path->targetX = tx;
-            float ty = static_cast<float>(bestY) + 0.5f;
+            float ty = static_cast<float>(best.y) + 0.5f;
             path->targetY = ty;
         } else {
             search->Reset();
             bool retried = false;
             if (static_cast<char>(retry)) {
                 PathCells::iterator bad = failedAt->region;
-                int x = bad->x;
-                int y = bad->y;
-                std::vector<Point>* excluded = &path->excludedBlocks;
-                int size = lib::Count(*excluded);
-                excluded->resize(size + 1);
-                Point* data = excluded->data();
-                data[size].x = x;
-                data[size].y = y;
-                retried = PlanLongPath(unit, fromX, fromY, toX, toY, path, retry, maxCells);
+                path->excludedBlocks.push_back({bad->x, bad->y});
+                retried = PlanLongPath(unit, from, to, path, retry, maxCells);
             }
             return retried;
         }
     }
 
     if (result) {
-        marks[fromY][fromX] = 0;
-        BuildCellsTo({toX, toY}, &path->cells);
+        marks[from] = 0;
+        BuildCellsTo(to, &path->cells);
         auto first = path->cells.begin();
-        if (first->x != fromX || first->y != fromY) result = false;
+        if (first->x != from.x || first->y != from.y) result = false;
     }
     search->Reset();
     return result;

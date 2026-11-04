@@ -13,8 +13,9 @@
 
 namespace {
 
-std::uint32_t BridgeKey(int x, int y) {
-    return static_cast<std::uint32_t>((static_cast<int>(static_cast<short>(x)) << 16) + static_cast<short>(y));
+// (short)x << 16 | (short)y.
+std::uint32_t BridgeKey(Point at) {
+    return static_cast<std::uint32_t>((static_cast<int>(static_cast<short>(at.x)) << 16) + static_cast<short>(at.y));
 }
 
 // A bridge map entry's value: the ground level in the low word, the water depth in bits 16-21, the terrain type
@@ -27,12 +28,12 @@ std::uint32_t SavedType(std::uint32_t saved) { return occluder::Type(saved >> 24
 
 } // namespace
 
-void BridgeHeights::SaveCell(int x, int y, const AIMapCell& cell, std::uint32_t occluder) {
-    saved.try_emplace(BridgeKey(x, y), SavedCell(cell, occluder));
+void BridgeHeights::SaveCell(Point at, const AIMapCell& cell, std::uint32_t occluder) {
+    saved.try_emplace(BridgeKey(at), SavedCell(cell, occluder));
 }
 
-void BridgeHeights::RestoreCell(int x, int y, AIMapCell* cell, std::uint32_t* occluder) {
-    auto node = saved.find(BridgeKey(x, y));
+void BridgeHeights::RestoreCell(Point at, AIMapCell* cell, std::uint32_t* occluder) {
+    auto node = saved.find(BridgeKey(at));
     if (node == saved.end()) return;
     std::uint32_t entry = node->second;
     cell->groundLevel = static_cast<std::uint16_t>(entry);
@@ -41,23 +42,27 @@ void BridgeHeights::RestoreCell(int x, int y, AIMapCell* cell, std::uint32_t* oc
     saved.erase(node);
 }
 
+int BridgeHeights::HeightAt(Point at) const {
+    auto node = saved.find(BridgeKey(at));
+    return node != saved.end() ? static_cast<std::uint16_t>(node->second) : 0;
+}
+
 bool AIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
     if (remove) {
         for (int i = 0; i < std::ssize(set->cells); ++i) {
             FootprintCell& c = set->cells[i];
-            int x = c.x, y = c.y;
-            if (x < 0 || y < 0 || x >= cells.width || y >= cells.height || c.low >= c.high) continue;
+            const Point at{c.x, c.y};
+            if (!cells.Contains(at) || c.low >= c.high) continue;
             c.kind = OccluderKind::BridgeDeck;
             if (!ClearOccluderRecord(&c)) continue;
-            AIMapCell* cell = &cells[y][x];
+            AIMapCell* cell = &cells[at];
             int deck;
-            if (!BridgeDeckAt({x, y}, &deck)) {
-                if (cell->flags & kCellBridge)
-                    bridgeHeights.RestoreCell(x, y, &cells[y][x], &occluders[y][x]);
+            if (!BridgeDeckAt(at, &deck)) {
+                if (cell->flags & kCellBridge) bridgeHeights.RestoreCell(at, cell, &occluders[at]);
                 const int depth = cell->WaterDepth();
                 cell->flags = static_cast<std::uint8_t>(depth | (depth != 0 ? kCellWater : 0));
             } else {
-                int saved = bridgeHeights.HeightAt(static_cast<short>(x), static_cast<short>(y));
+                int saved = bridgeHeights.HeightAt(at);
                 cell->groundLevel = static_cast<std::uint16_t>(saved > deck ? saved : deck);
             }
         }
@@ -65,16 +70,16 @@ bool AIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
     }
     for (int i = 0; i < std::ssize(set->cells); ++i) {
         FootprintCell& c = set->cells[i];
-        int x = c.x, y = c.y;
-        if (x < 0 || y < 0 || x >= cells.width || y >= cells.height || c.low >= c.high) continue;
+        const Point at{c.x, c.y};
+        if (!cells.Contains(at) || c.low >= c.high) continue;
         c.kind = OccluderKind::BridgeDeck;
-        AIMapCell* cell = &cells[y][x];
-        if (!(cell->flags & kCellBridge)) bridgeHeights.SaveCell(x, y, *cell, occluders[y][x]);
+        AIMapCell* cell = &cells[at];
+        if (!(cell->flags & kCellBridge)) bridgeHeights.SaveCell(at, *cell, occluders[at]);
         if (!AddOccluderRecord(&c)) return false;
         cell->flags = kCellBridge;
         std::uint16_t deck = static_cast<std::uint16_t>(c.high);
         if (cell->groundLevel <= deck) cell->groundLevel = deck;
-        std::uint32_t& occluder = occluders[y][x];
+        std::uint32_t& occluder = occluders[at];
         occluder = occluder::WithType(occluder, occluder::kBridgeType);
     }
     return true;

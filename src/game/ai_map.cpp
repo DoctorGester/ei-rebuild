@@ -52,11 +52,6 @@ int StandingLevel(const Unit* unit) {
     return PositiveOrZero(lib::RoundEven((2.0f - unit->standingHeight) * 16.0f));
 }
 
-int BridgeHeights::HeightAt(short x, short y) const {
-    auto node = saved.find(static_cast<std::uint32_t>(x * 0x10000 + y));   // the key is (short)x << 16 | (short)y
-    return node != saved.end() ? static_cast<std::uint16_t>(node->second) : 0;
-}
-
 // --- Cell queries --------------------------------------------------------------------------------
 
 bool AIMap::CanStandAt(Unit* unit, Point cell, int* reason) {
@@ -351,30 +346,31 @@ bool AIMap::JoinLocalSearches(PathCells* path, int* cost) {
     LocalSearch* forward = &forwardSearch;
     LocalSearch* backward = &backwardSearch;
     bool ok = true;
-    int x = 0, y = 0, open = 0, other = 0;
+    Point meet;
+    int open = 0, other = 0;
     for (;;) {
         forward->Expand();
         backward->Expand();
-        forward->Best(&x, &y, &open);
+        forward->Best(&meet, &open);
         if (open == kUnreached) {
             ok = false;
             break;
         }
-        other = backward->CostAt(x, y);
+        other = backward->CostAt(meet);
         if (other < kUnreached) break;
-        backward->Best(&x, &y, &open);
+        backward->Best(&meet, &open);
         if (open == kUnreached) {
             ok = false;
             break;
         }
-        other = forward->CostAt(x, y);
+        other = forward->CostAt(meet);
         if (other < kUnreached) break;
     }
     PathCells scratch;
     if (ok) {
         if (cost) *cost = other + open;
-        forward->PathTo(x, y, path);
-        backward->PathTo(x, y, &scratch);
+        forward->PathTo(meet, path);
+        backward->PathTo(meet, &scratch);
         path->insert(path->end(), scratch.rbegin(), scratch.rend());
         PathCellsRemoveRepeats(path);
     }

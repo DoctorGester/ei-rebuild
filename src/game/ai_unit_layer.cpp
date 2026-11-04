@@ -50,10 +50,10 @@ bool BlockInMap(const AIMap* map, const UnitLayerNode* block, BlockArea* area) {
 
 } // namespace
 
-void UnitLayer::Add(UnitLayerOwner owner, const UnitShape* shape, int x, int y) {
+void UnitLayer::Add(UnitLayerOwner owner, const UnitShape* shape, Point topLeft) {
     // The shape placed in a 20x20 grid at the unit's offset within its 4-cell block.
     std::uint8_t grid[20 * 20] = {};
-    std::uint8_t* row = grid + (x & 3) + (y & 3) * 20;
+    std::uint8_t* row = grid + (topLeft.x & 3) + (topLeft.y & 3) * 20;
     for (int r = 0; r < 16; ++r, row += 20) std::memcpy(row, shape->levels[r], 16);
 
     UnitLayerNode* node = TakeNode(this);
@@ -61,8 +61,8 @@ void UnitLayer::Add(UnitLayerOwner owner, const UnitShape* shape, int x, int y) 
         for (int bx = 0; bx < 5; ++bx) {
             for (int r = 0; r < 4; ++r) std::memcpy(&node->levels[r * 4], grid + (by * 4 + r) * 20 + bx * 4, 4);
             if (!AnyLevel(node)) continue;
-            int keyY = (y >> 2) + by;
-            int keyX = (x >> 2) + bx;
+            int keyY = (topLeft.y >> 2) + by;
+            int keyX = (topLeft.x >> 2) + bx;
             node->key = (keyY << 16) + keyX;
             node->owner = owner;
             UnitLayerNode*& bucket = buckets[UnitLayerBucket(keyX, keyY)];
@@ -76,8 +76,8 @@ void UnitLayer::Add(UnitLayerOwner owner, const UnitShape* shape, int x, int y) 
     freeNodes = node;
 }
 
-void UnitLayer::Remove(UnitLayerOwner owner, int x, int y) {
-    int firstY = y >> 2, firstX = x >> 2;
+void UnitLayer::Remove(UnitLayerOwner owner, Point topLeft) {
+    int firstY = topLeft.y >> 2, firstX = topLeft.x >> 2;
     for (int by = firstY; by < firstY + 5; ++by) {
         for (int bx = firstX; bx < firstX + 5; ++bx) {
             // What is left of the block: the other units' levels, merged. (The original leaves the

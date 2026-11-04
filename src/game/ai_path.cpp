@@ -30,40 +30,38 @@ constexpr float kInset = 0.49f;
 } // namespace
 
 bool AIMap::SnapTarget(Unit* unit, Vector3* target, bool sameRegion, float minDistance) {
-    int tx = WorldToCell(target->x), ty = WorldToCell(target->y);
+    const Point targetCell = WorldToCell(*target);
     target->x = 2.0f * target->x;
     target->y = 2.0f * target->y;
     int reason;
     if (!sameRegion) {
         if (unit->GetClassId() != ClassId::Unit) return true;
-        if (CanStandAt(unit, {tx, ty}, &reason) && IsCellPassable(this, unit, {tx, ty})) return true;
+        if (CanStandAt(unit, targetCell, &reason) && IsCellPassable(this, unit, targetCell)) return true;
     }
 
     Vector3 from;
     from = unit->localPosition;
-    int ux = WorldToCell(from.x), uy = WorldToCell(from.y);
+    const Point unitCell = WorldToCell(from);
+    const Point delta = targetCell - unitCell;
+    const Point span{delta.x < 0 ? -delta.x : delta.x, delta.y < 0 ? -delta.y : delta.y};
     int sizeClass = unit->sizeClass;
     int region = 0;
     if (sameRegion) {
-        region = regionMap.DominantRegion(sizeClass, {ux, uy});
-        // Clear the reachability marks in the box spanned by the unit and the target (and a margin).
-        int dx = (tx - ux < 0 ? ux - tx : tx - ux) + 1;
-        int x0 = tx - dx, x1 = tx + dx + 1;
-        int dy = (ty - uy < 0 ? uy - ty : ty - uy) + 1;
-        int y0 = ty - dy, y1 = ty + dy + 1;
-        if (x0 < 0) x0 = 0;
-        if (cells.width < x1) x1 = cells.width;
-        if (y0 < 0) y0 = 0;
-        if (cells.height < y1) y1 = cells.height;
-        for (int y = y0; y < y1; ++y) {
-            for (int x = x0; x < x1; ++x) marks[y][x] = 0;
+        region = regionMap.DominantRegion(sizeClass, unitCell);
+        // Clear the reachability marks in the box spanned by the unit and the target (and a margin; the box's end
+        // outside it).
+        const Point margin = span + Point{1, 1};
+        const Point first = Max(targetCell - margin, Point{});
+        const Point end = Min(targetCell + margin + Point{1, 1}, Point{cells.width, cells.height});
+        for (int y = first.y; y < end.y; ++y) {
+            for (int x = first.x; x < end.x; ++x) marks[y][x] = 0;
         }
     }
 
     // Unit steps along the line from the target back to the unit (the longer axis steps by 1).
-    int dyCells = ty - uy, dxCells = tx - ux;
-    int ady = dyCells < 0 ? -dyCells : dyCells;
-    int adx = dxCells < 0 ? -dxCells : dxCells;
+    int dyCells = delta.y, dxCells = delta.x;
+    int ady = span.y;
+    int adx = span.x;
     // The unit on the target cell: no line to walk back, so only the target cell itself is a candidate.
     int steps;
     float sx, sy;
@@ -98,8 +96,8 @@ bool AIMap::SnapTarget(Unit* unit, Vector3* target, bool sameRegion, float minDi
         int count = r != 0 ? 8 : 1;
         float distance = static_cast<float>(r);
         for (int d = 0; d < count; ++d) {
-            const Point cell{tx - lib::RoundEven(distance * directions[d][0]),
-                             ty - lib::RoundEven(distance * directions[d][1])};
+            const Point cell = targetCell - Point{lib::RoundEven(distance * directions[d][0]),
+                                                  lib::RoundEven(distance * directions[d][1])};
             if (unit->GetClassId() == ClassId::Unit) {
                 if (!CanStandAt(unit, cell, &reason) || !IsCellPassable(this, unit, cell)) continue;
             }
@@ -116,10 +114,10 @@ bool AIMap::SnapTarget(Unit* unit, Vector3* target, bool sameRegion, float minDi
                 target->x = fx;
                 float fy = static_cast<float>(cell.y) + 0.5f;
                 target->y = fy;
-                if (fx > static_cast<float>(tx)) target->x = fx - kInset;
-                if (static_cast<float>(tx) > target->x) target->x = target->x + kInset;
-                if (fy > static_cast<float>(ty)) target->y = fy - kInset;
-                if (static_cast<float>(ty) > target->y) target->y = target->y + kInset;
+                if (fx > static_cast<float>(targetCell.x)) target->x = fx - kInset;
+                if (static_cast<float>(targetCell.x) > target->x) target->x = target->x + kInset;
+                if (fy > static_cast<float>(targetCell.y)) target->y = fy - kInset;
+                if (static_cast<float>(targetCell.y) > target->y) target->y = target->y + kInset;
             }
             return true;
         }
@@ -180,22 +178,20 @@ bool AIMap::FindPath(Unit* unit, const Vector3& target, AIPath* path, float rang
         sectorMap.Add(unit);
         return false;
     }
-    int tx = lib::RoundEven(goal.x - 0.5f);
-    int ty = lib::RoundEven(goal.y - 0.5f);
-    int ux = lib::RoundEven(fx - 0.5f);
-    int uy = lib::RoundEven(fy - 0.5f);
+    const Point targetCell{lib::RoundEven(goal.x - 0.5f), lib::RoundEven(goal.y - 0.5f)};
+    const Point unitCell{lib::RoundEven(fx - 0.5f), lib::RoundEven(fy - 0.5f)};
 
     bool found = false;
     PathCell cell;
     PathCells& pathCells = path->cells;
-    if (ux == tx && uy == ty) {
+    if (unitCell == targetCell) {
         int reason;
         if (unit->GetClassId() == ClassId::Unit &&
-            !(CanStandAt(unit, {tx, ty}, &reason) && IsCellPassable(this, unit, {tx, ty}))) {
+            !(CanStandAt(unit, targetCell, &reason) && IsCellPassable(this, unit, targetCell))) {
             goto done;
         }
-        cell.x = static_cast<std::int16_t>(ux);
-        cell.y = static_cast<std::int16_t>(uy);
+        cell.x = static_cast<std::int16_t>(unitCell.x);
+        cell.y = static_cast<std::int16_t>(unitCell.y);
         SetPlainCellWords(&cell);
         pathCells.insert(pathCells.begin(), cell);
         found = true;
@@ -204,15 +200,16 @@ bool AIMap::FindPath(Unit* unit, const Vector3& target, AIPath* path, float rang
     }
 
     {
-        int adx = ux - tx < 0 ? tx - ux : ux - tx;
-        int ady = uy - ty < 0 ? ty - uy : uy - ty;
+        const Point delta = unitCell - targetCell;
+        int adx = delta.x < 0 ? -delta.x : delta.x;
+        int ady = delta.y < 0 ? -delta.y : delta.y;
         int shorter = adx < ady ? adx : ady;
         int diff = adx - ady < 0 ? ady - adx : adx - ady;
         bool tried = false;
         if (diff + ((shorter * 0x5A8) >> 10) <= 24) {
             pathCells.clear();
-            if (forwardSearch.Begin(unit, ux, uy, tx, ty)) {
-                if (!backwardSearch.Begin(unit, tx, ty, ux, uy)) {
+            if (forwardSearch.Begin(unit, unitCell, targetCell)) {
+                if (!backwardSearch.Begin(unit, targetCell, unitCell)) {
                     forwardSearch.Reset();
                 } else {
                     found = JoinLocalSearches(&pathCells, nullptr);
@@ -227,20 +224,19 @@ bool AIMap::FindPath(Unit* unit, const Vector3& target, AIPath* path, float rang
                 sectorMap.Add(unit);
                 return false;
             }
-            int gx = lib::RoundEven(goal.x - 0.5f);
-            int gy = lib::RoundEven(goal.y - 0.5f);
+            const Point goalCell{lib::RoundEven(goal.x - 0.5f), lib::RoundEven(goal.y - 0.5f)};
             path->targetX = goal.x;
             path->targetY = goal.y;
-            if (ux == gx && uy == gy) {
+            if (unitCell == goalCell) {
                 PathCell& first = *pathCells.emplace(pathCells.begin());
-                first.x = static_cast<std::int16_t>(ux);
-                first.y = static_cast<std::int16_t>(uy);
+                first.x = static_cast<std::int16_t>(unitCell.x);
+                first.y = static_cast<std::int16_t>(unitCell.y);
                 SetPlainCellWords(&first);
                 found = true;
             } else {
                 int flag = path->mayExcludeRegions || path->firstSearch ? 1 : 0;
                 int rangeCells = WorldToCell(range);
-                found = PlanLongPath(unit, ux, uy, gx, gy, path, flag, rangeCells);
+                found = PlanLongPath(unit, unitCell, goalCell, path, flag, rangeCells);
                 if (!found) goto done;
             }
         }

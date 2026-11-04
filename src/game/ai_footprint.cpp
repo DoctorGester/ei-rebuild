@@ -140,8 +140,7 @@ bool AIMap::CollectFootprint(MapObject* object, FootprintCellSet* footprintSet, 
         if (!InBounds(under)) {
             ground = 0.0f;
         } else if (cells[under].flags & kCellBridge) {
-            ground = static_cast<float>(bridgeHeights.HeightAt(static_cast<short>(under.x), static_cast<short>(under.y))) /
-                     heightScale;
+            ground = static_cast<float>(bridgeHeights.HeightAt(under)) / heightScale;
         } else {
             ground = GroundHeight(under);
         }
@@ -186,22 +185,17 @@ bool AIMap::CollectFootprint(MapObject* object, FootprintCellSet* footprintSet, 
     return hasBridge;
 }
 
-void AIMap::QueueRefresh(int minX, int maxX, int minY, int maxY) {
+void AIMap::QueueRefresh(Point first, Point last) {
     if (!batching) {
-        RefreshArea(minX, maxX, minY, maxY);
+        RefreshArea(first, last);
         return;
     }
-    if (dirty.minX < minX) minX = dirty.minX;
-    dirty.minX = minX;
-    if (dirty.maxX > maxX) maxX = dirty.maxX;
-    dirty.maxX = maxX;
-    if (!(dirty.minY < minY)) dirty.minY = minY;
-    if (!(dirty.maxY > maxY)) dirty.maxY = maxY;
+    dirty.first = Min(dirty.first, first);
+    dirty.last = Max(dirty.last, last);
 }
 
 bool AIMap::MarkFootprint(MapObject* object, bool remove) {
-    int cellX = WorldToCell(object->localPosition.x);
-    int cellY = WorldToCell(object->localPosition.y);
+    const Point cell = WorldToCell(object->localPosition);
     ResetCellSet(&footprint);
     ResetCellSet(&bridges);
 
@@ -210,8 +204,9 @@ bool AIMap::MarkFootprint(MapObject* object, bool remove) {
         auto* shape = static_cast<const UnitShape*>(ShapeForHeight(unit->standingHeight));
         if (!shape) return true;
         UnitLayer* layer = unit->IsLargeUnit() ? static_cast<UnitLayer*>(&unitLayerLarge) : &unitLayerSmall;
-        if (remove) layer->Remove(unit, cellX - 8, cellY - 8);
-        else layer->Add(unit, shape, cellX - 8, cellY - 8);
+        const Point topLeft = cell - Point{8, 8};
+        if (remove) layer->Remove(unit, topLeft);
+        else layer->Add(unit, shape, topLeft);
         return true;
     }
 
@@ -227,7 +222,7 @@ bool AIMap::MarkFootprint(MapObject* object, bool remove) {
 
     std::uint8_t savedRefreshUnits = refreshUnits;
     refreshUnits = savedRefreshUnits && object->KeepsMapFlag();
-    QueueRefresh(minX - 3, maxX + 3, minY - 3, maxY + 3);
+    QueueRefresh({minX - 3, minY - 3}, {maxX + 3, maxY + 3});
     refreshUnits = savedRefreshUnits;
     return fits;
 }
@@ -251,7 +246,7 @@ bool AIMap::StampFootprint(int tick, FootprintCellSet* set) {
     refreshUnits = false;
     bool fits = ApplyFootprint(set, false);
     auto r = set->GetBounds();
-    QueueRefresh(r[0] - 3, r[1] + 3, r[2] - 3, r[3] + 3);
+    QueueRefresh({r[0] - 3, r[2] - 3}, {r[1] + 3, r[3] + 3});
     footprintTick = tick;
     refreshUnits = savedRefreshUnits;
     return fits;
@@ -262,14 +257,14 @@ bool AIMap::ClearFootprint(FootprintCellSet* set) {
     refreshUnits = false;
     bool cleared = ApplyFootprint(set, true);
     auto r = set->GetBounds();
-    QueueRefresh(r[0] - 3, r[1] + 3, r[2] - 3, r[3] + 3);
+    QueueRefresh({r[0] - 3, r[2] - 3}, {r[1] + 3, r[3] + 3});
     refreshUnits = savedRefreshUnits;
     return cleared;
 }
 
 void AIMap::BeginRefresh() {
     if (batching) {
-        RefreshArea(dirty.minX, dirty.maxX, dirty.minY, dirty.maxY);
+        RefreshArea(dirty.first, dirty.last);
         batching = false;
     }
     dirty.Reset();
@@ -277,6 +272,6 @@ void AIMap::BeginRefresh() {
 }
 
 void AIMap::EndRefresh() {
-    RefreshArea(dirty.minX, dirty.maxX, dirty.minY, dirty.maxY);
+    RefreshArea(dirty.first, dirty.last);
     batching = false;
 }
