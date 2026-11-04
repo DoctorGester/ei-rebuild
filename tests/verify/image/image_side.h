@@ -50,6 +50,8 @@ void* ClientUnit(unsigned id, std::uint32_t** flags, std::uint32_t** rotation);
 
 // The sessions' state as console lines (harness_netstate_read.h).
 std::vector<std::string> NetState();
+// The awards the game server keeps queued (each for 60 s: ServerSession::QueueAward), -1 without a server.
+int ServerAwards();
 
 // ---- the game's global objects (harness_objects.h; image/harness_objects_image.cpp)
 
@@ -125,6 +127,7 @@ void ScaleToScreen(int* x, int* y);             // Interface3D::ScalePointToScre
 void InterfaceSize(int* width, int* height);
 bool SaveLoadSliding(void* window);
 bool OptionsSliding(void* window);
+int DialogueState(void* window);                // the base screen's dialogue state (BriefingScreen::state), else -1
 bool HasChatOverlay();
 void ChatKeyEnter();
 void CloseChat();

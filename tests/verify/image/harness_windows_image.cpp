@@ -61,6 +61,11 @@ std::string WindowKind(const void* window) {
     return name;
 }
 
+int DialogueState(void* window) {
+    auto* briefing = dynamic_cast<BriefingScreen*>(static_cast<UiWindow*>(window));
+    return briefing ? briefing->state : -1;
+}
+
 bool IsWindowName(const std::string& name) {
     for (const Named& named : NamedWindows())
         if (name == named.name) return true;

@@ -33,7 +33,6 @@ clickregion 0
 waitwindow 40 briefing
 peersignal joined
 peerwait 60 kicked
-frames 20
 waitwindow 20 msgbox
 key enter
 waitmenu 30
@@ -64,7 +63,6 @@ clickregion 0
 waitwindow 40 briefing
 peersignal back
 peerwait 60 banned
-frames 20
 waitwindow 20 msgbox
 key enter
 waitmenu 30
@@ -90,7 +88,6 @@ wait 4000
 clickregion 15
 frames 5
 clickregion 0
-frames 60
 waitwindow 20 msgbox
 peersignal refused
 frames 2

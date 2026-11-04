@@ -55,6 +55,7 @@ frames 20
 netcut
 peersignal cut
 waitwindow 150 msgbox
+peersignal lost
 key enter
 waitmenu 30
 report
