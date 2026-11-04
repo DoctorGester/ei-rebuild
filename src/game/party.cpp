@@ -40,18 +40,19 @@ namespace {
 // A counted object the party owns: its count dropped and the object deleted, whatever the count, and the
 // pointer cleared.
 template <typename T>
-void Drop(T*& object) {
+void DeleteCounted(T*& object) {
     if (object == nullptr) return;
     --object->refCount;
     delete object;
     object = nullptr;
 }
 
-void ReleaseItems(const std::vector<Item*>& items) {
-    for (int i = 0; i < std::ssize(items); ++i) items[i]->Release();
-}
-
 } // namespace
+
+void ReleaseItems(std::vector<Item*>& list) {
+    for (Item* item : list) item->Release();
+    list.clear();
+}
 
 Party::Party() = default;
 
@@ -91,16 +92,14 @@ void Party::Create() {
 void Party::Destroy() {
     members.clear();
     ReleaseItems(items);
-    items.clear();
-    Drop(itemConstructor);
-    Drop(spellConstructor);
-    Drop(itemManager);
-    Drop(spellManager);
+    DeleteCounted(itemConstructor);
+    DeleteCounted(spellConstructor);
+    DeleteCounted(itemManager);
+    DeleteCounted(spellManager);
 }
 
 void Party::Clear(int clearVariables, int keepSpells) {
     ReleaseItems(items);
-    items.clear();
     if (itemManager != nullptr) itemManager->DestroyAll();
     if (spellManager != nullptr) {
         spellManager->Destroy();
@@ -202,20 +201,10 @@ namespace {
 // A flag argument read as a byte.
 bool ByteFlag(int flag) { return static_cast<std::uint8_t>(flag) != 0; }
 
-// Appends `item` to `list` (SetSize(count + 1) and store, inlined).
-void Append(std::vector<Item*>& list, Item* item) {
-    int index = lib::Count(list);
-    list.resize(index + 1);
-    list[index] = item;
-}
-
-// Removes the element at `index`, closing the gap.
-void RemoveAt(std::vector<Item*>& list, int index) { list.erase(list.begin() + index); }
-
 Item* AddEntry(std::vector<Item*>& list, Item* item) {
     Item* entry = item->Clone(item->GetManagerContext()->GetSpellManager());
     entry->AddRef();
-    Append(list, entry);
+    list.push_back(entry);
     return entry;
 }
 
@@ -223,7 +212,7 @@ void RemoveEntry(std::vector<Item*>& list, Item* entry) {
     for (int i = 0; i < std::ssize(list); ++i) {
         if (list[i] != entry) continue;
         entry->Release();
-        RemoveAt(list, i);
+        list.erase(list.begin() + i);
         return;
     }
 }
@@ -252,7 +241,7 @@ Item* Party::AddItem(Item* item, int keepCount, int merge) {
     }
     Item* copy = CopyItem(item);
     copy->count = static_cast<std::uint32_t>(count);
-    Append(items, copy);
+    items.push_back(copy);
     copy->AddRef();
     return copy;
 }
@@ -266,7 +255,7 @@ Item* Party::RemoveItem(Item* item, int all) {
             return entry;
         }
         entry->Release();
-        RemoveAt(items, i);
+        items.erase(items.begin() + i);
         return nullptr;
     }
     return nullptr;
@@ -277,11 +266,6 @@ void Party::RemoveQuestItems() {
         Item* item = items[i];
         if (item->GetClassId() == ClassId::ItemQuest) RemoveItem(item, 1);
     }
-}
-
-void Party::ReleaseAllItems() {
-    for (int i = 0; i < std::ssize(items); ++i) items[i]->Release();
-    items.clear();
 }
 
 // --- The party unit records' item lists ---------------------------------------------------------
@@ -310,8 +294,7 @@ float PartyUnitRecord::CarriedWeight() const {
 // --- Members -----------------------------------------------------------------------------------------
 
 // A party's unit records: adding one from a prototype (its texts, statistics and starting items),
-// removing one, the record's assignment and the copy of another record's items; the record lists' copies of
-// item arrays' SetAtGrow. See party.h, unit.h and docs/notes/items_spells.md ("Party").
+// removing one, the record's assignment and the copy of another record's items. See party.h, unit.h and docs/notes/items_spells.md ("Party").
 
 namespace {
 
@@ -325,12 +308,10 @@ Item* CountedClone(Item* item) {
     return copy;
 }
 
-void Drop(Item* item) {
+// Appends a counted copy of `item` to `list` (nothing for a null item), then releases `item`.
+void AppendCopy(std::vector<Item*>& list, Item* item) {
+    if (Item* copy = CountedClone(item)) list.push_back(copy);
     if (item) item->Release();
-}
-
-void ReleaseAll(const std::vector<Item*>& list) {
-    for (int i = 0; i < std::ssize(list); ++i) list[i]->Release();
 }
 
 // A weapon name that gives a weapon: not empty and not "none" (_mbsicmp).
@@ -391,58 +372,25 @@ void Party::FillFromPrototype(PartyUnitRecord* record) {
     record->height = prototype->scale.z;
 
     // What the prototype lookup copies out of the prototype: armour names, the two weapon names, spell names.
-    const std::vector<std::string>& armour = prototype->armourNames;
-    for (int i = 0; i < static_cast<int>(armour.size()); ++i) {
-        Item* item = ItemFactory()->CreateItem(armour.begin()[i]);
-        if (Item* copy = CountedClone(item)) lib::SetAtGrow(record->armor, lib::Count(record->armor), copy);
-        Drop(item);
-    }
+    for (const std::string& name : prototype->armourNames) AppendCopy(record->armor, ItemFactory()->CreateItem(name));
     for (const auto* weapon : {&prototype->weaponName, &prototype->secondWeaponName}) {
-        if (!Named((*weapon))) continue;
-        Item* item = ItemFactory()->CreateItem(*weapon);
-        if (Item* copy = CountedClone(item)) lib::SetAtGrow(record->weapons, lib::Count(record->weapons), copy);
-        Drop(item);
+        if (Named(*weapon)) AppendCopy(record->weapons, ItemFactory()->CreateItem(*weapon));
     }
-    const std::vector<std::string>& spellNames = prototype->spellNames;
-    for (int i = 0; i < static_cast<int>(spellNames.size()); ++i) {
-        SpellManager* spellOwner = GetSpellManager();
-        auto* spell = ItemFactory()->CreateSpellItem(spellNames.begin()[i], spellOwner);
-        if (Item* copy = CountedClone(spell)) record->spells.push_back(copy);
-        Drop(spell);
-    }
+    for (const std::string& name : prototype->spellNames)
+        AppendCopy(record->spells, ItemFactory()->CreateSpellItem(name, GetSpellManager()));
     record->texts[6] = record->texts[5];
 }
 
 bool Party::EquipFromPrototype(PartyUnitRecord* record) {
-    // Each list emptied from the front (the first entry is looked up and found at 0).
-    for (std::vector<Item*>* list : {&record->spells, &record->weapons}) {
-        while (!list->empty()) {
-            (*list)[0]->Release();
-            list->erase(list->begin() + 0, list->begin() + (0 + 1));
-        }
-    }
+    ReleaseItems(record->spells);
+    ReleaseItems(record->weapons);
     auto* npc = g_unitDatabase.npcs.FindByName(record->texts[5]);
     if (!npc) return false;
 
-    const std::vector<std::string>& spellNames = npc->startSpells;
-    for (unsigned i = 0; i < static_cast<unsigned>(spellNames.size()); ++i) {
-        SpellManager* spellOwner = GetSpellManager();
-        auto* spell = ItemFactory()->CreateSpellItem(spellNames.begin()[i], spellOwner);
-        if (Item* copy = CountedClone(spell)) record->spells.push_back(copy);
-        Drop(spell);
-    }
-    const std::vector<std::string>& quickNames = npc->startQuickItems;
-    for (unsigned i = 0; i < static_cast<unsigned>(quickNames.size()); ++i) {
-        Item* item = ItemFactory()->CreateItem(quickNames.begin()[i]);
-        if (Item* copy = CountedClone(item)) lib::SetAtGrow(record->quickItems, lib::Count(record->quickItems), copy);
-        Drop(item);
-    }
-    const std::vector<std::string>& weaponNames = npc->startWeapons;
-    for (unsigned i = 0; i < static_cast<unsigned>(weaponNames.size()); ++i) {
-        Item* item = ItemFactory()->CreateItem(weaponNames.begin()[i]);
-        if (Item* copy = CountedClone(item)) lib::SetAtGrow(record->weapons, lib::Count(record->weapons), copy);
-        Drop(item);
-    }
+    for (const std::string& name : npc->startSpells)
+        AppendCopy(record->spells, ItemFactory()->CreateSpellItem(name, GetSpellManager()));
+    for (const std::string& name : npc->startQuickItems) AppendCopy(record->quickItems, ItemFactory()->CreateItem(name));
+    for (const std::string& name : npc->startWeapons) AppendCopy(record->weapons, ItemFactory()->CreateItem(name));
     money += npc->startMoney;
     record->stats.AddExperience(npc->experienceFloor);
     record->texts[6] = record->texts[5];
@@ -483,14 +431,10 @@ PartyUnitRecord& PartyUnitRecord::operator=(PartyUnitRecord&& from) noexcept {
 }
 
 void PartyUnitRecord::ClearItems() {
-    ReleaseAll(weapons);
-    ReleaseAll(quickItems);
-    ReleaseAll(armor);
-    ReleaseAll(spells);
-    weapons.clear();
-    quickItems.clear();
-    armor.clear();
-    spells.clear();
+    ReleaseItems(weapons);
+    ReleaseItems(quickItems);
+    ReleaseItems(armor);
+    ReleaseItems(spells);
 }
 
 // --- Save --------------------------------------------------------------------------------------------
@@ -508,7 +452,7 @@ void WriteItemIds(ByteStream* stream, const std::vector<Item*>& list) {
 
 // Releases what the list holds, then reads a count and that many ids, each resolved in `manager` and counted.
 void ReadItemIds(ByteStream* stream, std::vector<Item*>& list, BaseManager* manager) {
-    for (int i = 0; i < std::ssize(list); ++i) list[i]->Release();
+    ReleaseItems(list);
     list.resize(stream->ReadCount());
     for (Item*& item : list) {
         item = FindItem(manager, static_cast<unsigned>(stream->ReadId()));
@@ -520,14 +464,6 @@ void ReadItemIds(ByteStream* stream, std::vector<Item*>& list, BaseManager* mana
 constexpr int kVersionRecord77C = 0x5B;
 constexpr int kVersionRecord780 = 0x61;
 constexpr int kVersionRecordText6 = 0x6B;
-
-void CopyThrough(Party* target, Party* source) {
-    // Through an empty memory stream, freed afterwards.
-    MemoryStream copy;
-    source->SaveParty(&copy, 1);
-    copy.MemoryStream::Seek(0);
-    target->LoadParty(&copy, 1);
-}
 
 } // namespace
 
@@ -629,25 +565,25 @@ void Party::SaveParty(ByteStream* stream, int saveVariables) {
     stream->WriteValue(key);
 }
 
+void Party::CopyFrom(Party* source) {
+    MemoryStream copy;
+    source->SaveParty(&copy, 1);
+    copy.MemoryStream::Seek(0);
+    LoadParty(&copy, 1);
+}
+
 Party* Party::Assign(Party* source) {
     Clear(1, 0);
-    CopyThrough(this, source);
+    CopyFrom(source);
     return this;
 }
 
-Party::Party(Party& source) : Party() { CopyThrough(this, &source); }
+Party::Party(Party& source) : Party() { CopyFrom(&source); }
 
 // --- The party as a stream field of an archive --------------------------------------
 
-void Party::ArchiveParty(ChunkArchive* ar) {
-    constexpr int kStreamField = 1;
-    MemoryStream held;
-    if (ar->loading) {
-        ar->StreamField(kStreamField, &held);
-        held.version = static_cast<std::uint32_t>(ar->version);
-        LoadParty(&held, 1);
-    } else {
-        SaveParty(&held, 1);
-        ar->StreamField(kStreamField, &held);
-    }
+void Party::ArchiveParty(ChunkArchive* ar, int field) {
+    ar->StreamFieldOf(
+        field, [this](MemoryStream* stream) { SaveParty(stream, 1); },
+        [this](MemoryStream* stream) { LoadParty(stream, 1); });
 }

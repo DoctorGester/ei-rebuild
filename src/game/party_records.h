@@ -1,7 +1,7 @@
 #pragma once
 
 // Named party records (0x7C bytes, a counted object): a party object and the name scripts refer to it by.
-// The party manager keeps them in a vector followed by two strings. Names are provisional.
+// The party manager keeps them in a vector followed by two strings.
 
 #include "core_refcount.h"
 #include "party.h"

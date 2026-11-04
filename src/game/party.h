@@ -27,6 +27,9 @@ struct PartyUnitRecord;
 // The party whose records are being loaded (set by Party::LoadParty around the records).
 inline Party* g_loadingParty = /*007C8344*/ {nullptr};
 
+// Every item of the list released (one reference each) and the list emptied.
+void ReleaseItems(std::vector<Item*>& list);
+
 class Party : public ManagerContext {
 public:
     // Empty record and item arrays, an empty variable map, an empty zone name, no managers. The money and the
@@ -66,8 +69,6 @@ public:
     Item* RemoveItem(Item* item, int all);   // `all` read as a byte
     // Every quest item (class 0x14) taken out with RemoveItem(item, 1), from the back of the list.
     void RemoveQuestItems();
-    // Every item released, the list's storage freed and the list emptied (what Destroy and Clear inline).
-    void ReleaseAllItems();
 
     // Appends a unit record: Create when there is no item manager; a constructed record assigned to the new
     // entry (its statistics are the stack's leftover bytes); `name` as text 1 and its text key (-1 when
@@ -109,9 +110,12 @@ public:
     // (with `saveVariables`), then money xor an ISAAC key and the key.
     void SaveParty(ByteStream* stream, int saveVariables);
     // The party in an archive: a memory stream holding SaveParty's output (with variables) as stream field
-    // 1, read back with the archive's version.
-    void ArchiveParty(ChunkArchive* ar);
-    // Clear(1, 0), then `source` saved into a memory stream and loaded back (variables included).
+    // `field`, read back with the archive's version.
+    void ArchiveParty(ChunkArchive* ar, int field);
+    // This party becomes a copy of `source` (variables included): saved into a memory stream and loaded back.
+    // Loading clears this party first.
+    void CopyFrom(Party* source);
+    // Clear(1, 0), then CopyFrom(source).
     Party* Assign(Party* source);
 
     ItemManager* itemManager = nullptr;

@@ -913,9 +913,6 @@ void ScriptFreeTemporaries(Script* script);
 // the timed effects (FX sources, point lights, particle sources).
 void ScriptTick(Script* script);
 
-// QFinish: one declared script per objective, chaining to the next, loaded with the WorldScript started.
-void ScriptQuestFinish(Script* script);
-
 // Frees everything loaded (the point light slots stay, zeroed); error text "Unknown error", the two counters
 // -2.
 void ScriptReset(Script* script);
@@ -936,9 +933,18 @@ struct ScriptQuestObjective {
     std::string text;       // its string argument (empty for QObjArea / QObjGetItem)
     float value;            // its float argument
 };
-extern std::vector<ScriptQuestObjective> g_scriptQuestObjectives;   // script_exec_helpers.cpp
-extern std::string g_scriptQuestName;
+// The quest the QStart / QObj* / QFinish commands build, one for every script.
+struct ScriptQuestBuilder {
+    // QStart: the old objectives dropped, the quest named.
+    void Start(const char* questName);
+    // The QObj* commands (type, text, with the value on the stack): appends {type, text, value}.
+    void AddObjective(int type, const std::string& text, float value);
+    // QFinish: one declared script per objective, chaining to the next, loaded with the WorldScript started.
+    void Finish(Script* script);
+
+    std::string name;
+    std::vector<ScriptQuestObjective> objectives;
+};
+extern ScriptQuestBuilder g_scriptQuest;   // script_exec_helpers.cpp
 // The script being loaded or saved: the run loader and saver find a run's instance through it.
 inline Script* g_streamedScript = /*007AA620*/ {nullptr};
-void ScriptQuestStart(const char* name);
-void ScriptQuestAddObjective(int type, const std::string& text, float value);

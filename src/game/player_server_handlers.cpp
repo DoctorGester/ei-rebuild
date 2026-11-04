@@ -263,7 +263,7 @@ void PlayerServer::LeaveToZone(std::string_view zone, int entrance) {
     party->zone = zone;
     GameState gameState = g_serverWorld.gameState;
     if (gameState == GameState::Playing) {
-        g_partyManager.BeginRedeploy(party);
+        g_partyManager.records.BeginRedeploy(party);
     } else if (gameState == GameState::Network) {
         if (std::ssize(party->members) == 1) party->members[0].unitId = kLoneHeroRecordId;
         SendParty();
@@ -429,7 +429,7 @@ bool PlayerServer::OnLogin() {
     Party* party = currentPlayer->GetParty();
     switch (g_serverWorld.gameState) {
     case GameState::Playing:
-        g_partyManager.EndRedeploy(party);
+        g_partyManager.records.EndRedeploy(party);
         party->OpenEdgeExits();
         break;
     case GameState::Network:

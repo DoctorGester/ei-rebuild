@@ -259,15 +259,15 @@ int GameFlow::SaveGame(const std::string& slot) {
     ClearSaveFolder(slotFolder);
     if (g_serverWorld.zoneMode == ZoneMode::Edge) {
         if (Player* player = g_serverWorld.GetPlayer(0))
-            g_partyManager.BeginRedeploy(player->GetParty());
+            g_partyManager.records.BeginRedeploy(player->GetParty());
     }
     Party records;
-    g_partyManager.EndRedeploy(&records);
+    g_partyManager.records.EndRedeploy(&records);
     std::string currentMap;
     currentMap = g_mapDatabase.FindMap(records.zone)->allod;
 
     CopyVisitedZones(currentFolder, slotFolder, currentMap, &records.variables);
-    g_partyManager.BeginRedeploy(&records);
+    g_partyManager.records.BeginRedeploy(&records);
 
     bool opened = file.Open(slotFolder + kScenarioFile, platform::FileMode::Create);
     if (!opened) {
@@ -465,7 +465,7 @@ void GameFlow::BeginMultiplayerGame() {
     if (std::ssize(GlobalParty()->members) == 1) GlobalParty()->members.data()->unitId = kMultiplayerHeroId;
     GlobalParty()->zone = MultiplayerZone();
     GlobalParty()->variables.Set(kMultiplayerVariable, 1.0f);
-    g_partyManager.BeginRedeploy(GlobalParty());
+    g_partyManager.records.BeginRedeploy(GlobalParty());
     state = kStateZone;
     requestTarget = MultiplayerZone();
     zoneSwitchStarted = 0;
@@ -480,7 +480,7 @@ void GameFlow::ReturnLocalParty() {
     Player* player = g_clientWorld.LocalView()->player;
     Party* party = player->GetParty();
     GlobalParty()->Assign(party);
-    g_partyManager.BeginRedeploy(party);
+    g_partyManager.records.BeginRedeploy(party);
     // The global party record written into the heroes' folder.
     g_savedParties.outsideGame.WriteFile(g_savedParties.folder);
     UpdateFromServer();
@@ -814,9 +814,9 @@ void GameFlow::StartZone(std::string_view zone, ZoneMode mode) {
     } else {
         // The party enters the zone, then the clock is set from its "gtime".
         Party records;
-        g_partyManager.EndRedeploy(&records);
+        g_partyManager.records.EndRedeploy(&records);
         EnterZone(&records);
-        g_partyManager.BeginRedeploy(&records);
+        g_partyManager.records.BeginRedeploy(&records);
         g_serverWorld.SetTime(HoursOfDay(records.variables.Get(kGTime)));
         if (zoneRecord) {
             g_serverWorld.SetClimate(zoneRecord->climate);
@@ -842,7 +842,7 @@ void GameFlow::StartNewGame() {
     folder = str::Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(folder);
     Party records;
-    g_partyManager.EndRedeploy(&records);
+    g_partyManager.records.EndRedeploy(&records);
     StartZone(records.zone, ZoneMode::None);
 }
 
@@ -882,9 +882,9 @@ void GameFlow::ProcessRequest() {
     // The zone being left is saved (single player campaigns 1 and 3, or the host in campaign 1).
     if (g_serverWorld.gameState == GameState::Playing && IsSinglePlayerMode(g_serverWorld.zoneMode) && state == kStateZone) {
         Party records;
-        g_partyManager.EndRedeploy(&records);
+        g_partyManager.records.EndRedeploy(&records);
         ::LeaveZone(&records);
-        g_partyManager.BeginRedeploy(&records);
+        g_partyManager.records.BeginRedeploy(&records);
     }
     if (g_serverWorld.gameState == GameState::Network && g_serverWorld.zoneMode == ZoneMode::Battle && state == kStateZone) {
         Party records;
@@ -983,11 +983,11 @@ int GameFlow::LoadGame(const std::string& slot) {
     // The visited zones of the current map (and bz7g) come back into saves\current; every other
     // zone, and one whose file could not be copied, is marked not visited.
     Party records;
-    g_partyManager.EndRedeploy(&records);
+    g_partyManager.records.EndRedeploy(&records);
     std::string currentMap;
     currentMap = g_mapDatabase.FindMap(records.zone)->allod;
     CopyVisitedZones(slotFolder, currentFolder, currentMap, &records.variables);
-    g_partyManager.BeginRedeploy(&records);
+    g_partyManager.records.BeginRedeploy(&records);
 
     // The zone: kinds 0 and 2 come back from mission.sav, the others start afresh.
     MapRecord* zoneRecord = g_mapDatabase.FindMap(records.zone);

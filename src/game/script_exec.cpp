@@ -154,8 +154,8 @@ void RedeployParty(const SSCCmd* cmd) {
     std::vector<UnitPlacement> slots;
     g_serverWorld.CollectParty(player, &slots);
     Party* party = player->GetParty();
-    g_partyManager.BeginRedeploy(party);
-    g_partyManager.EndRedeploy(party);
+    g_partyManager.records.BeginRedeploy(party);
+    g_partyManager.records.EndRedeploy(party);
     // One slot and one party unit: the slot gets the unit's id.
     const std::vector<PartyUnitRecord>& members = player->GetParty()->members;
     if (slots.size() == 1 && std::ssize(members) == 1) slots[0].id = static_cast<int>(members[0].unitId);
@@ -989,23 +989,23 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::QStart:   // QStart(name)
-            ScriptQuestStart(Text(cmd, 0));
+            g_scriptQuest.Start(Text(cmd, 0));
             break;
         case ScriptFunction::QFinish:
-            ScriptQuestFinish(script);
+            g_scriptQuest.Finish(script);
             break;
         case ScriptFunction::QObjArea:   // QObjArea(area)
         case ScriptFunction::QObjGetItem:   // QObjGetItem(item)
-            ScriptQuestAddObjective(cmd->id, game::kEmptyText, f[0]);
+            g_scriptQuest.AddObjective(cmd->id, game::kEmptyText, f[0]);
             break;
         case ScriptFunction::QObjSeeObject:   // QObjSeeObject(name)
         case ScriptFunction::QObjSeeUnit:
         case ScriptFunction::QObjKillUnit:
         case ScriptFunction::QObjKillGroup:
-            ScriptQuestAddObjective(cmd->id, cmd->stringArgs[0], 0.0f);
+            g_scriptQuest.AddObjective(cmd->id, cmd->stringArgs[0], 0.0f);
             break;
         case ScriptFunction::QObjUse:   // QObjUse(name, value)
-            ScriptQuestAddObjective(cmd->id, cmd->stringArgs[0], f[0]);
+            g_scriptQuest.AddObjective(cmd->id, cmd->stringArgs[0], f[0]);
             break;
 
         default:   // functions, sections and commands without effect here

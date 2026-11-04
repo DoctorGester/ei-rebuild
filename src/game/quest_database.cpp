@@ -24,19 +24,10 @@
 
 namespace {
 
-std::vector<std::string>* List(QuestBriefingRecord* briefing, int i) { return &briefing->lists[i]; }
-
-// push_back on the quest places as inlined: the value stored at the end, or the insert-overflow
-// path when the vector is full.
-void PushPlace(QuestRecord* quest, float value) { quest->places.push_back(value); }
-
 // The "quest" section into the quest record.
 void ReadQuest(FileRegistry& reg, QuestRecord* quest, std::vector<std::string>& places) {
     quest->unreadField = 0;
-    {
-        std::string name = reg.GetString(game::questwords::Quest(), game::questwords::Name(), std::string(game::kEmptyText));
-        quest->name.assign(name);
-    }
+    quest->name = reg.GetString(game::questwords::Quest(), game::questwords::Name(), std::string(game::kEmptyText));
     quest->exp = static_cast<float>(reg.GetFloat(game::questwords::Quest(), game::questwords::Exp(), 0));
     quest->money = static_cast<float>(reg.GetFloat(game::questwords::Quest(), game::questwords::Money(), 0));
     quest->zone = reg.GetInt(game::questwords::Quest(), game::questwords::ZoneIndex(), 0);
@@ -49,107 +40,50 @@ void ReadQuest(FileRegistry& reg, QuestRecord* quest, std::vector<std::string>& 
         str::TrimRight(place, '}');
         parts = text::Split(place, ';');
         if (parts.size() == 2) {
-            float x = str::ToFloat(parts[0]);
-            PushPlace(quest, x);
-            float y = str::ToFloat(parts[1]);
-            PushPlace(quest, y);
+            quest->places.push_back(str::ToFloat(parts[0]));
+            quest->places.push_back(str::ToFloat(parts[1]));
         }
     }
 }
 
-// Adds the quest unless its name is indexed with a record already; the index is rebuilt over the
-// whole vector after the push_back (it may have moved the records).
-void AddQuest(QuestDatabase* db, const QuestRecord* quest) {
-    std::unordered_map<std::string, QuestRecord*>& map = db->questsByName;
-    auto found = map.find(quest->name);
-    if (found != map.end() && found->second != nullptr) return;
-    db->quests.push_back(*quest);
-    map.clear();
-    for (QuestRecord& r : db->quests) map[r.name] = &r;
-}
-
-void AddReceiveBriefing(QuestDatabase* db, const QuestBriefingRecord* briefing) {
-    QuestBriefingTable* briefings = &db->briefings;
-    std::unordered_map<std::string, QuestBriefingRecord*>& map = briefings->index;
-    auto found = map.find(briefing->name);
-    if (found != map.end() && found->second != nullptr) return;
-    briefings->records.push_back(*briefing);
-    map.clear();
-    for (QuestBriefingRecord& r : briefings->records) map[r.name] = &r;
-}
-
-// A briefing's name, exp and money (the "complete" briefing's name is assigned with the
-// C-string assignment, the others' with the range one: the same result).
-void ReadBriefingHeader(FileRegistry& reg, QuestBriefingRecord* briefing, const char* section) {
-    {
-        std::string name = reg.GetString(section, game::questwords::Name(), std::string(game::kEmptyText));
-        briefing->name.assign(name);
-    }
+// A briefing's name, exp, money and six string lists from `section`.
+void ReadBriefing(FileRegistry& reg, QuestBriefingRecord* briefing, const char* section) {
+    briefing->name = reg.GetString(section, game::questwords::Name(), std::string(game::kEmptyText));
     briefing->exp = static_cast<float>(reg.GetFloat(section, game::questwords::Exp(), 0));
     briefing->money = static_cast<float>(reg.GetFloat(section, game::questwords::Money(), 0));
-}
-
-// A string list read inline: emptied (erased over its range, or cleared), reserved for the list's
-// size, then every non-empty string appended.
-void ReadListInline(FileRegistry& reg, const char* section, int list, QuestBriefingRecord* briefing) {
-    std::vector<std::string> strings;
-    reg.GetStringArray(section, game::questwords::ListKey(list), &strings);
-    std::vector<std::string>* v = List(briefing, list);
-    v->clear();   // erase(begin, end) or clear(): the same
-    v->reserve(strings.size());
-    for (const std::string& listed : strings) {
-        if (!listed.empty()) v->push_back(listed);
-    }
-}
-
-// "briefing receive": the lists read inline (the first three erased over their range, the others
-// cleared), added like the quest.
-void ReadReceiveBriefing(FileRegistry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
-    briefing->specials = 0;
-    ReadBriefingHeader(reg, briefing, game::questwords::BriefingReceive());
-    for (int i = 0; i < 6; ++i) ReadListInline(reg, game::questwords::BriefingReceive(), i, briefing);
-    AddReceiveBriefing(db, briefing);
-}
-
-// "briefing reject": the item lists read inline (cleared first), the others by ReadStringList; added by
-// QuestBriefingTable::Add (also unless the name is there).
-void ReadRejectBriefing(FileRegistry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
-    ReadBriefingHeader(reg, briefing, game::questwords::BriefingReject());
-    ReadListInline(reg, game::questwords::BriefingReject(), 0, briefing);
-    ReadListInline(reg, game::questwords::BriefingReject(), 1, briefing);
-    for (int i = 2; i < 6; ++i) ReadStringList(&reg, game::questwords::BriefingReject(), game::questwords::ListKey(i), List(briefing, i));
-    db->briefings.Add(briefing);
-}
-
-// "briefing complete": the name assigned as a C string, all six lists by ReadStringList.
-void ReadCompleteBriefing(FileRegistry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
-    ReadBriefingHeader(reg, briefing, game::questwords::BriefingComplete());
-    for (int i = 0; i < 6; ++i) ReadStringList(&reg, game::questwords::BriefingComplete(), game::questwords::ListKey(i), List(briefing, i));
-    db->briefings.Add(briefing);
+    for (int i = 0; i < 6; ++i) ReadStringList(&reg, section, game::questwords::ListKey(i), &briefing->lists[i]);
 }
 
 } // namespace
 
 bool QuestDatabase::LoadRegistry(const void* image) {
-    QuestDatabase* db = this;
     FileRegistry reg;
     if (!reg.Attach(image)) return false;
 
     QuestRecord quest{};
-    {
-        std::vector<std::string> places;
-        ReadQuest(reg, &quest, places);
-        AddQuest(db, &quest);
+    std::vector<std::string> places;
+    ReadQuest(reg, &quest, places);
+    AddQuest(quest);
 
-        QuestBriefingRecord briefing{};
-        ReadReceiveBriefing(reg, db, &briefing);
-        ReadRejectBriefing(reg, db, &briefing);
-        ReadCompleteBriefing(reg, db, &briefing);
+    QuestBriefingRecord briefing{};
+    for (const char* section : {game::questwords::BriefingReceive(), game::questwords::BriefingReject(),
+                                game::questwords::BriefingComplete()}) {
+        ReadBriefing(reg, &briefing, section);
+        briefings.Add(&briefing);
     }
     return true;
 }
 
-// The game inlines the vector's erase, reserve and push_back; the same template members are called here.
+// Adds the quest unless its name is indexed with a record already; the index is rebuilt over the whole vector after
+// the push_back (it may have moved the records).
+void QuestDatabase::AddQuest(const QuestRecord& quest) {
+    auto found = questsByName.find(quest.name);
+    if (found != questsByName.end() && found->second != nullptr) return;
+    quests.push_back(quest);
+    questsByName.clear();
+    for (QuestRecord& r : quests) questsByName[r.name] = &r;
+}
+
 void ReadStringList(FileRegistry* registry, const char* section, const char* key, std::vector<std::string>* list) {
     std::vector<std::string> strings;
     registry->GetStringArray(section, key, &strings);
@@ -209,23 +143,6 @@ int QuestDatabase::Load(const std::string& folder) {
     resource.CloseFile(data);
     resource.CloseResource();
     return 1;
-}
-
-// --- Script quest ------------------------------------------------------------------------------------
-
-// The quest under construction: QStart names it and drops the old objectives, the QObj* commands
-// add objectives, QFinish (script_exec_helpers.cpp) turns them into a script. See script.h
-// and docs/notes/script.md.
-
-// QStart: the old objectives dropped, the quest named.
-void ScriptQuestStart(const char* name) {
-    g_scriptQuestObjectives.clear();
-    g_scriptQuestName = name;
-}
-
-// The QObj* commands (type, text, with the value on the stack). Appends {type, text, value}.
-void ScriptQuestAddObjective(int type, const std::string& text, float value) {
-    g_scriptQuestObjectives.push_back({type, text, value});
 }
 
 // operator[]: an unknown name is filed with null.

@@ -96,6 +96,20 @@ public:
     }
     void StringField(int id, std::string* s);
     void StreamField(int id, MemoryStream* s);       // chunk `id` {1: size, 2: bytes}
+    // A stream field made by `save(MemoryStream*)` when saving; when loading, the field read into a stream of the
+    // archive's version that `load(MemoryStream*)` reads.
+    template <class Save, class Load>
+    void StreamFieldOf(int id, Save&& save, Load&& load) {
+        MemoryStream local;
+        if (!loading) {
+            save(&local);
+            StreamField(id, &local);
+        } else {
+            StreamField(id, &local);
+            local.version = static_cast<std::uint32_t>(version);
+            load(&local);
+        }
+    }
     void SaveObjectRef(int id, RefCounted* object);   // object's number, object kept for Close
     RefCounted* ObjectRef(int id);                    // the object a saved key stands for
 

@@ -113,7 +113,7 @@ void ExchangeScreen::LeftDown(Point point) {
 
 void ExchangeScreen::ExchangeDone(Party* partyB, Party* partyA, Party* partyC) {
     Party* local = LocalPlayerData();
-    local->ReleaseAllItems();
+    ReleaseItems(local->items);
     ReturnAll(local, partyC);
     ReturnAll(local, partyB);
     local->money = partyB->money - partyA->money + partyC->money;
