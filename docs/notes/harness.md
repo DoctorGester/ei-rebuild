@@ -193,7 +193,9 @@ game from its data, so none is committed: `tools/recorded_save.py` (the prepare 
 verify build (its own prepare line first, so a chain plays each part once), keeps the slot in
 `build\verify\recorded_saves\<scenario>\` (key: the exe, the install and the chain's scenario files; one run at a time
 makes a save) and copies it into the run's `saves\`. Each part is replayed and gets its golden on its own; the first
-run after a build also plays the part before (up to a run's 60 s more, outside the part's own time). What a cut does
+run after a build also plays the part before (up to a run's 60 s more, outside the part's own time), in the slot run_all
+holds for the run being prepared (`EI_PREPARE_IN_SLOT`, set by `prepare_scenario.prepare(in_slot=True)`; never a game beyond
+the machine's 16); called by hand the tool waits for a slot of its own. What a cut does
 not carry: console state (an unlocked script console), the camera and anything else a save does not hold; the driven
 check (cut.txt, 2 parts, `rec_cut_1`, `rec_cut_2`; cut_auto.txt, `recordinput cut 100`, 3 parts, `rec_cut_auto_1` to `_3`)
 found a part's replay equal to its recording from the cut on in every record's players, objects, timed, missiles, events,

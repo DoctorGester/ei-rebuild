@@ -7,6 +7,7 @@ import io
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import recorded
+import prepare_scenario
 import recorded_save
 
 FIRST = '# Recorded by the harness, part 1:\nrecorded\nat 4 newgame\nat 99 event key down 0x74 0x3f 0\nat 100 quit\n'
@@ -68,6 +69,21 @@ class RecordedTest(unittest.TestCase):
                 f.write(text)
         self.assertEqual(recorded_save.chain('rec_x_3', self.root), ['rec_x_3', 'rec_x_2', 'rec_x_1'])
         self.assertEqual(recorded_save.chain('rec_x_1', self.root), ['rec_x_1'])
+
+    def test_prepare_tells_a_tool_whether_the_runs_slot_is_held(self):
+        tools = os.path.join(self.root, 'tools')
+        os.makedirs(tools)
+        with open(os.path.join(tools, 'envtool.py'), 'w') as f:
+            f.write("import os, sys\nopen(os.path.join(sys.argv[1], 'slot.txt'), 'w').write(os.environ.get('EI_PREPARE_IN_SLOT', 'no'))\n")
+        scenario = os.path.join(self.root, 'tests', 'scenarios', 'p.txt')
+        with open(scenario, 'w') as f:
+            f.write('# prepare: envtool.py\n')
+        saves = os.path.join(self.root, 'saves')
+        os.makedirs(saves)
+        for in_slot, expected in ((True, '1'), (False, 'no')):
+            prepare_scenario.prepare(scenario, saves, in_slot=in_slot)
+            with open(os.path.join(saves, 'slot.txt')) as f:
+                self.assertEqual(f.read(), expected)
 
 
 if __name__ == '__main__':

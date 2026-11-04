@@ -7,7 +7,8 @@ Called as every prepare tool is, with the run's harness_saves folder first. A lo
 part begins by loading it. Saves are made by the game from its data, so none is committed: this tool plays the earlier
 part (its own prepare lines first, so a chain of parts plays each once) and copies the slot from that run into the
 harness_saves folder. The save is kept in <build>/recorded_saves/<scenario>/ for the next part's run and the next, until
-the verify build, the install or one of the scenarios changes. Two runs that want the same save wait for each other.
+the verify build, the install or one of the scenarios changes. Two runs that want the same save wait for each other. The
+game plays in the slot of the run being prepared (run_all holds it, EI_PREPARE_IN_SLOT); called by hand the tool takes one.
 """
 import contextlib
 import hashlib
@@ -23,7 +24,6 @@ import prepare_scenario
 import run_all
 
 PREFIX = '# prepare: recorded_save.py'
-WAIT_SLOT_S = 20
 
 
 def root_of(tools=TOOLS):
@@ -76,17 +76,14 @@ def play(name, install, root, build, cache):
         sys.exit(f'recorded_save: {out} cannot be emptied ({", ".join(left[:3])} left)')
     os.makedirs(out)
     scenario = scenario_file(name, root)
-    prepare_scenario.prepare(scenario, os.path.join(out, 'harness_saves'))
     env = dict(os.environ, EI_DIGEST=str(run_all.GOLDEN_PERIOD))   # as the golden runs of the part play
-    held = []
-    deadline = time.time() + WAIT_SLOT_S
-    while not run_all.take_free_slot(held) and time.time() < deadline:   # (a scheduler's caller may hold the slots)
-        time.sleep(0.5)
-    try:
+    # The game plays in the slot of the run being prepared (run_all holds one for it and its game has not started:
+    # EI_PREPARE_IN_SLOT); called by hand, it takes a slot through the machine's scheduler and waits for it however long.
+    # Never a slot beyond the machine's 16.
+    in_slot = os.environ.get(prepare_scenario.IN_SLOT) == '1'
+    with contextlib.nullcontext() if in_slot else run_all.machine_slot():
+        prepare_scenario.prepare(scenario, os.path.join(out, 'harness_saves'), in_slot=True)   # (the earlier parts' saves)
         code, text = run_all.launch(scenario, out, install, build, env)
-    finally:
-        for _, f in held:
-            run_all._unlock(f)
     if code != 0:
         sys.exit(f'recorded_save: {name} (the part before) ended with code {code}: {os.path.join(out, "launch.txt")}; '
                  f'{os.path.join(out, "harness_report.txt")}')
