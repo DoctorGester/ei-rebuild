@@ -214,12 +214,12 @@ void HudActionColumn::MouseMove(Point point) {
 
 // --- Portraits ---------------------------------------------------------------------------------
 
-// The portraits read the portrait mode of the interface's active screen (the battle screen while they get
-// input).
+// The portraits read the portrait mode of the battle screen they belong to (the game reads the interface's active
+// screen: the battle screen while they get input).
 
 void HudPortraits::LeftDown(Point point) {
     int region = RegionAt(point);
-    const int mode = ui->ActiveWindowAs<BattleScreen>()->portraitMode;
+    const int mode = owner->portraitMode;
     if (mode == 0) {
         if (region < 0) return;
         handled = true;
@@ -250,11 +250,11 @@ void HudPortraits::LeftDown(Point point) {
         net::g_gameClient->SendCommand(4, text);
     else if (mode == 2)
         net::g_gameClient->SendCommand(5, text);
-    ui->ActiveWindowAs<BattleScreen>()->portraitMode = 0;
+    owner->portraitMode = 0;
 }
 
 void HudPortraits::LeftUp(Point point) {
-    if (ui->ActiveWindowAs<BattleScreen>()->portraitMode != 0) return;
+    if (owner->portraitMode != 0) return;
     if (!ReleaseMouse()) return;
     int region = RegionAt(point);
     if (region < 0) return;
@@ -266,7 +266,7 @@ void HudPortraits::LeftUp(Point point) {
 
 void HudPortraits::MouseMove(Point point) {
     int region = RegionAt(point);
-    if (ui->ActiveWindowAs<BattleScreen>()->portraitMode == 0) {
+    if (owner->portraitMode == 0) {
         if (region < 0) return;
         handled = true;
         BattleScreen* currentOwner = owner;

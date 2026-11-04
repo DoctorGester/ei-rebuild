@@ -37,6 +37,7 @@ class Party;
 
 class UiWindow;
 class UiContainer;
+class BriefingScreen;
 class ChatOverlay;
 struct UiInputSide;
 class UiMesh;
@@ -93,12 +94,6 @@ public:
     // "endofgame"); the first word is lowercased. Rebirth's NewStringEvents adds "gameover [title [text]]".
     void OnStringEvent(std::string_view event);
     UiContainer* GetActiveWindow() const;
-    // The top window as the screen the caller runs under (the HUD's panels under the BattleScreen, the
-    // briefing chat under the BriefingScreen); no check.
-    template <typename Screen>
-    Screen* ActiveWindowAs() const {
-        return static_cast<Screen*>(GetActiveWindow());
-    }
     // Consumed by Update (the top window closes).
     void SetPendingValue(std::uint32_t value);
     // Makes screen `id` (1 in-game, 3 base, 4 island map, 2, 5, 7, 8, 9) and activates it; 0 does
@@ -1158,6 +1153,8 @@ public:
     void Redraw() override;
     void RedrawTips() override;
     void Update() override;
+    // The screen as the briefing, null for any other.
+    virtual BriefingScreen* AsBriefing() { return nullptr; }
     // The screens' virtuals the interface calls (Interface3D); the defaults do nothing.
     virtual void CreateScreen();
     virtual void CloseScreen();

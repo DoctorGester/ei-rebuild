@@ -50,7 +50,7 @@ bool Live(const RefObject* object) { return object && !(object->flags7 & RefObje
 // --- the constructor -----------------------------------------------------------------------------
 
 // Its own update; the input side's click and mouse move.
-ChatWindow::ChatWindow(Interface3D* ownerUi) : UiWindow(ownerUi) {
+ChatWindow::ChatWindow(Interface3D* ownerUi, BriefingScreen* screen) : UiWindow(ownerUi), briefing(screen) {
     // EI_Plugin's NPlayers: the window and its surface start at x 0, not 0x1D0.
     const int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? 0 : 0x1D0;
     rect = Rect{left, 0, 800, 0xA0};
@@ -213,8 +213,7 @@ void ChatWindow::LeftDown(Point point) {
     int index = RegionAt(point);
     if (index < 0 || static_cast<unsigned>(index) >= players.size()) return;
     handled = true;
-    // The active screen is the briefing, whose chat window this is (its chatActive is the pick mode).
-    BriefingScreen* briefing = ui->ActiveWindowAs<BriefingScreen>();
+    // The game reads the active screen: the briefing, whose child this is, while the chat gets input.
     int pick = briefing->chatActive;
     if (pick != 0) {
         char text[0x80];
@@ -241,6 +240,6 @@ void ChatWindow::LeftDown(Point point) {
 
 void ChatWindow::MouseMove(Point point) {
     int index = RegionAt(point);
-    int pick = ui->ActiveWindowAs<BriefingScreen>()->chatActive;
+    int pick = briefing->chatActive;
     if (pick != 0 && index >= 0 && static_cast<unsigned>(index) < players.size()) g_cursor.SetShape(0);
 }

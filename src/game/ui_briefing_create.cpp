@@ -199,7 +199,7 @@ void BriefingScreen::CreateScreen() {
     speaking = nullptr;
 
     if (IsMultiplayerClient()) {
-        chat = new ChatWindow(ui);
+        chat = new ChatWindow(ui, this);
         AddChild(chat);
         PlayersChanged(1);
     } else {

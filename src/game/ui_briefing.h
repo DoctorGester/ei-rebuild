@@ -53,7 +53,7 @@ struct BriefingShownItem {
 // them with each one's status and offer. Multiplayer only.
 class ChatWindow : public UiWindow {
 public:
-    explicit ChatWindow(Interface3D* ui);
+    ChatWindow(Interface3D* ui, BriefingScreen* briefing);
     // Every fourth face first makes a 256 x 256 texture; `texture` is copied into the newest texture's quarter
     // (count % 4) and a sprite of `model` shows it, or without the model a plain rectangle.
     void AddPortrait(const std::string& model, std::string_view texture);
@@ -67,12 +67,13 @@ public:
     void Update() override;
     // The surface's paint: statusRows under the faces.
     void PaintStatus(UiSurface& surface) const;
-    // With the active window's player pick 1 / 2 the player's serial goes to the server as command 4 / 5 and
+    // With the briefing's player pick 1 / 2 the player's serial goes to the server as command 4 / 5 and
     // the pick ends; otherwise, unless it is our own player, our offer to it is dropped when it is its partner,
     // else one is started.
     void LeftDown(Point point) override;
     void MouseMove(Point point) override;
 
+    BriefingScreen* briefing;   // the screen whose chat this is (its child; its chatActive is the pick mode)
     int listed = 0;
     int portraits = 0;
     std::vector<HeldRef<net::PlayerMessage>> players;
@@ -89,6 +90,7 @@ public:
 class BriefingScreen : public UiContainer {
 public:
     explicit BriefingScreen(Interface3D* ui);
+    BriefingScreen* AsBriefing() override { return this; }
     void Draw(SceneRenderer* pass) override;
     // The camera free again (flag 0x40, flags 0x100 / 0x200 cleared).
     void CloseScreen() override;

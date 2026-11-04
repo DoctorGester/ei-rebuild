@@ -116,13 +116,15 @@ void BriefingScreen::PlaySpeakerAnimation(Unit* unit, bool talking, bool thirdPe
 
 // SpeakerAnimationDone, the speakers' controllers' actionDone. When
 // a server unit's dialogue animation has ended, its client unit, when it is one of the briefing's
-// speakers, plays a listening animation again (once per entry). The active window is taken to be the
-// briefing screen unchecked; the count is read again after each call.
+// speakers, plays a listening animation again (once per entry). The game takes the active window to be the
+// briefing screen unchecked; ours does nothing under any other. The count is read again after each call.
 void SpeakerAnimationDone(Unit* serverUnit) {
     if (!serverUnit) return;
     auto* unit = g_clientWorld.FindUnit(serverUnit->id);
     if (!unit) return;
-    auto* screen = g_interface.ActiveWindowAs<BriefingScreen>();
+    UiContainer* active = g_interface.GetActiveWindow();
+    BriefingScreen* screen = active ? active->AsBriefing() : nullptr;
+    if (!screen) return;
     for (std::size_t i = 0; i < screen->speakers.size(); ++i)
         if (screen->speakers[i].unit == unit) screen->PlaySpeakerAnimation(unit, false, false);
 }
