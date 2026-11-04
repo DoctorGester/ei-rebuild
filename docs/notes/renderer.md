@@ -29,7 +29,10 @@ The build (CMakeLists.txt):
   configure time it builds `shadercross` and `spirv-cross` once, about a minute. Everything goes to `EI_THIRD_PARTY`
   (cache variable or environment). Its default is `build/third_party` of the main checkout, so every worktree shares
   one copy. A pin or wrapper change builds a new copy beside the old one, and a file lock lets builds that configure
-  at the same time wait for each other.
+  at the same time wait for each other. When its build fails, the configure prints the end of its two logs.
+- **Prebuilt.** `-DEI_PREBUILT_SHADERS=<folder>` takes `gpu_shaders.h` and `.cpp` from another build's `shaders/` for
+  the same system (the target `ei_shaders` builds just them) and skips the toolchain and the compiling: the Release
+  workflow's Linux container, whose glibc 2.35 DXC's release cannot run on (docs/notes/linux.md, "Release").
 - **Compiling.** Each program's two stages are compiled to SPIR-V and, on Windows, DXIL by shadercross (so no compiler
   runs at the start): `vs_main` under `EI_VERTEX`, `ps_main` under `EI_FRAGMENT`. The MSL is spirv-cross's from that
   SPIR-V (`--msl --msl-version 10200 --msl-decoration-binding`): every texture, sampler and block at its SPIR-V

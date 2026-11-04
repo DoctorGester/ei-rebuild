@@ -66,7 +66,12 @@ The Release workflow (.github/workflows/release.yml, run by hand) builds Linux b
 same GitHub release. Its `linux` job runs in an `ubuntu:22.04` container so that the binary needs no newer glibc than
 22.04's 2.35: gcc 13 from the ubuntu-toolchain-r PPA (22.04's gcc 11 has no `<format>`) with `-static-libstdc++
 -static-libgcc`, cmake from pip (CMakeLists.txt wants 3.24, 22.04 has 3.22), `-DCMAKE_BUILD_TYPE=Release`, the port
-checks under `xvfb-run`, then `strip`. The Package step fails on any `GLIBCXX_` import, writes the newest `GLIBC_`
+checks under `xvfb-run`, then `strip`. The shader toolchain cannot run in there: DXC's Linux release
+(`libdxcompiler.so`, `libdxil.so`) needs glibc 2.38, so linking shadercross failed at configure (release run
+113147799174). So a `linux-shaders` job on the ubuntu-24.04 runner itself builds just the target `ei_shaders`
+(`shaders/gpu_shaders.h` and `.cpp`), uploads the two as an artifact, and the container job configures with
+`-DEI_PREBUILT_SHADERS=<their folder>`, which copies them into its build folder instead of fetching and running the
+toolchain (no DXC, no Python needed). The two files are the same on any Linux (SPIR-V and MSL bytes). The Package step fails on any `GLIBCXX_` import, writes the newest `GLIBC_`
 version the binary imports into the run's summary and the README, and lists its libraries: `libGL.so.1`, `libm`,
 `libc` (SDL3 is static and opens X11, sound and the rest itself).
 

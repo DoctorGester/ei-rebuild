@@ -89,70 +89,85 @@ target_link_libraries(ei_render PRIVATE SDL3::SDL3-static)
 # program (vs_main and ps_main, each stage under EI_VERTEX / EI_FRAGMENT), compiled by SDL_shadercross
 # (tools/shader_toolchain) to SPIR-V, MSL and on Windows DXIL; spirv-cross reflects each stage's SPIR-V, and
 # tools/gen_gpu_shaders.py checks the binding rules and writes shaders/gpu_shaders.h (the blocks' structs, the slots,
-# the counts) and shaders/gpu_shaders.cpp (the code) into the build folder (not committed).
-file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
-include(tools/shader_toolchain/toolchain.cmake)
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
-file(GLOB EI_HLSL_PROGRAMS CONFIGURE_DEPENDS src/render/shaders/*.hlsl)
-file(GLOB EI_HLSL_SOURCES CONFIGURE_DEPENDS src/render/shaders/*.hlsl src/render/shaders/*.hlsli)
-set(EI_HLSL_DIR ${CMAKE_BINARY_DIR}/shaders/hlsl)
-file(MAKE_DIRECTORY ${EI_HLSL_DIR})
-set(EI_HLSL_FORMATS spirv msl)
-if(WIN32)
-    list(APPEND EI_HLSL_FORMATS dxil)
-endif()
-set(EI_HLSL_OUTPUTS)
-set(EI_HLSL_NAMES)
-foreach(source ${EI_HLSL_PROGRAMS})
-    get_filename_component(program ${source} NAME_WE)
-    list(APPEND EI_HLSL_NAMES ${program})
-    foreach(stage vertex fragment)
-        if(stage STREQUAL "vertex")
-            set(entry vs_main)
-            set(define -DEI_VERTEX)
-        else()
-            set(entry ps_main)
-            set(define -DEI_FRAGMENT)
-        endif()
-        foreach(format ${EI_HLSL_FORMATS})
-            set(out ${EI_HLSL_DIR}/${program}_${stage}.${format})
-            string(TOUPPER ${format} dest)
-            if(format STREQUAL "msl")
-                # MSL from the SPIR-V by spirv-cross, each texture, sampler and block at its SPIR-V binding: SDL_GPU's
-                # Metal slots. shadercross's own MSL left out a texture whose sampler the stage never reads
-                # (shadow_receiver.hlsli's shadow_range, read with Load) and put it at texture(0), over tex0.
-                add_custom_command(OUTPUT ${out}
-                    COMMAND ${EI_SPIRV_CROSS} ${EI_HLSL_DIR}/${program}_${stage}.spirv --msl --msl-version 10200
-                            --msl-decoration-binding --output ${out}
-                    DEPENDS ${EI_HLSL_DIR}/${program}_${stage}.spirv
-                    COMMENT "spirv-cross ${program} ${stage} to msl"
-                    VERBATIM)
-            else()
-                add_custom_command(OUTPUT ${out}
-                    COMMAND ${EI_SHADERCROSS} ${source} -s HLSL -d ${dest} -t ${stage} -e ${entry} ${define}
-                            -I ${CMAKE_SOURCE_DIR}/src/render/shaders -o ${out}
-                    DEPENDS ${EI_HLSL_SOURCES}
-                    COMMENT "shadercross ${program}.hlsl ${stage} to ${format}"
-                    VERBATIM)
-            endif()
-            list(APPEND EI_HLSL_OUTPUTS ${out})
-        endforeach()
-        set(reflection ${EI_HLSL_DIR}/${program}_${stage}.json)
-        add_custom_command(OUTPUT ${reflection}
-            COMMAND ${EI_SPIRV_CROSS} ${EI_HLSL_DIR}/${program}_${stage}.spirv --reflect --output ${reflection}
-            DEPENDS ${EI_HLSL_DIR}/${program}_${stage}.spirv
-            VERBATIM)
-        list(APPEND EI_HLSL_OUTPUTS ${reflection})
-    endforeach()
-endforeach()
+# the counts) and shaders/gpu_shaders.cpp (the code) into the build folder (not committed); the target ei_shaders
+# builds just those two. EI_PREBUILT_SHADERS names a folder with another build's two files (its shaders/, built for the
+# same system) to copy instead: no toolchain, no DXC, no Python. The Release workflow's Linux job uses it, its
+# Ubuntu 22.04 container being too old for DXC's release (docs/notes/linux.md, "Release").
+set(EI_PREBUILT_SHADERS "" CACHE PATH "A folder with gpu_shaders.h and .cpp to use instead of compiling the HLSL")
 set(EI_GPU_SHADERS ${CMAKE_BINARY_DIR}/shaders/gpu_shaders.h ${CMAKE_BINARY_DIR}/shaders/gpu_shaders.cpp)
-string(REPLACE ";" "," EI_HLSL_FORMAT_LIST "${EI_HLSL_FORMATS}")
-add_custom_command(OUTPUT ${EI_GPU_SHADERS}
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/gen_gpu_shaders.py --sources ${CMAKE_SOURCE_DIR}/src/render/shaders
-            --compiled ${EI_HLSL_DIR} --out ${CMAKE_BINARY_DIR}/shaders --formats ${EI_HLSL_FORMAT_LIST} ${EI_HLSL_NAMES}
-    DEPENDS ${EI_HLSL_OUTPUTS} ${CMAKE_SOURCE_DIR}/tools/gen_gpu_shaders.py
-    COMMENT "Writing the HLSL programs' code and reflection (gen_gpu_shaders.py)"
-    VERBATIM)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
+if(EI_PREBUILT_SHADERS)
+    foreach(file gpu_shaders.h gpu_shaders.cpp)
+        if(NOT EXISTS ${EI_PREBUILT_SHADERS}/${file})
+            message(FATAL_ERROR "EI_PREBUILT_SHADERS '${EI_PREBUILT_SHADERS}' has no ${file}")
+        endif()
+        configure_file(${EI_PREBUILT_SHADERS}/${file} ${CMAKE_BINARY_DIR}/shaders/${file} COPYONLY)
+    endforeach()
+else()
+    include(tools/shader_toolchain/toolchain.cmake)
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    file(GLOB EI_HLSL_PROGRAMS CONFIGURE_DEPENDS src/render/shaders/*.hlsl)
+    file(GLOB EI_HLSL_SOURCES CONFIGURE_DEPENDS src/render/shaders/*.hlsl src/render/shaders/*.hlsli)
+    set(EI_HLSL_DIR ${CMAKE_BINARY_DIR}/shaders/hlsl)
+    file(MAKE_DIRECTORY ${EI_HLSL_DIR})
+    set(EI_HLSL_FORMATS spirv msl)
+    if(WIN32)
+        list(APPEND EI_HLSL_FORMATS dxil)
+    endif()
+    set(EI_HLSL_OUTPUTS)
+    set(EI_HLSL_NAMES)
+    foreach(source ${EI_HLSL_PROGRAMS})
+        get_filename_component(program ${source} NAME_WE)
+        list(APPEND EI_HLSL_NAMES ${program})
+        foreach(stage vertex fragment)
+            if(stage STREQUAL "vertex")
+                set(entry vs_main)
+                set(define -DEI_VERTEX)
+            else()
+                set(entry ps_main)
+                set(define -DEI_FRAGMENT)
+            endif()
+            foreach(format ${EI_HLSL_FORMATS})
+                set(out ${EI_HLSL_DIR}/${program}_${stage}.${format})
+                string(TOUPPER ${format} dest)
+                if(format STREQUAL "msl")
+                    # MSL from the SPIR-V by spirv-cross, each texture, sampler and block at its SPIR-V binding:
+                    # SDL_GPU's Metal slots. shadercross's own MSL left out a texture whose sampler the stage never
+                    # reads (shadow_receiver.hlsli's shadow_range, read with Load) and put it at texture(0), over tex0.
+                    add_custom_command(OUTPUT ${out}
+                        COMMAND ${EI_SPIRV_CROSS} ${EI_HLSL_DIR}/${program}_${stage}.spirv --msl --msl-version 10200
+                                --msl-decoration-binding --output ${out}
+                        DEPENDS ${EI_HLSL_DIR}/${program}_${stage}.spirv
+                        COMMENT "spirv-cross ${program} ${stage} to msl"
+                        VERBATIM)
+                else()
+                    add_custom_command(OUTPUT ${out}
+                        COMMAND ${EI_SHADERCROSS} ${source} -s HLSL -d ${dest} -t ${stage} -e ${entry} ${define}
+                                -I ${CMAKE_SOURCE_DIR}/src/render/shaders -o ${out}
+                        DEPENDS ${EI_HLSL_SOURCES}
+                        COMMENT "shadercross ${program}.hlsl ${stage} to ${format}"
+                        VERBATIM)
+                endif()
+                list(APPEND EI_HLSL_OUTPUTS ${out})
+            endforeach()
+            set(reflection ${EI_HLSL_DIR}/${program}_${stage}.json)
+            add_custom_command(OUTPUT ${reflection}
+                COMMAND ${EI_SPIRV_CROSS} ${EI_HLSL_DIR}/${program}_${stage}.spirv --reflect --output ${reflection}
+                DEPENDS ${EI_HLSL_DIR}/${program}_${stage}.spirv
+                VERBATIM)
+            list(APPEND EI_HLSL_OUTPUTS ${reflection})
+        endforeach()
+    endforeach()
+    string(REPLACE ";" "," EI_HLSL_FORMAT_LIST "${EI_HLSL_FORMATS}")
+    add_custom_command(OUTPUT ${EI_GPU_SHADERS}
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/gen_gpu_shaders.py
+                --sources ${CMAKE_SOURCE_DIR}/src/render/shaders --compiled ${EI_HLSL_DIR}
+                --out ${CMAKE_BINARY_DIR}/shaders --formats ${EI_HLSL_FORMAT_LIST} ${EI_HLSL_NAMES}
+        DEPENDS ${EI_HLSL_OUTPUTS} ${CMAKE_SOURCE_DIR}/tools/gen_gpu_shaders.py
+        COMMENT "Writing the HLSL programs' code and reflection (gen_gpu_shaders.py)"
+        VERBATIM)
+    add_custom_target(ei_shaders DEPENDS ${EI_GPU_SHADERS})
+endif()
 # The programs' code goes into the renderer, with its device (src/render/gpu.cpp, docs/notes/renderer.md, "gpu.h").
 target_sources(ei_render PRIVATE ${EI_GPU_SHADERS})
 # Their check (tools/shader_check): build_checks.py runs it on Windows, ctest on Linux.
