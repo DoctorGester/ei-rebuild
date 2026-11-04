@@ -86,7 +86,6 @@ struct SoundSlot {
     audio::Voice* voice = nullptr;
     bool playing = false;
     bool looping = false;             // kept as a deferred record when the voice is stolen
-    bool finished = false;            // set by the voice's end callback (SoundEndOfSample)
     std::int32_t handle = kNoSound;   // sound handle (kNoSound: free)
 };
 
@@ -393,6 +392,4 @@ struct MusicSystem : EngineObject {
     // Credits / main menu / jingle / combat track "none".
     void ResetThemes();
 };
-// A voice's end callback (`slot` its SoundSlot): the voice is marked finished.
-void SoundEndOfSample(void* slot);
 

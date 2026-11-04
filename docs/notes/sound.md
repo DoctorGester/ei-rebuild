@@ -8,7 +8,7 @@ a 3D effect, a fight with combat music and the brain's "Delayed sound" lines).
 ## What the game reads back
 
 Only these reach game logic; volumes, pans, reverb, positions and the pixels and sound of movies are output only.
-- **A voice's end** (`SoundSlot::finished`): Tick frees the voice; `FindPlaying` reads it for a unit's talking flag
+- **A voice's end** (`audio::Ended`, set by `DeliverEnds`): Tick frees the voice; `FindPlaying` reads it for a unit's talking flag
   (unit_client_effects / unit_client_update, map_object_companion) and the briefing's next phrase; sequences start
   their next sound. The goldens depend on when it comes.
 - **Which voices are free**: `AllocateVoice` takes the first free voice, else steals the lowest priority below the

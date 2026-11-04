@@ -5,6 +5,8 @@
 // decoder (docs/notes/sound.md, "Movies").
 #include "video/bink_audio.h"
 
+#include "lib/rounding.h"
+
 #include <algorithm>
 #include <cmath>
 #include <numbers>
@@ -14,9 +16,9 @@ namespace bink {
 namespace {
 
 // The bands' lower edges in Hz.
-constexpr unsigned kCriticalFrequencies[] = {0,    100,  200,  300,  400,  510,  630,  770,  920,
-                                             1080, 1270, 1480, 1720, 2000, 2320, 2700, 3150, 3700,
-                                             4400, 5300, 6400, 7700, 9500, 12000, 15500};
+constexpr int kCriticalFrequencies[] = {0,    100,  200,  300,  400,  510,  630,  770,  920,
+                                        1080, 1270, 1480, 1720, 2000, 2320, 2700, 3150, 3700,
+                                        4400, 5300, 6400, 7700, 9500, 12000, 15500};
 // The lengths (in eights of coefficients) of a run of coefficients sharing a width, when not 8.
 constexpr int kRunLengths[16] = {2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 32, 64};
 
@@ -39,22 +41,22 @@ AudioDecoder::AudioDecoder(int rate, int channels) {
     const int base = rate >= 44100 ? 2048 : rate >= 22050 ? 1024 : 512;
     frameSize = base * channels;
     overlap = frameSize / 16;
-    scale = static_cast<float>(2.0 / std::sqrt(static_cast<double>(frameSize)));
-    const unsigned half = static_cast<unsigned>(frameSize / 2);
-    const unsigned nyquist = (static_cast<unsigned>(rate * channels) + 1) / 2;
-    for (unsigned frequency : kCriticalFrequencies) {
+    scale = static_cast<float>(2.0 / std::sqrt(frameSize));
+    const int half = frameSize / 2;
+    const int nyquist = (rate * channels + 1) / 2;
+    for (int frequency : kCriticalFrequencies) {
         if (frequency >= nyquist) break;
-        bands.push_back(static_cast<int>(frequency * half / nyquist));
+        bands.push_back(frequency * half / nyquist);
     }
-    bands.push_back(static_cast<int>(half));
-    values.resize(static_cast<std::size_t>(frameSize));
-    coefficients.resize(static_cast<std::size_t>(frameSize));
+    bands.push_back(half);
+    values.resize(frameSize);
+    coefficients.resize(frameSize);
     work.resize(half);
     twiddles.resize(half);
-    for (unsigned k = 0; k < half; ++k)
+    for (int k = 0; k < half; ++k)
         twiddles[k] = std::polar(1.0, 2 * std::numbers::pi * k / frameSize);
-    samples.resize(static_cast<std::size_t>(frameSize));
-    previous.resize(static_cast<std::size_t>(overlap));
+    samples.resize(frameSize);
+    previous.resize(overlap);
 }
 
 void AudioDecoder::Decode(const std::uint8_t* data, std::size_t size, std::size_t count, std::vector<std::int16_t>& out) {
@@ -74,6 +76,8 @@ void AudioDecoder::DecodeFrame(BitReader& bits) {
     coefficients[1] = ReadFloat(bits);
     const std::size_t bandCount = bands.size() - 1;
     float quantisers[std::size(kCriticalFrequencies)];
+    // The format's constant is a float, 0.0664f, widened here: the double 0.0664 would move 235 of the 256 quantisers
+    // by their last bit, and the decoder was checked against the oracle (docs/notes/sound.md, "Movies") with the float.
     for (std::size_t b = 0; b < bandCount; ++b)
         quantisers[b] = static_cast<float>(std::pow(10.0, bits.Bits(8) * static_cast<double>(0.0664f)));
 
@@ -86,14 +90,14 @@ void AudioDecoder::DecodeFrame(BitReader& bits) {
         for (; i < end; ++i) {
             if (width == 0) continue;
             const int v = static_cast<int>(bits.Bits(width));
-            values[static_cast<std::size_t>(i)] = static_cast<std::int16_t>(v != 0 && bits.Bit() ? -v : v);
+            values[i] = static_cast<std::int16_t>(v != 0 && bits.Bit() ? -v : v);
         }
     }
     // Pairs of coefficients times their band's quantiser; pair 0 is the two raw values.
     for (std::size_t b = 0; b < bandCount; ++b) {
         for (int pair = std::max(bands[b], 1); pair < bands[b + 1]; ++pair) {
             for (int k = 2 * pair; k < 2 * pair + 2; ++k)
-                coefficients[static_cast<std::size_t>(k)] = values[static_cast<std::size_t>(k)] * quantisers[b];
+                coefficients[k] = values[k] * quantisers[b];
         }
     }
 
@@ -101,8 +105,8 @@ void AudioDecoder::DecodeFrame(BitReader& bits) {
 
     if (!first) {
         for (int i = 0; i < overlap; ++i) {
-            const int blended = previous[static_cast<std::size_t>(i)] * (overlap - i) + samples[static_cast<std::size_t>(i)] * i;
-            samples[static_cast<std::size_t>(i)] = static_cast<std::int16_t>(FloorDivide(blended, overlap));
+            const int blended = previous[i] * (overlap - i) + samples[i] * i;
+            samples[i] = static_cast<std::int16_t>(FloorDivide(blended, overlap));
         }
     }
     first = false;
@@ -117,15 +121,14 @@ void AudioDecoder::InverseTransform() {
     auto spectrum = [&](int j) {
         if (j == 0) return std::complex<double>(coefficients[0] / 2.0, 0.0);
         if (j == half) return std::complex<double>(coefficients[1] / 2.0, 0.0);
-        const auto at = static_cast<std::size_t>(2 * j);
-        return std::complex<double>(coefficients[at] / 2.0, -coefficients[at + 1] / 2.0);
+        return std::complex<double>(coefficients[2 * j] / 2.0, -coefficients[2 * j + 1] / 2.0);
     };
     for (int j = 0; j < half; ++j) {
         const std::complex<double> a = spectrum(j);
         const std::complex<double> b = std::conj(spectrum(half - j));
         const std::complex<double> even = a + b;
-        const std::complex<double> odd = (a - b) * twiddles[static_cast<std::size_t>(j)];
-        work[static_cast<std::size_t>(j)] = even + std::complex<double>(0.0, 1.0) * odd;
+        const std::complex<double> odd = (a - b) * twiddles[j];
+        work[j] = even + std::complex<double>(0.0, 1.0) * odd;
     }
 
     // In place radix 2, positive exponent, unscaled.
@@ -133,15 +136,15 @@ void AudioDecoder::InverseTransform() {
         int bit = half >> 1;
         for (; j & bit; bit >>= 1) j ^= bit;
         j |= bit;
-        if (i < j) std::swap(work[static_cast<std::size_t>(i)], work[static_cast<std::size_t>(j)]);
+        if (i < j) std::swap(work[i], work[j]);
     }
     for (int length = 2; length <= half; length <<= 1) {
         const int stride = frameSize / length;   // twiddles holds e^(2 pi i k / frameSize)
         for (int start = 0; start < half; start += length) {
             for (int k = 0; k < length / 2; ++k) {
-                std::complex<double>& u = work[static_cast<std::size_t>(start + k)];
-                std::complex<double>& v = work[static_cast<std::size_t>(start + k + length / 2)];
-                const std::complex<double> t = v * twiddles[static_cast<std::size_t>(k * stride)];
+                std::complex<double>& u = work[start + k];
+                std::complex<double>& v = work[start + k + length / 2];
+                const std::complex<double> t = v * twiddles[k * stride];
                 v = u - t;
                 u += t;
             }
@@ -149,11 +152,10 @@ void AudioDecoder::InverseTransform() {
     }
 
     for (int m = 0; m < half; ++m) {
-        const std::complex<double> z = work[static_cast<std::size_t>(m)];
+        const std::complex<double> z = work[m];
         for (int k = 0; k < 2; ++k) {
             const double x = (k == 0 ? z.real() : z.imag()) * scale;
-            const long rounded = std::lrint(std::clamp(x, -32768.0, 32767.0));
-            samples[static_cast<std::size_t>(2 * m + k)] = static_cast<std::int16_t>(rounded);
+            samples[2 * m + k] = static_cast<std::int16_t>(lib::RoundEven(std::clamp(x, -32768.0, 32767.0)));
         }
     }
 }

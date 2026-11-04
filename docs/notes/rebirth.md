@@ -92,6 +92,8 @@ The five mod-folder patches (Maps, ResOverride, MoviesPatch, CameraPatch, Stream
 - GetFile: the mod's archives for this archive, then the archive unless ignored; a `t\` or `s\` name not found is tried
   once more without the prefix. ListFiles: the mod's listings and the archive's own are appended to the caller's array,
   which is not emptied first. Both also with the Standard mod (no folders, no [RES]), as addon does for every archive.
+  CloseFile of a file a mod archive gave goes back to that archive (`modfolders::ArchiveHolding`); addon left it
+  loaded and the game's archive logged "File already closed".
 - Maps: `<mod>\Maps<sub>\*.*` listed once; before each of the maps-folder uses (new zone map / mob, MapPath,
   WorldClient::LoadZone, the zone table's "*.mq", LoadZoneQuests, MapFileExists, WriteMapFile) the file's name selects
   the folder: the mod's when listed (any case; the zone table: the mod's top folder has a `.mq`), else the game's. The

@@ -89,7 +89,6 @@ SoundSequence* SequenceForId(SoundManager* m, std::uint32_t id) {
 int StartLoaded(SoundManager* m, SoundSlot* slot, bool loop) {
     if (loop) audio::SetLoopCount(slot->voice, 0);
     m->ApplyVolumePan(slot);
-    audio::SetEndCallback(slot->voice, SoundEndOfSample, slot);
     if (m->reverbOn) audio::SetReverb(slot->voice, m->reverb[0], m->reverb[1], m->reverb[2]);
     if (m->randomStart != 0) {
         std::uint32_t range = static_cast<std::uint32_t>(m->randomStart) + 1;
@@ -229,7 +228,6 @@ void SoundManager::EndSlot(SoundSlot* slot) {
     --cache[slot->params.name]->uses;
     audio::End(slot->voice);
     slot->playing = false;
-    slot->finished = false;
     slot->handle = kNoSound;
 }
 
@@ -336,7 +334,7 @@ SoundSlot* SoundManager::FindPlaying(int handle) {
     if (!enabled) return nullptr;
     SoundSlot* slot = SlotForHandle(handle);
     if (slot == nullptr) return nullptr;
-    if (!slot->finished) return slot;
+    if (!audio::Ended(slot->voice)) return slot;
     EndSlot(slot);
     return nullptr;
 }
@@ -517,7 +515,7 @@ void SoundManager::RemoveSequence(std::uint32_t sequenceId) {
 void SoundManager::Tick() {
     if (!enabled) return;
     for (SoundSlot& slot : std::span(slots.get(), kVoiceCount))
-        if (slot.finished) EndSlot(&slot);
+        if (audio::Ended(slot.voice)) EndSlot(&slot);
 
     for (int i = 0; i < kVoiceCount; ++i) {
         if (deferred.empty()) break;
@@ -541,7 +539,6 @@ void SoundManager::Tick() {
             slot->handle = handle;
             audio::SetLoopCount(slot->voice, 0);
             ApplyVolumePan(slot);
-            audio::SetEndCallback(slot->voice, SoundEndOfSample, slot);
             if (reverbOn) audio::SetReverb(slot->voice, reverb[0], reverb[1], reverb[2]);
             audio::SetPosition(slot->voice, rec.samplePosition);
             audio::Start(slot->voice);
@@ -1143,8 +1140,6 @@ void SoundManager::FillSpareBuffer(std::uint32_t now) {
     }
     SwitchStream(this, buffer + currentBytes, restBytes);
 }
-
-void SoundEndOfSample(void* slot) { static_cast<SoundSlot*>(slot)->finished = true; }
 
 void SoundManager::Open(bool useReverb, unsigned rate) {
     Destroy();   // Close
