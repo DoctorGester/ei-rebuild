@@ -18,11 +18,22 @@ struct KeyCode {
 using LayoutKeyFunction = int (*)(int scan);
 
 // The key of `scancode` (its place on the keyboard); {0, 0} for a key the game has no code for. The keys a layout
-// moves (letters, the digit row, punctuation) take the layout's code from `layoutKey` (Windows: the active layout's,
-// as the window procedure got it); without one (0 or null) a letter or digit key gives the code of what it types
-// (SDL's key code, Latin letters on every layout: SDL_HINT_KEYCODE_OPTIONS) and the others Windows' US layout's. The
-// number pad gives its digits with Num Lock on, else the keys printed below them.
-KeyCode KeyOf(SDL_Scancode scancode, SDL_Keycode typed, SDL_Keymod mod, LayoutKeyFunction layoutKey);
+// moves (LayoutMoves) take the layout's code from `layoutKey` (the active layout's, as the window procedure got it on
+// Windows); without one (0 or null) they and the other keys give Windows' US layout's. The number pad gives its
+// digits with Num Lock on, else the keys printed below them.
+KeyCode KeyOf(SDL_Scancode scancode, SDL_Keymod mod, LayoutKeyFunction layoutKey);
+
+// Whether layouts move the key with the set-1 scan code `scan`: the digit row, the letters and the main block's
+// punctuation.
+bool LayoutMoves(int scan);
+
+// The SDL scancode of the key with the set-1 scan code `scan` (KeyOf turned round), or SDL_SCANCODE_UNKNOWN.
+SDL_Scancode ScancodeOf(int scan);
+
+// The virtual-key code a key gets from what it types (`typed`, an SDL key code), where the system has no Windows
+// layouts to say (platform_posix.cpp's LayoutKey): a Latin letter's or a digit's, and for the characters of Windows'
+// US punctuation keys those keys' codes (`-` VK_OEM_MINUS, `;` VK_OEM_1, ...); 0 for any other.
+int KeyOfTyped(SDL_Keycode typed);
 
 // The control character the active layout types with Ctrl held for a key (code, set-1 scan code): 0 for none, -1 when
 // the system cannot say (platform::LayoutControlCharacter).

@@ -191,9 +191,10 @@ window (gpu.h's `ClaimWindow`; the NativeWindow the game holds is `SDL_PROP_WIND
   folder and creates it, its base path is the folder, not the file: the settings file would move), the
   files and sockets. Their POSIX versions (src/platform/posix/platform_posix.cpp,
   PL9b): the program's path from `/proc/self/exe`, the user data folder from SDL's pref path, the one-instance check
-  as an advisory `flock` on a lock file named after the name and title (another process's window is not raised), key names
-  for the set-1 scan codes through SDL's, `ActivateKeyboardLayout` a no-op (text follows the system's layout), no
-  layout keys or control characters of the system's (sdl_keys.cpp's rules), `IsLetter` by `iswalpha_l`.
+  as an advisory `flock` on a lock file named after the name and title (another process's window is not raised), the
+  layout's key codes, Ctrl characters and key names from SDL's keymap (`SDL_GetKeyFromScancode`: what the key types,
+  read as Windows' layouts give theirs; linux.md, "What differs from Windows", LX4), `ActivateKeyboardLayout` a no-op
+  (text follows the system's layout), `IsLetter` by `iswalpha_l`.
 
 What SDL's backend does (platform_sdl.cpp):
 
@@ -209,13 +210,14 @@ What SDL's backend does (platform_sdl.cpp):
   set over its window and the screen saver off itself; exposures are not passed on (the renderer presents on its own).
 - **Keys** (sdl_keys.cpp): the virtual-key code and the set-1 scan code (0x100 extended) from the key's place (a table of
   US positions); the keys a layout moves (the digit row, the letters, the main block's punctuation) take the active
-  layout's code (`platform::LayoutKey`: Windows' MapVirtualKeyExW, so AZERTY's M key is VK_M), elsewhere what they type
-  (SDL's Latin letters on every layout); tools/input_check checks the codes and the control characters against every
-  layout the machine has (a build check). A key event carries SDL's repeat and Shift, Ctrl and Alt. Text: SDL's typed
+  layout's code (`platform::LayoutKey`: Windows' MapVirtualKeyExW, so AZERTY's M key is VK_M; on Linux and macOS
+  `sdl_keys::KeyOfTyped` of what the key types in SDL's keymap), else the US place's; tools/input_check checks the codes
+  and the control characters against every layout the machine has (a build check), and on Linux
+  (input_check_linux.cpp, ctest's `port_input`) codes, Ctrl characters and names on X11's us, ru, fr and de layouts. A key event carries SDL's repeat and Shift, Ctrl and Alt. Text: SDL's typed
   text, UTF-8, with the scan code of the last key pressed (the interface drops the console key's character by it), and
   the control characters a key types, which SDL's text leaves out (Backspace, Tab, Enter, Escape; with Ctrl the active
-  layout's on Windows, `platform::LayoutControlCharacter`: Ctrl+[ 0x1B, Ctrl+] 0x1D, Ctrl+\\ 0x1C on a US layout, none
-  for those keys on a Russian one; elsewhere Ctrl+letter 1..26, Ctrl+Escape 0x1B, Ctrl+Backspace 0x7F, Ctrl+Enter 0x0A;
+  layout's, `platform::LayoutControlCharacter`: Ctrl+[ 0x1B, Ctrl+] 0x1D, Ctrl+\\ 0x1C on a US layout, none
+  for those keys on a Russian one; otherwise Ctrl+letter 1..26, Ctrl+Escape 0x1B, Ctrl+Backspace 0x7F, Ctrl+Enter 0x0A;
   none with Alt).
 - **The mouse**: positions in the window's pixels, a button (left, right, middle, the side buttons) with SDL's click
   count, the wheel in notches (`SDL_MOUSEWHEEL_FLIPPED` turned back). `TakeMouseMotion` gives the motion events' sum

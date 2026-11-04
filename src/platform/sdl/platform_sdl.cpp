@@ -148,7 +148,7 @@ void QueueText(std::string text) {
 }
 
 void TakeKey(const SDL_KeyboardEvent& k) {
-    const sdl_keys::KeyCode code = sdl_keys::KeyOf(k.scancode, k.key, k.mod, LayoutKey);
+    const sdl_keys::KeyCode code = sdl_keys::KeyOf(k.scancode, k.mod, LayoutKey);
     if (code.key == 0) return;
     Event event;
     event.type = k.down ? EventType::KeyDown : EventType::KeyUp;

@@ -89,7 +89,7 @@ int main() {
         for (int sc = SDL_SCANCODE_A; sc <= SDL_SCANCODE_RGUI; ++sc) {
             for (const bool numLock : {false, true}) {
                 const SDL_Keymod mod = numLock ? SDL_KMOD_NUM : SDL_KMOD_NONE;
-                const KeyCode code = platform::sdl_keys::KeyOf(static_cast<SDL_Scancode>(sc), SDLK_UNKNOWN, mod, LayoutKeyOf);
+                const KeyCode code = platform::sdl_keys::KeyOf(static_cast<SDL_Scancode>(sc), mod, LayoutKeyOf);
                 if (code.key == 0 || Unmappable(code.scan)) continue;
                 ++keys;
                 ++checks;

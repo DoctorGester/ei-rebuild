@@ -7,33 +7,17 @@ namespace platform::sdl_keys {
 
 namespace {
 
-// Without the layout's codes: a letter or digit key gives the code of what it types (SDL's key code, Latin letters on
-// every layout), as Windows' layouts did; 0 for another.
-int TypedKey(SDL_Keycode typed) {
-    if (typed >= 'a' && typed <= 'z') return static_cast<int>(typed - 'a' + 'A');
-    if (typed >= '0' && typed <= '9') return static_cast<int>(typed);
-    return 0;
-}
-
-// The keys a layout moves, by their set-1 scan code: the digit row, the letters and the punctuation of the main block.
-bool LayoutMoves(int scan) {
-    return (scan >= 0x02 && scan <= 0x0D) || (scan >= 0x10 && scan <= 0x1B) || (scan >= 0x1E && scan <= 0x29) ||
-           (scan >= 0x2B && scan <= 0x35) || scan == 0x56;
-}
-
-// The key as Windows' US layout names it (the letters and digits by what they type).
-KeyCode UsKeyOf(SDL_Scancode scancode, SDL_Keycode typed, SDL_Keymod mod) {
+// The key as Windows' US layout names it.
+KeyCode UsKeyOf(SDL_Scancode scancode, SDL_Keymod mod) {
     static constexpr int kLetterScans[26] = {0x1E, 0x30, 0x2E, 0x20, 0x12, 0x21, 0x22, 0x23, 0x17, 0x24, 0x25, 0x26, 0x32,
                                              0x31, 0x18, 0x19, 0x10, 0x13, 0x1F, 0x14, 0x16, 0x2F, 0x11, 0x2D, 0x15, 0x2C};
     if (scancode >= SDL_SCANCODE_A && scancode <= SDL_SCANCODE_Z) {
         const int index = scancode - SDL_SCANCODE_A;
-        const int key = TypedKey(typed);
-        return {key ? key : 'A' + index, kLetterScans[index]};
+        return {'A' + index, kLetterScans[index]};
     }
     if (scancode >= SDL_SCANCODE_1 && scancode <= SDL_SCANCODE_0) {
         const int index = scancode - SDL_SCANCODE_1;   // 1..9, then 0
-        const int key = TypedKey(typed);
-        return {key ? key : (index == 9 ? '0' : '1' + index), 0x02 + index};
+        return {index == 9 ? '0' : '1' + index, 0x02 + index};
     }
     if (scancode >= SDL_SCANCODE_F1 && scancode <= SDL_SCANCODE_F10)
         return {0x70 + (scancode - SDL_SCANCODE_F1), 0x3B + (scancode - SDL_SCANCODE_F1)};
@@ -105,11 +89,50 @@ KeyCode UsKeyOf(SDL_Scancode scancode, SDL_Keycode typed, SDL_Keymod mod) {
 
 } // namespace
 
-KeyCode KeyOf(SDL_Scancode scancode, SDL_Keycode typed, SDL_Keymod mod, LayoutKeyFunction layoutKey) {
-    KeyCode code = UsKeyOf(scancode, typed, mod);
+KeyCode KeyOf(SDL_Scancode scancode, SDL_Keymod mod, LayoutKeyFunction layoutKey) {
+    KeyCode code = UsKeyOf(scancode, mod);
     if (code.key && layoutKey && LayoutMoves(code.scan))
         if (const int key = layoutKey(code.scan)) code.key = key;
     return code;
+}
+
+bool LayoutMoves(int scan) {
+    return (scan >= 0x02 && scan <= 0x0D) || (scan >= 0x10 && scan <= 0x1B) || (scan >= 0x1E && scan <= 0x29) ||
+           (scan >= 0x2B && scan <= 0x35) || scan == 0x56;
+}
+
+// Where two scancodes give one scan code (Backslash and the non-US hash key), the lower.
+SDL_Scancode ScancodeOf(int scan) {
+    struct Table {
+        SDL_Scancode of[0x200];
+    };
+    static const Table table = [] {
+        Table t{};
+        for (int sc = SDL_SCANCODE_COUNT - 1; sc > SDL_SCANCODE_UNKNOWN; --sc)
+            if (const KeyCode code = UsKeyOf(static_cast<SDL_Scancode>(sc), SDL_KMOD_NONE); code.key)
+                t.of[code.scan] = static_cast<SDL_Scancode>(sc);
+        return t;
+    }();
+    return scan > 0 && scan < 0x200 ? table.of[scan] : SDL_SCANCODE_UNKNOWN;
+}
+
+int KeyOfTyped(SDL_Keycode typed) {
+    if (typed >= 'a' && typed <= 'z') return static_cast<int>(typed - 'a' + 'A');
+    if (typed >= '0' && typed <= '9') return static_cast<int>(typed);
+    switch (typed) {
+    case '-': return 0xBD;    // VK_OEM_MINUS
+    case '=': return 0xBB;    // VK_OEM_PLUS
+    case '[': return 0xDB;    // VK_OEM_4
+    case ']': return 0xDD;    // VK_OEM_6
+    case '\\': return 0xDC;   // VK_OEM_5
+    case ';': return 0xBA;    // VK_OEM_1
+    case '\'': return 0xDE;   // VK_OEM_7
+    case '`': return 0xC0;    // VK_OEM_3
+    case ',': return 0xBC;    // VK_OEM_COMMA
+    case '.': return 0xBE;    // VK_OEM_PERIOD
+    case '/': return 0xBF;    // VK_OEM_2
+    default: return 0;
+    }
 }
 
 int ControlCharacter(int key, int scan, SDL_Keymod mod, LayoutControlFunction layoutControl) {
