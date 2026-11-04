@@ -49,6 +49,12 @@ from a clone in the WSL home, not under /mnt/e (9P is slow).
 - `port_gpu` (tools/gpu_check): the renderer's SDL_GPU layer (src/render/gpu.cpp; renderer.md section 15c) on the
   same driver: textures, buffers, draws in order, downloads, the upload ring, the swap chain on a small window of the
   virtual display; `--require` as above.
+- `port_input` (tools/input_check/input_check_linux.cpp, `ei_input_check`): the keyboard's layout codes, Ctrl
+  characters and key names ("What differs from Windows" below) on X11's us, ru, fr and de layouts, every key a layout
+  moves against a written table (1013 checks). It starts an Xvfb of its own (from :99 down, as run_all) and sets each
+  layout there with `setxkbmap -display`, so it never changes the session's layout; skipped (exit code 77) without
+  Xvfb or setxkbmap (x11-xkb-utils, which Xvfb's packages bring). `ei_input_check --print` prints what each layout
+  gives: the hand check of another layout (add it to the list, compare with what its keys type).
 
 The Linux workflow (.github/workflows/linux.yml) runs them on GitHub's Ubuntu runner for every push.
 
@@ -325,8 +331,18 @@ One-time setup (the user's; nothing here creates repositories or tokens):
 ## What differs from Windows
 
 - No lost context is looked for (it needs a robust context).
-- The keys: SDL's scancodes through sdl_keys.cpp's US rules; no layout's own key codes or control characters
-  (`LayoutKey` / `LayoutControlCharacter`), and the key names are SDL's English ones.
+- The keys (LX4; platform_posix.cpp, the same on macOS): there are no Windows layouts to give the virtual-key codes,
+  so `LayoutKey` takes them from what the key types in SDL's keymap (`SDL_GetKeyFromScancode`): on a layout whose
+  letter keys type Latin letters a letter's or digit's code and the US punctuation characters' codes
+  (`sdl_keys::KeyOfTyped`: AZERTY's M key VK_M, its comma key VK_OEM_COMMA), on another (Russian, Greek) the US codes,
+  as Windows' Russian layout has them (SDL's event key codes are the US layout's there). That is Windows' code for
+  every key on us and ru; Windows' French and German layouts give some punctuation keys other VK_OEM codes, and
+  German's ß and - keys share VK_OEM_MINUS here (no game code reads the VK_OEM codes: bindings and the console go by
+  scan code). Ctrl: a letter key its control character, where the layout's key types `[`, `\` or `]` ESC, FS or GS,
+  else none (Russian's х and ъ keys none, as on Windows). Key names as Windows' GetKeyNameTextW gives them: a letter
+  key its code's letter (Russian's Й key "Q", as on Windows), another moved key what it types (х, ж, ё; French's
+  digit row & é "), the rest Windows' US names ("Num 7", "Right Ctrl"): neither SDL nor xkb has key names in the
+  layout's language. A dead key types no character in SDL's keymap and keeps the US key's name (French ^ is "[").
 - Not played with real data yet: menus, maps, movies, sound, saves and multiplayer are unchecked on Linux.
 - Frame pacing under WSLg (X11 through XWayland, GALLIUM_DRIVER=d3d12, VSync on; PL20, 2026-11-03): 64 to 85 frames a
   second, 10 to 28 ms apart, where Windows' 60 Hz screen gives 16 / 17 ms; on a busy machine 32 to 38, 16 to 66 ms

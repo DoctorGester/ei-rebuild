@@ -380,6 +380,16 @@ else()
         target_link_libraries(ei_render_check PRIVATE X11::X11)
     endif()
     add_test(NAME port_render COMMAND ei_render_check)
+    if(NOT APPLE)
+        # The POSIX platform's keyboard (LayoutKey, LayoutControlCharacter, KeyName on SDL's keymap) on X11's us, ru,
+        # fr and de layouts, set with setxkbmap on an Xvfb of its own (tools/input_check/input_check_linux.cpp).
+        add_executable(ei_input_check tools/input_check/input_check_linux.cpp src/lib/text_case.cpp src/lib/calendar.cpp
+                       ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
+        target_include_directories(ei_input_check PRIVATE src)
+        target_link_libraries(ei_input_check PRIVATE ei_platform SDL3::SDL3-static)
+        add_test(NAME port_input COMMAND ei_input_check)
+        set_tests_properties(port_input PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77)
+    endif()
     # The HLSL programs and src/render/gpu.cpp on Vulkan (Linux; lavapipe without a GPU) or Metal (macOS).
     add_test(NAME port_shaders COMMAND ei_shader_check --require)
     add_test(NAME port_gpu COMMAND ei_gpu_check --require)
