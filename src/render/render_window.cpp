@@ -254,6 +254,8 @@ void SetVsync(bool on) {
     g_vsync = on;
 }
 
+bool Vsync() { return g_vsync; }
+
 bool VsyncSwitchSupported() {
 #if defined(EI_RENDER_VALIDATION)
     return false;   // the harness build: its presents are the virtual clock's (SetWaitForVsync), the pinned settings lack the value

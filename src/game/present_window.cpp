@@ -68,6 +68,14 @@ void SizeClient(TextureDevice* device, int width, int height) {
             height);
 }
 
+void SetFullScreen(TextureDevice* device, bool fullScreen) {
+    if (!device || !device->window || device->fullScreen == fullScreen) return;
+    ei::Log("present: %s", fullScreen ? "full screen without a display mode change" : "a window");
+    device->fullScreen = fullScreen;
+    platform::SetFullScreen(device->window, fullScreen);
+    SizeClient(device, device->screen.right, device->screen.bottom);
+}
+
 bool MouseToGame(platform::Event* event) {
     using platform::EventType;
     if (event->type != EventType::MouseMove && event->type != EventType::MouseDown &&

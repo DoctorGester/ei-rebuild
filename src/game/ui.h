@@ -1723,12 +1723,13 @@ public:
 struct OptionDefinition {
     int id;
     const char* name;                // "option_" + name is its text key (else the name is shown)
-    int kind;                        // 0 a slider, 1 an on / off spin control, 2 the resolutions' drop-down list
+    int kind;                        // 0 a slider, 1 an on / off spin control, 2 the resolutions' drop-down list, 3 a
+                                     // spin control over a choice list (ui_options.cpp's)
     int maximum;                     // the slider's range
     int group;                       // the option group (0-10) it is shown in
     int row;                         // its row there
 };
-constexpr int kOptionDefinitionCount = 22;
+constexpr int kOptionDefinitionCount = 27;
 
 struct ActionDefinition {
     int id;                          // the action (the key code in the key table)
@@ -1923,10 +1924,12 @@ public:
     // Clamped to 0-10; the first filled row selected (or row 0), the key wait cleared.
     void ShowGroup(int group);
     // OK: the key table and every setting into the game's option globals (the difficulty only outside a
-    // multiplayer client); a shadow switch (settings 7-9) turned off drops those shadows; another resolution is
-    // chosen (app::ChooseResolution).
+    // multiplayer client); a shadow switch (settings 7-9) turned off drops those shadows; another display mode or
+    // resolution is chosen (app::ChooseFullScreen, app::ChooseResolution), the renderer's switches set; the
+    // settings file saved.
     void Apply();
-    // A slider (kind 0), an on / off spin control (kind 1) or the resolutions' drop-down list (kind 2) per setting.
+    // A slider (kind 0), an on / off spin control (kind 1), the resolutions' drop-down list (kind 2) or a choice spin
+    // control (kind 3) per setting.
     void BuildSettings();
     void LoadSettings();
     // The keys' text is the first key name of a scan code bound to the action.

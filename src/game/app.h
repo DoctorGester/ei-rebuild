@@ -76,6 +76,9 @@ void RequestResolution(int width, int height);
 // (present_window::SizeClient). Full screen keeps its window over the monitor: the frame is scaled over it, the
 // display mode never changes.
 void ChooseResolution(int width, int height);
+// A display mode chosen in the options (their OK): full screen (a borderless window over the monitor, the frame scaled
+// into it) or a window of the resolution's size; the settings' FullScreen (written with the options) takes it.
+void ChooseFullScreen(bool fullScreen);
 // At a main loop pass's start: the requested resolution taken.
 void TakeResolutionChange();
 // The cursor confined to the window (platform::ConfineCursor) while the game's window is the active one and the camera

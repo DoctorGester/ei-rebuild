@@ -1,0 +1,96 @@
+# ST2: the graphics rows of the options window's display group (docs/notes/ui.md, "Options data"; renderer.md,
+# "Resolution changes"). From the main menu, windowed at 1280x720, the settings file writable: row 8 display mode,
+# 10 vertical sync, 11 antialiasing, 12 anisotropic filtering, 13 the performance overlay (regions 13 + row). Vertical
+# sync off (Enter), antialiasing 4x (Right twice from off), anisotropy 8x (Right three times), the overlay on, full
+# screen; OK applies them at once: the window goes borderless over its monitor (no display mode change), the
+# renderer's msaa and anisotropy change (the harness build's renderer ignores the vsync and overlay switches) and the
+# settings file is saved. Then back to a window (its client area sized to the resolution), and full screen again with
+# 2560 x 1440 picked from the resolution list: the frame is that size, scaled over the monitor. run_all compares the file after the exit with
+# settings/ui_options_graphics.ini (FullScreen, VideoResolution and the [renderer] values the rows set; the keyboard
+# powers' 0.46 comes back as 0.44 from the original's truncating slider, LoadSettings).
+# The window takes a spin control's step at its next update: a few frames before OK.
+# Captures to look at: graphics_720 (the rows at 1280x720, changed), graphics_large (at 2560x1440, as saved).
+# settings-file: settings/ui_options_graphics.ini
+timeout 60
+settingsfile writable
+resolution 1280x720
+fullscreen 0
+reject Script error
+waitmenu
+
+clickregion 3
+waitwindow 10 options
+frames 5
+clickregion 23
+key enter
+clickregion 24
+key right
+key right
+clickregion 25
+key right
+key right
+key right
+clickregion 26
+key enter
+clickregion 21
+key enter
+frames 5
+move 400 20
+frames 5
+freeze
+capture graphics_720
+unfreeze
+logmark
+clickregion 0
+frames 5
+waitpresent 10
+frames 5
+expectnewlog present: full screen without a display mode change: the window
+expectlog render: msaa 4 (asked 4)
+expectlog render: anisotropy 8 (asked 8)
+
+# Back to a window: decorated again, its client area the resolution's.
+clickregion 3
+waitwindow 10 options
+frames 5
+clickregion 21
+key enter
+frames 3
+logmark
+clickregion 0
+frames 5
+waitpresent 10
+frames 5
+expectnewlog present: the window's client area sized to 1280x720 (asked 1280x720)
+
+# Full screen again, at 2560 x 1440.
+clickregion 3
+waitwindow 10 options
+frames 5
+clickregion 21
+key enter
+frames 3
+droplist open
+frames 3
+droplist pick 15
+frames 3
+droplist expect 2560 x 1440
+logmark
+clickregion 0
+frames 5
+waitpresent 10
+frames 5
+expectnewlog present: full screen without a display mode change: the window
+expectlog Resolution: 2560x1440 (was 1280x720)
+clickregion 3
+waitwindow 10 options
+frames 5
+move 400 20
+frames 5
+freeze
+capture graphics_large
+unfreeze
+clickregion 1
+frames 5
+report
+quit

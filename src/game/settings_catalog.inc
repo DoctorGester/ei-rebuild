@@ -20,7 +20,8 @@ EI_SETTING(kVideo, "VideoResolution", "(desktop size)", "WxH",
            "a window, the window's size.")
 EI_SETTING(kVideo, "FullScreen", "true", "true / false",
            "A borderless window covering the monitor; false: a window with a title bar, the resolution's size, "
-           "centred on the main monitor (it can be moved and resized). The display mode never changes.")
+           "centred on the main monitor (it can be moved and resized). The display mode never changes. The "
+           "options screen's display mode row sets it while the game runs.")
 EI_SETTING(kVideo, "Video", "2", "0, 1 or 2",
            "The game's movies: 0 none, 1 at their own size in the middle of the screen, 2 stretched to the "
            "screen's width. Loading screens show either way.")
@@ -210,14 +211,16 @@ EI_SETTING(kNetwork, "Master Server Name", "a3master.nival.com", "host[:port]",
 // [renderer]
 EI_SETTING(kRenderer, "VSync", "true", "true / false",
            "Each frame waits for the monitor's refresh: no tearing. false: frames show as soon as they are "
-           "drawn.")
+           "drawn. The options screen's vertical sync row sets it.")
 EI_SETTING(kRenderer, "Msaa", "8", "1, 2, 4 or 8",
            "Multisampling of the 3D world: smoother edges on models and the ground. 1 is off; more than the "
-           "graphics card offers takes its best.")
+           "graphics card offers takes its best. The options screen's antialiasing row sets it.")
 EI_SETTING(kRenderer, "Anisotropy", "16", "1 .. 16",
-           "Sharper textures on surfaces seen at a slant, such as the ground into the distance. 1 is off.")
+           "Sharper textures on surfaces seen at a slant, such as the ground into the distance. 1 is off. The "
+           "options screen's anisotropic filtering row sets it (1, 2, 4, 8 or 16).")
 EI_SETTING(kRenderer, "PerfOverlay", "false", "true / false",
-           "Shows frames per second, frame and graphics card times and draw counts over the game.")
+           "Shows frames per second, frame and graphics card times and draw counts over the game. The options "
+           "screen's performance overlay row sets it.")
 
 // [patches]
 EI_SETTING(kPatches, "DisableExitOnCrashReport", "(profile)", "true / false",

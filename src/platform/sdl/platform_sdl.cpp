@@ -311,6 +311,20 @@ bool CoverMonitor(NativeWindow window, Rect* was, Rect* monitor) {
     return true;
 }
 
+void SetFullScreen(NativeWindow window, bool fullScreen) {
+    SDL_Window* w = WindowOf(window);
+    if (!w) return;
+#if defined(__APPLE__)
+    // Full screen is SDL's desktop full screen (CreateGameWindow): a Space of its own, the display mode kept.
+    if (!SDL_SetWindowFullscreen(w, fullScreen)) ei::Log("platform: the window cannot change full screen: %s", SDL_GetError());
+    SDL_SyncWindow(w);
+#else
+    if (SDL_GetWindowFlags(w) & SDL_WINDOW_MAXIMIZED) SDL_RestoreWindow(w);
+    SDL_SetWindowBordered(w, !fullScreen);
+    SDL_SetWindowResizable(w, !fullScreen);
+#endif
+}
+
 bool WindowPixelSize(NativeWindow window, int* width, int* height) {
     SDL_Window* w = WindowOf(window);
     if (!w || Minimized() || !SDL_GetWindowSizeInPixels(w, width, height)) return false;

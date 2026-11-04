@@ -427,7 +427,7 @@ maximised, a DPI change). `present_window::Update` asks at each present (`app::R
 loop pass takes it (`TakeResolutionChange`), so a resize during a blocking movie or loading screen is taken after it;
 meanwhile the present scales the frame. The window's first client area is not a change.
 
-The options window's resolution (setting 21, the display group's last row, ours): a spin control over the sizes of the
+The options window's resolution (setting 21, the display group's row 9, ours): a drop-down list over the sizes of the
 display's own modes (`platform::DisplaySizes`: SDL_GetFullscreenDisplayModes of the window's display, in pixels, sizes
 only, each once, narrowest first, none under 800x600 or above the desktop's: `platform/display_sizes.h`, unit check
 display_sizes.cpp; the harness's backend returns a fixed list of 19 common sizes, so scenarios step it the same on
@@ -440,6 +440,21 @@ their own input handler) and, in a window that is not full screen, the client ar
 not fit, the frame then scaled into it; logged "present: the window's client area sized to ..."), taken as the
 window's own size, so the next present asks for nothing. Full screen only the resolution changes: the frame is scaled
 over the monitor, the display mode never changes.
+
+**The graphics rows** (settings 22-26 of the display group, ours; ui.md, "Options data"): row 8 the display mode (full
+screen / window), 10 vertical sync, 11 antialiasing (off, 2x, 4x, 8x), 12 anisotropic filtering (off, 2x .. 16x), 13 the
+performance overlay. They show the running state (the device's `fullScreen`, `render::Vsync`, `Msaa`, `Anisotropy`,
+`PerfOverlay`) and OK applies every change at once, nothing needs a restart:
+- The display mode first (`app::ChooseFullScreen` -> `present_window::SetFullScreen`, logged "present: full screen
+  without a display mode change" / "present: a window"): `platform::SetFullScreen` makes the window borderless and
+  unsizeable (macOS: SDL's desktop full screen) and the next present covers the monitor with it, or decorated and
+  resizable again with its client area the screen's size (`SizeClient`). Then the resolution, so a window takes the
+  chosen size. The settings' FullScreen follows.
+- The renderer's switches through their setters, each from the next frame (the swap chain's present mode at the next
+  present), and each changed value into `[renderer]` (VSync, Msaa, Anisotropy, PerfOverlay). The harness build's
+  renderer ignores the VSync and overlay switches (sections 15, 15a): those rows are saved but not applied there.
+- OK then saves the settings file (`GameOptions::Save`), not only the exit.
+Scenario `ui_options_graphics` (every row changed, full screen, then 2560 x 1440; the saved file compared; captures).
 
 **Input in a window of another shape.** Mouse coordinates are frame pixels through the picture's placement
 (`render::WindowToFrame`; the cursor's through `platform::MapCursorPoints`). A point over the bars goes to the frame's
@@ -564,7 +579,8 @@ with its own level.
   Anisotropy = 16    1 (off) .. 16
   ```
   Read once the renderer starts (`QualitySetting`, device_mesh.cpp); a value missing or not a number is written with its
-  default. `render::SetMsaa` rounds down to a power of two up to 8 (`kSmoothSamples`), and the target takes the device's
+  default. The options window's antialiasing and anisotropic filtering rows set both while the game runs ("Resolution
+  changes", "The graphics rows"). `render::SetMsaa` rounds down to a power of two up to 8 (`kSmoothSamples`), and the target takes the device's
   nearest count (`SamplesFor`: the least it lists at or above the asked one, else the most below: lavapipe lists 1 and 4); `render::SetAnisotropy` clamps to 1..16. Both from the next frame; `Msaa()` / `Anisotropy()` read them.
   **Never in a harness run**: `render::QualitySettingsSupported()` is false in the harness build, so a run starts with both
   off (1) and goldens and frame checks keep that look; the harness steps `msaa <samples>` / `anisotropy <level>` set them.
@@ -1264,7 +1280,7 @@ blends the pose last placed into the new one's (map_object_animation.cpp, figure
   PerfOverlay = true
   ```
   Off when absent or false (a new file has it false). Read once the renderer starts (`PerfOverlaySetting`,
-  device_mesh.cpp) into `render::SetPerfOverlay`. **Never in a harness run**: `render::PerfOverlaySupported()` is false in
+  device_mesh.cpp) into `render::SetPerfOverlay`; the options window's performance overlay row switches it live. **Never in a harness run**: `render::PerfOverlaySupported()` is false in
   the harness build.
 - **What it shows** (top left of the game image, refreshed every 250 ms, averages over the last second):
   ```
@@ -1299,7 +1315,8 @@ blends the pose last placed into the new one's (map_object_animation.cpp, figure
   VSync = false
   ```
   On when absent or true (`PresentMode::Vsync`); false turns it off. Read once the renderer starts (`VsyncSetting`,
-  device_mesh.cpp, before the first present) into `render::SetVsync`. **Never in a harness run**:
+  device_mesh.cpp, before the first present) into `render::SetVsync`; the options window's vertical sync row switches it
+  live (the present mode changes at the next present). **Never in a harness run**:
   `render::VsyncSwitchSupported()` is false in the harness build; the harness's own `SetWaitForVsync(false)` under the
   virtual clock presents in `Mailbox` (no wait, no tearing).
 - **Off**: `PresentMode::Immediate` (no wait; may tear), which gpu.h's `SetPresentMode` turns into `Mailbox` where the

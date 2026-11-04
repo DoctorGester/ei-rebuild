@@ -24,6 +24,10 @@ void Update(TextureDevice* device);
 // no resolution.
 void SizeClient(TextureDevice* device, int width, int height);
 
+// The window switched to full screen (covering its monitor from the next present) or to a window whose client area
+// is the screen's size (SizeClient); the device's flag follows.
+void SetFullScreen(TextureDevice* device, bool fullScreen);
+
 // A mouse event's position (in the window) as frame pixels, a point beyond the frame (over the bars of a window of
 // another shape) put on its nearest pixel. Returns whether the point was on the frame; other events are unchanged
 // (true).
