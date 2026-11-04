@@ -83,6 +83,16 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   where the game's ground pick finds map point (x, y) (`net_pair_zone.txt`). `layout <mouse step> <x> <y>` aims at the
   800x600 layout's point in the window's centred 4:3 part (the plain mouse steps spread their points over the whole
   window); `checksave ... centre` takes the save picture's 4:3 part in a wider window.
+- `camera <x> <y> [<heading> [<distance> [<pitch>]]]` places the view camera to look at map point (x, y) at once
+  (R17c4; Camera::SetFocus, SetHeading, ApplyView through image::PlaceCamera, in WinMain's loop): it follows no unit
+  and stops its pan; heading in degrees about z (0 the camera's north, 90 screen right = +y), distance in units,
+  pitch in degrees, each kept when left out; `camera` alone logs the pose. It aims a frame capture by map point on any
+  install and window size, where `lookat`'s minimap clicks (`minimap` numbers per install, kept for `walkto`'s player
+  input) did not hold: on Rebirth's zone1 at 1440x1080 they moved the camera erratically (render_water_looks).
+  `climate <n>` sets the server world's climate (WorldServer::SetClimate: 0 none, 1 rain, 2 snow, 3 storms; the
+  weather cleared). A dry capture scene says `climate 0`: `@SetWeather("clear")` only stops the rain now, and on
+  zone1 (climate rain) UpdateRain rolls one in 101 every 64 ticks to start it again, which Rebirth's random stream hit
+  during render_water_looks's views (`weathercheck 0 0` before each view checks the ground dry).
 - `screen <id>` asks the server for interface screen `<id>` as the global map's buttons do (4 the global map, 5 the
   camp); the camp's Esc returns to the game. `screen 5 <n>` opens the camp with constructor / trader class `<n>` as a
   base dialogue's "constrN" answer does (1, 3, 4, 5 after a new game; `trader_stock.txt`).

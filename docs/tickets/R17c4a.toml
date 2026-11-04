@@ -1,0 +1,6 @@
+id = "R17c4a"
+title = "No false mud rim where a swamp meets other water"
+group = "renderer"
+depends = ["R17c4"]
+note = "R17c4 found it (renderer.md, the swamp item): where a swamp's vertices meet another water's, both under water (zone1 (147, 87), (172, 94), (122, 69)), the ground's depth attribute runs from the swamp's depth to -1 (SwampDepth) and crosses 0 under the water: terrain.hlsl draws a muddy rim along that false shore, faint but visible through the river (render_water_looks' looks_swamp_river; mean 3 a channel over the meet). No one scalar per vertex avoids the crossing; candidates: a ground vertex under non-swamp water that neighbours a swamp vertex gets a value above the swamps' range (say +3) that the shader fades the mud out over (1..2), sector-edge neighbours read from the next sector so both copies of an edge vertex agree; or a second attribute (under other water). Check: looks_swamp_river with the rim gone under the river and the real rims (looks_swamp_edge) the same."
+order = 1136
