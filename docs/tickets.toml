@@ -7430,7 +7430,7 @@ id = "R53"
 title = "Rain: the falling rain is not seen, and the drops on the water read as bright dots"
 group = "renderer"
 model = "opus"
-note = "Also (user 2026-11-04: is weather state not in the save files?): the world saves weather + weatherStrength; check whether the client rain/snow layer's build-up (RainSnow level / density, effects_weather.cpp) restarts from nothing after a load and, if so, start it at the saved strength."
+note = "User 2026-11-04 (more): the snow particles do not show either (likely the same cause as the rain). SetWeather(\"snow\") then almost at once SetWeather(\"rain\"): the snow cover never went away, and the snow patches appeared instantly instead of building up. Check render_weather.cpp's state (PrepareSurfaces: snow by the snow's strength with its time constants; the 'start from the weather as it is' reset on a step of time or a zone load may be firing on SetWeather, and the snow mode flag may stick while the layer fades from snow to rain). Snow should build over minutes and melt after a change to rain or clear."
 
 [[ticket]]
 id = "R53a"
@@ -8699,3 +8699,10 @@ group = "port"
 model = "opus"
 depends = ["PL16"]
 note = "Left from PL16 (the platform's Event is SDL-shaped since). The interface still takes the original's message data: UiInputSide's KeyDown / KeyUp / Char and Interface3D's OnKeyDown / OnKeyUp / OnChar take (key, repeat, flags) with the scan code in bits 0-8 and the repeat bit 0x4000 (the only parts read: the key tables are indexed by the scan code); the mouse handlers' first argument (Windows' MK_ bits) is read nowhere (app.cpp passes 0; ForwardingStrip::LeftDown uses it as scratch for ItemAt); Wheel takes the turn as an unsigned 16-bit value of 120 a notch. About 180 overrides in src/game/ui*.cpp: give them (key, scan, repeat), (Point) and a signed turn, and drop app.cpp's KeyFlags / WheelTurn packing (the console's print of a system key's release keeps the original's numbers). The harness's steps still post WM_ numbers and words (tests/verify/harness_input.h): post platform Events directly. Goldens the same."
+
+[[ticket]]
+id = "P11"
+title = "Console readable at any resolution (scale with the window and the display scale)"
+group = "port"
+model = "sonnet"
+note = "User 2026-11-04: on a Mac (Retina) the console is barely readable. The console (console.cpp / its window: font, line height, padding, the input line) is drawn at a fixed pixel size. Scale it by the window like the rest of the interface (P8c titles scale by window; PL20: calibrated to 4K at 200%): pick its font size and metrics from the window's size and the display scale, so it reads the same at 1080p, 4K and on a Retina Mac. Check: captures of the console at 1280x720, 3840x2160 and a 2x scale; the text height in pixels proportional to the window height within a step of the font sizes."
