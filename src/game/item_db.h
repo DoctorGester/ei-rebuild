@@ -25,8 +25,29 @@ enum class ItemKind : int {
     Quest = 0x3009,
 };
 
-// The damage types (a weapon's weights, an armour's absorption rows).
+// The damage types (a weapon's weights, an armour's absorption rows, DamageInfo::typeWeights). Types 0-2 are the
+// weapons' own (no name is known for them); the spells deal the other four.
 inline constexpr int kDamageTypeCount = 7;
+enum class DamageType : int { Fire = 3, Acid = 4, Lightning = 5, Other = 6 };
+
+// The weapon types (WeaponRecord::type, a unit's natural weapon), by the item codes "sw", "ax", "dg", "sp", "hm",
+// "bw", "cb". The natural weapon also takes NoWeapon (a unit without a natural attack, and an AttackParams
+// without a weapon in hand) and SpellsOnly (a unit that only casts).
+enum class WeaponType : int {
+    Sword = 0,
+    Axe = 1,
+    Dagger = 2,
+    Spear = 3,
+    Club = 4,
+    Bow = 5,
+    Crossbow = 6,
+    NoWeapon = 8,
+    SpellsOnly = 0x10,
+};
+// A weapon type that shoots (no defence bonus, no backstab).
+constexpr bool IsRanged(WeaponType type) { return type == WeaponType::Bow || type == WeaponType::Crossbow; }
+// The natural weapon types below this one have an animation bit (AnimationWeaponBit).
+inline constexpr int kAnimatedWeaponTypes = 7;
 
 // The category of a quick item prototype (Item::GetCategory). The game's data has 0 (the danger sensor), 5 (the
 // wands) and 8 (the potions, and the scrolls' "spell container" prototype).
@@ -51,8 +72,20 @@ enum class LootRecordType : std::uint32_t {
     Modifier = 4,
 };
 
-// The spell schools (SpellRecord::school; the trader stock's levels per school).
+// The spell schools (SpellRecord::school; the trader stock's levels per school), in the order of the cast particle
+// effects. None is OrderPlan::castKind of a plan that casts nothing.
 inline constexpr int kSchoolCount = 8;
+enum class SpellSchool : int {
+    Fire = 0,
+    Lightning = 1,
+    Acid = 2,
+    Illusion = 3,
+    Divination = 4,
+    Enchantment = 5,
+    Healing = 6,
+    Domination = 7,
+    None = 8,
+};
 
 namespace itemdb {
 

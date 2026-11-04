@@ -16,6 +16,9 @@
 // A melee target whose prototype height plus its z reaches this is too high to hit (TooHighToReach).
 constexpr float kMeleeReachHeight = 1.5f;
 
+// An order's source with this bit is a quick item slot (the low bits), else a spell slot.
+inline constexpr std::uint32_t kQuickItemSource = 0x80000000u;
+
 // An order of the unit: an AIOrder and two more fields. The order checks (CanReachAndPlan and the planning
 // under it) take the AIOrder part only: the AI builds just that on the stack.
 struct UnitAction : AIOrder {
@@ -119,7 +122,7 @@ struct AttackParams {
     // Unless `keyed`: attack and defence times the difficulty's factors, truncated.
     void ScaleForDifficulty(int keyed);
 
-    int weaponType;             // ItemWeapon::GetType, or the natural weapon
+    WeaponType weaponType;      // ItemWeapon::GetType, or the natural weapon
     int damageType;             // 0..6, or kNoDamageType
     float speed;                // the weapon's, or the natural attack's
     float damageMin;            // scaled by the stats' damage scale

@@ -239,8 +239,6 @@ constexpr int kTerrainNoCrawl1 = 6;          // kinds crawling does not change
 constexpr int kTerrainNoCrawl2 = 0xE;
 constexpr float kPlatformGap = 0.01f;
 constexpr int kCrawlSounds = 6;
-constexpr int kWeaponBow = 5;
-constexpr int kWeaponCrossbow = 6;
 
 // ClientRand() scaled into 0..n-1.
 
@@ -345,7 +343,7 @@ std::optional<std::string> UnitClientSpecific::ActionSound(const FigureAnimation
     case AnimationKind::Attack: {
         std::uint32_t hand = unit->activeWeapon < 4 ? weaponIds[unit->activeWeapon] : kNoItemId;
         if (unit->MapType() == MapObjectType::Hero && unit->activeWeapon < 4 && hand != kNoItemId &&
-            (WeaponType(hand) == kWeaponBow || WeaponType(hand) == kWeaponCrossbow))
+            IsRanged(WeaponTypeOf(hand)))
             return std::format("weapons\\{}.wav", static_cast<int>(sound));
         if (static_cast<std::uint32_t>(ClientRandBelow(100)) >= model->attackSoundChance) return std::string();
         format = "%s\\attack\\%d.wav";

@@ -221,7 +221,6 @@ void UnitStats::SaveTo(ByteStream* stream) { stream->Write(this, sizeof(UnitStat
 namespace {
 constexpr float kByteMax = 255.0f;
 constexpr float kSpeedScale = 25.5f;
-constexpr int kNoNaturalWeapon = 8;              // after Reset
 constexpr int kResetSlotType = 4;
 constexpr std::int16_t kResetParams20 = 7;
 
@@ -313,7 +312,7 @@ void UnitStats::Pack(UnitParams* params) {
 void UnitStats::Reset() {
     *this = {};
     combat[kAttackSpread] = 1.0f;
-    naturalWeapon = kNoNaturalWeapon;
+    naturalWeapon = WeaponType::NoWeapon;   // after Reset
     for (UnitStatSlot& slot : slots) slot.type = kResetSlotType;
 }
 

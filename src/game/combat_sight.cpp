@@ -35,8 +35,6 @@ constexpr float kFar = 1e38f;         // the plan's initial range
 constexpr float kBestStart = 1e30f;
 
 constexpr std::uint32_t kSkillSource = 6;
-constexpr int kWeaponBow = 5;
-constexpr int kWeaponCrossbow = 6;
 constexpr int kCastKindNone = 8;
 
 // a > b (false for a NaN).
@@ -91,8 +89,7 @@ bool NeedsClearWay(UnitServer* self, const AIOrder* order) {
     if (order->kind == UnitOrderKind::Use) return true;
     if (order->kind != UnitOrderKind::Attack) return false;
     ItemWeapon* weapon = self->unit->ActiveWeapon();
-    if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) return false;
-    weapon = self->unit->ActiveWeapon();
+    if (weapon && weapon->IsRanged()) return false;
     float reach = weapon ? weapon->reach : self->stats.combat[UnitStats::kReach];
     return reach < kMeleeReach;
 }

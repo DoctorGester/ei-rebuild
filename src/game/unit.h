@@ -75,7 +75,7 @@ struct UnitParams {
     int Reset();
     // UnitStats::WeaponSkillBonus on the packed bytes (the client's party units), with the weapon's prototype
     // record `weapon` (or null).
-    float WeaponSkillBonus(int type, const itemdb::WeaponRecord* weapon);
+    float WeaponSkillBonus(WeaponType type, const itemdb::WeaponRecord* weapon);
 
     std::uint8_t unused_00[4];
     int experience;
@@ -685,7 +685,7 @@ struct UnitStats {
     // The attack skill for weapon type `type` (0-4 use skill 0, 5 and 6 skill 1, 8 the bonused skill 0;
     // others 0): for text-key units the skill byte, the weapon prototype's bonus and the stat the skill's
     // name starts with minus 25, plus the level value of skill `type`.
-    float WeaponSkillBonus(int type, Unit* unit);
+    float WeaponSkillBonus(WeaponType type, Unit* unit);
     // Can the unit learn skill level `record` of the skill database: learnable, the three stats at least the
     // record's, the required attribute and skill level present unless named "none" or empty, no known level
     // of the same skill id in another skill, and the record's own level above the one known. 0/1.
@@ -761,7 +761,7 @@ struct UnitStats {
     float damageSpread;
     float attackCategory;           // the natural attack's category (UnitPrototypeRecord::attackCategory)
     float damageWeights[7];         // the natural attack's, per damage type
-    int naturalWeapon;              // weapon type of the natural attack (0x10: none / spells only)
+    WeaponType naturalWeapon;       // weapon type of the natural attack (SpellsOnly: none)
     // What the unit senses (the AI's sight and hearing): [0] sight range at night, [1] its percentage by day, [2] the
     // range it senses at, whatever the light, [3] hearing.
     UnitStatPair perception[6];

@@ -8,6 +8,7 @@
 #include "drawn_motion.h"
 #include "engine_object.h"
 #include "figure_mesh.h"            // FigureMesh (an object's figure parts)
+#include "item_db.h"                // WeaponType
 #include "map_object_animation.h"   // AnimationTrack (a bone's animator)
 #include "lib/vecmath.h"
 #include "ref.h"
@@ -78,7 +79,7 @@ constexpr std::uint32_t AnimationNumberBits(int number) {
 }
 
 // The weapon bit of weapon type `type` (the original's shift takes the count's low 5 bits).
-constexpr std::uint32_t AnimationWeaponBit(int type) { return 1u << (type & 0x1F); }
+constexpr std::uint32_t AnimationWeaponBit(WeaponType type) { return 1u << (static_cast<int>(type) & 0x1F); }
 
 // Flag bits of the key. DamageLevel1 / DamageLevel2 pick a hero's tired walk or run (LogicSettings'
 // DamageLevel1Value / DamageLevel2Value against its load factor; "cwalk08" / "cwalk06"); they are the number

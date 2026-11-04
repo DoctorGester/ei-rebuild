@@ -26,9 +26,6 @@ constexpr float kSteepUp = 1.73205f;
 constexpr float kSteepDown = -1.73205f;
 constexpr float kReachSlack = 0.15f;
 
-constexpr int kNoNaturalWeapon = 7;       // natural weapon types from 7 up have no animation bit
-constexpr int kWeaponBow = 5;
-constexpr int kWeaponCrossbow = 6;
 constexpr int kNoSizeClasses = 2;         // UnitStats::movementKind
 
 constexpr std::uint32_t kKeyAction = AnimationKeyOf(AnimationKind::Special);
@@ -67,13 +64,13 @@ std::uint32_t Bits(float f) { return std::bit_cast<std::uint32_t>(f); }
 std::uint32_t WeaponBit(UnitServer* self) {
     ItemWeapon* weapon = self->unit->ActiveWeapon();
     if (weapon) return AnimationWeaponBit(weapon->GetType());
-    int natural = self->stats.naturalWeapon;
-    return natural < kNoNaturalWeapon ? AnimationWeaponBit(natural) : 0u;
+    WeaponType natural = self->stats.naturalWeapon;
+    return static_cast<int>(natural) < kAnimatedWeaponTypes ? AnimationWeaponBit(natural) : 0u;
 }
 
 bool HasRangedWeapon(Unit* unit) {
     ItemWeapon* weapon = unit->ActiveWeapon();
-    return weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow);
+    return weapon && weapon->IsRanged();
 }
 
 
@@ -141,7 +138,7 @@ std::uint32_t OrderKey(UnitServer* self, UnitOrderKind kind, std::uint32_t sourc
             key = SkillKey(HasRangedWeapon(self->unit) ? SkillAnimation::SearchBodyRanged : SkillAnimation::SearchBody);
             *frame = leavesWalk;
         }
-        if (!self->unit->ActiveWeapon() && self->stats.naturalWeapon >= kNoNaturalWeapon) return key | kKeyNoWeapon;
+        if (!self->unit->ActiveWeapon() && static_cast<int>(self->stats.naturalWeapon) >= kAnimatedWeaponTypes) return key | kKeyNoWeapon;
         return key | WeaponBit(self);
     }
     default:

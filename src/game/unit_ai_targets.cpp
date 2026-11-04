@@ -353,7 +353,6 @@ AITargetChoice AIBrain::Choose(UnitList* candidates, const Vector3& from, bool a
 
 std::uint16_t MaxDamage(const std::uint16_t*);
 namespace {
-constexpr int kNaturalSpellsOnly = 0x10;    // natural weapon type of units that only cast
 constexpr float kAttackSpellWeight = 1.3f;
 constexpr float kHelpWeight = 1.0f;
 constexpr float kHealWeight = 10.0f;
@@ -435,7 +434,7 @@ void AIAttention::Build(Unit* unit) {
     weapons.clear();
     spells.clear();
     if (!IsTextKey(unit->id)) {
-        if (server->stats.naturalWeapon != kNaturalSpellsOnly) {
+        if (server->stats.naturalWeapon != WeaponType::SpellsOnly) {
             float range = server->AttackRange();
             AIAttackOption option = MakeOption(AIOptionKind::Weapon, -1, range, 0, 0.0f, 0);
             server->GetDamageByType(&option.damage);
@@ -447,7 +446,7 @@ void AIAttention::Build(Unit* unit) {
             AIOptionKind kind = SpellKind(spell);
             if (kind == AIOptionKind::Unused) continue;
             float range = spell->range;
-            if (server->stats.naturalWeapon == kNaturalSpellsOnly) range = server->stats.combat[UnitStats::kReach];
+            if (server->stats.naturalWeapon == WeaponType::SpellsOnly) range = server->stats.combat[UnitStats::kReach];
             std::uint32_t count = spell->targetCount;
             int maxCount = static_cast<int>((count < 1 ? 1 : count) - 1);
             float radius = 0.0f;

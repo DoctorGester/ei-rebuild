@@ -206,8 +206,7 @@ bool Unit::IsBehind(const MapObject* t) {
         weapon = weapons[slot]->AsWeapon();
     }
     if (weapon) {
-        if (weapon->GetType() == 5) return false;
-        if (weapon->GetType() == 6) return false;
+        if (weapon->IsRanged()) return false;
     }
     // The target's rotated Y axis (a unit faces -Y) along the direction to it.
     float facing = Dot(t->localRotation.AxisY(), towards);

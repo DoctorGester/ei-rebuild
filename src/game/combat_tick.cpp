@@ -34,7 +34,6 @@ constexpr float kArrived = 0.02f;
 constexpr float kMinClosing = 0.1f;   // the slowest closing speed
 constexpr float kFar = 1000000.0f;                         // 1e6: no limit for a path
 
-constexpr std::uint32_t kQuickItemSource = 0x80000000u;
 constexpr int kModeStop = 4;
 constexpr int kModeWalk = 1;
 constexpr int kModeRun = 2;

@@ -78,10 +78,6 @@ constexpr float kCastingFactor2 = 1.5f;
 constexpr float kSpeedFast = kSizeMedium;                           // 1.2
 constexpr float kSpeedSlow = 0.15f;
 
-constexpr std::uint32_t kQuickItemSource = 0x80000000u;
-constexpr int kNoNaturalWeapon = 0x10;
-constexpr int kWeaponBow = 5;
-constexpr int kWeaponCrossbow = 6;
 
 float DifficultyAttackFactor() {
     int difficulty = options::g_options.difficulty;
@@ -136,17 +132,13 @@ float UnitServer::AttackRange() {
 
 bool UnitServer::HasRangedWeapon() {
     ItemWeapon* weapon = unit->ActiveWeapon();
-    if (!weapon) return false;
-    return weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow;
+    return weapon && weapon->IsRanged();
 }
 
 bool UnitServer::AttacksFromRange() {
-    if (!unit->ActiveWeapon()) {
-        return stats.naturalWeapon != kNoNaturalWeapon && stats.combat[UnitStats::kReach] > 1.0f;
-    }
     ItemWeapon* weapon = unit->ActiveWeapon();
-    if (!weapon) return false;
-    return weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow;
+    if (!weapon) return stats.naturalWeapon != WeaponType::SpellsOnly && stats.combat[UnitStats::kReach] > 1.0f;
+    return weapon->IsRanged();
 }
 
 void UnitServer::GetDamageByType(DamageWords* out) {
@@ -248,7 +240,7 @@ float UnitServer::ActionDistance(const AIOrder* order) {
     UnitOrderKind kind = order->kind;
     MapObject* target = order->target;
     if (kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn) {
-        if (!unit->player && stats.naturalWeapon == kNoNaturalWeapon) return stats.combat[UnitStats::kReach];
+        if (!unit->player && stats.naturalWeapon == WeaponType::SpellsOnly) return stats.combat[UnitStats::kReach];
         Spell* spell = SpellOfSource(order->source);
         if (spell) return SpellRange(spell);
         return kTen;
@@ -291,8 +283,7 @@ bool UnitServer::TooHighToReach(const AIOrder* order) {
 std::uint32_t UnitServer::WeaponTypeMask() {
     ItemWeapon* weapon = unit->ActiveWeapon();
     if (weapon) return AnimationWeaponBit(weapon->GetType());
-    int natural = stats.naturalWeapon;
-    if (natural < 7) return AnimationWeaponBit(natural);
+    if (static_cast<int>(stats.naturalWeapon) < kAnimatedWeaponTypes) return AnimationWeaponBit(stats.naturalWeapon);
     return 0;
 }
 
@@ -318,7 +309,7 @@ int UnitServer::Level() {
 }
 
 void UnitServer::EffectsChanged() {
-    if (unit->HasEffect(SpellType::Feeblemind) && stats.naturalWeapon != kNoNaturalWeapon) unit->flags |= MapObjectFlag::NoCasting;
+    if (unit->HasEffect(SpellType::Feeblemind) && stats.naturalWeapon != WeaponType::SpellsOnly) unit->flags |= MapObjectFlag::NoCasting;
     else unit->flags &= ~MapObjectFlag::NoCasting;
 }
 
@@ -361,7 +352,7 @@ void UnitServer::GetAttackParams(AttackParams* out) {
             }
         }
     }
-    if (out->weaponType == kWeaponBow || out->weaponType == kWeaponCrossbow) out->defence = 0;
+    if (IsRanged(out->weaponType)) out->defence = 0;
     out->damageMax = ScaleDamageByEffects(self, out->damageMax);
     out->damageMin = ScaleDamageByEffects(self, out->damageMin);
     out->attackSpread = stats.combat[UnitStats::kAttackSpread];
