@@ -1,0 +1,43 @@
+# The console window sized by the window, not fixed pixels (ticket P11, docs/notes/ui.md, "Console window"): the same
+# console at 1280x720, 3840x2160 and 2560x1440 (what a Retina display of 1280x720 points gives: the game sees physical
+# pixels). Its font, line pitch, padding and input strip are layout pixels times height / 600, so the text reads the
+# same in proportion; the log's "Console window:" lines give the metrics at each size. Compare the captures
+# (tools/compare_frames.py, or by eye).
+render checkall
+resolution 1280x720
+fullscreen 0
+timeout 90
+reject Script error
+waitmenu
+console thingamabob
+console history 60
+console help
+key grave
+key h
+key e
+key l
+key p
+key left
+frames 5
+freeze
+capture size720
+unfreeze
+windowsize 3840 2160
+waitpresent 10
+frames 5
+expectlog Resolution: 3840x2160 (was 1280x720)
+frames 5
+freeze
+capture size2160
+unfreeze
+windowsize 2560 1440
+waitpresent 10
+frames 5
+expectlog Resolution: 2560x1440 (was 3840x2160)
+frames 5
+freeze
+capture size1440
+unfreeze
+key grave
+report
+quit
