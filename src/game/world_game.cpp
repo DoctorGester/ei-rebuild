@@ -503,10 +503,10 @@ void GameFlow::RecreateClientSession() {
     net::g_gameClient.Assign(new net::ClientSession());
 }
 
-int RequestZone(std::string_view zone, int entrance) {
+void RequestZone(std::string_view zone, int entrance) {
     g_interface.closeAll = true;
     // The local view asks to go to a zone (name, entrance).
-    return g_clientWorld.LocalView()->RequestZone(zone, entrance);
+    g_clientWorld.LocalView()->RequestZone(zone, entrance);
 }
 
 void GameFlow::DropSessions() {

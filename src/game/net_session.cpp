@@ -102,9 +102,6 @@ SessionBase::SessionBase() {
     time = 0.0;
     frame = 1;
     magic = 0;
-    timeout = 60;
-    maxRoundTrip = 5;
-    idReuseTime = 75;
 }
 
 std::uint32_t SessionBase::ClientCount() const { return static_cast<std::uint32_t>(clients.size()); }
@@ -114,9 +111,8 @@ std::uint32_t SessionBase::ClientCount() const { return static_cast<std::uint32_
 // The session's receive step, its packet handlers, sends and destruction,
 // and the byte buffer helpers they use. See net_classes.h and docs/notes/network.md.
 
-// An empty datagram is only logged; the current session is this one meanwhile.
+// An empty datagram is only logged.
 void SessionBase::Tick(double dt) {
-    g_currentSession = this;
     time = static_cast<float>(time) + static_cast<float>(dt);   // a float sum kept in a double
     NetAddress from{};
     GrowingBuffer* buffer = &g_receiveBuffer;
@@ -160,7 +156,6 @@ void SessionBase::Tick(double dt) {
         node = next;
     }
     ++frame;
-    g_currentSession = nullptr;
 }
 
 // ---- Session virtuals ---------------------------------------------------------------
@@ -250,7 +245,7 @@ void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rat
         LogAddress(game::nettexts::AddClient(), text);
     }
     RemoveClient(FindClient(address));
-    clients.emplace_back(new Connection(id));
+    clients.emplace_back(new Connection(*this, id));
     Connection* added = clients.back().Get();
     added->address = *address;
     if (rate <= 500) rate = 500;

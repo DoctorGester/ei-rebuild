@@ -24,16 +24,16 @@ constexpr float kRttKeep = 0.93f;   // the share of the old average kept per sam
 
 ConnectionState::ConnectionState(std::uint32_t newId)
     : sendSequence(static_cast<std::uint16_t>(platform::TickCount())), id(newId),
-      roundTrip(g_currentSession ? static_cast<float>(g_currentSession->maxRoundTrip) : 5.0f) {}
+      roundTrip(kMaxRoundTrip) {}
 
 void Connection::OnShutdown() { ConnectionState::operator=(ConnectionState(0)); }
 
 // Advances the idle time and the clock by `dt`. Packets older than the loss timeout (3 standard deviations
-// above the average round trip, at least 0.1, at most the session's maxRoundTrip) are rolled back and move
-// to the acknowledged list, where they stay for maxRoundTrip seconds. Sends an update every sendInterval
-// (stopping early once the reliable stream and the header queue are empty). Every idReuseTime seconds the
-// older batch of freed ids returns to the id pools. False once the peer was silent for the session's
-// timeout or the reliable stream holds 32000 bytes.
+// above the average round trip, at least 0.1, at most kMaxRoundTrip) are rolled back and move to the
+// acknowledged list, where they stay for kMaxRoundTrip seconds. Sends an update every sendInterval (stopping
+// early once the reliable stream and the header queue are empty). Every kIdReuseTime seconds the older batch
+// of freed ids returns to the id pools. False once the peer was silent for kPeerTimeout or the reliable
+// stream holds 32000 bytes.
 bool Connection::Tick(double dt) {
     const float step = static_cast<float>(dt);
     idleTime += step;
@@ -42,9 +42,7 @@ bool Connection::Tick(double dt) {
     float loss = std::sqrt(spread) * 3.0f + roundTrip;
     const float tenth = 0.1f;
     loss = MaxKeepB(loss, tenth);
-    const auto longest = static_cast<float>(g_currentSession->maxRoundTrip);
-    loss = MinKeepA(longest, loss);
-    const auto kept = static_cast<float>(g_currentSession->maxRoundTrip);
+    loss = MinKeepA(kMaxRoundTrip, loss);
 
     auto lost = history.begin();
     for (; lost != history.end(); ++lost) {
@@ -55,7 +53,7 @@ bool Connection::Tick(double dt) {
     acknowledged.insert(acknowledged.end(), std::make_move_iterator(history.begin()), std::make_move_iterator(lost));
     history.erase(history.begin(), lost);
     std::erase_if(acknowledged, [&](const SentPacket& packet) {
-        return kept < Age(clock, packet.time);   // NaN: kept
+        return kMaxRoundTrip < Age(clock, packet.time);   // NaN: kept
     });
 
     sendTimer += step;
@@ -70,7 +68,7 @@ bool Connection::Tick(double dt) {
     while (sendTimer > sendInterval) sendTimer -= sendInterval;
 
     freedTimer += step;
-    if (freedTimer > static_cast<float>(g_currentSession->idReuseTime)) {
+    if (freedTimer > kIdReuseTime) {
         freedTimer = 0.0f;
         for (const FreedId& freed : freedOlder) idPools[freed.type].free.push_back(freed.id);
         freedOlder = std::move(freedNewer);
@@ -78,7 +76,7 @@ bool Connection::Tick(double dt) {
     }
 
     bool alive = false;
-    if (static_cast<float>(g_currentSession->timeout) > idleTime) alive = reliableOut.Size() < 32000;
+    if (kPeerTimeout > idleTime) alive = reliableOut.Size() < 32000;
     return alive;
 }
 
