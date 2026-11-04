@@ -194,6 +194,16 @@ const char* TextFolder();   // the text resources' folder
 // The bytes of `name` in the archive at `path` through a MappedResource: -2 when the archive does not open, 0
 // without the file.
 long ModFile(const char* path, const char* name);
+// How many names the archive at `path` lists for `pattern` through ListFiles (-2: it does not open).
+long ModList(const char* path, const char* pattern);
+// The size of `name` in a manager's archives ("figures": the figure manager's, "links": the link figure loader's,
+// "textures": the texture manager's), in their order: 0 without it, -3 when the client world has no such manager.
+long ModManagerFile(const char* which, const char* name);
+// The music stream asked for `name` (an .mp3 file of the stream folder), as the main menu and the zone's music ask.
+void PlayStream(const char* name);
+// The maps folder's MapFileExists, and WriteMapFile with five bytes ("S19d" and a line feed).
+bool MapsFileExists(const char* name);
+void WriteMapBytes(const char* name);
 
 // ---- the save trace (harness_savetrace.cpp; image/harness_objects_image.cpp)
 

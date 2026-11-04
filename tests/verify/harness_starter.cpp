@@ -157,19 +157,71 @@ void Install(const char* savesDir) {
             g_fullScreen < 0 ? "(snapshot)" : g_fullScreen ? "1" : "0", music, g_addonPath[0] ? g_addonPath : "(snapshot)");
     }
 }
+std::string AddonPath() { return g_addonPath; }
+
+// Whether `got` is what a step expects: "<n>" that many bytes (or names), "!<n>" anything else, "+" anything but 0.
+bool Expected(long got, const std::string& expected) {
+    if (expected == "+") return got > 0;
+    if (!expected.empty() && expected[0] == '!') return got != std::atol(expected.c_str() + 1);
+    return got == std::atol(expected.c_str());
+}
+
 std::string ModFileStep(const std::string& argument) {
-    char archive[sys::kMaxPath] = {}, name[sys::kMaxPath] = {};
-    long expected = -1;
-    if (std::sscanf(argument.c_str(), "%259s %259s %ld", archive, name, &expected) != 3)
+    char archive[sys::kMaxPath] = {}, name[sys::kMaxPath] = {}, expected[32] = {};
+    if (std::sscanf(argument.c_str(), "%259s %259s %31s", archive, name, expected) != 3)
         return "modfile " + argument + ": not <archive> <file> <bytes>";
     // The archive as the game opens its own: the text resources' folder and the name.
     const std::string path = std::string(image::TextFolder()) + archive;   // host strings only (H30)
     const long got = image::ModFile(path.c_str(), name);
-    Log("harness: modfile %s %s: %ld bytes (expected %ld)", path.c_str(), name, got, expected);
-    if (got == expected) return std::string();
+    Log("harness: modfile %s %s: %ld bytes (expected %s)", path.c_str(), name, got, expected);
+    if (Expected(got, expected)) return std::string();
     char error[2 * sys::kMaxPath + 64];
-    std::snprintf(error, sizeof(error), "modfile %s %s: %ld bytes, expected %ld", archive, name, got, expected);
+    std::snprintf(error, sizeof(error), "modfile %s %s: %ld bytes, expected %s", archive, name, got, expected);
     return error;
+}
+
+std::string ModListStep(const std::string& argument) {
+    char archive[sys::kMaxPath] = {}, pattern[sys::kMaxPath] = {}, expected[32] = {};
+    if (std::sscanf(argument.c_str(), "%259s %259s %31s", archive, pattern, expected) != 3)
+        return "modlist " + argument + ": not <archive> <pattern> <count>";
+    const std::string path = std::string(image::TextFolder()) + archive;
+    const long got = image::ModList(path.c_str(), pattern);
+    Log("harness: modlist %s %s: %ld names (expected %s)", path.c_str(), pattern, got, expected);
+    if (Expected(got, expected)) return std::string();
+    return "modlist " + std::string(archive) + " " + pattern + ": " + std::to_string(got) + " names, expected " + expected;
+}
+
+std::string ModArchiveStep(const std::string& argument) {
+    char which[32] = {}, name[sys::kMaxPath] = {}, expected[32] = {};
+    if (std::sscanf(argument.c_str(), "%31s %259s %31s", which, name, expected) != 3)
+        return "modarchive " + argument + ": not figures|links|textures <file> <bytes>";
+    const long got = image::ModManagerFile(which, name);
+    Log("harness: modarchive %s %s: %ld bytes (expected %s)", which, name, got, expected);
+    if (Expected(got, expected)) return std::string();
+    return "modarchive " + std::string(which) + " " + name + ": " + std::to_string(got) + " bytes, expected " + expected +
+           (got == -3 ? " (the client world has no such manager)" : "");
+}
+
+std::string PlayStreamStep(const std::string& argument) {
+    if (argument.empty()) return "playstream needs a file name";
+    image::PlayStream(argument.c_str());
+    return std::string();
+}
+
+std::string MapFileStep(const std::string& argument) {
+    char what[16] = {}, name[sys::kMaxPath] = {}, expected[8] = {};
+    const int n = std::sscanf(argument.c_str(), "%15s %259s %7s", what, name, expected);
+    if (n >= 2 && std::strcmp(what, "write") == 0) {
+        image::WriteMapBytes(name);
+        Log("harness: mapfile write %s", name);
+        return std::string();
+    }
+    if (n != 3 || std::strcmp(what, "exists") != 0 || (std::strcmp(expected, "yes") != 0 && std::strcmp(expected, "no") != 0))
+        return "mapfile " + argument + ": not exists <name> yes|no, or write <name>";
+    const bool exists = image::MapsFileExists(name);
+    Log("harness: mapfile exists %s: %s", name, exists ? "yes" : "no");
+    if (exists == (std::strcmp(expected, "yes") == 0)) return std::string();
+    return std::string("mapfile exists ") + name + ": " + (exists ? "yes" : "no") + ", expected " + expected;
 }
 
 bool RebirthInstall() { return rebirth_profile::RebirthLaunch(); }

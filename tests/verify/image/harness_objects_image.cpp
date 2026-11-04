@@ -9,6 +9,7 @@
 #include "game/console.h"
 #include "game/core_streams.h"
 #include "game/game_singletons.h"
+#include "game/figure_manager.h"
 #include "game/item.h"
 #include "game/net_classes.h"
 #include "game/model.h"
@@ -28,7 +29,9 @@
 #include "game/unit_client_models.h"
 #include "game/world.h"
 #include "game/world_data.h"
+#include "game/net_coder.h"
 #include "game/world_glue.h"
+#include "game/world_map_files.h"
 #include "lib/crt.h"
 
 #include <cstdlib>
@@ -322,6 +325,61 @@ long ModFile(const char* path, const char* name) {
     res->MappedResource::Destroy();
     ::operator delete(memory);
     return got;
+}
+
+long ModList(const char* path, const char* pattern) {
+    void* memory = ::operator new(sizeof(MappedResource));
+    std::memset(memory, 0, sizeof(MappedResource));
+    auto* res = new (memory) MappedResource();
+    long count = -2;   // the archive did not open
+    if (res->MappedResource::OpenResource(path)) {
+        std::vector<std::string> names;
+        res->ListFiles(&names, pattern);   // Rebirth's ResOverride: the mod's archives' names too
+        count = static_cast<long>(names.size());
+    }
+    res->MappedResource::Destroy();
+    ::operator delete(memory);
+    return count;
+}
+
+long ModManagerFile(const char* which, const char* name) {
+    const std::string manager = which;
+    std::uint32_t size = 0;
+    if (manager == "figures") {
+        if (!g_clientWorld.figureManager) return -3;
+        void* data = g_clientWorld.figureManager->GetFile(name, &size);
+        if (data) g_clientWorld.figureManager->CloseFile(data);
+        return data ? static_cast<long>(size) : 0;
+    }
+    if (manager == "textures") {
+        TextureManager* textures = g_clientWorld.GetTextureManager();
+        if (!textures) return -3;
+        void* data = textures->GetFile(name, &size);
+        if (data) textures->CloseFile(data);
+        return data ? static_cast<long>(size) : 0;
+    }
+    if (manager == "links") {
+        LinkFigureLoader* loader = g_clientWorld.FigureLoader();
+        if (!loader) return -3;
+        for (LinkArchive& archive : loader->archives) {
+            if (void* data = archive.resource->GetFile(name, &size)) {
+                archive.resource->CloseFile(data);
+                return static_cast<long>(size);
+            }
+        }
+        return 0;
+    }
+    return -4;
+}
+
+void PlayStream(const char* name) { GamePlayMusic(name); }
+
+bool MapsFileExists(const char* name) { return MapFileExists(name); }
+
+void WriteMapBytes(const char* name) {
+    static std::uint8_t bytes[] = {'S', '1', '9', 'd', 10};
+    BufferView view(bytes, bytes + sizeof(bytes));
+    WriteMapFile(name, &view);
 }
 
 namespace {

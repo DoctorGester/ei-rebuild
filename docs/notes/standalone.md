@@ -226,9 +226,19 @@ Classes are ordinary C++: constructors, virtual destructors, virtual overrides w
   loaded `*.asi`. `starter::RebirthInstall()` is true when a Rebirth flag is on.
 - **Mod folders** (src/game/mod_folders.{h,cpp}): Maps, ResOverride, CameraPatch, StreamPatch and MoviesPatch work as
   addon.dll does them (rebirth.md, "Resources and paths"), only with the flag on.
-  - **Checked by:** `rebirth_mod_folders`, a mod written by `tools/make_test_mod.py`.
-  - **Not covered by a run:** StreamPatch, MoviesPatch, the extra / ignored archives, and Maps' zone-table and quest
-    sites.
+  - **Checked by:** five scenarios, each with a mod written into the run's `harness_saves\s19b_mod` / `s19d_mod` at
+    prepare time from the vanilla install's own files (copies, repacked archives, made-up bytes; nothing committed):
+    `rebirth_mod_folders` (`tools/make_test_mod.py`: one override archive, the MapPath site, CameraPatch),
+    `rebirth_mod_stream_movies` (StreamPatch, MoviesPatch), `rebirth_mod_archives` (arrays of mod archives, a `-` entry,
+    extra figure and texture archives, ListFiles), `rebirth_mod_maps` (the new zone's map and mob, the client's zone
+    load, MapFileExists, WriteMapFile), `rebirth_mod_zone_table` (the zone table and the quest files, in a hosted
+    game); the last four are `tools/make_mod_s19d.py stream|archives|maps`. Each file a scenario's mod holds is
+    asked for with the steps `read` / `wrote` / `waitread` (the files the game touched: `tests/verify/harness_modtrace.h`),
+    `modfile` / `modlist` / `modarchive` and `mapfile` (harness.cpp's header); "playstream" asks the music stream for
+    a track at the main menu, where the stream thread's real-time wait changes no digest.
+  - **A mod file is also asked about** (IsFile) before the game chooses between the mod's and its own, so "the mod's
+    file was touched" cannot tell the choice by itself: a check pairs it with the game's path for the same name,
+    untouched.
 
 ### Settings file
 

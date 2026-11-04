@@ -188,7 +188,13 @@
 //                             the thread that logs the main thread's stack (a main thread that cannot
 //                             be suspended does that), "all" stops the watchdog thread as well, so only
 //                             run_all can end the game
+//   modfile <archive> <file> <bytes>, modlist <archive> <pattern> <count>, modarchive figures|links|textures <file> <bytes>,
+//   mapfile exists <name> yes|no, mapfile write <name>, playstream <name>.mp3
+//                             Rebirth's mod-folder patches asked directly (harness_starter.h; S19d)
 //   waitline <seconds> <text> wait until the console has printed <text> (at any time in the run)
+//   read mod|game <path> yes|no, wrote mod|game <path> yes|no, waitread <seconds> mod|game <path>
+//                             whether the game touched (read, listed, asked about) or wrote the file below the mod
+//                             folder or the game folder (harness_modtrace.h; S19d)
 //   waitexpect <seconds> <text>  like expect, but waits up to <seconds> for <text> to appear (for
 //                             output that follows posted keys, which a busy machine handles later)
 //   frametime <ms>            on the virtual clock: each main loop frame takes <ms> (default 0: five
@@ -404,6 +410,7 @@
 #include "harness_digest.h"
 #include "harness_digest_read.h"   // the class ids
 #include "harness_folder_profile.h"
+#include "harness_modtrace.h"
 
 
 #include "harness_savetrace.h"
@@ -574,6 +581,11 @@ std::string g_waitLineText;
 Deadline g_waitLineDeadline;
 std::size_t g_waitLineFrom = 0;   // waitline: 0 (any time); waitexpect: since the last expect
 bool g_waitLineIsExpect = false;
+// A pending "waitread" (harness_modtrace.h): the folder and the file, and when to give up, in real seconds (a thread
+// opens the file, and the virtual clock runs on much faster than it).
+bool g_waitingRead = false;
+std::string g_waitReadWhere, g_waitReadPath;
+std::uint32_t g_waitReadAt = 0;   // the system's tick count
 // A pending "waitzone": the zone and when to give up.
 bool g_waitingZone = false;
 std::string g_waitZoneName;
@@ -2070,6 +2082,20 @@ void RunSteps() {
             return;
         }
     }
+    if (g_waitingRead) {
+        std::string error;
+        if (modtrace::Seen(g_waitReadWhere, g_waitReadPath, false, &error)) {
+            Log("harness: waitread %s %s: touched", g_waitReadWhere.c_str(), g_waitReadPath.c_str());
+            g_waitingRead = false;
+        } else if (!error.empty() || static_cast<std::int32_t>(sys::TickCount() - g_waitReadAt) >= 0) {
+            Log("harness: waitread %s %s timed out%s", g_waitReadWhere.c_str(), g_waitReadPath.c_str(), error.c_str());
+            g_failures.push_back("waitread " + g_waitReadWhere + " " + g_waitReadPath + " timed out" +
+                                 (error.empty() ? "" : ": " + error));
+            g_waitingRead = false;
+        } else {
+            return;
+        }
+    }
     if (g_waitingZone) {
         // Done in a main loop pass only (steps also run in the pump that window switches call while
         // the zone loads): no request pending, not the main menu, the server world holds the zone
@@ -2564,11 +2590,15 @@ void RunSteps() {
                    s.verb == "moveregion") {
             HeldModifiers held(&s.argument);
             PostRegionMouse(s.verb, std::atoi(s.argument.c_str()));
-        } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "modfile" ||
-                   s.verb == "folderprofile") {
+        } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "modfile" || s.verb == "modlist" ||
+                   s.verb == "modarchive" || s.verb == "mapfile" || s.verb == "playstream" || s.verb == "folderprofile") {
             std::string error = s.verb == "hudstate" ? HudState(s.argument)
                                 : s.verb == "campputon" ? CampPutOn(s.argument)
                                 : s.verb == "folderprofile" ? folder_profile::Step()
+                                : s.verb == "modlist" ? starter::ModListStep(s.argument)
+                                : s.verb == "modarchive" ? starter::ModArchiveStep(s.argument)
+                                : s.verb == "mapfile" ? starter::MapFileStep(s.argument)
+                                : s.verb == "playstream" ? starter::PlayStreamStep(s.argument)
                                 : starter::ModFileStep(s.argument);
             if (!error.empty()) {
                 Log("harness: %s", error.c_str());
@@ -2742,6 +2772,21 @@ void RunSteps() {
         } else if (s.verb == "speed") {
             g_heldTickLength = std::strtoul(s.argument.c_str(), nullptr, 10);
             if (g_heldTickLength) TickLength() = g_heldTickLength;
+        } else if (s.verb == "read" || s.verb == "wrote") {
+            const std::string error = modtrace::ReadStep(s.verb, s.argument);
+            if (!error.empty()) {
+                Log("harness: %s", error.c_str());
+                g_failures.push_back(error);
+            }
+        } else if (s.verb == "waitread") {
+            unsigned long seconds = 0;
+            if (!modtrace::ParseWaitRead(s.argument, &seconds, &g_waitReadWhere, &g_waitReadPath)) {
+                g_failures.push_back("waitread needs <seconds> <mod|game> <path>");
+                continue;
+            }
+            g_waitingRead = true;
+            g_waitReadAt = sys::TickCount() + static_cast<std::uint32_t>(seconds * 1000);
+            return;
         } else if (s.verb == "waitline" || s.verb == "waitexpect") {
             char* rest = nullptr;
             unsigned long seconds = std::strtoul(s.argument.c_str(), &rest, 10);
@@ -3334,6 +3379,12 @@ bool LoadScenario(const char* path) {
         if (last.verb == "freeze" || ((last.verb == "vanilla" || last.verb == "rebirth") && last.argument == "freeze"))
             g_freezeUsed = true;
         if (camera_trace::UsedBy(last.verb)) g_cameraTraceUsed = true;
+        {
+            // "read", "wrote" and "waitread" (also after "vanilla" / "rebirth"): the reads are noted from the start.
+            const std::string word = last.verb == "vanilla" || last.verb == "rebirth" ? last.argument : last.verb + " ";
+            if (word.compare(0, 5, "read ") == 0 || word.compare(0, 6, "wrote ") == 0 || word.compare(0, 9, "waitread ") == 0)
+                modtrace::Enable();
+        }
     }
     std::fclose(f);
     // EI_RENDER_EXTRA's words also reach a scenario without a "render" step (on top of EI_RENDER).
@@ -3388,6 +3439,7 @@ struct Harness {
         // A scenario's "resolution" / "widescreen" (or EI_RESOLUTION / EI_WIDESCREEN), the image's small
         // window otherwise: harness_starter.cpp.
         ei::verify::starter::Install(g_savesDir);
+        modtrace::SetRoots(starter::AddonPath(), starter::GameFolder(), g_savesDir);
         settings::Install();   // the registry snapshot and the pinned install files, never the user's (harness_settings.h)
         netlocal::Install();   // a UDP port of its own, sockets on 127.0.0.1 only (harness_net.h)
         digest::Init(&g_frames);   // EI_DIGEST
@@ -3502,10 +3554,12 @@ std::string MapPath(std::string_view path, platform::PathUse use) {
         if (PlayedMovie(name)) return {};
         std::string mapped = ReadPath(name.c_str(), b);
         if (g_readTrace) TraceRead(mapped);
+        modtrace::NoteRead(mapped);
         return mapped;
     }
     savetrace::OnFileWrite(name.c_str());   // harness_savetrace.h
     const std::string mapped = WritePath(name.c_str(), b, use == platform::PathUse::Update);
+    modtrace::NoteWrite(mapped);
     if (InInstall(mapped)) {
         RefuseInstallWrite(name, mapped);
         return {};

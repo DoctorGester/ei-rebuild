@@ -1,0 +1,12 @@
+{
+  "scenario": "rebirth_mod_zone_table",
+  "install": "vanilla",
+  "recorded": "2026-11-04",
+  "commit": "a50e35c24",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "S19d: mod-folder scenarios (stream, movies, archives, maps sites, zone table), first goldens",
+  "source": "image"
+}

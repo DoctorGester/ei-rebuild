@@ -1,0 +1,60 @@
+# Rebirth's Maps at the sites S19b's scenario leaves out (S19d; src/game/mod_folders.h, docs/notes/rebirth.md "Resources
+# and paths"): the new zone's map and mob files (NewZone), the client's zone load, the shared-file handler's
+# MapFileExists and WriteMapFile. A mod of our own: tools/make_mod_s19d.py maps writes it into the run's
+# harness_saves\s19d_mod and "addonpath" answers the starter's Settings\AddonPath with that folder. The mod's Maps\
+# holds zone2.mpr (a copy of the install's, but not zone2.mob), z9q2.mq (a copy, for rebirth_mod_zone_table) and
+# s19d\note.txt (a file of a subfolder, listed as "s19d\note.txt"). The checks are the trace of the files the game
+# touches (tests/verify/harness_modtrace.h): the folder each file was taken from shows in the path.
+# Each site picks the folder by the file it is about, so the zone's two files may come from two folders:
+# - gz2g: LeaveToZone loads zone2.mpr and zone2.mob. NewZone's two sites (the map, the mob) and the client's load
+#   (the map): zone2.mpr from the mod's Maps, zone2.mob from the game's; neither file read from the other folder.
+# - MapFileExists (the client asks it for every file the server shares): zone2.mpr and s19d\note.txt are the mod's,
+#   zone2.mob the game's, a file in neither is not there. The vanilla install has no mod loader: the game's folder only.
+# - WriteMapFile (the client writes a shared file it received): z9q2.mq into the mod's folder, zone2.mob and a name in
+#   neither folder into the game's (the run's overlay: no run writes into an install). The writes come last: they
+#   replace the files with five bytes. (zone2.mpr cannot be the mod's file to write: the zone's terrain still holds it
+#   mapped, and Windows refuses to cut a mapped file.)
+# prepare: make_mod_s19d.py maps
+addonpath s19d_mod
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+# Leave once zone1's intro script has started (it blocks the hero), as zone_gz2g_traps does.
+waitfor 15 IsUnitBlocked(GetLeader())
+zone gz2g 0
+waitzone 20 gz2g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @GodMode(0,1)
+check IsLess(DistanceUnitPoint(GetLeader(),67,15),8)
+check IsEqual(GetObjectID(GetObject(1324)),1324)
+
+rebirth read mod Maps\zone2.mpr yes
+rebirth read game Maps\zone2.mpr no
+rebirth read mod Maps\zone2.mob no
+rebirth read game Maps\zone2.mob yes
+vanilla read game Maps\zone2.mpr yes
+vanilla read game Maps\zone2.mob yes
+
+rebirth mapfile exists zone2.mpr yes
+rebirth mapfile exists zone2.mob yes
+rebirth mapfile exists s19d\note.txt yes
+mapfile exists s19d_none.bin no
+vanilla mapfile exists s19d\note.txt no
+vanilla mapfile exists zone2.mpr yes
+
+mapfile write z9q2.mq
+mapfile write zone2.mob
+mapfile write s19d_new.bin
+rebirth wrote mod Maps\z9q2.mq yes
+rebirth wrote game Maps\z9q2.mq no
+rebirth wrote mod Maps\zone2.mob no
+rebirth wrote game Maps\zone2.mob yes
+rebirth wrote mod Maps\s19d_new.bin no
+rebirth wrote game Maps\s19d_new.bin yes
+vanilla wrote mod Maps\z9q2.mq no
+vanilla wrote game Maps\z9q2.mq yes
+vanilla wrote game Maps\zone2.mob yes
+report
+quit
