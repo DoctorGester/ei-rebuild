@@ -285,7 +285,7 @@ int PlayerServer::Receive() {
         if (!link->Receive(&packet)) return 0;
         packet.DecompressTo(&decompressor, &in);
         in.Seek(0);
-        in.ok = 1;
+        in.ok = true;
         std::uint8_t messageType = 0xFF;
         std::uint8_t previous = 0xFF;
         for (;;) {

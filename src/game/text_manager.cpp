@@ -468,8 +468,7 @@ bool SameName(const TextSource& archive, const std::string& path) {
 
 void CloseAndDelete(MappedResource* source) {
     ForgetConvertedTexts(source);
-    source->CloseResource();
-    delete source;   // the scalar deleting destructor (flag 1); a null source is skipped
+    delete source;   // closes it
 }
 
 } // namespace

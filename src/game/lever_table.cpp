@@ -3,7 +3,8 @@
 #include "lever.h"
 
 #include "chunk_archive.h"
-#include "resource_local.h"
+#include "resource.h"
+#include "core_streams.h"
 #include "lib/crt.h"
 
 #include <cstdint>
@@ -36,11 +37,11 @@ void ChunkArchive::SerializeLevers(int id, std::vector<LeverRecord>* list) {
 
 int LeverRecordTable::Load(const std::string& folder) {
     std::string dir = folder;
-    LocalResource resource;
+    MappedResource resource;
     bool opened;
     {
         std::string path = dir + "database.res";
-        opened = resource.Get()->OpenResource(path) != 0;
+        opened = resource.OpenResource(path);
     }
     if (!opened) {
         // The message names "databases.res", not the file it tried: as in the game.
@@ -48,11 +49,11 @@ int LeverRecordTable::Load(const std::string& folder) {
         return game::FatalError("Can't open database file \"%s\"\n", path);
     }
     std::uint32_t size;
-    void* data = resource.Get()->MappedResource::GetFile("Levers.ldb", &size);
+    void* data = resource.GetFile("Levers.ldb", &size);
     if (!data) return game::FatalError("Can't open Levers database\n");
 
     MemoryStream local;
-    FillStream(local, data, size);
+    local.Fill(data, size);
 
     // The records as chunk 1 of an archive opened for loading, then every record entered under its model's name: a record of a name
     // seen before replaces the earlier one.
@@ -65,7 +66,7 @@ int LeverRecordTable::Load(const std::string& folder) {
         byName[key] = &record;
     }
 
-    resource.Get()->MappedResource::CloseFile(data);
-    resource.Get()->MappedResource::CloseResource();
+    resource.CloseFile(data);
+    resource.CloseResource();
     return 1;
 }

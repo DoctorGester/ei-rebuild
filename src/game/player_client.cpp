@@ -173,7 +173,7 @@ bool PlayerClient::SendToServer() {
 
 int PlayerClient::DispatchMessages() {
     in.Seek(0);
-    in.ok = 1;
+    in.ok = true;
     std::uint8_t messageType = 0xFF;
     std::uint8_t previous = 0xFF;
     for (;;) {

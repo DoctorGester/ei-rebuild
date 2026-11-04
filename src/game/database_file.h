@@ -1,13 +1,13 @@
 #pragma once
 
 // What the database loaders share (units, skills, spells, items, prints, acks): the archive and the memory
-// stream on their stacks (resource_local.h), the open of a folder's database and a table's pass over the
+// stream on their stacks, the open of a folder's database and a table's pass over the
 // stream.
 
 #include "chunk_archive.h"
 #include "core_streams.h"
 #include "lib/crt.h"
-#include "resource_local.h"
+#include "resource.h"
 
 #include <string>
 
@@ -16,8 +16,8 @@ namespace dbfile {
 
 // The loads that take only a folder (quests, prints, acks) open `folder` + "database.res"; false
 // when it cannot be opened.
-inline bool OpenDatabase(LocalResource& resource, const std::string& folder) {
-    return resource.Open((folder + "database.res")) != 0;
+inline bool OpenDatabase(MappedResource& resource, const std::string& folder) {
+    return resource.OpenResource(folder + "database.res");
 }
 // Their report of a failed open. The game names "databases.res" here.
 inline int ReportNoDatabase(const std::string& folder) {

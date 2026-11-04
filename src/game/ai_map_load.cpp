@@ -17,9 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <new>
 #include <string>
-#include "lib/in_place.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
 
@@ -84,24 +82,11 @@ struct MapDescription {
     std::vector<std::uint32_t> tileTypes;
 };
 
-// A resource archive as a local, constructed in place.
-struct Archive {
-    Archive() { new (Get()) MappedResource(); }
-    ~Archive() { Get()->MappedResource::Destroy(); }
-    Archive(const Archive&) = delete;
-    MappedResource* Get() { return storage.Get(); }
-    bool Open(std::string_view path) { return Get()->MappedResource::OpenResource(std::string(path)) != 0; }
-    void* File(const char* name, std::uint32_t* size) { return Get()->MappedResource::GetFile(name, size); }
-    void Close(void* file) { Get()->MappedResource::CloseFile(file); }
-
-    lib::InPlace<MappedResource> storage;
-};
-
 // The .mp file `name`.MP of `archive` into `map`. Returns 1, or the fatal error's result when the
 // file is missing or not a map (its size must be the header's counts).
-int ReadDescription(Archive& archive, const std::string& path, const std::string& name, MapDescription& map) {
+int ReadDescription(MappedResource& archive, const std::string& path, const std::string& name, MapDescription& map) {
     std::uint32_t size;
-    void* file = archive.File((name + kMapExtension).c_str(), &size);
+    void* file = archive.GetFile((name + kMapExtension).c_str(), &size);
     if (!file) return game::FatalError(("Unable to open file \"" + path) + "\"");
     if (size < sizeof(MapHeader)) return game::FatalError("Wrong file format: " + path);
     std::memcpy(&map.header, file, sizeof(MapHeader));
@@ -115,7 +100,7 @@ int ReadDescription(Archive& archive, const std::string& path, const std::string
     std::memcpy(map.materials.data(), materials, materialBytes);
     map.tileTypes.resize(header.textures);
     std::memcpy(map.tileTypes.data(), materials + materialBytes, header.textures * sizeof(std::uint32_t));
-    archive.Close(file);
+    archive.CloseFile(file);
     return 1;
 }
 
@@ -160,14 +145,14 @@ constexpr float kHundredth = 0.01f;
 // then every section of the registry into the type its name numbers. Returns 1, or the fatal
 // error's result when the archive, the file or the registry cannot be read.
 int ReadTerrainTypes(AIMap& map) {
-    Archive archive;
+    MappedResource archive;
     bool opened;
     {
         std::string folder = g_textFolder;
-        opened = archive.Open((folder + "aiinfo.res"));
+        opened = archive.OpenResource((folder + "aiinfo.res"));
     }
     if (!opened) return game::FatalError("Unable to read file aiinfo.res");
-    void* file = archive.File("tileDesc.reg", nullptr);
+    void* file = archive.GetFile("tileDesc.reg", nullptr);
     if (!file) return game::FatalError("CAIMap::Load.\n Can't open file \"tileDesc.reg\"");
     FileRegistry registry;
     if (!registry.Attach(file)) return game::FatalError("CAIMap::Load.\n Can't open aiReg");
@@ -196,8 +181,8 @@ int ReadTerrainTypes(AIMap& map) {
         type.noise = static_cast<float>(registry.GetInt(section, "StepSound", 100)) * kHundredth;
     }
     registry.Close();
-    archive.Close(file);
-    archive.Get()->MappedResource::CloseResource();
+    archive.CloseFile(file);
+    archive.CloseResource();
     return 1;
 }
 
@@ -381,12 +366,12 @@ void StampSector(AIMap& map, const MapDescription& description, const void* file
 } // namespace
 
 int AIMap::LoadTerrain(const char* path) {
-    Archive archive;
+    MappedResource archive;
     std::string full = path;
     // (The original also builds the path without its extension here and never uses it.)
-    if (!archive.Open(full)) return 0;
+    if (!archive.OpenResource(full)) return 0;
     std::vector<std::string> maps;
-    archive.Get()->ListFiles(&maps, "*.mp");
+    archive.ListFiles(&maps, "*.mp");
     if (maps.empty()) return 0;   // no map in the archive (the original read the first of none)
     std::string name = str::Left(maps[0], str::Find(maps[0], '.'));
 
@@ -406,11 +391,11 @@ int AIMap::LoadTerrain(const char* path) {
             char file[432];
             std::snprintf(file, sizeof(file), "%s%3.3i%3.3i%s", name.c_str(), sectorX, sectorY, kSectorExtension);
             std::uint32_t size;
-            void* sector = archive.File(file, &size);
+            void* sector = archive.GetFile(file, &size);
             if (!sector) return game::FatalError("Unable to locate resource: " + std::string(file));
             if (!IsSector(sector, size)) return game::FatalError("Wrong format resource: " + std::string(file));
             StampSector(*this, description, sector, sectorX * kSectorCells, sectorY * kSectorCells);
-            archive.Close(sector);
+            archive.CloseFile(sector);
         }
     }
     return 1;

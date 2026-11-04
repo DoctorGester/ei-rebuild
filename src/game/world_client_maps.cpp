@@ -771,7 +771,7 @@ int LoadManagerObjects(BaseManager* manager, ByteStream* stream) {
 
 int WorldClient::LoadNewItemsAndSpells(ByteStream* block) {
     block->Seek(0);
-    block->ok = 1;
+    block->ok = true;
     if (!LoadManagerObjects(GetSpellManager(), block)) return 0;
     return LoadManagerObjects(ItemFactory(), block) != 0;
 }

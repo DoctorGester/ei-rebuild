@@ -1,27 +1,15 @@
 // ResourceManager. See resource_manager.h.
 #include "resource_manager.h"
 
-#include <cstring>
-#include <type_traits>
 #include <vector>
 
 namespace {
 
-bool SameName(const std::string& a, const std::string& b) { return a == b; }
-
-// Closes and deletes every archive (closed, then its scalar deleting destructor) and empties
-// the list.
+// Deletes every archive (its destructor closes it) and empties the list.
 void CloseAll(std::vector<ArchiveEntry>& archives) {
-    for (ArchiveEntry& e : archives) {
-        if (!e.resource) continue;
-        e.resource->CloseResource();
-        delete e.resource;
-    }
+    for (ArchiveEntry& e : archives) delete e.resource;
     archives.clear();
 }
-
-MappedResource* NewMappedResource() { return new MappedResource(); }
-MappedResource* NewMmioResource() { return new MMIOResource(); }
 
 } // namespace
 
@@ -29,42 +17,31 @@ MappedResource* NewMmioResource() { return new MMIOResource(); }
 
 ResourceManager::ResourceManager() = default;
 
-ResourceManager::~ResourceManager() {
-    CloseAll(archives);
-    BaseManager::Destroy();
-}
+ResourceManager::~ResourceManager() { Destroy(); }
 
 void ResourceManager::Destroy() {
     CloseAll(archives);
     BaseManager::Destroy();
 }
 
+bool ResourceManager::AddArchive(const std::string& path) { return AddArchiveOf(path, false); }
 
-bool ResourceManager::AddArchive(const std::string& path) {
-    return AddArchiveOf(path, NewMappedResource);
-}
+bool ResourceManager::AddMmioArchive(const std::string& path) { return AddArchiveOf(path, true); }
 
-bool ResourceManager::AddMmioArchive(const std::string& path) {
-    return AddArchiveOf(path, NewMmioResource);
-}
-
-bool ResourceManager::AddArchiveOf(const std::string& path, MappedResource* (*create)()) {
+bool ResourceManager::AddArchiveOf(const std::string& path, bool mapped) {
     for (const ArchiveEntry& e : archives)
-        if (SameName(e.name, path)) return true;
+        if (e.name == path) return true;
 
-    MappedResource* resource = create();
-    {
-        archives.push_back(ArchiveEntry(path, resource));
-    }
+    MappedResource* resource = mapped ? new MMIOResource() : new MappedResource();
+    archives.push_back({path, resource});
     // The result is ignored: a missing archive stays in the list, empty.
-    archives.back().resource->OpenResource(path);
+    resource->OpenResource(path);
     return true;
 }
 
 bool ResourceManager::RemoveArchive(const std::string& path) {
     for (auto e = archives.begin(); e != archives.end(); ++e) {
-        if (!SameName(e->name, path)) continue;
-        e->resource->CloseResource();
+        if (e->name != path) continue;
         delete e->resource;
         archives.erase(e);
         return true;

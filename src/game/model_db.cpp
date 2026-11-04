@@ -179,26 +179,25 @@ acks::Speeches* UnitList(acks::UnitAcks& record, int list) {
 
 int PrintsDatabase::Load(const std::string& folder) {
     std::string base = folder;
-    LocalResource resource;
+    MappedResource resource;
     if (!OpenDatabase(resource, base)) return ReportNoDatabase(base);
     std::uint32_t size;
-    void* data = resource.Get()->MappedResource::GetFile("prints.db", &size);
+    void* data = resource.GetFile("prints.db", &size);
     if (!data) return game::FatalError("Can't open terrain prints database\n");
 
-    MemoryStream local;
-    MemoryStream* stream = &local;
-    FillStream(*stream, data, size);
+    MemoryStream stream;
+    stream.Fill(data, size);
 
     const auto name = [](auto& record) -> const std::string& { return record.name; };
-    LoadTable(stream, kBloodChunk, &ChunkArchive::SerializePrints, &blood,
+    LoadTable(&stream, kBloodChunk, &ChunkArchive::SerializePrints, &blood,
               [&] { FileRecords(blood, bloodByName, name); });
-    LoadTable(stream, kFootprintsChunk, &ChunkArchive::SerializePrints2, &footprints,
+    LoadTable(&stream, kFootprintsChunk, &ChunkArchive::SerializePrints2, &footprints,
               [&] { FileRecords(footprints, footprintsByName, name); });
-    LoadTable(stream, kScorchChunk, &ChunkArchive::SerializePrints, &scorch,
+    LoadTable(&stream, kScorchChunk, &ChunkArchive::SerializePrints, &scorch,
               [&] { FileRecords(scorch, scorchByName, name); });
 
-    resource.Get()->MappedResource::CloseFile(data);
-    resource.Get()->MappedResource::CloseResource();
+    resource.CloseFile(data);
+    resource.CloseResource();
     return 1;
 }
 
@@ -208,26 +207,25 @@ namespace acks {
 
 int AckDatabase::Load(const std::string& folder) {
     std::string base = folder;
-    LocalResource resource;
+    MappedResource resource;
     if (!OpenDatabase(resource, base)) return ReportNoDatabase(base);
     std::uint32_t size;
-    void* data = resource.Get()->MappedResource::GetFile("acks.db", &size);
+    void* data = resource.GetFile("acks.db", &size);
     if (!data) return game::FatalError("Can't open acks database\n");
 
-    MemoryStream local;
-    MemoryStream* stream = &local;
-    FillStream(*stream, data, size);
+    MemoryStream stream;
+    stream.Fill(data, size);
 
     const auto name = [](auto& record) -> const std::string& { return record.head.name; };
-    LoadTable(stream, kUnitAcksChunk, &ChunkArchive::SerializeAcks, &units.records,
+    LoadTable(&stream, kUnitAcksChunk, &ChunkArchive::SerializeAcks, &units.records,
               [&] { FileRecords(units.records, units.byName, name); });
-    LoadTable(stream, kModelAcksChunk, &ChunkArchive::SerializeAcks2, &models.records,
+    LoadTable(&stream, kModelAcksChunk, &ChunkArchive::SerializeAcks2, &models.records,
               [&] { FileRecords(models.records, models.byName, name); });
-    LoadTable(stream, kExtraAcksChunk, &ChunkArchive::SerializeAcks3, &extras.records,
+    LoadTable(&stream, kExtraAcksChunk, &ChunkArchive::SerializeAcks3, &extras.records,
               [&] { FileRecords(extras.records, extras.byName, name); });
 
-    resource.Get()->MappedResource::CloseFile(data);
-    resource.Get()->MappedResource::CloseResource();
+    resource.CloseFile(data);
+    resource.CloseResource();
 
     // Every record's map from the ack kind to the list it says it from.
     for (std::size_t i = 0; i < units.records.size(); ++i) {

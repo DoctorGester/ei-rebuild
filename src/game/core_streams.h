@@ -94,11 +94,11 @@ public:
     int Version() const { return static_cast<int>(version); }
 
     void Rewind() {
-        ok = 1;
+        ok = true;
         Seek(0);
     }
 
-    std::uint8_t ok;                // cleared when a read runs past the end
+    bool ok = true;                 // cleared when a read runs past the end
     std::uint32_t version;          // format version (the save game's); 2000000000 when constructed
 };
 
@@ -119,6 +119,13 @@ public:
     std::uint32_t Position() override { return position; }
     void Clear() override;
     void CopyFrom(ByteStream* source) override;                           // one Read into a resized buffer
+
+    // `bytes` written into an empty stream and the stream left at its start for reading (a file's bytes a loader
+    // reads through the chunk archive).
+    void Fill(const void* bytes, std::uint32_t byteCount) {
+        MemoryStream::Write(bytes, byteCount);
+        MemoryStream::Seek(0);
+    }
 
     // Size `size`, position 0; a larger buffer (1.5 x size + 0x10) keeps the contents (the old size's bytes)
     // and gets the pending bits byte (EndBits). Within the capacity the bits state is left alone.
@@ -173,7 +180,7 @@ public:
     // The file's Open; ok tells whether it opened.
     bool Open(std::string_view path, platform::FileMode mode) {
         ok = file.Open(path, mode);
-        return ok != 0;
+        return ok;
     }
     void Close() { file.Close(); }
 

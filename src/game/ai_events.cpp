@@ -12,7 +12,6 @@
 #include "world.h"
 #include "world_data.h"
 #include "lib/crt.h"
-#include "lib/in_place.h"
 #include "lib/rounding.h"
 
 #include <cstddef>
@@ -20,7 +19,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <list>
-#include <new>
 #include <string>
 
 namespace {
@@ -170,29 +168,17 @@ int AIEventTable::Setup(AIMap* aiMap, float sizeX, float sizeY) {
     height = newHeight;
     cells.assign(static_cast<std::size_t>(width * height), AIEventCell{});
 
-    lib::InPlace<MappedResource> storage;
-    MappedResource* archive = storage.Get();
-    new (archive) MappedResource();
-    bool failed;
-    {
-        std::string folder = g_textFolder;
-        std::string path = folder + kAiInfoArchive;
-        failed = archive->MappedResource::OpenResource(path) == 0;
-    }
+    MappedResource archive;
+    const std::string path = g_textFolder + kAiInfoArchive;
     void* data = nullptr;
     const char* error = kCantReadAiInfo;
-    if (!failed) {
-        data = archive->MappedResource::GetFile(kNormalFile, nullptr);
+    if (archive.OpenResource(path)) {
+        data = archive.GetFile(kNormalFile, nullptr);
         error = kCantOpenNormal;
     }
-    if (!data) {
-        const int result = game::FatalError(error);
-        archive->MappedResource::Destroy();
-        return result;
-    }
+    if (!data) return game::FatalError(error);
     std::memcpy(g_normalTable, data, kNormalTableSize);
-    archive->MappedResource::CloseFile(data);
-    archive->MappedResource::Destroy();
+    archive.CloseFile(data);
     return 1;
 }
 

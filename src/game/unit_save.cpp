@@ -153,7 +153,7 @@ void Unit::SaveUnit(ByteStream* stream) {
     motion.SaveState(stream);
     stream->WriteValue(heightOffset);
     stream->WriteValue(sizeClass);
-    stream->WriteValue(std::bit_cast<std::uint32_t>(unitRadius));
+    stream->WriteValue(unitRadius);
     stream->WriteValue(activeWeapon);
 
     WriteItemIds(stream, weapons, 4);

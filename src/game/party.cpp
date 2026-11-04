@@ -174,7 +174,7 @@ bool MpHeroRecord::ReadFile(const std::string& folder) {
     streams.file.Open(InFolder(folder, file), platform::FileMode::Read);
     if (!SaveFileRead(&streams.data, kPartyFileMagic, &streams.file)) return false;
     GetParty()->LoadParty(&streams.data, 1);
-    return streams.data.ok != 0;
+    return streams.data.ok;
 }
 
 void SavedParties::SaveAll() {

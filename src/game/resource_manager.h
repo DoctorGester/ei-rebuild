@@ -10,9 +10,6 @@
 struct ArchiveEntry {
     std::string name;                // path passed to AddArchive
     MappedResource* resource;
-
-    ArchiveEntry(const std::string& n, MappedResource* r) : name(n), resource(r) {}
-    ArchiveEntry(const ArchiveEntry& e) : name(e.name), resource(e.resource) {}
 };
 
 // Base of the managers that load their data from archives (TextureManager, FigureManager, ...):
@@ -20,8 +17,7 @@ struct ArchiveEntry {
 // name. Name provisional. resource_manager.cpp.
 class ResourceManager : public BaseManager {
 public:
-    // The scalar deleting destructor.
-    // Closes and deletes every archive, then BaseManager::Destroy.
+    // Deletes (closing) every archive, then BaseManager::Destroy.
     void Destroy() override;
     bool AddArchive(const std::string& path) override;
     bool RemoveArchive(const std::string& path) override;
@@ -44,7 +40,8 @@ protected:
     ResourceManager();
 
 private:
-    bool AddArchiveOf(const std::string& path, MappedResource* (*create)());
+    // Opens `path` in a new archive, a MMIOResource when `mapped`; true when the name is listed already.
+    bool AddArchiveOf(const std::string& path, bool mapped);
 
 public:
     std::vector<ArchiveEntry> archives;
