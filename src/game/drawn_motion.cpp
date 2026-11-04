@@ -1,6 +1,7 @@
 // The drawn motion of map objects between client ticks (drawn_motion.h; docs/notes/renderer.md section 14).
 #include "drawn_motion.h"
 
+#include "map_object.h"
 #include "map_object_figures.h"
 #include "spell.h"
 #include "platform/platform.h"
@@ -81,6 +82,9 @@ void drawn::NotePathChanged(Object3D* object) { object->drawnStep.pathChanged = 
 drawn::Pose drawn::PoseOf(const Object3D* object) {
     const ObjectStep& step = object->drawnStep;
     const Pose own = OwnPose(object);
+    // An interface figure (the HUD unit panel's unit, a preview) stands where the interface put it in its own view:
+    // the world's tick step and path change jump would move it there.
+    if (object->flags & MapObjectFlag::NoEdgeFade) return own;
     Pose out = own;
     if (step.moving && step.seenTick == g_ticks && g_back > 0.0f && Same(own, step.to)) {
         out.position = own.position - (step.to.position - step.from.position) * g_back;
