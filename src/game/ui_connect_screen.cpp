@@ -541,7 +541,7 @@ void MpConnectScreen::CreateScreen() {
         nameEdit->SetLook(15, 0, 0, kExtendedNameLength, g_connectTextColour, kCaretColour);
     }
     // The new game's name: the first hero's, to its '|', at most 10 characters.
-    std::string name = LocalPlayerData()->members[0].texts[0];
+    std::string name = LocalPlayerData()->members[0].scriptName;
     {
         const int end = str::Find(name, kNameEnd);
         if (end >= 0) name = str::Left(name, end);

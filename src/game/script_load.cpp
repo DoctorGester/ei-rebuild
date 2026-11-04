@@ -28,10 +28,10 @@ void ReadOne(ByteStream* stream, std::string& value) { value = stream->ReadStrin
 void ReadOne(ByteStream* stream, ScriptObjectRef& value) { value.Load(stream); }   // the world's object of the id
 void ReadOne(ByteStream* stream, ScriptGroup& value) { value.Load(stream); }       // missing objects stay null
 
-// The commands of a block (its id is read by the caller): count, then each SSCCmd.
-void LoadBlockCommands(ScriptDecl* block, ByteStream* stream) {
+// The commands of a block (its id is read by the caller): count, then each ScriptCall.
+void LoadBlockCommands(ScriptBlock* block, ByteStream* stream) {
     block->commands.resize(stream->ReadCount());
-    for (SSCCmd& cmd : block->commands) cmd.Load(stream);
+    for (ScriptCall& cmd : block->commands) cmd.Load(stream);
 }
 
 // Each list loader reads the count, makes the list that many default elements, then reads each.
@@ -57,7 +57,7 @@ void DropUnresolvedPairs(std::vector<ScriptIfThen>* pairs) {
 
 // Killed flag, name, parameter types, if-then pairs, variables.
 void ScriptDefinition::Load(ByteStream* stream) {
-    stream->ReadValue(index);
+    killed = stream->ReadAs<std::int32_t>() != 0;
     name = stream->ReadString();
     params = stream->ReadString();
     ifThen.resize(stream->ReadCount());
@@ -89,30 +89,30 @@ void ScriptVars::Load(ByteStream* stream) {
 }
 
 void ScriptRun::Load(ByteStream* stream) {
-    block = SavedScript()->FindBlock(stream->ReadAs<std::int32_t>());
-    stream->ReadValue(index);
-    stream->ReadValue(ticks);
-    stream->ReadValue(sleepStart);
+    position.block = SavedScript()->FindBlock(stream->ReadAs<std::int32_t>());
+    stream->ReadValue(position.index);
+    stream->ReadValue(position.ticks);
+    stream->ReadValue(position.sleepStart);
     const int instanceIndex = stream->ReadAs<std::int32_t>();
     killFlag = nullptr;
     int k = 0;
     for (ScriptDefinition& instance : g_streamedScript->instances) {
         if (k++ == instanceIndex) {
-            killFlag = &instance.index;   // an instance's index is its killed flag
+            killFlag = &instance.killed;
             break;
         }
     }
     vars.Load(stream);
 }
 
-// ---- SSCCmd::Load -----------------------------------------------------------------------------------
+// ---- ScriptCall::Load -----------------------------------------------------------------------------------
 
-// The mirror of SSCCmd::Save. Object and group arguments are saved as counts only: the
+// The mirror of ScriptCall::Save. Object and group arguments are saved as counts only: the
 // slots are made and left null. The called block is found in the lists of the world's first script (-1, an
 // unset block, finds a WorldScript block with id -1 if any). A For / ForIf whose body did not resolve (a save made
 // with other scripts) is cleared into a command that does nothing: its block keeps its length, so the saved runs'
 // indices still point at their commands, and Execute always has a body to run.
-void SSCCmd::Load(ByteStream* stream) {
+void ScriptCall::Load(ByteStream* stream) {
     stream->ReadValue(id);
 
     floatArgs.resize(stream->ReadCount());
@@ -132,8 +132,8 @@ void SSCCmd::Load(ByteStream* stream) {
     subCalls.resize(stream->ReadCount());
     for (ScriptSubCall& call : subCalls) call.Load(stream);
 
-    calledScript = SavedScript()->FindBlock(stream->ReadAs<std::int32_t>());
-    if (!calledScript && (id == kCmdFor || id == kCmdForIf)) Clear();
+    body = SavedScript()->FindBlock(stream->ReadAs<std::int32_t>());
+    if (!body && (id == kCmdFor || id == kCmdForIf)) Clear();
 }
 
 void ScriptSubCall::Load(ByteStream* stream) {
@@ -151,10 +151,10 @@ void ScriptIfThen::Load(ByteStream* stream) {
 }
 
 // Negative ids are WorldScript blocks.
-ScriptDecl* Script::FindBlock(int id) const {
+ScriptBlock* Script::FindBlock(int id) const {
     const auto& list = id < 0 ? worldBlocks : blocks;
-    for (const ScriptDecl& block : list)
-        if (block.id == id) return const_cast<ScriptDecl*>(&block);
+    for (const ScriptBlock& block : list)
+        if (block.id == id) return const_cast<ScriptBlock*>(&block);
     return nullptr;
 }
 
@@ -176,13 +176,13 @@ void Script::LoadState(ByteStream* stream) {
 
     // Command blocks, then WorldScript blocks: each block's id and commands. The command blocks are made with
     // their ids first (NewCommandList), so that a command's call of a later block resolves as it loads.
-    auto loadBlock = [stream](ScriptDecl& block) {
+    auto loadBlock = [stream](ScriptBlock& block) {
         stream->ReadValue(block.id);
         LoadBlockCommands(&block, stream);
     };
     blocks.clear();
     for (int count = stream->ReadCount(); count > 0; --count) NewCommandList();
-    for (ScriptDecl& block : blocks) loadBlock(block);
+    for (ScriptBlock& block : blocks) loadBlock(block);
     LoadList(&worldBlocks, stream, loadBlock);
 
     definitions.resize(stream->ReadCount());
@@ -191,7 +191,7 @@ void Script::LoadState(ByteStream* stream) {
     globals.Load(stream);
     LoadEach(&instances, stream);
     LoadEach(&runs, stream);
-    std::erase_if(runs, [](const ScriptRun& run) { return !run.block; });
+    std::erase_if(runs, [](const ScriptRun& run) { return !run.position.block; });
     stream->ReadValue(loaded);
     stream->ReadValue(fileCount);
     g_streamedScript = nullptr;

@@ -8,32 +8,32 @@
 // Called after every removal of a world object: the runs', the instances' and the global
 // variables drop deleted objects (object variables released, group members removed), then the
 // evaluation temporaries are freed.
-void ScriptPurgeDeletedObjects(Script* script) {
-    for (ScriptRun& run : script->runs) run.vars.RemoveDeletedObjects();
-    for (ScriptDefinition& instance : script->instances) instance.vars.RemoveDeletedObjects();
-    script->globals.RemoveDeletedObjects();
-    ScriptFreeTemporaries(script);
+void Script::PurgeDeletedObjects() {
+    for (ScriptRun& run : runs) run.vars.RemoveDeletedObjects();
+    for (ScriptDefinition& instance : instances) instance.vars.RemoveDeletedObjects();
+    globals.RemoveDeletedObjects();
+    FreeTemporaries();
 }
 
 // Every instance, then every run, destroyed.
-void ScriptDropInstancesAndRuns(Script* script) {
-    script->instances.clear();
-    script->runs.clear();
+void Script::DropInstancesAndRuns() {
+    instances.clear();
+    runs.clear();
 }
 
 // When the party enters a zone: instances and runs dropped, the For depth and the
 // temporaries reset, every effect removed (point light slots zeroed; FX source, particle source and
 // lightning lists emptied), the global values reset, and every WorldScript block run again.
-void ScriptResetZone(Script* script) {
-    ScriptDropInstancesAndRuns(script);
-    script->forDepth = 0;
-    ScriptFreeTemporaries(script);
+void Script::ResetZone() {
+    DropInstancesAndRuns();
+    forDepth = 0;
+    FreeTemporaries();
 
-    for (ScriptPointLight& light : script->pointLights) light = {};
-    script->fxSources.clear();
-    script->particles.clear();
-    script->lightning.clear();
+    for (ScriptPointLight& light : pointLights) light = {};
+    fxSources.clear();
+    particles.clear();
+    lightning.clear();
 
-    script->globals.ResetValues();
-    for (ScriptDecl& block : script->worldBlocks) script->RunWorldScript(&block);
+    globals.ResetValues();
+    for (ScriptBlock& block : worldBlocks) RunWorldScript(&block);
 }

@@ -27,6 +27,9 @@ struct PartyUnitRecord;
 // The party whose records are being loaded (set by Party::LoadParty around the records).
 inline Party* g_loadingParty = /*007C8344*/ {nullptr};
 
+// Every item of the list released (one reference each) and the list emptied.
+void ReleaseItems(std::vector<Item*>& list);
+
 class Party : public ManagerContext {
 public:
     // Empty record and item arrays, an empty variable map, an empty zone name, no managers. The money and the
@@ -39,7 +42,7 @@ public:
     Party& operator=(const Party&) = delete;
 
     // Makes and counts the party's own item manager and spell manager (attached to this
-    // party), item constructor and spell constructor (created), then Clear(1, 0).
+    // party), item constructor and spell constructor (created), then Clear(true, false).
     void Create() override;
     // Empties the record array, releases the items and frees their storage, then drops
     // (count, delete) the item constructor, spell constructor, item manager and spell manager.
@@ -58,32 +61,30 @@ public:
     // Puts `item` among the party's items with a count of 1 (with `keepCount`, the item's own count). With
     // `merge`, an item the list already has that is the same only gets the count added and is returned.
     // Otherwise the party's copy gets the count, a reference and the end of the list, and is returned. Null
-    // for a null item. The flags are read as bytes (their low bytes).
-    Item* AddItem(Item* item, int keepCount, int merge);
+    // for a null item.
+    Item* AddItem(Item* item, bool keepCount, bool merge);
     // Takes `item` out of the list: when its count is above 1 and not `all`, the count drops by one and the
     // item is returned; otherwise it is released and removed, and the result is null (also when it is not
     // in the list).
-    Item* RemoveItem(Item* item, int all);   // `all` read as a byte
-    // Every quest item (class 0x14) taken out with RemoveItem(item, 1), from the back of the list.
+    Item* RemoveItem(Item* item, bool all);
+    // Every quest item (class 0x14) taken out with RemoveItem(item, true), from the back of the list.
     void RemoveQuestItems();
-    // Every item released, the list's storage freed and the list emptied (what Destroy and Clear inline).
-    void ReleaseAllItems();
 
     // Appends a unit record: Create when there is no item manager; a constructed record assigned to the new
-    // entry (its statistics are the stack's leftover bytes); `name` as text 1 and its text key (-1 when
-    // empty) as the key, `prototype` as text 5, `extra` as text 0; then FillFromPrototype. Returns
+    // entry (its statistics are the stack's leftover bytes); `name` as the record's name and its text key (-1 when
+    // empty) as the key, `prototype` as its prototype, `extra` as its scriptName; then FillFromPrototype. Returns
     // the record.
     PartyUnitRecord* AddMember(std::string_view name, std::string_view prototype, std::string_view extra);
-    // Gives `record` what its prototype (text 5) says: text 2 from its model, the NPC statistics, the three
+    // Gives `record` what its prototype says: figureName from its model, the NPC statistics, the three
     // scales, copies (Item::Clone) of the starting armour, of the two weapons unless
-    // empty or "none", and of the spells; text 6 = text 5. (The lists come from the record: the
+    // empty or "none", and of the spells; secondPrototype = prototype. (The lists come from the record: the
     // lookup that could fail, a missing prototype, cannot happen after the record was read.)
     void FillFromPrototype(PartyUnitRecord* record);
     // The multiplayer hero's starting equipment: `record`'s spells and weapons released and removed (from the
-    // front), then, from the NPC record of its prototype (text 5; g_unitDatabase.npcs' operator[], which adds an empty
+    // front), then, from the NPC record of its prototype (g_unitDatabase.npcs' operator[], which adds an empty
     // entry for an unknown name), copies of the start spells (appended), quick items and weapons (each at its
     // list's count, SetAtGrow), the start money added to the party's, the start experience to the record's
-    // statistics, and text 6 = text 5. 0 without an NPC record (after the lists were emptied), else 1.
+    // statistics, and secondPrototype = prototype. 0 without an NPC record (after the lists were emptied), else 1.
     bool EquipFromPrototype(PartyUnitRecord* record);
     // The record of the unit with id `unitId`, or null.
     PartyUnitRecord* Find(int unitId);
@@ -96,22 +97,25 @@ public:
     // Releases the items and frees their storage, empties the item manager and the spell manager (attached
     // again unless `keepSpells`), empties the record array, the variables (with `clearVariables`) and the
     // zone name, and clears money and entrance.
-    void Clear(int clearVariables, int keepSpells);
+    void Clear(bool clearVariables, bool keepSpells);
 
     // Reads what SaveParty writes: Create when there is no item manager, Clear(loadVariables, 0) with the
     // party marked as being loaded (LoadingParty, which the records' item lookups use), the zone name,
     // entrance, both managers (their Load, then LoadObjects), the item ids (resolved in the item manager and
     // counted), the records (PartyUnitRecord::Load), the variables (with `loadVariables`), money (from
     // version 0x6C stored xor a key that follows it); then both managers' ReleaseUnused.
-    void LoadParty(ByteStream* stream, int loadVariables);
+    void LoadParty(ByteStream* stream, bool loadVariables);
     // Create when there is no item manager; the zone name with its zero, entrance, both managers (their Save,
     // then SaveObjects), the item ids (-1 for an empty entry), the record count and records, the variables
     // (with `saveVariables`), then money xor an ISAAC key and the key.
-    void SaveParty(ByteStream* stream, int saveVariables);
+    void SaveParty(ByteStream* stream, bool saveVariables);
     // The party in an archive: a memory stream holding SaveParty's output (with variables) as stream field
-    // 1, read back with the archive's version.
-    void ArchiveParty(ChunkArchive* ar);
-    // Clear(1, 0), then `source` saved into a memory stream and loaded back (variables included).
+    // `field`, read back with the archive's version.
+    void ArchiveParty(ChunkArchive* ar, int field);
+    // This party becomes a copy of `source` (variables included): saved into a memory stream and loaded back.
+    // Loading clears this party first.
+    void CopyFrom(Party* source);
+    // Clear(true, false), then CopyFrom(source).
     Party* Assign(Party* source);
 
     ItemManager* itemManager = nullptr;

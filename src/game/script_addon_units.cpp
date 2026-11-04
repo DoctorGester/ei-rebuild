@@ -160,7 +160,7 @@ bool RandObj(Call* call) {
 }
 
 bool PlayerExists(Call* call) {
-    *call->result.number = g_serverWorld.GetPlayer(TruncateOrMin(call->cmd->floatArgs[0])) ? 1.0f : 0.0f;
+    *call->result.number = ScriptBool(g_serverWorld.GetPlayer(TruncateOrMin(call->cmd->floatArgs[0])) != nullptr);
     return true;
 }
 
@@ -273,14 +273,14 @@ bool IsPlayer(Call* call) {
 bool IsDead(Call* call) {
     *call->result.number = 0.0f;
     MapObject* unit = ObjectArg(call, 0)->object;
-    if (unit && IsUnit(unit)) *call->result.number = unit->IsDead() == 1 ? 1.0f : 0.0f;
+    if (unit && IsUnit(unit)) *call->result.number = ScriptBool(unit->IsDead() == 1);
     return true;
 }
 
 bool IsAlive(Call* call) {
     *call->result.number = 0.0f;
     MapObject* unit = ObjectArg(call, 0)->object;
-    if (unit && IsUnit(unit)) *call->result.number = unit->IsDead() == 0 ? 1.0f : 0.0f;
+    if (unit && IsUnit(unit)) *call->result.number = ScriptBool(unit->IsDead() == 0);
     return true;
 }
 

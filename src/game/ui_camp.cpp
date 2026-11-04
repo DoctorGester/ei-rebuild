@@ -138,7 +138,7 @@ int FindHero(int start, Step step) {
         i = step(i, count);
         ++tries;
         PartyUnitRecord* record = &party->members[i];
-        if (PrototypeObjectClass(record->texts[5]) == MapObjectType::Hero) break;
+        if (PrototypeObjectClass(record->prototype) == MapObjectType::Hero) break;
     }
     return i;
 }
@@ -696,7 +696,7 @@ Item* CampPages::TakeOff(Item* item) {
     if (kind < ItemKind::Weapon || (kind > ItemKind::Quick && kind != ItemKind::Scroll)) return nullptr;
     PartyUnitRecord* heroRecord = HeroRecord();
     // The item among the player's items.
-    Item* result = LocalPlayerData()->AddItem(item, 0, 1);
+    Item* result = LocalPlayerData()->AddItem(item, false, true);
     switch (item->Kind()) {
     case ItemKind::Weapon: {
         // The chosen weapon moves back when the item lies before it.
@@ -776,7 +776,7 @@ void CampPages::PutOn(Item* item) {
     default:
         return;
     }
-    LocalPlayerData()->RemoveItem(item, 0);
+    LocalPlayerData()->RemoveItem(item, false);
     statsPanel->DrawStats();
 }
 
@@ -976,7 +976,7 @@ void CampPages::ShowHero() {
     std::string own = unit->GetName();
     if (own.size() == 0) {
         PartyUnitRecord* heroRecord = HeroRecord();
-        own = heroRecord->texts[1];
+        own = heroRecord->name;
         if (table->Open("pers " + own)) name = table->ReadLine(true);
     } else {
         name = own;

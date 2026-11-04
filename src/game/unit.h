@@ -837,15 +837,21 @@ struct PartyUnitRecord {
     // The weights of the entries of the four lists added up (empty entries skipped).
     float CarriedWeight() const;
 
-    // ClearItems and the defaults, then texts 0, 2-5 (text 6 becomes a copy of text 5), unitId, the stats,
+    // ClearItems and the defaults, then scriptName, figureName, parentIname, skinTexture, prototype (secondPrototype becomes a copy of it), unitId, the stats,
     // scaleX / scaleY / height and the four lists (a count, then item ids resolved in the item manager of the
-    // party being loaded, and counted), then text 1; from version 0x51 moveMode2, weaponIndex and selected,
-    // from 0x5B leaderId, from 0x61 fightAtWill, from 0x6B text 6.
+    // party being loaded, and counted), then name; from version 0x51 moveMode2, weaponIndex and selected,
+    // from 0x5B leaderId, from 0x61 fightAtWill, from 0x6B secondPrototype.
     void Load(ByteStream* stream);
     // Writes what Load reads (newest version).
     void Save(ByteStream* stream);
 
-    std::string texts[7];          // names (empty when constructed)
+    std::string scriptName;         // the unit's script name; a multiplayer hero's name in the hero list
+    std::string name;               // the name whose text key is the unit id
+    std::string figureName;         // the figure (model) name
+    std::string parentIname;        // the look it was made from (WorldServer::TakeLookFromUnit)
+    std::string skinTexture;
+    std::string prototype;          // the unit prototype's name
+    std::string secondPrototype;    // the unit's second prototype (a hero's voice file in the hero screens)
     std::uint32_t unitId = 0;           // the unit's id (saved and loaded)
     UnitStats stats;                    // the unit's statistics
     float scaleX = 0.8f;                // the figure's scale: x ...

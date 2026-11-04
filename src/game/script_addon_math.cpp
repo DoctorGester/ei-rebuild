@@ -254,7 +254,7 @@ bool RandStr(Call* call) {
 }
 
 bool StrHas(Call* call) {
-    *call->result.number = std::strstr(Arg(call, 0).c_str(), Arg(call, 1).c_str()) ? 1.0f : 0.0f;
+    *call->result.number = ScriptBool(std::strstr(Arg(call, 0).c_str(), Arg(call, 1).c_str()) != nullptr);
     return true;
 }
 

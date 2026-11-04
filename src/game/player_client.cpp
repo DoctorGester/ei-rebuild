@@ -121,7 +121,7 @@ bool PlayerClient::RunTick() {
         if (link == nullptr || !link->Connected()) return true;
         if (sendParty) {
             WriteType(&out, ClientMessage::NewParty);
-            player->GetParty()->SaveParty(&out, 1);
+            player->GetParty()->SaveParty(&out, true);
         }
         LoginRequest login;
         std::memset(&login, 0, sizeof(login));
@@ -362,7 +362,7 @@ bool PlayerClient::OnParty() {
         in.ReadSized(&block);
         block.MemoryStream::Seek(0);
         if (in.ok) {
-            party->LoadParty(&block, 1);
+            party->LoadParty(&block, true);
             std::vector<std::uint32_t>& recharging = player->recharging;
             recharging.clear();
             ObjectListIteratorOf<Item> walk;
@@ -386,7 +386,7 @@ bool PlayerClient::OnPartyUpdate() {
     MemoryStream block;
     in.ReadSized(&block);
     block.MemoryStream::Seek(0);
-    if (in.ok) player->GetParty()->LoadParty(&block, 0);
+    if (in.ok) player->GetParty()->LoadParty(&block, false);
     return true;
 }
 

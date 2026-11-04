@@ -1,4 +1,4 @@
-// Evaluation of script functions: SSCCmd::CalcParameters, CalcFloat, CalcObject and CalcGroup. Rebirth's functions
+// Evaluation of script functions: ScriptCall::CalcParameters, CalcFloat, CalcObject and CalcGroup. Rebirth's functions
 // (script_addon.h) are tried first.
 // Floating point: the comparisons are plain (a NaN argument compares as IEEE says, where the
 // old x87 compare counted it as equal and less).
@@ -54,9 +54,6 @@ int RoundTimeOffset(int time, float extra) {
 constexpr float kMinusOne = -1.0f;
 constexpr float kFar = 1e30f;     // the distance when an object is missing
 
-// (float)(int)b: converts 0/1 exactly.
-float FromBool(bool value) { return static_cast<float>(value ? 1 : 0); }
-
 // ---- Game state reached by the functions --------------------------------------------------------
 
 
@@ -81,22 +78,22 @@ void InsertSeen(ScriptGroup* group, UnitServer* controller) {
 
 } // namespace
 
-void SSCCmd::PrepareArguments(Script* script, ScriptVars* vars) {
+void ScriptCall::PrepareArguments(Script* script, ScriptVars* vars) {
     SetParameters(localBindings, vars);
     SetParameters(globalBindings, &script->globals);
     for (int i = 0; i < std::ssize(subCalls); ++i) CalcParameters(script, vars, &subCalls[i]);
 }
 
-const ScriptSubCall* SSCCmd::ConditionCall() const {
+const ScriptSubCall* ScriptCall::ConditionCall() const {
     for (const ScriptSubCall& call : subCalls)
         if (call.type == kScriptFloat) return &call;
     return nullptr;
 }
 
-void SSCCmd::CalcParameters(Script* script, ScriptVars* vars, const ScriptSubCall* call) {
+void ScriptCall::CalcParameters(Script* script, ScriptVars* vars, const ScriptSubCall* call) {
     switch (call->type) {
     case kScriptFloat:
-        call->cmd->CalcFloat(script, vars, &floatArgs[call->argIndex]);
+        floatArgs[call->argIndex] = call->cmd->CalcFloat(script, vars);
         return;
     case kScriptString: {
         // Only Rebirth's functions return strings.
@@ -110,46 +107,38 @@ void SSCCmd::CalcParameters(Script* script, ScriptVars* vars, const ScriptSubCal
         call->cmd->CalcGroup(script, vars, &groupArgs[call->argIndex]);
         return;
     default:
-        game::FatalError("SSCCmd::CalcParameters, unknown function parameter type");
+        game::FatalError("ScriptCall::CalcParameters, unknown function parameter type");
     }
 }
 
-void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
+float ScriptCall::CalcFloat(Script* script, ScriptVars* vars) {
     PrepareArguments(script, vars);
+    float result = 0.0f;
     {
-        scriptaddon::Call call{this, script, result, nullptr, nullptr};
-        if (scriptaddon::Dispatch(&call)) return;
+        scriptaddon::Call call{this, script, &result, nullptr, nullptr};
+        if (scriptaddon::Dispatch(&call)) return result;
     }
     const float* f = floatArgs.data();
     const ScriptFunction function = static_cast<ScriptFunction>(id);
     switch (function) {
     case ScriptFunction::IsEqual:
-        *result = FromBool(f[0] == f[1]);
-        return;
+        return ScriptBool(f[0] == f[1]);
     case ScriptFunction::IsLess:
-        *result = FromBool(f[0] < f[1]);
-        return;
+        return ScriptBool(f[0] < f[1]);
     case ScriptFunction::IsGreater:
-        *result = FromBool(f[0] > f[1]);
-        return;
+        return ScriptBool(f[0] > f[1]);
     case ScriptFunction::IsEqualString:
-        *result = FromBool(str::Compare(stringArgs[0], stringArgs[1]) == 0);
-        return;
+        return ScriptBool(str::Compare(stringArgs[0], stringArgs[1]) == 0);
     case ScriptFunction::Add:
-        *result = f[1] + f[0];
-        return;
+        return f[1] + f[0];
     case ScriptFunction::Sub:
-        *result = f[0] - f[1];
-        return;
+        return f[0] - f[1];
     case ScriptFunction::Mul:
-        *result = f[1] * f[0];
-        return;
+        return f[1] * f[0];
     case ScriptFunction::Div:
-        *result = f[0] / f[1];
-        return;
+        return f[0] / f[1];
     case ScriptFunction::Not:
-        *result = FromBool(f[0] == 0.0f);
-        return;
+        return ScriptBool(f[0] == 0.0f);
 
     case ScriptFunction::HP:
     case ScriptFunction::MaxHP:
@@ -163,152 +152,128 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
                                : function == ScriptFunction::MaxHP ? &vitals.maxHitPoints
                                : function == ScriptFunction::Mana ? &vitals.mana
                                             : &vitals.maxMana;
-            *result = *value;
+            result = *value;
         } else {
-            *result = 0.0f;
+            result = 0.0f;
         }
-        return;
+        return result;
     }
     case ScriptFunction::GetX:
     case ScriptFunction::GetY: {
         MapObject* o = objectArgs[0]->object;
-        if (o) *result = function == ScriptFunction::GetX ? o->localPosition.x : o->localPosition.y;
-        else *result = 0.0f;
-        return;
+        if (o) result = function == ScriptFunction::GetX ? o->localPosition.x : o->localPosition.y;
+        else result = 0.0f;
+        return result;
     }
     case ScriptFunction::GetZ: { // GetZ: height above the ground at the object's position
         MapObject* o = objectArgs[0]->object;
         if (!o) {
-            *result = 0.0f;
-            return;
+            return 0.0f;
         }
         float x = o->localPosition.x, y = o->localPosition.y, z = o->localPosition.z;
-        if (Unit* unit = UnitOrNull(o)) *result = unit->GroundHeight(x, y) + z;   // (o is not null)
-        else *result = g_serverWorld.GridHeight(x, y) + z;
-        return;
+        if (Unit* unit = UnitOrNull(o)) result = unit->GroundHeight(x, y) + z;   // (o is not null)
+        else result = g_serverWorld.GridHeight(x, y) + z;
+        return result;
     }
     case ScriptFunction::GetLootItemsCount:
     case ScriptFunction::GetMoney: {
-        *result = 0.0f;
         Player* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
-        if (player) *result = static_cast<float>(function == ScriptFunction::GetLootItemsCount ? std::ssize(player->items) : player->GetParty()->money);
-        return;
+        if (player) result = static_cast<float>(function == ScriptFunction::GetLootItemsCount ? std::ssize(player->items) : player->GetParty()->money);
+        return result;
     }
     case ScriptFunction::WasLooted: {
-        *result = 1.0f;
         MapObject* o = objectArgs[0]->object;
-        if (o) *result = static_cast<float>(lib::Has(o->flags, MapObjectFlag::LootTaken));
-        return;
+        return ScriptBool(!o || lib::Has(o->flags, MapObjectFlag::LootTaken));
     }
     case ScriptFunction::GetFutureX:
     case ScriptFunction::GetFutureY: {
         MapObject* o = objectArgs[0]->object;
         if (!o) {
-            *result = 0.0f;
-            return;
+            return 0.0f;
         }
         Vector3 position = o->PositionAt(RoundTimeOffset(g_serverWorld.tick, f[0]));
-        *result = function == ScriptFunction::GetFutureX ? position.x : position.y;
-        return;
+        return function == ScriptFunction::GetFutureX ? position.x : position.y;
     }
     case ScriptFunction::IsUnitInWater: { // IsUnitInWater: flag 0x80 of the AI map cell at the object's position
         MapObject* o = objectArgs[0]->object;
-        int inWater = 0;
-        if (o) inWater = g_serverWorld.aiMap.InWaterAt(o->localPosition) ? 1 : 0;
-        *result = static_cast<float>(inWater);
-        return;
+        return ScriptBool(o && g_serverWorld.aiMap.InWaterAt(o->localPosition));
     }
     case ScriptFunction::GroupSize:
-        *result = static_cast<float>(groupArgs[0]->size());
-        return;
+        return static_cast<float>(groupArgs[0]->size());
     case ScriptFunction::GroupHas: {
         MapObject* o = objectArgs[0]->object;
-        *result = groupArgs[0]->Contains(o) ? 1.0f : 0.0f;
-        return;
+        return ScriptBool(groupArgs[0]->Contains(o));
     }
     case ScriptFunction::Random: { // Random(range): [0, range]
         float range = f[0];
         std::uint32_t value = g_random.Next();
-        *result = ScaleRandom(value, range);
-        return;
+        return ScaleRandom(value, range);
     }
     case ScriptFunction::GetDiplomacy: { // GetDiplomacy: 1 allied, -1 enemies, 0 otherwise
         int b = lib::Truncate(f[1]);
         int a = lib::Truncate(f[0]);
         int relation = g_serverWorld.diplomacy.GetRelation(a, b);
-        *result = 0.0f;
-        if (relation == 2) *result = kMinusOne;
-        else if (relation == 0) *result = 1.0f;
-        return;
+        if (relation == 2) result = kMinusOne;
+        else if (relation == 0) result = 1.0f;
+        return result;
     }
     case ScriptFunction::IsAlive:
     case ScriptFunction::IsDead: {
         MapObject* o = objectArgs[0]->object;
         MapObjectCompanion* stats = o ? o->companion.Get() : nullptr;
-        *result = 0.0f;
-        if (!stats) return;
+        if (!stats) return result;
         int state = stats->IsDead();
-        *result = static_cast<float>(function == ScriptFunction::IsAlive ? (state == 0 ? 1 : 0) : state);
-        return;
+        return function == ScriptFunction::IsAlive ? ScriptBool(state == 0) : static_cast<float>(state);
     }
     case ScriptFunction::IsEnemy: { // IsEnemy(unit, player)
         Unit* unit = UnitOrNull(objectArgs[0]->object);
-        *result = 0.0f;
-        if (!unit) return;
+        if (!unit) return result;
         int player = lib::Truncate(f[0]);
         std::uint32_t mask = 1u << (player & 31);
         bool enemy = (mask & unit->relationsB & unit->relationsA) != 0;
-        *result = static_cast<float>(enemy ? 1 : 0);
-        return;
+        return ScriptBool(enemy);
     }
     case ScriptFunction::GetPlayer: {
         Unit* unit = UnitOrNull(objectArgs[0]->object);
-        *result = 0.0f;
-        if (unit) *result = static_cast<float>(unit->side);
-        return;
+        if (unit) result = static_cast<float>(unit->side);
+        return result;
     }
     case ScriptFunction::GetAIClass: { // GetAIClass (the unit's size class)
         Unit* unit = UnitOrNull(objectArgs[0]->object);
-        *result = kMinusOne;
-        if (unit) *result = static_cast<float>(unit->sizeClass);
-        return;
+        result = kMinusOne;
+        if (unit) result = static_cast<float>(unit->sizeClass);
+        return result;
     }
     case ScriptFunction::GetLeverState: {
         MapObject* o = objectArgs[0]->object;
-        *result = 0.0f;
-        if (Lever* lever = LeverOrNull(o)) *result = static_cast<float>(lever->state);
-        return;
+        if (Lever* lever = LeverOrNull(o)) result = static_cast<float>(lever->state);
+        return result;
     }
     case ScriptFunction::GetObjectID: {
         MapObject* o = objectArgs[0]->object;
-        *result = 0.0f;
-        if (o) *result = static_cast<float>(o->id);
-        return;
+        if (o) result = static_cast<float>(o->id);
+        return result;
     }
     case ScriptFunction::IsAlarm:
-        *result = FromBool(Alarm(lib::RoundEven(f[0])).active != 0);
-        return;
+        return ScriptBool(Alarm(lib::RoundEven(f[0])).active != 0);
     case ScriptFunction::AlarmTime:
-        *result = static_cast<float>(Alarm(lib::RoundEven(f[0])).time);
-        return;
+        return static_cast<float>(Alarm(lib::RoundEven(f[0])).time);
     case ScriptFunction::AlarmPosX:
-        *result = Alarm(lib::RoundEven(f[0])).x;
-        return;
+        return Alarm(lib::RoundEven(f[0])).x;
     case ScriptFunction::AlarmPosY:
-        *result = Alarm(lib::RoundEven(f[0])).y;
-        return;
+        return Alarm(lib::RoundEven(f[0])).y;
     case ScriptFunction::DistanceUnitUnit: {
         MapObject* a = objectArgs[0]->object;
         MapObject* b = objectArgs[1]->object;
-        if (a && b) *result = Distance(XY(a->localPosition), XY(b->localPosition));
-        else *result = kFar;
-        return;
+        if (a && b) result = Distance(XY(a->localPosition), XY(b->localPosition));
+        else result = kFar;
+        return result;
     }
     case ScriptFunction::DistanceUnitPoint: {
         MapObject* o = objectArgs[0]->object;
-        if (o) *result = Distance(XY(o->localPosition), Vector2{f[0], f[1]});
-        else *result = kFar;
-        return;
+        if (o) result = Distance(XY(o->localPosition), Vector2{f[0], f[1]});
+        else result = kFar;
+        return result;
     }
 
     // Every/Any/Sum(var, group, condition): the condition (the nested float call) is evaluated
@@ -319,108 +284,88 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
     case ScriptFunction::Sum: {
         const ScriptSubCall* condition = ConditionCall();
         if (!condition) {
-            if (function == ScriptFunction::Every) *result = floatArgs[0];
+            if (function == ScriptFunction::Every) result = floatArgs[0];
             else if (function == ScriptFunction::Any) {
-                *result = FromBool(floatArgs[0] != 0.0f);
+                result = ScriptBool(floatArgs[0] != 0.0f);
             }
-            else *result = static_cast<float>(groupArgs[0]->size()) * floatArgs[0];
-            return;
+            else result = static_cast<float>(groupArgs[0]->size()) * floatArgs[0];
+            return result;
         }
-        *result = function == ScriptFunction::Every ? 1.0f : 0.0f;
+        result = ScriptBool(function == ScriptFunction::Every);
         ScriptGroup* g = groupArgs[0];
-        if (g->empty()) return;
+        if (g->empty()) return result;
         int k = 0;
         do {
             *objectArgs[0] = (*g)[static_cast<std::size_t>(k)];
             CalcParameters(script, vars, condition);
             if (function == ScriptFunction::Every) {
                 if (floatArgs[0] == 0.0f) {
-                    *result = 0.0f;
-                    return;
+                    return 0.0f;
                 }
             } else if (function == ScriptFunction::Any) {
                 if (floatArgs[0] != 0.0f) {
-                    *result = 1.0f;
-                    return;
+                    return 1.0f;
                 }
             } else {
-                *result = floatArgs[0] + *result;
+                result = floatArgs[0] + result;
             }
             ++k;
             g = groupArgs[0];
         } while (k < std::ssize(*g));
-        return;
+        return result;
     }
 
     case ScriptFunction::HaveItem: { // HaveItem(player, item)
-        *result = 0.0f;
         auto* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
-        if (player && player->HasLoot(lib::Truncate(f[1]))) *result = 1.0f;
-        return;
+        return ScriptBool(player && player->HasLoot(lib::Truncate(f[1])));
     }
     case ScriptFunction::IsPlayerInDanger:
     case ScriptFunction::IsPlayerInSafety: {
-        *result = 0.0f;
         Player* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
-        if (!player) return;
+        if (!player) return result;
         PlayerServer::PartyDanger danger = player->Server()->danger;
-        if (function == ScriptFunction::IsPlayerInDanger ? danger == PlayerServer::PartyDanger::InDanger
-                                                         : danger == PlayerServer::PartyDanger::Safe)
-            *result = 1.0f;
-        return;
+        return ScriptBool(function == ScriptFunction::IsPlayerInDanger ? danger == PlayerServer::PartyDanger::InDanger
+                                                                       : danger == PlayerServer::PartyDanger::Safe);
     }
     case ScriptFunction::GetMercsNumber:
-        *result = static_cast<float>(g_serverWorld.CountLivingMercs(lib::Truncate(f[0])));
-        return;
+        return static_cast<float>(g_serverWorld.CountLivingMercs(lib::Truncate(f[0])));
     case ScriptFunction::GSGetVar: { // GSGetVar(player, name): from the game server in multiplayer, else the player's
         if (IsMultiplayerClient() && IsLive(net::g_gameServer)) {
             std::string key = stringArgs[0];
-            *result = static_cast<float>(net::g_gameServer->GetVariable(&key));
-            return;
+            return static_cast<float>(net::g_gameServer->GetVariable(&key));
         }
-        *result = 0.0f;
         Player* player = g_serverWorld.GetPlayer(lib::Truncate(f[0]));
-        if (player) *result = player->GetParty()->variables.Get(stringArgs[0]);
-        return;
+        if (player) result = player->GetParty()->variables.Get(stringArgs[0]);
+        return result;
     }
     case ScriptFunction::IsCameraPlaying:
-        *result = static_cast<float>(static_cast<int>(g_clientWorld.camera->flags & Camera::kPlaying));
-        return;
+        return static_cast<float>(static_cast<int>(g_clientWorld.camera->flags & Camera::kPlaying));
     case ScriptFunction::IsNight:   // IsNight (the world's day-time value, copied as a float)
-        *result = g_serverWorld.nightLevel;
-        return;
+        return g_serverWorld.nightLevel;
     case ScriptFunction::GetWorldTime:
-        *result = WorldTimeOfDay();
-        return;
+        return WorldTimeOfDay();
     case ScriptFunction::IsInSquare: { // IsInSquare(x, y, x1, y1, x2, y2)
         bool inside = f[0] >= f[2] && f[0] <= f[4] && f[1] >= f[3] && f[1] <= f[5];
-        *result = static_cast<float>(inside ? 1 : 0);
-        return;
+        return ScriptBool(inside);
     }
     case ScriptFunction::UnitInSquare: { // UnitInSquare(object, x1, y1, x2, y2)
         MapObject* o = objectArgs[0]->object;
-        *result = 0.0f;
-        if (!o) return;
+        if (!o) return result;
         float x = o->localPosition.x, y = o->localPosition.y;
         bool inside = x >= f[0] && x <= f[2] && y >= f[1] && y <= f[3];
-        *result = static_cast<float>(inside ? 1 : 0);
-        return;
+        return ScriptBool(inside);
     }
     case ScriptFunction::IsUnitVisible: { // IsUnitVisible: in the local player's list of units always sent
         MapObject* o = objectArgs[0]->object;
-        *result = 0.0f;
-        if (!o) return;
+        if (!o) return result;
         Player* player = g_serverWorld.GetPlayer(0);
-        if (!player) return;
-        *result = static_cast<float>(player->Server()->partyUnits.Contains(o) ? 1 : 0);
-        return;
+        if (!player) return result;
+        return ScriptBool(player->Server()->partyUnits.Contains(o));
     }
     case ScriptFunction::GetZValue:
-        *result = g_serverWorld.GridHeight(f[0], f[1]);
-        return;
+        return g_serverWorld.GridHeight(f[0], f[1]);
     case ScriptFunction::GetBSZValue:
-        *result = g_serverWorld.RawSurfaceHeightAt(f[0], f[1]);
-        return;
+        return g_serverWorld.RawSurfaceHeightAt(f[0], f[1]);
     case ScriptFunction::IsInArea: { // IsInArea(area, x, y)
         int area = lib::RoundEven(f[0]);
         float x = f[1], y = f[2];
@@ -440,22 +385,19 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
                 break;
             }
         }
-        *result = static_cast<float>(inside ? 1 : 0);
-        return;
+        return ScriptBool(inside);
     }
     case ScriptFunction::IsUnitBlocked: {
         MapObject* o = objectArgs[0]->object;
-        *result = 0.0f;
-        if (o) *result = static_cast<float>(lib::Has(o->flags, MapObjectFlag::Blocked));
-        return;
+        return ScriptBool(o && lib::Has(o->flags, MapObjectFlag::Blocked));
     }
     default:
-        game::FatalError("Function does not return float at SSCCmd::CalcFunction");
-        return;
+        game::FatalError("Function does not return float at ScriptCall::CalcFunction");
+        return result;
     }
 }
 
-void SSCCmd::CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** result) {
+void ScriptCall::CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** result) {
     PrepareArguments(script, vars);
     *result = script->NewTempObject();
     {
@@ -512,12 +454,12 @@ void SSCCmd::CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** resu
         return;
     }
     default:
-        game::FatalError("Function does not return object at SSCCmd::CalcFunction");
+        game::FatalError("Function does not return object at ScriptCall::CalcFunction");
         return;
     }
 }
 
-void SSCCmd::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result) {
+void ScriptCall::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result) {
     PrepareArguments(script, vars);
     *result = &script->tempGroups.emplace_back();
     ScriptGroup* group = *result;
@@ -576,7 +518,7 @@ void SSCCmd::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result) {
         break;
     }
     default:
-        game::FatalError("Function does not return string at SSCCmd::CalcFunction");
+        game::FatalError("Function does not return string at ScriptCall::CalcFunction");
         break;
     }
 }

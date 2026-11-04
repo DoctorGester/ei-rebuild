@@ -159,7 +159,7 @@ void PlayerClient::SendUseDead(const std::vector<Unit*>* units, EngineObject* ta
 
 void PlayerClient::SendPartyUpdate() {
     MemoryStream block;
-    player->GetParty()->SaveParty(&block, 0);
+    player->GetParty()->SaveParty(&block, false);
     WriteType(&out, ClientMessage::PartyUpdate);
     out.WriteSized(&block);
 }

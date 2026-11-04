@@ -394,7 +394,7 @@ void WorldServer::QueueBriefingScript(int playerId, std::string_view name) {
     std::string script = str::Format(worlddata::BriefingCompleteScript(), playerId, std::string(name), playerId, std::string(name));
     MainScript()->Load(&script, 1);
     if (zoneMode == ZoneMode::Base)
-        for (int i = 0; i < 5; ++i) ScriptTick(MainScript());
+        for (int i = 0; i < 5; ++i) MainScript()->Tick();
 }
 
 void WorldServer::ApplyMercBriefing(Player* player, std::string_view name) {

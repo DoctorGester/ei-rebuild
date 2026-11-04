@@ -57,7 +57,7 @@ void Script::DeleteArea(int id) {
 
 // ---- Point lights -------------------------------------------------------------------------------
 
-void Script::CreatePointLight(const SSCCmd* cmd) {
+void Script::CreatePointLight(const ScriptCall* cmd) {
     const float* f = cmd->floatArgs.data();
     int id = lib::RoundEven(f[0]);
     // The light with this id is replaced, else the first free slot is used (one with the id after
@@ -87,7 +87,7 @@ void Script::CreatePointLight(const SSCCmd* cmd) {
     slot->steps = 0;
 }
 
-void Script::MovePointLight(const SSCCmd* cmd) {
+void Script::MovePointLight(const ScriptCall* cmd) {
     const float* f = cmd->floatArgs.data();
     int id = lib::RoundEven(f[0]);
     int i = 0;
@@ -103,7 +103,7 @@ void Script::MovePointLight(const SSCCmd* cmd) {
     LightStep(light, {f[1], f[2], f[3]}, light->object->localPosition);
 }
 
-void Script::DeletePointLight(const SSCCmd* cmd) {
+void Script::DeletePointLight(const ScriptCall* cmd) {
     int id = lib::RoundEven(cmd->floatArgs[0]);
     for (ScriptPointLight& light : pointLights) {
         if (!light.object || light.id != id) continue;
@@ -120,25 +120,25 @@ void Script::DeletePointLight(const SSCCmd* cmd) {
 //   WorldScript( Su0() )
 // The conditions by objective (%f of the float, %s of the string): QObjArea, QObjSeeObject,
 // QObjSeeUnit, QObjKillUnit, QObjKillGroup, QObjUse, QObjGetItem; another id leaves it empty.
-void ScriptQuestFinish(Script* script) {
+void ScriptQuestBuilder::Finish(Script* script) {
     std::string text;
-    for (int i = 0; i < std::ssize(g_scriptQuestObjectives) + 1; ++i) {
+    for (int i = 0; i < std::ssize(objectives) + 1; ++i) {
         text += std::format("DeclareScript Su{}()\n", i);
     }
-    for (int i = 0; i < std::ssize(g_scriptQuestObjectives); ++i) {
+    for (int i = 0; i < std::ssize(objectives); ++i) {
         std::string head;
         std::string condition;
         std::string then;
         std::string tail;
-        const std::string& quest = g_scriptQuestName;
+        const std::string& quest = name;
         head = std::format("Script Su{}(if(\n", i);
         then = std::format("\n)then(\nKillScript()\nSu{}()\nGSSetVar(0,\"q.{}.{}.{}\",2)\n", i + 1, quest, quest, i + 1);
-        if (i == std::ssize(g_scriptQuestObjectives) - 1) {
+        if (i == std::ssize(objectives) - 1) {
             tail = ")\n)\n";
         } else {
             tail = std::format("GSSetVar(0,\"q.{}.{}.{}\",1)\n)\n)\n", quest, quest, i + 2);
         }
-        const ScriptQuestObjective& objective = g_scriptQuestObjectives[i];
+        const ScriptQuestObjective& objective = objectives[i];
         const std::string& argument = objective.text;
         switch (static_cast<ScriptFunction>(objective.type)) {
         case ScriptFunction::QObjArea:
@@ -169,19 +169,27 @@ void ScriptQuestFinish(Script* script) {
     }
     {
         std::string last;
-        const std::string& quest = g_scriptQuestName;
-        last = std::format("Script Su{}(if()then(KillScript()\nQuestComplete(0,\"{}\")\nGSSetVar(0,\"q.{}.{}\", 2)\n)\n)\n", std::ssize(g_scriptQuestObjectives), quest, quest, quest);
+        const std::string& quest = name;
+        last = std::format("Script Su{}(if()then(KillScript()\nQuestComplete(0,\"{}\")\nGSSetVar(0,\"q.{}.{}\", 2)\n)\n)\n", std::ssize(objectives), quest, quest, quest);
         text += last;
     }
     text += "WorldScript( Su0() )\n";
     script->Load(&text, true);
-    g_scriptQuestName = game::kEmptyText;
+    name = game::kEmptyText;
 }
 
-// ---- The quest's objectives and name (script.h) --------------------------------------------------------------------
+// ---- The quest being built (script.h) --------------------------------------------------------------------
 
-std::vector<ScriptQuestObjective> g_scriptQuestObjectives;
-std::string g_scriptQuestName;
+ScriptQuestBuilder g_scriptQuest;
+
+void ScriptQuestBuilder::Start(const char* questName) {
+    objectives.clear();
+    name = questName;
+}
+
+void ScriptQuestBuilder::AddObjective(int type, const std::string& text, float value) {
+    objectives.push_back({type, text, value});
+}
 
 // --- Script text file --------------------------------------------------------------------------------
 

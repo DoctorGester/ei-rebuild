@@ -182,9 +182,7 @@ int Stricmp(const char* a, const char* b) {
 bool IsUnit(EngineObject* object) { return object->GetClassId() == ClassId::Unit; }
 
 UnitServer* UnitData(const ScriptObjectRef* ref) {
-    if (!ref) return nullptr;
-    Unit* unit = UnitOrNull(ref->object);
-    return unit ? unit->ServerController() : nullptr;
+    return ref ? ref->ServerController() : nullptr;
 }
 
 bool Report(const char*, const char*, ...) { return true; }
@@ -209,7 +207,7 @@ bool RejectsMatch(const char* keyword, char next) {
     return IsAsciiAlpha(keyword[0]) && (IsAsciiAlnum(next) || next == '_' || next == '#');
 }
 
-void SignatureStep(SSCCmd* cmd, const char** signature, int tokenId) {
+void SignatureStep(ScriptCall* cmd, const char** signature, int tokenId) {
     const char*& p = *signature;
     bool repeat = *p == '+';
     bool optional = *p == '?';
@@ -257,11 +255,11 @@ void SignatureStep(SSCCmd* cmd, const char** signature, int tokenId) {
     }
 }
 
-void CalcString(SSCCmd* cmd, Script* script, ScriptVars* vars, std::string* result) {
+void CalcString(ScriptCall* cmd, Script* script, ScriptVars* vars, std::string* result) {
     cmd->PrepareArguments(script, vars);
     Call call{cmd, script, result, nullptr, nullptr};
     if (Dispatch(&call)) return;
-    game::FatalError("Function does not return string at SSCCmd::CalcFunction");
+    game::FatalError("Function does not return string at ScriptCall::CalcFunction");
 }
 
 } // namespace scriptaddon

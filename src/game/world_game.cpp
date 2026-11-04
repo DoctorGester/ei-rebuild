@@ -256,15 +256,15 @@ int GameFlow::SaveGame(const std::string& slot) {
     ClearSaveFolder(slotFolder);
     if (g_serverWorld.zoneMode == ZoneMode::Edge) {
         if (Player* player = g_serverWorld.GetPlayer(0))
-            g_partyManager.BeginRedeploy(player->GetParty());
+            g_partyManager.records.BeginRedeploy(player->GetParty());
     }
     Party records;
-    g_partyManager.EndRedeploy(&records);
+    g_partyManager.records.EndRedeploy(&records);
     std::string currentMap;
     currentMap = g_mapDatabase.FindMap(records.zone)->allod;
 
     CopyVisitedZones(currentFolder, slotFolder, currentMap, &records.variables);
-    g_partyManager.BeginRedeploy(&records);
+    g_partyManager.records.BeginRedeploy(&records);
 
     bool opened = file.Open(slotFolder + kScenarioFile, platform::FileMode::Create);
     if (!opened) {
@@ -350,7 +350,7 @@ int EnterZone(Party* records) {
             std::string scripts = zoneRecord->mob + kMobExtension;
             g_serverWorld.LoadZoneScripts(scripts);
         } else {
-            ScriptResetZone(g_serverWorld.MainScript());   // the scripts reset for a zone without its own
+            g_serverWorld.MainScript()->ResetZone();   // the scripts reset for a zone without its own
         }
     }
     g_serverWorld.SetZoneExits(&zoneRecord->exits);
@@ -462,7 +462,7 @@ void GameFlow::BeginMultiplayerGame() {
     if (std::ssize(GlobalParty()->members) == 1) GlobalParty()->members.data()->unitId = kMultiplayerHeroId;
     GlobalParty()->zone = MultiplayerZone();
     GlobalParty()->variables.Set(kMultiplayerVariable, 1.0f);
-    g_partyManager.BeginRedeploy(GlobalParty());
+    g_partyManager.records.BeginRedeploy(GlobalParty());
     state = kStateZone;
     requestTarget = MultiplayerZone();
     zoneSwitchStarted = 0;
@@ -477,7 +477,7 @@ void GameFlow::ReturnLocalParty() {
     Player* player = g_clientWorld.LocalView()->player;
     Party* party = player->GetParty();
     GlobalParty()->Assign(party);
-    g_partyManager.BeginRedeploy(party);
+    g_partyManager.records.BeginRedeploy(party);
     // The global party record written into the heroes' folder.
     g_savedParties.outsideGame.WriteFile(g_savedParties.folder);
     UpdateFromServer();
@@ -586,7 +586,7 @@ int WorldServer::RunCommandScript(const std::string& text, bool run, ScriptError
     Script* script = SecondScript();
     std::string source = text;   // Script::Load preprocesses its text in place
     int ok = script->Load(&source, 1);
-    if (ok && run) ScriptTick(script);
+    if (ok && run) script->Tick();
     if (error) script->GetError(error);
     return ok;
 }
@@ -612,7 +612,7 @@ void WorldServer::LoadZoneScripts(std::string_view mob) {
         text.WriteValue(zero);
         script = reinterpret_cast<const char*>(text.data.data());
     }
-    ScriptReset(MainScript());
+    MainScript()->Reset();
     MainScript()->Load(&script, 1);
 }
 
@@ -811,9 +811,9 @@ void GameFlow::StartZone(std::string_view zone, ZoneMode mode) {
     } else {
         // The party enters the zone, then the clock is set from its "gtime".
         Party records;
-        g_partyManager.EndRedeploy(&records);
+        g_partyManager.records.EndRedeploy(&records);
         EnterZone(&records);
-        g_partyManager.BeginRedeploy(&records);
+        g_partyManager.records.BeginRedeploy(&records);
         g_serverWorld.SetTime(HoursOfDay(records.variables.Get(kGTime)));
         if (zoneRecord) {
             g_serverWorld.SetClimate(zoneRecord->climate);
@@ -839,7 +839,7 @@ void GameFlow::StartNewGame() {
     folder = str::Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(folder);
     Party records;
-    g_partyManager.EndRedeploy(&records);
+    g_partyManager.records.EndRedeploy(&records);
     StartZone(records.zone, ZoneMode::None);
 }
 
@@ -879,9 +879,9 @@ void GameFlow::ProcessRequest() {
     // The zone being left is saved (single player campaigns 1 and 3, or the host in campaign 1).
     if (g_serverWorld.gameState == GameState::Playing && IsSinglePlayerMode(g_serverWorld.zoneMode) && state == kStateZone) {
         Party records;
-        g_partyManager.EndRedeploy(&records);
+        g_partyManager.records.EndRedeploy(&records);
         ::LeaveZone(&records);
-        g_partyManager.BeginRedeploy(&records);
+        g_partyManager.records.BeginRedeploy(&records);
     }
     if (g_serverWorld.gameState == GameState::Network && g_serverWorld.zoneMode == ZoneMode::Battle && state == kStateZone) {
         Party records;
@@ -980,11 +980,11 @@ int GameFlow::LoadGame(const std::string& slot) {
     // The visited zones of the current map (and bz7g) come back into saves\current; every other
     // zone, and one whose file could not be copied, is marked not visited.
     Party records;
-    g_partyManager.EndRedeploy(&records);
+    g_partyManager.records.EndRedeploy(&records);
     std::string currentMap;
     currentMap = g_mapDatabase.FindMap(records.zone)->allod;
     CopyVisitedZones(slotFolder, currentFolder, currentMap, &records.variables);
-    g_partyManager.BeginRedeploy(&records);
+    g_partyManager.records.BeginRedeploy(&records);
 
     // The zone: kinds 0 and 2 come back from mission.sav, the others start afresh.
     MapRecord* zoneRecord = g_mapDatabase.FindMap(records.zone);
@@ -1027,9 +1027,9 @@ void GameFlow::AfterServerStart() {
     GlobalParty()->RemoveQuestItems();
     // The client's player record gets the hero's and the party's names (or the defaults).
     if (std::ssize(GlobalParty()->members) == 1) {
-        const std::string* names = GlobalParty()->members.data()->texts;
-        net::g_gameClient->player.Get()->text.assign(names[5]);
-        net::g_gameClient->player.Get()->name.assign(names[0]);
+        const PartyUnitRecord& hero = GlobalParty()->members.front();
+        net::g_gameClient->player.Get()->text.assign(hero.prototype);
+        net::g_gameClient->player.Get()->name.assign(hero.scriptName);
     } else {
         net::g_gameClient->player.Get()->text.assign(kDefaultHeroName);
         net::g_gameClient->player.Get()->name.assign(kDefaultPartyName);

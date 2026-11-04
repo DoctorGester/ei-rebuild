@@ -45,15 +45,6 @@ void ObjectRefFields(ChunkArchive* ar, int id, std::vector<HeldRef<T>>* objects)
     ar->LeaveChunk();
 }
 
-// `to` becomes a copy of `from` (with variables) through a memory stream, as Party::Assign without its Clear
-// inlines it.
-void CopyParty(Party* to, Party* from) {
-    MemoryStream local;
-    from->SaveParty(&local, 1);
-    local.MemoryStream::Seek(0);
-    to->LoadParty(&local, 1);
-}
-
 // The archive's contents, the same calls for both directions.
 void ArchiveManager(PartyManager* manager, ChunkArchive* ar) {
     ar->SerializeParties(1, &manager->parties);
@@ -89,7 +80,7 @@ void ChunkArchive::SerializeParties(int id, PartyMap* parties) {
             }
             Party* party = PartyAt(*parties, key);
             if (EnterChunk(2)) {
-                party->ArchiveParty(this);
+                party->ArchiveParty(this, 1);
                 LeaveChunk();
             }
         }
@@ -101,7 +92,7 @@ void ChunkArchive::SerializeParties(int id, PartyMap* parties) {
                 LeaveChunk();
             }
             if (EnterChunk(2)) {
-                party.ArchiveParty(this);
+                party.ArchiveParty(this, 1);
                 LeaveChunk();
             }
         }
@@ -148,17 +139,8 @@ void NamedPartyRecords::Serialize(ChunkArchive* ar) {
 // ---- The archived objects (Serialize) ---------------------------------------------------
 
 void PartyRecord::Serialize(ChunkArchive* ar) {
-    MemoryStream local;
     ar->StringField(1, &name);
-    Party* p = GetParty();
-    if (!ar->loading) {
-        p->SaveParty(&local, 1);
-        ar->StreamField(2, &local);
-    } else {
-        ar->StreamField(2, &local);
-        local.version = ar->version;
-        p->LoadParty(&local, 1);
-    }
+    party.ArchiveParty(ar, 2);
 }
 
 void ClassTemplate::Serialize(ChunkArchive* ar) {
@@ -166,28 +148,27 @@ void ClassTemplate::Serialize(ChunkArchive* ar) {
     ar->Field(2, &sellsItems);
     ar->Field(3, &sellsSpells);
     ar->Field(4, weights, sizeof(weights) + sizeof(weightsTail));
-    MemoryStream local;
     Party* itemsParty = ItemsParty();
     Party* spellsParty = SpellsParty();
-    if (!ar->loading) {
-        itemsParty->SaveParty(&local, 0);
-        spellsParty->SaveParty(&local, 0);
-        allowed.SaveLists(&local);
-        magic.SaveLists(&local);
-        ar->StreamField(5, &local);
-    } else {
-        ar->StreamField(5, &local);
-        local.version = ar->version;
-        itemsParty->LoadParty(&local, 0);
-        spellsParty->LoadParty(&local, 0);
-        allowed.LoadLists(&local);
-        magic.LoadLists(&local);
-    }
+    ar->StreamFieldOf(
+        5,
+        [&](MemoryStream* stream) {
+            itemsParty->SaveParty(stream, false);
+            spellsParty->SaveParty(stream, false);
+            allowed.SaveLists(stream);
+            magic.SaveLists(stream);
+        },
+        [&](MemoryStream* stream) {
+            itemsParty->LoadParty(stream, false);
+            spellsParty->LoadParty(stream, false);
+            allowed.LoadLists(stream);
+            magic.LoadLists(stream);
+        });
     ar->Field(6, &restockDue);
 }
 
 void NamedPartyRecords::BeginRedeploy(Party* party) {
-    if (Party* found = Find(currentName)) CopyParty(found, party);
+    if (Party* found = Find(currentName)) found->CopyFrom(party);
     NamedFloatTable variables(party->variables);
     std::string zone = party->zone;
     for (PartyRecord* record : records) {
@@ -199,8 +180,8 @@ void NamedPartyRecords::BeginRedeploy(Party* party) {
 }
 
 void NamedPartyRecords::EndRedeploy(Party* party) {
-    if (Party* found = Find(requestedName)) CopyParty(party, found);
-    else party->Clear(1, 0);
+    if (Party* found = Find(requestedName)) party->CopyFrom(found);
+    else party->Clear(true, false);
     currentName = requestedName;
 }
 
@@ -256,9 +237,6 @@ const char* const kFirstZone = "gz1g";
 const char* const kGameTime = "gtime";
 constexpr float kSix = 6.0f;
 
-// A new record with no references.
-PartyRecord* NewRecord() { return new PartyRecord(); }
-
 // The party stored under `key` (find, inlined), null if none. Not const: the parties' copies read their source
 // non-const.
 Party* FindParty(const PartyMap& parties, int key) {
@@ -273,7 +251,7 @@ void PartyRecordsReset(NamedPartyRecords* list) {
     list->requestedName = game::kEmptyText;
     list->currentName = game::kEmptyText;
 
-    list->records.emplace_back(NewRecord());
+    list->records.emplace_back(new PartyRecord());
 
     Party* party = list->records.front()->GetParty();
     party->AddMember(kHero, kHumanHero, game::kEmptyText);
@@ -292,7 +270,7 @@ Party* NamedPartyRecords::Find(std::string_view name) const {
 }
 
 void NamedPartyRecords::Add(const char* name) {
-    PartyRecord* record = NewRecord();
+    PartyRecord* record = new PartyRecord();
     record->name = name;
     records.emplace_back(record);
 }
@@ -308,6 +286,8 @@ void NamedPartyRecords::Remove(const char* name) {
 // ---- The party manager -----------------------------------------------------------------
 
 Party* PartyAt(PartyMap& parties, int key) {
+    // The two throwaway copies are kept: each runs Party::Create, SaveParty and LoadParty, and SaveParty draws
+    // g_random for the money key, so dropping them would move every later random number.
     Party made;
     Party pair(made);
     return &parties.try_emplace(key, pair).first->second;
@@ -323,50 +303,40 @@ void PartyManagerNewGameFour(PartyManager* manager) {
     manager->templates.Build(1);
 }
 
-void PartyManager::BeginRedeploy(Party* party) { records.BeginRedeploy(party); }
-
-void PartyManager::EndRedeploy(Party* party) { records.EndRedeploy(party); }
-
 int g_nextPartyId = /*0078B0E8*/ 1;
 
 int PartyNextId() { return g_nextPartyId++; }
 
-bool PartyManager::LoadParty(const int* key, Party* target) const {
-    if (*key == 0) {
-        target->Clear(1, 0);
+bool PartyManager::LoadParty(int key, Party* target) const {
+    if (key == 0) {
+        target->Clear(true, false);
         return true;
     }
-    Party* stored = FindParty(parties, *key);
+    Party* stored = FindParty(parties, key);
     if (!stored) return false;
     target->Assign(stored);
     return true;
 }
 
-void PartyManager::StoreParty(const int* key, Party* source) {
-    Party* value = FindParty(parties, *key);
-    if (!value) value = PartyAt(parties, *key);
+void PartyManager::StoreParty(int key, Party* source) {
+    Party* value = FindParty(parties, key);
+    if (!value) value = PartyAt(parties, key);
     value->Assign(source);
 }
 
 // --- Party script ------------------------------------------------------------------------------------
 
-// The party a script names (see party_records.h). Names are provisional.
-
-namespace {
-
-// The party manager's record list.
-const NamedPartyRecords* RecordList() { return &g_partyManager.records; }
-
-} // namespace
+// The party a script names (see party_records.h).
 
 Party* PartyForScript(Player* player, std::string* name) {
     if (!player) return nullptr;
+    const NamedPartyRecords& records = g_partyManager.records;
     std::string owner;
     int split = str::Find(*name, "::");
     if (split >= 0) {
         owner = str::Mid(*name, 0, split);
         *name = str::Mid(*name, split + 2, static_cast<int>(name->size()) - split - 2);
     }
-    if (str::Compare(owner, RecordList()->currentName) == 0) return player->GetParty();
-    return (RecordList())->Find(owner);
+    if (str::Compare(owner, records.currentName) == 0) return player->GetParty();
+    return records.Find(owner);
 }

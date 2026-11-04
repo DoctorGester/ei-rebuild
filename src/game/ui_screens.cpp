@@ -410,9 +410,9 @@ void MpHeroScreen::ClampVoiceSelection() {
     if (voiceTop > selected) voiceTop = selected;
     voiceScroll->SetPosition(voiceTop);
     voiceTop = voiceScroll->TakePosition();
-    // Each voice is {file, name}; the hero keeps the file name in texts[6].
+    // Each voice is {file, name}; the hero keeps the file name in secondPrototype.
     const std::string& file = voices->begin()[voiceIndex].file;
-    HeroRecord()->texts[6] = file;
+    HeroRecord()->secondPrototype = file;
     DrawVoices();
 }
 

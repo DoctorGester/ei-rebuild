@@ -700,7 +700,7 @@ void ItemInfoPanel::DescribeCarriedSpell() {
 // --- The statistic under the mouse ----------------------------------------------------------
 
 void ItemInfoPanel::DescribeStats(const ItemHoverInfo& info) {
-    itemParty.Clear(1, 0);
+    itemParty.Clear(true, false);
     DescribeItem();
     if (info.kind == HoverKind::None) return;
     TextManager* texts = g_clientWorld.texts.get();
@@ -818,7 +818,7 @@ void ItemInfoPanel::DescribeStats(const ItemHoverInfo& info) {
 }
 
 void ItemInfoPanel::ShowHelp(int topic) {
-    itemParty.Clear(1, 0);
+    itemParty.Clear(true, false);
     DescribeItem();
     TextManager* texts = g_clientWorld.texts.get();
     Writer w(this);
@@ -838,8 +838,8 @@ void ItemInfoPanel::Describe(Item* item) {
     if (FirstItem() && item) {
         if (FirstItem()->IsSameAs(item)) return;
     }
-    itemParty.Clear(1, 0);
-    if (item) itemParty.AddItem(item, 0, 1);
+    itemParty.Clear(true, false);
+    if (item) itemParty.AddItem(item, false, true);
     DescribeItem();
 }
 

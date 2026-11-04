@@ -9,7 +9,7 @@
 
 namespace scriptaddon {
 
-// What a handler is passed. Calc functions: `result` is CalcFloat's float*, CalcObject's ScriptObjectRef**
+// What a handler is passed. Calc functions: `result` is CalcFloat's local float, CalcObject's ScriptObjectRef**
 // (holding the new temporary), CalcGroup's ScriptGroup** (holding the new temporary group) or
 // CalcString's std::string*. Commands (ScriptRun::Execute): `cont` is the command's "go on"
 // flag (1 on entry) and `run` the running script; `result` is null.
@@ -32,7 +32,7 @@ struct Call {
     ScriptObjectRef* ObjectResult() const { return *result.object; }
     ScriptGroup* GroupResult() const { return *result.group; }
 
-    SSCCmd* cmd;
+    ScriptCall* cmd;
     Script* script;
     Result result;
     int* cont;
@@ -55,10 +55,10 @@ bool RejectsMatch(const char* keyword, char next);
 // LoadFunction, after the separator token is classified: the signature's '?' and '+'. At ')' a '+' is passed and a
 // '?' drops the optional parameters' slots; otherwise a '+' steps back to the repeated type (adding a slot for it)
 // and a '?' is skipped.
-void SignatureStep(SSCCmd* cmd, const char** signature, int tokenId);
+void SignatureStep(ScriptCall* cmd, const char** signature, int tokenId);
 
-// SSCCmd::CalcString (which the patched CalcParameters calls for a string argument):
+// ScriptCall::CalcString (which the patched CalcParameters calls for a string argument):
 // prepares the arguments, then Rebirth's string function or the game's fatal error.
-void CalcString(SSCCmd* cmd, Script* script, ScriptVars* vars, std::string* result);
+void CalcString(ScriptCall* cmd, Script* script, ScriptVars* vars, std::string* result);
 
 } // namespace scriptaddon

@@ -37,7 +37,7 @@ Lua, with running scripts (coroutines included) kept in saves. Tickets L1-L9: `p
   the waiting command.
   - For bodies are separate functions; a wait inside one returns from the body.
   - A rule set becomes a function that checks conditions in order; the first zero or NaN stops it.
-- **Scheduler.** It keeps ScriptTick's order exactly:
+- **Scheduler.** It keeps Script::Tick's order exactly:
   - waiting runs first, then instances, then dropping deleted objects, then timed effects, then freeing temporaries;
   - a new instance goes at the head of the instance list;
   - an instance started by a waiting run runs in the same tick, and one started by an instance's commands runs from the

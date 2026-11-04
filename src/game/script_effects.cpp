@@ -128,7 +128,7 @@ EffectSound* ScriptNewSound(const Vector3& position, float volume, float radius,
 }
 
 // CreateFX(x, y, z, volume, radius, name), a sound played once.
-void Script::ScriptCreateFx(const SSCCmd* cmd) {
+void Script::CreateFx(const ScriptCall* cmd) {
     const float* f = cmd->floatArgs.data();
     ScriptNewSound({f[0], f[1], f[2]}, f[3], f[4], cmd->stringArgs[0], false);
 }
@@ -137,7 +137,7 @@ void Script::ScriptCreateFx(const SSCCmd* cmd) {
 // is written below except, for CreateFXSource, spread, the delays and the countdown (stack residue in the
 // game): the tick counts such a source down and replaces its sound at zero, so a zero countdown would
 // replace the sound on every tick; INT_MAX keeps the sound, as a positive residue does.
-void Script::ScriptCreateFxSource(const SSCCmd* cmd) {
+void Script::CreateFxSource(const ScriptCall* cmd) {
     const float* f = cmd->floatArgs.data();
     int id = lib::RoundEven(f[0]);
     if (id < 0) id = nextFxId--;
@@ -171,7 +171,7 @@ void Script::ScriptCreateFxSource(const SSCCmd* cmd) {
 
 // CreateLightning(id, x1, y1, z1, x2, y2, z2, width). A negative (or NaN) id takes the
 // next automatic one; others are truncated. The bolt is always added, even when the id exists.
-void Script::ScriptCreateLightning(const SSCCmd* cmd) {
+void Script::CreateLightning(const ScriptCall* cmd) {
     ScriptLightning& newLightning = lightning.emplace_back();
 
     const float* f = cmd->floatArgs.data();
@@ -188,7 +188,7 @@ void Script::ScriptCreateLightning(const SSCCmd* cmd) {
 
 // CreateParticleSource(id, x, y, z, size, type name). Unknown type names make nothing. A
 // negative id takes the next automatic one; an existing source with the id gets the new effect.
-void Script::ScriptCreateParticleSource(const SSCCmd* cmd) {
+void Script::CreateParticleSource(const ScriptCall* cmd) {
     std::string name = cmd->stringArgs[0];
     const ScriptParticleType* type = nullptr;
     for (int i = 0; i < kScriptParticleTypeCount; ++i) {
@@ -226,7 +226,7 @@ void Script::ScriptCreateParticleSource(const SSCCmd* cmd) {
 
 // MoveParticleSource(id, x, y, z, steps, delete when done). The source moves towards the
 // point in `steps` equal steps (one per tick); nothing when no source has the id.
-void Script::ScriptMoveParticleSource(const SSCCmd* cmd) {
+void Script::MoveParticleSource(const ScriptCall* cmd) {
     const float* f = cmd->floatArgs.data();
     ScriptParticleSource* source = FindId(particles, lib::RoundEven(f[0]));
     if (!source) return;

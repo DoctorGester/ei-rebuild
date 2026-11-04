@@ -14,8 +14,8 @@ run the scripts on Lua: `lua-scripting.md`.
   object deleted while referenced has bit 0 of `flags`. `ScriptGroup`: references kept sorted by object address
   (unsigned) without duplicates.
 - `ScriptVars`: per type a value array and a name array.
-- `SSCCmd` (a command): id; argument arrays per type (objects and groups point into variables or temporaries); local
-  and global variable bindings `{type, argIndex, varIndex}`; nested calls `{type, argIndex, SSCCmd*}`; a block (called
+- `ScriptCall` (a command): id; argument arrays per type (objects and groups point into variables or temporaries); local
+  and global variable bindings `{type, argIndex, varIndex}`; nested calls `{type, argIndex, ScriptCall*}`; a block (called
   script, or a For / ForIf body).
 - `ScriptDefinition`: index, qualified name, parameter type letters ("fso"), the if-then pairs {conditions block,
   commands block}, its variables. `ScriptRun`: block, index, ticks, sleep start, the kill flag (a pointer to the
@@ -78,7 +78,7 @@ locale-aware `_strnicmp` per byte cost ~400 ms of a zone load).
 
 ## Runtime
 
-The world calls `ScriptTick` every world update for its two scripts. A tick, when loaded:
+The world calls `Script::Tick` every world update for its two scripts. A tick, when loaded:
 1. every waiting run continues with `ScriptRun::Execute`; one returning 0 is removed; 2. every instance drops deleted
 objects from its variables and runs its if-then pairs in order (conditions with CalcFloat, temporaries freed after each,
 the first zero or NaN ends it; when all hold the commands block runs once in a new run (index 0, a copy of the

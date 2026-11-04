@@ -75,8 +75,8 @@ void WorldServer::TakeLookFromUnit(PartyUnitRecord* record) {
     Unit* unit = FindUnit(static_cast<int>(record->unitId));
     MapObjectServer* server = unit ? unit->ServerCompanion() : nullptr;
     if (!server) return;
-    record->texts[3] = server->parentIname;
-    record->texts[4] = server->skinTexture;
+    record->parentIname = server->parentIname;
+    record->skinTexture = server->skinTexture;
 }
 
 // ---- .mob object files ------------------------------------------------------------------------

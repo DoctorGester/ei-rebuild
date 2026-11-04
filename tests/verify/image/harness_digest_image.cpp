@@ -466,11 +466,11 @@ void ReadScript(Script* s, Builder& b) {
     b.Int("nextParticleId", s->nextParticleId);
     b.Int("nextFxId", s->nextFxId);
     b.Int("instances", static_cast<int>(s->instances.size()));
-    std::vector<const int*> killFlags;
+    std::vector<const bool*> killFlags;
     int i = 0;
     for (const ScriptDefinition& instance : s->instances) {
-        killFlags.push_back(&instance.index);
-        b.Int("inst#.killed", instance.index, i);
+        killFlags.push_back(&instance.killed);
+        b.Int("inst#.killed", instance.killed, i);
         b.Bits("inst#.name", TextHash(Text(instance.name)), i);
         b.Bits("inst#.vars", HashVars(instance.vars), i);
         ++i;
@@ -483,10 +483,10 @@ void ReadScript(Script* s, Builder& b) {
             auto found = std::find(killFlags.begin(), killFlags.end(), run.killFlag);
             instance = found != killFlags.end() ? static_cast<int>(found - killFlags.begin()) : -2;
         }
-        b.Int("run#.block", run.block ? run.block->id : -1, i);
-        b.Int("run#.index", run.index, i);
-        b.Int("run#.ticks", run.ticks, i);
-        b.Int("run#.sleepStart", run.sleepStart, i);
+        b.Int("run#.block", run.position.block ? run.position.block->id : -1, i);
+        b.Int("run#.index", run.position.index, i);
+        b.Int("run#.ticks", run.position.ticks, i);
+        b.Int("run#.sleepStart", run.position.sleepStart, i);
         b.Int("run#.instance", instance, i);
         b.Bits("run#.vars", HashVars(run.vars), i);
         ++i;

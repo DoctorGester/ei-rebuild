@@ -88,7 +88,7 @@ void UpdateParticleSources(Script* script) {
 
 // ---- Script instances ---------------------------------------------------------------------------
 
-void ScriptDefinition::BindCall(const SSCCmd* call) {
+void ScriptDefinition::BindCall(const ScriptCall* call) {
     if (call->floatArgs.size() - 1 != vars.floats.values.size()) {
         game::FatalError(kWrongFloatCount, name);
         return;
@@ -113,18 +113,17 @@ void ScriptDefinition::BindCall(const SSCCmd* call) {
 }
 
 void ScriptIfThen::Run(Script* script, ScriptDefinition* instance) const {
-    for (SSCCmd& condition : conditions->commands) {
-        float result;
-        condition.CalcFloat(script, &instance->vars, &result);
-        ScriptFreeTemporaries(script);
+    for (ScriptCall& condition : conditions->commands) {
+        const float result = condition.CalcFloat(script, &instance->vars);
+        script->FreeTemporaries();
         if (result == 0.0f) return;
     }
     script->RunCommands(commands, instance);
 }
 
-void Script::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
+void Script::RunCommands(ScriptBlock* block, ScriptDefinition* instance) {
     ScriptRun run;
-    run.block = block;
+    run.position.block = block;
     if (instance) {
         // The values only: the run's variables have no names.
         ScriptVars& from = instance->vars;
@@ -132,7 +131,7 @@ void Script::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
         run.vars.strings.values = from.strings.values;
         run.vars.objects.values = from.objects.values;
         run.vars.groups.values = from.groups.values;
-        run.killFlag = &instance->index;
+        run.killFlag = &instance->killed;
     }
     if (run.Execute(this)) {
         // Not finished: it goes to the head of the run list, its kill flag cleared.
@@ -142,57 +141,55 @@ void Script::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
 }
 
 // A new run at the head of the run list, not executed yet.
-void Script::RunWorldScript(ScriptDecl* block) {
+void Script::RunWorldScript(ScriptBlock* block) {
     ScriptRun& run = runs.emplace_front();
-    run.block = block;
+    run.position.block = block;
 }
 
-void ScriptFreeTemporaries(Script* script) {
-    if (script->forDepth > 0) return;
+void Script::FreeTemporaries() {
+    if (forDepth > 0) return;
     // All but the first of each kind dropped, the first emptied.
-    auto& groups = script->tempGroups;
+    auto& groups = tempGroups;
     groups.resize(1);
     groups.front().Clear();
-    auto& objects = script->tempObjects;
+    auto& objects = tempObjects;
     objects.resize(1);
     objects.front().object = nullptr;
 }
 
-void ScriptTick(Script* script) {
-    if (!script->loaded) return;
+void Script::Tick() {
+    if (!loaded) return;
 
     // Waiting runs: continue each; a run that had already ended is removed.
-    auto& runs = script->runs;
     for (auto run = runs.begin(); run != runs.end();) {
         auto next = std::next(run);
-        if (!run->Execute(script)) runs.erase(run);
+        if (!run->Execute(this)) runs.erase(run);
         run = next;
     }
 
     // Script instances: every if-then pair until the instance is killed; killed instances are
     // removed.
-    auto& instances = script->instances;
     for (auto instance = instances.begin(); instance != instances.end();) {
         auto next = std::next(instance);
         instance->vars.RemoveDeletedObjects();
         for (const ScriptIfThen& pair : instance->ifThen) {
-            pair.Run(script, &*instance);
-            if (instance->index != 0) break;
+            pair.Run(this, &*instance);
+            if (instance->killed) break;
         }
-        if (instance->index != 0) {
+        if (instance->killed) {
             // A run loaded with this instance's killed flag forgets it.
             for (ScriptRun& run : runs)
-                if (run.killFlag == &instance->index) run.killFlag = nullptr;
+                if (run.killFlag == &instance->killed) run.killFlag = nullptr;
             instances.erase(instance);
         }
         instance = next;
     }
 
     // Global variables: drop deleted objects.
-    script->globals.RemoveDeletedObjects();
+    globals.RemoveDeletedObjects();
 
-    RespawnFxSources(script);
-    UpdatePointLights(script);
-    UpdateParticleSources(script);
-    ScriptFreeTemporaries(script);
+    RespawnFxSources(this);
+    UpdatePointLights(this);
+    UpdateParticleSources(this);
+    FreeTemporaries();
 }

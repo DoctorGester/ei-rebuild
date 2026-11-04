@@ -5,5 +5,5 @@ model = "sonnet"
 depends = ["C115"]
 note = "Style review round 3 (2026-11-04, https://claude.ai/artifact/KKkymAu9dSoUWGGcbsLwPa, digests in build/style_review/round3/*.md; user: file the tickets). Items S4, S6. Renames: ScriptDefinition::index -> killed, calledScript -> body, SSCCmd -> ScriptCall, ScriptDecl -> ScriptBlock, GetUnitPerception named for the server controller (3 lookups once), Script::ScriptCreateFx and the class-prefixed members, the 7 free Script* functions as members; PartyUnitRecord::texts[7] as named members (76 uses, 19 files). S6: ScriptBool() for the 4 bool->float spellings; CalcFloat returns its value (23 presets through float*); bool parameters (Party::Clear(int,int), AddItem(keepCount, merge), RemoveItem(all), Load/SaveParty(int)); ScriptRunPosition for RunBody's 4 saved fields. Keep PartyAt's throwaway copies (they draw g_random) with a comment saying so. Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes."
 order = 1056
-status = "running"
+status = "review"
 started = "2026-11-04"

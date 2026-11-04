@@ -1,6 +1,6 @@
 // Script loader, part 2: the parser. Script::Load preprocesses the text (#define), tokenizes it
 // and parses the sections (WorldScript, Script, DeclareScript, GlobalVars); the Load* functions
-// below build the SSCCmd trees. See script.h and docs/notes/script.md ("Loader and parser").
+// below build the ScriptCall trees. See script.h and docs/notes/script.md ("Loader and parser").
 #include "script.h"
 #include "game_strings.h"
 #include "script_parse.h"
@@ -55,7 +55,7 @@ int TypeOfName(const std::string& name) {
 } // namespace
 
 
-bool Script::LoadFunction(SSCCmd* cmd, TokenReader* tokens, int id, ScriptVars* locals, const char* signature, bool assignment,
+bool Script::LoadFunction(ScriptCall* cmd, TokenReader* tokens, int id, ScriptVars* locals, const char* signature, bool assignment,
                           bool scriptCall) {
     int paramIndex = 0;
     // The next argument slot of each type (by ScriptType). Extra leading slots: an assignment keeps the variable
@@ -164,8 +164,8 @@ bool Script::LoadFunction(SSCCmd* cmd, TokenReader* tokens, int id, ScriptVars* 
     return tokens->EndOfFileError();
 }
 
-bool Script::LoadConditions(std::vector<SSCCmd>* conditions, TokenReader* tokens, ScriptVars* locals) {
-    SSCCmd cmd;
+bool Script::LoadConditions(std::vector<ScriptCall>* conditions, TokenReader* tokens, ScriptVars* locals) {
+    ScriptCall cmd;
     conditions->clear();
     for (;;) {
         if (tokens->AtEnd()) return tokens->EndOfFileError();
@@ -227,7 +227,7 @@ bool Script::LoadScriptBody(ScriptDefinition* script, TokenReader* tokens) {
     return false;
 }
 
-bool Script::LoadAssignOperator(SSCCmd* cmd, TokenReader* tokens, ScriptVars* locals, const std::string* name) {
+bool Script::LoadAssignOperator(ScriptCall* cmd, TokenReader* tokens, ScriptVars* locals, const std::string* name) {
     cmd->Clear();
     if (!tokens->Expect(kLexAssign)) return false;
 
@@ -266,8 +266,8 @@ bool Script::LoadVariableDeclarations(ScriptDefinition* script, TokenReader* tok
     return tokens->EndOfFileError();
 }
 
-bool Script::LoadCommands(std::vector<SSCCmd>* commands, TokenReader* tokens, ScriptVars* locals) {
-    SSCCmd cmd;
+bool Script::LoadCommands(std::vector<ScriptCall>* commands, TokenReader* tokens, ScriptVars* locals) {
+    ScriptCall cmd;
     ScriptVars empty;
     if (!locals) locals = &empty;
     commands->clear();
@@ -292,8 +292,8 @@ bool Script::LoadCommands(std::vector<SSCCmd>* commands, TokenReader* tokens, Sc
                 // The loop body: `(` commands `)`, which sees the script's parameters and locals. Parsed even
                 // when the loop header failed.
                 if (!tokens->Expect(kLexOpen)) return false;
-                ScriptDecl* body = NewCommandList();
-                cmd.calledScript = body;
+                ScriptBlock* body = NewCommandList();
+                cmd.body = body;
                 if (!LoadCommands(&body->commands, tokens, locals)) return false;
             }
         } else {
@@ -328,7 +328,7 @@ bool Script::Load(std::string* text, bool runWorldScript) {
     std::vector<ScriptToken> tokens;
     ScriptDefinition definition;
     ScriptDefinition* decl = &definition;
-    ScriptDecl* worldScript = nullptr;
+    ScriptBlock* worldScript = nullptr;
 
     errorLine = 0;
     errorCode = 0;

@@ -231,7 +231,7 @@ an ISAAC key.
 ### Party item lists
 
 `Party::AddItem` merges with a held item that is the same (IsSameAs), else the party makes a copy (the factory makes the
-item, the source copies itself into it); `RemoveQuestItems` (every new game) keeps all but quest items; `ReleaseAllItems`
+item, the source copies itself into it); `RemoveQuestItems` (every new game) keeps all but quest items; `ReleaseItems(items)`
 (multiplayer exchange). The record lists (weapons, quick items, armour, spells) add clones made with the world's spell
 manager. `CarriedWeight` sums weapons, quick items, spells and armour in one running float.
 

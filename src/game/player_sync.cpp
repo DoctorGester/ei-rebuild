@@ -270,7 +270,7 @@ bool PlayerServer::IsPartyUnit(EngineObject* object) { return partyUnits.Contain
 
 void PlayerServer::SendParty() {
     MemoryStream party;
-    player->GetParty()->SaveParty(&party, 1);
+    player->GetParty()->SaveParty(&party, true);
     WriteType(&out, ServerMessage::Party);
     out.WriteSized(&party);
     refreshTimer = static_cast<int>(g_random.Next() % kRefreshSpread + kRefreshMinimum);

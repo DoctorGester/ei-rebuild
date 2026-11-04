@@ -12,19 +12,19 @@
 namespace {
 
 // An empty block at the end of `list`; its id is the list's new count with `idBits`.
-ScriptDecl* AppendBlock(std::list<ScriptDecl>* list, std::uint32_t idBits) {
-    ScriptDecl& block = list->emplace_back();
+ScriptBlock* AppendBlock(std::list<ScriptBlock>* list, std::uint32_t idBits) {
+    ScriptBlock& block = list->emplace_back();
     block.id = static_cast<int>(static_cast<std::uint32_t>(list->size()) | idBits);
     return &block;
 }
 
 } // namespace
 
-ScriptDecl* Script::NewCommandList() {
+ScriptBlock* Script::NewCommandList() {
     return AppendBlock(&blocks, 0);
 }
 
-ScriptDecl* Script::NewWorldScript() {
+ScriptBlock* Script::NewWorldScript() {
     return AppendBlock(&worldBlocks, 0x80000000u);
 }
 
@@ -51,10 +51,10 @@ ScriptObjectRef* Script::NewTempObject() {
 // The Script constructor and destructor and Script::GetError. See script.h and docs/notes/script.md.
 // They run for the world's two scripts only, from the world's constructor and destructor.
 
-Script::Script() : pointLights(0x100), tempGroups(1), tempObjects(1) { ScriptReset(this); }
+Script::Script() : pointLights(0x100), tempGroups(1), tempObjects(1) { Reset(); }
 
 // The reset leaves no effect (the point light slots are zeroed), so the members' destructors drop none.
-Script::~Script() { ScriptReset(this); }
+Script::~Script() { Reset(); }
 
 ScriptErrorInfo* Script::GetError(ScriptErrorInfo* out) {
     out->text = errorText;
@@ -69,38 +69,38 @@ ScriptErrorInfo* Script::GetError(ScriptErrorInfo* out) {
 // creation and zone changes call it for both world scripts, from the constructor).
 // See script.h and docs/notes/script.md.
 
-void ScriptReset(Script* script) {
-    script->loaded = 0;
-    script->fileCount = 0;
-    script->errorText = "Unknown error";
-    script->errorLine = 0;
+void Script::Reset() {
+    loaded = 0;
+    fileCount = 0;
+    errorText = "Unknown error";
+    errorLine = 0;
 
-    ScriptDropInstancesAndRuns(script);
-    script->worldBlocks.clear();
-    script->globals.Clear();
-    script->forDepth = 0;
-    ScriptFreeTemporaries(script);
+    DropInstancesAndRuns();
+    worldBlocks.clear();
+    globals.Clear();
+    forDepth = 0;
+    FreeTemporaries();
 
     // Point lights: objects dropped, slots zeroed.
-    for (ScriptPointLight& light : script->pointLights) light = {};
+    for (ScriptPointLight& light : pointLights) light = {};
 
-    script->fxSources.clear();
-    script->particles.clear();
-    script->lightning.clear();
+    fxSources.clear();
+    particles.clear();
+    lightning.clear();
 
-    script->areas.clear();
-    script->nextParticleId = -2;
-    script->nextFxId = -2;
-    script->definitions.clear();
-    script->blocks.clear();
+    areas.clear();
+    nextParticleId = -2;
+    nextFxId = -2;
+    definitions.clear();
+    blocks.clear();
 }
 
-// Script::Load calls it before each `Script` section: the if-then pairs and variables emptied, index 0, the
-// parameters and the name empty.
+// Script::Load calls it before each `Script` section: the if-then pairs and variables emptied, not killed,
+// the parameters and the name empty.
 void ScriptDefinition::Reset() {
     ifThen.clear();
     vars.Clear();
-    index = 0;
+    killed = false;
     params = game::kEmptyText;
     name = game::kEmptyText;
 }

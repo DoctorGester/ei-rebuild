@@ -47,8 +47,8 @@ void ReturnToStrip(CampPages* camp, Party* to, Party* list, UiItemStrip* strip) 
 
 // The made spell or item replaces the results: every result removed, the made one added and dropped.
 void TakeMade(Party* results, Ref<Item>& made) {
-    while (!results->items.empty()) results->RemoveItem(results->items[0], 0);
-    results->AddItem(made, 0, 0);
+    while (!results->items.empty()) results->RemoveItem(results->items[0], false);
+    results->AddItem(made, false, false);
     made.Reset();
 }
 
@@ -74,7 +74,7 @@ ItemLoot* NewLoot(Party* results, std::string_view name) {
 void AddLoot(Party* results, ItemLoot* item, std::optional<std::uint32_t> index) {
     item->AddRef();
     if (index) item->index = *index;
-    results->AddItem(item, 0, 0);
+    results->AddItem(item, false, false);
     item->Release();
 }
 
@@ -123,7 +123,7 @@ void StockItems(CampPages* camp, Party* list) {
             index = loot->index;
             if (loot->recordType <= LootRecordType::Quick) kind = loot->recordType;
         } else if (item->Kind() == ItemKind::Loot && item->AsLoot()->kind == LootKind::Self) {
-            list->RemoveItem(item, 1);
+            list->RemoveItem(item, true);
         }
         if (kind == LootRecordType::Weapon)
             stock->AddWeapon(itemdb::WeaponAt(index));
@@ -146,7 +146,7 @@ void CampPages::DeconstructSpell() {
     Party* results = spellResults;
     Ref<Item> copy;
     copy.Assign(results->CopyItem(results->items[0]));
-    results->RemoveItem(results->items[0], 0);
+    results->RemoveItem(results->items[0], false);
     auto* spell = copy->spell.Get();
 
     AddLoot(results, NewLoot(results, kPrototypeItem), PrototypeIndex(spell));
@@ -159,7 +159,7 @@ void CampPages::DeconstructItem() {
     Party* results = itemResults;
     Ref<Item> copy;
     copy.Assign(results->CopyItem(results->items[0]));
-    results->RemoveItem(results->items[0], 0);
+    results->RemoveItem(results->items[0], false);
 
     if (const char* instruction = InstructionName(copy->Kind())) {
         if (ItemLoot* item = NewLoot(results, instruction)) AddLoot(results, item, PrototypeIndex(copy));
@@ -177,7 +177,7 @@ void CampPages::DeconstructItem() {
         container.Assign(results->ItemFactory()->MakeItem(ItemKind::Scroll, index, 0));
         if (container) {
             container->AttachSpell(copy->spell->Clone(results->GetSpellManager()));
-            results->AddItem(container, 0, 0);
+            results->AddItem(container, false, false);
         }
     }
 }

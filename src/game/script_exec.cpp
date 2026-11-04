@@ -52,15 +52,10 @@ const char* const kKillScriptNotAllowed = "KillScript command not allowed here";
 
 PatrolMode* PatrolOf(UnitServer* state) { return state->brain.FindModeOf<PatrolMode>(); }
 
-MapObject* Arg(const SSCCmd* cmd, int i) { return cmd->objectArgs[i]->object; }
-const char* Text(const SSCCmd* cmd, int i) { return cmd->stringArgs[i].c_str(); }
+MapObject* Arg(const ScriptCall* cmd, int i) { return cmd->objectArgs[i]->object; }
+const char* Text(const ScriptCall* cmd, int i) { return cmd->stringArgs[i].c_str(); }
 
-UnitServer* UnitStateArg(const SSCCmd* cmd) {
-    Unit* unit = cmd->objectArgs[0]->AsUnit();
-    return unit ? unit->ServerController() : nullptr;
-}
-
-Lever* LeverArg(const SSCCmd* cmd) {
+Lever* LeverArg(const ScriptCall* cmd) {
     return LeverOrNull(Arg(cmd, 0));
 }
 
@@ -71,25 +66,16 @@ ScriptParticleSource* FindParticle(Script* script, int id) {
 }
 
 // Runs a For body in the same ScriptRun (the variables are shared).
-void RunBody(ScriptRun* run, Script* script, ScriptDecl* body) {
-    ScriptDecl* block = run->block;
-    int index = run->index;
-    int ticks = run->ticks;
-    int sleepStart = run->sleepStart;
-    run->block = body;
-    run->index = 0;
-    run->ticks = 0;
-    run->sleepStart = -1;
+void RunBody(ScriptRun* run, Script* script, ScriptBlock* body) {
+    const ScriptRunPosition saved = run->position;
+    run->position = {body, 0, 0, -1};
     run->Execute(script);
-    run->block = block;
-    run->index = index;
-    run->ticks = ticks;
-    run->sleepStart = sleepStart;
+    run->position = saved;
 }
 
-void SetLoopCounter(const SSCCmd* cmd, int i) { *cmd->objectArgs[0] = (*cmd->groupArgs[0])[static_cast<std::size_t>(i)]; }
+void SetLoopCounter(const ScriptCall* cmd, int i) { *cmd->objectArgs[0] = (*cmd->groupArgs[0])[static_cast<std::size_t>(i)]; }
 
-void SetCP(const SSCCmd* cmd, bool fast) {
+void SetCP(const ScriptCall* cmd, bool fast) {
     MapObject* object = Arg(cmd, 0);   // a unit or another map object
     if (!object) return;
     const float* f = cmd->floatArgs.data();
@@ -129,8 +115,8 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     object->MarkChanged(NetField::Placement);
 }
 
-void GiveSkill(const SSCCmd* cmd) {
-    UnitServer* state = cmd->objectArgs[0]->GetUnitPerception();
+void GiveSkill(const ScriptCall* cmd) {
+    UnitServer* state = cmd->objectArgs[0]->ServerController();
     if (!state) return;
     // The skill names in the order they are tested; science goes to
     // SetScience, the others to SetSkill with their index.
@@ -147,15 +133,15 @@ void GiveSkill(const SSCCmd* cmd) {
     }
 }
 
-void RedeployParty(const SSCCmd* cmd) {
+void RedeployParty(const ScriptCall* cmd) {
     Player* player = g_serverWorld.GetPlayer(lib::Truncate(cmd->floatArgs[0]));
     if (!player) return;
     PlayerServer* state = player->Server();
     std::vector<UnitPlacement> slots;
     g_serverWorld.CollectParty(player, &slots);
     Party* party = player->GetParty();
-    g_partyManager.BeginRedeploy(party);
-    g_partyManager.EndRedeploy(party);
+    g_partyManager.records.BeginRedeploy(party);
+    g_partyManager.records.EndRedeploy(party);
     // One slot and one party unit: the slot gets the unit's id.
     const std::vector<PartyUnitRecord>& members = player->GetParty()->members;
     if (slots.size() == 1 && std::ssize(members) == 1) slots[0].id = static_cast<int>(members[0].unitId);
@@ -164,38 +150,38 @@ void RedeployParty(const SSCCmd* cmd) {
     g_serverWorld.Redeploy(player, &slots, 0);
 }
 
-void CopyLoot(const SSCCmd* cmd, bool replace) {
+void CopyLoot(const ScriptCall* cmd, bool replace) {
     if (!g_serverWorld.GetPlayer(lib::Truncate(cmd->floatArgs[0]))) return;
     Party* from = g_partyManager.records.Find(Text(cmd, 0));
     Party* to = g_partyManager.records.Find(Text(cmd, 1));
     if (!from || !to) return;
     if (replace) {
-        while (!to->items.empty()) to->RemoveItem(to->items[0], 1);
+        while (!to->items.empty()) to->RemoveItem(to->items[0], true);
     }
     for (int i = 0; i < std::ssize(from->items); ++i)
-        to->AddItem(from->items[i], 1, 1);
+        to->AddItem(from->items[i], true, true);
     if (replace) to->money = from->money;
     else to->money += from->money;
 }
 
-void GSSetVarMultiplayer(const SSCCmd* cmd) {
+void GSSetVarMultiplayer(const ScriptCall* cmd) {
     std::string text(Text(cmd, 0));
     net::g_gameServer->SetVariable(&text, cmd->floatArgs[1]);
 }
 
-void GSVarMultiplayer(const SSCCmd* cmd, bool setMax) {
+void GSVarMultiplayer(const ScriptCall* cmd, bool setMax) {
     std::string text(Text(cmd, 0));
     if (setMax) net::g_gameServer->RaiseVariable(&text, cmd->floatArgs[1]);
     else net::g_gameServer->RemoveVariable(&text);
 }
 
-void PlayMovie(const SSCCmd* cmd) {
+void PlayMovie(const ScriptCall* cmd) {
     std::string path = g_dataFolder + "Movies\\";
     std::string file = path + cmd->stringArgs[0];
     ::PlayMovie(file, true, true, true);
 }
 
-void CastSpell(const SSCCmd* cmd, bool atUnit) {
+void CastSpell(const ScriptCall* cmd, bool atUnit) {
     Spell* spell = g_serverWorld.spellManager->CreateSpellFromText(Text(cmd, 0));
     if (spell) spell->AddRef();
     if (spell) {
@@ -212,9 +198,9 @@ void CastSpell(const SSCCmd* cmd, bool atUnit) {
     if (spell) spell->Release();
 }
 
-void UnitModes(const SSCCmd* cmd) {
+void UnitModes(const ScriptCall* cmd) {
     // UMAg: aggression set 0..3 replaces modes 3, 4, 5 and 7.
-    UnitServer* state = UnitStateArg(cmd);
+    UnitServer* state = cmd->objectArgs[0]->ServerController();
     if (!state) return;
     AIBrain* brain = &state->brain;
     brain->RemoveModesOfType(AIModeType::Suspection);
@@ -252,13 +238,13 @@ void UnitModes(const SSCCmd* cmd) {
 } // namespace
 
 bool ScriptRun::Execute(Script* script) {
-    ++ticks;
-    if (index >= std::ssize(block->commands)) return false;
+    ++position.ticks;
+    if (position.index >= std::ssize(position.block->commands)) return false;
     vars.RemoveDeletedObjects();
     int cont = 1;
-    while (index < std::ssize(block->commands)) {
+    while (position.index < std::ssize(position.block->commands)) {
         if (!cont) return true;
-        SSCCmd* cmd = &block->commands[index];
+        ScriptCall* cmd = &position.block->commands[position.index];
         cmd->PrepareArguments(script, &vars);
         cont = 1;
         scriptaddon::Call call{cmd, script, nullptr, &cont, this};
@@ -268,14 +254,14 @@ bool ScriptRun::Execute(Script* script) {
         const ScriptFunction function = done ? ScriptFunction::None : static_cast<ScriptFunction>(cmd->id);
         switch (function) {
         case ScriptFunction::Sleep: {   // Sleep(ticks): counts this run's Execute calls from the first one
-            if (sleepStart < 0) sleepStart = ticks;
+            if (position.sleepStart < 0) position.sleepStart = position.ticks;
             int n = lib::RoundEven(f[0]);
-            if (ticks - sleepStart < n) cont = 0;
-            else sleepStart = -1;
+            if (position.ticks - position.sleepStart < n) cont = 0;
+            else position.sleepStart = -1;
             break;
         }
         case ScriptFunction::WaitSegment:     // WaitSegment(ticks): until this run has been executed that often
-            if (ticks < lib::RoundEven(f[0])) cont = 0;
+            if (position.ticks < lib::RoundEven(f[0])) cont = 0;
             break;
         case ScriptFunction::SleepUntil:     // SleepUntil(condition)
             if (IsZero(f[0])) cont = 0;
@@ -289,7 +275,7 @@ bool ScriptRun::Execute(Script* script) {
             int which = lib::Truncate(f[0]);
             ScriptDefinition* instance = &script->instances.emplace_front(script->definitions[static_cast<std::size_t>(which)]);
             instance->BindCall(cmd);
-            instance->index = 0;   // the killed flag
+            instance->killed = false;
             break;
         }
         case ScriptFunction::KillScript:
@@ -297,13 +283,13 @@ bool ScriptRun::Execute(Script* script) {
                 game::FatalError(kKillScriptNotAllowed);
                 break;
             }
-            *killFlag = 1;
+            *killFlag = true;
             break;
         case ScriptFunction::For: {   // For(counter, group)(body): the group's members from last to first
             ++script->forDepth;
             for (int i = static_cast<int>(cmd->groupArgs[0]->size()) - 1; i >= 0; --i) {
                 SetLoopCounter(cmd, i);
-                RunBody(this, script, cmd->calledScript);
+                RunBody(this, script, cmd->body);
             }
             --script->forDepth;
             break;
@@ -314,7 +300,7 @@ bool ScriptRun::Execute(Script* script) {
             for (int i = static_cast<int>(cmd->groupArgs[0]->size()) - 1; i >= 0; --i) {
                 SetLoopCounter(cmd, i);
                 if (condition) cmd->CalcParameters(script, &vars, condition);
-                if (!IsZero(cmd->floatArgs[0])) RunBody(this, script, cmd->calledScript);
+                if (!IsZero(cmd->floatArgs[0])) RunBody(this, script, cmd->body);
             }
             --script->forDepth;
             break;
@@ -353,13 +339,13 @@ bool ScriptRun::Execute(Script* script) {
         case ScriptFunction::CreatePointLight: script->CreatePointLight(cmd); break;
         case ScriptFunction::MovePointLight: script->MovePointLight(cmd); break;
         case ScriptFunction::DeletePointLight: script->DeletePointLight(cmd); break;
-        case ScriptFunction::CreateParticleSource: script->ScriptCreateParticleSource(cmd); break;
-        case ScriptFunction::MoveParticleSource: script->ScriptMoveParticleSource(cmd); break;
-        case ScriptFunction::CreateLightning: script->ScriptCreateLightning(cmd); break;
-        case ScriptFunction::CreateFX: script->ScriptCreateFx(cmd); break;
+        case ScriptFunction::CreateParticleSource: script->CreateParticleSource(cmd); break;
+        case ScriptFunction::MoveParticleSource: script->MoveParticleSource(cmd); break;
+        case ScriptFunction::CreateLightning: script->CreateLightning(cmd); break;
+        case ScriptFunction::CreateFX: script->CreateFx(cmd); break;
         case ScriptFunction::CreateFXSource:
         case ScriptFunction::CreateRandomizedFXSource:
-            script->ScriptCreateFxSource(cmd);
+            script->CreateFxSource(cmd);
             break;
         case ScriptFunction::DeleteParticleSource: {   // DeleteParticleSource(id)
             int id = lib::RoundEven(f[0]);
@@ -561,7 +547,7 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::InflictDamage: {   // InflictDamage(unit, amount)
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             DamageInfo damage = {};
             damage.Weight(DamageType::Lightning) = 1.0f;
@@ -623,7 +609,7 @@ bool ScriptRun::Execute(Script* script) {
         case ScriptFunction::GiveStrength:     // GiveStrength(unit, value)
         case ScriptFunction::GiveDexterity:
         case ScriptFunction::GiveIntelligence: {
-            UnitServer* state = cmd->objectArgs[0]->GetUnitPerception();
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             Unit* owner = state->unit;
             int value = lib::Truncate(f[0]);
@@ -635,14 +621,14 @@ bool ScriptRun::Execute(Script* script) {
         }
 
         case ScriptFunction::MoveToPoint: {   // MoveToPoint(unit, x, y)
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             Vector3 point = {f[0], f[1], 0.0f};
             state->brain.Walk(point, 0);
             break;
         }
         case ScriptFunction::RotateTo: {   // RotateTo(unit, x, y)
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             const Vector3* at = &state->unit->localPosition;
             Vector3 direction = {f[0] - at->x, f[1] - at->y, -at->z};
@@ -650,7 +636,7 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::MoveToObject: {   // MoveToObject(unit, target)
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             MapObject* target = Arg(cmd, 1);
             if (!state || !target) break;
             Vector3 point = {target->localPosition.x, target->localPosition.y, 0.0f};
@@ -658,24 +644,24 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::Follow: {   // Follow(unit, leader)
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (state) state->brain.Follow(Arg(cmd, 1));
             break;
         }
         case ScriptFunction::Attack: {   // Attack(unit, target)
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             MapObject* target = Arg(cmd, 1);
             if (target) state->brain.AttackTarget(target);
             break;
         }
         case ScriptFunction::ResetTarget: {   // ResetTarget(unit)
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (state) state->brain.ResetBehaviour();
             break;
         }
         case ScriptFunction::Cast: {   // Cast(unit, x, y): at the ground height there
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             float x = f[0];
             float y = f[1];
@@ -691,28 +677,28 @@ bool ScriptRun::Execute(Script* script) {
             CastSpell(cmd, true);
             break;
         case ScriptFunction::Idle: {   // Idle(unit)
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             state->brain.ClearModes();
             state->brain.StopAction();
             break;
         }
         case ScriptFunction::Guard: {   // Guard(unit, x, y, radius)
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             Vector3 point = {f[0], f[1], 0.0f};
             state->brain.StandardGuard(point, f[2]);
             break;
         }
         case ScriptFunction::Sentry: {   // Sentry(unit, x, y)
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             Vector3 point = {f[0], f[1], 0.0f};
             state->brain.StandardSentry(point);
             break;
         }
         case ScriptFunction::PlayAnimation: {   // PlayAnimation(unit, name)
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (state) state->PlayAnimation(Text(cmd, 0));
             break;
         }
@@ -721,7 +707,7 @@ bool ScriptRun::Execute(Script* script) {
         case ScriptFunction::Stand:
         case ScriptFunction::Walk:
         case ScriptFunction::Run: {
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             MoveMode style = function == ScriptFunction::Lie ? MoveMode::Lie
                            : function == ScriptFunction::Crawl ? MoveMode::Crawl
@@ -730,18 +716,18 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::Rest: {   // Rest(unit)
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (state) state->StopQueued();
             break;
         }
 
         case ScriptFunction::UMClear: {
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (state) state->brain.ClearModes();
             break;
         }
         case ScriptFunction::UMSentry: {   // UMSentry(unit, x, y)
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             Vector3 point = {f[0], f[1], 0.0f};
             state->brain.AddMode(std::make_unique<SentryMode>(point));
@@ -749,7 +735,7 @@ bool ScriptRun::Execute(Script* script) {
         }
         case ScriptFunction::UMGuard:     // UMGuard(unit, x, y, radius)
         case ScriptFunction::UMGuardEx: {   // UMGuardEx(unit, x, y, radius, radius2)
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             Vector3 point = {f[0], f[1], 0.0f};
             float radius = f[2];
@@ -760,27 +746,27 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::UMFollow: {   // UMFollow(unit, leader)
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             MapObject* leader = Arg(cmd, 1);
             state->brain.AddMode(std::make_unique<FollowMode>(leader));
             break;
         }
         case ScriptFunction::UMPatrol: {
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             state->brain.AddMode(std::make_unique<PatrolMode>());
             break;
         }
         case ScriptFunction::UMPatrolClear: {
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             PatrolMode* patrol = PatrolOf(state);
             if (patrol) patrol->points.clear();
             break;
         }
         case ScriptFunction::UMPatrolAddPoint: {   // UMPatrolAddPoint(unit, x, y)
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             PatrolMode* patrol = PatrolOf(state);
             if (!patrol) break;
@@ -789,7 +775,7 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::UMPatrolAddPointLook: {   // UMPatrolAddPointLook(unit, x, y, z): a look at the last point
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             PatrolMode* patrol = PatrolOf(state);
             if (!patrol) break;
@@ -800,7 +786,7 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::UMPlayer: {
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             AIBrain* brain = &state->brain;
             brain->ClearModes();
@@ -812,7 +798,7 @@ bool ScriptRun::Execute(Script* script) {
             UnitModes(cmd);
             break;
         case ScriptFunction::UMStandard: {   // UMStandard: aggression, suspicion, corpse watcher
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             AIBrain* brain = &state->brain;
             brain->AddMode(std::make_unique<AggressionMode>());
@@ -821,31 +807,31 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::UMAggression: {
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             state->brain.AddMode(std::make_unique<AggressionMode>());
             break;
         }
         case ScriptFunction::UMRevenge: {
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             state->brain.AddMode(std::make_unique<AggressionMode>(true));
             break;
         }
         case ScriptFunction::UMFear: {   // UMFear(unit, on)
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             state->brain.AddMode(std::make_unique<FearMode>(!IsZero(f[0])));
             break;
         }
         case ScriptFunction::UMSuspection: {
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             state->brain.AddMode(std::make_unique<SuspectionMode>());
             break;
         }
         case ScriptFunction::UMCorpseWatcher: {
-            UnitServer* state = UnitStateArg(cmd);
+            UnitServer* state = cmd->objectArgs[0]->ServerController();
             if (!state) break;
             state->brain.AddMode(std::make_unique<CorpseWatcherMode>());
             break;
@@ -916,7 +902,7 @@ bool ScriptRun::Execute(Script* script) {
                     target->CopyItemsFrom(source, toRecords);
                 } else {
                     std::memcpy(&target->stats, &source->stats, sizeof(target->stats));
-                    target->texts[0] = source->texts[0];
+                    target->scriptName = source->scriptName;
                 }
             }
             break;
@@ -989,31 +975,31 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::QStart:   // QStart(name)
-            ScriptQuestStart(Text(cmd, 0));
+            g_scriptQuest.Start(Text(cmd, 0));
             break;
         case ScriptFunction::QFinish:
-            ScriptQuestFinish(script);
+            g_scriptQuest.Finish(script);
             break;
         case ScriptFunction::QObjArea:   // QObjArea(area)
         case ScriptFunction::QObjGetItem:   // QObjGetItem(item)
-            ScriptQuestAddObjective(cmd->id, game::kEmptyText, f[0]);
+            g_scriptQuest.AddObjective(cmd->id, game::kEmptyText, f[0]);
             break;
         case ScriptFunction::QObjSeeObject:   // QObjSeeObject(name)
         case ScriptFunction::QObjSeeUnit:
         case ScriptFunction::QObjKillUnit:
         case ScriptFunction::QObjKillGroup:
-            ScriptQuestAddObjective(cmd->id, cmd->stringArgs[0], 0.0f);
+            g_scriptQuest.AddObjective(cmd->id, cmd->stringArgs[0], 0.0f);
             break;
         case ScriptFunction::QObjUse:   // QObjUse(name, value)
-            ScriptQuestAddObjective(cmd->id, cmd->stringArgs[0], f[0]);
+            g_scriptQuest.AddObjective(cmd->id, cmd->stringArgs[0], f[0]);
             break;
 
         default:   // functions, sections and commands without effect here
             break;
         }
 
-        ScriptFreeTemporaries(script);
-        if (cont) ++index;
+        script->FreeTemporaries();
+        if (cont) ++position.index;
     }
     return true;
 }

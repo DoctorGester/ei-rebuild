@@ -1,7 +1,7 @@
 #pragma once
 
 // The mission script engine. A mission script (*.scr text) is parsed by Script into scripts whose conditions
-// and commands are trees of SSCCmd nodes; each node is one built-in function or command (ScriptKeyword table)
+// and commands are trees of ScriptCall nodes; each node is one built-in function or command (ScriptKeyword table)
 // whose arguments are constants, variables (ScriptBinding) or nested calls (ScriptSubCall). Values have four
 // types: 1 float, 2 string, 3 object (a counted reference to a world object), 4 group (a sorted set of object
 // references).
@@ -53,6 +53,9 @@ inline const char* ScriptTypeName(int type) {
     return type >= kScriptFloat && type <= kScriptGroup ? kScriptTypeNames[type - 1] : nullptr;
 }
 
+// A condition's value as the script gives it: 1 for true, 0 for false.
+inline float ScriptBool(bool value) { return value ? 1.0f : 0.0f; }
+
 // A counted reference to a world object: holding one keeps the object's refCount raised. Objects
 // deleted from the world stay allocated while referenced and have bit 0 of flags set.
 struct ScriptObjectRef {
@@ -68,7 +71,7 @@ struct ScriptObjectRef {
     // Null for anything but a unit.
     Unit* AsUnit() const;
     // The unit's server controller (lists what the unit sees), null for non-units.
-    UnitServer* GetUnitPerception() const;
+    UnitServer* ServerController() const;
     void ReleaseIfDeleted();
     // An object id (-1 = none), looked up in the world.
     void Load(ByteStream* stream);
@@ -357,10 +360,10 @@ struct ScriptParticleType {
 constexpr int kScriptParticleTypeCount = 64;
 
 class Script;
-struct ScriptDecl;
+struct ScriptBlock;
 struct ScriptDefinition;
 struct ScriptRun;
-class SSCCmd;
+class ScriptCall;
 
 // Argument `argIndex` of a command is the result of the nested call `cmd` (always set; copies deep-copy it).
 struct ScriptSubCall {
@@ -375,12 +378,12 @@ struct ScriptSubCall {
 
     int type = 0;       // ScriptType of the result
     int argIndex = 0;
-    std::unique_ptr<SSCCmd> cmd;
+    std::unique_ptr<ScriptCall> cmd;
 };
 
 // One function or command call in a script. Object and group arguments point at the
 // variable (or the caller's temporary) holding the value, so they see later assignments.
-class SSCCmd {
+class ScriptCall {
 public:
     // The object / group argument slots are left null, bound when run; the called block's id is resolved
     // like FindBlock.
@@ -392,8 +395,8 @@ public:
     // Evaluation: each first binds the variables (local, then global) and evaluates the nested calls into the
     // arguments (PrepareArguments), then computes the function `id` into *result.
     void CalcParameters(Script* script, ScriptVars* vars, const ScriptSubCall* call);
-    // Conditions are floats: 0 false, else true.
-    void CalcFloat(Script* script, ScriptVars* vars, float* result);
+    // The value (a condition is 0 false, else true; 0 for a missing object).
+    float CalcFloat(Script* script, ScriptVars* vars);
     // *result is a new temporary of `script`.
     void CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** result);
     void CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result);
@@ -403,7 +406,7 @@ public:
     // (the condition is then the constant in float 0).
     const ScriptSubCall* ConditionCall() const;
 
-    // Every argument, binding and nested call dropped; id and calledScript become 0.
+    // Every argument, binding and nested call dropped; id and body become 0.
     void Clear();
 
     int id = 0;                                 // ScriptKeyword::id
@@ -414,28 +417,28 @@ public:
     std::vector<ScriptBinding> localBindings;   // to the running script's variables
     std::vector<ScriptBinding> globalBindings;  // to the global variables
     std::vector<ScriptSubCall> subCalls;
-    ScriptDecl* calledScript = nullptr;         // called script, or a For / ForIf body block, or null
+    ScriptBlock* body = nullptr;         // the For / ForIf loop body, or null
 };
 
-inline ScriptSubCall::ScriptSubCall() : cmd(std::make_unique<SSCCmd>()) {}
+inline ScriptSubCall::ScriptSubCall() : cmd(std::make_unique<ScriptCall>()) {}
 inline ScriptSubCall::ScriptSubCall(const ScriptSubCall& other)
-    : type(other.type), argIndex(other.argIndex), cmd(std::make_unique<SSCCmd>(*other.cmd)) {}
+    : type(other.type), argIndex(other.argIndex), cmd(std::make_unique<ScriptCall>(*other.cmd)) {}
 inline ScriptSubCall::ScriptSubCall(ScriptSubCall&& other) noexcept = default;
 inline ScriptSubCall& ScriptSubCall::operator=(const ScriptSubCall& other) {
     type = other.type;
     argIndex = other.argIndex;
-    cmd = std::make_unique<SSCCmd>(*other.cmd);
+    cmd = std::make_unique<ScriptCall>(*other.cmd);
     return *this;
 }
 inline ScriptSubCall& ScriptSubCall::operator=(ScriptSubCall&& other) noexcept = default;
 inline ScriptSubCall::~ScriptSubCall() = default;
 
 // A command block the loader creates for a then-section or a For body.
-struct ScriptDecl {
+struct ScriptBlock {
     // Its id, the command count, each command.
     void Save(ByteStream* stream) const;
 
-    std::vector<SSCCmd> commands;
+    std::vector<ScriptCall> commands;
     int id = 0;
 };
 
@@ -445,12 +448,12 @@ struct ScriptIfThen {
     void Load(ByteStream* stream);
     // Evaluates the conditions in the instance's variables; when all are nonzero, runs the commands.
     void Run(Script* script, ScriptDefinition* instance) const;
-    ScriptDecl* conditions = nullptr;
-    ScriptDecl* commands = nullptr;
+    ScriptBlock* conditions = nullptr;
+    ScriptBlock* commands = nullptr;
 };
 
 // A Script / DeclareScript definition. Script instances are copies of their definition: an instance's
-// `index` is its "killed" flag (KillScript sets it) and its `vars` hold the call's arguments.
+// `killed` is set by KillScript and its `vars` hold the call's arguments.
 struct ScriptDefinition {
     // Name and parameter string (terminators included), the if-then pairs (block ids), the variables.
     void Save(ByteStream* stream) const;
@@ -458,13 +461,13 @@ struct ScriptDefinition {
     void Load(ByteStream* stream);
     // A script call's arguments (all but the first float and string, which name the script) into the
     // instance's variables; FatalError when a type's count does not match.
-    void BindCall(const SSCCmd* call);
+    void BindCall(const ScriptCall* call);
     // False when the name is taken.
     bool AddParameter(const std::string* name, int type);
     // Emptied (Script::Load before each `Script` section).
     void Reset();
 
-    int index = 0;                      // 0 after loading
+    bool killed = false;                // saved as a four-byte number
     std::string name;                   // qualified
     std::string params;                 // parameter types, e.g. "fso"
     std::vector<ScriptIfThen> ifThen;
@@ -473,8 +476,16 @@ struct ScriptDefinition {
 
 // ---- Command execution ----
 
+// Where a run is: its block, the next command, the Execute calls so far and the Sleep start.
+struct ScriptRunPosition {
+    ScriptBlock* block = nullptr;   // the commands
+    int index = 0;                  // next command
+    int ticks = 0;                  // Execute calls so far (Sleep and WaitSegment count these)
+    int sleepStart = -1;            // ticks when the running Sleep started, -1 when none
+};
+
 // A running command block: the WorldScript, a then-section, or a For body (For runs its body in the same
-// ScriptRun, saving and restoring the first four fields). Runs not finished after one Execute stay in the
+// ScriptRun, saving and restoring the position). Runs not finished after one Execute stay in the
 // run list and continue each tick.
 struct ScriptRun {
     // Block id, index, ticks, sleep start, the index of its instance in g_streamedScript's instance list (-1
@@ -485,11 +496,8 @@ struct ScriptRun {
     // ends. Returns false when the block had already ended on entry.
     bool Execute(Script* script);
 
-    ScriptDecl* block = nullptr;    // the commands
-    int index = 0;                  // next command
-    int ticks = 0;                  // Execute calls so far (Sleep and WaitSegment count these)
-    int sleepStart = -1;            // ticks when the running Sleep started, -1 when none
-    int* killFlag = nullptr;        // the script instance's index (its killed flag), null for the WorldScript
+    ScriptRunPosition position;
+    bool* killFlag = nullptr;       // the script instance's killed flag, null for the WorldScript
     ScriptVars vars;                // a copy of the instance's variables
 };
 
@@ -505,7 +513,7 @@ struct ScriptErrorInfo {
 class Script {
 public:
     // 256 zeroed point light slots, one empty temporary group and one null temporary reference, then the
-    // reset (ScriptReset).
+    // reset (Reset).
     Script();
     // The reset, then the members.
     ~Script();
@@ -513,7 +521,7 @@ public:
     Script& operator=(const Script&) = delete;
 
     // Negative ids in the WorldScript blocks, others in the command blocks; null when absent.
-    ScriptDecl* FindBlock(int id) const;
+    ScriptBlock* FindBlock(int id) const;
     // Reads what SaveState wrote; the areas only from stream version 0x57 on. g_streamedScript is set while
     // it runs.
     void LoadState(ByteStream* stream);
@@ -524,12 +532,12 @@ public:
     void DeleteArea(int id);
     // Point lights (256 slots): create (id, x, y, z, radius, r, g, b), move (id, x, y, z, steps, remove when
     // done), delete (id).
-    void CreatePointLight(const SSCCmd* cmd);
-    void MovePointLight(const SSCCmd* cmd);
-    void DeletePointLight(const SSCCmd* cmd);
+    void CreatePointLight(const ScriptCall* cmd);
+    void MovePointLight(const ScriptCall* cmd);
+    void DeletePointLight(const ScriptCall* cmd);
     // Runs `block` once in a new ScriptRun (a copy of the instance's variable values); an unfinished run goes
     // to the head of the run list.
-    void RunCommands(ScriptDecl* block, ScriptDefinition* instance);
+    void RunCommands(ScriptBlock* block, ScriptDefinition* instance);
     ScriptObjectRef* NewTempObject();
     // The first area with the id (a linear search), or null.
     ScriptArea* FindArea(int id);
@@ -541,21 +549,21 @@ public:
 
     // ---- Effect commands ----
     // CreateFX(x, y, z, volume, radius, name): a sound the script keeps nothing of.
-    void ScriptCreateFx(const SSCCmd* cmd);
+    void CreateFx(const ScriptCall* cmd);
     // CreateFXSource(id, x, y, z, volume, radius, name) and CreateRandomizedFXSource (the same, then min
     // delay, max delay, spread): a negative id takes nextFxId; an existing source has its sound dropped.
     // CreateFXSource (command 0x16) makes the sound at once; the other waits (idle 1). For a new id
     // CreateFXSource leaves spread, the delays and the countdown as stack residue in the original; here they
     // are 0, 0, 0 and INT_MAX (docs/notes/script.md).
-    void ScriptCreateFxSource(const SSCCmd* cmd);
+    void CreateFxSource(const ScriptCall* cmd);
     // CreateLightning(id, from xyz, to xyz, width): a negative or NaN id takes nextParticleId; existing ids
     // are not looked up.
-    void ScriptCreateLightning(const SSCCmd* cmd);
+    void CreateLightning(const ScriptCall* cmd);
     // CreateParticleSource(id, x, y, z, size, type name): the type by name (case-insensitive; nothing for an
     // unknown one); a negative id takes nextParticleId; an existing source has its effect dropped.
-    void ScriptCreateParticleSource(const SSCCmd* cmd);
+    void CreateParticleSource(const ScriptCall* cmd);
     // MoveParticleSource(id, x, y, z, steps, delete when done).
-    void ScriptMoveParticleSource(const SSCCmd* cmd);
+    void MoveParticleSource(const ScriptCall* cmd);
 
     // ---- Loader and parser ----
     // Every Load* function returns true on success; on failure it returns what Error returned (false) after
@@ -577,30 +585,45 @@ public:
     int FindScript(std::string_view name);
     // `signature`: the parameter types (lower-case letters). `assignment`: one parameter, no parentheses;
     // `scriptCall`: one extra float and string slot.
-    bool LoadFunction(SSCCmd* cmd, TokenReader* tokens, int id, ScriptVars* locals, const char* signature, bool assignment,
+    bool LoadFunction(ScriptCall* cmd, TokenReader* tokens, int id, ScriptVars* locals, const char* signature, bool assignment,
                       bool scriptCall);
     // Float functions up to ')'.
-    bool LoadConditions(std::vector<SSCCmd>* conditions, TokenReader* tokens, ScriptVars* locals);
+    bool LoadConditions(std::vector<ScriptCall>* conditions, TokenReader* tokens, ScriptVars* locals);
     // `if(...)then(...)` pairs up to ')'.
     bool LoadScriptBody(ScriptDefinition* script, TokenReader* tokens);
     // `= value` assigned to global variable `name` (command 0x78).
-    bool LoadAssignOperator(SSCCmd* cmd, TokenReader* tokens, ScriptVars* locals, const std::string* name);
+    bool LoadAssignOperator(ScriptCall* cmd, TokenReader* tokens, ScriptVars* locals, const std::string* name);
     // `name : type, ...)` (parameters or GlobalVars); "Unexpected end of file" when the tokens run out.
     bool LoadVariableDeclarations(ScriptDefinition* script, TokenReader* tokens, bool qualify);
     // Commands up to ')'; null `locals` means an empty variable set (the WorldScript). A For body sees the
     // enclosing `locals`.
-    bool LoadCommands(std::vector<SSCCmd>* commands, TokenReader* tokens, ScriptVars* locals);
+    bool LoadCommands(std::vector<ScriptCall>* commands, TokenReader* tokens, ScriptVars* locals);
     // The text is replaced by its #define-expanded form.
     bool Load(std::string* text, bool runWorldScript);
     // With the WorldScript started; error 0x11 when the file cannot be read.
     bool LoadFile(const std::string& path);
 
     // The id is the block count after it.
-    ScriptDecl* NewCommandList();
+    ScriptBlock* NewCommandList();
     // id = count | 0x80000000.
-    ScriptDecl* NewWorldScript();
+    ScriptBlock* NewWorldScript();
     // It first executes on the next tick.
-    void RunWorldScript(ScriptDecl* block);
+    void RunWorldScript(ScriptBlock* block);
+
+    // Outside For loops; keeps one empty group and one released object reference.
+    void FreeTemporaries();
+    // When a script is loaded: the waiting runs, every instance's if-then pairs (killed instances dropped), then
+    // the timed effects (FX sources, point lights, particle sources).
+    void Tick();
+    // Frees everything loaded (the point light slots stay, zeroed); error text "Unknown error", the two counters
+    // -2.
+    void Reset();
+    // After every removal of a world object: deleted objects dropped from every variable set, then the
+    // temporaries freed.
+    void PurgeDeletedObjects();
+    void DropInstancesAndRuns();
+    // EnterZone: instances, runs and effects dropped, global values reset, each WorldScript block run again.
+    void ResetZone();
 
     std::vector<ScriptPointLight> pointLights;      // 256 slots
     std::vector<ScriptParticleSource> particles;
@@ -608,12 +631,12 @@ public:
     std::vector<ScriptLightning> lightning;
     int nextParticleId = -2;    // the next automatic particle source / lightning id (-2, -3, ...)
     int nextFxId = -2;          // the next automatic FX source id
-    std::list<ScriptDecl> blocks;                   // lists: commands and runs point into them
+    std::list<ScriptBlock> blocks;                   // lists: commands and runs point into them
     std::vector<ScriptDefinition> definitions;      // Script / DeclareScript definitions
     ScriptVars globals;
     std::list<ScriptDefinition> instances;          // runs point into it; started while it is walked
     std::list<ScriptRun> runs;                      // waiting runs; added to while it is walked
-    std::list<ScriptDecl> worldBlocks;
+    std::list<ScriptBlock> worldBlocks;
     std::vector<ScriptArea> areas;
     int loaded = 0;
     int fileCount = 0;
@@ -625,7 +648,7 @@ public:
     int errorLine = 0;
 };
 
-// The id of a command or function (ScriptKeyword::id, SSCCmd::id; the names are the table's). 1..68 are the
+// The id of a command or function (ScriptKeyword::id, ScriptCall::id; the names are the table's). 1..68 are the
 // commands, 69..108 and 124 on the functions; For / ForIf are the loop blocks. The punctuation and section
 // keywords (109..119, ScriptLexeme) are not here. Two ids are no table entry: CallScript (a call to a declared
 // script) and Assign (`variable = value`). None marks a run that dispatched through scriptaddon. Ids 21, 32,
@@ -903,28 +926,6 @@ const char* KeywordName(int id);
 // The keyword table with Rebirth's additions (scriptaddon::Table()).
 const ScriptKeyword* KeywordTable();
 
-// Outside For loops; keeps one empty group and one released object reference.
-void ScriptFreeTemporaries(Script* script);
-// When a script is loaded: the waiting runs, every instance's if-then pairs (killed instances dropped), then
-// the timed effects (FX sources, point lights, particle sources).
-void ScriptTick(Script* script);
-
-// QFinish: one declared script per objective, chaining to the next, loaded with the WorldScript started.
-void ScriptQuestFinish(Script* script);
-
-// Frees everything loaded (the point light slots stay, zeroed); error text "Unknown error", the two counters
-// -2.
-void ScriptReset(Script* script);
-
-
-// ---- Purge and zone reset ----
-// After every removal of a world object: deleted objects dropped from every variable set, then the
-// temporaries freed.
-void ScriptPurgeDeletedObjects(Script* script);
-void ScriptDropInstancesAndRuns(Script* script);
-// EnterZone: instances, runs and effects dropped, global values reset, each WorldScript block run again.
-void ScriptResetZone(Script* script);
-
 // ---- Quest construction ----
 // An objective of the quest QStart starts; QFinish turns them into a script.
 struct ScriptQuestObjective {
@@ -932,9 +933,18 @@ struct ScriptQuestObjective {
     std::string text;       // its string argument (empty for QObjArea / QObjGetItem)
     float value;            // its float argument
 };
-extern std::vector<ScriptQuestObjective> g_scriptQuestObjectives;   // script_exec_helpers.cpp
-extern std::string g_scriptQuestName;
+// The quest the QStart / QObj* / QFinish commands build, one for every script.
+struct ScriptQuestBuilder {
+    // QStart: the old objectives dropped, the quest named.
+    void Start(const char* questName);
+    // The QObj* commands (type, text, with the value on the stack): appends {type, text, value}.
+    void AddObjective(int type, const std::string& text, float value);
+    // QFinish: one declared script per objective, chaining to the next, loaded with the WorldScript started.
+    void Finish(Script* script);
+
+    std::string name;
+    std::vector<ScriptQuestObjective> objectives;
+};
+extern ScriptQuestBuilder g_scriptQuest;   // script_exec_helpers.cpp
 // The script being loaded or saved: the run loader and saver find a run's instance through it.
 inline Script* g_streamedScript = /*007AA620*/ {nullptr};
-void ScriptQuestStart(const char* name);
-void ScriptQuestAddObjective(int type, const std::string& text, float value);

@@ -1,5 +1,5 @@
 // Script variables (lookups, resets, the loader's appends of a file's GlobalVars to the globals) and the
-// SSCCmd helpers that bind and save call trees. See script.h and docs/notes/script.md.
+// ScriptCall helpers that bind and save call trees. See script.h and docs/notes/script.md.
 #include "script.h"
 #include "map_object.h"
 #include "game_strings.h"
@@ -115,7 +115,7 @@ bool ScriptDefinition::AddParameter(const std::string* parameterName, int type) 
     return added;
 }
 
-void SSCCmd::SetParameters(const std::vector<ScriptBinding>& bindings, ScriptVars* vars) {
+void ScriptCall::SetParameters(const std::vector<ScriptBinding>& bindings, ScriptVars* vars) {
     for (const ScriptBinding& b : bindings) {
         switch (b.type) {
         case kScriptFloat:
@@ -131,12 +131,12 @@ void SSCCmd::SetParameters(const std::vector<ScriptBinding>& bindings, ScriptVar
             groupArgs[b.argIndex] = &vars->groups.values[b.varIndex];
             break;
         default:
-            game::FatalError("SSCCmd::SetParameters, unknown parameter type");
+            game::FatalError("ScriptCall::SetParameters, unknown parameter type");
         }
     }
 }
 
-void SSCCmd::Clear() {
+void ScriptCall::Clear() {
     id = 0;
     floatArgs.clear();
     stringArgs.clear();
@@ -145,10 +145,10 @@ void SSCCmd::Clear() {
     localBindings.clear();
     globalBindings.clear();
     subCalls.clear();
-    calledScript = nullptr;
+    body = nullptr;
 }
 
-void SSCCmd::Save(ByteStream* stream) const {
+void ScriptCall::Save(ByteStream* stream) const {
     stream->WriteValue(id);
     stream->WriteCount(floatArgs.size());
     for (const float& value : floatArgs) stream->WriteValue(value);
@@ -173,6 +173,6 @@ void SSCCmd::Save(ByteStream* stream) const {
     }
 
     int scriptIndex = -1;
-    if (calledScript) scriptIndex = calledScript->id;
+    if (body) scriptIndex = body->id;
     stream->WriteValue(scriptIndex);
 }

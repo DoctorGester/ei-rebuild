@@ -157,7 +157,7 @@ void WorldServer::Redeploy(Player* player, std::vector<UnitPlacement>* placement
     if (zoneMode == ZoneMode::Base) UpdateMercBriefings();
     if (runScripts) {
         scriptsActive = 1;
-        for (int i = 0; i < 5; ++i) ScriptTick(MainScript());
+        for (int i = 0; i < 5; ++i) MainScript()->Tick();
     }
 }
 
