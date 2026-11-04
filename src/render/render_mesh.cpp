@@ -352,6 +352,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     BindPointShadows(program::kSamplerPointShadowMap);
     BindCloudMap(program::kSamplerCloudMap);
     BindOcclusion(program::kSamplerOcclusionMap);
+    BindRoofMap(program::kSamplerRoofMap);
     CountBindings(textures[0].texture);
     MeshVsParams vs{};
     vs.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];

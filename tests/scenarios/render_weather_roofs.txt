@@ -1,0 +1,80 @@
+# The ground and the world's meshes under a roof stay dry (docs/notes/renderer.md section 13, item 11b, "Roofs"). The
+# town bz1g by day, the camera tilted low through the gateway of the town's gate: a minute of rain, then two of snow.
+# In each frozen moment the frame is captured with the roofs' shelter and without (roofs off: weathered as in the open):
+# the gateway's floor under the roof differs (dry against wet, bare against snow) and the open ground before the gate
+# does not. Frames only (goldens hold none).
+render checkall
+resolution 1440x1080
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @GodMode(0,1)
+waitwindow 15 battle
+zone bz1g 0
+waitzone 20 bz1g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @FixWorldTime(12)
+console @SetWeather("rain")
+waitpresent 10
+move 400 20
+wheel 400 300 600
+frames 3
+wheel 400 300 600
+frames 10
+move 400 20
+frames 5
+move 720 540
+frametime 16
+frames 3
+rdown 720 540
+mousedrag 64 0
+frames 10
+mousedrag 0 0
+frames 20
+rup 720 540
+frametime 0
+wait 20000
+console @SetWeather("rain")
+wait 20000
+console @SetWeather("rain")
+wait 20000
+frames 5
+freeze
+roofs check 1
+capture roofs_rain
+roofs off
+frames 3
+capture roofs_rain_off
+roofs on
+diffcapture roofs_rain roofs_rain_off 0.8 1 4 440 240 740 440
+diffcapture roofs_rain roofs_rain_off 0 0.001 4 100 760 500 1060
+unfreeze
+
+console @SetWeather("snow")
+wait 20000
+console @SetWeather("snow")
+wait 20000
+console @SetWeather("snow")
+wait 20000
+console @SetWeather("snow")
+wait 20000
+console @SetWeather("snow")
+wait 20000
+console @SetWeather("snow")
+wait 20000
+frames 5
+freeze
+roofs check 1
+capture roofs_snow
+roofs off
+frames 3
+capture roofs_snow_off
+roofs on
+diffcapture roofs_snow roofs_snow_off 0.8 1 4 440 240 740 440
+diffcapture roofs_snow roofs_snow_off 0 0.001 4 100 760 500 1060
+unfreeze
+report
+quit

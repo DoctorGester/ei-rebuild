@@ -249,6 +249,23 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
     } else if (verb == "panelweather") {
         if (argument == "on" || argument == "off") render::SetInterfaceUnitWeather(argument == "on");
         else failures->push_back("panelweather needs on or off");
+    } else if (verb == "roofs") {
+        if (argument == "on" || argument == "off") {
+            render::SetRoofShelter(argument == "on");
+        } else if (argument.rfind("check", 0) == 0) {
+            // roofs check <least roofs>
+            const int least = std::atoi(argument.c_str() + 5);
+            const render::RoofInfo info = render::RoofState();
+            char text[200];
+            std::snprintf(text, sizeof(text), "roofs: map %s (%d texels over %.0f units), %d roof meshes (at least %d)",
+                          info.made ? "made" : "not made", info.size, static_cast<double>(info.extent), info.roofs,
+                          least);
+            Log("harness: %s", text);
+            frames->push_back(text);
+            if (!info.made || info.roofs < least) failures->push_back(text);
+        } else {
+            failures->push_back("roofs needs on, off or check <least roofs>");
+        }
     } else if (verb == "terraincache") {
         if (argument == "on" || argument == "off") {
             render::SetTerrainCache(argument == "on");

@@ -381,6 +381,9 @@
 //   panelweather on|off       the HUD unit panel's figure with its unit's weather (the default) or dry
 //                             (render::SetInterfaceUnitWeather, R53a), from the next frame: a frozen
 //                             capture both ways, and diffcapture on the panel's rectangle, show the weather
+//   roofs on|off|check <n>    the ground and the world's meshes under a roof kept dry (the default) or weathered
+//                             as in the open (render::SetRoofShelter, R17c5), from the next frame; check requires
+//                             the last prepared frame's roof map made with at least <n> roof meshes
 //   shadowshift <texels>      with the shadow map, its origin moved by <texels> whole texels across and half
 //                             as many along (render::SetShadowShift, R25; 0 the default): the same shadow,
 //                             other range cells
@@ -2110,7 +2113,7 @@ std::string DescribeTopWindow() {
 
 // The image's renderer's steps (image::RenderStep).
 bool IsRenderStep(const std::string& verb) {
-    return verb == "terrainlevels" || verb == "levelsteps" || verb == "hues" || verb == "mmplevels" || verb == "msaa" || verb == "anisotropy" || verb == "smoothcheck" || verb == "smoothedges" || verb == "smoothorder" || verb == "shadowcasters" || verb == "shadowview" || verb == "shadowshift" || verb == "decals" || verb == "weatherparticles" || verb == "panelweather" || verb == "terraincache" || verb == "meshcache" || verb == "shadowcheck" || verb == "cloudcheck" || verb == "weathercheck" || verb == "unitweather" || verb == "occlusion" || verb == "renderstats";
+    return verb == "terrainlevels" || verb == "levelsteps" || verb == "hues" || verb == "mmplevels" || verb == "msaa" || verb == "anisotropy" || verb == "smoothcheck" || verb == "smoothedges" || verb == "smoothorder" || verb == "shadowcasters" || verb == "shadowview" || verb == "shadowshift" || verb == "decals" || verb == "weatherparticles" || verb == "panelweather" || verb == "roofs" || verb == "terraincache" || verb == "meshcache" || verb == "shadowcheck" || verb == "cloudcheck" || verb == "weathercheck" || verb == "unitweather" || verb == "occlusion" || verb == "renderstats";
 }
 
 // The steps that post input messages to the game window.

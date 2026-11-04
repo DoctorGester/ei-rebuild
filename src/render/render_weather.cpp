@@ -1,10 +1,12 @@
 // The weather on the surfaces: how wet the ground and the objects are, the puddles' share and the snow's cover, each
-// following the client's weather over time, the rain's rings' clock (shaders/terrain.hlsl, mesh.hlsl), and each unit's
-// own wetness and snow under the roofs above it. See docs/notes/renderer.md, section 13, item 11b.
+// following the client's weather over time, the rain's rings' clock (shaders/terrain.hlsl, mesh.hlsl), each unit's
+// own wetness and snow under the roofs above it, and the roof map that keeps the ground and the other meshes under a
+// roof dry (shaders/roof.hlsli). See docs/notes/renderer.md, section 13, item 11b.
 #include "render.h"
 #include "render_internal.h"
 
 #include "lib/maths.h"
+#include "../platform/log.h"
 
 #include <algorithm>
 #include <cmath>
@@ -37,6 +39,22 @@ constexpr double kRingWrap = 16.0 * 21.0 * 10.0;
 constexpr float kRoofLook = 0.75f;
 constexpr float kRoofSpread = 0.25f;
 constexpr int kRoofPoints = 5;
+// The roof map: kRoofMapSize texels a side over the visible ground and kRoofMargin around it (its larger side in steps
+// of kRoofStep units, so that the texel size changes seldom; the texels' corners on whole texels of the landscape, so
+// the dry patches do not swim while the camera moves), seen straight down from kRoofReach above the highest visible
+// ground (a roof higher still is drawn at that height) to kRoofBelow under the lowest. A receiver less than
+// kRoofTolerance under the highest roof at its point is in the open (a roof's own top, the ground at the foot of a
+// rock), its point looked up kRoofOffset out along its normal (a wall's face beside its own top) and filtered over
+// kRoofSoft units for a soft edge. Made only while the weather shows on the surfaces (above kWeatherShown).
+constexpr int kRoofMapSize = 2048;
+constexpr float kRoofStep = 8.0f;
+constexpr float kRoofMargin = 2.0f;
+constexpr float kRoofReach = 24.0f;
+constexpr float kRoofBelow = 2.0f;
+constexpr float kRoofTolerance = 0.2f;
+constexpr float kRoofOffset = 0.2f;
+constexpr float kRoofSoft = 0.3f;
+constexpr float kWeatherShown = 1e-3f;
 
 struct Surfaces {
     bool started = false;
@@ -76,6 +94,16 @@ struct Roof {
 // The frame's lists, kept for their room.
 std::vector<Roof> g_roofs;
 std::unordered_map<const void*, Box> g_unitBoxes;
+// The frame's roof map (PrepareRoofs): its area and depth range, the landscape's space to its clip space.
+struct RoofFit {
+    bool on = false;
+    float extent = 0.0f, range = 0.0f;
+    Matrix4 clip{};
+} g_roofFit;
+CasterDraws g_roofDraws("ei-roof-casters");
+gpu::Texture g_roofTexture;
+bool g_roofShelter = true;   // SetRoofShelter
+RoofInfo g_roofInfo;
 constexpr int kModelUnknown = -2;
 std::vector<int> g_modelOf;   // per frame matrix: into g_models, -1 none, kModelUnknown not yet
 std::vector<Matrix4> g_models;
@@ -280,6 +308,105 @@ void PrepareUnitWeather(Frame& f) {
     }
 }
 
+// The roof map's fit around the visible ground (the sun map's), while the weather shows on the surfaces; its roofs,
+// drawn by DrawRoofMap, are the units' (CollectUnitsAndRoofs) and the sun map's casters outside the view but the units'
+// (a roof over the visible ground often stands above the view's top edge).
+void PrepareRoofs(Frame& f) {
+    g_roofFit.on = false;
+    g_roofInfo = RoofInfo{};
+    const Surfaces& s = g_surfaces;
+    if (!g_roofShelter || std::max(std::max(s.wet, s.puddles), std::max(s.snow, s.rain)) <= kWeatherShown) return;
+    Vector3 low, high;
+    if (!VisibleGround(f, &low, &high)) return;
+    StatsTimer timer(&FrameStats::shadowMs);
+    float extent = std::max(high.x - low.x, high.y - low.y) + 2.0f * kRoofMargin;
+    extent = std::ceil(extent / kRoofStep) * kRoofStep;
+    const float texel = extent / kRoofMapSize;
+    const float x0 = std::floor(((low.x + high.x) * 0.5f - extent * 0.5f) / texel) * texel;
+    const float y0 = std::floor(((low.y + high.y) * 0.5f - extent * 0.5f) / texel) * texel;
+    const float top = high.z + kRoofReach, range = top - (low.z - kRoofBelow);
+    RoofFit& m = g_roofFit;
+    m = RoofFit{};
+    m.on = true;
+    m.extent = extent;
+    m.range = range;
+    const float sx = 2.0f / extent;
+    m.clip.m[0] = sx;
+    m.clip.m[3] = -x0 * sx - 1.0f;
+    m.clip.m[5] = sx;
+    m.clip.m[7] = -y0 * sx - 1.0f;
+    m.clip.m[10] = -1.0f / range;
+    m.clip.m[11] = top / range;
+    m.clip.m[15] = 1.0f;
+    g_roofInfo.made = true;
+    g_roofInfo.size = kRoofMapSize;
+    g_roofInfo.extent = extent;
+}
+
+void RoofUniforms(const Matrix4& light, ShadowParams* p) {
+    const RoofFit& m = g_roofFit;
+    Matrix4 fromMap;
+    if (!m.on || !InvertMatrix(light, &fromMap)) return;
+    // The sun map's clip space to the roof map's, then to its texture's u, v (v down the rows) and depth.
+    const Matrix4 clip = Product(m.clip, fromMap);
+    for (int k = 0; k < 4; ++k) {
+        p->roofRows[0][k] = 0.5f * clip.m[k] + 0.5f * clip.m[12 + k];
+        p->roofRows[1][k] = -0.5f * clip.m[4 + k] + 0.5f * clip.m[12 + k];
+        p->roofRows[2][k] = clip.m[8 + k];
+    }
+    p->roofScale[0] = 1.0f / m.extent;
+    p->roofScale[1] = -1.0f / m.extent;
+    p->roofScale[2] = -1.0f / m.range;
+    p->roofScale[3] = kRoofSoft / m.extent;
+    p->roof[0] = 1.0f;
+    p->roof[1] = kRoofTolerance / m.range;
+    p->roof[2] = kRoofOffset;
+}
+
+// The roofs straight down into the roof map (depth only; cut out by their texture's alpha as in the sun map).
+void DrawRoofMap(Frame&) {
+    if (!g_roofFit.on) return;
+    StatsTimer timer(&FrameStats::shadowMs);
+    if (!g_roofTexture && !(g_roofTexture = MakeShadowDepth(kRoofMapSize, kRoofMapSize, "ei-roof-map"))) {
+        g_roofFit.on = false;
+        g_roofInfo.made = false;
+        return;
+    }
+    g_roofDraws.Clear();
+    for (const Roof& r : g_roofs) {
+        const MeshBatch& batch = *r.batch;
+        Geometry g;
+        int first = 0;
+        if (!BindMeshBatch(batch, g, &first)) continue;
+        const PassState& s = batch.state;
+        const StageState& st = s.stages[0];
+        CasterInstance instance{Product(g_roofFit.clip, r.model), {batch.uOffset, batch.vOffset}, {}};
+        if ((s.alphaTest || s.blend) && st.hasTexture) {
+            instance.alpha[0] = 1.0f;
+            instance.alpha[1] = s.alphaTest ? (s.alphaReference + 0.5f) / 255.0f : 0.5f;
+        }
+        g_roofDraws.Add(g, batch.cached != nullptr, st.texture ? st.texture : SurfaceView(nullptr), StageSampler(st),
+                        first, batch.indexCount, instance);
+    }
+    AddOutsideRoofs(g_roofDraws, g_roofFit.clip);
+    g_roofDraws.Sort(0, g_roofDraws.Count());
+    const bool draw = g_roofDraws.Upload();
+    gpu::PassDesc pass;
+    pass.depth = {g_roofTexture, 0, gpu::Load::Clear, 1.0f, true};
+    pass.label = "ei-roof-map";
+    if (!gpu::BeginPass(pass)) Fatal("Can't draw the frame: the roof map's pass could not begin (%s).", gpu::Error());
+    ++g_stats.passes;
+    if (draw) g_roofDraws.Draw(0, g_roofDraws.Count());
+    gpu::EndPass();
+    g_stats.shadowDraws += g_roofDraws.Count();
+    g_roofInfo.roofs = static_cast<int>(g_roofDraws.Count());
+}
+
+void BindRoofMap(int slot) {
+    const gpu::TextureBinding b{g_roofFit.on && g_roofTexture ? g_roofTexture : NoShadowTexture(), ShadowCompareSampler()};
+    gpu::BindTextures(gpu::Stage::Fragment, slot, {&b, 1});
+}
+
 const void* CurrentInterfaceUnit() { return g_interfaceUnit; }
 
 void SurfaceUniforms(float weather[4], float rain[4]) {
@@ -316,6 +443,17 @@ namespace render {
 
 void BeginInterfaceUnit(const void* object) { detail::g_interfaceUnit = object; }
 void EndInterfaceUnit() { detail::g_interfaceUnit = nullptr; }
+
+void SetRoofShelter(bool on) {
+#if defined(EI_RENDER_VALIDATION)
+    if (on != detail::g_roofShelter) ei::Log("render: the roofs' shelter from the weather %s", on ? "on" : "off");
+    detail::g_roofShelter = on;
+#else
+    (void)on;
+#endif
+}
+
+RoofInfo RoofState() { return detail::g_roofInfo; }
 
 void LandscapeLoaded() {
     detail::g_surfaces.started = false;

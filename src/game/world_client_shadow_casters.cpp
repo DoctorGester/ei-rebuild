@@ -102,9 +102,9 @@ const VertexPacket* MovedPositions(const VertexPacket* positions, int packets, c
     return moved.data();
 }
 
-// Hands over the parts of `object` that were not drawn this frame, placed by `world` (and the extra
-// scale), each with its part set's texture.
-void HandOverParts(Object3D* object, Object3DClientSpecific* half, const Matrix4& world) {
+// Hands over the parts of `object` (`unit`: a unit) that were not drawn this frame, placed by `world` (and the
+// extra scale), each with its part set's texture.
+void HandOverParts(Object3D* object, Object3DClientSpecific* half, const Matrix4& world, bool unit) {
     static std::vector<VertexPacket> moved;
     Matrix4 objectMatrix = world;
     const Vector3& scale = half->figureScale;
@@ -163,6 +163,7 @@ void HandOverParts(Object3D* object, Object3DClientSpecific* half, const Matrix4
                 mesh.owner = part;
                 mesh.shared = figure;
                 mesh.moved = !part->offsets.empty();
+                mesh.unit = unit;
                 render::ShadowCasterMesh(object, mesh);
             }
         }
@@ -313,7 +314,7 @@ void HandOverOutsideCasters(WorldClient* world) {
                     strength = *cast;
                 }
                 if (strength < kLeastStrength) continue;
-                HandOverParts(object, half, placement);
+                HandOverParts(object, half, placement, unit);
             }
         }
 }

@@ -141,6 +141,7 @@ struct OutsideCaster {
     gpu::Texture texture;
     bool hasTexture;
     const void* object;
+    bool unit;
 };
 std::vector<OutsideCaster> g_outside;
 // More casters than this in one frame (no present for a long time) are dropped.
@@ -508,6 +509,24 @@ bool CasterArea(float highestTop, float widest, ShadowCasterRect* area) {
 
 std::optional<StatsTimer> g_walkTimer;
 
+// A caster outside the view into `draws` through `light` (the landscape's space to a map's clip space), cut out as the
+// meshes drawn with its texture are (g_cuts); false when its mesh is not on the GPU.
+bool AddOutsideCaster(CasterDraws& draws, const OutsideCaster& e, const Matrix4& light) {
+    Geometry b;
+    int first = 0;
+    if (!BindCachedMesh(*e.mesh, b, &first)) return false;
+    CasterInstance instance{Product(light, e.model), {e.uOffset, e.vOffset}, {}};
+    if (e.hasTexture && e.texture) {
+        auto cut = g_cuts.find(e.texture.texture);
+        AlphaCut a = cut != g_cuts.end() ? cut->second : AlphaCut{true, 0.5f};
+        instance.alpha[0] = a.cut ? 1.0f : 0.0f;
+        instance.alpha[1] = a.least;
+    }
+    draws.Add(b, true, e.hasTexture && e.texture ? e.texture : SurfaceView(nullptr), StageSampler(StageState{}), first,
+              CachedIndexCount(*e.mesh), instance);
+    return true;
+}
+
 // A unit's meshes take only the shadows other objects cast. Each unit's nearest depth in the map
 // (the least over its receiving meshes' boxes, MeshBatch::box, through their light matrices) is kept on
 // its meshes (MeshBatch::front); their receivers compare from there (shaders/shadow_receiver.hlsli), so
@@ -589,6 +608,21 @@ bool UnderCamera(const Matrix4& camera, const Matrix4& placed, Matrix4* model) {
         if (!haveLast) return false;
     }
     *model = ToMatrix(Multiply(lastInverse, FromMatrix(placed)));
+    return true;
+}
+
+int AddOutsideRoofs(CasterDraws& draws, const Matrix4& clip) {
+    int added = 0;
+    for (const OutsideCaster& e : g_outside)
+        if (!e.unit && AddOutsideCaster(draws, e, clip)) ++added;
+    return added;
+}
+
+bool VisibleGround(Frame& f, Vector3* low, Vector3* high) {
+    const Fit& fit = FitMap(f);
+    if (!fit.ok) return false;
+    *low = fit.lowGround;
+    *high = fit.highGround;
     return true;
 }
 
@@ -683,6 +717,7 @@ void ShadowCasterMesh(const void* object, const ShadowMesh& m) {
     e.hasTexture = m.texture != nullptr;
     if (e.hasTexture) e.texture = SurfaceView(m.texture);
     e.object = object;
+    e.unit = m.unit;
     g_outside.push_back(e);
 }
 
@@ -816,6 +851,7 @@ void PrepareShadows(Frame& f) {
     const float cloudLight = PrepareClouds(sh);
     PrepareSurfaces(sh);
     PrepareUnitWeather(f);
+    PrepareRoofs(f);
     SurfaceState(&g_info.wetness, &g_info.puddles, &g_info.snowCover);
     for (const MeshBatch& b : f.meshBatches) g_info.groundDecals += b.decal ? 1 : 0;
     const bool casters = !(sh.casters.empty() && g_outside.empty() && TerrainCasterCount() == 0);
@@ -906,6 +942,7 @@ void PrepareShadows(Frame& f) {
     const float reachTexels = widestTexels * stretch + 1.0f;
     g_cellsAround = std::min(kMostCellsAround, static_cast<int>(std::ceil(reachTexels / kRangeCell)) + 1);
     CloudUniforms(fit.x0, fit.y0, extent, cloudLight, &p);
+    RoofUniforms(light, &p);
     sh.params = p;
     sh.cloudParams = p;
     sh.cloudParams.on[0] = 0.0f;
@@ -970,20 +1007,8 @@ void DrawShadowMap(Frame& f) {
             if (!g_outside.empty()) {
                 std::unordered_map<const void*, bool> outside;
                 int corners = 0;
-                const gpu::Sampler sampler = StageSampler(StageState{});
                 for (const OutsideCaster& e : g_outside) {
-                    Geometry b;
-                    int first = 0;
-                    if (!BindCachedMesh(*e.mesh, b, &first)) continue;
-                    CasterInstance instance{Product(g_fit.light, e.model), {e.uOffset, e.vOffset}, {}};
-                    if (e.hasTexture && e.texture) {
-                        auto cut = g_cuts.find(e.texture.texture);
-                        AlphaCut a = cut != g_cuts.end() ? cut->second : AlphaCut{true, 0.5f};
-                        instance.alpha[0] = a.cut ? 1.0f : 0.0f;
-                        instance.alpha[1] = a.least;
-                    }
-                    g_casterDraws.Add(b, true, e.hasTexture && e.texture ? e.texture : SurfaceView(nullptr), sampler,
-                                      first, CachedIndexCount(*e.mesh), instance);
+                    if (!AddOutsideCaster(g_casterDraws, e, g_fit.light)) continue;
                     ++g_stats.shadowDraws;
                     ++g_info.outsideDraws;
                     corners += CachedVertexCount(*e.mesh);
@@ -1028,6 +1053,7 @@ void DrawShadowMap(Frame& f) {
             }
         }
     }
+    DrawRoofMap(f);
     perf::Enter(perf::Pass::Point);
     DrawPointShadows(f);
 }
