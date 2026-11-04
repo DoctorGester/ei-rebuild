@@ -380,8 +380,8 @@ program reads the registry; the settings are a file, harness_settings.h). The ha
 through it.
 - **Trigger**: by hand only (Actions > Suites > Run workflow, or the API) with `ref` and `suites` = `full` | `quick`
   (both build verify and release; quick plays the image suite, full also the Rebirth suite). Pushes stopped starting it
-  on 2026-11-04: the runner is not always up and pushed runs queued for days. Debug, asan and play are built only by the
-  local merge routine. Never on pull_request. Pushes get the Linux suites (suites-linux.yml) instead.
+  on 2026-11-04: the runner is not always up and pushed runs queued for days. Debug and asan are built only by the coordinator's
+  routine (every few merges; asan with a suite run on it), play only by play.cmd. Never on pull_request. Pushes get the Linux suites (suites-linux.yml) instead.
 - **Reading results**: the run's summary page has each suite's goldens block; a failing build prints its last 40 log
   lines in the step log. From a session: `gh run list --workflow suites.yml`, `gh run view <id> --log-failed`, or the REST
   API (`/repos/DoctorGester/ei-rebuild/actions/runs/<id>/jobs`, then `/actions/jobs/<id>/logs`). To wait for a run, poll
