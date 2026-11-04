@@ -100,10 +100,21 @@ weathercheck 0 1 0 1
 capture units_snow_before
 unfreeze
 console @SetWeather("snow")
-wait 120000
+# The game stops its weather at random (WorldServer::UpdateWeather), so the snow is asked for again every 20 seconds.
+wait 20000
+console @SetWeather("snow")
+wait 20000
+console @SetWeather("snow")
+wait 20000
+console @SetWeather("snow")
+wait 20000
+console @SetWeather("snow")
+wait 20000
+console @SetWeather("snow")
+wait 20000
 frames 5
 freeze
-weathercheck 0 1 0.65 1
+weathercheck 0 1 0.5 0.95
 capture units_snow
 unfreeze
 report

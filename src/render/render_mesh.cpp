@@ -39,6 +39,7 @@ struct Pending {
 Pending g_pending;
 int g_dropped = 0;
 bool g_groundDecals = true;   // SetGroundDecals
+bool g_weatherParticles = true;   // SetWeatherParticles
 
 // A draw the renderer does not take is lost (there is no other way to draw): each reason logged the first time.
 enum Refusal { NoTargetSize, BadCorner, OtherFvf, VertexLimit, RefusalCount };
@@ -571,6 +572,13 @@ void SetGroundDecals(bool on) {
 namespace detail {
 bool GroundDecalsDrawn() { return g_groundDecals; }
 } // namespace detail
+
+void SetWeatherParticles(bool on) {
+    if (on != g_weatherParticles) ei::Log("render: rain and snow particles %s", on ? "drawn" : "left out");
+    g_weatherParticles = on;
+}
+
+bool WeatherParticlesDrawn() { return g_weatherParticles; }
 
 void TlDraw(const TextureDevice* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
             Primitive primitive) {

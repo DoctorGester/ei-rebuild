@@ -1,9 +1,12 @@
 # R17c: the weather on the surfaces (docs/notes/renderer.md section 13, item 11b) at 1440x1080 by day. Zone1's start
-# dry, a few seconds into rain, after a minute of rain (wet ground and objects, puddles, the drops' rings), half a minute
-# after the rain stopped (drying), the sea in rain (rings and splashes); the snow map gz11k, entered with zone1's
-# ground still wet (R17c1: dry at once), before and after two minutes of snow. `weathercheck` reads how wet the ground is and the snow's cover; its ranges are wide, as the game's
-# rain grows and fades at its own pace (Rebirth's faster, and five minutes after SetWeather("clear") its ground is
-# still a little wet). Frames only (goldens hold none).
+# dry, a few seconds into rain, after a minute of rain (wet ground and objects, puddles, the drops' rings), half a
+# minute after the rain stopped (drying), the sea in rain (rings and splashes); the snow map gz11k, entered with
+# zone1's ground still wet (R17c1: dry at once), before the snow, five seconds and two minutes into it (the flakes
+# seen, the cover settling over minutes), then a minute of rain (the cover melting). The rain's and the snow's
+# particles: a frozen frame against the same without them (`weatherparticles off`, R53). `weathercheck` reads how wet
+# the ground is and the snow's cover; its ranges are wide, as the game's rain grows and fades at its own pace
+# (Rebirth's faster, and five minutes after SetWeather("clear") its ground is still a little wet). Frames only
+# (goldens hold none).
 render checkall
 resolution 1440x1080
 reject Script error
@@ -35,7 +38,12 @@ frames 5
 freeze
 weathercheck 0.02 0.7 0 0
 capture weather_rain_start
+weatherparticles off
+capture weather_rain_start_none
+weatherparticles on
 unfreeze
+# The falling rain covers a share of the frame (R53: none at all when its colours were left zero).
+diffcapture weather_rain_start weather_rain_start_none 0.001 0.05
 wait 60000
 frames 5
 freeze
@@ -100,13 +108,45 @@ weathercheck 0 0.05 0 1
 capture weather_snow_before
 unfreeze
 console @SetWeather("snow")
-wait 120000
+wait 5000
 frames 5
 freeze
-# Rebirth's snow layer grows slower from a clear sky (0.35 after two minutes; 0.88 when the zone was entered in rain).
-vanilla weathercheck 0 1 0.65 1
-rebirth weathercheck 0 1 0.3 1
+# The snow settles over minutes, not at once; its flakes cover a share of the frame.
+weathercheck 0 0.05 0 0.15
+capture weather_snow_start
+weatherparticles off
+capture weather_snow_start_none
+weatherparticles on
+unfreeze
+diffcapture weather_snow_start weather_snow_start_none 0.002 0.05
+# The game stops its weather at random (WorldServer::UpdateWeather), so the snow is asked for again every 20 seconds.
+wait 20000
+console @SetWeather("snow")
+wait 20000
+console @SetWeather("snow")
+wait 20000
+console @SetWeather("snow")
+wait 20000
+console @SetWeather("snow")
+wait 20000
+console @SetWeather("snow")
+wait 15000
+frames 5
+freeze
+weathercheck 0 1 0.5 0.95
 capture weather_snow
+unfreeze
+# Rain after the snow: the cover melts, faster than in a clear sky (R53: it stayed).
+console @SetWeather("rain")
+wait 20000
+console @SetWeather("rain")
+wait 20000
+console @SetWeather("rain")
+wait 20000
+frames 5
+freeze
+weathercheck 0.5 1 0 0.35
+capture weather_snow_then_rain
 unfreeze
 report
 quit

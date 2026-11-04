@@ -16,16 +16,19 @@ namespace render::detail {
 namespace {
 
 // How fast each follows the weather, in world ticks (about 18 a second) for 1 - 1/e of the way: the ground is wet
-// within half a minute of rain and dries over a few; the puddles fill and dry slower; snow settles over a minute or
-// two and melts over several.
+// within half a minute of rain and dries over a few; the puddles fill and dry slower; snow settles over minutes (about
+// half the cover in a minute, three quarters in two) and melts over a few, faster in rain.
 constexpr double kWetTicks = 200.0, kDryTicks = 1600.0;
 constexpr double kPuddleTicks = 450.0, kPuddleDryTicks = 2400.0;
-constexpr double kSnowTicks = 800.0, kMeltTicks = 5500.0;
+constexpr double kSnowTicks = 1600.0, kMeltTicks = 2400.0, kRainMeltTicks = 900.0;
 // A unit wets and takes snow as fast as the ground but dries and loses its snow by itself, faster: about 50 s and
-// 100 s for 1 - 1/e of the way.
+// 100 s for 1 - 1/e of the way (in rain its snow melts as the ground's).
 constexpr double kUnitDryTicks = 900.0, kUnitMeltTicks = 1800.0;
-// A step of the world's time longer than this or back (a load, a zone change) starts again from the weather as it is.
-constexpr double kLongestStep = 64.0;
+// For this long after a landscape's load the surfaces take the settled weather as it is: the weather's message comes a
+// tick or more after the zone's.
+constexpr double kSettleTicks = 32.0;
+// A unit not drawn for longer than this is forgotten: when it is met again it starts from the ground's state.
+constexpr double kUnitForgetTicks = 64.0;
 // The rings' clock runs over this many client ticks: a whole number of both ring layers' periods (terrain.hlsl's
 // kRingPeriodA / B: 16 and 21 ticks).
 constexpr double kRingWrap = 16.0 * 21.0 * 10.0;
@@ -37,13 +40,16 @@ constexpr int kRoofPoints = 5;
 
 struct Surfaces {
     bool started = false;
-    double time = 0.0;
+    double time = 0.0;    // the latest world time followed to
+    double loaded = 0.0;  // the world time of the first hand-over after a landscape's load
+    bool settling = false;   // within kSettleTicks of a landscape's load: the state is the settled weather
     float wet = 0.0f, puddles = 0.0f, snow = 0.0f;
-    float rain = 0.0f;       // the rain falling this frame (0 .. 1)
-    float snowfall = 0.0f;   // the snow falling this frame (0 .. 1)
+    float rain = 0.0f;              // the rain falling this frame (0 .. 1)
+    float settledRain = 0.0f;       // the settled weather: 1 rain, else 0
+    float settledSnow = 0.0f;       // 1 snow, else 0
 } g_surfaces;
 
-// A unit's own weather, kept by its object while it is drawn (and up to kLongestStep ticks after).
+// A unit's own weather, kept by its object while it is drawn (and up to kUnitForgetTicks ticks after).
 struct UnitSurface {
     double time = 0.0;
     float wet = 0.0f, snow = 0.0f, shelter = 0.0f;
@@ -205,56 +211,65 @@ void CollectUnitsAndRoofs(const Frame& f) {
 
 } // namespace
 
+// The wetness and the puddles follow the settled rain, the snow cover the settled snow (not the layer's fade, which
+// lasts the weather message's 20 or 40 ticks, nor its mode, which stays snow through a fade from snow to rain). The
+// time only goes forward: the drawn frame's fraction of a tick can run past the next tick while the client waits for
+// the server (app_main's backlog), so the time handed over steps back a little now and then; only a landscape's load
+// starts the state again (a step back taken for a load made the snow and the wetness come at once).
 void PrepareSurfaces(const ShadowFrame& shadow) {
     Surfaces& s = g_surfaces;
     if (!shadow.haveClouds) {
-        s.rain = s.snowfall = 0.0f;
+        s.rain = s.settledRain = s.settledSnow = 0.0f;
         return;
     }
     const CloudWeather& w = shadow.weather;
-    const float strength = std::clamp(w.rain, 0.0f, 1.0f);
-    const float rain = w.snow ? 0.0f : strength, snow = w.snow ? strength : 0.0f;
-    s.rain = rain;
-    s.snowfall = snow;
-    const double step = w.time - s.time;
-    s.time = w.time;
-    if (!s.started || !(step >= 0.0 && step <= kLongestStep)) {
+    s.rain = w.snow ? 0.0f : std::clamp(w.rain, 0.0f, 1.0f);
+    const float rain = w.settled == 1 ? 1.0f : 0.0f, snow = w.settled == 2 ? 1.0f : 0.0f;
+    s.settledRain = rain;
+    s.settledSnow = snow;
+    if (!s.started) {
         s.started = true;
+        s.time = s.loaded = w.time;
+    }
+    s.settling = w.time - s.loaded <= kSettleTicks;
+    if (s.settling) {
         s.wet = s.puddles = rain;
         s.snow = snow;
+        s.time = std::max(s.time, w.time);
         return;
     }
+    const double step = std::max(w.time - s.time, 0.0);
+    s.time = std::max(s.time, w.time);
     s.wet = Follow(s.wet, rain, step, kWetTicks, kDryTicks);
     s.puddles = Follow(s.puddles, rain, step, kPuddleTicks, kPuddleDryTicks);
-    s.snow = Follow(s.snow, snow, step, kSnowTicks, kMeltTicks);
+    s.snow = Follow(s.snow, snow, step, kSnowTicks, rain > 0.0f ? kRainMeltTicks : kMeltTicks);
 }
 
 void PrepareUnitWeather(Frame& f) {
     StatsTimer timer(&FrameStats::shadowMs);
     const Surfaces& s = g_surfaces;
     CollectUnitsAndRoofs(f);
-    // Each unit's wetness and snow follow the weather falling on it (none under a roof); a unit not met for longer
-    // than kLongestStep (or after a load) starts from the ground's state times its exposure.
+    // Each unit's wetness and snow follow the settled weather on it (none under a roof), on the ground's time, which
+    // only goes forward; a unit first met, not met for longer than kUnitForgetTicks or while the ground settles after a
+    // load starts from the ground's state times its exposure.
     for (const auto& [object, box] : g_unitBoxes) {
         const float shelter = Shelter(f, box), open = 1.0f - shelter;
         auto [it, added] = g_units.try_emplace(object);
         UnitSurface& u = it->second;
-        const double step = s.time - u.time;
-        if (added || !(step >= 0.0 && step <= kLongestStep)) {
+        const double step = std::max(s.time - u.time, 0.0);
+        if (added || s.settling || step > kUnitForgetTicks) {
             u.wet = s.wet * open;
             u.snow = s.snow * open;
         } else {
-            u.wet = Follow(u.wet, s.rain * open, step, kWetTicks, kUnitDryTicks);
-            u.snow = Follow(u.snow, s.snowfall * open, step, kSnowTicks, kUnitMeltTicks);
+            u.wet = Follow(u.wet, s.settledRain * open, step, kWetTicks, kUnitDryTicks);
+            u.snow = Follow(u.snow, s.settledSnow * open, step, kSnowTicks,
+                            s.settledRain > 0.0f ? kRainMeltTicks : kUnitMeltTicks);
         }
         u.time = s.time;
         u.shelter = shelter;
         u.at = Vector3{(box.low.x + box.high.x) * 0.5f, (box.low.y + box.high.y) * 0.5f, box.low.z};
     }
-    std::erase_if(g_units, [&](const auto& entry) {
-        const double age = s.time - entry.second.time;
-        return !(age >= 0.0 && age <= kLongestStep);
-    });
+    std::erase_if(g_units, [&](const auto& entry) { return s.time - entry.second.time > kUnitForgetTicks; });
     for (MeshBatch& b : f.meshBatches) {
         if (!b.figure) continue;
         auto it = g_units.find(b.caster);

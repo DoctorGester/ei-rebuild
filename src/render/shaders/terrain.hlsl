@@ -97,7 +97,7 @@ SamplerState rippleSmp : FS_SAMPLER(4);
 static const float kRingCell = 0.8;       // a ring's cell, landscape units
 static const float kRingPeriodA = 16.0;   // client ticks a cell's ring lasts, layer A (render_weather.cpp kRingWrap)
 static const float kRingPeriodB = 21.0;   // ... layer B
-static const float kRingReach = 0.33;     // a ring's radius at its end, in cells (its centre 0.3 or more from the edge)
+static const float kRingReach = 0.25;     // a ring's radius at its end, in cells (its centre 0.25 or more from the edge)
 static const float kRingWidth = 0.07;     // in cells
 static const float kSnowScale = 1.0 / 11.0;     // the snow's edge pattern's repeats per landscape unit
 static const float kPuddleScale = 1.0 / 7.0;    // the puddles' pattern's
@@ -111,11 +111,14 @@ float3 hash3(float3 p) {
     return frac((p.xxy + p.yxx) * p.zyx);
 }
 
-// The rain's rings at `xy` (landscape units), `rain` the share of the cells a drop falls in: the slope they add (xy)
-// and the drops' splashes (z, 0 .. 1). Two layers of cells, each cell's drop at its own place and time on the client's
-// clock. `footprint`: the landscape units a pixel spans; rings narrower than a pixel only shimmer, so they fade out.
-float3 rain_rings(float2 xy, float rain, float footprint) {
-    float3 sum = 0.0;
+// The rain's rings at `xy` (landscape units), `rain` the share of the cells a drop falls in: the slope they add (xy),
+// the drops' splashes (z, 0 .. 1: a small soft spot where a drop has just fallen) and the rings' crests (w, 0 .. 1).
+// Two layers of cells, each cell's drop at its own place and time on the client's clock. `footprint`: the landscape
+// units a pixel spans; rings narrower than a pixel only shimmer, so they fade out. The crests are shaded apart from the
+// slope (rain_dimples): seen from above, the water reflects little of the sky whatever the slope, so by the slope alone
+// the rings do not show.
+float4 rain_rings(float2 xy, float rain, float footprint) {
+    float4 sum = 0.0;
     float seen = 1.0 - smoothstep(0.05, 0.15, footprint / kRingCell);
     if (rain <= 0.0 || seen <= 0.0) return sum;
     [unroll] for (int layer = 0; layer < 2; ++layer) {
@@ -126,14 +129,22 @@ float3 rain_rings(float2 xy, float rain, float footprint) {
         if (g.x >= rain) continue;
         float period = layer == 0 ? kRingPeriodA : kRingPeriodB;
         float age = frac(fs.rain.x / period + h.z);
-        float2 d = p - (cell + 0.3 + 0.4 * h.xy);
+        float2 d = p - (cell + 0.25 + 0.5 * h.xy);
         float r = length(d);
         float x = (r - age * kRingReach) / kRingWidth;
         float fade = (1.0 - age) * (1.0 - age);
         sum.xy += d / max(r, 1e-4) * (-2.0 * x * exp(-x * x)) * fade * 0.35;
-        sum.z = max(sum.z, (1.0 - smoothstep(0.0, 0.15, age)) * (1.0 - smoothstep(0.03, 0.08, r)));
+        sum.z = max(sum.z, (1.0 - smoothstep(0.0, 0.12, age)) * (1.0 - smoothstep(0.0, 0.07, r)));
+        sum.w = max(sum.w, exp(-x * x) * fade * smoothstep(0.0, 0.1, age));
     }
     return sum * seen;
+}
+
+// Water of colour `c` reflecting `sky` with the rain's rings and splashes (rain_rings) on it: a ring's crest and a
+// splash catch more of the sky, a little lighter than the water around and never brighter than the sky it reflects.
+float3 rain_dimples(float3 c, float3 sky, float4 rings) {
+    float3 lighter = max(c, lerp(c, sky, 0.6));
+    return lerp(c, lighter, saturate(rings.w * 0.55 + rings.z * 0.5));
 }
 
 // How far `xy` lies from where the depth `d` (linear over a triangle) reaches 0, in landscape units: positive under
@@ -191,8 +202,8 @@ float3 weathered(float3 albedo, GroundWeather g) {
 }
 
 // The lit ground `c` with the wet ground's sheen of the sun, and in a puddle the sky and the sun reflected by its
-// rippled water and the drops' splashes.
-float3 wet_ground(float3 c, VsOut i, float3 n, GroundWeather g, float hidden, float3 rings) {
+// rippled water and the drops' rings and splashes (rain_dimples).
+float3 wet_ground(float3 c, VsOut i, float3 n, GroundWeather g, float hidden, float4 rings) {
     if (g.wet <= 0.0) return c;
     float3 toEye = scene.camera.xyz - i.world;
     float3 v = toEye * rsqrt(max(dot(toEye, toEye), 1e-12));
@@ -206,8 +217,7 @@ float3 wet_ground(float3 c, VsOut i, float3 n, GroundWeather g, float hidden, fl
     float3 sky = fs.fog.rgb * lerp(1.0, 0.75, saturate(reflect(-v, pn).z));
     c = lerp(c, sky, saturate(0.15 + fresnel) * g.puddle);
     c += sun * pow(saturate(dot(pn, h)), 300.0) * 0.6 * g.puddle;
-    float3 light = saturate(scene.ambient.rgb + saturate(toSun.z) * (1.0 - hidden) * scene.sunColour.rgb);
-    c = lerp(c, light * 0.9, rings.z * g.puddle * 0.5);
+    c = lerp(c, rain_dimples(c, sky, rings), g.puddle);
     return saturate(c);
 }
 
@@ -249,7 +259,7 @@ float3 Water(VsOut i, float3 base, float opacity, float3 n, float clouded, float
     float3 layers = lerp(ripple_layers(xy, fs.ripples), ripple_layers(xy, fs.slowRipples), swamp);
     float2 slope = layers.xy * kRippleSlope * lerp(1.0, kSwampSlope, swamp);
     slope *= 0.4 + 0.6 * saturate(depth * 2.0);   // calmer at the shore
-    float3 rings = rain_rings(xy, fs.weather.w, footprint);
+    float4 rings = rain_rings(xy, fs.weather.w, footprint);
     slope = slope * (1.0 + 0.5 * fs.weather.w) + rings.xy;
     float3 rippled = normalize(n + float3(-slope, 0.0));
 
@@ -294,9 +304,8 @@ float3 Water(VsOut i, float3 base, float opacity, float3 n, float clouded, float
     float scum = swamp * smoothstep(0.78, 0.86, patches + 0.1 * (1.0 - smoothstep(0.0, 1.5, depth))) * 0.45;
     colour = lerp(colour, light * kScum, scum);
     alpha = lerp(alpha, 1.0, scum);
-    colour = lerp(colour, light * 0.9, rings.z * 0.6);
-    alpha = lerp(alpha, 1.0, rings.z * 0.6);
     colour = saturate(colour / max(alpha, 1e-3));
+    colour = rain_dimples(colour, sky, rings);
     alpha *= lerp(smoothstep(0.0, kShoreFade, i.depth), smoothstep(0.0, kSwampEdge, edge), swamp);
     alpha = lerp(alpha, opacity, lava);
     return lerp(colour, game, lava);
@@ -333,7 +342,7 @@ float4 Shade(VsOut i) {
         float3 lit = ground_light(i.world, n, i.col.rgb, 0.0, i.loss, hidden, shadow.on.y, pointShadow.on.x > 0.5,
                                   pixel_turn(i.pos.xy), occlusion, spec);
         GroundWeather g = ground_weather(i, n);
-        float3 rings = 0.0;
+        float4 rings = 0.0;
         if (g.puddle > 0.0) rings = rain_rings(i.world.xy, fs.weather.w, footprint);
         c = wet_ground(saturate(weathered(t.rgb, g) * lit + spec), i, n, g, hidden, rings);
     }
