@@ -193,7 +193,7 @@ always does the close instead of whichever real message came first.
   `game windows:` summary. On Linux the window is shown (WSLg draws it).
 - **The harness's input is the only input** (tests/verify/harness_input.h): the game reads keys, characters, the mouse and
   its motion from the harness's platform backend, which drops every system event; the steps post window messages, each
-  made into the event the window procedure's translation made of it. Typed text follows the US layout with no key held
+  made into the platform's event. Typed text follows the US layout with no key held
   (Windows' own translation followed the user's layout and held keys: typed names came out doubled). The report's
   `MOUSE:` line. The real cursor over the window once moved the camera and made runs not repeat.
 - **Loopback** (tests/verify/harness_net.h `netlocal::`): a bind on every address binds 127.0.0.1, an unbound socket's

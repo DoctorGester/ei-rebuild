@@ -21,3 +21,11 @@ std::wstring Wide(std::string_view text);
 std::string Narrow(std::wstring_view wide);
 
 } // namespace text
+
+namespace platform::win32 {
+
+// Another program's window `other` brought to the front, restored from the task bar, unless it is in front already;
+// false for none (null).
+bool BringForward(HWND other);
+
+} // namespace platform::win32

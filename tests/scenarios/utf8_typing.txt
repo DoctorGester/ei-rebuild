@@ -1,8 +1,7 @@
 # The image's UTF-8 text (docs/notes/standalone.md section 4). File names (U2): "utf8files" makes, lists, reads
-# back and removes a folder and a file with Cyrillic names through the game's file calls. Typing (U4): the game
-# window is a Unicode one, so characters typed into the console's line arrive as UTF-16 WM_CHAR ("typeunicode"
-# posts them as Windows gives a Unicode window a typed character; a character past U+FFFF as a surrogate pair),
-# are stored as UTF-8, and the caret, Backspace and Delete go by character ("consoleline" checks the line's bytes
+# back and removes a folder and a file with Cyrillic names through the game's file calls. Typing (U4): characters
+# typed into the console's line arrive as the platform's UTF-8 text ("typeunicode" hands each in as a Text event, a
+# character past U+FFFF too), are stored as UTF-8, and the caret, Backspace and Delete go by character ("consoleline" checks the line's bytes
 # and the caret's place). The line is drawn and measured with the wide GDI calls (U3): a Greek letter (outside
 # the assets' code page 1251) draws as itself, not as the '?' an ANSI call would make of it ("diffcapture": the
 # frames of the line "λ" and the line "?", the caret after either and the menu's scene frozen, differ only by

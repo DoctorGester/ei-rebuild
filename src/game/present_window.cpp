@@ -62,14 +62,10 @@ void Update(TextureDevice* device) {
 
 bool MouseToGame(platform::Event* event) {
     using platform::EventType;
-    const bool client = event->type >= EventType::MouseMove && event->type <= EventType::RightDouble;
-    if (!client && event->type != EventType::Wheel) return true;
+    if (event->type != EventType::MouseMove && event->type != EventType::MouseDown &&
+        event->type != EventType::MouseUp && event->type != EventType::Wheel)
+        return true;
     Point p{event->x, event->y};
-    if (event->type == EventType::Wheel) {
-        platform::NativeWindow window = Window();
-        if (!window) return true;
-        platform::ScreenToClient(window, &p);
-    }
     render::WindowToFrame(&p.x, &p.y);
     bool onFrame = true;
     if (const TextureDevice* device = g_sceneRenderer.device) {

@@ -165,23 +165,21 @@ void CheckCursorMotion(platform::NativeWindow window, int width, int height) {
         while (platform::TakeEvent(&event)) {
         }
     };
-    DirectInputMouse mouse;
     Cursor cursor;
     cursor.enabled = true;
-    cursor.mouse = &mouse;
     cursor.bounds = Rect{0, 0, width, height};
     cursor.motion = Point{9, -4};
     platform::MapCursorPoints([](Point* at) { *at = {31, 47}; }, nullptr);
     move();
     cursor.SetHeld(true);
-    const std::int32_t* state = mouse.Poll();
-    Check(cursor.motion.x == 0 && cursor.motion.y == 0 && state[0] == 0 && state[1] == 0,
+    Point motion = platform::TakeMouseMotion();
+    Check(cursor.motion.x == 0 && cursor.motion.y == 0 && motion.x == 0 && motion.y == 0,
           "holding discards movement from before the press");
     platform::MapCursorPoints([](Point* at) { *at = {83, 96}; }, nullptr);
     move();
     cursor.SetHeld(true);
-    state = mouse.Poll();
-    Check(state[0] > 0 && state[1] < 0, "holding again keeps movement from after the press");
+    motion = platform::TakeMouseMotion();
+    Check(motion.x > 0 && motion.y < 0, "holding again keeps movement from after the press");
     Check(cursor.position.x == 31 && cursor.position.y == 47 && cursor.heldPosition.x == 31 &&
               cursor.heldPosition.y == 47,
           "holding keeps the pointer position captured on the press");
@@ -201,8 +199,8 @@ int main() {
         return 1;
     }
     std::printf("render_check: %s, %s\n", gpu::DriverName(), gpu::DeviceName());
-    platform::RegisterWindowClass(nullptr, "ei-render-check", nullptr);
-    platform::NativeWindow window = platform::CreateGameWindow(nullptr, "Render check", 640, 400, false);
+    platform::StartWindowSystem("ei-render-check");
+    platform::NativeWindow window = platform::CreateGameWindow("Render check", 640, 400, false);
     int width = 0, height = 0;
     Check(window && platform::WindowPixelSize(window, &width, &height) && width == 640 && height == 400,
           "window drawable matches the configured pixel size");

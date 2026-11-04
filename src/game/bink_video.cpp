@@ -135,8 +135,9 @@ bool PlayMovie(const std::string& name, unsigned frameTime, bool keysEnd, bool s
                 }
                 if (!spaceSkips) continue;
                 start = platform::Milliseconds() - frameTime * 2;
+            } else {
+                app::HandleWindowEvent(event);
             }
-            if (event.type == platform::EventType::Paint) platform::DispatchEvent(event);
             continue;
         }
         std::uint32_t now = platform::Milliseconds();

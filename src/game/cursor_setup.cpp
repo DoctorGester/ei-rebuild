@@ -44,16 +44,16 @@ const CursorShape kShapes[] = {
 };
 } // namespace
 
-// Set-up. `context` and `smallCursors` (low byte tested) go to the cursor's Init.
-void SetUpCursors(DirectInputMouse* context, int smallCursors) {
+// Set-up. `smallCursors` (low byte tested) goes to the cursor's Init.
+void SetUpCursors(int smallCursors) {
     const bool useSmall = static_cast<std::uint8_t>(smallCursors) != 0;
-    g_cursor.Init(g_sceneRenderer.device, context, useSmall);
+    g_cursor.Init(g_sceneRenderer.device, useSmall);
     for (const CursorShape& shape : kShapes)
         g_cursor.AddShape(useSmall ? shape.smallName : shape.name, shape.hotX, shape.hotY);
     g_cursor.Start();
 }
 
-void ResetCursors(DirectInputMouse* context, int smallCursors) {
+void ResetCursors(int smallCursors) {
     g_cursor.Shutdown();   // the shapes released
-    SetUpCursors(context, smallCursors);
+    SetUpCursors(smallCursors);
 }

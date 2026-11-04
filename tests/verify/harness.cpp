@@ -131,8 +131,7 @@
 //                             class template
 //   chat 1|0                  open the chat line (the interface's root) as a multiplayer client's Enter
 //                             does, so that its typed line and caret are drawn; or close it
-//   typeunicode <text>        <text> typed as a Unicode window gets it, each UTF-16 unit a WM_CHAR posted
-//                             with PostMessageW (harness_utf8.h)
+//   typeunicode <text>        <text> typed, each character a Text event of the platform's (harness_utf8.h)
 //   consoleline <n> <text>    require the console's input line to hold <text> in UTF-8 with the caret at the
 //                             start of its character <n> (from 0)
 //   utf8text                  Cyrillic case-insensitive compares, case changes and the player name filter by
@@ -1479,12 +1478,11 @@ void PostMouse(const std::string& verb, int x, int y) {
     }
 }
 
-// A wheel turn at (x, y) in the 800x600 layout. The wheel message carries screen coordinates.
+// A wheel turn at (x, y) in the 800x600 layout.
 void PostWheel(int x, int y, int delta) {
     Rect client = GameClient();
     Point point = ToWindow(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
     input::Post(input::MouseMove, 0, input::Point(point.x, point.y));
-    platform::ClientToScreen(GameWindow(), &point);
     input::Post(input::Wheel, input::WheelWord(0, delta), input::Point(point.x, point.y));
 }
 

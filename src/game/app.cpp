@@ -1,5 +1,5 @@
-// Application helpers around WinMain: window procedure, input dispatcher,
-// message pump and the start of the first map. See app.h.
+// Application helpers around WinMain: the window's events, the input dispatcher, the event pump and the start of the
+// first map. See app.h.
 #include "app.h"
 #include "console.h"
 #include "player_client.h"
@@ -15,7 +15,9 @@
 #include "lib/rebirth.h"
 #include "lib/crt.h"
 #include "lib/str.h"
+#include "lib/text_case.h"
 #include "platform/platform.h"
+#include <cmath>
 #include <cstdarg>
 #include <cstdint>
 #include <cstring>
@@ -35,72 +37,72 @@ namespace app {
 namespace {
 
 using platform::EventType;
+using platform::MouseButton;
 
-std::intptr_t OnActivate(platform::Activation activation, bool minimized) {
+void OnActivate(bool active, bool minimized) {
     if (minimized) {
         g_activationChanged = 1;
         g_active = 0;
-        return 1;
+        return;
     }
     auto* sounds = g_clientWorld.sounds;
-    if (activation == platform::Activation::Inactive) {
+    if (!active) {
         g_active = 0;
         g_activationChanged = 1;
         g_cursor.ShowImage(0);
-        if (DirectInputMouse* mouse = g_mouse) mouse->SetActive(false);
         if (sounds) sounds->PauseAll();
-        return 1;
+        return;
     }
-    if (activation == platform::Activation::Unknown) return 1;
     g_active = 1;
     g_activationChanged = 1;
-    if (DirectInputMouse* mouse = g_mouse) mouse->SetActive(true);
     TextureDevice* device = g_sceneRenderer.device;
     if (device && device->fullScreen) {
         g_sceneRenderer.RestoreSurfaces();
-        device = g_sceneRenderer.device;
-        if (device) {
-            // ResetCursors after the device was restored. The context is the mouse.
-            ResetCursors(g_mouse, 0);
-        }
+        if (g_sceneRenderer.device) ResetCursors(0);   // after the device was restored
     }
     g_cursor.ShowImage(1);
     if (sounds) sounds->ResumeAll();
     g_interface.ResetInput();
-    return 1;
 }
 
-std::intptr_t OnSystemCommand(const platform::Event& event) {
-    if (event.command == platform::SystemCommand::TaskSwitch) console::PrintLine("switch task");
-    return 0;
+void Handled() { g_interface.CloseAllPending(); }
+
+// The interface's key flags, the original's key message data: the scan code in bits 0-8 (its key tables are indexed
+// by it), Alt held 0x2000, the key down before 0x4000, a release 0xC000; sign-extended from 16 bits.
+constexpr int kFlagAlt = 0x2000, kFlagRepeated = 0x4000, kFlagReleased = 0xC000;
+int KeyFlags(const platform::Event& event) {
+    int flags = event.scan | ((event.modifiers & platform::kModifierAlt) ? kFlagAlt : 0);
+    if (event.type == EventType::KeyUp)
+        flags |= kFlagReleased;
+    else if (event.repeat)
+        flags |= kFlagRepeated;
+    return static_cast<std::int16_t>(flags);
 }
 
-std::intptr_t Handled() {
-    g_interface.CloseAllPending();
-    return 1;
+// The keys Windows called system keys (Alt held without Ctrl, or F10): the original printed their releases to the
+// console and took Alt+F4 and Alt+Tab from them.
+bool SystemKey(const platform::Event& event) {
+    const bool alt = (event.modifiers & platform::kModifierAlt) != 0;
+    return (alt && !(event.modifiers & platform::kModifierControl)) || event.key == platform::kKeyF10;
 }
 
-// The interface takes an event's position and wheel turn as the 16-bit halves of Windows' message data, unsigned (a
+// The interface takes the wheel's turn as the 16-bit half of the original's message data, unsigned (120 a notch; a
 // turn towards the player as 65536 less its size).
-int Unsigned16(int value) { return value & 0xFFFF; }
+int WheelTurn(const platform::Event& event) { return static_cast<int>(std::lround(event.wheel * 120.0f)) & 0xFFFF; }
 
-// The window is a Unicode one, so a typed character comes as a UTF-16 unit, and a character
-// past U+FFFF comes as two (a surrogate pair). The typed character as a code point, or -1 while the first
-// half of a pair waits for the second (a half that comes alone is dropped).
-unsigned g_highSurrogate = 0;
-int TypedCharacter(int unit) {
-    const unsigned u = static_cast<unsigned>(unit & 0xFFFF);
-    const unsigned high = g_highSurrogate;
-    g_highSurrogate = 0;
-    if (u >= 0xD800 && u <= 0xDBFF) {
-        g_highSurrogate = u;
-        return -1;
+// The events the interface takes: keys, text, the mouse's moves, its left and right buttons and a wheel's turn.
+bool IsInput(const platform::Event& event) {
+    switch (event.type) {
+    case EventType::KeyDown:
+    case EventType::KeyUp:
+    case EventType::Text:
+    case EventType::MouseMove: return true;
+    case EventType::MouseDown:
+    case EventType::MouseUp: return event.button == MouseButton::Left || event.button == MouseButton::Right;
+    case EventType::Wheel: return WheelTurn(event) != 0;
+    default: return false;
     }
-    if (u >= 0xDC00 && u <= 0xDFFF)
-        return high ? static_cast<int>(0x10000 + ((high - 0xD800) << 10) + (u - 0xDC00)) : -1;
-    return static_cast<int>(u);
 }
-
 
 void MenuOpen(void* flow) { static_cast<GameFlow*>(flow)->ProcessRequest(); }
 
@@ -108,106 +110,103 @@ int g_fatalErrorCount = /*007A9B9C*/ {};
 
 const char* CodeReportFormat() { return "%s (0x%.8X) %s"; }
 
-bool IsPress(EventType type) {
-    return type == EventType::LeftDown || type == EventType::LeftDouble || type == EventType::RightDown ||
-           type == EventType::RightDouble;
+void OnKey(Interface3D* input, const platform::Event& event) {
+    const int flags = KeyFlags(event);
+    if (event.type == EventType::KeyDown) {
+        if (event.key == platform::kKeyF4 && SystemKey(event)) {   // Alt+F4
+            if (g_quitAllowed != 0) platform::PostQuit(0);
+            return;
+        }
+        input->OnKeyDown(event.key, 1, flags);
+        return;
+    }
+    if (SystemKey(event)) {
+        // The key and its message data (the flags over the repeat count, 1), as the original printed them: the 32
+        // bits signed (a released key's are negative), wherever long is wider.
+        console::EndLine(console::g_consoleOut << static_cast<unsigned>(event.key) << ':'
+                                               << static_cast<long>(static_cast<std::int32_t>(
+                                                      (static_cast<std::uint32_t>(flags) << 16) | 1u)));
+        if (event.key == platform::kKeyTab && (event.modifiers & platform::kModifierAlt)) {   // Alt+Tab: as if the window was deactivated
+            OnActivate(false, platform::IsMinimized(g_mainWindow));
+            return;
+        }
+    }
+    input->OnKeyUp(event.key, 1, flags);
 }
-} // namespace
 
-std::intptr_t HandleWindowEvent(const platform::Event& event) {
-    switch (event.type) {
-    case EventType::Paint:
-        platform::MarkPainted(event.window);
-        return 1;
-    case EventType::Destroy:
-        if (g_quitAllowed != 0) platform::PostQuit(0);
-        return 1;
-    case EventType::Activate:
-        return OnActivate(event.activation, event.minimized);
-    case EventType::SystemCommand:
-        return OnSystemCommand(event);
-    default:
-        return 0;
+// Each character of the text to the interface, with the scan code of the key that typed it (the interface drops the
+// console key's).
+void OnText(Interface3D* input, const platform::Event& event) {
+    const std::string& text = event.text;
+    for (std::size_t at = 0; at < text.size();) {
+        unsigned character = 0;
+        at += static_cast<std::size_t>(text::DecodeUtf8(text.data() + at, text.size() - at, &character));
+        if (character == 0xFFFFFFFFu) continue;
+        input->OnChar(static_cast<int>(character), 1, event.scan);
+        Handled();
     }
 }
 
-std::intptr_t DispatchInput(const platform::Event& received) {
+void OnMouse(Interface3D* input, const platform::Event& event, Point at) {
+    // Every second press of a quick series is a double click.
+    const bool twice = event.clicks % 2 == 0;
+    const bool left = event.button == MouseButton::Left;
+    switch (event.type) {
+    case EventType::MouseMove: input->OnMouseMove(0, at); break;
+    case EventType::MouseDown:
+        if (left && twice) input->OnLeftDouble(0, at);
+        else if (left) input->OnLeftDown(0, at);
+        else if (twice) input->OnRightDouble(0, at);
+        else input->OnRightDown(0, at);
+        break;
+    case EventType::MouseUp:
+        if (left) input->OnLeftUp(0, at);
+        else input->OnRightUp(0, at);
+        break;
+    case EventType::Wheel: input->OnWheel(0, WheelTurn(event), at); break;
+    default: break;
+    }
+}
+} // namespace
+
+void HandleWindowEvent(const platform::Event& event) {
+    switch (event.type) {
+    case EventType::CloseRequested:
+        if (g_quitAllowed != 0) platform::PostQuit(0);
+        break;
+    case EventType::Focus: OnActivate(event.active, event.minimized); break;
+    default: break;
+    }
+}
+
+void DispatchInput(const platform::Event& received) {
+    if (!IsInput(received)) {
+        HandleWindowEvent(received);
+        return;
+    }
     // The mouse's coordinates as the frame's (present_window.h).
     platform::Event event = received;
     const bool onFrame = present_window::MouseToGame(&event);
     Interface3D* input = &g_interface;
     input->CloseAllPending();
-    const int x = Unsigned16(event.x);
-    const int y = Unsigned16(event.y);
     // A press outside the picture (the bars of a window of another shape, the letterbox bars) is not passed on; the
     // release still is, and moves arrive on the picture's nearest pixel.
-    if (IsPress(event.type)) {
+    const Point at{event.x, event.y};
+    if (event.type == EventType::MouseDown) {
         const Rect picture = input->PictureRect();
-        if (!onFrame || x < picture.left || x >= picture.right || y < picture.top || y >= picture.bottom) {
+        if (!onFrame || at.x < picture.left || at.x >= picture.right || at.y < picture.top || at.y >= picture.bottom) {
             ei::Log("input: a press outside the picture ignored (at %d, %d of the window)", received.x, received.y);
-            return Handled();
+            Handled();
+            return;
         }
     }
     switch (event.type) {
     case EventType::KeyDown:
-        input->OnKeyDown(event.key, event.repeat, event.keyFlags);
-        return Handled();
-    case EventType::KeyUp:
-        input->OnKeyUp(event.key, event.repeat, event.keyFlags);
-        return Handled();
-    case EventType::Character: {
-        const int character = TypedCharacter(event.key);
-        if (character < 0) return Handled();
-        input->OnChar(character, event.repeat, event.keyFlags);
-        return Handled();
+    case EventType::KeyUp: OnKey(input, event); break;
+    case EventType::Text: OnText(input, event); return;
+    default: OnMouse(input, event, at); break;
     }
-    case EventType::SystemKeyDown:
-        if (event.key == platform::kKeyF4 && (event.keyFlags & platform::kKeyAltDown)) {
-            if (g_quitAllowed != 0) platform::PostQuit(0);
-            return Handled();
-        }
-        input->OnKeyDown(event.key, event.repeat, event.keyFlags);
-        return Handled();
-    case EventType::SystemKeyUp:
-        // The key and its message data (the flags over the repeat count), as the original printed them: the 32 bits
-        // signed (a released key's are negative), wherever long is wider.
-        console::EndLine(console::g_consoleOut << static_cast<unsigned>(event.key) << ':'
-                                               << static_cast<long>(static_cast<std::int32_t>(
-                                                      (static_cast<std::uint32_t>(event.keyFlags) << 16) |
-                                                      static_cast<std::uint32_t>(event.repeat))));
-        if (event.key == platform::kKeyTab && (event.keyFlags & platform::kKeyAltDown)) {   // Alt+Tab: as if the window was deactivated
-            OnActivate(platform::Activation::Inactive, platform::IsMinimized(g_mainWindow));
-            return Handled();
-        }
-        input->OnKeyUp(event.key, event.repeat, event.keyFlags);
-        return Handled();
-    case EventType::MouseMove:
-        input->OnMouseMove(event.buttons, Point{x, y});
-        return Handled();
-    case EventType::LeftDown:
-        input->OnLeftDown(event.buttons, Point{x, y});
-        return Handled();
-    case EventType::LeftUp:
-        input->OnLeftUp(event.buttons, Point{x, y});
-        return Handled();
-    case EventType::LeftDouble:
-        input->OnLeftDouble(event.buttons, Point{x, y});
-        return Handled();
-    case EventType::RightDown:
-        input->OnRightDown(event.buttons, Point{x, y});
-        return Handled();
-    case EventType::RightUp:
-        input->OnRightUp(event.buttons, Point{x, y});
-        return Handled();
-    case EventType::RightDouble:
-        input->OnRightDouble(event.buttons, Point{x, y});
-        return Handled();
-    case EventType::Wheel:
-        input->OnWheel(event.buttons, Unsigned16(event.wheelDelta), Point{x, y});
-        return Handled();
-    default:
-        return HandleWindowEvent(event);
-    }
+    Handled();
 }
 
 void PumpMessages() {

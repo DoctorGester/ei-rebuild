@@ -67,7 +67,7 @@ TYPES = {
     'unsigned': 'I', 'DWORD': 'I', 'std::uint32_t': 'I', 'uint32_t': 'I',
     'short': 'h', 'std::int16_t': 'h', 'std::uint16_t': 'H', 'WORD': 'H',
     'bool': 'B', 'std::int8_t': 'b', 'std::uint8_t': 'B', 'BYTE': 'B',
-    'Rect': 'iiii', 'Point': 'ii', 'HINSTANCE': 'I', 'platform::NativeInstance': 'I', 'platform::NativeWindow': 'I', 'HWND': 'I', 'GUID': 'IHH' + 'B' * 8, 'IID': 'IHH' + 'B' * 8, 'CLSID': 'IHH' + 'B' * 8,   # one code per number
+    'Rect': 'iiii', 'Point': 'ii', 'HINSTANCE': 'I', 'platform::NativeWindow': 'I', 'HWND': 'I', 'GUID': 'IHH' + 'B' * 8, 'IID': 'IHH' + 'B' * 8, 'CLSID': 'IHH' + 'B' * 8,   # one code per number
     'DecalBuilder': 'B' * 0x7C,   # ground_decal.h
     'SpiralCache': 'if',   # ai_map.h: length, radius
     'CellOffset': 'ii',    # ai_refresh.cpp: dy, dx
@@ -133,7 +133,7 @@ ALIGNED_ARRAY_VECTORS = {
 
 def element_format(type_, address=None):
     """TYPES' format of an element type; a template instantiation's is its template's (`lib::AlignedArray<T>`); a
-    pointer to another type is a pointer element ('P': `DirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};`).
+    pointer to another type is a pointer element ('P': `AIEvent* g_freeEvents = /*007C53F0*/ {nullptr};`).
     A std::vector's is the layout of the game.exe container it replaced, by its address (ALIGNED_ARRAY_VECTORS)."""
     if re.fullmatch(r'std::vector<.*>', type_):
         return TYPES['lib::AlignedArray'] if address in ALIGNED_ARRAY_VECTORS else TYPES['stlp::vector']

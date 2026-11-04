@@ -17,11 +17,11 @@ std::string Check(const char* savesDir);
 
 } // namespace ei::verify::utf8files
 
-// Typing (ticket U4). The game window is a Unicode one, so a typed character reaches the game as UTF-16.
+// Typing (ticket U4). Typed text reaches the game as UTF-8 (the platform's Text events).
 namespace ei::verify::utf8typing {
 
-// "typeunicode <text>": each UTF-16 unit of <text> (UTF-8 in the scenario; a character past U+FFFF is two)
-// handed to the game as a Character event, as a Unicode window's WM_CHAR became one. Empty, or what failed.
+// "typeunicode <text>": each character of <text> (UTF-8 in the scenario) handed to the game as a Text event.
+// Empty, or what failed.
 std::string Type(void* window, const std::string& typed);
 
 // "consoleline <n> <text>": the console's input line holds <text> in UTF-8 (<text> may be empty) and its caret

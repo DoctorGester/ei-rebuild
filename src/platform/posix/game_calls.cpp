@@ -42,7 +42,7 @@ namespace platform {
 
 bool FontSmoothing() { return true; }
 
-NativeWindow FindClassWindow(const char* className, const char* title) { return posix::OtherInstance(className, title); }
+bool BringOtherInstanceForward(const char* name, const char* title) { return posix::OtherInstanceRunning(name, title); }
 
 } // namespace platform
 

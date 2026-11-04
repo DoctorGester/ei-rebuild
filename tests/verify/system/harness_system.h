@@ -75,8 +75,9 @@ extern const unsigned long kDiskFull;
 // ---- The game's calls as the system answers them (the backend's answers while the harness does not answer) ----
 
 bool FontSmoothing();
-// Another running game's window of this class and title (the game's builds' platform::FindClassWindow), null for none.
-void* OtherGameWindow(const char* className, const char* title);
+// Whether another game of this name and window title runs, brought to the front (the game's builds'
+// platform::BringOtherInstanceForward).
+bool BringOtherGameForward(const char* name, const char* title);
 
 // ---- Processes, threads and time ----
 

@@ -7,12 +7,12 @@
 //
 // A harness game reads the keyboard and the mouse as the platform layer's events (keys, characters, the mouse's
 // moves and buttons, the wheel), the mouse's position (CursorPosition: the cursor, edge scrolling) and the mouse's
-// motion (MouseDevice: the camera on a right-button drag), all from the harness's own platform backend
+// motion (TakeMouseMotion: the camera on a right-button drag), all from the harness's own platform backend
 // (platform/harness_platform.h): its queue of the harness's events, its motion count, its position from the harness's
 // mouse. The real keyboard and mouse never reach the game: the backend drops every system event (S21c1: the real
 // mouse made the original's runs stop repeating). The steps still speak the window messages the game's window
 // procedure took (key down, left button down, ...; their numbers and words as Windows' were): Post makes each into
-// the event the window procedure's translation made of it.
+// the platform's event (a double click's second press a press with two clicks, a character its UTF-8 text).
 
 namespace ei::verify::input {
 
@@ -31,7 +31,7 @@ enum Message : unsigned {
     RightDown = 0x0204,
     RightUp = 0x0205,
     RightDouble = 0x0206,
-    Wheel = 0x020A,         // word: the buttons, the delta << 16 (120 a notch)
+    Wheel = 0x020A,         // word: the buttons, the delta << 16 (120 a notch); data: Point(x, y)
 };
 
 // The buttons and keys a mouse message holds (Windows' MK_).
@@ -60,7 +60,7 @@ enum Key : unsigned {
 unsigned ScanCode(unsigned key);
 
 // The window message `message` (word, data as the steps post them) as the game's event, queued for its loops;
-// Activate tells the game at once (the focus steps, as SendMessage did).
+// Activate ahead of the input waiting (the focus steps, as SendMessage told the game at once).
 void Post(unsigned message, std::uintptr_t word, std::intptr_t data);
 
 // The harness's own motion (the "mousedrag" step): the game's next read of its mouse reports (dx, dy) more.

@@ -474,9 +474,8 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
 
 ### U4: typing
 
-- **Typed text** (platform_sdl.cpp `TakeText`): SDL's text input is UTF-8; each character is queued as UTF-16 units
-  (a pair past U+FFFF). `TypedCharacter` (app.cpp) joins a surrogate pair, drops a lone half, and passes the interface
-  a code point.
+- **Typed text** (platform_sdl.cpp `QueueText`): SDL's text input is UTF-8, queued as a Text event; app.cpp's
+  dispatcher passes the interface each character's code point.
 - **The editors:** the caret stays a byte offset at a character's start. They are the message box's edit field (its
   letter class past ASCII is `platform::IsLetter`), the console line, the chat line and the save window's name.
 - **Check:** tests/scenarios/utf8_typing.txt.

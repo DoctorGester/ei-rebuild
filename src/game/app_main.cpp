@@ -62,13 +62,12 @@ namespace app {
 
 // ---- The application's globals that the static initialisers set ------------------------------------
 
-// The command line's strings; the mouse object's pointer, null at the start, released by its exit function.
+// The command line's strings.
 std::string g_movieFolder = ".\\capture\\";
 std::string g_commandLineMap;
 std::string g_commandLineMob;
 std::string g_commandLineScript;
 std::string g_cameraFile;
-constinit DirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};
 
 
 namespace {
@@ -157,18 +156,13 @@ void ReadCommandLine(const char* commandLine) {
     }
 }
 
-// The window class registered (no icon: its resource is not shipped); a game that runs already is brought to the
-// front instead and this one exits.
-void RegisterWindowClass(platform::NativeInstance instance) {
+// The window system started; a game that runs already is brought to the front instead and this one exits.
+void StartWindowSystem() {
     std::snprintf(g_windowTitle, sizeof(g_windowTitle), "%s", kWindowTitle);
-    platform::RegisterWindowClass(instance, kWindowClassName, HandleWindowEvent);
-
-    platform::NativeWindow other = platform::FindClassWindow(kWindowClassName, g_windowTitle);
-    if (!other) return;
-    ei::Log("app: another game window exists (window %p of process %lu, class and title \"%s\" the same): the one-instance "
-            "check ends this game with exit code -1", other, static_cast<unsigned long>(platform::WindowProcess(other)),
-            g_windowTitle);
-    platform::BringToFront(other);
+    platform::StartWindowSystem(kWindowClassName);
+    if (!platform::BringOtherInstanceForward(kWindowClassName, g_windowTitle)) return;
+    ei::Log("app: another game runs (its window's class and title \"%s\" the same): the one-instance check ends this "
+            "game with exit code -1", g_windowTitle);
     std::exit(-1);
 }
 
@@ -182,18 +176,6 @@ bool WarningAccepted(const std::string& text) {
 bool CheckDiskSpace(const std::vector<std::string>& messages) {
     const double freeBytes = platform::FreeDiskSpace(g_dataFolder.c_str());
     return !(freeBytes != 0.0 && freeBytes < 314572800.0 && !WarningAccepted(messages[kLittleDiskSpace]));
-}
-
-void ReleaseMouse(DirectInputMouse* mouse) {
-    if (--mouse->references == 0) delete mouse;
-}
-
-void CreateMouse() {
-    auto* mouse = new DirectInputMouse();
-    DirectInputMouse* old = g_mouse;
-    g_mouse = mouse;
-    if (mouse) ++mouse->references;
-    if (old) ReleaseMouse(old);
 }
 
 void CreateFolders(std::string& path) {
@@ -288,14 +270,13 @@ bool RunClientSegment() {
 }
 
 // A change of the window's activation taken up: active again, every surface is restored (when the renderer
-// was created) and the renderer runs; inactive, the renderer stops and the desktop is repainted.
+// was created) and the renderer runs; inactive, the renderer stops.
 void TakeActivationChange() {
     if (!g_activationChanged) return;
     if (g_active) {
         g_sceneRenderer.flags |= 1;
     } else {
         g_sceneRenderer.flags &= ~1u;
-        platform::RepaintDesktop();
     }
     g_activationChanged = 0;
 }
@@ -473,9 +454,6 @@ void ShutDown() {
     ForgetComposedTextures();
     g_interface.Shutdown();
     g_cursor.Shutdown();
-    DirectInputMouse* mouse = g_mouse;
-    g_mouse = nullptr;
-    if (mouse) ReleaseMouse(mouse);
     g_sceneRenderer.SetGamma(0.0f, 0.0f);
     g_sceneRenderer.DestroyRenderer();
     options::g_options.Save();
@@ -485,14 +463,7 @@ void ShutDown() {
 
 } // namespace
 
-// The mouse's reference dropped (ShutDown has already taken it: null at exit).
-void ReleaseMouseAtExit() {
-    if (DirectInputMouse* mouse = g_mouse)
-        if (--mouse->references == 0) delete mouse;
-}
-
 char g_windowTitle[256] = /*0079BB24*/ {""};
-platform::NativeInstance g_instance = /*0079BC24*/ {};
 platform::NativeWindow g_mainWindow = /*0079BC28*/ {};
 std::uint8_t g_active = /*0079BC5C*/ {};
 std::uint8_t g_activationChanged = /*0079BC5D*/ {};
@@ -502,13 +473,12 @@ std::uint8_t g_recordingFrames = /*0079BC54*/ {};
 int g_showClientSpeed = /*0079BC60*/ {};
 const char* g_loadingMovieName = /*00791EE0*/ "progres.bik";
 
-int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* commandLine, int show) {
+int GameMain(char* commandLine) {
     // What game.exe's static initialisers did beyond setting values, in their order: the exit functions go in the
     // game's order, not at our CRT's.
     ::InitGameServerPointer();
     ::InitGameClientPointer();
     ::InitCodeTables();
-    std::atexit(app::ReleaseMouseAtExit);
     ::BuildWeatherNoise();
 
     std::vector<std::string> messages;
@@ -517,7 +487,7 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
     app::TypeRegistryRegister(&g_classRegistry, 1, CreateClassTemplate);
     app::TypeRegistryRegister(&g_classRegistry, 2, CreatePartyRecord);
     ReadCommandLine(commandLine);
-    RegisterWindowClass(instance);
+    StartWindowSystem();
 
     GameOptions* options = &options::g_options;
     StoreStartFolder();
@@ -538,15 +508,13 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
                    std::bit_cast<std::uint32_t>(kPi * 2.0f / 7.0f));
     g_clientWorld.SetCamera(&g_camera);
     if (!CheckDiskSpace(messages)) return kExitDeclined;
-    CreateMouse();
 
     std::string folder;
     CreateFolders(folder);
-    g_instance = instance;
-    g_mainWindow = platform::CreateGameWindow(instance, g_windowTitle, options->resolutionX, options->resolutionY,
+    g_mainWindow = platform::CreateGameWindow(g_windowTitle, options->resolutionX, options->resolutionY,
                                               options->fullScreen != 0);
     if (!g_mainWindow) return 0;
-    platform::ShowGameWindow(g_mainWindow, show);
+    platform::ShowGameWindow(g_mainWindow);
     platform::SetCursor(nullptr);
 
     CreateRenderer();
@@ -557,9 +525,8 @@ int GameMain(platform::NativeInstance instance, platform::NativeInstance, char* 
     ShowLoadingMovie(0);
     CloseLoadingMovie();
     LoadDatabases();
-    g_mouse->Setup(g_mainWindow, instance);
     g_clientWorld.SetUpGraphics(g_sceneRenderer.device);
-    SetUpCursors(g_mouse, 0);
+    SetUpCursors(0);
     g_interface.Create(g_sceneRenderer.device);
     g_mapDatabase.LoadAll();
     StartFirstMap();

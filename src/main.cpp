@@ -57,5 +57,5 @@ int main(int argc, char** argv) {
     ei::Log("ei-rebuild started in %s, arguments '%s'", folder.c_str(), arguments.c_str());
     ei::rebirth_profile::Load(folder);
     render::PrepareDevice();   // the renderer's device made while the game starts up
-    return app::GameMain(platform::ProgramInstance(), nullptr, arguments.data(), 1);
+    return app::GameMain(arguments.data());
 }

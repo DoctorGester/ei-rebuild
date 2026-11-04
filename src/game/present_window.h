@@ -19,9 +19,9 @@ namespace present_window {
 // rendering resolution (app::RequestResolution); the frame is scaled into the window until the next pass takes it.
 void Update(TextureDevice* device);
 
-// A mouse event's position (client coordinates; the wheel's screen coordinates) as frame pixels, a point beyond the
-// frame (over the bars of a window of another shape) put on its nearest pixel. Returns whether the point was on the
-// frame; other events are unchanged (true).
+// A mouse event's position (in the window) as frame pixels, a point beyond the frame (over the bars of a window of
+// another shape) put on its nearest pixel. Returns whether the point was on the frame; other events are unchanged
+// (true).
 bool MouseToGame(platform::Event* event);
 
 } // namespace present_window

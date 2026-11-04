@@ -120,13 +120,10 @@ int main() {
     Check(platform::IsLetter(0x0416) && !platform::IsLetter('1'), "Unicode keyboard character classes");
 
     const std::string instanceName = "port-check-" + std::to_string(getpid());
-    Check(platform::FindClassWindow(instanceName.c_str(), "check") == nullptr, "first instance");
+    Check(!platform::BringOtherInstanceForward(instanceName.c_str(), "check"), "first instance");
     const pid_t child = fork();
     Check(child >= 0, "fork instance check");
-    if (child == 0) {
-        const auto other = platform::FindClassWindow(instanceName.c_str(), "check");
-        std::_Exit(other && platform::WindowProcess(other) == static_cast<std::uint32_t>(getppid()) ? 0 : 1);
-    }
+    if (child == 0) std::_Exit(platform::BringOtherInstanceForward(instanceName.c_str(), "check") ? 0 : 1);
     int status = 0;
     Check(waitpid(child, &status, 0) == child && WIFEXITED(status) && WEXITSTATUS(status) == 0,
           "second instance sees lock owner");

@@ -333,49 +333,32 @@ std::vector<FolderEntry> FolderEntries(std::string_view pattern) {
 
 namespace {
 int g_instanceLock = -1;
-pid_t g_instanceOwner = 0, g_otherProcess = 0;
-NativeWindow const kOtherInstance = reinterpret_cast<NativeWindow>(-1);
+pid_t g_instanceOwner = 0;
 }
 
-// SDL cannot enumerate another process's windows. Hold an advisory lock for the same class/title instead.
-NativeWindow posix::OtherInstance(const char* className, const char* title) {
-    if (g_instanceOwner == getpid() && g_instanceLock >= 0) return nullptr;
+// SDL cannot enumerate another process's windows. Hold an advisory lock for the same name and title instead.
+bool posix::OtherInstanceRunning(const char* name, const char* title) {
+    if (g_instanceOwner == getpid() && g_instanceLock >= 0) return false;
     if (g_instanceLock >= 0) close(g_instanceLock);   // a forked child must acquire its own lock
     g_instanceLock = -1;
     std::uint64_t hash = 14695981039346656037ull;
-    for (const char* part : {className, title}) {
+    for (const char* part : {name, title}) {
         for (; *part; ++part) hash = (hash ^ static_cast<unsigned char>(*part)) * 1099511628211ull;
         hash = (hash ^ 0xFFu) * 1099511628211ull;
     }
     const auto path =
         fs::temp_directory_path() / ("ei-rebuild-" + std::to_string(getuid()) + "-" + std::to_string(hash) + ".lock");
     const int fd = open(path.c_str(), O_RDWR | O_CREAT | O_CLOEXEC | O_NOFOLLOW, 0600);
-    if (fd < 0) return nullptr;
+    if (fd < 0) return false;
     if (flock(fd, LOCK_EX | LOCK_NB) == 0) {
         g_instanceLock = fd;
         g_instanceOwner = getpid();
-        const std::string pid = std::to_string(getpid());
-        if (ftruncate(fd, 0) != 0 || pwrite(fd, pid.data(), pid.size(), 0) < 0)
-            std::fputs("platform: the instance lock holds no process id\n", stderr);
-        return nullptr;
+        return false;
     }
     const int error = errno;
-    char pid[32] = {};
-    if (pread(fd, pid, sizeof(pid) - 1, 0) < 0) pid[0] = 0;
     close(fd);
-    g_otherProcess = static_cast<pid_t>(std::strtol(pid, nullptr, 10));
-    return error == EWOULDBLOCK || error == EAGAIN ? kOtherInstance : nullptr;
+    return error == EWOULDBLOCK || error == EAGAIN;
 }
-
-std::uint32_t WindowProcess(NativeWindow window) {
-    return static_cast<std::uint32_t>(window == kOtherInstance ? g_otherProcess : getpid());
-}
-
-void BringToFront(NativeWindow window) {
-    if (window && window != kOtherInstance) SDL_RaiseWindow(static_cast<SDL_Window*>(window));
-}
-
-NativeInstance ProgramInstance() { return nullptr; }
 
 bool IsLetter(std::uint32_t c) {
     static locale_t locale = [] {
