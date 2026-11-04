@@ -966,8 +966,10 @@ option). Client side only: driven by the weather the world's light hands over (`
   the state lags them (a minute into rain about 0.66 wet; still rising half a minute after it was stopped). The rain
   falling now (its strength, none in snow) drives the rings and splashes.
 - **Ground** (terrain.hlsl, `ground_weather`, `weathered`, `wet_ground`; nothing under the water, by `loss`): snow on
-  ground turned up: n.z against an edge falling from 1.15 to 0.55 with the cover, broken by the cloud map at 1/11 a unit
-  and a little sooner higher up, the albedo towards (0.82, 0.85, 0.92) (0.85 .. 1.05 of it by the texture's light). Wet
+  ground turned up: n.z against an edge falling from 1.15 to 0.55 with the cover (0.15 either side of it), broken by the
+  cloud map at 1/11 a unit and a little sooner higher up; a dusting, not a blanket (the user: the first look was too
+  harsh): at most 0.62 .. 0.87 of the ground by the same noise, the albedo towards a grey white (0.74, 0.76, 0.81),
+  0.72 .. 1.08 of it by the texture's light, so the texture shows through. Wet
   ground: the albedo down to 0.6 and a sheen of the sun (Blinn-Phong 40, 0.12). Puddles: on flat ground (n.z 0.86 ..
   0.96), where the cloud map at 1/7 a unit and the ground's own occlusion (low ground: valleys, the foot of slopes) sum
   above an edge falling with the puddles' share; the ground under them darker again (0.55), the sky reflected (the fog's
@@ -980,17 +982,18 @@ option). Client side only: driven by the weather the world's light hands over (`
   they add to the ripples, which the rain makes half again as rough; the splashes there are lit like the foam.
 - **Meshes** (mesh.hlsl, `weathered_mesh`): the world's meshes that receive the shadow map (`MeshBatch::light`) get
   `MeshFsParams::weather` (wetness, snow) and the sun; from the face normal (the map's clip space's derivatives taken to
-  the landscape's space, turned to the camera): snow on faces turned up (n.z from 1.1 .. 1.2 down to 0.6 .. 0.72 with the
-  cover), wet faces down to 0.65 with a sheen of the sun. Without a fitted map (no shadow space) none.
+  the landscape's space, turned to the camera): snow on faces turned up (n.z from 1.1 .. 1.3 down to 0.6 .. 0.85 with the
+  cover; at most 0.85 of the face, full cover from a third of it; (0.76, 0.78, 0.83), as grey as the ground's), wet faces down to 0.65 with a sheen of the sun. Without a fitted map (no shadow space) none.
 - **Units** (mesh.hlsl, `weathered_unit`; R17c2): a unit's figure part lit on the GPU (`MeshBatch::figure`,
   `MeshFsParams::weather.z`) takes the weather per pixel from its interpolated vertex normal instead (a low-poly figure's
   faces are too few and large for a face normal: a face's sheen flips on and off as it turns). The vertex shader takes the
   normal into the map's clip space by the receiver's matrix (`mapNormal`), the pixel back to the landscape's
   (`map_to_landscape`, as the face normal; right for the figures' rotations and even scales). Snow where the normal turns
-  up (n.z plus a noise of +-0.17 fixed to the part's model space, so it rides with the unit, against an edge falling from
-  0.95 .. 1.05 to 0.3 .. 0.6 with the cover; full from a third of the cover): the heads, shoulders, backs and the tops of
-  armour, the ground's snow colour times the pixel's light, 0.8 .. 1.0 of it by the texture's light and +-0.04 by the
-  noise (a covered back keeps some shape). Wet: down to 0.6, and a sheen: the sky the normal reflects (upward reflections only, so on the same tops; the
+  up (n.z plus a noise of +-0.17 fixed to the part's model space, so it rides with the unit, against a soft edge falling
+  from 0.95 .. 1.25 to 0.4 .. 0.9 with the cover; its most from half the cover): the heads, shoulders, backs and the tops
+  of armour dusted, at most 0.45 .. 0.8 of the part by the noise so its texture shows through (a wolf's back reads as
+  dusted, not a white blanket: the user), the meshes' snow colour times the pixel's light, 0.7 .. 1.0 of it by the
+  texture's light and +-0.04 by the noise. Wet: down to 0.6, and a sheen: the sky the normal reflects (upward reflections only, so on the same tops; the
   ambient light's colour plus 0.1, (r.z)^3 x (0.3 + Schlick's term) x 0.35) and the sun's highlight (Blinn-Phong 30,
   0.4, as hidden by the map and the clouds). A unit drawn without the GPU's lighting (none known) keeps the face path,
   only darker. Shelter: the units follow the world's state; neither the sun map (along the sun, not straight up) nor the

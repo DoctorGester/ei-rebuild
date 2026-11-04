@@ -178,7 +178,7 @@ float4 combine(int op, float4 a1, float4 a2, float4 current, float4 diffuse, flo
 // `dsx`, `dsy` at `s` taken to the landscape's space and turned to the camera): snow on faces turned up (not on a
 // unit), wet faces darker with a sheen of the sun (a unit only darker: its faces are few and large). `hidden`: the
 // share of the sun the map and the clouds hide. Without the map's space (no fit: `shadow.scale` 0) none.
-static const float3 kSnow = float3(0.86, 0.89, 0.95);
+static const float3 kSnow = float3(0.76, 0.78, 0.83);
 float3 weathered_mesh(float3 rgb, float3 light, float3 s, float3 dsx, float3 dsy, bool unit, float hidden) {
     float3 n = cross(map_to_landscape(dsx * shadow.scale.xyz), map_to_landscape(dsy * shadow.scale.xyz));
     float len = length(n);
@@ -188,7 +188,7 @@ float3 weathered_mesh(float3 rgb, float3 light, float3 s, float3 dsx, float3 dsy
     if (dot(n, v) < 0.0) n = -n;
     v = normalize(v);
     float cover = fs.weather.y;
-    float snow = unit ? 0.0 : smoothstep(lerp(1.1, 0.6, cover), lerp(1.2, 0.72, cover), n.z) * saturate(cover * 4.0);
+    float snow = unit ? 0.0 : smoothstep(lerp(1.1, 0.6, cover), lerp(1.3, 0.85, cover), n.z) * saturate(cover * 3.0) * 0.85;
     rgb = lerp(rgb, kSnow * saturate(light), snow);
     float wet = fs.weather.x * (1.0 - snow);
     rgb *= lerp(1.0, 0.65, wet);
@@ -222,11 +222,13 @@ float3 weathered_unit(float3 rgb, float3 light, float3 s, float3 mapNormal, floa
     float cover = fs.weather.y;
     float grain = value_noise(model * 7.0) * 0.6 + value_noise(model * 19.0) * 0.4;
     float up = n.z + (grain - 0.5) * 0.35;
-    float snow = smoothstep(lerp(0.95, 0.3, cover), lerp(1.05, 0.6, cover), up) * saturate(cover * 3.0);
-    // The snow shaded a little by the texture under it (its light against the pixel's light) and the noise, so a
-    // covered back keeps some of its shape.
+    // A dusting: a soft edge, and at most 0.45 .. 0.8 of the part (by the noise), so its texture shows through.
+    float snow = smoothstep(lerp(0.95, 0.4, cover), lerp(1.25, 0.9, cover), up) * saturate(cover * 2.0) *
+                 (0.45 + 0.35 * grain);
+    // The snow shaded by the texture under it (its light against the pixel's light) and the noise, so a dusted back
+    // keeps its shape.
     float albedo = saturate(dot(rgb, 1.0 / 3.0) / max(dot(light, 1.0 / 3.0), 0.05));
-    rgb = lerp(rgb, kSnow * saturate(light) * (0.8 + 0.2 * albedo + 0.08 * grain), snow);
+    rgb = lerp(rgb, kSnow * saturate(light) * (0.7 + 0.3 * albedo + 0.08 * grain), snow);
     float wet = fs.weather.x * (1.0 - snow);
     rgb *= lerp(1.0, 0.6, wet);
     float3 r = reflect(-v, n);
