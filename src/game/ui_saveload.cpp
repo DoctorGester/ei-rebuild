@@ -28,7 +28,7 @@
 #include <string>
 #include "render/render.h"
 #include "game_flow_data.h"
-#include "world_glue.h"
+#include "sound.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 
@@ -186,7 +186,7 @@ void SaveLoadWindow::SaveGame() {
     std::string folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder);
     std::string notice = g_clientWorld.texts->GetString(game::savewords::NotifySaving());
     g_interface.ShowStatusText(notice);
-    g_gameFlow.SaveGameThunk(entry->folder);
+    g_gameFlow.SaveGame(entry->folder);
     g_cursor.SetShape(CursorShape::Wait);
 
     // info.sav: the new save's entry (the first) with the title being given.
@@ -315,7 +315,7 @@ void QuickSave(const char* slot, bool stepFrame) {
     g_interface.serverFlag = static_cast<std::uint8_t>(g_serverWorld.paused);
     std::string notice = g_clientWorld.texts->GetString(game::savewords::NotifySaving());
     g_interface.ShowStatusText(notice);
-    g_gameFlow.SaveGameThunk(slot);
+    g_gameFlow.SaveGame(slot);
 
     // info.sav: the "gtime" variable, the zone's map, the zone, the time and an empty title.
     std::string title;
@@ -354,7 +354,7 @@ void QuickLoad(const char* slot) {
     if (!platform::PathExists(folder)) return;
     std::string notice = g_clientWorld.texts->GetString(kNotifyLoading);
     g_interface.ShowStatusText(notice);
-    GameStopSounds(1);
+    g_clientWorld.sounds->StopAll(true);
     g_gameFlow.RequestLoad(slot);
 }
 
@@ -398,7 +398,7 @@ void SaveLoadWindow::LoadSelected() {
     if (entries.data()[currentSelected].broken) return;
     std::string notice = g_clientWorld.texts->GetString(kNotifyLoading);
     g_interface.ShowStatusText(notice);
-    GameStopSounds(1);
+    g_clientWorld.sounds->StopAll(true);
     ui->PlayInterfaceSound(game::OkSoundText());
     g_gameFlow.RequestLoad(entries.data()[selected].folder);
 }

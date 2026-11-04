@@ -6,7 +6,6 @@
 
 #include "game_strings.h"
 #include "world_effect.h"
-#include "world_glue.h"
 
 #include <cstdint>
 

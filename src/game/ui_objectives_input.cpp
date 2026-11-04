@@ -2,7 +2,6 @@
 // zone / quest display are in ui_objectives.cpp. See ui.h (ObjectivesWindow) and
 // docs/notes/ui.md ("Objectives, save/load, options").
 #include "ui.h"
-#include "world_glue.h"
 
 #include "console.h"
 #include "text_manager.h"
@@ -63,7 +62,7 @@ void ObjectivesWindow::LeftDown(Point point) {
         } else if (nearestExit >= 0) {
             const ObjectiveExit& exit = exits[nearestExit];
             int index = exit.exit;
-            GamePassTime(exit.distance);
+            g_serverWorld.PassTime(exit.distance);
             RequestZone(shownZone, index);
         }
         return;
@@ -118,7 +117,7 @@ void ObjectivesWindow::KeyDown(int key, int scan, bool repeat) {
         } else if (nearestExit >= 0) {
             const ObjectiveExit& exit = exits[nearestExit];
             int index = exit.exit;
-            GamePassTime(exit.distance);
+            g_serverWorld.PassTime(exit.distance);
             RequestZone(shownZone, index);
         }
         handled = true;

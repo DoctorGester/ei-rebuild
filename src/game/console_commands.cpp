@@ -14,7 +14,6 @@
 #include "ui.h"
 #include "unit.h"
 #include "world.h"
-#include "world_glue.h"
 
 #include "lib/containers.h"
 #include "platform/platform.h"
@@ -393,7 +392,7 @@ void HostServer(const CommandArgs& args) {
 void MemUsage(const CommandArgs&) {}
 
 // disconnect, any arguments: the client world's local player disconnects.
-void Disconnect(const CommandArgs&) { g_gameFlow.DisconnectClient(); }
+void Disconnect(const CommandArgs&) { g_clientWorld.DisconnectLocalPlayer(); }
 
 void LootAll(const CommandArgs&) {
     PrintLine("Looting...");

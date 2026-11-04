@@ -8,7 +8,6 @@
 #include "text_manager.h"       // TextManager
 #include "game_singletons.h"
 #include "world.h"
-#include "world_glue.h"
 
 #include "lib/rebirth.h"
 #include "lib/calendar.h"

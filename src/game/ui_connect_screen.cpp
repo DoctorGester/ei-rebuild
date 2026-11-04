@@ -30,7 +30,6 @@
 #include <string>
 #include "lib/str.h"
 #include "lib/vecmath.h"
-#include "world_glue.h"
 #include "game_singletons.h"
 
 #include <memory>

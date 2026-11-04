@@ -12,7 +12,7 @@
 #include "world.h"
 
 #include "lib/crt.h"
-#include "world_glue.h"
+#include "player_client.h"
 #include "ui_cursor.h"
 #include "lib/str.h"
 
@@ -66,7 +66,8 @@ void ExchangeScreen::Update() {
     UiContainer::Update();
     if (!LiveOffer()) {
         ReturnAll(LocalPlayerData(), ownOffer);
-        GameRejoin();
+        g_interface.closeAll = 1;
+        g_clientWorld.LocalView()->Rejoin();
         return;
     }
     bool changed = moneyField->changed;
@@ -116,7 +117,8 @@ void ExchangeScreen::ExchangeDone(Party* partyB, Party* partyA, Party* partyC) {
     ReturnAll(local, partyC);
     ReturnAll(local, partyB);
     local->money = partyB->money - partyA->money + partyC->money;
-    GameRejoin();
+    g_interface.closeAll = 1;
+    g_clientWorld.LocalView()->Rejoin();
 }
 
 // --- Create --------------------------------------------------------------------------------------

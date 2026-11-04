@@ -185,8 +185,8 @@ void WorldServer::TeardownZone() {
 
     EndTimedObjects(this);
     CloseSession();
-    gameResult = 0;
-    sessionKind = 0;
+    gameState = GameState::None;
+    zoneMode = ZoneMode::None;
 }
 
 // ---- SendFreshObjects -------------------------------------------------------------------------
@@ -241,7 +241,7 @@ void WorldServer::ResetState() {
         alarm.y = 0.0f;
         alarm.x = 0.0f;
     }
-    sessionKind = 0;
+    zoneMode = ZoneMode::None;
     startPosition = {};
     weatherFactor = std::bit_cast<std::uint32_t>(1.0f);
     loaded = 0;

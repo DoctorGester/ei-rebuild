@@ -14,7 +14,6 @@
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"
-#include "world_glue.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/rect.h"

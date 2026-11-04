@@ -30,10 +30,6 @@ namespace {
 
 constexpr float kFacingOffset = /*007AFED8*/ 1.5707964f;   // pi / 2
 
-constexpr int kKindSinglePlayer = 1;
-constexpr int kKindNoRangeTest = 3;
-constexpr int kKindNetwork = 4;
-constexpr int kGameResultLost = 2;
 constexpr std::uint32_t kNoStart = 0xC4A42000;   // -1313.0f as the state's last z: no start position
 
 const MapRecord* FindZone(const std::string& name) {
@@ -82,7 +78,7 @@ std::vector<Item*> WorldServer::TakeZoneQuestItems(std::vector<Item*>* items) {
         if (ItemAt(items, i)->GetClassId() != ClassId::ItemQuest) continue;
         Item* item = ItemAt(items, i);
         itemdb::QuestItemRecord* info = itemdb::RecordAs<itemdb::QuestItemRecord>(item->GetPrototype());
-        if (sessionKind == kKindSinglePlayer && !IsMultiplayerClient()) {
+        if (zoneMode == ZoneMode::Battle && !IsMultiplayerClient()) {
             bool here = info && NamesZone(info, zoneName.c_str());
             if (!here && !Contains(wanted, static_cast<int>(item->AsQuest()->questItemId))) continue;
         }
@@ -95,7 +91,7 @@ std::vector<Item*> WorldServer::TakeZoneQuestItems(std::vector<Item*>* items) {
 
 void WorldServer::RestorePlayerItems(Player* player) {
     std::vector<Item*> taken;
-    if (sessionKind != kKindNetwork) {
+    if (zoneMode != ZoneMode::Edge) {
         std::vector<Item*>* items = &player->GetParty()->items;
         if (IsMultiplayerClient()) {
             // A client takes everything back.
@@ -123,7 +119,7 @@ void WorldServer::RestorePlayerItems(Player* player) {
 void WorldServer::Redeploy(Player* player, std::vector<UnitPlacement>* placements, char runScripts) {
     if (!player) return;
     RestorePlayerItems(player);
-    if (!(sessionKind == kKindSinglePlayer || sessionKind == kKindNoRangeTest) || zoneLoaded == 0) return;
+    if (!IsSinglePlayerMode(zoneMode) || zoneLoaded == 0) return;
 
     Party* party = player->GetParty();
     std::vector<PartyUnitRecord*> records{};
@@ -133,7 +129,7 @@ void WorldServer::Redeploy(Player* player, std::vector<UnitPlacement>* placement
         records[index] = &party->members[i];
     }
     // A lost game sends the party back to this zone's first exit.
-    if (gameResult == kGameResultLost) {
+    if (gameState == GameState::Network) {
         party->zone = zoneName;
         party->entrance = 0;
     }
@@ -169,10 +165,10 @@ void WorldServer::Redeploy(Player* player, std::vector<UnitPlacement>* placement
     lastZ = std::bit_cast<std::uint32_t>(state->lastPosition.z);
     if (lastZ != kNoStart) {
         state->lastPosition = start;
-        state->SendCameraPlacement(start, startValue, sessionKind);
+        state->SendCameraPlacement(start, startValue, static_cast<std::uint32_t>(zoneMode));
     }
     player->lastTick = tick;
-    if (sessionKind == kKindNoRangeTest) UpdateMercBriefings();
+    if (zoneMode == ZoneMode::Base) UpdateMercBriefings();
     if (runScripts) {
         scriptsActive = 1;
         for (int i = 0; i < 5; ++i) ScriptTick(MainScript());

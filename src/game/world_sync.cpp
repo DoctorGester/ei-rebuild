@@ -32,8 +32,6 @@ constexpr float kHearingMargin = 5.0f;    // added to it
 
 constexpr MapObjectType kTypeNoSync = MapObjectType::MagicTrap;   // never sent
 
-constexpr int kKindSinglePlayer = 1;         // WorldServer::sessionKind
-constexpr int kKindNoRangeTest = 3;
 
 // Whether `point` lies outside the camera's view range around the player's last position, in the ground plane; NaN
 // counts as inside.
@@ -45,7 +43,7 @@ bool OutOfView(const Vector3& point, const PlayerServer* state) {
 // objects named in scripts, and every unit within hearing range of one of its units. `out` is the
 // objects are appended to `out`.
 void CollectMapObjects(WorldServer* world, Player* player, PlayerServer* state, std::vector<MapObject*>& out) {
-    if (world->sessionKind == kKindSinglePlayer && options::g_options.drawVisibleOnly == 0) {
+    if (world->zoneMode == ZoneMode::Battle && options::g_options.drawVisibleOnly == 0) {
         // Every map object near the camera, and the player's units anywhere; nothing else.
         for (auto node = world->mapObjects.map.begin(); node != world->mapObjects.map.end() && node->second; ++node) {
             MapObject* object = node->second;
@@ -59,8 +57,8 @@ void CollectMapObjects(WorldServer* world, Player* player, PlayerServer* state, 
         return;
     }
 
-    MapObjectIdMap& source = world->sessionKind == kKindSinglePlayer ? world->otherMapObjects : world->mapObjects;
-    if (world->sessionKind == kKindNoRangeTest) {
+    MapObjectIdMap& source = world->zoneMode == ZoneMode::Battle ? world->otherMapObjects : world->mapObjects;
+    if (world->zoneMode == ZoneMode::Base) {
         for (auto node = source.map.begin(); node != source.map.end() && node->second; ++node) {
             MapObject* object = node->second;
             if (object->MapType() != kTypeNoSync && !(object->flags & MapObjectFlag::Invisible)) out.push_back(object);
@@ -71,7 +69,7 @@ void CollectMapObjects(WorldServer* world, Player* player, PlayerServer* state, 
             if (object->MapType() != kTypeNoSync && !OutOfView(object->localPosition, state)) out.push_back(object);
         }
     }
-    if (world->sessionKind != kKindSinglePlayer) return;
+    if (world->zoneMode != ZoneMode::Battle) return;
 
     // The units always sent.
     for (const ScriptObjectRef& unit : state->partyUnits) out.push_back(unit.object);
@@ -156,7 +154,7 @@ int WorldServer::SyncPlayer(Player* player) {
         state->SendTimedAdded(&timedAdded);
         state->SendTimedChanged(&timedSame);
 
-        if (sessionKind == kKindSinglePlayer && IsMultiplayerClient()) {
+        if (zoneMode == ZoneMode::Battle && IsMultiplayerClient()) {
             int& timer = state->refreshTimer;
             if (--timer <= 0 && state->danger == PlayerServer::PartyDanger::Safe) state->ResendParty();
         }

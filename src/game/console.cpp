@@ -7,7 +7,6 @@
 #include "game_strings.h"
 #include "ui.h"
 #include "world.h"
-#include "world_glue.h"
 #include "lib/str.h"
 #include "platform/platform.h"
 
@@ -243,7 +242,7 @@ void RunScriptLine(const std::string& text, const std::vector<std::string>& args
         line += arg;
     }
     line += suffix;
-    if (!RunScriptText(line, 1, &error))
+    if (!g_serverWorld.RunCommandScript(line, true, &error))
         EndLine(g_consoleOut << "Script error: " << error.text);
 }
 

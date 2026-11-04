@@ -218,10 +218,14 @@ as its owner at exit: a fault there shows as a crash on quit.
 
 ## Original bugs kept
 
-- `sessionKind` holds the session kind (1 single player, 3 no range test, 4 network) and, once a zone is entered
-  (`g_serverWorld.sessionKind = mode`), the campaign mode (1 battle, 2 menu, 3 base, 4 edge, 8 end). So
-  `RestorePlayerItems` takes an edge zone (mode 4) for a network game and gives no quest items back on a redeploy there.
-  The original compares the same field with 4. A fix would give a party redeployed in an edge zone its quest items.
+- The original called the same field `sessionKind` (1 single player, 3 no range test, 4 network) and stored the campaign
+  mode in it (1 battle, 2 menu, 3 base, 4 edge, 8 end). Here it is `WorldServer::zoneMode` (`ZoneMode`, world.h):
+  a network zone runs in Battle, so nothing sets 4 for a network game, and `RestorePlayerItems` and `CollectParty`
+  (which compare with the original's 4) skip the items of an edge zone (`ZoneMode::Edge`): a party redeployed or
+  collected there neither stores nor gets back its quest items. A fix would treat edge zones like the others.
+  The game's state (`WorldServer::gameState`, `GameState`: playing, network, main menu) is a separate field; the
+  digests keep their old names "gameResult" and "sessionKind" for the two numbers. `Player::sessionKind` is the
+  player's own state number (a copy of `zoneMode` at login, later the interface screen the server sent), still an int.
 
 ## Known points
 

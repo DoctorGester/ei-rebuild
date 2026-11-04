@@ -35,7 +35,7 @@
 #include "game/world_data.h"
 #include "game/world_effect.h"
 #include "game/net_coder.h"
-#include "game/world_glue.h"
+#include "game/sound.h"
 #include "game/world_map_files.h"
 #include "lib/crt.h"
 
@@ -167,7 +167,7 @@ bool ScreenFade(bool* running, float* alpha) {
     *alpha = fade->alpha;
     return true;
 }
-int CampaignMode() { return g_serverWorld.sessionKind; }
+int CampaignMode() { return static_cast<int>(g_serverWorld.zoneMode); }
 void* ClientWorldObject() { return &g_clientWorld; }
 void* SceneDevice() { return g_sceneRenderer.device.Get(); }
 
@@ -180,8 +180,11 @@ void CameraUpdate(void* camera, float seconds) { static_cast<::Camera*>(camera)-
 void FrameStep(bool draw) { app::FrameStep(draw); }
 
 void ConsoleExecute(const char* text) { console::Execute(text); }
-void RequestGameState(int id) { GameRequestGameState(id); }
-void SetConstructionVariable(std::uint32_t value) { GameSetConstructionVariable(value); }
+void RequestGameState(int id) {
+    g_interface.closeAll = 1;
+    g_clientWorld.LocalView()->RequestGameState(id);
+}
+void SetConstructionVariable(std::uint32_t value) { g_serverWorld.SetConstructionVariable(value); }
 void ObserveConsoleLines(void (*observer)(const char* line)) { console::g_consoleLineObserver = observer; }
 unsigned& UpdatePeriod() { return reinterpret_cast<unsigned&>(worlddata::g_updatePeriod); }
 const char* DataFolder() { return DataFolderText(); }
@@ -444,7 +447,7 @@ long ModManagerFile(const char* which, const char* name) {
     return -4;
 }
 
-void PlayStream(const char* name) { GamePlayMusic(name); }
+void PlayStream(const char* name) { g_clientWorld.sounds->RequestStream(name, 4); }
 
 bool MapsFileExists(const char* name) { return MapFileExists(name); }
 

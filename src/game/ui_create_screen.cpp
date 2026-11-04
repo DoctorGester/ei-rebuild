@@ -15,7 +15,6 @@
 #include "ui_screens.h"
 #include "ui_view_screen.h"
 #include "world.h"
-#include "world_glue.h"
 #include "lib/crt.h"
 #include "render/render_state.h"
 
@@ -100,7 +99,7 @@ void Interface3D::PushWindow(UiContainer* window, WindowBackdrop keep) {
     }
     if (stack.size() == 1) {    // one window open
         serverFlag = static_cast<std::uint8_t>(g_serverWorld.paused);
-        if (!IsMultiplayerClient()) GameSetServerPaused(1);
+        if (!IsMultiplayerClient()) g_serverWorld.SetServerPaused(1);
         if (keep == WindowBackdrop::FirstWindow) {
             backdropMode = 1;
             app::FrameStep(false);
@@ -130,7 +129,7 @@ void Interface3D::Activate(UiContainer* window) {
     secondBackdrop = nullptr;
     backdropMode = 0;
     serverFlag = 0;
-    GameSetServerPaused(0);
+    g_serverWorld.SetServerPaused(0);
     g_cursor.SetShape(CursorShape::Wait);
     while (!stack.empty()) {
         stack.back()->Input()->Deactivate();

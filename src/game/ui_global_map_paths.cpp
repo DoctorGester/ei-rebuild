@@ -13,7 +13,7 @@
 #include "ui.h"
 #include "ui_screens.h"
 #include "world.h"
-#include "world_glue.h"
+#include "player_client.h"
 #include "lib/rebirth.h"
 #include "lib/containers.h"
 #include "lib/str.h"
@@ -110,8 +110,9 @@ void GlobalMap::LeftDown(Point point) {
     if (region == kRegionCamp) {
         if (noCamp) return;
         ui->PlayInterfaceSound(kTransitSound);
-        GameSetConstructionVariable(std::bit_cast<std::uint32_t>(0.0f));
-        GameRequestGameState(kCampScreen);
+        g_serverWorld.SetConstructionVariable(std::bit_cast<std::uint32_t>(0.0f));
+        g_interface.closeAll = 1;
+        g_clientWorld.LocalView()->RequestGameState(kCampScreen);
         return;
     }
     int link;
@@ -136,7 +137,7 @@ void GlobalMap::LeftDown(Point point) {
     // A link: the party goes there at once when there is a way.
     SearchWays(links[link].name);
     if (!found) return;
-    GamePassTime(arrivals[0]);
+    g_serverWorld.PassTime(arrivals[0]);
     ::RequestZone(links[link].name, 0);
 }
 

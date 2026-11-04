@@ -31,8 +31,6 @@ constexpr float kBoltSpread = 4.0f * 0x1p-32f;
 constexpr float kFive = 5.0f;
 constexpr float kBoltHeight = 40.0f;
 
-constexpr int kKindSinglePlayer = 1;
-constexpr int kKindNoRangeTest = 3;
 constexpr int kStormy = 3;                  // climate: storms with lightning strikes
 constexpr int kRaining = 1;                 // weather
 constexpr int kTypeLightning = 0x65;
@@ -121,7 +119,7 @@ Script& ScriptQueue() { return *g_serverWorld.SecondScript(); }   // a command q
 void WorldServer::UpdateWeather() {
     float day = NightLevel();
     nightLevel = day;
-    if (sessionKind == kKindSinglePlayer) {
+    if (zoneMode == ZoneMode::Battle) {
         if (climate != 0) {
             if (climate == kStormy) TryLightningStrike(this);
             else UpdateRain(this);
@@ -131,7 +129,7 @@ void WorldServer::UpdateWeather() {
     weatherFactor = std::bit_cast<std::uint32_t>(weather == 0 ? kDayFactorDry : kDayFactorRain);
 
     for (auto& node : objects.map) node.second->UpdateMoveFactors();    // the weather changed
-    if (sessionKind == kKindSinglePlayer || sessionKind == kKindNoRangeTest) UpdatePlayerTimes(0.0f);
+    if (IsSinglePlayerMode(zoneMode)) UpdatePlayerTimes(0.0f);
 }
 
 // ---- ShowBolt ---------------------------------------------------------------------------------

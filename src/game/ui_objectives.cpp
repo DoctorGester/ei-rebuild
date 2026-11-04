@@ -13,7 +13,7 @@
 #include "ui.h"
 #include "ui_float.h"
 #include "world.h"
-#include "world_glue.h"
+#include "player_client.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -211,7 +211,7 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
         std::vector<std::string> parts;
         NamedFloatTable table;
         prefix = std::format("q.{}", shownZone);
-        GameLocalPlayerVariables(prefix, &table);
+        g_clientWorld.LocalView()->player->GetParty()->variables.CopyPrefixed(prefix, &table);
         std::vector<std::string> found;
         for (auto node = table.begin(); node != table.end(); ++node) {
             if (node->second == 0.0f) continue;
@@ -473,7 +473,7 @@ void ObjectivesWindow::CreateScreen() {
         std::string current;
         std::vector<std::string> parts;
         NamedFloatTable table;
-        GameLocalPlayerVariables("q.", &table);
+        g_clientWorld.LocalView()->player->GetParty()->variables.CopyPrefixed("q.", &table);
         const std::string& interfaceQuest = ui->savedText;
         for (auto node = table.begin(); node != table.end(); ++node) {
             parts = text::Split(node->first, '.');

@@ -178,6 +178,10 @@ void WorldServer::UpdatePlayerTimes(float offset) {
     }
 }
 
+void WorldServer::PassTime(float offset) {
+    if (offset >= 0.0f) UpdatePlayerTimes(offset);
+}
+
 void WorldServer::LoadSavedMapObjects(ByteStream* stream) {
     for (;;) {
         int objectId = ReadAs<int>(stream);
@@ -234,12 +238,12 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
     std::string newMapName;
     std::string newZoneName;
 
-    gameResult = 0;
+    gameState = GameState::None;
     scriptsActive = 0;
     if (PlayerList()) {
         PlayerIterator it;
         for (Player* player = it.First(PlayerList()); player; player = it.Next()) {
-            gameResult = 1;
+            gameState = GameState::Playing;
             scriptsActive = 1;
             player->Clear();
         }
@@ -276,7 +280,7 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
     } else {
         speed = static_cast<float>(ReadAs<int>(stream));
     }
-    stream->ReadValue(sessionKind);
+    stream->ReadValue(zoneMode);
 
     int result;
     if (!ReadAIGraph(newMapName, newMobName, &savedGraph)) {
@@ -408,7 +412,7 @@ void WorldServer::SaveWorld(ByteStream* stream) {
     MemoryStream base;
     MemoryStream current;
 
-    if (sessionKind == 1 || sessionKind == 3) UpdatePlayerTimes(0.0f);
+    if (IsSinglePlayerMode(zoneMode)) UpdatePlayerTimes(0.0f);
     objectManager->ReleaseUnused();
     timedObjectManager->ReleaseUnused();
     spellManager->ReleaseUnused();
@@ -431,7 +435,7 @@ void WorldServer::SaveWorld(ByteStream* stream) {
     stream->WriteValue(clock.hours);
     stream->WriteValue(clock.speed);
     stream->WriteValue(lastRainBoltTick);
-    stream->WriteValue(sessionKind);
+    stream->WriteValue(zoneMode);
 
     ReadAIGraph(mapName, mobName, &base);
     aiMap.regionMap.SaveBlocks(&current);
