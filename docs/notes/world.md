@@ -79,9 +79,12 @@ and releases gone ones (added / kept / removed).
   which only a save fills: a record made by `AddMember` (AddUnitToServer, AddUnitToParty) has them empty, as the
   original's had (its record constructor 0065F5F0 sets every text empty, FillFromPrototype 006621F0 writes texts 2 and
   6). A hero's skins are named "mo<id>p" / "mo<id>s" on the client; any other unit's texture is named "" and found
-  nowhere, so its figure draws untextured (white lit: pale in the light), the original's look. No map script calls
-  AddUnitToServer; zone4hadagans' AddUnitToParty("DrPlen", "DragonkinGreenF3") makes such a record. The harness's
-  `skin` step gives a spawned unit the textures the maps place its kind with (render_unit_skin).
+  nowhere, so its figure draws untextured (white lit: pale in the light), the original's look. No map script of either
+  install calls AddUnitToServer: the missions add units at run time with AddMob (21 calls: an extra .mob whose unit
+  records name their textures, B007 / B008) or reveal placed hidden ones; zone4hadagans' AddUnitToParty("DrPlen",
+  "DragonkinGreenF3") makes such a record (R49a). The scenarios' AddUnitToServer spawns lack that step; the harness's
+  `skin` step gives them the textures the maps place their kind with (render_unit_skin; a generated .mob through
+  AddMob, as tools/make_trap_mob.py does for traps, would be the game's own way but moves the goldens).
 - **Saving** (`SaveGame`; autosave "savea" on zone entry when the option is on): saves\current files are copied into
   saves\<slot>, scenario.sav gets the global state (header 0xDEAD), mission.sav the world (header 0x102, zone kinds 0 and
   2); prints "Saved <slot>". `SaveFileWrite` compresses with the LZ coder, checks by decompressing (mismatch: a 0 flag and
