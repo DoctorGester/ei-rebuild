@@ -12,7 +12,7 @@
 namespace {
 
 // The server world's object by id.
-EngineObject* FindObject(int id) { return g_serverWorld.FindObject(static_cast<unsigned>(id)); }
+MapObject* FindObject(int id) { return g_serverWorld.FindObject(static_cast<unsigned>(id)); }
 
 
 // The members' order (the game's qsort by object address, unsigned; ours ScriptGroup::After, by id). The live
@@ -27,6 +27,16 @@ bool ScriptGroup::After(const EngineObject* x, const EngineObject* y) {
     if (!x || !y) return x != nullptr;
     return x->id > y->id;
 }
+
+// ---- Object references ----------------------------------------------------------------------
+
+ScriptObjectRef::ScriptObjectRef() = default;
+ScriptObjectRef::ScriptObjectRef(MapObject* object) : object(object) {}
+ScriptObjectRef::ScriptObjectRef(const ScriptObjectRef& other) = default;
+ScriptObjectRef::ScriptObjectRef(ScriptObjectRef&& other) noexcept = default;
+ScriptObjectRef& ScriptObjectRef::operator=(const ScriptObjectRef& other) = default;
+ScriptObjectRef& ScriptObjectRef::operator=(ScriptObjectRef&& other) noexcept = default;
+ScriptObjectRef::~ScriptObjectRef() = default;
 
 Unit* ScriptObjectRef::AsUnit() const {
     return UnitOrNull(object);
@@ -63,13 +73,13 @@ void ScriptGroup::Union(const ScriptGroup& a, const ScriptGroup& b) {
     while (i < aSize) {
         if (j >= bSize) {
             while (i < aSize) {
-                EngineObject* x = a.members[i++].object;
+                MapObject* x = a.members[i++].object;
                 members[out++].object = x;
             }
             break;
         }
-        EngineObject* x = a.members[i].object;
-        EngineObject* y = b.members[j].object;
+        MapObject* x = a.members[i].object;
+        MapObject* y = b.members[j].object;
         if (x == y) {
             members[out++].object = x;
             ++i;
@@ -83,7 +93,7 @@ void ScriptGroup::Union(const ScriptGroup& a, const ScriptGroup& b) {
         }
     }
     while (j < bSize) {
-        EngineObject* y = b.members[j++].object;
+        MapObject* y = b.members[j++].object;
         members[out++].object = y;
     }
     members.resize(out);
@@ -96,13 +106,13 @@ void ScriptGroup::Difference(const ScriptGroup& a, const ScriptGroup& b) {
     while (i < aSize) {
         if (j >= bSize) {
             while (i < aSize) {
-                EngineObject* x = a.members[i++].object;
+                MapObject* x = a.members[i++].object;
                 members[out++].object = x;
             }
             break;
         }
-        EngineObject* x = a.members[i].object;
-        EngineObject* y = b.members[j].object;
+        MapObject* x = a.members[i].object;
+        MapObject* y = b.members[j].object;
         if (x == y) {
             ++i;
             ++j;
@@ -121,8 +131,8 @@ void ScriptGroup::Intersection(const ScriptGroup& a, const ScriptGroup& b) {
     members.resize(aSize > bSize ? aSize : bSize);
     std::size_t out = 0, i = 0, j = 0;
     while (i < aSize && j < bSize) {
-        EngineObject* x = a.members[i].object;
-        EngineObject* y = b.members[j].object;
+        MapObject* x = a.members[i].object;
+        MapObject* y = b.members[j].object;
         if (x == y) {
             members[out++].object = x;
             ++i;
@@ -144,7 +154,7 @@ void ScriptGroup::Remove(EngineObject* object) {
 }
 
 // A binary search for the place in member order; nothing when the object is there.
-void ScriptGroup::Insert(EngineObject* object) {
+void ScriptGroup::Insert(MapObject* object) {
     if (!object) return;
     int low = 0;
     int high = static_cast<int>(size()) - 1;
@@ -155,7 +165,7 @@ void ScriptGroup::Insert(EngineObject* object) {
         if (After(object, current)) low = middle + 1;
         else high = middle - 1;
     }
-    members.insert(members.begin() + low, ScriptObjectRef{object});
+    members.insert(members.begin() + low, ScriptObjectRef(object));
 }
 
 void ScriptGroup::RemoveDeleted() {
@@ -174,7 +184,7 @@ void ScriptGroup::InsertAll(const std::vector<HeldRef<Unit>>* list) {
 
 void ScriptGroup::CopyToList(std::vector<HeldRef<Unit>>* list) const {
     list->clear();
-    for (const ScriptObjectRef& ref : *this) list->push_back(static_cast<Unit*>(ref.object.Get()));
+    for (const ScriptObjectRef& ref : *this) list->push_back(ref.AsUnit());
 }
 
 bool ScriptGroup::Contains(EngineObject* object) const {

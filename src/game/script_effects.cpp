@@ -113,10 +113,15 @@ T* FindId(std::vector<T>& list, int id) {
 } // namespace
 
 // Takes the effect object out of the world's timed objects and drops the reference to it.
-void ScriptDropEffect(EngineObject* object) {
+template <class T>
+void ScriptDropEffect(T* object) {
     g_serverWorld.RemoveTimedObject(object->id);
     object->Release();
 }
+template void ScriptDropEffect(EffectPointLight*);
+template void ScriptDropEffect(EffectParticle*);
+template void ScriptDropEffect(EffectSound*);
+template void ScriptDropEffect(EffectLightning*);
 
 // CreateFX(x, y, z, volume, radius, name), a sound played once.
 void Script::ScriptCreateFx(const SSCCmd* cmd) {

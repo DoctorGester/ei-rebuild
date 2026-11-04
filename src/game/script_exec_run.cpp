@@ -27,9 +27,6 @@ bool IsZero(float value) {
     return value == 0.0f;
 }
 
-// An effect object took a new position.
-void EffectMoved(EngineObject* object) { static_cast<Effect*>(object)->MarkChanged(); }
-
 // An FX source's offset on one axis: (r - (-r)) * random / 2^32 + (-r).
 float FxOffset(float radius, std::uint32_t random) {
     const float negative = -radius;
@@ -72,7 +69,7 @@ void UpdatePointLights(Script* script) {
         }
         Vector3& position = light.object->localPosition;
         position += light.step;
-        EffectMoved(light.object.get());
+        light.object->MarkChanged();
     }
 }
 
@@ -89,7 +86,7 @@ void UpdateParticleSources(Script* script) {
             if (count > 0) {
                 Vector3& position = source.object->localPosition;
                 position += source.step;
-                EffectMoved(source.object.get());
+                source.object->MarkChanged();
             } else {
                 source.moving = 0;
                 if (source.deleteAfterMove) remove = true;

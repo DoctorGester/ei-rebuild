@@ -305,7 +305,5 @@ public:
     MapObject* owner;              // the map object (MapObject::AttachObject sets it)
 };
 
-// An engine object known to be a map object (a unit, a lever, a trap ...): its slots and fields.
-inline MapObject* ObjectSlots(EngineObject* object) { return static_cast<MapObject*>(object); }
 
 

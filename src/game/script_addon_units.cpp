@@ -27,9 +27,9 @@ ScriptObjectRef* ObjectArg(Call* call, int i) { return call->cmd->objectArgs[i];
 
 // The filter of NearestUnit and UnitsNearPoint (10011421, 10013076): units pass with flag 1,
 // other objects with flag 2, and with flag 4 any living object with a text-key id.
-bool PassesFilter(EngineObject* object, bool units, bool others, bool living) {
+bool PassesFilter(MapObject* object, bool units, bool others, bool living) {
     bool unit = IsUnit(object);
-    bool alive = object->id >= 1000000000 && ObjectSlots(object)->IsDead() == 0;
+    bool alive = object->id >= 1000000000 && object->IsDead() == 0;
     if (unit ? units : others) return true;
     return alive && living;
 }
@@ -64,7 +64,7 @@ void ForWorldObjects(Visit visit) {
 // The unit's party's player number; -1 without.
 bool GetPlayerOfUnit(Call* call) {
     *call->result.number = -1.0f;
-    EngineObject* unit = ObjectArg(call, 0)->object;
+    MapObject* unit = ObjectArg(call, 0)->object;
     if (!unit) return Report("GetPlayerOfUnit", "Unit doesn't exists");
     Unit* asUnit = UnitOrNull(unit);
     if (!asUnit) return Report("GetPlayerOfUnit", "Object with ID %d must be a Unit", unit->id);
@@ -126,10 +126,10 @@ bool NearestUnit(Call* call) {
     float x = f[0], y = f[1], radius = f[2];
     int filter = lib::Truncate(f[3]);
     bool units = (filter & 1) != 0, others = ((filter >> 1) & 1) != 0, living = ((filter >> 2) & 1) != 0;
-    EngineObject* best = nullptr;
-    ForObjectsNear(x, y, radius, [&](EngineObject* object) {
+    MapObject* best = nullptr;
+    ForObjectsNear(x, y, radius, [&](MapObject* object) {
         if (!PassesFilter(object, units, others, living)) return;
-        const Vector3& at = ObjectSlots(object)->localPosition;
+        const Vector3& at = object->localPosition;
         float distance = Length2D(Vector2{x, y} - XY(at));
         if (distance < radius) {   // ordered: a NaN distance never wins
             best = object;
@@ -148,7 +148,7 @@ bool UnitsNearPoint(Call* call) {
     int filter = lib::Truncate(f[3]);
     bool units = (filter & 1) != 0, others = ((filter >> 1) & 1) != 0, living = ((filter >> 2) & 1) != 0;
     call->GroupResult()->Clear();
-    ForObjectsNear(x, y, radius, [&](EngineObject* object) {
+    ForObjectsNear(x, y, radius, [&](MapObject* object) {
         if (PassesFilter(object, units, others, living)) call->GroupResult()->Insert(object);
     });
     return true;
@@ -237,7 +237,7 @@ bool GetRace(Call* call) {
 // The object's class id, -1 without an object.
 bool GetObjectTypeID(Call* call) {
     *call->result.number = -1.0f;
-    EngineObject* object = ObjectArg(call, 0)->object;
+    MapObject* object = ObjectArg(call, 0)->object;
     if (object) *call->result.number = static_cast<float>(object->GetClassId());
     return true;
 }
@@ -249,7 +249,7 @@ bool GetObjectsOnMap(Call* call) {
     group->Clear();
     const std::vector<float>& classes = call->cmd->floatArgs;
     bool all = classes.size() == 1 && classes[0] == -1.0f;
-    ForWorldObjects([&](EngineObject* object) {
+    ForWorldObjects([&](MapObject* object) {
         if (!object) return;
         if (all) {
             call->GroupResult()->Insert(object);
@@ -268,7 +268,7 @@ bool GetObjectsOnMap(Call* call) {
 // A unit with a text-key id in a party.
 bool IsPlayer(Call* call) {
     *call->result.number = 0.0f;
-    EngineObject* unit = ObjectArg(call, 0)->object;
+    MapObject* unit = ObjectArg(call, 0)->object;
     Unit* asUnit = UnitOrNull(unit);
     if (asUnit && asUnit->id >= 1000000000 && asUnit->player) *call->result.number = 1.0f;
     return true;
@@ -278,15 +278,15 @@ bool IsPlayer(Call* call) {
 // death state is 1 / 0.
 bool IsDead(Call* call) {
     *call->result.number = 0.0f;
-    EngineObject* unit = ObjectArg(call, 0)->object;
-    if (unit && IsUnit(unit)) *call->result.number = ObjectSlots(unit)->IsDead() == 1 ? 1.0f : 0.0f;
+    MapObject* unit = ObjectArg(call, 0)->object;
+    if (unit && IsUnit(unit)) *call->result.number = unit->IsDead() == 1 ? 1.0f : 0.0f;
     return true;
 }
 
 bool IsAlive(Call* call) {
     *call->result.number = 0.0f;
-    EngineObject* unit = ObjectArg(call, 0)->object;
-    if (unit && IsUnit(unit)) *call->result.number = ObjectSlots(unit)->IsDead() == 0 ? 1.0f : 0.0f;
+    MapObject* unit = ObjectArg(call, 0)->object;
+    if (unit && IsUnit(unit)) *call->result.number = unit->IsDead() == 0 ? 1.0f : 0.0f;
     return true;
 }
 

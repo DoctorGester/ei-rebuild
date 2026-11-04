@@ -137,14 +137,14 @@ public:
     // Each new map object (message 0x40: header, scale, names, the server companion's names and strings, a
     // unit's name, its full state) / timed object (0x50: id, class, full state) is sent and kept, counted, in
     // the player's map. 1.
-    int SendObjectsAdded(const std::vector<EngineObject*>* objects);
+    int SendObjectsAdded(const std::vector<MapObject*>* objects);
     int SendTimedAdded(const std::vector<Effect*>* effects);
     // The objects changed in this world update (their stamp equals the world's update count) send their delta
     // (0x41 / 0x51: id, then the delta stream). 1.
-    int SendObjectsChanged(const std::vector<EngineObject*>* objects);
+    int SendObjectsChanged(const std::vector<MapObject*>* objects);
     int SendTimedChanged(const std::vector<Effect*>* effects);
     // Objects gone from view: dropped from the player's map and released (0x42 / 0x52: id). 1.
-    int SendObjectsRemoved(const std::vector<EngineObject*>* objects);
+    int SendObjectsRemoved(const std::vector<MapObject*>* objects);
     int SendTimedRemoved(const std::vector<Effect*>* effects);
     // Every item of the player's item list the party's item manager knows is sent (SendObject14).
     void SendItems();
@@ -274,7 +274,7 @@ public:
     std::vector<UnitPlacement> placements;
     CoderState compressor;          // for the messages sent (Flush)
     CoderState decompressor;        // for the messages received
-    std::vector<EngineObject*> sentObjects; // map objects the client has (counted)
+    std::vector<MapObject*> sentObjects;    // map objects the client has (counted)
     std::vector<Effect*> sentTimed;    // timed objects the client has (counted)
     ScriptGroup possessedGroup;
     ScriptGroup partyUnits;         // units always sent (message 0x60)

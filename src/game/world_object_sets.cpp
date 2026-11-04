@@ -7,6 +7,7 @@
 #include "address_order.h"
 #include "core_streams.h"
 #include "engine_object.h"
+#include "map_object.h"
 #include "world_effect.h"
 #include "lib/containers.h"
 
@@ -99,7 +100,7 @@ void DiffObjectSets(std::vector<T*>* sent, std::vector<T*>* current, std::vector
 }
 
 // The two passes of SyncPlayer: the map objects (with the script's party units), then the timed objects.
-template void DiffObjectSets(std::vector<EngineObject*>*, std::vector<EngineObject*>*, std::vector<EngineObject*>*,
-                             std::vector<EngineObject*>*, std::vector<EngineObject*>*);
+template void DiffObjectSets(std::vector<MapObject*>*, std::vector<MapObject*>*, std::vector<MapObject*>*,
+                             std::vector<MapObject*>*, std::vector<MapObject*>*);
 template void DiffObjectSets(std::vector<Effect*>*, std::vector<Effect*>*, std::vector<Effect*>*, std::vector<Effect*>*,
                              std::vector<Effect*>*);

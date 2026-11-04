@@ -61,7 +61,7 @@ bool OutOfView(const Vector3& point, const PlayerServer* state) {
 // The map objects a player should know: around its camera (or all of them), its own units, the
 // objects named in scripts, and every unit within hearing range of one of its units. `out` is the
 // write cursor into the collected array.
-EngineObject** CollectMapObjects(WorldServer* world, Player* player, PlayerServer* state, EngineObject** out) {
+MapObject** CollectMapObjects(WorldServer* world, Player* player, PlayerServer* state, MapObject** out) {
     if (world->sessionKind == kKindSinglePlayer && options::g_options.drawVisibleOnly == 0) {
         // Every map object near the camera, and the player's units anywhere; nothing else.
         for (auto node = world->mapObjects.map.begin(); node != world->mapObjects.map.end() && node->second; ++node) {
@@ -155,12 +155,12 @@ int WorldServer::SyncPlayer(Player* player) {
         if (player->dirty & PlayerDirty::Countdowns) state->SendState73(&countdowns);
 
         // Map objects: room for seven entries per world object.
-        std::vector<EngineObject*> collected;
-        std::vector<EngineObject*> added;
-        std::vector<EngineObject*> kept;
-        std::vector<EngineObject*> removed;
+        std::vector<MapObject*> collected;
+        std::vector<MapObject*> added;
+        std::vector<MapObject*> kept;
+        std::vector<MapObject*> removed;
         collected.resize(static_cast<int>(objects.map.size()) * 7);
-        EngineObject** end = CollectMapObjects(this, player, state, collected.data());
+        MapObject** end = CollectMapObjects(this, player, state, collected.data());
         collected.resize(static_cast<int>(end - collected.data()));
         DiffSets(&state->sentObjects, &collected, &added, &kept, &removed);
         state->SendObjectsRemoved(&kept);

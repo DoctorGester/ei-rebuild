@@ -1439,16 +1439,18 @@ struct UiWordToken;
 struct UiTextToken {
     explicit UiTextToken(int newType) : type(newType) {}
     virtual ~UiTextToken();
-    // The token as the class its type makes (callers test `type` first).
-    UiFormatToken* AsFormat();
-    const UiFormatToken* AsFormat() const;
-    UiWordToken* AsWord();
+    // The token as the class its type makes, null for the other one.
+    virtual UiFormatToken* AsFormat() { return nullptr; }
+    virtual const UiFormatToken* AsFormat() const { return nullptr; }
+    virtual UiWordToken* AsWord() { return nullptr; }
 
     int type;                        // 1 format, 2 word
 };
 struct UiFormatToken : UiTextToken {
     explicit UiFormatToken(int font);
     ~UiFormatToken() override;
+    UiFormatToken* AsFormat() override { return this; }
+    const UiFormatToken* AsFormat() const override { return this; }
 
     bool newline;                    // a newline token, or a font change after the first token
     int font;                        // interface font
@@ -1457,13 +1459,11 @@ struct UiFormatToken : UiTextToken {
 struct UiWordToken : UiTextToken {
     UiWordToken() : UiTextToken(2), width(0) {}
     ~UiWordToken() override;
+    UiWordToken* AsWord() override { return this; }
 
     std::string text;
     int width;                       // its width in the token's font
 };
-inline UiFormatToken* UiTextToken::AsFormat() { return static_cast<UiFormatToken*>(this); }
-inline const UiFormatToken* UiTextToken::AsFormat() const { return static_cast<const UiFormatToken*>(this); }
-inline UiWordToken* UiTextToken::AsWord() { return static_cast<UiWordToken*>(this); }
 // A laid out line of a scrolling text: the fields PlaceWords reads.
 struct UiTextLine {
     int height;                      // pixels

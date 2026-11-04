@@ -100,12 +100,6 @@ void SaveListed(const std::vector<T*>* list, ByteStream* stream) {
     SaveListedObjectsEnd(stream);
 }
 
-// The map-object pass's array (world_sync.cpp) holds map objects: the world's and the script's party units. The
-// next element as one; the loops read the data pointer once.
-MapObject* NextMapObject(EngineObject* const*& next) {
-    return static_cast<MapObject*>(*next++);
-}
-
 } // namespace
 
 void PlayerServer::SendItemsGiven(const std::vector<Item*>* items, int flag) {
@@ -141,10 +135,8 @@ int PlayerServer::Flush() {
     return sent;
 }
 
-int PlayerServer::SendObjectsAdded(const std::vector<EngineObject*>* objects) {
-    EngineObject* const* next = objects->data();
-    for (int i = 0; i < std::ssize(*objects); ++i) {
-        auto* object = NextMapObject(next);
+int PlayerServer::SendObjectsAdded(const std::vector<MapObject*>* objects) {
+    for (MapObject* object : *objects) {
         bool isUnit = object->GetClassId() == ClassId::Unit;
         std::uint32_t header[4] = {static_cast<std::uint32_t>(object->id), static_cast<std::uint32_t>(object->type),
                                    object->prototypeId, object->flags};
@@ -177,11 +169,9 @@ int PlayerServer::SendObjectsAdded(const std::vector<EngineObject*>* objects) {
     return 1;
 }
 
-int PlayerServer::SendObjectsChanged(const std::vector<EngineObject*>* objects) {
-    EngineObject* const* next = objects->data();
+int PlayerServer::SendObjectsChanged(const std::vector<MapObject*>* objects) {
     int stamp = WorldUpdateCount(player);
-    for (int i = 0; i < std::ssize(*objects); ++i) {
-        auto* object = NextMapObject(next);
+    for (MapObject* object : *objects) {
         if (object->changeStamp != stamp) continue;
         if (object->flags & kFlagDeltaPending) object->WriteChangedState();
         WriteByte(&out, kMessageObjectChanged);
@@ -191,10 +181,8 @@ int PlayerServer::SendObjectsChanged(const std::vector<EngineObject*>* objects) 
     return 1;
 }
 
-int PlayerServer::SendObjectsRemoved(const std::vector<EngineObject*>* objects) {
-    EngineObject* const* next = objects->data();
-    for (int i = 0; i < std::ssize(*objects); ++i) {
-        EngineObject* object = *next++;
+int PlayerServer::SendObjectsRemoved(const std::vector<MapObject*>* objects) {
+    for (MapObject* object : *objects) {
         int objectId = object->id;
         Forget(player->knownObjects, objectId);
         object->Release();

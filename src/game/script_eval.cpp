@@ -157,8 +157,8 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
     case ScriptFunction::MaxHP:
     case ScriptFunction::Mana:
     case ScriptFunction::MaxMana: {
-        EngineObject* o = objectArgs[0]->object;
-        MapObjectServer* stats = o ? ObjectSlots(o)->ServerCompanion() : nullptr;
+        MapObject* o = objectArgs[0]->object;
+        MapObjectServer* stats = o ? o->ServerCompanion() : nullptr;
         if (stats) {
             const UnitVitals& vitals = stats->vitals;
             const float* value = function == ScriptFunction::HP ? &vitals.hitPoints
@@ -173,18 +173,18 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
     }
     case ScriptFunction::GetX:
     case ScriptFunction::GetY: {
-        EngineObject* o = objectArgs[0]->object;
-        if (o) *result = function == ScriptFunction::GetX ? ObjectSlots(o)->localPosition.x : ObjectSlots(o)->localPosition.y;
+        MapObject* o = objectArgs[0]->object;
+        if (o) *result = function == ScriptFunction::GetX ? o->localPosition.x : o->localPosition.y;
         else *result = 0.0f;
         return;
     }
     case ScriptFunction::GetZ: { // GetZ: height above the ground at the object's position
-        EngineObject* o = objectArgs[0]->object;
+        MapObject* o = objectArgs[0]->object;
         if (!o) {
             *result = 0.0f;
             return;
         }
-        float x = ObjectSlots(o)->localPosition.x, y = ObjectSlots(o)->localPosition.y, z = ObjectSlots(o)->localPosition.z;
+        float x = o->localPosition.x, y = o->localPosition.y, z = o->localPosition.z;
         if (Unit* unit = UnitOrNull(o)) *result = unit->GroundHeight(x, y) + z;   // (o is not null)
         else *result = g_serverWorld.GridHeight(x, y) + z;
         return;
@@ -198,25 +198,25 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
     }
     case ScriptFunction::WasLooted: {
         *result = 1.0f;
-        EngineObject* o = objectArgs[0]->object;
+        MapObject* o = objectArgs[0]->object;
         if (o) *result = static_cast<float>(lib::Has(o->flags, MapObjectFlag::LootTaken));
         return;
     }
     case ScriptFunction::GetFutureX:
     case ScriptFunction::GetFutureY: {
-        EngineObject* o = objectArgs[0]->object;
+        MapObject* o = objectArgs[0]->object;
         if (!o) {
             *result = 0.0f;
             return;
         }
-        Vector3 position = ObjectSlots(o)->PositionAt(RoundTimeOffset(g_serverWorld.tick, f[0]));
+        Vector3 position = o->PositionAt(RoundTimeOffset(g_serverWorld.tick, f[0]));
         *result = function == ScriptFunction::GetFutureX ? position.x : position.y;
         return;
     }
     case ScriptFunction::IsUnitInWater: { // IsUnitInWater: flag 0x80 of the AI map cell at the object's position
-        EngineObject* o = objectArgs[0]->object;
+        MapObject* o = objectArgs[0]->object;
         int inWater = 0;
-        if (o) inWater = g_serverWorld.aiMap.InWaterAt(ObjectSlots(o)->localPosition) ? 1 : 0;
+        if (o) inWater = g_serverWorld.aiMap.InWaterAt(o->localPosition) ? 1 : 0;
         *result = static_cast<float>(inWater);
         return;
     }
@@ -224,7 +224,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         *result = static_cast<float>(groupArgs[0]->size());
         return;
     case ScriptFunction::GroupHas: {
-        EngineObject* o = objectArgs[0]->object;
+        MapObject* o = objectArgs[0]->object;
         *result = groupArgs[0]->Contains(o) ? 1.0f : 0.0f;
         return;
     }
@@ -245,8 +245,8 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
     }
     case ScriptFunction::IsAlive:
     case ScriptFunction::IsDead: {
-        EngineObject* o = objectArgs[0]->object;
-        MapObjectCompanion* stats = o ? ObjectSlots(o)->companion : nullptr;
+        MapObject* o = objectArgs[0]->object;
+        MapObjectCompanion* stats = o ? o->companion : nullptr;
         *result = 0.0f;
         if (!stats) return;
         int state = stats->IsDead();
@@ -276,13 +276,13 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         return;
     }
     case ScriptFunction::GetLeverState: {
-        EngineObject* o = objectArgs[0]->object;
+        MapObject* o = objectArgs[0]->object;
         *result = 0.0f;
         if (Lever* lever = LeverOrNull(o)) *result = static_cast<float>(lever->state);
         return;
     }
     case ScriptFunction::GetObjectID: {
-        EngineObject* o = objectArgs[0]->object;
+        MapObject* o = objectArgs[0]->object;
         *result = 0.0f;
         if (o) *result = static_cast<float>(o->id);
         return;
@@ -300,15 +300,15 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         *result = Alarm(lib::RoundEven(f[0])).y;
         return;
     case ScriptFunction::DistanceUnitUnit: {
-        EngineObject* a = objectArgs[0]->object;
-        EngineObject* b = objectArgs[1]->object;
-        if (a && b) *result = Distance(XY(ObjectSlots(a)->localPosition), XY(ObjectSlots(b)->localPosition));
+        MapObject* a = objectArgs[0]->object;
+        MapObject* b = objectArgs[1]->object;
+        if (a && b) *result = Distance(XY(a->localPosition), XY(b->localPosition));
         else *result = kFar;
         return;
     }
     case ScriptFunction::DistanceUnitPoint: {
-        EngineObject* o = objectArgs[0]->object;
-        if (o) *result = Distance(XY(ObjectSlots(o)->localPosition), Vector2{f[0], f[1]});
+        MapObject* o = objectArgs[0]->object;
+        if (o) *result = Distance(XY(o->localPosition), Vector2{f[0], f[1]});
         else *result = kFar;
         return;
     }
@@ -406,16 +406,16 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         return;
     }
     case ScriptFunction::UnitInSquare: { // UnitInSquare(object, x1, y1, x2, y2)
-        EngineObject* o = objectArgs[0]->object;
+        MapObject* o = objectArgs[0]->object;
         *result = 0.0f;
         if (!o) return;
-        float x = ObjectSlots(o)->localPosition.x, y = ObjectSlots(o)->localPosition.y;
+        float x = o->localPosition.x, y = o->localPosition.y;
         bool inside = x >= f[0] && x <= f[2] && y >= f[1] && y <= f[3];
         *result = static_cast<float>(inside ? 1 : 0);
         return;
     }
     case ScriptFunction::IsUnitVisible: { // IsUnitVisible: in the local player's list of units always sent
-        EngineObject* o = objectArgs[0]->object;
+        MapObject* o = objectArgs[0]->object;
         *result = 0.0f;
         if (!o) return;
         Player* player = g_serverWorld.GetPlayer(0);
@@ -452,7 +452,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
         return;
     }
     case ScriptFunction::IsUnitBlocked: {
-        EngineObject* o = objectArgs[0]->object;
+        MapObject* o = objectArgs[0]->object;
         *result = 0.0f;
         if (o) *result = static_cast<float>(lib::Has(o->flags, MapObjectFlag::Blocked));
         return;
@@ -473,14 +473,14 @@ void SSCCmd::CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** resu
     const ScriptFunction function = static_cast<ScriptFunction>(id);
     switch (function) {
     case ScriptFunction::ScriptGetObject: { // GetObject(id)
-        EngineObject* o = g_serverWorld.FindObject(lib::Truncate(floatArgs[0]));
+        MapObject* o = g_serverWorld.FindObject(lib::Truncate(floatArgs[0]));
         if (!o) game::DebugLog("Object with ID %d not found in function \"%s\".\n", lib::Truncate(floatArgs[0]), "GetObject");
         (*result)->object = o;
         return;
     }
     case ScriptFunction::GetUnitOfPlayer: { // GetUnitOfPlayer(player, index)
         Player* player = g_serverWorld.GetPlayer(lib::Truncate(floatArgs[0]));
-        EngineObject* o = nullptr;
+        MapObject* o = nullptr;
         if (player) {
             const std::vector<PartyUnitRecord>& members = player->GetParty()->members;
             int index = lib::RoundEven(floatArgs[1]);
@@ -491,7 +491,7 @@ void SSCCmd::CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** resu
         return;
     }
     case ScriptFunction::GetObjectByName: {
-        EngineObject* o = g_serverWorld.FindObject(TextKeyFromName(stringArgs[0]));
+        MapObject* o = g_serverWorld.FindObject(TextKeyFromName(stringArgs[0]));
         if (!o)
             game::DebugLog("Object with name %s not found in function \"%s\".\n",
                            stringArgs[0], "GetObjectByName");
@@ -499,7 +499,7 @@ void SSCCmd::CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** resu
         return;
     }
     case ScriptFunction::GetObjectByID: { // GetObjectByID (decimal string)
-        EngineObject* o = g_serverWorld.FindObject(str::ToInt(stringArgs[0]));
+        MapObject* o = g_serverWorld.FindObject(str::ToInt(stringArgs[0]));
         if (!o)
             game::DebugLog("Object with ID %s not found in function \"%s\".\n",
                            stringArgs[0], "GetObjectByID");
@@ -564,7 +564,7 @@ void SSCCmd::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result) {
     case ScriptFunction::GetPlayerUnits: { // GetPlayerUnits(player): the world's units whose player compares equal
         for (EngineObject* o = objects.First(g_serverWorld.objectManager); o; o = objects.Next()) {
             Unit* unit = UnitOrNull(o);
-            if (unit && static_cast<float>(unit->side) == floatArgs[0]) (*result)->Insert(o);
+            if (unit && static_cast<float>(unit->side) == floatArgs[0]) (*result)->Insert(unit);
         }
         break;
     }
