@@ -61,11 +61,11 @@ UiDropList::UiDropList(Interface3D* ui, UiContainer* newOwner, Rect newRow) : Ui
     LoadTexture("saveload", TextureKind::Interface);
     for (int i = 0; i <= kFrame; ++i) AddBlankSprite();
     const int middle = (row.top + row.bottom) / 2;
-    SceneMesh(kArrow)->SetRectangle(kRowDepth, 100.0f,
+    sceneObjects[kArrow]->SetRectangle(kRowDepth, 100.0f,
                                     Rect{row.right - kArrowWidth, middle - kArrowHeight / 2, row.right,
                                          middle + kArrowHeight / 2},
                                     0x28, 0x80, 0x50, 0xB0);
-    for (int i = kShade; i <= kFrame; ++i) SceneMesh(i)->visible = false;
+    for (int i = kShade; i <= kFrame; ++i) sceneObjects[i]->visible = false;
 
     UiSurface* surface = AddSurface(new UiSurface(ui, Rect{0, 0, 800, kLayoutHeight}, SurfaceBlend::Keyed, true));
     surface->PaintWith([this](UiSurface& out) {
@@ -117,13 +117,13 @@ void UiDropList::Open() {
     scroll->SetMaximum(count - shown);
     scroll->SetEnabled(bar);
     const Rect mark{entries.left, 0, entries.right - (bar ? kBarWidth : 0), kEntryHeight};   // placed by PlaceMarks
-    Flat(SceneMesh(kShade), kShadeDepth, entries, kShadeColour);
-    Flat(SceneMesh(kChosenMark), kChosenDepth, mark, kChosenColour);
-    Flat(SceneMesh(kActiveMark), kActiveDepth, mark, kActiveColour);
-    SceneMesh(kFrame)->texture = objects.size() > 1 ? objects[1] : nullptr;
-    SceneMesh(kFrame)->SetFrame(kFrameDepth, 100.0f, frame, static_cast<float>(kBorder), 2, 0xFE, 0xB4, 0xF9);
-    SceneMesh(kShade)->visible = true;
-    SceneMesh(kFrame)->visible = true;
+    Flat(sceneObjects[kShade], kShadeDepth, entries, kShadeColour);
+    Flat(sceneObjects[kChosenMark], kChosenDepth, mark, kChosenColour);
+    Flat(sceneObjects[kActiveMark], kActiveDepth, mark, kActiveColour);
+    sceneObjects[kFrame]->texture = objects.size() > 1 ? objects[1] : nullptr;
+    sceneObjects[kFrame]->SetFrame(kFrameDepth, 100.0f, frame, static_cast<float>(kBorder), 2, 0xFE, 0xB4, 0xF9);
+    sceneObjects[kShade]->visible = true;
+    sceneObjects[kFrame]->visible = true;
 
     // The owner's children under the list are left out while it is open.
     covered.clear();
@@ -146,7 +146,7 @@ void UiDropList::Close() {
     for (UiWindow* child : covered) child->SetEnabled(true);
     covered.clear();
     scroll->SetEnabled(false);
-    for (int i = kShade; i <= kFrame; ++i) SceneMesh(i)->visible = false;
+    for (int i = kShade; i <= kFrame; ++i) sceneObjects[i]->visible = false;
 }
 
 // --- Entries ----------------------------------------------------------------------------------------
@@ -189,7 +189,7 @@ void UiDropList::Choose(int index) {
 void UiDropList::PlaceMarks() {
     auto place = [this](int sprite, int index, float depth) {
         const Rect entry = EntryRect(index);
-        UiMesh* mark = SceneMesh(sprite);
+        UiMesh* mark = sceneObjects[sprite];
         mark->visible = !entry.IsEmpty();
         if (mark->visible) mark->Place((entry.left + entry.right) * 0.5f, (entry.top + entry.bottom) * 0.5f, depth);
     };
