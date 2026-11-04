@@ -154,7 +154,7 @@ void UnitClientSpecific::StatChanged(int location, float amount, std::uint32_t s
     if (const char* format = HitSoundFormat(HitSoundKind(unit))) sound = str::Format(format, material);
     if (sound.size() != 0) {
         auto* world = ClientWorld();
-        world->sounds->Play3D(sound, kSoundPriority, unit->localPosition, kSoundNear, kSoundFar, 0);
+        world->sounds->Play3D(sound, kSoundPriority, unit->localPosition, kSoundNear, kSoundFar, false);
     }
 
     if (location < 0 || location > 5) return;
@@ -285,12 +285,6 @@ void Shake(Unit* unit) {
                                    kShakeDecay);
 }
 
-bool SoundBusy(int handle) {
-    if (handle == -1) return false;
-    SoundManager* sounds = g_clientWorld.sounds.get();
-    return sounds->FindPlaying(handle) || sounds->FindDeferred(handle);
-}
-
 } // namespace
 
 std::optional<std::string> UnitClientSpecific::FootstepSound(int terrain) {
@@ -387,7 +381,7 @@ void UnitClientSpecific::PlayStepSounds() {
         if (PassedFrame(static_cast<int>(current->moment), lastAnimationTime, now)) Shake(unit);
         if (unit->MapType() == MapObjectType::Hero && unit->actionSound) {
             if (std::optional<std::string> miss = ActionSound(current, lastAnimationTime, now, static_cast<std::uint8_t>(unit->actionSound)))
-                sounds->Play3D(*miss, kPriorityAction, position, kSoundNear, kSoundFar, 0);
+                sounds->Play3D(*miss, kPriorityAction, position, kSoundNear, kSoundFar, false);
         }
         priority = kPriorityAction;
         action = true;
@@ -479,12 +473,12 @@ void UnitClientSpecific::PlayStepSounds() {
     if (sound.size() != 0) {
         int handle = -1;
         if (kind == AnimationKind::Attack) {
-            if (!SoundBusy(speechSound)) {
-                handle = sounds->Play3D(sound, priority, position, kSoundNear, kSoundFar, 0);
+            if (!g_clientWorld.sounds->IsPlaying(speechSound)) {
+                handle = sounds->Play3D(sound, priority, position, kSoundNear, kSoundFar, false);
                 speechSound = handle;
             }
         } else {
-            handle = sounds->Play3D(sound, priority, position, kSoundNear, kSoundFar, 0);
+            handle = sounds->Play3D(sound, priority, position, kSoundNear, kSoundFar, false);
         }
         if (kind == AnimationKind::Idle) idleSound = handle;
     }
@@ -541,7 +535,7 @@ bool SpeechFilter::Replaced(const ClientSpeech* queued) const {
 }
 
 bool SpeechFilter::Finished(const ClientSpeech* queued) const {
-    if (queued->sound == -1 || SoundBusy(queued->sound)) return false;
+    if (queued->sound == -1 || g_clientWorld.sounds->IsPlaying(queued->sound)) return false;
     if (queued->talking) SetTalking(unitId, false);
     return true;
 }
@@ -565,7 +559,7 @@ void UnitClientSpecific::Say(const SpeechRecord* record, AckKind kind) {
         said.delay = 0;
         if (kind != AckKind::Attack && kind != AckKind::DecidedToAttack) {
             Speak(&said);
-        } else if (!SoundBusy(speechSound) && Speak(&said)) {
+        } else if (!g_clientWorld.sounds->IsPlaying(speechSound) && Speak(&said)) {
             speechSound = said.sound;
         }
     }

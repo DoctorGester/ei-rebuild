@@ -112,7 +112,7 @@ bool EffectSound::RunTick() {
 void EffectSound::Start(int update) {
     if (update == 0) {
         sound = g_clientWorld.sounds->Play3D(name, noFade != 0 ? 1000 : 0, localPosition,
-                                            volume, radius, looping);
+                                            volume, radius, looping != 0);
         return;
     }
     g_clientWorld.sounds->SetSoundPosition(sound, localPosition, volume, radius);

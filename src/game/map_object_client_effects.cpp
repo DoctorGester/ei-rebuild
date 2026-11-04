@@ -157,7 +157,7 @@ void PlayEffectSound(bool play, EffectSoundRecord* record, const Vector3& positi
         } else {
             sounds->RemoveSequence(record->handle);
             record->handle = -1;
-            g_clientWorld.sounds->Play3D("magic\\FeebleMind\\end.wav", 0, position, kSoundNear, kSoundFar, 0);
+            g_clientWorld.sounds->Play3D("magic\\FeebleMind\\end.wav", 0, position, kSoundNear, kSoundFar, false);
         }
         return;
     }
@@ -165,7 +165,7 @@ void PlayEffectSound(bool play, EffectSoundRecord* record, const Vector3& positi
     if (*folder == '\0' || !play) return;
     std::string name = folder;
     name += suffix;
-    sounds->Play3D(name, 0, position, kSoundNear, kSoundFar, 0);
+    sounds->Play3D(name, 0, position, kSoundNear, kSoundFar, false);
 }
 
 void MapObjectClientSpecific::EffectsChanged(bool first) {

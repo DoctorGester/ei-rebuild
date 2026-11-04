@@ -133,7 +133,7 @@ void PlayOneShot(SoundManager* sounds, const Cell (&cells)[3][3], int soundClass
     float spotLow = -spot;
     position.x = (spot - spotLow) * g_clientRandom.Next() * kTwoToMinus32 + spotLow + position.x;
     position.y = (spot - spotLow) * g_clientRandom.Next() * kTwoToMinus32 + spotLow + position.y;
-    sounds->Play3D(name, 1, position, spot + spot, kRadiusCells, 0);
+    sounds->Play3D(name, 1, position, spot + spot, kRadiusCells, false);
 }
 
 } // namespace
@@ -262,7 +262,7 @@ void Terrain::CountAmbientVariants() {
             char name[260];
             std::snprintf(name, sizeof(name), "ambient\\%s\\%s\\day\\%i.wav", ambientSet.c_str(), kAmbientSounds[i].name,
                           variants + 1);
-            if (g_clientWorld.sounds->LoadWaveFile(name, nullptr, nullptr) == nullptr) break;
+            if (!g_clientWorld.sounds->HasWaveFile(name)) break;
             ++variants;
         }
     }

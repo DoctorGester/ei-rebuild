@@ -143,7 +143,7 @@ bool Lever::ReadNetState(bool update) {
     if (update) {
         const LeverRecord* record = g_leverTable.Named(name);
         if (record && from != to)
-            g_clientWorld.sounds->Play3D(record->sound, 0, localPosition, kSoundNear, kSoundFar, 0);
+            g_clientWorld.sounds->Play3D(record->sound, 0, localPosition, kSoundNear, kSoundFar, false);
     }
     return complete;
 }

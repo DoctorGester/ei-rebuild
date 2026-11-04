@@ -53,66 +53,60 @@ enum class MusicState { Off, Zone, Briefing, Constructor, MainMenu, Credits };
 
 // The music stream's volume envelope.
 struct SoundFader {
-    std::int32_t volume;        // 0..100
-    std::int32_t level;         // 0..127, round(volume * factor * 127 * 0.01)
-    float factor;               // fade factor 0..1; a fade moves it by 1/96 per update (a stream step, 100 ms)
-    FadeMode mode;
-    bool finished;              // set when a fade out reached 0
-    std::uint32_t holdUntil;    // platform::Milliseconds() at which the fade is cancelled (0: none)
+    std::int32_t volume = 0;            // 0..100
+    std::int32_t level = 0;             // 0..127, round(volume * factor * 127 * 0.01)
+    float factor = 1.0f;                // fade factor 0..1; a fade moves it by 1/96 per update (a stream step, 100 ms)
+    FadeMode mode = FadeMode::None;
+    bool finished = false;              // set when a fade out reached 0
+    std::uint32_t holdUntil = 0;        // platform::Milliseconds() at which the fade is cancelled (0: none)
 
     void SetHold(std::uint32_t until);
     void Update(std::uint32_t now);     // a stream step's (StepStream)
     void Recalc();
 };
 
-// One of the kVoiceCount voices.
-struct SoundSlot {
-    std::string name;           // the wave name
-    audio::Voice* voice;
-    std::int32_t volume;        // the output's volume 0..127
-    std::int32_t baseVolume;    // 2D sounds: volume 0..100
-    std::int32_t pan;           // -100..100
-    std::int32_t priority;
-    bool playing;
-    bool looping;               // kept as a deferred record when the voice is stolen
-    bool speech;                // scaled by the speech volume instead of effects
-    bool finished;              // set by the voice's end callback (SoundEndOfSample)
-    bool flat;                  // 2D: volume from baseVolume, not from the listener distance
-    bool heightFade;            // 2D sounds fading out as the camera rises (30..70)
-    Vector3 position;
-    float nearDistance;         // full volume inside
-    float farDistance;          // silent outside
-    std::int32_t handle;        // sound handle (kNoSound: free)
+// What a sound plays and how: its voice's (SoundSlot) while it plays, its deferred record's while it waits for one.
+struct SoundParams {
+    std::string name;                 // the wave name
+    std::int32_t volume = 0;          // the output's volume 0..127
+    std::int32_t baseVolume = 0;      // 2D sounds: volume 0..100
+    std::int32_t pan = 0;             // -100..100
+    std::int32_t priority = 0;
+    bool speech = false;              // scaled by the speech volume instead of effects
+    bool flat = false;                // 2D: volume from baseVolume, not from the listener distance
+    bool heightFade = false;          // 2D sounds fading out as the camera rises (30..70)
+    Vector3 position{};
+    float nearDistance = 0.0f;        // full volume inside
+    float farDistance = 0.0f;         // silent outside
 };
 
-// A looping sound that lost its voice to a higher priority one and waits to be restarted.
+// One of the kVoiceCount voices.
+struct SoundSlot {
+    SoundParams params;
+    audio::Voice* voice = nullptr;
+    bool playing = false;
+    bool looping = false;             // kept as a deferred record when the voice is stolen
+    bool finished = false;            // set by the voice's end callback (SoundEndOfSample)
+    std::int32_t handle = kNoSound;   // sound handle (kNoSound: free)
+};
+
+// A looping sound with no voice (none was free, or a higher priority one took it), waiting to be restarted.
 struct DeferredSound {
-    std::string name;
-    std::int32_t volume = 0;
-    std::int32_t baseVolume = 0;
-    std::int32_t pan = 0;
-    std::int32_t priority = 0;
-    bool speech = false;
-    bool flat = false;
-    bool heightFade = false;
-    Vector3 position{};
-    float nearDistance = 0.0f;
-    float farDistance = 0.0f;
-    std::int32_t handle = kNoSound;   // the map key
+    SoundParams params;
     std::int32_t samplePosition = 0;
 };
 
 // An ambient emitter (kEmitterCount): plays one of its names at random intervals while the listener is within
 // `outerRadius`.
 struct SoundEmitter {
-    bool active;
+    bool active = false;
     std::vector<std::string> names;
-    Vector3 position;
-    float innerRadius;
-    float outerRadius;
-    std::int32_t minInterval;   // ms
-    std::int32_t maxInterval;   // ms
-    std::uint32_t lastPlayed;   // platform::TickCount()
+    Vector3 position{};
+    float innerRadius = 0.0f;
+    float outerRadius = 0.0f;
+    std::int32_t minInterval = -1;   // ms
+    std::int32_t maxInterval = -1;   // ms
+    std::uint32_t lastPlayed = 0;    // platform::TickCount()
 };
 
 // The bit of a sequence chooser's result that loops the sound (bit 30).
@@ -121,21 +115,21 @@ inline constexpr int kSequenceLoop = 0x40000000;
 // A 3D sound sequence (kSequenceCount): plays its names one after the other (or at random, or as a callback chooses)
 // at one position.
 struct SoundSequence {
-    bool active;
+    bool active = false;
     std::vector<std::string> names;
-    std::int32_t handle;        // current sound
-    Vector3 position;
-    float nearDistance;
-    float farDistance;
-    std::int32_t remaining;     // sounds left to play (callback: sounds played)
-    std::int32_t index;         // next name
-    std::int32_t priority;
-    bool random;                // pick names at random
+    std::int32_t handle = kNoSound;   // current sound
+    Vector3 position{};
+    float nearDistance = 0.0f;
+    float farDistance = 0.0f;
+    std::int32_t remaining = -1;      // sounds left to play (callback: sounds played)
+    std::int32_t index = -1;          // next name
+    std::int32_t priority = -1;
+    bool random = false;              // pick names at random
     // Returns the next index (with kSequenceLoop: loop it), < 0 ends; called with the previous index and the
     // number of sounds started before.
-    int(*chooser)(int previous, int played);
+    int (*chooser)(int previous, int played) = nullptr;
     std::int32_t generation = 0;
-    std::int32_t id;            // generation << 8 | slot (-1: free)
+    std::int32_t id = -1;             // generation << 8 | slot (-1: free)
 
     // Starts the next sound; false when the sequence is over or the sound did not start.
     bool PlayNext(struct SoundManager* manager);
@@ -145,7 +139,7 @@ struct SoundSequence {
 // FadeInStream, SetMusicVolume): made at once, or kept while the stream thread fills a buffer (lateRequests).
 struct StreamRequest {
     enum class Kind { Switch, Stop, PlayOnce, FadeOut, FadeIn, Volume };
-    Kind kind;
+    Kind kind = Kind::Switch;
     StreamSwitch mode = StreamSwitch::Now;   // Switch, Stop
     std::int32_t volume = 0;                 // Volume
     std::string name;                        // Switch, PlayOnce
@@ -159,8 +153,8 @@ struct Play2DOptions {
     bool compressed = false;    // an MP3, decoded whole
 };
 
-// Walked in STLport's order (the first of the highest priority plays).
-using DeferredMap = lib::HashMap<std::int32_t, DeferredSound*>;
+// By handle, walked in STLport's order (the first of the highest priority plays).
+using DeferredMap = lib::HashMap<std::int32_t, DeferredSound>;
 
 // The wave cache: a list of loaded waves, most recently used first, and a hash_map from the wave name to its
 // list node.
@@ -185,61 +179,61 @@ struct SoundManager : EngineObject {
     FileRegistry soundRegistry;
     std::vector<MappedResource*> waveSources;   // the archives LoadSample looks in
     // The MP3 music stream, filled on the stream thread.
-    std::atomic<StreamState> streamState;   // Switching: to nextName
-    audio::Stream* streamSample;
-    audio::Mp3Stream* streamFile;   // the playing file's decoder
+    std::atomic<StreamState> streamState{StreamState::Idle};   // Switching: to nextName
+    audio::Stream* streamSample = nullptr;
+    audio::Mp3Stream* streamFile = nullptr;   // the playing file's decoder
     // The next half's bytes (streamBufferSize of them): queued as the output frees a half, then filled again.
     std::vector<std::uint8_t> streamBuffer;
-    std::int32_t streamBufferSize;      // twice the output's minimum half; -1 after ResetStream
-    std::int32_t streamBufferFrames;    // frames in one buffer: streamBufferSize / streamFrameBytes; 0 before a file
-    std::int32_t streamPosition;        // frames of the playing file queued so far
-    std::int32_t streamSwitchAt;        // position at which nextName starts
+    std::int32_t streamBufferSize = -1;     // twice the output's minimum half; -1 after ResetStream
+    std::int32_t streamBufferFrames = 0;    // frames in one buffer: streamBufferSize / streamFrameBytes; 0 before a file
+    std::int32_t streamPosition = -1;       // frames of the playing file queued so far
+    std::int32_t streamSwitchAt = -1;       // position at which nextName starts
     // The position at which the playing file starts again from its beginning (the first "Markers2" value of
-    // its section in the sound registry; kNoPosition without one) and the bytes in a frame (bits * channels / 8):
+    // its section in the sound registry; kNoPosition without one) and the bytes in a frame (channels * 2):
     // both -1 after ResetStream.
-    std::int32_t streamLoopAt;
-    std::int32_t streamFrameBytes;
-    SoundFader musicFader;              // music volume (options) and fades
-    std::string streamName;            // playing
-    std::string nextName;              // requested
-    std::vector<std::int32_t> markers;    // switch points ("Markers1/2" in the file)
+    std::int32_t streamLoopAt = -1;
+    std::int32_t streamFrameBytes = -1;
+    SoundFader musicFader;                  // music volume (options) and fades
+    std::string streamName;                 // playing
+    std::string nextName;                   // requested
+    std::vector<std::int32_t> markers;      // switch points ("Markers1/2" in the file)
     std::vector<std::int32_t> markers2;
-    std::recursive_mutex nameLock;      // guarding streamName
-    StreamSwitch switchMode;            // RequestStream's mode
+    std::mutex nameLock;                    // guarding streamName
+    StreamSwitch switchMode = StreamSwitch::Now;   // RequestStream's mode
     // Guards the stream's state and musicFader, except while the stream thread fills the spare buffer (streamBusy):
     // it then owns them without the lock (decoding, opening the next file), and the game thread's requests wait in
     // lateRequests, made in order as it hands them back, so the game thread never waits for MP3 work.
     std::mutex streamLock;
-    bool streamBusy;
+    bool streamBusy = false;
     std::vector<StreamRequest> lateRequests;
-    std::atomic<bool> onceQueued;       // a PlayStreamOnce among lateRequests
+    std::atomic<bool> onceQueued{false};    // a PlayStreamOnce among lateRequests
     // PlayStreamOnce's file waits for the stream thread, which asks for silence after it as it switches to it
-    // (StopStream(1)); any other request clears it.
-    std::atomic<bool> endAfterSwitch;
-    std::thread streamThread;           // started when the MP3 stream opened with a device, joined by Close
+    // (StopStream(AtEnd)); any other request clears it.
+    std::atomic<bool> endAfterSwitch{false};
+    std::thread streamThread;               // started when the MP3 stream opened with a device, joined by Close
     // Without a device the main loop steps the stream (FollowClock); the last step's time.
     bool streamOnMainLoop = false;
     std::uint32_t streamSteppedAt = 0;
-    std::atomic<bool> threadsQuit;      // set by Close; the stream thread ends on it
-    std::unique_ptr<SoundSlot[]> slots; // kVoiceCount voices while open
-    Vector3 listener;                   // listener position (z: camera height)
-    Vector3 listenerAxis;               // listener direction, unit length in x/y
-    std::int32_t nextHandle;
+    std::atomic<bool> threadsQuit{false};   // set by Close; the stream thread ends on it
+    std::unique_ptr<SoundSlot[]> slots;     // kVoiceCount voices while open
+    Vector3 listener{};                     // listener position (z: camera height)
+    Vector3 listenerAxis{};                 // listener direction, unit length in x/y
+    std::int32_t nextHandle = 0;
     SoundEmitter emitters[kEmitterCount];
-    std::uint32_t emitterTick;
+    std::uint32_t emitterTick = 0;
     SoundSequence sequences[kSequenceCount];
-    std::int32_t cacheBytes;            // bytes held by the wave cache
+    std::int32_t cacheBytes = 0;            // bytes held by the wave cache
     // The cached waves, most recently used first (a list: `cache` keeps its nodes).
     std::list<WaveRecord> cacheList;
-    std::unordered_map<std::string, std::list<WaveRecord>::iterator> cache;                    // wave name -> its cache list node
+    std::unordered_map<std::string, std::list<WaveRecord>::iterator> cache;   // wave name -> its cache list node
     DeferredMap deferred;
-    bool enabled;
-    bool reverbOn;
-    bool panDirect;                     // false: pans are mirrored
-    float reverb[3];                    // room type / level / reflect time
-    std::int32_t effectsVolume;         // 0..100
-    std::int32_t speechVolume;          // 0..100
-    std::int32_t randomStart;           // ms
+    bool enabled = false;
+    bool reverbOn = false;
+    bool panDirect = false;                 // false: pans are mirrored
+    float reverb[3] = {};                   // room type / level / reflect time
+    std::int32_t effectsVolume = 100;       // 0..100
+    std::int32_t speechVolume = 100;        // 0..100
+    std::int32_t randomStart = 0;           // ms
 
     void SetReverb(float room, float level, float time);
     void PauseAll();
@@ -249,6 +243,8 @@ struct SoundManager : EngineObject {
     void SetMusicVolume(int volume);
     SoundSlot* FindPlaying(int handle);
     DeferredSound* FindDeferred(int handle);
+    // Whether `handle` plays or waits for a voice (a voice whose sample ended is freed first, as FindPlaying does).
+    bool IsPlaying(int handle);
     void UpdatePositional(SoundSlot* slot);
     // Make a sound 2D (volume 0..100) / 3D; false when `handle` plays nowhere.
     bool SetSoundVolume(int handle, int volume, int pan);
@@ -261,7 +257,6 @@ struct SoundManager : EngineObject {
                    int maxInterval);
     void MoveEmitter(int index, const Vector3& position, float inner, float outer, int minInterval,
                      int maxInterval);
-    // The name list is kept.
     void RemoveEmitter(int index);
     // The sequence id or -1.
     int AddSequence(const std::vector<std::string>& names, int priority, const Vector3& position, float nearDist, float farDist,
@@ -285,8 +280,10 @@ struct SoundManager : EngineObject {
     void ClearWaveSources();
     // True (also when sound is off); false when the archive cannot be opened.
     bool AddWaveSource(const std::string& path);
-    // The first wave source holding `name`; `size` and `source` may be null. Null when none has it.
+    // The first wave source holding `name`, with its size and the source to close it with; null when none has it.
     void* LoadWaveFile(std::string_view name, std::uint32_t* size, MappedResource** source);
+    // Whether a wave source holds `name` (read and closed again).
+    bool HasWaveFile(std::string_view name);
     // Source by source.
     std::vector<std::string> ListWaveFiles(const char* pattern);
     // True when sound is off; else whether the registry opened.
@@ -339,7 +336,6 @@ struct SoundManager : EngineObject {
     void Close();
     // Volumes 100, sound off.
     void Reset();
-    void DeleteDeferred();
 
     int Play3D(std::string_view name, int priority, const Vector3& position, float nearDist, float farDist, bool loop);
     int Play2D(std::string_view name, int priority, int volume, int pan, const Play2DOptions& options = {});
@@ -375,16 +371,16 @@ struct MusicSystem : EngineObject {
     ClassId GetClassId() override;
 
     std::vector<MusicTheme> themes;
-    std::string credits;               // Common\Credits
-    std::string mainMenu;              // Common\MainMenu
-    MusicState state;
-    std::int32_t theme;
-    bool inCombat;
-    bool holding;                       // set by SetZoneMode, cleared by the world frame
+    std::string credits;                // Common\Credits
+    std::string mainMenu;               // Common\MainMenu
+    MusicState state = MusicState::Off;
+    std::int32_t theme = 0;
+    bool inCombat = false;
+    bool holding = false;               // set by SetZoneMode, cleared by the world frame
     std::string combatTrack;
     std::string jingle;
-    bool jinglePlaying;
-    std::uint32_t calmDue;              // platform::Milliseconds() for the next calm track (0: not chosen)
+    bool jinglePlaying = false;
+    std::uint32_t calmDue = 0;          // platform::Milliseconds() for the next calm track (0: not chosen)
 
     void SetZoneMode(std::string_view allod, bool dungeon);
     void Stop();
