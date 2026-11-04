@@ -13,8 +13,9 @@ bool SameName(const std::string& a, const std::string& b) { return a == b; }
 // the list.
 void CloseAll(std::vector<ArchiveEntry>& archives) {
     for (ArchiveEntry& e : archives) {
+        if (!e.resource) continue;
         e.resource->CloseResource();
-        if (e.resource != nullptr) delete e.resource;
+        delete e.resource;
     }
     archives.clear();
 }

@@ -2,10 +2,12 @@
 // listing, and the MMIOResource constructors and destructors (ResourceManager's are in
 // resource_manager.cpp). See resource_stream.h and docs/notes/models.md.
 
+#include "lib/str.h"
 #include "lib/text_case.h"
 #include "resource.h"
 #include "resource_stream.h"
 #include "mod_folders.h"
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -120,9 +122,11 @@ std::vector<std::string> MappedResource::ListFilesPlain(const char* pattern) con
     std::vector<std::string> fileNames;
     for (std::uint32_t i = 0; i < header.count; ++i) {
         const ResEntry& entry = entries[i];
-        char name[0x400];
-        std::memcpy(name, names + entry.nameOffset, entry.nameLength);
-        name[entry.nameLength] = '\0';
+        // The name as stored, up to a zero byte, cut at the end of the names block (the original copied it into
+        // 1 KB with no check).
+        const std::uint32_t offset = entry.nameOffset < header.namesSize ? entry.nameOffset : header.namesSize;
+        const std::size_t stored = std::min<std::size_t>(entry.nameLength, header.namesSize - offset);
+        const std::string name(names + offset, str::BoundedLength(names + offset, stored));
         if (pattern != nullptr) {
             const PathParts nameParts = SplitPath(name);
             const PathParts patternParts = SplitPath(pattern);

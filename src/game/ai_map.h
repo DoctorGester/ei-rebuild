@@ -13,6 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <list>
+#include <string>
 #include <unordered_map>
 #include <variant>
 #include <vector>
@@ -264,7 +265,7 @@ class UnitShape;
 // A terrain type of the AI map (AIMap::materials, indexed by the low 5 bits of a cell's occluder word): a
 // section of tileDesc.reg in aiinfo.res, named by the type's number.
 struct AITerrainType {
-    char name[0x100];           // "Name"
+    std::string name;           // "Name"
     int speed;                  // "Speed" (-1 without one)
     int cost;                   // "CostMul": what a cell of it costs (CellMark's starting cost)
     float look;                 // "StepLook" in hundredths

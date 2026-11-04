@@ -167,9 +167,10 @@ void Unit::SaveUnit(ByteStream* stream) {
     stream->WriteValue(standingHeight);
     stream->WriteValue(fightAtWill);
 
-    // The prototype's name (the record's first field is a string; a record out of range is copied from
-    // address 0), then the second prototype's or "".
-    std::string prototypeName = unitdb::PrototypeRecord(prototypeId)->name;
+    // The prototype's name, then the second prototype's; "" for one out of range (the original read the first
+    // through null).
+    const UnitPrototypeRecord* first = unitdb::PrototypeRecord(prototypeId);
+    std::string prototypeName = first ? first->name : std::string();
     stream->WriteString(prototypeName);
     const UnitPrototypeRecord* second = unitdb::PrototypeRecord(static_cast<std::uint32_t>(secondPrototype));
     if (second) prototypeName = second->name;

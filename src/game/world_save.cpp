@@ -207,11 +207,11 @@ void WorldServer::LoadSavedMapObjects(ByteStream* stream) {
             namedObjects.Set(static_cast<unsigned>(object->id), object);
 
         if (Unit* unit = UnitOrNull(object)) {
-            // The unit's six dwords come from its prototype's model record. A prototype or model out of range is
-            // read through null.
+            // The unit's six dwords come from its prototype's model record; a prototype or model out of range
+            // leaves them as they are (the original read them through null).
             auto* prototype = unitdb::PrototypeRecord(unit->prototypeId);
-            auto* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
-            std::memcpy(unit->actionSpeeds, model->actionSpeeds, 24);
+            auto* model = prototype ? unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex)) : nullptr;
+            if (model) std::memcpy(unit->actionSpeeds, model->actionSpeeds, 24);
         }
 
         // Every part is marked changed when any change was saved (the part's bit 1 << i is tested itself, never
