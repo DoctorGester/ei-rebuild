@@ -1,0 +1,10 @@
+id = "F4a"
+title = "View structs into their classes (F4 follow-up)"
+group = "cleanup"
+depends = ["F4"]
+files = ["map_object_figures.h", "figure_mesh.h", "link_figure.h", "scene_loader.h", "material.h", "terrain.h", "terrain_sector.h", "figure_part_draw.cpp", "renderer_lines.h"]
+note = "View structs merged into their classes: FigurePart to CFigureMesh, FigureMaterial / SceneHelper to CMaterial, TerrainFields to Terrain, TerrainSector to terrain::SectorData, LinkPartHeader."
+order = 331
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

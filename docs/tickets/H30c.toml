@@ -1,0 +1,11 @@
+id = "H30c"
+title = "Harness: the image's side of the shared steps through tests/verify/image, no raw offsets in both runs"
+group = "cleanup"
+size = 0.5
+model = "opus"
+files = ["tests/verify/harness.cpp", "tests/verify/image"]
+note = "From H30b. Some shared harness steps still read objects by raw byte offset and virtual slot in both runs (harness.cpp FindUnitPoint: the client world's pick list kClientPickList and node +0xC/+0x10, the hit's id +0xC; CampPutOn: camp +0x190/+0x1E0, strip +0x1AC, item +0x10, slot 42 MoveItem). Those are game.exe's offsets: right in game.exe's runs, but in the image they read our classes, so a cleanup that moves those members (C14a and later) breaks the image's runs there. Give each an exe-view side (exe_objects.h) and an image side (image_side.h) as H30b did; grep tests/verify/*.cpp for reinterpret_cast<std::uint8_t*> + 0x to find the rest."
+order = 452
+status = "done"
+started = "2026-10-27"
+done = "2026-10-27"

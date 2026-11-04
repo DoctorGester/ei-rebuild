@@ -1,0 +1,8 @@
+id = "R10b"
+title = "Products with a repeated factor in /fp:fast files: check the grouping against the original"
+group = "renderer"
+files = ["src/game/ai_motion.cpp", "src/lib/vecmath.h"]
+note = "Closed: folded into SV7d1a (the /fp:fast regrouping family). Sites to check if /fp:precise is not the default: ai_motion.cpp:257 and :259."
+order = 17
+status = "done"
+done = "2026-10-15"

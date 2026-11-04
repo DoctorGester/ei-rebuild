@@ -1,0 +1,10 @@
+id = "C54g1"
+title = "C54g rest: the interface core's leftovers"
+group = "cleanup"
+model = "sonnet"
+depends = ["C54g"]
+note = "Left by C54g. (1) The other StaticObjects the interface spells with -> (g_gameFlow, g_savedParties, g_partyManager, g_saveStream; docs/notes/standalone.md 'Plain globals'): plain globals like g_interface / g_cursor (C54g's recipe: UNUSED_INITIALISERS, static_init_ports / named_data / global_objects rows, whole-tree g_x-> -> g_x. retype). (2) CUiMesh::visible_ is bool: the 0 / 1 writes left in C54f's files (ui_briefing_create, ui_connect_list, ui_connect_screen, ui_help_page, ui_objectives*, ui_options, ui_saveload) to false / true. (3) CUiWindow::Show(int) and its overrides, ShowSurfaces / ShowChildren(int): bool (virtual, change together). (4) ui_layouts' SetSpriteTexture / SetSpriteColour / SetSpritePlain one-line field setters folded. (5) CUiSurface's format (flags_ low bits, the int format parameter): name the formats (4, 5, 0x1E ...). (6) CCursor::enabled_ (uint8) and CDirectInputMouse::SetActive(char) to bool; CUiTooltip / CUiRegion's tip state 0..3 as an enum. Goldens unchanged (golden suite) + ei_ui_check."
+order = 743
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

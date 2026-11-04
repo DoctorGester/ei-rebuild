@@ -1,0 +1,10 @@
+id = "H30a"
+title = "Fold the image-only order switches now ours never runs in game.exe"
+group = "cleanup"
+size = 0.5
+model = "sonnet"
+note = "From H30: nothing of ours runs in game.exe, so address_order::ById (world_object_sets.cpp, terrain.cpp, net_client_handlers.cpp), ScriptGroup::After's address path (script_group.cpp), CWorldServer::SpreadUpdateCountdownsById / g_countdownsById (world_server.cpp; the harness's image branch sets it) and render::Active's Standalone test are always on in the image: keep only the image's path. Check the other ei::Standalone() tests in src/game (win_registry.cpp, settings_file.cpp:227, mod_folders.cpp:237) against ei_vectors, whose replays run without the image. Done (2026-10-22): address_order::ById, ScriptGroup::IdAfter / the address path, CWorldServer::SpreadUpdateCountdownsById / g_countdownsById, render::Active's Standalone test, and every ei::Standalone() test in src/game (win_registry.cpp's registry path, settings_file::ReadValue's registry read, modfolders::Active) keep only the image's path: ei_vectors' hook_stub Standalone() returns true, and the harness's game.exe side calls none of them (render calls go through HarnessRenderActive). src/hook and src/standalone keep theirs (that code runs in game.exe). The object sets' radix sort went with the address order (0047B120, scratch 007A9738/48, exit 0047B1D0: gen_static_init RETIRED_STATICS, named_data.csv updated); SetSun's CompareSlots folded into CompareSectors. Harness: harness_heap's image branch no longer sets the countdowns (ours always by id). Suites: image 121 same / 23 without, original 114 / 12."
+order = 440
+status = "done"
+started = "2026-10-22"
+done = "2026-10-22"

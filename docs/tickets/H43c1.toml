@@ -1,0 +1,10 @@
+id = "H43c1"
+title = "Scenario: a multiplayer hero's death and a loaded multiplayer game (SharedObject)"
+group = "harness"
+depends = ["H43c"]
+files = ["tests/scenarios"]
+note = "H43c left WorldServer::AddSharedObject and SharedObject::Load unreached: they run when a hero dies in a multiplayer game (PlayerServer::OnLeaderDied's multiplayer branch drops the hero's items into a shared object) and when a save made then is loaded. A hosted game is a network client, so no @ line runs in it: the death needs a fight in a quest zone (net_pair_quest's) or a harness step that damages the leader; the load needs a multiplayer load. Golden scenario, 60 s."
+order = 837
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

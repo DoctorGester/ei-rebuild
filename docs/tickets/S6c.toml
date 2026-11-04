@@ -1,0 +1,10 @@
+id = "S6c"
+title = "Standalone library: the last MFC container slots (S6a leftovers)"
+group = "standalone"
+depends = ["S6a"]
+files = ["src/lib/mfc_slots.*", "src/game/game_slots.*", "tests/verify/verify_mfc_serialize.cpp", "tests/verify/verify_mfc_slots.cpp"]
+note = "The last MFC container slots (Serialize of counted-reference, script and CArray lists; CGdiObject / CFont, ScriptSubCall, map, MusicTheme destructors) ported via src/lib/mfc_slots.h."
+order = 575
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

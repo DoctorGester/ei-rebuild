@@ -1,0 +1,10 @@
+id = "SV7c1"
+title = "Vanilla menu unit cunit2 not hidden (flags 8) once under EI_HEAP_JITTER=3"
+group = "verification"
+size = 1
+model = "opus"
+files = ["src/game/unit_client_update.cpp", "src/game/unit_client_animation.cpp", "tests/verify/harness_watch.h"]
+note = "Closed 2026-10-28: one-off under EI_HEAP_JITTER=3, did not repeat; goldens are layout-independent now."
+order = 248
+status = "done"
+done = "2026-10-28"

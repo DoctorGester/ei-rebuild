@@ -1,0 +1,10 @@
+id = "C13a"
+title = "Forwarders to rewritten code whose types differ (C13 follow-up)"
+group = "cleanup"
+model = "opus"
+depends = ["C13"]
+note = "1,180 EI_ORIGINAL forwarders to rewritten code that tools/direct_calls.py leaves because the forwarder's signature differs from the registered target's (python tools/direct_calls.py --map build/verify/ei_hook.map --report -v --cast --library | grep 'types differ'): objects passed as another class or void* where the method takes a class, int vs enum / bool / char, shared bodies registered under one name (FreeAnyGrid, NextParticle, ArrayFree1). Recover each caller's real type (or the target's), then let the tool convert; spelling only, goldens as the check. Keep the forwarders the tool keeps on purpose: Rebirth-patched callees (141), vector recorders (43), replay stand-ins, entries the harness replaces (0049F660, 006E77F7)."
+order = 345
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

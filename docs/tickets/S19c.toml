@@ -1,0 +1,9 @@
+id = "S19c"
+title = "EI_Plugin NewMaster's second master server: port or drop (user's decision)"
+group = "standalone"
+size = 0.5
+note = "EI_Plugin NewMaster's second master server ported behind an opt-in setting (master address in ei_rebirth.ini, empty in harness runs so they stay offline)."
+order = 596
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

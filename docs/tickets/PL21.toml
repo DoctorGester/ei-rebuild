@@ -1,0 +1,8 @@
+id = "PL21"
+title = "Release Linux job: shaders built outside the glibc 2.35 container"
+group = "port"
+note = "User 2026-11-04, release run 113147799174 (build/gh_logs_113147799174/linux/5_Build.txt): the Linux job's Ubuntu 22.04 container (kept for an old glibc in the shipped binary) cannot build the shader toolchain: DXC's release libdxcompiler.so / libdxil.so need GLIBC_2.38 (22.04 has 2.35), so linking shadercross fails at configure. The game never loads DXC; only the compiled shaders (SPIR-V, MSL, reflection JSON, gen_gpu_shaders.py's gpu_shaders.h/.cpp) go in. Fix: a CMake option (e.g. EI_PREBUILT_SHADERS=<dir>) that skips toolchain.cmake and the shader custom commands and takes those outputs from a folder; release.yml gets a small ubuntu-24.04 job (or step outside the container) that builds them (configure + the shaders target only) and hands them to the container job as an artifact. The game binary still targets glibc 2.35. Also make toolchain.cmake print the tail of its two logs on failure (CI cannot read them). Check in WSL: a configure with the option using shaders from a normal build gives the same gpu_shaders.cpp and the port ctests pass; the YAML parses. The user reruns the workflow."
+order = 1130
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

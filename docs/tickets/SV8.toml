@@ -1,0 +1,9 @@
+id = "SV8"
+title = "Key remapping in the options did not work in the standalone image"
+group = "verification"
+size = 1
+note = "User 2026-10-16: remapping hotkeys did not seem to work, possibly from their local UTF-8 test patch (key_bindings.cpp was among its files). Recheck on a clean build against the original; if the image differs, a scenario that remaps a key and uses it, with goldens."
+order = 255
+status = "done"
+started = "2026-10-20"
+done = "2026-10-20"

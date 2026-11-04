@@ -1,0 +1,10 @@
+id = "P9d"
+title = "Global map pick by geometry, not a read-back picture (P9 batch E)"
+group = "native-ui"
+model = "opus"
+depends = ["P9"]
+note = "RefreshSelection draws a frame with the zone markers in grey levels and copies it into the backdrop; LeftDown / MouseMove / FindPaths read one pixel back (UiSurface::PixelAt -> render::ui::ReadPicturePixel). Replace with a hit test on the markers' projected triangles (the UiMesh geometry, the same projection the draw used, later markers over earlier ones) and drop the pick frame step, the picture and PixelAt. Check: ui_global_map_pick and the deals gallery's map_zone_tip / map_ways with goldens the same; zone clicks at marker edges compared against today's picks in a scratch run."
+order = 778
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

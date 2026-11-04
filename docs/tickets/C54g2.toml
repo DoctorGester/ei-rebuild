@@ -1,0 +1,9 @@
+id = "C54g2"
+title = "C54g1 rest: the interface's texture kinds and battle unit flags named"
+group = "cleanup"
+depends = ["C54g1"]
+note = "Left by C54g1. (1) CUiWindow::LoadTexture / CreateTexture's kind is the texture manager's object type (texture.h: NewTexture's 0x1E 5:6:5, 0x20 1:5:5:5, 0x21 4:4:4:4; LoadTexture's 3 and the global map's kMapTextureKind; CreateObject's 0x3E-0x40): one enum in texture.h for the manager's types, used by texture_blank's table, the interface's callers and the local kTextureKind copies (ui_briefing_create, ui_chat_window, ui_connect_screen, ui_hero_screen_create, ...). (2) ui_battle_update.cpp's selection box marks units with bare 0x10 / 0x100 (MapObjectFlag::BoxMarked and its neighbour): the MapObjectFlag names. Goldens unchanged (golden suite) + ei_ui_check."
+order = 745
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

@@ -1,0 +1,9 @@
+id = "C35a"
+title = "C35 file I/O: callers on FILE* / Win32 handles through the game's import slots, crt_file's CRT copies deleted"
+group = "cleanup"
+files = ["src/lib/crt_file.cpp", "src/lib/crt.h"]
+note = "Survey 2026-10-28: libcrt::Fopen 2, Fclose 6, Fseek 6, Ftell 5, Fread 5, Fwrite 3, Fflush, Fileno 2, Open 1, Read 4, Write 1, Lseek 4, Close 2, Filelength 1, Access 4, Findfirst 1, gamecrt::CrtFile 41, FindData 3, fwrite 2, fileno 1, write 1, GameStream (iostream's stdio flush); callers app_main, buffered_file, resource, resource_stream, ui_saveload, world_save, mfc_file (CStdioFile's own forwarders). Opening stays through gameapi::CreateFileA / GetFileAttributesA / FindFirstFileA (the harness's save sandbox and mods redirect those slots); the rest is std:: stdio or Win32."
+order = 488
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

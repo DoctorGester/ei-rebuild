@@ -1,0 +1,9 @@
+id = "C14q"
+title = "C14 the kept STLport hash tables and trees: Connection's maps, UnitSet's tables, the parties, the shape cache to std"
+group = "cleanup"
+depends = ["C14c"]
+note = "Left by C14c (user 2026-10-28 rule: replace the usage code with std or small code of ours, then delete the stlp piece once only the tests' game.exe views use it). Kept as stlp: net::Connection's five trees (net_connection.h trees::*, counted RefPtr values with CountedValue / RecordValue policies; stlp_tree.h / stlp_tree_abi.h / stlp_tree_mbs.h stay for them), UnitSet's FiguredTable / FiguredGroups / DressedTable (world.h, record element policies; walked to write the zone message, so lib::HashMap), PartyTable (party_manager.h, CParty in place with a nonstandard copy; game_hashes.h PartyAbi), ShapeTable (ai_shape_cache.h, RefPtr values, its own height equality). Each needs its element's real special members (an RAII counted pointer, CParty's copy) first; then lib::HashMap (src/lib/hash_map.h) where the walk matters, std::map for the trees, and stlp_hash.h / stlp_tree*.h go. The hashtable's bucket vectors are stlp::vector (C14n)."
+order = 498
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

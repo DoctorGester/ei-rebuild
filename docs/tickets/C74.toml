@@ -1,0 +1,9 @@
+id = "C74"
+title = "Vector maths a: written-out component maths collapsed to vecmath ops (bit-identical, scripted)"
+group = "cleanup"
+model = "sonnet"
+note = "User 2026-11-03: lots of vector maths is still written out by component although src/lib/vecmath.h has the types. Part a is the mechanical, bit-identical part: per-component ops become the operators (a.x-b.x, a.y-b.y, a.z-b.z -> a - b; component-wise +, *s, /s, negation, lerp written out -> Lerp), float[2]/[3]/[4] members and locals that hold points/directions become Vector2/3/4 where nothing depends on the array form (file and network formats keep their layout: Vector3 is 12 bytes, so most can), Vector3's odd members (Construct returning this, AddInPlace returning &v, DivideInPlace) replaced by plain construction and operators. Per-component ops round the same either way, so goldens must stay the same: that is the check that it stayed mechanical. Write the rewrite as a script over src/game and src/render (scripted-retype-batches style, 1-2 batches), review its output, hand-fix the rest. Do NOT touch the ordered sums (Sum3, XYZ/ZYX/ZXY helpers, *Unrounded) here: that's C74b. Report sites rewritten per pattern."
+order = 984
+status = "done"
+started = "2026-11-03"
+done = "2026-11-03"

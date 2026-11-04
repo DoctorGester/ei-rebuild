@@ -1,0 +1,11 @@
+id = "S12a"
+title = "Standalone library: the remaining STLport tree instantiations"
+group = "standalone"
+size = 1
+depends = ["S12"]
+files = ["src/lib/stlp_tree_abi.h", "src/lib/stlp_tree.h", "config/library.csv"]
+note = "Standalone STLport tree instantiations (TreeAbi / PairTree in src/lib/stlp_tree_abi.h; Connection maps, link mesh, link loader, interface maps) ported; docs/notes/standalone.md."
+order = 565
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

@@ -1,0 +1,8 @@
+id = "C61b"
+title = "Items: CItemSpell renamed CItemScroll (ItemKind::Scroll), the other item naming fixes"
+group = "cleanup"
+note = "User 2026-10-29: L28 yes; type and file renames are fine whenever they improve readability. Rename CItemSpell / ItemKind::Spell to CItemScroll / ItemKind::Scroll (whole tree, comments and notes too), and the [7] weapon / armour type-code arrays get a named count. Check: goldens (class names are not saved: confirm), build."
+order = 764
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

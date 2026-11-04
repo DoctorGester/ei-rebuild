@@ -1,0 +1,9 @@
+id = "SV2a"
+title = "Digest: the client world, missiles, timed objects, script queues"
+group = "verification"
+depends = ["SV2"]
+note = "Digest extended beyond the server world (tests/verify/harness_digest.cpp): client world units, missiles, timed objects, script queues and the AI event table."
+order = 166
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

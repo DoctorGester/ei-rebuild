@@ -1,0 +1,9 @@
+id = "S11"
+title = "Standalone library: STLport hashtable, hash_map, hash_set"
+group = "standalone"
+size = 1.5
+files = ["src/lib/stlp_hash.h", "src/lib/stlp.h"]
+note = "Standalone library STLport hashtable, hash_map, hash_set (~200) with STLport's bucket counts and insertion order, in src/lib, registered in config/library.csv."
+order = 538
+status = "done"
+done = "2026-10-15"

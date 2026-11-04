@@ -1,0 +1,9 @@
+id = "C101"
+title = "Particles style 1: dead stores, existing helpers, one name per value, manager tidy"
+group = "cleanup"
+model = "sonnet"
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Items P1, P9. Delete the 22 p->size = 1.0f stores before a reassignment and the writes before return 0 that RestorePrevious undoes (list in the review); call ParticleSource::Stop() (6 inlined copies), AddParticle (EmitPoisonFog's copy with its adjacency memcpy), RandomInBall; Particle::PlaceAt becomes p->pos = ...; kept draws get a 'draw kept' comment (emitters:90, :102-105). One name per value (the xRounded aliases, y/vy), declared where initialised (26 split declarations), references instead of float* field aliases, RingRadius() inlined; check the -0 case before folding zero - x. P9: Emit's early out, DrawAll reuses order with clear()/push_back, static functions instead of the TickSteps struct, the ARGB shift chain as one OR, elements.empty() for the 41 ssize == 0. Style only: goldens the same, float operation order untouched, no new forwarders."
+order = 1031
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

@@ -1,0 +1,8 @@
+id = "SV4c1"
+title = "Path vectors on more maps: smaller AI map snapshots"
+group = "verification"
+depends = ["SV4c"]
+note = "Dropped 2026-11-03: path vectors cannot be recorded again (recorders deleted in H40). SV4c keeps 3 of 18 recorded maps (888 KB; zone1 alone 607 KB, gz3g 1.2 MB, the menu map 80 KB per run). A snapshot coded against a base map of the same size, or a small inflater in ei_vectors (zlib halves the planes), would let gz3g, bz1g and gz2g's searches in. tools/path_vectors.py prune --keep chooses the maps."
+order = 235
+status = "done"
+done = "2026-11-03"

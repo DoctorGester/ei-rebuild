@@ -1,0 +1,9 @@
+id = "C29a"
+title = "C29 leftovers: crt* unread registrations, always-zero forwarder counts in tools"
+group = "cleanup"
+model = "sonnet"
+note = "From C29's report: drop the 23 unread registrations in src/lib/crt*.cpp now C26 is merged (registration_readers.py --drop without the crt exclusion); teach registration_readers that tests' forwarders run only in game.exe and drop the 12 registrations only they read; remove the forwarder counts from progress.py, dashboard_data.py, standalone_gaps.py and check_cleanup's EI_ORIGINAL column. Done (2026-10-22): registration_readers counts no EI_ORIGINAL forwarder as a reader (tests/ only, game.exe only); --drop --exclude src/lib/mfc_ wrote EI_REWRITTEN for 35 (23 in crt*.cpp, 12 the harness's / record_crt's forwarders alone named: TemplateTable::Find, console Execute, CMappedResource x3, blink x2, LoadUnitFaces, PickSurface, Tolower / Isdigit / Isspace). Forwarder counts gone from progress.py (naked functions now counted plainly), srcscan.py, dashboard_data.py + dashboard page, standalone_gaps.py (literals and data only) and check_cleanup (column dropped from cleanup_baseline.csv). standalone_unreachable.csv's harness-only 006F00D1 line went (covered nothing). Left: 9 unread non-short registrations from C28's vtable work (mfc_exception x6, mfc_state x2, manager_context MakeCopyOf) and 3 open standalone_gaps data references (004E0000, 00610020 from .rsrc text; 006F47FB at 007978A8): C29b. Suite: image 121 same / 23 without."
+order = 439
+status = "done"
+started = "2026-10-22"
+done = "2026-10-22"

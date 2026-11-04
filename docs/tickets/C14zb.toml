@@ -1,0 +1,10 @@
+id = "C14zb"
+title = "Delete CompiledCollection, ArrayHeader, ConstructHeader and mfc.h's CArray / CList"
+group = "cleanup"
+model = "sonnet"
+depends = ["C14z", "C14za"]
+note = "Once C14z and C14za leave no CompiledCollection tag and no mfc::CArray / CList in src: delete CompiledCollection, ArrayHeader, ConstructHeader / DestructHeader / ConstructListHeader, the ArrayAbi / ListAbi / element policies (mfc_array.h, mfc_list.h, mfc_slots.h, game_slots.h, game_lists.h, game_arrays.h, record_arrays.h) and mfc.h's CArray / CList; the vtables.csv rows become game.exe-only rows (scratch c14u h21_vtables.py). The tests' game.exe views stay in tests (exe_objects.h's Array / Vector / List; record_path.cpp's views). Then C14r (mfc_archive) falls out."
+order = 509
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

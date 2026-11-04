@@ -1,0 +1,9 @@
+id = "C22"
+title = "Comments cleanup: describe what the code does, drop porting history"
+group = "cleanup"
+model = "sonnet"
+note = "Guide: docs/comment-guide.md (user 2026-10-27: prioritise C22, Sonnet medium workers). Rule decided: no game.exe address stays in a comment (registrations carry function addresses; named globals the data ones); the only address tags kept are the rdata literal tags /*0073B86C*/ that tools/rdata_literals.py reads, and generated files are untouched. Ticket ids only as TODO(ID) for open work. Mechanical pass done on main (tools/comments.py apply: addresses in comments 19,415 -> 11,206, ticket ids 1,033 -> 539, code tokens unchanged per comments.py samecode). Ratchet: comments.py check in build.cmd, config/comment_baseline.csv (coordinator runs --update after merges). Hand pass: batches C22a-C22f (config/comment_batches.txt, ~8k comment lines each, user 2026-10-27). Earlier measure: src/ 980 files, ~51k comment lines; user 2026-10-21 on addresses: keep only those our work still needs, tagged."
+order = 387
+status = "done"
+started = "2026-10-27"
+done = "2026-10-27"

@@ -1,0 +1,8 @@
+id = "H53"
+title = "net_pair_quest: from 55 s to under 30 s"
+group = "harness"
+note = "From the Waits tab (2026-11-04): net_pair_quest averages 55 s on standalone over 981 runs a week (15 h of game time) and 37 s on Rebirth; it is the longest game in the image suite, so it sets the suite's floor (suite batches run 35-90 s). Its script has fixed waits (wait 4000, wait 800 between clicks, peerwait 90, frames 60). Replace fixed waits with conditions (waitwindow / waitunit / peer signals) and cut what it does not need, keeping what it checks and its goldens (re-record only if a digest must move, with the reason). Same pass over the other net_pair_* scenarios over 30 s (net_pair_leave, net_pair_kick). Check: 5 runs each before and after, times and goldens."
+order = 820
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

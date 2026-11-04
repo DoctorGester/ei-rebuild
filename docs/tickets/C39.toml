@@ -1,0 +1,10 @@
+id = "C39"
+title = "One anonymous namespace per file: merge the split blocks (197 files, up to 32 blocks in one)"
+group = "cleanup"
+model = "sonnet"
+files = ["src/game", "src/lib", "src/render"]
+note = "User 2026-10-28 asked why anonymous namespaces are needed: they give internal linkage (like static), which ~1000 port files with same-named helpers need, and let the compiler drop / warn about unused ones; they stay. But 1072 blocks in 621 files, 197 files with several (particle_callbacks.cpp 32, world_game.cpp 20, world_client_maps.cpp 13): the port added helpers one at a time next to their users. Script: per .cpp, move the internal helpers into one `namespace {` block after the includes (keeping declaration-before-use order; where a helper needs a type or function declared later in the file, forward-declare or keep a second block and say why). Spelling / order only; builds verify / release / debug and both builds' goldens."
+order = 666
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

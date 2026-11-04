@@ -1,0 +1,10 @@
+id = "R12"
+title = "Visible seams on the terrain while the camera moves"
+group = "renderer"
+size = 1
+model = "opus"
+note = "User 2026-10-16, playing the standalone image (vanilla): visible seams between terrain pieces when moving the camera. Compare with the original on dgVoodoo (a frame capture of the same camera move on both); likely the new renderer's terrain pipelines (R10d) or texel / half-pixel rules. Most important of the user's play notes."
+order = 24
+status = "done"
+started = "2026-10-20"
+done = "2026-10-20"

@@ -1,0 +1,11 @@
+id = "S16a"
+title = "Standalone: the server's unit appearance cache build (005593D0) and its hash_map helpers"
+group = "standalone"
+size = 1
+depends = ["S16"]
+files = ["src/game/world_sync.cpp", "src/lib/stlp_hash.cpp", "src/lib/stlp_vector.cpp"]
+note = "Standalone server unit appearance cache build (005593D0) and its hash_map helpers ported; boot continues in docs/notes/standalone.md."
+order = 583
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

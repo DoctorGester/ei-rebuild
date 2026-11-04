@@ -1,0 +1,10 @@
+id = "C13b3"
+title = "C13b2 leftovers: push_back slow paths, per-file list / hash storage, net_connection raw containers"
+group = "cleanup"
+model = "opus"
+depends = ["C13b2"]
+note = "C13b2's leftovers (python tools/direct_calls.py --report -v --cast --loose --library after merging main; 798 forwarders by check_cleanup on 2026-10-20, 804 in the report's scope). (1) 334 'types differ': 18 InsertOverflow push_back slow paths (CountedRefVector over CRefObject* / PartyRecord* storage in ui_chat_window / party_records / class_templates, raw pointer triples in net_connection*, the interface's window stack, ui_saveload, ui_trade_panel, world_game's zone table), 18 CArray SetSize on reinterpreted arrays, ~70 list / hash Clear / NewNode / FreeNode / RemoveAll / Insert / Erase on per-file CList<void*> and Str4 hashtables, 12 CStringArray / CFile / CFileFind members in lib/mfc.cpp (lib's own copies). (2) net_connection.cpp / _life / _tick (50): type received_, freedIds_, incoming_, headers_, history_ and the id pools as stlp containers first. (3) ui_create_screen's screen constructor writes members by offset (ei::OffsetPtr 0x170-0x294): type that screen, then IdVectorConstructOriginal, Member5F9540, Member5F90E0, Member5F9300 go. (4) The map object effect array (EffectArraySetSizeOriginal) once tests/verify/harness_digest.cpp reads it typed. (5) FloatTable: NamedFloatTable and PartyVariableMap share instantiations; one type. (6) The camera's shake list and view stack in camera.h (6; ViewStackDestroyRange stays). (7) tests/verify/harness.cpp:1655 HarnessLoadUnitFaces is convertible (cast), for whoever owns tests/verify. Keep: Rebirth-patched (131), skip list (94), vector recorders (49), ei_vectors link-only (30, e.g. NodeAllocateOriginal / StlNodeFreeOriginal used by lib/stlp.cpp), replay stand-ins, harness-replaced entries, WordsSetAtGrow, ViewStackDestroyRange. Small commits per family, --golden after each."
+order = 353
+status = "done"
+started = "2026-10-20"
+done = "2026-10-20"

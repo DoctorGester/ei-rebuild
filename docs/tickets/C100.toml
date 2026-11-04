@@ -1,0 +1,8 @@
+id = "C100"
+title = "UI style 8: window-local coordinates instead of the global panel mode"
+group = "cleanup"
+model = "opus"
+depends = ["C99"]
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Item U11. Regions and sprites take coordinates relative to their window and the panel offset is the window's origin; screen_layout::EnterLeftPanel/EnterRightPanel/LeavePanel (26 calls) and the hand-paired LeavePanel at early returns go, with the 18 addon-address comments around them. Captures of every HUD panel and window at 4:3 and widescreen, vanilla and Rebirth, the same before and after. Style only: goldens the same, float operation order untouched, no new forwarders."
+order = 1030
+status = "queued"

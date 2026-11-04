@@ -1,0 +1,9 @@
+id = "C45d5b"
+title = "BlowSide and SkillAnimation parameters instead of uint32"
+group = "cleanup"
+depends = ["C45d5"]
+note = "Signature follow-up of C45d5: CUnitServer::HitDirection returns, BuildDeathAnimation's direction and CUnitServer::hitDirection hold a BlowSide (map_object_figures.h) as std::uint32_t; CObject3D::FindSkillAnimation(int) could take SkillAnimation for the skill callers. The saved field keeps its 4 bytes. Goldens unchanged."
+order = 722
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

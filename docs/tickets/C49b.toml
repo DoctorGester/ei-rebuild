@@ -1,0 +1,10 @@
+id = "C49b"
+title = "Ref<T> for the remaining raw counted slots"
+group = "cleanup"
+model = "opus"
+depends = ["C49"]
+note = "C49 follow-up outside the interface files. The 52 AssignCounted/ReleaseCounted calls on raw slots (unit item slots, net link_/pendingLink_, g_patch CUnitShape, item link_, the party/world managers) to Ref fields, then delete both helpers. The hand-counted std::list<T*> lists (effectSources, parts, pendingParts and similar) to std::list<HeldRef<T>> where the release order stays the same. Leave the deliberate decrement-without-release sites ('sic') as they are, named. Goldens unchanged."
+order = 698
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

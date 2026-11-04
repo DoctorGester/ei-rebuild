@@ -1,0 +1,10 @@
+id = "R17a2"
+title = "Water: swamp look, shore seams, calmer surface"
+group = "renderer"
+model = "opus"
+depends = ["R17a"]
+note = "User 2026-11-04 after playing R17a's water: (1) shore foam and waves are everywhere, but swamps should look different: swamp water now looks like regular water tinted green. Tell swamp water from the game's data (the water's material / level type in the map, its colour or name; find what the game itself uses) and give it its own look: no shore foam, no surf, still or slow ripples, murky and less reflective, maybe floating scum. (2) Visible seams on the terrain pieces at the shore, the ones that connect to the water: find whether it is the water depth or foam taken per vertex across page edges, R17b's per-sector height-field occlusion at sector borders, or the ground/water pages' edges, and fix it (a frame check across a shore seam). (3) The water is a bit too noisy: calm the ripples (lower slope or contrast, fewer high-frequency layers, less glint sparkle) so it reads as water and not grain. Captures before/after of a shore, the sea and a swamp."
+order = 948
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

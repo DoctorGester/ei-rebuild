@@ -1,0 +1,7 @@
+id = "X36"
+title = "Display-mode scenarios run alone"
+group = "harness"
+note = "Display-mode scenarios (`resolution` step) run alone: run_all takes every slot for them; message boxes end a run at once with text and stack."
+order = 275
+status = "done"
+done = "2026-10-14"

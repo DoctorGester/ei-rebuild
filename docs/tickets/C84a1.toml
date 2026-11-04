@@ -1,0 +1,9 @@
+id = "C84a1"
+title = "Script: a For / ForIf body whose saved block id does not resolve"
+group = "cleanup"
+depends = ["C84a"]
+note = "SSCCmd::Load resolves calledScript by id in the main script's lists; an id the save's blocks lack gives null and For / ForIf's RunBody then faults in Execute (the A case C84a fixed for pairs and runs, left for command calls). Decide at load: drop such a command, or treat a null body as empty in one place. Reach it with a hand-edited save (tests/unit or a scenario)."
+order = 1004
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

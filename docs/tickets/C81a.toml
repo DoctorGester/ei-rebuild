@@ -1,0 +1,9 @@
+id = "C81a"
+title = "Options window: localized text for the Shadows row"
+group = "cleanup"
+depends = ["C81"]
+note = "C81 collapsed the three shadow rows into one whose label and tip are English constants in ui_options.cpp (the game's texts have no entry). Add the entry to the texts (all languages) or take the closest existing text."
+order = 1002
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

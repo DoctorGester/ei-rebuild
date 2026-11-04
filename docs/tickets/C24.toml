@@ -1,0 +1,8 @@
+id = "C24"
+title = "Our own game icon for ei_standalone.exe"
+group = "cleanup"
+depends = ["C23"]
+note = "User 2026-10-22: no icon for now (C23); make our own later. Rebirth's EIRIcon.ico (F:\\games\\Evil Islands (Rebirth)) is not ours to commit: its license.txt grants no redistribution. Sizes 16-256 px in one .ico, icon id 105 (app_main.cpp kIcon) in host.rc, and RouteImageCalls' check back."
+order = 401
+status = "done"
+done = "2026-11-04"

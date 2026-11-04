@@ -1,0 +1,12 @@
+id = "F4b"
+title = "Drop the FigurePart alias (F4a follow-up)"
+group = "cleanup"
+size = 1
+model = "sonnet"
+depends = ["F4a", "W2", "F5"]
+files = ["map_object_figures.h", "ui_model.cpp", "player_client.cpp", "verify_ui_model.cpp"]
+note = "The `using FigurePart = CFigureMesh` alias is gone; ui_model.cpp and player_client.cpp use CFigureMesh fields directly."
+order = 333
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

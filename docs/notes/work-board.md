@@ -2,16 +2,20 @@
 
 ## Split
 
-- **docs/tickets.toml** (git) says what a ticket is: title, group, depends, files, note. Changed only through
-  tools/tickets.py (`note ID TEXT [--append]`, `add`, `set ID STATUS`), which checks the file, holds a per-checkout
-  lock (build/tickets/tickets.lock) around each read-modify-write and rewrites docs/tickets.md and
-  build/tickets/tickets.json.
+- **docs/tickets/<ID>.toml** (git), one file per ticket, says what a ticket is: title, group, depends, files, note,
+  and `order` (its place in the list; a new ticket takes the largest plus one, equal orders sort by id). Two branches
+  that touch different tickets never conflict. `docs/tickets/groups.toml` holds the queue's rules and the group
+  headers. Changed only through tools/tickets.py (`note ID TEXT [--append | --replace]`, `add`, `set ID STATUS`), which
+  checks the folder, holds a per-checkout lock (build/tickets/tickets.lock) around each read-modify-write and
+  rewrites build/tickets/tickets.md and tickets.json (build outputs, not in git).
 - **build/live/work.db** (SQLite, in the main checkout, outside git) says what is happening now: ticket status,
   assignments, notes, batches and their runs, run times. Every worktree finds it through `git rev-parse
   --git-common-dir`; `WORK_DB=<path>` overrides it; `work.py db` prints the path, schema version and counts.
-- **docs/ticket_status.tsv** (git) is the statuses as a file, for checkouts without the database (cloud sessions):
-  every generate writes it from the database, and a row newer than the database's (or missing there) is taken from it,
-  so a status set on either side reaches the other by git. It merges as a union; regenerate it after a merge.
+- **The status lines of a ticket's file** (`status`, `started`, `done`) are the committed copy of the database's row:
+  `work.set_ticket_status` (so `tickets.py set`, `work.py start`, `work.py done ID merged`) writes them into the file
+  of the checkout it runs in, so a status change touches only that ticket's file. A checkout without the database
+  (cloud sessions) reads them; where the database has a row, the database wins. The file may lag (a ticket set in a
+  checkout other than the one that is merged); the coordinator's `done` rewrites it.
 
 ## Tables
 

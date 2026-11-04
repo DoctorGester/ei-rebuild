@@ -1,0 +1,11 @@
+id = "S20"
+title = "Goldens for every scenario before the hooks go"
+group = "standalone"
+size = 1.5
+model = "sonnet"
+files = ["tests/golden", "tools/golden.py", "tests/scenarios"]
+note = "Goldens recorded for every scenario before the hooks go; ui_widescreen and ui_widescreen_screens have Rebirth goldens only (WideScreen; golden.py refuses vanilla)."
+order = 592
+status = "done"
+started = "2026-10-15"
+done = "2026-10-16"

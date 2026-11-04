@@ -1,0 +1,7 @@
+id = "SV2d"
+title = "gobject.i after loading a save: 1884 in ours, 702 in the original"
+group = "verification"
+note = "Superseded by SV7: goldens are independent of heap layout, so twin order no longer matters."
+order = 200
+status = "done"
+done = "2026-10-15"

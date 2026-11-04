@@ -1,0 +1,9 @@
+id = "C59b"
+title = "Second feature-grouping pass: merge the thinly split files (unit_client_*, spell_*, ui_battle_*, texture_*, object3d_*)"
+group = "cleanup"
+depends = ["C59a"]
+note = "Part (2) of C59a. C59 removed every *_slots / *_lifetime / small_* file and cut unit_ai_* from 15 to 4 files; still split thin by the original's address order: unit_client_* (12 files), spell_* (11), ui_battle_* (8), texture_* (8), object3d_* (4) next to map_object_figures.cpp (the 3D object base). Merge where one feature is split thin; audit single members sitting in another subsystem's file beyond the grab-bags. Moves only, no signature changes; run alone between other workers (conflicts with everything)."
+order = 971
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

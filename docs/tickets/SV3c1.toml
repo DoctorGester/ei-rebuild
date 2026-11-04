@@ -1,0 +1,9 @@
+id = "SV3c1"
+title = "Build check: no direct calls to rewrites of Rebirth-patched functions (rule 9)"
+group = "verification"
+size = 0.5
+note = "Build check for direct calls to rewrites of Rebirth-patched functions (docs/rebirth-patched-functions.txt; capstone scan of ei_hook.dll .text); found GameRender calling CWorldClient::Render."
+order = 194
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

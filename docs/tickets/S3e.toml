@@ -1,0 +1,8 @@
+id = "S3e"
+title = "Rebirth: exit stops after MFC's thread state frees the handle maps"
+group = "standalone"
+note = "Rebirth exit hang fixed: addon.dll's CtfMon switch (Settings\\CtfMon=1) restarts CTFMon.exe at DLL_PROCESS_DETACH; harness answers CtfMon 0, ei_launch writes exit_hang.txt. Covers R9c6, X32."
+order = 578
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

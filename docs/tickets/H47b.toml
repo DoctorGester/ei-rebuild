@@ -1,0 +1,10 @@
+id = "H47b"
+title = "Linux harness runs: the remaining differences"
+group = "harness"
+size = 0.5
+depends = ["H47"]
+note = "Recheck after H47d (Linux suites under xvfb-run), which may settle some of these. From H47's WSL runs (docs/notes/linux.md, The harness): render_smooth and ui_quicksave's saved picture differs in 94% of the pixels on GL (before R43e; recheck on SDL_GPU Vulkan) (read-back orientation or format?), render_terrain_seams' level steps 0.9% (vanilla data), render_present_window's windowsize is asynchronous under X11 (wait for the size before the next step), net_second_master's refused connect comes at once (Windows retries about 1 s: wait on the box instead of a fixed wait 2500?), the pair scenarios run about 190 s on llvmpipe. Also: a prepare tool failing raises out of run_all (prepare_scenario.prepare) and ends the whole suite instead of failing the run."
+order = 808
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

@@ -1,0 +1,8 @@
+id = "C66a"
+title = "Rebirth flags into ei_settings.ini"
+group = "cleanup"
+note = "C66 left ei_rebirth.ini (the [Rebirth] patch flags, config/ei_rebirth_standalone.ini, EI_REBIRTH) as a file of its own beside ei_settings.ini. Folding the flags into one settings file (a [flags] section?) would unify them; it touches play.cmd, run_all's EI_REBIRTH, the drop-in profile and src/lib/rebirth.cpp. Decide with the user."
+order = 976
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

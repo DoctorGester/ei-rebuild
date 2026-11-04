@@ -1,0 +1,10 @@
+id = "S10"
+title = "Standalone library: STLport vector<T>"
+group = "standalone"
+size = 1
+files = ["src/lib/stlp_vector.h", "src/lib/stlp.h"]
+note = "Standalone library STLport vector<T> (~280: resize, _M_insert_overflow, _M_fill_insert, erase, push_back, _STLP_alloc_proxy) in src/lib, registered in config/library.csv."
+order = 537
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

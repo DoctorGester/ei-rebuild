@@ -1,0 +1,12 @@
+id = "R11c"
+title = "DirectDraw left in the game code after R11b"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R11b"]
+files = ["src/game/app_frame.cpp src/game/surface.cpp src/game/unit_client_blink.cpp src/game/renderer_lifetime.cpp src/game/device_draw.cpp src/game/device_draw.cpp src/game/ui_saveload.cpp"]
+note = "From R11b: no holder has a DirectDraw surface (CDXSurface::surface always null). Left: the render target / primary surface tests that always take the no-surface branch (app_frame.cpp 81, surface.cpp 95, unit_client_blink.cpp, renderer_lifetime.cpp 44), device::Surface in the binds and draws (always null to SetTexture), the DDSURFACEDESC2 layout of DirectPixels' desc, GivePictureMemory / AttachTextureMemory in ui_saveload.cpp (the textures already have memory from 00691D80). The COM stand-ins and device.h's wrappers wait for R9b2. Keep goldens the same; renderer.md section 9 Open items."
+order = 23
+status = "done"
+started = "2026-10-20"
+done = "2026-10-20"

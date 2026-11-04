@@ -1,0 +1,9 @@
+id = "H30b"
+title = "Harness: read game.exe's objects through its own views, so game headers leave the reference key"
+group = "cleanup"
+model = "opus"
+note = "User 2026-10-22 16:26: we are no longer layout matched, so the harness can't depend on our classes. Today it does: harness_digest runs the same code in game.exe, reading members at our offsets (w->objects_, CUnit::scriptName) and calling virtuals at our slot numbers (o->GetClassId()). Vanilla passes only because C28 keeps member and virtual order. Do this first when work resumes, before any cleanup that could reorder members."
+order = 442
+status = "done"
+started = "2026-10-27"
+done = "2026-10-27"

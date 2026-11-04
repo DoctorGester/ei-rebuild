@@ -1,0 +1,10 @@
+id = "R30b"
+title = "The cursor's pictures without the renderer's memory"
+group = "renderer"
+size = 0.5
+depends = ["R30a"]
+note = "R30 survey: build/style_review/renderer_trim.md, R30b: render::SurfaceMemory (NewSurfaceMemory / SurfaceMemoryOf / FreeSurfaceMemory) has one user, the software cursor's 8888 pictures: surface.cpp fills it (AttachMemory, FillPicture, LoadPicture under g_deviceLock) and CursorImage reads it back (DirectPixels / SurfacePixels) only to build the mask, while the renderer keeps the picture again as RGBA8 (PictureFromMmp). Build the mask from the .mmp pixels (ChannelLayout::ToNative) and delete the memory, DirectPixels, SurfacePixels and the device-lock brackets. Check: render_cursor_present, the ui_* frames; the mask at 16 and 32 bits against the memory path before deleting it."
+order = 94
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

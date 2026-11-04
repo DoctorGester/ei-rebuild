@@ -1,0 +1,10 @@
+id = "WB14"
+title = "No firewall prompts from harness games: bind to loopback only"
+group = "harness"
+size = 0.5
+model = "opus"
+note = "In harness runs every socket the game (and harness_net's free-port probe) binds on INADDR_ANY binds on 127.0.0.1, so no Windows Firewall prompts; firewall rules never changed."
+order = 313
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

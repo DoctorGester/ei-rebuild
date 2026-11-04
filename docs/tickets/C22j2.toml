@@ -1,0 +1,10 @@
+id = "C22j2"
+title = "Comment removal C22j, second pass: terrain, scene loader, sound manager, script and camp sources"
+group = "cleanup"
+model = "opus"
+depends = ["C22j"]
+note = "C22j cut its batch 19.6% (9,015 to 7,245). Left, by size: terrain.h, scene_loader.h/.cpp, sound_manager*.cpp, terrain_sector.h/.cpp, ui_camp.cpp, script_eval.cpp, script_load.cpp, spell_effect_internal.h, ui_battle_update.cpp, and ui.h blocks that were only re-wrapped. Opus (user 2026-10-27: Sonnet stalled at 16-20%). docs/comment-guide.md 'Removal pass'; samecode main clean, one release build, no game runs."
+order = 462
+status = "done"
+started = "2026-10-27"
+done = "2026-10-27"

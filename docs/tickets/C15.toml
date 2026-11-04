@@ -1,0 +1,11 @@
+id = "C15"
+title = "reinterpret_cast: typed fields, objects and calls instead of casts"
+group = "cleanup"
+size = 3
+model = "sonnet"
+files = ["src/game", "src/lib", "config/cleanup_baseline.csv", "tools/check_cleanup.py"]
+note = "Recounted 2026-11-04: reinterpret_cast in src 48 (the note's 328 counted the hook and standalone dirs, which are gone). Every one is in a kept category: byte and pixel parsers (chunk_archive, core_streams, net_delta, game_buffer_strings, figure_manager, model_db, mod_folders, net_messages, net_second_master, ui_cursor, texture_load, ui_saveload, world_game, registry; the 3-byte length reads into a uint32), char/unsigned char views of strings (text_case, TextAt, Chars), socket and fd types in src/platform, pointer-as-integer (hash_map, render keys), storage for StatsTimer (render.cpp) and two record-index byte distances (item_db.h IndexOf, unit_db.h PrototypeByteOffset: a null record gives a defined distance, typed subtraction would be undefined). The owned-elsewhere views (CString, ListAbi/ArrayAbi, FreeSpares, InsertOverflow, brain / trap lists, ScriptNamedValues, script_array Raw) are all gone: C14a, C31b, C21, C27-C29 removed them. No code change needed."
+order = 342
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

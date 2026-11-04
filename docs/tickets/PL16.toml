@@ -1,0 +1,10 @@
+id = "PL16"
+title = "Window, events and mouse made SDL-shaped instead of Win32-shaped"
+group = "port"
+model = "opus"
+depends = ["R44", "PL15", "H47"]
+note = "User 2026-11-03; review build/reviews/platform_h_trim.md sections 3-4. The platform's window and events still mimic Win32: RegisterWindowClass/ProgramInstance/NativeInstance, an EventHandler returning a window-procedure result, ShowGameWindow(nCmdShow), MarkPainted, RepaintDesktop, Paint/Destroy/SystemCommand/AutoPlay events, FindClassWindow+WindowProcess+BringToFront (one call: another copy runs, bring it forward), keyFlags with scan-code bits, MK_ button bits, UTF-16 Character units, SystemKeyDown, separate double-click events. Make Event SDL-shaped (key + modifiers, UTF-8 text, button enum + click count, window resized/focus/quit) and the window calls what the game needs on SDL; MouseDevice (DirectInput's steps and reports) becomes one 'relative motion and wheel since the last read'. Key codes stay the Windows values (bindings file). Game code that reads the old fields follows. Golden re-records only where input scenarios change for a stated reason; Linux and macOS (macos-port) keep building."
+order = 1119
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

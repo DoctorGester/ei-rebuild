@@ -1,0 +1,8 @@
+id = "S22b"
+title = "DINPUT out of game.exe's import table: DirectInputCreateEx direct, the harness's route by export"
+group = "standalone"
+depends = ["S22"]
+note = "S22: DINPUT's one slot (DirectInputCreateEx) is reached by input_mouse.cpp (gameapi::DirectInputCreateEx) and routed by the harness (harness_input.cpp PatchImport). image_imports.cpp loads dinput.dll always from System32 (Rebirth's proxy beside its game.exe loads addon.dll); a direct call through dinput.lib takes the system's too. Call it directly and give the harness a seam of ours instead of the slot (as ei::mainloop::g_harnessHooks); tests/verify changes, so the --no-hooks suite runs. Then DINPUT leaves the image's table. Check: goldens unchanged, the report's MOUSE: line as before."
+order = 635
+status = "done"
+done = "2026-10-29"

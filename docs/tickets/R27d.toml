@@ -1,0 +1,10 @@
+id = "R27d"
+title = "Gamma: the three sliders straight to the present pass, no DDGAMMARAMP"
+group = "renderer"
+model = "sonnet"
+depends = ["R27c"]
+note = "renderer_marker.cpp builds a DirectDraw gamma ramp that the renderer converts. Hand brightness / contrast / gamma to the present pass (or build the ramp in src/render) and drop DDGAMMARAMP. Keep the image the same (harness gamma ramp check)."
+order = 82
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

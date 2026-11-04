@@ -1,0 +1,12 @@
+id = "C12b"
+title = "Register and stack shims left by C12"
+group = "cleanup"
+size = 0.5
+model = "opus"
+depends = ["C13"]
+files = ["src/game/renderer_init.cpp", "src/game/sound_manager.cpp", "src/game/unit_motion_tick.cpp"]
+note = "Done (2026-10-21): all three shims gone. CreateHelper calls gamecrt::operator_new and passes the helper flag whole (RenderHelperConstruct reads only its low byte, so EDX's upper bits were never observable). StopStream calls the ASI codec's close as __stdcall via VirtualSlot, like sound_manager_lifetime's codec calls. UpdateMotion (00547890, EI_REWRITTEN, called only by our 005499F0) is a plain function; the original's uninitialised 'blocked' local starts at 0: only 1 (replan) and 2 (wait) mean anything, every other value acts as none. The naked entry had read the standalone's own stack, not the original's, and an instrumented golden suite logged no tick consuming the value. Naked non-forwarders 12->9, __asm blocks 14->11, fastcall shims 90 unchanged. Image goldens 121 the same, original 114 the same."
+order = 344
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

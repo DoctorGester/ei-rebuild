@@ -1,0 +1,9 @@
+id = "H42"
+title = "Harness: runs fail at EI_RESOLUTION=1280x720"
+group = "harness"
+model = "sonnet"
+note = "Found by MAC3e (main and its branch alike): with EI_RESOLUTION=1280x720, render_smooth / ui_quicksave (checksave about 20%), render_shadows_shimmer, render_cursor_present and ui_gallery_deals fail; at the default resolution all pass. Find whether the scenarios or the game depend on the resolution and fix the cause."
+order = 798
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

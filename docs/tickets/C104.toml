@@ -1,0 +1,8 @@
+id = "C104"
+title = "Particles style 4: switch dispatch, one section per effect, a spec table"
+group = "cleanup"
+model = "opus"
+depends = ["C103"]
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Items P5, P6. Replace the three member-function pointers (emitFn/updateFn/elementFn) with switch (type) in EmitParticle/UpdateParticle/TickSource calling free functions (int EmitTornado(ParticleSource&, Particle&, int index)); TickSource loops elements itself where needed (the element-0 guards go); about 100 member declarations leave effects.h. Each effect's setup, emit, update and tick together (particle_<family>.cpp or sections). SetupType's 335-line switch becomes constexpr ParticleSpec kSpecs[] with code only for types with draws or elements; plus the small items (create:427 dead test, the name copy, duplicate kFar/kNear, ~ParticleSource repeating Clear). Same order of random draws. Style only: goldens the same, float operation order untouched, no new forwarders."
+order = 1034
+status = "queued"

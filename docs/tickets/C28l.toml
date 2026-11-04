@@ -1,0 +1,9 @@
+id = "C28l"
+title = "C28 interface bases: CUiWindow / input / container classes and the harness's window ids"
+group = "cleanup"
+model = "opus"
+files = ["src/game/ui.h", "src/game/ui_window_class.h", "src/game/ui_input_class.h", "src/game/ui_container_class.h", "tests/verify/harness_windows.cpp", "tests/verify/ui_census.cpp"]
+note = "ui_window_class.h, ui_input_class.h, ui_container_class.h, ui.h's VirtualSlot calls (26), the two-table windows (vtable_ / inputVtable_: a window and its input side as real bases). First give tests/verify/harness_windows.cpp (kKnownWindows, WindowReady) and ui_census.cpp a window id that is not the table address (the census's W<vtable>#n labels must stay the same)."
+order = 430
+status = "done"
+done = "2026-10-22"

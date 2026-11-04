@@ -1,0 +1,9 @@
+id = "R43d3"
+title = "Exit with the device thread still running: no std::terminate"
+group = "renderer"
+model = "sonnet"
+note = "From R43d2. render::PrepareDevice starts a std::thread kept in g_prepared; Start joins it. Any exit between the two (a declined disk-space prompt, a fatal error before CreateRenderer, std::exit paths) leaves a joinable thread and std::terminate runs at exit. Join (or detach safely) on every exit path, e.g. a destructor or an atexit hook that waits for the thread, and check the harness_disk_full scenario and a forced early exit end with the normal exit code."
+order = 940
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

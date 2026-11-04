@@ -1,0 +1,8 @@
+id = "P9a1"
+title = "Spell column tooltip reads Spell by byte offsets (garbage numbers)"
+group = "cleanup"
+note = "ui_spell_column.cpp's local Get<T>(base, offset) memcpys Spell fields at the original's offsets (0x20, 0x24, 0x28, 0x30, 0x34, 0x38, 0x3C, 0x40); Spell (spell.h) is a normal class now, so the HUD spell tooltip shows garbage (ui_widescreen_more's tooltip frame: 'Длительн.: 104857.6с  Цели: -1082130432', the area 0.0 or 0.5 from run to run). Read the named members; the helper evades build_checks' offset-access count (add its pattern). Found by P9a."
+order = 1010
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

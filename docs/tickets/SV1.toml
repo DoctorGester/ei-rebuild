@@ -1,0 +1,9 @@
+id = "SV1"
+title = "Virtual game clock: runs that repeat"
+group = "verification"
+size = 1.5
+note = "Virtual game clock: zone loading and the sound code's clocks run on it, and every scenario passes compare.py --runs 3 on both sides."
+order = 159
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

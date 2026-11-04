@@ -1,0 +1,10 @@
+id = "C18j"
+title = "Named data: objects the generated static initialisers store into"
+group = "cleanup"
+model = "opus"
+depends = ["C18d"]
+note = "Done (docs/notes/standalone.md 'The static initialisers' objects'). Tooling: gen_static_init.py leaves out stores, float folds and fills into named ranges (the definition's initialiser takes their place; named_data.py compares it with game.exe's bytes as the initialisers leave them, stored_values; a call's stored result is refused) and into unread objects (config/unread_data.csv, written by gen_static_init.unread_objects: constant store groups nothing but their initialiser reaches; 291 objects, 857 statements: per-file zero vectors, identity rotations, 1/1 and pi folds); what must run in list order is a hand port of the initialiser registered at its address (weather_noise's BuildWeatherNoise 004E3B20). named_data.py takes a single-number definition (= /*addr*/ 0.5f;). Named: kSpinAngle 007A9BF8, kIdentityRotation 007A9C30, kDegenerateNormal 007A9C98, weather_particles' five scalars 007AED98-007AEDA8 and seed tables 0078DEA4 / 0078DF24, the five sway curves 007ABB98-007AED98. Game data addresses 2952 -> 2068. Follow-ups: C18k (exit functions / destructors, opus), C18l (constant objects hand code reads, by area), C18m (the unread candidates next to referenced objects)."
+order = 381
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

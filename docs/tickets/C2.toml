@@ -1,0 +1,8 @@
+id = "C2"
+title = "Class families: members, virtual calls, containers, named globals"
+group = "cleanup"
+model = "opus"
+note = "Class families done (C2m, C2u, C2i, C2ui, C2e, C2w, C2f, C2a, C2n, C2sc, C2ms, C2d, C2z): offsets, VCall, *At views, SlotNN and per-file containers at 0 across src; leftovers in cleanup-*.md."
+order = 322
+status = "done"
+done = "2026-10-14"

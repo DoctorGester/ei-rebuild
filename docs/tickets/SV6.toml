@@ -1,0 +1,10 @@
+id = "SV6"
+title = "Hook build: 224 registrations skipped at install (unknown starts, a second hook on one address)"
+group = "verification"
+size = 1
+files = ["src/hook/function_sizes.inc", "config/extra_function_sizes.csv", "src/hook/hook.cpp"]
+note = "Every SKIP at hook install classified (missing sizes decoded into config/extra_function_sizes.csv, short functions with padding hooked, double registrations dropped); an unexpected SKIP failed the run."
+order = 196
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

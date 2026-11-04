@@ -1,0 +1,12 @@
+id = "R16c"
+title = "Terrain pages resident on the GPU; lit colours streamed only for relit pages"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R16"]
+files = ["src/render/render_terrain.cpp"]
+note = "docs/notes/renderer.md section 13, item 3. 54 terrain pages a frame in zone1, 0.8 MB of vertices and indices streamed each frame although 52-57% of pages are unchanged and 28-31% only relit. Static position / uv / index buffers per sector page, LOD and seam variant; colours (8 of 28 bytes) in their own stream, uploaded when the sector was relit. Harness build: compare a cached page with a fresh build every N frames. Check: render_scene, render_terrain_seams, render_smooth with the cache on / off at 8 / 0.1%."
+order = 35
+status = "done"
+started = "2026-10-20"
+done = "2026-10-20"

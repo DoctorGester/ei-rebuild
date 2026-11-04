@@ -1,0 +1,9 @@
+id = "C52c"
+title = "C52 rest 3: out-parameters left after C52b"
+group = "cleanup"
+depends = ["C52b"]
+note = "Kept on purpose by C52b (behaviour depends on the out-parameter): CMappedResource::ListFiles / modfolders::ListFiles (vanilla replaces the list, Rebirth's ResOverride appends; TextSources::ListKeys and CSoundManager::ListWaveFiles reuse one scratch vector, so Rebirth's text-key and wave listings grow over the archives; a return value would change them); ItemStock::Generate{Weapons,Armors,QuickItems,Materials,*Instructions,Scrolls} with GenerateItems / GenerateInstructions, AppendWeaponModelParts, PlayerMode::AddPartyTargets, NetLink TakeNew (append to a shared list); AIAttention::Choose (choice in and out: the current attack is scored first); CScript::Tokenize (the CScript::Tokenize vectors compare the partial token list left by an error); CFileRegistry::GetIntArray / GetFloatArray / GetStringArray (SwitchStream refills the stream markers in place on the stream thread while SetSwitchMode reads them; check the locking before a returned vector swaps the buffer). In-place edits, not outputs: text::ReplaceChar, RemoveCarriageReturns, FromAssetText(std::string*), ChunkArchive Serialize* (both directions). Not looked at yet: Quaternion::AxisX/Y/Z (47 callers; the maths recorders/replays name them), CCamera SampleTerrain (three float outs), CWorldClient::CollectVisible, CWorldServer StoreParty / CollectParty(placements) / TakeZoneQuestItems / Redeploy, the unit_ai / world_effect stream loaders (LoadLooks, LoadAttackOptions, CountedListLoad, ReadSavedStrings, ReadUnitLooks), map_spec ReadChunks, NetCoder::ReadString, render ReadFrame / ReadPixels / ReadCursorPresent (width/height outs), ui_camp / ui_screens Build / Setup item vectors, LightAreaOf / MoveLight / PlaneHeight (null pointer inputs)."
+order = 768
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

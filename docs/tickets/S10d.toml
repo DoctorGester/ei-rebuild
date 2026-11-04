@@ -1,0 +1,9 @@
+id = "S10d"
+title = "records::Memberwise: arrays of stlp::vector members"
+group = "standalone"
+size = 1
+files = ["src/game/record_members.h"]
+note = "records::Memberwise (record_members.h) array overloads of CopyMember / DefaultMember key on the element's own policy, so arrays of stlp::vector members no longer fall to memcpy."
+order = 570
+status = "done"
+done = "2026-10-15"

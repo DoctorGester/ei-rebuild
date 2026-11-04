@@ -1,0 +1,11 @@
+id = "SV10i"
+title = "libcrt math without a control-word switch per call when the word is already right"
+group = "verification"
+size = 0.5
+model = "sonnet"
+files = ["src/lib/crt_x87.cpp"]
+note = "Found by R16h (profile of render_stats' town, image): ctrlfp (the CRT's __control87_2) is 9% of the main thread's samples. MathControlWord (crt_x87.cpp) reads and sets the x87 control word around every libcrt math call (Hypot from Vector3::Length, the camera's ClampAboveObjects over every object within 16 units, frexp ...): three __control87_2 calls each. Set it only when it differs from the word wanted, restore only what was changed, and use the cheapest form (fnstcw / fldcw); the results must stay bit-identical (vectors of the libcrt family, goldens). Also check the renderer's FpuGuard (render.cpp; per mesh pass, MeshPass). Measure with renderstats' main-thread CPU per frame (R16h) in the town and the fight."
+order = 269
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

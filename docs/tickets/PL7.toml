@@ -1,0 +1,9 @@
+id = "PL7"
+title = "Platform layer: the last game-side Windows users"
+group = "port"
+model = "opus"
+note = "The 26 files of config/platform_files.txt: move app_main, asset_text (code pages), core_memory_stream, dib.h (own structs), dx_errors / script_parse / app's wvsprintfA (CRT formatting), mod_folders, random, settings_document, settings_file, system_text (to src/platform/win32), ui_scrolling_surface, ui_widescreen, win_registry (no registry uses), lib/crt.cpp, lib/rebirth.cpp, win_user.h / win_types.h onto src/platform or plain C++. Stay as the win32 entry: standalone host.cpp, image_imports.cpp, standalone_main.cpp, lib/import_table.h / import_prototypes.h (harness key). Leave sound_manager / resource_stream (A1) and bink_video (A2). check_platform --update; goldens unchanged."
+order = 1082
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

@@ -1,0 +1,8 @@
+id = "SV7d6"
+title = "savefile.py: saveb scenario.sav screen block decodes 0x12 bytes past its end"
+group = "verification"
+note = "A save made over the briefing or global map has a 4-byte bottom window block; savefile_scenario.read_screen reads it, Reader.limit fails a read past a block's end."
+order = 237
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

@@ -1,0 +1,9 @@
+id = "WB12a"
+title = "Hooked and --no-hooks harness runs out of sight too"
+group = "harness"
+depends = ["WB12"]
+note = "The original's runs (--no-hooks, game.exe on dgVoodoo windowed; hooked runs retired with S21e) keep their windows out of sight like the image's (WB12): noforeground::Install cloaks in every harness run, no longer only when ei::Standalone(). dgVoodoo's presents into the cloaked window and the captures from its emulated render target are unchanged, so the original goldens stay the same. (Title is stale: 'Hooked' runs no longer exist; tickets.py has no title edit.)"
+order = 312
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

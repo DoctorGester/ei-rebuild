@@ -1,0 +1,10 @@
+id = "C14z"
+title = "C14 MFC arrays and lists, batch 3: the script's records to std"
+group = "cleanup"
+model = "opus"
+depends = ["C14u"]
+note = "Done: script records on std; mfc::CArray/CList lines (src+tests, excl. src/lib/mfc*) 123 -> 22 at this branch's base (151 in the brief), CompiledCollection 32 -> 10 (56 in the brief); none of the rest is script. Follow-up C14zd (record_path CAIMap view). Suites: image 121 same, original 114 same."
+order = 507
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

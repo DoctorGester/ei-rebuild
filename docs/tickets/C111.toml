@@ -1,0 +1,10 @@
+id = "C111"
+title = "Networking style 3: one set of buffer primitives"
+group = "cleanup"
+model = "opus"
+depends = ["C109"]
+note = "Style review round 3 (2026-11-04, https://claude.ai/artifact/KKkymAu9dSoUWGGcbsLwPa, digests in build/style_review/round3/*.md; user: file the tickets). Item N3 (Y2 for the network). GameBuffer::Size, Put<T>/Get<T>; net_messages' Put/Take as BufferCursor members; the high-water arithmetic (15 inline + UpdateHigh, ReliableSize, BufferLength x2, BufferFill, Length, BufferUpdateHigh, the streamSize lambda) once; ReadPastEnd/ReadMore/CopyOut call ReadBytes; memcpy + p += N (21) and Load/StoreBytes (15) through the cursor; a flags enum instead of flags |= 1 (10); SendLeave written once; EndCursor copies merged. No p += outside the buffer's own file. Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes."
+order = 1042
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

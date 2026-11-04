@@ -1,0 +1,9 @@
+id = "C28n"
+title = "C28 MFC library classes: exceptions, files, GDI, windows, threads, handle maps"
+group = "cleanup"
+model = "opus"
+files = ["src/lib/mfc_exception.h", "src/lib/mfc_file.h", "src/lib/mfc_gdi.h", "src/lib/mfc_window.h", "src/lib/mfc_thread.h", "src/lib/mfc_handle_map.h", "src/lib/mfc_coll.h"]
+note = "src/lib's mfc_exception, mfc_file, mfc_gdi, mfc_window, mfc_thread, mfc_handle_map, mfc_coll (CWordArray ...), stlp_string.cpp's tags: real virtual classes, or gone where C14d / C26 replace the class. Coordinate with C14d (CFile / CArchive)."
+order = 432
+status = "done"
+done = "2026-10-23"

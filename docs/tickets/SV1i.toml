@@ -1,0 +1,9 @@
+id = "SV1i"
+title = "Scenarios whose speed 10 slows them on the virtual clock"
+group = "verification"
+depends = ["SV3"]
+note = "On the virtual clock a frame is five world updates at any speed, so `speed 10` slows scenarios; sandbox_map and 77 scenarios dropped it, goldens re-recorded via SV3d."
+order = 173
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

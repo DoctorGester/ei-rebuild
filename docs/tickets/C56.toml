@@ -1,0 +1,9 @@
+id = "C56"
+title = "Fix static_init_ports.csv after the C45 renames and regenerate static_init.cpp"
+group = "cleanup"
+model = "sonnet"
+note = "tools/gen_static_init.py reports '0 definition(s) found' for six rows (FreeVisible54/5D/52, FreeShadow54/5D/52) that C45b/C45c renamed. Fix the rows, regenerate src/standalone/static_init.cpp (the exit registrations reorder), and make the build fail when a row names no definition. Goldens unchanged."
+order = 699
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

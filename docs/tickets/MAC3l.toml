@@ -1,0 +1,9 @@
+id = "MAC3l"
+title = "macos-port: small leftovers main can take"
+group = "port"
+model = "sonnet"
+depends = ["MAC3f"]
+note = "From MAC3r: bit_flags.h enable_if instead of constrained templates (Apple clang), bink_file platform::File instead of std::ifstream (case-folding lookup), spell_effect.cpp <cfloat>, ui_connect_screen.cpp BufferPut without __declspec(noinline). Take each only if main needs it or it is simpler; batch with a MAC3 worker."
+order = 1110
+status = "done"
+done = "2026-10-30"

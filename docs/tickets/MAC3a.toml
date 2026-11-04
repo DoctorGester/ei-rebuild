@@ -1,0 +1,10 @@
+id = "MAC3a"
+title = "macos-port: Portable CRT and compiler calls in game/lib code"
+group = "port"
+model = "opus"
+depends = ["MAC2"]
+note = "Scope: settings.cpp, settings_document.cpp, mod_folders.cpp, rebirth.cpp, net_second_master.cpp, rebirth_hook.cpp, startup.cpp, resource_stream.cpp, app_main.cpp (`DriveRoot` via `lib::SplitPath`), lib/path.h, ui_container.cpp, calendar.{h,cpp} -> `platform::FormatLocalTime`, sound.h / ui_cursor.h thread entries without `__stdcall` plus the `RunThread` adapter, `<unknwn.h>` removals, FileFind `IsHidden/IsSystem` removal. Cleanup: `g_queued` / `g_secondMaster` become `std::string` (no `abort`). `ParseFloat` stays `std::from_chars` in settings_document.cpp. No include re-sorting of untouched lines. Check: goldens (main 152/4, Rebirth 32/0, x64 152/4), ei_vectors (replay_settings with the new bad-float cases). From MAC2's review (build/reviews/mac2_macos_port.md, sections 1-3 for the reasons). Lands on main green alone; then merge main into macos-port at once so the branch keeps only macOS code."
+order = 1097
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

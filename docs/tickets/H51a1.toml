@@ -1,0 +1,8 @@
+id = "H51a1"
+title = "test_work_sched: test_scheduler_records_and_uses_timings fails (install 'standalone' recorded, 'vanilla' expected)"
+group = "harness"
+note = "Found in H51a (2026-11-04, main f85ee2bae): python -m unittest tools.test_work_sched fails one test every time, not only under load: the timing rows carry install 'standalone' (the run's install name) where the test expects 'vanilla' (the goldens' name). Decide which name the timing table keeps (work.expected_times is called with both in places) and make the scheduler and the test agree."
+order = 816
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

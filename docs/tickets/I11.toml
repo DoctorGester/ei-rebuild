@@ -1,0 +1,8 @@
+id = "I11"
+title = "Harness step for clicks with modifier keys held"
+group = "harness"
+note = "0063EF60 / 0063E020 need them (ui.md section 6)."
+order = 281
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

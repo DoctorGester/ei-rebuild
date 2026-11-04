@@ -1,0 +1,8 @@
+id = "C61"
+title = "Items area to the target style (style review, area-local)"
+group = "cleanup"
+note = "build/style_review/items.md (28 findings) and REPORT.md Part 2 'Items': one ItemCategory enum in item.h (item_constructor / item_db_text / item_stock disagree on 5 vs 8), one BuildItem(manager, kind, prototype, material, spell, count) for the repeated 7-call construction, item_stock.cpp's forwarders and five global scratch vectors (one a hidden input to DrawMaterial), GetItemTexts' 117 repeated lines and four model-name builders, dead tail of ~CItem, CItemSpell::CopyTo duplicate, item.h's -1.0f called NaN, WeaponAttack returns weight, offset names WeaponStat84 / WeaponStat88 / ArmorFieldB8. Check each against current code first (C45d, C53a fixed some). Opus. Goldens unchanged."
+order = 755
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

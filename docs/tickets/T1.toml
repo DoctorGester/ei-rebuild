@@ -1,0 +1,7 @@
+id = "T1"
+title = "Scenarios wait on state instead of fixed times"
+group = "harness"
+note = "Scenarios wait on state (waitmenu / waitwindow / waitunit / frames) instead of fixed times; about 40% fewer game-seconds per suite."
+order = 273
+status = "done"
+done = "2026-10-14"

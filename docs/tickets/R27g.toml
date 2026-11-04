@@ -1,0 +1,8 @@
+id = "R27g"
+title = "2DintMMX loaded once: the scene renderer's graphicsProcessor_ / graphicsLibrary_ and the device object's converter_ / converterLibrary_"
+group = "renderer"
+note = "Found by R27f. CSceneRenderer::LoadPipelineAndConverter (renderer_scene.cpp) and the CTextureDevice constructor (device_mesh.cpp) each check CPUID for MMX, LoadLibraryA 2DintMMX.dll (one with the work path, one bare) and keep GetGraphicsProcessor()'s object; texture_compose.cpp and ui_item_view.cpp read the renderer's, surface.cpp and ui_item_view.cpp the device's. Check that GetGraphicsProcessor returns one object (or that the two never differ in state: SetChannelMasks), then keep one load, one MMX check and one pointer. Goldens must stay the same."
+order = 86
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

@@ -1,0 +1,10 @@
+id = "S3"
+title = "Standalone: the 748 static initialisers, generated"
+group = "standalone"
+size = 1
+files = ["tools/gen_static_init.py", "src/standalone/static_init.cpp"]
+note = "All 748 static initialisers are generated into src/standalone/static_init.cpp (tools/gen_static_init.py) and run in list order before WinMain in the image; check_static_init.py."
+order = 529
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

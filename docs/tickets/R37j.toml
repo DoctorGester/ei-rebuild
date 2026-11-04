@@ -1,0 +1,9 @@
+id = "R37j"
+title = "Render stats: the object-shadow decal split removed (dead since R37f)"
+group = "renderer"
+depends = ["R37f"]
+note = "Since R37f no object shadow projects a decal: FrameStats::decalShadowMs / decalShadows and BeginDecalTime's shadow flag (render.h, render.cpp, harness_render_image.cpp's renderstats line) always read 0; ProjectDecal passes false. render.h is a harness header (tests/verify/harness.cpp includes it), so do it with the next harness change to avoid a --no-hooks suite of its own."
+order = 897
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

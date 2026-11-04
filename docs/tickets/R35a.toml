@@ -1,0 +1,9 @@
+id = "R35a"
+title = "Smooth view: decide and settle (Spread for R18's option, or drop)"
+group = "renderer"
+depends = ["R35"]
+note = "R35's experiment (renderer.md section 14a): Spread (EI_RENDER smoothviewspread) is as smooth as R18's option (camera_smooth: 0 jumps, step cv pan 0.09 / turn 0.00 / zoom 0.13 / follow 0.06), lags 2 frames, keeps all 121 goldens. After the user plays it at 120 Hz: make Spread the one smooth camera (always on: no render flags), delete R18's option (render::SmoothCamera, ClientClockMs, NoteTargetTick, TimeGain) and the Between variant, rewrite camera_smooth's checks against the drawn view, decide whether particle billboards / lightning take the drawn pose. User 2026-10-29 played Spread: keep it (go ahead). Also check the user's report: spinning the camera around sometimes shakes a lot (terrain height under the look point?); compare with the original (game.exe, same turn over the same ground) and with R18's option, and fix it if it is ours or if the drawn view adds to it."
+order = 107
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

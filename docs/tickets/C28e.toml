@@ -1,0 +1,9 @@
+id = "C28e"
+title = "C28 counted root, streams and links: CRefCounted, the stream classes, item link, unit shape"
+group = "cleanup"
+model = "opus"
+files = ["src/game/core_streams.cpp", "src/game/core_refcount.h", "src/game/item_link.cpp", "src/game/ai_unit_shape.cpp", "src/game/object.h"]
+note = "Done (2dc42ba38, 0a655c5f2): CStream / CMemoryStream / FileStream, ChunkArchive, DeltaField, CRefCounted / CRefObject (C++ ctor/dtor, game-heap new/delete), CItemLink, CUnitShape, CHoover are real classes. RootVtable / CRefObject::Vtable / PlainRootVtable stay for the hand-built derived classes (network, C28k; renderer, C28j); retire them in C28k/C28p."
+order = 423
+status = "done"
+done = "2026-10-22"

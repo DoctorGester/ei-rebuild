@@ -1,0 +1,10 @@
+id = "C22e"
+title = "Comment cleanup batch: 190 files, 7796 comment lines"
+group = "cleanup"
+model = "sonnet"
+files = ["config/comment_batches.txt [C22e]"]
+note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22e (config/comment_batches.txt; 7796 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
+order = 448
+status = "done"
+started = "2026-10-27"
+done = "2026-10-27"

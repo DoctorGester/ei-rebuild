@@ -1,0 +1,12 @@
+id = "R10d"
+title = "Terrain pipelines from the old device's render state"
+group = "renderer"
+size = 0.5
+model = "opus"
+depends = ["R10c"]
+files = ["src/render/render_terrain.cpp"]
+note = "From R10c: the ground and water pipelines in render_terrain.cpp are hard-coded, which hid water's depth write (R10c's strip). The state mirror showed ground and water drawn with CULL 2 and blend on, where ours use no culling and no blend for ground. Build them from the old device's state (ReadPassState), as the meshes already are; check with the standalone goldens and run_all --widescreen."
+order = 19
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

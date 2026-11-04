@@ -1,0 +1,10 @@
+id = "W2"
+title = "Sprite shapes, text extent and text draw, control rectangles"
+group = "widescreen"
+model = "opus"
+depends = ["W1"]
+note = "Widescreen sprite shape builders, text extent / text draw and the +0x98 control rectangles (console / edit / list / chat / tooltip)."
+order = 140
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

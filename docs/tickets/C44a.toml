@@ -1,0 +1,10 @@
+id = "C44a"
+title = "Float-bits fields to float: attackRoll, unit_db fields; forwarders WriteInt / PutByte / PutWord; world_save's local ReadValue"
+group = "cleanup"
+model = "sonnet"
+depends = ["C44"]
+note = "Left by C43/C44. attackRoll (uint32 of float bits: set in combat.cpp, spell.cpp, literal 0x42C80000u in script_exec.cpp, masked & 0x7FFFFFFF, compared as float) and the unit_db float-bits fields become float with the FLT_MAX / sign cases checked (x87::CopyBits where bits must survive; the harness digest reader compiles against these headers, so a harness-key change may follow). Inline item_stock / script_save / script_effects / core_stream_diff / world_unit_set's WriteInt, PutByte, PutWord where the width is clear; rename world_save.cpp's local T ReadValue<T>(CStream*). Goldens must stay the same."
+order = 684
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

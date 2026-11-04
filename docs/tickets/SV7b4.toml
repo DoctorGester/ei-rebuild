@@ -1,0 +1,9 @@
+id = "SV7b4"
+title = "Rebirth menu unit orientation ulp under jitter"
+group = "verification"
+depends = ["SV7a"]
+note = "Rebirth menu unit orientation ulp under jitter traced to SetHeading via ClientPlaceOnPath and DrawShadow 0051CE60 round trip; EI_WATCH_CUNIT / EI_WATCH_ADDR (harness_watch.h); fixed in SV7b4a."
+order = 220
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

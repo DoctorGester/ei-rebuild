@@ -1,29 +1,32 @@
-"""The ticket queue: docs/tickets.toml says what each ticket is, the shared work database its status.
+"""The ticket queue: docs/tickets/<ID>.toml says what each ticket is; the shared work database has its live status.
 
-usage: python tools/tickets.py                      check, then write docs/tickets.md and build/tickets/tickets.json
+usage: python tools/tickets.py                      check, then write build/tickets/tickets.md and tickets.json
        python tools/tickets.py show ID [ID ...]     one ticket: status, note, files, its group's note and doc,
                                                     what it waits on and what it unblocks
        python tools/tickets.py list [--state S] [--group G]   one line per ticket (S: running, review, ready,
                                                     waiting, watch, later, done; G: a group key)
-       python tools/tickets.py set ID STATUS        status, in the database (dates filled in: started for
-                                                    running, done for done); from any worktree, shows at once
-       python tools/tickets.py note ID TEXT [--append]
+       python tools/tickets.py set ID STATUS        status, in the database and in the ticket's file (dates filled in:
+                                                    started for running, done for done); from any worktree, shows at once
+       python tools/tickets.py note ID TEXT [--append | --replace]
+                                                    --append adds to the note; a plain note refuses to overwrite a
+                                                    non-empty one (--replace says it is meant)
        python tools/tickets.py add ID --group G --title T [--depends A,B] [--note N] [--files F,G]
                                                     [--size N] [--model M] [--status S]   (a follow-up ticket)
-       python tools/tickets.py check                check the file and the statuses; exit 1 on a problem
+       python tools/tickets.py check                check the files and the statuses; exit 1 on a problem
 
-Status (running, review, queued, later, watch, done; with the started and done dates) lives in the table
-ticket_status of build/live/work.db in the main checkout (tools/work.py; WORK_DB overrides the path), so a
-change shows everywhere at once and never conflicts in a merge. A ticket with no row there is queued.
-`work.py start ID` sets running, a worker sets review (`set ID review`), `work.py done ID merged` sets done.
+One file per ticket, docs/tickets/<ID>.toml (flat keys: id, title, group, optional size, model, depends, files, doc,
+note, and `order`: the ticket's place in the list, a new ticket takes the largest plus one; equal orders sort by id),
+so two branches that add or change different tickets never conflict. docs/tickets/groups.toml holds the queue's rules
+and the [[group]] headers.
 
-tickets.toml holds no status, started or done lines: `check` rejects them, and every other command that writes
-moves them out first. A ticket the database has never seen takes the line's values (the one-time migration,
-or a ticket an old branch added); a ticket it has keeps its row and the line is dropped (an old branch's status
-edit is ignored).
+Status (running, review, queued, later, watch, done; with the started and done dates) lives live in the table
+ticket_status of build/live/work.db in the main checkout (tools/work.py; WORK_DB overrides the path), so a change
+shows everywhere at once. A ticket with no row there is queued, or takes the status / started / done lines of its file:
+work.set_ticket_status (`set`, `work.py start`, `work.py done ID merged`) writes them there too, so the committed
+files carry the statuses to checkouts without the database (cloud sessions). The database wins where it has a row.
 
-Every change rewrites docs/tickets.md and tickets.json. A queued ticket is "ready" when every ticket it depends
-on is done, else "waiting". The published board (tools/tickets_board/index.html) reads tickets.json; `work.py
+Every change rewrites build/tickets/tickets.md and tickets.json. A queued ticket is "ready" when every ticket it
+depends on is done, else "waiting". The published board (tools/tickets_board/index.html) reads tickets.json; `work.py
 serve` shows the same page live on http://127.0.0.1:8765/tickets/.
 """
 import argparse, contextlib, datetime, json, os, subprocess, sys, time, tomllib
@@ -32,24 +35,20 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import work
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SOURCE = os.path.join(ROOT, 'docs', 'tickets.toml')
-MARKDOWN = os.path.join(ROOT, 'docs', 'tickets.md')
-# The statuses as a committed file, for checkouts without the machine's work database (cloud sessions,
-# docs/notes/work-board.md): every generate writes it from the database, and loaded() takes from it each row that is
-# newer than the database's (or that the database lacks), so a status set on either side reaches the other by git.
-STATUS_FILE = os.path.join(ROOT, 'docs', 'ticket_status.tsv')
-STATUS_COLUMNS = ('ticket', 'status', 'started', 'done', 'changed', 'author')
+SOURCE_DIR = work.TICKETS_DIR
+GROUPS_FILE = 'groups.toml'
+MARKDOWN = os.path.join(ROOT, 'build', 'tickets', 'tickets.md')
 STATUSES = ('running', 'review', 'queued', 'later', 'watch', 'done')
 STATES = ('running', 'review', 'ready', 'waiting', 'watch', 'later', 'done')
 LOCK = os.path.join(ROOT, 'build', 'tickets', 'tickets.lock')
-FIELDS = {'id', 'title', 'group', 'size', 'model', 'depends', 'files', 'doc', 'note'}
-STATUS_FIELDS = ('status', 'started', 'done')       # the database's, never the toml's
+STATUS_FIELDS = work.TICKET_STATUS_FIELDS            # the database's, with a committed copy in the ticket's file
+FIELDS = {'id', 'title', 'group', 'size', 'model', 'depends', 'files', 'doc', 'note', 'order'} | set(STATUS_FIELDS)
 
 
 @contextlib.contextmanager
 def toml_lock(timeout=120):
-    """Holds this checkout's lock file around a read-modify-write of tickets.toml and the files written
-    from it, so two tickets.py running at once never both read the old file and drop one change.
+    """Holds this checkout's lock file around a read-modify-write of the ticket files and the files written
+    from them, so two tickets.py running at once never both read the old file and drop one change.
     A byte lock: the system drops it when the process ends, so a killed run never leaves it taken."""
     os.makedirs(os.path.dirname(LOCK), exist_ok=True)
     f = open(LOCK, 'a+b')
@@ -79,17 +78,33 @@ def toml_lock(timeout=120):
         f.close()
 
 
-def read_source():
-    with open(SOURCE, encoding='utf-8') as f:
-        return f.read()
+def ticket_paths(source_dir=None):
+    """Every ticket file of the folder, sorted by name (groups.toml is not one)."""
+    source_dir = source_dir or SOURCE_DIR
+    return [os.path.join(source_dir, f) for f in sorted(os.listdir(source_dir))
+            if f.endswith('.toml') and f != GROUPS_FILE]
 
 
-def load():
-    """(data, groups, tickets, problems) of tickets.toml; with_status gives the tickets their status."""
-    with open(SOURCE, 'rb') as f:
+def load(source_dir=None):
+    """(data, groups, tickets, problems) of the folder's ticket files and groups.toml. The tickets are in `order` (then
+    id) order; `order` itself is not part of a ticket. with_status gives them their status."""
+    source_dir = source_dir or SOURCE_DIR
+    with open(os.path.join(source_dir, GROUPS_FILE), 'rb') as f:
         data = tomllib.load(f)
-    groups, tickets = data.get('group', []), data.get('ticket', [])
-    problems = []
+    groups = data.get('group', [])
+    problems, tickets = [], []
+    for path in ticket_paths(source_dir):
+        name = os.path.basename(path)
+        try:
+            with open(path, 'rb') as f:
+                t = tomllib.load(f)
+        except (tomllib.TOMLDecodeError, UnicodeDecodeError) as e:
+            problems.append(f'{name}: {e}')
+            continue
+        if t.get('id') and name != t['id'] + '.toml':
+            problems.append(f'{name}: holds ticket {t["id"]}, the file must be called {t["id"]}.toml')
+        tickets.append(t)
+    tickets.sort(key=lambda t: (t['order'] if isinstance(t.get('order'), int) else float('inf'), str(t.get('id'))))
     keys = [g['key'] for g in groups]
     ids = [t.get('id') for t in tickets]
     for i in {i for i in ids if ids.count(i) > 1}:
@@ -104,24 +119,26 @@ def load():
         for d in t.get('depends', []):
             if d not in ids:
                 problems.append(f'{where}: depends on unknown {d}')
-        for field in [f for f in STATUS_FIELDS if f in t]:
-            problems.append(f'{where}: {field} belongs in the work database (python tools/tickets.py moves it there)')
-        for field in set(t) - FIELDS - set(STATUS_FIELDS):
+        if 'order' in t and not isinstance(t['order'], int):
+            problems.append(f'{where}: order is not an integer')
+        for field in set(t) - FIELDS:
             problems.append(f'{where}: unknown field {field}')
+        t.pop('order', None)
     return data, groups, tickets, problems
 
 
 def with_status(tickets, statuses):
-    """Gives each ticket status, started and done from the database's rows {id: row}. A ticket the database has
-    never seen keeps its toml lines if it has any (before the migration), else it is queued. Returns problems."""
+    """Gives each ticket status, started and done from the database's rows {id: row}. A ticket the database has no
+    row for keeps the lines of its file if it has any (the committed copy), else it is queued. Returns problems."""
     problems = []
     for t in tickets:
         row = statuses.get(t.get('id'))
-        if row is not None:
-            for k in STATUS_FIELDS:
-                t.pop(k, None)
-                if row.get(k):
-                    t[k] = row[k]
+        if row is None:
+            row = {k: t[k] for k in STATUS_FIELDS if k in t}
+        for k in STATUS_FIELDS:
+            t.pop(k, None)
+            if row.get(k):
+                t[k] = row[k]
         t.setdefault('status', 'queued')
         if t['status'] not in STATUSES:
             problems.append(f'{t.get("id")}: status {t["status"]} is not one of {", ".join(STATUSES)}')
@@ -140,47 +157,8 @@ def with_worked(db, tickets):
             t['worked'] = spans[t['id']]
 
 
-def changed_time(text):
-    try:
-        return datetime.datetime.fromisoformat(text).astimezone(datetime.timezone.utc)
-    except (TypeError, ValueError):
-        return datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
-
-
-def read_status_file(db):
-    """Takes STATUS_FILE's rows that are newer than the database's into it."""
-    if not os.path.exists(STATUS_FILE):
-        return
-    have = {r[0]: r[1] for r in db.execute('SELECT ticket, changed FROM ticket_status')}
-    newest = {}   # a union merge (.gitattributes) can leave two rows of a ticket: the newer counts
-    with open(STATUS_FILE, encoding='utf-8') as f:
-        for line in f.read().splitlines():
-            cells = line.split('\t')
-            if len(cells) != len(STATUS_COLUMNS) or cells[0] == 'ticket':
-                continue
-            row = dict(zip(STATUS_COLUMNS, (c or None for c in cells)))
-            if row['ticket'] not in newest or changed_time(row['changed']) > changed_time(newest[row['ticket']]['changed']):
-                newest[row['ticket']] = row
-    rows = [r for t, r in newest.items() if t not in have or changed_time(r['changed']) > changed_time(have[t])]
-    with work.transaction(db):
-        for r in rows:
-            db.execute('INSERT INTO ticket_status (ticket, status, started, done, changed, author) VALUES (?, ?, ?, ?, ?, ?) '
-                       'ON CONFLICT(ticket) DO UPDATE SET status = excluded.status, started = excluded.started, '
-                       'done = excluded.done, changed = excluded.changed, author = excluded.author',
-                       tuple(r[c] for c in STATUS_COLUMNS))
-
-
-def write_status_file(db):
-    lines = ['\t'.join(STATUS_COLUMNS)]
-    for r in db.execute('SELECT ' + ', '.join(STATUS_COLUMNS) + ' FROM ticket_status ORDER BY ticket'):
-        lines.append('\t'.join(r[c] or '' for c in STATUS_COLUMNS))
-    with open(STATUS_FILE, 'w', encoding='utf-8', newline='\n') as f:
-        f.write('\n'.join(lines) + '\n')
-
-
 def loaded(db):
-    """load() with the database's statuses filled in and the states derived; the toml's problems included."""
-    read_status_file(db)
+    """load() with the database's statuses filled in and the states derived; the files' problems included."""
     data, groups, tickets, problems = load()
     problems += with_status(tickets, work.ticket_statuses(db))
     with_worked(db, tickets)
@@ -191,34 +169,6 @@ def loaded(db):
     derive(tickets)
     return data, groups, tickets, problems
 
-
-def status_lines(lines):
-    """Indexes of the status / started / done lines inside the toml's [[ticket]] blocks."""
-    out, block = [], False
-    for i, line in enumerate(lines):
-        s = line.strip()
-        if s.startswith('['):
-            block = s == '[[ticket]]'
-        elif block and '=' in s and not s.startswith('#') and s.split('=')[0].strip() in STATUS_FIELDS:
-            out.append(i)
-    return out
-
-
-def absorb(db):
-    """Moves the toml's status lines into the database (work.migrate_ticket_status: a ticket it has never seen takes
-    them, one it has keeps its row) and rewrites the toml without them. Nothing to do once the toml is clean."""
-    text = read_source()
-    lines = text.split('\n')
-    drop = set(status_lines(lines))
-    if not drop:
-        return
-    found = {t['id']: {k: t[k] for k in STATUS_FIELDS if k in t}
-             for t in tomllib.loads(text).get('ticket', []) if t.get('id') and any(k in t for k in STATUS_FIELDS)}
-    migrated, ignored = work.migrate_ticket_status(db, found)
-    with open(SOURCE, 'w', encoding='utf-8', newline='\n') as f:
-        f.write('\n'.join(line for i, line in enumerate(lines) if i not in drop))
-    print(f'tickets.toml: {len(drop)} status lines removed; {len(migrated)} tickets took theirs into the work database, '
-          f'{len(ignored)} kept the database\'s' + (f' ({", ".join(ignored)})' if 0 < len(ignored) <= 20 else ''))
 
 
 def derive(tickets):
@@ -236,7 +186,7 @@ def derive(tickets):
 
 def markdown(data, groups, tickets):
     out = ['# Ticket queue', '',
-           'Generated from docs/tickets.toml and the statuses in the work database by tools/tickets.py: never edit this '
+           'Generated from docs/tickets/ and the statuses in the work database by tools/tickets.py: never edit this '
            'file; read one ticket with `python tools/tickets.py show ID` and change tickets through the script. '
            'The ticket board shows the same data.', '']
     out += [f'- {r}' for r in data.get('queue', {}).get('rules', [])] + ['']
@@ -271,8 +221,8 @@ def markdown(data, groups, tickets):
 
 
 def toml_commit(root=ROOT):
-    """(short hash, ISO time) of the last commit that changed docs/tickets.toml in that checkout."""
-    out = subprocess.run(['git', 'log', '-1', '--format=%h %cI', '--', 'docs/tickets.toml'], cwd=root,
+    """(short hash, ISO time) of the last commit that changed docs/tickets in that checkout."""
+    out = subprocess.run(['git', 'log', '-1', '--format=%h %cI', '--', 'docs/tickets'], cwd=root,
                          capture_output=True, text=True).stdout.split()
     return (out[0], out[1]) if len(out) == 2 else (None, None)
 
@@ -288,11 +238,11 @@ def generate(db, json_path=None):
     data, groups, tickets, problems = loaded(db)
     if problems:
         for p in problems:
-            print('tickets.toml:', p)
+            print('tickets:', p)
         return 1
+    os.makedirs(os.path.dirname(MARKDOWN), exist_ok=True)
     with open(MARKDOWN, 'w', encoding='utf-8', newline='\n') as f:
         f.write(markdown(data, groups, tickets))
-    write_status_file(db)
     json_path = json_path or os.path.join(ROOT, 'build', 'tickets', 'tickets.json')
     os.makedirs(os.path.dirname(json_path), exist_ok=True)
     with open(json_path, 'w', encoding='utf-8') as f:
@@ -302,7 +252,7 @@ def generate(db, json_path=None):
     return 0
 
 
-# ---- editing: line by line, so the file's comments, order and layout stay as they are
+# ---- editing: line by line, so a ticket file's layout stays as it is
 
 def toml_value(v):
     if isinstance(v, list):
@@ -312,54 +262,60 @@ def toml_value(v):
     return json.dumps(v, ensure_ascii=False)     # a TOML basic string takes JSON's escapes
 
 
-def ticket_block(lines, ticket_id):
-    """(first, end) line indexes of the [[ticket]] block holding id = "ticket_id"."""
-    for i, line in enumerate(lines):
-        if line.strip() == f'id = {json.dumps(ticket_id)}':
-            start = i
-            while start > 0 and lines[start - 1].strip() != '[[ticket]]':
-                start -= 1
-            end = i
-            while end < len(lines) and lines[end].strip() and not lines[end].startswith(('[', '#')):
-                end += 1
-            return start, end
-    sys.exit(f'tickets.py: no ticket {ticket_id}')
+def ticket_path(ticket_id):
+    return os.path.join(SOURCE_DIR, ticket_id + '.toml')
 
 
-def write_checked(text, before):
-    with open(SOURCE, 'w', encoding='utf-8', newline='\n') as f:
+def write_checked(path, text, before):
+    """Writes the ticket file, checks the whole folder, and puts the old file back (or removes a new one) on a problem."""
+    with open(path, 'w', encoding='utf-8', newline='\n') as f:
         f.write(text)
     problems = load()[3]
     if problems:
-        with open(SOURCE, 'w', encoding='utf-8', newline='\n') as f:
-            f.write(before)
+        if before is None:
+            os.remove(path)
+        else:
+            with open(path, 'w', encoding='utf-8', newline='\n') as f:
+                f.write(before)
         for p in problems:
-            print('tickets.toml:', p)
-        sys.exit('tickets.py: change refused, the file would not check (see above); nothing written')
+            print('tickets:', p)
+        sys.exit('tickets.py: change refused, the files would not check (see above); nothing written')
 
 
 def edit(ticket_id, updates):
-    before = read_source()
-    lines = before.split('\n')
-    start, end = ticket_block(lines, ticket_id)
+    path = ticket_path(ticket_id)
+    if not os.path.exists(path):
+        sys.exit(f'tickets.py: no ticket {ticket_id}')
+    with open(path, encoding='utf-8') as f:
+        before = f.read()
+    lines = before.rstrip('\n').split('\n')
     for key, value in updates.items():
-        for i in range(start, end):
-            if lines[i].split('=')[0].strip() == key:
+        for i, line in enumerate(lines):
+            if line.split('=')[0].strip() == key:
                 lines[i] = f'{key} = {toml_value(value)}'
                 break
-        else:
-            lines.insert(end, f'{key} = {toml_value(value)}')
-            end += 1
-    write_checked('\n'.join(lines), before)
+        else:       # a new key goes before `order` and the status lines
+            at = next((i for i, line in enumerate(lines) if line.split('=')[0].strip() in ('order',) + STATUS_FIELDS), len(lines))
+            lines.insert(at, f'{key} = {toml_value(value)}')
+    write_checked(path, '\n'.join(lines) + '\n', before)
+
+
+def max_order():
+    top = 0
+    for path in ticket_paths():
+        with open(path, 'rb') as f:
+            o = tomllib.load(f).get('order')
+        top = max(top, o if isinstance(o, int) else 0)
+    return top
 
 
 def add(fields):
-    before = read_source()
-    lines = before.split('\n')
-    same_group = [t['id'] for t in load()[2] if t['group'] == fields['group']]
-    at = ticket_block(lines, same_group[-1])[1] if same_group else len(lines)
-    block = ['', '[[ticket]]'] + [f'{k} = {toml_value(v)}' for k, v in fields.items()]
-    write_checked('\n'.join(lines[:at] + block + lines[at:]), before)
+    order = max_order() + 1
+    path = ticket_path(fields['id'])
+    if os.path.exists(path):
+        sys.exit(f'tickets.py: ticket {fields["id"]} exists')
+    lines = [f'{k} = {toml_value(v)}' for k, v in fields.items()] + [f'order = {order}']
+    write_checked(path, '\n'.join(lines) + '\n', None)
 
 
 def describe(t, by_id, groups):
@@ -388,14 +344,17 @@ def describe(t, by_id, groups):
 def main():
     if hasattr(sys.stdout, 'reconfigure'):  # ticket text may hold Cyrillic zone names
         sys.stdout.reconfigure(encoding='utf-8')
-    ap = argparse.ArgumentParser(description='The ticket queue (docs/tickets.toml; status in the work database).')
+    ap = argparse.ArgumentParser(description='The ticket queue (docs/tickets/; live status in the work database).')
     ap.add_argument('--json', help='where the board data goes (default build/tickets/tickets.json)')
     sub = ap.add_subparsers(dest='cmd')
     sub.add_parser('check')
     p = sub.add_parser('show'); p.add_argument('ids', nargs='+')
     p = sub.add_parser('list'); p.add_argument('--state', choices=STATES); p.add_argument('--group')
     p = sub.add_parser('set'); p.add_argument('id'); p.add_argument('status', choices=STATUSES)
-    p = sub.add_parser('note'); p.add_argument('id'); p.add_argument('text'); p.add_argument('--append', action='store_true')
+    p = sub.add_parser('note'); p.add_argument('id'); p.add_argument('text')
+    how = p.add_mutually_exclusive_group()
+    how.add_argument('--append', action='store_true', help='add to the ticket\'s note')
+    how.add_argument('--replace', action='store_true', help='overwrite a note that is not empty')
     p = sub.add_parser('add'); p.add_argument('id')
     for opt in ('--group', '--title'):
         p.add_argument(opt, required=True)
@@ -408,7 +367,6 @@ def main():
         if args.cmd in ('check', 'show', 'list'):
             return command(db, args)
         with toml_lock():     # everything else reads, changes and rewrites the files
-            absorb(db)
             return command(db, args)
     finally:
         db.close()
@@ -425,7 +383,7 @@ def command(db, args):
     if args.cmd == 'check':
         problems = loaded(db)[3]
         for p in problems:
-            print('tickets.toml:', p)
+            print('tickets:', p)
         return 1 if problems else 0
     if args.cmd is None:
         return generate(db, args.json)
@@ -445,9 +403,11 @@ def command(db, args):
     if args.cmd == 'set':
         if args.id not in {t['id'] for t in tickets} and args.id not in work.toml_tickets():
             sys.exit(f'tickets.py: no ticket {args.id}')
-        work.set_ticket_status(db, args.id, args.status, author(db))
+        work.set_ticket_status(db, args.id, args.status, author(db), files=SOURCE_DIR)
     elif args.cmd == 'note':
         old = next((t.get('note', '') for t in tickets if t['id'] == args.id), '')
+        if old and not args.append and not args.replace:
+            sys.exit(f'tickets.py: {args.id} has a note already; --append adds to it, --replace overwrites it (the old note:\n{old})')
         edit(args.id, {'note': (old + ' ' + args.text).strip() if args.append else args.text})
     elif args.cmd == 'add':
         fields = {'id': args.id, 'title': args.title, 'group': args.group}
@@ -465,7 +425,7 @@ def command(db, args):
             sys.exit(f'tickets.py: ticket {args.id} exists')
         add(fields)
         if args.status != 'queued' or args.id in work.ticket_statuses(db):
-            work.set_ticket_status(db, args.id, args.status, author(db))
+            work.set_ticket_status(db, args.id, args.status, author(db), files=SOURCE_DIR)
     return generate(db, args.json)
 
 

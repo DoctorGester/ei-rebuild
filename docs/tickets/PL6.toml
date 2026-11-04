@@ -1,0 +1,9 @@
+id = "PL6"
+title = "Platform layer: audio and video seams (Miles and Bink behind interfaces, null backends)"
+group = "port"
+model = "opus"
+note = "User 2026-10-30: Miles and Bink are dropped entirely, not kept as backends; our own backends replace them. So the seams carry no Miles or Bink backend: the 32-bit build moves to the new backends too (null until A1 / A2 land, then miniaudio and our Bink decoder), mss32.dll / binkw32.dll are no longer loaded and their imports leave gen_iat's reached list. Check what game logic reads back from audio (end-of-sample callbacks, sample positions, speech length timing) and video (frame count, end of video): those must keep their timing or the goldens move; name any that do. Miles also loaded Rebirth's *.asi providers (standalone_main.cpp MilesLoadLibrary): check what still depends on that. After PL1. sound_manager.cpp / sound.h's Miles calls (AIL_*) and DirectSoundEnumerate behind a platform audio header, bink_video.cpp's Bink calls behind a platform video header, the Miles and Bink backends as today on 32-bit and a null backend (silent, videos skipped) when the DLL is missing or on x64. A1 (miniaudio with its own decoders; sokol_audio is output only, so miniaudio stays the choice) and A2 (our Bink 1 decoder) then become backends of these seams. Goldens unchanged."
+order = 858
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

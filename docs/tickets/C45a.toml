@@ -1,0 +1,9 @@
+id = "C45a"
+title = "Party message / unit ack codes as one enum"
+group = "cleanup"
+depends = ["C45"]
+note = "C45 follow-up. The codes CPlayerServer::SendObject0B / CUnitServer::Shout / TellParties carry (unit acks, acks_db.h kinds 0..0x32) are local kMessage* constants in about ten combat and unit files with duplicates (0x0C kMessageCannotReach / kMessageOutOfReach, 0x11 kMessageNoCharge / kMessageScienceFailed), raw Shout(0x20) / Shout(0x21) in unit_ai_modes.cpp, the planner's kShout* and AIAlarm's TellParties(0x2E..0x32). One enum in the acks or player messages header; names from the acks database's speech lists."
+order = 685
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

@@ -1,0 +1,9 @@
+id = "PL7b"
+title = "Platform layer: resource_stream's sound file reads"
+group = "port"
+model = "sonnet"
+note = "The last game file calling Windows outside win_types.h (config/platform_files.txt): resource_stream.cpp opens sound files with mmioOpenA / mmioRead / mmioSeek / mmioClose and takes the size from FindFirstFileA. Move it to platform::File (src/platform/file.h) or std streams if the harness doesn't route those slots (check gameapi routes first); then mmio* and FindFirstFileA may leave gameapi.h (gen_iat.py). Goldens unchanged."
+order = 1084
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

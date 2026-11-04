@@ -1,0 +1,9 @@
+id = "W12"
+title = "One interface layout for every aspect ratio: no WideScreen flag branches"
+group = "widescreen"
+model = "opus"
+note = "User 2026-10-30: drop Rebirth's widescreen fix as a branch; the code should work for any aspect ratio as is. Today: the WideScreen Rebirth flag (include/ei/rebirth_patches.inc) gates widescreen::Layout (ui_widescreen.h/.cpp: width43, margin, extra, axis and font scales); 21 widescreen::Active() checks in 8 files (ui_interface 9, ui_mesh 5, ui_window 2, ui_help_page, ui_hud_slide, ui_interface_input, ui_text, ui_tooltip), plus the helpers they guard (EdgeShift 18 uses, Enter/LeavePanel, PanelOffset, curtains, PickShift, Rect/Point To/FromScreen, FontScale, AxisScale). Step 1 (investigate, report first): does the wide path degenerate to the plain one at exactly 4:3 (margin 0, extra 0)? List each Active() branch and whether its wide side equals its plain side at extra 0; anything that differs (panel moves, curtains, picking shifts, font scale) is a real layout change. Also screens narrower than 4:3 (5:4, portrait windows): margin < 0 has no rule today; pick one (pillar or letterbox the 4:3 part) consistent with P8c's titles scaling by window. Step 2: make the layout always computed from the window (no flag, no setting), remove the Active() branches, the WideScreen flag and its settings entry. Goldens: vanilla runs are 4:3 so they should stay the same; if a branch differs at 4:3, the goldens decide (re-record only with the user's OK). Keep ui_widescreen_* scenarios and the 16:9 captures passing."
+order = 149
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

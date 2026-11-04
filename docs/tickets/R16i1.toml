@@ -1,0 +1,12 @@
+id = "R16i1"
+title = "Point-light shadows (campfires, torches) in the GPU lighting"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R16i"]
+files = ["src/render/render_shadows.cpp src/render/shaders/"]
+note = "R16i lights the ground and figures per pixel by the sun and the point lights, but only the sun casts (one shadow map). In towns at night the fires now light the inside of object shadows (render_shadows_outside's gate: lighter where the fires reach; its floor lowered to 0.3%). Cube or dual-paraboloid shadow maps for the few strongest point lights in view (the campfire, torches carried by units), sampled in scene_lighting.hlsli's point loop and mesh.hlsl's figure_light. Measure the cost with render_stats (town at night); show the user before/after frames of bz1g at night (render_lighting's light_town_night). docs/notes/renderer.md section 13 item 9."
+order = 72
+status = "done"
+started = "2026-10-27"
+done = "2026-10-27"

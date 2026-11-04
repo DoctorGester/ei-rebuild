@@ -1,0 +1,9 @@
+id = "C63"
+title = "Containers: std::list where nothing needs node stability, and types that inherit from std containers"
+group = "cleanup"
+model = "opus"
+note = "G17 rest (build/style_review/REPORT.md Tier 3) after C58/C58a took the new T[] arrays. 411 std::list uses in src: switch to std::vector where nothing keeps iterators or pointers across inserts/erases and order semantics stay the same (check each list's erase-while-iterating and splice uses). 10 types inherit from std::vector/list/map/deque/string: composition instead (AIHeardCalls / AIReports are in C60a; leave those to it). One area per batch; file C63a.. for the rest. Goldens unchanged. Batch 1 (scripts): std::list in src 426 -> 380 (script files 64 -> 18; kept lists: blocks, worldBlocks, instances, runs, tempGroups, tempObjects, which hold pointers while growing; the rest belong to C63a/C63b). Particle / FX / lightning sources, parser tokens, #defines now std::vector; ScriptGroup holds its members (9 container-inheriting types left, AIHeardCalls / AIReports in C60a). Goldens 122 the same / 28 without a golden. Remaining areas: C63a AI, C63b items, C63c world server, C63d network, C63e client and interface (after C30b)."
+order = 766
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

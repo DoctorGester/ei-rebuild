@@ -1,0 +1,9 @@
+id = "SV2h1c"
+title = "Twin originals allocate outside the reservation heap"
+group = "verification"
+depends = ["SV2h1b"]
+note = "Closed as obsolete: superseded by SV7/SV7d (heap layout is not preserved)."
+order = 213
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

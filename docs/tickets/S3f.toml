@@ -1,0 +1,8 @@
+id = "S3f"
+title = "Standalone library: MFC constructors the static initialisers still call"
+group = "standalone"
+note = "MFC constructors the static initialisers call (simple exception classes, CWnd(HWND) 00704546, 0070B600, 0070DC4D, 00700674) ported with start-up checks; docs/notes/standalone.md, S3d."
+order = 579
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

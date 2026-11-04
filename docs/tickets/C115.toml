@@ -1,0 +1,8 @@
+id = "C115"
+title = "Scripts style 1: comments, duplicates, TokenReader"
+group = "cleanup"
+model = "sonnet"
+note = "Style review round 3 (2026-11-04, https://claude.ai/artifact/KKkymAu9dSoUWGGcbsLwPa, digests in build/style_review/round3/*.md; user: file the tickets). Items S7, S5, S3. S7: no bare Rebirth tags (script_addon.h's 'behind a flag' that doesn't exist), unused lib/rebirth.h includes, verify-wrapper text, addon/game addresses and +0x, inlined-STL narration, 'Names are provisional', delete party_storage.h, fix wrong comments ('NaN counts as zero' script_exec_run.cpp:25, the FALSE/returns 0 comments on bools). S5: PrepareArguments called from Execute, condition sub-call scan once, find-by-id effects one way (ReadObject<T> = FindById<T>), one NewSound (3 copies), quest add once, ReadListInline = ReadStringList, party memory-stream and archive-as-stream once, NewRecord = CreatePartyRecord, ReleaseItems = ReleaseAll, the two Drops, the create/clone/append/drop loop once, ~25 forwarders (ForDepth, BrainOf, StatsOf, CrtSin/Cos/Pow, Begin/EndRedeploy). S3: a TokenReader with Expect (5 hand-inlined ExpectLexeme copies, script_parse_load.cpp:317,361,424,526,576), the next/copy/classify triple (14), an error-code enum, one type-letter mapping (6 copies); fix LoadConditions' EOF line -1. Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes."
+order = 1055
+status = "review"
+started = "2026-11-04"

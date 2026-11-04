@@ -1,0 +1,10 @@
+id = "C50"
+title = "Real constructors instead of pseudo-constructors and static-init emulation (G11)"
+group = "cleanup"
+model = "opus"
+depends = ["C49"]
+note = "Style review Tier 2 (build/style_review/REPORT.md; user 2026-10-28: run beside the native UI track P2-P8). Leave src/game/ui_*.* and src/render/render_ui* to the P track (C54 covers them after P8). By subsystem, the compiler as checker, goldens unchanged. G11: default member initialisers and real ctors/dtors bottom-up per owner; Reset only where an object is reused; lib::StaticObject / atexit(Free...) / guard bits to function-local statics, plain globals or members (heap layout not preserved). By hand; split into batches by subsystem (C50a..)."
+order = 691
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

@@ -1,0 +1,9 @@
+id = "C28k"
+title = "C28 network: messages, sessions, links, connections, player messages, GameBuffer"
+group = "cleanup"
+model = "opus"
+files = ["src/game/net_messages.h", "src/game/net_messages.cpp", "src/game/net_classes.h", "src/game/net_link.h", "src/game/net_link.cpp", "src/game/net_connection.h", "src/game/net_coder.h"]
+note = "net_messages.h's ReplicatedClass (the message registry keys on the stored table: key it on a class id or the compiled vtable of a real class), net_classes.h's sessions, net_link.h, net_connection.h, player_messages / player_client / player_source / player_connection_class.h, net_coder.h's GameBufferClass (tests/vectors/record_coder.cpp recognises game.exe's buffers). Packets keep their bytes: Write / Read stay field by field. After C28e."
+order = 429
+status = "done"
+done = "2026-10-22"

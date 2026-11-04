@@ -1,0 +1,9 @@
+id = "C16b"
+title = "CopyFloat / LoadStoreBits as plain float copies (C16 follow-up)"
+group = "cleanup"
+depends = ["C16"]
+note = "x87::CopyFloat / LoadStoreBits (57 sites) reproduce FLD/FSTP quieting a signalling NaN. C16 replaced them with the bits as they are: goldens the same (no signalling NaN is copied in the suite). Write plain copies (memcpy or a float assignment), note the sNaN behaviour change in the notes; goldens and ei_vectors must stay the same."
+order = 359
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

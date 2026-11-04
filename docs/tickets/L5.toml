@@ -1,0 +1,7 @@
+id = "L5"
+title = "Lockstep luaboth verification"
+group = "lua"
+depends = ["L4"]
+note = "Both engines per tick: variables, run positions, instances, the built-in call log; scenarios plus a mission corpus."
+order = 641
+status = "later"

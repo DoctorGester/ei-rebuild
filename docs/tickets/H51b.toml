@@ -1,0 +1,9 @@
+id = "H51b"
+title = "Stub set: textures the three frame checks need"
+group = "harness"
+depends = ["H51"]
+note = "Found in H51: render_blink, render_cursor_present and render_shadows_outside fail their own pixel checks on the stub set (Windows and Linux alike; they pass on the installs, lavapipe included), because every texture is blanked to 0: the faces' open and closed rectangles are the same black, the gate's shadow falls on black ground, the cursor is 1024 transparent pixels. Options: keep the pixels of the few textures these read (the cursor pictures, the briefing speakers' mouth textures, bz1g's ground) in tools/stub_data.py, or blank to a cheap non-uniform pattern that keeps every other frame check passing. Needs the user to rebuild, repack and push the stub set; then the Suites (Linux) job's comment drops the three. User 2026-11-04: the coordinator may update the stub data repository (E:\\workspace\\ei-rebuild-stub-data, plain ei-stub-data.tar.zst, not encrypted). The worker changes tools/stub_data.py, rebuilds and repacks into its build/stub, checks the three scenarios and the rest of both suites on the new set; the coordinator commits and pushes the pack after the merge."
+order = 815
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

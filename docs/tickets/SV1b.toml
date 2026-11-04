@@ -1,0 +1,11 @@
+id = "SV1b"
+title = "combat, combat_more, sound and rebirth_flags do not repeat on the virtual clock"
+group = "verification"
+size = 0.5
+model = "opus"
+files = ["docs/open-questions.md"]
+note = "Runs repeat on the virtual clock: the CRT heap without its low-fragmentation front end, update countdowns from object ids, and AIViewer::Refresh inserts at the nearby list's head as the original."
+order = 165
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

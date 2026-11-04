@@ -1,0 +1,10 @@
+id = "C50c"
+title = "G11 constructors: items, databases, network"
+group = "cleanup"
+model = "opus"
+depends = ["C50"]
+note = "C50 follow-up. item_*, database_*, unit_db*, acks_db, map_database, class_template_stock (Destruct() calls on the record tables) and net_* (net_session's InitGameServerPointer / ReleaseGameServer pair around the g_gameServer / g_gameClient Refs, which now have destructors; net_classes, the Destruct()-named deleting destructors of the messages). Recipe from C50: real ctors with default member initialisers, Reset/Init kept only where the object is reused (engine-object spares are reused: their Create/Destroy stay); Ref<T> has a destructor since C50, so an owner's hand release of a Ref in its destructor goes (keep an explicit Reset only where the order differs from reverse declaration order). A StaticObject / atexit pair becomes a local, a plain global or a member: drop the address tag (python tools/named_data.py --update), its config/static_init_ports.csv row, and for a runtime atexit add the original function's range to gen_static_init.py RETIRED_STATICS (an initialiser's: UNUSED_INITIALISERS), then rerun python tools/gen_static_init.py. Goldens unchanged; leave src/game/ui_* and src/render/render_ui* to C54.  C50b left QuestDatabase::Construct / Destruct (quest_records.h, database_construct.cpp / database_destruct.cpp, g_questDatabase in database_globals.cpp) and unit_db's statics here."
+order = 706
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

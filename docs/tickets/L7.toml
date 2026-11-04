@@ -1,0 +1,7 @@
+id = "L7"
+title = "Quests and console lines through the transpiler"
+group = "lua"
+depends = ["L4"]
+note = "QFinish's text and console lines at runtime; a cache for mission files."
+order = 643
+status = "later"

@@ -1,0 +1,83 @@
+# The ticket queue: this file (the rules and the groups) and one docs/tickets/<ID>.toml per ticket. tools/tickets.py
+# checks them and writes build/tickets/tickets.md (a rendered list; not in git) and the board's data.
+#
+# Per ticket: id, title, group (a [[group]] key), order (its place in the list; tickets.py add sets it); optional: size
+# (sessions), model (opus / sonnet), depends (ids), files, doc, note. Keep notes to what a worker or the user needs;
+# history goes into the area notes.
+# The status lines (status, started, done) are a copy of the shared work database's row (build/live/work.db of the main
+# checkout), written by tickets.py: `work.py start` (running, started date), `tickets.py set ID STATUS` and
+# `work.py done ID merged` (done, date). Never edit them by hand:
+#     running / review   a worker has it / its branch waits to be merged
+#     queued    to do (no row in the database); the board shows it "ready" when every depends is done, else "waiting"
+#     later     not before its phase (the group's note says when)
+#     watch     a flaky or open problem we only observe
+#     done      merged or finished
+
+[queue]
+rules = [
+  "Workers own one ticket or area for about a usage session, commit small green groups (all checks green), and follow docs/worker-brief.md. The coordinator merges, runs the suite and keeps this file current.",
+  "A ticket goes running when its worker runs `work.py start`, review when the worker's branch is ready, done when it is merged (`work.py done ID merged`); statuses live in the work database, so every checkout sees them at once.",
+  "Mechanical tickets go to Sonnet; type recovery, renderer and tricky debugging to Opus. Sonnet tickets change spelling only, never a signature or grouping; the first diff of each kind is reviewed before more are sent.",
+]
+
+[[group]]
+key = "renderer"
+name = "Renderer"
+doc = "docs/notes/renderer.md"
+note = "Our own swap chain without dgVoodoo (renderer.md section 9), in parallel with the cleanup; one Opus ticket at a time."
+
+[[group]]
+key = "native-ui"
+name = "Native interface drawing"
+doc = "docs/notes/ui-native.md"
+note = "Window surfaces drawn on the GPU instead of GDI into DIB sections; no GDI in src/render, own font loading (user 2026-10-14)."
+
+[[group]]
+key = "widescreen"
+name = "WideScreen"
+doc = "docs/notes/rebirth.md"
+note = "Rebirth's WideScreen patch folded in (100 sites), one Opus ticket at a time; `run_all --widescreen` compares with addon."
+
+[[group]]
+key = "fields"
+name = "Unknown fields"
+note = "Every unknown_XXX member becomes a real name or unused_XXX (same type and offset; renames only, layout unchanged). check_cleanup counts `unknown field` (727 in 97 files on 2026-10-14) and `unused field accessed` (stays 0). Rebirth's DLL may read a field we call unused."
+
+[[group]]
+key = "verification"
+name = "Standalone verification"
+doc = "docs/notes/standalone-verification.md"
+note = "The SV loop comes before any standalone ticket (user 2026-10-14)."
+
+[[group]]
+key = "harness"
+name = "Harness and suite"
+note = "Scenarios, run_all and the tools around them; X tickets are problems seen in runs."
+
+[[group]]
+key = "cleanup"
+name = "Cleanup"
+doc = "docs/rewrite-guide.md"
+note = "After the port and before the standalone exe. Mechanical tickets go to Sonnet (spelling only, never a signature or grouping change); type recovery and tricky debugging to Opus."
+
+[[group]]
+key = "standalone"
+name = "Standalone exe and UTF-8"
+doc = "docs/notes/standalone.md"
+note = "After the SV loop. Counts are on the progress dashboard (\"Standalone readiness\"). Saves and multiplayer need not match vanilla in the UTF-8 build (user 2026-10-13)."
+
+[[group]]
+key = "lua"
+name = "Lua scripting"
+doc = "docs/notes/lua-scripting.md"
+note = "After the standalone exe (user 2026-10-14). Mission scripts run on Lua through a transpiler (assets unchanged), mods can write Lua, saves keep running coroutines (Eris)."
+
+[[group]]
+key = "port"
+name = "Port"
+note = "Finished 2026-10-14: every hookable game function is rewritten (99.97% of game code); 201 stubs of 1-4 bytes wait for the standalone build. Area history is in the area notes."
+
+[[group]]
+key = "docs"
+name = "Docs"
+note = ""

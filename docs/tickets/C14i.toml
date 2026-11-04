@@ -1,0 +1,11 @@
+id = "C14i"
+title = "Delete mfc_string: src/lib's MFC on std::string"
+group = "cleanup"
+model = "opus"
+depends = ["C20o"]
+files = ["src/lib/mfc_string.h", "src/lib/mfc_string.cpp"]
+note = "User 2026-10-28: don't retype MFC's internals. Replace the usage code first: each place that uses an MFC class (CFile / CStdioFile / CFileFind, CArchive, CTime, CWnd text, GDI, resources, exceptions) calls std or a small simple helper of ours instead; when a piece of src/lib's MFC has no user left, delete it. mfc_string goes once only the tests' game.exe views (a local layout struct) still need its layout. Same approach for the other MFC / STLport tickets (C14c, C14d, C14m, C14n, C14h). C14i done (to review, 0116dd18f): mfc_string.h/.cpp deleted (586 lines; the commit 389+ / 1137-). src/lib's MFC holds text as std::string: CFile / CStdioFile / CFileFind names and root (real constructors and destructors now, mfc.h's facades build them in place over a mirror of their members), the exceptions' file names, CArchive's StoreText / LoadText (m_strFileName dropped: nothing builds an archive), CTime::Format, mfc_resource.h LoadResourceString / AfxFormatString1. CFixedAlloc moved to mfc_gdi. impl::CStringArray, its record 00796EE8, vtable row and initialiser 0070BE81 went; the four string allocators' initialisers 00700718..007007AB are UNUSED_INITIALISERS (static_init.cpp regenerated, __cdecl stripped). gen_image_cells UNREAD takes the removed classes' runtime class records, including C20o's CUIntArray / CTempWnd / CTempMenu / CMenu, which a full scan reported unreviewed. function_sizes.inc / extra_function_sizes.csv left as they are (src/hook is harness). Image suite --golden: 145 pass, 121 the same (before: main's 121/114); original suite not run (no tests/verify harness file changed; record_*.cpp untouched). Follow-ups: C14o (harness crash report reads the std::string name), C14p (mfc::CString to the tests)."
+order = 483
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

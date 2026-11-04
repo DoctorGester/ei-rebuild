@@ -1,0 +1,10 @@
+id = "H43c2"
+title = "Dead code: the map specs' Save methods and Chunk's writers"
+group = "cleanup"
+depends = ["H43c"]
+files = ["src/game/map_spec.cpp", "src/game/map_spec_unit.cpp", "src/game/chunk_stream.cpp"]
+note = "H43c's coverage run: Chunk::WriteString, WriteStringArray and WriteVector3 are reached by no run, and nothing calls Spec::Save (ObjectSpec, FlameSpec, TrapSpec, LeverSpec, ParticleSpec, LightSpec, SoundSpec, UnitSpec): the .mob writer is the editor's. Check the callers (grep finds none), delete the Save methods and the Chunk write side with their comments, keep the goldens the same."
+order = 1012
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

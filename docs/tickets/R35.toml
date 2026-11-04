@@ -1,0 +1,8 @@
+id = "R35"
+title = "Smooth camera as a render-only view: the logic camera stays on its ticks, the renderer interpolates"
+group = "renderer"
+note = "User 2026-10-29 idea, an experiment first. The smooth camera option (R18) changes the game state (suite with EI_RENDER_EXTRA=smoothcamera: all 121 goldens differ from boot tick 20, the game random generators drawn a different number of times: something camera-dependent draws from them). Instead: the camera the game logic sees (CCamera: pan, turn, zoom, tracking, the listener, picking) keeps the original timing, so goldens stay the same; the renderer keeps the camera's last two logic states and draws with a view interpolated between them by the frame's fraction (like R19's units), snapping on a cut / teleport / camera reset. Measure and report: (1) goldens with it on: all the same? (2) the jumps camtrace/camsmooth counts on camera_smooth (pan, turn, zoom, follow) against R18's option; (3) the added latency (up to a tick, 55 ms) and how panning feels at 120 Hz (frametime 8); (4) picking: clicks use the logic camera while the screen shows the visual one, so how far apart they get while panning (pixels), and whether picking should use the visual view instead (it reads no random state, but check the goldens). Then recommend: replace R18's option with this, keep R18, or both rejected. No golden re-record."
+order = 105
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

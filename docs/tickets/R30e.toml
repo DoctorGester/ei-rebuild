@@ -1,0 +1,9 @@
+id = "R30e"
+title = "EI_RENDER's no-op words new / present / cpuwindows gone"
+group = "renderer"
+size = 0.25
+note = "R30 survey: build/style_review/renderer_trim.md, R30e: ParseSpec accepts and ignores them; 22 scenarios' render lines, run_all.py OUR_RENDERER and help, game_load.py still name them; render_cpuwindows / render_present_cpuwindows run what render_present runs. Editing the scenarios replays their --no-hooks references once: bundle with another harness change."
+order = 97
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

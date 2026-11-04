@@ -1,0 +1,9 @@
+id = "C49d"
+title = "HeldRef for the AI memory lists; pendingParts is never filled"
+group = "cleanup"
+depends = ["C49b"]
+note = "C49b follow-up. AIMemory's nearby / visible / seenCorpses / corpses (std::list<CUnit*>, counted by hand in unit_ai_brain.cpp ReleaseAllObjects / RemoveObjectNode, combat_lifetime.cpp Init/DestroyObjectList, combat_taming ReleaseAndClear, WitnessMurder's std::list<CUnit*>*) to std::list<HeldRef<CUnit>> where the release order stays. CObject3D::pendingParts: nothing in src or tests adds to it (only reads, RemovePart, LoadFigures' sic drop, Destroy3D); check game.exe's writers and delete it with its loops if it is dead. Goldens unchanged."
+order = 702
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

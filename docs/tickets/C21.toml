@@ -1,0 +1,9 @@
+id = "C21"
+title = "Pointer static_casts: typed parameters and fields instead of void* and downcasts"
+group = "cleanup"
+model = "sonnet"
+note = "batch 31 (2026-10-27): pointer static_casts 476 -> 469 lines (483 -> 476 occurrences; git grep -E 'static_cast<[^<>]*\\*>' over src and include, main at batch start). Typed: TheObjectManager / WorldObjectManager return CMapObjectManager* (the FindAnimation casts and ui_model's void* FindNamed / PlayAnimation forwarders gone); CWorld::manager3C_ is CFigureManager* and CWorldClient::manager190_ CLightFactory* (TheFigureManager / TheLightFactory without casts; CWorld::FigureManager moved out of line); CVisualizator / CSceneRenderer::SetTexture(int, CTexture*); the UI window's objects_ are UiPtrArray<CTexture> with LoadTexture / CreateTexture / AddObject / RemoveObject / CopyImage on CTexture*, CUiMesh::texture_, CSaveLoadWindow::dialog_ and CFlyingHitPoints::texture_ (was object_) CTexture*; the item screen's texture cache read through CachedTexture (one cast: ItemObjectCache holds models and textures as CEngineObject*). Left and why: owner_ downcasts (MapObjectManagerOf, figure_manager.h's FigureManagerOf / OwningFigureManager: CBaseManager* by contract; FigureManager() can't return CFigureManager* covariantly since figure_manager.h includes world.h); the stlp list<void*> recipe lists (C15); render hand-over void* (TextureView in src/render); IsEnemy / OrderTame / AI target and spec-kind downcasts (class-tested); raw buffers, callbacks, sokol / D3D11 handles; script, scene_loader, UI arrays other than objects_ (C14a). C21 can close: what is left is void* by contract or class-tested downcasts; a split ItemObjectCache (models / textures) is the only small typed target left. Suites: image 145 pass, 121 goldens the same, 0 differ; verify and release green, check_signatures / check_x87 / check_stolen 0."
+order = 374
+status = "done"
+started = "2026-10-27"
+done = "2026-10-27"

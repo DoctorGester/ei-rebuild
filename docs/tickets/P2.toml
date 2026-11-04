@@ -1,0 +1,10 @@
+id = "P2"
+title = "Text through the glyph atlas"
+group = "native-ui"
+size = 1
+depends = ["N2", "P1", "W2"]
+files = ["src/game/ui_text.cpp"]
+order = 117
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

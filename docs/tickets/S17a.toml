@@ -1,0 +1,11 @@
+id = "S17a"
+title = "Standalone: one access violation in the draw list sort (camera, 1 of ~900 runs)"
+group = "standalone"
+size = 1
+depends = ["S17"]
+files = ["src/game/world_client_draw.cpp", "src/game/world_client_view.cpp", "src/game/world_rules.cpp"]
+note = "The draw list sort crash was a never-written view depth (NaN) of shadow-only objects; CObject3D's view position starts zeroed (harness_leftovers bit 6 in the original)."
+order = 590
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

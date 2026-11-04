@@ -1,0 +1,10 @@
+id = "C36c"
+title = "Written-only pad members left after C36a (SearchNode, ChunkArchive::Ref, SectorBox, TerrainMaterial and others)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C36a"]
+note = "Found by C36a. Members named unused_* in in-process types that are written and never read (SearchNode::unused_13, Ref::unused_01, SectorBox::unused_2C, TerrainMaterial::unused_28, ...): grep each, drop the written-only ones with their writes; keep any in file / save / packet / chunk records or read by the vectors from game.exe memory, and list them with the reason. Skip the R27 files (device*, dx_surface*, texture*, ui_surface_*, pixel_formats, renderer_gamma, directdraw_holder, src/render). Goldens must stay the same."
+order = 682
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

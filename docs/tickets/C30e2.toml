@@ -1,0 +1,10 @@
+id = "C30e2"
+title = "SSE2: scripts (10 files)"
+group = "cleanup"
+model = "opus"
+files = ["src/game/script_addon.cpp", "src/game/script_addon_commands.cpp", "src/game/script_addon_math.cpp", "src/game/script_addon_units.cpp", "src/game/script_effects.cpp", "src/game/script_eval.cpp", "src/game/script_exec.cpp", "src/game/script_exec_helpers.cpp", "src/game/script_exec_run.cpp", "src/game/script_parse.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. Ftol 72 (script_exec 43, script_eval 15): a script argument can be a NaN, so int64 truncation; script_addon_math calls the CRT's sin / cos / pow (addon.dll's code): compare the x87 CRT with the SSE2 one on the arguments' range."
+order = 901
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

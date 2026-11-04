@@ -1,0 +1,9 @@
+id = "S18k1"
+title = "run_all: no game.exe for the image's installs"
+group = "standalone"
+depends = ["S18k"]
+note = "Since S18k the image reads no game.exe and loads no import beside it: run_all still builds run\\<install>-clean and hands its game.exe to ei_launch --standalone (only the shared host copy's place and EI_GAME_ROOT use it). Drop the clean folders and --exe for the standalone installs (tools/test_work_sched.py asserts them), keep EI_GAME_ROOT."
+order = 624
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

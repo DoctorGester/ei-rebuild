@@ -1,0 +1,11 @@
+id = "C54d"
+title = "C54 rest: Tier 2 style in the item screens, hero screen and exchange"
+group = "cleanup"
+model = "opus"
+depends = ["C54a"]
+files = ["src/game/ui_item_*.* src/game/ui_hero_screen*.cpp src/game/ui_hero_preview.cpp src/game/ui_hero_preview.cpp src/game/ui_exchange.cpp src/game/ui_container_draws.cpp"]
+note = "C54 follow-up. ui_item_info.* (CItemInfoPanel, CItemScreen; 5 one-line forwarders in ui_item_info.cpp, BOOL), ui_item_view.cpp (forwarders, unused parameters), ui_item_strip*.cpp (BOOL), ui_item_model / ui_item_screen, CMpHeroScreen (ui_hero_screen*.cpp: forwarders, ui_hero_screen_click's unused parameter), ui_exchange.cpp (forwarders, AsContainer casts). G10 bool/void, G12 out-params, G14 forwarders, G15 parameters; G9 (CItem::spell_, link_, the ++/-- count sites) stays with C49a/C49c. Goldens unchanged: ui_hero_screen, ui_hero_delete, ui_describe, ui_gallery_*, spells_hero + ei_ui_check."
+order = 728
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

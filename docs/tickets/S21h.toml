@@ -1,0 +1,8 @@
+id = "S21h"
+title = "EI_REBIRTH_IMPLEMENTS: documentation only since S21e"
+group = "standalone"
+note = "From S21e: nothing reads the 125 EI_REBIRTH_IMPLEMENTS declarations at run time any more (the installer's Rebirth check went with game.exe's mode). Decide: drop them (config/rebirth_patches.csv already says where each patch is implemented) or turn them into a build check against that csv's status column."
+order = 606
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

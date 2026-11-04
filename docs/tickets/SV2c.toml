@@ -1,0 +1,8 @@
+id = "SV2c"
+title = "unit_create parted from its golden once in crt.rand"
+group = "verification"
+depends = ["SV2a"]
+note = "Closed 2026-10-28: one parting under load 2026-10-15; not seen since."
+order = 182
+status = "done"
+done = "2026-10-28"

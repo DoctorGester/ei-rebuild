@@ -1,0 +1,9 @@
+id = "SV7b6"
+title = "Pointer-keyed hashes: check iteration reaches output"
+group = "verification"
+depends = ["SV7a"]
+note = "Pointer-keyed hashes checked; UnitOrderLess 00574300 now sorts draw lists by name with ById (harness jumps 005740D0 / 00574390 to ours); no-hooks frames equal under jitter seeds."
+order = 222
+status = "done"
+started = "2026-10-15"
+done = "2026-10-16"

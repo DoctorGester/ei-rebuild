@@ -11,19 +11,21 @@ A worker does ONE ticket, given in its prompt: do it, commit, report, stop.
 1. Merge main into your worktree (once, now; never again before handing back), then `python tools/work.py start <ID>`.
 2. Read `README.md`, `docs/rewrite-guide.md` (every rule comes from a real bug), `docs/comment-guide.md`, your
    ticket (`python tools/tickets.py show <ID>`: note, files, dependencies, its group's note and doc) and the notes
-   of your area (`docs/notes/README.md` lists them). Don't read `docs/tickets.md` whole.
+   of your area (`docs/notes/README.md` lists them). Read tickets one at a time (`tickets.py show`, `list`), not the whole folder.
 3. Work in few turns: read whole sections at once, send independent reads and edits together.
 
 ## Tickets
 
-The text is in `docs/tickets.toml`, the status in the shared work database (`docs/notes/work-board.md`); both
-only through `tools/tickets.py`, never by hand.
-- Branch ready: `python tools/tickets.py set <ID> review`; commit the rewritten `docs/tickets.md` with your work.
+One file per ticket, `docs/tickets/<ID>.toml`; the live status is in the shared work database
+(`docs/notes/work-board.md`). Both only through `tools/tickets.py`, never by hand.
+- Branch ready: `python tools/tickets.py set <ID> review`; commit your ticket's file (it carries the status line) with your work.
+- A note: `tickets.py note <ID> "<text>" --append` adds to it; a plain `note` refuses to overwrite a note that is not
+  empty (`--replace` says it is meant).
 - Follow-up work you found: `python tools/tickets.py add <NEW-ID> --group <key> --title "..." --note "..."
   [--depends <ID>]` (your ticket's prefix plus a letter or digit); name them in your report.
 - Leave other tickets' status alone; the coordinator sets done at merge.
-- A `docs/tickets.toml` / `docs/tickets.md` conflict: take main's toml, re-apply your changes with tickets.py and
-  let it rewrite tickets.md (`python tools/tickets.py`).
+- Ticket files do not conflict unless two branches changed the same ticket; then take main's file and re-apply your
+  change with tickets.py (`status` lines: `tickets.py set <ID> <status>` rewrites them from the database).
 - Board notes at milestones: `python tools/work.py note <ID> "<text>"` (what changed, what runs, what blocks).
 
 ## Build and test

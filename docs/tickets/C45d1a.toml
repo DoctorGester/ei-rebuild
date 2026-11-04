@@ -1,0 +1,10 @@
+id = "C45d1a"
+title = "AI map names that need signature changes"
+group = "cleanup"
+model = "sonnet"
+depends = ["C51"]
+note = "Left by C45d1 (no signature changes while C51 ran): CAIMap::CellFlag80At -> InWaterAt (kCellWater), HasKind3Occluder / HasKind3OccluderAt -> a SpellArea name, FootprintCellSet::AddTop / AddBottom and Sector::RemoveOccluder take OccluderKind instead of int8 / int, BoundsOccluderKind returns OccluderKind, ai_refresh's CellMark scratch MarkState typed. Goldens unchanged."
+order = 716
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

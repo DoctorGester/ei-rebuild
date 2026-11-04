@@ -1,0 +1,9 @@
+id = "F4e"
+title = "ShowWounds' AssignCountedRoot onto CountedRef<T>"
+group = "cleanup"
+depends = ["F4d"]
+note = "ShowWounds' AssignCountedRoot (0051C3D0) uses CountedRef<WoundsMaterial> / CountedRef<CRenderPreset> (map_object_figures.h)."
+order = 336
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

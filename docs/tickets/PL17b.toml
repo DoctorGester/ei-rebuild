@@ -1,0 +1,9 @@
+id = "PL17b"
+title = "Music: the game thread waits for the stream thread's MP3 work under streamLock"
+group = "port"
+depends = ["PL17a"]
+note = "PL17a found: the stream thread holds streamLock while it decodes a half and while SwitchStream opens a file (OpenMp3 reads the whole file); the main thread takes it in RequestStream every frame of a fight and in PlayStreamOnce / StopStream. Not the device, but a game-thread wait: time the main thread's streamLock waits and move the decoding and opening outside the lock (the request state stays under it)."
+order = 1126
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

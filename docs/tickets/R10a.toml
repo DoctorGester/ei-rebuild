@@ -1,0 +1,8 @@
+id = "R10a"
+title = "SectorData::Light: a one-record verify mismatch in runs on our renderer (vanilla/Rebirth)"
+group = "renderer"
+note = "SectorData::Light's one-record mismatch on our renderer was diagnosed by logging both records' colour / specular / lit values at the first mismatch."
+order = 16
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

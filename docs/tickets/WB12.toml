@@ -1,0 +1,10 @@
+id = "WB12"
+title = "Standalone test runs out of sight: no visible window, no focus stealing"
+group = "harness"
+size = 0.5
+depends = ["S21"]
+note = "Standalone test runs stay out of sight: no visible window or focus stealing (no activation), no display mode change; frames and goldens unchanged."
+order = 310
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

@@ -1,0 +1,10 @@
+id = "H47a"
+title = "run_all checks that no run wrote into an install"
+group = "harness"
+size = 0.3
+depends = ["H47"]
+note = "H47 deleted the kernel32/ntdll install guard: the game's own writes still pass MapPath (refused under an install root), but another library's file calls (a driver's cache, SDL's) are no longer seen in the process, and the runs' working directory is the install. run_all could list the install trees' file names, sizes and times before a suite and compare after, failing the runs that overlap a change. Windows and Linux alike."
+order = 807
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

@@ -1,0 +1,9 @@
+id = "LX4"
+title = "Linux: keyboard layouts and key names from the system"
+group = "port"
+depends = ["LX1"]
+note = "platform_posix.cpp's LayoutKey / LayoutControlCharacter give nothing (sdl_keys.cpp's US rules) and KeyName is SDL's English name. Through SDL's keymap (SDL_GetKeyFromScancode with the modifiers) the layout's key codes and Ctrl characters, as PL9a did on Windows; key names in the layout's language if SDL or xkb gives them. Check by hand with a Russian layout, or a Linux reference for ei_input_check's cases."
+order = 1115
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

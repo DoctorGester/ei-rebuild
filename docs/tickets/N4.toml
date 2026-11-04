@@ -1,0 +1,10 @@
+id = "N4"
+title = "ui_gallery scenario: every window family captured"
+group = "native-ui"
+size = 1
+depends = ["SV1"]
+files = ["tests/scenarios/"]
+order = 114
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

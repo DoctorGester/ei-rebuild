@@ -1,0 +1,12 @@
+id = "WB6"
+title = "Machine-wide expected run times, keyed by the scenario's last-change commit"
+group = "harness"
+size = 0.4
+model = "sonnet"
+depends = ["WB5"]
+files = ["tools/work_sched.py", "tools/run_all.py", "tools/work.py"]
+note = "Machine-wide expected run times in work.db timing(scenario, install, scenario_rev, ...) keyed by the scenario's last-change commit; the scheduler restarts on new work_sched.py / run_all.py."
+order = 291
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

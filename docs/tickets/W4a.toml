@@ -1,0 +1,11 @@
+id = "W4a"
+title = "Hero screen 00613EA0 under Rebirth: EiPluginFixes with WideScreen"
+group = "widescreen"
+size = 0.5
+model = "sonnet"
+depends = ["W4"]
+note = "Hero screen 00613EA0 reproduces EI_Plugin's EiPluginFixes sites (+D15 / 00614BB5, +E7B / 00614D1B) behind their flag under Rebirth (EI_REBIRTH_IMPLEMENTS both)."
+order = 145
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

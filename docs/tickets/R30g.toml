@@ -1,0 +1,11 @@
+id = "R30g"
+title = "One PixelFormat for the game and the canvases"
+group = "renderer"
+size = 0.25
+depends = ["C54a"]
+files = ["src/render/render_ui.h", "src/game/surface.h", "src/game/ui_surface.cpp", "src/game/ui_surface.cpp"]
+note = "Left from R30d (src/game/ui_* was C54a's): surface.h PixelFormat and render_ui.h render::ui::PixelFormat (bits + masks) are converted field by field at ui_surface.cpp and ui_surface.cpp; PixelAt packs with ui::Pack and unpacks with ChannelLayout::FromNative (one function could return the pixel's 8-bit channels). One type (render::ui taking surface.h's, or the game using the renderer's), no behaviour change. Check: build, ei_ui_check, ui_compare, goldens."
+order = 99
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

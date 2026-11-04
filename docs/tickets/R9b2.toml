@@ -1,0 +1,10 @@
+id = "R9b2"
+title = "WinMain's original in harness runs: the last old-device calls"
+group = "renderer"
+model = "opus"
+depends = ["R9b"]
+note = "Narrowed (2026-10-21): since S18i/S21 the image runs only our code, so WinMain's rewrite already runs under the harness (freeze / speed through g_harnessHooks) and 006462A0 / 0060C870 are ours behind flags; main's runs showed no WinMain old-device calls, only CItemScreen::DrawItem's raw SetRenderState and the harness's RestoreAfterMinimise. Done: both through device.h, the COM stand-ins replaced by trap tokens (a direct method call ends the run naming its caller), AddRef / Release wrappers, app_main's dead code-byte CallTarget removed, tools/old_device_calls.py gone."
+order = 6
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

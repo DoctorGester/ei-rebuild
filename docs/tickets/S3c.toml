@@ -1,0 +1,9 @@
+id = "S3c"
+title = "Standalone: game-side destructors the exit functions call"
+group = "standalone"
+depends = ["S3a"]
+note = "Game-side destructors the static exit functions call (CWorldClient 00561B00, CWorldServer 0058AAD0, map/spell/quest databases, prints, acks, 12 more) ported; docs/notes/standalone.md."
+order = 551
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

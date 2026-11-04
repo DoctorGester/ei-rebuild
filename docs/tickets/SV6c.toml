@@ -1,0 +1,7 @@
+id = "SV6c"
+title = "Startup crash inside AIL_waveOutOpen (EIP 00007EBC), seen once"
+group = "verification"
+note = "Closed 2026-10-28: seen once 2026-10-15; not seen in any main suite since."
+order = 199
+status = "done"
+done = "2026-10-28"

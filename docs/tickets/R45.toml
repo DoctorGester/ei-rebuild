@@ -1,0 +1,11 @@
+id = "R45"
+title = "Resolution in the options screen through app::SetResolution"
+group = "renderer"
+size = 0.5
+model = "sonnet"
+depends = ["R44"]
+note = "R44 made app::SetResolution(w, h) the one resolution change (docs/notes/renderer.md, 'Resolution changes'). The options window has no resolution row (its 26 settings, table 00787430). Add one (the desktop's modes or a list of common sizes; the current one from the device's screen), call app::SetResolution from its apply between frames, and, windowed, size the window's client area to it through a new platform call (platform::SetClientSize; the harness's windowsize does it with SetWindowPos) so the next present asks for nothing. Full screen needs only the call (no display mode change: the frame is scaled over the monitor). Check: a scenario picking a size from the options under a zone, the 'Resolution:' and 'Interface layout:' log lines, captures."
+order = 924
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

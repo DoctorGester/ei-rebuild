@@ -1,0 +1,10 @@
+id = "C114"
+title = "Networking style 6: delta coder without hidden globals"
+group = "cleanup"
+model = "opus"
+depends = ["C111"]
+note = "Style review round 3 (2026-11-04, https://claude.ai/artifact/KKkymAu9dSoUWGGcbsLwPa, digests in build/style_review/round3/*.md; user: file the tickets). Item N6 (Y7). BeginField returns a DeltaWriter/DeltaReader instead of setting net_delta.h's four globals; mode as the enum, flags typed; the unchanged-bit read written once (4 copies); ReadDelta calls ReadDiff; masks instead of the float16 xor merges; WriteFloat16 takes a float; MemoryStream members to their file. Wire bytes the same. Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes."
+order = 1045
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

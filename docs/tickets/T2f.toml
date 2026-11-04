@@ -1,0 +1,10 @@
+id = "T2f"
+title = "bz1g runs: ours parts from the original in isaac.count at update 80-100 (blocks goldens of ui_base_dialogue, ui_base_topic, zone_base_bz1g)"
+group = "harness"
+size = 1
+depends = ["T2a"]
+note = "bz1g runs: ours matched the original in isaac.count (PlayAmbience / sector votes address-order cause); ui_base_dialogue, ui_base_topic and zone_base_bz1g goldens recorded."
+order = 306
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

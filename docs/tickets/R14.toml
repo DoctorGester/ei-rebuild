@@ -1,0 +1,8 @@
+id = "R14"
+title = "Option: stay on screen when focus is lost in borderless full screen"
+group = "renderer"
+size = 1
+note = "Done 2026-11-03: MAC3j1 (548a85ad0) removed minimising on focus loss in every mode; the game stays on screen. User 2026-10-22: no UI for now; a settings-file flag in the Standalone key like R23's VSync (dword, default off, not read in the harness)."
+order = 26
+status = "done"
+done = "2026-11-03"

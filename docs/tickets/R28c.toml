@@ -1,0 +1,11 @@
+id = "R28c"
+title = "DXT .mmp levels uploaded as BC1 / BC2 / BC3 (no CPU DXT decode)"
+group = "renderer"
+size = 0.5
+model = "sonnet"
+depends = ["R28"]
+note = "R28 finding: 2DintMMX's DecodeDxt was unused; the renderer decodes DXT1/3/5 on the CPU (render_textures.cpp DecodeDxtBlocks) to RGBA8. Upload the blocks as SG_PIXELFORMAT_BC1/BC2/BC3_RGBA instead (D3D11 feature level 10+ has them; levels under 4x4 padded as the decoder does today), delete DecodeDxtBlocks. Check texture-heavy frames (render_scene, units, models) before/after; less upload time and 4-8x less texture memory."
+order = 90
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

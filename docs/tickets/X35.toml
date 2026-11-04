@@ -1,0 +1,7 @@
+id = "X35"
+title = "Machine-wide cap of 16 harness games"
+group = "harness"
+note = "Machine-wide cap of 16 harness games (EI_HARNESS_SLOTS); 24 games crashed Windows twice (NVIDIA hang, bugcheck 0x133)."
+order = 276
+status = "done"
+done = "2026-10-14"

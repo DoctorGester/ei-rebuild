@@ -1,0 +1,7 @@
+id = "A-Z1"
+title = "The last eight functions: the port is complete"
+group = "port"
+note = "The last eight functions ported: the port is complete (function_sizes.inc hand-patched for two sizes)."
+order = 646
+status = "done"
+done = "2026-10-14"

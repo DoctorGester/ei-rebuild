@@ -1,0 +1,9 @@
+id = "SV4a"
+title = "Function vectors: matrix maths, effects' Range, and pure formulas (stat, damage tables)"
+group = "verification"
+depends = ["SV4"]
+note = "Function vectors for matrix maths (MatrixMultiply, Quaternion::ToMatrix), MultiplyByConjugate, IsaacRandom::Range and pure stat/damage formulas (tests/vectors/record_maths.cpp pattern)."
+order = 170
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

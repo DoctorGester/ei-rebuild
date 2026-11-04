@@ -1,0 +1,10 @@
+id = "SV4"
+title = "Function vector record mode and replay test exe"
+group = "verification"
+size = 2
+depends = ["SV2"]
+note = "Function vector record mode and replay test exe (tests/vectors; record with EI_VECTORS=1, tools/vectors.py merge)."
+order = 162
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

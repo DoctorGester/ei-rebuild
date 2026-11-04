@@ -1,0 +1,9 @@
+id = "S11b"
+title = "Hashtables of objects: checks for the four unreached S11a members"
+group = "standalone"
+size = 1
+files = ["tests/verify/verify_stlp_hash.cpp"]
+note = "S11a ported 25 hash members; the suite never reaches 004A91B0 (hash_map<int, CParty> operator[]), 004ABA70 (its _M_delete_node), 006A6C20 (string-key ~hashtable) and 005BE090 (the shape cache's operator[]). Find a scenario that reaches them (party creation, a world teardown, an AI unit with a new shape key) or add one, and confirm 0 mismatches. Checks there are ours only for the CParty map (standalone.md S11a). Re-review 2026-10-28: obsolete. STLport is gone (C14q moved these tables to std) and verify_stlp_hash.cpp was deleted; the goldens cover the std maps."
+order = 569
+status = "done"
+done = "2026-10-28"

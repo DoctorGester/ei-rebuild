@@ -1,0 +1,9 @@
+id = "C20b"
+title = "Pointer cells: drop game.exe's C++ EH tables' data cells (FuncInfo -> unwind / try maps, try block -> handler arrays)"
+group = "cleanup"
+depends = ["C20a"]
+note = "C20a left the 13,511 funclet code cells out (only __CxxFrameHandler on game.exe's own frames reads FuncInfo tables). The same tables' 3,721 pointer cells into .rdata in image_cells.inc (eh-unwind 2,963 FuncInfo -> unwind map, eh-try 378, eh-handlers 380) and the catch handler types' half of the 38 type-descriptor cells are fixed up at the move for the same dead readers. Check as C20a (no reference from src/ or tests/, the harness's crash report reads only ThrowInfo), leave them out of the cells, keep ThrowInfo / catchable types (CxxThrowException uses them). Goldens are the check."
+order = 385
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

@@ -1,0 +1,9 @@
+id = "R38"
+title = "Terrain: always the full-detail mesh, the distance LOD removed"
+group = "renderer"
+model = "sonnet"
+note = "User 2026-10-30: the terrain's distance LOD is needless complexity at the game's camera angles and polygon counts; always draw the highest level. Today terrain_passes.cpp picks level 0/1/2 per sector from the options' lod1 / lod2 distances, and render_terrain.cpp builds three index sets (kLod0/1/2 with first/last row and column seam variants). Remove the level choice, the lower levels and the seam variants that only join levels; keep the options' lod1 / lod2 fields only if the settings file or saves need them (else drop them from options and the settings defaults). Check: the level is client drawing only (confirm nothing on the server or in a golden reads it); goldens unchanged; frame time on R37's heavy scenes before/after (GPU cost of the extra triangles)."
+order = 916
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

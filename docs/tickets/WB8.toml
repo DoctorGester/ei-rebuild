@@ -1,0 +1,7 @@
+id = "WB8"
+title = "work.py test passes run_all's --clock to the games"
+group = "harness"
+note = "work.py test passes run_all's --clock through the batch to run_all.run (EI_HARNESS_CLOCK was the workaround)."
+order = 296
+status = "done"
+done = "2026-10-15"

@@ -1,0 +1,9 @@
+id = "C45d7a"
+title = "Magic numbers: the interface's copies of the unit and spell bits"
+group = "cleanup"
+depends = ["C54a"]
+note = "C45d7 named MapObjectFlag InParty (0x400000) / Preview (0x4000000) / HelmetHidden (0x40000000), SpellTargetFlag (spell.h), UnitStatsFlag (unit.h), PlayerDirty (player_messages.h) outside src/game/ui_*. Left in the interface (C54a was running there): ui_battle_hover.cpp kFlagShowInPanel, ui_battle_update.cpp:338, ui_flying_hit_points.cpp kUnitPickable (all InParty), ui_model.cpp kPreviewObject (Preview), ui_hud_pick.cpp kSpellOnUnit, ui_hud_pick.cpp:129, ui_item_info.cpp:709 (SpellTargetFlag::AtUnits). Also CUnit::SetFlag40000000Off (its callers are ui_briefing_*): a name from HelmetHidden, e.g. ShowHelmet(bool) (a rename: coordinate with C51). Goldens unchanged."
+order = 732
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

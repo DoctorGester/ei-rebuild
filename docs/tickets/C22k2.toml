@@ -1,0 +1,10 @@
+id = "C22k2"
+title = "Comment removal C22k, second pass: world.h, unit.h, unit_ai.h, ui_screens.h and the ui/unit sources"
+group = "cleanup"
+model = "opus"
+depends = ["C22k"]
+note = "C22k cut its batch 20% (8,861 to 7,079). Left: world.h (739 comment lines), unit.h (527), unit_ai.h (~370), ui_screens.h (363), unit_db.h and unit_client_models.h (~175 each), ui_hud.cpp and ~40 files of 30-60 lines; 107 rulers, 172 offset mentions. Opus (user 2026-10-27). docs/comment-guide.md 'Removal pass'; samecode main clean, one release build, no game runs."
+order = 463
+status = "done"
+started = "2026-10-27"
+done = "2026-10-27"

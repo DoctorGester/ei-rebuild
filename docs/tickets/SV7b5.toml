@@ -1,0 +1,9 @@
+id = "SV7b5"
+title = "Net replication ordered by pointer"
+group = "verification"
+depends = ["SV7a"]
+note = "T2f (merged) already orders DiffObjectSets/SyncPlayer object sends (0047ADF0, 0047B4C0) by object id on both sides; the Connection maps here are the remaining part. Re-review 2026-10-28: still real. Connection keeps std::map<CRefObject*, ...> byObject_ / attached_ and 11 std::map<ReplicaEntry*, ...> priority trees (net_connection.h:181-186), so replication walks entries in heap-address order. The goldens pass, but the send order depends on allocation addresses, which the layout-independent goldens rule says nothing should. Fix: key the priority trees by a per-entry sequence number or object id (T2f did that for DiffObjectSets / SyncPlayer). Ready, Opus, small."
+order = 221
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

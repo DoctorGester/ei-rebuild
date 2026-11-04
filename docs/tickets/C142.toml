@@ -1,0 +1,9 @@
+id = "C142"
+title = "Platform style: files by area, concept names, value returns, format checking"
+group = "cleanup"
+model = "opus"
+depends = ["C140"]
+note = "Style review round 4 (2026-11-04, https://claude.ai/artifact/BzXaX58kMcB9E2dwRuhN2U, reviewer reports in build/style_review/round4/<area>.md; user: file them all). Items P4 and Z11 (app.md A4 S half, A5, A6, W1, W2, W6). One file per area per backend (File and sockets whole, not split by what the harness answers; the harness through named seams or whole files); File holds std::intptr_t handle = -1 (no fd + 1 in a pointer); LayoutKey/LayoutControlCharacter to sdl_keys.h; clocks named by use with one sentence on why two; ShowMessageBox takes NativeWindow; value returns (optional<Size>, Point, std::string) instead of out-pointers, HoldCursor(Point) + ReleaseCursor(), one PopEvent; Seek/Position one type; namespace once per file. Annotate ei::Log, str::Format, FatalError and SayFormat with format checking and fix what it finds. Linux and macOS builds stay at 0 warnings. Style only: goldens the same, float operation order untouched (any float rewrite exact and said why), no new forwarders, normal C++ classes; gameplay code stays (technical dead code goes)."
+order = 1073
+status = "running"
+started = "2026-11-04"

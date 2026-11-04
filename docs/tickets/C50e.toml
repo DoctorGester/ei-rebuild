@@ -1,0 +1,9 @@
+id = "C50e"
+title = "C50d rest in the interface: ClearFields, CBinkVideo, the disc / data folders"
+group = "cleanup"
+depends = ["C50d"]
+note = "C50d follow-up. Left: g_dataFolder / g_discFolder (game_folders.cpp) stay lib::StaticObject because the interface spells them *g_x: retype them (whole tree) to plain std::string like g_textFolder, add initialisers 0055E7E0 / 0055E860 to gen_static_init's UNUSED_INITIALISERS (the guard byte 007AF438 and DestroyOnce go with them), drop their static_init_ports rows and run named_data.py --update. Goldens unchanged. (ClearFields went in C54g; CBinkVideo's constructor / destructor and the credits screen's archive in C54f.)"
+order = 735
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

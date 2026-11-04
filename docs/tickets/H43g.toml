@@ -1,0 +1,10 @@
+id = "H43g"
+title = "Scenario: lobby queries, party, trade and file messages between two games (network gaps from H43's coverage)"
+group = "harness"
+depends = ["H43"]
+files = ["tests/scenarios"]
+note = "H43's coverage report (build/coverage/report.md; python tools/coverage.py run <ticket>): network has 891 of 1463 functions reached. No pair run sends net::PartyMessage, TradeMessage, FileMessage or PairMessage, asks or forgets a lobby server (net_lobby.cpp's ClientBase::Ask and Forget; 96 of 400 lines unreached), makes a net::Connection with net_connection_life.cpp:98's constructor (1.5 KB) or a LoopbackLink, or raises a server variable (ServerSession::RaiseVariable). Pair scenarios (peer steps) with goldens: a trade between the two heroes, a party join, the lobby list."
+order = 832
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

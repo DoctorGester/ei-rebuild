@@ -1,0 +1,9 @@
+id = "R40"
+title = "The cursor as an SDL cursor; the cursor thread and present-again deleted"
+group = "renderer"
+model = "opus"
+note = "User 2026-11-01 asked why we need the custom cursor tech. The original drew the cursor in the frame and hid it during loads and movies (renderer.md section 9); our cursor thread re-presents the last frame between frames, at the cost of render_cursor, KeepPresent/DropPresent/PresentAgain in every backend, the D3D deferred context and the present lock; GL cannot do it. Do: the game's cursor as SDL color cursors made from the cursor sheet at the window's scale (one per animation frame, cached, gamma ramp applied to the pixels), hidden or warped while the game holds its cursor still (right-button camera turn); delete the cursor thread, render_cursor's present, PresentAgain and its parts in graphics.h and every backend (d3d11, gl, and tell the macos-port merge to drop Metal's), the deferred context. Captures and harness checks that need the cursor draw it into the read-back frame. Check: goldens (image 154/3, Rebirth 29/0, x64 154/3), render_cursor_present rewritten for the new rule, captures, a manual play.cmd check windowed and full screen (camera turn, animated cursors, loads)."
+order = 918
+status = "done"
+started = "2026-11-01"
+done = "2026-11-01"

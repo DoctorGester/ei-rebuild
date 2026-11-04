@@ -1,0 +1,8 @@
+id = "SV3g"
+title = "ui_widescreen*: client unit 129 has flag 0x400 in ours"
+group = "verification"
+size = 0.25
+note = "ui_widescreen* client unit 129 flag 0x400 is tracked as SV7b8a (rotation part settled by SV7b4a)."
+order = 190
+status = "done"
+done = "2026-10-15"

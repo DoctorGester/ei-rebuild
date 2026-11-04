@@ -1,0 +1,10 @@
+id = "C46"
+title = "Shared constants and helpers instead of per-file copies"
+group = "cleanup"
+model = "sonnet"
+depends = ["C45"]
+note = "Style review 2026-10-28 (build/style_review/REPORT.md, user asked to schedule Tier 1 in the suggested order); after SV7b5 and C38d. G7. kRow = 33 x10, kPi in many files (one in lib/vecmath.h), PositionOf x10 with five return types (-> &unit->localPosition_), Allied x3 / Diplomacy() x5 (-> CDiplomacy::IsAllied for the 16 allied_[...] & (1u << ...) sites), IsGone x2, ReleaseRef x2; ~84 raw sign-bit tests and 8 select helpers with different names (Max, Lower, AtMostOne, ...) -> one float_select header (SignBit, MinKeepA / MaxKeepA) or std::min where it matches, NaN included. Goldens unchanged."
+order = 679
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

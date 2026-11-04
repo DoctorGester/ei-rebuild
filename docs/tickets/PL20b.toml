@@ -1,0 +1,11 @@
+id = "PL20b"
+title = "All mouse controls window-size independent: the global map's drag and any other scaled drags"
+group = "port"
+model = "sonnet"
+depends = ["PL20a"]
+files = ["src/game/ui_global_map_input.cpp", "ui_camera_input.cpp", "other drag handlers"]
+note = "User 2026-11-03: in general controls should be window size independent, so the global map needs fixing as well. PL20a made the battle camera's turn, tilt and pan per mouse count fixed (kLayoutPerCount = 800/2880, calibrated to the user's 4K at 200%: width43 2880). GlobalMap::MouseMove still scales the drag to the window. Do the same there (same calibration, so 4K at 200% feels unchanged), then sweep for other controls whose response per mouse count or wheel step scales with the window (scroll bars dragged by motion rather than position, the briefing / village camera, the wheel zoom, edge-scroll speed if it uses pixels) and fix those the same way; pointing and clicking at positions stay as they are (positions must scale). List what you checked. Share one constant/helper with ui_camera_input.cpp rather than a second copy. Measure two window sizes with EI_CAMERA_TRACE or the scenario's own checks. Goldens the same, or re-record only drag scenarios with --reason."
+order = 1128
+status = "done"
+started = "2026-11-03"
+done = "2026-11-03"

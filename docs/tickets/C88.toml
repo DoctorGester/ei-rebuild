@@ -1,0 +1,8 @@
+id = "C88"
+title = "Renderer style 2: typed render-state enums in PassState, typed object keys"
+group = "cleanup"
+model = "sonnet"
+depends = ["C87"]
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Items R2, R10. PassState/StageState hold render_state.h's Blend/Compare/Cull/TextureOp/Filter/Address instead of uint8 bytes; ToGpu() switches with named cases; bool AddsLight(const PassState&) replaces the three destBlend == 2 tests; fix the render::Compare / Compare() and Blend/Cull/Primitive name clashes; cast to int only where uniforms are filled. Vertex offsets through offsetof and a struct per format read (render_terrain.cpp:539-546, render_mesh.cpp:297-308, 569-576). R10: forward-declared Surface/Texture/FigureMesh/LinkMesh instead of const void* keys (TextureView/SurfaceView); void* only for truly opaque keys. Style only: goldens the same, float operation order untouched, no new forwarders."
+order = 1018
+status = "queued"

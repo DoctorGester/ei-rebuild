@@ -1,0 +1,11 @@
+id = "R16e1"
+title = "With the shadow map, skip the classic shadow's raster, blur, texture copy and decal draw (read by nothing)"
+group = "renderer"
+size = 0.5
+model = "opus"
+files = ["src/game/map_object_shadow.cpp", "src/render/render_shadows.cpp"]
+note = "Found by R16e (renderer.md section 13 item 5). With the shadow map (the default) DrawShadow 0051CE60 still builds the classic shadow every frame for moving objects: RenderShadow rasterises the parts into the 64 x 64 texture (CLinkMesh::RasterisePartImpl / RasteriseFigureMesh, BlurShadow / BlurShadow2, the lock and copy into the render surface, LoadPixelsFrom, render::TexturePixels), and DrawFlatBlocks 004EA4A0 projects and clips the decal, which BeginMesh then drops. With the map the game reads only the parts' points in the light's view (self->bounds: the quad), the projected decal (ProjectDecal: the sphere ShadowInView 0051E300 tests, vertices.size) and nothing of the texture. Skip the raster, blur, copy and the decal's flat draw when the new renderer is active and the shadows are the map's; keep the points, bounds, quad, projection and sphere (the same game state). A switch to classic must build every shadow again (kFlagRefresh on each, or a stale mark: objects with flags 0x600 are not rebuilt every frame). Gain (R16e, render_stats vanilla 4K, renderstats 'shadow builds' + 'flat draws: shadows'): zone1 0.31 + 0.065, fight 0.73 + 0.072, town 1.15-1.30 + 0.17-0.21 ms a frame (part of the build is the points' projection, which stays). Check: those timers before / after, render_shadows (classic captured after the map: rebuilt textures; classic against remade at 8 / 0.5%), render_options_shadows, goldens 0 differ."
+order = 50
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

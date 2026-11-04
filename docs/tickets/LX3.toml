@@ -1,0 +1,8 @@
+id = "LX3"
+title = "Linux: the cursor between frames on OpenGL"
+group = "port"
+depends = ["LX1"]
+note = "Dropped 2026-11-03: R40 made the cursor an SDL cursor; no cursor thread or present-again on any backend. graphics_gl.cpp's KeepPresent refuses (the GL context is the main thread's), so the cursor stays put during a long load. A second context sharing the first's objects, current on the cursor thread, drawing the kept present into the window (ordered with the main thread under the renderer's present lock), or note it as accepted."
+order = 1114
+status = "done"
+done = "2026-11-03"

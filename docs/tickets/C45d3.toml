@@ -1,0 +1,10 @@
+id = "C45d3"
+title = "Magic numbers: particle types"
+group = "cleanup"
+model = "sonnet"
+depends = ["C45d"]
+note = "Spelling only. enum class ParticleType (0x2000..0x2052) in effects.h, named after script_effects.cpp's kScriptParticleTypes and the texture names particle_create.cpp's SetupType returns; a type neither names gets a descriptive name and a note. particle_create.cpp, particle_callbacks.cpp, world_effect_visual.cpp, map_object_client_effects.cpp (spell to particle), spell_effect_start.cpp (~176). See build/style_review/magic_numbers.md (the C45d survey; its class list has every site). Kinds as enum class in the owning header, flag words with lib::kBitFlags (src/lib/bit_flags.h); the |= / &= ~ writes of the same words go too. No signature changes (C51 owns them): an int parameter is cast once at its switch. Names from the data / strings; meanings they don't give are recorded in the header comment, not guessed. Goldens unchanged."
+order = 710
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

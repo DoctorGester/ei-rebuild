@@ -1,0 +1,11 @@
+id = "S6b"
+title = "Standalone library: the last 31 CArray<T> instantiations"
+group = "standalone"
+size = 1
+depends = ["S6"]
+files = ["src/lib/mfc_array.h", "src/game/game_arrays.cpp"]
+note = "The last 31 CArray<T> instantiations ported (CFigure parts and scene records, script commands, DeltaField, CMap-element arrays, music themes, menu arrays) via EachElements."
+order = 562
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

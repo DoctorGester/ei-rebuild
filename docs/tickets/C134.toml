@@ -1,0 +1,10 @@
+id = "C134"
+title = "Objects style 2: floats as floats, one name per code, figure manager paths, animation tidy"
+group = "cleanup"
+model = "sonnet"
+depends = ["C133"]
+note = "Style review round 4 (2026-11-04, https://claude.ai/artifact/BzXaX58kMcB9E2dwRuhN2U, reviewer reports in build/style_review/round4/<area>.md; user: file them all). Items O3, O5, O6, O7 (objects.md A3, A6, A8, A9, A10, A11, A12). Selects through float_select.h (BoxBits, KeepLower/Higher, ClampToZero, EffectValue), figureScale == 1.0f, class weights as floats, morph weights and texture offsets u/v as float. One enum per code: ClientHalfFlag (bit 8 has two names), DrawFlag, ClipResult, MatrixStack, one point-light type, kKeyKindBits/kNearSquared once, the variant-fits test once. Figure manager: std::string paths, one OpenFigureModel for both caches, the menu rectangles in their own file, one ResOverride block. Animation state: range-for (11), bone names name/parentName/modelName, ClearTrack via DestroyTrack, void for always-1 returns, one moved-position builder, MarkChanged called (3 re-inlined bodies), RingSize as a ternary, DropLight called, narration (new renderer, inlined, provisional, 0x.. bytes, empty namespaces) gone. Style only: goldens the same, float operation order untouched (any float rewrite exact and said why), no new forwarders, normal C++ classes; gameplay code stays (technical dead code goes)."
+order = 1065
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

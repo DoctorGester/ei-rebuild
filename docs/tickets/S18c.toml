@@ -1,0 +1,11 @@
+id = "S18c"
+title = "Standalone: .data sealed (every .data use through the data seam)"
+group = "standalone"
+size = 1
+model = "sonnet"
+depends = ["S18a"]
+note = "tools/data_seam.py --list data: the raw .data uses (tables of ids, constants, per-file helpers the tool cannot see) through GameData / GamePointer / GameAddress / DataId; seal data in config/data_seam.csv. Checked: build checks, goldens."
+order = 611
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

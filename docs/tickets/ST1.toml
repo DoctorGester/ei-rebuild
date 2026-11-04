@@ -1,0 +1,9 @@
+id = "ST1"
+title = "Settings from a file instead of the registry"
+group = "standalone"
+size = 1
+note = "User wishlist 2026-10-20: the standalone game loads (and saves) its settings from a file instead of HKCU\\Software\\Nival Interactive\\EvilIslands. Import the registry values once if the file is missing. A file per run would also give the harness its pinned settings for free (WB16). User 2026-10-21: go. The file lives next to the exe; standalone only (game.exe in the hook build keeps the registry). Shape: a settings file behind win_registry.cpp's CWinRegistry / helpers (call sites barely change), one-time import from HKCU\\Software\\Nival Interactive\\EvilIslands when the file is missing, the ~7 direct registry callers (console_addon, mod_folders, script_addon_commands, system_text, ui_widescreen, world_client_draw, hook/paths) switched over, the harness writing a pinned file per standalone run (original-suite game.exe runs keep the registry). Opus. Done 2026-10-22: src/game/settings_file.{h,cpp}, ei_settings.ini next to ei_standalone.exe (sections = key paths below HKCU, reg-export value syntax plus float:), imported once from HKCU Nival Interactive\\EvilIslands and Gipat.Ru\\EI_Starter when missing; CWinRegistry and the 5 direct readers use it under ei::Standalone(); paths.cpp / discprompt are read filters; the harness pins <run folder>\\ei_settings.ini from registry.reg + starter lines (read only). Suites: standalone 121 goldens same, --no-hooks --fresh 114 same. Follow-up ST1a."
+order = 607
+status = "done"
+started = "2026-10-21"
+done = "2026-10-22"

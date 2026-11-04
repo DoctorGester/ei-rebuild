@@ -1,0 +1,8 @@
+id = "P7"
+title = "CPU-written textures and clouds on the GPU (optional)"
+group = "native-ui"
+size = 1.5
+note = "Taken in by R28 (2026-10-28): composed skins, wounds and the item pictures are drawn on the GPU; the clouds and save / load pictures moved to R28b, the backdrop copy to R28a."
+order = 125
+status = "done"
+done = "2026-10-28"

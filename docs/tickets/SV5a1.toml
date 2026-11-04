@@ -1,0 +1,9 @@
+id = "SV5a1"
+title = "TryTame and the AI's charm: a caster with enough mana"
+group = "verification"
+size = 1
+depends = ["SV5a"]
+note = "Dropped 2026-11-03: reach was measured on game.exe through coverage breakpoints, gone since H40. SV5a: CUnitServer::TryTame (00551AE0) stays unreached. The hero's 56 mana is far below charm's cost and the zone wolves never pick charm. Needs a script-raised caster (GiveIntelligence / GiveSkill astral, high mana) and a Cast order of charm at a unit, or an AI unit with charm among its spells; scratch tries are spells_charm and unit_ai_charm in standalone-verification.md SV5a."
+order = 240
+status = "done"
+done = "2026-11-03"

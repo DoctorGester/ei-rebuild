@@ -1,0 +1,10 @@
+id = "R37i"
+title = "Perf overlay split per pass (GPU and draws: sun / point / terrain / objects / interface)"
+group = "renderer"
+model = "opus"
+files = ["src/render/render_perf.cpp", "src/render/render.cpp"]
+note = "R37: the overlay's SHADOW / WORLD / UI GPU split and its one draw count hide where the frame goes, and the user reads the overlay. Add timestamps at the category changes R37's probe used (sun map, point map, terrain, objects and units, the rest of the world, interface, present; renderer.md section 13 item 12 describes the probe) and show draws as world / sun / point. Product build only (the harness keeps it off). No performance gain: visibility. Check: ei_perf_check (tools/perf_check) lines and pixels."
+order = 895
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

@@ -1,0 +1,10 @@
+id = "C30e3"
+title = "SSE2: items, spells and world objects (17 files)"
+group = "cleanup"
+model = "opus"
+files = ["src/game/base_manager.cpp", "src/game/hoover_loot.cpp", "src/game/item.cpp", "src/game/item_manager.cpp", "src/game/item_stock.cpp", "src/game/lever_object.cpp", "src/game/lever_table.cpp", "src/game/light.cpp", "src/game/magic_trap.cpp", "src/game/map_spec.cpp", "src/game/map_spec.cpp", "src/game/material.cpp", "src/game/spell.cpp", "src/game/spell_cast.cpp", "src/game/spell_effect.cpp", "src/game/torch_object.cpp", "src/game/vis_fog_manager.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. item / item_stock / item_manager prices and conditions (float maths on floats), item.cpp's CopyBits 11, spell / spell_cast / spell_effect, map_spec*, lever*, torch, magic_trap, light, material, base_manager, hoover_loot (a 2^-32 constant), vis_fog_manager."
+order = 902
+status = "done"
+started = "2026-10-29"
+done = "2026-10-30"

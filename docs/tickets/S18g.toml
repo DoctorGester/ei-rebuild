@@ -1,0 +1,11 @@
+id = "S18g"
+title = "Standalone: .rdata sealed (vtables, RTTI, throw infos, tables)"
+group = "standalone"
+size = 2
+model = "opus"
+depends = ["S18e", "S18f"]
+note = "The remaining raw .rdata uses through the seam: SetVtable / Vtable() / kVtableAddress, vtable comparisons and the harness's vtable tables, the exception throw infos and type descriptors, tables of ids (DataId). Seal rdata. Checked: build checks, goldens, --no-hooks."
+order = 615
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

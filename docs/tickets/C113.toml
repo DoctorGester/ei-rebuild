@@ -1,0 +1,10 @@
+id = "C113"
+title = "Networking style 5: message Type() and switch dispatch instead of the vtable registry"
+group = "cleanup"
+model = "opus"
+depends = ["C112"]
+note = "Style review round 3 (2026-11-04, https://claude.ai/artifact/KKkymAu9dSoUWGGcbsLwPa, digests in build/style_review/round3/*.md; user: file the tickets). Items N2, N4 (Y10). Messages carry static kType + virtual Type(); a constexpr factory table; one OnMessage switch per session; delete net_handler_registrars.cpp and two of the three registration paths (AddHandlerFor x17, nine Register*Handler, AsHandler thunk) and handlers[3][256]; the 256-entry member-pointer vector per connection goes; handlers return bool (97 return 1). PlayerServer/PlayerClient virtuals implemented under their own names (about 16 forwarders), ServerSide/ClientSide hand RTTI and ReleasePlayer go. g_currentConnection (25 uses) passed or scoped by a guard (Y7); the server reads its own message buffer, not a global. Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes."
+order = 1044
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

@@ -1,0 +1,10 @@
+id = "C14h"
+title = "C14 aligned arrays, the rest: the kept lib::AlignedArray declarations and the dead aligned-block helpers"
+group = "cleanup"
+model = "opus"
+depends = ["C14a", "C14b"]
+note = "User 2026-10-28: replace the usage code with std or small code of ours first, then delete the old container / MFC piece when nothing but the tests' game.exe views uses it; don't retype the library's internals."
+order = 481
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

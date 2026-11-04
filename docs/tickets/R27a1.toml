@@ -1,0 +1,9 @@
+id = "R27a1"
+title = "CRenderHelper without its uncalled slots: ReleasePreset, PresetBlock, PresetStates, BuiltInStates and the records' state copies"
+group = "renderer"
+depends = ["R27a"]
+note = "Found in R27a: nothing calls CRenderHelper's ReleasePreset, PresetBlock, PresetStates or BuiltInStates (model.h, render_helper.cpp); with them gone RenderPresetRecord::states is written only (each CRenderPreset keeps its own states_ since R27a), and records_ can shrink to the counted presets. The helper's device_ / caps_ go with R27c. Goldens must stay the same."
+order = 84
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

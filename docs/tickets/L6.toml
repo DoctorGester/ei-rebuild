@@ -1,0 +1,7 @@
+id = "L6"
+title = "Saves through Eris; old saves as coroutines"
+group = "lua"
+depends = ["L5"]
+note = "Permanents, __persist by object id; decide whether to keep writing the old format."
+order = 642
+status = "later"

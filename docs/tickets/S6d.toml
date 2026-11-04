@@ -1,0 +1,11 @@
+id = "S6d"
+title = "Standalone library: the last list Serialize (S6c leftovers)"
+group = "standalone"
+size = 1
+depends = ["S6c"]
+files = ["src/lib/mfc_slots.*", "src/game/game_slots.*", "src/game/record_arrays.*", "tests/verify/verify_mfc_serialize.cpp"]
+note = "The last list Serialize slots (counted-reference lists, script lists, 004C2700) ported with a SerializeCList variant taking the element's copy / release."
+order = 581
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

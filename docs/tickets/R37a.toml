@@ -1,0 +1,10 @@
+id = "R37a"
+title = "Point shadows kept across frames: redraw a face only when its light or a caster in it moved"
+group = "renderer"
+model = "opus"
+files = ["src/render/render_point_shadows.cpp"]
+note = "R37 (docs/notes/renderer.md section 13, item 12): every point light's cube is drawn again every frame though the town's lamps, campfire and buildings never move; only units do. Town at night with a crowd of 12 (Rebirth, 4K, msaa 8): 4 lights mapped, 4.25 faces each, 453 point draws a frame (113 per light, most 397), CPU submission 0.23 ms, GPU 0.19 ms; the still town 175 draws. Keep each light's atlas row across frames (rows keyed by light: the strongest-first order can reshuffle); a face is drawn again when its light moved or changed range, or the set of casters in it changed, or one of them moved (model matrix or kept mesh changed); clear only the faces drawn. Expected: point draws 453 -> ~150 in the crowd, ~0 in the still town; CPU 0.23 -> ~0.07 ms, GPU 0.19 -> ~0.05 ms. Check: render_lighting frames the same as main at 8 / 0.01%; renderstats' shadow map draws lower; goldens unchanged. Done: each light keeps its atlas row (GiveRows: same place and range), a face is drawn again only when its light or casters changed (kept mesh + CachedMeshVersion, index range, texture, sampler, cut-out, uv offset, model within kKeptPlace 0.002 / kKeptTurn 1e-4: the camera's rounding moves still buildings by up to 0.0015 a frame); only drawn faces cleared (solid quad), the pass skipped when nothing changed. Town at night (Rebirth 4K msaa 8): point draws 174 -> 139, crowd 450 -> 417; CPU/GPU within the machine's noise (alternating kept / all-drawn runs normalised by the sun map). The ~0 / ~150 hoped for does not come: idle animations move every unit every frame, so 4 of 17 faces (each with ~35 casters) are drawn whole each frame. Two layers a face (still casters' image copied with SV_Depth, units over it) gave 101 / 378 draws but cost GPU (point map vs sun map 0.55 -> 0.8): dropped. render_lighting vs main: 13 frames, at most 8 in a channel, 0 pixels over 8."
+order = 887
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

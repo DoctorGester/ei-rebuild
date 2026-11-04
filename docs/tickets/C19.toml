@@ -1,0 +1,10 @@
+id = "C19"
+title = "Compiler-made vtables: real virtual classes instead of game.exe's tables"
+group = "cleanup"
+model = "opus"
+depends = ["C18"]
+note = "Done (batches 1-24): every config/vtables.csv row is retired (613: named_data / retired_vtables.csv). Batch 24 checked the five rows a full find_vtables.py rerun added: all false, no vtable. 0074676C '%ld', 0074718C 'dde' and 007474B8 'a/p' are strings whose dwords are false Ghidra functions (library.csv 'not a function' 00646C25 / 00656464, and now 00702F61, inside AfxTimeToFileTime 00702EF0); 00747E2C / 00747E30 are the CRT's 'OCP' / 'ACP' (inside 005041F0). 00746768 (_AFX_CTL3D_THREAD) has one slot; the second was '%ld'. find_vtables.py now takes a dword as a slot only when it is a game/lib/thunk function start less library.csv 'not a function' and dead_code 'not a function start' rows, so a rerun reproduces vtables.csv (installed_by refreshed); standalone_unreachable.csv's 007474B8 line dropped (nothing reads it as code now). The registrations and code cells left are C20's scope, so C19 can close. Goldens 121 the same."
+order = 368
+status = "done"
+started = "2026-10-27"
+done = "2026-10-27"

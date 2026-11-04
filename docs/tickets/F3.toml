@@ -1,0 +1,9 @@
+id = "F3"
+title = "Unknown fields: interface (~125)"
+group = "fields"
+files = ["ui.h", "ui_camp.h", "ui_screens.h", "ui_briefing.h", "ui_*"]
+note = "Unknown interface fields (~125) renamed, coordinated with W2 (ui.h) and the P tickets."
+order = 154
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

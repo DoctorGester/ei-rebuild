@@ -1,0 +1,10 @@
+id = "PL17a"
+title = "Linux audio dies soon after start: investigate in WSL through the harness"
+group = "port"
+model = "opus"
+depends = ["H47"]
+note = "User 2026-11-03: the audio issues on Linux are massive; investigate them in WSL once the harness runs on Linux (H47). Device 'RDP Sink through pulseaudio' (WSLg), no audio error in ei-rebuild.log. Use harness scenarios to reproduce, log underruns and the stream's queue depth, compare with Windows; check PL15's std::thread stream thread, SDL audio stream use, slow llvmpipe frames (try GALLIUM_DRIVER=d3d12), and WSLg's RDP audio itself. A window at most 60 s.  User: not the frame rate (smooth on llvmpipe and on d3d12); the audio lags the whole game, so suspect the game thread blocking on audio (a lock held by the stream thread, SDL_PutAudioStreamData / queue waits, pulseaudio over RDP with a large latency) rather than starvation. Measure how long the game thread's audio calls take per frame."
+order = 1121
+status = "done"
+started = "2026-11-03"
+done = "2026-11-03"

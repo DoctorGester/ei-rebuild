@@ -1,0 +1,9 @@
+id = "C20a"
+title = "Code cells: drop game.exe's C++ EH tables' funclet cells"
+group = "cleanup"
+model = "opus"
+note = "Done: gen_image_cells leaves the EH funclet kinds (eh-unwind 13,129, eh-handler 382) out of the code cells (LEFT_KINDS, with the retired vtables); code cells 21,439 -> 7,928, stubs at start 15,071 -> 1,560 (registered 6,367 unchanged). Verified: no unwind/handler target has a registration (.eireg of main's ei_hook.dll), nothing in src/ or tests/ names their FuncInfo / unwind / try / handler tables (only digest coincidences), the harness's crash report reads ThrowInfo only; all 13,511 sat at stubs that end the run and no golden reached one. Bytes stay game.exe's (as the NOT_CODE groups; a stray call lands in the guarded code section). ThrowInfo cells (eh-throw 2, eh-copy 5) stay code cells: our frame handler reads them for throws with game.exe's throw information. Goldens 121 same, 0 differ. Follow-up C20b: the same tables' 3,721 data pointer cells."
+order = 376
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

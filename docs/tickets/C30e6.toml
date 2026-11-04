@@ -1,0 +1,11 @@
+id = "C30e6"
+title = "SSE2: units (20 files)"
+group = "cleanup"
+model = "opus"
+depends = ["C30e4"]
+files = ["src/game/unit.cpp", "src/game/unit_armour_layers.cpp", "src/game/unit_create_stats.cpp", "src/game/unit_figure_queries.cpp", "src/game/unit_hits.cpp", "src/game/unit_lever.cpp", "src/game/unit_motion_tick.cpp", "src/game/unit_params.cpp", "src/game/unit_params.cpp", "src/game/unit_update.cpp", "src/game/unit_record.cpp", "src/game/unit_update.cpp", "src/game/unit_skill_price.cpp", "src/game/unit_skins.cpp", "src/game/unit_db.cpp", "src/game/unit_stats.cpp", "src/game/unit_stats.cpp", "src/game/unit_update.cpp", "src/game/unit_update.cpp", "src/game/unit_vitals.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. Stats doubles (unit_vitals 44, unit_create_stats 42, unit_stats 16), flog / flog10 (unit_vitals, unit_create_stats, unit_skill_price), CiPow (stays a call into crt_x87), the host pow in unit_skill_price, wide constants 1.04 / 1.61 / 0.7 / 0.001."
+order = 905
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

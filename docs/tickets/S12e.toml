@@ -1,0 +1,11 @@
+id = "S12e"
+title = "Standalone library: the connection's owning lists, hashtable leftovers and the hero screen's sorts"
+group = "standalone"
+size = 1
+depends = ["S12d"]
+files = ["src/lib/stlp_list.cpp", "src/lib/stlp_hash.cpp", "src/lib/stlp_vector.cpp", "src/lib/stlp_algo.h", "src/game/stl_sorts.cpp"]
+note = "Standalone connection owning lists (SentPacket, freed-id batches), hashtable leftovers (004E2F00, 006BD060, 00663330, 00633F50, 00633FF0) and vector members destroyed inside an owner ported."
+order = 580
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

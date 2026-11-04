@@ -1,0 +1,10 @@
+id = "S10b"
+title = "Standalone library: acks.db table record vectors"
+group = "standalone"
+size = 1
+depends = ["S10a", "S11"]
+files = ["src/game/record_vectors.h", "src/game/record_vectors.cpp", "src/game/acks_db.h"]
+note = "acks.db table record vectors (UnitAcks 006DB9C0, ModelAcks 006DBBD0, ExtraAcks 006DBE20) ported over S11's hashtable copy."
+order = 559
+status = "done"
+done = "2026-10-15"

@@ -1,7 +1,7 @@
 # Lua scripting: plan
 
 Goal: run the game's mission scripts on Lua without changing the assets, and let mods write scripts in
-Lua, with running scripts (coroutines included) kept in saves. Tickets L1-L9 in docs/tickets.md. Engine details are in
+Lua, with running scripts (coroutines included) kept in saves. Tickets L1-L9: `python tools/tickets.py list --group lua`. Engine details are in
 `script.md`; Rebirth's extensions are in `rebirth.md` ("AddNewScriptCommands").
 
 ## What the current engine is

@@ -1,0 +1,9 @@
+id = "SV7b8"
+title = "Vanilla menu unit unmoco2 orientation under EI_HEAP_JITTER=2"
+group = "verification"
+size = 0.5
+depends = ["SV7a"]
+note = "Vanilla menu unit unmoco2 rotation settled by SV7b4a (shadow round trip exact); the cunit129 flags left moved to SV7b8a."
+order = 232
+status = "done"
+done = "2026-10-15"

@@ -1,0 +1,10 @@
+id = "C22a2"
+title = "Comment cleanup batch C22a, second pass: the original / game.exe mentions, fragments, re-wrap"
+group = "cleanup"
+model = "sonnet"
+depends = ["C22a"]
+note = "After C22a (addresses and ticket ids at 0). Left: 347 'the original / game.exe' mentions (keep the why, say it plainly), stray fragments from address removal (short continuation lines, leftover '(...)' stubs), re-wrap shortened blocks to ~110 columns. Files: comments.py list/stats --batch C22a. Read each file whole and rewrite in one pass; no regex rewrites."
+order = 450
+status = "done"
+started = "2026-10-27"
+done = "2026-10-27"

@@ -1,0 +1,10 @@
+id = "WB11"
+title = "Shrink the run data: work.db per-run counts and 4K BMPs in the reference cache"
+group = "harness"
+size = 1
+model = "sonnet"
+note = "Run data shrunk: work.db per-run counts and 4K BMPs in the reference cache; python tools/work.py prune --vacuum compacts work.db."
+order = 308
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

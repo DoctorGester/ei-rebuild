@@ -1,0 +1,10 @@
+id = "C37"
+title = "Container aliases that only rename a std type (or another alias) inlined at their users"
+group = "cleanup"
+model = "sonnet"
+files = ["src/game", "src/lib", "src/render"]
+note = "User 2026-10-28: a ton of useless using aliases, e.g. `using PartyItemArray = std::vector<CItem*>;`, `using PointArray = BlockPointArray;` (an alias of an alias). ~270 `using X = Y;` in src, ~177 of them naming a std container. Script it (tools/ or scratchpad): for each alias whose target is a std / lib type or another alias, replace the alias name at every use with the spelled-out type (std::vector<CItem*>) and delete the declaration; chains collapse to the final type. Keep an alias only where it is a real abstraction: a long nested type used many times (say 5+ uses and longer than ~40 characters), a template parameter pack, or a name a fixed format documents; give each kept one a reason in its comment. Spelling only, no behaviour change; build verify / release / debug, check_signatures, both builds' goldens."
+order = 664
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

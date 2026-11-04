@@ -1,0 +1,11 @@
+id = "S15"
+title = "Harness: run_all --standalone"
+group = "standalone"
+size = 0.5
+depends = ["S1"]
+files = ["tools/launcher/launch.cpp", "tools/run_all.py", "tools/work.py"]
+note = "The image runs under the harness: ei_launch starts ei_standalone.exe with the same environment; a boot scenario reaches the main menu and exits (the default mode since S21)."
+order = 542
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

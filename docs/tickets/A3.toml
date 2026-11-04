@@ -1,0 +1,8 @@
+id = "A3"
+title = "64-bit audit: configure an x64 build and list every blocker"
+group = "port"
+model = "opus"
+note = "User 2026-10-30 (agreed): a read-only audit. Done by the lead 2026-10-30 with a scratch x64 build of main at d816992f7 (a detached worktree, CMake guard and /arch removed, ninja -k 0): 70k errors, nearly all from two causes: include/ei/x87.h's naked __asm (C30e15 deletes it) and lib/win_types.h naming only _X86_ (winnt.h: No Target Architecture; add _AMD64_). With both stubbed, what is left: layout static_asserts that hold for the original only (net_coder.h BufferCursor / CoderState / GameBuffer, script.h ScriptKeyword, sound.h miles::Sample, sound_manager.cpp miles::SoundInfo, import_table.h), startup.cpp's fnstcw __asm and device_mesh.cpp's __control87_2 (x87 control word), standalone_main.cpp / image_imports.cpp reading CONTEXT::Esp, static_init.h's Call template (__cdecl and __stdcall are one convention on x64: duplicate definitions), world_client_shadow_casters.cpp std::min of int and size_t, pointer truncation warnings (world_units.cpp:561 a mapspec::Spec* in an int, unit_client_models.cpp:407 an int to a pointer, standalone_main.cpp:100/103 FARPROC to DWORD), 223 C4244 and 24 C4267 conversions to review, tests/vectors and src/hook (32-bit by design: harness side), tools/launcher. Not visible to a compile: Miles (mss32.dll) and Bink (binkw32.dll) are 32-bit DLLs loaded through the import table (A1 / A2), and file / save / network formats read or written from structs that hold pointers or long / size_t (A3b). Follow-ups: A3a, A3b, A3c and the platform layer PL1-PL6."
+order = 849
+status = "done"
+done = "2026-10-30"

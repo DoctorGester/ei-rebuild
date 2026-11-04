@@ -1,0 +1,7 @@
+id = "U6"
+title = "UTF-8 leftovers: DrawWrappedText breaks long words, Cyrillic install folder (profile calls)"
+group = "standalone"
+model = "sonnet"
+note = "From U5 (2026-10-21): with EI_UTF8 on, DrawWrappedText still does not break inside a long word (as the original); the profile calls (CIniFile, GetPrivateProfile*, WritePrivateProfileString) stay ANSI, so a Cyrillic install folder is unchecked and the ini files' code page undecided. The case table covers 1251/1252 letters only. Do with C34 (UTF-8 always): the profile calls and ini code page are one of its boundaries."
+order = 630
+status = "later"

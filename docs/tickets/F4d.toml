@@ -1,0 +1,9 @@
+id = "F4d"
+title = "CFigureCache into CLinkFigureLoader (F4c follow-up)"
+group = "cleanup"
+depends = ["F4c"]
+note = "CFigureCache replaced by CLinkFigureLoader (model.h, vtable 0073D808; slots LoadFigure, LoadLink, Remorph); MakeFigure 00516DA0 / SetFigureScale 00517700 release code unchanged."
+order = 335
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

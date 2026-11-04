@@ -1,0 +1,10 @@
+id = "P1"
+title = "Surface plumbing: a canvas per native surface"
+group = "native-ui"
+size = 2
+depends = ["N1", "N3"]
+note = "Blit, Get/ReleaseDC, fills and frames, readback for PixelAt / Rgb565Copy / SwapContents, CaptureScreen and Greyscale on the GPU. First surfaces: backdrop, FPS, status."
+order = 116
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

@@ -1,0 +1,10 @@
+id = "R19"
+title = "Option: smooth world at high refresh rates (draw moving objects interpolated between ticks)"
+group = "renderer"
+model = "opus"
+depends = ["R18"]
+note = "Correction (user 2026-10-22): R19 is an EI_RENDER word like smooth / smoothcamera, not a settings-file flag; the flag note above is for R14 / R15 only. User 2026-11-04: animation blending between states belongs here (was R48). User 2026-11-04: add animation blending. Today a unit (and a map object) switches from one animation to the next at once, so poses snap. Blend the outgoing pose into the incoming one over a short time (per bone, quaternion slerp of rotations and lerp of positions and morph weights; ~0.1-0.25 s, tuned per transition kind), client side only: game state (animation timing, hit frames, the server's view of what a unit is doing) stays as it is. Watch out: picking uses the drawn meshes (R35a), so a blended pose could change what a click hits; keep picking on the unblended pose or show it changes no golden. Check: captures of a walk-to-attack and an idle-to-run transition, goldens the same, frame time on the crowd scene."
+order = 63
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

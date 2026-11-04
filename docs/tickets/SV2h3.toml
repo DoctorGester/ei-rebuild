@@ -1,0 +1,10 @@
+id = "SV2h3"
+title = "Original-on-real checks with a restored snapshot: which blocks survive"
+group = "verification"
+depends = ["SV2h"]
+files = ["tests/verify/*"]
+note = "Original-on-real checks with a restored snapshot reviewed for heap-order effects; superseded by layout-independent goldens (SV7)."
+order = 208
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

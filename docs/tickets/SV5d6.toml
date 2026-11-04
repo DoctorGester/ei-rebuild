@@ -1,0 +1,12 @@
+id = "SV5d6"
+title = "Streamed music on the virtual clock: the music system's draws follow the real-time stream thread"
+group = "verification"
+size = 1
+model = "opus"
+depends = ["SV5d5"]
+files = ["tests/verify/harness_clock.cpp src/game/sound_music.cpp src/game/sound_manager_lifetime.cpp"]
+note = "SV5d5 found net_pair_quest's flake (C13b3) on the original and the image alike: UpdateMusic 006B5350 picks a fight's combat track (PickName, a GlobalRandom draw) only when CurrentStreamName 006BAEA0 does not report it playing, and the calm branch runs only while nothing plays; the stream thread (006BB910) sets that state as it plays, in real time, so the draw count followed the machine's load. net_pair_quest now plays with 'music 0' (AudioStreaming answered 0). Every other scenario with fights and streamed music keeps the exposure. Make the stream state the main thread sees follow the virtual clock in the harness (both the original and the image), e.g. the stream thread's progress and fades advanced from the main loop as harness_clock does for sample ends; re-record only the goldens it changes (docs/notes/sound.md, Non-determinism)."
+order = 265
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

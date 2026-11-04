@@ -1,0 +1,10 @@
+id = "C42"
+title = "Constants: literal-returning functions, kOne / kZero / kHalf, bit_cast literals"
+group = "cleanup"
+model = "sonnet"
+depends = ["C41"]
+note = "Style review 2026-10-28 (build/style_review/REPORT.md, user asked to schedule Tier 1 in the suggested order); after SV7b5 and C38d. G2 + G3. ~200 one-liners like float CellSize() { return 1.0f; } (CellSize x8; camera.h's CellSize reads an option: rename it) and 78 kOne/kZero/kHalf/kTwo: delete every multiply / divide by 1.0 (exact), the rest become literals or real constexpr names in the owning header (check the float vs double type is not the point). 122 std::bit_cast<float>(0x...) constants (60 values): a script swaps those that round-trip through float32 repr for the literal with a static_assert. Goldens must stay the same."
+order = 675
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

@@ -1,0 +1,9 @@
+id = "S4b"
+title = "Standalone library: CRT file functions and the rest of the heap (image only)"
+group = "standalone"
+size = 1
+files = ["src/lib/crt.h", "src/lib/crt.cpp"]
+note = "Standalone CRT file functions (fopen, fclose, fseek, fread, fwrite, _open, _read, _lseek, _findfirst ...) and the rest of the heap over the host CRT, EI_REPLACE_STANDALONE; image only."
+order = 555
+status = "done"
+done = "2026-10-15"

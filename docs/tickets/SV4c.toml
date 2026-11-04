@@ -1,0 +1,9 @@
+id = "SV4c"
+title = "Function vectors: pathing on a saved map"
+group = "verification"
+depends = ["SV4"]
+note = "Function vectors for pathing (ai_path*.cpp) replayed on a saved AI map; records hold the query and the path (docs/notes/standalone-verification.md)."
+order = 172
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

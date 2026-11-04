@@ -1,0 +1,11 @@
+id = "C22k"
+title = "Comment removal batch: 207 files, 8861 comment lines (ui_camp_create .. world.h)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C22g"]
+files = ["config/comment_batches.txt [C22k]"]
+note = "Delete the comments a reader does not need, not reword them: docs/comment-guide.md, section \"Removal pass\" (what to delete, what to move to docs/notes, what must stay; the lever.h pilot shows the cut). Files: --batch C22k (config/comment_batches.txt). Candidates when cut (python tools/comments.py stats --kinds --batch C22k): 655 offset trailers, 310 offset mentions, 155 slot mentions, 246 number trailers, 152 registers, 328 long-block lines, 358 rewrap. Expect the comment lines down by about a third; report the stats --kinds total before and after. Sonnet, medium effort; read each file whole, comments only, no regex rewrites. Check: python tools/comments.py samecode main clean, one release build at the end; no game runs."
+order = 458
+status = "done"
+started = "2026-10-27"
+done = "2026-10-27"

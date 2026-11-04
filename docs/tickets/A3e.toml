@@ -1,0 +1,9 @@
+id = "A3e"
+title = "play.cmd x64: build and play the x64 exe"
+group = "port"
+depends = ["A3a"]
+note = "From A3a. play.cmd builds build\\play (32-bit) and starts it through ei_launch --standalone, which is 32-bit only (it reads game.exe's threads; CMake leaves it out of the x64 build). Add an x64 mode: build.cmd x64 (or an x64 play configuration) and start the x64 ei-rebuild.exe with EI_GAME_ROOT set as ei_launch does, or build ei_launch for x64 with its thread dump on Wow64GetThreadContext for 32-bit children. No sound or movies on x64 until A1 / A2."
+order = 863
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

@@ -1,0 +1,10 @@
+id = "C28m"
+title = "C28 interface screens and panels: the screen, item panel, HUD and battle setup tables"
+group = "cleanup"
+model = "opus"
+depends = ["C28l"]
+files = ["src/game/ui_screen_tables.cpp", "src/game/ui_item_panel_tables.cpp", "src/game/ui_battle_setup.cpp", "src/game/ui_hud_build.cpp"]
+note = "ui_screen_tables.cpp (42 tags), ui_item_panel_tables.cpp (30), ui_battle_setup.cpp, ui_hud_build.cpp, ui_camp*, ui_create_screen.cpp, ui_exchange.cpp, ui_hero_screen*, ui_layouts.cpp, ui_scroll_text.cpp, console, cursor, chat, item info: each screen a class over C28l's bases with its overrides. After C28l."
+order = 431
+status = "done"
+done = "2026-10-22"

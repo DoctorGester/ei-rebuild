@@ -1,0 +1,9 @@
+id = "A1a"
+title = "Cave reverb: the voices' SetReverb in the miniaudio mixer"
+group = "port"
+depends = ["A1"]
+note = "The game turns reverb on for every voice in a cave zone (world_client_maps.cpp: SetReverb(0.3 room, 1.0 level, 3.0 s reflection time) when sound effects are on; Open passes useReverb 1). Miles applied it (AIL_set_sample_reverb); the miniaudio backend (src/platform/miniaudio/audio.cpp) ignores SetReverb, as the null backend did. Add a small reverb send (e.g. a Freeverb-style comb / all-pass network, or miniaudio's own filters) on the voices whose reverb level is above 0, mixed into the output; output only, no golden can see it. Check with the offline render tool (scratch: A1's report) and by ear in a cave (z1 dungeon)."
+order = 1081
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

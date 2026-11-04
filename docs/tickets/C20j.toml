@@ -1,0 +1,10 @@
+id = "C20j"
+title = "check_signatures only where game.exe code meets ours"
+group = "cleanup"
+model = "sonnet"
+files = ["tools/check_signatures.py"]
+note = "User 2026-10-28: since C20 nothing of ours calls or is called by game.exe code at run time, so the RET n check over the 8,297 EI_REWRITTEN functions only blocks signature changes (string_view in C14f). Narrow check_signatures to EI_RECORD recorders (in game.exe when recording vectors) and the functions tests/vectors' replays call with arguments recorded from the original; drop EI_REWRITTEN. Update the docs that name the rule (rewrite-guide, standalone.md, core.md's 'registered functions keep const char*'). Mechanical; Sonnet."
+order = 473
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

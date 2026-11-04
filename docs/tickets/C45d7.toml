@@ -1,0 +1,10 @@
+id = "C45d7"
+title = "Magic numbers: unit and spell flag bits"
+group = "cleanup"
+model = "opus"
+depends = ["C45d"]
+note = "Map object and unit bits not yet in MapObjectFlag (0x400000, 0x4000000, 0x40000000; 0x10000000 is NoCasting already), UnitStats flags (0x10), CSpell::targetFlags_ (0x10, 0x20, 0x10000, 0x20000), the player's dirty_ bits, the sound sequence's 0x40000000 bit, the companion timer's sign bit. unit.cpp, unit_client_path.cpp, particle_manager.cpp, net_state.cpp, map_spec_unit.cpp, combat.cpp, spell.cpp, spell_cast.cpp, world_spells.cpp, player_messages.cpp, sound_manager.cpp, world_client_maps.cpp (~14 plus the writes). See build/style_review/magic_numbers.md (the C45d survey; its class list has every site). Kinds as enum class in the owning header, flag words with lib::kBitFlags (src/lib/bit_flags.h); the |= / &= ~ writes of the same words go too. No signature changes (C51 owns them): an int parameter is cast once at its switch. Names from the data / strings; meanings they don't give are recorded in the header comment, not guessed. Goldens unchanged."
+order = 714
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

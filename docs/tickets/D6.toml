@@ -1,0 +1,11 @@
+id = "D6"
+title = "Docs and config: drop the text about deleted MFC / STLport / compiled-tag files"
+group = "docs"
+size = 0.5
+model = "sonnet"
+files = ["docs/rewrite-guide.md", "docs/notes/standalone.md", "docs/standalone-cleanup.md", "docs/comment-guide.md", "config/comment_batches.txt"]
+note = "Since C14p / C14zi (2026-10-28) src/lib has no mfc_* files, no stlp, and compiled_vtable.h is gone (it had no users). Docs still describe them: rewrite-guide (line ~40 compiled_vtable, ~152 the mfc::CArray / mfc.h container list), notes/standalone.md ('Compiled tags for any class', UnportedSlot, SetVtable / mfc_slots.h text), standalone-cleanup.md, comment-guide.md line ~142, and comment_batches.txt lists deleted files. git grep -n -i -e mfc -e stlp -e compiled_vtable -e mfc_slots -- docs config tools and rewrite each hit to current facts or drop it (no history log). Leave docs/tickets.* and docs/notes/*.md text that names game.exe's original MFC functions by address."
+order = 658
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

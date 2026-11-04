@@ -1,0 +1,9 @@
+id = "C45b"
+title = "Map object factory types as one enum"
+group = "cleanup"
+depends = ["C45"]
+note = "C45 follow-up. CMapObjectManager's creation types (type_: 0x32..0x34 units, 0x35 tree .. 0x3C lever, 0x300D animation state, 0x3010 trap; unit_create_stats.cpp kFactory) are spelled as kUnitTypeHero (unit.h), kTypeHumanoid (player_client.cpp), kStuffObjectType (world_effect_missile.cpp, world_effect_moshka.cpp), kBody (unit_skins.cpp) and raw numbers; the specific managers' ('E'..'K', 0x46..0x4B) likewise. One MapObjectType enum in unit_create.h, then the ~363 remaining raw flag tests (flags_ bits per class) by owner, as C45 did for landscapeFlags."
+order = 686
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

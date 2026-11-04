@@ -1,0 +1,9 @@
+id = "R11d"
+title = "Unit eye blink through the new renderer"
+group = "renderer"
+depends = ["R11c"]
+note = "BlitMipChain (00533980, unit_client_blink.cpp) copies the face texture's open / closed eye rectangle onto the skin texture down the mip chain with DirectDraw blits; the skins are .mmp textures the new renderer decodes (no DirectDraw surface, no memory), so since R8 the blink copies nothing and party units never blink. Give the renderer a copy of a rectangle between two decoded textures on every mip level (render:: call keyed by the holders), called from BlitMipChain with the original's rectangles (units.md: closed top unscaled, open top scaled). Check: a scenario with a party unit near the camera and a frame capture of the face before and after a blink; goldens with party faces will change."
+order = 31
+status = "done"
+started = "2026-10-20"
+done = "2026-10-20"

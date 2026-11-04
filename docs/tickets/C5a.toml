@@ -1,0 +1,10 @@
+id = "C5a"
+title = "C5 leftovers: save stream accessor, LocalFileStream wrappers, duplicate test streams"
+group = "cleanup"
+size = 0.2
+model = "sonnet"
+note = "C5 leftovers: one shared accessor for the save stream 007AFDF8, LocalFileStream wrappers, duplicate test streams (SaveRecorder / RecordingStream), TweenArray in model_db.cpp, *_400 views."
+order = 338
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

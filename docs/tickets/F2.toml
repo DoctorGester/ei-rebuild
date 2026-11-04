@@ -1,0 +1,8 @@
+id = "F2"
+title = "Unknown fields: units, AI, items"
+group = "fields"
+note = "Unknown fields in units, AI and items named or marked unused_XXX (172); meanings in cleanup-units.md."
+files = ["unit.h", "unit_db.h", "unit_ai.h", "ai_map.h", "ai_*", "item_db.h", "item*", "unit_looks.h", "unit_client_*", "class_templates.h", "party*"]
+order = 153
+status = "done"
+done = "2026-10-14"

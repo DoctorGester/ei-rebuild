@@ -1,0 +1,10 @@
+id = "H43d"
+title = "Scenario: the script commands no run uses (script gaps from H43's coverage)"
+group = "harness"
+depends = ["H43"]
+files = ["tests/scenarios"]
+note = "H43's coverage report (build/coverage/report.md; python tools/coverage.py run <ticket>): no run calls scriptaddon::GameOverMsg, AddMobEx or GetObjectsOnMap's walk, script_exec.cpp's RedeployParty, script_parse.cpp's AddDefine, scriptparse::ReadTextFile or Script::LoadFile; script_addon_commands.cpp has 52 of 207 lines unreached, script_effects.cpp 40 of 159. A scenario with a golden that runs each through @-commands or a test mod's script (tools/make_test_mod.py)."
+order = 829
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

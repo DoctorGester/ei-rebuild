@@ -1,0 +1,11 @@
+id = "R43d"
+title = "src/render/gpu.{h,cpp} on SDL_GPU: device, swapchain, upload ring, async download, pipeline cache"
+group = "renderer"
+size = 1.5
+model = "opus"
+depends = ["R43a"]
+note = "From R43 (build/reviews/r43_sdl_gpu.md, 'Shape'). The device is made on the start thread (PrepareDevice) and SDL_ClaimWindowForGPUDevice takes the window. Present modes: VSYNC, IMMEDIATE (tearing) and MAILBOX. One command buffer per frame. A cycled transfer-buffer upload ring replaces UpdateBuffer and append. Download(texture, rect) returns a fence ticket. Pipeline cache. Unit-checked on hardware and lavapipe. Not yet used by the game.  User 2026-11-03 approved: D3D12 (FL 11_0, SM 6.0) or Vulkan is the minimum hardware; the smooth option's depth redesign is the worker's pick if it looks the same; the overlay's per-pass GPU times become one whole-frame GPU time."
+order = 929
+status = "done"
+started = "2026-11-03"
+done = "2026-11-03"

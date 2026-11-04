@@ -1,0 +1,10 @@
+id = "X40"
+title = "Games crash with C++ exception E06D7363 right after a file write (unit texture .mmp, save stream)"
+group = "harness"
+size = 1
+model = "opus"
+note = "Games crashing with C++ exception E06D7363 right after a file write (unit texture .mmp, save stream) were traced; the crash handler logs the exception type and game stack."
+order = 307
+status = "done"
+started = "2026-10-15"
+done = "2026-10-16"

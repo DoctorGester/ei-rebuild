@@ -1,0 +1,8 @@
+id = "PF3"
+title = "Create DirectDraw once at startup"
+group = "renderer"
+note = "DirectDraw is created once at startup, only in native runs (EI_RENDER present) and the standalone exe; vanilla and Rebirth runs keep the original's probes. Also fixes R9b1."
+order = 7
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

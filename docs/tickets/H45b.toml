@@ -1,0 +1,8 @@
+id = "H45b"
+title = "Every golden keeps units' position, hit points and death in clear"
+group = "harness"
+depends = ["H45"]
+note = "H45 made new goldens keep golden_explain.OUTCOME_CLEAR (units' pos.xyz, hp, mana, dead) in clear next to the hashes, so a later difference has numbers; the 150 existing goldens still hold hashes for those fields (the summary says 'hash only'). Re-record them all in one pass (record --reason, two agreeing passes: only digest.txt changes, record reports 'what it checks is the same') after the C74b/C76 re-records land, or before them so their before-numbers exist. About +35% digest size (24 MB -> ~32 MB).  2026-11-03: C76's golden re-record (after C74b) re-records every golden with the clear fields, so H45b is done by it unless C76 re-records only some.  Done by C76's re-record (every golden, with the clear unit fields) and the dropin_profile follow-up."
+order = 806
+status = "done"
+done = "2026-11-03"

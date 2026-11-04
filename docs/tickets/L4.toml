@@ -1,0 +1,7 @@
+id = "L4"
+title = "Scheduler with ScriptTick's exact order"
+group = "lua"
+depends = ["L3"]
+note = "Head insertion, same-tick vs next-tick, Execute count, Sleep ticks, NaN as false."
+order = 640
+status = "later"

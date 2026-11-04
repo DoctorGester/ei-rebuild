@@ -1,0 +1,9 @@
+id = "PL18"
+title = "Release workflow: Linux tarball beside the Windows exe"
+group = "port"
+model = "sonnet"
+note = "User 2026-11-03. release.yml becomes a matrix: the Windows job as today, plus an ubuntu job building in an Ubuntu 22.04 container (old glibc baseline; SDL3 is already static) with -DCMAKE_BUILD_TYPE=Release, the port checks (xvfb-run ctest), and ei-rebuild-linux-x64.tar.gz (ei-rebuild, a README: point EI_GAME_ROOT at the game folder or drop the binary into it; GALLIUM_DRIVER note for WSL) uploaded to the same GitHub release. Check the binary's needed glibc (objdump -T | grep GLIBC_) and say the oldest distro it runs on. No game data. Docs: linux.md 'Release'."
+order = 1122
+status = "done"
+started = "2026-11-03"
+done = "2026-11-03"

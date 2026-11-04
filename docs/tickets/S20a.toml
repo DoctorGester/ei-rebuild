@@ -1,0 +1,8 @@
+id = "S20a"
+title = "Goldens for the renderer-only scenarios (they fail on the original code)"
+group = "verification"
+note = "The renderer-only scenarios (render_cursor_present, render_device_lost, render_present_shot, render_present_window) carry the image's own goldens: golden.py record --image."
+order = 243
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

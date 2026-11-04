@@ -1,0 +1,9 @@
+id = "H44"
+title = "Recorded play becomes a scenario: record input while playing, replay it as a golden"
+group = "harness"
+model = "opus"
+note = "User 2026-11-03: turn real play into regression tests. A play build option (play.cmd record, or a setting) that records the session as a harness scenario: the start (install, zone or save, settings, seed), then every input event with its frame (keys, mouse moves/buttons/wheel in game points, window events) and periodic checkpoints (digest steps), written to tests/scenarios/recorded/<name>.txt in the harness's step language. Replay is deterministic under the harness clock; a recorded scenario runs in the suites like any other and gets its golden. Must survive: menus, saves/loads during the session, movies (skipped consistently), focus changes. Long sessions: let the recording be cut into ≤60 s scenarios (each starting from a save the recording made). Check: record 2-3 short sessions by driving play through the harness itself (input injected), replay twice, digests the same; then the user records one by hand. Docs: how to record and add one."
+order = 800
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

@@ -1,0 +1,10 @@
+id = "SV3d"
+title = "Re-record the suite's goldens after SV1b, SV1i and SV2a"
+group = "verification"
+size = 0.5
+model = "opus"
+note = "Suite goldens re-recorded after SV1b, SV1i and SV2a (two original runs, two of ours, golden.py record); coverage reported."
+order = 178
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

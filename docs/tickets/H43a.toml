@@ -1,0 +1,10 @@
+id = "H43a"
+title = "Scenario: taming, stealing and the move planner (combat gaps from H43's coverage)"
+group = "harness"
+depends = ["H43"]
+files = ["tests/scenarios"]
+note = "H43's coverage report (build/coverage/report.md; python tools/coverage.py run <ticket>): no run enters combat_taming.cpp (UnitServer::TryTame, UndoTaming; OrderTame and the charm spell's TryTame path), UnitServer::OrderSteal (an AI thief's order, unit_ai.cpp), UnitServer::PlanMove (combat_planning.cpp, 28 lines), OrderPlan::TakeSteps, UseItemCharge or combat_tick.cpp's CanStillDo. A scenario with a golden that tames an animal, has a thief steal from the party and makes the planner plan a move; coverage.py report shows them reached."
+order = 826
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

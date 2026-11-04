@@ -1,0 +1,7 @@
+id = "L8"
+title = "Mod API"
+group = "lua"
+depends = ["L6"]
+note = ".lua loading, Lua names for the built-ins, waits as yields, sandbox, errors as \"Script error\"."
+order = 644
+status = "later"

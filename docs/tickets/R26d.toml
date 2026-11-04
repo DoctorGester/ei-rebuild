@@ -1,0 +1,9 @@
+id = "R26d"
+title = "Harness: drop the meshcorners verb from tests/verify/harness.cpp"
+group = "renderer"
+depends = ["R26c"]
+note = "R26c removed render::SetMeshCornersFull, the image's meshcorners verb and its scenario steps. tests/verify/harness.cpp still has the verb in the image-verb list (line ~2242) and its comment (line ~324); removing them changes the harness key (every --no-hooks run replays), so do it with the next harness change."
+order = 78
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

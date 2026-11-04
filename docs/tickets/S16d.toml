@@ -1,0 +1,10 @@
+id = "S16d"
+title = "Standalone: library code game.exe's data points at with no registration (226: MFC vtable slots, CRT tables)"
+group = "standalone"
+depends = ["S16c"]
+files = ["tools/standalone_gaps.py", "src/lib/mfc_*.cpp", "src/lib/crt*.cpp"]
+note = "Library code game.exe's data points at with no registration (226: MFC vtable slots, CRT tables) decided per vtable (ported or listed unreachable); tools/standalone_gaps.py data lists them."
+order = 588
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

@@ -1,0 +1,11 @@
+id = "S18"
+title = "Standalone: own data instead of game.exe's sections"
+group = "standalone"
+size = 5
+depends = ["S17", "C13"]
+files = ["tools", "src/game/*.h"]
+note = "Exit criterion met 2026-10-21 (S18k / S18k1: the image is an ordinary relocatable exe that reads no game.exe at run time). The cleanup it listed moved to its own tickets: C18 (named globals for the data addresses), C19 (compiler-made vtables), C20 (registrations and code cells), C14 / C15 (standard types, reinterpret_cast), C11 (shims)."
+order = 545
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

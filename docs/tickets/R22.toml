@@ -1,0 +1,11 @@
+id = "R22"
+title = "Shadow map: hard cutoffs on terrain mounds"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R20"]
+note = "Done 2026-10-22: cause: R16j's receiver rule left faces turned away from the sun (face normal from derivatives) unshadowed; the game lights objects like the ground, not by sun direction, so inside another object's shadow those faces stayed lit with straight edges (the mound is a flora object; reproduced only with flora shadows on, the user's Rebirth setting). Fix: casters write their object's id beside the map (R16UI); a receiver's own object shadows only faces turned to the sun, any other object every face (per-tap ids where facing < 1). Scenario render_shadows_mound (user's save, harness 'shadowfacing all|others' A/B). Before/after: build/R22/after1.png, cmp_fight.png, cmp_town_gate.png."
+order = 67
+status = "done"
+started = "2026-10-22"
+done = "2026-10-22"

@@ -1,0 +1,10 @@
+id = "P3b"
+title = "Native HUD"
+group = "native-ui"
+size = 1
+depends = ["P2"]
+note = "Unit-panel name, top panel and message log, tooltips, quick strip, clock. 006462A0 native only in vanilla until W3."
+order = 119
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

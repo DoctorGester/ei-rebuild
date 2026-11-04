@@ -1,0 +1,10 @@
+id = "R37c"
+title = "Caster boxes and outside casters kept across frames"
+group = "renderer"
+model = "opus"
+files = ["src/render/render_mesh.cpp", "src/render/render_mesh_cache.cpp", "src/render/render_shadows.cpp", "src/game/world_client_shadow_casters.cpp"]
+note = "R37 profile (main thread self samples, Rebirth, 4K): PositionBox (render_mesh.cpp: the model-space box of every caster mesh's positions, at every BeginMesh) 3.6% of all samples, 4.8% in the crowd; ShadowCasterMesh (R20's outside casters: corners copied into the frame's caster stream every frame) 3.1%, 4.3% in the open zones. Keep the box with the kept mesh (made when its positions are built or moved: MeshChanged Positions / Rebuilt) and the outside casters' corners per part in the GPU pool (uploaded once, drawn with the part's matrix each frame). Expected 0.2-0.4 ms a frame of the main thread. Check: render_shadows_outside / render_shadows frames the same (0 pixels differ), shadowcheck counts, meshcache check 0 stale.  Done (5beae6769, fd3ad032e): the box kept with the kept mesh (CachedMeshBox, made lazily after a build or move), the outside casters' corners kept on the GPU by part (KeepCasterMesh: ShadowMesh carries owner / shared / moved; read again only when MeshChanged says so; the frame stream gone). In-frame old / new, ms a frame (zone1, town night, crowd): outside casters 0.068-0.12 / 0.010-0.016 (old not counting its stream upload), boxes 0.005-0.040 / 0.002-0.013. Checks: render_shadows, _outside, _shimmer, _mound 0 pixels differ at tolerance 0 against main, shadowcheck counts the same, meshcache check 0 stale (render_shadows_outside now checks it: 3009 checks; render_stats 4791). world_client_shadow_casters.cpp's float casts made plain float maths."
+order = 889
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

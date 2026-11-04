@@ -1,0 +1,11 @@
+id = "SV2h1b"
+title = "SV2h1 parted three goldens from main"
+group = "verification"
+size = 1
+depends = ["SV2h1"]
+files = ["tests/verify/*"]
+note = "The three goldens parted by the SV2h1 merge (render_terrain, terrain_water_load, ui_saveload_delete vanilla) were fixed and match again (work.py test --golden)."
+order = 212
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

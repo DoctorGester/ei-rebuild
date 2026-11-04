@@ -1,0 +1,10 @@
+id = "P3d"
+title = "Native briefing, global map titles, help page, chat"
+group = "native-ui"
+size = 1
+depends = ["P2"]
+note = "Help page and global map wait for W4 under Rebirth."
+order = 121
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

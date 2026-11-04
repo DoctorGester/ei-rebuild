@@ -1,0 +1,9 @@
+id = "C28"
+title = "Real virtual classes: replace the hand-built vtables (166 static Vtable(), SetVtable, slot calls) and drop layout asserts nothing needs"
+group = "cleanup"
+model = "opus"
+note = "User 2026-10-22: the code should look like normal game code, not fake vtable finagling. C19 compiled game.exe's tables but kept a raw table pointer at offset 0 (helper *Class templates, engine_object_class.h, mfc_slots.h), so 166 'static void* Vtable()' in 49 files and 511 SetVtable / VirtualSlot uses. Convert family by family (engine objects, managers, MFC collections, UI windows, network messages, ...) to ordinary C++ classes with virtual functions; drop offsetof/sizeof asserts unless bytes leave the process (saves, packets) or come from the data image. Each family: both suites keep their goldens (goldens are layout-independent). Split into child tickets per family. Order (survey 2026-10-22, 16 children): C28a items, C28b spells and lights, C28c party and manager context, C28d manager bases, C28e counted root / streams / links, C28f world effects, C28g worlds, C28h units / AI / map object bases, C28i data records, C28j renderer, C28k network (after C28e), C28l interface bases and the harness window ids, C28m screens and panels, C28n MFC library classes (with C14d), C28o MFC collections (with C14b), C28p retire the helpers and the asserts sweep. Method per family: C++ constructors and a virtual destructor in place of Construct / DestructBody (Construct stays as placement new where a caller builds in place), the slot bodies become the virtuals, CEngineObject's operator new / delete into the game heap."
+order = 413
+status = "done"
+started = "2026-10-22"
+done = "2026-10-23"

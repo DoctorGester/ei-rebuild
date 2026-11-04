@@ -1,0 +1,11 @@
+id = "S19"
+title = "Standalone: the suite against the Rebirth goldens"
+group = "standalone"
+size = 1.5
+model = "opus"
+files = ["tools/run_all.py", "src/standalone", "src/hook/rebirth_hook.cpp"]
+note = "The image runs the Rebirth installs' scenarios with ei_rebirth.ini flags against the Rebirth goldens."
+order = 591
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

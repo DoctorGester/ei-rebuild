@@ -1,0 +1,11 @@
+id = "C30e7"
+title = "SSE2: combat (11 files)"
+group = "cleanup"
+model = "opus"
+depends = ["C30e4"]
+files = ["src/game/combat.cpp", "src/game/combat_actions.cpp", "src/game/combat_motion.cpp", "src/game/combat_orders.cpp", "src/game/combat_planning.cpp", "src/game/combat_sight.cpp", "src/game/combat_spell_sight.cpp", "src/game/combat_steps.cpp", "src/game/combat_taming.cpp", "src/game/combat_tick.cpp", "src/game/combat_update.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. Doubles 208 (combat_sight 53, combat_tick 51, combat_steps 43, combat 40), combat's flog, combat_sight's fpatan, Ftol 10, combat_tick's 0.02."
+order = 906
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

@@ -1,0 +1,9 @@
+id = "U"
+title = "UTF-8 inside, cp1251 assets converted when read"
+group = "standalone"
+depends = ["S"]
+size = 5.5
+note = "User 2026-10-16 prototyped the UTF-8 conversion locally to play-test (uncommitted, in the main checkout); they called it sloppy and it is to be reverted, not merged."
+order = 526
+status = "done"
+done = "2026-10-21"

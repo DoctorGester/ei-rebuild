@@ -1,0 +1,11 @@
+id = "R43b"
+title = "Smooth option without sampling multisampled depth (SDL_GPU has no MSAA sampling or depth resolve)"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R43"]
+note = "From R43 (build/reviews/r43_sdl_gpu.md, blocker 1). depth_from_multisampled.glsl reads sample 0 of the world's multisampled depth into the frame target. SDL_GPU cannot sample a multisampled texture and resolves only colour. Options: (a) an R32F colour copy of the depth, resolved (edge pixels get a mean); (b) a second depth-only world pass without MSAA; (c) the later passes into the MSAA target. Decide on render_smooth captures, on sokol first.  User 2026-11-03 approved: D3D12 (FL 11_0, SM 6.0) or Vulkan is the minimum hardware; the smooth option's depth redesign is the worker's pick if it looks the same; the overlay's per-pass GPU times become one whole-frame GPU time."
+order = 927
+status = "done"
+started = "2026-11-03"
+done = "2026-11-03"

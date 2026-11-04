@@ -1,0 +1,9 @@
+id = "SV7b2"
+title = "Save writers: unwritten bytes and pointer keys"
+group = "verification"
+depends = ["SV7a"]
+note = "Save writers' unwritten bytes and pointer keys canonicalised (zeroed leftovers, ids for archive keys); tool: EI_SAVETRACE + tools/save_trace.py diff."
+order = 218
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

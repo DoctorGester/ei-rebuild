@@ -1,0 +1,10 @@
+id = "C30e1"
+title = "SSE2: network, sessions and settings (30 files)"
+group = "cleanup"
+model = "opus"
+files = ["src/game/address_order.cpp", "src/game/app_helpers.cpp", "src/game/console_commands.cpp", "src/game/key_bindings.cpp", "src/game/map_database.cpp", "src/game/mob_reader.cpp", "src/game/net_client_party.cpp", "src/game/net_client.cpp", "src/game/net_connection.cpp", "src/game/net_connection_life.cpp", "src/game/net_connection_life.cpp", "src/game/net_delta.cpp", "src/game/net_lobby.cpp", "src/game/net_server_trade.cpp", "src/game/net_server.cpp", "src/game/net_server.cpp", "src/game/net_server_players.cpp", "src/game/net_session.cpp", "src/game/net_session.cpp", "src/game/net_state.cpp", "src/game/object_tables.cpp", "src/game/options.cpp", "src/game/party.cpp", "src/game/party.cpp", "src/game/persistent_globals.cpp", "src/game/player_client.cpp", "src/game/player_messages.cpp", "src/game/player_server_handlers.cpp", "src/game/player_sync.cpp", "src/game/random.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. net_connection_tick's D() (24) and timers, player_server_handlers' doubles (16), player_client's std::pow (the host CRT's x87 pow: test it against SSE2 pow), options' Ftol (5); most files have a few float operations."
+order = 900
+status = "done"
+started = "2026-10-29"
+done = "2026-10-30"

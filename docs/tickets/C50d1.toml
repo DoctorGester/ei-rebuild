@@ -1,0 +1,9 @@
+id = "C50d1"
+title = "The console's streambufs and streams as plain globals"
+group = "cleanup"
+depends = ["C50d"]
+note = "C50d follow-up. console.cpp's eight ConsoleStreambufs stay lib::StaticObject with 16 hand-ported initialisers / exit functions (005DC1E0-005DC3F0, 005DC420-005DC5E0) because the eight console::Stream objects are named at their addresses (007C55A8..007C5810) and the log pointers kHitLog 007AF284, kAlarmLog 007C2EB8, kCombatLog 007AF3E8, kAiLog 007C53C4, kModeLog 007C54E8 are constexpr pointers named_data resolves to those addresses. Make the streambufs plain globals and each Stream constinit-initialised with its streambuf (no Attach), drop the addresses of the streams and the log pointers (or make the log pointers plain references), list the initialisers in UNUSED_INITIALISERS and the stream exits' UNREGISTERED_EXITS entry goes. Check that nothing logs after our CRT's exit. Goldens unchanged."
+order = 736
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

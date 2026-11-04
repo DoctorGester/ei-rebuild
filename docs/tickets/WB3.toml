@@ -1,0 +1,12 @@
+id = "WB3"
+title = "Work board: local live server and pages"
+group = "harness"
+size = 1
+model = "sonnet"
+depends = ["WB1"]
+files = ["tools/work.py", "tools/work_board/"]
+note = "work.py serve runs the local board on localhost:8765 (JSON API over work.db, tickets.toml and git log; ticket page and test-run page); docs/notes/work-board.md."
+order = 288
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

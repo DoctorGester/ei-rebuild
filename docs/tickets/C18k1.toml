@@ -1,0 +1,10 @@
+id = "C18k1"
+title = "Named data: static-init aligned arrays with a free exit function (destructor rule, by area)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C18k"]
+note = "C18k's rule (docs/notes/standalone.md, 'Objects with exit functions'): constinit definition (lib::AlignedArray<T> g_x = /*addr*/ {};), the exit function ported on the name next to it and registered at its address (EI_REPLACE; FreeData()). Initialiser-registered: map_object_shadow 007AF208 and the guarded frees 007AF1E0 / 007AF1F8 (guard byte 007AF1F0, name it with them), figure_mesh 007C2E18, terrain_sector's guarded frees 007C88E8 / 007C88F8 (guard 007C88C9). Pattern: device_draw.cpp, renderer_lines.cpp. Then python tools/named_data.py --update, tools/gen_static_init.py, the checks, both builds, work.py test --golden. Done: map_object_shadow's three buffers (007AF208 / 007AF1F8 / 007AF1E0, guard 007AF1F0), figure_mesh 007C2E18, terrain_sector 007C88F8 / 007C88E8 named with their exit functions ported and registered. The terrain guard 007C88C9 stays at its address (bit 4 belongs to 006BFAE0, a generated destructor of the unnamed CByteArray 007C88D0). Both suites the same (image 121, original 114)."
+order = 388
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

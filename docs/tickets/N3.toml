@@ -1,0 +1,11 @@
+id = "N3"
+title = "Comparison harness: uinative / uiboth, per-surface diff"
+group = "native-ui"
+size = 1.5
+depends = ["N1", "SV1", "W2"]
+files = ["tests/verify/harness_ui.cpp", "tools/compare_frames.py", "src/render/render_ui.cpp"]
+note = "Text compared with a tolerance (own fonts). One registration line in harness.cpp after SV1 and W2 merge."
+order = 113
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

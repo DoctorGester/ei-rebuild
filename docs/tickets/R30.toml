@@ -1,0 +1,8 @@
+id = "R30"
+title = "Renderer trimming after P8: survey and first batch"
+group = "renderer"
+note = "User 2026-10-29: once P8 is done, look for further renderer trimming. With the interface fully on the GPU (P8) and textures composed on the GPU (R28), survey src/render and the DDraw7/D3D7 boundary for code that no longer has a caller or a reason: surface emulation the game never uses, locks/blits/pixel-format conversions only the old UI or CPU texture paths needed, unused device caps and states, duplicate helpers, debug-only paths. Write the survey to build/style_review/renderer_trim.md (each item: lines, why it can go, how it is checked), file the batches as R30a.., and do the first batch. Goldens hold no frames: check with the golden suite plus ei_ui_check / render scenarios; no visual change intended."
+order = 92
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

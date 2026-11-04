@@ -1,0 +1,10 @@
+id = "S12"
+title = "Standalone library: STLport trees, strings, algorithms and the unreviewed families"
+group = "standalone"
+size = 1.5
+files = ["src/lib/stlp_tree.h", "src/lib/stlp.h", "config/library.csv"]
+note = "Standalone library STLport deque, tree node half, the Connection's five maps (127 addresses) and basic_string (26); other trees, sorts and unclassified rows went to S12a / S12b."
+order = 539
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

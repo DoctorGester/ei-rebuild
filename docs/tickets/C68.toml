@@ -1,0 +1,9 @@
+id = "C68"
+title = "Rebirth's bug fixes always on, and harmless Rebirth options folded in"
+group = "cleanup"
+model = "opus"
+depends = ["W12"]
+note = "Done 2026-10-30 (719f4a9 and earlier squashes): the fixes and seven options folded in, the draw radii gone (whole map). Left as flags for later (user): MQClient, DisableExitOnCrashReport, the mod-folder patches, EI_Plugin's features."
+order = 977
+status = "done"
+done = "2026-10-30"

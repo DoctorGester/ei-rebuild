@@ -1,0 +1,9 @@
+id = "R53"
+title = "Rain: the falling rain is not seen, and the drops on the water read as bright dots"
+group = "renderer"
+model = "opus"
+note = "User 2026-11-04 (more): the snow particles do not show either (likely the same cause as the rain). SetWeather(\"snow\") then almost at once SetWeather(\"rain\"): the snow cover never went away, and the snow patches appeared instantly instead of building up. Check render_weather.cpp's state (PrepareSurfaces: snow by the snow's strength with its time constants; the 'start from the weather as it is' reset on a step of time or a zone load may be firing on SetWeather, and the snow mode flag may stick while the layer fades from snow to rain). Snow should build over minutes and melt after a change to rain or clear."
+order = 958
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

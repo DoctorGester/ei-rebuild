@@ -1,0 +1,7 @@
+id = "W1"
+title = "Layout widths, scaling functions, harness resolution steps"
+group = "widescreen"
+note = "Widescreen layout widths, scaling functions (SetRect / AddPoint / sprite place) and the `resolution` / `widescreen` harness steps; run_all --widescreen within tolerance."
+order = 139
+status = "done"
+done = "2026-10-14"

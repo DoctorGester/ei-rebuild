@@ -1,0 +1,8 @@
+id = "PL9b"
+title = "Platform remainder for a non-Windows port: paths, key names, keyboard layout, one-instance check"
+group = "port"
+depends = ["PL9"]
+note = "Done 2026-10-30: the POSIX versions are on macos-port (src/platform/posix/platform_posix.cpp; docs/notes/platform.md, 'SDL3 and the harness'); main keeps the Windows ones until it takes that file with the port."
+order = 1091
+status = "done"
+done = "2026-10-30"

@@ -1,0 +1,9 @@
+id = "SV2b"
+title = "Rebirth with hooks: zone1 script variable i does not repeat"
+group = "verification"
+depends = ["SV2a"]
+note = "zone1's script variable i flipped between runs (units in different heap segments): the harness's CRT heap is one fixed reservation for the main thread's small blocks."
+order = 181
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

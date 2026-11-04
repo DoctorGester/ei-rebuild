@@ -1,0 +1,9 @@
+id = "R45a"
+title = "Options resolution list from the display's modes instead of a fixed list"
+group = "renderer"
+depends = ["R45"]
+note = "User 2026-11-04 asked why R45 hardcodes 19 sizes. List the sizes from the platform layer: platform::DisplaySizes() over SDL_GetFullscreenDisplayModes of the window's display (sizes only, deduped, largest first, none above the desktop size; full screen stays the desktop mode with the frame scaled, so the modes are only size choices), plus the current size when missing. The harness backend returns a fixed list so scenarios step it the same way on every machine. Remove the fixed list. Check: render_options_resolution the same, a unit check of the dedup and order, Linux builds."
+order = 942
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

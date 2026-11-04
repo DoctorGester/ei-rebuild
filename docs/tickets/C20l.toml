@@ -1,0 +1,10 @@
+id = "C20l"
+title = "Drop EI_REWRITTEN where nothing needs the original's address"
+group = "cleanup"
+model = "opus"
+files = ["tools/check_signatures.py", "include/ei/hook.h", "tools/gen_short_functions.py", "tools/gen_static_init.py"]
+note = "Done in 3 commits: tools (EI_RECORD names the rewrite, config/static_init_ports.csv, trace tools lose the map, port counts, check_registrations and gen_short_functions gone), the mechanical deletion (8,293 lines from 695 files; its script tools/drop_rewritten.py is in that commit), the machinery (macro, .eiorg). verify/release clean, checks 0, gen_static_init rerun byte-identical, image --golden 145 ALL PASS (121 same), --no-hooks 126 ALL PASS (hook.h changed). Follow-up C20m."
+order = 475
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

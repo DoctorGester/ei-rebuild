@@ -1,0 +1,10 @@
+id = "C14za"
+title = "C14 MFC arrays and lists, batch 4: terrain, sector map, camp, party members, animation steps"
+group = "cleanup"
+model = "opus"
+depends = ["C14u"]
+note = "What C14u left outside the script (C35l deleted the scene loader and figure.h): terrain_sector.h (SectorVertex records, FlagArray, TileList), terrain.h's water levels (CArray<CArray<float>>), sector_map.h's sectors, the terrain's CByteArray elements, ui_camp.h's GlobalMapZone / GlobalMapPlace, party.h's PartyMembers (PartyUnitRecord's lists are std since C14h), combat's AnimationSteps (mfc::impl::AnimationStepList), the player's lists (player.cpp, player_server_handlers.cpp helpers), console_addon's CArray<std::string> view, with their CompiledCollection tags. Same method as C14u (scratch c14u scripts: retype_u.py, fixer.py, guards.py, memcheck, h16_tags.py, h21_vtables.py)."
+order = 508
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

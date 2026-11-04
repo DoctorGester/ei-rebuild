@@ -1,0 +1,11 @@
+id = "C54b"
+title = "C54 rest: Tier 2 style in the camp's panels"
+group = "cleanup"
+model = "opus"
+depends = ["C54a"]
+files = ["src/game/ui_camp.h src/game/ui_trade_panel*.cpp src/game/ui_hero_panels.cpp src/game/ui_equip_panels.cpp src/game/ui_trade_panel.cpp src/game/ui_panel_draws.cpp src/game/ui_constructor_slots.cpp src/game/ui_stats_*.cpp src/game/ui_camp_input.cpp src/game/ui_item_screen.cpp src/game/ui_window_delete.cpp"]
+note = "C54 follow-up (C54 did CCampPages itself, see its commit for the recipe). The panels declared in ui_camp.h: CTradePanel (TradeRecord's padAfterPerks / padAfterBought on an in-memory record (G13), Bought() uint8 -> bool, FormatPrice's std::string* out -> return, the TradeSnapshotRecord/TradeRestoreRecord helpers vs the SnapshotRecord/RestoreRecord members), CHeroStatsPanel (OnLButtonUp int, DrawRow/DrawPart RECT*), CTradeGrid::Build(char spells, char flag) -> bool, CRepairGrid, CConstructorPage / CSpellMakerPage, CHeroEquipPanel, CHeroQuickStrip; the empty out-of-line destructors in ui_window_delete.cpp; ItemHoverInfo's kind numbers (ui_camp_input.cpp constants) as an enum; CItemScreen::MoveItem(.., int merge, int turning) -> bool. G9 sites (CItem::spell_/link_) stay with C49a/C49c. Goldens unchanged: ui_camp, ui_camp_deals, ui_camp_make, ui_trade_hold, ui_trade_restore, ui_hero_stats + ei_ui_check."
+order = 726
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

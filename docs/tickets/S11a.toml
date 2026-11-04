@@ -1,0 +1,10 @@
+id = "S11a"
+title = "Standalone library: STLport hashtables of objects"
+group = "standalone"
+size = 1
+depends = ["S11"]
+files = ["src/lib/stlp_hash.h", "src/lib/stlp_hash.cpp"]
+note = "STLport hashtables of objects (hash_map<CString, float>, hash_map<int, CParty>, destructor-value clears, AI shape cache) ported with traits."
+order = 563
+status = "done"
+done = "2026-10-15"

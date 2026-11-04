@@ -1,0 +1,10 @@
+id = "SV3a"
+title = "Main menu unit 2 (unmoco2): ours leaves its hit points unwritten"
+group = "verification"
+size = 0.5
+files = ["tools/golden.py"]
+note = "unmoco2's hit points came from GiveDefaults' stack-copy leftovers; settled by SV7b3 (the copies start zeroed on both sides, hit points 1.0)."
+order = 174
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

@@ -1,0 +1,10 @@
+id = "C20e"
+title = "Registrations: drop the unread ones C20c left in C19's files and the generated short functions"
+group = "cleanup"
+model = "sonnet"
+depends = ["C19"]
+note = "Done: gen_short_functions.py writes EI_REPLACE_SHORT only where registration_readers.read_addresses() finds a run-time reader (none today) and an EI_REWRITTEN line otherwise (the map keeps all 199); the 11 hand ones in particle_create.cpp are EI_REWRITTEN. Registrations 287 -> 72 (63 EI_REPLACE, 9 EI_REPLACE_METHOD; 282 after C20h merged). check_signatures skips templated names (LoadDword<0x24>). Left: the 40 unread in C14a's files (script_parse*, script_exec_helpers, script_unit_modes, console_streams, string_map, mfc_string, mfc_coll): run registration_readers.py --drop on them after C14a merges. Re-review 2026-10-28: obsolete. No EI_REPLACE / EI_REWRITTEN registrations are left in src (hook retirement, S21 and C20)."
+order = 394
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

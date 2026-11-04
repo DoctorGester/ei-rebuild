@@ -1,0 +1,8 @@
+id = "C62"
+title = "Terrain area to the target style (style review, area-local)"
+group = "cleanup"
+note = "build/style_review/terrain.md (about 60 findings) and REPORT.md Part 2 'Terrain': dead Terrain state (textFC, extraPages, maxLightId, pageSize, tileSize, worldMatrix + CombineRotation, pageMaterials 'Wood' setup, minDetail always 0, one-value visibleColumnFirst/Last vectors), hidden inputs (lightingSector/X/Y for SunReaches with INT_MIN as true; Light / ShadeSun / LightVertex / LightSpecular / Ensure / Animate taking Terrain* and sun that are always the sector's own), raw codes (landscape flags, build stages, sector file sizes from 33x33x8 and 256x2, page arithmetic), duplication (LightVertex / LightSpecular, sun-ray flip, CountTiles, ResetFields vs constructor, colour packing x3), noise (One/VOne/Zero, CellSize x4, DrawPage's unused parameters and always-1 return, s1-s4/t1-t4 locals, FCOMP/FISTP narration). Check against current code first. Opus. Goldens unchanged."
+order = 756
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

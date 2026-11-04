@@ -1,0 +1,8 @@
+id = "R12b"
+title = "Bright green streaks in tree foliage that the original does not show"
+group = "renderer"
+note = "R12's captures (render_terrain_seams far, vanilla vs standalone, top right trees near (2950, 700) at 3840x2160): the image draws thin bright green leaf strips over the tree crowns that the original's frame lacks (largest channel difference about 190). Likely an alpha test / blend or texture state of the foliage meshes' pass (render_mesh.cpp ReadPassState); compare the pass state with the original's for those meshes."
+order = 29
+status = "done"
+started = "2026-10-20"
+done = "2026-10-20"

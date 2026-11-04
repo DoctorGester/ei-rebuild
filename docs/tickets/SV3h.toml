@@ -1,0 +1,9 @@
+id = "SV3h"
+title = "render_present_cpuwindows: the original's unmoco2 hit points are another NaN"
+group = "verification"
+size = 0.25
+depends = ["SV3a"]
+note = "Settled by SV7b3: UnitStats leftovers are zeroed in both the original (harness_leftovers.cpp) and ours; unmoco2 hp is 1.0 on both sides."
+order = 191
+status = "done"
+done = "2026-10-15"

@@ -1,0 +1,10 @@
+id = "C14zh"
+title = "Delete CWnd: only the static initialisers make MFC's four static windows, nothing reads them"
+group = "cleanup"
+model = "sonnet"
+files = ["src/lib/mfc_window.h src/lib/mfc_window.cpp src/lib/mfc_runtime_class.h tools/gen_static_init.py"]
+note = "C20q (2026-10-28): CWnd / CCmdTarget (mfc_window) are made only by the static initialisers of g_wndTop / g_wndBottom / g_wndTopMost / g_wndNoTopMost (static_init.cpp's CWnd::Construct calls) and destroyed by their exit functions (static_exit.cpp DestroyStaticWindow, g_staticWindowsExitGuards); no code of ours reads them. List the initialisers in gen_static_init.py's UNUSED_INITIALISERS (as C20o did for the temporary windows' allocators), then delete CWnd, CCmdTarget, IsStaticWindow, CreateCWnd, kClassCWnd / kClassCCmdTarget (named_data.csv rows), the four g_wnd* rows and the exit guards, the vtables.csv row 00746DA8 to file -, and the 43 UnportedSlot stubs; MessageBoxText / MessageBoxId (dib.cpp, world_units.cpp) move to a plain helper. Check: named_data / gen_image_cells --check, image suite --golden."
+order = 518
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

@@ -1,0 +1,10 @@
+id = "S13a"
+title = "Standalone: compiler-written world destructors and database resets"
+group = "standalone"
+size = 1
+depends = ["S13"]
+files = ["src/game/*.cpp"]
+note = "Standalone world destructors and database resets ported (units 0057CBE0, spell tables 0057CE80, items 0057D340; deleting destructors of CWorld, CWorldClient, Terrain, CWorldServer, Sector)."
+order = 557
+status = "done"
+done = "2026-10-15"

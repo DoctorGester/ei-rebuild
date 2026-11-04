@@ -1,0 +1,9 @@
+id = "C49"
+title = "One reference-counting idiom (G9)"
+group = "cleanup"
+model = "opus"
+note = "Style review Tier 2 (build/style_review/REPORT.md; user 2026-10-28: run beside the native UI track P2-P8). Leave src/game/ui_*.* and src/render/render_ui* to the P track (C54 covers them after P8). By subsystem, the compiler as checker, goldens unchanged. G9: script the 4-line counted assign to x.Assign(o) and Reset pairs; delete the non-counting operator=(T*) so the compiler lists raw stores; merge the 11 counted-pointer types into an intrusive Ref<T> plus AddRef/Release for manual sites. RAII destructors after C50."
+order = 690
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

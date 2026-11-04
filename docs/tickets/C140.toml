@@ -1,0 +1,9 @@
+id = "C140"
+title = "App style 1: dead sweep, console, camera residue, small items"
+group = "cleanup"
+model = "sonnet"
+note = "Style review round 4 (2026-11-04, https://claude.ai/artifact/BzXaX58kMcB9E2dwRuhN2U, reviewer reports in build/style_review/round4/<area>.md; user: file them all). Items P1, P6, P8 and the S half of P3 (app.md A3, A8, A9, A10, A11, A13, A14, A15). Delete FatalErrorCode/FatalErrorCodeV/CodeReportFormat and dx_errors, the always-true counter, DevicePresent's result (void), EndProcess, g_movieMode and FrameStep's cursor, ByteStream::reading (if C118 has not already), StopMotion's dead ifs (exact), Give's unused locals. Console: command maps built once (addon's help calls commands::Help), LogCategory enum, decimal rectangles, early returns in Days, void handlers, const& args, Tokenize state enum. Camera: CAM_* macros gone, aliases gone, Approach(float&, float), RestoreView calls SetDistancePitch, shake loop with erase_if (exact), aggregate init, constructor/Create/Init without repeats, members back in the camera files, SetTarget via SetTargetId. One AxisAngle returning a value (10/41/4 calls), one kHalfPi in vecmath.h. device_*: pass MeshArgs (18 positional parameters), void results, the counted assign once. Misplaced definitions moved, stale headers fixed, settings GetValues/GetLines once. Style only: goldens the same, float operation order untouched (any float rewrite exact and said why), no new forwarders, normal C++ classes; gameplay code stays (technical dead code goes)."
+order = 1071
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

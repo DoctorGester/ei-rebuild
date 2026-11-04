@@ -1,0 +1,10 @@
+id = "S4d"
+title = "Standalone library: the old iostream streams (constructors, streambuf defaults)"
+group = "standalone"
+size = 1
+files = ["src/lib/crt_iostream.h", "src/lib/crt_iostream.cpp"]
+note = "Old iostream streams ported: ostream / ios / streambuf constructors, destructors and virtual defaults (vtable 007482AC), fflush 006ED534."
+order = 568
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

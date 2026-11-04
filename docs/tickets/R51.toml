@@ -1,0 +1,9 @@
+id = "R51"
+title = "Tooltips fit their text: an empty text measures 0 x 0 as in GDI"
+group = "renderer"
+model = "opus"
+note = "User 2026-11-04: many tooltips have an empty row under the text. N2's TextExtent gave an empty text the font's height; GDI's GetTextExtentPoint32 gives 0 x 0 (checked), and UiTooltip measures the empty line after a text's final line break that way (the original added nothing for it). Fixed in render_text.cpp TextExtent."
+order = 953
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

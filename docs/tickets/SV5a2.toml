@@ -1,0 +1,9 @@
+id = "SV5a2"
+title = "Hook-reach for AI hooks our code calls directly (LookAroundHook, SeeCorpseHook, AICallArray::Add, SuspectionMode)"
+group = "verification"
+size = 1
+depends = ["SV5a"]
+note = "Dropped 2026-11-03: the hook framework and coverage breakpoints are gone (S21, H40). SV5a: SuspectionMode::Execute/Enter/Leave, PatrolPointArray::Add/SetAtGrow, LookAroundHook (005CFE40), SeeCorpseHook (005CBE90), AICallArray::Add (005CD880) are unreached. SeeCorpse logic runs but our code calls the hook functions directly, so the cover INT3 on the game address never fires; decide whether coverage should count ours-to-ours calls via the first byte of our function, or a scenario with a controlled party member dying (AddUnitUnderControl trips the CUnit::SetPlayer verify wrapper: ours-only PlayerOwnsUnit check). CTrapObject::UpdateTrap needs a trap object with a category-2 consumable (none found)."
+order = 241
+status = "done"
+done = "2026-11-03"

@@ -1,0 +1,10 @@
+id = "C78c"
+title = "AI search cells and rectangles as Point / Rect"
+group = "cleanup"
+model = "opus"
+depends = ["C78b"]
+note = "C78b moved AIMap's cell queries (CanStandAt, CanStandAtFromHere, GroundHeight, HasSpellArea, BridgeDeckAt, BuildCellsTo, CellMark) and RegionMap's DominantRegion / ReachesRegion / NearbyBlocks / SeedSearch to Point, with SearchGrid::operator[](Point) / Contains. Left, as int pairs: LocalSearch (Begin, BeginInRect, BeginInRectForClass, PlaceWindow, Recenter, CostAt, ExpandUntil, PathTo, Best), BlockSearch::PathTo, RegionMap::FindRegionChain / PickRepresentatives / MeasureBlockEdges / CellSuitsBlockAt / UpdateBlocks, AIMap::PlanLongPath / RefreshArea / QueueRefresh / LimitSteepCells / ClearUnmarkedArea (x0, x1, y0, y1 ranges: inclusive or not per function, say which), UnitLayer::Add / Remove, BridgeHeights::SaveCell / RestoreCell; SnapTarget and FindPath's tx / ty / ux / uy locals. Behaviour the same (goldens)."
+order = 1006
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

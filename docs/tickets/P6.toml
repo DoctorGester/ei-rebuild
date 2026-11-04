@@ -1,0 +1,9 @@
+id = "P6"
+title = "Global-map pick picture on the GPU"
+group = "native-ui"
+size = 0.5
+depends = ["P1"]
+note = "RefreshSelection 00630670: GPU copy, readback on click, exact colours; the camp's backdrop modes 3 / 4."
+order = 124
+status = "done"
+done = "2026-10-29"

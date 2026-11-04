@@ -1,0 +1,10 @@
+id = "C137"
+title = "Combat style 2: owner enums and shared constants"
+group = "cleanup"
+model = "sonnet"
+depends = ["C136"]
+note = "Style review round 4 (2026-11-04, https://claude.ai/artifact/BzXaX58kMcB9E2dwRuhN2U, reviewer reports in build/style_review/round4/<area>.md; user: file them all). Item K2 (combat.md A6, A7). WeaponType with ItemWeapon::IsRanged() in item.h (bow/crossbow in 6 files), MoveMode in unit.h (mode 1 walk/standing/crawl and mode 2 run/walk contradictions resolved from the animation data), UnitPart for MarkChanged (23 raw sites, part 6's two names), DamageType and SpellSchool in item_db.h (castKind none = 8 in four files), kQuickItemSource once, one MoveModeMask/WeaponTypeMask, one Vitals() accessor, one kNoNaturalWeapon/kNoRange/kFar each (they differ by file now: keep each site's value, rename where the meaning differs), speed thresholds not borrowing size constants, ClassId::EffectParticle. Leave the fire/lightning cast-kind question to C127. Style only: goldens the same, float operation order untouched (any float rewrite exact and said why), no new forwarders, normal C++ classes; gameplay code stays (technical dead code goes)."
+order = 1068
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

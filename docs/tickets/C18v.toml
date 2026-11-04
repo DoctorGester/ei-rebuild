@@ -1,0 +1,8 @@
+id = "C18v"
+title = "Original suite: info.sav's save time follows the machine's current daylight saving"
+group = "harness"
+note = "Found by C18 (2026-10-27): the --no-hooks suite (fresh, harness headers changed) gives 96 golden differences, all info.sav's last dword (rest): 0x3ABF2130 in the run vs 0x3ABF1320 in the goldens, exactly 3600 s. The harness's FixedTime gives 2001-03-26 12:00 local; the conversion to a time_t in game.exe takes the current daylight bias (FileTimeToLocalFileTime / LocalFileTimeToFileTime use the bias in force now, not the date's), and the machine left summer time on 2026-10-25 (goldens recorded 2026-10-22). The image suite gives the golden value. Fix in the harness (fix the bias, e.g. patch GetTimeZoneInformation / the conversion slot in game.exe runs as FixedTime does) or make golden.py ignore the field; no re-record."
+order = 318
+status = "done"
+started = "2026-10-27"
+done = "2026-10-27"

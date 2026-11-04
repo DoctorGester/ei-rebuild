@@ -1,0 +1,10 @@
+id = "SV7d4"
+title = "Suspection mode starts from 0xFFFFFFFF in ours, zeros in the original"
+group = "verification"
+size = 0.25
+depends = ["SV7d"]
+note = "A Suspection mode's point and level start zeroed on both sides (SV7b2's zeroed modes), so leftovers no longer pick the brain's mode (Evaluate 005D1E90)."
+order = 227
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

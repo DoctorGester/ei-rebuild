@@ -1,0 +1,10 @@
+id = "SV5d"
+title = "Coverage of multiplayer-only code needs a two-client harness"
+group = "verification"
+size = 2
+depends = ["SV5"]
+note = "The coverage list's largest uncovered area is network play: net_messages.cpp (117 functions), net_client_handlers, net_link, net_lobby, net_connection, ui_connect_screen, player_server_handlers, world_game's multiplayer zone switch and ServerSession. The harness starts only the lobby (standalone-verification.md, section 9). A second game joining the first (harness_net.h gives each game its own port) would reach them; then golden runs for both clients."
+order = 186
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

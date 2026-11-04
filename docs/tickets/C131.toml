@@ -1,0 +1,10 @@
+id = "C131"
+title = "World style 4: teardown, initialisers, members use this"
+group = "cleanup"
+model = "opus"
+depends = ["C129"]
+note = "Style review round 4 (2026-11-04, https://claude.ai/artifact/BzXaX58kMcB9E2dwRuhN2U, reviewer reports in build/style_review/round4/<area>.md; user: file them all). Items W7 and Z9 (world.md A9, A13). Owned objects as std::unique_ptr and counted ones as Ref<T> in WorldClient/WorldServer (four delete-and-null helpers and DeleteManager go); ObjectListIterator gets PlayerIterator's destructor (12 hand drops here; coordinate with C124 if it has not run: C124 owns the tree-wide part); default initialisers for the 71 plain fields; managers created one way. Members reach their object through this, not g_serverWorld/g_clientWorld (world_party.cpp:204/207, world_loot.cpp:121/125, world_client.cpp:211/321, world_client_maps.cpp:984; and the 35 combat lines mixing g_serverWorld/ServerWorld()/world). Style only: goldens the same, float operation order untouched (any float rewrite exact and said why), no new forwarders, normal C++ classes; gameplay code stays (technical dead code goes)."
+order = 1062
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

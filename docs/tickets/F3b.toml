@@ -1,0 +1,9 @@
+id = "F3b"
+title = "Interface typed views after F3a"
+group = "fields"
+size = 0.3
+model = "sonnet"
+note = "From F3a (2026-10-16): the HUD reaches the message log as children_.data[9] (ui_battle_commands, ui_battle_setup, ui_hud_panels, ui_hud_top_panel) instead of CBattleScreen::messageLog_; the battle tests view CBattleScreen::party_ as a UiDwordArray; ui_briefing.h's party is still a UiDwordArray; CUiWindow repeats CTransformObject's first 0x54 bytes (derive if the vtable and constructor allow). Re-review 2026-10-28: done by later cleanups: no children_.data[9] or UiDwordArray left, CUiWindow derives from CTransformObject (through an empty CUiWindowBase, a style leftover)."
+order = 158
+status = "done"
+done = "2026-10-28"

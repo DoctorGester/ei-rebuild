@@ -1,0 +1,9 @@
+id = "C3"
+title = "Forwarders whose declarations differ between files"
+group = "cleanup"
+model = "opus"
+note = "Forwarders with differing declarations at 0: one declaration per address in originals_<area>.h (docs/originals-report.md); finished by C3n-C3p."
+order = 325
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

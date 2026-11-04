@@ -1,0 +1,7 @@
+id = "X39"
+title = "Native runs: DirectX 7 critical error box at startup"
+group = "harness"
+note = "Native-run 'DirectX 7' critical error box at startup is tracked as R9b1 and fixed by PF3 (native runs skip the GetDxVersion probe)."
+order = 284
+status = "done"
+done = "2026-10-14"

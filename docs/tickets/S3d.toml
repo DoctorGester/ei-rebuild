@@ -1,0 +1,10 @@
+id = "S3d"
+title = "Standalone library: MFC thread and process locals the exit functions destroy"
+group = "standalone"
+size = 1
+files = ["src/lib/mfc_window.cpp"]
+note = "MFC thread and process locals the exit functions destroy (CThreadLocal / CProcessLocal destructors, CThreadSlotData::FreeSlot) ported; docs/notes/standalone.md."
+order = 573
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

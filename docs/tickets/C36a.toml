@@ -1,0 +1,10 @@
+id = "C36a"
+title = "Layout leftovers, second pass: sizeof-only asserts of in-process types and the zone specs' written-only pads"
+group = "cleanup"
+model = "sonnet"
+files = ["src/game/map_spec.h", "src/game/*.h", "src/render/render_internal.h"]
+note = "C36 dropped the offsetof asserts and pads of in-process classes (277 -> 83 offsetof asserts, 233 -> 84 unused_ members in src/). Left: 121 sizeof-only static_asserts (src/game small records, src/render, src/lib) whose types never leave the process; the zone specs (map_spec.h ObjectSpec / EffectSpec / LightSpec / SoundSpec: SoundSpec's unused_70 / 7C / 80 are written, never read) once their chunk records are confirmed read field by field; ParticleElement's union views (they alias: keep unless the views are renamed onto shared slots). Check each kept assert against docs/standalone-cleanup.md's list (saves by literal size, packets, resource files, external structs, vector-recorded types)."
+order = 524
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

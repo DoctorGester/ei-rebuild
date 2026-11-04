@@ -1,0 +1,10 @@
+id = "C14zj"
+title = "lib::HashMap audit: maps whose walk order changes nothing become std::unordered_map"
+group = "cleanup"
+model = "opus"
+files = ["src/lib/hash_map.h", "src/lib/hash_map.cpp"]
+note = "User 2026-10-28 asked whether hash_map.h is still needed. It is lib::HashMap / HashMultimap (290 lines), STLport hash_map's walk order kept for maps whose iteration decides behaviour; ~26 declarations in 16 game headers (acks_db, base_manager, chunk_archive, effects, item_stock, map_spec, object_tables, party_manager, player_messages, player_sync, sound, spell, terrain, unit_create, world, world_unit_set). For each: find every walk (for loops, begin/end, ForEach, erase-while-walking, save writes in walk order). Only looked up, or walked where the order cannot reach game state, saves, packets, logs the goldens compare, or draw order: std::unordered_map (or std::map / vector where that reads better). Keep lib::HashMap where order matters and say why in a one-line comment at the declaration. Goldens and vectors are the check; a walk that feeds a golden must keep its order. Report how many stay; if none, delete hash_map.h/.cpp and replay_hash_map.cpp."
+order = 663
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

@@ -1,0 +1,10 @@
+id = "MAC3b"
+title = "macos-port: Caller capture as a macro"
+group = "port"
+model = "opus"
+depends = ["MAC2"]
+note = "Scope: platform.h `EI_RETURN_ADDRESS()` / `EI_CALLER_FRAME()` (MSVC intrinsics / builtins), random.cpp, crt.cpp, core_streams.cpp; delete lib/return_address.h. Check: the debug build's traced draws name the caller (a draw-trace scenario compared release vs debug); goldens. From MAC2's review (build/reviews/mac2_macos_port.md, sections 1-3 for the reasons). Lands on main green alone; then merge main into macos-port at once so the branch keeps only macOS code."
+order = 1098
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

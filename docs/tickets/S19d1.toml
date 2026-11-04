@@ -1,0 +1,9 @@
+id = "S19d1"
+title = "rebirth_mod_stream_movies on the virtual-clock stream (SV5d6)"
+group = "standalone"
+depends = ["S19d"]
+note = "S19d's rebirth_mod_stream_movies waits for the music stream thread in real seconds (waitread) at the main menu with 'digest off', then 'digest 20' in the game, because the world updates the wait takes differed from run to run. SV5d6 (merged after S19d's base) steps the stream on the virtual clock: check whether the wait is then the same every run, and if so drop the digest guard and let the stream steps follow the game (also PlayMusic's jingle path in a zone)."
+order = 885
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

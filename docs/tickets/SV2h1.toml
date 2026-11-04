@@ -1,0 +1,10 @@
+id = "SV2h1"
+title = "CString outputs: ours first, the original's string after"
+group = "verification"
+depends = ["SV2h"]
+files = ["tests/verify/*"]
+note = "CString-output checks (exit_area, mfc_file, item_db, text_reader, script_load, ...) swapped to ours first, the original's string freed."
+order = 206
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

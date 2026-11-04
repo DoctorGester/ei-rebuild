@@ -1,0 +1,10 @@
+id = "R9c1"
+title = "Lost Direct3D 11 device: make the device, swap chain and textures again"
+group = "renderer"
+model = "opus"
+depends = ["R9c"]
+note = "A lost Direct3D 11 device is recreated: sokol device, swap chain and every image, with textures reuploaded from the decoded copies (docs/notes/renderer.md)."
+order = 8
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

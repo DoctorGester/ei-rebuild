@@ -1,0 +1,7 @@
+id = "SV2e"
+title = "script_copy: ours' CPlayerServer::Flush compresses to another size between runs"
+group = "verification"
+note = "Closed: script_copy's flushed stream varying between runs is heap-address or unwritten-byte content, covered by SV7b2 and SV7b5."
+order = 201
+status = "done"
+done = "2026-10-15"

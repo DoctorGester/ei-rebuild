@@ -1,0 +1,11 @@
+id = "S12b"
+title = "Standalone library: STLport sorts, pair, distance and the unclassified container rows"
+group = "standalone"
+size = 1.5
+depends = ["S12"]
+files = ["src/lib/stlp_algo.h", "config/library.csv"]
+note = "Standalone STLport sorts (12 __introsort_loop / insertion / heap instantiations, original's order kept) and 10 pair addresses ported; docs/notes/standalone.md."
+order = 566
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

@@ -1,0 +1,10 @@
+id = "R17a"
+title = "Nicer water: normal-mapped waves, Fresnel reflection of the sky, depth-based colour and shore foam"
+group = "renderer"
+model = "opus"
+depends = ["R16i"]
+note = "Keeps R16c2's vertex waves and the game's water levels (height queries read them). Adds in the water pass: scrolling normal maps for small waves, Fresnel blend of a sky / environment reflection (screen-space reflection of objects as a later option), colour and opacity from the water depth (terrain height under the water page vs the water level, both already resident from R16c), foam where the depth goes to zero, sun specular from R16i's lighting. Fog as now."
+order = 58
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

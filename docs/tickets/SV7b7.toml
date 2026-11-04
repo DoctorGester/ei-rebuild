@@ -1,0 +1,10 @@
+id = "SV7b7"
+title = "unmoto path reads uninitialised memory under EI_HEAP_JITTER=3,fill"
+group = "verification"
+size = 1
+depends = ["SV7a"]
+note = "NewParticleSource leaves the emission point unset until Attach, and an early tick drew ISAAC numbers from it: the source starts zeroed in ours and in the original (harness_leftovers bit 7)."
+order = 231
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

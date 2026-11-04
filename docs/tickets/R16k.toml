@@ -1,0 +1,11 @@
+id = "R16k"
+title = "Device mesh draws without the old path's per-corner work (TL vertices, clipping, fog) when the new renderer takes the mesh"
+group = "renderer"
+size = 1
+model = "opus"
+files = ["src/game/device_mesh.cpp src/game/device_draw.cpp"]
+note = "Found by R16h (profile of render_stats, image): DrawMesh 004E9010 / 004E9A50 (device_mesh.cpp) still fills a TL vertex per corner (FillCorners), clips meshes crossing the view (ClipTriangles, ToScreenClipped), fogs them (FogVertices) and submits them for every pass, though the new renderer draws every pass from the model-space hand-over (MeshPass takes it; the old path draws nothing). Game code reads only the projection's verdict and, with draw flag 1, the screen rectangle (BoundsOfProjected; for a crossing mesh BoundsOfVertices of the clipped vertices: keep the clip for flag 1 only), and the device's counters (vertexCount_, primitiveCount_, drawCount_). Skip the rest when render::Active(), keeping the passes' hand-over (DrawIndexed per pass with the same counts). Measure first: render_stats' fight and town main-thread CPU per frame (renderstats' new field) with and without. Check: goldens (picking reads the rectangles), render_scene / models / units samecapture A/B at 8 / 0.1%."
+order = 49
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

@@ -1,0 +1,9 @@
+id = "SV7d5"
+title = "seenCorpses: units note corpses in another order"
+group = "verification"
+size = 0.25
+depends = ["SV7d"]
+note = "seenCorpses order handled by SV7b1 (id-ordered ScriptGroup in PartySync, player_sync.cpp)."
+order = 228
+status = "done"
+done = "2026-10-15"

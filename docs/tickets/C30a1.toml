@@ -1,0 +1,8 @@
+id = "C30a1"
+title = "Frame time before/after C30a on R37's heavy scenes"
+group = "cleanup"
+depends = ["C30a"]
+note = "Optional measurement C30a left out: R37's scenario and probe (main's build/R37: r37_heavy.txt, probe.patch) on main before C30a and after, one game at a time, no display mode switch, runs of at most 60 s (split the scenario by scene). Report the frame and CPU times per scene (zone1 day/night, tilted, crowd). Dropped 2026-11-03: the before/after-C30a builds were 32-bit; C70 removed that build, so the comparison can no longer be made."
+order = 870
+status = "done"
+done = "2026-11-03"

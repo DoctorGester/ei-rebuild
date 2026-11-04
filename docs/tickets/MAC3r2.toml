@@ -1,0 +1,10 @@
+id = "MAC3r2"
+title = "macos-port: merge main back after MAC3e-h, MAC3k, MAC3l"
+group = "port"
+model = "opus"
+depends = ["MAC3g"]
+note = "Merge current main into macos-port and rebuild the macOS side on main's shapes (graphics_metal.mm on the slimmer graphics.h with KeepPresent/DropPresent/PresentAgain and UpdateBuffer; sokol-shdc GLSL; glyph_cases module), so only macOS-specific differences remain. Lists of what to change are in the MAC3 hand-backs (copied into the worker brief). Windows checks as MAC1; the user builds the Mac side."
+order = 1111
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

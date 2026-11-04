@@ -1,0 +1,9 @@
+id = "C18a"
+title = "Named data: the DirectX / DirectInput interface ids (GUID tables)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C18"]
+note = "C18's method (docs/notes/standalone.md 'Named data (C18)'): the 15 .rdata GUIDs of src/game/app_dxversion.cpp (6), input_mouse.cpp (6) and device.h (3) as tagged constexpr GUID definitions (named_data.py's TYPES has GUID), named after the interface (kIidDirectDraw7, kGuidSysMouse, kGuidXAxis ...). Check: named_data.py --check, goldens (every run creates the devices)."
+order = 370
+status = "done"
+done = "2026-10-22"

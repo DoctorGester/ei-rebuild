@@ -1,0 +1,8 @@
+id = "C20i"
+title = "gen_short_functions out of step with C20g's deletions"
+group = "cleanup"
+note = "From C20 batch 6: a rerun of tools/gen_short_functions.py adds 59 EI_REWRITTEN short functions (0050E410 Ret4 in vtable 0073DAA0's slots, 00500A90 LoadDword<0x34>, ...) whose lines C20g deleted as dead (9f96fba58): the generator takes every short game function minus library.csv / dead_code.csv / EI_REWRITTEN. Decide per function: list the dead ones in config/dead_code.csv (or have the generator skip functions only retired vtables point at), so a rerun writes the committed file again. Mechanical; Sonnet."
+order = 472
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

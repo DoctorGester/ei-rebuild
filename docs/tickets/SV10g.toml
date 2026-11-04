@@ -1,0 +1,9 @@
+id = "SV10g"
+title = "launch-vanilla.cmd plays the image from a clean folder too"
+group = "verification"
+depends = ["SV10f"]
+note = "SV10f moved the harness's image runs to run\\vanilla-clean (no dgVoodoo DLLs, the DirectX check's native path), but launch-vanilla.cmd still starts the image with run\\vanilla's game.exe, so a played session loads dgVoodoo's DDraw.dll and runs the DirectX probe. Point it at run\\vanilla-clean (run_all.clean_run_dir makes it; the script can call that or link the files itself)."
+order = 267
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

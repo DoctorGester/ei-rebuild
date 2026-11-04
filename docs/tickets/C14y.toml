@@ -1,0 +1,8 @@
+id = "C14y"
+title = "Drop the unused STLport includes: about 100 game files include lib/stlp.h / stlp_list*.h and use nothing of them"
+group = "cleanup"
+depends = ["C14t"]
+note = "Left by C14s. Files that include lib/stlp.h, lib/stlp_list.h or lib/stlp_list_refs.h without any stlp:: use (C14s's scan: acks_db.h, ai_map.*, app_helpers.h, base_manager.h, chunk_archive.h, class_templates.*, effects.h, item_db*.h/.cpp, lever*, model.h, party*.h, player_messages.h, script.h, texture.h, ui*.h/.cpp, unit_db*.h, world_data.h, ... about 100). stlp.h pulls in <string>, <cstring>, <new>, <type_traits> and game_data.h, so the scripted removal needs the missing direct includes added where the build asks. Best after C14t (stlp_list.h goes) and with C14x (stlp_deque, then stlp.h itself)."
+order = 513
+status = "done"
+done = "2026-10-28"

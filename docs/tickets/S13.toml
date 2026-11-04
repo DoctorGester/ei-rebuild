@@ -1,0 +1,10 @@
+id = "S13"
+title = "Standalone: compiler-generated helpers of game types"
+group = "standalone"
+size = 1
+files = ["src/game/*.cpp", "config/library.csv"]
+note = "Standalone compiler-generated helpers of game types (record copy constructors, destructors, aligned buffer constructors) ported: 46 of 49 forwarded rows, 9 of 17 data-pointed; rest in S13a."
+order = 540
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

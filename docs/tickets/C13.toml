@@ -1,0 +1,8 @@
+id = "C13"
+title = "Forwarders to rewritten code into direct calls"
+group = "cleanup"
+note = "User 2026-10-15: after hook retirement (S21), on the standalone, goldens as the check."
+order = 330
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

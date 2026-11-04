@@ -1,0 +1,10 @@
+id = "P9c"
+title = "Camp and hero screens paint each frame (P9 batch D)"
+group = "native-ui"
+model = "opus"
+depends = ["P9b"]
+note = "As P9a for: hero panels, hero screen (+click, create), trade panel, panel draws, item info, exchange, stats, layouts (message boxes), briefing, camp, credits. Check as P9a; ui_gallery_camp / ui_gallery_deals / ui_gallery_base frames."
+order = 777
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

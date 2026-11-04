@@ -1,0 +1,10 @@
+id = "S2"
+title = "Standalone: the 201 unported functions under five bytes"
+group = "standalone"
+size = 1
+files = ["src/game/short_functions.cpp", "include/ei/hook.h", "src/hook/hook.cpp", "tools/gen_short_functions.py"]
+note = "The 200 unported functions under five bytes are generated into src/game/short_functions.cpp (tools/gen_short_functions.py, 12 kinds), registered with EI_REPLACE_SHORT."
+order = 528
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

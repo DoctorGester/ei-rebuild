@@ -1,0 +1,10 @@
+id = "C38d"
+title = "The remaining one-line getters: clashing free names and out-of-line class member getters"
+group = "cleanup"
+model = "sonnet"
+depends = ["C38c"]
+note = "C38c left: free getters whose names clash with a class member or are called qualified (camera::CellSize, Cursor, ItemManager, Map, World, PanelOffset, VolumeSettingA/B, MovieVolumeSetting, LightLevelsSetting/Period, CurrentWorldTick in tests/vectors), and out-of-line member getters of the form T C::Name() { return field_; } (CParty::ItemConstructor / SpellConstructor / ItemFactory / SpellManager, CUnitServer::TamingStage, CWorldClient::TextureManager / ClientParticleManager, CEngineObject::ManagerContext, CUnit::IsDead / Radius ...: make the field public, callers read it; keep the virtual ones). Scripts: C38c/batch2.py as a base (scratchpad C38c)."
+order = 681
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

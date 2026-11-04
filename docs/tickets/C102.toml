@@ -1,0 +1,10 @@
+id = "C102"
+title = "Particles style 2: literals instead of EI_ macros, one random draw, typed fields"
+group = "cleanup"
+model = "opus"
+depends = ["C101"]
+note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Items P2, P3, P8. Replace the 297 #define EI_* constants: the literal where the number is the meaning (token-identical), a constexpr with a meaning-name otherwise, one kPi; fix the wrong names (EI_SCALE_0_03 is 0.6*2^-32, EI_FUNNEL_PI_F is 5.0f, three different '2 pi' scales). Random draws: g_clientRandom.Range(lo, hi) where bit-identical (19 sites plus Between and RandomInBox; the review lists which k*2^-32 scales are exact); the inexact scales as named constants with a static_assert on the bits; delete particle::Next, Signed, Between, EI_P_SCALE_*. P3: bool additiveBlend (15 StoreBytes), int emitState, plain float literals instead of F(bits) and StoreBytes into floats; delete particle::Bits. P8: alpha tables sized to their data, with a note where a read past it is reachable. Any change in a particle golden is a bit slip. Style only: goldens the same, float operation order untouched, no new forwarders."
+order = 1032
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

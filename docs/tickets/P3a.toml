@@ -1,0 +1,10 @@
+id = "P3a"
+title = "Native menus and dialogs"
+group = "native-ui"
+size = 1
+depends = ["P2"]
+note = "Main menu, message box, difficulty, options, objectives, credits text, escape-menu backdrop and save picture."
+order = 118
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

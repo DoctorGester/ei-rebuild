@@ -1,0 +1,9 @@
+id = "SV7d"
+title = "Saves in goldens, decoded field by field"
+group = "verification"
+size = 1
+note = "golden.py compares decoded saves (harness_saves/<save>/*.sav, field by field with ids instead of pointers) at each checkpoint; unwritten-byte fields left out by rule (SAVES_KNOWN)."
+order = 216
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

@@ -1,0 +1,11 @@
+id = "I12"
+title = "ui_mp_host times out when two batches run it at once"
+group = "harness"
+size = 0.5
+model = "sonnet"
+files = ["tools/work_sched.py", "tools/run_all.py", "tests/scenarios/ui_mp_host.txt"]
+note = "ui_mp_host timeout is 120 s in ui_mp_host.txt (36-67 s on a busy machine); not a port clash."
+order = 304
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

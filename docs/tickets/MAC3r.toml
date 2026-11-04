@@ -1,0 +1,10 @@
+id = "MAC3r"
+title = "macos-port: merge main back after MAC3a-d, MAC3i, MAC3j"
+group = "port"
+model = "opus"
+depends = ["MAC3j"]
+note = "Merge current main into macos-port and adapt the branch's macOS code to what main took, so only macOS-specific differences remain in those files. Lists of what to change are in the MAC3 hand-backs (copied into the worker brief). Windows checks as MAC1; the macOS build cannot be built here, so the user checks it on the Mac."
+order = 1109
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

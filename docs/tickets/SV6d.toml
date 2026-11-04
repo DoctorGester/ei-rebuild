@@ -1,0 +1,10 @@
+id = "SV6d"
+title = "Build-time check: one registration per address"
+group = "verification"
+size = 0.5
+files = ["tools/check_registrations.py", "build.cmd"]
+note = "Build-time check (like check_forwarders, run from build.cmd) fails when one address has two EI_REPLACE / EI_REPLACE_STANDALONE registrations or two EI_VERIFY wrappers, naming both files."
+order = 205
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

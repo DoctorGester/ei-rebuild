@@ -1,0 +1,10 @@
+id = "R37b"
+title = "PreparePointShadows without per-frame maps and repeated spheres"
+group = "renderer"
+model = "opus"
+files = ["src/render/render_point_shadows.cpp"]
+note = "R37: PreparePointShadows costs 0.44 ms a frame in the town at night with a crowd of 12 (0.14 ms in the still town; Rebirth, 4K), the largest single renderer step on the CPU. Per frame it builds unordered_maps (strengths, models, holding per light, fronts with a vector per unit), computes BoxSphere (8 corner transforms) for every caster mesh and again for every unit mesh, and multiplies each mesh's matrix into landscape space in double. Keep the containers across frames, compute each mesh's sphere once (the caster and unit loops share it), the unit fronts once per object, and drop casters by light reach before the face tests. Expected 0.44 -> ~0.1 ms (crowd). Sibling of R37a (same file: one worker can take both). Check: render_lighting frames identical (0 pixels differ). Done (8dcbc2527): lists kept across frames, one sphere per mesh shared by casters and units, BoxSphere one root of the largest square, squared-distance tests with a root only near the edge (NotFurther; the image CRT's sqrt is a call). Same-frame A/B with the old function (temporary probe, town at night, Rebirth 4K msaa 8): still town 0.175 -> 0.067 ms, crowd of 12 0.65 -> 0.24 ms (machine loaded; R37's quiet before 0.14 / 0.42, after runs 0.064 / 0.17); params, scene slots, units' fronts and landscape matrices bit-equal every frame; render_lighting (vanilla) 13 frames 0 pixels differ from main's. A reach drop before the spheres was tried: slower (the extra roots)."
+order = 888
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

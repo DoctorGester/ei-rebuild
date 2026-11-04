@@ -1,0 +1,9 @@
+id = "R43d2"
+title = "Video start before GameMain so the device thread overlaps the game's start-up"
+group = "renderer"
+depends = ["R43d1"]
+note = "From R43d1. The background device and pipelines can only start after SDL's video (platform::RegisterWindowClass: SDL_RegisterApp, then InitSubSystem VIDEO), which GameMain does a few dozen ms before the renderer's start, so Start waits 270-390 ms for the thread. Split the platform call (class name and instance only) and call it from main() before render::PrepareDevice to hide most of the device's ~300 ms; keep the one-instance check and the handler where they are. Check the start-up from the work board's timing runs."
+order = 939
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

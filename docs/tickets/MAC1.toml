@@ -1,0 +1,9 @@
+id = "MAC1"
+title = "macos-port branch: merge main, delete unused code, Windows build and goldens green"
+group = "port"
+model = "opus"
+note = "User 2026-10-30: the macos-port branch (Kirill's Mac session, 7 commits on 0b5c802d9: SDL3 + sokol Metal on macOS, platform::graphics with native backends, HLSL -> GLSL for sokol-shdc, compiler/OS differences into src/platform) went in the right direction but needs work. This ticket: merge current main into it (main has since moved: H40 removed the harness's game.exe side and ei_harness.dll; W12 one layout; C68 removed the C:\\ seed-file search, so the branch's platform_win32_random.cpp seed lookup should go and IsaacRandom::Seed use main's version), resolve every conflict toward main's behaviour, delete code the merge leaves unused (dead helpers, port scaffolding, tools nothing calls), and make the Windows side green: build verify / release / x64 / verify-x64 at 0 warnings and every build check, main suites the same as main (image 152 same / 4 without, Rebirth 32 / 0, x64 152 / 4). The macOS side cannot be built here: keep the posix / Metal sources compiling by reading (no Windows-only call in shared code, includes balanced) and say what you could not check. Coordinator's quick review (fix what is cheap now, list the rest for MAC2): graphics.h exposes D3D notions to every backend (kDeviceRemoved = DXGI 0x887A0005, ChainFlagsFor / SyncIntervalFor / PresentFlagsFor, MakeMipmappedImage 'D3D11 needs'); a formatter (tools/format_changed.py) reflowed one-line functions into blocks against the repo's style (vecmath.h operators); __forceinline -> inline in vecmath.h (check the release build's float code and goldens); tests/ui_canvas_glyphs.h moved out of ui_check. Work on a local branch from origin/macos-port; push the result to origin macos-port (fast-forward, no force) when green."
+order = 1094
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

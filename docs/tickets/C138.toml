@@ -1,0 +1,10 @@
+id = "C138"
+title = "Combat style 3: spellfx helpers to values, typed spell fields, initialisers"
+group = "cleanup"
+model = "opus"
+depends = ["C136"]
+note = "Style review round 4 (2026-11-04, https://claude.ai/artifact/BzXaX58kMcB9E2dwRuhN2U, reviewer reports in build/style_review/round4/<area>.md; user: file them all). Items K3, K4 (combat.md A3, A9, A10, A11, A15). spell_effect_internal.h: ConstPtr, PowerFactor, AreaCurve, DivideMultiply, MultiplyAdd, PowerToFloat, PlanarLength, WallSpan, HalfSpan, HeightPlus/Minus/PlusProduct, FtolOf take and return values (exact by construction: inline bodies are the expressions; one helper per commit, goldens each step); the kGridHeight member pointers become calls; unused Bits. SpellRecord::extraValues as lightColor/lightRange/lightRiseDivisor converted in Serialize; MapEffect value/strength, weatherFactor, path limit and kNoPointZ as floats. Default initialisers for OrderPlan (reset = plan = {}) and UnitServer (ResetController's 75 lines shrink to assignments; dead stores go); SpellEffect visual/sound/light as Ref<T>, SetVisual called. Style only: goldens the same, float operation order untouched (any float rewrite exact and said why), no new forwarders, normal C++ classes; gameplay code stays (technical dead code goes)."
+order = 1069
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

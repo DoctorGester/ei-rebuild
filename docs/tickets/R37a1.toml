@@ -1,0 +1,9 @@
+id = "R37a1"
+title = "Point shadow faces: units drawn over a kept still layer without a shader copy"
+group = "renderer"
+depends = ["R37a"]
+note = "R37a keeps faces but a face holding a unit (idle animations move every unit every frame) is drawn whole: town at night 139 of 174 point draws, crowd 417 of 450. Two layers a face (still casters in an image of their own copied into the atlas by a depth-writing quad, units over it) cut draws to 101 / 378 but the copies cost GPU (point map against the sun map 0.55 -> 0.8). Try the faces as array layers (a 2D array texture of 6 x 4 layers for both layers; the receivers' point_seen indexes the layer instead of the atlas tile), so a still layer reaches the atlas by a GPU copy of the whole layer (check SDL_GPU allows copying depth textures; otherwise a depth-writing quad) and the faces clear with a load-op clear. The numbers above were measured on D3D11 before R43e: re-measure on SDL_GPU (gpu.h) first. Measure with alternating kept / all-drawn runs normalised by the sun map's time (the machine's noise is large). Check: render_lighting within 8 / 0.01% of main."
+order = 896
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

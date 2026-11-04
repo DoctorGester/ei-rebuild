@@ -1,0 +1,8 @@
+id = "F1"
+title = "Unknown fields: world, combat, effects, spells"
+group = "fields"
+note = "Unknown fields in world, combat, effects and spells named or marked unused_XXX (181); meanings in cleanup-world.md / cleanup-effects.md."
+files = ["world.h", "combat.h", "spell.h", "effects.h", "world_effect.h", "sky_object.h", "lightning / trap / lever / cage", "particle_emitters.cpp"]
+order = 152
+status = "done"
+done = "2026-10-14"

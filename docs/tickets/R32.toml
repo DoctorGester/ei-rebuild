@@ -1,0 +1,8 @@
+id = "R32"
+title = "Cursor on the GPU: shapes uploaded once, no per-frame CPU composite"
+group = "renderer"
+note = "User asked 2026-10-29 whether any CPU composition is left in the UI. render::Cursor (render_blit.cpp) builds the cursor's RGBA from the picture and its mask on the CPU every frame (CursorPicturePart, up to 256x256), then CursorBlit looks it up in the image cache or uploads it. Upload each cursor picture with its mask as one texture when it loads and draw the from-rect as a sub-rectangle (the mask test in the shader if the mask is not the picture's alpha); the cursor thread (render_cursor.cpp) draws the same texture. Check: render_cursor_present, the ui_* frames, renderstats cursor image requests 0 after the first frame."
+order = 102
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

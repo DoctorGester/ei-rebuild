@@ -1,0 +1,8 @@
+id = "C63f"
+title = "Containers, AI memory: AIHeardCalls / AIReports composition"
+group = "cleanup"
+note = "Left from C63a (it excluded them as C60a's; C60a is done and they still inherit std::vector, unit_ai.h). Hold the vector as a member: about 19 sites outside unit_ai.h (AIMemory Load/Save resize and walk them, unit_ai_senses / unit_ai_targets read them). Goldens unchanged. Done: both hold their vector (private), with Clear, size (the harness digest reads it), Load / Save, and AIReports Tick / Forget; AIMemory calls those. Goldens 122 the same / 28 without a golden."
+order = 877
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

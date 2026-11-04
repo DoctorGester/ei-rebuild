@@ -1,0 +1,11 @@
+id = "C30e10"
+title = "SSE2: geometry and figures (24 files)"
+group = "cleanup"
+model = "opus"
+depends = ["C30e4"]
+files = ["src/game/core_maths.cpp", "src/game/core_transform.cpp", "src/game/core_transform.cpp", "src/game/figure_bones.cpp", "src/game/figure_part_draw.cpp", "src/game/figure_mesh.cpp", "src/game/figure_mesh.cpp", "src/game/figure_part_draw.cpp", "src/game/figure_part_draw.cpp", "src/game/figure_part_draw.cpp", "src/game/link_figure.cpp", "src/game/link_loader.cpp", "src/game/link_mesh_draw.cpp", "src/game/core_maths.cpp", "src/game/projection.cpp", "src/game/model.cpp", "src/game/model_db.cpp", "src/game/object3d_figure_setup.cpp", "src/game/object3d_halves.cpp", "src/game/core_maths.cpp", "src/game/projection.cpp", "src/game/core_maths.cpp", "src/game/core_maths.cpp", "src/game/projection.cpp"]
+note = "C30e's method (docs/notes/cleanup-tooling.md, 'The x87 files to SSE2 (C30e)'): the files of this group in CMakeLists' EI_X87_GAME_SOURCES to SSE2 with goldens unchanged (verify and --rebirth-only): PC24 float maths as float (double registers / D() to float, wide double constants through an exact helper, x87::fistp -> lib::RoundEven, Ftol -> int64 truncation where NaN can arrive, CopyBits -> =, FromUnsigned -> double), the C30e scratch scripts (objscan / classify / sse2check) on the objects before and after, an equivalence test for any helper; then delete the group's lines from the list. core_transform_math (D() 97, CiAcos, fpatan), quaternion (D() 23, fsin / fcos, CiAcos), maths, model's sin / cos, matrix / projection / view matrices, the figure and link meshes: picking reads the projected meshes, so exact."
+order = 909
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

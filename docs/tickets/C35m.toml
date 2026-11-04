@@ -1,0 +1,9 @@
+id = "C35m"
+title = "C35 heap wrappers, the rest: gamecrt::operator_new_as / operator_new_array / operator_delete in the script's MFC records and the tagged record arrays to new / delete, then crt.h's gamecrt heap deleted"
+group = "cleanup"
+depends = ["C14z"]
+note = "Done (2026-10-28): no users were left (C14z / C35g had moved them all); crt.h's gamecrt::operator_new / operator_new_as / operator_new_array / operator_delete deleted (crt.h 86 -> 77 lines), with deleting_destructors_400.cpp (34 lines: its DeletingDestructor template had no instantiations since C28k made the messages / sessions real classes) and crt.cpp's unused malloc.h / new / corecrt_startup.h includes. Notes (rewrite guide rule 6, cleanup-tooling, core, standalone, ui, world) updated. Image suite: 145 runs, 120 goldens the same plus effects, which crashed once at quit (C35m1) and passed 3 reruns with its golden the same."
+order = 521
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

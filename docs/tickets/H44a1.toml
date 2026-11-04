@@ -1,0 +1,6 @@
+id = "H44a1"
+title = "Live check of the automatic recording cut"
+group = "harness"
+depends = ["H44a"]
+note = "H44a cuts a live recording at 3000 frames (live.txt: recordinput live cut 3000) where the battle screen takes input and no key or button is held; only the driven cuts (record/cut.txt, cut_auto.txt) ran in H44a, since a live session needs a player. Record a session of two minutes with play.cmd record <name> and check: the cut happens at a quiet moment, the player's input during the load is dropped without a hitch, each part replays and passes --golden twice. Not carried over a cut: console state (an unlocked script console), the camera; Rebirth's data (parts are vanilla-only like the other recordings)."
+order = 840

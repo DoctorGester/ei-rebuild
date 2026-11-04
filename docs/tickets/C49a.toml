@@ -1,0 +1,10 @@
+id = "C49a"
+title = "Ref<T> for the network RefPtr family and the interface aliases"
+group = "cleanup"
+model = "opus"
+depends = ["P8"]
+note = "C49 follow-up. The RefPtr family in core_refcount.h (RefPtr, RefPtrTo, CountedRefPtr, SharedRefPtr, SharedRefTo, CountedRefTo; 35 non-interface files, mostly net_* and ScriptEffect) to Ref<T>/HeldRef<T>; the interface files read their .ptr, so after P8 (or with C54). Then drop the aliases HeldObject (engine_object.h, for ui_camp.cpp) and CountedPtr (core_refcount.h, for ui_briefing.h), move CItem::spell_ to Ref<CSpell> (ui_camp_deals.cpp reads it with auto*), and the 25 ++/-- count sites in ui_* to AddRef/Release. Goldens unchanged.  (C54: ui_camp.cpp no longer uses HeldObject and the alias is gone; the camp's ++refCount_ sites are Ref/AddRef.)"
+order = 697
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

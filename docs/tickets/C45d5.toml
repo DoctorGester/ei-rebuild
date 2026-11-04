@@ -1,0 +1,10 @@
+id = "C45d5"
+title = "Magic numbers: animation keys"
+group = "cleanup"
+model = "opus"
+depends = ["C45d"]
+note = "The figure animation key and flags: action kind (key & 0x3C0000), wound bits 0x400000 / 0x800000, side bits (flags & 0x1C00000), the animation number (key >> kNumberShift & 0xFF; the skill sounds), the empty step (animation / variant 0xFF). unit.cpp, acks_db.cpp, unit_motion_tick.cpp, unit_update.cpp, combat_motion.cpp, combat_update.cpp, unit_client_animation.cpp, unit_client_sounds.cpp, map_object_parts.cpp (~46). See build/style_review/magic_numbers.md (the C45d survey; its class list has every site). Kinds as enum class in the owning header, flag words with lib::kBitFlags (src/lib/bit_flags.h); the |= / &= ~ writes of the same words go too. No signature changes (C51 owns them): an int parameter is cast once at its switch. Names from the data / strings; meanings they don't give are recorded in the header comment, not guessed. Goldens unchanged."
+order = 712
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

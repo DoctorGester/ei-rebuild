@@ -1,0 +1,8 @@
+id = "T2d"
+title = "Goldens to record again after T2 scenario timing changes"
+group = "harness"
+size = 1
+note = "Closed: every golden has been re-recorded since the T2 timing changes (SV7b1, SV7b3, SV7d)."
+order = 301
+status = "done"
+done = "2026-10-15"

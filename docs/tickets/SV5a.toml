@@ -1,0 +1,10 @@
+id = "SV5a"
+title = "Coverage: scenarios for the next ranked gaps (camp crafting, magic trap victims, AI modes, item info)"
+group = "verification"
+size = 1
+depends = ["SV5"]
+note = "Scenarios for the next ranked coverage gaps (camp crafting, magic trap victims, AI modes, item info); collect with EI_COVER=hooks and tools/coverage.py collect --add."
+order = 183
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

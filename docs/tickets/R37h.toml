@@ -1,0 +1,10 @@
+id = "R37h"
+title = "The battle screen's 0.3 ms of GPU at the frame's start (interface canvases): measure, then fix"
+group = "renderer"
+model = "opus"
+files = ["src/render/render_ui.cpp", "src/render/render_perf.cpp"]
+note = "R37: on the battle screen (zones; not the town's brief screen) the timestamps put 0.27-0.38 ms of GPU time on RunCanvasCommands at the frame's start (13 draws, 0.02 ms CPU), 15-20% of the GPU frame. Either the canvases' passes really cost that (large canvas images at 4K loaded and stored) or it is an idle gap between two stamps (a flush). Find out with a GPU capture (PIX / Nsight / RenderDoc on the release build) or stamps around each canvas pass; fix if real (fewer passes, smaller canvases), else note it. Ties in with the native interface (P track)."
+order = 894
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

@@ -1,0 +1,9 @@
+id = "F5a"
+title = "Duplicate declarations F5 found (lever record, sound system view, waypoint names)"
+group = "cleanup"
+files = ["app_frame.cpp", "lever.h", "bink_video.cpp", "sound.h", "map_spec.h", "world_server.cpp", "player_client.h"]
+note = "Duplicates merged / renamed: DeviceRecord = LeverRecord (lever.h), bink_video's SoundSystem view = CSoundManager, Waypoint::wait = AILook::time, IsLocal tests possessedId_ < 0, sendParty_."
+order = 332
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

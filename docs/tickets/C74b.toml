@@ -1,0 +1,10 @@
+id = "C74b"
+title = "Vector maths b: one Dot/Length/Distance/Transform; the original's summation orders dropped"
+group = "cleanup"
+model = "opus"
+depends = ["C74"]
+note = "User 2026-11-03. The game's goldens are our own (H40), so the summation orders kept to match game.exe bit for bit (Sum3 XYZ/ZYX/ZXY, DotZYX.., LengthSquaredZXY.., the *Unrounded double helpers, MatrixRows' per-row order, Matrix4::Multiply's per-element orders, SumOfProducts, written-out dot/length/cross/matrix sums in game code) have no reason left. Collapse them to one Dot, LengthSquared, Length, Distance(Squared), Normalised, Cross, Transform, Multiply each, and rewrite the remaining written-out sums of products in src/game and src/render to them. Results change in the last bits, so goldens differ: re-record once per batch with --reason, after checking that every differing scenario still plays the same (positions within a small tolerance at checkpoints, same outcomes: H45's diffs if it has landed, else compare digests by hand on a sample). Multiplayer is between our builds only, so both sides change together. Docs: vector-math.md shrinks to what the types do."
+order = 985
+status = "done"
+started = "2026-11-03"
+done = "2026-11-03"

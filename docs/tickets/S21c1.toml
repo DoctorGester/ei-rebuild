@@ -1,0 +1,8 @@
+id = "S21c1"
+title = "Original-code goldens no longer repeat (--no-hooks --golden)"
+group = "standalone"
+note = "S21c (2026-10-16): work.py test --no-hooks --golden: 6 goldens differ (combat, ground_prints, sandbox_actions, unit_ai, zone_gz15h_tornado vanilla; effects_bow Rebirth: random counts / unit fields from world update 60-840), a --fresh rerun of those six: 2 others differ (zone_gz15h_tornado R, effects_bow R); effects_bow R also failed clickunit twice. 0 hooks installed, so not S21c. S21a's --no-hooks run at ~04:00 had 0 differ; WB14 (loopback binds, merged 04:18) changed the harness since. Find what makes the original's runs vary (the digest's first difference, randtrace between two fresh runs); the image's suite is unaffected (168 the same). docs/notes/standalone.md, S21c."
+order = 603
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

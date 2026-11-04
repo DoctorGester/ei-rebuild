@@ -1,0 +1,10 @@
+id = "C20q1"
+title = "static_init: one visitor left (Run): StaticInitialisers(Do&) as plain code"
+group = "cleanup"
+model = "sonnet"
+files = ["tools/gen_static_init.py src/standalone/static_init.h src/standalone/static_init.cpp src/standalone/static_exit.cpp"]
+note = "C20q (2026-10-28) deleted static_init.h's Check visitor (verify_static_init.cpp, its only user, was gone; nothing instantiated it but the generated line). With Run alone the Do& template, Code's static members and the d. prefix of every generated statement are scaffolding: let gen_static_init.py write plain calls and stores (Run's Local frame and AtExit as functions) and drop the template; static_exit.cpp likewise. Needs game.exe to regenerate (the tool reads it); check: gen_static_init output unchanged in effect, image suite --golden."
+order = 519
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

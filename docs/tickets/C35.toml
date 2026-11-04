@@ -1,0 +1,8 @@
+id = "C35"
+title = "Custom CRT down to what behaviour needs: std / the real CRT for file, string, sort, iostream and exit code"
+group = "cleanup"
+note = "Split into C35a-l; the open pieces are C35g and C35k."
+order = 486
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

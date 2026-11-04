@@ -1,0 +1,9 @@
+id = "C14p"
+title = "Move mfc::CString (mfc.h) into the tests: the vector recorders' and replays' layout of game.exe's CString"
+group = "cleanup"
+depends = ["C14i"]
+note = "After C14i no src/ code uses mfc::CString or PlainElements<CString> (mfc.h). The users are tests/vectors' Original* views (record_script*.cpp, record_stats.cpp, script_original.h, script_load_vectors.h), and replay_mfc.cpp gives it its members. Give those views a small local layout struct (a pointer to the characters with the CStringData header before it) in a tests header and drop the class from src/lib/mfc.h. record_*.cpp are harness vector files, so the EI_VECTORS recording runs (with H30d)."
+order = 497
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

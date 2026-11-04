@@ -1,0 +1,10 @@
+id = "R9b3"
+title = "Dead old-device and game.exe code-byte paths out"
+group = "renderer"
+model = "sonnet"
+depends = ["R9b2"]
+note = "R9b2 (2026-10-21) leftovers: the dead game.exe code-byte reads (app_frame.cpp 004580D7, script_parse 004CF69B; game.exe runs only the original since S21), the vertex-buffer batch code in device_draw.cpp / device_mesh.cpp (no batch ever gets a vertex buffer; DrawIndexedPrimitiveVB at device_draw.cpp:32 would now end the run), and device.h's interface-forwarding branch if only the harness uses it (keep what game.exe runs need). Checks: goldens both installs, the original suite, build checks at 0."
+order = 55
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

@@ -1,0 +1,9 @@
+id = "R16c2"
+title = "Water waves in the terrain vertex shader"
+group = "renderer"
+depends = ["R16c"]
+note = "docs/notes/renderer.md section 13 item 3. After R16c zone1 still uploads about 0.2 MB of terrain a frame, mostly its water pages: SectorData::Animate (006C3E80) moves every water vertex and sets the crests' specular on the CPU each tick. Base positions and the wave parameters (phase, direction, height, material priority and kind, the sine table) on the GPU and the lift in the vertex shader would leave only relit colours. Risk: float differences against the CPU waves (x87 sine table lookups); the game still reads heights on the CPU (HeightAt). Check: render_scene, terrain_water_load frames with the cache on / off; zone1 frames at 8 / 0.5%. Measured (R16c2): GPU waves not built, about 0.03 ms a frame to gain. The waves option is off in the harness (EnableWaterWaves 0): zone1's water uploads are animated tiles' texture coordinates (174 / 221 KB vanilla / Rebirth, writes 0.03-0.04 ms). With the option on Animate costs 1.0-1.2 ms in zone1, which stays on the CPU (the game reads the heights); GPU waves would take only the waves' share of the writes and the crests' specular. Built instead: TerrainChange (Rebuilt / Moved / WaterMoved), a page re-reads only for its own kind: zone1 34 -> 4.7 pages, 0.11 -> 0.05 ms a frame (Rebirth 0.13 -> 0.06); terraincache off now builds every page. Follow-up R16c3 (Animate's loop)."
+order = 43
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

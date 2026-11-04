@@ -1,0 +1,10 @@
+id = "R9c"
+title = "Movies, loading screen, full screen, gamma and lost device through Present"
+group = "renderer"
+model = "opus"
+depends = ["R9b"]
+note = "Movies, loading screen, full screen, gamma (shader step), lost device and WM_ACTIVATE, and the software cursor between frames go through Present."
+order = 4
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

@@ -1,0 +1,9 @@
+id = "SV3b"
+title = "Saved games differ byte for byte between runs of the original"
+group = "verification"
+size = 0.5
+files = ["tools/golden.py"]
+note = "Closed as obsolete: superseded by SV7/SV7d (heap layout is not preserved)."
+order = 175
+status = "done"
+done = "2026-10-15"

@@ -1,0 +1,11 @@
+id = "S21"
+title = "Retire the hook builds"
+group = "standalone"
+size = 2
+model = "opus"
+files = ["src/hook", "tests/verify", "build.cmd", "tools/run_all.py"]
+note = "The default suite is the image's (installs standalone and standalone-rebirth); first step of the hook retirement (docs/notes/standalone.mdsection 5)."
+order = 593
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

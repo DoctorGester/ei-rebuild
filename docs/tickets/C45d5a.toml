@@ -1,0 +1,9 @@
+id = "C45d5a"
+title = "Animation keys: the composite key constants on the new names"
+group = "cleanup"
+depends = ["C45d5"]
+note = "C45d5 named the key's kinds, flags, skill numbers and blow sides in map_object_figures.h (AnimationKind, AnimationKeyFlag, SkillAnimation, BlowSide; layout comment there). Still local hex: combat_steps.cpp's attack / cast / death / fall keys (kKeyAttack 0x90000, kKeyCast*, kKeyDeath 0x6000000, kKeyFall*, the height bands 0x1000000..0x3000000, kKeyFlag10000) and the movement mode bits (LeaveBits / EnterBits, CUnitServer::MoveModeMask 0x30000 / 0x20000 / 0x10000 / 0x8000; unit_client_update.cpp kKeyMovement*), combat_motion.cpp kKeyIdle 0x80580000, unit_client_animation.cpp kKeyNotHero / kKeySpecialIdle, map_object_animation.cpp kKeyEndMask / kKeyLoops and combat_order_setters.cpp kEmoteKeyBit (= AnimationKeyFlag::Looped), the weapon-bit shifts in combat.cpp WeaponTypeMask / combat_steps.cpp WeaponBit (AnimationWeaponBit). Names from the .adb animation names (scratch reader: dump database.res's *.adb names with keys) where they give one. ui_* FindSkillAnimation numbers (briefing / menu gestures) are UI-track. Goldens unchanged."
+order = 721
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

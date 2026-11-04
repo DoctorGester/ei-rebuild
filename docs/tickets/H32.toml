@@ -1,0 +1,11 @@
+id = "H32"
+title = "frame_store.py unpack writes an empty BMP"
+group = "harness"
+size = 0.1
+model = "sonnet"
+files = ["tools/frame_store.py"]
+note = "Found in R34a: 'python tools/frame_store.py unpack X.bmp.z' opens X.bmp for writing before read_frame(X.bmp) reads it, so read_frame finds the (now empty) plain file first and the result is 0 bytes. Read first, then write; a test in tools/test_frame_store.py."
+order = 321
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

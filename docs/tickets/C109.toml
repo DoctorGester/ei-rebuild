@@ -1,0 +1,9 @@
+id = "C109"
+title = "Networking style 1: message and state enums, methods named by meaning"
+group = "cleanup"
+model = "sonnet"
+note = "Style review round 3 (2026-11-04, https://claude.ai/artifact/KKkymAu9dSoUWGGcbsLwPa, digests in build/style_review/round3/*.md; user: file the tickets). Item N1 (Y3). enum class ServerMessage/ClientMessage in player_messages.h; SendWeather instead of SendState71 (26 hex-named methods: SendState02/70-73, SendPosition04/0F, Send17, SendObject0A/14/43/0B, SendPair16/18/19, SendText0D/13, SendValue15/12, OnMessage37, SendFlag10, SendLeave04, OnWorldBlock3/5); id 8's two names become one; 45 raw WriteByte(0x81)/messageType=0x.. sites; tables keyed by the enum. Connection state enum class per subclass (kStateLoggedIn is 1 in player_client.cpp:51 and 2 in player_client_handlers.cpp:30; kStateSendingCamera means different things), the field moved to its subclass. PacketKind, AwardKind, RefusalReason, NetField, ServerEntry kind; durations and the port in decimal. Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes."
+order = 1040
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

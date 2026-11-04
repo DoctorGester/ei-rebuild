@@ -1,0 +1,8 @@
+id = "C35d"
+title = "C35 iostream: the console's eight VC6 ostreams to std::ostream or a small writer of our own, crt_iostream deleted"
+group = "cleanup"
+note = "Survey 2026-10-28: libcrt::Ostream 19, FlushManipulator 19, Manipulator 10, Ostream::Apply 6, PutChar 5, EndlManipulator 2, Streambuf (the console's streambufs derive from it), Ios; crt_iostream.cpp/h 608 lines with compiled stand-ins of the exe's ios / ostream tables and the named kOstreamVirtualBases, g_sharedLock, g_liveIosCount. The console's ostreams are constant-initialised statics game.exe's data points at (crt_iostream.h): find what still reads them by address first. PutDouble formats through Vsprintf (C35c)."
+order = 491
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

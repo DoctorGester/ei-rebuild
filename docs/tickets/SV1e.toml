@@ -1,0 +1,10 @@
+id = "SV1e"
+title = "Native runs fail at start-up with 'DirectX 7 or higher required' on the real clock"
+group = "harness"
+size = 0.2
+model = "sonnet"
+files = ["tools/run_all.py"]
+note = "Closed: native runs no longer fail with 'DirectX 7 or higher required' on the real clock; covered by PF3."
+order = 294
+status = "done"
+done = "2026-10-15"

@@ -1,0 +1,9 @@
+id = "R49a"
+title = "A creature party member made by AddUnitToParty draws untextured in the next zone (original bug?)"
+group = "renderer"
+files = ["src/game/party.cpp", "src/game/world_units.cpp"]
+note = "User 2026-11-04: confirmed in the original (0065F5F0 leaves texts[3]/[4] empty, 006621F0 never fills them); user says fix it. Trigger: zone4.mob adds Zone4Hadagans.mob while Q29 runs; its LizardCage lever adds DrPlen. Fix: copy the joining map unit's skin texture names into the record; scenario that adds a placed unit, changes zone and checks the colour."
+order = 950
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

@@ -1,0 +1,9 @@
+id = "PL3"
+title = "Platform layer: files, folders and file mapping"
+group = "port"
+model = "sonnet"
+note = "After PL1 and H33g. lib/file_io moves under the platform file header (File, FileFind, attributes, times) and the file-mapping users (resource_stream.cpp, resource.cpp: CreateFileMapping / MapViewOfFile / FlushViewOfFile) get a platform MappedFile. No raw HANDLE in game code. Goldens unchanged (seek and error behaviour)."
+order = 855
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

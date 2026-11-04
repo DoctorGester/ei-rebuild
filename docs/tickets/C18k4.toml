@@ -1,0 +1,10 @@
+id = "C18k4"
+title = "Named data: the remaining static-init CStrings and counted pointers (StaticObject pattern)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C18k"]
+note = "Done: ui_objectives CString, bink loading holder, 3 stlp lists, 5 resource databases, lever table, unit/skill databases, party manager, saved parties, spell footprint, party id set, unread set named (game data addresses 1928 -> 1878). Skipped: C19 vtable objects; options/GameFlow/CCursor/CInterface3D filed as C18k5."
+order = 391
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

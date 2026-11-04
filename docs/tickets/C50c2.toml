@@ -1,0 +1,8 @@
+id = "C50c2"
+title = "Item records: virtual destructor, no head-only delete"
+group = "cleanup"
+note = "C50c follow-up. ItemRecordHead (item_db.h) is polymorphic (Kind) with a non-virtual out-of-line destructor; item_constructor.cpp's DeleteRecord destroys only the head of a Weapon/Armor/Quick/Quest/Loot record and frees it (the original leaks the derived members). Give the head a virtual destructor, delete the records through it (or hold the temporary record in a std::unique_ptr / a std::variant by class), drop the empty out-of-line destructors (item_db_records.cpp) so the records get implicit moves. Check: goldens unchanged (the item constructor runs in every scenario that makes items)."
+order = 724
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

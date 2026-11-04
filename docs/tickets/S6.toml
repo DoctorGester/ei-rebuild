@@ -1,0 +1,10 @@
+id = "S6"
+title = "Standalone library: MFC CArray<T>"
+group = "standalone"
+size = 1
+files = ["src/lib/mfc_array.h", "src/lib/mfc.h", "src/lib/containers.h"]
+note = "Standalone library MFC CArray<T> (~200 instantiations: SetSize, constructors / destructors, Copy, SetAtGrow, Add, RemoveAt ...) in src/lib, registered in config/library.csv."
+order = 532
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

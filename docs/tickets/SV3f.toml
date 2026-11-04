@@ -1,0 +1,9 @@
+id = "SV3f"
+title = "Client unit orientation differs from the original by an ulp"
+group = "verification"
+size = 0.5
+note = "Client unit orientation matches the original: the shadow round trip (DrawShadow 0051D479 / 0051D4E0) is exact in both (settled by SV7b4a)."
+order = 189
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

@@ -1,0 +1,10 @@
+id = "SV3"
+title = "Record goldens for the suite"
+group = "verification"
+size = 1
+depends = ["SV2"]
+note = "Goldens recorded for the suite: vanilla, Rebirth flags on and off, with saves at checkpoints (tools/golden.py)."
+order = 161
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

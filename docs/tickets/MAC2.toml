@@ -1,0 +1,10 @@
+id = "MAC2"
+title = "macos-port: in-depth review (correctness, style, missing pieces)"
+group = "port"
+model = "opus"
+depends = ["MAC1"]
+note = "User 2026-10-30: after MAC1, an in-depth review of the whole macos-port diff against main by a fresh reviewer (read-only: no builds or game runs needed). Report in build/reviews/mp2_macos_port.md: correctness risks (behaviour changes in shared code, float code, threading, file paths and case, input), style against docs/rewrite-guide.md / comment-guide.md / naming rule (atrocious in places per the user), missing pieces for a working macOS game (audio, movies, saves location, keyboard layout / key names, one-instance check, sockets, case-insensitive data lookup), and the leaky abstractions (platform::graphics). Then a plan: (a) the parts not specific to macOS that main can take and test now on Windows (sokol-shdc GLSL shaders and their D3D11 output, platform::graphics split with the D3D11 backend, compiler/OS differences into src/platform, posix-neutral code paths), each as a ticket MAC3x with its check (goldens, frame captures, ui/perf checks); (b) what stays macOS-only. Rule from the user: whatever main takes and cleans up is merged back into macos-port so that in the end the branch differs from main only by macOS-specific code."
+order = 1095
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

@@ -1,0 +1,12 @@
+id = "R16b"
+title = "Shadow and memory textures updated in place (one texture array), not made again"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R16"]
+files = ["src/render/render_textures.cpp", "src/game/map_object_shadow.cpp"]
+note = "docs/notes/renderer.md section 13, item 2. 4-15 shadow textures (64x64, 21 KB with mips) are made again as new images every frame in fights and towns, and the global map texture (341 KB) every frame. Put the shadow textures in one texture array of slices updated with UpdateSubresource (mips on the GPU), mark changes from 0051CE60 TextureChanged instead of the snapshot compare, update other memory textures in place. Gain 0.5-1.5 ms CPU. Check: render_scene, render_options_shadows, ui_global_map_pick frames at 8 / 0.5%. R16j replaces object shadows by a shadow map (on by default); the shadow-texture part here only matters for the classic option, so R16b comes after R16j."
+order = 34
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

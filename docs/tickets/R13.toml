@@ -1,0 +1,10 @@
+id = "R13"
+title = "Save game screenshot shows plain blue in the save / load window"
+group = "renderer"
+size = 1
+model = "opus"
+note = "User 2026-10-16: after a quick save the save's picture showed plain blue. Check against the original, and whether R11a / R11b's removal of the DirectDraw surface paths (ui_saveload's GivePictureMemory / AttachTextureMemory, CaptureScreen's Blt branch) broke the capture into the save. Add a golden that reaches it (save, then the load window)."
+order = 25
+status = "done"
+started = "2026-10-20"
+done = "2026-10-20"

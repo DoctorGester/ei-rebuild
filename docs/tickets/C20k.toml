@@ -1,0 +1,10 @@
+id = "C20k"
+title = "find_dead_code keeps hand-listed dead functions"
+group = "cleanup"
+model = "sonnet"
+files = ["tools/find_dead_code.py"]
+note = "From C20i: config/dead_code.csv now has 56 hand rows (evidence 'C20g ...') for short functions only game.exe code or retired vtable slots name. tools/find_dead_code.py rewrites the csv from scratch and would drop them, and its reachability counts vtable slots, so gen_short_functions would add the 56 back. Keep hand rows (or stop counting retired vtable slots), so a rerun of both writes the committed files again."
+order = 474
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

@@ -1,0 +1,10 @@
+id = "S7a"
+title = "Standalone library: the remaining script CList instantiations and CMap-element helpers"
+group = "standalone"
+size = 1
+files = ["src/game/game_lists.h", "src/game/game_lists.cpp", "tests/verify/verify_mfc_list.cpp"]
+note = "Standalone script CList instantiations (ScriptDecl, ScriptDefinition, ScriptRun, ScriptObjectRef, ScriptGroup), CMap destructor and FaceGroup helpers ported via ListAbi policies (game_lists.h)."
+order = 564
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

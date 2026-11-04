@@ -1,0 +1,11 @@
+id = "S21a"
+title = "Scenarios that only mean something hooked: drop or rewrite for the image"
+group = "standalone"
+size = 1
+depends = ["S21"]
+files = ["tests/scenarios", "config/rebirth_scenarios.csv"]
+note = "Scenarios that only meant something with hooks were dropped or rewritten for the image."
+order = 598
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

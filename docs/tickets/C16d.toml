@@ -1,0 +1,8 @@
+id = "C16d"
+title = "Before the SSE2 switch: doubles, chop rounding, check_x87, goldens (C16 follow-up)"
+group = "cleanup"
+depends = ["C16"]
+note = "Dropped 2026-11-03: superseded by C30 (SSE2 by judgement, user 2026-10-29); goldens are our own since H40. C16: an /arch:SSE2 image parts all 110 goldens from the first record because double expressions stand for the x87 register at 24-bit precision (now 53 bits). Before switching: decide the oracle (C16 recommends re-recording the goldens from the SSE2 image after behaviour-level checks against the x87 image); set MXCSR with the x87 word in libcrt::Controlfp (terrain lighting's chop); FromUnsigned -> plain cast and an SSE2 mode for check_x87; fexp; NaN payloads; check multiplayer against original clients (delta-coded floats). Switches on branch c16-sse2-experiment."
+order = 361
+status = "done"
+done = "2026-11-03"

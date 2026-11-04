@@ -1,7 +1,7 @@
 """The work board's live server: `python tools/work.py serve [--port 8765]`.
 
 A small standard-library HTTP server on 127.0.0.1 only. It reads build/live/work.db (never writes to it,
-except its own heartbeat row in the `process` table), docs/tickets.toml of the main checkout and the
+except its own heartbeat row in the `process` table), docs/tickets/ of the main checkout and the
 git branches the open assignments point at, and serves the pages in this folder. Nothing is published.
 
     GET /                      the page (index.html; #tickets and #runs are its two views)
@@ -203,18 +203,17 @@ class Board:
         return db
 
     def load_tickets(self, db):
-        """(data, groups, tickets) of the main checkout's docs/tickets.toml (through tools/tickets.py's loader, parsed
-        again when the file changes) with the statuses the database has now (ticket_status, WB10)."""
-        path = os.path.join(self.main, 'docs', 'tickets.toml')
+        """(data, groups, tickets) of the main checkout's docs/tickets/ (through tools/tickets.py's loader, parsed
+        again when a file changes) with the statuses the database has now (ticket_status, WB10)."""
+        path = os.path.join(self.main, 'docs', 'tickets')
         with self.lock:
-            st = os.stat(path)
-            key = (st.st_mtime_ns, st.st_size)
+            with os.scandir(path) as it:
+                key = tuple(sorted((e.name, e.stat().st_mtime_ns, e.stat().st_size) for e in it if e.name.endswith('.toml')))
             if self.toml_cache[0] != key:
                 if self.tickets_py is None:
                     sys.path.insert(0, TOOLS)
                     self.tickets_py = importlib.import_module('tickets')
-                self.tickets_py.SOURCE = path
-                data, groups, tickets, problems = self.tickets_py.load()
+                data, groups, tickets, problems = self.tickets_py.load(path)
                 self.toml_cache = (key, (data, groups, tickets, self.tickets_py.toml_commit(self.main)))
             data, groups, tickets, commit = self.toml_cache[1]
         tickets = [dict(t) for t in tickets]
@@ -352,7 +351,7 @@ class Board:
         known = {t['id'] for t in tickets}
         for tid, a in assign.items():       # assigned with `work.py start --force`: an id the toml does not have
             if tid not in known:
-                out.append({'id': tid, 'title': '(not in docs/tickets.toml)', 'group': '', 'group_name': '', 'state': 'running',
+                out.append({'id': tid, 'title': '(not in docs/tickets/)', 'group': '', 'group_name': '', 'state': 'running',
                             'status': 'running', 'size': None, 'model': a['model'], 'depends': [], 'note': '', 'files': [],
                             'started': None, 'done': None, 'assignment': assignment(a), 'notes': notes.get(tid, []),
                             'commit': branches.get(a['branch']), 'batch': latest.get(tid)})

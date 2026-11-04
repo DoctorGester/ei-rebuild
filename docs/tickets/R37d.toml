@@ -1,0 +1,10 @@
+id = "R37d"
+title = "Sun map fit from the visible pages' boxes, not every second terrain vertex"
+group = "renderer"
+model = "opus"
+files = ["src/render/render_shadows.cpp", "src/render/render_terrain.cpp"]
+note = "R37 profile: FitMap (render_shadows.cpp) 4.3% of the main thread's samples (5.6% in the open zones), with its matrix Transform another 1.3-2%: it walks every second terrain vertex in view each frame (TerrainPositions). Fit around each visible piece's box (kept with the page) clipped to the view, or keep per-page extremes; the map's extent and origin steps (8 units, whole texels) must stay as steady as now (render_shadows_shimmer). Expected 0.1-0.25 ms a frame. The fit may move by a step, so render_shadows* and render_shadows_shimmer frames for review against main, shadowcheck; goldens unchanged.  Done (ec5f53aeb, 4ed8fd30a, 073cb75f8): the page keeps runs of 72 vertices per quarter with their boxes and the quarter's whole box (TerrainPieceGroups / TerrainPieceWhole); a piece outside the view skipped by its box, a run inside by its 8 corners, a crossed run by every second vertex against the planes it crosses only. In-frame old / new fit, ms a frame: zone1 0.087-0.123 / 0.059-0.086, zone1 pan 0.103-0.108 / 0.068-0.070, town night 0.070 / 0.040, crowd 0.13 / 0.054 (zone1's gain small: most runs are crossed by the view's sides). shadowcheck extents the same as main in all 9; render_shadows_mound 1 more outside caster (51 / 50). Frames: at most 0.016% of pixels over 8 (town_map); shimmer view ~1% over 8 (origin a few texels off, soft edges). Steadiness (heading sweeps at pitch 45 / 30): 15 extent steps and 71-72 origin moves in main and here. Tried and dropped: quarter boxes or run boxes cut to the view (extent a step larger in 5-6 of 9 checks). Also fixed: the harness mapped the top window's table twice (TopWindowVtable), failing every waitwindow when the image's data copy lands over game.exe's data range (732613c2d)."
+order = 890
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

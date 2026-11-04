@@ -1,0 +1,8 @@
+id = "LX1"
+title = "Linux build: POSIX platform, sokol on OpenGL 4.5, one CMakeLists.txt, Linux workflow"
+group = "port"
+note = "Done 2026-10-31: on main (b35f2d9, 0b806d9); Windows suites the same, the Linux workflow green (gcc build, ctest under xvfb). Left: LX2-LX4."
+order = 1112
+status = "done"
+started = "2026-10-31"
+done = "2026-10-31"

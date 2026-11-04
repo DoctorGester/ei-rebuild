@@ -1,0 +1,9 @@
+id = "R12a"
+title = "World meshes and edges as the user's dgVoodoo draws the original: anisotropic filtering, 8x MSAA"
+group = "renderer"
+depends = ["R12"]
+note = "User 2026-10-20: an option, off by default (the default keeps the game's own sampling request); on gives the Rebirth dgVoodoo look: anisotropic sampling for world meshes and 8x MSAA on the frame. Goldens and frame checks run with it off."
+order = 28
+status = "done"
+started = "2026-10-20"
+done = "2026-10-20"

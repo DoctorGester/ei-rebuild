@@ -1,0 +1,8 @@
+id = "S19a"
+title = "Standalone on Rebirth: addon's multiplayer patches and EI_Plugin's NewMaster, Pause, Briefings"
+group = "standalone"
+note = "Standalone on Rebirth: addon's multiplayer patches (FixProcessLogin 00443080, MQClient 0041ECC0, MPSpeedControl, PlayerNumbers) and EI_Plugin's NewMaster, Pause, Briefings reproduced behind flags."
+order = 594
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

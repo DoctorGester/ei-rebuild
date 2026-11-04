@@ -1,0 +1,8 @@
+id = "C58"
+title = "Owned arrays: new T[] to std::vector / std::unique_ptr (G17, first part)"
+group = "cleanup"
+note = "Style review G17 (REPORT.md Tier 3): about 1,120 lines with new/delete; start with owned new T[] arrays (float* uvTables[4], iterator** sectorGrid, ...) to std::vector or std::unique_ptr<T[]>, by subsystem, the compiler as checker. Not yet: std::list to vector (needs node-stability checks), types inheriting from std containers (composition). Goldens unchanged, AddressSanitizer at merge."
+order = 752
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

@@ -1,0 +1,11 @@
+id = "WB5"
+title = "work.py test passes environment variables (EI_PROFILE, EI_PLAIN, ...) to the games"
+group = "harness"
+size = 0.3
+model = "sonnet"
+files = ["tools/work_sched.py", "tools/work.py", "tools/work_board/"]
+note = "work.py test passes the submitter's EI_* variables (EI_PROFILE, EI_PLAIN, ...) to the batch's games; shown on the test-runs page."
+order = 290
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

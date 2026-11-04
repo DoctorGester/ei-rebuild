@@ -1,0 +1,10 @@
+id = "SV1h"
+title = "Virtual clock: other threads stall after a long main-thread block"
+group = "verification"
+size = 0.3
+model = "opus"
+note = "Virtual clock: other threads no longer stall after a long main-thread block (movie, load); render_cursor_present had run on realtime because of it."
+order = 169
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

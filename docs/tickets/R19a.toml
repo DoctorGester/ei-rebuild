@@ -1,0 +1,10 @@
+id = "R19a"
+title = "Lights carried by objects follow the drawn position"
+group = "renderer"
+model = "opus"
+depends = ["R19"]
+note = "Found 2026-11-04 (user asked). R19 draws objects between ticks (drawn::PoseOf), but every light a unit or object carries stays at its tick position, so it steps along behind the smoothly drawn unit: a party unit's night light and a quest light (MapObjectClientSpecific::CreateLight, moved each tick in map_object_companion.cpp ~line 106), spell and missile lights (spell_effect_update.cpp CreatePointLight with velocity), torches that move. The renderer reads light->localPosition in world_client_shadow_casters.cpp HandOverSceneLights (terrain + point lights), figure_part_draw.cpp g_partLights (mesh lighting), map_object_draw.cpp and map_object_shadow.cpp. Hand the renderer the light's drawn position (the owner's drawn pose plus the same offset, or the light's own position drawn between ticks the way R19 draws missiles) without touching light->localPosition, which the game reads. Client side only; goldens stay the same. Check: captures of a lit unit walking at night at 8 ms frames, the light's drawn step against the unit's."
+order = 944
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

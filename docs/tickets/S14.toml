@@ -1,0 +1,11 @@
+id = "S14"
+title = "Standalone: code-byte readers, Rebirth without addon, renderer default"
+group = "standalone"
+size = 1
+depends = ["S1"]
+files = ["src/game/app_main.cpp", "src/game/app_frame.cpp", "src/hook/rebirth_hook.cpp", "src/standalone/host.cpp"]
+note = "Standalone: code-byte readers have a standalone path, Rebirth flags come from ei_rebirth.ini alone, Miles keeps mp3dec.asi but not EI_Plugin.asi, present renderer is the default."
+order = 541
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

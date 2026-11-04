@@ -1,0 +1,8 @@
+id = "T2c"
+title = "PickEnvironmentSpeech coverage (random bored remark)"
+group = "harness"
+size = 1
+note = "Dropped 2026-11-03: coverage was game.exe breakpoints (gone since H40). Reached only by the server's bored remark (1 in 1001 per update after 500 bored ticks), so no scenario reaches it reliably. Cover it with a SV4 vector recorder or a forced ISAAC state H40: the vector recorders are gone (recording needs a checkout of the tag original-oracle), so a forced ISAAC state is the way here."
+order = 300
+status = "done"
+done = "2026-11-03"

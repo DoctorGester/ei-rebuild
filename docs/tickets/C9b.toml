@@ -1,0 +1,8 @@
+id = "C9b"
+title = "map_object_shadow.cpp raw offsets"
+group = "cleanup"
+note = "map_object_shadow.cpp raw offsets cleaned up (docs/notes/models.md 'Layouts')."
+order = 327
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

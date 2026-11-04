@@ -1,0 +1,10 @@
+id = "R15b"
+title = "Cursor confined whenever edge pan is available; no ConfineCursor option"
+group = "renderer"
+model = "sonnet"
+depends = ["R15"]
+note = "User 2026-11-04: drop the ConfineCursor option and always confine the cursor to the window while edge pan is available: the window is active, the camera's edge pan is on (options cameraBorderScrollArea > 0, ui_camera_input.cpp) and the view the camera input serves is up (the world / battle view, not the menus, the escape menu or a modal window, where the cursor goes free). Remove GameOptions::confineCursor, its [video] ConfineCursor read/write (options.cpp), settings_catalog.inc and docs/settings.md, the options window's display-group row (ui_options.cpp kConfineSetting) and the notes (platform.md, renderer.md, app.h); a stale ConfineCursor line in an existing ei_settings.ini is ignored. app_confine.cpp's UpdateCursorConfinement keeps the focus-lost ResetInput. Rework ui_options_confine.txt into a scenario that checks confined in the world view, released in a menu and on focus loss, released when cameraBorderScrollArea is 0 (the harness backend logs the requests). Goldens: ui_options captures change only by the removed row; re-record what changes and say which."
+order = 946
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

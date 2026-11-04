@@ -1,0 +1,9 @@
+id = "S5a"
+title = "Standalone library: the unreached MFC pieces (CPtrList, CPtrArray, CMapPtrToPtr, rest of CString)"
+group = "standalone"
+size = 1
+files = ["src/lib/mfc_string.cpp", "src/lib/mfc_coll.cpp"]
+note = "Closed 2026-10-28 as obsolete: the standalone image holds no game.exe code any more (code cells retired, C20 batch 1), so 'left as original code' no longer exists; anything our code needs is in src/lib or fails to link."
+order = 553
+status = "done"
+done = "2026-10-28"

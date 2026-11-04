@@ -1,0 +1,9 @@
+id = "C121"
+title = "Sound style 1: dead sweep, existing helpers, named modes, plain flags"
+group = "cleanup"
+model = "sonnet"
+note = "Style review round 3 (2026-11-04, https://claude.ai/artifact/KKkymAu9dSoUWGGcbsLwPa, digests in build/style_review/round3/*.md; user: file the tickets). Items A1, A2, A3, A6. A1: unread SoundSlot/DeferredSound::length and WaveLength, spare, StreamNotify, kListBlockSize, the always-0 silence byte, musicFader.step, the dead fade branch (kFadeStep = 1.0f / 96.0f, exact), enabled re-checks, null checks on never-null map values, SetZoneMode's double StopStream; PlayMovie's frameTime (0 at all 8 callers) with its start/timed/spaceSkips branches and g_quitAllowed. A2: call FindPlaying, FindDeferred, StopSound, EndSlot (guard inside it, 10 'if playing' sites), LoadWaveFile, CalmDelay; std::clamp; flat locals instead of scope blocks; range-for; .empty() (16 kEmptyText compares). A3: enum class StreamSwitch/StreamState/FadeMode/MusicState (52 raw numbers; kNoSwitch means now), kNoSound for -1 (Interface3D has its own), kNoLoop, std::size. A6: Play2D's four int flags as an options struct or PlaySpeech; bool for the 23 int32 flags; void where the return is constant; const& inputs. MusicSystem items (A13 of the digest) and the address/stale comments (A7) too. Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes."
+order = 1049
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

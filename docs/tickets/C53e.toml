@@ -1,0 +1,9 @@
+id = "C53e"
+title = "World glue facade and shared one-liners"
+group = "cleanup"
+depends = ["C53d"]
+note = "Left by C53d. The Game* forwarders in world_glue.cpp (GameRender, GameFindClientUnit, GameFindExitAt, GameExitTarget, GameLocalView = LocalClient, GameSendFlag10; about 30 callers) are plain forwarders to g_clientWorld members: check whether the UI files can call the world directly. Duplicates left: GlobalParty (world_guard, world_game), Unsigned(uint32 to float) in five particle / effect files, bit_cast float helpers (map_object FloatBits, map_object_figures Float), Version / VersionOf (party_save, world_savefile). ui_float.h's Truncate is a different (plain cast) one. Done by C53d: lib::Truncate for 14 copies, IsLive for 3, VariableGet/Set, UpdateCountdown. After: C53d."
+order = 969
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

@@ -1,0 +1,9 @@
+id = "PL12"
+title = "The harness drives the SDL path in the image's runs (platform_win32_window.cpp goes)"
+group = "port"
+depends = ["PL9a"]
+note = "Done 2026-10-31: the harness's builds compile their own platform backend on SDL (tests/verify/harness_platform.cpp, no windows.h) in place of platform_sdl.cpp, which has nothing of the harness; threads and signals shared (sdl_threads.cpp). The harness's input goes in as platform::Event (harness_input.cpp), its steps run before EventWaits / TakeEvent, its clocks, date and mouse are answered by harness.cpp through the slots it drives. platform_win32_window.cpp, DirectInput, g_directInputObserver, Event::native and DefaultHandling deleted. Goldens all the same (image 154 / 3 without, Rebirth 29, x64 154 / 3)."
+order = 1092
+status = "done"
+started = "2026-10-30"
+done = "2026-10-31"

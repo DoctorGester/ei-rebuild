@@ -1,0 +1,9 @@
+id = "C28f"
+title = "C28 world effects, particles, lightning, clouds, camera"
+group = "cleanup"
+model = "opus"
+files = ["src/game/world_effect.h", "src/game/world_effect_class.h", "src/game/world_effect_lifetime.cpp", "src/game/effects.h", "src/game/lightning.h", "src/game/global_map_clouds.cpp", "src/game/camera.h"]
+note = "world_effect_class.h (EffectClass, ParticleClass, MissileClass, 17 tags), effects.h's particle source / rain-snow / fog cells, lightning.h, global_map_clouds, camera.h: real virtual classes over CTransformObject (after C28b)."
+order = 424
+status = "done"
+done = "2026-10-22"

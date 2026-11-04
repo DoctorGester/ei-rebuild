@@ -1,0 +1,11 @@
+id = "SV10e"
+title = "Harness build's renderer read-backs (CheckUpload, gamma ramp check) sampled instead of every time"
+group = "renderer"
+size = 0.5
+model = "sonnet"
+files = ["src/render/render_blit.cpp src/render/render_window.cpp"]
+note = "SV10 profile (render_stats, image): the verify build's CheckUpload (render_blit.cpp: every cursor / fill / movie image upload read back from the GPU and compared, with ReadPassState) is ~3% of the main thread, a GPU stall each time; the gamma ramp check reads the presented frame back after each ramp change. Check the first N uploads of each kind and then every 16th (and every one in scenarios that ask, e.g. render_* ones), so a mismatch still shows within a run. No golden reads them (the digest is game state, captures read the frame through their own path); keep the log's counts. Gain ~3% of draw-heavy runs."
+order = 47
+status = "done"
+started = "2026-10-21"
+done = "2026-10-21"

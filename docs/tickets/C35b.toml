@@ -1,0 +1,8 @@
+id = "C35b"
+title = "C35 string and locale: the UTF-8 no-op multibyte functions and case / class wrappers to std or text_case.h, crt_locale_data deleted"
+group = "cleanup"
+note = "Survey 2026-10-28 (after C34 these are byte or ASCII functions): gamecrt::mbscmp 88, mbsicmp 56, mbsinc 16 (p + 1), strncpy 7, SameIgnoringCase 7, strnicmp 4, strncmp 4, tolower 4, CaseFoldTable 4, isdigit 3, isspace 1; libcrt::Stricmp 14, Mbslwr 4, Ismbblead 4 (always 0: the callers' lead-byte branches are dead), Isleadbyte 3 (0, same), Memicmp 3, Toupper 3, Tolower 3, Isalpha 3, Mbsinc 2, Mbscmp 2, Isspace 2, Strnicmp 2, Mbsncmp, Mbsicmp, Mbclen (1), Isdigit, Strncpy, Strncmp; TerminatedText; crt_locale_data.cpp/h (98 lines: CharClasses, CtypeLocale, CtypeCodePage, MbCurMax, DecimalPoint, MultibyteFlags; crt_format and mfc_resource read them). Constraint: ei_vectors answers tolower / isdigit / isspace / strnicmp from the game CRT's recorded 1251 tables (tests/vectors/replay_crt.cpp, the @GameCrtCtype fixture); check which replays meet a byte past ASCII before moving those callers to text_case.h."
+order = 489
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

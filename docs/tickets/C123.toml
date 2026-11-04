@@ -1,0 +1,8 @@
+id = "C123"
+title = "Sound style 3: music without its own thread (measure first)"
+group = "cleanup"
+model = "opus"
+depends = ["C122"]
+note = "Style review round 3 (2026-11-04, https://claude.ai/artifact/KKkymAu9dSoUWGGcbsLwPa, digests in build/style_review/round3/*.md; user: file the tickets). Item A8 (L). The stream thread with its quit flag, busy/late/once/endAfterSwitch, nameLock, unlock/relock and the recursive mutex exist to save about 0.2 ms; step the music from the main loop with a deeper queue instead. First measure underruns during zone loads and the theme switch latency; only proceed if both stay inaudible. Plan first, then implement. Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes."
+order = 1051
+status = "queued"

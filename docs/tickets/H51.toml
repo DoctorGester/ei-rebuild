@@ -1,0 +1,9 @@
+id = "H51"
+title = "Suites (Linux) on GitHub: the stub-data run's remaining differences"
+group = "harness"
+model = "opus"
+note = "From the user's log of the first Suites (Linux) run (2026-11-03, commit bc3de705e, before H47d; build/gh_logs_113095521401). Already fixed by H47d: settings_save (CD-ROM Path) and the ui_widescreen_* digests (Xvfb was 1280x1024; now 3840x2160). Left: (1) 114 vanilla and 14 Rebirth runs differ only in one info.sav field ('info 1': gametime f8, allod, zone or the savedAt time; find which). H47d's WSL run on the real data matched, so look at what differs on the runner: the stub data (tools/stub_data.py, e.g. a map database name or a file time) or the runner (TZ=UTC with lib::CurrentTime's mktime round trip, locale). Reproduce locally with build/stub/ei-stub-data.tar.zst unpacked in WSL home (never in the repo), TZ=UTC; fix the cause so the stub run gives the goldens' bytes. (2) Frame checks that see no change on the runner's lavapipe: render_blink (open/closed 0% differ), render_shadows_outside (gate_all/gate_view 0%), render_cursor_present (cursor capture fully transparent): a stale readback or a present path that differs without a GPU; compare with WSL's lavapipe. (3) camera_drag_rate, camera_smooth, camera_spin time out at 120 s on the 4-core runner even one at a time: a longer Linux limit for those, or LINUX_SKIP them in the workflow with the reason. Check: a workflow run (ask the user to start it) with goldens the same apart from what LINUX_SKIP lists."
+order = 813
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

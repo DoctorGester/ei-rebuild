@@ -1,0 +1,9 @@
+id = "F4"
+title = "Unknown fields: scene, figures, terrain, map objects, textures (~140)"
+group = "fields"
+files = ["scene_loader.*", "map_object_figures.h", "terrain*", "figure*", "camera.h", "texture.h", "map_object*", "link_figure.h", "object_tables.h", "material.h", "model.h", "renderer_lines.h"]
+note = "Unknown fields in scene, figures, terrain, map objects and textures: 143 named (90) or unused_XXX (53); meanings in cleanup-figures.md (F4 section)."
+order = 155
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

@@ -1,0 +1,9 @@
+id = "C52d"
+title = "C52 rest 4: out-parameters still left after C52c"
+group = "cleanup"
+depends = ["C52c"]
+note = "Done in C52c: SampleTerrain, Quaternion::AxisX/Y/Z, TakeZoneQuestItems, LoadLooks, LoadAttackOptions, ReadSavedStrings, ReadUnitLooks, DeltaField ReadPosition / ReadPosition2D / ReadRanged / ReadFloat16 / ReadFloat16x3, CWorld::GetTime, GetScale, UiMesh::GetPlacement, PlatformSet::SurfacePlane, CUnit::GetMoveSpeeds, ShadowCastStrength, PartyNextId; GetGamma deleted (no caller). Kept on purpose: CollectVisible (no out-parameter), StoreParty / CollectParty / Redeploy (the caller's placements list is appended to and null means none), UnitStats::GetFactors (the vector replay checks the aliased call), LocalSearch::Best (x, y keep their old values when nothing is open), MobFile::ReadChunks (fills records, diplomacy and scripts and returns the flag), GameBuffer::ReadString (bool plus a string that keeps its value on failure), CalcFloat / CalcString (the addon dispatch writes through the result pointer, some cases leave it unset), render ReadFrame / ReadPixels / ReadCursorPresent (the harness boundary: tests/verify/image_side.h and image_absent.cpp, a harness change), ui_camp Build / ui_screens Setup (item lists the dialog reads and edits). Not looked at: Vector3* F(Vector3* out) returning the pointer (PickGround, PickSurface, EyePoint, AimPoint, PositionAt, AttachmentPoint, FindPerch, AddVectors family: ~40 functions, virtuals included), the in-out arrays (WorldMatrix, ViewMatrix, ProtectionBlock, GetEquipmentIds, MeasureExposure, GetBounds), SampleNoise, GetMovePoint, FindVariable, FindStandPoint, WeaponPoint, Sample / SamplePath in unit_motion.h."
+order = 970
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

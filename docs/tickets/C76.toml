@@ -1,0 +1,10 @@
+id = "C76"
+title = "pc24 removed: plain float maths and std:: transcendentals"
+group = "cleanup"
+model = "opus"
+depends = ["C74b"]
+note = "User 2026-11-03: how much do we still need pc24.h? Not at all once the goldens are our own: it reproduces game.exe's x87 results (PC24 rounding of double constants and of FSIN/FCOS/FPATAN/FYL2X's 64-bit results) bit for bit, 531 lines (pc24.h/.cpp) and ~340 uses in 72 files (Mul 79, Add 56, Round 43, Cos 28, Sin 27, Atan2 27, Sub 25, Div 20, Unrounded 15, Log 9, Exp 6 ...). Replace each with the plain expression: float operators, std::sin/cos/atan2/log/exp on floats (or the double form where precision matters, said why), double constants as float literals unless a double is wanted. Delete pc24.*, its checks (check_x87.py if it only guards this; cleanup-tooling's x87 equivalence material goes with C72's trim), and the docs. Results change in the last bits: same worker and the same golden re-record round as C74b (one re-record for both, with the same 'still plays the same' check)."
+order = 987
+status = "done"
+started = "2026-11-03"
+done = "2026-11-03"

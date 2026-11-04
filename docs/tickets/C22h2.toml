@@ -1,0 +1,10 @@
+id = "C22h2"
+title = "Comment removal C22h, second pass: offsets in prose, step-by-step declaration comments"
+group = "cleanup"
+model = "opus"
+depends = ["C22h"]
+note = "C22h cut its batch 16% (8,643 to 7,262), half the target. Left: ~280 +0xNN mentions inside prose (item_stock.h/.cpp, combat.cpp, combat_*.cpp, class_templates.h: name the member or drop), multi-line declaration comments that walk the body (combat.h, ai_map.h), 1,752 trailing comments only touched for offsets, 179 long-block lines (move file-header research to docs/notes), ~80 slot and ~107 register mentions. docs/comment-guide.md 'Removal pass'; samecode main clean, one release build, no game runs."
+order = 461
+status = "done"
+started = "2026-10-27"
+done = "2026-10-27"

@@ -1,0 +1,10 @@
+id = "C28o"
+title = "C28 MFC collections: the CArray / CList / CMap tags go with C14b"
+group = "cleanup"
+model = "opus"
+depends = ["C14b"]
+files = ["src/lib/mfc_slots.h", "src/lib/mfc_array.h", "src/lib/mfc_list.h", "src/game/game_slots.h", "src/game/game_arrays.h", "src/game/record_arrays.h"]
+note = "mfc_slots.h's CompiledCollection and ~150 tags (mfc_slots.h, game_slots.h, game_arrays.h, record_arrays.h, the party's and AI modes' arrays), ConstructHeader / ArrayHeader and the vtable field of mfc::CArray / CList. C14b replaces these containers with std::vector / std::list, which removes the tags: do it there (or, as C14b's first step, a polymorphic CObject base for the templates) rather than twice. Archive Serialize keeps its bytes."
+order = 433
+status = "done"
+done = "2026-10-28"

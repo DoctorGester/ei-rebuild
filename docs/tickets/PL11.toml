@@ -1,0 +1,10 @@
+id = "PL11"
+title = "Platform layer simplified per the PL10 review"
+group = "port"
+model = "opus"
+depends = ["PL10"]
+note = "User 2026-10-30: simplify the platform as much as possible after the review. Carry out build/reviews/pl10_platform.md's plan (one or two workers; File and TextFile become one; MFC-shaped flags and errors go; callers updated tree-wide by script), goldens unchanged unless the review shows an input quirk the goldens depend on (then ask)."
+order = 1089
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

@@ -1,0 +1,10 @@
+id = "C30d"
+title = "SSE2 float tail of the render files R37c/R37d had open"
+group = "cleanup"
+model = "opus"
+depends = ["C30c"]
+note = "C30c stayed out of render_shadows.cpp, render_mesh*.cpp, render_terrain.cpp, render_point_shadows.cpp and world_client_shadow_casters.cpp while R37c/R37d changed them: their double locals, D()-free static_cast<double> / static_cast<float> pairs and *Unrounded<..., double> calls as plain float maths, with C30c's scratch floats.py then C30b's casts.py (docs/notes/cleanup-tooling.md 'The SSE2 files by hand (C30c)'). Check: goldens unchanged (drawing only), check_x87 0."
+order = 879
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

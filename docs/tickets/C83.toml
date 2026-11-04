@@ -1,0 +1,10 @@
+id = "C83"
+title = "Dashboard metrics: retire case-compare and Ftol counts, narrow struct duplicates, Cyrillic case check"
+group = "cleanup"
+model = "sonnet"
+files = ["tools/dashboard_data.py", "tools/progress.py", "tools/dashboard/index.html", "src/lib/text_case.h and the str::MakeLower callers"]
+note = "User 2026-11-03 agreed. (1) Cyrillic check: the 17 case sites (str::MakeLower in console.cpp, item_manager.cpp, item_stock.cpp, text_manager.cpp, ui_briefing.cpp, ui_interface_input.cpp, ui_item_info.cpp; script_addon / mod_folders stricmp-like compares) since C34 work on UTF-8 text; byte-wise lowering does not fold Cyrillic. For each, say whether the text can hold non-ASCII (player-visible names, item or text keys from the data, file names) and whether the compare's other side is lowered the same way; fix any that can mismatch (one UTF-8-aware fold in lib/text_case.h, used by both sides), list the rest as ASCII-only. (2) Retire the dashboard's text_case_compares and ftol_calls series (C82 removes the last Ftol), and text_ansi_calls if it is at 0 and held there by a build check. Keep text_fixed_buffers but count src/ only (not tests/). (3) structs_defined_twice: count only names defined in more than one file outside an anonymous namespace (a real ODR risk); fix any it finds (rename or move into an anonymous namespace). Regenerate build/dashboard/data.json (python tools/dashboard_data.py) and say the new counts; the coordinator republishes the dashboard. Goldens the same."
+order = 995
+status = "done"
+started = "2026-11-03"
+done = "2026-11-03"

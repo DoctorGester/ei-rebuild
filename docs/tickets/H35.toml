@@ -1,0 +1,9 @@
+id = "H35"
+title = "test_resolve_crash: the disk-full stack check depends on map layout"
+group = "harness"
+model = "sonnet"
+note = "From C59b: tools/test_resolve_crash.py RealRun.test_disk_full_stack fails on main too (different error per build): it asserts symbol names along the resolved stack that move with code layout (C59b's tree resolves _main -> StandaloneMain -> atexit destructor instead of ending at CxxThrowException). The scenario itself passes. Make the assertion layout-independent (e.g. a frame inside the disk-full path anywhere on the stack) and check it on the current build."
+order = 795
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

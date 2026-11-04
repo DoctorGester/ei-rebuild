@@ -1,0 +1,10 @@
+id = "PL16a"
+title = "The interface's input handlers and the harness's input steps SDL-shaped"
+group = "port"
+model = "opus"
+depends = ["PL16"]
+note = "Left from PL16 (the platform's Event is SDL-shaped since). The interface still takes the original's message data: UiInputSide's KeyDown / KeyUp / Char and Interface3D's OnKeyDown / OnKeyUp / OnChar take (key, repeat, flags) with the scan code in bits 0-8 and the repeat bit 0x4000 (the only parts read: the key tables are indexed by the scan code); the mouse handlers' first argument (Windows' MK_ bits) is read nowhere (app.cpp passes 0; ForwardingStrip::LeftDown uses it as scratch for ItemAt); Wheel takes the turn as an unsigned 16-bit value of 120 a notch. About 180 overrides in src/game/ui*.cpp: give them (key, scan, repeat), (Point) and a signed turn, and drop app.cpp's KeyFlags / WheelTurn packing (the console's print of a system key's release keeps the original's numbers). The harness's steps still post WM_ numbers and words (tests/verify/harness_input.h): post platform Events directly. Goldens the same."
+order = 1132
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

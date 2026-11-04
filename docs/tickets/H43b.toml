@@ -1,0 +1,10 @@
+id = "H43b"
+title = "Scenario: teleport, charm, link, fireworks and tornado spells (spell gaps from H43's coverage)"
+group = "harness"
+depends = ["H43"]
+files = ["tests/scenarios"]
+note = "H43's coverage report (build/coverage/report.md; python tools/coverage.py run <ticket>): no run enters spell_effect.cpp's StartTeleport, StartCharm and StartLink, spell_effect_update.cpp's Teleport, Link and Fireworks, or world_effect_tornado.cpp's EffectTornado::Start; spell.cpp has 32 of 186 lines unreached. A scenario with a golden that casts each of these spells at a unit; coverage.py report shows them reached."
+order = 827
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

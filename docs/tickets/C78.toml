@@ -1,0 +1,10 @@
+id = "C78"
+title = "2D maths onto 2D types"
+group = "cleanup"
+model = "sonnet"
+depends = ["C76"]
+note = "User 2026-11-03: lots of hand-written x/y work in 2D code (UI layout, hit tests, screen positions). Today: lib/rect.h Point/Size/Rect with USER32-shaped pointer helpers (rects::Set(Rect*,...)), Size uses cx/cy, a second Point/Rect in platform.h and a third Rect in render_rect.h, float Vector2 in vecmath.h with no operators. Do: one Point (int) and one Vector2 (float) with +,-,*scalar,==; Size as w/h or merged into Point; one Rect with value methods (Contains, Intersect, Union, Offset, Width, Height) replacing the rects:: pointer API; platform/render duplicates removed. Then collapse per-component x/y pairs (consecutive .x/.y or left/top assignments, xy scalar pairs) the same way as C74c, ending with the same audit list: converted or a one-line reason. Goldens should stay the same.  Audit (user 2026-11-03): temporarily rename the vector's x/y/z members and build the Linux gcc build with -fmax-errors=0 so every component access is listed; rewrite functions doing the same op on every component, keep single-component uses, leftover list grouped by reason in build/reviews/. The rename is not committed."
+order = 990
+status = "done"
+started = "2026-11-03"
+done = "2026-11-03"

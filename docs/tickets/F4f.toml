@@ -1,0 +1,9 @@
+id = "F4f"
+title = "HideWounds / client parts: wounds material drop onto CountedRef"
+group = "cleanup"
+depends = ["F4e"]
+note = "HideWounds (0051C920) and object3d_client_parts.cpp drop the wounds material through CountedRef<WoundsMaterial>::Assign(nullptr) or a shared inline drop."
+order = 337
+status = "done"
+started = "2026-10-14"
+done = "2026-10-14"

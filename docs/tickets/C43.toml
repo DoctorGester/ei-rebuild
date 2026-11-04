@@ -1,0 +1,10 @@
+id = "C43"
+title = "Float copies: memcpy / memset of one float or a Vector3 to assignment, one x87 bit-copy helper"
+group = "cleanup"
+model = "sonnet"
+depends = ["C42"]
+note = "Style review 2026-10-28 (build/style_review/REPORT.md, user asked to schedule Tier 1 in the suggested order); after SV7b5 and C38d. G4. 142 memcpy(..., sizeof(Vector3)) -> a = b (script); ~366-473 4-byte memcpy / memset: memset(&f, 0, 4) -> f = 0.0f, copies where NaN bits must survive (/arch:IA32) through one x87::CopyBits in include/ei/x87.h, the rest plain assignment; replace per-file helpers (CopyFloat x2, CopyBits, FloatOf, SetMinusOne, Bits, SignClear / SignSet); uint32 'float bits' fields -> float; 3 memcpy from string literals. Extend check_x87 to flag new raw 4-byte copies. Golden-check per batch."
+order = 676
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

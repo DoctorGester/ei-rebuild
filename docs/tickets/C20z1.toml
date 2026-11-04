@@ -1,0 +1,10 @@
+id = "C20z1"
+title = "Unused scalar parameters left from stack-popped thiscall arguments (~41: int unused, char unused, ...)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C20p"]
+note = "Found by C20p. ~41 functions in src keep an unused scalar parameter (LookFrom(from, to, int unused), GetPosition(out, int unused), Disarm(key, int unused), MayTravel(int unused), UpdateRegionTips(CSceneRenderer* unused), bink PlayVideo(..., int unused), ...). Drop each with its call-site arguments, unless it is a virtual override, a function-pointer table type, an EI_RECORD signature or the harness's game.exe side (list those). Skip the R27 files. Goldens must stay the same."
+order = 683
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

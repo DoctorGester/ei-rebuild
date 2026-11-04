@@ -1,0 +1,10 @@
+id = "WB10"
+title = "Ticket status in the shared work database; live ticket board on :8765"
+group = "harness"
+size = 1
+files = ["tools/tickets.py", "tools/work.py", "tools/work_board/*", "tools/tickets_board/index.html"]
+note = "Volatile ticket status lives in build/live/work.db, not docs/tickets.toml: work.py start sets running, work.py done ID merged sets done; work.py serve also serves the ticket board page."
+order = 303
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

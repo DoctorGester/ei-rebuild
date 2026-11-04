@@ -1,0 +1,8 @@
+id = "R39"
+title = "Main menu terrain fogged cyan with the default BorderFogDistance 32"
+group = "renderer"
+model = "opus"
+note = "User 2026-10-30: the drop-in's menu was fogged cyan. Not a rendering bug: game.exe with BorderFogDistance 32 looks the same (vanilla and Rebirth captures); the constructor's default 32 was written into fresh settings files while installs carry 16. Fixed by defaulting to 16 (options_construct.cpp, settings_defaults.ini)."
+order = 917
+status = "done"
+done = "2026-10-30"

@@ -1,0 +1,9 @@
+id = "R41"
+title = "No device-loss recovery: a lost device ends the game cleanly"
+group = "renderer"
+model = "opus"
+note = "User 2026-11-03 asked whether the device-loss code is still needed. D3D11 loses its device only on driver updates/resets, TDRs and GPU switches; GL has no recovery at all (no robust context), and runtime backends (R42) would need it twice. Replace R9c1/R9c5 with one rule: when Lost() reports a loss, log it with the reason, show one message box ('The graphics device was lost (<reason>); the game will close.') and exit as the renderer's other fatal errors do. Delete: RecreateDevice and the per-module Drop/Destroy-for-recreation paths that exist only for it, TextureSource (decoded textures keeping their file bytes) and SurfaceView's Remake, RemakeComposed recipes, the canvases' command histories if nothing else needs them (check SwapContents/MoveCanvas), render::LoseDevice and the harness steps losedevice/removedevice, the removable D3D11On12 device (MakeRemovable, RequestRemoval, Removals, RemoveIfAsked, CreateRemovableDevice), the scenarios render_device_lost/render_device_removed and their goldens, and the notes' R9c1/R9c5 (one short paragraph saying why). Keep Lost() if the exit uses it. Check: goldens (image 154/3 minus the two scenarios, --rebirth-only 29/0, x64), frame captures, ui_check, perf_check, memory: private bytes after loading zone1 against main (TextureSource held file bytes)."
+order = 920
+status = "done"
+started = "2026-11-03"
+done = "2026-11-03"

@@ -1,0 +1,10 @@
+id = "C130"
+title = "World style 3: exact float tidies, cell walk locals, Pick enum, small duplicates"
+group = "cleanup"
+model = "sonnet"
+depends = ["C128"]
+note = "Style review round 4 (2026-11-04, https://claude.ai/artifact/BzXaX58kMcB9E2dwRuhN2U, reviewer reports in build/style_review/round4/<area>.md; user: file them all). Items W5, W6, W9 (world.md A7, A8, A12, A14, A15, A16, A18). One UpdateLighting tail (inputs per branch, control flow only), void result; TimeOfDay() in AmbienceTimeOfDay; std::fabs for the sign-bit masks; g_random.Next() for InlineRandom (same draw, now traced); PlaceInLine as written in the review; no 'stored as a float' temporaries or volatile (x64 only). CellRange {x0,y0,x1,y1} with local loops instead of the six range* member fields, one cell walk. enum class HitTest and one Pick(point, HitTest); delete HitCollector, PickAt2/UnitAt2. Duplicates: hearing radius once (one kHearingScale), move-to-free-cell once, SectorUnits uses SectorMap, FindZone/SameText/Contains/CreateNamedItem once, push_back, !empty(), the aliases and 52 scope blocks, Briefing/MercNames n1..n11. Signatures where cheap: optional results, const& inputs, void for constant returns, float setters (SetVariable). Style only: goldens the same, float operation order untouched (any float rewrite exact and said why), no new forwarders, normal C++ classes; gameplay code stays (technical dead code goes)."
+order = 1061
+status = "done"
+started = "2026-11-04"
+done = "2026-11-04"

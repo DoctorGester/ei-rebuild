@@ -1,0 +1,11 @@
+id = "SV7b6a"
+title = "Our renderer's frames follow heap layout"
+group = "verification"
+size = 1
+depends = ["SV7b6"]
+files = ["src/render/render_textures.cpp", "src/render/render_blit.cpp"]
+note = "Terrain lighting read the sun's never-set position (NaN under jitter took the sun away under water): lights are allocated zeroed in ours and, through harness_leftovers, in the original."
+order = 247
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

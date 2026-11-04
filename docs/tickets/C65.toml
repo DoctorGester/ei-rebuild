@@ -1,0 +1,9 @@
+id = "C65"
+title = "Review leftovers: settings hex terminator, Truncate pinned, harness UTF-8 path, connect key random, x64 C4702"
+group = "cleanup"
+model = "sonnet"
+note = "From V30 (build/reviews/v30c_*.md): settings_key.cpp:94 GetString over-reads a hand-edited hex(1): value with no terminator (terminate in the parser); lib/rounding.h Truncate relies on MSVC's 64-bit conversion for NaN / out of range (pin the result explicitly, same values); tests/verify/harness_addon.cpp LoadFlags passes a GetModuleFileNameA path to rebirth.cpp's UTF-8 reader (use the W call and convert; harness key: --no-hooks suite once); ui_connect_screen.cpp:605's address-book key draws g_random (client-only: g_clientRandom; goldens may move, one re-record if so, per the client random rule); verify-x64's five C4702 in tests/verify/harness_starter.cpp 177-186 (x64 NoOriginalCode stubs)."
+order = 972
+status = "done"
+started = "2026-10-30"
+done = "2026-10-30"

@@ -1,0 +1,10 @@
+id = "S4b1"
+title = "verify_crt_file start-up check: false fclose mismatch under load"
+group = "standalone"
+size = 0.5
+files = ["tests/verify/verify_crt_file.cpp", "src/lib/crt_file.cpp"]
+note = "The file check's rare false mismatches were the machine (a truncating reopen read the gap back as old bytes under load); the check retried such cases."
+order = 571
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

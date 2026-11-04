@@ -1,0 +1,11 @@
+id = "D3"
+title = "Trim the standalone and workflow docs to current facts"
+group = "docs"
+size = 1
+model = "opus"
+depends = ["S21"]
+note = "Coordinator 2026-10-16: wait for S21e (the hook retirement rewrites the standalone docs); D4 went first."
+order = 654
+status = "done"
+started = "2026-10-16"
+done = "2026-10-16"

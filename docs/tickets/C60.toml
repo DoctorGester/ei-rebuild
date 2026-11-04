@@ -1,0 +1,8 @@
+id = "C60"
+title = "Unit AI area to the target style (style review, area-local)"
+group = "cleanup"
+note = "build/style_review/unit_ai.md (about 45 findings, file:line, before/after) and REPORT.md Part 2 'Unit AI': hand-written refcounting left after C49 (AIRefTo::Assign copies, Reset-then-null, the current mode assigned three ways, CountedUnits::PopHead), logic re-implemented from existing functions (AggressionMode::Execute / LookAround vs ApplyAttack, cast-at-object x4, FollowMode::Execute, Reset/Init/ClearModes/Load's shared body), wrong names (AICallRecord::kind, AIReport::what countdowns, nearX/nearY, AIMemory::IsEnemy, kControllerStateInactive vs combat.h, refreshPending_ == 2), dead branches (UpdateAttack giveUp, PlayerMode::Execute !leader, Think's late owner null check). Check each finding against current code first (C45-C54 fixed some). Opus. Goldens unchanged."
+order = 754
+status = "done"
+started = "2026-10-29"
+done = "2026-10-29"

@@ -1,0 +1,8 @@
+id = "SV3k"
+title = "ui_hud under Rebirth: script gobject.i differs from the original"
+group = "verification"
+depends = ["SV3e"]
+note = "ui_hud under Rebirth: script gobject.i now matches the original (the 702 vs 1884 object-order difference went with id-ordered script groups, SV7b1)."
+order = 195
+status = "done"
+done = "2026-10-15"

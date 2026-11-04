@@ -1,0 +1,11 @@
+id = "R28a"
+title = "Menu backdrop and shot.sav picture from the frame on the GPU: no Rgb565Copy / Greyscale / CaptureScreen pixel loops"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R28"]
+note = "Left by R28. ui_interface_input.cpp:132 copies the backdrop surface to 256x192 5:6:5 (CUiSurface::Rgb565Copy) and greys it on the CPU (Greyscale); ui_global_map_paths.cpp CaptureScreen; ui_saveload.cpp:410 Rgb565Copy for shot.sav. Do the copy / stretch / greyscale as a GPU copy of the frame target (a shader pass), read back only the 5:6:5 shot.sav picture (the file keeps its format). Window surfaces are still DIBs until the native interface (P tickets): check how the backdrop reaches the window there. Frame captures before/after (ui_gallery_*, ui_quicksave checksave)."
+order = 88
+status = "done"
+started = "2026-10-28"
+done = "2026-10-28"

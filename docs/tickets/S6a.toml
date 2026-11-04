@@ -1,0 +1,11 @@
+id = "S6a"
+title = "Standalone library: MFC container slots in the exe's vtables"
+group = "standalone"
+size = 1
+depends = ["S6", "S7"]
+files = ["src/lib/mfc_array.h", "src/lib/mfc_list.h"]
+note = "Standalone library functions only the exe's vtables point at (CArray / CList / CMap scalar deleting destructors and Serialize, ~330) in src/lib, registered in config/library.csv."
+order = 534
+status = "done"
+started = "2026-10-15"
+done = "2026-10-15"

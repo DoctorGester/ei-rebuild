@@ -1,0 +1,8 @@
+id = "C25b"
+title = "Rebirth pause / resume text: SetPauseTextDigit writes a copy nothing reads"
+group = "cleanup"
+model = "opus"
+note = "Found by C25 (2026-10-22). player_server_orders.cpp SetPauseTextDigit writes '2' / '3' into game.exe's string 007930EC (\"reserved_02\", EI_Plugin's Pause patch), but CInterface3D::MessageText (ui_interface.cpp) takes message 12's key from its own literal kMessageKeys[12] = \"reserved_02\": the resume announcement shows the pause text in the image (and in hooked runs, if MessageText is ours). Make the key one named, writable char array that both use (or the digit an argument), and a scenario for the pause / resume messages if the lobby allows one."
+order = 407
+status = "done"
+done = "2026-10-22"

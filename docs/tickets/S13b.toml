@@ -1,0 +1,10 @@
+id = "S13b"
+title = "Standalone: script and AI map destructors left by S13a"
+group = "standalone"
+size = 1
+depends = ["S13a"]
+files = ["src/game/world_create.cpp", "src/game/originals_world.h"]
+note = "Standalone script and AI map destructors ported: CScript 0058A140 + 11 rows, AI map 0058A450, LocalSearch 0058AA60, sector array 00599330, grid Resize / Allocate; suite 128/128."
+order = 567
+status = "done"
+done = "2026-10-15"
