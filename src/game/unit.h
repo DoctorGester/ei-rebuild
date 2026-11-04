@@ -838,10 +838,10 @@ struct PartyUnitRecord {
     float CarriedWeight() const;
 
     // ClearItems and the defaults, then scriptName, figureName, parentIname, skinTexture, prototype (secondPrototype becomes a copy of it), unitId, the stats,
-    // scaleX / scaleY / height and the four lists (a count, then item ids resolved in the item manager of the
-    // party being loaded, and counted), then name; from version 0x51 moveMode2, weaponIndex and selected,
-    // from 0x5B leaderId, from 0x61 fightAtWill, from 0x6B secondPrototype.
-    void Load(ByteStream* stream);
+    // scaleX / scaleY / height and the four lists (a count, then item ids resolved in the item manager of
+    // `party`, the party being loaded, and counted), then name; from version 0x51 moveMode2, weaponIndex and
+    // selected, from 0x5B leaderId, from 0x61 fightAtWill, from 0x6B secondPrototype.
+    void Load(ByteStream* stream, Party* party);
     // Writes what Load reads (newest version).
     void Save(ByteStream* stream);
 

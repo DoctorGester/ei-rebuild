@@ -60,14 +60,6 @@ public:
     // (walked in STLport's order by Close: the objects nobody took are deleted in that order)
     using LoadedObjects = lib::HashMap<std::uint32_t, RefCounted*>;
 
-    // The classes an archive can hold: Close writes an object's class id (found by its vtable) to the index,
-    // Open creates the object with the class's factory.
-    using Factory = RefCounted*(*)();
-    struct ClassRegistry {
-        std::unordered_map<std::uintptr_t, std::int32_t> classIds;    // vtable -> class id
-        std::unordered_map<std::uint32_t, Factory> factories;    // class id -> factory
-    };
-
     Ref* Current() { return &stack.back(); }
     // The current chunk's parent.
     Ref* Parent() { return &*std::prev(stack.end(), 2); }
@@ -177,7 +169,6 @@ public:
     std::unordered_map<const RefCounted*, std::uint32_t> numbers;
     std::deque<RefCounted*> saved;              // the objects whose records Close writes (it adds while it takes)
 };
-extern ChunkArchive::ClassRegistry g_classRegistry;   // chunk_archive.cpp
 
 // A vector of records as chunk `id`, one chunk 1 per record (the record's occurrence): loading empties the
 // vector and resizes it to the number of chunks 1 first. `fields(record, archive)` (a record's member

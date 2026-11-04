@@ -3,7 +3,7 @@
 // over the window's picture rectangle. See docs/notes/ui.md, "Save / load window pictures", and docs/notes/renderer.md,
 // section 6.
 #include "app.h"
-#include "app_helpers.h"
+#include "app.h"
 #include "lib/calendar.h"
 #include "core_streams.h"
 #include "lib/containers.h"

@@ -89,8 +89,10 @@ check (`app.md`).
 - `ChunkArchive` (the object archive of the model files and saves): an index stream and a data stream; a saved
   archive has three top-level chunks: 1 (scratch data, read back on load), 0 (index: class id and key per object), 2
   (data: one child 1 per object, with child 0 the key and child 1 the object's fields). A loaded archive's Close
-  gives every loaded object one reference and takes it back. Class tables map class id to factory and object class
-  to id. `RecordChunks` (chunk_archive.h) is the shared record-table serializer: chunk `id` with one chunk 1 per record.
+  gives every loaded object one reference and takes it back. The class id is the object's `ArchiveType()` (an
+  `ArchiveClass`: 1 class template, 2 party record, -1 any other); Open creates each indexed object by it
+  (`CreateArchived`). Never key a class by its vtable address: /OPT:ICF may fold tables. `RecordChunks`
+  (chunk_archive.h) is the shared record-table serializer: chunk `id` with one chunk 1 per record.
 - The saves are byte-for-byte repeatable: two runs' autosaves at the same point are identical.
 
 ## Values read and written as bytes

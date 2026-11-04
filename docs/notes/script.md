@@ -131,9 +131,10 @@ the variables (object ids looked up, group members sorted).
 
 ## Quests, unit modes, text manager
 
-- Quest construction: `QStart` (empties the objectives `{type, text, value}`), `QObj*` (an objective appended),
-  `QFinish` builds a script text and loads it: `DeclareScript Su0()` .. `SuN()`, per objective `Script Sui(if(`
-  condition `)then(KillScript() Sui+1() GSSetVar(0,"q.q.q.i+1",2)` (and `GSSetVar(0,"q.q.q.i+2",1)` except for the last),
+- Quest construction (`Script::quest`, each script its own): `QStart` (empties the objectives `{type, text, value}`),
+  `QObj*` (an objective appended), `QFinish` builds a script text and loads it: `DeclareScript Su0()` .. `SuN()`,
+  per objective `Script Sui(if(` condition `)then(KillScript() Sui+1() GSSetVar(0,"q.q.q.i+1",2)` (and
+  `GSSetVar(0,"q.q.q.i+2",1)` except for the last),
   the closing `SuN` (QuestComplete, GSSetVar "q.q.q" 2), `WorldScript( Su0() )`; then the quest name is emptied (the
   objectives stay). QuestComplete looks the quest kill table up by name (a missing name gets a null entry).
 - Unit mode commands make the modes of `unit_ai.h` (Guard, Sentry, Follow, Suspection, Aggression (UMRevenge: `fixed`),

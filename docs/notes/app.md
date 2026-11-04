@@ -65,8 +65,7 @@ from it by `tools/gen_settings_doc.py`, a build check).
   removes the entry (a NaN removes it too), CopyPrefixed, Load, Save.
 - Key bindings (key_bindings.cpp): config\keyboard.ini of "command key" lines, key texts from the platform's key
   names; `platform.md` for the keys themselves.
-- The lever table (lever_table.cpp, Levers.ldb) and the class factories (app_frame.cpp: type registration, vtable to
-  id to factory).
+- The lever table (lever_table.cpp, Levers.ldb).
 - `DelayedProtectionCheck` (the original's copy protection on every new object: a 1% `rand()` draw, then a list nothing
   fills) is gone; the harness made the original's return at once, so nothing depends on its draw.
 - Caught file errors: `platform::File` throws `platform::FileError` by value; `Dib::Read` / `Write` catch it, the

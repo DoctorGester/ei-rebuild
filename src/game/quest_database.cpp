@@ -132,12 +132,12 @@ int QuestDatabase::Load(const std::string& folder) {
     MemoryStream stream;
     stream.Fill(data, size);
 
-    LoadTable(&stream, kQuestsChunk, &ChunkArchive::SerializeQuests, &quests, [this] {
-        for (QuestRecord& record : quests) questsByName[record.name] = &record;
+    LoadTable(&stream, [this](ChunkArchive& archive) { archive.SerializeQuests(kQuestsChunk, &quests); });
+    for (QuestRecord& record : quests) questsByName[record.name] = &record;
+    LoadTable(&stream, [this](ChunkArchive& archive) {
+        archive.SerializeBriefings(kBriefingsChunk, &briefings.records);
     });
-    LoadTable(&stream, kBriefingsChunk, &ChunkArchive::SerializeBriefings, &briefings.records, [this] {
-        for (QuestBriefingRecord& record : briefings.records) briefings.index[record.name] = &record;
-    });
+    for (QuestBriefingRecord& record : briefings.records) briefings.index[record.name] = &record;
 
     resource.CloseFile(data);
     resource.CloseResource();

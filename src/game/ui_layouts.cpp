@@ -1,7 +1,7 @@
 // Layout builders of the windows opened from the Esc menu (their Create virtual): the regions, sprites, surfaces,
 // scroll bar and 3D model each window is made of. Rebirth patches the sprite placement and UiRegion::SetRect for its
 // widescreen layout. See docs/notes/ui.md.
-#include "app_helpers.h"
+#include "app.h"
 #include "asset_text.h"
 #include "options.h"
 #include "bink_video.h"

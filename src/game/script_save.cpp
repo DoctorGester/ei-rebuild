@@ -62,15 +62,15 @@ void ScriptDefinition::Save(ByteStream* stream) const {
 }
 
 // A run (Script::runs). Its instance is found by the address of the killed flag
-// in the list of the script being saved; the WorldScript's runs (no flag) write -1.
-void ScriptRun::Save(ByteStream* stream) const {
+// in `script`'s list; the WorldScript's runs (no flag) write -1.
+void ScriptRun::Save(ByteStream* stream, const Script* script) const {
     stream->WriteValue(position.block->id);
     stream->WriteValue(position.index);
     stream->WriteValue(position.ticks);
     stream->WriteValue(position.sleepStart);
     int instance = 0;
     bool found = false;
-    for (const ScriptDefinition& candidate : g_streamedScript->instances) {
+    for (const ScriptDefinition& candidate : script->instances) {
         if (killFlag == &candidate.killed) {
             found = true;
             break;
@@ -82,8 +82,6 @@ void ScriptRun::Save(ByteStream* stream) const {
 }
 
 void Script::SaveState(ByteStream* stream) {
-    g_streamedScript = this;
-
     WriteList(stream, pointLights);
     WriteList(stream, particles);
     WriteList(stream, fxSources);
@@ -98,11 +96,11 @@ void Script::SaveState(ByteStream* stream) {
 
     // Instances (copies of definitions) and runs.
     WriteList(stream, instances);
-    WriteList(stream, runs);
+    stream->WriteCount(runs.size());
+    for (const ScriptRun& run : runs) run.Save(stream, this);
 
     stream->WriteValue(loaded);
     stream->WriteValue(fileCount);
-    g_streamedScript = nullptr;
 
     // The areas: count, then per area its id, part count and parts.
     stream->WriteCount(areas.size());

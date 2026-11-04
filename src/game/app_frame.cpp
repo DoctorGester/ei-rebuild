@@ -1,10 +1,8 @@
-// WinMain's frame step (the interface drawn and the frame presented, a screenshot per frame while recording a movie)
-// and the class registry's registration. See docs/notes/app.md.
+// WinMain's frame step (the interface drawn and the frame presented, a screenshot per frame while recording a movie).
+// See docs/notes/app.md.
 #include "app.h"
 
 #include "bink_video.h"
-#include "chunk_archive.h"
-#include "core_refcount.h"
 #include "dib.h"
 #include "game_singletons.h"
 #include "game_strings.h"
@@ -15,7 +13,6 @@
 #include "ui.h"
 #include "ui_cursor.h"
 #include "main_loop.h"
-#include "lib/bytes.h"
 #include "lib/crt.h"
 #include "platform/platform.h"
 
@@ -79,25 +76,6 @@ void PlayMovies(const std::string& section, bool loadingStep) {
             PlayMovie(full, true, false, loadingStep);
         }
     }
-}
-
-} // namespace app
-
-// Registers an object type with a factory in a two-way type registry (called twice by WinMain): a prototype
-// made by the factory gives the vtable; vtable -> id in one map, id -> factory in the other (the same scheme as
-// the network's TypeRegistry::Register). See docs/notes/app.md.
-
-namespace app {
-
-void TypeRegistryRegister(ChunkArchive::ClassRegistry* registry, std::uint32_t id,
-                          ChunkArchive::Factory factory) {
-    RefCounted* prototype = factory();
-    registry->factories[id] = factory;
-    if (!prototype) return;
-    prototype->AddRef();
-    std::uintptr_t vtable = lib::Load<std::uintptr_t>(prototype);
-    registry->classIds[vtable] = static_cast<std::int32_t>(id);
-    prototype->Release();
 }
 
 } // namespace app

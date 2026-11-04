@@ -377,7 +377,8 @@ struct ScriptSubCall {
     ScriptSubCall& operator=(ScriptSubCall&& other) noexcept;
     ~ScriptSubCall();
 
-    void Load(ByteStream* stream);
+    // The call's blocks resolve in `script` (ScriptCall::Load).
+    void Load(ByteStream* stream, const Script* script);
 
     ScriptType type{};  // of the result
     int argIndex = 0;
@@ -388,11 +389,11 @@ struct ScriptSubCall {
 // variable (or the caller's temporary) holding the value, so they see later assignments.
 class ScriptCall {
 public:
-    // The object / group argument slots are left null, bound when run; the called block's id is resolved
-    // like FindBlock. Assign and CallScript keep their target in leading argument slots on disk, as the game
-    // did: Assign the variable index in float 0 and its type - 1 in float 1, CallScript the definition's index
-    // in float 0 and its name in string 0 (the bindings and nested calls count those slots).
-    void Load(ByteStream* stream);
+    // The object / group argument slots are left null, bound when run; the called block's id is resolved in
+    // `script` (FindBlock). Assign and CallScript keep their target in leading argument slots on disk, as the
+    // game did: Assign the variable index in float 0 and its type - 1 in float 1, CallScript the definition's
+    // index in float 0 and its name in string 0 (the bindings and nested calls count those slots).
+    void Load(ByteStream* stream, const Script* script);
     // Floats and strings by value, objects and groups by address.
     void SetParameters(const std::vector<ScriptBinding>& bindings, ScriptVars* vars);
     void Save(ByteStream* stream) const;
@@ -479,8 +480,8 @@ struct ScriptBlock {
 
 // One `if(...)then(...)` pair of a script definition.
 struct ScriptIfThen {
-    // Two block ids resolved as FindBlock does.
-    void Load(ByteStream* stream);
+    // Two block ids resolved in `script` (FindBlock).
+    void Load(ByteStream* stream, const Script* script);
     // Evaluates the conditions in the instance's variables; when all are nonzero, runs the commands.
     void Run(Script* script, ScriptDefinition* instance) const;
     ScriptBlock* conditions = nullptr;
@@ -492,8 +493,8 @@ struct ScriptIfThen {
 struct ScriptDefinition {
     // Name and parameter string (terminators included), the if-then pairs (block ids), the variables.
     void Save(ByteStream* stream) const;
-    // Reads what Save wrote; if-then pairs naming a block the saved script lacks are dropped.
-    void Load(ByteStream* stream);
+    // Reads what Save wrote, the blocks resolved in `script`; if-then pairs naming a block it lacks are dropped.
+    void Load(ByteStream* stream, const Script* script);
     // A script call's arguments into the instance's variables; FatalError when a type's count does not match.
     void BindCall(const ScriptCall* call);
     // False when the name is taken.
@@ -522,10 +523,11 @@ struct ScriptRunPosition {
 // ScriptRun, saving and restoring the position). Runs not finished after one Execute stay in the
 // run list and continue each tick.
 struct ScriptRun {
-    // Block id, index, ticks, sleep start, the index of its instance in g_streamedScript's instance list (-1
-    // when absent), the variables. Load resolves the block like FindBlock; an index out of range leaves no instance.
-    void Load(ByteStream* stream);
-    void Save(ByteStream* stream) const;
+    // Block id, index, ticks, sleep start, the index of its instance in `script`'s instance list (-1 when
+    // absent), the variables. Load resolves the block in `script` (FindBlock); an index out of range leaves no
+    // instance.
+    void Load(ByteStream* stream, Script* script);
+    void Save(ByteStream* stream, const Script* script) const;
     // Runs commands from `index` until one waits (Sleep, WaitSegment, SleepUntil, SleepUntilIdle) or the block
     // ends. Returns false when the block had already ended on entry.
     bool Execute(Script* script);
@@ -545,6 +547,27 @@ struct ScriptErrorInfo {
     int line;
 };
 
+// ---- Quest construction ----
+// An objective of the quest QStart starts; QFinish turns them into a script.
+struct ScriptQuestObjective {
+    ScriptFunction type;    // the QObj* command
+    std::string text;       // its string argument (empty for QObjArea / QObjGetItem)
+    float value;            // its float argument
+};
+// The quest a script's QStart / QObj* / QFinish commands build (Script::quest).
+struct ScriptQuestBuilder {
+    // QStart: the old objectives dropped, the quest named.
+    void Start(const char* questName);
+    // The QObj* commands (type, text, with the value on the stack): appends {type, text, value}.
+    void AddObjective(ScriptFunction type, const std::string& text, float value);
+    // QFinish: the script text of one declared script per objective, each chaining to the next (the script
+    // loads it with the WorldScript started); the name is emptied, the objectives stay.
+    std::string Finish();
+
+    std::string name;
+    std::vector<ScriptQuestObjective> objectives;
+};
+
 // The script interpreter state passed to every evaluation. The world has two: its own and the mission script
 // the console uses.
 class Script {
@@ -559,12 +582,11 @@ public:
 
     // Negative ids in the WorldScript blocks, others in the command blocks; null when absent.
     ScriptBlock* FindBlock(int id) const;
-    // Reads what SaveState wrote; the areas only from stream version 0x57 on. g_streamedScript is set while
-    // it runs.
+    // Reads what SaveState wrote; the areas only from stream version 0x57 on.
     void LoadState(ByteStream* stream);
     // Point lights, particle / FX / lightning sources, two counters, the command blocks and WorldScript
     // blocks, the definitions, the globals, the instances, the runs, the loaded flag and file counter, the
-    // areas. g_streamedScript is set while it runs.
+    // areas.
     void SaveState(ByteStream* stream);
     void DeleteArea(int id);
     // Point lights (256 slots): create (id, x, y, z, radius, r, g, b), move (id, x, y, z, steps, remove when
@@ -683,6 +705,7 @@ public:
     std::string errorText;
     int errorCode = 0;
     int errorLine = 0;
+    ScriptQuestBuilder quest;   // Reset leaves it
 };
 
 // The id of a command or function (ScriptKeyword::id, ScriptCall::id; the names are the table's). 1..68 are the
@@ -958,26 +981,3 @@ const char* FunctionSignature(int id, ScriptType type);
 const char* KeywordName(int id);
 // The keyword table with Rebirth's additions (scriptaddon::Table()).
 const ScriptKeyword* KeywordTable();
-
-// ---- Quest construction ----
-// An objective of the quest QStart starts; QFinish turns them into a script.
-struct ScriptQuestObjective {
-    ScriptFunction type;    // the QObj* command
-    std::string text;       // its string argument (empty for QObjArea / QObjGetItem)
-    float value;            // its float argument
-};
-// The quest the QStart / QObj* / QFinish commands build, one for every script.
-struct ScriptQuestBuilder {
-    // QStart: the old objectives dropped, the quest named.
-    void Start(const char* questName);
-    // The QObj* commands (type, text, with the value on the stack): appends {type, text, value}.
-    void AddObjective(ScriptFunction type, const std::string& text, float value);
-    // QFinish: one declared script per objective, chaining to the next, loaded with the WorldScript started.
-    void Finish(Script* script);
-
-    std::string name;
-    std::vector<ScriptQuestObjective> objectives;
-};
-extern ScriptQuestBuilder g_scriptQuest;   // script_exec_helpers.cpp
-// The script being loaded or saved: the run loader and saver find a run's instance through it.
-inline Script* g_streamedScript = /*007AA620*/ {nullptr};
