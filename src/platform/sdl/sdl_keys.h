@@ -31,7 +31,7 @@ bool LayoutMoves(int scan);
 SDL_Scancode ScancodeOf(int scan);
 
 // The virtual-key code a key gets from what it types (`typed`, an SDL key code), where the system has no Windows
-// layouts to say (platform_posix.cpp's LayoutKey): a Latin letter's or a digit's, and for the characters of Windows'
+// layouts to say (posix/keyboard.cpp's LayoutKey): a Latin letter's or a digit's, and for the characters of Windows'
 // US punctuation keys those keys' codes (`-` VK_OEM_MINUS, `;` VK_OEM_1, ...); 0 for any other.
 int KeyOfTyped(SDL_Keycode typed);
 

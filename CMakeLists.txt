@@ -245,17 +245,19 @@ target_sources(ei_render PRIVATE ${EI_FONT_HEADERS})
 # The platform layer (docs/notes/platform.md): the game's calls of the operating system (src/platform/platform.h). The
 # window, its events, the cursor, the mouse, the clipboard, the message box, the clocks and the threads on SDL3
 # (src/platform/sdl); the folder calls on std::filesystem (src/platform/files.cpp); the rest on the system's
-# (src/platform/win32, the one place of the game's code that includes <windows.h>, or src/platform/posix).
+# (src/platform/win32, the one place of the game's code that includes <windows.h>, or src/platform/posix; one file per
+# area).
 file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/sdl/*.cpp src/platform/${EI_SYSTEM}/*.cpp)
-list(APPEND EI_PLATFORM_SOURCES ${CMAKE_SOURCE_DIR}/src/platform/files.cpp ${CMAKE_SOURCE_DIR}/src/platform/system_path.cpp)
-# The calls a harness run answers itself (src/platform/<system>/game_calls.cpp), its mapping of the file calls' paths
-# (src/platform/system_path.cpp) and SDL's areas (src/platform/sdl/platform_sdl.cpp): in the harness's builds the game
-# takes the harness's backend's definitions (tests/verify/platform, below), and the other programs that link the
-# platform take the files (EI_GAME_CALLS; EI_SDL_CALLS, with SDL3 linked, for those that need SDL's areas).
+list(APPEND EI_PLATFORM_SOURCES ${CMAKE_SOURCE_DIR}/src/platform/files.cpp ${CMAKE_SOURCE_DIR}/src/platform/seams.cpp)
+# What a harness run answers itself: the sockets (src/platform/<system>/sockets.cpp), the platform's seams
+# (src/platform/seams.cpp: the file calls' paths, the write watch, the isolated run) and SDL's areas
+# (src/platform/sdl/platform_sdl.cpp). In the harness's builds the game takes the harness's backend's definitions
+# (tests/verify/platform, below), and the other programs that link the platform take the files (EI_GAME_CALLS;
+# EI_SDL_CALLS, with SDL3 linked, for those that need SDL's areas).
 set(EI_GAME_CALLS)
 set(EI_SDL_CALLS)
 if(EI_HARNESS)
-    set(EI_GAME_CALLS ${CMAKE_SOURCE_DIR}/src/platform/${EI_SYSTEM}/game_calls.cpp ${CMAKE_SOURCE_DIR}/src/platform/system_path.cpp)
+    set(EI_GAME_CALLS ${CMAKE_SOURCE_DIR}/src/platform/${EI_SYSTEM}/sockets.cpp ${CMAKE_SOURCE_DIR}/src/platform/seams.cpp)
     set(EI_SDL_CALLS ${CMAKE_SOURCE_DIR}/src/platform/sdl/platform_sdl.cpp)
     list(REMOVE_ITEM EI_PLATFORM_SOURCES ${EI_GAME_CALLS} ${EI_SDL_CALLS})
 endif()
@@ -326,9 +328,9 @@ file(WRITE ${CMAKE_BINARY_DIR}/third_party_notices.txt
 
 if(EI_HARNESS)
     # The harness (tests/verify; docs/notes/harness.md), linked into this exe. Its platform backend (tests/verify/platform)
-    # takes the place of platform_sdl.cpp (the window, events, clocks, cursor, mouse and clipboard on SDL), of
-    # system_path.cpp (its overlay) and of game_calls.cpp (its answers to the game's file write, socket and desktop
-    # calls; its sockets on 127.0.0.1). Its own calls of the system are tests/verify/system's, one file per system.
+    # takes the place of platform_sdl.cpp (the window, events, clocks, cursor, mouse and clipboard on SDL), of seams.cpp
+    # (its overlay, its file write watch, the isolated run) and of the sockets (its sockets on 127.0.0.1 and a pair's
+    # network). Its own calls of the system are tests/verify/system's, one file per system.
     file(GLOB EI_HARNESS_SOURCES CONFIGURE_DEPENDS tests/verify/*.cpp tests/verify/image/*.cpp tests/verify/platform/*.cpp
          tests/verify/system/*.cpp)
     if(WIN32)

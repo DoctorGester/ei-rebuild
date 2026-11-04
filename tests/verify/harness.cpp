@@ -494,7 +494,7 @@
 #include "harness_utf8.h"
 
 #include "platform/log.h"
-#include "platform/paths.h"
+#include "platform/seams.h"
 #include "platform/platform.h"
 #include "game/main_loop.h"
 #include "lib/rebirth.h"

@@ -1,14 +1,13 @@
 #pragma once
 
-// The POSIX backend's own declarations (platform_posix.cpp), for game_calls.cpp and the harness's backend.
+// The POSIX backend's own declarations (src/platform/posix/*.cpp, one file per area of platform.h), for its files.
 
-#include "platform/platform.h"
+#include <filesystem>
+#include <string>
 
 namespace platform::posix {
 
-// Whether another game of the same name and window title runs: SDL cannot list another process's windows, so the first
-// game holds an advisory lock named by the two and a second one finds it held. BringOtherInstanceForward's answer
-// (game_calls.cpp; another process's window cannot be raised).
-bool OtherInstanceRunning(const char* name, const char* title);
+// `path` in the game's form: backslashes between folders.
+std::string GamePath(const std::filesystem::path& path);
 
 } // namespace platform::posix

@@ -10,7 +10,7 @@
 #include "game/asset_text.h"
 #include "platform/harness_platform.h"
 #include "game/ui.h"
-#include "platform/paths.h"
+#include "platform/seams.h"
 #include "platform/platform.h"
 #include "lib/str.h"
 #include "lib/text_case.h"

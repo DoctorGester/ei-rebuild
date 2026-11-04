@@ -1,4 +1,4 @@
-// Check of the POSIX platform's keyboard on X11's layouts (src/platform/posix/platform_posix.cpp: LayoutKey,
+// Check of the POSIX platform's keyboard on X11's layouts (src/platform/posix/keyboard.cpp: LayoutKey,
 // LayoutControlCharacter, KeyName through SDL's keymap): on an Xvfb of its own (never the session's
 // display), setxkbmap's us, ru, fr and de in turn, every key a layout moves against the codes, names and Ctrl characters
 // written below, as the SDL backend makes its events of them (sdl_keys::KeyOf, ControlCharacter). `--print` prints

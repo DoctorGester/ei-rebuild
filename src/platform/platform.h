@@ -4,8 +4,8 @@
 // section per area. No system type crosses it: UTF-8 text, fixed-width integers, our own enums and structs, a
 // native window as an opaque pointer. The backends: SDL3 for the window, its events, the cursor, the mouse, the
 // clipboard, the message box, the clocks and the threads (src/platform/sdl/platform_sdl.cpp), std::filesystem for the
-// folders (src/platform/files.cpp), Windows or POSIX for the rest (src/platform/win32/platform_win32.cpp,
-// src/platform/posix/platform_posix.cpp).
+// folders (src/platform/files.cpp), Windows or POSIX for the rest (src/platform/win32, src/platform/posix: one file per
+// area).
 
 #include "lib/bytes.h"
 #include "lib/rect.h"
@@ -76,7 +76,7 @@ std::string EnvironmentVariable(const char* name);
 
 // Paths are UTF-8 (the wide calls on Windows), with backslashes between folders as the game writes them (elsewhere each
 // name is matched with Windows' case rules). Every call takes its path through one mapping, which the harness's builds
-// answer with the run's saves and install overlay (src/platform/paths.h): what a call sees depends on its path alone.
+// answer with the run's saves and install overlay (src/platform/seams.h): what a call sees depends on its path alone.
 // Every open shares the file with other readers and writers.
 //   - File: a binary file on a system handle (the game's CFile uses), also written by text lines;
 //   - ReadWholeFile / WriteWholeFile: a whole file at once (the text files, split into lines with str::Lines; the
@@ -152,7 +152,7 @@ public:
     // False when the file cannot be opened. A file still open is closed first.
     bool Open(std::string_view path, FileMode mode);
     void Close();
-    bool IsOpen() const { return handle != nullptr; }
+    bool IsOpen() const { return handle != -1; }
 
     // The bytes read (fewer at the end of the file).
     unsigned Read(void* buffer, unsigned count);
@@ -180,8 +180,8 @@ public:
     bool ReadAt(long offset, void* buffer, unsigned count);
 
 private:
-    void* handle = nullptr;   // the system's file handle
-    std::string path;         // as opened (for FileError)
+    std::intptr_t handle = -1;   // the system's file handle or descriptor; -1: none
+    std::string path;            // as opened (for FileError)
 };
 
 // A whole file mapped into memory, read only. Closed by the destructor.
@@ -199,8 +199,8 @@ public:
     std::uint32_t Size() const { return size; }
 
 private:
-    void* file = nullptr;      // the system's file handle
-    void* mapping = nullptr;   // the system's mapping handle
+    std::intptr_t file = -1;   // the system's file handle or descriptor; -1: none
+    void* mapping = nullptr;   // Windows' mapping handle
     const void* view = nullptr;
     std::uint32_t size = 0;
 };

@@ -1,7 +1,7 @@
 #pragma once
 
-// The Windows backend's own declarations (platform_win32.cpp, game_calls.cpp), for its files and the harness's Windows
-// parts (tests/verify/system/*_win32.cpp).
+// The Windows backend's own declarations (src/platform/win32/*.cpp, one file per area of platform.h), for its files and
+// the harness's Windows parts (tests/verify/system/*_win32.cpp).
 //
 // Text at the system boundary in UTF-8 (docs/notes/standalone.md section 4). Every string inside the game is UTF-8,
 // so the backend calls the wide (UTF-16) Windows functions, converting with Wide and Narrow at the call. Text going
@@ -24,11 +24,3 @@ std::wstring Wide(std::string_view text);
 std::string Narrow(std::wstring_view wide);
 
 } // namespace text
-
-namespace platform::win32 {
-
-// Another program's window `other` brought to the front, restored from the task bar, unless it is in front already;
-// false for none (null).
-bool BringForward(HWND other);
-
-} // namespace platform::win32
