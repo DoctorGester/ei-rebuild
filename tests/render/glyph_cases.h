@@ -29,16 +29,19 @@ std::uint32_t Commits();
 void ReleaseFrame();
 
 std::uint32_t RgbOfColorref(std::uint32_t c);
-// How many pixels of `a` and `b` (rows of `width`) differ by more than `tolerance` in a channel; `example` gets the
-// first. Sizes that differ add 1000000.
+// How many pixels of `a` and `b` (rows of `width`) differ by more than `tolerance` in a channel, or by more than
+// `blends` gives a pixel when that is more; `example` gets the first. Sizes that differ add 1000000.
 int Differ(const std::vector<std::uint32_t>& a, const std::vector<std::uint32_t>& b, int width, std::string* example,
-           int tolerance = 0);
+           int tolerance = 0, const std::vector<std::uint8_t>* blends = nullptr);
 std::string Outcome(int differ, const std::string& example);
 
 // Called with each check's outcome and a description.
 using CheckFn = void (*)(bool ok, const std::string& what);
 // The glyph runs (render_text layouts, underlines, clipping, over fills, the shadow under the text) against each
-// quad's coverage blended over what is there in turn, within one level a channel.
+// quad's coverage blended over what is there in turn, within one level a channel for each blend at the pixel. The
+// rule rounds each blend's sum once, as GPUs' float blenders do; Mesa's lavapipe blends 8-bit targets in fixed
+// point and rounds the source's and the destination's products apart, so each blend can land one level off (Vulkan
+// asks blending only for the target's own precision) and a pixel under both the shadow and the text two (PL21a).
 void Run(CheckFn check);
 
 }   // namespace glyph_cases
