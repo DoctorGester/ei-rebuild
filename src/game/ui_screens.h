@@ -86,7 +86,7 @@ public:
     void LeftDown(Point point) override;
     void LeftUp(Point point) override;
     void MouseMove(Point point) override;
-    void Wheel(int delta, Point point) override;
+    void Wheel(float notches, Point point) override;
 
     // Settles the pending scroll on release.
     void SettleScroll();

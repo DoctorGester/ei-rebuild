@@ -182,7 +182,7 @@ public:
     void OnRightUp(Point point);
     void OnLeftDouble(Point point);
     void OnRightDouble(Point point);
-    void OnWheel(int delta, Point point);
+    void OnWheel(float notches, Point point);
     UiInputSide* MouseTarget() const;
     // A typed character (a code point) with the scan code of the key that typed it: nothing for the key under Esc;
     // the shown console's OnChar, else a multiplayer client's open chat line, else the top window.
@@ -467,11 +467,14 @@ public:
     Object3D* object = nullptr;
 };
 
+// The wheel's units a notch: the original took the turn in Windows' units, and its wheel constants are per unit.
+inline constexpr float kWheelUnits = 120.0f;
+
 // An input side: a window's own (UiWindow's second base) or a separate handler a container keeps in its
 // list (e.g. the battle camera's keys, CameraInput). The interface hands each event to the top window's
 // side (arguments: the mouse's position in screen pixels; a key (platform::Key), its scan code and, pressed, its repeat;
-// a character's code point and scan code; the wheel's turn, 120 a notch, positive away from the player, and the
-// position). The base does nothing, except that a double click is a press.
+// a character's code point and scan code; the wheel's turn in notches and the position). The base does nothing, except
+// that a double click is a press.
 struct UiInputSide {
     // The handled flag is left as it is (a dispatcher clears it before each event).
     explicit UiInputSide(Interface3D* ownerUi) : ui(ownerUi) {}
@@ -487,7 +490,8 @@ struct UiInputSide {
     virtual void KeyDown(platform::Key, int, bool) {}
     virtual void Char(int, int) {}
     virtual void KeyUp(platform::Key, int) {}
-    virtual void Wheel(int delta, Point point);
+    // The wheel turned by `notches` (fractions from a smooth wheel), positive away from the player.
+    virtual void Wheel(float notches, Point point);
     // Whether the side pans the camera at the screen's edges (CameraInput with the border scroll area above 0).
     virtual bool PansAtEdges() const { return false; }
 
@@ -970,8 +974,8 @@ public:
     // world), 5 is "camera north".
     void LeftUp(Point point) override;
     void MouseMove(Point point) override;
-    // Over region 0 the wheel zooms the map by 2.5^(delta / 1200).
-    void Wheel(int delta, Point point) override;
+    // Over region 0 the wheel zooms the map by 2.5^(notches / 10).
+    void Wheel(float notches, Point point) override;
     // Every frame: the marker mesh (scene object 2) of the units, marked objects, zone exits and players.
     void BuildMarkers();
     // Every frame, before BuildMarkers: follows the camera and builds the visible-area mesh (scene object 1)
@@ -1031,7 +1035,7 @@ public:
     void LeftDown(Point point) override;
     void LeftUp(Point point) override;
     void MouseMove(Point point) override;
-    void Wheel(int delta, Point point) override;
+    void Wheel(float notches, Point point) override;
     // The battle screen's keys call it after setting bodyPart.
     void ShowBodyPart();
     // The pictures of the first six effects on `unit`; scene object 9 shows when there are more. PaintEffects their
@@ -1132,7 +1136,7 @@ public:
     void LeftDown(Point point) override;
     void LeftUp(Point point) override;
     void MouseMove(Point point) override;
-    void Wheel(int delta, Point point) override;
+    void Wheel(float notches, Point point) override;
     // Page `page` into the message log (page 0 scrolled to the end).
     void ShowPage();
     // Every frame: the slide.
@@ -1214,7 +1218,7 @@ public:
     void KeyDown(platform::Key key, int scan, bool repeat) override;
     void Char(int key, int scan) override;
     void KeyUp(platform::Key key, int scan) override;
-    void Wheel(int delta, Point point) override;
+    void Wheel(float notches, Point point) override;
 
     // Seconds since the last frame (milliseconds * 0.001f).
     static float FrameTime();
@@ -1297,7 +1301,7 @@ public:
     void KeyUp(platform::Key key, int scan) override;
     // Offered to the map, the unit panel, the message log and the top panel in that order; when none takes
     // it, the container passes it on with those four disabled.
-    void Wheel(int delta, Point point) override;
+    void Wheel(float notches, Point point) override;
     // Its GetName when not empty; for a unit whose id is a text key, its "pers" text; otherwise the first
     // line of the text "unit " + the prototype's name with spaces as '_'.
     std::string UnitName(Unit* unit);
@@ -1421,7 +1425,7 @@ public:
     // Drags the thumb (state 1). The event is used either way.
     void MouseMove(Point point) override;
     // Over the track (region 2): delta (low 16 bits) * speed / 120 into the accumulated amount.
-    void Wheel(int delta, Point point) override;
+    void Wheel(float notches, Point point) override;
     // Clamped to 0..maximum, moved set.
     virtual void SetPosition(int position);
     // The track is the right 10 pixels less 26 at either end. The position is set again (one below first,
@@ -1600,7 +1604,7 @@ public:
     void LeftDown(Point point) override;
     void LeftDouble(Point point) override { LeftDown(point); }
     void MouseMove(Point point) override;
-    void Wheel(int delta, Point point) override;
+    void Wheel(float notches, Point point) override;
     void KeyDown(platform::Key key, int scan, bool repeat) override;
 
     std::vector<std::string> texts;

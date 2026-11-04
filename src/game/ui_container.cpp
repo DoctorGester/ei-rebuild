@@ -134,8 +134,8 @@ void UiContainer::KeyUp(platform::Key key, int scan) {
 }
 
 // The children are tested at the position.
-void UiContainer::Wheel(int delta, Point point) {
-    Offer(this, &point, [&](UiInputSide* to) { to->Wheel(delta, point); });
+void UiContainer::Wheel(float notches, Point point) {
+    Offer(this, &point, [&](UiInputSide* to) { to->Wheel(notches, point); });
 }
 
 void UiContainer::AddChild(UiWindow* child) {

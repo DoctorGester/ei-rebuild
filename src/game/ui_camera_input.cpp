@@ -19,7 +19,7 @@ namespace {
 
 // A camera motion's speed with the mouse: its power times its speed.
 float MouseSpeed(const options::CameraMotionOptions& motion) { return motion.powerMouse * motion.speed; }
-// The wheel's steps per delta unit (read from the exe, rule 9).
+// The wheel's zoom steps per unit, kWheelUnits a notch (read from the exe, rule 9).
 constexpr float kWheelStep = -0.008333334f;
 
 bool ModifierHeld(const Interface3D* ui) { return ui->ctrlDown || ui->altDown; }
@@ -196,8 +196,8 @@ void CameraInput::Deactivate() {
     g_camera.StopMotion();
 }
 
-void CameraInput::Wheel(int delta, Point) {
-    g_camera.ZoomBy(MouseSpeed(options::g_options.cameraZoom) * static_cast<float>(delta) * kWheelStep);
+void CameraInput::Wheel(float notches, Point) {
+    g_camera.ZoomBy(MouseSpeed(options::g_options.cameraZoom) * (notches * kWheelUnits) * kWheelStep);
 }
 
 // --- Ui camera keys ----------------------------------------------------------------------------------

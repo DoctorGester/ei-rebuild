@@ -12,7 +12,6 @@
 #include "lib/crt.h"
 #include "lib/text_case.h"
 #include "platform/platform.h"
-#include <cmath>
 #include <cstdarg>
 #include <cstring>
 #include <string>
@@ -61,19 +60,16 @@ void OnActivate(bool active, bool minimized) {
 
 void Handled() { g_interface.CloseAllPending(); }
 
-// The wheel's turn as the interface takes it: 120 a notch, positive away from the player.
-int WheelTurn(const platform::Event& event) { return static_cast<int>(std::lround(event.wheel * 120.0f)); }
-
 // The events the interface takes: keys, text, the mouse's moves, its left and right buttons and a wheel's turn.
 bool IsInput(const platform::Event& event) {
     switch (event.type) {
     case EventType::KeyDown:
     case EventType::KeyUp:
     case EventType::Text:
-    case EventType::MouseMove: return true;
+    case EventType::MouseMove:
+    case EventType::Wheel: return true;
     case EventType::MouseDown:
     case EventType::MouseUp: return event.button == MouseButton::Left || event.button == MouseButton::Right;
-    case EventType::Wheel: return WheelTurn(event) != 0;
     default: return false;
     }
 }
@@ -116,7 +112,7 @@ void OnMouse(Interface3D* input, const platform::Event& event, Point at) {
         if (left) input->OnLeftUp(at);
         else input->OnRightUp(at);
         break;
-    case EventType::Wheel: input->OnWheel(WheelTurn(event), at); break;
+    case EventType::Wheel: input->OnWheel(event.wheel, at); break;
     default: break;
     }
 }

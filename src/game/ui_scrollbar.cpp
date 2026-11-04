@@ -22,7 +22,7 @@ constexpr int kDragging = 1;
 constexpr int kSliderThumbHalfWidth = 14;
 constexpr int kSliderThumbHeight = 10;
 
-// The wheel's step per unit of delta: 1/120.
+// The wheel's step per unit (kWheelUnits a notch): 1/120.
 constexpr float kWheelStep = 0.008333334f;
 
 } // namespace
@@ -94,9 +94,9 @@ void UiScrollbar::MouseMove(Point point) {
     handled = true;
 }
 
-void UiScrollbar::Wheel(int delta, Point point) {
+void UiScrollbar::Wheel(float notches, Point point) {
     if (RegionAt(point) == kTrackRegion) {
-        float step = delta * speed * kWheelStep;
+        float step = notches * kWheelUnits * speed * kWheelStep;
         accumulated -= step;
         handled = true;
     }
