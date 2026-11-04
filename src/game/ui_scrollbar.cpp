@@ -56,7 +56,7 @@ void UiScrollbar::SetPosition(int newPosition) {
     // half, 0, where a C++ cast would give 0x80000000.
     int offset = maximum == 0 ? 0
                               : static_cast<int>(static_cast<float>(track.Height() * newPosition) / maximum);
-    SceneMesh(kThumb)->Place(track.left + kThumbInset,
+    sceneObjects[kThumb]->Place(track.left + kThumbInset,
                                 static_cast<float>(offset) + track.top, depth - kThumbLift);
     const int centre = track.top + offset;
     thumb = {track.left, centre - 14, track.left + 10, centre + 14};
@@ -69,10 +69,10 @@ void UiScrollbar::SetRect(const Rect* newRect) {
 
     // The sprites (SetRectangle and the regions' SetRect are Rebirth-patched: through their
     // addresses).
-    SceneMesh(kTrack)->SetRectangle(depth, 100.0f, bar.Inset(2, 4), 8, 4, 0x20, 0xFC);
-    SceneMesh(kThumb)->SetRectangle(depth - kThumbLift, 100.0f, bar.TopStrip(0x1C), 0x28, 8, 0x50, 0x78);
-    SceneMesh(kUpArrow)->SetRectangle(depth, 100.0f, bar.TopStrip(0xC), 0x28, 0xB0, 0x50, 0x80);
-    SceneMesh(kDownArrow)->SetRectangle(depth, 100.0f, bar.BottomStrip(0xC), 0x28, 0x80, 0x50, 0xB0);
+    sceneObjects[kTrack]->SetRectangle(depth, 100.0f, bar.Inset(2, 4), 8, 4, 0x20, 0xFC);
+    sceneObjects[kThumb]->SetRectangle(depth - kThumbLift, 100.0f, bar.TopStrip(0x1C), 0x28, 8, 0x50, 0x78);
+    sceneObjects[kUpArrow]->SetRectangle(depth, 100.0f, bar.TopStrip(0xC), 0x28, 0xB0, 0x50, 0x80);
+    sceneObjects[kDownArrow]->SetRectangle(depth, 100.0f, bar.BottomStrip(0xC), 0x28, 0x80, 0x50, 0xB0);
 
     regions[kUpRegion]->SetRect(bar.TopStrip(0xC));
     regions[kDownRegion]->SetRect(bar.BottomStrip(0xC));
@@ -111,7 +111,7 @@ void UiSlider::SetPosition(int newPosition) {
     position = newPosition;
     // Truncated by _ftol (a zero maximum: 0 / 0, which _ftol makes 0).
     int offset = lib::Truncate(static_cast<float>(track.Width() * newPosition) / maximum);
-    SceneMesh(kThumb)->Place(static_cast<float>(track.left + offset),
+    sceneObjects[kThumb]->Place(static_cast<float>(track.left + offset),
                                 track.top + kThumbInset, depth - kThumbLift);
     const int centre = track.left + offset;
     thumb = {centre - kSliderThumbHalfWidth, track.top, centre + kSliderThumbHalfWidth, track.top + kSliderThumbHeight};
@@ -131,7 +131,7 @@ void UiScrollbar::SetMaximum(int maximum) {
     maxPosition = maximum;
     moved = true;
     int visible = maximum != 0 ? 1 : 0;
-    for (int i = 0; i < kScrollbarSprites; ++i) SceneMesh(i)->visible = visible;
+    for (int i = 0; i < kScrollbarSprites; ++i) sceneObjects[i]->visible = visible;
     int currentPosition = position;
     position = currentPosition - 1;
     SetPosition(currentPosition);

@@ -329,7 +329,7 @@ void BattleScreen::SaveState() {
 
 void BattleScreen::MarkPortrait(int index) {
     auto* currentPortraits = portraits;
-    currentPortraits->SceneMesh(index * kPortraitSprites + 4)->visible = true;
+    currentPortraits->sceneObjects[index * kPortraitSprites + 4]->visible = true;
     const Vector3 axis = {-1.0f, 0.0f, 0.0f};
     Quaternion turn;
     currentPortraits->slots[index].restB = *turn.SetAxisAngle(axis, SelectedFaceAngle());
@@ -455,18 +455,18 @@ void HudQuickItems::SetUnit(Unit* newUnit) {
     // The sprite just added: placed in its row (x from the panels' right column, 695; Rebirth moves it), its
     // region pointing at it, scaled, opaque.
     auto place = [&](int slot) {
-        EngineObject* sprite = sceneObjects[shownCount - 1];
+        UiMesh* sprite = sceneObjects[shownCount - 1];
         const float right = screen_layout::g_panelRight;
         if (slot < 4)
-            AsUiMesh(sprite)->Place(right - (slot * 50), 575.0f, 20.0f);
+            sprite->Place(right - (slot * 50), 575.0f, 20.0f);
         else
-            AsUiMesh(sprite)->Place(right - (slot * 50 - 200), 525.0f, 20.0f);
+            sprite->Place(right - (slot * 50 - 200), 525.0f, 20.0f);
         int last = shownCount - 1;
         regionItem[slot] = last;
         if (last >= 0 && last < shownCount) {
-            EngineObject* shown = sceneObjects[last];
-            AsUiMesh(shown)->SetScale(slot < 4 ? 0.55f : 0.85f);
-            SceneMesh(last)->flatSpecular = 0xFF000000;
+            UiMesh* shown = sceneObjects[last];
+            shown->SetScale(slot < 4 ? 0.55f : 0.85f);
+            sceneObjects[last]->flatSpecular = 0xFF000000;
         }
     };
 
@@ -542,7 +542,7 @@ void RebuildClientParty(BattleScreen* screen) {
             ids.withUnit.push_back(unitId);
             net::BindingMessage* camera = session->binding;
             if (camera && !(camera->flags7 & RefCounted::kDetached) &&
-                camera->first.Get() == player)
+                camera->player.Get() == player)
                 ids.camera = unitId;
         } else {
             ids.without.push_back(playerId);
@@ -730,7 +730,7 @@ void BattleScreen::LeftUp(Point point) {
         if (first >= 0) {
             world->Deselect();
             // Portrait i's selection marker (scene object 5 i + 4) and face state.
-            auto marker = [&](int i) { return portraits->SceneMesh(i * 5 + 4); };
+            auto marker = [&](int i) { return portraits->sceneObjects[i * 5 + 4]; };
             auto slot = [&](int i) -> HudPortraitSlot& { return portraits->slots[i]; };
             for (int i = 0; i < std::ssize(*currentParty); ++i) {
                 Unit* unit = unitAt(i);

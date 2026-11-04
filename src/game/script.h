@@ -19,6 +19,7 @@
 #include "lib/vecmath.h"
 
 
+class MapObject;
 class Unit;
 class UnitServer;
 class EffectPointLight;
@@ -36,6 +37,15 @@ enum ScriptType : int {
 // A counted reference to a world object: holding one keeps the object's refCount raised. Objects
 // deleted from the world stay allocated while referenced and have bit 0 of flags set.
 struct ScriptObjectRef {
+    // Out of line: the header sees MapObject only declared (script.h reaches the renderer through model.h).
+    ScriptObjectRef();
+    explicit ScriptObjectRef(MapObject* object);
+    ScriptObjectRef(const ScriptObjectRef& other);
+    ScriptObjectRef(ScriptObjectRef&& other) noexcept;
+    ScriptObjectRef& operator=(const ScriptObjectRef& other);
+    ScriptObjectRef& operator=(ScriptObjectRef&& other) noexcept;
+    ~ScriptObjectRef();
+
     // Null for anything but a unit.
     Unit* AsUnit() const;
     // The unit's server controller (lists what the unit sees), null for non-units.
@@ -45,7 +55,7 @@ struct ScriptObjectRef {
     void Load(ByteStream* stream);
     void Save(ByteStream* stream) const;
 
-    HeldRef<EngineObject> object;
+    HeldRef<MapObject> object;
 };
 
 // A script group: object references kept sorted, without duplicates. The set operations build the result in
@@ -65,11 +75,11 @@ public:
     void Sort();
     void Remove(EngineObject* object);
     // Unless null or already present.
-    void Insert(EngineObject* object);
+    void Insert(MapObject* object);
     // Also empty slots.
     void RemoveDeleted();
     void InsertAll(const std::vector<HeldRef<Unit>>* list);
-    // Replaces the list's contents (an AI memory list).
+    // Replaces the list's contents (an AI memory list; the group holds units only).
     void CopyToList(std::vector<HeldRef<Unit>>* list) const;
     bool Contains(EngineObject* object) const;
     // A count and that many object ids, then sorted.
@@ -172,8 +182,10 @@ struct ScriptArea {
 
 // The effects a script places in the world (CreatePointLight, CreateParticleSource, CreateFX...,
 // CreateLightning). Each holds a reference on its effect object, which is also a timed object of the world;
-// dropping one (ScriptDropEffect) removes the timed object and releases the reference.
-void ScriptDropEffect(EngineObject* object);
+// dropping one (ScriptDropEffect) removes the timed object and releases the reference. Defined for the four effect
+// classes in script_effects.cpp.
+template <class T>
+void ScriptDropEffect(T* object);
 
 // The effect object of one of them: made from a pointer it takes a reference of its own; reset, assigned over or
 // destroyed, it drops the effect. Move-only. Made and read only where the effect classes are complete
@@ -196,16 +208,16 @@ public:
     ~ScriptEffect() { reset(); }
 
     void reset() {
-        if (EngineObject* dropped = std::exchange(object, nullptr)) ScriptDropEffect(dropped);
+        if (T* dropped = std::exchange(object, nullptr)) ScriptDropEffect(dropped);
     }
-    T* get() const { return static_cast<T*>(object); }
-    T* operator->() const { return get(); }
+    T* get() const { return object; }
+    T* operator->() const { return object; }
     explicit operator bool() const { return object != nullptr; }
     // The object's id as the savers write it (-1: none).
     int SavedId() const { return object ? object->id : -1; }
 
 private:
-    EngineObject* object = nullptr;
+    T* object = nullptr;
 };
 
 // A point light slot (Script::pointLights, 256 slots); a free slot is all zero.

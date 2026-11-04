@@ -18,6 +18,7 @@
 #include <vector>
 
 class TextureDevice;
+class Texture;
 
 namespace render::text {
 class GlyphAtlas;
@@ -119,7 +120,7 @@ struct TerrainPiece {
 };
 
 struct TerrainBatch {
-    const void* texture;      // the game's Texture
+    const ::Texture* texture;   // the landscape's page texture
     bool water;               // the water pass (alpha from the vertex colour)
     int matrix;               // index into Frame::matrices
     int firstPiece;           // into Frame::terrainPieces
@@ -700,7 +701,7 @@ void LogImageCounts(const char* when);
 
 // A Texture or a texture's holder (Surface) as a texture with its mip levels: what was decoded or drawn for it; white
 // when there is none. Valid until the next Present.
-const gpu::Texture& TextureView(const void* texture);
+const gpu::Texture& TextureView(const ::Texture* texture);
 const gpu::Texture& SurfaceView(const void* holder);
 // render::TextureFromMmp: kept until the holder goes.
 bool TextureFromMmpData(const void* holder, const MmpFile& file, unsigned mip, unsigned levels);

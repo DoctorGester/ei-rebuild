@@ -52,11 +52,11 @@ float RightEdge(float x) { return x + screen_layout::EdgeShift(); }
 float LeftEdge(float x) { return x - screen_layout::EdgeShift(); }
 
 void Place(UiWindow* window, int index, float x, float y, float depth) {
-    AsUiMesh(window->sceneObjects[index])->Place(x, y, depth);
+    window->sceneObjects[index]->Place(x, y, depth);
 }
 
-void SetTint(EngineObject* object, float value) {
-    float* tint = AsUiMesh(object)->tint;
+void SetTint(UiMesh* object, float value) {
+    float* tint = object->tint;
     tint[0] = tint[1] = tint[2] = value;
 }
 
@@ -89,11 +89,11 @@ void AdvanceSlide(Panel* panel) {
     if (panel->slide == 1.0f || panel->slide == 0.0f) panel->sliding = false;
 }
 
-void PlaceSling(EngineObject* sling, float angle, float x) {
+void PlaceSling(UiMesh* sling, float angle, float x) {
     const Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
-    AsUiMesh(sling)->localRotation = *turn.SetAxisAngle(axis, angle);
-    AsUiMesh(sling)->Place(x, kSlingY, kSlingDepthBits);
+    sling->localRotation = *turn.SetAxisAngle(axis, angle);
+    sling->Place(x, kSlingY, kSlingDepthBits);
 }
 
 constexpr const char* kArrowSprite = "in25arrow";
@@ -439,7 +439,7 @@ void HudMap::Setup(float newZoom, bool slid) {
     AddSurface(dot);
     dot->PaintWith([](UiSurface& out) { out.Dot({0, 0}, 0xFFFFFF); });
 
-    const UiMesh* disc = SceneMesh(1);
+    const UiMesh* disc = sceneObjects[1];
     for (int block = 0; block < kOutlinePoints / 4; ++block) {
         for (int corner = 0; corner < 4; ++corner)
             viewPolygon.push_back(Vector2{disc->vertices[block].x()[corner], disc->vertices[block].y()[corner]});

@@ -91,7 +91,7 @@ void HudWeaponBar::Highlight(int index, bool on) {
         screen_layout::LeavePanel();
         return;
     }
-    UiMesh* sprite = SceneMesh(index);
+    UiMesh* sprite = sceneObjects[index];
     const int left = (index * 5 + 10) * 8;
     const int right = (index * 5 + 15) * 8;
     if (on) {
@@ -213,7 +213,7 @@ void HudSpellColumn::AddSpell(std::string_view model, std::string_view image) {
     AddRegion()->SetRect(760, 470, 800, 510);
     for (int i = 0; i < std::ssize(sceneObjects); ++i) {
         float y = kColumnBottom - ((count - i) * kStep);
-        SceneMesh(i)->Place(780.0f, y, 40.0f);
+        sceneObjects[i]->Place(780.0f, y, 40.0f);
     }
     const IconPlace at = IconAt(count, 0x80);
     CopyImage(objects[0], image, kIconSize, kIconSize, kIconSize, kIconSize, at.x, at.y);
@@ -225,7 +225,7 @@ void HudSpellColumn::AddSpell(std::string_view model, std::string_view image) {
     MakePlain(sprite);
     int index = count;
     count = index + 1;
-    UiMesh* button = SceneMesh(index);
+    UiMesh* button = sceneObjects[index];
     button->SetScale(1.0f);
     button->flatSpecular = kColourOff;
     selected = index;
@@ -266,7 +266,7 @@ void HudActionColumn::AddAction(std::string_view model, std::string_view image, 
     actions[place] = static_cast<std::uint32_t>(action);
     int index = count;
     count = index + 1;
-    UiMesh* button = SceneMesh(index);
+    UiMesh* button = sceneObjects[index];
     button->SetScale(1.0f);
     button->flatSpecular = kColourOff;
     selected = index;

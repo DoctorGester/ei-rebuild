@@ -71,7 +71,7 @@ bool SetUpCasting(ParticleSource* s) {
     }
     auto [offset, radius] = s->AttachmentOffset();
     radius *= EI_POINT_EIGHT;
-    float scale = s->attachedTo->GetClassId() == ClassId::Unit ? Carrier(s->attachedTo)->Radius() : radius;
+    float scale = s->attachedTo->GetClassId() == ClassId::Unit ? s->attachedTo->Radius() : radius;
     if (ParticleTypeOf(s->type) == ParticleType::CastingDivination) scale = scale + scale;
     else scale = scale * EI_THREE;
     float extent = scale;
@@ -555,7 +555,7 @@ bool SetUpColumn(ParticleSource* s) {
     float height = radius + radius;
     float foot = -offset.z - height * EI_COLUMN_FOOT;
     radius *= EI_COLUMN_RADIUS;
-    float ring = s->attachedTo->GetClassId() == ClassId::Unit ? Carrier(s->attachedTo)->Radius() : radius;
+    float ring = s->attachedTo->GetClassId() == ClassId::Unit ? s->attachedTo->Radius() : radius;
     radius = ring + ring;
     s->elements.resize(1);
     ParticleElement* e = s->elements.data();
@@ -3345,7 +3345,7 @@ int ParticleSource::EmitGroundDust(Particle* p, int index) {
 // the client tick), on the ground or platform under it, unless the point is where the last one was; the
 // point's index goes in frameTimer and the life is -10 (set by UpdateGlow).
 int ParticleSource::EmitGlow(Particle* p, int index) {
-    Object3D* unit = attachedTo;
+    MapObject* unit = attachedTo;
     if (std::ssize(elements) == 0) {
         elements.resize(1);
         elements[0].glow.mark = {-1.0f, -1.0f, -1.0f};
@@ -3359,7 +3359,7 @@ int ParticleSource::EmitGlow(Particle* p, int index) {
     }
     if (!unit) return 0;
     if (index > typeParam) return 0;
-    Vector3 point = Carrier(unit)->PositionAt(index + g_clientWorld.tick);
+    Vector3 point = unit->PositionAt(index + g_clientWorld.tick);
     Vector3& mark = elements[0].glow.mark;
     if (Same(mark.x, point.x) && Same(mark.y, point.y) && Same(mark.z, point.z)) return 0;
     elements[0].glow.mark = point;
@@ -3396,7 +3396,7 @@ int ParticleSource::EmitStun(Particle* p, int) {
     p->pos = v * (radius * 0.8f) + origin;
     p->life = 20;
     p->velocity.x = WordToFloat(Next()) * 1.3969838e-10f + 0.7f;
-    auto* unit = static_cast<Unit*>(attachedTo);   // the carrier is taken as a unit
+    Unit* unit = UnitOrNull(attachedTo);   // stun rides units (the game reads any carrier as one)
     if (!unit) {
         flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
         Attach(nullptr);

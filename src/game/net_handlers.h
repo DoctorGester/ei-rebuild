@@ -9,7 +9,7 @@
 
 namespace net {
 
-void ClientOnAward(ClientSession*, Message*);
+void ClientOnAward(ClientSession*, AwardMessage*);
 void ClientOnBinding(ClientSession*, BindingMessage*);
 void ClientOnBindingGone(ClientSession*, Message*);
 void ClientOnFile(ClientSession*, FileMessage*);
@@ -23,16 +23,16 @@ void ClientOnMap(ClientSession*, MapMessage*);
 void ClientOnMapGone(ClientSession*, Message*);
 void ClientOnMember(ClientSession*, Message*);
 void ClientOnObjectGone(ClientSession*, Message*);
-void ClientOnParty(ClientSession*, Message*);
+void ClientOnParty(ClientSession*, PartyMessage*);
 void ClientOnPartyChanged(ClientSession*, Message*);
 void ClientOnPartyGone(ClientSession*, Message*);
-void ClientOnPlayer(ClientSession*, Message*);
+void ClientOnPlayer(ClientSession*, PlayerMessage*);
 void ClientOnPlayerChanged(ClientSession*, Message*);
 void ClientOnPlayerGone(ClientSession*, Message*);
 void ClientOnTrade(ClientSession*, TradeMessage*);
 void ClientOnTradeChanged(ClientSession*, TradeMessage*);
 void ClientOnTradeGone(ClientSession*, Message*);
-void ClientOnVariable(ClientSession*, Message*);
+void ClientOnVariable(ClientSession*, VariableMessage*);
 void ClientOnVariableChanged(ClientSession*, Message*);
 void ClientOnVariableGone(ClientSession*, Message*);
 void ClientOnZone(ClientSession*, ZoneMessage*);

@@ -20,9 +20,6 @@
 
 namespace {
 
-// A bone's mesh is a counted figure part (FigureMesh, an engine object).
-FigureMesh* AsMesh(EngineObject* part) { return static_cast<FigureMesh*>(part); }
-
 // The root places the skeleton (through its address) at the owner's time factor at its scale z times its
 // default scale.
 void PlaceRoot(FigureAnimationState* state) {
@@ -140,7 +137,7 @@ int FigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
     return 1;
 }
 
-int FigureAnimationState::AttachMesh(EngineObject* part) {
+int FigureAnimationState::AttachMesh(FigureMesh* part) {
     changed = 1;
     FigureBone* bone = nullptr;
     for (auto& node : bones) {
@@ -151,7 +148,7 @@ int FigureAnimationState::AttachMesh(EngineObject* part) {
     }
     if (!bone) return 0;
     FigureMesh* old = bone->mesh;
-    bone->mesh = AsMesh(part);
+    bone->mesh = part;
     if (part) {
         part->AddRef();
         bone->mesh->localPosition = bone->position;
@@ -177,11 +174,11 @@ int FigureAnimationState::SetModel(std::string_view model) {
     return FigureManagerOf(this)->LoadSkeletonLinks(this, model);
 }
 
-int FigureAnimationState::DetachMesh(EngineObject* part) {
+int FigureAnimationState::DetachMesh(FigureMesh* part) {
     changed = 1;
     for (auto& node : bones) {
         FigureBone* bone = node;
-        if (bone->mesh && bone->mesh == AsMesh(part)) {
+        if (bone->mesh && bone->mesh == part) {
             FigureMesh* old = bone->mesh;
             bone->mesh = nullptr;
             old->Release();

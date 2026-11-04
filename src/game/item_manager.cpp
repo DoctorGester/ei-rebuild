@@ -308,8 +308,7 @@ Item* ItemManager::CreateItem(std::string_view name) {
     Item* item = context->GetItemConstructor()->BuildItem(this, prototype->Kind(), prototype, material, spell, count);
     // No item (Rebirth's FixCreateItem; the original reported the error and went on with the null item, crashing).
     if (!item) return nullptr;
-    if (item->GetClassId() == ClassId::ItemLoot && parts.size() > 1) {
-        auto* loot = AsLoot(item);
+    if (ItemLoot* loot = item->AsLoot(); loot && parts.size() > 1) {
         if (loot->kind == LootKind::Record) loot->index = static_cast<std::uint32_t>(LootTableIndex(loot->recordType, parts[1]));
     }
     return item;

@@ -101,7 +101,7 @@ const Made* ShapeFor(const FrameCursor& cursor) {
             m.placedWidth == g_placedWidth && m.placedHeight == g_placedHeight && m.ramp == ramp)
             return &m;
     // The picture loaded from its file (render::PictureFromMmp); the mask, the holder's width in its pixel size.
-    const auto* holder = static_cast<const Surface*>(cursor.imageHolder);
+    const Surface* holder = cursor.imageHolder;
     const int maskBytes = holder->bitsPerPixel / 8;
     const Picture* picture = PictureOf(cursor.imageHolder);
     const Rect& from = cursor.from;

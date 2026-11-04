@@ -132,12 +132,12 @@ void ForwardingStrip::Draw(SceneRenderer* pass) {
     const float hundred = 100.0f, fifty = 50.0f, one = 1.0f;
     // The scroll arrows (sprites 0 and 1) show their dim frame while the strip can move that way.
     const float dim = 0.1953125f;
-    SceneMesh(0)->textureOffsetU = position[tab] > 0.0f ? dim : 0.0f;
-    SceneMesh(1)->textureOffsetU = (std::ssize(list) - 7) > position[tab] ? dim : 0.0f;
+    sceneObjects[0]->textureOffsetU = position[tab] > 0.0f ? dim : 0.0f;
+    sceneObjects[1]->textureOffsetU = (std::ssize(list) - 7) > position[tab] ? dim : 0.0f;
 
-    SceneMesh(9)->Place(fifty - frac * hundred, static_cast<float>(top), scale + scale);
+    sceneObjects[9]->Place(fifty - frac * hundred, static_cast<float>(top), scale + scale);
     for (int i = 0; i < 8; ++i) {
-        SceneMesh(10 + i)
+        sceneObjects[10 + i]
             ->Place(((i - frac) + one) * hundred, top + fifty, scale);
     }
     DrawBase(pass);
@@ -300,7 +300,7 @@ void FigureStrip::SetupFigures(std::vector<std::string>* names, bool newTop, boo
         regions[1]->SetTip(0x9DD1);
     }
     tabsEnabled = false;
-    for (int i = 2; i < 8; ++i) SceneMesh(i)->visible = false;
+    for (int i = 2; i < 8; ++i) sceneObjects[i]->visible = false;
 }
 
 // --- The figure strips' slots ----------------------------------------------------------------------
@@ -309,14 +309,14 @@ void FigureStrip::Draw(SceneRenderer* pass) {
     const float scrollPosition = position[tab];
     const int first = static_cast<int>(scrollPosition);   // _ftol
     const float frac = scrollPosition - first;
-    SceneMesh(0)->textureOffsetU = position[tab] > 0.0f ? kDimmed : 0.0f;
-    SceneMesh(1)->textureOffsetU = (count - 7) > position[tab] ? kDimmed : 0.0f;
-    SceneMesh(9)->Place(kHalfCell - frac * kCell, static_cast<float>(top), scale + scale);
+    sceneObjects[0]->textureOffsetU = position[tab] > 0.0f ? kDimmed : 0.0f;
+    sceneObjects[1]->textureOffsetU = (count - 7) > position[tab] ? kDimmed : 0.0f;
+    sceneObjects[9]->Place(kHalfCell - frac * kCell, static_cast<float>(top), scale + scale);
     for (int i = 0; i < 8; ++i) {
-        SceneMesh(10 + i)->Place(((i - frac) + 1.0f) * kCell, top + kHalfCell,
+        sceneObjects[10 + i]->Place(((i - frac) + 1.0f) * kCell, top + kHalfCell,
                                  scale);
     }
-    UiMesh* frame = SceneMesh(8);
+    UiMesh* frame = sceneObjects[8];
     frame->visible = false;
     if (selected >= 0 && selected < count) {
         int cell = selected - first;

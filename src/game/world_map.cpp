@@ -19,6 +19,7 @@
 #include "player_messages.h"
 #include "spell.h"
 #include "world.h"
+#include "world_effect.h"
 #include "world_data.h"
 #include "world_map_files.h"
 #include "lib/containers.h"
@@ -191,7 +192,7 @@ void WorldServer::TeardownZone() {
 // ---- SendFreshObjects -------------------------------------------------------------------------
 
 void WorldServer::SendFreshObjects() {
-    std::vector<EngineObject*> fresh;
+    std::vector<MapObject*> fresh;
     ByteStream* header = &zoneHeader;
     header->Clear();
 
@@ -208,8 +209,8 @@ void WorldServer::SendFreshObjects() {
     // They stop being map objects and are sent to a temporary player, which is then dropped.
     Player* temporary = players->CreateSessionPlayer();
     PlayerServer* state = temporary->Server();
-    std::vector<EngineObject*> newObjects;
-    for (EngineObject* object : fresh) {
+    std::vector<MapObject*> newObjects;
+    for (MapObject* object : fresh) {
         unsigned objectId = static_cast<unsigned>(object->id);
         hash400::RemoveKey(mapObjects.map, objectId);
         objectId = static_cast<unsigned>(object->id);

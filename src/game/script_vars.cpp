@@ -1,6 +1,7 @@
 // Script variables (lookups, resets, the loader's appends of a file's GlobalVars to the globals) and the
 // SSCCmd helpers that bind and save call trees. See script.h and docs/notes/script.md.
 #include "script.h"
+#include "map_object.h"
 #include "game_strings.h"
 #include "core_streams.h"
 #include "lib/crt.h"

@@ -322,8 +322,8 @@ void ItemInfoPanel::DescribeItem() {
 
     ItemKind kind = item->Kind();
     if (kind == ItemKind::Loot) {
-        LootKind sort = AsLoot(item)->kind;
-        LootRecordType sub = AsLoot(item)->recordType;
+        LootKind sort = item->AsLoot()->kind;
+        LootRecordType sub = item->AsLoot()->recordType;
         if (sort == LootKind::Material) {
             DescribeMaterial();
             return;
@@ -401,7 +401,7 @@ void ItemInfoPanel::DescribeItem() {
         w.Text(w.line);
         w.Down();
         if (kind == ItemKind::Weapon) {
-            ItemWeapon* weapon = AsWeapon(item);
+            ItemWeapon* weapon = item->AsWeapon();
             // Damage: min-max and the first damage kind with a weight ("damage<n>"; the text
             // keeps the material line's otherwise).
             float weights[7];
@@ -430,7 +430,7 @@ void ItemInfoPanel::DescribeItem() {
     }
     if (kind == ItemKind::Armor) {
         float values[7];
-        std::memcpy(values, AsArmor(item)->absorb[0], sizeof(values));
+        std::memcpy(values, item->AsArmor()->absorb[0], sizeof(values));
         w.DamageLines(values, 25);
     }
 
@@ -465,7 +465,7 @@ tail:
 void ItemInfoPanel::DescribeMaterial() {
     Item* item = FirstItem();
     TextManager* texts = g_clientWorld.texts;
-    const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(AsLoot(item)->index);
+    const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(item->AsLoot()->index);
     if (!material) return;
     auto [name, description, kindText] = texts->GetItemTexts(item);
     Writer w(this);
@@ -497,8 +497,8 @@ void ItemInfoPanel::DescribeBlueprint() {
     // faults reading the record like a missing one).
     int sort = 3;
     const itemdb::ItemRecordHead* head = nullptr;
-    std::uint32_t index = AsLoot(item)->index;
-    switch (AsLoot(item)->recordType) {
+    std::uint32_t index = item->AsLoot()->index;
+    switch (item->AsLoot()->recordType) {
     case LootRecordType::Weapon: sort = 0; head = itemdb::WeaponAt(index); break;
     case LootRecordType::Armor: sort = 1; head = itemdb::ArmorAt(index); break;
     case LootRecordType::Quick: sort = 2; head = itemdb::QuickItemAt(index); break;
@@ -556,7 +556,7 @@ void ItemInfoPanel::DescribeBlueprint() {
 void ItemInfoPanel::DescribeSpellRecord() {
     Item* item = FirstItem();
     TextManager* texts = g_clientWorld.texts;
-    const itemdb::SpellRecord* record = itemdb::SpellAt(AsLoot(item)->index);
+    const itemdb::SpellRecord* record = itemdb::SpellAt(item->AsLoot()->index);
     auto [name, description, kindText] = texts->GetItemTexts(item);
     Writer w(this);
     w.Head(name, kindText);
@@ -594,7 +594,7 @@ void ItemInfoPanel::DescribeModifierRecord() {
     Item* item = FirstItem();
     TextManager* texts = g_clientWorld.texts;
     auto [name, description, kindText] = texts->GetItemTexts(item);
-    const itemdb::SpellModifierRecord* record = itemdb::SpellModifierAt(AsLoot(item)->index);
+    const itemdb::SpellModifierRecord* record = itemdb::SpellModifierAt(item->AsLoot()->index);
     Writer w(this);
     w.Head(name, kindText);
     w.Number(7, static_cast<int>(record->mana));

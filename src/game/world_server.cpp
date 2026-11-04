@@ -112,7 +112,7 @@ void WorldServer::CollectSharedObjects(int playerId, ScriptGroup* group) {
     int player = SharedListPlayer(playerId);
     for (const SharedObject& current : sharedObjects) {
         if (current.player != player && current.player != -1) continue;   // -1: every player
-        if (EngineObject* unit = FindUnit(static_cast<int>(current.objectId))) group->Insert(unit);
+        if (Unit* unit = FindUnit(static_cast<int>(current.objectId))) group->Insert(unit);
     }
 }
 

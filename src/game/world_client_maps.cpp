@@ -132,13 +132,14 @@ MapObject* Pick(WorldClient* client, const Point* point, Collect collect) {
 // From a picked object on: the first unit of the sorted hits. The cursor moves past entries whose
 // object is gone or is not a unit; null at the end.
 Unit* FirstUnitHit(WorldClient* client, MapObject* object) {
-    while (object->GetClassId() != ClassId::Unit) {
+    Unit* unit;
+    while (!(unit = UnitOrNull(object))) {
         do {
             if (++client->hitCursor == client->hits.data() + client->hits.size()) return nullptr;
             object = client->objectManager->FindMapObject(client->hitCursor->objectId);
         } while (!object);
     }
-    return static_cast<Unit*>(object);
+    return unit;
 }
 
 bool SameText(std::string_view a, std::string_view b) { return a == b; }
@@ -399,7 +400,7 @@ void WorldClient::RemoveObject(int objectId) {
     MapObject* object = *filed;
     if (object->MapType() == MapObjectType::Hero && IsTextKey(objectId)) {
         RemoveHeld(heroes, object);
-        if (session->sessionKind == 3) static_cast<Unit*>(object)->ClientController()->DropFaceTexture();
+        if (session->sessionKind == 3) UnitOrNull(object)->ClientController()->DropFaceTexture();
     }
     if (auto* cell = CellFor(objectGrid, object)) RemoveHeld(*cell, object);
     objects.erase(filed);
@@ -512,7 +513,7 @@ void WorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, c
         if (!record->weapons.empty()) controller->ShowWeapon(0);
         for (int j = 0; j < std::ssize(record->armor); ++j) {
             Item* armour = record->armor[j];
-            if (allArmour || AsArmor(armour)->GetType() != 0) unit->EquipArmour(armour);
+            if (allArmour || armour->AsArmor()->GetType() != 0) unit->EquipArmour(armour);
         }
         for (int j = 0; j < std::ssize(record->quickItems); ++j)
             unit->AddQuickItem(record->quickItems[j]);

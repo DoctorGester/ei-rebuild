@@ -80,7 +80,7 @@ Item* HeroEquipPanel::ItemAt(Point point, int* topic) {
     if (!body || region < kFirstBodySlot || region >= kBodySlotEnd) return nullptr;
     *topic = region - 4;
     for (int i = 0; i < std::ssize(hero->armor); ++i) {
-        ItemArmor* armour = AsArmor(hero->armor[i]);
+        ItemArmor* armour = hero->armor[i]->AsArmor();
         if (armour->GetType() == region - kFirstBodySlot) return armour;
     }
     return nullptr;

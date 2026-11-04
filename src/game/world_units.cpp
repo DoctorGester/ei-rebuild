@@ -118,7 +118,7 @@ Item* MakeItem(WorldServer* world, Item* itemRecord) {
     Item* item = world->DuplicateItem(itemRecord);
     auto* record = new ItemLink();
     record->value = static_cast<std::uint32_t>(itemRecord->id);
-    item->link.Assign(record);
+    item->serverLink.Assign(record);
     return item;
 }
 
@@ -352,7 +352,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
             CastSpell(spell, nullptr, at, nullptr, at, 0);
             if (spell) spell->Release();
         }
-        base.object = object;
+        spec->object = object;
         TorchObjectSpec* torch = object->spec;
         auto* companion = object->ServerCompanion();
         object->name = spec->texture;
@@ -390,7 +390,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         int objectId = object->id;
         if (objectId == -1) return -1;
         if (base.id == -1) base.id = objectId;
-        base.object = object;
+        spec->object = object;
         object->AddRef();
         object->WriteFullState();
         object->MarkChanged(2);
@@ -427,7 +427,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         int objectId = object->id;
         if (objectId == -1) return -1;
         if (base.id == -1) base.id = objectId;
-        base.object = object;
+        spec->object = object;
         auto* companion = object->ServerCompanion();
         object->name = spec->texture;
         object->SetSecondName(spec->model.c_str());

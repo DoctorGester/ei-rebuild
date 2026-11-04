@@ -84,10 +84,10 @@ void ClientSession::CollectReplicated(std::vector<Replicated>** out) {
     PushReplicated(*out, self->player.Get(), 1);
     for (auto& n : self->timers) PushReplicated(*out, n.ref.Get(), 1);
     for (auto& n : self->fileRequests) PushReplicated(*out, n.Get(), 1);
-    if (void* group = self->party.Get()) {
+    if (PartyMessage* group = self->party.Get()) {
         PushReplicated(*out, group, 1);
         for (std::uint32_t i = 0;; ++i) {
-            const std::vector<HeldRef<RefObject>>& members = self->party.Get()->members;
+            const auto& members = self->party.Get()->members;
             if (i >= static_cast<std::uint32_t>(members.size())) break;
             PushReplicated(*out, members[i].Get(), 1);
         }
@@ -147,9 +147,9 @@ constexpr std::uint32_t kCommandLifetime = 0x42700000;     // 60.0f
 } // namespace
 
 // Keeps `object` on the timers list for `seconds` (shared into the entry).
-void ClientSession::AddTimed(RefObject* object, std::uint32_t seconds) {
+void ClientSession::AddTimed(Message* object, std::uint32_t seconds) {
     // The list's copy shares the entry's share: a clone, as sharing marked the object copy-on-share.
-    TimedEntry<SharedRef<RefObject>> entry(seconds, SharedRef<RefObject>(object));
+    TimedEntry<SharedRef<Message>> entry(seconds, SharedRef<Message>(object));
     timers.push_back(entry);
 }
 
@@ -163,7 +163,7 @@ void ClientSession::SendCommand(int kind, std::string_view text) {
     command->text.assign(text);
 
     // As AddTimed: the list keeps a clone of the entry's share.
-    TimedEntry<SharedRef<RefObject>> entry(kCommandLifetime, SharedRef<RefObject>(command));
+    TimedEntry<SharedRef<Message>> entry(kCommandLifetime, SharedRef<Message>(command));
     self->timers.push_back(entry);
 }
 

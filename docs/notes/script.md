@@ -9,8 +9,10 @@ run the scripts on Lua: `lua-scripting.md`.
 ## Data structures
 
 - Value types (numbering used everywhere): 1 float, 2 string, 3 object, 4 group.
-- `ScriptObjectRef`: a counted reference to a world object; a world object deleted while referenced has bit 0 of
-  `flags`. `ScriptGroup`: references kept sorted by object address (unsigned) without duplicates.
+- `ScriptObjectRef`: a counted reference to a world object (typed `HeldRef<MapObject>`: every object a script names
+  is a map object; its special members are out of line because script.h sees MapObject only declared); a world
+  object deleted while referenced has bit 0 of `flags`. `ScriptGroup`: references kept sorted by object address
+  (unsigned) without duplicates.
 - `ScriptVars`: per type a value array and a name array.
 - `SSCCmd` (a command): id; argument arrays per type (objects and groups point into variables or temporaries); local
   and global variable bindings `{type, argIndex, varIndex}`; nested calls `{type, argIndex, SSCCmd*}`; a block (called

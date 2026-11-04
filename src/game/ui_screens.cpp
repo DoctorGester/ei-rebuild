@@ -38,7 +38,7 @@ bool TabKeysEnabled() { return options::g_options.switchFilters != 0; }
 
 // The item as loot (type ItemKind::Loot), or null.
 const ItemLoot* LootOrNull(const Item* item) {
-    return item->Kind() == ItemKind::Loot ? AsLoot(item) : nullptr;
+    return item->AsLoot();
 }
 
 } // namespace
@@ -89,7 +89,7 @@ void UiItemStrip::SetTab(int newTab) {
     tab = newTab;
     for (int i = 0; i < 6; ++i) {
         float shade = i == newTab ? 1.0f : 0.5f;
-        float* color = SceneMesh(i + 2)->tint;
+        float* color = sceneObjects[i + 2]->tint;
         color[0] = shade;
         color[1] = shade;
         color[2] = shade;
@@ -115,7 +115,7 @@ void UiItemStrip::SetFilter(int newFilter) {
     default: return;
     }
     for (int i = 2; i < 8; ++i) {
-        SceneMesh(i)->textureOffsetU = std::bit_cast<float>(column);
+        sceneObjects[i]->textureOffsetU = std::bit_cast<float>(column);
         regions[i]->SetTip(tipBase + i);
     }
 }
@@ -146,7 +146,7 @@ int UiItemStrip::ItemTab(const Item* item) {
 int UiItemStrip::SpellTab(const Item* item) {
     if (IsSpell(item)) {
         // A record out of range is read through null, as in the original.
-        const itemdb::SpellRecord* spell = itemdb::SpellAt(AsLoot(item)->index);
+        const itemdb::SpellRecord* spell = itemdb::SpellAt(item->AsLoot()->index);
         switch (spell->castType) {
         case 0: return 0;
         case 1: return 1;
@@ -155,7 +155,7 @@ int UiItemStrip::SpellTab(const Item* item) {
         }
     }
     if (IsModifier(item)) {
-        const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(AsLoot(item)->index);
+        const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(item->AsLoot()->index);
         return (static_cast<int>(modifier->kind) > 5) + 3;
     }
     return 5;
@@ -163,10 +163,10 @@ int UiItemStrip::SpellTab(const Item* item) {
 
 int UiItemStrip::ArmorTab(const Item* item) {
     if (IsPart(item)) {
-        switch (AsLoot(item)->recordType) {
+        switch (item->AsLoot()->recordType) {
         case LootRecordType::Weapon: return 0;
         case LootRecordType::Armor: {
-            auto* armor = itemdb::ArmorAt(AsLoot(item)->index);
+            auto* armor = itemdb::ArmorAt(item->AsLoot()->index);
             return static_cast<std::uint32_t>(armor->type) > 2 ? 1 : 2;
         }
         case LootRecordType::Quick: return 3;

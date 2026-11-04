@@ -159,10 +159,11 @@ bool MobFile::Load(int keepIds) {
                 record->trap.sides |= static_cast<std::uint32_t>(row[c] == kRelationHostile) << c;
         }
         g_serverWorld.CreateObject(spec);
-        if (spec->kind == kKindUnit && spec->object) {
+        if (spec->kind == kKindUnit) {
             auto* unitSpec = static_cast<UnitSpec*>(spec);
-            if (spec->id != 2 || str::Compare(unitSpec->texture, "unmoco2") != 0)
-                unitSpec->MadeUnit()->ServerController()->brain.SetAlarmRecords(unitSpec->behaviour, kBehaviourCount);
+            Unit* unit = UnitOrNull(unitSpec->object);
+            if (unit && (spec->id != 2 || str::Compare(unitSpec->texture, "unmoco2") != 0))
+                unit->ServerController()->brain.SetAlarmRecords(unitSpec->behaviour, kBehaviourCount);
         }
         delete spec;
         ++done;

@@ -183,7 +183,7 @@ void MpConnectScreen::MessageResult(int answer) {
         DrawListVanilla();
     } else if (result == (kBoxPassword | kAnswerOk) || result == (kBoxPassword | kAnswerCancel)) {
         hostPassword = boxText;
-        auto* sprite = SceneMesh(kSpritePassword);
+        auto* sprite = sceneObjects[kSpritePassword];
         sprite->textureOffsetU = hostPassword.size() == 0 ? kFrameOff : kFrameOn;
     } else if (result == (kBoxJoinPassword | kAnswerOk)) {
         g_gameFlow.JoinServer(&entries[selected].address, boxText);
@@ -213,7 +213,7 @@ void MpConnectScreen::LeftDown(Point point) {
         break;
     case kRegionUnlisted: {
         unlisted = !unlisted;
-        auto* sprite = SceneMesh(kSpriteUnlisted);
+        auto* sprite = sceneObjects[kSpriteUnlisted];
         sprite->textureOffsetU = unlisted ? kFrameOn : kFrameOff;
         break;
     }
@@ -223,7 +223,7 @@ void MpConnectScreen::LeftDown(Point point) {
             OpenBox(ui, texts[kTextPassword], boxText, kBoxPassword, kBoxFlagsEdit);
         } else {
             hostPassword.clear();
-            SceneMesh(kSpritePassword)->textureOffsetU = 0.0f;
+            sceneObjects[kSpritePassword]->textureOffsetU = 0.0f;
         }
         break;
     case kRegionSortFirst:
@@ -242,8 +242,8 @@ void MpConnectScreen::LeftDown(Point point) {
             if (selected == 0) {
                 gameType = region - kRegionTabFirst;
                 for (int i = 0; i < kTabs; ++i)
-                    SceneMesh(kSpriteTabFirst + i)->textureOffsetU = 0.0f;
-                SceneMesh(kSpriteTabFirst + gameType)->textureOffsetU = kTabSelected;
+                    sceneObjects[kSpriteTabFirst + i]->textureOffsetU = 0.0f;
+                sceneObjects[kSpriteTabFirst + gameType]->textureOffsetU = kTabSelected;
             }
         } else if (region >= kRegionRowFirst) {
             unsigned row = static_cast<unsigned>(scrollTop + region - kRegionRowFirst);
@@ -511,7 +511,7 @@ void MpConnectScreen::CreateScreen() {
         sprite(4.0f, 460.0f, static_cast<float>(top), 481.0f, static_cast<float>(bottom), 0xD1, 0x37, 0xE6, 0x4C);
         region(460, top, 670, bottom, 0);
     }
-    SceneMesh(kSpriteTabFirst)->textureOffsetU = kTabSelected;
+    sceneObjects[kSpriteTabFirst]->textureOffsetU = kTabSelected;
     gameType = 0;
     unlisted = true;
     hostPassword.clear();

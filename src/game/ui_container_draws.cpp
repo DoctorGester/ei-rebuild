@@ -51,7 +51,7 @@ void MainMenu::Draw(SceneRenderer* pass) { ScreenDraw(this, pass, false); }
 // the shown weapon and the selected quick item.
 void HeroEquipPanel::Draw(SceneRenderer* pass) {
     PartyUnitRecord* hero = owner->HeroRecord();
-    auto frame = [this](int i) { return SceneMesh(i); };
+    auto frame = [this](int i) { return sceneObjects[i]; };
     std::uint32_t shown = hero->weaponIndex;
     if (shown < static_cast<std::uint32_t>(std::ssize(hero->weapons))) {
         frame(0)->visible = true;
@@ -93,7 +93,7 @@ void HeroEquipPanel::Draw(SceneRenderer* pass) {
     ClearUiDepth(1.0f, slots, 7);
     for (int i = 0; i < std::ssize(hero->armor); ++i) {
         Item* item = hero->armor[i];
-        int armorType = AsArmor(item)->GetType();
+        int armorType = item->AsArmor()->GetType();
         ItemCell cell{item, static_cast<float>(centreX[armorType]), static_cast<float>(centreY[armorType]), 6.0f, 100.0f,
                       mode};
         currentOwner->DrawItem(pass, cell);

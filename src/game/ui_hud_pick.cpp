@@ -180,7 +180,7 @@ constexpr int kQuickSlots = 8;
 
 // The columns' button highlight (both columns share the code).
 void HighlightButton(UiWindow* column, int* selected, int index, bool on) {
-    UiMesh* sprite = column->SceneMesh(index);
+    UiMesh* sprite = column->sceneObjects[index];
     sprite->SetScale(on ? kButtonScaleOn : kButtonScaleOff);
     sprite->flatSpecular = on ? kColourOn : kColourOff;
     *selected = index;
@@ -190,7 +190,7 @@ void HighlightButton(UiWindow* column, int* selected, int index, bool on) {
 // each index, then -1.
 void ClearButtons(UiWindow* column, int count, int* selected) {
     for (int i = 0; i < count; ++i) {
-        UiMesh* sprite = column->SceneMesh(i);
+        UiMesh* sprite = column->sceneObjects[i];
         sprite->SetScale(kButtonScaleOff);
         sprite->flatSpecular = kColourOff;
         *selected = i;
@@ -214,7 +214,7 @@ void UiMesh::SetScale(float scale) {
 void HudQuickItems::Highlight(int slot, bool on) {
     int sprite = regionItem[slot];
     if (sprite < 0 || sprite >= shownCount) return;
-    UiMesh* mesh = SceneMesh(sprite);
+    UiMesh* mesh = sceneObjects[sprite];
     if (slot < kBottomRow)
         mesh->SetScale(on ? kQuickScaleOn : kQuickScaleOff);
     else

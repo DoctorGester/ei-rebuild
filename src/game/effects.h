@@ -345,6 +345,7 @@ struct ParticleElement {
 
 class ParticleSource;
 class Object3D;
+class MapObject;
 
 // The client world's manager set-up calls it after the base manager's constructor.
 class ParticleManager;
@@ -577,10 +578,10 @@ public:
     void StartEmitting();                           // Emitting and KeepAlive on
     void Stop();                                    // bits 0 and 2 off, detach
 
-    // Follow `object` (a Object3D, or null to let go): the old object
+    // Follow `object` (a map object, or null to let go): the old object
     // drops the source (its point is folded into the local position), the new one adds it, and
     // the emission point becomes the new attachment point (or the local position).
-    void Attach(Object3D* object);
+    void Attach(MapObject* object);
     // Where the source sits on `object`: with OnPart a unit's part chosen by attachPoint (0 the effect
     // point, 1-7 head / hands / legs / body, 8-12 body00-04), else the top of its bounds; without OnPart its
     // position.
@@ -594,7 +595,7 @@ public:
 
     // EngineObject's flags: the ParticleSourceFlag bits; type 0x2000.. (the effect names in the type name
     // table).
-    Object3D* attachedTo;          // the object followed, null: none
+    MapObject* attachedTo;         // the object followed, null: none
     Vector3 origin;                 // world emission point
     Vector3 motion;                 // movement since the last tick
     Vector3 side;                   // unit, motion x (0, 0, 1) (zero while still)

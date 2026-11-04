@@ -431,7 +431,7 @@ Next StartVisionFog(SpellEffect* e) {
 Next StartHealing(SpellEffect* e) {
     if (e->target->GetClassId() != ClassId::Unit) return Next::Done;   // no null check
     // Controller Heal (the amount's bits are pushed, MOV/PUSH).
-    Unit* unit = TargetUnit(e);
+    Unit* unit = UnitOrNull(e->target);
     unit->controller->Heal(e->HeldSpell()->damage);
     float size = Power(e);
     e->CreateParticle(0, static_cast<int>(ParticleType::Healing), kZeroVector, size, 1.0f, kZeroVector, unit);
@@ -494,7 +494,7 @@ Next StartTeleport(SpellEffect* e) {
 Next StartCharm(SpellEffect* e) {
     if (e->target->GetClassId() != ClassId::Unit) return Next::Leave;   // no null check
     if (!IsUnit(e->caster)) return Next::Leave;
-    UnitServer* tamed = ControllerOf(TargetUnit(e));
+    UnitServer* tamed = ControllerOf(UnitOrNull(e->target));
     UnitServer* tamer = ControllerOf(e->caster);
     float skill = tamer->stats.intelligence + e->HeldSpell()->damage;
     auto side = [](UnitServer* controller) { return controller->unit->player; };

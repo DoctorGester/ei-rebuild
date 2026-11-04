@@ -64,9 +64,9 @@ bool ServerActive() {
 AIBrain* BrainOf(UnitServer* state) { return &state->brain; }
 PatrolMode* PatrolOf(UnitServer* state) { return BrainOf(state)->FindModeOf<PatrolMode>(); }
 UnitStats* StatsOf(UnitServer* state) { return &state->stats; }
-Vector3* Position(EngineObject* object) { return &ObjectSlots(object)->localPosition; }
+Vector3* Position(MapObject* object) { return &object->localPosition; }
 
-EngineObject* Arg(const SSCCmd* cmd, int i) { return cmd->objectArgs[i]->object; }
+MapObject* Arg(const SSCCmd* cmd, int i) { return cmd->objectArgs[i]->object; }
 const char* Text(const SSCCmd* cmd, int i) { return cmd->stringArgs[i].c_str(); }
 
 UnitServer* UnitStateArg(const SSCCmd* cmd) {
@@ -75,8 +75,7 @@ UnitServer* UnitStateArg(const SSCCmd* cmd) {
 }
 
 Lever* LeverArg(const SSCCmd* cmd) {
-    EngineObject* object = Arg(cmd, 0);
-    return object && object->GetClassId() == ClassId::Lever ? static_cast<Lever*>(object) : nullptr;
+    return LeverOrNull(Arg(cmd, 0));
 }
 
 ScriptParticleSource* FindParticle(Script* script, int id) {
@@ -110,7 +109,7 @@ void SetLoopCounter(const SSCCmd* cmd, int i) { *cmd->objectArgs[0] = (*cmd->gro
 int& ForDepth(Script* script) { return script->forDepth; }
 
 void SetCP(const SSCCmd* cmd, bool fast) {
-    MapObject* object = ObjectSlots(Arg(cmd, 0));   // a unit or another map object
+    MapObject* object = Arg(cmd, 0);   // a unit or another map object
     if (!object) return;
     const float* f = cmd->floatArgs.data();
     AIMap* map = &g_serverWorld.aiMap;
@@ -222,7 +221,7 @@ void CastSpell(const SSCCmd* cmd, bool atUnit) {
         const float* f = cmd->floatArgs.data();
         Vector3 from = {f[0], f[1], 0.0f};
         if (atUnit) {
-            MapObject* target = ObjectSlots(Arg(cmd, 0));
+            MapObject* target = Arg(cmd, 0);
             if (target) g_serverWorld.CastSpell(spell, 0, from, target, target->localPosition, 0);
         } else {
             Vector3 to = {f[2], f[3], 0.0f};
@@ -403,7 +402,7 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::AttachParticles: {   // AttachParticles(id, object)
-            EngineObject* object = Arg(cmd, 0);
+            MapObject* object = Arg(cmd, 0);
             if (!object) break;
             int objectId = object->id;
             if (ScriptParticleSource* entry = FindParticle(script, lib::RoundEven(f[0]))) entry->object->SetAttachedTo(objectId);
@@ -455,7 +454,7 @@ bool ScriptRun::Execute(Script* script) {
         }
         case ScriptFunction::RemoveUnitFromServer:     // RemoveUnitFromServer(object)
         case ScriptFunction::RemoveObjectFromServer: {   // RemoveObjectFromServer(object)
-            EngineObject* object = Arg(cmd, 0);
+            MapObject* object = Arg(cmd, 0);
             if (object) g_serverWorld.RemoveObject(object->id);    // Rebirth patches it
             break;
         }
@@ -513,14 +512,14 @@ bool ScriptRun::Execute(Script* script) {
             script->DeleteArea(lib::RoundEven(f[0]));
             break;
         case ScriptFunction::HideObject: {   // HideObject(object, hide): MapObjectFlag::Invisible
-            EngineObject* object = Arg(cmd, 0);
+            MapObject* object = Arg(cmd, 0);
             if (!object) break;
             if (IsZero(f[0])) object->flags &= ~MapObjectFlag::Invisible;
             else object->flags |= MapObjectFlag::Invisible;
             break;
         }
         case ScriptFunction::ActivateTrap: {   // ActivateTrap(object, on): MapObjectFlag::Armed
-            EngineObject* object = Arg(cmd, 0);
+            MapObject* object = Arg(cmd, 0);
             if (!object) break;
             if (IsZero(f[0])) object->flags &= ~MapObjectFlag::Armed;
             else object->flags |= MapObjectFlag::Armed;
@@ -565,7 +564,7 @@ bool ScriptRun::Execute(Script* script) {
         }
 
         case ScriptFunction::BlockUnit: {   // BlockUnit(unit, on): MapObjectFlag::Blocked
-            EngineObject* unit = Arg(cmd, 0);
+            MapObject* unit = Arg(cmd, 0);
             if (!unit || unit->GetClassId() != ClassId::Unit) break;
             if (IsZero(f[0])) unit->flags &= ~MapObjectFlag::Blocked;
             else unit->flags |= MapObjectFlag::Blocked;
@@ -587,10 +586,10 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::KillUnit: {   // KillUnit(object)
-            EngineObject* object = Arg(cmd, 0);
+            MapObject* object = Arg(cmd, 0);
             DamageInfo damage;
             ResetDamageInfo(&damage);
-            if (object) ObjectSlots(object)->ReceiveHit(&damage, nullptr, nullptr);
+            if (object) object->ReceiveHit(&damage, nullptr, nullptr);
             break;
         }
         case ScriptFunction::InflictDamage: {   // InflictDamage(unit, amount)
@@ -626,8 +625,7 @@ bool ScriptRun::Execute(Script* script) {
             int count = lib::Count(unit->carried);
             int id = lib::Truncate(f[0]);
             for (int i = 0; i < count; ++i) {
-                ItemQuest* item = AsQuest(unit->carried[i]);
-                if (static_cast<int>(item->questItemId) == id) {
+                if (static_cast<int>(unit->carried[i]->QuestWord()) == id) {
                     unit->RemoveCarried(i);
                     break;
                 }
@@ -685,7 +683,7 @@ bool ScriptRun::Execute(Script* script) {
         }
         case ScriptFunction::MoveToObject: {   // MoveToObject(unit, target)
             UnitServer* state = UnitStateArg(cmd);
-            EngineObject* target = Arg(cmd, 1);
+            MapObject* target = Arg(cmd, 1);
             if (!state || !target) break;
             Vector3 point = {Position(target)->x, Position(target)->y, 0.0f};
             BrainOf(state)->Walk(point, 0);
@@ -693,13 +691,13 @@ bool ScriptRun::Execute(Script* script) {
         }
         case ScriptFunction::Follow: {   // Follow(unit, leader)
             UnitServer* state = UnitStateArg(cmd);
-            if (state) BrainOf(state)->Follow(ObjectSlots(Arg(cmd, 1)));
+            if (state) BrainOf(state)->Follow(Arg(cmd, 1));
             break;
         }
         case ScriptFunction::Attack: {   // Attack(unit, target)
             UnitServer* state = UnitStateArg(cmd);
             if (!state) break;
-            MapObject* target = ObjectSlots(Arg(cmd, 1));
+            MapObject* target = Arg(cmd, 1);
             if (target) BrainOf(state)->AttackTarget(target);
             break;
         }
@@ -794,7 +792,7 @@ bool ScriptRun::Execute(Script* script) {
         case ScriptFunction::UMFollow: {   // UMFollow(unit, leader)
             UnitServer* state = UnitStateArg(cmd);
             if (!state) break;
-            MapObject* leader = ObjectSlots(Arg(cmd, 1));
+            MapObject* leader = Arg(cmd, 1);
             BrainOf(state)->AddMode(std::make_unique<FollowMode>(leader));
             break;
         }

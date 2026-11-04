@@ -17,8 +17,6 @@
 
 namespace {
 
-Object3D* AsObject3D(EngineObject* object) { return static_cast<Object3D*>(object); }
-
 // The first part set's texture of a drawn object's model, null without one.
 const Texture* RankTexture(Object3DClientSpecific* model) {
     const TextureParts* rank = model->partSets[0];
@@ -46,18 +44,18 @@ int CompareFigures(const LinkMesh* a, const LinkMesh* b) {
     return 0;
 }
 
-bool DepthBefore(EngineObject* a, EngineObject* b) {
-    return AsObject3D(a)->worldPosition.z < AsObject3D(b)->worldPosition.z;
+bool DepthBefore(Object3D* a, Object3D* b) {
+    return a->worldPosition.z < b->worldPosition.z;
 }
 
 } // namespace
 
-bool address_order::DrawBefore(EngineObject* a, EngineObject* b) {
+bool address_order::DrawBefore(Object3D* a, Object3D* b) {
     if (!a || !b) return false;
-    auto* groupA = AsObject3D(a)->ClientSpecific();
-    auto* groupB = AsObject3D(b)->ClientSpecific();
+    auto* groupA = a->ClientSpecific();
+    auto* groupB = b->ClientSpecific();
     if (!groupA || !groupB) return false;
     if (int c = CompareTextures(RankTexture(groupA), RankTexture(groupB))) return c < 0;
-    if (int c = CompareFigures(AsObject3D(a)->figure, AsObject3D(b)->figure)) return c < 0;
+    if (int c = CompareFigures(a->figure, b->figure)) return c < 0;
     return DepthBefore(a, b);
 }

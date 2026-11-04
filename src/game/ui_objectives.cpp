@@ -120,7 +120,7 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
     float halfWidth = widthShare * kPictureHalf;
     int u1 = static_cast<int>(widthShare * kTexels);
     int v0 = static_cast<int>((1.0f - heightShare) * kTexels);
-    UiMesh* picture = SceneMesh(3);
+    UiMesh* picture = sceneObjects[3];
     picture->SetRectangle(10.0f, 100.0f, kPictureCentreX - halfWidth, kPictureCentreY - halfHeight,
                           halfWidth + kPictureCentreX, halfHeight + kPictureCentreY, 0, v0, u1,
                           0x100);
@@ -205,7 +205,7 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
     }
     SelectExit(nearestExit);
     if (twoButtons && !anyKnown) {
-        SceneMesh(0)->visible = false;
+        sceneObjects[0]->visible = false;
         regions[0]->SetTip(0);
     }
 
@@ -515,8 +515,8 @@ void ObjectivesWindow::CreateScreen() {
                 break;
             }
         if (std::ssize(zones) > 1) {
-            SceneMesh(14)->visible = true;
-            SceneMesh(15)->visible = true;
+            sceneObjects[14]->visible = true;
+            sceneObjects[15]->visible = true;
             regions[2]->SetTip(0x13948);
             regions[3]->SetTip(0x13949);
         }
@@ -528,7 +528,7 @@ void ObjectivesWindow::DrawQuestList() {
     TextManager* texts = g_clientWorld.texts;
     std::string title;
     std::string variable;
-    auto mesh = [this](int index) { return SceneMesh(index); };
+    auto mesh = [this](int index) { return sceneObjects[index]; };
     mesh(2)->visible = false;
     questTitles.clear();
     for (int i = 16; i < 21; ++i) mesh(i)->visible = false;

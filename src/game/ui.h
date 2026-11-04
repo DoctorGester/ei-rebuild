@@ -36,6 +36,8 @@ namespace console { class ConsoleWindow; }
 class Party;
 
 class UiWindow;
+class UiContainer;
+class BriefingScreen;
 class ChatOverlay;
 struct UiInputSide;
 class UiMesh;
@@ -91,13 +93,7 @@ public:
     // A script string event ("say" / "say_block" text [key], "tutorial" name, "briefing" name, "autosave",
     // "endofgame"); the first word is lowercased. Rebirth's NewStringEvents adds "gameover [title [text]]".
     void OnStringEvent(std::string_view event);
-    UiWindow* GetActiveWindow() const;
-    // The top window as the screen the caller runs under (the HUD's panels under the BattleScreen, the
-    // briefing chat under the BriefingScreen); no check.
-    template <typename Screen>
-    Screen* ActiveWindowAs() const {
-        return static_cast<Screen*>(GetActiveWindow());
-    }
+    UiContainer* GetActiveWindow() const;
     // Consumed by Update (the top window closes).
     void SetPendingValue(std::uint32_t value);
     // Makes screen `id` (1 in-game, 3 base, 4 island map, 2, 5, 7, 8, 9) and activates it; 0 does
@@ -110,9 +106,9 @@ public:
     // Opens `window` on top of the stack (null is fatal). The first window keeps the server flag. `behind`
     // set and `pauseFrame` clear picks backdrop mode 3 (the screen below kept as the backdrop); both set
     // do so as mode 1 when only one window is open.
-    void PushWindow(UiWindow* window, bool behind, bool pauseFrame);
+    void PushWindow(UiContainer* window, bool behind, bool pauseFrame);
     // Closes and deletes every window, then opens `window` as PushWindow does.
-    void Activate(UiWindow* window);
+    void Activate(UiContainer* window);
     // Reads the interface's saved state from `stream`: flags and two values; from save version 0x47 one
     // more; from 0x56 an obsolete list (count, then name and value pairs, discarded) and a string; from
     // 0x5D one more value; from 0x5F a string.
@@ -233,8 +229,8 @@ public:
     std::string fpsText;             // the last measured rate ("%.1f"); empty until the first period
     // The windows draw, redraw their surfaces and update their tooltips only while this is set.
     bool drawing = false;
-    std::vector<UiWindow*> stack;    // the open windows, the top one last
-    UiWindow* queuedWindow = nullptr;    // activated by the next frame update
+    std::vector<UiContainer*> stack;    // the open windows (every one a container), the top one last
+    UiContainer* queuedWindow = nullptr;    // activated by the next frame update
     bool closeAll = false;
     std::uint32_t pendingValue = 0;
     bool pendingFlag = false;
@@ -569,15 +565,14 @@ public:
     // referenced object as its texture; null when the manager makes none. AddBlankSprite: a new UiMesh.
     UiMesh* AddSprite(std::string_view name);
     UiMesh* AddBlankSprite();
-    UiMesh* AddSceneObject(FigureMesh* object);   // AddSprite's shared end: listed, black material, texture 0
-    UiMesh* SceneMesh(int index) const;   // defined after UiMesh
+    UiMesh* AddSceneObject(UiMesh* object);   // AddSprite's shared end: listed, black material, texture 0
 
     Rect rect = {};                           // layout coordinates
     bool enabled = true;
     Material* blackMaterial = nullptr;   // given to every sprite (AddSprite)
     Material* whiteMaterial = nullptr;
     std::vector<Texture*> objects;             // the referenced textures
-    std::vector<EngineObject*> sceneObjects;
+    std::vector<UiMesh*> sceneObjects;
     std::vector<UiSurface*> surfaces;
     std::vector<UiRegion*> regions;
     std::vector<UiModel*> models;
@@ -939,9 +934,6 @@ public:
     Texture* texture;               // one of the window's referenced textures
 };
 
-inline UiMesh* AsUiMesh(EngineObject* object) { return static_cast<UiMesh*>(object); }
-inline UiMesh* UiWindow::SceneMesh(int index) const { return AsUiMesh(sceneObjects[index]); }
-
 // Map (615..800 x 0..165). Regions: 0 the sling button, 1 the round map, 2 the map area, 3 and 4 the two
 // view buttons, 5 a button above them, 6 the whole panel.
 class HudMap : public UiWindow {
@@ -1161,6 +1153,8 @@ public:
     void Redraw() override;
     void RedrawTips() override;
     void Update() override;
+    // The screen as the briefing, null for any other.
+    virtual BriefingScreen* AsBriefing() { return nullptr; }
     // The screens' virtuals the interface calls (Interface3D); the defaults do nothing.
     virtual void CreateScreen();
     virtual void CloseScreen();
@@ -1210,8 +1204,6 @@ public:
     // A child that takes every input event while it is set, wherever the mouse is (an open drop-down list).
     UiWindow* popup = nullptr;
 };
-// A window on the interface's stack as the screen it is (every window pushed there is a container).
-inline UiContainer* ScreenOf(UiWindow* window) { return static_cast<UiContainer*>(window); }
 
 // --- Battle screen ---
 
@@ -1445,16 +1437,18 @@ struct UiWordToken;
 struct UiTextToken {
     explicit UiTextToken(int newType) : type(newType) {}
     virtual ~UiTextToken();
-    // The token as the class its type makes (callers test `type` first).
-    UiFormatToken* AsFormat();
-    const UiFormatToken* AsFormat() const;
-    UiWordToken* AsWord();
+    // The token as the class its type makes, null for the other one.
+    virtual UiFormatToken* AsFormat() { return nullptr; }
+    virtual const UiFormatToken* AsFormat() const { return nullptr; }
+    virtual UiWordToken* AsWord() { return nullptr; }
 
     int type;                        // 1 format, 2 word
 };
 struct UiFormatToken : UiTextToken {
     explicit UiFormatToken(int font);
     ~UiFormatToken() override;
+    UiFormatToken* AsFormat() override { return this; }
+    const UiFormatToken* AsFormat() const override { return this; }
 
     bool newline;                    // a newline token, or a font change after the first token
     int font;                        // interface font
@@ -1463,13 +1457,11 @@ struct UiFormatToken : UiTextToken {
 struct UiWordToken : UiTextToken {
     UiWordToken() : UiTextToken(2), width(0) {}
     ~UiWordToken() override;
+    UiWordToken* AsWord() override { return this; }
 
     std::string text;
     int width;                       // its width in the token's font
 };
-inline UiFormatToken* UiTextToken::AsFormat() { return static_cast<UiFormatToken*>(this); }
-inline const UiFormatToken* UiTextToken::AsFormat() const { return static_cast<const UiFormatToken*>(this); }
-inline UiWordToken* UiTextToken::AsWord() { return static_cast<UiWordToken*>(this); }
 // A laid out line of a scrolling text: the fields PlaceWords reads.
 struct UiTextLine {
     int height;                      // pixels
@@ -2113,8 +2105,8 @@ public:
     // Unless a child used the key, Enter answers as OK and Esc as cancel.
     void KeyDown(int key, int scan, bool repeat) override;
     // CreateScreen adds them first.
-    UiMesh* EasyBox() const { return SceneMesh(0); }
-    UiMesh* HardBox() const { return SceneMesh(1); }
+    UiMesh* EasyBox() const { return sceneObjects[0]; }
+    UiMesh* HardBox() const { return sceneObjects[1]; }
     // The texture shift of a checked box (0xBDB80000).
     static constexpr float kCheckedOffset = -0.08984375f;
 

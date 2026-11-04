@@ -34,7 +34,7 @@ namespace {
 
 const float* Floats(Call* call) { return call->cmd->floatArgs.data(); }
 const char* Text(Call* call, int i) { return call->cmd->stringArgs[i].c_str(); }
-EngineObject* ObjectArg(Call* call, int i) { return call->cmd->objectArgs[i]->object; }
+MapObject* ObjectArg(Call* call, int i) { return call->cmd->objectArgs[i]->object; }
 
 // The float bits of `value` as the dword the player messages take.
 std::uint32_t Bits(float value) {
@@ -138,7 +138,7 @@ bool Loot(Call* call) {
     int number = TruncateOrMin(Floats(call)[0]);
     Player* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("Loot", "There is no player with number %d", number);
-    EngineObject* object = ObjectArg(call, 0);
+    MapObject* object = ObjectArg(call, 0);
     if (!object) return Report("Loot", "Object doesn't exist");
     Unit* unit = UnitOrNull(object);   // IsUnit's test
     if (!unit) return Report("Loot", "Object must be a unit");
@@ -194,31 +194,32 @@ bool GSListPlayerVars(Call* call) {
 // GiveUnitWeapon(unit, item, override) / GiveUnitArmor: the item made from its name goes to the
 // unit; with override 1 (only for units without a text-key id) the unit's stats are set from it.
 bool GiveUnitWeapon(Call* call) {
-    EngineObject* object = ObjectArg(call, 0);
+    MapObject* object = ObjectArg(call, 0);
     bool override = Equals(1.0f, Floats(call)[0]);
     if (!object) return Report("GiveUnitWeapon", "Unit doesn't exists");
     Unit* unit = UnitOrNull(object);   // IsUnit's test
     if (!unit) return Report("GiveUnitWeapon", "Object with ID %d must be a Unit", object->id);
     const char* name = Text(call, 0);
-    auto* item = AsWeapon(g_serverWorld.CreateItemNamed(name));
+    Item* item = g_serverWorld.CreateItemNamed(name);
     if (override && unit->id >= 1000000000) override = false;    // (a warning with EnableShowingScriptErrors)
     if (!item) return Report("GiveUnitWeapon", "Can't create item \"%s\"", name);
     int slot = unit->AddWeapon(item);
     if (slot == -1) return true;
     unit->pendingWeapon = slot;
-    if (override) {
-        const auto* weapon = itemdb::RecordAs<itemdb::WeaponRecord>(item->GetPrototype());
+    // A name of another item kind fills the slot without the weapon's statistics.
+    if (ItemWeapon* made = item->AsWeapon(); override && made) {
+        const auto* weapon = itemdb::RecordAs<itemdb::WeaponRecord>(made->GetPrototype());
         UnitStats& stats = unit->ServerController()->stats;
         const UnitPrototypeRecord* prototype = unit->GetPrototype();
-        stats.damage = item->damage;
-        stats.damageSpread = item->damageSpread;
+        stats.damage = made->damage;
+        stats.damageSpread = made->damageSpread;
         float sum = prototype->combat[3] + weapon->defenceBonus;
         stats.combat[UnitStats::kDefence] = sum;
         stats.combat[UnitStats::kReach] = weapon->reach;
         sum = prototype->combat[1] + weapon->attackBonus;
         stats.combat[UnitStats::kAttack] = sum;
         stats.attackCategory = static_cast<float>(weapon->category);
-        stats.naturalWeapon = item->GetType();
+        stats.naturalWeapon = made->GetType();
         for (int i = 0; i < 7; ++i) stats.damageWeights[i] = weapon->damageTypes[i];
         unit->MarkChanged(0);
     }
@@ -231,7 +232,7 @@ bool GiveUnitWeapon(Call* call) {
 // 1, 3 and 6 second block) + 0.3 * (armour slots 2, 4, 5), each plus the prototype's protection
 // scale, into both halves of the unit's server-side protection pair c.
 bool GiveUnitArmor(Call* call) {
-    EngineObject* object = ObjectArg(call, 0);
+    MapObject* object = ObjectArg(call, 0);
     bool override = Equals(1.0f, Floats(call)[0]);
     if (!object) return Report("GiveUnitArmor", "Unit doesn't exists");
     Unit* unit = UnitOrNull(object);   // IsUnit's test

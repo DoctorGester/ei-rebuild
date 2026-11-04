@@ -11,6 +11,7 @@
 #include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
+#include "world_effect.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

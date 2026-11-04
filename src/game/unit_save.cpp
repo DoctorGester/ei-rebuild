@@ -53,7 +53,10 @@ void ReadItems(Unit* unit, ByteStream* stream, Item** slots, int count) {
 }
 // The worn armour: its ids name armour pieces.
 void ReadItems(Unit* unit, ByteStream* stream, ItemArmor** slots, int count) {
-    for (int i = 0; i < count; ++i) slots[i] = AsArmor(ReadItem(unit, stream));
+    for (int i = 0; i < count; ++i) {
+        Item* item = ReadItem(unit, stream);
+        slots[i] = item ? item->AsArmor() : nullptr;
+    }
 }
 
 

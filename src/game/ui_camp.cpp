@@ -61,9 +61,9 @@ void AddLine(std::vector<UiLabel>& labels, std::string_view text, const Rect& re
 
 // The database records of the camp's loot items (the record index): spells, spell
 // modifiers and materials (null past the end, which is then read through).
-std::uint32_t Index(const Item* item) { return AsLoot(item)->index; }
+std::uint32_t Index(const Item* item) { return item->AsLoot()->index; }
 // The loot's record type: the record table it indexes.
-LootRecordType RecordType(const Item* item) { return AsLoot(item)->recordType; }
+LootRecordType RecordType(const Item* item) { return item->AsLoot()->recordType; }
 itemdb::SpellRecord* SpellRecordOf(const Item* item) { return itemdb::SpellAt(Index(item)); }
 itemdb::SpellModifierRecord* ModifierRecordOf(const Item* item) { return itemdb::SpellModifierAt(Index(item)); }
 itemdb::MaterialRecordHead* BlueprintRecord(const Item* item) { return itemdb::MaterialAt(Index(item)); }
@@ -106,7 +106,7 @@ constexpr std::uint32_t kRecordBias = 100000000;
 void RebuildArmourLayers(PartyUnitRecord* hero) {
     UnitStats* stats = &hero->stats;
     stats->ClearOuterLayers();
-    for (int i = 0; i < std::ssize(hero->armor); ++i) stats->AddArmourLayer(AsArmor(hero->armor[i]));
+    for (int i = 0; i < std::ssize(hero->armor); ++i) stats->AddArmourLayer(hero->armor[i]->AsArmor());
 }
 
 // Whether `list` holds `item`.
@@ -246,19 +246,19 @@ void CampPages::ShowPage(int newPage) {
 
     // The hero arrows (scene objects 0/1, regions 0/1) only where a hero can be chosen.
     if (page == 0 && (!itemConstructor || noConstructor)) {
-        SceneMesh(0)->visible = false;
-        SceneMesh(1)->visible = false;
+        sceneObjects[0]->visible = false;
+        sceneObjects[1]->visible = false;
         regions[0]->SetTip(0);
         regions[1]->SetTip(0);
     } else {
-        SceneMesh(0)->visible = true;
-        SceneMesh(1)->visible = true;
+        sceneObjects[0]->visible = true;
+        sceneObjects[1]->visible = true;
         regions[0]->SetTip(0x4EE8);
         regions[1]->SetTip(0x4EE9);
     }
     // The page buttons (scene objects 2-9) half bright, the current one full.
-    for (int i = 2; i < 10; ++i) SetShade(SceneMesh(i), 0.5f);
-    SetShade(SceneMesh(page + 2), 1.0f);
+    for (int i = 2; i < 10; ++i) SetShade(sceneObjects[i], 0.5f);
+    SetShade(sceneObjects[page + 2], 1.0f);
     ui->OpenHelp(false);
 }
 
@@ -518,8 +518,8 @@ void CampPages::UpdateAction() {
     line = std::format("{} {}", text, amount);
     AddLine(actionLabels, line, Rect{0, 10, 200, 30});
 
-    SetShade(SceneMesh(0), actionEnabled ? 1.0f : 0.5f);
-    SetShade(SceneMesh(1), actionShown ? 1.0f : 0.5f);
+    SetShade(sceneObjects[0], actionEnabled ? 1.0f : 0.5f);
+    SetShade(sceneObjects[1], actionShown ? 1.0f : 0.5f);
 }
 
 void CampPages::Draw(SceneRenderer* pass) {
@@ -714,7 +714,7 @@ Item* CampPages::TakeOff(Item* item) {
     }
     case ItemKind::Armor: {
         if (heroes[hero]) {
-            int armorType = AsArmor(item)->GetType();
+            int armorType = item->AsArmor()->GetType();
             heroes[hero]->UnequipArmour(armorType);
             heroes[hero]->controller->ShowWeapon(heroRecord->weaponIndex);
             heroes[hero]->controller->RefreshModel();
@@ -751,9 +751,9 @@ void CampPages::PutOn(Item* item) {
         break;
     case ItemKind::Armor: {
         // Each piece on the same body part comes off first.
-        int armorType = AsArmor(item)->GetType();
+        int armorType = item->AsArmor()->GetType();
         for (int i = 0; i < std::ssize(heroRecord->armor); ++i) {
-            if (AsArmor(heroRecord->armor[i])->GetType() == armorType)
+            if (heroRecord->armor[i]->AsArmor()->GetType() == armorType)
                 TakeOff(heroRecord->armor[i]);
         }
         if (heroes[hero]) {

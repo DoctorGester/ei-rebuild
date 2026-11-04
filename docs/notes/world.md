@@ -15,7 +15,7 @@ added twice, three `RemoveObjectFromServer`, `load savea`, one more spawn), `par
   the server tick, the game flow, the item and effect managers, the briefing texts).
 - `Player::dirty` (`PlayerDirty`): weather-like settings, time, a 0..1 value, countdowns; the named float variables
   ("gtime" ...); units; the party.
-- `ObjectIdMap` = `hash_map<unsigned, T*>` plus the highest key. Server maps: units to update (inserting sets the unit's
+- `MapObjectIdMap` / `EffectIdMap` = `hash_map<unsigned, T*>` plus the highest key. Server maps: units to update (inserting sets the unit's
   sleep counter to `((unit >> 5) & 15) + 0x80`), every object by id, map objects saved with the zone, non-unit map
   objects, named objects, timed objects (spells / effects stamped with the tick). `RemoveObjectFromServer` erases from
   all of them. Shared objects: `sharedObjects` ({id, player, value, objects}, from a multiplayer client's corpse loot)

@@ -51,19 +51,19 @@ float TimeOfDay() {
     return std::fmod(world->tick * world->secondsPerTick + world->timeBase, 24.0f);
 }
 
-void SetTint(EngineObject* object, float value) {
-    float* tint = AsUiMesh(object)->tint;
+void SetTint(UiMesh* object, float value) {
+    float* tint = object->tint;
     tint[0] = value;
     tint[1] = value;
     tint[2] = value;
 }
 
 // Turns a sprite about `axis` (z or -z) by `angle`.
-void Turn(EngineObject* object, float axisZ, float angle) {
+void Turn(UiMesh* object, float axisZ, float angle) {
     Vector3 axis = {0.0f, 0.0f, axisZ};
     Quaternion q;
     q.SetAxisAngle(axis, angle);
-    AsUiMesh(object)->localRotation = q;
+    object->localRotation = q;
 }
 
 std::uint32_t Bits(float f) {
@@ -111,19 +111,19 @@ void HudClock::Update() {
 
 void HudClock::Show() {
     float hours = TimeOfDay();
-    EngineObject** scene = sceneObjects.data();
-    EngineObject* face = scene[0];
+    UiMesh** scene = sceneObjects.data();
+    UiMesh* face = scene[0];
     float pulse = lib::Cos(kHudFullTurn * blink) * kPulseAmplitude + kPulseMiddle;
 
     float handAngle;
     if (GamePaused()) {
         SetTint(face, kBlinkBase - pulse);
         handAngle = kPi * kPausedHand;
-        AsUiMesh(scene[1])->visible = blink > 0.5f;
+        scene[1]->visible = blink > 0.5f;
     } else {
         SetTint(face, 1.0f);
         handAngle = fast != 0 ? kPi * kFastHand : kPi * kNormalHand;
-        AsUiMesh(scene[1])->visible = true;
+        scene[1]->visible = true;
     }
 
     // The hand (object 1) about -z, placed on its circle.
@@ -131,7 +131,7 @@ void HudClock::Show() {
     float handSin = lib::Sin(handAngle);
     float handY = kCentreY - handSin * kHandRadius;
     float handX = lib::Cos(handAngle) * kHandRadius + screen_layout::g_layoutWidth;
-    AsUiMesh(scene[1])->Place(handX, handY, kHandDepth);
+    scene[1]->Place(handX, handY, kHandDepth);
 
     // The face turns with the time of day.
     Turn(face, 1.0f, (hours + kFaceOffset) * kPi * kFaceStep);
@@ -139,12 +139,12 @@ void HudClock::Show() {
     // The four dial marks (objects 2-5), a notch apart.
     float angle = dial - (kPi * kFaceStep);
     for (int k = 2; k < 6; ++k) {
-        EngineObject* mark = scene[k];
+        UiMesh* mark = scene[k];
         Turn(mark, 1.0f, angle);
         float c = lib::Cos(angle);
         float y = kCentreY - c * kDialRadius;
         float x = lib::Sin(angle) * kDialRadius + screen_layout::g_layoutWidth;
-        AsUiMesh(mark)->Place(x, y, kSpriteDepth);
+        mark->Place(x, y, kSpriteDepth);
         angle -= kPi * kDialStep;
     }
 
@@ -173,16 +173,16 @@ void HudTopPanel::Update() {
         offset = static_cast<int>(travel * eased);
         if (Bits(slide) == 0x3F800000 || slide == 0.0f) sliding = false;
         Layout();
-        EngineObject* sling = sceneObjects[2];
+        UiMesh* sling = sceneObjects[2];
         float y;
         if (Bits(slideDirection) == 0xBF800000) {    // -1: sliding out
             Turn(sling, 1.0f, kPi);
             y = kSlingInY;
         } else {
-            AsUiMesh(sling)->localRotation = kHudRestRotation;
+            sling->localRotation = kHudRestRotation;
             y = kSlingOutY;
         }
-        AsUiMesh(sling)->Place(kSlingX, y, kSpriteDepth);
+        sling->Place(kSlingX, y, kSpriteDepth);
     }
     ui->hudPanelsIn[1] = slideDirection > 0.0f ? 1 : 0;             // the panel is (coming) in
     ui->hudTopPage = page;
@@ -420,6 +420,6 @@ void HudMovePanel::Build() {
     AddBlankSprite()->Disc(8.0f, 80.0f, 0.0f, 600.0f, 32.0f, kDiscPoints, 2, 0xFE, 0x20);
     ShowMode(-1);
     flag = -1;
-    SceneMesh(5)->textureOffsetU = 0.48046875f;
+    sceneObjects[5]->textureOffsetU = 0.48046875f;
     screen_layout::LeavePanel();
 }

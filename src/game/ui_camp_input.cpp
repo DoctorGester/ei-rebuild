@@ -135,7 +135,7 @@ void AddCounted(Party* list, Item* item) {
 // An item named `name` from the list's item manager (not checked for null) with
 // record index `index` and count `count`, added.
 void AddNamed(Party* list, const char* name, std::uint32_t index, std::uint32_t count) {
-    auto* item = AsLoot(list->ItemFactory()->CreateItem(name));
+    auto* item = list->ItemFactory()->CreateItem(name)->AsLoot();
     item->index = index;
     item->count = count;
     AddCounted(list, item);
@@ -318,7 +318,7 @@ ItemHoverInfo HeroStatsPanel::HoverInfo(Point at) {
     case 7:
         if (hero->weaponIndex < static_cast<std::uint32_t>(std::ssize(hero->weapons))) {
             info.kind = HoverKind::Weapon;
-            info.weapon = AsWeapon(hero->weapons[hero->weaponIndex]);
+            info.weapon = hero->weapons[hero->weaponIndex]->AsWeapon();
             info.text = row == 6 ? kAttack : kDefence;
         }
         break;
@@ -345,8 +345,8 @@ ItemHoverInfo HeroStatsPanel::HoverInfo(Point at) {
 
 void HeroStatsPanel::SetHero(int newHeroIndex, std::optional<std::string_view> newTitle) {
     bool party = std::ssize(LocalPlayerData()->members) > 1;
-    SceneMesh(0)->visible = party;
-    SceneMesh(1)->visible = party;
+    sceneObjects[0]->visible = party;
+    sceneObjects[1]->visible = party;
     regions[0]->SetTip(party ? kTipPreviousHero : 0);
     regions[1]->SetTip(party ? kTipNextHero : 0);
     heroIndex = newHeroIndex;

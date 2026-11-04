@@ -127,7 +127,7 @@ ItemTexts TextManager::GetItemTexts(Item* item) {
         break;
     }
     case ItemKind::Loot: {
-        auto* loot = AsLoot(item);
+        auto* loot = item->AsLoot();
         if (loot->kind == LootKind::Self) {
             key = "litem " + KeyName(LootAt(prototypeIndex)->name);
             kindKey = "item_loot";

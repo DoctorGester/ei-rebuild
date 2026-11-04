@@ -240,12 +240,12 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
     screen_layout::EnterLeftPanel();    // addon's 100232F4
     Quaternion savedOrientation = {1.0f, 0.0f, 0.0f, 0.0f};
     Vector3 savedPosition = {};
-    SceneMesh(kHeightBar)->visible = false;
-    SceneMesh(kMoreMark)->visible = false;
+    sceneObjects[kHeightBar]->visible = false;
+    sceneObjects[kMoreMark]->visible = false;
     // The background alone, before anything else.
-    SceneMesh(kBackground)->visible = true;
-    SceneMesh(kBackground)->Draw(pass);
-    SceneMesh(kBackground)->visible = false;
+    sceneObjects[kBackground]->visible = true;
+    sceneObjects[kBackground]->Draw(pass);
+    sceneObjects[kBackground]->visible = false;
 
     // The unit shown while the panel is not slid away: the hover unit, else the selected one.
     Unit* unit = nullptr;
@@ -260,7 +260,7 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
         if (unit) size = unit->AnimationRatio() * size;
     }
 
-    for (int i = kFirstDisplay; i < kDisplaysEnd; ++i) SceneMesh(i)->visible = false;
+    for (int i = kFirstDisplay; i < kDisplaysEnd; ++i) sceneObjects[i]->visible = false;
 
     if (unit && unit->AsObject3D()->attached) {
         Object3D* model = unit->AsObject3D();
@@ -327,10 +327,10 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
             const float barScale = kBarHeight / size;
             std::uint32_t bits;
             bits = std::bit_cast<std::uint32_t>(barScale);
-            SceneMesh(kHeightBar)->SetScaleYBits(bits);
+            sceneObjects[kHeightBar]->SetScaleYBits(bits);
             const float barY = kPanelHeight - barScale * kPanelHeight;
-            SceneMesh(kHeightBar)->Place(static_cast<float>(20 - offset), barY, 4.0f);
-            SceneMesh(kHeightBar)->visible = true;
+            sceneObjects[kHeightBar]->Place(static_cast<float>(20 - offset), barY, 4.0f);
+            sceneObjects[kHeightBar]->visible = true;
             break;
         }
         case 1:

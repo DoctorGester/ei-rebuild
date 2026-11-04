@@ -27,7 +27,7 @@ void Down(Rect* rect) { rect->Offset(0, 15); }
 void AddRect(UiWindow* window, const Rect& rect) { window->AddRegion()->SetRect(rect); }
 
 void ShowFrom(UiWindow* window, int first, bool shown) {
-    for (int i = first; i < std::ssize(window->sceneObjects); ++i) window->SceneMesh(i)->visible = shown;
+    for (int i = first; i < std::ssize(window->sceneObjects); ++i) window->sceneObjects[i]->visible = shown;
 }
 
 constexpr std::uint32_t kBright = 0xA7D7E4;

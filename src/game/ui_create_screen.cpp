@@ -33,7 +33,7 @@ BattleScreen::BattleScreen(Interface3D* ui) : UiContainer(ui) {}
 BriefingScreen::BriefingScreen(Interface3D* ui) : UiContainer(ui) {}
 
 void Interface3D::CreateScreen(int id) {
-    UiWindow* screen = nullptr;
+    UiContainer* screen = nullptr;
     switch (id) {
     case 0:
         return;
@@ -75,7 +75,7 @@ namespace {
 // The end both PushWindow and Activate share: the window pushed on the stack, the render state the
 // interface draws with (blending by source alpha, the alpha test against 0x80), the window created, the messages
 // pumped, the mouse released.
-void OpenOnTop(Interface3D* ui, UiWindow* window) {
+void OpenOnTop(Interface3D* ui, UiContainer* window) {
     ui->stack.push_back(window);
     render::RenderState& state = render::g_renderState;
     state.blend = true;
@@ -84,14 +84,14 @@ void OpenOnTop(Interface3D* ui, UiWindow* window) {
     state.destBlend = render::Blend::InvSourceAlpha;
     state.alphaReference = 0x80;
     app::g_interfaceHasScreen = 1;
-    ScreenOf(window)->CreateScreen();
+    window->CreateScreen();
     app::PumpMessages();
     ui->mouseCapture = nullptr;
     g_cursor.SetShape(0);
 }
 } // namespace
 
-void Interface3D::PushWindow(UiWindow* window, bool behind, bool pauseFrame) {
+void Interface3D::PushWindow(UiContainer* window, bool behind, bool pauseFrame) {
     g_cursor.SetShape(3);
     if (behind && !pauseFrame) {
         backdropMode = 3;
@@ -118,7 +118,7 @@ void Interface3D::PushWindow(UiWindow* window, bool behind, bool pauseFrame) {
 
 // --- Activate ------------------------------------------------------------------------------------
 
-void Interface3D::Activate(UiWindow* window) {
+void Interface3D::Activate(UiContainer* window) {
     if (closeAll) {
         closeAll = false;
         CloseAll();
@@ -134,7 +134,7 @@ void Interface3D::Activate(UiWindow* window) {
     g_cursor.SetShape(3);
     while (!stack.empty()) {
         stack.back()->Input()->Deactivate();
-        ScreenOf(stack.back())->CloseScreen();
+        stack.back()->CloseScreen();
         delete stack.back();
         stack.pop_back();
     }
@@ -167,8 +167,8 @@ void Interface3D::ShowMessage(bool forced) {
 
 void Interface3D::OpenHelp(bool forced) {
     if (stack.empty()) return;
-    UiWindow* active = stack.back();
-    const char* topic = ScreenOf(active)->HelpTopic();
+    UiContainer* active = stack.back();
+    const char* topic = active->HelpTopic();
     if (!topic) return;
     int seen = -1;
     // The seen-topics map (find; operator[], lower_bound an insert at that

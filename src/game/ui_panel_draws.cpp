@@ -83,7 +83,7 @@ const itemdb::ItemRecordHead* PartRecord(const ItemLoot* part) {
 
 void HeroQuickStrip::Draw(SceneRenderer* pass) {
     PartyUnitRecord* hero = owner->HeroRecord();
-    auto* frame = SceneMesh(0);
+    auto* frame = sceneObjects[0];
     int count = lib::Count(hero->spells);
     if (selected >= 0 && selected < count) {
         frame->visible = true;
@@ -153,7 +153,7 @@ void SpellMakerPage::Draw(SceneRenderer* pass) {
             hasContainer = true;
         } else if (IsSpell(item)) {
             // A record out of range is read through null, like the original.
-            const itemdb::SpellRecord* spell = itemdb::SpellAt(AsLoot(item)->index);
+            const itemdb::SpellRecord* spell = itemdb::SpellAt(item->AsLoot()->index);
             needed += spell->skill;
             manaSum += spell->mana;
             lastMana = spell->mana;
@@ -163,7 +163,7 @@ void SpellMakerPage::Draw(SceneRenderer* pass) {
             owner->DrawItem(pass, cell);
             hasSpell = true;
         } else if (IsModifier(item)) {
-            const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(AsLoot(item)->index);
+            const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(item->AsLoot()->index);
             manaSum += modifier->mana;
             needed += modifier->skill;
             cell.x = column + 450.0f;
@@ -190,7 +190,7 @@ void SpellMakerPage::Draw(SceneRenderer* pass) {
     }
     DrawBase(pass);
 
-    UiMesh* highlight = SceneMesh(kHighlight);
+    UiMesh* highlight = sceneObjects[kHighlight];
     highlight->visible = true;
     Pulse beat = Advance(this);
     if (!hasContainer) {
@@ -230,7 +230,7 @@ void ConstructorPage::Draw(SceneRenderer* pass) {
             DrawInSlot(this, pass, cell, Rect{315, 215, 385, 285});
             hasPart = true;
             // Another record type keeps the part found before.
-            auto* loot = AsLoot(item);
+            auto* loot = item->AsLoot();
             if (loot->recordType <= LootRecordType::Quick) part = PartRecord(loot);
         } else if (IsSpellContainer(item)) {
             cell.x = 350.0f;
@@ -248,7 +248,7 @@ void ConstructorPage::Draw(SceneRenderer* pass) {
             }
         }
     }
-    UiMesh* highlight = SceneMesh(kHighlight);
+    UiMesh* highlight = sceneObjects[kHighlight];
     highlight->visible = true;
     Pulse beat = Advance(this);
     highlight->flatColour = Colour(beat.alpha, beat.high, beat.low);

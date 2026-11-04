@@ -310,9 +310,9 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
             for (;;) {
                 int objectId = ReadAs<int>(stream);
                 if (objectId == -1) break;
-                EngineObject* object = timedObjectManager->FindObject(objectId);
+                auto* object = timedObjectManager->FindObjectAs<Effect>(objectId);
                 object->AddRef();
-                static_cast<Effect*>(object)->MarkChanged();
+                object->MarkChanged();
                 timedObjects.Set(static_cast<unsigned>(object->id), object);
             }
 
@@ -362,7 +362,7 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
                     if (!object) continue;
                     auto* record = new ItemLink();
                     record->value = value;
-                    object->link.Assign(record);
+                    object->serverLink.Assign(record);
                 }
             }
 
@@ -479,7 +479,7 @@ void WorldServer::SaveWorld(ByteStream* stream) {
     {
         ObjectListIteratorOf<Item> it{};
         for (Item* item = it.First(ItemFactory()); item; item = it.Next()) {
-            ItemLink* record = item->ServerLink();
+            ItemLink* record = item->serverLink.Get();
             if (!record) continue;
             stream->WriteValue(item->id);
             stream->WriteValue(record->value);

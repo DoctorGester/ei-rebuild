@@ -402,7 +402,7 @@ void UnitServer::ContinueAction() {
     MapObject* target = action.target;
     bool seen = true;
     Player* player = unit->player;
-    if (player && IsUnit(target) && !brain.memory.CanTrack(unit, static_cast<Unit*>(target)))
+    if (Unit* other = UnitOrNull(target); player && other && !brain.memory.CanTrack(unit, other))
         seen = player->Server()->IsPartyUnit(target);
 
     bool cast = IsCastKind(action.kind);
@@ -631,9 +631,8 @@ void UnitServer::ApproachTarget() {
     float distance = Length(offset);
     float mySpeed = unit->MoveSpeed();
     float closing;
-    if (chased->IsLargeUnit()) {
+    if (Unit* other = chased->IsLargeUnit() ? UnitOrNull(chased) : nullptr) {
         // The chased unit's speed along the line between them adds to ours.
-        auto* other = static_cast<Unit*>(chased);   // only a unit is a large unit
         Vector3 v = other->localPosition - unit->localPosition;
         float length = std::sqrt(LengthSquared(v));
         if (length > 0.0f) v /= length;

@@ -74,14 +74,14 @@ bool BarRatio(int value, int maximum, float* ratio) {
 // --- Unit panel ----------------------------------------------------------------------------------
 
 void HudUnitPanel::ShowHealth(Unit* unit) {
-    SceneMesh(11)->visible = true;
+    sceneObjects[11]->visible = true;
     float ratio;
     if (unit->packedVitals.maxHitPoints != 0 && unit->packedVitals.hitPoints > 0 && BarRatio(unit->packedVitals.hitPoints, unit->packedVitals.maxHitPoints, &ratio))
-        FillBar(SceneMesh(10), ratio, 100.0f, 0.396484375f, 0.376953125f);
+        FillBar(sceneObjects[10], ratio, 100.0f, 0.396484375f, 0.376953125f);
     if (!InParty(owner, unit)) return;
-    SceneMesh(13)->visible = true;
+    sceneObjects[13]->visible = true;
     if (unit->packedVitals.maxMana != 0 && unit->packedVitals.mana != 0 && BarRatio(unit->packedVitals.mana, unit->packedVitals.maxMana, &ratio))
-        FillBar(SceneMesh(12), ratio, 100.0f, 0.369140625f, 0.349609375f);
+        FillBar(sceneObjects[12], ratio, 100.0f, 0.369140625f, 0.349609375f);
 }
 
 void HudUnitPanel::PaintHealth(UiSurface& surface, Unit* unit) {
@@ -96,8 +96,8 @@ void HudUnitPanel::ShowParts(Unit* unit) {
     for (int i = 0; i < 6; ++i) {
         const UnitParamsSlot& part = unit->params.slots[i];
         if (part.kind == 0) continue;
-        SceneMesh(15 + 2 * i)->visible = true;
-        UiMesh* bar = SceneMesh(14 + 2 * i);
+        sceneObjects[15 + 2 * i]->visible = true;
+        UiMesh* bar = sceneObjects[14 + 2 * i];
         float ratio = 0.0f;
         if (part.kind == 3 && part.maximum != 0 && part.current > 0 &&
             BarRatio(part.current, part.maximum, &ratio))
@@ -152,7 +152,7 @@ void HudMovePanel::ToggleFlag() {
     }
     flag = value;
     // The button's frame (the original also has 0.48046875 for any other value; `value` is 0 or 1).
-    SceneMesh(5)->textureOffsetU = value == 0 ? 0.3359375f : 0.0f;
+    sceneObjects[5]->textureOffsetU = value == 0 ? 0.3359375f : 0.0f;
 }
 
 // --- Unit panel: the effects on the unit -----------------------------------------------
@@ -190,7 +190,7 @@ void HudUnitPanel::ShowEffects(Unit* unit) {
     bool taken[kPlaces] = {};
     for (int i = 0; i < kPlaces; ++i) icons[i] = places[i] = -1;
 
-    if (std::ssize(unit->effects) > kPlaces) SceneMesh(kMoreMark)->visible = true;
+    if (std::ssize(unit->effects) > kPlaces) sceneObjects[kMoreMark]->visible = true;
     const MapEffect* effects = unit->effects.data();
     for (int i = 0; i < std::ssize(unit->effects) && i < kPlaces; ++i) {
         if (const itemdb::SpellRecord* spell = itemdb::SpellAt(effects[i].type)) icons[i] = static_cast<int>(spell->icon);
@@ -225,7 +225,7 @@ void HudUnitPanel::ShowEffects(Unit* unit) {
             CopyImage(objects[1], picture, kIconSize, kIconSize, kIconSize, kIconSize, x, y);
             effectIcons[free] = icons[i];
         }
-        UiMesh* icon = SceneMesh(kFirstIcon + i);
+        UiMesh* icon = sceneObjects[kFirstIcon + i];
         icon->visible = true;
         icon->textureOffsetU = x * (1.0f / 256.0f);
         icon->textureOffsetV = (y + kIconSize) * (1.0f / 256.0f);
@@ -239,7 +239,7 @@ void HudUnitPanel::ShowBodyPart() {
     constexpr int kPartButtons = 4;
     for (int i = 0; i < kPartButtons; ++i) {
         float tint = bodyPart == i ? 1.0f : 0.5f;
-        UiMesh* button = SceneMesh(kFirstPartButton + i);
+        UiMesh* button = sceneObjects[kFirstPartButton + i];
         button->tint[0] = tint;
         button->tint[1] = tint;
         button->tint[2] = tint;
@@ -251,7 +251,7 @@ void HudUnitPanel::ShowBodyPart() {
 void HudTopPanel::ShowPage() {
     for (int i = 0; i < 2; ++i) {
         float tint = page == i ? 1.0f : 0.5f;
-        UiMesh* button = SceneMesh(3 + i);
+        UiMesh* button = sceneObjects[3 + i];
         button->tint[0] = tint;
         button->tint[1] = tint;
         button->tint[2] = tint;
@@ -319,11 +319,11 @@ void HudTopPanel::ShowItems() {
 void HudTopPanel::Layout() {
     // Place is Rebirth-patched.
     float slideOffset = static_cast<float>(offset);
-    SceneMesh(0)->Place(400.0f, 57.5f - slideOffset, 20.0f);
-    SceneMesh(1)->Place(400.0f, 10.0f - slideOffset, 20.0f);
-    SceneMesh(3)->Place(200.0f, 10.0f - slideOffset, 10.0f);
-    SceneMesh(4)->Place(230.0f, 10.0f - slideOffset, 10.0f);
-    SceneMesh(5)->Place(400.0f, 47.5f - slideOffset, 18.0f);
+    sceneObjects[0]->Place(400.0f, 57.5f - slideOffset, 20.0f);
+    sceneObjects[1]->Place(400.0f, 10.0f - slideOffset, 20.0f);
+    sceneObjects[3]->Place(200.0f, 10.0f - slideOffset, 10.0f);
+    sceneObjects[4]->Place(230.0f, 10.0f - slideOffset, 10.0f);
+    sceneObjects[5]->Place(400.0f, 47.5f - slideOffset, 18.0f);
     Rect area{190, 25 - offset, 610, 89 - offset};
     owner->messageLog->SetRect(&area);
     for (int i = 1; i < std::ssize(regions); ++i) {

@@ -227,9 +227,9 @@ void GlobalMap::SelectZone(int index, bool isLink) {
 void GlobalMap::RefreshSelection() {
     surfaces[0]->Hide();
     surfaces[1]->Show();
-    for (int i = 0; i < 3; ++i) SceneMesh(i)->visible = true;
-    for (int i = lib::Count(zones) + 3; i < lib::Count(sceneObjects); ++i) SceneMesh(i)->visible = true;
-    SceneMesh(MarkerCount() + 6)->visible = false;
-    SceneMesh(MarkerCount() + 7)->visible = false;
+    for (int i = 0; i < 3; ++i) sceneObjects[i]->visible = true;
+    for (int i = lib::Count(zones) + 3; i < lib::Count(sceneObjects); ++i) sceneObjects[i]->visible = true;
+    sceneObjects[MarkerCount() + 6]->visible = false;
+    sceneObjects[MarkerCount() + 7]->visible = false;
     SelectZone(-1, false);
 }

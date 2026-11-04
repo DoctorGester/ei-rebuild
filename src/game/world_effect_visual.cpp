@@ -348,7 +348,7 @@ void EffectParticle::Attach() {
             return;
         }
     }
-    Object3D* object = g_clientWorld.objectManager->FindObjectAs<Object3D>(static_cast<unsigned>(attachedTo));
+    MapObject* object = g_clientWorld.objectManager->FindObjectAs<MapObject>(static_cast<unsigned>(attachedTo));
     Vector3 saved;
     saved = source->localPosition;
     source->Attach(object);

@@ -28,14 +28,14 @@ void WriteDword(ByteStream* stream, std::uint32_t* scratch, std::uint32_t value)
     *scratch = value;
     stream->Write(scratch, 4u);
 }
-MemoryStream* StreamOf(RefObject* member) { return &static_cast<PartyMemberMessage*>(member)->stream; }
 
 // The first element in [first, last) whose member stream holds the same bytes as
 // `message`'s (sizes, then a byte compare).
-std::vector<HeldRef<RefObject>>::iterator FindSameMessage(std::vector<HeldRef<RefObject>>::iterator first, std::vector<HeldRef<RefObject>>::iterator last, PartyMemberMessage* message) {
+using MemberList = std::vector<HeldRef<PartyMemberMessage>>;
+MemberList::iterator FindSameMessage(MemberList::iterator first, MemberList::iterator last, PartyMemberMessage* message) {
     ByteStream* stream = &message->stream;
     for (; first != last; ++first) {
-        MemoryStream* element = StreamOf(first->Get());
+        MemoryStream* element = &first->Get()->stream;
         std::uint32_t size = element->Size();
         if (stream->Size() != size) continue;
         const void* a = element->data.data();
@@ -58,14 +58,14 @@ void ClientPublishParty(ClientSession* self) {
     auto state = [self] { return self->party.Get(); };
     if (!state()) return;
     // A copy of the old messages, then the list emptied.
-    std::vector<HeldRef<RefObject>> previous = state()->members;
+    MemberList previous = state()->members;
     state()->members.clear();
     state()->money = static_cast<std::uint32_t>(party->money);
 
     std::uint32_t scratch = 0;
     for (int i = 0; i < std::ssize(party->items); ++i) {
         auto* message = NewCounted<PartyMemberMessage>();
-        HeldRef<RefObject> ref(message);
+        HeldRef<PartyMemberMessage> ref(message);
         ByteStream* stream = &message->stream;
         Item* item = party->items[i];
         stream->Clear();
@@ -128,17 +128,17 @@ void ClientApplyParty(ClientSession* self) {
     if (!remote) return;
     auto count = [remote] { return static_cast<std::uint32_t>(remote->members.size()); };
     for (std::uint32_t i = 0; i < count(); ++i) {
-        RefObject* message = remote->members[i].Get();
+        PartyMemberMessage* message = remote->members[i].Get();
         if (!message || (message->flags7 & RefObject::kDetached)) return;
-        if (StreamOf(message)->Size() == 0) return;
+        if (message->stream.Size() == 0) return;
     }
 
     Party* party = self->parties[1].Get();
     party->Clear(1, 0);
     party->money = static_cast<int>(remote->money);
-    std::vector<EngineObject*> items;   // each holds a reference
+    std::vector<Item*> items;   // each holds a reference
     for (std::uint32_t i = 0; i < count(); ++i) {
-        ByteStream* stream = StreamOf(remote->members[i].Get());
+        ByteStream* stream = &remote->members[i]->stream;
         stream->Seek(0);
         std::int32_t id;
         std::uint32_t type, packedId;
@@ -152,13 +152,13 @@ void ClientApplyParty(ClientSession* self) {
         }
         stream->ReadValue(type);
         stream->ReadValue(packedId);
-        EngineObject* item = party->ItemFactory()->CreateObject(static_cast<int>(type), -1);
+        auto* item = party->ItemFactory()->CreateObjectAs<Item>(static_cast<int>(type), -1);
         item->prototypeId = packedId;
         item->Load(stream);
         if (item) item->AddRef();
         items.push_back(item);
     }
-    for (std::uint32_t i = 0; i < count(); ++i) party->AddItem(static_cast<Item*>(items[i]), 1, 1);
+    for (std::uint32_t i = 0; i < count(); ++i) party->AddItem(items[i], 1, 1);
 
     std::int32_t revision = static_cast<std::int32_t>(remote->revision);
     std::list<TradeRecord>& records = self->tradeRecords;

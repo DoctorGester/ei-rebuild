@@ -295,7 +295,7 @@ void CampPages::BuildPages() {
         auto* heroStats = &record->stats;
         heroStats->ClearOuterLayers();
         for (int piece = 0; piece < std::ssize(record->armor); ++piece)
-            heroStats->AddArmourLayer(AsArmor(record->armor[piece]));
+            heroStats->AddArmourLayer(record->armor[piece]->AsArmor());
     }
     for (int i = 0; i < count; ++i) player->members[i].unitId -= kRecordBias;
 

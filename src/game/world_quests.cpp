@@ -75,7 +75,7 @@ void GiveBriefingRewards(WorldServer* world, Player* player, QuestBriefingRecord
         if (!item) continue;
         item->AddRef();
         if (item->GetClassId() == ClassId::ItemQuest)
-            player->TakeLoot(static_cast<int>(AsQuest(item)->questItemId));
+            player->TakeLoot(static_cast<int>(item->AsQuest()->questItemId));
         item->Release();
     }
 
@@ -224,7 +224,7 @@ void SyncRecord(Party* party, PartyUnitRecord* record, Unit* unit) {
         EngineObject* entry = AddToRecord<&PartyUnitRecord::AddWeapon>(party, record, item);
         ItemLink* ref = new ItemLink();
         ref->value = static_cast<std::uint32_t>(entry->id);
-        item->link.Assign(ref);
+        item->serverLink.Assign(ref);
     }
     for (int slot = 0; slot < kWornSlots; ++slot) {
         Item* item = unit->WornItem(slot);
@@ -232,7 +232,7 @@ void SyncRecord(Party* party, PartyUnitRecord* record, Unit* unit) {
         EngineObject* entry = AddToRecord<&PartyUnitRecord::AddArmor>(party, record, item);
         ItemLink* ref = new ItemLink();
         ref->value = static_cast<std::uint32_t>(entry->id);
-        item->link.Assign(ref);
+        item->serverLink.Assign(ref);
     }
     for (int slot = 0; slot < kBeltSlots; ++slot) {
         auto* item = unit->GetQuickItem(slot);
@@ -244,7 +244,7 @@ void SyncRecord(Party* party, PartyUnitRecord* record, Unit* unit) {
         if (entry) entry->Release();
         ItemLink* link = new ItemLink();
         link->value = static_cast<std::uint32_t>(added->id);
-        item->link.Assign(link);
+        item->serverLink.Assign(link);
     }
     for (int slot = 0; slot < kSpellSlots; ++slot) {
         Item* spell = unit->GetSpell(slot);

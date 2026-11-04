@@ -33,7 +33,7 @@ void DestroySurface(UiSurface* surface) {
 }
 
 // A new object of the model manager by name, or null.
-FigureMesh* NewModelObject(std::string_view name) {
+UiMesh* NewModelObject(std::string_view name) {
     return g_clientWorld.figureManager->NewFigure(name);
 }
 
@@ -159,7 +159,7 @@ void UiWindow::RedrawTips() {
 
 void UiWindow::DrawBase(SceneRenderer* pass) {
     for (int i = 0; i < std::ssize(sceneObjects); ++i)
-        SceneMesh(i)->Draw(pass);
+        sceneObjects[i]->Draw(pass);
     for (int i = 0; i < std::ssize(models); ++i) models[i]->Draw(pass);
 }
 
@@ -287,21 +287,20 @@ UiModel* UiWindow::AddModel() {
 EngineObject* UiWindow::ReplaceSceneObject(EngineObject* object, std::string_view name) {
     for (int i = 0; i < std::ssize(sceneObjects); ++i) {
         if (sceneObjects[i] != object) continue;
-        FigureMesh* made = NewModelObject(name);
+        UiMesh* made = NewModelObject(name);
         if (!made) return nullptr;
         made->AddRef();
         made->SetObject(this);
-        auto* sprite = AsUiMesh(made);
-        auto* old = AsUiMesh(object);
-        sprite->material = blackMaterial;
-        sprite->texture = !objects.empty() ? objects[0] : nullptr;
-        sprite->localPosition = old->localPosition;
-        sprite->textureOffsetU = old->textureOffsetU;
-        sprite->textureOffsetV = old->textureOffsetV;
-        sprite->localRotation = old->localRotation;
-        sprite->texture = old->texture;
+        UiMesh* old = sceneObjects[i];
+        made->material = blackMaterial;
+        made->texture = !objects.empty() ? objects[0] : nullptr;
+        made->localPosition = old->localPosition;
+        made->textureOffsetU = old->textureOffsetU;
+        made->textureOffsetV = old->textureOffsetV;
+        made->localRotation = old->localRotation;
+        made->texture = old->texture;
         float scale = old->scaleMatrix.m[0];
-        AsUiMesh(made)->SetScale(scale);
+        made->SetScale(scale);
         sceneObjects.erase(sceneObjects.begin() + i);
         object->Release();
         // Back in at the same place.
@@ -314,14 +313,14 @@ EngineObject* UiWindow::ReplaceSceneObject(EngineObject* object, std::string_vie
 // --- AddSprite -------------------------------------------------------------------------------------
 
 UiMesh* UiWindow::AddSprite(std::string_view name) {
-    FigureMesh* object = NewModelObject(name);
+    UiMesh* object = NewModelObject(name);
     if (!object) return nullptr;
     return AddSceneObject(object);
 }
 
 UiMesh* UiWindow::AddBlankSprite() { return AddSceneObject(g_clientWorld.figureManager->NewBlankFigure()); }
 
-UiMesh* UiWindow::AddSceneObject(FigureMesh* object) {
+UiMesh* UiWindow::AddSceneObject(UiMesh* object) {
     bool listed = false;
     for (int i = 0; i < std::ssize(sceneObjects) && !listed; ++i) listed = sceneObjects[i] == object;
     if (!listed) {
@@ -329,10 +328,9 @@ UiMesh* UiWindow::AddSceneObject(FigureMesh* object) {
         object->AddRef();
         object->SetObject(this);
     }
-    auto* sprite = AsUiMesh(object);
-    sprite->material = blackMaterial;
-    sprite->texture = !objects.empty() ? objects[0] : nullptr;
-    return sprite;
+    object->material = blackMaterial;
+    object->texture = !objects.empty() ? objects[0] : nullptr;
+    return object;
 }
 
 // --- The constructor ---------------------------------------------------------------------------------

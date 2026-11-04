@@ -196,3 +196,7 @@ bool Lever::KeyOpens(const LockKey* key) { return key->Opens(&lock); }
 
 const char* Lever::ClassName() { return kLeverClassName; }
 ClassId Lever::GetClassId() { return ClassId::Lever; }
+
+Lever* LeverOrNull(EngineObject* object) {
+    return object && object->GetClassId() == ClassId::Lever ? static_cast<Lever*>(object) : nullptr;
+}

@@ -261,7 +261,7 @@ int FigureMeshDrawer::DrawLit(TextureDevice* device, const std::vector<Light*>* 
     if (mesh->flags & FigureMeshFlag::Hidden) return 1;
     TransformObject* ownerObject = mesh->object;
     Part part{this, device, lights, material, alpha, rect, textureA, textureB,
-              ownerObject ? static_cast<LinkMesh*>(static_cast<Object3D*>(ownerObject)->figure) : nullptr, 0};
+              ownerObject ? static_cast<Object3D*>(ownerObject)->figure.Get() : nullptr, 0};
 
     int visibility = device->pipeline->ClipTest(&part.node->mesh->box.bounds);
     if (visibility == 2) return 1;

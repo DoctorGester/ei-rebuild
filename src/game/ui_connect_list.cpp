@@ -81,7 +81,7 @@ void Down(Rect* rect, int dy = kRowHeight) { rect->Offset(0, dy); }
 } // namespace
 
 void MpConnectScreen::DrawListVanilla() {
-    auto sprite = [this](int index) { return SceneMesh(index); };
+    auto sprite = [this](int index) { return sceneObjects[index]; };
     titleColour = g_connectTextColour;   // what the last drawing left
 
     const bool newGame = selected == 0;

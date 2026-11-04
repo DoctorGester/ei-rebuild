@@ -24,14 +24,6 @@
 
 namespace net {
 
-namespace {
-
-// A timed entry's message ({seconds, object}).
-template <typename T, typename Entry>
-T* TimedValueOf(const Entry& entry) { return static_cast<T*>(entry.ref.Get()); }
-
-} // namespace
-
 ServerBase::ServerBase() {
     socket.Open(g_gamePort);
 }
@@ -79,8 +71,8 @@ void ServerSession::CollectReplicated(std::vector<Replicated>** out) {
     if (!bindings.empty()) {
         for (auto& n : bindings) {
             auto* binding = n.Get();
-            if (binding->ConnectionRef().Get() != g_currentConnection) continue;
-            record = binding->PlayerInfo();
+            if (binding->connection.Get() != g_currentConnection) continue;
+            record = binding->player.Get();
             if (record->host) hosting = true;
             PushReplicated(*out, binding, 2);
         }
@@ -98,17 +90,17 @@ void ServerSession::CollectReplicated(std::vector<Replicated>** out) {
         PushReplicated(*out, n.Get(), 2);
         for (auto& m : fileRequests) {
             auto* request = m.Get();
-            if (request->FileRef().Get() != n.Get() || request->ConnectionRef().Get() != g_currentConnection) continue;
-            for (const SharedRef<RefObject>& chunk : n.Get()->chunks) PushReplicated(*out, chunk.Get(), 1);
+            if (request->file.Get() != n.Get() || request->connection.Get() != g_currentConnection) continue;
+            for (const auto& chunk : n.Get()->chunks) PushReplicated(*out, chunk.Get(), 1);
             break;
         }
     }
     if (hosting)
         for (auto& n : queuedMaps) PushReplicated(*out, n.Get(), 2);
-    if (RefObject* object = hostInfo.Get()) PushReplicated(*out, object, 2);
-    if (RefObject* object = map.Get()) PushReplicated(*out, object, 2);
+    if (HostMessage* object = hostInfo.Get()) PushReplicated(*out, object, 2);
+    if (MapMessage* object = map.Get()) PushReplicated(*out, object, 2);
     for (auto& n : awards) {
-        auto* award = TimedValueOf<AwardMessage>(n);
+        AwardMessage* award = n.ref.Get();
         if (award->connection.Get() == g_currentConnection) PushReplicated(*out, award, 2);
     }
     for (auto& n : offers) {
@@ -121,7 +113,7 @@ void ServerSession::CollectReplicated(std::vector<Replicated>** out) {
         }
         if (!complete) continue;
         PushReplicated(*out, offer, 2);
-        const std::vector<HeldRef<RefObject>>& members = n.Get()->members;
+        const auto& members = n.Get()->members;
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(members.size()); ++i)
             PushReplicated(*out, n.Get()->members[i].Get(), 2);
     }
@@ -130,7 +122,7 @@ void ServerSession::CollectReplicated(std::vector<Replicated>** out) {
         if (trade->player.Get() == record || trade->partner.Get() == record) PushReplicated(*out, trade, 2);
     }
     for (auto& n : finishedTrades) {
-        auto* trade = TimedValueOf<TradeMessage>(n);
+        TradeMessage* trade = n.ref.Get();
         if (trade->player.Get() == record || trade->partner.Get() == record) PushReplicated(*out, trade, 2);
     }
 }
@@ -274,10 +266,10 @@ void ServerOnSay(ServerSession* server, SayMessage* message) {
     const auto& bindings = server->bindings;
     for (auto& node : bindings) {
         auto* binding = node.Get();
-        if (binding->ConnectionRef().Get() != connection) continue;
+        if (binding->connection.Get() != connection) continue;
         // (The original also tests the binding for null here, after having read it.)
         if (binding->flags7 & RefCounted::kDetached) return;
-        auto* player = binding->PlayerInfo();
+        auto* player = binding->player.Get();
         std::string line;
         line = std::format("^{}{}^7: {}", player->number, player->name.data(), message->text.data());
         server->Announce(line, nullptr);
@@ -342,9 +334,9 @@ bool ServerSession::PlayerStateIs3(const Connection* connection) {
     if (!IsLive(connection)) return false;
     for (auto& node : bindings) {
         auto* binding = node.Get();
-        if (binding->ConnectionRef().Get() != connection) continue;
+        if (binding->connection.Get() != connection) continue;
         if (!IsLive(binding)) return false;
-        auto* player = binding->PlayerInfo();
+        auto* player = binding->player.Get();
         if (!IsLive(player)) return false;
         return player->state == 3;
     }

@@ -200,9 +200,10 @@ bool Unit::IsBehind(const MapObject* t) {
     ItemWeapon* weapon = nullptr;
     if (controller->GetClassId() == ClassId::UnitClientSpecific) {
         PartyUnitRecord* record = player ? player->GetParty()->Find(id) : nullptr;
-        if (record && slot < static_cast<std::uint32_t>(std::ssize(record->weapons))) weapon = AsWeapon(record->weapons[slot]);
-    } else if (slot < 4) {
-        weapon = AsWeapon(weapons[slot]);
+        if (record && slot < static_cast<std::uint32_t>(std::ssize(record->weapons)) && record->weapons[slot])
+            weapon = record->weapons[slot]->AsWeapon();
+    } else if (slot < 4 && weapons[slot]) {
+        weapon = weapons[slot]->AsWeapon();
     }
     if (weapon) {
         if (weapon->GetType() == 5) return false;

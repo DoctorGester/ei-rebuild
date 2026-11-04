@@ -43,14 +43,11 @@ Spec::Spec() : Chunk(nullptr) {
     position = {0.0f, 0.0f, 0.0f};
     rotation = {1.0f, 0.0f, 0.0f, 0.0f};
     kind = 0;
-    object = nullptr;
     name = none;
     comment = none;
 }
 
 Spec::~Spec() = default;
-
-void* Spec::WorldObject() { return g_clientWorld.objectManager->FindObject(id); }
 
 ObjectSpec::ObjectSpec() {
     std::string none("none");
@@ -97,8 +94,6 @@ void ObjectSpec::OnChunk() {
     default: break;
     }
 }
-
-MapObject* ObjectSpec::MadeMapObject() const { return static_cast<MapObject*>(object); }
 
 FlameSpec::FlameSpec() {
     offset = {0.0f, 0.0f, 0.0f};
@@ -219,19 +214,6 @@ namespace mapspec {
 EffectSpec::~EffectSpec() = default;
 ParticleSpec::~ParticleSpec() = default;
 LightSpec::~LightSpec() = default;
-
-void* EffectSpec::WorldObject() {
-    return g_clientWorld.objectManager->FindObject(-3001 - id);
-}
-
-TransformObject* EffectSpec::Transform() const { return static_cast<TransformObject*>(object); }
-
-void EffectSpec::SetVisible(std::uint8_t newVisible) {
-    visible = newVisible;
-    std::uint32_t& flags = object->flags;
-    if (newVisible != 0) flags &= ~0x40u;
-    else flags |= 0x40;
-}
 
 // ---- Particle sources ------------------------------------------------------------------
 

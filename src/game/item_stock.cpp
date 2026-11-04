@@ -91,12 +91,12 @@ RolledSpell RollItemSpell(ItemStock* stock, ItemKind kind, const itemdb::ItemRec
 
 // The table index of each record (none of the family `skip`).
 template <typename Record>
-std::vector<int> ItemIndices(const std::vector<itemdb::ItemRecordHead*>& records,
-                             const itemdb::NamedRecordTable<Record>& table, const char* skip = nullptr) {
+std::vector<int> ItemIndices(const std::vector<Record*>& records, const itemdb::NamedRecordTable<Record>& table,
+                             const char* skip = nullptr) {
     std::vector<int> indices;
-    for (const itemdb::ItemRecordHead* record : records) {
+    for (const Record* record : records) {
         if (skip && record->family == skip) continue;
-        indices.push_back(table.IndexOf(static_cast<const Record*>(record)));
+        indices.push_back(table.IndexOf(record));
     }
     return indices;
 }
@@ -126,7 +126,7 @@ void GenerateInstructions(ItemStock* stock, const char* prototypeName, const std
     itemdb::LootItemRecord* prototype = g_itemDatabase.loot.Named(prototypeName);
     for (int index : indices) {
         Item* item = ctor->BuildItem(manager, ItemKind::Loot, prototype);
-        AsLoot(item)->index = static_cast<std::uint32_t>(index);
+        item->AsLoot()->index = static_cast<std::uint32_t>(index);
         item->count = static_cast<std::uint32_t>(RandomCount(minCount, maxCount));
         item->AddRef();
         out->push_back(item);
@@ -143,12 +143,12 @@ void AddUnique(std::vector<T*>& list, T* record) {
 // caller's, reused for every section, so a failed read leaves the previous value.
 template <typename Record>
 void LoadRecords(ByteStream* stream, std::string& name, unsigned& count, itemdb::NamedRecordTable<Record>& table,
-                 std::vector<itemdb::ItemRecordHead*>& list) {
+                 std::vector<Record*>& list) {
     stream->ReadValue(count);
     for (unsigned i = 0; i < count; ++i) {
         name = stream->ReadString();
         str::MakeLower(name);
-        AddUnique<itemdb::ItemRecordHead>(list, table.Named(name));
+        AddUnique(list, table.Named(name));
     }
 }
 
@@ -162,7 +162,8 @@ void LoadMapped(ByteStream* stream, std::string& name, unsigned& count, Map& map
     }
 }
 
-void SaveItemRecords(ByteStream* stream, const std::vector<itemdb::ItemRecordHead*>& list) {
+template <typename Record>
+void SaveItemRecords(ByteStream* stream, const std::vector<Record*>& list) {
     stream->WriteValue(static_cast<std::uint32_t>(list.size()));
     for (const itemdb::ItemRecordHead* record : list) stream->WriteString(record->name);
 }
@@ -174,14 +175,15 @@ constexpr int kScrollTries = 10;
 
 // Original bug kept: a failed build (EndCreateItem null) is dereferenced. The item is created before its
 // material is drawn (BuildItem would create it after), so a cancelled item still uses up an object id.
-void ItemStock::GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, int minCount, int maxCount,
-                              std::vector<Item*>* out, const std::vector<itemdb::SpellListRecord>* spellRecipes) {
+template <class Record>
+void ItemStock::GenerateItems(std::vector<Record*>* prototypes, int minCount, int maxCount, std::vector<Item*>* out,
+                              const std::vector<itemdb::SpellListRecord>* spellRecipes) {
     ItemConstructor* ctor = party->GetItemConstructor();
     ItemManager* manager = party->ItemFactory();
     if (spellRecipes) FillSpellMaps(*spellRecipes);
 
     int count = RandomCount(minCount, maxCount);
-    std::vector<itemdb::ItemRecordHead*> taken;
+    std::vector<Record*> taken;
     if (prototypes->size() > static_cast<std::size_t>(count)) {
         Shuffle(*prototypes);
         taken.assign(prototypes->begin(), prototypes->begin() + count);
@@ -190,7 +192,7 @@ void ItemStock::GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, 
     }
 
     std::vector<StockMaterial*> candidates;
-    for (itemdb::ItemRecordHead* prototype : taken) {
+    for (Record* prototype : taken) {
         if (prototype->family == game::WandText()) continue;
         ctor->SetManager(manager);
         ctor->BeginCreateItem(prototype->Kind());
@@ -449,9 +451,9 @@ void ItemStock::GenerateScrolls(std::vector<Item*>* out) {
 
 // --- The stock's lists filled by the class template ------------------------------
 
-void ItemStock::AddArmor(itemdb::ArmorRecord* record) { AddUnique<itemdb::ItemRecordHead>(armors, record); }
-void ItemStock::AddWeapon(itemdb::WeaponRecord* record) { AddUnique<itemdb::ItemRecordHead>(weapons, record); }
-void ItemStock::AddQuickItem(itemdb::QuickItemRecord* record) { AddUnique<itemdb::ItemRecordHead>(quickItems, record); }
+void ItemStock::AddArmor(itemdb::ArmorRecord* record) { AddUnique(armors, record); }
+void ItemStock::AddWeapon(itemdb::WeaponRecord* record) { AddUnique(weapons, record); }
+void ItemStock::AddQuickItem(itemdb::QuickItemRecord* record) { AddUnique(quickItems, record); }
 void ItemStock::AddSpell(itemdb::SpellRecord* record) { AddUnique(spells, record); }
 void ItemStock::AddModifier(itemdb::SpellModifierRecord* record) { AddUnique(modifiers, record); }
 

@@ -146,28 +146,23 @@ void CommandMessage::Read(BufferCursor* cursor) {
     TakeString(cursor, text);
 }
 
-// PairMessage: BindingMessage, FileRequestMessage.
-
-PairMessage::PairMessage() {}
-PairMessage::~PairMessage() {}
-void PairMessage::WriteFirst(BufferCursor* cursor) { PutObject(cursor, first); }
-void PairMessage::ReadFirst(BufferCursor* cursor) { TakeObject(cursor, first); }
-
 BindingMessage::BindingMessage() {}
+BindingMessage::~BindingMessage() {}
 Message* BindingMessage::Create() { return NewCounted<BindingMessage>(); }
 void BindingMessage::OnShutdown() {
     Rebuild(this);
 }
-void BindingMessage::Write(BufferCursor* cursor) { WriteFirst(cursor); }
-void BindingMessage::Read(BufferCursor* cursor) { ReadFirst(cursor); }
+void BindingMessage::Write(BufferCursor* cursor) { PutObject(cursor, player); }
+void BindingMessage::Read(BufferCursor* cursor) { TakeObject(cursor, player); }
 
 FileRequestMessage::FileRequestMessage() {}
+FileRequestMessage::~FileRequestMessage() {}
 Message* FileRequestMessage::Create() { return NewCounted<FileRequestMessage>(); }
 void FileRequestMessage::OnShutdown() {
     Rebuild(this);
 }
-void FileRequestMessage::Write(BufferCursor* cursor) { WriteFirst(cursor); }
-void FileRequestMessage::Read(BufferCursor* cursor) { ReadFirst(cursor); }
+void FileRequestMessage::Write(BufferCursor* cursor) { PutObject(cursor, file); }
+void FileRequestMessage::Read(BufferCursor* cursor) { TakeObject(cursor, file); }
 
 // PlayerMessage.
 
@@ -385,7 +380,7 @@ void PartyMessage::Read(BufferCursor* cursor) {
     std::int32_t count;
     Take(cursor, count);
     members.resize(static_cast<std::size_t>(count));
-    for (std::int32_t i = 0; i < count; ++i) members[i].Assign(g_currentConnection->ReadObjectRef(cursor));
+    for (std::int32_t i = 0; i < count; ++i) TakeObject(cursor, members[i]);
     Take(cursor, money);
     Take(cursor, accepted);
     Take(cursor, acceptedRevision);

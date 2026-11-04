@@ -169,7 +169,7 @@ void UnitServer::UseItemCharge(Item* item, float cost) {
     item->charge -= cost;
     world->AddCounted(item);
     auto* player = unit->player;
-    const ItemLink* link = item->ServerLink();
+    const ItemLink* link = item->serverLink.Get();
     if (!player || !link) return;
     ResourceManager* items = player->GetParty()->ItemFactory();
     Item* copy = FindItem(items, link->value);

@@ -46,7 +46,7 @@ void Interface3D::ScaleRectToScreenNoMargin(Rect* rect) const { screen_layout::R
 void Interface3D::ScalePointToScreenNoMargin(Point* point) const { screen_layout::PointToScreen(point, false); }
 void Interface3D::ScalePointFromScreenNoMargin(Point* point) const { screen_layout::PointFromScreen(point, false); }
 
-UiWindow* Interface3D::GetActiveWindow() const {
+UiContainer* Interface3D::GetActiveWindow() const {
     return stack.begin() != stack.end() ? stack.end()[-1] : nullptr;
 }
 
@@ -160,13 +160,13 @@ void Interface3D::Resize(const screen_layout::Layout& before) {
     MakeFonts(fonts, width);
     UiSurface::RelayoutAll(before);
     // (A window's LayoutChanged may replace its children, never the stack.)
-    for (UiWindow* window : stack) ScreenOf(window)->LayoutChanged();
+    for (UiContainer* window : stack) window->LayoutChanged();
     RetakeBackdrops();
 }
 
 void Interface3D::RetakeBackdrops() {
     if (backdropMode != 2 && backdropMode != 4) return;
-    const std::vector<UiWindow*> windows = stack;
+    const std::vector<UiContainer*> windows = stack;
     UiSurface* over = nullptr;   // mode 4's copy, of the windows under a help window
     if (backdropMode == 4) {
         over = backdrop;
@@ -200,7 +200,7 @@ Rect Interface3D::PictureRect() const {
 
 bool Interface3D::EdgePanLive() const {
     if (stack.empty()) return false;
-    for (const UiInputSide* side : ScreenOf(stack.back())->inputs)
+    for (const UiInputSide* side : stack.back()->inputs)
         if (side->PansAtEdges()) return true;
     return false;
 }
@@ -234,7 +234,7 @@ void Interface3D::Shutdown() {
     g_cursor.SetShape(kCursorWait);
     while (!stack.empty()) {
         stack.back()->Input()->Deactivate();
-        ScreenOf(stack.back())->CloseScreen();
+        stack.back()->CloseScreen();
         delete stack.back();
         stack.pop_back();
     }

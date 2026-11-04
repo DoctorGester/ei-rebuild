@@ -185,9 +185,10 @@ ItemWeapon* Unit::GetWeapon(std::uint32_t slot) {
         if (!player) return nullptr;
         PartyUnitRecord* record = RecordsOf(player)->Find(id);
         if (!record || slot >= static_cast<std::uint32_t>(std::ssize(record->weapons))) return nullptr;
-        return AsWeapon(record->weapons[slot]);
+        Item* item = record->weapons[slot];
+        return item ? item->AsWeapon() : nullptr;
     }
-    return slot < 4 ? AsWeapon(weapons[slot]) : nullptr;
+    return slot < 4 && weapons[slot] ? weapons[slot]->AsWeapon() : nullptr;
 }
 
 Item* Unit::GetQuickItem(std::uint32_t slot) {

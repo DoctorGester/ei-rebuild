@@ -207,7 +207,6 @@ void Object3D::Destroy3D() {
 void Object3D::AddEffectSource(ParticleSource* source) {
     if (std::ranges::find(effectSources, source, &Ref<ParticleSource>::Get) != effectSources.end()) return;
     effectSources.emplace_back(source);
-    if (source) source->Attach(this);
 }
 
 void Object3D::RemoveEffectSource(ParticleSource* source) {
@@ -314,7 +313,7 @@ void Object3D::PlayAnimation(FigureAnimation* figureAnimation) {
     if (animation) animation->Play(figureAnimation);
 }
 
-int Object3D::AttachPartMesh(EngineObject* part) {
+int Object3D::AttachPartMesh(FigureMesh* part) {
     if (!animation) return 0;
     return animation->AttachMesh(part);
 }
