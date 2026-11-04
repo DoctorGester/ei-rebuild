@@ -172,8 +172,8 @@ std::string HudState(void* screen, const std::string& argument);
 // ---- the main loop's calls the harness steps into (harness.cpp, harness_capture.cpp;
 // image/harness_objects_image.cpp): each hook ends with the function it stands in for, called by name here.
 
-int ServerUpdate(void* server);                 // WorldServer::Update
-int ClientSegment(void* client);                // WorldClient::Segment
+void ServerUpdate(void* server);                // WorldServer::Update
+bool ClientSegment(void* client);               // WorldClient::RunTick
 void CameraUpdate(void* camera, float seconds); // Camera::Update
 void FrameStep(bool draw);        // app::FrameStep
 

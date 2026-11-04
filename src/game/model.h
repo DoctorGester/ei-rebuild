@@ -261,7 +261,7 @@ public:
     void ResizeScreen(int width, int height);
     // Drops the sun, the pipeline, the helper and the device object.
     void DestroyRenderer();
-    // 0 unless flags bit 0 is set. Takes the frame time, clears the frame and begins the scene (a
+    // 0 unless running. Takes the frame time, clears the frame and begins the scene (a
     // scene still open is ended first; other failures are fatal). Returns 1.
     int BeginScene();
     // Ends the scene. Returns 1.
@@ -315,7 +315,9 @@ public:
     // SetSun, then the colour from r, g, b in 0..1, packed as SetFogColour packs them.
     void SetSunAndAmbient(Light* light, float r, float g, float b);
 
-    std::uint32_t flags = 0;                   // bit 0: the software cursor option; bit 1 set by the creation
+    // The window is active, as the main loop took it at the start of its pass (app::g_active): frames, the cursor,
+    // the client's lighting and the main menu's lightning are updated and drawn only then.
+    bool running = false;
     Ref<TransformPipeline> pipeline;
     std::uint32_t fogColour = 0;               // also the colour the frame is cleared with
     std::uint32_t colour = 0;                  // the draw colour

@@ -5,14 +5,12 @@
 #include "player_client.h"
 #include "sound.h"
 #include "ui_cursor.h"
-#include "game_strings.h"
 #include "present_window.h"
 #include "asset_text.h"
 #include "platform/log.h"
 
 #include "lib/rebirth.h"
 #include "lib/crt.h"
-#include "lib/str.h"
 #include "lib/text_case.h"
 #include "platform/platform.h"
 #include <cmath>
@@ -39,7 +37,6 @@ using platform::MouseButton;
 
 void OnActivate(bool active, bool minimized) {
     if (minimized) {
-        g_activationChanged = 1;
         g_active = 0;
         UpdateCursorConfinement();
         return;
@@ -47,14 +44,12 @@ void OnActivate(bool active, bool minimized) {
     auto* sounds = g_clientWorld.sounds;
     if (!active) {
         g_active = 0;
-        g_activationChanged = 1;
         g_cursor.ShowImage(0);
         if (sounds) sounds->PauseAll();
         UpdateCursorConfinement();
         return;
     }
     g_active = 1;
-    g_activationChanged = 1;
     TextureDevice* device = g_sceneRenderer.device;
     if (device && device->fullScreen) {
         g_sceneRenderer.RestoreSurfaces();
@@ -210,39 +205,29 @@ void PumpMessages() {
     }
 }
 
-int StartFirstMap() {
-    const auto& cmdMap = g_commandLineMap;    // map on the command line
-    const auto& cmdMode = g_commandLineMob;   // empty: main menu
-    const auto& cmdScript = g_commandLineScript;
-    std::string map;
-    map = cmdMap.size() != 0 ? cmdMap : options::kDefaultMapName;
-    if (str::Compare(cmdMode,
-                        game::kEmptyText) == 0) {
+void StartFirstMap() {
+    if (g_commandLineMob.empty()) {
         g_gameFlow.CloseSessions();
         MenuOpen(&g_gameFlow);
-        return 1;
+        return;
     }
+    const std::string map = g_commandLineMap.empty() ? std::string(options::kDefaultMapName) : g_commandLineMap;
     WorldServer* world = &g_serverWorld;
-    if (!world->NewZone(map, cmdMode, std::nullopt))
-        return game::FatalError("Can't load map \"%s\".\n", map);
+    if (!world->NewZone(map, g_commandLineMob, std::nullopt)) {
+        game::FatalError("Can't load map \"%s\".\n", map);
+        return;
+    }
     world->SetGameState(GameState::Playing);
     WorldClient* client = &g_clientWorld;
     client->SetPlayer(g_serverWorld.worldHandle.Get());
     client->LocalView()->sendParty = 0;
     g_serverWorld.zoneMode = ZoneMode::Script;
-    if (cmdScript.size() == 0) return 1;
+    if (g_commandLineScript.empty()) return;
     Script* script = TheMissionScript();
-    bool loaded;
-    {
-        std::string root = g_dataFolder;
-        std::string dir = root + "Scripts\\";
-        std::string path = dir + cmdScript;
-        loaded = script->LoadFile(path);
-    }
-    if (loaded) return 1;
+    if (script->LoadFile(g_dataFolder + "Scripts\\" + g_commandLineScript)) return;
     ScriptErrorInfo error;
     script->GetError(&error);
-    return game::FatalError("%s, line %i", error.text, error.line);
+    game::FatalError("%s, line %i", error.text, error.line);
 }
 
 // ---- FatalError ---------------------------------------------------------------------

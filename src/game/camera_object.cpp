@@ -16,7 +16,6 @@
 #include "lib/str.h"
 #include "platform/platform.h"
 
-#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <iterator>
@@ -31,6 +30,10 @@ constexpr float kLookEpsilon = 1e-18f;   // squared length
 constexpr float kAlignEpsilon = 0.1f;
 constexpr float kObjectExtentLimit = 100.0f;
 constexpr float kObjectFade = 10.0f;
+
+// A save holds views 4..7, each as its 24 bytes (distance, rotation, pitch); older saves all eight.
+constexpr int kSavedViews = 4;
+static_assert(sizeof(CameraView) == 0x18);
 
 const char kCurrentRecord[] = ".\\camera\\camera.cam";
 const char kNumberedRecords[] = ".\\camera\\camera0*.cam";
@@ -64,15 +67,16 @@ void Camera::Create() {
 }
 void Camera::Destroy() { targetId = -1; }
 
-// Takes the views and the start distance and focus from the settings, keeps the near and far distances and the
-// field of view, switches to free placement, and resets views 6 and 7 to the start distance at 45 degrees (the
-// pitch too).
+// Takes the views and the start distance and focus from the settings and places the camera at that focus, keeps
+// the near and far distances and the field of view, switches to free placement, and resets views 6 and 7 to the
+// start distance at 45 degrees (the pitch too).
 void Camera::Init(options::GameOptions* newSettings, float nearClip, float farClip, float fov) {
     camera::ForgetViewStep();
     ViewsFromSettings(newSettings);
     settings = newSettings;
     distance = newSettings->cameraDefaultDistance;
     focus = {newSettings->cameraDefaultXDeploy, newSettings->cameraDefaultYDeploy, newSettings->cameraDefaultHeight};
+    localPosition = focus;
     nearDistance = nearClip;
     farDistance = farClip;
     fieldOfView = fov;
@@ -110,12 +114,12 @@ bool Camera::OpenFile(const char* name) {
 
 // While recording (flag 0x10), appends a frame {time, -, local position, local rotation} to fileName; nothing when
 // the file does not open.
-void Camera::RecordFrame(std::uint32_t time) {
+void Camera::RecordFrame(float time) {
     platform::File file;
     if (!(flags & Camera::kRecording)) return;
     if (!file.Open(fileName, platform::FileMode::WriteExisting)) return;    // (an existing file only)
     file.Seek(0, platform::SeekFrom::End);
-    const CameraKey record = {std::bit_cast<float>(time), 0, localPosition, localRotation};
+    const CameraKey record = {time, 0, localPosition, localRotation};
     file.WriteValue(record);
     file.Close();
 }
@@ -135,16 +139,24 @@ void Camera::Load(ByteStream* stream) {
     stream->ReadValue(viewRotation);
     stream->ReadValue(pitch);
     stream->ReadValue(distance);
-    stream->Read(&panVelocity, 0x1C);
-    stream->Read(&turnRate, 12);
-    stream->Read(&tiltRate, 12);
-    stream->Read(&zoomRate, 12);
+    stream->ReadValue(panVelocity);
+    stream->ReadValue(panTarget);
+    stream->ReadValue(panResponse);
+    stream->ReadValue(turnRate);
+    stream->ReadValue(turnTarget);
+    stream->ReadValue(turnResponse);
+    stream->ReadValue(tiltRate);
+    stream->ReadValue(tiltTarget);
+    stream->ReadValue(tiltResponse);
+    stream->ReadValue(zoomRate);
+    stream->ReadValue(zoomTarget);
+    stream->ReadValue(zoomResponse);
     std::uint32_t savedFlags = 0;
     stream->ReadValue(savedFlags);
     int target = 0;
     stream->ReadValue(target);
-    if (static_cast<int>(stream->version) < kVersionCameraViews) stream->Read(views, 0xC0);
-    else stream->Read(&views[4], 0x60);
+    if (stream->Version() < kVersionCameraViews) stream->ReadValue(views);
+    else stream->Read(&views[4], kSavedViews * sizeof(CameraView));
     if (static_cast<std::uint8_t>(savedFlags) & kFollowing) {
         if (target != -1) flags |= kFollowing;
         else flags &= ~kFollowing;
@@ -163,13 +175,21 @@ void Camera::Save(ByteStream* stream) {
     stream->WriteValue(viewRotation);
     stream->WriteValue(pitch);
     stream->WriteValue(distance);
-    stream->Write(&panVelocity, 0x1C);
-    stream->Write(&turnRate, 12);
-    stream->Write(&tiltRate, 12);
-    stream->Write(&zoomRate, 12);
+    stream->WriteValue(panVelocity);
+    stream->WriteValue(panTarget);
+    stream->WriteValue(panResponse);
+    stream->WriteValue(turnRate);
+    stream->WriteValue(turnTarget);
+    stream->WriteValue(turnResponse);
+    stream->WriteValue(tiltRate);
+    stream->WriteValue(tiltTarget);
+    stream->WriteValue(tiltResponse);
+    stream->WriteValue(zoomRate);
+    stream->WriteValue(zoomTarget);
+    stream->WriteValue(zoomResponse);
     stream->WriteValue(flags);
     stream->WriteValue(targetId);
-    stream->Write(&views[4], 0x60);
+    stream->Write(&views[4], kSavedViews * sizeof(CameraView));
 }
 
 // --- Camera motion -----------------------------------------------------------------------------------

@@ -13,6 +13,7 @@
 #include "lever.h"
 #include "logic_settings.h"
 #include "model.h"
+#include "net_coder.h"
 #include "net_session.h"
 #include "object_tables.h"
 #include "options.h"
@@ -25,6 +26,7 @@
 #include "screen_layout.h"
 #include "settings.h"
 #include "unit_db.h"
+#include "weather_noise.h"
 #include "world.h"
 
 #include "main_loop.h"
@@ -49,16 +51,9 @@
 #include <cmath>
 #include <cstdlib>
 
-#include <bit>
 #include <cstdio>
-#include <format>
 
 using options::GameOptions;
-
-void InitGameServerPointer();   // net_session.cpp
-void InitGameClientPointer();
-void InitCodeTables();   // net_coder.cpp
-void BuildWeatherNoise();   // weather_noise.cpp
 
 namespace app {
 
@@ -81,38 +76,20 @@ namespace {
 constexpr const char* kWindowTitle = "Evil Islands";
 constexpr const char* kWindowClassName = "EIGAME";
 
-
-// The loop's clock: the time of the last pass (a function-local static), the time not yet run by the server and by
-// the client (milliseconds), and the client's speed.
-std::uint8_t g_lastTimeGuard = /*0079B9FC*/ {};
-std::uint32_t g_lastTime = /*0079B9F8*/ {};
-std::uint32_t g_serverBacklog = /*0079BC64*/ {};
-std::uint32_t g_clientBacklog = /*0079BC68*/ {};
-float g_clientSpeed = /*00784758*/ 1.0f;
-
 // ---- Start-up --------------------------------------------------------------------------------------
 
 constexpr int kExitDeclined = 0xDEAD;   // WinMain's result when the player gives up at a warning
-// The lines of sysmsg.txt: line 0 was the "requires DX7" text of the DirectX version check (gone: the game needs
-// no DirectDraw), kept so the other lines keep their places.
-enum MessageLine { kUnusedDirectX7, kLittleDiskSpace };
-constexpr int kMessageLines = 2;
+constexpr double kLittleDiskSpace = 314572800.0;   // 300 MB
 
-void AppendDefaultMessages(std::vector<std::string>& messages) {
-    messages.push_back("This Game requires DX7 in order to run!");
-    messages.push_back("Not enough free disk space - play on your own risk!");
-}
-
-// The lines of .\res\sysmsg.txt (in the asset code page), or the built-in two when the file is missing or shorter.
-void LoadSystemMessages(std::vector<std::string>& messages) {
-    messages.clear();
+// The low disk space warning: line 1 of .\res\sysmsg.txt (in the asset code page) when the file has two lines or more
+// (line 0 was the DirectX version check's), else the built-in text.
+std::string LittleDiskSpaceWarning() {
     std::string bytes;
-    if (platform::ReadWholeFile(".\\res\\sysmsg.txt", &bytes))
-        for (const std::string& line : str::Lines(bytes)) messages.push_back(text::FromAssetText(line));
-    if (messages.size() < kMessageLines) {
-        messages.clear();
-        AppendDefaultMessages(messages);
+    if (platform::ReadWholeFile(".\\res\\sysmsg.txt", &bytes)) {
+        const std::vector<std::string> lines = str::Lines(bytes);
+        if (lines.size() >= 2) return text::FromAssetText(lines[1]);
     }
+    return "Not enough free disk space - play on your own risk!";
 }
 
 std::string Tail(const std::string& argument, int prefixLength) { return str::Right(argument, static_cast<int>(argument.size()) - prefixLength); }
@@ -165,29 +142,14 @@ bool WarningAccepted(const std::string& text) {
 }
 
 // Warns when the data folder's drive has under 300 MB free. False when the player cancels.
-bool CheckDiskSpace(const std::vector<std::string>& messages) {
+bool CheckDiskSpace() {
     const double freeBytes = platform::FreeDiskSpace(g_dataFolder.c_str());
-    return !(freeBytes != 0.0 && freeBytes < 314572800.0 && !WarningAccepted(messages[kLittleDiskSpace]));
+    if (freeBytes != 0.0 && freeBytes < kLittleDiskSpace) return WarningAccepted(LittleDiskSpaceWarning());
+    return true;
 }
 
-void CreateFolders(std::string& path) {
-    path = std::format("{}saves\\", g_dataFolder);
-    platform::CreateFolder(path.c_str());
-    path = std::format("{}mp\\", g_dataFolder);
-    platform::CreateFolder(path.c_str());
-    path = std::format("{}textures\\", g_dataFolder);
-    platform::CreateFolder(path.c_str());
-}
-
-// The renderer created on the window, its gamma set from the options.
-void CreateRenderer() {
-    GameOptions* options = &options::g_options;
-    Camera* camera = &g_camera;
-    camera->localPosition.x = options->cameraDefaultXDeploy;
-    camera->localPosition.y = options->cameraDefaultYDeploy;
-    camera->localPosition.z = options->cameraDefaultHeight;
-    g_sceneRenderer.CreateRenderer(g_mainWindow, options);
-    g_sceneRenderer.SetGamma(options->brightness, options->gamma);
+void CreateFolders() {
+    for (const char* folder : {"saves\\", "mp\\", "textures\\"}) platform::CreateFolder(g_dataFolder + folder);
 }
 
 // The sound opened (44.1 kHz, 16 bits) with its music folder, wave archives and volumes.
@@ -232,51 +194,39 @@ void LoadDatabases() {
 
 // ---- The main loop ---------------------------------------------------------------------------------
 
+// The loop's clock (milliseconds): the time of the last pass (read at the first), the time not yet run by the server
+// and by the client, and the client's speed.
+struct LoopClock {
+    bool started = false;
+    std::uint32_t last = 0;
+    std::uint32_t serverBacklog = 0;
+    std::uint32_t clientBacklog = 0;
+    float clientSpeed = 1.0f;
+};
+LoopClock g_clock;
+
 constexpr float kOneTenth = 0.1f;
 constexpr float kSlowest = kOneTenth;   // the client speed's limits
 constexpr float kFastest = 10.0f;
 constexpr std::uint32_t kBacklogLimit = 0x4000000;
 constexpr int kLongestPassTicks = 5;
 
+// While frames are recorded (g_recordingFrames; the harness's "record" step) a pass lasts one movie frame: 1000 / 15
+// milliseconds rounded up (the original's MovieCapturingFPS setting, 15 by default; nothing in the game turns the
+// recorder on).
+constexpr std::uint32_t kRecordedFramesPerSecond = 15;
+constexpr std::uint32_t kRecordedFrameMs = 67;
+static_assert(kRecordedFrameMs * kRecordedFramesPerSecond >= 1000 &&
+              (kRecordedFrameMs - 1) * kRecordedFramesPerSecond < 1000);
+
 // The world tick's length in milliseconds, and milliseconds in the camera's time (times 1 / 55).
 std::uint32_t TickLength() { return static_cast<std::uint32_t>(worlddata::g_updatePeriod); }
 float CameraSeconds(std::uint32_t milliseconds) { return static_cast<float>(milliseconds) * 0.018181818f; }
 
-// Three calls of the loop take a harness hook (main_loop.h, set by tests/verify/harness.cpp) when
-// one is set: the frame's last camera update is held still while a scenario is frozen; the server's
-// update and the client's tick are followed by the harness's "speed" hold. Otherwise the function itself.
-// (The frame step and its capture point have their hooks too: RunPass, app_frame.cpp.)
-void FrameCameraUpdate(Camera* camera, float seconds) {
-    if (auto hook = ei::mainloop::g_harnessHooks.frameCameraUpdate) hook(camera, seconds);
-    else camera->Update(seconds);
-}
-// False when the update stops the frame.
-bool UpdateServer() {
-    if (auto hook = ei::mainloop::g_harnessHooks.serverUpdate) return hook(&g_serverWorld) != 0;
-    g_serverWorld.Update();
-    return true;
-}
-bool RunClientSegment() {
-    if (auto hook = ei::mainloop::g_harnessHooks.clientSegment) return hook(&g_clientWorld) != 0;
-    return g_clientWorld.RunTick();
-}
-
-// A change of the window's activation taken up: active again, every surface is restored (when the renderer
-// was created) and the renderer runs; inactive, the renderer stops.
-void TakeActivationChange() {
-    if (!g_activationChanged) return;
-    if (g_active) {
-        g_sceneRenderer.flags |= 1;
-    } else {
-        g_sceneRenderer.flags &= ~1u;
-    }
-    g_activationChanged = 0;
-}
-
 std::uint32_t TimeSinceLastPass() {
-    if (!(g_lastTimeGuard & 1)) {
-        g_lastTimeGuard |= 1;
-        g_lastTime = platform::Milliseconds();
+    if (!g_clock.started) {
+        g_clock.started = true;
+        g_clock.last = platform::Milliseconds();
     }
     std::uint32_t now;
     {
@@ -287,28 +237,47 @@ std::uint32_t TimeSinceLastPass() {
     // without a device the music's stream catches up to it.
     audio::DeliverEnds(now);
     if (g_clientWorld.sounds != nullptr) g_clientWorld.sounds->FollowClock(now);
-    const std::uint32_t elapsed = now - g_lastTime;
-    g_lastTime += elapsed;
+    const std::uint32_t elapsed = now - g_clock.last;
+    g_clock.last += elapsed;
+    return elapsed;
+}
+
+// The pass's time added to the backlogs and returned: none when the clock went back, at most kLongestPassTicks
+// ticks, a movie frame's while frames are recorded. The client's backlog takes it at the client's speed (1 while the
+// local view does not send the camera) and is dropped above kBacklogLimit.
+std::uint32_t AdvanceClock(std::uint32_t elapsed) {
+    if (elapsed > 0x80000000u) elapsed = 0;
+    if (elapsed > TickLength() * kLongestPassTicks) elapsed = TickLength() * kLongestPassTicks;
+    if (g_recordingFrames) elapsed = kRecordedFrameMs;
+    g_clock.serverBacklog += elapsed;
+    if (!g_clientWorld.IsLocalViewSendingCamera()) g_clock.clientSpeed = 1.0f;
+    // The elapsed time at the client's speed plus the backlog (an int), truncated as _ftol does.
+    const float backlog = static_cast<float>(elapsed) * g_clock.clientSpeed +
+                          static_cast<float>(static_cast<std::int32_t>(g_clock.clientBacklog));
+    g_clock.clientBacklog = static_cast<std::uint32_t>(static_cast<std::int64_t>(backlog));
+    if (g_clock.clientBacklog > kBacklogLimit) g_clock.clientBacklog = 0;
     return elapsed;
 }
 
 // The worlds run for the time that has passed: the server a tick at a time while it has a whole
 // tick, the client likewise while it has one and either server updates wait or its view is not in
 // mode 2 (each client tick also moves the camera by a tick, and notes that step for the drawn view:
-// camera::NoteViewTick). False when a world stops the frame.
+// camera::NoteViewTick). False when the client's tick stops the frame. The harness may stand in for both ticks.
 bool RunWorlds() {
+    const ei::mainloop::HarnessHooks& hooks = ei::mainloop::g_harnessHooks;
     for (;;) {
         bool settled = true;
-        if (g_serverBacklog >= TickLength()) {
+        if (g_clock.serverBacklog >= TickLength()) {
             settled = false;
-            if (!UpdateServer()) return false;
-            g_serverBacklog -= TickLength();
+            ei::mainloop::CallOr(hooks.serverUpdate, &WorldServer::Update, &g_serverWorld);
+            g_clock.serverBacklog -= TickLength();
             net::Pump();
         }
-        if (g_clientBacklog >= TickLength() && (g_clientWorld.PumpHasIncoming() || !g_clientWorld.IsLocalViewSendingCamera())) {
-            if (!RunClientSegment()) return false;
+        if (g_clock.clientBacklog >= TickLength() &&
+            (g_clientWorld.PumpHasIncoming() || !g_clientWorld.IsLocalViewSendingCamera())) {
+            if (!ei::mainloop::CallOr(hooks.clientSegment, &WorldClient::RunTick, &g_clientWorld)) return false;
             const std::uint32_t tick = TickLength();
-            g_clientBacklog -= tick;
+            g_clock.clientBacklog -= tick;
             camera::NoteViewBeforeTick(&g_camera);
             g_camera.Update(CameraSeconds(tick));
             camera::NoteViewTick(&g_camera);
@@ -338,79 +307,70 @@ float SpeedForBalance(float balance) {
     return result;
 }
 
-void PrintClientSpeed(float speed, float balance) {
-    console::EndLine(console::g_netLogOut << "Client speed = " << speed << " balance = " << balance);
+// The client's speed from the client's part of a tick (`fraction`), printed when the console asks.
+void UpdateClientSpeed(float fraction) {
+    const float balance = static_cast<float>(g_clientWorld.PumpIncomingCount()) - fraction;
+    g_clock.clientSpeed = SpeedForBalance(balance);
+    if (g_showClientSpeed)
+        console::EndLine(console::g_netLogOut << "Client speed = " << g_clock.clientSpeed << " balance = " << balance);
 }
 
-// The frame recorder's frames a second (g_recordingFrames; the harness's "record" step).
-constexpr int kRecordedFramesPerSecond = 15;
+// The camera runs on the real time of the pass (`elapsed`), a tick at a time; the draw spreads the last tick's step
+// over the part of the next tick the client has had (camera::DrawnView), and so the objects' steps (drawn::PoseOf).
+// The last part of the pass's time may be the harness's (frozen camera, camtrace). Then, unless the client is
+// paused, the camera file's record or playback step at the client's time.
+void UpdateCamera(float fraction, std::uint32_t elapsed) {
+    const float passTicks = static_cast<float>(elapsed) / static_cast<float>(TickLength());
+    camera::SetViewProgress(fraction, passTicks);
+    drawn::SetProgress(fraction, passTicks);
+    Camera* camera = &g_camera;
+    std::uint32_t tick = TickLength();
+    while (elapsed > tick) {
+        camera->Update(CameraSeconds(tick));
+        tick = TickLength();
+        elapsed -= tick;
+    }
+    ei::mainloop::CallOr(ei::mainloop::g_harnessHooks.frameCameraUpdate, &Camera::Update, camera,
+                         CameraSeconds(elapsed));
+    if (g_clientWorld.paused) return;
+    const float time = static_cast<float>(g_clientWorld.tick) + g_clientWorld.tickFraction;
+    if (camera->flags & Camera::kRecording) camera->RecordFrame(time);
+    if (camera->flags & Camera::kPlaying) camera->PlaybackStep(time);
+}
+
+// The interface's update and the frame (the harness may stand in for the frame step).
+void DrawFrame() {
+    g_interface.Update();
+    ei::mainloop::CallOr(ei::mainloop::g_harnessHooks.frameStep, &app::FrameStep, true);
+}
 
 // One pass of the loop while no message waits. Returns whether the interface takes the input
 // messages from now on: not while the renderer is inactive.
 bool RunPass() {
-    TakeActivationChange();
+    g_sceneRenderer.running = g_active != 0;
     TakeResolutionChange();
     UpdateCursorConfinement();
     std::uint32_t elapsed = TimeSinceLastPass();
-    if (!(g_sceneRenderer.flags & 1)) {
+    if (!g_sceneRenderer.running) {
         GuardPlayerData(0);
         return false;
     }
     GuardPlayerData(1);
-    WorldClient* client = &g_clientWorld;
-    if (client->IsLocalPlayerIdle()) {
+    if (g_clientWorld.IsLocalPlayerIdle()) {
         if (IsMultiplayerClient()) g_gameFlow.RecreateClientSession();
         else g_gameFlow.CloseSessions();
     }
-    if (elapsed > 0x80000000u) elapsed = 0;
     net::Pump();
-    if (elapsed > TickLength() * kLongestPassTicks) elapsed = TickLength() * kLongestPassTicks;
-    if (g_recordingFrames) {
-        // A recorded frame lasts 1000 / the movie's frames a second, rounded up (the original's MovieCapturingFPS
-        // setting, 15 by default; nothing in the game turns the recorder on).
-        const float frame = 1000.0f / static_cast<float>(kRecordedFramesPerSecond);
-        elapsed = static_cast<std::uint32_t>(static_cast<std::int64_t>(std::ceil(frame)));
-    }
-    g_serverBacklog += elapsed;
-    if (!client->IsLocalViewSendingCamera()) g_clientSpeed = 1.0f;
-    // The elapsed time at the client's speed plus the backlog (an int), truncated as _ftol does.
-    const float backlog = static_cast<float>(elapsed) * g_clientSpeed + static_cast<float>(static_cast<std::int32_t>(g_clientBacklog));
-    g_clientBacklog = static_cast<std::uint32_t>(static_cast<std::int64_t>(backlog));
-    if (g_clientBacklog > kBacklogLimit) g_clientBacklog = 0;
-
+    elapsed = AdvanceClock(elapsed);
     if (RunWorlds()) {
         g_gameFlow.ProcessRequest();
         const float fraction =
-            static_cast<float>(g_clientBacklog) / static_cast<float>(static_cast<std::int32_t>(TickLength()));
-        if (!client->paused) client->tickFraction = fraction;
-        const float balance = static_cast<float>(client->PumpIncomingCount()) - fraction;
-        g_clientSpeed = SpeedForBalance(balance);
-        if (g_showClientSpeed) PrintClientSpeed(g_clientSpeed, balance);
-
-        // The camera runs on the real time of the pass, a tick at a time; the draw spreads the last tick's
-        // step over the part of the next tick the client has had (camera::DrawnView), and so the objects' steps
-        // (drawn::PoseOf).
-        const float passTicks = static_cast<float>(elapsed) / static_cast<float>(TickLength());
-        camera::SetViewProgress(fraction, passTicks);
-        drawn::SetProgress(fraction, passTicks);
-        Camera* camera = &g_camera;
-        std::uint32_t tick = TickLength();
-        while (elapsed > tick) {
-            camera->Update(CameraSeconds(tick));
-            tick = TickLength();
-            elapsed -= tick;
-        }
-        FrameCameraUpdate(camera, CameraSeconds(elapsed));
-        if (!client->paused) {
-            if (camera->flags & Camera::kRecording)
-                camera->RecordFrame(std::bit_cast<std::uint32_t>(static_cast<float>(client->tick) + client->tickFraction));
-            if (camera->flags & Camera::kPlaying)
-                camera->PlaybackStep(static_cast<float>(client->tick) + client->tickFraction);
-        }
+            static_cast<float>(g_clock.clientBacklog) / static_cast<float>(static_cast<std::int32_t>(TickLength()));
+        if (!g_clientWorld.paused) g_clientWorld.tickFraction = fraction;
+        UpdateClientSpeed(fraction);
+        UpdateCamera(fraction, elapsed);
     }
-    g_interface.Update();
-    if (auto hook = ei::mainloop::g_harnessHooks.frameStep) hook(true);
-    else app::FrameStep(true);
+    DrawFrame();
     return true;
 }
 
@@ -464,7 +424,6 @@ void ShutDown() {
 char g_windowTitle[256] = /*0079BB24*/ {""};
 platform::NativeWindow g_mainWindow = /*0079BC28*/ {};
 std::uint8_t g_active = /*0079BC5C*/ {};
-std::uint8_t g_activationChanged = /*0079BC5D*/ {};
 std::uint8_t g_interfaceHasScreen = /*00784750*/ 1;
 std::uint8_t g_quitAllowed = /*00784751*/ 1;
 std::uint8_t g_recordingFrames = /*0079BC54*/ {};
@@ -483,24 +442,19 @@ void StartVideo() {
 int GameMain(char* commandLine) {
     // What game.exe's static initialisers did beyond setting values, in their order: the exit functions go in the
     // game's order, not at our CRT's.
-    ::InitGameServerPointer();
-    ::InitGameClientPointer();
-    ::InitCodeTables();
-    ::BuildWeatherNoise();
+    InitGameServerPointer();
+    InitGameClientPointer();
+    InitCodeTables();
+    BuildWeatherNoise();
 
-    std::vector<std::string> messages;
-    LoadSystemMessages(messages);
     // The classes the chunk archives can hold: 1 the class template, 2 the party record.
-    app::TypeRegistryRegister(&g_classRegistry, 1, CreateClassTemplate);
-    app::TypeRegistryRegister(&g_classRegistry, 2, CreatePartyRecord);
+    TypeRegistryRegister(&g_classRegistry, 1, CreateClassTemplate);
+    TypeRegistryRegister(&g_classRegistry, 2, CreatePartyRecord);
     ReadCommandLine(commandLine);
 
     GameOptions* options = &options::g_options;
     g_startFolder = platform::CurrentFolder() + '\\';
-    {
-        std::string settings = g_startFolder + "config\\ai.reg";
-        g_logicSettings.Load(settings);
-    }
+    g_logicSettings.Load(g_startFolder + "config\\ai.reg");
     options->Load();
     // The layout comes from the configured resolution, which is the frame's size: the window made later may get a
     // smaller client area (a work area too small for it), and the renderer scales the frame into it.
@@ -511,10 +465,9 @@ int GameMain(char* commandLine) {
     // The field of view: pi * 2 / 7 (51.4 degrees).
     g_camera.Init(options, options->nearClipDistance, options->farClipDistance, kPi * 2.0f / 7.0f);
     g_clientWorld.SetCamera(&g_camera);
-    if (!CheckDiskSpace(messages)) return kExitDeclined;
+    if (!CheckDiskSpace()) return kExitDeclined;
+    CreateFolders();
 
-    std::string folder;
-    CreateFolders(folder);
     g_mainWindow = platform::CreateGameWindow(g_windowTitle, options->resolutionX, options->resolutionY,
                                               options->fullScreen != 0);
     if (!g_mainWindow) return 0;
@@ -526,17 +479,17 @@ int GameMain(char* commandLine) {
     if (options->audio) OpenSound();
     LoadDatabases();
     g_mapDatabase.LoadAll();
-    CreateRenderer();
+    g_sceneRenderer.CreateRenderer(g_mainWindow, options);
+    g_sceneRenderer.SetGamma(options->brightness, options->gamma);
 
     PlayMovies("Start", true);
-    g_loadingMovieName = "Progres.bik";
+    // The loading screen's first frame stays up while the world's graphics, the cursors and the interface are made.
     ShowLoadingMovie(0);
     CloseLoadingMovie();
     g_clientWorld.SetUpGraphics(g_sceneRenderer.device);
     SetUpCursors(0);
     g_interface.Create(g_sceneRenderer.device);
     StartFirstMap();
-    g_sceneRenderer.SetGamma(options->brightness, options->gamma);
 
     const int result = RunMainLoop();
     ShutDown();

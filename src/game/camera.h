@@ -90,7 +90,7 @@ public:
     // Starts recording into ".\camera\" + `name`; false when the file cannot be made. Appends a frame at `time`.
     // CloseFile stops recording (the file name emptied).
     bool OpenFile(const char* name);
-    void RecordFrame(std::uint32_t time);
+    void RecordFrame(float time);
     void CloseFile();
 
     static constexpr std::uint32_t kFollowing = 0x8;

@@ -32,12 +32,6 @@ namespace {
 
 bool Running() { return app::g_active != 0 && app::g_interfaceHasScreen != 0; }
 
-// The harness's hook before the cursor and the present (game/main_loop.h): its frame capture reads the finished frame
-// (tests/verify/harness_capture.cpp).
-void BeforePresent() {
-    if (auto hook = ei::mainloop::g_harnessHooks.beforePresent) hook();
-}
-
 std::uint32_t g_movieFrame = /*0079BC58*/ {};   // the number of the next frame file of the movie being written
 
 } // namespace
@@ -54,7 +48,8 @@ void FrameStep(bool draw) {
     g_sceneRenderer.EndScene();
     g_interface.DrawOverlays();
     if (!draw || !Running()) return;
-    BeforePresent();
+    // The harness's frame capture reads the finished frame here (game/main_loop.h).
+    if (auto hook = ei::mainloop::g_harnessHooks.beforePresent) hook();
     CursorDrawFrame(&g_cursor);
     DevicePresent(g_sceneRenderer.device);
     if (!app::g_recordingFrames) return;

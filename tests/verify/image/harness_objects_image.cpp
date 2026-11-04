@@ -171,11 +171,8 @@ int CampaignMode() { return static_cast<int>(g_serverWorld.zoneMode); }
 void* ClientWorldObject() { return &g_clientWorld; }
 void* SceneDevice() { return g_sceneRenderer.device.Get(); }
 
-int ServerUpdate(void* server) {
-    static_cast<WorldServer*>(server)->Update();
-    return 1;
-}
-int ClientSegment(void* client) { return static_cast<WorldClient*>(client)->RunTick() ? 1 : 0; }
+void ServerUpdate(void* server) { static_cast<WorldServer*>(server)->Update(); }
+bool ClientSegment(void* client) { return static_cast<WorldClient*>(client)->RunTick(); }
 void CameraUpdate(void* camera, float seconds) { static_cast<::Camera*>(camera)->Update(seconds); }
 void FrameStep(bool draw) { app::FrameStep(draw); }
 

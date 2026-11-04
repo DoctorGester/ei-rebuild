@@ -194,6 +194,8 @@ extern std::uint32_t g_offsetBits[34];
 extern std::uint32_t g_offsetCodes[34];
 extern std::uint32_t g_lengthBits[34];
 extern std::uint32_t g_lengthCodes[34];
+// Fills the code tables (start-up, GameMain).
+void InitCodeTables();
 
 // (1 << n) - 1 for n = 1..32, at n - 1 (BufferCursor::GetBits).
 inline constexpr std::uint32_t kCoderBitMasks[32] = /*0078DB28*/ {

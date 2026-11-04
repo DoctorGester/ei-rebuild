@@ -144,7 +144,7 @@ void HandOverClouds(const WorldClient* world, float hour) {
 
 int WorldClient::UpdateLighting() {
     auto* display = &g_sceneRenderer;
-    if (!(display->flags & 1)) return 1;
+    if (!display->running) return 1;
     UpdateExitMarkers();
     const float now = HourOfDay(this);
     HandOverClouds(this, now);

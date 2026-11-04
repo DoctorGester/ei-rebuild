@@ -36,3 +36,6 @@ extern WeatherNoiseCurve g_swayYByHeight;
 extern WeatherNoiseCurve g_swayZByHeight;
 extern WeatherNoiseCurve g_swayXByPlace;
 extern WeatherNoiseCurve g_swayYByPlace;
+
+// Builds the five curves (start-up, GameMain).
+void BuildWeatherNoise();
